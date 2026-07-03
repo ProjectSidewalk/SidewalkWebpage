@@ -27,7 +27,7 @@ class AdminApiAnalytics {
      */
     constructor() {
         const excludeToggle = document.getElementById('api-analytics-exclude-docs');
-        const daysSelect    = document.getElementById('api-analytics-days');
+        const daysSelect = document.getElementById('api-analytics-days');
 
         if (excludeToggle) {
             excludeToggle.addEventListener('change', () => {
@@ -63,7 +63,7 @@ class AdminApiAnalytics {
         this.#showLoading();
 
         try {
-            const url      = `/adminapi/apiAnalytics?excludeApiDocs=${this.#excludeApiDocs}&days=${this.#days}`;
+            const url = `/adminapi/apiAnalytics?excludeApiDocs=${this.#excludeApiDocs}&days=${this.#days}`;
             const response = await fetch(url);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             this.#data = await response.json();
@@ -123,7 +123,7 @@ class AdminApiAnalytics {
             return;
         }
 
-        const rows = this.#data.endpoint_counts.map(row => `
+        const rows = this.#data.endpoint_counts.map((row) => `
             <tr>
                 <td><code>${row.endpoint}</code></td>
                 <td class="text-right">${row.count.toLocaleString()}</td>
@@ -164,26 +164,26 @@ class AdminApiAnalytics {
         // The admin page loads vega-embed 3.0.0-beta.17, which does not return a Promise from embed().
         // Use the same pattern as the rest of Admin.js: pass mode as an option, no $schema field.
         const spec = {
-            "width": 700,
-            "height": 200,
-            "data": { "values": this.#data.daily_counts, "format": { "type": "json" } },
-            "mark": { "type": "line", "point": true },
-            "encoding": {
-                "x": {
-                    "field": "date",
-                    "type": "temporal",
-                    "axis": { "title": "Date", "format": "%b %d" }
+            width: 700,
+            height: 200,
+            data: { values: this.#data.daily_counts, format: { type: 'json' } },
+            mark: { type: 'line', point: true },
+            encoding: {
+                x: {
+                    field: 'date',
+                    type: 'temporal',
+                    axis: { title: 'Date', format: '%b %d' },
                 },
-                "y": {
-                    "field": "count",
-                    "type": "quantitative",
-                    "axis": { "title": "API Calls" }
-                }
-            }
+                y: {
+                    field: 'count',
+                    type: 'quantitative',
+                    axis: { title: 'API Calls' },
+                },
+            },
         };
 
         if (typeof vega !== 'undefined') {
-            const opt = { "mode": "vega-lite", "actions": false };
+            const opt = { mode: 'vega-lite', actions: false };
             vega.embed('#api-analytics-vega-chart', spec, opt);
         }
     }
@@ -200,7 +200,7 @@ class AdminApiAnalytics {
             return;
         }
 
-        const rows = this.#data.format_counts.map(row => `
+        const rows = this.#data.format_counts.map((row) => `
             <tr>
                 <td><code>${row.endpoint}</code></td>
                 <td>${row.format}</td>
@@ -223,7 +223,7 @@ class AdminApiAnalytics {
     #showLoading() {
         const summaryEl = document.getElementById('api-analytics-summary');
         if (summaryEl) summaryEl.innerHTML = '<p>Loading...</p>';
-        ['api-analytics-endpoint-table', 'api-analytics-daily-chart', 'api-analytics-format-table'].forEach(id => {
+        ['api-analytics-endpoint-table', 'api-analytics-daily-chart', 'api-analytics-format-table'].forEach((id) => {
             const el = document.getElementById(id);
             if (el) el.innerHTML = '';
         });

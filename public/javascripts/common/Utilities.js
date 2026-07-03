@@ -15,7 +15,7 @@ util.EXPLORE_CANVAS_ASPECT_RATIO = util.EXPLORE_CANVAS_WIDTH / util.EXPLORE_CANV
  *
  * @returns {number} displayWidth / EXPLORE_CANVAS_WIDTH, or 1 if the street view is not present
  */
-util.exploreDisplayScale = function() {
+util.exploreDisplayScale = function () {
     const layer = document.getElementById('labelDrawingLayer');
     return layer ? layer.getBoundingClientRect().width / util.EXPLORE_CANVAS_WIDTH : 1;
 };
@@ -30,7 +30,7 @@ util.exploreDisplayScale = function() {
  * @param {string[]} heightVarNames Base-size CSS variables that sum to the tool's reference height.
  * @returns {number} The applied scale factor.
  */
-util.applyToolScale = function(widthVarNames, heightVarNames) {
+util.applyToolScale = function (widthVarNames, heightVarNames) {
     const toolUI = document.querySelector('.tool-ui');
     if (!toolUI) return 1;
 
@@ -80,7 +80,7 @@ util.applyToolScale = function(widthVarNames, heightVarNames) {
  * Returns the uniform UI scale factor currently applied to the page (see util.applyToolScale), or 1 if unscaled.
  * @returns {number} The current --ui-scale value.
  */
-util.uiScale = function() {
+util.uiScale = function () {
     return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
 };
 
@@ -99,8 +99,9 @@ util.isFirefox = () => util.getBrowserName() === 'Firefox';
 function mousePosition(e, dom) {
     const mx = e.pageX - $(dom).offset().left;
     const my = e.pageY - $(dom).offset().top;
-    return { 'x': parseInt(mx, 10), 'y': parseInt(my, 10) };
+    return { x: parseInt(mx, 10), y: parseInt(my, 10) };
 }
+
 util.mousePosition = mousePosition;
 
 /**
@@ -112,6 +113,7 @@ util.mousePosition = mousePosition;
 function getURLParameter(argName) {
     return new URLSearchParams(window.location.search).get(argName) ?? '';
 }
+
 util.getURLParameter = getURLParameter;
 
 // Converts a blob that we get from `fetch` into base64. Necessary to display images acquired through `fetch`.
@@ -125,19 +127,21 @@ function convertBlobToBase64(blob) {
         reader.readAsDataURL(blob);
     });
 }
+
 util.convertBlobToBase64 = convertBlobToBase64;
 
 // Asynchronously acquire an image using `fetch` and convert it into base64. Returns a promise.
 function getImage(imageUrl) {
     return fetch(imageUrl)
-        .then(response => {
+        .then((response) => {
             if (response.status === 404) throw new Error('Image not found');
             else if (!response.ok) throw new Error('Other network error');
             return response.blob();
-        }).then(myBlob => {
+        }).then((myBlob) => {
             return convertBlobToBase64(myBlob);
         });
 }
+
 util.getImage = getImage;
 
 // Sums an array's numbers (a helper, not an Array.prototype extension, to avoid polluting native prototypes).
@@ -146,20 +150,22 @@ util.array.sum = (arr) => arr.reduce((a, b) => a + b, 0);
 
 // Changes a string in camelCase to kebab-case.
 function camelToKebab(theString) {
-    return theString.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+    return theString.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
 }
+
 util.camelToKebab = camelToKebab;
 
 function escapeHTML(str) {
-    return str.replace(/[&<>"']/g, function(match) {
+    return str.replace(/[&<>"']/g, (match) => {
         switch (match) {
             case '&': return '&amp;';
             case '<': return '&lt;';
             case '>': return '&gt;';
             case '"': return '&quot;';
-            case "'": return '&#039;';
+            case '\'': return '&#039;';
             default: return match;
         }
     });
 }
+
 util.escapeHTML = escapeHTML;

@@ -64,7 +64,7 @@ class BadgeProgress {
             // Tooltip content for this row, set during render and shown on hover/focus.
             iconSrc: null,
             tooltipName: '',
-            tooltipDesc: ''
+            tooltipDesc: '',
         };
     }
 
@@ -119,7 +119,7 @@ class BadgeProgress {
 
     /** Formats a number using the locale-aware i18next number formatter. */
     #formatNumber(val) {
-        return i18next.t('common:format-number', { val: val });
+        return i18next.t('common:format-number', { val });
     }
 
     /**
@@ -137,7 +137,7 @@ class BadgeProgress {
             iconFor: (level) => `/assets/images/badges/badge_labels_badge${level}.png`,
             nextText: (target) => i18next.t('audit:right-ui.badges.next-labels', { count: target }),
             unit: '',
-            decimals: 0
+            decimals: 0,
         });
 
         const distanceThresholds = isMetric
@@ -149,15 +149,15 @@ class BadgeProgress {
             thresholds: distanceThresholds,
             nameKey: 'common:badges.explorer-name',
             goalKey: 'audit:right-ui.badges.explorer-goal',
-            iconFor: (level) => isMetric
+            iconFor: (level) => (isMetric
                 ? `/assets/images/badges/badge_distance_km_badge${level}.png`
-                : `/assets/images/badges/badge_distance_badge${level}.png`,
+                : `/assets/images/badges/badge_distance_badge${level}.png`),
             // The badge's total distance goal, shown to one decimal place.
             nextText: (target) => i18next.t('audit:right-ui.badges.next-distance', {
-                distance: `${this.#formatNumber(Number(target.toFixed(1)))} ${distanceUnit}`
+                distance: `${this.#formatNumber(Number(target.toFixed(1)))} ${distanceUnit}`,
             }),
             unit: distanceUnit,
-            decimals: 1
+            decimals: 1,
         });
     }
 
@@ -171,7 +171,7 @@ class BadgeProgress {
         const { value, thresholds, nameKey, goalKey, iconFor, nextText, unit, decimals } = config;
 
         // The next badge is the lowest level the user hasn't reached yet; if they've earned them all, show the top one.
-        let nextIndex = thresholds.findIndex(threshold => value < threshold);
+        let nextIndex = thresholds.findIndex((threshold) => value < threshold);
         const maxed = nextIndex === -1;
         if (maxed) nextIndex = thresholds.length - 1;
 

@@ -12,7 +12,7 @@ class ModalMissionCompleteMap {
     static #STREET_TIERS = [
         { id: 'mc-street-community', colorVar: '--mc-line-community', width: 3 },
         { id: 'mc-street-previous', colorVar: '--mc-line-previous', width: 4 },
-        { id: 'mc-street-this-mission', colorVar: '--mc-line-this-mission', width: 5 }
+        { id: 'mc-street-this-mission', colorVar: '--mc-line-this-mission', width: 5 },
     ];
 
     /**
@@ -31,8 +31,8 @@ class ModalMissionCompleteMap {
      */
     #createMap(containerId, mapboxApiKey) {
         return fetch('/cityMapParams', { headers: { Accept: 'application/json' } })
-            .then(response => response.json())
-            .then(data => {
+            .then((response) => response.json())
+            .then((data) => {
                 mapboxgl.accessToken = mapboxApiKey;
                 const map = new mapboxgl.Map({
                     container: containerId,
@@ -43,13 +43,13 @@ class ModalMissionCompleteMap {
                     maxZoom: 19,
                     maxBounds: [
                         [data.southwest_boundary.lng, data.southwest_boundary.lat],
-                        [data.northeast_boundary.lng, data.northeast_boundary.lat]
-                    ]
+                        [data.northeast_boundary.lng, data.northeast_boundary.lat],
+                    ],
                 });
                 map.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
                 map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'bottom-right');
                 this.#map = map;
-                return new Promise(resolve => {
+                return new Promise((resolve) => {
                     if (map.loaded()) resolve(map);
                     else map.on('load', () => resolve(map));
                 });
@@ -68,7 +68,7 @@ class ModalMissionCompleteMap {
         const tierData = {
             'mc-street-community': streetTiers.community,
             'mc-street-previous': streetTiers.previous,
-            'mc-street-this-mission': streetTiers.thisMission
+            'mc-street-this-mission': streetTiers.thisMission,
         };
         for (const tier of ModalMissionCompleteMap.#STREET_TIERS) {
             const color = getComputedStyle(document.documentElement).getPropertyValue(tier.colorVar).trim();
@@ -78,7 +78,7 @@ class ModalMissionCompleteMap {
                 type: 'line',
                 source: tier.id,
                 layout: { 'line-join': 'round', 'line-cap': 'round' },
-                paint: { 'line-color': color, 'line-width': tier.width, 'line-opacity': 1 }
+                paint: { 'line-color': color, 'line-width': tier.width, 'line-opacity': 1 },
             });
         }
 
@@ -92,12 +92,12 @@ class ModalMissionCompleteMap {
 
     /** Resizes the map to its container, needed because the map is created while the modal is hidden. */
     resize() {
-        this.#mapPromise.then(map => map.resize());
+        this.#mapPromise.then((map) => map.resize());
     }
 
     /** Removes the street and label layers/sources from a previous mission so they can be re-added. */
     #clearLayers(map) {
-        const layerIds = ModalMissionCompleteMap.#STREET_TIERS.map(tier => tier.id).concat(this.#labelLayerNames);
+        const layerIds = ModalMissionCompleteMap.#STREET_TIERS.map((tier) => tier.id).concat(this.#labelLayerNames);
         for (const layerId of layerIds) {
             if (map.getLayer(layerId)) map.removeLayer(layerId);
             if (map.getSource(layerId)) map.removeSource(layerId);
@@ -110,16 +110,18 @@ class ModalMissionCompleteMap {
      * worked streets if the mission tier is somehow empty.
      */
     #frameMission(map, streetTiers) {
-        const target = streetTiers.thisMission.features.length ? streetTiers.thisMission : {
-            type: 'FeatureCollection',
-            features: [...streetTiers.previous.features, ...streetTiers.community.features]
-        };
+        const target = streetTiers.thisMission.features.length
+            ? streetTiers.thisMission
+            : {
+                    type: 'FeatureCollection',
+                    features: [...streetTiers.previous.features, ...streetTiers.community.features],
+                };
         if (!target.features.length) return;
 
         const scale = util.uiScale();
         map.fitBounds(turf.bbox(target), {
             padding: { top: 60 * scale, bottom: 30 * scale, left: 210 * scale, right: 210 * scale },
-            animate: false
+            animate: false,
         });
     }
 }

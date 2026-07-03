@@ -20,7 +20,6 @@ module.exports = [
             'public/javascripts/lib/**',
             'public/javascripts/common/detectMobileBrowser.js',
             'public/javascripts/common/isMobile.js',
-            'public/javascripts/common/Panomarker.js',
         ],
     },
     {

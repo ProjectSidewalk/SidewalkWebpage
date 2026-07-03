@@ -30,7 +30,7 @@ class StuckAlert extends Alert {
         if (this.#recentPanos.length > 25) this.#recentPanos.shift();
 
         // If this is their 3rd time visiting the pano recently, show an alert.
-        if (this.#recentPanos.filter(x => x === panoId).length > 2) {
+        if (this.#recentPanos.filter((x) => x === panoId).length > 2) {
             this._showAlert('popup.stuck-suggestion', 'stuckSuggestion');
         }
     }

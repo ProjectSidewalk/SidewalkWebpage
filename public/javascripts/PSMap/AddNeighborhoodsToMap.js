@@ -18,9 +18,11 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
     const NEIGHBORHOOD_OUTLINE_LAYER_NAME = 'neighborhood-polygons-outline';
 
     // Add the completion rates, label counts, and styling info to the neighborhood GeoJSON.
-    let measurementSystem = i18next.t('measurement-system');
-    for (let neighborhood of neighborhoodGeoJSON.features) {
-        let compRate = completionRates.find(function(r) { return r.region_id === neighborhood.properties.region_id; });
+    const measurementSystem = i18next.t('measurement-system');
+    for (const neighborhood of neighborhoodGeoJSON.features) {
+        const compRate = completionRates.find((r) => {
+            return r.region_id === neighborhood.properties.region_id;
+        });
         neighborhood.properties.completionRate = Math.min(100, 100.0 * compRate.rate);
         neighborhood.properties.completed_distance_m = compRate.completed_distance_m;
         neighborhood.properties.total_distance_m = compRate.total_distance_m;
@@ -50,7 +52,7 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
         if (map.getLayer(NEIGHBORHOOD_LAYER_NAME) && map.getLayer(NEIGHBORHOOD_OUTLINE_LAYER_NAME)) {
             resolve();
         } else {
-            map.on('sourcedataloading', function(e) {
+            map.on('sourcedataloading', (e) => {
                 if (map.getLayer(NEIGHBORHOOD_LAYER_NAME) && map.getLayer(NEIGHBORHOOD_OUTLINE_LAYER_NAME)) {
                     resolve();
                 }
@@ -60,12 +62,11 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
 
     // Renders the neighborhood polygons, colored by completion percentage.
     function initializeMapNeighborhoodPolygons(map, neighborhoodGeoJSON) {
-
         // Add the neighborhood polygons to the map.
         map.addSource(NEIGHBORHOOD_LAYER_NAME, {
             type: 'geojson',
             data: neighborhoodGeoJSON,
-            promoteId: 'region_id'
+            promoteId: 'region_id',
         });
         map.addLayer({
             id: NEIGHBORHOOD_LAYER_NAME,
@@ -74,8 +75,8 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
             paint: {
                 'fill-color': ['get', 'fillColor'],
                 'fill-outline-color': ['get', 'fillColor'],
-                'fill-opacity': ['get', 'fillOpacity']
-            }
+                'fill-opacity': ['get', 'fillOpacity'],
+            },
         });
         // Need an extra line layer for the region outlines bc WebGL doesn't render outlines wider than width of 1.
         // https://github.com/mapbox/mapbox-gl-js/issues/3018#issuecomment-240381965
@@ -85,15 +86,15 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
             source: NEIGHBORHOOD_LAYER_NAME,
             paint: {
                 'line-color': ['case',
-                    ['boolean', ['feature-state', 'hover'], false], '#000', '#888'
+                    ['boolean', ['feature-state', 'hover'], false], '#000', '#888',
                 ],
                 'line-width': ['case',
-                    ['boolean', ['feature-state', 'hover'], false], 3, 1.5
+                    ['boolean', ['feature-state', 'hover'], false], 3, 1.5,
                 ],
                 'line-opacity': ['case',
-                    ['boolean', ['feature-state', 'hover'], false], 1.0, 0.25
-                ]
-            }
+                    ['boolean', ['feature-state', 'hover'], false], 1.0, 0.25,
+                ],
+            },
         });
     }
 
@@ -120,33 +121,33 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
             if (params.neighborhoodTooltip === 'completionRate' && addOrUpdatePopup) {
                 let popupContent;
                 const regionName = currRegion.properties.region_name;
-                const url = '/explore?regionId=' + hoveredRegionId;
+                const url = `/explore?regionId=${hoveredRegionId}`;
                 const compRate = currRegion.properties.completionRate;
                 const compRateRounded = Math.floor(compRate);
                 const distanceLeftRounded = Math.round(currRegion.properties.dist_remaining_converted);
                 if (currRegion.properties.user_completed) {
-                    popupContent = '<strong>' + regionName + '</strong>: ' +
-                        i18next.t('common:map.100-percent-complete') + '<br>' +
-                        i18next.t('common:map.thanks');
+                    popupContent = `<strong>${regionName}</strong>:
+                        ${i18next.t('common:map.100-percent-complete')}<br>
+                        ${i18next.t('common:map.thanks')}`;
                 } else if (compRate === 100) {
-                    popupContent = '<strong>' + regionName + '</strong>: ' +
-                        i18next.t('common:map.100-percent-complete') + '<br>' +
-                        i18next.t('common:map.click-to-help', { url: url, regionId: hoveredRegionId });
+                    popupContent = `<strong>${regionName}</strong>:
+                        ${i18next.t('common:map.100-percent-complete')}<br>
+                        ${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
                 } else if (distanceLeftRounded === 0) {
-                    popupContent = '<strong>' + regionName + '</strong>: ' +
-                        i18next.t('common:map.percent-complete', { percent: compRateRounded }) + '<br>' +
-                        i18next.t('common:map.less-than-one-unit-left') + '<br>' +
-                        i18next.t('common:map.click-to-help', { url: url, regionId: hoveredRegionId });
+                    popupContent = `<strong>${regionName}</strong>:
+                        ${i18next.t('common:map.percent-complete', { percent: compRateRounded })}<br>
+                        ${i18next.t('common:map.less-than-one-unit-left')}<br>
+                        ${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
                 } else if (distanceLeftRounded === 1) {
-                    popupContent = '<strong>' + regionName + '</strong>: ' +
-                        i18next.t('common:map.percent-complete', { percent: compRateRounded }) + '<br>' +
-                        i18next.t('common:map.distance-left-one-unit') + '<br>' +
-                        i18next.t('common:map.click-to-help', { url: url, regionId: hoveredRegionId });
+                    popupContent = `<strong>${regionName}</strong>:
+                        ${i18next.t('common:map.percent-complete', { percent: compRateRounded })}<br>
+                        ${i18next.t('common:map.distance-left-one-unit')}<br>
+                        ${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
                 } else {
-                    popupContent = '<strong>' + regionName + '</strong>: ' +
-                        i18next.t('common:map.percent-complete', { percent: compRateRounded }) + '<br>' +
-                        i18next.t('common:map.distance-left', { n: distanceLeftRounded }) + '<br>' +
-                        i18next.t('common:map.click-to-help', { url: url, regionId: hoveredRegionId });
+                    popupContent = `<strong>${regionName}</strong>:
+                        ${i18next.t('common:map.percent-complete', { percent: compRateRounded })}<br>
+                        ${i18next.t('common:map.distance-left', { n: distanceLeftRounded })}<br>
+                        ${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
                 }
 
                 // Set tooltip to center of neighborhood.
@@ -155,7 +156,9 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
                 neighborhoodTooltip.setLngLat({ lng: regionCenter[0], lat: regionCenter[1] }).addTo(map);
 
                 // Clear timeout when entering a tooltip.
-                neighborhoodTooltip._content.onmouseenter = function () { clearTimeout(tooltipTimeout); };
+                neighborhoodTooltip._content.onmouseenter = function () {
+                    clearTimeout(tooltipTimeout);
+                };
 
                 // Remove the tooltip after a delay when the mouse leaves the tooltip.
                 neighborhoodTooltip._content.onmouseleave = function () {
@@ -167,7 +170,7 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
                 };
 
                 // Make sure the region outline is removed when the popup close button is clicked.
-                neighborhoodTooltip._content.querySelector('.mapboxgl-popup-close-button').onclick = function(e) {
+                neighborhoodTooltip._content.querySelector('.mapboxgl-popup-close-button').onclick = function (e) {
                     map.setFeatureState({ source: NEIGHBORHOOD_LAYER_NAME, id: hoveredRegionId }, { hover: false });
                     neighborhoodTooltip.remove();
                     hoveredRegionId = null;
@@ -190,14 +193,18 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
         });
 
         // Clear the timeout if the mouse re-enters the neighborhood polygon.
-        map.on('mouseenter', NEIGHBORHOOD_LAYER_NAME, () => { clearTimeout(tooltipTimeout); });
+        map.on('mouseenter', NEIGHBORHOOD_LAYER_NAME, () => {
+            clearTimeout(tooltipTimeout);
+        });
 
         if (params.logClicks) {
             // Logs to the webpage_activity table when a region is selected from the map and 'Click here' is clicked.
             // Logs are of the form 'Click_module=<mapName>_regionId=<regionId>_distanceLeft=<'0', '<1', '1' or '>1'>_target=audit'.
             $(`#${params.mapName}`).on('click', '.region-selection-trigger', function () {
                 const regionId = parseInt($(this).attr('regionId'));
-                const region = neighborhoodGeoJSON.features.find(function(x) { return regionId === x.properties.region_id; });
+                const region = neighborhoodGeoJSON.features.find((x) => {
+                    return regionId === x.properties.region_id;
+                });
                 const distanceLeftRounded = Math.round(region.properties.dist_remaining_converted);
                 let distanceLeftStr;
                 if (region.properties.completionRate === 100) distanceLeftStr = '0';
@@ -212,7 +219,7 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
 
     // Returns the color for a neighborhood based on a gradient.
     function getColorFromGradient(num, gradient) {
-        for (let step in gradient) {
+        for (const step in gradient) {
             if (num <= step) return gradient[step];
         }
     }
@@ -231,13 +238,13 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
             70: '#2171b5',
             80: '#08719c',
             90: '#08519c',
-            100: '#08306b'
-        }
+            100: '#08306b',
+        };
         const compRate = polygonData.completionRate;
         const complete = Math.abs(compRate - 100) < Number.EPSILON;
         return {
             fillColor: complete ? '#03152f' : getColorFromGradient(compRate, neighborhoodColorGradient),
-            fillOpacity: 0.35 + (0.4 * compRate / 100)
-        }
+            fillOpacity: 0.35 + (0.4 * compRate / 100),
+        };
     }
 }

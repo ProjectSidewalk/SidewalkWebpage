@@ -24,7 +24,7 @@ class SeverityBucket {
      * @param {string} labelType
      */
     setLabelType(labelType) {
-        this.#bucket.forEach(severity => severity.setLabelType(labelType));
+        this.#bucket.forEach((severity) => severity.setLabelType(labelType));
     }
 
     /**
@@ -41,21 +41,21 @@ class SeverityBucket {
      * @param {*} uiSeverityHolder UI element to render Severities in.
      */
     render(uiSeverityHolder) {
-        this.#bucket.forEach(severity => severity.render(uiSeverityHolder));
+        this.#bucket.forEach((severity) => severity.render(uiSeverityHolder));
     }
 
     /**
      * Reset all Severities to the default (all selected) state.
      */
     selectAllSeverities() {
-        this.#bucket.forEach(severity => severity.apply());
+        this.#bucket.forEach((severity) => severity.apply());
     }
 
     /**
      * Unapply all Severities.
      */
     unapplySeverities() {
-        this.#bucket.forEach(severity => severity.unapply());
+        this.#bucket.forEach((severity) => severity.unapply());
     }
 
     /**
@@ -76,20 +76,20 @@ class SeverityBucket {
      * Return list of applied Severities ("null" represents the N/A bucket).
      */
     getAppliedSeverities() {
-        return this.#bucket.filter(severity => severity.getActive()).map(severity => severity.getSeverity());
+        return this.#bucket.filter((severity) => severity.getActive()).map((severity) => severity.getSeverity());
     }
 
     /**
      * Disable interaction with Severities.
      */
     disable() {
-        this.#bucket.forEach(severity => severity.disable());
+        this.#bucket.forEach((severity) => severity.disable());
     }
 
     /**
      * Enable interaction with Severities.
      */
     enable() {
-        this.#bucket.forEach(severity => severity.enable());
+        this.#bucket.forEach((severity) => severity.enable());
     }
 }

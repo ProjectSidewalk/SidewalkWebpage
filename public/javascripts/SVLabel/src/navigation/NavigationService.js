@@ -8,8 +8,9 @@ class NavigationService {
 
     #uiStreetview;
     #properties = {
-        browser: 'unknown'
+        browser: 'unknown',
     };
+
     #status = {
         disableWalking: false,
         lockDisableWalking: false,
@@ -18,7 +19,7 @@ class NavigationService {
         // True during a move until getPosition() is final; gates position-dependent views like the off-route warning.
         movingToNewLocation: false,
         // True from a move's start until getPov() stops settling; we hold their pre-move heading until then. (#4174)
-        headingSettling: false
+        headingSettling: false,
     };
 
     /**
@@ -202,7 +203,6 @@ class NavigationService {
             if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()
                 || !nextTask
                 || !task.isConnectedTo(nextTask, svl.CONNECTED_TASK_THRESHOLD, { units: 'kilometers' })) {
-
                 // If we are out of streets, set the route/neighborhood as complete.
                 if (!nextTask) {
                     svl.neighborhoodModel.setComplete();
@@ -236,7 +236,7 @@ class NavigationService {
      * @param {Function} callback
      */
     bindPositionUpdate(callback) {
-        if (typeof callback == 'function') {
+        if (typeof callback === 'function') {
             this.#positionUpdateCallbacks.push(callback);
         }
     }
@@ -292,7 +292,6 @@ class NavigationService {
         svl.canvas.enableLabeling();
 
         if (!isOnboarding && 'taskContainer' in svl && svl.taskContainer.tasksLoaded()) {
-
             // End of the task if the user is close enough to the end point, and we aren't in the tutorial.
             // TODO I wonder if ending a task should happen elsewhere? Bc some types of moves might never cause an end task?
             // - that might be because the task was already ended before we moved them, for example...
@@ -489,7 +488,7 @@ class NavigationService {
         // Figure out if there's a link close to the given heading.
         const currHeading = svl.panoViewer.getPov().heading;
         const linkedPanos = svl.panoViewer.getLinkedPanos();
-        const cosines = linkedPanos.map(function(link) {
+        const cosines = linkedPanos.map((link) => {
             const headingAngleOffset = util.math.toRadians(currHeading + heading) - util.math.toRadians(link.heading);
             return Math.cos(headingAngleOffset);
         });

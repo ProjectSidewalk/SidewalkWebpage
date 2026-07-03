@@ -7,12 +7,12 @@
 class CoverageTable {
     /** Column definitions: key into the row object, header label, and value formatter. */
     static #COLS = [
-        { key: 'name', label: 'Region', fmt: v => v },
-        { key: 'completion_rate', label: 'Coverage', fmt: v => CoverageFormat.pct(v) },
-        { key: 'audited_distance_m', label: 'Audited', fmt: v => CoverageFormat.km(v) },
-        { key: 'total_distance_m', label: 'Total', fmt: v => CoverageFormat.km(v) },
-        { key: 'label_count', label: 'Labels', fmt: v => (v || 0).toLocaleString() },
-        { key: 'user_count', label: 'Contributors', fmt: v => (v || 0).toLocaleString() }
+        { key: 'name', label: 'Region', fmt: (v) => v },
+        { key: 'completion_rate', label: 'Coverage', fmt: (v) => CoverageFormat.pct(v) },
+        { key: 'audited_distance_m', label: 'Audited', fmt: (v) => CoverageFormat.km(v) },
+        { key: 'total_distance_m', label: 'Total', fmt: (v) => CoverageFormat.km(v) },
+        { key: 'label_count', label: 'Labels', fmt: (v) => (v || 0).toLocaleString() },
+        { key: 'user_count', label: 'Contributors', fmt: (v) => (v || 0).toLocaleString() },
     ];
 
     #tableId;
@@ -55,7 +55,7 @@ class CoverageTable {
     }
 
     #headerHtml() {
-        const ths = CoverageTable.#COLS.map(c => {
+        const ths = CoverageTable.#COLS.map((c) => {
             const arrow = c.key === this.#sortKey ? (this.#sortDir === 1 ? ' ▲' : ' ▼') : '';
             return `<th data-key="${c.key}" role="button" tabindex="0" scope="col">${c.label}${arrow}</th>`;
         }).join('');
@@ -66,7 +66,7 @@ class CoverageTable {
         const tbody = document.getElementById(this.#tableId).querySelector('tbody');
         const filter = this.#filter.toLowerCase();
         const visible = this.#rows
-            .filter(r => !filter || r.name.toLowerCase().includes(filter))
+            .filter((r) => !filter || r.name.toLowerCase().includes(filter))
             .sort((a, b) => {
                 const av = a[this.#sortKey];
                 const bv = b[this.#sortKey];
@@ -74,29 +74,37 @@ class CoverageTable {
                 return ((av || 0) - (bv || 0)) * this.#sortDir;
             });
 
-        tbody.innerHTML = visible.map(r => {
-            const cells = CoverageTable.#COLS.map(c => `<td>${c.fmt(r[c.key])}</td>`).join('');
+        tbody.innerHTML = visible.map((r) => {
+            const cells = CoverageTable.#COLS.map((c) => `<td>${c.fmt(r[c.key])}</td>`).join('');
             return `<tr data-region-id="${r.region_id}">${cells}</tr>`;
         }).join('');
     }
 
     #wireEvents(table, tbody) {
         // Update the sort indicator in the header without rebuilding the whole table.
-        const refreshHeader = () => { table.querySelector('thead').outerHTML = this.#headerHtml(); };
+        const refreshHeader = () => {
+            table.querySelector('thead').outerHTML = this.#headerHtml();
+        };
 
-        table.querySelector('thead').addEventListener('click', e => {
+        table.querySelector('thead').addEventListener('click', (e) => {
             const th = e.target.closest('th[data-key]');
             if (th) this.#sortBy(th.dataset.key, refreshHeader);
         });
-        table.querySelector('thead').addEventListener('keydown', e => {
+        table.querySelector('thead').addEventListener('keydown', (e) => {
             const th = e.target.closest('th[data-key]');
-            if (th && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); this.#sortBy(th.dataset.key, refreshHeader); }
+            if (th && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault(); this.#sortBy(th.dataset.key, refreshHeader);
+            }
         });
 
         const search = document.getElementById(this.#searchId);
-        if (search) search.addEventListener('input', () => { this.#filter = search.value; this.#renderBody(); });
+        if (search) {
+            search.addEventListener('input', () => {
+                this.#filter = search.value; this.#renderBody();
+            });
+        }
 
-        tbody.addEventListener('pointerover', e => {
+        tbody.addEventListener('pointerover', (e) => {
             const tr = e.target.closest('tr[data-region-id]');
             const id = tr ? Number(tr.dataset.regionId) : null;
             if (id === this.#hoverId) return;
@@ -109,15 +117,18 @@ class CoverageTable {
             this.#hoverId = null;
             this.#onRowHoverEnd();
         });
-        tbody.addEventListener('click', e => {
+        tbody.addEventListener('click', (e) => {
             const tr = e.target.closest('tr[data-region-id]');
             if (tr) this.#onRowClick(Number(tr.dataset.regionId));
         });
     }
 
     #sortBy(key, refreshHeader) {
-        if (this.#sortKey === key) this.#sortDir *= -1;
-        else { this.#sortKey = key; this.#sortDir = 1; }
+        if (this.#sortKey === key) {
+            this.#sortDir *= -1;
+        } else {
+            this.#sortKey = key; this.#sortDir = 1;
+        }
         refreshHeader();
         this.#renderBody();
     }
@@ -126,7 +137,7 @@ class CoverageTable {
     highlightRows(ids) {
         const set = new Set(ids.map(Number));
         const tbody = document.getElementById(this.#tableId).querySelector('tbody');
-        tbody.querySelectorAll('tr[data-region-id]').forEach(tr => {
+        tbody.querySelectorAll('tr[data-region-id]').forEach((tr) => {
             tr.classList.toggle('highlighted', set.has(Number(tr.dataset.regionId)));
         });
     }
@@ -134,6 +145,6 @@ class CoverageTable {
     /** Clears all row highlights. */
     clearHighlight() {
         const tbody = document.getElementById(this.#tableId).querySelector('tbody');
-        tbody.querySelectorAll('tr.highlighted').forEach(tr => tr.classList.remove('highlighted'));
+        tbody.querySelectorAll('tr.highlighted').forEach((tr) => tr.classList.remove('highlighted'));
     }
 }

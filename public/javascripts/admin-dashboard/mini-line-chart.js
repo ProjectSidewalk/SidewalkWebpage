@@ -16,21 +16,21 @@ class MiniLineChart {
      * @returns {string} SVG markup plus an optional HTML legend.
      */
     static svg(categories, series, opts = {}) {
-        const W = opts.width || 760, H = 220, m = { l: 48, r: 14, t: 14, b: 30 };
-        const iw = W - m.l - m.r, ih = H - m.t - m.b, n = categories.length;
-        const x = i => m.l + (n === 1 ? iw / 2 : (i / (n - 1)) * iw);
-        const yFrac = f => m.t + (1 - f) * ih; // f in [0, 1]
-        const allVals = series.flatMap(s => s.values.filter(v => v != null));
+        const W = opts.width || 760; const H = 220; const m = { l: 48, r: 14, t: 14, b: 30 };
+        const iw = W - m.l - m.r; const ih = H - m.t - m.b; const n = categories.length;
+        const x = (i) => m.l + (n === 1 ? iw / 2 : (i / (n - 1)) * iw);
+        const yFrac = (f) => m.t + (1 - f) * ih; // f in [0, 1]
+        const allVals = series.flatMap((s) => s.values.filter((v) => v != null));
         const yMax = opts.yMax || Math.max(1, ...allVals);
-        const tickFormat = opts.tickFormat || (v => Math.round(v).toLocaleString());
-        const valueFormat = opts.valueFormat || (v => Math.round(v).toLocaleString());
+        const tickFormat = opts.tickFormat || ((v) => Math.round(v).toLocaleString());
+        const valueFormat = opts.valueFormat || ((v) => Math.round(v).toLocaleString());
         const dotRadius = opts.dotRadius != null ? opts.dotRadius : 3;
 
         let grid = '';
         for (const f of [0, 0.25, 0.5, 0.75, 1]) {
             const yy = yFrac(f).toFixed(1);
-            grid += `<line class="mini-grid" x1="${m.l}" y1="${yy}" x2="${W - m.r}" y2="${yy}"/>` +
-                `<text class="mini-axis" x="${m.l - 6}" y="${(yFrac(f) + 3).toFixed(1)}" text-anchor="end">${MiniLineChart.#esc(tickFormat(f * yMax))}</text>`;
+            grid += `<line class="mini-grid" x1="${m.l}" y1="${yy}" x2="${W - m.r}" y2="${yy}"/>`
+                + `<text class="mini-axis" x="${m.l - 6}" y="${(yFrac(f) + 3).toFixed(1)}" text-anchor="end">${MiniLineChart.#esc(tickFormat(f * yMax))}</text>`;
         }
 
         let body = '';
@@ -38,7 +38,9 @@ class MiniLineChart {
             let d = '';
             let move = true;
             s.values.forEach((v, i) => {
-                if (v == null) { move = true; return; }
+                if (v == null) {
+                    move = true; return;
+                }
                 d += `${move ? 'M' : 'L'}${x(i).toFixed(1)},${yFrac(v / yMax).toFixed(1)} `;
                 move = false;
             });
@@ -47,8 +49,8 @@ class MiniLineChart {
                 const tip = (s.tooltips && s.tooltips[i] != null)
                     ? s.tooltips[i]
                     : `${categories[i]} · ${s.name}: ${valueFormat(v)}`;
-                return `<circle class="mini-pt mini-pt--${s.key}" cx="${x(i).toFixed(1)}" cy="${yFrac(v / yMax).toFixed(1)}" r="${dotRadius}">` +
-                    `<title>${MiniLineChart.#esc(tip)}</title></circle>`;
+                return `<circle class="mini-pt mini-pt--${s.key}" cx="${x(i).toFixed(1)}" cy="${yFrac(v / yMax).toFixed(1)}" r="${dotRadius}">`
+                    + `<title>${MiniLineChart.#esc(tip)}</title></circle>`;
             }).join('');
             body += `<path class="mini-line mini-line--${s.key}" d="${d.trim()}"/>${dots}`;
         }
@@ -58,13 +60,12 @@ class MiniLineChart {
         for (let i = 0; i < n; i += step) {
             xlab += `<text class="mini-axis" x="${x(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">${MiniLineChart.#esc(categories[i])}</text>`;
         }
-        const svg = `<svg class="mini-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" ` +
-            `aria-label="${MiniLineChart.#esc(opts.ariaLabel || 'Line chart')}"><g>${grid}</g>${body}<g>${xlab}</g></svg>`;
-        const legend = series.length > 1
-            ? '<div class="mini-legend">' + series.map(s =>
-                `<span class="mini-legend-item"><span class="mini-swatch mini-swatch--${s.key}"></span>${MiniLineChart.#esc(s.name)}</span>`
-            ).join('') + '</div>'
-            : '';
+        const svg = `<svg class="mini-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" `
+            + `aria-label="${MiniLineChart.#esc(opts.ariaLabel || 'Line chart')}"><g>${grid}</g>${body}<g>${xlab}</g></svg>`;
+        const legendItems = series.map((s) =>
+            `<span class="mini-legend-item"><span class="mini-swatch mini-swatch--${s.key}"></span>${MiniLineChart.#esc(s.name)}</span>`,
+        ).join('');
+        const legend = series.length > 1 ? `<div class="mini-legend">${legendItems}</div>` : '';
         return svg + legend;
     }
 
@@ -96,6 +97,6 @@ class MiniLineChart {
     }
 
     static #esc(s) {
-        return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     }
 }

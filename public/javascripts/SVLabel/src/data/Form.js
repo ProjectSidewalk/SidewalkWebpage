@@ -32,7 +32,7 @@ class Form {
         this.#lastPriorityUpdateTime = new Date(); // Assumes that priorities are up-to-date when the page loads.
         this.#compileDataLock = new AsyncLock();
 
-        this.#missionModel.on("MissionProgress:complete", () => {
+        this.#missionModel.on('MissionProgress:complete', () => {
             this.submitData(this.#taskContainer.getCurrentTask());
         });
 
@@ -40,14 +40,14 @@ class Form {
         // unload signal; `keepalive` lets the POST outlive the page while still routing through AppManager's fetch
         // wrapper, which attaches the `Csrf-Token` header Play's CSRF filter requires (#3935).
         window.addEventListener('pagehide', () => {
-            this.#tracker.push("Unload");
+            this.#tracker.push('Unload');
             const task = this.#taskContainer.getCurrentTask();
             const data = this.#compileSubmissionData(task);
             fetch(this.#dataStoreUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json; charset=utf-8' },
                 body: JSON.stringify(data),
-                keepalive: true
+                keepalive: true,
             });
         });
     }
@@ -60,32 +60,32 @@ class Form {
      */
     #compileSubmissionData(task) {
         const mission = this.#missionContainer.getCurrentMission();
-        const missionId = mission.getProperty("missionId");
+        const missionId = mission.getProperty('missionId');
         mission.updateDistanceProgress();
 
-        let data = {
+        const data = {
             timestamp: new Date(),
             user_route_id: svl.userRouteId,
             mission: {
                 mission_id: missionId,
-                distance_progress: Math.min(mission.getProperty("distanceProgress"), mission.getProperty("distance")),
+                distance_progress: Math.min(mission.getProperty('distanceProgress'), mission.getProperty('distance')),
                 region_id: svl.regionId,
-                completed: mission.getProperty("isComplete"),
+                completed: mission.getProperty('isComplete'),
                 audit_task_id: task.getAuditTaskId(),
-                skipped: mission.getProperty("skipped")
+                skipped: mission.getProperty('skipped'),
             },
             audit_task: {
                 street_edge_id: task.getStreetEdgeId(),
-                task_start: task.getProperty("taskStart"),
+                task_start: task.getProperty('taskStart'),
                 audit_task_id: task.getAuditTaskId(),
                 completed: task.isComplete(),
                 current_lat: svl.panoViewer.getPosition().lat,
                 current_lng: svl.panoViewer.getPosition().lng,
-                start_point_reversed: task.getProperty("startPointReversed"),
+                start_point_reversed: task.getProperty('startPointReversed'),
                 current_mission_start: task.getMissionStart(missionId),
                 last_priority_update_time: this.#lastPriorityUpdateTime,
                 // Request updated street priorities if we are at least 60% of the way through the current street.
-                request_updated_street_priority: !svl.isOnboarding() && (task.getAuditedDistance() / task.lineDistance()) > 0.6
+                request_updated_street_priority: !svl.isOnboarding() && (task.getAuditedDistance() / task.lineDistance()) > 0.6,
             },
             environment: {
                 browser: util.getBrowser(),
@@ -98,8 +98,8 @@ class Form {
                 avail_height: screen.availHeight,            // total height - interface
                 operating_system: util.getOperatingSystem(),
                 language: i18next.language,
-                css_zoom: 100 // Sent for back-end compatibility; UI scaling is done via real layout sizes (--ui-scale).
-            }
+                css_zoom: 100, // Sent for back-end compatibility; UI scaling is done via real layout sizes (--ui-scale).
+            },
         };
 
         data.interactions = this.#tracker.getActions();
@@ -108,21 +108,21 @@ class Form {
         data.labels = [];
         const labels = this.#labelContainer.getLabelsToLog();
         for (let i = 0, labelLen = labels.length; i < labelLen; i += 1) {
-            let label = labels[i];
-            let prop = label.getProperties();
+            const label = labels[i];
+            const prop = label.getProperties();
             const labelLatLng = label.toLatLng();
             const tempLabelId = label.getProperty('temporaryLabelId');
             const panoData = this.#panoStore.getPanoData(prop.panoId);
 
             // If this label is a new label, get the timestamp of its creation from the corresponding interaction.
-            const associatedInteraction = data.interactions.find(interaction =>
+            const associatedInteraction = data.interactions.find((interaction) =>
                 interaction.action === 'LabelingCanvas_FinishLabeling'
                 && interaction.temporary_label_id === tempLabelId);
             const timeCreated = associatedInteraction ? associatedInteraction.timestamp : null;
 
-            let temp = {
-                deleted : label.isDeleted(),
-                label_type : label.getLabelType(),
+            const temp = {
+                deleted: label.isDeleted(),
+                label_type: label.getLabelType(),
                 temporary_label_id: tempLabelId,
                 pano_id: prop.panoId,
                 pano_source: panoData.getProperty('source'),
@@ -132,16 +132,16 @@ class Form {
                 time_created: timeCreated,
                 tutorial: prop.tutorial,
                 label_point: {
-                    pano_x : Math.round(prop.panoXY.x),
-                    pano_y : Math.round(prop.panoXY.y),
+                    pano_x: Math.round(prop.panoXY.x),
+                    pano_y: Math.round(prop.panoXY.y),
                     canvas_x: prop.originalCanvasXY.x,
                     canvas_y: prop.originalCanvasXY.y,
                     heading: prop.originalPov.heading,
                     pitch: prop.originalPov.pitch,
-                    zoom : prop.originalPov.zoom,
-                    lat : null,
-                    lng : null
-                }
+                    zoom: prop.originalPov.zoom,
+                    lat: null,
+                    lng: null,
+                },
             };
 
             if (labelLatLng) {
@@ -150,7 +150,7 @@ class Form {
                 temp.label_point.computation_method = labelLatLng.latLngComputationMethod;
             }
 
-            data.labels.push(temp)
+            data.labels.push(temp);
         }
 
         // Keep pano metadata. This is particularly important to keep track of the date when the images were taken.
@@ -160,18 +160,18 @@ class Form {
         const panoramas = this.#panoStore.getStagedPanoData();
         for (let i = 0; i < panoramas.length; i++) {
             const panoData = panoramas[i].getProperties();
-            const links = panoData.linkedPanos.map(function(link) {
+            const links = panoData.linkedPanos.map((link) => {
                 return {
                     target_pano_id: link.panoId,
                     yaw_deg: link.heading,
-                    description: link.description || null
-                }
+                    description: link.description || null,
+                };
             });
-            const history = panoData.history.map(function(prevPano) {
+            const history = panoData.history.map((prevPano) => {
                 return {
                     pano_id: prevPano.panoId,
-                    date: prevPano.captureDate.format('YYYY-MM')
-                }
+                    date: prevPano.captureDate.format('YYYY-MM'),
+                };
             });
 
             temp = {
@@ -187,9 +187,9 @@ class Form {
                 camera_heading: panoData.cameraHeading,
                 camera_pitch: panoData.cameraPitch,
                 camera_roll: panoData.cameraRoll,
-                links: links,
+                links,
                 copyright: panoData.copyright || null,
-                history: history
+                history,
             };
 
             data.panos.push(temp);
@@ -211,7 +211,7 @@ class Form {
         return fetch(this.#dataStoreUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify(data)
+            body: JSON.stringify(data),
         })
             .then((response) => response.json())
             .then((result) => {
@@ -234,12 +234,12 @@ class Form {
                 if (!svl.isOnboarding()) {
                     for (const lab of result.label_ids) {
                         this.#labelContainer.getAllLabels()
-                            .find(l => l.getProperty('temporaryLabelId') === lab.temporary_label_id)
+                            .find((l) => l.getProperty('temporaryLabelId') === lab.temporary_label_id)
                             .updateLabelIdAndUploadCrop(lab.label_id);
                     }
                 }
             })
-            .catch(error => {
+            .catch((error) => {
                 window.location.reload(); // Refresh the page in case the server has gone down.
             });
     }
@@ -252,7 +252,7 @@ class Form {
      */
     async submitData(task) {
         return await this.#compileDataLock.acquire('submitData', async () => {
-            if (typeof task === "undefined") {
+            if (typeof task === 'undefined') {
                 task = this.#taskContainer.getCurrentTask();
             }
             const data = this.#compileSubmissionData(task);

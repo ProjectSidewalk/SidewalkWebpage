@@ -31,7 +31,7 @@ class MissionPanel {
             // The regular mission message names the neighborhood being explored.
             const neighborhood = svl.neighborhoodModel.currentNeighborhood();
             const neighborhoodName = neighborhood ? neighborhood.getProperty('name') : '';
-            missionMessage = i18next.t('right-ui.current-mission.message', { neighborhoodName: neighborhoodName });
+            missionMessage = i18next.t('right-ui.current-mission.message', { neighborhoodName });
         }
 
         if (missionType === 'audit') {

@@ -7,19 +7,19 @@
  * @requires Leaflet.js library
  */
 
-(function() {
+(function () {
     // Configuration options - can be overridden by calling setup().
     let config = {
-        apiBaseUrl: "/v3/api",
-        containerId: "cities-preview",
+        apiBaseUrl: '/v3/api',
+        containerId: 'cities-preview',
         mapHeight: 500,
-        citiesEndpoint: "/cities"
+        citiesEndpoint: '/cities',
     };
 
     // Single style for all cities.
     const cityStyle = {
-        color: "#3388ff",
-        fillColor: "#3388ff"
+        color: '#3388ff',
+        fillColor: '#3388ff',
     };
 
     // Public API.
@@ -29,7 +29,7 @@
          * @param {object} options - Configuration options
          * @returns {object} The CitiesPreview object for chaining
          */
-        setup: function(options) {
+        setup(options) {
             config = Object.assign(config, options);
             return this;
         },
@@ -38,29 +38,29 @@
          * Initialize the cities preview map.
          * @returns {Promise} A promise that resolves when the preview is rendered
          */
-        init: function() {
+        init() {
             const container = document.getElementById(config.containerId);
 
             if (!container) {
                 console.error(`Container element with id '${config.containerId}' not found.`);
-                return Promise.reject(new Error("Container element not found"));
+                return Promise.reject(new Error('Container element not found'));
             }
 
             // Set height for the map container.
             container.style.height = `${config.mapHeight}px`;
-            container.style.width = "100%";
+            container.style.width = '100%';
 
             // Initialize with loading message.
             const loadingMessage = document.createElement('div');
             loadingMessage.className = 'loading-message';
-            loadingMessage.textContent = "Loading cities data...";
+            loadingMessage.textContent = 'Loading cities data...';
             container.appendChild(loadingMessage);
 
             // Fetch cities data and create the map.
             return this.fetchCities()
-                .then(citiesData => {
+                .then((citiesData) => {
                     // Create and initialize the map.
-                    container.innerHTML = "";
+                    container.innerHTML = '';
                     const map = this.createMap(container);
 
                     // Display cities on the map.
@@ -68,9 +68,9 @@
 
                     return map;
                 })
-                .catch(error => {
+                .catch((error) => {
                     container.innerHTML = `<div class="message message-error">Failed to load cities data: ${error.message}</div>`;
-                    console.error("Cities preview error:", error);
+                    console.error('Cities preview error:', error);
                     return Promise.reject(error);
                 });
         },
@@ -79,9 +79,9 @@
          * Fetch cities data from the API.
          * @returns {Promise} A promise that resolves with the cities data
          */
-        fetchCities: function() {
+        fetchCities() {
             return fetch(`${config.apiBaseUrl}${config.citiesEndpoint}?source=apiDocs`)
-                .then(response => {
+                .then((response) => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
@@ -94,10 +94,10 @@
          * @param {HTMLElement} container - Container element for the map
          * @returns {object} The Leaflet map object
          */
-        createMap: function(container) {
+        createMap(container) {
             // Create a map element.
             const mapElement = document.createElement('div');
-            mapElement.id = "cities-map";
+            mapElement.id = 'cities-map';
             mapElement.className = 'map-container';
             container.appendChild(mapElement);
 
@@ -106,7 +106,7 @@
 
             // Add the OpenStreetMap tile layer.
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             }).addTo(map);
 
             return map;
@@ -117,12 +117,12 @@
          * @param {object} map - The Leaflet map object
          * @param {object} citiesData - Data about the cities from the API
          */
-        displayCitiesOnMap: function(map, citiesData) {
+        displayCitiesOnMap(map, citiesData) {
             if (!citiesData || !citiesData.cities || citiesData.cities.length === 0) {
                 // Add a message to the map if no cities found.
                 const noCitiesDiv = document.createElement('div');
                 noCitiesDiv.className = 'no-cities-message';
-                noCitiesDiv.textContent = "No cities found.";
+                noCitiesDiv.textContent = 'No cities found.';
                 noCitiesDiv.style.position = 'absolute';
                 noCitiesDiv.style.top = '10px';
                 noCitiesDiv.style.left = '50%';
@@ -137,8 +137,8 @@
             }
 
             // Filter cities with geographic information.
-            const citiesWithGeo = citiesData.cities.filter(city =>
-                city.center_lat !== undefined && city.center_lng !== undefined
+            const citiesWithGeo = citiesData.cities.filter((city) =>
+                city.center_lat !== undefined && city.center_lng !== undefined,
             );
 
             // Add a counter of displayed cities.
@@ -153,17 +153,17 @@
                 iconUrl: '/assets/images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_50x50.png',
                 iconSize: [20, 20], // Size of the icon.
                 iconAnchor: [10, 10], // Point of the icon which corresponds to marker's location.
-                popupAnchor: [0, -10] // Point from which the popup should open relative to the iconAnchor.
+                popupAnchor: [0, -10], // Point from which the popup should open relative to the iconAnchor.
             });
 
             // Create markers for cities with geographic information.
             const cityMarkers = [];
 
-            citiesWithGeo.forEach(city => {
+            citiesWithGeo.forEach((city) => {
                 // Create a marker with the custom icon.
                 const marker = L.marker([city.center_lat, city.center_lng], {
                     icon: cityIcon,
-                    opacity: city.visibility === "public" ? 1.0 : 0.6 // More transparent for private cities.
+                    opacity: city.visibility === 'public' ? 1.0 : 0.6, // More transparent for private cities.
                 });
 
                 // Add popup with city information.
@@ -178,7 +178,7 @@
                 marker.bindTooltip(city.city_name_formatted, {
                     permanent: false,
                     direction: 'top',
-                    offset: [0, -15]
+                    offset: [0, -15],
                 });
 
                 // Add marker to map.
@@ -190,7 +190,7 @@
             if (cityMarkers.length > 0) {
                 const group = L.featureGroup(cityMarkers);
                 map.fitBounds(group.getBounds(), {
-                    padding: [30, 30]
+                    padding: [30, 30],
                 });
             }
         },

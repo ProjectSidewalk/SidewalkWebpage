@@ -48,7 +48,7 @@ class Onboarding {
      * @param zoomControl
      */
     constructor(svl, compass, handAnimation, navigationService, missionContainer, panoOverlayControls, onboardingStates,
-                ribbon, tracker, canvas, uiCanvas, contextMenu, uiOnboarding, zoomControl) {
+        ribbon, tracker, canvas, uiCanvas, contextMenu, uiOnboarding, zoomControl) {
         this.#svl = svl;
         this.#compass = compass;
         this.#handAnimation = handAnimation;
@@ -64,7 +64,7 @@ class Onboarding {
         this.#zoomControl = zoomControl;
 
         this.#states = onboardingStates.get();
-        this.#statesWithProgress = this.#states.filter(state => state.progression);
+        this.#statesWithProgress = this.#states.filter((state) => state.progression);
         this.#map = svl.minimap.getMap();
     }
 
@@ -132,10 +132,10 @@ class Onboarding {
         // the static screenshot, the Google label markers, and the fog all share one coordinate frame and stay aligned.
         svl.ui.minimap.holder.addClass('minimap-tutorial');
         svl.ui.minimap.holder.css({
-            'backgroundImage': `url('${svl.rootDirectory}img/onboarding/TutorialMiniMap.jpg')`,
-            'backgroundSize': 'cover',
-            'backgroundRepeat': 'no-repeat',
-            'backgroundPosition': 'center'
+            backgroundImage: `url('${svl.rootDirectory}img/onboarding/TutorialMiniMap.jpg')`,
+            backgroundSize: 'cover',
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'center',
         });
 
         // Fit the square to the available sidebar height now and whenever the sidebar resizes (e.g. UI-scale changes).
@@ -288,14 +288,14 @@ class Onboarding {
         const helperBlinkingArrow = () => {
             this.#blinkTimer = (this.#blinkTimer + 1) % max_frequency;
             if (this.#blinkTimer < blink_period * max_frequency) {
-                parameters['fill'] = originalFillColor;
+                parameters.fill = originalFillColor;
             } else {
-                parameters['fill'] = 'white';
+                parameters.fill = 'white';
             }
             this.#drawArrow(x1, y1, x2, y2, parameters);
 
-            //requestAnimationFrame usually calls the function argument at the refresh rate of the screen (max_frequency)
-            //Assume this is 60fps. We want to have an arrow flashing period of 0.5s (blink period)
+            // requestAnimationFrame usually calls the function argument at the refresh rate of the screen (max_frequency)
+            // Assume this is 60fps. We want to have an arrow flashing period of 0.5s (blink period)
             const function_identifier = window.requestAnimationFrame(helperBlinkingArrow);
             this.#blinkFunctionIdentifier.push(function_identifier);
         };
@@ -354,14 +354,12 @@ class Onboarding {
                 if (imX > svl.TUTORIAL_PANO_WIDTH - 3328 && imX > 3328) {
                     imX -= svl.TUTORIAL_PANO_WIDTH;
                 }
-            } else {
-                if (imX < 3328 && imX < svl.TUTORIAL_PANO_WIDTH - 3328) {
-                    imX += svl.TUTORIAL_PANO_WIDTH;
-                }
+            } else if (imX < 3328 && imX < svl.TUTORIAL_PANO_WIDTH - 3328) {
+                imX += svl.TUTORIAL_PANO_WIDTH;
             }
             centeredPov = util.pano.panoCoordToPov(imX, imY, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT);
             const canvasCoord = util.pano.centeredPovToCanvasCoord(
-                centeredPov, currentPov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+                centeredPov, currentPov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS,
             ) || { x: null, y: null };
             const onCanvas = canvasCoord.x !== null;
 
@@ -380,13 +378,12 @@ class Onboarding {
                     fill: annotation.fill,
                     lineCap: 'round',
                     arrowWidth: 6,
-                    strokeStyle: 'rgba(0, 0, 0, 1)'
+                    strokeStyle: 'rgba(0, 0, 0, 1)',
                 };
 
                 if (annotation.fill == null || annotation.fill === 'white') {
                     this.#drawArrow(x1, y1, x2, y2, params);
-                }
-                else {
+                } else {
                     this.#drawBlinkingArrow(x1, y1, x2, y2, params, blink_frequency_modifier);
                 }
             } else if (annotation.type === 'box') {
@@ -394,7 +391,7 @@ class Onboarding {
                 lineAngle = annotation.angle;
                 params = {
                     lineWidth: 4,
-                    strokeStyle: 'rgba(255, 255, 255, 1)'
+                    strokeStyle: 'rgba(255, 255, 255, 1)',
                 };
                 this.#drawBox(canvasCoord.x, canvasCoord.y, annotation.width, annotation.height, params);
             } else if (annotation.type === 'label') {
@@ -412,11 +409,11 @@ class Onboarding {
         }
 
         // Save any annotations that should be sticking around.
-        this.#savedAnnotations = currAnnotations.filter(a => a.keepUntil && a.keepUntil !== state.id);
+        this.#savedAnnotations = currAnnotations.filter((a) => a.keepUntil && a.keepUntil !== state.id);
     }
 
     #getState(stateId) {
-        return this.#states.find(state => state.id === stateId);
+        return this.#states.find((state) => state.id === stateId);
     }
 
     /**
@@ -449,7 +446,7 @@ class Onboarding {
     #transitionTo(nextState, params, thisArg) {
         if (typeof nextState === 'function') {
             this.#visit(this.#getState(nextState.call(thisArg, params)));
-        } else if (this.#states.find(state => state.id === nextState)) {
+        } else if (this.#states.find((state) => state.id === nextState)) {
             this.#visit(this.#getState(nextState));
         } else {
             this.#visit(null);
@@ -487,8 +484,8 @@ class Onboarding {
                 middleware: [
                     FloatingUIDOM.offset(arrowProtrusion),
                     FloatingUIDOM.flip(),
-                    FloatingUIDOM.shift({ padding: 8 })
-                ]
+                    FloatingUIDOM.shift({ padding: 8 }),
+                ],
             }).then(({ x, y, placement: finalPlacement }) => {
                 Object.assign(floating.style, { left: `${x}px`, top: `${y}px`, transform: 'none' });
 
@@ -529,15 +526,15 @@ class Onboarding {
 
         // Reset positioning state so each message starts clean.
         this.#uiOnboarding.messageHolder
-            .removeClass('animated fadeIn fadeInLeft fadeInRight fadeInDown fadeInUp callout-floating ' +
-                'onboarding-message-takeover onboarding-message-top-right')
+            .removeClass('animated fadeIn fadeInLeft fadeInRight fadeInDown fadeInUp callout-floating '
+                + 'onboarding-message-takeover onboarding-message-top-right')
             .css({ position: '', top: '', left: '', transform: '', width: '' });
         this.#uiOnboarding.background.css('visibility', 'hidden');
 
         this.#uiOnboarding.messageHolder.show();
 
         if ('fade-direction' in parameters) {
-            this.#uiOnboarding.messageHolder.addClass('animated ' + parameters['fade-direction']);
+            this.#uiOnboarding.messageHolder.addClass(`animated ${parameters['fade-direction']}`);
         }
 
         // Width is authored in logical (pre-scale) pixels; scale it to on-screen pixels.
@@ -568,24 +565,24 @@ class Onboarding {
             {
                 featureType: 'all',
                 stylers: [
-                    { visibility: 'off' }
-                ]
+                    { visibility: 'off' },
+                ],
             },
             {
                 featureType: 'road',
                 stylers: [
-                    { visibility: 'on' }
-                ]
+                    { visibility: 'on' },
+                ],
             },
             {
-                'elementType': 'labels',
-                'stylers': [
-                    { 'visibility': 'off' }
-                ]
-            }
+                elementType: 'labels',
+                stylers: [
+                    { visibility: 'off' },
+                ],
+            },
         ];
-        if (this.#map) this.#map.setOptions({styles: mapStyleOptions});
-        this.#map.setOptions({styles: mapStyleOptions});
+        if (this.#map) this.#map.setOptions({ styles: mapStyleOptions });
+        this.#map.setOptions({ styles: mapStyleOptions });
         if (skip) {
             this.#tracker.push('Onboarding_Skip');
             this.#missionContainer.getCurrentMission().setProperty('skipped', true);
@@ -638,7 +635,7 @@ class Onboarding {
     #visit(state) {
         const svl = this.#svl;
         // Update the progress bar (if the state marks progress in the tutorial) & log the transition to the new state.
-        const stepNum = this.#statesWithProgress.findIndex(s => s.id === state.id);
+        const stepNum = this.#statesWithProgress.findIndex((s) => s.id === state.id);
         if (stepNum !== -1 && !state.visited) {
             const completionRate = stepNum / this.#statesWithProgress.length;
             svl.missionProgressBar.update(completionRate);
@@ -655,7 +652,7 @@ class Onboarding {
 
         // End the onboarding if there is no transition state is specified. Move to the actual task
         if ('end-onboarding' in state) {
-            this.#endTheOnboarding(state['end-onboarding']['skip']);
+            this.#endTheOnboarding(state['end-onboarding'].skip);
             return;
         } else {
             this.#hideMessage();
@@ -692,8 +689,7 @@ class Onboarding {
                 if (state.properties[0].action === 'LabelAccessibilityAttribute') {
                     this.#visitLabelAccessibilityAttributeState(state, annotationListener);
                 }
-            }
-            else {
+            } else {
                 // Restrict panning.
                 svl.panoManager.setHeadingRange({ min: state.properties.minHeading, max: state.properties.maxHeading });
                 if (state.properties.action === 'Introduction') {
@@ -724,14 +720,14 @@ class Onboarding {
         const svl = this.#svl;
         // When user clicks 'Let's get started!' to start the tutorial, we set the pano's POV and move to next state.
         const $target = $('#onboarding-message-holder').find('.onboarding-transition-trigger');
-        $('.onboarding-transition-trigger').css({ 'cursor': 'pointer' });
+        $('.onboarding-transition-trigger').css({ cursor: 'pointer' });
         const callback = (e) => {
             if (listener) google.maps.event.removeListener(listener);
             $target.off('click', callback);
             svl.panoManager.setPov({
                 heading: state.properties.heading,
                 pitch: state.properties.pitch,
-                zoom: state.properties.zoom
+                zoom: state.properties.zoom,
             });
             this.#transitionTo(state.transition, undefined, e.currentTarget);
         };
@@ -777,7 +773,7 @@ class Onboarding {
     #visitAdjustHeadingAngle(state, listener) {
         const svl = this.#svl;
         let $target;
-        const interval = this.#handAnimation.showGrabAndDragAnimation({direction: 'left-to-right'});
+        const interval = this.#handAnimation.showGrabAndDragAnimation({ direction: 'left-to-right' });
 
         const callback = () => {
             const pov = svl.panoViewer.getPov();
@@ -830,9 +826,9 @@ class Onboarding {
             // Insert an ok button.
             const okButtonText = state.okButtonText || 'Ok';
             this.#uiOnboarding.messageHolder.append(
-                `<div class='onboarding-ok-button-holder'>` +
-                    `<button id='onboarding-ok-button' class='button-ps button--medium button--secondary'>${okButtonText}</button>` +
-                `</div>`
+                `<div class='onboarding-ok-button-holder'>`
+                + `<button id='onboarding-ok-button' class='button-ps button--medium button--secondary'>${okButtonText}</button>`
+                + `</div>`,
             );
         }
 
@@ -872,12 +868,12 @@ class Onboarding {
             this.#uiCanvas.drawingLayer.on('mousedown', this.#mouseDownCanvasDrawingHandler);
 
             this.#ribbon.stopBlinking();
-            $(document).off('ModeSwitch_' + labelType, callback);
+            $(document).off(`ModeSwitch_${labelType}`, callback);
             if (listener) google.maps.event.removeListener(listener);
             this.#transitionTo(state.transition);
         };
 
-        $(document).on('ModeSwitch_' + labelType, callback);
+        $(document).on(`ModeSwitch_${labelType}`, callback);
     }
 
     /**
@@ -895,7 +891,6 @@ class Onboarding {
             this.#zoomControl.unlockDisableZoomIn();
             this.#zoomControl.enableZoomIn();
             this.#zoomControl.lockDisableZoomIn();
-
         } else {
             event = 'ZoomOut';
             this.#zoomControl.blinkZoomOut();
@@ -913,8 +908,7 @@ class Onboarding {
                 this.#zoomControl.unlockDisableZoomIn();
                 this.#zoomControl.disableZoomIn();
                 this.#zoomControl.lockDisableZoomIn();
-            }
-            else {
+            } else {
                 // Disable zoom-out
                 this.#zoomControl.unlockDisableZoomOut();
                 this.#zoomControl.disableZoomOut();

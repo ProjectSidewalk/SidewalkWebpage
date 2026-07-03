@@ -7,7 +7,7 @@ var svv = svv || {};
  * @param {object} param Object passed from validation.scala.html containing data from the back end.
  * @constructor
  */
-function Main (param) {
+function Main(param) {
     svv.adminVersion = param.validateParams.adminVersion;
     svv.validateParams = param.validateParams;
     svv.viewerType = param.viewerType;
@@ -16,14 +16,14 @@ function Main (param) {
 
     function _initUI() {
         svv.tagsByLabelType = {
-            'CurbRamp': param.tagList.filter(t => t.label_type_id === 1),
-            'NoCurbRamp': param.tagList.filter(t => t.label_type_id === 2),
-            'Obstacle': param.tagList.filter(t => t.label_type_id === 3),
-            'SurfaceProblem': param.tagList.filter(t => t.label_type_id === 4),
-            'NoSidewalk': param.tagList.filter(t => t.label_type_id === 7),
-            'Crosswalk': param.tagList.filter(t => t.label_type_id === 9),
-            'Signal': param.tagList.filter(t => t.label_type_id === 10)
-        }
+            CurbRamp: param.tagList.filter((t) => t.label_type_id === 1),
+            NoCurbRamp: param.tagList.filter((t) => t.label_type_id === 2),
+            Obstacle: param.tagList.filter((t) => t.label_type_id === 3),
+            SurfaceProblem: param.tagList.filter((t) => t.label_type_id === 4),
+            NoSidewalk: param.tagList.filter((t) => t.label_type_id === 7),
+            Crosswalk: param.tagList.filter((t) => t.label_type_id === 9),
+            Signal: param.tagList.filter((t) => t.label_type_id === 10),
+        };
         svv.ui = {};
         svv.ui.holder = $('.tool-ui');
 
@@ -41,7 +41,7 @@ function Main (param) {
         svv.ui.validationMenu.optionalCommentTextBox = $('#add-optional-comment');
         svv.ui.validationMenu.noMenu = $('#validate-why-no-section');
         svv.ui.validationMenu.disagreeReasonOptions = $('#no-reason-options');
-        svv.ui.validationMenu.disagreeReasonTextBox = $('#add-disagree-comment')
+        svv.ui.validationMenu.disagreeReasonTextBox = $('#add-disagree-comment');
         svv.ui.validationMenu.unsureMenu = $('#validate-why-unsure-section');
         svv.ui.validationMenu.unsureReasonOptions = $('#unsure-reason-options');
         svv.ui.validationMenu.unsureReasonTextBox = $('#add-unsure-comment');
@@ -90,7 +90,7 @@ function Main (param) {
         svv.ui.status.admin = {
             holder: $('#admin-info-section'),
             button: $('#admin-info-button'),
-            template: $('#admin-info-template')
+            template: $('#admin-info-template'),
         };
 
         svv.ui.viewer = {};
@@ -103,10 +103,12 @@ function Main (param) {
     async function _init() {
         // On desktop the pano's display size is scaled to fit the viewport, so measure it live; label projection
         // math and the canvas_width/height submitted with each validation always reflect the on-screen size.
-        svv.canvasWidth = () => isMobile()
-            ? window.innerWidth : Math.round(svv.ui.viewer.controlLayer[0].getBoundingClientRect().width);
-        svv.canvasHeight = () => isMobile()
-            ? window.innerHeight : Math.round(svv.ui.viewer.controlLayer[0].getBoundingClientRect().height);
+        svv.canvasWidth = () => (isMobile()
+            ? window.innerWidth
+            : Math.round(svv.ui.viewer.controlLayer[0].getBoundingClientRect().width));
+        svv.canvasHeight = () => (isMobile()
+            ? window.innerHeight
+            : Math.round(svv.ui.viewer.controlLayer[0].getBoundingClientRect().height));
         svv.labelRadius = isMobile() ? 25 : 10;
 
         const labelType = svv.labelTypes[param.mission.label_type_id];
@@ -136,12 +138,12 @@ function Main (param) {
             svv.keyboard = new Keyboard(svv.ui.validationMenu);
             svv.speedLimit = new SpeedLimit(svv.panoViewer, svv.panoViewer.getPosition, () => false, svv.labelContainer, labelType);
             svv.zoomControl = new ZoomControl();
-            const missionStartTutorial = new MissionStartTutorial('validate', labelType, {nLabels: param.mission.labels_validated}, svv, param.language);
+            const missionStartTutorial = new MissionStartTutorial('validate', labelType, { nLabels: param.mission.labels_validated }, svv, param.language);
         }
 
         // Now that mission start tutorial has loaded, can unhide the UI under it and remove the loading icon.
-        $('#page-loading').css({ 'visibility': 'hidden' });
-        $('.tool-ui').css({ 'visibility': 'visible' });
+        $('#page-loading').css({ visibility: 'hidden' });
+        $('.tool-ui').css({ visibility: 'visible' });
 
         // Uniformly scale the whole tool to fit the viewport (like browser zoom) using var(--ui-scale). Mobile
         // instead fills the screen via PanoManager's own sizing.
@@ -149,7 +151,7 @@ function Main (param) {
             const applyValidateScale = () => {
                 const scale = util.applyToolScale(
                     ['--pano-base-width', '--menu-base-gap', '--menu-base-width'],
-                    ['--header-base-height', '--pano-base-height']
+                    ['--header-base-height', '--pano-base-height'],
                 );
                 svv.panoManager.setMarkerScale(scale);
                 svv.panoViewer.resize();
@@ -169,18 +171,35 @@ function Main (param) {
         if (!isMobile()) {
             svv.infoPopover = new PanoInfoPopover(
                 svv.ui.viewer.dateHolder, svv.panoViewer, svv.panoViewer.getPosition, svv.panoViewer.getPanoId,
-                function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('streetEdgeId'); },
-                function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('regionId'); },
-                function() { return svv.panoStore.getPanoData(svv.panoViewer.getPanoId()).getProperty('captureDate'); },
-                function() { return svv.panoStore.getPanoData(svv.panoViewer.getPanoId()).getProperty('address'); },
-                svv.panoViewer.getPov, true, function() { svv.tracker.push('PanoInfoButton_Click'); },
-                function() { svv.tracker.push('PanoInfoCopyToClipboard_Click'); },
-                function() { svv.tracker.push('PanoInfoViewInPano_Click'); },
-                function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('labelId'); },
-                function() { return svv.labelContainer.getCurrentLabel().getAuditProperty('labelTimestamp'); }
+                () => {
+                    return svv.labelContainer.getCurrentLabel().getAuditProperty('streetEdgeId');
+                },
+                () => {
+                    return svv.labelContainer.getCurrentLabel().getAuditProperty('regionId');
+                },
+                () => {
+                    return svv.panoStore.getPanoData(svv.panoViewer.getPanoId()).getProperty('captureDate');
+                },
+                () => {
+                    return svv.panoStore.getPanoData(svv.panoViewer.getPanoId()).getProperty('address');
+                },
+                svv.panoViewer.getPov, true, () => {
+                    svv.tracker.push('PanoInfoButton_Click');
+                },
+                () => {
+                    svv.tracker.push('PanoInfoCopyToClipboard_Click');
+                },
+                () => {
+                    svv.tracker.push('PanoInfoViewInPano_Click');
+                },
+                () => {
+                    return svv.labelContainer.getCurrentLabel().getAuditProperty('labelId');
+                },
+                () => {
+                    return svv.labelContainer.getCurrentLabel().getAuditProperty('labelTimestamp');
+                },
             );
         }
-
 
         svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user);
         svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);
@@ -194,19 +213,20 @@ function Main (param) {
                 svv.tracker.push('PageLostFocus');
             }
         }
-        window.addEventListener('focus', function(event) {
+
+        window.addEventListener('focus', (event) => {
             logPageFocus();
         });
-        window.addEventListener('blur', function(event) {
+        window.addEventListener('blur', (event) => {
             logPageFocus();
         });
         logPageFocus();
 
-        $('#sign-in-modal-container').on('hide.bs.modal', function () {
+        $('#sign-in-modal-container').on('hide.bs.modal', () => {
             svv.keyboard.enableKeyboard();
             $('.tool-ui').css('opacity', 1);
         });
-        $('#sign-in-modal-container').on('show.bs.modal', function () {
+        $('#sign-in-modal-container').on('show.bs.modal', () => {
             svv.keyboard.disableKeyboard();
             $('.tool-ui').css('opacity', 0.5);
         });
@@ -214,9 +234,9 @@ function Main (param) {
         // Initialize bootstrap tooltips (except on touch devices).
         if (window.matchMedia('(hover: hover)').matches) {
             $('[data-toggle="tooltip"]').tooltip({
-                delay: { 'show': 500, 'hide': 100 },
+                delay: { show: 500, hide: 100 },
                 html: true,
-                container: 'body'
+                container: 'body',
             });
         }
     }

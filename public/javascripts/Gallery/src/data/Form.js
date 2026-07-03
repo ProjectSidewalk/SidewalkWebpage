@@ -14,13 +14,13 @@ class Form {
         // unload signal; `keepalive` lets the POST outlive the page while still routing through AppManager's fetch
         // wrapper, which attaches the `Csrf-Token` header Play's CSRF filter requires (#3935).
         window.addEventListener('pagehide', () => {
-            sg.tracker.push("Unload");
+            sg.tracker.push('Unload');
             const data = [this.compileSubmissionData()];
             fetch(this.#dataStoreUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json; charset=utf-8' },
                 body: JSON.stringify(data),
-                keepalive: true
+                keepalive: true,
             });
         });
     }
@@ -42,7 +42,7 @@ class Form {
             avail_width: screen.availWidth,
             avail_height: screen.availHeight,
             operating_system: util.getOperatingSystem(),
-            language: i18next.language
+            language: i18next.language,
         };
 
         data.interactions = sg.tracker.getActions();
@@ -64,15 +64,17 @@ class Form {
         return fetch(this.#dataStoreUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify(data)
+            body: JSON.stringify(data),
         })
             .then((response) => {
                 if (response.ok) {
-                    console.log("Data logged successfully");
+                    console.log('Data logged successfully');
                 } else {
                     console.error(`Failed to log data: ${response.status}`);
                 }
             })
-            .catch((error) => { console.error(error); });
+            .catch((error) => {
+                console.error(error);
+            });
     }
 }

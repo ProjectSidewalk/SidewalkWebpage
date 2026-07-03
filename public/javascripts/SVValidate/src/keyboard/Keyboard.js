@@ -42,10 +42,10 @@ class Keyboard {
     #checkIfTextAreaSelected() {
         const validationMenuUi = this.#validationMenuUi;
         // Check if expertValidate text boxes are focused.
-        if (document.activeElement === validationMenuUi.optionalCommentTextBox[0] ||
-            document.activeElement === validationMenuUi.disagreeReasonTextBox[0] ||
-            document.activeElement === validationMenuUi.unsureReasonTextBox[0] ||
-            document.activeElement === document.getElementById('select-tag-selectized')) {
+        if (document.activeElement === validationMenuUi.optionalCommentTextBox[0]
+            || document.activeElement === validationMenuUi.disagreeReasonTextBox[0]
+            || document.activeElement === validationMenuUi.unsureReasonTextBox[0]
+            || document.activeElement === document.getElementById('select-tag-selectized')) {
             this.#addingComment = true;
         } else {
             this.#addingComment = false;

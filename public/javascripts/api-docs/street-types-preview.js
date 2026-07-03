@@ -6,13 +6,13 @@
  * @requires DOM element with id 'street-types-preview'
  */
 
-(function() {
+(function () {
     // Configuration options - can be overridden by calling setup().
     let config = {
-        apiBaseUrl: "/v3/api",
-        containerId: "street-types-preview",
+        apiBaseUrl: '/v3/api',
+        containerId: 'street-types-preview',
         maxWidth: 1000,
-        endpoint: "/streetTypes"
+        endpoint: '/streetTypes',
     };
 
     // Public API
@@ -25,7 +25,7 @@
          * @param {number} [options.maxWidth] - Maximum width for the preview container
          * @param {string} [options.endpoint] - API endpoint for street types
          */
-        setup: function(options) {
+        setup(options) {
             config = Object.assign(config, options);
             return this;
         },
@@ -34,28 +34,28 @@
          * Initialize the street types preview.
          * @returns {Promise} A promise that resolves when the preview is rendered
          */
-        init: function() {
+        init() {
             const container = document.getElementById(config.containerId);
 
             if (!container) {
                 console.error(`Container element with id '${config.containerId}' not found.`);
-                return Promise.reject(new Error("Container element not found"));
+                return Promise.reject(new Error('Container element not found'));
             }
 
             // Set max width if specified.
             if (config.maxWidth) {
                 container.style.maxWidth = `${config.maxWidth}px`;
-                container.style.width = "100%";
-                container.style.margin = "20px 0"; // Left-align the container.
+                container.style.width = '100%';
+                container.style.margin = '20px 0'; // Left-align the container.
             }
 
             // Initialize with loading message.
-            container.innerHTML = "Loading street types data...";
+            container.innerHTML = 'Loading street types data...';
 
             // Fetch and render the street types.
             return this.fetchStreetTypes()
-                .then(data => this.renderStreetTypes(data, container))
-                .catch(error => {
+                .then((data) => this.renderStreetTypes(data, container))
+                .catch((error) => {
                     container.innerHTML = `<div class="message message-error">Failed to load street types: ${error.message}</div>`;
                     return Promise.reject(error);
                 });
@@ -65,9 +65,9 @@
          * Fetch street types from the API.
          * @returns {Promise} A promise that resolves with the street types data
          */
-        fetchStreetTypes: function() {
+        fetchStreetTypes() {
             return fetch(`${config.apiBaseUrl}${config.endpoint}?source=apiDocs`)
-                .then(response => {
+                .then((response) => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
@@ -81,9 +81,9 @@
          * @param {HTMLElement} container - Container element
          * @returns {HTMLElement} The rendered table
          */
-        renderStreetTypes: function(data, container) {
+        renderStreetTypes(data, container) {
             // Sort street types by count in descending order.
-            let streetTypes = data.street_types.slice().sort((a, b) => b.count - a.count);
+            const streetTypes = data.street_types.slice().sort((a, b) => b.count - a.count);
 
             // Find the maximum count for the progress bars.
             const maxCount = streetTypes.length > 0 ? streetTypes[0].count : 0;
@@ -97,7 +97,7 @@
             const headerRow = document.createElement('tr');
 
             const headers = ['Street Type', 'Description', 'Street Segment Count'];
-            headers.forEach(text => {
+            headers.forEach((text) => {
                 const th = document.createElement('th');
                 th.textContent = text;
                 headerRow.appendChild(th);
@@ -109,7 +109,7 @@
             // Create table body.
             const tbody = document.createElement('tbody');
 
-            streetTypes.forEach(type => {
+            streetTypes.forEach((type) => {
                 const row = document.createElement('tr');
 
                 // Street type name cell.
@@ -162,6 +162,6 @@
             container.appendChild(table);
 
             return table;
-        }
+        },
     };
 })();

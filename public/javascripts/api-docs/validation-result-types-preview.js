@@ -7,13 +7,13 @@
  * @requires DOM element with id 'validation-result-types-preview'
  */
 
-(function() {
+(function () {
     // Configuration options - can be overridden by calling setup().
     let config = {
-        apiBaseUrl: "/v3/api",
-        containerId: "validation-result-types-preview",
+        apiBaseUrl: '/v3/api',
+        containerId: 'validation-result-types-preview',
         maxWidth: 1000,
-        endpoint: "/validationResultTypes"
+        endpoint: '/validationResultTypes',
     };
 
     // Colors per result type (Project Sidewalk palette).
@@ -34,7 +34,7 @@
          * @param {object} options - Configuration options
          * @returns {object} The preview object for chaining
          */
-        setup: function(options) {
+        setup(options) {
             config = Object.assign(config, options);
             return this;
         },
@@ -43,30 +43,30 @@
          * Initialize the preview.
          * @returns {Promise} A promise that resolves when the preview is rendered
          */
-        init: function() {
+        init() {
             const container = document.getElementById(config.containerId);
             if (!container) {
                 console.error(`Container element with id '${config.containerId}' not found.`);
-                return Promise.reject(new Error("Container element not found"));
+                return Promise.reject(new Error('Container element not found'));
             }
 
             if (config.maxWidth) {
                 container.style.maxWidth = `${config.maxWidth}px`;
-                container.style.width = "100%";
-                container.style.margin = "20px 0";
+                container.style.width = '100%';
+                container.style.margin = '20px 0';
             }
 
-            container.innerHTML = "Loading validation result types...";
+            container.innerHTML = 'Loading validation result types...';
 
             return fetch(`${config.apiBaseUrl}${config.endpoint}?source=apiDocs`)
-                .then(response => {
+                .then((response) => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
                     return response.json();
                 })
-                .then(data => this.render(data, container))
-                .catch(error => {
+                .then((data) => this.render(data, container))
+                .catch((error) => {
                     container.innerHTML = `<div class="message message-error">Failed to load validation result types: ${error.message}</div>`;
                     return Promise.reject(error);
                 });
@@ -78,9 +78,9 @@
          * @param {HTMLElement} container - Container element
          * @returns {HTMLElement} The rendered table
          */
-        render: function(data, container) {
+        render(data, container) {
             const types = (data.validation_result_types || []).slice().sort((a, b) => b.count - a.count);
-            const maxCount = types.length > 0 ? Math.max.apply(null, types.map(t => t.count)) : 0;
+            const maxCount = types.length > 0 ? Math.max.apply(null, types.map((t) => t.count)) : 0;
 
             const table = document.createElement('table');
             table.style.width = '100%';
@@ -102,7 +102,7 @@
 
             // Body.
             const tbody = document.createElement('tbody');
-            types.forEach(type => {
+            types.forEach((type) => {
                 const row = document.createElement('tr');
                 const color = RESULT_COLORS[type.name] || '#999';
 
@@ -110,8 +110,8 @@
                 const nameCell = document.createElement('td');
                 nameCell.style.padding = '8px';
                 const swatch = document.createElement('span');
-                swatch.style.cssText =
-                    `display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:8px;background:${color}`;
+                swatch.style.cssText
+                    = `display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:8px;background:${color}`;
                 nameCell.appendChild(swatch);
                 nameCell.appendChild(document.createTextNode(type.name));
                 row.appendChild(nameCell);
@@ -126,8 +126,8 @@
                 const barOuter = document.createElement('div');
                 barOuter.style.cssText = 'background:#eee;border-radius:3px;height:8px;margin-top:4px';
                 const barInner = document.createElement('div');
-                barInner.style.cssText =
-                    `height:8px;border-radius:3px;background:${color};width:${maxCount > 0 ? (type.count / maxCount) * 100 : 0}%`;
+                barInner.style.cssText
+                    = `height:8px;border-radius:3px;background:${color};width:${maxCount > 0 ? (type.count / maxCount) * 100 : 0}%`;
                 barOuter.appendChild(barInner);
                 totalCell.appendChild(barOuter);
                 row.appendChild(totalCell);
@@ -143,6 +143,6 @@
             container.innerHTML = '';
             container.appendChild(table);
             return table;
-        }
+        },
     };
 })();

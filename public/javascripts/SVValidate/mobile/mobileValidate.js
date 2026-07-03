@@ -1,7 +1,6 @@
-$(document).ready(function() {
-
+$(document).ready(() => {
     // Raleway doesn't load after being redirected from another page; redeclaring the font-face fixes that.
-    let font = "<style> @@font-face{ font-family: 'raleway'; src: url('/assets/fonts/Raleway/Raleway-Regular.ttf');} </style>";
+    const font = '<style> @@font-face{ font-family: \'raleway\'; src: url(\'/assets/fonts/Raleway/Raleway-Regular.ttf\');} </style>';
     $('head').append(font);
 
     // Add the 'animate-button' class to all validation buttons so an animation is performed to confirm click.
@@ -27,11 +26,11 @@ $(document).ready(function() {
                 clearInterval(landscapeInterval);
             }
         }, 20); // 20 ms.
-    } else {
-        if (svv.modalLandscape) svv.modalLandscape.hide();
+    } else if (svv.modalLandscape) {
+        svv.modalLandscape.hide();
     }
 
-    $(window).on('orientationchange', function (event) {
+    $(window).on('orientationchange', (event) => {
         if (window.screen.orientation.type.includes('landscape')) {
             svv.modalLandscape.show();
         } else if (loadedScreenLandscape) {
@@ -44,8 +43,8 @@ $(document).ready(function() {
 
 // Prevents double tap functionality. We only want to pinch zoom in the pano.
 let doubleTouchStartTimestamp = 0;
-document.addEventListener('touchstart', (event) =>{
-    let now = +(new Date());
+document.addEventListener('touchstart', (event) => {
+    const now = +(new Date());
     if (doubleTouchStartTimestamp + 500 > now) {
         event.preventDefault();
     }

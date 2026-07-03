@@ -48,8 +48,8 @@ class AdminUser {
     #updateUserQuality(anchor) {
         const choice = anchor.innerText;
         const data = {
-            'user_id': this.#userId,
-            'quality': choice === 'true' ? true : (choice === 'false' ? false : null)
+            user_id: this.#userId,
+            quality: choice === 'true' ? true : (choice === 'false' ? false : null),
         };
         return fetch('/adminapi/setUserQualityManual', {
             method: 'PUT',
@@ -57,9 +57,9 @@ class AdminUser {
             body: JSON.stringify(data),
         })
             .then((response) => response.json())
-            .then(result => {
+            .then((result) => {
                 // Owners and 'excluded' users can't have their quality set, so back end might give an error.
-                if (result.status === 'Error') throw(result.message);
+                if (result.status === 'Error') throw (result.message);
 
                 // Change the adjacent 'High quality' column to the correct value.
                 document.getElementById('stat-high-quality').textContent = result.new_user_quality;
@@ -67,9 +67,9 @@ class AdminUser {
                 // Change dropdown button to reflect new quality selection.
                 document.getElementById('user-quality-button').childNodes[0].nodeValue = ` ${choice} `;
             })
-            .catch(error => {
+            .catch((error) => {
                 console.error(error);
-                alert('Error updating user quality: ' + error);
+                alert(`Error updating user quality: ${error}`);
                 return undefined;
             });
     }
@@ -80,21 +80,21 @@ class AdminUser {
      * @returns {Promise<void>}
      */
     #setInfra3dAccess(isChecked) {
-        const data = { 'user_id': this.#userId, 'access': isChecked };
+        const data = { user_id: this.#userId, access: isChecked };
         return fetch('/adminapi/setInfra3dAccess', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
         })
             .then((response) => response.json())
-            .then(result => {
+            .then((result) => {
                 // Only someone with infra3D access can grant it, so an error may be returned.
-                if (result.status === 'Error') throw(result.message);
+                if (result.status === 'Error') throw (result.message);
                 alert('infra3D access updated successfully.');
             })
-            .catch(error => {
+            .catch((error) => {
                 console.error(error);
-                alert('Error updating infra3D access: ' + error);
+                alert(`Error updating infra3D access: ${error}`);
                 return undefined;
             });
     }
@@ -106,7 +106,7 @@ class AdminUser {
      * @param {boolean} state
      */
     #setTaskFlagByDate(date, flag, state) {
-        const data = { 'userId': this.#userId, 'date': date, 'flag': flag, 'state': state };
+        const data = { userId: this.#userId, date, flag, state };
         fetch('/adminapi/setTaskFlagsBeforeDate', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
@@ -114,7 +114,7 @@ class AdminUser {
         })
             .then((response) => response.json())
             .then(() => this.#datePickedAlert(flag, true, date, state))
-            .catch(result => console.error(result));
+            .catch((result) => console.error(result));
     }
 
     /**
@@ -169,6 +169,6 @@ class AdminUser {
         })
             .then((response) => response.json())
             .then(() => console.log('Volunteer status updated successfully.'))
-            .catch(result => console.error(result));
+            .catch((result) => console.error(result));
     }
 }

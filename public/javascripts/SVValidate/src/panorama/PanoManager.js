@@ -4,7 +4,7 @@
 class PanoManager {
     /** @type {{panoLoaded: boolean}} */
     #properties = {
-        panoLoaded: false
+        panoLoaded: false,
     };
 
     /** @type {HTMLElement} The primary viewer's canvas element (GSV/Mapillary/Infra3d). */
@@ -55,7 +55,7 @@ class PanoManager {
         const panoOptions = {
             accessToken: viewerAccessToken,
             defaultNavigation: false,
-            scrollwheel: isMobile()
+            scrollwheel: isMobile(),
         };
 
         this.#panoCanvas = document.getElementById('svv-panorama');
@@ -63,8 +63,8 @@ class PanoManager {
         // Sibling canvas for the Pannellum fallback viewer, hidden until an expired pano needs it.
         this.#pannellumCanvas = document.createElement('div');
         this.#pannellumCanvas.id = 'svv-panorama-pannellum';
-        this.#pannellumCanvas.style.cssText =
-            'position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none;';
+        this.#pannellumCanvas.style.cssText
+            = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none;';
         this.#panoCanvas.insertAdjacentElement('afterend', this.#pannellumCanvas);
 
         this.#primaryViewer = await panoViewerType.create(this.#panoCanvas, panoOptions);
@@ -156,7 +156,7 @@ class PanoManager {
      * @private
      */
     #makeGsvAttributionClickable() {
-        let bottomLinks = $('.gm-style-cc');
+        const bottomLinks = $('.gm-style-cc');
         if (!this.#bottomLinksClickable && bottomLinks.length > 3) {
             this.#bottomLinksClickable = true;
 
@@ -205,7 +205,7 @@ class PanoManager {
             svv.panoViewer.setPov({
                 heading: currentLabel.getAuditProperty('heading'),
                 pitch: currentLabel.getAuditProperty('pitch'),
-                zoom: currentLabel.getAuditProperty('zoom')
+                zoom: currentLabel.getAuditProperty('zoom'),
             });
         }
 
@@ -226,7 +226,7 @@ class PanoManager {
                 position: { heading: labelPov.heading, pitch: labelPov.pitch },
                 icon: url,
                 size: { width: markerDiameter, height: markerDiameter },
-                zIndex: 2
+                zIndex: 2,
             });
             this.#markerViewer = svv.panoViewer;
         } else {
@@ -308,7 +308,7 @@ class PanoManager {
                 startPanoId: backupImage.panoId,
                 startHeading: neutralPov.heading,
                 startPitch: neutralPov.pitch,
-                startZoom: neutralPov.zoom
+                startZoom: neutralPov.zoom,
             });
         }
         svv.panoViewer = this.#pannellumViewer;
@@ -370,23 +370,23 @@ class PanoManager {
      * @private
      */
     #sizePano() {
-        let panoHolderElem = document.getElementById('svv-panorama-holder');
-        let controlLayerElem = document.getElementById('view-control-layer');
-        let heightOffset = panoHolderElem.getBoundingClientRect().top;
+        const panoHolderElem = document.getElementById('svv-panorama-holder');
+        const controlLayerElem = document.getElementById('view-control-layer');
+        const heightOffset = panoHolderElem.getBoundingClientRect().top;
         const h = window.innerHeight - heightOffset;
         const w = window.innerWidth;
         const left = 0;
-        this.#panoCanvas.style.height = h + 'px';
-        this.#pannellumCanvas.style.height = h + 'px';
-        panoHolderElem.style.height = h + 'px';
-        controlLayerElem.style.height = h + 'px';
-        this.#panoCanvas.style.width = w + 'px';
-        this.#pannellumCanvas.style.width = w + 'px';
-        panoHolderElem.style.width = w + 'px';
-        controlLayerElem.style.width = w + 'px';
-        this.#panoCanvas.style.left = left + 'px';
-        panoHolderElem.style.left = left + 'px';
-        controlLayerElem.style.left = left + 'px';
+        this.#panoCanvas.style.height = `${h}px`;
+        this.#pannellumCanvas.style.height = `${h}px`;
+        panoHolderElem.style.height = `${h}px`;
+        controlLayerElem.style.height = `${h}px`;
+        this.#panoCanvas.style.width = `${w}px`;
+        this.#pannellumCanvas.style.width = `${w}px`;
+        panoHolderElem.style.width = `${w}px`;
+        controlLayerElem.style.width = `${w}px`;
+        this.#panoCanvas.style.left = `${left}px`;
+        panoHolderElem.style.left = `${left}px`;
+        controlLayerElem.style.left = `${left}px`;
     }
 
     /**

@@ -66,14 +66,14 @@ class CoverageBars {
                 x: {
                     field: 'completion_rate', type: 'quantitative',
                     scale: { domain: [0, 1] },
-                    axis: { title: 'Audit coverage', format: '.0%', grid: true }
+                    axis: { title: 'Audit coverage', format: '.0%', grid: true },
                 },
                 color: { field: 'color', type: 'nominal', scale: null, legend: null },
                 opacity: {
                     condition: {
-                        test: 'externalSelect === null || indexof(externalSelect, datum.region_id) >= 0', value: 1
+                        test: 'externalSelect === null || indexof(externalSelect, datum.region_id) >= 0', value: 1,
                     },
-                    value: 0.25
+                    value: 0.25,
                 },
                 tooltip: [
                     { field: 'name', type: 'nominal', title: 'Region' },
@@ -83,10 +83,10 @@ class CoverageBars {
                     { field: 'street_count', type: 'quantitative', format: ',', title: 'Streets' },
                     { field: 'audit_count', type: 'quantitative', format: ',', title: 'Audits' },
                     { field: 'label_count', type: 'quantitative', format: ',', title: 'Labels' },
-                    { field: 'user_count', type: 'quantitative', format: ',', title: 'Contributors' }
-                ]
+                    { field: 'user_count', type: 'quantitative', format: ',', title: 'Contributors' },
+                ],
             },
-            config: { view: { stroke: null }, axis: { labelFont: 'Inter, sans-serif' } }
+            config: { view: { stroke: null }, axis: { labelFont: 'Inter, sans-serif' } },
         };
 
         const result = await vegaEmbed(`#${this.#containerId}`, spec, { actions: false, renderer: 'svg' });

@@ -9,7 +9,7 @@ class Tag {
     #properties = {
         tag_id: undefined,
         label_type: undefined,
-        tag: undefined
+        tag: undefined,
     };
 
     // Status of the tag.
@@ -20,7 +20,7 @@ class Tag {
      * @param {boolean} applied A boolean to see if the tag filter is active.
      */
     constructor(params, applied) {
-        this.#status = { applied: applied };
+        this.#status = { applied };
         this.#init(params);
     }
 
@@ -30,12 +30,12 @@ class Tag {
      * @param {*} param Tag properties.
      */
     #init(param) {
-        Object.keys(param).forEach(attrName => this.#properties[attrName] = param[attrName]);
+        Object.keys(param).forEach((attrName) => this.#properties[attrName] = param[attrName]);
 
         this.#tagElement = document.createElement('button');
-        this.#tagElement.className = "gallery-tag gallery-filter-button gallery-filter";
+        this.#tagElement.className = 'gallery-tag gallery-filter-button gallery-filter';
         this.#tagElement.id = this.#properties.tag;
-        this.#tagElement.innerText = i18next.t('tag.' + this.#properties.tag.replace(/:/g, '-'));
+        this.#tagElement.innerText = i18next.t(`tag.${this.#properties.tag.replace(/:/g, '-')}`);
         this.#tagElement.disabled = true; // Will be enabled once images load.
 
         if (this.#status.applied) {
@@ -50,15 +50,15 @@ class Tag {
      */
     #tagClickCallback = () => {
         if (this.#status.applied) {
-            sg.tracker.push("TagUnapply", null, {
+            sg.tracker.push('TagUnapply', null, {
                 Tag: this.#properties.tag,
-                Label_Type: this.#properties.label_type
+                Label_Type: this.#properties.label_type,
             });
             this.unapply();
         } else {
-            sg.tracker.push("TagApply", null, {
+            sg.tracker.push('TagApply', null, {
                 Tag: this.#properties.tag,
-                Label_Type: this.#properties.label_type
+                Label_Type: this.#properties.label_type,
             });
             this.apply();
         }
@@ -70,16 +70,16 @@ class Tag {
      * Applies Tag.
      */
     apply() {
-        this.setStatus("applied", true);
-        this.#tagElement.classList.add("gallery-filter-button-selected");
+        this.setStatus('applied', true);
+        this.#tagElement.classList.add('gallery-filter-button-selected');
     }
 
     /**
      * Unapplies Tag.
      */
     unapply() {
-        this.setStatus("applied", false);
-        this.#tagElement.classList.remove("gallery-filter-button-selected");
+        this.setStatus('applied', false);
+        this.#tagElement.classList.remove('gallery-filter-button-selected');
     }
 
     /**
@@ -109,7 +109,9 @@ class Tag {
      * JavaScript Deepcopy:
      * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
      */
-    getProperties() { return $.extend(true, {}, this.#properties); }
+    getProperties() {
+        return $.extend(true, {}, this.#properties);
+    }
 
     /**
      * Gets property of Tag.
@@ -117,7 +119,9 @@ class Tag {
      * @param propName Property name.
      * @returns {*} Property value if property name is valid. Otherwise false.
      */
-    getProperty(propName) { return (propName in this.#properties) ? this.#properties[propName] : false; }
+    getProperty(propName) {
+        return (propName in this.#properties) ? this.#properties[propName] : false;
+    }
 
     /**
      * Get status of tag.

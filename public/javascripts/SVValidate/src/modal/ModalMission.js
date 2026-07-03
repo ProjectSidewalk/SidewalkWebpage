@@ -4,12 +4,12 @@
 class ModalMission {
     #uiModalMission;
 
-    #validationStartMissionHTML = ' <figure> \
+    #validationStartMissionHTML = ` <figure> \
         <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>' + i18next.t('mission-start.body') + '</p>\
-        <div class="spacer10"></div>';
+        <p>${i18next.t('mission-start.body')}</p>\
+        <div class="spacer10"></div>`;
 
     #validationResumeMissionHTML = ' <figure> \
         <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
@@ -38,8 +38,8 @@ class ModalMission {
                     missionId: mission.getProperty('missionId'),
                     missionType: mission.getProperty('missionType'),
                     labelTypeId: mission.getProperty('labelTypeId'),
-                    labelsValidated: mission.getProperty('labelsValidated')
-                }
+                    labelsValidated: mission.getProperty('labelsValidated'),
+                },
             );
         }
         // Update zoom availability on desktop.
@@ -71,7 +71,7 @@ class ModalMission {
             const validationMissionStartTitle = i18next.t('mission-start.title',
                 {
                     n: mission.getProperty('labelsValidated'),
-                    label_type: svv.labelTypeNames[mission.getProperty('labelTypeId')]
+                    label_type: svv.labelTypeNames[mission.getProperty('labelTypeId')],
                 });
             let validationStartMissionHTMLCopy = this.#validationStartMissionHTML.replace('__LABELCOUNT_PLACEHOLDER__', mission.getProperty('labelsValidated'));
             validationStartMissionHTMLCopy = validationStartMissionHTMLCopy.replace('__LABELTYPE_PLACEHOLDER__', svv.labelTypeNames[mission.getProperty('labelTypeId')]);

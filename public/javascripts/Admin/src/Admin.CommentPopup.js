@@ -42,22 +42,23 @@ class AdminCommentPopup {
      * @returns {Promise<void>} Resolves once the pano viewer has loaded and the modal has been closed again.
      */
     #resetModal() {
-        const modalText =
-            '<div class="modal fade" id="comment-modal" tabindex="-1" role="dialog" aria-labelledby="modal-comment">' +
-                '<div class="modal-dialog" role="document" style="width: 840px">' +
-                    '<div class="modal-content">' +
-                        '<div class="modal-header">' +
-                            '<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>'+
-                            '<h4 class="modal-title" id="modal-comment"></h4>' +
-                        '</div>' +
-                        '<div class="modal-body">' +
-                            '<div id="sv-holder-comment" style="width: 810px; height:540px">' +
-                        '</div>' +
-                        '<div id="button-holder">' +
-                        '</div>' +
-                    '</div>' +
-                '</div>' +
-            '</div>';
+        const modalText = `
+            <div class="modal fade" id="comment-modal" tabindex="-1" role="dialog" aria-labelledby="modal-comment">
+                <div class="modal-dialog" role="document" style="width: 840px">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                            <h4 class="modal-title" id="modal-comment"></h4>
+                        </div>
+                        <div class="modal-body">
+                            <div id="sv-holder-comment" style="width: 810px; height:540px"></div>
+                            <div id="button-holder"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
 
         this.#modal = $(modalText);
 
@@ -115,7 +116,7 @@ class AdminCommentPopup {
         // setPano() from the start, instead of arriving only after the popup has already given up on live imagery.
         let labelMetadata = null;
         if (labelId) {
-            const adminLabelUrl = this.#admin ? '/adminapi/label/id/' + labelId : '/label/id/' + labelId;
+            const adminLabelUrl = this.#admin ? `/adminapi/label/id/${labelId}` : `/label/id/${labelId}`;
             const response = await fetch(adminLabelUrl);
             if (response.ok) labelMetadata = await response.json();
         }
@@ -137,7 +138,7 @@ class AdminCommentPopup {
         const labelPov = {
             heading: labelMetadata.heading,
             pitch: labelMetadata.pitch,
-            zoom: labelMetadata.zoom
+            zoom: labelMetadata.zoom,
         };
         // Plain-object label shape consumed by PopupPanoManager. See LabelPopup.js for the field-shape comment.
         const popupLabel = {
@@ -153,7 +154,7 @@ class AdminCommentPopup {
             newSeverity: labelMetadata.severity,
             oldTags: labelMetadata.tags,
             newTags: labelMetadata.tags,
-            aiGenerated: labelMetadata['ai_generated'] === true
+            aiGenerated: labelMetadata.ai_generated === true,
         };
         this.#panoManager.setLabel(popupLabel);
         this.#panoManager.renderLabel(popupLabel);

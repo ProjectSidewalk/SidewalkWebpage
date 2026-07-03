@@ -76,8 +76,8 @@ class AdminShell {
     /** Smooth-scrolls clicks on TOC / in-page anchors, accounting for the fixed navbar. */
     #setupSmoothScrolling() {
         const anchors = document.querySelectorAll('.api-toc a[href^="#"], .api-content a.permalink[href^="#"]');
-        anchors.forEach(anchor => {
-            anchor.addEventListener('click', e => {
+        anchors.forEach((anchor) => {
+            anchor.addEventListener('click', (e) => {
                 const id = anchor.getAttribute('href').slice(1);
                 const target = document.getElementById(id);
                 if (!target) return;
@@ -107,4 +107,6 @@ class AdminShell {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => { new AdminShell().init(); });
+document.addEventListener('DOMContentLoaded', () => {
+    new AdminShell().init();
+});

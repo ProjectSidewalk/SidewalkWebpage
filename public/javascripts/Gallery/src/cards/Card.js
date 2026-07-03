@@ -37,7 +37,7 @@ class Card {
         tags: [],
         ai_generated: false,
         comments: [],
-        from_current_user: false
+        from_current_user: false,
     };
 
     // Status to determine if static imagery has been loaded.
@@ -58,7 +58,7 @@ class Card {
 
         this.#status = {
             imageFetched: false,
-            imageSource: cropUrl ? 'crop' : 'api'
+            imageSource: cropUrl ? 'crop' : 'api',
         };
 
         // The label icon to be placed on the static pano image.
@@ -90,30 +90,30 @@ class Card {
         properties.original_canvas_x = param.canvas_x;
         properties.original_canvas_y = param.canvas_y;
         properties.val_counts = {
-            'Agree': param.agree_count,
-            'Disagree': param.disagree_count,
-            'Unsure': param.unsure_count
+            Agree: param.agree_count,
+            Disagree: param.disagree_count,
+            Unsure: param.unsure_count,
         };
-        if (properties.correct) properties.correctness = "correct";
-        else if (properties.correct === false) properties.correctness = "incorrect";
-        else if (param.agree_count + param.disagree_count + param.unsure_count > 0) properties.correctness = "unsure";
-        else properties.correctness = "unvalidated";
+        if (properties.correct) properties.correctness = 'correct';
+        else if (properties.correct === false) properties.correctness = 'incorrect';
+        else if (param.agree_count + param.disagree_count + param.unsure_count > 0) properties.correctness = 'unsure';
+        else properties.correctness = 'unvalidated';
 
         // Place label icon.
         labelIcon.src = util.misc.getIconImagePaths(this.getLabelType()).iconImagePath;
-        labelIcon.classList.add("label-icon", "label-icon-gallery");
+        labelIcon.classList.add('label-icon', 'label-icon-gallery');
 
         // Create an element for the image in the card.
-        this.#imageId = "label_id_" + properties.label_id;
+        this.#imageId = `label_id_${properties.label_id}`;
         panoImage.id = this.#imageId;
-        panoImage.className = "static-gallery-image";
+        panoImage.className = 'static-gallery-image';
 
         // Create the container card.
         this.#card = document.createElement('div');
-        this.#card.id = "gallery_card_" + properties.label_id;
-        this.#card.className = "gallery-card";
+        this.#card.id = `gallery_card_${properties.label_id}`;
+        this.#card.className = 'gallery-card';
         const imageHolder = document.createElement('div');
-        imageHolder.className = "image-holder";
+        imageHolder.className = 'image-holder';
         this.#card.appendChild(imageHolder);
 
         // Create the div for the severity and tags information.
@@ -143,10 +143,9 @@ class Card {
         const cardValidationInfo = document.createElement('div');
         cardValidationInfo.className = 'card-validation-info';
         this.validationInfoDisplay = new ValidationInfoDisplay(
-            cardValidationInfo, properties.val_counts['Agree'], properties.val_counts['Disagree'], properties.ai_validation
+            cardValidationInfo, properties.val_counts.Agree, properties.val_counts.Disagree, properties.ai_validation,
         );
         cardData.appendChild(cardValidationInfo);
-
 
         // Create the div to store the tags related to a card. Tags won't be populated until card is added to the DOM.
         const cardTags = document.createElement('div');
@@ -169,7 +168,7 @@ class Card {
             $(aiIndicator)
                 .tooltip({
                     template: '<div class="tooltip ai-tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>',
-                    container: 'body'
+                    container: 'body',
                 })
                 .tooltip('hide');
         }
@@ -203,7 +202,9 @@ class Card {
      * JavaScript Deepcopy:
      * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
      */
-    getProperties() { return $.extend(true, {}, this.#properties); }
+    getProperties() {
+        return $.extend(true, {}, this.#properties);
+    }
 
     /**
      * Get a property.
@@ -211,7 +212,9 @@ class Card {
      * @param propName Property name.
      * @returns {*} Property value if property name is valid. Otherwise false.
      */
-    getProperty(propName) { return (propName in this.#properties) ? this.#properties[propName] : false; }
+    getProperty(propName) {
+        return (propName in this.#properties) ? this.#properties[propName] : false;
+    }
 
     /**
      * Get status of card.
@@ -220,15 +223,19 @@ class Card {
         return this.#status;
     }
 
-    getCropUrl() { return this.#cropUrl; }
+    getCropUrl() {
+        return this.#cropUrl;
+    }
 
-    getBackupImageData() { return buildBackupImageData(this.#params); }
+    getBackupImageData() {
+        return buildBackupImageData(this.#params);
+    }
 
     /**
      * Loads the image, preferring the crop. Falls back to GSV if the crop fails.
      */
     loadImage() {
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
             if (!this.#status.imageFetched) {
                 const img = this.#panoImage;
                 const primaryUrl = this.#cropUrl || this.#gsvImageUrl;
@@ -271,7 +278,7 @@ class Card {
      * Renders the tags on the card when the card is loaded onto on the DOM.
      */
     #renderTags() {
-        const selector = ".card-tags#" + this.#properties.label_id;
+        const selector = `.card-tags#${this.#properties.label_id}`;
         new TagDisplay(selector, this.#properties.tags);
     }
 
@@ -314,7 +321,7 @@ class Card {
             properties.user_validation = newUserValidation;
 
             // Update the small card's validation displays.
-            this.validationInfoDisplay.updateValCounts(properties.val_counts['Agree'], properties.val_counts['Disagree']);
+            this.validationInfoDisplay.updateValCounts(properties.val_counts.Agree, properties.val_counts.Disagree);
             this.validationMenu.showValidationOnCard(newUserValidation);
         }
     }

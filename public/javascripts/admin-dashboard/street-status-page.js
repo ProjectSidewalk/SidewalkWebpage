@@ -43,16 +43,16 @@ class StreetStatusPage {
 
             this.#map = new StreetStatusMap('street-status-choropleth', {
                 mapboxToken: this.#mapboxToken,
-                onRegionClick: id => this.#pin([id]),
-                onRegionHover: id => this.#hover([id]),
-                onRegionHoverEnd: () => this.#hoverEnd()
+                onRegionClick: (id) => this.#pin([id]),
+                onRegionHover: (id) => this.#hover([id]),
+                onRegionHoverEnd: () => this.#hoverEnd(),
             });
             await this.#map.init(geojson);
 
             this.#table = new StreetStatusTable('street-status-table', 'street-status-table-search', {
-                onRowClick: id => this.#pin([id]),
-                onRowHover: id => this.#hover([id]),
-                onRowHoverEnd: () => this.#hoverEnd()
+                onRowClick: (id) => this.#pin([id]),
+                onRowHover: (id) => this.#hover([id]),
+                onRowHoverEnd: () => this.#hoverEnd(),
             });
             this.#table.render(this.#rows);
 
@@ -118,7 +118,7 @@ class StreetStatusPage {
             this.#table?.clearHighlight();
             return;
         }
-        const segmentIds = regionIds.flatMap(id => this.#segmentsByRegion.get(Number(id)) || []);
+        const segmentIds = regionIds.flatMap((id) => this.#segmentsByRegion.get(Number(id)) || []);
         this.#map.highlightSegments(segmentIds);
         this.#table?.highlightRows(regionIds);
     }
@@ -129,7 +129,7 @@ class StreetStatusPage {
             totals.open += r.open; totals.no_imagery += r.no_imagery;
             totals.closed += r.closed; totals.disabled += r.disabled; totals.total += r.total;
         }
-        const pct = n => `${Math.round((totals.total ? n / totals.total : 0) * 100)}%`;
+        const pct = (n) => `${Math.round((totals.total ? n / totals.total : 0) * 100)}%`;
         document.getElementById('kpi-total-streets').textContent = totals.total.toLocaleString();
         document.getElementById('kpi-no-imagery').textContent = pct(totals.no_imagery);
         document.getElementById('kpi-disabled').textContent = pct(totals.disabled);
@@ -138,9 +138,9 @@ class StreetStatusPage {
 
     /** Renders the categorical legend: one swatch + label per status, from the shared palette. */
     #renderLegend() {
-        document.getElementById('street-status-legend').innerHTML = StreetStatusColors.STATUSES.map(s =>
-            `<span class="street-status-legend-item"><span class="street-status-swatch" ` +
-            `style="background:${s.color}" aria-hidden="true"></span>${s.label}</span>`
+        document.getElementById('street-status-legend').innerHTML = StreetStatusColors.STATUSES.map((s) =>
+            `<span class="street-status-legend-item"><span class="street-status-swatch" `
+            + `style="background:${s.color}" aria-hidden="true"></span>${s.label}</span>`,
         ).join('');
     }
 
@@ -157,6 +157,6 @@ class StreetStatusPage {
     static #sameSet(a, b) {
         if (a.length !== b.length) return false;
         const set = new Set(a);
-        return b.every(id => set.has(id));
+        return b.every((id) => set.has(id));
     }
 }

@@ -1,10 +1,10 @@
 class AchievementTracker {
     constructor() {
         this.mapBadges = {};
-        for (let badgeType of Object.values(BadgeTypes)) {
-            let mapLevelsToBadge = {};
+        for (const badgeType of Object.values(BadgeTypes)) {
+            const mapLevelsToBadge = {};
             BadgeAchievements.THRESHOLDS[badgeType].forEach((threshold, index) => {
-                let level = index + 1;
+                const level = index + 1;
                 mapLevelsToBadge[level] = new Badge(badgeType, level, threshold);
             });
             this.mapBadges[badgeType] = mapLevelsToBadge;
@@ -20,10 +20,10 @@ class AchievementTracker {
      */
     getBadgeEarned(badgeType, value) {
         if (badgeType in this.mapBadges) {
-            let mapLevelsToBadge = this.mapBadges[badgeType]
+            const mapLevelsToBadge = this.mapBadges[badgeType];
             let prevBadge = null;
-            for (let level of Object.keys(mapLevelsToBadge)) {
-                let badge = mapLevelsToBadge[level];
+            for (const level of Object.keys(mapLevelsToBadge)) {
+                const badge = mapLevelsToBadge[level];
                 if (badge.threshold > value) {
                     return prevBadge;
                 }
@@ -42,20 +42,20 @@ class AchievementTracker {
      */
     updateBadgeAchievementGrid(curMissionCnt, curDistanceInMiles, curLabelsCnt, curValidationsCnt) {
         const BADGE_NOT_YET_EARNED_CLASS_NAME = 'badge-not-yet-earned';
-        let mapBadgeTypesToCurrentValues = {};
+        const mapBadgeTypesToCurrentValues = {};
         mapBadgeTypesToCurrentValues[BadgeTypes.Missions] = curMissionCnt;
         mapBadgeTypesToCurrentValues[BadgeTypes.Distance] = curDistanceInMiles;
         mapBadgeTypesToCurrentValues[BadgeTypes.Labels] = curLabelsCnt;
         mapBadgeTypesToCurrentValues[BadgeTypes.Validations] = curValidationsCnt;
 
-        for (let badgeType of Object.keys(this.mapBadges)) {
-            let mapLevelsToBadge = this.mapBadges[badgeType]
-            let curValue = mapBadgeTypesToCurrentValues[badgeType];
+        for (const badgeType of Object.keys(this.mapBadges)) {
+            const mapLevelsToBadge = this.mapBadges[badgeType];
+            const curValue = mapBadgeTypesToCurrentValues[badgeType];
 
-            for (let level of Object.keys(mapLevelsToBadge)) {
-                let badge = mapLevelsToBadge[level];
-                let badgeHtmlId = badge.type + '-badge' + badge.level;
-                let badgeHtmlElement = document.getElementById(badgeHtmlId);
+            for (const level of Object.keys(mapLevelsToBadge)) {
+                const badge = mapLevelsToBadge[level];
+                const badgeHtmlId = `${badge.type}-badge${badge.level}`;
+                const badgeHtmlElement = document.getElementById(badgeHtmlId);
 
                 if (badge.threshold > curValue) {
                     badgeHtmlElement.className = BADGE_NOT_YET_EARNED_CLASS_NAME;
@@ -67,7 +67,7 @@ class AchievementTracker {
                 badgeHtmlElement.parentElement.style.visibility = 'visible';
             }
 
-            let badgeEncouragementHtmlId = badgeType + '-badge-encouragement';
+            const badgeEncouragementHtmlId = `${badgeType}-badge-encouragement`;
             document.getElementById(badgeEncouragementHtmlId).innerHTML = this.getBadgeEncouragementHtml(badgeType, curValue);
         }
     }
@@ -80,13 +80,13 @@ class AchievementTracker {
      */
     getBadgeEncouragementHtml(badgeType, curValue) {
         // Find next badge to unlock.
-        let mapLevelsToBadge = this.mapBadges[badgeType]
+        const mapLevelsToBadge = this.mapBadges[badgeType];
         let nextBadgeToUnlock = null;
         if (badgeType in this.mapBadges) {
-            let mapLevelsToBadge = this.mapBadges[badgeType]
+            const mapLevelsToBadge = this.mapBadges[badgeType];
 
-            for (let level of Object.keys(mapLevelsToBadge)) {
-                let badge = mapLevelsToBadge[level];
+            for (const level of Object.keys(mapLevelsToBadge)) {
+                const badge = mapLevelsToBadge[level];
                 if (badge.threshold > curValue) {
                     nextBadgeToUnlock = badge;
                     break;
@@ -113,12 +113,12 @@ class AchievementTracker {
 
             // Add an encouraging statement based on how close they are to the next badge level.
             if (fractionComplete > 0.95) {
-                htmlStatement += i18next.t('dashboard:so-close') + ' ' + i18next.t('dashboard:just') + ' ';
+                htmlStatement += `${i18next.t('dashboard:so-close')} ${i18next.t('dashboard:just')} `;
             } else if (fractionComplete > 0.85) {
-                htmlStatement += i18next.t('dashboard:wow-almost-there') + ' ' + i18next.t('dashboard:just') + ' ';
+                htmlStatement += `${i18next.t('dashboard:wow-almost-there')} ${i18next.t('dashboard:just')} `;
             } else if (fractionComplete > 0.1 || curBadgeLevel > 0) {
-                let randStatement = encouragingStatements[Math.floor(Math.random() * encouragingStatements.length)];
-                htmlStatement += i18next.t(randStatement) + ' ';
+                const randStatement = encouragingStatements[Math.floor(Math.random() * encouragingStatements.length)];
+                htmlStatement += `${i18next.t(randStatement)} `;
             }
 
             // Convert to from miles to kilometers if using metric system.
@@ -129,8 +129,8 @@ class AchievementTracker {
 
             // Get the appropriate distance unit, e.g., mission/misión, missions/misiones, labels/etiquetas.
             let unitTranslation;
-            if (diffValue === 1) unitTranslation = 'dashboard:badge-' + badgeType + '-singular';
-            else unitTranslation = 'dashboard:badge-' + badgeType + '-plural';
+            if (diffValue === 1) unitTranslation = `dashboard:badge-${badgeType}-singular`;
+            else unitTranslation = `dashboard:badge-${badgeType}-plural`;
 
             const firstOrNextTranslation = curBadgeLevel === 0 ? 'dashboard:first' : 'dashboard:next';
 
@@ -139,10 +139,10 @@ class AchievementTracker {
             htmlStatement += i18next.t('dashboard:more-unit-until-achievement', {
                 n: parseFloat(diffValue.toFixed(2)),
                 unit: unitTranslation,
-                firstOrNext: firstOrNextTranslation
+                firstOrNext: firstOrNextTranslation,
             });
         } else {
-            htmlStatement = i18next.t('dashboard:' + 'badge-' + badgeType + '-earned-all');
+            htmlStatement = i18next.t(`dashboard:` + `badge-${badgeType}-earned-all`);
         }
 
         return htmlStatement;
@@ -153,7 +153,7 @@ const BadgeTypes = Object.freeze({
     Missions: 'missions',
     Distance: 'distance',
     Labels: 'labels',
-    Validations: 'validations'
+    Validations: 'validations',
 });
 
 const encouragingStatements = [
@@ -166,11 +166,10 @@ const encouragingStatements = [
     'dashboard:now-were-rolling',
     'dashboard:thanks-for-helping',
     'dashboard:making-great-progress',
-    'dashboard:great-job'
+    'dashboard:great-job',
 ];
 
 class Badge {
-
     /**
      *
      * @param type
@@ -183,6 +182,6 @@ class Badge {
         this.type = type;
         this.level = level;
         this.threshold = badgeAwardThreshold;
-        this.imagePath = imagePath + '/' + 'badge_' + type + '_badge' + level + '.png';
+        this.imagePath = `${imagePath}/` + `badge_${type}_badge${level}.png`;
     }
 }

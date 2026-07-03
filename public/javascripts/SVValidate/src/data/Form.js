@@ -26,7 +26,7 @@ class Form {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json; charset=utf-8' },
                 body: JSON.stringify(data),
-                keepalive: true
+                keepalive: true,
             });
         });
     }
@@ -52,12 +52,12 @@ class Form {
      * @returns {Object} The log data to submit.
      */
     compileSubmissionData(missionComplete) {
-        let data = { timestamp: new Date(), source: this.getSource() };
-        let missionContainer = svv.missionContainer;
-        let mission = missionContainer ? missionContainer.getCurrentMission() : null;
+        const data = { timestamp: new Date(), source: this.getSource() };
+        const missionContainer = svv.missionContainer;
+        const mission = missionContainer ? missionContainer.getCurrentMission() : null;
 
-        let labelContainer = svv.labelContainer;
-        let labelList = labelContainer ? labelContainer.getLabelsToSubmit() : null;
+        const labelContainer = svv.labelContainer;
+        const labelList = labelContainer ? labelContainer.getLabelsToSubmit() : null;
         // Only submit mission progress if there is a mission when we're compiling submission data.
         if (mission) {
             // Add the current mission
@@ -68,7 +68,7 @@ class Form {
                 labels_total: mission.getProperty('labelsValidated'),
                 label_type_id: mission.getProperty('labelTypeId'),
                 completed: missionComplete ? missionComplete : false,
-                skipped: mission.getProperty('skipped')
+                skipped: mission.getProperty('skipped'),
             };
         }
 
@@ -92,7 +92,7 @@ class Form {
             avail_height: screen.availHeight,            // total height - interface ;
             operating_system: util.getOperatingSystem(),
             language: i18next.language,
-            css_zoom: 100 // Sent for back-end compatibility; UI scaling is done via real layout sizes (--ui-scale).
+            css_zoom: 100, // Sent for back-end compatibility; UI scaling is done via real layout sizes (--ui-scale).
         };
 
         data.validate_params = {
@@ -100,7 +100,7 @@ class Form {
             label_type: svv.validateParams.labelTypeId,
             user_ids: svv.validateParams.userIds,
             neighborhood_ids: svv.validateParams.regionIds,
-            unvalidated_only: svv.validateParams.unvalidatedOnly
+            unvalidated_only: svv.validateParams.unvalidatedOnly,
         };
 
         data.interactions = svv.tracker.getActions();
@@ -110,15 +110,15 @@ class Form {
             const panoramas = svv.panoStore.getStagedPanoData();
             for (let i = 0; i < svv.panoStore.getStagedPanoData().length; i++) {
                 const panoData = panoramas[i].getProperties();
-                let panoHist = {
+                const panoHist = {
                     curr_pano_id: panoData.panoId,
                     pano_history_saved: new Date(),
-                    history: panoData.history.map(function(prevPano) {
+                    history: panoData.history.map((prevPano) => {
                         return {
                             pano_id: prevPano.panoId,
-                            date: prevPano.captureDate.format('YYYY-MM')
-                        }
-                    })
+                            date: prevPano.captureDate.format('YYYY-MM'),
+                        };
+                    }),
                 };
 
                 data.pano_histories.push(panoHist);
@@ -151,7 +151,7 @@ class Form {
             const response = await fetch(this.#dataStoreUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json; charset=utf-8' },
-                body: JSON.stringify(data)
+                body: JSON.stringify(data),
             });
             if (!response.ok) throw new Error(`Validation submit failed with HTTP ${response.status}`);
             result = await response.json();

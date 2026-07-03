@@ -12,8 +12,9 @@ class Task {
     #paths;
     #missionStarts = {};
     #status = {
-        isComplete: false
+        isComplete: false,
     };
+
     #properties = {
         auditTaskId: null,
         streetEdgeId: null,
@@ -24,7 +25,7 @@ class Task {
         startPointReversed: false,
         tutorialTask: null,
         wayType: null,
-        routeStreetId: null
+        routeStreetId: null,
     };
 
     /**
@@ -47,14 +48,14 @@ class Task {
         const currMissionId = this.#geojson.properties.current_mission_id;
         const currMissionStart = this.#geojson.properties.currentMissionStart;
 
-        this.setProperty("streetEdgeId", this.#geojson.properties.street_edge_id);
-        this.setProperty("completedByAnyUser", this.#geojson.properties.completed_by_any_user);
-        this.setProperty("priority", this.#geojson.properties.priority);
-        this.setProperty("currentMissionId", currMissionId);
-        this.setProperty("auditTaskId", this.#geojson.properties.audit_task_id);
-        this.setProperty("wayType", this.#geojson.properties.way_type);
-        this.setProperty("routeStreetId", this.#geojson.properties.route_street_id);
-        this.setProperty("taskStart", new Date(this.#geojson.properties.task_start));
+        this.setProperty('streetEdgeId', this.#geojson.properties.street_edge_id);
+        this.setProperty('completedByAnyUser', this.#geojson.properties.completed_by_any_user);
+        this.setProperty('priority', this.#geojson.properties.priority);
+        this.setProperty('currentMissionId', currMissionId);
+        this.setProperty('auditTaskId', this.#geojson.properties.audit_task_id);
+        this.setProperty('wayType', this.#geojson.properties.way_type);
+        this.setProperty('routeStreetId', this.#geojson.properties.route_street_id);
+        this.setProperty('taskStart', new Date(this.#geojson.properties.task_start));
         if (this.#geojson.properties.completed) {
             this.#status.isComplete = true;
         }
@@ -121,15 +122,15 @@ class Task {
                 geodesic: true,
                 strokeColor: '#00ff00',
                 strokeOpacity: 1.0,
-                strokeWeight: 2
+                strokeWeight: 2,
             }),
             new google.maps.Polyline({
                 path: incompletePath,
                 geodesic: true,
                 strokeColor: '#ff0000',
                 strokeOpacity: 1.0,
-                strokeWeight: 2
-            })
+                strokeWeight: 2,
+            }),
         ];
     }
 
@@ -138,7 +139,7 @@ class Task {
         for (let i = 1, len = coordinates.length; i < len; i++) {
             returnSegments.push(turf.lineString([
                 [coordinates[i - 1][0], coordinates[i - 1][1]],
-                [coordinates[i][0], coordinates[i][1]]
+                [coordinates[i][0], coordinates[i][1]],
             ]));
         }
         return returnSegments;
@@ -170,7 +171,7 @@ class Task {
     }
 
     #hasAdvanced(currentLatLng) {
-        if (typeof this.#furthestPoint === "undefined") return false;
+        if (typeof this.#furthestPoint === 'undefined') return false;
         const latFurthest = this.#furthestPoint.geometry.coordinates[1];
         const lngFurthest = this.#furthestPoint.geometry.coordinates[0];
         const distanceAtTheFurthestPoint = this.getDistanceFromStart({ lat: latFurthest, lng: lngFurthest });
@@ -180,8 +181,8 @@ class Task {
         const currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]);
         const snappedPosition = turf.nearestPointOnLine(streetEdge, currentPosition);
 
-        return (distanceAtTheFurthestPoint < distanceAtCurrentPoint) &&
-            turf.distance(currentPosition, snappedPosition) < 0.025;
+        return (distanceAtTheFurthestPoint < distanceAtCurrentPoint)
+            && turf.distance(currentPosition, snappedPosition) < 0.025;
     }
 
     /**
@@ -271,7 +272,7 @@ class Task {
      * @returns {number}
      */
     getAuditedDistance(units = { units: 'kilometers' }) {
-        if (typeof this.#furthestPoint === "undefined") return 0;
+        if (typeof this.#furthestPoint === 'undefined') return 0;
         const latFurthest = this.#furthestPoint.geometry.coordinates[1];
         const lngFurthest = this.#furthestPoint.geometry.coordinates[0];
         return this.getDistanceFromStart({ lat: latFurthest, lng: lngFurthest }, units);
@@ -294,7 +295,6 @@ class Task {
         }
         return distance;
     }
-
 
     /**
      * This method checks if the task is completed by comparing the current position and the ending point.
@@ -379,15 +379,15 @@ class Task {
         // If the task has been completed already, or if it has not been completed and is not the current task,
         // render it using one green or gray Polyline, respectively.
         if (this.isComplete() || this.getStreetEdgeId() !== svl.taskContainer.getCurrentTaskStreetEdgeId()) {
-            const gCoordinates = this.#geojson.geometry.coordinates.map(coord => new google.maps.LatLng(coord[1], coord[0]));
+            const gCoordinates = this.#geojson.geometry.coordinates.map((coord) => new google.maps.LatLng(coord[1], coord[0]));
             this.#paths = [
                 new google.maps.Polyline({
                     path: gCoordinates,
                     geodesic: true,
                     strokeColor: this.isComplete() ? '#00ff00' : '#808080',
                     strokeOpacity: this.isComplete() ? 1.0 : 0.75,
-                    strokeWeight: 2
-                })
+                    strokeWeight: 2,
+                }),
             ];
         // If the task is incomplete and is the current task, render it using two Polylines (red and green).
         } else {
@@ -424,8 +424,8 @@ class Task {
 
     updateTheFurthestPointReached(currentLatLng) {
         const currentPoint = turf.point([currentLatLng.lng, currentLatLng.lat]);
-        if (turf.pointToLineDistance(currentPoint, this.#geojson) < svl.CLOSE_TO_ROUTE_THRESHOLD &&
-            this.#hasAdvanced(currentLatLng)) {
+        if (turf.pointToLineDistance(currentPoint, this.#geojson) < svl.CLOSE_TO_ROUTE_THRESHOLD
+            && this.#hasAdvanced(currentLatLng)) {
             this.#furthestPoint = currentPoint;
         }
     }

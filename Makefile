@@ -93,13 +93,25 @@ lint-htmlhint:
 	@echo "Finished Running HTMLHint";
 
 lint-eslint:
-	@echo "Running eslint..."; docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) $(dir)"; echo "Finished Running eslint"
+	@echo "Running eslint...";
+	@if [ "$(dir)" = "./" ]; then \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) public/javascripts/"; \
+	else \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) $(dir)"; \
+	fi
+	@echo "Finished Running eslint";
 
 lint-stylelint:
 	@echo "Running stylelint..."; docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/stylelint/bin/stylelint.js $(args) $(dir)"; echo "Finished Running stylelint"
 
 lint-fix-eslint:
-	@echo "Running eslint..."; docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) $(dir)"; echo "Finished Running eslint"
+	@echo "Running eslint...";
+	@if [ "$(dir)" = "./" ]; then \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) public/javascripts/"; \
+	else \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) $(dir)"; \
+	fi
+	@echo "Finished Running eslint";
 
 lint-fix-stylelint:
 	@echo "Running stylelint..."; docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/stylelint/bin/stylelint.js --fix $(args) $(dir)"; echo "Finished Running stylelint"

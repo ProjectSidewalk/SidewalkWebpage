@@ -4,11 +4,12 @@
 class TagDisplay {
     #container;
     #tags;
-    #popoverTemplate = '<div class="popover additional-tag-popover" role="tooltip">' +
-                            '<div class="arrow"></div>' +
-                            '<h3 class="popover-title"></h3>' +
-                            '<div class="popover-content additional-tag-popover-content"></div>' +
-                        '</div>';
+    #popoverTemplate = `
+        <div class="popover additional-tag-popover" role="tooltip">
+            <div class="arrow"></div>
+            <h3 class="popover-title"></h3>
+            <div class="popover-content additional-tag-popover-content"></div>
+        </div>`;
 
     /**
      * @param {HTMLElement} container The DOM element to contain the label information.
@@ -32,7 +33,7 @@ class TagDisplay {
             const tagHeader = document.createElement('div');
             tagHeader.className = 'label-tags-header';
 
-            tagHeader.innerText = `${i18next.t("tags")}`;
+            tagHeader.innerText = `${i18next.t('tags')}`;
             $(container).append(tagHeader);
 
             const tagContainer = document.createElement('div');
@@ -44,13 +45,13 @@ class TagDisplay {
             // "Tag" header and the actual list of tags.
             let remainingWidth = $(container).width() - ($(tagHeader).width() * 1.25);
 
-            const MARGIN_BW_TAGS =
-                parseFloat($('.gallery-tag').css('marginLeft')) + parseFloat($('.gallery-tag').css('marginRight'));
+            const MARGIN_BW_TAGS
+                = parseFloat($('.gallery-tag').css('marginLeft')) + parseFloat($('.gallery-tag').css('marginRight'));
             const WIDTH_FOR_PLUS_N = 30;
             const MIN_TAG_WIDTH = 75;
 
             const orderedTags = this.#orderTags(tags);
-            const tagsText = orderedTags.map(t => i18next.t('tag.' + t));
+            const tagsText = orderedTags.map((t) => i18next.t(`tag.${t}`));
             const hiddenTags = [];
             for (let i = 0; i < tagsText.length; i++) {
                 const tagEl = document.createElement('div');
@@ -84,7 +85,7 @@ class TagDisplay {
                 } else {
                     // If the tag does not fit at all, add it to the list of hidden tags to show in the popover.
                     tagEl.remove();
-                    tagEl.classList.add("not-added");
+                    tagEl.classList.add('not-added');
                     hiddenTags.push(tagEl);
                 }
             }
@@ -92,16 +93,16 @@ class TagDisplay {
             // If there was not enough space to display all the tags, show the rest in a popover on the '+n' text.
             if (hiddenTags.length > 0) {
                 const additional = document.createElement('div');
-                additional.className = "gallery-tag additional-count";
-                additional.innerText = " + " + hiddenTags.length;
-                $(additional).popover("destroy").popover({
+                additional.className = 'gallery-tag additional-count';
+                additional.innerText = ` + ${hiddenTags.length}`;
+                $(additional).popover('destroy').popover({
                     placement: 'top',
                     html: true,
-                    delay: { "show": 300, "hide": 10 },
-                    content: hiddenTags.map(tag => tag.outerHTML).join(""),
+                    delay: { show: 300, hide: 10 },
+                    content: hiddenTags.map((tag) => tag.outerHTML).join(''),
                     trigger: 'hover',
-                    template: this.#popoverTemplate
-                }).popover("show").popover("hide");
+                    template: this.#popoverTemplate,
+                }).popover('show').popover('hide');
                 $(tagContainer).append(additional);
             }
         }
@@ -118,13 +119,11 @@ class TagDisplay {
         for (const tag of tags) {
             if (orderedTags.length === 0) {
                 orderedTags.push(tag);
+            } else if (appliedTags.includes(tag)) {
+                // Prepend tag if it is a selected tag.
+                orderedTags = [tag, ...orderedTags];
             } else {
-                if (appliedTags.includes(tag)) {
-                    // Prepend tag if it is a selected tag.
-                    orderedTags = [tag, ...orderedTags];
-                } else {
-                    orderedTags.push(tag);
-                }
+                orderedTags.push(tag);
             }
         }
         return orderedTags;

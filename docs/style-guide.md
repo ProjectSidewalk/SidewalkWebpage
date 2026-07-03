@@ -6,11 +6,13 @@ the ScalaDoc/JSDoc comment standards. This page explains the conventions a linte
 ones it can.
 
 **The linters are the source of truth for mechanically-checkable rules.** JavaScript/CSS/HTML rules live in
-[`.eslintrc.json`](../.eslintrc.json), [`.stylelintrc.json`](../.stylelintrc.json), and
+[`eslint.config.js`](../eslint.config.js), [`.stylelintrc.json`](../.stylelintrc.json), and
 [`.htmlhintrc`](../.htmlhintrc); Scala formatting lives in [`.scalafmt.conf`](../.scalafmt.conf). When this guide and a
 config disagree, the config wins — fix the config and this doc together. (Frontend linting isn't wired into CI yet —
 it's sequenced with the ES5→ES2022 migration, [#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487) —
-but the rules already describe the standard we write to. `scalafmtCheckAll` *does* run in CI, as advisory.)
+but run `make eslint-fix dir=<the JS you touched>` locally. The auto-fix pass is all that's expected for now: findings
+`--fix` can't resolve are deferred to a coordinated tree-wide cleanup on #2487, so there's no need to hand-fix them.
+The rules already describe the standard we write to. `scalafmtCheckAll` *does* run in CI, as a blocking gate.)
 
 ## General
 
@@ -38,7 +40,7 @@ These apply across every language in the repo.
 
 The frontend is vanilla ES, organized as independent apps that Grunt concatenates (no transpiler, no module system).
 Edit files under `src/`; never edit the generated `build/` bundles. Most rules below are enforced by
-[`.eslintrc.json`](../.eslintrc.json).
+[`eslint.config.js`](../eslint.config.js).
 
 - **Write ES2022 for new and modernized code:** `const`/`let` (`no-var`), arrow functions, template literals
   (`prefer-template`), object shorthand, and `===`/`!==` (`eqeqeq`). When you're editing a file that is *entirely*
@@ -54,6 +56,24 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
 
 - **Single quotes** for string literals (`quotes: single`); use backticks when you need interpolation or multi-line
   strings.
+- **Build HTML strings with template literals, never `+` concatenation.** Indent the markup inside the backticks to
+  mirror its HTML nesting — ESLint deliberately doesn't reformat template-literal interiors, so the structure stays
+  readable:
+
+  ```js
+  el.innerHTML = `
+      <div class="card">
+          <span class="card-title">${title}</span>
+      </div>`;
+  ```
+
+  Two things to keep in mind:
+  - The newlines/indentation become part of the string. That's fine between elements in block/flex/grid containers
+    and in collapsible inline text, but when converting an old concatenation, check the target container's CSS — a
+    plain inline container would gain a visible space between elements. And never break a line *inside* an attribute
+    value: a newline in `title="..."` renders literally in the tooltip.
+  - `eslint --fix` can't do this conversion for you (`prefer-template` only fires when a variable is involved, not on
+    literal-plus-literal chains), so convert concatenated HTML by hand as you touch it.
 - **Semicolons required** (`semi`); always parenthesize arrow-function params (`arrow-parens`).
 - **No space between a function name and its `(`**; **do** put a space before a block's `{` and around operators and
   keywords (`if`, `for`). Blank line before and after function declarations (`padding-line-between-statements`).

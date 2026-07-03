@@ -20,7 +20,7 @@ const EventMixin = {
      */
     trigger(event, ...args) {
         const callbacks = this._listeners && this._listeners[event];
-        if (callbacks) callbacks.forEach(cb => cb.apply(this, args));
+        if (callbacks) callbacks.forEach((cb) => cb.apply(this, args));
         return this;
-    }
+    },
 };

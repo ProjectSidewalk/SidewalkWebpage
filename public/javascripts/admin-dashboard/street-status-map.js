@@ -12,7 +12,7 @@ class StreetStatusColors {
         { key: 'open',       label: 'Open',       color: '#60A189' }, // --color-pine-600   (healthy/auditable)
         { key: 'no_imagery', label: 'No imagery', color: '#EB724E' }, // --color-orange-500 (the headline problem)
         { key: 'closed',     label: 'Closed',     color: '#B3B3B3' }, // --color-neutral-500 (region not opened)
-        { key: 'disabled',   label: 'Disabled',   color: '#424055' }  // --color-asphalt-400 (manually hidden)
+        { key: 'disabled',   label: 'Disabled',   color: '#424055' },  // --color-asphalt-400 (manually hidden)
     ];
 
     /** Fallback color for any status value not in STATUSES (shouldn't happen, but keeps unknown data visible). */
@@ -23,13 +23,13 @@ class StreetStatusColors {
 
     /** @param {string} status @returns {string} the hex color for a status, or the fallback if unrecognized. */
     static colorFor(status) {
-        const match = StreetStatusColors.STATUSES.find(s => s.key === status);
+        const match = StreetStatusColors.STATUSES.find((s) => s.key === status);
         return match ? match.color : StreetStatusColors.FALLBACK;
     }
 
     /** @param {string} status @returns {string} the human-readable label for a status, or the raw value if unknown. */
     static labelFor(status) {
-        const match = StreetStatusColors.STATUSES.find(s => s.key === status);
+        const match = StreetStatusColors.STATUSES.find((s) => s.key === status);
         return match ? match.label : status;
     }
 
@@ -86,12 +86,12 @@ class StreetStatusMap {
             container: this.containerId,
             style: 'mapbox://styles/mapbox/light-v11',
             bounds: StreetStatusMap.#bounds(geojson),
-            fitBoundsOptions: { padding: 24 }
+            fitBoundsOptions: { padding: 24 },
         });
         this.#map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
         this.#popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, className: 'coverage-popup' });
 
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
             this.#map.on('load', () => {
                 this.#addLayers(geojson);
                 this.#wireInteractions();
@@ -109,8 +109,8 @@ class StreetStatusMap {
             layout: { 'line-cap': 'round' },
             paint: {
                 'line-color': StreetStatusColors.mapboxExpression(),
-                'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 4, 1.6]
-            }
+                'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 4, 1.6],
+            },
         });
         // Separate selected outline (a region's segments) in the high-contrast highlight color, drawn on top.
         this.#map.addLayer({
@@ -118,13 +118,13 @@ class StreetStatusMap {
             layout: { 'line-cap': 'round' },
             paint: {
                 'line-color': StreetStatusColors.SELECTED,
-                'line-width': ['case', ['boolean', ['feature-state', 'selected'], false], 5, 0]
-            }
+                'line-width': ['case', ['boolean', ['feature-state', 'selected'], false], 5, 0],
+            },
         });
     }
 
     #wireInteractions() {
-        this.#map.on('mousemove', 'street-status-line', e => {
+        this.#map.on('mousemove', 'street-status-line', (e) => {
             if (!e.features.length) return;
             this.#map.getCanvas().style.cursor = 'pointer';
             const f = e.features[0];
@@ -136,7 +136,7 @@ class StreetStatusMap {
             this.#setHover(null, null);
             this.#popup.remove();
         });
-        this.#map.on('click', 'street-status-line', e => {
+        this.#map.on('click', 'street-status-line', (e) => {
             if (e.features.length) this.#onRegionClick(Number(e.features[0].properties.region_id));
         });
     }
@@ -180,23 +180,25 @@ class StreetStatusMap {
     /** Builds the hover-popup HTML showing a segment's status and activity. */
     static #popupHtml(p) {
         const row = (label, value) => `<dt>${label}</dt><dd>${value}</dd>`;
-        const swatch = `<span class="street-status-swatch" style="background:${StreetStatusColors.colorFor(p.status)}"` +
-            ' aria-hidden="true"></span>';
-        return `<div class="coverage-popup-name">Street ${p.street_edge_id}</div>` +
-            '<dl class="coverage-popup-dl">' +
-            row('Status', `${swatch}${StreetStatusColors.labelFor(p.status)}`) +
-            row('Region', p.region_name) +
-            row('Way type', p.way_type) +
-            row('Audits', (p.audit_count || 0).toLocaleString()) +
-            row('Labels', (p.label_count || 0).toLocaleString()) +
-            row('Contributors', (p.user_count || 0).toLocaleString()) +
-            '</dl>';
+        const swatch = `<span class="street-status-swatch" style="background:${StreetStatusColors.colorFor(p.status)}"`
+            + ' aria-hidden="true"></span>';
+        return [
+            `<div class="coverage-popup-name">Street ${p.street_edge_id}</div>`,
+            '<dl class="coverage-popup-dl">',
+            row('Status', `${swatch}${StreetStatusColors.labelFor(p.status)}`),
+            row('Region', p.region_name),
+            row('Way type', p.way_type),
+            row('Audits', (p.audit_count || 0).toLocaleString()),
+            row('Labels', (p.label_count || 0).toLocaleString()),
+            row('Contributors', (p.user_count || 0).toLocaleString()),
+            '</dl>',
+        ].join('');
     }
 
     /** Computes a [[minLng,minLat],[maxLng,maxLat]] bounds box covering all features. */
     static #bounds(geojson) {
-        let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
-        const visit = coords => {
+        let minLng = Infinity; let minLat = Infinity; let maxLng = -Infinity; let maxLat = -Infinity;
+        const visit = (coords) => {
             if (typeof coords[0] === 'number') {
                 minLng = Math.min(minLng, coords[0]); maxLng = Math.max(maxLng, coords[0]);
                 minLat = Math.min(minLat, coords[1]); maxLat = Math.max(maxLat, coords[1]);

@@ -24,7 +24,7 @@ class ModalMissionComplete {
             const newMission = svv.missionContainer.getCurrentMission();
             if (newMission && newMission.getProperty('missionType') === 'validation') {
                 const labelTypeID = newMission.getProperty('labelTypeId');
-                new MissionStartTutorial('validate', svv.labelTypes[labelTypeID], {nLabels: newMission.getProperty('labelsValidated')}, svv, this.#language);
+                new MissionStartTutorial('validate', svv.labelTypes[labelTypeID], { nLabels: newMission.getProperty('labelsValidated') }, svv, this.#language);
             }
 
             this.hide();
@@ -56,7 +56,7 @@ class ModalMissionComplete {
         }
         const totalLabels = mission.getProperty('agreeCount') + mission.getProperty('disagreeCount')
             + mission.getProperty('unsureCount');
-        const message = i18next.t('mission-complete.body-' + mission.getProperty('labelTypeId'), { n: totalLabels });
+        const message = i18next.t(`mission-complete.body-${mission.getProperty('labelTypeId')}`, { n: totalLabels });
 
         // Disable user from clicking the 'Validate next mission' button and set background to gray. When we have a new
         // mission from the back end, nextMissionLoaded() will be called from Form.js to re-enable the button.
@@ -99,8 +99,8 @@ class ModalMissionComplete {
                 missionId: mission.getProperty('missionId'),
                 missionType: mission.getProperty('missionType'),
                 labelTypeId: mission.getProperty('labelTypeId'),
-                labelsValidated: mission.getProperty('labelsValidated')
-            }
+                labelsValidated: mission.getProperty('labelsValidated'),
+            },
         );
 
         // Celebrate a newly unlocked mission badge if this completion crossed a threshold.

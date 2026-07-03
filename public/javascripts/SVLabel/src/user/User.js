@@ -4,11 +4,11 @@
  * @returns {{className: string}}
  * @constructor
  */
-function User (param) {
+function User(param) {
     const properties = {
         username: param.username,
         role: param.role,
-        userId: param.userId
+        userId: param.userId,
     };
 
     /**

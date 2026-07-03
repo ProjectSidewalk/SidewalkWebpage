@@ -8,10 +8,9 @@
  * per-city activity trend. Owner-only; driven entirely from /adminapi/cityScorecards.
  */
 class AcrossCitiesPage {
-
     /** Human-friendly label + severity for each data-quality anomaly flag key the endpoint can emit. */
     static #ANOMALY = {
-        high_disagreement: { label: 'High disagreement', sev: 'warn' }
+        high_disagreement: { label: 'High disagreement', sev: 'warn' },
     };
 
     /**
@@ -22,19 +21,19 @@ class AcrossCitiesPage {
         active:       { label: 'Active',       tone: 'ok',    rank: 0, attention: false },
         wrapped_up:   { label: 'Wrapped up',   tone: 'good',  rank: 1, attention: false },
         stalled:      { label: 'Stalled',      tone: 'warn',  rank: 2, attention: true },
-        low_traction: { label: 'Low traction', tone: 'bad',   rank: 3, attention: true }
+        low_traction: { label: 'Low traction', tone: 'bad',   rank: 3, attention: true },
     };
 
     /** Canonical label-type order + short display names for the data-patterns bars. */
     static #LABEL_TYPES = [
         ['CurbRamp', 'Curb ramp'], ['NoCurbRamp', 'Missing curb ramp'], ['Obstacle', 'Obstacle'],
         ['SurfaceProblem', 'Surface problem'], ['NoSidewalk', 'No sidewalk'], ['Crosswalk', 'Crosswalk'],
-        ['Signal', 'Signal'], ['Occlusion', 'Occlusion'], ['Other', 'Other']
+        ['Signal', 'Signal'], ['Occlusion', 'Occlusion'], ['Other', 'Other'],
     ];
 
     /** Lifecycle → map circle color (matches the badge tones). */
     static #LIFECYCLE_COLOR = {
-        active: '#4a90d9', wrapped_up: '#1f7a4d', stalled: '#e0a800', low_traction: '#c0392b'
+        active: '#4a90d9', wrapped_up: '#1f7a4d', stalled: '#e0a800', low_traction: '#c0392b',
     };
 
     /**
@@ -50,7 +49,7 @@ class AcrossCitiesPage {
         labeled:                { full: 'Placed a label',                  short: 'Labeled' },
         mission_completed:      { full: 'Completed a mapping mission',     short: 'Mission done' },
         contributed:            { full: 'Labeled or validated',           short: 'Contributed' },
-        contribution_completed: { full: 'Completed a labeling/validation mission', short: 'Mission done' }
+        contribution_completed: { full: 'Completed a labeling/validation mission', short: 'Mission done' },
     };
 
     /** Title + one-line description for each funnel, shown above its table/bars. Keyed by funnel type. */
@@ -58,7 +57,7 @@ class AcrossCitiesPage {
         mapping:      { title: 'Mapping funnel',
             desc: 'The Explore onboarding flow: tutorial, then walking, labeling, and completing an audit mission.' },
         contribution: { title: 'Contribution funnel',
-            desc: 'The broad view: any contribution (labeling or validation) and finishing a mission.' }
+            desc: 'The broad view: any contribution (labeling or validation) and finishing a mission.' },
     };
 
     /** Funnel display order on the page. The endpoint may include any subset of these. */
@@ -69,7 +68,7 @@ class AcrossCitiesPage {
         all:    [{ key: 'all',        label: 'All users' }],
         role:   [{ key: 'registered', label: 'Registered' }, { key: 'anonymous', label: 'Anonymous' }],
         device: [{ key: 'desktop',    label: 'Desktop' }, { key: 'mobile', label: 'Mobile' },
-            { key: 'device_unknown', label: 'Unknown' }]
+            { key: 'device_unknown', label: 'Unknown' }],
     };
 
     /** Bar colors per segment, by position within the active dimension. */
@@ -105,7 +104,7 @@ class AcrossCitiesPage {
             // Scorecards are required; the cities geo (for the map) is an enhancement, so it degrades gracefully.
             const [data, citiesGeo] = await Promise.all([
                 this.#fetchJson(this.#scorecardsUrl),
-                this.#citiesUrl ? this.#fetchJson(this.#citiesUrl).catch(() => null) : Promise.resolve(null)
+                this.#citiesUrl ? this.#fetchJson(this.#citiesUrl).catch(() => null) : Promise.resolve(null),
             ]);
             this.#cities = (data && data.cities) || [];
             this.#summary = (data && data.summary) || {};
@@ -149,7 +148,7 @@ class AcrossCitiesPage {
         const counts = {};
         for (const c of this.#cities) counts[c.lifecycle] = (counts[c.lifecycle] || 0) + 1;
         const order = ['active', 'wrapped_up', 'stalled', 'low_traction'];
-        const parts = order.filter(k => counts[k]).map(k =>
+        const parts = order.filter((k) => counts[k]).map((k) =>
             `<strong>${counts[k]}</strong> ${AcrossCitiesPage.#LIFECYCLE[k].label.toLowerCase()}`);
         const breakdown = parts.length ? ` · ${parts.join(' · ')}` : '';
         this.#setHtml('ac-pulse', `Comparing <strong>${n}</strong> ${n === 1 ? 'city' : 'cities'}${breakdown}.`);
@@ -189,7 +188,7 @@ class AcrossCitiesPage {
             return;
         }
 
-        const byId = new Map(this.#cities.map(c => [c.city_id, c]));
+        const byId = new Map(this.#cities.map((c) => [c.city_id, c]));
         const features = [];
         let maxLabels = 1;
         for (const geo of citiesGeo.cities) {
@@ -207,8 +206,8 @@ class AcrossCitiesPage {
                     color: AcrossCitiesPage.#LIFECYCLE_COLOR[sc && sc.lifecycle] || '#9aa7b0',
                     visibility: geo.visibility || (sc && sc.visibility) || 'public',
                     labelCount,
-                    popup: this.#mapPopupHtml(geo, sc)
-                }
+                    popup: this.#mapPopupHtml(geo, sc),
+                },
             });
         }
         if (!features.length) {
@@ -229,7 +228,7 @@ class AcrossCitiesPage {
             center: [-30, 28],
             zoom: 1.2,
             minZoom: 1,
-            projection: 'mercator'
+            projection: 'mercator',
         });
         this.#map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
         const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, className: 'coverage-popup' });
@@ -246,10 +245,10 @@ class AcrossCitiesPage {
                     'circle-opacity': 0.75,
                     // Private deployments get a thicker dark ring; public get a thin white stroke.
                     'circle-stroke-width': ['case', ['==', ['get', 'visibility'], 'public'], 1, 3],
-                    'circle-stroke-color': ['case', ['==', ['get', 'visibility'], 'public'], '#ffffff', '#33373a']
-                }
+                    'circle-stroke-color': ['case', ['==', ['get', 'visibility'], 'public'], '#ffffff', '#33373a'],
+                },
             });
-            const showPopup = e => {
+            const showPopup = (e) => {
                 const f = e.features[0];
                 this.#map.getCanvas().style.cursor = 'pointer';
                 popup.setLngLat(f.geometry.coordinates).setHTML(f.properties.popup).addTo(this.#map);
@@ -260,7 +259,7 @@ class AcrossCitiesPage {
                 this.#map.getCanvas().style.cursor = '';
                 popup.remove();
             });
-            this.#map.on('click', 'ac-cities-circles', e => {
+            this.#map.on('click', 'ac-cities-circles', (e) => {
                 const url = e.features[0].properties.url;
                 if (url) window.open(url, '_blank', 'noopener');
             });
@@ -280,10 +279,10 @@ class AcrossCitiesPage {
             ['Labels', this.#num(sc.total_labels)],
             ['Validations', this.#num(sc.total_validations)],
             ['Contributors', this.#num(sc.active_contributors)],
-            ['Last activity', sc.last_activity ? AcrossCitiesPage.#relativeTime(sc.last_activity) : 'never']
+            ['Last activity', sc.last_activity ? AcrossCitiesPage.#relativeTime(sc.last_activity) : 'never'],
         ].map(([k, v]) => `<tr><td>${k}</td><td>${AcrossCitiesPage.#esc(v)}</td></tr>`).join('');
-        return `<div class="coverage-popup-name">${name}</div>` +
-            `<table class="coverage-popup-dl">${rows}</table>`;
+        return `<div class="coverage-popup-name">${name}</div>`
+            + `<table class="coverage-popup-dl">${rows}</table>`;
     }
 
     // --- Needs attention --------------------------------------------------------------------------------------------
@@ -316,37 +315,40 @@ class AcrossCitiesPage {
             el.innerHTML = '<p class="ov-attention-clear">All clear — no city needs attention right now. ✅</p>';
             return;
         }
-        el.innerHTML = items.map(it => {
+        el.innerHTML = items.map((it) => {
             const name = AcrossCitiesPage.#esc(it.city.city_name || it.city.city_id);
             const href = it.city.url ? AcrossCitiesPage.#esc(it.city.url) : '#';
-            return `<a class="ov-attention-item ov-attention--${it.sev === 'bad' ? 'warn' : it.sev}" href="${href}"` +
-                (it.city.url ? ' target="_blank" rel="noopener"' : '') + '>' +
-                '<span class="ov-attention-dot" aria-hidden="true"></span>' +
-                `<span class="ov-attention-text"><strong>${name}</strong> — ${AcrossCitiesPage.#esc(it.reason)}</span>` +
-                `<span class="ov-attention-go">${AcrossCitiesPage.#esc(it.label)} →</span>` +
-                '</a>';
+            return [
+                `<a class="ov-attention-item ov-attention--${it.sev === 'bad' ? 'warn' : it.sev}" href="${href}"`,
+                it.city.url ? ' target="_blank" rel="noopener">' : '>',
+                '<span class="ov-attention-dot" aria-hidden="true"></span>',
+                `<span class="ov-attention-text"><strong>${name}</strong> — ${AcrossCitiesPage.#esc(it.reason)}</span>`,
+                `<span class="ov-attention-go">${AcrossCitiesPage.#esc(it.label)} →</span>`,
+                '</a>',
+            ].join('');
         }).join('');
     }
 
     /** Explanation for a lifecycle state that needs attention, using the city's own numbers. */
     #lifecycleReason(c) {
-        const quiet = c.days_since_activity == null ? 'no recorded activity'
+        const quiet = c.days_since_activity == null
+            ? 'no recorded activity'
             : `quiet for ${c.days_since_activity} days`;
         if (c.lifecycle === 'low_traction') {
-            return `never took off — ${quiet}, ${this.#pct(c.coverage)} coverage, ` +
-                `${this.#num(c.active_contributors)} contributors`;
+            return `never took off — ${quiet}, ${this.#pct(c.coverage)} coverage, `
+                + `${this.#num(c.active_contributors)} contributors`;
         }
         // Stalled: had a community, lost momentum before finishing.
-        return `stalled at ${this.#pct(c.coverage)} coverage — ${quiet} ` +
-            `(${this.#num(c.active_contributors)} contributors)`;
+        return `stalled at ${this.#pct(c.coverage)} coverage — ${quiet} `
+            + `(${this.#num(c.active_contributors)} contributors)`;
     }
 
     /** Human-readable explanation for one data-quality anomaly flag on one city, using the city's own numbers. */
     #anomalyReason(flag, c) {
         switch (flag) {
             case 'high_disagreement':
-                return `${this.#pct(c.validation_disagreement_rate)} of human validations disagree ` +
-                    `(median ${this.#pct(this.#summary.median_disagreement_rate)})`;
+                return `${this.#pct(c.validation_disagreement_rate)} of human validations disagree `
+                    + `(median ${this.#pct(this.#summary.median_disagreement_rate)})`;
             default:
                 return flag;
         }
@@ -366,16 +368,16 @@ class AcrossCitiesPage {
      */
     #renderTrends() {
         this.#trendSeries = {
-            recent: this.#aggregateWeekly(this.#cities.flatMap(c => c.weekly_trend || [])),
-            all: this.#allTimeTrend.slice()
+            recent: this.#aggregateWeekly(this.#cities.flatMap((c) => c.weekly_trend || [])),
+            all: this.#allTimeTrend.slice(),
         };
 
         const toggle = document.getElementById('ac-trend-toggle');
         if (toggle) {
-            toggle.querySelectorAll('.ac-toggle-btn').forEach(btn => {
+            toggle.querySelectorAll('.ac-toggle-btn').forEach((btn) => {
                 btn.addEventListener('click', () => {
                     this.#trendRange = btn.dataset.range;
-                    toggle.querySelectorAll('.ac-toggle-btn').forEach(b => b.classList.toggle('active', b === btn));
+                    toggle.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('active', b === btn));
                     this.#drawTrends();
                 });
             });
@@ -399,7 +401,7 @@ class AcrossCitiesPage {
     /** Draws the three over-time line charts for the currently selected range. */
     #drawTrends() {
         const series = this.#trendSeries[this.#trendRange] || [];
-        const cats = series.map(w => AcrossCitiesPage.#shortDate(w.week_start));
+        const cats = series.map((w) => AcrossCitiesPage.#shortDate(w.week_start));
         // Small dots on the short (12-week) view where they aid hover tooltips; none on the dense all-time view, where
         // hundreds of points would just be noise.
         const dotRadius = series.length > 30 ? 0 : 2;
@@ -407,16 +409,16 @@ class AcrossCitiesPage {
             const host = document.getElementById(id);
             if (host) MiniLineChart.renderInto(host, cats, [{ name, key, values }], { ariaLabel: name, dotRadius });
         };
-        draw('ac-chart-labels', 'aclabels', 'Labels', series.map(w => w.labels));
-        draw('ac-chart-validations', 'acvals', 'Validations', series.map(w => w.validations));
-        draw('ac-chart-users', 'acusers', 'Active users', series.map(w => w.active_users));
+        draw('ac-chart-labels', 'aclabels', 'Labels', series.map((w) => w.labels));
+        draw('ac-chart-validations', 'acvals', 'Validations', series.map((w) => w.validations));
+        draw('ac-chart-users', 'acusers', 'Active users', series.map((w) => w.active_users));
     }
 
     // --- Scorecard table --------------------------------------------------------------------------------------------
 
     #wireSorting() {
         const ths = document.querySelectorAll('#ac-table thead th[data-sort]');
-        ths.forEach(th => {
+        ths.forEach((th) => {
             th.addEventListener('click', () => {
                 const key = th.getAttribute('data-sort');
                 if (this.#sortKey === key) {
@@ -439,26 +441,30 @@ class AcrossCitiesPage {
             return;
         }
         const rows = this.#sortedCities(this.#sortKey, this.#sortDir);
-        tbody.innerHTML = rows.map(c => {
+        tbody.innerHTML = rows.map((c) => {
             const lc = AcrossCitiesPage.#LIFECYCLE[c.lifecycle];
             const needsAttention = (lc && lc.attention) || (c.anomalies || []).length > 0;
-            const chips = (c.anomalies || []).map(f => {
+            const chips = (c.anomalies || []).map((f) => {
                 const meta = AcrossCitiesPage.#ANOMALY[f] || { label: f, sev: 'info' };
                 return `<span class="ac-chip ac-chip--${meta.sev}">${AcrossCitiesPage.#esc(meta.label)}</span>`;
             }).join('');
+            const chipsHtml = chips ? ` <span class="ac-chips">${chips}</span>` : '';
             const lastActivity = c.last_activity
                 ? AcrossCitiesPage.#esc(AcrossCitiesPage.#relativeTime(c.last_activity))
                 : '<span class="ac-muted">never</span>';
-            return `<tr class="${needsAttention ? 'ac-row--flagged' : ''}">` +
-                `<td class="ac-td-city">${this.#cityLink(c)}${chips ? ` <span class="ac-chips">${chips}</span>` : ''}</td>` +
-                `<td>${this.#lifecycleBadge(c.lifecycle)}</td>` +
-                `<td>${this.#coverageBar(c.coverage)}</td>` +
-                `<td class="ac-num" title="${this.#num(c.total_labels)}">${this.#compact(c.total_labels)}</td>` +
-                `<td class="ac-num" title="${this.#num(c.total_validations)}">${this.#compact(c.total_validations)}</td>` +
-                `<td class="ac-num" title="${this.#num(c.active_contributors)}">${this.#compact(c.active_contributors)}</td>` +
-                `<td class="ac-num">${this.#pct(c.ai_label_share)}</td>` +
-                `<td class="ac-num">${lastActivity}</td>` +
-                '</tr>';
+            return `
+                <tr class="${needsAttention ? 'ac-row--flagged' : ''}">
+                    <td class="ac-td-city">${this.#cityLink(c)}${chipsHtml}</td>
+                    <td>${this.#lifecycleBadge(c.lifecycle)}</td>
+                    <td>${this.#coverageBar(c.coverage)}</td>
+                    <td class="ac-num" title="${this.#num(c.total_labels)}">${this.#compact(c.total_labels)}</td>
+                    <td class="ac-num" title="${this.#num(c.total_validations)}">
+                        ${this.#compact(c.total_validations)}</td>
+                    <td class="ac-num" title="${this.#num(c.active_contributors)}">
+                        ${this.#compact(c.active_contributors)}</td>
+                    <td class="ac-num">${this.#pct(c.ai_label_share)}</td>
+                    <td class="ac-num">${lastActivity}</td>
+                </tr>`;
         }).join('');
         this.#markSortedHeader();
         this.#setText('ac-status', `${rows.length} ${rows.length === 1 ? 'city' : 'cities'}.`);
@@ -466,7 +472,7 @@ class AcrossCitiesPage {
 
     #sortedCities(key, dirStr) {
         const dir = dirStr === 'asc' ? 1 : -1;
-        const val = c => {
+        const val = (c) => {
             if (key === 'city_name') return (c.city_name || c.city_id || '').toLowerCase();
             if (key === 'lifecycle') {
                 const lc = AcrossCitiesPage.#LIFECYCLE[c.lifecycle];
@@ -476,7 +482,7 @@ class AcrossCitiesPage {
             return c[key] == null ? 0 : c[key];
         };
         return this.#cities.slice().sort((a, b) => {
-            const va = val(a), vb = val(b);
+            const va = val(a); const vb = val(b);
             if (va < vb) return -1 * dir;
             if (va > vb) return 1 * dir;
             return 0;
@@ -484,7 +490,7 @@ class AcrossCitiesPage {
     }
 
     #markSortedHeader() {
-        document.querySelectorAll('#ac-table thead th[data-sort]').forEach(th => {
+        document.querySelectorAll('#ac-table thead th[data-sort]').forEach((th) => {
             const key = th.getAttribute('data-sort');
             th.classList.toggle('ac-sorted', key === this.#sortKey);
             if (key === this.#sortKey) {
@@ -503,16 +509,17 @@ class AcrossCitiesPage {
         const tbody = document.getElementById('ac-coverage-tbody');
         if (!tbody) return;
         const rows = this.#sortedCities('coverage', 'desc');
-        tbody.innerHTML = rows.map(c =>
-            `<tr class="${(c.lifecycle === 'stalled' || c.lifecycle === 'low_traction') ? 'ac-row--flagged' : ''}">` +
-            `<td class="ac-td-city">${this.#cityLink(c)}</td>` +
-            `<td>${this.#coverageBar(c.coverage)}</td>` +
-            `<td class="ac-num" title="${this.#num(c.audited_streets)} of ${this.#num(c.total_streets)}">` +
-                `${this.#compact(c.audited_streets)} / ${this.#compact(c.total_streets)}</td>` +
-            `<td class="ac-num" title="${this.#num(c.streets_remaining)}">${this.#compact(c.streets_remaining)}</td>` +
-            `<td class="ac-num">${this.#km(c.audited_km)} / ${this.#km(c.total_km)}</td>` +
-            `<td class="ac-num">${this.#km(c.km_remaining)}</td>` +
-            '</tr>'
+        tbody.innerHTML = rows.map((c) => `
+            <tr class="${(c.lifecycle === 'stalled' || c.lifecycle === 'low_traction') ? 'ac-row--flagged' : ''}">
+                <td class="ac-td-city">${this.#cityLink(c)}</td>
+                <td>${this.#coverageBar(c.coverage)}</td>
+                <td class="ac-num" title="${this.#num(c.audited_streets)} of ${this.#num(c.total_streets)}">
+                    ${this.#compact(c.audited_streets)} / ${this.#compact(c.total_streets)}</td>
+                <td class="ac-num" title="${this.#num(c.streets_remaining)}">
+                    ${this.#compact(c.streets_remaining)}</td>
+                <td class="ac-num">${this.#km(c.audited_km)} / ${this.#km(c.total_km)}</td>
+                <td class="ac-num">${this.#km(c.km_remaining)}</td>
+            </tr>`,
         ).join('');
     }
 
@@ -523,20 +530,21 @@ class AcrossCitiesPage {
         if (!tbody) return;
         // Sort by most-recent activity (freshest first; never-active last).
         const rows = this.#sortedCities('days_since_activity', 'asc');
-        tbody.innerHTML = rows.map(c => {
+        tbody.innerHTML = rows.map((c) => {
             const last = c.last_activity
                 ? AcrossCitiesPage.#esc(AcrossCitiesPage.#relativeTime(c.last_activity))
                 : '<span class="ac-muted">never</span>';
-            const spark = this.#sparkline((c.weekly_trend || []).map(w => w.labels || 0));
+            const spark = this.#sparkline((c.weekly_trend || []).map((w) => w.labels || 0));
             const flagged = c.lifecycle === 'stalled' || c.lifecycle === 'low_traction';
-            return `<tr class="${flagged ? 'ac-row--flagged' : ''}">` +
-                `<td class="ac-td-city">${this.#cityLink(c)}</td>` +
-                `<td class="ac-num">${this.#num(c.labels_7d)} / ${this.#num(c.labels_30d)}</td>` +
-                `<td class="ac-num">${this.#num(c.validations_7d)} / ${this.#num(c.validations_30d)}</td>` +
-                `<td class="ac-num">${this.#num(c.audits_7d)} / ${this.#num(c.audits_30d)}</td>` +
-                `<td class="ac-num">${last}</td>` +
-                `<td class="ac-spark-cell">${spark}</td>` +
-                '</tr>';
+            return `
+                <tr class="${flagged ? 'ac-row--flagged' : ''}">
+                    <td class="ac-td-city">${this.#cityLink(c)}</td>
+                    <td class="ac-num">${this.#num(c.labels_7d)} / ${this.#num(c.labels_30d)}</td>
+                    <td class="ac-num">${this.#num(c.validations_7d)} / ${this.#num(c.validations_30d)}</td>
+                    <td class="ac-num">${this.#num(c.audits_7d)} / ${this.#num(c.audits_30d)}</td>
+                    <td class="ac-num">${last}</td>
+                    <td class="ac-spark-cell">${spark}</td>
+                </tr>`;
         }).join('');
     }
 
@@ -546,21 +554,24 @@ class AcrossCitiesPage {
         const tbody = document.getElementById('ac-effort-tbody');
         if (!tbody) return;
         const rows = this.#cities.slice().sort((a, b) => (b.num_labelers || 0) - (a.num_labelers || 0));
-        tbody.innerHTML = rows.map(c => {
+        tbody.innerHTML = rows.map((c) => {
             const out = (med, p90) => `${this.#num(Math.round(med || 0))} <span class="ac-muted">· ${this.#num(Math.round(p90 || 0))}</span>`;
             const v10 = c.seconds_to_validate_10 > 0
-                ? this.#duration(c.seconds_to_validate_10) : '<span class="ac-muted">—</span>';
+                ? this.#duration(c.seconds_to_validate_10)
+                : '<span class="ac-muted">—</span>';
             const l100 = c.seconds_per_100m != null
-                ? this.#duration(c.seconds_per_100m) : '<span class="ac-muted">—</span>';
-            return '<tr>' +
-                `<td class="ac-td-city">${this.#cityLink(c)}</td>` +
-                `<td class="ac-num">${this.#num(c.num_labelers)}</td>` +
-                `<td class="ac-num">${out(c.labels_per_user_median, c.labels_per_user_p90)}</td>` +
-                `<td class="ac-num">${this.#num(c.num_validators)}</td>` +
-                `<td class="ac-num">${out(c.validations_per_user_median, c.validations_per_user_p90)}</td>` +
-                `<td class="ac-num">${v10}</td>` +
-                `<td class="ac-num">${l100}</td>` +
-                '</tr>';
+                ? this.#duration(c.seconds_per_100m)
+                : '<span class="ac-muted">—</span>';
+            return `
+                <tr>
+                    <td class="ac-td-city">${this.#cityLink(c)}</td>
+                    <td class="ac-num">${this.#num(c.num_labelers)}</td>
+                    <td class="ac-num">${out(c.labels_per_user_median, c.labels_per_user_p90)}</td>
+                    <td class="ac-num">${this.#num(c.num_validators)}</td>
+                    <td class="ac-num">${out(c.validations_per_user_median, c.validations_per_user_p90)}</td>
+                    <td class="ac-num">${v10}</td>
+                    <td class="ac-num">${l100}</td>
+                </tr>`;
         }).join('');
     }
 
@@ -574,16 +585,18 @@ class AcrossCitiesPage {
 
         // Only show label types that actually appear in at least one city, in canonical order.
         const present = AcrossCitiesPage.#LABEL_TYPES.filter(([key]) =>
-            this.#cities.some(c => c.by_label_type && c.by_label_type[key] && c.by_label_type[key].labels > 0));
+            this.#cities.some((c) => c.by_label_type && c.by_label_type[key] && c.by_label_type[key].labels > 0));
 
         if (legendEl) {
-            legendEl.innerHTML = present.map(([key, name]) =>
-                `<span class="ac-legend-item"><span class="ac-legend-swatch" style="background:${this.#color(key)}"></span>` +
-                `${AcrossCitiesPage.#esc(name)}</span>`).join('');
+            legendEl.innerHTML = present.map(([key, name]) => `
+                <span class="ac-legend-item">
+                    <span class="ac-legend-swatch" style="background:${this.#color(key)}"></span>
+                    ${AcrossCitiesPage.#esc(name)}
+                </span>`).join('');
         }
 
         const rows = this.#cities.slice().sort((a, b) => (b.total_labels || 0) - (a.total_labels || 0));
-        host.innerHTML = rows.map(c => {
+        host.innerHTML = rows.map((c) => {
             const total = present.reduce((sum, [key]) =>
                 sum + ((c.by_label_type && c.by_label_type[key] && c.by_label_type[key].labels) || 0), 0);
             let segments;
@@ -595,13 +608,17 @@ class AcrossCitiesPage {
                     if (n === 0) return '';
                     const share = n / total;
                     const tip = `${name}: ${this.#num(n)} (${this.#pct(share)})`;
-                    return `<span class="ac-stack-seg" style="width:${(share * 100).toFixed(2)}%;background:${this.#color(key)}" title="${AcrossCitiesPage.#esc(tip)}"></span>`;
+                    return `<span class="ac-stack-seg" title="${AcrossCitiesPage.#esc(tip)}"
+                        style="width:${(share * 100).toFixed(2)}%;background:${this.#color(key)}"></span>`;
                 }).join('');
             }
-            return '<div class="ac-pattern-row">' +
-                `<div class="ac-pattern-city">${this.#cityLink(c)} <span class="ac-muted">${this.#compact(c.total_labels)}</span></div>` +
-                `<div class="ac-stack">${segments}</div>` +
-                '</div>';
+            return `
+                <div class="ac-pattern-row">
+                    <div class="ac-pattern-city">
+                        ${this.#cityLink(c)} <span class="ac-muted">${this.#compact(c.total_labels)}</span>
+                    </div>
+                    <div class="ac-stack">${segments}</div>
+                </div>`;
         }).join('');
     }
 
@@ -611,24 +628,33 @@ class AcrossCitiesPage {
         const tbody = document.getElementById('ac-quality-tbody');
         if (!tbody) return;
         const rows = this.#sortedCities('labels_validated_share', 'desc');
-        tbody.innerHTML = rows.map(c => {
+        tbody.innerHTML = rows.map((c) => {
             const agreeDenom = (c.validations_agree || 0) + (c.validations_disagree || 0);
             const agreeRate = agreeDenom > 0 ? c.validations_agree / agreeDenom : null;
             const contribDenom = (c.active_contributors || 0) + (c.low_quality_contributors || 0);
             const lowQShare = contribDenom > 0 ? c.low_quality_contributors / contribDenom : 0;
             const flagged = (c.anomalies || []).includes('high_disagreement');
             const vpl = c.validations_per_label || 0;
-            return `<tr class="${flagged ? 'ac-row--flagged' : ''}">` +
-                `<td class="ac-td-city">${this.#cityLink(c)}</td>` +
-                `<td class="ac-num" title="${this.#num(c.labels_validated)} of ${this.#num(c.total_labels)}">${this.#pct(c.labels_validated_share)}</td>` +
-                `<td class="ac-num" title="${this.#num(c.total_validations)} validations / ${this.#num(c.total_labels)} labels">${vpl.toFixed(1)}</td>` +
-                `<td class="ac-num">${agreeRate == null ? '<span class="ac-muted">—</span>' : this.#pct(agreeRate)}</td>` +
-                `<td class="ac-num" title="${this.#num(c.labels_with_severity)} of ${this.#num(c.labels_severity_eligible)} severity-eligible labels">${this.#pct(c.severity_share)}</td>` +
-                `<td class="ac-num" title="${this.#num(c.labels_with_tags)} of ${this.#num(c.labels_tag_eligible)} tag-eligible labels">${this.#pct(c.tags_share)}</td>` +
-                `<td class="ac-num" title="${this.#num(c.ai_labels)} of ${this.#num(c.total_labels)} labels">${this.#pct(c.ai_label_share)}</td>` +
-                `<td class="ac-num" title="${this.#num(c.ai_validations)} of ${this.#num(c.total_validations)} validations">${this.#pct(c.ai_validation_share)}</td>` +
-                `<td class="ac-num" title="${this.#num(c.low_quality_contributors)} of ${this.#num(contribDenom)} contributors">${this.#pct(lowQShare)}</td>` +
-                '</tr>';
+            const agreeCell = agreeRate === null ? '<span class="ac-muted">—</span>' : this.#pct(agreeRate);
+            return `
+                <tr class="${flagged ? 'ac-row--flagged' : ''}">
+                    <td class="ac-td-city">${this.#cityLink(c)}</td>
+                    <td class="ac-num" title="${this.#num(c.labels_validated)} of ${this.#num(c.total_labels)}">
+                        ${this.#pct(c.labels_validated_share)}</td>
+                    <td class="ac-num" title="${this.#num(c.total_validations)} validations / ${this.#num(c.total_labels)} labels">
+                        ${vpl.toFixed(1)}</td>
+                    <td class="ac-num">${agreeCell}</td>
+                    <td class="ac-num" title="${this.#num(c.labels_with_severity)} of ${this.#num(c.labels_severity_eligible)} severity-eligible labels">
+                        ${this.#pct(c.severity_share)}</td>
+                    <td class="ac-num" title="${this.#num(c.labels_with_tags)} of ${this.#num(c.labels_tag_eligible)} tag-eligible labels">
+                        ${this.#pct(c.tags_share)}</td>
+                    <td class="ac-num" title="${this.#num(c.ai_labels)} of ${this.#num(c.total_labels)} labels">
+                        ${this.#pct(c.ai_label_share)}</td>
+                    <td class="ac-num" title="${this.#num(c.ai_validations)} of ${this.#num(c.total_validations)} validations">
+                        ${this.#pct(c.ai_validation_share)}</td>
+                    <td class="ac-num" title="${this.#num(c.low_quality_contributors)} of ${this.#num(contribDenom)} contributors">
+                        ${this.#pct(lowQShare)}</td>
+                </tr>`;
         }).join('');
     }
 
@@ -637,19 +663,23 @@ class AcrossCitiesPage {
     /** Wires the window selector (refetches) and the breakdown toggle (re-renders from cached data). */
     #wireFunnelControls() {
         const win = document.getElementById('ac-funnel-window');
-        if (win) win.querySelectorAll('.ac-toggle-btn').forEach(btn => btn.addEventListener('click', () => {
-            if (this.#funnelWindow === btn.dataset.window) return;
-            this.#funnelWindow = btn.dataset.window;
-            win.querySelectorAll('.ac-toggle-btn').forEach(b => b.classList.toggle('active', b === btn));
-            this.#loadFunnels();
-        }));
+        if (win) {
+            win.querySelectorAll('.ac-toggle-btn').forEach((btn) => btn.addEventListener('click', () => {
+                if (this.#funnelWindow === btn.dataset.window) return;
+                this.#funnelWindow = btn.dataset.window;
+                win.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('active', b === btn));
+                this.#loadFunnels();
+            }));
+        }
         const dim = document.getElementById('ac-funnel-dim');
-        if (dim) dim.querySelectorAll('.ac-toggle-btn').forEach(btn => btn.addEventListener('click', () => {
-            if (this.#funnelDim === btn.dataset.dim) return;
-            this.#funnelDim = btn.dataset.dim;
-            dim.querySelectorAll('.ac-toggle-btn').forEach(b => b.classList.toggle('active', b === btn));
-            this.#renderFunnels();
-        }));
+        if (dim) {
+            dim.querySelectorAll('.ac-toggle-btn').forEach((btn) => btn.addEventListener('click', () => {
+                if (this.#funnelDim === btn.dataset.dim) return;
+                this.#funnelDim = btn.dataset.dim;
+                dim.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('active', b === btn));
+                this.#renderFunnels();
+            }));
+        }
     }
 
     /** Fetches the funnels for the current window and renders them; a failure shows a message but leaves the page intact. */
@@ -670,8 +700,8 @@ class AcrossCitiesPage {
         const host = document.getElementById('ac-funnels');
         if (!host) return;
         const segs = AcrossCitiesPage.#FUNNEL_DIMS[this.#funnelDim] || AcrossCitiesPage.#FUNNEL_DIMS.all;
-        const types = AcrossCitiesPage.#FUNNEL_ORDER.filter(t => this.#funnels[t]);
-        host.innerHTML = types.map(t => this.#funnelBlock(t, this.#funnels[t], segs)).join('');
+        const types = AcrossCitiesPage.#FUNNEL_ORDER.filter((t) => this.#funnels[t]);
+        host.innerHTML = types.map((t) => this.#funnelBlock(t, this.#funnels[t], segs)).join('');
         const n = types.reduce((max, t) => Math.max(max, (this.#funnels[t].cities || []).length), 0);
         this.#setText('ac-funnel-status', n ? `${n} ${n === 1 ? 'city' : 'cities'} with funnel data.` : 'No funnel data yet.');
     }
@@ -687,12 +717,13 @@ class AcrossCitiesPage {
         const meta = AcrossCitiesPage.#FUNNEL_META[funnelType] || { title: funnelType, desc: '' };
         const steps = funnel.steps || [];
         const cities = funnel.cities || [];
-        return '<div class="ac-funnel-block">' +
-            `<h3 class="ac-funnel-block-title">${AcrossCitiesPage.#esc(meta.title)}</h3>` +
-            `<p class="ac-note">${AcrossCitiesPage.#esc(meta.desc)}</p>` +
-            `<div class="ac-table-wrap">${this.#funnelTableHtml(steps, cities, segs)}</div>` +
-            `<div class="ac-funnel-grid">${this.#funnelBarsHtml(steps, cities, segs)}</div>` +
-            '</div>';
+        return `
+            <div class="ac-funnel-block">
+                <h3 class="ac-funnel-block-title">${AcrossCitiesPage.#esc(meta.title)}</h3>
+                <p class="ac-note">${AcrossCitiesPage.#esc(meta.desc)}</p>
+                <div class="ac-table-wrap">${this.#funnelTableHtml(steps, cities, segs)}</div>
+                <div class="ac-funnel-grid">${this.#funnelBarsHtml(steps, cities, segs)}</div>
+            </div>`;
     }
 
     /**
@@ -703,14 +734,16 @@ class AcrossCitiesPage {
     #funnelTableHtml(steps, cities, segs) {
         const labels = AcrossCitiesPage.#FUNNEL_STEP_LABELS;
         const multi = segs.length > 1;
-        const head = '<tr>' +
-            '<th class="ac-th-text">City</th>' +
-            (multi ? '<th class="ac-th-text">Group</th>' : '') +
-            steps.map(k => {
+        const head = [
+            '<tr>',
+            '<th class="ac-th-text">City</th>',
+            multi ? '<th class="ac-th-text">Group</th>' : '',
+            ...steps.map((k) => {
                 const l = labels[k] || { full: k, short: k };
                 return `<th title="${AcrossCitiesPage.#esc(l.full)}">${AcrossCitiesPage.#esc(l.short)}</th>`;
-            }).join('') +
-            '<th title="Final step as a share of visitors">Overall</th></tr>';
+            }),
+            '<th title="Final step as a share of visitors">Overall</th></tr>',
+        ].join('');
 
         const rows = [];
         for (const c of cities) {
@@ -733,12 +766,14 @@ class AcrossCitiesPage {
                         : `${this.#num(v)} — ${this.#pct(d.step_conversion[i])} of previous step`;
                     return `<td class="ac-num" title="${title}">${this.#compact(v)}</td>`;
                 }).join('');
-                return '<tr>' +
-                    `<td class="ac-td-city">${this.#cityLink(c)}</td>` +
-                    (multi ? `<td>${AcrossCitiesPage.#esc(seg.label)}</td>` : '') +
-                    stepCells +
-                    `<td class="ac-num">${this.#pct(d.overall_conversion)}</td>` +
-                    '</tr>';
+                return [
+                    '<tr>',
+                    `<td class="ac-td-city">${this.#cityLink(c)}</td>`,
+                    multi ? `<td>${AcrossCitiesPage.#esc(seg.label)}</td>` : '',
+                    stepCells,
+                    `<td class="ac-num">${this.#pct(d.overall_conversion)}</td>`,
+                    '</tr>',
+                ].join('');
             }).join('');
         }
         return `<table class="ac-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
@@ -753,17 +788,16 @@ class AcrossCitiesPage {
         if (!cities.length || !steps.length) return '';
         const ordered = cities.slice()
             .sort((a, b) => ((b.all && b.all.steps[0]) || 0) - ((a.all && a.all.steps[0]) || 0));
-        return ordered.map(c => this.#funnelPanel(steps, c, segs)).join('');
+        return ordered.map((c) => this.#funnelPanel(steps, c, segs)).join('');
     }
 
     /** Builds one city's funnel panel for the given steps (title, optional legend, and the step bars). */
     #funnelPanel(steps, c, segs) {
         const labels = AcrossCitiesPage.#FUNNEL_STEP_LABELS;
         const palette = AcrossCitiesPage.#FUNNEL_SEG_COLORS;
-        const legend = segs.length > 1
-            ? '<div class="ac-funnel-legend">' + segs.map((s, i) =>
-                `<span class="ac-funnel-legend-item"><span class="ac-funnel-swatch" style="background:${palette[i] || palette[0]}"></span>${AcrossCitiesPage.#esc(s.label)}</span>`).join('') + '</div>'
-            : '';
+        const legendItems = segs.map((s, i) =>
+            `<span class="ac-funnel-legend-item"><span class="ac-funnel-swatch" style="background:${palette[i] || palette[0]}"></span>${AcrossCitiesPage.#esc(s.label)}</span>`).join('');
+        const legend = segs.length > 1 ? `<div class="ac-funnel-legend">${legendItems}</div>` : '';
         const stepRows = steps.map((k, i) => {
             const full = (labels[k] || { full: k }).full;
             const bars = segs.map((s, si) => {
@@ -776,15 +810,15 @@ class AcrossCitiesPage {
                 const title = i === 0
                     ? `${AcrossCitiesPage.#esc(full)}: ${this.#num(v)} visitors`
                     : `${AcrossCitiesPage.#esc(full)}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
-                return `<div class="ac-funnel-bar" title="${title}">` +
-                    `<span class="ac-funnel-bar-fill" style="width:${width.toFixed(1)}%;background:${palette[si] || palette[0]}"></span>` +
-                    `<span class="ac-funnel-bar-val">${valText}</span></div>`;
+                return `<div class="ac-funnel-bar" title="${title}">`
+                    + `<span class="ac-funnel-bar-fill" style="width:${width.toFixed(1)}%;background:${palette[si] || palette[0]}"></span>`
+                    + `<span class="ac-funnel-bar-val">${valText}</span></div>`;
             }).join('');
-            return `<div class="ac-funnel-step"><div class="ac-funnel-step-label">${AcrossCitiesPage.#esc(full)}</div>` +
-                `<div class="ac-funnel-bars">${bars}</div></div>`;
+            return `<div class="ac-funnel-step"><div class="ac-funnel-step-label">${AcrossCitiesPage.#esc(full)}</div>`
+                + `<div class="ac-funnel-bars">${bars}</div></div>`;
         }).join('');
-        return `<div class="ac-funnel-panel"><div class="ac-funnel-panel-title">${this.#cityLink(c)}</div>` +
-            `${legend}${stepRows}</div>`;
+        return `<div class="ac-funnel-panel"><div class="ac-funnel-panel-title">${this.#cityLink(c)}</div>`
+            + `${legend}${stepRows}</div>`;
     }
 
     // --- Shared cell builders ---------------------------------------------------------------------------------------
@@ -796,22 +830,22 @@ class AcrossCitiesPage {
 
     #coverageBar(coverage) {
         const pct = Math.round((coverage || 0) * 100);
-        return '<div class="ac-bar" title="' + pct + '% audited">' +
-            `<span class="ac-bar-fill" style="width:${pct}%"></span>` +
-            `<span class="ac-bar-label">${pct}%</span></div>`;
+        return `<div class="ac-bar" title="${pct}% audited">`
+            + `<span class="ac-bar-fill" style="width:${pct}%"></span>`
+            + `<span class="ac-bar-label">${pct}%</span></div>`;
     }
 
     /** A tiny inline-SVG sparkline for a row cell (no axes/labels). */
     #sparkline(values) {
         if (!values || !values.length) return '';
-        const W = 90, H = 22, pad = 2;
+        const W = 90; const H = 22; const pad = 2;
         const max = Math.max(1, ...values);
         const n = values.length;
-        const x = i => pad + (n === 1 ? (W - 2 * pad) / 2 : (i / (n - 1)) * (W - 2 * pad));
-        const y = v => pad + (1 - v / max) * (H - 2 * pad);
+        const x = (i) => pad + (n === 1 ? (W - 2 * pad) / 2 : (i / (n - 1)) * (W - 2 * pad));
+        const y = (v) => pad + (1 - v / max) * (H - 2 * pad);
         const d = values.map((v, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
-        return `<svg class="ac-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">` +
-            `<path d="${d}" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>`;
+        return `<svg class="ac-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">`
+            + `<path d="${d}" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>`;
     }
 
     /** Canonical label-type color via the shared helper, with a gray fallback. */
@@ -827,11 +861,18 @@ class AcrossCitiesPage {
 
     // --- Helpers ----------------------------------------------------------------------------------------------------
 
-    #setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; }
-    #setHtml(id, html) { const el = document.getElementById(id); if (el) el.innerHTML = html; }
+    #setText(id, text) {
+        const el = document.getElementById(id); if (el) el.textContent = text;
+    }
+
+    #setHtml(id, html) {
+        const el = document.getElementById(id); if (el) el.innerHTML = html;
+    }
 
     /** Full number with thousands separators ("1,234,567"). */
-    #num(n) { return (n == null ? 0 : n).toLocaleString(); }
+    #num(n) {
+        return (n == null ? 0 : n).toLocaleString();
+    }
 
     /** Compact number ("1.2M", "317k", "842"). */
     #compact(n) {
@@ -848,7 +889,9 @@ class AcrossCitiesPage {
     }
 
     /** Percentage with no decimals ("47%"). */
-    #pct(fraction) { return `${Math.round((fraction || 0) * 100)}%`; }
+    #pct(fraction) {
+        return `${Math.round((fraction || 0) * 100)}%`;
+    }
 
     /** Human duration from seconds ("8s", "2.4 min", "1.3 h"). */
     #duration(seconds) {
@@ -859,13 +902,13 @@ class AcrossCitiesPage {
     }
 
     static #esc(s) {
-        return String(s).replace(/[&<>"']/g, c =>
-            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        return String(s).replace(/[&<>"']/g, (c) =>
+            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c]));
     }
 
     /** "Jun 9"-style short date from an ISO date string. */
     static #shortDate(iso) {
-        const d = new Date(iso + 'T00:00:00');
+        const d = new Date(`${iso}T00:00:00`);
         if (isNaN(d)) return iso;
         return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     }

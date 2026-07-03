@@ -7,15 +7,15 @@
  * @requires Leaflet.js library
  */
 
-(function() {
+(function () {
     // Configuration options - can be overridden by calling setup().
     let config = {
-        apiBaseUrl: "/v3/api",
-        containerId: "label-clusters-preview",
+        apiBaseUrl: '/v3/api',
+        containerId: 'label-clusters-preview',
         mapHeight: 500,
-        labelClustersEndpoint: "/labelClusters",
-        labelTypesEndpoint: "/labelTypes",
-        regionWithMostLabelsEndpoint: "/regionWithMostLabels"
+        labelClustersEndpoint: '/labelClusters',
+        labelTypesEndpoint: '/labelTypes',
+        regionWithMostLabelsEndpoint: '/regionWithMostLabels',
     };
 
     // Store label type information for coloring clusters.
@@ -28,7 +28,7 @@
          * @param {object} options - Configuration options
          * @returns {object} The LabelClustersPreview object for chaining
          */
-        setup: function(options) {
+        setup(options) {
             config = Object.assign(config, options);
             return this;
         },
@@ -37,51 +37,51 @@
          * Initialize the label clusters preview map.
          * @returns {Promise} A promise that resolves when the preview is rendered
          */
-        init: function() {
+        init() {
             const container = document.getElementById(config.containerId);
 
             if (!container) {
                 console.error(`Container element with id '${config.containerId}' not found.`);
-                return Promise.reject(new Error("Container element not found"));
+                return Promise.reject(new Error('Container element not found'));
             }
 
             // Set height for the map container.
             container.style.height = `${config.mapHeight}px`;
-            container.style.width = "100%";
-            container.style.margin = "20px 0";
+            container.style.width = '100%';
+            container.style.margin = '20px 0';
 
             // Initialize with loading message.
             const loadingMessage = document.createElement('div');
             loadingMessage.className = 'loading-message';
-            loadingMessage.textContent = "Loading label clusters data...";
+            loadingMessage.textContent = 'Loading label clusters data...';
             container.appendChild(loadingMessage);
 
             // First load label types, then get region with most labels, then load clusters.
             return this.fetchLabelTypes()
-                .then(data => {
+                .then((data) => {
                     // Store label type info for later use.
                     labelTypeInfo = data.label_types.reduce((acc, type) => {
                         acc[type.name] = {
                             color: type.color,
-                            description: type.description
+                            description: type.description,
                         };
                         return acc;
                     }, {});
 
                     return this.fetchRegionWithMostLabels();
                 })
-                .then(regionData => {
+                .then((regionData) => {
                     // Create and initialize the map.
-                    container.innerHTML = "";
+                    container.innerHTML = '';
                     const map = this.createMap(container, regionData);
 
                     // Fetch and display clusters using region_id instead of bounding box.
                     return this.fetchClustersByRegionId(regionData.region_id)
-                        .then(clusters => this.displayClustersOnMap(map, clusters, regionData));
+                        .then((clusters) => this.displayClustersOnMap(map, clusters, regionData));
                 })
-                .catch(error => {
+                .catch((error) => {
                     container.innerHTML = `<div class="message message-error">Failed to load label clusters: ${error.message}</div>`;
-                    console.error("Label clusters preview error:", error);
+                    console.error('Label clusters preview error:', error);
                     return Promise.reject(error);
                 });
         },
@@ -90,9 +90,9 @@
          * Fetch label types from the API.
          * @returns {Promise} A promise that resolves with the label types data
          */
-        fetchLabelTypes: function() {
+        fetchLabelTypes() {
             return fetch(`${config.apiBaseUrl}${config.labelTypesEndpoint}?source=apiDocs`)
-                .then(response => {
+                .then((response) => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
@@ -104,17 +104,17 @@
          * Fetch region with the most labels.
          * @returns {Promise} A promise that resolves with the region data
          */
-        fetchRegionWithMostLabels: function() {
+        fetchRegionWithMostLabels() {
             return fetch(`${config.apiBaseUrl}${config.regionWithMostLabelsEndpoint}?source=apiDocs`)
-                .then(response => {
+                .then((response) => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
                     return response.json();
                 })
-                .catch(error => {
-                    console.error("Error fetching region with most labels:", error);
-                    throw new Error("Failed to fetch region with most labels");
+                .catch((error) => {
+                    console.error('Error fetching region with most labels:', error);
+                    throw new Error('Failed to fetch region with most labels');
                 });
         },
 
@@ -123,31 +123,31 @@
          * @param {object} region - Region data with geometry
          * @returns {string} Bounding box string (minLng,minLat,maxLng,maxLat)
          */
-        getBoundingBoxFromRegion: function(region) {
+        getBoundingBoxFromRegion(region) {
             if (!region || !region.geometry) {
-                throw new Error("Invalid region data");
+                throw new Error('Invalid region data');
             }
 
             // Extract coordinates from the geometry.
             let allCoords = [];
 
-            if (region.geometry.type === "MultiPolygon") {
+            if (region.geometry.type === 'MultiPolygon') {
                 // MultiPolygon: extract all points from all polygons.
-                region.geometry.coordinates.forEach(polygon => {
-                    polygon.forEach(ring => {
+                region.geometry.coordinates.forEach((polygon) => {
+                    polygon.forEach((ring) => {
                         allCoords = allCoords.concat(ring);
                     });
                 });
-            } else if (region.geometry.type === "Polygon") {
+            } else if (region.geometry.type === 'Polygon') {
                 // Polygon: extract all points from all rings.
-                region.geometry.coordinates.forEach(ring => {
+                region.geometry.coordinates.forEach((ring) => {
                     allCoords = allCoords.concat(ring);
                 });
             }
 
             // Calculate min/max values.
-            const lons = allCoords.map(coord => coord[0]);
-            const lats = allCoords.map(coord => coord[1]);
+            const lons = allCoords.map((coord) => coord[0]);
+            const lats = allCoords.map((coord) => coord[1]);
 
             const minLng = Math.min(...lons);
             const minLat = Math.min(...lats);
@@ -163,7 +163,7 @@
          * @param {object} region - Region data with geometry
          * @returns {Array} [lat, lon] center coordinates
          */
-        getCenterFromRegion: function(region) {
+        getCenterFromRegion(region) {
             const bbox = this.getBoundingBoxFromRegion(region).split(',').map(Number);
             const centerLon = (bbox[0] + bbox[2]) / 2;
             const centerLat = (bbox[1] + bbox[3]) / 2;
@@ -175,10 +175,10 @@
          * @param {number} regionId - ID of the region
          * @returns {Promise} A promise that resolves with the clusters data
          */
-        fetchClustersByRegionId: function(regionId) {
+        fetchClustersByRegionId(regionId) {
             const url = `${config.apiBaseUrl}${config.labelClustersEndpoint}?regionId=${regionId}&source=apiDocs`;
             return fetch(url)
-                .then(response => {
+                .then((response) => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
@@ -192,10 +192,10 @@
          * @param {object} regionData - Data about the region to display
          * @returns {object} The Leaflet map object
          */
-        createMap: function(container, regionData) {
+        createMap(container, regionData) {
             // Create a map element.
             const mapElement = document.createElement('div');
-            mapElement.id = "label-clusters-map";
+            mapElement.id = 'label-clusters-map';
             mapElement.className = 'map-container';
             container.appendChild(mapElement);
 
@@ -207,7 +207,7 @@
 
             // Add the OpenStreetMap tile layer with darkened overlay.
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             }).addTo(map);
 
             // Dark overlay.
@@ -218,8 +218,8 @@
                     weight: 0,
                     fillOpacity: 0.5,
                     fillColor: 'black',
-                    interactive: false
-                }
+                    interactive: false,
+                },
             ).addTo(map);
 
             // Add region outline.
@@ -229,8 +229,8 @@
                         color: '#0077cc',
                         weight: 2,
                         opacity: 0.7,
-                        fillOpacity: 0.1
-                    }
+                        fillOpacity: 0.1,
+                    },
                 }).addTo(map);
 
                 // Fit map to region bounds.
@@ -238,8 +238,8 @@
             }
 
             // Add region title.
-            const regionTitle = L.control({position: 'topright'});
-            regionTitle.onAdd = function() {
+            const regionTitle = L.control({ position: 'topright' });
+            regionTitle.onAdd = function () {
                 const div = L.DomUtil.create('div', 'region-title');
                 div.innerHTML = `<strong>Region:</strong> ${regionData.name || 'Sample Region'}`;
                 div.style.backgroundColor = 'white';
@@ -259,7 +259,7 @@
          * @param {object} clusters - GeoJSON data containing the label clusters
          * @param {object} regionData - Data about the region being displayed
          */
-        displayClustersOnMap: function(map, clusters, regionData) {
+        displayClustersOnMap(map, clusters, regionData) {
             if (!clusters.features || clusters.features.length === 0) {
                 // Add a message to the map if no clusters found.
                 const noClustersDiv = document.createElement('div');
@@ -304,12 +304,12 @@
                     const radius = Math.min(8, 3 + (clusterSize * 0.5)); // Base size + scaling, with max cap.
 
                     return L.circleMarker(latlng, {
-                        radius: radius,
+                        radius,
                         fillColor: color,
                         color: '#000',
                         weight: 1,
                         opacity: 1,
-                        fillOpacity: 0.75
+                        fillOpacity: 0.75,
                     });
                 },
                 onEachFeature: (feature, layer) => {
@@ -331,7 +331,7 @@
               <p>Cluster ID: ${props.label_cluster_id}</p>
             </div>
           `);
-                }
+                },
             }).addTo(map);
 
             // Update legend to show only label types that are in the data.
@@ -342,10 +342,10 @@
          * Create a legend for the map.
          * @param {object} map - The Leaflet map object
          */
-        createLegend: function(map) {
-            const legend = L.control({position: 'bottomleft'});
+        createLegend(map) {
+            const legend = L.control({ position: 'bottomleft' });
 
-            legend.onAdd = function() {
+            legend.onAdd = function () {
                 const div = L.DomUtil.create('div', 'info legend');
                 div.id = 'label-clusters-legend';
                 div.style.backgroundColor = 'white';
@@ -368,7 +368,7 @@
          * @param {object} map - The Leaflet map object
          * @param {Array} typesInData - Array of label type names found in the data
          */
-        updateLegend: function(map, typesInData) {
+        updateLegend(map, typesInData) {
             const legendDiv = document.getElementById('label-clusters-legend');
             if (!legendDiv) return;
 
@@ -376,7 +376,7 @@
             legendDiv.innerHTML = '<h4 style="margin: 0 0 5px; font-size: 14px;">Label Types</h4>';
 
             // First add the types present in the data.
-            typesInData.forEach(name => {
+            typesInData.forEach((name) => {
                 if (labelTypeInfo[name]) {
                     legendDiv.innerHTML += `
             <div style="margin: 3px 0;">
@@ -391,6 +391,6 @@
             if (typesInData.length === 0) {
                 legendDiv.innerHTML += '<div>No clusters in this region</div>';
             }
-        }
+        },
     };
 })();

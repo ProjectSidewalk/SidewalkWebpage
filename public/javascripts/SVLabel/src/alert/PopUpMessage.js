@@ -7,14 +7,14 @@
  * @returns {{className: string}}
  * @constructor
  */
-function PopUpMessage (form, taskContainer, tracker) {
+function PopUpMessage(form, taskContainer, tracker) {
     const uiPopUpMessage = {
-        holder: $("#pop-up-message-holder"),
-        foreground: $("#pop-up-message-foreground"),
-        title: $("#pop-up-message-title"),
-        content: $("#pop-up-message-content"),
-        imageHolder: $("#pop-up-message-img-holder"),
-        buttonHolder: $("#pop-up-message-button-holder")
+        holder: $('#pop-up-message-holder'),
+        foreground: $('#pop-up-message-foreground'),
+        title: $('#pop-up-message-title'),
+        content: $('#pop-up-message-content'),
+        imageHolder: $('#pop-up-message-img-holder'),
+        buttonHolder: $('#pop-up-message-button-holder'),
     };
 
     const status = { haveAskedToSignIn: false, signUp: false, isVisible: false };
@@ -22,7 +22,7 @@ function PopUpMessage (form, taskContainer, tracker) {
 
     this.getStatus = (key) => {
         if (!(key in status)) {
-            console.warn("You have passed an invalid key for status.")
+            console.warn('You have passed an invalid key for status.');
         }
         return status[key];
     };
@@ -44,7 +44,7 @@ function PopUpMessage (form, taskContainer, tracker) {
     };
 
     const _attachCallbackToClickOk = (callback) => {
-        $("#pop-up-message-ok-button").one('click', callback);
+        $('#pop-up-message-ok-button').one('click', callback);
     };
 
     const _appendButton = (buttonDom, callback) => {
@@ -59,21 +59,21 @@ function PopUpMessage (form, taskContainer, tracker) {
     };
 
     const _appendOkButton = () => {
-        const OkButton =
-            '<button id="pop-up-message-ok-button" class="button-ps button--medium button--primary">OK</button>';
+        const OkButton
+            = '<button id="pop-up-message-ok-button" class="button-ps button--medium button--primary">OK</button>';
         const handleClickOk = () => {
             tracker.push('PopUpMessage_ClickOk');
             this.enableInteractions();
-            $("#pop-up-message-ok-button").remove();
-            $("#pop-up-message-image").remove();
-        }
+            $('#pop-up-message-ok-button').remove();
+            $('#pop-up-message-image').remove();
+        };
         _appendButton(OkButton, handleClickOk);
 
         $(document).keyup((e) => {
             // Enter works the same as clicking OK.
             if (e.keyCode === 13) {
                 tracker.push('KeyboardShortcut_ClickOk');
-                $("#pop-up-message-ok-button").trigger('click', { lowLevelLogging: false });
+                $('#pop-up-message-ok-button').trigger('click', { lowLevelLogging: false });
             }
         });
     };
@@ -108,37 +108,37 @@ function PopUpMessage (form, taskContainer, tracker) {
      * Prompt a user who's not logged in to sign up/sign in.
      */
     this.promptSignIn = () => {
-        uiPopUpMessage.buttonHolder.html("");
+        uiPopUpMessage.buttonHolder.html('');
         _setTitle(i18next.t('popup.signup-title'));
         _setMessage(i18next.t('popup.signup-body'));
         const task = taskContainer.getCurrentTask();
 
         // Add the 'Sign up' button.
-        const signUpHtml =
-            `<button id="pop-up-message-sign-up-button" class="button-ps button--primary button--small">${i18next.t('common:sign-up')}</button>`;
+        const signUpHtml
+            = `<button id="pop-up-message-sign-up-button" class="button-ps button--primary button--small">${i18next.t('common:sign-up')}</button>`;
         const signUpCallback = () => {
             tracker.push('PopUpMessage_SignUpClickYes', {
-                "auditTaskId": task.getAuditTaskId(),
-                "auditStreetEdgeId": task.getStreetEdgeId()
+                auditTaskId: task.getAuditTaskId(),
+                auditStreetEdgeId: task.getStreetEdgeId(),
             });
             status.signUp = true;
-            $("#sign-in-modal").addClass("hidden");
-            $("#sign-up-modal").removeClass("hidden");
+            $('#sign-in-modal').addClass('hidden');
+            $('#sign-up-modal').removeClass('hidden');
             $('#sign-in-modal-container').modal('show');
         };
         _appendButton(signUpHtml, signUpCallback);
 
         // Add the 'Sign in' button.
-        const signInHtml =
-            `<button id="pop-up-message-sign-in-button" class="button-ps button--secondary button--small">${i18next.t('common:sign-in')}</button>`;
+        const signInHtml
+            = `<button id="pop-up-message-sign-in-button" class="button-ps button--secondary button--small">${i18next.t('common:sign-in')}</button>`;
         const signInCallback = () => {
             tracker.push('PopUpMessage_SignInClick', {
-                "auditTaskId": task.getAuditTaskId(),
-                "auditStreetEdgeId": task.getStreetEdgeId()
+                auditTaskId: task.getAuditTaskId(),
+                auditStreetEdgeId: task.getStreetEdgeId(),
             });
 
-            $("#sign-in-modal").removeClass("hidden");
-            $("#sign-up-modal").addClass("hidden");
+            $('#sign-in-modal').removeClass('hidden');
+            $('#sign-up-modal').addClass('hidden');
             $('#sign-in-modal-container').modal('show');
         };
         _appendButton(signInHtml, signInCallback);
@@ -147,8 +147,8 @@ function PopUpMessage (form, taskContainer, tracker) {
         const noHtml = `<button id="pop-up-message-cancel-button" class="button-ps button--secondary button--small">${i18next.t('common:no')}</button>`;
         const noCallback = () => {
             tracker.push('PopUpMessage_SignUpClickNo', {
-                "auditTaskId": task.getAuditTaskId(),
-                "auditStreetEdgeId": task.getStreetEdgeId()
+                auditTaskId: task.getAuditTaskId(),
+                auditStreetEdgeId: task.getStreetEdgeId(),
             });
         };
         _appendButton(noHtml, noCallback);
@@ -213,11 +213,11 @@ function PopUpMessage (form, taskContainer, tracker) {
         uiPopUpMessage.imageHolder.css({ width: '', height: '', left: '' });
         uiPopUpMessage.foreground.removeClass('has-image');
 
-        for (let i = 0; i < buttons.length; i++ ){
+        for (let i = 0; i < buttons.length; i++) {
             try {
                 buttons[i].remove();
             } catch (e) {
-                console.warn("Button does not exist.", e);
+                console.warn('Button does not exist.', e);
             }
         }
         buttons = [];
@@ -268,9 +268,9 @@ function PopUpMessage (form, taskContainer, tracker) {
         const scale = util.exploreDisplayScale();
         $img.css({
             cursor: 'default',
-            width: parseFloat(width) * scale + 'px',
-            height: parseFloat(height) * scale + 'px',
-            left: parseFloat(x) * scale + 'px'
+            width: `${parseFloat(width) * scale}px`,
+            height: `${parseFloat(height) * scale}px`,
+            left: `${parseFloat(x) * scale}px`,
         });
         $img.addClass('img');
         uiPopUpMessage.imageHolder.append($img);

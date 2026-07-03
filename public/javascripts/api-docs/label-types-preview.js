@@ -6,14 +6,14 @@
  * @requires DOM element with id 'label-types-preview'
  */
 
-(function() {
+(function () {
     // Configuration options - can be overridden by calling setup().
     let config = {
-        apiBaseUrl: "/v3/api",
-        containerId: "label-types-preview",
+        apiBaseUrl: '/v3/api',
+        containerId: 'label-types-preview',
         showPrimaryOnly: true,
         maxWidth: 1000,
-        endpoint: "/labelTypes"
+        endpoint: '/labelTypes',
     };
 
     // Public API.
@@ -27,7 +27,7 @@
          * @param {number} [options.maxWidth] - Maximum width for the preview container
          * @param {string} [options.endpoint] - API endpoint for label types
          */
-        setup: function(options) {
+        setup(options) {
             config = Object.assign(config, options);
             return this;
         },
@@ -36,28 +36,28 @@
          * Initialize the label types preview.
          * @returns {Promise} A promise that resolves when the preview is rendered
          */
-        init: function() {
+        init() {
             const container = document.getElementById(config.containerId);
 
             if (!container) {
                 console.error(`Container element with id '${config.containerId}' not found.`);
-                return Promise.reject(new Error("Container element not found"));
+                return Promise.reject(new Error('Container element not found'));
             }
 
             // Set max width if specified.
             if (config.maxWidth) {
                 container.style.maxWidth = `${config.maxWidth}px`;
-                container.style.width = "100%";
-                container.style.margin = "20px 0"; // Left-align the container.
+                container.style.width = '100%';
+                container.style.margin = '20px 0'; // Left-align the container.
             }
 
             // Initialize with loading message.
-            container.innerHTML = "Loading label types data...";
+            container.innerHTML = 'Loading label types data...';
 
             // Fetch and render the label types.
             return this.fetchLabelTypes()
-                .then(data => this.renderLabelTypes(data, container))
-                .catch(error => {
+                .then((data) => this.renderLabelTypes(data, container))
+                .catch((error) => {
                     container.innerHTML = `<div class="message message-error">Failed to load label types: ${error.message}</div>`;
                     return Promise.reject(error);
                 });
@@ -67,9 +67,9 @@
          * Fetch label types from the API.
          * @returns {Promise} A promise that resolves with the label types data
          */
-        fetchLabelTypes: function() {
+        fetchLabelTypes() {
             return fetch(`${config.apiBaseUrl}${config.endpoint}?source=apiDocs`)
-                .then(response => {
+                .then((response) => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
@@ -83,11 +83,11 @@
          * @param {HTMLElement} container - Container element
          * @returns {HTMLElement} The rendered table
          */
-        renderLabelTypes: function(data, container) {
+        renderLabelTypes(data, container) {
             // Filter label types if showPrimaryOnly is true.
             let labelTypes = data.label_types;
             if (config.showPrimaryOnly) {
-                labelTypes = labelTypes.filter(type => type.is_primary);
+                labelTypes = labelTypes.filter((type) => type.is_primary);
             }
 
             // Create table structure.
@@ -99,7 +99,7 @@
             const headerRow = document.createElement('tr');
 
             const headers = ['Name', 'Description', 'Standard Icon', 'Small Icon', 'Tiny Icon', 'Color Preview', 'Color Code'];
-            headers.forEach(text => {
+            headers.forEach((text) => {
                 const th = document.createElement('th');
                 th.textContent = text;
                 headerRow.appendChild(th);
@@ -111,7 +111,7 @@
             // Create table body.
             const tbody = document.createElement('tbody');
 
-            labelTypes.forEach(type => {
+            labelTypes.forEach((type) => {
                 const row = document.createElement('tr');
 
                 // Name cell.
@@ -191,7 +191,7 @@
          * @param {string} hexColor - Hex color code
          * @returns {boolean} True if the color is light, false otherwise
          */
-        isLightColor: function(hexColor) {
+        isLightColor(hexColor) {
             // Remove the # if present.
             hexColor = hexColor.replace('#', '');
 
@@ -205,6 +205,6 @@
 
             // Return true if the color is light (brightness > 125).
             return brightness > 125;
-        }
+        },
     };
 })();

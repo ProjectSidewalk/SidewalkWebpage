@@ -14,6 +14,7 @@ class ContextMenu {
         ratingSeverityEnabledForTutorialLabel: undefined, // During tutorial, disabled except for specific steps
         taggingEnabledForTutorialLabel: undefined, // During tutorial, disabled except for specific steps
     };
+
     #menuWindow;
     #severityMenu;
     #severityRadioHolder;
@@ -52,15 +53,24 @@ class ContextMenu {
     checkRadioButton(value) {
         // Trigger `change` explicitly — `.prop('checked', true)` alone does not fire it.
         this.#severityRadios
-            .filter(function() { return parseInt(this.value) === value; })
+            .filter(function () {
+                return parseInt(this.value) === value;
+            })
             .prop('checked', true)
             .trigger('change', { lowLevelLogging: false });
     }
 
-    #getStatus(key) { return this.#status[key]; }
-    #setStatus(key, value) { this.#status[key] = value; }
+    #getStatus(key) {
+        return this.#status[key];
+    }
 
-    getTargetLabel() { return this.#status.targetLabel; }
+    #setStatus(key, value) {
+        this.#status[key] = value;
+    }
+
+    getTargetLabel() {
+        return this.#status.targetLabel;
+    }
 
     /**
      * Combined with the document mousedown listener, closes the context menu window when the user clicks somewhere
@@ -148,12 +158,16 @@ class ContextMenu {
      */
     fetchLabelTags(callback) {
         fetch('/label/tags', { method: 'GET', headers: { 'Content-Type': 'application/json; charset=utf-8' } })
-            .then((res) => { if (!res.ok) throw res; return res.json(); })
+            .then((res) => {
+                if (!res.ok) throw res; return res.json();
+            })
             .then((json) => {
                 this.labelTags = json;
                 callback();
             })
-            .catch((result) => { throw result; });
+            .catch((result) => {
+                throw result;
+            });
     }
 
     /**
@@ -202,21 +216,21 @@ class ContextMenu {
         let labelTags = this.#status.targetLabel.getProperty('tagIds');
 
         // Use position of cursor to determine whether the click came from the mouse or from a keyboard shortcut.
-        const wasClickedByMouse = e.hasOwnProperty('originalEvent') &&
-            e.originalEvent.clientX !== 0
+        const wasClickedByMouse = e.hasOwnProperty('originalEvent')
+            && e.originalEvent.clientX !== 0
             && e.originalEvent.clientY !== 0;
 
         $('body').off('click').on('click', 'button', (e) => {
             if (e.target.name === 'tag') {
                 // Get the tag_id from the clicked tag's class name (e.g., "tag-id-9").
-                const currTagId = parseInt($(e.target).attr('class').split(' ').filter(c => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
-                const tag = this.labelTags.filter(tag => tag.tag_id === currTagId)[0];
+                const currTagId = parseInt($(e.target).attr('class').split(' ').filter((c) => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
+                const tag = this.labelTags.filter((tag) => tag.tag_id === currTagId)[0];
 
                 // Adds or removes tag from the label's current list of tags.
                 if (!labelTags.includes(tag.tag_id)) {
                     // If the tag is mutually exclusive with another tag, automatically remove the other tag.
                     if (tag.mutually_exclusive_with) {
-                        const mutuallyExclusiveTag = this.labelTags.filter(t => t.tag === tag.mutually_exclusive_with)[0];
+                        const mutuallyExclusiveTag = this.labelTags.filter((t) => t.tag === tag.mutually_exclusive_with)[0];
                         if (mutuallyExclusiveTag) {
                             labelTags = this.#autoRemoveAlternateTagAndUpdateUI(mutuallyExclusiveTag.tag_id, labelTags);
                         }
@@ -253,14 +267,14 @@ class ContextMenu {
      */
     #autoRemoveAlternateTagAndUpdateUI(tagId, labelTags) {
         this.#tags.each((index, tag) => {
-            const classWithTagId = tag.className.split(' ').filter(c => c.search(/tag-id-\d+/) > -1)[0];
+            const classWithTagId = tag.className.split(' ').filter((c) => c.search(/tag-id-\d+/) > -1)[0];
             if (classWithTagId !== undefined && parseInt(classWithTagId.match(/\d+/)[0], 10) === tagId) {
                 $(`.${classWithTagId}`).removeClass('tag-pill--active');
             }
         });
 
         // Remove tag from list of tags and log the automated removal.
-        this.labelTags.forEach(tag => {
+        this.labelTags.forEach((tag) => {
             if (tag.tag_id === tagId && labelTags.includes(tagId)) {
                 labelTags.splice(labelTags.indexOf(tag.tag_id), 1);
                 svl.tracker.push('ContextMenu_TagAutoRemoved', { tagId: tag.tag_id, tagName: tag.tag });
@@ -328,13 +342,13 @@ class ContextMenu {
     }
 
     #showTaggingEnabled() {
-        $('body').find('button[name=tag]').each(function() {
+        $('body').find('button[name=tag]').each(function () {
             $(this).removeClass('disabled');
         });
     }
 
     #showTaggingDisabled() {
-        $('body').find('button[name=tag]').each(function() {
+        $('body').find('button[name=tag]').each(function () {
             $(this).addClass('disabled');
         });
     }
@@ -361,10 +375,10 @@ class ContextMenu {
      */
     #setTagColor(label) {
         const labelTags = label.getProperty('tagIds');
-        $('body').find('button[name=tag]').each(function() {
+        $('body').find('button[name=tag]').each(function () {
             const buttonText = $(this).text();
             if (buttonText) {
-                const tagId = parseInt($(this).attr('class').split(' ').filter(c => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
+                const tagId = parseInt($(this).attr('class').split(' ').filter((c) => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
 
                 // Sets color based on whether the tag is now selected.
                 if (labelTags.includes(tagId)) {
@@ -394,23 +408,23 @@ class ContextMenu {
 
                         // Remove all leftover tags from last labeling.
                         // Warning to future devs: will remove any other classes you add to the tags.
-                        this.#tagHolder.find('button[id=' + buttonIdx + ']')
+                        this.#tagHolder.find(`button[id=${buttonIdx}]`)
                             .attr('class', 'context-menu-tag tag-pill tag-pill--interactive');
 
                         // Add tag id as a class so that finding the element is easier later.
-                        this.#tagHolder.find('button[id=' + buttonIdx + ']').addClass('tag-id-' + tag.tag_id);
+                        this.#tagHolder.find(`button[id=${buttonIdx}]`).addClass(`tag-id-${tag.tag_id}`);
 
                         // Set tag texts to new underlined version as defined in the util label description map.
-                        const tagText = util.misc.getLabelDescriptions(tag.label_type)['tagInfo'][tag.tag]['text'];
-                        this.#tagHolder.find('button[id=' + buttonIdx + ']')
+                        const tagText = util.misc.getLabelDescriptions(tag.label_type).tagInfo[tag.tag].text;
+                        this.#tagHolder.find(`button[id=${buttonIdx}]`)
                             .html(`<span class="tag-pill__label">${tagText}</span>`);
 
-                        this.#tagHolder.find('button[id=' + buttonIdx + ']').css({
-                            visibility: 'inherit', position: 'inherit'
+                        this.#tagHolder.find(`button[id=${buttonIdx}]`).css({
+                            visibility: 'inherit', position: 'inherit',
                         });
 
                         // Remove old tooltip for that button.
-                        this.#tagHolder.find('button[id=' + buttonIdx + ']').tooltip('destroy');
+                        this.#tagHolder.find(`button[id=${buttonIdx}]`).tooltip('destroy');
 
                         // Add tooltip with tag example if we have an example image to show.
                         // If there's a server-specific image, try that first. Get default image as a backup.
@@ -426,13 +440,15 @@ class ContextMenu {
                         // Try the server-specific image, getting normal image as a backup.
                         if (citySpecificImageUrl) {
                             exampleImage = util.getImage(citySpecificImageUrl)
-                                .catch((error) => { return getImage(imageUrl); });
+                                .catch((error) => {
+                                    return getImage(imageUrl);
+                                });
                         } else {
                             exampleImage = util.getImage(imageUrl);
                         }
 
                         // Now that we have the image, create the tooltip.
-                        exampleImage.then(img => {
+                        exampleImage.then((img) => {
                             // Convert the first letter of tag text to uppercase and get keyboard shortcut character.
                             const underlineClassOffset = 15;
                             let keyChar;
@@ -440,27 +456,27 @@ class ContextMenu {
                             // If first letter is used for shortcut, the string will start with "<tag-underline".
                             if (tagText[0] === '<') {
                                 keyChar = tagText[underlineClassOffset];
-                                tooltipHeader = tagText.substring(0, underlineClassOffset) +
-                                    tagText[underlineClassOffset].toUpperCase() +
-                                    tagText.substring(underlineClassOffset + 1);
+                                tooltipHeader = tagText.substring(0, underlineClassOffset)
+                                    + tagText[underlineClassOffset].toUpperCase()
+                                    + tagText.substring(underlineClassOffset + 1);
                             } else {
                                 const underlineIndex = tagText.indexOf('<');
                                 keyChar = tagText[underlineIndex + underlineClassOffset];
                                 tooltipHeader = tagText[0].toUpperCase() + tagText.substring(1);
                             }
-                            const tooltipFooter = i18next.t('center-ui.context-menu.label-popup-shortcuts', {c: keyChar});
+                            const tooltipFooter = i18next.t('center-ui.context-menu.label-popup-shortcuts', { c: keyChar });
                             const tooltipImage = `<img class="context-menu-tooltip__img--tag" src="${img}"/>`;
 
                             // Create the tooltip. 'auto top' flips it below the tag if it would clip the viewport top.
-                            this.#tagHolder.find('button[id=' + buttonIdx + ']').tooltip(({
+                            this.#tagHolder.find(`button[id=${buttonIdx}]`).tooltip(({
                                 placement: 'auto top',
                                 html: true,
-                                delay: { 'show': 300, 'hide': 10 },
+                                delay: { show: 300, hide: 10 },
                                 height: '130',
                                 title: `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`,
                                 container: 'body',
                                 // Add template so we can attach a custom CSS class.
-                                template: '<div class="tooltip context-menu-tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>'
+                                template: '<div class="tooltip context-menu-tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>',
                             })).tooltip('show').tooltip('hide');
                         });
 
@@ -470,11 +486,11 @@ class ContextMenu {
 
                 // If number of tags is less than the max number of tags, hide button.
                 for (let i = count; i < maxTags; i++) {
-                    $('body').find('button[id=' + i + ']').css({
+                    $('body').find(`button[id=${i}]`).css({
                         visibility: 'hidden',
                         position: 'absolute',
                         top: '0px',
-                        left: '0px'
+                        left: '0px',
                     });
                 }
             }
@@ -489,17 +505,17 @@ class ContextMenu {
         const tooltipKey = util.misc.isPositiveLabelType(labelType) ? 'quality-example-tooltip' : 'severity-example-tooltip';
         for (let sev = 1; sev < 4; sev++) {
             // Add severity tooltips for the current label type if we have images for them.
-            util.getImage(`/assets/images/examples/severity/${labelType}_Severity${sev}.png`).then(img => {
+            util.getImage(`/assets/images/examples/severity/${labelType}_Severity${sev}.png`).then((img) => {
                 const tooltipHeader = i18next.t(`common:${tooltipKey}-${sev}`);
                 const tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`;
                 // 'auto top' flips the tooltip below the button if it would clip the viewport top.
                 $(`.severity-button[data-severity="${sev}"]`).tooltip({
-                    placement: 'auto top', html: true, delay: { 'show': 300, 'hide': 10 },
+                    placement: 'auto top', html: true, delay: { show: 300, hide: 10 },
                     // Image size (and aspect ratio) is set in CSS so it scales with the UI; see svl-context-menu.css.
                     title: `${tooltipHeader}<br/><img class="context-menu-tooltip__img--severity" src="${img}"/><br/>${tooltipFooter}`,
                     container: 'body',
                     // Add template so we can attach a custom CSS class.
-                    template: '<div class="tooltip context-menu-tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>'
+                    template: '<div class="tooltip context-menu-tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>',
                 });
             });
         }
@@ -530,7 +546,9 @@ class ContextMenu {
             this.#setStatus('targetLabel', targetLabel);
             this.#setTags(targetLabel);
             this.#setTagColor(targetLabel);
-            if (this.#getStatus('disableTagging')) { this.disableTagging(); }
+            if (this.#getStatus('disableTagging')) {
+                this.disableTagging();
+            }
 
             // Hide the severity menu for label types that don't have a severity rating.
             if (util.misc.labelTypeHasSeverity(labelType)) {
@@ -562,8 +580,10 @@ class ContextMenu {
             const severity = targetLabel.getProperty('severity');
             const description = targetLabel.getProperty('description');
             if (severity) {
-                this.#severityRadios.each(function(i) {
-                    if (severity === i + 1) { $(this).prop('checked', true); }
+                this.#severityRadios.each(function (i) {
+                    if (severity === i + 1) {
+                        $(this).prop('checked', true);
+                    }
                 });
             }
 
@@ -580,7 +600,7 @@ class ContextMenu {
             this.#menuWindow.css({
                 visibility: 'visible',
                 left: labelCoord.x * scale - windowWidth / 2,
-                top: topCoordinate * scale
+                top: topCoordinate * scale,
             });
 
             this.#setStatus('visibility', 'visible');
@@ -591,7 +611,7 @@ class ContextMenu {
             const labelProps = this.#status.targetLabel.getProperties();
 
             // Don't push event on Occlusion labels; they don't open ContextMenus.
-            svl.tracker.push('ContextMenu_Open', {'auditTaskId': labelProps.auditTaskId}, {'temporaryLabelId': labelProps.temporaryLabelId});
+            svl.tracker.push('ContextMenu_Open', { auditTaskId: labelProps.auditTaskId }, { temporaryLabelId: labelProps.temporaryLabelId });
         }
         if (util.misc.labelTypeHasSeverity(labelType)) {
             this.updateRadioButtonImages();

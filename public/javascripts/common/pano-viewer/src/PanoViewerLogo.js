@@ -13,9 +13,9 @@
 function createPanoViewerLogo(container, primaryViewerType) {
     /** @type {Map<typeof PanoViewer, {src: string, alt: string, paddingLeft: string}>} */
     const LOGOS = new Map([
-        [GsvViewer,       { src: '/assets/images/logos/google-logo.svg',          alt: 'Google',    paddingLeft: '10px' }],
-        [MapillaryViewer, { src: '/assets/images/logos/mapillary-logo-white.png', alt: 'Mapillary', paddingLeft: '5px'  }],
-        [Infra3dViewer,   { src: '/assets/images/logos/infra3d-logo.svg',         alt: 'infra3D',   paddingLeft: '6px' }],
+        [GsvViewer, { src: '/assets/images/logos/google-logo.svg', alt: 'Google', paddingLeft: '10px' }],
+        [MapillaryViewer, { src: '/assets/images/logos/mapillary-logo-white.png', alt: 'Mapillary', paddingLeft: '5px' }],
+        [Infra3dViewer, { src: '/assets/images/logos/infra3d-logo.svg', alt: 'infra3D', paddingLeft: '6px' }],
     ]);
 
     const holder = document.createElement('div');
@@ -64,6 +64,6 @@ function createPanoViewerLogo(container, primaryViewerType) {
          */
         showSourceLogo() {
             showLogo(primaryViewerType);
-        }
+        },
     };
 }

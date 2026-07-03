@@ -57,14 +57,14 @@ class FeedbackModal {
         this.#holder.classList.remove('hidden');
         this.#background.style.visibility = 'visible';
         this.#svl.popUpMessage.disableInteractions();
-    }
+    };
 
     /** Hides the feedback dialog and restores interaction with the tool. */
     hide = () => {
         this.#holder.classList.add('hidden');
         this.#background.style.visibility = 'hidden';
         this.#svl.popUpMessage.enableInteractions();
-    }
+    };
 
     /** Submits the typed comment, then closes the dialog. */
     #handleClickOK = (e) => {
@@ -78,18 +78,18 @@ class FeedbackModal {
 
         this.#submitComment(this.#prepareCommentData(panoId, latlng.lat, latlng.lng, pov, task));
         this.hide();
-    }
+    };
 
     #handleClickCancel = (e) => {
         e.preventDefault();
         this.#tracker.push('ModalComment_ClickCancel');
         this.hide();
-    }
+    };
 
     /** Enables the OK button only when the user has typed something. */
     #handleTextareaInput = () => {
         this.#setOkEnabled(this.#textarea.value.length > 0);
-    }
+    };
 
     /**
      * Enables or disables the OK button.
@@ -108,15 +108,15 @@ class FeedbackModal {
         fetch('/explore/comment', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify(data)
-        }).then(response => {
+            body: JSON.stringify(data),
+        }).then((response) => {
             if (!response.ok) throw new Error(`Comment submission failed: ${response.status}`);
             Toast.show({
                 message: i18next.t('audit:controls.feedback-submitted'),
                 reference: document.getElementById('pano'),
-                duration: 3000
+                duration: 3000,
             });
-        }).catch(error => console.error(error));
+        }).catch((error) => console.error(error));
     }
 
     /**
@@ -133,13 +133,13 @@ class FeedbackModal {
             comment: this.#textarea.value,
             pano_id: panoId,
             heading: pov.heading,
-            lat: lat,
-            lng: lng,
+            lat,
+            lng,
             pitch: pov.pitch,
             street_edge_id: task.getStreetEdgeId(),
             audit_task_id: task.getAuditTaskId(),
             mission_id: this.#svl.missionContainer.getCurrentMission().getProperty('missionId'),
-            zoom: pov.zoom
+            zoom: pov.zoom,
         };
     }
 }

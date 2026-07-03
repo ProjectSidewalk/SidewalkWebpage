@@ -7,7 +7,7 @@ class Neighborhood {
     #properties = {
         geoJSON: null,
         name: null,
-        regionId: null
+        regionId: null,
     };
 
     /**

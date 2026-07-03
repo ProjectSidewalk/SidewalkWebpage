@@ -72,8 +72,8 @@ function AddLabelsToMap(map, labelData, params) {
         const layerName = `labels-${labelType}`;
         map.addSource(layerName, {
             type: 'geojson',
-            data: { type: 'FeatureCollection', features: features },
-            promoteId: 'label_id'
+            data: { type: 'FeatureCollection', features },
+            promoteId: 'label_id',
         });
         map.addLayer({
             id: layerName,
@@ -84,7 +84,7 @@ function AddLabelsToMap(map, labelData, params) {
                 'circle-radius': [
                     'interpolate', ['exponential', 1.5], ['zoom'],
                     12, ['case', ['boolean', ['feature-state', 'hover'], false], 8, 3],
-                    20, ['case', ['boolean', ['feature-state', 'hover'], false], 20, 8]
+                    20, ['case', ['boolean', ['feature-state', 'hover'], false], 20, 8],
                 ],
                 'circle-opacity': 0.75,
                 'circle-stroke-opacity': 0.75,
@@ -92,15 +92,15 @@ function AddLabelsToMap(map, labelData, params) {
                 'circle-color': [
                     'case',
                     ['all', ['==', ['get', 'expired'], true], ['!=', ['get', 'has_backup'], true]], 'lightgrey',
-                    colorMapping[labelType].fillStyle
+                    colorMapping[labelType].fillStyle,
                 ],
                 'circle-stroke-color': [
                     'case',
                     ['all', ['==', ['get', 'expired'], true], ['!=', ['get', 'has_backup'], true]],
                     colorMapping[labelType].fillStyle,
-                    colorMapping[labelType].strokeStyle
-                ]
-            }
+                    colorMapping[labelType].strokeStyle,
+                ],
+            },
         });
         return layerName;
     }
@@ -110,7 +110,7 @@ function AddLabelsToMap(map, labelData, params) {
      * @returns {boolean} True if all layers are loaded.
      */
     function allLabelLayersLoaded() {
-        return Object.values(mapData.layerNames).every(name => map.getLayer(name) !== undefined);
+        return Object.values(mapData.layerNames).every((name) => map.getLayer(name) !== undefined);
     }
 
     // Return promise that resolves once all layers have been added.
@@ -118,7 +118,7 @@ function AddLabelsToMap(map, labelData, params) {
         if (allLabelLayersLoaded()) {
             resolve(mapData);
         } else {
-            map.on('sourcedataloading', function() {
+            map.on('sourcedataloading', () => {
                 if (allLabelLayersLoaded()) {
                     resolve(mapData);
                 }

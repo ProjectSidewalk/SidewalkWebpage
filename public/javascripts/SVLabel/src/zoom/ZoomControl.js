@@ -14,19 +14,23 @@ class ZoomControl {
     #uiZoomControl;
     #properties = {
         maxZoomLevel: 3,
-        minZoomLevel: 1
+        minZoomLevel: 1,
     };
+
     #status = {
         disableZoomIn: false,
-        disableZoomOut: true
+        disableZoomOut: true,
     };
+
     #lock = {
         disableZoomIn: false,
-        disableZoomOut: false
+        disableZoomOut: false,
     };
+
     #zoomBlink = {
-        isBlinking: false
+        isBlinking: false,
     };
+
     #blinkInterval;
     #wheelTrackTimeout;
 
@@ -39,7 +43,7 @@ class ZoomControl {
         this.#tracker = tracker;
         this.#uiZoomControl = {
             zoomIn: $('#zoom-in-button'),
-            zoomOut: $('#zoom-out-button')
+            zoomOut: $('#zoom-out-button'),
         };
 
         this.#uiZoomControl.zoomIn.on('click', () => this.#handleZoomInButtonClick());
@@ -148,7 +152,7 @@ class ZoomControl {
         if (name in this.#status) {
             return this.#status[name];
         } else {
-            throw 'You cannot access a property "' + name + '".';
+            throw `You cannot access a property "${name}".`;
         }
     }
 
@@ -161,7 +165,7 @@ class ZoomControl {
         if (name in this.#properties) {
             return this.#properties[name];
         } else {
-            throw 'You cannot access a property "' + name + '".';
+            throw `You cannot access a property "${name}".`;
         }
     }
 
@@ -278,7 +282,9 @@ class ZoomControl {
      * @returns {number|boolean} The clamped zoom level, or false if a non-number was passed.
      */
     #setZoom(zoomLevelIn) {
-        if (typeof zoomLevelIn !== 'number') { return false; }
+        if (typeof zoomLevelIn !== 'number') {
+            return false;
+        }
 
         // Set the zoom level and change the panorama properties.
         let zoomLevel = undefined;

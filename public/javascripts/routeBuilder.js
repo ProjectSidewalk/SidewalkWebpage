@@ -6,7 +6,7 @@ class RouteBuilder {
     #status = {
         mapLoaded: false,
         neighborhoodsLoaded: false,
-        streetsLoaded: false
+        streetsLoaded: false,
     };
 
     // Constants used throughout the code.
@@ -76,9 +76,9 @@ class RouteBuilder {
             maxZoom: 19,
             maxBounds: [
                 [mapParams.southwest_boundary.lng, mapParams.southwest_boundary.lat],
-                [mapParams.northeast_boundary.lng, mapParams.northeast_boundary.lat]
+                [mapParams.northeast_boundary.lng, mapParams.northeast_boundary.lat],
             ],
-            doubleClickZoom: false
+            doubleClickZoom: false,
         });
         this.#map.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
         this.#map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-left');
@@ -149,7 +149,7 @@ class RouteBuilder {
     }
 
     #hideTooltip(btn) {
-        setTimeout(function() {
+        setTimeout(() => {
             $(btn).tooltip('hide').tooltip('disable');
         }, 1000);
     }
@@ -163,7 +163,7 @@ class RouteBuilder {
         map.addSource('neighborhoods', {
             type: 'geojson',
             data: this.#neighborhoodData,
-            promoteId: 'region_id'
+            promoteId: 'region_id',
         });
         map.addLayer({
             id: 'neighborhoods',
@@ -171,15 +171,15 @@ class RouteBuilder {
             source: 'neighborhoods',
             paint: {
                 'fill-color': '#000000',
-                'fill-opacity': 0.0
-            }
+                'fill-opacity': 0.0,
+            },
         });
 
         // Create layer for an overlay outside of neighborhood boundaries using turf.mask.
         const outsideNeighborhoods = turf.mask(this.#neighborhoodData);
         map.addSource('outside-neighborhoods', {
             type: 'geojson',
-            data: outsideNeighborhoods
+            data: outsideNeighborhoods,
         });
         map.addLayer({
             id: 'outside-neighborhoods',
@@ -187,8 +187,8 @@ class RouteBuilder {
             source: 'outside-neighborhoods',
             paint: {
                 'fill-opacity': 0.3,
-                'fill-color': '#000000'
-            }
+                'fill-color': '#000000',
+            },
         });
         this.#setUpSearchBox();
     }
@@ -224,13 +224,13 @@ class RouteBuilder {
         map.addSource('streets', {
             type: 'geojson',
             data: this.#streetData,
-            promoteId: 'street_edge_id'
+            promoteId: 'street_edge_id',
         });
         this.#streetsInRoute = { type: 'FeatureCollection', features: [] };
         map.addSource('streets-chosen', {
             type: 'geojson',
             data: this.#streetsInRoute,
-            promoteId: 'street_edge_id'
+            promoteId: 'street_edge_id',
         });
 
         map.addLayer({
@@ -240,84 +240,84 @@ class RouteBuilder {
             paint: {
                 'line-color': ['case',
                     ['boolean', ['feature-state', 'hover'], false], '#236ee0',
-                    '#ddefff'
+                    '#ddefff',
                 ],
                 // Line width scales based on zoom level.
                 'line-width': [
                     'interpolate', ['linear'], ['zoom'],
                     12, 2,
-                    15, 7
+                    15, 7,
                 ],
                 // Show only when street hasn't been chosen.
                 'line-opacity': ['case',
                     ['==', ['string', ['feature-state', 'chosen'], 'not chosen'], 'not chosen'], 0.75,
-                    0.0
-                ]
-            }
+                    0.0,
+                ],
+            },
         });
         map.addLayer({
-            'id': 'streets-chosen',
-            'type': 'line',
-            'source': 'streets-chosen',
-            'paint': {
+            id: 'streets-chosen',
+            type: 'line',
+            source: 'streets-chosen',
+            paint: {
                 'line-pattern': 'street-arrow',
                 // Line width scales based on zoom level.
                 'line-width': [
                     'interpolate', ['linear'], ['zoom'],
                     12, 2,
-                    15, 7
+                    15, 7,
                 ],
                 // Hide when street is being hovered over.
                 'line-opacity': ['case',
-                    ['boolean', ['feature-state', 'hover'], false], 0.0, 0.75
-                ]
-            }
+                    ['boolean', ['feature-state', 'hover'], false], 0.0, 0.75,
+                ],
+            },
         });
         map.addLayer({
-            'id': 'chosen-hover-flip',
-            'type': 'line',
-            'source': 'streets-chosen',
-            'paint': {
+            id: 'chosen-hover-flip',
+            type: 'line',
+            source: 'streets-chosen',
+            paint: {
                 'line-pattern': 'street-arrow-hover-reverse',
                 // Line width scales based on zoom level.
                 'line-width': [
                     'interpolate', ['linear'], ['zoom'],
                     12, 2,
-                    15, 7
+                    15, 7,
                 ],
                 // Show only when hovered and street has been chosen.
                 'line-opacity': ['case',
                     ['all',
                         ['boolean', ['feature-state', 'hover'], false],
-                        ['==', ['string', ['feature-state', 'chosen'], 'not chosen'], 'chosen']
-                    ], 0.75, 0.0
-                ]
-            }
+                        ['==', ['string', ['feature-state', 'chosen'], 'not chosen'], 'chosen'],
+                    ], 0.75, 0.0,
+                ],
+            },
         });
         map.addLayer({
-            'id': 'chosen-hover-remove',
-            'type': 'line',
-            'source': 'streets-chosen',
-            'paint': {
+            id: 'chosen-hover-remove',
+            type: 'line',
+            source: 'streets-chosen',
+            paint: {
                 'line-pattern': 'street-arrow-hover-delete',
                 // Line width scales based on zoom level.
                 'line-width': [
                     'interpolate', ['linear'], ['zoom'],
                     12, 2,
-                    15, 7
+                    15, 7,
                 ],
                 // Show only when hovered and street has been chosen and reversed.
                 'line-opacity': ['case',
                     ['all',
                         ['boolean', ['feature-state', 'hover'], false],
-                        ['==', ['string', ['feature-state', 'chosen'], 'not chosen'], 'chosen reversed']
-                    ], 0.75, 0.0
-                ]
-            }
+                        ['==', ['string', ['feature-state', 'chosen'], 'not chosen'], 'chosen reversed'],
+                    ], 0.75, 0.0,
+                ],
+            },
         });
 
         // Create tooltips for when the user hovers over a street.
-        const neighborhoodPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false})
+        const neighborhoodPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
             .setHTML(i18next.t('one-neighborhood-warning'));
         const hoverChoosePopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 10, maxWidth: '340px' })
             .setHTML(i18next.t('hover-add-street'));
@@ -399,8 +399,8 @@ class RouteBuilder {
 
             // Retrieve complete street geometry from source data rather than using the
             // viewport-limited feature from the event object which may be incomplete
-            const street = this.#streetData.features.find(s =>
-                s.properties.street_edge_id === streetFeature.properties.street_edge_id
+            const street = this.#streetData.features.find((s) =>
+                s.properties.street_edge_id === streetFeature.properties.street_edge_id,
             );
 
             if (this.#currRegionId && this.#currRegionId !== street.properties.region_id) {
@@ -415,7 +415,7 @@ class RouteBuilder {
                 map.setFeatureState({ source: 'streets', id: clickedStreet }, { chosen: 'chosen reversed' });
                 map.setFeatureState({ source: 'streets-chosen', id: clickedStreet }, { chosen: 'chosen reversed' });
 
-                const streetToReverse = this.#streetsInRoute.features.find(s => s.properties.street_edge_id === clickedStreet);
+                const streetToReverse = this.#streetsInRoute.features.find((s) => s.properties.street_edge_id === clickedStreet);
                 streetToReverse.geometry.coordinates.reverse();
                 streetToReverse.properties.reverse = !streetToReverse.properties.reverse;
                 map.getSource('streets-chosen').setData(this.#streetsInRoute);
@@ -424,7 +424,7 @@ class RouteBuilder {
             } else if (prevState.chosen === 'chosen reversed') { // If street was in the route & reversed, remove it.
                 map.setFeatureState({ source: 'streets', id: clickedStreet }, { chosen: 'not chosen' });
 
-                this.#streetsInRoute.features = this.#streetsInRoute.features.filter(s => s.properties.street_edge_id !== clickedStreet);
+                this.#streetsInRoute.features = this.#streetsInRoute.features.filter((s) => s.properties.street_edge_id !== clickedStreet);
                 map.getSource('streets-chosen').setData(this.#streetsInRoute);
 
                 hoverDeletePopup.remove(); // Hide the delete tooltip.
@@ -459,7 +459,7 @@ class RouteBuilder {
                     // Change style to show you can't choose streets in other regions.
                     this.#currRegionId = street.properties.region_id;
                     map.setFeatureState({ source: 'neighborhoods', id: this.#currRegionId }, { current: true });
-                    map.setPaintProperty('neighborhoods', 'fill-opacity', ['case', ['boolean', ['feature-state', 'current'], false], 0.0, 0.3 ]);
+                    map.setPaintProperty('neighborhoods', 'fill-opacity', ['case', ['boolean', ['feature-state', 'current'], false], 0.0, 0.3]);
                     map.setPaintProperty('outside-neighborhoods', 'fill-opacity', 0.5);
                 }
             }
@@ -496,7 +496,7 @@ class RouteBuilder {
      * Delete old markers and draw new ones.
      */
     #updateMarkers() {
-        this.#currentMarkers.forEach(m => m.remove());
+        this.#currentMarkers.forEach((m) => m.remove());
         this.#currentMarkers = [];
         this.#drawContiguousEndpointMarkers();
     }
@@ -628,7 +628,7 @@ class RouteBuilder {
     #clearRoute(e) {
         const map = this.#map;
         // Remove all the streets from the route.
-        this.#streetsInRoute.features.forEach(s => {
+        this.#streetsInRoute.features.forEach((s) => {
             map.setFeatureState({ source: 'streets', id: s.properties.street_edge_id }, { chosen: 'not chosen' });
         });
         this.#streetsInRoute.features = [];
@@ -675,7 +675,7 @@ class RouteBuilder {
         // Get list of street IDs in the correct order.
         const streetProps = this.#computeContiguousRoutes().flat().map((s) => ({
             street_id: s.properties.street_edge_id,
-            reverse: s.properties.reverse === true
+            reverse: s.properties.reverse === true,
         }));
 
         // Save the route and then update UI.
@@ -683,9 +683,9 @@ class RouteBuilder {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ region_id: this.#currRegionId, streets: streetProps })
+            body: JSON.stringify({ region_id: this.#currRegionId, streets: streetProps }),
         })
             .then((response) => response.json())
             .then((data) => {

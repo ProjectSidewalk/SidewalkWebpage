@@ -1,20 +1,20 @@
-$(document).ready(function(){
+$(document).ready(() => {
     /* Any h2 tag with a "question" class will be added to questions list. */
-    $('h3.question').each(function(){
+    $('h3.question').each(function () {
         const listItem = `<li><a href="#${$(this).attr('id')}">${$(this).text()}</a></li>`;
         this.classList.add('subtopic');
         $('#subtopics-list').append(listItem);
     });
 
     $('.img-responsive').magnificPopup({
-        type:'image'
+        type: 'image',
     });
 
     /**
      * If the panel is a sidebar (when window width >= 978px), make the panel scrollable when the user presses the plus,
      * and not scrollable when the user presses the minus.
      */
-    $('.plusminus').click(function() {
+    $('.plusminus').click(function () {
         this.classList.toggle('active');
 
         const w = document.documentElement.clientWidth;
@@ -34,7 +34,7 @@ $(document).ready(function(){
             $('.plusminus').text('-');
             if (w >= smallWindowWidth) {
                 $('#help-panel').addClass('scrollable').removeClass('not-scrollable');
-                updateSidebarForScrollState()
+                updateSidebarForScrollState();
                 helpPanel.style.width = `${helpPanel.offsetWidth + scrollbarWidth}px`;
             } else {
                 $('#help-panel').addClass('not-scrollable').removeClass('scrollable');

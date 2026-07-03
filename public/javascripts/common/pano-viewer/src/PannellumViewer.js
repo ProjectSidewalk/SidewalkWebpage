@@ -97,14 +97,18 @@ class PannellumViewer extends PanoViewer {
                     pitch: startPitch - this.#cameraPitch,
                     hfov: util.pano.zoomToFov(startZoom),
                     northOffset: this.#cameraHeading, // Only used by Pannellum's compass UI, which we keep hidden.
-                }
-            }
+                },
+            },
         };
 
         await new Promise((resolve, reject) => {
             this.#viewer = pannellum.viewer(canvasElem, pannellumConfig);
-            const onLoad  = () => { this.#viewer.off('load', onLoad); this.#viewer.off('error', onError); resolve(); };
-            const onError = (err) => { this.#viewer.off('load', onLoad); this.#viewer.off('error', onError); reject(new Error(err || 'Pannellum failed to load image')); };
+            const onLoad = () => {
+                this.#viewer.off('load', onLoad); this.#viewer.off('error', onError); resolve();
+            };
+            const onError = (err) => {
+                this.#viewer.off('load', onLoad); this.#viewer.off('error', onError); reject(new Error(err || 'Pannellum failed to load image'));
+            };
             this.#viewer.on('load', onLoad);
             this.#viewer.on('error', onError);
         });
@@ -171,8 +175,12 @@ class PannellumViewer extends PanoViewer {
         this.#loading = true;
         try {
             await new Promise((resolve, reject) => {
-                const onLoad  = () => { this.#viewer.off('load', onLoad); this.#viewer.off('error', onError); resolve(); };
-                const onError = (err) => { this.#viewer.off('load', onLoad); this.#viewer.off('error', onError); reject(new Error(err || 'Pannellum failed to load scene')); };
+                const onLoad = () => {
+                    this.#viewer.off('load', onLoad); this.#viewer.off('error', onError); resolve();
+                };
+                const onError = (err) => {
+                    this.#viewer.off('load', onLoad); this.#viewer.off('error', onError); reject(new Error(err || 'Pannellum failed to load scene'));
+                };
                 this.#viewer.on('load', onLoad);
                 this.#viewer.on('error', onError);
                 this.#viewer.loadScene(panoId, pitch, yaw, hfov);
@@ -188,7 +196,9 @@ class PannellumViewer extends PanoViewer {
         this.#currentSceneId = panoId;
 
         if (oldSceneId) {
-            try { this.#viewer.removeScene(oldSceneId); } catch (_) {}
+            try {
+                this.#viewer.removeScene(oldSceneId);
+            } catch (_) {}
         }
 
         for (const listener of this.panoChangedListeners) await listener();
@@ -220,7 +230,7 @@ class PannellumViewer extends PanoViewer {
             address: metadata.address,
             copyright: metadata.copyright,
             linkedPanos: [],
-            history: metadata.history || []
+            history: metadata.history || [],
         });
     }
 
@@ -302,7 +312,7 @@ class PannellumViewer extends PanoViewer {
         return {
             heading: this.#yawToHeading(this.#viewer.getYaw()),
             pitch: this.#viewer.getPitch() + this.#cameraPitch,
-            zoom: util.pano.fovToZoom(this.#viewer.getHfov())
+            zoom: util.pano.fovToZoom(this.#viewer.getHfov()),
         };
     };
 

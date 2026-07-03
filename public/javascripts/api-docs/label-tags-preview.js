@@ -6,19 +6,30 @@
  * @requires DOM element with id 'label-tags-preview'
  */
 
-(function() {
+(function () {
     // Configuration options - can be overridden by calling setup().
     let config = {
-        apiBaseUrl: "/v3/api",
-        containerId: "label-tags-preview",
+        apiBaseUrl: '/v3/api',
+        containerId: 'label-tags-preview',
         maxWidth: 1000,
-        apiVersion: "v3",
-        apiPath: "/v3/api",
-        apiDocsPath: "/v3/api-docs",
-        endpoint: "/labelTags",
-        imageBasePath: "/assets/images/examples/tags",
-        displayMode: "detailed" // "detailed" or "summary"
+        apiVersion: 'v3',
+        apiPath: '/v3/api',
+        apiDocsPath: '/v3/api-docs',
+        endpoint: '/labelTags',
+        imageBasePath: '/assets/images/examples/tags',
+        displayMode: 'detailed', // "detailed" or "summary"
     };
+
+    /**
+     * The anchor id for a label type's detailed section, e.g. "label-type-curb-ramp". Used both as the heading id in
+     * the detailed view and as the link target from the summary table, so the two can't drift.
+     *
+     * @param {string} labelType - Display name of the label type.
+     * @returns {string} The anchor id.
+     */
+    function labelTypeAnchorId(labelType) {
+        return `label-type-${labelType.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`;
+    }
 
     // Public API.
     window.LabelTagsPreview = {
@@ -32,7 +43,7 @@
          * @param {string} [options.imageBasePath] - Base path for tag images
          * @param {string} [options.displayMode] - Display mode: "detailed" (default) or "summary"
          */
-        setup: function(options) {
+        setup(options) {
             config = Object.assign(config, options);
             return this;
         },
@@ -41,19 +52,19 @@
          * Initialize the label tags preview.
          * @returns {Promise} A promise that resolves when the preview is rendered
          */
-        init: function() {
+        init() {
             const container = document.getElementById(config.containerId);
 
             if (!container) {
                 console.error(`Container element with id '${config.containerId}' not found.`);
-                return Promise.reject(new Error("Container element not found"));
+                return Promise.reject(new Error('Container element not found'));
             }
 
             // Set max width if specified.
             if (config.maxWidth) {
                 container.style.maxWidth = `${config.maxWidth}px`;
-                container.style.width = "100%";
-                container.style.margin = "20px 0";
+                container.style.width = '100%';
+                container.style.margin = '20px 0';
             }
 
             // Initialize with loading spinner.
@@ -65,14 +76,14 @@
 
             // Fetch and render the label tags.
             return this.fetchLabelTags()
-                .then(data => {
-                    if (config.displayMode === "summary") {
+                .then((data) => {
+                    if (config.displayMode === 'summary') {
                         this.renderLabelTagsSummary(data, container);
                     } else {
                         this.renderLabelTags(data, container);
                     }
                 })
-                .catch(error => {
+                .catch((error) => {
                     container.innerHTML = `<div class="message message-error">Failed to load label tags: ${error.message}</div>`;
                     return Promise.reject(error);
                 });
@@ -82,9 +93,9 @@
          * Fetch label tags from the API.
          * @returns {Promise} A promise that resolves with the label tags data
          */
-        fetchLabelTags: function() {
+        fetchLabelTags() {
             return fetch(`${config.apiBaseUrl}${config.endpoint}?source=apiDocs`)
-                .then(response => {
+                .then((response) => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
@@ -97,7 +108,7 @@
          * @param {Array} labelTags - Array of label tag objects
          * @returns {object} Object with label types as keys and arrays of tags as values
          */
-        groupTagsByLabelType: function(labelTags) {
+        groupTagsByLabelType(labelTags) {
             return labelTags.reduce((groups, tag) => {
                 const labelType = tag.label_type;
                 if (!groups[labelType]) {
@@ -113,7 +124,7 @@
          * @param {string} string - The string to capitalize
          * @returns {string} The string with the first letter capitalized
          */
-        capitalizeFirstLetter: function(string) {
+        capitalizeFirstLetter(string) {
             if (!string) return '';
             return string.charAt(0).toUpperCase() + string.slice(1);
         },
@@ -123,7 +134,7 @@
          * @param {object} data - Label tags data from the API
          * @param {HTMLElement} container - Container element
          */
-        renderLabelTags: function(data, container) {
+        renderLabelTags(data, container) {
             // Group tags by label type.
             const groupedTags = this.groupTagsByLabelType(data.label_tags);
 
@@ -134,7 +145,7 @@
             const sortedLabelTypes = Object.keys(groupedTags).sort();
 
             // Render each label type section.
-            sortedLabelTypes.forEach(labelType => {
+            sortedLabelTypes.forEach((labelType) => {
                 const tagsForType = groupedTags[labelType];
 
                 // Create section for this label type.
@@ -147,14 +158,12 @@
                 // #label-type-<type>).
                 const heading = document.createElement('h3');
                 heading.className = 'api-heading section-subheading';
-                const headingId = 'label-type-' + labelType.toLowerCase()
-                    .replace(/\s+/g, '-')     // Replace spaces with hyphens
-                    .replace(/[^a-z0-9-]/g, ''); // Remove non-alphanumeric characters except hyphens
+                const headingId = labelTypeAnchorId(labelType);
                 heading.id = headingId;
-                heading.appendChild(document.createTextNode(labelType + ' '));
+                heading.appendChild(document.createTextNode(`${labelType} `));
 
                 const permalink = document.createElement('a');
-                permalink.href = '#' + headingId;
+                permalink.href = `#${headingId}`;
                 permalink.className = 'permalink';
                 permalink.textContent = '#';
                 heading.appendChild(permalink);
@@ -170,7 +179,7 @@
                 const headerRow = document.createElement('tr');
 
                 const headers = ['Tag Name', 'Example Image', 'Description', 'Mutually Exclusive With'];
-                headers.forEach(text => {
+                headers.forEach((text) => {
                     const th = document.createElement('th');
                     th.textContent = text;
                     headerRow.appendChild(th);
@@ -183,7 +192,7 @@
                 const tbody = document.createElement('tbody');
 
                 // Sort tags by name.
-                tagsForType.sort((a, b) => a.tag.localeCompare(b.tag)).forEach(tag => {
+                tagsForType.sort((a, b) => a.tag.localeCompare(b.tag)).forEach((tag) => {
                     const row = document.createElement('tr');
 
                     // Tag name cell.
@@ -202,7 +211,7 @@
                     img.alt = `${tag.tag} tag image`;
                     img.width = 150;
                     // img.height = 50;
-                    img.onerror = function() {
+                    img.onerror = function () {
                         // Replace with placeholder if image fails to load.
                         this.src = '/assets/images/examples/tags/placeholder.png';
                         this.alt = 'Image not available';
@@ -222,7 +231,7 @@
                     exclusionsCell.className = 'tag-exclusions';
 
                     if (tag.mutually_exclusive_with && tag.mutually_exclusive_with.length > 0) {
-                        tag.mutually_exclusive_with.forEach(exclusiveTag => {
+                        tag.mutually_exclusive_with.forEach((exclusiveTag) => {
                             const span = document.createElement('span');
                             span.textContent = exclusiveTag;
                             exclusionsCell.appendChild(span);
@@ -246,7 +255,7 @@
          * @param {object} data - Label tags data from the API
          * @param {HTMLElement} container - Container element
          */
-        renderLabelTagsSummary: function(data, container) {
+        renderLabelTagsSummary(data, container) {
             // Group tags by label type.
             const groupedTags = this.groupTagsByLabelType(data.label_tags);
 
@@ -262,7 +271,7 @@
             const headerRow = document.createElement('tr');
 
             const headers = ['Label Type', 'Available Tags'];
-            headers.forEach(text => {
+            headers.forEach((text) => {
                 const th = document.createElement('th');
                 th.textContent = text;
                 headerRow.appendChild(th);
@@ -278,7 +287,7 @@
             const sortedLabelTypes = Object.keys(groupedTags).sort();
 
             // Add a row for each label type.
-            sortedLabelTypes.forEach(labelType => {
+            sortedLabelTypes.forEach((labelType) => {
                 const tagsForType = groupedTags[labelType];
 
                 const row = document.createElement('tr');
@@ -289,7 +298,7 @@
 
                 // Create a link to the detailed view on the label tags page.
                 const typeLink = document.createElement('a');
-                typeLink.href = config.apiDocsPath + config.endpoint + `#label-type-${labelType.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`;
+                typeLink.href = `${config.apiDocsPath}${config.endpoint}#${labelTypeAnchorId(labelType)}`;
                 typeLink.textContent = labelType;
                 typeCell.appendChild(typeLink);
 
@@ -301,9 +310,9 @@
 
                 // Sort tags alphabetically.
                 const tagNames = tagsForType
-                    .map(tag => tag.tag)
+                    .map((tag) => tag.tag)
                     .sort((a, b) => a.localeCompare(b))
-                    .map(tag => this.capitalizeFirstLetter(tag));
+                    .map((tag) => this.capitalizeFirstLetter(tag));
 
                 // Join tags with commas.
                 tagsCell.textContent = tagNames.join(', ');
@@ -315,6 +324,6 @@
 
             table.appendChild(tbody);
             container.appendChild(table);
-        }
+        },
     };
 })();

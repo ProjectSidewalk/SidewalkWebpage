@@ -106,7 +106,7 @@ class LabelDetail {
             this.#els.panoOverlay,
             this.#admin,
             this.#viewerType,
-            this.#viewerAccessToken
+            this.#viewerAccessToken,
         );
 
         this.#initInfoPopover();
@@ -133,13 +133,13 @@ class LabelDetail {
             () => this.#currentLabelMeta && this.#currentLabelMeta.street_edge_id,
             () => this.#currentLabelMeta && this.#currentLabelMeta.region_id,
             () => this.#currentLabelMeta && moment(new Date(this.#currentLabelMeta.image_capture_date)),
-            () => panoViewer.currPanoData ? panoViewer.currPanoData.getProperty('address') : null,
+            () => (panoViewer.currPanoData ? panoViewer.currPanoData.getProperty('address') : null),
             () => this.#currentLabelMeta && { heading: this.#currentLabelMeta.heading, pitch: this.#currentLabelMeta.pitch, zoom: this.#currentLabelMeta.zoom },
             false,    // whiteIcon
             noopLog,  // infoLogging
             noopLog,  // clipboardLogging
             noopLog,  // viewPanoLogging
-            () => this.#currentLabelMeta && this.#currentLabelMeta.label_id
+            () => this.#currentLabelMeta && this.#currentLabelMeta.label_id,
         );
     }
 
@@ -148,21 +148,21 @@ class LabelDetail {
      */
     #cacheElements() {
         const els = this.#els;
-        els.svHolder           = this.#q('.label-detail__pano');
-        els.panoWrap           = this.#q('.label-detail__pano-wrap');
-        els.panoOverlay        = this.#q('.label-detail__pano-overlay');
-        els.title              = this.#q('.label-detail__title');
-        els.timestamp          = this.#q('.label-detail__timestamp');
-        els.imageDate          = this.#q('.label-detail__image-capture-date');
-        els.severitySection    = this.#q('.label-detail__col--severity');
-        els.severity           = this.#q('.label-detail__severity-faces');
-        els.severityTitle      = this.#q('.label-detail__severity-title');
-        els.tags               = this.#q('.label-detail__tags');
-        els.description        = this.#q('.label-detail__description');
-        els.validatorComments  = this.#q('.label-detail__validator-comments');
-        els.commentInput       = this.#q('.label-detail__comment-input');
-        els.commentButton      = this.#q('.label-detail__comment-submit');
-        els.commentConfirm     = this.#q('.label-detail__comment-confirmation');
+        els.svHolder = this.#q('.label-detail__pano');
+        els.panoWrap = this.#q('.label-detail__pano-wrap');
+        els.panoOverlay = this.#q('.label-detail__pano-overlay');
+        els.title = this.#q('.label-detail__title');
+        els.timestamp = this.#q('.label-detail__timestamp');
+        els.imageDate = this.#q('.label-detail__image-capture-date');
+        els.severitySection = this.#q('.label-detail__col--severity');
+        els.severity = this.#q('.label-detail__severity-faces');
+        els.severityTitle = this.#q('.label-detail__severity-title');
+        els.tags = this.#q('.label-detail__tags');
+        els.description = this.#q('.label-detail__description');
+        els.validatorComments = this.#q('.label-detail__validator-comments');
+        els.commentInput = this.#q('.label-detail__comment-input');
+        els.commentButton = this.#q('.label-detail__comment-submit');
+        els.commentConfirm = this.#q('.label-detail__comment-confirmation');
 
         // Validation count display: <img> elements whose `src` is swapped between the four icon variants
         // (outline / filled / outline-ai / filled-ai). The base URL for the icon files is read from a data
@@ -171,35 +171,35 @@ class LabelDetail {
         this.#iconBase = voteDisplay ? voteDisplay.dataset.iconBase : '';
         const voteEl = (variant, child) => this.#root.querySelector(`.label-detail__vote--${variant} ${child}`);
         els.voteIcons = {
-            Agree:    voteEl('agree',    '.label-detail__vote-icon'),
+            Agree:    voteEl('agree', '.label-detail__vote-icon'),
             Disagree: voteEl('disagree', '.label-detail__vote-icon'),
-            Unsure:   voteEl('unsure',   '.label-detail__vote-icon')
+            Unsure:   voteEl('unsure', '.label-detail__vote-icon'),
         };
         els.voteButtons = {
             Agree:    this.#root.querySelector('.label-detail__vote--agree'),
             Disagree: this.#root.querySelector('.label-detail__vote--disagree'),
-            Unsure:   this.#root.querySelector('.label-detail__vote--unsure')
+            Unsure:   this.#root.querySelector('.label-detail__vote--unsure'),
         };
         els.voteCounts = {
-            Agree:    voteEl('agree',    '.label-detail__vote-count'),
+            Agree:    voteEl('agree', '.label-detail__vote-count'),
             Disagree: voteEl('disagree', '.label-detail__vote-count'),
-            Unsure:   voteEl('unsure',   '.label-detail__vote-count')
+            Unsure:   voteEl('unsure', '.label-detail__vote-count'),
         };
         // Hover-reveal overlay buttons on the pano. Both these and the column buttons fire a vote.
         els.panoOverlayButtons = {
             Agree:    this.#root.querySelector('.label-detail__pano-overlay-button--agree'),
             Disagree: this.#root.querySelector('.label-detail__pano-overlay-button--disagree'),
-            Unsure:   this.#root.querySelector('.label-detail__pano-overlay-button--unsure')
+            Unsure:   this.#root.querySelector('.label-detail__pano-overlay-button--unsure'),
         };
 
         if (this.#admin) {
             els.adminUsername = this.#q('.label-detail__admin-username');
-            els.adminTask     = this.#q('.label-detail__admin-task');
+            els.adminTask = this.#q('.label-detail__admin-task');
             els.adminPrevVals = this.#q('.label-detail__admin-prev-validations');
             els.flagButtons = {
                 low_quality: this.#q('.label-detail__flag-button[data-flag="low_quality"]'),
                 incomplete:  this.#q('.label-detail__flag-button[data-flag="incomplete"]'),
-                stale:       this.#q('.label-detail__flag-button[data-flag="stale"]')
+                stale:       this.#q('.label-detail__flag-button[data-flag="stale"]'),
             };
         }
     }
@@ -336,7 +336,7 @@ class LabelDetail {
             newSeverity: meta.severity,
             oldTags: meta.tags,
             newTags: meta.tags,
-            aiGenerated: meta.ai_generated
+            aiGenerated: meta.ai_generated,
         };
         this.panoManager.setLabel(popupLabel);
         // Accept a pre-constructed backup_image object (Gallery path) or build from server fields (API path).
@@ -344,19 +344,19 @@ class LabelDetail {
         this.panoManager.setPano(meta.pano_id, labelPov, meta.crop_url, meta.expired, backupImage);
 
         // Validation counts + AI validation.
-        this.#validationCounts.Agree    = meta.num_agree;
+        this.#validationCounts.Agree = meta.num_agree;
         this.#validationCounts.Disagree = meta.num_disagree;
-        this.#validationCounts.Unsure   = meta.num_unsure;
-        this.#prevAction                = meta.user_validation;
-        this.#aiValidation              = meta.ai_validation;
+        this.#validationCounts.Unsure = meta.num_unsure;
+        this.#prevAction = meta.user_validation;
+        this.#aiValidation = meta.ai_validation;
         this.#renderVoteCounts();
         this.#renderVoteIcons();
 
         // Admin flags.
         if (this.#admin) {
             this.#flags.low_quality = meta.low_quality;
-            this.#flags.incomplete  = meta.incomplete;
-            this.#flags.stale       = meta.stale;
+            this.#flags.incomplete = meta.incomplete;
+            this.#flags.stale = meta.stale;
             this.#renderFlagButtons();
         }
 
@@ -405,7 +405,7 @@ class LabelDetail {
         // adding new ones, so we mirror that here (but in non-admin, who added comments, so we just always append).
         this.#myCommentIdx = -1;
         if (this.#admin && this.#currUsername) {
-            this.#myCommentIdx = this.#comments.findIndex(c => c && c.username === this.#currUsername);
+            this.#myCommentIdx = this.#comments.findIndex((c) => c && c.username === this.#currUsername);
         }
         this.#renderComments();
 
@@ -435,7 +435,7 @@ class LabelDetail {
                     a.textContent = pv.username;
                     els.adminPrevVals.appendChild(a);
                     els.adminPrevVals.appendChild(
-                        document.createTextNode(`: ${i18next.t(`common:${camelToKebab(pv.validation)}`)}`)
+                        document.createTextNode(`: ${i18next.t(`common:${camelToKebab(pv.validation)}`)}`),
                     );
                 });
             }
@@ -459,14 +459,14 @@ class LabelDetail {
     #validateLabel(action, source) {
         const isNewValidation = !this.#prevAction;
         const validationTimestamp = new Date();
-        const canvasWidth  = this.panoManager.svHolder.width();
+        const canvasWidth = this.panoManager.svHolder.width();
         const canvasHeight = this.panoManager.svHolder.height();
         const panoMarkerPov = this.panoManager.getOriginalPosition();
         const userPov = this.panoManager.getPov();
 
         const labelRadius = 10;
-        const pixelCoordinates =
-            util.pano.centeredPovToCanvasCoord(panoMarkerPov, userPov, canvasWidth, canvasHeight, labelRadius);
+        const pixelCoordinates
+            = util.pano.centeredPovToCanvasCoord(panoMarkerPov, userPov, canvasWidth, canvasHeight, labelRadius);
 
         const data = {
             label_id: this.panoManager.label.labelId,
@@ -485,16 +485,16 @@ class LabelDetail {
             canvas_width: canvasWidth,
             start_timestamp: validationTimestamp,
             end_timestamp: validationTimestamp,
-            source: source,
+            source,
             undone: false,
             redone: action !== this.#prevAction,
-            viewer_type: this.panoManager.activeViewerName
+            viewer_type: this.panoManager.activeViewerName,
         };
 
         fetch('/labelmap/validate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify(data)
+            body: JSON.stringify(data),
         }).then((res) => {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             this.#updateVoteCount(action);
@@ -601,7 +601,7 @@ class LabelDetail {
     #renderVoteIcons() {
         for (const [action, img] of Object.entries(this.#els.voteIcons)) {
             const state = this.#prevAction === action ? 'filled' : 'outline';
-            const ai    = this.#aiValidation === action ? '-ai' : '';
+            const ai = this.#aiValidation === action ? '-ai' : '';
             img.src = `${this.#iconBase}${action.toLowerCase()}-${state}${ai}.svg`;
             if (this.#aiValidation === action) {
                 img.title = i18next.t('labelmap:ai-val-included', { aiVal: action.toLowerCase() });
@@ -695,20 +695,22 @@ class LabelDetail {
             pitch: userPov.pitch,
             zoom: userPov.zoom,
             lat: pos.lat,
-            lng: pos.lng
+            lng: pos.lng,
         };
 
         fetch('/labelmap/comment', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify(data)
+            body: JSON.stringify(data),
         }).then(async (res) => {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const body = await res.json();
             els.commentInput.value = '';
             els.commentButton.classList.remove('is-active');
             els.commentConfirm.hidden = false;
-            setTimeout(() => { els.commentConfirm.hidden = true; }, 1500);
+            setTimeout(() => {
+                els.commentConfirm.hidden = true;
+            }, 1500);
 
             // Update the visible list. Admin views render objects with a username; non-admin views render bare comment
             // strings. Replace the user's existing comment (if any) rather than appending — the backend deletes prior
@@ -743,7 +745,7 @@ class LabelDetail {
         fetch('/adminapi/setTaskFlag', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify({ auditTaskId: this.#taskId, flag, state })
+            body: JSON.stringify({ auditTaskId: this.#taskId, flag, state }),
         }).then((res) => {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             this.#flags[flag] = state;

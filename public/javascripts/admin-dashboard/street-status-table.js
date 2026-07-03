@@ -49,20 +49,22 @@ class StreetStatusTable {
     }
 
     #headerHtml() {
-        const arrowFor = key => (key === this.#sortKey ? (this.#sortDir === 1 ? ' ▲' : ' ▼') : '');
+        const arrowFor = (key) => (key === this.#sortKey ? (this.#sortDir === 1 ? ' ▲' : ' ▼') : '');
         const th = (key, label) =>
             `<th data-key="${key}" role="button" tabindex="0" scope="col">${label}${arrowFor(key)}</th>`;
-        const statusThs = StreetStatusTable.#STATUS_COLS.map(c => th(c.key, c.label)).join('');
+        const statusThs = StreetStatusTable.#STATUS_COLS.map((c) => th(c.key, c.label)).join('');
         // The distribution (stacked-bar) column is purely visual, so it is not a sortable header.
-        return `<thead><tr>${th('name', 'Region')}${statusThs}${th('total', 'Total')}` +
-            '<th scope="col">Distribution</th></tr></thead>';
+        return `<thead><tr>
+            ${th('name', 'Region')}${statusThs}${th('total', 'Total')}
+            <th scope="col">Distribution</th>
+        </tr></thead>`;
     }
 
     #renderBody() {
         const tbody = document.getElementById(this.#tableId).querySelector('tbody');
         const filter = this.#filter.toLowerCase();
         const visible = this.#rows
-            .filter(r => !filter || r.name.toLowerCase().includes(filter))
+            .filter((r) => !filter || r.name.toLowerCase().includes(filter))
             .sort((a, b) => {
                 const av = a[this.#sortKey];
                 const bv = b[this.#sortKey];
@@ -70,12 +72,12 @@ class StreetStatusTable {
                 return ((av || 0) - (bv || 0)) * this.#sortDir;
             });
 
-        tbody.innerHTML = visible.map(r => {
+        tbody.innerHTML = visible.map((r) => {
             const statusCells = StreetStatusTable.#STATUS_COLS
-                .map(c => `<td>${(r[c.key] || 0).toLocaleString()}</td>`).join('');
-            return `<tr data-region-id="${r.region_id}">` +
-                `<td>${r.name}</td>${statusCells}<td>${(r.total || 0).toLocaleString()}</td>` +
-                `<td>${StreetStatusTable.#barHtml(r)}</td></tr>`;
+                .map((c) => `<td>${(r[c.key] || 0).toLocaleString()}</td>`).join('');
+            return `<tr data-region-id="${r.region_id}">`
+                + `<td>${r.name}</td>${statusCells}<td>${(r.total || 0).toLocaleString()}</td>`
+                + `<td>${StreetStatusTable.#barHtml(r)}</td></tr>`;
         }).join('');
     }
 
@@ -84,8 +86,8 @@ class StreetStatusTable {
         const total = r.total || 0;
         if (!total) return '<div class="street-status-bar" aria-hidden="true"></div>';
         const segments = StreetStatusTable.#STATUS_COLS
-            .filter(c => (r[c.key] || 0) > 0)
-            .map(c => {
+            .filter((c) => (r[c.key] || 0) > 0)
+            .map((c) => {
                 const pct = ((r[c.key] / total) * 100).toFixed(2);
                 const title = `${c.label}: ${(r[c.key] || 0).toLocaleString()}`;
                 return `<span style="width:${pct}%;background:${c.color}" title="${title}"></span>`;
@@ -94,21 +96,29 @@ class StreetStatusTable {
     }
 
     #wireEvents(table, tbody) {
-        const refreshHeader = () => { table.querySelector('thead').outerHTML = this.#headerHtml(); };
+        const refreshHeader = () => {
+            table.querySelector('thead').outerHTML = this.#headerHtml();
+        };
 
-        table.querySelector('thead').addEventListener('click', e => {
+        table.querySelector('thead').addEventListener('click', (e) => {
             const th = e.target.closest('th[data-key]');
             if (th) this.#sortBy(th.dataset.key, refreshHeader);
         });
-        table.querySelector('thead').addEventListener('keydown', e => {
+        table.querySelector('thead').addEventListener('keydown', (e) => {
             const th = e.target.closest('th[data-key]');
-            if (th && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); this.#sortBy(th.dataset.key, refreshHeader); }
+            if (th && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault(); this.#sortBy(th.dataset.key, refreshHeader);
+            }
         });
 
         const search = document.getElementById(this.#searchId);
-        if (search) search.addEventListener('input', () => { this.#filter = search.value; this.#renderBody(); });
+        if (search) {
+            search.addEventListener('input', () => {
+                this.#filter = search.value; this.#renderBody();
+            });
+        }
 
-        tbody.addEventListener('pointerover', e => {
+        tbody.addEventListener('pointerover', (e) => {
             const tr = e.target.closest('tr[data-region-id]');
             const id = tr ? Number(tr.dataset.regionId) : null;
             if (id === this.#hoverId) return;
@@ -121,7 +131,7 @@ class StreetStatusTable {
             this.#hoverId = null;
             this.#onRowHoverEnd();
         });
-        tbody.addEventListener('click', e => {
+        tbody.addEventListener('click', (e) => {
             const tr = e.target.closest('tr[data-region-id]');
             if (tr) this.#onRowClick(Number(tr.dataset.regionId));
         });
@@ -129,8 +139,11 @@ class StreetStatusTable {
 
     #sortBy(key, refreshHeader) {
         // New numeric column starts descending (most-first); the name column starts ascending (A→Z).
-        if (this.#sortKey === key) this.#sortDir *= -1;
-        else { this.#sortKey = key; this.#sortDir = key === 'name' ? 1 : -1; }
+        if (this.#sortKey === key) {
+            this.#sortDir *= -1;
+        } else {
+            this.#sortKey = key; this.#sortDir = key === 'name' ? 1 : -1;
+        }
         refreshHeader();
         this.#renderBody();
     }
@@ -139,7 +152,7 @@ class StreetStatusTable {
     highlightRows(ids) {
         const set = new Set(ids.map(Number));
         const tbody = document.getElementById(this.#tableId).querySelector('tbody');
-        tbody.querySelectorAll('tr[data-region-id]').forEach(tr => {
+        tbody.querySelectorAll('tr[data-region-id]').forEach((tr) => {
             tr.classList.toggle('highlighted', set.has(Number(tr.dataset.regionId)));
         });
     }
@@ -147,6 +160,6 @@ class StreetStatusTable {
     /** Clears all row highlights. */
     clearHighlight() {
         const tbody = document.getElementById(this.#tableId).querySelector('tbody');
-        tbody.querySelectorAll('tr.highlighted').forEach(tr => tr.classList.remove('highlighted'));
+        tbody.querySelectorAll('tr.highlighted').forEach((tr) => tr.classList.remove('highlighted'));
     }
 }

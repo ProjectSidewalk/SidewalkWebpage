@@ -17,21 +17,21 @@
  * }).init();
  */
 
-(function() {
+(function () {
     // Configuration options - can be overridden by calling setup().
     let config = {
-        apiBaseUrl: "/v3/api",
-        containerId: "validations-preview",
-        validationsEndpoint: "/validations",
-        labelTypesEndpoint: "/labelTypes",
+        apiBaseUrl: '/v3/api',
+        containerId: 'validations-preview',
+        validationsEndpoint: '/validations',
+        labelTypesEndpoint: '/labelTypes',
         chartHeight: 250,
         maxChartsToShow: 9, // Limit number of charts to prevent overwhelming the page.
-        minValidationsToShow: 5 // Only show label types with at least this many validations.
+        minValidationsToShow: 5, // Only show label types with at least this many validations.
     };
 
     // Label type colors and mapping (will be populated from API).
-    let labelTypeColors = {};
-    let labelTypeMapping = {};
+    const labelTypeColors = {};
+    const labelTypeMapping = {};
 
     // Public API
     window.ValidationsPreview = {
@@ -47,7 +47,7 @@
          * @param {number} [options.minValidationsToShow] - Minimum validations needed to show a chart
          * @returns {object} The ValidationsPreview object for chaining
          */
-        setup: function(options) {
+        setup(options) {
             config = Object.assign(config, options);
             return this;
         },
@@ -56,12 +56,12 @@
          * Initialize the validations preview visualization.
          * @returns {Promise} A promise that resolves when the preview is rendered
          */
-        init: function() {
+        init() {
             const container = document.getElementById(config.containerId);
 
             if (!container) {
                 console.error(`Container element with id '${config.containerId}' not found.`);
-                return Promise.reject(new Error("Container element not found"));
+                return Promise.reject(new Error('Container element not found'));
             }
 
             // Clear any existing content and show loading state.
@@ -73,14 +73,14 @@
                     // Then fetch validations data.
                     return this.fetchValidations();
                 })
-                .then(validationsData => {
+                .then((validationsData) => {
                     // Process and visualize the data.
                     this.createValidationCharts(container, validationsData);
                     return validationsData;
                 })
-                .catch(error => {
+                .catch((error) => {
                     this.showErrorState(container, error);
-                    console.error("Validations preview error:", error);
+                    console.error('Validations preview error:', error);
                     return Promise.reject(error);
                 });
         },
@@ -89,7 +89,7 @@
          * Show loading state in the container.
          * @param {HTMLElement} container - Container element
          */
-        showLoadingState: function(container) {
+        showLoadingState(container) {
             container.innerHTML = `
         <div class="validation-loading">
           <div class="loading-spinner"></div>
@@ -103,7 +103,7 @@
          * @param {HTMLElement} container - Container element
          * @param {Error} error - The error that occurred
          */
-        showErrorState: function(container, error) {
+        showErrorState(container, error) {
             container.innerHTML = `
         <div class="validation-error">
           Failed to load validation data: ${error.message}
@@ -115,17 +115,17 @@
          * Fetch label types to get colors and display names.
          * @returns {Promise} A promise that resolves with the label types data
          */
-        fetchLabelTypes: function() {
+        fetchLabelTypes() {
             return fetch(`${config.apiBaseUrl}${config.labelTypesEndpoint}?source=apiDocs`)
-                .then(response => {
+                .then((response) => {
                     if (!response.ok) {
                         throw new Error(`Failed to fetch label types: HTTP ${response.status}`);
                     }
                     return response.json();
                 })
-                .then(data => {
+                .then((data) => {
                     if (data && data.label_types && Array.isArray(data.label_types)) {
-                        data.label_types.forEach(labelType => {
+                        data.label_types.forEach((labelType) => {
                             labelTypeColors[labelType.id] = labelType.color;
                             labelTypeMapping[labelType.id] = labelType.description;
                         });
@@ -138,9 +138,9 @@
          * Fetch validations data from the API.
          * @returns {Promise} A promise that resolves with the validations data
          */
-        fetchValidations: function() {
+        fetchValidations() {
             return fetch(`${config.apiBaseUrl}${config.validationsEndpoint}?source=apiDocs`)
-                .then(response => {
+                .then((response) => {
                     if (!response.ok) {
                         throw new Error(`Failed to fetch validations: HTTP ${response.status}`);
                     }
@@ -153,7 +153,7 @@
          * @param {HTMLElement} container - Container element for the charts
          * @param {Array} validationsData - Array of validation objects from the API
          */
-        createValidationCharts: function(container, validationsData) {
+        createValidationCharts(container, validationsData) {
             // Group validations by label type.
             const validationsByType = this.groupValidationsByType(validationsData);
 
@@ -185,10 +185,10 @@
          * @param {Array} validationsData - Array of validation objects
          * @returns {object} Object with label type IDs as keys and aggregated data as values
          */
-        groupValidationsByType: function(validationsData) {
+        groupValidationsByType(validationsData) {
             const validationsByType = {};
 
-            validationsData.forEach(validation => {
+            validationsData.forEach((validation) => {
                 const typeId = validation.label_type_id;
                 const typeName = validation.label_type;
 
@@ -199,7 +199,7 @@
                         color: labelTypeColors[typeId] || '#999999',
                         agree: 0,
                         disagree: 0,
-                        unsure: 0
+                        unsure: 0,
                     };
                 }
 
@@ -225,7 +225,7 @@
          * @param {object} validationsByType - Grouped validation data
          * @returns {Array} Array of [typeId, typeData] pairs, filtered and sorted
          */
-        filterAndSortTypes: function(validationsByType) {
+        filterAndSortTypes(validationsByType) {
             return Object.entries(validationsByType)
                 // Filter out types with too few validations
                 .filter(([, typeData]) => {
@@ -248,7 +248,7 @@
          * @param {Array} validationsData - Raw validation data
          * @param {Array} filteredTypes - Filtered and sorted types
          */
-        createSummarySection: function(container, validationsData, filteredTypes) {
+        createSummarySection(container, validationsData, filteredTypes) {
             const summarySection = document.createElement('div');
             summarySection.className = 'validation-summary';
             container.appendChild(summarySection);
@@ -263,9 +263,9 @@
 
             // Calculate overall statistics.
             const totalValidations = validationsData.length;
-            const totalAgree = validationsData.filter(v => v.validation_result === 'Agree').length;
-            const totalDisagree = validationsData.filter(v => v.validation_result === 'Disagree').length;
-            const totalUnsure = validationsData.filter(v => v.validation_result === 'Unsure').length;
+            const totalAgree = validationsData.filter((v) => v.validation_result === 'Agree').length;
+            const totalDisagree = validationsData.filter((v) => v.validation_result === 'Disagree').length;
+            const totalUnsure = validationsData.filter((v) => v.validation_result === 'Unsure').length;
 
             const statsGrid = document.createElement('div');
             statsGrid.className = 'summary-stats-grid';
@@ -284,7 +284,7 @@
          * @param {string} value - Stat value
          * @param {string} label - Stat label
          */
-        addSummaryStatItem: function(grid, value, label) {
+        addSummaryStatItem(grid, value, label) {
             const item = document.createElement('div');
             item.className = 'summary-stat-item';
             grid.appendChild(item);
@@ -305,7 +305,7 @@
          * @param {HTMLElement} container - Parent container for the chart
          * @param {object} typeData - Data for this label type
          */
-        createSingleValidationChart: function(container, typeData) {
+        createSingleValidationChart(container, typeData) {
             // Create chart container.
             const chartContainer = document.createElement('div');
             chartContainer.className = 'validation-chart-container';
@@ -340,7 +340,7 @@
             const colors = [
                 this.lightenColor(baseColor, 30),  // Agree - lighter
                 baseColor,                                 // Disagree - base color
-                this.darkenColor(baseColor, 30)    // Unsure - darker
+                this.darkenColor(baseColor, 30),    // Unsure - darker
             ];
 
             // Create the chart
@@ -352,49 +352,49 @@
                         label: 'Count',
                         data: [typeData.agree, typeData.disagree, typeData.unsure],
                         backgroundColor: colors,
-                        borderColor: colors.map(color => this.darkenColor(color, 20)),
-                        borderWidth: 1
-                    }]
+                        borderColor: colors.map((color) => this.darkenColor(color, 20)),
+                        borderWidth: 1,
+                    }],
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            display: false
+                            display: false,
                         },
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
+                                label(context) {
                                     const count = context.parsed.y;
                                     const percentage = ((count / total) * 100).toFixed(1);
                                     return [
                                         `Count: ${count.toLocaleString()}`,
-                                        `Percentage: ${percentage}%`
+                                        `Percentage: ${percentage}%`,
                                     ];
-                                }
-                            }
-                        }
+                                },
+                            },
+                        },
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
                             title: {
                                 display: true,
-                                text: 'Number of Validations'
+                                text: 'Number of Validations',
                             },
                             ticks: {
-                                precision: 0
-                            }
+                                precision: 0,
+                            },
                         },
                         x: {
                             title: {
                                 display: true,
-                                text: 'Validation Result'
-                            }
-                        }
-                    }
-                }
+                                text: 'Validation Result',
+                            },
+                        },
+                    },
+                },
             });
         },
 
@@ -404,7 +404,7 @@
          * @param {Array} validationsData - Raw validation data
          * @param {Array} filteredTypes - Filtered and sorted types
          */
-        createFooterSummary: function(container, validationsData, filteredTypes) {
+        createFooterSummary(container, validationsData, filteredTypes) {
             const summary = document.createElement('p');
             summary.style.textAlign = 'center';
             summary.style.fontStyle = 'italic';
@@ -431,7 +431,7 @@
          * @param {number} amount - Amount to lighten (0-255)
          * @returns {string} Lightened hex color
          */
-        lightenColor: function(hex, amount) {
+        lightenColor(hex, amount) {
             hex = hex.replace(/^#/, '');
 
             let r = parseInt(hex.length === 3 ? hex.substring(0, 1).repeat(2) : hex.substring(0, 2), 16);
@@ -451,7 +451,7 @@
          * @param {number} amount - Amount to darken (0-255)
          * @returns {string} Darkened hex color
          */
-        darkenColor: function(hex, amount) {
+        darkenColor(hex, amount) {
             hex = hex.replace(/^#/, '');
 
             let r = parseInt(hex.length === 3 ? hex.substring(0, 1).repeat(2) : hex.substring(0, 2), 16);
@@ -463,14 +463,14 @@
             b = Math.max(0, b - amount);
 
             return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-        }
+        },
     };
 
     // Set up download buttons when the DOM is ready.
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', () => {
         // Set up download buttons
-        document.querySelectorAll('.download-btn').forEach(button => {
-            button.addEventListener('click', function() {
+        document.querySelectorAll('.download-btn').forEach((button) => {
+            button.addEventListener('click', function () {
                 const format = this.getAttribute('data-format');
                 const url = `${config.apiBaseUrl}${config.validationsEndpoint}?filetype=${format}`;
 
@@ -484,5 +484,4 @@
             });
         });
     });
-
 })();

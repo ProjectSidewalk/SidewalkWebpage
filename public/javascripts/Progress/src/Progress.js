@@ -33,7 +33,7 @@ class Progress {
         const params = {
             mapName: 'user-dashboard-choropleth',
             mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
-            mapboxApiKey: mapboxApiKey,
+            mapboxApiKey,
             zoomCorrection: -0.5,
             mapboxLogoLocation: 'bottom-right',
             neighborhoodsURL: '/neighborhoods',
@@ -46,11 +46,11 @@ class Progress {
             neighborhoodFillOpacity: 0.1,
             uiSource: admin ? 'AdminUserDashboard' : 'UserMap',
             navigationControlPosition: 'top-right',
-            popupLabelViewer: await LabelPopup(admin, viewerType, viewerAccessToken, currentUsername)
+            popupLabelViewer: await LabelPopup(admin, viewerType, viewerAccessToken, currentUsername),
         };
 
         const progress = new Progress(userId, admin);
-        CreatePSMap($, params).then(m => {
+        CreatePSMap($, params).then((m) => {
             progress.map = m[0];
             progress.mapData = m[4];
             setRegionFocus(progress.map);
@@ -66,7 +66,7 @@ class Progress {
      * Attaches click handlers to the team-membership and create-team controls.
      */
     #bindTeamControls() {
-        document.querySelectorAll('.put-user-team').forEach(el => {
+        document.querySelectorAll('.put-user-team').forEach((el) => {
             el.addEventListener('click', () => this.#putUserTeam(el, null));
         });
         const saveButton = document.getElementById('save-team-button');
@@ -87,15 +87,15 @@ class Progress {
             .then(() => {
                 if (!this.#admin) {
                     if (startTeam && startTeam !== '0') {
-                        window.logWebpageActivity('Click_module=leaving_team=' + startTeam);
+                        window.logWebpageActivity(`Click_module=leaving_team=${startTeam}`);
                     }
                     if (endTeam && endTeam !== '0') {
-                        window.logWebpageActivity('Click_module=joining_team=' + endTeam);
+                        window.logWebpageActivity(`Click_module=joining_team=${endTeam}`);
                     }
                 }
                 window.location.reload();
             })
-            .catch(result => console.error('Error logging activity:', result));
+            .catch((result) => console.error('Error logging activity:', result));
     }
 
     /**
@@ -114,15 +114,15 @@ class Progress {
         fetch('/userapi/createTeam', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: teamName, description: teamDescription })
+            body: JSON.stringify({ name: teamName, description: teamDescription }),
         })
-            .then(response => response.json())
-            .then(result => {
+            .then((response) => response.json())
+            .then((result) => {
                 const newTeam = result.team_id;
                 const userTeamElement = document.querySelector('.put-user-team');
-                window.logWebpageActivity('Click_module=create_team=team_id=' + newTeam);
+                window.logWebpageActivity(`Click_module=create_team=team_id=${newTeam}`);
                 this.#putUserTeam(userTeamElement || { id: '-1' }, newTeam);
             })
-            .catch(result => console.error(result));
+            .catch((result) => console.error(result));
     }
 }

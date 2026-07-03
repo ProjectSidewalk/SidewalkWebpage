@@ -30,20 +30,18 @@ class PanoViewer {
      * Private constructor to prevent direct instantiation.
      */
     constructor() {
-        if (new.target === PanoViewer) throw new Error('Cannot instantiate abstract class directly');
-        else if (new.target === GsvViewer) {
+        if (new.target === PanoViewer) {
+            throw new Error('Cannot instantiate abstract class directly');
+        } else if (new.target === GsvViewer) {
             this.viewerType = 'gsv';
             this.canvasClass = 'widget-scene-canvas';
-        }
-        else if (new.target === MapillaryViewer) {
+        } else if (new.target === MapillaryViewer) {
             this.viewerType = 'mapillary';
             this.canvasClass = 'mapillary-canvas';
-        }
-        else if (new.target === Infra3dViewer) {
+        } else if (new.target === Infra3dViewer) {
             this.viewerType = 'infra3d';
             this.canvasClass = 'infra3dsdk-canvas';
-        }
-        else if (new.target === PannellumViewer) {
+        } else if (new.target === PannellumViewer) {
             this.viewerType = 'pannellum';
             this.canvasClass = 'pannellum-canvas';
         }
@@ -215,9 +213,9 @@ class PanoViewer {
      */
     removeListener(event, handler) {
         if (event === 'pano_changed') {
-            this.panoChangedListeners =  this.panoChangedListeners.filter(func => func !== handler);
+            this.panoChangedListeners = this.panoChangedListeners.filter((func) => func !== handler);
         } else if (event === 'pov_changed') {
-            this.povChangedListeners =  this.povChangedListeners.filter(func => func !== handler);
+            this.povChangedListeners = this.povChangedListeners.filter((func) => func !== handler);
         }
     }
 }

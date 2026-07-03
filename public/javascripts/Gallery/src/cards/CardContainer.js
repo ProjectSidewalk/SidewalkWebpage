@@ -23,7 +23,7 @@ class CardContainer {
         NoSidewalk: 7,
         Crosswalk: 9,
         Signal: 10,
-        Assorted: null
+        Assorted: null,
     };
 
     #uiCardContainer;
@@ -33,7 +33,7 @@ class CardContainer {
 
     // TODO: Possibly remove if we drop support for sorting.
     #status = {
-        order: 0
+        order: 0,
     };
 
     #currentLabelType;
@@ -53,7 +53,7 @@ class CardContainer {
         Occlusion: new CardBucket(),
         NoSidewalk: new CardBucket(),
         Crosswalk: new CardBucket(),
-        Signal: new CardBucket()
+        Signal: new CardBucket(),
     };
 
     // Keep track of labels we have loaded already as to not grab the same label from the backend.
@@ -100,19 +100,19 @@ class CardContainer {
         // Bind click actions to the forward/backward paging buttons.
         if (uiCardContainer) {
             uiCardContainer.nextPage.bind({
-                click: this.#handleNextPageClick
+                click: this.#handleNextPageClick,
             });
             uiCardContainer.prevPage.bind({
-                click: this.#handlePrevPageClick
+                click: this.#handlePrevPageClick,
             });
         }
 
         this.#pageNumberDisplay = document.createElement('h2');
-        this.#pageNumberDisplay.innerText = "1";
+        this.#pageNumberDisplay.innerText = '1';
         uiCardContainer.pageNumber.append(this.#pageNumberDisplay);
         sg.ui.pageControl.hide();
         sg.cardFilter.disable();
-        sg.ui.cardContainer.prevPage.prop("disabled", true);
+        sg.ui.cardContainer.prevPage.prop('disabled', true);
         this.#cardsByType[this.#currentLabelType] = new CardBucket();
 
         // Grab first batch of labels to show.
@@ -128,22 +128,22 @@ class CardContainer {
         sg.ui.cardContainer.holder.on('click', '.static-gallery-image, .additional-count, .ai-icon-marker-card', (event) => {
             sg.ui.expandedView.container.css('position', 'relative');
             sg.ui.expandedView.container.css('visibility', 'visible');
-            $('.grid-container').css("grid-template-columns", "1fr 5fr");
+            $('.grid-container').css('grid-template-columns', '1fr 5fr');
             // If the user clicks on the image body in the card, just use the provided id.
             // If they click the AI icon, use the image id from the same card.
             // Otherwise, the user will have clicked on an existing "+n" icon on the card, meaning we need to acquire
             // the cardId from the card-tags DOM element (as well as perform an additional prepend to put the ID in
             // the correct form).
-            const clickedImage = event.target.classList.contains("static-gallery-image");
+            const clickedImage = event.target.classList.contains('static-gallery-image');
             let cardId;
-            if (event.target.classList.contains("ai-icon-marker-card")) {
-                const imageHolder = event.target.closest(".image-holder");
-                const parentImage = imageHolder ? imageHolder.querySelector(".static-gallery-image") : null;
+            if (event.target.classList.contains('ai-icon-marker-card')) {
+                const imageHolder = event.target.closest('.image-holder');
+                const parentImage = imageHolder ? imageHolder.querySelector('.static-gallery-image') : null;
                 cardId = parentImage ? parentImage.id : null;
             } else if (clickedImage) {
                 cardId = event.target.id;
             } else {
-                cardId = "label_id_" + event.target.closest(".card-tags").id;
+                cardId = `label_id_${event.target.closest('.card-tags').id}`;
             }
             if (!cardId) return;
             // Sets/Updates the label being displayed in the expanded view.
@@ -183,37 +183,37 @@ class CardContainer {
 
     #handleNextPageClick = (e) => {
         // This variable will be true if this is a "real" click. Otherwise, it will be false for .click() js code.
-        const fromUser = typeof (e['clientX']) !== "undefined";
+        const fromUser = typeof (e.clientX) !== 'undefined';
 
-        sg.tracker.push("NextPage", null, {
+        sg.tracker.push('NextPage', null, {
             from: this.#currentPage,
-            to: this.#currentPage + 1
+            to: this.#currentPage + 1,
         });
 
         if (fromUser) {
-            sg.tracker.push("NextPageClick", null, null);
+            sg.tracker.push('NextPageClick', null, null);
         }
 
         this.#setPage(this.#currentPage + 1);
-        sg.ui.cardContainer.prevPage.prop("disabled", false);
+        sg.ui.cardContainer.prevPage.prop('disabled', false);
         this.updateCardsNewPage();
     };
 
     #handlePrevPageClick = (e) => {
         if (this.#currentPage > 1) {
             // This variable will be true if this is a "real" click. Otherwise, it will be false for .click() js code.
-            const fromUser = typeof (e['clientX']) !== "undefined";
+            const fromUser = typeof (e.clientX) !== 'undefined';
 
-            sg.tracker.push("PrevPage", null, {
+            sg.tracker.push('PrevPage', null, {
                 from: this.#currentPage,
-                to: this.#currentPage - 1
+                to: this.#currentPage - 1,
             });
 
             if (fromUser) {
-                sg.tracker.push("PrevPageClick", null, null);
+                sg.tracker.push('PrevPageClick', null, null);
             }
 
-            $("#next-page").prop("disabled", false);
+            $('#next-page').prop('disabled', false);
             this.#setPage(this.#currentPage - 1);
             this.updateCardsNewPage();
         }
@@ -221,7 +221,7 @@ class CardContainer {
 
     #setPage(pageNumber) {
         if (pageNumber <= 1) {
-            sg.ui.cardContainer.prevPage.prop("disabled", true);
+            sg.ui.cardContainer.prevPage.prop('disabled', true);
         }
         this.#currentPage = pageNumber;
         this.#pageNumberDisplay.innerText = pageNumber;
@@ -241,26 +241,26 @@ class CardContainer {
      * @param {*} callback Function to be called when labels arrive.
      */
     fetchLabels(labelTypeId, n, validationOptions, loadedLabels, neighborhoods, severities, tags, aiValidationOptions, callback) {
-        const url = "/label/labels";
+        const url = '/label/labels';
         const data = {
             label_type_id: labelTypeId,
-            n: n,
+            n,
             validation_options: validationOptions,
-            ...(neighborhoods !== undefined && { neighborhoods: neighborhoods }),
-            ...(severities !== undefined && { severities: severities }),
-            ...(tags !== undefined && { tags: tags }),
+            ...(neighborhoods !== undefined && { neighborhoods }),
+            ...(severities !== undefined && { severities }),
+            ...(tags !== undefined && { tags }),
             ...(aiValidationOptions !== undefined && { ai_validation_options: aiValidationOptions }),
-            loaded_labels: loadedLabels
+            loaded_labels: loadedLabels,
         };
         $.ajax({
             async: true,
-            contentType: "application/json; charset=utf-8",
-            url: url,
+            contentType: 'application/json; charset=utf-8',
+            url,
             method: 'POST',
             data: JSON.stringify(data),
-            dataType: "json",
+            dataType: 'json',
             success: (data) => {
-                if ("labelsOfType" in data) {
+                if ('labelsOfType' in data) {
                     const labels = data.labelsOfType;
                     for (let i = 0; i < labels.length; i++) {
                         const labelProp = labels[i];
@@ -270,7 +270,7 @@ class CardContainer {
                     }
                     if (callback) callback();
                 }
-            }
+            },
         });
     }
 
@@ -367,18 +367,20 @@ class CardContainer {
         this.#clearCardContainer(uiCardContainer.holder);
 
         const imagesToLoad = this.getCurrentPageCards();
-        const imagePromises = imagesToLoad.map(img => img.loadImage());
+        const imagePromises = imagesToLoad.map((img) => img.loadImage());
 
         if (imagesToLoad.length > 0) {
             if (this.#lastPage) {
-                sg.ui.cardContainer.nextPage.prop("disabled", true);
+                sg.ui.cardContainer.nextPage.prop('disabled', true);
             } else {
-                sg.ui.cardContainer.nextPage.prop("disabled", false);
+                sg.ui.cardContainer.nextPage.prop('disabled', false);
             }
 
             // We wait for all the promises from grabbing pano images to resolve before showing cards.
             Promise.all(imagePromises).then(() => {
-                imagesToLoad.forEach((card) => { card.render(uiCardContainer.holder); });
+                imagesToLoad.forEach((card) => {
+                    card.render(uiCardContainer.holder);
+                });
                 sg.ui.pageControl.show();
                 sg.pageLoading.hide();
                 sg.ui.cardFilter.wrapper.css('position', 'fixed');

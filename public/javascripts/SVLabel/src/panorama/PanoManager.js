@@ -9,14 +9,14 @@ class PanoManager {
             minimapLinksClickable: false,
             disablePanning: false,
             lockDisablePanning: false,
-            lockShowingNavArrows: false
+            lockShowingNavArrows: false,
         };
         this.properties = {
             maxPitch: 0,
             minPitch: -35,
             minHeading: undefined,
-            maxHeading: undefined
-        }
+            maxHeading: undefined,
+        };
         this.linksListener = null;
         this.linksClearanceObserver = null;
         this.mapillaryAttributionObserver = null;
@@ -49,14 +49,14 @@ class PanoManager {
      * @private
      */
     async #init(panoViewerType, viewerAccessToken, params = {}, errorParams) {
-        let panoOptions = {
+        const panoOptions = {
             accessToken: viewerAccessToken,
-            defaultNavigation: false // We create our own navigation arrows.
+            defaultNavigation: false, // We create our own navigation arrows.
         };
 
         // Add the starting location to panoOptions.
         if (params.startPanoId) {
-            panoOptions.startPanoId = params.startPanoId
+            panoOptions.startPanoId = params.startPanoId;
         } else if (params.startLat && params.startLng) {
             panoOptions.startLatLng = { lat: params.startLat, lng: params.startLng };
             panoOptions.backupLatLng = errorParams.task.getEndCoordinate();
@@ -109,7 +109,7 @@ class PanoManager {
         // This line of code is here to fix the bug when zooming with ctr +/-, the screen turns black.
         // We are updating the pano POV slightly to simulate an update the gets rid of the black pano.
         $(window).on('resize', () => {
-            this.updatePov(.0025,.0025);
+            this.updatePov(0.0025, 0.0025);
         });
     }
 
@@ -144,7 +144,7 @@ class PanoManager {
         }
 
         svl.tracker.push('PanoId_Changed', {
-            panoId: panoId,
+            panoId,
             lat: panoData.getProperty('lat'),
             lng: panoData.getProperty('lng'),
             cameraHeading: panoData.getProperty('cameraHeading'),
@@ -165,10 +165,10 @@ class PanoManager {
      * @private
      */
     #setPanoFailureCallback = async (error, panoId) => {
-        svl.tracker.push('PanoId_NotFound', { 'TargetPanoId': panoId });
+        svl.tracker.push('PanoId_NotFound', { TargetPanoId: panoId });
         console.error(`failed to load pano ${panoId}!`, error);
         throw error;
-    }
+    };
 
     /**
      * Moves the GSV and minimap bottom links to the top layer so they are clickable.
@@ -191,14 +191,14 @@ class PanoManager {
         if (this.status.panoLinksClickable && this.status.minimapLinksClickable) {
             google.maps.event.removeListener(this.linksListener);
         }
-    }
+    };
 
     /**
      * Moves the GSV pano's bottom links to the top layer so they are clickable.
      * @private
      */
     #makePanoLinksClickable = () => {
-        let panoLinks = $('.gm-style-cc', this.panoCanvas);
+        const panoLinks = $('.gm-style-cc', this.panoCanvas);
         if (!this.status.panoLinksClickable && panoLinks.length > 3) {
             this.status.panoLinksClickable = true;
 
@@ -210,7 +210,7 @@ class PanoManager {
             svl.ui.streetview.viewControlLayer.append(gsvLinksBar);
             this.#liftBottomLeftAboveLinks(gsvLinksBar);
         }
-    }
+    };
 
     /**
      * Moves Mapillary's attribution links (image credit/date/report links) to the top layer so they're clickable.
@@ -233,7 +233,7 @@ class PanoManager {
         if (this.mapillaryAttributionObserver) this.mapillaryAttributionObserver.disconnect();
         this.mapillaryAttributionObserver = new MutationObserver(tryMove);
         this.mapillaryAttributionObserver.observe(this.panoCanvas, { childList: true, subtree: true });
-    }
+    };
 
     /**
      * Lifts the bottom-left pano overlays (the pano date, info button, speed-limit, and logo) attribution links.
@@ -257,14 +257,14 @@ class PanoManager {
         if (this.linksClearanceObserver) this.linksClearanceObserver.disconnect();
         this.linksClearanceObserver = new ResizeObserver(publishClearance);
         this.linksClearanceObserver.observe(linksBar);
-    }
+    };
 
     /**
      * Moves the minimap's links to the top layer so they are clickable, removing the ones that duplicate the GSV links.
      * @private
      */
     #makeMinimapLinksClickable = () => {
-        let minimapLinks = $('.gm-style-cc', '#minimap');
+        const minimapLinks = $('.gm-style-cc', '#minimap');
         if (!this.status.minimapLinksClickable && minimapLinks.length > 4) {
             this.status.minimapLinksClickable = true;
             minimapLinks[0].remove(); // Remove mini map keyboard shortcuts link.
@@ -272,7 +272,7 @@ class PanoManager {
             minimapLinks[3].remove(); // Remove mini map terms of use link (duplicate of GSV).
             svl.ui.minimap.overlay.append($(minimapLinks[4]).parent().parent());
         }
-    }
+    };
 
     hideNavArrows() {
         $('#nav-arrows-container').hide();
@@ -306,7 +306,7 @@ class PanoManager {
 
         // Create an arrow for each link, rotated to its direction.
         const links = svl.panoViewer.getLinkedPanos();
-        links.forEach(link => {
+        links.forEach((link) => {
             const arrow = this.#createArrow();
             const normalizedHeading = (link.heading + 360) % 360;
             arrow.setAttribute('transform', `translate(15, 0) rotate(${normalizedHeading}, 15, 30)`);
@@ -413,14 +413,12 @@ class PanoManager {
                 } else if (pov.heading < this.properties.minHeading) {
                     pov.heading = this.properties.minHeading;
                 }
-            } else {
-                if (pov.heading < this.properties.minHeading &&
-                    pov.heading > this.properties.maxHeading) {
-                    if (Math.abs(pov.heading - this.properties.maxHeading) < Math.abs(pov.heading - this.properties.minHeading)) {
-                        pov.heading = this.properties.maxHeading;
-                    } else {
-                        pov.heading = this.properties.minHeading;
-                    }
+            } else if (pov.heading < this.properties.minHeading
+                && pov.heading > this.properties.maxHeading) {
+                if (Math.abs(pov.heading - this.properties.maxHeading) < Math.abs(pov.heading - this.properties.minHeading)) {
+                    pov.heading = this.properties.maxHeading;
+                } else {
+                    pov.heading = this.properties.minHeading;
                 }
             }
         }
@@ -450,7 +448,7 @@ class PanoManager {
      * @returns {void}
      */
     setPov(pov, durationMs, callback) {
-        let currentPov = svl.panoViewer.getPov();
+        const currentPov = svl.panoViewer.getPov();
         let interval;
 
         // Pov restriction.
@@ -517,8 +515,8 @@ class PanoManager {
         const newPov = {
             heading: Math.round(svl.compass.getTargetAngle() + 360) % 360,
             pitch: pov.pitch,
-            zoom: pov.zoom
-        }
+            zoom: pov.zoom,
+        };
         this.setPov(newPov, durationMs);
     }
 
@@ -567,10 +565,10 @@ class PanoManager {
         setTimeout(() => {
             const arrows = document.querySelectorAll('#arrow-group image');
             // Obtain interval id to allow for the interval to be cleaned up after the arrow leaves document context.
-            const intervalId = window.setInterval(function () {
+            const intervalId = window.setInterval(() => {
                 // Blink logic.
                 arrows.forEach((arrow) => {
-                    if (arrow.classList.contains('highlight')) arrow.classList.remove('highlight')
+                    if (arrow.classList.contains('highlight')) arrow.classList.remove('highlight');
                     else arrow.classList.add('highlight');
 
                     // Once the arrow is removed from the document, stop the interval for all arrows.

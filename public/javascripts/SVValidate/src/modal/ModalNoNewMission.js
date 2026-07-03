@@ -14,21 +14,21 @@ class ModalNoNewMission {
         this.#uiModalMission = uiModalMission;
 
         const instructions = isMobile() ? i18next.t('mobile.no-new-mission-body') : i18next.t('mission-complete.no-new-mission-body');
-        this.#noMissionsRemaining = '<figure> \
+        this.#noMissionsRemaining = `<figure> \
             <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
             </figure> \
             <div class="spacer10"></div>\
-            <p>' + instructions + '</p>\
-            <div class="spacer10"></div>';
+            <p>${instructions}</p>\
+            <div class="spacer10"></div>`;
     }
 
     #handleButtonClick = () => {
         if (isMobile()) {
-            svv.tracker.push("Click_NoMoreMissionModal_ValidateSeattle");
-            window.location.replace("https://sidewalk-sea.cs.washington.edu/validate");
+            svv.tracker.push('Click_NoMoreMissionModal_ValidateSeattle');
+            window.location.replace('https://sidewalk-sea.cs.washington.edu/validate');
         } else {
-            svv.tracker.push("Click_NoMoreMissionModal_Audit");
-            window.location.replace("/explore");
+            svv.tracker.push('Click_NoMoreMissionModal_Audit');
+            window.location.replace('/explore');
         }
     };
 
@@ -44,7 +44,7 @@ class ModalNoNewMission {
 
         // Update and widen the button to fit more text when there is no new mission.
         if (isMobile()) {
-            this.#uiModalMission.closeButton.html(i18next.t('mobile.no-new-mission-button') + ` Seattle, WA`);
+            this.#uiModalMission.closeButton.html(`${i18next.t('mobile.no-new-mission-button')} Seattle, WA`);
             this.#uiModalMission.closeButton.css('font-size', '40pt');
             this.#uiModalMission.closeButton.css('width', '76%');
             this.#uiModalMission.closeButton.css('margin-right', '12%');

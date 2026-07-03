@@ -97,7 +97,7 @@ function InitialMissionInstruction(compass, navigationService, popUpMessage, tas
 
         const title = i18next.t('popup.start-title');
         const message = i18next.t(
-            'popup.start-body', { neighborhood: neighborhood.getProperty('name'), city: window.cityNameShort }
+            'popup.start-body', { neighborhood: neighborhood.getProperty('name'), city: window.cityNameShort },
         );
         popUpMessage.notify(title, message, () => {
             navigationService.bindPositionUpdate(_instructToCheckSidewalks);

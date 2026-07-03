@@ -44,17 +44,21 @@ class CoverageColors {
 
     static #parse(hex) {
         const h = hex.replace('#', '');
-        return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16));
+        return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
     }
 }
 
 /** Small formatting helpers shared across the coverage page. */
 class CoverageFormat {
     /** @param {number} rate - Fraction in [0,1]. @returns {string} e.g. "73%". */
-    static pct(rate) { return `${Math.round((rate || 0) * 100)}%`; }
+    static pct(rate) {
+        return `${Math.round((rate || 0) * 100)}%`;
+    }
 
     /** @param {number} meters @returns {string} distance in km with one decimal, e.g. "4.2 km". */
-    static km(meters) { return `${((meters || 0) / 1000).toFixed(1)} km`; }
+    static km(meters) {
+        return `${((meters || 0) / 1000).toFixed(1)} km`;
+    }
 }
 
 /**
@@ -100,12 +104,12 @@ class CoverageMap {
             container: this.containerId,
             style: 'mapbox://styles/mapbox/light-v11',
             bounds: CoverageMap.#bounds(geojson),
-            fitBoundsOptions: { padding: 24 }
+            fitBoundsOptions: { padding: 24 },
         });
         this.#map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
         this.#popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, className: 'coverage-popup' });
 
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
             this.#map.on('load', () => {
                 this.#addLayers(geojson);
                 this.#wireInteractions();
@@ -119,28 +123,28 @@ class CoverageMap {
 
         this.#map.addLayer({
             id: 'coverage-fill', type: 'fill', source: CoverageMap.#SOURCE,
-            paint: { 'fill-color': CoverageColors.mapboxExpression(), 'fill-opacity': 0.85 }
+            paint: { 'fill-color': CoverageColors.mapboxExpression(), 'fill-opacity': 0.85 },
         });
         // Outline thickens on hover.
         this.#map.addLayer({
             id: 'coverage-outline', type: 'line', source: CoverageMap.#SOURCE,
             paint: {
                 'line-color': '#ffffff',
-                'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 2.5, 0.6]
-            }
+                'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 2.5, 0.6],
+            },
         });
         // Separate selected-region outline in the high-contrast highlight color.
         this.#map.addLayer({
             id: 'coverage-selected', type: 'line', source: CoverageMap.#SOURCE,
             paint: {
                 'line-color': CoverageColors.SELECTED,
-                'line-width': ['case', ['boolean', ['feature-state', 'selected'], false], 4, 0]
-            }
+                'line-width': ['case', ['boolean', ['feature-state', 'selected'], false], 4, 0],
+            },
         });
     }
 
     #wireInteractions() {
-        this.#map.on('mousemove', 'coverage-fill', e => {
+        this.#map.on('mousemove', 'coverage-fill', (e) => {
             if (!e.features.length) return;
             this.#map.getCanvas().style.cursor = 'pointer';
             const f = e.features[0];
@@ -152,7 +156,7 @@ class CoverageMap {
             this.#setHover(null);
             this.#popup.remove();
         });
-        this.#map.on('click', 'coverage-fill', e => {
+        this.#map.on('click', 'coverage-fill', (e) => {
             if (e.features.length) this.#onRegionClick(Number(e.features[0].id));
         });
     }
@@ -200,21 +204,23 @@ class CoverageMap {
     /** Builds the hover-popup HTML showing a region's coverage details. */
     static #popupHtml(p) {
         const row = (label, value) => `<dt>${label}</dt><dd>${value}</dd>`;
-        return `<div class="coverage-popup-name">${p.name}</div>` +
-            '<dl class="coverage-popup-dl">' +
-            row('Coverage', CoverageFormat.pct(p.completion_rate)) +
-            row('Audited', `${CoverageFormat.km(p.audited_distance_m)} / ${CoverageFormat.km(p.total_distance_m)}`) +
-            row('Streets', (p.street_count || 0).toLocaleString()) +
-            row('Audits', (p.audit_count || 0).toLocaleString()) +
-            row('Labels', (p.label_count || 0).toLocaleString()) +
-            row('Contributors', (p.user_count || 0).toLocaleString()) +
-            '</dl>';
+        return [
+            `<div class="coverage-popup-name">${p.name}</div>`,
+            '<dl class="coverage-popup-dl">',
+            row('Coverage', CoverageFormat.pct(p.completion_rate)),
+            row('Audited', `${CoverageFormat.km(p.audited_distance_m)} / ${CoverageFormat.km(p.total_distance_m)}`),
+            row('Streets', (p.street_count || 0).toLocaleString()),
+            row('Audits', (p.audit_count || 0).toLocaleString()),
+            row('Labels', (p.label_count || 0).toLocaleString()),
+            row('Contributors', (p.user_count || 0).toLocaleString()),
+            '</dl>',
+        ].join('');
     }
 
     /** Computes a [[minLng,minLat],[maxLng,maxLat]] bounds box covering all features. */
     static #bounds(geojson) {
-        let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
-        const visit = coords => {
+        let minLng = Infinity; let minLat = Infinity; let maxLng = -Infinity; let maxLat = -Infinity;
+        const visit = (coords) => {
             if (typeof coords[0] === 'number') {
                 minLng = Math.min(minLng, coords[0]); maxLng = Math.max(maxLng, coords[0]);
                 minLat = Math.min(minLat, coords[1]); maxLat = Math.max(maxLat, coords[1]);

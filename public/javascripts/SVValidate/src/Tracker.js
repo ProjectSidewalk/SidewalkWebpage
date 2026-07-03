@@ -15,14 +15,14 @@ class Tracker {
         $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', (e) => {
             this.push(prefix + e.type, {
                 cursorX: 'pageX' in e ? e.pageX : null,
-                cursorY: 'pageY' in e ? e.pageY : null
+                cursorY: 'pageY' in e ? e.pageY : null,
             });
         });
 
         // keyboard related events
         $(document).on('keydown keyup', (e) => {
             this.push(prefix + e.type, {
-                keyCode: 'keyCode' in e ? e.keyCode : null
+                keyCode: 'keyCode' in e ? e.keyCode : null,
             });
         });
     }
@@ -40,7 +40,7 @@ class Tracker {
         const currentMission = missionContainer ? missionContainer.getCurrentMission() : null;
 
         return {
-            action: action,
+            action,
             pano_id: panoViewer ? panoViewer.getPanoId() : null,
             lat: position.lat,
             lng: position.lng,
@@ -58,14 +58,16 @@ class Tracker {
     }
 
     #notesToString(notes) {
-        if (!notes)
+        if (!notes) {
             return '';
+        }
 
         let noteString = '';
         for (const key in notes) {
-            if (noteString.length > 0)
+            if (noteString.length > 0) {
                 noteString += ',';
-            noteString += key + ':' + notes[key];
+            }
+            noteString += `${key}:${notes[key]}`;
         }
 
         return noteString;

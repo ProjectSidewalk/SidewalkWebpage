@@ -18,22 +18,22 @@ class Label {
             headingCanvasXSlope: 0.1443374,
             distanceIntercept: 18.6051843,
             distancePanoYSlope: 0.0138947,
-            distanceCanvasYSlope: 0.0011023
+            distanceCanvasYSlope: 0.0011023,
         },
         2: {
             headingIntercept: -27.5267447,
             headingCanvasXSlope: 0.0784357,
             distanceIntercept: 20.8794248,
             distancePanoYSlope: 0.0184087,
-            distanceCanvasYSlope: 0.0022135
+            distanceCanvasYSlope: 0.0022135,
         },
         3: {
             headingIntercept: -13.5675945,
             headingCanvasXSlope: 0.0396061,
             distanceIntercept: 25.2472682,
             distancePanoYSlope: 0.0264216,
-            distanceCanvasYSlope: 0.0011071
-        }
+            distanceCanvasYSlope: 0.0011071,
+        },
     };
 
     #properties = {
@@ -61,13 +61,13 @@ class Label {
         tutorialLabelNumber: undefined,
         temporaryLabelId: null,
         description: null,
-        crop: undefined
+        crop: undefined,
     };
 
     #status = {
-        deleted : false,
-        hoverInfoVisibility : 'visible',
-        visibility : 'visible'
+        deleted: false,
+        hoverInfoVisibility: 'visible',
+        visibility: 'visible',
     };
 
     #hoverInfoProperties;
@@ -95,7 +95,7 @@ class Label {
             this.#properties.panoLng = panoData.lng;
             this.#properties.panoXY = util.pano.povToPanoCoord(
                 this.#properties.povOfLabelIfCentered, this.#properties.cameraHeading,
-                this.#properties.panoWidth, this.#properties.panoHeight
+                this.#properties.panoWidth, this.#properties.panoHeight,
             );
         }
 
@@ -106,9 +106,17 @@ class Label {
     }
 
     // Some functions for easy access to commonly accessed properties.
-    getLabelId() { return this.#properties.labelId; }
-    getLabelType() { return this.#properties.labelType; }
-    getPanoId() { return this.#properties.panoId; }
+    getLabelId() {
+        return this.#properties.labelId;
+    }
+
+    getLabelType() {
+        return this.#properties.labelType;
+    }
+
+    getPanoId() {
+        return this.#properties.panoId;
+    }
 
     /**
      * Returns the coordinate of the label.
@@ -122,16 +130,33 @@ class Label {
      * Returns a deep copy of the properties object, so callers can't mutate the label's internal state directly.
      * @returns {Object}
      */
-    getProperties() { return structuredClone(this.#properties); }
+    getProperties() {
+        return structuredClone(this.#properties);
+    }
 
-    getProperty(propName) { return (propName in this.#properties) ? this.#properties[propName] : false; }
+    getProperty(propName) {
+        return (propName in this.#properties) ? this.#properties[propName] : false;
+    }
 
-    setProperty(key, value) { this.#properties[key] = value; }
+    setProperty(key, value) {
+        this.#properties[key] = value;
+    }
 
-    getStatus(key) { return this.#status[key]; }
-    isDeleted() { return this.#status.deleted; }
-    isVisible() { return this.#status.visibility === 'visible'; }
-    setVisibility(visibility) { this.#status.visibility = visibility; }
+    getStatus(key) {
+        return this.#status[key];
+    }
+
+    isDeleted() {
+        return this.#status.deleted;
+    }
+
+    isVisible() {
+        return this.#status.visibility === 'visible';
+    }
+
+    setVisibility(visibility) {
+        this.#status.visibility = visibility;
+    }
 
     /**
      * Set status. Deals with special cases for the various status values that have a limited set of values.
@@ -159,7 +184,7 @@ class Label {
      */
     setHoverInfoVisibility(visibility) {
         if (visibility === 'visible' || visibility === 'hidden') {
-            this.#status['hoverInfoVisibility'] = visibility;
+            this.#status.hoverInfoVisibility = visibility;
         }
         return this;
     }
@@ -210,13 +235,13 @@ class Label {
             // Update the coordinates of the label on the canvas.
             this.#properties.currCanvasXY = util.pano.centeredPovToCanvasCoord(
                 this.#properties.povOfLabelIfCentered, pov,
-                util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+                util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS,
             );
 
             // Draw the label icon if it's in the visible part of the pano.
             if (this.#properties.currCanvasXY) {
                 Label.renderLabelIcon(
-                    ctx, this.#properties.labelType, this.#properties.currCanvasXY.x, this.#properties.currCanvasXY.y
+                    ctx, this.#properties.labelType, this.#properties.currCanvasXY.x, this.#properties.currCanvasXY.y,
                 );
 
                 // Only render severity warning if there's a severity option.
@@ -231,10 +256,8 @@ class Label {
             if (this.#googleMarker && !this.#googleMarker.map) {
                 this.#googleMarker.map = svl.minimap.getMap();
             }
-        } else {
-            if (this.#googleMarker && this.#googleMarker.map) {
-                this.#googleMarker.map = null;
-            }
+        } else if (this.#googleMarker && this.#googleMarker.map) {
+            this.#googleMarker.map = null;
         }
         return this;
     }
@@ -256,7 +279,7 @@ class Label {
         const hasSeverity = util.misc.labelTypeHasSeverity(labelType);
 
         svl.ui.canvas.hoverInfoType.text(
-            i18next.t('common:' + util.camelToKebab(labelType)).replace('&shy;', '')
+            i18next.t(`common:${util.camelToKebab(labelType)}`).replace('&shy;', ''),
         );
         svl.ui.canvas.hoverInfoHolder.css('background-color', util.misc.getLabelColors(labelType));
 
@@ -291,8 +314,8 @@ class Label {
         }
         holder.css({
             visibility: 'visible',
-            left: left,
-            top: centerY - holder.outerHeight() / 2
+            left,
+            top: centerY - holder.outerHeight() / 2,
         });
     }
 
@@ -323,7 +346,7 @@ class Label {
                 holder.css('visibility', 'hidden');
                 return;
             }
-            holder.css({ visibility: 'visible', left: left, top: top });
+            holder.css({ visibility: 'visible', left, top });
         }
     }
 
@@ -388,7 +411,7 @@ class Label {
 
             const estHeadingDiff = headingIntercept + headingCanvasXSlope * canvasX;
             const estDistanceFromPanoKm = Math.max(0,
-                distanceIntercept + distancePanoYSlope * (panoHeight / 2 - panoY) + distanceCanvasYSlope * canvasY
+                distanceIntercept + distancePanoYSlope * (panoHeight / 2 - panoY) + distanceCanvasYSlope * canvasY,
             ) / 1000.0;
             const estHeading = heading + estHeadingDiff;
             const startPoint = turf.point([panoLng, panoLat]);
@@ -398,7 +421,7 @@ class Label {
             const latlng = {
                 lat: destination.geometry.coordinates[1],
                 lng: destination.geometry.coordinates[0],
-                latLngComputationMethod: 'approximation2'
+                latLngComputationMethod: 'approximation2',
             };
             this.setProperty('labelLat', latlng.lat);
             this.setProperty('labelLng', latlng.lng);
@@ -409,7 +432,7 @@ class Label {
             return {
                 lat: this.getProperty('labelLat'),
                 lng: this.getProperty('labelLng'),
-                latLngComputationMethod: this.getProperty('latLngComputationMethod')
+                latLngComputationMethod: this.getProperty('latLngComputationMethod'),
             };
         }
     }
@@ -439,15 +462,15 @@ class Label {
         const cropData = {
             label_id: labelId,
             label_type: this.getProperty('labelType'),
-            b64: this.getProperty('crop')
+            b64: this.getProperty('crop'),
         };
         fetch('saveImage', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=UTF-8' },
-            body: JSON.stringify(cropData)
+            body: JSON.stringify(cropData),
         }).then(() => {
             this.setProperty('crop', null); // Remove reference to crop to save memory.
-        }).catch(err => console.error(err));
+        }).catch((err) => console.error(err));
     }
 
     /**
@@ -458,13 +481,17 @@ class Label {
      */
     static preloadIcons() {
         const iconPaths = util.misc.getIconImagePaths();
-        const loads = Object.keys(iconPaths).map(function(labelType) {
+        const loads = Object.keys(iconPaths).map((labelType) => {
             const iconPath = iconPaths[labelType].iconImagePath;
             if (!iconPath || window.labelIconCache[iconPath]) return Promise.resolve();
-            return new Promise(function(resolve) {
+            return new Promise((resolve) => {
                 const imageObj = new Image();
-                imageObj.onload = function() { window.labelIconCache[iconPath] = imageObj; resolve(); };
-                imageObj.onerror = function() { resolve(); }; // Don't let one missing icon block the rest.
+                imageObj.onload = function () {
+                    window.labelIconCache[iconPath] = imageObj; resolve();
+                };
+                imageObj.onerror = function () {
+                    resolve();
+                }; // Don't let one missing icon block the rest.
                 imageObj.src = iconPath;
             });
         });
@@ -509,7 +536,7 @@ class Label {
         return new google.maps.marker.AdvancedMarkerElement({
             position: new google.maps.LatLng(latLng.lat, latLng.lng),
             map: svl.minimap.getMap(),
-            content: content
+            content,
         });
     }
 }

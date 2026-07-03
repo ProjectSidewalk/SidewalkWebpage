@@ -14,7 +14,7 @@ class OverviewPage {
     static #DISPLAY = {
         CurbRamp: 'curb ramp', NoCurbRamp: 'missing curb ramp', Obstacle: 'obstacle',
         SurfaceProblem: 'surface problem', NoSidewalk: 'no sidewalk', Crosswalk: 'crosswalk',
-        Signal: 'signal', Occlusion: 'occlusion', Other: 'other'
+        Signal: 'signal', Occlusion: 'occlusion', Other: 'other',
     };
 
     /** Number of trailing weeks shown in each card sparkline. */
@@ -41,7 +41,7 @@ class OverviewPage {
                 this.#fetchJson(this.#summaryUrl),
                 this.#fetchJson(this.#activityByDayUrl).catch(() => ({ series: [] })),
                 this.#fetchJson(this.#recentActivityUrl).catch(() => ({ activity: [] })),
-                this.#fetchJson(this.#labelTypesUrl).catch(() => null)
+                this.#fetchJson(this.#labelTypesUrl).catch(() => null),
             ]);
             this.#buildColors(labelTypes);
             this.#renderCards(summary);
@@ -81,8 +81,8 @@ class OverviewPage {
         // Coverage: share of the street network audited, with the distance/street denominators.
         const covPct = s.total_distance_mi > 0 ? s.audited_distance_mi / s.total_distance_mi : 0;
         this.#setCard('coverage', this.#pct(covPct), s.total_distance_mi > 0
-            ? `${this.#mi(s.audited_distance_mi)} of ${this.#mi(s.total_distance_mi)} mi · ` +
-              `${this.#num(s.audited_streets)} of ${this.#num(s.total_streets)} streets`
+            ? `${this.#mi(s.audited_distance_mi)} of ${this.#mi(s.total_distance_mi)} mi · `
+            + `${this.#num(s.audited_streets)} of ${this.#num(s.total_streets)} streets`
             : 'no streets loaded');
 
         // Data Quality: labels collected, with validations as the secondary figure.
@@ -94,8 +94,8 @@ class OverviewPage {
 
         // Activity: last-7-days pulse; the headline is labels, the sub adds validations and streets.
         this.#setCard('activity', this.#compact(s.labels_past_week),
-            `labels · ${this.#compact(s.validations_past_week)} validations · ` +
-            `${this.#compact(s.audits_past_week)} streets (last 7 days)`, this.#num(s.labels_past_week));
+            `labels · ${this.#compact(s.validations_past_week)} validations · `
+            + `${this.#compact(s.audits_past_week)} streets (last 7 days)`, this.#num(s.labels_past_week));
 
         // Humans vs AI: the AI's share in the role it's most active in, with the other role + tagger in the sub.
         this.#renderHvaCard(s);
@@ -139,12 +139,12 @@ class OverviewPage {
     #renderTrends(series) {
         if (!series.length) return;
         const specs = [
-            { key: 'coverage', get: r => r.audits || 0, unit: 'streets' },
-            { key: 'quality', get: r => r.labels || 0, unit: 'labels' },
-            { key: 'contributors', get: r => r.new_users || 0, unit: 'new' },
-            { key: 'activity', get: r => (r.labels || 0) + (r.validations || 0) + (r.audits || 0), unit: 'actions' }
+            { key: 'coverage', get: (r) => r.audits || 0, unit: 'streets' },
+            { key: 'quality', get: (r) => r.labels || 0, unit: 'labels' },
+            { key: 'contributors', get: (r) => r.new_users || 0, unit: 'new' },
+            { key: 'activity', get: (r) => (r.labels || 0) + (r.validations || 0) + (r.audits || 0), unit: 'actions' },
         ];
-        const byDate = new Map(series.map(r => [r.date, r]));
+        const byDate = new Map(series.map((r) => [r.date, r]));
         const today = this.#startOfDay(new Date());
         for (const sp of specs) {
             const buckets = this.#weeklyBuckets(byDate, today, sp.get);
@@ -197,26 +197,29 @@ class OverviewPage {
      * @returns {string} An <svg> string, or '' when there's too little data to draw.
      */
     #sparkline(values) {
-        const present = values.filter(v => v != null);
+        const present = values.filter((v) => v != null);
         if (present.length < 2) return '';
-        const W = 200, H = 36, pad = 3;
-        const max = Math.max(...present), min = Math.min(...present, 0);
+        const W = 200; const H = 36; const pad = 3;
+        const max = Math.max(...present); const min = Math.min(...present, 0);
         const range = max - min || 1;
         const n = values.length;
-        const x = i => pad + (i / (n - 1)) * (W - 2 * pad);
-        const y = v => pad + (1 - (v - min) / range) * (H - 2 * pad);
+        const x = (i) => pad + (i / (n - 1)) * (W - 2 * pad);
+        const y = (v) => pad + (1 - (v - min) / range) * (H - 2 * pad);
         let d = '';
         let move = true;
         values.forEach((v, i) => {
-            if (v == null) { move = true; return; }
+            if (v == null) {
+                move = true; return;
+            }
             d += `${move ? 'M' : 'L'}${x(i).toFixed(1)},${y(v).toFixed(1)} `;
             move = false;
         });
         const lastV = values[n - 1];
         const dot = lastV != null
-            ? `<circle class="ov-spark-dot" cx="${x(n - 1).toFixed(1)}" cy="${y(lastV).toFixed(1)}" r="2.4"/>` : '';
-        return `<svg class="ov-spark-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-hidden="true">` +
-            `<path class="ov-spark-line" d="${d.trim()}" vector-effect="non-scaling-stroke"/>${dot}</svg>`;
+            ? `<circle class="ov-spark-dot" cx="${x(n - 1).toFixed(1)}" cy="${y(lastV).toFixed(1)}" r="2.4"/>`
+            : '';
+        return `<svg class="ov-spark-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-hidden="true">`
+            + `<path class="ov-spark-line" d="${d.trim()}" vector-effect="non-scaling-stroke"/>${dot}</svg>`;
     }
 
     // --- Needs attention --------------------------------------------------------------------------------------------
@@ -259,12 +262,12 @@ class OverviewPage {
             el.innerHTML = '<p class="ov-attention-clear">All clear — nothing needs attention right now. ✅</p>';
             return;
         }
-        el.innerHTML = items.map(it =>
-            `<a class="ov-attention-item ov-attention--${it.sev}" href="${OverviewPage.#esc(it.href)}">` +
-            '<span class="ov-attention-dot" aria-hidden="true"></span>' +
-            `<span class="ov-attention-text">${it.html}</span>` +
-            `<span class="ov-attention-go">${OverviewPage.#esc(it.action)} →</span>` +
-            '</a>'
+        el.innerHTML = items.map((it) => `
+            <a class="ov-attention-item ov-attention--${it.sev}" href="${OverviewPage.#esc(it.href)}">
+                <span class="ov-attention-dot" aria-hidden="true"></span>
+                <span class="ov-attention-text">${it.html}</span>
+                <span class="ov-attention-go">${OverviewPage.#esc(it.action)} →</span>
+            </a>`,
         ).join('');
     }
 
@@ -282,20 +285,22 @@ class OverviewPage {
             el.innerHTML = '<p class="dq-empty">No recent activity recorded on this deployment.</p>';
             return;
         }
-        el.innerHTML = items.map(it => {
+        el.innerHTML = items.map((it) => {
             const thumb = it.thumbnail_url
                 ? `<img class="ov-recent-thumb" loading="lazy" alt="" src="${OverviewPage.#esc(it.thumbnail_url)}">`
                 : '<span class="ov-recent-thumb ov-recent-thumb--none" aria-hidden="true"></span>';
             const who = OverviewPage.#esc(it.username || 'someone');
             const when = OverviewPage.#esc(OverviewPage.#relativeTime(it.timestamp));
-            return '<div class="ov-recent-item">' +
-                thumb +
-                '<div class="ov-recent-body">' +
-                `<div class="ov-recent-text">${this.#recentText(it)}</div>` +
-                `<div class="ov-recent-meta">${who} · ${when}</div>` +
-                '</div></div>';
+            return [
+                '<div class="ov-recent-item">',
+                thumb,
+                '<div class="ov-recent-body">',
+                `<div class="ov-recent-text">${this.#recentText(it)}</div>`,
+                `<div class="ov-recent-meta">${who} · ${when}</div>`,
+                '</div></div>',
+            ].join('');
         }).join('');
-        el.querySelectorAll('img.ov-recent-thumb').forEach(img => {
+        el.querySelectorAll('img.ov-recent-thumb').forEach((img) => {
             img.addEventListener('error', () => img.classList.add('is-broken'), { once: true });
         });
     }
@@ -347,7 +352,9 @@ class OverviewPage {
 
     // --- Helpers ----------------------------------------------------------------------------------------------------
 
-    #typeName(machineName) { return OverviewPage.#DISPLAY[machineName] || machineName; }
+    #typeName(machineName) {
+        return OverviewPage.#DISPLAY[machineName] || machineName;
+    }
 
     /**
      * Sets a card's headline value and secondary line.
@@ -373,7 +380,9 @@ class OverviewPage {
     }
 
     /** Full number with thousands separators ("1,234,567"). */
-    #num(n) { return (n == null ? 0 : n).toLocaleString(); }
+    #num(n) {
+        return (n == null ? 0 : n).toLocaleString();
+    }
 
     /** Compact number for card headlines ("1.2M", "317k", "842"). */
     #compact(n) {
@@ -384,14 +393,24 @@ class OverviewPage {
     }
 
     /** Whole-mile string ("17", "1,240"). */
-    #mi(n) { return Math.round(n == null ? 0 : n).toLocaleString(); }
+    #mi(n) {
+        return Math.round(n == null ? 0 : n).toLocaleString();
+    }
 
     /** Percentage with no decimals ("47%"). */
-    #pct(fraction) { return `${Math.round((fraction || 0) * 100)}%`; }
+    #pct(fraction) {
+        return `${Math.round((fraction || 0) * 100)}%`;
+    }
 
     // Local-time date math for weekly bucketing.
-    #startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
-    #addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+    #startOfDay(d) {
+        const x = new Date(d); x.setHours(0, 0, 0, 0); return x;
+    }
+
+    #addDays(d, n) {
+        const x = new Date(d); x.setDate(x.getDate() + n); return x;
+    }
+
     #isoDay(d) {
         const m = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
@@ -399,8 +418,8 @@ class OverviewPage {
     }
 
     static #esc(s) {
-        return String(s).replace(/[&<>"']/g, c =>
-            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        return String(s).replace(/[&<>"']/g, (c) =>
+            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c]));
     }
 
     /** Compact relative time ("just now", "5m ago", "3h ago", "2d ago", or a date for older items). */

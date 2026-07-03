@@ -12,7 +12,7 @@ class ContributorsPage {
         { label: '70–80%', max: 80 },
         { label: '80–90%', max: 90 },
         { label: '90–95%', max: 95 },
-        { label: '95–100%', max: 100.0001 }
+        { label: '95–100%', max: 100.0001 },
     ];
 
     /** How many rows the Top labelers / Top validators leaderboards show. */
@@ -28,7 +28,7 @@ class ContributorsPage {
         Researcher: '#56b4e9',
         Administrator: '#009e73',
         Owner: '#cc79a7',
-        Anonymous: '#999999'
+        Anonymous: '#999999',
     };
 
     #userStatsUrl;
@@ -46,10 +46,10 @@ class ContributorsPage {
             // (which ranks + breaks down server-side, scoped to the top rows).
             const [statsResp, boardsResp] = await Promise.all([
                 this.#fetchJson(this.#userStatsUrl),
-                this.#fetchJson(this.#leaderboardsUrl)
+                this.#fetchJson(this.#leaderboardsUrl),
             ]);
             const users = (statsResp && statsResp.user_stats) || [];
-            const labelers = users.filter(u => (u.labels || 0) > 0);
+            const labelers = users.filter((u) => (u.labels || 0) > 0);
 
             this.#renderKpis(labelers);
             this.#renderQualitySplit(labelers);
@@ -74,7 +74,7 @@ class ContributorsPage {
     }
 
     #renderKpis(labelers) {
-        const highQ = labelers.filter(u => u.highQuality).length;
+        const highQ = labelers.filter((u) => u.highQuality).length;
         const totalLabels = labelers.reduce((s, u) => s + (u.labels || 0), 0);
         const labelsHighQ = labelers.reduce((s, u) => s + (u.highQuality ? (u.labels || 0) : 0), 0);
 
@@ -87,11 +87,11 @@ class ContributorsPage {
 
     /** Stacked bar of high- vs low-quality contributor counts. */
     #renderQualitySplit(labelers) {
-        const high = labelers.filter(u => u.highQuality).length;
+        const high = labelers.filter((u) => u.highQuality).length;
         const low = labelers.length - high;
         document.getElementById('contrib-quality').innerHTML = ContributorsPage.#stackedBar([
             { label: 'High-quality', value: high, cls: 'contrib-seg--high' },
-            { label: 'Low-quality', value: low, cls: 'contrib-seg--low' }
+            { label: 'Low-quality', value: low, cls: 'contrib-seg--low' },
         ]);
     }
 
@@ -101,7 +101,7 @@ class ContributorsPage {
         const low = labelers.reduce((s, u) => s + (!u.highQuality ? (u.labels || 0) : 0), 0);
         document.getElementById('contrib-label-source').innerHTML = ContributorsPage.#stackedBar([
             { label: 'From high-quality users', value: high, cls: 'contrib-seg--high' },
-            { label: 'From low-quality users', value: low, cls: 'contrib-seg--low' }
+            { label: 'From low-quality users', value: low, cls: 'contrib-seg--low' },
         ]);
     }
 
@@ -125,7 +125,7 @@ class ContributorsPage {
             { label: 'Label types', align: 'left' },
             { label: 'Severity', align: 'left' },
             { label: 'Accuracy', align: 'right' },
-            { label: 'Quality', align: 'right' }
+            { label: 'Quality', align: 'right' },
         ];
         const rows = labelers.map((u, i) => [
             `${i + 1}`,
@@ -135,7 +135,7 @@ class ContributorsPage {
             ContributorsPage.#labelTypeBar(u.label_type_counts || []),
             ContributorsPage.#severityDist(u.severity_counts || []),
             ContributorsPage.#accuracyCell(u.own_validated_agreed_pct, u.own_validated, factor),
-            ContributorsPage.#qualityBadge(u.high_quality)
+            ContributorsPage.#qualityBadge(u.high_quality),
         ]);
         el.innerHTML = ContributorsPage.#table(columns, rows);
     }
@@ -158,7 +158,7 @@ class ContributorsPage {
             { label: 'Role', align: 'left' },
             { label: 'Validations', align: 'right' },
             { label: 'Verdicts (agree / disagree / unsure)', align: 'left' },
-            { label: 'Agreement', align: 'right' }
+            { label: 'Agreement', align: 'right' },
         ];
         const rows = validators.map((u, i) => [
             `${i + 1}`,
@@ -166,7 +166,7 @@ class ContributorsPage {
             ContributorsPage.#esc(u.role || ''),
             (u.validations || 0).toLocaleString(),
             ContributorsPage.#verdictBar(u.agree || 0, u.disagree || 0, u.unsure || 0),
-            ContributorsPage.#accuracyCell(u.agreement_pct, u.validations, factor)
+            ContributorsPage.#accuracyCell(u.agreement_pct, u.validations, factor),
         ]);
         el.innerHTML = ContributorsPage.#table(columns, rows);
     }
@@ -183,7 +183,7 @@ class ContributorsPage {
 
     /** Histogram of contributors by the agreement rate of their own labels (only those with validated labels). */
     #renderAccuracy(labelers) {
-        const rated = labelers.filter(u => (u.ownValidated || 0) > 0);
+        const rated = labelers.filter((u) => (u.ownValidated || 0) > 0);
         // ownValidatedAgreedPct may be a fraction (0–1) or a percent (0–100); normalize from the observed max.
         const maxVal = rated.reduce((m, u) => Math.max(m, u.ownValidatedAgreedPct || 0), 0);
         const factor = maxVal <= 1 ? 100 : 1;
@@ -191,7 +191,7 @@ class ContributorsPage {
         const counts = ContributorsPage.#ACCURACY_BUCKETS.map(() => 0);
         for (const u of rated) {
             const acc = (u.ownValidatedAgreedPct || 0) * factor;
-            const idx = ContributorsPage.#ACCURACY_BUCKETS.findIndex(b => acc < b.max);
+            const idx = ContributorsPage.#ACCURACY_BUCKETS.findIndex((b) => acc < b.max);
             counts[idx >= 0 ? idx : counts.length - 1]++;
         }
         const max = Math.max(1, ...counts);
@@ -209,7 +209,7 @@ class ContributorsPage {
         const byRole = new Map();
         for (const u of labelers) byRole.set(u.role, (byRole.get(u.role) || 0) + 1);
         const rows = [...byRole.entries()].sort((a, b) => b[1] - a[1]);
-        const max = Math.max(1, ...rows.map(r => r[1]));
+        const max = Math.max(1, ...rows.map((r) => r[1]));
         document.getElementById('contrib-roles').innerHTML = rows.map(([role, count]) =>
             ContributorsPage.#barRow(role, count, max, 'var(--color-asphalt-500, #263238)')).join('');
     }
@@ -223,24 +223,28 @@ class ContributorsPage {
      */
     static #stackedBar(segments) {
         const total = segments.reduce((s, x) => s + x.value, 0) || 1;
-        const fill = s => s.color ? `;background:${s.color}` : '';
-        const bar = '<div class="dq-bar-track dq-stack">' + segments.map(s =>
-            `<div class="contrib-seg ${s.cls || ''}" style="width:${(s.value / total) * 100}%${fill(s)}"></div>`).join('') + '</div>';
-        const legend = '<div class="contrib-legend">' + segments.map(s =>
-            `<span class="contrib-legend-item"><span class="contrib-swatch ${s.cls || ''}"` +
-            `${s.color ? ` style="background:${s.color}"` : ''}></span>` +
-            `${ContributorsPage.#esc(s.label)} <b>${s.value.toLocaleString()}</b> ` +
-            `<span class="dq-sub">(${ContributorsPage.#pct(s.value / total)})</span></span>`).join('') + '</div>';
-        return bar + legend;
+        const fill = (s) => (s.color ? `;background:${s.color}` : '');
+        const segsHtml = segments.map((s) =>
+            `<div class="contrib-seg ${s.cls || ''}" style="width:${(s.value / total) * 100}%${fill(s)}"></div>`).join('');
+        const legendItems = segments.map((s) => `
+            <span class="contrib-legend-item">
+                <span class="contrib-swatch ${s.cls || ''}"${s.color ? ` style="background:${s.color}"` : ''}></span>
+                ${ContributorsPage.#esc(s.label)} <b>${s.value.toLocaleString()}</b>
+                <span class="dq-sub">(${ContributorsPage.#pct(s.value / total)})</span>
+            </span>`).join('');
+        return `<div class="dq-bar-track dq-stack">${segsHtml}</div><div class="contrib-legend">${legendItems}</div>`;
     }
 
     /** A label + horizontal bar + count row. */
     static #barRow(label, count, max, color) {
-        return '<div class="contrib-row">' +
-            `<span class="contrib-row-label">${ContributorsPage.#esc(label)}</span>` +
-            `<div class="dq-bar-track"><div class="dq-bar" style="width:${(count / max) * 100}%;background:${color}"></div></div>` +
-            `<span class="contrib-row-count">${count.toLocaleString()}</span>` +
-            '</div>';
+        return `
+            <div class="contrib-row">
+                <span class="contrib-row-label">${ContributorsPage.#esc(label)}</span>
+                <div class="dq-bar-track">
+                    <div class="dq-bar" style="width:${(count / max) * 100}%;background:${color}"></div>
+                </div>
+                <span class="contrib-row-count">${count.toLocaleString()}</span>
+            </div>`;
     }
 
     /**
@@ -252,11 +256,12 @@ class ContributorsPage {
      * @returns {string} Table HTML.
      */
     static #table(columns, rows) {
-        const cls = c => c.align === 'right' ? ' class="num"' : '';
-        const head = '<tr>' + columns.map(c =>
-            `<th scope="col"${cls(c)}>${ContributorsPage.#esc(c.label)}</th>`).join('') + '</tr>';
-        const body = rows.map(cells => '<tr>' + cells.map((cell, i) =>
-            `<td${cls(columns[i])}>${cell}</td>`).join('') + '</tr>').join('');
+        const cls = (c) => (c.align === 'right' ? ' class="num"' : '');
+        const headCells = columns.map((c) =>
+            `<th scope="col"${cls(c)}>${ContributorsPage.#esc(c.label)}</th>`).join('');
+        const head = `<tr>${headCells}</tr>`;
+        const body = rows.map((cells) =>
+            `<tr>${cells.map((cell, i) => `<td${cls(columns[i])}>${cell}</td>`).join('')}</tr>`).join('');
         return `<table class="contrib-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
     }
 
@@ -279,11 +284,11 @@ class ContributorsPage {
     static #labelTypeBar(typeCounts) {
         const total = typeCounts.reduce((s, t) => s + (t.count || 0), 0);
         if (!total) return '<span class="dq-sub">—</span>';
-        const segs = typeCounts.map(t => {
+        const segs = typeCounts.map((t) => {
             const pct = Math.round((t.count / total) * 100);
             const title = `${t.label_type}: ${(t.count || 0).toLocaleString()} (${pct}%)`;
-            return `<span class="contrib-typeseg" style="width:${(t.count / total) * 100}%;` +
-                `background:${ContributorsPage.#typeColor(t.label_type)}" title="${ContributorsPage.#esc(title)}"></span>`;
+            return `<span class="contrib-typeseg" style="width:${(t.count / total) * 100}%;`
+                + `background:${ContributorsPage.#typeColor(t.label_type)}" title="${ContributorsPage.#esc(title)}"></span>`;
         }).join('');
         return `<span class="contrib-typebar">${segs}</span>`;
     }
@@ -307,12 +312,12 @@ class ContributorsPage {
             byLevel.set(level, byLevel.get(level) + (s.count || 0));
         }
         const max = Math.max(1, ...byLevel.values());
-        const bars = [1, 2, 3].map(level => {
+        const bars = [1, 2, 3].map((level) => {
             const count = byLevel.get(level);
             const pct = Math.round((count / total) * 100);
             const title = `Severity ${level}: ${count.toLocaleString()} (${pct}%)`;
-            return `<span class="contrib-sevbar" title="${ContributorsPage.#esc(title)}">` +
-                `<span style="height:${Math.round((count / max) * 100)}%"></span></span>`;
+            return `<span class="contrib-sevbar" title="${ContributorsPage.#esc(title)}">`
+                + `<span style="height:${Math.round((count / max) * 100)}%"></span></span>`;
         }).join('');
         return `<span class="contrib-sevdist" aria-label="Severity distribution (1 to 3)">${bars}</span>`;
     }
@@ -329,15 +334,19 @@ class ContributorsPage {
     static #verdictBar(agree, disagree, unsure) {
         const total = agree + disagree + unsure;
         if (!total) return '<span class="dq-sub">—</span>';
-        const seg = (value, cls, label) => value
-            ? `<span class="contrib-verdictseg ${cls}" style="width:${(value / total) * 100}%" ` +
-              `title="${label}: ${value.toLocaleString()} (${Math.round((value / total) * 100)}%)"></span>`
-            : '';
-        const bar = '<span class="contrib-verdictbar">' +
-            seg(agree, 'is-agree', 'Agree') + seg(disagree, 'is-disagree', 'Disagree') +
-            seg(unsure, 'is-unsure', 'Unsure') + '</span>';
-        const pcts = `<span class="contrib-verdictpct">${Math.round(agree / total * 100)}% / ` +
-            `${Math.round(disagree / total * 100)}% / ${Math.round(unsure / total * 100)}%</span>`;
+        const seg = (value, cls, label) => (value
+            ? `<span class="contrib-verdictseg ${cls}" style="width:${(value / total) * 100}%" `
+            + `title="${label}: ${value.toLocaleString()} (${Math.round((value / total) * 100)}%)"></span>`
+            : '');
+        const bar = [
+            '<span class="contrib-verdictbar">',
+            seg(agree, 'is-agree', 'Agree'),
+            seg(disagree, 'is-disagree', 'Disagree'),
+            seg(unsure, 'is-unsure', 'Unsure'),
+            '</span>',
+        ].join('');
+        const pcts = `<span class="contrib-verdictpct">${Math.round(agree / total * 100)}% / `
+            + `${Math.round(disagree / total * 100)}% / ${Math.round(unsure / total * 100)}%</span>`;
         return `<span class="contrib-verdictwrap">${bar}${pcts}</span>`;
     }
 
@@ -374,10 +383,12 @@ class ContributorsPage {
         return maxVal <= 1 ? 100 : 1;
     }
 
-    static #pct(frac) { return `${Math.round((frac || 0) * 100)}%`; }
+    static #pct(frac) {
+        return `${Math.round((frac || 0) * 100)}%`;
+    }
 
     static #esc(s) {
-        return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     }
 
     #setText(id, text) {

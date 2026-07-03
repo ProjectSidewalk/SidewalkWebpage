@@ -42,7 +42,7 @@ class MapSidebarFilter {
 
     /** Binds click handlers to the severity toggle buttons. */
     #initSeverityToggles() {
-        this.#sidebar.querySelectorAll('.severity-button').forEach(btn => {
+        this.#sidebar.querySelectorAll('.severity-button').forEach((btn) => {
             btn.addEventListener('click', () => {
                 const severity = Number(btn.dataset.severity);
                 const newState = !this.#mapData.severities[severity];
@@ -62,7 +62,7 @@ class MapSidebarFilter {
 
     /** Binds click handlers to the label type checkboxes. */
     #initLabelTypeCheckboxes() {
-        this.#sidebar.querySelectorAll('input[data-filter-type="label-type"]').forEach(cb => {
+        this.#sidebar.querySelectorAll('input[data-filter-type="label-type"]').forEach((cb) => {
             cb.addEventListener('click', () => {
                 const labelType = cb.id.replace('-checkbox', '');
                 // Unchecking a label type clears its tag filters.
@@ -78,7 +78,7 @@ class MapSidebarFilter {
 
     /** Binds click handlers to the validation checkboxes. */
     #initValidationCheckboxes() {
-        this.#sidebar.querySelectorAll('input[data-filter-type="label-validations"]').forEach(cb => {
+        this.#sidebar.querySelectorAll('input[data-filter-type="label-validations"]').forEach((cb) => {
             cb.addEventListener('click', () => {
                 filterLabelLayers(cb, this.#map, this.#mapData, this.#highQualityFilter);
                 this.#updateDeselectAllButton('label-validations');
@@ -100,7 +100,7 @@ class MapSidebarFilter {
 
     /** Binds click handlers to the street checkboxes. */
     #initStreetCheckboxes() {
-        this.#sidebar.querySelectorAll('input[data-filter-type="streets"]').forEach(cb => {
+        this.#sidebar.querySelectorAll('input[data-filter-type="streets"]').forEach((cb) => {
             cb.addEventListener('click', () => {
                 filterStreetLayer(this.#map);
                 this.#updateDeselectAllButton('streets');
@@ -112,14 +112,14 @@ class MapSidebarFilter {
      * Initializes "Deselect all" / "Select all" toggle buttons for each section.
      */
     #initDeselectAllButtons() {
-        this.#sidebar.querySelectorAll('.map-sidebar__deselect-all').forEach(btn => {
+        this.#sidebar.querySelectorAll('.map-sidebar__deselect-all').forEach((btn) => {
             btn.addEventListener('click', () => {
                 const section = btn.dataset.section;
                 const newState = !this.#isAnyActive(section);
 
                 if (section === 'severity') {
                     // Match the look and state of all severity toggles to newState.
-                    this.#sidebar.querySelectorAll('.severity-button').forEach(toggle => {
+                    this.#sidebar.querySelectorAll('.severity-button').forEach((toggle) => {
                         const severity = Number(toggle.dataset.severity);
                         this.#mapData.severities[severity] = newState;
                         toggle.setAttribute('aria-pressed', String(newState));
@@ -130,7 +130,7 @@ class MapSidebarFilter {
                 } else if (section === 'label-type') {
                     const checkboxes = this.#sidebar.querySelectorAll(`input[data-filter-type="${section}"]`);
                     // Batch visibility changes for all label type layers.
-                    checkboxes.forEach(cb => {
+                    checkboxes.forEach((cb) => {
                         cb.checked = newState;
                         cb.classList.remove('checkbox--partial');
                         const labelType = cb.id.replace('-checkbox', '');
@@ -141,14 +141,16 @@ class MapSidebarFilter {
                 } else if (section === 'label-validations') {
                     const checkboxes = this.#sidebar.querySelectorAll(`input[data-filter-type="${section}"]`);
                     // Batch mapData updates, then apply filter once.
-                    checkboxes.forEach(cb => {
+                    checkboxes.forEach((cb) => {
                         cb.checked = newState;
                         this.#mapData[cb.id] = newState;
                     });
                     filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
                 } else if (section === 'streets') {
                     const checkboxes = this.#sidebar.querySelectorAll(`input[data-filter-type="${section}"]`);
-                    checkboxes.forEach(cb => { cb.checked = newState; });
+                    checkboxes.forEach((cb) => {
+                        cb.checked = newState;
+                    });
                     filterStreetLayer(this.#map);
                 }
 
@@ -164,10 +166,10 @@ class MapSidebarFilter {
     #isAnyActive(section) {
         if (section === 'severity') {
             const toggles = this.#sidebar.querySelectorAll('.severity-button');
-            return Array.from(toggles).some(t => t.getAttribute('aria-pressed') === 'true');
+            return Array.from(toggles).some((t) => t.getAttribute('aria-pressed') === 'true');
         }
         const checkboxes = this.#sidebar.querySelectorAll(`input[data-filter-type="${section}"]`);
-        return Array.from(checkboxes).some(cb => cb.checked);
+        return Array.from(checkboxes).some((cb) => cb.checked);
     }
 
     /**
@@ -181,7 +183,7 @@ class MapSidebarFilter {
 
     /** Binds click handlers to the tag expand/collapse chevron buttons. */
     #initTagToggles() {
-        this.#sidebar.querySelectorAll('.map-sidebar__tag-toggle').forEach(btn => {
+        this.#sidebar.querySelectorAll('.map-sidebar__tag-toggle').forEach((btn) => {
             btn.addEventListener('click', () => {
                 const expanded = btn.getAttribute('aria-expanded') === 'true';
                 const pillsContainer = btn.closest('.map-sidebar__item').querySelector('.map-sidebar__tag-pills');
@@ -198,7 +200,7 @@ class MapSidebarFilter {
 
     /** Binds click handlers to tag pills to toggle them and update map filters. */
     #initTagPills() {
-        this.#sidebar.querySelectorAll('.tag-pill').forEach(pill => {
+        this.#sidebar.querySelectorAll('.tag-pill').forEach((pill) => {
             pill.addEventListener('click', () => {
                 const tag = pill.dataset.tag;
                 const labelType = pill.dataset.labelType;
@@ -242,7 +244,7 @@ class MapSidebarFilter {
      */
     #clearTagsForLabelType(labelType) {
         this.#mapData.selectedTags[labelType]?.clear();
-        this.#sidebar.querySelectorAll(`.tag-pill[data-label-type="${labelType}"]`).forEach(pill => {
+        this.#sidebar.querySelectorAll(`.tag-pill[data-label-type="${labelType}"]`).forEach((pill) => {
             pill.classList.remove('tag-pill--active');
         });
         this.#updateCheckboxPartialState(labelType);
@@ -253,10 +255,10 @@ class MapSidebarFilter {
         for (const labelType of Object.keys(this.#mapData.selectedTags)) {
             this.#mapData.selectedTags[labelType].clear();
         }
-        this.#sidebar.querySelectorAll('.tag-pill--active').forEach(pill => {
+        this.#sidebar.querySelectorAll('.tag-pill--active').forEach((pill) => {
             pill.classList.remove('tag-pill--active');
         });
-        this.#sidebar.querySelectorAll('.checkbox--partial').forEach(cb => {
+        this.#sidebar.querySelectorAll('.checkbox--partial').forEach((cb) => {
             cb.classList.remove('checkbox--partial');
         });
     }
@@ -324,6 +326,8 @@ class MapSidebarFilter {
     /** Enables all disabled controls and removes the loading appearance. */
     #enableAllControls() {
         this.#sidebar.classList.remove('map-sidebar--loading');
-        this.#sidebar.querySelectorAll('input[disabled]').forEach(cb => { cb.disabled = false; });
+        this.#sidebar.querySelectorAll('input[disabled]').forEach((cb) => {
+            cb.disabled = false;
+        });
     }
 }

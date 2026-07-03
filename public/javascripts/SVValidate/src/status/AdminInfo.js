@@ -11,7 +11,7 @@ class AdminInfo {
      * @param {jQuery} adminUi.template A jQuery pointer to the template HTML for the admin info popover
      */
     constructor(adminUi) {
-        this.$templateAdminContent =  adminUi.template;
+        this.$templateAdminContent = adminUi.template;
         this.$adminInfoButton = adminUi.button;
 
         // Show the admin info button.
@@ -51,7 +51,7 @@ class AdminInfo {
             for (const prevVal of currentLabel.getAdminProperty('previousValidations')) {
                 const prevValText = i18next.t(`common:${util.camelToKebab(prevVal.validation)}`);
                 newAdminContent.append(
-                    `<p class="prev-val"><a href="/admin/user/${prevVal.username}" target="_blank">${prevVal.username}</a>: ${prevValText}</p>`
+                    `<p class="prev-val"><a href="/admin/user/${prevVal.username}" target="_blank">${prevVal.username}</a>: ${prevValText}</p>`,
                 );
             }
         }
@@ -64,8 +64,12 @@ class AdminInfo {
             html: true,
             container: 'body',
             trigger: 'click',
-            template: '<div class="popover admin-info-popover" role="tooltip"><div class="arrow"></div>' +
-                '<h3 class="popover-title"></h3><div class="popover-content"></div></div>'
+            template: `
+                <div class="popover admin-info-popover" role="tooltip">
+                    <div class="arrow"></div>
+                    <h3 class="popover-title"></h3>
+                    <div class="popover-content"></div>
+                </div>`,
         });
     }
 }

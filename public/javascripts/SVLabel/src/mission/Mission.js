@@ -9,8 +9,9 @@ class Mission {
         isComplete: false,
         distance: null,
         distanceProgress: null,
-        skipped: false
+        skipped: false,
     };
+
     #tasksForTheMission = [];
 
     /**
@@ -78,12 +79,11 @@ class Mission {
         if ('taskContainer' in svl
             && this.getProperty('missionType') !== 'auditOnboarding'
             && svl.missionContainer.getTasksMissionsOffset() !== null) {
-
             let currentMissionCompletedDistance;
             if (this.isComplete()) {
                 currentMissionCompletedDistance = this.getDistance('meters');
             } else {
-                const taskDistance = util.math.kmsToMeters(svl.taskContainer.getCompletedTaskDistance({units: 'kilometers'}));
+                const taskDistance = util.math.kmsToMeters(svl.taskContainer.getCompletedTaskDistance({ units: 'kilometers' }));
                 const offset = svl.missionContainer.getTasksMissionsOffset() || 0;
 
                 const missionDistance = svl.missionContainer.getCompletedMissionDistance();
@@ -151,12 +151,16 @@ class Mission {
      * @param {string} [unit='meters'] One of 'meters', 'miles', 'feet', 'kilometers', or 'meters'
      */
     getDistance = (unit = 'meters') => {
-        if (unit === 'miles')           return util.math.metersToMiles(this.getProperty('distance'));
-        else if (unit === 'feet')       return util.math.metersToFeet(this.getProperty('distance'));
-        else if (unit === 'kilometers') return util.math.metersToKms(this.getProperty('distance'));
-        else if (unit === 'meters')     return this.getProperty('distance');
-        else {
-            console.error('Unit must be miles, feet, kilometers, or meters. Given: ' + unit);
+        if (unit === 'miles') {
+            return util.math.metersToMiles(this.getProperty('distance'));
+        } else if (unit === 'feet') {
+            return util.math.metersToFeet(this.getProperty('distance'));
+        } else if (unit === 'kilometers') {
+            return util.math.metersToKms(this.getProperty('distance'));
+        } else if (unit === 'meters') {
+            return this.getProperty('distance');
+        } else {
+            console.error(`Unit must be miles, feet, kilometers, or meters. Given: ${unit}`);
             return this.getProperty('distance');
         }
     };

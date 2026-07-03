@@ -117,7 +117,9 @@ class LabelContainer {
 
         // Render the new pano and the label on it, updating the surrounding UI given the new label's info.
         this.#currLabel.setProperty('startTimestamp', new Date());
-        if (this.#currLabelIndex > 0) { svv.undoValidation.enableUndo(); }
+        if (this.#currLabelIndex > 0) {
+            svv.undoValidation.enableUndo();
+        }
         await svv.panoManager.setPanorama(this.#currLabel.getAuditProperty('panoId'), this.#currLabel.getAuditProperty('backupImage'));
         svv.labelDescriptionBox.setDescription(this.#currLabel);
         svv.validationMenu.resetMenu(this.#currLabel);
@@ -129,9 +131,8 @@ class LabelContainer {
         svv.ui.validationMenu.holder.removeClass('validate-disabled');
         svv.ui.viewer.holder.removeClass('validate-disabled');
         svv.ui.holder.css('cursor', '');
-        svv.ui.viewer.controlLayer.css('cursor', 'url(/assets/images/icons/openhand.cur?' + Date.now() + ') 4 4, move');
+        svv.ui.viewer.controlLayer.css('cursor', `url(/assets/images/icons/openhand.cur?${Date.now()}) 4 4, move`);
         if (svv.keyboard) svv.keyboard.enableKeyboard();
-
     }
 
     /**
@@ -139,7 +140,7 @@ class LabelContainer {
      * @param {Array} labelList List of label metadata objects.
      */
     resetLabelList(labelList) {
-        this.#labels = labelList.map(key => new Label(key));
+        this.#labels = labelList.map((key) => new Label(key));
         this.#currLabelIndex = 0;
         this.#currLabel = this.#labels[this.#currLabelIndex];
         this.#labelsUpdateCallback();
@@ -211,8 +212,8 @@ class LabelContainer {
             zoom: labelMetadata.zoom,
             source: svv.form.getSource(),
             undone: false,
-            redone: redone,
-            viewer_type: svv.panoManager.getActiveViewerName()
+            redone,
+            viewer_type: svv.panoManager.getActiveViewerName(),
         };
         this.#labelsToSubmit.push(data);
         this.#lastLabelFormData = data;

@@ -2,7 +2,6 @@
  * Handles the Google Maps minimap in the bottom-right corner of the UI.
  */
 class Minimap {
-
     // Zoom bounds for the minimap. ObservedArea's REFERENCE_ZOOM must match DEFAULT.
     /** @type {number} */
     static #MIN_ZOOM = 16;
@@ -45,7 +44,7 @@ class Minimap {
             maxZoom: Minimap.#MAX_ZOOM,
             minZoom: Minimap.#MIN_ZOOM,
             renderingType: RenderingType.RASTER,
-            zoom: Minimap.#DEFAULT_ZOOM
+            zoom: Minimap.#DEFAULT_ZOOM,
         };
         this.#map = new Map(document.getElementById('minimap'), mapOptions);
 
@@ -102,8 +101,8 @@ class Minimap {
      */
     blinkMinimap() {
         this.stopBlinkingMinimap();
-        this.#minimapPaneBlinkInterval = window.setInterval(function () {
-            svl.ui.minimap.overlay.toggleClass("highlight-50");
+        this.#minimapPaneBlinkInterval = window.setInterval(() => {
+            svl.ui.minimap.overlay.toggleClass('highlight-50');
         }, 500);
     }
 
@@ -112,7 +111,7 @@ class Minimap {
      */
     stopBlinkingMinimap() {
         window.clearInterval(this.#minimapPaneBlinkInterval);
-        svl.ui.minimap.overlay.removeClass("highlight-50");
+        svl.ui.minimap.overlay.removeClass('highlight-50');
     }
 
     /**

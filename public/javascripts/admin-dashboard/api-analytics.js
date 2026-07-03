@@ -49,7 +49,7 @@ class ApiAnalyticsPage {
         const extCalls = ext.calls || 0;
         const docsCalls = docs.calls || 0;
         const total = d.total_calls || 0;
-        const busiest = (d.endpoints || []).find(e => (e.external || 0) > 0);
+        const busiest = (d.endpoints || []).find((e) => (e.external || 0) > 0);
 
         this.#setText('kpi-external-calls', extCalls.toLocaleString());
         this.#setText('kpi-external-calls-note', `+ ${docsCalls.toLocaleString()} from docs`);
@@ -87,15 +87,15 @@ class ApiAnalyticsPage {
             el.innerHTML = `<p class="dq-empty">${this.#trendEmptyMsg(d.total_calls || 0, d.last_api_call)}</p>`;
             return;
         }
-        const at = k => byBucket.get(k) || { ext: 0, docs: 0 };
-        const labels = keys.map(k => monthly ? ApiAnalyticsPage.#monthLabel(k) : ApiAnalyticsPage.#dayLabel(k));
+        const at = (k) => byBucket.get(k) || { ext: 0, docs: 0 };
+        const labels = keys.map((k) => (monthly ? ApiAnalyticsPage.#monthLabel(k) : ApiAnalyticsPage.#dayLabel(k)));
         const series = [
-            { name: 'External', key: 'external', values: keys.map(k => at(k).ext) },
-            { name: 'Docs', key: 'apidocs', values: keys.map(k => at(k).docs) }
+            { name: 'External', key: 'external', values: keys.map((k) => at(k).ext) },
+            { name: 'Docs', key: 'apidocs', values: keys.map((k) => at(k).docs) },
         ];
-        const fmt = v => `${Math.round(v).toLocaleString()} calls`;
+        const fmt = (v) => `${Math.round(v).toLocaleString()} calls`;
         MiniLineChart.renderInto(el, labels, series, {
-            tickFormat: v => Math.round(v).toLocaleString(), valueFormat: fmt, ariaLabel: 'API call volume over time'
+            tickFormat: (v) => Math.round(v).toLocaleString(), valueFormat: fmt, ariaLabel: 'API call volume over time',
         });
     }
 
@@ -115,10 +115,12 @@ class ApiAnalyticsPage {
         if (monthly) {
             const keys = [];
             let [y, mo] = firstDataKey.split('-').map(Number);
-            const ey = today.getFullYear(), em = today.getMonth() + 1;
+            const ey = today.getFullYear(); const em = today.getMonth() + 1;
             while (y < ey || (y === ey && mo <= em)) {
                 keys.push(`${y}-${String(mo).padStart(2, '0')}`);
-                if (++mo > 12) { mo = 1; y++; }
+                if (++mo > 12) {
+                    mo = 1; y++;
+                }
             }
             return keys;
         }
@@ -152,8 +154,8 @@ class ApiAnalyticsPage {
             if (!lastApiCall) return 'No v3 API calls have been recorded yet.';
             const ago = ApiAnalyticsPage.#daysAgo(lastApiCall);
             const agoText = ago == null ? '' : ` (${ago} ${ago === 1 ? 'day' : 'days'} ago)`;
-            return `The selected range is ${range}, and there's been no API activity in it — the last call was on ` +
-                `${ApiAnalyticsPage.#fmtDate(lastApiCall)}${agoText}. Try a longer range.`;
+            return `The selected range is ${range}, and there's been no API activity in it — the last call was on `
+                + `${ApiAnalyticsPage.#fmtDate(lastApiCall)}${agoText}. Try a longer range.`;
         }
         // total > 0 but a single bucket: all activity lands in one month (only reachable for the All time range), so
         // there's no second point to draw a line to yet.
@@ -181,7 +183,7 @@ class ApiAnalyticsPage {
         if (this.#days > 0) {
             start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (this.#days - 1));
         } else {
-            const dates = (d.daily || []).map(r => String(r.date)).sort();
+            const dates = (d.daily || []).map((r) => String(r.date)).sort();
             if (!dates.length) return 'all time (no API activity yet)';
             const [y, m, day] = dates[0].split('-').map(Number);
             start = new Date(y, m - 1, day);
@@ -233,20 +235,20 @@ class ApiAnalyticsPage {
      * toggle so rows don't reshuffle when it's flipped.
      */
     #renderEndpoints(d) {
-        const eps = (d.endpoints || []).filter(e => (e.external || 0) + (e.api_docs || 0) > 0);
+        const eps = (d.endpoints || []).filter((e) => (e.external || 0) + (e.api_docs || 0) > 0);
         const el = document.getElementById('api-endpoints');
         el.innerHTML = eps.length === 0
             ? '<p class="dq-empty">No API calls recorded for this range.</p>'
-            : this.#bars(eps, e => ApiAnalyticsPage.#short(e.endpoint), this.#showDocs.endpoints);
+            : this.#bars(eps, (e) => ApiAnalyticsPage.#short(e.endpoint), this.#showDocs.endpoints);
     }
 
     /** Requested output formats, ranked by external calls; docs traffic stacks on when this chart's switch is on. */
     #renderFormats(d) {
-        const fmts = (d.formats || []).filter(f => (f.external || 0) + (f.api_docs || 0) > 0);
+        const fmts = (d.formats || []).filter((f) => (f.external || 0) + (f.api_docs || 0) > 0);
         const el = document.getElementById('api-formats');
         el.innerHTML = fmts.length === 0
             ? '<p class="dq-empty">No format data for this range.</p>'
-            : this.#bars(fmts, f => f.format, this.#showDocs.formats);
+            : this.#bars(fmts, (f) => f.format, this.#showDocs.formats);
     }
 
     /**
@@ -259,9 +261,9 @@ class ApiAnalyticsPage {
      * @returns {string} Concatenated row HTML.
      */
     #bars(items, labelOf, showDocs) {
-        const max = Math.max(1, ...items.map(i =>
-            showDocs ? (i.external || 0) + (i.api_docs || 0) : (i.external || 0)));
-        return items.map(i => {
+        const max = Math.max(1, ...items.map((i) =>
+            (showDocs ? (i.external || 0) + (i.api_docs || 0) : (i.external || 0))));
+        return items.map((i) => {
             const ext = (i.external || 0).toLocaleString();
             // The docs count only earns its place in the value text once this chart's "docs traffic" switch is on.
             const value = showDocs
@@ -284,29 +286,33 @@ class ApiAnalyticsPage {
      * @returns {string} Row HTML.
      */
     static #row(label, extVal, docsVal, max, showDocs, valueHtml) {
-        const w = v => `${Math.max(0, Math.min(1, v / max)) * 100}%`;
+        const w = (v) => `${Math.max(0, Math.min(1, v / max)) * 100}%`;
         const track = showDocs
-            ? `<div class="dq-bar-track dq-stack">` +
-                `<div class="api-bar-external" style="width:${w(extVal)}"></div>` +
-                `<div class="api-bar-docs" style="width:${w(docsVal)}"></div>` +
-              `</div>`
+            ? `<div class="dq-bar-track dq-stack">`
+            + `<div class="api-bar-external" style="width:${w(extVal)}"></div>`
+            + `<div class="api-bar-docs" style="width:${w(docsVal)}"></div>`
+            + `</div>`
             : `<div class="dq-bar-track"><div class="dq-bar" style="width:${w(extVal)};background:var(--api-external, #2171b5)"></div></div>`;
-        return '<div class="api-ep-row">' +
-            `<span class="api-ep-label" title="${ApiAnalyticsPage.#esc(label)}">${ApiAnalyticsPage.#esc(label)}</span>` +
-            track +
-            `<span class="api-ep-value">${valueHtml}</span>` +
-            '</div>';
+        return [
+            '<div class="api-ep-row">',
+            `<span class="api-ep-label" title="${ApiAnalyticsPage.#esc(label)}">${ApiAnalyticsPage.#esc(label)}</span>`,
+            track,
+            `<span class="api-ep-value">${valueHtml}</span>`,
+            '</div>',
+        ].join('');
     }
 
     /** Strips the /v3/api/ prefix for a compact endpoint label. */
-    static #short(endpoint) { return String(endpoint).replace('/v3/api/', ''); }
+    static #short(endpoint) {
+        return String(endpoint).replace('/v3/api/', '');
+    }
 
     #wireRange() {
         const buttons = document.querySelectorAll('.api-range-btn');
-        buttons.forEach(btn => {
+        buttons.forEach((btn) => {
             btn.addEventListener('click', () => {
                 if (btn.classList.contains('active')) return;
-                buttons.forEach(b => {
+                buttons.forEach((b) => {
                     const isTarget = b === btn;
                     b.classList.toggle('active', isTarget);
                     b.setAttribute('aria-pressed', String(isTarget));
@@ -323,7 +329,7 @@ class ApiAnalyticsPage {
      * data (no refetch) and reveals its colour legend.
      */
     #wireDocsToggle() {
-        document.querySelectorAll('.api-docs-toggle').forEach(input => {
+        document.querySelectorAll('.api-docs-toggle').forEach((input) => {
             const chart = input.dataset.chart;
             const legend = input.closest('.api-docs-control').querySelector('.api-docs-legend');
             input.addEventListener('change', () => {
@@ -336,10 +342,12 @@ class ApiAnalyticsPage {
         });
     }
 
-    static #pct(frac) { return `${Math.round((frac || 0) * 100)}%`; }
+    static #pct(frac) {
+        return `${Math.round((frac || 0) * 100)}%`;
+    }
 
     static #esc(s) {
-        return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     }
 
     #setText(id, text) {

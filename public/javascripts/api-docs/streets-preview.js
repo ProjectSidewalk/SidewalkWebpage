@@ -11,33 +11,33 @@
  * @requires Leaflet.js library
  */
 
-(function() {
+(function () {
     // Configuration options - can be overridden by calling setup().
     let config = {
-        apiBaseUrl: "/v3/api",
-        mainContainerId: "streets-preview",
+        apiBaseUrl: '/v3/api',
+        mainContainerId: 'streets-preview',
         mapHeight: 400,
-        streetsEndpoint: "/streets",
-        regionWithMostLabelsEndpoint: "/regionWithMostLabels"
+        streetsEndpoint: '/streets',
+        regionWithMostLabelsEndpoint: '/regionWithMostLabels',
     };
 
     // Color endpoints for continuous scaling (dark background optimized).
     const userCountColorEndpoints = {
         unaudited: '#3d3d3d',  // Dark gray for unaudited streets.
         minUsers: '#472c7a',   // Dark purple for minimum users.
-        maxUsers: '#ffffff'    // White for maximum users.
+        maxUsers: '#ffffff',    // White for maximum users.
     };
 
     const labelCountColorEndpoints = {
         noLabels: '#3d3d3d',   // Dark gray for no labels.
         minLabels: '#440154',  // Dark purple for minimum labels.
-        maxLabels: '#f0f921'   // Bright yellow for maximum labels.
+        maxLabels: '#f0f921',   // Bright yellow for maximum labels.
     };
 
     const auditAgeColorEndpoints = {
         neverAudited: 'lightgray', // Light gray for never audited.
         newest: '#44ff44',       // Bright green for newest audits.
-        oldest: '#ff4444'        // Bright red for oldest audits.
+        oldest: '#ff4444',        // Bright red for oldest audits.
     };
 
     /**
@@ -51,12 +51,12 @@
         const c1 = {
             r: parseInt(color1.slice(1, 3), 16),
             g: parseInt(color1.slice(3, 5), 16),
-            b: parseInt(color1.slice(5, 7), 16)
+            b: parseInt(color1.slice(5, 7), 16),
         };
         const c2 = {
             r: parseInt(color2.slice(1, 3), 16),
             g: parseInt(color2.slice(3, 5), 16),
-            b: parseInt(color2.slice(5, 7), 16)
+            b: parseInt(color2.slice(5, 7), 16),
         };
 
         const r = Math.round(c1.r + (c2.r - c1.r) * factor);
@@ -73,7 +73,7 @@
          * @param {object} options - Configuration options
          * @returns {object} The StreetsPreview object for chaining
          */
-        setup: function(options) {
+        setup(options) {
             config = Object.assign(config, options);
             return this;
         },
@@ -82,12 +82,12 @@
          * Initialize all three streets preview maps.
          * @returns {Promise} A promise that resolves when all previews are rendered
          */
-        init: function() {
+        init() {
             const mainContainer = document.getElementById(config.mainContainerId);
 
             if (!mainContainer) {
                 console.error('Main container element not found.');
-                return Promise.reject(new Error("Main container element not found"));
+                return Promise.reject(new Error('Main container element not found'));
             }
 
             // Create the HTML structure for all three visualizations.
@@ -106,28 +106,28 @@
             // Initialize with loading messages.
             const loadingMessage1 = document.createElement('div');
             loadingMessage1.className = 'loading-message';
-            loadingMessage1.textContent = "Loading user count data...";
+            loadingMessage1.textContent = 'Loading user count data...';
             userCountContainer.appendChild(loadingMessage1);
 
             const loadingMessage2 = document.createElement('div');
             loadingMessage2.className = 'loading-message';
-            loadingMessage2.textContent = "Loading audit age data...";
+            loadingMessage2.textContent = 'Loading audit age data...';
             auditAgeContainer.appendChild(loadingMessage2);
 
             const loadingMessage3 = document.createElement('div');
             loadingMessage3.className = 'loading-message';
-            loadingMessage3.textContent = "Loading label count data...";
+            loadingMessage3.textContent = 'Loading label count data...';
             labelCountContainer.appendChild(loadingMessage3);
 
             // First get region with most labels, then load streets for all maps.
             return this.fetchRegionWithMostLabels()
-                .then(regionData => {
+                .then((regionData) => {
                     return this.fetchStreetsByRegionId(regionData.region_id)
-                        .then(streets => {
+                        .then((streets) => {
                             // Clear loading messages.
-                            userCountContainer.innerHTML = "";
-                            auditAgeContainer.innerHTML = "";
-                            labelCountContainer.innerHTML = "";
+                            userCountContainer.innerHTML = '';
+                            auditAgeContainer.innerHTML = '';
+                            labelCountContainer.innerHTML = '';
 
                             // Create all three maps.
                             const userCountMap = this.createMap(userCountContainer, regionData, 'user-count');
@@ -142,12 +142,12 @@
                             return Promise.resolve();
                         });
                 })
-                .catch(error => {
+                .catch((error) => {
                     const errorMessage = `<div class="message message-error">Failed to load streets: ${error.message}</div>`;
                     userCountContainer.innerHTML = errorMessage;
                     auditAgeContainer.innerHTML = errorMessage;
                     labelCountContainer.innerHTML = errorMessage;
-                    console.error("Streets preview error:", error);
+                    console.error('Streets preview error:', error);
                     return Promise.reject(error);
                 });
         },
@@ -156,7 +156,7 @@
          * Creates the structure for all three visualization sections with headings, descriptions, and containers.
          * @param {HTMLElement} mainContainer - The main container element to append visualization sections to
          */
-        createVisualizationStructure: function(mainContainer) {
+        createVisualizationStructure(mainContainer) {
             // Clear existing content.
             mainContainer.innerHTML = '';
 
@@ -230,17 +230,17 @@
          * Fetch region with the most labels.
          * @returns {Promise} A promise that resolves with the region data
          */
-        fetchRegionWithMostLabels: function() {
+        fetchRegionWithMostLabels() {
             return fetch(`${config.apiBaseUrl}${config.regionWithMostLabelsEndpoint}?source=apiDocs`)
-                .then(response => {
+                .then((response) => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
                     return response.json();
                 })
-                .catch(error => {
-                    console.error("Error fetching region with most labels:", error);
-                    throw new Error("Failed to fetch region with most labels");
+                .catch((error) => {
+                    console.error('Error fetching region with most labels:', error);
+                    throw new Error('Failed to fetch region with most labels');
                 });
         },
 
@@ -249,27 +249,27 @@
          * @param {object} region - Region data with geometry
          * @returns {Array} [lat, lon] center coordinates
          */
-        getCenterFromRegion: function(region) {
+        getCenterFromRegion(region) {
             if (!region || !region.geometry) {
-                throw new Error("Invalid region data");
+                throw new Error('Invalid region data');
             }
 
             let allCoords = [];
 
-            if (region.geometry.type === "MultiPolygon") {
-                region.geometry.coordinates.forEach(polygon => {
-                    polygon.forEach(ring => {
+            if (region.geometry.type === 'MultiPolygon') {
+                region.geometry.coordinates.forEach((polygon) => {
+                    polygon.forEach((ring) => {
                         allCoords = allCoords.concat(ring);
                     });
                 });
-            } else if (region.geometry.type === "Polygon") {
-                region.geometry.coordinates.forEach(ring => {
+            } else if (region.geometry.type === 'Polygon') {
+                region.geometry.coordinates.forEach((ring) => {
                     allCoords = allCoords.concat(ring);
                 });
             }
 
-            const lons = allCoords.map(coord => coord[0]);
-            const lats = allCoords.map(coord => coord[1]);
+            const lons = allCoords.map((coord) => coord[0]);
+            const lats = allCoords.map((coord) => coord[1]);
 
             const minLng = Math.min(...lons);
             const minLat = Math.min(...lats);
@@ -286,10 +286,10 @@
          * @param {number} regionId - ID of the region
          * @returns {Promise} A promise that resolves with the streets data
          */
-        fetchStreetsByRegionId: function(regionId) {
+        fetchStreetsByRegionId(regionId) {
             const url = `${config.apiBaseUrl}${config.streetsEndpoint}?regionId=${regionId}&source=apiDocs`;
             return fetch(url)
-                .then(response => {
+                .then((response) => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
@@ -304,7 +304,7 @@
          * @param {string} mapType - Type identifier for the map
          * @returns {object} The Leaflet map object
          */
-        createMap: function(container, regionData, mapType) {
+        createMap(container, regionData, mapType) {
             const mapElement = document.createElement('div');
             mapElement.id = `streets-${mapType}-map`;
             mapElement.className = 'map-container';
@@ -318,7 +318,7 @@
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
                 subdomains: 'abcd',
-                maxZoom: 19
+                maxZoom: 19,
             }).addTo(map);
 
             // Add region outline.
@@ -329,16 +329,16 @@
                         weight: 1,
                         opacity: 0.6,
                         fillOpacity: 0.05,
-                        fillColor: '#ffffff'
-                    }
+                        fillColor: '#ffffff',
+                    },
                 }).addTo(map);
 
                 map.fitBounds(regionLayer.getBounds(), { padding: [10, 10] });
             }
 
             // Add region title.
-            const regionTitle = L.control({position: 'topright'});
-            regionTitle.onAdd = function() {
+            const regionTitle = L.control({ position: 'topright' });
+            regionTitle.onAdd = function () {
                 const div = L.DomUtil.create('div', 'region-title');
                 div.innerHTML = `<strong>Region:</strong> ${regionData.name || 'Sample Region'}`;
                 return div;
@@ -355,7 +355,7 @@
          * @param {number} factor - Interpolation factor (0-1)
          * @returns {string} Interpolated color in hex format
          */
-        interpolateColor: interpolateColor,
+        interpolateColor,
 
         /**
          * Get color for street based on user count with truly continuous scaling.
@@ -363,7 +363,7 @@
          * @param {number} maxUserCount - Maximum user count in the dataset
          * @returns {string} Hex color code
          */
-        getUserCountColor: function(userCount, maxUserCount) {
+        getUserCountColor(userCount, maxUserCount) {
             if (userCount === 0) {
                 return userCountColorEndpoints.unaudited; // Special color for unaudited.
             }
@@ -377,7 +377,7 @@
             return this.interpolateColor(
                 userCountColorEndpoints.minUsers,
                 userCountColorEndpoints.maxUsers,
-                scaledValue
+                scaledValue,
             );
         },
 
@@ -387,7 +387,7 @@
          * @param {number} maxLabelCount - Maximum label count in the dataset
          * @returns {string} Hex color code
          */
-        getLabelCountColor: function(labelCount, maxLabelCount) {
+        getLabelCountColor(labelCount, maxLabelCount) {
             if (labelCount === 0) {
                 return labelCountColorEndpoints.noLabels; // Special color for no labels.
             }
@@ -401,7 +401,7 @@
             return this.interpolateColor(
                 labelCountColorEndpoints.minLabels,
                 labelCountColorEndpoints.maxLabels,
-                scaledValue
+                scaledValue,
             );
         },
 
@@ -412,7 +412,7 @@
          * @param {number} maxDays - Maximum days in the dataset
          * @returns {string} Hex color code
          */
-        getAuditAgeColor: function(lastLabelDate, minDays, maxDays) {
+        getAuditAgeColor(lastLabelDate, minDays, maxDays) {
             if (!lastLabelDate) {
                 return auditAgeColorEndpoints.neverAudited; // Special color for never audited
             }
@@ -426,7 +426,7 @@
                 return this.interpolateColor(
                     auditAgeColorEndpoints.newest,
                     auditAgeColorEndpoints.oldest,
-                    0.5
+                    0.5,
                 );
             }
 
@@ -435,7 +435,7 @@
             return this.interpolateColor(
                 auditAgeColorEndpoints.newest,
                 auditAgeColorEndpoints.oldest,
-                scaledValue
+                scaledValue,
             );
         },
 
@@ -449,7 +449,7 @@
          * formatAuditAge('2023-05-19T10:00:00Z') // "1 year ago"
          * formatAuditAge(null) // "Never audited"
          */
-        formatAuditAge: function(lastLabelDate) {
+        formatAuditAge(lastLabelDate) {
             if (!lastLabelDate) {
                 return 'Never audited';
             }
@@ -480,7 +480,7 @@
          * @param {number|null} osmWayId - OpenStreetMap way ID
          * @returns {string} HTML link or plain text
          */
-        createOsmLink: function(osmWayId) {
+        createOsmLink(osmWayId) {
             if (!osmWayId) {
                 return 'N/A';
             }
@@ -493,7 +493,7 @@
          * @param {object} streets - GeoJSON data containing the street segments
          * @param {object} regionData - Data about the region being displayed
          */
-        displayUserCountMap: function(map, streets, regionData) {
+        displayUserCountMap(map, streets, regionData) {
             if (!streets.features || streets.features.length === 0) {
                 this.addNoStreetsMessage(map);
                 return;
@@ -507,9 +507,9 @@
 
             // Track statistics and calculate data range.
             const stats = { unaudited: 0, audited: 0, totalLabels: 0, wayTypes: new Set() };
-            const userCounts = streets.features.map(f => f.properties.user_count || 0);
+            const userCounts = streets.features.map((f) => f.properties.user_count || 0);
             const maxUserCount = Math.max(...userCounts);
-            const minUserCount = Math.min(...userCounts.filter(c => c > 0)) || 1;
+            const minUserCount = Math.min(...userCounts.filter((c) => c > 0)) || 1;
             stats.maxUserCount = maxUserCount;
             stats.minUserCount = minUserCount;
 
@@ -536,10 +536,10 @@
                     const weight = Math.max(2, Math.min(6, 2 + userCount));
 
                     return {
-                        color: color,
-                        weight: weight,
+                        color,
+                        weight,
                         opacity: 0.8,
-                        fillOpacity: 0
+                        fillOpacity: 0,
                     };
                 },
                 onEachFeature: (feature, layer) => {
@@ -547,15 +547,18 @@
                     const userCount = props.user_count || 0;
                     const labelCount = props.label_count || 0;
                     const wayType = props.way_type || 'Unknown';
-                    const firstLabelDate = props.first_label_date ?
-                        new Date(props.first_label_date).toLocaleDateString() : 'No labels';
-                    const lastLabelDate = props.last_label_date ?
-                        new Date(props.last_label_date).toLocaleDateString() : 'No labels';
+                    const firstLabelDate = props.first_label_date
+                        ? new Date(props.first_label_date).toLocaleDateString()
+                        : 'No labels';
+                    const lastLabelDate = props.last_label_date
+                        ? new Date(props.last_label_date).toLocaleDateString()
+                        : 'No labels';
                     const auditAge = this.formatAuditAge(props.last_label_date);
                     const osmLink = this.createOsmLink(props.osm_way_id);
 
-                    const auditStatus = userCount === 0 ? 'Unaudited' :
-                        `Labeled by ${userCount} user${userCount > 1 ? 's' : ''}`;
+                    const auditStatus = userCount === 0
+                        ? 'Unaudited'
+                        : `Labeled by ${userCount} user${userCount > 1 ? 's' : ''}`;
 
                     layer.bindPopup(`
             <div class="street-popup">
@@ -575,20 +578,20 @@
           `);
 
                     // Add hover effects.
-                    layer.on('mouseover', function() {
+                    layer.on('mouseover', function () {
                         this.setStyle({
                             weight: this.options.weight + 2,
-                            opacity: 1
+                            opacity: 1,
                         });
                     });
 
-                    layer.on('mouseout', function() {
+                    layer.on('mouseout', function () {
                         this.setStyle({
                             weight: this.options.weight - 2,
-                            opacity: this.options.opacity
+                            opacity: this.options.opacity,
                         });
                     });
-                }
+                },
             }).addTo(map);
 
             // Create continuous legend for user count.
@@ -604,7 +607,7 @@
          * @param {object} streets - GeoJSON data containing the street segments
          * @param {object} regionData - Data about the region being displayed
          */
-        displayAuditAgeMap: function(map, streets, regionData) {
+        displayAuditAgeMap(map, streets, regionData) {
             if (!streets.features || streets.features.length === 0) {
                 this.addNoStreetsMessage(map);
                 return;
@@ -623,7 +626,7 @@
 
             // Calculate min and max days for audited streets.
             const auditedDays = [];
-            streets.features.forEach(feature => {
+            streets.features.forEach((feature) => {
                 const props = feature.properties;
                 if (props.last_label_date) {
                     const daysDiff = (new Date() - new Date(props.last_label_date)) / (1000 * 60 * 60 * 24);
@@ -631,7 +634,7 @@
                 }
             });
 
-            //const minDays = auditedDays.length > 0 ? Math.min(...auditedDays) : 0;
+            // const minDays = auditedDays.length > 0 ? Math.min(...auditedDays) : 0;
             const minDays = 0; // Always start from today.
             const maxDays = auditedDays.length > 0 ? Math.max(...auditedDays) : 0;
 
@@ -666,10 +669,10 @@
                     const opacity = props.last_label_date ? 0.8 : 0.4;
 
                     return {
-                        color: color,
-                        weight: weight,
-                        opacity: opacity,
-                        fillOpacity: 0
+                        color,
+                        weight,
+                        opacity,
+                        fillOpacity: 0,
                     };
                 },
                 onEachFeature: (feature, layer) => {
@@ -677,15 +680,18 @@
                     const userCount = props.user_count || 0;
                     const labelCount = props.label_count || 0;
                     const wayType = props.way_type || 'Unknown';
-                    const firstLabelDate = props.first_label_date ?
-                        new Date(props.first_label_date).toLocaleDateString() : 'No labels';
-                    const lastLabelDate = props.last_label_date ?
-                        new Date(props.last_label_date).toLocaleDateString() : 'No labels';
+                    const firstLabelDate = props.first_label_date
+                        ? new Date(props.first_label_date).toLocaleDateString()
+                        : 'No labels';
+                    const lastLabelDate = props.last_label_date
+                        ? new Date(props.last_label_date).toLocaleDateString()
+                        : 'No labels';
                     const auditAge = this.formatAuditAge(props.last_label_date);
                     const osmLink = this.createOsmLink(props.osm_way_id);
 
-                    const auditStatus = userCount === 0 ? 'Unaudited' :
-                        `Labeled by ${userCount} user${userCount > 1 ? 's' : ''}`;
+                    const auditStatus = userCount === 0
+                        ? 'Unaudited'
+                        : `Labeled by ${userCount} user${userCount > 1 ? 's' : ''}`;
 
                     layer.bindPopup(`
             <div class="street-popup">
@@ -705,20 +711,20 @@
           `);
 
                     // Add hover effects.
-                    layer.on('mouseover', function() {
+                    layer.on('mouseover', function () {
                         this.setStyle({
                             weight: this.options.weight + 2,
-                            opacity: 1
+                            opacity: 1,
                         });
                     });
 
-                    layer.on('mouseout', function() {
+                    layer.on('mouseout', function () {
                         this.setStyle({
                             weight: this.options.weight - 2,
-                            opacity: this.options.opacity
+                            opacity: this.options.opacity,
                         });
                     });
-                }
+                },
             }).addTo(map);
 
             // Calculate average age.
@@ -738,7 +744,7 @@
          * @param {object} streets - GeoJSON data containing the street segments
          * @param {object} regionData - Data about the region being displayed
          */
-        displayLabelCountMap: function(map, streets, regionData) {
+        displayLabelCountMap(map, streets, regionData) {
             if (!streets.features || streets.features.length === 0) {
                 this.addNoStreetsMessage(map);
                 return;
@@ -752,9 +758,9 @@
 
             // Track statistics and calculate data range.
             const stats = { unaudited: 0, audited: 0, totalLabels: 0, wayTypes: new Set() };
-            const labelCounts = streets.features.map(f => f.properties.label_count || 0);
+            const labelCounts = streets.features.map((f) => f.properties.label_count || 0);
             const maxLabelCount = Math.max(...labelCounts);
-            const minLabelCount = Math.min(...labelCounts.filter(c => c > 0)) || 1;
+            const minLabelCount = Math.min(...labelCounts.filter((c) => c > 0)) || 1;
             stats.maxLabelCount = maxLabelCount;
             stats.minLabelCount = minLabelCount;
 
@@ -781,10 +787,10 @@
                     const weight = Math.max(1, Math.min(5, 1 + Math.floor(labelCount / 5)));
 
                     return {
-                        color: color,
-                        weight: weight,
+                        color,
+                        weight,
                         opacity: 0.8,
-                        fillOpacity: 0
+                        fillOpacity: 0,
                     };
                 },
                 onEachFeature: (feature, layer) => {
@@ -792,15 +798,18 @@
                     const userCount = props.user_count || 0;
                     const labelCount = props.label_count || 0;
                     const wayType = props.way_type || 'Unknown';
-                    const firstLabelDate = props.first_label_date ?
-                        new Date(props.first_label_date).toLocaleDateString() : 'No labels';
-                    const lastLabelDate = props.last_label_date ?
-                        new Date(props.last_label_date).toLocaleDateString() : 'No labels';
+                    const firstLabelDate = props.first_label_date
+                        ? new Date(props.first_label_date).toLocaleDateString()
+                        : 'No labels';
+                    const lastLabelDate = props.last_label_date
+                        ? new Date(props.last_label_date).toLocaleDateString()
+                        : 'No labels';
                     const auditAge = this.formatAuditAge(props.last_label_date);
                     const osmLink = this.createOsmLink(props.osm_way_id);
 
-                    const auditStatus = userCount === 0 ? 'Unaudited' :
-                        `Labeled by ${userCount} user${userCount > 1 ? 's' : ''}`;
+                    const auditStatus = userCount === 0
+                        ? 'Unaudited'
+                        : `Labeled by ${userCount} user${userCount > 1 ? 's' : ''}`;
 
                     layer.bindPopup(`
             <div class="street-popup">
@@ -820,20 +829,20 @@
           `);
 
                     // Add hover effects.
-                    layer.on('mouseover', function() {
+                    layer.on('mouseover', function () {
                         this.setStyle({
                             weight: this.options.weight + 2,
-                            opacity: 1
+                            opacity: 1,
                         });
                     });
 
-                    layer.on('mouseout', function() {
+                    layer.on('mouseout', function () {
                         this.setStyle({
                             weight: this.options.weight - 2,
-                            opacity: this.options.opacity
+                            opacity: this.options.opacity,
                         });
                     });
-                }
+                },
             }).addTo(map);
 
             // Create continuous legend for label count.
@@ -847,7 +856,7 @@
          * Add no streets message to map.
          * @param {object} map - The Leaflet map object
          */
-        addNoStreetsMessage: function(map) {
+        addNoStreetsMessage(map) {
             const noStreetsDiv = document.createElement('div');
             noStreetsDiv.className = 'no-streets-message';
             noStreetsDiv.textContent = `No streets found in this region.`;
@@ -869,10 +878,10 @@
          * @param {number} minUserCount - Minimum user count found in the data (excluding 0)
          * @param {number} maxUserCount - Maximum user count found in the data
          */
-        createContinuousUserCountLegend: function(map, minUserCount, maxUserCount) {
-            const legend = L.control({position: 'topright'});
+        createContinuousUserCountLegend(map, minUserCount, maxUserCount) {
+            const legend = L.control({ position: 'topright' });
 
-            legend.onAdd = function() {
+            legend.onAdd = function () {
                 const div = L.DomUtil.create('div', 'info legend continuous-legend');
 
                 // Create horizontal gradient legend.
@@ -905,7 +914,7 @@
                     const color = window.StreetsPreview.interpolateColor(
                         userCountColorEndpoints.minUsers,
                         userCountColorEndpoints.maxUsers,
-                        factor
+                        factor,
                     );
                     const position = 10 + (factor * 90); // Start at 10% to leave room for zero.
                     gradientStops.push(`${color} ${position}%`);
@@ -985,10 +994,10 @@
          * @param {number} minLabelCount - Minimum label count found in the data (excluding 0)
          * @param {number} maxLabelCount - Maximum label count found in the data
          */
-        createContinuousLabelCountLegend: function(map, minLabelCount, maxLabelCount) {
-            const legend = L.control({position: 'topright'});
+        createContinuousLabelCountLegend(map, minLabelCount, maxLabelCount) {
+            const legend = L.control({ position: 'topright' });
 
-            legend.onAdd = function() {
+            legend.onAdd = function () {
                 const div = L.DomUtil.create('div', 'info legend continuous-legend');
 
                 // Create horizontal gradient legend.
@@ -1021,7 +1030,7 @@
                     const color = window.StreetsPreview.interpolateColor(
                         labelCountColorEndpoints.minLabels,
                         labelCountColorEndpoints.maxLabels,
-                        factor
+                        factor,
                     );
                     const position = 10 + (factor * 90); // Start at 10% to leave room for zero.
                     gradientStops.push(`${color} ${position}%`);
@@ -1101,10 +1110,10 @@
          * @param {number} minDays - Minimum days since audit found in the data
          * @param {number} maxDays - Maximum days since audit found in the data
          */
-        createContinuousAuditAgeLegend: function(map, minDays, maxDays) {
-            const legend = L.control({position: 'topright'});
+        createContinuousAuditAgeLegend(map, minDays, maxDays) {
+            const legend = L.control({ position: 'topright' });
 
-            legend.onAdd = function() {
+            legend.onAdd = function () {
                 const div = L.DomUtil.create('div', 'info legend continuous-legend');
 
                 // Create horizontal gradient legend.
@@ -1133,7 +1142,7 @@
                     const color = window.StreetsPreview.interpolateColor(
                         auditAgeColorEndpoints.newest,
                         auditAgeColorEndpoints.oldest,
-                        factor
+                        factor,
                     );
                     const position = factor * 100;
                     gradientStops.push(`${color} ${position}%`);
@@ -1171,7 +1180,7 @@
           top: 2px;
           font-size: 10px;
         `;
-                newestLabel.textContent = "Today"; //formatDaysLabel(minDays);
+                newestLabel.textContent = 'Today'; // formatDaysLabel(minDays);
 
                 const oldestLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
                 oldestLabel.style.cssText = `
@@ -1226,15 +1235,16 @@
          * @param {object} map - The Leaflet map object
          * @param {object} stats - Statistics about the streets shown
          */
-        addUserCountStats: function(map, stats) {
-            const statsControl = L.control({position: 'bottomright'});
+        addUserCountStats(map, stats) {
+            const statsControl = L.control({ position: 'bottomright' });
 
-            statsControl.onAdd = function() {
+            statsControl.onAdd = function () {
                 const div = L.DomUtil.create('div', 'info stats-summary');
 
                 const totalStreets = stats.unaudited + stats.audited;
-                const auditedPercent = totalStreets > 0 ?
-                    Math.round((stats.audited / totalStreets) * 100) : 0;
+                const auditedPercent = totalStreets > 0
+                    ? Math.round((stats.audited / totalStreets) * 100)
+                    : 0;
 
                 div.innerHTML = `
           <h4>Summary</h4>
@@ -1255,17 +1265,19 @@
          * @param {object} map - The Leaflet map object
          * @param {object} stats - Statistics about the streets shown
          */
-        addLabelCountStats: function(map, stats) {
-            const statsControl = L.control({position: 'bottomright'});
+        addLabelCountStats(map, stats) {
+            const statsControl = L.control({ position: 'bottomright' });
 
-            statsControl.onAdd = function() {
+            statsControl.onAdd = function () {
                 const div = L.DomUtil.create('div', 'info stats-summary');
 
                 const totalStreets = stats.unaudited + stats.audited;
-                const auditedPercent = totalStreets > 0 ?
-                    Math.round((stats.audited / totalStreets) * 100) : 0;
-                const avgLabels = stats.audited > 0 ?
-                    Math.round(stats.totalLabels / stats.audited) : 0;
+                const auditedPercent = totalStreets > 0
+                    ? Math.round((stats.audited / totalStreets) * 100)
+                    : 0;
+                const avgLabels = stats.audited > 0
+                    ? Math.round(stats.totalLabels / stats.audited)
+                    : 0;
 
                 div.innerHTML = `
           <h4>Summary</h4>
@@ -1286,20 +1298,24 @@
          * @param {object} map - The Leaflet map object
          * @param {object} stats - Statistics about the streets shown
          */
-        addAuditAgeStats: function(map, stats) {
-            const statsControl = L.control({position: 'bottomright'});
+        addAuditAgeStats(map, stats) {
+            const statsControl = L.control({ position: 'bottomright' });
 
-            statsControl.onAdd = function() {
+            statsControl.onAdd = function () {
                 const div = L.DomUtil.create('div', 'info stats-summary');
 
                 const totalStreets = stats.unaudited + stats.audited;
-                const auditedPercent = totalStreets > 0 ?
-                    Math.round((stats.audited / totalStreets) * 100) : 0;
+                const auditedPercent = totalStreets > 0
+                    ? Math.round((stats.audited / totalStreets) * 100)
+                    : 0;
 
-                const avgAgeText = stats.avgAge !== null ?
-                    stats.avgAge < 30 ? `${stats.avgAge} days` :
-                        stats.avgAge < 365 ? `${Math.round(stats.avgAge / 30)} months` :
-                            `${Math.round(stats.avgAge / 365)} years` : 'N/A';
+                const avgAgeText = stats.avgAge !== null
+                    ? stats.avgAge < 30
+                        ? `${stats.avgAge} days`
+                        : stats.avgAge < 365
+                            ? `${Math.round(stats.avgAge / 30)} months`
+                            : `${Math.round(stats.avgAge / 365)} years`
+                    : 'N/A';
 
                 div.innerHTML = `
           <h4>Summary</h4>
@@ -1313,6 +1329,6 @@
             };
 
             statsControl.addTo(map);
-        }
+        },
     };
 })();

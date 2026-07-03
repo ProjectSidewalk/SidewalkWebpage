@@ -57,7 +57,7 @@ class PanoInfoPopover {
      * @param {function} [labelDate] Optional — returns the label's timestamp as a moment object
      */
     constructor(container, panoViewer, coords, panoId, streetEdgeId, regionId, panoDate, panoAddress, pov, whiteIcon,
-                infoLogging, clipboardLogging, viewPanoLogging, labelId, labelDate) {
+        infoLogging, clipboardLogging, viewPanoLogging, labelId, labelDate) {
         this.#popoverEl = document.getElementById('pano-info-popover');
         this.#panoViewer = panoViewer;
         this.#coords = coords;
@@ -119,8 +119,8 @@ class PanoInfoPopover {
         // Light-dismiss: close when clicking outside the popover (but not the trigger button).
         document.addEventListener('click', (e) => {
             if (this.#popoverEl.matches(':popover-open')
-                    && !this.#popoverEl.contains(e.target)
-                    && e.target !== this.#infoButton) {
+                && !this.#popoverEl.contains(e.target)
+                && e.target !== this.#infoButton) {
                 this.#popoverEl.hidePopover();
             }
         });
@@ -223,7 +223,8 @@ class PanoInfoPopover {
             this.#clipboardLogging();
 
             let text = currPanoAddress
-                ? `${i18next.t('common:pano-info.pano-address')}: ${currPanoAddress}\n` : '';
+                ? `${i18next.t('common:pano-info.pano-address')}: ${currPanoAddress}\n`
+                : '';
             text += `${i18next.t('common:pano-info.city')}: ${window.cityName}\n`
                 + `${i18next.t('common:pano-info.latitude')}: ${currCoords ? currCoords.lat : ''}°\n`
                 + `${i18next.t('common:pano-info.longitude')}: ${currCoords ? currCoords.lng : ''}°\n`
@@ -240,7 +241,9 @@ class PanoInfoPopover {
             // Briefly show the "copied" confirmation message.
             const copied = this.#popoverEl.querySelector('.pano-info-popover__copied');
             copied.hidden = false;
-            setTimeout(() => { copied.hidden = true; }, 1500);
+            setTimeout(() => {
+                copied.hidden = true;
+            }, 1500);
         };
     }
 }

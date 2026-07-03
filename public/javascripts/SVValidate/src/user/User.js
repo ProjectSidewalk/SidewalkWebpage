@@ -4,10 +4,10 @@
  * @returns {{className: string}}
  * @constructor
  */
-function User (param) {
-    let properties = {
+function User(param) {
+    const properties = {
         username: param.username,
-        role: param.role
+        role: param.role,
     };
 
     /**

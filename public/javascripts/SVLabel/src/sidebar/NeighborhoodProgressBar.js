@@ -21,7 +21,7 @@ class NeighborhoodProgressBar {
             you: 'neighborhood-progress-you',
             community: 'neighborhood-progress-community',
             rate: 'neighborhood-progress-rate',
-            ...elementIds
+            ...elementIds,
         };
         this.#fillEl = document.getElementById(ids.fill);
         this.#youEl = document.getElementById(ids.you);

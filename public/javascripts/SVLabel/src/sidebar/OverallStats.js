@@ -34,7 +34,7 @@ class OverallStats {
 
     /** Formats a number using the locale-aware i18next number formatter. */
     #formatNumber(val) {
-        return i18next.t('common:format-number', { val: val });
+        return i18next.t('common:format-number', { val });
     }
 
     /** Renders the label-count stat and refreshes the labeling badge. */
@@ -113,8 +113,8 @@ class OverallStats {
     /** Fetches the user's basic stats and seeds the sidebar values. */
     #fetchBasicStats() {
         fetch('/userapi/basicStats', { headers: { Accept: 'application/json' } })
-            .then(response => response.json())
-            .then(result => {
+            .then((response) => response.json())
+            .then((result) => {
                 this.#sessionStartTotalDist = result.distance_audited;
                 this.#sessionStartMissionCount = result.mission_count;
                 this.#stats.distance = result.distance_audited;
@@ -125,7 +125,7 @@ class OverallStats {
                 this.#renderAccuracy(result.accuracy);
                 this.#seeded = true;
             })
-            .catch(e => console.error('Failed to load basic user stats.', e));
+            .catch((e) => console.error('Failed to load basic user stats.', e));
     }
 
     /**

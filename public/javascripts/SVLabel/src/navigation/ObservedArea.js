@@ -3,7 +3,6 @@
  * 360°-observed progress circle.
  */
 class ObservedArea {
-
     static #BASE_RADIUS = 40;  // FOV radius in pixels at UI scale 1 and REFERENCE_ZOOM.
 
     // Zoom the minimap was tuned at; BASE_RADIUS is correct here. As the user zooms the minimap, the observed-area
@@ -82,10 +81,10 @@ class ObservedArea {
         this.#leftAngle = null;
         this.#rightAngle = null;
         const panoId = svl.panoViewer.getPanoId();
-        this.#currArea = this.#observedAreas.find(area => area.panoId === panoId);
+        this.#currArea = this.#observedAreas.find((area) => area.panoId === panoId);
 
         if (!this.#currArea) {
-            this.#currArea = { panoId: panoId, latLng: svl.panoViewer.getPosition(), minAngle: null, maxAngle: null };
+            this.#currArea = { panoId, latLng: svl.panoViewer.getPosition(), minAngle: null, maxAngle: null };
             this.#observedAreas.push(this.#currArea);
         }
     }
@@ -140,7 +139,7 @@ class ObservedArea {
         const worldPoint = projection.fromLatLngToPoint(latLng);
         return {
             x: Math.floor((worldPoint.x - bottomLeft.x) * scale),
-            y: Math.floor((worldPoint.y - topRight.y) * scale)
+            y: Math.floor((worldPoint.y - topRight.y) * scale),
         };
     }
 
@@ -220,7 +219,7 @@ class ObservedArea {
             this.#renderFogOfWar();
             this.#renderFov();
             this.#renderProgressCircle();
-            this.#uiMinimap.percentObserved.text(Math.floor(100 * this.#fractionObserved) + '%');
+            this.#uiMinimap.percentObserved.text(`${Math.floor(100 * this.#fractionObserved)}%`);
             if (this.#fractionObserved === 1) {
                 this.#uiMinimap.message.text(i18next.t('right-ui.minimap.follow-red-line'));
             } else {

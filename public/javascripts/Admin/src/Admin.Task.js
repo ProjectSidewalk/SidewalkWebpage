@@ -37,7 +37,7 @@ class AdminTask {
             maxZoom: 19,
             minZoom: 8.25,
             scrollZoom: false,
-            doubleClickZoom: true
+            doubleClickZoom: true,
         }).addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
 
         this.#colorScheme = util.misc.getLabelColors();
@@ -71,8 +71,8 @@ class AdminTask {
      * Fetches the audit-task path, initializes the pano, and sets up the map once loaded.
      */
     #init() {
-        fetch('/adminapi/auditpath/' + this.#auditTaskId)
-            .then(response => response.json())
+        fetch(`/adminapi/auditpath/${this.#auditTaskId}`)
+            .then((response) => response.json())
             .then(async (data) => {
                 if (data.features.length === 0) {
                     alert('No data for this audit task.');
@@ -91,7 +91,7 @@ class AdminTask {
                 this.#panoManager.setPano(this.#featuresData[0].properties.panoId, {
                     heading: this.#featuresData[0].properties.heading,
                     pitch: this.#featuresData[0].properties.pitch,
-                    zoom: this.#featuresData[0].properties.zoom
+                    zoom: this.#featuresData[0].properties.zoom,
                 });
 
                 // Once the map has loaded, add the user marker and layer for the labels.
@@ -115,12 +115,12 @@ class AdminTask {
                             'circle-stroke-opacity': 1,
                             'circle-stroke-width': 1,
                             'circle-color': ['get', 'circleColor'],
-                            'circle-stroke-color': '#fff'
-                        }
+                            'circle-stroke-color': '#fff',
+                        },
                     });
                 });
             })
-            .catch(error => console.error(error));
+            .catch((error) => console.error(error));
     }
 
     /**
@@ -166,13 +166,13 @@ class AdminTask {
                 this.#panoManager.setPano(action.properties.panoId, {
                     heading: action.properties.heading,
                     pitch: action.properties.pitch,
-                    zoom: action.properties.zoom
+                    zoom: action.properties.zoom,
                 });
             } else {
                 this.#panoManager.panoViewer.setPov({
                     heading: action.properties.heading,
                     pitch: action.properties.pitch,
-                    zoom: action.properties.zoom
+                    zoom: action.properties.zoom,
                 });
             }
 
@@ -183,10 +183,10 @@ class AdminTask {
             this.#showEvent(action.properties);
 
             // If this step included adding a label, draw the label on the map and pano.
-            if ('label' in action.properties && this.#renderedLabels.features.filter(x => x.properties.label_id === action.properties.label.label_id).length === 0) {
+            if ('label' in action.properties && this.#renderedLabels.features.filter((x) => x.properties.label_id === action.properties.label.label_id).length === 0) {
                 const label = action.properties.label;
                 label.circleColor = this.#colorScheme[label.label_type].fillStyle;
-                this.#renderedLabels.features.push({ type: 'Feature', properties: label, geometry: { type: 'Point', coordinates: label.coordinates }});
+                this.#renderedLabels.features.push({ type: 'Feature', properties: label, geometry: { type: 'Point', coordinates: label.coordinates } });
                 this.#map.getSource('labels').setData(this.#renderedLabels);
 
                 // Plain-object label shape consumed by PopupPanoManager. See LabelPopup.js for full field shape.
@@ -200,9 +200,9 @@ class AdminTask {
                     pov: {
                         heading: action.properties.heading,
                         pitch: action.properties.pitch,
-                        zoom: action.properties.zoom
+                        zoom: action.properties.zoom,
                     },
-                    aiGenerated: false
+                    aiGenerated: false,
                 };
                 this.#panoManager.renderLabel(popupLabel);
             }
@@ -269,9 +269,9 @@ class AdminTask {
      */
     #showEvent(data) {
         const eventsHolder = $('#eventsHolder');
-        const event = $("<div class='event'/>");
-        event.append("<div class='type'>" + data['action'] + "</div>");
-        event.append("<div class='desc'>"+ data['note'] +"</div>");
+        const event = $('<div class=\'event\'/>');
+        event.append(`<div class='type'>${data.action}</div>`);
+        event.append(`<div class='desc'>${data.note}</div>`);
 
         event.hide().prependTo(eventsHolder).fadeIn(300);
     }

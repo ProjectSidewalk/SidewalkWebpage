@@ -9,30 +9,30 @@
  * @requires Leaflet.js library
  */
 
-(function() {
+(function () {
     // Configuration options - can be overridden by calling setup().
     let config = {
-        apiBaseUrl: "/v3/api",
-        mainContainerId: "regions-preview",
-        regionsEndpoint: "/regions",
-        mapHeight: 500
+        apiBaseUrl: '/v3/api',
+        mainContainerId: 'regions-preview',
+        regionsEndpoint: '/regions',
+        mapHeight: 500,
     };
 
     // The metrics that can be visualized, keyed by the GeoJSON property name. Each defines the color ramp endpoints
     // (dark-background optimized), a "none" color for regions with a value of zero, and human-readable labels.
     const METRICS = {
         label_count: {
-            label: "Label count", legendTitle: "Labels per region",
-            none: "#3d3d3d", low: "#440154", high: "#f0f921"
+            label: 'Label count', legendTitle: 'Labels per region',
+            none: '#3d3d3d', low: '#440154', high: '#f0f921',
         },
         audit_count: {
-            label: "Audit count", legendTitle: "Completed audits per region",
-            none: "#3d3d3d", low: "#0d3b2e", high: "#44ff88"
+            label: 'Audit count', legendTitle: 'Completed audits per region',
+            none: '#3d3d3d', low: '#0d3b2e', high: '#44ff88',
         },
         user_count: {
-            label: "User count", legendTitle: "Contributors per region",
-            none: "#3d3d3d", low: "#472c7a", high: "#ffffff"
-        }
+            label: 'User count', legendTitle: 'Contributors per region',
+            none: '#3d3d3d', low: '#472c7a', high: '#ffffff',
+        },
     };
 
     /**
@@ -56,7 +56,7 @@
         _map: null,
         _layer: null,
         _legend: null,
-        _metric: "label_count",
+        _metric: 'label_count',
         _maxByMetric: {},
 
         /**
@@ -64,7 +64,7 @@
          * @param {object} options - Configuration options
          * @returns {object} The RegionsPreview object for chaining
          */
-        setup: function(options) {
+        setup(options) {
             config = Object.assign(config, options);
             return this;
         },
@@ -73,30 +73,30 @@
          * Initialize the regions preview map.
          * @returns {Promise} A promise that resolves when the preview is rendered
          */
-        init: function() {
+        init() {
             const container = document.getElementById(config.mainContainerId);
             if (!container) {
-                console.error("Regions preview container element not found.");
-                return Promise.reject(new Error("Regions preview container element not found"));
+                console.error('Regions preview container element not found.');
+                return Promise.reject(new Error('Regions preview container element not found'));
             }
 
             container.style.height = `${config.mapHeight}px`;
             const loading = document.createElement('div');
             loading.className = 'loading-message';
-            loading.textContent = "Loading region data...";
+            loading.textContent = 'Loading region data...';
             container.appendChild(loading);
 
             return this.fetchRegions()
-                .then(regions => {
-                    container.innerHTML = "";
+                .then((regions) => {
+                    container.innerHTML = '';
                     this.renderMap(container, regions);
                 })
-                .catch(error => {
-                    console.error("Error rendering regions preview:", error);
-                    container.innerHTML = "";
+                .catch((error) => {
+                    console.error('Error rendering regions preview:', error);
+                    container.innerHTML = '';
                     const message = document.createElement('div');
                     message.className = 'no-regions-message';
-                    message.textContent = "Unable to load region data for the preview.";
+                    message.textContent = 'Unable to load region data for the preview.';
                     container.appendChild(message);
                 });
         },
@@ -105,9 +105,9 @@
          * Fetch all regions for the current city as a GeoJSON FeatureCollection.
          * @returns {Promise} A promise that resolves with the GeoJSON FeatureCollection
          */
-        fetchRegions: function() {
+        fetchRegions() {
             return fetch(`${config.apiBaseUrl}${config.regionsEndpoint}?inline=true&source=apiDocs`)
-                .then(response => {
+                .then((response) => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
@@ -120,11 +120,11 @@
          * @param {HTMLElement} container - Container element for the map
          * @param {object} regions - GeoJSON FeatureCollection of regions
          */
-        renderMap: function(container, regions) {
+        renderMap(container, regions) {
             const features = regions.features || [];
 
             // Precompute the maximum value of each metric across all regions, used to scale the color ramp.
-            Object.keys(METRICS).forEach(metric => {
+            Object.keys(METRICS).forEach((metric) => {
                 this._maxByMetric[metric] = features.reduce((max, f) => Math.max(max, f.properties[metric] || 0), 0);
             });
 
@@ -133,7 +133,7 @@
             const toolbar = document.createElement('div');
             toolbar.className = 'regions-toolbar';
             const optionsHtml = Object.keys(METRICS)
-                .map(metric => `<option value="${metric}">${METRICS[metric].label}</option>`)
+                .map((metric) => `<option value="${metric}">${METRICS[metric].label}</option>`)
                 .join('');
             toolbar.innerHTML = `<label for="region-metric-select">Color by</label>
                 <select id="region-metric-select">${optionsHtml}</select>`;
@@ -150,7 +150,7 @@
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
                 subdomains: 'abcd',
-                maxZoom: 19
+                maxZoom: 19,
             }).addTo(map);
 
             if (features.length === 0) {
@@ -161,7 +161,7 @@
 
             this._layer = L.geoJSON(regions, {
                 style: (feature) => this.styleForFeature(feature),
-                onEachFeature: (feature, layer) => this.bindRegionInteractions(feature, layer)
+                onEachFeature: (feature, layer) => this.bindRegionInteractions(feature, layer),
             }).addTo(map);
 
             map.fitBounds(this._layer.getBounds(), { padding: [10, 10] });
@@ -189,7 +189,7 @@
          * @param {object} feature - GeoJSON feature for a region
          * @returns {object} A Leaflet path style object
          */
-        styleForFeature: function(feature) {
+        styleForFeature(feature) {
             const metricCfg = METRICS[this._metric];
             const value = feature.properties[this._metric] || 0;
             const max = this._maxByMetric[this._metric];
@@ -201,7 +201,7 @@
             } else {
                 fillColor = interpolateColor(metricCfg.low, metricCfg.high, value / max);
             }
-            return { color: "#ffffff", weight: 1, opacity: 0.7, fillColor: fillColor, fillOpacity: 0.7 };
+            return { color: '#ffffff', weight: 1, opacity: 0.7, fillColor, fillOpacity: 0.7 };
         },
 
         /**
@@ -209,14 +209,14 @@
          * @param {object} feature - GeoJSON feature for a region
          * @param {object} layer - The Leaflet layer for the feature
          */
-        bindRegionInteractions: function(feature, layer) {
+        bindRegionInteractions(feature, layer) {
             const props = feature.properties;
-            const firstLabelDate = props.first_label_date ? new Date(props.first_label_date).toLocaleDateString() : "No labels";
-            const lastLabelDate = props.last_label_date ? new Date(props.last_label_date).toLocaleDateString() : "No labels";
+            const firstLabelDate = props.first_label_date ? new Date(props.first_label_date).toLocaleDateString() : 'No labels';
+            const lastLabelDate = props.last_label_date ? new Date(props.last_label_date).toLocaleDateString() : 'No labels';
 
             layer.bindPopup(`
                 <div class="region-popup">
-                    <h4>${props.name || 'Region ' + props.region_id}</h4>
+                    <h4>${props.name || `Region ${props.region_id}`}</h4>
                     <p><strong>Region ID:</strong> ${props.region_id}</p>
                     <p><strong>Labels:</strong> ${props.label_count}</p>
                     <p><strong>Streets:</strong> ${props.street_count}</p>
@@ -231,10 +231,10 @@
             `, {
                 // Pad the auto-pan so an opened popup is nudged clear of the bottom-right legend.
                 autoPanPaddingTopLeft: L.point(10, 10),
-                autoPanPaddingBottomRight: L.point(260, 130)
+                autoPanPaddingBottomRight: L.point(260, 130),
             });
 
-            layer.on('mouseover', function() {
+            layer.on('mouseover', function () {
                 this.setStyle({ weight: 3, opacity: 1, fillOpacity: 0.85 });
                 this.bringToFront();
             });
@@ -244,7 +244,7 @@
         /**
          * (Re)build the continuous gradient legend for the currently selected metric.
          */
-        updateLegend: function() {
+        updateLegend() {
             const map = this._map;
             const metricCfg = METRICS[this._metric];
             const max = this._maxByMetric[this._metric];
@@ -254,20 +254,20 @@
             }
 
             const legend = L.control({ position: 'bottomright' });
-            legend.onAdd = function() {
+            legend.onAdd = function () {
                 const div = L.DomUtil.create('div', 'info legend continuous-legend');
                 div.innerHTML = `<h4>${metricCfg.legendTitle}</h4>`;
 
                 const gradientContainer = L.DomUtil.create('div', 'gradient-container', div);
-                gradientContainer.style.cssText = "width: 200px; height: 20px; position: relative; margin: 5px 0;";
+                gradientContainer.style.cssText = 'width: 200px; height: 20px; position: relative; margin: 5px 0;';
                 const gradientBar = L.DomUtil.create('div', 'gradient-bar', gradientContainer);
-                gradientBar.style.cssText =
-                    `width: 100%; height: 100%; background: linear-gradient(to right, ${metricCfg.low}, ${metricCfg.high});`;
+                gradientBar.style.cssText
+                    = `width: 100%; height: 100%; background: linear-gradient(to right, ${metricCfg.low}, ${metricCfg.high});`;
 
                 const labelsContainer = L.DomUtil.create('div', 'legend-labels', div);
-                labelsContainer.style.cssText = "display: flex; justify-content: space-between; width: 200px;";
+                labelsContainer.style.cssText = 'display: flex; justify-content: space-between; width: 200px;';
                 const minTick = L.DomUtil.create('div', 'legend-tick', labelsContainer);
-                minTick.textContent = "0";
+                minTick.textContent = '0';
                 const maxTick = L.DomUtil.create('div', 'legend-tick', labelsContainer);
                 maxTick.textContent = max.toLocaleString();
 
@@ -281,11 +281,11 @@
          * Show a message when there are no regions to display.
          * @param {object} map - The Leaflet map object
          */
-        addNoRegionsMessage: function(map) {
+        addNoRegionsMessage(map) {
             const div = document.createElement('div');
             div.className = 'no-regions-message';
-            div.textContent = "No regions found for this city.";
+            div.textContent = 'No regions found for this city.';
             map.getContainer().appendChild(div);
-        }
+        },
     };
 })();

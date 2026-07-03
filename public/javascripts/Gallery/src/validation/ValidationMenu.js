@@ -5,12 +5,13 @@ class ValidationMenu {
     static #classToValidationOption = {
         'validate-agree': 'Agree',
         'validate-disagree': 'Disagree',
-        'validate-unsure': 'Unsure'
+        'validate-unsure': 'Unsure',
     };
+
     static #validationOptionToClass = {
-        'Agree': 'validate-agree',
-        'Disagree': 'validate-disagree',
-        'Unsure': 'validate-unsure'
+        Agree: 'validate-agree',
+        Disagree: 'validate-disagree',
+        Unsure: 'validate-unsure',
     };
 
     #refCard;
@@ -48,7 +49,7 @@ class ValidationMenu {
         this.#validationButtons = {
             'validate-agree': this.#overlay.find('#gallery-card-agree-button'),
             'validate-disagree': this.#overlay.find('#gallery-card-disagree-button'),
-            'validate-unsure': this.#overlay.find('#gallery-card-unsure-button')
+            'validate-unsure': this.#overlay.find('#gallery-card-unsure-button'),
         };
 
         // If the signed-in user had already validated this label before loading the page, style the card.
@@ -202,14 +203,14 @@ class ValidationMenu {
             source: sourceStr,
             undone: false,
             redone: refCard.getProperty('user_validation') !== null,
-            viewer_type: refCard.getImageSource() === 'crop' ? 'StaticCrop' : 'StaticApi'
+            viewer_type: refCard.getImageSource() === 'crop' ? 'StaticCrop' : 'StaticApi',
         };
 
         const isNewValidation = refCard.getProperty('user_validation') === null;
         return fetch('/labelmap/validate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+            body: JSON.stringify(data),
         }).then((res) => {
             if (res.ok && isNewValidation) BadgeAchievements.recordValidation();
             return res;

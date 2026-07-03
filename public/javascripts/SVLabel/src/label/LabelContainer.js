@@ -31,7 +31,7 @@ class LabelContainer {
         if (!(panoId in labelListObj)) labelListObj[panoId] = [];
 
         // If it's not already in the last, add it.
-        const inList = labelListObj[panoId].filter(l => l.getProperty('temporaryLabelId') === tempId).length > 0;
+        const inList = labelListObj[panoId].filter((l) => l.getProperty('temporaryLabelId') === tempId).length > 0;
         if (!inList) labelListObj[panoId].push(label);
     }
 
@@ -48,7 +48,7 @@ class LabelContainer {
 
         // If in tutorial, update the current label id field in onboarding.
         if (svl.onboarding) {
-            svl.onboarding.setCurrentLabelId(label.getProperty("temporaryLabelId"));
+            svl.onboarding.setCurrentLabelId(label.getProperty('temporaryLabelId'));
         }
 
         // Add to list of labels. If new, also add to current canvas labels.
@@ -64,7 +64,7 @@ class LabelContainer {
                         svl.canvas.saveCanvasScreenshot(label);
                     } catch (e) {
                         // todo: better logging
-                        console.log("Error saving pano screenshot: ", e);
+                        console.log('Error saving pano screenshot: ', e);
                     }
                 }, 0);
             }
@@ -80,20 +80,20 @@ class LabelContainer {
      * @param callback
      */
     fetchLabelsToResumeMission(regionId, callback) {
-        this.#jquery.getJSON('/label/resumeMission', { regionId: regionId }, (result) => {
+        this.#jquery.getJSON('/label/resumeMission', { regionId }, (result) => {
             const labelArr = result.labels;
             for (let i = 0; i < labelArr.length; i++) {
                 const originalCanvasXY = {
                     x: labelArr[i].canvasX,
-                    y: labelArr[i].canvasY
+                    y: labelArr[i].canvasY,
                 };
 
                 // Get the canvas coordinates for the label given the current POV.
                 const povOfLabelIfCentered = util.pano.canvasCoordToCenteredPov(
-                    labelArr[i].originalPov, originalCanvasXY.x, originalCanvasXY.y, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT
+                    labelArr[i].originalPov, originalCanvasXY.x, originalCanvasXY.y, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
                 );
                 labelArr[i].currCanvasXY = util.pano.centeredPovToCanvasCoord(
-                    povOfLabelIfCentered, svl.panoViewer.getPov(), util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+                    povOfLabelIfCentered, svl.panoViewer.getPov(), util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS,
                 );
 
                 labelArr[i].originalCanvasXY = originalCanvasXY;
@@ -133,7 +133,7 @@ class LabelContainer {
      * @param tempId
      */
     findLabelByTempId(tempId) {
-        const matchingLabels = this.getCanvasLabels().filter(l => l.getProperty("temporaryLabelId") === tempId);
+        const matchingLabels = this.getCanvasLabels().filter((l) => l.getProperty('temporaryLabelId') === tempId);
         if (matchingLabels.length > 1) {
             console.warn('Multiple labels with same temp ID!');
             console.log(this.getCanvasLabels());
@@ -157,15 +157,17 @@ class LabelContainer {
 
     countLabels() {
         const allLabels = this.getAllLabels();
-        return allLabels.filter(l => !l.isDeleted()).length;
+        return allLabels.filter((l) => !l.isDeleted()).length;
     }
 
     /**
      * Removes a passed label, updates the canvas, and updates label counts.
      */
     removeLabel(label) {
-        if (!label) { return false; }
-        svl.tracker.push('RemoveLabel', {labelType: label.getProperty('labelType')});
+        if (!label) {
+            return false;
+        }
+        svl.tracker.push('RemoveLabel', { labelType: label.getProperty('labelType') });
         if (svl.isOnboarding()) this.#jquery(document).trigger('RemoveLabel');
         svl.overallStats.decrementLabelCount();
         label.remove();
