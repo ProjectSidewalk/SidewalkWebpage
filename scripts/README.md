@@ -11,21 +11,27 @@ data files relative to the repo root, so it can be launched from any working dir
 
 Clusters a region's accessibility labels by type and posts the results back to the app.
 
-This one **is** invoked in-band: `ClusterController.runMultiUserClustering`
-([`app/controllers/ClusterController.scala`](../app/controllers/ClusterController.scala)) shells out to it once per
-region when an admin triggers clustering at `/runClustering`. The script GETs the region's labels from
+This one **is** invoked in-band: `ClusterService.runMultiUserClustering`
+([`app/service/ClusterService.scala`](../app/service/ClusterService.scala)) shells out to it once per
+region when an admin triggers clustering at `/runClustering` (and on the nightly `ClusteringActor` schedule). The script GETs the region's labels from
 `/labelsToClusterInRegion`, clusters each label type independently (complete-linkage hierarchical clustering over
 haversine distance, with per-type distance thresholds; labels from the same user+pano are never clustered together),
 makes the cluster ids globally unique, and POSTs the labels, clusters, and thresholds back to `/clusteringResults`.
 
 ```bash
-python3 scripts/label_clustering.py --key <internal-api-key> --region_id <id> [--debug]
+INTERNAL_API_KEY=<internal-api-key> python3 scripts/label_clustering.py --region_id <id> [--debug]
 ```
 
-- `--key` — the internal API key (the app passes `config.get[String]("internal-api-key")`).
+- `INTERNAL_API_KEY` (env) — the internal API key, sent as an `Authorization: Bearer` header (kept off the command
+  line so it can't leak into `ps`/access logs). The app passes `config.get[String]("internal-api-key")`.
 - `--region_id` — the region whose labels to cluster.
 - `--debug` — print per-type cluster counts and coordinate-cleaning stats.
 - `SIDEWALK_HTTP_PORT` (env) — app port, defaults to `9000`.
+
+Because this one runs in-band, the deployed app has to be able to both **find** and **run** it: `scripts/` is bundled
+into the staged package via `Universal / mappings` in [`build.sbt`](../build.sbt) and `ClusterService` resolves it
+against the app root (not the process working directory), and its [`requirements.txt`](../requirements.txt)
+dependencies must be installed in the `python3` interpreter the app shells out to.
 
 ## `check_streets_for_imagery.py`
 

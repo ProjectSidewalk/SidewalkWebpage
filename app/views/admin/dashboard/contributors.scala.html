@@ -22,6 +22,34 @@
         <div class="coverage-status" id="contrib-status" role="status" aria-live="polite">Loading contributor data…</div>
     </div>
 
+    <div class="api-section" id="funnel-section">
+        <h2 class="api-heading" id="funnels">Engagement funnels <a href="#funnels" class="permalink">#</a></h2>
+        <p>Of the people who arrive, how many make it through each step? Two funnels: the <strong>mapping</strong> funnel
+            follows the Explore onboarding (tutorial → first label → first mission), and the <strong>contribution</strong>
+            funnel is the broader “did they contribute anything (labeling or validation) and finish a mission”. Bars are
+            normalized to visitors (= 100%); the percentage on each step is its share of the step before it (the
+            drop-off).</p>
+        <p class="ac-note">Two caveats. <strong>Anonymous visitors are counted per browser</strong> (a new id each time
+            cookies are cleared), so the top of each funnel counts sessions, not unique people, and headline conversion
+            reads low. <strong>The mapping tool is desktop-only</strong> — mobile visitors are redirected to a landing
+            page and can’t proceed, so in the “Desktop vs mobile” view mobile drops off early by design. In the mapping
+            funnel, “took a step” means a user walked some distance in a real (non-tutorial) mission.</p>
+        <div class="ac-funnel-controls">
+            <div class="ac-toggle" id="funnel-window" role="group" aria-label="Funnel time window">
+                <button type="button" class="ac-toggle-btn active" data-window="30d">Last 30 days</button>
+                <button type="button" class="ac-toggle-btn" data-window="90d">Last 90 days</button>
+                <button type="button" class="ac-toggle-btn" data-window="all">All time</button>
+            </div>
+            <div class="ac-toggle" id="funnel-dim" role="group" aria-label="Funnel breakdown">
+                <button type="button" class="ac-toggle-btn active" data-dim="all">All users</button>
+                <button type="button" class="ac-toggle-btn" data-dim="role">Registered vs anonymous</button>
+                <button type="button" class="ac-toggle-btn" data-dim="device">Desktop vs mobile</button>
+            </div>
+        </div>
+        <div id="funnel-blocks"></div>
+        <div class="coverage-status" id="funnel-status" role="status" aria-live="polite"></div>
+    </div>
+
     <div class="api-section" id="contributor-quality-section">
         <h2 class="api-heading" id="contributor-quality">Contributors by quality <a href="#contributor-quality" class="permalink">#</a></h2>
         <p>How many contributors are flagged high- vs low-quality.</p>
@@ -70,11 +98,19 @@
     </div>
 
     <script src="@assets.path("javascripts/admin-dashboard/contributors.js")"></script>
+    <script src="@assets.path("javascripts/admin-dashboard/funnels-section.js")"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             new ContributorsPage({
                 userStatsUrl: '/adminapi/getUserStats',
                 leaderboardsUrl: '/adminapi/contributorLeaderboards'
+            }).init();
+            new FunnelsSection({
+                funnelsUrl: '/adminapi/funnels',
+                hostId: 'funnel-blocks',
+                statusId: 'funnel-status',
+                windowToggleId: 'funnel-window',
+                dimToggleId: 'funnel-dim'
             }).init();
         });
     </script>

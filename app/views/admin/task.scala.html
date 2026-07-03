@@ -77,7 +77,7 @@
         window.appManager.ready(function () {
             const imagerySrc = "@commonData.imagerySource.toString";
             const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
-            window.admin = AdminTask({
+            window.admin = new AdminTask({
                 auditTaskId: @task.auditTaskId,
                 mapboxApiKey: '@commonData.mapboxApiKey',
                 viewerType: viewerType,

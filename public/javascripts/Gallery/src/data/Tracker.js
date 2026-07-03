@@ -1,32 +1,24 @@
 /**
  * Logs information from the Gallery.
- *
- * @returns {Tracker}
- * @constructor
  */
-function Tracker() {
-    const self = this;
-    let actions = [];
+class Tracker {
+    #actions = [];
 
-    function _init() {
-        //_trackWindowEvents();
-    }
-
-    // TODO: update/include for v1.1
-    function _trackWindowEvents() {
-        let prefix = "LowLevelEvent_";
+    // TODO: update/include for v1.1 by calling #trackWindowEvents() from the constructor.
+    #trackWindowEvents() {
+        const prefix = "LowLevelEvent_";
 
         // Track all mouse related events.
-        $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', function(e) {
-            self.push(prefix + e.type, {
+        $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', (e) => {
+            this.push(prefix + e.type, {
                 cursorX: 'pageX' in e ? e.pageX : null,
                 cursorY: 'pageY' in e ? e.pageY : null
             });
         });
 
         // Keyboard related events.
-        $(document).on('keydown keyup', function(e) {
-            self.push(prefix + e.type, {
+        $(document).on('keydown keyup', (e) => {
+            this.push(prefix + e.type, {
                 keyCode: 'keyCode' in e ? e.keyCode : null
             });
         });
@@ -38,17 +30,16 @@ function Tracker() {
      * @param {string} action Action name.
      * @param suppData Optional supplementary data about action.
      * @param notes Optional notes about action.
-     * @private
      */
-    function _createAction(action, suppData, notes) {
+    #createAction(action, suppData, notes) {
         if (!notes) {
             notes = {};
         }
 
-        let note = _notesToString(notes);
-        let timestamp = new Date();
+        const note = this.#notesToString(notes);
+        const timestamp = new Date();
 
-        let data = {
+        const data = {
             action: action,
             pano_id: suppData && suppData.panoId ? suppData.panoId : null,
             note: note,
@@ -61,8 +52,8 @@ function Tracker() {
     /**
      * Return list of actions.
      */
-    function getActions() {
-        return actions;
+    getActions() {
+        return this.#actions;
     }
 
     /**
@@ -70,12 +61,12 @@ function Tracker() {
      *
      * @param {*} notes Notes object.
      */
-    function _notesToString(notes) {
+    #notesToString(notes) {
         if (!notes)
             return "";
 
         let noteString = "";
-        for (let key in notes) {
+        for (const key in notes) {
             if (noteString.length > 0)
                 noteString += ",";
             noteString += key + ':' + notes[key];
@@ -91,13 +82,13 @@ function Tracker() {
      * @param [suppData] Supplementary data to be logged about action.
      * @param [notes] Notes to be logged into the notes field in database.
      */
-    function push(action, suppData, notes) {
-        let item = _createAction(action, suppData, notes);
-        actions.push(item);
+    push(action, suppData, notes) {
+        const item = this.#createAction(action, suppData, notes);
+        this.#actions.push(item);
 
         // TODO: change action buffer size limit
-        if (actions.length > 10) {
-            let data = sg.form.compileSubmissionData();
+        if (this.#actions.length > 10) {
+            const data = sg.form.compileSubmissionData();
             sg.form.submit(data);
         }
         return this;
@@ -106,16 +97,8 @@ function Tracker() {
     /**
      * Empties actions stored in the Tracker.
      */
-    function refresh() {
-        actions = [];
-        self.push("RefreshTracker");
+    refresh() {
+        this.#actions = [];
+        this.push("RefreshTracker");
     }
-
-    _init();
-
-    self.getActions = getActions;
-    self.push = push;
-    self.refresh = refresh;
-
-    return this;
 }

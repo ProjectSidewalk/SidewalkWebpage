@@ -1,46 +1,52 @@
 /**
- * RibbonMenu module
- * Todo. Split the RibbonMenu UI component and the label type switching logic
+ * RibbonMenu module. Owns the label-type ribbon UI and the label-type switching logic.
+ *
+ * Todo. Split the RibbonMenu UI component and the label type switching logic.
  * Todo. Consider moving this under menu instead of ribbon.
- * @param tracker
- * @returns {{className: string}}
- * @constructor
  */
-function RibbonMenu(tracker) {
-    var self = {className: 'RibbonMenu'},
-        properties = {
-            buttonDefaultBorderColor: "transparent",
-            originalBorderColor: "transparent"
-        },
-        status = {
-            disableModeSwitch: false,
-            lockDisableModeSwitch: false,
-            disableMode: {
-                Walk: false,
-                CurbRamp: false,
-                NoCurbRamp: false,
-                Obstacle: false,
-                SurfaceProblem: false,
-                OuterOther: false,
-                Occlusion: false,
-                NoSidewalk: false,
-                Crosswalk: false,
-                Signal: false,
-                Other: false,
-            },
-            lockDisableMode: false,
-            mode: 'Walk',
-            selectedLabelType: undefined
-        },
-        blinkInterval;
-
-    const uiRibbonMenu = {
-        holder: $("#ribbon-menu-holder"),
-        panoFrame: $("#pano-border-frame"),
-        buttons: $('.label-type-button-holder'),
-        subcategoryHolder: $("#ribbon-menu-other-subcategory-holder"),
-        subcategories: $(".ribbon-menu-other-subcategory")
+class RibbonMenu {
+    #tracker;
+    #properties = {
+        buttonDefaultBorderColor: 'transparent',
+        originalBorderColor: 'transparent'
     };
+    #status = {
+        disableModeSwitch: false,
+        lockDisableModeSwitch: false,
+        disableMode: {
+            Walk: false,
+            CurbRamp: false,
+            NoCurbRamp: false,
+            Obstacle: false,
+            SurfaceProblem: false,
+            OuterOther: false,
+            Occlusion: false,
+            NoSidewalk: false,
+            Crosswalk: false,
+            Signal: false,
+            Other: false,
+        },
+        lockDisableMode: false,
+        mode: 'Walk',
+        selectedLabelType: undefined
+    };
+    #blinkInterval;
+    #uiRibbonMenu;
+
+    /**
+     * @param {Object} tracker - Interaction tracker for logging mode switches.
+     */
+    constructor(tracker) {
+        this.#tracker = tracker;
+        this.#uiRibbonMenu = {
+            holder: $('#ribbon-menu-holder'),
+            panoFrame: $('#pano-border-frame'),
+            buttons: $('.label-type-button-holder'),
+            subcategoryHolder: $('#ribbon-menu-other-subcategory-holder'),
+            subcategories: $('.ribbon-menu-other-subcategory')
+        };
+        this.#init();
+    }
 
     /**
      * Adds the tooltip attributes (showing each label type's keyboard shortcut) to the menu buttons.
@@ -48,7 +54,7 @@ function RibbonMenu(tracker) {
      * The global Bootstrap tooltip initializer in Main reads these attributes when it runs, and it only picks up
      * elements that already have them — so this must run during construction, before that init call.
      */
-    function _initTooltipAttributes() {
+    #initTooltipAttributes() {
         const setKeyTooltip = (el, placement) => {
             const val = el.getAttribute('val');
             if (val !== 'Walk' && val !== 'Other') {
@@ -61,65 +67,61 @@ function RibbonMenu(tracker) {
         document.querySelectorAll('.ribbon-menu-other-subcategory').forEach(el => setKeyTooltip(el, 'left'));
     }
 
-    function _init() {
-        _initTooltipAttributes();
+    #init() {
+        this.#initTooltipAttributes();
 
         // Initialize the jQuery DOM elements.
-        if (uiRibbonMenu) {
-            setLabelTypeButtonBorderColors(status.mode);
+        if (this.#uiRibbonMenu) {
+            this.#setLabelTypeButtonBorderColors(this.#status.mode);
 
-            uiRibbonMenu.buttons.bind({
-                click: handleModeSwitchClickCallback,
-                mouseenter: handleModeSwitchMouseEnter,
-                mouseleave: handleModeSwitchMouseLeave
-            });
-            uiRibbonMenu.subcategories.on({
-                click: handleSubcategoryClick
-            });
+            this.#uiRibbonMenu.buttons.on('click', (e) => this.#handleModeSwitchClickCallback(e.currentTarget));
+            this.#uiRibbonMenu.buttons.on('mouseenter', (e) => this.#handleModeSwitchMouseEnter(e.currentTarget));
+            this.#uiRibbonMenu.buttons.on('mouseleave', () => this.#handleModeSwitchMouseLeave());
+            this.#uiRibbonMenu.subcategories.on('click', (e) => this.#handleSubcategoryClick(e));
         }
 
         // Disable mode switch when sign in modal is opened.
         // TODO this doesn't seem to be necessary for some reason?
-        if ($("#sign-in-modal-container").length !== 0) {
-            var $signInModalTextBoxes = $("#sign-in-modal-container input[type='text']"),
-                $signInModalPassword = $("#sign-in-modal-container input[type='password']");
-            $signInModalTextBoxes.on('focus', disableModeSwitch);
-            $signInModalTextBoxes.on('blur', enableModeSwitch);
-            $signInModalPassword.on('focus', disableModeSwitch);
-            $signInModalPassword.on('blur', enableModeSwitch);
+        if ($('#sign-in-modal-container').length !== 0) {
+            const $signInModalTextBoxes = $("#sign-in-modal-container input[type='text']");
+            const $signInModalPassword = $("#sign-in-modal-container input[type='password']");
+            $signInModalTextBoxes.on('focus', () => this.disableModeSwitch());
+            $signInModalTextBoxes.on('blur', () => this.enableModeSwitch());
+            $signInModalPassword.on('focus', () => this.disableModeSwitch());
+            $signInModalPassword.on('blur', () => this.enableModeSwitch());
         }
 
         // TODO For some reason the Other label type button doesn't show in Safari if we don't reset the display attr??
         // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3180
-        var otherButton = document.getElementById('mode-switch-button-other');
+        const otherButton = document.getElementById('mode-switch-button-other');
         otherButton.style.display = 'block';
-        setTimeout(function() {
+        setTimeout(() => {
             otherButton.style.display = 'inline-block';
         }, 500);
     }
 
     /**
-     * This is a callback method that is invoked with a ribbon menu button click
-     * @param {string} mode Either a label type name or 'Walk'
+     * Callback invoked on a ribbon menu button click.
+     * @param {string} mode - Either a label type name or 'Walk'.
      */
-    function modeSwitch(mode) {
-        tracker.push('ModeSwitch_' + mode);
+    modeSwitch(mode) {
+        this.#tracker.push('ModeSwitch_' + mode);
 
-        if (status.disableModeSwitch === false || status.disableMode[mode] === false) {
-            // Used to trigger onboarding states.
+        if (this.#status.disableModeSwitch === false || this.#status.disableMode[mode] === false) {
+            // Triggers onboarding states.
             $(document).trigger('ModeSwitch_' + mode);
 
             if (mode === 'Walk') {
                 // Switch to walking mode.
-                setStatus('mode', 'Walk');
-                setStatus('selectedLabelType', undefined);
+                this.setStatus('mode', 'Walk');
+                this.setStatus('selectedLabelType', undefined);
                 if (svl.navigationService) {
                     svl.navigationService.switchToExploreMode();
                 }
             } else {
                 // Switch to labeling mode.
-                setStatus('mode', mode);
-                setStatus('selectedLabelType', mode);
+                this.setStatus('mode', mode);
+                this.setStatus('selectedLabelType', mode);
                 if (svl.navigationService) svl.navigationService.switchToLabelingMode();
 
                 // Change cursor before mouse is moved.
@@ -130,114 +132,125 @@ function RibbonMenu(tracker) {
                 if ('audioEffect' in svl) svl.audioEffect.load('drip');
             }
 
-            if (uiRibbonMenu) {
-                setLabelTypeButtonBorderColors(mode);
+            if (this.#uiRibbonMenu) {
+                this.#setLabelTypeButtonBorderColors(mode);
 
                 // Recolor the panorama frame to match the selected label type (black while in Walk mode).
                 const borderColor = util.misc.getLabelColors()[mode].fillStyle;
-                uiRibbonMenu.panoFrame.css('border-color', borderColor);
+                this.#uiRibbonMenu.panoFrame.css('border-color', borderColor);
             }
         }
     }
 
-    // TODO
-    function handleSubcategoryClick(e) {
+    /**
+     * @param {Event} e - The subcategory click event (currentTarget is the clicked subcategory).
+     */
+    #handleSubcategoryClick(e) {
         e.stopPropagation();
-        const subcategory = $(this).attr("val");
-        if (status.disableMode[subcategory] === false) {
-            tracker.push('Click_Subcategory_' + subcategory);
+        const subcategory = $(e.currentTarget).attr('val');
+        if (this.#status.disableMode[subcategory] === false) {
+            this.#tracker.push('Click_Subcategory_' + subcategory);
             svl.keyboardShortcutAlert.modeSwitchButtonClicked(subcategory);
-            modeSwitch(subcategory);
-            hideSubcategories();
+            this.modeSwitch(subcategory);
+            this.#hideSubcategories();
         }
     }
 
-    function handleModeSwitchClickCallback() {
-        var labelType = $(this).attr('val');
-        if (status.disableModeSwitch === false || status.disableMode[labelType] === false) {
-            // Track the user action
-            tracker.push('Click_ModeSwitch_' + labelType);
+    /**
+     * @param {EventTarget} target - The clicked label-type button.
+     */
+    #handleModeSwitchClickCallback(target) {
+        const labelType = $(target).attr('val');
+        if (this.#status.disableModeSwitch === false || this.#status.disableMode[labelType] === false) {
+            // Track the user action.
+            this.#tracker.push('Click_ModeSwitch_' + labelType);
             svl.keyboardShortcutAlert.modeSwitchButtonClicked(labelType);
-            modeSwitch(labelType);
+            this.modeSwitch(labelType);
         }
     }
 
-    function handleModeSwitchMouseEnter() {
-        var labelType = $(this).attr("val");
+    /**
+     * @param {EventTarget} target - The hovered label-type button.
+     */
+    #handleModeSwitchMouseEnter(target) {
+        const labelType = $(target).attr('val');
 
-        var modeDisabled;
-        if(svl.isOnboarding() && labelType === "Other") {
-            modeDisabled = status.disableMode["OuterOther"];
+        let modeDisabled;
+        if (svl.isOnboarding() && labelType === 'Other') {
+            modeDisabled = this.#status.disableMode['OuterOther'];
         } else {
-            modeDisabled = status.disableMode[labelType];
+            modeDisabled = this.#status.disableMode[labelType];
         }
 
-        if (status.disableModeSwitch === false || !modeDisabled) {
+        if (this.#status.disableModeSwitch === false || !modeDisabled) {
             // Change the border color of menu buttons.
-            setLabelTypeButtonBorderColors(labelType);
+            this.#setLabelTypeButtonBorderColors(labelType);
 
-            if (labelType === "Other") {
-                showSubcategories();
+            if (labelType === 'Other') {
+                this.#showSubcategories();
             }
         }
     }
 
-    function handleModeSwitchMouseLeave() {
-        // Always activate during onboarding as everything is disabled
-        // So will only be useful for 'Other' dropdown
-        if (status.disableModeSwitch === false || svl.isOnboarding()) {
-            setLabelTypeButtonBorderColors(status.mode);
-            hideSubcategories();
+    #handleModeSwitchMouseLeave() {
+        // Always activate during onboarding as everything is disabled.
+        // So will only be useful for 'Other' dropdown.
+        if (this.#status.disableModeSwitch === false || svl.isOnboarding()) {
+            this.#setLabelTypeButtonBorderColors(this.#status.mode);
+            this.#hideSubcategories();
         }
     }
 
-    function hideSubcategories() {
-        uiRibbonMenu.subcategoryHolder.css('visibility', 'hidden');
+    #hideSubcategories() {
+        this.#uiRibbonMenu.subcategoryHolder.css('visibility', 'hidden');
     }
 
-    function setLabelTypeButtonBorderColors(selectedLabelType) {
-        if (uiRibbonMenu) { // TODO is this check necessary?
-            var labelColors = util.misc.getLabelColors();
-            var selectedBorderColor = labelColors[selectedLabelType].fillStyle;
-            var currLabelType;
-            $.each(uiRibbonMenu.buttons, function (i, v) {
-                currLabelType = $(v).attr("val");
+    /**
+     * @param {string} selectedLabelType
+     * @returns {RibbonMenu} this.
+     */
+    #setLabelTypeButtonBorderColors(selectedLabelType) {
+        if (this.#uiRibbonMenu) { // TODO is this check necessary?
+            const labelColors = util.misc.getLabelColors();
+            const selectedBorderColor = labelColors[selectedLabelType].fillStyle;
+            $.each(this.#uiRibbonMenu.buttons, (i, v) => {
+                const currLabelType = $(v).attr('val');
                 if (currLabelType === selectedLabelType) {
-                    $(this).find('.label-type-icon').css({
+                    $(v).find('.label-type-icon').css({
                         'border-color': selectedBorderColor,
                         'background-color': selectedBorderColor
                     });
                 } else {
                     // Change border/background color if the label type is not the currently selected type.
-                    $(this).find('.label-type-icon').css({ 'border-color': properties.buttonDefaultBorderColor });
-                    $(this).find('.label-type-icon').css({ 'background-color': properties.buttonDefaultBorderColor });
+                    $(v).find('.label-type-icon').css({ 'border-color': this.#properties.buttonDefaultBorderColor });
+                    $(v).find('.label-type-icon').css({ 'background-color': this.#properties.buttonDefaultBorderColor });
                 }
             });
         }
         return this;
     }
 
-    function showSubcategories() {
-        uiRibbonMenu.subcategoryHolder.css('visibility', 'visible');
+    #showSubcategories() {
+        this.#uiRibbonMenu.subcategoryHolder.css('visibility', 'visible');
     }
 
     /**
-     * Changes the mode to "walk"
-     * @returns {backToWalk}
+     * Changes the mode to "walk".
+     * @returns {RibbonMenu} this.
      */
-    function backToWalk() {
-        modeSwitch('Walk');
+    backToWalk() {
+        this.modeSwitch('Walk');
         return this;
     }
 
     /**
-     * Disable switching modes
-     * @returns {disableModeSwitch}
+     * Disable switching modes.
+     * @returns {RibbonMenu} this.
      */
-    function disableModeSwitch() {
-        if (!status.lockDisableModeSwitch) {
-            status.disableModeSwitch = true;
-            status.disableMode = {
+    disableModeSwitch() {
+        if (!this.#status.lockDisableModeSwitch) {
+            this.#status.disableModeSwitch = true;
+            this.#status.disableMode = {
                 Walk: true,
                 CurbRamp: true,
                 NoCurbRamp: true,
@@ -250,37 +263,37 @@ function RibbonMenu(tracker) {
                 Signal: true,
                 Other: true
             };
-            if (uiRibbonMenu) {
-                uiRibbonMenu.buttons.css('opacity', 0.4);
-                uiRibbonMenu.buttons.css('cursor', 'default');
+            if (this.#uiRibbonMenu) {
+                this.#uiRibbonMenu.buttons.css('opacity', 0.4);
+                this.#uiRibbonMenu.buttons.css('cursor', 'default');
 
-                uiRibbonMenu.subcategories.css('opacity', 0.4);
-                uiRibbonMenu.subcategories.css('cursor', 'default');
+                this.#uiRibbonMenu.subcategories.css('opacity', 0.4);
+                this.#uiRibbonMenu.subcategories.css('cursor', 'default');
             }
         }
         return this;
     }
 
     /**
-     * This method disables a specific label type
-     * @param labelType
-     * @param subLabelType
+     * Disables a specific label type.
+     * @param {string} labelType
+     * @param {string} [subLabelType]
      */
-    function disableMode(labelType, subLabelType) {
-        if (!status.lockDisableMode) {
-            var button = uiRibbonMenu.holder.find('[val="' + labelType + '"]').get(0),
-                dropdown;
+    disableMode(labelType, subLabelType) {
+        if (!this.#status.lockDisableMode) {
+            const button = this.#uiRibbonMenu.holder.find('[val="' + labelType + '"]').get(0);
+            let dropdown;
 
-            // So that outer category Other is disabled
-            if (labelType === "Other") {
-                status.disableMode["OuterOther"] = true;
+            // So that outer category Other is disabled.
+            if (labelType === 'Other') {
+                this.#status.disableMode['OuterOther'] = true;
             } else {
-                status.disableMode[labelType] = true;
+                this.#status.disableMode[labelType] = true;
             }
 
             if (subLabelType) {
-                status.disableMode[subLabelType] = true;
-                dropdown = uiRibbonMenu.subcategoryHolder.find('[val="' + subLabelType + '"]').get(0);
+                this.#status.disableMode[subLabelType] = true;
+                dropdown = this.#uiRibbonMenu.subcategoryHolder.find('[val="' + subLabelType + '"]').get(0);
             }
 
             if (button) {
@@ -295,13 +308,13 @@ function RibbonMenu(tracker) {
     }
 
     /**
-     * This method enables mode switch.
-     * @returns {enableModeSwitch}
+     * Enables mode switch.
+     * @returns {RibbonMenu} this.
      */
-    function enableModeSwitch() {
-        if (!status.lockDisableModeSwitch) {
-            status.disableModeSwitch = false;
-            status.disableMode = {
+    enableModeSwitch() {
+        if (!this.#status.lockDisableModeSwitch) {
+            this.#status.disableModeSwitch = false;
+            this.#status.disableMode = {
                 Walk: false,
                 CurbRamp: false,
                 NoCurbRamp: false,
@@ -314,37 +327,37 @@ function RibbonMenu(tracker) {
                 Signal: false,
                 Other: false
             };
-            if (uiRibbonMenu) {
-                uiRibbonMenu.buttons.css('opacity', 1);
-                uiRibbonMenu.buttons.css('cursor', 'pointer');
+            if (this.#uiRibbonMenu) {
+                this.#uiRibbonMenu.buttons.css('opacity', 1);
+                this.#uiRibbonMenu.buttons.css('cursor', 'pointer');
 
-                uiRibbonMenu.subcategories.css('opacity', 1);
-                uiRibbonMenu.subcategories.css('cursor', 'pointer');
+                this.#uiRibbonMenu.subcategories.css('opacity', 1);
+                this.#uiRibbonMenu.subcategories.css('cursor', 'pointer');
             }
         }
         return this;
     }
 
     /**
-     * This method enables a specific label type.
+     * Enables a specific label type.
      * @param {string} labelType
      * @param {string} [subLabelType]
      */
-    function enableMode(labelType, subLabelType) {
-        if (!status.lockDisableMode) {
-            const button = uiRibbonMenu.holder.find('[val="' + labelType + '"]').get(0);
+    enableMode(labelType, subLabelType) {
+        if (!this.#status.lockDisableMode) {
+            const button = this.#uiRibbonMenu.holder.find('[val="' + labelType + '"]').get(0);
             let dropdown;
 
-            // So that sub category Other is not enabled
-            if (labelType === "Other") {
-                status.disableMode["OuterOther"] = false;
+            // So that sub category Other is not enabled.
+            if (labelType === 'Other') {
+                this.#status.disableMode['OuterOther'] = false;
             } else {
-                status.disableMode[labelType] = false;
+                this.#status.disableMode[labelType] = false;
             }
 
             if (subLabelType) {
-                status.disableMode[subLabelType] = false;
-                dropdown = uiRibbonMenu.subcategoryHolder.find('[val="' + subLabelType + '"]').get(0);
+                this.#status.disableMode[subLabelType] = false;
+                dropdown = this.#uiRibbonMenu.subcategoryHolder.find('[val="' + subLabelType + '"]').get(0);
             }
 
             if (button) {
@@ -357,34 +370,44 @@ function RibbonMenu(tracker) {
                 }
             }
         }
-
     }
 
-    function lockDisableModeSwitch() {
-        status.lockDisableModeSwitch = true;
+    /** @returns {RibbonMenu} this. */
+    lockDisableModeSwitch() {
+        this.#status.lockDisableModeSwitch = true;
         return this;
     }
 
-    function lockDisableMode() {
-        status.lockDisableMode = true;
+    /** @returns {RibbonMenu} this. */
+    lockDisableMode() {
+        this.#status.lockDisableMode = true;
         return this;
     }
 
-    function getStatus(key, subkey) {
-        if (key in status) {
+    /**
+     * @param {string} key
+     * @param {string} [subkey]
+     * @returns {*}
+     */
+    getStatus(key, subkey) {
+        if (key in this.#status) {
             if (subkey) {
-                return status[key][subkey];
+                return this.#status[key][subkey];
             } else {
-                return status[key];
+                return this.#status[key];
             }
         } else {
-            console.warn(self.className, 'You cannot access a property "' + key + '".');
+            console.warn('RibbonMenu', 'You cannot access a property "' + key + '".');
             return undefined;
         }
     }
 
-    function getProperty(key) {
-        return key in properties ? properties[key] : null;
+    /**
+     * @param {string} key
+     * @returns {*}
+     */
+    #getProperty(key) {
+        return key in this.#properties ? this.#properties[key] : null;
     }
 
     /**
@@ -395,97 +418,83 @@ function RibbonMenu(tracker) {
      * @param {string} [subname]
      * @returns {RibbonMenu|boolean}
      */
-    function setStatus(name, value, subname) {
-        if (name in status) {
+    setStatus(name, value, subname) {
+        if (name in this.#status) {
             if (name === 'disableModeSwitch') {
                 if (typeof value === 'boolean') {
                     if (value) {
-                        disableModeSwitch();
+                        this.disableModeSwitch();
                     } else {
-                        enableModeSwitch();
+                        this.enableModeSwitch();
                     }
-                    return self;
+                    return this;
                 } else {
-                    return false
+                    return false;
                 }
             } else {
                 if (subname) {
-                    status[name][subname] = value;
+                    this.#status[name][subname] = value;
                 } else {
-                    status[name] = value;
+                    this.#status[name] = value;
                 }
-                return self;
+                return this;
             }
         } else {
-            console.error(self.className, `"${name}" is not a modifiable status.`);
+            console.error('RibbonMenu', `"${name}" is not a modifiable status.`);
             return false;
         }
     }
 
-    function startBlinking(labelType, subLabelType) {
+    /**
+     * @param {string} labelType
+     * @param {string} [subLabelType]
+     */
+    startBlinking(labelType, subLabelType) {
         let highlighted = false;
-        const button = uiRibbonMenu.holder.find('[val="' + labelType + '"]').get(0).children[0];
+        const button = this.#uiRibbonMenu.holder.find('[val="' + labelType + '"]').get(0).children[0];
         let dropdown;
 
         if (subLabelType) {
-            dropdown = uiRibbonMenu.subcategoryHolder.find('[val="' + subLabelType + '"]').get(0);
+            dropdown = this.#uiRibbonMenu.subcategoryHolder.find('[val="' + subLabelType + '"]').get(0);
         }
 
-        stopBlinking();
+        this.stopBlinking();
         if (button) {
-            blinkInterval = window.setInterval(function () {
+            this.#blinkInterval = window.setInterval(() => {
                 if (highlighted) {
                     highlighted = !highlighted;
-                    $(button).css("border-color", "rgba(255, 255, 0, 1)");
+                    $(button).css('border-color', 'rgba(255, 255, 0, 1)');
                     if (dropdown) {
-                        $(dropdown).css("background", "rgba(255, 255, 0, 1)");
+                        $(dropdown).css('background', 'rgba(255, 255, 0, 1)');
                     }
                 } else {
                     highlighted = !highlighted;
-                    $(button).css("border-color", getProperty("originalBorderColor"));
+                    $(button).css('border-color', this.#getProperty('originalBorderColor'));
                     if (dropdown) {
-                        $(dropdown).css("background", "white");
+                        $(dropdown).css('background', 'white');
                     }
                 }
             }, 500);
         }
     }
 
-    function stopBlinking() {
-        clearInterval(blinkInterval);
-        $.each(uiRibbonMenu.buttons, function (i, v) {
-            $(v.children[0]).css("border-color", getProperty("originalBorderColor"));
+    stopBlinking() {
+        clearInterval(this.#blinkInterval);
+        $.each(this.#uiRibbonMenu.buttons, (i, v) => {
+            $(v.children[0]).css('border-color', this.#getProperty('originalBorderColor'));
         });
-        uiRibbonMenu.subcategories.css("background", "white");
+        this.#uiRibbonMenu.subcategories.css('background', 'white');
     }
 
-    function unlockDisableModeSwitch() {
-        status.lockDisableModeSwitch = false;
+    /** @returns {RibbonMenu} this. */
+    unlockDisableModeSwitch() {
+        this.#status.lockDisableModeSwitch = false;
         return this;
     }
 
-    function unlockDisableMode() {
-        status.lockDisableMode = false;
+    /** @returns {RibbonMenu} this. */
+    unlockDisableMode() {
+        this.#status.lockDisableMode = false;
         return this;
     }
-
-    self.backToWalk = backToWalk;
-    self.disableModeSwitch = disableModeSwitch;
-    self.disableMode = disableMode;
-    self.enableModeSwitch = enableModeSwitch;
-    self.enableMode = enableMode;
-    self.lockDisableMode = lockDisableMode;
-    self.lockDisableModeSwitch = lockDisableModeSwitch;
-    self.modeSwitch = modeSwitch;
-    self.modeSwitchClick = modeSwitch;
-    self.getStatus = getStatus;
-    self.setStatus = setStatus;
-    self.startBlinking = startBlinking;
-    self.stopBlinking = stopBlinking;
-    self.unlockDisableMode = unlockDisableMode;
-    self.unlockDisableModeSwitch = unlockDisableModeSwitch;
-
-    _init();
-
-    return self;
 }

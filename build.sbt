@@ -1,3 +1,5 @@
+import com.typesafe.sbt.packager.MappingsHelper.directory
+
 name := """sidewalk-webpage"""
 
 version := "11.5.0"
@@ -47,9 +49,6 @@ libraryDependencies ++= Seq(
   // For automatic WKT to GeoJSON and Shapefile conversion, used with slick-pg.
   "org.n52.jackson" % "jackson-datatype-jts" % "1.2.10",
 
-  // Adds parallel collections to Scala, which were separated out starting at Scala 2.13.
-  "org.scala-lang.modules" %% "scala-parallel-collections" % "1.2.0",
-
   // Used for the sign in/up views. https://github.com/mohiva/play-silhouette-seed/blob/1710f9f3337cbe10d1928fd53a5ab933352b3cf5/build.sbt
   // Find versions here (P26-B3 is Play 2.6, Bootstrap 3): https://adrianhurt.github.io/play-bootstrap/changelog/
   // TODO no releases since Play 2.8. Seems to continue to work, but should consider other options.
@@ -66,6 +65,11 @@ libraryDependencies ++= Seq(
 )
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
+
+// Package the scripts/ directory into the staged/dist build. ClusterService shells out to scripts/label_clustering.py
+// at runtime via a working-directory-relative path, so a prod/staged app (whose working dir is the stage dir, not the
+// repo root) can only find it if it's copied into the distribution alongside the app.
+Universal / mappings ++= directory(baseDirectory.value / "scripts")
 
 scalacOptions ++= Seq(
   "-deprecation", // Emit warning and location for usages of deprecated APIs.

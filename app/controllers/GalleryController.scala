@@ -6,9 +6,7 @@ import formats.json.GalleryFormats._
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
 import models.label.LabelTypeEnum
-import models.utils.MyPostgresProfile
 import play.api.Configuration
-import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.Messages
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, AnyContent}
@@ -23,7 +21,6 @@ class GalleryController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[DefaultEnv],
     val config: Configuration,
-    protected val dbConfigProvider: DatabaseConfigProvider,
     implicit val ec: ExecutionContext,
     configService: ConfigService,
     labelService: LabelService,
@@ -31,8 +28,7 @@ class GalleryController @Inject() (
     galleryService: GalleryService,
     regionService: RegionService
 )(implicit assets: AssetsFinder)
-    extends CustomBaseController(cc)
-    with HasDatabaseConfigProvider[MyPostgresProfile] {
+    extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
 
   /**
@@ -64,7 +60,7 @@ class GalleryController @Inject() (
       for {
         possibleRegions: Seq[Int] <- regionService.getAllRegions.map(_.map(_.regionId))
         possibleTags: Seq[String] <- {
-          if (labType != "Assorted") db.run(labelService.selectTagsByLabelType(labelType).map(_.map(_.tag)))
+          if (labType != "Assorted") labelService.selectTagsByLabelType(labelType).map(_.map(_.tag))
           else Future.successful(Seq())
         }
         commonData <- configService.getCommonPageData(request2Messages.lang)

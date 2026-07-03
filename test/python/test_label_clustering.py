@@ -194,8 +194,9 @@ def test_fetch_labels_normalizes_json(monkeypatch):
         def json(self):
             return [{'label_id': 1, 'lat': 47.6, 'lng': -122.3}]
 
-    monkeypatch.setattr(lc.requests, 'get', lambda url, timeout: _Resp())
-    df = lc.fetch_labels('http://localhost:9000/labelsToClusterInRegion?key=k&regionId=1')
+    monkeypatch.delenv('INTERNAL_API_KEY', raising=False)
+    monkeypatch.setattr(lc.requests, 'get', lambda url, headers, timeout: _Resp())
+    df = lc.fetch_labels('http://localhost:9000/labelsToClusterInRegion?regionId=1')
     assert df.iloc[0]['label_id'] == 1
 
 
@@ -206,9 +207,17 @@ def test_post_results_posts_payload(monkeypatch):
         captured.update(url=url, data=data, headers=headers)
         return 'resp'
 
+    monkeypatch.delenv('INTERNAL_API_KEY', raising=False)
     monkeypatch.setattr(lc.requests, 'post', _fake_post)
     assert lc.post_results('http://localhost:9000/clusteringResults', '{}') == 'resp'
     assert captured['headers'] == lc.POST_HEADER
+
+
+def test_auth_headers_present_only_when_env_set(monkeypatch):
+    monkeypatch.delenv('INTERNAL_API_KEY', raising=False)
+    assert lc._auth_headers() == {}
+    monkeypatch.setenv('INTERNAL_API_KEY', 'sekret')
+    assert lc._auth_headers() == {'Authorization': 'Bearer sekret'}
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -239,7 +248,7 @@ def _multi_type_frame():
 
 def test_main_no_labels_posts_empty_payload(monkeypatch):
     posted = _patch_io(monkeypatch, pd.DataFrame())
-    assert lc.main(['--key', 'k', '--region_id', '1']) == 0
+    assert lc.main(['--region_id', '1']) == 0
     assert posted['payload'] == lc.EMPTY_PAYLOAD
 
 
@@ -247,13 +256,13 @@ def test_main_all_invalid_labels_posts_empty_payload(monkeypatch):
     frame = pd.DataFrame({'label_id': [1], 'label_type': ['CurbRamp'], 'lat': [47.6], 'lng': [500.0],
                           'user_id': [10], 'pano_id': ['a'], 'severity': [1.0]})
     posted = _patch_io(monkeypatch, frame)
-    assert lc.main(['--key', 'k', '--region_id', '1']) == 0
+    assert lc.main(['--region_id', '1']) == 0
     assert posted['payload'] == lc.EMPTY_PAYLOAD
 
 
 def test_main_happy_path_posts_clusters(monkeypatch):
     posted = _patch_io(monkeypatch, _multi_type_frame())
-    assert lc.main(['--key', 'k', '--region_id', '1']) == 0
+    assert lc.main(['--region_id', '1']) == 0
     out = json.loads(posted['payload'])
     assert len(out['labels']) >= 1
     assert len(out['clusters']) >= 1
@@ -271,7 +280,7 @@ def test_main_debug_with_dirty_data_still_clusters(monkeypatch, capsys):
         'severity': [1.0, 2.0, 3.0, 4.0],
     })
     posted = _patch_io(monkeypatch, frame)
-    assert lc.main(['--key', 'k', '--region_id', '1', '--debug']) == 0
+    assert lc.main(['--region_id', '1', '--debug']) == 0
     printed = capsys.readouterr().out
     assert 'invalid longitude' in printed
     assert 'NaN longitude' in printed
@@ -282,7 +291,7 @@ def test_main_debug_with_dirty_data_still_clusters(monkeypatch, capsys):
 def test_main_debug_with_clean_data(monkeypatch):
     # --debug path with no invalid/NaN rows, so the cleaning-stat guards take their false branch.
     posted = _patch_io(monkeypatch, _multi_type_frame())
-    assert lc.main(['--key', 'k', '--region_id', '1', '--debug']) == 0
+    assert lc.main(['--region_id', '1', '--debug']) == 0
     assert json.loads(posted['payload'])['labels']
 
 
@@ -293,5 +302,5 @@ def test_main_returns_1_when_fetch_fails(monkeypatch):
     called = []
     monkeypatch.setattr(lc, 'fetch_labels', _boom)
     monkeypatch.setattr(lc, 'post_results', lambda url, payload: called.append(payload))
-    assert lc.main(['--key', 'k', '--region_id', '1']) == 1
+    assert lc.main(['--region_id', '1']) == 1
     assert called == []  # nothing posted on a fetch failure

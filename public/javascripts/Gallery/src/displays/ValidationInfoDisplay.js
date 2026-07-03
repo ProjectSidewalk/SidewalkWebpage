@@ -1,73 +1,79 @@
-
 /**
  * An object that creates a display for the agree/disagree counts on a gallery card.
- *
- * @param {HTMLElement} container The DOM element that contains the display
- * @param {number} agreeCount The agree count to display
- * @param {number} disagreeCount The disagree count to display
- * @param {string} aiValidation Either 'Agree' or 'Disagree', showing AI validation if there is any
- * @returns {ValidationInfoDisplay} the generated object
  */
-function ValidationInfoDisplay(container, agreeCount, disagreeCount, aiValidation) {
-    const self = this;
-    self.agreeCount = agreeCount;
-    self.disagreeCount = disagreeCount;
-    self.validationContainer = container;
+class ValidationInfoDisplay {
+    static #ICON_BASE = '/assets/images/icons/validation/';
 
-    const ICON_BASE = '/assets/images/icons/validation/';
+    #aiValidation;
 
-    function _init() {
-        let holder = document.createElement('div');
+    /**
+     * @param {HTMLElement} container The DOM element that contains the display.
+     * @param {number} agreeCount The agree count to display.
+     * @param {number} disagreeCount The disagree count to display.
+     * @param {string} aiValidation Either 'Agree' or 'Disagree', showing AI validation if there is any.
+     */
+    constructor(container, agreeCount, disagreeCount, aiValidation) {
+        this.agreeCount = agreeCount;
+        this.disagreeCount = disagreeCount;
+        this.validationContainer = container;
+        this.#aiValidation = aiValidation;
+
+        this.#init();
+    }
+
+    #init() {
+        const container = this.validationContainer;
+        const holder = document.createElement('div');
         holder.className = 'validation-info-content';
 
         // Create outer container for agree and disagree sections.
-        self.agreeContainer = document.createElement('div');
-        self.agreeContainer.className = 'validation-section-content';
-        self.disagreeContainer = document.createElement('div');
-        self.disagreeContainer.className = 'validation-section-content';
+        this.agreeContainer = document.createElement('div');
+        this.agreeContainer.className = 'validation-section-content';
+        this.disagreeContainer = document.createElement('div');
+        this.disagreeContainer.className = 'validation-section-content';
 
         // Create the agree and disagree count containers.
-        let agreeCountContainer = document.createElement('div');
-        let disagreeCountContainer = document.createElement('div');
+        const agreeCountContainer = document.createElement('div');
+        const disagreeCountContainer = document.createElement('div');
         agreeCountContainer.className = 'validation-info-count-container';
         disagreeCountContainer.className = 'validation-info-count-container';
 
         // Build the agree/disagree icons. There is a `-ai` variant of each icon.
-        const agreeIcon = _makeVoteIcon('Agree', aiValidation === 'Agree');
+        const agreeIcon = this.#makeVoteIcon('Agree', this.#aiValidation === 'Agree');
         agreeCountContainer.appendChild(agreeIcon);
 
-        const disagreeIcon = _makeVoteIcon('Disagree', aiValidation === 'Disagree');
+        const disagreeIcon = this.#makeVoteIcon('Disagree', this.#aiValidation === 'Disagree');
         disagreeCountContainer.appendChild(disagreeIcon);
 
         // Create the agree and disagree count text elements.
-        self.agreeText = document.createElement('div');
-        self.agreeText.className = 'validation-info-count';
-        agreeCountContainer.append(self.agreeText);
+        this.agreeText = document.createElement('div');
+        this.agreeText.className = 'validation-info-count';
+        agreeCountContainer.append(this.agreeText);
 
-        self.disagreeText = document.createElement('div');
-        self.disagreeText.className = 'validation-info-count';
-        disagreeCountContainer.append(self.disagreeText);
+        this.disagreeText = document.createElement('div');
+        this.disagreeText.className = 'validation-info-count';
+        disagreeCountContainer.append(this.disagreeText);
 
-        updateValCounts(self.agreeCount, self.disagreeCount);
+        this.updateValCounts(this.agreeCount, this.disagreeCount);
 
-        self.agreeContainer.append(agreeCountContainer);
-        self.disagreeContainer.append(disagreeCountContainer);
+        this.agreeContainer.append(agreeCountContainer);
+        this.disagreeContainer.append(disagreeCountContainer);
 
-        holder.append(self.agreeContainer);
-        holder.append(self.disagreeContainer);
+        holder.append(this.agreeContainer);
+        holder.append(this.disagreeContainer);
 
         container.append(holder);
     }
 
     /**
      * Builds an <img> for the agree/disagree vote icon, using the `-ai` variant when the AI validated this option.
-     * @param action 'Agree' or 'Disagree'
-     * @param isAi whether to use the AI variant of the icon
+     * @param {string} action 'Agree' or 'Disagree'.
+     * @param {boolean} isAi Whether to use the AI variant of the icon.
      */
-    function _makeVoteIcon(action, isAi) {
+    #makeVoteIcon(action, isAi) {
         const icon = document.createElement('img');
         icon.className = 'validation-info-image';
-        icon.src = `${ICON_BASE}${action.toLowerCase()}-outline${isAi ? '-ai' : ''}.svg`;
+        icon.src = `${ValidationInfoDisplay.#ICON_BASE}${action.toLowerCase()}-outline${isAi ? '-ai' : ''}.svg`;
         icon.alt = '';
         icon.setAttribute('data-toggle', 'tooltip');
         icon.setAttribute('data-placement', 'top');
@@ -83,15 +89,10 @@ function ValidationInfoDisplay(container, agreeCount, disagreeCount, aiValidatio
         return icon;
     }
 
-    function updateValCounts(agreeCount, disagreeCount) {
-        self.agreeCount = agreeCount;
-        self.disagreeCount = disagreeCount;
-        self.agreeText.innerText = `${self.agreeCount}`;
-        self.disagreeText.innerText = `${self.disagreeCount}`;
+    updateValCounts(agreeCount, disagreeCount) {
+        this.agreeCount = agreeCount;
+        this.disagreeCount = disagreeCount;
+        this.agreeText.innerText = `${this.agreeCount}`;
+        this.disagreeText.innerText = `${this.disagreeCount}`;
     }
-
-    self.updateValCounts = updateValCounts;
-
-    _init()
-    return self;
 }

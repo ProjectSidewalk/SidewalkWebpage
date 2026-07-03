@@ -3,49 +3,60 @@
  *
  * TODO This module needs to be cleaned up.
  * TODO Split the responsibilities. Storing tasks should remain here, but other things like fetching data from the server (should go to TaskModel) and rendering segments on a map.
- * @param neighborhoodModel
- * @param svl
- * @param tracker
  */
-function TaskContainer (neighborhoodModel, svl, tracker) {
-    const self = this;
+class TaskContainer {
+    #neighborhoodModel;
+    #svl;
+    #tracker;
 
-    let currentTask = null;
+    #currentTask = null;
     /* Used to keep track of the task we've decided to jump to while the user finishes labeling the current location. */
-    let nextTaskAfterJump = null;
-    let tasksFinishedLoading = false;
+    #nextTaskAfterJump = null;
+    #tasksFinishedLoading = false;
 
-    self._tasks = [];
+    _tasks = [];
 
-    self.tasksLoaded = function() {
-        return tasksFinishedLoading;
+    /**
+     * @param neighborhoodModel
+     * @param svl
+     * @param tracker
+     */
+    constructor(neighborhoodModel, svl, tracker) {
+        this.#neighborhoodModel = neighborhoodModel;
+        this.#svl = svl;
+        this.#tracker = tracker;
+    }
+
+    tasksLoaded() {
+        return this.#tasksFinishedLoading;
     }
 
     /**
      * End the current task.
      */
-    function endTask(task) {
-        if (tracker) tracker.push("TaskEnd");
+    endTask(task) {
+        const svl = this.#svl;
+        if (this.#tracker) this.#tracker.push("TaskEnd");
         task.complete();
 
         // Submit the data so that the task is marked as complete in the db. Note that this happens async.
         svl.form.submitData(task);
 
         // Update the audited distance in the right sidebar.
-        updateAuditedDistance();
+        this.updateAuditedDistance();
 
         if (svl.user.getProperty('role') === "Anonymous"
-            && getCompletedTaskDistance({ units: 'kilometers' }) > 0.15
+            && this.getCompletedTaskDistance({ units: 'kilometers' }) > 0.15
             && !svl.popUpMessage.haveAskedToSignIn()) {
             svl.popUpMessage.promptSignIn();
         }
 
         // Updates the segments that the user has already explored.
-        self.updateCurrentTask();
+        this.updateCurrentTask();
 
         // Check if finishing this task completes the neighborhood across all users. Must run after task.complete() so
         // the just-finished task is filtered out of getIncompleteTasksAcrossAllUsersUsingPriority() naturally.
-        updateNeighborhoodCompleteAcrossAllUsersStatus();
+        this.#updateNeighborhoodCompleteAcrossAllUsersStatus();
 
         return task;
     }
@@ -54,7 +65,8 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
      * Request the server to populate tasks
      * TODO Move this to somewhere else. TaskModel?
      */
-    self.fetchTasks = function() {
+    fetchTasks() {
+        const svl = this.#svl;
         const currMission = svl.missionContainer.getCurrentMission();
         const currMissionId = currMission.getProperty('missionId');
         let url;
@@ -68,13 +80,13 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
             .then((response) => response.json())
             .then(async (result) => {
                 let task;
-                const currStreetId = getCurrentTaskStreetEdgeId();
+                const currStreetId = this.getCurrentTaskStreetEdgeId();
                 for (let i = 0; i < result.features.length; i++) {
                     // Skip the task that we were given to start with so that we don't add a duplicate.
                     if (result.features[i].properties.street_edge_id !== currStreetId) {
                         task = new Task(result.features[i], false);
                         if ((result.features[i].properties.completed)) task.complete();
-                        self._tasks.push(task);
+                        this._tasks.push(task);
 
                         // If the street was part of the curr mission, add it to the list!
                         if (task.getProperty('currentMissionId') === currMissionId) {
@@ -82,22 +94,22 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
                         }
                     }
                 }
-                tasksFinishedLoading = true;
+                this.#tasksFinishedLoading = true;
             })
             .catch(error => {
                 console.error(error);
             });
-    };
+    }
 
     /**
      * Updates the task priorities for the given set of streets. These should be updated from other users' audits.
      * @param {{street_edge_id: number, priority: number}} updatedPriorities Any streets with a new priority value
     */
-    function updateTaskPriorities(updatedPriorities) {
-        // Loop through all updatedPriorities and update self._tasks with the new priorities.
-        updatedPriorities.forEach(function (newPriority) {
-            const index = self._tasks.findIndex((s) => { return s.getStreetEdgeId() === newPriority.street_edge_id; });
-            self._tasks[index].setProperty('priority', newPriority.priority);
+    updateTaskPriorities(updatedPriorities) {
+        // Loop through all updatedPriorities and update _tasks with the new priorities.
+        updatedPriorities.forEach((newPriority) => {
+            const index = this._tasks.findIndex(s => s.getStreetEdgeId() === newPriority.street_edge_id);
+            this._tasks[index].setProperty('priority', newPriority.priority);
         });
     }
 
@@ -108,17 +120,14 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
      * @param {number} threshold Distance threshold in km, unless specified in unit parameter
      * @param {object} [unit] Object with field 'units' holding distance unit, default to 'kilometers'
      * @returns {Task[]} Array of tasks that are connected to the given task
-     * @private
      */
-    self._findConnectedTasks = function(taskIn, threshold, unit) {
+    #findConnectedTasks(taskIn, threshold, unit) {
         if (!unit) unit = { units: 'kilometers' };
-        let tasks = self.getTasks();
+        let tasks = this.getTasks();
 
-        let connectedTasks = [];
+        const connectedTasks = [];
         if (taskIn && tasks) {
-            tasks = tasks.filter(function (t) {
-                return !t.isComplete() && t.getStreetEdgeId() !== taskIn.getStreetEdgeId();
-            });
+            tasks = tasks.filter(t => !t.isComplete() && t.getStreetEdgeId() !== taskIn.getStreetEdgeId());
 
             for (let i = 0, len = tasks.length; i < len; i++) {
                 if (taskIn.isConnectedTo(tasks[i], threshold, unit)) {
@@ -128,16 +137,16 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
         }
 
         return connectedTasks;
-    };
+    }
 
     /**
      * Get the total distance of completed segments.
      * @params {{units: string}} [units] Object with field 'units' holding distance unit, default to 'kilometers'
      * @returns {number} distance in unit.
      */
-    function getCompletedTaskDistance(units) {
+    getCompletedTaskDistance(units) {
         if (!units) units = { units: i18next.t('common:unit-distance') };
-        const completedTasks = getCompletedTasks()
+        const completedTasks = this.getCompletedTasks();
         let feature;
         let distance = 0;
 
@@ -147,7 +156,7 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
                 distance += turf.length(feature, units);
             }
         }
-        if (!currentTask.isComplete()) distance += getCurrentTaskDistance(units);
+        if (!this.#currentTask.isComplete()) distance += this.getCurrentTaskDistance(units);
 
         return distance;
     }
@@ -157,9 +166,9 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
      *
      * @returns {number} distance in unit.
      */
-    function getCompletedTaskDistanceAcrossAllUsersUsingPriority() {
+    getCompletedTaskDistanceAcrossAllUsersUsingPriority() {
         const unit = { units: i18next.t('common:unit-distance') };
-        const tasks = self.getTasks().filter(function(t) { return t.getStreetPriority() < 1; });
+        const tasks = this.getTasks().filter(t => t.getStreetPriority() < 1);
         let feature;
         let distance = 0;
 
@@ -177,13 +186,13 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
      * @param {object} [unit] Object with field 'units' holding distance unit, default to 'kilometers'
      * @returns {number}
      */
-    function getCurrentTaskDistance(unit) {
+    getCurrentTaskDistance(unit) {
         if (!unit) unit = {units: 'kilometers'};
 
-        if (currentTask) {
-            const currentLatLng = svl.panoViewer.getPosition();
-            currentTask.updateTheFurthestPointReached(currentLatLng);
-            return currentTask.getAuditedDistance(unit);
+        if (this.#currentTask) {
+            const currentLatLng = this.#svl.panoViewer.getPosition();
+            this.#currentTask.updateTheFurthestPointReached(currentLatLng);
+            return this.#currentTask.getAuditedDistance(unit);
         }
         return 0;
     }
@@ -192,83 +201,82 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
      * This method returns the completed tasks.
      * @returns {Task[]}
      */
-    function getCompletedTasks() {
-        return self._tasks.filter(function (task) { return task.isComplete(); });
+    getCompletedTasks() {
+        return this._tasks.filter(task => task.isComplete());
     }
 
     /**
      * Return list of tasks completed by any user.
      * @returns {Task[]}
      */
-    function getCompletedTasksAllUsersUsingPriority() {
-        return self._tasks.filter(function (task) { return task.getStreetPriority() < 1; });
+    getCompletedTasksAllUsersUsingPriority() {
+        return this._tasks.filter(task => task.getStreetPriority() < 1);
     }
 
     /**
      * Get the current task
      * @returns {Task}
      */
-    function getCurrentTask() {
-        return currentTask;
+    getCurrentTask() {
+        return this.#currentTask;
     }
 
     /**
      * Store the task to jump to once the current intersection is complete.
      * @param {Task} task
      */
-    this.setNextTaskAfterJump = function(task) {
-        nextTaskAfterJump = task;
-    };
+    setNextTaskAfterJump(task) {
+        this.#nextTaskAfterJump = task;
+    }
 
     /**
      * Get the task to jump to once the current intersection is complete.
      * TODO This might make more sense in NavigationService..?
      * @returns {Task}
      */
-    function getNextTaskAfterJump() {
-        return nextTaskAfterJump;
+    getNextTaskAfterJump() {
+        return this.#nextTaskAfterJump;
     }
 
     /**
      * Find incomplete tasks by the user.
      */
-    self.getIncompleteTasks = function() {
-        return self._tasks.filter(function (task) { return !task.isComplete(); });
-    };
+    getIncompleteTasks() {
+        return this._tasks.filter(task => !task.isComplete());
+    }
 
     /**
      * Find incomplete tasks across all users.
      */
-    self.getIncompleteTasksAcrossAllUsersUsingPriority = function() {
-        const incompleteTasksByUser = self._tasks.filter(function (task) { return !task.isComplete(); });
+    getIncompleteTasksAcrossAllUsersUsingPriority() {
+        const incompleteTasksByUser = this._tasks.filter(task => !task.isComplete());
 
         let incompleteTasksAcrossAllUsers = [];
         if (incompleteTasksByUser.length > 0) {
-            incompleteTasksAcrossAllUsers = incompleteTasksByUser.filter(function (t) {
-                return t.getStreetPriority() === 1;
-            });
+            incompleteTasksAcrossAllUsers = incompleteTasksByUser.filter(t => t.getStreetPriority() === 1);
         }
 
         return incompleteTasksAcrossAllUsers;
-    };
+    }
 
-    this.getTasks = function() {
-        return self._tasks;
-    };
+    getTasks() {
+        return this._tasks;
+    }
 
     /**
      * Checks if the neighborhood is complete across all users; if so, displays the relevant overlay.
      */
-    function updateNeighborhoodCompleteAcrossAllUsersStatus() {
+    #updateNeighborhoodCompleteAcrossAllUsersStatus() {
+        const neighborhoodModel = this.#neighborhoodModel;
         // Only run this code if the neighborhood was set as incomplete and user is not on a designated route.
         if (!neighborhoodModel.isRoute && !neighborhoodModel.getNeighborhoodCompleteAcrossAllUsers()) {
             // Indicates neighborhood is complete.
-            if (self.getIncompleteTasksAcrossAllUsersUsingPriority().length === 0) {
+            if (this.getIncompleteTasksAcrossAllUsersUsingPriority().length === 0) {
                 neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
                 $("#area-completion-overlay-wrapper").show();
-                const currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
+                const currentNeighborhood = this.#svl.neighborhoodModel.currentNeighborhood();
                 const currentNeighborhoodId = currentNeighborhood.getRegionId();
-                tracker.push("NeighborhoodComplete_AcrossAllUsers", { 'RegionId': currentNeighborhoodId });
+                this.#tracker.push("NeighborhoodComplete_AcrossAllUsers", { 'RegionId': currentNeighborhoodId });
             }
         }
     }
@@ -286,11 +294,12 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
      * @param {Task} finishedTask The task that has been finished
      * @returns {Task} Next task
      */
-    this.nextTask = function(finishedTask) {
+    nextTask(finishedTask) {
+        const svl = this.#svl;
         let newTask;
 
         // Check if user has audited entire region or route.
-        let tasksNotCompletedByUser = self.getTasks().filter(function (t) {
+        const tasksNotCompletedByUser = this.getTasks().filter(t => {
             return !t.isComplete() && t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null);
         });
         if (tasksNotCompletedByUser.length === 0) {
@@ -307,25 +316,25 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
             // priority task that isn't connected.
 
             // Find the highest priority task not audited by the user.
-            const highestPriorityTask = tasksNotCompletedByUser.sort(function(t1, t2) {
+            const highestPriorityTask = tasksNotCompletedByUser.sort((t1, t2) => {
                     return t2.getStreetPriority() - t1.getStreetPriority();
                 })[0];
             const highestPriorityDiscretized = highestPriorityTask.getStreetPriorityDiscretized();
 
             // Get list of connected streets. If empty, try with a progressively wider radius 5m, 10m, 25m.
-            let connectedTasks = self._findConnectedTasks(finishedTask, 0.005);
+            let connectedTasks = this.#findConnectedTasks(finishedTask, 0.005);
             if (connectedTasks.length === 0) {
-                connectedTasks = self._findConnectedTasks(finishedTask, 0.010);
+                connectedTasks = this.#findConnectedTasks(finishedTask, 0.010);
             }
             if (connectedTasks.length === 0) {
-                connectedTasks = self._findConnectedTasks(finishedTask, svl.CONNECTED_TASK_THRESHOLD);
+                connectedTasks = this.#findConnectedTasks(finishedTask, svl.CONNECTED_TASK_THRESHOLD);
             }
 
             // If any of the connected tasks has max discretized priority, pick the highest priority connected street,
             // o/w take the highest priority task in the neighborhood.
-            connectedTasks = connectedTasks.filter(function (t) {
+            connectedTasks = connectedTasks.filter(t => {
                 return t.getStreetPriorityDiscretized() === highestPriorityDiscretized;
-            }).sort(function (t1, t2) {
+            }).sort((t1, t2) => {
                 return t2.getStreetPriority() - t1.getStreetPriority();
             });
             let connectedTask;
@@ -350,7 +359,7 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
                 if (connectedTask || taskNearby) {
                     startPoint = finishedTask.getEndCoordinate();
                     newTask.setStreetEdgeDirection(startPoint);
-                } else if (self._findConnectedTasks(newTask, svl.CONNECTED_TASK_THRESHOLD).length === 0) {
+                } else if (this.#findConnectedTasks(newTask, svl.CONNECTED_TASK_THRESHOLD).length === 0) {
                     newTask.reverseStreetDirection();
                 }
             }
@@ -358,19 +367,20 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
         newTask.setProperty('taskStart', new Date());
         newTask.render();
         return newTask;
-    };
+    }
 
     /**
      * Set the current task.
      * @param {Task} task
      */
-    this.setCurrentTask = function(task) {
-        currentTask = task;
+    setCurrentTask(task) {
+        const svl = this.#svl;
+        this.#currentTask = task;
         if ('missionContainer' in svl) {
             const currMissionId = svl.missionContainer.getCurrentMission().getProperty('missionId');
-            currentTask.setProperty('currentMissionId', currMissionId);
+            this.#currentTask.setProperty('currentMissionId', currMissionId);
         }
-        tracker.push('TaskStart');
+        this.#tracker.push('TaskStart');
 
         if ('compass' in svl) {
             svl.compass.showMessage();
@@ -379,26 +389,26 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
 
         // Show AI guidance message if applicable.
         if (svl.aiGuidance) svl.aiGuidance.showAiGuidanceMessage();
-    };
+    }
 
     /**
      * Get the street id of the current task.
      */
-    function getCurrentTaskStreetEdgeId() {
-        return currentTask ? currentTask.getStreetEdgeId() : null;
+    getCurrentTaskStreetEdgeId() {
+        return this.#currentTask ? this.#currentTask.getStreetEdgeId() : null;
     }
 
     /**
      *
      * @param {object} [unit] Object with field 'units' holding distance unit, default to 'kilometers'
      */
-    function totalLineDistanceInNeighborhood(unit) {
+    totalLineDistanceInNeighborhood(unit) {
         if (!unit) unit = { units: 'kilometers' };
-        const tasks = self.getTasks();
+        const tasks = this.getTasks();
 
         if (tasks) {
-            const distanceArray = tasks.map(function (t) { return t.lineDistance(unit); });
-            return distanceArray.sum();
+            const distanceArray = tasks.map(t => t.lineDistance(unit));
+            return util.array.sum(distanceArray);
         } else {
             return null;
         }
@@ -409,24 +419,24 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
      * segments of the current task on Google Maps.
      * TODO This should be done somewhere else.
      */
-    function updateCurrentTask() {
-        const currentLatLng = svl.panoViewer.getPosition();
-        currentTask.updateTheFurthestPointReached(currentLatLng);
-        currentTask.render();
+    updateCurrentTask() {
+        const currentLatLng = this.#svl.panoViewer.getPosition();
+        this.#currentTask.updateTheFurthestPointReached(currentLatLng);
+        this.#currentTask.render();
     }
 
     /**
      * Update the audited distance in the right sidebar using the length of the streets in the current neighborhood.
-     * @returns {updateAuditedDistance}
+     * @returns {TaskContainer}
      */
-    function updateAuditedDistance() {
+    updateAuditedDistance() {
         let distance = 0;
-        const neighborhood = svl.neighborhoodModel.currentNeighborhood();
+        const neighborhood = this.#svl.neighborhoodModel.currentNeighborhood();
 
         if (neighborhood) {
-            distance = getCompletedTaskDistance({ units: i18next.t('common:unit-distance') });
+            distance = this.getCompletedTaskDistance({ units: i18next.t('common:unit-distance') });
         }
-        svl.overallStats.setNeighborhoodAuditedDistance(distance);
+        this.#svl.overallStats.setNeighborhoodAuditedDistance(distance);
         return this;
     }
 
@@ -434,33 +444,17 @@ function TaskContainer (neighborhoodModel, svl, tracker) {
      * Checks if there are any max priority tasks remaining (proxy for neighborhood being complete across all users.
      * @returns {null|boolean}
      */
-    function hasMaxPriorityTask() {
-        return self._tasks.filter(function (task) { return task.getStreetPriority() === 1; }).length > 0;
+    hasMaxPriorityTask() {
+        return this._tasks.filter(task => task.getStreetPriority() === 1).length > 0;
     }
 
     /**
-     * Renders all tasks to draw both unexplored and previously completed tasks. Should be called at page load
+     * Renders all tasks to draw both unexplored and already-completed tasks. Should be called at page load
      * so it does not render redundantly.
      */
-    function renderAllTasks() {
-        for (let task of self._tasks) {
+    renderAllTasks() {
+        for (const task of this._tasks) {
             task.render();
         }
     }
-
-    self.endTask = endTask;
-    self.getCompletedTasks = getCompletedTasks;
-    self.getCompletedTasksAllUsersUsingPriority = getCompletedTasksAllUsersUsingPriority;
-    self.getCurrentTaskDistance = getCurrentTaskDistance;
-    self.getCompletedTaskDistance = getCompletedTaskDistance;
-    self.getCompletedTaskDistanceAcrossAllUsersUsingPriority = getCompletedTaskDistanceAcrossAllUsersUsingPriority;
-    self.getCurrentTask = getCurrentTask;
-    self.getNextTaskAfterJump = getNextTaskAfterJump;
-    self.renderAllTasks = renderAllTasks;
-    self.hasMaxPriorityTask = hasMaxPriorityTask;
-    self.totalLineDistanceInNeighborhood = totalLineDistanceInNeighborhood;
-    self.updateCurrentTask = updateCurrentTask;
-    self.updateAuditedDistance = updateAuditedDistance;
-    self.updateTaskPriorities = updateTaskPriorities;
-    self.getCurrentTaskStreetEdgeId = getCurrentTaskStreetEdgeId;
 }

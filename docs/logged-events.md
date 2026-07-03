@@ -32,6 +32,13 @@ Each pushed event is buffered with a timestamp and context (pano, task, lat/lng,
 periodically — on mission complete or after enough interactions accumulate — which is itself recorded as a
 `RefreshTracker` event.
 
+**Environment metadata (separate from events).** Alongside interaction events, each tool's `Form.js` submits
+per-session environment fields — including `browser`, `browser_version`, and `operating_system` — stored with the task
+rather than as `push(...)` events. These values come from the **Bowser** library (`util.getBrowser` /
+`getBrowserVersion` / `getOperatingSystem` in `common/Utilities.js`). Historical rows, produced by jQuery user-agent
+sniffing, use a different vocabulary (`mozilla` for Firefox, `MacOS`, `UNIX`); newer rows use Bowser's (`Firefox`,
+`macOS`, `Linux`, …). When analyzing browser/OS across time ranges, expect both.
+
 ## Event naming
 
 Most events are fixed, transparently-named strings (`ContextMenu_Open`, `Onboarding_Start`, `Click_ZoomIn`). The ones
@@ -60,6 +67,8 @@ ones whose meaning, parameters, or history aren't obvious:
 | Event | Why it's worth noting |
 |-------|------------------------|
 | `RefreshTracker` | Not a user action — it marks the buffer being flushed to the backend (on mission complete or after N interactions). |
+| `SubmitFailed` / `SubmitFailedGaveUp` (Validate) | Not user actions — a data POST to `/validationTask` failed and is being retried (`SubmitFailed`, with `attempt` and `error`) or was abandoned after the retry cap (`SubmitFailedGaveUp`). Surfaces flaky-network submission trouble, esp. on mobile (#2745). |
+| `POV_Changed` (Validate) | The user panned/zoomed the pano. Throttled to at most one per ~500ms (with a trailing sample) so a continuous drag no longer floods the buffer (#2745) — counts undercount raw movement by design. |
 | `LowLevelEvent_<domType>` | A runtime family, not a single event (see [naming](#event-naming)); these are by far the highest-volume rows. |
 | `ModeSwitch_<…>` vs `Click_ModeSwitch_<…>` vs `KeyboardShortcut_ModeSwitch_<…>` | Same logical action via three input paths; don't double-count them as separate behaviors. |
 | `LabelingCanvas_FinishLabeling` | A label was *placed* (severity/tags not yet set, and it can still be removed) — not a finalized label. |

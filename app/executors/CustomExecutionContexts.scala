@@ -25,11 +25,5 @@ object CpuIntensiveExecutionContext {
   @Singleton
   class PekkoBased @Inject() (system: ActorSystem)
       extends CustomExecutionContext(system, "cpu-intensive")
-      with CpuIntensiveExecutionContext {
-
-    override def execute(runnable: Runnable): Unit = {
-      println(s"CpuIntensiveExecutionContext executing: ${Thread.currentThread().getName}")
-      super.execute(runnable)
-    }
-  }
+      with CpuIntensiveExecutionContext
 }

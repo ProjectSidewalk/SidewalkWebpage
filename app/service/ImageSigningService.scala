@@ -2,6 +2,8 @@ package service
 
 import play.api.Configuration
 
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
 import java.time.Instant
 import java.util.Base64
 import javax.crypto.Mac
@@ -40,6 +42,10 @@ class ImageSigningService @Inject() (config: Configuration) {
    * @param exp  The expiry epoch second from the query string.
    * @param sig  The HMAC signature from the query string.
    */
-  def verify(path: String, exp: Long, sig: String): Boolean =
-    Instant.now.getEpochSecond <= exp && sig == hmac(s"$path:$exp")
+  def verify(path: String, exp: Long, sig: String): Boolean = {
+    // Compare with a constant-time check so signature verification doesn't leak the HMAC via response timing.
+    val expected = hmac(s"$path:$exp").getBytes(StandardCharsets.UTF_8)
+    val provided = sig.getBytes(StandardCharsets.UTF_8)
+    Instant.now.getEpochSecond <= exp && MessageDigest.isEqual(expected, provided)
+  }
 }

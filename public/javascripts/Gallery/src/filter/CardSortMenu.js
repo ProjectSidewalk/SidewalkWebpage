@@ -1,28 +1,26 @@
 /**
  * CardSort Menu module. Responsible for holding the switches allowing users to sort labels on various parameters.
- *
- * @returns {CardSortMenu}
- * @constructor
  */
-function CardSortMenu(uiCardSortMenu) {
-    const self = this;
-
+class CardSortMenu {
     // The code values associated with each sort.
-    let orderCodes = {
+    #orderCodes = {
         sort_LeastSevere: 0,
         sort_MostSevere: 1
-    }
+    };
 
     // The status of the sorting at any point.
-    let status = {
+    #status = {
         severity: 1,
         sortType: "none"
     };
 
-    function _init() {
+    /**
+     * @param {object} uiCardSortMenu UI element corresponding to CardSortMenu.
+     */
+    constructor(uiCardSortMenu) {
         if (uiCardSortMenu) {
             uiCardSortMenu.sort.bind({
-                change: sortSelectCallback
+                change: this.#sortSelectCallback
             });
         }
     }
@@ -30,22 +28,22 @@ function CardSortMenu(uiCardSortMenu) {
     /**
      * Callback function for when sorting order of cards is changed.
      */
-    function sortSelectCallback() {
-        let sortType = $(this).val();
-        setStatus("sortType", sortType);
+    #sortSelectCallback = (e) => {
+        const sortType = $(e.currentTarget).val();
+        this.setStatus("sortType", sortType);
 
         console.log("sort clicked");
 
         //TODO: Can we do this without referencing sg namespace?
-        sg.cardContainer.sortCards(orderCodes[sortType]);
-    }
+        sg.cardContainer.sortCards(this.#orderCodes[sortType]);
+    };
 
     /**
      * Returns the status of the CardSortMenu
      */
-    function getStatus() {
+    getStatus() {
         // TODO: perhaps remove this if no other status added
-        return status;
+        return this.#status;
     }
 
     /**
@@ -53,17 +51,11 @@ function CardSortMenu(uiCardSortMenu) {
      * @param {string} key
      * @param {*} value
      */
-    function setStatus(key, value) {
-        if (key in status) {
-            status[key] = value;
+    setStatus(key, value) {
+        if (key in this.#status) {
+            this.#status[key] = value;
         } else {
-            throw self.className + ": Illegal status name.";
+            throw `${this.constructor.name}: Illegal status name.`;
         }
     }
-
-    self.getStatus = getStatus;
-    self.setStatus = setStatus;
-
-    _init();
-    return this;
 }

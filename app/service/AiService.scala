@@ -16,8 +16,7 @@ import slick.dbio.DBIO
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject._
-import scala.concurrent.duration.DurationInt
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[AiServiceImpl])
 trait AiService {
@@ -222,15 +221,16 @@ class AiServiceImpl @Inject() (
             )
           } else if (response.status == 502) {
             // The AI API tried both its scraped cache and a fresh download from Google and got nothing back, so the
-            // imagery is likely expired. Check expiration & Record a failure row so we stop retrying this label.
+            // imagery is likely expired. Check expiration (panoExists records it) then record a failure row so we stop
+            // retrying this label. Sequenced with flatMap rather than Await so we don't block a pool thread on the call.
             val reason = response.body.trim.take(500)
-            Await.result(panoDataService.panoExists(labelData.panoData.panoId, labelData.panoData.source), 5.seconds)
-            logger.warn(s"AI API for label $labelId returned 502: $reason. Recording permanent failure.")
-            db.run(labelAiFailureTable.save(labelId, reason)).map(_ => None)
+            panoDataService.panoExists(labelData.panoData.panoId, labelData.panoData.source).flatMap { _ =>
+              logger.warn(s"AI API for label $labelId returned 502: $reason. Recording permanent failure.")
+              db.run(labelAiFailureTable.save(labelId, reason)).map(_ => None)
+            }
           } else {
             logger.warn(s"AI API for label $labelId returned error status: ${response.status} - ${response.statusText}")
-            Await.result(panoDataService.panoExists(labelData.panoData.panoId, labelData.panoData.source), 5.seconds)
-            Future.successful(None)
+            panoDataService.panoExists(labelData.panoData.panoId, labelData.panoData.source).map(_ => None)
           }
         } catch {
           case e: Exception =>

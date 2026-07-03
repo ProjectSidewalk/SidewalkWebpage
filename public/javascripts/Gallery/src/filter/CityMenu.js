@@ -1,51 +1,45 @@
 /**
  * City Menu module.
  * This is responsible for holding the buttons allowing users to filter cities by city.
- *
- * @param uiCityMenu UI element corresponding to CityMenu.
- * @returns {CityMenu}
- * @constructor
  */
-function CityMenu(uiCityMenu) {
-    const self = this;
-
-    let status = {
+class CityMenu {
+    #status = {
         currentCity: null
     };
 
     /**
-     * Initialize CityMenu.
+     * @param {object} uiCityMenu UI element corresponding to CityMenu.
      */
-    function _init() {
+    constructor(uiCityMenu) {
         if (uiCityMenu) {
             uiCityMenu.select.bind({
-                change: citySelectCallback
-            })
+                change: this.#citySelectCallback
+            });
         }
     }
 
     /**
      * Handles what happens when a city is selected.
      */
-    function citySelectCallback() {
-        let city = $(this).val();
-        setStatus("currentCity", city);
+    #citySelectCallback = (e) => {
+        const city = $(e.currentTarget).val();
+        this.setStatus("currentCity", city);
         sg.tracker.push("Filter_City=" + city);
         sg.cardFilter.update();
-    }
+    };
 
     /**
      * Returns current selected city.
      */
-    function getCurrentCity() {
-        return status.currentCity;
+    getCurrentCity() {
+        return this.#status.currentCity;
     }
 
     /**
      * Return status of CityMenu.
      */
-    function getStatus() {
-        return status;
+    getStatus() {
+        return this.#status;
     }
 
     /**
@@ -54,18 +48,11 @@ function CityMenu(uiCityMenu) {
      * @param {string} key Status name.
      * @param {*} value Status value.
      */
-    function setStatus(key, value) {
-        if (key in status) {
-            status[key] = value;
+    setStatus(key, value) {
+        if (key in this.#status) {
+            this.#status[key] = value;
         } else {
-            throw self.className + ": Illegal status name.";
+            throw `${this.constructor.name}: Illegal status name.`;
         }
     }
-
-    self.getCurrentCity = getCurrentCity;
-    self.getStatus = getStatus;
-    self.setStatus = setStatus;
-
-    _init();
-    return this;
 }

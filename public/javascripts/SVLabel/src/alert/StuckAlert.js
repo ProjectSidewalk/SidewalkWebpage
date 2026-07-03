@@ -1,39 +1,44 @@
-/*
- * Creates the alerts you may see when clicking the Stuck button.
+/**
+ * Alerts shown around the Stuck button: a "still stuck?" confirmation, a street-skipped notice, and a nudge when the
+ * user appears to be circling the same panos.
  */
-function StuckAlert(alertHandler) {
-    var that = this;
-    var _recentPanos = [];
+class StuckAlert extends Alert {
+    #recentPanos = [];
 
-    function stuckClicked() {
-        alertHandler.showAlert(i18next.t('popup.still-stuck'), 'stuck' , true);
+    /**
+     * Shows the "still stuck?" alert when the user clicks the Stuck button.
+     */
+    stuckClicked() {
+        this._showAlert('popup.still-stuck', 'stuck');
     }
 
-    function stuckSkippedStreet() {
-        alertHandler.showAlert(i18next.t('popup.stuck-skipped-street'), 'stuckStreetSkipped' , true);
+    /**
+     * Shows a notice that the current street was skipped because the user was stuck.
+     */
+    stuckSkippedStreet() {
+        this._showAlert('popup.stuck-skipped-street', 'stuckStreetSkipped');
     }
 
-    // Check if the user has visited the same pano multiple times recently. If so, show an alert bc they might be stuck.
-    function panoVisited(panoId) {
-        _recentPanos.push(panoId);
+    /**
+     * Records a visited pano and, if the user has revisited it several times recently, suggests they may be stuck.
+     * @param {string} panoId - The pano the user just visited.
+     */
+    panoVisited(panoId) {
+        this.#recentPanos.push(panoId);
 
         // Only keep track of the 25 most recent panos visited.
-        if (_recentPanos.length > 25) _recentPanos.shift();
+        if (this.#recentPanos.length > 25) this.#recentPanos.shift();
 
         // If this is their 3rd time visiting the pano recently, show an alert.
-        if (_recentPanos.filter(x => x === panoId).length > 2) {
-            alertHandler.showAlert(i18next.t('popup.stuck-suggestion'), 'stuckSuggestion', true);
+        if (this.#recentPanos.filter(x => x === panoId).length > 2) {
+            this._showAlert('popup.stuck-suggestion', 'stuckSuggestion');
         }
     }
 
-    // If the user clicks on the compass or stuck button, make sure that we don't try to teach them about it right now.
-    function compassOrStuckClicked() {
-        _recentPanos = [];
+    /**
+     * Clears the recent-pano history so we don't nudge the user right after they use the compass or Stuck button.
+     */
+    compassOrStuckClicked() {
+        this.#recentPanos = [];
     }
-
-    that.stuckClicked = stuckClicked;
-    that.stuckSkippedStreet = stuckSkippedStreet;
-    that.panoVisited = panoVisited;
-    that.compassOrStuckClicked = compassOrStuckClicked;
-    return that;
 }

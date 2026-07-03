@@ -5,6 +5,8 @@ import models.user.{RoleTable, SidewalkUserWithRole}
 import play.api.mvc.Results.Redirect
 import play.api.mvc.{Request, RequestHeader, Result}
 
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
 import scala.util.Try
 import scala.util.matching.Regex
 
@@ -34,6 +36,37 @@ object ControllerUtils {
   }
   def isAdmin(user: Option[SidewalkUserWithRole]): Boolean = {
     user.map(isAdmin).getOrElse(false)
+  }
+
+  /**
+   * Extracts a bearer token from the request's `Authorization` header, if present.
+   *
+   * @param request The incoming request.
+   * @return The token following a case-insensitive `Bearer ` prefix (trimmed), or None if there is no such header.
+   */
+  def bearerToken(request: RequestHeader): Option[String] =
+    request.headers.get("Authorization").collect {
+      case header if header.regionMatches(true, 0, "Bearer ", 0, 7) => header.substring(7).trim
+    }
+
+  /**
+   * Constant-time check that the request carries the configured internal API key as a bearer token.
+   *
+   * Authenticates trusted server-to-server callers (e.g. the AI label ingest) that have no Silhouette session. Fails
+   * closed: returns false if the configured key is blank or the header is absent/mismatched. The comparison is
+   * constant-time so a caller cannot recover the key byte-by-byte via response timing.
+   *
+   * @param request       The incoming request.
+   * @param configuredKey The server's configured `internal-api-key` (pass "" when unset).
+   * @return              True iff a bearer token is present and equals the configured key.
+   */
+  def internalKeyValid(request: RequestHeader, configuredKey: String): Boolean = {
+    if (configuredKey.isEmpty) {
+      false
+    } else {
+      val provided = bearerToken(request).getOrElse("")
+      MessageDigest.isEqual(provided.getBytes(StandardCharsets.UTF_8), configuredKey.getBytes(StandardCharsets.UTF_8))
+    }
   }
 
   def parseIntegerSeq(listOfInts: String): Seq[Int] = {
@@ -95,6 +128,22 @@ object ControllerUtils {
       case _ =>
         throw new IllegalArgumentException(s"Invalid URL format: $url")
     }
+  }
+
+  /**
+   * Restricts a post-auth redirect target to a same-origin path, guarding against open redirects.
+   *
+   * Only a single-slash-prefixed relative path is accepted (e.g. `/explore?foo=bar`). Absolute URLs, protocol-relative
+   * `//host` URLs, and backslash variants that browsers normalize to `//` fall back to `default`, so a caller-supplied
+   * `returnUrl` cannot bounce a freshly-authenticated user to an attacker-controlled site.
+   *
+   * @param url     The candidate redirect target (typically a `returnUrl` form field).
+   * @param default Where to send the user when `url` is not a safe same-origin path.
+   * @return        `url` (trimmed) if it is a same-origin relative path, otherwise `default`.
+   */
+  def safeLocalPath(url: String, default: String = "/"): String = {
+    val trimmed = url.trim
+    if (trimmed.startsWith("/") && !trimmed.startsWith("//") && !trimmed.startsWith("/\\")) trimmed else default
   }
 
   /**

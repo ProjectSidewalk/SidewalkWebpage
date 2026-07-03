@@ -182,7 +182,7 @@ class PanoManager {
         this.#makePanoLinksClickable();
         this.#makeMinimapLinksClickable();
 
-        if (util.getBrowser() === 'mozilla') {
+        if (util.isFirefox()) {
             // A bug in Firefox? The canvas in the div element with the largest z-index.
             svl.ui.streetview.viewControlLayer.append(svl.ui.streetview.canvas);
         }
