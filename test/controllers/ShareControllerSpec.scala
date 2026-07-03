@@ -111,6 +111,24 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       }
     }
 
+    "state the severity in the description for an access-issue label that has one" in {
+      labelWhere(l => l.labelType.isAccessIssue && l.severity.isDefined) match {
+        case None        => cancel("No recent access-issue label with a severity in the test DB.")
+        case Some(label) =>
+          val body = contentAsString(route(app, FakeRequest(GET, s"/label/${label.labelId}")).get)
+          body must include(messagesApi("share.meta.description.severity", label.severity.get))
+      }
+    }
+
+    "list tags in the description for a label that has them" in {
+      labelWhere(_.tags.nonEmpty) match {
+        case None        => cancel("No recent tagged label in the test DB.")
+        case Some(label) =>
+          val body = contentAsString(route(app, FakeRequest(GET, s"/label/${label.labelId}")).get)
+          body must include(messagesApi("share.meta.description.tags", label.tags.take(3).mkString(", ")))
+      }
+    }
+
     "return 404 for a nonexistent label id" in {
       status(route(app, FakeRequest(GET, "/label/999999999")).get) mustBe NOT_FOUND
     }

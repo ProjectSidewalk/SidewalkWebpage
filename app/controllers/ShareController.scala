@@ -137,8 +137,16 @@ class ShareController @Inject() (
     val typeName: String = Messages(meta.labelType.nameKey)
     val cityName: String =
       commonData.allCityInfo.find(_.cityId == commonData.cityId).map(_.cityNameFormatted).getOrElse("")
-    val description: String = Messages("share.meta.description", cityName)
-    val imageAlt: String    = Messages("share.meta.image.alt", typeName)
+    // The description is short, fully-localized sentences joined in a fixed order, with the data-dependent ones
+    // (severity, tags) included only when present. Severity is stated only for access-issue types — on positive
+    // features the same column encodes quality, not badness. Tag names are stored untranslated (#456 follow-up).
+    val description: String = Seq(
+      Some(Messages("share.meta.description.spotted", cityName)),
+      meta.severity.filter(_ => meta.labelType.isAccessIssue).map(s => Messages("share.meta.description.severity", s)),
+      Option(meta.tags).filter(_.nonEmpty).map(t => Messages("share.meta.description.tags", t.take(3).mkString(", "))),
+      Some(Messages("share.meta.description.cta"))
+    ).flatten.mkString(" ")
+    val imageAlt: String = Messages("share.meta.image.alt", typeName)
     views.html.common.shareMeta(
       shareTitle(meta), description, pageUrl, imageUrl, SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, imageAlt
     )
@@ -220,15 +228,18 @@ class ShareController @Inject() (
     val offY: Int    = (scaledH - SHARE_IMAGE_HEIGHT) / 2
     g.drawImage(base, -offX, -offY, scaledW, scaledH, null)
 
-    val iconFile: File = environment.getFile(s"public/images/icons/label_type_icons/${labelType.name}.png")
+    // The colored "small" icon variant is the same marker family the Gallery overlays on card photos, carrying the
+    // label type's canonical color (the large `{name}.png` illustrations are grayscale).
+    val iconFile: File = environment.getFile(s"public/images/icons/label_type_icons/${labelType.name}_small.png")
     if (iconFile.exists()) {
       Option(ImageIO.read(iconFile)).foreach { icon =>
         // The stored canvas position is a fraction of the label-point canvas; map it through the same
         // cover-scale + crop transform as the base image so the marker stays on the labeled spot.
         val centerX: Int = (canvasXY.x.toDouble / LabelPointTable.canvasWidth * scaledW).toInt - offX
         val centerY: Int = (canvasXY.y.toDouble / LabelPointTable.canvasHeight * scaledH).toInt - offY
-        val iconW: Int   = math.max(24, (SHARE_IMAGE_WIDTH * 0.09).toInt)
-        val iconH: Int   = (icon.getHeight.toDouble / icon.getWidth * iconW).toInt
+        // ~65px on the 2x-retina canvas = a 32px marker at display size, matching the map-marker scale.
+        val iconW: Int = math.max(24, (SHARE_IMAGE_WIDTH * 0.045).toInt)
+        val iconH: Int = (icon.getHeight.toDouble / icon.getWidth * iconW).toInt
         g.drawImage(icon, centerX - iconW / 2, centerY - iconH / 2, iconW, iconH, null)
       }
     }

@@ -370,5 +370,8 @@ cities.dashboard.cta.logo.alt = O logotipo do Project Sidewalk com o texto proje
 
 share.meta.title.issue = Encontrei um problema de acessibilidade no Project Sidewalk: {0}
 share.meta.title.feature = Veja o que encontrei no Project Sidewalk: {0}
-share.meta.description = Encontrado em {0}. Explore o mapa e ajude a tornar as calçadas acessíveis para todos.
+share.meta.description.spotted = Encontrado em {0}.
+share.meta.description.severity = Gravidade: {0} de 3.
+share.meta.description.tags = Etiquetas: {0}.
+share.meta.description.cta = Explore o mapa e ajude a tornar as calçadas acessíveis para todos.
 share.meta.image.alt = Foto no nível da rua com o local marcado: {0}

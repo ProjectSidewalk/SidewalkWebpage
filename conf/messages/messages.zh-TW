@@ -431,5 +431,8 @@ cities.dashboard.cta.logo.alt = Project Sidewalk 徽標，帶有文字 projectsi
 
 share.meta.title.issue = 我在 Project Sidewalk 上發現了一個無障礙問題：{0}
 share.meta.title.feature = 看看我在 Project Sidewalk 上發現了什麼：{0}
-share.meta.description = 在 {0} 發現。探索地圖，一起讓人行道對所有人都更友善。
+share.meta.description.spotted = 在 {0} 發現。
+share.meta.description.severity = 嚴重程度：{0}/3。
+share.meta.description.tags = 標籤：{0}。
+share.meta.description.cta = 探索地圖，一起讓人行道對所有人都更友善。
 share.meta.image.alt = 街景照片，已標記 {0} 的位置

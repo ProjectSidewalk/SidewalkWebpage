@@ -32,5 +32,8 @@ reset.pw.email.hello = Kia ora {0},
 
 share.meta.title.issue = I found an accessibility issue on Project Sidewalk: {0}
 share.meta.title.feature = Look what I found on Project Sidewalk: {0}
-share.meta.description = Spotted in {0}. Explore the map and help make footpaths accessible for everyone.
+share.meta.description.spotted = Spotted in {0}.
+share.meta.description.severity = Severity: {0} of 3.
+share.meta.description.tags = Tagged: {0}.
+share.meta.description.cta = Explore the map and help make footpaths accessible for everyone.
 share.meta.image.alt = Street-level photo with the {0} location marked

@@ -33,13 +33,16 @@ class LabelTypeEnumSpec extends PlaySpec {
   }
 
   "label type icons" should {
-    "exist on disk for every valid label type" in {
-      // Share-image compositing resolves public/images/icons/label_type_icons/<name>.png by convention; a missing
-      // file degrades silently to a markerless preview, so pin the convention here. The internal-only Problem type
-      // (excluded from validLabelTypes) ships no icon, matching its lack of a name message key.
+    "exist on disk in all three sizes for every valid label type" in {
+      // Share-image compositing resolves public/images/icons/label_type_icons/<name>_small.png (the colored marker)
+      // by convention, and the enum exposes paths for all three sizes; a missing file degrades silently to a
+      // markerless preview, so pin the convention here. The internal-only Problem type (excluded from
+      // validLabelTypes) ships no icons, matching its lack of a name message key.
       for (lt <- LabelTypeEnum.values if LabelTypeEnum.validLabelTypes.contains(lt.name)) {
-        val icon = new File(s"public/images/icons/label_type_icons/${lt.name}.png")
-        assert(icon.exists(), s"missing icon for ${lt.name}: ${icon.getPath}")
+        for (suffix <- Seq("", "_small", "_tiny")) {
+          val icon = new File(s"public/images/icons/label_type_icons/${lt.name}$suffix.png")
+          assert(icon.exists(), s"missing icon for ${lt.name}: ${icon.getPath}")
+        }
       }
     }
   }
