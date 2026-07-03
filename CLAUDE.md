@@ -392,7 +392,11 @@ make lint-fix       # eslint --fix + stylelint --fix
 make eslint dir=public/javascripts/SVValidate   # scope to a dir; also htmlhint / stylelint targets
 ```
 
-Config: `.eslintrc.json`, `.stylelintrc.json`, `.htmlhintrc`. Scala formatting is `.scalafmt.conf`.
+These are run **from the host** (like `make scalafmt`): the targets `docker exec` into the running web container,
+where the linters' `node_modules` live (there is no host-side `npm install`), so the web container must be up. Scope a
+run with `dir=` and pass extra flags with `args=`.
+
+Config: `eslint.config.js`, `.stylelintrc.json`, `.htmlhintrc`. Scala formatting is `.scalafmt.conf`.
 
 ### What not to automate
 

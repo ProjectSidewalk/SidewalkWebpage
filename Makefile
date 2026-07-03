@@ -79,23 +79,27 @@ scalafmt:
 scalafmt-fix:
 	@echo "Formatting Scala..."; docker exec -it projectsidewalk-web bash -lc "cd /home && sbt --client scalafmtAll"
 
+# The JS/CSS/HTML linters live in the web container's node_modules (there's no host-side npm install), so — like the
+# scalafmt targets above — these run in the container via `docker exec` and can therefore be invoked from the host.
+# `-e FORCE_COLOR=1` (not `docker exec -t`) restores the linters' colorized output: chalk auto-disables color when
+# stdout isn't a TTY, and forcing it this way keeps the targets working when piped/redirected, unlike a `-t` TTY.
 lint-htmlhint:
 	@echo "Running HTMLHint...";
 	@if [ "$(dir)" = "./" ]; then \
-		./node_modules/htmlhint/bin/htmlhint $(args) --ignore $(html-ignore) ./app/views; \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/htmlhint/bin/htmlhint $(args) --ignore $(html-ignore) ./app/views"; \
 	else \
-		./node_modules/htmlhint/bin/htmlhint $(args) --ignore $(html-ignore) $(dir); \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/htmlhint/bin/htmlhint $(args) --ignore $(html-ignore) $(dir)"; \
 	fi
 	@echo "Finished Running HTMLHint";
 
 lint-eslint:
-	@echo "Running eslint..."; ./node_modules/eslint/bin/eslint.js $(args) $(dir); echo "Finished Running eslint"
+	@echo "Running eslint..."; docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) $(dir)"; echo "Finished Running eslint"
 
 lint-stylelint:
-	@echo "Running stylelint..."; ./node_modules/stylelint/bin/stylelint.js $(args) $(dir); echo "Finished Running stylelint"
+	@echo "Running stylelint..."; docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/stylelint/bin/stylelint.js $(args) $(dir)"; echo "Finished Running stylelint"
 
 lint-fix-eslint:
-	@echo "Running eslint..."; ./node_modules/eslint/bin/eslint.js --fix $(args) $(dir); echo "Finished Running eslint"
+	@echo "Running eslint..."; docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) $(dir)"; echo "Finished Running eslint"
 
 lint-fix-stylelint:
-	@echo "Running stylelint..."; ./node_modules/stylelint/bin/stylelint.js --fix $(args) $(dir); echo "Finished Running stylelint"
+	@echo "Running stylelint..."; docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/stylelint/bin/stylelint.js --fix $(args) $(dir)"; echo "Finished Running stylelint"
