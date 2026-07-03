@@ -210,9 +210,11 @@
         <div class="ud-nudge">👋 Invite classmates or friends to your team — mapping together is more fun, and you'll climb the team board faster!</div>
     </div>
 
-    @* Contribution map: the shared PSMap choropleth wired to the signed-in user's own streets/labels. *@
+    @* Contribution map: the shared PSMap choropleth wired to the signed-in user's own streets/labels. Map labels
+       open the same label-detail popup the mistake cards use (window.udLabelPopupReady is resolved below). *@
     @userDashboard._contributionMapScript("user-dashboard-choropleth", commonData.mapboxApiKey,
-        s"/contribution/streets?userId=${user.userId}", s"/userapi/labels?userId=${user.userId}")
+        s"/contribution/streets?userId=${user.userId}", s"/userapi/labels?userId=${user.userId}",
+        wireLabelPopup = true)
 
     @* Interactive label popup (shared common/label-detail stack) so a mistake card expands into the pano + detail,
        reusing what LabelMap/Gallery use. Loaded directly (not a Grunt bundle) like the redesign's other src. *@
@@ -244,6 +246,10 @@
     <script src="@assets.path("javascripts/UserDashboard/src/DashboardBadges.js")"></script>
     <script src="@assets.path("javascripts/UserDashboard/src/MistakeGallery.js")"></script>
     <script>
+        // Deferred handle the contribution map's click adapter awaits; resolved (popup or null) once init finishes.
+        let labelPopupReadyResolve;
+        window.udLabelPopupReady = new Promise((resolve) => { labelPopupReadyResolve = resolve; });
+
         window.appManager.ready(async function () {
             var badges = document.getElementById('ud-badges');
             if (badges && typeof DashboardBadges !== 'undefined') {
@@ -260,6 +266,7 @@
             } catch (e) {
                 console.error('Label popup init failed; mistake cards will use inline controls only', e);
             }
+            labelPopupReadyResolve(labelPopup);
 
             var mistakes = document.getElementById('ud-mistakes');
             if (mistakes && typeof MistakeGallery !== 'undefined') {

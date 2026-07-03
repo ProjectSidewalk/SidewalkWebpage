@@ -1,6 +1,7 @@
 @import service.{CommonPageData, PublicProfile, UserProfileData}
 @import models.user.SidewalkUserWithRole
 @import models.label.Tag
+@import models.pano.PanoSource
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole, profileName: String, isMetric: Boolean,
         profile: Option[PublicProfile], tags: Seq[Tag]
@@ -60,6 +61,14 @@
             <div class="coverage-kpi"><span class="coverage-kpi-value">@{"%,d".format(pd.validationCount)}</span><span class="coverage-kpi-label">Validations given</span></div>
             <div class="coverage-kpi"><span class="coverage-kpi-value">@accuracyLabel(pd.accuracy)</span><span class="coverage-kpi-label">Label accuracy</span></div>
         </div>
+
+        @* Contribution map is part of the hero (no h2, so it doesn't get its own on-this-page entry) — same
+           placement as the owner's dashboard so the two pages read alike. *@
+        <p class="ud-map-caption">Where they've explored — @{profileName}'s audited streets and labels. Open the legend to filter.</p>
+        <div id="public-profile-choropleth-holder" class="choropleth-holder">
+            <div id="public-profile-choropleth" class="choropleth"></div>
+            @common.mapSidebar(tags = tags, streetsShownByDefault = true)
+        </div>
     </div>
 
     <div class="api-section" id="pp-achievements-section">
@@ -74,15 +83,6 @@
         }
     </div>
 
-    <div class="api-section" id="pp-map-section">
-        <h2 class="api-heading" id="map">Where they've explored <a href="#map" class="permalink">#</a></h2>
-        <p class="ud-map-caption">@{profileName}'s audited streets and labels. Open the legend to filter.</p>
-        <div id="public-profile-choropleth-holder" class="choropleth-holder">
-            <div id="public-profile-choropleth" class="choropleth"></div>
-            @common.mapSidebar(tags = tags, streetsShownByDefault = true)
-        </div>
-    </div>
-
     @pd.userTeam.map { team =>
         <div class="api-section" id="pp-team-section">
             <h2 class="api-heading" id="team">Team <a href="#team" class="permalink">#</a></h2>
@@ -92,20 +92,56 @@
         </div>
     }
 
-    <p class="ud-section-note">Public view — only accomplishments are shown. Email, "recent mistakes", and settings stay private to @profileName.</p>
-
-    @* Contribution map wired to the public, username-keyed, public_profile-gated endpoints. *@
+    @* Contribution map wired to the public, username-keyed, public_profile-gated endpoints. Map labels open the
+       shared label-detail popup (view-only here), same as the owner's dashboard and LabelMap. *@
     @userDashboard._contributionMapScript("public-profile-choropleth", commonData.mapboxApiKey,
-        s"/userapi/public/${profileName}/streets", s"/userapi/public/${profileName}/labels")
+        s"/userapi/public/${profileName}/streets", s"/userapi/public/${profileName}/labels",
+        wireLabelPopup = true)
+
+    @* Label popup stack (shared common/label-detail + pano-viewer), loaded directly like the redesign's other src. *@
+    @common.labelPopup(admin = false)
+    <link href='@assets.path("stylesheets/labelDetail.css")' rel="stylesheet"/>
+    @if(commonData.imagerySource == PanoSource.Infra3d) {
+        <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
+        <script src='@assets.path("javascripts/lib/infra3dapi-1.8.0.js")'></script>
+    } else if (commonData.imagerySource == PanoSource.Mapillary) {
+        <script src='@assets.path("javascripts/lib/three-0.160.1-min.js")'></script>
+        <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
+        <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
+    }
+    <script src='@assets.path("javascripts/lib/pannellum-2.5.7.js")'></script>
+    <link rel="stylesheet" href='@assets.path("stylesheets/pannellum-2.5.7.css")'/>
+    <script src='@assets.path("javascripts/lib/panzoom-9.4.4.min.js")'></script>
+    <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
+    <script src='@assets.path("javascripts/common/AiLabelIndicator.js")'></script>
+    <script src='@assets.path("javascripts/common/PanoMarker.js")'></script>
+    <script src='@assets.path("javascripts/common/Toast.js")'></script>
+    <script src='@assets.path("javascripts/common/label-detail/PopupPanoManager.js")'></script>
+    <script src='@assets.path("javascripts/common/label-detail/LabelDetail.js")'></script>
+    <script src='@assets.path("javascripts/common/label-detail/LabelPopup.js")'></script>
 
     <script src="@assets.path("javascripts/common/BadgeAchievements.js")"></script>
     <script src="@assets.path("javascripts/UserDashboard/src/DashboardBadges.js")"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        // Deferred handle the contribution map's click adapter awaits; resolved (popup or null) once init finishes.
+        let labelPopupReadyResolve;
+        window.udLabelPopupReady = new Promise((resolve) => { labelPopupReadyResolve = resolve; });
+
+        window.appManager.ready(async function () {
             var badges = document.getElementById('ud-badges');
             if (badges && typeof DashboardBadges !== 'undefined') {
                 try { new DashboardBadges(badges).render(); } catch (e) { console.error('Badge render failed', e); }
             }
+
+            let labelPopup = null;
+            try {
+                const src = "@commonData.imagerySource.toString";
+                const viewerType = src === 'mapillary' ? MapillaryViewer : src === 'infra3d' ? Infra3dViewer : GsvViewer;
+                labelPopup = await LabelPopup(false, viewerType, "@commonData.imageryAccessToken", "@user.username");
+            } catch (e) {
+                console.error('Label popup init failed; map labels will not be clickable', e);
+            }
+            labelPopupReadyResolve(labelPopup);
         });
     </script>
 }
@@ -118,7 +154,8 @@
     }
 }
 
-@common.main(commonData, s"Sidewalk - ${profileName}") {
+@* labelmap namespace is needed so the reused label-detail popup's strings (Comments, Validations, Tags, …) resolve. *@
+@common.main(commonData, s"Sidewalk - ${profileName}", i18Namespaces = Seq("common", "labelmap")) {
     @common.navbar(commonData, Some(user))
     @userDashboard.layout("")(body)
 }

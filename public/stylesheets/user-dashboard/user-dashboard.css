@@ -8,9 +8,10 @@
  * Label-type colors come from the --color-label-* tokens (source of truth: /v3/api/labelTypes) — never hardcoded hex.
  *
  * Type scale policy (per design review): ALL content — table cells, badge/trophy detail, card text, stat labels,
- * podium — is at least --font-size-md (16px). The smaller steps (sm/xs/xxs) are reserved for true footnotes and
- * captions (e.g. .ud-section-note, the map-fallback caption), legends (.ud-heatmap-legend), and small decorative
- * pills/ribbons (.ud-trophy-tag, .ud-standing-tag, .ud-card-verdict, .ud-public-tag). Never size real content below md.
+ * podium — is at least --font-size-md (16px). The smaller steps (sm/xs/xxs) are reserved for legends
+ * (.ud-heatmap-legend) and small decorative pills/ribbons (.ud-trophy-tag, .ud-standing-tag, .ud-card-verdict,
+ * .ud-public-tag). Never size real content below md — and avoid footnote-style asides entirely (design review:
+ * if a note matters it belongs in real copy; if it doesn't, delete it).
  */
 
 /* Primary-content tables on the user surface read much larger than the admin default (which stays --font-size-sm):
@@ -123,13 +124,6 @@
     margin: 0;
     font-size: var(--font-size-md, 1rem);
     color: var(--color-text-secondary, #5a7785);
-}
-
-.ud-section-note {
-    margin: var(--space-sm, 12px) 0 0;
-    font-size: var(--font-size-xs, 0.8125rem);
-    color: var(--color-text-tertiary, #88a1ad);
-    font-style: italic;
 }
 
 /* Friendly, supportive nudge/encouragement callout — sprinkled through both surfaces. */
@@ -776,9 +770,10 @@
 .ud-mistake-response .ud-card-note-submit,
 .ud-mistake-response .ud-card-change { font-size: var(--font-size-md, 1rem); }
 
-/* On the dashboard the label popup only ever shows the viewer's OWN labels (their recent mistakes), so the
+/* On the dashboard the label popup shows the viewer's OWN labels (mistake cards + their map), so the
    validate-on-hover overlay (Agree/Disagree/Unsure) and the add-a-comment row are never applicable and clash with the
-   mistake-response panel below — hide both there. */
+   mistake-response panel below — hide both. The public profile shares this rule deliberately: its popup is a
+   view-only showcase of someone's work, not a validation surface (that's LabelMap's job). */
 #label-modal .label-detail__pano-overlay,
 #label-modal .label-detail__comment-row { display: none; }
 
