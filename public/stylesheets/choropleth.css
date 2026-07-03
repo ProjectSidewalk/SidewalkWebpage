@@ -36,6 +36,35 @@
     margin-top: 15px;
 }
 
+/*
+ * Public LabelMap (/labelMap) renders full-window. The page's #wrap becomes a fixed-height flex column
+ * (.wrap--full-window in main.css); this container is the flex-growing child that fills whatever space
+ * is left below the navbar and the in-flow (dev-only) test-server banner. Scoped to the public
+ * #labelmap-* ids so the admin Map tab (#admin-labelmap-*), which shares this file, stays boxed.
+ */
+#labelmap-choropleth-container {
+    max-width: none; /* Override the Bootstrap .container max-width so the map spans the window. */
+    width: 100%;
+    flex: 1 1 auto; /* Fill the space #wrap leaves below the navbar and any test-server banner. */
+    min-height: 0; /* Let the flex child shrink to fit instead of overflowing the column. */
+    margin: 0;
+    padding: 0;
+}
+#labelmap-choropleth {
+    height: 100%; /* Fill the container rather than the shared .choropleth fixed 800px. */
+    margin-top: 0; /* Sit flush under the navbar (overrides the shared 15px above). */
+}
+/* Drop the top gap the shared sidebar chrome leaves, so it too sits flush in full-window mode. */
+#labelmap-choropleth-holder .map-sidebar {
+    margin-top: 0;
+}
+#labelmap-choropleth-holder .map-sidebar__resize-handle {
+    top: 0;
+}
+#labelmap-choropleth-holder .map-sidebar-open-btn {
+    margin-top: 0;
+}
+
 #admin-task-choropleth {
     width: 360px;
     height: 360px;

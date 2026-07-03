@@ -52,6 +52,23 @@
     height: 24px;
 }
 
+/* Address/place search box mounted at the top of the LabelMap sidebar (#4370). */
+#labelmap-search-section {
+    /*
+     * Raise the section (and its overflowing autocomplete dropdown) above the sibling filter sections
+     * below it. Those sections' controls (e.g. .severity-button) are position: relative, so without this
+     * they'd paint over the earlier-in-DOM dropdown.
+     */
+    position: relative;
+    z-index: 100;
+    margin-top: 18px; /* Breathing room below the collapse-drawer (close) button. */
+    margin-bottom: 28px; /* A bit more space above the Severity section than the standard 25px. */
+}
+
+#labelmap-search-box {
+    width: 100%;
+}
+
 /* Drag handle for resizing the sidebar width. Sits on the right edge of the sidebar. */
 .map-sidebar__resize-handle {
     position: absolute;

@@ -9,7 +9,7 @@
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@common.main(commonData, title, i18Namespaces = Seq("common", "labelmap")) {
+@common.main(commonData, title, i18Namespaces = Seq("common", "labelmap"), url = "/labelMap") {
     @common.navbar(commonData, Some(user))
     <div id="page-loading">
         <img id="loading-animation" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'/>
@@ -17,7 +17,7 @@
     <div id="labelmap-choropleth-container" class="container choropleth-container">
         <div id="labelmap-choropleth-holder" class="choropleth-holder">
             <div id="labelmap-choropleth" class="choropleth"></div>
-            @common.mapSidebar(tags = tags)
+            @common.mapSidebar(tags = tags, showSearch = true)
         </div>
     </div>
 
@@ -50,9 +50,11 @@
 
     <script src='@assets.path("javascripts/lib/mapbox-gl-3.21.0.js")'></script>
     <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-search-1.5.0.js")'></script>
     <link href='@assets.path("javascripts/lib/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
     <script src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
     <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
+    <script src='@assets.path("javascripts/labelMapLocationSearch.js")'></script>
     <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
     <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
 
@@ -108,6 +110,7 @@
                 self.map = m[0];
                 self.mapData = m[4];
                 new MapSidebarFilter(self.map, self.mapData, { highQualityFilter: true });
+                initLabelMapLocationSearch(self.map, params.mapboxApiKey);
             });
             window.map = self;
         });

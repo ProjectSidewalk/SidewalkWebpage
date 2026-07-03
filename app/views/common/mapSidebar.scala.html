@@ -1,5 +1,5 @@
 @import models.label.{LabelTypeEnum, Tag}
-@(tags: Seq[Tag] = Seq.empty, streetsShownByDefault: Boolean = false, adminVersion: Boolean = false)(implicit messages: Messages, assets: AssetsFinder)
+@(tags: Seq[Tag] = Seq.empty, streetsShownByDefault: Boolean = false, adminVersion: Boolean = false, showSearch: Boolean = false)(implicit messages: Messages, assets: AssetsFinder)
 
 @tagsByLabelType = @{tags.groupBy(t => LabelTypeEnum.labelTypeIdToLabelType.getOrElse(t.labelTypeId, ""))}
 
@@ -39,6 +39,15 @@
             data-i18n-aria-label="common:close">
         <img src="@assets.path("images/icons/chevrons-left-feather.svg")" alt="">
     </button>
+
+    @* ---- Address/place search section (public LabelMap only, #4370) ---- *@
+    @if(showSearch) {
+        @* The Mapbox Search JS control is mounted into #labelmap-search-box by labelMapLocationSearch.js. *@
+        <section class="map-sidebar__section" id="labelmap-search-section" role="search"
+                 aria-label="Search for an address or place" data-i18n-aria-label="labelmap:search-placeholder">
+            <div id="labelmap-search-box"></div>
+        </section>
+    }
 
     @* ---- Severity section ---- *@
     <section class="map-sidebar__section">
