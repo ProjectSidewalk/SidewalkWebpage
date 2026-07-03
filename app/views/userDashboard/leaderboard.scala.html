@@ -88,6 +88,100 @@
         }
     </div>
 
+    @* ---- Podium (real: top 3 all-time) -------------------------------------------------------------------- *@
+    <div class="api-section" id="lb-podium-section">
+        <h2 class="api-heading" id="podium">Top of the board <a href="#podium" class="permalink">#</a></h2>
+        <p>@{cityName}'s all-time leaders. 🏆</p>
+        @if(overall.length >= 3) {
+            <div class="ud-podium">
+                @podiumSpot(overall(1), 2, "🥈")
+                @podiumSpot(overall(0), 1, "🥇")
+                @podiumSpot(overall(2), 3, "🥉")
+            </div>
+        } else {
+            <div class="ud-nudge">🌱 The board is just getting started — be one of the first to top it. Start mapping!</div>
+        }
+    </div>
+
+    @* ---- All-time (real) ---------------------------------------------------------------------------------- *@
+    <div class="api-section" id="lb-alltime-section">
+        <h2 class="api-heading" id="all-time">All-time <a href="#all-time" class="permalink">#</a></h2>
+        <p>The top all-time mappers ranked by overall score</p>
+        <details class="ud-explainer">
+            <summary>How is the ranking computed?</summary>
+            <div>Rank is an overall <strong>score</strong> that rewards a balance of <strong>labels placed</strong>,
+                <strong>distance explored</strong>, and <strong>label accuracy</strong> — so steady, high-quality
+                mapping counts for more than sheer volume. That's why the label counts below aren't in strict order.
+                (The weekly and team boards use the same score.)</div>
+        </details>
+        @if(overall.nonEmpty) {
+            <div class="coverage-table-wrap">
+                <table class="coverage-table">
+                    <thead>
+                        @lbHead("Mapper")
+                    </thead>
+                    <tbody>
+                        @for((stat, i) <- overall.zipWithIndex) { @statRow(i + 1, stat, linkUser = true) }
+                    </tbody>
+                </table>
+            </div>
+        } else {
+            <div class="ud-nudge">🌱 No labels yet — you could be the very first name here.</div>
+        }
+    </div>
+
+    @* ---- This week (real) --------------------------------------------------------------------------------- *@
+    <div class="api-section" id="lb-weekly-section">
+        <h2 class="api-heading" id="weekly">This week <a href="#weekly" class="permalink">#</a></h2>
+        <p>Fresh every Monday — the best place to climb fast.</p>
+        @if(weekly.nonEmpty) {
+            <div class="coverage-table-wrap">
+                <table class="coverage-table">
+                    <thead>
+                        @lbHead("Mapper")
+                    </thead>
+                    <tbody>
+                        @for((stat, i) <- weekly.zipWithIndex) { @statRow(i + 1, stat, linkUser = true) }
+                    </tbody>
+                </table>
+            </div>
+        } else {
+            <div class="ud-nudge">✨ No labels yet this week — be the first on the board!</div>
+        }
+    </div>
+
+    @* ---- Teams (real) ------------------------------------------------------------------------------------- *@
+    <div class="api-section" id="lb-teams-section">
+        <h2 class="api-heading" id="teams">Teams <a href="#teams" class="permalink">#</a></h2>
+        <p>Create or join a team to make a difference together!</p>
+        @if(teams.nonEmpty) {
+            <div class="coverage-table-wrap">
+                <table class="coverage-table">
+                    <thead>
+                        @lbHead("Team")
+                    </thead>
+                    <tbody>
+                        @for((stat, i) <- teams.zipWithIndex) { @statRow(i + 1, stat, linkUser = false) }
+                    </tbody>
+                </table>
+            </div>
+        } else {
+            <div class="ud-nudge">👥 No teams yet — be the first! Create one and invite friends or classmates.</div>
+        }
+        @if(isSignedIn) {
+            <button type="button" class="ud-btn-primary ud-create-team-btn"><span class="ud-btn-plus" aria-hidden="true">+</span> Create a team</button>
+        }
+    </div>
+
+    @* ---- Your place in the community (signed-in only) ------------------------------------------------------ *@
+    @if(isSignedIn) {
+        <div class="api-section" id="lb-you-section">
+            <h2 class="api-heading" id="you">Your place in the community <a href="#you" class="permalink">#</a></h2>
+            <p>Where you sit this week, and who's just ahead and behind.</p>
+            @userDashboard._standing(standing, seeAllLink = false)
+        </div>
+    }
+
     @* ---- Community impact band (cross-city, real: getAggregateStats — #3719) -------------------------------- *@
     <div class="api-section" id="lb-global-section">
         <h2 class="api-heading" id="global">Community impact <a href="#global" class="permalink">#</a></h2>
@@ -116,101 +210,6 @@
             </div>
         </div>
     </div>
-
-    @* ---- Podium (real: top 3 all-time) -------------------------------------------------------------------- *@
-    <div class="api-section" id="lb-podium-section">
-        <h2 class="api-heading" id="podium">Top of the board <a href="#podium" class="permalink">#</a></h2>
-        <p>@{cityName}'s all-time leaders. 🏆</p>
-        @if(overall.length >= 3) {
-            <div class="ud-podium">
-                @podiumSpot(overall(1), 2, "🥈")
-                @podiumSpot(overall(0), 1, "🥇")
-                @podiumSpot(overall(2), 3, "🥉")
-            </div>
-        } else {
-            <div class="ud-nudge">🌱 The board is just getting started — be one of the first to top it. Start mapping!</div>
-        }
-        <p class="ud-section-note">Click a name to see their public profile. Mappers who keep their profile private show as plain text.</p>
-    </div>
-
-    @* ---- This week (real) --------------------------------------------------------------------------------- *@
-    <div class="api-section" id="lb-weekly-section">
-        <h2 class="api-heading" id="weekly">This week <a href="#weekly" class="permalink">#</a></h2>
-        <p>Fresh every Monday — the best place to climb fast.</p>
-        @if(weekly.nonEmpty) {
-            <div class="coverage-table-wrap">
-                <table class="coverage-table">
-                    <thead>
-                        @lbHead("Mapper")
-                    </thead>
-                    <tbody>
-                        @for((stat, i) <- weekly.zipWithIndex) { @statRow(i + 1, stat, linkUser = true) }
-                    </tbody>
-                </table>
-            </div>
-        } else {
-            <div class="ud-nudge">✨ No labels yet this week — be the first on the board!</div>
-        }
-    </div>
-
-    @* ---- Teams (real) ------------------------------------------------------------------------------------- *@
-    <div class="api-section" id="lb-teams-section">
-        <h2 class="api-heading" id="teams">Teams <a href="#teams" class="permalink">#</a></h2>
-        <p>Map together — great for classes and community groups.</p>
-        @if(teams.nonEmpty) {
-            <div class="coverage-table-wrap">
-                <table class="coverage-table">
-                    <thead>
-                        @lbHead("Team")
-                    </thead>
-                    <tbody>
-                        @for((stat, i) <- teams.zipWithIndex) { @statRow(i + 1, stat, linkUser = false) }
-                    </tbody>
-                </table>
-            </div>
-        } else {
-            <div class="ud-nudge">👥 No teams yet — be the first! Create one and invite friends or classmates.</div>
-        }
-        @if(isSignedIn) {
-            <button type="button" class="ud-btn-primary ud-create-team-btn"><span class="ud-btn-plus" aria-hidden="true">+</span> Create a team</button>
-        }
-    </div>
-
-    @* ---- All-time (real) ---------------------------------------------------------------------------------- *@
-    <div class="api-section" id="lb-alltime-section">
-        <h2 class="api-heading" id="all-time">All-time <a href="#all-time" class="permalink">#</a></h2>
-        <p>The top mappers in this city, ever, ranked by an overall score.</p>
-        <details class="ud-explainer">
-            <summary>How is the ranking computed?</summary>
-            <div>Rank is an overall <strong>score</strong> that rewards a balance of <strong>labels placed</strong>,
-                <strong>distance explored</strong>, and <strong>label accuracy</strong> — so steady, high-quality
-                mapping counts for more than sheer volume. That's why the label counts below aren't in strict order.
-                (The weekly and team boards use the same score.)</div>
-        </details>
-        @if(overall.nonEmpty) {
-            <div class="coverage-table-wrap">
-                <table class="coverage-table">
-                    <thead>
-                        @lbHead("Mapper")
-                    </thead>
-                    <tbody>
-                        @for((stat, i) <- overall.zipWithIndex) { @statRow(i + 1, stat, linkUser = true) }
-                    </tbody>
-                </table>
-            </div>
-        } else {
-            <div class="ud-nudge">🌱 No labels yet — you could be the very first name here.</div>
-        }
-    </div>
-
-    @* ---- You vs community (signed-in only) ---------------------------------------------------------------- *@
-    @if(isSignedIn) {
-        <div class="api-section" id="lb-you-section">
-            <h2 class="api-heading" id="you">You vs the community <a href="#you" class="permalink">#</a></h2>
-            <p>Where you sit this week, and who's just ahead and behind.</p>
-            @userDashboard._standing(standing, seeAllLink = false)
-        </div>
-    }
 
     @if(isSignedIn) {
         @userDashboard._createTeamDialog()
