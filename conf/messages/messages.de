@@ -363,5 +363,7 @@ cities.dashboard.cta.content = Möchten Sie die Barrierefreiheit in Ihrer Gemein
 cities.dashboard.cta.button = Informationen zur Bereitstellung
 cities.dashboard.cta.logo.alt = Das Project Sidewalk-Logo mit dem Text projectsidewalk.org
 
-share.meta.title = Ich habe ein {0}-Barrierefreiheitsproblem auf Project Sidewalk gefunden
+share.meta.title.issue = Ich habe ein Barrierefreiheitsproblem auf Project Sidewalk gefunden: {0}
+share.meta.title.feature = Sehen Sie, was ich auf Project Sidewalk gefunden habe: {0}
 share.meta.description = Entdeckt in {0}. Erkunden Sie die Karte und helfen Sie mit, Gehwege für alle zugänglich zu machen.
+share.meta.image.alt = Straßenansicht mit markierter Position: {0}

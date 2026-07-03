@@ -71,7 +71,7 @@ class ShareController @Inject() (
           } yield {
             cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, s"Visit_SharedLabel=$labelId")
             val shareMeta: Html = buildShareMeta(commonData, meta)
-            val title: String   = Messages("share.meta.title", Messages(meta.labelType.nameKey))
+            val title: String   = shareTitle(meta)
             Ok(
               views.html.apps.labelMap(commonData, title, user, tags, Seq.empty, Seq.empty, Seq.empty,
                 focusLabelId = Some(labelId), shareMeta = shareMeta)
@@ -110,6 +110,16 @@ class ShareController @Inject() (
     }
   }
 
+  /**
+   * Builds the localized share title. Issue types ("I found an accessibility issue...") and non-issue types (positive
+   * features like curb ramps, or neutral types like occlusions — "Look what I found...") take opposite framings, so
+   * the copy forks on the label type's `isAccessIssue`.
+   */
+  private def shareTitle(meta: LabelMetadata)(implicit messages: Messages): String = {
+    val key: String = if (meta.labelType.isAccessIssue) "share.meta.title.issue" else "share.meta.title.feature"
+    Messages(key, Messages(meta.labelType.nameKey))
+  }
+
   /** Builds the OG/Twitter meta block for a label's share page from localized, prod-absolute values. */
   private def buildShareMeta(commonData: service.CommonPageData, meta: LabelMetadata)(implicit
       messages: Messages
@@ -120,9 +130,11 @@ class ShareController @Inject() (
     val typeName: String = Messages(meta.labelType.nameKey)
     val cityName: String =
       commonData.allCityInfo.find(_.cityId == commonData.cityId).map(_.cityNameFormatted).getOrElse("")
-    val title: String       = Messages("share.meta.title", typeName)
     val description: String = Messages("share.meta.description", cityName)
-    views.html.common.shareMeta(title, description, pageUrl, imageUrl, SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT)
+    val imageAlt: String    = Messages("share.meta.image.alt", typeName)
+    views.html.common.shareMeta(
+      shareTitle(meta), description, pageUrl, imageUrl, SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, imageAlt
+    )
   }
 
   /** Directory where cached share preview images live: `<share.image.directory>/<city-id>/`. */
@@ -173,26 +185,39 @@ class ShareController @Inject() (
   }
 
   /**
-   * Draws the label-type icon onto the base image at the label's canvas position so the shared preview points at the
-   * accessibility problem. The canvas position is stored relative to the label-point canvas, so it's applied as a
-   * fraction of the output dimensions.
+   * Renders the base image onto a fixed SHARE_IMAGE_WIDTH×HEIGHT canvas and draws the label-type icon at the label's
+   * canvas position so the shared preview points at the labeled spot. The output size is fixed (cover-scale, center-
+   * crop) so the og:image:width/height the meta advertises is always true regardless of the base image's source
+   * (stored crops are 1440×960 but GSV stills come back 640×480), and cards stay high-res on every platform.
    */
   private def compositeMarker(
       base: BufferedImage,
       labelType: LabelTypeEnum.Base,
       canvasXY: LocationXY
   ): BufferedImage = {
-    val out: BufferedImage = new BufferedImage(base.getWidth, base.getHeight, BufferedImage.TYPE_INT_ARGB)
+    val out: BufferedImage = new BufferedImage(SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, BufferedImage.TYPE_INT_ARGB)
     val g                  = out.createGraphics()
     g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
-    g.drawImage(base, 0, 0, null)
+
+    // Cover-scale: fill the canvas and center-crop the overflow rather than letterbox or stretch.
+    val scale: Double = math.max(
+      SHARE_IMAGE_WIDTH.toDouble / base.getWidth,
+      SHARE_IMAGE_HEIGHT.toDouble / base.getHeight
+    )
+    val scaledW: Int = math.round(base.getWidth * scale).toInt
+    val scaledH: Int = math.round(base.getHeight * scale).toInt
+    val offX: Int    = (scaledW - SHARE_IMAGE_WIDTH) / 2
+    val offY: Int    = (scaledH - SHARE_IMAGE_HEIGHT) / 2
+    g.drawImage(base, -offX, -offY, scaledW, scaledH, null)
 
     val iconFile: File = environment.getFile(s"public/images/icons/label_type_icons/${labelType.name}.png")
     if (iconFile.exists()) {
       Option(ImageIO.read(iconFile)).foreach { icon =>
-        val centerX: Int = (canvasXY.x.toDouble / LabelPointTable.canvasWidth * base.getWidth).toInt
-        val centerY: Int = (canvasXY.y.toDouble / LabelPointTable.canvasHeight * base.getHeight).toInt
-        val iconW: Int   = math.max(24, (base.getWidth * 0.09).toInt)
+        // The stored canvas position is a fraction of the label-point canvas; map it through the same
+        // cover-scale + crop transform as the base image so the marker stays on the labeled spot.
+        val centerX: Int = (canvasXY.x.toDouble / LabelPointTable.canvasWidth * scaledW).toInt - offX
+        val centerY: Int = (canvasXY.y.toDouble / LabelPointTable.canvasHeight * scaledH).toInt - offY
+        val iconW: Int   = math.max(24, (SHARE_IMAGE_WIDTH * 0.09).toInt)
         val iconH: Int   = (icon.getHeight.toDouble / icon.getWidth * iconW).toInt
         g.drawImage(icon, centerX - iconW / 2, centerY - iconH / 2, iconW, iconH, null)
       }
@@ -205,10 +230,32 @@ class ShareController @Inject() (
   private def serveImage(file: File): Result =
     Ok.sendFile(file, inline = true).as("image/png").withHeaders("Cache-Control" -> "public, max-age=86400")
 
-  /** Branded fallback served when no pano image is available for a label. */
+  /**
+   * Branded fallback served when no pano image is available for a label: the logo centered on a white
+   * SHARE_IMAGE_WIDTH×HEIGHT canvas, so even the fallback matches the dimensions the meta advertises. Built once per
+   * city and cached alongside the per-label images.
+   */
   private def serveFallbackImage(): Result = {
+    val cached: File = new File(shareImageDir, "share_fallback.png")
+    if (!cached.exists()) buildFallbackImage(cached)
+    if (cached.exists()) serveImage(cached) else NotFound("No preview image available.")
+  }
+
+  /** Renders the logo centered on a white fixed-size canvas to the given cache file (no-op if the logo is missing). */
+  private def buildFallbackImage(cached: File): Unit = {
     val logo: File = environment.getFile("public/assets/sidewalk-logo.png")
-    if (logo.exists()) Ok.sendFile(logo, inline = true).as("image/png")
-    else NotFound("No preview image available.")
+    Option(if (logo.exists()) ImageIO.read(logo) else null).foreach { mark =>
+      val out = new BufferedImage(SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, BufferedImage.TYPE_INT_RGB)
+      val g   = out.createGraphics()
+      g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
+      g.setColor(java.awt.Color.WHITE)
+      g.fillRect(0, 0, SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT)
+      val markW: Int = (SHARE_IMAGE_WIDTH * 0.55).toInt
+      val markH: Int = (mark.getHeight.toDouble / mark.getWidth * markW).toInt
+      g.drawImage(mark, (SHARE_IMAGE_WIDTH - markW) / 2, (SHARE_IMAGE_HEIGHT - markH) / 2, markW, markH, null)
+      g.dispose()
+      cached.getParentFile.mkdirs()
+      ImageIO.write(out, "png", cached)
+    }
   }
 }

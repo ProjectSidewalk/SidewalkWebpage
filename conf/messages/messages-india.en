@@ -6,5 +6,7 @@ audit.tutorial.examples = Examples of accessibility attributes: curbs, missing c
 audit.ribbon.curb.ramp.labels = CURB LABELS
 audit.ribbon.curb.ramp = <u>C</u>urb Style
 
-share.meta.title = I found a {0} accessibility issue on Project Sidewalk
+share.meta.title.issue = I found an accessibility issue on Project Sidewalk: {0}
+share.meta.title.feature = Look what I found on Project Sidewalk: {0}
 share.meta.description = Spotted in {0}. Explore the map and help make sidewalks accessible for everyone.
+share.meta.image.alt = Street-level photo with the {0} location marked

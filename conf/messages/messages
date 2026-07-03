@@ -218,5 +218,7 @@ way.type.cycleway = Paths designated primarily or exclusively for bicycle traffi
 way.type.pedestrian = Areas or roads primarily or exclusively for pedestrian use, typically with motor vehicle access heavily restricted or prohibited. Commonly used for pedestrianized streets, plazas, or malls in commercial districts where pedestrian traffic dominates.
 way.type.steps = A path consisting of one or more flights of steps to facilitate pedestrian movement, often in areas with steep gradients. Not navigable by wheeled vehicles and generally requiring explicit tagging of step count or incline for accessibility routing.
 
-share.meta.title = I found a {0} accessibility issue on Project Sidewalk
+share.meta.title.issue = I found an accessibility issue on Project Sidewalk: {0}
+share.meta.title.feature = Look what I found on Project Sidewalk: {0}
 share.meta.description = Spotted in {0}. Explore the map and help make sidewalks accessible for everyone.
+share.meta.image.alt = Street-level photo with the {0} location marked

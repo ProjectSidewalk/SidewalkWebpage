@@ -59,6 +59,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
           val body = contentAsString(resp)
           body must include("og:title")
           body must include("og:image")
+          body must include("og:image:alt")
           body must include("twitter:card")
           body must include(s"/label/$id/image")
       }

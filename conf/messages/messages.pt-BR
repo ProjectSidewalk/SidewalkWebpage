@@ -368,5 +368,7 @@ cities.dashboard.cta.content = Interessado em mapear acessibilidade na sua comun
 cities.dashboard.cta.button = Saiba como implementar
 cities.dashboard.cta.logo.alt = O logotipo do Project Sidewalk com o texto projectsidewalk.org
 
-share.meta.title = Encontrei um problema de acessibilidade de {0} no Project Sidewalk
+share.meta.title.issue = Encontrei um problema de acessibilidade no Project Sidewalk: {0}
+share.meta.title.feature = Veja o que encontrei no Project Sidewalk: {0}
 share.meta.description = Encontrado em {0}. Explore o mapa e ajude a tornar as calçadas acessíveis para todos.
+share.meta.image.alt = Foto no nível da rua com o local marcado: {0}

@@ -8,5 +8,7 @@ landing.stats.content.unfinished.full = Users like you have already mapped {0} m
 landing.stats.content.finished.partial = We did it! Users like you have mapped all {0} miles of the target area in {1}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
 landing.stats.content.finished.full = We did it! Users like you have mapped all {0} miles of {1}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
 
-share.meta.title = I found a {0} accessibility issue on Project Sidewalk
+share.meta.title.issue = I found an accessibility issue on Project Sidewalk: {0}
+share.meta.title.feature = Look what I found on Project Sidewalk: {0}
 share.meta.description = Spotted in {0}. Explore the map and help make sidewalks accessible for everyone.
+share.meta.image.alt = Street-level photo with the {0} location marked

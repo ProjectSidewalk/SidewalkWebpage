@@ -9,8 +9,9 @@
  * @param imageUrl    Absolute URL of the marker-composited preview image (og:image).
  * @param imageWidth  Preview image width in pixels.
  * @param imageHeight Preview image height in pixels.
+ * @param imageAlt    Localized alt text describing the preview image, for screen readers on platforms that honor it.
  *@
-@(title: String, description: String, pageUrl: String, imageUrl: String, imageWidth: Int, imageHeight: Int)
+@(title: String, description: String, pageUrl: String, imageUrl: String, imageWidth: Int, imageHeight: Int, imageAlt: String)
 <meta name="description" content="@description">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Project Sidewalk">
@@ -20,8 +21,10 @@
 <meta property="og:image" content="@imageUrl">
 <meta property="og:image:width" content="@imageWidth">
 <meta property="og:image:height" content="@imageHeight">
+<meta property="og:image:alt" content="@imageAlt">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@@projsidewalk">
 <meta name="twitter:title" content="@title">
 <meta name="twitter:description" content="@description">
 <meta name="twitter:image" content="@imageUrl">
+<meta name="twitter:image:alt" content="@imageAlt">

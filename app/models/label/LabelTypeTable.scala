@@ -23,8 +23,18 @@ object LabelTypeEnum {
    * @param name The string representation of this label type
    * @param descriptionKey A key to get a human-readable description of this label type from the Messages API
    * @param color Hex color code associated with this label type
+   * @param isAccessIssue Whether this label type marks an accessibility problem (severity means "how bad"), as opposed
+   *                      to a positive access feature like a curb ramp or a neutral meta type like an occlusion. Copy
+   *                      and severity interpretation flip direction on this, so it must come from here, not be
+   *                      re-derived in feature code.
    */
-  sealed abstract class Base(val id: Int, val name: String, val descriptionKey: String, val color: String) {
+  sealed abstract class Base(
+      val id: Int,
+      val name: String,
+      val descriptionKey: String,
+      val color: String,
+      val isAccessIssue: Boolean
+  ) {
     override def toString: String = name
 
     // Messages key for this label type's short human-readable name (e.g. "curb.ramp"), derived from descriptionKey so
@@ -38,16 +48,17 @@ object LabelTypeEnum {
   }
 
   // Representations for the full set of label types in the system.
-  case object CurbRamp       extends Base(1, "CurbRamp", "curb.ramp.description", "#90C31F")
-  case object NoCurbRamp     extends Base(2, "NoCurbRamp", "missing.ramp.description", "#E679B6")
-  case object Obstacle       extends Base(3, "Obstacle", "obstacle.description", "#78B0EA")
-  case object SurfaceProblem extends Base(4, "SurfaceProblem", "surface.problem.description", "#F68D3E")
-  case object Other          extends Base(5, "Other", "other.description", "#B3B3B3")
-  case object Occlusion      extends Base(6, "Occlusion", "occlusion.description", "#B3B3B3")
-  case object NoSidewalk     extends Base(7, "NoSidewalk", "no.sidewalk.description", "#BE87D8")
-  case object Problem        extends Base(8, "Problem", "problem.description", "#B3B3B3")
-  case object Crosswalk      extends Base(9, "Crosswalk", "crosswalk.description", "#FABF1C")
-  case object Signal         extends Base(10, "Signal", "signal.description", "#63C0AB")
+  case object CurbRamp   extends Base(1, "CurbRamp", "curb.ramp.description", "#90C31F", isAccessIssue = false)
+  case object NoCurbRamp extends Base(2, "NoCurbRamp", "missing.ramp.description", "#E679B6", isAccessIssue = true)
+  case object Obstacle   extends Base(3, "Obstacle", "obstacle.description", "#78B0EA", isAccessIssue = true)
+  case object SurfaceProblem
+      extends Base(4, "SurfaceProblem", "surface.problem.description", "#F68D3E", isAccessIssue = true)
+  case object Other      extends Base(5, "Other", "other.description", "#B3B3B3", isAccessIssue = false)
+  case object Occlusion  extends Base(6, "Occlusion", "occlusion.description", "#B3B3B3", isAccessIssue = false)
+  case object NoSidewalk extends Base(7, "NoSidewalk", "no.sidewalk.description", "#BE87D8", isAccessIssue = true)
+  case object Problem    extends Base(8, "Problem", "problem.description", "#B3B3B3", isAccessIssue = true)
+  case object Crosswalk  extends Base(9, "Crosswalk", "crosswalk.description", "#FABF1C", isAccessIssue = false)
+  case object Signal     extends Base(10, "Signal", "signal.description", "#63C0AB", isAccessIssue = false)
 
   // Complete set of all label type enum values. Used as the source for generating other collections.
   lazy val values: Set[Base] = Set(
