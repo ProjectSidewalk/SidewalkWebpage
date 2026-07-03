@@ -55,23 +55,29 @@ class ValidateController @Inject() (
    */
   def validate(neighborhoods: Option[String], unvalidatedOnly: Option[Boolean]) =
     cc.securityService.SecuredAction { implicit request =>
-      checkParams(adminVersion = false, None, None, neighborhoods, unvalidatedOnly).flatMap {
-        case (validateParams, response) =>
-          if (response.header.status == 200) {
-            val user: SidewalkUserWithRole = request.identity
-            for {
-              validatePageData <- getDataForValidatePages(user, labelCount = 10, validateParams)
-              commonPageData   <- configService.getCommonPageData(request2Messages.lang)
-            } yield {
-              cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Validate")
-              Ok(
-                views.html.apps.validate(commonPageData, "/validate", "Sidewalk - Validate", user, validateParams,
-                  validatePageData)
-              )
+      if (isMobile(request)) {
+        // mobileValidate takes the same query params, so forward them along with the redirect.
+        cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Validate_RedirectMobile")
+        Future.successful(Redirect("/mobile", request.queryString))
+      } else {
+        checkParams(adminVersion = false, None, None, neighborhoods, unvalidatedOnly).flatMap {
+          case (validateParams, response) =>
+            if (response.header.status == 200) {
+              val user: SidewalkUserWithRole = request.identity
+              for {
+                validatePageData <- getDataForValidatePages(user, labelCount = 10, validateParams)
+                commonPageData   <- configService.getCommonPageData(request2Messages.lang)
+              } yield {
+                cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Validate")
+                Ok(
+                  views.html.apps.validate(commonPageData, "/validate", "Sidewalk - Validate", user, validateParams,
+                    validatePageData)
+                )
+              }
+            } else {
+              Future.successful(response)
             }
-          } else {
-            Future.successful(response)
-          }
+        }
       }
     }
 
@@ -89,23 +95,28 @@ class ValidateController @Inject() (
       unvalidatedOnly: Option[Boolean]
   ) =
     cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-      checkParams(adminVersion = true, labelType, users, neighborhoods, unvalidatedOnly).flatMap {
-        case (validateParams, response) =>
-          if (response.header.status == 200) {
-            val user: SidewalkUserWithRole = request.identity
-            for {
-              validatePageData <- getDataForValidatePages(user, labelCount = 10, validateParams)
-              commonPageData   <- configService.getCommonPageData(request2Messages.lang)
-            } yield {
-              cc.loggingService.insert(user.userId, request.ipAddress, "Visit_ExpertValidate")
-              Ok(
-                views.html.apps.validate(commonPageData, "/expertValidate", "Sidewalk - Expert Validate", user,
-                  validateParams, validatePageData)
-              )
+      if (isMobile(request)) {
+        cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_ExpertValidate_RedirectMobile")
+        Future.successful(Redirect("/mobile"))
+      } else {
+        checkParams(adminVersion = true, labelType, users, neighborhoods, unvalidatedOnly).flatMap {
+          case (validateParams, response) =>
+            if (response.header.status == 200) {
+              val user: SidewalkUserWithRole = request.identity
+              for {
+                validatePageData <- getDataForValidatePages(user, labelCount = 10, validateParams)
+                commonPageData   <- configService.getCommonPageData(request2Messages.lang)
+              } yield {
+                cc.loggingService.insert(user.userId, request.ipAddress, "Visit_ExpertValidate")
+                Ok(
+                  views.html.apps.validate(commonPageData, "/expertValidate", "Sidewalk - Expert Validate", user,
+                    validateParams, validatePageData)
+                )
+              }
+            } else {
+              Future.successful(response)
             }
-          } else {
-            Future.successful(response)
-          }
+        }
       }
     }
 

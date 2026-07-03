@@ -103,17 +103,19 @@ function Main(param) {
     async function _init() {
         // On desktop the pano's display size is scaled to fit the viewport, so measure it live; label projection
         // math and the canvas_width/height submitted with each validation always reflect the on-screen size.
-        svv.canvasWidth = () => (isMobile()
+        svv.canvasWidth = () => (util.isMobile()
             ? window.innerWidth
             : Math.round(svv.ui.viewer.controlLayer[0].getBoundingClientRect().width));
-        svv.canvasHeight = () => (isMobile()
+        svv.canvasHeight = () => (util.isMobile()
             ? window.innerHeight
             : Math.round(svv.ui.viewer.controlLayer[0].getBoundingClientRect().height));
-        svv.labelRadius = isMobile() ? 25 : 10;
+        svv.labelRadius = util.isMobile() ? 25 : 10;
 
         const labelType = svv.labelTypes[param.mission.label_type_id];
 
-        svv.validationMenu = isMobile() ? new MobileValidationMenu(svv.ui.validationMenu) : new DesktopValidationMenu(svv.ui.validationMenu);
+        svv.validationMenu = util.isMobile()
+            ? new MobileValidationMenu(svv.ui.validationMenu)
+            : new DesktopValidationMenu(svv.ui.validationMenu);
 
         svv.form = new Form(param.dataStoreUrl);
 
@@ -131,7 +133,7 @@ function Main(param) {
         svv.labelContainer = await LabelContainer.create(param.labelList);
 
         // There are certain features that will only make sense on desktop vs mobile.
-        if (isMobile()) {
+        if (util.isMobile()) {
             svv.pinchZoom = new PinchZoomDetector();
         } else {
             svv.panoOverlay = new PanoOverlay();
@@ -147,7 +149,7 @@ function Main(param) {
 
         // Uniformly scale the whole tool to fit the viewport (like browser zoom) using var(--ui-scale). Mobile
         // instead fills the screen via PanoManager's own sizing.
-        if (!isMobile()) {
+        if (!util.isMobile()) {
             const applyValidateScale = () => {
                 const scale = util.applyToolScale(
                     ['--pano-base-width', '--menu-base-gap', '--menu-base-width'],
@@ -168,7 +170,7 @@ function Main(param) {
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission, param.progress);
 
-        if (!isMobile()) {
+        if (!util.isMobile()) {
             svv.infoPopover = new PanoInfoPopover(
                 svv.ui.viewer.dateHolder, svv.panoViewer, svv.panoViewer.getPosition, svv.panoViewer.getPanoId,
                 () => {
@@ -248,7 +250,7 @@ function Main(param) {
     if (param.hasNextMission) {
         _init();
     } else {
-        if (!isMobile()) svv.keyboard = new Keyboard(svv.ui.validationMenu);
+        if (!util.isMobile()) svv.keyboard = new Keyboard(svv.ui.validationMenu);
         svv.form = new Form(param.dataStoreUrl);
         svv.tracker = new Tracker();
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);

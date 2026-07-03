@@ -17,7 +17,7 @@ class ModalMissionComplete {
 
     #handleButtonClick = (event) => {
         // If they've done three missions and clicked the audit button, load the explore page.
-        if (event.data.button === 'primary' && svv.missionsCompleted % 3 === 0 && !isMobile()) {
+        if (event.data.button === 'primary' && svv.missionsCompleted % 3 === 0 && !util.isMobile()) {
             window.location.replace('/explore');
         } else {
             // If there is a new validate mission available, we should show the mission screens.
@@ -77,7 +77,7 @@ class ModalMissionComplete {
         this.#uiModalMissionComplete.foreground.css('visibility', 'visible');
 
         // Set primary button text to Explore if they've completed 3 validation missions (and are on a laptop/desktop).
-        if (svv.missionsCompleted % 3 === 0 && !isMobile()) {
+        if (svv.missionsCompleted % 3 === 0 && !util.isMobile()) {
             this.#uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.explore'));
             this.#uiModalMissionComplete.closeButtonPrimary.css('visibility', 'visible');
             this.#uiModalMissionComplete.closeButtonPrimary.css('width', '60%');
@@ -91,7 +91,7 @@ class ModalMissionComplete {
 
             this.#uiModalMissionComplete.closeButtonSecondary.css('visibility', 'hidden');
         }
-        if (isMobile()) this.#uiModalMissionComplete.closeButtonPrimary.css('font-size', '30pt');
+        if (util.isMobile()) this.#uiModalMissionComplete.closeButtonPrimary.css('font-size', '30pt');
 
         svv.tracker.push(
             'MissionComplete',
@@ -118,6 +118,6 @@ class ModalMissionComplete {
         this.#uiModalMissionComplete.closeButtonSecondary.removeClass('btn-loading');
         this.#uiModalMissionComplete.closeButtonSecondary.addClass('btn-secondary');
         this.#uiModalMissionComplete.closeButtonSecondary.on('click', { button: 'secondary' }, this.#handleButtonClick);
-        if (isMobile()) this.#uiModalMissionComplete.closeButtonPrimary.css('font-size', '30pt');
+        if (util.isMobile()) this.#uiModalMissionComplete.closeButtonPrimary.css('font-size', '30pt');
     }
 }

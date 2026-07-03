@@ -36,7 +36,7 @@ class Form {
      * @returns {string} One of 'ValidateMobile', 'ExpertValidate', or 'Validate'.
      */
     getSource() {
-        if (isMobile()) {
+        if (util.isMobile()) {
             return 'ValidateMobile';
         } else if (svv.adminVersion) {
             return 'ExpertValidate';

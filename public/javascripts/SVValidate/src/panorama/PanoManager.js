@@ -55,7 +55,7 @@ class PanoManager {
         const panoOptions = {
             accessToken: viewerAccessToken,
             defaultNavigation: false,
-            scrollwheel: isMobile(),
+            scrollwheel: util.isMobile(),
         };
 
         this.#panoCanvas = document.getElementById('svv-panorama');
@@ -87,15 +87,15 @@ class PanoManager {
 
         this.#logPovChange = util.throttle(() => svv.tracker.push('POV_Changed'), PanoManager.#POV_LOG_INTERVAL_MS);
         svv.panoViewer.addListener('pov_changed', () => this.#logPovChange());
-        if (isMobile()) {
+        if (util.isMobile()) {
             this.#sizePano();
             svv.panoViewer.resize(); // Necessary for PannellumViewer for correct vertical position of the label.
         }
 
-        if (panoViewerType === GsvViewer && !isMobile()) {
+        if (panoViewerType === GsvViewer && !util.isMobile()) {
             this.#makeGsvAttributionClickable();
             this.#linksListener = this.#primaryViewer.gsvPano.addListener('links_changed', this.#makeGsvAttributionClickable.bind(this));
-        } else if (panoViewerType === MapillaryViewer && !isMobile()) {
+        } else if (panoViewerType === MapillaryViewer && !util.isMobile()) {
             this.#makeMapillaryAttributionClickable();
         }
     }
@@ -143,7 +143,7 @@ class PanoManager {
         const panoId = panoData.getPanoId();
         svv.panoStore.addPanoMetadata(panoId, panoData);
 
-        if (!isMobile()) {
+        if (!util.isMobile()) {
             // Add the capture date of the image to the bottom-right corner of the UI.
             svv.ui.viewer.date.text(panoData.getProperty('captureDate').format('MMM YYYY'));
         }
@@ -199,7 +199,7 @@ class PanoManager {
         const labelPov = currentLabel.getOriginalPov();
 
         // Set to user's POV when labeling if on desktop. If on mobile, center the label on the screen.
-        if (isMobile()) {
+        if (util.isMobile()) {
             svv.panoViewer.setPov(labelPov);
         } else {
             svv.panoViewer.setPov({

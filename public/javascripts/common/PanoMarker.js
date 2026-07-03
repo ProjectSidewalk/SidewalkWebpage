@@ -145,7 +145,7 @@ class PanoMarker {
 
         // If this is a validation label, we want to add mouse-hovering event for popped up hide/show label.
         if (this.id_ === 'validate-pano-marker') {
-            if (isMobile()) {
+            if (util.isMobile()) {
                 marker.addEventListener('touchstart', () => {
                     const labelDescriptionBox = $('#label-description-box');
                     const desBox = labelDescriptionBox[0];

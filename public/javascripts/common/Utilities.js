@@ -93,6 +93,8 @@ util.getOperatingSystem = () => _bowserParser.getOSName();
 util.isSafari = () => util.getBrowserName() === 'Safari';
 util.isChrome = () => util.getBrowserName() === 'Chrome';
 util.isFirefox = () => util.getBrowserName() === 'Firefox';
+// Tablets count as mobile: they get the touch-oriented mobile UI (and the /mobile redirect) same as phones.
+util.isMobile = () => ['mobile', 'tablet'].includes(_bowserParser.getPlatformType());
 
 // A cross-browser function to capture a mouse position, relative to the given DOM element. The UI is scaled through
 // real layout sizes (var(--ui-scale)), so offset() already reflects the scaled position and no compensation is needed.

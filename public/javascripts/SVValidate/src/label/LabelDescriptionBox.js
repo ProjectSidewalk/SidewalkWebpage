@@ -59,7 +59,7 @@ class LabelDescriptionBox {
         // On mobile, freeze an explicit width that accounts for the device pixel ratio. On desktop the box is
         // anchored via `right` and shrink-wraps between the scaled min/max-widths in CSS, so width stays 'auto'
         // and keeps tracking the UI scale.
-        if (isMobile()) {
+        if (util.isMobile()) {
             const bound = desBox.getBoundingClientRect();
             desBox.style.width = `${(bound.right - bound.left) * window.devicePixelRatio}px`;
             desBox.style.fontSize = '30px';

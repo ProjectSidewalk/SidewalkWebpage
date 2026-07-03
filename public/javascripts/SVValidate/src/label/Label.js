@@ -76,7 +76,7 @@ class Label {
             Signal: '/assets/images/icons/AdminTool_Signal.png',
         };
 
-        if (isMobile()) {
+        if (util.isMobile()) {
             this.#icons = {
                 CurbRamp: '/assets/images/icons/AdminTool_CurbRamp_Mobile.png',
                 NoCurbRamp: '/assets/images/icons/AdminTool_NoCurbRamp_Mobile.png',
@@ -140,7 +140,7 @@ class Label {
                     }
                 }
             }
-            this.setAuditProperty('isMobile', isMobile());
+            this.setAuditProperty('isMobile', util.isMobile());
         }
     }
 
@@ -258,7 +258,7 @@ class Label {
         this.setProperty('heading', userPov.heading);
         this.setProperty('pitch', userPov.pitch);
         this.setProperty('zoom', userPov.zoom);
-        this.setProperty('isMobile', isMobile());
+        this.setProperty('isMobile', util.isMobile());
         this.setProperty('comment', comment);
 
         if (this.getProperty('comment')) {

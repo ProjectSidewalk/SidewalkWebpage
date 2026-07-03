@@ -208,20 +208,25 @@ class ApplicationController @Inject() (
    */
   def labelMap(regions: Option[String], routes: Option[String], aiValidationOptions: Option[String]) =
     cc.securityService.SecuredAction { implicit request =>
-      val regionIds: Seq[Int]    = parseIntegerSeq(regions)
-      val routeIds: Seq[Int]     = parseIntegerSeq(routes)
-      val aiValOpts: Seq[String] = aiValidationOptions.map(_.split(",").toSeq.distinct).getOrElse(Seq())
-      val activityStr: String    = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
+      if (ControllerUtils.isMobile(request)) {
+        cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_LabelMap_RedirectMobileLanding")
+        Future.successful(Redirect("/mobileLanding"))
+      } else {
+        val regionIds: Seq[Int]    = parseIntegerSeq(regions)
+        val routeIds: Seq[Int]     = parseIntegerSeq(routes)
+        val aiValOpts: Seq[String] = aiValidationOptions.map(_.split(",").toSeq.distinct).getOrElse(Seq())
+        val activityStr: String    = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
 
-      for {
-        commonData <- configService.getCommonPageData(request2Messages.lang)
-        tags       <- labelService.getTagsForCurrentCity
-      } yield {
-        cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
-        Ok(
-          views.html.apps.labelMap(commonData, "Sidewalk - LabelMap", request.identity, tags, regionIds, routeIds,
-            aiValOpts)
-        )
+        for {
+          commonData <- configService.getCommonPageData(request2Messages.lang)
+          tags       <- labelService.getTagsForCurrentCity
+        } yield {
+          cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
+          Ok(
+            views.html.apps.labelMap(commonData, "Sidewalk - LabelMap", request.identity, tags, regionIds, routeIds,
+              aiValOpts)
+          )
+        }
       }
     }
 

@@ -18,8 +18,6 @@ module.exports = [
         ignores: [
             'public/javascripts/**/build/**',
             'public/javascripts/lib/**',
-            'public/javascripts/common/detectMobileBrowser.js',
-            'public/javascripts/common/isMobile.js',
         ],
     },
     {
