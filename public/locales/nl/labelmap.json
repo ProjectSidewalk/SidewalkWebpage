@@ -1,5 +1,7 @@
 {
     "search-placeholder": "Zoek een adres of plaats",
+    "loading-labels": "Etiketten laden…",
+    "loading-elapsed": "{{seconds}} s verstreken",
     "is-correct": "Klopt dit etiket?",
     "label-type": "Etikettype",
     "validations": "Validations",

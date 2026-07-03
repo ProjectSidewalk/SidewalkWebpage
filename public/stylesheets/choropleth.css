@@ -65,6 +65,61 @@
     margin-top: 0;
 }
 
+/*
+ * Loading indicator shown over the map while the label layer streams in (#4370/#4447). A centered
+ * floating card (not a full-map scrim) so it reads over the light basemap without blacking it out, and
+ * pointer-events: none so it stays purely informational and never blocks panning while labels load.
+ */
+#labelmap-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20; /* Above the map and sidebar chrome. */
+    pointer-events: none;
+}
+#labelmap-loading[hidden] {
+    display: none;
+}
+.labelmap-loading__card {
+    text-align: center;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.72);
+    padding: 24px 32px;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    font-family: 'Raleway', sans-serif;
+}
+.labelmap-loading__spinner {
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 14px;
+    border: 3px solid rgba(255, 255, 255, 0.25);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: labelmap-spin 0.8s linear infinite;
+}
+@keyframes labelmap-spin {
+    to { transform: rotate(360deg); }
+}
+.labelmap-loading__message {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+}
+.labelmap-loading__elapsed {
+    font-size: 0.8rem;
+    color: #bbb;
+    margin: 6px 0 0;
+}
+/* Respect reduced-motion: keep the spinner as a feedback cue but slow it well down. */
+@media (prefers-reduced-motion: reduce) {
+    .labelmap-loading__spinner {
+        animation-duration: 2.4s;
+    }
+}
+
 #admin-task-choropleth {
     width: 360px;
     height: 360px;

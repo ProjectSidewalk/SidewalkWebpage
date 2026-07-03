@@ -1,5 +1,7 @@
 {
     "search-placeholder": "Busca una dirección o lugar",
+    "loading-labels": "Cargando etiquetas…",
+    "loading-elapsed": "{{seconds}} s transcurridos",
     "is-correct": "Esta etiqueta es correcta?",
     "label-type": "Tipo de etiqueta",
     "validations": "Validaciones",

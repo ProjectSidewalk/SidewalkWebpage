@@ -67,6 +67,21 @@
 
 #labelmap-search-box {
     width: 100%;
+    /*
+     * Reserve the control's height (the Mapbox search input is 36px) so mounting it never nudges the
+     * filter sections below — even in the sub-frame before the search web component finishes upgrading.
+     */
+    min-height: 36px;
+}
+
+/*
+ * The control wraps itself in a .mapboxgl-ctrl div with an inline width: 300px (sized for a floating
+ * map control). Override it so the box fills the sidebar column instead of overflowing its ~290px of
+ * content width. !important is required because 300px is set as an inline style.
+ */
+#labelmap-search-box > .mapboxgl-ctrl {
+    width: 100% !important;
+    margin: 0;
 }
 
 /* Drag handle for resizing the sidebar width. Sits on the right edge of the sidebar. */
