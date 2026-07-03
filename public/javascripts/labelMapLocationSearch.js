@@ -24,7 +24,7 @@ const CITY_BBOX_BUFFER_FRACTION = 0.1;
  *                            padded by CITY_BBOX_BUFFER_FRACTION per edge, or null if no coordinates found.
  */
 function cityBoundingBox(geojson) {
-    let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+    let minLng = Infinity; let minLat = Infinity; let maxLng = -Infinity; let maxLat = -Infinity;
     const visit = (coords) => {
         if (typeof coords[0] === 'number') {
             const [lng, lat] = coords;
@@ -74,10 +74,10 @@ function initLabelMapLocationSearch(map, mapboxApiKey) {
     // neighborhoods), NOT the map's deliberately-generous pan-bounds (which can span a whole metro area).
     // Merge onto the existing options so we don't clobber a proximity the map binding may have added.
     fetch('/neighborhoods')
-        .then(response => response.json())
-        .then(geojson => {
+        .then((response) => response.json())
+        .then((geojson) => {
             const bbox = cityBoundingBox(geojson);
-            if (bbox) searchBox.options = Object.assign({}, searchBox.options, { bbox });
+            if (bbox) searchBox.options = { ...searchBox.options, bbox };
         })
         .catch(() => { /* If the city extent can't be loaded, leave the search unbounded. */ });
 }
