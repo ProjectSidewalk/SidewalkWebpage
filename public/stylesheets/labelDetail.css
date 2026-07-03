@@ -94,26 +94,34 @@ dialog.label-detail[open]::backdrop {
 
 /* ─── Pano viewer ─────────────────────────────────────────────────────── */
 
-/* Wrap holds the pano + the hover-reveal validation overlay. The border doubles as the "selected validation"
-   indicator (transparent by default, colored when a vote is set). */
+/* Wrap holds the pano + the hover-reveal validation overlay, and clips both to the rounded corners. The ::after
+   ring is the "selected validation" indicator (invisible by default, colored when a vote is set) — an overlay
+   rather than a border so the image sits flush edge-to-edge and nothing shifts when the ring appears. */
 .label-detail__pano-wrap {
     position: relative;
     width: 100%;
-    border: 5px solid transparent;
-    border-radius: 6px;
+    border-radius: 8px;
+    overflow: hidden;
     margin-bottom: 10px;
+}
+.label-detail__pano-wrap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 5px solid transparent;
+    border-radius: inherit;
+    pointer-events: none;
     transition: border-color 150ms ease;
 }
-.label-detail__pano-wrap.is-agree    { border-color: #78c9ab; }
-.label-detail__pano-wrap.is-disagree { border-color: #eb734d; }
-.label-detail__pano-wrap.is-unsure   { border-color: var(--color-asphalt-100); }
+.label-detail__pano-wrap.is-agree::after    { border-color: #78c9ab; }
+.label-detail__pano-wrap.is-disagree::after { border-color: #eb734d; }
+.label-detail__pano-wrap.is-unsure::after   { border-color: var(--color-asphalt-100); }
 
 .label-detail__pano {
     position: relative;
     width: 100%;
     aspect-ratio: 720 / 480;
     background: #e9e9e9;
-    border-radius: 2px;
     overflow: hidden;
 }
 

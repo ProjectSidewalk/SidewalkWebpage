@@ -331,9 +331,9 @@ async function LabelDetail(root, opts) {
             _renderFlagButtons();
         }
 
-        // Title: "Label Type : Curb Ramp"
+        // Title: "Label Type: Curb Ramp"
         const labelTypeName = i18next.t(`common:${camelToKebab(meta.label_type)}`);
-        els.title.textContent = `${i18next.t('labelmap:label-type')} : ${labelTypeName}`;
+        els.title.textContent = `${i18next.t('labelmap:label-type')}: ${labelTypeName}`;
 
         // Point the share widget at this label's public permalink (#456). The /label/:id route renders the LabelMap
         // focused on this label and serves the og:image crawlers embed in the share card.
