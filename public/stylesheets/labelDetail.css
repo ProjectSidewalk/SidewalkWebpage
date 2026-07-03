@@ -108,6 +108,9 @@ dialog.label-detail[open]::backdrop {
     content: '';
     position: absolute;
     inset: 0;
+    /* The GSV widget's internal layers carry small positive z-indexes that leak into this stacking context, so the
+       ring must sit above them (and above the z-index:1 hover overlay); the info popover stays higher at 10/11. */
+    z-index: 5;
     border: 5px solid transparent;
     border-radius: inherit;
     pointer-events: none;
