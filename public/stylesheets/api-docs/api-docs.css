@@ -149,6 +149,14 @@ body {
     overflow-x: hidden;
 }
 
+/* The content pane's own padding already offsets the page from the navbar; without this, the first heading's
+   margin-top stacks on that padding (collapsing up through its .api-section) and doubles the blank space at the
+   top of every page. */
+.api-content > :is(h1, h2, h3, .api-heading):first-child,
+.api-content > :first-child > :is(h1, h2, h3, .api-heading):first-child {
+    margin-top: 0;
+}
+
 /* ---- Typography ---- */
 
 h1, h2, h3, h4, h5, h6 {

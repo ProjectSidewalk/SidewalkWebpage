@@ -24,6 +24,10 @@
     font-family: "Open Sans", -apple-system, BlinkMacSystemFont, sans-serif;
     overflow-y: auto;
     overscroll-behavior: contain;
+    /* When content overflows (e.g. the Dashboard adds its mistake-response panel), a default opaque scrollbar
+       track paints square over the right rounded corners. A thin thumb on a transparent track keeps them round. */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.35) transparent;
 }
 
 .label-detail::backdrop {
