@@ -190,7 +190,7 @@ class ShareController @Inject() (
    * crop) so the og:image:width/height the meta advertises is always true regardless of the base image's source
    * (stored crops are 1440×960 but GSV stills come back 640×480), and cards stay high-res on every platform.
    */
-  private def compositeMarker(
+  private[controllers] def compositeMarker(
       base: BufferedImage,
       labelType: LabelTypeEnum.Base,
       canvasXY: LocationXY
@@ -242,7 +242,7 @@ class ShareController @Inject() (
   }
 
   /** Renders the logo centered on a white fixed-size canvas to the given cache file (no-op if the logo is missing). */
-  private def buildFallbackImage(cached: File): Unit = {
+  private[controllers] def buildFallbackImage(cached: File): Unit = {
     val logo: File = environment.getFile("public/assets/sidewalk-logo.png")
     Option(if (logo.exists()) ImageIO.read(logo) else null).foreach { mark =>
       val out = new BufferedImage(SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, BufferedImage.TYPE_INT_RGB)

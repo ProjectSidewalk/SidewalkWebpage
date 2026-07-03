@@ -20,6 +20,13 @@ Two modules are covered (the newest, dependency-light, vanilla-DOM ones):
 - `aggregate-stats-preview.js` → `aggregate-stats-preview.test.js`
 - `validation-result-types-preview.js` → `validation-result-types-preview.test.js`
 
+Also covered, beyond the api-docs previews:
+
+- `common/share/ShareWidget.js` → `share-widget.test.js` — the label share control (#456): native-share vs popover
+  fork, the popover's ARIA contract and focus management, clipboard/intents, and activity logging. `ShareWidget` is a
+  top-level `class` declaration (not a `window.X = ...` assignment), so the test evals the source into the jsdom
+  global scope instead of using `loadGlobalScript`.
+
 Each test file has:
 
 1. A **good-fixture** test: feed a realistic snake_case response, assert the promise resolves, the container has **no
