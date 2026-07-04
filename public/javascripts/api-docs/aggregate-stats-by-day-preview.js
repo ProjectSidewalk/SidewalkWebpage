@@ -1,9 +1,8 @@
 /**
  * Project Sidewalk Aggregate Stats by Day Preview Generator.
  *
- * Renders a live time-series visualization for the Aggregate Stats by Day API endpoint, showing
- * daily label and validation activity summed across all Project Sidewalk deployments over the
- * most recent 90 days with data.
+ * Renders a live time-series visualization for the Aggregate Stats by Day API endpoint, showing daily label and
+ * validation activity summed across all Project Sidewalk deployments over the most recent 90 days with data.
  *
  * @requires DOM element with id 'aggregate-stats-by-day-preview'
  * @requires Chart.js library (chart-4.5.1.min.js)

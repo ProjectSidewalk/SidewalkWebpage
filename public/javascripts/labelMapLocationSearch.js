@@ -10,10 +10,9 @@
  * The follow-up "Explore the sidewalks here" action (a separate ticket) will hook into the selection.
  */
 
-// Fraction of the region's own span to pad the search bbox by on each edge, so places just outside the
-// audited footprint (e.g. a hospital across a boundary road) still surface, without opening the search up
-// to the surrounding metro. A small buffer — the DB config pan-bounds are far too loose to use here (e.g.
-// Seattle's spans ~300 km).
+// Fraction of the region's own span to pad the search bbox by on each edge, so places just outside the audited
+// footprint (e.g. a hospital across a boundary road) still surface, without opening the search up to the surrounding
+// metro. A small buffer — the DB config pan-bounds are far too loose to use here (e.g. Seattle's spans ~300 km).
 const CITY_BBOX_BUFFER_FRACTION = 0.1;
 
 /**
