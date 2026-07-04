@@ -42,7 +42,7 @@ class CardBucket {
             const severitySet = new Set(severities);
             this.#bucket = this.#bucket.filter((card) => {
                 const sev = card.getProperty('severity');
-                return severitySet.has(sev == null ? 'null' : String(sev));
+                return severitySet.has(sev === null || sev === undefined ? 'null' : String(sev));
             });
         }
     }
@@ -76,20 +76,6 @@ class CardBucket {
      */
     copy() {
         return new CardBucket([...this.#bucket]);
-    }
-
-    /**
-     * Gets the card that has the matching imageId.
-     *
-     * @param {string} imageId The id to search for.
-     * @returns {Card} The card in the card bucket that contains the imageId.
-     */
-    findCardByImageId(imageId) {
-        const index = this.findCardIndexByImageId(imageId);
-        if (index === -1) {
-            return undefined;
-        }
-        return this.#bucket[index];
     }
 
     getCardByIndex(index) {

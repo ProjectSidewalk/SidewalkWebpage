@@ -162,7 +162,8 @@
             `, { autoPanPaddingTopLeft: L.point(10, 10), autoPanPaddingBottomRight: L.point(260, 130) });
 
             layer.on('mouseover', function () {
-                this.setStyle({ weight: 7, opacity: 1 }); this.bringToFront();
+                this.setStyle({ weight: 7, opacity: 1 });
+                this.bringToFront();
             });
             layer.on('mouseout', () => this._layer.resetStyle(layer));
         },

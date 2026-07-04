@@ -98,7 +98,8 @@ class ManagementPage {
             : this.#users.slice();
         const dir = this.#sort.dir === 'asc' ? 1 : -1;
         rows.sort((a, b) => {
-            const av = col.sort(a); const bv = col.sort(b);
+            const av = col.sort(a);
+            const bv = col.sort(b);
             if (av < bv) return -1 * dir;
             if (av > bv) return 1 * dir;
             return 0;
@@ -272,7 +273,8 @@ class ManagementPage {
             if (user) user.role = res.role || newRole;
             this.#flash(`Set ${user ? user.username : userId} to ${newRole}.`);
         } catch (err) {
-            if (previous != null) sel.value = previous; // Revert the control to the server's truth.
+            // Revert the control to the server's truth.
+            if (previous !== null && previous !== undefined) sel.value = previous;
             this.#flash(`Could not change role: ${err.message}`, true);
         }
     }
@@ -399,7 +401,7 @@ class ManagementPage {
         if (!resp.ok) throw new Error(text || `HTTP ${resp.status}`);
         try {
             return text ? JSON.parse(text) : {};
-        } catch (e) {
+        } catch {
             return {};
         }
     }
@@ -481,6 +483,6 @@ class ManagementPage {
     }
 
     static #esc(s) {
-        return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     }
 }

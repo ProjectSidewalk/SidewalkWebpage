@@ -68,7 +68,7 @@ function AddStreetsToMap(map, streetData, params) {
                 document.querySelector('.mapboxgl-canvas').style.cursor = 'pointer';
             }
         });
-        map.on('mouseleave', STREET_LAYER_NAME, (event) => {
+        map.on('mouseleave', STREET_LAYER_NAME, () => {
             map.setFeatureState({ source: hoveredStreet.layer.id, id: hoveredStreet.properties.street_edge_id }, { hover: false });
             hoveredStreet = null;
             document.querySelector('.mapboxgl-canvas').style.cursor = '';
@@ -79,7 +79,7 @@ function AddStreetsToMap(map, streetData, params) {
             // Log to the webpage_activity table when a street is selected from the map and 'Click here' is clicked.
             // Logs are of the form 'Click_module=<mapName>_streetId=<streetId>_audited=<boolean>_target=explore'.
             $(`#${params.mapName}`).on('click', '.street-selection-trigger', function () {
-                const streetId = parseInt($(this).attr('streetId'));
+                const streetId = parseInt($(this).attr('streetId'), 10);
                 const street = streetData.features.find((s) => streetId === s.properties.street_edge_id);
                 const activity = `Click_module=${params.mapName}_streetId=${streetId}_audited=${street.properties.audited}_target=explore`;
                 window.logWebpageActivity(activity);
@@ -88,11 +88,11 @@ function AddStreetsToMap(map, streetData, params) {
     }
 
     // Return promise that is resolved once all the layers have been added to the map.
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         if (map.getLayer(STREET_LAYER_NAME)) {
             resolve();
         } else {
-            map.on('sourcedataloading', (e) => {
+            map.on('sourcedataloading', () => {
                 if (map.getLayer(STREET_LAYER_NAME)) {
                     resolve();
                 }

@@ -168,15 +168,16 @@ class ActivityPage {
         const allTime = (Array.isArray(stats) ? stats : []).filter((s) => s.time_interval === 'all_time');
         const valueOf = (stat) => {
             const row = allTime.find((s) => s.stat === stat);
-            return row && row.time != null ? row.time : null;
+            return row?.time ?? null;
         };
         // explore/validate totals are in hours; show a decimal only for small deployments where rounding would hide it.
         const fmtHours = (h) => {
-            if (h == null) return 'N/A';
+            if (h === null || h === undefined) return 'N/A';
             const digits = h < 100 ? 1 : 0;
             return `${h.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits })} hr`;
         };
-        const fmtMinutes = (m) => (m == null ? 'N/A' : `${m.toFixed(1)} min`); // explore_per_100m is median minutes/100 m.
+        // explore_per_100m is median minutes/100 m.
+        const fmtMinutes = (m) => (m === null || m === undefined ? 'N/A' : `${m.toFixed(1)} min`);
         this.#setText('kpi-explore-time', fmtHours(valueOf('explore_total')));
         this.#setText('kpi-validate-time', fmtHours(valueOf('validate_total')));
         this.#setText('kpi-explore-pace', fmtMinutes(valueOf('explore_per_100m')));
@@ -336,7 +337,7 @@ class ActivityPage {
             const roleChip = it.user_role
                 ? `<span class="activity-feed-role">${ActivityPage.#esc(it.user_role)}</span>`
                 : '';
-            const link = (it.label_id != null)
+            const link = (it.label_id !== null && it.label_id !== undefined)
                 // The href is a real fallback (works without JS / before the popup loads); the click handler intercepts
                 // it to open the label inline once the popup is ready.
                 ? `<a class="activity-label-link" href="/admin/label/${encodeURIComponent(it.label_id)}" `
@@ -407,10 +408,10 @@ class ActivityPage {
      */
     static #contributionSummary(it) {
         const parts = [];
-        if (it.user_labels != null) {
+        if (it.user_labels !== null && it.user_labels !== undefined) {
             parts.push(`${it.user_labels.toLocaleString()} ${it.user_labels === 1 ? 'label' : 'labels'}`);
         }
-        if (it.user_validations != null) {
+        if (it.user_validations !== null && it.user_validations !== undefined) {
             parts.push(`${it.user_validations.toLocaleString()} ${it.user_validations === 1 ? 'validation' : 'validations'}`);
         }
         return parts.length ? `${parts.join(' · ')} all-time` : '';

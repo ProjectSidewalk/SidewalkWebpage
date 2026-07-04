@@ -64,6 +64,7 @@ class TaskContainer {
     /**
      * Request the server to populate tasks
      * TODO Move this to somewhere else. TaskModel?
+     * @returns {Promise<void>} Resolves once the tasks have been fetched and added to the container.
      */
     fetchTasks() {
         const svl = this.#svl;
@@ -78,7 +79,7 @@ class TaskContainer {
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
         })
             .then((response) => response.json())
-            .then(async (result) => {
+            .then((result) => {
                 let task;
                 const currStreetId = this.getCurrentTaskStreetEdgeId();
                 for (let i = 0; i < result.features.length; i++) {

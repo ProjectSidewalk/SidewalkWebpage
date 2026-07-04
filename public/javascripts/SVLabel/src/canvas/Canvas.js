@@ -221,7 +221,7 @@ class Canvas {
         this.#mouseStatus.prevMouseUpTime = currTime;
     }
 
-    #handlerViewControlLayerMouseLeave(e) {
+    #handlerViewControlLayerMouseLeave() {
         this.#setViewControlLayerCursor('OpenHand');
         this.#mouseStatus.isLeftDown = false;
     }
@@ -265,9 +265,8 @@ class Canvas {
 
     /**
      * When mousing out of the canvas, stop trying to add a label type, switching back to Explore mode.
-     * @param {MouseEvent} e
      */
-    #handleDrawingLayerMouseOut(e) {
+    #handleDrawingLayerMouseOut() {
         svl.tracker.push('LabelingCanvas_MouseOut');
         if (!svl.isOnboarding()) this.#ribbon.backToWalk();
     }
@@ -447,7 +446,7 @@ class Canvas {
         if (key in this.#status) {
             this.#status[key] = value;
         } else {
-            throw 'Canvas: Illegal status name.';
+            throw new Error('Canvas: Illegal status name.');
         }
     }
 
@@ -470,16 +469,14 @@ class Canvas {
                 if (label === labels[i]) {
                     labels[i].setHoverInfoVisibility('visible');
                 }
-            } else {
+            } else if (hoverVisibility === 'visible') {
                 // If not hovered but was being hovered, hide it and rerender.
-                if (hoverVisibility === 'visible') {
-                    needToRerender = true;
-                    labels[i].setHoverInfoVisibility('hidden');
+                needToRerender = true;
+                labels[i].setHoverInfoVisibility('hidden');
 
-                    // Hide delete icon and hover tooltip when no label is hovered.
-                    svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
-                    svl.ui.canvas.hoverInfoHolder.css('visibility', 'hidden');
-                }
+                // Hide delete icon and hover tooltip when no label is hovered.
+                svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
+                svl.ui.canvas.hoverInfoHolder.css('visibility', 'hidden');
             }
         }
 

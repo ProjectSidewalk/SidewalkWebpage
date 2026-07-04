@@ -127,7 +127,7 @@ class ValidationMenu {
                 // NOTE: done after calling _validateLabel() because it uses info that changes below.
                 this.#refCard.updateUserValidation(validationOption);
 
-                return labelValidatedPromise;
+                return await labelValidatedPromise;
             }
         };
     }
@@ -167,14 +167,19 @@ class ValidationMenu {
      * @param {string} action Validation result.
      * @param {boolean} thumbsClick Whether the validation came from clicking the thumb icons.
      * @param {boolean} keyboardShortcut Whether the validation came from a keyboard shortcut.
-     * @return {Promise} A promise that resolves once the validation has been submitted.
+     * @returns {Promise<Response>} Resolves with the server's response once the validation has been submitted.
      */
-    async #validateLabel(action, thumbsClick, keyboardShortcut) {
+    #validateLabel(action, thumbsClick, keyboardShortcut) {
         const refCard = this.#refCard;
         let actionStr;
         let sourceStr;
-        if (thumbsClick) actionStr = 'Validate_ThumbsMenuClick', sourceStr = 'GalleryThumbs';
-        else actionStr = 'Validate_MenuClick', sourceStr = 'GalleryImage';
+        if (thumbsClick) {
+            actionStr = 'Validate_ThumbsMenuClick';
+            sourceStr = 'GalleryThumbs';
+        } else {
+            actionStr = 'Validate_MenuClick';
+            sourceStr = 'GalleryImage';
+        }
         actionStr += action;
         if (keyboardShortcut) {
             actionStr = actionStr.replace('Click', 'KeyboardShortcut');

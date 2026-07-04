@@ -286,7 +286,6 @@ function generateTableOfContents() {
         return;
     }
 
-    let headingsAdded = 0;
     headings.forEach((heading) => {
         const id = heading.getAttribute('id');
         const title = heading.textContent.replace(/#$/, '').trim();
@@ -300,7 +299,6 @@ function generateTableOfContents() {
         a.textContent = title;
         li.appendChild(a);
         tocContainer.appendChild(li);
-        headingsAdded++;
     });
 }
 

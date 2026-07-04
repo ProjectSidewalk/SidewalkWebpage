@@ -213,7 +213,7 @@ class PopupPanoManager {
         try {
             const res = await fetch(`/backupImage/${encodeURIComponent(panoId)}/metadata`);
             return res.ok ? await res.json() : null;
-        } catch (_) {
+        } catch {
             return null;
         }
     }
@@ -247,7 +247,7 @@ class PopupPanoManager {
                 await this.#panoSuccessCallback(pov);
                 if (!this.svHolder[0].dataset.closedDuringLoad) this.svHolder.css('visibility', 'visible');
                 return true;
-            } catch (_) {
+            } catch {
                 // Primary viewer failed — lazy-fetch backup metadata if caller didn't pre-supply it.
                 if (!backupImage) backupImage = await this.#fetchBackupImageMetadata(panoId);
             }
@@ -338,7 +338,7 @@ class PopupPanoManager {
         // There is a bug that can sometimes cause Google's panos to go black when you load a new one. We can deal with
         // it by triggering a resize event after a short delay. This seems to only be an issue with the label popup, not
         // with Explore/Gallery/Validate. Probably because of how we show/hide the popup.
-        return new Promise((resolve) => {
+        return await new Promise((resolve) => {
             setTimeout(() => {
                 this.panoViewer.resize();
                 this.panoViewer.setPov(targetPov);
@@ -352,7 +352,7 @@ class PopupPanoManager {
      * Shows an error message (or the crop fallback) if the pano fails to load.
      * @returns {Promise<void>}
      */
-    async #panoFailureCallback() {
+    #panoFailureCallback() {
         $(this.#panoCanvas).css('display', 'none');
         if (this.#cropUrl) {
             // Show the screenshot as a fallback instead of the error message.

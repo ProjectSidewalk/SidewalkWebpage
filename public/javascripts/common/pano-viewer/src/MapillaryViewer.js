@@ -143,54 +143,53 @@ class MapillaryViewer extends PanoViewer {
         const gotFov = this.viewer.getFieldOfView();
 
         // Once all async processes have finished, let's fill in the currPanoData object.
-        return Promise.all([edgesInitialized, gotCenter, gotFov]).then(([edges, newCenter, newFov]) => {
-            this.currImage = newImage;
+        const [edges, newCenter, newFov] = await Promise.all([edgesInitialized, gotCenter, gotFov]);
+        this.currImage = newImage;
 
-            this.currCameraHeading = this.currImage.compassAngle;
-            this.currCenter = newCenter;
-            this.currVerticalFov = newFov;
+        this.currCameraHeading = this.currImage.compassAngle;
+        this.currCenter = newCenter;
+        this.currVerticalFov = newFov;
 
-            const pitchAndRoll = this.extractPitchRoll(this.currImage.rotation);
+        const pitchAndRoll = this.extractPitchRoll(this.currImage.rotation);
 
-            // To get various info about the pano -- https://mapillary.github.io/mapillary-js/api/classes/viewer.Image/
-            // TODO merged, might want to record whether it's been merged thru sfm
-            // TODO qualityScore is interesting: A number between zero and one determining the quality of the image. Blurriness, .......
-            const panoDataParams = {
-                panoId: this.currImage.id,
-                source: this.getViewerType(),
-                captureDate: moment(this.currImage.capturedAt),
-                width: this.currImage.width,
-                height: this.currImage.height,
-                tileWidth: this.currImage.width,
-                tileHeight: this.currImage.height,
-                lat: this.currImage.lngLat.lat,
-                lng: this.currImage.lngLat.lng,
-                cameraHeading: this.currImage.compassAngle,
-                cameraPitch: pitchAndRoll.pitch,
-                cameraRoll: pitchAndRoll.roll,
-                copyright: this.currImage.creatorUsername,
-                history: [], // TODO could use /images endpoint to fill this. But can also see history in the UI https://www.mapillary.com/app/user/uwrapid?lat=47.66374856411&lng=-122.28224790652&z=17&x=0.5871305676894112&y=0.5159912788583514&zoom=0&panos=true&focus=photo&pKey=134748085384999&my_coverage=false&user_coverage=false
-            };
+        // To get various info about the pano -- https://mapillary.github.io/mapillary-js/api/classes/viewer.Image/
+        // TODO merged, might want to record whether it's been merged thru sfm
+        // TODO qualityScore is interesting: A number between zero and one determining the quality of the image. Blurriness, .......
+        const panoDataParams = {
+            panoId: this.currImage.id,
+            source: this.getViewerType(),
+            captureDate: moment(this.currImage.capturedAt),
+            width: this.currImage.width,
+            height: this.currImage.height,
+            tileWidth: this.currImage.width,
+            tileHeight: this.currImage.height,
+            lat: this.currImage.lngLat.lat,
+            lng: this.currImage.lngLat.lng,
+            cameraHeading: this.currImage.compassAngle,
+            cameraPitch: pitchAndRoll.pitch,
+            cameraRoll: pitchAndRoll.roll,
+            copyright: this.currImage.creatorUsername,
+            history: [], // TODO could use /images endpoint to fill this. But can also see history in the UI https://www.mapillary.com/app/user/uwrapid?lat=47.66374856411&lng=-122.28224790652&z=17&x=0.5871305676894112&y=0.5159912788583514&zoom=0&panos=true&focus=photo&pKey=134748085384999&my_coverage=false&user_coverage=false
+        };
 
-            panoDataParams.linkedPanos = edges
-                .filter((link) => link.data.direction === 9) // Filter for only panoramas.
-                .map((link) => {
-                    // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the
-                    // X-axis in a spherical coordinate system", so we need to adjust it to be like a compass heading.
-                    return {
-                        panoId: link.target,
-                        heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI)),
-                    };
-                });
+        panoDataParams.linkedPanos = edges
+            .filter((link) => link.data.direction === 9) // Filter for only panoramas.
+            .map((link) => {
+                // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the
+                // X-axis in a spherical coordinate system", so we need to adjust it to be like a compass heading.
+                return {
+                    panoId: link.target,
+                    heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI)),
+                };
+            });
 
-            // Make sure that we keep the same pov in the new pano.
-            if (oldPov) this.setPov(oldPov);
+        // Make sure that we keep the same pov in the new pano.
+        if (oldPov) this.setPov(oldPov);
 
-            this.changingPanoOurselves = false;
+        this.changingPanoOurselves = false;
 
-            this.currPanoData = new PanoData(panoDataParams);
-            return this.currPanoData;
-        });
+        this.currPanoData = new PanoData(panoDataParams);
+        return this.currPanoData;
     };
 
     /**
@@ -447,13 +446,15 @@ class MapillaryViewer extends PanoViewer {
 
     setPano = async (panoId) => {
         this.changingPanoOurselves = true;
-        return Promise.race([
-            this.viewer.moveTo(panoId).then(this._getPanoramaCallback),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Timed out')), 12000)),
-        ]).catch(() => {
+        try {
+            return await Promise.race([
+                this.viewer.moveTo(panoId).then(this._getPanoramaCallback),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timed out')), 12000)),
+            ]);
+        } catch {
             console.error('Failed to load pano: ', panoId);
-            throw new Error('Failed to load pano: ', panoId);
-        });
+            throw new Error(`Failed to load pano: ${panoId}`);
+        }
     };
 
     getLinkedPanos = () => {

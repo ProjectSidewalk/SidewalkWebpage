@@ -1,28 +1,51 @@
 /** @namespace */
-var svv = svv || {};
+window.svv = window.svv || {};
 
 /**
- * Main module for Validate / Expert Validate/ and Mobile Validate.
- *
- * @param {object} param Object passed from validation.scala.html containing data from the back end.
- * @constructor
+ * Main module for Validate / Expert Validate / and Mobile Validate.
  */
-function Main(param) {
-    svv.adminVersion = param.validateParams.adminVersion;
-    svv.validateParams = param.validateParams;
-    svv.viewerType = param.viewerType;
-    svv.missionLength = param.mission?.labels_validated ?? 0;
-    svv.missionsCompleted = 0;
+class Main {
+    #param;
 
-    function _initUI() {
+    /**
+     * @param {object} param Object passed from validation.scala.html containing data from the back end.
+     */
+    constructor(param) {
+        this.#param = param;
+
+        svv.adminVersion = param.validateParams.adminVersion;
+        svv.validateParams = param.validateParams;
+        svv.viewerType = param.viewerType;
+        svv.missionLength = param.mission?.labels_validated ?? 0;
+        svv.missionsCompleted = 0;
+
+        // Finally, do the actual initialization of the UI and other components.
+        defineValidateConstants();
+        this.#initUI();
+
+        if (param.hasNextMission) {
+            this.#init();
+        } else {
+            if (!util.isMobile()) svv.keyboard = new KeyboardManager(svv.ui.validationMenu);
+            svv.form = new Form(param.dataStoreUrl);
+            svv.tracker = new Tracker();
+            svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
+            svv.modalNoNewMission.show();
+        }
+    }
+
+    /**
+     * Collects the tool's DOM elements into the `svv.ui` tree that the other modules read.
+     */
+    #initUI() {
         svv.tagsByLabelType = {
-            CurbRamp: param.tagList.filter((t) => t.label_type_id === 1),
-            NoCurbRamp: param.tagList.filter((t) => t.label_type_id === 2),
-            Obstacle: param.tagList.filter((t) => t.label_type_id === 3),
-            SurfaceProblem: param.tagList.filter((t) => t.label_type_id === 4),
-            NoSidewalk: param.tagList.filter((t) => t.label_type_id === 7),
-            Crosswalk: param.tagList.filter((t) => t.label_type_id === 9),
-            Signal: param.tagList.filter((t) => t.label_type_id === 10),
+            CurbRamp: this.#param.tagList.filter((t) => t.label_type_id === 1),
+            NoCurbRamp: this.#param.tagList.filter((t) => t.label_type_id === 2),
+            Obstacle: this.#param.tagList.filter((t) => t.label_type_id === 3),
+            SurfaceProblem: this.#param.tagList.filter((t) => t.label_type_id === 4),
+            NoSidewalk: this.#param.tagList.filter((t) => t.label_type_id === 7),
+            Crosswalk: this.#param.tagList.filter((t) => t.label_type_id === 9),
+            Signal: this.#param.tagList.filter((t) => t.label_type_id === 10),
         };
         svv.ui = {};
         svv.ui.holder = $('.tool-ui');
@@ -100,7 +123,12 @@ function Main(param) {
         svv.ui.viewer.date = $('#svv-panorama-date');
     }
 
-    async function _init() {
+    /**
+     * Instantiates the tool's components in dependency order and reveals the UI once everything is ready.
+     */
+    async #init() {
+        const param = this.#param;
+
         // On desktop the pano's display size is scaled to fit the viewport, so measure it live; label projection
         // math and the canvas_width/height submitted with each validation always reflect the on-screen size.
         svv.canvasWidth = () => (util.isMobile()
@@ -137,10 +165,10 @@ function Main(param) {
             svv.pinchZoom = new PinchZoomDetector();
         } else {
             svv.panoOverlay = new PanoOverlay();
-            svv.keyboard = new Keyboard(svv.ui.validationMenu);
+            svv.keyboard = new KeyboardManager(svv.ui.validationMenu);
             svv.speedLimit = new SpeedLimit(svv.panoViewer, svv.panoViewer.getPosition, () => false, svv.labelContainer, labelType);
             svv.zoomControl = new ZoomControl();
-            const missionStartTutorial = new MissionStartTutorial('validate', labelType, { nLabels: param.mission.labels_validated }, svv, param.language);
+            new MissionStartTutorial('validate', labelType, { nLabels: param.mission.labels_validated }, svv, param.language);
         }
 
         // Now that mission start tutorial has loaded, can unhide the UI under it and remove the loading icon.
@@ -166,7 +194,7 @@ function Main(param) {
 
         svv.undoValidation = new UndoValidation(svv.ui.undoValidation);
 
-        svv.modalMission = new ModalMission(svv.ui.modalMission, svv.user);
+        svv.modalMission = new ModalMission(svv.ui.modalMission);
         svv.missionContainer = new MissionContainer();
         svv.missionContainer.createAMission(param.mission, param.progress);
 
@@ -216,10 +244,10 @@ function Main(param) {
             }
         }
 
-        window.addEventListener('focus', (event) => {
+        window.addEventListener('focus', () => {
             logPageFocus();
         });
-        window.addEventListener('blur', (event) => {
+        window.addEventListener('blur', () => {
             logPageFocus();
         });
         logPageFocus();
@@ -241,19 +269,5 @@ function Main(param) {
                 container: 'body',
             });
         }
-    }
-
-    // Finally, do the actual initialization of the UI and other components.
-    defineValidateConstants();
-    _initUI();
-
-    if (param.hasNextMission) {
-        _init();
-    } else {
-        if (!util.isMobile()) svv.keyboard = new Keyboard(svv.ui.validationMenu);
-        svv.form = new Form(param.dataStoreUrl);
-        svv.tracker = new Tracker();
-        svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
-        svv.modalNoNewMission.show();
     }
 }

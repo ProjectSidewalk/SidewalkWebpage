@@ -81,7 +81,7 @@ class HumanVsAiPage {
     #canonicalColor(labelType) {
         try {
             return (window.util && util.misc && util.misc.getLabelColors(labelType)) || null;
-        } catch (e) {
+        } catch {
             return null;
         }
     }
@@ -104,7 +104,7 @@ class HumanVsAiPage {
             ? `${HumanVsAiPage.#pct(aiVal.total / totalVals)} of ${totalVals.toLocaleString()} validations`
             : 'no validations yet');
         this.#setText('kpi-ai-assessed', (tagger.labels_assessed || 0).toLocaleString());
-        this.#setText('kpi-ai-assessed-note', tagger.avg_confidence != null
+        this.#setText('kpi-ai-assessed-note', tagger.avg_confidence !== null && tagger.avg_confidence !== undefined
             ? `avg confidence ${Math.round(tagger.avg_confidence * 100)}%`
             : 'no assessments yet');
     }
@@ -152,9 +152,7 @@ class HumanVsAiPage {
      * validated yet has nothing to compare, so it's dropped rather than rendered as empty rows.
      */
     #renderAcceptance(human, ai) {
-        const validatedCount = (group, t) => {
-            const s = this.#typeStat(group, t); return (s && s.validated) || 0;
-        };
+        const validatedCount = (group, t) => this.#typeStat(group, t)?.validated || 0;
         const types = this.#unionTypes(human, ai).filter((t) => validatedCount(human, t) > 0 || validatedCount(ai, t) > 0);
         const el = document.getElementById('hva-acceptance');
         if (!types.length) {
@@ -310,7 +308,7 @@ class HumanVsAiPage {
     /** A single human-or-AI bar within a group: a track, a value label, and an optional note. */
     #bar(side, datum, max, isRate) {
         const value = datum.value;
-        const hasValue = value != null;
+        const hasValue = value !== null && value !== undefined;
         const width = hasValue ? (value / max) * 100 : 0;
         const valueText = !hasValue ? '—' : (isRate ? `${value}%` : value.toLocaleString());
         const note = datum.note ? ` <span class="dq-sub">${HumanVsAiPage.#esc(datum.note)}</span>` : '';
@@ -348,7 +346,7 @@ class HumanVsAiPage {
     }
 
     #typeCount(group, type) {
-        const s = this.#typeStat(group, type); return s ? (s.count || 0) : 0;
+        return this.#typeStat(group, type)?.count || 0;
     }
 
     /** An icon + display-name cell for a label type (icon from /v3/api/labelTypes; canonical color as a fallback dot). */

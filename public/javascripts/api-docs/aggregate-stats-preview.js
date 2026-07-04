@@ -18,7 +18,7 @@
 
     /** Formats a number with thousands separators (null-safe). */
     function fmt(value) {
-        return (value != null ? value : 0).toLocaleString();
+        return (value ?? 0).toLocaleString();
     }
 
     window.AggregateStatsPreview = {

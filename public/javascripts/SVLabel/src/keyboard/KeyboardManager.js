@@ -1,7 +1,7 @@
 /**
  * A Keyboard module.
  */
-class Keyboard {
+class KeyboardManager {
     #svl;
     #contextMenu;
     #navigationService;

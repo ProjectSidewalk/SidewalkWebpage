@@ -75,7 +75,8 @@ class LabelMapPage {
         form.addEventListener('submit', () => {
             const id = parseInt(input.value, 10);
             if (!(id > 0)) {
-                this.#searchMsg('Enter a numeric label ID.', true); return;
+                this.#searchMsg('Enter a numeric label ID.', true);
+                return;
             }
             if (this.#popup) {
                 this.#searchMsg('');

@@ -64,7 +64,7 @@ class AlertController {
      * @param {Function} [callback] - Called once the banner has finished fading in.
      */
     showAlert(msg, type, dontShow = false, callback) {
-        if (type != null && this.#dontShowList.indexOf(type) >= 0) return;
+        if (type !== null && type !== undefined && this.#dontShowList.includes(type)) return;
 
         this.#ui.dontShow.style.display = dontShow ? '' : 'none';
 
@@ -90,7 +90,7 @@ class AlertController {
      * Records the current message type on the "don't show again" list and hides the banner.
      */
     dontShowClicked() {
-        if (this.#lastMessageType != null) {
+        if (this.#lastMessageType !== null && this.#lastMessageType !== undefined) {
             this.#dontShowList.push(this.#lastMessageType);
             svl.storage.set('alertDontShowList', this.#dontShowList);
             this.hideAlert();

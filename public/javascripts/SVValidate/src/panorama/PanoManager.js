@@ -78,7 +78,7 @@ class PanoManager {
         try {
             const panoData = await this.#primaryViewer.setPano(startPanoId);
             this.#setPanoCallback(panoData);
-        } catch (_) {
+        } catch {
             if (startBackupImage) {
                 const panoData = await this.#showPannellumPano(startBackupImage);
                 this.#setPanoCallback(panoData);
@@ -253,7 +253,7 @@ class PanoManager {
             this.setProperty('panoLoaded', true);
             svv.tracker.push('PanoId_Changed');
             return panoData;
-        } catch (_) {
+        } catch {
             // Primary viewer failed — try Pannellum if we have local pano data.
             if (backupImage) {
                 try {

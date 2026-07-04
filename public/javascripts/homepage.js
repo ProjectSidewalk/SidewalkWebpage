@@ -1,4 +1,4 @@
-var autoAdvanceLaptop = true;
+let autoAdvanceLaptop = true;
 
 function isScrolledIntoView(elem) {
     const docViewTop = $(window).scrollTop();
@@ -96,19 +96,21 @@ function switchToVideo(vidnum) {
     numTicks = 0;
 }
 
-var vidBanner;
-var bannerVid;
-var instructVideoContainer;
-var instructVideos;
+let vidBanner;
+let bannerVid;
+let instructVideoContainer;
+let instructVideos;
 
-var DEFAULT_VIDEO = 1;
-var TICK_SIZE = 500;
-var requiredTicks = [18, 22, 17];
-var curVideo = 1;
-var numTicks = 0;
+const DEFAULT_VIDEO = 1;
+const TICK_SIZE = 500;
+const requiredTicks = [18, 22, 17];
+let curVideo = 1;
+let numTicks = 0;
 
 // Advances to next instruction video if the videos are in the user's viewport and enough "ticks" have gone by.
 function autoAdvanceLaptopVideos() {
+    if (!autoAdvanceLaptop) return;
+
     numTicks++;
 
     if (numTicks >= requiredTicks[curVideo - 1] && isElementVerticallyVisible(instructVideoContainer)) {
@@ -207,7 +209,7 @@ window.appManager.ready(() => {
     setInterval(autoAdvanceLaptopVideos, TICK_SIZE);
 });
 
-var pausedVideos = {};
+const pausedVideos = {};
 
 /**
  * Returns a function that invokes fn at most once per `wait` ms, firing on the leading edge.
@@ -239,8 +241,8 @@ function debounce(fn, wait) {
 }
 
 // Wrappers around lazyPlayVideos().
-var lazyPlayVideosThrottled = throttle(lazyPlayVideos, 300);
-var lazyPlayVideosDebounced = debounce(lazyPlayVideos, 600);
+const lazyPlayVideosThrottled = throttle(lazyPlayVideos, 300);
+const lazyPlayVideosDebounced = debounce(lazyPlayVideos, 600);
 
 // Triggered when the user scrolls.
 function onScroll() {

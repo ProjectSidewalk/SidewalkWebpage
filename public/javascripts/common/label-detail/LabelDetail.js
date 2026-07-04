@@ -39,7 +39,6 @@ class LabelDetail {
     #aiValidation;
     #comments;
     #myCommentIdx;
-    #infoPopover;
 
     /**
      * @param {HTMLElement} root - The host element containing the labelDetail markup (see labelDetail.scala.html).
@@ -125,7 +124,7 @@ class LabelDetail {
 
         const noopLog = () => {};
         const panoViewer = this.panoManager.panoViewer;
-        this.#infoPopover = new PanoInfoPopover(
+        new PanoInfoPopover(
             host,
             this.panoManager.panoViewer,
             () => this.#currentLabelMeta && { lat: this.#currentLabelMeta.camera_lat, lng: this.#currentLabelMeta.camera_lng },
@@ -386,7 +385,7 @@ class LabelDetail {
         }
 
         // Description.
-        if (meta.description != null) {
+        if (meta.description !== null && meta.description !== undefined) {
             els.description.classList.remove('label-detail__empty');
             els.description.textContent = meta.description;
         } else {

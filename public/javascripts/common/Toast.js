@@ -31,7 +31,7 @@ class Toast {
      */
     constructor(opts = {}) {
         this.#reference = opts.reference || null;
-        this.#duration = opts.duration != null ? opts.duration : 5000;
+        this.#duration = opts.duration ?? 5000;
         this.#el = this.#build(opts);
     }
 

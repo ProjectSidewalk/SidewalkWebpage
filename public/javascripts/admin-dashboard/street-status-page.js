@@ -126,8 +126,11 @@ class StreetStatusPage {
     #renderKpis() {
         const totals = { open: 0, no_imagery: 0, closed: 0, disabled: 0, total: 0 };
         for (const r of this.#rows) {
-            totals.open += r.open; totals.no_imagery += r.no_imagery;
-            totals.closed += r.closed; totals.disabled += r.disabled; totals.total += r.total;
+            totals.open += r.open;
+            totals.no_imagery += r.no_imagery;
+            totals.closed += r.closed;
+            totals.disabled += r.disabled;
+            totals.total += r.total;
         }
         const pct = (n) => `${Math.round((totals.total ? n / totals.total : 0) * 100)}%`;
         document.getElementById('kpi-total-streets').textContent = totals.total.toLocaleString();

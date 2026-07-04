@@ -218,7 +218,7 @@ class FunnelsSection {
     }
 
     static #esc(s) {
-        return String(s == null ? '' : s)
+        return String(s ?? '')
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 }

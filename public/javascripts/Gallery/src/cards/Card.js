@@ -82,7 +82,7 @@ class Card {
             // Add all the properties. Format the timestamps using the moment library.
             if (attrName === 'label_timestamp' || attrName === 'image_capture_date') {
                 properties[attrName] = moment(param[attrName]);
-            } else if (param.hasOwnProperty(attrName) && properties.hasOwnProperty(attrName)) {
+            } else if (Object.hasOwn(param, attrName) && Object.hasOwn(properties, attrName)) {
                 properties[attrName] = param[attrName];
             }
         }
@@ -233,6 +233,7 @@ class Card {
 
     /**
      * Loads the image, preferring the crop. Falls back to GSV if the crop fails.
+     * @returns {Promise<boolean>} Resolves with true once the image has loaded, or false if all sources failed.
      */
     loadImage() {
         return new Promise((resolve) => {
@@ -304,7 +305,7 @@ class Card {
         if (key in this.#status) {
             this.#status[key] = value;
         } else {
-            throw `${this.constructor.name}: Illegal status name.`;
+            throw new Error(`${this.constructor.name}: Illegal status name.`);
         }
     }
 

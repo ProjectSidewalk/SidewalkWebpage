@@ -1,5 +1,5 @@
 /** @namespace */
-var sg = sg || {};
+window.sg = window.sg || {};
 
 /**
  * Main module for Gallery.
@@ -49,11 +49,6 @@ class Main {
         sg.ui.labelTypeMenu.holder = $('#label-type-filter-holder');
         sg.ui.labelTypeMenu.select = $('#label-select');
 
-        // TODO: potentially remove if we decide sorting is not desired for later versions.
-        sg.ui.cardSortMenu = {};
-        sg.ui.cardSortMenu.holder = $('#card-sort-menu-holder');
-        sg.ui.cardSortMenu.sort = $('#card-sort-select');
-
         // Initialize card container component.
         sg.ui.cardContainer = {};
         sg.ui.cardContainer.holder = $('#image-card-container');
@@ -89,13 +84,12 @@ class Main {
         sg.cityMenu = new CityMenu(sg.ui.cityMenu);
         sg.labelTypeMenu = new LabelTypeMenu(sg.ui.labelTypeMenu, params.initialFilters.labelType);
 
-        // sg.cardSortMenu = new CardSortMenu(sg.ui.cardSortMenu);
         sg.cardFilter = new CardFilter(sg.ui.cardFilter, sg.labelTypeMenu, sg.cityMenu, params.initialFilters);
         sg.cardContainer = await CardContainer.create(sg.ui.cardContainer, params.initialFilters, params.viewerType, params.viewerAccessToken);
         sg.expandedView = () => sg.cardContainer.getExpandedView();
 
-        // Initialize Keyboard to activate keyboard shortcuts.
-        sg.keyboard = new Keyboard(sg.expandedView());
+        // Initialize KeyboardManager to activate keyboard shortcuts.
+        sg.keyboard = new KeyboardManager(sg.expandedView());
 
         // Initialize data collection.
         sg.form = new Form(params.dataStoreUrl);

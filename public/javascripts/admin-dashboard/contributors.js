@@ -15,9 +15,6 @@ class ContributorsPage {
         { label: '95–100%', max: 100.0001 },
     ];
 
-    /** How many rows the Top labelers / Top validators leaderboards show. */
-    static #TABLE_LIMIT = 15;
-
     /**
      * Colors for the labels-by-role bar, from the Okabe-Ito colorblind-safe palette. Anonymous is a muted grey (it's
      * transient, low-trust traffic); unknown roles fall back to the same grey.
@@ -269,7 +266,7 @@ class ContributorsPage {
     static #typeColor(labelType) {
         try {
             return (window.util && util.misc && util.misc.getLabelColors(labelType)) || '#999999';
-        } catch (e) {
+        } catch {
             return '#999999';
         }
     }

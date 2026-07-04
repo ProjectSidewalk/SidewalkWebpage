@@ -61,13 +61,15 @@ class CoverageHistogram {
 
     #wireEvents() {
         this.#view.addEventListener('click', (event, item) => {
-            if (item && item.datum && item.datum.index != null) this.#onBinClick(Number(item.datum.index));
+            const index = item?.datum?.index ?? null;
+            if (index !== null) this.#onBinClick(Number(index));
         });
         this.#view.addEventListener('pointermove', (event, item) => {
-            const idx = item && item.datum && item.datum.index != null ? Number(item.datum.index) : null;
+            const index = item?.datum?.index ?? null;
+            const idx = index === null ? null : Number(index);
             if (idx === this.#hoverIndex) return;
             this.#hoverIndex = idx;
-            if (idx != null) this.#onBinHover(idx);
+            if (idx !== null) this.#onBinHover(idx);
             else this.#onBinHoverEnd();
         });
         this.#view.addEventListener('pointerout', () => {

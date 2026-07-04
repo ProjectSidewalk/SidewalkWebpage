@@ -135,9 +135,9 @@
                             const labelCountMap = this.createMap(labelCountContainer, regionData, 'label-count');
 
                             // Display streets on all three maps.
-                            this.displayUserCountMap(userCountMap, streets, regionData);
-                            this.displayAuditAgeMap(auditAgeMap, streets, regionData);
-                            this.displayLabelCountMap(labelCountMap, streets, regionData);
+                            this.displayUserCountMap(userCountMap, streets);
+                            this.displayAuditAgeMap(auditAgeMap, streets);
+                            this.displayLabelCountMap(labelCountMap, streets);
 
                             return Promise.resolve();
                         });
@@ -491,9 +491,8 @@
          * Display streets on the user count map.
          * @param {object} map - The Leaflet map object
          * @param {object} streets - GeoJSON data containing the street segments
-         * @param {object} regionData - Data about the region being displayed
          */
-        displayUserCountMap(map, streets, regionData) {
+        displayUserCountMap(map, streets) {
             if (!streets.features || streets.features.length === 0) {
                 this.addNoStreetsMessage(map);
                 return;
@@ -514,7 +513,7 @@
             stats.minUserCount = minUserCount;
 
             // Add streets to map.
-            const streetLayer = L.geoJSON(streets, {
+            L.geoJSON(streets, {
                 style: (feature) => {
                     const props = feature.properties;
                     const userCount = props.user_count || 0;
@@ -605,9 +604,8 @@
          * Display streets on the audit age map.
          * @param {object} map - The Leaflet map object
          * @param {object} streets - GeoJSON data containing the street segments
-         * @param {object} regionData - Data about the region being displayed
          */
-        displayAuditAgeMap(map, streets, regionData) {
+        displayAuditAgeMap(map, streets) {
             if (!streets.features || streets.features.length === 0) {
                 this.addNoStreetsMessage(map);
                 return;
@@ -639,7 +637,7 @@
             const maxDays = auditedDays.length > 0 ? Math.max(...auditedDays) : 0;
 
             // Add streets to map.
-            const streetLayer = L.geoJSON(streets, {
+            L.geoJSON(streets, {
                 style: (feature) => {
                     const props = feature.properties;
                     const userCount = props.user_count || 0;
@@ -742,9 +740,8 @@
          * Display streets on the label count map.
          * @param {object} map - The Leaflet map object
          * @param {object} streets - GeoJSON data containing the street segments
-         * @param {object} regionData - Data about the region being displayed
          */
-        displayLabelCountMap(map, streets, regionData) {
+        displayLabelCountMap(map, streets) {
             if (!streets.features || streets.features.length === 0) {
                 this.addNoStreetsMessage(map);
                 return;
@@ -765,7 +762,7 @@
             stats.minLabelCount = minLabelCount;
 
             // Add streets to map.
-            const streetLayer = L.geoJSON(streets, {
+            L.geoJSON(streets, {
                 style: (feature) => {
                     const props = feature.properties;
                     const userCount = props.user_count || 0;

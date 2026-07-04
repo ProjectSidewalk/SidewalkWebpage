@@ -109,9 +109,9 @@ class Infra3dViewer extends PanoViewer {
         // Using the internal function that returns a node, since the usual one in the API does not.
         // TODO We should be checking if the new location is within STREETVIEW_MAX_DISTANCE. But we always have imagery
         //      in the zurich test city, so this should never be a problem.
-        return this.viewer._sdk_viewer.movePosition(newPosition, 3857)
-            .then(this.#finishRecordingMetadata)
-            .then((panoData) => this.#filterExcludedPanos(panoData, excludedPanos));
+        const node = await this.viewer._sdk_viewer.movePosition(newPosition, 3857);
+        const panoData = await this.#finishRecordingMetadata(node);
+        return this.#filterExcludedPanos(panoData, excludedPanos);
     };
 
     // TODO This version includes non-panoramic imagery, but does not require loading images for excluded panos. We're
@@ -136,7 +136,8 @@ class Infra3dViewer extends PanoViewer {
     setPano = async (panoId) => {
         this.prevNode = this.currNode;
         this.currNode = null;
-        return this.viewer._sdk_viewer.moveToKey(panoId).then(this.#finishRecordingMetadata);
+        const node = await this.viewer._sdk_viewer.moveToKey(panoId);
+        return this.#finishRecordingMetadata(node);
     };
 
     /**
@@ -167,53 +168,53 @@ class Infra3dViewer extends PanoViewer {
     #finishRecordingMetadata = async (node) => {
         this.currNode = node;
         // Make sure that the node has the linked panos initialized (in node.spatialEdges.edges).
-        return new Promise((resolve) => {
+        await new Promise((resolve) => {
             // Links should be initialized always, except for the first pano. So we can just use them.
             if (node.spatialEdges.cached) {
-                resolve(node);
+                resolve();
             } else {
                 // Listen for the event that fires when the links are updated. Only needed when loading first image.
                 // NOTE the subscribe architecture is coming from RxJS.
                 const linksListener = node.spatialEdges$.subscribe((spatialEdges) => {
                     if (spatialEdges.cached) {
-                        linksListener.unsubscribe(); // We no longer need the listener at this point.
-                        resolve(node);
+                        linksListener.unsubscribe(); // One-shot listener: only needed until the links are cached.
+                        resolve();
                     }
                 });
             }
-        }).then((node) => {
-            // Now that all the data is available, we can fill the currPanoData object and say that the pano has loaded.
-            const panoDataParams = {
-                panoId: node.frame.id,
-                source: this.getViewerType(),
-                captureDate: moment(node.frame.timestamp),
-                width: 4 * node.frame.framedatameta.imagewidth, // width/height are for only one side of the cube map
-                height: 2 * node.frame.framedatameta.imageheight,
-                tileWidth: node.frame.framedatameta.tilesize,
-                tileHeight: node.frame.framedatameta.tilesize,
-                lat: node.frame.latitude,
-                lng: node.frame.longitude,
-                cameraHeading: this._getHeading(node.frame.omega, node.frame.phi),
-                cameraPitch: this._getPitch(node.frame.omega, node.frame.phi),
-                // TODO can we find a camera roll?
-                copyright: 'City of Zurich and iNovitas AG',
-                history: [], // No history to pull from for Infra3D right now.
-            };
-
-            panoDataParams.linkedPanos = node.spatialEdges.edges
-                .filter((link) => link.data.direction === 9) // Filters out link to camera on back of car for now.
-                .map((link) => {
-                    // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the
-                    // X-axis in a spherical coordinate system", so we need to adjust it to be like a compass heading.
-                    return {
-                        panoId: link.to,
-                        heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI)),
-                    };
-                });
-
-            this.currPanoData = new PanoData(panoDataParams);
-            return this.currPanoData;
         });
+
+        // Now that all the data is available, we can fill the currPanoData object and say that the pano has loaded.
+        const panoDataParams = {
+            panoId: node.frame.id,
+            source: this.getViewerType(),
+            captureDate: moment(node.frame.timestamp),
+            width: 4 * node.frame.framedatameta.imagewidth, // width/height are for only one side of the cube map
+            height: 2 * node.frame.framedatameta.imageheight,
+            tileWidth: node.frame.framedatameta.tilesize,
+            tileHeight: node.frame.framedatameta.tilesize,
+            lat: node.frame.latitude,
+            lng: node.frame.longitude,
+            cameraHeading: this._getHeading(node.frame.omega, node.frame.phi),
+            cameraPitch: this._getPitch(node.frame.omega, node.frame.phi),
+            // TODO can we find a camera roll?
+            copyright: 'City of Zurich and iNovitas AG',
+            history: [], // No history to pull from for Infra3D right now.
+        };
+
+        panoDataParams.linkedPanos = node.spatialEdges.edges
+            .filter((link) => link.data.direction === 9) // Filters out link to camera on back of car for now.
+            .map((link) => {
+                // The worldMotionAzimuth is defined as "the counter-clockwise horizontal rotation angle from the
+                // X-axis in a spherical coordinate system", so we need to adjust it to be like a compass heading.
+                return {
+                    panoId: link.to,
+                    heading: util.math.toDegrees((Math.PI / 2 - link.data.worldMotionAzimuth) % (2 * Math.PI)),
+                };
+            });
+
+        this.currPanoData = new PanoData(panoDataParams);
+        return this.currPanoData;
     };
 
     getLinkedPanos = () => {

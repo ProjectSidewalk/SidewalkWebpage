@@ -12,7 +12,7 @@ class RatingReminderAlert extends Alert {
      * @param {?number} severity - The chosen severity, or null/undefined if the user labeled without rating.
      */
     ratingClicked(severity) {
-        if (severity == null) {
+        if (severity === null || severity === undefined) {
             if (this.#ratingCount > 0) {
                 this.#ratingCount++;
             } else {

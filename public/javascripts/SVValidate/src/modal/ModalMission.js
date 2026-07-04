@@ -20,9 +20,8 @@ class ModalMission {
 
     /**
      * @param {object} uiModalMission Mission modal UI elements.
-     * @param {object} user Current user.
      */
-    constructor(uiModalMission, user) {
+    constructor(uiModalMission) {
         this.#uiModalMission = uiModalMission;
     }
 

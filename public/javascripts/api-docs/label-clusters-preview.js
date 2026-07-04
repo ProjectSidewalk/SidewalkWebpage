@@ -77,7 +77,7 @@
 
                     // Fetch and display clusters using region_id instead of bounding box.
                     return this.fetchClustersByRegionId(regionData.region_id)
-                        .then((clusters) => this.displayClustersOnMap(map, clusters, regionData));
+                        .then((clusters) => this.displayClustersOnMap(map, clusters));
                 })
                 .catch((error) => {
                     container.innerHTML = `<div class="message message-error">Failed to load label clusters: ${error.message}</div>`;
@@ -257,9 +257,8 @@
          * Display clusters on the map.
          * @param {object} map - The Leaflet map object
          * @param {object} clusters - GeoJSON data containing the label clusters
-         * @param {object} regionData - Data about the region being displayed
          */
-        displayClustersOnMap(map, clusters, regionData) {
+        displayClustersOnMap(map, clusters) {
             if (!clusters.features || clusters.features.length === 0) {
                 // Add a message to the map if no clusters found.
                 const noClustersDiv = document.createElement('div');

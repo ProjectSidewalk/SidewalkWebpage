@@ -203,10 +203,12 @@ class ExpandedView {
      */
     #updateExpandedViewCardByIndex(index) {
         if (this.leftArrow) {
-            this.leftArrow.disabled = false; this.leftArrowDisabled = false;
+            this.leftArrow.disabled = false;
+            this.leftArrowDisabled = false;
         }
         if (this.rightArrow) {
-            this.rightArrow.disabled = false; this.rightArrowDisabled = false;
+            this.rightArrow.disabled = false;
+            this.rightArrowDisabled = false;
         }
         this.cardIndex = index;
         this.refCard = sg.cardContainer.getCardByIndex(this.cardIndex);

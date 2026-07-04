@@ -57,7 +57,7 @@ class Minimap {
 
         // Return a promise that resolves once the map is idle (and therefore fully initialized).
         return new Promise((resolve) => {
-            const listener = google.maps.event.addListener(this.#map, 'idle', async () => {
+            const listener = google.maps.event.addListener(this.#map, 'idle', () => {
                 google.maps.event.removeListener(listener);
                 resolve(this.#map);
             });

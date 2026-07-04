@@ -172,7 +172,7 @@
             container.appendChild(chartsGrid);
 
             // Create a chart for each label type.
-            filteredTypes.forEach(([typeId, typeData]) => {
+            filteredTypes.forEach(([, typeData]) => {
                 this.createSingleValidationChart(chartsGrid, typeData);
             });
 

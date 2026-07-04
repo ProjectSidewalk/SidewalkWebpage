@@ -16,12 +16,6 @@
         citiesEndpoint: '/cities',
     };
 
-    // Single style for all cities.
-    const cityStyle = {
-        color: '#3388ff',
-        fillColor: '#3388ff',
-    };
-
     // Public API.
     window.CitiesPreview = {
         /**

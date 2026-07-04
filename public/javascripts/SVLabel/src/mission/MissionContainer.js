@@ -7,7 +7,6 @@
  */
 class MissionContainer {
     #missionPanel;
-    #missionModel;
     #completedMissions = [];
     #currentMission = null;
 
@@ -23,7 +22,6 @@ class MissionContainer {
      */
     constructor(missionPanel, missionModel) {
         this.#missionPanel = missionPanel;
-        this.#missionModel = missionModel;
 
         missionModel.on('MissionProgress:complete', (parameters) => {
             const mission = parameters.mission;

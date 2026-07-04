@@ -39,8 +39,9 @@ module.exports = [
             'eqeqeq': ['error', 'always'],
             // vars:'local' skips global-scope (top-level) declarations -- in this concat-globals bundle those are
             // entry points consumed by another file or a Twirl view's inline <script>, not dead code (#2487). Dead
-            // locals inside functions and unused params are still flagged.
-            'no-unused-vars': ['warn', { vars: 'local' }],
+            // locals inside functions and unused params are still flagged. A `_` prefix marks a param as intentionally
+            // unused (e.g. interface-documenting stubs in an abstract class like PanoViewer).
+            'no-unused-vars': ['warn', { vars: 'local', argsIgnorePattern: '^_' }],
             'no-undef': 'off',
             'one-var': ['error', 'never'],
             'no-var': 'error',
@@ -121,7 +122,7 @@ module.exports = [
             // max-statements-per-line rule and leaves --fix stuck. Forbidding single-line blocks lets --fix expand
             // straight to the canonical multi-line block instead.
             '@stylistic/brace-style': ['error', '1tbs', { allowSingleLine: false }],
-            '@stylistic/max-len': ['warn', { code: 120 }],
+            // '@stylistic/max-len': ['warn', { code: 120 }], // Deferred until future PR when setting indent: 2.
             '@stylistic/generator-star-spacing': ['error', 'after'],
             '@stylistic/no-confusing-arrow': ['error', { allowParens: true }],
             '@stylistic/padding-line-between-statements': [

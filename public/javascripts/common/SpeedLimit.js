@@ -25,7 +25,6 @@ class SpeedLimit {
     // Labels in which speed limit is necessary context for validation. Speed limit will not display for other labels.
     static #SPEED_LIMIT_RELEVANT_LABELS = ['NoCurbRamp'];
 
-    #panoViewer;
     #coords;
     #isOnboarding;
     #labelContainer;
@@ -46,7 +45,6 @@ class SpeedLimit {
      * @param {string} [labelType] Label type being validated; null/undefined shows the speed limit by default.
      */
     constructor(panoViewer, coords, isOnboarding, labelContainer, labelType) {
-        this.#panoViewer = panoViewer;
         this.#coords = coords;
         this.#isOnboarding = isOnboarding;
         this.#labelContainer = labelContainer;
@@ -163,7 +161,7 @@ class SpeedLimit {
                 }
                 const overpassRespJson = await overpassResp.json();
                 return { closestRoad: this.#findClosestRoad(overpassRespJson, lat, lng) };
-            } catch (e) {
+            } catch {
                 return { closestRoad: null };
             }
         })();
@@ -209,7 +207,7 @@ class SpeedLimit {
                 const json = await resp.json();
                 const countryElements = json.elements.filter((el) => el.type === 'country');
                 return countryElements.length > 0 ? countryElements[0].tags.code : null;
-            } catch (e) {
+            } catch {
                 this.#countryCodePromise = null;
                 return null;
             }

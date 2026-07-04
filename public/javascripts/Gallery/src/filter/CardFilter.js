@@ -228,7 +228,7 @@ class CardFilter {
         if (key in this.#status) {
             this.#status[key] = value;
         } else {
-            throw `${this.constructor.name}: Illegal status name.`;
+            throw new Error(`${this.constructor.name}: Illegal status name.`);
         }
     }
 
@@ -266,7 +266,7 @@ class CardFilter {
      * @param {*} labelType Label type of tags to unapply.
      */
     unapplyTags(labelType) {
-        if (labelType != null) {
+        if (labelType !== null && labelType !== undefined) {
             this.#tagsByType[labelType].unapplyTags();
         }
     }

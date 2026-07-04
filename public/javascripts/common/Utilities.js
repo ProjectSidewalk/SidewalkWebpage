@@ -1,4 +1,4 @@
-var util = util || {};
+window.util = window.util || {};
 
 // Some constants that are used across the site.
 util.EXPLORE_CANVAS_WIDTH = 720;
@@ -118,7 +118,12 @@ function getURLParameter(argName) {
 
 util.getURLParameter = getURLParameter;
 
-// Converts a blob that we get from `fetch` into base64. Necessary to display images acquired through `fetch`.
+/**
+ * Converts a blob that we get from `fetch` into base64. Necessary to display images acquired through `fetch`.
+ *
+ * @param {Blob} blob - The image blob to convert.
+ * @returns {Promise<string>} Resolves with the image as a base64 data URL.
+ */
 function convertBlobToBase64(blob) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -132,7 +137,12 @@ function convertBlobToBase64(blob) {
 
 util.convertBlobToBase64 = convertBlobToBase64;
 
-// Asynchronously acquire an image using `fetch` and convert it into base64. Returns a promise.
+/**
+ * Asynchronously acquires an image using `fetch` and converts it into base64.
+ *
+ * @param {string} imageUrl - URL of the image to fetch.
+ * @returns {Promise<string>} Resolves with the image as a base64 data URL; rejects on a network error or 404.
+ */
 function getImage(imageUrl) {
     return fetch(imageUrl)
         .then((response) => {

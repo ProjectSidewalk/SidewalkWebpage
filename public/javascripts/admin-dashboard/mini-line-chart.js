@@ -16,15 +16,19 @@ class MiniLineChart {
      * @returns {string} SVG markup plus an optional HTML legend.
      */
     static svg(categories, series, opts = {}) {
-        const W = opts.width || 760; const H = 220; const m = { l: 48, r: 14, t: 14, b: 30 };
-        const iw = W - m.l - m.r; const ih = H - m.t - m.b; const n = categories.length;
+        const W = opts.width || 760;
+        const H = 220;
+        const m = { l: 48, r: 14, t: 14, b: 30 };
+        const iw = W - m.l - m.r;
+        const ih = H - m.t - m.b;
+        const n = categories.length;
         const x = (i) => m.l + (n === 1 ? iw / 2 : (i / (n - 1)) * iw);
         const yFrac = (f) => m.t + (1 - f) * ih; // f in [0, 1]
-        const allVals = series.flatMap((s) => s.values.filter((v) => v != null));
+        const allVals = series.flatMap((s) => s.values.filter((v) => v !== null && v !== undefined));
         const yMax = opts.yMax || Math.max(1, ...allVals);
         const tickFormat = opts.tickFormat || ((v) => Math.round(v).toLocaleString());
         const valueFormat = opts.valueFormat || ((v) => Math.round(v).toLocaleString());
-        const dotRadius = opts.dotRadius != null ? opts.dotRadius : 3;
+        const dotRadius = opts.dotRadius ?? 3;
 
         let grid = '';
         for (const f of [0, 0.25, 0.5, 0.75, 1]) {
@@ -38,17 +42,16 @@ class MiniLineChart {
             let d = '';
             let move = true;
             s.values.forEach((v, i) => {
-                if (v == null) {
-                    move = true; return;
+                if (v === null || v === undefined) {
+                    move = true;
+                    return;
                 }
                 d += `${move ? 'M' : 'L'}${x(i).toFixed(1)},${yFrac(v / yMax).toFixed(1)} `;
                 move = false;
             });
             const dots = s.values.map((v, i) => {
-                if (v == null) return '';
-                const tip = (s.tooltips && s.tooltips[i] != null)
-                    ? s.tooltips[i]
-                    : `${categories[i]} · ${s.name}: ${valueFormat(v)}`;
+                if (v === null || v === undefined) return '';
+                const tip = s.tooltips?.[i] ?? `${categories[i]} · ${s.name}: ${valueFormat(v)}`;
                 return `<circle class="mini-pt mini-pt--${s.key}" cx="${x(i).toFixed(1)}" cy="${yFrac(v / yMax).toFixed(1)}" r="${dotRadius}">`
                     + `<title>${MiniLineChart.#esc(tip)}</title></circle>`;
             }).join('');

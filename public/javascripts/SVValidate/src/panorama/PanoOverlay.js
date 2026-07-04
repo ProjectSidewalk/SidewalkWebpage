@@ -55,18 +55,16 @@ class PanoOverlay {
 
     /**
      * This is a callback function that is called with mouse up event on the view control layer (when panning).
-     * @param {Event} e
      */
-    #handlerViewControlLayerMouseUp = (e) => {
+    #handlerViewControlLayerMouseUp = () => {
         this.#viewControlLayer.css('cursor', 'url(/assets/images/icons/openhand.cur) 4 4, move');
         this.#mouseStatus.isLeftDown = false;
     };
 
     /**
      * Handles mouse leaving control view.
-     * @param {Event} e
      */
-    #handlerViewControlLayerMouseLeave = (e) => {
+    #handlerViewControlLayerMouseLeave = () => {
         this.#viewControlLayer.css('cursor', 'url(/assets/images/icons/openhand.cur) 4 4, move');
         this.#mouseStatus.isLeftDown = false;
     };

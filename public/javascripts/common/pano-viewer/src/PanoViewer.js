@@ -55,8 +55,8 @@ class PanoViewer {
      * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Location to start at; either this or startLatLng is required
      * @returns {Promise<void>}
      */
-    async initialize(canvasElem, panoOptions = {}) {
-        throw new Error('Subclasses must implement initialize()');
+    initialize(_canvasElem, _panoOptions = {}) {
+        return Promise.reject(new Error('Subclasses must implement initialize()'));
     }
 
     /**
@@ -70,8 +70,8 @@ class PanoViewer {
      */
     static async create(canvasElem, panoOptions = {}) {
         const newViewer = new this();
-        return newViewer.initialize(canvasElem, panoOptions)
-            .then(() => newViewer);
+        await newViewer.initialize(canvasElem, panoOptions);
+        return newViewer;
     }
 
     /**
@@ -112,8 +112,8 @@ class PanoViewer {
      * @param {Set<PanoData>} [excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to.
      * @returns {Promise<PanoData>} The panorama data object. Rejects if closest image is in excludedPanos or none found.
      */
-    async setLocation(latLng, excludedPanos = new Set()) {
-        throw new Error('setLocation(latLng, excludedPanos) must be implemented by subclass');
+    setLocation(_latLng, _excludedPanos = new Set()) {
+        return Promise.reject(new Error('setLocation(latLng, excludedPanos) must be implemented by subclass'));
     }
 
     /**
@@ -121,7 +121,7 @@ class PanoViewer {
      * No-op by default; override in subclasses that support prefetching.
      * @param {{lat: number, lng: number}} latLng
      */
-    prefetchLocation(latLng) {}
+    prefetchLocation(_latLng) {}
 
     /**
      * Clears all prefetched image search results. Call when moving to a new street.
@@ -134,8 +134,8 @@ class PanoViewer {
      * @param panoId The panorama ID to set.
      * @returns {Promise<PanoData>} The panorama data object.
      */
-    async setPano(panoId) {
-        throw new Error('setPano(panoId) must be implemented by subclass');
+    setPano(_panoId) {
+        return Promise.reject(new Error('setPano(panoId) must be implemented by subclass'));
     }
 
     /**
@@ -163,7 +163,7 @@ class PanoViewer {
      * @param {number} pov.zoom - Desired zoom (1, 2, or 3)
      * @returns {void}
      */
-    setPov(pov) {
+    setPov(_pov) {
         throw new Error('setPov() must be implemented by subclass');
     }
 

@@ -44,15 +44,15 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
         neighborhood.properties.fillOpacity = neighborhoodStyle.fillOpacity;
     }
 
-    initializeMapNeighborhoodPolygons(map, neighborhoodGeoJSON);
-    addNeighborhoodClickAndHoverEvents(map);
+    initializeMapNeighborhoodPolygons();
+    addNeighborhoodClickAndHoverEvents();
 
     // Return promise that is resolved once all the layers have been added to the map.
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         if (map.getLayer(NEIGHBORHOOD_LAYER_NAME) && map.getLayer(NEIGHBORHOOD_OUTLINE_LAYER_NAME)) {
             resolve();
         } else {
-            map.on('sourcedataloading', (e) => {
+            map.on('sourcedataloading', () => {
                 if (map.getLayer(NEIGHBORHOOD_LAYER_NAME) && map.getLayer(NEIGHBORHOOD_OUTLINE_LAYER_NAME)) {
                     resolve();
                 }
@@ -61,7 +61,7 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
     });
 
     // Renders the neighborhood polygons, colored by completion percentage.
-    function initializeMapNeighborhoodPolygons(map, neighborhoodGeoJSON) {
+    function initializeMapNeighborhoodPolygons() {
         // Add the neighborhood polygons to the map.
         map.addSource(NEIGHBORHOOD_LAYER_NAME, {
             type: 'geojson',
@@ -98,7 +98,7 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
         });
     }
 
-    function addNeighborhoodClickAndHoverEvents(map) {
+    function addNeighborhoodClickAndHoverEvents() {
         let hoveredRegionId = null;
         let tooltipTimeout;
 
@@ -170,7 +170,7 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
                 };
 
                 // Make sure the region outline is removed when the popup close button is clicked.
-                neighborhoodTooltip._content.querySelector('.mapboxgl-popup-close-button').onclick = function (e) {
+                neighborhoodTooltip._content.querySelector('.mapboxgl-popup-close-button').onclick = function () {
                     map.setFeatureState({ source: NEIGHBORHOOD_LAYER_NAME, id: hoveredRegionId }, { hover: false });
                     neighborhoodTooltip.remove();
                     hoveredRegionId = null;
@@ -201,7 +201,7 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
             // Logs to the webpage_activity table when a region is selected from the map and 'Click here' is clicked.
             // Logs are of the form 'Click_module=<mapName>_regionId=<regionId>_distanceLeft=<'0', '<1', '1' or '>1'>_target=audit'.
             $(`#${params.mapName}`).on('click', '.region-selection-trigger', function () {
-                const regionId = parseInt($(this).attr('regionId'));
+                const regionId = parseInt($(this).attr('regionId'), 10);
                 const region = neighborhoodGeoJSON.features.find((x) => {
                     return regionId === x.properties.region_id;
                 });

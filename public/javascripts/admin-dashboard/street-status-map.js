@@ -197,11 +197,16 @@ class StreetStatusMap {
 
     /** Computes a [[minLng,minLat],[maxLng,maxLat]] bounds box covering all features. */
     static #bounds(geojson) {
-        let minLng = Infinity; let minLat = Infinity; let maxLng = -Infinity; let maxLat = -Infinity;
+        let minLng = Infinity;
+        let minLat = Infinity;
+        let maxLng = -Infinity;
+        let maxLat = -Infinity;
         const visit = (coords) => {
             if (typeof coords[0] === 'number') {
-                minLng = Math.min(minLng, coords[0]); maxLng = Math.max(maxLng, coords[0]);
-                minLat = Math.min(minLat, coords[1]); maxLat = Math.max(maxLat, coords[1]);
+                minLng = Math.min(minLng, coords[0]);
+                maxLng = Math.max(maxLng, coords[0]);
+                minLat = Math.min(minLat, coords[1]);
+                maxLat = Math.max(maxLat, coords[1]);
             } else {
                 coords.forEach(visit);
             }

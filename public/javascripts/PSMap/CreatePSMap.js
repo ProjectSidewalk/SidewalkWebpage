@@ -28,7 +28,7 @@
  * @param {function} [params.onMapReady] - Called with the map as soon as it has loaded, BEFORE the
  *     (potentially large) neighborhoods/streets/labels layers render. Use this to mount map-bound UI
  *     early (e.g. the LabelMap search box) instead of waiting on the returned all-loaded promise.
- * @return {Promise} - Promise that resolves all components of map have loaded.
+ * @returns {Promise} - Promise that resolves once all components of the map have loaded.
  */
 function CreatePSMap($, params) {
     // Set default parameters.
@@ -109,7 +109,7 @@ function CreatePSMap($, params) {
 
     // Return a promise that resolves once everything on the map has loaded.
     const allLoaded = Promise.all([mapLoaded, renderNeighborhoods, renderCities, renderStreets, renderLabels]);
-    allLoaded.then((data) => {
+    allLoaded.then(() => {
         // Resize the map when the window is resized.
         $(window).resize(() => {
             if (window.citiesMap) {
@@ -129,7 +129,7 @@ function CreatePSMap($, params) {
         mapParamData.default_zoom = mapParamData.default_zoom + params.zoomCorrection;
 
         mapboxgl.accessToken = params.mapboxApiKey;
-        const map = new mapboxgl.Map({
+        const newMap = new mapboxgl.Map({
             container: params.mapName, // HTML container ID
             style: params.mapStyle,
             center: [mapParamData.city_center.lng, mapParamData.city_center.lat],
@@ -142,9 +142,9 @@ function CreatePSMap($, params) {
             ],
             scrollZoom: params.scrollWheelZoom,
         });
-        map.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
+        newMap.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
         const navPosition = params.navigationControlPosition || 'top-left';
-        map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), navPosition);
+        newMap.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), navPosition);
 
         // Move the Mapbox logo if necessary.
         if (['top-left', 'top-right', 'bottom-right'].includes(params.mapboxLogoLocation)) {
@@ -163,12 +163,12 @@ function CreatePSMap($, params) {
         $('#page-loading').hide();
 
         // Create a promise that resolves when the map has loaded.
-        return new Promise((resolve, reject) => {
-            if (map.loaded()) {
-                resolve(map);
+        return new Promise((resolve) => {
+            if (newMap.loaded()) {
+                resolve(newMap);
             } else {
-                map.on('load', (e) => {
-                    resolve(map);
+                newMap.on('load', () => {
+                    resolve(newMap);
                 });
             }
         });

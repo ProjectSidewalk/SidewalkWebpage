@@ -162,7 +162,7 @@ When you catch yourself writing a frontend constant that mirrors a backend value
 - Replace uses of Bootstrap with native JS alternatives as you come across them
 - When writing SQL, avoid table aliases
 - After editing any Scala file, run `make scalafmt-fix` (reformats the whole tree in place via the sbt thin client) before treating the change as done — scalafmt is a blocking CI gate, so unformatted Scala fails the build. One run after a batch of edits is enough; no need to format after every single edit.
-- After editing any JavaScript file, run `make eslint-fix dir=<files or dirs you touched>` — the JS counterpart to the scalafmt rule above. **The auto-fix pass is all that's expected right now**: the rule set is still being tuned on #2487, and findings `--fix` can't resolve (`eqeqeq`, `max-statements-per-line`, ...) are deferred to a coordinated tree-wide cleanup once it settles — leave them rather than hand-fixing piecemeal. Always scope with `dir=`; the bare `make eslint` lints all of `public/javascripts/` and surfaces pre-existing findings that aren't yours.
+- After editing any JavaScript file, run `make eslint-fix dir=<files or dirs you touched>`, then hand-fix anything `--fix` couldn't resolve — **`make eslint` must pass (zero errors/warnings) before the change is done**. The whole tree is lint-clean (#2487), so a bare `make eslint` should come back green; any finding it reports is yours to fix. It's not a CI gate yet, but don't check in code that fails it — the JS counterpart to the scalafmt rule above.
 - User interactions are logged (clicks, key presses, mode switches, pano changes, mission/task events, etc.) to the activity/interaction tables. When you **add or change an interaction**, add or adjust the corresponding logging so analytics stay complete; keep event names consistent with the existing ones, and update [`docs/logged-events.md`](docs/logged-events.md) (how logging works + the event reference).
 - Ensure WCAG 2.1/2.2 Level AA accessibility standards are met
 - When adding or refactoring code, use the fonts, colors, button styling, etc. defined in main.css :root. These are pulled from our "Design System Tokens" Figma, and we are pushing to use these going forward.
@@ -300,7 +300,7 @@ Good targets for inline comments:
 - Do not add a header just because a function was touched; only add one if it is missing
   and the function is non-trivial.
 
-## Linting Rules (frontend lint runs manually on the code you touch — see Linting below; Scala `scalafmt` is checked in CI — see Continuous integration)
+## Linting Rules (`make eslint` must pass before check-in — run manually, not a CI gate yet; Scala `scalafmt` is checked in CI — see Continuous integration)
 - ESLint: ES2022, `const`/`let` only (no `var`), arrow functions, template literals, semicolons required, 120-char line limit
 - Stylelint: 4-space indentation, stylelint-config-standard
 - HTMLHint: lowercase tags/attrs, double quotes, no inline scripts/styles, alt text required
@@ -395,10 +395,10 @@ make eslint         # defaults to public/javascripts/ (build/ + lib/ carved out 
 make eslint dir=public/javascripts/SVValidate   # scope to a dir or file; also htmlhint / stylelint targets
 ```
 
-**Run `make eslint-fix` on any JS you change** (see Development Guidelines) — like scalafmt for Scala, but scoped with
-`dir=` (the tree isn't fully lint-clean, so a bare run surfaces findings that aren't yours). For now the auto-fix pass
-is the whole ask: lint isn't a CI gate yet, and findings `--fix` can't resolve are deferred to the #2487 tree-wide
-cleanup — don't hand-fix them piecemeal.
+**`make eslint` must pass (zero errors/warnings) before code is checked in** — like scalafmt for Scala. The tree is
+fully lint-clean (#2487), so a bare run should come back green and any finding is yours: run
+`make eslint-fix dir=<what you touched>` for the mechanical fixes, hand-fix the rest, then confirm with `make eslint`.
+It's not wired into CI yet, but treat it as if it were.
 
 These are run **from the host** (like `make scalafmt`): the targets `docker exec` into the running web container,
 where the linters' `node_modules` live (there is no host-side `npm install`), so the web container must be up. Scope a

@@ -140,7 +140,7 @@ class Mission {
      * @param {Task} task
      */
     pushATaskToTheRoute = (task) => {
-        const streetEdgeIds = this.#tasksForTheMission.map((task) => task.getStreetEdgeId());
+        const streetEdgeIds = this.#tasksForTheMission.map((t) => t.getStreetEdgeId());
         if (streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) {
             this.#tasksForTheMission.push(task);
         }

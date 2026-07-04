@@ -84,7 +84,7 @@ function AddCitiesToMap(map, citiesData, params) {
 
     // Add filter/hover effects and fit the map to our cities.
     addHoverEffects();
-    addClickHandlers(params);
+    addClickHandlers();
     fitMapToCities();
 
     /**
@@ -111,7 +111,7 @@ function AddCitiesToMap(map, citiesData, params) {
         });
 
         // Reset cursor and styling when leaving.
-        map.on('mouseleave', CITIES_LAYER_NAME, (e) => {
+        map.on('mouseleave', CITIES_LAYER_NAME, () => {
             if (hoveredCityId !== null) {
                 map.setFeatureState({ source: CITIES_LAYER_NAME, id: hoveredCityId }, { hover: false });
                 hoveredCityId = null;
@@ -126,14 +126,8 @@ function AddCitiesToMap(map, citiesData, params) {
      * When a city feature is clicked, fetches overall stats from the API, clones and populates a popup template, and
      * displays it at the clicked location. Handles both public and private deployments, showing an appropriate message
      * or link. Also logs click activity if enabled.
-     *
-     * @function
-     * @param {object} params - Configuration parameters.
-     * @param {string} params.mapName - The name/id of the map element.
-     * @param {boolean} params.logClicks - Whether to log click activity.
-     * @returns {void}
      */
-    function addClickHandlers(params) {
+    function addClickHandlers() {
         const cityPopup = new mapboxgl.Popup({
             focusAfterOpen: false,
             closeButton: true,
@@ -252,11 +246,11 @@ function AddCitiesToMap(map, citiesData, params) {
     window.addEventListener('resize', handleResize);
 
     // Return promise that is resolved once all the layers have been added to the map.
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         if (map.getLayer(CITIES_LAYER_NAME)) {
             resolve();
         } else {
-            map.on('sourcedataloading', (e) => {
+            map.on('sourcedataloading', () => {
                 if (map.getLayer(CITIES_LAYER_NAME)) {
                     resolve();
                 }
