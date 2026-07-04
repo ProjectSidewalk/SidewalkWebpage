@@ -1,7 +1,7 @@
 /**
  * Handles keyboard shortcuts for the validation interface.
  */
-class Keyboard {
+class KeyboardManager {
     #validationMenuUi;
     #disableKeyboard = false;
     #addingComment = false;
@@ -171,7 +171,7 @@ class Keyboard {
                 case 'Numpad1':
                 case 'Numpad2':
                 case 'Numpad3':
-                    this.#handleNumberKeyShortcut(parseInt(e.key), e);
+                    this.#handleNumberKeyShortcut(parseInt(e.key, 10), e);
                     break;
                 // '4' or 'c' key (Focus comment box)
                 case 'Digit4':

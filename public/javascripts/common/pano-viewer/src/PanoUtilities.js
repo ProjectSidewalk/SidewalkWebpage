@@ -1,5 +1,5 @@
 /** @namespace */
-var util = util || {};
+window.util = window.util || {};
 util.pano = {};
 
 /**

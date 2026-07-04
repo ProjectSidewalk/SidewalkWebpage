@@ -98,13 +98,15 @@ class CoverageBars {
     /** Wires bar click (pin) and pointer hover (brush) to the callbacks. */
     #wireEvents() {
         this.#view.addEventListener('click', (event, item) => {
-            if (item && item.datum && item.datum.region_id != null) this.#onBarClick(Number(item.datum.region_id));
+            const regionId = item?.datum?.region_id ?? null;
+            if (regionId !== null) this.#onBarClick(Number(regionId));
         });
         this.#view.addEventListener('pointermove', (event, item) => {
-            const id = item && item.datum && item.datum.region_id != null ? Number(item.datum.region_id) : null;
+            const regionId = item?.datum?.region_id ?? null;
+            const id = regionId === null ? null : Number(regionId);
             if (id === this.#hoverId) return;
             this.#hoverId = id;
-            if (id != null) this.#onBarHover(id);
+            if (id !== null) this.#onBarHover(id);
             else this.#onBarHoverEnd();
         });
         this.#view.addEventListener('pointerout', () => {

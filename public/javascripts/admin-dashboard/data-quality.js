@@ -151,7 +151,7 @@ class DataQualityPage {
         const rows = this.#order
             .filter((type) => this.#hasSeverity(type) && this.#isPositive(type) === positive)
             .map((type) => ({ type, ...(labels[type] || {}) }))
-            .filter((r) => r.severity_mean != null && r.count_with_severity)
+            .filter((r) => r.severity_mean !== null && r.severity_mean !== undefined && r.count_with_severity)
             .sort((a, b) => b.severity_mean - a.severity_mean);
 
         const sampleType = rows.length
@@ -277,7 +277,7 @@ class DataQualityPage {
         const hasSeverity = (t) => {
             try {
                 return util.misc.labelTypeHasSeverity(t);
-            } catch (e) {
+            } catch {
                 return true;
             }
         };
@@ -355,7 +355,8 @@ class DataQualityPage {
         }
         const dataMonths = [...byMonth.keys()]
             .filter((m) => {
-                const a = byMonth.get(m); return a.hA + a.hD + a.aA + a.aD > 0;
+                const a = byMonth.get(m);
+                return a.hA + a.hD + a.aA + a.aD > 0;
             })
             .sort();
 
@@ -370,10 +371,16 @@ class DataQualityPage {
         const months = DataQualityPage.#enumerateMonths(dataMonths[0], DataQualityPage.#currentMonth());
         const agreementSeries = (name, key, agreeKey, disagreeKey) => {
             const values = months.map((m) => {
-                const a = byMonth.get(m); if (!a) return null; const t = a[agreeKey] + a[disagreeKey]; return t ? a[agreeKey] / t : null;
+                const a = byMonth.get(m);
+                if (!a) return null;
+                const t = a[agreeKey] + a[disagreeKey];
+                return t ? a[agreeKey] / t : null;
             });
             const tooltips = months.map((m, i) => {
-                const a = byMonth.get(m); if (!a || values[i] == null) return ''; const t = a[agreeKey] + a[disagreeKey]; return `${m} · ${name}: ${Math.round(values[i] * 100)}% (${t.toLocaleString()} validations)`;
+                const a = byMonth.get(m);
+                if (!a || values[i] === null) return '';
+                const t = a[agreeKey] + a[disagreeKey];
+                return `${m} · ${name}: ${Math.round(values[i] * 100)}% (${t.toLocaleString()} validations)`;
             });
             return { name, key, values, tooltips };
         };
@@ -406,7 +413,8 @@ class DataQualityPage {
         while (y < ey || (y === ey && m <= em)) {
             out.push(`${y}-${String(m).padStart(2, '0')}`);
             if (++m > 12) {
-                m = 1; y++;
+                m = 1;
+                y++;
             }
         }
         return out;

@@ -4,26 +4,6 @@
 class Tracker {
     #actions = [];
 
-    // TODO: update/include for v1.1 by calling #trackWindowEvents() from the constructor.
-    #trackWindowEvents() {
-        const prefix = 'LowLevelEvent_';
-
-        // Track all mouse related events.
-        $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', (e) => {
-            this.push(prefix + e.type, {
-                cursorX: 'pageX' in e ? e.pageX : null,
-                cursorY: 'pageY' in e ? e.pageY : null,
-            });
-        });
-
-        // Keyboard related events.
-        $(document).on('keydown keyup', (e) => {
-            this.push(prefix + e.type, {
-                keyCode: 'keyCode' in e ? e.keyCode : null,
-            });
-        });
-    }
-
     /**
      * Creates action to be added to action buffer.
      *

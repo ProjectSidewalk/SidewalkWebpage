@@ -4,7 +4,6 @@
  */
 class Admin {
     #jquery;
-    #mapboxApiKey;
     #viewerType;
     #viewerAccessToken;
     #loadingGif;
@@ -24,7 +23,6 @@ class Admin {
     #adminCommentPopup;
     #map;
     #mapData;
-    #analyticsMap;
 
     /**
      * @param {Function} $ - jQuery.
@@ -34,7 +32,6 @@ class Admin {
      */
     constructor($, mapboxApiKey, viewerType, viewerAccessToken) {
         this.#jquery = $;
-        this.#mapboxApiKey = mapboxApiKey;
         this.#viewerType = viewerType;
         this.#viewerAccessToken = viewerAccessToken;
         this.#loadingGif = $('#page-loading');
@@ -130,7 +127,7 @@ class Admin {
                 pitch: parseFloat($(e.currentTarget).data('pitch')),
                 zoom: Number($(e.currentTarget).data('zoom')),
             };
-            const labelId = parseInt($(e.currentTarget).data('labelId'));
+            const labelId = parseInt($(e.currentTarget).data('labelId'), 10);
             await this.#adminCommentPopup.showCommentGSV(e.currentTarget.innerHTML, pov, labelId);
         });
 
@@ -272,9 +269,7 @@ class Admin {
                 });
             } else if (e.target.id === 'analytics' && this.#graphsLoaded === false) {
                 // Create the choropleth.
-                CreatePSMap($, this.#analyticsTabMapParams).then((m) => {
-                    this.#analyticsMap = m[0];
-                });
+                CreatePSMap($, this.#analyticsTabMapParams);
 
                 const opt = {
                     mode: 'vega-lite',
@@ -1186,8 +1181,7 @@ class Admin {
                 // Change dropdown button to reflect new role.
                 const button = $(`#userRoleDropdown${result.user_id}`);
                 const buttonContents = button.html();
-                const newRole = result.role;
-                button.html(buttonContents.replace(/Registered|Turker|Researcher|Administrator|Anonymous/g, newRole));
+                button.html(buttonContents.replace(/Registered|Turker|Researcher|Administrator|Anonymous/g, result.role));
             },
             error(result) {
                 console.error(result);
@@ -1201,7 +1195,7 @@ class Admin {
             .siblings('button')
             .attr('id')
             .substring('userTeamDropdown'.length); // userId is stored in id of dropdown.
-        const teamId = parseInt(e.target.getAttribute('data-team-id'));
+        const teamId = parseInt(e.target.getAttribute('data-team-id'), 10);
         const teamName = e.target.innerText;
 
         $.ajax({
@@ -1317,8 +1311,12 @@ class Admin {
         return `${Admin.formatDistance(distance)} (${Admin.formatPercent(percent)})`;
     }
 
+    /**
+     * Fetches street coverage stats and fills in the Street Edge and Overview tables.
+     * @returns {Promise<void>} Resolves once the tables have been populated.
+     */
     static loadStreetEdgeData() {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             $.getJSON('/adminapi/getCoverageData', (data) => {
                 const totalAuditedStreets = data.street_counts.total;
                 const totalAuditedDistance = data.street_distance.total;
@@ -1374,8 +1372,12 @@ class Admin {
         });
     }
 
+    /**
+     * Fetches contributor counts and fills in the user count cells across the dashboard tables.
+     * @returns {Promise<void>} Resolves once the counts have been filled in.
+     */
     static loadUserCountData() {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             $.getJSON('/adminapi/getNumUsersContributed', (data) => {
                 for (const userCount of data) {
                     const taskCompleted = userCount.task_completed_only ? 'task_completed' : 'no_task_constraint';
@@ -1388,8 +1390,12 @@ class Admin {
         });
     }
 
+    /**
+     * Fetches contribution time stats and fills in the corresponding dashboard cells.
+     * @returns {Promise<void>} Resolves once the stats have been filled in.
+     */
     static loadContributionTimeData() {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             $.getJSON('/adminapi/getContributionTimeStats', (data) => {
                 for (const timeStat of data) {
                     const time = timeStat.time ? timeStat.time.toFixed(2) : 'NA';
@@ -1401,8 +1407,12 @@ class Admin {
         });
     }
 
+    /**
+     * Fetches label counts per label type and fills in the corresponding dashboard cells.
+     * @returns {Promise<void>} Resolves once the counts have been filled in.
+     */
     static loadLabelCountData() {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             $.getJSON('/adminapi/getLabelCountStats', (data) => {
                 for (const labelCount of data) {
                     $(`#label-count-${labelCount.label_type}-${labelCount.time_interval}`).text(labelCount.count);
@@ -1412,8 +1422,12 @@ class Admin {
         });
     }
 
+    /**
+     * Fetches validation counts and fills in the Overview activities table and the Analytics per-label-type table.
+     * @returns {Promise<void>} Resolves once the tables have been populated.
+     */
     static loadValidationCountData() {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             $.getJSON('/adminapi/getValidationCountStats', (data) => {
                 // Fill in the validation section on the Overview tab's Activities table.
                 for (const timeInterval of ['all_time', 'today', 'week']) {
@@ -1449,6 +1463,10 @@ class Admin {
         });
     }
 
+    /**
+     * Fetches recent comments and adds them to the comments DataTable.
+     * @returns {Promise<void>} Resolves once the table has been populated; rejects if the request fails.
+     */
     static loadComments() {
         return new Promise((resolve, reject) => {
             $.getJSON('/adminapi/getRecentComments', (data) => {
@@ -1476,6 +1494,10 @@ class Admin {
         });
     }
 
+    /**
+     * Fetches recent label metadata and adds it to the labels DataTable.
+     * @returns {Promise<void>} Resolves once the table has been populated; rejects if the request fails.
+     */
     static loadLabels() {
         return new Promise((resolve, reject) => {
             $.getJSON('/adminapi/getRecentLabelMetadata', (data) => {
@@ -1507,6 +1529,10 @@ class Admin {
         });
     }
 
+    /**
+     * Fetches user stats, adds them to the users DataTable, and wires up the role/team dropdowns.
+     * @returns {Promise<void>} Resolves once the table has been populated; rejects if the request fails.
+     */
     static loadUserStats() {
         return new Promise((resolve, reject) => {
             $.getJSON('/adminapi/getUserStats', (data) => {
@@ -1580,6 +1606,10 @@ class Admin {
         });
     }
 
+    /**
+     * Fetches the list of teams and adds them to the teams DataTable.
+     * @returns {Promise<void>} Resolves once the table has been populated; rejects if the request fails.
+     */
     static loadTeams() {
         return new Promise((resolve, reject) => {
             $.getJSON('/userapi/getTeams', (data) => {

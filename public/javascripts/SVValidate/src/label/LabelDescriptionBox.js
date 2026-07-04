@@ -24,7 +24,7 @@ class LabelDescriptionBox {
 
         desBox.style['background-color'] = util.misc.getLabelColors(label.getAuditProperty('labelType'));
 
-        if (severity && severity != 0) {
+        if (severity && severity !== 0) {
             const labelType = label.getAuditProperty('labelType');
             const headerKey = util.misc.isPositiveLabelType(labelType) ? 'common:quality' : 'common:severity';
             const levelKey = util.misc.getRatingLevelKeys(labelType)[severity];

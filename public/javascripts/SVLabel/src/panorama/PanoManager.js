@@ -64,7 +64,7 @@ class PanoManager {
 
         // Load the pano viewer.
         svl.panoViewer = await panoViewerType.create(this.panoCanvas, panoOptions)
-            .catch(async (err) => {
+            .catch(async () => {
                 // If no GSV at starting street, log it and refresh the page to get a new street.
                 await util.misc.reportNoImagery(errorParams.task, errorParams.missionId).then(() => {
                     window.location.replace('/explore');
@@ -119,7 +119,7 @@ class PanoManager {
      * @returns {Promise<PanoData>}
      * @private
      */
-    #panoSuccessCallback = async (panoData) => {
+    #panoSuccessCallback = (panoData) => {
         const panoId = panoData.getPanoId();
         const panoLatLng = { lat: panoData.getProperty('lat'), lng: panoData.getProperty('lng') };
 
@@ -164,10 +164,10 @@ class PanoManager {
      * @returns {Promise<void>}
      * @private
      */
-    #setPanoFailureCallback = async (error, panoId) => {
+    #setPanoFailureCallback = (error, panoId) => {
         svl.tracker.push('PanoId_NotFound', { TargetPanoId: panoId });
         console.error(`failed to load pano ${panoId}!`, error);
-        throw error;
+        return Promise.reject(error);
     };
 
     /**
@@ -369,7 +369,7 @@ class PanoManager {
      * @param {string} panoId String representation of the Panorama ID
      * @returns {Promise<PanoData>}
      */
-    async setPanorama(panoId) {
+    setPanorama(panoId) {
         return svl.panoViewer.setPano(panoId).then(this.#panoSuccessCallback, (err) => this.#setPanoFailureCallback(err, panoId));
     }
 
@@ -379,7 +379,7 @@ class PanoManager {
      * @param {Set<PanoData>} [excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to.
      * @returns {Promise<PanoData>}
      */
-    async setLocation(latLng, excludedPanos = new Set()) {
+    setLocation(latLng, excludedPanos = new Set()) {
         return svl.panoViewer.setLocation(latLng, excludedPanos).then(this.#panoSuccessCallback);
     }
 

@@ -5,7 +5,6 @@
  */
 class ModalMissionCompleteMap {
     #mapPromise;
-    #map = null;
     #labelLayerNames = [];
 
     // The three street tiers, drawn bottom-to-top. Colors come from CSS so the map matches the legend.
@@ -48,7 +47,6 @@ class ModalMissionCompleteMap {
                 });
                 map.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
                 map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'bottom-right');
-                this.#map = map;
                 return new Promise((resolve) => {
                     if (map.loaded()) resolve(map);
                     else map.on('load', () => resolve(map));

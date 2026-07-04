@@ -50,7 +50,7 @@ function MistakeCarousel(userId) {
             // Add the circles at bottom of carousel that indicates which image in the carousel you're seeing.
             const carouselNavigation = document.createElement('ol');
             carouselNavigation.classList.add('carousel-indicators');
-            for (const [labelIndex, label] of data[labelType].entries()) {
+            for (const labelIndex of data[labelType].keys()) {
                 const indicator = document.createElement('li');
                 indicator.setAttribute('data-target', `#${carouselId}`);
                 indicator.setAttribute('data-slide-to', labelIndex);

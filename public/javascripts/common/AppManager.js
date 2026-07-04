@@ -123,7 +123,7 @@ class AppManager {
             let isSameOrigin;
             try {
                 isSameOrigin = new URL(requestUrl, window.location.origin).origin === window.location.origin;
-            } catch (e) {
+            } catch {
                 // If the URL can't be parsed, leave the request untouched rather than guessing.
                 isSameOrigin = false;
             }
@@ -174,7 +174,7 @@ class AppManager {
             lng: params.language,
             partialBundledLanguages: true,
             debug: false,
-        }, (err, t) => {
+        }, (err) => {
             // Ignore errors loading translations, but log any other errors.
             if (err && err.filter((e) => !e.includes('status code: 404')).length > 0) {
                 return console.error(err.filter((e) => !e.includes('status code: 404')));
@@ -213,7 +213,6 @@ class AppManager {
                 method: 'POST',
                 data: JSON.stringify(activity),
                 dataType: 'json',
-                success(result) { },
                 error(result) {
                     console.error(result);
                 },

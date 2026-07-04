@@ -192,7 +192,8 @@ class AcrossCitiesPage {
         const features = [];
         let maxLabels = 1;
         for (const geo of citiesGeo.cities) {
-            if (geo.center_lat == null || geo.center_lng == null) continue;
+            if (geo.center_lat === null || geo.center_lat === undefined) continue;
+            if (geo.center_lng === null || geo.center_lng === undefined) continue;
             const sc = byId.get(geo.city_id);
             const labelCount = sc ? (sc.total_labels || 0) : 0;
             maxLabels = Math.max(maxLabels, labelCount);
@@ -331,7 +332,7 @@ class AcrossCitiesPage {
 
     /** Explanation for a lifecycle state that needs attention, using the city's own numbers. */
     #lifecycleReason(c) {
-        const quiet = c.days_since_activity == null
+        const quiet = c.days_since_activity === null || c.days_since_activity === undefined
             ? 'no recorded activity'
             : `quiet for ${c.days_since_activity} days`;
         if (c.lifecycle === 'low_traction') {
@@ -478,11 +479,12 @@ class AcrossCitiesPage {
                 const lc = AcrossCitiesPage.#LIFECYCLE[c.lifecycle];
                 return lc ? lc.rank : 99;
             }
-            if (key === 'days_since_activity') return c.days_since_activity == null ? Number.MAX_SAFE_INTEGER : c.days_since_activity;
-            return c[key] == null ? 0 : c[key];
+            if (key === 'days_since_activity') return c.days_since_activity ?? Number.MAX_SAFE_INTEGER;
+            return c[key] ?? 0;
         };
         return this.#cities.slice().sort((a, b) => {
-            const va = val(a); const vb = val(b);
+            const va = val(a);
+            const vb = val(b);
             if (va < vb) return -1 * dir;
             if (va > vb) return 1 * dir;
             return 0;
@@ -559,7 +561,7 @@ class AcrossCitiesPage {
             const v10 = c.seconds_to_validate_10 > 0
                 ? this.#duration(c.seconds_to_validate_10)
                 : '<span class="ac-muted">—</span>';
-            const l100 = c.seconds_per_100m != null
+            const l100 = c.seconds_per_100m !== null && c.seconds_per_100m !== undefined
                 ? this.#duration(c.seconds_per_100m)
                 : '<span class="ac-muted">—</span>';
             return `
@@ -838,7 +840,9 @@ class AcrossCitiesPage {
     /** A tiny inline-SVG sparkline for a row cell (no axes/labels). */
     #sparkline(values) {
         if (!values || !values.length) return '';
-        const W = 90; const H = 22; const pad = 2;
+        const W = 90;
+        const H = 22;
+        const pad = 2;
         const max = Math.max(1, ...values);
         const n = values.length;
         const x = (i) => pad + (n === 1 ? (W - 2 * pad) / 2 : (i / (n - 1)) * (W - 2 * pad));
@@ -855,28 +859,30 @@ class AcrossCitiesPage {
                 const c = util.misc.getLabelColors(labelType);
                 if (c) return c;
             }
-        } catch (e) { /* fall through to default */ }
+        } catch { /* fall through to default */ }
         return '#b3b3b3';
     }
 
     // --- Helpers ----------------------------------------------------------------------------------------------------
 
     #setText(id, text) {
-        const el = document.getElementById(id); if (el) el.textContent = text;
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
     }
 
     #setHtml(id, html) {
-        const el = document.getElementById(id); if (el) el.innerHTML = html;
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html;
     }
 
     /** Full number with thousands separators ("1,234,567"). */
     #num(n) {
-        return (n == null ? 0 : n).toLocaleString();
+        return (n ?? 0).toLocaleString();
     }
 
     /** Compact number ("1.2M", "317k", "842"). */
     #compact(n) {
-        const v = n == null ? 0 : n;
+        const v = n ?? 0;
         if (v >= 1e6) return `${(v / 1e6).toFixed(1).replace(/\.0$/, '')}M`;
         if (v >= 1e4) return `${Math.round(v / 1e3)}k`;
         return v.toLocaleString();
@@ -884,7 +890,7 @@ class AcrossCitiesPage {
 
     /** Kilometers with one decimal under 100, else whole ("0.4", "12.7", "1,240"). */
     #km(n) {
-        const v = n == null ? 0 : n;
+        const v = n ?? 0;
         return v < 100 ? v.toFixed(1) : Math.round(v).toLocaleString();
     }
 

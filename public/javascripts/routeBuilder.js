@@ -128,7 +128,7 @@ class RouteBuilder {
             language: i18next.t('common:mapbox-language-code'),
         };
 
-        this.#searchBox.addEventListener('retrieve', (event) => {
+        this.#searchBox.addEventListener('retrieve', () => {
             const getNeighborhoodInView = () => {
                 if (map.queryRenderedFeatures({ layers: ['neighborhoods'] }).length === 0) {
                     map.flyTo({ zoom: map.getZoom() - 1 });

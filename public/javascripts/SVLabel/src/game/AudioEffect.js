@@ -18,9 +18,6 @@ class AudioEffect {
         this.#soundIcon = document.getElementById('explore-control-sound-icon');
         this.#muteIcon = document.getElementById('explore-control-mute-icon');
 
-        // PhantomJS (used in testing) does not support HTML5 Audio.
-        if (typeof Audio === 'undefined') Audio = function HTMLAudioElement() {};
-
         this.#audios = {
             drip: new Audio(`${fileDirectory}audio/drip.mp3`),
             success: new Audio(`${fileDirectory}audio/success.mp3`),

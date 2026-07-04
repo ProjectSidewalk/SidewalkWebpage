@@ -152,7 +152,7 @@ class ZoomControl {
         if (name in this.#status) {
             return this.#status[name];
         } else {
-            throw `You cannot access a property "${name}".`;
+            throw new Error(`You cannot access a property "${name}".`);
         }
     }
 
@@ -165,7 +165,7 @@ class ZoomControl {
         if (name in this.#properties) {
             return this.#properties[name];
         } else {
-            throw `You cannot access a property "${name}".`;
+            throw new Error(`You cannot access a property "${name}".`);
         }
     }
 

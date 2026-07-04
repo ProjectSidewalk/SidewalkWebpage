@@ -1,4 +1,4 @@
-var util = util || {};
+window.util = window.util || {};
 util.math = {};
 
 /**

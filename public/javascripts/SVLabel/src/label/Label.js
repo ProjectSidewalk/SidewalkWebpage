@@ -79,7 +79,7 @@ class Label {
         this.#hoverInfoProperties = util.misc.getSeverityDescription();
 
         for (const attrName in params) {
-            if (params.hasOwnProperty(attrName) && this.#properties.hasOwnProperty(attrName)) {
+            if (Object.hasOwn(params, attrName) && Object.hasOwn(this.#properties, attrName)) {
                 this.#properties[attrName] = params[attrName];
             }
         }
@@ -487,7 +487,8 @@ class Label {
             return new Promise((resolve) => {
                 const imageObj = new Image();
                 imageObj.onload = function () {
-                    window.labelIconCache[iconPath] = imageObj; resolve();
+                    window.labelIconCache[iconPath] = imageObj;
+                    resolve();
                 };
                 imageObj.onerror = function () {
                     resolve();

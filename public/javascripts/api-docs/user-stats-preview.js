@@ -93,7 +93,7 @@
 
             // First fetch the label types to get official colors and descriptions.
             return this.fetchLabelTypes()
-                .then((labelTypesData) => {
+                .then(() => {
                     // Then fetch user stats data and create visualizations
                     return this.fetchUserStats()
                         .then((userStatsData) => {

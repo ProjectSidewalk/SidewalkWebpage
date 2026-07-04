@@ -69,7 +69,7 @@ class OverviewPage {
             let color = lt.color || '#999999';
             try {
                 if (window.util && util.misc && util.misc.getLabelColors(lt.name)) color = util.misc.getLabelColors(lt.name);
-            } catch (e) { /* fall back to the API color */ }
+            } catch { /* fall back to the API color */ }
             this.#colorByType.set(lt.name, color);
         }
     }
@@ -197,10 +197,13 @@ class OverviewPage {
      * @returns {string} An <svg> string, or '' when there's too little data to draw.
      */
     #sparkline(values) {
-        const present = values.filter((v) => v != null);
+        const present = values.filter((v) => v !== null && v !== undefined);
         if (present.length < 2) return '';
-        const W = 200; const H = 36; const pad = 3;
-        const max = Math.max(...present); const min = Math.min(...present, 0);
+        const W = 200;
+        const H = 36;
+        const pad = 3;
+        const max = Math.max(...present);
+        const min = Math.min(...present, 0);
         const range = max - min || 1;
         const n = values.length;
         const x = (i) => pad + (i / (n - 1)) * (W - 2 * pad);
@@ -208,14 +211,15 @@ class OverviewPage {
         let d = '';
         let move = true;
         values.forEach((v, i) => {
-            if (v == null) {
-                move = true; return;
+            if (v === null || v === undefined) {
+                move = true;
+                return;
             }
             d += `${move ? 'M' : 'L'}${x(i).toFixed(1)},${y(v).toFixed(1)} `;
             move = false;
         });
         const lastV = values[n - 1];
-        const dot = lastV != null
+        const dot = lastV !== null && lastV !== undefined
             ? `<circle class="ov-spark-dot" cx="${x(n - 1).toFixed(1)}" cy="${y(lastV).toFixed(1)}" r="2.4"/>`
             : '';
         return `<svg class="ov-spark-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-hidden="true">`
@@ -381,12 +385,12 @@ class OverviewPage {
 
     /** Full number with thousands separators ("1,234,567"). */
     #num(n) {
-        return (n == null ? 0 : n).toLocaleString();
+        return (n ?? 0).toLocaleString();
     }
 
     /** Compact number for card headlines ("1.2M", "317k", "842"). */
     #compact(n) {
-        const v = n == null ? 0 : n;
+        const v = n ?? 0;
         if (v >= 1e6) return `${(v / 1e6).toFixed(1).replace(/\.0$/, '')}M`;
         if (v >= 1e4) return `${Math.round(v / 1e3)}k`;
         return v.toLocaleString();
@@ -394,7 +398,7 @@ class OverviewPage {
 
     /** Whole-mile string ("17", "1,240"). */
     #mi(n) {
-        return Math.round(n == null ? 0 : n).toLocaleString();
+        return Math.round(n ?? 0).toLocaleString();
     }
 
     /** Percentage with no decimals ("47%"). */
@@ -404,11 +408,15 @@ class OverviewPage {
 
     // Local-time date math for weekly bucketing.
     #startOfDay(d) {
-        const x = new Date(d); x.setHours(0, 0, 0, 0); return x;
+        const x = new Date(d);
+        x.setHours(0, 0, 0, 0);
+        return x;
     }
 
     #addDays(d, n) {
-        const x = new Date(d); x.setDate(x.getDate() + n); return x;
+        const x = new Date(d);
+        x.setDate(x.getDate() + n);
+        return x;
     }
 
     #isoDay(d) {

@@ -1,4 +1,4 @@
-var util = util || {};
+window.util = window.util || {};
 util.misc = util.misc || {};
 
 function UtilitiesMisc(JSON) {
@@ -533,8 +533,12 @@ function UtilitiesMisc(JSON) {
      *
      * TODO it makes way more sense to have this in Form.js, but Form has a dependency on PanoViewer, and we want to
      *      call this function if PanoViewer fails to load...
+     *
+     * @param {Task} task - The audit task for the street edge that is missing imagery.
+     * @param {number} missionId - ID of the mission the user was working on when imagery was found to be missing.
+     * @returns {Promise<Response>} The fetch promise for the POST request, so callers can await completion.
      */
-    async function reportNoImagery(task, missionId) {
+    function reportNoImagery(task, missionId) {
         console.error(`Imagery missing for a large portion of street: ${task.getStreetEdgeId()}`);
         const reversed = task.getProperty('startPointReversed');
         const data = {

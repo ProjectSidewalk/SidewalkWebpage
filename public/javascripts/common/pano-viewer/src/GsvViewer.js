@@ -12,7 +12,8 @@ class GsvViewer extends PanoViewer {
     }
 
     async initialize(canvasElem, panoOptions = {}) {
-        const { LatLng } = await google.maps.importLibrary('core');
+        // The core library must be loaded for the google.maps.LatLng/Size constructors used in #getCustomPanoData.
+        await google.maps.importLibrary('core');
         const { StreetViewService, StreetViewPanorama } = await google.maps.importLibrary('streetView');
         this.streetViewService = await new StreetViewService();
 
@@ -159,7 +160,7 @@ class GsvViewer extends PanoViewer {
         // Now we actually set the pano and wait to resolve until it's finished loading.
         const newPano = this.currPanoData.getPanoId();
         const prevPano = this.prevPanoData ? this.prevPanoData.getPanoId() : undefined;
-        return new Promise((resolve) => {
+        return await new Promise((resolve) => {
             // If the pano didn't actually change, nothing needs to change, so just resolve immediately.
             if (newPano === prevPano) {
                 resolve(this.currPanoData);
@@ -189,7 +190,8 @@ class GsvViewer extends PanoViewer {
             // For locally stored tutorial panos, skip the getPanorama step and continue w/ our saved data.
             return this.#getPanoramaCallback({ data: this.#getCustomPanoData(panoId) }, new Set());
         } else {
-            return this.streetViewService.getPanorama({ pano: panoId }).then(this.#getPanoramaCallback);
+            const panoData = await this.streetViewService.getPanorama({ pano: panoId });
+            return this.#getPanoramaCallback(panoData);
         }
     };
 
@@ -219,7 +221,7 @@ class GsvViewer extends PanoViewer {
                     centerHeading: 50.3866,
                     originHeading: 50.3866,
                     originPitch: -1.13769,
-                    getTileUrl(pano, zoom, tileX, tileY) {
+                    getTileUrl(_pano, zoom, tileX, tileY) {
                         return `${svl.rootDirectory}img/onboarding/tiles/tutorial/${zoom}-${tileX}-${tileY}.jpg`;
                     },
                 },
@@ -240,7 +242,7 @@ class GsvViewer extends PanoViewer {
                     centerHeading: 344,
                     originHeading: 344,
                     originPitch: 0,
-                    getTileUrl(pano, zoom, tileX, tileY) {
+                    getTileUrl(_pano, zoom, tileX, tileY) {
                         return `${svl.rootDirectory}img/onboarding/tiles/afterwalktutorial/${zoom}-${tileX}-${tileY}.jpg`;
                     },
                 },

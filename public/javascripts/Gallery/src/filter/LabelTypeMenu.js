@@ -71,7 +71,7 @@ class LabelTypeMenu {
         if (key in this.#status) {
             this.#status[key] = value;
         } else {
-            throw `${this.constructor.name}: Illegal status name.`;
+            throw new Error(`${this.constructor.name}: Illegal status name.`);
         }
     }
 }

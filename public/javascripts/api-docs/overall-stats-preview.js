@@ -91,7 +91,7 @@
 
             // First fetch the label types to get official colors and descriptions.
             return this.fetchLabelTypes()
-                .then((labelTypesData) => {
+                .then(() => {
                     // Then fetch overall stats data and create visualizations
                     return this.fetchOverallStats()
                         .then((overallStatsData) => {
@@ -314,9 +314,6 @@
                     },
                 },
             });
-
-            // Add icon images to x-axis labels if possible.
-            this.addIconsToXAxis(canvas, labelTypes);
         },
 
         /**
@@ -401,9 +398,6 @@
                     },
                 },
             });
-
-            // Add icon images to x-axis labels if possible.
-            this.addIconsToXAxis(canvas, labelTypes);
         },
 
         /**
@@ -491,9 +485,6 @@
                     },
                 },
             });
-
-            // Add icon images to x-axis labels if possible.
-            this.addIconsToXAxis(canvas, labelTypes);
         },
 
         /**
@@ -514,7 +505,7 @@
 
             // Create info section header.
             const header = document.createElement('h3');
-            header.textContent = 'Summary Statistics in ' + `${config.cityName}`;
+            header.textContent = `Summary Statistics in ${config.cityName}`;
             header.style.textAlign = 'center';
             header.style.margin = '0 0 15px 0';
             header.style.fontSize = '1.2em';
@@ -574,22 +565,6 @@
             labelElem.style.fontSize = '0.9em';
             labelElem.style.color = '#666';
             item.appendChild(labelElem);
-        },
-
-        /**
-         * Add icon images to x-axis labels.
-         * @param {HTMLElement} canvas - Chart canvas element
-         * @param {Array} labelTypes - Array of label types used in the chart
-         */
-        addIconsToXAxis(canvas, labelTypes) {
-            // This is a placeholder for future implementation
-            // Adding icons to Chart.js x-axis labels requires custom plugins
-            // or modifying the DOM after chart creation, which is beyond the
-            // scope of this simple implementation
-
-            // In a real implementation, we would use a Chart.js plugin to
-            // render images alongside the x-axis labels
-            console.log('Adding icons to chart would require Chart.js plugins');
         },
 
         /**

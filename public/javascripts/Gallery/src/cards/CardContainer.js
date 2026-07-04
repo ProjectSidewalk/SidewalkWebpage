@@ -9,8 +9,6 @@ class CardContainer {
     static #initialLoad = 30;
 
     static #cardsPerPage = 9;
-    static #cardsPerLine = 3;
-    static #cardPadding = 25;
 
     // Map label type to id.
     static #labelTypeIds = {
@@ -30,11 +28,6 @@ class CardContainer {
     #initialFilters;
     #panoViewerType;
     #viewerAccessToken;
-
-    // TODO: Possibly remove if we drop support for sorting.
-    #status = {
-        order: 0,
-    };
 
     #currentLabelType;
     #currentPage = 1;
@@ -152,16 +145,6 @@ class CardContainer {
     }
 
     /**
-     * Find the card which contains the image with the same imageID as supplied.
-     *
-     * @param {string} id The id of the image Id to find.
-     * @returns {Card} Finds the matching card and returns it.
-     */
-    #findCard(id) {
-        return this.#currentCards.findCardByImageId(id);
-    }
-
-    /**
      * Returns the index of a card in the current CardBucket in use.
      *
      * @param {string} id The id of the image Id to find.
@@ -259,9 +242,9 @@ class CardContainer {
             method: 'POST',
             data: JSON.stringify(data),
             dataType: 'json',
-            success: (data) => {
-                if ('labelsOfType' in data) {
-                    const labels = data.labelsOfType;
+            success: (response) => {
+                if ('labelsOfType' in response) {
+                    const labels = response.labelsOfType;
                     for (let i = 0; i < labels.length; i++) {
                         const labelProp = labels[i];
                         const card = new Card(labelProp.label, labelProp.cropUrl, labelProp.gsvImageUrl);
@@ -347,17 +330,6 @@ class CardContainer {
         this.updateCardsNewPage();
     }
 
-    sortCards(order) {
-        // uiCardContainer.holder.empty();
-        // currentCards.sort((card1, card2) => sg.cardSortMenu.getStatus().severity * card1.getProperty("severity") - card2.getProperty("severity"));
-        //
-        // render();
-        // console.log("sort cards in card container called");
-        // // Write a sorting query for backend
-        // setStatus("order", order);
-        // render();
-    }
-
     /**
      * Renders current cards.
      */
@@ -422,20 +394,6 @@ class CardContainer {
 
         // Since we have returned to top of page,
         sg.ui.cardFilter.wrapper.css('position', 'relative');
-    }
-
-    /**
-     * Set status attribute.
-     *
-     * @param {string} key Status name.
-     * @param {*} value Status value.
-     */
-    #setStatus(key, value) {
-        if (key in this.#status) {
-            this.#status[key] = value;
-        } else {
-            throw `${this.constructor.name}: Illegal status name.`;
-        }
     }
 
     /**

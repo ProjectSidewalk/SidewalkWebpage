@@ -43,8 +43,8 @@ class PanoMarker {
      * @param {number} [opts.zIndex=1] The marker's z-index.
      */
     constructor(opts) {
-        if (!opts.panoViewer) throw 'A panorama viewer needs to be defined.';
-        if (!opts.markerContainer) throw 'A panorama markerContainer needs to be defined.';
+        if (!opts.panoViewer) throw new Error('A panorama viewer needs to be defined.');
+        if (!opts.markerContainer) throw new Error('A panorama markerContainer needs to be defined.');
 
         /** @private @type {HTMLDivElement} */
         this.markerContainer_ = opts.markerContainer;

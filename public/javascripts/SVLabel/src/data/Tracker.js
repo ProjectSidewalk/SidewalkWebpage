@@ -5,7 +5,6 @@
  */
 class Tracker {
     #actions = [];
-    #prevActions = [];
     #waitingOnSubmit = false;
     #currentLabel = null;
     #updatedLabels = [];
@@ -70,10 +69,6 @@ class Tracker {
 
     #isClickLabelDeleteAction(action) {
         return action.indexOf('Click_LabelDelete') >= 0;
-    }
-
-    #isTaskStartAction(action) {
-        return action.indexOf('TaskStart') >= 0;
     }
 
     #isSeverityShortcutAction(action) {
@@ -196,7 +191,7 @@ class Tracker {
 
         // Submit the data collected thus far if actions is too long.
         if (!this.#waitingOnSubmit && this.#actions.length > 200 && !this.#isCanvasInteraction(action) && !this.#isContextMenuAction(action)) {
-            if (svl.hasOwnProperty('form') && svl.hasOwnProperty('taskContainer')) {
+            if (Object.hasOwn(svl, 'form') && Object.hasOwn(svl, 'taskContainer')) {
                 this.#waitingOnSubmit = true;
                 svl.form.submitData().then(() => this.#waitingOnSubmit = false);
             }
@@ -209,11 +204,9 @@ class Tracker {
     }
 
     /**
-     * Put the previous labeling actions into prevActions. Then refresh the current actions.
+     * Refresh the current actions.
      */
     refresh() {
-        // Commented out to save memory since we aren't using prevActions right now.
-        // this.#prevActions = this.#prevActions.concat(this.#actions);
         this.#actions = [];
 
         this.#updatedLabels = [];

@@ -122,9 +122,7 @@ class Main {
         svl.missionContainer = new MissionContainer(svl.missionPanel, svl.missionModel);
         svl.missionController = new MissionController(svl.missionModel, svl.neighborhoodModel,
             svl.missionContainer, svl.tracker);
-        svl.missionFactory = new MissionFactory(svl.missionModel);
-
-        svl.missionModel.trigger('MissionFactory:create', params.mission); // create current mission and set as current
+        svl.missionModel.createAMission(params.mission); // create current mission and set as current
         svl.form = new Form(svl.labelContainer, svl.missionModel, svl.missionContainer, svl.panoStore,
             svl.taskContainer, svl.tracker, params.dataStoreUrl);
         if (params.mission.current_audit_task_id) {
@@ -134,7 +132,7 @@ class Main {
         } else {
             await svl.form.submitData(); // Get an audit_task_id from the back end.
         }
-        svl.popUpMessage = new PopUpMessage(svl.form, svl.taskContainer, svl.tracker, svl.user);
+        svl.popUpMessage = new PopUpMessage(svl.taskContainer, svl.tracker);
         svl.aiGuidance = new AiGuidance(svl.tracker, svl.popUpMessage);
 
         // Logs when the page's focus changes.
@@ -183,7 +181,7 @@ class Main {
         svl.modalSurvey = new ModalSurvey();
 
         svl.zoomControl = new ZoomControl(svl.canvas, svl.tracker);
-        svl.keyboard = new Keyboard(svl, svl.canvas, svl.contextMenu, svl.navigationService, svl.ribbon, svl.zoomControl);
+        svl.keyboard = new KeyboardManager(svl, svl.canvas, svl.contextMenu, svl.navigationService, svl.ribbon, svl.zoomControl);
         this.#loadData(svl.taskContainer, svl.missionModel, svl.neighborhoodModel, svl.contextMenu);
 
         $('#navbar-retake-tutorial-btn').on('click', () => {
@@ -274,7 +272,7 @@ class Main {
         svl.missionModel.updateMissionProgress(mission, neighborhood);
         svl.missionPanel.setMessage(mission);
 
-        svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getRegionId(), (result) => {
+        svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getRegionId(), () => {
             svl.canvas.setOnlyLabelsOnPanoAsVisible(svl.panoViewer.getPanoId());
             // Wait for the icon cache before this first paint (resolves immediately if already warm).
             svl.iconsPreloaded.then(() => {

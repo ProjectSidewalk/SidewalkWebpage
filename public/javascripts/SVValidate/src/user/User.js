@@ -1,30 +1,36 @@
 /**
- * User module
- * @param param
- * @returns {{className: string}}
- * @constructor
+ * Holds the current user's properties.
  */
-function User(param) {
-    const properties = {
-        username: param.username,
-        role: param.role,
-    };
+class User {
+    #properties;
 
     /**
-     * Get a property
-     * @param key
+     * @param {object} param - Initial user properties.
+     * @param {string} param.username
+     * @param {string} param.role
+     */
+    constructor(param) {
+        this.#properties = {
+            username: param.username,
+            role: param.role,
+        };
+    }
+
+    /**
+     * Get a property.
+     * @param {string} key
      * @returns {*}
      */
-    this.getProperty = function (key) {
-        return properties[key];
-    };
+    getProperty(key) {
+        return this.#properties[key];
+    }
 
     /**
-     * Set a property
-     * @param key
-     * @param value
+     * Set a property.
+     * @param {string} key
+     * @param {*} value
      */
-    this.setProperty = function (key, value) {
-        properties[key] = value;
-    };
+    setProperty(key, value) {
+        this.#properties[key] = value;
+    }
 }

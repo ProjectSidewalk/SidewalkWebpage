@@ -77,7 +77,7 @@
 
                     // Fetch and display labels using region_id instead of bounding box.
                     return this.fetchLabelsByRegionId(regionData.region_id)
-                        .then((labels) => this.displayLabelsOnMap(map, labels, regionData));
+                        .then((labels) => this.displayLabelsOnMap(map, labels));
                 })
                 .catch((error) => {
                     container.innerHTML = `<div class="message message-error">Failed to load raw labels: ${error.message}</div>`;
@@ -256,9 +256,8 @@
          * Display labels on the map.
          * @param {object} map - The Leaflet map object
          * @param {object} labels - GeoJSON data containing the labels
-         * @param {object} regionData - Data about the region being displayed
          */
-        displayLabelsOnMap(map, labels, regionData) {
+        displayLabelsOnMap(map, labels) {
             if (!labels.features || labels.features.length === 0) {
                 // Add a message to the map if no labels found.
                 const noLabelsDiv = document.createElement('div');

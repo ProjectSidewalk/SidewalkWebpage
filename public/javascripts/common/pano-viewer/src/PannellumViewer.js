@@ -104,10 +104,14 @@ class PannellumViewer extends PanoViewer {
         await new Promise((resolve, reject) => {
             this.#viewer = pannellum.viewer(canvasElem, pannellumConfig);
             const onLoad = () => {
-                this.#viewer.off('load', onLoad); this.#viewer.off('error', onError); resolve();
+                this.#viewer.off('load', onLoad);
+                this.#viewer.off('error', onError);
+                resolve();
             };
             const onError = (err) => {
-                this.#viewer.off('load', onLoad); this.#viewer.off('error', onError); reject(new Error(err || 'Pannellum failed to load image'));
+                this.#viewer.off('load', onLoad);
+                this.#viewer.off('error', onError);
+                reject(new Error(err || 'Pannellum failed to load image'));
             };
             this.#viewer.on('load', onLoad);
             this.#viewer.on('error', onError);
@@ -176,10 +180,14 @@ class PannellumViewer extends PanoViewer {
         try {
             await new Promise((resolve, reject) => {
                 const onLoad = () => {
-                    this.#viewer.off('load', onLoad); this.#viewer.off('error', onError); resolve();
+                    this.#viewer.off('load', onLoad);
+                    this.#viewer.off('error', onError);
+                    resolve();
                 };
                 const onError = (err) => {
-                    this.#viewer.off('load', onLoad); this.#viewer.off('error', onError); reject(new Error(err || 'Pannellum failed to load scene'));
+                    this.#viewer.off('load', onLoad);
+                    this.#viewer.off('error', onError);
+                    reject(new Error(err || 'Pannellum failed to load scene'));
                 };
                 this.#viewer.on('load', onLoad);
                 this.#viewer.on('error', onError);
@@ -198,7 +206,9 @@ class PannellumViewer extends PanoViewer {
         if (oldSceneId) {
             try {
                 this.#viewer.removeScene(oldSceneId);
-            } catch (_) {}
+            } catch {
+                // Pannellum throws if the scene doesn't exist; safe to ignore since we only wanted it gone anyway.
+            }
         }
 
         for (const listener of this.panoChangedListeners) await listener();
@@ -287,8 +297,10 @@ class PannellumViewer extends PanoViewer {
     /**
      * Not supported — PannellumViewer cannot search by lat/lng; rejects unconditionally.
      */
-    setLocation = async (latLng, excludedPanos = new Set()) => {
-        throw new Error('PannellumViewer does not support setLocation(); reinitialize with new panoMetadata instead.');
+    setLocation = () => {
+        return Promise.reject(
+            new Error('PannellumViewer does not support setLocation(); reinitialize with new panoMetadata instead.'),
+        );
     };
 
     /**
@@ -297,11 +309,13 @@ class PannellumViewer extends PanoViewer {
      * @param {string} panoId
      * @returns {Promise<PanoData>}
      */
-    setPano = async (panoId) => {
+    setPano = (panoId) => {
         if (panoId === this.currPanoData.getPanoId()) {
-            return this.currPanoData;
+            return Promise.resolve(this.currPanoData);
         }
-        throw new Error('PannellumViewer.setPano() only accepts the current pano ID; call loadPano() to switch panos.');
+        return Promise.reject(
+            new Error('PannellumViewer.setPano() only accepts the current pano ID; call loadPano() to switch panos.'),
+        );
     };
 
     getLinkedPanos = () => {
@@ -320,7 +334,7 @@ class PannellumViewer extends PanoViewer {
         // Second arg `false` disables Pannellum's animation; we want the change to apply immediately.
         this.#viewer.setYaw(this.#headingToYaw(pov.heading), false);
         this.#viewer.setPitch(pov.pitch - this.#cameraPitch, false);
-        if (pov.zoom != null) {
+        if (pov.zoom !== null && pov.zoom !== undefined) {
             this.#viewer.setHfov(util.pano.zoomToFov(pov.zoom), false);
         }
     };

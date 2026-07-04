@@ -239,7 +239,7 @@ class Form {
                     }
                 }
             })
-            .catch((error) => {
+            .catch(() => {
                 window.location.reload(); // Refresh the page in case the server has gone down.
             });
     }

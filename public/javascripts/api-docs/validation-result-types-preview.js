@@ -24,7 +24,7 @@
         const cell = document.createElement('td');
         cell.style.padding = '8px';
         cell.style.textAlign = 'right';
-        cell.textContent = (value != null ? value : 0).toLocaleString();
+        cell.textContent = (value ?? 0).toLocaleString();
         return cell;
     }
 

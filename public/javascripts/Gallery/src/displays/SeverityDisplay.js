@@ -20,7 +20,7 @@ class SeverityDisplay {
 
     #init() {
         const container = this.severityContainer;
-        const severity = this.severity;
+        const severity = this.severity ?? null;
 
         const holder = document.createElement('div');
         holder.className = 'label-severity-content';
@@ -30,7 +30,7 @@ class SeverityDisplay {
 
         title.innerText = i18next.t(this.#positive ? 'quality' : 'severity');
         // If no severity rating, gray out title.
-        if (severity == null) {
+        if (severity === null) {
             title.classList.add('no-severity-header');
         }
         container.append(title);
@@ -42,20 +42,17 @@ class SeverityDisplay {
             const $severityCircle = $('<div></div>');
             $severityCircle.addClass('severity-circle');
 
-            if (severity == null) {
+            if (severity === null) {
                 // Create grayed out empty circles.
                 $severityCircle.addClass('no-severity-circle');
-                this.#circles.push($severityCircle);
-            } else {
-                // Create severity circle elements.
-                if (i <= severity) { // Fills in circles.
-                    $severityCircle.attr('id', 'current-severity');
-                }
+            } else if (i <= severity) {
+                // Fill in a number of circles from the left equal to the severity.
+                $severityCircle.attr('id', 'current-severity');
             }
             this.#circles.push($severityCircle);
         }
 
-        if (severity == null) {
+        if (severity === null) {
             // Add tooltip indicating the user didn't add a severity rating for this label.
             holder.setAttribute('data-toggle', 'tooltip');
             holder.setAttribute('data-placement', 'top');

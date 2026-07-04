@@ -54,7 +54,7 @@ class ContextMenu {
         // Trigger `change` explicitly — `.prop('checked', true)` alone does not fire it.
         this.#severityRadios
             .filter(function () {
-                return parseInt(this.value) === value;
+                return parseInt(this.value, 10) === value;
             })
             .prop('checked', true)
             .trigger('change', { lowLevelLogging: false });
@@ -159,7 +159,8 @@ class ContextMenu {
     fetchLabelTags(callback) {
         fetch('/label/tags', { method: 'GET', headers: { 'Content-Type': 'application/json; charset=utf-8' } })
             .then((res) => {
-                if (!res.ok) throw res; return res.json();
+                if (!res.ok) throw res;
+                return res.json();
             })
             .then((json) => {
                 this.labelTags = json;
@@ -216,15 +217,15 @@ class ContextMenu {
         let labelTags = this.#status.targetLabel.getProperty('tagIds');
 
         // Use position of cursor to determine whether the click came from the mouse or from a keyboard shortcut.
-        const wasClickedByMouse = e.hasOwnProperty('originalEvent')
+        const wasClickedByMouse = Object.hasOwn(e, 'originalEvent')
             && e.originalEvent.clientX !== 0
             && e.originalEvent.clientY !== 0;
 
-        $('body').off('click').on('click', 'button', (e) => {
-            if (e.target.name === 'tag') {
+        $('body').off('click').on('click', 'button', (clickEvent) => {
+            if (clickEvent.target.name === 'tag') {
                 // Get the tag_id from the clicked tag's class name (e.g., "tag-id-9").
-                const currTagId = parseInt($(e.target).attr('class').split(' ').filter((c) => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
-                const tag = this.labelTags.filter((tag) => tag.tag_id === currTagId)[0];
+                const currTagId = parseInt($(clickEvent.target).attr('class').split(' ').filter((c) => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
+                const tag = this.labelTags.filter((t) => t.tag_id === currTagId)[0];
 
                 // Adds or removes tag from the label's current list of tags.
                 if (!labelTags.includes(tag.tag_id)) {
@@ -251,9 +252,9 @@ class ContextMenu {
                         svl.tracker.push('KeyboardShortcut_TagRemoved', { tagId: tag.tag_id, tagName: tag.tag });
                     }
                 }
-                e.target.classList.toggle('tag-pill--active');
+                clickEvent.target.classList.toggle('tag-pill--active');
                 this.#status.targetLabel.setProperty('tagIds', labelTags);
-                e.target.blur();
+                clickEvent.target.blur();
                 this.#tagHolder.trigger('tagIds-updated'); // For events that depend on up-to-date tagIds.
             }
         });
@@ -440,7 +441,7 @@ class ContextMenu {
                         // Try the server-specific image, getting normal image as a backup.
                         if (citySpecificImageUrl) {
                             exampleImage = util.getImage(citySpecificImageUrl)
-                                .catch((error) => {
+                                .catch(() => {
                                     return getImage(imageUrl);
                                 });
                         } else {

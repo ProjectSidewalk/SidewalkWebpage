@@ -305,13 +305,12 @@ class Task {
      */
     isAtEnd(latLng, threshold) {
         if (this.#geojson) {
-            let d;
             const len = this.#geojson.geometry.coordinates.length - 1;
             const latEnd = this.#geojson.geometry.coordinates[len][1];
             const lngEnd = this.#geojson.geometry.coordinates[len][0];
 
             if (!threshold) threshold = 10; // 10 meters
-            d = util.math.haversine(latLng, { lat: latEnd, lng: lngEnd });
+            const d = util.math.haversine(latLng, { lat: latEnd, lng: lngEnd });
             return d < threshold;
         }
     }

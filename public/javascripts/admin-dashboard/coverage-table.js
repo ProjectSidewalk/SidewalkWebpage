@@ -93,14 +93,16 @@ class CoverageTable {
         table.querySelector('thead').addEventListener('keydown', (e) => {
             const th = e.target.closest('th[data-key]');
             if (th && (e.key === 'Enter' || e.key === ' ')) {
-                e.preventDefault(); this.#sortBy(th.dataset.key, refreshHeader);
+                e.preventDefault();
+                this.#sortBy(th.dataset.key, refreshHeader);
             }
         });
 
         const search = document.getElementById(this.#searchId);
         if (search) {
             search.addEventListener('input', () => {
-                this.#filter = search.value; this.#renderBody();
+                this.#filter = search.value;
+                this.#renderBody();
             });
         }
 
@@ -109,7 +111,7 @@ class CoverageTable {
             const id = tr ? Number(tr.dataset.regionId) : null;
             if (id === this.#hoverId) return;
             this.#hoverId = id;
-            if (id != null) this.#onRowHover(id);
+            if (id !== null) this.#onRowHover(id);
             else this.#onRowHoverEnd();
         });
         tbody.addEventListener('pointerleave', () => {
@@ -127,7 +129,8 @@ class CoverageTable {
         if (this.#sortKey === key) {
             this.#sortDir *= -1;
         } else {
-            this.#sortKey = key; this.#sortDir = 1;
+            this.#sortKey = key;
+            this.#sortDir = 1;
         }
         refreshHeader();
         this.#renderBody();

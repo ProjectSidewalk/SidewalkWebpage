@@ -127,9 +127,8 @@ class NavigationService {
             this.#endTheCurrentTask(currentTask, currentMission);
             this.#updateUiAfterMove();
             return Promise.resolve(null);
-        }
-        // If they are nowhere near the end, log the street as having no imagery and move them to a new street.
-        else {
+        } else {
+            // If they are nowhere near the end, log the street as having no imagery and move them to a new street.
             await util.misc.reportNoImagery(currentTask, currentMission.getProperty('missionId'));
 
             // Get a new task and jump to the new task location.
@@ -415,9 +414,11 @@ class NavigationService {
 
     /**
      * Attempts to move the user forward by incrementally checking for imagery every few meters along the route.
+     * @returns {Promise<string|null|void>} Resolves with the new pano ID on a successful move, null if the street ran
+     *     out of imagery, or undefined if walking is disabled.
      */
-    async moveForward() {
-        if (this.#status.disableWalking) return;
+    moveForward() {
+        if (this.#status.disableWalking) return Promise.resolve();
 
         this.#updateUiBeforeMove();
 
@@ -460,7 +461,7 @@ class NavigationService {
             return Promise.resolve(newPanoId);
         };
 
-        const failureCallback = (error) => {
+        const failureCallback = () => {
             // If there is room to move forward then try again, recursively calling getPanorama with this callback.
             if (turf.length(remainder) > 0) {
                 // Try `DIST_INCREMENT` further down the street.
@@ -482,7 +483,7 @@ class NavigationService {
      * @param {number} heading - The user's heading in degrees.
      * @returns {Promise<boolean>}
      */
-    async moveToLinkedPano(heading) {
+    moveToLinkedPano(heading) {
         if (this.#status.disableWalking) return Promise.resolve(false);
 
         // Figure out if there's a link close to the given heading.
@@ -496,7 +497,7 @@ class NavigationService {
         if (cosines[maxIndex] > 0.5) {
             return this.moveToPano(linkedPanos[maxIndex].panoId)
                 // Should never fail to load a linked pano, but adding a page refresh as a failsafe.
-                .catch((err) => window.location.reload());
+                .catch(() => window.location.reload());
         } else {
             return Promise.resolve(false);
         }

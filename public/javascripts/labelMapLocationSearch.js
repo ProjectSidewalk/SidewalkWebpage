@@ -24,7 +24,11 @@ const CITY_BBOX_BUFFER_FRACTION = 0.1;
  *                            padded by CITY_BBOX_BUFFER_FRACTION per edge, or null if no coordinates found.
  */
 function cityBoundingBox(geojson) {
-    let minLng = Infinity; let minLat = Infinity; let maxLng = -Infinity; let maxLat = -Infinity;
+    let minLng = Infinity;
+    let minLat = Infinity;
+    let maxLng = -Infinity;
+    let maxLat = -Infinity;
+
     const visit = (coords) => {
         if (typeof coords[0] === 'number') {
             const [lng, lat] = coords;

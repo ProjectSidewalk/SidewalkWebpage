@@ -7,9 +7,6 @@
  * from all counts.
  */
 class AdminApiAnalytics {
-    /** @type {string} - root container element ID for this tab. */
-    static #CONTAINER_ID = 'api-analytics-content';
-
     /** @type {object|null} - last fetched analytics payload from the server. */
     #data = null;
 

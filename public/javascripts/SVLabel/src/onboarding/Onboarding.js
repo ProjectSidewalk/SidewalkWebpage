@@ -381,7 +381,7 @@ class Onboarding {
                     strokeStyle: 'rgba(0, 0, 0, 1)',
                 };
 
-                if (annotation.fill == null || annotation.fill === 'white') {
+                if (annotation.fill === null || annotation.fill === undefined || annotation.fill === 'white') {
                     this.#drawArrow(x1, y1, x2, y2, params);
                 } else {
                     this.#drawBlinkingArrow(x1, y1, x2, y2, params, blink_frequency_modifier);

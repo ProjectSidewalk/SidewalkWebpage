@@ -80,7 +80,7 @@ class AdminCommentPopup {
                         this.#svHolder[0], this.#validateSection, this.#admin, this.#viewerType, this.#viewerAccessToken);
 
                     // Once the modal has finished closing, we can set it as visible and resolve the Promise.
-                    this.#modal.one('hidden.bs.modal', async () => {
+                    this.#modal.one('hidden.bs.modal', () => {
                         this.#modal.css('visibility', 'visible');
                         resolve();
                     });

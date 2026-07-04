@@ -83,8 +83,6 @@ class AchievementTracker {
         const mapLevelsToBadge = this.mapBadges[badgeType];
         let nextBadgeToUnlock = null;
         if (badgeType in this.mapBadges) {
-            const mapLevelsToBadge = this.mapBadges[badgeType];
-
             for (const level of Object.keys(mapLevelsToBadge)) {
                 const badge = mapLevelsToBadge[level];
                 if (badge.threshold > curValue) {
@@ -96,7 +94,7 @@ class AchievementTracker {
 
         let htmlStatement = '';
 
-        if (nextBadgeToUnlock != null) {
+        if (nextBadgeToUnlock !== null) {
             let diffValue = nextBadgeToUnlock.threshold - curValue;
             let curBadge = null;
             const curBadgeLevel = nextBadgeToUnlock.level - 1;
@@ -142,7 +140,7 @@ class AchievementTracker {
                 firstOrNext: firstOrNextTranslation,
             });
         } else {
-            htmlStatement = i18next.t(`dashboard:` + `badge-${badgeType}-earned-all`);
+            htmlStatement = i18next.t(`dashboard:badge-${badgeType}-earned-all`);
         }
 
         return htmlStatement;
@@ -182,6 +180,6 @@ class Badge {
         this.type = type;
         this.level = level;
         this.threshold = badgeAwardThreshold;
-        this.imagePath = `${imagePath}/` + `badge_${type}_badge${level}.png`;
+        this.imagePath = `${imagePath}/badge_${type}_badge${level}.png`;
     }
 }

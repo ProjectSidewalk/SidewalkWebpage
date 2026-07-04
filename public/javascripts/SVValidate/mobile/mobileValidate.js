@@ -30,7 +30,7 @@ $(document).ready(() => {
         svv.modalLandscape.hide();
     }
 
-    $(window).on('orientationchange', (event) => {
+    $(window).on('orientationchange', () => {
         if (window.screen.orientation.type.includes('landscape')) {
             svv.modalLandscape.show();
         } else if (loadedScreenLandscape) {

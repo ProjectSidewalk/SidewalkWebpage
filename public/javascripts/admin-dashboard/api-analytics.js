@@ -115,11 +115,13 @@ class ApiAnalyticsPage {
         if (monthly) {
             const keys = [];
             let [y, mo] = firstDataKey.split('-').map(Number);
-            const ey = today.getFullYear(); const em = today.getMonth() + 1;
+            const ey = today.getFullYear();
+            const em = today.getMonth() + 1;
             while (y < ey || (y === ey && mo <= em)) {
                 keys.push(`${y}-${String(mo).padStart(2, '0')}`);
                 if (++mo > 12) {
-                    mo = 1; y++;
+                    mo = 1;
+                    y++;
                 }
             }
             return keys;
@@ -153,7 +155,7 @@ class ApiAnalyticsPage {
         if (total === 0) {
             if (!lastApiCall) return 'No v3 API calls have been recorded yet.';
             const ago = ApiAnalyticsPage.#daysAgo(lastApiCall);
-            const agoText = ago == null ? '' : ` (${ago} ${ago === 1 ? 'day' : 'days'} ago)`;
+            const agoText = ago === null || ago === undefined ? '' : ` (${ago} ${ago === 1 ? 'day' : 'days'} ago)`;
             return `The selected range is ${range}, and there's been no API activity in it — the last call was on `
                 + `${ApiAnalyticsPage.#fmtDate(lastApiCall)}${agoText}. Try a longer range.`;
         }

@@ -415,7 +415,7 @@ class DesktopValidationMenu {
             });
 
             // Loops through the AI-suggested tags and display them.
-            for (const tag of [...aiAddTagOptions.map((tag) => ({ ...tag, action: 'add' })), ...aiRemoveTagOptions.map((tag) => ({ ...tag, action: 'remove' }))]) {
+            for (const tag of [...aiAddTagOptions.map((t) => ({ ...t, action: 'add' })), ...aiRemoveTagOptions.map((t) => ({ ...t, action: 'remove' }))]) {
                 // Clone the template tag element, and set all appropriate classes.
                 const template = menuUI.aiSuggestedTagTemplate.clone(true);
                 template.removeClass('template').addClass(tag.action === 'add' ? 'to-add' : 'to-remove');

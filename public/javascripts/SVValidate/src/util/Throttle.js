@@ -1,4 +1,4 @@
-var util = util || {};
+window.util = window.util || {};
 
 /**
  * Creates a throttled wrapper around `fn` that invokes it at most once per `wait` milliseconds.

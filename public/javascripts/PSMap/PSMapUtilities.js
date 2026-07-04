@@ -148,7 +148,7 @@ function setRegionFocus(map) {
     setTimeout(() => {
         if (regionId && map.getLayer('neighborhood-polygons')) {
             const region = map.queryRenderedFeatures({ layers: ['neighborhood-polygons'] })
-                .filter((f) => f.id == regionId)[0];
+                .filter((f) => f.id === Number(regionId))[0];
             if (region) {
                 map.setCenter(turf.center(region).geometry.coordinates);
                 map.zoomTo(13);
