@@ -50,6 +50,24 @@ class WebpageActivityTableDef(tag: Tag) extends Table[WebpageActivity](tag, "web
 @ImplementedBy(classOf[WebpageActivityTable])
 trait WebpageActivityTableRepository {}
 
+object WebpageActivityTable {
+
+  /**
+   * SQL `WHERE` predicate matching a site-entry (page-view) `webpage_activity` event.
+   *
+   * This is the single source of truth for what "visited the site" means — the first step of the engagement
+   * funnels (#288/#4380) and the basis for any future visits/active-user metric — so the definition lives in one
+   * place instead of being re-derived in raw SQL. Every real page load logs a `Visit_*` event (landing, explore,
+   * validate, gallery, labelMap, ...), so this counts arrival at any Project Sidewalk page. It deliberately
+   * excludes `AnonAutoSignUp` (account-creation plumbing that fires on bots/language redirects and only once per
+   * account), which would swamp the denominator with non-human traffic.
+   *
+   * `\_` escapes the literal underscore (Postgres default `ESCAPE '\'`), so the `_` is not treated as a
+   * single-character wildcard.
+   */
+  val SiteEntryActivityPredicate: String = "activity LIKE 'Visit\\_%'"
+}
+
 @Singleton
 class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
     extends WebpageActivityTableRepository

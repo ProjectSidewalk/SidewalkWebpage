@@ -32,6 +32,16 @@ Each pushed event is buffered with a timestamp and context (pano, task, lat/lng,
 periodically — on mission complete or after enough interactions accumulate — which is itself recorded as a
 `RefreshTracker` event.
 
+**Server-side page-visit events (a separate path).** Independently of the per-tool Trackers above, controllers log
+coarse page-visit and session events to the `webpage_activity` table via `LoggingService.insert` — e.g. `Visit_Index`
+and `Visit_MobileLanding` (landing pages), `Visit_Audit` (the Explore/Audit page), `Visit_Validate`, `Visit_Gallery`,
+`Visit_LabelMap`, and `AnonAutoSignUp` (an anonymous session start). The engagement funnels (#288/#4380) define their
+first step, **"Visited site," as any `Visit_*` page-view event** — since every real page load logs one, this counts
+arrival at *any* Project Sidewalk page (not just the landing page), including direct deep-links into a tool. The single
+source of truth for that predicate is `WebpageActivityTable.SiteEntryActivityPredicate`. `AnonAutoSignUp` is
+deliberately **excluded** from "visited": it fires on bot traffic and language-change redirects and would swamp the
+denominator.
+
 ## Event naming
 
 Most events are fixed, transparently-named strings (`ContextMenu_Open`, `Onboarding_Start`, `Click_ZoomIn`). The ones

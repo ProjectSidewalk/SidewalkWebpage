@@ -112,7 +112,8 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
   }
 
   /**
-   * The Explore/mapping funnel for a city schema (#288): visited, started the tutorial, finished OR skipped the
+   * The Explore/mapping funnel for a city schema (#288): visited (any site-entry page-view event; see
+   * [[WebpageActivityTable.SiteEntryActivityPredicate]], #4380), started the tutorial, finished OR skipped the
    * tutorial (skipping sets completed = true), took a step (walked some distance in a real audit mission via
    * `distance_progress`), placed a real label, completed an audit mission. Validation is deliberately excluded — it is
    * a separate activity and belongs to the contribution funnel. The redundant "clicked Start Mapping" and "started a
@@ -127,8 +128,7 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
     val b      = bounds(windowDays)
     val events =
       s"""
-        SELECT user_id, 1 AS step FROM "$schema".webpage_activity
-            WHERE activity IN ('Visit_Index', 'Visit_MobileLanding') ${b.wa}
+        ${visitedStep1(schema, b.wa)}
         UNION ALL
         SELECT user_id, 2 AS step FROM "$schema".mission WHERE mission_type_id = 1 ${b.mStart}
         UNION ALL
@@ -145,9 +145,10 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
   }
 
   /**
-   * The contribution funnel for a city schema (#288): visited, contributed (placed at least one real label OR cast at
-   * least one validation), completed a labeling (type 2) or validation (type 4) mission. This is the broad "did they
-   * contribute anything and finish something" view, complementing the mapping funnel.
+   * The contribution funnel for a city schema (#288): visited (any site-entry page-view event; see
+   * [[WebpageActivityTable.SiteEntryActivityPredicate]], #4380), contributed (placed at least one real label OR cast
+   * at least one validation), completed a labeling (type 2) or validation (type 4) mission. This is the broad "did
+   * they contribute anything and finish something" view, complementing the mapping funnel.
    *
    * @param schema     The database schema to compute over.
    * @param windowDays The trailing window in days, or None for all-time.
@@ -157,8 +158,7 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
     val b      = bounds(windowDays)
     val events =
       s"""
-        SELECT user_id, 1 AS step FROM "$schema".webpage_activity
-            WHERE activity IN ('Visit_Index', 'Visit_MobileLanding') ${b.wa}
+        ${visitedStep1(schema, b.wa)}
         UNION ALL
         SELECT user_id, 2 AS step FROM "$schema".label WHERE deleted = FALSE AND tutorial = FALSE ${b.label}
         UNION ALL
@@ -169,6 +169,20 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
       """
     computeFunnel(schema, events, numSteps = 3)
   }
+
+  /**
+   * The shared step-1 ("visited") SELECT for both funnels: users with an in-window site-entry page-view event
+   * ([[WebpageActivityTable.SiteEntryActivityPredicate]]). Both funnels must use the identical definition so step 1
+   * stays a true superset of every later step and both funnels report the same visitor total (#288/#4380). The schema
+   * is trusted config, so it is spliced literally.
+   *
+   * @param schema  The database schema to read from.
+   * @param waBound The window-bound fragment for `webpage_activity.timestamp` (empty for all-time).
+   * @return        A `SELECT user_id, 1 AS step ...` fragment for the funnel's UNION ALL body.
+   */
+  private def visitedStep1(schema: String, waBound: String): String =
+    s"""SELECT user_id, 1 AS step FROM "$schema".webpage_activity
+            WHERE ${WebpageActivityTable.SiteEntryActivityPredicate} $waBound"""
 
   /** Per-source window-bound SQL fragments (empty for all-time). windowDays is an Int, so it is safe to interpolate. */
   private case class Bounds(wa: String, mStart: String, mEnd: String, label: String, validation: String)
@@ -242,10 +256,10 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
             WHERE role.role IS DISTINCT FROM 'AI'
             GROUP BY events.user_id
             -- A funnel starts at step 1: only count users who actually have the step-1 (visit) event. Without this, a
-            -- user with downstream activity but no logged visit (e.g. an auto-created tutorial mission) would be counted
-            -- in step 1 via deepest >= 1, inflating "visited" and making it differ between funnels that draw from
-            -- different downstream tables. Anchoring on step 1 makes step 1 = distinct visitors, identical across funnels
-            -- and a true superset of every later step (#288).
+            -- user with downstream activity but no in-window site-entry event would be counted in step 1 via
+            -- deepest >= 1, inflating "visited" and making it differ between funnels that draw from different downstream
+            -- tables. Anchoring on step 1 makes step 1 = distinct visitors, identical across funnels and a true superset
+            -- of every later step (#288).
             HAVING bool_or(events.step = 1)
         ),
         segmented AS (
