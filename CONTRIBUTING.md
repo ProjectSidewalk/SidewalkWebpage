@@ -79,10 +79,10 @@ before your first PR:
 - **New JavaScript targets ES2022** (`const`/`let`, arrow functions, `#private` fields, native `fetch`). We're
   actively migrating *off* ES5/jQuery/Bootstrap — don't add to them.
 - **Format Scala with scalafmt** before pushing (`make scalafmt-fix`, or format-on-save) — CI blocks the merge on it.
-- **Run the ESLint auto-fixer on JavaScript you change** before pushing — `make eslint-fix dir=<files or dirs you
-  touched>`. That's all that's expected for now: lint isn't a CI gate yet
-  ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), the tree isn't fully lint-clean, and
-  findings `--fix` can't resolve are deferred to a coordinated tree-wide cleanup — no need to hand-fix them.
+- **Keep `make eslint` passing on JavaScript you change** before pushing — run `make eslint-fix dir=<files or dirs
+  you touched>` for the mechanical fixes, hand-fix the rest, and confirm `make eslint` reports zero errors/warnings.
+  The tree is fully lint-clean ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so any
+  finding is from your change. Lint isn't a CI gate yet, but don't check in code that fails it.
 - **UI work** must meet WCAG 2.1/2.2 Level AA and use the `main.css` `:root` design tokens.
 - **Public API (`/v3`):** response fields are `snake_case`, query params are `camelCase`, and new DTOs go in
   `app/models/api/`.
@@ -139,10 +139,10 @@ visiting `<your-computer-ip>:9000` (phone and computer on the same Wi-Fi; this o
 
 1. Merge the latest `develop` (`git pull origin develop`) and test one more time.
 2. **Run scalafmt** on any Scala files you changed — `make scalafmt-fix` (CI blocks the merge on formatting). Set up
-   format-on-save once via [`docs/editor-setup.md`](docs/editor-setup.md) so this is automatic. Likewise **run the
-   ESLint auto-fixer** on any JavaScript you changed — `make eslint-fix dir=<path>` (not a CI gate yet; findings
-   `--fix` can't resolve can wait for the [#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)
-   cleanup).
+   format-on-save once via [`docs/editor-setup.md`](docs/editor-setup.md) so this is automatic. Likewise **make sure
+   `make eslint` passes** on any JavaScript you changed — `make eslint-fix dir=<path>` plus hand-fixing whatever
+   remains (not a CI gate yet, but the tree is kept lint-clean —
+   [#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)).
 3. Push your branch and [open a PR](https://github.com/ProjectSidewalk/SidewalkWebpage/compare) with **base
    `develop`** ← your branch. Fill out the [PR template](.github/PULL_REQUEST_TEMPLATE.md): clear title, description,
    before/after screenshots for UI, testing instructions, translations, and logging updates. Link the issue

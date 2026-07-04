@@ -9,10 +9,10 @@ ones it can.
 [`eslint.config.js`](../eslint.config.js), [`.stylelintrc.json`](../.stylelintrc.json), and
 [`.htmlhintrc`](../.htmlhintrc); Scala formatting lives in [`.scalafmt.conf`](../.scalafmt.conf). When this guide and a
 config disagree, the config wins — fix the config and this doc together. (Frontend linting isn't wired into CI yet —
-it's sequenced with the ES5→ES2022 migration, [#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487) —
-but run `make eslint-fix dir=<the JS you touched>` locally. The auto-fix pass is all that's expected for now: findings
-`--fix` can't resolve are deferred to a coordinated tree-wide cleanup on #2487, so there's no need to hand-fix them.
-The rules already describe the standard we write to. `scalafmtCheckAll` *does* run in CI, as a blocking gate.)
+that's the last step of [#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487) — but the tree is
+fully lint-clean and stays that way: **`make eslint` must pass, zero errors/warnings, before code is checked in.**
+Run `make eslint-fix dir=<the JS you touched>` for the mechanical fixes and hand-fix the rest. `scalafmtCheckAll`
+*does* run in CI, as a blocking gate.)
 
 ## General
 

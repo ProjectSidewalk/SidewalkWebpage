@@ -60,7 +60,7 @@ addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.3.1")
 
 - **Runner: Jest + jsdom** (CommonJS-friendly for the no-module global-script reality; less ESM friction than Vitest). Load each pure util via a small `vm`/require helper that captures its global (`util.math`, the pano-viewer classes) — **no production-code changes required** to start. First targets: `common/UtilitiesMath.js`, `common/pano-viewer/src/PanoUtilities.js`, `common/aggregate-stats.js`.
 - Replace the broken `npm test` (`grunt && grunt test`) with `jest`.
-- **Lint gate** (`make lint`: eslint/htmlhint/stylelint, already configured) is **owned by #2487, not this plan.** That issue sequences the linter rollout with the in-progress JS ES5→ES2022 migration (dropping a linter into CI mid-migration = large, conflict-prone churn). So linting-in-CI is deliberately **deferred to #2487** and introduced on that track (advisory first, then blocking once the baseline is clean) — *not* part of Phase 0.
+- **Lint gate** (`make lint`: eslint/htmlhint/stylelint, already configured) is **owned by #2487, not this plan.** That issue sequences the linter rollout with the in-progress JS ES5→ES2022 migration (dropping a linter into CI mid-migration = large, conflict-prone churn). So linting-in-CI is deliberately **deferred to #2487** and introduced on that track (advisory first, then blocking) — *not* part of Phase 0. The ESLint baseline is now clean (whole tree passes `make eslint` as of 2026-07-04); until the CI wiring lands, keeping it passing is a manual pre-check-in expectation (see [`CONTRIBUTING.md`](../CONTRIBUTING.md)).
 
 ## Python utility testing
 
