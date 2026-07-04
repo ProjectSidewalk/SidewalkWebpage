@@ -1668,6 +1668,28 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
+   * Returns the geographic location (lat/lng) of a single label from its label point, if recorded.
+   *
+   * Backs the public shared-label spotlight page, which centers its nearby-labels minimap on the label. Reads the
+   * label_point's stored lat/lng — the same coordinate the v3 rawLabels API emits as the label's geometry — so the
+   * minimap and the API-fed markers agree on where the label sits.
+   *
+   * @param labelId The label whose location to look up.
+   * @return `Some(LatLng)` if the label exists and has a recorded point location, `None` otherwise.
+   */
+  def getLabelLatLng(labelId: Int): DBIO[Option[LatLng]] = {
+    labelPoints
+      .filter(_.labelId === labelId)
+      .map(lp => (lp.lat, lp.lng))
+      .result
+      .headOption
+      .map {
+        case Some((Some(lat), Some(lng))) => Some(LatLng(lat, lng))
+        case _                            => None
+      }
+  }
+
+  /**
    * Returns a count of the number of labels placed on each day there were labels placed.
    */
   def getLabelCountsByDate: DBIO[Seq[(OffsetDateTime, Int)]] = {

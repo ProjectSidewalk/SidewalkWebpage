@@ -82,6 +82,7 @@ ones whose meaning, parameters, or history aren't obvious:
 | `ValidationOptionApply` / `ValidationOptionUnapply` (Gallery) | A validation-status **filter** in the Gallery — *not* a validation of a label. |
 | `Visit_SharedLabel=<labelId>` | Server-logged (not via a `Tracker.js`) in `ShareController.label` when the public `/label/:id` share page is loaded; the suffix is the shared label id. |
 | `Share_Click` / `Share_Native` / `Share_CopyLink` / `Share_Platform=<Twitter\|Facebook\|Email>` | Emitted by the frontend share widget: opening the share UI, invoking the native OS share sheet, copying the permalink, and sharing to a named platform (the `Share_Platform` suffix is the target). |
+| `Click_module=SharedLabel_target=<FullMap\|Explore\|ExploreStreetView\|NearbyLabel>` | Outbound/interactive clicks on the public spotlight page (`SharedLabel.js`): `FullMap` = the "Explore the full map" CTA into the LabelMap, `Explore` = the "Start exploring" about-CTA into Explore, `ExploreStreetView_labelId=<id>` = opening the interactive pano over the hero crop, `NearbyLabel_labelId=<id>` = clicking a nearby-labels map marker (the suffix is that neighbor's label id). |
 
 ## Finding the current list
 

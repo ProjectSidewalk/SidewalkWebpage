@@ -80,6 +80,36 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       }
     }
 
+    "render the spotlight page (reused LabelDetail hero + legend), never the city-wide LabelMap label layer" in {
+      validLabelId match {
+        case None     => cancel("No labels in the connected test DB; cannot exercise the valid-label path.")
+        case Some(id) =>
+          val body = contentAsString(route(app, FakeRequest(GET, s"/label/$id")).get)
+          // The whole point of the spotlight pivot (#456, Mikey review): the share landing must NOT pull `/labels/all`,
+          // a city's single most expensive endpoint, on every bot-crawled hit. The nearby-labels map uses the cheap,
+          // bbox-bounded /v3/api/rawLabels instead — wired client-side from the SharedLabel bundle + config below.
+          body must not include "/labels/all"
+          body must include("SharedLabel/build/SharedLabel.js")
+          body must include("window.sharedLabelData")
+          // The hero reuses the shared LabelDetail component mounted inline; plus the label legend and Explore CTA.
+          body must include("label-detail--inline")
+          body must include("spotlight-legend")
+          body must include("spotlight-explore-cta")
+      }
+    }
+
+    "resolve a valid in-range location via getLabelLatLng for labels that have one" in {
+      // Backs the spotlight minimap centering (#456). Real recent labels carry a label_point location, so at least one
+      // of a small sample must resolve, and every resolved coordinate must be geographically in range.
+      val locations =
+        recentLabels.take(10).flatMap(l => Await.result(labelService.getLabelLatLng(l.labelId), 30.seconds))
+      locations must not be empty
+      locations.foreach { loc =>
+        loc.lat must (be >= -90.0 and be <= 90.0)
+        loc.lng must (be >= -180.0 and be <= 180.0)
+      }
+    }
+
     "not mint a session or account for an anonymous view" in {
       validLabelId match {
         case None     => cancel("No labels in the connected test DB; cannot exercise the valid-label path.")
@@ -94,7 +124,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "use the issue title framing for access-issue label types" in {
-      labelWhere(_.labelType.isAccessIssue) match {
+      labelWhere(_.labelType.isAccessProblem) match {
         case None        => cancel("No recent access-issue label in the test DB.")
         case Some(label) =>
           val body = contentAsString(route(app, FakeRequest(GET, s"/label/${label.labelId}")).get)
@@ -103,7 +133,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "use the feature title framing for non-issue label types" in {
-      labelWhere(!_.labelType.isAccessIssue) match {
+      labelWhere(!_.labelType.isAccessProblem) match {
         case None        => cancel("No recent non-issue label in the test DB.")
         case Some(label) =>
           val body = contentAsString(route(app, FakeRequest(GET, s"/label/${label.labelId}")).get)
@@ -112,7 +142,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "state the severity in the description for an access-issue label that has one" in {
-      labelWhere(l => l.labelType.isAccessIssue && l.severity.isDefined) match {
+      labelWhere(l => l.labelType.isAccessProblem && l.severity.isDefined) match {
         case None        => cancel("No recent access-issue label with a severity in the test DB.")
         case Some(label) =>
           val body = contentAsString(route(app, FakeRequest(GET, s"/label/${label.labelId}")).get)
@@ -167,9 +197,10 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
   }
 
-  // The share landing renders LabelMap anonymously, which calls these two endpoints; they were relaxed from
-  // SecuredAction to public reads (per-user fields fall back to the no-user case) as part of #456.
-  "reads opened to anonymous access for the share landing" should {
+  // Public reads the spotlight surface relies on. /label/id/:labelId was relaxed from SecuredAction to a public read
+  // as part of #456 (per-user fields fall back to the no-user case) and still backs the shared label-detail popup on
+  // Gallery/LabelMap; /v3/api/rawLabels is the cheap, bbox-bounded API the spotlight's nearby-labels map fetches.
+  "public reads the spotlight surface relies on" should {
     "serve label detail JSON at /label/id/:labelId with no auth cookie" in {
       validLabelId match {
         case None     => cancel("No labels in the connected test DB; cannot exercise the valid-label path.")
@@ -181,8 +212,8 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       }
     }
 
-    "serve the neighborhoods FeatureCollection at /neighborhoods with no auth cookie" in {
-      val resp = route(app, FakeRequest(GET, "/neighborhoods")).get
+    "serve nearby labels as GeoJSON from /v3/api/rawLabels with no auth cookie" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?filetype=geojson")).get
       status(resp) mustBe OK
       contentAsString(resp) must include("FeatureCollection")
     }

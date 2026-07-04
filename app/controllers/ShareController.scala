@@ -25,10 +25,13 @@ import scala.util.Using
 /**
  * Public social-share surface for a single label (issue #456).
  *
- * Exposes two account-free, crawler-reachable endpoints: `/label/:labelId` renders the LabelMap focused on the label
- * with Open Graph / Twitter Card meta so a pasted link produces a rich preview, and `/label/:labelId/image` serves the
- * unsigned, marker-composited preview image that crawlers embed. Neither creates a user or sets a cookie; when there is
- * no signed-in identity the shared default "anonymous" user is used purely for display.
+ * Exposes two account-free, crawler-reachable endpoints: `/label/:labelId` renders a lightweight single-label spotlight
+ * page (label crop + read-only metadata + a small map of nearby labels) with Open Graph / Twitter Card meta so a pasted
+ * link produces a rich preview, and `/label/:labelId/image` serves the unsigned, marker-composited preview image that
+ * crawlers embed. The spotlight page deliberately does NOT load the full LabelMap: that page's `/labels/all` fetch is a
+ * city's single most expensive endpoint, so pointing bot-crawled share URLs at it is wasteful (#456, Mikey review). The
+ * nearby-labels map instead reads the cheap, bbox-bounded public `/v3/api/rawLabels` API. Neither endpoint creates a
+ * user or sets a cookie; when there is no signed-in identity the shared default "anonymous" user is used for display.
  */
 @Singleton
 class ShareController @Inject() (
@@ -56,12 +59,12 @@ class ShareController @Inject() (
   private val SHARE_IMAGE_JPEG_QUALITY = 0.85f
 
   /**
-   * Renders the public share landing page for a label: the LabelMap flown to the label with its popup auto-open, plus
-   * per-label OG/Twitter meta in the <head>. Reachable anonymously (no account created, no cookie set) so social
-   * crawlers can read the preview.
+   * Renders the public single-label spotlight page: the label's crop and read-only metadata as a hero, a small map of
+   * nearby labels (fed by the cheap public `/v3/api/rawLabels` API), and per-label OG/Twitter meta in the <head>.
+   * Reachable anonymously (no account created, no cookie set) so social crawlers can read the preview.
    *
    * @param labelId The label to share.
-   * @return `Ok` with the LabelMap page, or `NotFound` if no such label exists.
+   * @return `Ok` with the spotlight page, or `NotFound` if no such label exists.
    */
   def label(labelId: Int) = silhouette.UserAwareAction.async { implicit request =>
     val displayUser: Future[SidewalkUserWithRole] =
@@ -72,15 +75,14 @@ class ShareController @Inject() (
         case None       => Future.successful(NotFound(s"No label found with ID: $labelId"))
         case Some(meta) =>
           for {
-            commonData <- configService.getCommonPageData(request2Messages.lang)
-            tags       <- labelService.getTagsForCurrentCity
+            commonData  <- configService.getCommonPageData(request2Messages.lang)
+            labelLatLng <- labelService.getLabelLatLng(labelId)
           } yield {
             cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, s"Visit_SharedLabel=$labelId")
             val shareMeta: Html = buildShareMeta(commonData, meta)
             val title: String   = shareTitle(meta)
             Ok(
-              views.html.apps.labelMap(commonData, title, user, tags, Seq.empty, Seq.empty, Seq.empty,
-                focusLabelId = Some(labelId), shareMeta = shareMeta)
+              views.html.apps.sharedLabel(commonData, title, user, meta, labelLatLng, cityNameOf(commonData), shareMeta)
             )
           }
       }
@@ -119,10 +121,10 @@ class ShareController @Inject() (
   /**
    * Builds the localized share title. Issue types ("I found an accessibility issue...") and non-issue types (positive
    * features like curb ramps, or neutral types like occlusions — "Look what I found...") take opposite framings, so
-   * the copy forks on the label type's `isAccessIssue`.
+   * the copy forks on the label type's `isAccessProblem`.
    */
   private def shareTitle(meta: LabelMetadata)(implicit messages: Messages): String = {
-    val key: String = if (meta.labelType.isAccessIssue) "share.meta.title.issue" else "share.meta.title.feature"
+    val key: String = if (meta.labelType.isAccessProblem) "share.meta.title.issue" else "share.meta.title.feature"
     Messages(key, Messages(meta.labelType.nameKey))
   }
 
@@ -134,15 +136,16 @@ class ShareController @Inject() (
     val pageUrl: String  = s"$base/label/${meta.labelId}"
     val imageUrl: String = s"$base/label/${meta.labelId}/image"
     val typeName: String = Messages(meta.labelType.nameKey)
-    val cityName: String =
-      commonData.allCityInfo.find(_.cityId == commonData.cityId).map(_.cityNameFormatted).getOrElse("")
+    val cityName: String = cityNameOf(commonData)
     // The description is short, fully-localized sentences joined in a fixed order, with the data-dependent ones
     // (severity, tags) included only when present. Severity is stated only for access-issue types — on positive
     // features the same column encodes quality, not badness. Tag names are stored untranslated; server-side tag
     // localization is #4445.
     val description: String = Seq(
       Some(Messages("share.meta.description.spotted", cityName)),
-      meta.severity.filter(_ => meta.labelType.isAccessIssue).map(s => Messages("share.meta.description.severity", s)),
+      meta.severity
+        .filter(_ => meta.labelType.isAccessProblem)
+        .map(s => Messages("share.meta.description.severity", s)),
       Option(meta.tags).filter(_.nonEmpty).map(t => Messages("share.meta.description.tags", t.take(3).mkString(", "))),
       Some(Messages("share.meta.description.cta"))
     ).flatten.mkString(" ")
@@ -151,6 +154,10 @@ class ShareController @Inject() (
       shareTitle(meta), description, pageUrl, imageUrl, SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, imageAlt
     )
   }
+
+  /** The formatted display name of the current deployment city (e.g. "Seattle, WA"), or "" if it can't be resolved. */
+  private def cityNameOf(commonData: service.CommonPageData): String =
+    commonData.allCityInfo.find(_.cityId == commonData.cityId).map(_.cityNameFormatted).getOrElse("")
 
   /** Directory where cached share preview images live: `<share.image.directory>/<city-id>/`. */
   private def shareImageDir: File =

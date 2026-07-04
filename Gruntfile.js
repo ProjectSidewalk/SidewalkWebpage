@@ -120,6 +120,23 @@ module.exports = function(grunt) {
                 ],
                 dest: 'public/javascripts/PSMap/build/PSMap.js'
             },
+            dist_shared_label: {
+                src: [
+                    // The shared LabelDetail component + its deps (same set the Gallery bundle pulls in), plus the
+                    // SharedLabel app. The pano-viewer classes and PSMap load from their own bundles (script tags).
+                    'public/javascripts/common/AiLabelIndicator.js',
+                    // Toast must precede BadgeAchievements, which builds badge-unlock toasts.
+                    'public/javascripts/common/Toast.js',
+                    'public/javascripts/common/BadgeAchievements.js',
+                    'public/javascripts/common/PanoMarker.js',
+                    // PopupPanoManager + LabelDetail must precede anything that uses them.
+                    'public/javascripts/common/label-detail/PopupPanoManager.js',
+                    'public/javascripts/common/label-detail/LabelDetail.js',
+                    'public/javascripts/common/share/ShareWidget.js',
+                    'public/javascripts/SharedLabel/*.js'
+                ],
+                dest: 'public/javascripts/SharedLabel/build/SharedLabel.js'
+            },
             dist_pano_viewer: {
                 src: [
                     'public/javascripts/common/pano-viewer/src/PanoData.js',
@@ -185,6 +202,7 @@ module.exports = function(grunt) {
                     'public/javascripts/Gallery/src/**/*.js',
                     'public/javascripts/Gallery/css/*.css',
                     'public/javascripts/PSMap/*.js',
+                    'public/javascripts/SharedLabel/*.js',
                     'public/stylesheets/common/*.css'
                 ],
                 tasks: [

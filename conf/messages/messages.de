@@ -370,3 +370,17 @@ share.meta.description.severity = Schweregrad: {0} von 3.
 share.meta.description.tags = Markiert mit: {0}.
 share.meta.description.cta = Erkunden Sie die Karte und helfen Sie mit, Gehwege für alle zugänglich zu machen.
 share.meta.image.alt = Straßenansicht mit markierter Position: {0}
+
+# Öffentliche Spotlight-/Teilen-Seite für ein einzelnes Label (#456).
+sharedlabel.nearby.title = Labels in der Nähe
+sharedlabel.nearby.caption = Eine Auswahl von Barrierefreiheits-Labels in der Nähe. Siehe {0} für die vollständige Karte.
+sharedlabel.view.this.label = Dieses Label ansehen
+sharedlabel.engage.title = Hilf mit, die Barrierefreiheit in {0} zu kartieren
+sharedlabel.engage.body = Jeder kann mithelfen, Gehwege für alle barrierefrei zu machen — ganz ohne Vorkenntnisse.
+sharedlabel.engage.explore = Barrierefreiheitsprobleme in {0} finden
+sharedlabel.engage.validate = Labels validieren
+sharedlabel.stat.labels = Labels
+sharedlabel.stat.validations = Validierungen
+sharedlabel.stat.miles = Meilen erkundet
+sharedlabel.legend.title = Was diese Labels bedeuten
+sharedlabel.stats.heading = Project Sidewalk in {0}

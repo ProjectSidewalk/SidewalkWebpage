@@ -379,3 +379,17 @@ share.meta.description.severity = Gravedad: {0} de 3.
 share.meta.description.tags = Etiquetas: {0}.
 share.meta.description.cta = Explora el mapa y ayuda a hacer las aceras accesibles para todos.
 share.meta.image.alt = Foto a nivel de calle con la ubicación marcada: {0}
+
+# Página pública de detalle/compartir de una sola etiqueta (#456).
+sharedlabel.nearby.title = Etiquetas cercanas
+sharedlabel.nearby.caption = Una muestra de etiquetas de accesibilidad cercanas. Consulta {0} para ver el mapa completo.
+sharedlabel.view.this.label = Ver esta etiqueta
+sharedlabel.engage.title = Ayuda a mapear la accesibilidad en {0}
+sharedlabel.engage.body = Cualquiera puede ayudar a que las aceras sean accesibles para todos, sin experiencia previa.
+sharedlabel.engage.explore = Encuentra problemas de accesibilidad en {0}
+sharedlabel.engage.validate = Validar etiquetas
+sharedlabel.stat.labels = etiquetas
+sharedlabel.stat.validations = validaciones
+sharedlabel.stat.miles = millas exploradas
+sharedlabel.legend.title = Qué significan estas etiquetas
+sharedlabel.stats.heading = Project Sidewalk en {0}

@@ -13,9 +13,9 @@ import java.io.File
  */
 class LabelTypeEnumSpec extends PlaySpec {
 
-  "isAccessIssue" should {
+  "isAccessProblem" should {
     "be true for exactly the accessibility-problem label types" in {
-      val issueTypes = LabelTypeEnum.values.filter(_.isAccessIssue)
+      val issueTypes = LabelTypeEnum.values.filter(_.isAccessProblem)
       issueTypes mustBe Set(
         LabelTypeEnum.NoCurbRamp, LabelTypeEnum.Obstacle, LabelTypeEnum.SurfaceProblem, LabelTypeEnum.NoSidewalk,
         LabelTypeEnum.Problem
