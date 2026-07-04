@@ -16,8 +16,8 @@ util.EXPLORE_CANVAS_ASPECT_RATIO = util.EXPLORE_CANVAS_WIDTH / util.EXPLORE_CANV
  * @returns {number} displayWidth / EXPLORE_CANVAS_WIDTH, or 1 if the street view is not present
  */
 util.exploreDisplayScale = function () {
-    const layer = document.getElementById('labelDrawingLayer');
-    return layer ? layer.getBoundingClientRect().width / util.EXPLORE_CANVAS_WIDTH : 1;
+  const layer = document.getElementById('labelDrawingLayer');
+  return layer ? layer.getBoundingClientRect().width / util.EXPLORE_CANVAS_WIDTH : 1;
 };
 
 /**
@@ -31,49 +31,49 @@ util.exploreDisplayScale = function () {
  * @returns {number} The applied scale factor.
  */
 util.applyToolScale = function (widthVarNames, heightVarNames) {
-    const toolUI = document.querySelector('.tool-ui');
-    if (!toolUI) return 1;
+  const toolUI = document.querySelector('.tool-ui');
+  if (!toolUI) return 1;
 
-    // Reference layout size at --ui-scale = 1, read from the unscaled base dimensions in the tool's CSS.
-    const styles = getComputedStyle(toolUI);
-    const cssPx = (name) => parseFloat(styles.getPropertyValue(name));
-    const refWidth = widthVarNames.reduce((sum, name) => sum + cssPx(name), 0);
-    const refHeight = heightVarNames.reduce((sum, name) => sum + cssPx(name), 0);
-    if (!refWidth || !refHeight) return 1; // Base vars missing (page doesn't define them); leave --ui-scale at 1.
-    const MIN_SCALE = 0.65;
-    const MAX_SCALE = 1.8;
-    const H_MARGIN = 40;       // Breathing room on each side of the tool.
-    const BOTTOM_RESERVE = 60; // Space below the tool for the footer and a little margin.
+  // Reference layout size at --ui-scale = 1, read from the unscaled base dimensions in the tool's CSS.
+  const styles = getComputedStyle(toolUI);
+  const cssPx = (name) => parseFloat(styles.getPropertyValue(name));
+  const refWidth = widthVarNames.reduce((sum, name) => sum + cssPx(name), 0);
+  const refHeight = heightVarNames.reduce((sum, name) => sum + cssPx(name), 0);
+  if (!refWidth || !refHeight) return 1; // Base vars missing (page doesn't define them); leave --ui-scale at 1.
+  const MIN_SCALE = 0.65;
+  const MAX_SCALE = 1.8;
+  const H_MARGIN = 40;       // Breathing room on each side of the tool.
+  const BOTTOM_RESERVE = 60; // Space below the tool for the footer and a little margin.
 
-    // Everything above the tool (the navbar) is fixed chrome that does not scale, so reserve it.
-    const topOffset = Math.max(0, toolUI.getBoundingClientRect().top + window.scrollY);
-    const availWidth = window.innerWidth - H_MARGIN * 2;
-    const availHeight = window.innerHeight - topOffset - BOTTOM_RESERVE;
+  // Everything above the tool (the navbar) is fixed chrome that does not scale, so reserve it.
+  const topOffset = Math.max(0, toolUI.getBoundingClientRect().top + window.scrollY);
+  const availWidth = window.innerWidth - H_MARGIN * 2;
+  const availHeight = window.innerHeight - topOffset - BOTTOM_RESERVE;
 
-    let scale = Math.min(availWidth / refWidth, availHeight / refHeight);
-    scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
-    const scaleStr = scale.toFixed(4);
-    toolUI.style.setProperty('--ui-scale', scaleStr);
-    // Also expose the scale at the document root so self-contained overlays rendered outside .tool-ui (e.g. the
-    // mission-complete modal) can scale to match via var(--ui-scale).
-    document.documentElement.style.setProperty('--ui-scale', scaleStr);
+  let scale = Math.min(availWidth / refWidth, availHeight / refHeight);
+  scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
+  const scaleStr = scale.toFixed(4);
+  toolUI.style.setProperty('--ui-scale', scaleStr);
+  // Also expose the scale at the document root so self-contained overlays rendered outside .tool-ui (e.g. the
+  // mission-complete modal) can scale to match via var(--ui-scale).
+  document.documentElement.style.setProperty('--ui-scale', scaleStr);
 
-    // The mission-start-tutorial overlay's content is wider than the tool's reference footprint, so when the tool's
-    // scale is limited by height it can overflow the viewport horizontally (its nav arrow runs off the right edge).
-    // Give the overlay its own --ui-scale, capped so its fixed-width content plus a little breathing room always fits.
-    const mstOverlay = document.querySelector('.mission-start-tutorial-overlay');
-    if (mstOverlay) {
-        // The reference width and breathing room live in missionStartTutorial.css so they stay in one place.
-        const mstStyles = getComputedStyle(mstOverlay);
-        const mstRefWidth = parseFloat(mstStyles.getPropertyValue('--mst-base-width'));
-        const mstHMargin = parseFloat(mstStyles.getPropertyValue('--mst-h-margin'));
-        if (mstRefWidth) {
-            const mstScale = Math.max(MIN_SCALE, Math.min(scale, (window.innerWidth - mstHMargin * 2) / mstRefWidth));
-            mstOverlay.style.setProperty('--ui-scale', mstScale.toFixed(4));
-        }
+  // The mission-start-tutorial overlay's content is wider than the tool's reference footprint, so when the tool's
+  // scale is limited by height it can overflow the viewport horizontally (its nav arrow runs off the right edge).
+  // Give the overlay its own --ui-scale, capped so its fixed-width content plus a little breathing room always fits.
+  const mstOverlay = document.querySelector('.mission-start-tutorial-overlay');
+  if (mstOverlay) {
+    // The reference width and breathing room live in missionStartTutorial.css so they stay in one place.
+    const mstStyles = getComputedStyle(mstOverlay);
+    const mstRefWidth = parseFloat(mstStyles.getPropertyValue('--mst-base-width'));
+    const mstHMargin = parseFloat(mstStyles.getPropertyValue('--mst-h-margin'));
+    if (mstRefWidth) {
+      const mstScale = Math.max(MIN_SCALE, Math.min(scale, (window.innerWidth - mstHMargin * 2) / mstRefWidth));
+      mstOverlay.style.setProperty('--ui-scale', mstScale.toFixed(4));
     }
+  }
 
-    return scale;
+  return scale;
 };
 
 /**
@@ -81,7 +81,7 @@ util.applyToolScale = function (widthVarNames, heightVarNames) {
  * @returns {number} The current --ui-scale value.
  */
 util.uiScale = function () {
-    return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
+  return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
 };
 
 // Browser detection helpers backed by Bowser 2.x.
@@ -99,9 +99,9 @@ util.isMobile = () => ['mobile', 'tablet'].includes(_bowserParser.getPlatformTyp
 // A cross-browser function to capture a mouse position, relative to the given DOM element. The UI is scaled through
 // real layout sizes (var(--ui-scale)), so offset() already reflects the scaled position and no compensation is needed.
 function mousePosition(e, dom) {
-    const mx = e.pageX - $(dom).offset().left;
-    const my = e.pageY - $(dom).offset().top;
-    return { x: parseInt(mx, 10), y: parseInt(my, 10) };
+  const mx = e.pageX - $(dom).offset().left;
+  const my = e.pageY - $(dom).offset().top;
+  return { x: parseInt(mx, 10), y: parseInt(my, 10) };
 }
 
 util.mousePosition = mousePosition;
@@ -113,7 +113,7 @@ util.mousePosition = mousePosition;
  * @returns {string} The parameter's decoded value, or '' if it is not present.
  */
 function getURLParameter(argName) {
-    return new URLSearchParams(window.location.search).get(argName) ?? '';
+  return new URLSearchParams(window.location.search).get(argName) ?? '';
 }
 
 util.getURLParameter = getURLParameter;
@@ -125,14 +125,14 @@ util.getURLParameter = getURLParameter;
  * @returns {Promise<string>} Resolves with the image as a base64 data URL.
  */
 function convertBlobToBase64(blob) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onerror = reject;
-        reader.onload = () => {
-            resolve(reader.result);
-        };
-        reader.readAsDataURL(blob);
-    });
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      resolve(reader.result);
+    };
+    reader.readAsDataURL(blob);
+  });
 }
 
 util.convertBlobToBase64 = convertBlobToBase64;
@@ -144,14 +144,14 @@ util.convertBlobToBase64 = convertBlobToBase64;
  * @returns {Promise<string>} Resolves with the image as a base64 data URL; rejects on a network error or 404.
  */
 function getImage(imageUrl) {
-    return fetch(imageUrl)
-        .then((response) => {
-            if (response.status === 404) throw new Error('Image not found');
-            else if (!response.ok) throw new Error('Other network error');
-            return response.blob();
-        }).then((myBlob) => {
-            return convertBlobToBase64(myBlob);
-        });
+  return fetch(imageUrl)
+    .then((response) => {
+      if (response.status === 404) throw new Error('Image not found');
+      else if (!response.ok) throw new Error('Other network error');
+      return response.blob();
+    }).then((myBlob) => {
+      return convertBlobToBase64(myBlob);
+    });
 }
 
 util.getImage = getImage;
@@ -162,22 +162,22 @@ util.array.sum = (arr) => arr.reduce((a, b) => a + b, 0);
 
 // Changes a string in camelCase to kebab-case.
 function camelToKebab(theString) {
-    return theString.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+  return theString.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
 }
 
 util.camelToKebab = camelToKebab;
 
 function escapeHTML(str) {
-    return str.replace(/[&<>"']/g, (match) => {
-        switch (match) {
-            case '&': return '&amp;';
-            case '<': return '&lt;';
-            case '>': return '&gt;';
-            case '"': return '&quot;';
-            case '\'': return '&#039;';
-            default: return match;
-        }
-    });
+  return str.replace(/[&<>"']/g, (match) => {
+    switch (match) {
+      case '&': return '&amp;';
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '"': return '&quot;';
+      case '\'': return '&#039;';
+      default: return match;
+    }
+  });
 }
 
 util.escapeHTML = escapeHTML;

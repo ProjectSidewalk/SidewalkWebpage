@@ -7,17 +7,17 @@
  */
 
 (function () {
-    // Configuration options - can be overridden by calling setup().
-    let config = {
-        apiBaseUrl: '/v3/api',
-        containerId: 'street-types-preview',
-        maxWidth: 1000,
-        endpoint: '/streetTypes',
-    };
+  // Configuration options - can be overridden by calling setup().
+  let config = {
+    apiBaseUrl: '/v3/api',
+    containerId: 'street-types-preview',
+    maxWidth: 1000,
+    endpoint: '/streetTypes',
+  };
 
-    // Public API
-    window.StreetTypesPreview = {
-        /**
+  // Public API
+  window.StreetTypesPreview = {
+    /**
          * Configure the street types preview.
          * @param {object} options - Configuration options
          * @param {string} [options.apiBaseUrl] - Base URL for the API
@@ -25,143 +25,143 @@
          * @param {number} [options.maxWidth] - Maximum width for the preview container
          * @param {string} [options.endpoint] - API endpoint for street types
          */
-        setup(options) {
-            config = Object.assign(config, options);
-            return this;
-        },
+    setup(options) {
+      config = Object.assign(config, options);
+      return this;
+    },
 
-        /**
+    /**
          * Initialize the street types preview.
          * @returns {Promise} A promise that resolves when the preview is rendered
          */
-        init() {
-            const container = document.getElementById(config.containerId);
+    init() {
+      const container = document.getElementById(config.containerId);
 
-            if (!container) {
-                console.error(`Container element with id '${config.containerId}' not found.`);
-                return Promise.reject(new Error('Container element not found'));
-            }
+      if (!container) {
+        console.error(`Container element with id '${config.containerId}' not found.`);
+        return Promise.reject(new Error('Container element not found'));
+      }
 
-            // Set max width if specified.
-            if (config.maxWidth) {
-                container.style.maxWidth = `${config.maxWidth}px`;
-                container.style.width = '100%';
-                container.style.margin = '20px 0'; // Left-align the container.
-            }
+      // Set max width if specified.
+      if (config.maxWidth) {
+        container.style.maxWidth = `${config.maxWidth}px`;
+        container.style.width = '100%';
+        container.style.margin = '20px 0'; // Left-align the container.
+      }
 
-            // Initialize with loading message.
-            container.innerHTML = 'Loading street types data...';
+      // Initialize with loading message.
+      container.innerHTML = 'Loading street types data...';
 
-            // Fetch and render the street types.
-            return this.fetchStreetTypes()
-                .then((data) => this.renderStreetTypes(data, container))
-                .catch((error) => {
-                    container.innerHTML = `<div class="message message-error">Failed to load street types: ${error.message}</div>`;
-                    return Promise.reject(error);
-                });
-        },
+      // Fetch and render the street types.
+      return this.fetchStreetTypes()
+        .then((data) => this.renderStreetTypes(data, container))
+        .catch((error) => {
+          container.innerHTML = `<div class="message message-error">Failed to load street types: ${error.message}</div>`;
+          return Promise.reject(error);
+        });
+    },
 
-        /**
+    /**
          * Fetch street types from the API.
          * @returns {Promise} A promise that resolves with the street types data
          */
-        fetchStreetTypes() {
-            return fetch(`${config.apiBaseUrl}${config.endpoint}?source=apiDocs`)
-                .then((response) => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                });
-        },
+    fetchStreetTypes() {
+      return fetch(`${config.apiBaseUrl}${config.endpoint}?source=apiDocs`)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          return response.json();
+        });
+    },
 
-        /**
+    /**
          * Render the street types table.
          * @param {object} data - Street types data from the API
          * @param {HTMLElement} container - Container element
          * @returns {HTMLElement} The rendered table
          */
-        renderStreetTypes(data, container) {
-            // Sort street types by count in descending order.
-            const streetTypes = data.street_types.slice().sort((a, b) => b.count - a.count);
+    renderStreetTypes(data, container) {
+      // Sort street types by count in descending order.
+      const streetTypes = data.street_types.slice().sort((a, b) => b.count - a.count);
 
-            // Find the maximum count for the progress bars.
-            const maxCount = streetTypes.length > 0 ? streetTypes[0].count : 0;
+      // Find the maximum count for the progress bars.
+      const maxCount = streetTypes.length > 0 ? streetTypes[0].count : 0;
 
-            // Create table structure.
-            const table = document.createElement('table');
-            table.className = 'street-types-table';
+      // Create table structure.
+      const table = document.createElement('table');
+      table.className = 'street-types-table';
 
-            // Create table header.
-            const thead = document.createElement('thead');
-            const headerRow = document.createElement('tr');
+      // Create table header.
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
 
-            const headers = ['Street Type', 'Description', 'Street Segment Count'];
-            headers.forEach((text) => {
-                const th = document.createElement('th');
-                th.textContent = text;
-                headerRow.appendChild(th);
-            });
+      const headers = ['Street Type', 'Description', 'Street Segment Count'];
+      headers.forEach((text) => {
+        const th = document.createElement('th');
+        th.textContent = text;
+        headerRow.appendChild(th);
+      });
 
-            thead.appendChild(headerRow);
-            table.appendChild(thead);
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
 
-            // Create table body.
-            const tbody = document.createElement('tbody');
+      // Create table body.
+      const tbody = document.createElement('tbody');
 
-            streetTypes.forEach((type) => {
-                const row = document.createElement('tr');
+      streetTypes.forEach((type) => {
+        const row = document.createElement('tr');
 
-                // Street type name cell.
-                const nameCell = document.createElement('td');
-                nameCell.textContent = type.name;
-                nameCell.className = 'street-name';
-                row.appendChild(nameCell);
+        // Street type name cell.
+        const nameCell = document.createElement('td');
+        nameCell.textContent = type.name;
+        nameCell.className = 'street-name';
+        row.appendChild(nameCell);
 
-                // Description cell.
-                const descCell = document.createElement('td');
-                descCell.textContent = type.description;
-                descCell.className = 'street-description';
-                row.appendChild(descCell);
+        // Description cell.
+        const descCell = document.createElement('td');
+        descCell.textContent = type.description;
+        descCell.className = 'street-description';
+        row.appendChild(descCell);
 
-                // Count cell.
-                const countCell = document.createElement('td');
-                countCell.className = 'street-count';
+        // Count cell.
+        const countCell = document.createElement('td');
+        countCell.className = 'street-count';
 
-                // Create a container for the count and progress bar.
-                const countContainer = document.createElement('div');
-                countContainer.className = 'street-count-container';
+        // Create a container for the count and progress bar.
+        const countContainer = document.createElement('div');
+        countContainer.className = 'street-count-container';
 
-                // Add the count number.
-                const countNumber = document.createElement('div');
-                countNumber.textContent = type.count.toLocaleString();
-                countNumber.className = 'count-number';
-                countContainer.appendChild(countNumber);
+        // Add the count number.
+        const countNumber = document.createElement('div');
+        countNumber.textContent = type.count.toLocaleString();
+        countNumber.className = 'count-number';
+        countContainer.appendChild(countNumber);
 
-                // Add progress bar to visualize the relative count.
-                const progressContainer = document.createElement('div');
-                progressContainer.className = 'count-bar-container';
+        // Add progress bar to visualize the relative count.
+        const progressContainer = document.createElement('div');
+        progressContainer.className = 'count-bar-container';
 
-                const progressBar = document.createElement('div');
-                progressBar.className = 'count-bar-fill';
-                progressBar.style.width = `${(type.count / maxCount) * 100}%`;
+        const progressBar = document.createElement('div');
+        progressBar.className = 'count-bar-fill';
+        progressBar.style.width = `${(type.count / maxCount) * 100}%`;
 
-                progressContainer.appendChild(progressBar);
-                countContainer.appendChild(progressContainer);
+        progressContainer.appendChild(progressBar);
+        countContainer.appendChild(progressContainer);
 
-                countCell.appendChild(countContainer);
-                row.appendChild(countCell);
+        countCell.appendChild(countContainer);
+        row.appendChild(countCell);
 
-                tbody.appendChild(row);
-            });
+        tbody.appendChild(row);
+      });
 
-            table.appendChild(tbody);
+      table.appendChild(tbody);
 
-            // Clear container and add table.
-            container.innerHTML = '';
-            container.appendChild(table);
+      // Clear container and add table.
+      container.innerHTML = '';
+      container.appendChild(table);
 
-            return table;
-        },
-    };
+      return table;
+    },
+  };
 })();

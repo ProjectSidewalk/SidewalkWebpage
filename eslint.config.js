@@ -96,7 +96,7 @@ module.exports = [
             // options below encode our house style. The block after it holds the rules the preset doesn't cover and
             // our deliberate divergences. See https://eslint.style/guide/config-presets#configuration-factory
             ...stylistic.configs.customize({
-                indent: 4,
+                indent: 2,
                 quotes: 'single',
                 semi: true,
                 jsx: false,

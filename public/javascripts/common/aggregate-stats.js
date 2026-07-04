@@ -9,10 +9,10 @@
  * Configuration object for the statistics aggregator.
  */
 const CONFIG = {
-    AGGREGATE_STATS_ENDPOINT: '/v3/api/aggregateStats',
-    REQUEST_TIMEOUT: 10000, // 10 seconds
-    RETRY_ATTEMPTS: 2,
-    RETRY_DELAY: 1000, // 1 second
+  AGGREGATE_STATS_ENDPOINT: '/v3/api/aggregateStats',
+  REQUEST_TIMEOUT: 10000, // 10 seconds
+  RETRY_ATTEMPTS: 2,
+  RETRY_DELAY: 1000, // 1 second
 };
 
 /**
@@ -42,36 +42,36 @@ const CONFIG = {
  * const data = await fetchWithRetry('/v3/api/aggregateStats');
  */
 async function fetchWithRetry(url, timeout = CONFIG.REQUEST_TIMEOUT, retries = CONFIG.RETRY_ATTEMPTS) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-    try {
-        const response = await fetch(url, {
-            signal: controller.signal,
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-            },
-        });
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    });
 
-        clearTimeout(timeoutId);
+    clearTimeout(timeoutId);
 
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        return await response.json();
-    } catch (error) {
-        clearTimeout(timeoutId);
-
-        if (retries > 0 && error.name !== 'AbortError') {
-            console.warn(`Request failed, retrying... (${retries} attempts left)`, error.message);
-            await new Promise((resolve) => setTimeout(resolve, CONFIG.RETRY_DELAY));
-            return fetchWithRetry(url, timeout, retries - 1);
-        }
-
-        throw error;
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
+
+    return await response.json();
+  } catch (error) {
+    clearTimeout(timeoutId);
+
+    if (retries > 0 && error.name !== 'AbortError') {
+      console.warn(`Request failed, retrying... (${retries} attempts left)`, error.message);
+      await new Promise((resolve) => setTimeout(resolve, CONFIG.RETRY_DELAY));
+      return fetchWithRetry(url, timeout, retries - 1);
+    }
+
+    throw error;
+  }
 }
 
 /**
@@ -85,26 +85,26 @@ async function fetchWithRetry(url, timeout = CONFIG.REQUEST_TIMEOUT, retries = C
  * console.log(`Total cities: ${stats.num_cities}`);
  */
 async function fetchAggregateStats() {
-    try {
-        const response = await fetchWithRetry(CONFIG.AGGREGATE_STATS_ENDPOINT);
+  try {
+    const response = await fetchWithRetry(CONFIG.AGGREGATE_STATS_ENDPOINT);
 
-        if (response.status !== 'OK') {
-            throw new Error('Invalid response status from aggregate stats API');
-        }
-
-        // Validate that we have the expected fields
-        const requiredFields = ['km_explored', 'total_labels', 'total_validations', 'num_cities', 'num_countries', 'num_languages'];
-        const missingFields = requiredFields.filter((field) => typeof response[field] !== 'number');
-
-        if (missingFields.length > 0) {
-            throw new Error(`Missing or invalid fields in API response: ${missingFields.join(', ')}`);
-        }
-
-        return response;
-    } catch (error) {
-        console.error('Failed to fetch aggregate statistics:', error);
-        throw new Error(`Unable to fetch aggregate statistics: ${error.message}`);
+    if (response.status !== 'OK') {
+      throw new Error('Invalid response status from aggregate stats API');
     }
+
+    // Validate that we have the expected fields
+    const requiredFields = ['km_explored', 'total_labels', 'total_validations', 'num_cities', 'num_countries', 'num_languages'];
+    const missingFields = requiredFields.filter((field) => typeof response[field] !== 'number');
+
+    if (missingFields.length > 0) {
+      throw new Error(`Missing or invalid fields in API response: ${missingFields.join(', ')}`);
+    }
+
+    return response;
+  } catch (error) {
+    console.error('Failed to fetch aggregate statistics:', error);
+    throw new Error(`Unable to fetch aggregate statistics: ${error.message}`);
+  }
 }
 
 /**
@@ -119,9 +119,9 @@ async function fetchAggregateStats() {
  * formatNumber(1234.5, 'km') // "1,235 km"
  */
 function formatNumber(value, unit = '') {
-    const roundedValue = Math.round(value);
-    const formattedValue = i18next.t('common:format-number', { val: roundedValue });
-    return unit ? `${formattedValue} ${unit}` : formattedValue;
+  const roundedValue = Math.round(value);
+  const formattedValue = i18next.t('common:format-number', { val: roundedValue });
+  return unit ? `${formattedValue} ${unit}` : formattedValue;
 }
 
 /**
@@ -134,8 +134,8 @@ function formatNumber(value, unit = '') {
  * formatDistance(1000) // "1,000 km (621 mi)"
  */
 function formatDistance(kilometers) {
-    const miles = util.math.kmsToMiles(kilometers);
-    return `${formatNumber(kilometers, 'km')} (${formatNumber(miles, 'mi')})`;
+  const miles = util.math.kmsToMiles(kilometers);
+  return `${formatNumber(kilometers, 'km')} (${formatNumber(miles, 'mi')})`;
 }
 
 /**
@@ -147,10 +147,10 @@ function formatDistance(kilometers) {
  * updateStatsDisplay(aggregatedStats);
  */
 function updateStatsDisplay(stats) {
-    // Update main stats paragraph (API landing page).
-    const mainTargetParagraph = document.getElementById('project-sidewalk-aggregate-stats');
-    if (mainTargetParagraph) {
-        mainTargetParagraph.innerHTML = `
+  // Update main stats paragraph (API landing page).
+  const mainTargetParagraph = document.getElementById('project-sidewalk-aggregate-stats');
+  if (mainTargetParagraph) {
+    mainTargetParagraph.innerHTML = `
             Join our movement that spans the globe. Working with local community groups and governmental partners,
             we have deployed Project Sidewalk in <strong>${stats.num_cities} cities</strong> across
             <strong>${stats.num_countries} countries</strong> and <strong>${stats.num_languages} natively translated
@@ -160,37 +160,37 @@ function updateStatsDisplay(stats) {
             <strong>${formatNumber(stats.total_validations)} validations</strong>. This is more than just data;
             it's the foundation for more inclusive and accessible cities.
         `;
-    }
+  }
 
-    // Update cities page intro paragraph.
-    const citiesTargetParagraph = document.getElementById('cities-deployment-stats');
-    if (citiesTargetParagraph) {
-        citiesTargetParagraph.innerHTML = `
+  // Update cities page intro paragraph.
+  const citiesTargetParagraph = document.getElementById('cities-deployment-stats');
+  if (citiesTargetParagraph) {
+    citiesTargetParagraph.innerHTML = `
             Project Sidewalk is deployed in <strong>${stats.num_cities} cities</strong> across
             <strong>${stats.num_countries} countries</strong>. The Cities API lists all Project Sidewalk deployment
             sites, including the city's name, ID, and URL as well as geographic information such as the city center
             point <code>lat, lng</code> and bounding box.
         `;
-    }
+  }
 }
 
 /**
  * Displays a loading state in target paragraphs.
  */
 function showLoadingState() {
-    const mainTargetParagraph = document.getElementById('project-sidewalk-aggregate-stats');
-    if (mainTargetParagraph) {
-        mainTargetParagraph.innerHTML = `<em>Loading Project Sidewalk statistics...</em>`;
-    }
+  const mainTargetParagraph = document.getElementById('project-sidewalk-aggregate-stats');
+  if (mainTargetParagraph) {
+    mainTargetParagraph.innerHTML = `<em>Loading Project Sidewalk statistics...</em>`;
+  }
 
-    const citiesTargetParagraph = document.getElementById('cities-deployment-stats');
-    if (citiesTargetParagraph) {
-        citiesTargetParagraph.innerHTML = `
+  const citiesTargetParagraph = document.getElementById('cities-deployment-stats');
+  if (citiesTargetParagraph) {
+    citiesTargetParagraph.innerHTML = `
             Project Sidewalk is deployed in multiple cities across several countries. The Cities API lists all Project
             Sidewalk deployment sites, including the city's name, ID, and URL as well as geographic information such as
             the city center point <code>lat, lng</code> and bounding box.
         `;
-    }
+  }
 }
 
 /**
@@ -199,25 +199,25 @@ function showLoadingState() {
  * @param {Error} error - The error object
  */
 function showErrorState(error) {
-    const mainTargetParagraph = document.getElementById('project-sidewalk-aggregate-stats');
-    if (mainTargetParagraph) {
-        mainTargetParagraph.innerHTML = `
+  const mainTargetParagraph = document.getElementById('project-sidewalk-aggregate-stats');
+  if (mainTargetParagraph) {
+    mainTargetParagraph.innerHTML = `
             Working with local community groups and governmental partners, we have deployed Project Sidewalk in multiple
             cities across several countries and natively translated languages, including Spanish, German, and Chinese.
             Together, our users have assessed thousands of kilometers of city streets.
             <br><small><em>Note: Unable to load real-time statistics. ${error.message}</em></small>
         `;
-    }
+  }
 
-    const citiesTargetParagraph = document.getElementById('cities-deployment-stats');
-    if (citiesTargetParagraph) {
-        citiesTargetParagraph.innerHTML = `
+  const citiesTargetParagraph = document.getElementById('cities-deployment-stats');
+  if (citiesTargetParagraph) {
+    citiesTargetParagraph.innerHTML = `
             Project Sidewalk is deployed in multiple cities across several countries. The Cities API lists all Project
             Sidewalk deployment sites, including the city's name, ID, and URL as well as geographic information such as
             the city center point <code>lat, lng</code> and bounding box.
             <br><small><em>Note: Unable to load real-time statistics. ${error.message}</em></small>
         `;
-    }
+  }
 }
 
 /**
@@ -225,17 +225,17 @@ function showErrorState(error) {
  * @returns {Promise<void>}
  */
 async function loadProjectSidewalkStats() {
-    try {
-        showLoadingState();
-        const aggregatedStats = await fetchAggregateStats();
-        updateStatsDisplay(aggregatedStats);
-    } catch (error) {
-        console.error('Failed to load Project Sidewalk statistics:', error);
-        showErrorState(error);
-    }
+  try {
+    showLoadingState();
+    const aggregatedStats = await fetchAggregateStats();
+    updateStatsDisplay(aggregatedStats);
+  } catch (error) {
+    console.error('Failed to load Project Sidewalk statistics:', error);
+    showErrorState(error);
+  }
 }
 
 // Auto-initialize when translations are ready.
 window.appManager.ready(() => {
-    loadProjectSidewalkStats();
+  loadProjectSidewalkStats();
 });

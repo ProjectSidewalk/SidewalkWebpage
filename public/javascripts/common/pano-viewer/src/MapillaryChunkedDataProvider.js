@@ -6,17 +6,17 @@
  * needed when actually using Mapillary, and other imagery providers don't load that library at all.
  */
 function createMapillaryChunkedDataProvider(options) {
-    const { GraphDataProvider } = mapillary;
-    class MapillaryChunkedDataProvider extends GraphDataProvider {
-        async getSpatialImages(imageIds) {
-            const CHUNK_SIZE = 30;
-            const chunks = [];
-            for (let i = 0; i < imageIds.length; i += CHUNK_SIZE) {
-                chunks.push(imageIds.slice(i, i + CHUNK_SIZE));
-            }
-            const results = await Promise.all(chunks.map((chunk) => super.getSpatialImages(chunk)));
-            return results.flat();
-        }
+  const { GraphDataProvider } = mapillary;
+  class MapillaryChunkedDataProvider extends GraphDataProvider {
+    async getSpatialImages(imageIds) {
+      const CHUNK_SIZE = 30;
+      const chunks = [];
+      for (let i = 0; i < imageIds.length; i += CHUNK_SIZE) {
+        chunks.push(imageIds.slice(i, i + CHUNK_SIZE));
+      }
+      const results = await Promise.all(chunks.map((chunk) => super.getSpatialImages(chunk)));
+      return results.flat();
     }
-    return new MapillaryChunkedDataProvider(options);
+  }
+  return new MapillaryChunkedDataProvider(options);
 }

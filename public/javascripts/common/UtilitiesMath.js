@@ -8,7 +8,7 @@ util.math = {};
  * @returns {number}
  */
 function toDegrees(angleInRadian) {
-    return angleInRadian * (180 / Math.PI);
+  return angleInRadian * (180 / Math.PI);
 }
 
 util.math.toDegrees = toDegrees;
@@ -20,7 +20,7 @@ util.math.toDegrees = toDegrees;
  * @returns {number}
  */
 function toRadians(angleInDegree) {
-    return angleInDegree * (Math.PI / 180);
+  return angleInDegree * (Math.PI / 180);
 }
 
 util.math.toRadians = toRadians;
@@ -34,16 +34,16 @@ util.math.toRadians = toRadians;
  * @returns {number} A distance in meters.
  */
 function haversine(latLng1, latLng2) {
-    const lat1 = toRadians(latLng1.lat);
-    const lng1 = toRadians(latLng1.lng);
-    const lat2 = toRadians(latLng2.lat);
-    const lng2 = toRadians(latLng2.lng);
-    const R = 6372800; // Earth radius in m.
-    const dLat = lat2 - lat1;
-    const dLon = lng2 - lng1;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
-    const c = 2 * Math.asin(Math.sqrt(a));
-    return R * c;
+  const lat1 = toRadians(latLng1.lat);
+  const lng1 = toRadians(latLng1.lng);
+  const lat2 = toRadians(latLng2.lat);
+  const lng2 = toRadians(latLng2.lng);
+  const R = 6372800; // Earth radius in m.
+  const dLat = lat2 - lat1;
+  const dLon = lng2 - lng1;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+  const c = 2 * Math.asin(Math.sqrt(a));
+  return R * c;
 }
 
 util.math.haversine = haversine;
@@ -56,63 +56,63 @@ util.math.haversine = haversine;
  * @returns {number} Interpolated result
  */
 function lerp(a, b, t) {
-    return a + t * (b - a);
+  return a + t * (b - a);
 }
 
 util.math.lerp = lerp;
 
 function roundToTwentyFive(num) {
-    return Math.round(num / 25) * 25;
+  return Math.round(num / 25) * 25;
 }
 
 util.math.roundToTwentyFive = roundToTwentyFive;
 
 function metersToMiles(dist) {
-    return dist / 1609.34;
+  return dist / 1609.34;
 }
 
 function metersToKms(dist) {
-    return dist / 1000;
+  return dist / 1000;
 }
 
 function metersToFeet(dist) {
-    return dist * 3.28084;
+  return dist * 3.28084;
 }
 
 function milesToMeters(dist) {
-    return dist * 1609.34;
+  return dist * 1609.34;
 }
 
 function milesToKms(dist) {
-    return dist * 1.60934;
+  return dist * 1.60934;
 }
 
 function milesToFeet(dist) {
-    return dist * 5280;
+  return dist * 5280;
 }
 
 function kmsToMeters(dist) {
-    return dist * 1000;
+  return dist * 1000;
 }
 
 function kmsToMiles(dist) {
-    return dist / 1.60934;
+  return dist / 1.60934;
 }
 
 function kmsToFeet(dist) {
-    return dist * 3280.84;
+  return dist * 3280.84;
 }
 
 function feetToMeters(dist) {
-    return dist / 3.28084;
+  return dist / 3.28084;
 }
 
 function feetToMiles(dist) {
-    return dist / 5280;
+  return dist / 5280;
 }
 
 function feetToKms(dist) {
-    return dist / 3280.84;
+  return dist / 3280.84;
 }
 
 util.math.metersToMiles = metersToMiles;

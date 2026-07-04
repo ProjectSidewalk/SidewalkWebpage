@@ -24,30 +24,30 @@ const CITY_BBOX_BUFFER_FRACTION = 0.1;
  *                            padded by CITY_BBOX_BUFFER_FRACTION per edge, or null if no coordinates found.
  */
 function cityBoundingBox(geojson) {
-    let minLng = Infinity;
-    let minLat = Infinity;
-    let maxLng = -Infinity;
-    let maxLat = -Infinity;
+  let minLng = Infinity;
+  let minLat = Infinity;
+  let maxLng = -Infinity;
+  let maxLat = -Infinity;
 
-    const visit = (coords) => {
-        if (typeof coords[0] === 'number') {
-            const [lng, lat] = coords;
-            if (lng < minLng) minLng = lng;
-            if (lat < minLat) minLat = lat;
-            if (lng > maxLng) maxLng = lng;
-            if (lat > maxLat) maxLat = lat;
-        } else {
-            coords.forEach(visit);
-        }
-    };
-    const features = geojson.features || (geojson.geometry ? [geojson] : []);
-    for (const feature of features) {
-        if (feature.geometry && feature.geometry.coordinates) visit(feature.geometry.coordinates);
+  const visit = (coords) => {
+    if (typeof coords[0] === 'number') {
+      const [lng, lat] = coords;
+      if (lng < minLng) minLng = lng;
+      if (lat < minLat) minLat = lat;
+      if (lng > maxLng) maxLng = lng;
+      if (lat > maxLat) maxLat = lat;
+    } else {
+      coords.forEach(visit);
     }
-    if (minLng === Infinity) return null;
-    const padLng = (maxLng - minLng) * CITY_BBOX_BUFFER_FRACTION;
-    const padLat = (maxLat - minLat) * CITY_BBOX_BUFFER_FRACTION;
-    return [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]];
+  };
+  const features = geojson.features || (geojson.geometry ? [geojson] : []);
+  for (const feature of features) {
+    if (feature.geometry && feature.geometry.coordinates) visit(feature.geometry.coordinates);
+  }
+  if (minLng === Infinity) return null;
+  const padLng = (maxLng - minLng) * CITY_BBOX_BUFFER_FRACTION;
+  const padLat = (maxLat - minLat) * CITY_BBOX_BUFFER_FRACTION;
+  return [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]];
 }
 
 /**
@@ -58,30 +58,30 @@ function cityBoundingBox(geojson) {
  * @returns {void} No-op if the sidebar container or the Search SDK is unavailable.
  */
 function initLabelMapLocationSearch(map, mapboxApiKey) {
-    const container = document.getElementById('labelmap-search-box');
-    if (!container || typeof MapboxSearchBox === 'undefined') return;
+  const container = document.getElementById('labelmap-search-box');
+  if (!container || typeof MapboxSearchBox === 'undefined') return;
 
-    const searchBox = new MapboxSearchBox();
-    searchBox.accessToken = mapboxApiKey;
-    searchBox.options = { language: i18next.t('common:mapbox-language-code') };
-    searchBox.placeholder = i18next.t('labelmap:search-placeholder');
+  const searchBox = new MapboxSearchBox();
+  searchBox.accessToken = mapboxApiKey;
+  searchBox.options = { language: i18next.t('common:mapbox-language-code') };
+  searchBox.placeholder = i18next.t('labelmap:search-placeholder');
 
-    // Let the component fly the map to, and drop a marker on, the selected result for free.
-    searchBox.mapboxgl = mapboxgl;
-    searchBox.marker = true;
+  // Let the component fly the map to, and drop a marker on, the selected result for free.
+  searchBox.mapboxgl = mapboxgl;
+  searchBox.marker = true;
 
-    // onAdd(map) binds the map (enabling the auto-flyTo and a map-center proximity bias) and returns the
-    // control's DOM element, which we place inside the sidebar instead of handing to map.addControl().
-    container.appendChild(searchBox.onAdd(map));
+  // onAdd(map) binds the map (enabling the auto-flyTo and a map-center proximity bias) and returns the
+  // control's DOM element, which we place inside the sidebar instead of handing to map.addControl().
+  container.appendChild(searchBox.onAdd(map));
 
-    // Hard-limit suggestions to the deployment city's actual footprint (the bounding box of its
-    // neighborhoods), NOT the map's deliberately-generous pan-bounds (which can span a whole metro area).
-    // Merge onto the existing options so we don't clobber a proximity the map binding may have added.
-    fetch('/neighborhoods')
-        .then((response) => response.json())
-        .then((geojson) => {
-            const bbox = cityBoundingBox(geojson);
-            if (bbox) searchBox.options = { ...searchBox.options, bbox };
-        })
-        .catch(() => { /* If the city extent can't be loaded, leave the search unbounded. */ });
+  // Hard-limit suggestions to the deployment city's actual footprint (the bounding box of its
+  // neighborhoods), NOT the map's deliberately-generous pan-bounds (which can span a whole metro area).
+  // Merge onto the existing options so we don't clobber a proximity the map binding may have added.
+  fetch('/neighborhoods')
+    .then((response) => response.json())
+    .then((geojson) => {
+      const bbox = cityBoundingBox(geojson);
+      if (bbox) searchBox.options = { ...searchBox.options, bbox };
+    })
+    .catch(() => { /* If the city extent can't be loaded, leave the search unbounded. */ });
 }
