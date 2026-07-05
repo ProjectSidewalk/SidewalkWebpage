@@ -224,7 +224,8 @@ class ContextMenu {
     $('body').off('click').on('click', 'button', (clickEvent) => {
       if (clickEvent.target.name === 'tag') {
         // Get the tag_id from the clicked tag's class name (e.g., "tag-id-9").
-        const currTagId = parseInt($(clickEvent.target).attr('class').split(' ').filter((c) => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
+        const tagClass = $(clickEvent.target).attr('class').split(' ').filter((c) => c.search(/tag-id-\d+/) > -1)[0];
+        const currTagId = parseInt(tagClass.match(/\d+/)[0], 10);
         const tag = this.labelTags.filter((t) => t.tag_id === currTagId)[0];
 
         // Adds or removes tag from the label's current list of tags.
@@ -359,7 +360,8 @@ class ContextMenu {
    * @returns {boolean}
    */
   isRatingSeverityDisabled() {
-    return this.#status.ratingSeverityEnabledForTutorialLabel !== this.#status.targetLabel.getProperty('tutorialLabelNumber');
+    return this.#status.ratingSeverityEnabledForTutorialLabel
+      !== this.#status.targetLabel.getProperty('tutorialLabelNumber');
   }
 
   /**
@@ -379,7 +381,8 @@ class ContextMenu {
     $('body').find('button[name=tag]').each(function () {
       const buttonText = $(this).text();
       if (buttonText) {
-        const tagId = parseInt($(this).attr('class').split(' ').filter((c) => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
+        const tagClass = $(this).attr('class').split(' ').filter((c) => c.search(/tag-id-\d+/) > -1)[0];
+        const tagId = parseInt(tagClass.match(/\d+/)[0], 10);
 
         // Sets color based on whether the tag is now selected.
         if (labelTags.includes(tagId)) {
@@ -477,7 +480,8 @@ class ContextMenu {
                 title: `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`,
                 container: 'body',
                 // Add template so we can attach a custom CSS class.
-                template: '<div class="tooltip context-menu-tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>',
+                template: '<div class="tooltip context-menu-tooltip" role="tooltip"><div class="tooltip-arrow"></div>'
+                  + '<div class="tooltip-inner"></div></div>',
               })).tooltip('show').tooltip('hide');
             });
 
@@ -503,7 +507,9 @@ class ContextMenu {
    * @param {string} labelType
    */
   #setSeverityTooltips(labelType) {
-    const tooltipKey = util.misc.isPositiveLabelType(labelType) ? 'quality-example-tooltip' : 'severity-example-tooltip';
+    const tooltipKey = util.misc.isPositiveLabelType(labelType)
+      ? 'quality-example-tooltip'
+      : 'severity-example-tooltip';
     for (let sev = 1; sev < 4; sev++) {
       // Add severity tooltips for the current label type if we have images for them.
       util.getImage(`/assets/images/examples/severity/${labelType}_Severity${sev}.png`).then((img) => {
@@ -513,10 +519,12 @@ class ContextMenu {
         $(`.severity-button[data-severity="${sev}"]`).tooltip({
           placement: 'auto top', html: true, delay: { show: 300, hide: 10 },
           // Image size (and aspect ratio) is set in CSS so it scales with the UI; see svl-context-menu.css.
-          title: `${tooltipHeader}<br/><img class="context-menu-tooltip__img--severity" src="${img}"/><br/>${tooltipFooter}`,
+          title: `${tooltipHeader}<br/><img class="context-menu-tooltip__img--severity" src="${img}"/><br/>`
+            + `${tooltipFooter}`,
           container: 'body',
           // Add template so we can attach a custom CSS class.
-          template: '<div class="tooltip context-menu-tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>',
+          template: '<div class="tooltip context-menu-tooltip" role="tooltip"><div class="tooltip-arrow"></div>'
+            + '<div class="tooltip-inner"></div></div>',
         });
       });
     }
@@ -612,7 +620,9 @@ class ContextMenu {
       const labelProps = this.#status.targetLabel.getProperties();
 
       // Don't push event on Occlusion labels; they don't open ContextMenus.
-      svl.tracker.push('ContextMenu_Open', { auditTaskId: labelProps.auditTaskId }, { temporaryLabelId: labelProps.temporaryLabelId });
+      svl.tracker.push(
+        'ContextMenu_Open', { auditTaskId: labelProps.auditTaskId }, { temporaryLabelId: labelProps.temporaryLabelId },
+      );
     }
     if (util.misc.labelTypeHasSeverity(labelType)) {
       this.updateRadioButtonImages();

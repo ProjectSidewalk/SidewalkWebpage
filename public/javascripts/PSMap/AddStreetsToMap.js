@@ -13,8 +13,10 @@
  */
 function AddStreetsToMap(map, streetData, params) {
   const STREET_LAYER_NAME = 'streets';
-  const AUDITED_STREET_COLOR = getComputedStyle(document.documentElement).getPropertyValue('--color-asphalt-500').trim();
-  const UNAUDITED_STREET_COLOR = getComputedStyle(document.documentElement).getPropertyValue('--color-asphalt-300').trim();
+  const AUDITED_STREET_COLOR = getComputedStyle(document.documentElement)
+    .getPropertyValue('--color-asphalt-500').trim();
+  const UNAUDITED_STREET_COLOR = getComputedStyle(document.documentElement)
+    .getPropertyValue('--color-asphalt-300').trim();
 
   // Render street segments.
   map.addSource(STREET_LAYER_NAME, {
@@ -50,7 +52,9 @@ function AddStreetsToMap(map, streetData, params) {
     // Add click functionality to the streets.
     const streetPopup = new mapboxgl.Popup({ focusAfterOpen: false });
     map.on('click', STREET_LAYER_NAME, (event) => {
-      const popupContent = i18next.t('common:explore-street-link', { streetId: event.features[0].properties.street_edge_id });
+      const popupContent = i18next.t('common:explore-street-link', {
+        streetId: event.features[0].properties.street_edge_id,
+      });
       streetPopup.setLngLat(event.lngLat).setHTML(popupContent).addTo(map);
     });
 
@@ -59,7 +63,9 @@ function AddStreetsToMap(map, streetData, params) {
     map.on('mousemove', STREET_LAYER_NAME, (event) => {
       const currStreet = event.features[0];
       if (hoveredStreet && hoveredStreet.properties.street_edge_id !== currStreet.properties.street_edge_id) {
-        map.setFeatureState({ source: hoveredStreet.layer.id, id: hoveredStreet.properties.street_edge_id }, { hover: false });
+        map.setFeatureState(
+          { source: hoveredStreet.layer.id, id: hoveredStreet.properties.street_edge_id }, { hover: false },
+        );
         map.setFeatureState({ source: currStreet.layer.id, id: currStreet.properties.street_edge_id }, { hover: true });
         hoveredStreet = currStreet;
       } else if (!hoveredStreet) {
@@ -69,7 +75,9 @@ function AddStreetsToMap(map, streetData, params) {
       }
     });
     map.on('mouseleave', STREET_LAYER_NAME, () => {
-      map.setFeatureState({ source: hoveredStreet.layer.id, id: hoveredStreet.properties.street_edge_id }, { hover: false });
+      map.setFeatureState(
+        { source: hoveredStreet.layer.id, id: hoveredStreet.properties.street_edge_id }, { hover: false },
+      );
       hoveredStreet = null;
       document.querySelector('.mapboxgl-canvas').style.cursor = '';
     });
@@ -81,7 +89,8 @@ function AddStreetsToMap(map, streetData, params) {
       $(`#${params.mapName}`).on('click', '.street-selection-trigger', function () {
         const streetId = parseInt($(this).attr('streetId'), 10);
         const street = streetData.features.find((s) => streetId === s.properties.street_edge_id);
-        const activity = `Click_module=${params.mapName}_streetId=${streetId}_audited=${street.properties.audited}_target=explore`;
+        const activity = `Click_module=${params.mapName}_streetId=${streetId}`
+          + `_audited=${street.properties.audited}_target=explore`;
         window.logWebpageActivity(activity);
       });
     }

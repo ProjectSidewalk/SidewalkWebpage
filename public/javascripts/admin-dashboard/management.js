@@ -82,9 +82,11 @@ class ManagementPage {
         help: 'Whether this contributor is flagged high-quality. "manual" means an admin set it by hand.' },
       { key: 'ownValidatedAgreedPct', label: 'Labeling accuracy', align: 'right',
         sort: (u) => u.ownValidatedAgreedPct || 0,
-        help: 'Share of this user’s own labels that other people agreed with when validating them (with how many were validated).' },
+        help: 'Share of this user’s own labels that other people agreed with when validating them '
+          + '(with how many were validated).' },
       { key: 'signUpTime', label: 'Signed up', align: 'right', sort: (u) => ManagementPage.#ts(u.signUpTime) },
-      { key: 'lastSignInTime', label: 'Last sign-in', align: 'right', sort: (u) => ManagementPage.#ts(u.lastSignInTime) },
+      { key: 'lastSignInTime', label: 'Last sign-in', align: 'right',
+        sort: (u) => ManagementPage.#ts(u.lastSignInTime) },
       { key: 'signInCount', label: 'Sign-ins', align: 'right', sort: (u) => u.signInCount || 0 },
     ];
   }
@@ -94,7 +96,8 @@ class ManagementPage {
     const col = cols.find((c) => c.key === this.#sort.key) || cols[0];
     const q = this.#filter.trim().toLowerCase();
     const rows = q
-      ? this.#users.filter((u) => (u.username || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q))
+      ? this.#users.filter((u) => (u.username || '').toLowerCase().includes(q)
+        || (u.email || '').toLowerCase().includes(q))
       : this.#users.slice();
     const dir = this.#sort.dir === 'asc' ? 1 : -1;
     rows.sort((a, b) => {
@@ -175,11 +178,13 @@ class ManagementPage {
           '<div class="mgmt-page-controls">',
           btn('first', '« First', atStart),
           btn('prev', '‹ Prev', atStart),
-          `<span class="mgmt-page-info">${from.toLocaleString()}–${to.toLocaleString()} of ${total.toLocaleString()} · Page ${this.#page} of ${pageCount}</span>`,
+          `<span class="mgmt-page-info">${from.toLocaleString()}–${to.toLocaleString()} of ${total.toLocaleString()} `
+          + `· Page ${this.#page} of ${pageCount}</span>`,
           btn('next', 'Next ›', atEnd),
           btn('last', 'Last »', atEnd),
           '</div>',
-          `<label class="mgmt-page-size-label">Rows per page <select class="mgmt-page-size">${sizeOpts}</select></label>`,
+          `<label class="mgmt-page-size-label">Rows per page `
+          + `<select class="mgmt-page-size">${sizeOpts}</select></label>`,
         ].join('');
     for (const id of ManagementPage.#PAGINATION_IDS) {
       const el = document.getElementById(id);
@@ -207,7 +212,8 @@ class ManagementPage {
     const hasTeam = u.team && this.#teamsByName.has(u.team);
     const placeholder = `<option value=""${hasTeam ? '' : ' selected'} disabled>— none —</option>`;
     const opts = this.#teams.map((t) =>
-      `<option value="${t.teamId}"${hasTeam && t.name === u.team ? ' selected' : ''}>${ManagementPage.#esc(t.name)}</option>`,
+      `<option value="${t.teamId}"${hasTeam && t.name === u.team ? ' selected' : ''}>`
+      + `${ManagementPage.#esc(t.name)}</option>`,
     ).join('');
     return `<select class="mgmt-select" data-kind="team" data-user-id="${ManagementPage.#esc(u.userId)}" `
       + `aria-label="Team for ${ManagementPage.#esc(u.username)}">${placeholder}${opts}</select>`;
@@ -290,7 +296,9 @@ class ManagementPage {
       this.#flash(`Assigned ${user ? user.username : userId} to ${team ? team.name : `team ${teamId}`}.`);
     } catch (err) {
       // Revert to the previously selected team (or the placeholder).
-      sel.value = previousName && this.#teamsByName.has(previousName) ? String(this.#teamsByName.get(previousName).teamId) : '';
+      sel.value = previousName && this.#teamsByName.has(previousName)
+        ? String(this.#teamsByName.get(previousName).teamId)
+        : '';
       this.#flash(`Could not change team: ${err.message}`, true);
     }
   }
@@ -455,7 +463,9 @@ class ManagementPage {
       ? '<span class="contrib-badge contrib-badge--high">High</span>'
       : '<span class="contrib-badge contrib-badge--low">Low</span>';
     const manual = u.highQualityManual !== null && u.highQualityManual !== undefined;
-    return manual ? `${badge} <span class="mgmt-manual-tag" title="Quality set manually by an admin">manual</span>` : badge;
+    return manual
+      ? `${badge} <span class="mgmt-manual-tag" title="Quality set manually by an admin">manual</span>`
+      : badge;
   }
 
   /** "92% of 120", or "—" when there's nothing validated to base the rate on. */

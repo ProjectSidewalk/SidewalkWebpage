@@ -378,7 +378,8 @@ class Task {
     // If the task has been completed already, or if it has not been completed and is not the current task,
     // render it using one green or gray Polyline, respectively.
     if (this.isComplete() || this.getStreetEdgeId() !== svl.taskContainer.getCurrentTaskStreetEdgeId()) {
-      const gCoordinates = this.#geojson.geometry.coordinates.map((coord) => new google.maps.LatLng(coord[1], coord[0]));
+      const gCoordinates = this.#geojson.geometry.coordinates
+        .map((coord) => new google.maps.LatLng(coord[1], coord[0]));
       this.#paths = [
         new google.maps.Polyline({
           path: gCoordinates,

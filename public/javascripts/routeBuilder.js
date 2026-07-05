@@ -120,7 +120,10 @@ class RouteBuilder {
   #setUpSearchBox() {
     const map = this.#map;
     const mapParams = this.#mapParams;
-    const wholeAreaBbox = [mapParams.southwest_boundary.lng, mapParams.southwest_boundary.lat, mapParams.northeast_boundary.lng, mapParams.northeast_boundary.lat];
+    const wholeAreaBbox = [
+      mapParams.southwest_boundary.lng, mapParams.southwest_boundary.lat,
+      mapParams.northeast_boundary.lng, mapParams.northeast_boundary.lat,
+    ];
     this.#searchBox = new MapboxSearchBox();
     this.#searchBox.accessToken = this.#mapboxApiKey;
     this.#searchBox.options = {
@@ -319,8 +322,9 @@ class RouteBuilder {
     // Create tooltips for when the user hovers over a street.
     const neighborhoodPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
       .setHTML(i18next.t('one-neighborhood-warning'));
-    const hoverChoosePopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 10, maxWidth: '340px' })
-      .setHTML(i18next.t('hover-add-street'));
+    const hoverChoosePopup
+      = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 10, maxWidth: '340px' })
+        .setHTML(i18next.t('hover-add-street'));
     const hoverReversePopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
       .setHTML(`<img src="assets/images/icons/routebuilder/reverse-hover.png" alt="Reverse" width="24" height="24">`);
     hoverReversePopup._content.className = 'tooltip-no-outline'; // Remove default styling.
@@ -415,7 +419,8 @@ class RouteBuilder {
         map.setFeatureState({ source: 'streets', id: clickedStreet }, { chosen: 'chosen reversed' });
         map.setFeatureState({ source: 'streets-chosen', id: clickedStreet }, { chosen: 'chosen reversed' });
 
-        const streetToReverse = this.#streetsInRoute.features.find((s) => s.properties.street_edge_id === clickedStreet);
+        const streetToReverse
+          = this.#streetsInRoute.features.find((s) => s.properties.street_edge_id === clickedStreet);
         streetToReverse.geometry.coordinates.reverse();
         streetToReverse.properties.reverse = !streetToReverse.properties.reverse;
         map.getSource('streets-chosen').setData(this.#streetsInRoute);
@@ -424,7 +429,8 @@ class RouteBuilder {
       } else if (prevState.chosen === 'chosen reversed') { // If street was in the route & reversed, remove it.
         map.setFeatureState({ source: 'streets', id: clickedStreet }, { chosen: 'not chosen' });
 
-        this.#streetsInRoute.features = this.#streetsInRoute.features.filter((s) => s.properties.street_edge_id !== clickedStreet);
+        this.#streetsInRoute.features
+          = this.#streetsInRoute.features.filter((s) => s.properties.street_edge_id !== clickedStreet);
         map.getSource('streets-chosen').setData(this.#streetsInRoute);
 
         hoverDeletePopup.remove(); // Hide the delete tooltip.
@@ -459,7 +465,9 @@ class RouteBuilder {
           // Change style to show you can't choose streets in other regions.
           this.#currRegionId = street.properties.region_id;
           map.setFeatureState({ source: 'neighborhoods', id: this.#currRegionId }, { current: true });
-          map.setPaintProperty('neighborhoods', 'fill-opacity', ['case', ['boolean', ['feature-state', 'current'], false], 0.0, 0.3]);
+          map.setPaintProperty(
+            'neighborhoods', 'fill-opacity', ['case', ['boolean', ['feature-state', 'current'], false], 0.0, 0.3],
+          );
           map.setPaintProperty('outside-neighborhoods', 'fill-opacity', 0.5);
         }
       }
@@ -488,7 +496,8 @@ class RouteBuilder {
    * Updates the route distance text shown in the upper-right corner of the map.
    */
   #setRouteDistanceText() {
-    const routeDist = this.#streetsInRoute.features.reduce((sum, street) => sum + turf.length(street, { units: this.#units }), 0);
+    const routeDist = this.#streetsInRoute.features
+      .reduce((sum, street) => sum + turf.length(street, { units: this.#units }), 0);
     this.#streetDistanceEl.innerText = i18next.t('route-length', { dist: routeDist.toFixed(2) });
   }
 
@@ -523,7 +532,8 @@ class RouteBuilder {
       const midpointEl2 = document.createElement('div');
       midpointEl1.className = midpointEl2.className = 'marker-number';
       midpointEl1.innerHTML = midpointEl2.innerHTML = (i + 1).toString();
-      midpointEl1.style.background = midpointEl2.style.background = this.#endpointColors[i % this.#endpointColors.length];
+      midpointEl1.style.background = this.#endpointColors[i % this.#endpointColors.length];
+      midpointEl2.style.background = this.#endpointColors[i % this.#endpointColors.length];
       const midPoint1 = contigSections[i].slice(-1)[0].geometry.coordinates.slice(-1)[0];
       const midPoint2 = contigSections[i + 1][0].geometry.coordinates[0];
       const p1Marker = new mapboxgl.Marker(midpointEl1).setLngLat(midPoint1).addTo(map);

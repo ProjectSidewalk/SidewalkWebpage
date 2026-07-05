@@ -98,7 +98,7 @@ class FunnelsSection {
     }
   }
 
-  /** Fetches the funnels for the current window and renders them; a failure shows a message but leaves the page intact. */
+  /** Fetches the funnels for the current window and renders them; a failure shows a message but leaves it intact. */
   async #load() {
     this.#setText(this.#statusId, 'Loading funnels…');
     try {

@@ -93,7 +93,8 @@ async function fetchAggregateStats() {
     }
 
     // Validate that we have the expected fields
-    const requiredFields = ['km_explored', 'total_labels', 'total_validations', 'num_cities', 'num_countries', 'num_languages'];
+    const requiredFields
+      = ['km_explored', 'total_labels', 'total_validations', 'num_cities', 'num_countries', 'num_languages'];
     const missingFields = requiredFields.filter((field) => typeof response[field] !== 'number');
 
     if (missingFields.length > 0) {

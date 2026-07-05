@@ -12,7 +12,9 @@ class ValidationOptionBucket {
     this.push(new ValidationOption({ validationOption: 'correct' }, initialValidationOptions.includes('correct')));
     this.push(new ValidationOption({ validationOption: 'incorrect' }, initialValidationOptions.includes('incorrect')));
     this.push(new ValidationOption({ validationOption: 'unsure' }, initialValidationOptions.includes('unsure')));
-    this.push(new ValidationOption({ validationOption: 'unvalidated' }, initialValidationOptions.includes('unvalidated')));
+    this.push(
+      new ValidationOption({ validationOption: 'unvalidated' }, initialValidationOptions.includes('unvalidated')),
+    );
   }
 
   /**
@@ -57,7 +59,9 @@ class ValidationOptionBucket {
    * Return list of applied ValidationOptions.
    */
   getAppliedValidationOptions() {
-    return this.#bucket.filter((valOption) => valOption.getActive()).map((valOption) => valOption.getValidationOption());
+    return this.#bucket
+      .filter((valOption) => valOption.getActive())
+      .map((valOption) => valOption.getValidationOption());
   }
 
   /**

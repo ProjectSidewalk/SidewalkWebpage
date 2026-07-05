@@ -3,7 +3,7 @@
  *
  * Two hosts use this:
  *   - LabelPopup wrapper (label-popup.js): mounts inside a <dialog id="label-modal" class="label-detail">.
- *   - Gallery's expanded view (Gallery/.../ExpandedView.js): mounts inline inside a <div class="label-detail label-detail--inline">.
+ *   - Gallery's expanded view: mounts inline inside a <div class="label-detail label-detail--inline">.
  *
  * The controller scopes all DOM queries to `root` and never touches the document outside of it. Multiple instances on
  * different pages cannot collide. The host is responsible for ensuring that `root` is laid out (visible in the DOM with
@@ -127,13 +127,16 @@ class LabelDetail {
     new PanoInfoPopover(
       host,
       this.panoManager.panoViewer,
-      () => this.#currentLabelMeta && { lat: this.#currentLabelMeta.camera_lat, lng: this.#currentLabelMeta.camera_lng },
+      () =>
+        this.#currentLabelMeta && { lat: this.#currentLabelMeta.camera_lat, lng: this.#currentLabelMeta.camera_lng },
       () => this.#currentLabelMeta && this.#currentLabelMeta.pano_id,
       () => this.#currentLabelMeta && this.#currentLabelMeta.street_edge_id,
       () => this.#currentLabelMeta && this.#currentLabelMeta.region_id,
       () => this.#currentLabelMeta && moment(new Date(this.#currentLabelMeta.image_capture_date)),
       () => (panoViewer.currPanoData ? panoViewer.currPanoData.getProperty('address') : null),
-      () => this.#currentLabelMeta && { heading: this.#currentLabelMeta.heading, pitch: this.#currentLabelMeta.pitch, zoom: this.#currentLabelMeta.zoom },
+      () => this.#currentLabelMeta && {
+        heading: this.#currentLabelMeta.heading, pitch: this.#currentLabelMeta.pitch, zoom: this.#currentLabelMeta.zoom,
+      },
       false,    // whiteIcon
       noopLog,  // infoLogging
       noopLog,  // clipboardLogging

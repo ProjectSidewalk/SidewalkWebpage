@@ -82,7 +82,9 @@ class Severity {
   }
 
   #updateIconSrc() {
-    this.#severityImage.attr('src', util.misc.getSmileyIconPath(this.#severityNum(), this.#currentLabelType, this.#filterActive));
+    this.#severityImage.attr(
+      'src', util.misc.getSmileyIconPath(this.#severityNum(), this.#currentLabelType, this.#filterActive),
+    );
   }
 
   /**

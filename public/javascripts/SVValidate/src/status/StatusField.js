@@ -60,7 +60,9 @@ class StatusField {
    * @param {string} labelType Name of label without spaces.
    */
   updateLabelText(labelType) {
-    const missionLength = svv.missionContainer ? svv.missionContainer.getCurrentMission().getProperty('labelsValidated') : svv.missionLength;
+    const missionLength = svv.missionContainer
+      ? svv.missionContainer.getCurrentMission().getProperty('labelsValidated')
+      : svv.missionLength;
     const newMissionTitle = i18next.t(
       'mission-start-tutorial.mst-instruction-2',
       { nLabels: missionLength, labelType: i18next.t(`common:${util.camelToKebab(labelType)}`) },

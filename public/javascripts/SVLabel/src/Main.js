@@ -113,7 +113,9 @@ class Main {
     // Game effects
     svl.audioEffect = new AudioEffect(svl.rootDirectory, svl.storage);
 
-    const neighborhood = new Neighborhood({ regionId: params.regionId, geoJSON: params.regionGeoJSON, name: params.regionName });
+    const neighborhood = new Neighborhood({
+      regionId: params.regionId, geoJSON: params.regionGeoJSON, name: params.regionName,
+    });
     svl.neighborhoodModel.setCurrentNeighborhood(neighborhood);
 
     svl.observedArea = new ObservedArea(svl.ui.minimap);
@@ -181,7 +183,9 @@ class Main {
     svl.modalSurvey = new ModalSurvey();
 
     svl.zoomControl = new ZoomControl(svl.canvas, svl.tracker);
-    svl.keyboard = new KeyboardManager(svl, svl.canvas, svl.contextMenu, svl.navigationService, svl.ribbon, svl.zoomControl);
+    svl.keyboard = new KeyboardManager(
+      svl, svl.canvas, svl.contextMenu, svl.navigationService, svl.ribbon, svl.zoomControl,
+    );
     this.#loadData(svl.taskContainer, svl.missionModel, svl.neighborhoodModel, svl.contextMenu);
 
     $('#navbar-retake-tutorial-btn').on('click', () => {
@@ -261,8 +265,10 @@ class Main {
     // Popup the message explaining the goal of the current mission.
     if (svl.missionContainer.isTheFirstMission()) {
       neighborhood = svl.neighborhoodModel.currentNeighborhood();
-      svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.navigationService, svl.popUpMessage,
-        svl.taskContainer, svl.labelContainer, svl.aiGuidance, svl.tracker);
+      svl.initialMissionInstruction = new InitialMissionInstruction(
+        svl.compass, svl.navigationService, svl.popUpMessage,
+        svl.taskContainer, svl.labelContainer, svl.aiGuidance, svl.tracker,
+      );
       svl.initialMissionInstruction.start(neighborhood);
     } else {
       // Show AI guidance message for the first street. Handled by InitialMissionInstruction if 1st mission.
@@ -360,7 +366,9 @@ class Main {
   }
 
   #calculateAndSetTasksMissionsOffset() {
-    const completedTasksDistance = util.math.kmsToMeters(svl.taskContainer.getCompletedTaskDistance({ units: 'kilometers' }));
+    const completedTasksDistance = util.math.kmsToMeters(
+      svl.taskContainer.getCompletedTaskDistance({ units: 'kilometers' }),
+    );
     const completedMissionsDistance = svl.missionContainer.getCompletedMissionDistance();
     const curMission = svl.missionContainer.getCurrentMission();
     const missProgress = curMission.getProperty('distanceProgress') ? curMission.getProperty('distanceProgress') : 0;
@@ -383,7 +391,7 @@ class Main {
 
   /**
    * Store jQuery DOM elements under svl.ui.
-   * Todo. Once we update all the modules to take ui elements as injected arguments, get rid of the svl.ui namespace and everything in it.
+   * Todo. Once we update all the modules to take ui elements as injected arguments, get rid of the svl.ui namespace.
    */
   #initUI() {
     svl.ui = {};

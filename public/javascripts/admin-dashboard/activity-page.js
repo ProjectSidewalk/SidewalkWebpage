@@ -123,7 +123,8 @@ class ActivityPage {
       const latest = this.#series[this.#series.length - 1].date;
       const ago = ActivityPage.#daysAgo(latest);
       const agoText = ago === 0 ? 'today' : ago === 1 ? 'yesterday' : `${ago.toLocaleString()} days ago`;
-      html = `Most recent activity: <strong>${ActivityPage.#esc(ActivityPage.#fmtLongDate(latest))}</strong> (${agoText}).`;
+      html = `Most recent activity: <strong>${ActivityPage.#esc(ActivityPage.#fmtLongDate(latest))}</strong>`
+        + ` (${agoText}).`;
     }
     // Empty window: the backend emits only days that had activity, so no in-window records ⇒ nothing happened then.
     if (this.#range > 0 && this.#windowRecords().length === 0) {
@@ -333,7 +334,8 @@ class ActivityPage {
       const badge = ActivityPage.#BADGES[it.activity_type] || { label: 'Activity', cls: '' };
       const who = ActivityPage.#esc(it.username || 'Unknown');
       // Username deep-links to the contributor's admin profile (the "what have they been doing" detail view).
-      const userLink = `<a class="activity-feed-user" href="/admin/user/${encodeURIComponent(it.username || '')}">${who}</a>`;
+      const userLink = `<a class="activity-feed-user" href="/admin/user/${encodeURIComponent(it.username || '')}">`
+        + `${who}</a>`;
       const roleChip = it.user_role
         ? `<span class="activity-feed-role">${ActivityPage.#esc(it.user_role)}</span>`
         : '';

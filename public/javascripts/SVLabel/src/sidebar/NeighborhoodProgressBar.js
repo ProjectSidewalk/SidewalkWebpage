@@ -34,7 +34,8 @@ class NeighborhoodProgressBar {
    * Uses the same priority-based distances as the mission-complete modal.
    */
   update() {
-    if (!this.#fillEl || !this.#youEl || !this.#communityEl || !this.#rateEl || !('taskContainer' in svl) || !svl.taskContainer) return;
+    if (!this.#fillEl || !this.#youEl || !this.#communityEl || !this.#rateEl
+      || !('taskContainer' in svl) || !svl.taskContainer) return;
 
     const unit = { units: i18next.t('common:unit-distance') };
     const totalDistance = svl.taskContainer.totalLineDistanceInNeighborhood(unit);

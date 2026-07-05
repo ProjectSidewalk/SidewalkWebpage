@@ -268,7 +268,9 @@ class Label {
     if (['Agree', 'Disagree', 'Unsure'].includes(validationResult)) {
       this.setProperty('validationResult', validationResult);
       svv.missionContainer.getCurrentMission().updateValidationResult(validationResult, false);
-      svv.labelContainer.pushToLabelsToSubmit(this.getAuditProperty('labelId'), this.getProperties(), this.#prepareCommentData());
+      svv.labelContainer.pushToLabelsToSubmit(
+        this.getAuditProperty('labelId'), this.getProperties(), this.#prepareCommentData(),
+      );
       svv.missionContainer.updateAMission();
     }
 

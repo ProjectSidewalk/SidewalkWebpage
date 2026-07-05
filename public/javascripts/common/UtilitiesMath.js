@@ -41,7 +41,8 @@ function haversine(latLng1, latLng2) {
   const R = 6372800; // Earth radius in m.
   const dLat = lat2 - lat1;
   const dLon = lng2 - lng1;
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+    + Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
   const c = 2 * Math.asin(Math.sqrt(a));
   return R * c;
 }

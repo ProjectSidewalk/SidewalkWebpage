@@ -109,16 +109,29 @@ class CardContainer {
     this.#cardsByType[this.#currentLabelType] = new CardBucket();
 
     // Grab first batch of labels to show.
-    this.fetchLabels(CardContainer.#labelTypeIds[this.#currentLabelType], CardContainer.#initialLoad, initialFilters.validationOptions, Array.from(this.#loadedLabelIds), initialFilters.neighborhoods, initialFilters.severities, initialFilters.tags, initialFilters.aiValidationOptions, () => {
-      this.#currentCards = this.#cardsByType[this.#currentLabelType].copy();
-      this.#lastPage = this.#currentCards.getCards().length <= this.#currentPage * CardContainer.#cardsPerPage;
-      this.render();
-    });
+    this.fetchLabels(
+      CardContainer.#labelTypeIds[this.#currentLabelType],
+      CardContainer.#initialLoad,
+      initialFilters.validationOptions,
+      Array.from(this.#loadedLabelIds),
+      initialFilters.neighborhoods,
+      initialFilters.severities,
+      initialFilters.tags,
+      initialFilters.aiValidationOptions,
+      () => {
+        this.#currentCards = this.#cardsByType[this.#currentLabelType].copy();
+        this.#lastPage = this.#currentCards.getCards().length <= this.#currentPage * CardContainer.#cardsPerPage;
+        this.render();
+      },
+    );
     // Creates the ExpandedView object in the DOM element currently present.
     sg.panoStore = new PanoStore();
-    this.#expandedView = await ExpandedView.create(sg.ui.expandedView.container, this.#panoViewerType, this.#viewerAccessToken);
+    this.#expandedView = await ExpandedView.create(
+      sg.ui.expandedView.container, this.#panoViewerType, this.#viewerAccessToken,
+    );
     // Add the click event for opening the ExpandedView when a card is clicked.
-    sg.ui.cardContainer.holder.on('click', '.static-gallery-image, .additional-count, .ai-icon-marker-card', (event) => {
+    const cardClickSelector = '.static-gallery-image, .additional-count, .ai-icon-marker-card';
+    sg.ui.cardContainer.holder.on('click', cardClickSelector, (event) => {
       sg.ui.expandedView.container.css('position', 'relative');
       sg.ui.expandedView.container.css('visibility', 'visible');
       $('.grid-container').css('grid-template-columns', '1fr 5fr');
@@ -223,7 +236,9 @@ class CardContainer {
    * @param aiValidationOptions List of AI validation options for labels: correct, incorrect, and/or unvalidated.
    * @param {*} callback Function to be called when labels arrive.
    */
-  fetchLabels(labelTypeId, n, validationOptions, loadedLabels, neighborhoods, severities, tags, aiValidationOptions, callback) {
+  fetchLabels(
+    labelTypeId, n, validationOptions, loadedLabels, neighborhoods, severities, tags, aiValidationOptions, callback,
+  ) {
     const url = '/label/labels';
     const data = {
       label_type_id: labelTypeId,
@@ -301,14 +316,24 @@ class CardContainer {
 
     if (this.#currentCards.getSize() < CardContainer.#cardsPerPage * this.#currentPage + 1) {
       // When we don't have enough cards of specific query to show on one page, see if more can be grabbed.
-      this.fetchLabels(CardContainer.#labelTypeIds[this.#currentLabelType], CardContainer.#cardsPerPage * 2, appliedValOptions, Array.from(this.#loadedLabelIds), this.#initialFilters.neighborhoods, appliedSeverities, appliedTags, this.#initialFilters.aiValidationOptions, () => {
-        this.#currentCards = this.#cardsByType[this.#currentLabelType].copy();
-        this.#currentCards.filterOnTags(appliedTags);
-        this.#currentCards.filterOnSeverities(appliedSeverities);
-        this.#currentCards.filterOnValidationOptions(appliedValOptions);
-        this.#lastPage = this.#currentCards.getCards().length <= this.#currentPage * CardContainer.#cardsPerPage;
-        this.render();
-      });
+      this.fetchLabels(
+        CardContainer.#labelTypeIds[this.#currentLabelType],
+        CardContainer.#cardsPerPage * 2,
+        appliedValOptions,
+        Array.from(this.#loadedLabelIds),
+        this.#initialFilters.neighborhoods,
+        appliedSeverities,
+        appliedTags,
+        this.#initialFilters.aiValidationOptions,
+        () => {
+          this.#currentCards = this.#cardsByType[this.#currentLabelType].copy();
+          this.#currentCards.filterOnTags(appliedTags);
+          this.#currentCards.filterOnSeverities(appliedSeverities);
+          this.#currentCards.filterOnValidationOptions(appliedValOptions);
+          this.#lastPage = this.#currentCards.getCards().length <= this.#currentPage * CardContainer.#cardsPerPage;
+          this.render();
+        },
+      );
     } else {
       this.#lastPage = false;
       this.render();

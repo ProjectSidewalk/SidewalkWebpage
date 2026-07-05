@@ -86,7 +86,11 @@ class PanoMarker {
      * New code (April 17, 2019) -- modified by Aileen
      * Source: https://github.com/marmat/google-maps-api-addons/issues/36#issuecomment-342774699
      * @private
-     * @type {function({heading: number, pitch: number}, {heading: number, pitch: number, zoom: number}, number, number, number): {x: number, y: number}}
+     * @type {function(
+     *   {heading: number, pitch: number},
+     *   {heading: number, pitch: number, zoom: number},
+     *   number, number, number
+     * ): {x: number, y: number}}
      */
     this.povToPixel_ = util.pano.centeredPovToCanvasCoord2d;
     const pixelCanvas = document.createElement('canvas');
@@ -107,7 +111,8 @@ class PanoMarker {
 
     // Basic style attributes for every marker.
     marker.style.position = 'absolute';
-    marker.style.cursor = 'inherit';    // To keep the mouseover icon open hand. See: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1393
+    // To keep the mouseover icon open hand. See: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1393
+    marker.style.cursor = 'inherit';
     marker.style.width = `${this.size_.width}px`;
     marker.style.height = `${this.size_.height}px`;
     marker.style.display = this.visible_ ? 'block' : 'none';
@@ -150,7 +155,8 @@ class PanoMarker {
           const labelDescriptionBox = $('#label-description-box');
           const desBox = labelDescriptionBox[0];
           if (!this.toggleDescription_) {
-            desBox.style.right = `${svv.canvasWidth() - parseFloat(marker.style.left) - (parseFloat(marker.style.width) / 2)}px`;
+            const rightPx = svv.canvasWidth() - parseFloat(marker.style.left) - (parseFloat(marker.style.width) / 2);
+            desBox.style.right = `${rightPx}px`;
             desBox.style.top = `${parseFloat(marker.style.top) + (parseFloat(marker.style.height) / 2)}px`;
             desBox.style.zIndex = 2;
             desBox.style.visibility = 'visible';

@@ -98,7 +98,9 @@
       const thead = document.createElement('thead');
       const headerRow = document.createElement('tr');
 
-      const headers = ['Name', 'Description', 'Standard Icon', 'Small Icon', 'Tiny Icon', 'Color Preview', 'Color Code'];
+      const headers = [
+        'Name', 'Description', 'Standard Icon', 'Small Icon', 'Tiny Icon', 'Color Preview', 'Color Code',
+      ];
       headers.forEach((text) => {
         const th = document.createElement('th');
         th.textContent = text;

@@ -385,9 +385,11 @@
       // First add the types present in the data.
       typesInData.forEach((name) => {
         if (labelTypeInfo[name]) {
+          const swatchStyle = 'display: inline-block; width: 10px; height: 10px; border-radius: 50%; '
+            + `background-color: ${labelTypeInfo[name].color}; margin-right: 5px;`;
           legendDiv.innerHTML += `
             <div style="margin: 3px 0;">
-              <i style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${labelTypeInfo[name].color}; margin-right: 5px;"></i>
+              <i style="${swatchStyle}"></i>
               ${name}
             </div>
           `;

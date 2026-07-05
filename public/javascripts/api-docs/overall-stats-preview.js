@@ -105,7 +105,8 @@
             });
         })
         .catch((error) => {
-          container.innerHTML = `<div class="error-message" style="color: red; text-align: center; padding: 50px 0;">Failed to load data: ${error.message}</div>`;
+          container.innerHTML = `<div class="error-message" style="color: red; text-align: center; padding: 50px 0;">`
+            + `Failed to load data: ${error.message}</div>`;
           console.error('Overall stats preview error:', error);
           return Promise.reject(error);
         });
@@ -422,7 +423,8 @@
       labelTypes.sort((a, b) => data.validations.combined[b].accuracy - data.validations.combined[a].accuracy);
 
       // Prepare data for chart.
-      const accuracies = labelTypes.map((type) => data.validations.combined[type].accuracy * 100); // Convert to percentage
+      // Convert to percentage.
+      const accuracies = labelTypes.map((type) => data.validations.combined[type].accuracy * 100);
       const colors = labelTypes.map((type) => labelTypeColors[type] || '#999');
 
       // Create chart instance.

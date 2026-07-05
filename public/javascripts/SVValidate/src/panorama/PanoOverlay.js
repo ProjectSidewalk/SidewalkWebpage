@@ -77,7 +77,7 @@ class PanoOverlay {
     this.#mouseStatus.currX = mousePosition(e, e.currentTarget).x;
     this.#mouseStatus.currY = mousePosition(e, e.currentTarget).y;
 
-    if ((svv.panoManager.getProperty('panoLoaded')) && this.#mouseStatus.isLeftDown && this.#panningDisabled === false) {
+    if (svv.panoManager.getProperty('panoLoaded') && this.#mouseStatus.isLeftDown && this.#panningDisabled === false) {
       // If a mouse is being dragged on the control layer, move the pano.
       let dx = this.#mouseStatus.currX - this.#mouseStatus.prevX;
       let dy = this.#mouseStatus.currY - this.#mouseStatus.prevY;

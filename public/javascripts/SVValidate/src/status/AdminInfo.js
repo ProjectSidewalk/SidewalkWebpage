@@ -51,7 +51,8 @@ class AdminInfo {
       for (const prevVal of currentLabel.getAdminProperty('previousValidations')) {
         const prevValText = i18next.t(`common:${util.camelToKebab(prevVal.validation)}`);
         newAdminContent.append(
-          `<p class="prev-val"><a href="/admin/user/${prevVal.username}" target="_blank">${prevVal.username}</a>: ${prevValText}</p>`,
+          `<p class="prev-val"><a href="/admin/user/${prevVal.username}" target="_blank">${prevVal.username}</a>`
+          + `: ${prevValText}</p>`,
         );
       }
     }

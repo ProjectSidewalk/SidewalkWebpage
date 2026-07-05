@@ -164,7 +164,8 @@
         marker.bindPopup(`
           <div class="city-popup">
             <h3>${city.city_name_formatted}</h3>
-            <p><a href="${city.url}" target="_blank" class="city-link">Open Project Sidewalk in ${city.city_name_formatted}</a></p>
+            <p><a href="${city.url}" target="_blank"
+              class="city-link">Open Project Sidewalk in ${city.city_name_formatted}</a></p>
           </div>
         `);
 

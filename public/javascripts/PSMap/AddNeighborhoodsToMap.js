@@ -181,7 +181,8 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
     // Remove neighborhood polygon outline when mouse no longer on any neighborhood.
     map.on('mouseleave', NEIGHBORHOOD_LAYER_NAME, (e) => {
       const pageLostFocus = !e.originalEvent || !e.originalEvent.toElement;
-      const isOverTooltip = e.originalEvent && e.originalEvent.toElement && e.originalEvent.toElement.closest('.mapboxgl-popup');
+      const isOverTooltip = e.originalEvent && e.originalEvent.toElement
+        && e.originalEvent.toElement.closest('.mapboxgl-popup');
 
       if (hoveredRegionId !== null && (pageLostFocus || !isOverTooltip)) {
         tooltipTimeout = setTimeout(() => {
@@ -199,7 +200,7 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
 
     if (params.logClicks) {
       // Logs to the webpage_activity table when a region is selected from the map and 'Click here' is clicked.
-      // Logs are of the form 'Click_module=<mapName>_regionId=<regionId>_distanceLeft=<'0', '<1', '1' or '>1'>_target=audit'.
+      // Log form: 'Click_module=<mapName>_regionId=<regionId>_distanceLeft=<'0', '<1', '1' or '>1'>_target=audit'.
       $(`#${params.mapName}`).on('click', '.region-selection-trigger', function () {
         const regionId = parseInt($(this).attr('regionId'), 10);
         const region = neighborhoodGeoJSON.features.find((x) => {
@@ -211,7 +212,8 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
         else if (distanceLeftRounded === 0) distanceLeftStr = '<1';
         else if (distanceLeftRounded === 1) distanceLeftStr = '1';
         else distanceLeftStr = '>1';
-        const activity = `Click_module=${params.mapName}_regionId=${regionId}_distanceLeft=${distanceLeftStr}_target=audit`;
+        const activity = `Click_module=${params.mapName}_regionId=${regionId}`
+          + `_distanceLeft=${distanceLeftStr}_target=audit`;
         window.logWebpageActivity(activity);
       });
     }

@@ -137,7 +137,9 @@ class SpeedLimit {
    * @returns {Promise<{closestRoad: object|null}>} Object with the calculated closest road, or null on failure.
    */
   async #queryClosestRoadForCoords(lat, lng, shouldCache, label) {
-    const cacheKey = label === null ? (this.#labelContainer === null ? '' : this.#labelContainer.getCurrentLabel().getAuditProperty('panoId')) : label.getAuditProperty('panoId');
+    const cacheKey = label === null
+      ? (this.#labelContainer === null ? '' : this.#labelContainer.getCurrentLabel().getAuditProperty('panoId'))
+      : label.getAuditProperty('panoId');
     if (cacheKey in this.#cache) {
       return await this.#cache[cacheKey];
     }

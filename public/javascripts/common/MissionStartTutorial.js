@@ -867,7 +867,8 @@ class MissionStartTutorial {
       }
     };
 
-    $('.mst-instruction-1').html(this.#labelTypeModule.missionInstruction1); // Explore mission screens have HTML in strings.
+    // Explore mission screens have HTML in strings.
+    $('.mst-instruction-1').html(this.#labelTypeModule.missionInstruction1);
     $('.mst-instruction-2').html(this.#labelTypeModule.missionInstruction2);
 
     $('.mission-start-tutorial-done-btn').text(i18next.t('common:mission-start-tutorial.start-mission'));
@@ -875,13 +876,20 @@ class MissionStartTutorial {
     // Show the tab bar to allow selection of different labels in explore mission screens.
     // And set up other UI.
     if (this.#missionType === MissionStartTutorial.#MISSION_TYPES.EXPLORE) {
-      $('.explore-mission-start-tab.label[data-label-type="CurbRamp"]').find('.explore-mission-start-tab-text').html(i18next.t('common:curb-ramp'));
-      $('.explore-mission-start-tab.label[data-label-type="NoCurbRamp"]').find('.explore-mission-start-tab-text').html(i18next.t('common:no-curb-ramp'));
-      $('.explore-mission-start-tab.label[data-label-type="Obstacle"]').find('.explore-mission-start-tab-text').html(i18next.t('common:obstacle'));
-      $('.explore-mission-start-tab.label[data-label-type="SurfaceProblem"]').find('.explore-mission-start-tab-text').html(i18next.t('common:surface-problem'));
-      $('.explore-mission-start-tab.label[data-label-type="NoSidewalk"]').find('.explore-mission-start-tab-text').html(i18next.t('common:no-sidewalk'));
-      $('.explore-mission-start-tab.label[data-label-type="Crosswalk"]').find('.explore-mission-start-tab-text').html(i18next.t('common:crosswalk'));
-      $('.explore-mission-start-tab.label[data-label-type="Signal"]').find('.explore-mission-start-tab-text').html(i18next.t('common:signal'));
+      $('.explore-mission-start-tab.label[data-label-type="CurbRamp"]')
+        .find('.explore-mission-start-tab-text').html(i18next.t('common:curb-ramp'));
+      $('.explore-mission-start-tab.label[data-label-type="NoCurbRamp"]')
+        .find('.explore-mission-start-tab-text').html(i18next.t('common:no-curb-ramp'));
+      $('.explore-mission-start-tab.label[data-label-type="Obstacle"]')
+        .find('.explore-mission-start-tab-text').html(i18next.t('common:obstacle'));
+      $('.explore-mission-start-tab.label[data-label-type="SurfaceProblem"]')
+        .find('.explore-mission-start-tab-text').html(i18next.t('common:surface-problem'));
+      $('.explore-mission-start-tab.label[data-label-type="NoSidewalk"]')
+        .find('.explore-mission-start-tab-text').html(i18next.t('common:no-sidewalk'));
+      $('.explore-mission-start-tab.label[data-label-type="Crosswalk"]')
+        .find('.explore-mission-start-tab-text').html(i18next.t('common:crosswalk'));
+      $('.explore-mission-start-tab.label[data-label-type="Signal"]')
+        .find('.explore-mission-start-tab-text').html(i18next.t('common:signal'));
 
       $('.explore-mission-start-tab-bar').show();
 
@@ -938,7 +946,8 @@ class MissionStartTutorial {
 
     // Reset the UI first.
     $('.mst-carousel-location-indicator').removeClass('current-location');
-    $mstSlide.removeClass(MissionStartTutorial.#EXAMPLE_TYPES.CORRECT).removeClass(MissionStartTutorial.#EXAMPLE_TYPES.INCORRECT);
+    $mstSlide.removeClass(MissionStartTutorial.#EXAMPLE_TYPES.CORRECT)
+      .removeClass(MissionStartTutorial.#EXAMPLE_TYPES.INCORRECT);
     $mstSlideImage.attr('src', '');
     $labelTypeSubtitle.text('');
     $('.previous-slide-button, .next-slide-button').removeClass('disabled');
@@ -963,13 +972,17 @@ class MissionStartTutorial {
       exampleTypeLabel = i18next.t('common:mission-start-tutorial.example-type-label-correct');
 
       labelOnImageTitle = i18next.t('common:mission-start-tutorial.label-on-image-title-correct');
-      labelOnImageDescription = i18next.t(`${this.#messagesPrefix}:mission-start-tutorial.label-on-image-description-correct`);
+      labelOnImageDescription = i18next.t(
+        `${this.#messagesPrefix}:mission-start-tutorial.label-on-image-description-correct`,
+      );
     } else {
       iconID = MissionStartTutorial.#SMILEYS[MissionStartTutorial.#EXAMPLE_TYPES.INCORRECT];
       exampleTypeLabel = i18next.t(`${this.#messagesPrefix}:mission-start-tutorial.example-type-label-incorrect`);
 
       labelOnImageTitle = i18next.t(`${this.#messagesPrefix}:mission-start-tutorial.label-on-image-title-incorrect`);
-      labelOnImageDescription = i18next.t(`${this.#messagesPrefix}:mission-start-tutorial.label-on-image-description-incorrect`);
+      labelOnImageDescription = i18next.t(
+        `${this.#messagesPrefix}:mission-start-tutorial.label-on-image-description-incorrect`,
+      );
     }
 
     // Now that the variables have been initiated, let's set them for the UI.
@@ -1008,12 +1021,15 @@ class MissionStartTutorial {
 
   /**
    * Attaches the event handlers required for the mission screen labelTypeModule.
-   * Note: we need to remove existing handlers first as this function may be called multiple times (explore mission screens).
+   * Note: we need to remove existing handlers first as this function may be called multiple times
+   * (explore mission screens).
    */
   #attachEventHandlers() {
     // Hides the mission start tutorial, initializes the relevant svvOrsvl variables, and logs the interaction.
     const hideMST = () => {
-      if (this.#svvOrsvl.zoomControl && this.#svvOrsvl.zoomControl.updateZoomAvailability) this.#svvOrsvl.zoomControl.updateZoomAvailability();
+      if (this.#svvOrsvl.zoomControl && this.#svvOrsvl.zoomControl.updateZoomAvailability) {
+        this.#svvOrsvl.zoomControl.updateZoomAvailability();
+      }
       if (this.#svvOrsvl.keyboard && this.#svvOrsvl.keyboard.enableKeyboard) this.#svvOrsvl.keyboard.enableKeyboard();
 
       $('.mission-start-tutorial-overlay').fadeOut(100);

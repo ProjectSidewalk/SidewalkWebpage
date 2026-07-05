@@ -89,7 +89,10 @@ class HumanVsAiPage {
   /** Picks one group ("human"/"ai") out of the [human, ai] array, with a zeroed fallback so render code is simple. */
   #group(groups, name) {
     return (groups || []).find((g) => g.group === name)
-      || { group: name, total: 0, validated: 0, correct: 0, type_stats: [], severity_counts: [], agree: 0, disagree: 0, unsure: 0 };
+      || {
+        group: name, total: 0, validated: 0, correct: 0, type_stats: [],
+        severity_counts: [], agree: 0, disagree: 0, unsure: 0,
+      };
   }
 
   #renderKpis(human, ai, humanVal, aiVal, tagger) {

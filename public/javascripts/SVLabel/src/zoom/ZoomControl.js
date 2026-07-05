@@ -365,8 +365,12 @@ class ZoomControl {
     if (pov && this.#uiZoomControl) {
       const zoom = pov.zoom;
       // Disable the zoom-in button at max zoom and the zoom-out button at min zoom.
-      this.#uiZoomControl.zoomIn.toggleClass('disabled', zoom >= this.#properties.maxZoomLevel || this.#status.disableZoomIn);
-      this.#uiZoomControl.zoomOut.toggleClass('disabled', zoom <= this.#properties.minZoomLevel || this.#status.disableZoomOut);
+      this.#uiZoomControl.zoomIn.toggleClass(
+        'disabled', zoom >= this.#properties.maxZoomLevel || this.#status.disableZoomIn,
+      );
+      this.#uiZoomControl.zoomOut.toggleClass(
+        'disabled', zoom <= this.#properties.minZoomLevel || this.#status.disableZoomOut,
+      );
     }
     return this;
   }

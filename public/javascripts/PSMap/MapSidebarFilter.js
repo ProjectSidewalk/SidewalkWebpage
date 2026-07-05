@@ -178,7 +178,9 @@ class MapSidebarFilter {
    */
   #updateDeselectAllButton(section) {
     const btn = this.#sidebar.querySelector(`.map-sidebar__deselect-all[data-section="${section}"]`);
-    btn.textContent = this.#isAnyActive(section) ? i18next.t('labelmap:deselect-all') : i18next.t('labelmap:select-all');
+    btn.textContent = this.#isAnyActive(section)
+      ? i18next.t('labelmap:deselect-all')
+      : i18next.t('labelmap:select-all');
   }
 
   /** Binds click handlers to the tag expand/collapse chevron buttons. */

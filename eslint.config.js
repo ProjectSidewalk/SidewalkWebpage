@@ -122,7 +122,7 @@ module.exports = [
             // max-statements-per-line rule and leaves --fix stuck. Forbidding single-line blocks lets --fix expand
             // straight to the canonical multi-line block instead.
             '@stylistic/brace-style': ['error', '1tbs', { allowSingleLine: false }],
-            // '@stylistic/max-len': ['warn', { code: 120 }], // Deferred until future PR when setting indent: 2.
+            '@stylistic/max-len': ['warn', { code: 120, ignoreUrls: true }],
             '@stylistic/generator-star-spacing': ['error', 'after'],
             '@stylistic/no-confusing-arrow': ['error', { allowParens: true }],
             '@stylistic/padding-line-between-statements': [

@@ -90,21 +90,21 @@ class AdminApiAnalytics {
     const rangeLabel = this.#days === 0 ? 'all time' : `last ${this.#days} days`;
 
     el.innerHTML = `
-            <div class="api-analytics-summary-cards">
-                <div class="api-analytics-card">
-                    <div class="api-analytics-card-value">${this.#data.total_calls.toLocaleString()}</div>
-                    <div class="api-analytics-card-label">Total API Calls (${rangeLabel})</div>
-                </div>
-                <div class="api-analytics-card">
-                    <div class="api-analytics-card-value">${this.#data.unique_ips.toLocaleString()}</div>
-                    <div class="api-analytics-card-label">Unique IPs</div>
-                </div>
-                <div class="api-analytics-card">
-                    <div class="api-analytics-card-value">${this.#data.endpoint_counts.length}</div>
-                    <div class="api-analytics-card-label">Distinct Endpoints</div>
-                </div>
-            </div>
-        `;
+      <div class="api-analytics-summary-cards">
+        <div class="api-analytics-card">
+          <div class="api-analytics-card-value">${this.#data.total_calls.toLocaleString()}</div>
+          <div class="api-analytics-card-label">Total API Calls (${rangeLabel})</div>
+        </div>
+        <div class="api-analytics-card">
+          <div class="api-analytics-card-value">${this.#data.unique_ips.toLocaleString()}</div>
+          <div class="api-analytics-card-label">Unique IPs</div>
+        </div>
+        <div class="api-analytics-card">
+          <div class="api-analytics-card-value">${this.#data.endpoint_counts.length}</div>
+          <div class="api-analytics-card-label">Distinct Endpoints</div>
+        </div>
+      </div>
+  `;
   }
 
   /**
@@ -120,27 +120,27 @@ class AdminApiAnalytics {
     }
 
     const rows = this.#data.endpoint_counts.map((row) => `
-            <tr>
-                <td><code>${row.endpoint}</code></td>
-                <td class="text-right">${row.count.toLocaleString()}</td>
-                <td>
-                    <div class="api-analytics-bar-outer">
-                        <div class="api-analytics-bar-inner"
-                             style="width:${Math.round(100 * row.count / this.#data.total_calls)}%"></div>
-                    </div>
-                </td>
-            </tr>
-        `).join('');
+      <tr>
+        <td><code>${row.endpoint}</code></td>
+        <td class="text-right">${row.count.toLocaleString()}</td>
+        <td>
+          <div class="api-analytics-bar-outer">
+            <div class="api-analytics-bar-inner"
+               style="width:${Math.round(100 * row.count / this.#data.total_calls)}%"></div>
+          </div>
+        </td>
+      </tr>
+  `).join('');
 
     el.innerHTML = `
-            <h3>Calls by Endpoint</h3>
-            <table class="table table-striped table-condensed api-analytics-table">
-                <thead>
-                    <tr><th>Endpoint</th><th class="text-right">Calls</th><th>Share</th></tr>
-                </thead>
-                <tbody>${rows}</tbody>
-            </table>
-        `;
+      <h3>Calls by Endpoint</h3>
+      <table class="table table-striped table-condensed api-analytics-table">
+        <thead>
+          <tr><th>Endpoint</th><th class="text-right">Calls</th><th>Share</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+  `;
   }
 
   /**
@@ -197,22 +197,22 @@ class AdminApiAnalytics {
     }
 
     const rows = this.#data.format_counts.map((row) => `
-            <tr>
-                <td><code>${row.endpoint}</code></td>
-                <td>${row.format}</td>
-                <td class="text-right">${row.count.toLocaleString()}</td>
-            </tr>
-        `).join('');
+      <tr>
+        <td><code>${row.endpoint}</code></td>
+        <td>${row.format}</td>
+        <td class="text-right">${row.count.toLocaleString()}</td>
+      </tr>
+  `).join('');
 
     el.innerHTML = `
-            <h3>Calls by Format</h3>
-            <table class="table table-striped table-condensed api-analytics-table">
-                <thead>
-                    <tr><th>Endpoint</th><th>Format</th><th class="text-right">Calls</th></tr>
-                </thead>
-                <tbody>${rows}</tbody>
-            </table>
-        `;
+      <h3>Calls by Format</h3>
+      <table class="table table-striped table-condensed api-analytics-table">
+        <thead>
+          <tr><th>Endpoint</th><th>Format</th><th class="text-right">Calls</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+  `;
   }
 
   /** Shows a loading indicator while data is being fetched. */

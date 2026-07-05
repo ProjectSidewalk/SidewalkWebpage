@@ -1,6 +1,7 @@
 $(document).ready(() => {
   // Raleway doesn't load after being redirected from another page; redeclaring the font-face fixes that.
-  const font = '<style> @@font-face{ font-family: \'raleway\'; src: url(\'/assets/fonts/Raleway/Raleway-Regular.ttf\');} </style>';
+  const font = '<style> @@font-face{ font-family: \'raleway\'; '
+    + 'src: url(\'/assets/fonts/Raleway/Raleway-Regular.ttf\');} </style>';
   $('head').append(font);
 
   // Add the 'animate-button' class to all validation buttons so an animation is performed to confirm click.

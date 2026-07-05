@@ -34,7 +34,8 @@ class MiniLineChart {
     for (const f of [0, 0.25, 0.5, 0.75, 1]) {
       const yy = yFrac(f).toFixed(1);
       grid += `<line class="mini-grid" x1="${m.l}" y1="${yy}" x2="${W - m.r}" y2="${yy}"/>`
-        + `<text class="mini-axis" x="${m.l - 6}" y="${(yFrac(f) + 3).toFixed(1)}" text-anchor="end">${MiniLineChart.#esc(tickFormat(f * yMax))}</text>`;
+        + `<text class="mini-axis" x="${m.l - 6}" y="${(yFrac(f) + 3).toFixed(1)}" text-anchor="end">`
+        + `${MiniLineChart.#esc(tickFormat(f * yMax))}</text>`;
     }
 
     let body = '';
@@ -52,7 +53,8 @@ class MiniLineChart {
       const dots = s.values.map((v, i) => {
         if (v === null || v === undefined) return '';
         const tip = s.tooltips?.[i] ?? `${categories[i]} · ${s.name}: ${valueFormat(v)}`;
-        return `<circle class="mini-pt mini-pt--${s.key}" cx="${x(i).toFixed(1)}" cy="${yFrac(v / yMax).toFixed(1)}" r="${dotRadius}">`
+        return `<circle class="mini-pt mini-pt--${s.key}" cx="${x(i).toFixed(1)}" `
+          + `cy="${yFrac(v / yMax).toFixed(1)}" r="${dotRadius}">`
           + `<title>${MiniLineChart.#esc(tip)}</title></circle>`;
       }).join('');
       body += `<path class="mini-line mini-line--${s.key}" d="${d.trim()}"/>${dots}`;
@@ -61,12 +63,14 @@ class MiniLineChart {
     const step = Math.max(1, Math.ceil(n / 6));
     let xlab = '';
     for (let i = 0; i < n; i += step) {
-      xlab += `<text class="mini-axis" x="${x(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">${MiniLineChart.#esc(categories[i])}</text>`;
+      xlab += `<text class="mini-axis" x="${x(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">`
+        + `${MiniLineChart.#esc(categories[i])}</text>`;
     }
     const svg = `<svg class="mini-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" `
       + `aria-label="${MiniLineChart.#esc(opts.ariaLabel || 'Line chart')}"><g>${grid}</g>${body}<g>${xlab}</g></svg>`;
     const legendItems = series.map((s) =>
-      `<span class="mini-legend-item"><span class="mini-swatch mini-swatch--${s.key}"></span>${MiniLineChart.#esc(s.name)}</span>`,
+      `<span class="mini-legend-item"><span class="mini-swatch mini-swatch--${s.key}"></span>`
+      + `${MiniLineChart.#esc(s.name)}</span>`,
     ).join('');
     const legend = series.length > 1 ? `<div class="mini-legend">${legendItems}</div>` : '';
     return svg + legend;

@@ -144,7 +144,9 @@ class CardFilter {
     }
     // TODO once we add a UI for neighborhood filtering, have that process mirror what we have for other filters.
     if (sg.neighborhoodIds.length > 0) {
-      newUrl += firstQueryParam ? `?neighborhoods=${sg.neighborhoodIds.join()}` : `&neighborhoods=${sg.neighborhoodIds.join()}`;
+      newUrl += firstQueryParam
+        ? `?neighborhoods=${sg.neighborhoodIds.join()}`
+        : `&neighborhoods=${sg.neighborhoodIds.join()}`;
       firstQueryParam = false;
     }
     // All four severities (null, 1, 2, 3) selected is the default state, so we omit the param in that case.
@@ -160,7 +162,9 @@ class CardFilter {
     }
     // TODO once we add a UI for filtering on AI validation, have that process mirrors other filters.
     if (sg.aiValidationOptions.length > 0) {
-      newUrl += firstQueryParam ? `?aiValidationOptions=${sg.aiValidationOptions}` : `&aiValidationOptions=${sg.aiValidationOptions}`;
+      newUrl += firstQueryParam
+        ? `?aiValidationOptions=${sg.aiValidationOptions}`
+        : `&aiValidationOptions=${sg.aiValidationOptions}`;
       firstQueryParam = false;
     }
     return newUrl;

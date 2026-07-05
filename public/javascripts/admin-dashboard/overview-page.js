@@ -340,7 +340,8 @@ class OverviewPage {
     const type = item.label_type ? this.#typeName(item.label_type) : null;
     let dot = '';
     if (type && this.#colorByType.has(item.label_type)) {
-      dot = `<span class="ov-pulse-dot" style="background:${OverviewPage.#esc(this.#colorByType.get(item.label_type))}" aria-hidden="true"></span>`;
+      dot = `<span class="ov-pulse-dot" `
+        + `style="background:${OverviewPage.#esc(this.#colorByType.get(item.label_type))}" aria-hidden="true"></span>`;
     }
     let what;
     if (item.activity_type === 'label') {

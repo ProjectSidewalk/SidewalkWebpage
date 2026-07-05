@@ -557,7 +557,8 @@ class AcrossCitiesPage {
     if (!tbody) return;
     const rows = this.#cities.slice().sort((a, b) => (b.num_labelers || 0) - (a.num_labelers || 0));
     tbody.innerHTML = rows.map((c) => {
-      const out = (med, p90) => `${this.#num(Math.round(med || 0))} <span class="ac-muted">· ${this.#num(Math.round(p90 || 0))}</span>`;
+      const out = (med, p90) => `${this.#num(Math.round(med || 0))} `
+        + `<span class="ac-muted">· ${this.#num(Math.round(p90 || 0))}</span>`;
       const v10 = c.seconds_to_validate_10 > 0
         ? this.#duration(c.seconds_to_validate_10)
         : '<span class="ac-muted">—</span>';
@@ -638,23 +639,30 @@ class AcrossCitiesPage {
       const flagged = (c.anomalies || []).includes('high_disagreement');
       const vpl = c.validations_per_label || 0;
       const agreeCell = agreeRate === null ? '<span class="ac-muted">—</span>' : this.#pct(agreeRate);
+      const valTitle = `${this.#num(c.total_validations)} validations / ${this.#num(c.total_labels)} labels`;
+      const sevWith = this.#num(c.labels_with_severity);
+      const sevElig = this.#num(c.labels_severity_eligible);
+      const sevTitle = `${sevWith} of ${sevElig} severity-eligible labels`;
+      const tagTitle = `${this.#num(c.labels_with_tags)} of ${this.#num(c.labels_tag_eligible)} tag-eligible labels`;
+      const aiValTitle = `${this.#num(c.ai_validations)} of ${this.#num(c.total_validations)} validations`;
+      const lowQTitle = `${this.#num(c.low_quality_contributors)} of ${this.#num(contribDenom)} contributors`;
       return `
                 <tr class="${flagged ? 'ac-row--flagged' : ''}">
                     <td class="ac-td-city">${this.#cityLink(c)}</td>
                     <td class="ac-num" title="${this.#num(c.labels_validated)} of ${this.#num(c.total_labels)}">
                         ${this.#pct(c.labels_validated_share)}</td>
-                    <td class="ac-num" title="${this.#num(c.total_validations)} validations / ${this.#num(c.total_labels)} labels">
+                    <td class="ac-num" title="${valTitle}">
                         ${vpl.toFixed(1)}</td>
                     <td class="ac-num">${agreeCell}</td>
-                    <td class="ac-num" title="${this.#num(c.labels_with_severity)} of ${this.#num(c.labels_severity_eligible)} severity-eligible labels">
+                    <td class="ac-num" title="${sevTitle}">
                         ${this.#pct(c.severity_share)}</td>
-                    <td class="ac-num" title="${this.#num(c.labels_with_tags)} of ${this.#num(c.labels_tag_eligible)} tag-eligible labels">
+                    <td class="ac-num" title="${tagTitle}">
                         ${this.#pct(c.tags_share)}</td>
                     <td class="ac-num" title="${this.#num(c.ai_labels)} of ${this.#num(c.total_labels)} labels">
                         ${this.#pct(c.ai_label_share)}</td>
-                    <td class="ac-num" title="${this.#num(c.ai_validations)} of ${this.#num(c.total_validations)} validations">
+                    <td class="ac-num" title="${aiValTitle}">
                         ${this.#pct(c.ai_validation_share)}</td>
-                    <td class="ac-num" title="${this.#num(c.low_quality_contributors)} of ${this.#num(contribDenom)} contributors">
+                    <td class="ac-num" title="${lowQTitle}">
                         ${this.#pct(lowQShare)}</td>
                 </tr>`;
     }).join('');
@@ -684,7 +692,7 @@ class AcrossCitiesPage {
     }
   }
 
-  /** Fetches the funnels for the current window and renders them; a failure shows a message but leaves the page intact. */
+  /** Fetches the funnels for the current window and renders them; a failure shows a message but leaves it intact. */
   async #loadFunnels() {
     this.#setText('ac-funnel-status', 'Loading funnels…');
     try {
@@ -705,7 +713,9 @@ class AcrossCitiesPage {
     const types = AcrossCitiesPage.#FUNNEL_ORDER.filter((t) => this.#funnels[t]);
     host.innerHTML = types.map((t) => this.#funnelBlock(t, this.#funnels[t], segs)).join('');
     const n = types.reduce((max, t) => Math.max(max, (this.#funnels[t].cities || []).length), 0);
-    this.#setText('ac-funnel-status', n ? `${n} ${n === 1 ? 'city' : 'cities'} with funnel data.` : 'No funnel data yet.');
+    this.#setText(
+      'ac-funnel-status', n ? `${n} ${n === 1 ? 'city' : 'cities'} with funnel data.` : 'No funnel data yet.',
+    );
   }
 
   /**
@@ -797,7 +807,9 @@ class AcrossCitiesPage {
     const labels = AcrossCitiesPage.#FUNNEL_STEP_LABELS;
     const palette = AcrossCitiesPage.#FUNNEL_SEG_COLORS;
     const legendItems = segs.map((s, i) =>
-      `<span class="ac-funnel-legend-item"><span class="ac-funnel-swatch" style="background:${palette[i] || palette[0]}"></span>${AcrossCitiesPage.#esc(s.label)}</span>`).join('');
+      `<span class="ac-funnel-legend-item">`
+      + `<span class="ac-funnel-swatch" style="background:${palette[i] || palette[0]}"></span>`
+      + `${AcrossCitiesPage.#esc(s.label)}</span>`).join('');
     const legend = segs.length > 1 ? `<div class="ac-funnel-legend">${legendItems}</div>` : '';
     const stepRows = steps.map((k, i) => {
       const full = (labels[k] || { full: k }).full;
@@ -812,7 +824,8 @@ class AcrossCitiesPage {
           ? `${AcrossCitiesPage.#esc(full)}: ${this.#num(v)} visitors`
           : `${AcrossCitiesPage.#esc(full)}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
         return `<div class="ac-funnel-bar" title="${title}">`
-          + `<span class="ac-funnel-bar-fill" style="width:${width.toFixed(1)}%;background:${palette[si] || palette[0]}"></span>`
+          + `<span class="ac-funnel-bar-fill" `
+          + `style="width:${width.toFixed(1)}%;background:${palette[si] || palette[0]}"></span>`
           + `<span class="ac-funnel-bar-val">${valText}</span></div>`;
       }).join('');
       return `<div class="ac-funnel-step"><div class="ac-funnel-step-label">${AcrossCitiesPage.#esc(full)}</div>`

@@ -70,7 +70,8 @@
    */
   function render(container, data) {
     if (!data.length) {
-      container.innerHTML = '<p style="text-align:center;color:#888;padding:40px 0">No data available for this period.</p>';
+      container.innerHTML = '<p style="text-align:center;color:#888;padding:40px 0">'
+        + 'No data available for this period.</p>';
       return;
     }
 
@@ -91,11 +92,21 @@
     const summaryEl = document.createElement('div');
     summaryEl.className = 'preview-summary-grid';
     summaryEl.innerHTML = `
-            <div class="preview-stat"><span class="preview-stat-value">${dates.length}</span><span class="preview-stat-label">Days shown</span></div>
-            <div class="preview-stat"><span class="preview-stat-value">${totalHumanLabels.toLocaleString()}</span><span class="preview-stat-label">Human labels</span></div>
-            <div class="preview-stat"><span class="preview-stat-value">${totalAiLabels.toLocaleString()}</span><span class="preview-stat-label">AI labels</span></div>
-            <div class="preview-stat"><span class="preview-stat-value">${totalValidations.toLocaleString()}</span><span class="preview-stat-label">Validations</span></div>
-            <div class="preview-stat"><span class="preview-stat-value">${accuracy}%</span><span class="preview-stat-label">Agreement rate</span></div>
+            <div class="preview-stat"><span class="preview-stat-value">${dates.length}</span>
+                <span class="preview-stat-label">Days shown</span>
+            </div>
+            <div class="preview-stat"><span class="preview-stat-value">${totalHumanLabels.toLocaleString()}</span>
+                <span class="preview-stat-label">Human labels</span>
+            </div>
+            <div class="preview-stat"><span class="preview-stat-value">${totalAiLabels.toLocaleString()}</span>
+                <span class="preview-stat-label">AI labels</span>
+            </div>
+            <div class="preview-stat"><span class="preview-stat-value">${totalValidations.toLocaleString()}</span>
+                <span class="preview-stat-label">Validations</span>
+            </div>
+            <div class="preview-stat"><span class="preview-stat-value">${accuracy}%</span>
+                <span class="preview-stat-label">Agreement rate</span>
+            </div>
         `;
     container.appendChild(summaryEl);
 

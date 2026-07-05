@@ -170,7 +170,9 @@
       // Add description for User Count visualization.
       const userCountDescription = document.createElement('div');
       userCountDescription.className = 'visualization-description';
-      userCountDescription.textContent = 'Visualizes user counts per street segment. More specifically, streets are color-coded by the number of users who added at least one label to the segments. You can hover and click on streets to view more information.';
+      userCountDescription.textContent = 'Visualizes user counts per street segment. More specifically, streets are '
+        + 'color-coded by the number of users who added at least one label to the segments. You can hover and click '
+        + 'on streets to view more information.';
 
       const userCountContainer = document.createElement('div');
       userCountContainer.id = 'streets-user-count-preview';
@@ -190,7 +192,9 @@
       // Add description for Audit Age visualization.
       const auditAgeDescription = document.createElement('div');
       auditAgeDescription.className = 'visualization-description';
-      auditAgeDescription.textContent = 'Displays the age of audits for each street segment. Streets are color-coded based on how recently they were audited, helping identify areas that may need fresh accessibility assessments. You can hover and click on streets to view more information.';
+      auditAgeDescription.textContent = 'Displays the age of audits for each street segment. Streets are color-coded '
+        + 'based on how recently they were audited, helping identify areas that may need fresh accessibility '
+        + 'assessments. You can hover and click on streets to view more information.';
 
       const auditAgeContainer = document.createElement('div');
       auditAgeContainer.id = 'streets-audit-age-preview';
@@ -210,7 +214,9 @@
       // Add description for Label Count visualization.
       const labelCountDescription = document.createElement('div');
       labelCountDescription.className = 'visualization-description';
-      labelCountDescription.textContent = 'Shows the total number of accessibility labels placed on each street segment. Streets are color-coded by label density, indicating areas with more or fewer accessibility annotations. You can hover and click on streets to view more information.';
+      labelCountDescription.textContent = 'Shows the total number of accessibility labels placed on each street '
+        + 'segment. Streets are color-coded by label density, indicating areas with more or fewer accessibility '
+        + 'annotations. You can hover and click on streets to view more information.';
 
       const labelCountContainer = document.createElement('div');
       labelCountContainer.id = 'streets-label-count-preview';
@@ -316,7 +322,8 @@
 
       // Add CartoDB Dark Matter tile layer for better line visibility.
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors '
+          + '&copy; <a href="https://carto.com/attributions">CARTO</a>',
         subdomains: 'abcd',
         maxZoom: 19,
       }).addTo(map);
@@ -476,7 +483,8 @@
       if (!osmWayId) {
         return 'N/A';
       }
-      return `<a href="https://www.openstreetmap.org/way/${osmWayId}" target="_blank" style="color: #0066cc;">${osmWayId}</a>`;
+      return `<a href="https://www.openstreetmap.org/way/${osmWayId}" target="_blank" style="color: #0066cc;">`
+        + `${osmWayId}</a>`;
     },
 
     /**

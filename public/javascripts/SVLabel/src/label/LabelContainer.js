@@ -90,10 +90,12 @@ class LabelContainer {
 
         // Get the canvas coordinates for the label given the current POV.
         const povOfLabelIfCentered = util.pano.canvasCoordToCenteredPov(
-          labelArr[i].originalPov, originalCanvasXY.x, originalCanvasXY.y, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
+          labelArr[i].originalPov, originalCanvasXY.x, originalCanvasXY.y,
+          util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
         );
         labelArr[i].currCanvasXY = util.pano.centeredPovToCanvasCoord(
-          povOfLabelIfCentered, svl.panoViewer.getPov(), util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS,
+          povOfLabelIfCentered, svl.panoViewer.getPov(),
+          util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS,
         );
 
         labelArr[i].originalCanvasXY = originalCanvasXY;

@@ -258,7 +258,8 @@
       summarySection.appendChild(title);
 
       const description = document.createElement('p');
-      description.textContent = 'Distribution of validation results across label types, showing community agreement patterns.';
+      description.textContent = 'Distribution of validation results across label types, showing community '
+        + 'agreement patterns.';
       summarySection.appendChild(description);
 
       // Calculate overall statistics.
@@ -415,7 +416,8 @@
       const shownTypes = filteredTypes.length;
       const totalTypes = Object.keys(this.groupValidationsByType(validationsData)).length;
 
-      let summaryText = `Showing validation result distributions for ${shownTypes} label types with the most validations`;
+      let summaryText = `Showing validation result distributions for ${shownTypes} label types `
+        + 'with the most validations';
       if (totalTypes > shownTypes) {
         summaryText += ` (${totalTypes - shownTypes} types with fewer validations not shown)`;
       }

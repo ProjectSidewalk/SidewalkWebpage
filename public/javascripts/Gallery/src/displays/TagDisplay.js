@@ -69,8 +69,12 @@ class TagDisplay {
         // If this is the last tag and there are hidden tags, then we need to account for the PLUS_N indicator
         // in addition to the margin between tags in the extra space needed. Otherwise, we just need to account
         // for the margin between tags.
-        const extraSpaceNeeded = (isLastTag && hiddenTags.length === 0) ? MARGIN_BW_TAGS : MARGIN_BW_TAGS + WIDTH_FOR_PLUS_N;
-        const spaceForShortenedTag = (isLastTag && hiddenTags.length === 0) ? MIN_TAG_WIDTH : MIN_TAG_WIDTH + WIDTH_FOR_PLUS_N;
+        const extraSpaceNeeded = (isLastTag && hiddenTags.length === 0)
+          ? MARGIN_BW_TAGS
+          : MARGIN_BW_TAGS + WIDTH_FOR_PLUS_N;
+        const spaceForShortenedTag = (isLastTag && hiddenTags.length === 0)
+          ? MIN_TAG_WIDTH
+          : MIN_TAG_WIDTH + WIDTH_FOR_PLUS_N;
 
         if ((remainingWidth > tagWidth + extraSpaceNeeded)) {
           // Show the entire tag if there is enough space.

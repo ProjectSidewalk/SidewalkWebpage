@@ -80,7 +80,8 @@
             .then((clusters) => this.displayClustersOnMap(map, clusters));
         })
         .catch((error) => {
-          container.innerHTML = `<div class="message message-error">Failed to load label clusters: ${error.message}</div>`;
+          container.innerHTML = `<div class="message message-error">Failed to load label clusters: `
+            + `${error.message}</div>`;
           console.error('Label clusters preview error:', error);
           return Promise.reject(error);
         });
@@ -315,9 +316,12 @@
           // Create popup content.
           const props = feature.properties;
           const severity = props.median_severity ? `Median Severity: ${props.median_severity}/5` : 'No severity rating';
-          const avgLabelDate = props.avg_label_date ? `Avg. Label Date: ${new Date(props.avg_label_date).toLocaleDateString()}` : 'Unknown date';
+          const avgLabelDate = props.avg_label_date
+            ? `Avg. Label Date: ${new Date(props.avg_label_date).toLocaleDateString()}`
+            : 'Unknown date';
           const clusterSize = `Cluster Size: ${props.cluster_size} labels`;
-          const validation = `Validation: ${props.agree_count} agree, ${props.disagree_count} disagree, ${props.unsure_count} unsure`;
+          const validation = `Validation: ${props.agree_count} agree, ${props.disagree_count} disagree, `
+            + `${props.unsure_count} unsure`;
 
           layer.bindPopup(`
             <div class="cluster-popup">
@@ -377,9 +381,11 @@
       // First add the types present in the data.
       typesInData.forEach((name) => {
         if (labelTypeInfo[name]) {
+          const swatchStyle = 'display: inline-block; width: 10px; height: 10px; border-radius: 50%; '
+            + `background-color: ${labelTypeInfo[name].color}; margin-right: 5px;`;
           legendDiv.innerHTML += `
             <div style="margin: 3px 0;">
-              <i style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${labelTypeInfo[name].color}; margin-right: 5px;"></i>
+              <i style="${swatchStyle}"></i>
               ${name}
             </div>
           `;

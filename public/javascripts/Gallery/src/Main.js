@@ -85,7 +85,9 @@ class Main {
     sg.labelTypeMenu = new LabelTypeMenu(sg.ui.labelTypeMenu, params.initialFilters.labelType);
 
     sg.cardFilter = new CardFilter(sg.ui.cardFilter, sg.labelTypeMenu, sg.cityMenu, params.initialFilters);
-    sg.cardContainer = await CardContainer.create(sg.ui.cardContainer, params.initialFilters, params.viewerType, params.viewerAccessToken);
+    sg.cardContainer = await CardContainer.create(
+      sg.ui.cardContainer, params.initialFilters, params.viewerType, params.viewerAccessToken,
+    );
     sg.expandedView = () => sg.cardContainer.getExpandedView();
 
     // Initialize KeyboardManager to activate keyboard shortcuts.

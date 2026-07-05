@@ -370,7 +370,8 @@ class PanoManager {
    * @returns {Promise<PanoData>}
    */
   setPanorama(panoId) {
-    return svl.panoViewer.setPano(panoId).then(this.#panoSuccessCallback, (err) => this.#setPanoFailureCallback(err, panoId));
+    return svl.panoViewer.setPano(panoId)
+      .then(this.#panoSuccessCallback, (err) => this.#setPanoFailureCallback(err, panoId));
   }
 
   /**

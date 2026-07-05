@@ -157,7 +157,9 @@ class Main {
 
     svv.panoStore = new PanoStore();
     const firstLabel = param.labelList[0];
-    svv.panoManager = await PanoManager.create(svv.viewerType, param.viewerAccessToken, firstLabel.pano_id, buildBackupImageData(firstLabel));
+    svv.panoManager = await PanoManager.create(
+      svv.viewerType, param.viewerAccessToken, firstLabel.pano_id, buildBackupImageData(firstLabel),
+    );
     svv.labelContainer = await LabelContainer.create(param.labelList);
 
     // There are certain features that will only make sense on desktop vs mobile.
@@ -166,7 +168,9 @@ class Main {
     } else {
       svv.panoOverlay = new PanoOverlay();
       svv.keyboard = new KeyboardManager(svv.ui.validationMenu);
-      svv.speedLimit = new SpeedLimit(svv.panoViewer, svv.panoViewer.getPosition, () => false, svv.labelContainer, labelType);
+      svv.speedLimit = new SpeedLimit(
+        svv.panoViewer, svv.panoViewer.getPosition, () => false, svv.labelContainer, labelType,
+      );
       svv.zoomControl = new ZoomControl();
       new MissionStartTutorial('validate', labelType, { nLabels: param.mission.labels_validated }, svv, param.language);
     }

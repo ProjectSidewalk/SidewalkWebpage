@@ -120,7 +120,9 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-1'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-generic')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-generic')} `
+          + `<img src="${svl.rootDirectory}img/icons/Icon_Delete.png" `
+          + `style="width: 6%; height:auto" alt="Delete Icon">`,
       },
       panoId,
       annotations: [
@@ -278,7 +280,9 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-1'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-crosswalk')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-crosswalk')} `
+          + `<img src="${svl.rootDirectory}img/icons/Icon_Delete.png" `
+          + `style="width: 6%; height:auto" alt="Delete Icon">`,
       },
       panoId,
       annotations: [
@@ -463,7 +467,9 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-2'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-generic')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-generic')} `
+          + `<img src="${svl.rootDirectory}img/icons/Icon_Delete.png" `
+          + `style="width: 6%; height:auto" alt="Delete Icon">`,
       },
       panoId,
       annotations: [
@@ -676,7 +682,9 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-2'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-generic')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-generic')} `
+          + `<img src="${svl.rootDirectory}img/icons/Icon_Delete.png" `
+          + `style="width: 6%; height:auto" alt="Delete Icon">`,
       },
       panoId,
       annotations: [
@@ -903,7 +911,9 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-2'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-signal')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-signal')} `
+          + `<img src="${svl.rootDirectory}img/icons/Icon_Delete.png" `
+          + `style="width: 6%; height:auto" alt="Delete Icon">`,
       },
       panoId,
       annotations: [
@@ -1057,7 +1067,9 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-3'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-crosswalk')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-crosswalk')} `
+          + `<img src="${svl.rootDirectory}img/icons/Icon_Delete.png" `
+          + `style="width: 6%; height:auto" alt="Delete Icon">`,
       },
       panoId,
       annotations: [
@@ -1278,7 +1290,9 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-4'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-generic')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-generic')} `
+          + `<img src="${svl.rootDirectory}img/icons/Icon_Delete.png" `
+          + `style="width: 6%; height:auto" alt="Delete Icon">`,
       },
       panoId,
       annotations: [
@@ -1466,7 +1480,9 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-5'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-generic')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-generic')} `
+          + `<img src="${svl.rootDirectory}img/icons/Icon_Delete.png" `
+          + `style="width: 6%; height:auto" alt="Delete Icon">`,
       },
       panoId,
       annotations: [
@@ -1641,7 +1657,9 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-5'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-signal')} <img src="${svl.rootDirectory}img/icons/Icon_Delete.png" style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-signal')} `
+          + `<img src="${svl.rootDirectory}img/icons/Icon_Delete.png" `
+          + `style="width: 6%; height:auto" alt="Delete Icon">`,
       },
       panoId,
       annotations: [
@@ -1728,7 +1746,8 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       transition() {
         // Set Compass Message
         const uiCompassMessageHolder = compass.getCompassMessageHolder();
-        const image = `<img src='${compass.directionToImagePath('straight')}' class='compass-turn-images' alt='Turn icon' />`;
+        const image = `<img src='${compass.directionToImagePath('straight')}' class='compass-turn-images'`
+          + ` alt='Turn icon' />`;
         const message = `<div class='compass-message-small'>${i18next.t('center-ui.compass.unlabeled-problems')
         }</div>${image}<span class='compass-message-large'>${i18next.t('center-ui.compass.straight')}</span>`;
         uiCompassMessageHolder.message.html(message);
@@ -1770,7 +1789,9 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       panoId,
       transition() {
         panoManager.setPov({ heading: 329, pitch: 0, zoom: 1 });
-        svl.ui.minimap.holder.css('backgroundImage', `url('${svl.rootDirectory}img/onboarding/afterWalkTutorialMiniMap.jpg')`);
+        svl.ui.minimap.holder.css(
+          'backgroundImage', `url('${svl.rootDirectory}img/onboarding/afterWalkTutorialMiniMap.jpg')`,
+        );
         return 'walk-4';
       },
     },

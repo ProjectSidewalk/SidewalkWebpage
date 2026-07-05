@@ -107,11 +107,12 @@ class PopupPanoManager {
         'padding-bottom': '15px',
       })[0];
 
-    this.#panoNotAvailableAuditSuggestion
-            = $(`<div id="pano-not-avail-audit"><a id="explore-street">${i18next.t('common:errors.explore-street')}</div>`).css({
-        'font-size': '85%',
-        'padding-bottom': '15px',
-      })[0];
+    this.#panoNotAvailableAuditSuggestion = $(
+      `<div id="pano-not-avail-audit"><a id="explore-street">${i18next.t('common:errors.explore-street')}</div>`,
+    ).css({
+      'font-size': '85%',
+      'padding-bottom': '15px',
+    })[0];
 
     this.#fallbackContainer = $('<div id="pano-fallback-container">').css({
       position: 'relative',

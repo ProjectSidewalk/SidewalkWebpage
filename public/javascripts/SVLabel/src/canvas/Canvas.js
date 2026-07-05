@@ -319,7 +319,8 @@ class Canvas {
     if (!this.#status.disableLabelDelete) {
       const currLabel = this.getCurrentLabel();
       // If in tutorial, only delete if it's the last label that the user added to the canvas.
-      if (currLabel && (!svl.onboarding || svl.onboarding.getCurrentLabelId() === currLabel.getProperty('temporaryLabelId'))) {
+      if (currLabel
+        && (!svl.onboarding || svl.onboarding.getCurrentLabelId() === currLabel.getProperty('temporaryLabelId'))) {
         svl.tracker.push('Click_LabelDelete', { labelType: currLabel.getProperty('labelType') });
         svl.labelContainer.removeLabel(currLabel);
         svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');

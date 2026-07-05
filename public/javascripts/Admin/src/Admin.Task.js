@@ -183,10 +183,16 @@ class AdminTask {
       this.#showEvent(action.properties);
 
       // If this step included adding a label, draw the label on the map and pano.
-      if ('label' in action.properties && this.#renderedLabels.features.filter((x) => x.properties.label_id === action.properties.label.label_id).length === 0) {
-        const label = action.properties.label;
+      const label = action.properties.label;
+      const labelAlreadyRendered = this.#renderedLabels.features
+        .some((x) => x.properties.label_id === label?.label_id);
+      if ('label' in action.properties && !labelAlreadyRendered) {
         label.circleColor = this.#colorScheme[label.label_type].fillStyle;
-        this.#renderedLabels.features.push({ type: 'Feature', properties: label, geometry: { type: 'Point', coordinates: label.coordinates } });
+        this.#renderedLabels.features.push({
+          type: 'Feature',
+          properties: label,
+          geometry: { type: 'Point', coordinates: label.coordinates },
+        });
         this.#map.getSource('labels').setData(this.#renderedLabels);
 
         // Plain-object label shape consumed by PopupPanoManager. See LabelPopup.js for full field shape.
@@ -254,8 +260,11 @@ class AdminTask {
     this.#currentTimestamp = this.#featuresData[this.#currStep].properties.timestamp;
 
     // Log the time to replay the task to the console.
+    const maxWaitSec = this.#maxWaitMs / 1000;
+    const skippedSec = skippedTime / 1000;
+    const fillSec = this.#skipFillTimeMs / 1000;
     console.log(`Speed being multiplied by ${this.#speedMultiplier}.`);
-    console.log(`${totalSkips} pauses over ${this.#maxWaitMs / 1000} sec totalling ${skippedTime / 1000} sec. Pausing for ${this.#skipFillTimeMs / 1000} sec during those.`);
+    console.log(`${totalSkips} pauses over ${maxWaitSec} sec total ${skippedSec} sec (pausing ${fillSec} sec each).`);
     console.log(`Time to replay task: ${this.#timeToPlaybackTask / 1000} seconds`);
 
     document.getElementById('total-time-label').innerHTML = (this.#timeToPlaybackTask / 1000).toFixed(0);

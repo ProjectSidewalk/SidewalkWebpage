@@ -60,7 +60,8 @@
         })
         .then((data) => this.render(data, container))
         .catch((error) => {
-          container.innerHTML = `<div class="message message-error">Failed to load aggregate statistics: ${error.message}</div>`;
+          container.innerHTML = `<div class="message message-error">Failed to load aggregate statistics: `
+            + `${error.message}</div>`;
           return Promise.reject(error);
         });
     },
@@ -78,7 +79,8 @@
         ['Cities', fmt(data.num_cities)],
         ['Countries', fmt(data.num_countries)],
         ['Languages', fmt(data.num_languages)],
-        ['Distance Explored', `${Number(data.km_explored || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} km`],
+        ['Distance Explored',
+          `${Number(data.km_explored || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} km`],
         ['Total Labels', fmt(data.total_labels)],
         ['Total Validations', fmt(data.total_validations)],
         ['Total Users', fmt(data.total_users)],
@@ -144,8 +146,8 @@
         const barOuter = document.createElement('div');
         barOuter.style.cssText = 'background:#eee;border-radius:3px;height:8px;margin-top:4px';
         const barInner = document.createElement('div');
-        barInner.style.cssText
-                    = `height:8px;border-radius:3px;background:#78B9AB;width:${maxLabels > 0 ? ((r.labels || 0) / maxLabels) * 100 : 0}%`;
+        barInner.style.cssText = `height:8px;border-radius:3px;background:#78B9AB;`
+          + `width:${maxLabels > 0 ? ((r.labels || 0) / maxLabels) * 100 : 0}%`;
         barOuter.appendChild(barInner);
         labelsCell.appendChild(barOuter);
         row.appendChild(labelsCell);

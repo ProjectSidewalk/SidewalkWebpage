@@ -120,7 +120,9 @@ class LabelContainer {
     if (this.#currLabelIndex > 0) {
       svv.undoValidation.enableUndo();
     }
-    await svv.panoManager.setPanorama(this.#currLabel.getAuditProperty('panoId'), this.#currLabel.getAuditProperty('backupImage'));
+    await svv.panoManager.setPanorama(
+      this.#currLabel.getAuditProperty('panoId'), this.#currLabel.getAuditProperty('backupImage'),
+    );
     svv.labelDescriptionBox.setDescription(this.#currLabel);
     svv.validationMenu.resetMenu(this.#currLabel);
     if (svv.adminVersion) svv.adminInfo.updateAdminInfo(this.#currLabel);

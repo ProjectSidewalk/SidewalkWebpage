@@ -167,7 +167,8 @@ class Card {
       markerWrapper.appendChild(aiIndicator);
       $(aiIndicator)
         .tooltip({
-          template: '<div class="tooltip ai-tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>',
+          template: '<div class="tooltip ai-tooltip" role="tooltip"><div class="tooltip-arrow"></div>'
+            + '<div class="tooltip-inner"></div></div>',
           container: 'body',
         })
         .tooltip('hide');
@@ -269,8 +270,10 @@ class Card {
    * @param cardContainer UI element to render card in.
    */
   render(cardContainer) {
-    // If the card had transparent background from the expanded view being open earlier, remove transparency on rerender.
-    if (this.#card.classList.contains('expanded-view-background-card')) this.#card.classList.remove('expanded-view-background-card');
+    // If the card had transparent background from the expanded view opening earlier, remove transparency on rerender.
+    if (this.#card.classList.contains('expanded-view-background-card')) {
+      this.#card.classList.remove('expanded-view-background-card');
+    }
     cardContainer.append(this.#card);
     this.#renderTags();
   }

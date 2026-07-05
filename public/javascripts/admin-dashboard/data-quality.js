@@ -110,7 +110,9 @@ class DataQualityPage {
 
     this.#setText('kpi-total-labels', (labels.label_count || 0).toLocaleString());
     this.#setText('kpi-with-severity', eligible ? DataQualityPage.#pct(withSeverity / eligible) : '—');
-    this.#setText('kpi-with-severity-note', `${withSeverity.toLocaleString()} of ${eligible.toLocaleString()} eligible labels`);
+    this.#setText(
+      'kpi-with-severity-note', `${withSeverity.toLocaleString()} of ${eligible.toLocaleString()} eligible labels`,
+    );
     this.#setText('kpi-agreement', validated ? DataQualityPage.#pct(agreed / validated) : '—');
     this.#setText('kpi-agreement-note', `${agreed.toLocaleString()} of ${validated.toLocaleString()} validated`);
     this.#setText('kpi-total-validations', (combined.total_validations || 0).toLocaleString());
@@ -198,7 +200,8 @@ class DataQualityPage {
       const value = `${DataQualityPage.#pct(r.coverage)}
                 <span class="dq-sub">(${r.validated.toLocaleString()}/${r.count.toLocaleString()})</span>`;
       // Deep-link straight into validating this label type (admin-gated validate route parses a type name).
-      const action = `<a class="dq-validate-btn" href="/adminValidate?labelType=${encodeURIComponent(r.type)}">Validate</a>`;
+      const action = `<a class="dq-validate-btn" href="/adminValidate?labelType=${encodeURIComponent(r.type)}">`
+        + `Validate</a>`;
       return this.#row(r.type, bar, value, action);
     }).join('');
   }

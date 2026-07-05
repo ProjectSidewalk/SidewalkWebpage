@@ -72,7 +72,9 @@ class ZoomControl {
     // Scrolling up (negative deltaY) zooms in; scrolling down zooms out.
     const zoomDelta = -e.originalEvent.deltaY * ZoomControl.#ZOOM_WHEEL_SENSITIVITY;
 
-    const newZoom = Math.max(ZoomControl.#MIN_ZOOM, Math.min(ZoomControl.#MAX_ZOOM, svv.panoViewer.getPov().zoom + zoomDelta));
+    const newZoom = Math.max(
+      ZoomControl.#MIN_ZOOM, Math.min(ZoomControl.#MAX_ZOOM, svv.panoViewer.getPov().zoom + zoomDelta),
+    );
     svv.panoManager.setZoom(newZoom);
     this.updateZoomAvailability();
 

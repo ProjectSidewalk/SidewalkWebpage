@@ -91,8 +91,12 @@ class BadgeAchievements {
    * @returns {?Object} The newly earned badge descriptor (see getBadge), or null if no new level was reached.
    */
   static detectUnlock(type, oldValue, newValue, opts = {}) {
-    const oldLevel = BadgeAchievements.getLevelForValue(type, BadgeAchievements.#toCanonical(type, oldValue, opts.isMetric));
-    const newLevel = BadgeAchievements.getLevelForValue(type, BadgeAchievements.#toCanonical(type, newValue, opts.isMetric));
+    const oldLevel = BadgeAchievements.getLevelForValue(
+      type, BadgeAchievements.#toCanonical(type, oldValue, opts.isMetric),
+    );
+    const newLevel = BadgeAchievements.getLevelForValue(
+      type, BadgeAchievements.#toCanonical(type, newValue, opts.isMetric),
+    );
     return newLevel > oldLevel ? BadgeAchievements.getBadge(type, newLevel, opts) : null;
   }
 

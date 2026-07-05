@@ -32,7 +32,8 @@ class ValidationMenu {
     const cardOverlayHTML = `
             <div id="gallery-validation-button-holder">
                 <button id="gallery-card-agree-button" class="validation-button">${i18next.t('common:agree')}</button>
-                <button id="gallery-card-disagree-button" class="validation-button">${i18next.t('common:disagree')}</button>
+                <button id="gallery-card-disagree-button"
+                    class="validation-button">${i18next.t('common:disagree')}</button>
                 <button id="gallery-card-unsure-button" class="validation-button">${i18next.t('common:unsure')}</button>
             </div>`;
     this.#overlay = $(cardOverlayHTML);
@@ -184,7 +185,9 @@ class ValidationMenu {
     if (keyboardShortcut) {
       actionStr = actionStr.replace('Click', 'KeyboardShortcut');
     }
-    sg.tracker.push(actionStr, { panoId: refCard.getProperty('pano_id') }, { labelId: refCard.getProperty('label_id') });
+    sg.tracker.push(
+      actionStr, { panoId: refCard.getProperty('pano_id') }, { labelId: refCard.getProperty('label_id') },
+    );
 
     const validationTimestamp = new Date();
     const labelIcon = refCard.labelIcon;

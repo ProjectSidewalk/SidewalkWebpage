@@ -43,8 +43,12 @@
    * @returns {string} Interpolated color in hex format
    */
   function interpolateColor(color1, color2, factor) {
-    const c1 = { r: parseInt(color1.slice(1, 3), 16), g: parseInt(color1.slice(3, 5), 16), b: parseInt(color1.slice(5, 7), 16) };
-    const c2 = { r: parseInt(color2.slice(1, 3), 16), g: parseInt(color2.slice(3, 5), 16), b: parseInt(color2.slice(5, 7), 16) };
+    const c1 = {
+      r: parseInt(color1.slice(1, 3), 16), g: parseInt(color1.slice(3, 5), 16), b: parseInt(color1.slice(5, 7), 16),
+    };
+    const c2 = {
+      r: parseInt(color2.slice(1, 3), 16), g: parseInt(color2.slice(3, 5), 16), b: parseInt(color2.slice(5, 7), 16),
+    };
     const r = Math.round(c1.r + (c2.r - c1.r) * factor);
     const g = Math.round(c1.g + (c2.g - c1.g) * factor);
     const b = Math.round(c1.b + (c2.b - c1.b) * factor);
@@ -148,7 +152,8 @@
 
       // CartoDB Dark Matter tiles, matching the other API doc previews.
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors '
+          + '&copy; <a href="https://carto.com/attributions">CARTO</a>',
         subdomains: 'abcd',
         maxZoom: 19,
       }).addTo(map);
@@ -211,7 +216,9 @@
      */
     bindRegionInteractions(feature, layer) {
       const props = feature.properties;
-      const firstLabelDate = props.first_label_date ? new Date(props.first_label_date).toLocaleDateString() : 'No labels';
+      const firstLabelDate = props.first_label_date
+        ? new Date(props.first_label_date).toLocaleDateString()
+        : 'No labels';
       const lastLabelDate = props.last_label_date ? new Date(props.last_label_date).toLocaleDateString() : 'No labels';
 
       layer.bindPopup(`
@@ -261,8 +268,8 @@
         const gradientContainer = L.DomUtil.create('div', 'gradient-container', div);
         gradientContainer.style.cssText = 'width: 200px; height: 20px; position: relative; margin: 5px 0;';
         const gradientBar = L.DomUtil.create('div', 'gradient-bar', gradientContainer);
-        gradientBar.style.cssText
-                    = `width: 100%; height: 100%; background: linear-gradient(to right, ${metricCfg.low}, ${metricCfg.high});`;
+        gradientBar.style.cssText = `width: 100%; height: 100%; `
+          + `background: linear-gradient(to right, ${metricCfg.low}, ${metricCfg.high});`;
 
         const labelsContainer = L.DomUtil.create('div', 'legend-labels', div);
         labelsContainer.style.cssText = 'display: flex; justify-content: space-between; width: 200px;';

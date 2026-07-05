@@ -5,17 +5,20 @@ class ModalMission {
   #uiModalMission;
 
   #validationStartMissionHTML = ` <figure> \
-        <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
+        <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" \
+        alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
         <p>${i18next.t('mission-start.body')}</p>\
         <div class="spacer10"></div>`;
 
   #validationResumeMissionHTML = ' <figure> \
-        <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
+        <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" \
+        alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>Continue validating  __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span> labels placed by other users!</p>\
+        <p>Continue validating  __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span> \
+        labels placed by other users!</p>\
         <div class="spacer10"></div>';
 
   /**
@@ -72,13 +75,17 @@ class ModalMission {
           n: mission.getProperty('labelsValidated'),
           label_type: svv.labelTypeNames[mission.getProperty('labelTypeId')],
         });
-      let validationStartMissionHTMLCopy = this.#validationStartMissionHTML.replace('__LABELCOUNT_PLACEHOLDER__', mission.getProperty('labelsValidated'));
-      validationStartMissionHTMLCopy = validationStartMissionHTMLCopy.replace('__LABELTYPE_PLACEHOLDER__', svv.labelTypeNames[mission.getProperty('labelTypeId')]);
+      let validationStartMissionHTMLCopy = this.#validationStartMissionHTML
+        .replace('__LABELCOUNT_PLACEHOLDER__', mission.getProperty('labelsValidated'));
+      validationStartMissionHTMLCopy = validationStartMissionHTMLCopy
+        .replace('__LABELTYPE_PLACEHOLDER__', svv.labelTypeNames[mission.getProperty('labelTypeId')]);
       this.show(validationMissionStartTitle, validationStartMissionHTMLCopy);
     } else {
       const validationMissionStartTitle = 'Return to your mission';
-      let validationResumeMissionHTMLCopy = this.#validationResumeMissionHTML.replace('__LABELCOUNT_PLACEHOLDER__', mission.getProperty('labelsValidated'));
-      validationResumeMissionHTMLCopy = validationResumeMissionHTMLCopy.replace('__LABELTYPE_PLACEHOLDER__', svv.labelTypeNames[mission.getProperty('labelTypeId')]);
+      let validationResumeMissionHTMLCopy = this.#validationResumeMissionHTML
+        .replace('__LABELCOUNT_PLACEHOLDER__', mission.getProperty('labelsValidated'));
+      validationResumeMissionHTMLCopy = validationResumeMissionHTMLCopy
+        .replace('__LABELTYPE_PLACEHOLDER__', svv.labelTypeNames[mission.getProperty('labelTypeId')]);
       this.show(validationMissionStartTitle, validationResumeMissionHTMLCopy);
     }
   }

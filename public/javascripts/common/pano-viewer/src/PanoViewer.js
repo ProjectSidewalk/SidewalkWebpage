@@ -52,7 +52,7 @@ class PanoViewer {
    * @param {Element} canvasElem
    * @param {object} panoOptions Object containing initialization options
    * @param {string} [panoOptions.startPanoId] Pano to start at; either this or startLatLng is required
-   * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Location to start at; either this or startLatLng is required
+   * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Starting loc; either this or startLatLng is required
    * @returns {Promise<void>}
    */
   initialize(_canvasElem, _panoOptions = {}) {
@@ -64,7 +64,7 @@ class PanoViewer {
    * @param {Element} canvasElem
    * @param {object} panoOptions Object containing initialization options
    * @param {string} [panoOptions.startPanoId] Pano to start at; either this or startLatLng is required
-   * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Location to start at; either this or startLatLng is required
+   * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Starting loc; either this or startLatLng is required
    * @returns {Promise<PanoViewer>}
    * @static
    */

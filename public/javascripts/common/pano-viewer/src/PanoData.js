@@ -20,13 +20,16 @@ class PanoData {
    * @param {string} [params.copyright] Optional associated copyright info for the image
    * @param {Array<{panoId: string, heading: number}>} params.linkedPanos List of nearby panos linked to with nav arrows
    * @param {Array<{panoId: string, captureDate: Date}>} params.history List of panos at this pano's location over time
-   * @param {boolean} [params.submitted=false] Whether we've sent this data to the server yet; false unless from tutorial
+   * @param {boolean} [params.submitted=false] Whether we've sent this data to the server yet; false unless in tutorial
    * @returns {PanoData}
    * @constructor
    */
   constructor(params) {
     // Validate required parameters.
-    const requiredParams = ['panoId', 'source', 'lat', 'lng', 'cameraHeading', 'cameraPitch', 'width', 'height', 'captureDate', 'linkedPanos', 'history'];
+    const requiredParams = [
+      'panoId', 'source', 'lat', 'lng', 'cameraHeading', 'cameraPitch', 'width', 'height', 'captureDate', 'linkedPanos',
+      'history',
+    ];
     requiredParams.forEach((param) => {
       if (params[param] === undefined || params[param] === null) {
         throw new Error(`Missing required parameter: ${param}`);

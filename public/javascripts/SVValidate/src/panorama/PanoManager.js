@@ -94,7 +94,8 @@ class PanoManager {
 
     if (panoViewerType === GsvViewer && !util.isMobile()) {
       this.#makeGsvAttributionClickable();
-      this.#linksListener = this.#primaryViewer.gsvPano.addListener('links_changed', this.#makeGsvAttributionClickable.bind(this));
+      this.#linksListener = this.#primaryViewer.gsvPano
+        .addListener('links_changed', this.#makeGsvAttributionClickable.bind(this));
     } else if (panoViewerType === MapillaryViewer && !util.isMobile()) {
       this.#makeMapillaryAttributionClickable();
     }

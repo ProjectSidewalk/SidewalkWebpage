@@ -56,7 +56,8 @@
       return this.fetchStreetTypes()
         .then((data) => this.renderStreetTypes(data, container))
         .catch((error) => {
-          container.innerHTML = `<div class="message message-error">Failed to load street types: ${error.message}</div>`;
+          container.innerHTML = `<div class="message message-error">Failed to load street types: `
+            + `${error.message}</div>`;
           return Promise.reject(error);
         });
     },

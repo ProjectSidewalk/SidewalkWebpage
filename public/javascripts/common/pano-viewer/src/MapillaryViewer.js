@@ -106,7 +106,8 @@ class MapillaryViewer extends PanoViewer {
       this.addListener('pano_changed', this.updateImageData);
     }
 
-    // Can even set the width of the nav arrows? https://mapillary.github.io/mapillary-js/api/interfaces/component.DirectionConfiguration/
+    // Can even set the width of the nav arrows?
+    // https://mapillary.github.io/mapillary-js/api/interfaces/component.DirectionConfiguration/
     // TODO Might want to do that in defaultNavigation actually... They're kinda big.
   }
 
@@ -154,7 +155,7 @@ class MapillaryViewer extends PanoViewer {
 
     // To get various info about the pano -- https://mapillary.github.io/mapillary-js/api/classes/viewer.Image/
     // TODO merged, might want to record whether it's been merged thru sfm
-    // TODO qualityScore is interesting: A number between zero and one determining the quality of the image. Blurriness, .......
+    // TODO qualityScore is interesting: A number between zero and one determining the quality of the image.
     const panoDataParams = {
       panoId: this.currImage.id,
       source: this.getViewerType(),

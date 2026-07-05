@@ -279,7 +279,8 @@ function generateTableOfContents() {
   }
 
   tocContainer.innerHTML = '';
-  const headings = content.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]'); // Ensure headings have IDs
+  // Ensure headings have IDs.
+  const headings = content.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]');
 
   if (headings.length === 0) {
     console.warn('No headings with IDs found in content for TOC');
@@ -328,7 +329,9 @@ function setupScrollSpy() {
   })).sort((a, b) => a.offsetTop - b.offsetTop); // Sort by position
 
   // Calculate offset based on fixed header height + breathing room.
-  const scrollOffset = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--navbar-height') || '50', 10) + 20;
+  const scrollOffset = parseInt(
+    getComputedStyle(document.documentElement).getPropertyValue('--navbar-height') || '50', 10,
+  ) + 20;
 
   function highlightActiveTocItem() {
     const scrollPosition = window.scrollY + scrollOffset;
@@ -374,7 +377,9 @@ function setupSmoothScrolling() {
   const scrollContainers = document.querySelectorAll('.api-toc, .api-sidebar .api-nav');
   if (scrollContainers.length === 0) return;
 
-  const headerHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--navbar-height') || '50', 10);
+  const headerHeight = parseInt(
+    getComputedStyle(document.documentElement).getPropertyValue('--navbar-height') || '50', 10,
+  );
   const scrollPadding = 10; // Extra space above the target.
 
   scrollContainers.forEach((container) => {
@@ -519,7 +524,8 @@ function setupDownloadButtons() {
 
       // Get API URL information.
       const apiBaseUrl = document.documentElement.getAttribute('data-api-base-url') || '/v3/api';
-      const currentPage = document.documentElement.getAttribute('data-api-endpoint') || 'NEEDS_TO_BE_SET_BY_API_DOC_PAGE';
+      const currentPage = document.documentElement.getAttribute('data-api-endpoint')
+        || 'NEEDS_TO_BE_SET_BY_API_DOC_PAGE';
       const downloadUrl = `${apiBaseUrl}/${currentPage}?filetype=${format}`;
 
       // CRITICAL: Track download state globally for this download. Ensures we can properly update status message.
@@ -534,7 +540,9 @@ function setupDownloadButtons() {
       // Show loading status.
       downloadStatus.style.display = 'block';
       if (statusMessage) statusMessage.textContent = `Preparing ${format.toUpperCase()} file...`;
-      if (statusProgress) statusProgress.textContent = `This process can take a few seconds to a minute, depending on the data size.`;
+      if (statusProgress) {
+        statusProgress.textContent = `This process can take a few seconds to a minute, depending on the data size.`;
+      }
 
       // Disable all download buttons during processing.
       downloadButtons.forEach((btn) => {

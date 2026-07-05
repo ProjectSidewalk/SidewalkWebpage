@@ -443,8 +443,11 @@ class NavigationService {
     // that's actually ahead rather than cycling through other panos clustered at the current location.
     // If they've wandered away from the route, keep currLoc at getFurthestPointReached() to bring them back.
     const currPosition = svl.panoViewer.getPosition();
-    const distFromFurthest = turf.distance(turf.point([currPosition.lng, currPosition.lat]), startLatLng, { units: 'meters' });
-    if (distFromFurthest <= svl.STREETVIEW_MAX_DISTANCE && turf.length(remainder, { units: 'kilometers' }) > NavigationService.#DIST_INCREMENT) {
+    const distFromFurthest = turf.distance(
+      turf.point([currPosition.lng, currPosition.lat]), startLatLng, { units: 'meters' },
+    );
+    if (distFromFurthest <= svl.STREETVIEW_MAX_DISTANCE
+      && turf.length(remainder, { units: 'kilometers' }) > NavigationService.#DIST_INCREMENT) {
       remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, NavigationService.#DIST_INCREMENT, streetEndpoint));
       currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
     }

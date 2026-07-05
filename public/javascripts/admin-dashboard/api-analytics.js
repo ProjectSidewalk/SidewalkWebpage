@@ -1,7 +1,7 @@
 /**
  * Renders the admin API Analytics page (#4272). Frames v3 public-API usage around real external adoption vs our own
  * docs "Try it" traffic: KPIs, a monthly external-vs-docs usage trend (shared MiniLineChart), top endpoints, and
- * requested formats. Backed by /adminapi/apiAnalyticsBySource (source-split in one call); a time-range toggle re-fetches.
+ * requested formats. Backed by /adminapi/apiAnalyticsBySource (one source-split call); a time-range toggle re-fetches.
  */
 class ApiAnalyticsPage {
   #dataUrl;
@@ -294,7 +294,8 @@ class ApiAnalyticsPage {
       + `<div class="api-bar-external" style="width:${w(extVal)}"></div>`
       + `<div class="api-bar-docs" style="width:${w(docsVal)}"></div>`
       + `</div>`
-      : `<div class="dq-bar-track"><div class="dq-bar" style="width:${w(extVal)};background:var(--api-external, #2171b5)"></div></div>`;
+      : `<div class="dq-bar-track">`
+        + `<div class="dq-bar" style="width:${w(extVal)};background:var(--api-external, #2171b5)"></div></div>`;
     return [
       '<div class="api-ep-row">',
       `<span class="api-ep-label" title="${ApiAnalyticsPage.#esc(label)}">${ApiAnalyticsPage.#esc(label)}</span>`,

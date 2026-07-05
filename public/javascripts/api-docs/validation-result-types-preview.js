@@ -67,7 +67,8 @@
         })
         .then((data) => this.render(data, container))
         .catch((error) => {
-          container.innerHTML = `<div class="message message-error">Failed to load validation result types: ${error.message}</div>`;
+          container.innerHTML = `<div class="message message-error">Failed to load validation result types: `
+            + `${error.message}</div>`;
           return Promise.reject(error);
         });
     },
@@ -110,8 +111,8 @@
         const nameCell = document.createElement('td');
         nameCell.style.padding = '8px';
         const swatch = document.createElement('span');
-        swatch.style.cssText
-                    = `display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:8px;background:${color}`;
+        swatch.style.cssText = `display:inline-block;width:12px;height:12px;border-radius:2px;`
+          + `margin-right:8px;background:${color}`;
         nameCell.appendChild(swatch);
         nameCell.appendChild(document.createTextNode(type.name));
         row.appendChild(nameCell);
@@ -126,8 +127,8 @@
         const barOuter = document.createElement('div');
         barOuter.style.cssText = 'background:#eee;border-radius:3px;height:8px;margin-top:4px';
         const barInner = document.createElement('div');
-        barInner.style.cssText
-                    = `height:8px;border-radius:3px;background:${color};width:${maxCount > 0 ? (type.count / maxCount) * 100 : 0}%`;
+        barInner.style.cssText = `height:8px;border-radius:3px;background:${color};`
+          + `width:${maxCount > 0 ? (type.count / maxCount) * 100 : 0}%`;
         barOuter.appendChild(barInner);
         totalCell.appendChild(barOuter);
         row.appendChild(totalCell);

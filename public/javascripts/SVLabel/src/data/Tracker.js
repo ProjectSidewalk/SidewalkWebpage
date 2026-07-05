@@ -190,7 +190,8 @@ class Tracker {
     }
 
     // Submit the data collected thus far if actions is too long.
-    if (!this.#waitingOnSubmit && this.#actions.length > 200 && !this.#isCanvasInteraction(action) && !this.#isContextMenuAction(action)) {
+    if (!this.#waitingOnSubmit && this.#actions.length > 200
+      && !this.#isCanvasInteraction(action) && !this.#isContextMenuAction(action)) {
       if (Object.hasOwn(svl, 'form') && Object.hasOwn(svl, 'taskContainer')) {
         this.#waitingOnSubmit = true;
         svl.form.submitData().then(() => this.#waitingOnSubmit = false);

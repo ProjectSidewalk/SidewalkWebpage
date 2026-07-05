@@ -335,7 +335,9 @@ class Onboarding {
     this.clear();
 
     // Get the full list of annotations, including those from previous states that should remain.
-    const currAnnotations = state.annotations ? this.#savedAnnotations.concat(state.annotations) : this.#savedAnnotations;
+    const currAnnotations = state.annotations
+      ? this.#savedAnnotations.concat(state.annotations)
+      : this.#savedAnnotations;
 
     let blink_frequency_modifier = 0;
     for (i = 0, len = currAnnotations.length; i < len; i++) {
@@ -401,7 +403,9 @@ class Onboarding {
         }
         // The first time we encounter the label, create the marker on the minimap.
         if (!annotation.firstDraw) {
-          const googleMarker = Label.createMinimapMarker(annotation.labelType, { lat: annotation.lat, lng: annotation.lng });
+          const googleMarker = Label.createMinimapMarker(
+            annotation.labelType, { lat: annotation.lat, lng: annotation.lng },
+          );
           googleMarker.map = svl.minimap.getMap();
           annotation.firstDraw = true;
         }
@@ -827,7 +831,8 @@ class Onboarding {
       const okButtonText = state.okButtonText || 'Ok';
       this.#uiOnboarding.messageHolder.append(
         `<div class='onboarding-ok-button-holder'>`
-        + `<button id='onboarding-ok-button' class='button-ps button--medium button--secondary'>${okButtonText}</button>`
+        + `<button id='onboarding-ok-button' class='button-ps button--medium button--secondary'>`
+        + `${okButtonText}</button>`
         + `</div>`,
       );
     }

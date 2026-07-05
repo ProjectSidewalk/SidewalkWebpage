@@ -110,7 +110,8 @@
             });
         })
         .catch((error) => {
-          container.innerHTML = `<div class="error-message" style="color: red; text-align: center; padding: 50px 0;">Failed to load data: ${error.message}</div>`;
+          container.innerHTML = `<div class="error-message" style="color: red; text-align: center; padding: 50px 0;">`
+            + `Failed to load data: ${error.message}</div>`;
           console.error('User stats preview error:', error);
           return Promise.reject(error);
         });

@@ -24,8 +24,12 @@
 
   /** Interpolates between two hex colors by a 0–1 factor. */
   function interpolateColor(color1, color2, factor) {
-    const c1 = { r: parseInt(color1.slice(1, 3), 16), g: parseInt(color1.slice(3, 5), 16), b: parseInt(color1.slice(5, 7), 16) };
-    const c2 = { r: parseInt(color2.slice(1, 3), 16), g: parseInt(color2.slice(3, 5), 16), b: parseInt(color2.slice(5, 7), 16) };
+    const c1 = {
+      r: parseInt(color1.slice(1, 3), 16), g: parseInt(color1.slice(3, 5), 16), b: parseInt(color1.slice(5, 7), 16),
+    };
+    const c2 = {
+      r: parseInt(color2.slice(1, 3), 16), g: parseInt(color2.slice(3, 5), 16), b: parseInt(color2.slice(5, 7), 16),
+    };
     const r = Math.round(c1.r + (c2.r - c1.r) * factor);
     const g = Math.round(c1.g + (c2.g - c1.g) * factor);
     const b = Math.round(c1.b + (c2.b - c1.b) * factor);
@@ -112,7 +116,8 @@
       const map = L.map('access-score-streets-map', { scrollWheelZoom: false });
       this._map = map;
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors '
+          + '&copy; <a href="https://carto.com/attributions">CARTO</a>',
         subdomains: 'abcd', maxZoom: 19,
       }).addTo(map);
 

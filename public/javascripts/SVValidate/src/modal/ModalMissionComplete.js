@@ -24,7 +24,10 @@ class ModalMissionComplete {
       const newMission = svv.missionContainer.getCurrentMission();
       if (newMission && newMission.getProperty('missionType') === 'validation') {
         const labelTypeID = newMission.getProperty('labelTypeId');
-        new MissionStartTutorial('validate', svv.labelTypes[labelTypeID], { nLabels: newMission.getProperty('labelsValidated') }, svv, this.#language);
+        new MissionStartTutorial(
+          'validate', svv.labelTypes[labelTypeID],
+          { nLabels: newMission.getProperty('labelsValidated') }, svv, this.#language,
+        );
       }
 
       this.hide();

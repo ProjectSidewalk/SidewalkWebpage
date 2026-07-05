@@ -79,7 +79,9 @@ class ContributorsPage {
     this.#setText('kpi-high-quality', highQ.toLocaleString());
     this.#setText('kpi-low-quality', (labelers.length - highQ).toLocaleString());
     this.#setText('kpi-labels-high-quality', totalLabels ? ContributorsPage.#pct(labelsHighQ / totalLabels) : '—');
-    this.#setText('kpi-labels-high-quality-note', `${labelsHighQ.toLocaleString()} of ${totalLabels.toLocaleString()} labels`);
+    this.#setText(
+      'kpi-labels-high-quality-note', `${labelsHighQ.toLocaleString()} of ${totalLabels.toLocaleString()} labels`,
+    );
   }
 
   /** Stacked bar of high- vs low-quality contributor counts. */

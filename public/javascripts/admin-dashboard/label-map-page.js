@@ -63,7 +63,9 @@ class LabelMapPage {
     } catch (err) {
       console.error('Label Map: map failed to load.', err);
       const holder = document.getElementById('admin-labelmap-choropleth');
-      if (holder) holder.innerHTML = '<p class="dq-empty" style="padding:24px">Could not load the map. Please try again.</p>';
+      if (holder) {
+        holder.innerHTML = '<p class="dq-empty" style="padding:24px">Could not load the map. Please try again.</p>';
+      }
     }
   }
 

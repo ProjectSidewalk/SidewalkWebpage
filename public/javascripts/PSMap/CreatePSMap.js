@@ -35,7 +35,9 @@ function CreatePSMap($, params) {
   params.logClicks = params.logClicks === undefined ? true : params.logClicks;
   params.scrollWheelZoom = params.scrollWheelZoom === undefined ? true : params.scrollWheelZoom;
   params.neighborhoodTooltip = params.neighborhoodTooltip === undefined ? 'none' : params.neighborhoodTooltip;
-  params.differentiateUnauditedStreets = params.differentiateUnauditedStreets === undefined ? false : params.differentiateUnauditedStreets;
+  params.differentiateUnauditedStreets = params.differentiateUnauditedStreets === undefined
+    ? false
+    : params.differentiateUnauditedStreets;
 
   // Create the map.
   let map;

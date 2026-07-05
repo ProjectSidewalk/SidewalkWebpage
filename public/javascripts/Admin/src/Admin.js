@@ -166,7 +166,9 @@ class Admin {
     let min = 0;
 
     if (filteredData.length > 0) { // Prevent errors in development where there may be no data
-      median = (filteredData.length / 2) % 1 === 0 ? (filteredData[i - 1][col] + filteredData[i][col]) / 2 : filteredData[Math.floor(i)][col];
+      median = (filteredData.length / 2) % 1 === 0
+        ? (filteredData[i - 1][col] + filteredData[i][col]) / 2
+        : filteredData[Math.floor(i)][col];
       min = filteredData[0][col];
       max = filteredData[filteredData.length - 1][col];
     }
@@ -632,7 +634,8 @@ class Admin {
           });
 
           const histOpts = {
-            col: 'rate', xAxisTitle: 'Neighborhood Completion (%)', xDomain: [0, 100], width: 400, height: 250, binStep: 10,
+            col: 'rate', xAxisTitle: 'Neighborhood Completion (%)', xDomain: [0, 100],
+            width: 400, height: 250, binStep: 10,
           };
           const coverageRateHist = Admin.getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
 
@@ -661,7 +664,9 @@ class Admin {
 
           $('#audit-std').html(`${(stats.std).toFixed(2)} Street Audits`);
 
-          const histOpts = { xAxisTitle: '# Street Audits per Day', xDomain: [0, stats.max], width: 250, binStep: 50, legendOffset: -80 };
+          const histOpts = {
+            xAxisTitle: '# Street Audits per Day', xDomain: [0, stats.max], width: 250, binStep: 50, legendOffset: -80,
+          };
           const hist = Admin.getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
 
           const chart = {
@@ -725,7 +730,9 @@ class Admin {
           const stats = Admin.getSummaryStats(data, 'count');
           $('#label-std').html(`${(stats.std).toFixed(2)} Labels`);
 
-          const histOpts = { xAxisTitle: '# Labels per Day', xDomain: [0, stats.max], width: 250, binStep: 200, legendOffset: -80 };
+          const histOpts = {
+            xAxisTitle: '# Labels per Day', xDomain: [0, stats.max], width: 250, binStep: 200, legendOffset: -80,
+          };
           const hist = Admin.getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
 
           const chart = {
@@ -789,7 +796,9 @@ class Admin {
           const stats = Admin.getSummaryStats(data, 'count');
           $('#validation-std').html(`${(stats.std).toFixed(2)} Validations`);
 
-          const histOpts = { xAxisTitle: '# Validations per Day', xDomain: [0, stats.max], width: 250, binStep: 200, legendOffset: -80 };
+          const histOpts = {
+            xAxisTitle: '# Validations per Day', xDomain: [0, stats.max], width: 250, binStep: 200, legendOffset: -80,
+          };
           const hist = Admin.getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
 
           const chart = {
@@ -893,10 +902,16 @@ class Admin {
           };
 
           const allChart = Admin.getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
-          const allFilteredChart = Admin.getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
+          const allFilteredChart = Admin.getVegaLiteHistogram(
+            allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts,
+          );
           const regChart = Admin.getVegaLiteHistogram(regData, regStats.mean, regStats.median, regHistOpts);
-          const regFilteredChart = Admin.getVegaLiteHistogram(regData, regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
-          const turkerChart = Admin.getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
+          const regFilteredChart = Admin.getVegaLiteHistogram(
+            regData, regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts,
+          );
+          const turkerChart = Admin.getVegaLiteHistogram(
+            turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts,
+          );
           const anonChart = Admin.getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
           // Only includes charts with data, because charts with no data prevent all charts from rendering.
@@ -975,10 +990,16 @@ class Admin {
           };
 
           const allChart = Admin.getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
-          const allFilteredChart = Admin.getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
+          const allFilteredChart = Admin.getVegaLiteHistogram(
+            allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts,
+          );
           const regChart = Admin.getVegaLiteHistogram(regData, regStats.mean, regStats.median, regHistOpts);
-          const regFilteredChart = Admin.getVegaLiteHistogram(regData, regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
-          const turkerChart = Admin.getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
+          const regFilteredChart = Admin.getVegaLiteHistogram(
+            regData, regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts,
+          );
+          const turkerChart = Admin.getVegaLiteHistogram(
+            turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts,
+          );
           const anonChart = Admin.getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
           // Only includes charts with data, because charts with no data prevent all charts from rendering.
@@ -1057,10 +1078,16 @@ class Admin {
           };
 
           const allChart = Admin.getVegaLiteHistogram(allData, allStats.mean, allStats.median, allHistOpts);
-          const allFilteredChart = Admin.getVegaLiteHistogram(allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts);
+          const allFilteredChart = Admin.getVegaLiteHistogram(
+            allData, allFilteredStats.mean, allFilteredStats.median, allFilteredHistOpts,
+          );
           const regChart = Admin.getVegaLiteHistogram(regData, regStats.mean, regStats.median, regHistOpts);
-          const regFilteredChart = Admin.getVegaLiteHistogram(regData, regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts);
-          const turkerChart = Admin.getVegaLiteHistogram(turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts);
+          const regFilteredChart = Admin.getVegaLiteHistogram(
+            regData, regFilteredStats.mean, regFilteredStats.median, regFilteredHistOpts,
+          );
+          const turkerChart = Admin.getVegaLiteHistogram(
+            turkerData, turkerStats.mean, turkerStats.median, turkerHistOpts,
+          );
           const anonChart = Admin.getVegaLiteHistogram(anonData, anonStats.mean, anonStats.median, anonHistOpts);
 
           // Only includes charts with data, because charts with no data prevent all charts from rendering.
@@ -1103,7 +1130,9 @@ class Admin {
             excludeResearchers: true };
 
           const chart = Admin.getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
-          const filteredChart = Admin.getVegaLiteHistogram(data, filteredStats.mean, filteredStats.median, histFilteredOpts);
+          const filteredChart = Admin.getVegaLiteHistogram(
+            data, filteredStats.mean, filteredStats.median, histFilteredOpts,
+          );
 
           $('#login-count-std').html(`${(filteredStats.std).toFixed(2)} Logins`);
           vega.embed('#login-count-chart', filteredChart, opt);
@@ -1322,45 +1351,67 @@ class Admin {
         const totalAuditedDistance = data.street_distance.total;
 
         // Set Audited Streets section of the Street Edge Table.
-        $('#street-count-audited-all').text(Admin.formatCountWithPercent(data.street_counts.audited.any_quality.all_users, totalAuditedStreets));
-        $('#street-count-audited-high-quality').text(Admin.formatCountWithPercent(data.street_counts.audited.high_quality.all_users, totalAuditedStreets));
+        const auditedCounts = data.street_counts.audited;
+        $('#street-count-audited-all')
+          .text(Admin.formatCountWithPercent(auditedCounts.any_quality.all_users, totalAuditedStreets));
+        $('#street-count-audited-high-quality')
+          .text(Admin.formatCountWithPercent(auditedCounts.high_quality.all_users, totalAuditedStreets));
 
         $('#street-count-total').text(totalAuditedStreets);
 
-        $('#street-count-audited-registered-all').text(Admin.formatCountWithPercent(data.street_counts.audited.any_quality.registered, totalAuditedStreets));
-        $('#street-count-audited-registered-high-quality').text(Admin.formatCountWithPercent(data.street_counts.audited.high_quality.registered, totalAuditedStreets));
+        $('#street-count-audited-registered-all')
+          .text(Admin.formatCountWithPercent(auditedCounts.any_quality.registered, totalAuditedStreets));
+        $('#street-count-audited-registered-high-quality')
+          .text(Admin.formatCountWithPercent(auditedCounts.high_quality.registered, totalAuditedStreets));
 
-        $('#street-count-audited-anonymous-all').text(Admin.formatCountWithPercent(data.street_counts.audited.any_quality.anonymous, totalAuditedStreets));
-        $('#street-count-audited-anonymous-high-quality').text(Admin.formatCountWithPercent(data.street_counts.audited.high_quality.anonymous, totalAuditedStreets));
+        $('#street-count-audited-anonymous-all')
+          .text(Admin.formatCountWithPercent(auditedCounts.any_quality.anonymous, totalAuditedStreets));
+        $('#street-count-audited-anonymous-high-quality')
+          .text(Admin.formatCountWithPercent(auditedCounts.high_quality.anonymous, totalAuditedStreets));
 
-        $('#street-count-audited-turker-all').text(Admin.formatCountWithPercent(data.street_counts.audited.any_quality.turker, totalAuditedStreets));
-        $('#street-count-audited-turker-high-quality').text(Admin.formatCountWithPercent(data.street_counts.audited.high_quality.turker, totalAuditedStreets));
+        $('#street-count-audited-turker-all')
+          .text(Admin.formatCountWithPercent(auditedCounts.any_quality.turker, totalAuditedStreets));
+        $('#street-count-audited-turker-high-quality')
+          .text(Admin.formatCountWithPercent(auditedCounts.high_quality.turker, totalAuditedStreets));
 
-        $('#street-count-audited-researcher-all').text(Admin.formatCountWithPercent(data.street_counts.audited.any_quality.researcher, totalAuditedStreets));
-        $('#street-count-audited-researcher-high-quality').text(Admin.formatCountWithPercent(data.street_counts.audited.high_quality.researcher, totalAuditedStreets));
+        $('#street-count-audited-researcher-all')
+          .text(Admin.formatCountWithPercent(auditedCounts.any_quality.researcher, totalAuditedStreets));
+        $('#street-count-audited-researcher-high-quality')
+          .text(Admin.formatCountWithPercent(auditedCounts.high_quality.researcher, totalAuditedStreets));
 
         // Set the explored street count fields in Overview table.
-        $('#explored-street-count-all-time').text(data.street_counts.audited.with_overlap.all_time);
-        $('#explored-street-count-today').text(data.street_counts.audited.with_overlap.today);
-        $('#explored-street-count-week').text(data.street_counts.audited.with_overlap.week);
+        $('#explored-street-count-all-time').text(auditedCounts.with_overlap.all_time);
+        $('#explored-street-count-today').text(auditedCounts.with_overlap.today);
+        $('#explored-street-count-week').text(auditedCounts.with_overlap.week);
 
         // Set Distance section of the Street Edge Table.
-        $('#street-distance-audited-all').text(Admin.formatDistanceWithPercent(data.street_distance.audited.any_quality.all_users, totalAuditedDistance));
-        $('#street-distance-audited-high-quality').text(Admin.formatDistanceWithPercent(data.street_distance.audited.high_quality.all_users, totalAuditedDistance));
+        const auditedDist = data.street_distance.audited;
+        $('#street-distance-audited-all')
+          .text(Admin.formatDistanceWithPercent(auditedDist.any_quality.all_users, totalAuditedDistance));
+        $('#street-distance-audited-high-quality')
+          .text(Admin.formatDistanceWithPercent(auditedDist.high_quality.all_users, totalAuditedDistance));
 
         $('#street-distance-total').text(Admin.formatDistance(totalAuditedDistance));
 
-        $('#street-distance-registered-all').text(Admin.formatDistanceWithPercent(data.street_distance.audited.any_quality.registered, totalAuditedDistance));
-        $('#street-distance-registered-high-quality').text(Admin.formatDistanceWithPercent(data.street_distance.audited.high_quality.registered, totalAuditedDistance));
+        $('#street-distance-registered-all')
+          .text(Admin.formatDistanceWithPercent(auditedDist.any_quality.registered, totalAuditedDistance));
+        $('#street-distance-registered-high-quality')
+          .text(Admin.formatDistanceWithPercent(auditedDist.high_quality.registered, totalAuditedDistance));
 
-        $('#street-distance-anonymous-all').text(Admin.formatDistanceWithPercent(data.street_distance.audited.any_quality.anonymous, totalAuditedDistance));
-        $('#street-distance-anonymous-high-quality').text(Admin.formatDistanceWithPercent(data.street_distance.audited.high_quality.anonymous, totalAuditedDistance));
+        $('#street-distance-anonymous-all')
+          .text(Admin.formatDistanceWithPercent(auditedDist.any_quality.anonymous, totalAuditedDistance));
+        $('#street-distance-anonymous-high-quality')
+          .text(Admin.formatDistanceWithPercent(auditedDist.high_quality.anonymous, totalAuditedDistance));
 
-        $('#street-distance-turker-all').text(Admin.formatDistanceWithPercent(data.street_distance.audited.any_quality.turker, totalAuditedDistance));
-        $('#street-distance-turker-high-quality').text(Admin.formatDistanceWithPercent(data.street_distance.audited.high_quality.turker, totalAuditedDistance));
+        $('#street-distance-turker-all')
+          .text(Admin.formatDistanceWithPercent(auditedDist.any_quality.turker, totalAuditedDistance));
+        $('#street-distance-turker-high-quality')
+          .text(Admin.formatDistanceWithPercent(auditedDist.high_quality.turker, totalAuditedDistance));
 
-        $('#street-distance-researcher-all').text(Admin.formatDistanceWithPercent(data.street_distance.audited.any_quality.researcher, totalAuditedDistance));
-        $('#street-distance-researcher-high-quality').text(Admin.formatDistanceWithPercent(data.street_distance.audited.high_quality.researcher, totalAuditedDistance));
+        $('#street-distance-researcher-all')
+          .text(Admin.formatDistanceWithPercent(auditedDist.any_quality.researcher, totalAuditedDistance));
+        $('#street-distance-researcher-high-quality')
+          .text(Admin.formatDistanceWithPercent(auditedDist.high_quality.researcher, totalAuditedDistance));
 
         // Set the audited distance fields in Overview table.
         $('#audited-distance-all-time').text(Admin.formatDistance(data.street_distance.audited.with_overlap.all_time));
@@ -1382,7 +1433,8 @@ class Admin {
         for (const userCount of data) {
           const taskCompleted = userCount.task_completed_only ? 'task_completed' : 'no_task_constraint';
           const highQuality = userCount.high_quality_only ? 'high_quality' : 'any_quality';
-          $(`#user-count-${userCount.tool_used}-${userCount.role}-${userCount.time_interval}-${taskCompleted}-${highQuality}`)
+          const { tool_used, role, time_interval } = userCount;
+          $(`#user-count-${tool_used}-${role}-${time_interval}-${taskCompleted}-${highQuality}`)
             .text(userCount.count);
         }
         resolve();
@@ -1479,7 +1531,8 @@ class Admin {
             `<a href='/admin/user/${c.username}'>${c.username}</a>`,
             // NOTE defining how we can sort based on timestamps is defined in admin/index.scala.html.
             `<span class="timestamp" data-timestamp="${c.timestamp}">${new Date(c.timestamp)}</span>`,
-            `<a class="show-comment-location" href="#" data-heading="${c.heading}" data-pitch="${c.pitch}" data-zoom="${c.zoom}" data-label-id="${c.label_id}">${c.pano_id}</a>`,
+            `<a class="show-comment-location" href="#" data-heading="${c.heading}" data-pitch="${c.pitch}"
+              data-zoom="${c.zoom}" data-label-id="${c.label_id}">${c.pano_id}</a>`,
             c.comment_type,
             c.comment,
             c.label_id,
@@ -1544,7 +1597,8 @@ class Admin {
           const roleDropdown = u.role !== 'Owner'
             ? `
                         <div class="dropdown role-dropdown">
-                            <button class="btn btn-default dropdown-toggle" type="button" id="userRoleDropdown${u.userId}" data-toggle="dropdown">
+                            <button class="btn btn-default dropdown-toggle" type="button"
+                                id="userRoleDropdown${u.userId}" data-toggle="dropdown">
                                 ${u.role}
                                 <span class="caret"></span>
                             </button>
@@ -1561,13 +1615,15 @@ class Admin {
 
           const teamDropdown = `
                         <div class="dropdown team-dropdown">
-                            <button class="btn btn-default dropdown-toggle" type="button" id="userTeamDropdown${u.userId}" data-toggle="dropdown">
+                            <button class="btn btn-default dropdown-toggle" type="button"
+                                id="userTeamDropdown${u.userId}" data-toggle="dropdown">
                                 ${u.team || 'None'}
                                 <span class="caret"></span>
                             </button>
                             <ul class="dropdown-menu" role="menu" aria-labelledby="userTeamDropdown${u.userId}">
                                 ${data.teams.map((team) => `
-                                    <li><a href="#!" class="change-team" data-team-id="${team.teamId}">${team.name}</a></li>
+                                    <li><a href="#!" class="change-team"
+                                        data-team-id="${team.teamId}">${team.name}</a></li>
                                 `).join('')}
                                 <li><a href="#!" class="change-team" data-team-id="-1">None</a></li>
                             </ul>
@@ -1619,24 +1675,30 @@ class Admin {
         teamsTable.rows.add(data.map((t) => {
           const statusDropdown
                         = `<div class="dropdown status-dropdown">
-                            <button class="btn btn-default dropdown-toggle" type="button" id="statusDropdown${t.teamId}" data-toggle="dropdown">
+                            <button class="btn btn-default dropdown-toggle" type="button"
+                                id="statusDropdown${t.teamId}" data-toggle="dropdown">
                                 ${t.open ? 'Open' : 'Closed'}
                                 <span class="caret"></span>
                             </button>
                             <ul class="dropdown-menu" role="menu" aria-labelledby="statusDropdown${t.teamId}">
-                                <li><a href="#!" class="change-status" data-team-id="${t.teamId}" data-status="true">Open</a></li>
-                                <li><a href="#!" class="change-status" data-team-id="${t.teamId}" data-status="false">Closed</a></li>
+                                <li><a href="#!" class="change-status" data-team-id="${t.teamId}"
+                                    data-status="true">Open</a></li>
+                                <li><a href="#!" class="change-status" data-team-id="${t.teamId}"
+                                    data-status="false">Closed</a></li>
                             </ul>
                         </div>`;
           const visibilityDropdown
                         = `<div class="dropdown visibility-dropdown">
-                            <button class="btn btn-default dropdown-toggle" type="button" id="visibilityDropdown${t.teamId}" data-toggle="dropdown">
+                            <button class="btn btn-default dropdown-toggle" type="button"
+                                id="visibilityDropdown${t.teamId}" data-toggle="dropdown">
                                 ${t.visible ? 'Visible' : 'Hidden'}
                                 <span class="caret"></span>
                             </button>
                             <ul class="dropdown-menu" role="menu" aria-labelledby="visibilityDropdown${t.teamId}">
-                                <li><a href="#!" class="change-visibility" data-team-id="${t.teamId}" data-visibility="true">Visible</a></li>
-                                <li><a href="#!" class="change-visibility" data-team-id="${t.teamId}" data-visibility="false">Hidden</a></li>
+                                <li><a href="#!" class="change-visibility" data-team-id="${t.teamId}"
+                                    data-visibility="true">Visible</a></li>
+                                <li><a href="#!" class="change-visibility" data-team-id="${t.teamId}"
+                                    data-visibility="false">Hidden</a></li>
                             </ul>
                         </div>`;
 
