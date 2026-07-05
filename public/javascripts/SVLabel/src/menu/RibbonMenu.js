@@ -36,8 +36,8 @@ class RibbonMenu {
   #uiRibbonMenu;
 
   /**
-     * @param {Object} tracker - Interaction tracker for logging mode switches.
-     */
+   * @param {Object} tracker - Interaction tracker for logging mode switches.
+   */
   constructor(tracker) {
     this.#tracker = tracker;
     this.#uiRibbonMenu = {
@@ -51,11 +51,11 @@ class RibbonMenu {
   }
 
   /**
-     * Adds the tooltip attributes (showing each label type's keyboard shortcut) to the menu buttons.
-     *
-     * The global Bootstrap tooltip initializer in Main reads these attributes when it runs, and it only picks up
-     * elements that already have them — so this must run during construction, before that init call.
-     */
+   * Adds the tooltip attributes (showing each label type's keyboard shortcut) to the menu buttons.
+   *
+   * The global Bootstrap tooltip initializer in Main reads these attributes when it runs, and it only picks up
+   * elements that already have them — so this must run during construction, before that init call.
+   */
   #initTooltipAttributes() {
     const setKeyTooltip = (el, placement) => {
       const val = el.getAttribute('val');
@@ -103,9 +103,9 @@ class RibbonMenu {
   }
 
   /**
-     * Callback invoked on a ribbon menu button click.
-     * @param {string} mode - Either a label type name or 'Walk'.
-     */
+   * Callback invoked on a ribbon menu button click.
+   * @param {string} mode - Either a label type name or 'Walk'.
+   */
   modeSwitch(mode) {
     this.#tracker.push(`ModeSwitch_${mode}`);
 
@@ -145,8 +145,8 @@ class RibbonMenu {
   }
 
   /**
-     * @param {Event} e - The subcategory click event (currentTarget is the clicked subcategory).
-     */
+   * @param {Event} e - The subcategory click event (currentTarget is the clicked subcategory).
+   */
   #handleSubcategoryClick(e) {
     e.stopPropagation();
     const subcategory = $(e.currentTarget).attr('val');
@@ -159,8 +159,8 @@ class RibbonMenu {
   }
 
   /**
-     * @param {EventTarget} target - The clicked label-type button.
-     */
+   * @param {EventTarget} target - The clicked label-type button.
+   */
   #handleModeSwitchClickCallback(target) {
     const labelType = $(target).attr('val');
     if (this.#status.disableModeSwitch === false || this.#status.disableMode[labelType] === false) {
@@ -172,8 +172,8 @@ class RibbonMenu {
   }
 
   /**
-     * @param {EventTarget} target - The hovered label-type button.
-     */
+   * @param {EventTarget} target - The hovered label-type button.
+   */
   #handleModeSwitchMouseEnter(target) {
     const labelType = $(target).attr('val');
 
@@ -208,9 +208,9 @@ class RibbonMenu {
   }
 
   /**
-     * @param {string} selectedLabelType
-     * @returns {RibbonMenu} this.
-     */
+   * @param {string} selectedLabelType
+   * @returns {RibbonMenu} this.
+   */
   #setLabelTypeButtonBorderColors(selectedLabelType) {
     if (this.#uiRibbonMenu) { // TODO is this check necessary?
       const labelColors = util.misc.getLabelColors();
@@ -237,18 +237,18 @@ class RibbonMenu {
   }
 
   /**
-     * Changes the mode to "walk".
-     * @returns {RibbonMenu} this.
-     */
+   * Changes the mode to "walk".
+   * @returns {RibbonMenu} this.
+   */
   backToWalk() {
     this.modeSwitch('Walk');
     return this;
   }
 
   /**
-     * Disable switching modes.
-     * @returns {RibbonMenu} this.
-     */
+   * Disable switching modes.
+   * @returns {RibbonMenu} this.
+   */
   disableModeSwitch() {
     if (!this.#status.lockDisableModeSwitch) {
       this.#status.disableModeSwitch = true;
@@ -277,10 +277,10 @@ class RibbonMenu {
   }
 
   /**
-     * Disables a specific label type.
-     * @param {string} labelType
-     * @param {string} [subLabelType]
-     */
+   * Disables a specific label type.
+   * @param {string} labelType
+   * @param {string} [subLabelType]
+   */
   disableMode(labelType, subLabelType) {
     if (!this.#status.lockDisableMode) {
       const button = this.#uiRibbonMenu.holder.find(`[val="${labelType}"]`).get(0);
@@ -310,9 +310,9 @@ class RibbonMenu {
   }
 
   /**
-     * Enables mode switch.
-     * @returns {RibbonMenu} this.
-     */
+   * Enables mode switch.
+   * @returns {RibbonMenu} this.
+   */
   enableModeSwitch() {
     if (!this.#status.lockDisableModeSwitch) {
       this.#status.disableModeSwitch = false;
@@ -341,10 +341,10 @@ class RibbonMenu {
   }
 
   /**
-     * Enables a specific label type.
-     * @param {string} labelType
-     * @param {string} [subLabelType]
-     */
+   * Enables a specific label type.
+   * @param {string} labelType
+   * @param {string} [subLabelType]
+   */
   enableMode(labelType, subLabelType) {
     if (!this.#status.lockDisableMode) {
       const button = this.#uiRibbonMenu.holder.find(`[val="${labelType}"]`).get(0);
@@ -387,10 +387,10 @@ class RibbonMenu {
   }
 
   /**
-     * @param {string} key
-     * @param {string} [subkey]
-     * @returns {*}
-     */
+   * @param {string} key
+   * @param {string} [subkey]
+   * @returns {*}
+   */
   getStatus(key, subkey) {
     if (key in this.#status) {
       if (subkey) {
@@ -405,21 +405,21 @@ class RibbonMenu {
   }
 
   /**
-     * @param {string} key
-     * @returns {*}
-     */
+   * @param {string} key
+   * @returns {*}
+   */
   #getProperty(key) {
     return key in this.#properties ? this.#properties[key] : null;
   }
 
   /**
-     * Sets the given value in the status object.
-     *
-     * @param {string} name
-     * @param {*} value
-     * @param {string} [subname]
-     * @returns {RibbonMenu|boolean}
-     */
+   * Sets the given value in the status object.
+   *
+   * @param {string} name
+   * @param {*} value
+   * @param {string} [subname]
+   * @returns {RibbonMenu|boolean}
+   */
   setStatus(name, value, subname) {
     if (name in this.#status) {
       if (name === 'disableModeSwitch') {
@@ -448,9 +448,9 @@ class RibbonMenu {
   }
 
   /**
-     * @param {string} labelType
-     * @param {string} [subLabelType]
-     */
+   * @param {string} labelType
+   * @param {string} [subLabelType]
+   */
   startBlinking(labelType, subLabelType) {
     let highlighted = false;
     const button = this.#uiRibbonMenu.holder.find(`[val="${labelType}"]`).get(0).children[0];

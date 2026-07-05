@@ -7,8 +7,8 @@ class StatusField {
   #progressBar;
 
   /**
-     * @param {number} completedValidationsParam The number of validations the user has completed all time.
-     */
+   * @param {number} completedValidationsParam The number of validations the user has completed all time.
+   */
   constructor(completedValidationsParam) {
     this.#completedValidations = completedValidationsParam;
     this.#statusUI = svv.ui.status;
@@ -16,10 +16,10 @@ class StatusField {
   }
 
   /**
-     * Resets the status field whenever a new mission is introduced.
-     *
-     * @param {Mission} currentMission Mission object for the current mission.
-     */
+   * Resets the status field whenever a new mission is introduced.
+   *
+   * @param {Mission} currentMission Mission object for the current mission.
+   */
   reset(currentMission) {
     const progress = currentMission.getProperty('labelsProgress');
     const total = currentMission.getProperty('labelsValidated');
@@ -28,8 +28,8 @@ class StatusField {
   }
 
   /**
-     * Increments the number of labels the user has validated.
-     */
+   * Increments the number of labels the user has validated.
+   */
   incrementLabelCounts() {
     const prevCount = this.#completedValidations;
     this.#completedValidations++;
@@ -37,28 +37,28 @@ class StatusField {
   }
 
   /**
-     * Shows a badge-unlock toast over the panorama if this validation crossed into a new validation-badge level.
-     *
-     * @param {number} oldCount The user's all-time validation count before this validation.
-     * @param {number} newCount The user's all-time validation count after this validation.
-     */
+   * Shows a badge-unlock toast over the panorama if this validation crossed into a new validation-badge level.
+   *
+   * @param {number} oldCount The user's all-time validation count before this validation.
+   * @param {number} newCount The user's all-time validation count after this validation.
+   */
   #checkBadgeUnlock(oldCount, newCount) {
     const badge = BadgeAchievements.detectUnlock('validations', oldCount, newCount);
     if (badge) BadgeAchievements.showUnlockToast(badge, document.getElementById('svv-panorama-holder'));
   }
 
   /**
-     * Decrements the number of labels the user has validated (used in undo).
-     */
+   * Decrements the number of labels the user has validated (used in undo).
+   */
   decrementLabelCounts() {
     this.#completedValidations--;
   }
 
   /**
-     * Updates the label name that is displayed in the title bar and above the validation section.
-     *
-     * @param {string} labelType Name of label without spaces.
-     */
+   * Updates the label name that is displayed in the title bar and above the validation section.
+   *
+   * @param {string} labelType Name of label without spaces.
+   */
   updateLabelText(labelType) {
     const missionLength = svv.missionContainer ? svv.missionContainer.getCurrentMission().getProperty('labelsValidated') : svv.missionLength;
     const newMissionTitle = i18next.t(
@@ -70,22 +70,22 @@ class StatusField {
   }
 
   /**
-     * Updates the mission progress completion bar by setting the width of the green portion.
-     */
+   * Updates the mission progress completion bar by setting the width of the green portion.
+   */
   setProgressBar(progress, total) {
     this.#progressBar.setFraction(progress / total);
   }
 
   /**
-     * Updates the percentage on the progress bar to show how much of the validation mission the user has completed.
-     */
+   * Updates the percentage on the progress bar to show how much of the validation mission the user has completed.
+   */
   setProgressText(progress, total) {
     this.#progressBar.setLabel(`${progress}/${total}`); // No-op on mobile.
   }
 
   /**
-     * @returns {number} The user's total validation count.
-     */
+   * @returns {number} The user's total validation count.
+   */
   getCompletedValidations() {
     return this.#completedValidations;
   }

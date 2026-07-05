@@ -63,11 +63,11 @@ function AddLabelsToMap(map, labelData, params) {
   }
 
   /**
-     * Creates a single Mapbox source and circle layer for the given label type.
-     * @param {Array} features GeoJSON features for this label type.
-     * @param {string} labelType The label type key.
-     * @returns {string} The layer name.
-     */
+   * Creates a single Mapbox source and circle layer for the given label type.
+   * @param {Array} features GeoJSON features for this label type.
+   * @param {string} labelType The label type key.
+   * @returns {string} The layer name.
+   */
   function createLayer(features, labelType) {
     const layerName = `labels-${labelType}`;
     map.addSource(layerName, {
@@ -106,9 +106,9 @@ function AddLabelsToMap(map, labelData, params) {
   }
 
   /**
-     * Checks if all label layers have been added to the map.
-     * @returns {boolean} True if all layers are loaded.
-     */
+   * Checks if all label layers have been added to the map.
+   * @returns {boolean} True if all layers are loaded.
+   */
   function allLabelLayersLoaded() {
     return Object.values(mapData.layerNames).every((name) => map.getLayer(name) !== undefined);
   }

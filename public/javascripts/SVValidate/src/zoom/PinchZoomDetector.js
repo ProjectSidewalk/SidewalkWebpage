@@ -20,8 +20,8 @@ class PinchZoomDetector {
   }
 
   /**
-     * User starts pinch zooming. Don't know yet whether they are zooming in or out.
-     */
+   * User starts pinch zooming. Don't know yet whether they are zooming in or out.
+   */
   #processTouchstart = (e) => {
     if (e.touches.length >= 2) {
       this.#prevZoomLevel = svv.panoViewer.getPov().zoom;
@@ -31,8 +31,8 @@ class PinchZoomDetector {
   };
 
   /**
-     * Determine whether a user is zooming in or out and logs their actions accordingly.
-     */
+   * Determine whether a user is zooming in or out and logs their actions accordingly.
+   */
   #processZoomChange = () => {
     const currentZoom = svv.panoViewer.getPov().zoom;
     // Logs interaction only if a user is pinch zooming and current zoom is less than max zoom.
@@ -61,8 +61,8 @@ class PinchZoomDetector {
   };
 
   /**
-     * Logs zoom end interactions on mobile devices as users lift their hand off the screen.
-     */
+   * Logs zoom end interactions on mobile devices as users lift their hand off the screen.
+   */
   #processTouchend = (e) => {
     if (svv.tracker && this.#pinchZooming && e.touches.length <= 1) {
       if (this.#pinchZoomCode === PinchZoomDetector.#ZOOM_IN_CODE) {

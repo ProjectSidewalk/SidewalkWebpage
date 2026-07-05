@@ -3,8 +3,8 @@
  */
 class JumpAlert extends Alert {
   /**
-     * Shows the jump-tip alert. Called when the user clicks the "jump" message to relocate to a new street.
-     */
+   * Shows the jump-tip alert. Called when the user clicks the "jump" message to relocate to a new street.
+   */
   onClickJumpMessage() {
     this._showAlert('popup.jump', 'jumpTipMessage');
   }

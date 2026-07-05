@@ -27,11 +27,11 @@ class CoverageTable {
   #hoverId = null;
 
   /**
-     * @param {string} tableId - id of the <table> element.
-     * @param {string} searchId - id of the search <input> element.
-     * @param {{onRowClick?: function(number): void, onRowHover?: function(number): void,
-     *          onRowHoverEnd?: function(): void}} [opts]
-     */
+   * @param {string} tableId - id of the <table> element.
+   * @param {string} searchId - id of the search <input> element.
+   * @param {{onRowClick?: function(number): void, onRowHover?: function(number): void,
+   *          onRowHoverEnd?: function(): void}} [opts]
+   */
   constructor(tableId, searchId, opts = {}) {
     this.#tableId = tableId;
     this.#searchId = searchId;
@@ -41,9 +41,9 @@ class CoverageTable {
   }
 
   /**
-     * Renders the table and wires search, sort, and row interactions (once).
-     * @param {Array<object>} rows - Region rows (region_id, name, completion_rate, distances, counts).
-     */
+   * Renders the table and wires search, sort, and row interactions (once).
+   * @param {Array<object>} rows - Region rows (region_id, name, completion_rate, distances, counts).
+   */
   render(rows) {
     this.#rows = rows;
     const table = document.getElementById(this.#tableId);

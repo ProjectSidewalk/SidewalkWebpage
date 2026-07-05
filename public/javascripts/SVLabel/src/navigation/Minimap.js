@@ -17,10 +17,10 @@ class Minimap {
   #minimapPaneBlinkInterval;
 
   /**
-     * Imports necessary libraries and creates the map. Resolves once the map has finished loading.
-     * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
-     * @returns {Promise<google.maps.Map>}
-     */
+   * Imports necessary libraries and creates the map. Resolves once the map has finished loading.
+   * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
+   * @returns {Promise<google.maps.Map>}
+   */
   async #init(initialLocation) {
     const { LatLng } = await google.maps.importLibrary('core');
     const { Map, MapTypeId, RenderingType } = await google.maps.importLibrary('maps');
@@ -65,9 +65,9 @@ class Minimap {
   }
 
   /**
-     * Wires up the minimap's zoom interactions: scroll-wheel zooming over the map and the on-map +/- buttons. Each step
-     * recenters on the current pano so the map never drifts off-center, keeping the FOV cone aligned.
-     */
+   * Wires up the minimap's zoom interactions: scroll-wheel zooming over the map and the on-map +/- buttons. Each step
+   * recenters on the current pano so the map never drifts off-center, keeping the FOV cone aligned.
+   */
   #setupZoomControls() {
     const holder = document.getElementById('minimap-holder');
     if (holder) {
@@ -85,9 +85,9 @@ class Minimap {
   }
 
   /**
-     * Changes the minimap zoom by the given (signed) number of levels, clamped to the configured min/max.
-     * @param {number} delta - Number of zoom levels to add (positive zooms in, negative zooms out).
-     */
+   * Changes the minimap zoom by the given (signed) number of levels, clamped to the configured min/max.
+   * @param {number} delta - Number of zoom levels to add (positive zooms in, negative zooms out).
+   */
   #changeZoom(delta) {
     if (svl.ui.minimap.holder.hasClass('minimap-tutorial')) return;
     const newZoom = Math.min(Minimap.#MAX_ZOOM, Math.max(Minimap.#MIN_ZOOM, this.#map.getZoom() + delta));
@@ -97,8 +97,8 @@ class Minimap {
   }
 
   /**
-     * Makes the minimap start to blink; used in the tutorial.
-     */
+   * Makes the minimap start to blink; used in the tutorial.
+   */
   blinkMinimap() {
     this.stopBlinkingMinimap();
     this.#minimapPaneBlinkInterval = window.setInterval(() => {
@@ -107,34 +107,34 @@ class Minimap {
   }
 
   /**
-     * Stops the minimap from blinking; used in the tutorial.
-     */
+   * Stops the minimap from blinking; used in the tutorial.
+   */
   stopBlinkingMinimap() {
     window.clearInterval(this.#minimapPaneBlinkInterval);
     svl.ui.minimap.overlay.removeClass('highlight-50');
   }
 
   /**
-     * Get the Google map.
-     * @returns {google.maps.Map}
-     */
+   * Get the Google map.
+   * @returns {google.maps.Map}
+   */
   getMap() {
     return this.#map;
   }
 
   /**
-     * Sets the center of the minimap to the given lat/lng.
-     * @param {{lat: number, lng: number}} latLng
-     */
+   * Sets the center of the minimap to the given lat/lng.
+   * @param {{lat: number, lng: number}} latLng
+   */
   setMinimapLocation(latLng) {
     this.#map.setCenter(new google.maps.LatLng(latLng.lat, latLng.lng));
   }
 
   /**
-     * Factory function that creates a Google Maps minimap in the bottom-right of the UI.
-     * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
-     * @returns {Promise<Minimap>} The minimap instance.
-     */
+   * Factory function that creates a Google Maps minimap in the bottom-right of the UI.
+   * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
+   * @returns {Promise<Minimap>} The minimap instance.
+   */
   static async create(initialLocation) {
     const newMinimap = new Minimap();
     await newMinimap.#init(initialLocation);

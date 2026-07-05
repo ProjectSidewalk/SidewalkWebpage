@@ -9,18 +9,18 @@ class KeyboardManager {
   #zoomControl;
 
   /**
-     * fix for the shift-getting-stuck bug.
-     * this is a documented issue, see here:
-     * https://stackoverflow.com/questions/11225694/why-are-onkeyup-events-not-firing-in-javascript-game
-     * essentially what's going on is that JS sometimes fires a final keydown after a keyup.
-     * (usually happens when multiple events are fired)
-     * so the log would look like keydown:shift, keydown: shift, keyup: shift, keydown: shift.
-     * To fix this, we note the last time that shift was let go, then
-     * ignore any keydown events that were made BEFORE shift was let go, but are executing AFTER.
-     *
-     * also, we added a buffer to the z key to fix inconsistent behavior when shift and z were pressed at the same time.
-     * sometimes, the shift up was detected before the z up. Adding the 100ms buffer fixed this issue.
-     */
+   * fix for the shift-getting-stuck bug.
+   * this is a documented issue, see here:
+   * https://stackoverflow.com/questions/11225694/why-are-onkeyup-events-not-firing-in-javascript-game
+   * essentially what's going on is that JS sometimes fires a final keydown after a keyup.
+   * (usually happens when multiple events are fired)
+   * so the log would look like keydown:shift, keydown: shift, keyup: shift, keydown: shift.
+   * To fix this, we note the last time that shift was let go, then
+   * ignore any keydown events that were made BEFORE shift was let go, but are executing AFTER.
+   *
+   * also, we added a buffer to the z key to fix inconsistent behavior when shift and z were pressed at the same time.
+   * sometimes, the shift up was detected before the z up. Adding the 100ms buffer fixed this issue.
+   */
   #status = {
     focusOnTextField: false,
     isOnboarding: false,
@@ -48,10 +48,10 @@ class KeyboardManager {
   }
 
   /**
-     * Change the heading of the current panorama point of view by a particular degree value.
-     *
-     * @param degree
-     */
+   * Change the heading of the current panorama point of view by a particular degree value.
+   *
+   * @param degree
+   */
   #rotatePovByDegree(degree) {
     const svl = this.#svl;
     if (!svl.panoManager.getStatus('disablePanning')) {
@@ -71,13 +71,13 @@ class KeyboardManager {
   }
 
   /**
-     * Advance one step forward along the user's assigned route, keeping their current POV (heading/pitch/zoom).
-     *
-     * First tries to step to the GSV-linked pano in the route direction (not just wherever the camera happens to
-     * face); if there's no such link — e.g. GSV shows no navigation arrow that way — falls back to the route-aware
-     * moveForward() engine that probes along the assigned street geometry for the next available imagery. This is
-     * the spacebar shortcut for the "routed where there's no forward arrow" case from #619/#1041.
-     */
+   * Advance one step forward along the user's assigned route, keeping their current POV (heading/pitch/zoom).
+   *
+   * First tries to step to the GSV-linked pano in the route direction (not just wherever the camera happens to
+   * face); if there's no such link — e.g. GSV shows no navigation arrow that way — falls back to the route-aware
+   * moveForward() engine that probes along the assigned street geometry for the next available imagery. This is
+   * the spacebar shortcut for the "routed where there's no forward arrow" case from #619/#1041.
+   */
   async #advanceForwardAlongRoute() {
     const svl = this.#svl;
     // No-op while walking is disabled (e.g. mid-load), matching the arrow keys — otherwise moveToLinkedPano()
@@ -101,9 +101,9 @@ class KeyboardManager {
   }
 
   /**
-     * This is a callback for a key down event
-     * @param {object} e An event object
-     */
+   * This is a callback for a key down event
+   * @param {object} e An event object
+   */
   #documentKeyDown = (e) => {
     if (!this.#status.disableKeyboard && !this.#status.focusOnTextField) {
       // Shortcuts that only apply when the context menu is closed (moving/panning).
@@ -133,9 +133,9 @@ class KeyboardManager {
   };
 
   /**
-     * This is a callback for a key up event when focus is not on ContextMenu's textbox.
-     * @param {object} e An event object
-     */
+   * This is a callback for a key up event when focus is not on ContextMenu's textbox.
+   * @param {object} e An event object
+   */
   #documentKeyUp = (e) => {
     const svl = this.#svl;
     // Ways to close context menu. Separated from later code because we want these to work in description textbox.
@@ -227,10 +227,10 @@ class KeyboardManager {
   }
 
   /**
-     * Get status
-     * @param {string} key Field name
-     * @returns {*}
-     */
+   * Get status
+   * @param {string} key Field name
+   * @returns {*}
+   */
   getStatus(key) {
     if (!(key in this.#status)) {
       console.warn('You have passed an invalid key for status.');
@@ -239,10 +239,10 @@ class KeyboardManager {
   }
 
   /**
-     * Set status
-     * @param key Field name
-     * @param value Field value
-     */
+   * Set status
+   * @param key Field name
+   * @param value Field value
+   */
   setStatus(key, value) {
     if (key in this.#status) {
       this.#status[key] = value;

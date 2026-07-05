@@ -63,9 +63,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-1'][0],
         maxHeading: headingRanges['stage-1'][1],
       },
-      message: {
-        message: i18next.t('tutorial.select-label-type-1'),
-      },
+      message: { message: i18next.t('tutorial.select-label-type-1') },
       panoId,
       annotations: [
         {
@@ -91,9 +89,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-1'][0],
         maxHeading: headingRanges['stage-1'][1],
       }],
-      message: {
-        message: i18next.t('tutorial.label-attribute-1'),
-      },
+      message: { message: i18next.t('tutorial.label-attribute-1') },
       panoId,
       annotations: [
         {
@@ -148,9 +144,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-1'][0],
         maxHeading: headingRanges['stage-1'][1],
       },
-      message: {
-        message: i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:curb-ramp') }),
-      },
+      message: { message: i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:curb-ramp') }) },
       panoId,
       annotations: [
         {
@@ -227,9 +221,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-1'][0],
         maxHeading: headingRanges['stage-1'][1],
       },
-      message: {
-        message: i18next.t('tutorial.select-label-type-2'),
-      },
+      message: { message: i18next.t('tutorial.select-label-type-2') },
       panoId,
       annotations: [
         {
@@ -255,9 +247,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-1'][0],
         maxHeading: headingRanges['stage-1'][1],
       }],
-      message: {
-        message: i18next.t('tutorial.label-attribute-2'),
-      },
+      message: { message: i18next.t('tutorial.label-attribute-2') },
       panoId,
       annotations: [
         {
@@ -312,9 +302,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-1'][0],
         maxHeading: headingRanges['stage-1'][1],
       },
-      message: {
-        message: i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:crosswalk') }),
-      },
+      message: { message: i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:crosswalk') }) },
       panoId,
       annotations: [
         {
@@ -337,9 +325,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-1'][0],
         maxHeading: headingRanges['stage-1'][1],
       },
-      message: {
-        message: i18next.t('tutorial.common.rate-crosswalk-sev-1'),
-      },
+      message: { message: i18next.t('tutorial.common.rate-crosswalk-sev-1') },
       panoId,
       annotations: null,
       transition() {
@@ -362,9 +348,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-1'][0],
         maxHeading: headingRanges['stage-1'][1],
       },
-      message: {
-        message: i18next.t('tutorial.common.redo-rate-crosswalk-sev-1'),
-      },
+      message: { message: i18next.t('tutorial.common.redo-rate-crosswalk-sev-1') },
       panoId,
       annotations: null,
       transition() {
@@ -387,9 +371,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-2-adjust'][0],
         maxHeading: headingRanges['stage-2-adjust'][1],
       },
-      message: {
-        message: i18next.t('tutorial.adjust-heading-angle-1'),
-      },
+      message: { message: i18next.t('tutorial.adjust-heading-angle-1') },
       panoId,
       annotations: null,
       transition: 'zoom-in',
@@ -423,9 +405,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-2'][0],
         maxHeading: headingRanges['stage-2'][1],
       },
-      message: {
-        message: i18next.t('tutorial.select-label-type-3'),
-      },
+      message: { message: i18next.t('tutorial.select-label-type-3') },
       panoId,
       annotations: [
         {
@@ -452,9 +432,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-2'][0],
         maxHeading: headingRanges['stage-2'][1],
       }],
-      message: {
-        message: i18next.t('tutorial.label-attribute-3'),
-      },
+      message: { message: i18next.t('tutorial.label-attribute-3') },
       panoId,
       annotations: [
         {
@@ -510,9 +488,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-2'][0],
         maxHeading: headingRanges['stage-2'][1],
       },
-      message: {
-        message: i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:curb-ramp') }),
-      },
+      message: { message: i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:curb-ramp') }) },
       panoId,
       annotations: [
         {
@@ -642,9 +618,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-2'][0],
         maxHeading: headingRanges['stage-2'][1],
       },
-      message: {
-        message: i18next.t('tutorial.select-label-type-4'),
-      },
+      message: { message: i18next.t('tutorial.select-label-type-4') },
       panoId,
       annotations: [
         {
@@ -671,9 +645,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-2'][0],
         maxHeading: headingRanges['stage-2'][1],
       }],
-      message: {
-        message: i18next.t('tutorial.label-attribute-4'),
-      },
+      message: { message: i18next.t('tutorial.label-attribute-4') },
       panoId,
       annotations: [
         {
@@ -729,9 +701,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-2'][0],
         maxHeading: headingRanges['stage-2'][1],
       },
-      message: {
-        message: i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:no-curb-ramp') }),
-      },
+      message: { message: i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:no-curb-ramp') }) },
       panoId,
       annotations: [
         {
@@ -861,9 +831,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-2'][0],
         maxHeading: headingRanges['stage-2'][1],
       },
-      message: {
-        message: i18next.t('tutorial.select-label-type-5'),
-      },
+      message: { message: i18next.t('tutorial.select-label-type-5') },
       panoId,
       annotations: [
         {
@@ -896,9 +864,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-2'][0],
         maxHeading: headingRanges['stage-2'][1],
       }],
-      message: {
-        message: i18next.t('tutorial.label-attribute-5'),
-      },
+      message: { message: i18next.t('tutorial.label-attribute-5') },
       panoId,
       annotations: [
         {
@@ -969,9 +935,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-2'][0],
         maxHeading: headingRanges['stage-2'][1],
       },
-      message: {
-        message: i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:signal') }),
-      },
+      message: { message: i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:signal') }) },
       panoId,
       annotations: [
         {
@@ -1021,9 +985,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-3-adjust'][0],
         maxHeading: headingRanges['stage-3-adjust'][1],
       },
-      message: {
-        message: i18next.t('tutorial.adjust-heading-angle-2'),
-      },
+      message: { message: i18next.t('tutorial.adjust-heading-angle-2') },
       panoId,
       annotations: null,
       transition: 'select-label-type-6',
@@ -1038,9 +1000,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-3'][0],
         maxHeading: headingRanges['stage-3'][1],
       },
-      message: {
-        message: i18next.t('tutorial.select-label-type-6'),
-      },
+      message: { message: i18next.t('tutorial.select-label-type-6') },
       panoId,
       annotations: [
         {
@@ -1066,9 +1026,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-3'][0],
         maxHeading: headingRanges['stage-3'][1],
       }],
-      message: {
-        message: i18next.t('tutorial.label-attribute-6'),
-      },
+      message: { message: i18next.t('tutorial.label-attribute-6') },
       panoId,
       annotations: [
         {
@@ -1124,9 +1082,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-3'][0],
         maxHeading: headingRanges['stage-3'][1],
       },
-      message: {
-        message: i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:crosswalk') }),
-      },
+      message: { message: i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:crosswalk') }) },
       panoId,
       annotations: [
         {
@@ -1150,9 +1106,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-3'][0],
         maxHeading: headingRanges['stage-3'][1],
       },
-      message: {
-        message: i18next.t('tutorial.common.rate-crosswalk-sev-1'),
-      },
+      message: { message: i18next.t('tutorial.common.rate-crosswalk-sev-1') },
       panoId,
       annotations: null,
       transition() {
@@ -1175,9 +1129,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-3'][0],
         maxHeading: headingRanges['stage-3'][1],
       },
-      message: {
-        message: i18next.t('tutorial.common.redo-rate-crosswalk-sev-1'),
-      },
+      message: { message: i18next.t('tutorial.common.redo-rate-crosswalk-sev-1') },
       panoId,
       annotations: null,
       transition() {
@@ -1216,9 +1168,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-4'][0],
         maxHeading: headingRanges['stage-4'][1],
       },
-      message: {
-        message: i18next.t('tutorial.speed-things-up'),
-      },
+      message: { message: i18next.t('tutorial.speed-things-up') },
       panoId,
       annotations: [
         {
@@ -1270,9 +1220,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-4'][0],
         maxHeading: headingRanges['stage-4'][1],
       },
-      message: {
-        message: i18next.t('tutorial.select-label-type-7'),
-      },
+      message: { message: i18next.t('tutorial.select-label-type-7') },
       panoId,
       annotations: [
         {
@@ -1299,9 +1247,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-4'][0],
         maxHeading: headingRanges['stage-4'][1],
       }],
-      message: {
-        message: i18next.t('tutorial.label-attribute-7'),
-      },
+      message: { message: i18next.t('tutorial.label-attribute-7') },
       panoId,
       annotations: [
         {
@@ -1357,9 +1303,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-4'][0],
         maxHeading: headingRanges['stage-4'][1],
       },
-      message: {
-        message: i18next.t('tutorial.common.re-label', { label_type: i18next.t('no-sidewalk') }),
-      },
+      message: { message: i18next.t('tutorial.common.re-label', { label_type: i18next.t('no-sidewalk') }) },
       panoId,
       annotations: [
         {
@@ -1449,9 +1393,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-5-adjust'][0],
         maxHeading: headingRanges['stage-5-adjust'][1],
       },
-      message: {
-        message: i18next.t('tutorial.adjust-heading-angle-4'),
-      },
+      message: { message: i18next.t('tutorial.adjust-heading-angle-4') },
       panoId,
       annotations: null,
       transition: 'select-label-type-8',
@@ -1466,9 +1408,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-5'][0],
         maxHeading: headingRanges['stage-5'][1],
       },
-      message: {
-        message: i18next.t('tutorial.select-label-type-8'),
-      },
+      message: { message: i18next.t('tutorial.select-label-type-8') },
       panoId,
       annotations: [
         {
@@ -1495,9 +1435,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-5'][0],
         maxHeading: headingRanges['stage-5'][1],
       }],
-      message: {
-        message: i18next.t('tutorial.label-attribute-8'),
-      },
+      message: { message: i18next.t('tutorial.label-attribute-8') },
       panoId,
       annotations: [
         {
@@ -1553,9 +1491,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-5'][0],
         maxHeading: headingRanges['stage-5'][1],
       },
-      message: {
-        message: i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:curb-ramp') }),
-      },
+      message: { message: i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:curb-ramp') }) },
       panoId,
       annotations: [
         {
@@ -1633,9 +1569,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-5'][0],
         maxHeading: headingRanges['stage-5'][1],
       },
-      message: {
-        message: i18next.t('tutorial.select-label-type-9'),
-      },
+      message: { message: i18next.t('tutorial.select-label-type-9') },
       panoId,
       annotations: [
         {
@@ -1668,9 +1602,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-5'][0],
         maxHeading: headingRanges['stage-5'][1],
       }],
-      message: {
-        message: i18next.t('tutorial.label-attribute-9'),
-      },
+      message: { message: i18next.t('tutorial.label-attribute-9') },
       panoId,
       annotations: [
         {
@@ -1741,9 +1673,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-5'][0],
         maxHeading: headingRanges['stage-5'][1],
       },
-      message: {
-        message: i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:signal') }),
-      },
+      message: { message: i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:signal') }) },
       panoId,
       annotations: [
         {
@@ -1774,9 +1704,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-6-adjust'][0],
         maxHeading: headingRanges['stage-6-adjust'][1],
       },
-      message: {
-        message: i18next.t('tutorial.adjust-heading-angle-5'),
-      },
+      message: { message: i18next.t('tutorial.adjust-heading-angle-5') },
       panoId,
       annotations: null,
       transition: 'walk-1',
@@ -1838,9 +1766,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         'maxHeading': headingRanges['stage-6'][1],
         'fade-direction': 'fadeIn',
       },
-      message: {
-        message: i18next.t('tutorial.walk-3'),
-      },
+      message: { message: i18next.t('tutorial.walk-3') },
       panoId,
       transition() {
         panoManager.setPov({ heading: 329, pitch: 0, zoom: 1 });

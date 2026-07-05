@@ -73,8 +73,8 @@ class Label {
   #hoverInfoProperties;
 
   /**
-     * @param {Object} params - Initial label property values (only keys present in #properties are copied).
-     */
+   * @param {Object} params - Initial label property values (only keys present in #properties are copied).
+   */
   constructor(params) {
     this.#hoverInfoProperties = util.misc.getSeverityDescription();
 
@@ -119,17 +119,17 @@ class Label {
   }
 
   /**
-     * Returns the coordinate of the label.
-     * @returns {{x: number, y: number}}
-     */
+   * Returns the coordinate of the label.
+   * @returns {{x: number, y: number}}
+   */
   getCanvasXY() {
     return this.#properties.currCanvasXY;
   }
 
   /**
-     * Returns a deep copy of the properties object, so callers can't mutate the label's internal state directly.
-     * @returns {Object}
-     */
+   * Returns a deep copy of the properties object, so callers can't mutate the label's internal state directly.
+   * @returns {Object}
+   */
   getProperties() {
     return structuredClone(this.#properties);
   }
@@ -159,10 +159,10 @@ class Label {
   }
 
   /**
-     * Set status. Deals with special cases for the various status values that have a limited set of values.
-     * @param {string} key
-     * @param {*} value
-     */
+   * Set status. Deals with special cases for the various status values that have a limited set of values.
+   * @param {string} key
+   * @param {*} value
+   */
   setStatus(key, value) {
     if (key in this.#status) {
       if (key === 'visibility' && (value === 'visible' || value === 'hidden')) {
@@ -178,10 +178,10 @@ class Label {
   }
 
   /**
-     * Set the visibility of the hover info.
-     * @param {string} visibility - 'visible' or 'hidden'.
-     * @returns {Label} this, for chaining.
-     */
+   * Set the visibility of the hover info.
+   * @param {string} visibility - 'visible' or 'hidden'.
+   * @returns {Label} this, for chaining.
+   */
   setHoverInfoVisibility(visibility) {
     if (visibility === 'visible' || visibility === 'hidden') {
       this.#status.hoverInfoVisibility = visibility;
@@ -194,11 +194,11 @@ class Label {
   }
 
   /**
-     * Check if this label is under the cursor.
-     * @param {number} x
-     * @param {number} y
-     * @returns {boolean}
-     */
+   * Check if this label is under the cursor.
+   * @param {number} x
+   * @param {number} y
+   * @returns {boolean}
+   */
   isOn(x, y) {
     const margin = svl.LABEL_ICON_RADIUS / 2 + 2;
     return !this.#status.deleted
@@ -211,19 +211,19 @@ class Label {
   }
 
   /**
-     * Remove the label (it does not actually remove, but hides the label and set its status to 'deleted').
-     */
+   * Remove the label (it does not actually remove, but hides the label and set its status to 'deleted').
+   */
   remove() {
     this.setStatus('deleted', true);
     this.setStatus('visibility', 'hidden');
   }
 
   /**
-     * Renders this label on a canvas.
-     * @param {CanvasRenderingContext2D} ctx
-     * @param {Object} pov
-     * @returns {Label} this.
-     */
+   * Renders this label on a canvas.
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {Object} pov
+   * @returns {Label} this.
+   */
   render(ctx, pov) {
     if (!this.#status.deleted && this.#status.visibility === 'visible') {
       if (this.#status.hoverInfoVisibility === 'visible') {
@@ -263,11 +263,11 @@ class Label {
   }
 
   /**
-     * Shows the hover info tooltip next to this label, displaying its type and severity.
-     *
-     * The tooltip is a single shared DOM element positioned in on-screen pixels, so the label's logical canvas
-     * coordinate is scaled to the displayed pano size (see util.exploreDisplayScale).
-     */
+   * Shows the hover info tooltip next to this label, displaying its type and severity.
+   *
+   * The tooltip is a single shared DOM element positioned in on-screen pixels, so the label's logical canvas
+   * coordinate is scaled to the displayed pano size (see util.exploreDisplayScale).
+   */
   #updateHoverInfo() {
     // Don't show the hover tooltip while the context menu is open or before the label has a canvas position.
     if (('contextMenu' in svl && svl.contextMenu.isOpen()) || !this.#properties.currCanvasXY) {
@@ -320,8 +320,8 @@ class Label {
   }
 
   /**
-     * Hides the shared hover info tooltip.
-     */
+   * Hides the shared hover info tooltip.
+   */
   #hideHoverInfo() {
     svl.ui.canvas.hoverInfoHolder.css('visibility', 'hidden');
   }
@@ -351,9 +351,9 @@ class Label {
   }
 
   /**
-     * Renders a question mark if a label has an unmarked severity.
-     * @param {CanvasRenderingContext2D} ctx - Rendering tool for severity (2D context).
-     */
+   * Renders a question mark if a label has an unmarked severity.
+   * @param {CanvasRenderingContext2D} ctx - Rendering tool for severity (2D context).
+   */
   #showSeverityAlert(ctx) {
     const x = this.#properties.currCanvasXY.x;
     const y = this.#properties.currCanvasXY.y;
@@ -377,9 +377,9 @@ class Label {
   }
 
   /**
-     * Get the label's estimated latlng position.
-     * @returns {{lat: number, lng: number, latLngComputationMethod: string}}
-     */
+   * Get the label's estimated latlng position.
+   * @returns {{lat: number, lng: number, latLngComputationMethod: string}}
+   */
   toLatLng() {
     if (!this.#properties.labelLat) {
       // Estimate the latlng point from the camera position and the heading when point cloud data isn't available.
@@ -438,10 +438,10 @@ class Label {
   }
 
   /**
-     * Save a screenshot of the image named crop_<labelId>.png. The crops are stored in subdirs /<city-id>/<label-type>.
-     * @param {number} labelId
-     * @param {number} retryAttempt - Current retry attempt if image hasn't been saved yet.
-     */
+   * Save a screenshot of the image named crop_<labelId>.png. The crops are stored in subdirs /<city-id>/<label-type>.
+   * @param {number} labelId
+   * @param {number} retryAttempt - Current retry attempt if image hasn't been saved yet.
+   */
   updateLabelIdAndUploadCrop(labelId, retryAttempt) {
     // Retry if crop isn't available yet.
     if (!this.getProperty('crop')) {
@@ -474,11 +474,11 @@ class Label {
   }
 
   /**
-     * Preloads and caches every label-type icon. renderLabelIcon draws only from this cache, so warming it up front
-     * lets the icon, its outline, and any overlay drawn after it (e.g. the severity "?" alert) paint together in the
-     * right order — a lazily-loaded icon would instead paint asynchronously, on top of those overlays.
-     * @returns {Promise} Resolves once all icons have loaded (or failed) so callers can render with the cache warm.
-     */
+   * Preloads and caches every label-type icon. renderLabelIcon draws only from this cache, so warming it up front
+   * lets the icon, its outline, and any overlay drawn after it (e.g. the severity "?" alert) paint together in the
+   * right order — a lazily-loaded icon would instead paint asynchronously, on top of those overlays.
+   * @returns {Promise} Resolves once all icons have loaded (or failed) so callers can render with the cache warm.
+   */
   static preloadIcons() {
     const iconPaths = util.misc.getIconImagePaths();
     const loads = Object.keys(iconPaths).map((labelType) => {
@@ -500,13 +500,13 @@ class Label {
   }
 
   /**
-     * Draws a label icon and its circular outline. The icon comes from the cache warmed by Label.preloadIcons; the
-     * outline is drawn after it so the ring sits on top of the icon's edge. Also draws tutorial example labels.
-     * @param {CanvasRenderingContext2D} ctx
-     * @param {string} labelType
-     * @param {number} x
-     * @param {number} y
-     */
+   * Draws a label icon and its circular outline. The icon comes from the cache warmed by Label.preloadIcons; the
+   * outline is drawn after it so the ring sits on top of the icon's edge. Also draws tutorial example labels.
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {string} labelType
+   * @param {number} x
+   * @param {number} y
+   */
   static renderLabelIcon(ctx, labelType, x, y) {
     const size = 2 * svl.LABEL_ICON_RADIUS - 3;
     const icon = window.labelIconCache[util.misc.getIconImagePaths(labelType).iconImagePath];
@@ -524,11 +524,11 @@ class Label {
   }
 
   /**
-     * Creates the marker shown for this label on the minimap using Google Maps AdvancedMarkerElement.
-     * @param {string} labelType
-     * @param {{lat: number, lng: number}} latLng
-     * @returns {google.maps.marker.AdvancedMarkerElement}
-     */
+   * Creates the marker shown for this label on the minimap using Google Maps AdvancedMarkerElement.
+   * @param {string} labelType
+   * @param {{lat: number, lng: number}} latLng
+   * @returns {google.maps.marker.AdvancedMarkerElement}
+   */
   static createMinimapMarker(labelType, latLng) {
     const content = document.createElement('img');
     content.src = util.misc.getIconImagePaths()[labelType].minimapIconImagePath;

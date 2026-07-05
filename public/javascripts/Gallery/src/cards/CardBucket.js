@@ -5,26 +5,26 @@ class CardBucket {
   #bucket;
 
   /**
-     * @param {Array} inputCards List of Cards in order received from database.
-     */
+   * @param {Array} inputCards List of Cards in order received from database.
+   */
   constructor(inputCards) {
     this.#bucket = inputCards || [];
   }
 
   /**
-     * Add a Card to bucket.
-     *
-     * @param {Card} card Card to add.
-     */
+   * Add a Card to bucket.
+   *
+   * @param {Card} card Card to add.
+   */
   push(card) {
     this.#bucket.push(card);
   }
 
   /**
-     * Filters cards upon a non-empty array of tags.
-     *
-     * @param {*} tags Tags to filter upon.
-     */
+   * Filters cards upon a non-empty array of tags.
+   *
+   * @param {*} tags Tags to filter upon.
+   */
   filterOnTags(tags) {
     if (tags !== undefined && tags.length > 0) {
       const tagSet = new Set(tags);
@@ -33,10 +33,10 @@ class CardBucket {
   }
 
   /**
-     * Filters cards upon a non-empty array of severities.
-     *
-     * @param {*} severities Severities to filter upon.
-     */
+   * Filters cards upon a non-empty array of severities.
+   *
+   * @param {*} severities Severities to filter upon.
+   */
   filterOnSeverities(severities) {
     if (severities !== undefined && severities.length > 0) {
       const severitySet = new Set(severities);
@@ -48,32 +48,32 @@ class CardBucket {
   }
 
   /**
-     * Filters cards upon an array of validation options.
-     *
-     * @param {*} validationOptions Validation Options to filter upon.
-     */
+   * Filters cards upon an array of validation options.
+   *
+   * @param {*} validationOptions Validation Options to filter upon.
+   */
   filterOnValidationOptions(validationOptions) {
     const validationOptionsSet = new Set(validationOptions);
     this.#bucket = this.#bucket.filter((card) => validationOptionsSet.has(card.getProperty('correctness')));
   }
 
   /**
-     * Return all Cards in bucket.
-     */
+   * Return all Cards in bucket.
+   */
   getCards() {
     return this.#bucket;
   }
 
   /**
-     * Return how many Cards are in bucket.
-     */
+   * Return how many Cards are in bucket.
+   */
   getSize() {
     return this.#bucket.length;
   }
 
   /**
-     * Return a copy of this CardBucket. This is not a deepcopy (the cards themselves are not copied).
-     */
+   * Return a copy of this CardBucket. This is not a deepcopy (the cards themselves are not copied).
+   */
   copy() {
     return new CardBucket([...this.#bucket]);
   }

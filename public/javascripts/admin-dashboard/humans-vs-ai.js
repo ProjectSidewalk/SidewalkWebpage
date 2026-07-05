@@ -147,10 +147,10 @@ class HumanVsAiPage {
   }
 
   /**
-     * Correct-rate (share of validated labels judged correct) per type, human vs AI; muted where there are too few
-     * validated labels. Only types with at least one validated label on either side are shown — a type nobody has
-     * validated yet has nothing to compare, so it's dropped rather than rendered as empty rows.
-     */
+   * Correct-rate (share of validated labels judged correct) per type, human vs AI; muted where there are too few
+   * validated labels. Only types with at least one validated label on either side are shown — a type nobody has
+   * validated yet has nothing to compare, so it's dropped rather than rendered as empty rows.
+   */
   #renderAcceptance(human, ai) {
     const validatedCount = (group, t) => this.#typeStat(group, t)?.validated || 0;
     const types = this.#unionTypes(human, ai).filter((t) => validatedCount(human, t) > 0 || validatedCount(ai, t) > 0);
@@ -281,19 +281,17 @@ class HumanVsAiPage {
   // --- Shared paired-bar rendering (human bar above AI bar per row). ---
 
   /**
-     * Renders rows of paired human/AI bars with a shared legend. For counts, bars share a scale across all rows; for
-     * rates, each bar is a percentage of a fixed max (100). A datum may carry a `note` (shown after the value) and a
-     * `muted` flag (rendered faded, for too-small samples).
-     *
-     * @param {Array<{label: string, human: object, ai: object}>} rows - Each side is {value, note?, muted?}.
-     * @param {{format: ('count'|'rate'), max?: number}} opts - Render options.
-     * @returns {string} Grouped-bar HTML.
-     */
+   * Renders rows of paired human/AI bars with a shared legend. For counts, bars share a scale across all rows; for
+   * rates, each bar is a percentage of a fixed max (100). A datum may carry a `note` (shown after the value) and a
+   * `muted` flag (rendered faded, for too-small samples).
+   *
+   * @param {Array<{label: string, human: object, ai: object}>} rows - Each side is {value, note?, muted?}.
+   * @param {{format: ('count'|'rate'), max?: number}} opts - Render options.
+   * @returns {string} Grouped-bar HTML.
+   */
   #pairedBars(rows, opts) {
     const isRate = opts.format === 'rate';
-    const max = isRate
-      ? (opts.max || 100)
-      : Math.max(1, ...rows.flatMap((r) => [r.human.value || 0, r.ai.value || 0]));
+    const max = isRate ? (opts.max || 100) : Math.max(1, ...rows.flatMap((r) => [r.human.value || 0, r.ai.value || 0]));
     const body = rows.map((r) => `
             <div class="hva-group">
                 <div class="hva-group-label">${r.label}</div>

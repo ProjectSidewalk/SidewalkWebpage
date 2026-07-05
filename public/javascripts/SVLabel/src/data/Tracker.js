@@ -98,8 +98,8 @@ class Tracker {
   }
 
   /**
-     * This function pushes action type, time stamp, current pov, and current panoId into actions list.
-     */
+   * This function pushes action type, time stamp, current pov, and current panoId into actions list.
+   */
   create(action, notes, extraData) {
     extraData = extraData || {};
 
@@ -139,10 +139,10 @@ class Tracker {
   }
 
   /**
-     * @param {string} action the action to be stored in the database
-     * @param [notes] the notes field in the database
-     * @param [extraData] extra data that should not be stored in the notes field in db
-     */
+   * @param {string} action the action to be stored in the database
+   * @param [notes] the notes field in the database
+   * @param [extraData] extra data that should not be stored in the notes field in db
+   */
   push(action, notes, extraData) {
     let labelProperties;
     if (this.#isContextMenuAction(action) || this.#isSeverityShortcutAction(action)) {
@@ -204,8 +204,8 @@ class Tracker {
   }
 
   /**
-     * Refresh the current actions.
-     */
+   * Refresh the current actions.
+   */
   refresh() {
     this.#actions = [];
 

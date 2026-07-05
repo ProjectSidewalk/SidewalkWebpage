@@ -8,9 +8,9 @@ class LabelTypeMenu {
   #status;
 
   /**
-     * @param {object} uiLabelTypeMenu UI element corresponding to LabelTypeMenu.
-     * @param {string} initialLabelType Initial gallery label type.
-     */
+   * @param {object} uiLabelTypeMenu UI element corresponding to LabelTypeMenu.
+   * @param {string} initialLabelType Initial gallery label type.
+   */
   constructor(uiLabelTypeMenu, initialLabelType) {
     this.#uiLabelTypeMenu = uiLabelTypeMenu;
     this.#status = { currentLabelType: initialLabelType };
@@ -23,8 +23,8 @@ class LabelTypeMenu {
   }
 
   /**
-     * Handles what happens when a label type is selected.
-     */
+   * Handles what happens when a label type is selected.
+   */
   #labelTypeSelectCallback = (e) => {
     const newLabelType = $(e.currentTarget).val();
     const oldLabelType = this.#status.currentLabelType;
@@ -38,15 +38,15 @@ class LabelTypeMenu {
   };
 
   /**
-     * Returns current selected label type.
-     */
+   * Returns current selected label type.
+   */
   getCurrentLabelType() {
     return this.#status.currentLabelType;
   }
 
   /**
-     * Returns to the default selection (All Label Types).
-     */
+   * Returns to the default selection (All Label Types).
+   */
   setToDefault() {
     this.#uiLabelTypeMenu.select.val(this.#defaultType);
     this.setStatus('currentLabelType', this.#defaultType);
@@ -55,18 +55,18 @@ class LabelTypeMenu {
   }
 
   /**
-     * Return status of LabelTypeMenu.
-     */
+   * Return status of LabelTypeMenu.
+   */
   getStatus() {
     return this.#status;
   }
 
   /**
-     * Set status attribute.
-     *
-     * @param {string} key Status name.
-     * @param {*} value Status value.
-     */
+   * Set status attribute.
+   *
+   * @param {string} key Status name.
+   * @param {*} value Status value.
+   */
   setStatus(key, value) {
     if (key in this.#status) {
       this.#status[key] = value;

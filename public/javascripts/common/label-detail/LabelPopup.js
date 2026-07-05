@@ -51,10 +51,10 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername) {
   const innerShowLabel = labelDetail.showLabel;
 
   /**
-     * Opens the dialog and shows the requested label.
-     * @param {number} labelId The ID of the label to show.
-     * @param {string} source  The UI that created the popup (recorded with validations).
-     */
+   * Opens the dialog and shows the requested label.
+   * @param {number} labelId The ID of the label to show.
+   * @param {string} source  The UI that created the popup (recorded with validations).
+   */
   async function showLabel(labelId, source) {
     if (!dialog.open) dialog.showModal();
     await innerShowLabel(labelId, source);

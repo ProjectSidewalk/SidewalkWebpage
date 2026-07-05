@@ -8,7 +8,7 @@
  * @param {string} params.mapName - Name of the HTML ID of the map.
  * @param {boolean} params.logClicks - Whether to log click activity.
  * @returns {Promise} Promise that resolves when the streets have been added to the map.
-*/
+ */
 function AddCitiesToMap(map, citiesData, params) {
   const CITIES_LAYER_NAME = 'cities';
 
@@ -88,8 +88,8 @@ function AddCitiesToMap(map, citiesData, params) {
   fitMapToCities();
 
   /**
-     * Adds hover effects to city circles. Changes circle appearance on mouse enter/leave.
-     */
+   * Adds hover effects to city circles. Changes circle appearance on mouse enter/leave.
+   */
   function addHoverEffects() {
     let hoveredCityId = null;
 
@@ -121,12 +121,12 @@ function AddCitiesToMap(map, citiesData, params) {
   }
 
   /**
-     * Adds click event handlers to the map for displaying city statistics in a popup.
-     *
-     * When a city feature is clicked, fetches overall stats from the API, clones and populates a popup template, and
-     * displays it at the clicked location. Handles both public and private deployments, showing an appropriate message
-     * or link. Also logs click activity if enabled.
-     */
+   * Adds click event handlers to the map for displaying city statistics in a popup.
+   *
+   * When a city feature is clicked, fetches overall stats from the API, clones and populates a popup template, and
+   * displays it at the clicked location. Handles both public and private deployments, showing an appropriate message
+   * or link. Also logs click activity if enabled.
+   */
   function addClickHandlers() {
     const cityPopup = new mapboxgl.Popup({
       focusAfterOpen: false,
@@ -195,19 +195,19 @@ function AddCitiesToMap(map, citiesData, params) {
   }
 
   /**
-     * Formats a number with commas.
-     * @param {number} num
-     * @returns {string}
-     */
+   * Formats a number with commas.
+   * @param {number} num
+   * @returns {string}
+   */
   function formatNumber(num) {
     return i18next.t('common:format-number', { val: num });
   }
 
   /**
-     * Formats distance as either kilometers or miles based on the user's measurement system.
-     * @param {number} km
-     * @returns {string}
-     */
+   * Formats distance as either kilometers or miles based on the user's measurement system.
+   * @param {number} km
+   * @returns {string}
+   */
   function formatDistance(km) {
     const distUnit = i18next.t('common:unit-distance-abbreviation');
     const dist = i18next.t('common:measurement-system') === 'metric' ? km : util.math.kmsToMiles(km);
@@ -216,8 +216,8 @@ function AddCitiesToMap(map, citiesData, params) {
   }
 
   /**
-     * Fit the map view to show all cities. Calculates bounds and adjusts map viewport.
-     */
+   * Fit the map view to show all cities. Calculates bounds and adjusts map viewport.
+   */
   function fitMapToCities() {
     // Set different zoom restrictions and projection than our other maps, since we're zooming out so far.
     map.setMinZoom(null);
@@ -235,8 +235,8 @@ function AddCitiesToMap(map, citiesData, params) {
   }
 
   /**
-     * Handle window resize events. Ensures map resizes properly with the browser window.
-     */
+   * Handle window resize events. Ensures map resizes properly with the browser window.
+   */
   function handleResize() {
     if (map) {
       fitMapToCities();

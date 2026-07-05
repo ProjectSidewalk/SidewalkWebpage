@@ -6,10 +6,10 @@ class AdminLabelSearch {
   #source;
 
   /**
-     * @param {boolean} isAdmin - Whether the current user is an admin.
-     * @param {LabelPopup} labelPopup - Popup that displays a searched-for label.
-     * @param {string} source - UI holding the search, one of 'LabelSearchPage' or 'AdminLabelSearchTab'.
-     */
+   * @param {boolean} isAdmin - Whether the current user is an admin.
+   * @param {LabelPopup} labelPopup - Popup that displays a searched-for label.
+   * @param {string} source - UI holding the search, one of 'LabelSearchPage' or 'AdminLabelSearchTab'.
+   */
   constructor(isAdmin, labelPopup, source) {
     this.#labelPopup = labelPopup;
     this.#source = source;

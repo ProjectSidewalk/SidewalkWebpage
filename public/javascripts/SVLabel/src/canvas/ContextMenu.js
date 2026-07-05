@@ -26,8 +26,8 @@ class ContextMenu {
   #tags;
 
   /**
-     * @param {Object} uiContextMenu - jQuery-wrapped context menu UI elements.
-     */
+   * @param {Object} uiContextMenu - jQuery-wrapped context menu UI elements.
+   */
   constructor(uiContextMenu) {
     this.#menuWindow = uiContextMenu.holder;
     this.#severityMenu = uiContextMenu.severityMenu;
@@ -73,18 +73,18 @@ class ContextMenu {
   }
 
   /**
-     * Combined with the document mousedown listener, closes the context menu window when the user clicks somewhere
-     * outside the context menu window.
-     * @param {Event} e
-     */
+   * Combined with the document mousedown listener, closes the context menu window when the user clicks somewhere
+   * outside the context menu window.
+   * @param {Event} e
+   */
   #handleMenuWindowMouseDown(e) {
     e.stopPropagation();
   }
 
   /**
-     * Handles clicking outside of context menu holder. If so, close the context menu and note if user rated severity.
-     * @param {Event} e
-     */
+   * Handles clicking outside of context menu holder. If so, close the context menu and note if user rated severity.
+   * @param {Event} e
+   */
   #handleMouseDown(e) {
     const clickedOut = !(this.#menuWindow[0].contains(e.target));
     if (this.isOpen()) {
@@ -153,9 +153,9 @@ class ContextMenu {
   }
 
   /**
-     * Fetches the label tags from the server, stores them, then invokes the callback.
-     * @param {Function} callback
-     */
+   * Fetches the label tags from the server, stores them, then invokes the callback.
+   * @param {Function} callback
+   */
   fetchLabelTags(callback) {
     fetch('/label/tags', { method: 'GET', headers: { 'Content-Type': 'application/json; charset=utf-8' } })
       .then((res) => {
@@ -172,9 +172,9 @@ class ContextMenu {
   }
 
   /**
-     * Update the severity smiley icons to reflect the current label type (positive vs negative icon set) and which
-     * severity level is currently selected (filled vs outline variant).
-     */
+   * Update the severity smiley icons to reflect the current label type (positive vs negative icon set) and which
+   * severity level is currently selected (filled vs outline variant).
+   */
   updateRadioButtonImages() {
     if (!this.#severityRadioHolder[0]) return;
     const checkedSev = Number(this.#severityRadios.filter(':checked').val());
@@ -187,8 +187,8 @@ class ContextMenu {
   }
 
   /**
-     * Swap the context menu's rating section text based on whether the current label type is a positive type.
-     */
+   * Swap the context menu's rating section text based on whether the current label type is a positive type.
+   */
   #updateRatingText() {
     const labelType = this.#status.targetLabel ? this.#status.targetLabel.getLabelType() : null;
     const positive = util.misc.isPositiveLabelType(labelType);
@@ -210,9 +210,9 @@ class ContextMenu {
   }
 
   /**
-     * Records tag ID when clicked and updates tag color.
-     * @param {Event} e
-     */
+   * Records tag ID when clicked and updates tag color.
+   * @param {Event} e
+   */
   #handleTagClick(e) {
     let labelTags = this.#status.targetLabel.getProperty('tagIds');
 
@@ -261,11 +261,11 @@ class ContextMenu {
   }
 
   /**
-     * Remove the alternate tag, update UI, and add the selected tag.
-     * @param {*} tagId - The id of the tag to be removed.
-     * @param {*} labelTags - List of tags that the current label has.
-     * @returns {*} The updated labelTags list.
-     */
+   * Remove the alternate tag, update UI, and add the selected tag.
+   * @param {*} tagId - The id of the tag to be removed.
+   * @param {*} labelTags - List of tags that the current label has.
+   * @returns {*} The updated labelTags list.
+   */
   #autoRemoveAlternateTagAndUpdateUI(tagId, labelTags) {
     this.#tags.each((index, tag) => {
       const classWithTagId = tag.className.split(' ').filter((c) => c.search(/tag-id-\d+/) > -1)[0];
@@ -285,9 +285,9 @@ class ContextMenu {
   }
 
   /**
-     * Hide the context menu.
-     * @returns {ContextMenu} this.
-     */
+   * Hide the context menu.
+   * @returns {ContextMenu} this.
+   */
   hide() {
     if (this.isOpen()) {
       this.#descriptionTextBox.blur(); // Force the blur event before the ContextMenu close event.
@@ -301,9 +301,9 @@ class ContextMenu {
   }
 
   /**
-     * Checks if the menu is open or not.
-     * @returns {boolean}
-     */
+   * Checks if the menu is open or not.
+   * @returns {boolean}
+   */
   isOpen() {
     return this.#getStatus('visibility') === 'visible';
   }
@@ -355,25 +355,25 @@ class ContextMenu {
   }
 
   /**
-     * Returns true if rating severity is currently disabled.
-     * @returns {boolean}
-     */
+   * Returns true if rating severity is currently disabled.
+   * @returns {boolean}
+   */
   isRatingSeverityDisabled() {
     return this.#status.ratingSeverityEnabledForTutorialLabel !== this.#status.targetLabel.getProperty('tutorialLabelNumber');
   }
 
   /**
-     * Returns true if tagging is currently disabled.
-     * @returns {boolean}
-     */
+   * Returns true if tagging is currently disabled.
+   * @returns {boolean}
+   */
   isTaggingDisabled() {
     return this.#status.taggingEnabledForTutorialLabel !== this.#status.targetLabel.getProperty('tutorialLabelNumber');
   }
 
   /**
-     * Sets the color of a label's tags based off of tags that were chosen.
-     * @param {Object} label - Current label being modified.
-     */
+   * Sets the color of a label's tags based off of tags that were chosen.
+   * @param {Object} label - Current label being modified.
+   */
   #setTagColor(label) {
     const labelTags = label.getProperty('tagIds');
     $('body').find('button[name=tag]').each(function () {
@@ -392,9 +392,9 @@ class ContextMenu {
   }
 
   /**
-     * Sets the description and value of the tag based on the label type.
-     * @param {Object} label - Current label being modified.
-     */
+   * Sets the description and value of the tag based on the label type.
+   * @param {Object} label - Current label being modified.
+   */
   #setTags(label) {
     const maxTags = 17;
     if (label) {
@@ -499,9 +499,9 @@ class ContextMenu {
   }
 
   /**
-     * Set context menu severity tooltips to the correct text/images for the given label type.
-     * @param {string} labelType
-     */
+   * Set context menu severity tooltips to the correct text/images for the given label type.
+   * @param {string} labelType
+   */
   #setSeverityTooltips(labelType) {
     const tooltipKey = util.misc.isPositiveLabelType(labelType) ? 'quality-example-tooltip' : 'severity-example-tooltip';
     for (let sev = 1; sev < 4; sev++) {
@@ -523,8 +523,8 @@ class ContextMenu {
   }
 
   /**
-     * Remove severity tooltips from the context menu, preparing to replace them for a new label type.
-     */
+   * Remove severity tooltips from the context menu, preparing to replace them for a new label type.
+   */
   #removePrevSeverityTooltips() {
     for (let severity = 1; severity < 4; severity++) {
       $(`.severity-button[data-severity="${severity}"]`).tooltip('destroy');
@@ -532,9 +532,9 @@ class ContextMenu {
   }
 
   /**
-     * Show the context menu.
-     * @param {Object} targetLabel - The label whose context menu should be shown.
-     */
+   * Show the context menu.
+   * @param {Object} targetLabel - The label whose context menu should be shown.
+   */
   show(targetLabel) {
     this.#setStatus('targetLabel', null);
     this.#severityRadios.prop('checked', false);

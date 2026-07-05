@@ -14,10 +14,10 @@ class CoverageHistogram {
   #hoverIndex = null;
 
   /**
-     * @param {string} containerId - id of the chart container element.
-     * @param {{onBinClick?: function(number): void, onBinHover?: function(number): void,
-     *          onBinHoverEnd?: function(): void}} [opts]
-     */
+   * @param {string} containerId - id of the chart container element.
+   * @param {{onBinClick?: function(number): void, onBinHover?: function(number): void,
+   *          onBinHoverEnd?: function(): void}} [opts]
+   */
   constructor(containerId, opts = {}) {
     this.#containerId = containerId;
     this.#onBinClick = opts.onBinClick || (() => {});
@@ -26,10 +26,10 @@ class CoverageHistogram {
   }
 
   /**
-     * Renders the histogram.
-     * @param {Array<{index: number, label: string, count: number, color: string}>} buckets
-     * @returns {Promise<void>}
-     */
+   * Renders the histogram.
+   * @param {Array<{index: number, label: string, count: number, color: string}>} buckets
+   * @returns {Promise<void>}
+   */
   async render(buckets) {
     const spec = {
       $schema: 'https://vega.github.io/schema/vega-lite/v5.json',

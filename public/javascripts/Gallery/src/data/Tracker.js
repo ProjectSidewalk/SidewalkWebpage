@@ -5,12 +5,12 @@ class Tracker {
   #actions = [];
 
   /**
-     * Creates action to be added to action buffer.
-     *
-     * @param {string} action Action name.
-     * @param suppData Optional supplementary data about action.
-     * @param notes Optional notes about action.
-     */
+   * Creates action to be added to action buffer.
+   *
+   * @param {string} action Action name.
+   * @param suppData Optional supplementary data about action.
+   * @param notes Optional notes about action.
+   */
   #createAction(action, suppData, notes) {
     if (!notes) {
       notes = {};
@@ -30,17 +30,17 @@ class Tracker {
   }
 
   /**
-     * Return list of actions.
-     */
+   * Return list of actions.
+   */
   getActions() {
     return this.#actions;
   }
 
   /**
-     * Convert notes object to string.
-     *
-     * @param {*} notes Notes object.
-     */
+   * Convert notes object to string.
+   *
+   * @param {*} notes Notes object.
+   */
   #notesToString(notes) {
     if (!notes) {
       return '';
@@ -58,12 +58,12 @@ class Tracker {
   }
 
   /**
-     * Pushes information to action list (to be submitted to the database).
-     *
-     * @param {string} action Action name.
-     * @param [suppData] Supplementary data to be logged about action.
-     * @param [notes] Notes to be logged into the notes field in database.
-     */
+   * Pushes information to action list (to be submitted to the database).
+   *
+   * @param {string} action Action name.
+   * @param [suppData] Supplementary data to be logged about action.
+   * @param [notes] Notes to be logged into the notes field in database.
+   */
   push(action, suppData, notes) {
     const item = this.#createAction(action, suppData, notes);
     this.#actions.push(item);
@@ -77,8 +77,8 @@ class Tracker {
   }
 
   /**
-     * Empties actions stored in the Tracker.
-     */
+   * Empties actions stored in the Tracker.
+   */
   refresh() {
     this.#actions = [];
     this.push('RefreshTracker');

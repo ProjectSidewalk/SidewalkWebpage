@@ -34,22 +34,22 @@ class BadgeAchievements {
   });
 
   /**
-     * Converts a value in the caller's unit system into the canonical units used by the thresholds (miles for dist).
-     * @param {string} type Badge type.
-     * @param {number} value Value in the caller's units.
-     * @param {boolean} isMetric Whether `value` is metric (only affects distance).
-     * @returns {number} The value in canonical units.
-     */
+   * Converts a value in the caller's unit system into the canonical units used by the thresholds (miles for dist).
+   * @param {string} type Badge type.
+   * @param {number} value Value in the caller's units.
+   * @param {boolean} isMetric Whether `value` is metric (only affects distance).
+   * @returns {number} The value in canonical units.
+   */
   static #toCanonical(type, value, isMetric) {
     return type === 'distance' && isMetric ? util.math.kmsToMiles(value) : value;
   }
 
   /**
-     * The highest badge level a value has earned for the given type.
-     * @param {string} type Badge type.
-     * @param {number} value Value in canonical units (miles for distance).
-     * @returns {number} The earned level (1–5), or 0 if no badge has been earned yet.
-     */
+   * The highest badge level a value has earned for the given type.
+   * @param {string} type Badge type.
+   * @param {number} value Value in canonical units (miles for distance).
+   * @returns {number} The earned level (1–5), or 0 if no badge has been earned yet.
+   */
   static getLevelForValue(type, value) {
     const thresholds = BadgeAchievements.THRESHOLDS[type];
     if (!thresholds) return 0;
@@ -62,13 +62,13 @@ class BadgeAchievements {
   }
 
   /**
-     * Builds the badge descriptor for a given type and level.
-     * @param {string} type Badge type.
-     * @param {number} level Badge level (1–5).
-     * @param {Object} [opts]
-     * @param {boolean} [opts.isMetric] Whether to use the kilometer distance icon variant.
-     * @returns {?Object} { type, level, roman, name, iconSrc } or null for an out-of-range level.
-     */
+   * Builds the badge descriptor for a given type and level.
+   * @param {string} type Badge type.
+   * @param {number} level Badge level (1–5).
+   * @param {Object} [opts]
+   * @param {boolean} [opts.isMetric] Whether to use the kilometer distance icon variant.
+   * @returns {?Object} { type, level, roman, name, iconSrc } or null for an out-of-range level.
+   */
   static getBadge(type, level, opts = {}) {
     if (level < 1 || level > BadgeAchievements.ROMAN.length) return null;
     const stem = BadgeAchievements.#ICON_STEMS[type] + (type === 'distance' && opts.isMetric ? '_km' : '');
@@ -82,14 +82,14 @@ class BadgeAchievements {
   }
 
   /**
-     * Detects whether moving from `oldValue` to `newValue` crossed into a higher badge level.
-     * @param {string} type Badge type.
-     * @param {number} oldValue Previous value, in the caller's units.
-     * @param {number} newValue New value, in the caller's units.
-     * @param {Object} [opts]
-     * @param {boolean} [opts.isMetric] Whether the values are metric (only affects distance).
-     * @returns {?Object} The newly earned badge descriptor (see getBadge), or null if no new level was reached.
-     */
+   * Detects whether moving from `oldValue` to `newValue` crossed into a higher badge level.
+   * @param {string} type Badge type.
+   * @param {number} oldValue Previous value, in the caller's units.
+   * @param {number} newValue New value, in the caller's units.
+   * @param {Object} [opts]
+   * @param {boolean} [opts.isMetric] Whether the values are metric (only affects distance).
+   * @returns {?Object} The newly earned badge descriptor (see getBadge), or null if no new level was reached.
+   */
   static detectUnlock(type, oldValue, newValue, opts = {}) {
     const oldLevel = BadgeAchievements.getLevelForValue(type, BadgeAchievements.#toCanonical(type, oldValue, opts.isMetric));
     const newLevel = BadgeAchievements.getLevelForValue(type, BadgeAchievements.#toCanonical(type, newValue, opts.isMetric));
@@ -97,11 +97,11 @@ class BadgeAchievements {
   }
 
   /**
-     * Shows the celebratory "you unlocked a badge" toast — the badge-specific specialization of the generic Toast.
-     * @param {Object} badge A badge descriptor from getBadge/detectUnlock.
-     * @param {HTMLElement} referenceEl The element to float the toast over (the panorama or a modal).
-     * @returns {Toast}
-     */
+   * Shows the celebratory "you unlocked a badge" toast — the badge-specific specialization of the generic Toast.
+   * @param {Object} badge A badge descriptor from getBadge/detectUnlock.
+   * @param {HTMLElement} referenceEl The element to float the toast over (the panorama or a modal).
+   * @returns {Toast}
+   */
   static showUnlockToast(badge, referenceEl) {
     const badgeLabel = `${badge.name} ${badge.roman}`;
     return Toast.show({
@@ -120,8 +120,8 @@ class BadgeAchievements {
   static #seeded = false;
 
   /**
-     * Seeds the user's all-time validation & completed-mission counts (once) so new activity can detect a badge unlock.
-     */
+   * Seeds the user's all-time validation & completed-mission counts (once) so new activity can detect a badge unlock.
+   */
   static seedCounts() {
     if (BadgeAchievements.#seeded) return;
     BadgeAchievements.#seeded = true;
@@ -135,9 +135,9 @@ class BadgeAchievements {
   }
 
   /**
-     * Records a newly submitted validation and shows the unlock toast if it crossed into a new validation-badge level.
-     * @param {HTMLElement} [referenceEl] The element to float the toast over (the label's panorama, if any).
-     */
+   * Records a newly submitted validation and shows the unlock toast if it crossed into a new validation-badge level.
+   * @param {HTMLElement} [referenceEl] The element to float the toast over (the label's panorama, if any).
+   */
   static recordValidation(referenceEl) {
     if (BadgeAchievements.#validationCount === null) return;
     const prev = BadgeAchievements.#validationCount;
@@ -151,9 +151,9 @@ class BadgeAchievements {
   }
 
   /**
-     * Records a freshly completed mission and shows the unlock toast if it crossed into a new mission-badge level.
-     * @param {HTMLElement} [referenceEl] The element to float the toast over (the mission-complete modal).
-     */
+   * Records a freshly completed mission and shows the unlock toast if it crossed into a new mission-badge level.
+   * @param {HTMLElement} [referenceEl] The element to float the toast over (the mission-complete modal).
+   */
   static recordMissionComplete(referenceEl) {
     if (BadgeAchievements.#missionCount === null) return;
     const prev = BadgeAchievements.#missionCount;

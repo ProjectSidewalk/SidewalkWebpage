@@ -16,10 +16,10 @@ class CoverageBars {
   #hoverId = null;
 
   /**
-     * @param {string} containerId - id of the chart container element.
-     * @param {{onBarClick?: function(number): void, onBarHover?: function(number): void,
-     *          onBarHoverEnd?: function(): void}} [opts]
-     */
+   * @param {string} containerId - id of the chart container element.
+   * @param {{onBarClick?: function(number): void, onBarHover?: function(number): void,
+   *          onBarHoverEnd?: function(): void}} [opts]
+   */
   constructor(containerId, opts = {}) {
     this.#containerId = containerId;
     this.#onBarClick = opts.onBarClick || (() => {});
@@ -28,20 +28,20 @@ class CoverageBars {
   }
 
   /**
-     * Stores the data and renders the chart.
-     * @param {Array<object>} data - Rows with region_id, name, completion_rate, color, distances, and counts.
-     * @returns {Promise<void>}
-     */
+   * Stores the data and renders the chart.
+   * @param {Array<object>} data - Rows with region_id, name, completion_rate, color, distances, and counts.
+   * @returns {Promise<void>}
+   */
   render(data) {
     this.#data = data;
     return this.#embed();
   }
 
   /**
-     * Re-renders the chart with a new sort order.
-     * @param {'coverage'|'name'} mode
-     * @returns {Promise<void>}
-     */
+   * Re-renders the chart with a new sort order.
+   * @param {'coverage'|'name'} mode
+   * @returns {Promise<void>}
+   */
   setSort(mode) {
     this.#sort = mode;
     return this.#embed();

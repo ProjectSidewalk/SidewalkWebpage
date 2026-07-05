@@ -9,9 +9,9 @@ class AudioEffect {
   #muteIcon;
 
   /**
-     * @param {string} fileDirectory Root directory the audio files are served from.
-     * @param storage TemporaryStorage used to persist the muted state.
-     */
+   * @param {string} fileDirectory Root directory the audio files are served from.
+   * @param storage TemporaryStorage used to persist the muted state.
+   */
   constructor(fileDirectory, storage) {
     this.#storage = storage;
     this.#soundButton = document.getElementById('explore-control-sound');
@@ -51,9 +51,9 @@ class AudioEffect {
   }
 
   /**
-     * Loads a sound effect so it is ready to play with minimal latency.
-     * @param {string} name Name of the sound effect.
-     */
+   * Loads a sound effect so it is ready to play with minimal latency.
+   * @param {string} name Name of the sound effect.
+   */
   load(name) {
     if (name in this.#audios && typeof this.#audios[name].load === 'function') {
       this.#audios[name].load();
@@ -61,9 +61,9 @@ class AudioEffect {
   }
 
   /**
-     * Plays a sound effect, unless the user has muted sound.
-     * @param {string} name Name of the sound effect.
-     */
+   * Plays a sound effect, unless the user has muted sound.
+   * @param {string} name Name of the sound effect.
+   */
   play(name) {
     if (name in this.#audios && !this.#storage.get('muted') && typeof this.#audios[name].play === 'function') {
       this.#audios[name].play();

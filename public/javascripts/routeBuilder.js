@@ -38,10 +38,10 @@ class RouteBuilder {
   #viewInLabelmapButton;
 
   /**
-     * @param {Function} $ - jQuery.
-     * @param {string} mapboxApiKey
-     * @param {Object} mapParams - City center/boundaries/zoom for initializing the map.
-     */
+   * @param {Function} $ - jQuery.
+   * @param {string} mapboxApiKey
+   * @param {Object} mapParams - City center/boundaries/zoom for initializing the map.
+   */
   constructor($, mapboxApiKey, mapParams) {
     this.#mapboxApiKey = mapboxApiKey;
     this.#mapParams = mapParams;
@@ -113,8 +113,8 @@ class RouteBuilder {
   };
 
   /*
-     * Function definitions.
-     */
+   * Function definitions.
+   */
 
   // Setting up SearchBox.
   #setUpSearchBox() {
@@ -155,9 +155,9 @@ class RouteBuilder {
   }
 
   /**
-     * Renders the neighborhoods and an overlay outside the neighborhood boundaries on the map. Also configures
-     * SearchBox to filter out outside neighborhoods.
-     */
+   * Renders the neighborhoods and an overlay outside the neighborhood boundaries on the map. Also configures
+   * SearchBox to filter out outside neighborhoods.
+   */
   #renderNeighborhoodsHelper() {
     const map = this.#map;
     map.addSource('neighborhoods', {
@@ -194,8 +194,8 @@ class RouteBuilder {
   }
 
   /**
-     * @param {Object} neighborhoodDataIn - GeoJSON of the city's neighborhoods.
-     */
+   * @param {Object} neighborhoodDataIn - GeoJSON of the city's neighborhoods.
+   */
   renderNeighborhoods(neighborhoodDataIn) {
     this.#neighborhoodData = neighborhoodDataIn;
     // If the map already loaded, it's safe to render neighborhoods now. O/w they will load after the map does.
@@ -206,19 +206,19 @@ class RouteBuilder {
   }
 
   /**
-     * Renders the streets on the map. Adds the hover/click events for the streets as well.
-     *
-     * We have two separate data sources for the streets. The 'streets' source contains all the streets in the city. The
-     * 'streets-chosen' source contains the streets that have been added to the route. This just makes it a bit easier
-     * to keep track of the streets in the route and render streets differently when we reverse their direction.
-     *
-     * Because Mapbox doesn't allow us to change the line-pattern (or switch between line-pattern and line-color) based
-     * on feature state, we have four separate layers for the streets:
-     * 1. streets: streets that aren't in the route (light blue colored).
-     * 2. streets-chosen: streets that are in the route (white/blue arrow pattern).
-     * 3. chosen-hover-flip: streets in the route on hover (translucent dark/light blue arrow pattern).
-     * 4. chosen-hover-remove: streets in the route after being reversed, on hover (red/purple arrow pattern).
-     */
+   * Renders the streets on the map. Adds the hover/click events for the streets as well.
+   *
+   * We have two separate data sources for the streets. The 'streets' source contains all the streets in the city. The
+   * 'streets-chosen' source contains the streets that have been added to the route. This just makes it a bit easier
+   * to keep track of the streets in the route and render streets differently when we reverse their direction.
+   *
+   * Because Mapbox doesn't allow us to change the line-pattern (or switch between line-pattern and line-color) based
+   * on feature state, we have four separate layers for the streets:
+   * 1. streets: streets that aren't in the route (light blue colored).
+   * 2. streets-chosen: streets that are in the route (white/blue arrow pattern).
+   * 3. chosen-hover-flip: streets in the route on hover (translucent dark/light blue arrow pattern).
+   * 4. chosen-hover-remove: streets in the route after being reversed, on hover (red/purple arrow pattern).
+   */
   #renderStreetsHelper() {
     const map = this.#map;
     map.addSource('streets', {
@@ -473,8 +473,8 @@ class RouteBuilder {
   }
 
   /**
-     * @param {Object} streetDataIn - GeoJSON of the city's streets.
-     */
+   * @param {Object} streetDataIn - GeoJSON of the city's streets.
+   */
   renderStreets(streetDataIn) {
     this.#streetData = streetDataIn;
     // If the map already loaded, it's safe to render streets now. O/w they will load after the map does.
@@ -485,16 +485,16 @@ class RouteBuilder {
   }
 
   /**
-     * Updates the route distance text shown in the upper-right corner of the map.
-     */
+   * Updates the route distance text shown in the upper-right corner of the map.
+   */
   #setRouteDistanceText() {
     const routeDist = this.#streetsInRoute.features.reduce((sum, street) => sum + turf.length(street, { units: this.#units }), 0);
     this.#streetDistanceEl.innerText = i18next.t('route-length', { dist: routeDist.toFixed(2) });
   }
 
   /**
-     * Delete old markers and draw new ones.
-     */
+   * Delete old markers and draw new ones.
+   */
   #updateMarkers() {
     this.#currentMarkers.forEach((m) => m.remove());
     this.#currentMarkers = [];
@@ -502,8 +502,8 @@ class RouteBuilder {
   }
 
   /**
-     * Draws the endpoints for the contiguous sections of the route on the map.
-     */
+   * Draws the endpoints for the contiguous sections of the route on the map.
+   */
   #drawContiguousEndpointMarkers() {
     const map = this.#map;
     const contigSections = this.#computeContiguousRoutes();
@@ -544,14 +544,13 @@ class RouteBuilder {
   //      Could either add a property with the ordering, or keep track in a separate list.
 
   /**
-     * Computes a set of contiguous sections of the route.
-     *
-     * We do this by looping through the streets in the order that they were added to the route, checking the remaining
-     * streets in the route (also in the order they were chosen) to see if any of their start points are connected to
-     * the end point of the current street. When there are no connected streets, that contiguous section is done and
-     * we start a new one.
-     * @returns {Array<Array<Object>>}
-     */
+   * Computes a set of contiguous sections of the route.
+   *
+   * Loop through the streets in the order that they were added to the route, checking the remaining streets in the
+   * route (also in the order they were chosen) to see if any of their start points are connected to the end point of
+   * the current street. When there are no connected streets, that contiguous section is done, and we start a new one.
+   * @returns {Array<Array<Object>>}
+   */
   #computeContiguousRoutes() {
     const contiguousSections = [];
     let currContiguousSection = [];
@@ -587,10 +586,10 @@ class RouteBuilder {
   }
 
   /**
-     * Checks if the given street should be reversed to minimize the number of contiguous sections in the route.
-     * @param {Object} street
-     * @returns {boolean}
-     */
+   * Checks if the given street should be reversed to minimize the number of contiguous sections in the route.
+   * @param {Object} street
+   * @returns {boolean}
+   */
   #shouldReverseStreet(street) {
     let shouldReverse = false;
     const contiguousSegments = this.#computeContiguousRoutes();
@@ -622,9 +621,9 @@ class RouteBuilder {
   }
 
   /**
-     * Clear the current route and reset the map.
-     * @param {Event} [e]
-     */
+   * Clear the current route and reset the map.
+   * @param {Event} [e]
+   */
   #clearRoute(e) {
     const map = this.#map;
     // Remove all the streets from the route.
@@ -669,8 +668,8 @@ class RouteBuilder {
   }
 
   /**
-     * Saves the route to the database, shows the Route Saved modal, and updates the links/buttons in that modal.
-     */
+   * Saves the route to the database, shows the Route Saved modal, and updates the links/buttons in that modal.
+   */
   #saveRoute() {
     // Get list of street IDs in the correct order.
     const streetProps = this.#computeContiguousRoutes().flat().map((s) => ({

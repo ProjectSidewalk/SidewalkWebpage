@@ -9,9 +9,9 @@ class KeyboardShortcutAlert extends Alert {
   static #MINIMUM_STUCK_CLICKS_BEFORE_ALERT = 5;
 
   /**
-     * Tracks clicks on a label-type mode button and shows its keyboard shortcut once clicked enough times.
-     * @param {string} labelType - The label type whose mode button was clicked.
-     */
+   * Tracks clicks on a label-type mode button and shows its keyboard shortcut once clicked enough times.
+   * @param {string} labelType - The label type whose mode button was clicked.
+   */
   modeSwitchButtonClicked(labelType) {
     if (labelType === 'Walk') return;
 
@@ -32,10 +32,10 @@ class KeyboardShortcutAlert extends Alert {
   }
 
   /**
-     * Nudges the user toward the spacebar shortcut after they've clicked the Stuck button several times. The spacebar
-     * first tries a routed linked-pano step and only falls back to the Stuck button's route-aware moveForward() when
-     * no such link exists (see Keyboard._advanceForwardAlongRoute).
-     */
+   * Nudges the user toward the spacebar shortcut after they've clicked the Stuck button several times. The spacebar
+   * first tries a routed linked-pano step and only falls back to the Stuck button's route-aware moveForward() when
+   * no such link exists (see Keyboard._advanceForwardAlongRoute).
+   */
   stuckButtonClicked() {
     if ('Stuck' in this.#clickCount) {
       this.#clickCount.Stuck++;

@@ -41,12 +41,12 @@
   };
 
   /**
-     * Function to interpolate between two colors.
-     * @param {string} color1 - First color in hex format
-     * @param {string} color2 - Second color in hex format
-     * @param {number} factor - Interpolation factor (0-1)
-     * @returns {string} Interpolated color in hex format
-     */
+   * Function to interpolate between two colors.
+   * @param {string} color1 - First color in hex format
+   * @param {string} color2 - Second color in hex format
+   * @param {number} factor - Interpolation factor (0-1)
+   * @returns {string} Interpolated color in hex format
+   */
   function interpolateColor(color1, color2, factor) {
     const c1 = {
       r: parseInt(color1.slice(1, 3), 16),
@@ -69,19 +69,19 @@
   // Public API.
   window.StreetsPreview = {
     /**
-         * Configure the streets preview.
-         * @param {object} options - Configuration options
-         * @returns {object} The StreetsPreview object for chaining
-         */
+     * Configure the streets preview.
+     * @param {object} options - Configuration options
+     * @returns {object} The StreetsPreview object for chaining
+     */
     setup(options) {
       config = Object.assign(config, options);
       return this;
     },
 
     /**
-         * Initialize all three streets preview maps.
-         * @returns {Promise} A promise that resolves when all previews are rendered
-         */
+     * Initialize all three streets preview maps.
+     * @returns {Promise} A promise that resolves when all previews are rendered
+     */
     init() {
       const mainContainer = document.getElementById(config.mainContainerId);
 
@@ -153,9 +153,9 @@
     },
 
     /**
-         * Creates the structure for all three visualization sections with headings, descriptions, and containers.
-         * @param {HTMLElement} mainContainer - The main container element to append visualization sections to
-         */
+     * Creates the structure for all three visualization sections with headings, descriptions, and containers.
+     * @param {HTMLElement} mainContainer - The main container element to append visualization sections to
+     */
     createVisualizationStructure(mainContainer) {
       // Clear existing content.
       mainContainer.innerHTML = '';
@@ -227,9 +227,9 @@
     },
 
     /**
-         * Fetch region with the most labels.
-         * @returns {Promise} A promise that resolves with the region data
-         */
+     * Fetch region with the most labels.
+     * @returns {Promise} A promise that resolves with the region data
+     */
     fetchRegionWithMostLabels() {
       return fetch(`${config.apiBaseUrl}${config.regionWithMostLabelsEndpoint}?source=apiDocs`)
         .then((response) => {
@@ -245,10 +245,10 @@
     },
 
     /**
-         * Calculate center of a region from its geometry.
-         * @param {object} region - Region data with geometry
-         * @returns {Array} [lat, lon] center coordinates
-         */
+     * Calculate center of a region from its geometry.
+     * @param {object} region - Region data with geometry
+     * @returns {Array} [lat, lon] center coordinates
+     */
     getCenterFromRegion(region) {
       if (!region || !region.geometry) {
         throw new Error('Invalid region data');
@@ -282,10 +282,10 @@
     },
 
     /**
-         * Fetch streets by region ID.
-         * @param {number} regionId - ID of the region
-         * @returns {Promise} A promise that resolves with the streets data
-         */
+     * Fetch streets by region ID.
+     * @param {number} regionId - ID of the region
+     * @returns {Promise} A promise that resolves with the streets data
+     */
     fetchStreetsByRegionId(regionId) {
       const url = `${config.apiBaseUrl}${config.streetsEndpoint}?regionId=${regionId}&source=apiDocs`;
       return fetch(url)
@@ -298,12 +298,12 @@
     },
 
     /**
-         * Create a Leaflet map with darkened background.
-         * @param {HTMLElement} container - Container element for the map
-         * @param {object} regionData - Data about the region to display
-         * @param {string} mapType - Type identifier for the map
-         * @returns {object} The Leaflet map object
-         */
+     * Create a Leaflet map with darkened background.
+     * @param {HTMLElement} container - Container element for the map
+     * @param {object} regionData - Data about the region to display
+     * @param {string} mapType - Type identifier for the map
+     * @returns {object} The Leaflet map object
+     */
     createMap(container, regionData, mapType) {
       const mapElement = document.createElement('div');
       mapElement.id = `streets-${mapType}-map`;
@@ -349,20 +349,20 @@
     },
 
     /**
-         * Function to interpolate between two colors (instance method).
-         * @param {string} color1 - First color in hex format
-         * @param {string} color2 - Second color in hex format
-         * @param {number} factor - Interpolation factor (0-1)
-         * @returns {string} Interpolated color in hex format
-         */
+     * Function to interpolate between two colors (instance method).
+     * @param {string} color1 - First color in hex format
+     * @param {string} color2 - Second color in hex format
+     * @param {number} factor - Interpolation factor (0-1)
+     * @returns {string} Interpolated color in hex format
+     */
     interpolateColor,
 
     /**
-         * Get color for street based on user count with truly continuous scaling.
-         * @param {number} userCount - Number of users who labeled the street
-         * @param {number} maxUserCount - Maximum user count in the dataset
-         * @returns {string} Hex color code
-         */
+     * Get color for street based on user count with truly continuous scaling.
+     * @param {number} userCount - Number of users who labeled the street
+     * @param {number} maxUserCount - Maximum user count in the dataset
+     * @returns {string} Hex color code
+     */
     getUserCountColor(userCount, maxUserCount) {
       if (userCount === 0) {
         return userCountColorEndpoints.unaudited; // Special color for unaudited.
@@ -374,19 +374,15 @@
 
       // Continuous interpolation from minUsers to maxUsers based on actual data range.
       const scaledValue = (userCount - 1) / (maxUserCount - 1);
-      return this.interpolateColor(
-        userCountColorEndpoints.minUsers,
-        userCountColorEndpoints.maxUsers,
-        scaledValue,
-      );
+      return this.interpolateColor(userCountColorEndpoints.minUsers, userCountColorEndpoints.maxUsers, scaledValue);
     },
 
     /**
-         * Get color for street based on label count with truly continuous scaling.
-         * @param {number} labelCount - Number of labels on the street
-         * @param {number} maxLabelCount - Maximum label count in the dataset
-         * @returns {string} Hex color code
-         */
+     * Get color for street based on label count with truly continuous scaling.
+     * @param {number} labelCount - Number of labels on the street
+     * @param {number} maxLabelCount - Maximum label count in the dataset
+     * @returns {string} Hex color code
+     */
     getLabelCountColor(labelCount, maxLabelCount) {
       if (labelCount === 0) {
         return labelCountColorEndpoints.noLabels; // Special color for no labels.
@@ -398,20 +394,16 @@
 
       // Continuous interpolation from minLabels to maxLabels based on actual data range.
       const scaledValue = (labelCount - 1) / (maxLabelCount - 1);
-      return this.interpolateColor(
-        labelCountColorEndpoints.minLabels,
-        labelCountColorEndpoints.maxLabels,
-        scaledValue,
-      );
+      return this.interpolateColor(labelCountColorEndpoints.minLabels, labelCountColorEndpoints.maxLabels, scaledValue);
     },
 
     /**
-         * Get color for street based on audit age with truly continuous scaling.
-         * @param {string|null} lastLabelDate - ISO date string of last label
-         * @param {number} minDays - Minimum days in the dataset (excluding null)
-         * @param {number} maxDays - Maximum days in the dataset
-         * @returns {string} Hex color code
-         */
+     * Get color for street based on audit age with truly continuous scaling.
+     * @param {string|null} lastLabelDate - ISO date string of last label
+     * @param {number} minDays - Minimum days in the dataset (excluding null)
+     * @param {number} maxDays - Maximum days in the dataset
+     * @returns {string} Hex color code
+     */
     getAuditAgeColor(lastLabelDate, minDays, maxDays) {
       if (!lastLabelDate) {
         return auditAgeColorEndpoints.neverAudited; // Special color for never audited
@@ -440,15 +432,15 @@
     },
 
     /**
-         * Format age for display with proper singular/plural handling.
-         * @param {string|null} lastLabelDate - ISO date string of last label
-         * @returns {string} Human readable age string
-         * @example
-         * formatAuditAge('2024-05-18T10:00:00Z') // "1 day ago"
-         * formatAuditAge('2024-05-12T10:00:00Z') // "1 week ago"
-         * formatAuditAge('2023-05-19T10:00:00Z') // "1 year ago"
-         * formatAuditAge(null) // "Never audited"
-         */
+     * Format age for display with proper singular/plural handling.
+     * @param {string|null} lastLabelDate - ISO date string of last label
+     * @returns {string} Human readable age string
+     * @example
+     * formatAuditAge('2024-05-18T10:00:00Z') // "1 day ago"
+     * formatAuditAge('2024-05-12T10:00:00Z') // "1 week ago"
+     * formatAuditAge('2023-05-19T10:00:00Z') // "1 year ago"
+     * formatAuditAge(null) // "Never audited"
+     */
     formatAuditAge(lastLabelDate) {
       if (!lastLabelDate) {
         return 'Never audited';
@@ -476,10 +468,10 @@
     },
 
     /**
-         * Create OSM link for street ID.
-         * @param {number|null} osmWayId - OpenStreetMap way ID
-         * @returns {string} HTML link or plain text
-         */
+     * Create OSM link for street ID.
+     * @param {number|null} osmWayId - OpenStreetMap way ID
+     * @returns {string} HTML link or plain text
+     */
     createOsmLink(osmWayId) {
       if (!osmWayId) {
         return 'N/A';
@@ -488,10 +480,10 @@
     },
 
     /**
-         * Display streets on the user count map.
-         * @param {object} map - The Leaflet map object
-         * @param {object} streets - GeoJSON data containing the street segments
-         */
+     * Display streets on the user count map.
+     * @param {object} map - The Leaflet map object
+     * @param {object} streets - GeoJSON data containing the street segments
+     */
     displayUserCountMap(map, streets) {
       if (!streets.features || streets.features.length === 0) {
         this.addNoStreetsMessage(map);
@@ -601,10 +593,10 @@
     },
 
     /**
-         * Display streets on the audit age map.
-         * @param {object} map - The Leaflet map object
-         * @param {object} streets - GeoJSON data containing the street segments
-         */
+     * Display streets on the audit age map.
+     * @param {object} map - The Leaflet map object
+     * @param {object} streets - GeoJSON data containing the street segments
+     */
     displayAuditAgeMap(map, streets) {
       if (!streets.features || streets.features.length === 0) {
         this.addNoStreetsMessage(map);
@@ -737,10 +729,10 @@
     },
 
     /**
-         * Display streets on the label count map.
-         * @param {object} map - The Leaflet map object
-         * @param {object} streets - GeoJSON data containing the street segments
-         */
+     * Display streets on the label count map.
+     * @param {object} map - The Leaflet map object
+     * @param {object} streets - GeoJSON data containing the street segments
+     */
     displayLabelCountMap(map, streets) {
       if (!streets.features || streets.features.length === 0) {
         this.addNoStreetsMessage(map);
@@ -850,9 +842,9 @@
     },
 
     /**
-         * Add no streets message to map.
-         * @param {object} map - The Leaflet map object
-         */
+     * Add no streets message to map.
+     * @param {object} map - The Leaflet map object
+     */
     addNoStreetsMessage(map) {
       const noStreetsDiv = document.createElement('div');
       noStreetsDiv.className = 'no-streets-message';
@@ -870,11 +862,11 @@
     },
 
     /**
-         * Create a horizontal continuous legend for the user count map.
-         * @param {object} map - The Leaflet map object
-         * @param {number} minUserCount - Minimum user count found in the data (excluding 0)
-         * @param {number} maxUserCount - Maximum user count found in the data
-         */
+     * Create a horizontal continuous legend for the user count map.
+     * @param {object} map - The Leaflet map object
+     * @param {number} minUserCount - Minimum user count found in the data (excluding 0)
+     * @param {number} maxUserCount - Maximum user count found in the data
+     */
     createContinuousUserCountLegend(map, minUserCount, maxUserCount) {
       const legend = L.control({ position: 'topright' });
 
@@ -986,11 +978,11 @@
     },
 
     /**
-         * Create a horizontal continuous legend for the label count map.
-         * @param {object} map - The Leaflet map object
-         * @param {number} minLabelCount - Minimum label count found in the data (excluding 0)
-         * @param {number} maxLabelCount - Maximum label count found in the data
-         */
+     * Create a horizontal continuous legend for the label count map.
+     * @param {object} map - The Leaflet map object
+     * @param {number} minLabelCount - Minimum label count found in the data (excluding 0)
+     * @param {number} maxLabelCount - Maximum label count found in the data
+     */
     createContinuousLabelCountLegend(map, minLabelCount, maxLabelCount) {
       const legend = L.control({ position: 'topright' });
 
@@ -1102,11 +1094,11 @@
     },
 
     /**
-         * Create a horizontal continuous legend for the audit age map.
-         * @param {object} map - The Leaflet map object
-         * @param {number} minDays - Minimum days since audit found in the data
-         * @param {number} maxDays - Maximum days since audit found in the data
-         */
+     * Create a horizontal continuous legend for the audit age map.
+     * @param {object} map - The Leaflet map object
+     * @param {number} minDays - Minimum days since audit found in the data
+     * @param {number} maxDays - Maximum days since audit found in the data
+     */
     createContinuousAuditAgeLegend(map, minDays, maxDays) {
       const legend = L.control({ position: 'topright' });
 
@@ -1228,10 +1220,10 @@
     },
 
     /**
-         * Add summary statistics panel for user count map.
-         * @param {object} map - The Leaflet map object
-         * @param {object} stats - Statistics about the streets shown
-         */
+     * Add summary statistics panel for user count map.
+     * @param {object} map - The Leaflet map object
+     * @param {object} stats - Statistics about the streets shown
+     */
     addUserCountStats(map, stats) {
       const statsControl = L.control({ position: 'bottomright' });
 
@@ -1258,10 +1250,10 @@
     },
 
     /**
-         * Add summary statistics panel for label count map.
-         * @param {object} map - The Leaflet map object
-         * @param {object} stats - Statistics about the streets shown
-         */
+     * Add summary statistics panel for label count map.
+     * @param {object} map - The Leaflet map object
+     * @param {object} stats - Statistics about the streets shown
+     */
     addLabelCountStats(map, stats) {
       const statsControl = L.control({ position: 'bottomright' });
 
@@ -1291,10 +1283,10 @@
     },
 
     /**
-         * Add summary statistics panel for audit age map.
-         * @param {object} map - The Leaflet map object
-         * @param {object} stats - Statistics about the streets shown
-         */
+     * Add summary statistics panel for audit age map.
+     * @param {object} map - The Leaflet map object
+     * @param {object} stats - Statistics about the streets shown
+     */
     addAuditAgeStats(map, stats) {
       const statsControl = L.control({ position: 'bottomright' });
 

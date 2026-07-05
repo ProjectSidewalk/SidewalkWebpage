@@ -12,12 +12,12 @@ class MapSidebarFilter {
   #sidebar;
 
   /**
-     * Initializes the sidebar filter, binding all event handlers and enabling controls.
-     * @param {mapboxgl.Map} map The Mapbox map instance.
-     * @param {object} mapData The layer tracker from CreateMapLayerTracker.
-     * @param {object} [options] Configuration options.
-     * @param {boolean} [options.highQualityFilter=true] Whether to apply the high-quality user filter.
-     */
+   * Initializes the sidebar filter, binding all event handlers and enabling controls.
+   * @param {mapboxgl.Map} map The Mapbox map instance.
+   * @param {object} mapData The layer tracker from CreateMapLayerTracker.
+   * @param {object} [options] Configuration options.
+   * @param {boolean} [options.highQualityFilter=true] Whether to apply the high-quality user filter.
+   */
   constructor(map, mapData, { highQualityFilter = true } = {}) {
     this.#map = map;
     this.#mapData = mapData;
@@ -87,8 +87,8 @@ class MapSidebarFilter {
   }
 
   /**
-     * Binds the admin-only "not validated by an admin" checkbox. No-op on /labelMap, where the checkbox isn't rendered.
-     */
+   * Binds the admin-only "not validated by an admin" checkbox. No-op on /labelMap, where the checkbox isn't rendered.
+   */
   #initAdminValidationCheckbox() {
     const cb = this.#sidebar.querySelector('#not-admin-validated');
     if (!cb) return;
@@ -109,8 +109,8 @@ class MapSidebarFilter {
   }
 
   /**
-     * Initializes "Deselect all" / "Select all" toggle buttons for each section.
-     */
+   * Initializes "Deselect all" / "Select all" toggle buttons for each section.
+   */
   #initDeselectAllButtons() {
     this.#sidebar.querySelectorAll('.map-sidebar__deselect-all').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -160,9 +160,9 @@ class MapSidebarFilter {
   }
 
   /**
-     * Returns true when at least one control in the section is on (checkbox checked, or toggle pressed for severity).
-     * @param {string} section The data-section value identifying the section.
-     */
+   * Returns true when at least one control in the section is on (checkbox checked, or toggle pressed for severity).
+   * @param {string} section The data-section value identifying the section.
+   */
   #isAnyActive(section) {
     if (section === 'severity') {
       const toggles = this.#sidebar.querySelectorAll('.severity-button');
@@ -173,9 +173,9 @@ class MapSidebarFilter {
   }
 
   /**
-     * Syncs a section's toggle button text: "Deselect all" if any control is active, "Select all" otherwise.
-     * @param {string} section The data-section value identifying the button and its controls.
-     */
+   * Syncs a section's toggle button text: "Deselect all" if any control is active, "Select all" otherwise.
+   * @param {string} section The data-section value identifying the button and its controls.
+   */
   #updateDeselectAllButton(section) {
     const btn = this.#sidebar.querySelector(`.map-sidebar__deselect-all[data-section="${section}"]`);
     btn.textContent = this.#isAnyActive(section) ? i18next.t('labelmap:deselect-all') : i18next.t('labelmap:select-all');
@@ -229,9 +229,9 @@ class MapSidebarFilter {
   }
 
   /**
-     * Updates the checkbox to show a partial (gray) state when some tags are selected, or full (black) otherwise.
-     * @param {string} labelType The label type key.
-     */
+   * Updates the checkbox to show a partial (gray) state when some tags are selected, or full (black) otherwise.
+   * @param {string} labelType The label type key.
+   */
   #updateCheckboxPartialState(labelType) {
     const cb = this.#sidebar.querySelector(`#${labelType}-checkbox`);
     const hasActiveTags = this.#mapData.selectedTags[labelType]?.size > 0;
@@ -239,9 +239,9 @@ class MapSidebarFilter {
   }
 
   /**
-     * Clears tag selections for a specific label type.
-     * @param {string} labelType The label type key.
-     */
+   * Clears tag selections for a specific label type.
+   * @param {string} labelType The label type key.
+   */
   #clearTagsForLabelType(labelType) {
     this.#mapData.selectedTags[labelType]?.clear();
     this.#sidebar.querySelectorAll(`.tag-pill[data-label-type="${labelType}"]`).forEach((pill) => {

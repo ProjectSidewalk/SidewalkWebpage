@@ -30,19 +30,19 @@
 
   window.ValidationResultTypesPreview = {
     /**
-         * Configure the preview.
-         * @param {object} options - Configuration options
-         * @returns {object} The preview object for chaining
-         */
+     * Configure the preview.
+     * @param {object} options - Configuration options
+     * @returns {object} The preview object for chaining
+     */
     setup(options) {
       config = Object.assign(config, options);
       return this;
     },
 
     /**
-         * Initialize the preview.
-         * @returns {Promise} A promise that resolves when the preview is rendered
-         */
+     * Initialize the preview.
+     * @returns {Promise} A promise that resolves when the preview is rendered
+     */
     init() {
       const container = document.getElementById(config.containerId);
       if (!container) {
@@ -73,11 +73,11 @@
     },
 
     /**
-         * Render the result-types table.
-         * @param {object} data - Validation result types data from the API
-         * @param {HTMLElement} container - Container element
-         * @returns {HTMLElement} The rendered table
-         */
+     * Render the result-types table.
+     * @param {object} data - Validation result types data from the API
+     * @param {HTMLElement} container - Container element
+     * @returns {HTMLElement} The rendered table
+     */
     render(data, container) {
       const types = (data.validation_result_types || []).slice().sort((a, b) => b.count - a.count);
       const maxCount = types.length > 0 ? Math.max.apply(null, types.map((t) => t.count)) : 0;

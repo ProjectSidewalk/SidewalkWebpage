@@ -7,8 +7,8 @@ class ZoomShortcutAlert extends Alert {
   static #MINIMUM_ZOOM_CLICKS_BEFORE_ALERT = 5;
 
   /**
-     * Tracks zoom-button clicks and shows the zoom shortcut alert once clicked enough times.
-     */
+   * Tracks zoom-button clicks and shows the zoom shortcut alert once clicked enough times.
+   */
   zoomClicked() {
     if (this.#zoomCount > 0) {
       this.#zoomCount++;

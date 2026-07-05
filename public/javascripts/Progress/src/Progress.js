@@ -6,29 +6,29 @@ class Progress {
   #admin;
 
   /**
-     * @param {string} userId - The dashboard's subject user.
-     * @param {boolean} admin - Whether the dashboard is being viewed by an admin.
-     */
+   * @param {string} userId - The dashboard's subject user.
+   * @param {boolean} admin - Whether the dashboard is being viewed by an admin.
+   */
   constructor(userId, admin) {
     this.#userId = userId;
     this.#admin = admin;
   }
 
   /**
-     * Builds the dashboard map and wires up the team controls.
-     *
-     * Async because the label popup viewer must be created before the map params are assembled;
-     * a constructor cannot be async, so callers use this factory instead.
-     *
-     * @param {Function} $ - jQuery, required by CreatePSMap.
-     * @param {string} mapboxApiKey
-     * @param {Function} viewerType - Pano viewer constructor (GSV / Mapillary / Infra3d).
-     * @param {string} viewerAccessToken
-     * @param {string} userId
-     * @param {boolean} admin
-     * @param {string} currentUsername
-     * @returns {Promise<Progress>}
-     */
+   * Builds the dashboard map and wires up the team controls.
+   *
+   * Async because the label popup viewer must be created before the map params are assembled;
+   * a constructor cannot be async, so callers use this factory instead.
+   *
+   * @param {Function} $ - jQuery, required by CreatePSMap.
+   * @param {string} mapboxApiKey
+   * @param {Function} viewerType - Pano viewer constructor (GSV / Mapillary / Infra3d).
+   * @param {string} viewerAccessToken
+   * @param {string} userId
+   * @param {boolean} admin
+   * @param {string} currentUsername
+   * @returns {Promise<Progress>}
+   */
   static async create($, mapboxApiKey, viewerType, viewerAccessToken, userId, admin, currentUsername) {
     const params = {
       mapName: 'user-dashboard-choropleth',
@@ -63,8 +63,8 @@ class Progress {
   }
 
   /**
-     * Attaches click handlers to the team-membership and create-team controls.
-     */
+   * Attaches click handlers to the team-membership and create-team controls.
+   */
   #bindTeamControls() {
     document.querySelectorAll('.put-user-team').forEach((el) => {
       el.addEventListener('click', () => this.#putUserTeam(el, null));
@@ -74,11 +74,11 @@ class Progress {
   }
 
   /**
-     * Moves the user between teams, logs the change, and reloads.
-     *
-     * @param {{id: string}} element - The clicked control; its id has the form "from-startTeam-to-endTeam".
-     * @param {?string} newTeam - Explicit destination team (used when creating a team); falls back to the id.
-     */
+   * Moves the user between teams, logs the change, and reloads.
+   *
+   * @param {{id: string}} element - The clicked control; its id has the form "from-startTeam-to-endTeam".
+   * @param {?string} newTeam - Explicit destination team (used when creating a team); falls back to the id.
+   */
   #putUserTeam(element, newTeam) {
     const parsedId = element.id.split('-');
     const startTeam = parsedId[1];
@@ -99,8 +99,8 @@ class Progress {
   }
 
   /**
-     * Validates and creates a new team, then joins the user to it.
-     */
+   * Validates and creates a new team, then joins the user to it.
+   */
   #createTeam() {
     const teamName = util.escapeHTML(document.getElementById('team-name-input').value);
     const teamDescription = util.escapeHTML(document.getElementById('team-description-input').value);

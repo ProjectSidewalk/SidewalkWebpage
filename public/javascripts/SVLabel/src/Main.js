@@ -14,8 +14,8 @@ class Main {
   #onboardingStates = null;
 
   /**
-     * @param {Object} params - Page params injected by explore.scala.html.
-     */
+   * @param {Object} params - Page params injected by explore.scala.html.
+   */
   constructor(params) {
     this.#params = params;
 
@@ -343,8 +343,7 @@ class Main {
       if (svl.observedArea) svl.observedArea.update();
       // Redraw fog of war after the rescale. Minimap does this async, so we have to listen on this event.
       if (svl.observedArea && svl.minimap) {
-        google.maps.event.addListenerOnce(svl.minimap.getMap(), 'bounds_changed',
-          () => svl.observedArea.update());
+        google.maps.event.addListenerOnce(svl.minimap.getMap(), 'bounds_changed', () => svl.observedArea.update());
       }
       window.dispatchEvent(new Event('resize'));
 
@@ -370,8 +369,8 @@ class Main {
   }
 
   /**
-     * Cleans up URL in address bar by removing query params that aren't necessary, changing /audit to /explore. etc.
-     */
+   * Cleans up URL in address bar by removing query params that aren't necessary, changing /audit to /explore. etc.
+   */
   #updateURL() {
     let newURL = `${window.location.protocol}//${window.location.host}/explore`;
     if (window.location.search.includes('retakeTutorial=true')) {
@@ -383,9 +382,9 @@ class Main {
   }
 
   /**
-     * Store jQuery DOM elements under svl.ui.
-     * Todo. Once we update all the modules to take ui elements as injected arguments, get rid of the svl.ui namespace and everything in it.
-     */
+   * Store jQuery DOM elements under svl.ui.
+   * Todo. Once we update all the modules to take ui elements as injected arguments, get rid of the svl.ui namespace and everything in it.
+   */
   #initUI() {
     svl.ui = {};
 

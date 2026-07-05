@@ -3,27 +3,27 @@
  */
 class PanoData {
   /**
-     * @param params {object}
-     * @param {string} params.panoId The unique ID for this panorama
-     * @param {string} params.source The data source for the image, one of "gsv", "mapillary", or "infra3d"
-     * @param {number} params.lat Latitude of the camera
-     * @param {number} params.lng Longitude of the camera
-     * @param {number} params.cameraHeading Heading of the camera in degrees, with respect to true north
-     * @param {number} params.cameraPitch Pitch of the camera in degrees, with respect to the horizon
-     * @param {number} [params.cameraRoll] Roll of the camera in degrees
-     * @param {number} params.width Width of the image in pixels
-     * @param {number} params.height Height of the image in pixels
-     * @param {number} [params.tileWidth] Width of the tiles that make up the image in pixels
-     * @param {number} [params.tileHeight] Height of hte tiles that make up the image in pixels
-     * @param {moment} params.captureDate Time when the picture was taken, only using up to month/year granularity
-     * @param {string} [params.address] Optional address for the current location
-     * @param {string} [params.copyright] Optional associated copyright info for the image
-     * @param {Array<{panoId: string, heading: number}>} params.linkedPanos List of nearby panos linked to with nav arrows
-     * @param {Array<{panoId: string, captureDate: Date}>} params.history List of panos at this pano's location over time
-     * @param {boolean} [params.submitted=false] Whether we've sent this data to the server yet; false unless from tutorial
-     * @returns {PanoData}
-     * @constructor
-     */
+   * @param params {object}
+   * @param {string} params.panoId The unique ID for this panorama
+   * @param {string} params.source The data source for the image, one of "gsv", "mapillary", or "infra3d"
+   * @param {number} params.lat Latitude of the camera
+   * @param {number} params.lng Longitude of the camera
+   * @param {number} params.cameraHeading Heading of the camera in degrees, with respect to true north
+   * @param {number} params.cameraPitch Pitch of the camera in degrees, with respect to the horizon
+   * @param {number} [params.cameraRoll] Roll of the camera in degrees
+   * @param {number} params.width Width of the image in pixels
+   * @param {number} params.height Height of the image in pixels
+   * @param {number} [params.tileWidth] Width of the tiles that make up the image in pixels
+   * @param {number} [params.tileHeight] Height of hte tiles that make up the image in pixels
+   * @param {moment} params.captureDate Time when the picture was taken, only using up to month/year granularity
+   * @param {string} [params.address] Optional address for the current location
+   * @param {string} [params.copyright] Optional associated copyright info for the image
+   * @param {Array<{panoId: string, heading: number}>} params.linkedPanos List of nearby panos linked to with nav arrows
+   * @param {Array<{panoId: string, captureDate: Date}>} params.history List of panos at this pano's location over time
+   * @param {boolean} [params.submitted=false] Whether we've sent this data to the server yet; false unless from tutorial
+   * @returns {PanoData}
+   * @constructor
+   */
   constructor(params) {
     // Validate required parameters.
     const requiredParams = ['panoId', 'source', 'lat', 'lng', 'cameraHeading', 'cameraPitch', 'width', 'height', 'captureDate', 'linkedPanos', 'history'];

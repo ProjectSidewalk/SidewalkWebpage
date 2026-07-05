@@ -35,9 +35,9 @@ class ZoomControl {
   #wheelTrackTimeout;
 
   /**
-     * @param {Object} canvas - The Explore canvas (cleared/rendered on zoom changes).
-     * @param {Object} [tracker] - Optional interaction tracker for logging zoom events.
-     */
+   * @param {Object} canvas - The Explore canvas (cleared/rendered on zoom changes).
+   * @param {Object} [tracker] - Optional interaction tracker for logging zoom events.
+   */
   constructor(canvas, tracker) {
     this.#canvas = canvas;
     this.#tracker = tracker;
@@ -52,22 +52,22 @@ class ZoomControl {
   }
 
   /**
-     * Get the zoom in UI control.
-     */
+   * Get the zoom in UI control.
+   */
   getZoomInUI() {
     return this.#uiZoomControl.zoomIn;
   }
 
   /**
-     * Get the zoom out UI control.
-     */
+   * Get the zoom out UI control.
+   */
   getZoomOutUI() {
     return this.#uiZoomControl.zoomOut;
   }
 
   /**
-     * Blink the zoom in button.
-     */
+   * Blink the zoom in button.
+   */
   blinkZoomIn() {
     this.stopBlinking();
     this.#zoomBlink.isBlinking = true;
@@ -77,8 +77,8 @@ class ZoomControl {
   }
 
   /**
-     * Blink the zoom out button.
-     */
+   * Blink the zoom out button.
+   */
   blinkZoomOut() {
     this.stopBlinking();
     this.#zoomBlink.isBlinking = true;
@@ -88,9 +88,9 @@ class ZoomControl {
   }
 
   /**
-     * Disables zooming in.
-     * @returns {ZoomControl} this.
-     */
+   * Disables zooming in.
+   * @returns {ZoomControl} this.
+   */
   disableZoomIn() {
     if (!this.#lock.disableZoomIn) {
       this.#status.disableZoomIn = true;
@@ -102,9 +102,9 @@ class ZoomControl {
   }
 
   /**
-     * Disables zoom out.
-     * @returns {ZoomControl} this.
-     */
+   * Disables zoom out.
+   * @returns {ZoomControl} this.
+   */
   disableZoomOut() {
     if (!this.#lock.disableZoomOut) {
       this.#status.disableZoomOut = true;
@@ -116,9 +116,9 @@ class ZoomControl {
   }
 
   /**
-     * Enable zoom in.
-     * @returns {ZoomControl} this.
-     */
+   * Enable zoom in.
+   * @returns {ZoomControl} this.
+   */
   enableZoomIn() {
     if (!this.#lock.disableZoomIn) {
       this.#status.disableZoomIn = false;
@@ -130,9 +130,9 @@ class ZoomControl {
   }
 
   /**
-     * Enable zoom out.
-     * @returns {ZoomControl} this.
-     */
+   * Enable zoom out.
+   * @returns {ZoomControl} this.
+   */
   enableZoomOut() {
     if (!this.#lock.disableZoomOut) {
       this.#status.disableZoomOut = false;
@@ -144,10 +144,10 @@ class ZoomControl {
   }
 
   /**
-     * Get status.
-     * @param {string} name
-     * @returns {*}
-     */
+   * Get status.
+   * @param {string} name
+   * @returns {*}
+   */
   getStatus(name) {
     if (name in this.#status) {
       return this.#status[name];
@@ -157,10 +157,10 @@ class ZoomControl {
   }
 
   /**
-     * Get a property.
-     * @param {string} name
-     * @returns {*}
-     */
+   * Get a property.
+   * @param {string} name
+   * @returns {*}
+   */
   getProperty(name) {
     if (name in this.#properties) {
       return this.#properties[name];
@@ -182,8 +182,8 @@ class ZoomControl {
   }
 
   /**
-     * Callback for the zoom-in button. Increments the pano zoom level.
-     */
+   * Callback for the zoom-in button. Increments the pano zoom level.
+   */
   #handleZoomInButtonClick() {
     if (this.#tracker) this.#tracker.push('Click_ZoomIn');
 
@@ -201,8 +201,8 @@ class ZoomControl {
   }
 
   /**
-     * Callback for the zoom-out button. Decrements the pano zoom level.
-     */
+   * Callback for the zoom-out button. Decrements the pano zoom level.
+   */
   #handleZoomOutButtonClick() {
     if (this.#tracker) this.#tracker.push('Click_ZoomOut');
 
@@ -219,9 +219,9 @@ class ZoomControl {
   }
 
   /**
-     * Callback for the scroll wheel / trackpad over the pano.
-     * @param {Object} e - jQuery wheel event.
-     */
+   * Callback for the scroll wheel / trackpad over the pano.
+   * @param {Object} e - jQuery wheel event.
+   */
   #handleZoomWheel(e) {
     // Prevent the page from scrolling while zooming the pano.
     e.preventDefault();
@@ -245,9 +245,9 @@ class ZoomControl {
   }
 
   /**
-     * Zoom in. Called when the keyboard shortcut for zoom in is used.
-     * @returns {ZoomControl|boolean} this if zoomed in, false if zoom in is disabled.
-     */
+   * Zoom in. Called when the keyboard shortcut for zoom in is used.
+   * @returns {ZoomControl|boolean} this if zoomed in, false if zoom in is disabled.
+   */
   zoomIn() {
     if (!this.#status.disableZoomIn) {
       const pov = svl.panoViewer.getPov();
@@ -261,9 +261,9 @@ class ZoomControl {
   }
 
   /**
-     * Zoom out. Called from outside this class (and by the keyboard shortcut) to zoom out from a pano.
-     * @returns {ZoomControl|boolean} this if zoomed out, false if zoom out is disabled.
-     */
+   * Zoom out. Called from outside this class (and by the keyboard shortcut) to zoom out from a pano.
+   * @returns {ZoomControl|boolean} this if zoomed out, false if zoom out is disabled.
+   */
   zoomOut() {
     if (!this.#status.disableZoomOut) {
       const pov = svl.panoViewer.getPov();
@@ -277,10 +277,10 @@ class ZoomControl {
   }
 
   /**
-     * Sets the zoom level of the Street View.
-     * @param {number} zoomLevelIn
-     * @returns {number|boolean} The clamped zoom level, or false if a non-number was passed.
-     */
+   * Sets the zoom level of the Street View.
+   * @param {number} zoomLevelIn
+   * @returns {number|boolean} The clamped zoom level, or false if a non-number was passed.
+   */
   #setZoom(zoomLevelIn) {
     if (typeof zoomLevelIn !== 'number') {
       return false;
@@ -312,8 +312,8 @@ class ZoomControl {
   }
 
   /**
-     * Stop blinking the zoom-in and zoom-out buttons.
-     */
+   * Stop blinking the zoom-in and zoom-out buttons.
+   */
   stopBlinking() {
     window.clearInterval(this.#blinkInterval);
     this.#zoomBlink.isBlinking = false;
@@ -324,20 +324,20 @@ class ZoomControl {
   }
 
   /**
-     * Sets the maximum zoom level.
-     * @param {number} zoomLevel
-     * @returns {ZoomControl} this.
-     */
+   * Sets the maximum zoom level.
+   * @param {number} zoomLevel
+   * @returns {ZoomControl} this.
+   */
   setMaxZoomLevel(zoomLevel) {
     this.#properties.maxZoomLevel = zoomLevel;
     return this;
   }
 
   /**
-     * Sets the minimum zoom level.
-     * @param {number} zoomLevel
-     * @returns {ZoomControl} this.
-     */
+   * Sets the minimum zoom level.
+   * @param {number} zoomLevel
+   * @returns {ZoomControl} this.
+   */
   setMinZoomLevel(zoomLevel) {
     this.#properties.minZoomLevel = zoomLevel;
     return this;
@@ -356,9 +356,9 @@ class ZoomControl {
   }
 
   /**
-     * Change the opacity of zoom buttons.
-     * @returns {ZoomControl} this.
-     */
+   * Change the opacity of zoom buttons.
+   * @returns {ZoomControl} this.
+   */
   updateOpacity() {
     const pov = svl.panoViewer.getPov();
 

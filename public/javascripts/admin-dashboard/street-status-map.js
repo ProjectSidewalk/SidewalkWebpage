@@ -61,10 +61,10 @@ class StreetStatusMap {
   #hoverId = null;
 
   /**
-     * @param {string} containerId - id of the map container element.
-     * @param {{mapboxToken: string, onRegionClick?: function(number): void, onRegionHover?: function(number): void,
-     *          onRegionHoverEnd?: function(): void}} [opts]
-     */
+   * @param {string} containerId - id of the map container element.
+   * @param {{mapboxToken: string, onRegionClick?: function(number): void, onRegionHover?: function(number): void,
+   *          onRegionHoverEnd?: function(): void}} [opts]
+   */
   constructor(containerId, opts = {}) {
     this.containerId = containerId;
     this.#mapboxToken = opts.mapboxToken;
@@ -74,10 +74,10 @@ class StreetStatusMap {
   }
 
   /**
-     * Initializes the map and draws the street segments.
-     * @param {object} geojson - A GeoJSON FeatureCollection of streets with status + region_id in properties.
-     * @returns {Promise<void>} resolves once the map's first render is ready.
-     */
+   * Initializes the map and draws the street segments.
+   * @param {object} geojson - A GeoJSON FeatureCollection of streets with status + region_id in properties.
+   * @returns {Promise<void>} resolves once the map's first render is ready.
+   */
   init(geojson) {
     if (!this.#mapboxToken) throw new Error('StreetStatusMap: missing Mapbox access token');
     mapboxgl.accessToken = this.#mapboxToken;
@@ -156,10 +156,10 @@ class StreetStatusMap {
   }
 
   /**
-     * Highlights exactly the given set of segments (e.g. all street_edge_ids in a region), replacing any prior
-     * highlight. The coordinator resolves region → segment ids and passes them here.
-     * @param {number[]} streetEdgeIds
-     */
+   * Highlights exactly the given set of segments (e.g. all street_edge_ids in a region), replacing any prior
+   * highlight. The coordinator resolves region → segment ids and passes them here.
+   * @param {number[]} streetEdgeIds
+   */
   highlightSegments(streetEdgeIds) {
     const src = StreetStatusMap.#SOURCE;
     const next = new Set(streetEdgeIds.map(Number));

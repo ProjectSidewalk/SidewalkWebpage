@@ -21,9 +21,9 @@ class MissionController {
   }
 
   /**
-     * Wraps up the current route or neighborhood once the user has finished every street and confirmed they're done
-     * auditing their last intersection: ends the current task and shows the mission-complete modal.
-     */
+   * Wraps up the current route or neighborhood once the user has finished every street and confirmed they're done
+   * auditing their last intersection: ends the current task and shows the mission-complete modal.
+   */
   wrapUpRouteOrNeighborhood() {
     const currentTask = svl.taskContainer.getCurrentTask();
     svl.taskContainer.endTask(currentTask);
@@ -36,10 +36,10 @@ class MissionController {
   }
 
   /**
-     * Marks the given mission as complete: logs it, updates the model, and bumps the session's completed-mission count.
-     * @param mission The mission being completed.
-     * @param neighborhood The neighborhood the mission was in.
-     */
+   * Marks the given mission as complete: logs it, updates the model, and bumps the session's completed-mission count.
+   * @param mission The mission being completed.
+   * @param neighborhood The neighborhood the mission was in.
+   */
   #completeTheCurrentMission(mission, neighborhood) {
     this.#tracker.push(
       'MissionComplete',
@@ -56,10 +56,10 @@ class MissionController {
   }
 
   /**
-     * Completes the mission and shows the mission-complete modal if the mission is finished.
-     * @param mission The current mission.
-     * @param neighborhood The current neighborhood.
-     */
+   * Completes the mission and shows the mission-complete modal if the mission is finished.
+   * @param mission The current mission.
+   * @param neighborhood The current neighborhood.
+   */
   #checkMissionComplete(mission, neighborhood) {
     if (mission.getMissionCompletionRate() > 0.999) {
       this.#completeTheCurrentMission(mission, neighborhood);
@@ -77,11 +77,11 @@ class MissionController {
   }
 
   /**
-     * Updates the audited distance and mission completion rate in the right sidebar, checks for mission completion, and
-     * occasionally prompts the user with the survey.
-     * @param currentMission The current mission.
-     * @param currentRegion The current neighborhood.
-     */
+   * Updates the audited distance and mission completion rate in the right sidebar, checks for mission completion, and
+   * occasionally prompts the user with the survey.
+   * @param currentMission The current mission.
+   * @param currentRegion The current neighborhood.
+   */
   update(currentMission, currentRegion) {
     if (svl.isOnboarding()) return;
 

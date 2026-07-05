@@ -17,11 +17,11 @@ class FeedbackModal {
   #cancelButton;
 
   /**
-     * @param {Object} svl Shared app object (used for panoViewer, popUpMessage, and missionContainer).
-     * @param {Tracker} tracker
-     * @param {RibbonMenu} ribbon Used to suspend mode switching while the textarea is focused.
-     * @param {TaskContainer} taskContainer Provides the current task for the submitted comment.
-     */
+   * @param {Object} svl Shared app object (used for panoViewer, popUpMessage, and missionContainer).
+   * @param {Tracker} tracker
+   * @param {RibbonMenu} ribbon Used to suspend mode switching while the textarea is focused.
+   * @param {TaskContainer} taskContainer Provides the current task for the submitted comment.
+   */
   constructor(svl, tracker, ribbon, taskContainer) {
     this.#svl = svl;
     this.#tracker = tracker;
@@ -92,18 +92,18 @@ class FeedbackModal {
   };
 
   /**
-     * Enables or disables the OK button.
-     * @param {boolean} enabled
-     */
+   * Enables or disables the OK button.
+   * @param {boolean} enabled
+   */
   #setOkEnabled(enabled) {
     this.#okButton.disabled = !enabled;
     this.#okButton.classList.toggle('disabled', !enabled);
   }
 
   /**
-     * Posts the comment to the back end and shows a confirmation toast on success.
-     * @param {Object} data Comment payload built by #prepareCommentData.
-     */
+   * Posts the comment to the back end and shows a confirmation toast on success.
+   * @param {Object} data Comment payload built by #prepareCommentData.
+   */
   #submitComment(data) {
     fetch('/explore/comment', {
       method: 'POST',
@@ -120,14 +120,14 @@ class FeedbackModal {
   }
 
   /**
-     * Builds the comment payload from the current pano/position/task state.
-     * @param {string} panoId
-     * @param {number} lat
-     * @param {number} lng
-     * @param {Object} pov Current point of view ({ heading, pitch, zoom }).
-     * @param {Object} task Current audit task.
-     * @returns {Object}
-     */
+   * Builds the comment payload from the current pano/position/task state.
+   * @param {string} panoId
+   * @param {number} lat
+   * @param {number} lng
+   * @param {Object} pov Current point of view ({ heading, pitch, zoom }).
+   * @param {Object} task Current audit task.
+   * @returns {Object}
+   */
   #prepareCommentData(panoId, lat, lng, pov, task) {
     return {
       comment: this.#textarea.value,

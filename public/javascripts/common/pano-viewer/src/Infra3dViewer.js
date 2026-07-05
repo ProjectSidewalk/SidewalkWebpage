@@ -141,11 +141,11 @@ class Infra3dViewer extends PanoViewer {
   };
 
   /**
-     * If the new pano we arrived at is in the excluded list, go back to the previous one and throw an error.
-     * @param {PanoData} newPanoData The pano data for the new panorama
-     * @param {Set<PanoData>} [excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to
-     * @returns {Promise<PanoData>} Rejects with error if new pano in excluded list; resolves with pano data otherwise
-     */
+   * If the new pano we arrived at is in the excluded list, go back to the previous one and throw an error.
+   * @param {PanoData} newPanoData The pano data for the new panorama
+   * @param {Set<PanoData>} [excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to
+   * @returns {Promise<PanoData>} Rejects with error if new pano in excluded list; resolves with pano data otherwise
+   */
   #filterExcludedPanos = (newPanoData, excludedPanos) => {
     // If the pano given is in the excluded list, treat it as if the API call itself had returned nothing.
     const excludedPanoIds = new Set([...excludedPanos].map((p) => p.getPanoId()));
@@ -159,12 +159,12 @@ class Infra3dViewer extends PanoViewer {
   };
 
   /**
-     * Ensures that all image metadata has been saved before letting setPano or setLocation resolve.
-     *
-     * @param node {object} Infra3d's internal node object; moveToKey sends it but moteToPosition does not
-     * @returns {Promise<PanoData>}
-     * @private
-     */
+   * Ensures that all image metadata has been saved before letting setPano or setLocation resolve.
+   *
+   * @param node {object} Infra3d's internal node object; moveToKey sends it but moteToPosition does not
+   * @returns {Promise<PanoData>}
+   * @private
+   */
   #finishRecordingMetadata = async (node) => {
     this.currNode = node;
     // Make sure that the node has the linked panos initialized (in node.spatialEdges.edges).

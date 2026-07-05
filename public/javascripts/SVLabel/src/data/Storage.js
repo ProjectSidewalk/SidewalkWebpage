@@ -11,8 +11,8 @@ class TemporaryStorage {
   #storage;
 
   /**
-     * @param {JSON} json - JSON object for (de)serializing stored values.
-     */
+   * @param {JSON} json - JSON object for (de)serializing stored values.
+   */
   constructor(json) {
     this.#json = json;
     this.#storage = window.localStorage;
@@ -27,19 +27,19 @@ class TemporaryStorage {
   }
 
   /**
-     * Returns the item specified by the key.
-     * @param {string} key
-     * @returns {*} The parsed value, or null if absent.
-     */
+   * Returns the item specified by the key.
+   * @param {string} key
+   * @returns {*} The parsed value, or null if absent.
+   */
   get(key) {
     return this.#json.parse(this.#storage.getItem(key));
   }
 
   /**
-     * Stores a key/value pair.
-     * @param {string} key
-     * @param {*} value
-     */
+   * Stores a key/value pair.
+   * @param {string} key
+   * @param {*} value
+   */
   set(key, value) {
     this.#storage.setItem(key, this.#json.stringify(value));
   }

@@ -15,19 +15,19 @@ class ModalMissionCompleteMap {
   ];
 
   /**
-     * @param {string} mapContainerId HTML id of the element that holds the map.
-     * @param {string} mapboxApiKey Mapbox API key.
-     */
+   * @param {string} mapContainerId HTML id of the element that holds the map.
+   * @param {string} mapboxApiKey Mapbox API key.
+   */
   constructor(mapContainerId, mapboxApiKey) {
     this.#mapPromise = this.#createMap(mapContainerId, mapboxApiKey);
   }
 
   /**
-     * Creates the Mapbox map centered on the city and resolves once it has loaded.
-     * @param {string} containerId HTML id of the map container.
-     * @param {string} mapboxApiKey Mapbox API key.
-     * @returns {Promise} Resolves with the loaded Mapbox map.
-     */
+   * Creates the Mapbox map centered on the city and resolves once it has loaded.
+   * @param {string} containerId HTML id of the map container.
+   * @param {string} mapboxApiKey Mapbox API key.
+   * @returns {Promise} Resolves with the loaded Mapbox map.
+   */
   #createMap(containerId, mapboxApiKey) {
     return fetch('/cityMapParams', { headers: { Accept: 'application/json' } })
       .then((response) => response.json())
@@ -55,10 +55,10 @@ class ModalMissionCompleteMap {
   }
 
   /**
-     * Draws the street tiers and mission labels, then frames the just-finished mission's streets.
-     * @param {object} streetTiers GeoJSON FeatureCollections keyed by tier: { thisMission, previous, community }.
-     * @param {object} labelData GeoJSON FeatureCollection of labels placed during the mission.
-     */
+   * Draws the street tiers and mission labels, then frames the just-finished mission's streets.
+   * @param {object} streetTiers GeoJSON FeatureCollections keyed by tier: { thisMission, previous, community }.
+   * @param {object} labelData GeoJSON FeatureCollection of labels placed during the mission.
+   */
   async update(streetTiers, labelData) {
     const map = await this.#mapPromise;
     this.#clearLayers(map);
@@ -104,16 +104,13 @@ class ModalMissionCompleteMap {
   }
 
   /**
-     * Fits the map to the streets from the just-finished mission, leaving room for the overlay cards. Falls back to all
-     * worked streets if the mission tier is somehow empty.
-     */
+   * Fits the map to the streets from the just-finished mission, leaving room for the overlay cards. Falls back to all
+   * worked streets if the mission tier is somehow empty.
+   */
   #frameMission(map, streetTiers) {
     const target = streetTiers.thisMission.features.length
       ? streetTiers.thisMission
-      : {
-          type: 'FeatureCollection',
-          features: [...streetTiers.previous.features, ...streetTiers.community.features],
-        };
+      : { type: 'FeatureCollection', features: [...streetTiers.previous.features, ...streetTiers.community.features] };
     if (!target.features.length) return;
 
     const scale = util.uiScale();

@@ -19,8 +19,8 @@ class AdminApiAnalytics {
   #loading = false;
 
   /**
-     * Sets up event listeners on the filter controls.
-     */
+   * Sets up event listeners on the filter controls.
+   */
   constructor() {
     const excludeToggle = document.getElementById('api-analytics-exclude-docs');
     const daysSelect = document.getElementById('api-analytics-days');
@@ -41,18 +41,18 @@ class AdminApiAnalytics {
   }
 
   /**
-     * Loads analytics data from the server and renders all panels. Safe to call multiple times.
-     * @returns {Promise<void>}
-     */
+   * Loads analytics data from the server and renders all panels. Safe to call multiple times.
+   * @returns {Promise<void>}
+   */
   async load() {
     if (this.#loading) return;
     await this.#fetchAndRender();
   }
 
   /**
-     * Fetches analytics data from `/adminapi/apiAnalytics` and re-renders all panels.
-     * @returns {Promise<void>}
-     */
+   * Fetches analytics data from `/adminapi/apiAnalytics` and re-renders all panels.
+   * @returns {Promise<void>}
+   */
   async #fetchAndRender() {
     if (this.#loading) return;
     this.#loading = true;
@@ -82,8 +82,8 @@ class AdminApiAnalytics {
   }
 
   /**
-     * Renders the summary stats panel (total calls, unique IPs).
-     */
+   * Renders the summary stats panel (total calls, unique IPs).
+   */
   #renderSummary() {
     const el = document.getElementById('api-analytics-summary');
     if (!el) return;
@@ -108,8 +108,8 @@ class AdminApiAnalytics {
   }
 
   /**
-     * Renders the endpoint breakdown table.
-     */
+   * Renders the endpoint breakdown table.
+   */
   #renderEndpointTable() {
     const el = document.getElementById('api-analytics-endpoint-table');
     if (!el) return;
@@ -144,8 +144,8 @@ class AdminApiAnalytics {
   }
 
   /**
-     * Renders the daily call volume line chart using Vega-Lite (already loaded on the admin page).
-     */
+   * Renders the daily call volume line chart using Vega-Lite (already loaded on the admin page).
+   */
   #renderDailyChart() {
     const el = document.getElementById('api-analytics-daily-chart');
     if (!el) return;
@@ -185,8 +185,8 @@ class AdminApiAnalytics {
   }
 
   /**
-     * Renders the filetype/format breakdown table.
-     */
+   * Renders the filetype/format breakdown table.
+   */
   #renderFormatTable() {
     const el = document.getElementById('api-analytics-format-table');
     if (!el) return;
@@ -226,9 +226,9 @@ class AdminApiAnalytics {
   }
 
   /**
-     * Shows an error message in the summary panel.
-     * @param {string} message - The error message to display.
-     */
+   * Shows an error message in the summary panel.
+   * @param {string} message - The error message to display.
+   */
   #showError(message) {
     const summaryEl = document.getElementById('api-analytics-summary');
     if (summaryEl) summaryEl.innerHTML = `<p class="text-danger">${message}</p>`;

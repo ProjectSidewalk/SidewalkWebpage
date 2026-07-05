@@ -52,19 +52,19 @@
   // Public API.
   window.UserStatsPreview = {
     /**
-         * Configure the user stats preview.
-         * @param {object} options - Configuration options
-         * @returns {object} The UserStatsPreview object for chaining
-         */
+     * Configure the user stats preview.
+     * @param {object} options - Configuration options
+     * @returns {object} The UserStatsPreview object for chaining
+     */
     setup(options) {
       config = Object.assign(config, options);
       return this;
     },
 
     /**
-         * Initialize the user stats preview visualization.
-         * @returns {Promise} A promise that resolves when the preview is rendered
-         */
+     * Initialize the user stats preview visualization.
+     * @returns {Promise} A promise that resolves when the preview is rendered
+     */
     init() {
       const container = document.getElementById(config.containerId);
 
@@ -117,9 +117,9 @@
     },
 
     /**
-         * Fetch label types from the API to get proper colors and descriptions.
-         * @returns {Promise} A promise that resolves with the label types data
-         */
+     * Fetch label types from the API to get proper colors and descriptions.
+     * @returns {Promise} A promise that resolves with the label types data
+     */
     fetchLabelTypes() {
       return fetch(`${config.apiBaseUrl}${config.labelTypesEndpoint}?source=apiDocs`)
         .then((response) => {
@@ -147,9 +147,9 @@
     },
 
     /**
-         * Fetch user statistics from the API.
-         * @returns {Promise} A promise that resolves with the user stats data
-         */
+     * Fetch user statistics from the API.
+     * @returns {Promise} A promise that resolves with the user stats data
+     */
     fetchUserStats() {
       const params = new URLSearchParams({
         minLabels: config.minLabels,
@@ -165,10 +165,10 @@
     },
 
     /**
-         * Filter and prepare the data for visualization.
-         * @param {Array} userStatsData - The raw user statistics data
-         * @returns {object} Processed data ready for visualization
-         */
+     * Filter and prepare the data for visualization.
+     * @param {Array} userStatsData - The raw user statistics data
+     * @returns {object} Processed data ready for visualization
+     */
     filterData(userStatsData) {
       // Filter out users with empty stats or 0 labels.
       const validUsers = userStatsData.filter((user) => user.labels > 0);
@@ -205,10 +205,10 @@
     },
 
     /**
-         * Create all visualizations in the container.
-         * @param {HTMLElement} container - Container element for the visualizations
-         * @param {object} data - Processed data for visualizations
-         */
+     * Create all visualizations in the container.
+     * @param {HTMLElement} container - Container element for the visualizations
+     * @param {object} data - Processed data for visualizations
+     */
     createVisualizations(container, data) {
       // Create top contributors chart section.
       this.createChartSection(
@@ -245,12 +245,12 @@
     },
 
     /**
-         * Create a section for a chart with a header and description.
-         * @param {HTMLElement} container - Parent container
-         * @param {string} title - Section title
-         * @param {string} description - Description text
-         * @param {Function} chartCreator - Function to create the chart (receives the chart container)
-         */
+     * Create a section for a chart with a header and description.
+     * @param {HTMLElement} container - Parent container
+     * @param {string} title - Section title
+     * @param {string} description - Description text
+     * @param {Function} chartCreator - Function to create the chart (receives the chart container)
+     */
     createChartSection(container, title, description, chartCreator) {
       // Create section container.
       const section = document.createElement('div');
@@ -292,10 +292,10 @@
     },
 
     /**
-         * Create a bar chart showing top contributors by total labels.
-         * @param {HTMLElement} container - Container element for the chart
-         * @param {Array} topUsers - Array of top users data
-         */
+     * Create a bar chart showing top contributors by total labels.
+     * @param {HTMLElement} container - Container element for the chart
+     * @param {Array} topUsers - Array of top users data
+     */
     createTopContributorsChart(container, topUsers) {
       // Create canvas for the chart.
       const canvas = document.createElement('canvas');
@@ -367,10 +367,10 @@
     },
 
     /**
-         * Create a stacked bar chart showing the breakdown of label types for top users.
-         * @param {HTMLElement} container - Container element for the chart
-         * @param {Array} topUsers - Array of top users data
-         */
+     * Create a stacked bar chart showing the breakdown of label types for top users.
+     * @param {HTMLElement} container - Container element for the chart
+     * @param {Array} topUsers - Array of top users data
+     */
     createLabelTypeBreakdownChart(container, topUsers) {
       // Create canvas for the chart.
       const canvas = document.createElement('canvas');
@@ -466,10 +466,10 @@
     },
 
     /**
-         * Create a scatter chart showing the relationship between accuracy and contribution volume.
-         * @param {HTMLElement} container - Container element for the chart
-         * @param {Array} accuracyData - Array of user accuracy data
-         */
+     * Create a scatter chart showing the relationship between accuracy and contribution volume.
+     * @param {HTMLElement} container - Container element for the chart
+     * @param {Array} accuracyData - Array of user accuracy data
+     */
     createAccuracyScatterChart(container, accuracyData) {
       // Create canvas for the chart.
       const canvas = document.createElement('canvas');

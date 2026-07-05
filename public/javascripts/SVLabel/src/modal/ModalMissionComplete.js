@@ -17,11 +17,11 @@ class ModalMissionComplete {
   #legendBuilt = false;
 
   /**
-     * @param missionContainer The mission container.
-     * @param missionModel The mission model (emits mission lifecycle events).
-     * @param taskContainer The task container.
-     * @param modalMissionCompleteMap The map component for the modal.
-     */
+   * @param missionContainer The mission container.
+   * @param missionModel The mission model (emits mission lifecycle events).
+   * @param taskContainer The task container.
+   * @param modalMissionCompleteMap The map component for the modal.
+   */
   constructor(missionContainer, missionModel, taskContainer, modalMissionCompleteMap) {
     this.#missionContainer = missionContainer;
     this.#taskContainer = taskContainer;
@@ -72,10 +72,10 @@ class ModalMissionComplete {
   }
 
   /**
-     * Populates the modal for the just-completed mission: title, badge, map, legend, progress bar, and stats.
-     * @param mission The completed mission.
-     * @param neighborhood The neighborhood the mission was in.
-     */
+   * Populates the modal for the just-completed mission: title, badge, map, legend, progress bar, and stats.
+   * @param mission The completed mission.
+   * @param neighborhood The neighborhood the mission was in.
+   */
   update(mission, neighborhood) {
     const unit = { units: i18next.t('common:unit-distance') };
     const isRoute = svl.neighborhoodModel.isRoute;
@@ -144,9 +144,9 @@ class ModalMissionComplete {
   }
 
   /**
-     * Fetches the neighborhood's total label count (across all users) and fills it in once it resolves.
-     * @param {number} regionId The current neighborhood's region id.
-     */
+   * Fetches the neighborhood's total label count (across all users) and fills it in once it resolves.
+   * @param {number} regionId The current neighborhood's region id.
+   */
   #fetchNeighborhoodLabelCount(regionId) {
     fetch(`/label/countInRegion?regionId=${regionId}`, { headers: { Accept: 'application/json' } })
       .then((response) => response.json())
@@ -182,12 +182,12 @@ class ModalMissionComplete {
   }
 
   /**
-     * Builds the three street-tier FeatureCollections from the task data: the streets covered in the just-finished
-     * mission, the streets the user covered in earlier missions, and the streets completed by the wider community.
-     * @param mission The completed mission.
-     * @param {number} missionId The completed mission's id.
-     * @returns {object} { thisMission, previous, community } GeoJSON FeatureCollections.
-     */
+   * Builds the three street-tier FeatureCollections from the task data: the streets covered in the just-finished
+   * mission, the streets the user covered in earlier missions, and the streets completed by the wider community.
+   * @param mission The completed mission.
+   * @param {number} missionId The completed mission's id.
+   * @returns {object} { thisMission, previous, community } GeoJSON FeatureCollections.
+   */
   #buildStreetTiers(mission, missionId) {
     const missionTasks = mission.getRoute();
     const missionStreetIds = missionTasks.map((task) => task.getStreetEdgeId());
@@ -258,14 +258,14 @@ class ModalMissionComplete {
   }
 
   /**
-     * Reports whether a LineString feature has enough real coordinates to hand to Mapbox. A mission can cover ~zero
-     * usable length of a street (it ended at a street boundary, the street was reached via a jump, etc.), in which case
-     * turf.lineSlice/cleanCoords collapses the segment to a single point or nothing. Mapbox then throws deep in its
-     * tiler ("Cannot read properties of null (reading 'x')") and the failure bubbles up into a page reload; filtering
-     * those degenerate features out here keeps them out of the source entirely. (#4204)
-     * @param {object} feature A GeoJSON Feature, or null/undefined.
-     * @returns {boolean} True if the feature is a LineString with at least two finite [lng, lat] coordinates.
-     */
+   * Reports whether a LineString feature has enough real coordinates to hand to Mapbox. A mission can cover ~zero
+   * usable length of a street (it ended at a street boundary, the street was reached via a jump, etc.), in which case
+   * turf.lineSlice/cleanCoords collapses the segment to a single point or nothing. Mapbox then throws deep in its
+   * tiler ("Cannot read properties of null (reading 'x')") and the failure bubbles up into a page reload; filtering
+   * those degenerate features out here keeps them out of the source entirely. (#4204)
+   * @param {object} feature A GeoJSON Feature, or null/undefined.
+   * @returns {boolean} True if the feature is a LineString with at least two finite [lng, lat] coordinates.
+   */
   #isDrawableLine(feature) {
     const coords = feature?.geometry?.coordinates;
     if (!Array.isArray(coords) || coords.length < 2) return false;
@@ -273,10 +273,10 @@ class ModalMissionComplete {
   }
 
   /**
-     * Builds a GeoJSON FeatureCollection of the labels the user placed during the given mission.
-     * @param {number} missionId The completed mission's id.
-     * @returns {object} GeoJSON FeatureCollection of label points.
-     */
+   * Builds a GeoJSON FeatureCollection of the labels the user placed during the given mission.
+   * @param {number} missionId The completed mission's id.
+   * @returns {object} GeoJSON FeatureCollection of label points.
+   */
   #buildLabelData(missionId) {
     const features = svl.labelContainer.getAllLabels()
       .filter((label) => !label.isDeleted() && label.getProperty('missionId') === missionId)
@@ -332,8 +332,8 @@ class ModalMissionComplete {
   }
 
   /**
-     * Shows a badge-unlock toast over the modal if completing this mission crossed into a new mission-badge level.
-     */
+   * Shows a badge-unlock toast over the modal if completing this mission crossed into a new mission-badge level.
+   */
   #checkMissionBadgeUnlock() {
     const liveCount = svl.overallStats.getLiveMissionCount();
     if (liveCount === null) return;
@@ -353,9 +353,9 @@ class ModalMissionComplete {
   }
 
   /**
-     * Handles a button click: opens validation, reloads explore, or starts the next mission.
-     * @param {string} button Which button was clicked: 'primary' or 'secondary'.
-     */
+   * Handles a button click: opens validation, reloads explore, or starts the next mission.
+   * @param {string} button Which button was clicked: 'primary' or 'secondary'.
+   */
   #closeModal(button) {
     const action = button === 'secondary' ? 'validate' : this.#primaryAction;
     if (action === 'validate') {
@@ -388,10 +388,10 @@ class ModalMissionComplete {
   }
 
   /**
-     * Formats a mission distance for the subtitle, rounded to the nearest 25 m/ft like the sidebar mission message.
-     * @param {number} distanceMiles The mission distance in miles.
-     * @returns {string}
-     */
+   * Formats a mission distance for the subtitle, rounded to the nearest 25 m/ft like the sidebar mission message.
+   * @param {number} distanceMiles The mission distance in miles.
+   * @returns {string}
+   */
   #formatMissionDistance(distanceMiles) {
     const meters = util.math.milesToMeters(distanceMiles);
     const unitAbbreviation = i18next.t('common:unit-abbreviation-mission-distance');

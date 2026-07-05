@@ -32,8 +32,8 @@ class LabelVisibilityControl {
   }
 
   /**
-     * Logs interaction when the hide label button is clicked.
-     */
+   * Logs interaction when the hide label button is clicked.
+   */
   #clickAdjustLabel = () => {
     if (this.#visible) {
       svv.tracker.push('Click_HideLabel');
@@ -45,8 +45,8 @@ class LabelVisibilityControl {
   };
 
   /**
-     * Unhides label in the panorama depending on current state.
-     */
+   * Unhides label in the panorama depending on current state.
+   */
   unhideLabel() {
     const panoMarker = svv.panoManager.getPanoMarker();
     const label = svv.labelContainer.getCurrentLabel();
@@ -62,8 +62,8 @@ class LabelVisibilityControl {
   }
 
   /**
-     * Hides label in the panorama.
-     */
+   * Hides label in the panorama.
+   */
   hideLabel() {
     const panoMarker = svv.panoManager.getPanoMarker();
     panoMarker.setIcon('assets/javascripts/SVLabel/img/icons/Label_Outline.svg');
@@ -78,15 +78,15 @@ class LabelVisibilityControl {
   }
 
   /**
-     * Returns true if label is currently not hidden, false otherwise.
-     */
+   * Returns true if label is currently not hidden, false otherwise.
+   */
   isVisible() {
     return this.#visible;
   }
 
   /**
-     * Shows the 'Show/Hide Label' button and the description box on panorama.
-     */
+   * Shows the 'Show/Hide Label' button and the description box on panorama.
+   */
   showTagsAndDeleteButton() {
     svv.tracker.push('MouseOver_Label');
 
@@ -107,8 +107,8 @@ class LabelVisibilityControl {
   }
 
   /**
-     * Hides the 'Show/Hide Label' button and the description box on pano.
-     */
+   * Hides the 'Show/Hide Label' button and the description box on pano.
+   */
   hideTagsAndDeleteButton() {
     this.#labelVisibilityButtonOnPano[0].style.visibility = 'hidden';
     this.#labelDescriptionBox[0].style.visibility = 'hidden';

@@ -9,12 +9,12 @@ class NeighborhoodProgressBar {
   #rateEl;
 
   /**
-     * @param {object} [elementIds] Overrides for the element ids, letting the same bar be reused elsewhere.
-     * @param {string} [elementIds.fill] Id of the rounded fill pill.
-     * @param {string} [elementIds.you] Id of the current-user segment.
-     * @param {string} [elementIds.community] Id of the community segment.
-     * @param {string} [elementIds.rate] Id of the percentage label.
-     */
+   * @param {object} [elementIds] Overrides for the element ids, letting the same bar be reused elsewhere.
+   * @param {string} [elementIds.fill] Id of the rounded fill pill.
+   * @param {string} [elementIds.you] Id of the current-user segment.
+   * @param {string} [elementIds.community] Id of the community segment.
+   * @param {string} [elementIds.rate] Id of the percentage label.
+   */
   constructor(elementIds = {}) {
     const ids = {
       fill: 'neighborhood-progress-fill',
@@ -30,9 +30,9 @@ class NeighborhoodProgressBar {
   }
 
   /**
-     * Recomputes the user's and the community's audited fractions of the neighborhood and resizes the two bar segments.
-     * Uses the same priority-based distances as the mission-complete modal.
-     */
+   * Recomputes the user's and the community's audited fractions of the neighborhood and resizes the two bar segments.
+   * Uses the same priority-based distances as the mission-complete modal.
+   */
   update() {
     if (!this.#fillEl || !this.#youEl || !this.#communityEl || !this.#rateEl || !('taskContainer' in svl) || !svl.taskContainer) return;
 

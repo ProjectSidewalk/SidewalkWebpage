@@ -20,11 +20,11 @@
   }
 
   /**
-     * Keeps only rows from the most recent `maxDays` unique dates in the data.
-     * @param {Array<object>} data
-     * @param {number} maxDays
-     * @returns {Array<object>}
-     */
+   * Keeps only rows from the most recent `maxDays` unique dates in the data.
+   * @param {Array<object>} data
+   * @param {number} maxDays
+   * @returns {Array<object>}
+   */
   function trimToRecentDays(data, maxDays) {
     const dates = Array.from(new Set(data.map((r) => r.date))).sort();
     const cutoff = dates.length > maxDays ? dates[dates.length - maxDays] : dates[0];
@@ -32,10 +32,10 @@
   }
 
   /**
-     * Builds a lookup: date → { labelType → record } from the flat data array.
-     * @param {Array<object>} data
-     * @returns {Map<string, Map<string, object>>}
-     */
+   * Builds a lookup: date → { labelType → record } from the flat data array.
+   * @param {Array<object>} data
+   * @returns {Map<string, Map<string, object>>}
+   */
   function buildDailyMap(data) {
     const map = new Map();
     data.forEach((row) => {
@@ -46,12 +46,12 @@
   }
 
   /**
-     * Aggregates daily totals (summed across all label types) for a field.
-     * @param {string[]} dates - Sorted date strings
-     * @param {Map<string, Map<string, object>>} byDay
-     * @param {string} field
-     * @returns {number[]}
-     */
+   * Aggregates daily totals (summed across all label types) for a field.
+   * @param {string[]} dates - Sorted date strings
+   * @param {Map<string, Map<string, object>>} byDay
+   * @param {string} field
+   * @returns {number[]}
+   */
   function dailyTotals(dates, byDay, field) {
     return dates.map((d) => {
       let total = 0;
@@ -63,10 +63,10 @@
   }
 
   /**
-     * Renders the summary stats bar and charts.
-     * @param {HTMLElement} container
-     * @param {Array<object>} data
-     */
+   * Renders the summary stats bar and charts.
+   * @param {HTMLElement} container
+   * @param {Array<object>} data
+   */
   function render(container, data) {
     if (!data.length) {
       container.innerHTML = '<p style="text-align:center;color:#888;padding:40px 0">No data available for this period.</p>';
@@ -206,11 +206,11 @@
   }
 
   /**
-     * Builds a standard Chart.js options object.
-     * @param {string} yLabel
-     * @param {{stacked?: boolean}} [opts]
-     * @returns {object}
-     */
+   * Builds a standard Chart.js options object.
+   * @param {string} yLabel
+   * @param {{stacked?: boolean}} [opts]
+   * @returns {object}
+   */
   function chartOptions(yLabel, opts = {}) {
     return {
       responsive: true,
@@ -231,12 +231,12 @@
   }
 
   /**
-     * Creates a labelled chart wrapper div.
-     * @param {string} title
-     * @param {string} description
-     * @param {Function} builder - Receives the inner div and should append a canvas.
-     * @returns {HTMLElement}
-     */
+   * Creates a labelled chart wrapper div.
+   * @param {string} title
+   * @param {string} description
+   * @param {Function} builder - Receives the inner div and should append a canvas.
+   * @returns {HTMLElement}
+   */
   function makeChart(title, description, builder) {
     const wrap = document.createElement('div');
     wrap.className = 'preview-chart-section';
@@ -253,18 +253,18 @@
 
   window.AggregateStatsByDayPreview = {
     /**
-         * @param {object} options
-         * @returns {object} this
-         */
+     * @param {object} options
+     * @returns {object} this
+     */
     setup(options) {
       config = Object.assign(config, options);
       return this;
     },
 
     /**
-         * Fetch data and render charts.
-         * @returns {Promise}
-         */
+     * Fetch data and render charts.
+     * @returns {Promise}
+     */
     init() {
       const container = document.getElementById(config.containerId);
       if (!container) return Promise.reject(new Error('Container not found'));

@@ -36,26 +36,26 @@
   // Public API
   window.ValidationsPreview = {
     /**
-         * Configure the validations preview.
-         * @param {object} options - Configuration options
-         * @param {string} [options.apiBaseUrl] - Base URL for the API
-         * @param {string} [options.containerId] - ID of the container element
-         * @param {string} [options.validationsEndpoint] - API endpoint for validations
-         * @param {string} [options.labelTypesEndpoint] - API endpoint for label types
-         * @param {number} [options.chartHeight] - Height of each chart in pixels
-         * @param {number} [options.maxChartsToShow] - Maximum number of charts to display
-         * @param {number} [options.minValidationsToShow] - Minimum validations needed to show a chart
-         * @returns {object} The ValidationsPreview object for chaining
-         */
+     * Configure the validations preview.
+     * @param {object} options - Configuration options
+     * @param {string} [options.apiBaseUrl] - Base URL for the API
+     * @param {string} [options.containerId] - ID of the container element
+     * @param {string} [options.validationsEndpoint] - API endpoint for validations
+     * @param {string} [options.labelTypesEndpoint] - API endpoint for label types
+     * @param {number} [options.chartHeight] - Height of each chart in pixels
+     * @param {number} [options.maxChartsToShow] - Maximum number of charts to display
+     * @param {number} [options.minValidationsToShow] - Minimum validations needed to show a chart
+     * @returns {object} The ValidationsPreview object for chaining
+     */
     setup(options) {
       config = Object.assign(config, options);
       return this;
     },
 
     /**
-         * Initialize the validations preview visualization.
-         * @returns {Promise} A promise that resolves when the preview is rendered
-         */
+     * Initialize the validations preview visualization.
+     * @returns {Promise} A promise that resolves when the preview is rendered
+     */
     init() {
       const container = document.getElementById(config.containerId);
 
@@ -86,9 +86,9 @@
     },
 
     /**
-         * Show loading state in the container.
-         * @param {HTMLElement} container - Container element
-         */
+     * Show loading state in the container.
+     * @param {HTMLElement} container - Container element
+     */
     showLoadingState(container) {
       container.innerHTML = `
         <div class="validation-loading">
@@ -99,10 +99,10 @@
     },
 
     /**
-         * Show error state in the container.
-         * @param {HTMLElement} container - Container element
-         * @param {Error} error - The error that occurred
-         */
+     * Show error state in the container.
+     * @param {HTMLElement} container - Container element
+     * @param {Error} error - The error that occurred
+     */
     showErrorState(container, error) {
       container.innerHTML = `
         <div class="validation-error">
@@ -112,9 +112,9 @@
     },
 
     /**
-         * Fetch label types to get colors and display names.
-         * @returns {Promise} A promise that resolves with the label types data
-         */
+     * Fetch label types to get colors and display names.
+     * @returns {Promise} A promise that resolves with the label types data
+     */
     fetchLabelTypes() {
       return fetch(`${config.apiBaseUrl}${config.labelTypesEndpoint}?source=apiDocs`)
         .then((response) => {
@@ -135,9 +135,9 @@
     },
 
     /**
-         * Fetch validations data from the API.
-         * @returns {Promise} A promise that resolves with the validations data
-         */
+     * Fetch validations data from the API.
+     * @returns {Promise} A promise that resolves with the validations data
+     */
     fetchValidations() {
       return fetch(`${config.apiBaseUrl}${config.validationsEndpoint}?source=apiDocs`)
         .then((response) => {
@@ -149,10 +149,10 @@
     },
 
     /**
-         * Create validation result distribution charts for each label type.
-         * @param {HTMLElement} container - Container element for the charts
-         * @param {Array} validationsData - Array of validation objects from the API
-         */
+     * Create validation result distribution charts for each label type.
+     * @param {HTMLElement} container - Container element for the charts
+     * @param {Array} validationsData - Array of validation objects from the API
+     */
     createValidationCharts(container, validationsData) {
       // Group validations by label type.
       const validationsByType = this.groupValidationsByType(validationsData);
@@ -181,10 +181,10 @@
     },
 
     /**
-         * Group validations by label type ID.
-         * @param {Array} validationsData - Array of validation objects
-         * @returns {object} Object with label type IDs as keys and aggregated data as values
-         */
+     * Group validations by label type ID.
+     * @param {Array} validationsData - Array of validation objects
+     * @returns {object} Object with label type IDs as keys and aggregated data as values
+     */
     groupValidationsByType(validationsData) {
       const validationsByType = {};
 
@@ -221,10 +221,10 @@
     },
 
     /**
-         * Filter and sort label types for display.
-         * @param {object} validationsByType - Grouped validation data
-         * @returns {Array} Array of [typeId, typeData] pairs, filtered and sorted
-         */
+     * Filter and sort label types for display.
+     * @param {object} validationsByType - Grouped validation data
+     * @returns {Array} Array of [typeId, typeData] pairs, filtered and sorted
+     */
     filterAndSortTypes(validationsByType) {
       return Object.entries(validationsByType)
       // Filter out types with too few validations
@@ -243,11 +243,11 @@
     },
 
     /**
-         * Create summary section with overall statistics.
-         * @param {HTMLElement} container - Parent container
-         * @param {Array} validationsData - Raw validation data
-         * @param {Array} filteredTypes - Filtered and sorted types
-         */
+     * Create summary section with overall statistics.
+     * @param {HTMLElement} container - Parent container
+     * @param {Array} validationsData - Raw validation data
+     * @param {Array} filteredTypes - Filtered and sorted types
+     */
     createSummarySection(container, validationsData, filteredTypes) {
       const summarySection = document.createElement('div');
       summarySection.className = 'validation-summary';
@@ -279,11 +279,11 @@
     },
 
     /**
-         * Add a stat item to the summary grid.
-         * @param {HTMLElement} grid - Grid container
-         * @param {string} value - Stat value
-         * @param {string} label - Stat label
-         */
+     * Add a stat item to the summary grid.
+     * @param {HTMLElement} grid - Grid container
+     * @param {string} value - Stat value
+     * @param {string} label - Stat label
+     */
     addSummaryStatItem(grid, value, label) {
       const item = document.createElement('div');
       item.className = 'summary-stat-item';
@@ -301,10 +301,10 @@
     },
 
     /**
-         * Create a single chart for one label type.
-         * @param {HTMLElement} container - Parent container for the chart
-         * @param {object} typeData - Data for this label type
-         */
+     * Create a single chart for one label type.
+     * @param {HTMLElement} container - Parent container for the chart
+     * @param {object} typeData - Data for this label type
+     */
     createSingleValidationChart(container, typeData) {
       // Create chart container.
       const chartContainer = document.createElement('div');
@@ -399,11 +399,11 @@
     },
 
     /**
-         * Create footer summary text.
-         * @param {HTMLElement} container - Parent container
-         * @param {Array} validationsData - Raw validation data
-         * @param {Array} filteredTypes - Filtered and sorted types
-         */
+     * Create footer summary text.
+     * @param {HTMLElement} container - Parent container
+     * @param {Array} validationsData - Raw validation data
+     * @param {Array} filteredTypes - Filtered and sorted types
+     */
     createFooterSummary(container, validationsData, filteredTypes) {
       const summary = document.createElement('p');
       summary.style.textAlign = 'center';
@@ -426,11 +426,11 @@
     },
 
     /**
-         * Lighten a hex color by a specified amount.
-         * @param {string} hex - Hex color code
-         * @param {number} amount - Amount to lighten (0-255)
-         * @returns {string} Lightened hex color
-         */
+     * Lighten a hex color by a specified amount.
+     * @param {string} hex - Hex color code
+     * @param {number} amount - Amount to lighten (0-255)
+     * @returns {string} Lightened hex color
+     */
     lightenColor(hex, amount) {
       hex = hex.replace(/^#/, '');
 
@@ -446,11 +446,11 @@
     },
 
     /**
-         * Darken a hex color by a specified amount.
-         * @param {string} hex - Hex color code
-         * @param {number} amount - Amount to darken (0-255)
-         * @returns {string} Darkened hex color
-         */
+     * Darken a hex color by a specified amount.
+     * @param {string} hex - Hex color code
+     * @param {number} amount - Amount to darken (0-255)
+     * @returns {string} Darkened hex color
+     */
     darkenColor(hex, amount) {
       hex = hex.replace(/^#/, '');
 

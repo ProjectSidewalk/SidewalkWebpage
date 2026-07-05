@@ -33,12 +33,12 @@ class MissionStartTutorial {
   #messagesPrefix;
 
   /**
-     * @param {string} missionType Mission type ('validate' or 'audit').
-     * @param {string} labelType One of the seven label types for which the tutorial is initialized.
-     * @param {object} data Mission data: `nLabels` (VALIDATE) or `neighborhood` (EXPLORE).
-     * @param {object} svvOrsvl SVValidate or SVLabel object that logs interactions and acts on tutorial close.
-     * @param {string} [language] Language code that tweaks spacing for verbose translations.
-     */
+   * @param {string} missionType Mission type ('validate' or 'audit').
+   * @param {string} labelType One of the seven label types for which the tutorial is initialized.
+   * @param {object} data Mission data: `nLabels` (VALIDATE) or `neighborhood` (EXPLORE).
+   * @param {object} svvOrsvl SVValidate or SVLabel object that logs interactions and acts on tutorial close.
+   * @param {string} [language] Language code that tweaks spacing for verbose translations.
+   */
   constructor(missionType, labelType, data, svvOrsvl, language = 'en') {
     this.#missionType = missionType;
     this.#labelType = labelType;
@@ -53,24 +53,24 @@ class MissionStartTutorial {
   }
 
   /**
-     * Initializes the variables needed for this module by selecting the descriptor for the current label type.
-     *
-     * Each descriptor provides structure for a slide-based tutorial framework:
-     *     - missionInstruction1: Text to be shown at the very top, above the slides area.
-     *     - missionInstruction2: Text to be shown below missionInstruction1, above the slides area.
-     *     - slides: An array of 'slides'.
-     *
-     * Each 'slide' contains the following:
-     *     - isExampleCorrect: boolean, indicating whether the example type is correct or incorrect.
-     *     - slideTitle: string, title for the slide.
-     *     - slideSubtitle: string, subtitle for the slide.
-     *     - slideDescription: string, long form text description for the slide.
-     *     - imageURL: string, URL to the image to be shown.
-     *     - labelOnImage: object, containing the following:
-     *         - position: object, containing 'top' and 'left' attributes (wrt image elem) for the on-image label.
-     *
-     * @param {string} missionType Mission type ('validate' or 'audit').
-     */
+   * Initializes the variables needed for this module by selecting the descriptor for the current label type.
+   *
+   * Each descriptor provides structure for a slide-based tutorial framework:
+   *     - missionInstruction1: Text to be shown at the very top, above the slides area.
+   *     - missionInstruction2: Text to be shown below missionInstruction1, above the slides area.
+   *     - slides: An array of 'slides'.
+   *
+   * Each 'slide' contains the following:
+   *     - isExampleCorrect: boolean, indicating whether the example type is correct or incorrect.
+   *     - slideTitle: string, title for the slide.
+   *     - slideSubtitle: string, subtitle for the slide.
+   *     - slideDescription: string, long form text description for the slide.
+   *     - imageURL: string, URL to the image to be shown.
+   *     - labelOnImage: object, containing the following:
+   *         - position: object, containing 'top' and 'left' attributes (wrt image elem) for the on-image label.
+   *
+   * @param {string} missionType Mission type ('validate' or 'audit').
+   */
   #initModule(missionType) {
     const validateMSTDescriptor = {
       CurbRamp: {
@@ -851,10 +851,8 @@ class MissionStartTutorial {
   }
 
   /**
-     * Initializes the UI for the mission screens.
-     * Renders the top level messages and slide location indicators.
-     * Also renders the first slide.
-     */
+   * Initializes the UI for the mission screens, renders top-level messages, and renders the first slide.
+   */
   #initUI() {
     const renderLocationIndicators = () => {
       // We should clear existing indicators before rendering.
@@ -898,11 +896,11 @@ class MissionStartTutorial {
   }
 
   /**
-     * Renders the slide for the given idx. Includes setting title, subtitle, description, image, and on-image label.
-     * - Updates the current slide indicator.
-     * - Disables/enables the next/previous buttons based on the idx of the rendered slide.
-     * @param {number} idx Index of the slide to be rendered.
-     */
+   * Renders the slide for the given idx. Includes setting title, subtitle, description, image, and on-image label.
+   * - Updates the current slide indicator.
+   * - Disables/enables the next/previous buttons based on the idx of the rendered slide.
+   * @param {number} idx Index of the slide to be rendered.
+   */
   #renderSlide(idx) {
     const $mstSlide = $('.mst-slide');
     const $labelTypeSubtitle = $('.label-type-subtitle');
@@ -912,12 +910,12 @@ class MissionStartTutorial {
     const $labelOnImageDescription = $('.label-on-image-description');
 
     /**
-         * Renders the 'on-image label' and positions it.
-         * @param {object} position Position of the on-image label as top and left attributes in px.
-         * @param {string} iconID ID of the SVG icon to be shown on the label.
-         * @param {string} labelOnImageTitle Title to be shown on the label.
-         * @param {string} labelOnImageDescription Description to be shown on the label.
-         */
+     * Renders the 'on-image label' and positions it.
+     * @param {object} position Position of the on-image label as top and left attributes in px.
+     * @param {string} iconID ID of the SVG icon to be shown on the label.
+     * @param {string} labelOnImageTitle Title to be shown on the label.
+     * @param {string} labelOnImageDescription Description to be shown on the label.
+     */
     const renderLabelOnImage = (position, iconID, labelOnImageTitle, labelOnImageDescription) => {
       $labelOnImage.css({
         top: `calc(${position.top} * var(--ui-scale))`,
@@ -1009,9 +1007,9 @@ class MissionStartTutorial {
   }
 
   /**
-     * Attaches the event handlers required for the mission screen labelTypeModule.
-     * Note: we need to remove existing handlers first as this function may be called multiple times (explore mission screens).
-     */
+   * Attaches the event handlers required for the mission screen labelTypeModule.
+   * Note: we need to remove existing handlers first as this function may be called multiple times (explore mission screens).
+   */
   #attachEventHandlers() {
     // Hides the mission start tutorial, initializes the relevant svvOrsvl variables, and logs the interaction.
     const hideMST = () => {

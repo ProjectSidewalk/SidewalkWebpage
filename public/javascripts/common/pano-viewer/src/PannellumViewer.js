@@ -26,10 +26,10 @@ class PannellumViewer extends PanoViewer {
   #currentSceneId = undefined;
 
   /**
-     * True while a scene transition is in progress. The rAF POV-tracking loop skips ticks while loading to avoid
-     * firing pov_changed with mid-transition values under the wrong camera calibration.
-     * @type {boolean}
-     */
+   * True while a scene transition is in progress. The rAF POV-tracking loop skips ticks while loading to avoid
+   * firing pov_changed with mid-transition values under the wrong camera calibration.
+   * @type {boolean}
+   */
   #loading = false;
 
   #lastYaw = NaN;
@@ -43,16 +43,16 @@ class PannellumViewer extends PanoViewer {
   }
 
   /**
-     * @param {Element} canvasElem Container element to mount the viewer into.
-     * @param {object} panoOptions
-     * @param {string} [panoOptions.startPanoId] The pano ID to load. Falls back to panoMetadata.panoId.
-     * @param {object} panoOptions.panoMetadata Required. Metadata for the pano (see PanoData fields).
-     * @param {number} [panoOptions.startHeading] Initial heading wrt true north; defaults to cameraHeading.
-     * @param {number} [panoOptions.startPitch=0] Initial pitch in degrees.
-     * @param {number} [panoOptions.startZoom=1] Initial zoom level (1, 2, or 3).
-     * @param {boolean} [panoOptions.zoomControl=true] Whether mouse-wheel zoom is enabled.
-     * @returns {Promise<void>}
-     */
+   * @param {Element} canvasElem Container element to mount the viewer into.
+   * @param {object} panoOptions
+   * @param {string} [panoOptions.startPanoId] The pano ID to load. Falls back to panoMetadata.panoId.
+   * @param {object} panoOptions.panoMetadata Required. Metadata for the pano (see PanoData fields).
+   * @param {number} [panoOptions.startHeading] Initial heading wrt true north; defaults to cameraHeading.
+   * @param {number} [panoOptions.startPitch=0] Initial pitch in degrees.
+   * @param {number} [panoOptions.startZoom=1] Initial zoom level (1, 2, or 3).
+   * @param {boolean} [panoOptions.zoomControl=true] Whether mouse-wheel zoom is enabled.
+   * @returns {Promise<void>}
+   */
   async initialize(canvasElem, panoOptions = {}) {
     const metadata = panoOptions.panoMetadata;
     if (!metadata) throw new Error('PannellumViewer requires panoOptions.panoMetadata');
@@ -137,13 +137,13 @@ class PannellumViewer extends PanoViewer {
   };
 
   /**
-     * Loads a new panorama into the existing viewer, reusing the WebGL context rather than  recreating the viewer.
-     *
-     * @param {string} panoId
-     * @param {object} metadata Metadata for the new pano (same shape as panoOptions.panoMetadata in initialize()).
-     * @param {{heading: number, pitch: number, zoom: number}} pov Initial POV for the new pano.
-     * @returns {Promise<PanoData>}
-     */
+   * Loads a new panorama into the existing viewer, reusing the WebGL context rather than  recreating the viewer.
+   *
+   * @param {string} panoId
+   * @param {object} metadata Metadata for the new pano (same shape as panoOptions.panoMetadata in initialize()).
+   * @param {{heading: number, pitch: number, zoom: number}} pov Initial POV for the new pano.
+   * @returns {Promise<PanoData>}
+   */
   loadPano = async (panoId, metadata, pov) => {
     const oldSceneId = this.#currentSceneId;
 
@@ -216,11 +216,11 @@ class PannellumViewer extends PanoViewer {
   };
 
   /**
-     * Builds a PanoData object from a metadata blob supplied by the caller.
-     * @param {string} panoId
-     * @param {object} metadata Fields matching PanoData's constructor params.
-     * @returns {PanoData}
-     */
+   * Builds a PanoData object from a metadata blob supplied by the caller.
+   * @param {string} panoId
+   * @param {object} metadata Fields matching PanoData's constructor params.
+   * @returns {PanoData}
+   */
   #buildPanoData(panoId, metadata) {
     return new PanoData({
       panoId,
@@ -245,28 +245,28 @@ class PannellumViewer extends PanoViewer {
   }
 
   /**
-     * Converts a heading (0 = true north, clockwise) to Pannellum's yaw (0 = image center, range [-180, 180]).
-     * @param {number} heading
-     * @param {number} [cameraHeading] Defaults to the current scene's cameraHeading. Pass explicitly when computing
-     *     yaw for a scene that hasn't been loaded yet (e.g. inside loadPano() before calibration fields are updated).
-     * @returns {number}
-     */
+   * Converts a heading (0 = true north, clockwise) to Pannellum's yaw (0 = image center, range [-180, 180]).
+   * @param {number} heading
+   * @param {number} [cameraHeading] Defaults to the current scene's cameraHeading. Pass explicitly when computing
+   *     yaw for a scene that hasn't been loaded yet (e.g. inside loadPano() before calibration fields are updated).
+   * @returns {number}
+   */
   #headingToYaw = (heading, cameraHeading = this.#cameraHeading) => {
     return ((heading - cameraHeading + 540) % 360) - 180;
   };
 
   /**
-     * Inverse of #headingToYaw — converts Pannellum yaw to a true-north heading in [0, 360).
-     * @param {number} yaw
-     * @returns {number}
-     */
+   * Inverse of #headingToYaw — converts Pannellum yaw to a true-north heading in [0, 360).
+   * @param {number} yaw
+   * @returns {number}
+   */
   #yawToHeading = (yaw) => {
     return (this.#cameraHeading + yaw + 360) % 360;
   };
 
   /**
-     * Begins a requestAnimationFrame loop that fires pov_changed listeners whenever yaw, pitch, or hfov change.
-     */
+   * Begins a requestAnimationFrame loop that fires pov_changed listeners whenever yaw, pitch, or hfov change.
+   */
   #startPovTracking = () => {
     const tick = async () => {
       if (!this.#viewer) return;
@@ -295,8 +295,8 @@ class PannellumViewer extends PanoViewer {
   };
 
   /**
-     * Not supported — PannellumViewer cannot search by lat/lng; rejects unconditionally.
-     */
+   * Not supported — PannellumViewer cannot search by lat/lng; rejects unconditionally.
+   */
   setLocation = () => {
     return Promise.reject(
       new Error('PannellumViewer does not support setLocation(); reinitialize with new panoMetadata instead.'),
@@ -304,11 +304,11 @@ class PannellumViewer extends PanoViewer {
   };
 
   /**
-     * No-op if panoId matches the currently loaded pano; rejects otherwise. To switch panos, call loadPano() with
-     * the new pano's metadata — the PanoViewer.setPano() interface does not carry metadata.
-     * @param {string} panoId
-     * @returns {Promise<PanoData>}
-     */
+   * No-op if panoId matches the currently loaded pano; rejects otherwise. To switch panos, call loadPano() with
+   * the new pano's metadata — the PanoViewer.setPano() interface does not carry metadata.
+   * @param {string} panoId
+   * @returns {Promise<PanoData>}
+   */
   setPano = (panoId) => {
     if (panoId === this.currPanoData.getPanoId()) {
       return Promise.resolve(this.currPanoData);

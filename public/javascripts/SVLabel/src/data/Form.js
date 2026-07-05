@@ -13,14 +13,14 @@ class Form {
   #compileDataLock;
 
   /**
-     * @param {LabelContainer} labelContainer - Holds the labels placed during the current session.
-     * @param {MissionModel} missionModel - Emits mission lifecycle events (e.g. progress completion).
-     * @param {MissionContainer} missionContainer - Tracks the current mission and its progress.
-     * @param {PanoStore} panoStore - Holds metadata for the panoramas seen this session.
-     * @param {TaskContainer} taskContainer - Tracks the current audit task.
-     * @param {Tracker} tracker - Buffers the interaction log to be flushed to the back end.
-     * @param {string} dataStoreUrl - URL to POST submission data to.
-     */
+   * @param {LabelContainer} labelContainer - Holds the labels placed during the current session.
+   * @param {MissionModel} missionModel - Emits mission lifecycle events (e.g. progress completion).
+   * @param {MissionContainer} missionContainer - Tracks the current mission and its progress.
+   * @param {PanoStore} panoStore - Holds metadata for the panoramas seen this session.
+   * @param {TaskContainer} taskContainer - Tracks the current audit task.
+   * @param {Tracker} tracker - Buffers the interaction log to be flushed to the back end.
+   * @param {string} dataStoreUrl - URL to POST submission data to.
+   */
   constructor(labelContainer, missionModel, missionContainer, panoStore, taskContainer, tracker, dataStoreUrl) {
     this.#labelContainer = labelContainer;
     this.#missionModel = missionModel;
@@ -53,11 +53,11 @@ class Form {
   }
 
   /**
-     * Gathers all the data needed to submit logs to the back end.
-     *
-     * @param {Task} task - The audit task to compile submission data for.
-     * @returns {Object} The JSON data to submit to the back end.
-     */
+   * Gathers all the data needed to submit logs to the back end.
+   *
+   * @param {Task} task - The audit task to compile submission data for.
+   * @returns {Object} The JSON data to submit to the back end.
+   */
   #compileSubmissionData(task) {
     const mission = this.#missionContainer.getCurrentMission();
     const missionId = mission.getProperty('missionId');
@@ -199,12 +199,12 @@ class Form {
   }
 
   /**
-     * Submit the compiled data to the back end and apply the server's response.
-     *
-     * @param {Object} data - The compiled submission data.
-     * @param {Task} task - The audit task the data belongs to.
-     * @returns {Promise<void>}
-     */
+   * Submit the compiled data to the back end and apply the server's response.
+   *
+   * @param {Object} data - The compiled submission data.
+   * @param {Task} task - The audit task the data belongs to.
+   * @returns {Promise<void>}
+   */
   #submit(data, task) {
     this.#labelContainer.clearLabelsToLog();
 
@@ -245,11 +245,11 @@ class Form {
   }
 
   /**
-     * Compile and submit existing logs to the server. Uses a lock to prevent duplicate logging.
-     *
-     * @param {Task} [task] - The task to submit data for. If not provided, the current task is used.
-     * @returns {Promise<void>}
-     */
+   * Compile and submit existing logs to the server. Uses a lock to prevent duplicate logging.
+   *
+   * @param {Task} [task] - The task to submit data for. If not provided, the current task is used.
+   * @returns {Promise<void>}
+   */
   async submitData(task) {
     return await this.#compileDataLock.acquire('submitData', async () => {
       if (typeof task === 'undefined') {

@@ -73,10 +73,10 @@ class OverallStats {
   }
 
   /**
-     * Updates the global distance as the user explores. The neighborhood distance is offset against the session's
-     * starting totals so the global figure stays correct even when switching neighborhoods.
-     * @param {number} neighborhoodDistance Distance audited in the current neighborhood (user's unit).
-     */
+   * Updates the global distance as the user explores. The neighborhood distance is offset against the session's
+   * starting totals so the global figure stays correct even when switching neighborhoods.
+   * @param {number} neighborhoodDistance Distance audited in the current neighborhood (user's unit).
+   */
   setNeighborhoodAuditedDistance(neighborhoodDistance) {
     // Tutorial exploration isn't saved, so it doesn't count toward the global distance or the exploring badge.
     if (svl.isOnboarding()) return;
@@ -89,12 +89,12 @@ class OverallStats {
   }
 
   /**
-     * Shows a badge-unlock toast over the pano if the value just crossed into a new badge level.
-     * @param {string} type Badge type ('labels' or 'distance').
-     * @param {number} oldValue The value before this update, in the user's units.
-     * @param {number} newValue The value after this update, in the user's units.
-     * @param {Object} [opts] Passed through to BadgeAchievements (e.g. { isMetric }).
-     */
+   * Shows a badge-unlock toast over the pano if the value just crossed into a new badge level.
+   * @param {string} type Badge type ('labels' or 'distance').
+   * @param {number} oldValue The value before this update, in the user's units.
+   * @param {number} newValue The value after this update, in the user's units.
+   * @param {Object} [opts] Passed through to BadgeAchievements (e.g. { isMetric }).
+   */
   #checkBadgeUnlock(type, oldValue, newValue, opts = {}) {
     if (!this.#seeded) return;
     const badge = BadgeAchievements.detectUnlock(type, oldValue, newValue, opts);
@@ -103,8 +103,8 @@ class OverallStats {
   }
 
   /**
-     * The user's total completed-mission count at the moment they finished the just-completed mission.
-     */
+   * The user's total completed-mission count at the moment they finished the just-completed mission.
+   */
   getLiveMissionCount() {
     if (this.#sessionStartMissionCount === null) return null;
     return this.#sessionStartMissionCount + svl.missionsCompleted;
@@ -129,9 +129,9 @@ class OverallStats {
   }
 
   /**
-     * Renders the accuracy stat. Accuracy is a fraction (0–1) or null when there isn't enough data yet.
-     * @param {?number} accuracy
-     */
+   * Renders the accuracy stat. Accuracy is a fraction (0–1) or null when there isn't enough data yet.
+   * @param {?number} accuracy
+   */
   #renderAccuracy(accuracy) {
     if (accuracy !== null && accuracy !== undefined) {
       this.#stats.accuracy = 100 * accuracy;

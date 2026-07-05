@@ -19,9 +19,9 @@ class StreetStatusPage {
   #hoverIds = null; // null = no active hover.
 
   /**
-     * @param {{mapboxToken: string, streetsUrl: string}} opts - Mapbox access token and the v3 streets endpoint URL,
-     *   both injected from the Twirl template so the JS has no server-config coupling.
-     */
+   * @param {{mapboxToken: string, streetsUrl: string}} opts - Mapbox access token and the v3 streets endpoint URL,
+   *   both injected from the Twirl template so the JS has no server-config coupling.
+   */
   constructor(opts = {}) {
     this.#mapboxToken = opts.mapboxToken;
     this.#streetsUrl = opts.streetsUrl;
@@ -70,10 +70,10 @@ class StreetStatusPage {
   }
 
   /**
-     * Single pass over the GeoJSON features building both outputs the page needs: per-region status counts (table +
-     * KPIs) and a region → segment-id index (map↔table highlight sync). Only statuses actually present are counted, so
-     * a city missing a status still renders cleanly.
-     */
+   * Single pass over the GeoJSON features building both outputs the page needs: per-region status counts (table +
+   * KPIs) and a region → segment-id index (map↔table highlight sync). Only statuses actually present are counted, so
+   * a city missing a status still renders cleanly.
+   */
   #aggregate(features) {
     const byRegion = new Map();
     for (const f of features) {

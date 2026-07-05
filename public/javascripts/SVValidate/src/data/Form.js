@@ -11,8 +11,8 @@ class Form {
   static #RETRY_BACKOFF_MS = 2000;
 
   /**
-     * @param {string} url - URL to send validation/interaction data to.
-     */
+   * @param {string} url - URL to send validation/interaction data to.
+   */
   constructor(url) {
     this.#dataStoreUrl = url;
 
@@ -32,9 +32,9 @@ class Form {
   }
 
   /**
-     * Returns the source label identifying which Validate UI produced the data.
-     * @returns {string} One of 'ValidateMobile', 'ExpertValidate', or 'Validate'.
-     */
+   * Returns the source label identifying which Validate UI produced the data.
+   * @returns {string} One of 'ValidateMobile', 'ExpertValidate', or 'Validate'.
+   */
   getSource() {
     if (util.isMobile()) {
       return 'ValidateMobile';
@@ -46,11 +46,11 @@ class Form {
   }
 
   /**
-     * Compiles data into a format that can be parsed by our back end.
-     *
-     * @param {boolean} missionComplete - Whether the mission is complete. Ensures we only send once per mission.
-     * @returns {Object} The log data to submit.
-     */
+   * Compiles data into a format that can be parsed by our back end.
+   *
+   * @param {boolean} missionComplete - Whether the mission is complete. Ensures we only send once per mission.
+   * @returns {Object} The log data to submit.
+   */
   compileSubmissionData(missionComplete) {
     const data = { timestamp: new Date(), source: this.getSource() };
     const missionContainer = svv.missionContainer;
@@ -131,20 +131,20 @@ class Form {
   }
 
   /**
-     * Submits all front-end data to the back end.
-     *
-     * Network/parse failures and response-handling errors are handled separately and deliberately: a failed POST is
-     * retried (with the same snapshot, so nothing is lost) and never reloads the page, while an error thrown while
-     * applying the response is logged but never retried (the data already reached the server, so resubmitting would
-     * duplicate it). See #2745 — the previous blanket `catch -> location.reload()` reset users to the first label and
-     * caused a reload/crash loop on mobile.
-     *
-     * @param {Object}  data               - Data object (containing interactions, missions, etc.).
-     * @param {boolean} [isIntermediateSubmit=false] - True for the Tracker's mid-mission buffer flush, which only
-     *                                       persists logs/validations and must NOT process a mission transition.
-     * @param {number}  [retryCount=0]      - Internal: current retry attempt (callers leave this at the default).
-     * @returns {Promise<void>}
-     */
+   * Submits all front-end data to the back end.
+   *
+   * Network/parse failures and response-handling errors are handled separately and deliberately: a failed POST is
+   * retried (with the same snapshot, so nothing is lost) and never reloads the page, while an error thrown while
+   * applying the response is logged but never retried (the data already reached the server, so resubmitting would
+   * duplicate it). See #2745 — the previous blanket `catch -> location.reload()` reset users to the first label and
+   * caused a reload/crash loop on mobile.
+   *
+   * @param {Object}  data               - Data object (containing interactions, missions, etc.).
+   * @param {boolean} [isIntermediateSubmit=false] - True for the Tracker's mid-mission buffer flush, which only
+   *                                       persists logs/validations and must NOT process a mission transition.
+   * @param {number}  [retryCount=0]      - Internal: current retry attempt (callers leave this at the default).
+   * @returns {Promise<void>}
+   */
   async submit(data, isIntermediateSubmit = false, retryCount = 0) {
     let result;
     try {

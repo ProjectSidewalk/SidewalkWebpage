@@ -29,20 +29,20 @@ class Task {
   };
 
   /**
-     * @param geojson
-     * @param tutorialTask
-     * @param {{lat: number, lng: number}} [currentLatLng] The user's current lat/lng to use if resuming.
-     */
+   * @param geojson
+   * @param tutorialTask
+   * @param {{lat: number, lng: number}} [currentLatLng] The user's current lat/lng to use if resuming.
+   */
   constructor(geojson, tutorialTask, currentLatLng) {
     this.#properties.tutorialTask = tutorialTask;
     this.initialize(geojson, currentLatLng);
   }
 
   /**
-     * This method takes a task parameters and set up the current task.
-     * @param {GeoJSON.LineString} geojson The GeoJSON representation of the street
-     * @param {{lat: number, lng: number}} [currentLatLng] The user's current lat/lng to use if resuming
-     */
+   * This method takes a task parameters and set up the current task.
+   * @param {GeoJSON.LineString} geojson The GeoJSON representation of the street
+   * @param {{lat: number, lng: number}} [currentLatLng] The user's current lat/lng to use if resuming
+   */
   initialize(geojson, currentLatLng) {
     this.#geojson = geojson;
     const currMissionId = this.#geojson.properties.current_mission_id;
@@ -81,9 +81,9 @@ class Task {
   }
 
   /**
-     * Choose whether to reverse street direction based on the current position (should be where prev task ends).
-     * @param {{lat: number, lng: number}} currentLatLng User's current position
-     */
+   * Choose whether to reverse street direction based on the current position (should be where prev task ends).
+   * @param {{lat: number, lng: number}} currentLatLng User's current position
+   */
   setStreetEdgeDirection(currentLatLng) {
     const lat1 = this.#geojson.geometry.coordinates[0][1];
     const lng1 = this.#geojson.geometry.coordinates[0][0];
@@ -99,9 +99,9 @@ class Task {
   }
 
   /**
-     * This method creates Google Maps Polyline objects to render on the Google Maps minimap.
-     * @returns {Array|*[]}
-     */
+   * This method creates Google Maps Polyline objects to render on the Google Maps minimap.
+   * @returns {Array|*[]}
+   */
   getGooglePolylines() {
     const auditedCoordinates = this.#getPointsOnAuditedSegments();
     const unauditedCoordinates = this.#getPointsOnUnauditedSegments();
@@ -186,8 +186,8 @@ class Task {
   }
 
   /**
-     * Set the isComplete status to true.
-     */
+   * Set the isComplete status to true.
+   */
   complete() {
     this.#status.isComplete = true;
     this.#properties.completedByAnyUser = true;
@@ -199,51 +199,51 @@ class Task {
   }
 
   /**
-     * Get the GeoJSON representation of the street.
-     * @returns {GeoJSON.LineString}
-     */
+   * Get the GeoJSON representation of the street.
+   * @returns {GeoJSON.LineString}
+   */
   getFeature() {
     return this.#geojson ? this.#geojson : null;
   }
 
   /**
-     * Get the GeoJSON representation of the street.
-     * TODO why do we have both this and getFeature()? Can the geojson be null ever? During initialization maybe..?
-     * @returns {GeoJSON.LineString}
-     */
+   * Get the GeoJSON representation of the street.
+   * TODO why do we have both this and getFeature()? Can the geojson be null ever? During initialization maybe..?
+   * @returns {GeoJSON.LineString}
+   */
   getGeoJSON() {
     return this.#geojson;
   }
 
   /**
-     * Get the last coordinate in the geojson.
-     * @returns {{lat: number, lng: number}
-     */
+   * Get the last coordinate in the geojson.
+   * @returns {{lat: number, lng: number}
+   */
   getEndCoordinate() {
     const len = this.#geojson.geometry.coordinates.length - 1;
     return { lat: this.#geojson.geometry.coordinates[len][1], lng: this.#geojson.geometry.coordinates[len][0] };
   }
 
   /**
-     * Return the property.
-     * @param {string} key Field name
-     * @returns {null}
-     */
+   * Return the property.
+   * @param {string} key Field name
+   * @returns {null}
+   */
   getProperty(key) {
     return key in this.#properties ? this.#properties[key] : null;
   }
 
   /**
-     * Get the first coordinate in the geojson
-     * @returns {{lat: number, lng: number}}
-     */
+   * Get the first coordinate in the geojson
+   * @returns {{lat: number, lng: number}}
+   */
   getStartCoordinate() {
     return { lat: this.#geojson.geometry.coordinates[0][1], lng: this.#geojson.geometry.coordinates[0][0] };
   }
 
   /**
-     * Returns the street edge id of the current task.
-     */
+   * Returns the street edge id of the current task.
+   */
   getStreetEdgeId() {
     return this.#geojson.properties.street_edge_id;
   }
@@ -253,24 +253,24 @@ class Task {
   }
 
   /**
-     * Returns an integer in the range 0 to n-1, where larger n means higher priority.
-     *
-     * Explanation:
-     * We want to split the range [0,1] into n = 4 ranges, each sub-range has a length of 1 / n = 1 / 4 = 0.25.
-     * To get the discretized order, we take the floor(priority / 0.25), which brings [0,0.25) -> 0, [0.25,0.5) -> 1,
-     * [0.5,0.75) -> 2, [0.75,1) -> 3, and 1 -> 4. But we really want [0.75-1] -> 3, so instead of
-     * floor(priority / (1 / n)), we have min(floor(priority / (1 / n)), n - 1).
-     * @returns {number}
-     */
+   * Returns an integer in the range 0 to n-1, where larger n means higher priority.
+   *
+   * Explanation:
+   * We want to split the range [0,1] into n = 4 ranges, each sub-range has a length of 1 / n = 1 / 4 = 0.25.
+   * To get the discretized order, we take the floor(priority / 0.25), which brings [0,0.25) -> 0, [0.25,0.5) -> 1,
+   * [0.5,0.75) -> 2, [0.75,1) -> 3, and 1 -> 4. But we really want [0.75-1] -> 3, so instead of
+   * floor(priority / (1 / n)), we have min(floor(priority / (1 / n)), n - 1).
+   * @returns {number}
+   */
   getStreetPriorityDiscretized() {
     const n = 4;
     return Math.min(Math.floor(this.#geojson.properties.priority / (1 / n)), n - 1);
   }
 
   /**
-     * @param {{units: string}} [units={units: 'kilometers'}] Can be degrees, radians, miles, or kilometers
-     * @returns {number}
-     */
+   * @param {{units: string}} [units={units: 'kilometers'}] Can be degrees, radians, miles, or kilometers
+   * @returns {number}
+   */
   getAuditedDistance(units = { units: 'kilometers' }) {
     if (typeof this.#furthestPoint === 'undefined') return 0;
     const latFurthest = this.#furthestPoint.geometry.coordinates[1];
@@ -279,12 +279,12 @@ class Task {
   }
 
   /**
-     * Get the cumulative distance.
-     *
-     * @param {{lat: number, lng: number}} latLng The point to measure the distance from the start
-     * @param {{units: string}} [units] String can be degrees, radians, miles, or kilometers
-     * @returns {number} distance in meters
-     */
+   * Get the cumulative distance.
+   *
+   * @param {{lat: number, lng: number}} latLng The point to measure the distance from the start
+   * @param {{units: string}} [units] String can be degrees, radians, miles, or kilometers
+   * @returns {number} distance in meters
+   */
   getDistanceFromStart(latLng, units) {
     if (!units) units = { units: 'kilometers' };
     let distance = 0;
@@ -297,12 +297,12 @@ class Task {
   }
 
   /**
-     * This method checks if the task is completed by comparing the current position and the ending point.
-     *
-     * @param {{lat: number, lng: number}} latLng The user's current location
-     * @param {number} threshold Distance threshold in meters
-     * @returns {boolean}
-     */
+   * This method checks if the task is completed by comparing the current position and the ending point.
+   *
+   * @param {{lat: number, lng: number}} latLng The user's current location
+   * @param {number} threshold Distance threshold in meters
+   * @returns {boolean}
+   */
   isAtEnd(latLng, threshold) {
     if (this.#geojson) {
       const len = this.#geojson.geometry.coordinates.length - 1;
@@ -316,21 +316,21 @@ class Task {
   }
 
   /**
-     * Returns if the task was completed or not.
-     * @returns {boolean}
-     */
+   * Returns if the task was completed or not.
+   * @returns {boolean}
+   */
   isComplete() {
     return this.#status.isComplete;
   }
 
   /**
-     * Checks if the current task is connected to the given task.
-     *
-     * @param {Task} task The task to check if this task is close to
-     * @param {number} threshold Distance threshold in km, unless specified in unit parameter
-     * @param {{units: string}} [units] Object with field 'units' holding distance unit, default to 'kilometers'
-     * @returns {boolean} true this task's endpoint is within threshold distance of either endpoint of given task
-     */
+   * Checks if the current task is connected to the given task.
+   *
+   * @param {Task} task The task to check if this task is close to
+   * @param {number} threshold Distance threshold in km, unless specified in unit parameter
+   * @param {{units: string}} [units] Object with field 'units' holding distance unit, default to 'kilometers'
+   * @returns {boolean} true this task's endpoint is within threshold distance of either endpoint of given task
+   */
   isConnectedTo(task, threshold, units) {
     if (!units) units = { units: 'kilometers' };
 
@@ -345,18 +345,18 @@ class Task {
   }
 
   /**
-     * Get the line distance of the task street edge
-     * @param {{units: string}} [units] Object with field 'units' holding distance unit, default to 'kilometers'
-     * @returns {number} The length of the street in the given units
-     */
+   * Get the line distance of the task street edge
+   * @param {{units: string}} [units] Object with field 'units' holding distance unit, default to 'kilometers'
+   * @returns {number} The length of the street in the given units
+   */
   lineDistance(units) {
     if (!units) units = { units: 'kilometers' };
     return turf.length(this.#geojson, units);
   }
 
   /**
-     * TODO This should go to the Minimap.
-     */
+   * TODO This should go to the Minimap.
+   */
   eraseFromMinimap() {
     if (this.#paths) {
       for (let i = 0; i < this.#paths.length; i++) {
@@ -366,12 +366,12 @@ class Task {
   }
 
   /**
-     * Render the task path on the Google Maps pane.
-     * TODO This should go to the Minimap.
-     * Reference:
-     * https://developers.google.com/maps/documentation/javascript/shapes#polyline_add
-     * https://developers.google.com/maps/documentation/javascript/examples/polyline-remove
-     */
+   * Render the task path on the Google Maps pane.
+   * TODO This should go to the Minimap.
+   * Reference:
+   * https://developers.google.com/maps/documentation/javascript/shapes#polyline_add
+   * https://developers.google.com/maps/documentation/javascript/examples/polyline-remove
+   */
   render() {
     this.eraseFromMinimap();
 
@@ -399,8 +399,8 @@ class Task {
   }
 
   /**
-     * Flip the coordinates of the linestring if the last point is closer to the endpoint of the current street segment.
-     */
+   * Flip the coordinates of the linestring if the last point is closer to the endpoint of the current street segment.
+   */
   reverseCoordinates() {
     this.#geojson.geometry.coordinates.reverse();
   }

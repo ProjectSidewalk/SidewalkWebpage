@@ -471,9 +471,9 @@ function UtilitiesMisc(JSON) {
   }
 
   /**
-     * Gets the severity message that is displayed in a severity's tooltip.
-     * @returns {{1: {message: string}, 2: {message: string}, 3: {message: string}}}
-     */
+   * Gets the severity message that is displayed in a severity's tooltip.
+   * @returns {{1: {message: string}, 2: {message: string}, 3: {message: string}}}
+   */
   function getSeverityDescription() {
     return {
       1: { message: i18next.t('center-ui.context-menu.tooltip.passable') },
@@ -487,28 +487,28 @@ function UtilitiesMisc(JSON) {
   const LABEL_TYPES_WITHOUT_SEVERITY = ['NoSidewalk', 'Signal', 'Occlusion'];
 
   /**
-     * Returns true if label type uses the "positive" rating scheme (Good/Okay/Bad) vs the "negative" (Low/Medium/High).
-     * @param {string} labelType
-     * @returns {boolean}
-     */
+   * Returns true if label type uses the "positive" rating scheme (Good/Okay/Bad) vs the "negative" (Low/Medium/High).
+   * @param {string} labelType
+   * @returns {boolean}
+   */
   function isPositiveLabelType(labelType) {
     return POSITIVE_LABEL_TYPES.includes(labelType);
   }
 
   /**
-     * Returns true if label type supports a severity/quality rating.
-     * @param {string} labelType
-     * @returns {boolean}
-     */
+   * Returns true if label type supports a severity/quality rating.
+   * @param {string} labelType
+   * @returns {boolean}
+   */
   function labelTypeHasSeverity(labelType) {
     return !LABEL_TYPES_WITHOUT_SEVERITY.includes(labelType);
   }
 
   /**
-     * Returns a map from rating level (1/2/3) to the i18n key (under the `common` namespace) for that level's label.
-     * @param {string} labelType
-     * @returns {Object.<number, string>}
-     */
+   * Returns a map from rating level (1/2/3) to the i18n key (under the `common` namespace) for that level's label.
+   * @param {string} labelType
+   * @returns {Object.<number, string>}
+   */
   function getRatingLevelKeys(labelType) {
     return isPositiveLabelType(labelType)
       ? { 1: 'good', 2: 'okay', 3: 'bad' }
@@ -516,12 +516,12 @@ function UtilitiesMisc(JSON) {
   }
 
   /**
-     * Returns the full asset path for the smiley icon at the given severity and label type.
-     * @param {number} severity - 0 (N/A), 1 (low), 2 (medium), or 3 (high).
-     * @param {string} labelType - The label type, used to pick positive vs negative icon set.
-     * @param {boolean} selected - Whether to return the filled (selected-state) variant.
-     * @returns {string}
-     */
+   * Returns the full asset path for the smiley icon at the given severity and label type.
+   * @param {number} severity - 0 (N/A), 1 (low), 2 (medium), or 3 (high).
+   * @param {string} labelType - The label type, used to pick positive vs negative icon set.
+   * @param {boolean} selected - Whether to return the filled (selected-state) variant.
+   * @returns {string}
+   */
   function getSmileyIconPath(severity, labelType, selected) {
     // Severity 0 (N/A) is a neutral circle; only the negative asset exists and it's reused for both sets.
     const set = severity === 0 || !isPositiveLabelType(labelType) ? 'negative' : 'positive';
@@ -529,15 +529,15 @@ function UtilitiesMisc(JSON) {
   }
 
   /**
-     * Sends a POST request to the server to report that there is no street view for the given street edge.
-     *
-     * TODO it makes way more sense to have this in Form.js, but Form has a dependency on PanoViewer, and we want to
-     *      call this function if PanoViewer fails to load...
-     *
-     * @param {Task} task - The audit task for the street edge that is missing imagery.
-     * @param {number} missionId - ID of the mission the user was working on when imagery was found to be missing.
-     * @returns {Promise<Response>} The fetch promise for the POST request, so callers can await completion.
-     */
+   * Sends a POST request to the server to report that there is no street view for the given street edge.
+   *
+   * TODO it makes way more sense to have this in Form.js, but Form has a dependency on PanoViewer, and we want to
+   *      call this function if PanoViewer fails to load...
+   *
+   * @param {Task} task - The audit task for the street edge that is missing imagery.
+   * @param {number} missionId - ID of the mission the user was working on when imagery was found to be missing.
+   * @returns {Promise<Response>} The fetch promise for the POST request, so callers can await completion.
+   */
   function reportNoImagery(task, missionId) {
     console.error(`Imagery missing for a large portion of street: ${task.getStreetEdgeId()}`);
     const reversed = task.getProperty('startPointReversed');

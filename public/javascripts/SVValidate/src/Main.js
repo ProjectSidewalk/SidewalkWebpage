@@ -8,8 +8,8 @@ class Main {
   #param;
 
   /**
-     * @param {object} param Object passed from validation.scala.html containing data from the back end.
-     */
+   * @param {object} param Object passed from validation.scala.html containing data from the back end.
+   */
   constructor(param) {
     this.#param = param;
 
@@ -35,8 +35,8 @@ class Main {
   }
 
   /**
-     * Collects the tool's DOM elements into the `svv.ui` tree that the other modules read.
-     */
+   * Collects the tool's DOM elements into the `svv.ui` tree that the other modules read.
+   */
   #initUI() {
     svv.tagsByLabelType = {
       CurbRamp: this.#param.tagList.filter((t) => t.label_type_id === 1),
@@ -124,8 +124,8 @@ class Main {
   }
 
   /**
-     * Instantiates the tool's components in dependency order and reveals the UI once everything is ready.
-     */
+   * Instantiates the tool's components in dependency order and reveals the UI once everything is ready.
+   */
   async #init() {
     const param = this.#param;
 

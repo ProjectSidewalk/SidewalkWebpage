@@ -10,19 +10,19 @@ class LabelContainer {
   #nextTempLabelId;
 
   /**
-     * @param $ jQuery object.
-     * @param nextTemporaryLabelId
-     */
+   * @param $ jQuery object.
+   * @param nextTemporaryLabelId
+   */
   constructor($, nextTemporaryLabelId) {
     this.#jquery = $;
     this.#nextTempLabelId = nextTemporaryLabelId;
   }
 
   /**
-     * Helper func to add a label to given list. Our labels are sorted in objects with panoId keys and lists as values.
-     * @param labelListObj
-     * @param label
-     */
+   * Helper func to add a label to given list. Our labels are sorted in objects with panoId keys and lists as values.
+   * @param labelListObj
+   * @param label
+   */
   #addLabelToListObject(labelListObj, label) {
     const panoId = label.getPanoId();
     const tempId = label.getProperty('temporaryLabelId');
@@ -36,9 +36,9 @@ class LabelContainer {
   }
 
   /**
-     * Create a Label object. If the label is new, it won't have a labelId yet, so we assign a temporary one.
-     * @returns {Label}
-     */
+   * Create a Label object. If the label is new, it won't have a labelId yet, so we assign a temporary one.
+   * @returns {Label}
+   */
   createLabel(params, isNew) {
     if (isNew) {
       params.temporaryLabelId = this.#nextTempLabelId;
@@ -75,10 +75,10 @@ class LabelContainer {
   }
 
   /**
-     * Query server for previous labels placed by this user and create label objects for them.
-     * @param regionId
-     * @param callback
-     */
+   * Query server for previous labels placed by this user and create label objects for them.
+   * @param regionId
+   * @param callback
+   */
   fetchLabelsToResumeMission(regionId, callback) {
     this.#jquery.getJSON('/label/resumeMission', { regionId }, (result) => {
       const labelArr = result.labels;
@@ -110,16 +110,16 @@ class LabelContainer {
   }
 
   /**
-     * Returns labels for the current pano ID.
-     */
+   * Returns labels for the current pano ID.
+   */
   getCanvasLabels() {
     const panoId = svl.panoViewer.getPanoId();
     return this.#allLabels[panoId] ? this.#allLabels[panoId] : [];
   }
 
   /**
-     * Get labels that need to be logged to the back-end because they are new or the user has interacted with them.
-     */
+   * Get labels that need to be logged to the back-end because they are new or the user has interacted with them.
+   */
   getLabelsToLog() {
     return Object.keys(this.#labelsToLog).reduce((r, k) => r.concat(this.#labelsToLog[k]), []);
   }
@@ -129,9 +129,9 @@ class LabelContainer {
   }
 
   /**
-     * Find a label with matching temporary ID.
-     * @param tempId
-     */
+   * Find a label with matching temporary ID.
+   * @param tempId
+   */
   findLabelByTempId(tempId) {
     const matchingLabels = this.getCanvasLabels().filter((l) => l.getProperty('temporaryLabelId') === tempId);
     if (matchingLabels.length > 1) {
@@ -143,9 +143,9 @@ class LabelContainer {
   }
 
   /**
-     * Adds a label to the list of labels that should be logged; called when a user interacts with an existing label.
-     * @param tempId
-     */
+   * Adds a label to the list of labels that should be logged; called when a user interacts with an existing label.
+   * @param tempId
+   */
   addToLabelsToLog(tempId) {
     const match = this.findLabelByTempId(tempId);
     if (match) this.#addLabelToListObject(this.#labelsToLog, match);
@@ -161,8 +161,8 @@ class LabelContainer {
   }
 
   /**
-     * Removes a passed label, updates the canvas, and updates label counts.
-     */
+   * Removes a passed label, updates the canvas, and updates label counts.
+   */
   removeLabel(label) {
     if (!label) {
       return false;

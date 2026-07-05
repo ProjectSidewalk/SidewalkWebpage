@@ -7,10 +7,10 @@ class PanoStore {
   }
 
   /**
-     * This method adds panorama data into the storage.
-     * @param {string} panoId
-     * @param {PanoData} panoMetadata
-     */
+   * This method adds panorama data into the storage.
+   * @param {string} panoId
+   * @param {PanoData} panoMetadata
+   */
   addPanoMetadata(panoId, panoMetadata) {
     if (!(panoId in this.store)) {
       if (panoId === 'tutorial' || panoId === 'tutorialAfterWalk') {
@@ -21,26 +21,26 @@ class PanoStore {
   }
 
   /**
-     * This method returns the existing panorama data.
-     * @param {string} panoId
-     * @return {PanoData|null}
-     */
+   * This method returns the existing panorama data.
+   * @param {string} panoId
+   * @return {PanoData|null}
+   */
   getPanoData(panoId) {
     return panoId in this.store ? this.store[panoId] : null;
   }
 
   /**
-     * Get all the panorama instances stored in the storage.
-     * @returns {Array<PanoData>}
-     */
+   * Get all the panorama instances stored in the storage.
+   * @returns {Array<PanoData>}
+   */
   getAllPanoData() {
     return Object.keys(this.store).map((panoId) => this.store[panoId]);
   }
 
   /**
-     * Get panorama instances that have not been submitted to the server.
-     * @returns {Array<PanoData>}
-     */
+   * Get panorama instances that have not been submitted to the server.
+   * @returns {Array<PanoData>}
+   */
   getStagedPanoData() {
     let panoramas = this.getAllPanoData();
     panoramas = panoramas.filter((pano) => !pano.getProperty('submitted'));

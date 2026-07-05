@@ -41,17 +41,17 @@ class LabelDetail {
   #myCommentIdx;
 
   /**
-     * @param {HTMLElement} root - The host element containing the labelDetail markup (see labelDetail.scala.html).
-     * @param {Object} opts
-     * @param {boolean} opts.admin - If true, this is an admin UI, so additional info can be shown.
-     * @param {typeof PanoViewer} opts.viewerType - The type of pano viewer to initialize.
-     * @param {string} opts.viewerAccessToken - An access token for requesting pano viewer images.
-     * @param {string} [opts.currUsername] - Username of the current viewer; identifies comments from this user.
-     * @param {(action: 'Agree'|'Disagree'|'Unsure', meta: Object) => void} [opts.onVote] - Fired after a vote is
-     *      successfully submitted. Hosts use this to sync upstream UI (e.g. recolor a Gallery card).
-     * @param {string} [opts.panoOverlaySource] - Source recorded when voting via the pano overlay buttons.
-     * @param {string} [opts.voteColumnSource] - Source recorded when voting via the column vote buttons.
-     */
+   * @param {HTMLElement} root - The host element containing the labelDetail markup (see labelDetail.scala.html).
+   * @param {Object} opts
+   * @param {boolean} opts.admin - If true, this is an admin UI, so additional info can be shown.
+   * @param {typeof PanoViewer} opts.viewerType - The type of pano viewer to initialize.
+   * @param {string} opts.viewerAccessToken - An access token for requesting pano viewer images.
+   * @param {string} [opts.currUsername] - Username of the current viewer; identifies comments from this user.
+   * @param {(action: 'Agree'|'Disagree'|'Unsure', meta: Object) => void} [opts.onVote] - Fired after a vote is
+   *      successfully submitted. Hosts use this to sync upstream UI (e.g. recolor a Gallery card).
+   * @param {string} [opts.panoOverlaySource] - Source recorded when voting via the pano overlay buttons.
+   * @param {string} [opts.voteColumnSource] - Source recorded when voting via the column vote buttons.
+   */
   constructor(root, opts) {
     this.#root = root;
     this.#admin = opts.admin;
@@ -64,14 +64,14 @@ class LabelDetail {
   }
 
   /**
-     * Builds a LabelDetail and initializes its pano viewer.
-     *
-     * Async because the pano viewer must be created before the controller is usable; a constructor cannot be async.
-     *
-     * @param {HTMLElement} root
-     * @param {Object} opts - See the constructor.
-     * @returns {Promise<LabelDetail>} Resolves once the pano viewer has been initialized.
-     */
+   * Builds a LabelDetail and initializes its pano viewer.
+   *
+   * Async because the pano viewer must be created before the controller is usable; a constructor cannot be async.
+   *
+   * @param {HTMLElement} root
+   * @param {Object} opts - See the constructor.
+   * @returns {Promise<LabelDetail>} Resolves once the pano viewer has been initialized.
+   */
   static async create(root, opts) {
     const detail = new LabelDetail(root, opts);
     await detail.#init();
@@ -79,10 +79,10 @@ class LabelDetail {
   }
 
   /**
-     * Scoped querySelector: finds a single element within the host root.
-     * @param {string} sel
-     * @returns {?Element}
-     */
+   * Scoped querySelector: finds a single element within the host root.
+   * @param {string} sel
+   * @returns {?Element}
+   */
   #q(sel) {
     return this.#root.querySelector(sel);
   }
@@ -92,8 +92,8 @@ class LabelDetail {
   // ───────────────────────────────────────────────────────────────────
 
   /**
-     * One-time setup: caches element references, wires event handlers, and initializes the pano viewer.
-     */
+   * One-time setup: caches element references, wires event handlers, and initializes the pano viewer.
+   */
   async #init() {
     this.#cacheElements();
     this.#wireHandlers();
@@ -115,9 +115,9 @@ class LabelDetail {
   }
 
   /**
-     * Mounts a PanoInfoPopover into the .label-detail__info-button-host span. Accessor closures read from
-     * #currentLabelMeta, which is updated on every showLabel() call.
-     */
+   * Mounts a PanoInfoPopover into the .label-detail__info-button-host span. Accessor closures read from
+   * #currentLabelMeta, which is updated on every showLabel() call.
+   */
   #initInfoPopover() {
     const host = this.#q('.label-detail__info-button-host');
     if (!host) return;
@@ -143,8 +143,8 @@ class LabelDetail {
   }
 
   /**
-     * Caches element references inside the host root. We use these to update content when showing labels.
-     */
+   * Caches element references inside the host root. We use these to update content when showing labels.
+   */
   #cacheElements() {
     const els = this.#els;
     els.svHolder = this.#q('.label-detail__pano');
@@ -204,10 +204,10 @@ class LabelDetail {
   }
 
   /**
-     * Adds event listeners to buttons inside the host root. The host wrapper is responsible for the
-     * close button (popup closes the dialog; gallery hides the inline panel) and for prev/next paging
-     * (gallery only). LabelDetail just emits the close event via the data-action attribute.
-     */
+   * Adds event listeners to buttons inside the host root. The host wrapper is responsible for the close button (popup
+   * closes the dialog; gallery hides the inline panel) and for prev/next paging (gallery only). LabelDetail just emits
+   * the close event via the data-action attribute.
+   */
   #wireHandlers() {
     const els = this.#els;
     // buttonSource overrides #source for this specific button group; falls back to #source if null.
@@ -276,15 +276,15 @@ class LabelDetail {
   // ───────────────────────────────────────────────────────────────────
 
   /**
-     * Shows the given label. Accepts either a label id (in which case the metadata is fetched from the server) or a
-     * pre-built meta object (in which case it's rendered directly — used by Gallery, which already has the data in
-     * memory from its initial fetch).
-     *
-     * An arrow instance field (not a prototype method) because LabelPopup detaches and re-invokes it.
-     *
-     * @param {number|Object} idOrMeta - Either a label id (number) to fetch, or a pre-built meta object.
-     * @param {string} source - The UI that created the popup (recorded with validations).
-     */
+   * Shows the given label. Accepts either a label id (in which case the metadata is fetched from the server) or a
+   * pre-built meta object (in which case it's rendered directly — used by Gallery, which already has the data in
+   * memory from its initial fetch).
+   *
+   * An arrow instance field (not a prototype method) because LabelPopup detaches and re-invokes it.
+   *
+   * @param {number|Object} idOrMeta - Either a label id (number) to fetch, or a pre-built meta object.
+   * @param {string} source - The UI that created the popup (recorded with validations).
+   */
   showLabel = async (idOrMeta, source) => {
     this.#source = source;
     this.#resetVoteButtonStyles();
@@ -306,9 +306,9 @@ class LabelDetail {
   };
 
   /**
-     * Populates the view with the label metadata fetched (or passed in directly) by showLabel().
-     * @param {Object} meta - The label metadata payload.
-     */
+   * Populates the view with the label metadata fetched (or passed in directly) by showLabel().
+   * @param {Object} meta - The label metadata payload.
+   */
   #handleData(meta) {
     const els = this.#els;
     this.#currentLabelMeta = meta;
@@ -450,11 +450,11 @@ class LabelDetail {
   // ───────────────────────────────────────────────────────────────────
 
   /**
-     * POSTs a validation for the current label to /labelmap/validate, then updates the count and validation
-     * display. Fires opts.onVote after a successful submission so hosts can sync upstream UI.
-     * @param {'Agree'|'Disagree'|'Unsure'} action
-     * @param {string} source - The UI source string to record with this validation.
-     */
+   * POSTs a validation for the current label to /labelmap/validate, then updates the count and validation display.
+   * Fires opts.onVote after a successful submission so hosts can sync upstream UI.
+   * @param {'Agree'|'Disagree'|'Unsure'} action
+   * @param {string} source - The UI source string to record with this validation.
+   */
   #validateLabel(action, source) {
     const isNewValidation = !this.#prevAction;
     const validationTimestamp = new Date();
@@ -508,8 +508,8 @@ class LabelDetail {
   }
 
   /**
-     * @param {boolean} disabled
-     */
+   * @param {boolean} disabled
+   */
   #setVoteButtonsDisabled(disabled) {
     for (const btn of Object.values(this.#els.panoOverlayButtons)) {
       btn.disabled = disabled;
@@ -526,9 +526,9 @@ class LabelDetail {
   }
 
   /**
-     * Adjusts the in-memory validation counts after a successful vote.
-     * @param {'Agree'|'Disagree'|'Unsure'} action
-     */
+   * Adjusts the in-memory validation counts after a successful vote.
+   * @param {'Agree'|'Disagree'|'Unsure'} action
+   */
   #updateVoteCount(action) {
     if (this.#prevAction) {
       this.#validationCounts[this.#prevAction] = Math.max(0, this.#validationCounts[this.#prevAction] - 1);
@@ -539,9 +539,9 @@ class LabelDetail {
   }
 
   /**
-     * Reflects the current vote on the pano overlay (selected button + border color around the pano).
-     * @param {?string} action
-     */
+   * Reflects the current vote on the pano overlay (selected button + border color around the pano).
+   * @param {?string} action
+   */
   #highlightVote(action) {
     for (const [key, btn] of Object.entries(this.#els.panoOverlayButtons)) {
       btn.classList.toggle('is-selected', key === action);
@@ -565,9 +565,9 @@ class LabelDetail {
   }
 
   /**
-     * Toggles the disabled state + tooltip on interactive elements when viewing your own label.
-     * @param {boolean} readonly
-     */
+   * Toggles the disabled state + tooltip on interactive elements when viewing your own label.
+   * @param {boolean} readonly
+   */
   #setReadonlyState(readonly) {
     const els = this.#els;
     const tip = readonly ? i18next.t('labelmap:own-label-disabled') : '';
@@ -592,11 +592,10 @@ class LabelDetail {
   }
 
   /**
-     * Updates the three column icons to the right variant based on the user's current vote
-     * (#prevAction) and the AI validation (#aiValidation):
-     *   - filled when the user voted this option, otherwise outline
-     *   - `-ai` suffix when the AI validated this option
-     */
+   * Updates the three column icons to the right variant based on the user's current vote and the AI validation:
+   *   - filled when the user voted this option, otherwise outline
+   *   - `-ai` suffix when the AI validated this option
+   */
   #renderVoteIcons() {
     for (const [action, img] of Object.entries(this.#els.voteIcons)) {
       const state = this.#prevAction === action ? 'filled' : 'outline';
@@ -611,10 +610,10 @@ class LabelDetail {
   }
 
   /**
-     * Highlights one of the three severity faces based on the label's numeric severity.
-     * @param {number} [severity] - The label's 1–3 severity, or null for unrated.
-     * @param {string} labelType - The label type (drives positive/negative icon set).
-     */
+   * Highlights one of the three severity faces based on the label's numeric severity.
+   * @param {number} [severity] - The label's 1–3 severity, or null for unrated.
+   * @param {string} labelType - The label type (drives positive/negative icon set).
+   */
   #renderSeverity(severity, labelType) {
     const els = this.#els;
     // Hide entire section if the label type doesn't support severity ratings.
@@ -643,9 +642,9 @@ class LabelDetail {
   // ───────────────────────────────────────────────────────────────────
 
   /**
-     * Renders the validator comments list. In admin mode each entry is an object {username, comment} and the username
-     * is hyperlinked to /admin/user/<username>. Non-admin mode receives bare strings, so we just render the text.
-     */
+   * Renders the validator comments list. In admin mode each entry is an object {username, comment} and the username
+   * is hyperlinked to /admin/user/<username>. Non-admin mode receives bare strings, so we just render the text.
+   */
   #renderComments() {
     const els = this.#els;
     els.validatorComments.replaceChildren();
@@ -674,10 +673,10 @@ class LabelDetail {
   }
 
   /**
-     * POSTs a comment for the current label to /labelmap/comment. On success, clears the input, briefly shows the
-     * confirmation message, and updates the visible comments list — replacing the user's previous entry if one exists.
-     * @param {string} comment - Trimmed, non-empty comment text.
-     */
+   * POSTs a comment for the current label to /labelmap/comment. On success, clears the input, briefly shows the
+   * confirmation message, and updates the visible comments list — replacing the user's previous entry if one exists.
+   * @param {string} comment - Trimmed, non-empty comment text.
+   */
   #submitComment(comment) {
     const els = this.#els;
     const userPov = this.panoManager.getPov();
@@ -735,11 +734,11 @@ class LabelDetail {
   // ───────────────────────────────────────────────────────────────────
 
   /**
-     * Sets or clears one of the admin task flags (low_quality / incomplete / stale) on the current label's
-     * audit task via /adminapi/setTaskFlag, then re-renders the flag buttons to reflect the new state.
-     * @param {'low_quality'|'incomplete'|'stale'} flag
-     * @param {boolean} state
-     */
+   * Sets or clears one of the admin task flags (low_quality / incomplete / stale) on the current label's
+   * audit task via /adminapi/setTaskFlag, then re-renders the flag buttons to reflect the new state.
+   * @param {'low_quality'|'incomplete'|'stale'} flag
+   * @param {boolean} state
+   */
   #setFlag(flag, state) {
     fetch('/adminapi/setTaskFlag', {
       method: 'PUT',

@@ -225,8 +225,8 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
   }
 
   /**
-     * Finds the color for a neighborhood based on completion rate (used for landing page map).
-     */
+   * Finds the color for a neighborhood based on completion rate (used for landing page map).
+   */
   function getRegionStyleFromCompletionRate(polygonData) {
     const neighborhoodColorGradient = {
       10: '#c6dbef',

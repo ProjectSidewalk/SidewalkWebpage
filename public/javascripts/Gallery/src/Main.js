@@ -10,11 +10,11 @@ class Main {
   #headerSidebarOffset = undefined;
 
   /**
-     * Creates and initializes the Gallery Main module.
-     * @param {object} params Object passed from gallery.scala.html containing initial values pulled from the database
-     *              on page load.
-     * @returns {Promise<Main>}
-     */
+   * Creates and initializes the Gallery Main module.
+   * @param {object} params Object passed from gallery.scala.html containing initial values pulled from the database
+   *              on page load.
+   * @returns {Promise<Main>}
+   */
   static async create(params) {
     const main = new Main();
     main.#initUI();

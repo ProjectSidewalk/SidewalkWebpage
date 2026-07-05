@@ -16,9 +16,9 @@ class ContributorsPage {
   ];
 
   /**
-     * Colors for the labels-by-role bar, from the Okabe-Ito colorblind-safe palette. Anonymous is a muted grey (it's
-     * transient, low-trust traffic); unknown roles fall back to the same grey.
-     */
+   * Colors for the labels-by-role bar, from the Okabe-Ito colorblind-safe palette. Anonymous is a muted grey (it's
+   * transient, low-trust traffic); unknown roles fall back to the same grey.
+   */
   static #ROLE_COLORS = {
     Registered: '#0072b2',
     Turker: '#e69f00',
@@ -103,10 +103,10 @@ class ContributorsPage {
   }
 
   /**
-     * Top labelers leaderboard (ranked + enriched server-side). Beyond volume and trustworthiness, each row shows the
-     * labeler's label-type mix (canonical colors) and severity-rating distribution, so lopsided patterns — only one
-     * type, or always the same severity — stand out down the column.
-     */
+   * Top labelers leaderboard (ranked + enriched server-side). Beyond volume and trustworthiness, each row shows the
+   * labeler's label-type mix (canonical colors) and severity-rating distribution, so lopsided patterns — only one
+   * type, or always the same severity — stand out down the column.
+   */
   #renderTopLabelers(labelers) {
     const el = document.getElementById('contrib-top-labelers');
     if (!labelers.length) {
@@ -138,10 +138,10 @@ class ContributorsPage {
   }
 
   /**
-     * Top validators leaderboard (ranked + enriched server-side). The verdict bar shows how they vote — agree /
-     * disagree / unsure — so an over-harsh (mostly disagree) or unsure-everything validator is obvious; Agreement is
-     * how often those verdicts matched the eventual consensus (their accuracy, a separate signal from their tendency).
-     */
+   * Top validators leaderboard (ranked + enriched server-side). The verdict bar shows how they vote — agree /
+   * disagree / unsure — so an over-harsh (mostly disagree) or unsure-everything validator is obvious; Agreement is
+   * how often those verdicts matched the eventual consensus (their accuracy, a separate signal from their tendency).
+   */
   #renderTopValidators(validators) {
     const el = document.getElementById('contrib-top-validators');
     if (!validators.length) {
@@ -212,12 +212,12 @@ class ContributorsPage {
   }
 
   /**
-     * A stacked bar with a legend (count + share) beneath. Each segment colors via a CSS class (`cls`) or an inline
-     * `color` — classes suit the fixed high/low split; inline colors suit the data-driven role palette.
-     *
-     * @param {Array<{label: string, value: number, cls?: string, color?: string}>} segments - Bar segments.
-     * @returns {string} Bar + legend HTML.
-     */
+   * A stacked bar with a legend (count + share) beneath. Each segment colors via a CSS class (`cls`) or an inline
+   * `color` — classes suit the fixed high/low split; inline colors suit the data-driven role palette.
+   *
+   * @param {Array<{label: string, value: number, cls?: string, color?: string}>} segments - Bar segments.
+   * @returns {string} Bar + legend HTML.
+   */
   static #stackedBar(segments) {
     const total = segments.reduce((s, x) => s + x.value, 0) || 1;
     const fill = (s) => (s.color ? `;background:${s.color}` : '');
@@ -245,13 +245,13 @@ class ContributorsPage {
   }
 
   /**
-     * Builds an accessible leaderboard table. Each column declares its label + alignment; right-aligned columns get
-     * the `num` class on both header and cells. Cell values are trusted HTML (callers escape user-supplied values).
-     *
-     * @param {Array<{label: string, align: ('left'|'right')}>} columns - Column specs.
-     * @param {Array<string[]>} rows - Row cell HTML, one array per row aligned to `columns`.
-     * @returns {string} Table HTML.
-     */
+   * Builds an accessible leaderboard table. Each column declares its label + alignment; right-aligned columns get
+   * the `num` class on both header and cells. Cell values are trusted HTML (callers escape user-supplied values).
+   *
+   * @param {Array<{label: string, align: ('left'|'right')}>} columns - Column specs.
+   * @param {Array<string[]>} rows - Row cell HTML, one array per row aligned to `columns`.
+   * @returns {string} Table HTML.
+   */
   static #table(columns, rows) {
     const cls = (c) => (c.align === 'right' ? ' class="num"' : '');
     const headCells = columns.map((c) =>
@@ -272,12 +272,12 @@ class ContributorsPage {
   }
 
   /**
-     * A compact stacked bar of a labeler's label-type mix, each segment in the canonical label-type color, widths
-     * proportional to count. Hovering a segment shows the exact type, count, and share.
-     *
-     * @param {Array<{label_type: string, count: number}>} typeCounts - Per-type counts (already sorted desc).
-     * @returns {string} Bar HTML, or an em dash when empty.
-     */
+   * A compact stacked bar of a labeler's label-type mix, each segment in the canonical label-type color, widths
+   * proportional to count. Hovering a segment shows the exact type, count, and share.
+   *
+   * @param {Array<{label_type: string, count: number}>} typeCounts - Per-type counts (already sorted desc).
+   * @returns {string} Bar HTML, or an em dash when empty.
+   */
   static #labelTypeBar(typeCounts) {
     const total = typeCounts.reduce((s, t) => s + (t.count || 0), 0);
     if (!total) return '<span class="dq-sub">—</span>';
@@ -291,15 +291,15 @@ class ContributorsPage {
   }
 
   /**
-     * A tiny fixed-domain (severity 1–3) bar chart of a labeler's severity ratings, bar heights proportional to count
-     * (within the row). Fixed domain so the distribution shape is comparable down the column; hover shows exact counts.
-     *
-     * Severity is a 3-point scale (#3306); any legacy out-of-range value is folded into the nearest 1–3 bucket so old
-     * data still renders without inventing extra buckets.
-     *
-     * @param {Array<{severity: number, count: number}>} severityCounts - Per-severity counts.
-     * @returns {string} Mini-distribution HTML, or an em dash when empty.
-     */
+   * A tiny fixed-domain (severity 1–3) bar chart of a labeler's severity ratings, bar heights proportional to count
+   * (within the row). Fixed domain so the distribution shape is comparable down the column; hover shows exact counts.
+   *
+   * Severity is a 3-point scale (#3306); any legacy out-of-range value is folded into the nearest 1–3 bucket so old
+   * data still renders without inventing extra buckets.
+   *
+   * @param {Array<{severity: number, count: number}>} severityCounts - Per-severity counts.
+   * @returns {string} Mini-distribution HTML, or an em dash when empty.
+   */
   static #severityDist(severityCounts) {
     const total = severityCounts.reduce((s, x) => s + (x.count || 0), 0);
     if (!total) return '<span class="dq-sub">—</span>';
@@ -320,14 +320,14 @@ class ContributorsPage {
   }
 
   /**
-     * A three-segment verdict bar (agree / disagree / unsure) with the percentages spelled out, so a validator's voting
-     * tendency reads at a glance and per-segment hovers give exact counts.
-     *
-     * @param {number} agree - Agree count.
-     * @param {number} disagree - Disagree count.
-     * @param {number} unsure - Unsure count.
-     * @returns {string} Verdict bar HTML, or an em dash when there are no validations.
-     */
+   * A three-segment verdict bar (agree / disagree / unsure) with the percentages spelled out, so a validator's voting
+   * tendency reads at a glance and per-segment hovers give exact counts.
+   *
+   * @param {number} agree - Agree count.
+   * @param {number} disagree - Disagree count.
+   * @param {number} unsure - Unsure count.
+   * @returns {string} Verdict bar HTML, or an em dash when there are no validations.
+   */
   static #verdictBar(agree, disagree, unsure) {
     const total = agree + disagree + unsure;
     if (!total) return '<span class="dq-sub">—</span>';
@@ -361,14 +361,14 @@ class ContributorsPage {
   }
 
   /**
-     * Formats an agreement/accuracy percentage with its denominator, e.g. "92% <span>of 120</span>". Returns "—" when
-     * there's nothing validated to base it on.
-     *
-     * @param {number} pct - Raw agreement value (fraction or percent; scaled by `factor`).
-     * @param {number} n - Number of validations the percentage is based on.
-     * @param {number} factor - 100 if the source value is a 0–1 fraction, else 1.
-     * @returns {string} Trusted cell HTML.
-     */
+   * Formats an agreement/accuracy percentage with its denominator, e.g. "92% <span>of 120</span>". Returns "—" when
+   * there's nothing validated to base it on.
+   *
+   * @param {number} pct - Raw agreement value (fraction or percent; scaled by `factor`).
+   * @param {number} n - Number of validations the percentage is based on.
+   * @param {number} factor - 100 if the source value is a 0–1 fraction, else 1.
+   * @returns {string} Trusted cell HTML.
+   */
   static #accuracyCell(pct, n, factor) {
     if (!(n > 0)) return '—';
     return `${Math.round((pct || 0) * factor)}% <span class="dq-sub">of ${n.toLocaleString()}</span>`;

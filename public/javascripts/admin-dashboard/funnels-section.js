@@ -13,9 +13,9 @@
  */
 class FunnelsSection {
   /**
-     * Display names for the funnel steps, keyed by the backend step keys. `full` labels the bar rows; `short` is unused
-     * here but kept parallel to the Across Cities page for consistency. Covers both funnels.
-     */
+   * Display names for the funnel steps, keyed by the backend step keys. `full` labels the bar rows; `short` is unused
+   * here but kept parallel to the Across Cities page for consistency. Covers both funnels.
+   */
   static #STEP_LABELS = {
     visited:                { full: 'Visited site' },
     tutorial_started:       { full: 'Started tutorial' },
@@ -61,8 +61,8 @@ class FunnelsSection {
   #dim = 'all';           // 'all' | 'role' | 'device'.
 
   /**
-     * @param {{funnelsUrl: string, hostId: string, statusId: string, windowToggleId: string, dimToggleId: string}} opts
-     */
+   * @param {{funnelsUrl: string, hostId: string, statusId: string, windowToggleId: string, dimToggleId: string}} opts
+   */
   constructor(opts = {}) {
     this.#funnelsUrl = opts.funnelsUrl;
     this.#hostId = opts.hostId;
@@ -121,8 +121,7 @@ class FunnelsSection {
     if (!types.length) {
       host.innerHTML = '';
       // No funnel_stat rows yet: the nightly job hasn't run for this deployment, or it was never triggered.
-      this.#setText(this.#statusId,
-        'No funnel data yet — an admin can recompute it via /adminapi/updateFunnelStats.');
+      this.#setText(this.#statusId, 'No funnel data yet — an admin can recompute it via /adminapi/updateFunnelStats.');
       return;
     }
     host.innerHTML = types.map((t) => this.#funnelBlock(t, this.#funnels[t], segs)).join('');
@@ -132,12 +131,12 @@ class FunnelsSection {
   }
 
   /**
-     * One funnel block: heading, description, optional legend, and the step bars for the active dimension.
-     * @param {string} funnelType 'mapping' | 'contribution'.
-     * @param {{steps: string[], segments: object}} funnel The funnel's step keys and per-segment data.
-     * @param {{key: string, label: string}[]} segs Segments to show for the active dimension.
-     * @returns {string} The block's HTML.
-     */
+   * One funnel block: heading, description, optional legend, and the step bars for the active dimension.
+   * @param {string} funnelType 'mapping' | 'contribution'.
+   * @param {{steps: string[], segments: object}} funnel The funnel's step keys and per-segment data.
+   * @param {{key: string, label: string}[]} segs Segments to show for the active dimension.
+   * @returns {string} The block's HTML.
+   */
   #funnelBlock(funnelType, funnel, segs) {
     const meta = FunnelsSection.#FUNNEL_META[funnelType] || { title: funnelType, desc: '' };
     const steps = funnel.steps || [];

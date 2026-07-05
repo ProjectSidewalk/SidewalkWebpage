@@ -14,11 +14,11 @@ class CardFilter {
   #validationOptions;
 
   /**
-     * @param {object} uiCardFilter UI element representing filter components of sidebar.
-     * @param {LabelTypeMenu} labelTypeMenu UI element representing dropdown to select label type in sidebar.
-     * @param {CityMenu} cityMenu UI element representing dropdown to select city in sidebar.
-     * @param {object} initialFilters Object containing initial set of filters to pass along.
-     */
+   * @param {object} uiCardFilter UI element representing filter components of sidebar.
+   * @param {LabelTypeMenu} labelTypeMenu UI element representing dropdown to select label type in sidebar.
+   * @param {CityMenu} cityMenu UI element representing dropdown to select city in sidebar.
+   * @param {object} initialFilters Object containing initial set of filters to pass along.
+   */
   constructor(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
     this.#uiCardFilter = uiCardFilter;
     this.#labelTypeMenu = labelTypeMenu;
@@ -65,10 +65,10 @@ class CardFilter {
   }
 
   /**
-     * Grab all tags from backend and sort them by label type into tagsByType.
-     *
-     * @param {*} callback Function to be called when tags arrive.
-     */
+   * Grab all tags from backend and sort them by label type into tagsByType.
+   *
+   * @param {*} callback Function to be called when tags arrive.
+   */
   #getTags(callback) {
     $.getJSON('/label/tags', (data) => {
       let tag;
@@ -88,8 +88,8 @@ class CardFilter {
   }
 
   /**
-     * Update filter components and URL when a filter changes.
-     */
+   * Update filter components and URL when a filter changes.
+   */
   update() {
     // If label type was changed: clear tags, update cards, and rerender sidebar. Otherwise, just update the cards.
     const currLabelType = this.#labelTypeMenu.getCurrentLabelType();
@@ -105,8 +105,8 @@ class CardFilter {
   }
 
   /**
-     * If the city was changed, redirect to that server. Otherwise, update the URL query params.
-     */
+   * If the city was changed, redirect to that server. Otherwise, update the URL query params.
+   */
   #updateURL() {
     const newUrl = this.#buildCurrentURL();
     const currentCity = this.#cityMenu.getCurrentCity();
@@ -121,8 +121,8 @@ class CardFilter {
   }
 
   /**
-     * Return a string representing /gallery URL with correct query params. Excluding params if they match the default.
-     */
+   * Return a string representing /gallery URL with correct query params. Excluding params if they match the default.
+   */
   #buildCurrentURL() {
     let newUrl = '/gallery';
     let firstQueryParam = true;
@@ -167,8 +167,8 @@ class CardFilter {
   }
 
   /**
-     * Render tags and severities in sidebar.
-     */
+   * Render tags and severities in sidebar.
+   */
   render() {
     if (util.misc.labelTypeHasSeverity(this.#status.currentLabelType)) {
       // Swap the filter header between "Severity" and "Quality" based on the current label type.
@@ -191,39 +191,39 @@ class CardFilter {
   }
 
   /**
-     * Return list of tags that have been selected by user.
-     */
+   * Return list of tags that have been selected by user.
+   */
   getAppliedTagNames() {
     return this.#currentTags.getAppliedTags().map((tag) => tag.getTag());
   }
 
   /**
-     * Return list of all tags for current label type.
-     */
+   * Return list of all tags for current label type.
+   */
   getTagNames() {
     return this.#currentTags.getTags().map((tag) => tag.getTag());
   }
 
   /**
-     * Return object containing all tags.
-     */
+   * Return object containing all tags.
+   */
   getTagsByType() {
     return this.#tagsByType;
   }
 
   /**
-     * Return status of CardFilter.
-     */
+   * Return status of CardFilter.
+   */
   getStatus() {
     return this.#status;
   }
 
   /**
-     * Set attribute of status.
-     *
-     * @param {string} key Status name.
-     * @param {*} value Status value.
-     */
+   * Set attribute of status.
+   *
+   * @param {string} key Status name.
+   * @param {*} value Status value.
+   */
   setStatus(key, value) {
     if (key in this.#status) {
       this.#status[key] = value;
@@ -233,38 +233,38 @@ class CardFilter {
   }
 
   /**
-     * Return list of severities.
-     */
+   * Return list of severities.
+   */
   getSeverities() {
     return this.#severities.getSeverities();
   }
 
   /**
-     * Return list of selected severities by user.
-     */
+   * Return list of selected severities by user.
+   */
   getAppliedSeverities() {
     return this.#severities.getAppliedSeverities();
   }
 
   /**
-     * Return list of validationOptions.
-     */
+   * Return list of validationOptions.
+   */
   getValidationOptions() {
     return this.#validationOptions.getValidationOptions();
   }
 
   /**
-     * Return list of selected validationOptions by user.
-     */
+   * Return list of selected validationOptions by user.
+   */
   getAppliedValidationOptions() {
     return this.#validationOptions.getAppliedValidationOptions();
   }
 
   /**
-     * Unapply all tags of specified label type.
-     *
-     * @param {*} labelType Label type of tags to unapply.
-     */
+   * Unapply all tags of specified label type.
+   *
+   * @param {*} labelType Label type of tags to unapply.
+   */
   unapplyTags(labelType) {
     if (labelType !== null && labelType !== undefined) {
       this.#tagsByType[labelType].unapplyTags();
@@ -272,8 +272,8 @@ class CardFilter {
   }
 
   /**
-     * Clear tags currently being shown.
-     */
+   * Clear tags currently being shown.
+   */
   #clearCurrentTags() {
     this.#uiCardFilter.tags.empty();
     this.unapplyTags(this.#status.currentLabelType);
@@ -281,24 +281,24 @@ class CardFilter {
   }
 
   /**
-     * Disable interaction with filters.
-     */
+   * Disable interaction with filters.
+   */
   disable() {
     this.#severities.disable();
     $('.gallery-filter').prop('disabled', true);
   }
 
   /**
-     * Enable interaction with filters.
-     */
+   * Enable interaction with filters.
+   */
   enable() {
     this.#severities.enable();
     $('.gallery-filter').prop('disabled', false);
   }
 
   /**
-     * Clear all filters, setting them to their default state.
-     */
+   * Clear all filters, setting them to their default state.
+   */
   clearFilters() {
     this.#severities.selectAllSeverities();
     this.#validationOptions.setToDefault();

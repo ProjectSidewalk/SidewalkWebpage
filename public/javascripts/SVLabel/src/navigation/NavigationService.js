@@ -23,34 +23,34 @@ class NavigationService {
   };
 
   /**
-     * Tracks which mission a task should be linked to when shown on mission complete modal (I think).
-     * @type {Mission | undefined}
-     */
+   * Tracks which mission a task should be linked to when shown on mission complete modal (I think).
+   * @type {Mission | undefined}
+   */
   #missionJump = undefined;
   #stuckPanos = new Set([]);
   #positionUpdateCallbacks = [];
   #povSettlePoll = null; // Interval id; see #refreshHeadingViewsAfterPovSettles.
 
   /**
-     * @param {Object} neighborhoodModel - NeighborhoodModel module.
-     * @param {Object} uiStreetview - jQuery-wrapped street view UI elements.
-     */
+   * @param {Object} neighborhoodModel - NeighborhoodModel module.
+   * @param {Object} uiStreetview - jQuery-wrapped street view UI elements.
+   */
   constructor(neighborhoodModel, uiStreetview) {
     this.#uiStreetview = uiStreetview;
     this.#properties.browser = util.getBrowser();
   }
 
   /**
-     * Disable walking thoroughly and indicate that user is moving.
-     */
+   * Disable walking thoroughly and indicate that user is moving.
+   */
   timeoutWalking() {
     svl.panoManager.hideNavArrows();
     this.disableWalking();
   }
 
   /**
-     * Enable walking and indicate that user has finished moving.
-     */
+   * Enable walking and indicate that user has finished moving.
+   */
   resetWalking() {
     svl.panoManager.resetNavArrows();
     svl.panoManager.showNavArrows();
@@ -59,23 +59,23 @@ class NavigationService {
   }
 
   /*
-     * Get the status of the labelBeforeJump listener.
-     */
+   * Get the status of the labelBeforeJump listener.
+   */
   getLabelBeforeJumpState() {
     return this.#status.labelBeforeJumpState;
   }
 
   /*
-     * Set the status of the labelBeforeJump listener.
-     */
+   * Set the status of the labelBeforeJump listener.
+   */
   setLabelBeforeJumpState(statusToSet) {
     this.#status.labelBeforeJumpState = statusToSet;
   }
 
   /**
-     * Disables walking by hiding links towards other Street View panoramas.
-     * @returns {NavigationService} this.
-     */
+   * Disables walking by hiding links towards other Street View panoramas.
+   * @returns {NavigationService} this.
+   */
   disableWalking() {
     if (!this.#status.lockDisableWalking) {
       // Disable clicking links and changing POV.
@@ -87,9 +87,9 @@ class NavigationService {
   }
 
   /**
-     * Enables walking to other panoramas by showing links.
-     * @returns {NavigationService} this.
-     */
+   * Enables walking to other panoramas by showing links.
+   * @returns {NavigationService} this.
+   */
   enableWalking() {
     // This method shows links on SV and enables users to walk.
     if (!this.#status.lockDisableWalking) {
@@ -102,10 +102,10 @@ class NavigationService {
   }
 
   /**
-     * Returns a value of a specified property.
-     * @param {string} prop - The property you want to get.
-     * @returns {*}
-     */
+   * Returns a value of a specified property.
+   * @param {string} prop - The property you want to get.
+   * @returns {*}
+   */
   getProperty(prop) {
     return (prop in this.#properties) ? this.#properties[prop] : false;
   }
@@ -115,9 +115,9 @@ class NavigationService {
   }
 
   /**
-     * Handle no remaining imagery on current street. Log it if no imagery at all, or let them finish if near the end.
-     * @returns {Promise<null>}
-     */
+   * Handle no remaining imagery on current street. Log it if no imagery at all, or let them finish if near the end.
+   * @returns {Promise<null>}
+   */
   async #handleImageryNotFound() {
     const currentTask = svl.taskContainer.getCurrentTask();
     const currentMission = svl.missionContainer.getCurrentMission();
@@ -150,8 +150,8 @@ class NavigationService {
   }
 
   /**
-     * @param {Mission} mission - The mission to associate the current task to.
-     */
+   * @param {Mission} mission - The mission to associate the current task to.
+   */
   #finishCurrentTaskBeforeJumping(mission) {
     mission = mission || this.#missionJump;
 
@@ -187,11 +187,11 @@ class NavigationService {
   }
 
   /**
-     * Get a new task and check if it's disconnected from the current task. If yes, then finish the current task after
-     * the user has finished labeling the current location.
-     * @param {Task} task - The task that the user has neared the end of.
-     * @param {Mission} mission - The mission that the task should be associated with.
-     */
+   * Get a new task and check if it's disconnected from the current task. If yes, then finish the current task after
+   * the user has finished labeling the current location.
+   * @param {Task} task - The task that the user has neared the end of.
+   * @param {Mission} mission - The mission that the task should be associated with.
+   */
   #endTheCurrentTask(task, mission) {
     if (!this.getLabelBeforeJumpState()) {
       this.#missionJump = mission;
@@ -231,9 +231,9 @@ class NavigationService {
   }
 
   /**
-     * Adds a callback that is called whenever a successful move occurs.
-     * @param {Function} callback
-     */
+   * Adds a callback that is called whenever a successful move occurs.
+   * @param {Function} callback
+   */
   bindPositionUpdate(callback) {
     if (typeof callback === 'function') {
       this.#positionUpdateCallbacks.push(callback);
@@ -241,9 +241,9 @@ class NavigationService {
   }
 
   /**
-     * Remove the given callback function from the list of callbacks that are used on a successful move.
-     * @param {Function} callback
-     */
+   * Remove the given callback function from the list of callbacks that are used on a successful move.
+   * @param {Function} callback
+   */
   unbindPositionUpdate(callback) {
     const callbackIndex = this.#positionUpdateCallbacks.indexOf(callback);
     if (callbackIndex >= 0) {
@@ -252,8 +252,8 @@ class NavigationService {
   }
 
   /**
-     * Updates the UI before moving to a new location, hiding certain elements and preventing interaction.
-     */
+   * Updates the UI before moving to a new location, hiding certain elements and preventing interaction.
+   */
   #updateUiBeforeMove() {
     this.#status.movingToNewLocation = true;
     this.#status.headingSettling = true;
@@ -271,8 +271,8 @@ class NavigationService {
   }
 
   /**
-     * Updates the UI after moving to a new location, re-enabling certain elements and interactions.
-     */
+   * Updates the UI after moving to a new location, re-enabling certain elements and interactions.
+   */
   #updateUiAfterMove() {
     const isOnboarding = svl.isOnboarding();
     const newLatLng = svl.panoViewer.getPosition();
@@ -328,11 +328,11 @@ class NavigationService {
   }
 
   /**
-     * Once the viewer's heading stops changing after a move (Mapillary keeps animating it briefly), refreshes the
-     * heading-dependent views — peg, observed-area FOV, compass — with the settled pov. Until then those views keep
-     * their pre-move orientation. Aborts if a new move begins (it runs its own refresh); GSV, whose pov is final
-     * immediately, settles after the first couple of ticks.
-     */
+   * Once the viewer's heading stops changing after a move (Mapillary keeps animating it briefly), refreshes the
+   * heading-dependent views — peg, observed-area FOV, compass — with the settled pov. Until then those views keep
+   * their pre-move orientation. Aborts if a new move begins (it runs its own refresh); GSV, whose pov is final
+   * immediately, settles after the first couple of ticks.
+   */
   #refreshHeadingViewsAfterPovSettles() {
     if (this.#povSettlePoll) window.clearInterval(this.#povSettlePoll); // Replace any in-flight poll from a prior move.
 
@@ -367,9 +367,9 @@ class NavigationService {
   }
 
   /**
-     * Locks status.disableWalking.
-     * @returns {NavigationService} this.
-     */
+   * Locks status.disableWalking.
+   * @returns {NavigationService} this.
+   */
   lockDisableWalking() {
     this.#status.lockDisableWalking = true;
     return this;
@@ -397,11 +397,11 @@ class NavigationService {
   }
 
   /**
-     * Prefetches Mapillary images for all potential goal points along a street. Fires off requests asynchronously so
-     * that subsequent setLocation() calls can skip the API round-trip. Safe to call multiple times for the same street
-     * — prefetchLocation() deduplicates requests, so only the first call actually fires API requests.
-     * @param {turf.Feature<turf.LineString>} streetGeometry - A Turf LineString of the full street geometry.
-     */
+   * Prefetches Mapillary images for all potential goal points along a street. Fires off requests asynchronously so
+   * that subsequent setLocation() calls can skip the API round-trip. Safe to call multiple times for the same street
+   * — prefetchLocation() deduplicates requests, so only the first call actually fires API requests.
+   * @param {turf.Feature<turf.LineString>} streetGeometry - A Turf LineString of the full street geometry.
+   */
   prefetchAlongStreet(streetGeometry) {
     const totalLength = turf.length(streetGeometry); // km
     let dist = 0;
@@ -413,10 +413,10 @@ class NavigationService {
   }
 
   /**
-     * Attempts to move the user forward by incrementally checking for imagery every few meters along the route.
-     * @returns {Promise<string|null|void>} Resolves with the new pano ID on a successful move, null if the street ran
-     *     out of imagery, or undefined if walking is disabled.
-     */
+   * Attempts to move the user forward by incrementally checking for imagery every few meters along the route.
+   * @returns {Promise<string|null|void>} Resolves with the new pano ID on a successful move, null if the street ran
+   *     out of imagery, or undefined if walking is disabled.
+   */
   moveForward() {
     if (this.#status.disableWalking) return Promise.resolve();
 
@@ -479,10 +479,10 @@ class NavigationService {
   }
 
   /**
-     * Move to the linked pano closest to the given heading angle.
-     * @param {number} heading - The user's heading in degrees.
-     * @returns {Promise<boolean>}
-     */
+   * Move to the linked pano closest to the given heading angle.
+   * @param {number} heading - The user's heading in degrees.
+   * @returns {Promise<boolean>}
+   */
   moveToLinkedPano(heading) {
     if (this.#status.disableWalking) return Promise.resolve(false);
 
@@ -504,11 +504,11 @@ class NavigationService {
   }
 
   /**
-     * Move to a specific pano ID.
-     * @param {string} panoId - The string ID of the pano that we want to move to.
-     * @param {boolean} [force] - If true, force a move despite walking being disabled. Used in tutorial.
-     * @returns {Promise<boolean>}
-     */
+   * Move to a specific pano ID.
+   * @param {string} panoId - The string ID of the pano that we want to move to.
+   * @param {boolean} [force] - If true, force a move despite walking being disabled. Used in tutorial.
+   * @returns {Promise<boolean>}
+   */
   async moveToPano(panoId, force) {
     if (force === undefined) force = false;
     if (this.#status.disableWalking && !force) return Promise.resolve(false);
@@ -521,11 +521,11 @@ class NavigationService {
   }
 
   /**
-     * Sets the current status of the instantiated object.
-     * @param {string} key - The status that needs to be set.
-     * @param {*} value - The value to set that status to.
-     * @returns {NavigationService|boolean} this, or false if the key is not a known status.
-     */
+   * Sets the current status of the instantiated object.
+   * @param {string} key - The status that needs to be set.
+   * @param {*} value - The value to set that status to.
+   * @returns {NavigationService|boolean} this, or false if the key is not a known status.
+   */
   setStatus(key, value) {
     if (key in this.#status) {
       // if the key is disableWalking, invoke walk disabling/enabling function
@@ -544,9 +544,9 @@ class NavigationService {
   }
 
   /**
-     * Unlock disable walking.
-     * @returns {NavigationService} this.
-     */
+   * Unlock disable walking.
+   * @returns {NavigationService} this.
+   */
   unlockDisableWalking() {
     this.#status.lockDisableWalking = false;
     return this;

@@ -12,12 +12,12 @@ class AchievementTracker {
   }
 
   /**
-     * Gets the current badge given the user's progress for the given badge type.
-     * @param badgeType One of four BadgeTypes: "missions", "distance", "labels", or "validations".
-     * @param value Number to display for the corresponding badgeType.
-     * @returns {null} null if no badge earned or if no badge found for the passed badgeType. Otherwise, the Badge
-     *          corresponding to the highest level earned
-     */
+   * Gets the current badge given the user's progress for the given badge type.
+   * @param badgeType One of four BadgeTypes: "missions", "distance", "labels", or "validations".
+   * @param value Number to display for the corresponding badgeType.
+   * @returns {null} null if no badge earned or if no badge found for the passed badgeType. Otherwise, the Badge
+   *          corresponding to the highest level earned
+   */
   getBadgeEarned(badgeType, value) {
     if (badgeType in this.mapBadges) {
       const mapLevelsToBadge = this.mapBadges[badgeType];
@@ -34,12 +34,12 @@ class AchievementTracker {
   }
 
   /**
-     * Updates the badge achievement grid given the user's current stats.
-     * @param curMissionCnt current mission count
-     * @param curDistanceInMiles current completed distance amount (in miles)
-     * @param curLabelsCnt current label count
-     * @param curValidationsCnt current validation count
-     */
+   * Updates the badge achievement grid given the user's current stats.
+   * @param curMissionCnt current mission count
+   * @param curDistanceInMiles current completed distance amount (in miles)
+   * @param curLabelsCnt current label count
+   * @param curValidationsCnt current validation count
+   */
   updateBadgeAchievementGrid(curMissionCnt, curDistanceInMiles, curLabelsCnt, curValidationsCnt) {
     const BADGE_NOT_YET_EARNED_CLASS_NAME = 'badge-not-yet-earned';
     const mapBadgeTypesToCurrentValues = {};
@@ -73,11 +73,11 @@ class AchievementTracker {
   }
 
   /**
-     * Get a dynamic encouragement statement for the given badge type with the current value.
-     * @param badgeType is one of four BadgeTypes: "missions", "distance", "labels", or "validations"
-     * @param curValue value corresponds to the current number of completed missions, total distance, num of labels, etc.
-     *               corresponding to the passed badgeType
-     */
+   * Get a dynamic encouragement statement for the given badge type with the current value.
+   * @param badgeType is one of four BadgeTypes: "missions", "distance", "labels", or "validations"
+   * @param curValue value corresponds to the current number of completed missions, total distance, num of labels, etc.
+   *               corresponding to the passed badgeType
+   */
   getBadgeEncouragementHtml(badgeType, curValue) {
     // Find next badge to unlock.
     const mapLevelsToBadge = this.mapBadges[badgeType];
@@ -169,11 +169,11 @@ const encouragingStatements = [
 
 class Badge {
   /**
-     *
-     * @param type
-     * @param level
-     * @param badgeAwardThreshold
-     */
+   *
+   * @param type
+   * @param level
+   * @param badgeAwardThreshold
+   */
   constructor(type, level, badgeAwardThreshold) {
     const imagePath = 'images/badges';
 

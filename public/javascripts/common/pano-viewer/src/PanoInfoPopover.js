@@ -40,22 +40,22 @@ class PanoInfoPopover {
   #labelDate;
 
   /**
-     * @param {HTMLElement} container Element where the info button will be appended
-     * @param {PanoViewer} panoViewer PanoViewer object
-     * @param {function} coords Function that returns { lat, lng } for the current position
-     * @param {function} panoId Function that returns the current panorama/image ID
-     * @param {function} streetEdgeId Function that returns the current Street Edge ID
-     * @param {function} regionId Function that returns the current Region ID
-     * @param {function} panoDate Function that returns the current pano's capture date as a moment object
-     * @param {function} panoAddress Function that returns the current pano's address string, or null
-     * @param {function} pov Function that returns the current { heading, pitch }
-     * @param {boolean} whiteIcon True for the white icon variant, false for blue
-     * @param {function} infoLogging Called when the info button is clicked
-     * @param {function} clipboardLogging Called when the clipboard button is clicked
-     * @param {function} viewPanoLogging Called when the view-in-pano link is clicked
-     * @param {function} [labelId] Optional — returns the Label ID
-     * @param {function} [labelDate] Optional — returns the label's timestamp as a moment object
-     */
+   * @param {HTMLElement} container Element where the info button will be appended
+   * @param {PanoViewer} panoViewer PanoViewer object
+   * @param {function} coords Function that returns { lat, lng } for the current position
+   * @param {function} panoId Function that returns the current panorama/image ID
+   * @param {function} streetEdgeId Function that returns the current Street Edge ID
+   * @param {function} regionId Function that returns the current Region ID
+   * @param {function} panoDate Function that returns the current pano's capture date as a moment object
+   * @param {function} panoAddress Function that returns the current pano's address string, or null
+   * @param {function} pov Function that returns the current { heading, pitch }
+   * @param {boolean} whiteIcon True for the white icon variant, false for blue
+   * @param {function} infoLogging Called when the info button is clicked
+   * @param {function} clipboardLogging Called when the clipboard button is clicked
+   * @param {function} viewPanoLogging Called when the view-in-pano link is clicked
+   * @param {function} [labelId] Optional — returns the Label ID
+   * @param {function} [labelDate] Optional — returns the label's timestamp as a moment object
+   */
   constructor(container, panoViewer, coords, panoId, streetEdgeId, regionId, panoDate, panoAddress, pov, whiteIcon,
     infoLogging, clipboardLogging, viewPanoLogging, labelId, labelDate) {
     this.#popoverEl = document.getElementById('pano-info-popover');
@@ -78,9 +78,9 @@ class PanoInfoPopover {
   }
 
   /**
-     * Creates the info button, wires up event listeners, and unhides optional rows.
-     * @param {HTMLElement} container Element where the info button will be appended
-     */
+   * Creates the info button, wires up event listeners, and unhides optional rows.
+   * @param {HTMLElement} container Element where the info button will be appended
+   */
   #init(container) {
     if (!this.#popoverEl) {
       console.error('PanoInfoPopover: #pano-info-popover not found. Include @common.panoInfoPopover() in the view.');
@@ -132,17 +132,17 @@ class PanoInfoPopover {
   }
 
   /**
-     * Unhides an optional row by removing its hidden modifier class.
-     * @param {string} field The data-optional-row attribute value
-     */
+   * Unhides an optional row by removing its hidden modifier class.
+   * @param {string} field The data-optional-row attribute value
+   */
   #showOptionalRow(field) {
     const row = this.#popoverEl.querySelector(`[data-optional-row="${field}"]`);
     if (row) row.classList.remove('pano-info-popover__row--hidden');
   }
 
   /**
-     * Positions the popover above the info button, centered horizontally, clamped to the viewport.
-     */
+   * Positions the popover above the info button, centered horizontally, clamped to the viewport.
+   */
   #positionPopover() {
     const btnRect = this.#infoButton.getBoundingClientRect();
     const popRect = this.#popoverEl.getBoundingClientRect();
@@ -161,8 +161,8 @@ class PanoInfoPopover {
   }
 
   /**
-     * Reads the current pano/label state and updates value spans in the popover, then wires the clipboard/view actions.
-     */
+   * Reads the current pano/label state and updates value spans in the popover, then wires the clipboard/view actions.
+   */
   #updateVals() {
     const currCoords = this.#coords ? this.#coords() : null;
     const currPanoId = this.#panoId ? this.#panoId() : null;
@@ -175,10 +175,10 @@ class PanoInfoPopover {
     const currLabelDate = this.#labelDate ? this.#labelDate().format('LL, LT') : null;
 
     /**
-         * Sets the text content of a value span identified by [data-field].
-         * @param {string} field The data-field attribute value
-         * @param {string|number|null} val The value to display
-         */
+     * Sets the text content of a value span identified by [data-field].
+     * @param {string} field The data-field attribute value
+     * @param {string|number|null} val The value to display
+     */
     const setVal = (field, val) => {
       const span = this.#popoverEl.querySelector(`[data-field="${field}"]`);
       if (!span) return;

@@ -120,10 +120,10 @@ function CreatePSMap($, params) {
   return allLoaded;
 
   /**
-     * Create the Mapbox map object and attach a custom logging function to it.
-     * @param {object} mapParamData - Map configuration parameters from the /cityMapParams endpoint.
-     * @returns {Promise} - Promise that resolves with the Mapbox map once it has loaded.
-     */
+   * Create the Mapbox map object and attach a custom logging function to it.
+   * @param {object} mapParamData - Map configuration parameters from the /cityMapParams endpoint.
+   * @returns {Promise} - Promise that resolves with the Mapbox map once it has loaded.
+   */
   function createMap(mapParamData) {
     params.zoomCorrection = params.zoomCorrection ? params.zoomCorrection : 0;
     mapParamData.default_zoom = mapParamData.default_zoom + params.zoomCorrection;

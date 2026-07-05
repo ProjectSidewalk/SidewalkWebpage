@@ -26,22 +26,22 @@
  */
 class PanoMarker {
   /**
-     * Creates a PanoMarker with the options specified. If a panorama is specified, the marker is added to the map
-     * upon construction. Note that the position must be set for the marker to display.
-     *
-     * @constructor
-     * @param {object} opts A set of parameters to customize the marker.
-     * @param {PanoViewer} opts.panoViewer Panorama viewer on which to display marker.
-     * @param {HTMLDivElement} opts.markerContainer The container holding the markers.
-     * @param {string} [opts.className] The class name which will be assigned to the created div node.
-     * @param {string} [opts.icon] URL to an image file that shall be used.
-     * @param {string} [opts.id] A unique identifier that will be assigned to the created div-node.
-     * @param {{heading: number, pitch: number}} [opts.position] Marker position on the panorama.
-     * @param {{width: number, height: number}} [opts.size] The size of the marker in pixels.
-     * @param {string} [opts.title] Hover tooltip.
-     * @param {boolean} [opts.visible=true] If true, the marker is visible.
-     * @param {number} [opts.zIndex=1] The marker's z-index.
-     */
+   * Creates a PanoMarker with the options specified. If a panorama is specified, the marker is added to the map
+   * upon construction. Note that the position must be set for the marker to display.
+   *
+   * @constructor
+   * @param {object} opts A set of parameters to customize the marker.
+   * @param {PanoViewer} opts.panoViewer Panorama viewer on which to display marker.
+   * @param {HTMLDivElement} opts.markerContainer The container holding the markers.
+   * @param {string} [opts.className] The class name which will be assigned to the created div node.
+   * @param {string} [opts.icon] URL to an image file that shall be used.
+   * @param {string} [opts.id] A unique identifier that will be assigned to the created div-node.
+   * @param {{heading: number, pitch: number}} [opts.position] Marker position on the panorama.
+   * @param {{width: number, height: number}} [opts.size] The size of the marker in pixels.
+   * @param {string} [opts.title] Hover tooltip.
+   * @param {boolean} [opts.visible=true] If true, the marker is visible.
+   * @param {number} [opts.zIndex=1] The marker's z-index.
+   */
   constructor(opts) {
     if (!opts.panoViewer) throw new Error('A panorama viewer needs to be defined.');
     if (!opts.markerContainer) throw new Error('A panorama markerContainer needs to be defined.');
@@ -83,11 +83,11 @@ class PanoMarker {
     this.toggleDescription_ = false;
 
     /**
-         * New code (April 17, 2019) -- modified by Aileen
-         * Source: https://github.com/marmat/google-maps-api-addons/issues/36#issuecomment-342774699
-         * @private
-         * @type {function({heading: number, pitch: number}, {heading: number, pitch: number, zoom: number}, number, number, number): {x: number, y: number}}
-         */
+     * New code (April 17, 2019) -- modified by Aileen
+     * Source: https://github.com/marmat/google-maps-api-addons/issues/36#issuecomment-342774699
+     * @private
+     * @type {function({heading: number, pitch: number}, {heading: number, pitch: number, zoom: number}, number, number, number): {x: number, y: number}}
+     */
     this.povToPixel_ = util.pano.centeredPovToCanvasCoord2d;
     const pixelCanvas = document.createElement('canvas');
     if (pixelCanvas && (pixelCanvas.getContext('experimental-webgl') || pixelCanvas.getContext('webgl'))) {
@@ -99,8 +99,8 @@ class PanoMarker {
   }
 
   /**
-     * Sets up a marker and then calls draw().
-     */
+   * Sets up a marker and then calls draw().
+   */
   createMarker = function () {
     const marker = document.createElement('div');
     marker.classList.add('icon-outline');
@@ -177,8 +177,8 @@ class PanoMarker {
   };
 
   /**
-     * Removes the marker.
-     */
+   * Removes the marker.
+   */
   removeMarker = function () {
     // Detach the listeners registered in createMarker, by reference, so they don't accumulate (#4231).
     window.removeEventListener('resize', this.boundDraw_);
@@ -188,8 +188,8 @@ class PanoMarker {
   };
 
   /**
-     * Draws the marker on the canvas.
-     */
+   * Draws the marker on the canvas.
+   */
   draw = function () {
     if (!this.panoViewer_) {
       return;

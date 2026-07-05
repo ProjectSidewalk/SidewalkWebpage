@@ -21,11 +21,11 @@ class StreetStatusTable {
   #hoverId = null;
 
   /**
-     * @param {string} tableId - id of the <table> element.
-     * @param {string} searchId - id of the search <input> element.
-     * @param {{onRowClick?: function(number): void, onRowHover?: function(number): void,
-     *          onRowHoverEnd?: function(): void}} [opts]
-     */
+   * @param {string} tableId - id of the <table> element.
+   * @param {string} searchId - id of the search <input> element.
+   * @param {{onRowClick?: function(number): void, onRowHover?: function(number): void,
+   *          onRowHoverEnd?: function(): void}} [opts]
+   */
   constructor(tableId, searchId, opts = {}) {
     this.#tableId = tableId;
     this.#searchId = searchId;
@@ -35,9 +35,9 @@ class StreetStatusTable {
   }
 
   /**
-     * Renders the table and wires search, sort, and row interactions (once).
-     * @param {Array<object>} rows - Per-region rows (region_id, name, open, no_imagery, closed, disabled, total).
-     */
+   * Renders the table and wires search, sort, and row interactions (once).
+   * @param {Array<object>} rows - Per-region rows (region_id, name, open, no_imagery, closed, disabled, total).
+   */
   render(rows) {
     this.#rows = rows;
     const table = document.getElementById(this.#tableId);

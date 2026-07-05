@@ -24,8 +24,8 @@ class AdminTask {
   #userMarker;
 
   /**
-     * @param {Object} params - auditTaskId, mapboxApiKey, viewerType, and accessToken.
-     */
+   * @param {Object} params - auditTaskId, mapboxApiKey, viewerType, and accessToken.
+   */
   constructor(params) {
     this.#params = params;
     this.#auditTaskId = params.auditTaskId;
@@ -68,8 +68,8 @@ class AdminTask {
   }
 
   /**
-     * Fetches the audit-task path, initializes the pano, and sets up the map once loaded.
-     */
+   * Fetches the audit-task path, initializes the pano, and sets up the map once loaded.
+   */
   #init() {
     fetch(`/adminapi/auditpath/${this.#auditTaskId}`)
       .then((response) => response.json())
@@ -124,8 +124,8 @@ class AdminTask {
   }
 
   /**
-     * Plays the animation again by recalculating the stream from where it stopped.
-     */
+   * Plays the animation again by recalculating the stream from where it stopped.
+   */
   #playAnimation() {
     this.#paused = false;
     this.#resumeAnimation();
@@ -133,16 +133,16 @@ class AdminTask {
   }
 
   /**
-     * Pauses the animation by saving the last moment where it stopped.
-     */
+   * Pauses the animation by saving the last moment where it stopped.
+   */
   #pauseAnimation() {
     this.#paused = true;
     document.getElementById('control-btn').innerHTML = 'Play';
   }
 
   /**
-     * Executes the current step in the animation and schedules the next one.
-     */
+   * Executes the current step in the animation and schedules the next one.
+   */
   #doNextStep() {
     let duration = this.#featuresData[this.#currStep].properties.timestamp - this.#currentTimestamp;
     this.#currentTimestamp = this.#featuresData[this.#currStep].properties.timestamp;
@@ -224,8 +224,8 @@ class AdminTask {
   }
 
   /**
-     * Recalculates the timestamps for each step and resumes the animation.
-     */
+   * Recalculates the timestamps for each step and resumes the animation.
+   */
   #resumeAnimation() {
     this.#speedMultiplier = document.getElementById('speed-multiplier').value;
     this.#maxWaitMs = document.getElementById('wait-time').value * 1000;
@@ -264,9 +264,9 @@ class AdminTask {
   }
 
   /**
-     * Prepends a new event entry to the events list, fading it in.
-     * @param {Object} data - Event properties, including 'action' and 'note'.
-     */
+   * Prepends a new event entry to the events list, fading it in.
+   * @param {Object} data - Event properties, including 'action' and 'note'.
+   */
   #showEvent(data) {
     const eventsHolder = $('#eventsHolder');
     const event = $('<div class=\'event\'/>');

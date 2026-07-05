@@ -28,9 +28,9 @@ class Tracker {
   }
 
   /**
-     * @param {string} action
-     * @param {object} notes
-     */
+   * @param {string} action
+   * @param {object} notes
+   */
   #createAction(action, notes) {
     const panoViewer = svv.panoManager && svv.panoViewer ? svv.panoViewer : null;
     const position = panoViewer ? panoViewer.getPosition() : { lat: null, lng: null };
@@ -74,10 +74,10 @@ class Tracker {
   }
 
   /**
-     * Pushes information to action list (to be submitted to the database).
-     * @param {string} action
-     * @param {object} [notes] Notes to be logged into the notes field database.
-     */
+   * Pushes information to action list (to be submitted to the database).
+   * @param {string} action
+   * @param {object} [notes] Notes to be logged into the notes field database.
+   */
   push(action, notes) {
     const item = this.#createAction(action, notes);
     const prevItem = this.#actions.slice(-1)[0];
@@ -92,8 +92,8 @@ class Tracker {
   }
 
   /**
-     * Empties actions stored in the Tracker.
-     */
+   * Empties actions stored in the Tracker.
+   */
   refresh() {
     this.#actions = [];
     this.push('RefreshTracker');

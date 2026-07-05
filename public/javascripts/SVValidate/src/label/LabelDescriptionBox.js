@@ -9,10 +9,10 @@ class LabelDescriptionBox {
   }
 
   /**
-     * Sets the box's descriptions for the given label.
-     *
-     * @param {Label} label The label whose information is to be shown on the box.
-     */
+   * Sets the box's descriptions for the given label.
+   *
+   * @param {Label} label The label whose information is to be shown on the box.
+   */
   setDescription(label) {
     const desBox = this.#descriptionBox[0];
     desBox.style.width = 'auto';

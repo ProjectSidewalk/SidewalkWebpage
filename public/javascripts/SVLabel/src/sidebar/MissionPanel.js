@@ -11,9 +11,9 @@ class MissionPanel {
   }
 
   /**
-     * Sets the header and description text for the given mission.
-     * @param mission The current Mission object.
-     */
+   * Sets the header and description text for the given mission.
+   * @param mission The current Mission object.
+   */
   setMessage(mission) {
     // The header gains a "Route: <route-number>" suffix when on a user-defined route.
     if (svl.neighborhoodModel.isRoute) {
@@ -43,11 +43,11 @@ class MissionPanel {
   }
 
   /**
-     * Converts a mission distance to a localized, rounded display string with its unit abbreviation.
-     * @param {number} distance The distance value.
-     * @param {string} unit The unit of the passed distance ("feet", "miles", or "kilometers").
-     * @returns {string}
-     */
+   * Converts a mission distance to a localized, rounded display string with its unit abbreviation.
+   * @param {number} distance The distance value.
+   * @param {string} unit The unit of the passed distance ("feet", "miles", or "kilometers").
+   * @returns {string}
+   */
   #distanceToString(distance, unit = 'kilometers') {
     // Convert to meters first.
     if (unit === 'feet') distance = util.math.feetToMeters(distance);

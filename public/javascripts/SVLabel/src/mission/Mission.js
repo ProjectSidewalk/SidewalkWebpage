@@ -15,17 +15,17 @@ class Mission {
   #tasksForTheMission = [];
 
   /**
-     * Fills in the #properties object with the data for the mission table.
-     * @param {object} params
-     * @param {number} params.missionId
-     * @param {string} params.missionType
-     * @param {number} params.regionId
-     * @param {boolean} params.isComplete
-     * @param {number} params.distance
-     * @param {number} params.distanceProgress
-     * @param {boolean} params.skipped
-     * @constructor
-     */
+   * Fills in the #properties object with the data for the mission table.
+   * @param {object} params
+   * @param {number} params.missionId
+   * @param {string} params.missionType
+   * @param {number} params.regionId
+   * @param {boolean} params.isComplete
+   * @param {number} params.distance
+   * @param {number} params.distanceProgress
+   * @param {boolean} params.skipped
+   * @constructor
+   */
   constructor(params) {
     this.setProperty('missionId', params.missionId);
     this.setProperty('missionType', params.missionType);
@@ -37,9 +37,9 @@ class Mission {
   }
 
   /**
-     * Set the isComplete property to true.
-     * @returns {void}
-     */
+   * Set the isComplete property to true.
+   * @returns {void}
+   */
   complete = () => {
     this.setProperty('isComplete', true);
 
@@ -57,9 +57,9 @@ class Mission {
   };
 
   /**
-     * Compute and return the mission completion rate
-     * @returns {number} The completion rate of the mission between 0 and 1
-     */
+   * Compute and return the mission completion rate
+   * @returns {number} The completion rate of the mission between 0 and 1
+   */
   getMissionCompletionRate = () => {
     this.updateDistanceProgress();
     if ('taskContainer' in svl && this.getProperty('missionType') !== 'auditOnboarding') {
@@ -72,9 +72,9 @@ class Mission {
   };
 
   /**
-     * Updates the distanceProgress for this audit mission.
-     * @returns {void}
-     */
+   * Updates the distanceProgress for this audit mission.
+   * @returns {void}
+   */
   updateDistanceProgress = () => {
     if ('taskContainer' in svl
       && this.getProperty('missionType') !== 'auditOnboarding'
@@ -101,44 +101,44 @@ class Mission {
   };
 
   /**
-     * Returns a property
-     * @param {string} key The property being requested
-     * @returns {*|null} The value of the property, or null if no property found with that ID
-     */
+   * Returns a property
+   * @param {string} key The property being requested
+   * @returns {*|null} The value of the property, or null if no property found with that ID
+   */
   getProperty = (key) => {
     return key in this.#properties ? this.#properties[key] : null;
   };
 
   /**
-     * Get an array of tasks for this mission
-     * @returns {Array<Task>}
-     */
+   * Get an array of tasks for this mission
+   * @returns {Array<Task>}
+   */
   getRoute = () => {
     return this.#tasksForTheMission;
   };
 
   /**
-     * Sets a property
-     * @param {string} key The property being set
-     * @param {*} value The value to set that property to
-     * @returns {void}
-     */
+   * Sets a property
+   * @param {string} key The property being set
+   * @param {*} value The value to set that property to
+   * @returns {void}
+   */
   setProperty = (key, value) => {
     this.#properties[key] = value;
   };
 
   /**
-     * Check if the mission is completed or not.
-     * @returns {boolean}
-     */
+   * Check if the mission is completed or not.
+   * @returns {boolean}
+   */
   isComplete = () => {
     return this.getProperty('isComplete');
   };
 
   /**
-     * Push a completed task into `this.#tasksForTheMission`.
-     * @param {Task} task
-     */
+   * Push a completed task into `this.#tasksForTheMission`.
+   * @param {Task} task
+   */
   pushATaskToTheRoute = (task) => {
     const streetEdgeIds = this.#tasksForTheMission.map((t) => t.getStreetEdgeId());
     if (streetEdgeIds.indexOf(task.getStreetEdgeId()) < 0) {
@@ -147,9 +147,9 @@ class Mission {
   };
 
   /**
-     * Total line distance in this mission.
-     * @param {string} [unit='meters'] One of 'meters', 'miles', 'feet', 'kilometers', or 'meters'
-     */
+   * Total line distance in this mission.
+   * @param {string} [unit='meters'] One of 'meters', 'miles', 'feet', 'kilometers', or 'meters'
+   */
   getDistance = (unit = 'meters') => {
     if (unit === 'miles') {
       return util.math.metersToMiles(this.getProperty('distance'));

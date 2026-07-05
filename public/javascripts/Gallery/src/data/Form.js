@@ -5,8 +5,8 @@ class Form {
   #dataStoreUrl;
 
   /**
-     * @param {string} url - URL to send interaction data to.
-     */
+   * @param {string} url - URL to send interaction data to.
+   */
   constructor(url) {
     this.#dataStoreUrl = url;
 
@@ -26,9 +26,9 @@ class Form {
   }
 
   /**
-     * Compiles the buffered interaction data into a format that can be parsed by our back end.
-     * @returns {Object} The log data to submit.
-     */
+   * Compiles the buffered interaction data into a format that can be parsed by our back end.
+   * @returns {Object} The log data to submit.
+   */
   compileSubmissionData() {
     const data = {};
 
@@ -51,11 +51,11 @@ class Form {
   }
 
   /**
-     * Submits front-end log data to the back end.
-     *
-     * @param {Object|Object[]} data - A single submission object, or an array of them.
-     * @returns {Promise<void>}
-     */
+   * Submits front-end log data to the back end.
+   *
+   * @param {Object|Object[]} data - A single submission object, or an array of them.
+   * @returns {Promise<void>}
+   */
   submit(data) {
     if (data.constructor !== Array) {
       data = [data];

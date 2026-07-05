@@ -8,9 +8,9 @@ class RatingReminderAlert extends Alert {
   static #MINIMUM_NO_RATING_BEFORE_ALERT = 4;
 
   /**
-     * Tracks whether the user rated severity, and shows the reminder after enough consecutive unrated labels.
-     * @param {?number} severity - The chosen severity, or null/undefined if the user labeled without rating.
-     */
+   * Tracks whether the user rated severity, and shows the reminder after enough consecutive unrated labels.
+   * @param {?number} severity - The chosen severity, or null/undefined if the user labeled without rating.
+   */
   ratingClicked(severity) {
     if (severity === null || severity === undefined) {
       if (this.#ratingCount > 0) {

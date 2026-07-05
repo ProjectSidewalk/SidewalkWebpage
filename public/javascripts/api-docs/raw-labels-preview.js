@@ -24,19 +24,19 @@
   // Public API.
   window.RawLabelsPreview = {
     /**
-         * Configure the raw labels preview.
-         * @param {object} options - Configuration options
-         * @returns {object} The RawLabelsPreview object for chaining
-         */
+     * Configure the raw labels preview.
+     * @param {object} options - Configuration options
+     * @returns {object} The RawLabelsPreview object for chaining
+     */
     setup(options) {
       config = Object.assign(config, options);
       return this;
     },
 
     /**
-         * Initialize the raw labels preview map.
-         * @returns {Promise} A promise that resolves when the preview is rendered
-         */
+     * Initialize the raw labels preview map.
+     * @returns {Promise} A promise that resolves when the preview is rendered
+     */
     init() {
       const container = document.getElementById(config.containerId);
 
@@ -87,9 +87,9 @@
     },
 
     /**
-         * Fetch label types from the API.
-         * @returns {Promise} A promise that resolves with the label types data
-         */
+     * Fetch label types from the API.
+     * @returns {Promise} A promise that resolves with the label types data
+     */
     fetchLabelTypes() {
       return fetch(`${config.apiBaseUrl}${config.labelTypesEndpoint}?source=apiDocs`)
         .then((response) => {
@@ -101,9 +101,9 @@
     },
 
     /**
-         * Fetch region with the most labels.
-         * @returns {Promise} A promise that resolves with the region data
-         */
+     * Fetch region with the most labels.
+     * @returns {Promise} A promise that resolves with the region data
+     */
     fetchRegionWithMostLabels() {
       return fetch(`${config.apiBaseUrl}${config.regionWithMostLabelsEndpoint}?source=apiDocs`)
         .then((response) => {
@@ -119,10 +119,10 @@
     },
 
     /**
-         * Extract a bounding box from region geometry.
-         * @param {object} region - Region data with geometry
-         * @returns {string} Bounding box string (minLng,minLat,maxLng,maxLat)
-         */
+     * Extract a bounding box from region geometry.
+     * @param {object} region - Region data with geometry
+     * @returns {string} Bounding box string (minLng,minLat,maxLng,maxLat)
+     */
     getBoundingBoxFromRegion(region) {
       if (!region || !region.geometry) {
         throw new Error('Invalid region data');
@@ -159,10 +159,10 @@
     },
 
     /**
-         * Calculate center of a region from its geometry.
-         * @param {object} region - Region data with geometry
-         * @returns {Array} [lat, lon] center coordinates
-         */
+     * Calculate center of a region from its geometry.
+     * @param {object} region - Region data with geometry
+     * @returns {Array} [lat, lon] center coordinates
+     */
     getCenterFromRegion(region) {
       const bbox = this.getBoundingBoxFromRegion(region).split(',').map(Number);
       const centerLon = (bbox[0] + bbox[2]) / 2;
@@ -171,10 +171,10 @@
     },
 
     /**
-         * Fetch labels by region ID instead of bounding box.
-         * @param {number} regionId - ID of the region
-         * @returns {Promise} A promise that resolves with the labels data
-         */
+     * Fetch labels by region ID instead of bounding box.
+     * @param {number} regionId - ID of the region
+     * @returns {Promise} A promise that resolves with the labels data
+     */
     fetchLabelsByRegionId(regionId) {
       const url = `${config.apiBaseUrl}${config.rawLabelsEndpoint}?regionId=${regionId}&source=apiDocs`;
       return fetch(url)
@@ -187,11 +187,11 @@
     },
 
     /**
-         * Create the Leaflet map.
-         * @param {HTMLElement} container - Container element for the map
-         * @param {object} regionData - Data about the region to display
-         * @returns {object} The Leaflet map object
-         */
+     * Create the Leaflet map.
+     * @param {HTMLElement} container - Container element for the map
+     * @param {object} regionData - Data about the region to display
+     * @returns {object} The Leaflet map object
+     */
     createMap(container, regionData) {
       // Create a map element.
       const mapElement = document.createElement('div');
@@ -253,10 +253,10 @@
     },
 
     /**
-         * Display labels on the map.
-         * @param {object} map - The Leaflet map object
-         * @param {object} labels - GeoJSON data containing the labels
-         */
+     * Display labels on the map.
+     * @param {object} map - The Leaflet map object
+     * @param {object} labels - GeoJSON data containing the labels
+     */
     displayLabelsOnMap(map, labels) {
       if (!labels.features || labels.features.length === 0) {
         // Add a message to the map if no labels found.
@@ -346,9 +346,9 @@
     },
 
     /**
-         * Create a legend for the map.
-         * @param {object} map - The Leaflet map object
-         */
+     * Create a legend for the map.
+     * @param {object} map - The Leaflet map object
+     */
     createLegend(map) {
       const legend = L.control({ position: 'bottomleft' });
 
@@ -371,10 +371,10 @@
     },
 
     /**
-         * Update the legend to show only label types present in the data.
-         * @param {object} map - The Leaflet map object
-         * @param {Array} typesInData - Array of label type names found in the data
-         */
+     * Update the legend to show only label types present in the data.
+     * @param {object} map - The Leaflet map object
+     * @param {Array} typesInData - Array of label type names found in the data
+     */
     updateLegend(map, typesInData) {
       const legendDiv = document.getElementById('raw-labels-legend');
       if (!legendDiv) return;

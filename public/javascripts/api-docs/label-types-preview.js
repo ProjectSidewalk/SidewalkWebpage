@@ -19,23 +19,23 @@
   // Public API.
   window.LabelTypesPreview = {
     /**
-         * Configure the label types preview.
-         * @param {object} options - Configuration options
-         * @param {string} [options.apiBaseUrl] - Base URL for the API
-         * @param {string} [options.containerId] - ID of the container element
-         * @param {boolean} [options.showPrimaryOnly] - Whether to show only primary label types
-         * @param {number} [options.maxWidth] - Maximum width for the preview container
-         * @param {string} [options.endpoint] - API endpoint for label types
-         */
+     * Configure the label types preview.
+     * @param {object} options - Configuration options
+     * @param {string} [options.apiBaseUrl] - Base URL for the API
+     * @param {string} [options.containerId] - ID of the container element
+     * @param {boolean} [options.showPrimaryOnly] - Whether to show only primary label types
+     * @param {number} [options.maxWidth] - Maximum width for the preview container
+     * @param {string} [options.endpoint] - API endpoint for label types
+     */
     setup(options) {
       config = Object.assign(config, options);
       return this;
     },
 
     /**
-         * Initialize the label types preview.
-         * @returns {Promise} A promise that resolves when the preview is rendered
-         */
+     * Initialize the label types preview.
+     * @returns {Promise} A promise that resolves when the preview is rendered
+     */
     init() {
       const container = document.getElementById(config.containerId);
 
@@ -64,9 +64,9 @@
     },
 
     /**
-         * Fetch label types from the API.
-         * @returns {Promise} A promise that resolves with the label types data
-         */
+     * Fetch label types from the API.
+     * @returns {Promise} A promise that resolves with the label types data
+     */
     fetchLabelTypes() {
       return fetch(`${config.apiBaseUrl}${config.endpoint}?source=apiDocs`)
         .then((response) => {
@@ -78,11 +78,11 @@
     },
 
     /**
-         * Render the label types table.
-         * @param {object} data - Label types data from the API
-         * @param {HTMLElement} container - Container element
-         * @returns {HTMLElement} The rendered table
-         */
+     * Render the label types table.
+     * @param {object} data - Label types data from the API
+     * @param {HTMLElement} container - Container element
+     * @returns {HTMLElement} The rendered table
+     */
     renderLabelTypes(data, container) {
       // Filter label types if showPrimaryOnly is true.
       let labelTypes = data.label_types;
@@ -187,10 +187,10 @@
     },
 
     /**
-         * Determine if a color is light or dark.
-         * @param {string} hexColor - Hex color code
-         * @returns {boolean} True if the color is light, false otherwise
-         */
+     * Determine if a color is light or dark.
+     * @param {string} hexColor - Hex color code
+     * @returns {boolean} True if the color is light, false otherwise
+     */
     isLightColor(hexColor) {
       // Remove the # if present.
       hexColor = hexColor.replace('#', '');

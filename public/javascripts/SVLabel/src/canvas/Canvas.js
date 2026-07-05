@@ -21,16 +21,16 @@ class Canvas {
   #canvasProperties = { height: 0, width: 0 };
 
   /**
-     * @param {Object} ribbon - The RibbonMenu, queried for the selected label type / mode.
-     */
+   * @param {Object} ribbon - The RibbonMenu, queried for the selected label type / mode.
+   */
   constructor(ribbon) {
     this.#ribbon = ribbon;
     this.#init();
   }
 
   /**
-     * Initialization: set up the canvas context and attach listeners to DOM elements.
-     */
+   * Initialization: set up the canvas context and attach listeners to DOM elements.
+   */
   #init() {
     // Set up the canvas context.
     const el = document.getElementById('label-canvas');
@@ -61,10 +61,10 @@ class Canvas {
   }
 
   /**
-     * Sizes the label canvas bitmap to its on-screen size times the device pixel ratio, and scales the 2D
-     * context so all drawing done in the fixed 720x480 logical frame renders at full resolution.
-     * @param {HTMLCanvasElement} el - The label canvas element.
-     */
+   * Sizes the label canvas bitmap to its on-screen size times the device pixel ratio, and scales the 2D
+   * context so all drawing done in the fixed 720x480 logical frame renders at full resolution.
+   * @param {HTMLCanvasElement} el - The label canvas element.
+   */
   #sizeCanvasToDisplay(el) {
     const rect = el.getBoundingClientRect();
     const displayWidth = rect.width || util.EXPLORE_CANVAS_WIDTH;
@@ -78,10 +78,10 @@ class Canvas {
   }
 
   /**
-     * Create a label at the given X/Y canvas coordinate.
-     * @param {number} canvasX
-     * @param {number} canvasY
-     */
+   * Create a label at the given X/Y canvas coordinate.
+   * @param {number} canvasX
+   * @param {number} canvasY
+   */
   #createLabel(canvasX, canvasY) {
     // Generate some metadata for the new label.
     const labelType = this.#ribbon.getStatus('selectedLabelType');
@@ -141,9 +141,9 @@ class Canvas {
   }
 
   /**
-     * Sets the cursor over the street view image.
-     * @param {string} type - One of 'OpenHand', 'ClosedHand', or 'Pointer'; uses 'default' for any other input.
-     */
+   * Sets the cursor over the street view image.
+   * @param {string} type - One of 'OpenHand', 'ClosedHand', or 'Pointer'; uses 'default' for any other input.
+   */
   #setViewControlLayerCursor(type) {
     switch (type) {
       case 'OpenHand':
@@ -161,15 +161,15 @@ class Canvas {
   }
 
   /**
-     * Returns the cursor position in the fixed 720x480 logical canvas frame.
-     *
-     * The street view is displayed larger than the logical frame (see the --pano-width CSS variable), so we
-     * divide the on-screen position by the display scale.
-     *
-     * @param {MouseEvent} e - The mouse event.
-     * @param {HTMLElement} dom - The element the listener is bound to.
-     * @returns {{x: number, y: number}}
-     */
+   * Returns the cursor position in the fixed 720x480 logical canvas frame.
+   *
+   * The street view is displayed larger than the logical frame (see the --pano-width CSS variable), so we
+   * divide the on-screen position by the display scale.
+   *
+   * @param {MouseEvent} e - The mouse event.
+   * @param {HTMLElement} dom - The element the listener is bound to.
+   * @returns {{x: number, y: number}}
+   */
   #canvasMousePosition(e, dom) {
     const pos = util.mousePosition(e, dom);
     const scale = util.exploreDisplayScale();
@@ -177,9 +177,9 @@ class Canvas {
   }
 
   /**
-     * Callback fired with the mousedown event on the view control layer (where you control street view angle).
-     * @param {MouseEvent} e
-     */
+   * Callback fired with the mousedown event on the view control layer (where you control street view angle).
+   * @param {MouseEvent} e
+   */
   #handlerViewControlLayerMouseDown(e) {
     const currMousePosition = this.#canvasMousePosition(e, e.currentTarget);
     this.#mouseStatus.isLeftDown = true;
@@ -188,9 +188,9 @@ class Canvas {
   }
 
   /**
-     * Callback on mouse up event on the view control layer (where you change the Google Street view angle).
-     * @param {MouseEvent} e
-     */
+   * Callback on mouse up event on the view control layer (where you change the Google Street view angle).
+   * @param {MouseEvent} e
+   */
   #handlerViewControlLayerMouseUp(e) {
     const currMousePosition = this.#canvasMousePosition(e, e.currentTarget);
     this.#mouseStatus.isLeftDown = false;
@@ -227,9 +227,9 @@ class Canvas {
   }
 
   /**
-     * Callback fired when a user moves a mouse on the view control layer where you change the pov.
-     * @param {MouseEvent} e
-     */
+   * Callback fired when a user moves a mouse on the view control layer where you change the pov.
+   * @param {MouseEvent} e
+   */
   #handlerViewControlLayerMouseMove(e) {
     const currMousePosition = this.#canvasMousePosition(e, e.currentTarget);
 
@@ -264,25 +264,25 @@ class Canvas {
   }
 
   /**
-     * When mousing out of the canvas, stop trying to add a label type, switching back to Explore mode.
-     */
+   * When mousing out of the canvas, stop trying to add a label type, switching back to Explore mode.
+   */
   #handleDrawingLayerMouseOut() {
     svl.tracker.push('LabelingCanvas_MouseOut');
     if (!svl.isOnboarding()) this.#ribbon.backToWalk();
   }
 
   /**
-     * Record locations of mouse-down event. Most functionality happens on mouse-up, but mouse-down context matters.
-     * @param {MouseEvent} e
-     */
+   * Record locations of mouse-down event. Most functionality happens on mouse-up, but mouse-down context matters.
+   * @param {MouseEvent} e
+   */
   #handleDrawingLayerMouseDown(e) {
     svl.tracker.push('LabelingCanvas_MouseDown', this.#canvasMousePosition(e, e.currentTarget));
   }
 
   /**
-     * Create a new label on mouse-up if we are in a labeling mode.
-     * @param {MouseEvent} e
-     */
+   * Create a new label on mouse-up if we are in a labeling mode.
+   * @param {MouseEvent} e
+   */
   async #handleDrawingLayerMouseUp(e) {
     const currMousePosition = this.#canvasMousePosition(e, e.currentTarget);
 
@@ -298,9 +298,9 @@ class Canvas {
   }
 
   /**
-     * Update the canvas based on a mouse-move event: changing cursor, re-rendering, etc.
-     * @param {MouseEvent} e
-     */
+   * Update the canvas based on a mouse-move event: changing cursor, re-rendering, etc.
+   * @param {MouseEvent} e
+   */
   #handleDrawingLayerMouseMove(e) {
     // Change the cursor according to the label type.
     const iconImagePaths = util.misc.getIconImagePaths();
@@ -313,8 +313,8 @@ class Canvas {
   }
 
   /**
-     * Delete a label. Called when a user clicks a label's delete icon.
-     */
+   * Delete a label. Called when a user clicks a label's delete icon.
+   */
   #labelDeleteIconClick() {
     if (!this.#status.disableLabelDelete) {
       const currLabel = this.getCurrentLabel();
@@ -328,18 +328,18 @@ class Canvas {
   }
 
   /**
-     * Clear what's on the canvas.
-     * @returns {Canvas} this.
-     */
+   * Clear what's on the canvas.
+   * @returns {Canvas} this.
+   */
   clear() {
     this.#ctx.clearRect(0, 0, this.#canvasProperties.width, this.#canvasProperties.height);
     return this;
   }
 
   /**
-     * Disables the use of delete buttons for labels. Used primarily in the tutorial.
-     * @returns {Canvas|boolean} this, or false if delete is locked.
-     */
+   * Disables the use of delete buttons for labels. Used primarily in the tutorial.
+   * @returns {Canvas|boolean} this, or false if delete is locked.
+   */
   disableLabelDelete() {
     if (!this.#status.lockDisableLabelDelete) {
       this.#status.disableLabelDelete = true;
@@ -370,9 +370,9 @@ class Canvas {
   }
 
   /**
-     * Returns the label that the mouse is over.
-     * @returns {?Object}
-     */
+   * Returns the label that the mouse is over.
+   * @returns {?Object}
+   */
   getCurrentLabel() {
     return this.#status.currentLabel;
   }
@@ -382,11 +382,11 @@ class Canvas {
   }
 
   /**
-     * Takes cursor coordinates x and y on the canvas and returns the label right below the cursor, or false if none.
-     * @param {number} x
-     * @param {number} y
-     * @returns {Object|boolean}
-     */
+   * Takes cursor coordinates x and y on the canvas and returns the label right below the cursor, or false if none.
+   * @param {number} x
+   * @param {number} y
+   * @returns {Object|boolean}
+   */
   onLabel(x, y) {
     const labels = svl.labelContainer.getCanvasLabels();
 
@@ -407,9 +407,9 @@ class Canvas {
   }
 
   /**
-     * Renders labels on the canvas.
-     * @returns {Canvas} this.
-     */
+   * Renders labels on the canvas.
+   * @returns {Canvas} this.
+   */
   render() {
     if (!this.#ctx) {
       return this;
@@ -428,9 +428,9 @@ class Canvas {
   }
 
   /**
-     * Re-rasterizes the label canvas to the current displayed pano size and redraws all labels.
-     * Call this after the UI scale changes (e.g. on window resize) so the canvas stays crisp and correctly placed.
-     */
+   * Re-rasterizes the label canvas to the current displayed pano size and redraws all labels.
+   * Call this after the UI scale changes (e.g. on window resize) so the canvas stays crisp and correctly placed.
+   */
   resize() {
     const el = document.getElementById('label-canvas');
     if (!el || !this.#ctx) return;
@@ -451,9 +451,9 @@ class Canvas {
   }
 
   /**
-     * Sets the passed label's hoverInfoVisibility to 'visible' and all the others to 'hidden'.
-     * @param {Object} label
-     */
+   * Sets the passed label's hoverInfoVisibility to 'visible' and all the others to 'hidden'.
+   * @param {Object} label
+   */
   showLabelHoverInfo(label) {
     let needToRerender = false;
 
@@ -496,9 +496,9 @@ class Canvas {
   }
 
   /**
-     * Sets labels on the given pano as visible, all others as hidden.
-     * @param {string} panoId
-     */
+   * Sets labels on the given pano as visible, all others as hidden.
+   * @param {string} panoId
+   */
   setOnlyLabelsOnPanoAsVisible(panoId) {
     const labels = svl.labelContainer.getCanvasLabels();
     for (let i = 0; i < labels.length; i += 1) {
@@ -517,9 +517,9 @@ class Canvas {
   }
 
   /**
-     * Saves a screenshot of the canvas when the label was placed, to be uploaded to the server later.
-     * @param {Object} label
-     */
+   * Saves a screenshot of the canvas when the label was placed, to be uploaded to the server later.
+   * @param {Object} label
+   */
   saveCanvasScreenshot(label) {
     // If there is no label to associate this crop with, don't save the crop.
     if (!label) {

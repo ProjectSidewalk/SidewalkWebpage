@@ -12,11 +12,11 @@ class PanoOverlayControls {
   #controlButtonsToggleIcon;
 
   /**
-     * @param {Tracker} tracker
-     * @param {NavigationService} navigationService
-     * @param {StuckAlert} stuckAlert
-     * @param {KeyboardShortcutAlert} keyboardShortcutAlert
-     */
+   * @param {Tracker} tracker
+   * @param {NavigationService} navigationService
+   * @param {StuckAlert} stuckAlert
+   * @param {KeyboardShortcutAlert} keyboardShortcutAlert
+   */
   constructor(tracker, navigationService, stuckAlert, keyboardShortcutAlert) {
     this.tracker = tracker;
     this.navigationService = navigationService;
@@ -34,9 +34,9 @@ class PanoOverlayControls {
   }
 
   /**
-     * Callback for the chevron toggle: expands/collapses the optional control buttons (sound, feedback).
-     * @param {Event} e
-     */
+   * Callback for the chevron toggle: expands/collapses the optional control buttons (sound, feedback).
+   * @param {Event} e
+   */
   #handleToggleControls = (e) => {
     e.preventDefault();
     const expanded = this.#controlButtonsHolder.classList.toggle('expanded');
@@ -46,13 +46,13 @@ class PanoOverlayControls {
   };
 
   /**
-     * Callback for clicking the stuck button.
-     *
-     * The algorithm searches for available imagery along the street you are assigned to. If the pano you are put in
-     * doesn't help, you can click the Stuck button again; we save the attempted panos so we'll try something new. If we
-     * can't find anything along the street, we just mark it as complete and move you to a new street.
-     * @param {Event} e
-     */
+   * Callback for clicking the stuck button.
+   *
+   * The algorithm searches for available imagery along the street you are assigned to. If the pano you are put in
+   * doesn't help, you can click the Stuck button again; we save the attempted panos so we'll try something new. If we
+   * can't find anything along the street, we just mark it as complete and move you to a new street.
+   * @param {Event} e
+   */
   #handleClickStuck = (e) => {
     e.preventDefault();
     if (!this.#stuckEnabled) return;

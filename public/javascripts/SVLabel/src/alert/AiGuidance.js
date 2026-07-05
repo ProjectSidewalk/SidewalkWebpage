@@ -6,18 +6,18 @@ class AiGuidance {
   #popUpMessage;
 
   /**
-     * @param tracker
-     * @param popUpMessage
-     */
+   * @param tracker
+   * @param popUpMessage
+   */
   constructor(tracker, popUpMessage) {
     this.#tracker = tracker;
     this.#popUpMessage = popUpMessage;
   }
 
   /**
-     * Analyzes the current street using Gemini AI and returns guidance for the user.
-     * @returns {Promise<null|AuthenticatorResponse|any>}
-     */
+   * Analyzes the current street using Gemini AI and returns guidance for the user.
+   * @returns {Promise<null|AuthenticatorResponse|any>}
+   */
   async #analyzeCurrentStreetWithGemini(currTask) {
     try {
       // Prepare the request payload.
@@ -50,8 +50,8 @@ class AiGuidance {
   }
 
   /**
-     * Displays a pop-up message with AI-generated guidance based on the current street. Pilot in Chandigarh, India.
-     */
+   * Displays a pop-up message with AI-generated guidance based on the current street. Pilot in Chandigarh, India.
+   */
   showAiGuidanceMessage() {
     if (window.cityId === 'chandigarh-india') {
       this.#analyzeCurrentStreetWithGemini(svl.taskContainer.getCurrentTask())

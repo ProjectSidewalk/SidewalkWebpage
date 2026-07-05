@@ -49,10 +49,10 @@ class BadgeProgress {
   }
 
   /**
-     * Caches the child elements of a badge row.
-     * @param {string} containerId Id of the row's container element.
-     * @param {string} countId Id of the row's progress-bar label (the "current / target" count).
-     */
+   * Caches the child elements of a badge row.
+   * @param {string} containerId Id of the row's container element.
+   * @param {string} countId Id of the row's progress-bar label (the "current / target" count).
+   */
   #cacheRow(containerId, countId) {
     const container = document.getElementById(containerId);
     return {
@@ -69,9 +69,9 @@ class BadgeProgress {
   }
 
   /**
-     * Wires a badge row's icon to show/hide its tooltip. The icon is focusable, so the tooltip is keyboard-reachable as
-     * well as hoverable; the descriptive text is mirrored onto the icon's aria-label in #renderRow.
-     */
+   * Wires a badge row's icon to show/hide its tooltip. The icon is focusable, so the tooltip is keyboard-reachable as
+   * well as hoverable; the descriptive text is mirrored onto the icon's aria-label in #renderRow.
+   */
   #attachHover(row) {
     row.icon.addEventListener('mouseenter', () => this.#showTooltip(row));
     row.icon.addEventListener('mouseleave', () => this.#hideTooltip());
@@ -80,9 +80,9 @@ class BadgeProgress {
   }
 
   /**
-     * Shows the tooltip for a row, populated with the next badge's enlarged icon, name, and how-to-earn text.
-     * @param row Cached row elements.
-     */
+   * Shows the tooltip for a row, populated with the next badge's enlarged icon, name, and how-to-earn text.
+   * @param row Cached row elements.
+   */
   #showTooltip(row) {
     if (!row.iconSrc) return;
     if (this.#tooltipIcon.getAttribute('src') !== row.iconSrc) this.#tooltipIcon.src = row.iconSrc;
@@ -93,9 +93,9 @@ class BadgeProgress {
   }
 
   /**
-     * Positions the tooltip just to the left of the badge icon.
-     * @param row Cached row elements.
-     */
+   * Positions the tooltip just to the left of the badge icon.
+   * @param row Cached row elements.
+   */
   #positionTooltip(row) {
     const iconRect = row.icon.getBoundingClientRect();
     const tipRect = this.#tooltip.getBoundingClientRect();
@@ -123,11 +123,11 @@ class BadgeProgress {
   }
 
   /**
-     * Renders both badge rows for the given global totals.
-     * @param {number} labelCount The user's total label count.
-     * @param {number} distance The user's total distance audited, in their unit system.
-     * @param {boolean} isMetric Whether the user's unit system is metric.
-     */
+   * Renders both badge rows for the given global totals.
+   * @param {number} labelCount The user's total label count.
+   * @param {number} distance The user's total distance audited, in their unit system.
+   * @param {boolean} isMetric Whether the user's unit system is metric.
+   */
   render(labelCount, distance, isMetric) {
     this.#renderRow(this.#labelsRow, {
       value: labelCount,
@@ -162,11 +162,11 @@ class BadgeProgress {
   }
 
   /**
-     * Renders a single badge row: next-badge icon + fill, tiered name, progress bar, "current / target" text, and the
-     * tooltip content (name + goal + how-to-earn) shown on hover/focus.
-     * @param row Cached row elements.
-     * @param config Row config: value, thresholds, nameKey, goalKey, iconFor, nextText, unit, decimals.
-     */
+   * Renders a single badge row: next-badge icon + fill, tiered name, progress bar, "current / target" text, and the
+   * tooltip content (name + goal + how-to-earn) shown on hover/focus.
+   * @param row Cached row elements.
+   * @param config Row config: value, thresholds, nameKey, goalKey, iconFor, nextText, unit, decimals.
+   */
   #renderRow(row, config) {
     const { value, thresholds, nameKey, goalKey, iconFor, nextText, unit, decimals } = config;
 

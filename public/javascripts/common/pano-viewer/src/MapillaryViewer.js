@@ -193,12 +193,12 @@ class MapillaryViewer extends PanoViewer {
   };
 
   /**
-     * Creates a bounding box around the given point with given radius, and creates a URL to fetch images in the box.
-     *
-     * @param {turf.Point} centerPoint The center of the output bounding box
-     * @param {number} radius A distance (in km) to extend from the center point in each direction
-     * @returns {string} A URL that can be called to fetch Mapillary images within the bounding box
-     */
+   * Creates a bounding box around the given point with given radius, and creates a URL to fetch images in the box.
+   *
+   * @param {turf.Point} centerPoint The center of the output bounding box
+   * @param {number} radius A distance (in km) to extend from the center point in each direction
+   * @returns {string} A URL that can be called to fetch Mapillary images within the bounding box
+   */
   #createPanoFetchUrl = (centerPoint, radius) => {
     // Create a bounding box using to search for imagery.
     const boundingBox = [
@@ -220,13 +220,13 @@ class MapillaryViewer extends PanoViewer {
   };
 
   /**
-     * Scores a candidate Mapillary image for selection, balancing multiple factors.
-     *
-     * @param {Object} pano Raw pano object from the Mapillary API response.
-     * @param {turf.Point} centerPoint The target location we're trying to move to.
-     * @param {string|null} currentSequenceId The sequence ID of the current image (null on initial load).
-     * @returns {number} A score between 0 and 1 where higher is better.
-     */
+   * Scores a candidate Mapillary image for selection, balancing multiple factors.
+   *
+   * @param {Object} pano Raw pano object from the Mapillary API response.
+   * @param {turf.Point} centerPoint The target location we're trying to move to.
+   * @param {string|null} currentSequenceId The sequence ID of the current image (null on initial load).
+   * @returns {number} A score between 0 and 1 where higher is better.
+   */
   #scorePano = (pano, centerPoint, currentSequenceId) => {
     const geom = pano.computed_geometry || pano.geometry;
     const panoPoint = turf.point(geom.coordinates);
@@ -255,20 +255,20 @@ class MapillaryViewer extends PanoViewer {
   };
 
   /**
-     * Extracts camera pitch and roll from a Mapillary image's rotation vector.
-     *
-     * Mapillary's coordinate system: X=East, Y=North, Z=Up.
-     * The image.rotation is an axis-angle vector representing the world-to-camera transform.
-     * Camera frame: +Z=forward, -Y=up, +X=right.
-     *
-     * NOTE I've tested that the pitch/roll values seem to be correct by transforming the original image like so:
-     * $ ffmpeg -i my-image.jpeg -vf "v360=e:e:pitch=-extractedPitch:roll=-extractedRoll" my-image-rotated.jpeg
-     *
-     * @param {number[]} rotation - The image.rotation axis-angle vector [rx, ry, rz].
-     * @returns {{ pitch: number, roll: number }} Pitch and roll in degrees.
-     *   Pitch: positive=looking up, negative=looking down.
-     *   Roll: positive=camera tilted clockwise (from photographer's perspective).
-     */
+   * Extracts camera pitch and roll from a Mapillary image's rotation vector.
+   *
+   * Mapillary's coordinate system: X=East, Y=North, Z=Up.
+   * The image.rotation is an axis-angle vector representing the world-to-camera transform.
+   * Camera frame: +Z=forward, -Y=up, +X=right.
+   *
+   * NOTE I've tested that the pitch/roll values seem to be correct by transforming the original image like so:
+   * $ ffmpeg -i my-image.jpeg -vf "v360=e:e:pitch=-extractedPitch:roll=-extractedRoll" my-image-rotated.jpeg
+   *
+   * @param {number[]} rotation - The image.rotation axis-angle vector [rx, ry, rz].
+   * @returns {{ pitch: number, roll: number }} Pitch and roll in degrees.
+   *   Pitch: positive=looking up, negative=looking down.
+   *   Roll: positive=camera tilted clockwise (from photographer's perspective).
+   */
   extractPitchRoll = (rotation) => {
     // Invert the rotation to get camera-to-world.
     const invR = [-rotation[0], -rotation[1], -rotation[2]];
@@ -331,12 +331,12 @@ class MapillaryViewer extends PanoViewer {
   };
 
   /**
-     * Prefetches images near a location so that a subsequent setLocation() call can skip the API round-trip.
-     * Safe to call multiple times — skips the fetch if a nearby prefetch already exists.
-     * Call clearPrefetchCache() when moving to a new street.
-     *
-     * @param {{lat: number, lng: number}} latLng The location to prefetch images for.
-     */
+   * Prefetches images near a location so that a subsequent setLocation() call can skip the API round-trip.
+   * Safe to call multiple times — skips the fetch if a nearby prefetch already exists.
+   * Call clearPrefetchCache() when moving to a new street.
+   *
+   * @param {{lat: number, lng: number}} latLng The location to prefetch images for.
+   */
   prefetchLocation = (latLng) => {
     const centerPoint = turf.point([latLng.lng, latLng.lat]);
     const radius = svl.STREETVIEW_MAX_DISTANCE / 1000.0;
@@ -346,12 +346,12 @@ class MapillaryViewer extends PanoViewer {
   };
 
   /**
-     * Creates a prefetch entry for the given location, stores it, and returns it.
-     *
-     * @param {turf.Point} centerPoint
-     * @param {number} radius Search radius in kilometers.
-     * @returns {{ centerPoint: turf.Point, promise: Promise<Array> }}
-     */
+   * Creates a prefetch entry for the given location, stores it, and returns it.
+   *
+   * @param {turf.Point} centerPoint
+   * @param {number} radius Search radius in kilometers.
+   * @returns {{ centerPoint: turf.Point, promise: Promise<Array> }}
+   */
   #storePrefetch = (centerPoint, radius) => {
     const entry = { centerPoint, promise: this.#fetchImages(centerPoint, radius) };
     this.prefetchedSearches.push(entry);
@@ -359,18 +359,18 @@ class MapillaryViewer extends PanoViewer {
   };
 
   /**
-     * Clears all prefetched image search results. Should be called when the user moves to a new street.
-     */
+   * Clears all prefetched image search results. Should be called when the user moves to a new street.
+   */
   clearPrefetchCache = () => {
     this.prefetchedSearches = [];
   };
 
   /**
-     * Finds the nearest prefetched search result to the given point, if one is close enough to be useful.
-     *
-     * @param {turf.Point} centerPoint The target location.
-     * @returns {{ centerPoint: turf.Point, promise: Promise<Array> }|null}
-     */
+   * Finds the nearest prefetched search result to the given point, if one is close enough to be useful.
+   *
+   * @param {turf.Point} centerPoint The target location.
+   * @returns {{ centerPoint: turf.Point, promise: Promise<Array> }|null}
+   */
   #findNearestPrefetch = (centerPoint) => {
     let nearest = null;
     let nearestDist = Infinity;
@@ -386,12 +386,12 @@ class MapillaryViewer extends PanoViewer {
   };
 
   /**
-     * Fetches Mapillary images near the given point, retrying with smaller radii if the API returns too many results.
-     *
-     * @param {turf.Point} centerPoint The center of the search area.
-     * @param {number} radius The search radius in kilometers.
-     * @returns {Promise<Array>} Raw pano objects from the Mapillary API.
-     */
+   * Fetches Mapillary images near the given point, retrying with smaller radii if the API returns too many results.
+   *
+   * @param {turf.Point} centerPoint The center of the search area.
+   * @param {number} radius The search radius in kilometers.
+   * @returns {Promise<Array>} Raw pano objects from the Mapillary API.
+   */
   #fetchImages = async (centerPoint, radius) => {
     // Docs for how to filter images: https://www.mapillary.com/developer/api-documentation#image
     // TODO don't send accessToken in the URL: https://www.mapillary.com/developer/api-documentation#authentication
@@ -418,15 +418,15 @@ class MapillaryViewer extends PanoViewer {
   };
 
   /**
-     * Filters and scores a list of candidate panos, returning the best one (or null if none are viable).
-     *
-     * @param {Array} panos Raw pano objects from the Mapillary API.
-     * @param {Set<string>} excludedPanoIds Pano IDs to exclude.
-     * @param {Set<number>} excludedTimestamps Capture timestamps to exclude (handles duplicate Mapillary images).
-     * @param {turf.Point} centerPoint The target location.
-     * @param {string|null} currentSequenceId The sequence ID of the current image (null on initial load).
-     * @returns {Object|null} The best candidate pano, or null if none are viable.
-     */
+   * Filters and scores a list of candidate panos, returning the best one (or null if none are viable).
+   *
+   * @param {Array} panos Raw pano objects from the Mapillary API.
+   * @param {Set<string>} excludedPanoIds Pano IDs to exclude.
+   * @param {Set<number>} excludedTimestamps Capture timestamps to exclude (handles duplicate Mapillary images).
+   * @param {turf.Point} centerPoint The target location.
+   * @param {string|null} currentSequenceId The sequence ID of the current image (null on initial load).
+   * @returns {Object|null} The best candidate pano, or null if none are viable.
+   */
   #selectBestPano = (panos, excludedPanoIds, excludedTimestamps, centerPoint, currentSequenceId) => {
     const candidates = panos.filter(
       (pano) => !excludedPanoIds.has(pano.id) && !excludedTimestamps.has(pano.captured_at),

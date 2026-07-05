@@ -22,25 +22,25 @@ class ZoomControl {
   }
 
   /**
-     * Logs interaction when the zoom in button is clicked.
-     */
+   * Logs interaction when the zoom in button is clicked.
+   */
   #clickZoomIn = () => {
     svv.tracker.push('Click_ZoomIn');
     this.zoomIn();
   };
 
   /**
-     * Logs interaction when the zoom out button is clicked.
-     */
+   * Logs interaction when the zoom out button is clicked.
+   */
   #clickZoomOut = () => {
     svv.tracker.push('Click_ZoomOut');
     this.zoomOut();
   };
 
   /**
-     * Increases zoom for the panorama and checks if 'Zoom In' button needs to be disabled.
-     * Zoom levels: {1, 2, 3}
-     */
+   * Increases zoom for the panorama and checks if 'Zoom In' button needs to be disabled.
+   * Zoom levels: {1, 2, 3}
+   */
   zoomIn() {
     const zoomLevel = Math.round(svv.panoViewer.getPov().zoom);
     if (zoomLevel <= 2) {
@@ -50,9 +50,9 @@ class ZoomControl {
   }
 
   /**
-     * Decreases zoom for the panorama and checks if 'Zoom Out' button needs to be disabled.
-     * Zoom levels: {1, 2, 3}
-     */
+   * Decreases zoom for the panorama and checks if 'Zoom Out' button needs to be disabled.
+   * Zoom levels: {1, 2, 3}
+   */
   zoomOut() {
     const zoomLevel = Math.round(svv.panoViewer.getPov().zoom);
     if (zoomLevel >= 2) {
@@ -62,9 +62,9 @@ class ZoomControl {
   }
 
   /**
-     * Callback for the scroll wheel / trackpad over the pano.
-     * @param {Event} e jQuery wheel event.
-     */
+   * Callback for the scroll wheel / trackpad over the pano.
+   * @param {Event} e jQuery wheel event.
+   */
   #wheelZoom = (e) => {
     // Prevent the page from scrolling while zooming the pano.
     e.preventDefault();
@@ -86,11 +86,11 @@ class ZoomControl {
   };
 
   /**
-     * Changes the opacity and enables/disables the zoom buttons depending on the 'zoom level'. It
-     * disables and 'greys-out' the zoom in button in the most zoomed in state and the zoom out
-     * button in the most zoomed out state.
-     * Zoom levels: { 1 (Zoom-out Disabled), 2 (Both buttons enabled), 3 (Zoom-In Disabled) }
-     */
+   * Changes the opacity and enables/disables the zoom buttons depending on the 'zoom level'. It
+   * disables and 'greys-out' the zoom in button in the most zoomed in state and the zoom out
+   * button in the most zoomed out state.
+   * Zoom levels: { 1 (Zoom-out Disabled), 2 (Both buttons enabled), 3 (Zoom-In Disabled) }
+   */
   updateZoomAvailability() {
     const zoomLevel = svv.panoViewer.getPov().zoom;
     // The `disabled` class greys the button out; see pano-overlay-buttons.css.

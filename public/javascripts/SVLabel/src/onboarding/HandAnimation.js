@@ -15,9 +15,9 @@ class HandAnimation {
   #onboardingImageDirectory;
 
   /**
-     * @param {string} rootDirectory Root directory that image assets are served from.
-     * @param {object} uiOnboarding Onboarding UI elements.
-     */
+   * @param {string} rootDirectory Root directory that image assets are served from.
+   * @param {object} uiOnboarding Onboarding UI elements.
+   */
   constructor(rootDirectory, uiOnboarding) {
     this.#uiOnboarding = uiOnboarding;
     this.#$handGestureHolder = uiOnboarding.holder.find('#hand-gesture-holder');
@@ -25,8 +25,8 @@ class HandAnimation {
   }
 
   /**
-     * Sets up the Kinetic stage and loads the open/closed hand images into it.
-     */
+   * Sets up the Kinetic stage and loads the open/closed hand images into it.
+   */
   initializeHandAnimation() {
     if (this.#$handGestureHolder.length === 1) {
       this.hideGrabAndDragAnimation();
@@ -72,14 +72,14 @@ class HandAnimation {
   }
 
   /**
-     * Plays one open-hand → closed-hand drag animation across the stage.
-     *
-     * References:
-     * Kineticjs callback: http://www.html5canvastutorials.com/kineticjs/html5-canvas-transition-callback-with-kineticjs/
-     * Setposition: http://www.html5canvastutorials.com/labs/html5-canvas-animals-on-the-beach-game-with-kineticjs/
-     *
-     * @param {string} direction Either 'left-to-right' or anything else for right-to-left.
-     */
+   * Plays one open-hand → closed-hand drag animation across the stage.
+   *
+   * References:
+   * Kineticjs callback: http://www.html5canvastutorials.com/kineticjs/html5-canvas-transition-callback-with-kineticjs/
+   * Setposition: http://www.html5canvastutorials.com/labs/html5-canvas-animals-on-the-beach-game-with-kineticjs/
+   *
+   * @param {string} direction Either 'left-to-right' or anything else for right-to-left.
+   */
   animateHand(direction) {
     if (direction === 'left-to-right') {
       this.#closedHand.hide();
@@ -127,9 +127,9 @@ class HandAnimation {
   }
 
   /**
-     * Shows the hand animation and starts looping it.
-     * @returns {number|undefined} The interval ID for the loop, or undefined if the images haven't loaded yet.
-     */
+   * Shows the hand animation and starts looping it.
+   * @returns {number|undefined} The interval ID for the loop, or undefined if the images haven't loaded yet.
+   */
   showGrabAndDragAnimation() {
     if (this.#closedHandReady && this.#openHandReady) {
       this.#uiOnboarding.handGestureHolder.css('visibility', 'visible');
@@ -139,9 +139,9 @@ class HandAnimation {
   }
 
   /**
-     * Hides the hand animation and stops its loop.
-     * @param {number} [interval] The interval ID returned by showGrabAndDragAnimation.
-     */
+   * Hides the hand animation and stops its loop.
+   * @param {number} [interval] The interval ID returned by showGrabAndDragAnimation.
+   */
   hideGrabAndDragAnimation(interval) {
     clearInterval(interval);
     this.#uiOnboarding.handGestureHolder.css('visibility', 'hidden');

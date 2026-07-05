@@ -36,9 +36,9 @@ class ManagementPage {
   #accuracyFactor = 1;
 
   /**
-     * @param {{userStatsUrl: string, setRoleUrl: string, setTeamUrl: string, teamStatusUrl: string,
-     *          teamVisibilityUrl: string, clearCacheUrl: string, recalcStatsUrl: string, recalcPriorityUrl: string}} urls
-     */
+   * @param {{userStatsUrl: string, setRoleUrl: string, setTeamUrl: string, teamStatusUrl: string,
+   *          teamVisibilityUrl: string, clearCacheUrl: string, recalcStatsUrl: string, recalcPriorityUrl: string}} urls
+   */
   constructor(urls) {
     this.#urls = urls;
   }
@@ -68,10 +68,10 @@ class ManagementPage {
   // --- Users ------------------------------------------------------------------------------------------------------
 
   /**
-     * Operational column set: enough to find a user and manage them, not the analytics leaderboard (that's the
-     * Contributors page). "Labeling accuracy" is the agreement rate on this user's own validated labels — the single
-     * quality signal that matters operationally. `sort` extracts the comparable value; `help` becomes a header tooltip.
-     */
+   * Operational column set: enough to find a user and manage them, not the analytics leaderboard (that's the
+   * Contributors page). "Labeling accuracy" is the agreement rate on this user's own validated labels — the single
+   * quality signal that matters operationally. `sort` extracts the comparable value; `help` becomes a header tooltip.
+   */
   #columns() {
     return [
       { key: 'username', label: 'Contributor', align: 'left', sort: (u) => (u.username || '').toLowerCase() },
@@ -387,9 +387,9 @@ class ManagementPage {
   }
 
   /**
-     * Fires a mutation request and resolves to the parsed JSON (or {} for empty bodies). Throws an Error carrying the
-     * server's message on a non-2xx response so callers can revert the control and surface why.
-     */
+   * Fires a mutation request and resolves to the parsed JSON (or {} for empty bodies). Throws an Error carrying the
+   * server's message on a non-2xx response so callers can revert the control and surface why.
+   */
   async #mutate(url, method, body) {
     const opts = { method, headers: { Accept: 'application/json' } };
     if (body !== undefined) {

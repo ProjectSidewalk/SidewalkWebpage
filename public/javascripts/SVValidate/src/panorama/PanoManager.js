@@ -39,17 +39,17 @@ class PanoManager {
   #logPovChange;
 
   /**
-     * Initializes panoViewer on the validate page and loads the first pano.
-     *
-     * Tries the primary viewer first; if the first pano is expired and a backup image is available, falls back to
-     * Pannellum so that a pano is always loaded before this resolves.
-     *
-     * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
-     * @param {string} viewerAccessToken An access token used to request images for the pano viewer
-     * @param {string} startPanoId The ID of the panorama to load first
-     * @param {{object}|null} startBackupImage Self-hosted backup for the first pano, or null.
-     * @returns {Promise<void>} A Promise that resolves once the first pano has loaded
-     */
+   * Initializes panoViewer on the validate page and loads the first pano.
+   *
+   * Tries the primary viewer first; if the first pano is expired and a backup image is available, falls back to
+   * Pannellum so that a pano is always loaded before this resolves.
+   *
+   * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
+   * @param {string} viewerAccessToken An access token used to request images for the pano viewer
+   * @param {string} startPanoId The ID of the panorama to load first
+   * @param {{object}|null} startBackupImage Self-hosted backup for the first pano, or null.
+   * @returns {Promise<void>} A Promise that resolves once the first pano has loaded
+   */
   async #init(panoViewerType, viewerAccessToken, startPanoId, startBackupImage) {
     // Create the primary viewer without a startPanoId so viewer construction never fails due to an expired pano.
     const panoOptions = {
@@ -101,19 +101,19 @@ class PanoManager {
   }
 
   /**
-     * Gets a specific property from the PanoManager.
-     * @param {string} key   Property name.
-     * @returns {*} Value associated with this property or null.
-     */
+   * Gets a specific property from the PanoManager.
+   * @param {string} key   Property name.
+   * @returns {*} Value associated with this property or null.
+   */
   getProperty(key) {
     return key in this.#properties ? this.#properties[key] : null;
   }
 
   /**
-     * Sets a property for the PanoManager.
-     * @param {string} key Name of property
-     * @param {*} value Value of property
-     */
+   * Sets a property for the PanoManager.
+   * @param {string} key Name of property
+   * @param {*} value Value of property
+   */
   setProperty(key, value) {
     this.#properties[key] = value;
   }
@@ -125,19 +125,19 @@ class PanoManager {
   }
 
   /**
-     * Returns the underlying PanoMarker object.
-     * @returns {PanoMarker}
-     */
+   * Returns the underlying PanoMarker object.
+   * @returns {PanoMarker}
+   */
   getPanoMarker() {
     return this.labelMarker;
   }
 
   /**
-     * Saves historic pano metadata and updates the date text field on the pano in pano viewer.
-     * @param {PanoData} panoData The PanoData extracted from the PanoViewer when loading the pano
-     * @returns {PanoData}
-     * @private
-     */
+   * Saves historic pano metadata and updates the date text field on the pano in pano viewer.
+   * @param {PanoData} panoData The PanoData extracted from the PanoViewer when loading the pano
+   * @returns {PanoData}
+   * @private
+   */
   #setPanoCallback(panoData) {
     // Store the returned pano metadata.
     const panoId = panoData.getPanoId();
@@ -152,9 +152,9 @@ class PanoManager {
   }
 
   /**
-     * Moves the buttons on the bottom-right of the GSV image to the top layer so they are clickable.
-     * @private
-     */
+   * Moves the buttons on the bottom-right of the GSV image to the top layer so they are clickable.
+   * @private
+   */
   #makeGsvAttributionClickable() {
     const bottomLinks = $('.gm-style-cc');
     if (!this.#bottomLinksClickable && bottomLinks.length > 3) {
@@ -171,13 +171,13 @@ class PanoManager {
   }
 
   /**
-     * Moves Mapillary's attribution links (image credit/date/report links) to the top layer so they're clickable.
-     *
-     * Mapillary renders these inside the pano canvas itself, where the click-handling view-control-layer covers
-     * them. We move the container up into that layer instead, the same trick used for the GSV links. Mapillary may
-     * re-render its own container back into the pano (e.g. after an image change), so we keep watching for that.
-     * @private
-     */
+   * Moves Mapillary's attribution links (image credit/date/report links) to the top layer so they're clickable.
+   *
+   * Mapillary renders these inside the pano canvas itself, where the click-handling view-control-layer covers
+   * them. We move the container up into that layer instead, the same trick used for the GSV links. Mapillary may
+   * re-render its own container back into the pano (e.g. after an image change), so we keep watching for that.
+   * @private
+   */
   #makeMapillaryAttributionClickable() {
     const tryMove = () => {
       const attributionContainer = this.#panoCanvas.querySelector('.mapillary-attribution-container');
@@ -191,9 +191,9 @@ class PanoManager {
   }
 
   /**
-     * Renders a label onto the screen using a PanoMarker.
-     * @param {Label} currentLabel The label to render.
-     */
+   * Renders a label onto the screen using a PanoMarker.
+   * @param {Label} currentLabel The label to render.
+   */
   renderPanoMarker(currentLabel) {
     const url = currentLabel.getIconUrl();
     const labelPov = currentLabel.getOriginalPov();
@@ -237,11 +237,11 @@ class PanoManager {
   }
 
   /**
-     * Sets the panorama. Tries the primary viewer first; falls back to Pannellum if there's a backup image available.
-     * @param {string} panoId The ID for the panorama that we want to move to.
-     * @param {{object}|null} backupImage Self-hosted pano data from the backend, or null.
-     * @returns {Promise<PanoData|undefined>}
-     */
+   * Sets the panorama. Tries the primary viewer first; falls back to Pannellum if there's a backup image available.
+   * @param {string} panoId The ID for the panorama that we want to move to.
+   * @param {{object}|null} backupImage Self-hosted pano data from the backend, or null.
+   * @returns {Promise<PanoData|undefined>}
+   */
   async setPanorama(panoId, backupImage = null) {
     this.setProperty('panoLoaded', false);
 
@@ -273,9 +273,9 @@ class PanoManager {
   }
 
   /**
-     * Shows the primary viewer canvas and hides the Pannellum canvas; resets svv.panoViewer to the primary viewer.
-     * @private
-     */
+   * Shows the primary viewer canvas and hides the Pannellum canvas; resets svv.panoViewer to the primary viewer.
+   * @private
+   */
   #teardownPannellum() {
     this.#pannellumCanvas.style.display = 'none';
     this.#panoCanvas.style.display = '';
@@ -286,13 +286,13 @@ class PanoManager {
   }
 
   /**
-     * Shows the Pannellum viewer for the given pano. On the first call, creates a PannellumViewer; on subsequent
-     * calls, reuses it via loadPano() to avoid recreating the WebGL context. Sets svv.panoViewer to the Pannellum
-     * viewer so the rest of the codebase (setPov, getPov, markers) uses the correct viewer.
-     * @param {{object}} backupImage
-     * @returns {Promise<PanoData>}
-     * @private
-     */
+   * Shows the Pannellum viewer for the given pano. On the first call, creates a PannellumViewer; on subsequent
+   * calls, reuses it via loadPano() to avoid recreating the WebGL context. Sets svv.panoViewer to the Pannellum
+   * viewer so the rest of the codebase (setPov, getPov, markers) uses the correct viewer.
+   * @param {{object}} backupImage
+   * @returns {Promise<PanoData>}
+   * @private
+   */
   async #showPannellumPano(backupImage) {
     this.#panoCanvas.style.display = 'none';
     this.#pannellumCanvas.style.display = '';
@@ -318,10 +318,10 @@ class PanoManager {
   }
 
   /**
-     * Adds or removes the AI badge on the validation marker.
-     * @param showIndicator  True to show the AI badge, false to remove it.
-     * @private
-     */
+   * Adds or removes the AI badge on the validation marker.
+   * @param showIndicator  True to show the AI badge, false to remove it.
+   * @private
+   */
   #updateMarkerAiIndicator(showIndicator) {
     const markerEl = this.labelMarker.marker_;
     let existingIndicator = markerEl.querySelector('.ai-icon-marker-validate');
@@ -345,9 +345,9 @@ class PanoManager {
   }
 
   /**
-     * Resizes the label marker to match the given UI scale factor.
-     * @param {number} scale The current UI scale factor (see util.applyToolScale).
-     */
+   * Resizes the label marker to match the given UI scale factor.
+   * @param {number} scale The current UI scale factor (see util.applyToolScale).
+   */
   setMarkerScale(scale) {
     if (!this.labelMarker) return;
     const markerDiameter = Math.round((svv.labelRadius * 2 + 2) * scale);
@@ -355,10 +355,10 @@ class PanoManager {
   }
 
   /**
-     * Sets the zoom level for this panorama.
-     * @param zoom  Desired zoom level for this panorama. In general, values in {1.1, 2.1, 3.1}
-     * @returns {void}
-     */
+   * Sets the zoom level for this panorama.
+   * @param zoom  Desired zoom level for this panorama. In general, values in {1.1, 2.1, 3.1}
+   * @returns {void}
+   */
   setZoom(zoom) {
     const currPov = svv.panoViewer.getPov();
     currPov.zoom = zoom;
@@ -366,9 +366,9 @@ class PanoManager {
   }
 
   /**
-     * Sets the size of the panorama and panorama holder depending on the size of the mobile phone.
-     * @private
-     */
+   * Sets the size of the panorama and panorama holder depending on the size of the mobile phone.
+   * @private
+   */
   #sizePano() {
     const panoHolderElem = document.getElementById('svv-panorama-holder');
     const controlLayerElem = document.getElementById('view-control-layer');
@@ -390,13 +390,13 @@ class PanoManager {
   }
 
   /**
-     * Factory function that sets up the panorama viewer.
-     * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
-     * @param {string} viewerAccessToken An access token used to request images for the pano viewer
-     * @param {string} startPanoId The ID of the panorama to load first
-     * @param {{object}|null} startBackupImage Self-hosted backup for the first pano, or null.
-     * @returns {Promise<PanoManager>} The panoManager instance, with the first pano already loaded.
-     */
+   * Factory function that sets up the panorama viewer.
+   * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
+   * @param {string} viewerAccessToken An access token used to request images for the pano viewer
+   * @param {string} startPanoId The ID of the panorama to load first
+   * @param {{object}|null} startBackupImage Self-hosted backup for the first pano, or null.
+   * @returns {Promise<PanoManager>} The panoManager instance, with the first pano already loaded.
+   */
   static async create(panoViewerType, viewerAccessToken, startPanoId, startBackupImage = null) {
     const newPanoManager = new PanoManager();
     await newPanoManager.#init(panoViewerType, viewerAccessToken, startPanoId, startBackupImage);

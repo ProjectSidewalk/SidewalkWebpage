@@ -19,8 +19,8 @@ class ModalMission {
         <div class="spacer10"></div>';
 
   /**
-     * @param {object} uiModalMission Mission modal UI elements.
-     */
+   * @param {object} uiModalMission Mission modal UI elements.
+   */
   constructor(uiModalMission) {
     this.#uiModalMission = uiModalMission;
   }
@@ -49,8 +49,8 @@ class ModalMission {
   };
 
   /**
-     * Hides the new/continuing mission screen.
-     */
+   * Hides the new/continuing mission screen.
+   */
   hide() {
     if (svv.keyboard) {
       svv.keyboard.enableKeyboard();
@@ -61,10 +61,10 @@ class ModalMission {
   }
 
   /**
-     * Generates HTML for the new mission screen with information about the current mission
-     * (label type, length of validation mission).
-     * @param {Mission} mission Mission object for the new mission.
-     */
+   * Generates HTML for the new mission screen with information about the current mission
+   * (label type, length of validation mission).
+   * @param {Mission} mission Mission object for the new mission.
+   */
   setMissionMessage(mission) {
     if (mission.getProperty('labelsProgress') === 0) {
       const validationMissionStartTitle = i18next.t('mission-start.title',

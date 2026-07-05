@@ -14,8 +14,8 @@ class LabelMapPage {
   #mapData = null;
 
   /**
-     * @param {{mapboxToken: string, viewerType: Function, accessToken: string, username: string}} opts
-     */
+   * @param {{mapboxToken: string, viewerType: Function, accessToken: string, username: string}} opts
+   */
   constructor(opts) {
     this.#opts = opts;
   }

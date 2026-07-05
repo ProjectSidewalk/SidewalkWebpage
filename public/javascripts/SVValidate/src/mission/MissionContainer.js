@@ -6,9 +6,9 @@ class MissionContainer {
   #completedMissions = [];
 
   /**
-     * Adds a mission to in progress or list of completed missions.
-     * @param {Mission} mission
-     */
+   * Adds a mission to in progress or list of completed missions.
+   * @param {Mission} mission
+   */
   addAMission(mission) {
     if (mission.getProperty('completed')) {
       this.#addToCompletedMissions(mission);
@@ -20,9 +20,9 @@ class MissionContainer {
   }
 
   /**
-     * This function adds the current mission to a list of completed missions.
-     * @param {Mission} mission Mission object of the current mission.
-     */
+   * This function adds the current mission to a list of completed missions.
+   * @param {Mission} mission Mission object of the current mission.
+   */
   #addToCompletedMissions(mission) {
     const existingMissionIds = this.#completedMissions.map((m) => m.getProperty('missionId'));
     const currentMissionId = mission.getProperty('missionId');
@@ -32,8 +32,8 @@ class MissionContainer {
   }
 
   /**
-     * Submits this mission to the backend.
-     */
+   * Submits this mission to the backend.
+   */
   completeAMission() {
     svv.missionsCompleted += 1;
     svv.modalMissionComplete.show(this.#currentMission);
@@ -43,11 +43,11 @@ class MissionContainer {
   }
 
   /**
-     * Creates a mission by parsing a JSON file.
-     * @param {object} missionMetadata JSON metadata for mission (from backend).
-     * @param {object} progressMetadata JSON metadata about mission progress
-     *                                  (counts of agree/disagree/unsure labels for this mission).
-     */
+   * Creates a mission by parsing a JSON file.
+   * @param {object} missionMetadata JSON metadata for mission (from backend).
+   * @param {object} progressMetadata JSON metadata about mission progress
+   *                                  (counts of agree/disagree/unsure labels for this mission).
+   */
   createAMission(missionMetadata, progressMetadata) {
     svv.undoValidation.disableUndo();
     const metadata = {
@@ -69,23 +69,23 @@ class MissionContainer {
   }
 
   /**
-     * Returns the current mission in progress.
-     * @returns Mission object for the current mission.
-     */
+   * Returns the current mission in progress.
+   * @returns Mission object for the current mission.
+   */
   getCurrentMission() {
     return this.#currentMission;
   }
 
   /**
-     * Updates the status of the current mission.
-     */
+   * Updates the status of the current mission.
+   */
   updateAMission() {
     this.#currentMission.updateMissionProgress(false);
   }
 
   /**
-     * Updates the status of the current mission if client clicked the undo button.
-     */
+   * Updates the status of the current mission if client clicked the undo button.
+   */
   updateAMissionUndoValidation() {
     this.#currentMission.updateMissionProgress(true);
   }

@@ -17,10 +17,10 @@ class TaskContainer {
   _tasks = [];
 
   /**
-     * @param neighborhoodModel
-     * @param svl
-     * @param tracker
-     */
+   * @param neighborhoodModel
+   * @param svl
+   * @param tracker
+   */
   constructor(neighborhoodModel, svl, tracker) {
     this.#neighborhoodModel = neighborhoodModel;
     this.#svl = svl;
@@ -32,8 +32,8 @@ class TaskContainer {
   }
 
   /**
-     * End the current task.
-     */
+   * End the current task.
+   */
   endTask(task) {
     const svl = this.#svl;
     if (this.#tracker) this.#tracker.push('TaskEnd');
@@ -62,10 +62,10 @@ class TaskContainer {
   }
 
   /**
-     * Request the server to populate tasks
-     * TODO Move this to somewhere else. TaskModel?
-     * @returns {Promise<void>} Resolves once the tasks have been fetched and added to the container.
-     */
+   * Request the server to populate tasks
+   * TODO Move this to somewhere else. TaskModel?
+   * @returns {Promise<void>} Resolves once the tasks have been fetched and added to the container.
+   */
   fetchTasks() {
     const svl = this.#svl;
     const currMission = svl.missionContainer.getCurrentMission();
@@ -103,9 +103,9 @@ class TaskContainer {
   }
 
   /**
-     * Updates the task priorities for the given set of streets. These should be updated from other users' audits.
-     * @param {{street_edge_id: number, priority: number}} updatedPriorities Any streets with a new priority value
-    */
+   * Updates the task priorities for the given set of streets. These should be updated from other users' audits.
+   * @param {{street_edge_id: number, priority: number}} updatedPriorities Any streets with a new priority value
+   */
   updateTaskPriorities(updatedPriorities) {
     // Loop through all updatedPriorities and update _tasks with the new priorities.
     updatedPriorities.forEach((newPriority) => {
@@ -115,13 +115,13 @@ class TaskContainer {
   }
 
   /**
-     * Find incomplete tasks (i.e., street edges) that are connected to the given task.
-     *
-     * @param {object} taskIn Task to check whether any available tasks are connected
-     * @param {number} threshold Distance threshold in km, unless specified in unit parameter
-     * @param {object} [unit] Object with field 'units' holding distance unit, default to 'kilometers'
-     * @returns {Task[]} Array of tasks that are connected to the given task
-     */
+   * Find incomplete tasks (i.e., street edges) that are connected to the given task.
+   *
+   * @param {object} taskIn Task to check whether any available tasks are connected
+   * @param {number} threshold Distance threshold in km, unless specified in unit parameter
+   * @param {object} [unit] Object with field 'units' holding distance unit, default to 'kilometers'
+   * @returns {Task[]} Array of tasks that are connected to the given task
+   */
   #findConnectedTasks(taskIn, threshold, unit) {
     if (!unit) unit = { units: 'kilometers' };
     let tasks = this.getTasks();
@@ -141,10 +141,10 @@ class TaskContainer {
   }
 
   /**
-     * Get the total distance of completed segments.
-     * @params {{units: string}} [units] Object with field 'units' holding distance unit, default to 'kilometers'
-     * @returns {number} distance in unit.
-     */
+   * Get the total distance of completed segments.
+   * @params {{units: string}} [units] Object with field 'units' holding distance unit, default to 'kilometers'
+   * @returns {number} distance in unit.
+   */
   getCompletedTaskDistance(units) {
     if (!units) units = { units: i18next.t('common:unit-distance') };
     const completedTasks = this.getCompletedTasks();
@@ -163,10 +163,10 @@ class TaskContainer {
   }
 
   /**
-     * Get the total distance of segments completed by any user.
-     *
-     * @returns {number} distance in unit.
-     */
+   * Get the total distance of segments completed by any user.
+   *
+   * @returns {number} distance in unit.
+   */
   getCompletedTaskDistanceAcrossAllUsersUsingPriority() {
     const unit = { units: i18next.t('common:unit-distance') };
     const tasks = this.getTasks().filter((t) => t.getStreetPriority() < 1);
@@ -183,10 +183,10 @@ class TaskContainer {
   }
 
   /**
-     *
-     * @param {object} [unit] Object with field 'units' holding distance unit, default to 'kilometers'
-     * @returns {number}
-     */
+   *
+   * @param {object} [unit] Object with field 'units' holding distance unit, default to 'kilometers'
+   * @returns {number}
+   */
   getCurrentTaskDistance(unit) {
     if (!unit) unit = { units: 'kilometers' };
 
@@ -199,56 +199,56 @@ class TaskContainer {
   }
 
   /**
-     * This method returns the completed tasks.
-     * @returns {Task[]}
-     */
+   * This method returns the completed tasks.
+   * @returns {Task[]}
+   */
   getCompletedTasks() {
     return this._tasks.filter((task) => task.isComplete());
   }
 
   /**
-     * Return list of tasks completed by any user.
-     * @returns {Task[]}
-     */
+   * Return list of tasks completed by any user.
+   * @returns {Task[]}
+   */
   getCompletedTasksAllUsersUsingPriority() {
     return this._tasks.filter((task) => task.getStreetPriority() < 1);
   }
 
   /**
-     * Get the current task
-     * @returns {Task}
-     */
+   * Get the current task
+   * @returns {Task}
+   */
   getCurrentTask() {
     return this.#currentTask;
   }
 
   /**
-     * Store the task to jump to once the current intersection is complete.
-     * @param {Task} task
-     */
+   * Store the task to jump to once the current intersection is complete.
+   * @param {Task} task
+   */
   setNextTaskAfterJump(task) {
     this.#nextTaskAfterJump = task;
   }
 
   /**
-     * Get the task to jump to once the current intersection is complete.
-     * TODO This might make more sense in NavigationService..?
-     * @returns {Task}
-     */
+   * Get the task to jump to once the current intersection is complete.
+   * TODO This might make more sense in NavigationService..?
+   * @returns {Task}
+   */
   getNextTaskAfterJump() {
     return this.#nextTaskAfterJump;
   }
 
   /**
-     * Find incomplete tasks by the user.
-     */
+   * Find incomplete tasks by the user.
+   */
   getIncompleteTasks() {
     return this._tasks.filter((task) => !task.isComplete());
   }
 
   /**
-     * Find incomplete tasks across all users.
-     */
+   * Find incomplete tasks across all users.
+   */
   getIncompleteTasksAcrossAllUsersUsingPriority() {
     const incompleteTasksByUser = this._tasks.filter((task) => !task.isComplete());
 
@@ -265,8 +265,8 @@ class TaskContainer {
   }
 
   /**
-     * Checks if the neighborhood is complete across all users; if so, displays the relevant overlay.
-     */
+   * Checks if the neighborhood is complete across all users; if so, displays the relevant overlay.
+   */
   #updateNeighborhoodCompleteAcrossAllUsersStatus() {
     const neighborhoodModel = this.#neighborhoodModel;
     // Only run this code if the neighborhood was set as incomplete and user is not on a designated route.
@@ -283,18 +283,18 @@ class TaskContainer {
   }
 
   /**
-     * Get the next task.
-     *
-     * TODO It's not immediately obvious how much this function handles. Some things should likely be separated.
-     *
-     * Procedure:
-     * Get the list of the highest priority streets that this user has not audited
-     * - If the street you just audited connects to any of those, pick the highest priority one
-     * - O/w jump to the highest priority street
-     *
-     * @param {Task} finishedTask The task that has been finished
-     * @returns {Task} Next task
-     */
+   * Get the next task.
+   *
+   * TODO It's not immediately obvious how much this function handles. Some things should likely be separated.
+   *
+   * Procedure:
+   * Get the list of the highest priority streets that this user has not audited
+   * - If the street you just audited connects to any of those, pick the highest priority one
+   * - O/w jump to the highest priority street
+   *
+   * @param {Task} finishedTask The task that has been finished
+   * @returns {Task} Next task
+   */
   nextTask(finishedTask) {
     const svl = this.#svl;
     let newTask;
@@ -371,9 +371,9 @@ class TaskContainer {
   }
 
   /**
-     * Set the current task.
-     * @param {Task} task
-     */
+   * Set the current task.
+   * @param {Task} task
+   */
   setCurrentTask(task) {
     const svl = this.#svl;
     this.#currentTask = task;
@@ -393,16 +393,16 @@ class TaskContainer {
   }
 
   /**
-     * Get the street id of the current task.
-     */
+   * Get the street id of the current task.
+   */
   getCurrentTaskStreetEdgeId() {
     return this.#currentTask ? this.#currentTask.getStreetEdgeId() : null;
   }
 
   /**
-     *
-     * @param {object} [unit] Object with field 'units' holding distance unit, default to 'kilometers'
-     */
+   *
+   * @param {object} [unit] Object with field 'units' holding distance unit, default to 'kilometers'
+   */
   totalLineDistanceInNeighborhood(unit) {
     if (!unit) unit = { units: 'kilometers' };
     const tasks = this.getTasks();
@@ -416,10 +416,10 @@ class TaskContainer {
   }
 
   /**
-     * This method is called from Map.handlerPositionUpdate() to update the color of audited and unaudited street
-     * segments of the current task on Google Maps.
-     * TODO This should be done somewhere else.
-     */
+   * This method is called from Map.handlerPositionUpdate() to update the color of audited and unaudited street
+   * segments of the current task on Google Maps.
+   * TODO This should be done somewhere else.
+   */
   updateCurrentTask() {
     const currentLatLng = this.#svl.panoViewer.getPosition();
     this.#currentTask.updateTheFurthestPointReached(currentLatLng);
@@ -427,9 +427,9 @@ class TaskContainer {
   }
 
   /**
-     * Update the audited distance in the right sidebar using the length of the streets in the current neighborhood.
-     * @returns {TaskContainer}
-     */
+   * Update the audited distance in the right sidebar using the length of the streets in the current neighborhood.
+   * @returns {TaskContainer}
+   */
   updateAuditedDistance() {
     let distance = 0;
     const neighborhood = this.#svl.neighborhoodModel.currentNeighborhood();
@@ -442,17 +442,17 @@ class TaskContainer {
   }
 
   /**
-     * Checks if there are any max priority tasks remaining (proxy for neighborhood being complete across all users.
-     * @returns {null|boolean}
-     */
+   * Checks if there are any max priority tasks remaining (proxy for neighborhood being complete across all users.
+   * @returns {null|boolean}
+   */
   hasMaxPriorityTask() {
     return this._tasks.filter((task) => task.getStreetPriority() === 1).length > 0;
   }
 
   /**
-     * Renders all tasks to draw both unexplored and already-completed tasks. Should be called at page load
-     * so it does not render redundantly.
-     */
+   * Renders all tasks to draw both unexplored and already-completed tasks. Should be called at page load
+   * so it does not render redundantly.
+   */
   renderAllTasks() {
     for (const task of this._tasks) {
       task.render();

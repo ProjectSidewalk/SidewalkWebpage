@@ -17,10 +17,10 @@ class Severity {
   #filterActive;
 
   /**
-     * @param {*} params Severity value: the string "null" for the N/A bucket, or "1"/"2"/"3" for rated.
-     * @param {boolean} active A boolean to see if the current severity filter is active.
-     * @param {string} labelType Current gallery label type (drives which smiley set to use).
-     */
+   * @param {*} params Severity value: the string "null" for the N/A bucket, or "1"/"2"/"3" for rated.
+   * @param {boolean} active A boolean to see if the current severity filter is active.
+   * @param {string} labelType Current gallery label type (drives which smiley set to use).
+   */
   constructor(params, active, labelType) {
     this.#currentLabelType = labelType;
     this.#filterActive = active;
@@ -28,10 +28,10 @@ class Severity {
   }
 
   /**
-     * Initialize Severity.
-     *
-     * @param {string} param Severity ("null" for N/A, "1"/"2"/"3" for rated).
-     */
+   * Initialize Severity.
+   *
+   * @param {string} param Severity ("null" for N/A, "1"/"2"/"3" for rated).
+   */
   #init(param) {
     this.#properties.severity = param;
 
@@ -51,8 +51,8 @@ class Severity {
   }
 
   /**
-     * Handles when severity is selected/deselected.
-     */
+   * Handles when severity is selected/deselected.
+   */
   handleOnClickCallback = () => {
     if (this.#filterActive) {
       sg.tracker.push('SeverityUnapply', null, { Severity: this.#properties.severity });
@@ -66,15 +66,15 @@ class Severity {
   };
 
   /**
-     * Icon filenames are keyed by a numeric severity (0..3). The "null" bucket reuses the sev-0 asset.
-     */
+   * Icon filenames are keyed by a numeric severity (0..3). The "null" bucket reuses the sev-0 asset.
+   */
   #severityNum() {
     return this.#properties.severity === 'null' ? 0 : Number(this.#properties.severity);
   }
 
   /**
-     * Returns the i18n-resolved text for this severity's label shown under the icon.
-     */
+   * Returns the i18n-resolved text for this severity's label shown under the icon.
+   */
   #getLabelText() {
     if (this.#properties.severity === 'null') return i18next.t('labelmap:not-applicable-abbr');
     const key = util.misc.getRatingLevelKeys(this.#currentLabelType)[Number(this.#properties.severity)];
@@ -86,9 +86,9 @@ class Severity {
   }
 
   /**
-     * Update the label type that selects the smiley icon set (positive vs negative) and refresh the text label.
-     * @param {string} newLabelType
-     */
+   * Update the label type that selects the smiley icon set (positive vs negative) and refresh the text label.
+   * @param {string} newLabelType
+   */
   setLabelType(newLabelType) {
     this.#currentLabelType = newLabelType;
     this.#updateIconSrc();
@@ -96,8 +96,8 @@ class Severity {
   }
 
   /**
-     * Applies a severity filter.
-     */
+   * Applies a severity filter.
+   */
   apply() {
     if (this.#interactionEnabled) {
       this.#filterActive = true;
@@ -106,8 +106,8 @@ class Severity {
   }
 
   /**
-     * Unapplies a severity filter.
-     */
+   * Unapplies a severity filter.
+   */
   unapply() {
     if (this.#interactionEnabled) {
       this.#filterActive = false;
@@ -116,38 +116,38 @@ class Severity {
   }
 
   /**
-     * Renders Severity in sidebar.
-     *
-     * @param {*} filterContainer UI element to render Severity in.
-     */
+   * Renders Severity in sidebar.
+   *
+   * @param {*} filterContainer UI element to render Severity in.
+   */
   render(filterContainer) {
     filterContainer.append(this.#severityElement);
   }
 
   /**
-     * Returns whether Severity is applied or not.
-     */
+   * Returns whether Severity is applied or not.
+   */
   getActive() {
     return this.#filterActive;
   }
 
   /**
-     * Returns severity value of Severity.
-     */
+   * Returns severity value of Severity.
+   */
   getSeverity() {
     return this.#properties.severity;
   }
 
   /**
-     * Disables interaction with Severity.
-     */
+   * Disables interaction with Severity.
+   */
   disable() {
     this.#interactionEnabled = false;
   }
 
   /**
-     * Enables interaction with Severity.
-     */
+   * Enables interaction with Severity.
+   */
   enable() {
     this.#interactionEnabled = true;
   }

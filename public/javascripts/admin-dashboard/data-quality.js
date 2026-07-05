@@ -35,9 +35,9 @@ class DataQualityPage {
   #validations = null;   // Kept so the validator toggle can re-render without refetching.
 
   /**
-     * @param {{statsUrl: string, tagsUrl: string, labelTypesUrl: string, byDayUrl: string,
-     *          tagSeverityUrl: string}} opts
-     */
+   * @param {{statsUrl: string, tagsUrl: string, labelTypesUrl: string, byDayUrl: string,
+   *          tagSeverityUrl: string}} opts
+   */
   constructor(opts = {}) {
     this.#statsUrl = opts.statsUrl;
     this.#tagsUrl = opts.tagsUrl;
@@ -144,9 +144,9 @@ class DataQualityPage {
   }
 
   /**
-     * Renders one severity sub-group (positive or negative). Each shows a smiley legend for its 1..N scale and one row
-     * per type with a marker at the mean and a ± SD band. Sorted by mean descending (worst first).
-     */
+   * Renders one severity sub-group (positive or negative). Each shows a smiley legend for its 1..N scale and one row
+   * per type with a marker at the mean and a ± SD band. Sorted by mean descending (worst first).
+   */
   #renderSeverityGroup(labels, positive, containerId, legendId) {
     const rows = this.#order
       .filter((type) => this.#hasSeverity(type) && this.#isPositive(type) === positive)
@@ -261,16 +261,15 @@ class DataQualityPage {
                     </div>`;
         return `<div class="dq-tag-group">${head}<div class="dq-tag-bars">${bars}</div></div>`;
       });
-    document.getElementById('dq-tags').innerHTML = blocks.join('')
-      || '<p class="dq-empty">No tags recorded yet.</p>';
+    document.getElementById('dq-tags').innerHTML = blocks.join('') || '<p class="dq-empty">No tags recorded yet.</p>';
   }
 
   /**
-     * Tag-severity heatmap: one small matrix per severity-bearing label type, rows = its top tags, columns = severity
-     * 1–3, cell shade = how that tag's labels distribute across severities. Each row is normalized to its own max so a
-     * tag's *severity profile* pops (e.g. a tag that's almost always severity 3), regardless of how common the tag is;
-     * the trailing count gives the volume the profile is based on. Hover a cell for the exact count and share.
-     */
+   * Tag-severity heatmap: one small matrix per severity-bearing label type, rows = its top tags, columns = severity
+   * 1–3, cell shade = how that tag's labels distribute across severities. Each row is normalized to its own max so a
+   * tag's *severity profile* pops (e.g. a tag that's almost always severity 3), regardless of how common the tag is;
+   * the trailing count gives the volume the profile is based on. Hover a cell for the exact count and share.
+   */
   #renderTagSeverity(rows) {
     const el = document.getElementById('dq-tag-severity');
     if (!el) return;
@@ -337,10 +336,10 @@ class DataQualityPage {
   }
 
   /**
-     * Quality over time: validation agreement by month, drawn with the shared MiniLineChart (no charting library).
-     * Human and AI validators get separate lines so their gap is visible — AI validation isn't yet at human level —
-     * and the AI line is only drawn when there's AI validation data.
-     */
+   * Quality over time: validation agreement by month, drawn with the shared MiniLineChart (no charting library).
+   * Human and AI validators get separate lines so their gap is visible — AI validation isn't yet at human level —
+   * and the AI line is only drawn when there's AI validation data.
+   */
   #renderQualityOverTime(byDay) {
     const rows = (byDay && byDay.data) || [];
     const byMonth = new Map();

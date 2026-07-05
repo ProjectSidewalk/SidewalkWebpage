@@ -7,32 +7,32 @@ class UndoValidation {
   #uiUndo;
 
   /**
-     * @param {object} uiUndo Undo button UI elements.
-     */
+   * @param {object} uiUndo Undo button UI elements.
+   */
   constructor(uiUndo) {
     this.#uiUndo = uiUndo;
     uiUndo.undoButton.on('click', this.#undo);
   }
 
   /**
-     * Enables the undo button (makes button clickable).
-     */
+   * Enables the undo button (makes button clickable).
+   */
   enableUndo() {
     this.#disableUndo = false;
     this.#uiUndo.undoButton.prop('disabled', false);
   }
 
   /**
-     * Disables the undo button (makes button unclickable).
-     */
+   * Disables the undo button (makes button unclickable).
+   */
   disableUndo() {
     this.#disableUndo = true;
     this.#uiUndo.undoButton.prop('disabled', true);
   }
 
   /**
-     * Goes back to the previous label (decrements user's progress).
-     */
+   * Goes back to the previous label (decrements user's progress).
+   */
   #undo = () => {
     svv.tracker.push('ModalUndo_Click');
     svv.missionContainer.updateAMissionUndoValidation();
@@ -42,8 +42,8 @@ class UndoValidation {
   };
 
   /**
-     * @returns {boolean} True if the undo button is enabled.
-     */
+   * @returns {boolean} True if the undo button is enabled.
+   */
   canUndo() {
     return !this.#disableUndo;
   }

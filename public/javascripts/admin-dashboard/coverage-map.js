@@ -10,10 +10,10 @@ class CoverageColors {
   static SELECTED = '#f68d3e';
 
   /**
-     * Linearly interpolates the scale (in RGB) at the given rate.
-     * @param {number} rate - Coverage fraction in [0, 1].
-     * @returns {string} An rgb(...) color string.
-     */
+   * Linearly interpolates the scale (in RGB) at the given rate.
+   * @param {number} rate - Coverage fraction in [0, 1].
+   * @returns {string} An rgb(...) color string.
+   */
   static forRate(rate) {
     const r = Math.max(0, Math.min(1, Number.isFinite(rate) ? rate : 0));
     const stops = CoverageColors.STOPS;
@@ -79,10 +79,10 @@ class CoverageMap {
   #hoverId = null;
 
   /**
-     * @param {string} containerId - id of the map container element.
-     * @param {{mapboxToken: string, onRegionClick?: function(number): void, onRegionHover?: function(number): void,
-     *          onRegionHoverEnd?: function(): void}} [opts]
-     */
+   * @param {string} containerId - id of the map container element.
+   * @param {{mapboxToken: string, onRegionClick?: function(number): void, onRegionHover?: function(number): void,
+   *          onRegionHoverEnd?: function(): void}} [opts]
+   */
   constructor(containerId, opts = {}) {
     this.containerId = containerId;
     this.#mapboxToken = opts.mapboxToken;
@@ -92,10 +92,10 @@ class CoverageMap {
   }
 
   /**
-     * Initializes the map and draws the regions.
-     * @param {object} geojson - A GeoJSON FeatureCollection of regions with completion_rate in properties.
-     * @returns {Promise<void>} resolves once the map's first render is ready.
-     */
+   * Initializes the map and draws the regions.
+   * @param {object} geojson - A GeoJSON FeatureCollection of regions with completion_rate in properties.
+   * @returns {Promise<void>} resolves once the map's first render is ready.
+   */
   init(geojson) {
     if (!this.#mapboxToken) throw new Error('CoverageMap: missing Mapbox access token');
     mapboxgl.accessToken = this.#mapboxToken;
@@ -175,10 +175,10 @@ class CoverageMap {
   }
 
   /**
-     * Highlights exactly the given set of regions (outlining them and dimming the rest), replacing any prior
-     * highlight. Accepts one id (map/table/bar selection) or many (a histogram coverage bucket).
-     * @param {number[]} ids
-     */
+   * Highlights exactly the given set of regions (outlining them and dimming the rest), replacing any prior
+   * highlight. Accepts one id (map/table/bar selection) or many (a histogram coverage bucket).
+   * @param {number[]} ids
+   */
   highlightRegions(ids) {
     const src = CoverageMap.#SOURCE;
     const next = new Set(ids.map(Number));

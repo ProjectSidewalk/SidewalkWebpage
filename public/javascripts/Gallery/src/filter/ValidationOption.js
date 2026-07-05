@@ -13,19 +13,19 @@ class ValidationOption {
   #status;
 
   /**
-     * @param {*} params Properties of validation option.
-     * @param {boolean} applied A boolean to see if the current validation option filter is active.
-     */
+   * @param {*} params Properties of validation option.
+   * @param {boolean} applied A boolean to see if the current validation option filter is active.
+   */
   constructor(params, applied) {
     this.#status = { applied };
     this.#init(params);
   }
 
   /**
-     * Initialize ValidationOption.
-     *
-     * @param {int} param ValidationOption.
-     */
+   * Initialize ValidationOption.
+   *
+   * @param {int} param ValidationOption.
+   */
   #init(param) {
     Object.keys(param).forEach((attrName) => this.#properties[attrName] = param[attrName]);
 
@@ -43,8 +43,8 @@ class ValidationOption {
   }
 
   /**
-     * Handles when validation option is selected/deselected.
-     */
+   * Handles when validation option is selected/deselected.
+   */
   handleOnClickCallback = () => {
     if (this.#status.applied) {
       sg.tracker.push('ValidationOptionUnapply', null, { ValidationOption: this.#properties.validationOption });
@@ -58,40 +58,40 @@ class ValidationOption {
   };
 
   /**
-     * Applies a validation option filter.
-     */
+   * Applies a validation option filter.
+   */
   apply() {
     this.#status.applied = true;
     this.#validationOptionElement.classList.add('gallery-filter-button-selected');
   }
 
   /**
-     * Unapplies a validation option filter.
-     */
+   * Unapplies a validation option filter.
+   */
   unapply() {
     this.#status.applied = false;
     this.#validationOptionElement.classList.remove('gallery-filter-button-selected');
   }
 
   /**
-     * Renders ValidationOption in sidebar.
-     *
-     * @param {*} filterContainer UI element to render ValidationOption in.
-     */
+   * Renders ValidationOption in sidebar.
+   *
+   * @param {*} filterContainer UI element to render ValidationOption in.
+   */
   render(filterContainer) {
     filterContainer.append(this.#validationOptionElement);
   }
 
   /**
-     * Returns whether ValidationOption is applied or not.
-     */
+   * Returns whether ValidationOption is applied or not.
+   */
   getActive() {
     return this.#status.applied;
   }
 
   /**
-     * Returns validation option value of ValidationOption.
-     */
+   * Returns validation option value of ValidationOption.
+   */
   getValidationOption() {
     return this.#properties.validationOption;
   }

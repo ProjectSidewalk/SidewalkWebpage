@@ -6,10 +6,10 @@ class ModalMissionComplete {
   #language;
 
   /**
-     * @param {object} uiModalMissionComplete Mission-complete modal UI elements.
-     * @param {object} user Current user.
-     * @param {string} [language] Language code passed on to the mission start tutorial.
-     */
+   * @param {object} uiModalMissionComplete Mission-complete modal UI elements.
+   * @param {object} user Current user.
+   * @param {string} [language] Language code passed on to the mission start tutorial.
+   */
   constructor(uiModalMissionComplete, user, language = 'en') {
     this.#uiModalMissionComplete = uiModalMissionComplete;
     this.#language = language;
@@ -32,8 +32,8 @@ class ModalMissionComplete {
   };
 
   /**
-     * Hides the mission complete menu.
-     */
+   * Hides the mission complete menu.
+   */
   hide() {
     this.#uiModalMissionComplete.closeButtonPrimary.off('click');
     this.#uiModalMissionComplete.closeButtonSecondary.off('click');
@@ -45,9 +45,9 @@ class ModalMissionComplete {
   }
 
   /**
-     * Displays the mission complete screen.
-     * @param {Mission} mission Object for the mission that was just completed.
-     */
+   * Displays the mission complete screen.
+   * @param {Mission} mission Object for the mission that was just completed.
+   */
   show(mission) {
     // Disable keyboard on mobile.
     svv.undoValidation.disableUndo();
@@ -108,8 +108,8 @@ class ModalMissionComplete {
   }
 
   /**
-     * Re-enables the start next mission button; called once a new mission has loaded from the back end.
-     */
+   * Re-enables the start next mission button; called once a new mission has loaded from the back end.
+   */
   nextMissionLoaded() {
     // Enable button clicks, reset the CSS for primary/secondary close buttons.
     this.#uiModalMissionComplete.closeButtonPrimary.removeClass('btn-loading');

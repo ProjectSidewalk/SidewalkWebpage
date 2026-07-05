@@ -22,9 +22,9 @@ class ValidationMenu {
   #galleryCard;
 
   /**
-     * @param {Card} referenceCard The Card this menu belongs to.
-     * @param {jQuery} gsvImage The HTML element to append the validation menu to.
-     */
+   * @param {Card} referenceCard The Card this menu belongs to.
+   * @param {jQuery} gsvImage The HTML element to append the validation menu to.
+   */
   constructor(referenceCard, gsvImage) {
     this.#refCard = referenceCard;
     this.#gsvImage = gsvImage;
@@ -42,8 +42,8 @@ class ValidationMenu {
   }
 
   /**
-     * Adds onClick functions for the validation buttons. Read-only for labels contributed by the current user.
-     */
+   * Adds onClick functions for the validation buttons. Read-only for labels contributed by the current user.
+   */
   #init() {
     const refCard = this.#refCard;
     this.#validationButtons = {
@@ -86,9 +86,9 @@ class ValidationMenu {
   }
 
   /**
-     * Add onClick functions for the thumbs up/down buttons.
-     * @param valInfoDisplay
-     */
+   * Add onClick functions for the thumbs up/down buttons.
+   * @param valInfoDisplay
+   */
   #addValidationInfoOnClicks(valInfoDisplay) {
     valInfoDisplay.agreeContainer.onclick = this.validateOnClickOrKeyPress('validate-agree', true, false);
     valInfoDisplay.disagreeContainer.onclick = this.validateOnClickOrKeyPress('validate-disagree', true, false);
@@ -110,12 +110,12 @@ class ValidationMenu {
   }
 
   /**
-     * OnClick or keyboard shortcut function for validation buttons and thumbs up/down buttons.
-     * @param newValKey
-     * @param {boolean} thumbsClick Whether the validation came from clicking the thumb icons.
-     * @param {boolean} keyboardShortcut Whether the validation came from a keyboard shortcut.
-     * @returns {function(): Promise} A function returning a Promise that resolves after validation.
-     */
+   * OnClick or keyboard shortcut function for validation buttons and thumbs up/down buttons.
+   * @param newValKey
+   * @param {boolean} thumbsClick Whether the validation came from clicking the thumb icons.
+   * @param {boolean} keyboardShortcut Whether the validation came from a keyboard shortcut.
+   * @returns {function(): Promise} A function returning a Promise that resolves after validation.
+   */
   validateOnClickOrKeyPress(newValKey, thumbsClick, keyboardShortcut) {
     return async () => {
       if (this.#currSelected !== newValKey) {
@@ -133,9 +133,9 @@ class ValidationMenu {
   }
 
   /**
-     * Adds the visual effects of validation to the small card (opaque button and fill color below image).
-     * @param validationOption
-     */
+   * Adds the visual effects of validation to the small card (opaque button and fill color below image).
+   * @param validationOption
+   */
   showValidationOnCard(validationOption) {
     const validationClass = ValidationMenu.#validationOptionToClass[validationOption];
 
@@ -163,12 +163,12 @@ class ValidationMenu {
   }
 
   /**
-     * Consolidate data on the validation and submit as a POST request.
-     * @param {string} action Validation result.
-     * @param {boolean} thumbsClick Whether the validation came from clicking the thumb icons.
-     * @param {boolean} keyboardShortcut Whether the validation came from a keyboard shortcut.
-     * @returns {Promise<Response>} Resolves with the server's response once the validation has been submitted.
-     */
+   * Consolidate data on the validation and submit as a POST request.
+   * @param {string} action Validation result.
+   * @param {boolean} thumbsClick Whether the validation came from clicking the thumb icons.
+   * @param {boolean} keyboardShortcut Whether the validation came from a keyboard shortcut.
+   * @returns {Promise<Response>} Resolves with the server's response once the validation has been submitted.
+   */
   #validateLabel(action, thumbsClick, keyboardShortcut) {
     const refCard = this.#refCard;
     let actionStr;

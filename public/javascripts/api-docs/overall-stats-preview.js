@@ -50,19 +50,19 @@
   // Public API.
   window.OverallStatsPreview = {
     /**
-         * Configure the overall stats preview.
-         * @param {object} options - Configuration options
-         * @returns {object} The OverallStatsPreview object for chaining
-         */
+     * Configure the overall stats preview.
+     * @param {object} options - Configuration options
+     * @returns {object} The OverallStatsPreview object for chaining
+     */
     setup(options) {
       config = Object.assign(config, options);
       return this;
     },
 
     /**
-         * Initialize the overall stats preview visualization.
-         * @returns {Promise} A promise that resolves when the preview is rendered
-         */
+     * Initialize the overall stats preview visualization.
+     * @returns {Promise} A promise that resolves when the preview is rendered
+     */
     init() {
       const container = document.getElementById(config.containerId);
 
@@ -112,9 +112,9 @@
     },
 
     /**
-         * Fetch label types from the API to get proper colors and descriptions.
-         * @returns {Promise} A promise that resolves with the label types data
-         */
+     * Fetch label types from the API to get proper colors and descriptions.
+     * @returns {Promise} A promise that resolves with the label types data
+     */
     fetchLabelTypes() {
       return fetch(`${config.apiBaseUrl}${config.labelTypesEndpoint}?source=apiDocs`)
         .then((response) => {
@@ -143,9 +143,9 @@
     },
 
     /**
-         * Fetch overall statistics from the API.
-         * @returns {Promise} A promise that resolves with the overall stats data
-         */
+     * Fetch overall statistics from the API.
+     * @returns {Promise} A promise that resolves with the overall stats data
+     */
     fetchOverallStats() {
       return fetch(`${config.apiBaseUrl}${config.overallStatsEndpoint}?source=apiDocs`)
         .then((response) => {
@@ -157,10 +157,10 @@
     },
 
     /**
-         * Create all visualizations in the container.
-         * @param {HTMLElement} container - Container element for the visualizations
-         * @param {object} data - Overall stats data for visualizations
-         */
+     * Create all visualizations in the container.
+     * @param {HTMLElement} container - Container element for the visualizations
+     * @param {object} data - Overall stats data for visualizations
+     */
     createVisualizations(container, data) {
       // Add additional info section.
       this.createInfoSection(container, data);
@@ -191,12 +191,12 @@
     },
 
     /**
-         * Create a section for a chart with a header and description.
-         * @param {HTMLElement} container - Parent container
-         * @param {string} title - Section title
-         * @param {string} description - Description text
-         * @param {Function} chartCreator - Function to create the chart (receives the chart container)
-         */
+     * Create a section for a chart with a header and description.
+     * @param {HTMLElement} container - Parent container
+     * @param {string} title - Section title
+     * @param {string} description - Description text
+     * @param {Function} chartCreator - Function to create the chart (receives the chart container)
+     */
     createChartSection(container, title, description, chartCreator) {
       // Create section container.
       const section = document.createElement('div');
@@ -238,10 +238,10 @@
     },
 
     /**
-         * Create a bar chart showing label counts by type.
-         * @param {HTMLElement} container - Container element for the chart
-         * @param {object} data - Overall stats data
-         */
+     * Create a bar chart showing label counts by type.
+     * @param {HTMLElement} container - Container element for the chart
+     * @param {object} data - Overall stats data
+     */
     createLabelCountsChart(container, data) {
       // Create canvas for the chart.
       const canvas = document.createElement('canvas');
@@ -317,10 +317,10 @@
     },
 
     /**
-         * Create a bar chart showing mean severity by label type.
-         * @param {HTMLElement} container - Container element for the chart
-         * @param {object} data - Overall stats data
-         */
+     * Create a bar chart showing mean severity by label type.
+     * @param {HTMLElement} container - Container element for the chart
+     * @param {object} data - Overall stats data
+     */
     createMeanSeverityChart(container, data) {
       // Create canvas for the chart.
       const canvas = document.createElement('canvas');
@@ -401,10 +401,10 @@
     },
 
     /**
-         * Create a bar chart showing accuracy by label type.
-         * @param {HTMLElement} container - Container element for the chart
-         * @param {object} data - Overall stats data
-         */
+     * Create a bar chart showing accuracy by label type.
+     * @param {HTMLElement} container - Container element for the chart
+     * @param {object} data - Overall stats data
+     */
     createAccuracyChart(container, data) {
       // Create canvas for the chart.
       const canvas = document.createElement('canvas');
@@ -488,10 +488,10 @@
     },
 
     /**
-         * Create an information section with overall stats summary.
-         * @param {HTMLElement} container - Container element for the info section
-         * @param {object} data - Overall stats data
-         */
+     * Create an information section with overall stats summary.
+     * @param {HTMLElement} container - Container element for the info section
+     * @param {object} data - Overall stats data
+     */
     createInfoSection(container, data) {
       // Create info section container.
       const section = document.createElement('div');
@@ -541,11 +541,11 @@
     },
 
     /**
-         * Add a stat item to the grid.
-         * @param {HTMLElement} grid - Grid container
-         * @param {string} label - Stat label
-         * @param {string} value - Stat value
-         */
+     * Add a stat item to the grid.
+     * @param {HTMLElement} grid - Grid container
+     * @param {string} label - Stat label
+     * @param {string} value - Stat value
+     */
     addStatItem(grid, label, value) {
       const item = document.createElement('div');
       item.className = 'stat-item';
@@ -568,10 +568,10 @@
     },
 
     /**
-         * Format a date string (YYYY-MM-DD).
-         * @param {string} dateStr - Date string
-         * @returns {string} Formatted date
-         */
+     * Format a date string (YYYY-MM-DD).
+     * @param {string} dateStr - Date string
+     * @returns {string} Formatted date
+     */
     formatDate(dateStr) {
       if (!dateStr) return 'N/A';
       const date = new Date(dateStr);
@@ -583,11 +583,11 @@
     },
 
     /**
-         * Format a datetime string.
-         * TODO This should be using the moment.js library.
-         * @param {string} dateTimeStr - Datetime string
-         * @returns {string} Formatted datetime
-         */
+     * Format a datetime string.
+     * TODO This should be using the moment.js library.
+     * @param {string} dateTimeStr - Datetime string
+     * @returns {string} Formatted datetime
+     */
     formatDateTime(dateTimeStr) {
       if (!dateTimeStr) return 'N/A';
       const date = new Date(dateTimeStr);
@@ -601,11 +601,11 @@
     },
 
     /**
-         * Darken a hex color by a specified amount.
-         * @param {string} hex - Hex color code
-         * @param {number} amount - Amount to darken (0-255)
-         * @returns {string} Darkened hex color
-         */
+     * Darken a hex color by a specified amount.
+     * @param {string} hex - Hex color code
+     * @param {number} amount - Amount to darken (0-255)
+     * @returns {string} Darkened hex color
+     */
     darkenColor(hex, amount) {
       // Remove the hash at the front if present.
       hex = hex.replace(/^#/, '');

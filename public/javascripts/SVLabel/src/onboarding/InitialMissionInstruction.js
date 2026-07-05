@@ -13,14 +13,14 @@ class InitialMissionInstruction {
   #initialPanoId;
 
   /**
-     * @param {Compass} compass
-     * @param {NavigationService} navigationService
-     * @param {PopUpMessage} popUpMessage
-     * @param {TaskContainer} taskContainer
-     * @param {LabelContainer} labelContainer
-     * @param {AiGuidance} aiGuidance
-     * @param {Tracker} tracker
-     */
+   * @param {Compass} compass
+   * @param {NavigationService} navigationService
+   * @param {PopUpMessage} popUpMessage
+   * @param {TaskContainer} taskContainer
+   * @param {LabelContainer} labelContainer
+   * @param {AiGuidance} aiGuidance
+   * @param {Tracker} tracker
+   */
   constructor(compass, navigationService, popUpMessage, taskContainer, labelContainer, aiGuidance, tracker) {
     this.#compass = compass;
     this.#navigationService = navigationService;
@@ -35,8 +35,8 @@ class InitialMissionInstruction {
   // identity: they are registered AND removed via bind/unbindPositionUpdate, which matches by function reference.
 
   /**
-     * Instruct a user to audit both sides of the streets once they have walked for 100 meters.
-     */
+   * Instruct a user to audit both sides of the streets once they have walked for 100 meters.
+   */
   #instructToCheckSidewalks = () => {
     const distance = this.#taskContainer.getCompletedTaskDistance({ units: 'meters' });
     if (distance >= 100) {
@@ -57,8 +57,8 @@ class InitialMissionInstruction {
   };
 
   /**
-     * Instruct the user about labels disappearing when they have labeled and walked for the first time.
-     */
+   * Instruct the user about labels disappearing when they have labeled and walked for the first time.
+   */
   #instructForLabelDisappearing = () => {
     if (this.#labelContainer.getAllLabels().length > 0) {
       this.#tracker.push('PopUpShow_LabelDisappear');
@@ -73,8 +73,8 @@ class InitialMissionInstruction {
   };
 
   /**
-     * Shows the popup that tells the user to follow the line on the minimap if they spun in a circle at start.
-     */
+   * Shows the popup that tells the user to follow the line on the minimap if they spun in a circle at start.
+   */
   #instructToFollowTheGuidance() {
     this.#tracker.push('PopUpShow_LookAroundIntersection');
 
@@ -89,8 +89,8 @@ class InitialMissionInstruction {
   }
 
   /**
-     * Adds an instruction to make sure users know how to move. If they pan all the way around, show them.
-     */
+   * Adds an instruction to make sure users know how to move. If they pan all the way around, show them.
+   */
   #pollLookingAroundHasFinished() {
     // Check the panoId to make sure the user hasn't walked.
     if (svl.panoViewer.getPanoId() === this.#initialPanoId) {
@@ -106,9 +106,9 @@ class InitialMissionInstruction {
   }
 
   /**
-     * Shows the starter notification when you begin your first mission.
-     * @param {Neighborhood} neighborhood
-     */
+   * Shows the starter notification when you begin your first mission.
+   * @param {Neighborhood} neighborhood
+   */
   start(neighborhood) {
     this.#tracker.push('PopUpShow_LetsGetStarted');
 

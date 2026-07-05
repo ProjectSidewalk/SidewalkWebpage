@@ -10,7 +10,7 @@
  * @param {boolean} [params.differentiateUnauditedStreets=false] - Whether to color unaudited streets differently.
  * @param {boolean} [params.interactiveStreets=false] - Whether to include hover/click interactions on the streets.
  * @returns {Promise} Promise that resolves when the streets have been added to the map.
-*/
+ */
 function AddStreetsToMap(map, streetData, params) {
   const STREET_LAYER_NAME = 'streets';
   const AUDITED_STREET_COLOR = getComputedStyle(document.documentElement).getPropertyValue('--color-asphalt-500').trim();

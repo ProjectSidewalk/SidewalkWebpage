@@ -14,9 +14,9 @@ class AcrossCitiesPage {
   };
 
   /**
-     * Lifecycle/health states (#4329): label, badge tone, and whether the state warrants attention. `tone` maps to a
-     * `.ac-badge--<tone>` CSS class. Ordered active → wrapped_up → stalled → low_traction for the Status sort.
-     */
+   * Lifecycle/health states (#4329): label, badge tone, and whether the state warrants attention. `tone` maps to a
+   * `.ac-badge--<tone>` CSS class. Ordered active → wrapped_up → stalled → low_traction for the Status sort.
+   */
   static #LIFECYCLE = {
     active:       { label: 'Active',       tone: 'ok',    rank: 0, attention: false },
     wrapped_up:   { label: 'Wrapped up',   tone: 'good',  rank: 1, attention: false },
@@ -37,10 +37,10 @@ class AcrossCitiesPage {
   };
 
   /**
-     * Display names for the funnel steps, keyed by the backend step keys (each funnel's `steps` array is the source of
-     * truth for the set and order; this map only supplies presentational labels). `full` is for the bar rows; `short`
-     * for the comparison-table column headers. Covers both the mapping and contribution funnels.
-     */
+   * Display names for the funnel steps, keyed by the backend step keys (each funnel's `steps` array is the source of
+   * truth for the set and order; this map only supplies presentational labels). `full` is for the bar rows; `short`
+   * for the comparison-table column headers. Covers both the mapping and contribution funnels.
+   */
   static #FUNNEL_STEP_LABELS = {
     visited:                { full: 'Visited site',                     short: 'Visited' },
     tutorial_started:       { full: 'Started tutorial',                short: 'Tutorial start' },
@@ -173,12 +173,12 @@ class AcrossCitiesPage {
   // --- Deployment cities map --------------------------------------------------------------------------------------
 
   /**
-     * Renders the deployment-cities Mapbox map: one circle per city, area ∝ label count, colored by lifecycle, with a
-     * stats popup. Joins the cities geo (lat/lng from /v3/api/cities) to the scorecards by city_id. Degrades to a note
-     * if Mapbox, the token, or the geo are unavailable.
-     *
-     * @param {?object} citiesGeo - The /v3/api/cities response, or null.
-     */
+   * Renders the deployment-cities Mapbox map: one circle per city, area ∝ label count, colored by lifecycle, with a
+   * stats popup. Joins the cities geo (lat/lng from /v3/api/cities) to the scorecards by city_id. Degrades to a note
+   * if Mapbox, the token, or the geo are unavailable.
+   *
+   * @param {?object} citiesGeo - The /v3/api/cities response, or null.
+   */
   #renderMap(citiesGeo) {
     const host = document.getElementById('ac-cities-map');
     if (!host) return;
@@ -289,10 +289,10 @@ class AcrossCitiesPage {
   // --- Needs attention --------------------------------------------------------------------------------------------
 
   /**
-     * Builds the attention panel: cities whose lifecycle warrants attention (stalled / low traction) plus any
-     * data-quality anomaly (high disagreement). "Wrapped up" cities are deliberately NOT flagged — they succeeded.
-     * Shows an "all clear" note when nothing needs attention.
-     */
+   * Builds the attention panel: cities whose lifecycle warrants attention (stalled / low traction) plus any
+   * data-quality anomaly (high disagreement). "Wrapped up" cities are deliberately NOT flagged — they succeeded.
+   * Shows an "all clear" note when nothing needs attention.
+   */
   #renderAttention() {
     const el = document.getElementById('ac-attention');
     if (!el) return;
@@ -364,9 +364,9 @@ class AcrossCitiesPage {
   // --- Over-time charts -------------------------------------------------------------------------------------------
 
   /**
-     * Prepares the two over-time datasets (last 12 weeks, summed from each city's trend; and all-time, from the
-     * server-aggregated series), wires the range toggle, and draws the current range.
-     */
+   * Prepares the two over-time datasets (last 12 weeks, summed from each city's trend; and all-time, from the
+   * server-aggregated series), wires the range toggle, and draws the current range.
+   */
   #renderTrends() {
     this.#trendSeries = {
       recent: this.#aggregateWeekly(this.#cities.flatMap((c) => c.weekly_trend || [])),
@@ -709,12 +709,12 @@ class AcrossCitiesPage {
   }
 
   /**
-     * One funnel block: heading + description, the comparison table, and the per-city small-multiples.
-     * @param {string} funnelType  'mapping' | 'contribution'.
-     * @param {{steps: string[], cities: object[]}} funnel  The funnel's step keys and per-city rows.
-     * @param {{key: string, label: string}[]} segs  Segments to show for the active dimension.
-     * @returns {string} The block's HTML.
-     */
+   * One funnel block: heading + description, the comparison table, and the per-city small-multiples.
+   * @param {string} funnelType  'mapping' | 'contribution'.
+   * @param {{steps: string[], cities: object[]}} funnel  The funnel's step keys and per-city rows.
+   * @param {{key: string, label: string}[]} segs  Segments to show for the active dimension.
+   * @returns {string} The block's HTML.
+   */
   #funnelBlock(funnelType, funnel, segs) {
     const meta = AcrossCitiesPage.#FUNNEL_META[funnelType] || { title: funnelType, desc: '' };
     const steps = funnel.steps || [];
@@ -729,10 +729,10 @@ class AcrossCitiesPage {
   }
 
   /**
-     * The comparison table for one funnel: one row per (city, segment), sorted by overall conversion. Step columns are
-     * driven by the funnel's `steps` order; each cell carries the count and (past the first step) its drop-off.
-     * @returns {string} The `<table>` HTML.
-     */
+   * The comparison table for one funnel: one row per (city, segment), sorted by overall conversion. Step columns are
+   * driven by the funnel's `steps` order; each cell carries the count and (past the first step) its drop-off.
+   * @returns {string} The `<table>` HTML.
+   */
   #funnelTableHtml(steps, cities, segs) {
     const labels = AcrossCitiesPage.#FUNNEL_STEP_LABELS;
     const multi = segs.length > 1;
@@ -782,14 +782,13 @@ class AcrossCitiesPage {
   }
 
   /**
-     * Per-city small-multiples for one funnel: a horizontal funnel of bars, each normalized to that segment's visitors
-     * (= 100%) and labeled with the count and (past the first step) the drop-off. Cities are ordered by overall traffic.
-     * @returns {string} The concatenated panel HTML.
-     */
+   * Per-city small-multiples for one funnel: a horizontal funnel of bars, each normalized to that segment's visitors
+   * (= 100%) and labeled with the count and (past the first step) the drop-off. Cities are ordered by overall traffic.
+   * @returns {string} The concatenated panel HTML.
+   */
   #funnelBarsHtml(steps, cities, segs) {
     if (!cities.length || !steps.length) return '';
-    const ordered = cities.slice()
-      .sort((a, b) => ((b.all && b.all.steps[0]) || 0) - ((a.all && a.all.steps[0]) || 0));
+    const ordered = cities.slice().sort((a, b) => ((b.all && b.all.steps[0]) || 0) - ((a.all && a.all.steps[0]) || 0));
     return ordered.map((c) => this.#funnelPanel(steps, c, segs)).join('');
   }
 

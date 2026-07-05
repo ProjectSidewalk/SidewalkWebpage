@@ -26,9 +26,9 @@ class MissionModel {
   }
 
   /**
-     * Creates a Mission from raw back-end parameters and adds it via MissionContainer:addAMission.
-     * @param {object} parameters - Mission values from the back end (snake_case keys are normalized to camelCase).
-     */
+   * Creates a Mission from raw back-end parameters and adds it via MissionContainer:addAMission.
+   * @param {object} parameters - Mission values from the back end (snake_case keys are normalized to camelCase).
+   */
   createAMission(parameters) {
     // Makes any necessary changes from snake_case to camelCase since we get the values from JSON.
     if (!Object.hasOwn(parameters, 'missionId') && Object.hasOwn(parameters, 'mission_id')) {
@@ -69,8 +69,8 @@ class MissionModel {
   }
 
   /**
-     * Notify the mission modules with MissionProgress:update
-     */
+   * Notify the mission modules with MissionProgress:update
+   */
   updateMissionProgress(mission, neighborhood) {
     this.trigger('MissionProgress:update', { mission, neighborhood });
   }

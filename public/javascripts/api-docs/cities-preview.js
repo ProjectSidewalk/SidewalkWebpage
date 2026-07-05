@@ -19,19 +19,19 @@
   // Public API.
   window.CitiesPreview = {
     /**
-         * Configure the cities preview.
-         * @param {object} options - Configuration options
-         * @returns {object} The CitiesPreview object for chaining
-         */
+     * Configure the cities preview.
+     * @param {object} options - Configuration options
+     * @returns {object} The CitiesPreview object for chaining
+     */
     setup(options) {
       config = Object.assign(config, options);
       return this;
     },
 
     /**
-         * Initialize the cities preview map.
-         * @returns {Promise} A promise that resolves when the preview is rendered
-         */
+     * Initialize the cities preview map.
+     * @returns {Promise} A promise that resolves when the preview is rendered
+     */
     init() {
       const container = document.getElementById(config.containerId);
 
@@ -70,9 +70,9 @@
     },
 
     /**
-         * Fetch cities data from the API.
-         * @returns {Promise} A promise that resolves with the cities data
-         */
+     * Fetch cities data from the API.
+     * @returns {Promise} A promise that resolves with the cities data
+     */
     fetchCities() {
       return fetch(`${config.apiBaseUrl}${config.citiesEndpoint}?source=apiDocs`)
         .then((response) => {
@@ -84,10 +84,10 @@
     },
 
     /**
-         * Create the Leaflet map.
-         * @param {HTMLElement} container - Container element for the map
-         * @returns {object} The Leaflet map object
-         */
+     * Create the Leaflet map.
+     * @param {HTMLElement} container - Container element for the map
+     * @returns {object} The Leaflet map object
+     */
     createMap(container) {
       // Create a map element.
       const mapElement = document.createElement('div');
@@ -107,10 +107,10 @@
     },
 
     /**
-         * Display cities on the map.
-         * @param {object} map - The Leaflet map object
-         * @param {object} citiesData - Data about the cities from the API
-         */
+     * Display cities on the map.
+     * @param {object} map - The Leaflet map object
+     * @param {object} citiesData - Data about the cities from the API
+     */
     displayCitiesOnMap(map, citiesData) {
       if (!citiesData || !citiesData.cities || citiesData.cities.length === 0) {
         // Add a message to the map if no cities found.

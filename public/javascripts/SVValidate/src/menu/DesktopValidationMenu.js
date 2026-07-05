@@ -9,8 +9,8 @@ class DesktopValidationMenu {
   #tagsAddedByUser = [];
 
   /**
-     * @param {object} menuUI Validation menu UI elements.
-     */
+   * @param {object} menuUI Validation menu UI elements.
+   */
   constructor(menuUI) {
     this.#menuUI = menuUI;
     this.#disagreeReasonButtons = menuUI.disagreeReasonOptions.children('.validation-reason-button');
@@ -286,11 +286,11 @@ class DesktopValidationMenu {
   }
 
   /**
-     * Adds a jquery tooltip to the given element with the given text and image (if given).
-     * @param {jQuery} $elem Element to add the tooltip to, as jquery wrapped object.
-     * @param {string} tooltipText Text to display in the tooltip.
-     * @param {string} [img] Optional image to display in the tooltip.
-     */
+   * Adds a jquery tooltip to the given element with the given text and image (if given).
+   * @param {jQuery} $elem Element to add the tooltip to, as jquery wrapped object.
+   * @param {string} tooltipText Text to display in the tooltip.
+   * @param {string} [img] Optional image to display in the tooltip.
+   */
   #addTooltip($elem, tooltipText, img) {
     const tooltipHtml = img ? `${tooltipText}<br/><img src="${img}" class="validate-tooltip-img"/>` : tooltipText;
     $elem.tooltip(({
@@ -526,10 +526,10 @@ class DesktopValidationMenu {
   }
 
   /**
-     * Validates a single label from a button click.
-     * @param {string} action Validation action - must be one of Agree, Disagree, or Unsure.
-     * @param {boolean} keyboardShortcut Whether or not the validation was triggered by a keyboard shortcut.
-     */
+   * Validates a single label from a button click.
+   * @param {string} action Validation action - must be one of Agree, Disagree, or Unsure.
+   * @param {boolean} keyboardShortcut Whether or not the validation was triggered by a keyboard shortcut.
+   */
   #validateLabel(action, keyboardShortcut) {
     const menuUI = this.#menuUI;
     const actionStr = keyboardShortcut ? 'ValidationKeyboardShortcut_Submit_Validation=' : 'Click=Submit_Validation=';

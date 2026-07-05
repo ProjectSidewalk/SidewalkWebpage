@@ -20,15 +20,15 @@ class Toast {
   #repositionHandler = null;
 
   /**
-     * @param {Object} opts
-     * @param {string} [opts.title] Bold heading line.
-     * @param {string} [opts.message] Secondary message line.
-     * @param {string} [opts.icon] Image URL shown to the left of the text.
-     * @param {string} [opts.iconAlt] Alt text for the icon image (defaults to '').
-     * @param {Object} [opts.button] Optional action button: { label, href } or { label, onClick }.
-     * @param {HTMLElement} [opts.reference] Element the toast floats over (defaults to the viewport).
-     * @param {number} [opts.duration] Milliseconds before auto-dismiss when not hovered (defaults to 5000).
-     */
+   * @param {Object} opts
+   * @param {string} [opts.title] Bold heading line.
+   * @param {string} [opts.message] Secondary message line.
+   * @param {string} [opts.icon] Image URL shown to the left of the text.
+   * @param {string} [opts.iconAlt] Alt text for the icon image (defaults to '').
+   * @param {Object} [opts.button] Optional action button: { label, href } or { label, onClick }.
+   * @param {HTMLElement} [opts.reference] Element the toast floats over (defaults to the viewport).
+   * @param {number} [opts.duration] Milliseconds before auto-dismiss when not hovered (defaults to 5000).
+   */
   constructor(opts = {}) {
     this.#reference = opts.reference || null;
     this.#duration = opts.duration ?? 5000;
@@ -36,10 +36,10 @@ class Toast {
   }
 
   /**
-     * Convenience factory: builds a toast, shows it, and returns the instance.
-     * @param {Object} opts See the constructor.
-     * @returns {Toast}
-     */
+   * Convenience factory: builds a toast, shows it, and returns the instance.
+   * @param {Object} opts See the constructor.
+   * @returns {Toast}
+   */
   static show(opts = {}) {
     const toast = new Toast(opts);
     toast.show();
@@ -106,10 +106,10 @@ class Toast {
   }
 
   /**
-     * Builds the action button using the shared design-system button classes.
-     * @param {Object} button { label, href, newTab } for a link-style action or { label, onClick } for a callback.
-     * @returns {HTMLElement}
-     */
+   * Builds the action button using the shared design-system button classes.
+   * @param {Object} button { label, href, newTab } for a link-style action or { label, onClick } for a callback.
+   * @returns {HTMLElement}
+   */
   #buildButton(button) {
     const el = button.href ? document.createElement('a') : document.createElement('button');
     el.className = 'ps-toast__button button-ps button--primary button--small';
@@ -143,21 +143,21 @@ class Toast {
   }
 
   /**
-     * The element to mount the toast into. Normally <body>, but if the reference lives inside a modal <dialog> (opened
-     * with showModal(), e.g. the LabelMap label-detail popup), that dialog renders in the browser's top layer — above
-     * every normal stacking context regardless of z-index. Mounting the toast inside that dialog puts it in the same
-     * top layer so it floats above the popup instead of behind it. The dialog has no transform, so the toast's fixed
-     * positioning stays viewport-relative either way.
-     * @returns {HTMLElement}
-     */
+   * The element to mount the toast into. Normally <body>, but if the reference lives inside a modal <dialog> (opened
+   * with showModal(), e.g. the LabelMap label-detail popup), that dialog renders in the browser's top layer — above
+   * every normal stacking context regardless of z-index. Mounting the toast inside that dialog puts it in the same top
+   * layer so it floats above the popup instead of behind it. The dialog has no transform, so the toast's fixed
+   * positioning stays viewport-relative either way.
+   * @returns {HTMLElement}
+   */
   #host() {
     const dialog = this.#reference && this.#reference.closest && this.#reference.closest('dialog');
     return dialog && dialog.matches(':modal') ? dialog : document.body;
   }
 
   /**
-     * Positions the toast horizontally centered over the reference element. Vertically it sits 10% down from the top.
-     */
+   * Positions the toast horizontally centered over the reference element. Vertically it sits 10% down from the top.
+   */
   #position() {
     const VERTICAL_FRACTION = 0.10;
     const rect = this.#reference

@@ -131,11 +131,11 @@ class OverviewPage {
   // --- Trends + sparklines ----------------------------------------------------------------------------------------
 
   /**
-     * Renders the week-over-week trend and sparkline on the four cards that have a meaningful weekly flow, from the
-     * daily activity series. Each spec maps a card to the per-day metric that drives its trend.
-     *
-     * @param {Array<object>} series - Daily records from /adminapi/activityByDay (date + per-metric counts).
-     */
+   * Renders the week-over-week trend and sparkline on the four cards that have a meaningful weekly flow, from the
+   * daily activity series. Each spec maps a card to the per-day metric that drives its trend.
+   *
+   * @param {Array<object>} series - Daily records from /adminapi/activityByDay (date + per-metric counts).
+   */
   #renderTrends(series) {
     if (!series.length) return;
     const specs = [
@@ -155,13 +155,13 @@ class OverviewPage {
   }
 
   /**
-     * Sums a per-day metric into trailing 7-day buckets ending today.
-     *
-     * @param {Map<string, object>} byDate - Day (YYYY-MM-DD) → record.
-     * @param {Date} today - Local start-of-today, the right edge of the most recent bucket.
-     * @param {function(object): number} get - Extracts the metric from a record.
-     * @returns {{values: number[], thisWeek: number, priorWeek: number}} Weekly sums oldest→newest plus the last two.
-     */
+   * Sums a per-day metric into trailing 7-day buckets ending today.
+   *
+   * @param {Map<string, object>} byDate - Day (YYYY-MM-DD) → record.
+   * @param {Date} today - Local start-of-today, the right edge of the most recent bucket.
+   * @param {function(object): number} get - Extracts the metric from a record.
+   * @returns {{values: number[], thisWeek: number, priorWeek: number}} Weekly sums oldest→newest plus the last two.
+   */
   #weeklyBuckets(byDate, today, get) {
     const values = [];
     for (let b = OverviewPage.#SPARK_WEEKS - 1; b >= 0; b--) {
@@ -190,12 +190,12 @@ class OverviewPage {
   }
 
   /**
-     * A compact inline-SVG sparkline (line only, no axes) for a weekly series. Stroke stays crisp under the non-uniform
-     * stretch via vector-effect, and the last point is dotted so "now" is easy to find.
-     *
-     * @param {number[]} values - Weekly sums, oldest → newest.
-     * @returns {string} An <svg> string, or '' when there's too little data to draw.
-     */
+   * A compact inline-SVG sparkline (line only, no axes) for a weekly series. Stroke stays crisp under the non-uniform
+   * stretch via vector-effect, and the last point is dotted so "now" is easy to find.
+   *
+   * @param {number[]} values - Weekly sums, oldest → newest.
+   * @returns {string} An <svg> string, or '' when there's too little data to draw.
+   */
   #sparkline(values) {
     const present = values.filter((v) => v !== null && v !== undefined);
     if (present.length < 2) return '';
@@ -229,11 +229,11 @@ class OverviewPage {
   // --- Needs attention --------------------------------------------------------------------------------------------
 
   /**
-     * Builds the "needs attention" panel: a short list of deep-linked action items computed from the summary. Shows an
-     * "all clear" note when nothing is flagged.
-     *
-     * @param {object} s - The overview summary payload.
-     */
+   * Builds the "needs attention" panel: a short list of deep-linked action items computed from the summary. Shows an
+   * "all clear" note when nothing is flagged.
+   *
+   * @param {object} s - The overview summary payload.
+   */
   #renderAttention(s) {
     const el = document.getElementById('ov-attention');
     if (!el) return;
@@ -278,10 +278,10 @@ class OverviewPage {
   // --- Recent-activity strip --------------------------------------------------------------------------------------
 
   /**
-     * Renders the live recent-activity strip: the newest contributions with their preview thumbnails.
-     *
-     * @param {Array<object>} items - Recent-activity items (newest first) from /adminapi/recentActivity.
-     */
+   * Renders the live recent-activity strip: the newest contributions with their preview thumbnails.
+   *
+   * @param {Array<object>} items - Recent-activity items (newest first) from /adminapi/recentActivity.
+   */
   #renderRecent(items) {
     const el = document.getElementById('ov-recent');
     if (!el) return;
@@ -324,10 +324,10 @@ class OverviewPage {
   // --- Pulse ------------------------------------------------------------------------------------------------------
 
   /**
-     * Renders the "latest activity" pulse line at the top of the page from the single most-recent contribution.
-     *
-     * @param {?object} item - A recent-activity item or null.
-     */
+   * Renders the "latest activity" pulse line at the top of the page from the single most-recent contribution.
+   *
+   * @param {?object} item - A recent-activity item or null.
+   */
   #renderPulse(item) {
     const el = document.getElementById('ov-pulse');
     if (!el) return;
@@ -361,13 +361,13 @@ class OverviewPage {
   }
 
   /**
-     * Sets a card's headline value and secondary line.
-     *
-     * @param {string} key - Card key (matches the `ov-<key>-value` / `ov-<key>-sub` element ids).
-     * @param {string} value - Headline text.
-     * @param {string} sub - Secondary line text.
-     * @param {string} [titleFull] - Optional full-precision value for the headline's title tooltip.
-     */
+   * Sets a card's headline value and secondary line.
+   *
+   * @param {string} key - Card key (matches the `ov-<key>-value` / `ov-<key>-sub` element ids).
+   * @param {string} value - Headline text.
+   * @param {string} sub - Secondary line text.
+   * @param {string} [titleFull] - Optional full-precision value for the headline's title tooltip.
+   */
   #setCard(key, value, sub, titleFull) {
     const valEl = document.getElementById(`ov-${key}-value`);
     const subEl = document.getElementById(`ov-${key}-sub`);

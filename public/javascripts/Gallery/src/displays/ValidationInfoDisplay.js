@@ -7,11 +7,11 @@ class ValidationInfoDisplay {
   #aiValidation;
 
   /**
-     * @param {HTMLElement} container The DOM element that contains the display.
-     * @param {number} agreeCount The agree count to display.
-     * @param {number} disagreeCount The disagree count to display.
-     * @param {string} aiValidation Either 'Agree' or 'Disagree', showing AI validation if there is any.
-     */
+   * @param {HTMLElement} container The DOM element that contains the display.
+   * @param {number} agreeCount The agree count to display.
+   * @param {number} disagreeCount The disagree count to display.
+   * @param {string} aiValidation Either 'Agree' or 'Disagree', showing AI validation if there is any.
+   */
   constructor(container, agreeCount, disagreeCount, aiValidation) {
     this.agreeCount = agreeCount;
     this.disagreeCount = disagreeCount;
@@ -66,10 +66,10 @@ class ValidationInfoDisplay {
   }
 
   /**
-     * Builds an <img> for the agree/disagree vote icon, using the `-ai` variant when the AI validated this option.
-     * @param {string} action 'Agree' or 'Disagree'.
-     * @param {boolean} isAi Whether to use the AI variant of the icon.
-     */
+   * Builds an <img> for the agree/disagree vote icon, using the `-ai` variant when the AI validated this option.
+   * @param {string} action 'Agree' or 'Disagree'.
+   * @param {boolean} isAi Whether to use the AI variant of the icon.
+   */
   #makeVoteIcon(action, isAi) {
     const icon = document.createElement('img');
     icon.className = 'validation-info-image';

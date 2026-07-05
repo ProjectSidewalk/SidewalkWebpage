@@ -88,9 +88,9 @@ class GsvViewer extends PanoViewer {
   };
 
   /**
-     * Packages data the pano's data from Google into a PanoData object, saving it in this.currPanoData.
-     * @param {object} newPanoData The pano data returned from StreetViewService.getPanorama()
-     */
+   * Packages data the pano's data from Google into a PanoData object, saving it in this.currPanoData.
+   * @param {object} newPanoData The pano data returned from StreetViewService.getPanorama()
+   */
   #updateCurrPanoData = (newPanoData) => {
     // Putting the data returned from Google into the format for our generic PanoData object.
     const panoDataParams = {
@@ -141,12 +141,12 @@ class GsvViewer extends PanoViewer {
   };
 
   /**
-     * A callback to getPanorama() that packages the data into a PanoData object. Resolves when pano has done loading.
-     * @param {object} newPanoData The pano data returned from StreetViewService.getPanorama()
-     * @param {Set<PanoData>} [excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to.
-     * @returns {Promise<PanoData>} The PanoData object created from newPanoData
-     * @private
-     */
+   * A callback to getPanorama() that packages the data into a PanoData object. Resolves when pano has done loading.
+   * @param {object} newPanoData The pano data returned from StreetViewService.getPanorama()
+   * @param {Set<PanoData>} [excludedPanos=new Set()] Set of PanoData objects that are not valid images to move to.
+   * @returns {Promise<PanoData>} The PanoData object created from newPanoData
+   * @private
+   */
   #getPanoramaCallback = async (newPanoData, excludedPanos = new Set()) => {
     // If the pano given is in the excluded list, treat it as if the API call itself had returned nothing.
     const excludedPanoIds = new Set([...excludedPanos].map((p) => p.getPanoId()));
@@ -196,11 +196,10 @@ class GsvViewer extends PanoViewer {
   };
 
   /**
-     * If the user is going through the tutorial, it will return the custom/stored panorama for either the initial
-     * tutorial view or the "after walk" view.
-     * @param pano - the pano ID/name of the wanted custom panorama.
-     * @returns custom Google Street View panorama.
-     */
+   * Returns the stored pano data for either of the two tutorial panos.
+   * @param pano - the pano ID/name of the wanted custom panorama.
+   * @returns custom Google Street View panorama.
+   */
   #getCustomPanoData = (pano) => {
     if (pano === 'tutorial') {
       return {

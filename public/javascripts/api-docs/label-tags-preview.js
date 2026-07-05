@@ -21,12 +21,12 @@
   };
 
   /**
-     * The anchor id for a label type's detailed section, e.g. "label-type-curb-ramp". Used both as the heading id in
-     * the detailed view and as the link target from the summary table, so the two can't drift.
-     *
-     * @param {string} labelType - Display name of the label type.
-     * @returns {string} The anchor id.
-     */
+   * The anchor id for a label type's detailed section, e.g. "label-type-curb-ramp". Used both as the heading id in
+   * the detailed view and as the link target from the summary table, so the two can't drift.
+   *
+   * @param {string} labelType - Display name of the label type.
+   * @returns {string} The anchor id.
+   */
   function labelTypeAnchorId(labelType) {
     return `label-type-${labelType.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`;
   }
@@ -34,24 +34,24 @@
   // Public API.
   window.LabelTagsPreview = {
     /**
-         * Configure the label tags preview.
-         * @param {object} options - Configuration options
-         * @param {string} [options.apiBaseUrl] - Base URL for the API
-         * @param {string} [options.containerId] - ID of the container element
-         * @param {number} [options.maxWidth] - Maximum width for the preview container
-         * @param {string} [options.endpoint] - API endpoint for label tags
-         * @param {string} [options.imageBasePath] - Base path for tag images
-         * @param {string} [options.displayMode] - Display mode: "detailed" (default) or "summary"
-         */
+     * Configure the label tags preview.
+     * @param {object} options - Configuration options
+     * @param {string} [options.apiBaseUrl] - Base URL for the API
+     * @param {string} [options.containerId] - ID of the container element
+     * @param {number} [options.maxWidth] - Maximum width for the preview container
+     * @param {string} [options.endpoint] - API endpoint for label tags
+     * @param {string} [options.imageBasePath] - Base path for tag images
+     * @param {string} [options.displayMode] - Display mode: "detailed" (default) or "summary"
+     */
     setup(options) {
       config = Object.assign(config, options);
       return this;
     },
 
     /**
-         * Initialize the label tags preview.
-         * @returns {Promise} A promise that resolves when the preview is rendered
-         */
+     * Initialize the label tags preview.
+     * @returns {Promise} A promise that resolves when the preview is rendered
+     */
     init() {
       const container = document.getElementById(config.containerId);
 
@@ -90,9 +90,9 @@
     },
 
     /**
-         * Fetch label tags from the API.
-         * @returns {Promise} A promise that resolves with the label tags data
-         */
+     * Fetch label tags from the API.
+     * @returns {Promise} A promise that resolves with the label tags data
+     */
     fetchLabelTags() {
       return fetch(`${config.apiBaseUrl}${config.endpoint}?source=apiDocs`)
         .then((response) => {
@@ -104,10 +104,10 @@
     },
 
     /**
-         * Group label tags by label type.
-         * @param {Array} labelTags - Array of label tag objects
-         * @returns {object} Object with label types as keys and arrays of tags as values
-         */
+     * Group label tags by label type.
+     * @param {Array} labelTags - Array of label tag objects
+     * @returns {object} Object with label types as keys and arrays of tags as values
+     */
     groupTagsByLabelType(labelTags) {
       return labelTags.reduce((groups, tag) => {
         const labelType = tag.label_type;
@@ -120,20 +120,20 @@
     },
 
     /**
-         * Capitalize the first letter of a string.
-         * @param {string} string - The string to capitalize
-         * @returns {string} The string with the first letter capitalized
-         */
+     * Capitalize the first letter of a string.
+     * @param {string} string - The string to capitalize
+     * @returns {string} The string with the first letter capitalized
+     */
     capitalizeFirstLetter(string) {
       if (!string) return '';
       return string.charAt(0).toUpperCase() + string.slice(1);
     },
 
     /**
-         * Render the label tags preview.
-         * @param {object} data - Label tags data from the API
-         * @param {HTMLElement} container - Container element
-         */
+     * Render the label tags preview.
+     * @param {object} data - Label tags data from the API
+     * @param {HTMLElement} container - Container element
+     */
     renderLabelTags(data, container) {
       // Group tags by label type.
       const groupedTags = this.groupTagsByLabelType(data.label_tags);
@@ -250,10 +250,10 @@
     },
 
     /**
-         * Render a summary table of label tags by label type.
-         * @param {object} data - Label tags data from the API
-         * @param {HTMLElement} container - Container element
-         */
+     * Render a summary table of label tags by label type.
+     * @param {object} data - Label tags data from the API
+     * @param {HTMLElement} container - Container element
+     */
     renderLabelTagsSummary(data, container) {
       // Group tags by label type.
       const groupedTags = this.groupTagsByLabelType(data.label_tags);

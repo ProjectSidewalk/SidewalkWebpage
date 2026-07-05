@@ -8,8 +8,8 @@ class ModalNoNewMission {
   #noMissionsRemaining;
 
   /**
-     * @param {object} uiModalMission Mission modal UI elements.
-     */
+   * @param {object} uiModalMission Mission modal UI elements.
+   */
   constructor(uiModalMission) {
     this.#uiModalMission = uiModalMission;
 

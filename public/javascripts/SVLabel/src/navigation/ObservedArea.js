@@ -35,8 +35,8 @@ class ObservedArea {
   #progressCircleCtx;
 
   /**
-     * @param {Object} uiMinimap - The svl.ui.minimap object holding the minimap's jQuery DOM elements.
-     */
+   * @param {Object} uiMinimap - The svl.ui.minimap object holding the minimap's jQuery DOM elements.
+   */
   constructor(uiMinimap) {
     this.#uiMinimap = uiMinimap;
     this.#baseSize = parseFloat(getComputedStyle(uiMinimap.holder[0]).getPropertyValue('--minimap-base-size'));
@@ -47,9 +47,9 @@ class ObservedArea {
   }
 
   /**
-     * Sizes the three minimap canvases' bitmaps to the current displayed minimap size and (re)applies the persistent
-     * context state. Setting canvas.width/height resets the context, so the styles must be applied here, after sizing.
-     */
+   * Sizes the three minimap canvases' bitmaps to the current displayed minimap size and (re)applies the persistent
+   * context state. Setting canvas.width/height resets the context, so the styles must be applied here, after sizing.
+   */
   #syncCanvasSize() {
     const uiMinimap = this.#uiMinimap;
     const displayedWidth = Math.round(uiMinimap.fogOfWar.width()) || this.#baseSize;
@@ -74,8 +74,8 @@ class ObservedArea {
   }
 
   /**
-     * Resets the user's angle and adds user's new pano to 'observedAreas'. Called when the user takes a step.
-     */
+   * Resets the user's angle and adds user's new pano to 'observedAreas'. Called when the user takes a step.
+   */
   panoChanged() {
     this.#angle = null;
     this.#leftAngle = null;
@@ -90,17 +90,17 @@ class ObservedArea {
   }
 
   /**
-     * Converts degrees to radians.
-     * @param {number} degrees
-     * @returns {number}
-     */
+   * Converts degrees to radians.
+   * @param {number} degrees
+   * @returns {number}
+   */
   static #toRadians(degrees) {
     return degrees / 180 * Math.PI;
   }
 
   /**
-     * Updates all the angle variables necessary to keep track of the user's observed area.
-     */
+   * Updates all the angle variables necessary to keep track of the user's observed area.
+   */
   #updateAngles() {
     const pov = svl.panoViewer.getPov();
     let heading = pov.heading;
@@ -126,10 +126,10 @@ class ObservedArea {
   }
 
   /**
-     * Converts a latitude and longitude to pixel xy-coordinates.
-     * @param {{lat: number, lng: number}} latLng
-     * @returns {{x: number, y: number}}
-     */
+   * Converts a latitude and longitude to pixel xy-coordinates.
+   * @param {{lat: number, lng: number}} latLng
+   * @returns {{x: number, y: number}}
+   */
   #latLngToPixel(latLng) {
     const projection = svl.minimap.getMap().getProjection();
     const bounds = svl.minimap.getMap().getBounds();
@@ -144,18 +144,18 @@ class ObservedArea {
   }
 
   /**
-     * Returns the FOV/observed-area radius in pixels for the minimap's current zoom. Scales BASE_RADIUS by the UI scale
-     * and by the zoom relative to REFERENCE_ZOOM so the fog/FOV cover a constant geographic area as the user zooms.
-     * @returns {number}
-     */
+   * Returns the FOV/observed-area radius in pixels for the minimap's current zoom. Scales BASE_RADIUS by the UI scale
+   * and by the zoom relative to REFERENCE_ZOOM so the fog/FOV cover a constant geographic area as the user zooms.
+   * @returns {number}
+   */
   #currentRadius() {
     const zoom = svl.minimap.getMap().getZoom();
     return ObservedArea.#BASE_RADIUS * this.#scaleFactor * Math.pow(2, zoom - ObservedArea.#REFERENCE_ZOOM);
   }
 
   /**
-     * Renders the fog of war.
-     */
+   * Renders the fog of war.
+   */
   #renderFogOfWar() {
     const radius = this.#currentRadius();
     this.#fogOfWarCtx.fillRect(0, 0, this.#width, this.#height);
@@ -174,8 +174,8 @@ class ObservedArea {
   }
 
   /**
-     * Renders the user's FOV.
-     */
+   * Renders the user's FOV.
+   */
   #renderFov() {
     this.#fovCtx.clearRect(0, 0, this.#width, this.#height);
     this.#fovCtx.beginPath();
@@ -186,8 +186,8 @@ class ObservedArea {
   }
 
   /**
-     * Renders the user's percentage of 360 degrees observed progress bar. Gray until 100%, then switches to green.
-     */
+   * Renders the user's percentage of 360 degrees observed progress bar. Gray until 100%, then switches to green.
+   */
   #renderProgressCircle() {
     this.#progressCircleCtx.clearRect(0, 0, this.#width, this.#height);
     this.#progressCircleCtx.strokeStyle = this.#fractionObserved === 1 ? '#00dd00' : '#404040';
@@ -198,16 +198,16 @@ class ObservedArea {
   }
 
   /**
-     * Returns the user's current fraction of 360 degrees observed.
-     * @returns {number}
-     */
+   * Returns the user's current fraction of 360 degrees observed.
+   * @returns {number}
+   */
   getFractionObserved() {
     return this.#fractionObserved;
   }
 
   /**
-     * Updates everything relevant to the user's observed area.
-     */
+   * Updates everything relevant to the user's observed area.
+   */
   update() {
     if (this.#observedAreas.length > 0) {
       this.#syncCanvasSize();

@@ -13,9 +13,9 @@ class PopUpMessage {
   #okAction = null;
 
   /**
-     * @param {TaskContainer} taskContainer
-     * @param {Tracker} tracker
-     */
+   * @param {TaskContainer} taskContainer
+   * @param {Tracker} tracker
+   */
   constructor(taskContainer, tracker) {
     this.#taskContainer = taskContainer;
     this.#tracker = tracker;
@@ -38,8 +38,8 @@ class PopUpMessage {
   }
 
   /**
-     * Disables the user's ability to interact with the Explore tool while a pop-up is showing.
-     */
+   * Disables the user's ability to interact with the Explore tool while a pop-up is showing.
+   */
   disableInteractions() {
     svl.panoManager.hideNavArrows();
     svl.navigationService.disableWalking();
@@ -49,8 +49,8 @@ class PopUpMessage {
   }
 
   /**
-     * Re-enables the user's ability to interact with the Explore tool.
-     */
+   * Re-enables the user's ability to interact with the Explore tool.
+   */
   enableInteractions() {
     svl.panoManager.showNavArrows();
     svl.navigationService.enableWalking();
@@ -60,16 +60,16 @@ class PopUpMessage {
   }
 
   /**
-     * Whether the user has already been prompted to sign in during this session.
-     * @returns {boolean}
-     */
+   * Whether the user has already been prompted to sign in during this session.
+   * @returns {boolean}
+   */
   haveAskedToSignIn() {
     return this.#status.haveAskedToSignIn;
   }
 
   /**
-     * Prompt a user who's not logged in to sign up/sign in.
-     */
+   * Prompt a user who's not logged in to sign up/sign in.
+   */
   promptSignIn() {
     this.#ui.buttonHolder.replaceChildren();
     this.#setTitle(i18next.t('popup.signup-title'));
@@ -116,12 +116,12 @@ class PopUpMessage {
   }
 
   /**
-     * Notification
-     * @param {string} title HTML content to add to the h2 header for the pop-up
-     * @param {string} message HTML content to add to the p body for the pop-up
-     * @param {Function} [callback] Function to call when the user clicks OK to dismiss the pop-up
-     * @returns {boolean} Returns true if the message is shown, false if it isn't (because another is already visible)
-     */
+   * Notification
+   * @param {string} title HTML content to add to the h2 header for the pop-up
+   * @param {string} message HTML content to add to the p body for the pop-up
+   * @param {Function} [callback] Function to call when the user clicks OK to dismiss the pop-up
+   * @returns {boolean} Returns true if the message is shown, false if it isn't (because another is already visible)
+   */
   notify(title, message, callback) {
     if (this.#status.isVisible) {
       console.trace('ALREADY GOT ONE');
@@ -135,16 +135,16 @@ class PopUpMessage {
   }
 
   /**
-     * Notification with image
-     * @param {string} title HTML content to add to the h2 header for the pop-up
-     * @param {string} message HTML content to add to the p body for the pop-up
-     * @param {string} image URL of the image to add to the pop-up
-     * @param {string} width width of the image, including units
-     * @param {string} height height of the image, including units
-     * @param {string} x left position of the image, including units
-     * @param {Function} [callback] Function to call when the user clicks OK to dismiss the pop-up
-     * @returns {boolean} Returns true if the message is shown, false if it isn't (because another is already visible)
-     */
+   * Notification with image
+   * @param {string} title HTML content to add to the h2 header for the pop-up
+   * @param {string} message HTML content to add to the p body for the pop-up
+   * @param {string} image URL of the image to add to the pop-up
+   * @param {string} width width of the image, including units
+   * @param {string} height height of the image, including units
+   * @param {string} x left position of the image, including units
+   * @param {Function} [callback] Function to call when the user clicks OK to dismiss the pop-up
+   * @returns {boolean} Returns true if the message is shown, false if it isn't (because another is already visible)
+   */
   notifyWithImage(title, message, image, width, height, x, callback) {
     if (this.#status.isVisible) {
       return false;
@@ -159,8 +159,8 @@ class PopUpMessage {
   }
 
   /**
-     * Shows the message box, blocking interactions with the rest of the interface.
-     */
+   * Shows the message box, blocking interactions with the rest of the interface.
+   */
   #show() {
     this.disableInteractions();
     this.#showBackground();
@@ -170,8 +170,8 @@ class PopUpMessage {
   }
 
   /**
-     * Hides the message box and resets it for the next pop-up.
-     */
+   * Hides the message box and resets it for the next pop-up.
+   */
   #hide() {
     this.#ui.holder.classList.remove('visible');
     this.#ui.holder.classList.add('hidden');
@@ -195,8 +195,8 @@ class PopUpMessage {
   }
 
   /**
-     * Reset all the parameters.
-     */
+   * Reset all the parameters.
+   */
   #reset() {
     this.#ui.holder.style.width = '';
     this.#ui.holder.style.height = '';
@@ -220,12 +220,12 @@ class PopUpMessage {
   }
 
   /**
-     * Adds an image to the pop-up window.
-     * @param {string} image URL of the image.
-     * @param {string} width width of the image, including units
-     * @param {string} height height of the image, including units
-     * @param {string} x left position of the image, including units
-     */
+   * Adds an image to the pop-up window.
+   * @param {string} image URL of the image.
+   * @param {string} width width of the image, including units
+   * @param {string} height height of the image, including units
+   * @param {string} x left position of the image, including units
+   */
   #setImage(image, width, height, x) {
     const img = document.createElement('img');
     img.src = image;
@@ -241,13 +241,13 @@ class PopUpMessage {
   }
 
   /**
-     * Creates a button in the pop-up's button holder; clicking it runs the callback and then hides the pop-up.
-     * @param {string} id HTML id for the button.
-     * @param {string} classNames Space-separated CSS classes for the button.
-     * @param {string} label HTML content of the button.
-     * @param {Function} [callback] Called on click, before the pop-up is hidden.
-     * @returns {HTMLButtonElement} The appended button.
-     */
+   * Creates a button in the pop-up's button holder; clicking it runs the callback and then hides the pop-up.
+   * @param {string} id HTML id for the button.
+   * @param {string} classNames Space-separated CSS classes for the button.
+   * @param {string} label HTML content of the button.
+   * @param {Function} [callback] Called on click, before the pop-up is hidden.
+   * @returns {HTMLButtonElement} The appended button.
+   */
   #appendButton(id, classNames, label, callback) {
     const button = document.createElement('button');
     button.id = id;
@@ -264,9 +264,9 @@ class PopUpMessage {
   }
 
   /**
-     * Adds the OK button and wires up both dismissal paths (clicking OK and the Enter shortcut).
-     * @param {Function} [callback] Called after the pop-up is hidden.
-     */
+   * Adds the OK button and wires up both dismissal paths (clicking OK and the Enter shortcut).
+   * @param {Function} [callback] Called after the pop-up is hidden.
+   */
   #appendOkButton(callback) {
     const handleClickOk = () => {
       this.#tracker.push('PopUpMessage_ClickOk');

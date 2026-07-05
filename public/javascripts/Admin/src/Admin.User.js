@@ -5,11 +5,11 @@ class AdminUser {
   #userId;
 
   /**
-     * @param {string} username - The profile user's username.
-     * @param {string} userId - The profile user's id.
-     * @param {boolean} serviceHoursUser - Whether the user is currently marked as a volunteer.
-     * @param {boolean} infra3dAccess - Whether the user currently has infra3D access.
-     */
+   * @param {string} username - The profile user's username.
+   * @param {string} userId - The profile user's id.
+   * @param {boolean} serviceHoursUser - Whether the user is currently marked as a volunteer.
+   * @param {boolean} infra3dAccess - Whether the user currently has infra3D access.
+   */
   constructor(username, userId, serviceHoursUser, infra3dAccess) {
     this.#userId = userId;
 
@@ -41,10 +41,10 @@ class AdminUser {
   }
 
   /**
-     * Sends a request to update a user's high_quality_manual column via a dropdown click.
-     * @param {HTMLElement} anchor - The clicked dropdown option; its text is the chosen value.
-     * @returns {Promise<void>}
-     */
+   * Sends a request to update a user's high_quality_manual column via a dropdown click.
+   * @param {HTMLElement} anchor - The clicked dropdown option; its text is the chosen value.
+   * @returns {Promise<void>}
+   */
   #updateUserQuality(anchor) {
     const choice = anchor.innerText;
     const data = {
@@ -75,10 +75,10 @@ class AdminUser {
   }
 
   /**
-     * PUT request to update the user's infra3D access.
-     * @param {boolean} isChecked
-     * @returns {Promise<void>}
-     */
+   * PUT request to update the user's infra3D access.
+   * @param {boolean} isChecked
+   * @returns {Promise<void>}
+   */
   #setInfra3dAccess(isChecked) {
     const data = { user_id: this.#userId, access: isChecked };
     return fetch('/adminapi/setInfra3dAccess', {
@@ -100,11 +100,11 @@ class AdminUser {
   }
 
   /**
-     * PUT request to modify all of a specified flag for the user before a specified date.
-     * @param {Date} date
-     * @param {string} flag - One of "low_quality", "incomplete", or "stale".
-     * @param {boolean} state
-     */
+   * PUT request to modify all of a specified flag for the user before a specified date.
+   * @param {Date} date
+   * @param {string} flag - One of "low_quality", "incomplete", or "stale".
+   * @param {boolean} state
+   */
   #setTaskFlagByDate(date, flag, state) {
     const data = { userId: this.#userId, date, flag, state };
     fetch('/adminapi/setTaskFlagsBeforeDate', {
@@ -118,28 +118,28 @@ class AdminUser {
   }
 
   /**
-     * Set all tasks' low quality flag before the datepicker calendar's date.
-     * @param {boolean} state
-     */
+   * Set all tasks' low quality flag before the datepicker calendar's date.
+   * @param {boolean} state
+   */
   #setLowQualityDate(state) {
     this.#setTaskFlagByDate(new Date(document.getElementById('low-quality-date').value), 'low_quality', state);
   }
 
   /**
-     * Set all tasks' incomplete flag before the datepicker calendar's date.
-     * @param {boolean} state
-     */
+   * Set all tasks' incomplete flag before the datepicker calendar's date.
+   * @param {boolean} state
+   */
   #setIncompleteDate(state) {
     this.#setTaskFlagByDate(new Date(document.getElementById('incomplete-date').value), 'incomplete', state);
   }
 
   /**
-     * Creates an alert when the flag datepicker is used.
-     * @param {string} flag - One of "low_quality", "incomplete", or "stale".
-     * @param {boolean} success
-     * @param {Date} date
-     * @param {boolean} state
-     */
+   * Creates an alert when the flag datepicker is used.
+   * @param {string} flag - One of "low_quality", "incomplete", or "stale".
+   * @param {boolean} success
+   * @param {Date} date
+   * @param {boolean} state
+   */
   #datePickedAlert(flag, success, date, state) {
     const alertEl = flag === 'low_quality'
       ? document.getElementById('low-quality-alert')
@@ -158,9 +158,9 @@ class AdminUser {
   }
 
   /**
-     * PUT request to update the user's volunteer status.
-     * @param {boolean} isChecked
-     */
+   * PUT request to update the user's volunteer status.
+   * @param {boolean} isChecked
+   */
   #updateVolunteerStatus(isChecked) {
     const url = `/updateVolunteerStatus?userId=${this.#userId}&communityService=${isChecked}`;
     fetch(url, {

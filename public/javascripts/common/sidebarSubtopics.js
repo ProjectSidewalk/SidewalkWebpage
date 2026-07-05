@@ -11,9 +11,9 @@ $(document).ready(() => {
   });
 
   /**
-     * If the panel is a sidebar (when window width >= 978px), make the panel scrollable when the user presses the plus,
-     * and not scrollable when the user presses the minus.
-     */
+   * If the panel is a sidebar (when window width >= 978px), make the panel scrollable when the user presses the plus,
+   * and not scrollable when the user presses the minus.
+   */
   $('.plusminus').click(function () {
     this.classList.toggle('active');
 

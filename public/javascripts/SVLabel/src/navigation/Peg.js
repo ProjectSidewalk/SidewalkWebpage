@@ -17,11 +17,11 @@ class Peg {
   static ZOOM_SCALE_DAMPING = 0.2;
 
   /**
-     * @param {google.maps.Map} map - The Google Map instance.
-     * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
-     * @param {typeof google.maps.marker.AdvancedMarkerElement} AdvancedMarkerElement - The marker class.
-     * @param {typeof google.maps.LatLng} LatLng - Google's LatLng class.
-     */
+   * @param {google.maps.Map} map - The Google Map instance.
+   * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
+   * @param {typeof google.maps.marker.AdvancedMarkerElement} AdvancedMarkerElement - The marker class.
+   * @param {typeof google.maps.LatLng} LatLng - Google's LatLng class.
+   */
   constructor(map, initialLocation, AdvancedMarkerElement, LatLng) {
     this.map = map;
     this.LatLng = LatLng;
@@ -49,29 +49,29 @@ class Peg {
   }
 
   /**
-     * Scales the peg image to the minimap's current zoom, dampened by ZOOM_SCALE_DAMPING relative to REFERENCE_ZOOM.
-     * @private
-     */
+   * Scales the peg image to the minimap's current zoom, dampened by ZOOM_SCALE_DAMPING relative to REFERENCE_ZOOM.
+   * @private
+   */
   _updateScale() {
     const scale = Math.pow(2, (this.map.getZoom() - Peg.REFERENCE_ZOOM) * Peg.ZOOM_SCALE_DAMPING);
     this.imgElement.style.transform = `scale(${scale})`;
   }
 
   /**
-     * Updates the sprite image based on the current heading.
-     * @private
-     */
+   * Updates the sprite image based on the current heading.
+   * @private
+   */
   _updateSprite() {
     const index = this._headingToIndex(this.heading);
     this.imgElement.src = `${Peg.SPRITE_PATH}/gm-peg-${index}.svg`;
   }
 
   /**
-     * Converts a compass heading to a sprite index (0-15).
-     * @param {number} heading - Compass heading in degrees (0-360).
-     * @returns {number} The sprite index.
-     * @private
-     */
+   * Converts a compass heading to a sprite index (0-15).
+   * @param {number} heading - Compass heading in degrees (0-360).
+   * @returns {number} The sprite index.
+   * @private
+   */
   _headingToIndex(heading) {
     // Normalize heading to 0-360 range.
     const normalized = ((heading % 360) + 360) % 360;
@@ -79,9 +79,9 @@ class Peg {
   }
 
   /**
-     * Updates the peg's rotation to face the specified heading.
-     * @param {number} heading - Compass heading in degrees (0-360).
-     */
+   * Updates the peg's rotation to face the specified heading.
+   * @param {number} heading - Compass heading in degrees (0-360).
+   */
   setHeading(heading) {
     const oldIndex = this._headingToIndex(this.heading);
     const newIndex = this._headingToIndex(heading);
@@ -95,26 +95,26 @@ class Peg {
   }
 
   /**
-     * Moves the peg to a new location.
-     * @param {{lat: number, lng: number}} location - New location.
-     */
+   * Moves the peg to a new location.
+   * @param {{lat: number, lng: number}} location - New location.
+   */
   setLocation(location) {
     this.marker.position = new this.LatLng(location.lat, location.lng);
   }
 
   /**
-     * Removes the peg from the map.
-     */
+   * Removes the peg from the map.
+   */
   remove() {
     this.marker.map = null;
   }
 
   /**
-     * Factory function that creates a rotating peg after loading required libraries.
-     * @param {google.maps.Map} map - The Google Map instance.
-     * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
-     * @returns {Promise<Peg>} The peg instance.
-     */
+   * Factory function that creates a rotating peg after loading required libraries.
+   * @param {google.maps.Map} map - The Google Map instance.
+   * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
+   * @returns {Promise<Peg>} The peg instance.
+   */
   static async create(map, initialLocation) {
     const { AdvancedMarkerElement } = await google.maps.importLibrary('marker');
     const { LatLng } = await google.maps.importLibrary('core');

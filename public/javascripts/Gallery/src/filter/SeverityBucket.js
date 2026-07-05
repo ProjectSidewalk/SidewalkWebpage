@@ -8,9 +8,9 @@ class SeverityBucket {
   #bucket = [];
 
   /**
-     * @param {Array} initialActiveSeverities Array of severity levels to start out as active ("null"/"1"/"2"/"3").
-     * @param {string} initialLabelType Initial gallery label type (drives which smiley icon set to use).
-     */
+   * @param {Array} initialActiveSeverities Array of severity levels to start out as active ("null"/"1"/"2"/"3").
+   * @param {string} initialLabelType Initial gallery label type (drives which smiley icon set to use).
+   */
   constructor(initialActiveSeverities, initialLabelType) {
     const activeSet = new Set(initialActiveSeverities || []);
     const defaultAll = activeSet.size === 0;
@@ -20,75 +20,75 @@ class SeverityBucket {
   }
 
   /**
-     * Update the label type on all Severities so icons reflect the current smiley set.
-     * @param {string} labelType
-     */
+   * Update the label type on all Severities so icons reflect the current smiley set.
+   * @param {string} labelType
+   */
   setLabelType(labelType) {
     this.#bucket.forEach((severity) => severity.setLabelType(labelType));
   }
 
   /**
-     * Add severity.
-     *
-     * @param {*} severity
-     */
+   * Add severity.
+   *
+   * @param {*} severity
+   */
   push(severity) {
     this.#bucket.push(severity);
   }
 
   /**
-     * Render Severities in SeverityBucket.
-     * @param {*} uiSeverityHolder UI element to render Severities in.
-     */
+   * Render Severities in SeverityBucket.
+   * @param {*} uiSeverityHolder UI element to render Severities in.
+   */
   render(uiSeverityHolder) {
     this.#bucket.forEach((severity) => severity.render(uiSeverityHolder));
   }
 
   /**
-     * Reset all Severities to the default (all selected) state.
-     */
+   * Reset all Severities to the default (all selected) state.
+   */
   selectAllSeverities() {
     this.#bucket.forEach((severity) => severity.apply());
   }
 
   /**
-     * Unapply all Severities.
-     */
+   * Unapply all Severities.
+   */
   unapplySeverities() {
     this.#bucket.forEach((severity) => severity.unapply());
   }
 
   /**
-     * Return list of Severities.
-     */
+   * Return list of Severities.
+   */
   getSeverities() {
     return this.#bucket;
   }
 
   /**
-     * Return number of Severities.
-     */
+   * Return number of Severities.
+   */
   getSize() {
     return this.#bucket.length;
   }
 
   /**
-     * Return list of applied Severities ("null" represents the N/A bucket).
-     */
+   * Return list of applied Severities ("null" represents the N/A bucket).
+   */
   getAppliedSeverities() {
     return this.#bucket.filter((severity) => severity.getActive()).map((severity) => severity.getSeverity());
   }
 
   /**
-     * Disable interaction with Severities.
-     */
+   * Disable interaction with Severities.
+   */
   disable() {
     this.#bucket.forEach((severity) => severity.disable());
   }
 
   /**
-     * Enable interaction with Severities.
-     */
+   * Enable interaction with Severities.
+   */
   enable() {
     this.#bucket.forEach((severity) => severity.enable());
   }

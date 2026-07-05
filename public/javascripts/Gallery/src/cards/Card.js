@@ -47,10 +47,10 @@ class Card {
   #panoImage;
 
   /**
-     * @param {*} params Properties of the associated label.
-     * @param {string} cropUrl Locally-saved crop image url, or null if no crop exists.
-     * @param {string} gsvImageUrl Google Street View static image url, or null if non-GSV imagery.
-     */
+   * @param {*} params Properties of the associated label.
+   * @param {string} cropUrl Locally-saved crop image url, or null if no crop exists.
+   * @param {string} gsvImageUrl Google Street View static image url, or null if non-GSV imagery.
+   */
   constructor(params, cropUrl, gsvImageUrl) {
     this.#params = params;
     this.#cropUrl = cropUrl;
@@ -69,10 +69,10 @@ class Card {
   }
 
   /**
-     * Initialize Card.
-     *
-     * @param {*} param Label properties.
-     */
+   * Initialize Card.
+   *
+   * @param {*} param Label properties.
+   */
   #init(param) {
     const properties = this.#properties;
     const labelIcon = this.labelIcon;
@@ -180,45 +180,45 @@ class Card {
   }
 
   /**
-     * This function returns labelId property.
-     *
-     * @returns {string}
-     */
+   * This function returns labelId property.
+   *
+   * @returns {string}
+   */
   getLabelId() {
     return this.#properties.label_id;
   }
 
   /**
-     * This function returns labelType property.
-     *
-     * @returns {string}
-     */
+   * This function returns labelType property.
+   *
+   * @returns {string}
+   */
   getLabelType() {
     return this.#properties.label_type;
   }
 
   /**
-     * Return the deep copy of the properties object, so the caller can only modify properties from setProperty().
-     * JavaScript Deepcopy:
-     * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
-     */
+   * Return the deep copy of the properties object, so the caller can only modify properties from setProperty().
+   * JavaScript Deepcopy:
+   * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
+   */
   getProperties() {
     return $.extend(true, {}, this.#properties);
   }
 
   /**
-     * Get a property.
-     *
-     * @param propName Property name.
-     * @returns {*} Property value if property name is valid. Otherwise false.
-     */
+   * Get a property.
+   *
+   * @param propName Property name.
+   * @returns {*} Property value if property name is valid. Otherwise false.
+   */
   getProperty(propName) {
     return (propName in this.#properties) ? this.#properties[propName] : false;
   }
 
   /**
-     * Get status of card.
-     */
+   * Get status of card.
+   */
   getStatus() {
     return this.#status;
   }
@@ -232,9 +232,9 @@ class Card {
   }
 
   /**
-     * Loads the image, preferring the crop. Falls back to GSV if the crop fails.
-     * @returns {Promise<boolean>} Resolves with true once the image has loaded, or false if all sources failed.
-     */
+   * Loads the image, preferring the crop. Falls back to GSV if the crop fails.
+   * @returns {Promise<boolean>} Resolves with true once the image has loaded, or false if all sources failed.
+   */
   loadImage() {
     return new Promise((resolve) => {
       if (!this.#status.imageFetched) {
@@ -263,11 +263,11 @@ class Card {
   }
 
   /**
-     * Renders the card.
-     * TODO: should there be a safety check here to make sure pano is loaded?
-     *
-     * @param cardContainer UI element to render card in.
-     */
+   * Renders the card.
+   * TODO: should there be a safety check here to make sure pano is loaded?
+   *
+   * @param cardContainer UI element to render card in.
+   */
   render(cardContainer) {
     // If the card had transparent background from the expanded view being open earlier, remove transparency on rerender.
     if (this.#card.classList.contains('expanded-view-background-card')) this.#card.classList.remove('expanded-view-background-card');
@@ -276,31 +276,31 @@ class Card {
   }
 
   /**
-     * Renders the tags on the card when the card is loaded onto on the DOM.
-     */
+   * Renders the tags on the card when the card is loaded onto on the DOM.
+   */
   #renderTags() {
     const selector = `.card-tags#${this.#properties.label_id}`;
     new TagDisplay(selector, this.#properties.tags);
   }
 
   /**
-     * Sets a property.
-     *
-     * @param key Property name.
-     * @param value Property value.
-     * @returns {Card}
-     */
+   * Sets a property.
+   *
+   * @param key Property name.
+   * @param value Property value.
+   * @returns {Card}
+   */
   setProperty(key, value) {
     this.#properties[key] = value;
     return this;
   }
 
   /**
-     * Set aspect of status.
-     *
-     * @param {string} key Status name.
-     * @param {*} value Status value.
-     */
+   * Set aspect of status.
+   *
+   * @param {string} key Status name.
+   * @param {*} value Status value.
+   */
   setStatus(key, value) {
     if (key in this.#status) {
       this.#status[key] = value;
@@ -310,9 +310,9 @@ class Card {
   }
 
   /**
-     * Updates metadata and visuals on the small card based on a new validation from the user.
-     * @param newUserValidation
-     */
+   * Updates metadata and visuals on the small card based on a new validation from the user.
+   * @param newUserValidation
+   */
   updateUserValidation(newUserValidation) {
     const properties = this.#properties;
     if (newUserValidation !== properties.user_validation) {
@@ -328,16 +328,16 @@ class Card {
   }
 
   /**
-     * Returns the current ImageID being displayed in the image.
-     * @returns the image ID of the card that is being displayed.
-     */
+   * Returns the current ImageID being displayed in the image.
+   * @returns the image ID of the card that is being displayed.
+   */
   getImageId() {
     return this.#imageId;
   }
 
   /**
-     * Returns the current image source: 'api' or 'crop'.
-     */
+   * Returns the current image source: 'api' or 'crop'.
+   */
   getImageSource() {
     return this.#status.imageSource;
   }

@@ -16,19 +16,19 @@ class Tag {
   #status;
 
   /**
-     * @param {*} params Properties of tag.
-     * @param {boolean} applied A boolean to see if the tag filter is active.
-     */
+   * @param {*} params Properties of tag.
+   * @param {boolean} applied A boolean to see if the tag filter is active.
+   */
   constructor(params, applied) {
     this.#status = { applied };
     this.#init(params);
   }
 
   /**
-     * Initialize Tag.
-     *
-     * @param {*} param Tag properties.
-     */
+   * Initialize Tag.
+   *
+   * @param {*} param Tag properties.
+   */
   #init(param) {
     Object.keys(param).forEach((attrName) => this.#properties[attrName] = param[attrName]);
 
@@ -46,8 +46,8 @@ class Tag {
   }
 
   /**
-     * Handles what happens when Tag is clicked.
-     */
+   * Handles what happens when Tag is clicked.
+   */
   #tagClickCallback = () => {
     if (this.#status.applied) {
       sg.tracker.push('TagUnapply', null, {
@@ -67,87 +67,87 @@ class Tag {
   };
 
   /**
-     * Applies Tag.
-     */
+   * Applies Tag.
+   */
   apply() {
     this.setStatus('applied', true);
     this.#tagElement.classList.add('gallery-filter-button-selected');
   }
 
   /**
-     * Unapplies Tag.
-     */
+   * Unapplies Tag.
+   */
   unapply() {
     this.setStatus('applied', false);
     this.#tagElement.classList.remove('gallery-filter-button-selected');
   }
 
   /**
-     * Returns Tag name.
-     */
+   * Returns Tag name.
+   */
   getTag() {
     return this.#properties.tag;
   }
 
   /**
-     * Returns the tagId of this Tag.
-     */
+   * Returns the tagId of this Tag.
+   */
   getTagId() {
     return this.#properties.tag_id;
   }
 
   /**
-     * Returns label type of Tag.
-     */
+   * Returns label type of Tag.
+   */
   getLabelType() {
     return this.#properties.label_type;
   }
 
   /**
-     * Return the deep copy of the properties object, so the caller can only modify properties from setProperty().
-     *
-     * JavaScript Deepcopy:
-     * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
-     */
+   * Return the deep copy of the properties object, so the caller can only modify properties from setProperty().
+   *
+   * JavaScript Deepcopy:
+   * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
+   */
   getProperties() {
     return $.extend(true, {}, this.#properties);
   }
 
   /**
-     * Gets property of Tag.
-     *
-     * @param propName Property name.
-     * @returns {*} Property value if property name is valid. Otherwise false.
-     */
+   * Gets property of Tag.
+   *
+   * @param propName Property name.
+   * @returns {*} Property value if property name is valid. Otherwise false.
+   */
   getProperty(propName) {
     return (propName in this.#properties) ? this.#properties[propName] : false;
   }
 
   /**
-     * Get status of tag.
-     */
+   * Get status of tag.
+   */
   getStatus() {
     return this.#status;
   }
 
   /**
-     * Sets a property of Tag.
-     *
-     * @param key Property name.
-     * @param value Property value.
-     * @returns {Tag}
-     */
+   * Sets a property of Tag.
+   *
+   * @param key Property name.
+   * @param value Property value.
+   * @returns {Tag}
+   */
   setProperty(key, value) {
     this.#properties[key] = value;
     return this;
   }
 
   /**
-     * Set status attribute of tag.
-     *
-     * @param {string} key Status name.
-     * @param {*} value Status value.
-     */
+   * Set status attribute of tag.
+   *
+   * @param {string} key Status name.
+   * @param {*} value Status value.
+   */
   setStatus(key, value) {
     if (key in this.#status) {
       this.#status[key] = value;
@@ -157,10 +157,10 @@ class Tag {
   }
 
   /**
-     * Renders the Tag.
-     *
-     * @param filterContainer UI element to render Tag in.
-     */
+   * Renders the Tag.
+   *
+   * @param filterContainer UI element to render Tag in.
+   */
   render(filterContainer) {
     filterContainer.append(this.#tagElement);
   }

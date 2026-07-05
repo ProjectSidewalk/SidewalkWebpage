@@ -6,47 +6,47 @@ class TagBucket {
   #bucket = [];
 
   /**
-     * Add Tag.
-     *
-     * @param {*} tag Tag to add.
-     */
+   * Add Tag.
+   *
+   * @param {*} tag Tag to add.
+   */
   push(tag) {
     this.#bucket.push(tag);
   }
 
   /**
-     * Render all Tags.
-     *
-     * @param {*} uiTagHolder UI element to render Tags in.
-     */
+   * Render all Tags.
+   *
+   * @param {*} uiTagHolder UI element to render Tags in.
+   */
   render(uiTagHolder) {
     this.#bucket.forEach((tag) => tag.render(uiTagHolder));
   }
 
   /**
-     * Unapply all tags.
-     */
+   * Unapply all tags.
+   */
   unapplyTags() {
     this.#bucket.forEach((tag) => tag.unapply());
   }
 
   /**
-     * Return list of Tags.
-     */
+   * Return list of Tags.
+   */
   getTags() {
     return this.#bucket;
   }
 
   /**
-     * Return number of Tags.
-     */
+   * Return number of Tags.
+   */
   getSize() {
     return this.#bucket.length;
   }
 
   /**
-     * Return list of applied Tags.
-     */
+   * Return list of applied Tags.
+   */
   getAppliedTags() {
     return this.#bucket.filter((tag) => tag.getStatus().applied);
   }

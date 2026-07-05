@@ -5,17 +5,17 @@ class KeyboardManager {
   #expandedView;
 
   /**
-     * @param {ExpandedView} expandedView The object for the expanded view in the gallery.
-     */
+   * @param {ExpandedView} expandedView The object for the expanded view in the gallery.
+   */
   constructor(expandedView) {
     this.#expandedView = expandedView;
     window.addEventListener('keyup', (e) => this.#documentKeyUp(e));
   }
 
   /**
-     * Callback for key-up events. Routes keyboard shortcuts to the appropriate expanded-view actions.
-     * @param {KeyboardEvent} e
-     */
+   * Callback for key-up events. Routes keyboard shortcuts to the appropriate expanded-view actions.
+   * @param {KeyboardEvent} e
+   */
   #documentKeyUp(e) {
     // Prevent shortcuts in the comment box.
     const activeTag = document.activeElement && document.activeElement.tagName;

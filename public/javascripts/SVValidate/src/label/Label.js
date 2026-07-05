@@ -94,9 +94,9 @@ class Label {
   }
 
   /**
-     * Initializes a label from metadata (if parameters are passed in).
-     * @param {object} params Label metadata from the backend.
-     */
+   * Initializes a label from metadata (if parameters are passed in).
+   * @param {object} params Label metadata from the backend.
+   */
   #init(params) {
     if (params) {
       if ('lat' in params) this.setAuditProperty('lat', params.lat);
@@ -145,35 +145,35 @@ class Label {
   }
 
   /**
-     * Gets the file path associated with the labels' icon type.
-     * @returns {string} Path of image in the directory.
-     */
+   * Gets the file path associated with the labels' icon type.
+   * @returns {string} Path of image in the directory.
+   */
   getIconUrl() {
     return this.#icons[this.#auditProperties.labelType];
   }
 
   /**
-     * Returns a specific originalProperty of this label.
-     * @param {string} key Name of property.
-     * @returns Value associated with this key.
-     */
+   * Returns a specific originalProperty of this label.
+   * @param {string} key Name of property.
+   * @returns Value associated with this key.
+   */
   getAuditProperty(key) {
     return key in this.#auditProperties ? this.#auditProperties[key] : null;
   }
 
   /**
-     * Returns a specific adminProperty of this label.
-     * @param {string} key Name of property.
-     * @returns {*|null} Value associated with this key.
-     */
+   * Returns a specific adminProperty of this label.
+   * @param {string} key Name of property.
+   * @returns {*|null} Value associated with this key.
+   */
   getAdminProperty(key) {
     return key in this.#adminProperties ? this.#adminProperties[key] : null;
   }
 
   /**
-     * Calculate heading/pitch for drawing this Label on the pano from the POV of the user when placing the label.
-     * @returns {{heading: number, pitch: number, zoom: number}}
-     */
+   * Calculate heading/pitch for drawing this Label on the pano from the POV of the user when placing the label.
+   * @returns {{heading: number, pitch: number, zoom: number}}
+   */
   getOriginalPov() {
     const origPov = {
       heading: this.getAuditProperty('heading'),
@@ -185,27 +185,27 @@ class Label {
   }
 
   /**
-     * Returns the entire properties object for this label.
-     * @returns Object for properties.
-     */
+   * Returns the entire properties object for this label.
+   * @returns Object for properties.
+   */
   getProperties() {
     return this.#properties;
   }
 
   /**
-     * Gets a specific validation property of this label.
-     * @param {string} key Name of property.
-     * @returns Value associated with this key.
-     */
+   * Gets a specific validation property of this label.
+   * @param {string} key Name of property.
+   * @returns Value associated with this key.
+   */
   getProperty(key) {
     return key in this.#properties ? this.#properties[key] : null;
   }
 
   /**
-     * Sets the value of a single property in properties.
-     * @param {string} key Name of property.
-     * @param value Value to set property to.
-     */
+   * Sets the value of a single property in properties.
+   * @param {string} key Name of property.
+   * @param value Value to set property to.
+   */
   setProperty(key, value) {
     this.#properties[key] = value;
     return this;
@@ -236,11 +236,11 @@ class Label {
   }
 
   /**
-     * When a validation button is clicked, updates validation status for Label, StatusField, and logs interactions.
-     *
-     * @param {string} validationResult Must be one of the following: {Agree, Disagree, Unsure}.
-     * @param {string} comment An optional comment submitted with the validation.
-     */
+   * When a validation button is clicked, updates validation status for Label, StatusField, and logs interactions.
+   *
+   * @param {string} validationResult Must be one of the following: {Agree, Disagree, Unsure}.
+   * @param {string} comment An optional comment submitted with the validation.
+   */
   validate(validationResult, comment) {
     // This is the POV if the label were in the center of the viewport.
     const centeredPov = this.getOriginalPov();

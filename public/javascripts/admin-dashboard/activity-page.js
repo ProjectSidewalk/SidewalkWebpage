@@ -52,9 +52,9 @@ class ActivityPage {
   }
 
   /**
-     * Provides the (async-initialized) LabelPopup so feed label links open the label inline instead of navigating.
-     * @param {{showLabel: function(number, string): Promise}} popup - A LabelPopup instance.
-     */
+   * Provides the (async-initialized) LabelPopup so feed label links open the label inline instead of navigating.
+   * @param {{showLabel: function(number, string): Promise}} popup - A LabelPopup instance.
+   */
   setLabelPopup(popup) {
     this.#labelPopup = popup;
   }
@@ -100,10 +100,10 @@ class ActivityPage {
   }
 
   /**
-     * A persistent line telling the admin when the deployment was last active and who acted most recently, plus — when
-     * the selected window is empty — a one-click jump to "all time". Without this, a quiet city loads as all-zero cards
-     * with no hint that the data is simply older than the default window (see #4272 review).
-     */
+   * A persistent line telling the admin when the deployment was last active and who acted most recently, plus — when
+   * the selected window is empty — a one-click jump to "all time". Without this, a quiet city loads as all-zero cards
+   * with no hint that the data is simply older than the default window (see #4272 review).
+   */
   #renderBanner() {
     const el = document.getElementById('activity-latest');
     if (!el) return;
@@ -159,11 +159,11 @@ class ActivityPage {
   }
 
   /**
-     * Fills the all-time "Time spent contributing" tiles. Unlike the KPIs above, these are all-time totals (the
-     * endpoint also returns today/week, which we ignore here) and so are rendered once, independent of the range toggle.
-     *
-     * @param {Array<{time: ?number, stat: string, time_interval: string}>} stats - Rows from getContributionTimeStats.
-     */
+   * Fills the all-time "Time spent contributing" tiles. Unlike the KPIs above, these are all-time totals (the
+   * endpoint also returns today/week, which we ignore here) and so are rendered once, independent of the range toggle.
+   *
+   * @param {Array<{time: ?number, stat: string, time_interval: string}>} stats - Rows from getContributionTimeStats.
+   */
   #renderContributionTime(stats) {
     const allTime = (Array.isArray(stats) ? stats : []).filter((s) => s.time_interval === 'all_time');
     const valueOf = (stat) => {
@@ -220,10 +220,10 @@ class ActivityPage {
   // --- Active contributors over time --------------------------------------------------------------------------
 
   /**
-     * Distinct active users per bucket, split registered vs anonymous. Daily points are the day's distinct count;
-     * weekly points are the average of the week's daily counts (distinct-per-day can't be summed across days), so the
-     * card notes that when weekly is selected.
-     */
+   * Distinct active users per bucket, split registered vs anonymous. Daily points are the day's distinct count;
+   * weekly points are the average of the week's daily counts (distinct-per-day can't be summed across days), so the
+   * card notes that when weekly is selected.
+   */
   #renderActive() {
     const el = document.getElementById('activity-active');
     const buckets = this.#computeBuckets();
@@ -252,13 +252,13 @@ class ActivityPage {
   // --- Bucketing ----------------------------------------------------------------------------------------------
 
   /**
-     * Builds the continuous, zero-filled bucket series for the current range + granularity. Walks every calendar day
-     * from the window start through today (so gaps stay honest and the right edge reads as "now"), assigning each to a
-     * day or week-start bucket. Volume fields are summed; active-user fields are averaged over the bucket's days.
-     *
-     * @returns {Array<{key: string, label: string, days: number, vol: object, activeRegistered: number,
-     *                  activeAnon: number}>} Ordered buckets.
-     */
+   * Builds the continuous, zero-filled bucket series for the current range + granularity. Walks every calendar day
+   * from the window start through today (so gaps stay honest and the right edge reads as "now"), assigning each to a
+   * day or week-start bucket. Volume fields are summed; active-user fields are averaged over the bucket's days.
+   *
+   * @returns {Array<{key: string, label: string, days: number, vol: object, activeRegistered: number,
+   *                  activeAnon: number}>} Ordered buckets.
+   */
   #computeBuckets() {
     const today = ActivityPage.#startOfToday();
     const windowStart = this.#range > 0
@@ -380,12 +380,12 @@ class ActivityPage {
   }
 
   /**
-     * The main line of a feed item: for a label/validation, a phrase about the action; for a comment, the comment text
-     * (quoted). The label-type name is bolded so the type is scannable down the feed.
-     *
-     * @param {object} it - A recent-activity item.
-     * @returns {string} Trusted HTML (all interpolated values escaped here).
-     */
+   * The main line of a feed item: for a label/validation, a phrase about the action; for a comment, the comment text
+   * (quoted). The label-type name is bolded so the type is scannable down the feed.
+   *
+   * @param {object} it - A recent-activity item.
+   * @returns {string} Trusted HTML (all interpolated values escaped here).
+   */
   static #feedText(it) {
     const type = it.label_type ? `<strong>${ActivityPage.#esc(it.label_type)}</strong>` : 'a label';
     if (it.activity_type === 'label') {
@@ -400,12 +400,12 @@ class ActivityPage {
   }
 
   /**
-     * A quiet one-line summary of how much the contributor has done overall (their lifetime labels and validations),
-     * so each row says a bit about who the person is, not just the single action shown. Empty when we have no totals.
-     *
-     * @param {object} it - A recent-activity item (carrying user_labels / user_validations when available).
-     * @returns {string} Trusted HTML, or '' when there's nothing to show.
-     */
+   * A quiet one-line summary of how much the contributor has done overall (their lifetime labels and validations),
+   * so each row says a bit about who the person is, not just the single action shown. Empty when we have no totals.
+   *
+   * @param {object} it - A recent-activity item (carrying user_labels / user_validations when available).
+   * @returns {string} Trusted HTML, or '' when there's nothing to show.
+   */
   static #contributionSummary(it) {
     const parts = [];
     if (it.user_labels !== null && it.user_labels !== undefined) {
@@ -429,10 +429,10 @@ class ActivityPage {
   }
 
   /**
-     * Delegated click handling for feed label links: once the popup is ready, open the label inline instead of
-     * navigating; until then (or if it failed to init), the link falls back to its href. Bound once on the container
-     * so it survives feed re-renders.
-     */
+   * Delegated click handling for feed label links: once the popup is ready, open the label inline instead of
+   * navigating; until then (or if it failed to init), the link falls back to its href. Bound once on the container
+   * so it survives feed re-renders.
+   */
   #wireFeedClicks() {
     const feed = document.getElementById('activity-feed');
     if (!feed) return;
@@ -457,13 +457,13 @@ class ActivityPage {
   }
 
   /**
-     * Wires a single-select button group: clicking a button activates it (and deactivates its siblings), updates state
-     * via the callback, then re-renders. No-ops when the already-active button is clicked. State updates even before
-     * the first load resolves; the render is a safe no-op until data arrives (load() re-renders once it does).
-     *
-     * @param {string} selector - CSS selector for the button group.
-     * @param {(btn: HTMLElement) => void} updateState - Reads the selected button and updates the relevant state field.
-     */
+   * Wires a single-select button group: clicking a button activates it (and deactivates its siblings), updates state
+   * via the callback, then re-renders. No-ops when the already-active button is clicked. State updates even before
+   * the first load resolves; the render is a safe no-op until data arrives (load() re-renders once it does).
+   *
+   * @param {string} selector - CSS selector for the button group.
+   * @param {(btn: HTMLElement) => void} updateState - Reads the selected button and updates the relevant state field.
+   */
   #wireToggle(selector, updateState) {
     const buttons = document.querySelectorAll(selector);
     buttons.forEach((btn) => {

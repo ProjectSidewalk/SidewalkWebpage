@@ -32,21 +32,21 @@ class Onboarding {
   #floatingCleanup = null;
 
   /**
-     * @param svl
-     * @param compass
-     * @param handAnimation
-     * @param navigationService
-     * @param missionContainer
-     * @param panoOverlayControls
-     * @param onboardingStates
-     * @param ribbon
-     * @param tracker
-     * @param canvas
-     * @param uiCanvas
-     * @param contextMenu
-     * @param uiOnboarding
-     * @param zoomControl
-     */
+   * @param svl
+   * @param compass
+   * @param handAnimation
+   * @param navigationService
+   * @param missionContainer
+   * @param panoOverlayControls
+   * @param onboardingStates
+   * @param ribbon
+   * @param tracker
+   * @param canvas
+   * @param uiCanvas
+   * @param contextMenu
+   * @param uiOnboarding
+   * @param zoomControl
+   */
   constructor(svl, compass, handAnimation, navigationService, missionContainer, panoOverlayControls, onboardingStates,
     ribbon, tracker, canvas, uiCanvas, contextMenu, uiOnboarding, zoomControl) {
     this.#svl = svl;
@@ -124,8 +124,8 @@ class Onboarding {
   }
 
   /**
-     * Sets the mini map to be transparent for everything except for yellow pin.
-     */
+   * Sets the mini map to be transparent for everything except for yellow pin.
+   */
   #adjustMap() {
     const svl = this.#svl;
     // Render the minimap at its native square size and zoom the whole holder uniformly (see .minimap-tutorial) so
@@ -155,12 +155,12 @@ class Onboarding {
   }
 
   /**
-     * Sizes the tutorial minimap to the largest square that fits the sidebar space below the neighborhood heading.
-     *
-     * The minimap renders at a native square size and is zoomed up uniformly, which keeps the screenshot, Google
-     * markers, and fog aligned. We cap that zoom at the available height so the whole rounded square stays visible and
-     * the peg stays centered, rather than overflowing the sidebar and getting clipped.
-     */
+   * Sizes the tutorial minimap to the largest square that fits the sidebar space below the neighborhood heading.
+   *
+   * The minimap renders at a native square size and is zoomed up uniformly, which keeps the screenshot, Google
+   * markers, and fog aligned. We cap that zoom at the available height so the whole rounded square stays visible and
+   * the peg stays centered, rather than overflowing the sidebar and getting clipped.
+   */
   #sizeTutorialMinimap() {
     const holder = this.#svl.ui.minimap.holder[0];
     const sidebar = document.getElementById('explore-sidebar');
@@ -186,20 +186,20 @@ class Onboarding {
   }
 
   /**
-     * Clear the onboarding canvas.
-     * @returns {Onboarding}
-     */
+   * Clear the onboarding canvas.
+   * @returns {Onboarding}
+   */
   clear() {
     if (this.#ctx) this.#ctx.clearRect(0, 0, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT);
     return this;
   }
 
   /**
-     * Draw a label on the onboarding canvas. Draws only static labels as examples in the tutorial.
-     * @param labelType {string} Label type that selects the correct icon
-     * @param x {number} canvas x-position of the center of the label
-     * @param y {number} canvas y-position of the center of the label
-     */
+   * Draw a label on the onboarding canvas. Draws only static labels as examples in the tutorial.
+   * @param labelType {string} Label type that selects the correct icon
+   * @param x {number} canvas x-position of the center of the label
+   * @param y {number} canvas y-position of the center of the label
+   */
   #drawStaticLabel(labelType, x, y) {
     if (this.#ctx) {
       this.#ctx.save();
@@ -209,13 +209,13 @@ class Onboarding {
   }
 
   /**
-     * Draw a box on the onboarding canvas.
-     * @param x {number} top-left x coordinate
-     * @param y {number} top-left y coordinate
-     * @param width {number} pixel width
-     * @param height {number} pixel height
-     * @param parameters {object} parameters
-     */
+   * Draw a box on the onboarding canvas.
+   * @param x {number} top-left x coordinate
+   * @param y {number} top-left y coordinate
+   * @param width {number} pixel width
+   * @param height {number} pixel height
+   * @param parameters {object} parameters
+   */
   #drawBox(x, y, width, height, parameters) {
     if (this.#ctx) {
       this.#ctx.save();
@@ -228,14 +228,14 @@ class Onboarding {
   }
 
   /**
-     * Draw an arrow on the onboarding canvas.
-     * @param x1 {number} Starting x coordinate
-     * @param y1 {number} Starting y coordinate
-     * @param x2 {number} Ending x coordinate
-     * @param y2 {number} Ending y coordinate
-     * @param parameters {object} parameters
-     * @returns {Onboarding}
-     */
+   * Draw an arrow on the onboarding canvas.
+   * @param x1 {number} Starting x coordinate
+   * @param y1 {number} Starting y coordinate
+   * @param x2 {number} Ending x coordinate
+   * @param y2 {number} Ending y coordinate
+   * @param parameters {object} parameters
+   * @returns {Onboarding}
+   */
   #drawArrow(x1, y1, x2, y2, parameters) {
     const ctx = this.#ctx;
     if (ctx) {
@@ -417,8 +417,8 @@ class Onboarding {
   }
 
   /**
-     * Hide the message box.
-     */
+   * Hide the message box.
+   */
   #hideMessage() {
     if (this.#floatingCleanup) {
       this.#floatingCleanup();
@@ -428,21 +428,21 @@ class Onboarding {
   }
 
   /**
-     * Transition to the next state.
-     * @param nextState
-     * @param params Optional parameters that might be used by transition function.
-     */
+   * Transition to the next state.
+   * @param nextState
+   * @param params Optional parameters that might be used by transition function.
+   */
   next(nextState, params) {
     this.#transitionTo(nextState, params);
   }
 
   /**
-     * Resolve and visit the next state, passing `thisArg` through to a function-valued transition (which reads it as
-     * the DOM element the user interacted with).
-     * @param nextState State id, or a function returning a state id.
-     * @param params Optional parameters that might be used by the transition function.
-     * @param [thisArg] The `this` context for a function-valued transition.
-     */
+   * Resolve and visit the next state, passing `thisArg` through to a function-valued transition (which reads it as
+   * the DOM element the user interacted with).
+   * @param nextState State id, or a function returning a state id.
+   * @param params Optional parameters that might be used by the transition function.
+   * @param [thisArg] The `this` context for a function-valued transition.
+   */
   #transitionTo(nextState, params, thisArg) {
     if (typeof nextState === 'function') {
       this.#visit(this.#getState(nextState.call(thisArg, params)));
@@ -454,10 +454,10 @@ class Onboarding {
   }
 
   /**
-     * Position the onboarding message box beside a live UI element using Floating UI lib, with an arrow pointing at it.
-     * @param {string} anchorSelector CSS selector of the element to point the box at.
-     * @param {string} placement Preferred Floating UI placement (e.g. 'left', 'right', 'top', 'bottom').
-     */
+   * Position the onboarding message box beside a live UI element using Floating UI lib, with an arrow pointing at it.
+   * @param {string} anchorSelector CSS selector of the element to point the box at.
+   * @param {string} placement Preferred Floating UI placement (e.g. 'left', 'right', 'top', 'bottom').
+   */
   #anchorMessageTo(anchorSelector, placement) {
     const reference = document.querySelector(anchorSelector);
     const floating = this.#uiOnboarding.messageHolder.get(0);
@@ -509,9 +509,9 @@ class Onboarding {
   }
 
   /**
-     * Show a message box.
-     * @param parameters
-     */
+   * Show a message box.
+   * @param parameters
+   */
   #showMessage(parameters) {
     const message = parameters.message;
     // Flash the box yellow once to catch the user's attention.
@@ -629,9 +629,9 @@ class Onboarding {
   }
 
   /**
-     * Execute an instruction based on the current state.
-     * @param state
-     */
+   * Execute an instruction based on the current state.
+   * @param state
+   */
   #visit(state) {
     const svl = this.#svl;
     // Update the progress bar (if the state marks progress in the tutorial) & log the transition to the new state.
@@ -736,10 +736,10 @@ class Onboarding {
   }
 
   /**
-     * Called when the user is told to click on the compass or nav arrows to move to the next image.
-     * @param state The current state defined in OnboardingStates.js
-     * @param listener An optional listener on a Google Maps event, to be removed before moving to the next state
-     */
+   * Called when the user is told to click on the compass or nav arrows to move to the next image.
+   * @param state The current state defined in OnboardingStates.js
+   * @param listener An optional listener on a Google Maps event, to be removed before moving to the next state
+   */
   #visitWalkTowards(state, listener) {
     const svl = this.#svl;
     const nextPanoId = 'afterWalkTutorial';
@@ -845,11 +845,11 @@ class Onboarding {
   }
 
   /**
-     * Blink the given label type and nudge them to click one of the buttons in the ribbon menu.
-     * Move on to the next state if they click the button.
-     * @param state
-     * @param listener
-     */
+   * Blink the given label type and nudge them to click one of the buttons in the ribbon menu.
+   * Move on to the next state if they click the button.
+   * @param state
+   * @param listener
+   */
   #visitSelectLabelTypeState(state, listener) {
     const labelType = state.properties.labelType;
 
@@ -877,10 +877,10 @@ class Onboarding {
   }
 
   /**
-     * Tell the user to zoom in/out.
-     * @param state
-     * @param listener
-     */
+   * Tell the user to zoom in/out.
+   * @param state
+   * @param listener
+   */
   #visitZoomState(state, listener) {
     const zoomType = state.properties.type;
     let event;
@@ -925,10 +925,10 @@ class Onboarding {
   }
 
   /**
-     * Tell the user to label the multiple possible target attributes.
-     * @param state
-     * @param listener
-     */
+   * Tell the user to label the multiple possible target attributes.
+   * @param state
+   * @param listener
+   */
   #visitLabelAccessibilityAttributeState(state, listener) {
     const svl = this.#svl;
     const properties = state.properties[0];
@@ -970,11 +970,11 @@ class Onboarding {
   }
 
   /**
-     * Tell the user to delete the label they placed that is far away from where they were supposed to place it.
-     *
-     * @param state
-     * @param listener
-     */
+   * Tell the user to delete the label they placed that is far away from where they were supposed to place it.
+   *
+   * @param state
+   * @param listener
+   */
   #visitDeleteAccessibilityAttributeState(state, listener) {
     this.#ribbon.disableMode(state.properties.labelType);
     this.#ribbon.enableMode('Walk');
@@ -994,17 +994,17 @@ class Onboarding {
   }
 
   /**
-     * Reset the id of the label that the user most recently added.
-     *
-     * @param labelId
-     */
+   * Reset the id of the label that the user most recently added.
+   *
+   * @param labelId
+   */
   setCurrentLabelId(labelId) {
     this.#currentLabelId = labelId;
   }
 
   /**
-     * Return the id of the label that the user most recently added.
-     */
+   * Return the id of the label that the user most recently added.
+   */
   getCurrentLabelId() {
     return this.#currentLabelId;
   }

@@ -29,10 +29,10 @@ class AlertController {
   }
 
   /**
-     * Fades an element in, then invokes an optional callback once the animation settles.
-     * @param {HTMLElement} el - Element to reveal.
-     * @param {Function} [callback] - Called after the fade completes.
-     */
+   * Fades an element in, then invokes an optional callback once the animation settles.
+   * @param {HTMLElement} el - Element to reveal.
+   * @param {Function} [callback] - Called after the fade completes.
+   */
   #fadeIn(el, callback) {
     el.style.display = '';
     el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: AlertController.#FADE_DURATION })
@@ -43,10 +43,10 @@ class AlertController {
   }
 
   /**
-     * Fades an element out, hides it, then invokes an optional callback once the animation settles.
-     * @param {HTMLElement} el - Element to hide.
-     * @param {Function} [callback] - Called after the fade completes.
-     */
+   * Fades an element out, hides it, then invokes an optional callback once the animation settles.
+   * @param {HTMLElement} el - Element to hide.
+   * @param {Function} [callback] - Called after the fade completes.
+   */
   #fadeOut(el, callback) {
     el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: AlertController.#FADE_DURATION })
       .addEventListener('finish', () => {
@@ -57,12 +57,12 @@ class AlertController {
   }
 
   /**
-     * Shows the alert banner unless the user has opted out of this message type.
-     * @param {string} msg - The message to display (HTML).
-     * @param {string} type - Identifies the message type; suppressed when the user has opted out of it.
-     * @param {boolean} [dontShow=false] - Whether the "don't show again" link is offered.
-     * @param {Function} [callback] - Called once the banner has finished fading in.
-     */
+   * Shows the alert banner unless the user has opted out of this message type.
+   * @param {string} msg - The message to display (HTML).
+   * @param {string} type - Identifies the message type; suppressed when the user has opted out of it.
+   * @param {boolean} [dontShow=false] - Whether the "don't show again" link is offered.
+   * @param {Function} [callback] - Called once the banner has finished fading in.
+   */
   showAlert(msg, type, dontShow = false, callback) {
     if (type !== null && type !== undefined && this.#dontShowList.includes(type)) return;
 
@@ -78,17 +78,17 @@ class AlertController {
   }
 
   /**
-     * Hides the alert banner.
-     * @param {Function} [callback] - Called once the banner has finished fading out.
-     */
+   * Hides the alert banner.
+   * @param {Function} [callback] - Called once the banner has finished fading out.
+   */
   hideAlert(callback) {
     this.#fadeOut(this.#ui.holder, callback);
     clearTimeout(this.#hideTimeout);
   }
 
   /**
-     * Records the current message type on the "don't show again" list and hides the banner.
-     */
+   * Records the current message type on the "don't show again" list and hides the banner.
+   */
   dontShowClicked() {
     if (this.#lastMessageType !== null && this.#lastMessageType !== undefined) {
       this.#dontShowList.push(this.#lastMessageType);

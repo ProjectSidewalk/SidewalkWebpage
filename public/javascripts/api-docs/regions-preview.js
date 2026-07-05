@@ -36,12 +36,12 @@
   };
 
   /**
-     * Interpolate between two hex colors.
-     * @param {string} color1 - First color in hex format
-     * @param {string} color2 - Second color in hex format
-     * @param {number} factor - Interpolation factor (0-1)
-     * @returns {string} Interpolated color in hex format
-     */
+   * Interpolate between two hex colors.
+   * @param {string} color1 - First color in hex format
+   * @param {string} color2 - Second color in hex format
+   * @param {number} factor - Interpolation factor (0-1)
+   * @returns {string} Interpolated color in hex format
+   */
   function interpolateColor(color1, color2, factor) {
     const c1 = { r: parseInt(color1.slice(1, 3), 16), g: parseInt(color1.slice(3, 5), 16), b: parseInt(color1.slice(5, 7), 16) };
     const c2 = { r: parseInt(color2.slice(1, 3), 16), g: parseInt(color2.slice(3, 5), 16), b: parseInt(color2.slice(5, 7), 16) };
@@ -60,19 +60,19 @@
     _maxByMetric: {},
 
     /**
-         * Configure the regions preview.
-         * @param {object} options - Configuration options
-         * @returns {object} The RegionsPreview object for chaining
-         */
+     * Configure the regions preview.
+     * @param {object} options - Configuration options
+     * @returns {object} The RegionsPreview object for chaining
+     */
     setup(options) {
       config = Object.assign(config, options);
       return this;
     },
 
     /**
-         * Initialize the regions preview map.
-         * @returns {Promise} A promise that resolves when the preview is rendered
-         */
+     * Initialize the regions preview map.
+     * @returns {Promise} A promise that resolves when the preview is rendered
+     */
     init() {
       const container = document.getElementById(config.mainContainerId);
       if (!container) {
@@ -102,9 +102,9 @@
     },
 
     /**
-         * Fetch all regions for the current city as a GeoJSON FeatureCollection.
-         * @returns {Promise} A promise that resolves with the GeoJSON FeatureCollection
-         */
+     * Fetch all regions for the current city as a GeoJSON FeatureCollection.
+     * @returns {Promise} A promise that resolves with the GeoJSON FeatureCollection
+     */
     fetchRegions() {
       return fetch(`${config.apiBaseUrl}${config.regionsEndpoint}?inline=true&source=apiDocs`)
         .then((response) => {
@@ -116,10 +116,10 @@
     },
 
     /**
-         * Build the Leaflet map, draw the region polygons, and wire up the metric toggle and legend.
-         * @param {HTMLElement} container - Container element for the map
-         * @param {object} regions - GeoJSON FeatureCollection of regions
-         */
+     * Build the Leaflet map, draw the region polygons, and wire up the metric toggle and legend.
+     * @param {HTMLElement} container - Container element for the map
+     * @param {object} regions - GeoJSON FeatureCollection of regions
+     */
     renderMap(container, regions) {
       const features = regions.features || [];
 
@@ -185,10 +185,10 @@
     },
 
     /**
-         * Compute the Leaflet style for a region feature based on the currently selected metric.
-         * @param {object} feature - GeoJSON feature for a region
-         * @returns {object} A Leaflet path style object
-         */
+     * Compute the Leaflet style for a region feature based on the currently selected metric.
+     * @param {object} feature - GeoJSON feature for a region
+     * @returns {object} A Leaflet path style object
+     */
     styleForFeature(feature) {
       const metricCfg = METRICS[this._metric];
       const value = feature.properties[this._metric] || 0;
@@ -205,10 +205,10 @@
     },
 
     /**
-         * Attach the popup and hover behavior for a single region.
-         * @param {object} feature - GeoJSON feature for a region
-         * @param {object} layer - The Leaflet layer for the feature
-         */
+     * Attach the popup and hover behavior for a single region.
+     * @param {object} feature - GeoJSON feature for a region
+     * @param {object} layer - The Leaflet layer for the feature
+     */
     bindRegionInteractions(feature, layer) {
       const props = feature.properties;
       const firstLabelDate = props.first_label_date ? new Date(props.first_label_date).toLocaleDateString() : 'No labels';
@@ -242,8 +242,8 @@
     },
 
     /**
-         * (Re)build the continuous gradient legend for the currently selected metric.
-         */
+     * (Re)build the continuous gradient legend for the currently selected metric.
+     */
     updateLegend() {
       const map = this._map;
       const metricCfg = METRICS[this._metric];
@@ -278,9 +278,9 @@
     },
 
     /**
-         * Show a message when there are no regions to display.
-         * @param {object} map - The Leaflet map object
-         */
+     * Show a message when there are no regions to display.
+     * @param {object} map - The Leaflet map object
+     */
     addNoRegionsMessage(map) {
       const div = document.createElement('div');
       div.className = 'no-regions-message';

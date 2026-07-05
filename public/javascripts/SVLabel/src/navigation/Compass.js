@@ -15,10 +15,10 @@ class Compass {
   };
 
   /**
-     * @param {Object} svl - SVL namespace (used for rootDirectory). Same object as the global `svl`.
-     * @param {Object} navigationService - NavigationService module.
-     * @param {Object} taskContainer - TaskContainer module.
-     */
+   * @param {Object} svl - SVL namespace (used for rootDirectory). Same object as the global `svl`.
+   * @param {Object} navigationService - NavigationService module.
+   * @param {Object} taskContainer - TaskContainer module.
+   */
   constructor(svl, navigationService, taskContainer) {
     this.#navigationService = navigationService;
     this.#taskContainer = taskContainer;
@@ -41,8 +41,8 @@ class Compass {
   }
 
   /**
-     * Blink the compass message.
-     */
+   * Blink the compass message.
+   */
   blink() {
     this.stopBlinking();
     this.#blinkInterval = window.setInterval(() => {
@@ -55,9 +55,9 @@ class Compass {
   }
 
   /**
-     * Get the angle necessary to move further down the street (using 15 meters further along street as target point).
-     * @returns {number}
-     */
+   * Get the angle necessary to move further down the street (using 15 meters further along street as target point).
+   * @returns {number}
+   */
   getTargetAngle() {
     const task = this.#taskContainer.getCurrentTask();
     const geometry = task.getFeature();
@@ -75,9 +75,9 @@ class Compass {
   }
 
   /**
-     * Check if the user is following the route that we specified.
-     * @returns {boolean}
-     */
+   * Check if the user is following the route that we specified.
+   * @returns {boolean}
+   */
   #checkEnRoute() {
     const task = this.#taskContainer.getCurrentTask();
     if (task) {
@@ -112,8 +112,8 @@ class Compass {
   }
 
   /*
-     * Part of the new jump mechanism.
-     */
+   * Part of the new jump mechanism.
+   */
   //  ** start **
 
   #cancelTimer() {
@@ -168,9 +168,9 @@ class Compass {
   // ** end **
 
   /**
-     * Get the compass angle.
-     * @returns {number}
-     */
+   * Get the compass angle.
+   * @returns {number}
+   */
   #getCompassAngle() {
     const heading = svl.panoViewer.getPov().heading;
     const targetAngle = this.getTargetAngle();
@@ -178,10 +178,10 @@ class Compass {
   }
 
   /**
-     * Mapping from a direction to an image path of direction icons.
-     * @param {string} direction
-     * @returns {string|undefined}
-     */
+   * Mapping from a direction to an image path of direction icons.
+   * @param {string} direction
+   * @returns {string|undefined}
+   */
   directionToImagePath(direction) {
     switch (direction) {
       case 'straight':
@@ -201,16 +201,16 @@ class Compass {
   }
 
   /**
-     * Hide a message.
-     */
+   * Hide a message.
+   */
   hideMessage() {
     this.#uiCompass.messageHolder.removeClass('fadeInUp').addClass('fadeOutDown');
     this.#uiCompass.messageHolder.css('pointer-events', 'none');
   }
 
   /**
-     * Set the compass message.
-     */
+   * Set the compass message.
+   */
   setTurnMessage() {
     const angle = this.#getCompassAngle();
     const direction = this.#angleToDirection(angle);
@@ -237,16 +237,16 @@ class Compass {
   }
 
   /**
-     * Show a message.
-     */
+   * Show a message.
+   */
   showMessage() {
     this.#uiCompass.messageHolder.removeClass('fadeOutDown').addClass('fadeInUp');
     this.#uiCompass.messageHolder.css('pointer-events', 'auto');
   }
 
   /**
-     * Stop blinking the compass message.
-     */
+   * Stop blinking the compass message.
+   */
   stopBlinking() {
     window.clearInterval(this.#blinkInterval);
     this.#blinkInterval = null;
@@ -254,8 +254,8 @@ class Compass {
   }
 
   /**
-     * Update the compass message.
-     */
+   * Update the compass message.
+   */
   update() {
     if (!this.#navigationService.getLabelBeforeJumpState() && !svl.isOnboarding()) {
       if (this.#checkEnRoute()) {
@@ -270,10 +270,10 @@ class Compass {
   }
 
   /**
-     * Mapping from an angle to a direction.
-     * @param {number} angle
-     * @returns {string|undefined}
-     */
+   * Mapping from an angle to a direction.
+   * @param {number} angle
+   * @returns {string|undefined}
+   */
   #angleToDirection(angle) {
     if (angle < 20 || angle > 340) {
       return 'straight';
@@ -293,10 +293,10 @@ class Compass {
   }
 
   /**
-     * Mapping from direction to a description of the direction.
-     * @param {string} direction
-     * @returns {string|undefined}
-     */
+   * Mapping from direction to a description of the direction.
+   * @param {string} direction
+   * @returns {string|undefined}
+   */
   #directionToDirectionMessage(direction) {
     switch (direction) {
       case 'straight':
@@ -340,19 +340,19 @@ class Compass {
   };
 
   /**
-     * Attaches an external click handler to the compass message and shows the pointer cursor. Onboarding uses this to
-     * override the default compass behavior so that a click advances to the next pano.
-     * @param {Function} handler
-     */
+   * Attaches an external click handler to the compass message and shows the pointer cursor. Onboarding uses this to
+   * override the default compass behavior so that a click advances to the next pano.
+   * @param {Function} handler
+   */
   attachMessageClickHandler(handler) {
     this.#uiCompass.messageHolder.off('click', handler).on('click', handler);
     this.#uiCompass.messageHolder.css('cursor', 'pointer');
   }
 
   /**
-     * Detaches an attached external click handler from the compass message and restores the default cursor.
-     * @param {Function} handler
-     */
+   * Detaches an attached external click handler from the compass message and restores the default cursor.
+   * @param {Function} handler
+   */
   detachMessageClickHandler(handler) {
     this.#uiCompass.messageHolder.off('click', handler);
     this.#uiCompass.messageHolder.css('cursor', 'default');

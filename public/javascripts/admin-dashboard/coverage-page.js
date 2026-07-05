@@ -32,9 +32,9 @@ class CoveragePage {
   #hoverIds = null; // null = no active hover.
 
   /**
-     * @param {{mapboxToken: string, regionsUrl: string}} opts - Mapbox access token and the v3 regions endpoint URL,
-     *   both injected from the Twirl template so the JS has no server-config coupling.
-     */
+   * @param {{mapboxToken: string, regionsUrl: string}} opts - Mapbox access token and the v3 regions endpoint URL,
+   *   both injected from the Twirl template so the JS has no server-config coupling.
+   */
   constructor(opts = {}) {
     this.#mapboxToken = opts.mapboxToken;
     this.#regionsUrl = opts.regionsUrl;

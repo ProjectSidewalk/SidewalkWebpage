@@ -16,10 +16,10 @@ class ExpandedView {
   #viewerAccessToken;
 
   /**
-     * @param {jQuery} uiModal The `.gallery-expanded-view` container element.
-     * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize.
-     * @param {string} viewerAccessToken An access token that authorizes image requests for the pano viewer.
-     */
+   * @param {jQuery} uiModal The `.gallery-expanded-view` container element.
+   * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize.
+   * @param {string} viewerAccessToken An access token that authorizes image requests for the pano viewer.
+   */
   constructor(uiModal, panoViewerType, viewerAccessToken) {
     this.#uiModal = uiModal;
     this.#root = uiModal[0]; // Unwrap jQuery to get the DOM element for LabelDetail.
@@ -28,12 +28,12 @@ class ExpandedView {
   }
 
   /**
-     * Creates an ExpandedView and initializes its LabelDetail controller.
-     * @param {jQuery} uiModal The `.gallery-expanded-view` container element.
-     * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize.
-     * @param {string} viewerAccessToken An access token that authorizes image requests for the pano viewer.
-     * @returns {Promise<ExpandedView>}
-     */
+   * Creates an ExpandedView and initializes its LabelDetail controller.
+   * @param {jQuery} uiModal The `.gallery-expanded-view` container element.
+   * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize.
+   * @param {string} viewerAccessToken An access token that authorizes image requests for the pano viewer.
+   * @returns {Promise<ExpandedView>}
+   */
   static async create(uiModal, panoViewerType, viewerAccessToken) {
     const expandedView = new ExpandedView(uiModal, panoViewerType, viewerAccessToken);
     await expandedView.#init();
@@ -41,8 +41,8 @@ class ExpandedView {
   }
 
   /**
-     * Initialization: instantiate LabelDetail inside the host root, then wire up close and paging buttons.
-     */
+   * Initialization: instantiate LabelDetail inside the host root, then wire up close and paging buttons.
+   */
   async #init() {
     const root = this.#root;
     this.open = false;
@@ -80,10 +80,10 @@ class ExpandedView {
   }
 
   /**
-     * Converts a Gallery Card's properties into the meta object shape that LabelDetail.showLabel() expects.
-     * @param {Card} card
-     * @returns {object} A meta object compatible with LabelDetail._handleData().
-     */
+   * Converts a Gallery Card's properties into the meta object shape that LabelDetail.showLabel() expects.
+   * @param {Card} card
+   * @returns {object} A meta object compatible with LabelDetail._handleData().
+   */
   #cardToMeta(card) {
     const p = card.getProperties();
     return {
@@ -120,9 +120,9 @@ class ExpandedView {
   }
 
   /**
-     * Called by LabelDetail after a successful validation POST. Syncs the new vote back onto the small card.
-     * @param {'Agree'|'Disagree'|'Unsure'} action
-     */
+   * Called by LabelDetail after a successful validation POST. Syncs the new vote back onto the small card.
+   * @param {'Agree'|'Disagree'|'Unsure'} action
+   */
   #handleVote = (action) => {
     if (this.refCard) {
       this.refCard.updateUserValidation(action);
@@ -130,8 +130,8 @@ class ExpandedView {
   };
 
   /**
-     * Opens the expanded view for the current refCard by passing the card data to LabelDetail.
-     */
+   * Opens the expanded view for the current refCard by passing the card data to LabelDetail.
+   */
   #openExpandedView() {
     // Clear the close-guard so the in-flight pano load is allowed to show once this card's load completes.
     const panoEl = this.#root.querySelector('.label-detail__pano');
@@ -146,9 +146,9 @@ class ExpandedView {
   }
 
   /**
-     * Performs the actions to close the expanded view.
-     * NOTE: does not remove card transparency. For that, use closeExpandedViewAndRemoveCardTransparency().
-     */
+   * Performs the actions to close the expanded view.
+   * NOTE: does not remove card transparency. For that, use closeExpandedViewAndRemoveCardTransparency().
+   */
   closeExpandedView() {
     $('.grid-container').css('grid-template-columns', 'none');
     this.#uiModal.css('position', 'absolute');
@@ -164,8 +164,8 @@ class ExpandedView {
   }
 
   /**
-     * Removes transparency from the current page of cards.
-     */
+   * Removes transparency from the current page of cards.
+   */
   #removeCardTransparency() {
     const currentPageCards = sg.cardContainer.getCurrentPageCards();
     for (const card of currentPageCards) {
@@ -177,8 +177,8 @@ class ExpandedView {
   }
 
   /**
-     * Closes expanded view, removes transparency from cards, and scrolls the reference card to the top of the viewport.
-     */
+   * Closes expanded view, removes transparency from cards, and scrolls the reference card to the top of the viewport.
+   */
   closeExpandedViewAndRemoveCardTransparency() {
     const cardToScrollTo = this.refCard;
     this.closeExpandedView();
@@ -198,9 +198,9 @@ class ExpandedView {
   }
 
   /**
-     * Tries to update the current card to the given input index.
-     * @param {number} index The index of the card to update to.
-     */
+   * Tries to update the current card to the given input index.
+   * @param {number} index The index of the card to update to.
+   */
   #updateExpandedViewCardByIndex(index) {
     if (this.leftArrow) {
       this.leftArrow.disabled = false;
@@ -231,17 +231,17 @@ class ExpandedView {
   }
 
   /**
-     * Updates the index of the current label being displayed in the expanded view.
-     * @param {number} newIndex The new index of the card being displayed.
-     */
+   * Updates the index of the current label being displayed in the expanded view.
+   * @param {number} newIndex The new index of the card being displayed.
+   */
   updateCardIndex(newIndex) {
     this.#updateExpandedViewCardByIndex(newIndex);
   }
 
   /**
-     * Moves to the next label.
-     * @param {boolean} keyboardShortcut Whether the action came from a keyboard shortcut.
-     */
+   * Moves to the next label.
+   * @param {boolean} keyboardShortcut Whether the action came from a keyboard shortcut.
+   */
   nextLabel(keyboardShortcut) {
     sg.tracker.push(`NextLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
     const page = sg.cardContainer.getCurrentPage();
@@ -255,9 +255,9 @@ class ExpandedView {
   }
 
   /**
-     * Moves to the previous label.
-     * @param {boolean} keyboardShortcut Whether the action came from a keyboard shortcut.
-     */
+   * Moves to the previous label.
+   * @param {boolean} keyboardShortcut Whether the action came from a keyboard shortcut.
+   */
   previousLabel(keyboardShortcut) {
     sg.tracker.push(`PrevLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
     const page = sg.cardContainer.getCurrentPage();
@@ -271,9 +271,9 @@ class ExpandedView {
   }
 
   /**
-     * Highlights the selected thumbnail and dims the rest of the cards on the page.
-     * @param {HTMLElement} galleryCard
-     */
+   * Highlights the selected thumbnail and dims the rest of the cards on the page.
+   * @param {HTMLElement} galleryCard
+   */
   #highlightThumbnail(galleryCard) {
     // Reset the sidebar as sticky.
     sg.ui.cardFilter.wrapper.css('position', 'fixed');
@@ -307,18 +307,18 @@ class ExpandedView {
   }
 
   /**
-     * Returns the reference card currently being displayed.
-     * @returns {Card}
-     */
+   * Returns the reference card currently being displayed.
+   * @returns {Card}
+   */
   getReferenceCard() {
     return this.refCard;
   }
 
   /**
-     * Called by CardContainer after new cards have been rendered to the DOM. If a cross-page navigation
-     * was pending (i.e., the user clicked next/prev from the last/first card on a page), reopens the
-     * expanded view for the target card on the new page.
-     */
+   * Called by CardContainer after new cards have been rendered to the DOM. If a cross-page navigation
+   * was pending (i.e., the user clicked next/prev from the last/first card on a page), reopens the
+   * expanded view for the target card on the new page.
+   */
   onPageCardsRendered() {
     if (this.pendingCardIndex === undefined) return;
     const idx = this.pendingCardIndex;
@@ -331,8 +331,8 @@ class ExpandedView {
   }
 
   /**
-     * Sets up cursor handlers for the GSV widget-scene-canvas inside the pano.
-     */
+   * Sets up cursor handlers for the GSV widget-scene-canvas inside the pano.
+   */
   #attachCursorHandlers() {
     const panoEl = this.#root.querySelector('.label-detail__pano');
     if (!panoEl) return;
@@ -362,11 +362,11 @@ class ExpandedView {
   }
 
   /**
-     * Programmatically triggers a validation from the expanded view (used by Keyboard.js shortcuts).
-     * Clicks the corresponding pano overlay button in the LabelDetail markup, which goes through
-     * LabelDetail's normal vote flow (including the onVote callback that syncs back to the card).
-     * @param {'Agree'|'Disagree'|'Unsure'} action
-     */
+   * Programmatically triggers a validation from the expanded view (used by Keyboard.js shortcuts).
+   * Clicks the corresponding pano overlay button in the LabelDetail markup, which goes through
+   * LabelDetail's normal vote flow (including the onVote callback that syncs back to the card).
+   * @param {'Agree'|'Disagree'|'Unsure'} action
+   */
   validate(action) {
     if (!this.open) return;
     const btn = this.#root.querySelector(`.label-detail__pano-overlay-button--${action.toLowerCase()}`);

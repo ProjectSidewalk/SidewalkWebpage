@@ -5,8 +5,8 @@ class ModalLandscape {
   #uiModal;
 
   /**
-     * @param {object} uiModal Modal UI elements.
-     */
+   * @param {object} uiModal Modal UI elements.
+   */
   constructor(uiModal) {
     this.#uiModal = uiModal;
   }

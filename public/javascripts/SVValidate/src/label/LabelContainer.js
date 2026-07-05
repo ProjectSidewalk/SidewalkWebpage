@@ -20,17 +20,17 @@ class LabelContainer {
   #labelsUpdateCallback = () => {};
 
   /**
-     * @param {Array} labelList Initial list of labels to be validated (generated when the page is loaded).
-     */
+   * @param {Array} labelList Initial list of labels to be validated (generated when the page is loaded).
+   */
   constructor(labelList) {
     this.resetLabelList(labelList);
   }
 
   /**
-     * Creates a LabelContainer and renders its first label.
-     * @param {Array} labelList Initial list of labels to be validated.
-     * @returns {Promise<LabelContainer>}
-     */
+   * Creates a LabelContainer and renders its first label.
+   * @param {Array} labelList Initial list of labels to be validated.
+   * @returns {Promise<LabelContainer>}
+   */
   static async create(labelList) {
     const labelContainer = new LabelContainer(labelList);
     await labelContainer.renderCurrentLabel();
@@ -38,44 +38,44 @@ class LabelContainer {
   }
 
   /**
-     * Gets a specific property from the LabelContainer.
-     * @param {string} key Property name.
-     * @returns Value associated with this property or null.
-     */
+   * Gets a specific property from the LabelContainer.
+   * @param {string} key Property name.
+   * @returns Value associated with this property or null.
+   */
   getProperty(key) {
     return key in this.#properties ? this.#properties[key] : null;
   }
 
   /**
-     * Sets a property for the LabelContainer.
-     * @param {string} key Name of property.
-     * @param value Value of property.
-     * @returns {LabelContainer}
-     */
+   * Sets a property for the LabelContainer.
+   * @param {string} key Name of property.
+   * @param value Value of property.
+   * @returns {LabelContainer}
+   */
   setProperty(key, value) {
     this.#properties[key] = value;
     return this;
   }
 
   /**
-     * Returns the last validated label's form data for submission to the back end, useful for undoing a label.
-     * @returns Form data for last validated label from this mission.
-     */
+   * Returns the last validated label's form data for submission to the back end, useful for undoing a label.
+   * @returns Form data for last validated label from this mission.
+   */
   getPriorLabelFormData() {
     return this.#lastLabelFormData;
   }
 
   /**
-     * Returns the Label object for the current label.
-     * @returns {Label}
-     */
+   * Returns the Label object for the current label.
+   * @returns {Label}
+   */
   getCurrentLabel() {
     return this.#currLabel;
   }
 
   /**
-     * Goes back to the last label.
-     */
+   * Goes back to the last label.
+   */
   async undoLabel() {
     this.#lastLabelFormData = undefined;
     this.#currLabelIndex -= 1;
@@ -84,9 +84,9 @@ class LabelContainer {
   }
 
   /**
-     * Moves to the next label in the list. If there are no more labels, shows the mission complete modal.
-     * @returns {Promise<void>}
-     */
+   * Moves to the next label in the list. If there are no more labels, shows the mission complete modal.
+   * @returns {Promise<void>}
+   */
   async moveToNextLabel() {
     this.#currLabelIndex += 1;
     this.#currLabel = this.#labels[this.#currLabelIndex];
@@ -106,8 +106,8 @@ class LabelContainer {
   }
 
   /**
-     * Renders the current label on the pano, updating the UI accordingly.
-     */
+   * Renders the current label on the pano, updating the UI accordingly.
+   */
   async renderCurrentLabel() {
     // Prevent UI interaction and show that we're working on loading the next label.
     svv.ui.validationMenu.holder.addClass('validate-disabled');
@@ -136,9 +136,9 @@ class LabelContainer {
   }
 
   /**
-     * Creates a list of label objects to be validated from label metadata. Called when a new mission is loaded.
-     * @param {Array} labelList List of label metadata objects.
-     */
+   * Creates a list of label objects to be validated from label metadata. Called when a new mission is loaded.
+   * @param {Array} labelList List of label metadata objects.
+   */
   resetLabelList(labelList) {
     this.#labels = labelList.map((key) => new Label(key));
     this.#currLabelIndex = 0;
@@ -147,42 +147,42 @@ class LabelContainer {
   }
 
   /**
-     * Sets the callback that will be called after resetLabelList is called. Used by SpeedLimit.js.
-     * @param {function} callback The function that will be called.
-     */
+   * Sets the callback that will be called after resetLabelList is called. Used by SpeedLimit.js.
+   * @param {function} callback The function that will be called.
+   */
   resetLabelListUpdateCallback(callback) {
     this.#labelsUpdateCallback = callback;
   }
 
   /**
-     * Returns a list of labels for the current mission.
-     */
+   * Returns a list of labels for the current mission.
+   */
   getLabels() {
     return this.#labels;
   }
 
   /**
-     * Validates the current label.
-     */
+   * Validates the current label.
+   */
   validateCurrentLabel(action, timestamp, comment) {
     this.#currLabel.validate(action, comment);
     this.setProperty('validationTimestamp', timestamp);
   }
 
   /**
-     * Gets a list of current labels that have not been sent to the backend yet.
-     * @returns {Array}
-     */
+   * Gets a list of current labels that have not been sent to the backend yet.
+   * @returns {Array}
+   */
   getLabelsToSubmit() {
     return this.#labelsToSubmit;
   }
 
   /**
-     * Pushes label metadata to the list of labels that need to be submitted to the backend.
-     * @param {number} labelId Integer label ID.
-     * @param {object} labelMetadata Label metadata (validationProperties object).
-     * @param {object} commentData Comment data (commentProperties object).
-     */
+   * Pushes label metadata to the list of labels that need to be submitted to the backend.
+   * @param {number} labelId Integer label ID.
+   * @param {object} labelMetadata Label metadata (validationProperties object).
+   * @param {object} commentData Comment data (commentProperties object).
+   */
   pushToLabelsToSubmit(labelId, labelMetadata, commentData) {
     // If the most recent label is the same as current (meaning it was an undo), remove the undo and use this one.
     const mostRecentLabel = this.#labelsToSubmit[this.#labelsToSubmit.length - 1];
@@ -220,9 +220,9 @@ class LabelContainer {
   }
 
   /**
-     * Pushes a label object directly (for undo purposes) to the list of current labels.
-     * @param {object} validation The completed label validation object ready to be pushed to the list of labels.
-     */
+   * Pushes a label object directly (for undo purposes) to the list of current labels.
+   * @param {object} validation The completed label validation object ready to be pushed to the list of labels.
+   */
   pushUndoValidation(validation) {
     validation.undone = true;
     validation.redone = false;
@@ -230,15 +230,15 @@ class LabelContainer {
   }
 
   /**
-     * Takes the last label out of the list of labels that have not been submitted to the backend.
-     */
+   * Takes the last label out of the list of labels that have not been submitted to the backend.
+   */
   pop() {
     this.#labelsToSubmit.pop();
   }
 
   /**
-     * Moves the labelsToSubmit to submittedLabels and clears the labelsToSubmit array.
-     */
+   * Moves the labelsToSubmit to submittedLabels and clears the labelsToSubmit array.
+   */
   refresh() {
     this.#submittedLabels.concat(this.#labelsToSubmit);
     this.#labelsToSubmit = [];

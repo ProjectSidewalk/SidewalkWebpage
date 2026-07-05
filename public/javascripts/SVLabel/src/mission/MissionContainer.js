@@ -13,13 +13,13 @@ class MissionContainer {
   /*
     This variable keeps the distance of completed missions minus completed audits to fix the problem that
     is discussed here: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/297#issuecomment-259697107
-     */
+   */
   #tasksMissionsOffset = null;
 
   /**
-     * @param missionPanel Renders the current mission's header and description in the sidebar.
-     * @param missionModel Mission model object.
-     */
+   * @param missionPanel Renders the current mission's header and description in the sidebar.
+   * @param missionModel Mission model object.
+   */
   constructor(missionPanel, missionModel) {
     this.#missionPanel = missionPanel;
 
@@ -56,17 +56,17 @@ class MissionContainer {
   }
 
   /**
-     * Get all the completed missions
-     */
+   * Get all the completed missions
+   */
   getCompletedMissions() {
     return this.#completedMissions;
   }
 
   /**
-     * Get the sum of the distance of all the user's completed missions in this neighborhood.
-     * @param unit
-     * @returns {number}
-     */
+   * Get the sum of the distance of all the user's completed missions in this neighborhood.
+   * @param unit
+   * @returns {number}
+   */
   getCompletedMissionDistance(unit) {
     if (!unit) unit = 'meters';
     let completedDistance = 0;
@@ -77,18 +77,18 @@ class MissionContainer {
   }
 
   /**
-     * Checks if this is the first mission or not.
-     * @returns {boolean}
-     */
+   * Checks if this is the first mission or not.
+   * @returns {boolean}
+   */
   isTheFirstMission() {
     return this.getCompletedMissions().length === 0 && !svl.storage.get('completedFirstMission');
   }
 
   /**
-     * This method sets the current mission
-     * @param mission {object} A Mission object
-     * @returns {MissionContainer}
-     */
+   * This method sets the current mission
+   * @param mission {object} A Mission object
+   * @returns {MissionContainer}
+   */
   setCurrentMission(mission) {
     this.#currentMission = mission;
     this.#missionPanel.setMessage(mission);

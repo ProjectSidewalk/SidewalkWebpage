@@ -3,13 +3,13 @@
  */
 class AdminInfo {
   /**
-     * Saves the pointers to the admin info and template. Adds event listeners to close the popover.
-     *
-     * @param {object} adminUi An object containing jQuery pointers to different elements of the Admin Info UI
-     * @param {jQuery} adminUi.holder A jQuery pointer to the Admin Info button
-     * @param {jQuery} adminUi.button A jQuery pointer to the Admin Info button
-     * @param {jQuery} adminUi.template A jQuery pointer to the template HTML for the admin info popover
-     */
+   * Saves the pointers to the admin info and template. Adds event listeners to close the popover.
+   *
+   * @param {object} adminUi An object containing jQuery pointers to different elements of the Admin Info UI
+   * @param {jQuery} adminUi.holder A jQuery pointer to the Admin Info button
+   * @param {jQuery} adminUi.button A jQuery pointer to the Admin Info button
+   * @param {jQuery} adminUi.template A jQuery pointer to the template HTML for the admin info popover
+   */
   constructor(adminUi) {
     this.$templateAdminContent = adminUi.template;
     this.$adminInfoButton = adminUi.button;
@@ -31,10 +31,10 @@ class AdminInfo {
   }
 
   /**
-     * Updates the HTML in the popover for the Admin Info button on /expertValidate.
-     *
-     * @param {Label} currentLabel The current label shown; we show admin info related to this label
-     */
+   * Updates the HTML in the popover for the Admin Info button on /expertValidate.
+   *
+   * @param {Label} currentLabel The current label shown; we show admin info related to this label
+   */
   updateAdminInfo(currentLabel) {
     const newAdminContent = $(this.$templateAdminContent.html());
 

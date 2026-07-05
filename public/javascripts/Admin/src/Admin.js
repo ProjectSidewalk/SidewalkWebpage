@@ -25,11 +25,11 @@ class Admin {
   #mapData;
 
   /**
-     * @param {Function} $ - jQuery.
-     * @param {string} mapboxApiKey
-     * @param {Function} viewerType - Pano viewer constructor.
-     * @param {string} viewerAccessToken
-     */
+   * @param {Function} $ - jQuery.
+   * @param {string} mapboxApiKey
+   * @param {Function} viewerType - Pano viewer constructor.
+   * @param {string} viewerAccessToken
+   */
   constructor($, mapboxApiKey, viewerType, viewerAccessToken) {
     this.#jquery = $;
     this.#viewerType = viewerType;
@@ -51,18 +51,18 @@ class Admin {
   }
 
   /**
-     * Builds the Admin controller, awaiting the shared label popup before wiring up the tabs.
-     *
-     * Async because the label popup viewer must exist before the map params are assembled; a constructor
-     * cannot be async, so callers use this factory instead.
-     *
-     * @param {Function} $ - jQuery.
-     * @param {string} mapboxApiKey
-     * @param {Function} viewerType
-     * @param {string} viewerAccessToken
-     * @param {string} currentUsername
-     * @returns {Promise<Admin>}
-     */
+   * Builds the Admin controller, awaiting the shared label popup before wiring up the tabs.
+   *
+   * Async because the label popup viewer must exist before the map params are assembled; a constructor
+   * cannot be async, so callers use this factory instead.
+   *
+   * @param {Function} $ - jQuery.
+   * @param {string} mapboxApiKey
+   * @param {Function} viewerType
+   * @param {string} viewerAccessToken
+   * @param {string} currentUsername
+   * @returns {Promise<Admin>}
+   */
   static async create($, mapboxApiKey, viewerType, viewerAccessToken, currentUsername) {
     const admin = new Admin($, mapboxApiKey, viewerType, viewerAccessToken);
     admin.#labelPopup = await LabelPopup(true, viewerType, viewerAccessToken, currentUsername);
@@ -1312,9 +1312,9 @@ class Admin {
   }
 
   /**
-     * Fetches street coverage stats and fills in the Street Edge and Overview tables.
-     * @returns {Promise<void>} Resolves once the tables have been populated.
-     */
+   * Fetches street coverage stats and fills in the Street Edge and Overview tables.
+   * @returns {Promise<void>} Resolves once the tables have been populated.
+   */
   static loadStreetEdgeData() {
     return new Promise((resolve) => {
       $.getJSON('/adminapi/getCoverageData', (data) => {
@@ -1373,9 +1373,9 @@ class Admin {
   }
 
   /**
-     * Fetches contributor counts and fills in the user count cells across the dashboard tables.
-     * @returns {Promise<void>} Resolves once the counts have been filled in.
-     */
+   * Fetches contributor counts and fills in the user count cells across the dashboard tables.
+   * @returns {Promise<void>} Resolves once the counts have been filled in.
+   */
   static loadUserCountData() {
     return new Promise((resolve) => {
       $.getJSON('/adminapi/getNumUsersContributed', (data) => {
@@ -1391,9 +1391,9 @@ class Admin {
   }
 
   /**
-     * Fetches contribution time stats and fills in the corresponding dashboard cells.
-     * @returns {Promise<void>} Resolves once the stats have been filled in.
-     */
+   * Fetches contribution time stats and fills in the corresponding dashboard cells.
+   * @returns {Promise<void>} Resolves once the stats have been filled in.
+   */
   static loadContributionTimeData() {
     return new Promise((resolve) => {
       $.getJSON('/adminapi/getContributionTimeStats', (data) => {
@@ -1408,9 +1408,9 @@ class Admin {
   }
 
   /**
-     * Fetches label counts per label type and fills in the corresponding dashboard cells.
-     * @returns {Promise<void>} Resolves once the counts have been filled in.
-     */
+   * Fetches label counts per label type and fills in the corresponding dashboard cells.
+   * @returns {Promise<void>} Resolves once the counts have been filled in.
+   */
   static loadLabelCountData() {
     return new Promise((resolve) => {
       $.getJSON('/adminapi/getLabelCountStats', (data) => {
@@ -1423,9 +1423,9 @@ class Admin {
   }
 
   /**
-     * Fetches validation counts and fills in the Overview activities table and the Analytics per-label-type table.
-     * @returns {Promise<void>} Resolves once the tables have been populated.
-     */
+   * Fetches validation counts and fills in the Overview activities table and the Analytics per-label-type table.
+   * @returns {Promise<void>} Resolves once the tables have been populated.
+   */
   static loadValidationCountData() {
     return new Promise((resolve) => {
       $.getJSON('/adminapi/getValidationCountStats', (data) => {
@@ -1464,9 +1464,9 @@ class Admin {
   }
 
   /**
-     * Fetches recent comments and adds them to the comments DataTable.
-     * @returns {Promise<void>} Resolves once the table has been populated; rejects if the request fails.
-     */
+   * Fetches recent comments and adds them to the comments DataTable.
+   * @returns {Promise<void>} Resolves once the table has been populated; rejects if the request fails.
+   */
   static loadComments() {
     return new Promise((resolve, reject) => {
       $.getJSON('/adminapi/getRecentComments', (data) => {
@@ -1495,9 +1495,9 @@ class Admin {
   }
 
   /**
-     * Fetches recent label metadata and adds it to the labels DataTable.
-     * @returns {Promise<void>} Resolves once the table has been populated; rejects if the request fails.
-     */
+   * Fetches recent label metadata and adds it to the labels DataTable.
+   * @returns {Promise<void>} Resolves once the table has been populated; rejects if the request fails.
+   */
   static loadLabels() {
     return new Promise((resolve, reject) => {
       $.getJSON('/adminapi/getRecentLabelMetadata', (data) => {
@@ -1530,9 +1530,9 @@ class Admin {
   }
 
   /**
-     * Fetches user stats, adds them to the users DataTable, and wires up the role/team dropdowns.
-     * @returns {Promise<void>} Resolves once the table has been populated; rejects if the request fails.
-     */
+   * Fetches user stats, adds them to the users DataTable, and wires up the role/team dropdowns.
+   * @returns {Promise<void>} Resolves once the table has been populated; rejects if the request fails.
+   */
   static loadUserStats() {
     return new Promise((resolve, reject) => {
       $.getJSON('/adminapi/getUserStats', (data) => {
@@ -1607,9 +1607,9 @@ class Admin {
   }
 
   /**
-     * Fetches the list of teams and adds them to the teams DataTable.
-     * @returns {Promise<void>} Resolves once the table has been populated; rejects if the request fails.
-     */
+   * Fetches the list of teams and adds them to the teams DataTable.
+   * @returns {Promise<void>} Resolves once the table has been populated; rejects if the request fails.
+   */
   static loadTeams() {
     return new Promise((resolve, reject) => {
       $.getJSON('/userapi/getTeams', (data) => {

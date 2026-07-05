@@ -7,14 +7,14 @@
  */
 class MiniLineChart {
   /**
-     * @param {string[]} categories - x-axis labels (one per data index).
-     * @param {Array<{name: string, key: string, values: Array<number|null>, tooltips?: string[]}>} series -
-     *   each series' values align to `categories`; null = gap. Optional per-point tooltip strings.
-     * @param {{yMax?: number, tickFormat?: function(number): string, valueFormat?: function(number): string,
-     *          ariaLabel?: string, dotRadius?: number}} [opts] - yMax defaults to the data max; tickFormat labels the
-     *   y-axis; valueFormat formats values in the default tooltip; dotRadius sizes the point markers (default 3).
-     * @returns {string} SVG markup plus an optional HTML legend.
-     */
+   * @param {string[]} categories - x-axis labels (one per data index).
+   * @param {Array<{name: string, key: string, values: Array<number|null>, tooltips?: string[]}>} series -
+   *   each series' values align to `categories`; null = gap. Optional per-point tooltip strings.
+   * @param {{yMax?: number, tickFormat?: function(number): string, valueFormat?: function(number): string,
+   *          ariaLabel?: string, dotRadius?: number}} [opts] - yMax defaults to the data max; tickFormat labels the
+   *   y-axis; valueFormat formats values in the default tooltip; dotRadius sizes the point markers (default 3).
+   * @returns {string} SVG markup plus an optional HTML legend.
+   */
   static svg(categories, series, opts = {}) {
     const W = opts.width || 760;
     const H = 220;
@@ -73,15 +73,15 @@ class MiniLineChart {
   }
 
   /**
-     * Renders the chart into a container sized to the container's *current pixel width*, and re-renders on resize. This
-     * keeps the chart full-width and responsive while font sizes, line widths, and dot radii stay a constant on-screen
-     * size — a fixed-viewBox SVG stretched to 100% width would scale all of those up together on wide screens.
-     *
-     * @param {HTMLElement} container - The element to render into (its innerHTML is replaced).
-     * @param {string[]} categories - x-axis labels (see svg()).
-     * @param {Array<object>} series - data series (see svg()).
-     * @param {object} [opts] - same options as svg(); `width` is supplied automatically from the container.
-     */
+   * Renders the chart into a container sized to the container's *current pixel width*, and re-renders on resize. This
+   * keeps the chart full-width and responsive while font sizes, line widths, and dot radii stay a constant on-screen
+   * size — a fixed-viewBox SVG stretched to 100% width would scale all of those up together on wide screens.
+   *
+   * @param {HTMLElement} container - The element to render into (its innerHTML is replaced).
+   * @param {string[]} categories - x-axis labels (see svg()).
+   * @param {Array<object>} series - data series (see svg()).
+   * @param {object} [opts] - same options as svg(); `width` is supplied automatically from the container.
+   */
   static renderInto(container, categories, series, opts = {}) {
     if (!container) return;
     // Store the latest draw on the container so a persistent container re-rendered with new data (e.g. a trend that

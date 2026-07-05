@@ -35,9 +35,9 @@ function createPanoViewerLogo(container, primaryViewerType) {
   container.appendChild(holder);
 
   /**
-     * Shows the logo for the given viewer type.
-     * @param {typeof PanoViewer} viewerType
-     */
+   * Shows the logo for the given viewer type.
+   * @param {typeof PanoViewer} viewerType
+   */
   function showLogo(viewerType) {
     const info = LOGOS.get(viewerType);
     if (!info) return;
@@ -49,8 +49,8 @@ function createPanoViewerLogo(container, primaryViewerType) {
 
   return {
     /**
-         * Shows the logo for the primary viewer, or hides the overlay for GSV (which provides its own branding).
-         */
+     * Shows the logo for the primary viewer, or hides the overlay for GSV (which provides its own branding).
+     */
     showPrimaryLogo() {
       if (primaryViewerType === GsvViewer) {
         holder.style.display = 'none';
@@ -60,8 +60,8 @@ function createPanoViewerLogo(container, primaryViewerType) {
     },
 
     /**
-         * Shows the source logo for the primary viewer's imagery. Used when Pannellum is active.
-         */
+     * Shows the source logo for the primary viewer's imagery. Used when Pannellum is active.
+     */
     showSourceLogo() {
       showLogo(primaryViewerType);
     },

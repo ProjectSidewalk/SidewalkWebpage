@@ -11,10 +11,10 @@ class AppManager {
   }
 
   /**
-     * Add an initialization task to be executed during page setup.
-     * @param {string} name - Name of the task for debugging purposes.
-     * @param {Function} taskFunction - Function that returns a Promise or executes synchronously.
-     */
+   * Add an initialization task to be executed during page setup.
+   * @param {string} name - Name of the task for debugging purposes.
+   * @param {Function} taskFunction - Function that returns a Promise or executes synchronously.
+   */
   addInitTask(name, taskFunction) {
     if (this.initPromise) {
       console.warn(`Cannot add init task '${name}' - initialization already started`);
@@ -25,12 +25,12 @@ class AppManager {
   }
 
   /**
-     * Initialize all registered tasks and built-in page setup.
-     * @param {string} csrfToken The CSRF token to attach to outgoing AJAX/fetch requests.
-     * @param {object} i18nextParams Parameters for i18next initialization (see _setupI18next).
-     * @param {object} [globals] Map of variable names to values to attach to `window` for global access.
-     * @returns {Promise} Promise that resolves when all initialization is complete.
-     */
+   * Initialize all registered tasks and built-in page setup.
+   * @param {string} csrfToken The CSRF token to attach to outgoing AJAX/fetch requests.
+   * @param {object} i18nextParams Parameters for i18next initialization (see _setupI18next).
+   * @param {object} [globals] Map of variable names to values to attach to `window` for global access.
+   * @returns {Promise} Promise that resolves when all initialization is complete.
+   */
   init(csrfToken, i18nextParams, globals = {}) {
     // Prevent multiple initializations.
     if (this.initPromise) {
@@ -70,10 +70,10 @@ class AppManager {
   }
 
   /**
-     * Register a callback to be executed when the page setup is fully finished.
-     * If the setup is already done, the callback is executed immediately.
-     * @param {Function} callback - Function to execute when ready.
-     */
+   * Register a callback to be executed when the page setup is fully finished.
+   * If the setup is already done, the callback is executed immediately.
+   * @param {Function} callback - Function to execute when ready.
+   */
   ready(callback) {
     if (typeof callback !== 'function') {
       console.warn('AppManager.ready() expects a function as argument');
@@ -88,10 +88,10 @@ class AppManager {
   }
 
   /**
-     * Attach the given key/value pairs to the `window` object so they're accessible from any script on the page.
-     * @param {object} globals Map of global variable names to their values.
-     * @private
-     */
+   * Attach the given key/value pairs to the `window` object so they're accessible from any script on the page.
+   * @param {object} globals Map of global variable names to their values.
+   * @private
+   */
   _setupGlobals(globals) {
     for (const [key, value] of Object.entries(globals)) {
       window[key] = value;
@@ -99,9 +99,9 @@ class AppManager {
   }
 
   /**
-     * Set up CSRF token for all AJAX and fetch requests.
-     * @private
-     */
+   * Set up CSRF token for all AJAX and fetch requests.
+   * @private
+   */
   _setupCSRF(csrfToken) {
     // Set up CSRF token for all AJAX requests.
     $.ajaxSetup({
@@ -144,16 +144,16 @@ class AppManager {
   }
 
   /**
-     * Initialize i18next with the given language and namespaces. Handles country-specific overrides.
-     *
-     * @param {object} params - Properties that determine which translations should be loaded.
-     * @param {string} params.language - The language to use for translations, e.g., "en", "en-US", "es", etc.
-     * @param {string} params.defaultNS The default namespace to use if no specific ns is provided, e.g., "common"
-     * @param {Array<string>} params.namespaces An array of namespaces to load, e.g., ["common", "explore"]
-     * @param {string} params.countryId The server's country ID to determine if we load country-specific overrides
-     * @returns {Promise} Promise that resolves when i18next is ready.
-     * @private
-     */
+   * Initialize i18next with the given language and namespaces. Handles country-specific overrides.
+   *
+   * @param {object} params - Properties that determine which translations should be loaded.
+   * @param {string} params.language - The language to use for translations, e.g., "en", "en-US", "es", etc.
+   * @param {string} params.defaultNS The default namespace to use if no specific ns is provided, e.g., "common"
+   * @param {Array<string>} params.namespaces An array of namespaces to load, e.g., ["common", "explore"]
+   * @param {string} params.countryId The server's country ID to determine if we load country-specific overrides
+   * @returns {Promise} Promise that resolves when i18next is ready.
+   * @private
+   */
   _setupI18next(params) {
     // Set up country-specific namespace overrides.
     let namespaces = params.namespaces;
@@ -200,9 +200,9 @@ class AppManager {
   }
 
   /**
-     * Set up logWebpageActivity function to be used anywhere on the site.
-     * @private
-     */
+   * Set up logWebpageActivity function to be used anywhere on the site.
+   * @private
+   */
   _setupLogging() {
     // NOTE We are setting async as false by default since this is primarily used before a redirect.
     window.logWebpageActivity = function (activity, async = false) {
@@ -221,10 +221,10 @@ class AppManager {
   }
 
   /**
-     * Execute all registered initialization tasks.
-     * @returns {Promise} Promise that resolves when all tasks complete.
-     * @private
-     */
+   * Execute all registered initialization tasks.
+   * @returns {Promise} Promise that resolves when all tasks complete.
+   * @private
+   */
   async _executeInitTasks() {
     for (const task of this.initTasks) {
       try {
@@ -242,9 +242,9 @@ class AppManager {
   }
 
   /**
-     * Execute all queued ready callbacks.
-     * @private
-     */
+   * Execute all queued ready callbacks.
+   * @private
+   */
   _executeReadyCallbacks() {
     while (this.readyCallbacks.length > 0) {
       const callback = this.readyCallbacks.shift();

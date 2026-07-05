@@ -11,10 +11,10 @@ class AdminCommentPopup {
   #panoManager;
 
   /**
-     * @param {boolean} admin - Whether the viewer is an admin (selects the admin label endpoint).
-     * @param {Function} viewerType - Pano viewer constructor; only GsvViewer is currently supported.
-     * @param {string} viewerAccessToken
-     */
+   * @param {boolean} admin - Whether the viewer is an admin (selects the admin label endpoint).
+   * @param {Function} viewerType - Pano viewer constructor; only GsvViewer is currently supported.
+   * @param {string} viewerAccessToken
+   */
   constructor(admin, viewerType, viewerAccessToken) {
     this.#admin = admin;
     this.#viewerType = viewerType;
@@ -22,15 +22,15 @@ class AdminCommentPopup {
   }
 
   /**
-     * Builds the modal and (for GSV) pre-initializes its pano viewer.
-     *
-     * Async because the pano viewer must be created before the popup is usable; a constructor cannot be async.
-     *
-     * @param {boolean} admin
-     * @param {Function} viewerType
-     * @param {string} viewerAccessToken
-     * @returns {Promise<AdminCommentPopup>}
-     */
+   * Builds the modal and (for GSV) pre-initializes its pano viewer.
+   *
+   * Async because the pano viewer must be created before the popup is usable; a constructor cannot be async.
+   *
+   * @param {boolean} admin
+   * @param {Function} viewerType
+   * @param {string} viewerAccessToken
+   * @returns {Promise<AdminCommentPopup>}
+   */
   static async create(admin, viewerType, viewerAccessToken) {
     const popup = new AdminCommentPopup(admin, viewerType, viewerAccessToken);
     await popup.#resetModal();
@@ -38,9 +38,9 @@ class AdminCommentPopup {
   }
 
   /**
-     * Builds the modal DOM and, for GSV, initializes the pano viewer while the modal is briefly shown hidden.
-     * @returns {Promise<void>} Resolves once the pano viewer has loaded and the modal has been closed again.
-     */
+   * Builds the modal DOM and, for GSV, initializes the pano viewer while the modal is briefly shown hidden.
+   * @returns {Promise<void>} Resolves once the pano viewer has loaded and the modal has been closed again.
+   */
   #resetModal() {
     const modalText = `
             <div class="modal fade" id="comment-modal" tabindex="-1" role="dialog" aria-labelledby="modal-comment">
@@ -93,12 +93,12 @@ class AdminCommentPopup {
   }
 
   /**
-     * Shows the popup showing the GSV location where a user added a comment, along with a label if there is one.
-     * @param {string} panoId
-     * @param {{heading: number, pitch: number, zoom: number}} pov
-     * @param {number} [labelId]
-     * @returns {Promise<void>}
-     */
+   * Shows the popup showing the GSV location where a user added a comment, along with a label if there is one.
+   * @param {string} panoId
+   * @param {{heading: number, pitch: number, zoom: number}} pov
+   * @param {number} [labelId]
+   * @returns {Promise<void>}
+   */
   async showCommentGSV(panoId, pov, labelId) {
     // Open the modal. Listening to an event to know when it's fully open.
     const modalOpened = new Promise((resolve) => {
@@ -131,9 +131,9 @@ class AdminCommentPopup {
   }
 
   /**
-     * Renders the given label inside the popup's pano viewer.
-     * @param {Object} labelMetadata - Label metadata from the admin/label API.
-     */
+   * Renders the given label inside the popup's pano viewer.
+   * @param {Object} labelMetadata - Label metadata from the admin/label API.
+   */
   #setLabel(labelMetadata) {
     const labelPov = {
       heading: labelMetadata.heading,

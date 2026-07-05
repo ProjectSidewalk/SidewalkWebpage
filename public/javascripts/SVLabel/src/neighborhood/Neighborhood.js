@@ -11,8 +11,8 @@ class Neighborhood {
   };
 
   /**
-     * @param {Object} parameters - May contain regionId, geoJSON, and name.
-     */
+   * @param {Object} parameters - May contain regionId, geoJSON, and name.
+   */
   constructor(parameters) {
     if ('regionId' in parameters) {
       this.setProperty('regionId', parameters.regionId);
@@ -23,9 +23,9 @@ class Neighborhood {
   }
 
   /**
-     * @param {Object} [unit] - Turf-style units object; defaults to kilometers.
-     * @returns {?number} Distance the user has completed in this neighborhood, or null if unavailable.
-     */
+   * @param {Object} [unit] - Turf-style units object; defaults to kilometers.
+   * @returns {?number} Distance the user has completed in this neighborhood, or null if unavailable.
+   */
   completedLineDistance(unit) {
     if (!unit) unit = { units: 'kilometers' };
     if ('taskContainer' in svl && svl.taskContainer) {
@@ -36,8 +36,8 @@ class Neighborhood {
   }
 
   /**
-     * @returns {?number} Completed distance across all users (using priority), or null if unavailable.
-     */
+   * @returns {?number} Completed distance across all users (using priority), or null if unavailable.
+   */
   completedLineDistanceAcrossAllUsersUsingPriority() {
     if ('taskContainer' in svl && svl.taskContainer) {
       return svl.taskContainer.getCompletedTaskDistanceAcrossAllUsersUsingPriority();
@@ -47,34 +47,34 @@ class Neighborhood {
   }
 
   /**
-     * @param {string} key
-     * @returns {*} The property value, or null if not present.
-     */
+   * @param {string} key
+   * @returns {*} The property value, or null if not present.
+   */
   getProperty(key) {
     return key in this.#properties ? this.#properties[key] : null;
   }
 
   /**
-     * @param {string} key
-     * @param {*} value
-     * @returns {Neighborhood} this, for chaining.
-     */
+   * @param {string} key
+   * @param {*} value
+   * @returns {Neighborhood} this, for chaining.
+   */
   setProperty(key, value) {
     this.#properties[key] = value;
     return this;
   }
 
   /**
-     * @returns {*} Region id of this neighborhood.
-     */
+   * @returns {*} Region id of this neighborhood.
+   */
   getRegionId() {
     return this.getProperty('regionId');
   }
 
   /**
-     * @param {Object} [unit] - Turf-style units object; defaults to kilometers.
-     * @returns {?number} Total street distance in this neighborhood, or null if unavailable.
-     */
+   * @param {Object} [unit] - Turf-style units object; defaults to kilometers.
+   * @returns {?number} Total street distance in this neighborhood, or null if unavailable.
+   */
   totalLineDistanceInNeighborhood(unit) {
     if (!unit) unit = { units: 'kilometers' };
     if ('taskContainer' in svl && svl.taskContainer) {
@@ -85,8 +85,8 @@ class Neighborhood {
   }
 
   /**
-     * @returns {?Object} The neighborhood's GeoJSON, or null if not set.
-     */
+   * @returns {?Object} The neighborhood's GeoJSON, or null if not set.
+   */
   getGeoJSON() {
     return this.#properties.geoJSON ? this.#properties.geoJSON : null;
   }

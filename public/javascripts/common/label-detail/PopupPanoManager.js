@@ -45,10 +45,10 @@ class PopupPanoManager {
   };
 
   /**
-     * @param {boolean} admin - Whether the user is an admin (enables pano navigation).
-     * @param {typeof PanoViewer} viewerType - The type of pano viewer to initialize.
-     * @param {string} viewerAccessToken - Access token for requesting pano viewer images.
-     */
+   * @param {boolean} admin - Whether the user is an admin (enables pano navigation).
+   * @param {typeof PanoViewer} viewerType - The type of pano viewer to initialize.
+   * @param {string} viewerAccessToken - Access token for requesting pano viewer images.
+   */
   constructor(admin, viewerType, viewerAccessToken) {
     this.#admin = admin;
     this.#viewerType = viewerType;
@@ -56,17 +56,17 @@ class PopupPanoManager {
   }
 
   /**
-     * Builds a PopupPanoManager and initializes its pano viewer.
-     *
-     * Async because the pano viewer must be created before the manager is usable; a constructor cannot be async.
-     *
-     * @param {Element} svHolder - One single DOM element.
-     * @param {Element} buttonHolder - DOM element that holds the validation buttons.
-     * @param {boolean} admin
-     * @param {typeof PanoViewer} viewerType
-     * @param {string} viewerAccessToken
-     * @returns {Promise<PopupPanoManager>}
-     */
+   * Builds a PopupPanoManager and initializes its pano viewer.
+   *
+   * Async because the pano viewer must be created before the manager is usable; a constructor cannot be async.
+   *
+   * @param {Element} svHolder - One single DOM element.
+   * @param {Element} buttonHolder - DOM element that holds the validation buttons.
+   * @param {boolean} admin
+   * @param {typeof PanoViewer} viewerType
+   * @param {string} viewerAccessToken
+   * @returns {Promise<PopupPanoManager>}
+   */
   static async create(svHolder, buttonHolder, admin, viewerType, viewerAccessToken) {
     const manager = new PopupPanoManager(admin, viewerType, viewerAccessToken);
     await manager.#init(svHolder, buttonHolder);
@@ -74,10 +74,10 @@ class PopupPanoManager {
   }
 
   /**
-     * Initializes the panorama and its fallback viewers.
-     * @param {Element} svHolder
-     * @param {Element} buttonHolder
-     */
+   * Initializes the panorama and its fallback viewers.
+   * @param {Element} svHolder
+   * @param {Element} buttonHolder
+   */
   async #init(svHolder, buttonHolder) {
     this.#buttonHolder = $(buttonHolder);
     this.svHolder = $(svHolder);
@@ -90,18 +90,11 @@ class PopupPanoManager {
 
     // Panorama will be added to panoCanvas. Use 100%/100% so the viewer fills the CSS-driven container
     // rather than locking in whatever pixel dimensions the element happened to measure at init time.
-    this.#panoCanvas = $('<div id=\'pano\'>').css({
-      width: '100%',
-      height: '100%',
-    })[0];
+    this.#panoCanvas = $('<div id=\'pano\'>').css({ width: '100%', height: '100%' })[0];
 
     // Separate container for the Pannellum fallback viewer. Created up-front but only mounted with a Pannellum
     // instance when we hit an expired pano that has a self-hosted copy.
-    this.#pannellumCanvas = $('<div id=\'pano-pannellum\'>').css({
-      width: '100%',
-      height: '100%',
-      display: 'none',
-    })[0];
+    this.#pannellumCanvas = $('<div id=\'pano-pannellum\'>').css({ width: '100%', height: '100%', display: 'none' })[0];
 
     this.#panoNotAvailable = $(`<div id='pano-not-avail'>${i18next.t('common:errors.title')}</div>`).css({
       'font-size': '200%',
@@ -195,8 +188,8 @@ class PopupPanoManager {
   }
 
   /**
-     * Clears all labels from the panorama.
-     */
+   * Clears all labels from the panorama.
+   */
   clearLabels() {
     for (const marker of this.#labelMarkers) {
       marker.marker.removeMarker();
@@ -205,10 +198,10 @@ class PopupPanoManager {
   }
 
   /**
-     * Fetches backup image metadata from the backend for Pannellum fallback.
-     * @param {string} panoId
-     * @returns {Promise<Object|null>} The metadata, or null if none exists.
-     */
+   * Fetches backup image metadata from the backend for Pannellum fallback.
+   * @param {string} panoId
+   * @returns {Promise<Object|null>} The metadata, or null if none exists.
+   */
   async #fetchBackupImageMetadata(panoId) {
     try {
       const res = await fetch(`/backupImage/${encodeURIComponent(panoId)}/metadata`);
@@ -219,19 +212,19 @@ class PopupPanoManager {
   }
 
   /**
-     * Sets the panorama ID and POV from label metadata. Fallback chain, in order of preference:
-     *   1. Live primary viewer (GSV/Mapillary/Infra3d) — skipped if `expired` is set.
-     *   2. Self-hosted Pannellum copy from /backupImage/:panoId — used when `backupImage` is provided.
-     *   3. Static screenshot at `cropUrl`.
-     *   4. "Imagery not available" error message.
-     *
-     * @param {string} panoId
-     * @param {{heading: number, pitch: number, zoom: number}} pov
-     * @param {?string} cropUrl - URL for the screenshot fallback image, if available.
-     * @param {boolean} [expired=false] - When true, skips the live attempt (imagery known to be expired).
-     * @param {?Object} [backupImage=null] - Self-hosted pano metadata; fetched lazily from the backend if null.
-     * @returns {Promise<boolean>} Whether live/Pannellum imagery was shown (false if it fell back to a crop/error).
-     */
+   * Sets the panorama ID and POV from label metadata. Fallback chain, in order of preference:
+   *   1. Live primary viewer (GSV/Mapillary/Infra3d) — skipped if `expired` is set.
+   *   2. Self-hosted Pannellum copy from /backupImage/:panoId — used when `backupImage` is provided.
+   *   3. Static screenshot at `cropUrl`.
+   *   4. "Imagery not available" error message.
+   *
+   * @param {string} panoId
+   * @param {{heading: number, pitch: number, zoom: number}} pov
+   * @param {?string} cropUrl - URL for the screenshot fallback image, if available.
+   * @param {boolean} [expired=false] - When true, skips the live attempt (imagery known to be expired).
+   * @param {?Object} [backupImage=null] - Self-hosted pano metadata; fetched lazily from the backend if null.
+   * @returns {Promise<boolean>} Whether live/Pannellum imagery was shown (false if it fell back to a crop/error).
+   */
   async setPano(panoId, pov, cropUrl, expired = false, backupImage = null) {
     this.#cropUrl = typeof cropUrl === 'string' ? cropUrl : null;
     this.svHolder.css('visibility', 'hidden'); // Hide until we've finished rendering.
@@ -280,8 +273,8 @@ class PopupPanoManager {
   }
 
   /**
-     * Hides the Pannellum canvas and points panoViewer back at the primary viewer.
-     */
+   * Hides the Pannellum canvas and points panoViewer back at the primary viewer.
+   */
   #teardownPannellum() {
     $(this.#pannellumCanvas).css('display', 'none');
     this.panoViewer = this.#primaryViewer;
@@ -289,11 +282,11 @@ class PopupPanoManager {
   }
 
   /**
-     * Shows the Pannellum viewer for the given pano. Creates the viewer on the first call, then reused on later calls.
-     *
-     * @param {Object} backupImage
-     * @param {{heading: number, pitch: number, zoom: number}} pov
-     */
+   * Shows the Pannellum viewer for the given pano. Creates the viewer on the first call, then reused on later calls.
+   *
+   * @param {Object} backupImage
+   * @param {{heading: number, pitch: number, zoom: number}} pov
+   */
   async #showPannellumPano(backupImage, pov) {
     // Hide primary canvas, fallback image, and any error messages.
     $(this.#panoCanvas).css('display', 'none');
@@ -322,10 +315,10 @@ class PopupPanoManager {
   }
 
   /**
-     * Refreshes all views for the new pano and saves historic pano metadata.
-     * @param {{heading: number, pitch: number, zoom: number}} targetPov - The desired pov to set for the pano.
-     * @returns {Promise<void>} Resolves once the pano and label have rendered.
-     */
+   * Refreshes all views for the new pano and saves historic pano metadata.
+   * @param {{heading: number, pitch: number, zoom: number}} targetPov - The desired pov to set for the pano.
+   * @returns {Promise<void>} Resolves once the pano and label have rendered.
+   */
   async #panoSuccessCallback(targetPov) {
     // Show the pano, hide the fallback image and error messages.
     $(this.#panoCanvas).css('display', 'block');
@@ -349,9 +342,9 @@ class PopupPanoManager {
   }
 
   /**
-     * Shows an error message (or the crop fallback) if the pano fails to load.
-     * @returns {Promise<void>}
-     */
+   * Shows an error message (or the crop fallback) if the pano fails to load.
+   * @returns {Promise<void>}
+   */
   #panoFailureCallback() {
     $(this.#panoCanvas).css('display', 'none');
     if (this.#cropUrl) {
@@ -383,15 +376,15 @@ class PopupPanoManager {
   }
 
   /**
-     * @param {Object} label - Plain-object label shape (see renderLabel).
-     */
+   * @param {Object} label - Plain-object label shape (see renderLabel).
+   */
   setLabel(label) {
     this.label = label;
   }
 
   /**
-     * Resets the fallback image's zoom/pan back to the identity transform.
-     */
+   * Resets the fallback image's zoom/pan back to the identity transform.
+   */
   #resetFallbackTransform() {
     if (!this.#fallbackPanzoom) return;
     this.#fallbackPanzoom.zoomAbs(0, 0, 1);
@@ -399,8 +392,8 @@ class PopupPanoManager {
   }
 
   /**
-     * Repositions the fallback marker to track the current panzoom transform of the fallback image.
-     */
+   * Repositions the fallback marker to track the current panzoom transform of the fallback image.
+   */
   #updateFallbackMarkerPosition() {
     if (!this.label || !this.#fallbackPanzoom) return;
     if (this.#fallbackMarker.style.display === 'none') return;
@@ -417,11 +410,11 @@ class PopupPanoManager {
   }
 
   /**
-     * Renders a PanoMarker (label) onto a Streetview Panorama.
-     * @param {Object} label - Plain-object label shape produced by LabelPopup / Admin.Task / Admin.CommentPopup.
-     *   Expected fields: labelId, label_type, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight, pov,
-     *   streetEdgeId, oldSeverity, newSeverity, oldTags, newTags, aiGenerated.
-     */
+   * Renders a PanoMarker (label) onto a Streetview Panorama.
+   * @param {Object} label - Plain-object label shape produced by LabelPopup / Admin.Task / Admin.CommentPopup.
+   *   Expected fields: labelId, label_type, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight, pov,
+   *   streetEdgeId, oldSeverity, newSeverity, oldTags, newTags, aiGenerated.
+   */
   renderLabel(label) {
     const pos = util.pano.canvasCoordToCenteredPov(
       label.pov, label.canvasX, label.canvasY, label.originalCanvasWidth, label.originalCanvasHeight,
@@ -443,9 +436,9 @@ class PopupPanoManager {
   }
 
   /**
-     * Adds the AI-generated indicator (and its tooltip) to a marker if it doesn't already have one.
-     * @param {PanoMarker} panoMarker
-     */
+   * Adds the AI-generated indicator (and its tooltip) to a marker if it doesn't already have one.
+   * @param {PanoMarker} panoMarker
+   */
   #attachAiIndicatorToMarker(panoMarker) {
     if (!panoMarker.marker_.querySelector('.admin-ai-icon-marker')) {
       const indicator = AiLabelIndicator(['admin-ai-icon-marker']);
@@ -455,18 +448,18 @@ class PopupPanoManager {
   }
 
   /**
-     * Calculates heading & position for placing this Label onto the pano from the same POV when the label was placed.
-     * @returns {{heading: number, pitch: number}}
-     */
+   * Calculates heading & position for placing this Label onto the pano from the same POV when the label was placed.
+   * @returns {{heading: number, pitch: number}}
+   */
   getOriginalPosition() {
     return util.pano.canvasCoordToCenteredPov(this.label.pov, this.label.canvasX, this.label.canvasY,
       this.label.originalCanvasWidth, this.label.originalCanvasHeight);
   }
 
   /**
-     * Returns the pov of the viewer.
-     * @returns {{heading: number, pitch: number, zoom: number}}
-     */
+   * Returns the pov of the viewer.
+   * @returns {{heading: number, pitch: number, zoom: number}}
+   */
   getPov() {
     const pov = this.panoViewer.getPov();
 

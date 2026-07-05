@@ -61,11 +61,11 @@ class ApiAnalyticsPage {
   }
 
   /**
-     * External-vs-docs call volume over time, drawn with the shared MiniLineChart. Buckets by day for the dated ranges
-     * (30/90) and by month for "All time" (readable over long spans). The axis is continuous and zero-filled, and
-     * always ends at *today* so the right edge reads as "now" rather than the last day that happened to have traffic
-     * (which also keeps gaps honest instead of collapsing them into adjacent points).
-     */
+   * External-vs-docs call volume over time, drawn with the shared MiniLineChart. Buckets by day for the dated ranges
+   * (30/90) and by month for "All time" (readable over long spans). The axis is continuous and zero-filled, and
+   * always ends at *today* so the right edge reads as "now" rather than the last day that happened to have traffic
+   * (which also keeps gaps honest instead of collapsing them into adjacent points).
+   */
   #renderTrend(d) {
     const el = document.getElementById('api-trend');
     if (!(d.total_calls > 0)) {
@@ -100,15 +100,15 @@ class ApiAnalyticsPage {
   }
 
   /**
-     * Builds the continuous list of bucket keys for the trend axis, always ending at today so the chart's right edge
-     * reads as "now". Dated ranges span the selected window (extended back if a boundary call predates it); "All time"
-     * spans from the first month with data. Buckets the caller has no data for are absent here and get zero-filled.
-     *
-     * @param {string} firstDataKey - Earliest bucket key present in the data ('YYYY-MM-DD' or 'YYYY-MM').
-     * @param {boolean} monthly - Month buckets (All time) vs day buckets (dated ranges).
-     * @param {number} days - Selected range in days (0 = all time).
-     * @returns {string[]} Ordered bucket keys from the start through today.
-     */
+   * Builds the continuous list of bucket keys for the trend axis, always ending at today so the chart's right edge
+   * reads as "now". Dated ranges span the selected window (extended back if a boundary call predates it); "All time"
+   * spans from the first month with data. Buckets the caller has no data for are absent here and get zero-filled.
+   *
+   * @param {string} firstDataKey - Earliest bucket key present in the data ('YYYY-MM-DD' or 'YYYY-MM').
+   * @param {boolean} monthly - Month buckets (All time) vs day buckets (dated ranges).
+   * @param {number} days - Selected range in days (0 = all time).
+   * @returns {string[]} Ordered bucket keys from the start through today.
+   */
   static #axisKeys(firstDataKey, monthly, days) {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -143,13 +143,13 @@ class ApiAnalyticsPage {
   }
 
   /**
-     * Explains why the trend can't be drawn, naming the selected range and (when known) when activity last happened so
-     * the admin knows whether to widen the range or whether the API is simply unused.
-     *
-     * @param {number} total - Total calls in the current window.
-     * @param {?string} lastApiCall - ISO date of the most recent call ever (window-independent), or null/undefined.
-     * @returns {string} Human-readable empty-state message.
-     */
+   * Explains why the trend can't be drawn, naming the selected range and (when known) when activity last happened so
+   * the admin knows whether to widen the range or whether the API is simply unused.
+   *
+   * @param {number} total - Total calls in the current window.
+   * @param {?string} lastApiCall - ISO date of the most recent call ever (window-independent), or null/undefined.
+   * @returns {string} Human-readable empty-state message.
+   */
   #trendEmptyMsg(total, lastApiCall) {
     const range = this.#days > 0 ? `the past ${this.#days} days` : 'all time';
     if (total === 0) {
@@ -172,12 +172,12 @@ class ApiAnalyticsPage {
   }
 
   /**
-     * The selected window as a concrete date span ending today: the dated ranges (30/90) count back from today; "All
-     * time" runs from the earliest day with data. Falls back to a plain note when there's no activity to bound.
-     *
-     * @param {object} d - The analytics payload (used for the All time start date).
-     * @returns {string} e.g. "May 28 – Jun 26, 2026", or "May 21, 2025 – Jun 26, 2026" across years.
-     */
+   * The selected window as a concrete date span ending today: the dated ranges (30/90) count back from today; "All
+   * time" runs from the earliest day with data. Falls back to a plain note when there's no activity to bound.
+   *
+   * @param {object} d - The analytics payload (used for the All time start date).
+   * @returns {string} e.g. "May 28 – Jun 26, 2026", or "May 21, 2025 – Jun 26, 2026" across years.
+   */
   #rangeLabel(d) {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -232,10 +232,10 @@ class ApiAnalyticsPage {
   }
 
   /**
-     * Top endpoints, ranked by external calls. The bar shows external usage; when "docs traffic" is on, our own
-     * docs "Try it" calls are stacked on in a second (grey) segment. Rank order stays by external regardless of the
-     * toggle so rows don't reshuffle when it's flipped.
-     */
+   * Top endpoints, ranked by external calls. The bar shows external usage; when "docs traffic" is on, our own
+   * docs "Try it" calls are stacked on in a second (grey) segment. Rank order stays by external regardless of the
+   * toggle so rows don't reshuffle when it's flipped.
+   */
   #renderEndpoints(d) {
     const eps = (d.endpoints || []).filter((e) => (e.external || 0) + (e.api_docs || 0) > 0);
     const el = document.getElementById('api-endpoints');
@@ -254,14 +254,14 @@ class ApiAnalyticsPage {
   }
 
   /**
-     * Renders a list of source-split rows to HTML. The bar denominator is the largest external count, or the largest
-     * external+docs total when docs traffic is shown, so stacked bars never overflow their track.
-     *
-     * @param {Array<{external?: number, api_docs?: number}>} items - Rows with external/api_docs counts.
-     * @param {(item: object) => string} labelOf - Extracts the row label from an item.
-     * @param {boolean} showDocs - Whether this chart stacks the docs segment onto its bars.
-     * @returns {string} Concatenated row HTML.
-     */
+   * Renders a list of source-split rows to HTML. The bar denominator is the largest external count, or the largest
+   * external+docs total when docs traffic is shown, so stacked bars never overflow their track.
+   *
+   * @param {Array<{external?: number, api_docs?: number}>} items - Rows with external/api_docs counts.
+   * @param {(item: object) => string} labelOf - Extracts the row label from an item.
+   * @param {boolean} showDocs - Whether this chart stacks the docs segment onto its bars.
+   * @returns {string} Concatenated row HTML.
+   */
   #bars(items, labelOf, showDocs) {
     const max = Math.max(1, ...items.map((i) =>
       (showDocs ? (i.external || 0) + (i.api_docs || 0) : (i.external || 0))));
@@ -276,17 +276,17 @@ class ApiAnalyticsPage {
   }
 
   /**
-     * A label + usage-bar + value row. The bar is a single external segment, or external+docs stacked when showDocs
-     * is on. valueHtml is trusted (built here); label is escaped.
-     *
-     * @param {string} label - Row label (escaped before insertion).
-     * @param {number} extVal - External call count.
-     * @param {number} docsVal - Docs "Try it" call count.
-     * @param {number} max - Bar denominator (shared across the chart's rows).
-     * @param {boolean} showDocs - Whether to stack the docs segment onto the bar.
-     * @param {string} valueHtml - Trusted HTML for the trailing value text.
-     * @returns {string} Row HTML.
-     */
+   * A label + usage-bar + value row. The bar is a single external segment, or external+docs stacked when showDocs
+   * is on. valueHtml is trusted (built here); label is escaped.
+   *
+   * @param {string} label - Row label (escaped before insertion).
+   * @param {number} extVal - External call count.
+   * @param {number} docsVal - Docs "Try it" call count.
+   * @param {number} max - Bar denominator (shared across the chart's rows).
+   * @param {boolean} showDocs - Whether to stack the docs segment onto the bar.
+   * @param {string} valueHtml - Trusted HTML for the trailing value text.
+   * @returns {string} Row HTML.
+   */
   static #row(label, extVal, docsVal, max, showDocs, valueHtml) {
     const w = (v) => `${Math.max(0, Math.min(1, v / max)) * 100}%`;
     const track = showDocs
@@ -326,10 +326,10 @@ class ApiAnalyticsPage {
   }
 
   /**
-     * Wires each chart's "Show docs traffic" switch (one under Top endpoints, one under Formats). Off by default so
-     * the charts read as real external adoption; flipping a switch re-renders only that chart from the already-loaded
-     * data (no refetch) and reveals its colour legend.
-     */
+   * Wires each chart's "Show docs traffic" switch (one under Top endpoints, one under Formats). Off by default so
+   * the charts read as real external adoption; flipping a switch re-renders only that chart from the already-loaded
+   * data (no refetch) and reveals its colour legend.
+   */
   #wireDocsToggle() {
     document.querySelectorAll('.api-docs-toggle').forEach((input) => {
       const chart = input.dataset.chart;

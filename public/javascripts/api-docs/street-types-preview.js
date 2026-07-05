@@ -18,22 +18,22 @@
   // Public API
   window.StreetTypesPreview = {
     /**
-         * Configure the street types preview.
-         * @param {object} options - Configuration options
-         * @param {string} [options.apiBaseUrl] - Base URL for the API
-         * @param {string} [options.containerId] - ID of the container element
-         * @param {number} [options.maxWidth] - Maximum width for the preview container
-         * @param {string} [options.endpoint] - API endpoint for street types
-         */
+     * Configure the street types preview.
+     * @param {object} options - Configuration options
+     * @param {string} [options.apiBaseUrl] - Base URL for the API
+     * @param {string} [options.containerId] - ID of the container element
+     * @param {number} [options.maxWidth] - Maximum width for the preview container
+     * @param {string} [options.endpoint] - API endpoint for street types
+     */
     setup(options) {
       config = Object.assign(config, options);
       return this;
     },
 
     /**
-         * Initialize the street types preview.
-         * @returns {Promise} A promise that resolves when the preview is rendered
-         */
+     * Initialize the street types preview.
+     * @returns {Promise} A promise that resolves when the preview is rendered
+     */
     init() {
       const container = document.getElementById(config.containerId);
 
@@ -62,9 +62,9 @@
     },
 
     /**
-         * Fetch street types from the API.
-         * @returns {Promise} A promise that resolves with the street types data
-         */
+     * Fetch street types from the API.
+     * @returns {Promise} A promise that resolves with the street types data
+     */
     fetchStreetTypes() {
       return fetch(`${config.apiBaseUrl}${config.endpoint}?source=apiDocs`)
         .then((response) => {
@@ -76,11 +76,11 @@
     },
 
     /**
-         * Render the street types table.
-         * @param {object} data - Street types data from the API
-         * @param {HTMLElement} container - Container element
-         * @returns {HTMLElement} The rendered table
-         */
+     * Render the street types table.
+     * @param {object} data - Street types data from the API
+     * @param {HTMLElement} container - Container element
+     * @returns {HTMLElement} The rendered table
+     */
     renderStreetTypes(data, container) {
       // Sort street types by count in descending order.
       const streetTypes = data.street_types.slice().sort((a, b) => b.count - a.count);

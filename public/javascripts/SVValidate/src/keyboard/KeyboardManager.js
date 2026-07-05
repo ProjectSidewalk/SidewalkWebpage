@@ -7,8 +7,8 @@ class KeyboardManager {
   #addingComment = false;
 
   /**
-     * @param {object} validationMenuUi Validation menu UI elements.
-     */
+   * @param {object} validationMenuUi Validation menu UI elements.
+   */
   constructor(validationMenuUi) {
     this.#validationMenuUi = validationMenuUi;
 
@@ -53,10 +53,10 @@ class KeyboardManager {
   }
 
   /**
-     * Handles the logic for the 1, 2, and 3 key shortcuts.
-     * @param {number} n The keyboard shortcut number that was hit (1, 2, or 3).
-     * @param {Event} e The keypress event.
-     */
+   * Handles the logic for the 1, 2, and 3 key shortcuts.
+   * @param {number} n The keyboard shortcut number that was hit (1, 2, or 3).
+   * @param {Event} e The keypress event.
+   */
   #handleNumberKeyShortcut(n, e) {
     const validationMenuUi = this.#validationMenuUi;
     if (validationMenuUi.yesButton.hasClass('chosen')) {
@@ -83,10 +83,10 @@ class KeyboardManager {
   }
 
   /**
-     * Sets focus to the appropriate comment box, depending on which validation option has been selected.
-     *
-     * @param {Event} e The keypress event.
-     */
+   * Sets focus to the appropriate comment box, depending on which validation option has been selected.
+   *
+   * @param {Event} e The keypress event.
+   */
   #handleCommentBoxShortcut(e) {
     const validationMenuUi = this.#validationMenuUi;
     e.preventDefault();
@@ -100,10 +100,10 @@ class KeyboardManager {
   }
 
   /**
-     * Handles keyboard shortcuts by listening to the keydown event.
-     *
-     * @param {Event} e
-     */
+   * Handles keyboard shortcuts by listening to the keydown event.
+   *
+   * @param {Event} e
+   */
   #documentKeyDown = (e) => {
     const validationMenuUi = this.#validationMenuUi;
     // When the user is typing in a comment box, disable keyboard shortcuts that validate a label.

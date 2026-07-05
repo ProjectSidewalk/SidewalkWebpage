@@ -38,12 +38,12 @@ class SpeedLimit {
   #countryCodePromise = null;
 
   /**
-     * @param {PanoViewer} panoViewer PanoramaViewer object.
-     * @param {function} coords Function that returns current longitude and latitude coordinates.
-     * @param {function} isOnboarding Function that returns a boolean on whether the current mission is the tutorial task.
-     * @param {LabelContainer} [labelContainer] Label container for pre-fetching validation labels. Can be null.
-     * @param {string} [labelType] Label type being validated; null/undefined shows the speed limit by default.
-     */
+   * @param {PanoViewer} panoViewer PanoramaViewer object.
+   * @param {function} coords Function that returns current longitude and latitude coordinates.
+   * @param {function} isOnboarding Function that returns a boolean on whether the current mission is the tutorial task.
+   * @param {LabelContainer} [labelContainer] Label container for pre-fetching validation labels. Can be null.
+   * @param {string} [labelType] Label type being validated; null/undefined shows the speed limit by default.
+   */
   constructor(panoViewer, coords, isOnboarding, labelContainer, labelType) {
     this.#coords = coords;
     this.#isOnboarding = isOnboarding;
@@ -70,8 +70,8 @@ class SpeedLimit {
   }
 
   /**
-     * Render/update the speed limit using the current info in speedLimit.
-     */
+   * Render/update the speed limit using the current info in speedLimit.
+   */
   updateSpeedLimit() {
     this.container.querySelector('#speed-limit').innerText = this.speedLimit.number;
     this.container.querySelector('#speed-limit-sub').innerText = this.speedLimit.sub;
@@ -79,12 +79,12 @@ class SpeedLimit {
   }
 
   /**
-     * Finds the closest road given overpass API's response of nearby roads and the current position.
-     *
-     * @param {object} data The overpass API's response of nearby roads.
-     * @param {number} lat The latitude of the current position.
-     * @param {number} lon The longitude of the current position.
-     */
+   * Finds the closest road given overpass API's response of nearby roads and the current position.
+   *
+   * @param {object} data The overpass API's response of nearby roads.
+   * @param {number} lat The latitude of the current position.
+   * @param {number} lon The longitude of the current position.
+   */
   #findClosestRoad(data, lat, lon) {
     // Filter to only be roads, and not footpaths/walkways.
     const roads = data.elements.filter((el) =>
@@ -110,8 +110,8 @@ class SpeedLimit {
   }
 
   /**
-     * Function called specifically on validation page to prefetch the upcoming speed limits.
-     */
+   * Function called specifically on validation page to prefetch the upcoming speed limits.
+   */
   #prefetchLabels = async () => {
     // Clear the cache.
     this.#cache = {};
@@ -128,14 +128,14 @@ class SpeedLimit {
   };
 
   /**
-     * Fetches the closest nearby road for a given set of coordinates from the Overpass API.
-     *
-     * @param {number} lat The latitude of the current position.
-     * @param {number} lng The longitude of the current position.
-     * @param {boolean} shouldCache If true, this will cache the coordinates with the road response.
-     * @param {Label} label The label that is being validated. Can be null.
-     * @returns {Promise<{closestRoad: object|null}>} Object with the calculated closest road, or null on failure.
-     */
+   * Fetches the closest nearby road for a given set of coordinates from the Overpass API.
+   *
+   * @param {number} lat The latitude of the current position.
+   * @param {number} lng The longitude of the current position.
+   * @param {boolean} shouldCache If true, this will cache the coordinates with the road response.
+   * @param {Label} label The label that is being validated. Can be null.
+   * @returns {Promise<{closestRoad: object|null}>} Object with the calculated closest road, or null on failure.
+   */
   async #queryClosestRoadForCoords(lat, lng, shouldCache, label) {
     const cacheKey = label === null ? (this.#labelContainer === null ? '' : this.#labelContainer.getCurrentLabel().getAuditProperty('panoId')) : label.getAuditProperty('panoId');
     if (cacheKey in this.#cache) {
@@ -174,13 +174,13 @@ class SpeedLimit {
   }
 
   /**
-     * Fetches the ISO 3166-1 country code for the given coordinates. The result is cached for the session on first
-     * success since the country doesn't change while a user audits. On failure the cache is cleared.
-     *
-     * @param {number} lat The latitude of the current position.
-     * @param {number} lng The longitude of the current position.
-     * @returns {Promise<string|null>} ISO 3166-1 country code, or null if the lookup failed.
-     */
+   * Fetches the ISO 3166-1 country code for the given coordinates. The result is cached for the session on first
+   * success since the country doesn't change while a user audits. On failure the cache is cleared.
+   *
+   * @param {number} lat The latitude of the current position.
+   * @param {number} lng The longitude of the current position.
+   * @returns {Promise<string|null>} ISO 3166-1 country code, or null if the lookup failed.
+   */
   async #queryCountryCode(lat, lng) {
     if (this.#countryCodePromise !== null) {
       return await this.#countryCodePromise;
@@ -217,8 +217,8 @@ class SpeedLimit {
   }
 
   /**
-     * Function to be called on a position change/movement in the google street view.
-     */
+   * Function to be called on a position change/movement in the google street view.
+   */
   #panoChangeListener = async () => {
     // If user is in the onboarding/tutorial mission, we can skip getting the speed limit and hide the sign.
     if (this.#isOnboarding()) {
