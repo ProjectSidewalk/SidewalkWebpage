@@ -5,11 +5,11 @@ class TagDisplay {
   #container;
   #tags;
   #popoverTemplate = `
-        <div class="popover additional-tag-popover" role="tooltip">
-            <div class="arrow"></div>
-            <h3 class="popover-title"></h3>
-            <div class="popover-content additional-tag-popover-content"></div>
-        </div>`;
+    <div class="popover additional-tag-popover" role="tooltip">
+      <div class="arrow"></div>
+      <h3 class="popover-title"></h3>
+      <div class="popover-content additional-tag-popover-content"></div>
+    </div>`;
 
   /**
    * @param {HTMLElement} container The DOM element to contain the label information.

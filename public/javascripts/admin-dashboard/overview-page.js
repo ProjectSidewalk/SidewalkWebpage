@@ -267,11 +267,11 @@ class OverviewPage {
       return;
     }
     el.innerHTML = items.map((it) => `
-            <a class="ov-attention-item ov-attention--${it.sev}" href="${OverviewPage.#esc(it.href)}">
-                <span class="ov-attention-dot" aria-hidden="true"></span>
-                <span class="ov-attention-text">${it.html}</span>
-                <span class="ov-attention-go">${OverviewPage.#esc(it.action)} →</span>
-            </a>`,
+      <a class="ov-attention-item ov-attention--${it.sev}" href="${OverviewPage.#esc(it.href)}">
+        <span class="ov-attention-dot" aria-hidden="true"></span>
+        <span class="ov-attention-text">${it.html}</span>
+        <span class="ov-attention-go">${OverviewPage.#esc(it.action)} →</span>
+      </a>`,
     ).join('');
   }
 

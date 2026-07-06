@@ -222,7 +222,7 @@ class HumanVsAiPage {
     const total = agree + disagree + unsure;
     const seg = (value, cls, label) => (value
       ? `<span class="contrib-verdictseg ${cls}" style="width:${(value / total) * 100}%"
-                title="${label}: ${value.toLocaleString()} (${Math.round((value / total) * 100)}%)"></span>`
+          title="${label}: ${value.toLocaleString()} (${Math.round((value / total) * 100)}%)"></span>`
       : '');
     const segsHtml = [
       seg(agree, 'is-agree', 'Agree'),
@@ -234,14 +234,14 @@ class HumanVsAiPage {
       : '<span class="dq-sub">—</span>';
     const pcts = total
       ? `<span class="contrib-verdictpct">${Math.round(agree / total * 100)}% /
-                ${Math.round(disagree / total * 100)}% / ${Math.round(unsure / total * 100)}%</span>`
+          ${Math.round(disagree / total * 100)}% / ${Math.round(unsure / total * 100)}%</span>`
       : '';
     return `
-            <div class="hva-verdict-row">
-                <span class="hva-verdict-name">${HumanVsAiPage.#esc(name)}</span>
-                <span class="contrib-verdictwrap">${bar}${pcts}</span>
-                <span class="hva-verdict-n dq-sub">${total.toLocaleString()}</span>
-            </div>`;
+      <div class="hva-verdict-row">
+        <span class="hva-verdict-name">${HumanVsAiPage.#esc(name)}</span>
+        <span class="contrib-verdictwrap">${bar}${pcts}</span>
+        <span class="hva-verdict-n dq-sub">${total.toLocaleString()}</span>
+      </div>`;
   }
 
   // --- Tagger lens. ---
@@ -264,20 +264,20 @@ class HumanVsAiPage {
   #tagList(title, tags, color) {
     if (!tags.length) {
       return `
-                <div class="hva-taglist">
-                    <h4 class="hva-taglist-title">${HumanVsAiPage.#esc(title)}</h4>
-                    <p class="dq-sub">No tags.</p>
-                </div>`;
+        <div class="hva-taglist">
+          <h4 class="hva-taglist-title">${HumanVsAiPage.#esc(title)}</h4>
+          <p class="dq-sub">No tags.</p>
+        </div>`;
     }
     const max = Math.max(1, ...tags.map((t) => t.count || 0));
     const rows = tags.map((t) => `
-            <div class="contrib-row">
-                <span class="contrib-row-label">${HumanVsAiPage.#esc(t.tag)}</span>
-                <div class="dq-bar-track">
-                    <div class="dq-bar" style="width:${((t.count || 0) / max) * 100}%;background:${color}"></div>
-                </div>
-                <span class="contrib-row-count">${(t.count || 0).toLocaleString()}</span>
-            </div>`).join('');
+      <div class="contrib-row">
+        <span class="contrib-row-label">${HumanVsAiPage.#esc(t.tag)}</span>
+        <div class="dq-bar-track">
+          <div class="dq-bar" style="width:${((t.count || 0) / max) * 100}%;background:${color}"></div>
+        </div>
+        <span class="contrib-row-count">${(t.count || 0).toLocaleString()}</span>
+      </div>`).join('');
     return `<div class="hva-taglist"><h4 class="hva-taglist-title">${HumanVsAiPage.#esc(title)}</h4>${rows}</div>`;
   }
 
@@ -296,13 +296,13 @@ class HumanVsAiPage {
     const isRate = opts.format === 'rate';
     const max = isRate ? (opts.max || 100) : Math.max(1, ...rows.flatMap((r) => [r.human.value || 0, r.ai.value || 0]));
     const body = rows.map((r) => `
-            <div class="hva-group">
-                <div class="hva-group-label">${r.label}</div>
-                <div class="hva-group-bars">
-                    ${this.#bar('human', r.human, max, isRate)}
-                    ${this.#bar('ai', r.ai, max, isRate)}
-                </div>
-            </div>`).join('');
+      <div class="hva-group">
+        <div class="hva-group-label">${r.label}</div>
+        <div class="hva-group-bars">
+          ${this.#bar('human', r.human, max, isRate)}
+          ${this.#bar('ai', r.ai, max, isRate)}
+        </div>
+      </div>`).join('');
     return HumanVsAiPage.#legend() + body;
   }
 
@@ -315,20 +315,20 @@ class HumanVsAiPage {
     const note = datum.note ? ` <span class="dq-sub">${HumanVsAiPage.#esc(datum.note)}</span>` : '';
     const muted = datum.muted ? ' hva-bar--muted' : '';
     return `
-            <div class="hva-bar hva-bar--${side}${muted}">
-                <span class="hva-bar-side">${side === 'ai' ? 'AI' : 'Human'}</span>
-                <div class="dq-bar-track"><div class="dq-bar hva-fill--${side}" style="width:${width}%"></div></div>
-                <span class="hva-bar-value">${valueText}${note}</span>
-            </div>`;
+      <div class="hva-bar hva-bar--${side}${muted}">
+        <span class="hva-bar-side">${side === 'ai' ? 'AI' : 'Human'}</span>
+        <div class="dq-bar-track"><div class="dq-bar hva-fill--${side}" style="width:${width}%"></div></div>
+        <span class="hva-bar-value">${valueText}${note}</span>
+      </div>`;
   }
 
   /** Human/AI color legend shown atop each grouped viz. */
   static #legend() {
     return `
-            <div class="hva-legend">
-                <span class="hva-legend-item"><span class="hva-swatch hva-fill--human"></span>Human</span>
-                <span class="hva-legend-item"><span class="hva-swatch hva-fill--ai"></span>AI</span>
-            </div>`;
+      <div class="hva-legend">
+        <span class="hva-legend-item"><span class="hva-swatch hva-fill--human"></span>Human</span>
+        <span class="hva-legend-item"><span class="hva-swatch hva-fill--ai"></span>AI</span>
+      </div>`;
   }
 
   // --- Label-type helpers. ---

@@ -129,7 +129,7 @@ class ActivityPage {
     // Empty window: the backend emits only days that had activity, so no in-window records ⇒ nothing happened then.
     if (this.#range > 0 && this.#windowRecords().length === 0) {
       html += ` <span class="activity-latest-warn">Nothing in the last ${this.#range} days.</span>
-                <button type="button" class="activity-link-btn act-show-all">View all time</button>`;
+        <button type="button" class="activity-link-btn act-show-all">View all time</button>`;
     }
     el.innerHTML = html;
 
@@ -200,15 +200,15 @@ class ActivityPage {
     });
     // Build the card shells first, then render each chart into its host at the host's measured width (responsive).
     el.innerHTML = cards.map((c) => `
-            <div class="activity-card">
-                <div class="activity-card-head">
-                    <span class="activity-card-title">${ActivityPage.#esc(c.metric.title)}</span>
-                    <span class="activity-card-total">
-                        <strong>${c.total.toLocaleString()}</strong> in ${ActivityPage.#esc(this.#rangeNoun())}
-                    </span>
-                </div>
-                <div class="mini-host" data-idx="${c.idx}"></div>
-            </div>`).join('');
+      <div class="activity-card">
+        <div class="activity-card-head">
+          <span class="activity-card-title">${ActivityPage.#esc(c.metric.title)}</span>
+          <span class="activity-card-total">
+            <strong>${c.total.toLocaleString()}</strong> in ${ActivityPage.#esc(this.#rangeNoun())}
+          </span>
+        </div>
+        <div class="mini-host" data-idx="${c.idx}"></div>
+      </div>`).join('');
     cards.forEach((c) => {
       MiniLineChart.renderInto(el.querySelector(`.mini-host[data-idx="${c.idx}"]`), labels,
         [{ name: c.metric.title, key: 'activity', values: c.values }], {

@@ -108,7 +108,7 @@
       const optionsHtml = Object.keys(METRICS)
         .map((metric) => `<option value="${metric}">${METRICS[metric].label}</option>`).join('');
       toolbar.innerHTML = `<label for="as-region-metric-select">Color by</label>
-                <select id="as-region-metric-select">${optionsHtml}</select>`;
+        <select id="as-region-metric-select">${optionsHtml}</select>`;
       container.appendChild(toolbar);
 
       const mapElement = document.createElement('div');
@@ -163,18 +163,18 @@
       const score = (p.score === null || p.score === undefined) ? 'N/A (no audited streets)' : p.score.toFixed(3);
       const coverage = `${Math.round((p.coverage || 0) * 100)}%`;
       layer.bindPopup(`
-                <div class="as-popup">
-                    <h4>${p.name || `Region ${p.region_id}`}</h4>
-                    <p><span class="as-score">${score}</span> AccessScore</p>
-                    <p><strong>Coverage:</strong> ${coverage}
-                        (${p.audited_street_count} of ${p.total_street_count} streets audited)</p>
-                    <p><strong>Region ID:</strong> ${p.region_id}</p>
-                    <a href="/v3/api/accessScoreRegions?regionId=${p.region_id}&inline=true"
-                        class="explore-region-btn" target="_blank">
-                        View this region's JSON
-                    </a>
-                </div>
-            `, { autoPanPaddingTopLeft: L.point(10, 10), autoPanPaddingBottomRight: L.point(260, 130) });
+        <div class="as-popup">
+          <h4>${p.name || `Region ${p.region_id}`}</h4>
+          <p><span class="as-score">${score}</span> AccessScore</p>
+          <p><strong>Coverage:</strong> ${coverage}
+            (${p.audited_street_count} of ${p.total_street_count} streets audited)</p>
+          <p><strong>Region ID:</strong> ${p.region_id}</p>
+          <a href="/v3/api/accessScoreRegions?regionId=${p.region_id}&inline=true"
+            class="explore-region-btn" target="_blank">
+            View this region's JSON
+          </a>
+        </div>
+      `, { autoPanPaddingTopLeft: L.point(10, 10), autoPanPaddingBottomRight: L.point(260, 130) });
 
       layer.on('mouseover', function () {
         this.setStyle({ weight: 3, opacity: 1, fillOpacity: 0.9 });

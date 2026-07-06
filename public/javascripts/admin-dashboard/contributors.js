@@ -226,24 +226,24 @@ class ContributorsPage {
     const segsHtml = segments.map((s) =>
       `<div class="contrib-seg ${s.cls || ''}" style="width:${(s.value / total) * 100}%${fill(s)}"></div>`).join('');
     const legendItems = segments.map((s) => `
-            <span class="contrib-legend-item">
-                <span class="contrib-swatch ${s.cls || ''}"${s.color ? ` style="background:${s.color}"` : ''}></span>
-                ${ContributorsPage.#esc(s.label)} <b>${s.value.toLocaleString()}</b>
-                <span class="dq-sub">(${ContributorsPage.#pct(s.value / total)})</span>
-            </span>`).join('');
+      <span class="contrib-legend-item">
+        <span class="contrib-swatch ${s.cls || ''}"${s.color ? ` style="background:${s.color}"` : ''}></span>
+        ${ContributorsPage.#esc(s.label)} <b>${s.value.toLocaleString()}</b>
+        <span class="dq-sub">(${ContributorsPage.#pct(s.value / total)})</span>
+      </span>`).join('');
     return `<div class="dq-bar-track dq-stack">${segsHtml}</div><div class="contrib-legend">${legendItems}</div>`;
   }
 
   /** A label + horizontal bar + count row. */
   static #barRow(label, count, max, color) {
     return `
-            <div class="contrib-row">
-                <span class="contrib-row-label">${ContributorsPage.#esc(label)}</span>
-                <div class="dq-bar-track">
-                    <div class="dq-bar" style="width:${(count / max) * 100}%;background:${color}"></div>
-                </div>
-                <span class="contrib-row-count">${count.toLocaleString()}</span>
-            </div>`;
+      <div class="contrib-row">
+        <span class="contrib-row-label">${ContributorsPage.#esc(label)}</span>
+        <div class="dq-bar-track">
+          <div class="dq-bar" style="width:${(count / max) * 100}%;background:${color}"></div>
+        </div>
+        <span class="contrib-row-count">${count.toLocaleString()}</span>
+      </div>`;
   }
 
   /**

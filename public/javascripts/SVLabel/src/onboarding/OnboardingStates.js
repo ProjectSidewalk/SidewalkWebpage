@@ -171,8 +171,8 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.rate-severity-1')}<br>
-                    <img src="${svl.rootDirectory}img/onboarding/RatingCurbRampQuality-severity-2-v3.gif"
-                         class="onboarding-gif">`,
+          <img src="${svl.rootDirectory}img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" class="onboarding-gif">
+        `,
       },
       panoId,
       annotations: null,

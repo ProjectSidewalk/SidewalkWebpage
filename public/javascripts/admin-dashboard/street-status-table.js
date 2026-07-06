@@ -55,9 +55,9 @@ class StreetStatusTable {
     const statusThs = StreetStatusTable.#STATUS_COLS.map((c) => th(c.key, c.label)).join('');
     // The distribution (stacked-bar) column is purely visual, so it is not a sortable header.
     return `<thead><tr>
-            ${th('name', 'Region')}${statusThs}${th('total', 'Total')}
-            <th scope="col">Distribution</th>
-        </tr></thead>`;
+      ${th('name', 'Region')}${statusThs}${th('total', 'Total')}
+      <th scope="col">Distribution</th>
+    </tr></thead>`;
   }
 
   #renderBody() {

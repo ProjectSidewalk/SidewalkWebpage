@@ -168,11 +168,10 @@ class DataQualityPage {
       const lo = toPct(r.severity_mean - sd);
       const hi = toPct(r.severity_mean + sd);
       const track = `
-                <div class="dq-sev-track">
-                    <div class="dq-sev-band" style="left:${lo}%;width:${Math.max(0, hi - lo)}%"></div>
-                    <div class="dq-sev-marker"
-                         style="left:${toPct(r.severity_mean)}%;background:${this.#color(r.type)}"></div>
-                </div>`;
+        <div class="dq-sev-track">
+          <div class="dq-sev-band" style="left:${lo}%;width:${Math.max(0, hi - lo)}%"></div>
+          <div class="dq-sev-marker" style="left:${toPct(r.severity_mean)}%;background:${this.#color(r.type)}"></div>
+        </div>`;
       const words = this.#ratingWords(r.type);
       const level = words[Math.max(0, Math.min(words.length - 1, Math.round(r.severity_mean) - 1))];
       const value = `${r.severity_mean.toFixed(2)} <span class="dq-sub">${level} · ±${sd.toFixed(2)}</span>`;
@@ -194,11 +193,12 @@ class DataQualityPage {
       .sort((a, b) => a.coverage - b.coverage);
 
     document.getElementById('dq-coverage').innerHTML = rows.map((r) => {
-      const bar = `<div class="dq-bar-track">
-                <div class="dq-bar" style="width:${r.coverage * 100}%;background:${this.#color(r.type)}"></div>
-            </div>`;
+      const bar = `
+        <div class="dq-bar-track">
+          <div class="dq-bar" style="width:${r.coverage * 100}%;background:${this.#color(r.type)}"></div>
+        </div>`;
       const value = `${DataQualityPage.#pct(r.coverage)}
-                <span class="dq-sub">(${r.validated.toLocaleString()}/${r.count.toLocaleString()})</span>`;
+        <span class="dq-sub">(${r.validated.toLocaleString()}/${r.count.toLocaleString()})</span>`;
       // Deep-link straight into validating this label type (admin-gated validate route parses a type name).
       const action = `<a class="dq-validate-btn" href="/adminValidate?labelType=${encodeURIComponent(r.type)}">`
         + `Validate</a>`;
@@ -223,12 +223,12 @@ class DataQualityPage {
       const agreePct = (r.agreed / r.validated) * 100;
       const disagreePct = (r.disagreed / r.validated) * 100;
       const track = `
-                <div class="dq-bar-track dq-stack">
-                    <div class="dq-bar-agree" style="width:${agreePct}%"></div>
-                    <div class="dq-bar-disagree" style="width:${disagreePct}%"></div>
-                </div>`;
+        <div class="dq-bar-track dq-stack">
+          <div class="dq-bar-agree" style="width:${agreePct}%"></div>
+          <div class="dq-bar-disagree" style="width:${disagreePct}%"></div>
+        </div>`;
       const value = `${DataQualityPage.#pct(r.agreed / r.validated)}
-                <span class="dq-sub">(${r.agreed.toLocaleString()}/${r.validated.toLocaleString()})</span>`;
+        <span class="dq-sub">(${r.agreed.toLocaleString()}/${r.validated.toLocaleString()})</span>`;
       return this.#row(r.type, track, value);
     }).join('');
   }
@@ -249,19 +249,18 @@ class DataQualityPage {
         const color = this.#color(type);
         const max = tags[0].count || 1; // Bars scale within each type so each small-multiple fills well.
         const bars = tags.map((t) => `
-                    <div class="dq-tag-row">
-                        <span class="dq-tag-name"
-                              title="${DataQualityPage.#esc(t.tag)}">${DataQualityPage.#esc(t.tag)}</span>
-                        <div class="dq-bar-track">
-                            <div class="dq-bar" style="width:${(t.count / max) * 100}%;background:${color}"></div>
-                        </div>
-                        <span class="dq-tag-count">${t.count.toLocaleString()}</span>
-                    </div>`).join('');
+          <div class="dq-tag-row">
+            <span class="dq-tag-name" title="${DataQualityPage.#esc(t.tag)}">${DataQualityPage.#esc(t.tag)}</span>
+            <div class="dq-bar-track">
+              <div class="dq-bar" style="width:${(t.count / max) * 100}%;background:${color}"></div>
+            </div>
+            <span class="dq-tag-count">${t.count.toLocaleString()}</span>
+          </div>`).join('');
         const head = `
-                    <div class="dq-tag-head">
-                        <img class="dq-icon" src="${this.#icon(type)}" alt="" width="20" height="20">
-                        <span class="dq-name">${this.#name(type)}</span>
-                    </div>`;
+          <div class="dq-tag-head">
+            <img class="dq-icon" src="${this.#icon(type)}" alt="" width="20" height="20">
+            <span class="dq-name">${this.#name(type)}</span>
+          </div>`;
         return `<div class="dq-tag-group">${head}<div class="dq-tag-bars">${bars}</div></div>`;
       });
     document.getElementById('dq-tags').innerHTML = blocks.join('') || '<p class="dq-empty">No tags recorded yet.</p>';
@@ -318,21 +317,21 @@ class DataQualityPage {
           ].join('');
         }).join('');
         const head = `
-                    <div class="dq-tag-head">
-                        <img class="dq-icon" src="${this.#icon(type)}" alt="" width="20" height="20">
-                        <span class="dq-name">${this.#name(type)}</span>
-                    </div>`;
+          <div class="dq-tag-head">
+            <img class="dq-icon" src="${this.#icon(type)}" alt="" width="20" height="20">
+            <span class="dq-name">${this.#name(type)}</span>
+          </div>`;
         const colHead = `
-                    <div class="dq-heat-corner"></div>
-                    <div class="dq-heat-colhead">1</div><div class="dq-heat-colhead">2</div>
-                    <div class="dq-heat-colhead">3</div><div class="dq-heat-colhead">n</div>`;
+          <div class="dq-heat-corner"></div>
+          <div class="dq-heat-colhead">1</div><div class="dq-heat-colhead">2</div>
+          <div class="dq-heat-colhead">3</div><div class="dq-heat-colhead">n</div>`;
         return `
-                    <div class="dq-tag-group">
-                        <div class="dq-heat-matrix">
-                            ${head}
-                            <div class="dq-heat-grid">${colHead}${body}</div>
-                        </div>
-                    </div>`;
+          <div class="dq-tag-group">
+            <div class="dq-heat-matrix">
+              ${head}
+              <div class="dq-heat-grid">${colHead}${body}</div>
+            </div>
+          </div>`;
       });
     el.innerHTML = blocks.join('')
       || '<p class="dq-empty">No tag-severity data yet.</p>';

@@ -312,16 +312,16 @@ class ManagementPage {
       return;
     }
     const head = `<tr>
-            <th scope="col">Team</th><th scope="col">Description</th>
-            <th scope="col">Status</th><th scope="col">Visibility</th>
-        </tr>`;
+      <th scope="col">Team</th><th scope="col">Description</th>
+      <th scope="col">Status</th><th scope="col">Visibility</th>
+    </tr>`;
     const body = this.#teams.map((t) => `
-            <tr data-team-id="${t.teamId}">
-                <td>${ManagementPage.#esc(t.name)}</td>
-                <td>${ManagementPage.#esc(t.description || '')}</td>
-                <td>${ManagementPage.#toggle('status', t.teamId, t.open, 'Open', 'Closed')}</td>
-                <td>${ManagementPage.#toggle('visibility', t.teamId, t.visible, 'Visible', 'Hidden')}</td>
-            </tr>`).join('');
+      <tr data-team-id="${t.teamId}">
+        <td>${ManagementPage.#esc(t.name)}</td>
+        <td>${ManagementPage.#esc(t.description || '')}</td>
+        <td>${ManagementPage.#toggle('status', t.teamId, t.open, 'Open', 'Closed')}</td>
+        <td>${ManagementPage.#toggle('visibility', t.teamId, t.visible, 'Visible', 'Hidden')}</td>
+      </tr>`).join('');
     el.innerHTML = `<table class="contrib-table mgmt-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
   }
 

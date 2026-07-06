@@ -454,18 +454,16 @@ class AcrossCitiesPage {
         ? AcrossCitiesPage.#esc(AcrossCitiesPage.#relativeTime(c.last_activity))
         : '<span class="ac-muted">never</span>';
       return `
-                <tr class="${needsAttention ? 'ac-row--flagged' : ''}">
-                    <td class="ac-td-city">${this.#cityLink(c)}${chipsHtml}</td>
-                    <td>${this.#lifecycleBadge(c.lifecycle)}</td>
-                    <td>${this.#coverageBar(c.coverage)}</td>
-                    <td class="ac-num" title="${this.#num(c.total_labels)}">${this.#compact(c.total_labels)}</td>
-                    <td class="ac-num" title="${this.#num(c.total_validations)}">
-                        ${this.#compact(c.total_validations)}</td>
-                    <td class="ac-num" title="${this.#num(c.active_contributors)}">
-                        ${this.#compact(c.active_contributors)}</td>
-                    <td class="ac-num">${this.#pct(c.ai_label_share)}</td>
-                    <td class="ac-num">${lastActivity}</td>
-                </tr>`;
+        <tr class="${needsAttention ? 'ac-row--flagged' : ''}">
+          <td class="ac-td-city">${this.#cityLink(c)}${chipsHtml}</td>
+          <td>${this.#lifecycleBadge(c.lifecycle)}</td>
+          <td>${this.#coverageBar(c.coverage)}</td>
+          <td class="ac-num" title="${this.#num(c.total_labels)}">${this.#compact(c.total_labels)}</td>
+          <td class="ac-num" title="${this.#num(c.total_validations)}"> ${this.#compact(c.total_validations)}</td>
+          <td class="ac-num" title="${this.#num(c.active_contributors)}"> ${this.#compact(c.active_contributors)}</td>
+          <td class="ac-num">${this.#pct(c.ai_label_share)}</td>
+          <td class="ac-num">${lastActivity}</td>
+        </tr>`;
     }).join('');
     this.#markSortedHeader();
     this.#setText('ac-status', `${rows.length} ${rows.length === 1 ? 'city' : 'cities'}.`);
@@ -512,16 +510,15 @@ class AcrossCitiesPage {
     if (!tbody) return;
     const rows = this.#sortedCities('coverage', 'desc');
     tbody.innerHTML = rows.map((c) => `
-            <tr class="${(c.lifecycle === 'stalled' || c.lifecycle === 'low_traction') ? 'ac-row--flagged' : ''}">
-                <td class="ac-td-city">${this.#cityLink(c)}</td>
-                <td>${this.#coverageBar(c.coverage)}</td>
-                <td class="ac-num" title="${this.#num(c.audited_streets)} of ${this.#num(c.total_streets)}">
-                    ${this.#compact(c.audited_streets)} / ${this.#compact(c.total_streets)}</td>
-                <td class="ac-num" title="${this.#num(c.streets_remaining)}">
-                    ${this.#compact(c.streets_remaining)}</td>
-                <td class="ac-num">${this.#km(c.audited_km)} / ${this.#km(c.total_km)}</td>
-                <td class="ac-num">${this.#km(c.km_remaining)}</td>
-            </tr>`,
+      <tr class="${(c.lifecycle === 'stalled' || c.lifecycle === 'low_traction') ? 'ac-row--flagged' : ''}">
+        <td class="ac-td-city">${this.#cityLink(c)}</td>
+        <td>${this.#coverageBar(c.coverage)}</td>
+        <td class="ac-num" title="${this.#num(c.audited_streets)} of ${this.#num(c.total_streets)}">
+          ${this.#compact(c.audited_streets)} / ${this.#compact(c.total_streets)}</td>
+        <td class="ac-num" title="${this.#num(c.streets_remaining)}"> ${this.#compact(c.streets_remaining)}</td>
+        <td class="ac-num">${this.#km(c.audited_km)} / ${this.#km(c.total_km)}</td>
+        <td class="ac-num">${this.#km(c.km_remaining)}</td>
+      </tr>`,
     ).join('');
   }
 
@@ -539,14 +536,14 @@ class AcrossCitiesPage {
       const spark = this.#sparkline((c.weekly_trend || []).map((w) => w.labels || 0));
       const flagged = c.lifecycle === 'stalled' || c.lifecycle === 'low_traction';
       return `
-                <tr class="${flagged ? 'ac-row--flagged' : ''}">
-                    <td class="ac-td-city">${this.#cityLink(c)}</td>
-                    <td class="ac-num">${this.#num(c.labels_7d)} / ${this.#num(c.labels_30d)}</td>
-                    <td class="ac-num">${this.#num(c.validations_7d)} / ${this.#num(c.validations_30d)}</td>
-                    <td class="ac-num">${this.#num(c.audits_7d)} / ${this.#num(c.audits_30d)}</td>
-                    <td class="ac-num">${last}</td>
-                    <td class="ac-spark-cell">${spark}</td>
-                </tr>`;
+        <tr class="${flagged ? 'ac-row--flagged' : ''}">
+          <td class="ac-td-city">${this.#cityLink(c)}</td>
+          <td class="ac-num">${this.#num(c.labels_7d)} / ${this.#num(c.labels_30d)}</td>
+          <td class="ac-num">${this.#num(c.validations_7d)} / ${this.#num(c.validations_30d)}</td>
+          <td class="ac-num">${this.#num(c.audits_7d)} / ${this.#num(c.audits_30d)}</td>
+          <td class="ac-num">${last}</td>
+          <td class="ac-spark-cell">${spark}</td>
+        </tr>`;
     }).join('');
   }
 
@@ -566,15 +563,15 @@ class AcrossCitiesPage {
         ? this.#duration(c.seconds_per_100m)
         : '<span class="ac-muted">—</span>';
       return `
-                <tr>
-                    <td class="ac-td-city">${this.#cityLink(c)}</td>
-                    <td class="ac-num">${this.#num(c.num_labelers)}</td>
-                    <td class="ac-num">${out(c.labels_per_user_median, c.labels_per_user_p90)}</td>
-                    <td class="ac-num">${this.#num(c.num_validators)}</td>
-                    <td class="ac-num">${out(c.validations_per_user_median, c.validations_per_user_p90)}</td>
-                    <td class="ac-num">${v10}</td>
-                    <td class="ac-num">${l100}</td>
-                </tr>`;
+        <tr>
+          <td class="ac-td-city">${this.#cityLink(c)}</td>
+          <td class="ac-num">${this.#num(c.num_labelers)}</td>
+          <td class="ac-num">${out(c.labels_per_user_median, c.labels_per_user_p90)}</td>
+          <td class="ac-num">${this.#num(c.num_validators)}</td>
+          <td class="ac-num">${out(c.validations_per_user_median, c.validations_per_user_p90)}</td>
+          <td class="ac-num">${v10}</td>
+          <td class="ac-num">${l100}</td>
+        </tr>`;
     }).join('');
   }
 
@@ -592,10 +589,10 @@ class AcrossCitiesPage {
 
     if (legendEl) {
       legendEl.innerHTML = present.map(([key, name]) => `
-                <span class="ac-legend-item">
-                    <span class="ac-legend-swatch" style="background:${this.#color(key)}"></span>
-                    ${AcrossCitiesPage.#esc(name)}
-                </span>`).join('');
+        <span class="ac-legend-item">
+          <span class="ac-legend-swatch" style="background:${this.#color(key)}"></span>
+          ${AcrossCitiesPage.#esc(name)}
+        </span>`).join('');
     }
 
     const rows = this.#cities.slice().sort((a, b) => (b.total_labels || 0) - (a.total_labels || 0));
@@ -612,16 +609,16 @@ class AcrossCitiesPage {
           const share = n / total;
           const tip = `${name}: ${this.#num(n)} (${this.#pct(share)})`;
           return `<span class="ac-stack-seg" title="${AcrossCitiesPage.#esc(tip)}"
-                        style="width:${(share * 100).toFixed(2)}%;background:${this.#color(key)}"></span>`;
+            style="width:${(share * 100).toFixed(2)}%;background:${this.#color(key)}"></span>`;
         }).join('');
       }
       return `
-                <div class="ac-pattern-row">
-                    <div class="ac-pattern-city">
-                        ${this.#cityLink(c)} <span class="ac-muted">${this.#compact(c.total_labels)}</span>
-                    </div>
-                    <div class="ac-stack">${segments}</div>
-                </div>`;
+        <div class="ac-pattern-row">
+          <div class="ac-pattern-city">
+            ${this.#cityLink(c)} <span class="ac-muted">${this.#compact(c.total_labels)}</span>
+          </div>
+          <div class="ac-stack">${segments}</div>
+        </div>`;
     }).join('');
   }
 
@@ -647,24 +644,19 @@ class AcrossCitiesPage {
       const aiValTitle = `${this.#num(c.ai_validations)} of ${this.#num(c.total_validations)} validations`;
       const lowQTitle = `${this.#num(c.low_quality_contributors)} of ${this.#num(contribDenom)} contributors`;
       return `
-                <tr class="${flagged ? 'ac-row--flagged' : ''}">
-                    <td class="ac-td-city">${this.#cityLink(c)}</td>
-                    <td class="ac-num" title="${this.#num(c.labels_validated)} of ${this.#num(c.total_labels)}">
-                        ${this.#pct(c.labels_validated_share)}</td>
-                    <td class="ac-num" title="${valTitle}">
-                        ${vpl.toFixed(1)}</td>
-                    <td class="ac-num">${agreeCell}</td>
-                    <td class="ac-num" title="${sevTitle}">
-                        ${this.#pct(c.severity_share)}</td>
-                    <td class="ac-num" title="${tagTitle}">
-                        ${this.#pct(c.tags_share)}</td>
-                    <td class="ac-num" title="${this.#num(c.ai_labels)} of ${this.#num(c.total_labels)} labels">
-                        ${this.#pct(c.ai_label_share)}</td>
-                    <td class="ac-num" title="${aiValTitle}">
-                        ${this.#pct(c.ai_validation_share)}</td>
-                    <td class="ac-num" title="${lowQTitle}">
-                        ${this.#pct(lowQShare)}</td>
-                </tr>`;
+        <tr class="${flagged ? 'ac-row--flagged' : ''}">
+          <td class="ac-td-city">${this.#cityLink(c)}</td>
+          <td class="ac-num" title="${this.#num(c.labels_validated)} of ${this.#num(c.total_labels)}">
+            ${this.#pct(c.labels_validated_share)}</td>
+          <td class="ac-num" title="${valTitle}"> ${vpl.toFixed(1)}</td>
+          <td class="ac-num">${agreeCell}</td>
+          <td class="ac-num" title="${sevTitle}"> ${this.#pct(c.severity_share)}</td>
+          <td class="ac-num" title="${tagTitle}"> ${this.#pct(c.tags_share)}</td>
+          <td class="ac-num" title="${this.#num(c.ai_labels)} of ${this.#num(c.total_labels)} labels">
+            ${this.#pct(c.ai_label_share)}</td>
+          <td class="ac-num" title="${aiValTitle}"> ${this.#pct(c.ai_validation_share)}</td>
+          <td class="ac-num" title="${lowQTitle}"> ${this.#pct(lowQShare)}</td>
+        </tr>`;
     }).join('');
   }
 
@@ -730,12 +722,12 @@ class AcrossCitiesPage {
     const steps = funnel.steps || [];
     const cities = funnel.cities || [];
     return `
-            <div class="ac-funnel-block">
-                <h3 class="ac-funnel-block-title">${AcrossCitiesPage.#esc(meta.title)}</h3>
-                <p class="ac-note">${AcrossCitiesPage.#esc(meta.desc)}</p>
-                <div class="ac-table-wrap">${this.#funnelTableHtml(steps, cities, segs)}</div>
-                <div class="ac-funnel-grid">${this.#funnelBarsHtml(steps, cities, segs)}</div>
-            </div>`;
+      <div class="ac-funnel-block">
+        <h3 class="ac-funnel-block-title">${AcrossCitiesPage.#esc(meta.title)}</h3>
+        <p class="ac-note">${AcrossCitiesPage.#esc(meta.desc)}</p>
+        <div class="ac-table-wrap">${this.#funnelTableHtml(steps, cities, segs)}</div>
+        <div class="ac-funnel-grid">${this.#funnelBarsHtml(steps, cities, segs)}</div>
+      </div>`;
   }
 
   /**

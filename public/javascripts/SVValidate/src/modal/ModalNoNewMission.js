@@ -16,13 +16,14 @@ class ModalNoNewMission {
     const instructions = util.isMobile()
       ? i18next.t('mobile.no-new-mission-body')
       : i18next.t('mission-complete.no-new-mission-body');
-    this.#noMissionsRemaining = `<figure> \
-            <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" \
-            alt="Street accessibility features" /> \
-            </figure> \
-            <div class="spacer10"></div>\
-            <p>${instructions}</p>\
-            <div class="spacer10"></div>`;
+    this.#noMissionsRemaining = `
+      <figure>
+        <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block"
+        alt="Street accessibility features" />
+      </figure>
+      <div class="spacer10"></div>
+      <p>${instructions}</p>
+      <div class="spacer10"></div>`;
   }
 
   #handleButtonClick = () => {

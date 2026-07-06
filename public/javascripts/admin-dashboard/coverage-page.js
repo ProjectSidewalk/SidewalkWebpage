@@ -227,8 +227,8 @@ class CoveragePage {
 
   #renderLegend() {
     document.getElementById('coverage-legend').innerHTML = `
-            <span>0%</span><span class="coverage-legend-gradient" aria-hidden="true"></span><span>100%</span>
-            <span>audit coverage</span>`;
+      <span>0%</span><span class="coverage-legend-gradient" aria-hidden="true"></span><span>100%</span>
+      <span>audit coverage</span>`;
   }
 
   /** Updates the status line; pass hide=true to remove it once data has loaded. */

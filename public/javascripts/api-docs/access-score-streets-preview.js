@@ -158,13 +158,13 @@
       const breakdown = Object.keys(counts).filter((k) => counts[k] > 0).map((k) => `${k}: ${counts[k]}`).join(', ')
         || 'no scored features';
       layer.bindPopup(`
-                <div class="as-popup">
-                    <h4>Street ${p.street_edge_id}</h4>
-                    <p><span class="as-score">${score}</span> AccessScore</p>
-                    <p><strong>Audits:</strong> ${p.audit_count} &nbsp; <strong>Labels:</strong> ${p.label_count}</p>
-                    <p class="as-breakdown"><strong>Clusters:</strong> ${breakdown}</p>
-                </div>
-            `, { autoPanPaddingTopLeft: L.point(10, 10), autoPanPaddingBottomRight: L.point(260, 130) });
+        <div class="as-popup">
+          <h4>Street ${p.street_edge_id}</h4>
+          <p><span class="as-score">${score}</span> AccessScore</p>
+          <p><strong>Audits:</strong> ${p.audit_count} &nbsp; <strong>Labels:</strong> ${p.label_count}</p>
+          <p class="as-breakdown"><strong>Clusters:</strong> ${breakdown}</p>
+        </div>
+      `, { autoPanPaddingTopLeft: L.point(10, 10), autoPanPaddingBottomRight: L.point(260, 130) });
 
       layer.on('mouseover', function () {
         this.setStyle({ weight: 7, opacity: 1 });

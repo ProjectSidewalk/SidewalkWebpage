@@ -146,12 +146,12 @@ class SpeedLimit {
 
     // Get nearby roads and their respective information from the overpass API.
     const overpassQuery = `
-        [out:json];
-        (
-        way['highway'](around:10.0, ${lat}, ${lng});
-        );
-        out geom;
-        `;
+      [out:json];
+      (
+      way['highway'](around:10.0, ${lat}, ${lng});
+      );
+      out geom;
+      `;
     const promise = (async () => {
       try {
         const overpassResp = await fetch(
@@ -189,14 +189,14 @@ class SpeedLimit {
     }
 
     const overpassQuery = `
-        [out:json];
-        is_in(${lat}, ${lng})->.a;
-        rel(pivot.a)['ISO3166-1'];
-        convert country
-            ::id = id(),
-            code = t['ISO3166-1'];
-        out tags;
-        `;
+      [out:json];
+      is_in(${lat}, ${lng})->.a;
+      rel(pivot.a)['ISO3166-1'];
+      convert country
+        ::id = id(),
+        code = t['ISO3166-1'];
+      out tags;
+      `;
     this.#countryCodePromise = (async () => {
       try {
         const resp = await fetch(

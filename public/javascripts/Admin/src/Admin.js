@@ -1596,38 +1596,36 @@ class Admin {
         usersTable.rows.add(data.user_stats.map((u) => {
           const roleDropdown = u.role !== 'Owner'
             ? `
-                        <div class="dropdown role-dropdown">
-                            <button class="btn btn-default dropdown-toggle" type="button"
-                                id="userRoleDropdown${u.userId}" data-toggle="dropdown">
-                                ${u.role}
-                                <span class="caret"></span>
-                            </button>
-                            <ul class="dropdown-menu" role="menu" aria-labelledby="userRoleDropdown${u.userId}">
-                                <li><a href="#!" class="change-role">Registered</a></li>
-                                <li><a href="#!" class="change-role">Turker</a></li>
-                                <li><a href="#!" class="change-role">Researcher</a></li>
-                                <li><a href="#!" class="change-role">Administrator</a></li>
-                                <li><a href="#!" class="change-role">Anonymous</a></li>
-                            </ul>
-                        </div>
-                    `
+              <div class="dropdown role-dropdown">
+                <button class="btn btn-default dropdown-toggle" type="button"
+                  id="userRoleDropdown${u.userId}" data-toggle="dropdown">
+                  ${u.role}
+                  <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="userRoleDropdown${u.userId}">
+                  <li><a href="#!" class="change-role">Registered</a></li>
+                  <li><a href="#!" class="change-role">Turker</a></li>
+                  <li><a href="#!" class="change-role">Researcher</a></li>
+                  <li><a href="#!" class="change-role">Administrator</a></li>
+                  <li><a href="#!" class="change-role">Anonymous</a></li>
+                </ul>
+              </div>
+            `
             : u.role;
 
           const teamDropdown = `
-                        <div class="dropdown team-dropdown">
-                            <button class="btn btn-default dropdown-toggle" type="button"
-                                id="userTeamDropdown${u.userId}" data-toggle="dropdown">
-                                ${u.team || 'None'}
-                                <span class="caret"></span>
-                            </button>
-                            <ul class="dropdown-menu" role="menu" aria-labelledby="userTeamDropdown${u.userId}">
-                                ${data.teams.map((team) => `
-                                    <li><a href="#!" class="change-team"
-                                        data-team-id="${team.teamId}">${team.name}</a></li>
-                                `).join('')}
-                                <li><a href="#!" class="change-team" data-team-id="-1">None</a></li>
-                            </ul>
-                        </div>`;
+            <div class="dropdown team-dropdown">
+              <button class="btn btn-default dropdown-toggle" type="button"
+                id="userTeamDropdown${u.userId}" data-toggle="dropdown">
+                ${u.team || 'None'} <span class="caret"></span>
+              </button>
+              <ul class="dropdown-menu" role="menu" aria-labelledby="userTeamDropdown${u.userId}">
+                ${data.teams.map((team) => `
+                  <li><a href="#!" class="change-team"data-team-id="${team.teamId}">${team.name}</a></li>
+                `).join('')}
+                <li><a href="#!" class="change-team" data-team-id="-1">None</a></li>
+              </ul>
+            </div>`;
 
           const signUpTime = u.signUpTime ? new Date(u.signUpTime) : '';
           const lastSignInTime = u.lastSignInTime ? new Date(u.lastSignInTime) : '';
@@ -1673,34 +1671,32 @@ class Admin {
 
         // Add the rows using the DataTable API.
         teamsTable.rows.add(data.map((t) => {
-          const statusDropdown
-                        = `<div class="dropdown status-dropdown">
-                            <button class="btn btn-default dropdown-toggle" type="button"
-                                id="statusDropdown${t.teamId}" data-toggle="dropdown">
-                                ${t.open ? 'Open' : 'Closed'}
-                                <span class="caret"></span>
-                            </button>
-                            <ul class="dropdown-menu" role="menu" aria-labelledby="statusDropdown${t.teamId}">
-                                <li><a href="#!" class="change-status" data-team-id="${t.teamId}"
-                                    data-status="true">Open</a></li>
-                                <li><a href="#!" class="change-status" data-team-id="${t.teamId}"
-                                    data-status="false">Closed</a></li>
-                            </ul>
-                        </div>`;
-          const visibilityDropdown
-                        = `<div class="dropdown visibility-dropdown">
-                            <button class="btn btn-default dropdown-toggle" type="button"
-                                id="visibilityDropdown${t.teamId}" data-toggle="dropdown">
-                                ${t.visible ? 'Visible' : 'Hidden'}
-                                <span class="caret"></span>
-                            </button>
-                            <ul class="dropdown-menu" role="menu" aria-labelledby="visibilityDropdown${t.teamId}">
-                                <li><a href="#!" class="change-visibility" data-team-id="${t.teamId}"
-                                    data-visibility="true">Visible</a></li>
-                                <li><a href="#!" class="change-visibility" data-team-id="${t.teamId}"
-                                    data-visibility="false">Hidden</a></li>
-                            </ul>
-                        </div>`;
+          const statusDropdown = `
+            <div class="dropdown status-dropdown">
+              <button class="btn btn-default dropdown-toggle" type="button"
+                id="statusDropdown${t.teamId}" data-toggle="dropdown">
+                ${t.open ? 'Open' : 'Closed'}
+                <span class="caret"></span>
+              </button>
+              <ul class="dropdown-menu" role="menu" aria-labelledby="statusDropdown${t.teamId}">
+                <li><a href="#!" class="change-status" data-team-id="${t.teamId}" data-status="true">Open</a></li>
+                <li><a href="#!" class="change-status" data-team-id="${t.teamId}" data-status="false">Closed</a></li>
+              </ul>
+            </div>`;
+          const visibilityDropdown = `
+            <div class="dropdown visibility-dropdown">
+              <button class="btn btn-default dropdown-toggle" type="button"
+                id="visibilityDropdown${t.teamId}" data-toggle="dropdown">
+                ${t.visible ? 'Visible' : 'Hidden'}
+                <span class="caret"></span>
+              </button>
+              <ul class="dropdown-menu" role="menu" aria-labelledby="visibilityDropdown${t.teamId}">
+                <li><a href="#!" class="change-visibility" data-team-id="${t.teamId}"
+                  data-visibility="true">Visible</a></li>
+                <li><a href="#!" class="change-visibility" data-team-id="${t.teamId}"
+                  data-visibility="false">Hidden</a></li>
+              </ul>
+            </div>`;
 
           return [
             t.name,

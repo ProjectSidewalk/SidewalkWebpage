@@ -92,22 +92,22 @@
     const summaryEl = document.createElement('div');
     summaryEl.className = 'preview-summary-grid';
     summaryEl.innerHTML = `
-            <div class="preview-stat"><span class="preview-stat-value">${dates.length}</span>
-                <span class="preview-stat-label">Days shown</span>
-            </div>
-            <div class="preview-stat"><span class="preview-stat-value">${totalHumanLabels.toLocaleString()}</span>
-                <span class="preview-stat-label">Human labels</span>
-            </div>
-            <div class="preview-stat"><span class="preview-stat-value">${totalAiLabels.toLocaleString()}</span>
-                <span class="preview-stat-label">AI labels</span>
-            </div>
-            <div class="preview-stat"><span class="preview-stat-value">${totalValidations.toLocaleString()}</span>
-                <span class="preview-stat-label">Validations</span>
-            </div>
-            <div class="preview-stat"><span class="preview-stat-value">${accuracy}%</span>
-                <span class="preview-stat-label">Agreement rate</span>
-            </div>
-        `;
+      <div class="preview-stat"><span class="preview-stat-value">${dates.length}</span>
+        <span class="preview-stat-label">Days shown</span>
+      </div>
+      <div class="preview-stat"><span class="preview-stat-value">${totalHumanLabels.toLocaleString()}</span>
+        <span class="preview-stat-label">Human labels</span>
+      </div>
+      <div class="preview-stat"><span class="preview-stat-value">${totalAiLabels.toLocaleString()}</span>
+        <span class="preview-stat-label">AI labels</span>
+      </div>
+      <div class="preview-stat"><span class="preview-stat-value">${totalValidations.toLocaleString()}</span>
+        <span class="preview-stat-label">Validations</span>
+      </div>
+      <div class="preview-stat"><span class="preview-stat-value">${accuracy}%</span>
+        <span class="preview-stat-label">Agreement rate</span>
+      </div>
+    `;
     container.appendChild(summaryEl);
 
     // ── Chart 1: Human labels per day ───────────────────────────────────────
@@ -238,9 +238,9 @@
     const wrap = document.createElement('div');
     wrap.className = 'preview-chart-section';
     wrap.innerHTML = `
-            <h3 class="preview-chart-title">${title}</h3>
-            <p class="preview-chart-desc">${description}</p>
-        `;
+      <h3 class="preview-chart-title">${title}</h3>
+      <p class="preview-chart-desc">${description}</p>
+    `;
     const inner = document.createElement('div');
     inner.style.cssText = 'position:relative;height:280px;width:100%';
     wrap.appendChild(inner);

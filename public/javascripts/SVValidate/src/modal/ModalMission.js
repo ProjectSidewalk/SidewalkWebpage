@@ -4,22 +4,23 @@
 class ModalMission {
   #uiModalMission;
 
-  #validationStartMissionHTML = ` <figure> \
-        <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" \
-        alt="Street accessibility features" /> \
-        </figure> \
-        <div class="spacer10"></div>\
-        <p>${i18next.t('mission-start.body')}</p>\
-        <div class="spacer10"></div>`;
+  #validationStartMissionHTML = `
+    <figure>
+      <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block"
+        alt="Street accessibility features" />
+    </figure>
+    <div class="spacer10"></div>
+    <p>${i18next.t('mission-start.body')}</p>
+    <div class="spacer10"></div>`;
 
-  #validationResumeMissionHTML = ' <figure> \
-        <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" \
-        alt="Street accessibility features" /> \
-        </figure> \
-        <div class="spacer10"></div>\
-        <p>Continue validating  __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span> \
-        labels placed by other users!</p>\
-        <div class="spacer10"></div>';
+  #validationResumeMissionHTML = `
+    <figure>
+      <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block"
+      alt="Street accessibility features" />
+    </figure>
+    <div class="spacer10"></div>
+    <p>Continue validating  __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__ labels placed by other users!</p>
+    <div class="spacer10"></div>`;
 
   /**
    * @param {object} uiModalMission Mission modal UI elements.

@@ -161,25 +161,25 @@ class FunnelsSection {
           ? `${FunnelsSection.#esc(full)}: ${this.#num(v)} visitors`
           : `${FunnelsSection.#esc(full)}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
         return `
-                    <div class="ac-funnel-bar" title="${title}">
-                        <span class="ac-funnel-bar-fill"
-                              style="width:${width.toFixed(1)}%;background:${palette[si] || palette[0]}"></span>
-                        <span class="ac-funnel-bar-val">${valText}</span>
-                    </div>`;
+          <div class="ac-funnel-bar" title="${title}">
+            <span class="ac-funnel-bar-fill"
+              style="width:${width.toFixed(1)}%;background:${palette[si] || palette[0]}"></span>
+            <span class="ac-funnel-bar-val">${valText}</span>
+          </div>`;
       }).join('');
       return `
-                <div class="ac-funnel-step">
-                    <div class="ac-funnel-step-label">${FunnelsSection.#esc(full)}</div>
-                    <div class="ac-funnel-bars">${bars}</div>
-                </div>`;
+        <div class="ac-funnel-step">
+          <div class="ac-funnel-step-label">${FunnelsSection.#esc(full)}</div>
+          <div class="ac-funnel-bars">${bars}</div>
+        </div>`;
     }).join('');
 
     return `
-            <div class="ac-funnel-block">
-                <h3 class="ac-funnel-block-title">${FunnelsSection.#esc(meta.title)}</h3>
-                <p class="ac-note">${FunnelsSection.#esc(meta.desc)}</p>
-                <div class="ac-funnel-panel">${legend}${stepRows}</div>
-            </div>`;
+      <div class="ac-funnel-block">
+        <h3 class="ac-funnel-block-title">${FunnelsSection.#esc(meta.title)}</h3>
+        <p class="ac-note">${FunnelsSection.#esc(meta.desc)}</p>
+        <div class="ac-funnel-panel">${legend}${stepRows}</div>
+      </div>`;
   }
 
   async #fetchJson(url) {

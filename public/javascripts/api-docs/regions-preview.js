@@ -140,7 +140,7 @@
         .map((metric) => `<option value="${metric}">${METRICS[metric].label}</option>`)
         .join('');
       toolbar.innerHTML = `<label for="region-metric-select">Color by</label>
-                <select id="region-metric-select">${optionsHtml}</select>`;
+        <select id="region-metric-select">${optionsHtml}</select>`;
       container.appendChild(toolbar);
 
       const mapElement = document.createElement('div');
@@ -222,20 +222,20 @@
       const lastLabelDate = props.last_label_date ? new Date(props.last_label_date).toLocaleDateString() : 'No labels';
 
       layer.bindPopup(`
-                <div class="region-popup">
-                    <h4>${props.name || `Region ${props.region_id}`}</h4>
-                    <p><strong>Region ID:</strong> ${props.region_id}</p>
-                    <p><strong>Labels:</strong> ${props.label_count}</p>
-                    <p><strong>Streets:</strong> ${props.street_count}</p>
-                    <p><strong>Contributors:</strong> ${props.user_count}</p>
-                    <p><strong>Completed audits:</strong> ${props.audit_count}</p>
-                    <p><strong>First Label:</strong> ${firstLabelDate}</p>
-                    <p><strong>Last Label:</strong> ${lastLabelDate}</p>
-                    <a href="/labelmap?regions=${props.region_id}" class="explore-region-btn" target="_blank">
-                        View region on the label map
-                    </a>
-                </div>
-            `, {
+        <div class="region-popup">
+          <h4>${props.name || `Region ${props.region_id}`}</h4>
+          <p><strong>Region ID:</strong> ${props.region_id}</p>
+          <p><strong>Labels:</strong> ${props.label_count}</p>
+          <p><strong>Streets:</strong> ${props.street_count}</p>
+          <p><strong>Contributors:</strong> ${props.user_count}</p>
+          <p><strong>Completed audits:</strong> ${props.audit_count}</p>
+          <p><strong>First Label:</strong> ${firstLabelDate}</p>
+          <p><strong>Last Label:</strong> ${lastLabelDate}</p>
+          <a href="/labelmap?regions=${props.region_id}" class="explore-region-btn" target="_blank">
+            View region on the label map
+          </a>
+        </div>
+      `, {
         // Pad the auto-pan so an opened popup is nudged clear of the bottom-right legend.
         autoPanPaddingTopLeft: L.point(10, 10),
         autoPanPaddingBottomRight: L.point(260, 130),

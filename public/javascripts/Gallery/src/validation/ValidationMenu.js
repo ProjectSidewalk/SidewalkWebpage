@@ -30,12 +30,11 @@ class ValidationMenu {
     this.#gsvImage = gsvImage;
 
     const cardOverlayHTML = `
-            <div id="gallery-validation-button-holder">
-                <button id="gallery-card-agree-button" class="validation-button">${i18next.t('common:agree')}</button>
-                <button id="gallery-card-disagree-button"
-                    class="validation-button">${i18next.t('common:disagree')}</button>
-                <button id="gallery-card-unsure-button" class="validation-button">${i18next.t('common:unsure')}</button>
-            </div>`;
+      <div id="gallery-validation-button-holder">
+        <button id="gallery-card-agree-button" class="validation-button">${i18next.t('common:agree')}</button>
+        <button id="gallery-card-disagree-button" class="validation-button">${i18next.t('common:disagree')}</button>
+        <button id="gallery-card-unsure-button" class="validation-button">${i18next.t('common:unsure')}</button>
+      </div>`;
     this.#overlay = $(cardOverlayHTML);
     this.#galleryCard = gsvImage.parent();
 

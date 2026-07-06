@@ -127,27 +127,27 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
         const distanceLeftRounded = Math.round(currRegion.properties.dist_remaining_converted);
         if (currRegion.properties.user_completed) {
           popupContent = `<strong>${regionName}</strong>:
-                        ${i18next.t('common:map.100-percent-complete')}<br>
-                        ${i18next.t('common:map.thanks')}`;
+            ${i18next.t('common:map.100-percent-complete')}<br>
+            ${i18next.t('common:map.thanks')}`;
         } else if (compRate === 100) {
           popupContent = `<strong>${regionName}</strong>:
-                        ${i18next.t('common:map.100-percent-complete')}<br>
-                        ${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
+            ${i18next.t('common:map.100-percent-complete')}<br>
+            ${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
         } else if (distanceLeftRounded === 0) {
           popupContent = `<strong>${regionName}</strong>:
-                        ${i18next.t('common:map.percent-complete', { percent: compRateRounded })}<br>
-                        ${i18next.t('common:map.less-than-one-unit-left')}<br>
-                        ${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
+            ${i18next.t('common:map.percent-complete', { percent: compRateRounded })}<br>
+            ${i18next.t('common:map.less-than-one-unit-left')}<br>
+            ${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
         } else if (distanceLeftRounded === 1) {
           popupContent = `<strong>${regionName}</strong>:
-                        ${i18next.t('common:map.percent-complete', { percent: compRateRounded })}<br>
-                        ${i18next.t('common:map.distance-left-one-unit')}<br>
-                        ${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
+            ${i18next.t('common:map.percent-complete', { percent: compRateRounded })}<br>
+            ${i18next.t('common:map.distance-left-one-unit')}<br>
+            ${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
         } else {
           popupContent = `<strong>${regionName}</strong>:
-                        ${i18next.t('common:map.percent-complete', { percent: compRateRounded })}<br>
-                        ${i18next.t('common:map.distance-left', { n: distanceLeftRounded })}<br>
-                        ${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
+            ${i18next.t('common:map.percent-complete', { percent: compRateRounded })}<br>
+            ${i18next.t('common:map.distance-left', { n: distanceLeftRounded })}<br>
+            ${i18next.t('common:map.click-to-help', { url, regionId: hoveredRegionId })}`;
         }
 
         // Set tooltip to center of neighborhood.
