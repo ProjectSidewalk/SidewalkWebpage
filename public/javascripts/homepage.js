@@ -1,99 +1,99 @@
 let autoAdvanceLaptop = true;
 
 function isScrolledIntoView(elem) {
-    const docViewTop = $(window).scrollTop();
-    const docViewBottom = docViewTop + $(window).height();
+  const docViewTop = $(window).scrollTop();
+  const docViewBottom = docViewTop + $(window).height();
 
-    const elemTop = $(elem).offset().top;
-    const elemBottom = elemTop + $(elem).height();
+  const elemTop = $(elem).offset().top;
+  const elemBottom = elemTop + $(elem).height();
 
-    return ((elemBottom <= docViewBottom) && (elemTop >= docViewTop));
+  return ((elemBottom <= docViewBottom) && (elemTop >= docViewTop));
 }
 
 $(window).scroll(numbersInView);
 
 function numbersInView() {
-    if (isScrolledIntoView($('#percentage'))) {
-        if (percentageAnim && labelsAnim) {
-            percentageAnim.start();
-            labelsAnim.start();
-            distanceAnim.start();
-            validationsAnim.start();
-        }
+  if (isScrolledIntoView($('#percentage'))) {
+    if (percentageAnim && labelsAnim) {
+      percentageAnim.start();
+      labelsAnim.start();
+      distanceAnim.start();
+      validationsAnim.start();
     }
+  }
 }
 
 function switchToVideo(vidnum) {
-    if (vidnum === 1) {
-        document.getElementById('vid1').style.display = 'block';
-        document.getElementById('vid2').style.display = 'none';
-        document.getElementById('vid3').style.display = 'none';
+  if (vidnum === 1) {
+    document.getElementById('vid1').style.display = 'block';
+    document.getElementById('vid2').style.display = 'none';
+    document.getElementById('vid3').style.display = 'none';
 
-        $('#word1').addClass('tab-word activetab');
-        $('#word2').addClass('tab-word').removeClass('activetab');
-        $('#word3').addClass('tab-word').removeClass('activetab');
+    $('#word1').addClass('tab-word activetab');
+    $('#word2').addClass('tab-word').removeClass('activetab');
+    $('#word3').addClass('tab-word').removeClass('activetab');
 
-        $('#firstnumbox').addClass('tab-word activetab');
-        $('#secondnumbox').addClass('tab-word').removeClass('activetab');
-        $('#thirdnumbox').addClass('tab-word').removeClass('activetab');
+    $('#firstnumbox').addClass('tab-word activetab');
+    $('#secondnumbox').addClass('tab-word').removeClass('activetab');
+    $('#thirdnumbox').addClass('tab-word').removeClass('activetab');
 
-        $('#number1').addClass('tab-word activetab');
-        $('#number2').addClass('tab-word').removeClass('activetab');
-        $('#number3').addClass('tab-word').removeClass('activetab');
+    $('#number1').addClass('tab-word activetab');
+    $('#number2').addClass('tab-word').removeClass('activetab');
+    $('#number3').addClass('tab-word').removeClass('activetab');
 
-        document.getElementById('vid1').currentTime = 0;
-        document.getElementById('vid1').play();
+    document.getElementById('vid1').currentTime = 0;
+    document.getElementById('vid1').play();
 
-        document.getElementById('vid2').pause();
-        document.getElementById('vid3').pause();
-    } else if (vidnum === 2) {
-        document.getElementById('vid1').style.display = 'none';
-        document.getElementById('vid2').style.display = 'block';
-        document.getElementById('vid3').style.display = 'none';
+    document.getElementById('vid2').pause();
+    document.getElementById('vid3').pause();
+  } else if (vidnum === 2) {
+    document.getElementById('vid1').style.display = 'none';
+    document.getElementById('vid2').style.display = 'block';
+    document.getElementById('vid3').style.display = 'none';
 
-        $('#word1').addClass('tab-word').removeClass('activetab');
-        $('#word2').addClass('tab-word activetab');
-        $('#word3').addClass('tab-word').removeClass('activetab');
+    $('#word1').addClass('tab-word').removeClass('activetab');
+    $('#word2').addClass('tab-word activetab');
+    $('#word3').addClass('tab-word').removeClass('activetab');
 
-        $('#firstnumbox').addClass('tab-word').removeClass('activetab');
-        $('#secondnumbox').addClass('tab-word activetab');
-        $('#thirdnumbox').addClass('tab-word').removeClass('activetab');
+    $('#firstnumbox').addClass('tab-word').removeClass('activetab');
+    $('#secondnumbox').addClass('tab-word activetab');
+    $('#thirdnumbox').addClass('tab-word').removeClass('activetab');
 
-        $('#number1').addClass('tab-word').removeClass('activetab');
-        $('#number2').addClass('tab-word activetab');
-        $('#number3').addClass('tab-word').removeClass('activetab');
+    $('#number1').addClass('tab-word').removeClass('activetab');
+    $('#number2').addClass('tab-word activetab');
+    $('#number3').addClass('tab-word').removeClass('activetab');
 
-        document.getElementById('vid2').currentTime = 0;
-        document.getElementById('vid2').play();
+    document.getElementById('vid2').currentTime = 0;
+    document.getElementById('vid2').play();
 
-        document.getElementById('vid1').pause();
-        document.getElementById('vid3').pause();
-    } else if (vidnum === 3) {
-        document.getElementById('vid1').style.display = 'none';
-        document.getElementById('vid2').style.display = 'none';
-        document.getElementById('vid3').style.display = 'block';
+    document.getElementById('vid1').pause();
+    document.getElementById('vid3').pause();
+  } else if (vidnum === 3) {
+    document.getElementById('vid1').style.display = 'none';
+    document.getElementById('vid2').style.display = 'none';
+    document.getElementById('vid3').style.display = 'block';
 
-        $('#word1').addClass('tab-word').removeClass('activetab');
-        $('#word2').addClass('tab-word').removeClass('activetab');
-        $('#word3').addClass('tab-word activetab');
+    $('#word1').addClass('tab-word').removeClass('activetab');
+    $('#word2').addClass('tab-word').removeClass('activetab');
+    $('#word3').addClass('tab-word activetab');
 
-        $('#firstnumbox').addClass('tab-word').removeClass('activetab');
-        $('#secondnumbox').addClass('tab-word').removeClass('activetab');
-        $('#thirdnumbox').addClass('tab-word activetab');
+    $('#firstnumbox').addClass('tab-word').removeClass('activetab');
+    $('#secondnumbox').addClass('tab-word').removeClass('activetab');
+    $('#thirdnumbox').addClass('tab-word activetab');
 
-        $('#number1').addClass('tab-word').removeClass('activetab');
-        $('#number2').addClass('tab-word').removeClass('activetab');
-        $('#number3').addClass('tab-word activetab');
+    $('#number1').addClass('tab-word').removeClass('activetab');
+    $('#number2').addClass('tab-word').removeClass('activetab');
+    $('#number3').addClass('tab-word activetab');
 
-        document.getElementById('vid3').currentTime = 0;
-        document.getElementById('vid3').play();
+    document.getElementById('vid3').currentTime = 0;
+    document.getElementById('vid3').play();
 
-        document.getElementById('vid2').pause();
-        document.getElementById('vid1').pause();
-    }
+    document.getElementById('vid2').pause();
+    document.getElementById('vid1').pause();
+  }
 
-    // Reset auto-advance counter.
-    numTicks = 0;
+  // Reset auto-advance counter.
+  numTicks = 0;
 }
 
 let vidBanner;
@@ -109,104 +109,104 @@ let numTicks = 0;
 
 // Advances to next instruction video if the videos are in the user's viewport and enough "ticks" have gone by.
 function autoAdvanceLaptopVideos() {
-    if (!autoAdvanceLaptop) return;
+  if (!autoAdvanceLaptop) return;
 
-    numTicks++;
+  numTicks++;
 
-    if (numTicks >= requiredTicks[curVideo - 1] && isElementVerticallyVisible(instructVideoContainer)) {
-        numTicks = 0;
-        curVideo++;
+  if (numTicks >= requiredTicks[curVideo - 1] && isElementVerticallyVisible(instructVideoContainer)) {
+    numTicks = 0;
+    curVideo++;
 
-        if (curVideo > requiredTicks.length) {
-            curVideo = DEFAULT_VIDEO;
-        }
-
-        switchToVideo(curVideo);
+    if (curVideo > requiredTicks.length) {
+      curVideo = DEFAULT_VIDEO;
     }
+
+    switchToVideo(curVideo);
+  }
 }
 
 window.appManager.ready(() => {
-    // Triggered upon clicking tabs in "How you can help" section.
-    // Logs "Click_module=HowYouCanHelp_tab=<tabNumber>" in WebpageActivityTable
-    $('#firstnumbox').on('click keydown', (e) => {
-        if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
-        switchToVideo(1);
-        autoAdvanceLaptop = false;
-        window.logWebpageActivity('Click_module=HowYouCanHelp_tab=1');
-    });
-    $('#secondnumbox').on('click keydown', (e) => {
-        if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
-        switchToVideo(2);
-        autoAdvanceLaptop = false;
-        window.logWebpageActivity('Click_module=HowYouCanHelp_tab=2');
-    });
-    $('#thirdnumbox').on('click keydown', (e) => {
-        if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
-        switchToVideo(3);
-        autoAdvanceLaptop = false;
-        window.logWebpageActivity('Click_module=HowYouCanHelp_tab=3');
-    });
+  // Triggered upon clicking tabs in "How you can help" section.
+  // Logs "Click_module=HowYouCanHelp_tab=<tabNumber>" in WebpageActivityTable
+  $('#firstnumbox').on('click keydown', (e) => {
+    if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+    switchToVideo(1);
+    autoAdvanceLaptop = false;
+    window.logWebpageActivity('Click_module=HowYouCanHelp_tab=1');
+  });
+  $('#secondnumbox').on('click keydown', (e) => {
+    if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+    switchToVideo(2);
+    autoAdvanceLaptop = false;
+    window.logWebpageActivity('Click_module=HowYouCanHelp_tab=2');
+  });
+  $('#thirdnumbox').on('click keydown', (e) => {
+    if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+    switchToVideo(3);
+    autoAdvanceLaptop = false;
+    window.logWebpageActivity('Click_module=HowYouCanHelp_tab=3');
+  });
 
-    // Triggered when images in Collaborators section are clicked.
-    // Logs "Click_module=Collaborator_type=<"img">_source=<"makeability" or "ligapeatonal">
-    $('#collaborators-container').on('click', 'a', (e) => {
-        const type = e.currentTarget.id.split('-')[1];
-        const source = e.currentTarget.id.split('-')[0];
-        window.logWebpageActivity(`Click_module=Collaborator_type=${type}_source=${source}`);
-    });
+  // Triggered when images in Collaborators section are clicked.
+  // Logs "Click_module=Collaborator_type=<"img">_source=<"makeability" or "ligapeatonal">
+  $('#collaborators-container').on('click', 'a', (e) => {
+    const type = e.currentTarget.id.split('-')[1];
+    const source = e.currentTarget.id.split('-')[0];
+    window.logWebpageActivity(`Click_module=Collaborator_type=${type}_source=${source}`);
+  });
 
-    // Triggered when 'Start Exploring' in video container is clicked.
-    // Logs "Click_module=StartExploring_location=Index"
-    $('#landing-cta-button').on('click', () => {
-        window.logWebpageActivity('Click_module=StartExploring_location=Index');
-    });
+  // Triggered when 'Start Exploring' in video container is clicked.
+  // Logs "Click_module=StartExploring_location=Index"
+  $('#landing-cta-button').on('click', () => {
+    window.logWebpageActivity('Click_module=StartExploring_location=Index');
+  });
 
-    // Triggered when 'Click here to learn about deploying PS in your city' is clicked.
-    // Logs "Click_module=NewCity_location=Index"
-    $('#new-deployment-link').on('click', () => {
-        window.logWebpageActivity('Click_module=NewCity_location=Index');
-    });
+  // Triggered when 'Click here to learn about deploying PS in your city' is clicked.
+  // Logs "Click_module=NewCity_location=Index"
+  $('#new-deployment-link').on('click', () => {
+    window.logWebpageActivity('Click_module=NewCity_location=Index');
+  });
 
-    // Triggered when the city or mapathon links are clicked.
-    // If a city link is clicked logs "Click_module=OtherCityLink_City=cityName".
-    // If a mapathon link is clicked logs "Click_module=mapathonLink".
-    $('.other-city-link').on('click', (e) => {
-        const cityName = e.currentTarget.id;
-        if (cityName === 'mapathonLink') {
-            window.logWebpageActivity('Click_module=mapathonLink');
-        } else {
-            window.logWebpageActivity(`Click_module=OtherCityLink_City=${cityName}`);
-        }
-    });
+  // Triggered when the city or mapathon links are clicked.
+  // If a city link is clicked logs "Click_module=OtherCityLink_City=cityName".
+  // If a mapathon link is clicked logs "Click_module=mapathonLink".
+  $('.other-city-link').on('click', (e) => {
+    const cityName = e.currentTarget.id;
+    if (cityName === 'mapathonLink') {
+      window.logWebpageActivity('Click_module=mapathonLink');
+    } else {
+      window.logWebpageActivity(`Click_module=OtherCityLink_City=${cityName}`);
+    }
+  });
 
-    // Setup video lazyPlay.
-    $(window).on('scroll', onScroll);
+  // Setup video lazyPlay.
+  $(window).on('scroll', onScroll);
 
-    // Toggle the tall-navbar class on scroll so the navbar shrinks once the user starts scrolling.
-    const header = document.getElementById('header');
-    const updateHeaderHeight = () => {
-        if (window.scrollY > 20) {
-            header.classList.remove('header--tall');
-        } else {
-            header.classList.add('header--tall');
-        }
-    };
-    updateHeaderHeight();
-    window.addEventListener('scroll', updateHeaderHeight, { passive: true });
+  // Toggle the tall-navbar class on scroll so the navbar shrinks once the user starts scrolling.
+  const header = document.getElementById('header');
+  const updateHeaderHeight = () => {
+    if (window.scrollY > 20) {
+      header.classList.remove('header--tall');
+    } else {
+      header.classList.add('header--tall');
+    }
+  };
+  updateHeaderHeight();
+  window.addEventListener('scroll', updateHeaderHeight, { passive: true });
 
-    vidBanner = $('#vidbanner')[0];
-    bannerVid = $('#bgvid')[0];
+  vidBanner = $('#vidbanner')[0];
+  bannerVid = $('#bgvid')[0];
 
-    instructVideoContainer = $('#instructionvideo')[0];
-    instructVideos = [
-        $('#vid1')[0],
-        $('#vid2')[0],
-        $('#vid3')[0],
-    ];
+  instructVideoContainer = $('#instructionvideo')[0];
+  instructVideos = [
+    $('#vid1')[0],
+    $('#vid2')[0],
+    $('#vid3')[0],
+  ];
 
-    // Auto advance instruction videos.
-    switchToVideo(DEFAULT_VIDEO);
-    setInterval(autoAdvanceLaptopVideos, TICK_SIZE);
+  // Auto advance instruction videos.
+  switchToVideo(DEFAULT_VIDEO);
+  setInterval(autoAdvanceLaptopVideos, TICK_SIZE);
 });
 
 const pausedVideos = {};
@@ -217,14 +217,14 @@ const pausedVideos = {};
  * @param wait {number} Minimum ms between invocations.
  */
 function throttle(fn, wait) {
-    let lastCall = 0;
-    return function (...args) {
-        const now = Date.now();
-        if (now - lastCall >= wait) {
-            lastCall = now;
-            fn.apply(this, args);
-        }
-    };
+  let lastCall = 0;
+  return function (...args) {
+    const now = Date.now();
+    if (now - lastCall >= wait) {
+      lastCall = now;
+      fn.apply(this, args);
+    }
+  };
 }
 
 /**
@@ -233,11 +233,11 @@ function throttle(fn, wait) {
  * @param wait {number} Ms of inactivity required before fn fires.
  */
 function debounce(fn, wait) {
-    let timer;
-    return function (...args) {
-        clearTimeout(timer);
-        timer = setTimeout(() => fn.apply(this, args), wait);
-    };
+  let timer;
+  return function (...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), wait);
+  };
 }
 
 // Wrappers around lazyPlayVideos().
@@ -246,41 +246,41 @@ const lazyPlayVideosDebounced = debounce(lazyPlayVideos, 600);
 
 // Triggered when the user scrolls.
 function onScroll() {
-    lazyPlayVideosThrottled(); // While scrolling, run the check every 300ms.
-    lazyPlayVideosDebounced(); // After scrolling, make sure we run the check.
+  lazyPlayVideosThrottled(); // While scrolling, run the check every 300ms.
+  lazyPlayVideosDebounced(); // After scrolling, make sure we run the check.
 }
 
 // lazyPlays our main videos.
 function lazyPlayVideos() {
-    lazyPlay(vidBanner, bannerVid);
+  lazyPlay(vidBanner, bannerVid);
 
-    for (let i = 0; i < instructVideos.length; i++) {
-        lazyPlay(instructVideoContainer, instructVideos[i]);
-    }
+  for (let i = 0; i < instructVideos.length; i++) {
+    lazyPlay(instructVideoContainer, instructVideos[i]);
+  }
 }
 
 // Pauses a video if a certain element is outside of the viewport, plays the video otherwise.
 function lazyPlay(el, video) {
-    if (isElementVerticallyVisible(el)) {
-        if (!isVideoPlaying(video)) {
-            pausedVideos[video.id] = false;
-            video.play();
-        }
-    } else if (isVideoPlaying(video)) {
-        pausedVideos[video.id] = true;
-        video.pause();
+  if (isElementVerticallyVisible(el)) {
+    if (!isVideoPlaying(video)) {
+      pausedVideos[video.id] = false;
+      video.play();
     }
+  } else if (isVideoPlaying(video)) {
+    pausedVideos[video.id] = true;
+    video.pause();
+  }
 }
 
 // Returns true if the given video is playing.
 function isVideoPlaying(video) {
-    return !pausedVideos[video.id];
+  return !pausedVideos[video.id];
 }
 
 // Returns true if the given element is in the vertical viewport.
 function isElementVerticallyVisible(el) {
-    const rect = el.getBoundingClientRect();
-    const windowHeight = (window.innerHeight || document.documentElement.clientHeight);
+  const rect = el.getBoundingClientRect();
+  const windowHeight = (window.innerHeight || document.documentElement.clientHeight);
 
-    return (rect.top <= windowHeight) && ((rect.top + rect.height) >= 0);
+  return (rect.top <= windowHeight) && ((rect.top + rect.height) >= 0);
 }

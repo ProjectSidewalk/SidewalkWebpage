@@ -162,7 +162,7 @@ When you catch yourself writing a frontend constant that mirrors a backend value
 - Replace uses of Bootstrap with native JS alternatives as you come across them
 - When writing SQL, avoid table aliases
 - After editing any Scala file, run `make scalafmt-fix` (reformats the whole tree in place via the sbt thin client) before treating the change as done — scalafmt is a blocking CI gate, so unformatted Scala fails the build. One run after a batch of edits is enough; no need to format after every single edit.
-- After editing any JavaScript file, run `make eslint-fix dir=<files or dirs you touched>`, then hand-fix anything `--fix` couldn't resolve — **`make eslint` must pass (zero errors/warnings) before the change is done**. The whole tree is lint-clean (#2487), so a bare `make eslint` should come back green; any finding it reports is yours to fix. It's not a CI gate yet, but don't check in code that fails it — the JS counterpart to the scalafmt rule above.
+- After editing any JavaScript file, run `make eslint-fix dir=<files or dirs you touched>`, then hand-fix anything `--fix` couldn't resolve — **`make eslint` must pass (zero errors/warnings) before the change is done**. The whole tree is lint-clean (#2487), so a bare `make eslint` should come back green; any finding it reports is yours to fix. ESLint is now a **blocking CI gate** (a step in the `frontend` job — see Continuous integration), the JS counterpart to the scalafmt rule above, so failing lint fails the build.
 - User interactions are logged (clicks, key presses, mode switches, pano changes, mission/task events, etc.) to the activity/interaction tables. When you **add or change an interaction**, add or adjust the corresponding logging so analytics stay complete; keep event names consistent with the existing ones, and update [`docs/logged-events.md`](docs/logged-events.md) (how logging works + the event reference).
 - Ensure WCAG 2.1/2.2 Level AA accessibility standards are met
 - When adding or refactoring code, use the fonts, colors, button styling, etc. defined in main.css :root. These are pulled from our "Design System Tokens" Figma, and we are pushing to use these going forward.
@@ -300,7 +300,7 @@ Good targets for inline comments:
 - Do not add a header just because a function was touched; only add one if it is missing
   and the function is non-trivial.
 
-## Linting Rules (`make eslint` must pass before check-in — run manually, not a CI gate yet; Scala `scalafmt` is checked in CI — see Continuous integration)
+## Linting Rules (`make eslint` must pass before check-in — now a blocking CI gate for JS, like Scala `scalafmt`; htmlhint/stylelint still manual — see Continuous integration)
 - ESLint: ES2022, `const`/`let` only (no `var`), arrow functions, template literals, semicolons required, 120-char line limit
 - Stylelint: 4-space indentation, stylelint-config-standard
 - HTMLHint: lowercase tags/attrs, double quotes, no inline scripts/styles, alt text required
@@ -354,7 +354,7 @@ A **Python** unit suite (`pytest`) for the `scripts/` utilities lives under `tes
 
 ### Continuous integration
 
-`.github/workflows/ci.yml` runs on PRs and pushes to `develop`/`master`: backend **`sbt compile`** (blocking gate), **`scalafmtCheckAll`** (blocking — the tree is kept format-clean; auto-format with `make scalafmt-fix` / `sbt scalafmtAll`, config in `.scalafmt.conf`), the **frontend grunt build**, the **evolutions lint** (blocking — static checks on `conf/evolutions/default/*.sql`, e.g. a semicolon mid-`--`-comment that Play's parser splits on; run locally with `make lint-evolutions`), and the **DB-backed API tests** (advisory while the suite stabilizes — boots the app, so it also exercises forward evolution application). "Advisory" steps report findings but don't block merges yet. **Branch protection** on `develop` (set 2026-06-29) wires the deterministic blocking jobs as **required status checks** (`Backend (compile + scalafmt)`, `Frontend (build)`; `Evolutions lint` being added) so a red build can't merge; `enforce_admins=true`, **no required reviews** (self-merge preserved), advisory jobs not required. Full policy: [`docs/testing-and-ci.md`](docs/testing-and-ci.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
+`.github/workflows/ci.yml` runs on PRs and pushes to `develop`/`master`: backend **`sbt compile`** (blocking gate), **`scalafmtCheckAll`** (blocking — the tree is kept format-clean; auto-format with `make scalafmt-fix` / `sbt scalafmtAll`, config in `.scalafmt.conf`), the **frontend grunt build** plus **ESLint** (blocking — `npx eslint public/javascripts/` as a step in the `frontend` job, so it rides the required `Frontend (build)` check; blocks on `error` rules, while the lone `warn` rule `max-len` is advisory so there's no `--max-warnings 0`; the JS tree is kept lint-clean, auto-fix with `make eslint-fix`; htmlhint/stylelint not yet wired in — #2487), the **evolutions lint** (blocking — static checks on `conf/evolutions/default/*.sql`, e.g. a semicolon mid-`--`-comment that Play's parser splits on; run locally with `make lint-evolutions`), and the **DB-backed API tests** (advisory while the suite stabilizes — boots the app, so it also exercises forward evolution application). "Advisory" steps report findings but don't block merges yet. **Branch protection** on `develop` (set 2026-06-29) wires the deterministic blocking jobs as **required status checks** (`Backend (compile + scalafmt)`, `Frontend (build)` — now also covers ESLint; `Evolutions lint` being added) so a red build can't merge; `enforce_admins=true`, **no required reviews** (self-merge preserved), advisory jobs not required. Full policy: [`docs/testing-and-ci.md`](docs/testing-and-ci.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ### Building frontend assets
 
@@ -398,7 +398,11 @@ make eslint dir=public/javascripts/SVValidate   # scope to a dir or file; also h
 **`make eslint` must pass (zero errors/warnings) before code is checked in** — like scalafmt for Scala. The tree is
 fully lint-clean (#2487), so a bare run should come back green and any finding is yours: run
 `make eslint-fix dir=<what you touched>` for the mechanical fixes, hand-fix the rest, then confirm with `make eslint`.
-It's not wired into CI yet, but treat it as if it were.
+ESLint is now a **blocking CI gate** (a step in the `frontend` job, `npx eslint public/javascripts/`), so an `error`
+finding fails the build — the JS counterpart to scalafmt. Severities are the gate: nearly every rule is `error`; the
+one `warn` rule (`max-len`) is deliberately advisory (CLAUDE.md permits long-line exceptions), so CI runs without
+`--max-warnings 0` and an over-limit line nags but doesn't block. `htmlhint`/`stylelint` are still manual and not in CI
+(their trees aren't clean yet — #2487).
 
 These are run **from the host** (like `make scalafmt`): the targets `docker exec` into the running web container,
 where the linters' `node_modules` live (there is no host-side `npm install`), so the web container must be up. Scope a

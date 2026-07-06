@@ -22,20 +22,20 @@
  * @param {ParentNode} root - The element (or document) to walk.
  */
 window.localizeSubtree = function (root) {
-    if (!root || typeof i18next === 'undefined' || !i18next.isInitialized) return;
+  if (!root || typeof i18next === 'undefined' || !i18next.isInitialized) return;
 
-    const selector = '[data-i18n], [data-i18n-placeholder], [data-i18n-aria-label], [data-i18n-title], [data-i18n-alt]';
+  const selector = '[data-i18n], [data-i18n-placeholder], [data-i18n-aria-label], [data-i18n-title], [data-i18n-alt]';
 
-    // querySelectorAll doesn't include `root` itself; check it explicitly so callers can pass an element that itself
-    // carries a data-i18n attribute.
-    if (root.nodeType === Node.ELEMENT_NODE && root.matches && root.matches(selector)) {
-        localizeElement(root);
+  // querySelectorAll doesn't include `root` itself; check it explicitly so callers can pass an element that itself
+  // carries a data-i18n attribute.
+  if (root.nodeType === Node.ELEMENT_NODE && root.matches && root.matches(selector)) {
+    localizeElement(root);
+  }
+  if (typeof root.querySelectorAll === 'function') {
+    for (const el of root.querySelectorAll(selector)) {
+      localizeElement(el);
     }
-    if (typeof root.querySelectorAll === 'function') {
-        for (const el of root.querySelectorAll(selector)) {
-            localizeElement(el);
-        }
-    }
+  }
 };
 
 /**
@@ -43,18 +43,18 @@ window.localizeSubtree = function (root) {
  * @param {Element} el
  */
 window.localizeElement = function (el) {
-    const textKey = el.getAttribute('data-i18n');
-    if (textKey) el.textContent = i18next.t(textKey);
+  const textKey = el.getAttribute('data-i18n');
+  if (textKey) el.textContent = i18next.t(textKey);
 
-    const placeholderKey = el.getAttribute('data-i18n-placeholder');
-    if (placeholderKey) el.setAttribute('placeholder', i18next.t(placeholderKey));
+  const placeholderKey = el.getAttribute('data-i18n-placeholder');
+  if (placeholderKey) el.setAttribute('placeholder', i18next.t(placeholderKey));
 
-    const ariaLabelKey = el.getAttribute('data-i18n-aria-label');
-    if (ariaLabelKey) el.setAttribute('aria-label', i18next.t(ariaLabelKey));
+  const ariaLabelKey = el.getAttribute('data-i18n-aria-label');
+  if (ariaLabelKey) el.setAttribute('aria-label', i18next.t(ariaLabelKey));
 
-    const titleKey = el.getAttribute('data-i18n-title');
-    if (titleKey) el.setAttribute('title', i18next.t(titleKey));
+  const titleKey = el.getAttribute('data-i18n-title');
+  if (titleKey) el.setAttribute('title', i18next.t(titleKey));
 
-    const altKey = el.getAttribute('data-i18n-alt');
-    if (altKey) el.setAttribute('alt', i18next.t(altKey));
+  const altKey = el.getAttribute('data-i18n-alt');
+  if (altKey) el.setAttribute('alt', i18next.t(altKey));
 };

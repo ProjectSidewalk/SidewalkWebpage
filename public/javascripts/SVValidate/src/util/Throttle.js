@@ -15,25 +15,25 @@ window.util = window.util || {};
  * @returns {Function} The throttled wrapper.
  */
 util.throttle = function (fn, wait) {
-    let lastRunTime = 0;
-    let trailingTimer = null;
-    let lastArgs = null;
+  let lastRunTime = 0;
+  let trailingTimer = null;
+  let lastArgs = null;
 
-    return function (...args) {
-        lastArgs = args;
-        const now = Date.now();
-        const elapsed = now - lastRunTime;
-        if (elapsed >= wait) {
-            // Leading edge (or a call after the window has fully elapsed): run immediately.
-            lastRunTime = now;
-            fn(...lastArgs);
-        } else if (trailingTimer === null) {
-            // Mid-window: schedule one trailing run so the final call in a burst still takes effect.
-            trailingTimer = setTimeout(() => {
-                trailingTimer = null;
-                lastRunTime = Date.now();
-                fn(...lastArgs);
-            }, wait - elapsed);
-        }
-    };
+  return function (...args) {
+    lastArgs = args;
+    const now = Date.now();
+    const elapsed = now - lastRunTime;
+    if (elapsed >= wait) {
+      // Leading edge (or a call after the window has fully elapsed): run immediately.
+      lastRunTime = now;
+      fn(...lastArgs);
+    } else if (trailingTimer === null) {
+      // Mid-window: schedule one trailing run so the final call in a burst still takes effect.
+      trailingTimer = setTimeout(() => {
+        trailingTimer = null;
+        lastRunTime = Date.now();
+        fn(...lastArgs);
+      }, wait - elapsed);
+    }
+  };
 };

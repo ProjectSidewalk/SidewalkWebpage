@@ -82,7 +82,8 @@ before your first PR:
 - **Keep `make eslint` passing on JavaScript you change** before pushing — run `make eslint-fix dir=<files or dirs
   you touched>` for the mechanical fixes, hand-fix the rest, and confirm `make eslint` reports zero errors/warnings.
   The tree is fully lint-clean ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so any
-  finding is from your change. Lint isn't a CI gate yet, but don't check in code that fails it.
+  finding is from your change. **ESLint is a blocking CI check** now (it runs in the `Frontend (build)` job), so a lint
+  failure blocks the merge — just like scalafmt. (htmlhint/stylelint aren't in CI yet — still #2487.)
 - **UI work** must meet WCAG 2.1/2.2 Level AA and use the `main.css` `:root` design tokens.
 - **Public API (`/v3`):** response fields are `snake_case`, query params are `camelCase`, and new DTOs go in
   `app/models/api/`.
@@ -141,7 +142,7 @@ visiting `<your-computer-ip>:9000` (phone and computer on the same Wi-Fi; this o
 2. **Run scalafmt** on any Scala files you changed — `make scalafmt-fix` (CI blocks the merge on formatting). Set up
    format-on-save once via [`docs/editor-setup.md`](docs/editor-setup.md) so this is automatic. Likewise **make sure
    `make eslint` passes** on any JavaScript you changed — `make eslint-fix dir=<path>` plus hand-fixing whatever
-   remains (not a CI gate yet, but the tree is kept lint-clean —
+   remains (ESLint is a blocking CI check now, so a lint failure blocks the merge; the tree is kept lint-clean —
    [#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)).
 3. Push your branch and [open a PR](https://github.com/ProjectSidewalk/SidewalkWebpage/compare) with **base
    `develop`** ← your branch. Fill out the [PR template](.github/PULL_REQUEST_TEMPLATE.md): clear title, description,
@@ -156,7 +157,8 @@ visiting `<your-computer-ip>:9000` (phone and computer on the same Wi-Fi; this o
 
 `develop` is branch-protected so a red build can't land (the failure mode that once shipped a migration that wouldn't
 apply). A PR can only merge once the **blocking CI checks pass** — currently **`Backend (compile + scalafmt)`** and
-**`Frontend (build)`** (the **`Evolutions lint`** check is being added to this set). The rule:
+**`Frontend (build)`** (which now also runs ESLint, so a JS lint failure blocks the merge; the **`Evolutions lint`**
+check is being added to this set). The rule:
 
 - **Applies to everyone, maintainers included** — there is no admin bypass; it only ever stops a merge while CI is red.
 - **Does not require review approvals.** Tooling won't force a second person to sign off, so you can still open and
