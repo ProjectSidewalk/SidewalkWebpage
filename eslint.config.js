@@ -1,5 +1,6 @@
 // ESLint flat config (ESLint 9+). Replaces the legacy .eslintrc.json.
-// Frontend lint is owned by #2487 and run manually (`make eslint`), not wired into CI yet.
+// Run locally with `make eslint`; also a blocking CI gate (a step in the `frontend` job). CI runs it with no
+// `--max-warnings` flag, so `error` rules block the build and the lone `warn` rule (max-len) is advisory. (#2487)
 //
 // Formatting/whitespace rules live in @stylistic/eslint-plugin, not ESLint core: ESLint froze and deprecated all of
 // its layout rules in v8.53 and these are their non-deprecated home (https://eslint.style/). Code-quality rules stay
@@ -41,7 +42,7 @@ module.exports = [
             // entry points consumed by another file or a Twirl view's inline <script>, not dead code (#2487). Dead
             // locals inside functions and unused params are still flagged. A `_` prefix marks a param as intentionally
             // unused (e.g. interface-documenting stubs in an abstract class like PanoViewer).
-            'no-unused-vars': ['warn', { vars: 'local', argsIgnorePattern: '^_' }],
+            'no-unused-vars': ['error', { vars: 'local', argsIgnorePattern: '^_' }],
             'no-undef': 'off',
             'one-var': ['error', 'never'],
             'no-var': 'error',
@@ -75,9 +76,9 @@ module.exports = [
 
             // --- Bug-catchers beyond eslint:recommended ---
             'no-unused-expressions': ['error', { allowShortCircuit: true, allowTernary: true }],
-            'no-shadow': 'warn', // Easy to shadow shared globals (svl/svv/util) in an inner scope.
+            'no-shadow': 'error', // Easy to shadow shared globals (svl/svv/util) in an inner scope.
             'no-throw-literal': 'error',
-            'radix': 'warn',
+            'radix': 'error',
             'no-eval': 'error',
             'no-implied-eval': 'error',
             'no-new-func': 'error',
@@ -89,7 +90,7 @@ module.exports = [
             'no-lonely-if': 'error',
             'no-useless-return': 'error',
             'no-useless-concat': 'error',
-            'require-await': 'warn', // An async function with no await is usually a mistake.
+            'require-await': 'error', // An async function with no await is usually a mistake.
 
             // --- Formatting: @stylistic preset baseline ---
             // stylistic.configs.customize({...}) supplies ~50 whitespace/formatting rules as one maintained set; the
@@ -122,6 +123,9 @@ module.exports = [
             // max-statements-per-line rule and leaves --fix stuck. Forbidding single-line blocks lets --fix expand
             // straight to the canonical multi-line block instead.
             '@stylistic/brace-style': ['error', '1tbs', { allowSingleLine: false }],
+            // Deliberately the only `warn` in this config: CI blocks on errors but not warnings, and CLAUDE.md's line
+            // policy sanctions long-line "exceptions where appropriate" -- so an occasional over-limit line nags in the
+            // output/editor without failing the build. Every other rule here is an `error` (must-fix).
             '@stylistic/max-len': ['warn', { code: 120, ignoreUrls: true }],
             '@stylistic/generator-star-spacing': ['error', 'after'],
             '@stylistic/no-confusing-arrow': ['error', { allowParens: true }],
