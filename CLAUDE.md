@@ -302,7 +302,7 @@ Good targets for inline comments:
 
 ## Linting Rules (`make eslint` must pass before check-in — now a blocking CI gate for JS, like Scala `scalafmt`; htmlhint/stylelint still manual — see Continuous integration)
 - ESLint: ES2022, `const`/`let` only (no `var`), arrow functions, template literals, semicolons required, 120-char line limit
-- Stylelint: 4-space indentation, stylelint-config-standard
+- Stylelint: stylelint-config-standard + @stylistic (4-space indentation, 120-char lines) + Baseline widely-available features only (`stylelint.config.mjs`; rules still being iterated on — #2487)
 - HTMLHint: lowercase tags/attrs, double quotes, no inline scripts/styles, alt text required
 
 ## Testing the Local Web App
@@ -408,7 +408,7 @@ These are run **from the host** (like `make scalafmt`): the targets `docker exec
 where the linters' `node_modules` live (there is no host-side `npm install`), so the web container must be up. Scope a
 run with `dir=` and pass extra flags with `args=`.
 
-Config: `eslint.config.js`, `.stylelintrc.json`, `.htmlhintrc`. Scala formatting is `.scalafmt.conf`.
+Config: `eslint.config.js`, `stylelint.config.mjs`, `.htmlhintrc`. Scala formatting is `.scalafmt.conf`.
 
 ### What not to automate
 
