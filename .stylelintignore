@@ -4,9 +4,6 @@
 !public/
 !public/stylesheets/
 !public/stylesheets/*
-public/stylesheets/**/*bootstrap**
-public/stylesheets/animate.css
-public/stylesheets/magnific-popup.css
 !public/javascripts/
 !public/javascripts/SVLabel/
 !public/javascripts/SVValidate/
@@ -14,4 +11,3 @@ public/stylesheets/magnific-popup.css
 !public/javascripts/SVLabel/css
 !public/javascripts/SVValidate/css
 !public/javascripts/Gallery/css
-public/javascripts/**/*bootstrap**

@@ -46,21 +46,21 @@
     <link href='@assets.path("stylesheets/tag-pills.css")' rel="stylesheet"/>
     <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
     <link href='@assets.path("stylesheets/mapSidebar.css")' rel="stylesheet"/>
-    <link href='@assets.path("javascripts/lib/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
-    <link rel="stylesheet" href='@assets.path("stylesheets/pannellum-2.5.7.css")'/>
+    <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
+    <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'/>
 
     @if(commonData.imagerySource == PanoSource.Infra3d) {
-        <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
-        <script src='@assets.path("javascripts/lib/infra3dapi-1.8.0.js")'></script>
+        <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
+        <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
     } else if (commonData.imagerySource == PanoSource.Mapillary) {
-        <script src='@assets.path("javascripts/lib/three-0.160.1-min.js")'></script>
-        <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
-        <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
+        <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
+        <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
+        <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet"/>
     }
     @* Pannellum is loaded everywhere the label popup is, since any expired pano may have a self-hosted fallback. *@
-    <script src='@assets.path("javascripts/lib/pannellum-2.5.7.js")'></script>
+    <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
     <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
-    <script src='@assets.path("javascripts/lib/panzoom-9.4.4.min.js")'></script>
+    <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
     @* Label-detail modules (order matters: PopupPanoManager + LabelDetail precede LabelPopup; Toast precedes Badges). *@
     <script src='@assets.path("javascripts/common/AiLabelIndicator.js")'></script>
     <script src='@assets.path("javascripts/common/Toast.js")'></script>
@@ -71,9 +71,9 @@
     <script src='@assets.path("javascripts/common/label-detail/LabelPopup.js")'></script>
 
     @* PSMap + its map dependencies (mapbox-gl, language plugin, turf). *@
-    <script src='@assets.path("javascripts/lib/mapbox-gl-3.21.0.js")'></script>
-    <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <script src='@assets.path("javascripts/lib/turf-7.3.4.min.js")'></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
+    <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
     <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
 
     <script src='@assets.path("javascripts/admin-dashboard/label-map-page.js")'></script>

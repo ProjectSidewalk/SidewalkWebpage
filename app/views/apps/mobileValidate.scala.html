@@ -15,18 +15,18 @@
 @common.main(commonData, title, defaultI18nNamespace = "validate", i18Namespaces = Seq("validate", "common"), "/mobile") {
     @common.icons()
 
-    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.4.min.js")'></script>
+    <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
     @if(commonData.imagerySource == PanoSource.Infra3d) {
-        <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
-        <script src='@assets.path("javascripts/lib/infra3dapi-1.8.0.js")'></script>
+        <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
+        <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
     } else if (commonData.imagerySource == PanoSource.Mapillary) {
-        <script src='@assets.path("javascripts/lib/three-0.160.1-min.js")'></script>
-        <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
-        <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
+        <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
+        <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
+        <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet"/>
     }
-    <script src='@assets.path("javascripts/lib/pannellum-2.5.7.js")'></script>
-    <link rel="stylesheet" href='@assets.path("stylesheets/pannellum-2.5.7.css")'/>
+    <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
+    <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'/>
     <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
     <script src='@assets.path("javascripts/SVValidate/build/SVValidate.js")'></script>
     <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/build/SVValidate.css")'/>

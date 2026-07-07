@@ -19,18 +19,18 @@
     </script>
     <meta charset="utf-8" />
     <title>@title</title>
-    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.4.min.js")'></script>
+    <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
     <link rel="icon" type="image/png" href='@assets.path("images/favicon.png")'>
-    <link href='@assets.path("stylesheets/bootstrap/bootstrap.min.css")' rel='stylesheet' />
-    <link href='@assets.path("stylesheets/bootstrap/bootstrap-accessibility.css")' rel='stylesheet' />
+    <link href='@assets.path("vendor/bootstrap/css/bootstrap-3.3.5.min.css")' rel='stylesheet' />
+    <link href='@assets.path("vendor/bootstrap-accessibility/bootstrap-accessibility.css")' rel='stylesheet' />
 
-    <script src='@assets.path("javascripts/lib/bootstrap-accessibility-plugin/bs3.1.1/js/jquery-1.12.2.min.js")'></script>
+    <script src='@assets.path("vendor/jquery/jquery-1.12.2.min.js")'></script>
     <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-    <script src='@assets.path("javascripts/lib/bootstrap-accessibility-plugin/bs3.1.1/js/bootstrap.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/bootstrap-accessibility-plugin/plugins/js/bootstrap-accessibility.min.js")'></script>
+    <script src='@assets.path("vendor/bootstrap/js/bootstrap-3.1.1.min.js")'></script>
+    <script src='@assets.path("vendor/bootstrap-accessibility/bootstrap-accessibility.min.js")'></script>
 
-    <script src='@assets.path("javascripts/lib/js-cookie-3.0.5-min.js")'></script>
+    <script src='@assets.path("vendor/js-cookie/js-cookie-3.0.5-min.js")'></script>
 
     <script>
         (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
@@ -44,8 +44,8 @@
     <link rel="stylesheet" href='@assets.path("stylesheets/common/toast.css")'>
     <link rel="stylesheet" href='@assets.path("stylesheets/homepage.css")'>
 
-    <script src='@assets.path("javascripts/lib/countUp-1.9.3.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/bowser-2.14.1.min.js")'></script>
+    <script src='@assets.path("vendor/countup/countUp-1.9.3.min.js")'></script>
+    <script src='@assets.path("vendor/bowser/bowser-2.14.1.min.js")'></script>
     <script src='@assets.path("javascripts/common/pagetop-padding.js")'></script>
     <script src='@assets.path("javascripts/common/Utilities.js")'></script>
     <script src='@assets.path("javascripts/common/UtilitiesMath.js")'></script>
@@ -232,11 +232,11 @@
         });
     </script>
 
-    <script src='@assets.path("javascripts/lib/moment/moment-2.30.1.js")'></script>
-    <script src='@assets.path("javascripts/lib/moment/es.js")'></script>
-    <script src='@assets.path("javascripts/lib/moment/nl.js")'></script>
-    <script src='@assets.path("javascripts/lib/moment/zh-tw.js")'></script>
-    <script src='@assets.path("javascripts/lib/moment/en-nz.js")'></script>
+    <script src='@assets.path("vendor/moment/moment-2.30.1.js")'></script>
+    <script src='@assets.path("vendor/moment/es.js")'></script>
+    <script src='@assets.path("vendor/moment/nl.js")'></script>
+    <script src='@assets.path("vendor/moment/zh-tw.js")'></script>
+    <script src='@assets.path("vendor/moment/en-nz.js")'></script>
     <script src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
     <script>updateTimestamps("@messages.lang.code");</script>
 </body>

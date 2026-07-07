@@ -18,7 +18,6 @@ module.exports = [
     {
         ignores: [
             'public/javascripts/**/build/**',
-            'public/javascripts/lib/**',
         ],
     },
     {

@@ -68,11 +68,11 @@
 
     <!-- Page-specific libraries: loaded only on this page (Mapbox for the choropleth, Vega for the bar chart).
          Vega is vendored + version-pinned (not a CDN) so the dashboard works offline and can't break under us. -->
-    <link rel="stylesheet" href="@assets.path("javascripts/lib/mapbox-gl-3.21.0.css")">
-    <script src="@assets.path("javascripts/lib/mapbox-gl-3.21.0.js")"></script>
-    <script src="@assets.path("javascripts/lib/vega-5.30.0.min.js")"></script>
-    <script src="@assets.path("javascripts/lib/vega-lite-5.21.0.min.js")"></script>
-    <script src="@assets.path("javascripts/lib/vega-embed-6.29.0.min.js")"></script>
+    <link rel="stylesheet" href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")">
+    <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")"></script>
+    <script src="@assets.path("vendor/vega/vega-5.30.0.min.js")"></script>
+    <script src="@assets.path("vendor/vega/vega-lite-5.21.0.min.js")"></script>
+    <script src="@assets.path("vendor/vega/vega-embed-6.29.0.min.js")"></script>
 
     <script src="@assets.path("javascripts/admin-dashboard/coverage-map.js")"></script>
     <script src="@assets.path("javascripts/admin-dashboard/coverage-bars.js")"></script>
