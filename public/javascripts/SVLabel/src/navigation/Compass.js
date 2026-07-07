@@ -169,10 +169,10 @@ class Compass {
 
   /**
    * Get the compass angle.
-   * @returns {number}
+   * @returns {number} Degrees the user needs to rotate to face the correct direction, normalized [0,360].
    */
   #getCompassAngle() {
-    const heading = svl.panoViewer.getPov().heading;
+    const heading = ((svl.panoViewer.getPov().heading % 360) + 360) % 360;
     const targetAngle = this.getTargetAngle();
     return ((heading - targetAngle + 360) % 360);
   }
