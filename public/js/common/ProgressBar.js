@@ -1,7 +1,7 @@
 /**
  * A single-fill progress bar: sizes a track fill from a fraction and, optionally, writes a label beside it.
  * Centralizes the fill sizing and completion-percentage formatting shared by the mission, badge, and validation
- * progress bars. The markup is the shared `ps-progress-bar` component (see stylesheets/progress-bar.css and the
+ * progress bars. The markup is the shared `ps-progress-bar` component (see css/progress-bar.css and the
  * progressBar Twirl partial). The two-segment neighborhood bar is driven by NeighborhoodProgressBar instead, which
  * reuses formatPercent here for its label.
  */

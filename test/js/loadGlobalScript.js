@@ -1,7 +1,7 @@
 /**
  * Test helper: load a production "global script" IIFE into the current jsdom context.
  *
- * Project Sidewalk's frontend has no module system — files under public/javascripts are plain scripts that are
+ * Project Sidewalk's frontend has no module system — files under public/js are plain scripts that are
  * concatenated by Grunt and assign their public surface onto `window` (e.g. `window.AggregateStatsPreview = {...}`).
  *
  * Under Jest's jsdom test environment, `window`, `document`, `fetch`, `console`, `Promise`, etc. are exposed as Node
@@ -20,7 +20,7 @@ const REPO_ROOT = path.resolve(__dirname, '..', '..');
 /**
  * Read a production JS file (relative to repo root) and execute it in the jsdom global scope, returning fresh.
  * @param {string} relativePath - Path to the script relative to the repo root, e.g.
- *   "public/javascripts/api-docs/aggregate-stats-preview.js".
+ *   "public/js/api-docs/aggregate-stats-preview.js".
  */
 function loadGlobalScript(relativePath) {
     const absPath = path.join(REPO_ROOT, relativePath);

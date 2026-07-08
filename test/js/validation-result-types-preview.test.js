@@ -1,5 +1,5 @@
 /**
- * Smoke tests for public/javascripts/api-docs/validation-result-types-preview.js.
+ * Smoke tests for public/js/api-docs/validation-result-types-preview.js.
  *
  * This is part of the first frontend test layer for Project Sidewalk. The module under test is a dependency-light
  * IIFE that fetches the /v3/api/validationResultTypes endpoint and renders a small table into a container div. These
@@ -12,7 +12,7 @@
 
 const { loadGlobalScript } = require('./loadGlobalScript');
 
-const MODULE_PATH = 'public/javascripts/api-docs/validation-result-types-preview.js';
+const MODULE_PATH = 'public/js/api-docs/validation-result-types-preview.js';
 const CONTAINER_ID = 'validation-result-types-preview';
 
 // A realistic, captured-shape API response: snake_case keys, per the v3 API naming convention (issue #3871).

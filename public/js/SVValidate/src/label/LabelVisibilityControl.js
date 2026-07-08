@@ -55,7 +55,7 @@ class LabelVisibilityControl {
     this.#visible = true;
     this.#labelVisibilityButtonOnPano.html(`<span>${this.#hideText}</span>`);
     const htmlString = `
-      <img src="assets/images/icons/eye-invisible.svg" class="hide-label-button-icon" alt="${this.#hideText}">
+      <img src="/assets/images/icons/eye-invisible.svg" class="hide-label-button-icon" alt="${this.#hideText}">
       <span>${this.#hideText}</span>`;
     this.#labelVisibilityControlButton.html(htmlString);
     panoMarker.marker_.classList.add('icon-outline');
@@ -66,12 +66,12 @@ class LabelVisibilityControl {
    */
   hideLabel() {
     const panoMarker = svv.panoManager.getPanoMarker();
-    panoMarker.setIcon('assets/javascripts/SVLabel/img/icons/Label_Outline.svg');
+    panoMarker.setIcon('/assets/js/SVLabel/img/icons/Label_Outline.svg');
     panoMarker.draw();
     this.#visible = false;
     this.#labelVisibilityButtonOnPano.html(`<span>${this.#showText}</span>`);
     const htmlString = `
-      <img src="assets/images/icons/eye-visible.svg" class="hide-label-button-icon" alt="${this.#showText}">
+      <img src="/assets/images/icons/eye-visible.svg" class="hide-label-button-icon" alt="${this.#showText}">
       <span>${this.#showText}</span>`;
     this.#labelVisibilityControlButton.html(htmlString);
     panoMarker.marker_.classList.remove('icon-outline');

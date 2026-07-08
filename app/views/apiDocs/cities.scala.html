@@ -5,7 +5,7 @@
 
 @content = {
     <!-- Include aggregate stats script for dynamic city/country counts -->
-    <script src="@routes.Assets.versioned("javascripts/common/aggregate-stats.js")"></script>
+    <script src="@routes.Assets.versioned("js/common/aggregate-stats.js")"></script>
     <script>
         // Set data attributes for API information. This is used by our JavaScripts to configure API calls,
         // including the download buttons in api-docs.js
@@ -38,8 +38,8 @@
 
         <link rel="stylesheet" href="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
         <script src="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-        <link rel="stylesheet" href="@assets.path("stylesheets/api-docs/cities.css")">
-        <script src="@routes.Assets.versioned("javascripts/api-docs/cities-preview.js")"></script>
+        <link rel="stylesheet" href="@assets.path("css/api-docs/cities.css")">
+        <script src="@routes.Assets.versioned("js/api-docs/cities-preview.js")"></script>
         <script>
             // Initialize the cities preview map
             document.addEventListener('DOMContentLoaded', function() {

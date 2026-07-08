@@ -27,13 +27,13 @@
     }
     <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
     <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'/>
-    <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
-    <script src='@assets.path("javascripts/SVValidate/build/SVValidate.js")'></script>
-    <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/build/SVValidate.css")'/>
-    <link rel="stylesheet" href='@assets.path("stylesheets/progress-bar.css")'/>
+    <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
+    <script src='@assets.path("js/SVValidate/build/SVValidate.js")'></script>
+    <link rel="stylesheet" href='@assets.path("js/SVValidate/build/SVValidate.css")'/>
+    <link rel="stylesheet" href='@assets.path("css/progress-bar.css")'/>
 
-    <script src='@assets.path("javascripts/SVValidate/mobile/mobileValidate.js")'></script>
-    <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/mobile/mobileValidate.css")'/>
+    <script src='@assets.path("js/SVValidate/mobile/mobileValidate.js")'></script>
+    <link rel="stylesheet" href='@assets.path("js/SVValidate/mobile/mobileValidate.css")'/>
 
     <div id="page-loading">
         <div id="loading-animation">
@@ -56,7 +56,7 @@
             </div>
             <button id="label-visibility-control-button" class="button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top"></button>
             <button id="validate-undo-button" class="button-on-pano">
-                <img src="assets/images/icons/undo-icon.svg" class="hide-label-button-icon" alt="undo">
+                <img src='@assets.path("images/icons/undo-icon.svg")' class="hide-label-button-icon" alt="undo">
                 <span>@Messages("undo")</span>
             </button>
             <div id="validation-button-holder">

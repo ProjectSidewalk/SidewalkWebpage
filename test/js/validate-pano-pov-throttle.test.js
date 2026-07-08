@@ -1,6 +1,6 @@
 /**
  * Integration test for the POV_Changed logging throttle wired up in
- * public/javascripts/SVValidate/src/panorama/PanoManager.js `#init` (issue #2745).
+ * public/js/SVValidate/src/panorama/PanoManager.js `#init` (issue #2745).
  *
  * Dragging the pano fires `pov_changed` on every frame; before #2745 each one was logged, flooding the Tracker's
  * interaction buffer and forcing its 200-action mid-mission flush every few validations. This test drives the REAL
@@ -14,8 +14,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'public/javascripts/SVValidate/src/panorama/PanoManager.js');
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/javascripts/SVValidate/src/util/Throttle.js');
+const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'public/js/SVValidate/src/panorama/PanoManager.js');
+const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/SVValidate/src/util/Throttle.js');
 
 /**
  * Load the `PanoManager` class out of the production file. Like Form.js, it is a bare `class` declaration that the

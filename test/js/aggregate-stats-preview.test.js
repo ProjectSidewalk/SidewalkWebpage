@@ -1,5 +1,5 @@
 /**
- * Smoke tests for public/javascripts/api-docs/aggregate-stats-preview.js.
+ * Smoke tests for public/js/api-docs/aggregate-stats-preview.js.
  *
  * This is the kind of test that would have caught the overall-stats-preview.js regression, where the renderer read
  * `data.validations.total_validations` after the field had moved under `data.validations.combined`, throwing
@@ -11,7 +11,7 @@
 
 const { loadGlobalScript } = require('./loadGlobalScript');
 
-const MODULE_PATH = 'public/javascripts/api-docs/aggregate-stats-preview.js';
+const MODULE_PATH = 'public/js/api-docs/aggregate-stats-preview.js';
 const CONTAINER_ID = 'aggregate-stats-preview';
 
 // Realistic captured-shape response: flat, snake_case keys per the v3 API naming convention (issue #3871).

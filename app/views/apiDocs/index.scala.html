@@ -4,11 +4,11 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @content = {
-    <script src="@routes.Assets.versioned("javascripts/common/aggregate-stats.js")"></script>
-    <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/api-docs/label-tags.css")">
-    <script src="@routes.Assets.versioned("javascripts/api-docs/label-tags-preview.js")"></script>
-    <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/api-docs/label-types.css")">
-    <script src="@routes.Assets.versioned("javascripts/api-docs/label-types-preview.js")"></script>
+    <script src="@routes.Assets.versioned("js/common/aggregate-stats.js")"></script>
+    <link rel="stylesheet" href="@routes.Assets.versioned("css/api-docs/label-tags.css")">
+    <script src="@routes.Assets.versioned("js/api-docs/label-tags-preview.js")"></script>
+    <link rel="stylesheet" href="@routes.Assets.versioned("css/api-docs/label-types.css")">
+    <script src="@routes.Assets.versioned("js/api-docs/label-types-preview.js")"></script>
 
 
     <div class="api-section" id="introduction">

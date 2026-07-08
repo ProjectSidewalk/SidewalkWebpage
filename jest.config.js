@@ -2,7 +2,7 @@
  * Jest configuration for Project Sidewalk's prototype frontend test layer.
  *
  * Deliberately scoped to test/js/ ONLY so Jest never tries to collect or transform production JavaScript under
- * public/javascripts/ (which is a no-module-system, globals-and-concatenation world that Jest would choke on). This
+ * public/js/ (which is a no-module-system, globals-and-concatenation world that Jest would choke on). This
  * is an opt-in prototype (`npm run test:js`) and is intentionally NOT wired into CI yet — see test/js/README.md and
  * docs/testing-and-ci.md (frontend lint/CI sequencing is owned by issue #2487).
  */
@@ -22,7 +22,7 @@ module.exports = {
     transform: {},
 
     // Keep coverage opt-in; if enabled, only measure the api-docs preview modules the prototype targets.
-    collectCoverageFrom: ['public/javascripts/api-docs/*-preview.js'],
+    collectCoverageFrom: ['public/js/api-docs/*-preview.js'],
 
     verbose: true
 };

@@ -6,7 +6,7 @@ where this fits in the larger plan.
 
 ## What this proves
 
-A "smoke test" for the API-docs **live-preview** modules under `public/javascripts/api-docs/*-preview.js`. These
+A "smoke test" for the API-docs **live-preview** modules under `public/js/api-docs/*-preview.js`. These
 modules `fetch()` a `/v3/api/...` endpoint and render the JSON into a `<div>`. They are tightly coupled to the exact
 **field names** the API returns.
 

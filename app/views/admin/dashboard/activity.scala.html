@@ -84,11 +84,11 @@
        with the dashboard's standalone-script convention; i18next, AppManager, util and Google Maps are already loaded by
        common.main / adminLayout. *@
     @common.labelPopup(admin = true)
-    <link href='@assets.path("stylesheets/labelDetail.css")' rel="stylesheet"/>
-    <link href='@assets.path("stylesheets/tag-pills.css")' rel="stylesheet"/>
+    <link href='@assets.path("css/labelDetail.css")' rel="stylesheet"/>
+    <link href='@assets.path("css/tag-pills.css")' rel="stylesheet"/>
     <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'/>
 
-    <script src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
+    <script src='@assets.path("js/common/timestampLocalization.js")'></script>
     @if(commonData.imagerySource == PanoSource.Infra3d) {
         <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
         <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
@@ -99,19 +99,19 @@
     }
     @* Pannellum is loaded everywhere the label popup is, since any expired pano may have a self-hosted fallback. *@
     <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
-    <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
+    <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
     <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
     @* Label-detail modules (order matters: PopupPanoManager + LabelDetail precede LabelPopup; Toast precedes Badges). *@
-    <script src='@assets.path("javascripts/common/AiLabelIndicator.js")'></script>
-    <script src='@assets.path("javascripts/common/Toast.js")'></script>
-    <script src='@assets.path("javascripts/common/BadgeAchievements.js")'></script>
-    <script src='@assets.path("javascripts/common/PanoMarker.js")'></script>
-    <script src='@assets.path("javascripts/common/label-detail/PopupPanoManager.js")'></script>
-    <script src='@assets.path("javascripts/common/label-detail/LabelDetail.js")'></script>
-    <script src='@assets.path("javascripts/common/label-detail/LabelPopup.js")'></script>
+    <script src='@assets.path("js/common/AiLabelIndicator.js")'></script>
+    <script src='@assets.path("js/common/Toast.js")'></script>
+    <script src='@assets.path("js/common/BadgeAchievements.js")'></script>
+    <script src='@assets.path("js/common/PanoMarker.js")'></script>
+    <script src='@assets.path("js/common/label-detail/PopupPanoManager.js")'></script>
+    <script src='@assets.path("js/common/label-detail/LabelDetail.js")'></script>
+    <script src='@assets.path("js/common/label-detail/LabelPopup.js")'></script>
 
-    <script src="@assets.path("javascripts/admin-dashboard/mini-line-chart.js")"></script>
-    <script src="@assets.path("javascripts/admin-dashboard/activity-page.js")"></script>
+    <script src="@assets.path("js/admin-dashboard/mini-line-chart.js")"></script>
+    <script src="@assets.path("js/admin-dashboard/activity-page.js")"></script>
     <script>
         window.appManager.ready(async function () {
             const page = new ActivityPage({

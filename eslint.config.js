@@ -14,14 +14,14 @@ module.exports = [
     js.configs.recommended,
     // Global ignores. Flat config lints nothing unless a `files` glob below opts it in, so this only has to carve out
     // generated bundles and vendored libraries *within* the linted tree -- no more whole-repo `*` + `!negation`
-    // gymnastics that the old ignorePatterns needed to claw scope back down to public/javascripts.
+    // gymnastics that the old ignorePatterns needed to claw scope back down to public/js.
     {
         ignores: [
-            'public/javascripts/**/build/**',
+            'public/js/**/build/**',
         ],
     },
     {
-        files: ['public/javascripts/**/*.js'],
+        files: ['public/js/**/*.js'],
         plugins: {
             '@stylistic': stylistic,
         },
