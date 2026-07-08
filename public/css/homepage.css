@@ -152,7 +152,7 @@ video#bgvid {
     background-size: cover;
     left: 0px;
     backface-visibility: hidden;
-    background: url("../assets/psmockup.jpg") no-repeat scroll 0 0 var(--color-neutral-black);
+    background: url("../images/psmockup.jpg") no-repeat scroll 0 0 var(--color-neutral-black);
     background-size: cover;
     bottom: 0;
     top: var(--navbar-height);

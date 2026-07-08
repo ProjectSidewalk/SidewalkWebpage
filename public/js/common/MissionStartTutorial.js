@@ -84,7 +84,7 @@ class MissionStartTutorial {
               { labelType: i18next.t('common:curb-ramp') }),
             slideSubtitle: '',
             slideDescription: i18next.t('common:mission-start-tutorial.curb-ramp.slide-1.description'),
-            imageURL: 'assets/images/tutorials/curbramp-correct-1.png',
+            imageURL: '/assets/images/tutorials/curbramp-correct-1.png',
             labelOnImage: {
               position: {
                 left: '237px',
@@ -97,7 +97,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.curb-ramp.slide-2.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.curb-ramp.slide-2.description'),
-            imageURL: 'assets/images/tutorials/curbramp-incorrect-1.png',
+            imageURL: '/assets/images/tutorials/curbramp-incorrect-1.png',
             labelOnImage: {
               position: {
                 left: '329px',
@@ -110,7 +110,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.curb-ramp.slide-3.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.curb-ramp.slide-3.description'),
-            imageURL: 'assets/images/tutorials/curbramp-incorrect-2.png',
+            imageURL: '/assets/images/tutorials/curbramp-incorrect-2.png',
             labelOnImage: {
               position: {
                 left: '295px',
@@ -131,7 +131,7 @@ class MissionStartTutorial {
               { labelType: i18next.t('common:no-curb-ramp') }),
             slideSubtitle: '',
             slideDescription: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-1.description'),
-            imageURL: 'assets/images/tutorials/no-curbramp-correct-1.png',
+            imageURL: '/assets/images/tutorials/no-curbramp-correct-1.png',
             labelOnImage: {
               position: {
                 left: '392px',
@@ -144,7 +144,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-2.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-2.description'),
-            imageURL: 'assets/images/tutorials/no-curbramp-incorrect-1.png',
+            imageURL: '/assets/images/tutorials/no-curbramp-incorrect-1.png',
             labelOnImage: {
               position: {
                 left: '324px',
@@ -157,7 +157,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-3.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-3.description'),
-            imageURL: 'assets/images/tutorials/no-curbramp-incorrect-2.png',
+            imageURL: '/assets/images/tutorials/no-curbramp-incorrect-2.png',
             labelOnImage: {
               position: {
                 left: '396px',
@@ -170,7 +170,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-4.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-4.description'),
-            imageURL: 'assets/images/tutorials/no-curbramp-incorrect-3.png',
+            imageURL: '/assets/images/tutorials/no-curbramp-incorrect-3.png',
             labelOnImage: {
               position: {
                 left: '325px',
@@ -191,7 +191,7 @@ class MissionStartTutorial {
               { labelType: i18next.t('common:obstacle') }),
             slideSubtitle: '',
             slideDescription: i18next.t('common:mission-start-tutorial.obstacle.slide-1.description'),
-            imageURL: 'assets/images/tutorials/obstacle-correct-1.png',
+            imageURL: '/assets/images/tutorials/obstacle-correct-1.png',
             labelOnImage: {
               position: {
                 left: '268px',
@@ -204,7 +204,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.obstacle.slide-2.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.obstacle.slide-2.description'),
-            imageURL: 'assets/images/tutorials/obstacle-incorrect-1.png',
+            imageURL: '/assets/images/tutorials/obstacle-incorrect-1.png',
             labelOnImage: {
               position: {
                 left: '396px',
@@ -217,7 +217,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.obstacle.slide-3.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.obstacle.slide-3.description'),
-            imageURL: 'assets/images/tutorials/obstacle-incorrect-2.png',
+            imageURL: '/assets/images/tutorials/obstacle-incorrect-2.png',
             labelOnImage: {
               position: {
                 left: '76px',
@@ -230,7 +230,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.obstacle.slide-4.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.obstacle.slide-4.description'),
-            imageURL: 'assets/images/tutorials/obstacle-incorrect-3.png',
+            imageURL: '/assets/images/tutorials/obstacle-incorrect-3.png',
             labelOnImage: {
               position: {
                 left: '414px',
@@ -251,7 +251,7 @@ class MissionStartTutorial {
               { labelType: i18next.t('common:surface-problem') }),
             slideSubtitle: '',
             slideDescription: i18next.t('common:mission-start-tutorial.surface-problem.slide-1.description'),
-            imageURL: 'assets/images/tutorials/surface-problem-correct-1.png',
+            imageURL: '/assets/images/tutorials/surface-problem-correct-1.png',
             labelOnImage: {
               position: {
                 left: '291px',
@@ -264,7 +264,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.surface-problem.slide-2.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.surface-problem.slide-2.description'),
-            imageURL: 'assets/images/tutorials/surface-problem-incorrect-1.png',
+            imageURL: '/assets/images/tutorials/surface-problem-incorrect-1.png',
             labelOnImage: {
               position: {
                 left: '397px',
@@ -277,7 +277,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.surface-problem.slide-3.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.surface-problem.slide-3.description'),
-            imageURL: 'assets/images/tutorials/surface-problem-incorrect-2.png',
+            imageURL: '/assets/images/tutorials/surface-problem-incorrect-2.png',
             labelOnImage: {
               position: {
                 left: '333px',
@@ -298,7 +298,7 @@ class MissionStartTutorial {
               { labelType: i18next.t('common:no-sidewalk') }),
             slideSubtitle: '',
             slideDescription: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-1.description'),
-            imageURL: 'assets/images/tutorials/no-sidewalk-correct-1.png',
+            imageURL: '/assets/images/tutorials/no-sidewalk-correct-1.png',
             labelOnImage: {
               position: {
                 left: '290px',
@@ -311,7 +311,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-2.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-2.description'),
-            imageURL: 'assets/images/tutorials/no-sidewalk-incorrect-1.png',
+            imageURL: '/assets/images/tutorials/no-sidewalk-incorrect-1.png',
             labelOnImage: {
               position: {
                 left: '352px',
@@ -324,7 +324,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-3.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-3.description'),
-            imageURL: 'assets/images/tutorials/no-sidewalk-incorrect-2.png',
+            imageURL: '/assets/images/tutorials/no-sidewalk-incorrect-2.png',
             labelOnImage: {
               position: {
                 left: '183px',
@@ -345,7 +345,7 @@ class MissionStartTutorial {
               { labelType: i18next.t('common:crosswalk') }),
             slideSubtitle: '',
             slideDescription: i18next.t('common:mission-start-tutorial.crosswalk.slide-1.description'),
-            imageURL: 'assets/images/tutorials/crosswalk-correct-1.png',
+            imageURL: '/assets/images/tutorials/crosswalk-correct-1.png',
             labelOnImage: {
               position: {
                 left: '175px',
@@ -358,7 +358,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.crosswalk.slide-2.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.crosswalk.slide-2.description'),
-            imageURL: 'assets/images/tutorials/crosswalk-incorrect-1.png',
+            imageURL: '/assets/images/tutorials/crosswalk-incorrect-1.png',
             labelOnImage: {
               position: {
                 left: '353px',
@@ -371,7 +371,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.crosswalk.slide-3.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.crosswalk.slide-3.description'),
-            imageURL: 'assets/images/tutorials/crosswalk-incorrect-2.png',
+            imageURL: '/assets/images/tutorials/crosswalk-incorrect-2.png',
             labelOnImage: {
               position: {
                 left: '247px',
@@ -384,7 +384,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.crosswalk.slide-4.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.crosswalk.slide-4.description'),
-            imageURL: 'assets/images/tutorials/crosswalk-incorrect-3.png',
+            imageURL: '/assets/images/tutorials/crosswalk-incorrect-3.png',
             labelOnImage: {
               position: {
                 left: '267px',
@@ -405,7 +405,7 @@ class MissionStartTutorial {
               { labelType: i18next.t('common:signal') }),
             slideSubtitle: '',
             slideDescription: i18next.t('common:mission-start-tutorial.signal.slide-1.description'),
-            imageURL: 'assets/images/tutorials/signal-correct-1.png',
+            imageURL: '/assets/images/tutorials/signal-correct-1.png',
             labelOnImage: {
               position: {
                 left: '170px',
@@ -418,7 +418,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.signal.slide-2.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.signal.slide-2.description'),
-            imageURL: 'assets/images/tutorials/signal-incorrect-1.png',
+            imageURL: '/assets/images/tutorials/signal-incorrect-1.png',
             labelOnImage: {
               position: {
                 left: '376px',
@@ -431,7 +431,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.signal.slide-3.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.signal.slide-3.description'),
-            imageURL: 'assets/images/tutorials/signal-incorrect-2.png',
+            imageURL: '/assets/images/tutorials/signal-incorrect-2.png',
             labelOnImage: {
               position: {
                 left: '389px',
@@ -444,7 +444,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.signal.slide-4.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.signal.slide-4.description'),
-            imageURL: 'assets/images/tutorials/signal-incorrect-3.png',
+            imageURL: '/assets/images/tutorials/signal-incorrect-3.png',
             labelOnImage: {
               position: {
                 left: '358px',
@@ -469,7 +469,7 @@ class MissionStartTutorial {
               { labelType: i18next.t('common:curb-ramp') }),
             slideSubtitle: '',
             slideDescription: i18next.t('common:mission-start-tutorial.curb-ramp.slide-1.description'),
-            imageURL: 'assets/images/tutorials/curbramp-correct-1.png',
+            imageURL: '/assets/images/tutorials/curbramp-correct-1.png',
             labelOnImage: {
               position: {
                 left: '237px',
@@ -482,7 +482,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.curb-ramp.slide-2.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.curb-ramp.slide-2.description'),
-            imageURL: 'assets/images/tutorials/explore-curbramp-incorrect-1.png',
+            imageURL: '/assets/images/tutorials/explore-curbramp-incorrect-1.png',
             labelOnImage: {
               position: {
                 left: '329px',
@@ -495,7 +495,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.curb-ramp.slide-3.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.curb-ramp.slide-3.description'),
-            imageURL: 'assets/images/tutorials/explore-curbramp-incorrect-2.png',
+            imageURL: '/assets/images/tutorials/explore-curbramp-incorrect-2.png',
             labelOnImage: {
               position: {
                 left: '295px',
@@ -516,7 +516,7 @@ class MissionStartTutorial {
               { labelType: i18next.t('common:no-curb-ramp') }),
             slideSubtitle: '',
             slideDescription: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-1.description'),
-            imageURL: 'assets/images/tutorials/no-curbramp-correct-1.png',
+            imageURL: '/assets/images/tutorials/no-curbramp-correct-1.png',
             labelOnImage: {
               position: {
                 left: '392px',
@@ -529,7 +529,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-2.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-2.description'),
-            imageURL: 'assets/images/tutorials/explore-no-curbramp-incorrect-1.png',
+            imageURL: '/assets/images/tutorials/explore-no-curbramp-incorrect-1.png',
             labelOnImage: {
               position: {
                 left: '324px',
@@ -542,7 +542,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-3.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-3.description'),
-            imageURL: 'assets/images/tutorials/explore-no-curbramp-incorrect-2.png',
+            imageURL: '/assets/images/tutorials/explore-no-curbramp-incorrect-2.png',
             labelOnImage: {
               position: {
                 left: '396px',
@@ -555,7 +555,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-4.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-4.description'),
-            imageURL: 'assets/images/tutorials/explore-no-curbramp-incorrect-3.png',
+            imageURL: '/assets/images/tutorials/explore-no-curbramp-incorrect-3.png',
             labelOnImage: {
               position: {
                 left: '325px',
@@ -576,7 +576,7 @@ class MissionStartTutorial {
               { labelType: i18next.t('common:obstacle') }),
             slideSubtitle: '',
             slideDescription: i18next.t('common:mission-start-tutorial.obstacle.slide-1.description'),
-            imageURL: 'assets/images/tutorials/obstacle-correct-1.png',
+            imageURL: '/assets/images/tutorials/obstacle-correct-1.png',
             labelOnImage: {
               position: {
                 left: '268px',
@@ -589,7 +589,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.obstacle.slide-2.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.obstacle.slide-2.description'),
-            imageURL: 'assets/images/tutorials/explore-obstacle-incorrect-1.png',
+            imageURL: '/assets/images/tutorials/explore-obstacle-incorrect-1.png',
             labelOnImage: {
               position: {
                 left: '396px',
@@ -602,7 +602,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.obstacle.slide-3.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.obstacle.slide-3.description'),
-            imageURL: 'assets/images/tutorials/explore-obstacle-incorrect-2.png',
+            imageURL: '/assets/images/tutorials/explore-obstacle-incorrect-2.png',
             labelOnImage: {
               position: {
                 left: '76px',
@@ -615,7 +615,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.obstacle.slide-4.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.obstacle.slide-4.description'),
-            imageURL: 'assets/images/tutorials/explore-obstacle-incorrect-3.png',
+            imageURL: '/assets/images/tutorials/explore-obstacle-incorrect-3.png',
             labelOnImage: {
               position: {
                 left: '414px',
@@ -636,7 +636,7 @@ class MissionStartTutorial {
               { labelType: i18next.t('common:surface-problem') }),
             slideSubtitle: '',
             slideDescription: i18next.t('common:mission-start-tutorial.surface-problem.slide-1.description'),
-            imageURL: 'assets/images/tutorials/surface-problem-correct-1.png',
+            imageURL: '/assets/images/tutorials/surface-problem-correct-1.png',
             labelOnImage: {
               position: {
                 left: '291px',
@@ -649,7 +649,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.surface-problem.slide-2.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.surface-problem.slide-2.description'),
-            imageURL: 'assets/images/tutorials/explore-surface-problem-incorrect-1.png',
+            imageURL: '/assets/images/tutorials/explore-surface-problem-incorrect-1.png',
             labelOnImage: {
               position: {
                 left: '397px',
@@ -662,7 +662,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.surface-problem.slide-3.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.surface-problem.slide-3.description'),
-            imageURL: 'assets/images/tutorials/explore-surface-problem-incorrect-2.png',
+            imageURL: '/assets/images/tutorials/explore-surface-problem-incorrect-2.png',
             labelOnImage: {
               position: {
                 left: '333px',
@@ -683,7 +683,7 @@ class MissionStartTutorial {
               { labelType: i18next.t('common:no-sidewalk') }),
             slideSubtitle: '',
             slideDescription: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-1.description'),
-            imageURL: 'assets/images/tutorials/no-sidewalk-correct-1.png',
+            imageURL: '/assets/images/tutorials/no-sidewalk-correct-1.png',
             labelOnImage: {
               position: {
                 left: '290px',
@@ -696,7 +696,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-2.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-2.description'),
-            imageURL: 'assets/images/tutorials/explore-no-sidewalk-incorrect-1.png',
+            imageURL: '/assets/images/tutorials/explore-no-sidewalk-incorrect-1.png',
             labelOnImage: {
               position: {
                 left: '352px',
@@ -709,7 +709,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-3.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-3.description'),
-            imageURL: 'assets/images/tutorials/explore-no-sidewalk-incorrect-2.png',
+            imageURL: '/assets/images/tutorials/explore-no-sidewalk-incorrect-2.png',
             labelOnImage: {
               position: {
                 left: '183px',
@@ -730,7 +730,7 @@ class MissionStartTutorial {
               { labelType: i18next.t('common:crosswalk') }),
             slideSubtitle: '',
             slideDescription: i18next.t('common:mission-start-tutorial.crosswalk.slide-1.description'),
-            imageURL: 'assets/images/tutorials/crosswalk-correct-1.png',
+            imageURL: '/assets/images/tutorials/crosswalk-correct-1.png',
             labelOnImage: {
               position: {
                 left: '175px',
@@ -743,7 +743,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.crosswalk.slide-2.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.crosswalk.slide-2.description'),
-            imageURL: 'assets/images/tutorials/explore-crosswalk-incorrect-1.png',
+            imageURL: '/assets/images/tutorials/explore-crosswalk-incorrect-1.png',
             labelOnImage: {
               position: {
                 left: '353px',
@@ -756,7 +756,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.crosswalk.slide-3.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.crosswalk.slide-3.description'),
-            imageURL: 'assets/images/tutorials/explore-crosswalk-incorrect-2.png',
+            imageURL: '/assets/images/tutorials/explore-crosswalk-incorrect-2.png',
             labelOnImage: {
               position: {
                 left: '247px',
@@ -769,7 +769,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.crosswalk.slide-4.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.crosswalk.slide-4.description'),
-            imageURL: 'assets/images/tutorials/explore-crosswalk-incorrect-3.png',
+            imageURL: '/assets/images/tutorials/explore-crosswalk-incorrect-3.png',
             labelOnImage: {
               position: {
                 left: '267px',
@@ -790,7 +790,7 @@ class MissionStartTutorial {
               { labelType: i18next.t('common:signal') }),
             slideSubtitle: '',
             slideDescription: i18next.t('common:mission-start-tutorial.signal.slide-1.description'),
-            imageURL: 'assets/images/tutorials/signal-correct-1.png',
+            imageURL: '/assets/images/tutorials/signal-correct-1.png',
             labelOnImage: {
               position: {
                 left: '170px',
@@ -803,7 +803,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.signal.slide-2.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.signal.slide-2.description'),
-            imageURL: 'assets/images/tutorials/explore-signal-incorrect-1.png',
+            imageURL: '/assets/images/tutorials/explore-signal-incorrect-1.png',
             labelOnImage: {
               position: {
                 left: '376px',
@@ -816,7 +816,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.signal.slide-3.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.signal.slide-3.description'),
-            imageURL: 'assets/images/tutorials/explore-signal-incorrect-2.png',
+            imageURL: '/assets/images/tutorials/explore-signal-incorrect-2.png',
             labelOnImage: {
               position: {
                 left: '389px',
@@ -829,7 +829,7 @@ class MissionStartTutorial {
             slideTitle: i18next.t('common:mission-start-tutorial.signal.slide-4.title'),
             slideSubtitle: i18next.t('common:mission-start-tutorial.label-type-subtitle'),
             slideDescription: i18next.t('common:mission-start-tutorial.signal.slide-4.description'),
-            imageURL: 'assets/images/tutorials/explore-signal-incorrect-3.png',
+            imageURL: '/assets/images/tutorials/explore-signal-incorrect-3.png',
             labelOnImage: {
               position: {
                 left: '358px',
