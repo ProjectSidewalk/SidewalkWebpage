@@ -45,7 +45,7 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
         (0, eval)(fs.readFileSync(THROTTLE_PATH, 'utf8'));
 
         // Globals PanoManager's init path reads.
-        global.isMobile = () => false;
+        util.isMobile = () => false;
         global.createPanoViewerLogo = jest.fn(() => ({ showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn() }));
         global.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
         global.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
@@ -76,7 +76,6 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
         jest.useRealTimers();
         document.body.innerHTML = '';
         delete global.util;
-        delete global.isMobile;
         delete global.createPanoViewerLogo;
         delete global.GsvViewer;
         delete global.MapillaryViewer;
