@@ -75,8 +75,6 @@ class Main {
   }
 
   async #init(params) {
-    sg.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
-
     // Seed the all-time counts so validating a card can celebrate a newly unlocked validation badge.
     BadgeAchievements.seedCounts();
 

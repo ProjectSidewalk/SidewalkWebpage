@@ -9,7 +9,7 @@ class AudioEffect {
   #muteIcon;
 
   /**
-   * @param {string} fileDirectory Root directory the audio files are served from.
+   * @param {string} fileDirectory Directory the audio files are served from.
    * @param storage TemporaryStorage used to persist the muted state.
    */
   constructor(fileDirectory, storage) {
@@ -19,8 +19,8 @@ class AudioEffect {
     this.#muteIcon = document.getElementById('explore-control-mute-icon');
 
     this.#audios = {
-      drip: new Audio(`${fileDirectory}audio/drip.mp3`),
-      success: new Audio(`${fileDirectory}audio/success.mp3`),
+      drip: new Audio(`${fileDirectory}drip.mp3`),
+      success: new Audio(`${fileDirectory}success.mp3`),
     };
     this.#audios.drip.volume = 0.25;
     this.#audios.success.volume = 0.05;

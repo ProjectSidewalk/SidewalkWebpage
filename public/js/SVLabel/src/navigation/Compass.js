@@ -15,7 +15,7 @@ class Compass {
   };
 
   /**
-   * @param {Object} svl - SVL namespace (used for rootDirectory). Same object as the global `svl`.
+   * @param {Object} svl - SVL namespace (used for imageDirectory). Same object as the global `svl`.
    * @param {Object} navigationService - NavigationService module.
    * @param {Object} taskContainer - TaskContainer module.
    */
@@ -29,12 +29,12 @@ class Compass {
     };
 
     this.#imageDirectories = {
-      leftTurn: `${svl.rootDirectory}img/icons/ArrowLeftTurn.png`,
-      rightTurn: `${svl.rootDirectory}img/icons/ArrowRightTurn.png`,
-      slightLeft: `${svl.rootDirectory}img/icons/ArrowSlightLeft.png`,
-      slightRight: `${svl.rootDirectory}img/icons/ArrowSlightRight.png`,
-      straight: `${svl.rootDirectory}img/icons/ArrowStraight.png`,
-      uTurn: `${svl.rootDirectory}img/icons/ArrowUTurn.png`,
+      leftTurn: `${svl.imageDirectory}icons/ArrowLeftTurn.png`,
+      rightTurn: `${svl.imageDirectory}icons/ArrowRightTurn.png`,
+      slightLeft: `${svl.imageDirectory}icons/ArrowSlightLeft.png`,
+      slightRight: `${svl.imageDirectory}icons/ArrowSlightRight.png`,
+      straight: `${svl.imageDirectory}icons/ArrowStraight.png`,
+      uTurn: `${svl.imageDirectory}icons/ArrowUTurn.png`,
     };
 
     this.enableCompassClick();

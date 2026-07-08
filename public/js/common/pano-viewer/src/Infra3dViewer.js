@@ -110,6 +110,7 @@ class Infra3dViewer extends PanoViewer {
     // TODO We should be checking if the new location is within STREETVIEW_MAX_DISTANCE. But we always have imagery
     //      in the zurich test city, so this should never be a problem.
     const node = await this.viewer._sdk_viewer.movePosition(newPosition, 3857);
+    await this.#filterNonPanoramicImages(node);
     const panoData = await this.#finishRecordingMetadata(node);
     return this.#filterExcludedPanos(panoData, excludedPanos);
   };
@@ -137,7 +138,31 @@ class Infra3dViewer extends PanoViewer {
     this.prevNode = this.currNode;
     this.currNode = null;
     const node = await this.viewer._sdk_viewer.moveToKey(panoId);
+    await this.#filterNonPanoramicImages(node);
     return this.#finishRecordingMetadata(node);
+  };
+
+  /**
+   * If the image we arrived at isn't a 360° pano, move back to the previous pano and throw an error.
+   *
+   * Infra3D datasets mix panoramic imagery ('calotte'/'cubemap' stream types) with flat perspective photos
+   * ('mono'/'stereo'), which the viewer renders as a 2D pan/zoom image. Our POV math assumes a 360° pano (e.g.
+   * getCameraView() returns {zoom, panX, panY} instead of {lat, lon, fov} on flat images), so we treat flat images
+   * like excluded panos: bounce back and reject so that callers retry elsewhere.
+   * @param {object} node Infra3d's internal node object for the image we just moved to
+   * @returns {Promise<void>} Rejects with error if the image isn't panoramic; resolves otherwise
+   */
+  #filterNonPanoramicImages = async (node) => {
+    if (['calotte', 'cubemap'].includes(node.frame.streamType)) return;
+
+    // The viewer is already displaying the flat image, so move the display back to the previous pano. Using the raw
+    // moveToKey rather than setPano() because currNode is null right now, so setPano() would wipe out prevNode and
+    // leave us unable to recover from landing on a second flat image in a row.
+    if (this.prevNode) {
+      const prevNode = await this.viewer._sdk_viewer.moveToKey(this.prevNode.frame.id);
+      await this.#finishRecordingMetadata(prevNode);
+    }
+    throw new Error(`Non-panoramic image: ${node.frame.id}`);
   };
 
   /**

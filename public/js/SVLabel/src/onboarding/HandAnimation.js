@@ -15,13 +15,13 @@ class HandAnimation {
   #onboardingImageDirectory;
 
   /**
-   * @param {string} rootDirectory Root directory that image assets are served from.
+   * @param {string} imageDirectory Directory that image assets are served from.
    * @param {object} uiOnboarding Onboarding UI elements.
    */
-  constructor(rootDirectory, uiOnboarding) {
+  constructor(imageDirectory, uiOnboarding) {
     this.#uiOnboarding = uiOnboarding;
     this.#$handGestureHolder = uiOnboarding.holder.find('#hand-gesture-holder');
-    this.#onboardingImageDirectory = `${rootDirectory}img/onboarding/`;
+    this.#onboardingImageDirectory = `${imageDirectory}onboarding/`;
   }
 
   /**

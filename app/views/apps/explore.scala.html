@@ -145,7 +145,7 @@
             <div id="ribbon-menu-holder">
                 <div id="ribbon-menu-buttons">
                     <span id="mode-switch-button-walk" class="label-type-button-holder" val="Walk">
-                        <img src='@assets.path("js/SVLabel/img/icons/explore.png")' class="label-type-icon">
+                        <img src='@assets.path("images/SVLabel/icons/explore.png")' class="label-type-icon">
                         <span class="label-type-name">@Html(Messages("audit.ribbon.explore"))</span>
                     </span>
                     <span id="label-type-divider-major"></span>
@@ -408,7 +408,7 @@
                     <div id="pano-border-frame" class="window-streetview"></div>
 
                     <div id="delete-icon-holder">
-                        <img src='@assets.path("js/SVLabel/img/icons/Icon_Delete.png")' id="label-delete-icon" />
+                        <img src='@assets.path("images/SVLabel/icons/Icon_Delete.png")' id="label-delete-icon" />
                     </div>
                     @* Tooltip shown over a hovered label, displaying its type and (where applicable) severity. *@
                     <div id="label-hover-info" class="label-hover-info">
@@ -624,7 +624,7 @@
                     </tr>
                 </table>
                 <p>
-                    <img src='@assets.path("js/SVLabel/img/onboarding/ExamplePictures03.png")' id="onboarding-example-image-1"
+                    <img src='@assets.path("images/SVLabel/onboarding/ExamplePictures03.png")' id="onboarding-example-image-1"
                     alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
                 </p>
 
@@ -657,7 +657,7 @@
                     </tr>
                     <tr>
                         <td colspan=2>
-                            <img id="onboarding-example-image-2-top" src='@assets.path("js/SVLabel/img/onboarding/ExamplePictures02_top.png")' alt="@Messages("audit.tutorial.examples")">
+                            <img id="onboarding-example-image-2-top" src='@assets.path("images/SVLabel/onboarding/ExamplePictures02_top.png")' alt="@Messages("audit.tutorial.examples")">
                         </td>
                     </tr>
                     <tr >
@@ -670,7 +670,7 @@
                     </tr>
                     <tr>
                         <td colspan=2>
-                            <img id="onboarding-example-image-2-bottom" src='@assets.path("js/SVLabel/img/onboarding/ExamplePictures02_bot.png")' alt="@Messages("audit.tutorial.examples")" >
+                            <img id="onboarding-example-image-2-bottom" src='@assets.path("images/SVLabel/onboarding/ExamplePictures02_bot.png")' alt="@Messages("audit.tutorial.examples")" >
                         </td>
                     </tr>
                     <tr>
@@ -780,7 +780,8 @@
         }
 
         mainParam.dataStoreUrl = '@routes.ExploreController.post';
-        mainParam.rootDirectory = "/assets/js/SVLabel/";
+        mainParam.imageDirectory = "@assets.path("images/SVLabel/")";
+        mainParam.audioDirectory = "@assets.path("audio/")";
 
         mainParam.user = {
             username: '@user.username',

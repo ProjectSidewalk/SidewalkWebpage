@@ -134,21 +134,21 @@ module.exports = function(grunt) {
         concat_css: {
             dist_audit: {
                 src: [
-                    'public/js/SVLabel/css/*.css',
+                    'public/css/SVLabel/*.css',
                     'public/css/common/missionStartTutorial.css'
                 ],
                 dest: 'public/js/SVLabel/build/SVLabel.css'
             },
             dist_validate: {
                 src: [
-                    'public/js/SVValidate/css/*.css',
+                    'public/css/SVValidate/*.css',
                     'public/css/common/missionStartTutorial.css'
                 ],
                 dest: 'public/js/SVValidate/build/SVValidate.css'
             },
             gallery_all: {
                 src: [
-                    'public/js/Gallery/css/*.css'
+                    'public/css/Gallery/*.css'
                 ],
                 dest: 'public/js/Gallery/build/Gallery.css'
             }
@@ -168,16 +168,16 @@ module.exports = function(grunt) {
                     'public/js/common/*/src/*.js',
                     'public/js/SVLabel/src/*.js',
                     'public/js/SVLabel/src/**/*.js',
-                    'public/js/SVLabel/css/*.css',
+                    'public/css/SVLabel/*.css',
                     'public/js/Progress/src/**/*.js',
                     'public/js/Admin/src/**/*.js',
                     'public/js/Help/src/*.js',
                     'public/js/SVValidate/src/*.js',
                     'public/js/SVValidate/src/**/*.js',
-                    'public/js/SVValidate/css/*.css',
+                    'public/css/SVValidate/*.css',
                     'public/js/Gallery/src/*.js',
                     'public/js/Gallery/src/**/*.js',
-                    'public/js/Gallery/css/*.css',
+                    'public/css/Gallery/*.css',
                     'public/js/PSMap/*.js',
                     'public/css/common/*.css'
                 ],

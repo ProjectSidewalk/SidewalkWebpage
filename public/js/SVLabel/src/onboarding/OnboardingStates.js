@@ -121,7 +121,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.common.label-too-far-generic')} `
-          + `<img src="${svl.rootDirectory}img/icons/Icon_Delete.png" `
+          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
           + `style="width: 6%; height:auto" alt="Delete Icon">`,
       },
       panoId,
@@ -171,7 +171,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.rate-severity-1')}<br>
-          <img src="${svl.rootDirectory}img/onboarding/RatingCurbRampQuality-severity-2-v3.gif" class="onboarding-gif">
+          <img src="${svl.imageDirectory}onboarding/RatingCurbRampQuality-severity-2-v3.gif" class="onboarding-gif">
         `,
       },
       panoId,
@@ -198,7 +198,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.redo-rate-attribute-1')
-        }<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRampQuality-severity-2-v3.gif`
+        }<br><img src="${svl.imageDirectory}onboarding/RatingCurbRampQuality-severity-2-v3.gif`
         + `" class="onboarding-gif"`,
       },
       panoId,
@@ -281,7 +281,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.common.label-too-far-crosswalk')} `
-          + `<img src="${svl.rootDirectory}img/icons/Icon_Delete.png" `
+          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
           + `style="width: 6%; height:auto" alt="Delete Icon">`,
       },
       panoId,
@@ -468,7 +468,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.common.label-too-far-generic')} `
-          + `<img src="${svl.rootDirectory}img/icons/Icon_Delete.png" `
+          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
           + `style="width: 6%; height:auto" alt="Delete Icon">`,
       },
       panoId,
@@ -520,7 +520,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.tag-attribute-3')
-        }<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif`
+        }<br><img src="${svl.imageDirectory}onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif`
         + `" class="onboarding-gif">`,
       },
       panoId,
@@ -546,7 +546,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.redo-tag-attribute-3')
-        }<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif`
+        }<br><img src="${svl.imageDirectory}onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif`
         + `" class="onboarding-gif">`,
       },
       panoId,
@@ -572,7 +572,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.rate-severity-3')
-        }<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" `
+        }<br><img src="${svl.imageDirectory}onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" `
         + `class="onboarding-gif">`,
       },
       panoId,
@@ -599,7 +599,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.redo-rate-attribute-3')
-        }<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif`
+        }<br><img src="${svl.imageDirectory}onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif`
         + `" class="onboarding-gif">`,
       },
       panoId,
@@ -683,7 +683,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.common.label-too-far-generic')} `
-          + `<img src="${svl.rootDirectory}img/icons/Icon_Delete.png" `
+          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
           + `style="width: 6%; height:auto" alt="Delete Icon">`,
       },
       panoId,
@@ -735,7 +735,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.tag-attribute-4')
-        }<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif`
+        }<br><img src="${svl.imageDirectory}onboarding/RatingNoCurbRampSeverity-v2.gif`
         + `" class="onboarding-gif">`,
       },
       panoId,
@@ -761,7 +761,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.redo-tag-attribute-4')
-        }<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif`
+        }<br><img src="${svl.imageDirectory}onboarding/RatingNoCurbRampSeverity-v2.gif`
         + `" class="onboarding-gif">`,
       },
       panoId,
@@ -787,7 +787,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.rate-severity-4')
-        }<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif`
+        }<br><img src="${svl.imageDirectory}onboarding/RatingNoCurbRampSeverity-v2.gif`
         + `" class="onboarding-gif">`,
       },
       panoId,
@@ -814,7 +814,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.redo-rate-attribute-4')
-        }<br><img src="${svl.rootDirectory}img/onboarding/RatingNoCurbRampSeverity-v2.gif`
+        }<br><img src="${svl.imageDirectory}onboarding/RatingNoCurbRampSeverity-v2.gif`
         + `" class="onboarding-gif">`,
       },
       panoId,
@@ -912,7 +912,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.common.label-too-far-signal')} `
-          + `<img src="${svl.rootDirectory}img/icons/Icon_Delete.png" `
+          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
           + `style="width: 6%; height:auto" alt="Delete Icon">`,
       },
       panoId,
@@ -1068,7 +1068,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.common.label-too-far-crosswalk')} `
-          + `<img src="${svl.rootDirectory}img/icons/Icon_Delete.png" `
+          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
           + `style="width: 6%; height:auto" alt="Delete Icon">`,
       },
       panoId,
@@ -1291,7 +1291,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.common.label-too-far-generic')} `
-          + `<img src="${svl.rootDirectory}img/icons/Icon_Delete.png" `
+          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
           + `style="width: 6%; height:auto" alt="Delete Icon">`,
       },
       panoId,
@@ -1343,7 +1343,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.tag-attribute-7')
-        }<br><img src="${svl.rootDirectory}img/onboarding/RatingMissingSidewalk.gif`
+        }<br><img src="${svl.imageDirectory}onboarding/RatingMissingSidewalk.gif`
         + `" class="onboarding-gif">`,
         position: 'top-right',
       },
@@ -1376,7 +1376,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.redo-tag-attribute-7')
-        }<br><img src="${svl.rootDirectory}img/onboarding/RatingMissingSidewalk.gif`
+        }<br><img src="${svl.imageDirectory}onboarding/RatingMissingSidewalk.gif`
         + `" class="onboarding-gif">`,
         position: 'top-right',
       },
@@ -1481,7 +1481,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.common.label-too-far-generic')} `
-          + `<img src="${svl.rootDirectory}img/icons/Icon_Delete.png" `
+          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
           + `style="width: 6%; height:auto" alt="Delete Icon">`,
       },
       panoId,
@@ -1533,7 +1533,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.rate-severity-8')
-        }<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRampQuality-v3.gif`
+        }<br><img src="${svl.imageDirectory}onboarding/RatingCurbRampQuality-v3.gif`
         + `" class="onboarding-gif" `,
       },
       panoId,
@@ -1560,7 +1560,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.redo-rate-attribute-8')
-        }<br><img src="${svl.rootDirectory}img/onboarding/RatingCurbRampQuality-v3.gif`
+        }<br><img src="${svl.imageDirectory}onboarding/RatingCurbRampQuality-v3.gif`
         + `" class="onboarding-gif" `,
       },
       panoId,
@@ -1658,7 +1658,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.common.label-too-far-signal')} `
-          + `<img src="${svl.rootDirectory}img/icons/Icon_Delete.png" `
+          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
           + `style="width: 6%; height:auto" alt="Delete Icon">`,
       },
       panoId,
@@ -1790,7 +1790,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       transition() {
         panoManager.setPov({ heading: 329, pitch: 0, zoom: 1 });
         svl.ui.minimap.holder.css(
-          'backgroundImage', `url('${svl.rootDirectory}img/onboarding/afterWalkTutorialMiniMap.jpg')`,
+          'backgroundImage', `url('${svl.imageDirectory}onboarding/afterWalkTutorialMiniMap.jpg')`,
         );
         return 'walk-4';
       },

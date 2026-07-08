@@ -132,7 +132,7 @@ class Onboarding {
     // the static screenshot, the Google label markers, and the fog all share one coordinate frame and stay aligned.
     svl.ui.minimap.holder.addClass('minimap-tutorial');
     svl.ui.minimap.holder.css({
-      backgroundImage: `url('${svl.rootDirectory}img/onboarding/TutorialMiniMap.jpg')`,
+      backgroundImage: `url('${svl.imageDirectory}onboarding/TutorialMiniMap.jpg')`,
       backgroundSize: 'cover',
       backgroundRepeat: 'no-repeat',
       backgroundPosition: 'center',

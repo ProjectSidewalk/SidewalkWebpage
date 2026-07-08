@@ -19,7 +19,8 @@ class Main {
   constructor(params) {
     this.#params = params;
 
-    svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
+    svl.imageDirectory = ('imageDirectory' in params) ? params.imageDirectory : '/';
+    svl.audioDirectory = ('audioDirectory' in params) ? params.audioDirectory : '/';
     svl.onboarding = null;
     svl.isOnboarding = () => this.#params.mission.mission_type === 'auditOnboarding';
     svl.regionId = params.regionId;
@@ -111,7 +112,7 @@ class Main {
     svl.contextMenu = new ContextMenu(svl.ui.contextMenu);
 
     // Game effects
-    svl.audioEffect = new AudioEffect(svl.rootDirectory, svl.storage);
+    svl.audioEffect = new AudioEffect(svl.audioDirectory, svl.storage);
 
     const neighborhood = new Neighborhood({
       regionId: params.regionId, geoJSON: params.regionGeoJSON, name: params.regionName,
@@ -247,7 +248,7 @@ class Main {
     svl.alertController.hideAlert();
 
     if (!this.#onboardingHandAnimation) {
-      this.#onboardingHandAnimation = new HandAnimation(svl.rootDirectory, svl.ui.onboarding);
+      this.#onboardingHandAnimation = new HandAnimation(svl.imageDirectory, svl.ui.onboarding);
       this.#onboardingStates = new OnboardingStates(svl.contextMenu, svl.compass, svl.panoManager);
     }
 

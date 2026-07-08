@@ -66,7 +66,7 @@ class LabelVisibilityControl {
    */
   hideLabel() {
     const panoMarker = svv.panoManager.getPanoMarker();
-    panoMarker.setIcon('/assets/js/SVLabel/img/icons/Label_Outline.svg');
+    panoMarker.setIcon('/assets/images/icons/Label_Outline.svg');
     panoMarker.draw();
     this.#visible = false;
     this.#labelVisibilityButtonOnPano.html(`<span>${this.#showText}</span>`);
