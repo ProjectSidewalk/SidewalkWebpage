@@ -7,150 +7,150 @@ module.exports = function(grunt) {
         concat: {
             dist_audit: {
                 src: [
-                    'public/javascripts/SVLabel/src/*.js',
-                    'public/javascripts/SVLabel/src/*/*.js',
-                    'public/javascripts/common/ProgressBar.js',
-                    'public/javascripts/common/PanoMarker.js',
-                    'public/javascripts/common/UtilitiesSidewalk.js',
-                    'public/javascripts/common/SpeedLimit.js',
-                    'public/javascripts/common/MissionStartTutorial.js',
+                    'public/js/explore/src/*.js',
+                    'public/js/explore/src/*/*.js',
+                    'public/js/common/ProgressBar.js',
+                    'public/js/common/PanoMarker.js',
+                    'public/js/common/utilitiesSidewalk.js',
+                    'public/js/common/SpeedLimit.js',
+                    'public/js/common/MissionStartTutorial.js',
                     // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
-                    'public/javascripts/common/Toast.js',
-                    'public/javascripts/common/BadgeAchievements.js'
+                    'public/js/common/Toast.js',
+                    'public/js/common/BadgeAchievements.js'
                 ],
-                dest: 'public/javascripts/SVLabel/build/SVLabel.js'
+                dest: 'public/js/explore/build/explore.js'
             },
             dist_progress: {
                 src: [
-                    'public/javascripts/common/AiLabelIndicator.js',
-                    'public/javascripts/Admin/src/*.js',
+                    'public/js/common/aiLabelIndicator.js',
+                    'public/js/admin/src/*.js',
                     // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
-                    'public/javascripts/common/label-detail/PopupPanoManager.js',
-                    'public/javascripts/common/label-detail/LabelDetail.js',
-                    'public/javascripts/common/label-detail/LabelPopup.js',
-                    'public/javascripts/SVValidate/src/util/*.js',
-                    'public/javascripts/common/PanoMarker.js',
+                    'public/js/common/label-detail/PopupPanoManager.js',
+                    'public/js/common/label-detail/LabelDetail.js',
+                    'public/js/common/label-detail/LabelPopup.js',
+                    'public/js/validate/src/util/*.js',
+                    'public/js/common/PanoMarker.js',
                     // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
-                    'public/javascripts/common/Toast.js',
-                    'public/javascripts/common/BadgeAchievements.js',
-                    'public/javascripts/Progress/src/*.js',
-                    'public/javascripts/common/UtilitiesSidewalk.js',
+                    'public/js/common/Toast.js',
+                    'public/js/common/BadgeAchievements.js',
+                    'public/js/user-dashboard/src/*.js',
+                    'public/js/common/utilitiesSidewalk.js',
                 ],
-                dest: 'public/javascripts/Progress/build/Progress.js'
+                dest: 'public/js/user-dashboard/build/user-dashboard.js'
             },
             dist_admin: {
                 src: [
-                    'public/javascripts/common/AiLabelIndicator.js',
+                    'public/js/common/aiLabelIndicator.js',
                     // Toast must be concatenated before BadgeAchievements, which LabelDetail uses for validation badges.
-                    'public/javascripts/common/Toast.js',
-                    'public/javascripts/common/BadgeAchievements.js',
-                    'public/javascripts/Admin/src/*.js',
+                    'public/js/common/Toast.js',
+                    'public/js/common/BadgeAchievements.js',
+                    'public/js/admin/src/*.js',
                     // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
-                    'public/javascripts/common/label-detail/PopupPanoManager.js',
-                    'public/javascripts/common/label-detail/LabelDetail.js',
-                    'public/javascripts/common/label-detail/LabelPopup.js',
-                    'public/javascripts/common/UtilitiesSidewalk.js',
-                    'public/javascripts/common/PanoMarker.js',
+                    'public/js/common/label-detail/PopupPanoManager.js',
+                    'public/js/common/label-detail/LabelDetail.js',
+                    'public/js/common/label-detail/LabelPopup.js',
+                    'public/js/common/utilitiesSidewalk.js',
+                    'public/js/common/PanoMarker.js',
                 ],
-                dest: 'public/javascripts/Admin/build/Admin.js'
+                dest: 'public/js/admin/build/admin.js'
             },
             dist_help: {
                 src: [
-                    'public/javascripts/Help/src/*.js'
+                    'public/js/help/src/*.js'
                 ],
-                dest: 'public/javascripts/Help/build/help.js'
+                dest: 'public/js/help/build/help.js'
             },
             dist_validate: {
                 src: [
-                    'public/javascripts/common/AiLabelIndicator.js',
-                    'public/javascripts/SVValidate/src/*.js',
-                    'public/javascripts/SVValidate/src/data/*.js',
-                    'public/javascripts/SVValidate/src/keyboard/*.js',
-                    'public/javascripts/SVValidate/src/label/*.js',
-                    'public/javascripts/SVValidate/src/menu/*.js',
-                    'public/javascripts/SVValidate/src/mission/*.js',
-                    'public/javascripts/SVValidate/src/modal/*.js',
-                    'public/javascripts/SVValidate/src/panorama/*.js',
-                    'public/javascripts/SVValidate/src/status/*.js',
-                    'public/javascripts/SVValidate/src/user/*.js',
-                    'public/javascripts/SVValidate/src/util/*.js',
-                    'public/javascripts/SVValidate/src/zoom/*.js',
-                    'public/javascripts/common/ProgressBar.js',
-                    'public/javascripts/common/PanoMarker.js',
-                    'public/javascripts/common/UtilitiesSidewalk.js',
-                    'public/javascripts/common/SpeedLimit.js',
-                    'public/javascripts/common/MissionStartTutorial.js',
+                    'public/js/common/aiLabelIndicator.js',
+                    'public/js/validate/src/*.js',
+                    'public/js/validate/src/data/*.js',
+                    'public/js/validate/src/keyboard/*.js',
+                    'public/js/validate/src/label/*.js',
+                    'public/js/validate/src/menu/*.js',
+                    'public/js/validate/src/mission/*.js',
+                    'public/js/validate/src/modal/*.js',
+                    'public/js/validate/src/panorama/*.js',
+                    'public/js/validate/src/status/*.js',
+                    'public/js/validate/src/user/*.js',
+                    'public/js/validate/src/util/*.js',
+                    'public/js/validate/src/zoom/*.js',
+                    'public/js/common/ProgressBar.js',
+                    'public/js/common/PanoMarker.js',
+                    'public/js/common/utilitiesSidewalk.js',
+                    'public/js/common/SpeedLimit.js',
+                    'public/js/common/MissionStartTutorial.js',
                     // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
-                    'public/javascripts/common/Toast.js',
-                    'public/javascripts/common/BadgeAchievements.js'
+                    'public/js/common/Toast.js',
+                    'public/js/common/BadgeAchievements.js'
                 ],
-                dest: 'public/javascripts/SVValidate/build/SVValidate.js'
+                dest: 'public/js/validate/build/validate.js'
             },
             dist_gallery: {
                 src: [
-                    'public/javascripts/common/AiLabelIndicator.js',
+                    'public/js/common/aiLabelIndicator.js',
                     // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
-                    'public/javascripts/common/Toast.js',
-                    'public/javascripts/common/BadgeAchievements.js',
+                    'public/js/common/Toast.js',
+                    'public/js/common/BadgeAchievements.js',
                     // PopupPanoManager and LabelDetail must be concatenated before ExpandedView.
-                    'public/javascripts/common/label-detail/PopupPanoManager.js',
-                    'public/javascripts/common/label-detail/LabelDetail.js',
-                    'public/javascripts/Gallery/src/cards/*.js',
-                    'public/javascripts/Gallery/src/data/*.js',
-                    'public/javascripts/Gallery/src/filter/*.js',
-                    'public/javascripts/Gallery/src/keyboard/*.js',
-                    'public/javascripts/Gallery/src/validation/*.js',
-                    'public/javascripts/Gallery/src/displays/*.js',
-                    'public/javascripts/Gallery/src/expandedview/*.js',
-                    'public/javascripts/Gallery/src/*.js',
-                    'public/javascripts/common/PanoMarker.js',
-                    'public/javascripts/common/UtilitiesSidewalk.js'
+                    'public/js/common/label-detail/PopupPanoManager.js',
+                    'public/js/common/label-detail/LabelDetail.js',
+                    'public/js/gallery/src/cards/*.js',
+                    'public/js/gallery/src/data/*.js',
+                    'public/js/gallery/src/filter/*.js',
+                    'public/js/gallery/src/keyboard/*.js',
+                    'public/js/gallery/src/validation/*.js',
+                    'public/js/gallery/src/displays/*.js',
+                    'public/js/gallery/src/expandedview/*.js',
+                    'public/js/gallery/src/*.js',
+                    'public/js/common/PanoMarker.js',
+                    'public/js/common/utilitiesSidewalk.js'
                 ],
-                dest: 'public/javascripts/Gallery/build/Gallery.js'
+                dest: 'public/js/gallery/build/gallery.js'
             },
             dist_map: {
                 src: [
-                    'public/javascripts/PSMap/*.js',
+                    'public/js/ps-map/*.js',
                 ],
-                dest: 'public/javascripts/PSMap/build/PSMap.js'
+                dest: 'public/js/ps-map/build/ps-map.js'
             },
             dist_pano_viewer: {
                 src: [
-                    'public/javascripts/common/pano-viewer/src/PanoData.js',
-                    'public/javascripts/common/pano-viewer/src/PanoStore.js',
-                    'public/javascripts/common/pano-viewer/src/PanoUtilities.js',
-                    'public/javascripts/common/pano-viewer/src/PanoViewer.js',
-                    'public/javascripts/common/pano-viewer/src/GsvViewer.js',
-                    'public/javascripts/common/pano-viewer/src/MapillaryChunkedDataProvider.js',
-                    'public/javascripts/common/pano-viewer/src/MapillaryViewer.js',
-                    'public/javascripts/common/pano-viewer/src/Infra3dViewer.js',
-                    'public/javascripts/common/pano-viewer/src/PannellumViewer.js',
-                    'public/javascripts/common/pano-viewer/src/PanoViewerLogo.js',
-                    'public/javascripts/common/pano-viewer/src/PanoInfoPopover.js'
+                    'public/js/common/pano-viewer/src/PanoData.js',
+                    'public/js/common/pano-viewer/src/PanoStore.js',
+                    'public/js/common/pano-viewer/src/panoUtilities.js',
+                    'public/js/common/pano-viewer/src/PanoViewer.js',
+                    'public/js/common/pano-viewer/src/GsvViewer.js',
+                    'public/js/common/pano-viewer/src/MapillaryChunkedDataProvider.js',
+                    'public/js/common/pano-viewer/src/MapillaryViewer.js',
+                    'public/js/common/pano-viewer/src/Infra3dViewer.js',
+                    'public/js/common/pano-viewer/src/PannellumViewer.js',
+                    'public/js/common/pano-viewer/src/PanoViewerLogo.js',
+                    'public/js/common/pano-viewer/src/PanoInfoPopover.js'
                 ],
-                dest: 'public/javascripts/common/pano-viewer/build/pano-viewer.js'
+                dest: 'public/js/common/pano-viewer/build/pano-viewer.js'
             }
         },
         concat_css: {
             dist_audit: {
                 src: [
-                    'public/javascripts/SVLabel/css/*.css',
-                    'public/stylesheets/common/missionStartTutorial.css'
+                    'public/css/explore/*.css',
+                    'public/css/common/mission-start-tutorial.css'
                 ],
-                dest: 'public/javascripts/SVLabel/build/SVLabel.css'
+                dest: 'public/js/explore/build/explore.css'
             },
             dist_validate: {
                 src: [
-                    'public/javascripts/SVValidate/css/*.css',
-                    'public/stylesheets/common/missionStartTutorial.css'
+                    'public/css/validate/*.css',
+                    'public/css/common/mission-start-tutorial.css'
                 ],
-                dest: 'public/javascripts/SVValidate/build/SVValidate.css'
+                dest: 'public/js/validate/build/validate.css'
             },
             gallery_all: {
                 src: [
-                    'public/javascripts/Gallery/css/*.css'
+                    'public/css/gallery/*.css'
                 ],
-                dest: 'public/javascripts/Gallery/build/Gallery.css'
+                dest: 'public/js/gallery/build/gallery.css'
             }
         },
         watch : {
@@ -163,23 +163,23 @@ module.exports = function(grunt) {
             },
             scripts: {
                 files: [
-                    'public/javascripts/common/*.js',
-                    'public/javascripts/common/*/*.js',
-                    'public/javascripts/common/*/src/*.js',
-                    'public/javascripts/SVLabel/src/*.js',
-                    'public/javascripts/SVLabel/src/**/*.js',
-                    'public/javascripts/SVLabel/css/*.css',
-                    'public/javascripts/Progress/src/**/*.js',
-                    'public/javascripts/Admin/src/**/*.js',
-                    'public/javascripts/Help/src/*.js',
-                    'public/javascripts/SVValidate/src/*.js',
-                    'public/javascripts/SVValidate/src/**/*.js',
-                    'public/javascripts/SVValidate/css/*.css',
-                    'public/javascripts/Gallery/src/*.js',
-                    'public/javascripts/Gallery/src/**/*.js',
-                    'public/javascripts/Gallery/css/*.css',
-                    'public/javascripts/PSMap/*.js',
-                    'public/stylesheets/common/*.css'
+                    'public/js/common/*.js',
+                    'public/js/common/*/*.js',
+                    'public/js/common/*/src/*.js',
+                    'public/js/explore/src/*.js',
+                    'public/js/explore/src/**/*.js',
+                    'public/css/explore/*.css',
+                    'public/js/user-dashboard/src/**/*.js',
+                    'public/js/admin/src/**/*.js',
+                    'public/js/help/src/*.js',
+                    'public/js/validate/src/*.js',
+                    'public/js/validate/src/**/*.js',
+                    'public/css/validate/*.css',
+                    'public/js/gallery/src/*.js',
+                    'public/js/gallery/src/**/*.js',
+                    'public/css/gallery/*.css',
+                    'public/js/ps-map/*.js',
+                    'public/css/common/*.css'
                 ],
                 tasks: [
                     'concat',

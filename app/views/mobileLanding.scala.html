@@ -8,11 +8,11 @@
 @formatNumber(n: Int) = @{java.text.NumberFormat.getInstance(messages.lang.toLocale).format(n)}
 
 @common.main(commonData, title, url = "/mobileLanding") {
-    <link rel="stylesheet" href='@assets.path("stylesheets/mobile-landing.css")'>
+    <link rel="stylesheet" href='@assets.path("css/mobile-landing.css")'>
 
     <!-- Slim header: logo + sign-in link. No full navbar on mobile landing. -->
     <header id="mobile-landing-header">
-        <img src='@assets.path("assets/" + config.get[String]("city-params.logo-img." + commonData.cityId))'
+        <img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))'
              id="mobile-landing-logo-header"
              alt="Project Sidewalk Logo">
         @if(user.role == "Anonymous") {
@@ -25,9 +25,9 @@
     <!-- Hero section with background video, tagline, and CTA -->
     <section id="mobile-landing-hero">
         <video id="mobile-hero-video" autoplay muted loop playsinline
-               poster='@assets.path("assets/psmockup.jpg")'>
-            <source src='@assets.path("assets/mainvideo.webm")' type="video/webm">
-            <source src='@assets.path("assets/mainvideo.mp4")' type="video/mp4">
+               poster='@assets.path("images/psmockup.jpg")'>
+            <source src='@assets.path("videos/mainvideo.webm")' type="video/webm">
+            <source src='@assets.path("videos/mainvideo.mp4")' type="video/mp4">
         </video>
         <h1 id="mobile-landing-tagline">@Messages("landing.create.path")</h1>
         <a class="mobile-landing-cta-btn" id="mobile-hero-cta-btn" href="/mobile"
@@ -87,42 +87,42 @@
         <div class="mobile-collaborators-grid">
             <div class="mobile-collaborator-image">
                 <a href="https://makeabilitylab.cs.washington.edu/">
-                    <img src='@assets.path("assets/MakeabilityLogo.png")' alt='@Messages("landing.collaborators.logo.makeability.alt")'>
+                    <img src='@assets.path("images/MakeabilityLogo.png")' alt='@Messages("landing.collaborators.logo.makeability.alt")'>
                 </a>
             </div>
             <div class="mobile-collaborator-image">
                 <a href="https://idhd.ahs.uic.edu/">
-                    <img src='@assets.path("assets/uic_logo.png")' alt='@Messages("landing.collaborators.logo.uic.alt")'>
+                    <img src='@assets.path("images/uic_logo.png")' alt='@Messages("landing.collaborators.logo.uic.alt")'>
                 </a>
             </div>
             @if(currentCity.countryId == "taiwan") {
                 <div class="mobile-collaborator-image">
                     <a href="https://peoplenudgeplatform.wixsite.com/people-nudge">
-                        <img src='@assets.path("assets/public_nudge_logo.png")' alt='@Messages("landing.collaborators.logo.public.nudge.alt")'>
+                        <img src='@assets.path("images/public_nudge_logo.png")' alt='@Messages("landing.collaborators.logo.public.nudge.alt")'>
                     </a>
                 </div>
             } else {
                 <div class="mobile-collaborator-image">
                     <a href="https://ligapeatonal.org/">
-                        <img src='@assets.path("assets/LigaLogo.png")' alt='@Messages("landing.collaborators.logo.liga.peatonal.alt")'>
+                        <img src='@assets.path("images/LigaLogo.png")' alt='@Messages("landing.collaborators.logo.liga.peatonal.alt")'>
                     </a>
                 </div>
             }
             @if("amsterdam" == currentCity.cityId) {
                 <div class="mobile-collaborator-image">
                     <a href="https://worldenabled.org/">
-                        <img src='@assets.path("assets/amsterdam/world_enabled.png")' alt='@Messages("landing.collaborators.logo.world.enabled.alt")'>
+                        <img src='@assets.path("images/amsterdam/world_enabled.png")' alt='@Messages("landing.collaborators.logo.world.enabled.alt")'>
                     </a>
                 </div>
                 <div class="mobile-collaborator-image">
                     <a href="https://www.amsterdam.nl/en/">
-                        <img src='@assets.path("assets/amsterdam/city_of_amsterdam.png")' alt='@Messages("landing.collaborators.logo.city.of.amsterdam.alt")'>
+                        <img src='@assets.path("images/amsterdam/city_of_amsterdam.png")' alt='@Messages("landing.collaborators.logo.city.of.amsterdam.alt")'>
                     </a>
                 </div>
             }
             @if("columbus-oh" == currentCity.cityId) {
                 <div class="mobile-collaborator-image">
-                    <img src='@assets.path("assets/columbus-oh/open_columbus_logo.png")' alt='@Messages("landing.collaborators.logo.open.columbus.alt")'>
+                    <img src='@assets.path("images/columbus-oh/open_columbus_logo.png")' alt='@Messages("landing.collaborators.logo.open.columbus.alt")'>
                 </div>
             }
         </div>

@@ -84,7 +84,7 @@ jobs:
       # stay manual until their trees are clean (#2487). Auto-fix locally with `make eslint-fix`.
       - name: ESLint (blocking)
         if: always()
-        run: npx eslint public/javascripts/
+        run: npx eslint public/js/
 
   evolutions-lint:
     name: Evolutions lint

@@ -62,7 +62,7 @@ orphans remain.
 3. **Add the translated files:** backend as `conf/messages/messages.<lang>`, frontend as
    `public/locales/<lang>/<namespace>.json` (mirror the namespaces in `public/locales/en/`).
 4. **Add the moment.js locale** (for localized dates) if one exists for the language: drop the locale file into
-   `public/javascripts/lib/moment/` and add a `<script>` import in
+   `public/vendor/moment/` and add a `<script>` import in
    [`app/views/common/main.scala.html`](../app/views/common/main.scala.html) alongside the existing per-locale imports
    (`es.js`, `nl.js`, `zh-tw.js`, `en-nz.js`). We import locales individually to keep the bundle small. (There's an
    open ticket, [#1258](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1258), about moving off moment.js —

@@ -1,5 +1,5 @@
 /**
- * Tests for public/javascripts/SVValidate/src/util/Throttle.js (`util.throttle`).
+ * Tests for public/js/validate/src/util/throttle.js (`util.throttle`).
  *
  * The throttle exists to stop continuous events (panning a pano fires `pov_changed` every frame) from flooding the
  * interaction logger and forcing the Tracker's 200-action mid-mission flush every few validations (#2745). These
@@ -13,7 +13,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/javascripts/SVValidate/src/util/Throttle.js');
+const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/util/throttle.js');
 
 /** Load Throttle.js (a `var util = util || {}` global script) and return the throttle factory. */
 function loadThrottle() {

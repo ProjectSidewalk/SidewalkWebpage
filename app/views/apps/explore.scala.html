@@ -15,10 +15,10 @@
 @common.main(commonData, title, defaultI18nNamespace="audit", i18Namespaces=Seq("audit", "common"), url="/explore") {
     @common.navbar(commonData, Some(user))
 
-    <link rel="stylesheet" href='@assets.path("javascripts/SVLabel/build/SVLabel.css")'/>
-    <link rel="stylesheet" href='@assets.path("stylesheets/progress-bar.css")'/>
-    <link rel="stylesheet" href='@assets.path("stylesheets/pano-overlay-buttons.css")'/>
-    <link rel="stylesheet" href='@assets.path("stylesheets/animate.css")'/>
+    <link rel="stylesheet" href='@assets.path("js/explore/build/explore.css")'/>
+    <link rel="stylesheet" href='@assets.path("css/progress-bar.css")'/>
+    <link rel="stylesheet" href='@assets.path("css/pano-overlay-buttons.css")'/>
+    <link rel="stylesheet" href='@assets.path("vendor/animate-css/animate.css")'/>
 
     <script>
         // Setup necessary for saving crops of pano. We don't want to cause issues if this fails.
@@ -145,7 +145,7 @@
             <div id="ribbon-menu-holder">
                 <div id="ribbon-menu-buttons">
                     <span id="mode-switch-button-walk" class="label-type-button-holder" val="Walk">
-                        <img src='@assets.path("javascripts/SVLabel/img/icons/explore.png")' class="label-type-icon">
+                        <img src='@assets.path("images/explore/icons/explore.png")' class="label-type-icon">
                         <span class="label-type-name">@Html(Messages("audit.ribbon.explore"))</span>
                     </span>
                     <span id="label-type-divider-major"></span>
@@ -408,7 +408,7 @@
                     <div id="pano-border-frame" class="window-streetview"></div>
 
                     <div id="delete-icon-holder">
-                        <img src='@assets.path("javascripts/SVLabel/img/icons/Icon_Delete.png")' id="label-delete-icon" />
+                        <img src='@assets.path("images/explore/icons/Icon_Delete.png")' id="label-delete-icon" />
                     </div>
                     @* Tooltip shown over a hovered label, displaying its type and (where applicable) severity. *@
                     <div id="label-hover-info" class="label-hover-info">
@@ -624,7 +624,7 @@
                     </tr>
                 </table>
                 <p>
-                    <img src='@assets.path("javascripts/SVLabel/img/onboarding/ExamplePictures03.png")' id="onboarding-example-image-1"
+                    <img src='@assets.path("images/explore/onboarding/ExamplePictures03.png")' id="onboarding-example-image-1"
                     alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
                 </p>
 
@@ -657,7 +657,7 @@
                     </tr>
                     <tr>
                         <td colspan=2>
-                            <img id="onboarding-example-image-2-top" src='@assets.path("javascripts/SVLabel/img/onboarding/ExamplePictures02_top.png")' alt="@Messages("audit.tutorial.examples")">
+                            <img id="onboarding-example-image-2-top" src='@assets.path("images/explore/onboarding/ExamplePictures02_top.png")' alt="@Messages("audit.tutorial.examples")">
                         </td>
                     </tr>
                     <tr >
@@ -670,7 +670,7 @@
                     </tr>
                     <tr>
                         <td colspan=2>
-                            <img id="onboarding-example-image-2-bottom" src='@assets.path("javascripts/SVLabel/img/onboarding/ExamplePictures02_bot.png")' alt="@Messages("audit.tutorial.examples")" >
+                            <img id="onboarding-example-image-2-bottom" src='@assets.path("images/explore/onboarding/ExamplePictures02_bot.png")' alt="@Messages("audit.tutorial.examples")" >
                         </td>
                     </tr>
                     <tr>
@@ -687,30 +687,30 @@
         </div>
     </template>
     @if(commonData.imagerySource == PanoSource.Infra3d) {
-        <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
-        <script src='@assets.path("javascripts/lib/infra3dapi-1.8.0.js")'></script>
+        <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
+        <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
     } else if (commonData.imagerySource == PanoSource.Mapillary) {
-        <script src='@assets.path("javascripts/lib/three-0.160.1-min.js")'></script>
-        <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
-        <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
+        <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
+        <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
+        <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet"/>
     }
-    <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
-    <script src='@assets.path("javascripts/lib/floating-ui.core-1.7.5.umd.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/floating-ui.dom-1.7.6.umd.min.js")'></script>
-    <script src='@assets.path("javascripts/SVLabel/build/SVLabel.js")'></script>
-    <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
-    <script src='@assets.path("javascripts/lib/kinetic-v4.4.3.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/d3-3.5.6.js")'></script>
+    <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
+    <script src='@assets.path("vendor/floating-ui/floating-ui.core-1.7.5.umd.min.js")'></script>
+    <script src='@assets.path("vendor/floating-ui/floating-ui.dom-1.7.6.umd.min.js")'></script>
+    <script src='@assets.path("js/explore/build/explore.js")'></script>
+    <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
+    <script src='@assets.path("vendor/kinetic/kinetic-v4.4.3.min.js")'></script>
+    <script src='@assets.path("vendor/d3/d3-3.5.6.js")'></script>
 
-    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.4.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/turf-7.3.4.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/async-lock-1.4.1.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/betterknown-1.2.0.js")'></script>
-    <script src='@assets.path("javascripts/lib/mapbox-gl-3.21.0.js")'></script>
-    <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@assets.path("javascripts/lib/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
-    <link href='@assets.path("stylesheets/tag-pills.css")' rel="stylesheet"/>
+    <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
+    <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
+    <script src='@assets.path("vendor/async-lock/async-lock-1.4.1.min.js")'></script>
+    <script src='@assets.path("vendor/betterknown/betterknown-1.2.0.js")'></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
+    <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
+    <link href='@assets.path("css/tag-pills.css")' rel="stylesheet"/>
 
     <script>
         $(document).ready(function() {
@@ -780,7 +780,8 @@
         }
 
         mainParam.dataStoreUrl = '@routes.ExploreController.post';
-        mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
+        mainParam.imageDirectory = "@assets.path("images/explore/")";
+        mainParam.audioDirectory = "@assets.path("audio/")";
 
         mainParam.user = {
             username: '@user.username',
