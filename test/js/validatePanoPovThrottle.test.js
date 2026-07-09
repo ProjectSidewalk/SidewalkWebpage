@@ -15,7 +15,7 @@ const fs = require('fs');
 const path = require('path');
 
 const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/panorama/PanoManager.js');
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/util/Throttle.js');
+const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/util/throttle.js');
 
 /**
  * Load the `PanoManager` class out of the production file. Like Form.js, it is a bare `class` declaration that the

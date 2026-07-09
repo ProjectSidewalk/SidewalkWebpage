@@ -1,7 +1,7 @@
 /**
- * Smoke tests for public/js/api-docs/aggregate-stats-preview.js.
+ * Smoke tests for public/js/api-docs/aggregateStatsPreview.js.
  *
- * This is the kind of test that would have caught the overall-stats-preview.js regression, where the renderer read
+ * This is the kind of test that would have caught the overallStatsPreview.js regression, where the renderer read
  * `data.validations.total_validations` after the field had moved under `data.validations.combined`, throwing
  * "Cannot read properties of undefined". Here we pin the contract between the snake_case /v3/api/aggregateStats
  * response and the headline cards + per-label-type table.
@@ -11,7 +11,7 @@
 
 const { loadGlobalScript } = require('./loadGlobalScript');
 
-const MODULE_PATH = 'public/js/api-docs/aggregate-stats-preview.js';
+const MODULE_PATH = 'public/js/api-docs/aggregateStatsPreview.js';
 const CONTAINER_ID = 'aggregate-stats-preview';
 
 // Realistic captured-shape response: flat, snake_case keys per the v3 API naming convention (issue #3871).
@@ -32,7 +32,7 @@ const GOOD_FIXTURE = {
 };
 
 // Wrong shape #1: headline totals nested under a sub-object instead of flat — directly analogous to the
-// overall-stats-preview.js bug (`validations.total_validations` moving under `validations.combined`).
+// overallStatsPreview.js bug (`validations.total_validations` moving under `validations.combined`).
 const WRONG_SHAPE_NESTED = {
     status: 'OK',
     km_explored: 1234,

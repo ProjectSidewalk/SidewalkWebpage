@@ -11,7 +11,7 @@ module.exports = function(grunt) {
                     'public/js/explore/src/*/*.js',
                     'public/js/common/ProgressBar.js',
                     'public/js/common/PanoMarker.js',
-                    'public/js/common/UtilitiesSidewalk.js',
+                    'public/js/common/utilitiesSidewalk.js',
                     'public/js/common/SpeedLimit.js',
                     'public/js/common/MissionStartTutorial.js',
                     // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
@@ -22,7 +22,7 @@ module.exports = function(grunt) {
             },
             dist_progress: {
                 src: [
-                    'public/js/common/AiLabelIndicator.js',
+                    'public/js/common/aiLabelIndicator.js',
                     'public/js/admin/src/*.js',
                     // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
                     'public/js/common/label-detail/PopupPanoManager.js',
@@ -34,13 +34,13 @@ module.exports = function(grunt) {
                     'public/js/common/Toast.js',
                     'public/js/common/BadgeAchievements.js',
                     'public/js/user-dashboard/src/*.js',
-                    'public/js/common/UtilitiesSidewalk.js',
+                    'public/js/common/utilitiesSidewalk.js',
                 ],
                 dest: 'public/js/user-dashboard/build/user-dashboard.js'
             },
             dist_admin: {
                 src: [
-                    'public/js/common/AiLabelIndicator.js',
+                    'public/js/common/aiLabelIndicator.js',
                     // Toast must be concatenated before BadgeAchievements, which LabelDetail uses for validation badges.
                     'public/js/common/Toast.js',
                     'public/js/common/BadgeAchievements.js',
@@ -49,7 +49,7 @@ module.exports = function(grunt) {
                     'public/js/common/label-detail/PopupPanoManager.js',
                     'public/js/common/label-detail/LabelDetail.js',
                     'public/js/common/label-detail/LabelPopup.js',
-                    'public/js/common/UtilitiesSidewalk.js',
+                    'public/js/common/utilitiesSidewalk.js',
                     'public/js/common/PanoMarker.js',
                 ],
                 dest: 'public/js/admin/build/admin.js'
@@ -62,7 +62,7 @@ module.exports = function(grunt) {
             },
             dist_validate: {
                 src: [
-                    'public/js/common/AiLabelIndicator.js',
+                    'public/js/common/aiLabelIndicator.js',
                     'public/js/validate/src/*.js',
                     'public/js/validate/src/data/*.js',
                     'public/js/validate/src/keyboard/*.js',
@@ -77,7 +77,7 @@ module.exports = function(grunt) {
                     'public/js/validate/src/zoom/*.js',
                     'public/js/common/ProgressBar.js',
                     'public/js/common/PanoMarker.js',
-                    'public/js/common/UtilitiesSidewalk.js',
+                    'public/js/common/utilitiesSidewalk.js',
                     'public/js/common/SpeedLimit.js',
                     'public/js/common/MissionStartTutorial.js',
                     // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
@@ -88,7 +88,7 @@ module.exports = function(grunt) {
             },
             dist_gallery: {
                 src: [
-                    'public/js/common/AiLabelIndicator.js',
+                    'public/js/common/aiLabelIndicator.js',
                     // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
                     'public/js/common/Toast.js',
                     'public/js/common/BadgeAchievements.js',
@@ -104,7 +104,7 @@ module.exports = function(grunt) {
                     'public/js/gallery/src/expandedview/*.js',
                     'public/js/gallery/src/*.js',
                     'public/js/common/PanoMarker.js',
-                    'public/js/common/UtilitiesSidewalk.js'
+                    'public/js/common/utilitiesSidewalk.js'
                 ],
                 dest: 'public/js/gallery/build/gallery.js'
             },
@@ -118,7 +118,7 @@ module.exports = function(grunt) {
                 src: [
                     'public/js/common/pano-viewer/src/PanoData.js',
                     'public/js/common/pano-viewer/src/PanoStore.js',
-                    'public/js/common/pano-viewer/src/PanoUtilities.js',
+                    'public/js/common/pano-viewer/src/panoUtilities.js',
                     'public/js/common/pano-viewer/src/PanoViewer.js',
                     'public/js/common/pano-viewer/src/GsvViewer.js',
                     'public/js/common/pano-viewer/src/MapillaryChunkedDataProvider.js',
@@ -135,14 +135,14 @@ module.exports = function(grunt) {
             dist_audit: {
                 src: [
                     'public/css/explore/*.css',
-                    'public/css/common/missionStartTutorial.css'
+                    'public/css/common/mission-start-tutorial.css'
                 ],
                 dest: 'public/js/explore/build/explore.css'
             },
             dist_validate: {
                 src: [
                     'public/css/validate/*.css',
-                    'public/css/common/missionStartTutorial.css'
+                    'public/css/common/mission-start-tutorial.css'
                 ],
                 dest: 'public/js/validate/build/validate.css'
             },

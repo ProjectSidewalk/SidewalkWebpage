@@ -52,7 +52,7 @@ function cityBoundingBox(geojson) {
 /**
  * Initialize the LabelMap address search box.
  *
- * @param {mapboxgl.Map} map - The Mapbox GL map created by CreatePSMap.
+ * @param {mapboxgl.Map} map - The Mapbox GL map created by createPSMap.
  * @param {string} mapboxApiKey - Mapbox access token (the same token that initialized the map).
  * @returns {void} No-op if the sidebar container or the Search SDK is unavailable.
  */

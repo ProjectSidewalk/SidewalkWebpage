@@ -265,7 +265,7 @@ class MapSidebarFilter {
     });
   }
 
-  /** Initializes the sidebar open/close behavior. Padding is set initially by CreatePSMap. */
+  /** Initializes the sidebar open/close behavior. Padding is set initially by createPSMap. */
   #initSidebarOpenClose() {
     const closeBtn = document.getElementById('map-sidebar-close');
     const openBtn = document.getElementById('map-sidebar-open');

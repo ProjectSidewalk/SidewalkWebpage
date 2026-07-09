@@ -317,7 +317,7 @@
                     neighborhoodFillMode: 'completionRate',
                     neighborhoodTooltip: 'completionRate'
                 };
-                CreatePSMap($, choroplethParams).then(m => {
+                createPSMap($, choroplethParams).then(m => {
                     window.choropleth = m[0];
                 });
 
@@ -331,7 +331,7 @@
                     loadCities: true,
                     logClicks: true
                 };
-                CreatePSMap($, deploymentMapParams).then(m => {
+                createPSMap($, deploymentMapParams).then(m => {
                     window.deploymentMap = m[0];
                 });
             });

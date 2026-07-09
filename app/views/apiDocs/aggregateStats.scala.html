@@ -5,7 +5,7 @@
 
 @content = {
     <script>
-        // Set data attributes for API information, used by api-docs.js (e.g. the download buttons).
+        // Set data attributes for API information, used by apiDocs.js (e.g. the download buttons).
         document.documentElement.setAttribute('data-api-base-url', '/v3/api');
         document.documentElement.setAttribute('data-api-endpoint', 'aggregateStats');
     </script>
@@ -31,7 +31,7 @@
 
         <div id="aggregate-stats-preview">Loading aggregate statistics...</div>
 
-        <script src="@routes.Assets.versioned("js/api-docs/aggregate-stats-preview.js")"></script>
+        <script src="@routes.Assets.versioned("js/api-docs/aggregateStatsPreview.js")"></script>
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 AggregateStatsPreview.setup({ maxWidth: 1000 }).init();

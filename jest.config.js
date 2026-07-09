@@ -22,7 +22,7 @@ module.exports = {
     transform: {},
 
     // Keep coverage opt-in; if enabled, only measure the api-docs preview modules the prototype targets.
-    collectCoverageFrom: ['public/js/api-docs/*-preview.js'],
+    collectCoverageFrom: ['public/js/api-docs/*Preview.js'],
 
     verbose: true
 };

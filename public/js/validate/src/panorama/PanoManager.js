@@ -329,7 +329,7 @@ class PanoManager {
 
     if (showIndicator) {
       if (!existingIndicator) {
-        existingIndicator = AiLabelIndicator(['ai-icon-marker-validate']);
+        existingIndicator = aiLabelIndicator(['ai-icon-marker-validate']);
         markerEl.appendChild(existingIndicator);
         const $indicator = ensureAiTooltip(existingIndicator);
         // Namespace and clear first: markerEl is reused across labels, so without removing the previous

@@ -20,7 +20,7 @@ class Progress {
    * Async because the label popup viewer must be created before the map params are assembled;
    * a constructor cannot be async, so callers use this factory instead.
    *
-   * @param {Function} $ - jQuery, required by CreatePSMap.
+   * @param {Function} $ - jQuery, required by createPSMap.
    * @param {string} mapboxApiKey
    * @param {Function} viewerType - Pano viewer constructor (GSV / Mapillary / Infra3d).
    * @param {string} viewerAccessToken
@@ -50,7 +50,7 @@ class Progress {
     };
 
     const progress = new Progress(userId, admin);
-    CreatePSMap($, params).then((m) => {
+    createPSMap($, params).then((m) => {
       progress.map = m[0];
       progress.mapData = m[4];
       setRegionFocus(progress.map);

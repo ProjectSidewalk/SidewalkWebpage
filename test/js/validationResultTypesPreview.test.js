@@ -1,10 +1,10 @@
 /**
- * Smoke tests for public/js/api-docs/validation-result-types-preview.js.
+ * Smoke tests for public/js/api-docs/validationResultTypesPreview.js.
  *
  * This is part of the first frontend test layer for Project Sidewalk. The module under test is a dependency-light
  * IIFE that fetches the /v3/api/validationResultTypes endpoint and renders a small table into a container div. These
  * tests pin the *contract* between the snake_case API response and the renderer so that a field-name drift (the kind
- * that broke overall-stats-preview.js when `total_validations` moved under `validations.combined`) fails loudly here
+ * that broke overallStatsPreview.js when `total_validations` moved under `validations.combined`) fails loudly here
  * instead of silently in the browser.
  *
  * Runs under jsdom (set in jest.config.js via testEnvironment) so `window`/`document` are available.
@@ -12,7 +12,7 @@
 
 const { loadGlobalScript } = require('./loadGlobalScript');
 
-const MODULE_PATH = 'public/js/api-docs/validation-result-types-preview.js';
+const MODULE_PATH = 'public/js/api-docs/validationResultTypesPreview.js';
 const CONTAINER_ID = 'validation-result-types-preview';
 
 // A realistic, captured-shape API response: snake_case keys, per the v3 API naming convention (issue #3871).

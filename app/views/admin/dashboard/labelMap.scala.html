@@ -42,10 +42,10 @@
        Admin.js bundle) to keep with the dashboard's standalone-script convention; i18next, AppManager, util, jQuery and
        the Google Maps loader are already loaded by common.main / adminLayout. *@
     @common.labelPopup(admin = true)
-    <link href='@assets.path("css/labelDetail.css")' rel="stylesheet"/>
+    <link href='@assets.path("css/label-detail.css")' rel="stylesheet"/>
     <link href='@assets.path("css/tag-pills.css")' rel="stylesheet"/>
     <link href='@assets.path("css/choropleth.css")' rel="stylesheet"/>
-    <link href='@assets.path("css/mapSidebar.css")' rel="stylesheet"/>
+    <link href='@assets.path("css/map-sidebar.css")' rel="stylesheet"/>
     <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
     <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'/>
 
@@ -62,7 +62,7 @@
     <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
     <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
     @* Label-detail modules (order matters: PopupPanoManager + LabelDetail precede LabelPopup; Toast precedes Badges). *@
-    <script src='@assets.path("js/common/AiLabelIndicator.js")'></script>
+    <script src='@assets.path("js/common/aiLabelIndicator.js")'></script>
     <script src='@assets.path("js/common/Toast.js")'></script>
     <script src='@assets.path("js/common/BadgeAchievements.js")'></script>
     <script src='@assets.path("js/common/PanoMarker.js")'></script>
@@ -76,7 +76,7 @@
     <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
     <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
 
-    <script src='@assets.path("js/admin-dashboard/label-map-page.js")'></script>
+    <script src='@assets.path("js/admin-dashboard/LabelMapPage.js")'></script>
     <script>
         window.appManager.ready(async function () {
             const imagerySrc = "@commonData.imagerySource.toString";

@@ -30,7 +30,7 @@
  *     early (e.g. the LabelMap search box) instead of waiting on the returned all-loaded promise.
  * @returns {Promise} - Promise that resolves once all components of the map have loaded.
  */
-function CreatePSMap($, params) {
+function createPSMap($, params) {
   // Set default parameters.
   params.logClicks = params.logClicks === undefined ? true : params.logClicks;
   params.scrollWheelZoom = params.scrollWheelZoom === undefined ? true : params.scrollWheelZoom;
@@ -78,7 +78,7 @@ function CreatePSMap($, params) {
   const loadCompletionRates = $.getJSON(params.completionRatesURL);
   if (params.neighborhoodsURL && params.completionRatesURL) {
     renderNeighborhoods = Promise.all([mapLoaded, loadNeighborhoods, loadCompletionRates]).then((data) => {
-      AddNeighborhoodsToMap(map, data[1], data[2], params);
+      addNeighborhoodsToMap(map, data[1], data[2], params);
     });
   }
 
@@ -87,7 +87,7 @@ function CreatePSMap($, params) {
   if (params.loadCities) {
     const loadCities = $.getJSON('/v3/api/cities?filetype=geojson');
     renderCities = Promise.all([mapLoaded, loadCities]).then((data) => {
-      AddCitiesToMap(map, data[1], params);
+      addCitiesToMap(map, data[1], params);
     });
   }
 
@@ -96,7 +96,7 @@ function CreatePSMap($, params) {
   if (params.streetsURL) {
     const loadStreets = $.getJSON(params.streetsURL);
     renderStreets = Promise.all([mapLoaded, renderNeighborhoods, loadStreets]).then((data) => {
-      AddStreetsToMap(map, data[2], params);
+      addStreetsToMap(map, data[2], params);
     });
   }
 
@@ -105,7 +105,7 @@ function CreatePSMap($, params) {
   if (params.labelsURL) {
     const loadLabels = $.getJSON(params.labelsURL);
     renderLabels = Promise.all([mapLoaded, renderStreets, loadLabels]).then((data) => {
-      return AddLabelsToMap(map, data[2], params);
+      return addLabelsToMap(map, data[2], params);
     });
   }
 

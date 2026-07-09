@@ -285,7 +285,7 @@ class ModalMissionComplete {
         return {
           type: 'Feature',
           geometry: { type: 'Point', coordinates: [latLng.lng, latLng.lat] },
-          // `has_validations: false` marks the labels as unvalidated so AddLabelsToMap's default filter shows them.
+          // `has_validations: false` marks the labels as unvalidated so addLabelsToMap's default filter shows them.
           properties: {
             label_id: label.getProperty('temporaryLabelId'),
             label_type: label.getLabelType(),

@@ -82,7 +82,7 @@ class ModalMissionCompleteMap {
 
     // Reuse PSMap's label rendering so the dots match the label map. Mark labels as unvalidated so the default
     // filter shows them, and skip the high-quality filter (no param) since these are the user's own fresh labels.
-    const mapData = await AddLabelsToMap(map, labelData, {});
+    const mapData = await addLabelsToMap(map, labelData, {});
     this.#labelLayerNames = Object.values(mapData.layerNames);
 
     this.#frameMission(map, streetTiers);

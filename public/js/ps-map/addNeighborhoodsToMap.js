@@ -13,7 +13,7 @@
  * @param {number} [params.neighborhoodFillOpacity] - Fill opacity to use if neighborhoodFillMode='singleColor'
  * @returns {Promise} Promise that resolves when the neighborhoods have been added to the map.
  */
-function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params) {
+function addNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params) {
   const NEIGHBORHOOD_LAYER_NAME = 'neighborhood-polygons';
   const NEIGHBORHOOD_OUTLINE_LAYER_NAME = 'neighborhood-polygons-outline';
 

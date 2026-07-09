@@ -5,7 +5,7 @@
 
 @content = {
     <script>
-        // Set data attributes for API information, used by api-docs.js (e.g. the download buttons).
+        // Set data attributes for API information, used by apiDocs.js (e.g. the download buttons).
         document.documentElement.setAttribute('data-api-base-url', '/v3/api');
         document.documentElement.setAttribute('data-api-endpoint', 'validationResultTypes');
     </script>
@@ -30,7 +30,7 @@
 
         <div id="validation-result-types-preview">Loading validation result types...</div>
 
-        <script src="@routes.Assets.versioned("js/api-docs/validation-result-types-preview.js")"></script>
+        <script src="@routes.Assets.versioned("js/api-docs/validationResultTypesPreview.js")"></script>
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 ValidationResultTypesPreview.setup({ maxWidth: 1000 }).init();

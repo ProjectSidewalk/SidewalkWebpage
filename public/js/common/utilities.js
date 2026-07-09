@@ -63,7 +63,7 @@ util.applyToolScale = function (widthVarNames, heightVarNames) {
   // Give the overlay its own --ui-scale, capped so its fixed-width content plus a little breathing room always fits.
   const mstOverlay = document.querySelector('.mission-start-tutorial-overlay');
   if (mstOverlay) {
-    // The reference width and breathing room live in missionStartTutorial.css so they stay in one place.
+    // The reference width and breathing room live in mission-start-tutorial.css so they stay in one place.
     const mstStyles = getComputedStyle(mstOverlay);
     const mstRefWidth = parseFloat(mstStyles.getPropertyValue('--mst-base-width'));
     const mstHMargin = parseFloat(mstStyles.getPropertyValue('--mst-h-margin'));

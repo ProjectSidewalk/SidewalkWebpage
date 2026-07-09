@@ -32,8 +32,8 @@
 
     @common.labelPopup(admin = false)
 
-    <link href='@assets.path("css/labelDetail.css")' rel="stylesheet"/>
-    <link href='@assets.path("css/mapSidebar.css")' rel="stylesheet"/>
+    <link href='@assets.path("css/label-detail.css")' rel="stylesheet"/>
+    <link href='@assets.path("css/map-sidebar.css")' rel="stylesheet"/>
     <link href='@assets.path("css/tag-pills.css")' rel="stylesheet"/>
 
     <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
@@ -42,7 +42,7 @@
     <script src='@assets.path("js/admin/build/admin.js")'></script>
     <script src='@assets.path("vendor/datatables/jquery.dataTables.min.js")'></script>
     <script src='@assets.path("vendor/datatables/dataTables.bootstrap.min.js")'></script>
-    <script src='@assets.path("js/common/UtilitiesSidewalk.js")'></script>
+    <script src='@assets.path("js/common/utilitiesSidewalk.js")'></script>
     @if(commonData.imagerySource == PanoSource.Infra3d) {
         <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
         <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
@@ -149,7 +149,7 @@
             };
 
             const self = {};
-            CreatePSMap($, params).then(m => {
+            createPSMap($, params).then(m => {
                 self.map = m[0];
                 self.mapData = m[4];
                 new MapSidebarFilter(self.map, self.mapData, { highQualityFilter: true });

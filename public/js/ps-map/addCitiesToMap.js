@@ -9,7 +9,7 @@
  * @param {boolean} params.logClicks - Whether to log click activity.
  * @returns {Promise} Promise that resolves when the streets have been added to the map.
  */
-function AddCitiesToMap(map, citiesData, params) {
+function addCitiesToMap(map, citiesData, params) {
   const CITIES_LAYER_NAME = 'cities';
 
   // Colors from: https://github.com/ProjectSidewalk/Design

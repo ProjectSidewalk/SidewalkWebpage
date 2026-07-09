@@ -26,7 +26,7 @@ const aiHoverSelectors = [
  * @param {Array<String>} extraClasses Additional CSS classes to apply.
  * @returns {HTMLElement} Configured AI indicator element.
  */
-function AiLabelIndicator(extraClasses = []) {
+function aiLabelIndicator(extraClasses = []) {
   const icon = document.createElement('img');
   icon.src = '/assets/images/icons/ai-icon-black-filled-white-circle.png';
   icon.alt = 'AI indicator';

@@ -7,7 +7,7 @@
 @content = {
     <script>
         // Set data attributes for API information. This is used by our JavaScripts to configure API calls, including
-        // the download buttons in api-docs.js
+        // the download buttons in apiDocs.js
         console.log('Setting data attributes for API information');
         document.documentElement.setAttribute('data-api-base-url', '/v3/api');
         document.documentElement.setAttribute('data-api-endpoint', 'streetTypes');
@@ -43,7 +43,7 @@
         <div id="street-types-preview">Loading street types data...</div>
 
         <link rel="stylesheet" href="@assets.path("css/api-docs/street-types.css")">
-        <script src="@routes.Assets.versioned("js/api-docs/street-types-preview.js")"></script>
+        <script src="@routes.Assets.versioned("js/api-docs/streetTypesPreview.js")"></script>
         <script>
             // Initialize the street types preview
             document.addEventListener('DOMContentLoaded', function() {

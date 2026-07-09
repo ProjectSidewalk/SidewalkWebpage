@@ -163,7 +163,7 @@ class Card {
     markerWrapper.style.top = `calc(${markerTopPercent}% - var(--gallery-marker-size) / 2)`;
     markerWrapper.appendChild(labelIcon);
     if (properties.ai_generated) {
-      const aiIndicator = AiLabelIndicator(['ai-icon', 'ai-icon-marker', 'ai-icon-marker-card']);
+      const aiIndicator = aiLabelIndicator(['ai-icon', 'ai-icon-marker', 'ai-icon-marker-card']);
       markerWrapper.appendChild(aiIndicator);
       $(aiIndicator)
         .tooltip({

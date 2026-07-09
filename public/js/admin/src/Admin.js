@@ -263,7 +263,7 @@ class Admin {
     const $ = this.#jquery;
     $('.nav-pills').on('click', (e) => {
       if (e.target.id === 'visualization' && this.#mapLoaded === false) {
-        CreatePSMap($, this.#mapTabMapParams).then((m) => {
+        createPSMap($, this.#mapTabMapParams).then((m) => {
           this.#map = m[0];
           this.#mapData = m[4];
           new MapSidebarFilter(this.#map, this.#mapData, { highQualityFilter: true });
@@ -271,7 +271,7 @@ class Admin {
         });
       } else if (e.target.id === 'analytics' && this.#graphsLoaded === false) {
         // Create the choropleth.
-        CreatePSMap($, this.#analyticsTabMapParams);
+        createPSMap($, this.#analyticsTabMapParams);
 
         const opt = {
           mode: 'vega-lite',

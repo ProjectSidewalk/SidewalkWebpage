@@ -20,7 +20,7 @@ const REPO_ROOT = path.resolve(__dirname, '..', '..');
 /**
  * Read a production JS file (relative to repo root) and execute it in the jsdom global scope, returning fresh.
  * @param {string} relativePath - Path to the script relative to the repo root, e.g.
- *   "public/js/api-docs/aggregate-stats-preview.js".
+ *   "public/js/api-docs/aggregateStatsPreview.js".
  */
 function loadGlobalScript(relativePath) {
     const absPath = path.join(REPO_ROOT, relativePath);

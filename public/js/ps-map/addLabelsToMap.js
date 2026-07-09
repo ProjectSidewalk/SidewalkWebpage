@@ -11,7 +11,7 @@
  * @param {object} [params.popupLabelViewer] Shows a validation popup on labels on the map.
  * @returns {Promise} Promise that resolves with the mapData object.
  */
-function AddLabelsToMap(map, labelData, params) {
+function addLabelsToMap(map, labelData, params) {
   const colorMapping = util.misc.getLabelColors();
   const mapData = CreateMapLayerTracker();
 

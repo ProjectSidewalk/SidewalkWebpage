@@ -87,7 +87,7 @@
 
             // Load aggregate stats and create the map in parallel.
             Promise.all([
-                CreatePSMap($, citiesMapParams),
+                createPSMap($, citiesMapParams),
                 loadAggregateStats()
             ]).then(function([mapComponents, aggregateStats]) {
                 window.citiesMap = mapComponents[0]; // Store map reference globally
