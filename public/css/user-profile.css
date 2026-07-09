@@ -47,8 +47,8 @@ svg {
 
 #edit-team-button {
     border-radius: 10px;
-    border: 1px solid #2D2A3F;
-    color: #2D2A3F;
+    border: 1px solid var(--color-asphalt-500);
+    color: var(--color-asphalt-500);
     background-color: var(--color-neutral-white);
     font: normal normal normal 13px/1.3em 'Raleway', sans-serif;
     text-align: center;
@@ -62,13 +62,13 @@ svg {
 #edit-team-button:hover {
     background-color: #FCECBE;
     border: 1px solid #FCECBE;
-    color: #2D2A3F;
+    color: var(--color-asphalt-500);
     text-decoration: none;
     text-shadow: none;
 }
 
 #edit-team-button:focus {
-    color: #2D2A3F;
+    color: var(--color-asphalt-500);
     text-decoration: none;
     outline: none;
 }
@@ -169,7 +169,7 @@ svg {
 
 .achievements-encouraging-statement {
     margin-bottom: 8px;
-    color: #2d2a3f;
+    color: var(--color-asphalt-500);
 }
 
 .user-stats-stat {

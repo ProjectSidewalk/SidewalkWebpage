@@ -292,7 +292,7 @@
 .cta-button {
     display: inline-block;
     padding: 12px 28px;
-    background-color: #78C9AB; /* Project Sidewalk primary green */
+    background-color: var(--color-pine-500); /* Project Sidewalk primary green */
     color: #2c3e50 !important;
     text-decoration: none !important;
     border-radius: 8px;
@@ -303,7 +303,7 @@
 }
 
 .cta-button:hover {
-    background-color: #AEDFCD; /* A lighter shade for hover */
+    background-color: var(--color-pine-300); /* A lighter shade for hover */
     transform: translateY(-2px);
     box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
 }

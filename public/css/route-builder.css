@@ -101,7 +101,7 @@
 
 .white-button {
     background: var(--color-neutral-white);
-    color: #2D2A3F;
+    color: var(--color-asphalt-500);
     border: 1.5px solid #525252;
 }
 
@@ -162,7 +162,7 @@
 }
 
 #route-saved-share-warnings {
-    color: #F68D3E;
+    color: var(--color-label-surface-problem);
     font-weight: 600;
 }
 

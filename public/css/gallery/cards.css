@@ -12,7 +12,7 @@
 }
 
 .validate-agree {
-    background-color: #78c9ab;
+    background-color: var(--color-pine-500);
 }
 
 .validate-disagree {
@@ -61,21 +61,21 @@ with respect to the image holder. This allows the validation menu to be placed o
 #gallery-card-agree-button {
     width: 33%;
     border-right: 1px solid #dcdbdb;
-    background-color: #78c9ab;
-    color: #2d2a3f;
+    background-color: var(--color-pine-500);
+    color: var(--color-asphalt-500);
 }
 
 #gallery-card-disagree-button {
     width: 34%;
     background-color: #eb734d;
-    color: #2d2a3f;
+    color: var(--color-asphalt-500);
 }
 
 #gallery-card-unsure-button {
     border-left: 1px solid #dcdbdb;
     width: 33%;
     background-color: var(--color-asphalt-100);
-    color: #2d2a3f;
+    color: var(--color-asphalt-500);
 }
 
 .card-header {
@@ -88,7 +88,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     padding-bottom: 0.5vw;
     padding-left: 0.5vw;
     padding-right: 0.5vw;
-    color: #2d2a3f;
+    color: var(--color-asphalt-500);
     border-width: 0 1px 1px 1px;
     border-color: #dcdbdb;
     border-style: solid;
@@ -240,7 +240,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     font-size: 0.75vw;
     background-color: var(--color-neutral-white);
     border-style: none;
-    color: #2d2a3f;
+    color: var(--color-asphalt-500);
     transition: opacity 120ms ease;
 }
 
@@ -285,7 +285,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 
 .severity-circle {
     color: var(--color-neutral-white);
-    border: 1px solid #2d2a3f;
+    border: 1px solid var(--color-asphalt-500);
     width: 0.7vw;
     height: 0.7vw;
     border-radius: 50%;
@@ -299,7 +299,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 #current-severity {
-    border: 2px solid #2d2a3f;
-    background-color: #2d2a3f;
-    color: #2d2a3f;
+    border: 2px solid var(--color-asphalt-500);
+    background-color: var(--color-asphalt-500);
+    color: var(--color-asphalt-500);
 }

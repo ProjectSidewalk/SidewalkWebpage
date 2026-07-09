@@ -53,7 +53,7 @@
     letter-spacing: 0em;
     font-style: normal;
     font-variant: normal;
-    color: #2d2a3f;
+    color: var(--color-asphalt-500);
 }
 
 .section-title {
@@ -124,7 +124,7 @@
     font-variant: normal;
     font-weight: bold;
     line-height: 10px;
-    color: #2D2A3F;
+    color: var(--color-asphalt-500);
 }
 
 .stepnumber {
@@ -134,7 +134,7 @@
     font-variant: normal;
     font-weight: bold;
     line-height: 58px;
-    color: #424055;
+    color: var(--color-asphalt-400);
 }
 
 #bigtext {
@@ -253,7 +253,7 @@ video#bgvid {
     font-style: normal;
     font-variant: normal;
     line-height: 1.1em;
-    color: #2d2a3f;
+    color: var(--color-asphalt-500);
 }
 
 .ps-skyline-container {
@@ -293,7 +293,7 @@ video#bgvid {
 }
 
 .ps-skyline-stats-holder > a {
-    color: #2d2a3f;
+    color: var(--color-asphalt-500);
 }
 
 .ps-skyline-stats-holder > a:hover {

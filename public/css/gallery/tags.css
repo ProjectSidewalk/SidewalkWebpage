@@ -7,7 +7,7 @@
     cursor: default;
     font-weight: bold;
     padding: 1px 5px;
-    color: #2d2a3f;
+    color: var(--color-asphalt-500);
 }
 
 .not-added {

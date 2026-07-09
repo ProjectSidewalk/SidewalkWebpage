@@ -214,7 +214,7 @@ body {
 }
 
 #validate-no-button.chosen {
-    background: #F29173;
+    background: var(--color-orange-400);
 }
 
 #validate-unsure-button.chosen {
@@ -322,7 +322,7 @@ body {
     padding: 10px 24px;
     border-radius: 16px;
     border: 3px solid #666;
-    background: #FBD98C;
+    background: var(--color-banana-500);
 }
 
 .sign-in-up-button-mobile {
@@ -332,7 +332,7 @@ body {
     border: none;
     right: 45px;
     top: 45px;
-    color: #2D2A3F;
+    color: var(--color-asphalt-500);
     font: normal normal normal 14px/1.4em raleway,sans-serif;
     font-family: 'Raleway', sans-serif;
     font-weight: bolder;

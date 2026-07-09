@@ -293,7 +293,7 @@ body.map-sidebar-resizing {
 }
 
 .map-sidebar__item .map-sidebar__street-icon--unaudited path {
-    stroke: #b3b3b3;
+    stroke: var(--color-neutral-500);
 }
 
 /* ---- Tag expand/collapse toggle ---- */

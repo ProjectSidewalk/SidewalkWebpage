@@ -22,13 +22,13 @@
     font-family: Raleway, sans-serif;
     font-size: 13px;
     font-weight: bold;
-    color: #2d2a3f;
+    color: var(--color-asphalt-500);
     text-decoration: none;
 }
 
 .mobile-header-signin:hover,
 .mobile-header-signin:focus {
-    color: #2d2a3f;
+    color: var(--color-asphalt-500);
     text-decoration: underline;
 }
 
@@ -90,7 +90,7 @@
     background-color: rgba(251, 215, 139, 1);
     border-radius: 10px;
     border: 0;
-    color: #2d2a3f;
+    color: var(--color-asphalt-500);
     font-family: Raleway, sans-serif;
     font-size: 15px;
     font-weight: bold;
@@ -103,7 +103,7 @@
 .mobile-landing-cta-btn:hover,
 .mobile-landing-cta-btn:focus {
     background-color: #fcecbe;
-    color: #2d2a3f;
+    color: var(--color-asphalt-500);
     text-decoration: none;
 }
 
@@ -123,14 +123,14 @@
     font-family: Raleway, sans-serif;
     font-size: 26px;
     font-weight: bold;
-    color: #2d2a3f;
+    color: var(--color-asphalt-500);
     line-height: 1.2;
     margin-bottom: 14px;
 }
 
 .mobile-section-subtitle {
     font: var(--text-body-regular);
-    color: #2d2a3f;
+    color: var(--color-asphalt-500);
     margin: 0 auto 28px;
     max-width: 520px;
 }
@@ -181,7 +181,7 @@
 
 .mobile-impact-caption {
     font: var(--text-small-regular);
-    color: #2d2a3f;
+    color: var(--color-asphalt-500);
     margin: 0;
     padding-top: 10px;
     text-align: left;
@@ -214,7 +214,7 @@
     font-family: Raleway-extrabold, sans-serif;
     font-size: 36px;
     font-weight: bold;
-    color: #2d2a3f;
+    color: var(--color-asphalt-500);
     line-height: 1.1;
 }
 
@@ -267,7 +267,7 @@
 
 /* Bottom CTA section */
 #mobile-landing-bottom-cta {
-    background-color: #2d2a3f;
+    background-color: var(--color-asphalt-500);
     padding: 48px 24px 0;
     text-align: center;
 }

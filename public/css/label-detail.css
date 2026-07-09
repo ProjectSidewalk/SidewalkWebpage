@@ -104,7 +104,7 @@ dialog.label-detail[open]::backdrop {
     margin-bottom: 10px;
     transition: border-color 150ms ease;
 }
-.label-detail__pano-wrap.is-agree    { border-color: #78c9ab; }
+.label-detail__pano-wrap.is-agree    { border-color: var(--color-pine-500); }
 .label-detail__pano-wrap.is-disagree { border-color: #eb734d; }
 .label-detail__pano-wrap.is-unsure   { border-color: var(--color-asphalt-100); }
 
@@ -153,7 +153,7 @@ dialog.label-detail[open]::backdrop {
 .label-detail__pano-overlay-button:focus-visible { outline: 2px solid #4a90e2; outline-offset: -2px; }
 .label-detail__pano-overlay-button[disabled] { cursor: wait; }
 
-.label-detail__pano-overlay-button--agree    { background: #78c9ab; }
+.label-detail__pano-overlay-button--agree    { background: var(--color-pine-500); }
 .label-detail__pano-overlay-button--disagree { background: #eb734d; }
 .label-detail__pano-overlay-button--unsure   { background: var(--color-asphalt-100); }
 
@@ -454,7 +454,7 @@ dialog.label-detail[open]::backdrop {
     padding: 0;
     border: none;
     background: transparent;
-    color: #2d2a3f;
+    color: var(--color-asphalt-500);
     font-size: 50px;
     line-height: 1;
     cursor: pointer;

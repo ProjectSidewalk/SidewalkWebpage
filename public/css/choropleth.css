@@ -145,7 +145,7 @@
     height: 15px;
     text-align: left;
     font-size: 16px;
-    color: #424055;
+    color: var(--color-asphalt-400);
 }
 .legend span {
     width: 10%;
@@ -162,6 +162,7 @@
 }
 
 /* Label type circle color fills (used by map sidebar legend icons). */
+/* TODO These colors should probably match the colors in our Design System Tokens in main.css. */
 #map-legend-curb-ramp circle {
     fill: #90C31F;
 }
@@ -169,26 +170,26 @@
     fill: #E679B6;
 }
 #map-legend-obstacle circle {
-    fill: #78B0EA;
+    fill: var(--color-label-obstacle);
 }
 #map-legend-surface-problem circle {
-    fill: #F68D3E;
+    fill: var(--color-label-surface-problem);
 }
 #map-legend-no-sidewalk circle {
-    fill: #BE87D8;
+    fill: var(--color-label-no-sidewalk);
 }
 #map-legend-crosswalk circle {
-    fill: #FABF1C;
+    fill: var(--color-label-crosswalk);
 }
 #map-legend-signal circle {
     fill: #63C0AB;
 }
 #map-legend-other circle {
-    fill: #B3B3B3;
+    fill: var(--color-neutral-500);
     stroke: #0000FF;
 }
 #map-legend-occlusion circle {
-    fill: #B3B3B3;
+    fill: var(--color-neutral-500);
     stroke: #009902;
 }
 
