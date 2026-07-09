@@ -1,5 +1,5 @@
 /**
- * Tests for public/js/SVValidate/src/data/Form.js `submit()`.
+ * Tests for public/js/validate/src/data/Form.js `submit()`.
  *
  * Pins the resilience contract introduced for issue #2745: a failed data POST must NOT reload the page (a reload
  * mid-mission reset the user to the first validation and, when it looped, produced the browser's "A problem
@@ -12,7 +12,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const FORM_PATH = path.resolve(__dirname, '..', '..', 'public/js/SVValidate/src/data/Form.js');
+const FORM_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/data/Form.js');
 
 /**
  * Load the `Form` class out of the production file. Unlike the api-docs preview modules, Form.js is a bare

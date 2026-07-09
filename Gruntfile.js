@@ -7,8 +7,8 @@ module.exports = function(grunt) {
         concat: {
             dist_audit: {
                 src: [
-                    'public/js/SVLabel/src/*.js',
-                    'public/js/SVLabel/src/*/*.js',
+                    'public/js/explore/src/*.js',
+                    'public/js/explore/src/*/*.js',
                     'public/js/common/ProgressBar.js',
                     'public/js/common/PanoMarker.js',
                     'public/js/common/UtilitiesSidewalk.js',
@@ -18,25 +18,25 @@ module.exports = function(grunt) {
                     'public/js/common/Toast.js',
                     'public/js/common/BadgeAchievements.js'
                 ],
-                dest: 'public/js/SVLabel/build/SVLabel.js'
+                dest: 'public/js/explore/build/explore.js'
             },
             dist_progress: {
                 src: [
                     'public/js/common/AiLabelIndicator.js',
-                    'public/js/Admin/src/*.js',
+                    'public/js/admin/src/*.js',
                     // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
                     'public/js/common/label-detail/PopupPanoManager.js',
                     'public/js/common/label-detail/LabelDetail.js',
                     'public/js/common/label-detail/LabelPopup.js',
-                    'public/js/SVValidate/src/util/*.js',
+                    'public/js/validate/src/util/*.js',
                     'public/js/common/PanoMarker.js',
                     // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
                     'public/js/common/Toast.js',
                     'public/js/common/BadgeAchievements.js',
-                    'public/js/Progress/src/*.js',
+                    'public/js/user-dashboard/src/*.js',
                     'public/js/common/UtilitiesSidewalk.js',
                 ],
-                dest: 'public/js/Progress/build/Progress.js'
+                dest: 'public/js/user-dashboard/build/user-dashboard.js'
             },
             dist_admin: {
                 src: [
@@ -44,7 +44,7 @@ module.exports = function(grunt) {
                     // Toast must be concatenated before BadgeAchievements, which LabelDetail uses for validation badges.
                     'public/js/common/Toast.js',
                     'public/js/common/BadgeAchievements.js',
-                    'public/js/Admin/src/*.js',
+                    'public/js/admin/src/*.js',
                     // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
                     'public/js/common/label-detail/PopupPanoManager.js',
                     'public/js/common/label-detail/LabelDetail.js',
@@ -52,29 +52,29 @@ module.exports = function(grunt) {
                     'public/js/common/UtilitiesSidewalk.js',
                     'public/js/common/PanoMarker.js',
                 ],
-                dest: 'public/js/Admin/build/Admin.js'
+                dest: 'public/js/admin/build/admin.js'
             },
             dist_help: {
                 src: [
-                    'public/js/Help/src/*.js'
+                    'public/js/help/src/*.js'
                 ],
-                dest: 'public/js/Help/build/help.js'
+                dest: 'public/js/help/build/help.js'
             },
             dist_validate: {
                 src: [
                     'public/js/common/AiLabelIndicator.js',
-                    'public/js/SVValidate/src/*.js',
-                    'public/js/SVValidate/src/data/*.js',
-                    'public/js/SVValidate/src/keyboard/*.js',
-                    'public/js/SVValidate/src/label/*.js',
-                    'public/js/SVValidate/src/menu/*.js',
-                    'public/js/SVValidate/src/mission/*.js',
-                    'public/js/SVValidate/src/modal/*.js',
-                    'public/js/SVValidate/src/panorama/*.js',
-                    'public/js/SVValidate/src/status/*.js',
-                    'public/js/SVValidate/src/user/*.js',
-                    'public/js/SVValidate/src/util/*.js',
-                    'public/js/SVValidate/src/zoom/*.js',
+                    'public/js/validate/src/*.js',
+                    'public/js/validate/src/data/*.js',
+                    'public/js/validate/src/keyboard/*.js',
+                    'public/js/validate/src/label/*.js',
+                    'public/js/validate/src/menu/*.js',
+                    'public/js/validate/src/mission/*.js',
+                    'public/js/validate/src/modal/*.js',
+                    'public/js/validate/src/panorama/*.js',
+                    'public/js/validate/src/status/*.js',
+                    'public/js/validate/src/user/*.js',
+                    'public/js/validate/src/util/*.js',
+                    'public/js/validate/src/zoom/*.js',
                     'public/js/common/ProgressBar.js',
                     'public/js/common/PanoMarker.js',
                     'public/js/common/UtilitiesSidewalk.js',
@@ -84,7 +84,7 @@ module.exports = function(grunt) {
                     'public/js/common/Toast.js',
                     'public/js/common/BadgeAchievements.js'
                 ],
-                dest: 'public/js/SVValidate/build/SVValidate.js'
+                dest: 'public/js/validate/build/validate.js'
             },
             dist_gallery: {
                 src: [
@@ -95,24 +95,24 @@ module.exports = function(grunt) {
                     // PopupPanoManager and LabelDetail must be concatenated before ExpandedView.
                     'public/js/common/label-detail/PopupPanoManager.js',
                     'public/js/common/label-detail/LabelDetail.js',
-                    'public/js/Gallery/src/cards/*.js',
-                    'public/js/Gallery/src/data/*.js',
-                    'public/js/Gallery/src/filter/*.js',
-                    'public/js/Gallery/src/keyboard/*.js',
-                    'public/js/Gallery/src/validation/*.js',
-                    'public/js/Gallery/src/displays/*.js',
-                    'public/js/Gallery/src/expandedview/*.js',
-                    'public/js/Gallery/src/*.js',
+                    'public/js/gallery/src/cards/*.js',
+                    'public/js/gallery/src/data/*.js',
+                    'public/js/gallery/src/filter/*.js',
+                    'public/js/gallery/src/keyboard/*.js',
+                    'public/js/gallery/src/validation/*.js',
+                    'public/js/gallery/src/displays/*.js',
+                    'public/js/gallery/src/expandedview/*.js',
+                    'public/js/gallery/src/*.js',
                     'public/js/common/PanoMarker.js',
                     'public/js/common/UtilitiesSidewalk.js'
                 ],
-                dest: 'public/js/Gallery/build/Gallery.js'
+                dest: 'public/js/gallery/build/gallery.js'
             },
             dist_map: {
                 src: [
-                    'public/js/PSMap/*.js',
+                    'public/js/ps-map/*.js',
                 ],
-                dest: 'public/js/PSMap/build/PSMap.js'
+                dest: 'public/js/ps-map/build/ps-map.js'
             },
             dist_pano_viewer: {
                 src: [
@@ -134,23 +134,23 @@ module.exports = function(grunt) {
         concat_css: {
             dist_audit: {
                 src: [
-                    'public/css/SVLabel/*.css',
+                    'public/css/explore/*.css',
                     'public/css/common/missionStartTutorial.css'
                 ],
-                dest: 'public/js/SVLabel/build/SVLabel.css'
+                dest: 'public/js/explore/build/explore.css'
             },
             dist_validate: {
                 src: [
-                    'public/css/SVValidate/*.css',
+                    'public/css/validate/*.css',
                     'public/css/common/missionStartTutorial.css'
                 ],
-                dest: 'public/js/SVValidate/build/SVValidate.css'
+                dest: 'public/js/validate/build/validate.css'
             },
             gallery_all: {
                 src: [
-                    'public/css/Gallery/*.css'
+                    'public/css/gallery/*.css'
                 ],
-                dest: 'public/js/Gallery/build/Gallery.css'
+                dest: 'public/js/gallery/build/gallery.css'
             }
         },
         watch : {
@@ -166,19 +166,19 @@ module.exports = function(grunt) {
                     'public/js/common/*.js',
                     'public/js/common/*/*.js',
                     'public/js/common/*/src/*.js',
-                    'public/js/SVLabel/src/*.js',
-                    'public/js/SVLabel/src/**/*.js',
-                    'public/css/SVLabel/*.css',
-                    'public/js/Progress/src/**/*.js',
-                    'public/js/Admin/src/**/*.js',
-                    'public/js/Help/src/*.js',
-                    'public/js/SVValidate/src/*.js',
-                    'public/js/SVValidate/src/**/*.js',
-                    'public/css/SVValidate/*.css',
-                    'public/js/Gallery/src/*.js',
-                    'public/js/Gallery/src/**/*.js',
-                    'public/css/Gallery/*.css',
-                    'public/js/PSMap/*.js',
+                    'public/js/explore/src/*.js',
+                    'public/js/explore/src/**/*.js',
+                    'public/css/explore/*.css',
+                    'public/js/user-dashboard/src/**/*.js',
+                    'public/js/admin/src/**/*.js',
+                    'public/js/help/src/*.js',
+                    'public/js/validate/src/*.js',
+                    'public/js/validate/src/**/*.js',
+                    'public/css/validate/*.css',
+                    'public/js/gallery/src/*.js',
+                    'public/js/gallery/src/**/*.js',
+                    'public/css/gallery/*.css',
+                    'public/js/ps-map/*.js',
                     'public/css/common/*.css'
                 ],
                 tasks: [

@@ -34,22 +34,22 @@ function defineValidateConstants() {
       'no-button-3': {
         buttonText: i18next.t('validate:validate-menu.disagree-reason.curb-ramp.no-button-3'),
         tooltipText: i18next.t('validate:validate-menu.disagree-reason.curb-ramp.no-button-3-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/CurbRampDisagree3.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/CurbRampDisagree3.png',
       },
       'unsure-button-1': {
         buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1'),
         tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/CommonUnsure1.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/CommonUnsure1.png',
       },
       'unsure-button-2': {
         buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2'),
         tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/CommonUnsure2.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/CommonUnsure2.png',
       },
       'unsure-button-3': {
         buttonText: i18next.t('validate:validate-menu.unsure-reason.no-curb-ramp.unsure-button-3'),
         tooltipText: i18next.t('validate:validate-menu.unsure-reason.curb-ramp.unsure-button-3-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/CurbRampUnsure3.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/CurbRampUnsure3.png',
       },
     },
     'no-curb-ramp': {
@@ -61,66 +61,66 @@ function defineValidateConstants() {
       'no-button-2': {
         buttonText: i18next.t('validate:validate-menu.disagree-reason.no-curb-ramp.no-button-2'),
         tooltipText: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-4.description'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/NoCurbRampDisagree2.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/NoCurbRampDisagree2.png',
       },
       'no-button-3': {
         buttonText: i18next.t('validate:validate-menu.disagree-reason.no-curb-ramp.no-button-3'),
         tooltipText: i18next.t('validate:validate-menu.disagree-reason.no-curb-ramp.no-button-3-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/NoCurbRampDisagree3.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/NoCurbRampDisagree3.png',
       },
       'unsure-button-1': {
         buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1'),
         tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/CommonUnsure1.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/CommonUnsure1.png',
       },
       'unsure-button-2': {
         buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2'),
         tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/CommonUnsure2.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/CommonUnsure2.png',
       },
       'unsure-button-3': {
         buttonText: i18next.t('validate:validate-menu.unsure-reason.no-curb-ramp.unsure-button-3'),
         tooltipText: i18next.t('validate:validate-menu.unsure-reason.no-curb-ramp.unsure-button-3-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/NoCurbRampUnsure3.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/NoCurbRampUnsure3.png',
       },
     },
     'obstacle': {
       'no-button-1': {
         buttonText: i18next.t('validate:validate-menu.disagree-reason.obstacle.no-button-1'),
         tooltipText: i18next.t('validate:validate-menu.disagree-reason.obstacle.no-button-1-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/ObstacleDisagree1.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/ObstacleDisagree1.png',
       },
       'no-button-2': {
         buttonText: i18next.t('validate:validate-menu.disagree-reason.obstacle.no-button-2'),
         tooltipText: i18next.t('validate:validate-menu.disagree-reason.obstacle.no-button-2-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/ObstacleDisagree2.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/ObstacleDisagree2.png',
       },
       'no-button-3': {
         buttonText: i18next.t('validate:validate-menu.disagree-reason.obstacle.no-button-3'),
         tooltipText: i18next.t('validate:validate-menu.disagree-reason.obstacle.no-button-3-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/ObstacleDisagree3.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/ObstacleDisagree3.png',
       },
       'unsure-button-1': {
         buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1'),
         tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/CommonUnsure1.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/CommonUnsure1.png',
       },
       'unsure-button-2': {
         buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2'),
         tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/CommonUnsure2.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/CommonUnsure2.png',
       },
       'unsure-button-3': {
         buttonText: i18next.t('validate:validate-menu.unsure-reason.obstacle.unsure-button-3'),
         tooltipText: i18next.t('validate:validate-menu.unsure-reason.obstacle.unsure-button-3-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/ObstacleUnsure3.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/ObstacleUnsure3.png',
       },
     },
     'surface-problem': {
       'no-button-1': {
         buttonText: i18next.t('validate:validate-menu.disagree-reason.surface-problem.no-button-1'),
         tooltipText: i18next.t('validate:validate-menu.disagree-reason.surface-problem.no-button-1-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/SurfaceProblemDisagree1.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/SurfaceProblemDisagree1.png',
       },
       'no-button-2': {
         buttonText: i18next.t('validate:validate-menu.disagree-reason.surface-problem.no-button-2'),
@@ -135,17 +135,17 @@ function defineValidateConstants() {
       'unsure-button-1': {
         buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1'),
         tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/CommonUnsure1.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/CommonUnsure1.png',
       },
       'unsure-button-2': {
         buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2'),
         tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/CommonUnsure2.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/CommonUnsure2.png',
       },
       'unsure-button-3': {
         buttonText: i18next.t('validate:validate-menu.unsure-reason.surface-problem.unsure-button-3'),
         tooltipText: i18next.t('validate:validate-menu.unsure-reason.surface-problem.unsure-button-3-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/SurfaceProblemUnsure3.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/SurfaceProblemUnsure3.png',
       },
     },
     'no-sidewalk': {
@@ -162,22 +162,22 @@ function defineValidateConstants() {
       'no-button-3': {
         buttonText: i18next.t('validate:validate-menu.disagree-reason.no-sidewalk.no-button-3'),
         tooltipText: i18next.t('validate:validate-menu.disagree-reason.no-sidewalk.no-button-3-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/NoSidewalkDisagree3.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/NoSidewalkDisagree3.png',
       },
       'unsure-button-1': {
         buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1'),
         tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/CommonUnsure1.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/CommonUnsure1.png',
       },
       'unsure-button-2': {
         buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2'),
         tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/CommonUnsure2.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/CommonUnsure2.png',
       },
       'unsure-button-3': {
         buttonText: i18next.t('validate:validate-menu.unsure-reason.no-sidewalk.unsure-button-3'),
         tooltipText: i18next.t('validate:validate-menu.unsure-reason.no-sidewalk.unsure-button-3-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/NoSidewalkUnsure3.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/NoSidewalkUnsure3.png',
       },
     },
     'crosswalk': {
@@ -199,12 +199,12 @@ function defineValidateConstants() {
       'unsure-button-1': {
         buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1'),
         tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/CommonUnsure1.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/CommonUnsure1.png',
       },
       'unsure-button-2': {
         buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2'),
         tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/CommonUnsure2.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/CommonUnsure2.png',
       },
     },
     'signal': {
@@ -226,12 +226,12 @@ function defineValidateConstants() {
       'unsure-button-1': {
         buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1'),
         tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/CommonUnsure1.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/CommonUnsure1.png',
       },
       'unsure-button-2': {
         buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2'),
         tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2-tooltip'),
-        tooltipImage: '/assets/images/SVValidate/ExpertValidateTooltips/CommonUnsure2.png',
+        tooltipImage: '/assets/images/validate/ExpertValidateTooltips/CommonUnsure2.png',
       },
     },
   };
