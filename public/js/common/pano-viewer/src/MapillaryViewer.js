@@ -51,14 +51,7 @@ class MapillaryViewer extends PanoViewer {
     this.viewer.setFilter(['==', 'cameraType', 'spherical']);
 
     // Initialize pano at the desired location.
-    if (panoOpts.startPanoId) {
-      await this.setPano(panoOpts.startPanoId);
-    } else if (panoOpts.startLatLng) {
-      await this.setLocation(panoOpts.startLatLng).catch((err) => {
-        if (panoOpts.backupLatLng) return this.setLocation(panoOpts.backupLatLng);
-        else throw err;
-      });
-    }
+    await this._moveToInitialLocation(panoOpts);
 
     // Set up event listeners. We hold a list and go through each listener ourselves to control their ordering.
     // Changing zoom fires 'fov' but not 'pov' event, but we consider that a pov change so we fire on either.

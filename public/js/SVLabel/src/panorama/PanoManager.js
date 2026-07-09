@@ -44,6 +44,25 @@ class PanoManager {
   }
 
   /**
+   * Samples backup starting points along the street, used when the street's start has no usable imagery. Points are
+   * spaced at the same increment as moveForward()'s imagery search, ending with the street's endpoint, so the whole
+   * street is checked before we give up and report the street as having no imagery.
+   * @param {Task} task The assigned Task, used for the street geometry
+   * @returns {Array<{lat: number, lng: number}>} Points along the street, ordered from start to end
+   */
+  static #backupPointsAlongStreet(task) {
+    const street = task.getFeature();
+    const streetLength = turf.length(street); // km
+    const points = [];
+    for (let dist = NavigationService.DIST_INCREMENT; dist < streetLength; dist += NavigationService.DIST_INCREMENT) {
+      const point = turf.along(street, dist);
+      points.push({ lat: point.geometry.coordinates[1], lng: point.geometry.coordinates[0] });
+    }
+    points.push(task.getEndCoordinate());
+    return points;
+  }
+
+  /**
    * Initializes panoViewer on the Explore page, sets it to the starting location, and sets up listeners.
    * @returns {Promise<void>}
    * @private
@@ -59,7 +78,7 @@ class PanoManager {
       panoOptions.startPanoId = params.startPanoId;
     } else if (params.startLat && params.startLng) {
       panoOptions.startLatLng = { lat: params.startLat, lng: params.startLng };
-      panoOptions.backupLatLng = errorParams.task.getEndCoordinate();
+      panoOptions.backupLatLngs = PanoManager.#backupPointsAlongStreet(errorParams.task);
     }
 
     // Load the pano viewer.
@@ -71,8 +90,8 @@ class PanoManager {
         });
       });
 
-    // If we used the backup at the end of the street (if we're closer to that point), reverse the street direction.
-    if (panoOptions.startLatLng && panoOptions.backupLatLng) {
+    // If we used a backup point closer to the end of the street, reverse the street direction.
+    if (panoOptions.startLatLng && panoOptions.backupLatLngs) {
       const start = turf.point([params.startLng, params.startLat]);
       const end = turf.point([errorParams.task.getEndCoordinate().lng, errorParams.task.getEndCoordinate().lat]);
       const curr = turf.point([svl.panoViewer.getPosition().lng, svl.panoViewer.getPosition().lat]);

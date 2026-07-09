@@ -4,7 +4,9 @@
 class NavigationService {
   static #END_OF_STREET_THRESHOLD = 25; // Distance from the street endpoint when we consider it complete (meters).
   static #MOVE_DELAY = 800; // Move delay prevents users from spamming through a mission.
-  static #DIST_INCREMENT = 0.01; // Distance to move forward along the street on each imagery search attempt (km).
+  // Distance between points on a street when searching it for imagery (km). Public so that PanoManager can sample
+  // backup starting points at the same granularity as moveForward()'s search.
+  static DIST_INCREMENT = 0.01;
 
   #uiStreetview;
   #properties = {
@@ -408,7 +410,7 @@ class NavigationService {
     while (dist <= totalLength) {
       const point = turf.along(streetGeometry, dist);
       svl.panoViewer.prefetchLocation({ lat: point.geometry.coordinates[1], lng: point.geometry.coordinates[0] });
-      dist += NavigationService.#DIST_INCREMENT;
+      dist += NavigationService.DIST_INCREMENT;
     }
   }
 
@@ -447,8 +449,8 @@ class NavigationService {
       turf.point([currPosition.lng, currPosition.lat]), startLatLng, { units: 'meters' },
     );
     if (distFromFurthest <= svl.STREETVIEW_MAX_DISTANCE
-      && turf.length(remainder, { units: 'kilometers' }) > NavigationService.#DIST_INCREMENT) {
-      remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, NavigationService.#DIST_INCREMENT, streetEndpoint));
+      && turf.length(remainder, { units: 'kilometers' }) > NavigationService.DIST_INCREMENT) {
+      remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, NavigationService.DIST_INCREMENT, streetEndpoint));
       currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
     }
 
@@ -468,7 +470,7 @@ class NavigationService {
       // If there is room to move forward then try again, recursively calling getPanorama with this callback.
       if (turf.length(remainder) > 0) {
         // Try `DIST_INCREMENT` further down the street.
-        const distIncrement = Math.min(NavigationService.#DIST_INCREMENT, turf.length(remainder));
+        const distIncrement = Math.min(NavigationService.DIST_INCREMENT, turf.length(remainder));
         remainder = turf.cleanCoords(turf.lineSliceAlong(remainder, distIncrement, streetEndpoint));
         currLoc = { lat: remainder.geometry.coordinates[0][1], lng: remainder.geometry.coordinates[0][0] };
         return svl.panoManager.setLocation(currLoc, this.#stuckPanos).then(successCallback, failureCallback);
@@ -498,9 +500,7 @@ class NavigationService {
     });
     const maxIndex = cosines.indexOf(Math.max.apply(null, cosines));
     if (cosines[maxIndex] > 0.5) {
-      return this.moveToPano(linkedPanos[maxIndex].panoId)
-      // Should never fail to load a linked pano, but adding a page refresh as a failsafe.
-        .catch(() => window.location.reload());
+      return this.moveToPano(linkedPanos[maxIndex].panoId);
     } else {
       return Promise.resolve(false);
     }
@@ -517,10 +517,30 @@ class NavigationService {
     if (this.#status.disableWalking && !force) return Promise.resolve(false);
 
     this.#updateUiBeforeMove();
-    await svl.panoManager.setPanorama(panoId);
+    try {
+      await svl.panoManager.setPanorama(panoId);
+    } catch (err) {
+      // The move failed, so we haven't actually moved: re-enable the UI so that the user can try something else.
+      this.#restoreUiAfterFailedMove();
+      console.error(err);
+      return false;
+    }
     this.#updateUiAfterMove();
 
-    return Promise.resolve(true);
+    return true;
+  }
+
+  /**
+   * Re-enables the UI elements that #updateUiBeforeMove() disabled, w/out the updates that assume the position changed.
+   */
+  #restoreUiAfterFailedMove() {
+    this.#status.movingToNewLocation = false;
+    this.#status.headingSettling = false;
+    this.resetWalking();
+    svl.compass.enableCompassClick();
+    svl.panoManager.enablePanning();
+    svl.canvas.enableLabeling();
+    svl.keyboard.setStatus('disableKeyboard', false);
   }
 
   /**

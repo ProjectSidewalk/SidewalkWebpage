@@ -53,14 +53,15 @@ class Infra3dViewer extends PanoViewer {
     }
 
     // Initialize pano at the desired location.
-    if (panoOpts.startPanoId) {
-      await this.setPano(panoOpts.startPanoId);
-    } else if (panoOpts.startLatLng) {
-      await this.setLocation(panoOpts.startLatLng).catch((err) => {
-        if (panoOpts.backupLatLng) return this.setLocation(panoOptions.backupLatLng);
-        else throw err;
-      });
-    }
+    await this._moveToInitialLocation(panoOpts);
+
+    // Restrict all subsequent navigation to 360° imagery, since Infra3D datasets mix in flat mono/stereo photos.
+    // The SDK is a mapillary-js fork, so this works like MapillaryViewer's spherical-only setFilter: flat images
+    // are dropped from linked images (nav arrows) and position-based searches (setLocation) before we ever move.
+    // Set after the initial move because the first image's metadata loads progressively, so the filter could
+    // exclude every candidate during the initial search; #filterNonPanoramicImages stays as a backstop for the
+    // initial image and for direct moveToKey calls, which ignore graph filters.
+    await this.viewer._sdk_viewer.setFilter(['in', 'cameraType', 'calotte', 'cubemap']);
 
     // Prevent keyboard shortcuts from moving the pano.
     const preventShortcuts = (e) => {
@@ -110,8 +111,8 @@ class Infra3dViewer extends PanoViewer {
     // TODO We should be checking if the new location is within STREETVIEW_MAX_DISTANCE. But we always have imagery
     //      in the zurich test city, so this should never be a problem.
     const node = await this.viewer._sdk_viewer.movePosition(newPosition, 3857);
-    await this.#filterNonPanoramicImages(node);
     const panoData = await this.#finishRecordingMetadata(node);
+    await this.#filterNonPanoramicImages(node);
     return this.#filterExcludedPanos(panoData, excludedPanos);
   };
 
@@ -138,8 +139,9 @@ class Infra3dViewer extends PanoViewer {
     this.prevNode = this.currNode;
     this.currNode = null;
     const node = await this.viewer._sdk_viewer.moveToKey(panoId);
+    const panoData = await this.#finishRecordingMetadata(node);
     await this.#filterNonPanoramicImages(node);
-    return this.#finishRecordingMetadata(node);
+    return panoData;
   };
 
   /**
@@ -153,11 +155,15 @@ class Infra3dViewer extends PanoViewer {
    * @returns {Promise<void>} Rejects with error if the image isn't panoramic; resolves otherwise
    */
   #filterNonPanoramicImages = async (node) => {
-    if (['calotte', 'cubemap'].includes(node.frame.streamType)) return;
+    // cameraType can be missing on the first image loaded on a page (its metadata loads progressively); in that
+    // case, decide based on the camera mode that the scene chose for the rendered image (pano vs flat pan/zoom).
+    const isPanoramic = node.cameraType === undefined
+      ? this.viewer.getCameraView().type === 'pano'
+      : ['calotte', 'cubemap'].includes(node.cameraType);
+    if (isPanoramic) return;
 
     // The viewer is already displaying the flat image, so move the display back to the previous pano. Using the raw
-    // moveToKey rather than setPano() because currNode is null right now, so setPano() would wipe out prevNode and
-    // leave us unable to recover from landing on a second flat image in a row.
+    // moveToKey rather than setPano() so that we don't re-run this filter or shuffle prevNode mid-recovery.
     if (this.prevNode) {
       const prevNode = await this.viewer._sdk_viewer.moveToKey(this.prevNode.frame.id);
       await this.#finishRecordingMetadata(prevNode);

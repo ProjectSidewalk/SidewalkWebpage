@@ -75,6 +75,33 @@ class PanoViewer {
   }
 
   /**
+   * Moves to the first initial location with usable imagery: startPanoId if given, otherwise startLatLng followed
+   * by each point in backupLatLngs. Called from subclasses' initialize() implementations.
+   * @param {object} panoOptions Object containing initialization options
+   * @param {string} [panoOptions.startPanoId] Pano to start at; used over the lat/lngs
+   * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Preferred starting location
+   * @param {Array<{lat: number, lng: number}>} [panoOptions.backupLatLngs=[]] Fallback locations, tried in order
+   * @returns {Promise<void>} Rejects with the last setLocation() error if every location fails
+   * @protected
+   */
+  async _moveToInitialLocation(panoOptions) {
+    if (panoOptions.startPanoId) {
+      await this.setPano(panoOptions.startPanoId);
+    } else if (panoOptions.startLatLng) {
+      const candidates = [panoOptions.startLatLng, ...(panoOptions.backupLatLngs ?? [])];
+      let lastError;
+      for (const latLng of candidates) {
+        try {
+          return await this.setLocation(latLng);
+        } catch (err) {
+          lastError = err;
+        }
+      }
+      throw lastError;
+    }
+  }
+
+  /**
    * Gets the current viewer type.
    * @returns {string} The current viewer type.
    */

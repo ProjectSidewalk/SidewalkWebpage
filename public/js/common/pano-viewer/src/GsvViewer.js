@@ -44,14 +44,7 @@ class GsvViewer extends PanoViewer {
     });
 
     // Initialize pano at the desired location.
-    if (panoOptions.startPanoId) {
-      await this.setPano(panoOptions.startPanoId);
-    } else if (panoOptions.startLatLng) {
-      await this.setLocation(panoOptions.startLatLng).catch((err) => {
-        if (panoOptions.backupLatLng) return this.setLocation(panoOptions.backupLatLng);
-        else throw err;
-      });
-    }
+    await this._moveToInitialLocation(panoOpts);
 
     // Prevent keyboard shortcuts from moving the pano.
     const preventShortcuts = (e) => {
