@@ -1,7 +1,7 @@
 /**
  * Powers the user dashboard: the neighborhood choropleth map plus the team-membership controls.
  */
-class Progress {
+class UserDashboard {
   #userId;
   #admin;
 
@@ -27,7 +27,7 @@ class Progress {
    * @param {string} userId
    * @param {boolean} admin
    * @param {string} currentUsername
-   * @returns {Promise<Progress>}
+   * @returns {Promise<UserDashboard>}
    */
   static async create($, mapboxApiKey, viewerType, viewerAccessToken, userId, admin, currentUsername) {
     const params = {
@@ -49,7 +49,7 @@ class Progress {
       popupLabelViewer: await LabelPopup(admin, viewerType, viewerAccessToken, currentUsername),
     };
 
-    const progress = new Progress(userId, admin);
+    const progress = new UserDashboard(userId, admin);
     createPSMap($, params).then((m) => {
       progress.map = m[0];
       progress.mapData = m[4];
