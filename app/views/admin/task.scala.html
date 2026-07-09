@@ -52,26 +52,26 @@
         </div>
     </div>
     @if(commonData.imagerySource == PanoSource.Infra3d) {
-        <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
-        <script src='@assets.path("javascripts/lib/infra3dapi-1.8.0.js")'></script>
+        <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
+        <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
     } else if (commonData.imagerySource == PanoSource.Mapillary) {
-        <script src='@assets.path("javascripts/lib/three-0.160.1-min.js")'></script>
-        <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
-        <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
+        <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
+        <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
+        <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet"/>
     }
-    <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
-    <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
-    <script src='@assets.path("javascripts/common/UtilitiesSidewalk.js")'></script>
-    <script src='@assets.path("javascripts/lib/bootstrap-slider-7.1.1/js/bootstrap-slider.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/mapbox-gl-3.21.0.js")'></script>
-    <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@assets.path("javascripts/lib/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
-    <link href='@assets.path("javascripts/lib/bootstrap-slider-7.1.1/css/bootstrap-slider.min.css")' rel="stylesheet"/>
-    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.4.min.js")'></script>
-    <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
-    <link href='@assets.path("stylesheets/adminTask.css")' rel="stylesheet"/>
-    <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
+    <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
+    <script src='@assets.path("js/admin/build/admin.js")'></script>
+    <script src='@assets.path("js/common/utilitiesSidewalk.js")'></script>
+    <script src='@assets.path("vendor/bootstrap-slider/js/bootstrap-slider.min.js")'></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
+    <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
+    <link href='@assets.path("vendor/bootstrap-slider/css/bootstrap-slider.min.css")' rel="stylesheet"/>
+    <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
+    <link href='@assets.path("css/admin.css")' rel="stylesheet"/>
+    <link href='@assets.path("css/admin-task.css")' rel="stylesheet"/>
+    <link href='@assets.path("css/choropleth.css")' rel="stylesheet"/>
     <script>
         // Load the translations, then initialize the AdminTask module.
         window.appManager.ready(function () {

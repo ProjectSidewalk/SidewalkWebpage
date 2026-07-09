@@ -13,9 +13,9 @@
 @common.main(commonData, title) {
     @common.navbar(commonData, Some(user))
     <div id="vidbanner">
-        <video playsinline autoplay muted loop controls poster='@assets.path("assets/psmockup.jpg")' id="bgvid" class="visible-desktop">
-            <source src='@assets.path("assets/mainvideo.webm")' type="video/webm">
-            <source src='@assets.path("assets/mainvideo.mp4")' type="video/mp4">
+        <video playsinline autoplay muted loop controls poster='@assets.path("images/psmockup.jpg")' id="bgvid" class="visible-desktop">
+            <source src='@assets.path("videos/mainvideo.webm")' type="video/webm">
+            <source src='@assets.path("videos/mainvideo.mp4")' type="video/mp4">
         </video>
         <div id="overlay-top" style="width: 100%;
             height: 100%;
@@ -93,16 +93,16 @@
                 <div class="hidden-xs" id="greenbar"></div>
                 <div id="instructionvideo">
                     <video id="vid1" width="800" style="display: none;" playsinline autoplay muted loop
-                    poster='@assets.path("assets/segment-1-1.jpg")' class="visible-desktop">
-                        <source src='@assets.path("assets/segment-1-1.mp4")' type="video/mp4">
+                    poster='@assets.path("images/segment-1-1.jpg")' class="visible-desktop">
+                        <source src='@assets.path("videos/segment-1-1.mp4")' type="video/mp4">
                     </video>
                     <video id="vid2" width="800" style="display: none;" playsinline autoplay muted loop
-                    poster='@assets.path("assets/segment-2.jpg")' class="visible-desktop">
-                        <source src='@assets.path("assets/segment-2.mp4")' type="video/mp4">
+                    poster='@assets.path("images/segment-2.jpg")' class="visible-desktop">
+                        <source src='@assets.path("videos/segment-2.mp4")' type="video/mp4">
                     </video>
                     <video id="vid3" width="800" style="display: none;" playsinline autoplay muted loop
-                    poster='@assets.path("assets/segment-3.jpg")' class="visible-desktop">
-                        <source src='@assets.path("assets/segment-3.mp4")' type="video/mp4">
+                    poster='@assets.path("images/segment-3.jpg")' class="visible-desktop">
+                        <source src='@assets.path("videos/segment-3.mp4")' type="video/mp4">
                     </video>
                 </div>
             </div>
@@ -148,11 +148,11 @@
         <div class="ps-skyline">
             <div class="ps-skyline-container">
                 @if(currentCity.cityId == "seattle-wa") {
-                    <img src="@assets.path("assets/" + skylineImg)" alt="@Messages(s"landing.$skylineImg.alt")">
+                    <img src="@assets.path("images/" + skylineImg)" alt="@Messages(s"landing.$skylineImg.alt")">
                 } else {
-                    <img style="padding-top: 75px" src="@assets.path("assets/" + skylineImg)" alt="@Messages(s"landing.$skylineImg.alt")">
+                    <img style="padding-top: 75px" src="@assets.path("images/" + skylineImg)" alt="@Messages(s"landing.$skylineImg.alt")">
                 }
-                <img src="@assets.path("assets/generic_cloud_overlay.png")" class="skyline-cloud-overlay" alt="@Messages("landing.clouds.alt")">
+                <img src="@assets.path("images/generic_cloud_overlay.png")" class="skyline-cloud-overlay" alt="@Messages("landing.clouds.alt")">
             </div>
             <div class="ps-skyline-stats-holder">
                 <span class="ps-skyline-stats-holder-stat-number" id="percentage">NA</span>
@@ -202,7 +202,7 @@
                 </div>
             </div>
             <div class="gif-container">
-                <img id="mlgif" src="@assets.path("assets/MLGraphic.gif")" alt="@Messages("landing.ml.gif.explain.alt")">
+                <img id="mlgif" src="@assets.path("images/MLGraphic.gif")" alt="@Messages("landing.ml.gif.explain.alt")">
                 <p id="mlgif-bottom-text-1" class="ml-gif-header-1">@Messages("landing.ml.gif.you")</p>
                 <p id="mlgif-bottom-text-2" class="ml-gif-header-1">@Messages("landing.ml.gif.machine.learning")</p>
                 <p id="mlgif-bottom-text-3" class="ml-gif-header-1">@Messages("landing.ml.gif.outcomes")</p>
@@ -236,25 +236,25 @@
                 <section class="collaborator-images-container">
                     <div class="collaborator-image">
                         <a id="makeabilitylab-img-link" href="https://makeabilitylab.cs.washington.edu/">
-                            <img src='@assets.path("assets/MakeabilityLogo.png")' alt="@Messages("landing.collaborators.logo.makeability.alt")">
+                            <img src='@assets.path("images/MakeabilityLogo.png")' alt="@Messages("landing.collaborators.logo.makeability.alt")">
                         </a>
                     </div>
                     <div class="collaborator-image">
                         <a id="uic-img-link" href="https://idhd.ahs.uic.edu/">
-                            <img src='@assets.path("assets/uic_logo.png")' alt="@Messages("landing.collaborators.logo.uic.alt")">
+                            <img src='@assets.path("images/uic_logo.png")' alt="@Messages("landing.collaborators.logo.uic.alt")">
                         </a>
                     </div>
 
                     @if(currentCity.countryId == "taiwan") {
                         <div class="collaborator-image">
                             <a id="public-nudge-img-link" href="https://peoplenudgeplatform.wixsite.com/people-nudge">
-                                <img src='@assets.path("assets/public_nudge_logo.png")' alt='@Messages("landing.collaborators.logo.public.nudge.alt")'>
+                                <img src='@assets.path("images/public_nudge_logo.png")' alt='@Messages("landing.collaborators.logo.public.nudge.alt")'>
                             </a>
                         </div>
                     } else {
                         <div class="collaborator-image">
                             <a id="ligapeatonal-img-link" href="https://ligapeatonal.org/">
-                                <img src='@assets.path("assets/LigaLogo.png")' alt='@Messages("landing.collaborators.logo.liga.peatonal.alt")'>
+                                <img src='@assets.path("images/LigaLogo.png")' alt='@Messages("landing.collaborators.logo.liga.peatonal.alt")'>
                             </a>
                         </div>
                     }
@@ -262,7 +262,7 @@
                     @if("columbus-oh" == currentCity.cityId) {
                         <div class="collaborator-image">
                             <a id="opencolumbus-img-link">
-                                <img src='@assets.path("assets/columbus-oh/open_columbus_logo.png")' alt="@Messages("landing.collaborators.logo.open.columbus.alt")">
+                                <img src='@assets.path("images/columbus-oh/open_columbus_logo.png")' alt="@Messages("landing.collaborators.logo.open.columbus.alt")">
                             </a>
                         </div>
                     }
@@ -272,17 +272,17 @@
                 @if("amsterdam" == currentCity.cityId) {
                     <div class="collaborator-image">
                         <a id="worldenabled-img-link" href="https://worldenabled.org/">
-                            <img src='@assets.path("assets/amsterdam/world_enabled.png")' alt="@Messages("landing.collaborators.logo.world.enabled.alt")">
+                            <img src='@assets.path("images/amsterdam/world_enabled.png")' alt="@Messages("landing.collaborators.logo.world.enabled.alt")">
                         </a>
                     </div>
                     <div class="collaborator-image">
                         <a id="cityofamsterdam-img-link" href="https://www.amsterdam.nl/en/">
-                            <img src='@assets.path("assets/amsterdam/city_of_amsterdam.png")' alt="@Messages("landing.collaborators.logo.city.of.amsterdam.alt")">
+                            <img src='@assets.path("images/amsterdam/city_of_amsterdam.png")' alt="@Messages("landing.collaborators.logo.city.of.amsterdam.alt")">
                         </a>
                     </div>
                     <div class="collaborator-image">
                         <a id="amsterdamintelligence-img-link" href="https://www.amsterdamintelligence.com/">
-                            <img src='@assets.path("assets/amsterdam/amsterdam_intelligence.png")' alt="@Messages("landing.collaborators.logo.amsterdam.intelligence.alt")">
+                            <img src='@assets.path("images/amsterdam/amsterdam_intelligence.png")' alt="@Messages("landing.collaborators.logo.amsterdam.intelligence.alt")">
                         </a>
                     </div>
                 }
@@ -291,16 +291,16 @@
         </div>
 
 
-        <script src='@assets.path("javascripts/homepage.js")'></script>
-        <script src='@assets.path("javascripts/lib/mapbox-gl-3.21.0.js")'></script>
-        <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-        <link href='@assets.path("javascripts/lib/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
-        <script src='@assets.path("javascripts/lib/turf-7.3.4.min.js")'></script>
-        <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
-        <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.4.min.js")'></script>
-        <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
-        <link href='@assets.path("stylesheets/deployment-map.css")' rel="stylesheet" />
-        <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
+        <script src='@assets.path("js/homepage.js")'></script>
+        <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
+        <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
+        <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
+        <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
+        <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
+        <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
+        <link href='@assets.path("css/choropleth.css")' rel="stylesheet"/>
+        <link href='@assets.path("css/deployment-map.css")' rel="stylesheet" />
+        <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
 
         <script>
             // Gets all translations before loading the maps.
@@ -317,7 +317,7 @@
                     neighborhoodFillMode: 'completionRate',
                     neighborhoodTooltip: 'completionRate'
                 };
-                CreatePSMap($, choroplethParams).then(m => {
+                createPSMap($, choroplethParams).then(m => {
                     window.choropleth = m[0];
                 });
 
@@ -331,7 +331,7 @@
                     loadCities: true,
                     logClicks: true
                 };
-                CreatePSMap($, deploymentMapParams).then(m => {
+                createPSMap($, deploymentMapParams).then(m => {
                     window.deploymentMap = m[0];
                 });
             });

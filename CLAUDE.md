@@ -55,18 +55,22 @@ Schema changes are **Play evolutions**: numbered SQL files in `conf/evolutions/d
 
 ## Frontend architecture
 
-Each major UI is a self-contained app under `public/javascripts/`, bundled separately by Grunt and loaded by the corresponding Twirl view:
+Each major UI is a self-contained app under `public/js/`, bundled separately by Grunt and loaded by the corresponding Twirl view. (Directory names are kebab-case; the app's internal JS namespace global may still use its old short name — see the `svl`/`sg` note below.)
 
-- **`SVLabel/`** — the Explore/Audit tool (users label accessibility issues on street-view panoramas). The largest app.
-- **`SVValidate/`** — the Validate tool (users confirm/reject others' labels).
-- **`Gallery/`** — browsable gallery of labels with filtering.
-- **`Admin/`** — admin dashboards and maps.
-- **`Progress/`** — user dashboards.
-- **`PSMap/`** — shared map component used across pages.
-- **`Help/`** — help/faq page (rarely used).
+- **`explore/`** — the Explore/Audit tool (users label accessibility issues on street-view panoramas). The largest app; internal namespace global is still `svl`.
+- **`validate/`** — the Validate tool (users confirm/reject others' labels).
+- **`gallery/`** — browsable gallery of labels with filtering; internal namespace global is still `sg`.
+- **`admin/`** — admin dashboards and maps.
+- **`user-dashboard/`** — user dashboards.
+- **`ps-map/`** — shared map component used across pages.
+- **`help/`** — help/faq page (rarely used).
 - **`common/`** — shared modules pulled into multiple bundles: `pano-viewer/` (abstraction over GSV / Mapillary / Infra3d / Pannellum imagery providers), `label-detail/` (label popups), and various utilities.
 
-No npm-based module system on the frontend — files are simply concatenated in order. External libraries are in `public/javascripts/lib/`.
+No npm-based module system on the frontend — files are simply concatenated in order. Third-party libraries live under `public/vendor/`, one self-contained folder per library (its JS + CSS + fonts + images together, upstream layout preserved). **Nothing under `vendor/` is edited or linted.**
+
+**Asset layout (going-forward invariant, from the #2292 reorg).** First-party assets split **by type**: `public/js/` is JavaScript-only, `public/css/` holds all styles (with per-app subdirs `css/explore/`, `css/validate/`, `css/gallery/`), and media lives in `public/images/`, `public/audio/`, `public/videos/`. There are **no `css/`, `img/`, or `audio/` dirs nested inside an app dir under `js/`** — app-private styles go to `css/<app>/` and app-private images to `images/<app>/`. Third-party code groups by library under `vendor/` (never `js/` or `css/`).
+
+**Naming conventions (from #2292):** directories are **kebab-case**; CSS files are **kebab-case**; JS files follow Airbnb style — **PascalCase** for files that define a class/constructor (`AppManager.js`, `LabelPopup.js`), **camelCase** for function/utility/entry files (`main.js`, `aggregateStats.js`). Kebab-case is not used for JS files. Full write-up in [`docs/style-guide.md`](docs/style-guide.md). **Deferred mismatch:** the app dirs were renamed (`SVLabel → explore`, `SVValidate → validate`, `Progress → user-dashboard`), but the internal JS namespace *identifiers* `svl` (Explore) and `sg` (Gallery) were left as-is — renaming those is a large independent refactor, not part of the file reorg.
 
 ## Internationalization
 Two separate i18n systems:
@@ -117,7 +121,7 @@ Every label type has a **canonical color** and a set of **icon images**. Always 
 is the `/v3/api/labelTypes` endpoint.
 
 **In JavaScript:** call `util.misc.getLabelColors(labelType)` — defined in
-`public/javascripts/common/UtilitiesSidewalk.js` and loaded on every page that includes
+`public/js/common/UtilitiesSidewalk.js` and loaded on every page that includes
 `app/views/apiDocs/layout.scala.html` or the main app bundles. Do **not** hardcode the hex values in
 feature code; use `getLabelColors()` so colors stay in sync automatically.
 
@@ -354,11 +358,11 @@ A **Python** unit suite (`pytest`) for the `scripts/` utilities lives under `tes
 
 ### Continuous integration
 
-`.github/workflows/ci.yml` runs on PRs and pushes to `develop`/`master`: backend **`sbt compile`** (blocking gate), **`scalafmtCheckAll`** (blocking — the tree is kept format-clean; auto-format with `make scalafmt-fix` / `sbt scalafmtAll`, config in `.scalafmt.conf`), the **frontend grunt build** plus **ESLint** (blocking — `npx eslint public/javascripts/` as a step in the `frontend` job, so it rides the required `Frontend (build)` check; blocks on `error` rules, while the lone `warn` rule `max-len` is advisory so there's no `--max-warnings 0`; the JS tree is kept lint-clean, auto-fix with `make eslint-fix`; htmlhint/stylelint not yet wired in — #2487), the **evolutions lint** (blocking — static checks on `conf/evolutions/default/*.sql`, e.g. a semicolon mid-`--`-comment that Play's parser splits on; run locally with `make lint-evolutions`), and the **DB-backed API tests** (advisory while the suite stabilizes — boots the app, so it also exercises forward evolution application). "Advisory" steps report findings but don't block merges yet. **Branch protection** on `develop` (set 2026-06-29) wires the deterministic blocking jobs as **required status checks** (`Backend (compile + scalafmt)`, `Frontend (build)` — now also covers ESLint; `Evolutions lint` being added) so a red build can't merge; `enforce_admins=true`, **no required reviews** (self-merge preserved), advisory jobs not required. Full policy: [`docs/testing-and-ci.md`](docs/testing-and-ci.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
+`.github/workflows/ci.yml` runs on PRs and pushes to `develop`/`master`: backend **`sbt compile`** (blocking gate), **`scalafmtCheckAll`** (blocking — the tree is kept format-clean; auto-format with `make scalafmt-fix` / `sbt scalafmtAll`, config in `.scalafmt.conf`), the **frontend grunt build** plus **ESLint** (blocking — `npx eslint public/js/` as a step in the `frontend` job, so it rides the required `Frontend (build)` check; blocks on `error` rules, while the lone `warn` rule `max-len` is advisory so there's no `--max-warnings 0`; the JS tree is kept lint-clean, auto-fix with `make eslint-fix`; htmlhint/stylelint not yet wired in — #2487), the **evolutions lint** (blocking — static checks on `conf/evolutions/default/*.sql`, e.g. a semicolon mid-`--`-comment that Play's parser splits on; run locally with `make lint-evolutions`), and the **DB-backed API tests** (advisory while the suite stabilizes — boots the app, so it also exercises forward evolution application). "Advisory" steps report findings but don't block merges yet. **Branch protection** on `develop` (set 2026-06-29) wires the deterministic blocking jobs as **required status checks** (`Backend (compile + scalafmt)`, `Frontend (build)` — now also covers ESLint; `Evolutions lint` being added) so a red build can't merge; `enforce_admins=true`, **no required reviews** (self-merge preserved), advisory jobs not required. Full policy: [`docs/testing-and-ci.md`](docs/testing-and-ci.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ### Building frontend assets
 
-JS/CSS is concatenated by Grunt (see `Gruntfile.js`) and rebuilt automatically by the `grunt watch` that `npm start` runs — so when a developer has the app up, your saved `src/` edits are bundled for you. **Do not run `grunt`/`npm run grunt-concat` yourself and do not edit the `build/` output.** Edit the `src/` files only; bundles are written to `public/javascripts/*/build/`. If a new `src/` file isn't picked up, check that its path matches a glob in `Gruntfile.js`. Concatenation order matters and is hand-specified there (e.g. `PopupPanoManager` and `LabelDetail` must precede `LabelPopup`).
+JS/CSS is concatenated by Grunt (see `Gruntfile.js`) and rebuilt automatically by the `grunt watch` that `npm start` runs — so when a developer has the app up, your saved `src/` edits are bundled for you. **Do not run `grunt`/`npm run grunt-concat` yourself and do not edit the `build/` output.** Edit the `src/` files only; bundles are written to `public/js/*/build/`. If a new `src/` file isn't picked up, check that its path matches a glob in `Gruntfile.js`. Concatenation order matters and is hand-specified there (e.g. `PopupPanoManager` and `LabelDetail` must precede `LabelPopup`).
 
 ### Exercising routes over HTTP
 
@@ -391,14 +395,14 @@ Each city has its own schema (`sidewalk_<city>`), and they are essentially ident
 ```bash
 make lint           # eslint + htmlhint + stylelint -- not ready for user yet, only eslint is ready (#2487)
 make lint-fix       # eslint --fix + stylelint --fix -- not ready for user yet, only eslint is ready (#2487)
-make eslint         # defaults to public/javascripts/ (build/ + lib/ carved out by eslint.config.js ignores)
-make eslint dir=public/javascripts/SVValidate   # scope to a dir or file; also htmlhint / stylelint targets
+make eslint         # defaults to public/js/ (build/ carved out by eslint.config.js ignores; vendor/ is out of the files glob)
+make eslint dir=public/js/validate   # scope to a dir or file; also htmlhint / stylelint targets
 ```
 
 **`make eslint` must pass (zero errors/warnings) before code is checked in** — like scalafmt for Scala. The tree is
 fully lint-clean (#2487), so a bare run should come back green and any finding is yours: run
 `make eslint-fix dir=<what you touched>` for the mechanical fixes, hand-fix the rest, then confirm with `make eslint`.
-ESLint is now a **blocking CI gate** (a step in the `frontend` job, `npx eslint public/javascripts/`), so an `error`
+ESLint is now a **blocking CI gate** (a step in the `frontend` job, `npx eslint public/js/`), so an `error`
 finding fails the build — the JS counterpart to scalafmt. Severities are the gate: nearly every rule is `error`; the
 one `warn` rule (`max-len`) is deliberately advisory (CLAUDE.md permits long-line exceptions), so CI runs without
 `--max-warnings 0` and an over-limit line nags but doesn't block. `htmlhint`/`stylelint` are still manual and not in CI

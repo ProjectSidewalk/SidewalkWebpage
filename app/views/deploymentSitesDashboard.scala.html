@@ -8,7 +8,7 @@
     @common.navbar(commonData, Some(user))
 
     <!-- Deployment Sites Dashboard CSS -->
-    <link href='@assets.path("stylesheets/deployment-map.css")' rel="stylesheet"/>
+    <link href='@assets.path("css/deployment-map.css")' rel="stylesheet"/>
 
     <div class="deployment-sites-container">
         <div class="map-section">
@@ -64,10 +64,10 @@
     @common.cityPopupTemplate()
 
     <!-- Include necessary JavaScript libraries -->
-    <script src='@assets.path("javascripts/lib/mapbox-gl-3.21.0.js")'></script>
-    <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@assets.path("javascripts/lib/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
-    <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
+    <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
+    <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
 
     <script>
         /**
@@ -87,7 +87,7 @@
 
             // Load aggregate stats and create the map in parallel.
             Promise.all([
-                CreatePSMap($, citiesMapParams),
+                createPSMap($, citiesMapParams),
                 loadAggregateStats()
             ]).then(function([mapComponents, aggregateStats]) {
                 window.citiesMap = mapComponents[0]; // Store map reference globally

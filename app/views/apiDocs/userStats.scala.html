@@ -7,7 +7,7 @@
 @content = {
     <script>
         // Set data attributes for API information. This is used by our JavaScripts to configure API calls, including
-        // the download buttons in api-docs.js
+        // the download buttons in apiDocs.js
         console.log('Setting data attributes for API information');
         document.documentElement.setAttribute('data-api-base-url', '/v3/api');
         document.documentElement.setAttribute('data-api-endpoint', 'userStats');
@@ -35,9 +35,9 @@
 
         <div id="user-stats-preview">Loading user stats data...</div>
 
-        <script src='@assets.path("javascripts/lib/chart-4.5.1.min.js")'></script>
-        <link rel="stylesheet" href="@assets.path("stylesheets/api-docs/user-stats.css")">
-        <script src="@routes.Assets.versioned("javascripts/api-docs/user-stats-preview.js")"></script>
+        <script src='@assets.path("vendor/chart-js/chart-4.5.1.min.js")'></script>
+        <link rel="stylesheet" href="@assets.path("css/api-docs/user-stats.css")">
+        <script src="@routes.Assets.versioned("js/api-docs/userStatsPreview.js")"></script>
         <script>
             // Initialize the user stats preview visualization
             document.addEventListener('DOMContentLoaded', function() {

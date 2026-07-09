@@ -100,7 +100,7 @@ a 1k-pano manual gold set at the deployed threshold.
 (e.g. what to look for on this street type in this city). Added by Mikey in Aug 2025
 alongside the AI-label endpoint; model id updated June 2026.
 
-**Flow:** `AiGuidance.js` (SVLabel) → `POST /ai/analyzeScene` → `AiController.analyzeScene`
+**Flow:** `AiGuidance.js` (Explore) → `POST /ai/analyzeScene` → `AiController.analyzeScene`
 → Gemini API. Enabled only where `GEMINI_API_KEY` is configured. Independent of subsystems
 A/B — no PS-trained models, no DB tables, no validation loop. (Note: this is our only
 subsystem that ships GSV imagery to a third-party API; A and B keep imagery within

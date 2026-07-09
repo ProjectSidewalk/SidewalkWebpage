@@ -32,39 +32,39 @@
 
     @common.labelPopup(admin = false)
 
-    <link href='@assets.path("stylesheets/labelDetail.css")' rel="stylesheet"/>
-    <link href='@assets.path("stylesheets/mapSidebar.css")' rel="stylesheet"/>
-    <link href='@assets.path("stylesheets/tag-pills.css")' rel="stylesheet"/>
+    <link href='@assets.path("css/label-detail.css")' rel="stylesheet"/>
+    <link href='@assets.path("css/map-sidebar.css")' rel="stylesheet"/>
+    <link href='@assets.path("css/tag-pills.css")' rel="stylesheet"/>
 
-    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.4.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/panzoom-9.4.4.min.js")'></script>
-    <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
-    <script src='@assets.path("javascripts/lib/jquery.dataTables.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/dataTables.bootstrap.min.js")'></script>
-    <script src='@assets.path("javascripts/common/UtilitiesSidewalk.js")'></script>
+    <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
+    <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
+    <script src='@assets.path("js/admin/build/admin.js")'></script>
+    <script src='@assets.path("vendor/datatables/jquery.dataTables.min.js")'></script>
+    <script src='@assets.path("vendor/datatables/dataTables.bootstrap.min.js")'></script>
+    <script src='@assets.path("js/common/utilitiesSidewalk.js")'></script>
     @if(commonData.imagerySource == PanoSource.Infra3d) {
-        <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
-        <script src='@assets.path("javascripts/lib/infra3dapi-1.8.0.js")'></script>
+        <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
+        <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
     } else if (commonData.imagerySource == PanoSource.Mapillary) {
-        <script src='@assets.path("javascripts/lib/three-0.160.1-min.js")'></script>
-        <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
-        <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
+        <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
+        <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
+        <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet"/>
     }
-    <script src='@assets.path("javascripts/lib/pannellum-2.5.7.js")'></script>
-    <link rel="stylesheet" href='@assets.path("stylesheets/pannellum-2.5.7.css")'/>
-    <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
-    <script src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
+    <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
+    <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'/>
+    <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
+    <script src='@assets.path("js/common/timestampLocalization.js")'></script>
     <script>updateTimestamps("@messages.lang.code");</script>
 
-    <script src='@assets.path("javascripts/lib/mapbox-gl-3.21.0.js")'></script>
-    <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <script src='@assets.path("javascripts/lib/mapbox-gl-search-1.5.0.js")'></script>
-    <link href='@assets.path("javascripts/lib/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
-    <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
-    <script src='@assets.path("javascripts/labelMapLocationSearch.js")'></script>
-    <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
-    <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-search-1.5.0.js")'></script>
+    <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
+    <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
+    <script src='@assets.path("js/labelMapLocationSearch.js")'></script>
+    <link href='@assets.path("css/choropleth.css")' rel="stylesheet"/>
+    <link href='@assets.path("css/admin.css")' rel="stylesheet"/>
 
     <script>
         const imagerySrc = "@commonData.imagerySource.toString";
@@ -149,7 +149,7 @@
             };
 
             const self = {};
-            CreatePSMap($, params).then(m => {
+            createPSMap($, params).then(m => {
                 self.map = m[0];
                 self.mapData = m[4];
                 new MapSidebarFilter(self.map, self.mapData, { highQualityFilter: true });

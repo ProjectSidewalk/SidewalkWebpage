@@ -17,7 +17,7 @@
     <div class="navbar-container">
         <div class="navbar-brand-area">
             <div class="navbar-logo">
-                <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="28" src='@assets.path("assets/" + config.get[String]("city-params.logo-img." + commonData.cityId))'></a>
+                <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="28" src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))'></a>
             </div>
             <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
                 <span class="sr-only">Toggle navigation</span>
@@ -164,7 +164,7 @@
 
                 <li class="dropdown navbar-lnk" id="language-dropdown">
                     <a class="navbar-button" id="language-button" data-toggle="dropdown" href="#" aria-label="@Messages("navbar.lang.aria")" >
-                        <img id="language-icon" src="@assets.path("assets/language-icon.png")" alt="@Messages("navbar.lang.icon.alt")">
+                        <img id="language-icon" src="@assets.path("images/language-icon.png")" alt="@Messages("navbar.lang.icon.alt")">
                             @Messages(s"lang.name.${messages.lang.code}")
                         <b class="caret"></b>
                     </a>

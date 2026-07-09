@@ -1,0 +1,178 @@
+/**
+ * Central function that handles the creation of choropleths and maps.
+ *
+ * @param {object} $ - Allows the use of jQuery.
+ * @param {object} params - Properties that can change the process of choropleth creation.
+ * @param {string} params.mapName - Name of the HTML ID of the map.
+ * @param {string} params.mapStyle - URL of a Mapbox style.
+ * @param {string} [params.mapboxApiKey] - Mapbox API key to use for the map.
+ * @param {string} [params.neighborhoodFillMode] - One of 'singleColor' or 'completionRate'.
+ * @param {string} [params.neighborhoodsURL] - URL of the endpoint containing neighborhood boundaries.
+ * @param {string} params.completionRatesURL - URL of the endpoint containing neighborhood completion rates.
+ * @param {boolean} [params.loadCities] - Whether to load deployment cities on the map.
+ * @param {string} [params.streetsURL] - URL of the endpoint containing streets.
+ * @param {string} [params.labelsURL] - URL of the endpoint containing labels.
+ * @param {number} [params.zoomCorrection=0] - Amount to increase default zoom to account for different map dimensions.
+ * @param {boolean} [params.scrollWheelZoom=true] - Whether to allow zooming with the scroll wheel.
+ * @param {string} [params.mapboxLogoLocation=bottom-left] - 'top-left', 'top-right', 'bottom-left', or 'bottom-right'.
+ * @param {string} [params.neighborhoodTooltip='none'] One of 'none' or 'completionRate'.
+ * @param {boolean} [params.logClicks=true] - Whether clicks should be logged when it takes you to the explore page.
+ * @param {string} [params.neighborhoodFillColor] - Fill color to use if neighborhoodFillMode='singleColor'.
+ * @param {number} [params.neighborhoodFillOpacity] - Fill opacity to use if neighborhoodFillMode='singleColor'
+ * @param {boolean} [params.differentiateUnauditedStreets=false] - Whether to color unaudited streets differently.
+ * @param {boolean} [params.interactiveStreets=false] - Whether to include hover/click interactions on the streets.
+ * @param {boolean} [params.includeLabelCounts=false] - Whether to include label counts for each type in the legend.
+ * @param {string} [params.navigationControlPosition='top-left'] - Position of the zoom/pitch controls on the map.
+ * @param {string} [params.uiSource] - Records the UI used when submitting a validation through the popup.
+ * @param {object} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
+ * @param {function} [params.onMapReady] - Called with the map as soon as it has loaded, BEFORE the
+ *     (potentially large) neighborhoods/streets/labels layers render. Use this to mount map-bound UI
+ *     early (e.g. the LabelMap search box) instead of waiting on the returned all-loaded promise.
+ * @returns {Promise} - Promise that resolves once all components of the map have loaded.
+ */
+function createPSMap($, params) {
+  // Set default parameters.
+  params.logClicks = params.logClicks === undefined ? true : params.logClicks;
+  params.scrollWheelZoom = params.scrollWheelZoom === undefined ? true : params.scrollWheelZoom;
+  params.neighborhoodTooltip = params.neighborhoodTooltip === undefined ? 'none' : params.neighborhoodTooltip;
+  params.differentiateUnauditedStreets = params.differentiateUnauditedStreets === undefined
+    ? false
+    : params.differentiateUnauditedStreets;
+
+  // Create the map.
+  let map;
+  const loadMapParams = $.getJSON('/cityMapParams');
+  const mapLoaded = Promise.all([loadMapParams]).then((data) => {
+    return createMap(data[0]);
+  }).then((newMap) => {
+    map = newMap; // Assign the returned map to the map variable.
+
+    // Show the sidebar early (in its disabled/loading state) so it's visible while data loads.
+    // Also shift the map center to account for the sidebar covering part of the map.
+    const sidebar = document.getElementById('map-sidebar');
+    if (sidebar) {
+      sidebar.style.visibility = 'visible';
+      sidebar.classList.add('map-sidebar--loading');
+      map.setPadding({ left: sidebar.offsetWidth, top: 0, right: 0, bottom: 0 });
+    }
+
+    // Mount map-bound UI (e.g. the LabelMap search box) now, while the map is ready but the data
+    // layers are still loading. Labels alone can be tens of MB (Seattle ~87 MB), so deferring this
+    // to the all-loaded promise leaves the control missing for many seconds and then shoves the
+    // sidebar down when it finally appears — worse over the network than on localhost (#4370/#4447).
+    // Guarded so a failure in the page's callback can't reject this promise and break the data layers.
+    if (params.onMapReady) {
+      try {
+        params.onMapReady(map);
+      } catch (e) {
+        console.error('onMapReady callback failed', e);
+      }
+    }
+
+    return map;
+  });
+
+  // Render the neighborhoods on the map if applicable.
+  let renderNeighborhoods;
+  const loadNeighborhoods = $.getJSON(params.neighborhoodsURL);
+  const loadCompletionRates = $.getJSON(params.completionRatesURL);
+  if (params.neighborhoodsURL && params.completionRatesURL) {
+    renderNeighborhoods = Promise.all([mapLoaded, loadNeighborhoods, loadCompletionRates]).then((data) => {
+      addNeighborhoodsToMap(map, data[1], data[2], params);
+    });
+  }
+
+  // Render deployment cities on the map if applicable.
+  let renderCities;
+  if (params.loadCities) {
+    const loadCities = $.getJSON('/v3/api/cities?filetype=geojson');
+    renderCities = Promise.all([mapLoaded, loadCities]).then((data) => {
+      addCitiesToMap(map, data[1], params);
+    });
+  }
+
+  // Render the streets on the map if applicable.
+  let renderStreets;
+  if (params.streetsURL) {
+    const loadStreets = $.getJSON(params.streetsURL);
+    renderStreets = Promise.all([mapLoaded, renderNeighborhoods, loadStreets]).then((data) => {
+      addStreetsToMap(map, data[2], params);
+    });
+  }
+
+  // Render the labels on the map if applicable.
+  let renderLabels;
+  if (params.labelsURL) {
+    const loadLabels = $.getJSON(params.labelsURL);
+    renderLabels = Promise.all([mapLoaded, renderStreets, loadLabels]).then((data) => {
+      return addLabelsToMap(map, data[2], params);
+    });
+  }
+
+  // Return a promise that resolves once everything on the map has loaded.
+  const allLoaded = Promise.all([mapLoaded, renderNeighborhoods, renderCities, renderStreets, renderLabels]);
+  allLoaded.then(() => {
+    // Resize the map when the window is resized.
+    $(window).resize(() => {
+      if (window.citiesMap) {
+        window.citiesMap.resize();
+      }
+    });
+  });
+  return allLoaded;
+
+  /**
+   * Create the Mapbox map object and attach a custom logging function to it.
+   * @param {object} mapParamData - Map configuration parameters from the /cityMapParams endpoint.
+   * @returns {Promise} - Promise that resolves with the Mapbox map once it has loaded.
+   */
+  function createMap(mapParamData) {
+    params.zoomCorrection = params.zoomCorrection ? params.zoomCorrection : 0;
+    mapParamData.default_zoom = mapParamData.default_zoom + params.zoomCorrection;
+
+    mapboxgl.accessToken = params.mapboxApiKey;
+    const newMap = new mapboxgl.Map({
+      container: params.mapName, // HTML container ID
+      style: params.mapStyle,
+      center: [mapParamData.city_center.lng, mapParamData.city_center.lat],
+      zoom: mapParamData.default_zoom,
+      minZoom: 8.25,
+      maxZoom: 19,
+      maxBounds: [
+        [mapParamData.southwest_boundary.lng, mapParamData.southwest_boundary.lat],
+        [mapParamData.northeast_boundary.lng, mapParamData.northeast_boundary.lat],
+      ],
+      scrollZoom: params.scrollWheelZoom,
+    });
+    newMap.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
+    const navPosition = params.navigationControlPosition || 'top-left';
+    newMap.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), navPosition);
+
+    // Move the Mapbox logo if necessary.
+    if (['top-left', 'top-right', 'bottom-right'].includes(params.mapboxLogoLocation)) {
+      const mapboxLogoElem = document.querySelector(`#${params.mapName} .mapboxgl-ctrl-logo`).parentElement;
+      const newParentElement = document.querySelector(`#${params.mapName} .mapboxgl-ctrl-${params.mapboxLogoLocation}`);
+      const attributionElem = newParentElement.querySelector(`#${params.mapName} .mapboxgl-ctrl-attrib`);
+      // Add above the other attribution if they are in the same corner, o/w just add it to that corner.
+      if (attributionElem) {
+        newParentElement.insertBefore(mapboxLogoElem, attributionElem);
+      } else {
+        newParentElement.appendChild(mapboxLogoElem);
+      }
+    }
+
+    // From manual testing, it looks best to hide the loading spinner at this point.
+    $('#page-loading').hide();
+
+    // Create a promise that resolves when the map has loaded.
+    return new Promise((resolve) => {
+      if (newMap.loaded()) {
+        resolve(newMap);
+      } else {
+        newMap.on('load', () => {
+          resolve(newMap);
+        });
+      }
+    });
+  }
+}

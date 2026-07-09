@@ -8,16 +8,16 @@
 @common.main(commonData, Messages("routebuilder.name"), defaultI18nNamespace = "routebuilder", i18Namespaces = Seq("routebuilder", "common")) {
     @common.navbar(commonData, Some(user))
 
-    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.4.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/mapbox-gl-3.21.0.js")'></script>
-    <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@assets.path("javascripts/lib/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
-    <script src='@assets.path("javascripts/lib/mapbox-gl-search-1.5.0.js")'></script>
-    <script src='@assets.path("javascripts/lib/turf-7.3.4.min.js")'></script>
+    <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
+    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
+    <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-search-1.5.0.js")'></script>
+    <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
 
-    <link rel="stylesheet" href='@assets.path("stylesheets/routeBuilder.css")'>
-    <script src='@assets.path("javascripts/routeBuilder.js")'></script>
+    <link rel="stylesheet" href='@assets.path("css/route-builder.css")'>
+    <script src='@assets.path("js/routeBuilder.js")'></script>
 
     <div id="routebuilder-map"></div>
     <div id="routebuilder-intro" class="routebuilder-overlay routebuilder-centered-overlay">

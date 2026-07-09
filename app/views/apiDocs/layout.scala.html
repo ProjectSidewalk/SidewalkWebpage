@@ -1,6 +1,6 @@
 @(activePage: String)(content: Html)(implicit request: RequestHeader, assets: AssetsFinder)
 
-<link rel="stylesheet" href="@assets.path("stylesheets/api-docs/api-docs.css")">
+<link rel="stylesheet" href="@assets.path("css/api-docs/api-docs.css")">
 
 <div class="api-container">
     <!-- Left Sidebar Navigation -->
@@ -63,8 +63,8 @@
 </div>
 
 
-<script src="@assets.path("javascripts/api-docs/api-docs.js")"></script>
-<script src="@assets.path("javascripts/common/UtilitiesSidewalk.js")"></script>
+<script src="@assets.path("js/api-docs/apiDocs.js")"></script>
+<script src="@assets.path("js/common/utilitiesSidewalk.js")"></script>
 
 <script>
     document.getElementById('download-bibtex').addEventListener('click', function() {

@@ -103,6 +103,34 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
 - **CSS:** 4-space indent, `stylelint-config-standard` ([`.stylelintrc.json`](../.stylelintrc.json)). Use the
   `main.css` `:root` design tokens for colors/fonts/spacing.
 
+## Frontend file & directory organization
+
+The `public/` static-asset tree follows an industry-standard layout, settled in the #2292 reorg. Keep new files
+consistent with it.
+
+- **First-party assets split by type.** `public/js/` is **JavaScript only** — no `css/`, `img/`, or `audio/` dirs
+  nested inside an app dir. Styles live in `public/css/` (with per-app subdirs `css/explore/`, `css/validate/`,
+  `css/gallery/`); media lives in `public/images/`, `public/audio/`, and `public/videos/`. App-private styles go to
+  `css/<app>/`, app-private images to `images/<app>/`.
+- **Third-party code groups by library** under `public/vendor/<lib>/`, each folder self-contained (its JS + CSS +
+  fonts + images together, upstream internal layout preserved so relative `url()` refs keep working). **Nothing under
+  `vendor/` is ever edited or linted.** Vendored filenames carry their version (`pannellum-2.5.7.js`) — the app has
+  no asset fingerprinting, so version-in-filename is the only cache-buster (see
+  [`docs/upgrading-libraries.md`](upgrading-libraries.md)).
+
+**Naming conventions:**
+
+- **Directories → kebab-case**, always (`user-dashboard/`, `ps-map/`, `label-detail/`).
+- **CSS files → kebab-case**, always (`labeling-guide.css`, `user-profile.css`, `map-sidebar.css`).
+- **JS files → Airbnb "filename matches what it defines":** **PascalCase** for a file that defines a
+  class/constructor (`AppManager.js`, `LabelPopup.js`, `GsvViewer.js`), **camelCase** for a function/utility/entry
+  file (`main.js`, `aggregateStats.js`, `timestampLocalization.js`). Kebab-case is **not** used for JS files.
+
+**Deferred namespace mismatch:** the reorg renamed the app *directories* (`SVLabel → explore`, `SVValidate →
+validate`, `Progress → user-dashboard`), but the apps' internal JS namespace **globals** `svl` (Explore) and `sg`
+(Gallery) are identifiers, not filenames, and were intentionally left as-is — renaming them is a large independent
+refactor touching nearly every source line of those apps. Don't "fix" the mismatch as a drive-by.
+
 ## Scala
 
 Formatting is handled by **scalafmt** ([`.scalafmt.conf`](../.scalafmt.conf)) — run it before pushing (CI checks it
