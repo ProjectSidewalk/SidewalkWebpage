@@ -51,7 +51,7 @@
   "style-disabled": false,
   "script-disabled": false,
   "inline-style-disabled": true,
-  "inline-script-disabled": false,
+  "inline-script-disabled": true,
 
   "spec-char-escape": false,
   "space-tab-mixed-disabled": "space"

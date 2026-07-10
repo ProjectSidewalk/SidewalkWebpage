@@ -74,7 +74,8 @@ class LabelMapPage {
     const input = document.getElementById('label-map-search-input');
     if (!form || !input) return;
 
-    form.addEventListener('submit', () => {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault(); // Search runs via JS; keep the form from refreshing the page.
       const id = parseInt(input.value, 10);
       if (!(id > 0)) {
         this.#searchMsg('Enter a numeric label ID.', true);

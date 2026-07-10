@@ -156,7 +156,7 @@
                             </li>
                         </ul>
                     } else {
-                        <button id="navbar-sign-in-btn" data-toggle="modal" data-target="#sign-in-modal-container" class="navbar-button button-ps button--primary button__static--tiny" onclick="location.href='#SignIn';">@Messages("navbar.signin")</button>
+                        <button id="navbar-sign-in-btn" data-toggle="modal" data-target="#sign-in-modal-container" class="navbar-button button-ps button--primary button__static--tiny">@Messages("navbar.signin")</button>
                     }
                 </li>
 
@@ -201,6 +201,7 @@
             logNavbarClick("Click_module=PSLogo");
         });
         $("#navbar-sign-in-btn").on('click', function() {
+            window.location.href = '#SignIn';
             logNavbarClick("Click_module=SignIn");
         });
         $("#navbar-start-btn").on('click', function() {

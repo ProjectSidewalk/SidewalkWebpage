@@ -52,8 +52,12 @@
     <script src='@assets.path("js/common/i18nDom.js")'></script>
     <script src='@assets.path("/js/common/AppManager.js")'></script>
 </head>
-<body onload="checkIfPaddingNeeded()">
+<body>
     <script>
+        // Removes top padding on the pages that render without a fixed navbar. Fires on full load to match the old
+        // <body onload>, which ran after all resources settled.
+        window.addEventListener('load', checkIfPaddingNeeded);
+
         // Set up AppManager to initialize stuff that we need on every page (CSRF token, i18next, etc.).
         $(document).ready(function() {
             const csrfToken = "@CSRF.getToken.map(_.value)";

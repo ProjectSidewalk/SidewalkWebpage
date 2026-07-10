@@ -30,8 +30,7 @@
             <source src='@assets.path("videos/mainvideo.mp4")' type="video/mp4">
         </video>
         <h1 id="mobile-landing-tagline">@Messages("landing.create.path")</h1>
-        <a class="mobile-landing-cta-btn" id="mobile-hero-cta-btn" href="/mobile"
-           onclick='window.logWebpageActivity("Click_module=StartValidating_location=MobileLanding")'>
+        <a class="mobile-landing-cta-btn" id="mobile-hero-cta-btn" href="/mobile">
             @Messages("landing.mobile.start.validating", currentCity.cityNameShort)
         </a>
     </section>
@@ -132,7 +131,7 @@
     <section id="mobile-landing-bottom-cta">
         <h2 class="mobile-cta-heading">@Messages("landing.mobile.cta.heading")</h2>
         <p class="mobile-cta-subtext">@Messages("landing.mobile.cta.content", currentCity.cityNameShort)</p>
-        <a class="mobile-landing-cta-btn" href="/mobile" onclick='window.logWebpageActivity("Click_module=StartValidating_location=MobileLanding_bottom")'>
+        <a class="mobile-landing-cta-btn" id="mobile-bottom-cta-btn" href="/mobile">
             @Messages("landing.mobile.start.validating", currentCity.cityNameShort)
         </a>
         <div id="mobile-cta-footer-info">
@@ -140,4 +139,15 @@
             <span>@Html(Messages("footer.version", commonData.versionId, commonData.versionTimestamp.toString))</span>
         </div>
     </section>
+
+    <script>
+        window.appManager.ready(function() {
+            document.getElementById("mobile-hero-cta-btn").addEventListener("click", function() {
+                window.logWebpageActivity("Click_module=StartValidating_location=MobileLanding");
+            });
+            document.getElementById("mobile-bottom-cta-btn").addEventListener("click", function() {
+                window.logWebpageActivity("Click_module=StartValidating_location=MobileLanding_bottom");
+            });
+        });
+    </script>
 }

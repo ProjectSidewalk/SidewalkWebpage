@@ -432,7 +432,7 @@
                             <h1></h1>
 
                         </div>
-                        <button onclick="admin.clearPlayCache()">@Messages("admin.clear.play.cache")</button>
+                        <button id="clear-play-cache-button">@Messages("admin.clear.play.cache")</button>
                         <p id="clear-play-cache-success"></p>
                     </div>
                     <div class="row">
@@ -841,7 +841,7 @@
                 </div>
                 <div id="tabs-6" class="tab-pane">
                     <h1>Label Search</h1>
-                    <form onsubmit="return false;">
+                    <form>
                         <div class="form-group">
                             <label for="form-control-input">Label ID</label>
                             <input type="text" class="form-control" id="form-control-input" placeholder="Enter Label ID here...">
@@ -947,6 +947,10 @@
             const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
             const accessToken = "@commonData.imageryAccessToken";
             window.admin = await Admin.create($, '@commonData.mapboxApiKey', viewerType, accessToken, "@user.username");
+
+            document.getElementById('clear-play-cache-button').addEventListener('click', function() {
+                window.admin.clearPlayCache();
+            });
         });
     </script>
 }
