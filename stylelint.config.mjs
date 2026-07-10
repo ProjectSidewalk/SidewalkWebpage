@@ -26,8 +26,29 @@ export default {
         // months) — the CSS analogue of the JS side's ES2022 target. Wrap intentional exceptions in @supports.
         'plugin/use-baseline': [true, { available: 'widely' }],
 
+        'declaration-empty-line-before': null,
+        'custom-property-empty-line-before': null,
+        'color-hex-length': 'long',
+        'no-descending-specificity': null,
+
+        // No Autoprefixer in the build (Grunt concatenates only), so vendor prefixes are written by hand and are
+        // legitimate. config-standard bans them assuming a build-time autoprefixer we don't run.
+        'property-no-vendor-prefix': null,
+        'value-no-vendor-prefix': null,
+        'selector-no-vendor-prefix': null,
+        'at-rule-no-vendor-prefix': null,
+        'media-feature-name-no-vendor-prefix': null,
+
+        // Kebab-case BEM (block__element--modifier). config-standard's pattern is plain kebab-case and rejects the
+        // __/-- delimiters; this widens it to allow an optional __element and --modifier, each kebab-case internally.
+        'selector-class-pattern': [
+            '^[a-z][a-z0-9]*(-[a-z0-9]+)*(__[a-z0-9]+(-[a-z0-9]+)*)?(--[a-z0-9]+(-[a-z0-9]+)*)?$',
+            { message: 'Expected class selector to be kebab-case BEM (block__element--modifier)' },
+        ],
+
         // --- Stylistic/formatting rules (@stylistic plugin) ---
-        '@stylistic/indentation': 2,
+        '@stylistic/indentation': 4,
+        '@stylistic/string-quotes': 'double',
         '@stylistic/max-empty-lines': 2,
         // Warning, not error, matching the JS max-len rule: CLAUDE.md sanctions long-line exceptions.
         '@stylistic/max-line-length': [120, { severity: 'warning' }],
