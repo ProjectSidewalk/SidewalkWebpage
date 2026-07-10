@@ -69,7 +69,7 @@ export default {
         ],
 
         // --- Stylistic/formatting rules (@stylistic plugin) ---
-        '@stylistic/indentation': 4,
+        '@stylistic/indentation': 2,
         '@stylistic/string-quotes': 'double',
         '@stylistic/max-empty-lines': 2,
         // One declaration per line. config-standard's declaration-block-single-line-max-declarations flags packed

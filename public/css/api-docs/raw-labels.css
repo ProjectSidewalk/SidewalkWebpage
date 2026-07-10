@@ -11,18 +11,18 @@
 
 /* Uses the .map-container class from api-docs.css */
 #raw-labels-preview {
-    width: 100%;
-    height: 500px;
-    margin: var(--space-lg) 0;
-    border: 1px solid var(--color-border-light);
-    border-radius: var(--border-radius);
-    overflow: hidden;
-    position: relative;
+  width: 100%;
+  height: 500px;
+  margin: var(--space-lg) 0;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  position: relative;
 }
 
 #raw-labels-map {
-    width: 100%;
-    height: 100%;
+  width: 100%;
+  height: 100%;
 }
 
 /* ==========================================================================
@@ -31,21 +31,21 @@
 
 /* Label popup - extends .map-popup class from api-docs.css */
 .label-popup {
-    max-width: 250px;
-    padding: 2px;
+  max-width: 250px;
+  padding: 2px;
 }
 
 .label-popup h4 {
-    margin: 0 0 6px;
-    font-size: var(--font-size-sm);
-    border-bottom: 1px solid var(--color-border-light);
-    padding-bottom: 4px;
+  margin: 0 0 6px;
+  font-size: var(--font-size-sm);
+  border-bottom: 1px solid var(--color-border-light);
+  padding-bottom: 4px;
 }
 
 .label-popup p {
-    margin: 4px 0;
-    font-size: var(--font-size-xs);
-    line-height: 1.4;
+  margin: 4px 0;
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
 }
 
 /* ==========================================================================
@@ -54,41 +54,41 @@
 
 /* Legend styling */
 .info.legend {
-    background-color: var(--color-neutral-white);
-    padding: var(--space-xs) var(--space-sm);
-    border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow);
-    max-width: 200px;
-    max-height: 300px;
-    overflow-y: auto;
+  background-color: var(--color-neutral-white);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  max-width: 200px;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .info.legend h4 {
-    margin: 0 0 5px;
-    font-size: var(--font-size-sm);
-    font-weight: 600;
+  margin: 0 0 5px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
 }
 
 /* Region title */
 .region-title {
-    font-size: var(--font-size-sm);
-    background-color: var(--color-neutral-white);
-    padding: 5px 10px;
-    border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow);
+  font-size: var(--font-size-sm);
+  background-color: var(--color-neutral-white);
+  padding: 5px 10px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
 }
 
 /* Label count - could use .counter-badge from api-docs.css */
 .label-count {
-    font-size: var(--font-size-xs);
-    background-color: var(--color-neutral-white);
-    padding: 5px 10px;
-    border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow);
-    position: absolute;
-    bottom: var(--space-sm);
-    right: var(--space-sm);
-    z-index: var(--z-index-dropdown);
+  font-size: var(--font-size-xs);
+  background-color: var(--color-neutral-white);
+  padding: 5px 10px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  position: absolute;
+  bottom: var(--space-sm);
+  right: var(--space-sm);
+  z-index: var(--z-index-dropdown);
 }
 
 /* ==========================================================================
@@ -101,15 +101,15 @@
 
 /* No labels message */
 .no-labels-message {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: var(--color-neutral-white);
-    padding: var(--space-sm) var(--space-lg);
-    border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow);
-    z-index: var(--z-index-dropdown);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: var(--color-neutral-white);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  z-index: var(--z-index-dropdown);
 }
 
 /* ==========================================================================
@@ -118,16 +118,16 @@
 
 /* Responsive adjustments: var(--breakpoint-sm)). */
 @media (width <= 768px) {
-    #raw-labels-preview {
-        height: 400px;
-    }
+  #raw-labels-preview {
+    height: 400px;
+  }
 
-    .info.legend {
-        max-width: 150px;
-        font-size: var(--font-size-xs);
-    }
+  .info.legend {
+    max-width: 150px;
+    font-size: var(--font-size-xs);
+  }
 
-    .label-popup {
-        max-width: 200px;
-    }
+  .label-popup {
+    max-width: 200px;
+  }
 }

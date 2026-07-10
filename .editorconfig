@@ -14,5 +14,5 @@ trim_trailing_whitespace = true
 [{*.json,*.html}]
 indent_size = 4
 
-[*.js]
+[{*.js,*.css}]
 indent_size = 2

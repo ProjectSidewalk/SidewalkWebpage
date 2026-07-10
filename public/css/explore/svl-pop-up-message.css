@@ -1,63 +1,63 @@
 #pop-up-message-holder {
-    position: absolute;
-    left: 0;
-    top: 0;
+  position: absolute;
+  left: 0;
+  top: 0;
 }
 
 /* Semi-transparent overlay covering the pano while a pop-up is shown, blocking interactions behind it. */
 #pop-up-message-background {
-    position: absolute;
-    left: 0;
-    top: 0;
-    background: rgb(from var(--color-neutral-white) r g b / 50%);
-    height: 100%;
-    width: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: rgb(from var(--color-neutral-white) r g b / 50%);
+  height: 100%;
+  width: 100%;
 }
 
 /* The pop-up box itself. The holder spans the whole app holder (so the overlay covers the ribbon etc.), so the
  * box is centered over the pano area specifically using the layout variables from .tool-ui. */
 #pop-up-message-foreground {
-    background: var(--color-neutral-white);
-    border: calc(1px * var(--ui-scale)) solid var(--color-neutral-400);
-    border-radius: calc(8px * var(--ui-scale));
-    font: var(--text-subtitle-regular);
-    padding: calc(10px * var(--ui-scale));
-    position: absolute;
-    left: calc(var(--pano-width) / 2);
-    top: calc(var(--street-view-top) + var(--pano-height) / 2);
-    transform: translate(-50%, -50%);
-    width: calc(480px * var(--ui-scale));
-    z-index: 2;
-    text-align: center;
+  background: var(--color-neutral-white);
+  border: calc(1px * var(--ui-scale)) solid var(--color-neutral-400);
+  border-radius: calc(8px * var(--ui-scale));
+  font: var(--text-subtitle-regular);
+  padding: calc(10px * var(--ui-scale));
+  position: absolute;
+  left: calc(var(--pano-width) / 2);
+  top: calc(var(--street-view-top) + var(--pano-height) / 2);
+  transform: translate(-50%, -50%);
+  width: calc(480px * var(--ui-scale));
+  z-index: 2;
+  text-align: center;
 }
 
 /* Pop-ups containing an example image need extra room. */
 #pop-up-message-foreground.has-image {
-    width: calc(640px * var(--ui-scale));
+  width: calc(640px * var(--ui-scale));
 }
 
 #pop-up-message-foreground h2 {
-    font: var(--text-h2-bold);
-    margin-top: calc(10px * var(--ui-scale, 1));
+  font: var(--text-h2-bold);
+  margin-top: calc(10px * var(--ui-scale, 1));
 }
 
 #pop-up-message-foreground p {
-    padding-left: calc(1px * var(--ui-scale));
+  padding-left: calc(1px * var(--ui-scale));
 }
 
 #pop-up-message-foreground a {
-    color: var(--color-neutral-900);
+  color: var(--color-neutral-900);
 }
 
 #pop-up-message-button-holder {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    gap: calc(20px * var(--ui-scale));
-    padding-top: calc(6px * var(--ui-scale));
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: calc(20px * var(--ui-scale));
+  padding-top: calc(6px * var(--ui-scale));
 }
 
 #pop-up-message-image {
-    border-radius: calc(8px * var(--ui-scale));
-    margin: calc(5px * var(--ui-scale))
+  border-radius: calc(8px * var(--ui-scale));
+  margin: calc(5px * var(--ui-scale))
 }

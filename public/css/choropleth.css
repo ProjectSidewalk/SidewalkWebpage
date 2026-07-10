@@ -1,39 +1,39 @@
 /* For now, this file holds the CSS for maps on the website, except for the legends. */
 .choropleth-container {
-    position: relative;
-    background-color: var(--color-neutral-white);
-    width: 100%;
+  position: relative;
+  background-color: var(--color-neutral-white);
+  width: 100%;
 }
 
 #landing-choropleth-container {
-    min-height: 1100px;
+  min-height: 1100px;
 }
 
 .choropleth-holder {
-    position: relative;
-    height: 100%;
-    overflow: hidden;
+  position: relative;
+  height: 100%;
+  overflow: hidden;
 }
 
 #user-dashboard-choropleth-holder {
-    position: relative;
-    box-shadow: 2px 0 6px rgb(0 0 0 / 12%);
+  position: relative;
+  box-shadow: 2px 0 6px rgb(0 0 0 / 12%);
 }
 
 .choropleth {
-    position: relative;
-    background-color: var(--color-neutral-white);
-    width: 100%;
-    height: 800px;
+  position: relative;
+  background-color: var(--color-neutral-white);
+  width: 100%;
+  height: 800px;
 }
 
 #user-dashboard-choropleth {
-    height: 100%;
-    box-shadow: 2px 0 6px rgb(0 0 0 / 12%);
+  height: 100%;
+  box-shadow: 2px 0 6px rgb(0 0 0 / 12%);
 }
 
 #labelmap-choropleth, #admin-labelmap-choropleth {
-    margin-top: 15px;
+  margin-top: 15px;
 }
 
 /*
@@ -43,30 +43,30 @@
  * #labelmap-* ids so the admin Map tab (#admin-labelmap-*), which shares this file, stays boxed.
  */
 #labelmap-choropleth-container {
-    max-width: none; /* Override the Bootstrap .container max-width so the map spans the window. */
-    width: 100%;
-    flex: 1 1 auto; /* Fill the space #wrap leaves below the navbar and any test-server banner. */
-    min-height: 0; /* Let the flex child shrink to fit instead of overflowing the column. */
-    margin: 0;
-    padding: 0;
+  max-width: none; /* Override the Bootstrap .container max-width so the map spans the window. */
+  width: 100%;
+  flex: 1 1 auto; /* Fill the space #wrap leaves below the navbar and any test-server banner. */
+  min-height: 0; /* Let the flex child shrink to fit instead of overflowing the column. */
+  margin: 0;
+  padding: 0;
 }
 
 #labelmap-choropleth {
-    height: 100%; /* Fill the container rather than the shared .choropleth fixed 800px. */
-    margin-top: 0; /* Sit flush under the navbar (overrides the shared 15px above). */
+  height: 100%; /* Fill the container rather than the shared .choropleth fixed 800px. */
+  margin-top: 0; /* Sit flush under the navbar (overrides the shared 15px above). */
 }
 
 /* Drop the top gap the shared sidebar chrome leaves, so it too sits flush in full-window mode. */
 #labelmap-choropleth-holder .map-sidebar {
-    margin-top: 0;
+  margin-top: 0;
 }
 
 #labelmap-choropleth-holder .map-sidebar__resize-handle {
-    top: 0;
+  top: 0;
 }
 
 #labelmap-choropleth-holder .map-sidebar-open-btn {
-    margin-top: 0;
+  margin-top: 0;
 }
 
 /*
@@ -75,145 +75,145 @@
  * pointer-events: none so it stays purely informational and never blocks panning while labels load.
  */
 #labelmap-loading {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 20; /* Above the map and sidebar chrome. */
-    pointer-events: none;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20; /* Above the map and sidebar chrome. */
+  pointer-events: none;
 }
 
 #labelmap-loading[hidden] {
-    display: none;
+  display: none;
 }
 
 .labelmap-loading__card {
-    text-align: center;
-    color: #ffffff;
-    background: rgb(0 0 0 / 72%);
-    padding: 24px 32px;
-    border-radius: 10px;
-    box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
-    font-family: Raleway, sans-serif;
+  text-align: center;
+  color: #ffffff;
+  background: rgb(0 0 0 / 72%);
+  padding: 24px 32px;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
+  font-family: Raleway, sans-serif;
 }
 
 .labelmap-loading__spinner {
-    width: 40px;
-    height: 40px;
-    margin: 0 auto 14px;
-    border: 3px solid rgb(255 255 255 / 25%);
-    border-top-color: #ffffff;
-    border-radius: 50%;
-    animation: labelmap-spin 0.8s linear infinite;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 14px;
+  border: 3px solid rgb(255 255 255 / 25%);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: labelmap-spin 0.8s linear infinite;
 }
 
 @keyframes labelmap-spin {
-    to { transform: rotate(360deg); }
+  to { transform: rotate(360deg); }
 }
 
 .labelmap-loading__message {
-    font-size: 1rem;
-    font-weight: 600;
-    margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
 }
 
 .labelmap-loading__elapsed {
-    font-size: 0.8rem;
-    color: #bbbbbb;
-    margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: #bbbbbb;
+  margin: 6px 0 0;
 }
 
 /* Respect reduced-motion: keep the spinner as a feedback cue but slow it well down. */
 @media (prefers-reduced-motion: reduce) {
-    .labelmap-loading__spinner {
-        animation-duration: 2.4s;
-    }
+  .labelmap-loading__spinner {
+    animation-duration: 2.4s;
+  }
 }
 
 #admin-task-choropleth {
-    width: 360px;
-    height: 360px;
-    margin-top: 50px;
+  width: 360px;
+  height: 360px;
+  margin-top: 50px;
 }
 
 /* Overwriting Mapbox popup styling. */
 .mapboxgl-popup-content {
-    padding: 12px; /* Default 10px 10px 15px */
-    box-shadow: 0 2px 4px 0 rgb(0 0 0 / 25%); /* Default 0 1px 2px rgb(0 0 0/10%) */
-    border-radius: 10px; /* Default 3px */
+  padding: 12px; /* Default 10px 10px 15px */
+  box-shadow: 0 2px 4px 0 rgb(0 0 0 / 25%); /* Default 0 1px 2px rgb(0 0 0/10%) */
+  border-radius: 10px; /* Default 3px */
 }
 
 /* Common legend components. */
 .legend {
-    height: inherit;
-    width: 250px;
+  height: inherit;
+  width: 250px;
 }
 
 .legend span, .legend label {
-    display: block;
-    float: right;
-    height: 15px;
-    text-align: left;
-    font-size: 16px;
-    color: var(--color-asphalt-400);
+  display: block;
+  float: right;
+  height: 15px;
+  text-align: left;
+  font-size: 16px;
+  color: var(--color-asphalt-400);
 }
 
 .legend span {
-    width: 10%;
+  width: 10%;
 }
 
 #legend-percentages-container {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
 }
 
 #legend-percentages-container label {
-    padding: 0;
+  padding: 0;
 }
 
 /* Label type circle color fills (used by map sidebar legend icons). */
 
 /* TODO These colors should probably match the colors in our Design System Tokens in main.css. */
 #map-legend-curb-ramp circle {
-    fill: #90C31F;
+  fill: #90C31F;
 }
 
 #map-legend-no-curb-ramp circle {
-    fill: #E679B6;
+  fill: #E679B6;
 }
 
 #map-legend-obstacle circle {
-    fill: var(--color-label-obstacle);
+  fill: var(--color-label-obstacle);
 }
 
 #map-legend-surface-problem circle {
-    fill: var(--color-label-surface-problem);
+  fill: var(--color-label-surface-problem);
 }
 
 #map-legend-no-sidewalk circle {
-    fill: var(--color-label-no-sidewalk);
+  fill: var(--color-label-no-sidewalk);
 }
 
 #map-legend-crosswalk circle {
-    fill: var(--color-label-crosswalk);
+  fill: var(--color-label-crosswalk);
 }
 
 #map-legend-signal circle {
-    fill: #63C0AB;
+  fill: #63C0AB;
 }
 
 #map-legend-other circle {
-    fill: var(--color-neutral-500);
-    stroke: #0000FF;
+  fill: var(--color-neutral-500);
+  stroke: #0000FF;
 }
 
 #map-legend-occlusion circle {
-    fill: var(--color-neutral-500);
-    stroke: #009902;
+  fill: var(--color-neutral-500);
+  stroke: #009902;
 }
 
 .clearfix {
-    width: 100%;
+  width: 100%;
 }

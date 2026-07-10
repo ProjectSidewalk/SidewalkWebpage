@@ -3,76 +3,76 @@
    ============================================================ */
 
 .map-sidebar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    margin-top: 15px;
-    width: 350px;
-    background: #fefefe;
-    box-shadow: 2px 0 6px rgb(0 0 0 / 12%);
-    z-index: 10;
-    overflow-y: auto;
-    scrollbar-gutter: stable;
-    padding: 40px 30px 30px;
-    font-family: Raleway, sans-serif;
-    transition: transform 0.2s ease;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  margin-top: 15px;
+  width: 350px;
+  background: #fefefe;
+  box-shadow: 2px 0 6px rgb(0 0 0 / 12%);
+  z-index: 10;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding: 40px 30px 30px;
+  font-family: Raleway, sans-serif;
+  transition: transform 0.2s ease;
 }
 
 .map-sidebar--hidden {
-    transform: translateX(-100%);
+  transform: translateX(-100%);
 }
 
 .map-sidebar--loading {
-    pointer-events: none;
+  pointer-events: none;
 }
 
 .map-sidebar--loading > * {
-    opacity: 0.5;
-    filter: grayscale(1);
+  opacity: 0.5;
+  filter: grayscale(1);
 }
 
 /* Close button (top-right corner) */
 .map-sidebar__close {
-    position: absolute;
-    top: 8px;
-    right: 2px;
-    background: none;
-    border: none;
-    padding: 4px;
-    opacity: 0.75;
+  position: absolute;
+  top: 8px;
+  right: 2px;
+  background: none;
+  border: none;
+  padding: 4px;
+  opacity: 0.75;
 }
 
 .map-sidebar__close:hover {
-    opacity: 0.8;
+  opacity: 0.8;
 }
 
 .map-sidebar__close img {
-    width: 24px;
-    height: 24px;
+  width: 24px;
+  height: 24px;
 }
 
 /* Address/place search box mounted at the top of the LabelMap sidebar (#4370). */
 #labelmap-search-section {
-    /*
+  /*
      * Raise the section (and its overflowing autocomplete dropdown) above the sibling filter sections
      * below it. Those sections' controls (e.g. .severity-button) are position: relative, so without this
      * they'd paint over the earlier-in-DOM dropdown.
      */
-    position: relative;
-    z-index: 100;
-    margin-top: 18px; /* Breathing room below the collapse-drawer (close) button. */
-    margin-bottom: 28px; /* A bit more space above the Severity section than the standard 25px. */
+  position: relative;
+  z-index: 100;
+  margin-top: 18px; /* Breathing room below the collapse-drawer (close) button. */
+  margin-bottom: 28px; /* A bit more space above the Severity section than the standard 25px. */
 }
 
 #labelmap-search-box {
-    width: 100%;
+  width: 100%;
 
-    /*
+  /*
      * Reserve the control's height (the Mapbox search input is 36px) so mounting it never nudges the
      * filter sections below — even in the sub-frame before the search web component finishes upgrading.
      */
-    min-height: 36px;
+  min-height: 36px;
 }
 
 /*
@@ -81,108 +81,108 @@
  * content width. !important is required because 300px is set as an inline style.
  */
 #labelmap-search-box > .mapboxgl-ctrl {
-    width: 100% !important;
-    margin: 0;
+  width: 100% !important;
+  margin: 0;
 }
 
 /* Drag handle for resizing the sidebar width. Sits on the right edge of the sidebar. */
 .map-sidebar__resize-handle {
-    position: absolute;
-    top: 20px; /* Matches .map-sidebar margin-top so the handle aligns with the visible edge. */
-    bottom: 0;
-    left: 315px; /* Matches .map-sidebar default width; updated by JS on drag. */
-    width: 6px;
-    cursor: col-resize;
-    z-index: 11;
-    background: transparent;
-    transition: background 0.15s ease;
-    touch-action: none;
+  position: absolute;
+  top: 20px; /* Matches .map-sidebar margin-top so the handle aligns with the visible edge. */
+  bottom: 0;
+  left: 315px; /* Matches .map-sidebar default width; updated by JS on drag. */
+  width: 6px;
+  cursor: col-resize;
+  z-index: 11;
+  background: transparent;
+  transition: background 0.15s ease;
+  touch-action: none;
 }
 
 .map-sidebar__resize-handle:hover,
 .map-sidebar__resize-handle--dragging {
-    background: rgb(0 0 0 / 15%);
+  background: rgb(0 0 0 / 15%);
 }
 
 /* Applied to <body> while dragging to suppress text selection and force the resize cursor. */
 body.map-sidebar-resizing {
-    -webkit-user-select: none;
-    user-select: none;
-    cursor: col-resize;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: col-resize;
 }
 
 /* Floating button to reopen the sidebar. */
 .map-sidebar-open-btn {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    margin-top: 20px;
-    z-index: 10;
-    background: var(--color-neutral-white);
-    border: 1px solid #cccccc;
-    border-radius: 10px;
-    padding: 6px;
-    box-shadow: 0 2px 4px rgb(0 0 0 / 15%);
-    display: none;
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  margin-top: 20px;
+  z-index: 10;
+  background: var(--color-neutral-white);
+  border: 1px solid #cccccc;
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 15%);
+  display: none;
 }
 
 .map-sidebar-open-btn:hover {
-    background: #f5f5f5;
+  background: #f5f5f5;
 }
 
 .map-sidebar-open-btn img {
-    width: 24px;
-    height: 24px;
+  width: 24px;
+  height: 24px;
 }
 
 /* ---- Sections ---- */
 
 .map-sidebar__section {
-    margin-bottom: 25px;
+  margin-bottom: 25px;
 }
 
 .map-sidebar__section:last-child {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 .map-sidebar__heading {
-    font-family: Raleway, sans-serif;
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--color-neutral-black);
-    margin: 0;
-    line-height: normal;
+  font-family: Raleway, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-neutral-black);
+  margin: 0;
+  line-height: normal;
 }
 
 .map-sidebar__heading-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
 .map-sidebar__deselect-all {
-    background: none;
-    border: none;
-    color: #666666;
-    cursor: pointer;
-    font-family: Roboto, sans-serif;
-    font-size: 14px;
-    padding: 0;
-    text-decoration: underline;
+  background: none;
+  border: none;
+  color: #666666;
+  cursor: pointer;
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  padding: 0;
+  text-decoration: underline;
 }
 
 .map-sidebar__deselect-all:hover {
-    color: #333333;
+  color: #333333;
 }
 
 /* ---- Severity toggles ---- */
 
 .map-sidebar__severity-toggles {
-    display: inline-grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 2px;
-    margin-top: 8px;
+  display: inline-grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  margin-top: 8px;
 }
 
 /* The actual button styles live in main.css under .severity-button (and related). */
@@ -190,154 +190,154 @@ body.map-sidebar-resizing {
 /* ---- Checkbox list items ---- */
 
 .map-sidebar__list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .map-sidebar__item {
-    display: flex;
-    align-items: center;
-    gap: 9px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
 }
 
 .map-sidebar__item--expandable {
-    flex-direction: column;
-    align-items: stretch;
+  flex-direction: column;
+  align-items: stretch;
 }
 
 .map-sidebar__item-row {
-    display: flex;
-    align-items: center;
-    gap: 9px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
 }
 
 .map-sidebar__item input[type="checkbox"] {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    width: 12px;
-    height: 12px;
-    margin: 0;
-    flex-shrink: 0;
-    cursor: pointer;
-    border: 1.5px solid var(--color-neutral-black);
-    border-radius: 2px;
-    background: var(--color-neutral-white);
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  margin: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  border: 1.5px solid var(--color-neutral-black);
+  border-radius: 2px;
+  background: var(--color-neutral-white);
 }
 
 .map-sidebar__item input[type="checkbox"]:checked {
-    background: var(--color-neutral-black);
-    border-color: var(--color-neutral-black);
+  background: var(--color-neutral-black);
+  border-color: var(--color-neutral-black);
 }
 
 .map-sidebar__item input[type="checkbox"]:focus {
-    outline: unset; /* Removing some default styling from Bootstrap */
+  outline: unset; /* Removing some default styling from Bootstrap */
 }
 
 .map-sidebar__item label {
-    font-family: Raleway, sans-serif;
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--color-neutral-black);
-    margin: 0;
-    cursor: pointer;
-    white-space: nowrap;
-    line-height: normal;
+  font-family: Raleway, sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-neutral-black);
+  margin: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: normal;
 }
 
 /* Label type circle icons */
 .map-sidebar__item .map-legend-circle-icon {
-    flex-shrink: 0;
+  flex-shrink: 0;
 }
 
 .map-sidebar__item .map-legend-circle-icon svg {
-    width: 14px;
-    height: 14px;
-    display: block;
+  width: 14px;
+  height: 14px;
+  display: block;
 }
 
 .map-sidebar__item .map-legend-circle-icon circle {
-    cx: 7px;
-    cy: 7px;
+  cx: 7px;
+  cy: 7px;
 }
 
 /* Validation icons */
 .map-sidebar__item .map-sidebar__validation-icon {
-    width: 22px;
-    height: 22px;
-    flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
 }
 
 .map-sidebar__item .map-sidebar__unvalidated-icon {
-    width: 18px; /* Width needs to be smaller due to it having less space around the icon than the others. */
-    height: 18px;
-    flex-shrink: 0;
+  width: 18px; /* Width needs to be smaller due to it having less space around the icon than the others. */
+  height: 18px;
+  flex-shrink: 0;
 }
 
 /* Street line icons */
 .map-sidebar__item .map-sidebar__street-icon {
-    width: 17px;
-    height: 14px;
-    flex-shrink: 0;
+  width: 17px;
+  height: 14px;
+  flex-shrink: 0;
 }
 
 .map-sidebar__item .map-sidebar__street-icon path {
-    stroke-width: 3;
-    stroke-linecap: round;
+  stroke-width: 3;
+  stroke-linecap: round;
 }
 
 .map-sidebar__item .map-sidebar__street-icon--audited path {
-    stroke: var(--color-neutral-black);
+  stroke: var(--color-neutral-black);
 }
 
 .map-sidebar__item .map-sidebar__street-icon--unaudited path {
-    stroke: var(--color-neutral-500);
+  stroke: var(--color-neutral-500);
 }
 
 /* ---- Tag expand/collapse toggle ---- */
 
 .map-sidebar__tag-toggle {
-    margin-left: auto;
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
+  margin-left: auto;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .map-sidebar__tag-toggle img {
-    width: 22px;
-    height: 22px;
+  width: 22px;
+  height: 22px;
 }
 
 .map-sidebar__tag-toggle:hover {
-    opacity: 0.7;
+  opacity: 0.7;
 }
 
 /* ---- Tag pills container (collapsible) ---- */
 
 .map-sidebar__tag-pills {
-    flex-wrap: wrap;
-    gap: 4px;
-    padding: 4px 0 8px 21px;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 0 8px 21px;
 }
 
 .map-sidebar__tag-pills[hidden] {
-    display: none;
+  display: none;
 }
 
 .map-sidebar__tag-pills:not([hidden]) {
-    display: flex;
+  display: flex;
 }
 
 /* Gray checkbox when a label type is only partially filtered by tags. */
 .map-sidebar__item input[type="checkbox"].checkbox--partial {
-    background: #888888;
-    border-color: #888888;
+  background: #888888;
+  border-color: #888888;
 }

@@ -1,22 +1,22 @@
 /* The minimap fills the bottom "neighborhood" section of the right sidebar, growing to take remaining vertical space.
    The minimap overlays (fow, fov, progress; see ObservedArea) read their displayed width/height at render time. */
 #minimap-holder {
-    /* Reference size (px) used by ObservedArea to scale the FOV/progress geometry. Read via getComputedStyle. */
-    --minimap-base-size: var(--sidebar-base-width);
-    position: relative;
-    flex: 1 1 auto;
-    min-height: 0;
-    width: 100%;
-    border: calc(1px * var(--ui-scale)) solid var(--color-neutral-400);
-    border-radius: calc(12px * var(--ui-scale));
-    overflow: hidden;
+  /* Reference size (px) used by ObservedArea to scale the FOV/progress geometry. Read via getComputedStyle. */
+  --minimap-base-size: var(--sidebar-base-width);
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  border: calc(1px * var(--ui-scale)) solid var(--color-neutral-400);
+  border-radius: calc(12px * var(--ui-scale));
+  overflow: hidden;
 }
 
 .minimap-pane {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 /* During the tutorial the minimap shows a fixed-size square screenshot, so everything inside renders at its native
@@ -25,88 +25,88 @@
    so the screenshot, Google markers, peg, and fog all stretch together (staying aligned) and the holder isn't clipped.
    The transform-origin keeps it anchored top-left; the scale() here is just the pre-script default. */
 #minimap-holder.minimap-tutorial {
-    flex: 0 0 auto;
-    width: var(--minimap-base-size);
-    height: var(--minimap-base-size);
+  flex: 0 0 auto;
+  width: var(--minimap-base-size);
+  height: var(--minimap-base-size);
 
-    /* Native border sizing; the transform scales it like everything else. */
-    border-width: 1px;
-    border-radius: 12px;
-    background-size: cover;
-    transform: scale(var(--ui-scale));
-    transform-origin: top left;
+  /* Native border sizing; the transform scales it like everything else. */
+  border-width: 1px;
+  border-radius: 12px;
+  background-size: cover;
+  transform: scale(var(--ui-scale));
+  transform-origin: top left;
 }
 
 /* Panes render at native size; --ui-scale is reset to 1 so their own calc(... * var(--ui-scale)) values aren't scaled
    twice (once here and again by the holder's zoom). */
 #minimap-holder.minimap-tutorial .minimap-pane {
-    --ui-scale: 1;
+  --ui-scale: 1;
 }
 
 #minimap-overlay {
-    z-index: 2;
+  z-index: 2;
 }
 
 #minimap-message {
-    font: var(--text-tiny-regular);
-    inset: auto;
-    left: calc(3px * var(--ui-scale));
-    top: calc(3px * var(--ui-scale));
-    width: 60%;
-    height: auto;
-    padding: calc(2px * var(--ui-scale)) calc(4px * var(--ui-scale));
-    z-index: 3;
+  font: var(--text-tiny-regular);
+  inset: auto;
+  left: calc(3px * var(--ui-scale));
+  top: calc(3px * var(--ui-scale));
+  width: 60%;
+  height: auto;
+  padding: calc(2px * var(--ui-scale)) calc(4px * var(--ui-scale));
+  z-index: 3;
 }
 
 #minimap-fog-of-war-canvas,
 #minimap-fov-canvas {
-    opacity: 0.3;
+  opacity: 0.3;
 }
 
 #minimap-progress-circle-canvas {
-    opacity: 0.6;
+  opacity: 0.6;
 }
 
 /* Centered over the 360°-observed progress circle that ObservedArea draws at (width - 20, 20) with radius 16 (scaled
    by --ui-scale). This box matches that circle's bounding box so the percentage sits in its center. */
 #minimap-percent-observed {
-    font: var(--text-tiny-medium);
-    inset: auto;
-    top: calc(4px * var(--ui-scale));
-    right: calc(4px * var(--ui-scale));
-    width: calc(32px * var(--ui-scale));
-    height: calc(32px * var(--ui-scale));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    z-index: 3;
+  font: var(--text-tiny-medium);
+  inset: auto;
+  top: calc(4px * var(--ui-scale));
+  right: calc(4px * var(--ui-scale));
+  width: calc(32px * var(--ui-scale));
+  height: calc(32px * var(--ui-scale));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  z-index: 3;
 }
 
 .gm-svpc {
-    visibility: hidden;
+  visibility: hidden;
 }
 
 /* The +/- buttons take their look from the shared .zoom-button styling, with some minor tweaks. */
 #minimap-zoom-controls {
-    position: absolute;
-    inset: auto;
-    right: calc(4px * var(--ui-scale));
-    bottom: calc(10px * var(--ui-scale));
-    z-index: 4;
+  position: absolute;
+  inset: auto;
+  right: calc(4px * var(--ui-scale));
+  bottom: calc(10px * var(--ui-scale));
+  z-index: 4;
 }
 
 #minimap-zoom-controls .zoom-button {
-    width: calc(18px * var(--ui-scale, 1));
-    height: calc(18px * var(--ui-scale, 1));
+  width: calc(18px * var(--ui-scale, 1));
+  height: calc(18px * var(--ui-scale, 1));
 }
 
 #minimap-zoom-controls .zoom-button-icon {
-    width: calc(14px * var(--ui-scale, 1));
-    height: calc(14px * var(--ui-scale, 1));
+  width: calc(14px * var(--ui-scale, 1));
+  height: calc(14px * var(--ui-scale, 1));
 }
 
 /* The tutorial minimap is a static screenshot; hide the live zoom controls there. */
 #minimap-holder.minimap-tutorial #minimap-zoom-controls {
-    display: none;
+  display: none;
 }

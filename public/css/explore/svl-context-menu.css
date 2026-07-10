@@ -1,160 +1,160 @@
 #context-menu-holder {
-    position: absolute;
-    z-index: 3;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    padding: calc(12px * var(--ui-scale));
-    width: calc(380px * var(--ui-scale));
-    background: var(--color-neutral-white);
-    border-radius: calc(8px * var(--ui-scale));
-    border: solid 1px var(--color-neutral-300);
-    visibility: hidden;
-    box-sizing: border-box;
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: calc(12px * var(--ui-scale));
+  width: calc(380px * var(--ui-scale));
+  background: var(--color-neutral-white);
+  border-radius: calc(8px * var(--ui-scale));
+  border: solid 1px var(--color-neutral-300);
+  visibility: hidden;
+  box-sizing: border-box;
 }
 
 .context-menu-section {
-    height: auto;
-    width: 100%;
-    box-sizing: border-box;
-    margin-bottom: calc(13px * var(--ui-scale));
+  height: auto;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: calc(13px * var(--ui-scale));
 }
 
 .context-menu-section:last-child {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 .context-menu-header {
-    width: 100%;
-    font: var(--text-small-bold);
-    margin-bottom: calc(5px * var(--ui-scale));
+  width: 100%;
+  font: var(--text-small-bold);
+  margin-bottom: calc(5px * var(--ui-scale));
 }
 
 .context-menu-info-icon {
-    width: calc(15px * var(--ui-scale));
+  width: calc(15px * var(--ui-scale));
 }
 
 .context-menu-tooltip {
-    font: var(--text-tiny-regular);
-    z-index: calc(var(--navbar-z-index) + 1);
+  font: var(--text-tiny-regular);
+  z-index: calc(var(--navbar-z-index) + 1);
 }
 
 .context-menu-tooltip__img--severity {
-    width: calc(138px * var(--ui-scale, 1));
-    height: calc(110px * var(--ui-scale, 1));
+  width: calc(138px * var(--ui-scale, 1));
+  height: calc(110px * var(--ui-scale, 1));
 }
 
 .context-menu-tooltip__img--tag {
-    height: calc(125px * var(--ui-scale, 1));
+  height: calc(125px * var(--ui-scale, 1));
 }
 
 #context-menu-tag-holder {
-    margin: 0;
-    display: flex;
-    flex-flow: row wrap;
-    align-items: center;
-    gap: calc(5px * var(--ui-scale)) calc(4px * var(--ui-scale));
-    padding: 0;
-    white-space: pre;
+  margin: 0;
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  gap: calc(5px * var(--ui-scale)) calc(4px * var(--ui-scale));
+  padding: 0;
+  white-space: pre;
 }
 
 #severity-menu {
-    min-height: fit-content;
-    margin-top: 1px;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    overflow: visible;
+  min-height: fit-content;
+  margin-top: 1px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  overflow: visible;
 }
 
 #severity-menu.hidden {
-    display: none;
-    margin: 0;
-    height: 0;
-    overflow: hidden;
+  display: none;
+  margin: 0;
+  height: 0;
+  overflow: hidden;
 }
 
 #severity-radio-holder {
-    display: flex;
-    align-items: flex-start;
-    gap: calc(16px * var(--ui-scale));
-    margin-top: calc(-4px * var(--ui-scale)); /* Makes up for the extra padding around the severity buttons. */
+  display: flex;
+  align-items: flex-start;
+  gap: calc(16px * var(--ui-scale));
+  margin-top: calc(-4px * var(--ui-scale)); /* Makes up for the extra padding around the severity buttons. */
 }
 
 #context-menu-description-section {
-    width: 100%;
-    height: auto;
-    margin-top: calc(-4px * var(--ui-scale)); /* Makes up for the extra padding around the severity buttons. */
+  width: 100%;
+  height: auto;
+  margin-top: calc(-4px * var(--ui-scale)); /* Makes up for the extra padding around the severity buttons. */
 }
 
 #context-menu-description-text-box {
-    box-sizing: border-box;
-    height: calc(23px * var(--ui-scale));
-    width: 100%;
-    padding: calc(5px * var(--ui-scale));
-    border: 1px solid var(--color-neutral-600);
-    border-radius: calc(4px * var(--ui-scale));
-    font: var(--text-tiny-regular);
-    color: var(--color-neutral-600);
+  box-sizing: border-box;
+  height: calc(23px * var(--ui-scale));
+  width: 100%;
+  padding: calc(5px * var(--ui-scale));
+  border: 1px solid var(--color-neutral-600);
+  border-radius: calc(4px * var(--ui-scale));
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-600);
 }
 
 #context-menu-description-text-box:not(:placeholder-shown) {
-    color: var(--color-neutral-black);
+  color: var(--color-neutral-black);
 }
 
 #context-menu-ok-button {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: calc(6px * var(--ui-scale)) calc(8px * var(--ui-scale));
-    width: calc(31px * var(--ui-scale));
-    height: 100%;
-    background: var(--color-pine-400);
-    border-radius: calc(4px * var(--ui-scale));
-    border: none;
-    font: var(--text-caption-semibold);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: calc(6px * var(--ui-scale)) calc(8px * var(--ui-scale));
+  width: calc(31px * var(--ui-scale));
+  height: 100%;
+  background: var(--color-pine-400);
+  border-radius: calc(4px * var(--ui-scale));
+  border: none;
+  font: var(--text-caption-semibold);
 }
 
 #context-menu-close-button-holder {
-    position: absolute;
-    width: calc(20px * var(--ui-scale));
-    height: calc(20px * var(--ui-scale));
-    right: calc(10px * var(--ui-scale));
-    top: calc(10px * var(--ui-scale));
+  position: absolute;
+  width: calc(20px * var(--ui-scale));
+  height: calc(20px * var(--ui-scale));
+  right: calc(10px * var(--ui-scale));
+  top: calc(10px * var(--ui-scale));
 }
 
 #context-menu-close-button {
-    width: calc(20px * var(--ui-scale));
-    height: calc(20px * var(--ui-scale));
-    background: transparent;
-    border: none;
-    color: var(--color-asphalt-200);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    cursor: pointer;
-    overflow: visible;
+  width: calc(20px * var(--ui-scale));
+  height: calc(20px * var(--ui-scale));
+  background: transparent;
+  border: none;
+  color: var(--color-asphalt-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  overflow: visible;
 }
 
 .description-input-frame {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    padding: 0;
-    gap: calc(11px * var(--ui-scale));
-    width: 100%;
-    height: calc(23px * var(--ui-scale));
-    box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  gap: calc(11px * var(--ui-scale));
+  width: 100%;
+  height: calc(23px * var(--ui-scale));
+  box-sizing: border-box;
 }
 
 tag-underline {
-    display: inline;
-    text-decoration: underline;
-    pointer-events: none;
+  display: inline;
+  text-decoration: underline;
+  pointer-events: none;
 }
 
 .tooltip.in {
-    opacity: 1;
+  opacity: 1;
 }

@@ -10,203 +10,203 @@
 
 #access-score-streets-preview,
 #access-score-regions-preview {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--color-border-light, #e0e0e0);
-    border-radius: var(--border-radius, 4px);
-    background-color: white;
-    overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border-light, #e0e0e0);
+  border-radius: var(--border-radius, 4px);
+  background-color: white;
+  overflow: hidden;
 }
 
 /* The metric selector lives in a toolbar above the map (not as an on-map Leaflet control) so it can never be overlapped
    by feature popups (on-map controls sit above the popup pane). */
 .as-toolbar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--color-border-light, #e0e0e0);
-    background-color: #fafafa;
-    font-family: var(--font-sans);
-    font-size: 13px;
-    color: #222222;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border-light, #e0e0e0);
+  background-color: #fafafa;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: #222222;
 }
 
 .as-toolbar label {
-    font-weight: 600;
+  font-weight: 600;
 }
 
 .as-toolbar select {
-    font-family: var(--font-sans);
-    font-size: 13px;
-    padding: 2px 4px;
-    border: 1px solid #cccccc;
-    border-radius: 3px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 2px 4px;
+  border: 1px solid #cccccc;
+  border-radius: 3px;
 }
 
 #access-score-streets-map,
 #access-score-regions-map {
-    flex: 1 1 auto;
-    min-height: 0;
-    width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
 }
 
 /* ---- Loading Message ---- */
 
 .loading-message {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: #666666;
-    font-style: italic;
-    background-color: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #666666;
+  font-style: italic;
+  background-color: #f8f9fa;
 }
 
 .loading-message::before {
-    content: "";
-    width: 20px;
-    height: 20px;
-    border: 2px solid #e0e0e0;
-    border-top: 2px solid var(--color-accent-link, #007bff);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-right: 10px;
+  content: "";
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e0e0e0;
+  border-top: 2px solid var(--color-accent-link, #007bff);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 10px;
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* ---- Counter Badge ---- */
 
 .counter-badge {
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
-    right: auto;
-    background-color: white;
-    padding: 5px 10px;
-    border-radius: 4px;
-    box-shadow: 0 1px 5px rgb(0 0 0 / 40%);
-    font-size: 12px;
-    font-weight: 500;
-    color: #222222;
-    z-index: 1000;
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  right: auto;
+  background-color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgb(0 0 0 / 40%);
+  font-size: 12px;
+  font-weight: 500;
+  color: #222222;
+  z-index: 1000;
 }
 
 /* ---- Continuous Legend ---- */
 
 .continuous-legend {
-    background-color: white;
-    padding: 8px 10px;
-    border-radius: 4px;
-    box-shadow: 0 1px 5px rgb(0 0 0 / 40%);
-    line-height: 1.4;
-    color: #555555;
-    font-family: var(--font-sans);
-    max-width: 250px;
+  background-color: white;
+  padding: 8px 10px;
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgb(0 0 0 / 40%);
+  line-height: 1.4;
+  color: #555555;
+  font-family: var(--font-sans);
+  max-width: 250px;
 }
 
 .continuous-legend h4 {
-    margin: 0 0 8px;
-    font-size: 14px;
-    font-weight: 600;
-    color: #222222;
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #222222;
 }
 
 .gradient-container {
-    border: 1px solid #cccccc;
-    border-radius: 3px;
-    overflow: hidden;
+  border: 1px solid #cccccc;
+  border-radius: 3px;
+  overflow: hidden;
 }
 
 .legend-tick {
-    font-size: 10px;
-    color: #666666;
-    font-weight: 500;
+  font-size: 10px;
+  color: #666666;
+  font-weight: 500;
 }
 
 /* ---- Feature Popup ---- */
 
 .as-popup {
-    font-family: var(--font-sans);
-    max-width: 260px;
-    line-height: 1.4;
+  font-family: var(--font-sans);
+  max-width: 260px;
+  line-height: 1.4;
 }
 
 .as-popup h4 {
-    margin: 0 0 8px;
-    font-size: 16px;
-    font-weight: 600;
-    color: #222222;
-    border-bottom: 1px solid #e0e0e0;
-    padding-bottom: 4px;
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #222222;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 4px;
 }
 
 .as-popup p {
-    margin: 4px 0;
-    font-size: 13px;
-    color: #555555;
+  margin: 4px 0;
+  font-size: 13px;
+  color: #555555;
 }
 
 .as-popup strong {
-    color: #222222;
-    font-weight: 500;
+  color: #222222;
+  font-weight: 500;
 }
 
 .as-popup .as-score {
-    font-size: 20px;
-    font-weight: 700;
+  font-size: 20px;
+  font-weight: 700;
 }
 
 .as-popup .as-breakdown {
-    margin: 6px 0 0;
-    font-size: 12px;
-    color: #555555;
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #555555;
 }
 
 /* ---- No Data Message ---- */
 
 .no-data-message {
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: white;
-    padding: 8px 12px;
-    border-radius: 4px;
-    box-shadow: 0 1px 5px rgb(0 0 0 / 40%);
-    font-size: 14px;
-    color: #666666;
-    z-index: 1000;
-    white-space: nowrap;
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgb(0 0 0 / 40%);
+  font-size: 14px;
+  color: #666666;
+  z-index: 1000;
+  white-space: nowrap;
 }
 
 /* ---- Responsive Adjustments ---- */
 
 @media (width <= 768px) {
-    .continuous-legend {
-        max-width: 180px;
-        padding: 6px 8px;
-    }
+  .continuous-legend {
+    max-width: 180px;
+    padding: 6px 8px;
+  }
 
-    .gradient-container,
-    .legend-labels {
-        width: 160px !important;
-    }
+  .gradient-container,
+  .legend-labels {
+    width: 160px !important;
+  }
 
-    .continuous-legend h4 {
-        font-size: 13px;
-    }
+  .continuous-legend h4 {
+    font-size: 13px;
+  }
 
-    .legend-tick {
-        font-size: 9px;
-    }
+  .legend-tick {
+    font-size: 9px;
+  }
 
-    .as-popup {
-        max-width: 200px;
-    }
+  .as-popup {
+    max-width: 200px;
+  }
 }

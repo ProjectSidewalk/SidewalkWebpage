@@ -1,60 +1,60 @@
 .gallery-filter {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 .gallery-filter:disabled {
-    cursor: default;
-    opacity: 0.5;
-    pointer-events: none;
+  cursor: default;
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 #severity-select {
-    display: inline-grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 2px;
+  display: inline-grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
 }
 
 .gallery-filter-button, .gallery-tag {
-    padding: 0 5px;
-    border-style: solid;
-    border-width: 1px;
-    border-radius: 10px;
-    text-align: left;
-    background-color: var(--color-neutral-white);
-    color: var(--color-neutral-black);
-    border-color: var(--color-neutral-black);
-    width: fit-content;
-    white-space: nowrap;
-    max-width: 98%;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  padding: 0 5px;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 10px;
+  text-align: left;
+  background-color: var(--color-neutral-white);
+  color: var(--color-neutral-black);
+  border-color: var(--color-neutral-black);
+  width: fit-content;
+  white-space: nowrap;
+  max-width: 98%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .gallery-filter-button-selected {
-    background-color: #76c9ab;
-    color: var(--color-neutral-white);
-    border-color: #76c9ab;
+  background-color: #76c9ab;
+  color: var(--color-neutral-white);
+  border-color: #76c9ab;
 }
 
 .gallery-filter-button:hover {
-    background-color: rgb(167 222 202 / 10%);
-    color: #40bd90;
-    border-color: #40bd90;
-    white-space: normal;
+  background-color: rgb(167 222 202 / 10%);
+  color: #40bd90;
+  border-color: #40bd90;
+  white-space: normal;
 }
 
 .gallery-filter-validation-button {
-    display: block;
-    margin: 4px 2px;
+  display: block;
+  margin: 4px 2px;
 }
 
 #clear-filters {
-    background-color: transparent;
-    border-color: transparent;
-    cursor: pointer;
+  background-color: transparent;
+  border-color: transparent;
+  cursor: pointer;
 }
 
 #clear-filters h6 {
-    margin-top: 5px;
-    color: darkgray;
+  margin-top: 5px;
+  color: darkgray;
 }
