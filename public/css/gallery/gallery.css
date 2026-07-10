@@ -4,12 +4,12 @@
 }
 
 #card-filter {
-    padding: 0 5px 5px 5px;
+    padding: 0 5px 5px;
     width: inherit;
 }
 
 .filter-section-holder {
-   padding-bottom: 12px;
+    padding-bottom: 12px;
 }
 
 #city-select-header {
@@ -33,7 +33,7 @@
 
 .paging:disabled {
     border-width: 0.2px;
-    opacity: 50%;
+    opacity: 0.5;
 }
 
 #horizontal-line {
@@ -96,10 +96,10 @@
 .grid-container {
     display: grid;
     grid-template-areas:
-        'main gallery-modal'
-        'paging gallery-modal';
-    grid-gap: 2px;
-    padding: 0 10px 10px 10px;
+        "main gallery-modal"
+        "paging gallery-modal";
+    gap: 2px;
+    padding: 0 10px 10px;
 }
 
 /* Gallery's inline expanded view — host-level sizing for the LabelDetail inline card. Height is 100vh minus the fixed
@@ -110,7 +110,7 @@
     width: 52vw;
     right: 3vw;
     border-radius: 12px;
-    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 5px 10px rgb(0 0 0 / 30%);
     justify-self: end;
     visibility: hidden;
 }

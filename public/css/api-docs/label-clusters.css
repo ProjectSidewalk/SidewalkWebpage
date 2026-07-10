@@ -17,7 +17,7 @@
 }
 
 .cluster-popup h4 {
-    margin: 0 0 5px 0;
+    margin: 0 0 5px;
     padding-bottom: 4px;
     border-bottom: 1px solid #e0e0e0;
     font-size: 16px;
@@ -61,7 +61,7 @@
 .cluster-size-circle {
     display: inline-block;
     border-radius: 50%;
-    background-color: rgba(74, 144, 226, 0.7);
+    background-color: rgb(74 144 226 / 70%);
     border: 1px solid var(--color-neutral-black);
 }
 
@@ -82,7 +82,7 @@
 
 .cluster-size-label {
     font-size: 13px;
-    color: #666;
+    color: #666666;
 }
 
 /* Filter examples section */
@@ -97,12 +97,12 @@
 .filter-example .description {
     margin-top: 5px;
     font-size: 13px;
-    color: #666;
+    color: #666666;
 }
 
 /* Map container specific to label clusters */
 #label-clusters-preview {
-    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1px 5px rgb(0 0 0 / 20%);
 }
 
 /* No clusters message */
@@ -114,7 +114,7 @@
     background-color: var(--color-neutral-white);
     padding: 10px 20px;
     border-radius: 4px;
-    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 1px 5px rgb(0 0 0 / 40%);
     z-index: 1000;
     text-align: center;
 }
@@ -150,7 +150,7 @@
 }
 
 /* Responsive styles */
-@media (max-width: 768px) {
+@media (width <= 768px) {
     .cluster-popup {
         max-width: 200px;
     }

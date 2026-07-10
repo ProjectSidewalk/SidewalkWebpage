@@ -41,7 +41,7 @@
     left: 0;
     top: 0;
     overflow: hidden;
-    cursor: url(/assets/images/icons/openhand.cur) 4 4, move;
+    cursor: url("/assets/images/icons/openhand.cur") 4 4, move;
     z-index: 2;
 
     /* http://stackoverflow.com/questions/8942805/chrome-bug-cursor-changes-on-mouse-down-move */
@@ -75,7 +75,7 @@
 .speed-limit-sign[data-design-style="non-us-canada"] {
     width: calc(75px * var(--ui-scale));
     height: calc(75px * var(--ui-scale));
-    padding: 0px;
+    padding: 0;
     border-radius: 100%;
     transform: scale(0.613);
 }

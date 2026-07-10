@@ -1,14 +1,15 @@
 .gallery-card {
     position: relative;
     display: inline-block;
-    padding: 0px;
+    padding: 0;
     margin: 0.6vw;
     border-radius: 20px;
     width: 25vw;
     height: fit-content;
 }
+
 .gallery-card:hover {
-    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.1), 0 6px 20px 0 rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 8px 0 rgb(0 0 0 / 10%), 0 6px 20px 0 rgb(0 0 0 / 5%);
 }
 
 .validate-agree {
@@ -35,7 +36,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     --gallery-marker-size: clamp(16px, 1.1vw, 22px);
 }
 
-.gallery-card:hover:after {
+.gallery-card:hover::after {
     opacity: 1;
 }
 
@@ -89,13 +90,14 @@ with respect to the image holder. This allows the validation menu to be placed o
     padding-left: 0.5vw;
     padding-right: 0.5vw;
     color: var(--color-asphalt-500);
-    border-width: 0 1px 1px 1px;
+    border-width: 0 1px 1px;
     border-color: #dcdbdb;
     border-style: solid;
     border-bottom-left-radius: 20px;
     border-bottom-right-radius: 20px;
     cursor: default;
 }
+
 .gallery-card:hover > .card-info {
     border-width: 0; /* Using a drop shadow on hover, and we don't need both the border and shadow. */
 }
@@ -129,7 +131,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .no-severity-header {
-    opacity: 60%;
+    opacity: 0.6;
 }
 
 .card-tags {
@@ -138,7 +140,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     height: 100%;
     flex-direction: row;
     flex: 1; /* Takes all remaining space */
-    right: 0px;
+    right: 0;
     padding-left: 7px;
 }
 
@@ -151,8 +153,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     align-items: center;
     overflow-y: auto;
     width: 100%;
-    flex-direction: row;
-    flex-wrap: wrap;
+    flex-flow: row wrap;
     flex: 1;
     min-width: 0;
 }
@@ -205,6 +206,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     height: 100%;
     flex-direction: column;
     cursor: pointer;
+
     /* Prevent text selection. */
     -webkit-user-select: none; /* Safari */
 }
@@ -263,24 +265,28 @@ with respect to the image holder. This allows the validation menu to be placed o
 .gallery-card--readonly #gallery-card-disagree-button,
 .gallery-card--readonly #gallery-card-unsure-button {
     background-color: #E2E2E2;
-    color: rgba(0, 0, 0, 0.4);
+    color: rgb(0 0 0 / 40%);
     cursor: default;
 }
+
 .gallery-card--readonly .card-validation-info {
     opacity: 0.5;
 }
+
 .gallery-card--readonly:hover .validation-button:hover {
     opacity: 0.75; /* No hover bump in readonly: nothing to validate. */
 }
+
 .gallery-card--readonly .validation-section-content {
     cursor: default;
 }
+
 .gallery-card--readonly .validation-info-image {
     pointer-events: none;
 }
 
 .expanded-view-background-card {
-    opacity: 50%;
+    opacity: 0.5;
 }
 
 .severity-circle {
@@ -295,7 +301,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .no-severity-circle {
-    opacity: 40%;
+    opacity: 0.4;
 }
 
 #current-severity {

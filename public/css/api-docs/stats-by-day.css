@@ -23,13 +23,13 @@
 .preview-stat-value {
     font-size: 1.5em;
     font-weight: bold;
-    color: var(--color-text-primary, #222);
+    color: var(--color-text-primary, #222222);
     line-height: 1.2;
 }
 
 .preview-stat-label {
     font-size: 0.8em;
-    color: var(--color-text-secondary, #666);
+    color: var(--color-text-secondary, #666666);
     margin-top: 4px;
 }
 
@@ -44,7 +44,7 @@
 
 .preview-chart-section:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+    box-shadow: 0 4px 8px rgb(0 0 0 / 8%);
 }
 
 .preview-chart-title {
@@ -56,6 +56,6 @@
 .preview-chart-desc {
     text-align: center;
     font-size: 0.85em;
-    color: var(--color-text-secondary, #666);
+    color: var(--color-text-secondary, #666666);
     margin: 0 0 12px;
 }

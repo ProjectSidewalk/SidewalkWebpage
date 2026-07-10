@@ -79,6 +79,7 @@
     #validate-yes-button:hover {
         background: var(--color-pine-300);
     }
+
     #validate-yes-button.chosen:hover {
         background: var(--color-pine-500);
     }
@@ -86,6 +87,7 @@
     #validate-no-button:hover {
         background: var(--color-orange-300);
     }
+
     #validate-no-button.chosen:hover {
         background: var(--color-orange-400);
     }
@@ -94,6 +96,7 @@
         background: var(--color-neutral-700);
         color: var(--color-neutral-white);
     }
+
     #validate-unsure-button.chosen:hover {
         background: var(--color-neutral-900);
     }
@@ -186,8 +189,7 @@
 #current-tags-list {
     display: flex; /* display:none when there are no tags, display: flex when there are; updated in JS. */
     flex-wrap: wrap;
-    row-gap: calc(5px * var(--ui-scale));
-    column-gap: calc(5px * var(--ui-scale));
+    gap: calc(5px * var(--ui-scale));
     margin-bottom: calc(10px * var(--ui-scale));
 }
 
@@ -248,7 +250,7 @@
 }
 
 #optional-comment-input {
-    margin-top: 0px; /* Overrides .validate-text-input margin, since the textbox for agreeing looks different. */
+    margin-top: 0; /* Overrides .validate-text-input margin, since the textbox for agreeing looks different. */
 }
 
 #no-reason-options, #unsure-reason-options {
@@ -272,6 +274,7 @@
     border: none;
     color: var(--color-neutral-white);
 }
+
 #add-disagree-comment.chosen {
     border-color: var(--color-orange-400) !important;
 }
@@ -281,6 +284,7 @@
     border: none;
     color: var(--color-neutral-white);
 }
+
 #add-unsure-comment.chosen {
     border-color: var(--color-orange-900) !important;
 }
@@ -292,6 +296,7 @@
         border: none;
         color: var(--color-neutral-white);
     }
+
     #no-reason-options .validation-reason-button.chosen:hover {
         background: var(--color-orange-400);
     }
@@ -299,6 +304,7 @@
     #add-disagree-comment:hover {
         border-color: var(--color-orange-300) !important;
     }
+
     #add-disagree-comment.chosen:hover {
         border-color: var(--color-orange-400) !important;
     }
@@ -308,6 +314,7 @@
         border: none;
         color: var(--color-neutral-white);
     }
+
     #unsure-reason-options .validation-reason-button.chosen:hover {
         background: var(--color-neutral-900);
     }
@@ -315,6 +322,7 @@
     #add-unsure-comment:hover {
         border-color: var(--color-neutral-700) !important;
     }
+
     #add-unsure-comment.chosen:hover {
         border-color: var(--color-neutral-900) !important;
     }

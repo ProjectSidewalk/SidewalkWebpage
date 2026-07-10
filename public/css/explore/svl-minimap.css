@@ -28,6 +28,7 @@
     flex: 0 0 auto;
     width: var(--minimap-base-size);
     height: var(--minimap-base-size);
+
     /* Native border sizing; the transform scales it like everything else. */
     border-width: 1px;
     border-radius: 12px;

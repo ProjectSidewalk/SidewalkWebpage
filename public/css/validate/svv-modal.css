@@ -9,7 +9,7 @@
 }
 
 #modal-mission-foreground {
-    padding: calc(100px * var(--ui-scale)) calc(20px * var(--ui-scale)) calc(10px * var(--ui-scale)) calc(20px * var(--ui-scale));
+    padding: calc(100px * var(--ui-scale)) calc(20px * var(--ui-scale)) calc(10px * var(--ui-scale));
     visibility: hidden;
 }
 

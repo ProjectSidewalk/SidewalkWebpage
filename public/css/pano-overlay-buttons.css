@@ -32,6 +32,7 @@
 .zoom-button:first-of-type {
     border-radius: calc(7px * var(--ui-scale, 1)) calc(7px * var(--ui-scale, 1)) 0 0;
 }
+
 .zoom-button:last-of-type {
     border-radius: 0 0 calc(7px * var(--ui-scale, 1)) calc(7px * var(--ui-scale, 1));
 }

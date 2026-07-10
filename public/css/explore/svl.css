@@ -81,6 +81,7 @@ input[type="radio"] {
     width: 100%;
     visibility: hidden;
 }
+
 /* http://stackoverflow.com/questions/8942805/chrome-bug-cursor-changes-on-mouse-down-move */
 #view-control-layer {
     -webkit-user-select: none;
@@ -156,21 +157,26 @@ input[type="radio"] {
 #survey-form {
     padding-right: calc(20px * var(--ui-scale, 1));
 }
+
 #survey-modal-container ol> li {
     font: var(--text-small-bold);
     content: counter(item);
 }
+
 #survey-modal-container ol> li h4 {
     font: var(--text-small-bold);
 }
+
 .survey-question {
     margin-bottom: calc(10px * var(--ui-scale, 1));
 }
+
 .survey-textarea {
     width: 100%;
     height: calc(64px * var(--ui-scale, 1));
     font: var(--text-caption-regular);
 }
+
 .survey-option-holder {
     list-style:none;
     width:100%;
@@ -178,6 +184,7 @@ input[type="radio"] {
     padding:0 0 calc(10px * var(--ui-scale, 1));
     display:block;
 }
+
 .survey-option {
     display:inline-block;
     width: 19%;
@@ -185,6 +192,7 @@ input[type="radio"] {
     vertical-align:top;
     font: var(--text-caption-regular);
 }
+
 .survey-option label {
     width:100%;
     font: var(--text-caption-regular);
@@ -195,18 +203,23 @@ input[type="radio"] {
     width: calc(600px * var(--ui-scale, 1));
     margin: calc(30px * var(--ui-scale, 1)) auto;
 }
+
 #survey-modal .modal-header {
     padding: calc(15px * var(--ui-scale, 1));
 }
+
 #survey-modal .modal-title {
     font: var(--text-subtitle-medium);
 }
+
 #survey-modal .modal-header .close {
     font: var(--text-title-bold);
 }
+
 #survey-modal .modal-body {
     padding: calc(15px * var(--ui-scale, 1));
 }
+
 #survey-modal .btn {
     font: var(--text-small-regular);
     padding: calc(5px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));

@@ -54,7 +54,7 @@
     box-sizing: border-box;
     height: calc(120px * var(--ui-scale));
     width: 100%;
-    margin: 0 0 calc(16px * var(--ui-scale)) 0;
+    margin: 0 0 calc(16px * var(--ui-scale));
     padding: calc(10px * var(--ui-scale)) calc(12px * var(--ui-scale));
     border: calc(1px * var(--ui-scale)) solid var(--color-neutral-300);
     border-radius: calc(8px * var(--ui-scale));
@@ -129,7 +129,7 @@
 
 .mission-complete__subtitle {
     font: var(--text-small-regular);
-    margin: calc(4px * var(--ui-scale)) 0 0 0;
+    margin: calc(4px * var(--ui-scale)) 0 0;
 }
 
 .mission-complete__badge {
@@ -176,7 +176,7 @@
 
 .mission-complete__overlay-title {
     font: var(--text-small-bold);
-    margin: 0 0 calc(6px * var(--ui-scale)) 0;
+    margin: 0 0 calc(6px * var(--ui-scale));
 }
 
 .mission-complete__overlay-divider {

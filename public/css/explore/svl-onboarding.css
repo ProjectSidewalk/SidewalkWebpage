@@ -33,7 +33,7 @@
     left: 0;
     z-index: 3;
     font: var(--text-subtitle-regular);
-    transform: None;
+    transform: none;
 
     border-radius: calc(3px * var(--ui-scale));
     background: var(--color-neutral-white);
@@ -67,7 +67,7 @@
    inner edges merge in and only its outer edges cast a shadow — keeping the white-on-white arrow visible. */
 #onboarding-message-holder.callout-floating {
     margin: 0;
-    filter: drop-shadow(0px 0px calc(5px * var(--ui-scale, 1)) rgb(from var(--color-neutral-black) r g b / 50%));
+    filter: drop-shadow(0 0 calc(5px * var(--ui-scale, 1)) rgb(from var(--color-neutral-black) r g b / 50%));
 }
 
 /* Arrow for anchor-based instruction boxes positioned by Floating UI. A rotated square sits behind the box so only
@@ -97,8 +97,7 @@
     transform: translate(-50%, -50%);
     max-width: 95vw;
     max-height: 90vh;
-    overflow-x: hidden;
-    overflow-y: auto;
+    overflow: hidden auto;
     z-index: 1029;
 }
 

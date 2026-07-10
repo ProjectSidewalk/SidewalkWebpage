@@ -4,7 +4,7 @@
 
 .gallery-filter:disabled {
     cursor: default;
-    opacity: 50%;
+    opacity: 0.5;
     pointer-events: none;
 }
 
@@ -15,7 +15,7 @@
 }
 
 .gallery-filter-button, .gallery-tag {
-    padding: 0px 5px;
+    padding: 0 5px;
     border-style: solid;
     border-width: 1px;
     border-radius: 10px;
@@ -37,7 +37,7 @@
 }
 
 .gallery-filter-button:hover {
-    background-color: rgba(167,222,202,0.1);
+    background-color: rgb(167 222 202 / 10%);
     color: #40bd90;
     border-color: #40bd90;
     white-space: normal;

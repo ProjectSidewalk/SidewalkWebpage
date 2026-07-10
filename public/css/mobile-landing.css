@@ -7,7 +7,7 @@
     align-items: center;
     padding: 10px 16px;
     background: var(--color-neutral-white);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 12%);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -61,10 +61,10 @@
 }
 
 #mobile-landing-hero::before {
-    content: '';
+    content: "";
     position: absolute;
     inset: 0;
-    background-color: rgba(192, 190, 207, 0.4);
+    background-color: rgb(192 190 207 / 40%);
     z-index: 1;
 }
 
@@ -87,7 +87,7 @@
 /* CTA button — matches the desktop #landing-cta-button style */
 .mobile-landing-cta-btn {
     display: inline-block;
-    background-color: rgba(251, 215, 139, 1);
+    background-color: rgb(251 215 139 / 100%);
     border-radius: 10px;
     border: 0;
     color: var(--color-asphalt-500);
@@ -156,7 +156,7 @@
 
 /* Connector line between steps */
 .mobile-impact-step:not(:last-child)::after {
-    content: '';
+    content: "";
     position: absolute;
     left: 23px;
     top: 52px;
@@ -189,14 +189,14 @@
 
 /* Stats section */
 #mobile-landing-stats {
-    background-color: rgba(249, 241, 227, 1);
+    background-color: rgb(249 241 227 / 100%);
     padding: 40px 20px;
     text-align: center;
 }
 
 .mobile-stats-subtitle {
     font: var(--text-body-regular);
-    color: #555;
+    color: #555555;
     margin: 8px auto 0;
     max-width: 400px;
 }
@@ -222,7 +222,7 @@
     display: block;
     font-family: Raleway, sans-serif;
     font-size: 13px;
-    color: #555;
+    color: #555555;
     margin-top: 4px;
     letter-spacing: 0.05em;
 }
@@ -283,7 +283,7 @@
 
 .mobile-cta-subtext {
     font: var(--text-body-regular);
-    color: rgba(255, 255, 255, 0.82);
+    color: rgb(255 255 255 / 82%);
     margin: 0 auto 28px;
     max-width: 440px;
 }
@@ -294,16 +294,16 @@
     font-family: Raleway, sans-serif;
     font-size: 11px;
     line-height: 1.6;
-    color: rgba(255, 255, 255, 0.45);
+    color: rgb(255 255 255 / 45%);
 }
 
 #mobile-cta-footer-info a {
-    color: rgba(255, 255, 255, 0.45);
+    color: rgb(255 255 255 / 45%);
     text-decoration: underline;
 }
 
 /* Responsive: wider screens (landscape phone / tablet) */
-@media (min-width: 540px) {
+@media (width >= 540px) {
     #mobile-landing-tagline {
         font-size: 38px;
     }

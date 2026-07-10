@@ -1,14 +1,17 @@
 .table-fixed thead {
     width: 97%;
 }
+
 .table-fixed tbody {
     height: 230px;
     overflow-y: auto;
     width: 100%;
 }
+
 .table-fixed thead, .table-fixed tbody, .table-fixed tr, .table-fixed td, .table-fixed th {
     display: block;
 }
+
 .table-fixed tbody td, .table-fixed thead > tr> th {
     float: left;
     border-bottom-width: 0;
@@ -19,6 +22,7 @@
     transform: rotateX(180deg); /* Moves scrollbar to top for easier navigation. */
     width: 110%;
 }
+
 #user-table_wrapper {
     transform: rotateX(180deg); /* Adding scrollbar flips all text, this flips it back. */
     font-size: 11px;
@@ -42,10 +46,10 @@
     position: absolute;
     left: 30px;
     bottom: 10px;
-    background: rgb(255, 255, 255);;
+    background: rgb(255 255 255);;
     width: 325px;
-    font-family: 'Raleway', sans-serif;
-    padding: 6px 6px 0px 6px;
+    font-family: Raleway, sans-serif;
+    padding: 6px 6px 0;
 }
 
 .legend label, .legend span {
@@ -87,7 +91,7 @@
 }
 
 #flag-input-title {
-    margin: 0px;
+    margin: 0;
     padding-top: 10px;
 }
 

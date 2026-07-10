@@ -36,7 +36,7 @@
 }
 
 .label-popup h4 {
-    margin: 0 0 6px 0;
+    margin: 0 0 6px;
     font-size: var(--font-size-sm);
     border-bottom: 1px solid var(--color-border-light);
     padding-bottom: 4px;
@@ -96,6 +96,7 @@
    ========================================================================== */
 
 /* Uses .message and .message-error classes from api-docs.css */
+
 /* Uses .loading-message class from api-docs.css */
 
 /* No labels message */

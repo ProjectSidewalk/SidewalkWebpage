@@ -47,7 +47,7 @@ body {
 }
 
 .modal-foreground {
-    top: 0px;
+    top: 0;
     height: 100%;
     width: 100%;
     font-size: 40pt;
@@ -84,7 +84,7 @@ body {
 #modal-mission-header {
     font-size: 46pt;
     line-height: 110%;
-    margin: 5vw 5vw;
+    margin: 5vw;
 }
 
 #modal-mission-complete-title {
@@ -182,13 +182,15 @@ body {
 
 @keyframes confirm-press {
     0% {
-            transform: scale(0.7);
+        transform: scale(0.7);
     }
+
     50% {
-            transform: scale(1.2);
+        transform: scale(1.2);
     }
+
     100% {
-            transform: scale(1);
+        transform: scale(1);
     }
 }
 
@@ -236,6 +238,7 @@ body {
 
 .mobile-popup-notch-unsure {
     visibility: visible !important;
+
     /* Distance to start of buttons + no button width + button gap + unsure button width / 2 - notch width / 2. */
     left: calc(7vw + 25vw + 5.5vw + 12.5vw - 24px);
 }
@@ -250,7 +253,7 @@ body {
     align-items: center;
     gap: 8px;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.70);
+    background: rgb(255 255 255 / 70%);
 }
 
 #validate-why-no-section {
@@ -321,20 +324,20 @@ body {
     width: auto;
     padding: 10px 24px;
     border-radius: 16px;
-    border: 3px solid #666;
+    border: 3px solid #666666;
     background: var(--color-banana-500);
 }
 
 .sign-in-up-button-mobile {
     position: absolute;
-    background-color: rgba(251, 215, 139, 1);
+    background-color: rgb(251 215 139 / 100%);
     border-radius: 15px;
     border: none;
     right: 45px;
     top: 45px;
     color: var(--color-asphalt-500);
     font: normal normal normal 14px/1.4em raleway,sans-serif;
-    font-family: 'Raleway', sans-serif;
+    font-family: Raleway, sans-serif;
     font-weight: bolder;
     font-size: 40px;
     max-width: 500px;
@@ -350,6 +353,7 @@ body {
     left: 0;
     z-index: 3;
 }
+
 .test-server-banner-content {
     font-size: xx-large;
 }

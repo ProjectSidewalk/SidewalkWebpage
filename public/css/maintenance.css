@@ -2,7 +2,7 @@
     width: 50%;
     max-width: 260px;
     height: auto; 
-    margin: 0px auto 30px auto; 
+    margin: 0 auto 30px; 
     display: block; 
 }
 
@@ -54,10 +54,11 @@
 }
   
 
-@media screen and (max-width: 600px) {
+@media screen and (width <= 600px) {
     .header {
         font-size: 24px; 
     }
+
     .msgbox {
         font-size: 15px; 
     }

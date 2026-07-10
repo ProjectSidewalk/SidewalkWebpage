@@ -72,6 +72,7 @@
     --color-link-200: #0F5FAF;
 
     /* Project Sidewalk label-type color palette. The canonical color for each accessibility label type. */
+
     /* TODO these have different shades defined in Figma, not sure if we need those. */
     --color-label-curb-ramp: #8FC31E;
     --color-label-no-curb-ramp: #E679B5;
@@ -85,8 +86,8 @@
        and the Small-Accent style. Mulish doesn't ship CJK glyphs, so its stack ends with Traditional-Chinese system
        fonts (PingFang TC on macOS/iOS, Microsoft JhengHei on Windows; Linux/Android fall through via sans-serif). The
        browser does per-glyph fallback: Latin renders in Mulish, CJK in the OS CJK font. */
-    --font-primary: 'Mulish', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
-    --font-accent:  'Raleway', sans-serif;
+    --font-primary: "Mulish", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    --font-accent:  "Raleway", sans-serif;
 
     /* Typography scale: mirrors the Figma Design System Tokens file.
        Format: font-weight font-size/line-height font-family. The font-size and line-height are each multiplied by
@@ -134,24 +135,24 @@
 /* General styles */
 @font-face {
     font-family: raleway;
-    src: url(../fonts/Raleway/Raleway-Regular.ttf);
+    src: url("../fonts/Raleway/Raleway-Regular.ttf");
 }
 
 @font-face {
     font-family: raleway-bold;
-    src: url(../fonts/Raleway/Raleway-Bold.ttf);
+    src: url("../fonts/Raleway/Raleway-Bold.ttf");
 }
 
 @font-face {
     font-family: raleway-extrabold;
-    src: url(../fonts/Raleway/Raleway-ExtraBold.ttf);
+    src: url("../fonts/Raleway/Raleway-ExtraBold.ttf");
 }
 
 
 /* TODO we should be using Mulish here. */
 html,
 body {
-    font-family:'Open Sans', 'Noto Sans', sans-serif;
+    font-family:"Open Sans", "Noto Sans", sans-serif;
     color: var(--color-neutral-black);
 }
 
@@ -199,14 +200,16 @@ a {
     display: inline-flex;
     align-items: center;
     font-weight: 500;
-    font-family: 'Raleway', sans-serif;
+    font-family: Raleway, sans-serif;
     text-decoration: none;
     transition: background-color 0.4s ease 0s;
     cursor: pointer;
 }
+
 .button-ps:hover {
     text-decoration: none;
 }
+
 .button-ps:disabled {
     cursor: not-allowed;
     pointer-events: none;
@@ -219,21 +222,25 @@ a {
     padding: 3px 10px;
     border-radius: 8px;
 }
+
 .button--tiny {
     font: var(--text-caption-medium);
     padding: calc(3px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
     border-radius: calc(8px * var(--ui-scale, 1));
 }
+
 .button--small {
     font: var(--text-caption-medium);
     padding: calc(6px * var(--ui-scale, 1)) calc(16px * var(--ui-scale, 1));
     border-radius: calc(10px * var(--ui-scale, 1));
 }
+
 .button--medium {
     font: var(--text-small-regular);
     padding: calc(8px * var(--ui-scale, 1)) calc(20px * var(--ui-scale, 1));
     border-radius: calc(12px * var(--ui-scale, 1));
 }
+
 .button--large {
     font-size: calc(15px * var(--ui-scale, 1));
     padding: calc(12px * var(--ui-scale, 1)) calc(36px * var(--ui-scale, 1));
@@ -244,14 +251,17 @@ a {
     background-color: var(--color-banana-500);
     color: var(--color-neutral-black);
 }
+
 .button--primary:hover {
     background-color: var(--color-banana-200);
     color: var(--color-neutral-black);
 }
+
 .button--primary:focus {
     outline: 1px solid var(--color-banana-800);
     color: var(--color-neutral-black);
 }
+
 .button--primary:disabled {
     background-color: var(--color-neutral-200);
     color: var(--color-neutral-700)
@@ -262,14 +272,17 @@ a {
     color: var(--color-neutral-900);
     outline: 1px solid var(--color-neutral-800);
 }
+
 .button--secondary:hover {
     background-color: var(--color-banana-200);
     color: var(--color-neutral-900);
 }
+
 .button--secondary:focus {
     outline: 1px solid var(--color-banana-600);
     color: var(--color-neutral-900);
 }
+
 .button--secondary:disabled {
     color: var(--color-neutral-500);
     outline: 1px solid var(--color-neutral-500);
@@ -337,7 +350,7 @@ a {
     cursor: pointer;
     color: var(--color-asphalt-500);
     font-size: 12px;
-    font-family: 'Mulish', sans-serif;
+    font-family: Mulish, sans-serif;
     padding: 4px 10px;
     text-decoration: none;
     transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
@@ -345,7 +358,7 @@ a {
 }
 
 .navbar-nav > li > a.navbar-button#language-button {
-    padding: 0px 12px 0px;
+    padding: 0 12px;
 }
 
 .navbar-nav > li > a {
@@ -378,7 +391,7 @@ a {
 
 #header.header--tall .navbar-nav > li > a.navbar-button#language-button {
     border: none;
-    padding: 0px 12px 0px;
+    padding: 0 12px;
 }
 
 #header.header--tall .navbar-nav > li > a.navbar-button:hover {
@@ -400,7 +413,7 @@ a {
 
 #content {
     position: relative;
-    top: 0px;
+    top: 0;
     background-color: var(--color-neutral-white);
 }
 
@@ -435,15 +448,15 @@ a {
 }
 
 #mini-footer a {
-      color:#585c63;
-      text-decoration:underline;
+    color:#585c63;
+    text-decoration:underline;
 }
 
 #footer-container {
     position: relative;
-    top: 00px;
+    top: 0;
     width: 100%;
-    background-image: url(../images/footer.jpg);
+    background-image: url("../images/footer.jpg");
     min-height: 200px;
     padding-top: 50px;
     padding-bottom: 50px;
@@ -462,6 +475,7 @@ a {
     color: var(--color-asphalt-500);
     cursor: pointer;
 }
+
 .footer-link {
     color: var(--color-asphalt-500);
 }
@@ -478,12 +492,14 @@ a {
     line-height: 1.6em;
 
 }
+
 #info-footer a {
     color:var(--color-neutral-white);
     text-decoration:underline;
 }
 
 /* Pano Info Popover styling. */
+
 /* Sizes scale with --ui-scale for pages that have it, falling back to a multiplier of 1 on other pages. */
 .pano-info-popover {
     position: fixed;
@@ -499,13 +515,13 @@ a {
     border: 1px solid var(--color-neutral-600);
     border-radius: calc(12px * var(--ui-scale, 1));
     font-size: calc(14px * var(--ui-scale, 1));
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 12%);
 }
 
 /* Downward-pointing arrow: ::before is the border, ::after is the white fill on top. */
 .pano-info-popover::before,
 .pano-info-popover::after {
-    content: '';
+    content: "";
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
@@ -566,7 +582,7 @@ a {
     position: absolute;
     top: calc(44px * var(--ui-scale, 1));   /* below the header (12px padding-top + ~30px header + 2px gap) */
     right: calc(8px * var(--ui-scale, 1));
-    background: rgba(40, 40, 40, 0.85);
+    background: rgb(40 40 40 / 85%);
     color: var(--color-neutral-white);
     font-size: calc(11px * var(--ui-scale, 1));
     padding: calc(3px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1));
@@ -611,14 +627,14 @@ a {
     text-decoration: underline;
 }
 
-@media only screen and (max-device-width: 500px) {
+@media only screen and (device-width <= 500px) {
     #award-num {
         width: 100% !important;
         right: 0% !important;
     }
 }
 
-@media only screen and (max-device-width: 800px) and (min-device-width: 500px) {
+@media only screen and (device-width <= 800px) and (device-width >= 500px) {
     #award-num {
         width: 350% !important;
         right: 45% !important;
@@ -631,19 +647,19 @@ a {
     width: 220%;
     right: 35%;
 }
+
 #funding-title {
     font-weight: bold;
 }
 
 
-
 kbd {
-    /*overriding bootstraps's ugly kbd tag*/
+    /* overriding bootstraps's ugly kbd tag */
     background-color: var(--color-neutral-white);
     box-shadow: 0 1px 0 rgb(0 0 0 / 20%);
     border: 1px solid rgb(0 0 0 / 20%);
     border-radius: 3px;
-    color: #444;
+    color: #444444;
     font-weight: normal;
     font-size: 0.9em; /* Scale with surrounding text rather than a fixed size. */
     padding: 2px 6px;
@@ -694,77 +710,78 @@ kbd {
  * CSS for the footer header
 */
 .footer-header {
-  font-family: raleway-extrabold, sans-serif;
-  font-weight: bold;
-  color: var(--color-asphalt-500);
-  font-size: 12px;
-  line-height: 2.1em;
-  letter-spacing: 0.05em;
+    font-family: raleway-extrabold, sans-serif;
+    font-weight: bold;
+    color: var(--color-asphalt-500);
+    font-size: 12px;
+    line-height: 2.1em;
+    letter-spacing: 0.05em;
 }
 
 
 /* Formatting the test server warning banner. */
 .test-server-banner {
-  background-color: rgb(251, 215, 139);
+    background-color: rgb(251 215 139);
 }
 
 /* Pin test server banner just below the navbar. */
 body:has(#vidbanner) .test-server-banner {
-  position: fixed;
-  top: var(--navbar-height);
-  left: 0;
-  right: 0;
-  z-index: 1029;
+    position: fixed;
+    top: var(--navbar-height);
+    left: 0;
+    right: 0;
+    z-index: 1029;
 }
 
 body:has(#header.header--tall) .test-server-banner {
-  top: 70px;
+    top: 70px;
 }
 
 .test-server-banner-content {
-  padding: 0.5%;
-  max-width: 70%;
-  margin: 0 auto;
-  display: flex;
-  font-size: medium;
+    padding: 0.5%;
+    max-width: 70%;
+    margin: 0 auto;
+    display: flex;
+    font-size: medium;
 }
 
 .test-server-banner-text {
-  font-family: raleway-bold, sans-serif;
-  text-align: center;
+    font-family: raleway-bold, sans-serif;
+    text-align: center;
 }
+
 .test-server-banner-text > strong {
-  color: red;
+    color: red;
 }
 
 .test-server-banner-dont-show-again {
-  background: none;
-  border: none;
-  text-decoration: underline;
-  min-width: fit-content;
-  padding: 0 20px;
+    background: none;
+    border: none;
+    text-decoration: underline;
+    min-width: fit-content;
+    padding: 0 20px;
 }
 
 .test-server-banner-close {
-  background: none;
-  border: none;
-  margin-top: 2px;
+    background: none;
+    border: none;
+    margin-top: 2px;
 }
 
 /*
  * Test server warning banner styling differences on mobile. This is used for all pages except for the default /mobile
  * for some reason. So CSS for that page is in mobile-validate.css.
  */
-@media only screen and (max-width: 500px) {
-  .test-server-banner {
-    border-radius: 5px;
-  }
+@media only screen and (width <= 500px) {
+    .test-server-banner {
+        border-radius: 5px;
+    }
 
-  .test-server-banner-content {
-    max-width: 300px;
-    flex-wrap: wrap;
-    font-size: small;
-  }
+    .test-server-banner-content {
+        max-width: 300px;
+        flex-wrap: wrap;
+        font-size: small;
+    }
 }
 
 
@@ -791,10 +808,10 @@ body:has(#header.header--tall) .test-server-banner {
     list-style: none;
     background-color: var(--color-neutral-white);
     background-clip: padding-box;
-    border: 1px solid #ccc;
-    border: 1px solid rgba(0,0,0,.15);
+    border: 1px solid #cccccc;
+    border: 1px solid rgb(0 0 0 / 15%);
     border-radius: 4px;
-    box-shadow: 0 6px 12px rgba(0,0,0,.175);
+    box-shadow: 0 6px 12px rgb(0 0 0 / 17.5%);
 }
 
 .navbar-nav .open .dropdown-menu#nav-language-menu {
@@ -810,19 +827,21 @@ body:has(#header.header--tall) .test-server-banner {
     margin-top: 0;
 }
 
-/*Overlay box - start*/
+/* Overlay box - start */
 #area-completion-overlay-wrapper, #already-completed-neighborhood-overlay {
     display:none;
 }
+
 .overlay-text {
     height: 100%;
     width: 100%;
     position: fixed;
     top: 0;
     left: 0;
-    background: rgba(0,0,0,0.89);
+    background: rgb(0 0 0 / 89%);
     z-index: 5;
 }
+
 #area-completion-overlay, #already-completed-neighborhood-text {
     color: var(--color-neutral-white);
     text-align: center;
@@ -832,18 +851,22 @@ body:has(#header.header--tall) .test-server-banner {
     border-radius: 5px;
     font-size: 21px;
 }
+
 #area-completion-overlay, #already-completed-neighborhood-text {
     top: 28%;
 }
+
 #area-completion-overlay p, #already-completed-neighborhood-text p {
     border-radius: 5px;
     padding: 7px;
 }
+
 .overlay-header {
     text-align: center;
     font-size: 30px;
     font-weight: bold;
 }
+
 .overlay-option {
     margin: 20px 5px;
     padding: 7px;
@@ -851,15 +874,18 @@ body:has(#header.header--tall) .test-server-banner {
     border-radius: 5px;
     display: inline-block;
 }
+
 .overlay-option:hover {
     background-color: var(--color-neutral-white);
     color: var(--color-neutral-black);
     cursor: pointer;
 }
+
 #accept-redirect {
     width: 75px;
 }
-/*Overlay box - end*/
+
+/* Overlay box - end */
 
 .anchor {
     display: block;
@@ -876,7 +902,6 @@ body:has(#header.header--tall) .test-server-banner {
     border-radius: 5px;
     background-color:#eeeeee;
     border-style:solid;
-    border-width:1px;
     border-color: var(--color-neutral-black);
     padding:3px;
     color: var(--color-neutral-black);
@@ -887,7 +912,7 @@ body:has(#header.header--tall) .test-server-banner {
 }
 
 #your-overall-total {
-  border-top: 3px solid #999999;
+    border-top: 3px solid #999999;
 }
 
 #validation-button-holder {
@@ -926,7 +951,7 @@ body:has(#header.header--tall) .test-server-banner {
 * Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar
 * https://bootstrapdocs.com/v3.3.5/docs/components/#navbar
 */
-@media only screen and (max-width: 1125px) {
+@media only screen and (width <= 1125px) {
     .navbar-brand-area {
         display: flex;
         align-items: center;
@@ -943,13 +968,13 @@ body:has(#header.header--tall) .test-server-banner {
 
     .navbar-toggle:hover,
     .navbar-toggle:focus {
-        background-color: #ddd;
+        background-color: #dddddd;
     }
 
     .navbar-nav {
         display: block;
         background-color: var(--color-neutral-white);
-        box-shadow: 0px 1px 8px 0px #999;
+        box-shadow: 0 1px 8px 0 #999999;
         border-radius: 5px;
         margin: 0;
         padding-top: 10px;
@@ -957,7 +982,7 @@ body:has(#header.header--tall) .test-server-banner {
     }
 
     .navbar-nav > li > a.navbar-button {
-        border-radius: 0px;
+        border-radius: 0;
         border: none;
         display: block;
     }
@@ -972,7 +997,7 @@ body:has(#header.header--tall) .test-server-banner {
 
     .navbar-lnk {
         display: block;
-        margin-left: 0px;
+        margin-left: 0;
     }
 
     .navbar-button {
@@ -986,7 +1011,7 @@ body:has(#header.header--tall) .test-server-banner {
     }
 
     .navbar-container > .navbar-brand-area {
-        margin-left: 0px;
+        margin-left: 0;
     }
 
     .navbar-nav > li > a.navbar-button:hover {
@@ -1023,7 +1048,7 @@ body:has(#header.header--tall) .test-server-banner {
     }
 
     .navbar-nav:last-child {
-        margin-right: 0px;
+        margin-right: 0;
     }
 }
 
@@ -1065,7 +1090,7 @@ body:has(#header.header--tall) .test-server-banner {
 
 .label-view-ai-icon {
     position: absolute;
-    top: 0px;
+    top: 0;
     height: 60%;
     z-index: 3;
 }

@@ -53,19 +53,21 @@
 }
 
 /* Add lines to the left and right of the titles. Similar to this https://silvawebdesigns.com/line-on-sides-headers/ */
-#ribbon-menu-title:before, #ribbon-menu-title:after {
+#ribbon-menu-title::before, #ribbon-menu-title::after {
     position: absolute;
     top: 51%;
     width: 1000px; /* Set to a very large value, cut off from outer div with overflow: hidden. */
     height: 1px;
-    content: '';
+    content: "";
     background-color: var(--color-neutral-300);
 }
-#ribbon-menu-title:before {
+
+#ribbon-menu-title::before {
     right: 100%;
     margin-right: calc(5px * var(--ui-scale));
 }
-#ribbon-menu-title:after {
+
+#ribbon-menu-title::after {
     left: 100%;
     margin-left: calc(5px * var(--ui-scale));
 }
@@ -76,6 +78,7 @@
     top: var(--ribbon-top);
     height: var(--ribbon-height);
     width: var(--pano-width);
+
     /* Center the button row vertically within the holder, to avoid pooling whitespace in some languages. */
     display: flex;
     align-items: center;
@@ -118,7 +121,7 @@
 
 .ribbon-menu-other-subcategory {
     padding: calc(10px * var(--ui-scale)) calc(5px * var(--ui-scale));
-    margin: calc(5px * var(--ui-scale)) calc(5px * var(--ui-scale)) 0 calc(5px * var(--ui-scale));
+    margin: calc(5px * var(--ui-scale)) calc(5px * var(--ui-scale)) 0;
     background: var(--color-neutral-white);
     border-radius: calc(28px * var(--ui-scale));
     border: calc(1px * var(--ui-scale)) solid var(--color-neutral-200);

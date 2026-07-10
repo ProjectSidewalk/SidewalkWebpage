@@ -33,7 +33,7 @@
     background-color: #fafafa;
     font-family: var(--font-sans);
     font-size: 13px;
-    color: #222;
+    color: #222222;
 }
 
 .regions-toolbar label {
@@ -44,7 +44,7 @@
     font-family: var(--font-sans);
     font-size: 13px;
     padding: 2px 4px;
-    border: 1px solid #ccc;
+    border: 1px solid #cccccc;
     border-radius: 3px;
 }
 
@@ -61,13 +61,13 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: #666;
+    color: #666666;
     font-style: italic;
     background-color: #f8f9fa;
 }
 
 .loading-message::before {
-    content: '';
+    content: "";
     width: 20px;
     height: 20px;
     border: 2px solid #e0e0e0;
@@ -92,10 +92,10 @@
     background-color: white;
     padding: 5px 10px;
     border-radius: 4px;
-    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+    box-shadow: 0 1px 5px rgb(0 0 0 / 40%);
     font-size: 12px;
     font-weight: 500;
-    color: #222;
+    color: #222222;
     z-index: 1000;
 }
 
@@ -105,9 +105,9 @@
     background-color: white;
     padding: 8px 10px;
     border-radius: 4px;
-    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+    box-shadow: 0 1px 5px rgb(0 0 0 / 40%);
     line-height: 1.4;
-    color: #555;
+    color: #555555;
     font-family: var(--font-sans);
     max-width: 250px;
 }
@@ -116,18 +116,18 @@
     margin: 0 0 8px;
     font-size: 14px;
     font-weight: 600;
-    color: #222;
+    color: #222222;
 }
 
 .gradient-container {
-    border: 1px solid #ccc;
+    border: 1px solid #cccccc;
     border-radius: 3px;
     overflow: hidden;
 }
 
 .legend-tick {
     font-size: 10px;
-    color: #666;
+    color: #666666;
     font-weight: 500;
 }
 
@@ -140,10 +140,10 @@
 }
 
 .region-popup h4 {
-    margin: 0 0 8px 0;
+    margin: 0 0 8px;
     font-size: 16px;
     font-weight: 600;
-    color: #222;
+    color: #222222;
     border-bottom: 1px solid #e0e0e0;
     padding-bottom: 4px;
 }
@@ -151,11 +151,11 @@
 .region-popup p {
     margin: 4px 0;
     font-size: 13px;
-    color: #555;
+    color: #555555;
 }
 
 .region-popup strong {
-    color: #222;
+    color: #222222;
     font-weight: 500;
 }
 
@@ -183,7 +183,7 @@
 }
 
 .explore-region-btn:focus {
-    outline: 2px solid rgba(0, 123, 255, 0.5);
+    outline: 2px solid rgb(0 123 255 / 50%);
     outline-offset: 2px;
 }
 
@@ -197,16 +197,16 @@
     background-color: white;
     padding: 8px 12px;
     border-radius: 4px;
-    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+    box-shadow: 0 1px 5px rgb(0 0 0 / 40%);
     font-size: 14px;
-    color: #666;
+    color: #666666;
     z-index: 1000;
     white-space: nowrap;
 }
 
 /* ---- Responsive Adjustments ---- */
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
     .continuous-legend {
         max-width: 180px;
         padding: 6px 8px;

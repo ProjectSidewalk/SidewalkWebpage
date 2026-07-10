@@ -21,7 +21,7 @@
     padding: 20px 40px;
     border-radius: 20px;
     background: var(--color-neutral-white);
-    box-shadow: 0px 4px 8px 0px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 4px 8px 0 rgb(0 0 0 / 25%);
     color: var(--color-neutral-black);
 }
 
@@ -112,7 +112,7 @@
     position: fixed;
     top: 0;
     left: 0;
-    background: rgba(0,0,0,0.1);
+    background: rgb(0 0 0 / 10%);
     z-index: 2;
 }
 
@@ -172,11 +172,11 @@
 }
 
 .marker-start {
-    background-image: url(/assets/images/icons/routebuilder/start-point.png);
+    background-image: url("/assets/images/icons/routebuilder/start-point.png");
 }
 
 .marker-end {
-    background-image: url(/assets/images/icons/routebuilder/end-point.png);
+    background-image: url("/assets/images/icons/routebuilder/end-point.png");
 }
 
 .marker-number {
@@ -192,7 +192,7 @@
 /* Overwriting Mapbox popup styling. */
 .mapboxgl-popup-content {
     padding: 10px; /* Default 10px 10px 15px */
-    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.25); /* Default 0 1px 2px rgb(0 0 0/10%) */
+    box-shadow: 0 2px 4px 0 rgb(0 0 0 / 25%); /* Default 0 1px 2px rgb(0 0 0/10%) */
     border-radius: 10px; /* Default 3px */
 }
 

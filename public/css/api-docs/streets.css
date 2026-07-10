@@ -32,7 +32,7 @@
     padding: 0 0 var(--space-xs, 4px) 0;
     font-size: 1.2em;
     font-weight: 600;
-    color: var(--color-text-primary, #333);
+    color: var(--color-text-primary, #333333);
     border-bottom: 1px solid var(--color-border-light, #e0e0e0);
 }
 
@@ -60,13 +60,13 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: #666;
+    color: #666666;
     font-style: italic;
     background-color: #f8f9fa;
 }
 
 .loading-message::before {
-    content: '';
+    content: "";
     width: 20px;
     height: 20px;
     border: 2px solid #e0e0e0;
@@ -92,7 +92,7 @@
     background-color: var(--color-neutral-white);
     padding: 5px 10px;
     border-radius: 4px;
-    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+    box-shadow: 0 1px 5px rgb(0 0 0 / 40%);
     font-size: 14px;
     line-height: 1.4;
 }
@@ -104,10 +104,10 @@
     background-color: var(--color-neutral-white);
     padding: 5px 10px;
     border-radius: 4px;
-    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+    box-shadow: 0 1px 5px rgb(0 0 0 / 40%);
     font-size: 12px;
     font-weight: 500;
-    color: #222;
+    color: #222222;
     z-index: 1000;
 }
 
@@ -117,9 +117,9 @@
     background-color: var(--color-neutral-white);
     padding: 6px 8px;
     border-radius: 4px;
-    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+    box-shadow: 0 1px 5px rgb(0 0 0 / 40%);
     line-height: 18px;
-    color: #555;
+    color: #555555;
     font-family: var(--font-sans);
 }
 
@@ -127,7 +127,7 @@
     margin: 0 0 5px;
     font-size: 14px;
     font-weight: 600;
-    color: #222;
+    color: #222222;
 }
 
 .legend-item {
@@ -137,13 +137,13 @@
 }
 
 .legend-line {
-    border: 1px solid #ccc;
+    border: 1px solid #cccccc;
     margin-right: 8px;
 }
 
 .legend-item span {
     font-size: 12px;
-    color: #555;
+    color: #555555;
 }
 
 /* ---- Statistics Summary ---- */
@@ -152,9 +152,9 @@
     background-color: var(--color-neutral-white);
     padding: 6px 8px;
     border-radius: 4px;
-    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+    box-shadow: 0 1px 5px rgb(0 0 0 / 40%);
     line-height: 16px;
-    color: #555;
+    color: #555555;
     font-size: 12px;
     font-family: var(--font-sans);
 }
@@ -163,7 +163,7 @@
     margin: 0 0 5px;
     font-size: 14px;
     font-weight: 600;
-    color: #222;
+    color: #222222;
 }
 
 .stats-summary div {
@@ -179,10 +179,10 @@
 }
 
 .street-popup h4 {
-    margin: 0 0 8px 0;
+    margin: 0 0 8px;
     font-size: 16px;
     font-weight: 600;
-    color: #222;
+    color: #222222;
     border-bottom: 1px solid #e0e0e0;
     padding-bottom: 4px;
 }
@@ -190,11 +190,11 @@
 .street-popup p {
     margin: 4px 0;
     font-size: 13px;
-    color: #555;
+    color: #555555;
 }
 
 .street-popup strong {
-    color: #222;
+    color: #222222;
     font-weight: 500;
 }
 
@@ -208,9 +208,9 @@
     background-color: var(--color-neutral-white);
     padding: 8px 12px;
     border-radius: 4px;
-    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+    box-shadow: 0 1px 5px rgb(0 0 0 / 40%);
     font-size: 14px;
-    color: #666;
+    color: #666666;
     z-index: 1000;
     white-space: nowrap;
 }
@@ -278,7 +278,7 @@
 
 /* ---- Responsive Adjustments ---- */
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
     .stats-summary,
     .legend {
         font-size: 11px;
@@ -309,7 +309,7 @@
     }
 }
 
-@media (max-width: 480px) {
+@media (width <= 480px) {
     .region-title {
         font-size: 12px;
         padding: 4px 8px;
@@ -328,12 +328,12 @@
     align-items: center;
     justify-content: center;
     background-color: #f8f9fa;
-    color: #666;
+    color: #666666;
     font-style: italic;
 }
 
 #streets-preview.loading::before {
-    content: '';
+    content: "";
     width: 20px;
     height: 20px;
     border: 2px solid #e0e0e0;
@@ -388,13 +388,13 @@
 }
 
 .explore-street-btn:focus {
-    outline: 2px solid rgba(0, 123, 255, 0.5);
+    outline: 2px solid rgb(0 123 255 / 50%);
     outline-offset: 2px;
 }
 
 /* ---- Responsive adjustments for button ---- */
 
-@media (max-width: 480px) {
+@media (width <= 480px) {
     .explore-street-btn {
         font-size: 11px;
         padding: 5px 10px;
@@ -407,9 +407,9 @@
     background-color: var(--color-neutral-white);
     padding: 8px 10px;
     border-radius: 4px;
-    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+    box-shadow: 0 1px 5px rgb(0 0 0 / 40%);
     line-height: 1.4;
-    color: #555;
+    color: #555555;
     font-family: var(--font-sans);
     max-width: 250px;
 }
@@ -418,11 +418,11 @@
     margin: 0 0 8px;
     font-size: 14px;
     font-weight: 600;
-    color: #222;
+    color: #222222;
 }
 
 .gradient-container {
-    border: 1px solid #ccc;
+    border: 1px solid #cccccc;
     border-radius: 3px;
     overflow: hidden;
 }
@@ -433,24 +433,24 @@
 
 .legend-tick {
     font-size: 10px;
-    color: #666;
+    color: #666666;
     font-weight: 500;
 }
 
 .special-legend-item {
-    border-top: 1px solid #eee;
+    border-top: 1px solid #eeeeee;
     padding-top: 5px;
     margin-top: 8px;
 }
 
 .legend-color {
-    border: 1px solid #ccc;
+    border: 1px solid #cccccc;
     border-radius: 1px;
 }
 
 /* ---- Responsive adjustments for continuous legends ---- */
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
     .continuous-legend {
         max-width: 180px;
         padding: 6px 8px;

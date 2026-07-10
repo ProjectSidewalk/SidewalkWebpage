@@ -10,12 +10,12 @@
     margin-top: 15px;
     width: 350px;
     background: #fefefe;
-    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.12);
+    box-shadow: 2px 0 6px rgb(0 0 0 / 12%);
     z-index: 10;
     overflow-y: auto;
     scrollbar-gutter: stable;
-    padding: 40px 30px 30px 30px;
-    font-family: 'Raleway', sans-serif;
+    padding: 40px 30px 30px;
+    font-family: Raleway, sans-serif;
     transition: transform 0.2s ease;
 }
 
@@ -67,6 +67,7 @@
 
 #labelmap-search-box {
     width: 100%;
+
     /*
      * Reserve the control's height (the Mapbox search input is 36px) so mounting it never nudges the
      * filter sections below — even in the sub-frame before the search web component finishes upgrading.
@@ -100,7 +101,7 @@
 
 .map-sidebar__resize-handle:hover,
 .map-sidebar__resize-handle--dragging {
-    background: rgba(0, 0, 0, 0.15);
+    background: rgb(0 0 0 / 15%);
 }
 
 /* Applied to <body> while dragging to suppress text selection and force the resize cursor. */
@@ -117,10 +118,10 @@ body.map-sidebar-resizing {
     margin-top: 20px;
     z-index: 10;
     background: var(--color-neutral-white);
-    border: 1px solid #ccc;
+    border: 1px solid #cccccc;
     border-radius: 10px;
     padding: 6px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 4px rgb(0 0 0 / 15%);
     display: none;
 }
 
@@ -144,7 +145,7 @@ body.map-sidebar-resizing {
 }
 
 .map-sidebar__heading {
-    font-family: 'Raleway', sans-serif;
+    font-family: Raleway, sans-serif;
     font-size: 16px;
     font-weight: 700;
     color: var(--color-neutral-black);
@@ -162,16 +163,16 @@ body.map-sidebar-resizing {
 .map-sidebar__deselect-all {
     background: none;
     border: none;
-    color: #666;
+    color: #666666;
     cursor: pointer;
-    font-family: 'Roboto', sans-serif;
+    font-family: Roboto, sans-serif;
     font-size: 14px;
     padding: 0;
     text-decoration: underline;
 }
 
 .map-sidebar__deselect-all:hover {
-    color: #333;
+    color: #333333;
 }
 
 /* ---- Severity toggles ---- */
@@ -232,12 +233,12 @@ body.map-sidebar-resizing {
     border-color: var(--color-neutral-black);
 }
 
-.map-sidebar__item input[type=checkbox]:focus {
+.map-sidebar__item input[type="checkbox"]:focus {
     outline: unset; /* Removing some default styling from Bootstrap */
 }
 
 .map-sidebar__item label {
-    font-family: 'Raleway', sans-serif;
+    font-family: Raleway, sans-serif;
     font-size: 16px;
     font-weight: 500;
     color: var(--color-neutral-black);
@@ -336,6 +337,6 @@ body.map-sidebar-resizing {
 
 /* Gray checkbox when a label type is only partially filtered by tags. */
 .map-sidebar__item input[type="checkbox"].checkbox--partial {
-    background: #888;
-    border-color: #888;
+    background: #888888;
+    border-color: #888888;
 }

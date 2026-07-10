@@ -51,8 +51,7 @@
 #context-menu-tag-holder {
     margin: 0;
     display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
+    flex-flow: row wrap;
     align-items: center;
     gap: calc(5px * var(--ui-scale)) calc(4px * var(--ui-scale));
     padding: 0;

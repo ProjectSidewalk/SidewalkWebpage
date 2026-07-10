@@ -38,19 +38,19 @@
 }
 
 .header-link:hover {
-    color: rgba(251, 215, 139, 1);
+    color: rgb(251 215 139 / 100%);
 }
 
 /***** Sections and subsection text ******/
 .section-title-and-subtitle {
     position: relative;
-    top: 0px;
+    top: 0;
     margin: auto;
     max-width: 600px;
     text-align: center;
     padding-top: 50px;
     font-family: raleway, sans-serif;
-    letter-spacing: 0em;
+    letter-spacing: 0;
     font-style: normal;
     font-variant: normal;
     color: var(--color-asphalt-500);
@@ -149,17 +149,13 @@
 video#bgvid {
     min-width: 1100px;
     width: 100%;
-    background-size: cover;
-    left: 0px;
+    inset: var(--navbar-height) 0 0 0;
     backface-visibility: hidden;
     background: url("../images/psmockup.jpg") no-repeat scroll 0 0 var(--color-neutral-black);
     background-size: cover;
-    bottom: 0;
-    top: var(--navbar-height);
     height: auto;
     perspective: 1000;
     position: fixed;
-    right: 0;
     z-index: -1;
 }
 
@@ -211,10 +207,10 @@ video#bgvid {
     position: relative;
     left: 15px;
     bottom: 80px;
-    background: rgb(255, 255, 255);
+    background: rgb(255 255 255);
     width: 325px;
-    font-family: 'Raleway', sans-serif;
-    padding: 8px 8px 0px 8px;
+    font-family: Raleway, sans-serif;
+    padding: 8px 8px 0;
 }
 
 /***** Skyline styling ********/
@@ -225,10 +221,7 @@ video#bgvid {
 
 .ps-skyline-overlay {
     position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    inset: 0;
     display: flex;
     flex-direction: column;
 }
@@ -246,7 +239,7 @@ video#bgvid {
 
 .ps-skyline-overlay > .row {
     background-color: var(--color-neutral-white);
-    opacity: 90%;
+    opacity: 0.9;
     padding: 5px;
     border-radius: 15px;
     max-width: 100%;
@@ -268,17 +261,18 @@ video#bgvid {
 
 .skyline-cloud-overlay {
     margin-top: -68px;
+
     /* Height of Cloud .png */
 }
 
 .ps-skyline-stats-holder {
-    margin: -35px auto 0 auto;
+    margin: -35px auto 0;
     min-width: 800px;
     max-width: 1400px;
 
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr;
-    grid-gap: 8px;
+    gap: 8px;
 
     text-align: center;
 }
@@ -300,7 +294,7 @@ video#bgvid {
     text-decoration: none;
 }
 
-@media (max-width: 835px) {
+@media (width <= 835px) {
     .ps-skyline-stats-holder {
         display: none;
     }
@@ -313,7 +307,7 @@ p#conditional-text {
 /**** ML Section -- What do we do with your data? *****/
 
 #machinelearning-container {
-    background-color: rgba(249, 241, 227, 1);
+    background-color: rgb(249 241 227 / 100%);
     width: 100%;
     min-height: 800px;
 }
@@ -420,8 +414,9 @@ p#conditional-text {
     transform: rotate(45deg);
     transform-origin: top right;
     font-family: Arial, sans-serif;
-    box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.3);
+    box-shadow: 2px 2px 3px rgb(0 0 0 / 30%);
     z-index: 2000;
+
     /* Adjust the value as needed */
 }
 
@@ -436,12 +431,12 @@ p#conditional-text {
 .collaborator-images-container {
     display: grid;
     grid-auto-flow: column;
-    grid-gap: 20px 50px;
+    gap: 20px 50px;
     align-items: center;
 }
 
 .collaborator-image {
-    padding: 15px 3% 15px 3%;
+    padding: 15px 3%;
 }
 
 .collaborator-image img {

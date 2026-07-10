@@ -47,6 +47,7 @@
     padding: 0 calc(70px * var(--ui-scale, 1));
     width: 100%;
 }
+
 .mst-carousel {
     display: flex;
     flex-shrink: 0;
@@ -88,8 +89,7 @@
     width: calc(290px * var(--ui-scale, 1));
     display: flex;
     flex-shrink: 0;
-    flex-wrap: wrap;
-    flex-direction: column;
+    flex-flow: column wrap;
     position: relative;
 }
 
@@ -234,7 +234,7 @@
     height: calc(8px * var(--ui-scale, 1));
     position: absolute;
     bottom: calc(-6px * var(--ui-scale, 1));
-    content: '';
+    content: "";
     left: 50%;
     transform: translateX(-50%);
 }

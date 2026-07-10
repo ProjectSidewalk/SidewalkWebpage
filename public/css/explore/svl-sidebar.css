@@ -26,7 +26,7 @@
 .explore-sidebar__heading {
     font: var(--text-body-medium);
     color: var(--color-neutral-black);
-    margin: 0 0 calc(4px * var(--ui-scale)) 0;
+    margin: 0 0 calc(4px * var(--ui-scale));
 }
 
 .explore-sidebar__subheading {
@@ -51,6 +51,7 @@
 .explore-sidebar__badge-progress {
     --ps-progress-bar-height: calc(10px * var(--ui-scale));
 }
+
 .explore-sidebar__badge-progress .ps-progress-bar__label {
     font: var(--text-tiny-semibold);
 }
@@ -153,7 +154,7 @@
     background: var(--color-neutral-white);
     border: 1px solid var(--color-neutral-600);
     border-radius: calc(12px * var(--ui-scale));
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 12%);
     pointer-events: none;
     opacity: 0;
     visibility: hidden;

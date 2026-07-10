@@ -26,7 +26,7 @@
 }
 
 .leaderboard-table-header {
-    background-color: rgba(251, 215, 139, 1);
+    background-color: rgb(251 215 139 / 100%);
     font-weight: bold;
 }
 
@@ -43,8 +43,7 @@
 
 .leaderboard-container {
     display: flex;
-    flex-wrap: wrap;
-    flex-direction: row;
+    flex-flow: row wrap;
     justify-content: center;
     text-align: center;
     align-items: top;
