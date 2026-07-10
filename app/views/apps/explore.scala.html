@@ -102,7 +102,7 @@
                             </li>
                         }
                     </ol>
-                        <button value="Submit" class="btn btn-sm btn-primary btn-block">@Messages("submit")</button>
+                        <button type="submit" value="Submit" class="btn btn-sm btn-primary btn-block">@Messages("submit")</button>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -368,15 +368,15 @@
                             <img class="pano-overlay-button-icon" src='@assets.path("images/icons/comment-material.svg")' alt="">
                             <span class="pano-overlay-button-label" data-i18n="audit:controls.feedback">Feedback</span>
                         </div>
-                        <button id="explore-control-buttons-toggle" class="pano-overlay-button pano-overlay-toggle" aria-label="More options" data-i18n-aria-label="common:more-options" aria-expanded="false">
+                        <button type="button" id="explore-control-buttons-toggle"class="pano-overlay-button pano-overlay-toggle" aria-label="More options" data-i18n-aria-label="common:more-options" aria-expanded="false">
                             <img id="explore-control-buttons-toggle-icon" class="pano-overlay-button-icon" src='@assets.path("images/icons/chevron-right-white-feather.svg")' alt="">
                         </button>
                     </div>
                     <div id="zoom-buttons-holder" class="zoom-buttons-holder">
-                        <button id="zoom-in-button" class="zoom-button" title="@Messages("press.key", "Z")" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in">
+                        <button type="button" id="zoom-in-button" class="zoom-button" title="@Messages("press.key", "Z")" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in">
                             <img class="zoom-button-icon" src='@assets.path("images/icons/plus-white-material.svg")' alt="">
                         </button>
-                        <button id="zoom-out-button" class="zoom-button" title="@Messages("press.keys", "Shift + Z")" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out">
+                        <button type="button" id="zoom-out-button" class="zoom-button" title="@Messages("press.keys", "Shift + Z")" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out">
                             <img class="zoom-button-icon" src='@assets.path("images/icons/minus-white-material.svg")' alt="">
                         </button>
                     </div>
@@ -421,7 +421,7 @@
                     <!-- Context Menu Container -->
                     <div id="context-menu-holder">
                         <div id="context-menu-close-button-holder">
-                            <button id="context-menu-close-button">
+                            <button type="button" id="context-menu-close-button">
                                 <svg width="100%" height="100%" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M15 5L5 15M5 5L15 15" stroke="#9F9DB1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
                                 </svg>
@@ -438,23 +438,23 @@
                                     data-toggle="tooltip" data-placement="top" alt="More information about tags">`
                             </div>
                             <div id="context-menu-tag-holder" class="context-menu-section">
-                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="0"></button>
-                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="1"></button>
-                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="2"></button>
-                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="3"></button>
-                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="4"></button>
-                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="5"></button>
-                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="6"></button>
-                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="7"></button>
-                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="8"></button>
-                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="9"></button>
-                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="10"></button>
-                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="11"></button>
-                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="12"></button>
-                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="13"></button>
-                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="14"></button>
-                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="15"></button>
-                                <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="16"></button>
+                                <button type="button" class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="0"></button>
+                                <button type="button" class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="1"></button>
+                                <button type="button" class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="2"></button>
+                                <button type="button" class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="3"></button>
+                                <button type="button" class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="4"></button>
+                                <button type="button" class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="5"></button>
+                                <button type="button" class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="6"></button>
+                                <button type="button" class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="7"></button>
+                                <button type="button" class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="8"></button>
+                                <button type="button" class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="9"></button>
+                                <button type="button" class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="10"></button>
+                                <button type="button" class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="11"></button>
+                                <button type="button" class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="12"></button>
+                                <button type="button" class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="13"></button>
+                                <button type="button" class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="14"></button>
+                                <button type="button" class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="15"></button>
+                                <button type="button" class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="16"></button>
                             </div>
                         </div>
 
@@ -495,7 +495,7 @@
                             </div>
                             <div class="description-input-frame">
                                 <input type="text" id="context-menu-description-text-box" placeholder="@Messages("audit.center.ui.description.placeholder")">
-                                <button id="context-menu-ok-button">OK</button>
+                                <button type="button" id="context-menu-ok-button">OK</button>
                             </div>
                         </div>
                     </div>
@@ -525,10 +525,10 @@
                             <textarea id="modal-comment-textarea" placeholder=""></textarea>
                         </div>
                         <div class="modal-comment-buttons">
-                            <button id="modal-comment-cancel-button" class="button-ps button--secondary button--medium">
+                            <button type="button" id="modal-comment-cancel-button"class="button-ps button--secondary button--medium">
                                 @Messages("cancel")
                             </button>
-                            <button id="modal-comment-ok-button" class="button-ps button--primary button--medium">
+                            <button type="button" id="modal-comment-ok-button"class="button-ps button--primary button--medium">
                                 @Messages("ok")
                             </button>
                         </div>
@@ -601,8 +601,8 @@
                     </div>
 
                     <div class="mission-complete__buttons">
-                        <button class="button-ps button--medium button--secondary" id="modal-mission-complete-close-button-secondary"></button>
-                        <button class="button-ps button--medium button--primary" id="modal-mission-complete-close-button-primary"></button>
+                        <button type="button" class="button-ps button--medium button--secondary" id="modal-mission-complete-close-button-secondary"></button>
+                        <button type="button" class="button-ps button--medium button--primary" id="modal-mission-complete-close-button-primary"></button>
                     </div>
                 </div>
             </div>
@@ -632,7 +632,7 @@
             </div>
             <div class="col-md-offset-3 col-md-3">
                 <p>
-                    <button class="button-ps button--medium button--secondary onboarding-transition-trigger" id="onboarding-welcome-ok-button" value="OK">@Messages("audit.tutorial.welcome.3")</button>
+                    <button type="button" class="button-ps button--medium button--secondary onboarding-transition-trigger" id="onboarding-welcome-ok-button" value="OK">@Messages("audit.tutorial.welcome.3")</button>
                 </p>
             </div>
 
@@ -681,7 +681,7 @@
             </div>
         </div>
         <div class="onboarding-ok-button-holder">
-            <button class="button-ps button--medium button--secondary" id="onboarding-ok-button">OK</button>
+            <button type="button" class="button-ps button--medium button--secondary" id="onboarding-ok-button">OK</button>
         </div>
     </template>
     @if(commonData.imagerySource == PanoSource.Infra3d) {

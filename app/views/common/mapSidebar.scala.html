@@ -13,7 +13,7 @@
             </span>
             <label for="@(labelType)-checkbox" data-i18n="@i18nKey">@Messages(msgKey)</label>
             @if(tagsByLabelType.getOrElse(labelType, Seq.empty).nonEmpty) {
-                <button class="map-sidebar__tag-toggle" aria-expanded="false"
+                <button type="button" class="map-sidebar__tag-toggle" aria-expanded="false"
                         aria-label="Show tags" data-i18n-aria-label="labelmap:show-tags">
                     <img src='@assets.path("images/icons/chevron-right-feather.svg")' alt=""
                          data-down-src='@assets.path("images/icons/chevron-right-feather.svg")'
@@ -24,7 +24,7 @@
         @if(tagsByLabelType.getOrElse(labelType, Seq.empty).nonEmpty) {
             <div class="map-sidebar__tag-pills" hidden>
                 @for(tag <- tagsByLabelType(labelType)) {
-                    <button class="tag-pill tag-pill--interactive" data-tag="@tag.tag" data-label-type="@labelType">
+                    <button type="button" class="tag-pill tag-pill--interactive" data-tag="@tag.tag" data-label-type="@labelType">
                         <span class="tag-pill__label" data-i18n="common:tag.@{tag.tag.replace(":", "-")}">@tag.tag</span>
                     </button>
                 }
@@ -35,7 +35,7 @@
 
 <div id="map-sidebar" class="map-sidebar ps-invisible" role="complementary" aria-label="Legend"
     data-i18n-aria-label="labelmap:legend">
-    <button id="map-sidebar-close" class="map-sidebar__close" aria-label="Close"
+    <button type="button" id="map-sidebar-close" class="map-sidebar__close" aria-label="Close"
             data-i18n-aria-label="common:close">
         <img src="@assets.path("images/icons/chevrons-left-feather.svg")" alt="">
     </button>
@@ -53,12 +53,12 @@
     <section class="map-sidebar__section">
         <div class="map-sidebar__heading-row">
             <h3 class="map-sidebar__heading" data-i18n="common:severity">@Messages("severity")</h3>
-            <button class="map-sidebar__deselect-all" data-section="severity"
+            <button type="button" class="map-sidebar__deselect-all" data-section="severity"
                     data-i18n="labelmap:deselect-all">Deselect all</button>
         </div>
         <div class="map-sidebar__severity-toggles" role="group" aria-label="@Messages("severity")"
              data-i18n-aria-label="common:severity">
-            <button class="severity-button" data-severity="0" aria-pressed="true">
+            <button type="button" class="severity-button" data-severity="0" aria-pressed="true">
                 <img class="severity-button__icon"
                      src='@assets.path("images/icons/smileys/sev-0-negative-filled.svg")'
                      data-selected-src='@assets.path("images/icons/smileys/sev-0-negative-filled.svg")'
@@ -66,7 +66,7 @@
                      alt="@Messages("not.applicable.abbr")" data-i18n-alt="labelmap:not-applicable-abbr">
                 <span class="severity-button__label" data-i18n="labelmap:not-applicable-abbr">@Messages("not.applicable.abbr")</span>
             </button>
-            <button class="severity-button" data-severity="1" aria-pressed="true">
+            <button type="button" class="severity-button" data-severity="1" aria-pressed="true">
                 <img class="severity-button__icon"
                      src='@assets.path("images/icons/smileys/sev-1-negative-filled.svg")'
                      data-selected-src='@assets.path("images/icons/smileys/sev-1-negative-filled.svg")'
@@ -74,7 +74,7 @@
                      alt="@Messages("low")" data-i18n-alt="common:low">
                 <span class="severity-button__label" data-i18n="common:low">@Messages("low")</span>
             </button>
-            <button class="severity-button" data-severity="2" aria-pressed="true">
+            <button type="button" class="severity-button" data-severity="2" aria-pressed="true">
                 <img class="severity-button__icon"
                      src='@assets.path("images/icons/smileys/sev-2-negative-filled.svg")'
                      data-selected-src='@assets.path("images/icons/smileys/sev-2-negative-filled.svg")'
@@ -82,7 +82,7 @@
                      alt="@Messages("medium")" data-i18n-alt="common:medium">
                 <span class="severity-button__label" data-i18n="common:medium">@Messages("medium")</span>
             </button>
-            <button class="severity-button" data-severity="3" aria-pressed="true">
+            <button type="button" class="severity-button" data-severity="3" aria-pressed="true">
                 <img class="severity-button__icon"
                      src='@assets.path("images/icons/smileys/sev-3-negative-filled.svg")'
                      data-selected-src='@assets.path("images/icons/smileys/sev-3-negative-filled.svg")'
@@ -97,7 +97,7 @@
     <section class="map-sidebar__section">
         <div class="map-sidebar__heading-row">
             <h3 class="map-sidebar__heading" data-i18n="labelmap:label-type">@Messages("label.type")</h3>
-            <button class="map-sidebar__deselect-all" data-section="label-type"
+            <button type="button" class="map-sidebar__deselect-all" data-section="label-type"
                     data-i18n="labelmap:deselect-all">Deselect all</button>
         </div>
         <ul class="map-sidebar__list">
@@ -117,7 +117,7 @@
     <section class="map-sidebar__section">
         <div class="map-sidebar__heading-row">
             <h3 class="map-sidebar__heading" data-i18n="labelmap:validations">@Messages("validations")</h3>
-            <button class="map-sidebar__deselect-all" data-section="label-validations"
+            <button type="button" class="map-sidebar__deselect-all" data-section="label-validations"
                     data-i18n="labelmap:deselect-all">Deselect all</button>
         </div>
         <ul class="map-sidebar__list">
@@ -172,10 +172,10 @@
         <div class="map-sidebar__heading-row">
             <h3 class="map-sidebar__heading" data-i18n="labelmap:streets">Streets</h3>
             @if(streetsShownByDefault) {
-                <button class="map-sidebar__deselect-all" data-section="streets"
+                <button type="button" class="map-sidebar__deselect-all" data-section="streets"
                         data-i18n="labelmap:deselect-all">Deselect all</button>
             } else {
-                <button class="map-sidebar__deselect-all" data-section="streets"
+                <button type="button" class="map-sidebar__deselect-all" data-section="streets"
                         data-i18n="labelmap:select-all">Select all</button>
             }
         </div>
@@ -208,7 +208,7 @@
      data-i18n-aria-label="labelmap:resize-legend"></div>
 
 @* Floating button to reopen the sidebar when it's closed *@
-<button id="map-sidebar-open" class="map-sidebar-open-btn" aria-label="Legend"
+<button type="button" id="map-sidebar-open" class="map-sidebar-open-btn" aria-label="Legend"
         data-i18n-aria-label="labelmap:legend">
     <img src="@assets.path("images/icons/chevrons-right-feather.svg")" alt="">
 </button>

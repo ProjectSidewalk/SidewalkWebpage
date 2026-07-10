@@ -34,7 +34,7 @@
   "title-require": true,
   "frame-title-require": true,
   "input-requires-label": false,
-  "button-type-require": false,
+  "button-type-require": true,
   "form-method-require": false,
   "h1-require": false,
   "main-require": false,
