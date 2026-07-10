@@ -22,9 +22,31 @@ export default {
         'public/stylesheets/pannellum-2.5.7.css',
     ],
     rules: {
-        // Only allow CSS features that are Baseline "widely available" (shipped in every core browser for 30+
-        // months) — the CSS analogue of the JS side's ES2022 target. Wrap intentional exceptions in @supports.
-        'plugin/use-baseline': [true, { available: 'widely' }],
+        // Only allow CSS features that are Baseline "newly available" (shipped in every core browser, but not yet for
+        // the 30+ months "widely" requires) — the CSS analogue of the JS side's ES2022 target. Wrap genuinely
+        // bleeding-edge exceptions in @supports.
+        //
+        // ignoreProperties allowlists four features the plugin classifies as "limited availability" (not Baseline at
+        // any tier) that we've reviewed and accepted: each degrades gracefully when unsupported (a lost visual/UX
+        // nicety, never broken layout), and the two that just need a vendor prefix already carry a -webkit- sibling.
+        // An empty array ignores only the property-level flag; a value list is required for the features the plugin
+        // flags per-value (user-select, overscroll-behavior, background-attachment), and scopes the ignore to those.
+        //   - user-select: none:            text becomes selectable mid-drag; -webkit- prefix covers Safari.
+        //   - resize:                       textarea shows/omits its resize grip.
+        //   - overscroll-behavior: contain: scroll can chain to the page behind a modal.
+        //   - background-attachment: fixed: footer parallax falls back to normal scroll (already a no-op on mobile).
+        'plugin/use-baseline': [
+            true,
+            {
+                available: 'newly',
+                ignoreProperties: {
+                    'user-select': ['none'],
+                    resize: [],
+                    'overscroll-behavior': ['contain'],
+                    'background-attachment': ['fixed'],
+                },
+            },
+        ],
 
         'declaration-empty-line-before': null,
         'custom-property-empty-line-before': null,

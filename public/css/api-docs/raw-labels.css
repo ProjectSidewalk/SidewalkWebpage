@@ -116,7 +116,8 @@
    RESPONSIVE ADJUSTMENTS
    ========================================================================== */
 
-@media (max-width: var(--breakpoint-sm)) {
+/* Responsive adjustments: var(--breakpoint-sm)). */
+@media (width <= 768px) {
     #raw-labels-preview {
         height: 400px;
     }

@@ -112,7 +112,7 @@
 
     /* ---- Responsive Breakpoints ---- */
 
-    /* Use these with: @media (max-width: var(--breakpoint-md)) */
+    /* Defined for media queries, though raw pixel values will ultimately need to be used. */
     --breakpoint-xs: 480px;
     --breakpoint-sm: 768px;
     --breakpoint-md: 992px;
@@ -338,7 +338,8 @@ pre > code.language-csv {
     font-size: 1em;
     color: var(--color-accent-link);
     text-decoration: none;
-    transition: opacity var(--transition-fast);
+    cursor: pointer;
+    transition: opacity var(--transition-fast), color var(--transition-fast);
 }
 
 h1:hover .permalink,
@@ -519,8 +520,8 @@ h6:hover .permalink {
     box-shadow: var(--box-shadow-sm);
 }
 
-/* Mobile responsiveness for citation */
-@media (max-width: var(--breakpoint-sm)) {
+/* Mobile responsiveness for citation: var(--breakpoint-sm). */
+@media (width <= 768px) {
     .bibtex-btn {
         width: auto; /* Allow button to size to content */
         margin-left: auto; /* Maintain right alignment */
@@ -917,10 +918,7 @@ h6:hover .permalink {
    RESPONSIVE ADJUSTMENTS
    ========================================================================== */
 
-/* I originally used CSS variables in the media query conditions but these failed to work
-and failed CSS linting/validation in https://jigsaw.w3.org/css-validator/validator, so I
-replaced the following variables with hardcoded values:
-
+/* var() doesn't work in media queries, so we have to use hardcoded values:
 var(--breakpoint-xs) → 480px
 var(--breakpoint-sm) → 768px
 var(--breakpoint-md) → 992px */
@@ -1006,12 +1004,7 @@ var(--breakpoint-md) → 992px */
     }
 }
 
-/* Enhanced permalink styling for clipboard functionality */
-.permalink {
-    cursor: pointer;
-    transition: opacity var(--transition-fast), color var(--transition-fast);
-}
-
+/* Enhanced permalink hover/focus for clipboard functionality */
 .permalink:hover {
     opacity: 1;
     color: var(--color-accent-link);
@@ -1037,6 +1030,7 @@ var(--breakpoint-md) → 992px */
     transition: opacity 0.3s ease, transform 0.3s ease;
     pointer-events: none;
     white-space: nowrap;
+    z-index: 10000; /* Ensure toasts appear above everything. */
 }
 
 .copy-toast-success {
@@ -1050,9 +1044,4 @@ var(--breakpoint-md) → 992px */
 .copy-toast-visible {
     opacity: 1;
     transform: translateY(0);
-}
-
-/* Ensure toasts appear above everything */
-.copy-toast {
-    z-index: 10000;
 }

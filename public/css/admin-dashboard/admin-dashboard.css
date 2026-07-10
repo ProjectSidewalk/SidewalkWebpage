@@ -15,6 +15,24 @@
     --coverage-c2: #6baed6; /* ~66%  */
     --coverage-c3: #2171b5; /* ~100% */
     --coverage-selected: var(--color-label-surface-problem); /* High-contrast highlight against the Blues scale */
+
+    /* Shared MiniLineChart series colors (Data Quality agreement trend, API usage trend). Blue/orange =
+       colorblind-safe pair; apiDocs muted grey since it's our own traffic. */
+    --dq-human: #2171b5;
+    --dq-ai: var(--color-label-surface-problem);
+    --api-external: #2171b5;
+    --api-docs: var(--color-neutral-600);
+
+    /* Activity colors, from the Okabe-Ito colorblind-safe qualitative palette. Volume + registered share the blue;
+       anonymous uses vermillion — the blue/orange pairing is maximally distinct in both hue AND luminance (so it
+       survives color-vision deficiency and grayscale), which a blue/purple pairing is not. */
+    --act-accent: #0072b2;
+    --act-registered: #0072b2;
+    --act-anon: #d55e00;
+
+    /* Humans vs AI series colors: Okabe-Ito blue + vermillion (colorblind-safe, distinct in hue AND luminance). */
+    --hva-human: #0072b2;
+    --hva-ai: #d55e00;
 }
 
 /* --- Left nav: disabled "coming soon" items ------------------------------------------------------------------ */
@@ -261,6 +279,7 @@
     text-align: left;
     padding: 8px 10px;
     cursor: pointer;
+    -webkit-user-select: none;
     user-select: none;
     white-space: nowrap;
     color: var(--color-text-heading, #263238);
@@ -565,21 +584,6 @@
 
 /* --- Shared MiniLineChart (Data Quality agreement trend, API usage trend) ----------------------------------- */
 
-/* Series colors (blue/orange = colorblind-safe pair; apiDocs muted grey since it's our own traffic). */
-:root {
-    --dq-human: #2171b5;
-    --dq-ai: var(--color-label-surface-problem);
-    --api-external: #2171b5;
-    --api-docs: var(--color-neutral-600);
-
-    /* Activity colors, from the Okabe-Ito colorblind-safe qualitative palette. Volume + registered share the blue;
-       anonymous uses vermillion — the blue/orange pairing is maximally distinct in both hue AND luminance (so it
-       survives color-vision deficiency and grayscale), which a blue/purple pairing is not. */
-    --act-accent: #0072b2;
-    --act-registered: #0072b2;
-    --act-anon: #d55e00;
-}
-
 /* Charts are sized to their container's pixel width by MiniLineChart.renderInto (so text/lines/dots stay constant size
    while still filling the width); width:100% just lets the rendered SVG occupy its host. */
 .mini-chart-svg {
@@ -705,6 +709,7 @@
     align-items: center;
     gap: 8px;
     cursor: pointer;
+    -webkit-user-select: none;
     user-select: none;
 
     /* Reset the global Bootstrap `label` margin/weight so the switch centers in the flex row and the text isn't bold. */
@@ -1132,12 +1137,6 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 }
 
 /* --- Humans vs AI ------------------------------------------------------------------------------------------- */
-
-/* Human/AI series colors: Okabe-Ito blue + vermillion (colorblind-safe, distinct in hue AND luminance). */
-:root {
-    --hva-human: #0072b2;
-    --hva-ai: #d55e00;
-}
 
 .hva-boundary {
     color: var(--color-text-secondary, #5a7785);
@@ -1832,6 +1831,7 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
     font-weight: 600;
     white-space: nowrap;
     cursor: pointer;
+    -webkit-user-select: none;
     user-select: none;
 }
 .ac-table thead th.ac-th-text { text-align: left; }

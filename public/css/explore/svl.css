@@ -231,6 +231,7 @@ input[type="radio"] {
  * prevent an issue where dragging on the pano canvas would select a bunch of stuff in the background; issue link below.
  * https://github.com/ProjectSidewalk/SidewalkWebpage/issues/121
  */
+/* stylelint-disable-next-line block-no-empty -- Intentional marker class; presence on an element (not any declaration) is what the JS selection logic keys on. */
 .audit-selectable { }
 
 #pano-info-button {

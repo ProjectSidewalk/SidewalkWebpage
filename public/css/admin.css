@@ -23,6 +23,7 @@
     width: 110%;
 }
 
+/* stylelint-disable-next-line selector-id-pattern -- DataTables auto-generates this wrapper id from #user-table. */
 #user-table_wrapper {
     transform: rotateX(180deg); /* Adding scrollbar flips all text, this flips it back. */
     font-size: 11px;

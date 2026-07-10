@@ -106,6 +106,7 @@
 
 /* Applied to <body> while dragging to suppress text selection and force the resize cursor. */
 body.map-sidebar-resizing {
+    -webkit-user-select: none;
     user-select: none;
     cursor: col-resize;
 }

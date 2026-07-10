@@ -124,21 +124,6 @@
     right: 0;
 }
 
-@keyframes pulsate {
-    0%   { transform: scale(1); }
-    50%  { transform: scale(0.9); }
-    50%  { transform: scale(1); }
-    50%  { transform: scale(1.1); }
-}
-
-/* Catching users' attention after they finish going through all the slides. */
-.mission-start-tutorial-done-btn.focus {
-    animation: pulsate;
-    animation-duration: 2s;
-    animation-iteration-count: 3;
-    animation-delay: 1s;
-}
-
 .msts-image-area {
     width: calc(658px * var(--ui-scale, 1));
     height: calc(436px * var(--ui-scale, 1));

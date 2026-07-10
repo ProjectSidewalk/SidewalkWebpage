@@ -98,10 +98,10 @@
     pointer-events: none;
 }
 
-/* Responsive adjustments */
-@media (max-width: var(--breakpoint-sm)) {
+/* Responsive adjustments: var(--breakpoint-sm)). */
+@media (width <= 768px) {
     #cities-preview {
-        height: 400px;
+        height: 400px; /* TODO this is being overridden in citiesPreview.js anyway. */
     }
 
     .city-popup {

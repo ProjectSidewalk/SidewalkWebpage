@@ -158,10 +158,8 @@ body {
 
 body {
     overflow-x: clip; /* Prevent horizontal scroll on narrow devices */
-}
 
-/* Moves all page content down to start just below the navbar. */
-body {
+    /* Moves all page content down to start just below the navbar. */
     padding-top: var(--navbar-height);
 }
 
@@ -216,7 +214,7 @@ a {
 }
 
 /* TODO This one is used in the navbar, which we aren't scaling with --ui-scale. Need to address this another way. */
-.button--tiny__static {
+.button__static--tiny {
     font-size: 12px;
     font-style: var(--font-primary);
     padding: 3px 10px;
@@ -851,9 +849,6 @@ body:has(#header.header--tall) .test-server-banner {
     margin: auto;
     border-radius: 5px;
     font-size: 21px;
-}
-
-#area-completion-overlay, #already-completed-neighborhood-text {
     top: 28%;
 }
 
