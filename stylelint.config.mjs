@@ -50,6 +50,14 @@ export default {
         '@stylistic/indentation': 4,
         '@stylistic/string-quotes': 'double',
         '@stylistic/max-empty-lines': 2,
+        // One declaration per line. config-standard's declaration-block-single-line-max-declarations flags packed
+        // one-liners but can't fix them; this @stylistic rule carries the fixer, so `make stylelint-fix` splits them.
+        '@stylistic/declaration-block-semicolon-newline-after': 'always',
+        // Braces on their own lines for multi-line blocks (newline after `{`, before `}`), so a split block reads as
+        // one-declaration-per-line rather than leaving the outer declarations hugging the braces. `-multi-line` leaves
+        // genuine single-declaration one-liners (`.spacer10 { height: 10px; }`) compact.
+        '@stylistic/block-opening-brace-newline-after': 'always-multi-line',
+        '@stylistic/block-closing-brace-newline-before': 'always-multi-line',
         // Warning, not error, matching the JS max-len rule: CLAUDE.md sanctions long-line exceptions.
         '@stylistic/max-line-length': [120, { severity: 'warning' }],
     },

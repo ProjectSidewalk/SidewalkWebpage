@@ -314,28 +314,48 @@
 
 @media (width <= 768px) {
     /* General map adjustments */
-    #deployment-map { height: 60vh; max-height: 500px; }
+    #deployment-map {
+        height: 60vh;
+        max-height: 500px;
+    }
     .map-section { height: 400px; }
 
     /* Dashboard layout */
-    .deployment-sites-container { padding: 10px 15px; gap: 20px; }
+    .deployment-sites-container {
+        padding: 10px 15px;
+        gap: 20px;
+    }
     .deployment-sites-stats-holder { gap: 25px; }
     .stat-group { min-width: 100px; }
     .deployment-sites-stats-header { font-size: 20px; }
     .deployment-sites-stats-stat { font-size: 22px; }
-    .stat-group img { height: 50px; margin: 10px 0; }
+
+    .stat-group img {
+        height: 50px;
+        margin: 10px 0;
+    }
 }
 
 @media (width <= 480px) {
     /* General map adjustments */
-    #deployment-map { height: 50vh; max-height: 400px; }
+    #deployment-map {
+        height: 50vh;
+        max-height: 400px;
+    }
     .map-section { height: 300px; }
 
     /* Dashboard layout */
-    .deployment-sites-container { padding: 10px; gap: 15px; }
+    .deployment-sites-container {
+        padding: 10px;
+        gap: 15px;
+    }
     .deployment-sites-stats-holder { gap: 20px; }
     .stat-group { min-width: 80px; }
     .deployment-sites-stats-header { font-size: 16px; }
     .deployment-sites-stats-stat { font-size: 18px; }
-    .stat-group img { height: 40px; margin: 8px 0; }
+
+    .stat-group img {
+        height: 40px;
+        margin: 8px 0;
+    }
 }

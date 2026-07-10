@@ -4,6 +4,9 @@ db ?= sidewalk
 dir ?= ./
 args ?=
 html-ignore ?= **/bootstrap/**
+# dir= as stylelint sees it: passed through if it already names a .css file/glob, else treated as a directory and
+# recursed (stylelint only accepts file paths/globs; see lint-stylelint).
+css-glob = $(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css)
 
 dev: | docker-up-db docker-run
 
@@ -95,23 +98,42 @@ lint-htmlhint:
 lint-eslint:
 	@echo "Running eslint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) public/javascripts/"; \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) public/js/"; \
 	else \
 		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) $(dir)"; \
 	fi
 	@echo "Finished Running eslint";
 
+# Unlike eslint, stylelint doesn't recurse into a bare directory, so a dir= that isn't already a .css file/glob gets
+# /**/*.css appended (css-glob, defined at the top). Globs are single-quoted so stylelint's globber expands the `**`,
+# not the container shell (where bare `**` means `*`).
 lint-stylelint:
-	@echo "Running stylelint..."; docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/stylelint/bin/stylelint.js $(args) $(dir)"; echo "Finished Running stylelint"
+	@echo "Running stylelint...";
+	@if [ "$(dir)" = "./" ]; then \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/.bin/stylelint $(args) 'public/**/*.css'"; \
+	else \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/.bin/stylelint $(args) '$(css-glob)'"; \
+	fi
+	@echo "Finished Running stylelint";
 
 lint-fix-eslint:
 	@echo "Running eslint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) public/javascripts/"; \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) public/js/"; \
 	else \
 		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) $(dir)"; \
 	fi
 	@echo "Finished Running eslint";
 
+# Runs --fix twice: stylelint applies fixers in a single pass, so when the brace-newline fixers insert newlines the
+# indentation fixer has already computed against the old positions and leaves the new lines mis-indented — a second
+# pass corrects them. The first pass is silenced (output + exit code discarded); only the second pass's output and
+# exit status surface, so the target looks like a single run.
 lint-fix-stylelint:
-	@echo "Running stylelint..."; docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/stylelint/bin/stylelint.js --fix $(args) $(dir)"; echo "Finished Running stylelint"
+	@echo "Running stylelint...";
+	@if [ "$(dir)" = "./" ]; then \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/.bin/stylelint --fix $(args) 'public/**/*.css' > /dev/null 2>&1; ./node_modules/.bin/stylelint --fix $(args) 'public/**/*.css'"; \
+	else \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/.bin/stylelint --fix $(args) '$(css-glob)' > /dev/null 2>&1; ./node_modules/.bin/stylelint --fix $(args) '$(css-glob)'"; \
+	fi
+	@echo "Finished Running stylelint";

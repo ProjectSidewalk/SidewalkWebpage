@@ -164,9 +164,22 @@ h1, h2, h3, h4, h5, h6 {
 h1 { font-size: var(--font-size-heading-1); }
 h2 { font-size: var(--font-size-heading-2); }
 h3 { font-size: var(--font-size-heading-3); }
-h4 { font-size: var(--font-size-heading-4); font-weight: 500; }
-h5 { font-size: var(--font-size-heading-5); font-weight: 500; }
-h6 { font-size: var(--font-size-heading-6); font-weight: 500; color: var(--color-text-secondary); }
+
+h4 {
+    font-size: var(--font-size-heading-4);
+    font-weight: 500;
+}
+
+h5 {
+    font-size: var(--font-size-heading-5);
+    font-weight: 500;
+}
+
+h6 {
+    font-size: var(--font-size-heading-6);
+    font-weight: 500;
+    color: var(--color-text-secondary);
+}
 
 p {
     margin-top: 0;
@@ -352,10 +365,25 @@ h6:hover .permalink {
     line-height: 1.5;
 }
 
-.api-badge-get { background-color: var(--color-accent-get); color: var(--color-text-on-accent); }
-.api-badge-post { background-color: var(--color-accent-post); color: var(--color-text-on-accent); }
-.api-badge-delete { background-color: var(--color-accent-delete); color: var(--color-text-on-accent); }
-.api-badge-put { background-color: var(--color-accent-put); color: var(--color-text-on-accent); }
+.api-badge-get {
+    background-color: var(--color-accent-get);
+    color: var(--color-text-on-accent);
+}
+
+.api-badge-post {
+    background-color: var(--color-accent-post);
+    color: var(--color-text-on-accent);
+}
+
+.api-badge-delete {
+    background-color: var(--color-accent-delete);
+    color: var(--color-text-on-accent);
+}
+
+.api-badge-put {
+    background-color: var(--color-accent-put);
+    color: var(--color-text-on-accent);
+}
 
 /* ---- Loading Animation ---- */
 

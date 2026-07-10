@@ -91,8 +91,17 @@ dialog.label-detail[open]::backdrop {
     border-radius: 4px;
 }
 .label-detail__close:hover { background: rgb(0 0 0 / 6%); }
-.label-detail__close:focus-visible { outline: 2px solid #4a90e2; outline-offset: 2px; }
-.label-detail__close svg { width: 100%; height: 100%; display: block; }
+
+.label-detail__close:focus-visible {
+    outline: 2px solid #4a90e2;
+    outline-offset: 2px;
+}
+
+.label-detail__close svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
 
 /* ─── Pano viewer ─────────────────────────────────────────────────────── */
 
@@ -153,7 +162,11 @@ dialog.label-detail[open]::backdrop {
     transition: opacity 120ms ease;
 }
 .label-detail__pano-overlay-button:hover { opacity: 0.95; }
-.label-detail__pano-overlay-button:focus-visible { outline: 2px solid #4a90e2; outline-offset: -2px; }
+
+.label-detail__pano-overlay-button:focus-visible {
+    outline: 2px solid #4a90e2;
+    outline-offset: -2px;
+}
 .label-detail__pano-overlay-button[disabled] { cursor: wait; }
 
 .label-detail__pano-overlay-button--agree    { background: var(--color-pine-500); }
@@ -228,7 +241,11 @@ dialog.label-detail[open]::backdrop {
 
 .label-detail__col--validations { flex: 0 0 auto; }
 .label-detail__col--severity    { flex: 0 0 auto; }
-.label-detail__col--tags        { flex: 1 1 auto; min-width: 0; }
+
+.label-detail__col--tags        {
+    flex: 1 1 auto;
+    min-width: 0;
+}
 
 /* Validation count display — non-interactive icon + count groups, modeled on the Figma redesign
    (LabelMap-Redesign frame 537:17). The actual validate action lives on the pano hover overlay. */
@@ -249,8 +266,17 @@ dialog.label-detail[open]::backdrop {
     font-size: 14px;
     cursor: pointer;
 }
-.label-detail__vote:focus-visible { outline: 2px solid #4a90e2; outline-offset: 2px; border-radius: 4px; }
-.label-detail__vote[disabled] { cursor: wait; opacity: 0.5; }
+
+.label-detail__vote:focus-visible {
+    outline: 2px solid #4a90e2;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.label-detail__vote[disabled] {
+    cursor: wait;
+    opacity: 0.5;
+}
 
 .label-detail__vote-icon {
     width: 30px;
@@ -298,7 +324,11 @@ dialog.label-detail[open]::backdrop {
     font-size: 12px;
     color: var(--color-neutral-black);
 }
-.label-detail__comment-input:focus { outline: none; border-color: #4a90e2; }
+
+.label-detail__comment-input:focus {
+    outline: none;
+    border-color: #4a90e2;
+}
 .label-detail__comment-input::placeholder { color: #807f7f; }
 
 .label-detail__comment-submit {
@@ -319,7 +349,11 @@ dialog.label-detail[open]::backdrop {
     background: #37a17b;
     color: var(--color-neutral-white);
 }
-.label-detail__comment-submit:focus-visible { outline: 2px solid #4a90e2; outline-offset: 2px; }
+
+.label-detail__comment-submit:focus-visible {
+    outline: 2px solid #4a90e2;
+    outline-offset: 2px;
+}
 
 .label-detail__comment-confirmation {
     font-size: 12px;
@@ -381,7 +415,11 @@ dialog.label-detail[open]::backdrop {
     font-weight: 600;
     color: #555555;
 }
-.label-detail__details-summary:focus-visible { outline: 2px solid #4a90e2; outline-offset: 2px; }
+
+.label-detail__details-summary:focus-visible {
+    outline: 2px solid #4a90e2;
+    outline-offset: 2px;
+}
 
 .label-detail__details-list {
     display: grid;
@@ -477,8 +515,16 @@ dialog.label-detail[open]::backdrop {
     cursor: pointer;
 }
 .label-detail__paging:hover { color: #000000; }
-.label-detail__paging:disabled { color: #cccccc; cursor: default; }
-.label-detail__paging:focus-visible { outline: 2px solid #4a90e2; outline-offset: 2px; }
+
+.label-detail__paging:disabled {
+    color: #cccccc;
+    cursor: default;
+}
+
+.label-detail__paging:focus-visible {
+    outline: 2px solid #4a90e2;
+    outline-offset: 2px;
+}
 .label-detail__paging--prev { left: calc(-30px - 20px); }  /* Centered based on padding and icon width */
 .label-detail__paging--next { right: calc(-30px - 20px); } /* Centered based on padding and icon width */
 

@@ -464,7 +464,8 @@ a {
     background-position: center;
     background-repeat: no-repeat;
     background-size: cover;
-    display: flex; justify-content: center;
+    display: flex;
+    justify-content: center;
     color: var(--color-asphalt-500);
     font-size: 12px;
     line-height: 1.8em;
