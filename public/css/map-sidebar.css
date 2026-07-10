@@ -260,8 +260,8 @@ body.map-sidebar-resizing {
 }
 
 .map-sidebar__item .map-legend-circle-icon circle {
-    cx: 7;
-    cy: 7;
+    cx: 7px;
+    cy: 7px;
 }
 
 /* Validation icons */

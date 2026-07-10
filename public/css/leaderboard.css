@@ -46,7 +46,7 @@
     flex-flow: row wrap;
     justify-content: center;
     text-align: center;
-    align-items: top;
+    align-items: flex-start;
     width: 100%;
 }
 

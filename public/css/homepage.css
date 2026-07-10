@@ -2,7 +2,7 @@
 
 .header-text {
     color: var(--color-neutral-white);
-    font-family: raleway;
+    font-family: raleway, sans-serif;
     font-size: 15px;
     line-height: 2.8em;
     text-align: center;
@@ -24,7 +24,7 @@
 .header-link:link {
     color: var(--color-neutral-white);
     text-decoration: underline;
-    font-family: raleway;
+    font-family: raleway, sans-serif;
     font-size: 15px;
     font-weight: bolder;
     line-height: 2.8em;
@@ -118,7 +118,7 @@
     position: relative;
     left: -10px;
     padding-left: 25px;
-    font-family: Raleway;
+    font-family: Raleway, sans-serif;
     font-size: 14px;
     font-style: normal;
     font-variant: normal;
@@ -154,7 +154,7 @@ video#bgvid {
     background: url("../images/psmockup.jpg") no-repeat scroll 0 0 var(--color-neutral-black);
     background-size: cover;
     height: auto;
-    perspective: 1000;
+    perspective: 1000px;
     position: fixed;
     z-index: -1;
 }
