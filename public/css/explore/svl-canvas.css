@@ -20,6 +20,13 @@
   border-radius: calc(4px * var(--ui-scale));
   background-color: var(--color-asphalt-400);
   overflow: hidden;
+  z-index: 0;
+}
+
+/* Interaction layers stacked over the pano; the view-control layer (z-index: 1) sits above these. */
+#user-control-layer,
+#label-drawing-layer {
+  z-index: 0;
 }
 
 /* Colored frame on top of the pano and label layers. Drawing it above the canvases (rather than as the pano's own

@@ -92,7 +92,7 @@
 
 .activetab {
   font-family: Raleway-bold, sans-serif;
-  background-color: #58ceab;
+  background-color: var(--color-pine-500);
   overflow: hidden;
 }
 
@@ -101,7 +101,7 @@
 }
 
 #greenbar {
-  background-color: #58CEAB;
+  background-color: var(--color-pine-500);
   max-width: 680px;
   min-height: 5px;
   position: relative;
@@ -128,12 +128,7 @@
 }
 
 .stepnumber {
-  font-family: Raleway-black, sans-serif;
-  font-size: 90px;
-  font-style: normal;
-  font-variant: normal;
-  font-weight: bold;
-  line-height: 58px;
+  font: var(--text-h1-xl-bold);
   color: var(--color-asphalt-400);
 }
 
@@ -172,6 +167,31 @@ video#bgvid {
   transition: background-color 300ms ease;
 }
 
+/* Translucent tint layered over the hero background video. */
+#overlay-top {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: rgb(192 190 207 / 40%);
+}
+
+/* Full-width wrapper for the "how you help" content section (overrides the Bootstrap .container max-width). */
+.home-content-container {
+  width: 100%;
+  position: relative;
+}
+
+#skyline-title {
+  margin-top: 50px;
+  margin-bottom: 10px;
+}
+
+#skyline-subtitle {
+  margin-top: 0;
+}
+
 /**
  * CSS for landing heading
 */
@@ -202,6 +222,11 @@ video#bgvid {
   max-width: 300px;
 }
 
+/* One instructional video is shown at a time; homepage.js toggles .ps-hidden to swap between them. */
+#instructionvideo video {
+  display: block;
+}
+
 #landing-legend {
   display: block;
   position: relative;
@@ -211,6 +236,10 @@ video#bgvid {
   width: 325px;
   font-family: Raleway, sans-serif;
   padding: 8px 8px 0;
+}
+
+#landing-legend strong {
+  font-size: 17px;
 }
 
 /***** Skyline styling ********/
@@ -257,6 +286,10 @@ video#bgvid {
 .ps-skyline-container > img {
   width: 1400px;
   align-self: center;
+}
+
+.ps-skyline-container > img.skyline-img-offset {
+  padding-top: 75px;
 }
 
 .skyline-cloud-overlay {

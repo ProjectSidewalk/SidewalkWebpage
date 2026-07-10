@@ -16,7 +16,7 @@
             <img src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'>
         </div>
     </div>
-    <div id="admin-page-container" class="container" style="visibility: hidden; margin-top: 20px;">
+    <div id="admin-page-container" class="container ps-invisible">
         <div id="row">
             <div class="col-lg-2">
                 <ul class="nav nav-pills nav-stacked">
@@ -107,8 +107,8 @@
                                         (<span id="user-count-explore-all-week-task_completed-any_quality"></span>)
                                     </th>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Registered</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">Registered</td>
                                     <th>
                                         <span id="user-count-explore-registered-all_time-no_task_constraint-any_quality"></span>
                                         (<span id="user-count-explore-registered-all_time-task_completed-any_quality"></span>)
@@ -122,8 +122,8 @@
                                         (<span id="user-count-explore-registered-week-task_completed-any_quality"></span>)
                                     </th>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Anonymous</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">Anonymous</td>
                                     <th>
                                         <span id="user-count-explore-anonymous-all_time-no_task_constraint-any_quality"></span>
                                         (<span id="user-count-explore-anonymous-all_time-task_completed-any_quality"></span>)
@@ -137,8 +137,8 @@
                                         (<span id="user-count-explore-anonymous-week-task_completed-any_quality"></span>)
                                     </th>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Turkers</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">Turkers</td>
                                     <th>
                                         <span id="user-count-explore-turker-all_time-no_task_constraint-any_quality"></span>
                                         (<span id="user-count-explore-turker-all_time-task_completed-any_quality"></span>)
@@ -152,8 +152,8 @@
                                         (<span id="user-count-explore-turker-week-task_completed-any_quality"></span>)
                                     </th>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Researchers</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">Researchers</td>
                                     <th>
                                         <span id="user-count-explore-researcher-all_time-no_task_constraint-any_quality"></span>
                                         (<span id="user-count-explore-researcher-all_time-task_completed-any_quality"></span>)
@@ -174,56 +174,56 @@
                                     <th id="label-count-All-today"></th>
                                     <th id="label-count-All-week"></th>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">@Messages("curb.ramp")</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">@Messages("curb.ramp")</td>
                                     <td id="label-count-CurbRamp-all_time"></td>
                                     <td id="label-count-CurbRamp-today"></td>
                                     <td id="label-count-CurbRamp-week"></td>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">@Messages("missing.ramp")</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">@Messages("missing.ramp")</td>
                                     <td id="label-count-NoCurbRamp-all_time"></td>
                                     <td id="label-count-NoCurbRamp-today"></td>
                                     <td id="label-count-NoCurbRamp-week"></td>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">@Messages("obstacle")</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">@Messages("obstacle")</td>
                                     <td id="label-count-Obstacle-all_time"></td>
                                     <td id="label-count-Obstacle-today"></td>
                                     <td id="label-count-Obstacle-week"></td>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">@Messages("surface.problem")</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">@Messages("surface.problem")</td>
                                     <td id="label-count-SurfaceProblem-all_time"></td>
                                     <td id="label-count-SurfaceProblem-today"></td>
                                     <td id="label-count-SurfaceProblem-week"></td>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">@Messages("no.sidewalk")</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">@Messages("no.sidewalk")</td>
                                     <td id="label-count-NoSidewalk-all_time"></td>
                                     <td id="label-count-NoSidewalk-today"></td>
                                     <td id="label-count-NoSidewalk-week"></td>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">@Messages("crosswalk")</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">@Messages("crosswalk")</td>
                                     <td id="label-count-Crosswalk-all_time"></td>
                                     <td id="label-count-Crosswalk-today"></td>
                                     <td id="label-count-Crosswalk-week"></td>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">@Messages("signal")</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">@Messages("signal")</td>
                                     <td id="label-count-Signal-all_time"></td>
                                     <td id="label-count-Signal-today"></td>
                                     <td id="label-count-Signal-week"></td>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">@Messages("other")</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">@Messages("other")</td>
                                     <td id="label-count-Other-all_time"></td>
                                     <td id="label-count-Other-today"></td>
                                     <td id="label-count-Other-week"></td>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">@Messages("occlusion")</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">@Messages("occlusion")</td>
                                     <td id="label-count-Occlusion-all_time"></td>
                                     <td id="label-count-Occlusion-today"></td>
                                     <td id="label-count-Occlusion-week"></td>
@@ -256,8 +256,8 @@
                                         (<span id="user-count-validate-all-week-task_completed-any_quality"></span>)
                                     </th>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Registered</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">Registered</td>
                                     <th>
                                         <span id="user-count-validate-registered-all_time-no_task_constraint-any_quality"></span>
                                         (<span id="user-count-validate-registered-all_time-task_completed-any_quality"></span>)
@@ -271,8 +271,8 @@
                                         (<span id="user-count-validate-registered-week-task_completed-any_quality"></span>)
                                     </th>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Anonymous</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">Anonymous</td>
                                     <th>
                                         <span id="user-count-validate-anonymous-all_time-no_task_constraint-any_quality"></span>
                                         (<span id="user-count-validate-anonymous-all_time-task_completed-any_quality"></span>)
@@ -286,8 +286,8 @@
                                         (<span id="user-count-validate-anonymous-week-task_completed-any_quality"></span>)
                                     </th>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Turkers</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">Turkers</td>
                                     <th>
                                         <span id="user-count-validate-turker-all_time-no_task_constraint-any_quality"></span>
                                         (<span id="user-count-validate-turker-all_time-task_completed-any_quality"></span>)
@@ -301,8 +301,8 @@
                                         (<span id="user-count-validate-turker-week-task_completed-any_quality"></span>)
                                     </th>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Researchers</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">Researchers</td>
                                     <th>
                                         <span id="user-count-validate-researcher-all_time-no_task_constraint-any_quality"></span>
                                         (<span id="user-count-validate-researcher-all_time-task_completed-any_quality"></span>)
@@ -317,29 +317,29 @@
                                     </th>
                                 </tr>
 
-                                <tr style="font-size: 90%;">
+                                <tr class="admin-stats-row">
                                     <th>Total Validations<sup>**</sup></th>
                                     <th id="val-count-All-all_time"></th>
                                     <th id="val-count-All-today"></th>
                                     <th id="val-count-All-week"></th>
                                 </tr>
 
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Agree</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">Agree</td>
                                     <td id="val-count-Agree-all_time"></td>
                                     <td id="val-count-Agree-today"></td>
                                     <td id="val-count-Agree-week"></td>
                                 </tr>
 
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Disagree</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">Disagree</td>
                                     <td id="val-count-Disagree-all_time"></td>
                                     <td id="val-count-Disagree-today"></td>
                                     <td id="val-count-Disagree-week"></td>
                                 </tr>
 
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">@Messages("unsure.caps")</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">@Messages("unsure.caps")</td>
                                     <td id="val-count-Unsure-all_time"></td>
                                     <td id="val-count-Unsure-today"></td>
                                     <td id="val-count-Unsure-week"></td>
@@ -372,26 +372,26 @@
                                     <td><span id="street-count-audited-high-quality"></span></td>
                                     <td><span id="street-count-total"></span></td>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Registered</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">Registered</td>
                                     <td><span id="street-count-audited-registered-all"></span></td>
                                     <td><span id="street-count-audited-registered-high-quality"></span></td>
                                     <td></td>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Anonymous</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">Anonymous</td>
                                     <td><span id="street-count-audited-anonymous-all"></span></td>
                                     <td><span id="street-count-audited-anonymous-high-quality"></span></td>
                                     <td></td>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Turker</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">Turker</td>
                                     <td><span id="street-count-audited-turker-all"></span></td>
                                     <td><span id="street-count-audited-turker-high-quality"></span></td>
                                     <td></td>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Researcher</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">Researcher</td>
                                     <td><span id="street-count-audited-researcher-all"></span></td>
                                     <td><span id="street-count-audited-researcher-high-quality"></span></td>
                                     <td></td>
@@ -402,26 +402,26 @@
                                     <td><span id="street-distance-audited-high-quality"></span></td>
                                     <td><span id="street-distance-total"></span></td>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Registered</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">Registered</td>
                                     <td><span id="street-distance-registered-all"></span></td>
                                     <td><span id="street-distance-registered-high-quality"></span></td>
                                     <td></td>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Anonymous</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">Anonymous</td>
                                     <td><span id="street-distance-anonymous-all"></span></td>
                                     <td><span id="street-distance-anonymous-high-quality"></span></td>
                                     <td></td>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Turker</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">Turker</td>
                                     <td><span id="street-distance-turker-all"></span></td>
                                     <td><span id="street-distance-turker-high-quality"></span></td>
                                     <td></td>
                                 </tr>
-                                <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Researcher</td>
+                                <tr class="admin-stats-row">
+                                    <td class="admin-stats-label">Researcher</td>
                                     <td><span id="street-distance-researcher-all"></span></td>
                                     <td><span id="street-distance-researcher-high-quality"></span></td>
                                     <td></td>
@@ -433,7 +433,7 @@
 
                         </div>
                         <button onclick="admin.clearPlayCache()">@Messages("admin.clear.play.cache")</button>
-                        <p id="clear-play-cache-success" style="color:green"></p>
+                        <p id="clear-play-cache-success"></p>
                     </div>
                     <div class="row">
                         <h1>Comments</h1>
@@ -471,20 +471,20 @@
                                 <div id="admin-percentage-legend">
                                     <strong>Percent of Neighborhood Complete</strong>
                                     <nav class='legend clearfix'>
-                                        <span style='background:#03152f;width:9.09%'></span>
-                                        <span style='background:#08306b;width:9.09%'></span>
-                                        <span style='background:#08519c;width:9.09%'></span>
-                                        <span style='background:#08719c;width:9.09%'></span>
-                                        <span style='background:#2171b5;width:9.09%'></span>
-                                        <span style='background:#4292c6;width:9.09%'></span>
-                                        <span style='background:#6baed6;width:9.09%'></span>
-                                        <span style='background:#82badb;width:9.09%'></span>
-                                        <span style='background:#9ecae1;width:9.09%'></span>
-                                        <span style='background:#b3d3e8;width:9.09%'></span>
-                                        <span style='background:#c6dbef;width:9.09%'></span>
-                                         <div id="legend-percentages-container">
-                                            <label style='text-align: left'>0%</label>
-                                            <label style='text-align: right'>100%</label>
+                                        <span class="legend-swatch legend-swatch-1"></span>
+                                        <span class="legend-swatch legend-swatch-2"></span>
+                                        <span class="legend-swatch legend-swatch-3"></span>
+                                        <span class="legend-swatch legend-swatch-4"></span>
+                                        <span class="legend-swatch legend-swatch-5"></span>
+                                        <span class="legend-swatch legend-swatch-6"></span>
+                                        <span class="legend-swatch legend-swatch-7"></span>
+                                        <span class="legend-swatch legend-swatch-8"></span>
+                                        <span class="legend-swatch legend-swatch-9"></span>
+                                        <span class="legend-swatch legend-swatch-10"></span>
+                                        <span class="legend-swatch legend-swatch-11"></span>
+                                        <div id="legend-percentages-container">
+                                            <label>0%</label>
+                                            <label>100%</label>
                                         </div>
                                     </nav>
                                 </div>
@@ -507,7 +507,7 @@
                             <div id="neighborhood-completed-distance"></div>
                         </div>
 
-                        <h2 style="...">City Coverage Progress</h2>
+                        <h2>City Coverage Progress</h2>
                         <div class="col-lg-12">
                             <div id="completion-progress-chart"></div>
                         </div>
@@ -677,8 +677,8 @@
                                         <td id="val-count-All-All-Human"></td>
                                         <td id="val-count-All-All-AI"></td>
                                     </tr>
-                                    <tr style="font-size: 90%;">
-                                        <td style="padding-left: 30px">@Messages("curb.ramp")</td>
+                                    <tr class="admin-stats-row">
+                                        <td class="admin-stats-label">@Messages("curb.ramp")</td>
                                         <td id="val-count-CurbRamp-Agree-Both"></td>
                                         <td id="val-count-CurbRamp-Agree-Human"></td>
                                         <td id="val-count-CurbRamp-Agree-AI"></td>
@@ -692,8 +692,8 @@
                                         <td id="val-count-CurbRamp-All-Human"></td>
                                         <td id="val-count-CurbRamp-All-AI"></td>
                                     </tr>
-                                    <tr style="font-size: 90%;">
-                                        <td style="padding-left: 30px">@Messages("missing.ramp")</td>
+                                    <tr class="admin-stats-row">
+                                        <td class="admin-stats-label">@Messages("missing.ramp")</td>
                                         <td id="val-count-NoCurbRamp-Agree-Both"></td>
                                         <td id="val-count-NoCurbRamp-Agree-Human"></td>
                                         <td id="val-count-NoCurbRamp-Agree-AI"></td>
@@ -707,8 +707,8 @@
                                         <td id="val-count-NoCurbRamp-All-Human"></td>
                                         <td id="val-count-NoCurbRamp-All-AI"></td>
                                     </tr>
-                                    <tr style="font-size: 90%;">
-                                        <td style="padding-left: 30px">@Messages("obstacle")</td>
+                                    <tr class="admin-stats-row">
+                                        <td class="admin-stats-label">@Messages("obstacle")</td>
                                         <td id="val-count-Obstacle-Agree-Both"></td>
                                         <td id="val-count-Obstacle-Agree-Human"></td>
                                         <td id="val-count-Obstacle-Agree-AI"></td>
@@ -722,8 +722,8 @@
                                         <td id="val-count-Obstacle-All-Human"></td>
                                         <td id="val-count-Obstacle-All-AI"></td>
                                     </tr>
-                                    <tr style="font-size: 90%;">
-                                        <td style="padding-left: 30px">@Messages("surface.problem")</td>
+                                    <tr class="admin-stats-row">
+                                        <td class="admin-stats-label">@Messages("surface.problem")</td>
                                         <td id="val-count-SurfaceProblem-Agree-Both"></td>
                                         <td id="val-count-SurfaceProblem-Agree-Human"></td>
                                         <td id="val-count-SurfaceProblem-Agree-AI"></td>
@@ -737,8 +737,8 @@
                                         <td id="val-count-SurfaceProblem-All-Human"></td>
                                         <td id="val-count-SurfaceProblem-All-AI"></td>
                                     </tr>
-                                    <tr style="font-size: 90%;">
-                                        <td style="padding-left: 30px">@Messages("no.sidewalk")</td>
+                                    <tr class="admin-stats-row">
+                                        <td class="admin-stats-label">@Messages("no.sidewalk")</td>
                                         <td id="val-count-NoSidewalk-Agree-Both"></td>
                                         <td id="val-count-NoSidewalk-Agree-Human"></td>
                                         <td id="val-count-NoSidewalk-Agree-AI"></td>
@@ -752,8 +752,8 @@
                                         <td id="val-count-NoSidewalk-All-Human"></td>
                                         <td id="val-count-NoSidewalk-All-AI"></td>
                                     </tr>
-                                    <tr style="font-size: 90%;">
-                                        <td style="padding-left: 30px">@Messages("crosswalk")</td>
+                                    <tr class="admin-stats-row">
+                                        <td class="admin-stats-label">@Messages("crosswalk")</td>
                                         <td id="val-count-Crosswalk-Agree-Both"></td>
                                         <td id="val-count-Crosswalk-Agree-Human"></td>
                                         <td id="val-count-Crosswalk-Agree-AI"></td>
@@ -767,8 +767,8 @@
                                         <td id="val-count-Crosswalk-All-Human"></td>
                                         <td id="val-count-Crosswalk-All-AI"></td>
                                     </tr>
-                                    <tr style="font-size: 90%;">
-                                        <td style="padding-left: 30px">@Messages("signal")</td>
+                                    <tr class="admin-stats-row">
+                                        <td class="admin-stats-label">@Messages("signal")</td>
                                         <td id="val-count-Signal-Agree-Both"></td>
                                         <td id="val-count-Signal-Agree-Human"></td>
                                         <td id="val-count-Signal-Agree-AI"></td>
@@ -797,7 +797,7 @@
                                     <tr>
                                         <th class="col-md-1">Username</th>
                                         <th class="col-md-1" data-type="date">Timestamp</th>
-                                        <th class="col-md-1" style="min-width: 100px;">Label Type</th>
+                                        <th class="col-md-1 admin-label-type-col">Label Type</th>
                                         <th class="col-md-1">Severity</th>
                                         <th class="col-md-2">Tags</th>
                                         <th class="col-md-2">Description</th>
@@ -870,15 +870,14 @@
                         Usage statistics for the v3 public API, derived from the <code>webpage_activity</code> log.
                         Internal use only.
                     </p>
-                    <div class="api-analytics-controls" style="margin-bottom: 16px; display: flex; align-items: center; gap: 16px;">
-                        <label style="margin: 0; display: flex; align-items: center; gap: 6px; font-weight: normal;"
-                               title="The live-preview widgets on the /api-docs page tag their calls with ?source=apiDocs. Check this box to exclude those automated calls so you see only real external consumer traffic.">
+                    <div class="api-analytics-controls">
+                        <label title="The live-preview widgets on the /api-docs page tag their calls with ?source=apiDocs. Check this box to exclude those automated calls so you see only real external consumer traffic.">
                             <input type="checkbox" id="api-analytics-exclude-docs" checked>
                             Exclude API Docs traffic (<code>source=apiDocs</code>)
                         </label>
-                        <label style="margin: 0; display: flex; align-items: center; gap: 6px; font-weight: normal;">
+                        <label>
                             Time range:
-                            <select id="api-analytics-days" class="form-control" style="width: auto; display: inline-block;">
+                            <select id="api-analytics-days" class="form-control">
                                 <option value="30" selected>Last 30 days</option>
                                 <option value="90">Last 90 days</option>
                                 <option value="0">All time</option>
@@ -887,9 +886,9 @@
                     </div>
                     <div id="api-analytics-content">
                         <div id="api-analytics-summary"></div>
-                        <div id="api-analytics-endpoint-table" style="margin-top: 24px;"></div>
-                        <div id="api-analytics-daily-chart" style="margin-top: 24px;"></div>
-                        <div id="api-analytics-format-table" style="margin-top: 24px;"></div>
+                        <div id="api-analytics-endpoint-table" class="api-analytics-section"></div>
+                        <div id="api-analytics-daily-chart" class="api-analytics-section"></div>
+                        <div id="api-analytics-format-table" class="api-analytics-section"></div>
                     </div>
                 </div>
             </div>

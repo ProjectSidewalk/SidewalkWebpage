@@ -1,3 +1,55 @@
+#admin-page-container {
+  margin-top: 20px;
+}
+
+/* Indented, slightly smaller sub-rows used throughout the admin stats tables. */
+.admin-stats-row {
+  font-size: 90%;
+}
+
+/* Scoped to #admin-page-container so it out-specifies Bootstrap's .table-condensed > tbody > tr > td padding. */
+#admin-page-container .admin-stats-label {
+  padding-left: 30px;
+}
+
+#clear-play-cache-success {
+  color: var(--color-success-200);
+}
+
+.admin-label-type-col {
+  min-width: 100px;
+}
+
+/* API analytics tab (admin only). */
+.api-analytics-controls {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.api-analytics-controls label {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: normal;
+}
+
+#api-analytics-days {
+  width: auto;
+  display: inline-block;
+}
+
+.api-analytics-section {
+  margin-top: 24px;
+}
+
+/* Spacer that fills the single-label admin page to a natural height at the default zoom. */
+.label-page-spacer {
+  height: 237px;
+}
+
 .table-fixed thead {
   width: 97%;
 }

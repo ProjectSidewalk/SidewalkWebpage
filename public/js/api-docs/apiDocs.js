@@ -511,7 +511,7 @@ function setupDownloadButtons() {
   const downloadStatus = document.getElementById('download-status');
   if (!downloadStatus) return;
 
-  downloadStatus.className = 'status-container status-loading';
+  downloadStatus.className = 'status-container status-loading ps-hidden';
   const statusMessage = downloadStatus.querySelector('.status-message');
   const statusProgress = downloadStatus.querySelector('.status-progress');
 
@@ -538,7 +538,7 @@ function setupDownloadButtons() {
       };
 
       // Show loading status.
-      downloadStatus.style.display = 'block';
+      downloadStatus.classList.remove('ps-hidden');
       if (statusMessage) statusMessage.textContent = `Preparing ${format.toUpperCase()} file...`;
       if (statusProgress) {
         statusProgress.textContent = `This process can take a few seconds to a minute, depending on the data size.`;
@@ -566,7 +566,7 @@ function setupDownloadButtons() {
 
         // Hide status if requested.
         if (hideStatus) {
-          downloadStatus.style.display = 'none';
+          downloadStatus.classList.add('ps-hidden');
           if (statusMessage) statusMessage.style.color = ''; // Reset color
         }
       }
@@ -612,7 +612,7 @@ function setupDownloadButtons() {
           // Hide the message after 10 more seconds.
           downloadState.timeouts.push(setTimeout(() => {
             if (!downloadState.started && !downloadState.completed) {
-              downloadStatus.style.display = 'none';
+              downloadStatus.classList.add('ps-hidden');
               if (statusMessage) statusMessage.style.color = ''; // Reset color
             }
           }, 10000));
@@ -691,7 +691,7 @@ function setupDownloadButtons() {
 
         // Hide error message after 5 seconds.
         downloadState.timeouts.push(setTimeout(() => {
-          downloadStatus.style.display = 'none';
+          downloadStatus.classList.add('ps-hidden');
           if (statusMessage) statusMessage.style.color = ''; // Reset color
         }, 5000));
       };

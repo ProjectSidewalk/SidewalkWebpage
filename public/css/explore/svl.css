@@ -86,6 +86,8 @@ input[type="radio"] {
 #view-control-layer {
   -webkit-user-select: none;
   user-select: none;
+  cursor: url("../../images/icons/openhand.cur") 4 4, move;
+  z-index: 1;
 }
 
 .disabled {

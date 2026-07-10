@@ -49,7 +49,7 @@
         </div>
     </div>
 
-    <div class="container tool-ui">
+    <div class="container tool-ui ps-invisible"><!-- ps-invisible until the mission start tutorial overlay is ready to cover it -->
 
         @* These are templates and are not visible on the screen directly. *@
         @* JS clones them, adjusts the attributes and then appends to DOM. *@
@@ -117,7 +117,7 @@
                     </button>
                 </div>
             </div>
-            <div id="modal-mission-holder" style="display: none;">
+            <div id="modal-mission-holder" class="ps-hidden">
                 <div id="modal-mission-background" class="modal-background"></div>
                 <div id="modal-mission-foreground" class="modal-foreground">
                     <h1 id="modal-mission-header" class="text-center"></h1>

@@ -25,9 +25,9 @@ function numbersInView() {
 
 function switchToVideo(vidnum) {
   if (vidnum === 1) {
-    document.getElementById('vid1').style.display = 'block';
-    document.getElementById('vid2').style.display = 'none';
-    document.getElementById('vid3').style.display = 'none';
+    document.getElementById('vid1').classList.remove('ps-hidden');
+    document.getElementById('vid2').classList.add('ps-hidden');
+    document.getElementById('vid3').classList.add('ps-hidden');
 
     $('#word1').addClass('tab-word activetab');
     $('#word2').addClass('tab-word').removeClass('activetab');
@@ -47,9 +47,9 @@ function switchToVideo(vidnum) {
     document.getElementById('vid2').pause();
     document.getElementById('vid3').pause();
   } else if (vidnum === 2) {
-    document.getElementById('vid1').style.display = 'none';
-    document.getElementById('vid2').style.display = 'block';
-    document.getElementById('vid3').style.display = 'none';
+    document.getElementById('vid1').classList.add('ps-hidden');
+    document.getElementById('vid2').classList.remove('ps-hidden');
+    document.getElementById('vid3').classList.add('ps-hidden');
 
     $('#word1').addClass('tab-word').removeClass('activetab');
     $('#word2').addClass('tab-word activetab');
@@ -69,9 +69,9 @@ function switchToVideo(vidnum) {
     document.getElementById('vid1').pause();
     document.getElementById('vid3').pause();
   } else if (vidnum === 3) {
-    document.getElementById('vid1').style.display = 'none';
-    document.getElementById('vid2').style.display = 'none';
-    document.getElementById('vid3').style.display = 'block';
+    document.getElementById('vid1').classList.add('ps-hidden');
+    document.getElementById('vid2').classList.add('ps-hidden');
+    document.getElementById('vid3').classList.remove('ps-hidden');
 
     $('#word1').addClass('tab-word').removeClass('activetab');
     $('#word2').addClass('tab-word').removeClass('activetab');

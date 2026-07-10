@@ -12,7 +12,7 @@
 @common.main(commonData, "Sidewalk - SignUp", url = "/signUpMobile") {
     @* Shows error messages from server side, like username being taken. *@
     @request.flash.get("error").map { msgKey =>
-        <div class="alert alert-danger alert-dismissible alert-mobile col-md-6 col-md-offset-3" role="alert" style="float:none; margin-top:20px; margin-bottom: 0px;">
+        <div class="alert alert-danger alert-dismissible alert-mobile col-md-6 col-md-offset-3 auth-alert" role="alert">
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
             </button>
@@ -51,5 +51,6 @@
         }
     </fieldset>
 
+    <link href='@assets.path("css/authenticate.css")' rel='stylesheet'>
     <link href='@assets.path("css/mobile-authenticate.css")' rel='stylesheet'>
 }

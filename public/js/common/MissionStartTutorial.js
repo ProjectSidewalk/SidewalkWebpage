@@ -891,7 +891,7 @@ class MissionStartTutorial {
       $('.explore-mission-start-tab.label[data-label-type="Signal"]')
         .find('.explore-mission-start-tab-text').html(i18next.t('common:signal'));
 
-      $('.explore-mission-start-tab-bar').show();
+      $('.explore-mission-start-tab-bar').removeClass('ps-hidden');
 
       $('.explore-mission-start-tab.label').removeClass('active');
       $(`.explore-mission-start-tab.label[data-label-type="${this.#labelType}"]`).addClass('active');
@@ -1033,7 +1033,9 @@ class MissionStartTutorial {
       if (this.#svvOrsvl.keyboard && this.#svvOrsvl.keyboard.enableKeyboard) this.#svvOrsvl.keyboard.enableKeyboard();
 
       $('.mission-start-tutorial-overlay').fadeOut(100);
-      $('.explore-mission-start-tab-bar').fadeOut(100);
+      $('.explore-mission-start-tab-bar').fadeOut(100, function () {
+        $(this).css('display', '').addClass('ps-hidden');
+      });
 
       this.#svvOrsvl.tracker.push('MSTDoneButton_Click', { currentSlideIdx: this.#currentSlideIdx }, null);
 

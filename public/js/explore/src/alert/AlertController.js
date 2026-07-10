@@ -34,7 +34,7 @@ class AlertController {
    * @param {Function} [callback] - Called after the fade completes.
    */
   #fadeIn(el, callback) {
-    el.style.display = '';
+    el.classList.remove('ps-hidden');
     el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: AlertController.#FADE_DURATION })
       .addEventListener('finish', () => {
         el.style.opacity = '';
@@ -50,7 +50,7 @@ class AlertController {
   #fadeOut(el, callback) {
     el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: AlertController.#FADE_DURATION })
       .addEventListener('finish', () => {
-        el.style.display = 'none';
+        el.classList.add('ps-hidden');
         el.style.opacity = '';
         if (callback) callback();
       });

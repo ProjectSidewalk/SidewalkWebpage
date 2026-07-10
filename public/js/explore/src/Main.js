@@ -308,8 +308,7 @@ class Main {
 
       // Remove the loading cover page and make the tool visible.
       $('#page-loading').css({ visibility: 'hidden' });
-      $('.tool-ui').css({ visibility: 'visible' });
-      $('.visible').css({ visibility: 'visible' });
+      $('.tool-ui').removeClass('ps-invisible');
 
       // Check if the user has completed the onboarding tutorial.
       const mission = svl.missionContainer.getCurrentMission();

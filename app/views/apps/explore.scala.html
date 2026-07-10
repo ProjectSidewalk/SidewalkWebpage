@@ -111,7 +111,7 @@
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
 
-    <div class="container tool-ui" style = "visibility: hidden;">
+    <div class="container tool-ui ps-invisible">
         <div id="area-completion-overlay-wrapper">
             <div class="overlay-text">
                 <div id="area-completion-overlay">
@@ -135,7 +135,7 @@
                 </div>
             </div>
         </div>
-        <div class="browser-warning-holder" id="unsupported-browser-alert" style="visibility: hidden">
+        <div class="browser-warning-holder ps-invisible" id="unsupported-browser-alert">
             <div class="browser-warning-banner">
                 <span id="browser-warning-message"><strong>Disclaimer:</strong> This site is optimized for Google Chrome, with some support for Firefox and Safari. Other browsers are not fully supported yet.&nbsp;</span>
                 <span id="browser-warning-close" class="glyphicon glyphicon-remove"></span>
@@ -337,7 +337,7 @@
                 </section>
             </div>
             <div id="interaction-area-holder" onselectstart="return true;">
-                <div id="alert-holder" style="display: none">
+                <div id="alert-holder" class="ps-hidden">
                     <div id="alert">
                         <span id="alert-message"></span>
                         <a id="alert-dont-show" href="#">@Messages("dont.show.again")</a>
@@ -360,7 +360,7 @@
                             <span class="pano-overlay-button-label" data-i18n="audit:controls.stuck">Stuck</span>
                         </div>
                         <div id="explore-control-sound" class="pano-overlay-button collapsible-control-button">
-                            <img class="pano-overlay-button-icon visible" id="explore-control-sound-icon" src='@assets.path("images/icons/volume-on-feather.svg")' alt="">
+                            <img class="pano-overlay-button-icon" id="explore-control-sound-icon" src='@assets.path("images/icons/volume-on-feather.svg")' alt="">
                             <img class="pano-overlay-button-icon hidden" id="explore-control-mute-icon" src='@assets.path("images/icons/volume-off-feather.svg")' alt="">
                             <span class="pano-overlay-button-label" data-i18n="audit:controls.sound">Sound</span>
                         </div>
@@ -381,17 +381,17 @@
                         </button>
                     </div>
                     <!-- You can put an extra div element on top of the pano div panel to disable any of pano control. -->
-                    <div id="pano" class="window-streetview" style="z-index: 0;" ></div>
+                    <div id="pano" class="window-streetview"></div>
                     <div id="onboarding-holder" class="window-streetview">
-                        <canvas id="onboarding-canvas"  class="window-streetview" width="720px" height="480px" style="cursor: default, move;"></canvas>
+                        <canvas id="onboarding-canvas" class="window-streetview" width="720px" height="480px"></canvas>
                         <div id="hand-gesture-holder"></div>
                         <div id="onboarding-background"></div>
                         <div id="onboarding-message-holder">
                             <p></p>
                         </div>
                     </div>
-                    <div id="user-control-layer" class="window-streetview" style="z-index: 0;">
-                        <div id="view-control-layer" class="window-streetview" style="cursor: url(/assets/images/icons/openhand.cur) 4 4, move; z-index: 1;">
+                    <div id="user-control-layer" class="window-streetview">
+                        <div id="view-control-layer" class="window-streetview">
                             <div id="nav-arrows-container">
                                 <svg width="220" height="220" viewbox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
                                     <g id="arrow-group" transform-origin="center">
@@ -400,8 +400,8 @@
                                 </svg>
                             </div>
                         </div>
-                        <div id="label-drawing-layer"  class="window-streetview" style="z-index: 0;">
-                            <canvas id="label-canvas"  class="window-streetview" width="720px" height="480px" style="cursor: default, move;"></canvas>
+                        <div id="label-drawing-layer" class="window-streetview">
+                            <canvas id="label-canvas" class="window-streetview" width="720px" height="480px"></canvas>
                         </div>
                     </div>
 
@@ -632,12 +632,12 @@
             </div>
             <div class="col-md-offset-3 col-md-3">
                 <p>
-                    <button class="button-ps button--medium button--secondary onboarding-transition-trigger" id="onboarding-welcome-ok-button" value="OK" style="position: relative; top: -4px;">@Messages("audit.tutorial.welcome.3")</button>
+                    <button class="button-ps button--medium button--secondary onboarding-transition-trigger" id="onboarding-welcome-ok-button" value="OK">@Messages("audit.tutorial.welcome.3")</button>
                 </p>
             </div>
 
                 <div class="col-md-12" id="onboarding-skip-option">
-                    <p class="text-right"><span style='font-size: 65%;'>
+                    <p class="text-right"><span>
                         @Html(Messages("audit.tutorial.welcome.4"))
                     </span></p>
                 </div>
@@ -773,7 +773,7 @@
         if (@data.task.isDefined) {
             mainParam.task = @Html(Json.toJson(data.task.get).toString);
         } else {
-            $(".tool-ui").css({"visibility": "visible"});
+            $(".tool-ui").removeClass("ps-invisible");
             $('#already-completed-neighborhood-overlay').show();
         }
 

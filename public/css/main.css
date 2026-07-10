@@ -93,6 +93,8 @@
        Format: font-weight font-size/line-height font-family. The font-size and line-height are each multiplied by
        var(--ui-scale, 1) so every type token scales with uniform UI scaling that we have on some pages. Pages that
        don't set --ui-scale fall back to 1, leaving the tokens at their native sizes. */
+  --text-h1-xl-bold:       700 calc(80px * var(--ui-scale, 1))/calc(80px * var(--ui-scale, 1)) var(--font-primary);
+
   --text-h1-bold:          700 calc(32px * var(--ui-scale, 1))/calc(38px * var(--ui-scale, 1)) var(--font-accent);
 
   --text-h2-bold:          700 calc(28px * var(--ui-scale, 1))/calc(34px * var(--ui-scale, 1)) var(--font-accent);
@@ -129,6 +131,17 @@
   /* Other globals. */
   --navbar-height: 38px;
   --navbar-z-index: 1030;
+}
+
+
+/* Global visibility utilities. !important so they hide an element regardless of the display/visibility its own
+   classes set; scripts show the element again by removing the class (never by setting an inline style). */
+.ps-hidden {
+  display: none !important;
+}
+
+.ps-invisible {
+  visibility: hidden !important;
 }
 
 
@@ -495,6 +508,40 @@ a {
 #info-footer a {
   color:var(--color-neutral-white);
   text-decoration:underline;
+}
+
+/* Landing/desktop footer layout (markup in common/main.scala.html). The .filler spacer's rendered height is read
+   by labelingGuidePanelResize.js, so keep the class and its min-height. */
+.filler {
+  position: relative;
+  top: 0;
+  background-color: var(--color-neutral-white);
+  min-height: 20px;
+}
+
+#footer-container .footer-links-row {
+  width: 900px;
+  position: relative;
+  left: 80px;
+}
+
+#info-footer .footer-logos-row {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+#google-link img {
+  margin-top: 20px;
+}
+
+#sloan-link img {
+  width: 200px;
+  margin-top: 20px;
+}
+
+#create-link img {
+  width: 160px;
+  margin-top: 10px;
 }
 
 /* Pano Info Popover styling. */

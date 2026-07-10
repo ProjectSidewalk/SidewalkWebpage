@@ -102,7 +102,7 @@ class Admin {
       this.#initializeAdminCommentPopup(),
     ]).then(() => {
       this.#loadingGif.css('visibility', 'hidden');
-      $('#admin-page-container').css('visibility', 'visible');
+      $('#admin-page-container').removeClass('ps-invisible');
     }).catch((error) => {
       console.error('Error loading street edge data:', error);
     });

@@ -177,7 +177,7 @@ class Main {
 
     // Now that mission start tutorial has loaded, can unhide the UI under it and remove the loading icon.
     $('#page-loading').css({ visibility: 'hidden' });
-    $('.tool-ui').css({ visibility: 'visible' });
+    $('.tool-ui').removeClass('ps-invisible');
 
     // Uniformly scale the whole tool to fit the viewport (like browser zoom) using var(--ui-scale). Mobile
     // instead fills the screen via PanoManager's own sizing.

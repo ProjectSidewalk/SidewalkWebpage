@@ -154,7 +154,7 @@ class AdminUser {
     }
     alertEl.textContent = alertText;
     alertEl.className = success ? 'alert alert-success' : 'alert alert-danger';
-    alertEl.style.visibility = 'visible';
+    alertEl.classList.remove('ps-invisible');
   }
 
   /**

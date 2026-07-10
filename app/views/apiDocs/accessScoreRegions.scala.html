@@ -105,7 +105,7 @@
                 <span class="format-hint">Open GIS format</span>
             </button>
         </div>
-        <div id="download-status" class="status-container status-loading" style="display: none;">
+        <div id="download-status" class="status-container status-loading ps-hidden">
             <div class="loading-spinner"></div>
             <div class="status-message">Generating your download...</div>
             <div class="status-progress">This may take anywhere from a few seconds to a few minutes depending on the data size.</div>
@@ -195,7 +195,7 @@
         <div class="api-table-wrapper">
             <table class="api-table">
                 <thead>
-                    <tr><th style="width:34%">Field Path</th><th style="width:16%">Type</th><th style="width:50%">Description</th></tr>
+                    <tr><th class="api-field-col">Field Path</th><th class="api-type-col">Type</th><th class="api-desc-col">Description</th></tr>
                 </thead>
                 <tbody>
                     <tr><td><code>geometry</code></td><td><code>MultiPolygon</code></td><td>The region's boundary polygon(s), in <code>[longitude, latitude]</code> (WGS84 / EPSG:4326).</td></tr>

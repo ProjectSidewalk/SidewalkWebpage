@@ -121,3 +121,12 @@
 .tutorial-spacer {
   padding-bottom: calc(8px * var(--ui-scale));
 }
+
+#onboarding-welcome-ok-button {
+  position: relative;
+  top: -4px;
+}
+
+#onboarding-skip-option span {
+  font-size: 65%;
+}

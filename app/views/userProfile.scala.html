@@ -91,7 +91,7 @@
             </div>
         </div>
 
-        <div class="row" style="margin-top: 15px">
+        <div class="row user-stats-row">
             <div class="user-stats-holder">
                 <span class="user-stats-header">@Messages("dashboard.your.missions")</span>
                 <span class="user-stats-header">@Messages("dashboard.distance")</span>
@@ -232,7 +232,7 @@
                             <th class="col-md">Time spent auditing/validating</th>
                             <th class="col-md">
                                 Labeling frequency
-                                <span title="If a user has a labeling frequency below 37.5 labels per km, then they are marked as low quality. You recalculate this by going to /adminapi/updateUserStats." style="cursor: pointer">&#9432;</span>
+                                <span class="stats-info-icon" title="If a user has a labeling frequency below 37.5 labels per km, then they are marked as low quality. You recalculate this by going to /adminapi/updateUserStats.">&#9432;</span>
                             </th>
                         </tr>
                         <tr>
@@ -277,7 +277,7 @@
                         <button type="button" id="low-quality-remove-flags" class="btn btn-primary date-submit">Remove Flags</button>
                     </div>
                     <div class="row">
-                        <div id="low-quality-alert" class="alert alert-success" role="alert" style="visibility: hidden">Alert TEST</div>
+                        <div id="low-quality-alert" class="alert alert-success ps-invisible" role="alert">Alert TEST</div>
                     </div>
                 </div>
                 <div class="col-lg-4 flag-date-container">
@@ -295,7 +295,7 @@
                         <button type="button" id="incomplete-remove-flags" class="btn btn-primary date-submit">Remove Flags</button>
                     </div>
                     <div class="row">
-                        <div id="incomplete-alert" class="alert alert-success" role="alert" style="visibility: hidden">Alert TEST</div>
+                        <div id="incomplete-alert" class="alert alert-success ps-invisible" role="alert">Alert TEST</div>
                     </div>
                 </div>
             </div>

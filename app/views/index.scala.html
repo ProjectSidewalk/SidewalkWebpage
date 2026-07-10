@@ -17,13 +17,7 @@
             <source src='@assets.path("videos/mainvideo.webm")' type="video/webm">
             <source src='@assets.path("videos/mainvideo.mp4")' type="video/mp4">
         </video>
-        <div id="overlay-top" style="width: 100%;
-            height: 100%;
-            position: absolute;
-            top: 0px;
-            background-color: rgba(192, 190, 207, 0.4);
-            left: 0px;">
-        </div>
+        <div id="overlay-top"></div>
 
         @if(newsRibbonLink.isDefined && newsRibbonLink.exists(_.trim.nonEmpty)) {
             <a href="@newsRibbonLink" class="ps-news-ribbon">News on PS</a>
@@ -59,8 +53,7 @@
     </div>
 
     <div id="content">
-        <div class="container" style="width: 100%;
-            position: relative;">
+        <div class="container home-content-container">
             <div class="section-title-and-subtitle">
                 <div class="row section-title" id="instruction-video-title">@Messages("landing.how.you.help")</div>
                 <div class="row section-subtitle" id="instruction-video-subtitle">
@@ -92,16 +85,16 @@
                 </div>
                 <div class="hidden-xs" id="greenbar"></div>
                 <div id="instructionvideo">
-                    <video id="vid1" width="800" style="display: none;" playsinline autoplay muted loop
-                    poster='@assets.path("images/segment-1-1.jpg")' class="visible-desktop">
+                    <video id="vid1" width="800" playsinline autoplay muted loop
+                    poster='@assets.path("images/segment-1-1.jpg")' class="visible-desktop ps-hidden">
                         <source src='@assets.path("videos/segment-1-1.mp4")' type="video/mp4">
                     </video>
-                    <video id="vid2" width="800" style="display: none;" playsinline autoplay muted loop
-                    poster='@assets.path("images/segment-2.jpg")' class="visible-desktop">
+                    <video id="vid2" width="800" playsinline autoplay muted loop
+                    poster='@assets.path("images/segment-2.jpg")' class="visible-desktop ps-hidden">
                         <source src='@assets.path("videos/segment-2.mp4")' type="video/mp4">
                     </video>
-                    <video id="vid3" width="800" style="display: none;" playsinline autoplay muted loop
-                    poster='@assets.path("images/segment-3.jpg")' class="visible-desktop">
+                    <video id="vid3" width="800" playsinline autoplay muted loop
+                    poster='@assets.path("images/segment-3.jpg")' class="visible-desktop ps-hidden">
                         <source src='@assets.path("videos/segment-3.mp4")' type="video/mp4">
                     </video>
                 </div>
@@ -121,20 +114,20 @@
             <div id="landing-choropleth-holder" class="choropleth-holder">
                 <div id="landing-choropleth" class="choropleth"></div>
                 <div id="landing-legend">
-                    <strong style="font-size: 17px">@Messages("landing.choropleth.legend")</strong>
+                    <strong>@Messages("landing.choropleth.legend")</strong>
                     <nav class='legend clearfix'>
-                        <div style='width: 100%; padding: 0;'>
-                            <span style='background: #03152f; width: 9.09%' aria-hidden="true"></span>
-                            <span style='background: #08306b; width: 9.09%' aria-hidden="true"></span>
-                            <span style='background: #08519c; width: 9.09%' aria-hidden="true"></span>
-                            <span style='background: #08719c; width: 9.09%' aria-hidden="true"></span>
-                            <span style='background: #2171b5; width: 9.09%' aria-hidden="true"></span>
-                            <span style='background: #4292c6; width: 9.09%' aria-hidden="true"></span>
-                            <span style='background: #6baed6; width: 9.09%' aria-hidden="true"></span>
-                            <span style='background: #82badb; width: 9.09%' aria-hidden="true"></span>
-                            <span style='background: #9ecae1; width: 9.09%' aria-hidden="true"></span>
-                            <span style='background: #b3d3e8; width: 9.09%' aria-hidden="true"></span>
-                            <span style='background: #c6dbef; width: 9.09%' aria-hidden="true"></span>
+                        <div class="legend-scale">
+                            <span class="legend-swatch legend-swatch-1" aria-hidden="true"></span>
+                            <span class="legend-swatch legend-swatch-2" aria-hidden="true"></span>
+                            <span class="legend-swatch legend-swatch-3" aria-hidden="true"></span>
+                            <span class="legend-swatch legend-swatch-4" aria-hidden="true"></span>
+                            <span class="legend-swatch legend-swatch-5" aria-hidden="true"></span>
+                            <span class="legend-swatch legend-swatch-6" aria-hidden="true"></span>
+                            <span class="legend-swatch legend-swatch-7" aria-hidden="true"></span>
+                            <span class="legend-swatch legend-swatch-8" aria-hidden="true"></span>
+                            <span class="legend-swatch legend-swatch-9" aria-hidden="true"></span>
+                            <span class="legend-swatch legend-swatch-10" aria-hidden="true"></span>
+                            <span class="legend-swatch legend-swatch-11" aria-hidden="true"></span>
                         </div>
                         <div id='legend-percentages-container' aria-label="Describes range of colors on choropleth from 0% to 100%">
                             <label>0%</label>
@@ -150,7 +143,7 @@
                 @if(currentCity.cityId == "seattle-wa") {
                     <img src="@assets.path("images/" + skylineImg)" alt="@Messages(s"landing.$skylineImg.alt")">
                 } else {
-                    <img style="padding-top: 75px" src="@assets.path("images/" + skylineImg)" alt="@Messages(s"landing.$skylineImg.alt")">
+                    <img class="skyline-img-offset" src="@assets.path("images/" + skylineImg)" alt="@Messages(s"landing.$skylineImg.alt")">
                 }
                 <img src="@assets.path("images/generic_cloud_overlay.png")" class="skyline-cloud-overlay" alt="@Messages("landing.clouds.alt")">
             </div>
@@ -169,10 +162,10 @@
                 <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.validations")</span>
             </div>
             <div class="ps-skyline-overlay section-title-and-subtitle">
-                <div class="row section-title" style="margin-top: 50px; margin-bottom: 10px" id="skyline-title">
+                <div class="row section-title" id="skyline-title">
                     @Messages("landing.stats.title")
                 </div>
-                <div class="row section-subtitle" style="margin-top: 0px;" id="skyline-subtitle">
+                <div class="row section-subtitle" id="skyline-subtitle">
                     <p id="conditional-text">Keep Mapping!</p>
                 </div>
             </div>
