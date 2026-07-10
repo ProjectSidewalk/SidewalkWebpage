@@ -1,39 +1,39 @@
 /* Shared tag pill styles — used in Explore, Validate, map sidebar filters, and label detail popups. */
 .tag-pill {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    gap: calc(8px * var(--ui-scale, 1));
-    padding: calc(5px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
-    outline: 1px solid var(--color-neutral-900);
-    border: none;
-    border-radius: 200px;
-    background: var(--color-neutral-white);
-    white-space: nowrap;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: calc(8px * var(--ui-scale, 1));
+  padding: calc(5px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+  outline: 1px solid var(--color-neutral-900);
+  border: none;
+  border-radius: 200px;
+  background: var(--color-neutral-white);
+  white-space: nowrap;
 }
 
 .tag-pill__label {
-    font: var(--text-tiny-semibold);
-    color: var(--color-neutral-black);
-    pointer-events: none;
+  font: var(--text-tiny-semibold);
+  color: var(--color-neutral-black);
+  pointer-events: none;
 }
 
 /* Interactive pills (toggleable filters, clickable actions, etc.) */
 .tag-pill--interactive {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 .tag-pill--interactive:hover {
-    background: var(--color-pine-200);
-    outline: none;
+  background: var(--color-pine-200);
+  outline: none;
 }
 
 .tag-pill--interactive.tag-pill--active {
-    background: var(--color-pine-300);
-    outline: none;
+  background: var(--color-pine-300);
+  outline: none;
 }
 
 .tag-pill--interactive.tag-pill--active:hover {
-    background: var(--color-pine-300);
-    outline: 1px solid var(--color-pine-500);
+  background: var(--color-pine-300);
+  outline: 1px solid var(--color-pine-500);
 }

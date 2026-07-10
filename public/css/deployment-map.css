@@ -10,13 +10,13 @@
 
 /* Used on the landing page (index.scala.html) */
 #deployment-map {
-    width: 100%;
-    height: 100vh;
-    max-height: 800px;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    overflow: hidden;
-    top: 10px;
+  width: 100%;
+  height: 100vh;
+  max-height: 800px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -1px rgb(0 0 0 / 6%);
+  overflow: hidden;
+  top: 10px;
 }
 
 /* Used on the dashboard page (deploymentSitesDashboard.scala.html) */
@@ -31,7 +31,7 @@
   width: 100%;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
 }
 
 .map {
@@ -44,112 +44,112 @@
    ========================================================================== */
 
 .deployment-popup .mapboxgl-popup-content {
-    padding: 16px;
-    border-radius: 8px;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    border: none;
-    max-width: 250px;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -2px rgb(0 0 0 / 5%);
+  border: none;
+  max-width: 250px;
 }
 
 .deployment-popup .mapboxgl-popup-tip {
-    border-top-color: var(--color-neutral-white);
+  border-top-color: var(--color-neutral-white);
 }
 
 .popup-content {
-    text-align: center;
+  text-align: center;
 }
 
 .popup-title {
-    margin: 0 0 12px 0;
-    font-size: 18px;
-    font-weight: 800;
-    color: #1f2937;
-    line-height: 1.2;
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #1f2937;
+  line-height: 1.2;
 }
 
 .popup-link {
-    margin-top: 10px;
-    display: inline-block;
-    padding: 8px 16px;
-    background-color: #3b82f6;
-    color: var(--color-neutral-white) !important;
-    text-decoration: none !important;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
-    transition: background-color 0.2s ease, transform 0.1s ease;
+  margin-top: 10px;
+  display: inline-block;
+  padding: 8px 16px;
+  background-color: #3b82f6;
+  color: var(--color-neutral-white) !important;
+  text-decoration: none !important;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
 .popup-link:hover {
-    background-color: #2563eb;
-    transform: translateY(-1px);
+  background-color: #2563eb;
+  transform: translateY(-1px);
 }
 
 .popup-link:active {
-    transform: translateY(0);
+  transform: translateY(0);
 }
 
 /* Popup stats grid */
 .popup-stats-grid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
-    width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
 }
 
 .popup-stat-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    min-width: 50px;
-    flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 50px;
+  flex: 1;
 }
 
 .popup-stat-header {
-    font-size: 12px;
-    font-weight: bold;
-    color: #2c3e50;
-    margin-bottom: 4px;
-    line-height: 1.2;
+  font-size: 12px;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 4px;
+  line-height: 1.2;
 
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .popup-stat-value {
-    font-size: 14px;
-    font-weight: bold;
-    color: #222;
+  font-size: 14px;
+  font-weight: bold;
+  color: #222222;
 }
 
 .popup-stat-group img {
-    height: 30px;
-    width: auto;
-    margin-bottom: 4px;
+  height: 30px;
+  width: auto;
+  margin-bottom: 4px;
 }
 
 /* Popup message for private deployments */
 .popup-private-message {
-    margin-top: 12px;
-    padding: 8px 16px;
-    font-size: 14px;
-    font-weight: 500;
-    color: #6b7280;
-    background-color: #f3f4f6;
-    border-radius: 6px;
-    text-align: center;
+  margin-top: 12px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  background-color: #f3f4f6;
+  border-radius: 6px;
+  text-align: center;
 }
 
 /* Centered text for loading/error states */
 .popup-loading,
 .popup-error {
-    text-align: center;
-    margin: 15px 0;
-    color: #666;
+  text-align: center;
+  margin: 15px 0;
+  color: #666666;
 }
 
 /* ==========================================================================
@@ -215,7 +215,7 @@
 
 .deployment-sites-stats-stat {
   font-size: 30px;
-  font-family: raleway, 'Open Sans', 'Noto Sans', sans-serif;
+  font-family: raleway, "Open Sans", "Noto Sans", sans-serif;
   color: #34495e;
   font-weight: 600;
 }
@@ -227,11 +227,12 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgb(255 255 255 / 95%);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
 }
 
@@ -254,88 +255,108 @@
    ========================================================================== */
 
 .cta-section {
-    width: 95%;
-    padding: 20px 20px 26px 20px;
-    background-color: #f0f5f4; /* A very light, complementary green */
-    border-radius: 8px;
-    margin-top: 20px;
-    margin-left: auto;   /* These two properties center the block */
-    margin-right: auto;  /* within its parent container */
+  width: 95%;
+  padding: 20px 20px 26px;
+  background-color: #f0f5f4; /* A very light, complementary green */
+  border-radius: 8px;
+  margin-top: 20px;
+  margin-left: auto;   /* These two properties center the block */
+  margin-right: auto;  /* within its parent container */
 }
 
 .cta-content {
-    max-width: 800px;
-    margin: 0 auto;
-    text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
 }
 
 .cta-logo {
-    height: 100px;
-    width: auto;
-    margin-bottom: 20px;
+  height: 100px;
+  width: auto;
+  margin-bottom: 20px;
 }
 
 .cta-title {
-    font-size: 28px;
-    font-family: raleway-extrabold, sans-serif;
-    color: #2c3e50;
-    margin-bottom: 15px;
+  font-size: 28px;
+  font-family: raleway-extrabold, sans-serif;
+  color: #2c3e50;
+  margin-bottom: 15px;
 }
 
 .cta-text {
-    font-size: 18px;
-    color: #34495e;
-    line-height: 1.6;
-    margin-bottom: 30px;
+  font-size: 18px;
+  color: #34495e;
+  line-height: 1.6;
+  margin-bottom: 30px;
 }
 
 .cta-button {
-    display: inline-block;
-    padding: 12px 28px;
-    background-color: #78C9AB; /* Project Sidewalk primary green */
-    color: #2c3e50 !important;
-    text-decoration: none !important;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: bold;
-    transition: background-color 0.2s ease, transform 0.2s ease;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: inline-block;
+  padding: 12px 28px;
+  background-color: var(--color-pine-500); /* Project Sidewalk primary green */
+  color: #2c3e50 !important;
+  text-decoration: none !important;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 4px 6px rgb(0 0 0 / 10%);
 }
 
 .cta-button:hover {
-    background-color: #AEDFCD; /* A lighter shade for hover */
-    transform: translateY(-2px);
-    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+  background-color: var(--color-pine-300); /* A lighter shade for hover */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px rgb(0 0 0 / 15%);
 }
 
 /* ==========================================================================
    Responsive Design
    ========================================================================== */
 
-@media (max-width: 768px) {
-    /* General map adjustments */
-    #deployment-map { height: 60vh; max-height: 500px; }
-    .map-section { height: 400px; }
+@media (width <= 768px) {
+  /* General map adjustments */
+  #deployment-map {
+    height: 60vh;
+    max-height: 500px;
+  }
+  .map-section { height: 400px; }
 
-    /* Dashboard layout */
-    .deployment-sites-container { padding: 10px 15px; gap: 20px; }
-    .deployment-sites-stats-holder { gap: 25px; }
-    .stat-group { min-width: 100px; }
-    .deployment-sites-stats-header { font-size: 20px; }
-    .deployment-sites-stats-stat { font-size: 22px; }
-    .stat-group img { height: 50px; margin: 10px 0; }
+  /* Dashboard layout */
+  .deployment-sites-container {
+    padding: 10px 15px;
+    gap: 20px;
+  }
+  .deployment-sites-stats-holder { gap: 25px; }
+  .stat-group { min-width: 100px; }
+  .deployment-sites-stats-header { font-size: 20px; }
+  .deployment-sites-stats-stat { font-size: 22px; }
+
+  .stat-group img {
+    height: 50px;
+    margin: 10px 0;
+  }
 }
 
-@media (max-width: 480px) {
-    /* General map adjustments */
-    #deployment-map { height: 50vh; max-height: 400px; }
-    .map-section { height: 300px; }
+@media (width <= 480px) {
+  /* General map adjustments */
+  #deployment-map {
+    height: 50vh;
+    max-height: 400px;
+  }
+  .map-section { height: 300px; }
 
-    /* Dashboard layout */
-    .deployment-sites-container { padding: 10px; gap: 15px; }
-    .deployment-sites-stats-holder { gap: 20px; }
-    .stat-group { min-width: 80px; }
-    .deployment-sites-stats-header { font-size: 16px; }
-    .deployment-sites-stats-stat { font-size: 18px; }
-    .stat-group img { height: 40px; margin: 8px 0; }
+  /* Dashboard layout */
+  .deployment-sites-container {
+    padding: 10px;
+    gap: 15px;
+  }
+  .deployment-sites-stats-holder { gap: 20px; }
+  .stat-group { min-width: 80px; }
+  .deployment-sites-stats-header { font-size: 16px; }
+  .deployment-sites-stats-stat { font-size: 18px; }
+
+  .stat-group img {
+    height: 40px;
+    margin: 8px 0;
+  }
 }

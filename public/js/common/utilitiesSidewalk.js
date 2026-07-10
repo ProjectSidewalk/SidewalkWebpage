@@ -568,6 +568,7 @@ function UtilitiesMisc(JSON) {
     });
   }
 
+  // TODO These colors should probably match the colors in our Design System Tokens in main.css.
   const colors = {
     Walk: {
       id: 'Walk',

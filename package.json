@@ -2,6 +2,7 @@
     "devDependencies": {
         "@eslint/js": "^9.39.4",
         "@stylistic/eslint-plugin": "^2.0.0",
+        "@stylistic/stylelint-plugin": "^5.2.1",
         "eslint": "^9.0.0",
         "globals": "^15.0.0",
         "grunt": "^1.6.2",
@@ -11,8 +12,9 @@
         "htmlhint": "^0.14.2",
         "jest": "^29.7.0",
         "jest-environment-jsdom": "^29.7.0",
-        "stylelint": "^13.13.1",
-        "stylelint-config-standard": "^22.0.0"
+        "stylelint": "^17.14.0",
+        "stylelint-config-standard": "^40.0.0",
+        "stylelint-plugin-use-baseline": "^1.4.4"
     },
     "scripts": {
         "grunt-concat": "grunt concat && grunt concat_css",

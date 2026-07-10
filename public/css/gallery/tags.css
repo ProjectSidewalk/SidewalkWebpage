@@ -1,38 +1,38 @@
 .gallery-tag {
-    display: inline-block;
-    margin: 2px 2px;
+  display: inline-block;
+  margin: 2px;
 }
 
 .thumbnail-tag {
-    cursor: default;
-    font-weight: bold;
-    padding: 1px 5px;
-    color: #2d2a3f;
+  cursor: default;
+  font-weight: bold;
+  padding: 1px 5px;
+  color: var(--color-asphalt-500);
 }
 
 .not-added {
-    background-color: var(--color-neutral-white);
-    font-size: .6vw;
-    margin: 1px;
+  background-color: var(--color-neutral-white);
+  font-size: .6vw;
+  margin: 1px;
 }
 
 .additional-count {
-    margin: 3px -2px;
-    border-style: none;
-    font-weight: bold;
-    cursor: pointer;
-    background-color: inherit;
+  margin: 3px -2px;
+  border-style: none;
+  font-weight: bold;
+  cursor: pointer;
+  background-color: inherit;
 }
 
 #tags-header {
-    display: none;
+  display: none;
 }
 
 .additional-tag-popover {
-    width: fit-content;
-    max-width: 250px;
+  width: fit-content;
+  max-width: 250px;
 }
 
 .additional-tag-popover-content {
-    padding: 5px 10px;
+  padding: 5px 10px;
 }

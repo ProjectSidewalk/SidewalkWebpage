@@ -1,50 +1,50 @@
 #mission-title {
-    width: var(--app-width);
-    position: absolute;
-    top: calc(20px * var(--ui-scale));
-    font: var(--text-body-bold);
-    letter-spacing: 5%;
+  width: var(--app-width);
+  position: absolute;
+  top: calc(20px * var(--ui-scale));
+  font: var(--text-body-bold);
+  letter-spacing: 5%;
 }
 
 /* The mission progress bar uses the shared .ps-progress-bar component; this positions it and sets its slim height. */
 #mission-progress-bar-section {
-    --ps-progress-bar-height: calc(7px * var(--ui-scale));
-    position: absolute;
-    top: calc(50px * var(--ui-scale));
-    width: var(--pano-width);
-    gap: calc(12px * var(--ui-scale));
+  --ps-progress-bar-height: calc(7px * var(--ui-scale));
+  position: absolute;
+  top: calc(50px * var(--ui-scale));
+  width: var(--pano-width);
+  gap: calc(12px * var(--ui-scale));
 }
 
 #mission-progress-bar-text {
-    font: var(--text-small-regular);
-    padding-bottom: calc(2px * var(--ui-scale));
+  font: var(--text-small-regular);
+  padding-bottom: calc(2px * var(--ui-scale));
 }
 
 #admin-info-section {
-    display: none;
-    position: absolute;
-    top: calc(43px * var(--ui-scale));
-    left: var(--menu-left);
+  display: none;
+  position: absolute;
+  top: calc(43px * var(--ui-scale));
+  left: var(--menu-left);
 }
 
 /* The popover renders on <body> (so it reads --ui-scale from :root); override Bootstrap's 276px max-width. */
 .admin-info-popover {
-    max-width: calc(450px * var(--ui-scale));
+  max-width: calc(450px * var(--ui-scale));
 }
 
 #admin-info-content h1 {
-    font: var(--text-title-bold);
-    margin-top: 0;
-    margin-bottom: 0;
+  font: var(--text-title-bold);
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 #admin-info-content h2 {
-    font: var(--text-body-bold);
-    margin-top: calc(8px * var(--ui-scale));
-    margin-bottom: 0;
+  font: var(--text-body-bold);
+  margin-top: calc(8px * var(--ui-scale));
+  margin-bottom: 0;
 }
 
 #admin-info-content p {
-    font: var(--text-caption-regular);
-    margin-bottom: 0;
+  font: var(--text-caption-regular);
+  margin-bottom: 0;
 }

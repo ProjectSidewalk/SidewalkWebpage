@@ -1,194 +1,196 @@
 #street-view-holder {
-    position: relative;
-    height: var(--pano-height);
-    width: var(--pano-width);
+  position: relative;
+  height: var(--pano-height);
+  width: var(--pano-width);
 }
 
 /* The pano viewer, label canvas, and interaction layers fill the (display-sized) street view. The canvas
    elements keep their fixed 720x480 bitmap resolution and are scaled up to this size by the browser. */
 .window-streetview {
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: var(--pano-height);
-    width: var(--pano-width);
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: var(--pano-height);
+  width: var(--pano-width);
 }
 
 /* The panorama viewport. It fills the full street-view area (no border) so the label canvas, which is the same size,
    overlays the GSV imagery exactly. The colored frame is drawn on top by #pano-border-frame instead. */
 #pano {
-    border-radius: calc(4px * var(--ui-scale));
-    background-color: var(--color-asphalt-400);
-    overflow: hidden;
+  border-radius: calc(4px * var(--ui-scale));
+  background-color: var(--color-asphalt-400);
+  overflow: hidden;
 }
 
 /* Colored frame on top of the pano and label layers. Drawing it above the canvases (rather than as the pano's own
    border underneath) means a label placed at the very edge is clipped by the frame instead of rendering on top of it.
    The border color is set per label type by RibbonMenu. */
 #pano-border-frame {
-    z-index: 2;
-    pointer-events: none;
-    box-sizing: border-box;
-    border: calc(3px * var(--ui-scale)) solid var(--color-asphalt-400);
-    border-radius: calc(4px * var(--ui-scale));
+  z-index: 2;
+  pointer-events: none;
+  box-sizing: border-box;
+  border: calc(3px * var(--ui-scale)) solid var(--color-asphalt-400);
+  border-radius: calc(4px * var(--ui-scale));
 }
 
 /* Shared button look in pano-overlay-buttons.css; this rule only positions the holder in the top-right of the pano. */
 #zoom-buttons-holder {
-    position: absolute;
-    z-index: 2;
-    top: calc(7px * var(--ui-scale));
-    right: calc(7px * var(--ui-scale));
+  position: absolute;
+  z-index: 2;
+  top: calc(7px * var(--ui-scale));
+  right: calc(7px * var(--ui-scale));
 }
 
 /* Stuck/sound/feedback controls in the top-left. Shared pill look lives in pano-overlay-buttons.css;
    here we only position the holder and drive the expand/collapse of the optional buttons. */
 #explore-control-buttons-holder {
-    position: absolute;
-    z-index: 2;
-    top: calc(7px * var(--ui-scale));
-    left: calc(7px * var(--ui-scale));
+  position: absolute;
+  z-index: 2;
+  top: calc(7px * var(--ui-scale));
+  left: calc(7px * var(--ui-scale));
 }
 
 /* Collapsed by default: only the Stuck button and chevron toggle show. */
 #explore-control-buttons-holder .collapsible-control-button {
-    display: none;
+  display: none;
 }
 
 #explore-control-buttons-holder.expanded .collapsible-control-button {
-    display: flex;
+  display: flex;
 }
 
 #nav-arrows-container {
-    position: absolute;
-    top: 50%;
-    left: calc(50% - 90px * var(--ui-scale));
-    width: calc(220px * var(--ui-scale));
-    height: calc(220px * var(--ui-scale));
-    perspective: calc(285px * var(--ui-scale));
+  position: absolute;
+  top: 50%;
+  left: calc(50% - 90px * var(--ui-scale));
+  width: calc(220px * var(--ui-scale));
+  height: calc(220px * var(--ui-scale));
+  perspective: calc(285px * var(--ui-scale));
 }
 
 /* Used to make it look like there's a 3D perspective for the arrows. The SVG markup has fixed width/height attributes,
    so override them to fill the (scaled) container; its viewBox keeps the arrows proportional. */
 #nav-arrows-container svg {
-     width: 100%;
-     height: 100%;
-     transform: rotateX(45deg);
-     transform-style: preserve-3d;
+  width: 100%;
+  height: 100%;
+  transform: rotateX(45deg);
+  transform-style: preserve-3d;
 }
 
 #arrow-group image {
-    cursor: pointer;
-    filter: drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black)); /* Adds black outline. */
+  cursor: pointer;
+
+  /* Filter adds black outline. */
+  filter: drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black));
 }
 
 #arrow-group image:hover {
-    filter:
-        drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black)) /* Adds black outline. */
-        sepia(1) saturate(2) hue-rotate(315deg); /* Adds yellow highlight on hover. */
+  filter:
+    drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black))
+    sepia(1) saturate    rotate(315deg); /* Adds yellow highlight on hover. */
 }
 
 /* Used to highlight/blink the nav arrows in the tutorial. */
 #arrow-group image.highlight {
-    filter:
-        drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black)) /* Adds black outline. */
-        sepia(1) saturate(5) hue-rotate(315deg); /* Adds yellow highlight. */
+  filter:
+    drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black))
+    sepia(1) saturate    rotate(315deg); /* Adds yellow highlight. */
 }
 
 #delete-icon-holder {
-    cursor: pointer;
-    visibility: hidden;
-    position: absolute;
-    width: calc(20px * var(--ui-scale));
-    height: calc(20px * var(--ui-scale));
-    left: 0;
-    top: calc(10px * var(--ui-scale));
+  cursor: pointer;
+  visibility: hidden;
+  position: absolute;
+  width: calc(20px * var(--ui-scale));
+  height: calc(20px * var(--ui-scale));
+  left: 0;
+  top: calc(10px * var(--ui-scale));
 }
 
 #label-delete-icon {
-    height: calc(20px * var(--ui-scale));
-    width: calc(20px * var(--ui-scale));
-    position: absolute;
+  height: calc(20px * var(--ui-scale));
+  width: calc(20px * var(--ui-scale));
+  position: absolute;
 }
 
 /* Tooltip shown over a hovered label (filled/positioned by Label.js). Background color is set per label type in JS. */
 .label-hover-info {
-    position: absolute;
-    left: 0;
-    top: 0;
-    z-index: 2; /* Above the pano's view-control-layer (z-index: 1). */
-    visibility: hidden;
-    pointer-events: none;
-    display: flex;
-    flex-direction: column;
-    gap: calc(2px * var(--ui-scale));
-    padding: calc(5px * var(--ui-scale)) calc(9px * var(--ui-scale));
-    border: 1px solid var(--color-neutral-white);
-    border-radius: calc(4px * var(--ui-scale));
-    color: var(--color-neutral-white);
-    font: var(--text-caption-medium);
-    white-space: nowrap;
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2; /* Above the pano's view-control-layer (z-index: 1). */
+  visibility: hidden;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: calc(2px * var(--ui-scale));
+  padding: calc(5px * var(--ui-scale)) calc(9px * var(--ui-scale));
+  border: 1px solid var(--color-neutral-white);
+  border-radius: calc(4px * var(--ui-scale));
+  color: var(--color-neutral-white);
+  font: var(--text-caption-medium);
+  white-space: nowrap;
 }
 
 .label-hover-info-severity {
-    display: none; /* Toggled to flex by Label.js for label types that have a severity. */
-    align-items: center;
-    gap: calc(5px * var(--ui-scale));
+  display: none; /* Toggled to flex by Label.js for label types that have a severity. */
+  align-items: center;
+  gap: calc(5px * var(--ui-scale));
 }
 
 .label-hover-info-severity-icon {
-    width: calc(16px * var(--ui-scale));
-    height: calc(16px * var(--ui-scale));
+  width: calc(16px * var(--ui-scale));
+  height: calc(16px * var(--ui-scale));
 }
 
 /* Sits in the top-right just left of the stacked zoom control, scaled down to match its height. transform-origin keeps
    the top-right corner pinned so the scaled sign still lines up with the zoom buttons. */
 .speed-limit-sign {
-    display: none;
-    width: calc(60px * var(--ui-scale));
-    height: calc(70px * var(--ui-scale));
-    padding: calc(3px * var(--ui-scale));
-    top: calc(7px * var(--ui-scale));
-    right: calc(36px * var(--ui-scale));
-    border-radius: calc(5px * var(--ui-scale));
-    position: absolute;
-    z-index: 2;
-    pointer-events: none;
-    transform: scale(0.657);
-    transform-origin: top right;
-    background: rgb(from var(--color-neutral-white) r g b / 75%);
+  display: none;
+  width: calc(60px * var(--ui-scale));
+  height: calc(70px * var(--ui-scale));
+  padding: calc(3px * var(--ui-scale));
+  top: calc(7px * var(--ui-scale));
+  right: calc(36px * var(--ui-scale));
+  border-radius: calc(5px * var(--ui-scale));
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  transform: scale(0.657);
+  transform-origin: top right;
+  background: rgb(from var(--color-neutral-white) r g b / 75%);
 }
 
 .speed-limit-sign[data-design-style="non-us-canada"] {
-    width: calc(75px * var(--ui-scale));
-    height: calc(75px * var(--ui-scale));
-    padding: 0px;
-    border-radius: 100%;
-    transform: scale(0.613);
+  width: calc(75px * var(--ui-scale));
+  height: calc(75px * var(--ui-scale));
+  padding: 0;
+  border-radius: 100%;
+  transform: scale(0.613);
 }
 
 .speed-limit-holder {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: calc(5px * var(--ui-scale));
-    border: calc(3px * var(--ui-scale)) solid var(--color-neutral-black);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(5px * var(--ui-scale));
+  border: calc(3px * var(--ui-scale)) solid var(--color-neutral-black);
 }
 
 .speed-limit-sign[data-design-style="non-us-canada"] .speed-limit-holder {
-    border-radius: 100%;
-    border: calc(7px * var(--ui-scale)) solid var(--color-error-200);
+  border-radius: 100%;
+  border: calc(7px * var(--ui-scale)) solid var(--color-error-200);
 }
 
 .speed-limit-text {
-    display: flex;
-    flex-direction: column;
-    font: var(--text-small-bold);
-    text-align: center;
+  display: flex;
+  flex-direction: column;
+  font: var(--text-small-bold);
+  text-align: center;
 }
 
 #speed-limit {
-    font: var(--text-h3-bold);
-    font-size: calc(30px * var(--ui-scale));
+  font: var(--text-h3-bold);
+  font-size: calc(30px * var(--ui-scale));
 }

@@ -72,7 +72,7 @@ git pull origin develop
 
 Code-style conventions for JavaScript, Scala, and HTML/CSS live in **[`docs/style-guide.md`](docs/style-guide.md)** —
 that's the single source of truth, and most rules are enforced for you by the linters
-([`eslint.config.js`](eslint.config.js), [`.scalafmt.conf`](.scalafmt.conf), [`.stylelintrc.json`](.stylelintrc.json)).
+([`eslint.config.js`](eslint.config.js), [`.scalafmt.conf`](.scalafmt.conf), [`stylelint.config.mjs`](stylelint.config.mjs)).
 [`CLAUDE.md`](CLAUDE.md) holds the architecture and the ScalaDoc/JSDoc comment standards. A few things worth knowing
 before your first PR:
 
