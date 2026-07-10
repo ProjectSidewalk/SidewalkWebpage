@@ -15,10 +15,10 @@
 @common.main(commonData, title, defaultI18nNamespace="audit", i18Namespaces=Seq("audit", "common"), url="/explore") {
     @common.navbar(commonData, Some(user))
 
-    <link rel="stylesheet" href='@assets.path("js/explore/build/explore.css")'/>
-    <link rel="stylesheet" href='@assets.path("css/progress-bar.css")'/>
-    <link rel="stylesheet" href='@assets.path("css/pano-overlay-buttons.css")'/>
-    <link rel="stylesheet" href='@assets.path("vendor/animate-css/animate.css")'/>
+    <link rel="stylesheet" href='@assets.path("js/explore/build/explore.css")'>
+    <link rel="stylesheet" href='@assets.path("css/progress-bar.css")'>
+    <link rel="stylesheet" href='@assets.path("css/pano-overlay-buttons.css")'>
+    <link rel="stylesheet" href='@assets.path("vendor/animate-css/animate.css")'>
 
     <script>
         // Setup necessary for saving crops of pano. We don't want to cause issues if this fails.
@@ -44,7 +44,7 @@
     <div id="page-loading">
         <div id="loading-animation">
             <p class="loading-text">@Messages("loading")</p>
-            <img src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'/>
+            <img src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'>
             <p class="loading-sub-text">@Messages("loading.encouragement")</p>
         </div>
     </div>
@@ -145,40 +145,40 @@
             <div id="ribbon-menu-holder">
                 <div id="ribbon-menu-buttons">
                     <span id="mode-switch-button-walk" class="label-type-button-holder" val="Walk">
-                        <img src='@assets.path("images/explore/icons/explore.png")' class="label-type-icon">
+                        <img src='@assets.path("images/explore/icons/explore.png")' class="label-type-icon" alt="Explore mode icon">
                         <span class="label-type-name">@Html(Messages("audit.ribbon.explore"))</span>
                     </span>
                     <span id="label-type-divider-major"></span>
                     <div class="ribbon-menu-group">
                         <div id="ribbon-menu-title-holder-ramp" class="ribbon-menu-title-holder audit-selectable">
-                            <span id="ribbon-menu-title">@Messages("audit.ribbon.curb.ramp.labels")</span>
+                            <span class="ribbon-menu-title">@Messages("audit.ribbon.curb.ramp.labels")</span>
                         </div>
                         <div class="ribbon-menu-group-buttons">
                             <span id="mode-switch-button-curb-ramp" class="label-type-button-holder" val="CurbRamp">
-                                <img src='@assets.path("images/icons/label_type_icons/CurbRamp.png")' class="label-type-icon">
+                                <img src='@assets.path("images/icons/label_type_icons/CurbRamp.png")' class="label-type-icon" alt="Curb ramp icon">
                                 <span class="label-type-name">@Html(Messages("audit.ribbon.curb.ramp"))</span>
                             </span>
                             <span id="mode-switch-button-curb-ramp-needed" class="label-type-button-holder" val="NoCurbRamp">
-                                <img src='@assets.path("images/icons/label_type_icons/NoCurbRamp.png")' class="label-type-icon">
+                                <img src='@assets.path("images/icons/label_type_icons/NoCurbRamp.png")' class="label-type-icon" alt="Missing curb ramp icon">
                                 <span class="label-type-name">@Html(Messages("audit.ribbon.missing.ramp"))</span>
                             </span>
                         </div>
                     </div>
                     <div class="ribbon-menu-group">
                         <div id="ribbon-menu-title-holder-sidewalk" class="ribbon-menu-title-holder audit-selectable">
-                            <span id="ribbon-menu-title">@Messages("audit.ribbon.sidewalk.labels")</span>
+                            <span class="ribbon-menu-title">@Messages("audit.ribbon.sidewalk.labels")</span>
                         </div>
                         <div class="ribbon-menu-group-buttons">
                             <span id="mode-switch-button-obstacle" class="label-type-button-holder" val="Obstacle">
-                                <img src='@assets.path("images/icons/label_type_icons/Obstacle.png")' class="label-type-icon">
+                                <img src='@assets.path("images/icons/label_type_icons/Obstacle.png")' class="label-type-icon" alt="Obstacle icon">
                                 <span class="label-type-name">@Html(Messages("audit.ribbon.obstacle"))</span>
                             </span>
                             <span id="mode-switch-button-surface-problem" class="label-type-button-holder" val="SurfaceProblem">
-                                <img src='@assets.path("images/icons/label_type_icons/SurfaceProblem.png")' class="label-type-icon">
+                                <img src='@assets.path("images/icons/label_type_icons/SurfaceProblem.png")' class="label-type-icon" alt="Surface problem icon">
                                 <span class="label-type-name">@Html(Messages("audit.ribbon.surface.problem"))</span>
                             </span>
                             <span id="mode-switch-button-no-sidewalk" class="label-type-button-holder" val="NoSidewalk">
-                                <img src='@assets.path("images/icons/label_type_icons/NoSidewalk.png")' class="label-type-icon">
+                                <img src='@assets.path("images/icons/label_type_icons/NoSidewalk.png")' class="label-type-icon" alt="No sidewalk icon">
                                 <span class="label-type-name">@Html(Messages("audit.ribbon.no.sidewalk"))</span>
                             </span>
                         </div>
@@ -189,15 +189,15 @@
                         </div>
                         <div class="ribbon-menu-group-buttons">
                             <span id="mode-switch-button-crosswalk" class="label-type-button-holder" val="Crosswalk">
-                                <img src='@assets.path("images/icons/label_type_icons/Crosswalk.png")' class="label-type-icon">
+                                <img src='@assets.path("images/icons/label_type_icons/Crosswalk.png")' class="label-type-icon" alt="Crosswalk icon">
                                 <span class="label-type-name">@Html(Messages("audit.ribbon.crosswalk"))</span>
                             </span>
                             <span id="mode-switch-button-signal" class="label-type-button-holder" val="Signal">
-                                <img src='@assets.path("images/icons/label_type_icons/Signal.png")' class="label-type-icon">
+                                <img src='@assets.path("images/icons/label_type_icons/Signal.png")' class="label-type-icon" alt="Pedestrian signal icon">
                                 <span class="label-type-name">@Html(Messages("audit.ribbon.signal"))</span>
                             </span>
                             <span id="mode-switch-button-other" class="label-type-button-holder" val="Other">
-                                <img src='@assets.path("images/icons/label_type_icons/Other.png")' class="label-type-icon">
+                                <img src='@assets.path("images/icons/label_type_icons/Other.png")' class="label-type-icon" alt="Other label type icon">
                                 <span class="label-type-name">@Html(Messages("audit.ribbon.other"))</span>
                                 <div id="ribbon-menu-other-subcategory-holder">
                                     <div class="ribbon-menu-other-subcategory" val="Occlusion">
@@ -336,7 +336,7 @@
                     </div>
                 </section>
             </div>
-            <div id="interaction-area-holder" onSelectStart="return true;">
+            <div id="interaction-area-holder" onselectstart="return true;">
                 <div id="alert-holder" style="display: none">
                     <div id="alert">
                         <span id="alert-message"></span>
@@ -400,7 +400,7 @@
                                 </svg>
                             </div>
                         </div>
-                        <div id="labelDrawingLayer"  class="window-streetview" style="z-index: 0;">
+                        <div id="label-drawing-layer"  class="window-streetview" style="z-index: 0;">
                             <canvas id="label-canvas"  class="window-streetview" width="720px" height="480px" style="cursor: default, move;"></canvas>
                         </div>
                     </div>
@@ -408,13 +408,13 @@
                     <div id="pano-border-frame" class="window-streetview"></div>
 
                     <div id="delete-icon-holder">
-                        <img src='@assets.path("images/explore/icons/Icon_Delete.png")' id="label-delete-icon" />
+                        <img src='@assets.path("images/explore/icons/Icon_Delete.png")' id="label-delete-icon" alt="Delete label">
                     </div>
                     @* Tooltip shown over a hovered label, displaying its type and (where applicable) severity. *@
                     <div id="label-hover-info" class="label-hover-info">
                         <span id="label-hover-info-type" class="label-hover-info-type"></span>
                         <span id="label-hover-info-severity" class="label-hover-info-severity">
-                            <img id="label-hover-info-severity-icon" class="label-hover-info-severity-icon" src="" alt="">
+                            <img id="label-hover-info-severity-icon" class="label-hover-info-severity-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="">
                             <span id="label-hover-info-severity-text"></span>
                         </span>
                     </div>
@@ -435,8 +435,7 @@
                                 <img src='@assets.path("images/icons/info-button.svg")'
                                     class="context-menu-info-icon"
                                     title="@Messages("audit.center.ui.tags.info")"
-                                    data-toggle="tooltip" data-placement="top"
-                                />
+                                    data-toggle="tooltip" data-placement="top" alt="More information about tags">`
                             </div>
                             <div id="context-menu-tag-holder" class="context-menu-section">
                                 <button class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="0"></button>
@@ -466,25 +465,24 @@
                                    ContextMenu JS based on the current label type (positive vs negative). *@
                                 <span id="severity-header-text"></span>
                                 <img id="severity-header-info" src='@assets.path("images/icons/info-button.svg")'
-                                    class="context-menu-info-icon"
-                                    data-toggle="tooltip" data-placement="top"
-                                />
+                                    class="context-menu-info-icon" alt="More information about severity"
+                                    data-toggle="tooltip" data-placement="top">
                             </div>
                             @* Severity radio smileys. Positive/negative images/text are swapped in ContextMenu.js. *@
                             <div id="severity-radio-holder" class="context-menu-section">
                                 <label class="severity-button" data-severity="1" data-toggle="tooltip">
                                     <input type="radio" name="label-severity" value="1" class="severity-button__radio">
-                                    <img src="" alt="" class="severity-button__icon">
+                                    <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
                                     <span class="severity-button__label">@Messages("low")</span>
                                 </label>
                                 <label class="severity-button" data-severity="2" data-toggle="tooltip">
                                     <input type="radio" name="label-severity" value="2" class="severity-button__radio">
-                                    <img src="" alt="" class="severity-button__icon">
+                                    <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
                                     <span class="severity-button__label">@Messages("medium")</span>
                                 </label>
                                 <label class="severity-button" data-severity="3" data-toggle="tooltip">
                                     <input type="radio" name="label-severity" value="3" class="severity-button__radio">
-                                    <img src="" alt="" class="severity-button__icon">
+                                    <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
                                     <span class="severity-button__label">@Messages("high")</span>
                                 </label>
                             </div>
@@ -634,7 +632,7 @@
             </div>
             <div class="col-md-offset-3 col-md-3">
                 <p>
-                    <button class="button-ps button--medium button--secondary onboarding-transition-trigger" id="onboarding-ok-button" value="OK" style="position: relative; top: -4px;">@Messages("audit.tutorial.welcome.3")</button>
+                    <button class="button-ps button--medium button--secondary onboarding-transition-trigger" id="onboarding-welcome-ok-button" value="OK" style="position: relative; top: -4px;">@Messages("audit.tutorial.welcome.3")</button>
                 </p>
             </div>
 
@@ -692,7 +690,7 @@
     } else if (commonData.imagerySource == PanoSource.Mapillary) {
         <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
         <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-        <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet"/>
+        <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
     }
     <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
     <script src='@assets.path("vendor/floating-ui/floating-ui.core-1.7.5.umd.min.js")'></script>
@@ -709,8 +707,8 @@
     <script src='@assets.path("vendor/betterknown/betterknown-1.2.0.js")'></script>
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
-    <link href='@assets.path("css/tag-pills.css")' rel="stylesheet"/>
+    <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet">
+    <link href='@assets.path("css/tag-pills.css")' rel="stylesheet">
 
     <script>
         $(document).ready(function() {

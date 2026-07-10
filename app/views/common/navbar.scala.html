@@ -103,15 +103,13 @@
                         </li>
                     @for(cityInfo <- cityInfo.sortBy(c => (c.countryId, c.stateId, c.cityId))) {
                         <li>
-                        @if(cityInfo.cityId == commonData.cityId) {
-                            <a id="@cityInfo.cityId" role="menuitem" class="current-city" href='javascript:void(0);'>
+                            <a id="@cityInfo.cityId" role="menuitem" @if(cityInfo.cityId == commonData.cityId){ class="current-city" href="javascript:void(0);"}else{ href="@cityInfo.URL"}>
+                            @if(cityInfo.cityId == commonData.cityId){
                                 <b>@cityInfo.cityNameFormatted</b>
-                            </a>
-                        } else {
-                            <a id="@cityInfo.cityId" role="menuitem" href='@cityInfo.URL'>
+                            } else {
                                 @cityInfo.cityNameFormatted
+                            }
                             </a>
-                        }
                         </li>
                     }
                     </ul>
@@ -339,23 +337,4 @@
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
-    <template id="navbar-user-dropdown-list-signed-in">
-        <a id="nav-user-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#">
-            __USERNAME__
-            <b class="caret"></b>
-        </a>
-        <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-labelledby="User menu">
-            <li role="presentation" id="dashboard-link">
-                <a href='/dashboard' role="menuitem">@Messages("navbar.dashboard")</a>
-            </li>
-            <li role="presentation">
-                <a href='@routes.UserController.signOut(request.uri)' role="menuitem">@Messages("navbar.signout")</a>
-            </li>
-        </ul>
-    </template>
-    <template id="navbar-user-dropdown-list-signed-out">
-        <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container" id="sign-in-button">
-            @Messages("navbar.signin")
-        </a>
-    </template>
 }

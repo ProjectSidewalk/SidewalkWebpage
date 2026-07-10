@@ -42,7 +42,7 @@
                             <a id="create-team-button" role="menuitem" class="create-team" data-toggle="modal" data-target="#create-team-modal" href="#"><strong>@Messages("dashboard.create.team")</strong></a>
                         </li>
                         @for(team <- data.allTeams.filter(_.open).sortBy(_.name)) {
-                            @if(!data.userTeam.contains(team)) {
+                            @if(!data.userTeam.contains(team)){
                                 <li class="put-team-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@team.description">
                                     <a id="from-@data.userTeam.map(_.teamId).getOrElse(0)-to-@team.teamId" role="menuitem" class="put-user-team">@team.name</a>
                                 </li>
@@ -99,11 +99,11 @@
                 <span class="user-stats-header">@Messages("validations")</span>
                 <span class="user-stats-header">@Messages("accuracy.caps")</span>
 
-                <img src='@assets.path("images/icons/project_sidewalk_flag.png")' alt="@Messages("dashboard.mission.icon.alt")"/>
-                <img src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' alt="@Messages("distance.icon.alt")"/>
-                <img src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")' alt="@Messages("label.icon.alt")"/>
-                <img src='@assets.path("images/icons/noun_validation_1876484_cropped.png")' alt="@Messages("dashboard.validation.icon.alt")"/>
-                <img src='@assets.path("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("accuracy.icon.alt")" title="@Messages("dashboard.accuracy.icon.tooltip")"/>
+                <img src='@assets.path("images/icons/project_sidewalk_flag.png")' alt="@Messages("dashboard.mission.icon.alt")">
+                <img src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' alt="@Messages("distance.icon.alt")">
+                <img src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")' alt="@Messages("label.icon.alt")">
+                <img src='@assets.path("images/icons/noun_validation_1876484_cropped.png")' alt="@Messages("dashboard.validation.icon.alt")">
+                <img src='@assets.path("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("accuracy.icon.alt")" title="@Messages("dashboard.accuracy.icon.tooltip")">
 
                 <span class="user-stats-stat">@data.missionCount</span>
                 <span class="user-stats-stat">@{s"%.2f ${Messages("dist.metric.abbr")}".format(data.auditedDistance)}</span>
@@ -266,7 +266,7 @@
                     <h2>Low Quality</h2>
                     <div class="row">
                         <div class="input-group date datepicker" data-date-format="mm-dd-yyyy">
-                            <input id="low-quality-date" class="form-control" type="text"/>
+                            <input id="low-quality-date" class="form-control" type="text">
                             <span class="input-group-addon">
                                 <i class="glyphicon glyphicon-calendar"></i>
                             </span>
@@ -284,7 +284,7 @@
                     <h2>Incomplete</h2>
                     <div class="row">
                         <div class="input-group date datepicker" data-date-format="mm-dd-yyyy">
-                            <input id="incomplete-date" class="form-control" type="text"/>
+                            <input id="incomplete-date" class="form-control" type="text">
                             <span class="input-group-addon">
                                 <i class="glyphicon glyphicon-calendar"></i>
                             </span>
@@ -348,7 +348,7 @@
     </div>
 
     @common.labelPopup(admin = admin)
-    <link href='@assets.path("css/label-detail.css")' rel="stylesheet"/>
+    <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
 
     @if(commonData.imagerySource == PanoSource.Infra3d) {
         <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
@@ -356,33 +356,33 @@
     } else if (commonData.imagerySource == PanoSource.Mapillary) {
         <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
         <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-        <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet"/>
+        <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
     }
     @* Pannellum is loaded everywhere the label popup is, since any expired pano may have a self-hosted fallback. *@
     <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
-    <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'/>
+    <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
     <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
     <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
     <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
     <script src='@assets.path("js/user-dashboard/build/user-dashboard.js")'></script>
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
+    <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet">
     <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
     <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
     <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
-    <link href='@assets.path("css/choropleth.css")' rel="stylesheet"/>
-    <link href='@assets.path("css/map-sidebar.css")' rel="stylesheet"/>
-    <link href='@assets.path("css/tag-pills.css")' rel="stylesheet"/>
-    <link href='@assets.path("css/user-profile.css")' rel="stylesheet"/>
+    <link href='@assets.path("css/choropleth.css")' rel="stylesheet">
+    <link href='@assets.path("css/map-sidebar.css")' rel="stylesheet">
+    <link href='@assets.path("css/tag-pills.css")' rel="stylesheet">
+    <link href='@assets.path("css/user-profile.css")' rel="stylesheet">
 
     <!-- Add extra imports for admin version. -->
     @if(admin) {
         <script src='@assets.path("vendor/datatables/jquery.dataTables.min.js")'></script>
         <script src='@assets.path("js/common/timestampLocalization.js")'></script>
         <script src='@assets.path("vendor/bootstrap-datepicker/bootstrap-datepicker-1.9.0.min.js")'></script>
-        <link href='@assets.path("vendor/bootstrap-datepicker/bootstrap-datepicker-1.9.0.min.css")' rel="stylesheet"/>
-        <link href='@assets.path("css/admin.css")' rel="stylesheet"/>
+        <link href='@assets.path("vendor/bootstrap-datepicker/bootstrap-datepicker-1.9.0.min.css")' rel="stylesheet">
+        <link href='@assets.path("css/admin.css")' rel="stylesheet">
 
         <script>updateTimestamps("@messages.lang.code");</script>
     }

@@ -201,11 +201,6 @@ class Main {
       svl.popUpMessage.disableInteractions();
       $('.tool-ui').css('opacity', 0.5);
     });
-    $('#sign-in-button').on('click', () => {
-      $('#sign-in-modal').removeClass('hidden');
-      $('#sign-up-modal').addClass('hidden');
-      $('.tool-ui').css('opacity', 0.5);
-    });
 
     // Ribbon-button tooltip attributes are set in RibbonMenu (which owns those buttons); this just initializes them.
     $('[data-toggle="tooltip"]').tooltip({
@@ -409,8 +404,7 @@ class Main {
 
     // Street view area DOM elements.
     svl.ui.streetview = {};
-    svl.ui.streetview.canvas = $('canvas#labelCanvas');
-    svl.ui.streetview.drawingLayer = $('div#labelDrawingLayer');
+    svl.ui.streetview.drawingLayer = $('div#label-drawing-layer');
     svl.ui.streetview.pano = $('div#pano');
     svl.ui.streetview.viewControlLayer = $('div#view-control-layer');
     svl.ui.streetview.modeSwitchWalk = $('#mode-switch-button-walk');
@@ -420,7 +414,7 @@ class Main {
 
     // Canvas for the labeling area.
     svl.ui.canvas = {};
-    svl.ui.canvas.drawingLayer = $('#labelDrawingLayer');
+    svl.ui.canvas.drawingLayer = $('#label-drawing-layer');
     svl.ui.canvas.deleteIconHolder = $('#delete-icon-holder');
     svl.ui.canvas.severityIconHolder = $('#severity-icon-holder');
     svl.ui.canvas.deleteIcon = $('#label-delete-icon');

@@ -13,7 +13,7 @@
     <div id="page-loading">
         <div id="loading-animation">
             <p class="loading-text">@Messages("loading")</p>
-            <img src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'/>
+            <img src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'>
         </div>
     </div>
     <div id="admin-page-container" class="container" style="visibility: hidden; margin-top: 20px;">
@@ -433,7 +433,7 @@
 
                         </div>
                         <button onclick="admin.clearPlayCache()">@Messages("admin.clear.play.cache")</button>
-                        <p id="clearPlayCacheSuccess" style="color:green"></p>
+                        <p id="clear-play-cache-success" style="color:green"></p>
                     </div>
                     <div class="row">
                         <h1>Comments</h1>
@@ -841,7 +841,7 @@
                 </div>
                 <div id="tabs-6" class="tab-pane">
                     <h1>Label Search</h1>
-                    <form onSubmit="return false;">
+                    <form onsubmit="return false;">
                         <div class="form-group">
                             <label for="form-control-input">Label ID</label>
                             <input type="text" class="form-control" id="form-control-input" placeholder="Enter Label ID here...">
@@ -897,7 +897,7 @@
     </div>
 
     @common.labelPopup(admin = true)
-    <link href='@assets.path("css/label-detail.css")' rel="stylesheet"/>
+    <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
 
     <script src='@assets.path("vendor/d3/d3-3.5.6.js")'></script>
     @if(commonData.imagerySource == PanoSource.Infra3d) {
@@ -906,11 +906,11 @@
     } else if (commonData.imagerySource == PanoSource.Mapillary) {
         <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
         <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-        <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet"/>
+        <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
     }
     @* Pannellum is loaded everywhere the label popup is, since any expired pano may have a self-hosted fallback. *@
     <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
-    <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'/>
+    <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
     <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
     <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
     <script src='@assets.path("js/admin/build/admin.js")'></script>
@@ -927,15 +927,15 @@
 
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
+    <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet">
     <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
     <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
 
-    <link href='@assets.path("vendor/datatables/dataTables.bootstrap.min.css")' rel="stylesheet"/>
-    <link href='@assets.path("css/choropleth.css")' rel="stylesheet"/>
-    <link href='@assets.path("css/map-sidebar.css")' rel="stylesheet"/>
-    <link href='@assets.path("css/tag-pills.css")' rel="stylesheet"/>
-    <link href='@assets.path("css/admin.css")' rel="stylesheet"/>
+    <link href='@assets.path("vendor/datatables/dataTables.bootstrap.min.css")' rel="stylesheet">
+    <link href='@assets.path("css/choropleth.css")' rel="stylesheet">
+    <link href='@assets.path("css/map-sidebar.css")' rel="stylesheet">
+    <link href='@assets.path("css/tag-pills.css")' rel="stylesheet">
+    <link href='@assets.path("css/admin.css")' rel="stylesheet">
 
     <script>
         // Gets all translations before loading the choropleths.

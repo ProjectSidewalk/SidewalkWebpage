@@ -1307,7 +1307,7 @@ class Admin {
       url: '/adminapi/clearPlayCache',
       method: 'PUT',
       success() {
-        clearPlayCacheSuccess.innerHTML = i18next.t('admin-clear-play-cache');
+        document.getElementById('clear-play-cache-success').innerHTML = i18next.t('admin-clear-play-cache');
       },
     });
   }

@@ -12,7 +12,7 @@
     <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
+    <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet">
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-search-1.5.0.js")'></script>
     <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
 
@@ -35,15 +35,15 @@
         <div id="editing-route-section" class="flex-div-col">
             <span id="editing-route-title" class="routebuilder-h2">@Messages("routebuilder.editing.route")</span>
             <div id="editing-route-add-street" class="editing-route-subsection">
-                <img src="@assets.path("images/icons/routebuilder/add-street.svg")" class="editing-route-icon" alt="@Messages("routebuilder.add.street.icon.alt")" />
+                <img src="@assets.path("images/icons/routebuilder/add-street.svg")" class="editing-route-icon" alt="@Messages("routebuilder.add.street.icon.alt")">
                 <span class="editing-route-subsection-content">@Messages("routebuilder.add.street.instruction")</span>
             </div>
             <div id="editing-route-reverse-street" class="editing-route-subsection">
-                <img src="@assets.path("images/icons/routebuilder/reverse-street.svg")" class="editing-route-icon" alt="@Messages("routebuilder.reverse.street.icon.alt")" />
+                <img src="@assets.path("images/icons/routebuilder/reverse-street.svg")" class="editing-route-icon" alt="@Messages("routebuilder.reverse.street.icon.alt")">
                 <span class="editing-route-subsection-content">@Messages("routebuilder.reverse.street.instruction")</span>
             </div>
             <div id="editing-route-delete-street" class="editing-route-subsection">
-                <img src="@assets.path("images/icons/routebuilder/delete-street.svg")" class="editing-route-icon" alt="@Messages("routebuilder.delete.street.icon.alt")" />
+                <img src="@assets.path("images/icons/routebuilder/delete-street.svg")" class="editing-route-icon" alt="@Messages("routebuilder.delete.street.icon.alt")">
                 <span class="editing-route-subsection-content">@Messages("routebuilder.delete.street.instruction")</span>
             </div>
         </div>
@@ -56,7 +56,7 @@
     <div id="delete-route-modal-backdrop" class="routebuilder-overlay-backdrop">
         <div id="delete-route-modal" class="routebuilder-overlay routebuilder-centered-overlay">
             <div id="delete-route-title-section" class="flex-div-col">
-                <img id="delete-route-icon" src="@assets.path("images/icons/routebuilder/delete-route.svg")" alt="@Messages("routebuilder.delete.route.icon.alt")" />
+                <img id="delete-route-icon" src="@assets.path("images/icons/routebuilder/delete-route.svg")" alt="@Messages("routebuilder.delete.route.icon.alt")">
                 <span id="delete-route-title" class="routebuilder-h1">@Messages("routebuilder.not.saved")</span>
                 <span id="delete-route-explanation">@Messages("routebuilder.not.saved.explanation")</span>
             </div>
@@ -69,7 +69,7 @@
     <div id="route-saved-modal-backdrop" class="routebuilder-overlay-backdrop">
         <div id="route-saved-modal" class="routebuilder-overlay routebuilder-centered-overlay">
             <div id="route-saved-title-section" class="flex-div-col">
-                <img id="route-saved-checkmark" src="@assets.path("images/icons/routebuilder/green-check.svg")" alt="@Messages("routebuilder.saved.icon.alt")" />
+                <img id="route-saved-checkmark" src="@assets.path("images/icons/routebuilder/green-check.svg")" alt="@Messages("routebuilder.saved.icon.alt")">
                 <span id="route-saved-title" class="routebuilder-h1">@Messages("routebuilder.saved")</span>
             </div>
             <div id="route-saved-share-section" class="flex-div-col">

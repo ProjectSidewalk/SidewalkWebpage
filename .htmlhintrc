@@ -1,24 +1,57 @@
 {
   "tagname-lowercase": true,
-  "attr-lowercase": true,
-  "attr-value-double-quotes": true,
-  "attr-value-not-empty": false,
-  "attr-no-duplication": true,
-  "tag-pair": false,
+  "tagname-specialchars": true,
   "empty-tag-not-self-closed": true,
-  "spec-char-escape": false,
-  "id-unique": true,
-  "src-not-empty": true,
-  "title-require": true,
-  "alt-require": true,
-  "doctype-html5": true,
-  "id-class-value": "dash",
-  "style-disabled": false,
-  "inline-style-disabled": true,
-  "inline-script-disabled": false,
-  "space-tab-mixed-disabled": "space",
-  "id-class-ad-disabled": true,
-  "href-abs-or-rel": false,
+  "tag-self-close": false,
+  "tag-pair": false,
+  "tag-no-obsolete": true,
+  "tags-check": false,
+
+  // Scala code in the twirl templates creates false positives. Browsers lowercase attr names on their own anyway.
+  "attr-lowercase": false,
+  // If getting twirl false positives, removing space between paren and curly brace on if statements might fix it.
+  "attr-no-duplication": true,
+  "attr-value-not-empty": false,
+  "attr-value-double-quotes": false,
+  "attr-value-single-quotes": false,
+  "attr-value-no-duplication": true,
   "attr-unsafe-chars": true,
-  "head-script-disabled": true
+  "attr-no-unnecessary-whitespace": false,
+  "attr-whitespace": false,
+  "attr-sorted": false,
+
+  "id-unique": true, // For a twirl template false positive, you can often rewrite it slightly to not duplicate the ID.
+  "id-class-value": false,
+  "id-class-ad-disabled": true,
+
+  // If the src field is filled in with JS, you can add a transparent square placeholder:
+  // src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+  "src-not-empty": true,
+  "href-abs-or-rel": false,
+
+  "alt-require": true,
+  "title-require": true,
+  "frame-title-require": true,
+  "input-requires-label": false,
+  "button-type-require": false,
+  "form-method-require": false,
+  "h1-require": false,
+  "main-require": false,
+
+  "doctype-first": false,
+  "doctype-html5": true,
+  "html-lang-require": false,
+  "head-script-disabled": false, // Nontrivial refactor to enable, but would give a small speedup to first paint.
+  "meta-charset-require": false,
+  "meta-viewport-require": false,
+  "meta-description-require": false,
+  "link-rel-canonical-require": false,
+
+  "style-disabled": false,
+  "script-disabled": false,
+  "inline-style-disabled": false, // TODO We want to enable this, but will take some work to refactor.
+  "inline-script-disabled": false,
+
+  "spec-char-escape": false,
+  "space-tab-mixed-disabled": "space"
 }

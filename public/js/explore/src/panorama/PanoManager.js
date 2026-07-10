@@ -201,11 +201,6 @@ class PanoManager {
     this.#makePanoLinksClickable();
     this.#makeMinimapLinksClickable();
 
-    if (util.isFirefox()) {
-      // A bug in Firefox? The canvas in the div element with the largest z-index.
-      svl.ui.streetview.viewControlLayer.append(svl.ui.streetview.canvas);
-    }
-
     // Stop listening for link changes once both the pano and minimap links have been handled.
     if (this.status.panoLinksClickable && this.status.minimapLinksClickable) {
       google.maps.event.removeListener(this.linksListener);

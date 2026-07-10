@@ -15,17 +15,17 @@
     } else if (commonData.imagerySource == PanoSource.Mapillary) {
         <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
         <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-        <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet"/>
+        <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
     }
     <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
-    <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'/>
+    <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
     <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
     <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
     <script src='@assets.path("js/gallery/build/gallery.js")'></script>
     <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
     <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
     <div id="page-loading">
-        <img id="loading-animation" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'/>
+        <img id="loading-animation" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'>
     </div>
 
     @common.navbar(commonData, Some(user))
@@ -53,7 +53,7 @@
                     <span id="label-type-holder">
                         <select id="label-select" class="gallery-filter" disabled>
                             @for((value, message) <- labels) {
-                                @if(value == labelType) {
+                                @if(value == labelType){
                                     <option value="@value" selected>@message</option>
                                 } else {
                                     <option value="@value">@message</option>
@@ -119,7 +119,7 @@
         });
     </script>
 
-    <link rel="stylesheet" href='@assets.path("css/label-detail.css")'/>
-    <link rel="stylesheet" href='@assets.path("css/tag-pills.css")'/>
-    <link rel="stylesheet" href='@assets.path("js/gallery/build/gallery.css")'/>
+    <link rel="stylesheet" href='@assets.path("css/label-detail.css")'>
+    <link rel="stylesheet" href='@assets.path("css/tag-pills.css")'>
+    <link rel="stylesheet" href='@assets.path("js/gallery/build/gallery.css")'>
 }

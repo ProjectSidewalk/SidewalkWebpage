@@ -9,7 +9,7 @@
         "grunt-concat-css": "*",
         "grunt-contrib-concat": "*",
         "grunt-contrib-watch": "*",
-        "htmlhint": "^0.14.2",
+        "htmlhint": "^1.9.2",
         "jest": "^29.7.0",
         "jest-environment-jsdom": "^29.7.0",
         "stylelint": "^17.14.0",

@@ -84,9 +84,9 @@
        with the dashboard's standalone-script convention; i18next, AppManager, util and Google Maps are already loaded by
        common.main / adminLayout. *@
     @common.labelPopup(admin = true)
-    <link href='@assets.path("css/label-detail.css")' rel="stylesheet"/>
-    <link href='@assets.path("css/tag-pills.css")' rel="stylesheet"/>
-    <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'/>
+    <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
+    <link href='@assets.path("css/tag-pills.css")' rel="stylesheet">
+    <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
 
     <script src='@assets.path("js/common/timestampLocalization.js")'></script>
     @if(commonData.imagerySource == PanoSource.Infra3d) {
@@ -95,7 +95,7 @@
     } else if (commonData.imagerySource == PanoSource.Mapillary) {
         <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
         <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-        <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet"/>
+        <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
     }
     @* Pannellum is loaded everywhere the label popup is, since any expired pano may have a self-hosted fallback. *@
     <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
