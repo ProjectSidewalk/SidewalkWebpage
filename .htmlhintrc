@@ -33,7 +33,7 @@
   "alt-require": true,
   "title-require": true,
   "frame-title-require": true,
-  "input-requires-label": false,
+  "input-requires-label": true,
   "button-type-require": true,
   "form-method-require": false,
   "h1-require": false,

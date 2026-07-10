@@ -94,14 +94,14 @@
 #arrow-group image:hover {
   filter:
     drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black))
-    sepia(1) saturate    rotate(315deg); /* Adds yellow highlight on hover. */
+    sepia(1) saturate(2) hue-rotate(315deg); /* Adds yellow highlight on hover. */
 }
 
 /* Used to highlight/blink the nav arrows in the tutorial. */
 #arrow-group image.highlight {
   filter:
     drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black))
-    sepia(1) saturate    rotate(315deg); /* Adds yellow highlight. */
+    sepia(1) saturate(5) hue-rotate(315deg); /* Adds yellow highlight. */
 }
 
 #delete-icon-holder {

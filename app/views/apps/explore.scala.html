@@ -70,12 +70,8 @@
                                 <ul class="survey-option-holder">
                                 @for(surveyOption <- surveyQuestion.options) {
                                     <li class="survey-option">
-                                        @if(surveyQuestion.required) {
-                                            <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId" required>
-                                        } else {
-                                            <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
-                                        }
-                                        <label>@Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".option." + surveyOption.surveyDisplayRank.get)</label>
+                                        <input type="@surveyQuestion.surveyInputType" id="survey-radio-option-@surveyOption.surveyOptionId" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId" @if(surveyQuestion.required){required}>
+                                        <label for="survey-radio-option-@surveyOption.surveyOptionId">@Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".option." + surveyOption.surveyDisplayRank.get)</label>
                                     </li>
                                 }
                                 </ul>
@@ -84,8 +80,8 @@
                                     <ul class="survey-option-holder">
                                     @for(surveyOption <- surveyQuestion.options) {
                                         <li class="survey-option">
-                                            <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
-                                            <label>@Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".option." + surveyOption.surveyDisplayRank.get)</label>
+                                            <input type="@surveyQuestion.surveyInputType" id="survey-checkbox-option-@surveyOption.surveyOptionId" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
+                                            <label for="survey-checkbox-option-@surveyOption.surveyOptionId">@Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".option." + surveyOption.surveyDisplayRank.get)</label>
                                         </li>
                                     }
                                     </ul>
@@ -470,18 +466,18 @@
                             </div>
                             @* Severity radio smileys. Positive/negative images/text are swapped in ContextMenu.js. *@
                             <div id="severity-radio-holder" class="context-menu-section">
-                                <label class="severity-button" data-severity="1" data-toggle="tooltip">
-                                    <input type="radio" name="label-severity" value="1" class="severity-button__radio">
+                                <label class="severity-button" for="explore-severity-radio-1" data-severity="1" data-toggle="tooltip">
+                                    <input type="radio" name="label-severity" id="explore-severity-radio-1" value="1" class="severity-button__radio">
                                     <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
                                     <span class="severity-button__label">@Messages("low")</span>
                                 </label>
-                                <label class="severity-button" data-severity="2" data-toggle="tooltip">
-                                    <input type="radio" name="label-severity" value="2" class="severity-button__radio">
+                                <label class="severity-button" for="explore-severity-radio-2" data-severity="2" data-toggle="tooltip">
+                                    <input type="radio" name="label-severity" id="explore-severity-radio-2" value="2" class="severity-button__radio">
                                     <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
                                     <span class="severity-button__label">@Messages("medium")</span>
                                 </label>
-                                <label class="severity-button" data-severity="3" data-toggle="tooltip">
-                                    <input type="radio" name="label-severity" value="3" class="severity-button__radio">
+                                <label class="severity-button" for="explore-severity-radio-3" data-severity="3" data-toggle="tooltip">
+                                    <input type="radio" name="label-severity" id="explore-severity-radio-3" value="3" class="severity-button__radio">
                                     <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
                                     <span class="severity-button__label">@Messages("high")</span>
                                 </label>

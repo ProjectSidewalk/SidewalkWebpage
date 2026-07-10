@@ -217,9 +217,9 @@
                                     </ul>
                                 </div>
                             </td>
-                            <td><input type="checkbox" id="check-volunteer"></td>
+                            <td><label class="sr-only" for="check-volunteer">Volunteer</label><input type="checkbox" id="check-volunteer"></td>
                             @if(commonData.imagerySource == PanoSource.Infra3d) {
-                                <td><input type="checkbox" id="check-infra3d-access"></td>
+                                <td><label class="sr-only" for="check-infra3d-access">infra3D access</label><input type="checkbox" id="check-infra3d-access"></td>
                             }
                         </tr>
                     </table>
@@ -265,6 +265,7 @@
                 <div class="col-lg-4 flag-date-container">
                     <h2>Low Quality</h2>
                     <div class="row">
+                        <label class="sr-only" for="low-quality-date">Low quality flag date</label>
                         <div class="input-group date datepicker" data-date-format="mm-dd-yyyy">
                             <input id="low-quality-date" class="form-control" type="text">
                             <span class="input-group-addon">
@@ -283,6 +284,7 @@
                 <div class="col-lg-4 flag-date-container">
                     <h2>Incomplete</h2>
                     <div class="row">
+                        <label class="sr-only" for="incomplete-date">Incomplete flag date</label>
                         <div class="input-group date datepicker" data-date-format="mm-dd-yyyy">
                             <input id="incomplete-date" class="form-control" type="text">
                             <span class="input-group-addon">
