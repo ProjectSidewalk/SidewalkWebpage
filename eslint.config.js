@@ -8,10 +8,15 @@
 const js = require('@eslint/js');
 const globals = require('globals');
 const stylistic = require('@stylistic/eslint-plugin');
+const i18nJson = require('eslint-plugin-i18n-json');
 
 module.exports = [
     // ESLint core "recommended" -- ~45 correctness rules. Listed first so the explicit block below overrides it.
-    js.configs.recommended,
+    // Scoped to JS: these are JavaScript-correctness rules, and leaving them global would leak onto the translation
+    // JSON (the i18n-json processor wraps each file so core rules see it), where e.g. no-irregular-whitespace would
+    // false-positive on locales that legitimately use non-breaking spaces. Translation JSON is governed by the
+    // i18n-json rules below instead.
+    { files: ['public/js/**/*.js'], ...js.configs.recommended },
     // Global ignores. Flat config lints nothing unless a `files` glob below opts it in, so this only has to carve out
     // generated bundles and vendored libraries *within* the linted tree -- no more whole-repo `*` + `!negation`
     // gymnastics that the old ignorePatterns needed to claw scope back down to public/js.
@@ -133,6 +138,30 @@ module.exports = [
                 { blankLine: 'always', prev: 'function', next: '*' },
                 { blankLine: 'always', prev: '*', next: 'function' },
             ],
+        },
+    },
+
+    // --- i18n translation JSON (public/locales/) ---
+    // eslint-plugin-i18n-json lints the translation files via a processor that wraps each JSON file so its rules can
+    // read it. This covers per-file checks -- JSON validity (including duplicate-key detection, which a plain
+    // JSON.parse silently swallows) and empty-value detection. Cross-locale key parity is handled separately by
+    // tools/check-locale-parity.mjs, because the plugin's `identical-keys` rule is blind to two i18n realities: i18next
+    // plural suffixes (`_one`/`_other`/... legitimately differ per language's CLDR plural rules) and override-only
+    // locales (en-US/en-NZ and the per-city `*-zurich`/`*-india` files intentionally hold only a subset of keys). We
+    // also skip `identical-placeholders` (its ICU parser silently no-ops on our i18next `{{var}}` interpolation) and
+    // `sorted-keys` (our files are ordered logically, not alphabetically -- enabling it would be pure churn).
+    // `valid-message-syntax` runs in `non-empty-string` mode, not the default `icu` mode, because ICU would reject
+    // every `{{var}}` string; non-empty-string still flags empty values, arrays, and empty objects.
+    {
+        files: ['public/locales/**/*.json'],
+        plugins: { 'i18n-json': i18nJson },
+        processor: {
+            meta: { name: '.json' },
+            ...i18nJson.processors['.json'],
+        },
+        rules: {
+            'i18n-json/valid-json': 'error',
+            'i18n-json/valid-message-syntax': ['error', { syntax: 'non-empty-string' }],
         },
     },
 ];

@@ -11,7 +11,7 @@
         "disagree-reason": {
             "curb-ramp": {
                 "no-button-2": "This is a footpath to driveway transition",
-                "no-button-tooltip-2": "Footpath to driveway transitions are not drop kerbs unless a dedicated ramp has been added",
+                "no-button-2-tooltip": "Footpath to driveway transitions are not drop kerbs unless a dedicated ramp has been added",
                 "no-button-3": "This should be a Missing Drop Kerb label",
                 "no-button-3-tooltip": "Sometimes a missing drop kerb is accidentally mislabeled as a drop kerb"
             },
