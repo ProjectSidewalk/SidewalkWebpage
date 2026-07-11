@@ -54,7 +54,7 @@
       };
     }
     try {
-      const m = await CreatePSMap($, params);
+      const m = await createPSMap($, params);
       new MapSidebarFilter(m[0], m[4], { highQualityFilter: false });
       // Don't hijack the page's scroll: scroll-to-zoom is off until the user clicks the map, and re-locks when
       // the pointer leaves it — so scrolling the page over the map scrolls the page, not the map.
