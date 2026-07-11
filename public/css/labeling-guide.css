@@ -55,3 +55,12 @@
 .help-item {
   padding-bottom: 25px;
 }
+
+/* Center a block (.img-responsive) image within its figure. */
+.guide-img-centered {
+  margin: auto;
+}
+
+.guide-figure-spaced {
+  padding-bottom: 20px;
+}

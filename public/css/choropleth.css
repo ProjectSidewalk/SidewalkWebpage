@@ -173,6 +173,28 @@
   padding: 0;
 }
 
+/* Shared 11-bucket sequential scale for the landing + admin neighborhood-coverage choropleth legends. */
+.legend-scale {
+  width: 100%;
+  padding: 0;
+}
+
+.legend .legend-swatch {
+  width: 9.09%;
+}
+
+.legend .legend-swatch-1  { background: #03152F; }
+.legend .legend-swatch-2  { background: #08306B; }
+.legend .legend-swatch-3  { background: #08519C; }
+.legend .legend-swatch-4  { background: #08719C; }
+.legend .legend-swatch-5  { background: #2171B5; }
+.legend .legend-swatch-6  { background: #4292C6; }
+.legend .legend-swatch-7  { background: #6BAED6; }
+.legend .legend-swatch-8  { background: #82BADB; }
+.legend .legend-swatch-9  { background: #9ECAE1; }
+.legend .legend-swatch-10 { background: #B3D3E8; }
+.legend .legend-swatch-11 { background: #C6DBEF; }
+
 /* Label type circle color fills (used by map sidebar legend icons). */
 
 /* TODO These colors should probably match the colors in our Design System Tokens in main.css. */

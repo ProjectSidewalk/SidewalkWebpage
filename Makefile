@@ -3,7 +3,6 @@
 db ?= sidewalk
 dir ?= ./
 args ?=
-html-ignore ?= **/bootstrap/**
 # dir= as stylelint sees it: passed through if it already names a .css file/glob, else treated as a directory and
 # recursed (stylelint only accepts file paths/globs; see lint-stylelint).
 css-glob = $(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css)
@@ -89,9 +88,9 @@ scalafmt-fix:
 lint-htmlhint:
 	@echo "Running HTMLHint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/htmlhint/bin/htmlhint $(args) --ignore $(html-ignore) ./app/views"; \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/htmlhint/bin/htmlhint $(args) ./app/views"; \
 	else \
-		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/htmlhint/bin/htmlhint $(args) --ignore $(html-ignore) $(dir)"; \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/htmlhint/bin/htmlhint $(args) $(dir)"; \
 	fi
 	@echo "Finished Running HTMLHint";
 

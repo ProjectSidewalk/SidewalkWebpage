@@ -102,7 +102,7 @@ class Admin {
       this.#initializeAdminCommentPopup(),
     ]).then(() => {
       this.#loadingGif.css('visibility', 'hidden');
-      $('#admin-page-container').css('visibility', 'visible');
+      $('#admin-page-container').removeClass('ps-invisible');
     }).catch((error) => {
       console.error('Error loading street edge data:', error);
     });
@@ -1307,7 +1307,7 @@ class Admin {
       url: '/adminapi/clearPlayCache',
       method: 'PUT',
       success() {
-        clearPlayCacheSuccess.innerHTML = i18next.t('admin-clear-play-cache');
+        document.getElementById('clear-play-cache-success').innerHTML = i18next.t('admin-clear-play-cache');
       },
     });
   }

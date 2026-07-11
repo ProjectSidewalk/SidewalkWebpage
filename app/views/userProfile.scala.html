@@ -5,7 +5,7 @@
 @import service.{AdminUserProfileData, CommonPageData, UserProfileData}
 @import models.pano.PanoSource
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, profileUser: SidewalkUserWithRole,
-    tags: Seq[Tag] = Seq.empty, data: UserProfileData, adminData: Option[AdminUserProfileData]
+  tags: Seq[Tag] = Seq.empty, data: UserProfileData, adminData: Option[AdminUserProfileData]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
@@ -13,420 +13,417 @@
 @admin = @{adminData.isDefined}
 
 @common.main(commonData, title, defaultI18nNamespace = "dashboard", i18Namespaces = Seq("dashboard", "common", "labelmap")) {
-    @common.navbar(commonData, Some(user))
-    <div class="container">
-        <div class="row" id="profile-container">
-            <div id="username">@profileUser.username</div>
-            <div id="team-container">
-                <div id="edit-team-dropdown" class="dropdown">
-                    <a id="edit-team-button" role="button" data-toggle="dropdown" href="#">
-                        @if(data.userTeam.isDefined) {
-                            @if(isAdmin(user) && !data.userTeam.exists(_.open)) {
-                                @Messages("dashboard.current.team.greeting", teamName) <span class="closed-label">(Closed)</span> <b class="caret"></b>
-                            } else {
-                                @Messages("dashboard.current.team.greeting", teamName) <b class="caret"></b>
-                            }
-                        } else {
-                            @Messages("dashboard.join.team") <b class="caret"></b>
-                        }
-                    </a>
-                    <ul id="edit-team-menu" class="dropdown-menu" role="menu">
-                        @if(data.userTeam.isDefined) {
-                            <li>
-                                <a id="from-@data.userTeam.get.teamId-to-0" role="menuitem" class="put-user-team">
-                                    <strong>@Messages("dashboard.leave.team", teamName)</strong>
-                                </a>
-                            </li>
-                        }
-                        <li>
-                            <a id="create-team-button" role="menuitem" class="create-team" data-toggle="modal" data-target="#create-team-modal" href="#"><strong>@Messages("dashboard.create.team")</strong></a>
-                        </li>
-                        @for(team <- data.allTeams.filter(_.open).sortBy(_.name)) {
-                            @if(!data.userTeam.contains(team)) {
-                                <li class="put-team-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@team.description">
-                                    <a id="from-@data.userTeam.map(_.teamId).getOrElse(0)-to-@team.teamId" role="menuitem" class="put-user-team">@team.name</a>
-                                </li>
-                            }
-                        }
-                    </ul>
-                </div>
-            </div>
+  @common.navbar(commonData, Some(user))
+  <div class="container">
+    <div class="row" id="profile-container">
+      <div id="username">@profileUser.username</div>
+      <div id="team-container">
+        <div id="edit-team-dropdown" class="dropdown">
+          <a id="edit-team-button" role="button" data-toggle="dropdown" href="#">
+          @if(data.userTeam.isDefined) {
+            @if(isAdmin(user) && !data.userTeam.exists(_.open)) {
+              @Messages("dashboard.current.team.greeting", teamName) <span class="closed-label">(Closed)</span> <b class="caret"></b>
+            } else {
+              @Messages("dashboard.current.team.greeting", teamName) <b class="caret"></b>
+            }
+          } else {
+            @Messages("dashboard.join.team") <b class="caret"></b>
+          }
+          </a>
+          <ul id="edit-team-menu" class="dropdown-menu" role="menu">
+            @if(data.userTeam.isDefined) {
+              <li>
+                <a id="from-@data.userTeam.get.teamId-to-0" role="menuitem" class="put-user-team">
+                  <strong>@Messages("dashboard.leave.team", teamName)</strong>
+                </a>
+              </li>
+            }
+            <li>
+              <a id="create-team-button" role="menuitem" class="create-team" data-toggle="modal" data-target="#create-team-modal" href="#"><strong>@Messages("dashboard.create.team")</strong></a>
+            </li>
+            @for(team <- data.allTeams.filter(_.open).sortBy(_.name)) {
+              @if(!data.userTeam.contains(team)){
+                <li class="put-team-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@team.description">
+                  <a id="from-@data.userTeam.map(_.teamId).getOrElse(0)-to-@team.teamId" role="menuitem" class="put-user-team">@team.name</a>
+                </li>
+              }
+            }
+          </ul>
         </div>
-
-        <div class="modal fade" id="create-team-modal" tabindex="-1" role="dialog" aria-labelledby="create-team-modal-label" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="create-team-modal-label">@Messages("dashboard.team.title")</h5>
-                        <button type="button" class="close custom-close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="create-team-form">
-                            <div class="form-group">
-                                <label for="team-name-input">@Messages("dashboard.team.name")</label>
-                                <input type="text" class="form-control" id="team-name-input" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="team-description-input">@Messages("dashboard.team.description")</label>
-                                <textarea class="form-control" id="team-description-input" required></textarea>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">@Messages("cancel")</button>
-                        <button type="button" class="btn btn-primary" id="save-team-button">@Messages("dashboard.team.button")</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row" id="map-row">
-            <div class="col-lg-12" id="map-column">
-                <div id="user-dashboard-choropleth-holder" class="choropleth-holder">
-                    <div id="user-dashboard-choropleth" class="choropleth"></div>
-                    @common.mapSidebar(tags = tags, streetsShownByDefault = true)
-                </div>
-            </div>
-        </div>
-
-        <div class="row" style="margin-top: 15px">
-            <div class="user-stats-holder">
-                <span class="user-stats-header">@Messages("dashboard.your.missions")</span>
-                <span class="user-stats-header">@Messages("dashboard.distance")</span>
-                <span class="user-stats-header">@Messages("labels.caps")</span>
-                <span class="user-stats-header">@Messages("validations")</span>
-                <span class="user-stats-header">@Messages("accuracy.caps")</span>
-
-                <img src='@assets.path("images/icons/project_sidewalk_flag.png")' alt="@Messages("dashboard.mission.icon.alt")"/>
-                <img src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' alt="@Messages("distance.icon.alt")"/>
-                <img src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")' alt="@Messages("label.icon.alt")"/>
-                <img src='@assets.path("images/icons/noun_validation_1876484_cropped.png")' alt="@Messages("dashboard.validation.icon.alt")"/>
-                <img src='@assets.path("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("accuracy.icon.alt")" title="@Messages("dashboard.accuracy.icon.tooltip")"/>
-
-                <span class="user-stats-stat">@data.missionCount</span>
-                <span class="user-stats-stat">@{s"%.2f ${Messages("dist.metric.abbr")}".format(data.auditedDistance)}</span>
-                <span class="user-stats-stat">@data.labelCount</span>
-                <span class="user-stats-stat">@data.validationCount</span>
-                <span class="user-stats-stat">@data.accuracy.map(a => "%.1f%%".format(a * 100)).getOrElse("N/A")</span>
-            </div>
-        </div>
-
-        <div class="row" id="achievements">
-            <h2>@Messages("dashboard.achievements")</h2>
-            <!-- The achievements-outer-grid is 3 columns -->
-            <div class="achievements-outer-grid">
-                <div class="achievements-outer-col1">
-                    <h3>@Messages("dashboard.missions")</h3>
-                    <p id="missions-badge-encouragement" class="achievements-encouraging-statement">Just XX more missions until your next mission achievement.</p>
-                    <div id="missions-badge-grid" class="achievements-badge-grid">
-                        <img id="missions-badge1" src='@assets.path("images/badges/badge_missions_badge1.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.first"))">
-                        <img id="missions-badge2" src='@assets.path("images/badges/badge_missions_badge2.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.second"))">
-                        <img id="missions-badge3" src='@assets.path("images/badges/badge_missions_badge3.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.third"))">
-                        <img id="missions-badge4" src='@assets.path("images/badges/badge_missions_badge4.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.fourth"))">
-                        <img id="missions-badge5" src='@assets.path("images/badges/badge_missions_badge5.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.fifth"))">
-                    </div>
-                </div>
-                <div class="achievements-outer-col2"><!--Empty middle cell in outer grid--></div>
-                <div class="achievements-outer-col3">
-                    <h3>@Messages("dashboard.distance")</h3>
-                    <p id="distance-badge-encouragement" class="achievements-encouraging-statement">Just XX more miles until your next distance achievement.</p>
-                    <div id="distance-badge-grid" class="achievements-badge-grid">
-                        @if(Messages("measurement.system") == "metric") {
-                            <img id="distance-badge1" src='@assets.path("images/badges/badge_distance_km_badge1.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.first"))">
-                            <img id="distance-badge2" src='@assets.path("images/badges/badge_distance_km_badge2.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.second"))">
-                            <img id="distance-badge3" src='@assets.path("images/badges/badge_distance_km_badge3.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.third"))">
-                            <img id="distance-badge4" src='@assets.path("images/badges/badge_distance_km_badge4.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fourth"))">
-                            <img id="distance-badge5" src='@assets.path("images/badges/badge_distance_km_badge5.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fifth"))">
-                        } else {
-                            <img id="distance-badge1" src='@assets.path("images/badges/badge_distance_badge1.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.first"))">
-                            <img id="distance-badge2" src='@assets.path("images/badges/badge_distance_badge2.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.second"))">
-                            <img id="distance-badge3" src='@assets.path("images/badges/badge_distance_badge3.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.third"))">
-                            <img id="distance-badge4" src='@assets.path("images/badges/badge_distance_badge4.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fourth"))">
-                            <img id="distance-badge5" src='@assets.path("images/badges/badge_distance_badge5.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fifth"))">
-                        }
-                    </div>
-                </div>
-
-                <div class="achievements-outer-col1">
-                    <h3>@Messages("labels.caps")</h3>
-                    <p id="labels-badge-encouragement" class="achievements-encouraging-statement">Just XX more labels until your next labeling achievement.</p>
-                    <div id="labels-badge-grid" class="achievements-badge-grid">
-                        <img id="labels-badge1" src='@assets.path("images/badges/badge_labels_badge1.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.first"))">
-                        <img id="labels-badge2" src='@assets.path("images/badges/badge_labels_badge2.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.second"))">
-                        <img id="labels-badge3" src='@assets.path("images/badges/badge_labels_badge3.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.third"))">
-                        <img id="labels-badge4" src='@assets.path("images/badges/badge_labels_badge4.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.fourth"))">
-                        <img id="labels-badge5" src='@assets.path("images/badges/badge_labels_badge5.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.fifth"))">
-                    </div>
-                </div>
-                <div class="achievements-outer-col2"><!--Empty middle cell in outer grid--></div>
-                <div class="achievements-outer-col3">
-                    <h3>@Messages("validations")</h3>
-                    <p id="validations-badge-encouragement" class="achievements-encouraging-statement">Just XX more validations until your next validation achievement.</p>
-                    <div id="validations-badge-grid" class="achievements-badge-grid">
-                        <img id="validations-badge1" src='@assets.path("images/badges/badge_validation_badge1.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.first"))">
-                        <img id="validations-badge2" src='@assets.path("images/badges/badge_validation_badge2.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.second"))">
-                        <img id="validations-badge3" src='@assets.path("images/badges/badge_validation_badge3.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.third"))">
-                        <img id="validations-badge4" src='@assets.path("images/badges/badge_validation_badge4.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.fourth"))">
-                        <img id="validations-badge5" src='@assets.path("images/badges/badge_validation_badge5.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.fifth"))">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="mistakes-row" class="row">
-            <h2 id="recent-mistakes">@Messages("dashboard.mistakes.header")</h2>
-            <span id="mistakes-subheader-display"></span>
-            <img src="@assets.path("images/icons/info-button.svg")" class="mistakes-help-tooltip" data-toggle="tooltip" data-placement="top" title="@Messages("dashboard.mistakes.tooltip")" alt="">
-            <div id="mistake-carousels-holder"></div>
-        </div>
-
-        <!-- Admin only section. -->
-        @if(admin) {
-            <h1>General Info and Stats</h1>
-            <div class="row">
-                <div class="col-lg-12">
-                    <table class="table table-striped table-condensed">
-                        <tr>
-                            <th class="col-md">Username</th>
-                            <th class="col-md">User Id</th>
-                            <th class="col-md">Email</th>
-                            <th class="col-md">High quality</th>
-                            <th class="col-md">High quality manual</th>
-                            <th class="col-md">Volunteer</th>
-                            @if(commonData.imagerySource == PanoSource.Infra3d) {
-                                <th class="col-md">infra3D access</th>
-                            }
-                        </tr>
-                        <tr>
-                            <td>@profileUser.username</td>
-                            <td>@profileUser.userId</td>
-                            <td>@profileUser.email</td>
-                            <td id="stat-high-quality">@adminData.get.userStats.highQuality</td>
-                            <td>
-                                <div id="user-quality-dropdown" class="dropdown">
-                                    <button class="btn btn-default dropdown-toggle" type="button" id="user-quality-button" data-toggle="dropdown">
-                                        @adminData.get.userStats.highQualityManual.map(_.toString).getOrElse("Not set")
-                                        <span class="caret"></span>
-                                    </button>
-                                    <ul class="dropdown-menu" role="menu" aria-labelledby="user-quality-button">
-                                        <li><a href="#!" class="change-role">true</a></li>
-                                        <li><a href="#!" class="change-role">false</a></li>
-                                        <li><a href="#!" class="change-role">Not set</a></li>
-                                    </ul>
-                                </div>
-                            </td>
-                            <td><input type="checkbox" id="check-volunteer"></td>
-                            @if(commonData.imagerySource == PanoSource.Infra3d) {
-                                <td><input type="checkbox" id="check-infra3d-access"></td>
-                            }
-                        </tr>
-                    </table>
-                </div>
-                <div class="col-lg-12">
-                    <table class="table table-striped table-condensed">
-                        <tr>
-                            <th class="col-md">Current Neighborhood</th>
-                            <th class="col-md">Audited Street Count</th>
-                            <th class="col-md">Time spent auditing/validating</th>
-                            <th class="col-md">
-                                Labeling frequency
-                                <span title="If a user has a labeling frequency below 37.5 labels per km, then they are marked as low quality. You recalculate this by going to /adminapi/updateUserStats." style="cursor: pointer">&#9432;</span>
-                            </th>
-                        </tr>
-                        <tr>
-                            <td>
-                                @adminData.get.currentRegion.map(_.name).getOrElse("Unassigned")
-                                (ID: @adminData.get.currentRegion.map(_.regionId).getOrElse("NA"))
-                            </td>
-                            <td>@adminData.get.numCompletedAudits</td>
-                            <td>@{"%.2f".format(adminData.get.hoursWorked)} hours</td>
-                            <td>@{adminData.get.userStats.labelsPerMeter.map(f => "%.2f labels per km".format(f * 1000)).getOrElse("NA")}</td>
-                        </tr>
-                    </table>
-                </div>
-                <div class="col-lg-12">
-                </div>
-            </div>
-
-            <h1>Mark Work Quality by Date</h1>
-            <p>
-                Mark all labels for this user before a selected date with the desired flag. This is useful when training
-                new users on Project Sidewalk. If their work was low quality, set it as such below. Their labels will
-                then be partially hidden in our APIs, and we won't assign other to validate those labels as frequently.
-            </p>
-            <p>
-                If their work was high quality, but they did not use all the available label types or didn't label the
-                entire street, you can mark their data as "incomplete". Their labels will show up in our APIs, but we'll
-                have other users re-audit those streets.
-            </p>
-            <div class="row set-flags-container">
-                <div class="col-lg-4 flag-date-container">
-                    <h2>Low Quality</h2>
-                    <div class="row">
-                        <div class="input-group date datepicker" data-date-format="mm-dd-yyyy">
-                            <input id="low-quality-date" class="form-control" type="text"/>
-                            <span class="input-group-addon">
-                                <i class="glyphicon glyphicon-calendar"></i>
-                            </span>
-                        </div>
-                    </div>
-                    <div class="row date-submit-row">
-                        <button type="button" id="low-quality-set-flags" class="btn btn-primary date-submit">Set Flags</button>
-                        <button type="button" id="low-quality-remove-flags" class="btn btn-primary date-submit">Remove Flags</button>
-                    </div>
-                    <div class="row">
-                        <div id="low-quality-alert" class="alert alert-success" role="alert" style="visibility: hidden">Alert TEST</div>
-                    </div>
-                </div>
-                <div class="col-lg-4 flag-date-container">
-                    <h2>Incomplete</h2>
-                    <div class="row">
-                        <div class="input-group date datepicker" data-date-format="mm-dd-yyyy">
-                            <input id="incomplete-date" class="form-control" type="text"/>
-                            <span class="input-group-addon">
-                                <i class="glyphicon glyphicon-calendar"></i>
-                            </span>
-                        </div>
-                    </div>
-                    <div class="row date-submit-row">
-                        <button type="button" id="incomplete-set-flags" class="btn btn-primary date-submit">Set Flags</button>
-                        <button type="button" id="incomplete-remove-flags" class="btn btn-primary date-submit">Remove Flags</button>
-                    </div>
-                    <div class="row">
-                        <div id="incomplete-alert" class="alert alert-success" role="alert" style="visibility: hidden">Alert TEST</div>
-                    </div>
-                </div>
-            </div>
-
-            <h1>Completed Missions</h1>
-            <div class="row">
-                <table class="table table-striped table-fixed">
-                    <thead>
-                        <tr>
-                            <th class="col-md-1">Mission Id</th>
-                            <th class="col-md-2">Mission Type</th>
-                            <th class="col-md-1">Region Id</th>
-                            <th class="col-md-2">Region Name</th>
-                            <th class="col-md-2">Distance (m / ft / mi)</th>
-                            <th class="col-md-1">Labels Validated</th>
-                            <th class="col-md-3">End Time</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @for(mission <- adminData.get.completedMissions) {
-                            <tr>
-                                <td class="col-md-1">@mission.missionId</td>
-                                <td class="col-md-2">@mission.missionType</td>
-                                <td class="col-md-1">@mission.regionId.map(_.toString).getOrElse("N/A")</td>
-                                <td class="col-md-2">@mission.regionName.getOrElse("N/A")</td>
-                                <td class="col-md-2">@("%1.1f".format(mission.distanceMeters.getOrElse(0d))) / @{"%1.1f".format(mission.distanceMeters.getOrElse(0d) * 3.28084d)} / @{"%1.1f".format(mission.distanceMeters.getOrElse(0d) / 1609.344051499d)}</td>
-                                <td class="col-md-1">@mission.labelsValidated.getOrElse(0)</td>
-                                <td class="col-md-3 timestamp">@mission.missionEnd</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-            <h1>Feedback</h1>
-            <div class="row">
-                <div class="col-lg-12">
-                    <table class="table table-striped table-condensed">
-                        <tr><th class="col-md-3">Timestamp</th><th class="col-md-3">Panorama Id</th><th class="col-md-6">Comment</th></tr>
-                        @adminData.get.exploreComments.map { comment =>
-                            <tr>
-                                <td class= 'timestamp'>@comment.timestamp</td>
-                                <td>@comment.panoId</td>
-                                <td>@comment.comment</td>
-                            </tr>
-                        }
-                    </table>
-                </div>
-            </div>
-        }
+      </div>
     </div>
 
-    @common.labelPopup(admin = admin)
-    <link href='@assets.path("css/label-detail.css")' rel="stylesheet"/>
+    <div class="modal fade" id="create-team-modal" tabindex="-1" role="dialog" aria-labelledby="create-team-modal-label" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="create-team-modal-label">@Messages("dashboard.team.title")</h5>
+            <button type="button" class="close custom-close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form id="create-team-form">
+              <div class="form-group">
+                <label for="team-name-input">@Messages("dashboard.team.name")</label>
+                <input type="text" class="form-control" id="team-name-input" required>
+              </div>
+              <div class="form-group">
+                <label for="team-description-input">@Messages("dashboard.team.description")</label>
+                <textarea class="form-control" id="team-description-input" required></textarea>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">@Messages("cancel")</button>
+            <button type="button" class="btn btn-primary" id="save-team-button">@Messages("dashboard.team.button")</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-    @if(commonData.imagerySource == PanoSource.Infra3d) {
-        <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
-        <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
-    } else if (commonData.imagerySource == PanoSource.Mapillary) {
-        <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
-        <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-        <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet"/>
+    <div class="row" id="map-row">
+      <div class="col-lg-12" id="map-column">
+        <div id="user-dashboard-choropleth-holder" class="choropleth-holder">
+          <div id="user-dashboard-choropleth" class="choropleth"></div>
+          @common.mapSidebar(tags = tags, streetsShownByDefault = true)
+        </div>
+      </div>
+    </div>
+
+    <div class="row user-stats-row">
+      <div class="user-stats-holder">
+        <span class="user-stats-header">@Messages("dashboard.your.missions")</span>
+        <span class="user-stats-header">@Messages("dashboard.distance")</span>
+        <span class="user-stats-header">@Messages("labels.caps")</span>
+        <span class="user-stats-header">@Messages("validations")</span>
+        <span class="user-stats-header">@Messages("accuracy.caps")</span>
+
+        <img src='@assets.path("images/icons/project_sidewalk_flag.png")' alt="@Messages("dashboard.mission.icon.alt")">
+        <img src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' alt="@Messages("distance.icon.alt")">
+        <img src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")' alt="@Messages("label.icon.alt")">
+        <img src='@assets.path("images/icons/noun_validation_1876484_cropped.png")' alt="@Messages("dashboard.validation.icon.alt")">
+        <img src='@assets.path("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("accuracy.icon.alt")" title="@Messages("dashboard.accuracy.icon.tooltip")">
+
+        <span class="user-stats-stat">@data.missionCount</span>
+        <span class="user-stats-stat">@{s"%.2f ${Messages("dist.metric.abbr")}".format(data.auditedDistance)}</span>
+        <span class="user-stats-stat">@data.labelCount</span>
+        <span class="user-stats-stat">@data.validationCount</span>
+        <span class="user-stats-stat">@data.accuracy.map(a => "%.1f%%".format(a * 100)).getOrElse("N/A")</span>
+      </div>
+    </div>
+
+    <div class="row" id="achievements">
+      <h2>@Messages("dashboard.achievements")</h2>
+        <!-- The achievements-outer-grid is 3 columns -->
+      <div class="achievements-outer-grid">
+        <div class="achievements-outer-col1">
+          <h3>@Messages("dashboard.missions")</h3>
+          <p id="missions-badge-encouragement" class="achievements-encouraging-statement">Just XX more missions until your next mission achievement.</p>
+          <div id="missions-badge-grid" class="achievements-badge-grid">
+            <img id="missions-badge1" src='@assets.path("images/badges/badge_missions_badge1.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.first"))">
+            <img id="missions-badge2" src='@assets.path("images/badges/badge_missions_badge2.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.second"))">
+            <img id="missions-badge3" src='@assets.path("images/badges/badge_missions_badge3.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.third"))">
+            <img id="missions-badge4" src='@assets.path("images/badges/badge_missions_badge4.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.fourth"))">
+            <img id="missions-badge5" src='@assets.path("images/badges/badge_missions_badge5.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.fifth"))">
+          </div>
+        </div>
+        <div class="achievements-outer-col2"><!--Empty middle cell in outer grid--></div>
+        <div class="achievements-outer-col3">
+          <h3>@Messages("dashboard.distance")</h3>
+          <p id="distance-badge-encouragement" class="achievements-encouraging-statement">Just XX more miles until your next distance achievement.</p>
+          <div id="distance-badge-grid" class="achievements-badge-grid">
+          @if(Messages("measurement.system") == "metric") {
+            <img id="distance-badge1" src='@assets.path("images/badges/badge_distance_km_badge1.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.first"))">
+            <img id="distance-badge2" src='@assets.path("images/badges/badge_distance_km_badge2.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.second"))">
+            <img id="distance-badge3" src='@assets.path("images/badges/badge_distance_km_badge3.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.third"))">
+            <img id="distance-badge4" src='@assets.path("images/badges/badge_distance_km_badge4.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fourth"))">
+            <img id="distance-badge5" src='@assets.path("images/badges/badge_distance_km_badge5.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fifth"))">
+          } else {
+            <img id="distance-badge1" src='@assets.path("images/badges/badge_distance_badge1.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.first"))">
+            <img id="distance-badge2" src='@assets.path("images/badges/badge_distance_badge2.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.second"))">
+            <img id="distance-badge3" src='@assets.path("images/badges/badge_distance_badge3.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.third"))">
+            <img id="distance-badge4" src='@assets.path("images/badges/badge_distance_badge4.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fourth"))">
+            <img id="distance-badge5" src='@assets.path("images/badges/badge_distance_badge5.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fifth"))">
+            }
+          </div>
+        </div>
+
+        <div class="achievements-outer-col1">
+          <h3>@Messages("labels.caps")</h3>
+          <p id="labels-badge-encouragement" class="achievements-encouraging-statement">Just XX more labels until your next labeling achievement.</p>
+          <div id="labels-badge-grid" class="achievements-badge-grid">
+            <img id="labels-badge1" src='@assets.path("images/badges/badge_labels_badge1.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.first"))">
+            <img id="labels-badge2" src='@assets.path("images/badges/badge_labels_badge2.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.second"))">
+            <img id="labels-badge3" src='@assets.path("images/badges/badge_labels_badge3.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.third"))">
+            <img id="labels-badge4" src='@assets.path("images/badges/badge_labels_badge4.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.fourth"))">
+            <img id="labels-badge5" src='@assets.path("images/badges/badge_labels_badge5.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.fifth"))">
+          </div>
+        </div>
+        <div class="achievements-outer-col2"><!--Empty middle cell in outer grid--></div>
+        <div class="achievements-outer-col3">
+          <h3>@Messages("validations")</h3>
+          <p id="validations-badge-encouragement" class="achievements-encouraging-statement">Just XX more validations until your next validation achievement.</p>
+          <div id="validations-badge-grid" class="achievements-badge-grid">
+            <img id="validations-badge1" src='@assets.path("images/badges/badge_validation_badge1.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.first"))">
+            <img id="validations-badge2" src='@assets.path("images/badges/badge_validation_badge2.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.second"))">
+            <img id="validations-badge3" src='@assets.path("images/badges/badge_validation_badge3.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.third"))">
+            <img id="validations-badge4" src='@assets.path("images/badges/badge_validation_badge4.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.fourth"))">
+            <img id="validations-badge5" src='@assets.path("images/badges/badge_validation_badge5.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.fifth"))">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="mistakes-row" class="row">
+      <h2 id="recent-mistakes">@Messages("dashboard.mistakes.header")</h2>
+      <span id="mistakes-subheader-display"></span>
+      <img src="@assets.path("images/icons/info-button.svg")" class="mistakes-help-tooltip" data-toggle="tooltip" data-placement="top" title="@Messages("dashboard.mistakes.tooltip")" alt="">
+      <div id="mistake-carousels-holder"></div>
+    </div>
+
+      <!-- Admin only section. -->
+    @if(admin) {
+      <h1>General Info and Stats</h1>
+      <div class="row">
+        <div class="col-lg-12">
+          <table class="table table-striped table-condensed">
+            <tr>
+              <th class="col-md">Username</th>
+              <th class="col-md">User Id</th>
+              <th class="col-md">Email</th>
+              <th class="col-md">High quality</th>
+              <th class="col-md">High quality manual</th>
+              <th class="col-md">Volunteer</th>
+              @if(commonData.imagerySource == PanoSource.Infra3d) {
+                <th class="col-md">infra3D access</th>
+              }
+            </tr>
+            <tr>
+              <td>@profileUser.username</td>
+              <td>@profileUser.userId</td>
+              <td>@profileUser.email</td>
+              <td id="stat-high-quality">@adminData.get.userStats.highQuality</td>
+              <td>
+                <div id="user-quality-dropdown" class="dropdown">
+                  <button class="btn btn-default dropdown-toggle" type="button" id="user-quality-button" data-toggle="dropdown">
+                    @adminData.get.userStats.highQualityManual.map(_.toString).getOrElse("Not set")
+                    <span class="caret"></span>
+                  </button>
+                  <ul class="dropdown-menu" role="menu" aria-labelledby="user-quality-button">
+                    <li><a href="#!" class="change-role">true</a></li>
+                    <li><a href="#!" class="change-role">false</a></li>
+                    <li><a href="#!" class="change-role">Not set</a></li>
+                  </ul>
+                </div>
+              </td>
+              <td><label class="sr-only" for="check-volunteer">Volunteer</label><input type="checkbox" id="check-volunteer"></td>
+              @if(commonData.imagerySource == PanoSource.Infra3d) {
+                <td><label class="sr-only" for="check-infra3d-access">infra3D access</label><input type="checkbox" id="check-infra3d-access"></td>
+              }
+            </tr>
+          </table>
+        </div>
+        <div class="col-lg-12">
+          <table class="table table-striped table-condensed">
+            <tr>
+              <th class="col-md">Current Neighborhood</th>
+              <th class="col-md">Audited Street Count</th>
+              <th class="col-md">Time spent auditing/validating</th>
+              <th class="col-md">
+                Labeling frequency
+                <span class="stats-info-icon" title="If a user has a labeling frequency below 37.5 labels per km, then they are marked as low quality. You recalculate this by going to /adminapi/updateUserStats.">&#9432;</span>
+              </th>
+            </tr>
+            <tr>
+              <td>
+                @adminData.get.currentRegion.map(_.name).getOrElse("Unassigned")
+                (ID: @adminData.get.currentRegion.map(_.regionId).getOrElse("NA"))
+              </td>
+              <td>@adminData.get.numCompletedAudits</td>
+              <td>@{"%.2f".format(adminData.get.hoursWorked)} hours</td>
+              <td>@{adminData.get.userStats.labelsPerMeter.map(f => "%.2f labels per km".format(f * 1000)).getOrElse("NA")}</td>
+            </tr>
+          </table>
+        </div>
+        <div class="col-lg-12">
+        </div>
+      </div>
+
+      <h1>Mark Work Quality by Date</h1>
+      <p>
+        Mark all labels for this user before a selected date with the desired flag. This is useful when training new users on Project Sidewalk. If their work was low quality, set it as such below. Their labels will then be partially hidden in our APIs, and we won't assign other to validate those labels as frequently.
+      </p>
+      <p>
+        If their work was high quality, but they did not use all the available label types or didn't label the entire street, you can mark their data as "incomplete". Their labels will show up in our APIs, but we'll have other users re-audit those streets.
+      </p>
+      <div class="row set-flags-container">
+        <div class="col-lg-4 flag-date-container">
+          <h2>Low Quality</h2>
+          <div class="row">
+            <label class="sr-only" for="low-quality-date">Low quality flag date</label>
+            <div class="input-group date datepicker" data-date-format="mm-dd-yyyy">
+              <input id="low-quality-date" class="form-control" type="text">
+              <span class="input-group-addon">
+                <i class="glyphicon glyphicon-calendar"></i>
+              </span>
+            </div>
+          </div>
+          <div class="row date-submit-row">
+            <button type="button" id="low-quality-set-flags" class="btn btn-primary date-submit">Set Flags</button>
+            <button type="button" id="low-quality-remove-flags" class="btn btn-primary date-submit">Remove Flags</button>
+          </div>
+          <div class="row">
+            <div id="low-quality-alert" class="alert alert-success ps-invisible" role="alert">Alert TEST</div>
+          </div>
+        </div>
+        <div class="col-lg-4 flag-date-container">
+          <h2>Incomplete</h2>
+          <div class="row">
+            <label class="sr-only" for="incomplete-date">Incomplete flag date</label>
+            <div class="input-group date datepicker" data-date-format="mm-dd-yyyy">
+              <input id="incomplete-date" class="form-control" type="text">
+              <span class="input-group-addon">
+                <i class="glyphicon glyphicon-calendar"></i>
+              </span>
+            </div>
+          </div>
+          <div class="row date-submit-row">
+            <button type="button" id="incomplete-set-flags" class="btn btn-primary date-submit">Set Flags</button>
+            <button type="button" id="incomplete-remove-flags" class="btn btn-primary date-submit">Remove Flags</button>
+          </div>
+          <div class="row">
+            <div id="incomplete-alert" class="alert alert-success ps-invisible" role="alert">Alert TEST</div>
+          </div>
+        </div>
+      </div>
+
+      <h1>Completed Missions</h1>
+      <div class="row">
+        <table class="table table-striped table-fixed">
+          <thead>
+            <tr>
+              <th class="col-md-1">Mission Id</th>
+              <th class="col-md-2">Mission Type</th>
+              <th class="col-md-1">Region Id</th>
+              <th class="col-md-2">Region Name</th>
+              <th class="col-md-2">Distance (m / ft / mi)</th>
+              <th class="col-md-1">Labels Validated</th>
+              <th class="col-md-3">End Time</th>
+            </tr>
+          </thead>
+          <tbody>
+          @for(mission <- adminData.get.completedMissions) {
+            <tr>
+              <td class="col-md-1">@mission.missionId</td>
+              <td class="col-md-2">@mission.missionType</td>
+              <td class="col-md-1">@mission.regionId.map(_.toString).getOrElse("N/A")</td>
+              <td class="col-md-2">@mission.regionName.getOrElse("N/A")</td>
+              <td class="col-md-2">@("%1.1f".format(mission.distanceMeters.getOrElse(0d))) / @{"%1.1f".format(mission.distanceMeters.getOrElse(0d) * 3.28084d)} / @{"%1.1f".format(mission.distanceMeters.getOrElse(0d) / 1609.344051499d)}</td>
+              <td class="col-md-1">@mission.labelsValidated.getOrElse(0)</td>
+              <td class="col-md-3 timestamp">@mission.missionEnd</td>
+            </tr>
+          }
+          </tbody>
+        </table>
+      </div>
+      <h1>Feedback</h1>
+      <div class="row">
+        <div class="col-lg-12">
+          <table class="table table-striped table-condensed">
+            <tr><th class="col-md-3">Timestamp</th><th class="col-md-3">Panorama Id</th><th class="col-md-6">Comment</th></tr>
+            @adminData.get.exploreComments.map { comment =>
+              <tr>
+                <td class="timestamp">@comment.timestamp</td>
+                <td>@comment.panoId</td>
+                <td>@comment.comment</td>
+              </tr>
+            }
+          </table>
+        </div>
+      </div>
     }
-    @* Pannellum is loaded everywhere the label popup is, since any expired pano may have a self-hosted fallback. *@
-    <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
-    <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'/>
-    <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
-    <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
-    <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
-    <script src='@assets.path("js/user-dashboard/build/user-dashboard.js")'></script>
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
-    <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
-    <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
-    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
-    <link href='@assets.path("css/choropleth.css")' rel="stylesheet"/>
-    <link href='@assets.path("css/map-sidebar.css")' rel="stylesheet"/>
-    <link href='@assets.path("css/tag-pills.css")' rel="stylesheet"/>
-    <link href='@assets.path("css/user-profile.css")' rel="stylesheet"/>
+  </div>
+
+  @common.labelPopup(admin = admin)
+  <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
+
+  @if(commonData.imagerySource == PanoSource.Infra3d) {
+    <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
+    <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
+  } else if (commonData.imagerySource == PanoSource.Mapillary) {
+  <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
+  <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
+  <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
+  }
+  @* Pannellum is loaded everywhere the label popup is, since any expired pano may have a self-hosted fallback. *@
+  <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
+  <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
+  <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
+  <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
+  <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
+  <script src='@assets.path("js/user-dashboard/build/user-dashboard.js")'></script>
+  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
+  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
+  <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet">
+  <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
+  <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
+  <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
+  <link href='@assets.path("css/choropleth.css")' rel="stylesheet">
+  <link href='@assets.path("css/map-sidebar.css")' rel="stylesheet">
+  <link href='@assets.path("css/tag-pills.css")' rel="stylesheet">
+  <link href='@assets.path("css/user-profile.css")' rel="stylesheet">
 
     <!-- Add extra imports for admin version. -->
-    @if(admin) {
-        <script src='@assets.path("vendor/datatables/jquery.dataTables.min.js")'></script>
-        <script src='@assets.path("js/common/timestampLocalization.js")'></script>
-        <script src='@assets.path("vendor/bootstrap-datepicker/bootstrap-datepicker-1.9.0.min.js")'></script>
-        <link href='@assets.path("vendor/bootstrap-datepicker/bootstrap-datepicker-1.9.0.min.css")' rel="stylesheet"/>
-        <link href='@assets.path("css/admin.css")' rel="stylesheet"/>
+  @if(admin) {
+    <script src='@assets.path("vendor/datatables/jquery.dataTables.min.js")'></script>
+    <script src='@assets.path("js/common/timestampLocalization.js")'></script>
+    <script src='@assets.path("vendor/bootstrap-datepicker/bootstrap-datepicker-1.9.0.min.js")'></script>
+    <link href='@assets.path("vendor/bootstrap-datepicker/bootstrap-datepicker-1.9.0.min.css")' rel="stylesheet">
+    <link href='@assets.path("css/admin.css")' rel="stylesheet">
 
-        <script>updateTimestamps("@messages.lang.code");</script>
-    }
+    <script>updateTimestamps("@messages.lang.code");</script>
+  }
 
-    <script>
-        window.appManager.ready(async function () {
-            // Set up the main JS that powers the user dashboard.
-            const imagerySrc = "@commonData.imagerySource.toString";
-            const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
-            const accessToken = "@commonData.imageryAccessToken";
-            await UserDashboard.create($, '@commonData.mapboxApiKey', viewerType, accessToken, '@profileUser.userId', @admin, "@user.username");
-            @if(admin) {
-                new AdminUser('@profileUser.username', '@profileUser.userId', @profileUser.communityService, @profileUser.infra3dAccess);
-                $('#label-table').dataTable();
-            }
+  <script>
+    window.appManager.ready(async function () {
+      // Set up the main JS that powers the user dashboard.
+      const imagerySrc = "@commonData.imagerySource.toString";
+      const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+      const accessToken = "@commonData.imageryAccessToken";
+      await UserDashboard.create($, '@commonData.mapboxApiKey', viewerType, accessToken, '@profileUser.userId', @admin, "@user.username");
+      @if(admin) {
+        new AdminUser('@profileUser.username', '@profileUser.userId', @profileUser.communityService, @profileUser.infra3dAccess);
+        $('#label-table').dataTable();
+      }
 
-            const achievementTracker = new AchievementTracker();
-            achievementTracker.updateBadgeAchievementGrid(
-                @data.missionCount, @data.auditedDistance, @data.labelCount, @data.validationCount
-            );
+      const achievementTracker = new AchievementTracker();
+      achievementTracker
+        .updateBadgeAchievementGrid(@data.missionCount, @data.auditedDistance, @data.labelCount, @data.validationCount);
 
-            MistakeCarousel('@profileUser.userId');
+      MistakeCarousel('@profileUser.userId');
 
-            // Adds interaction handlers for the team dropdown.
-            $('[data-toggle="tooltip"]').tooltip();
-            $('[id="edit-team-dropdown"]').popover({
-                trigger: 'manual',
-                html: true,
-                animation: false
-            }).on('mouseenter', function() {
-                var _this = this;
-                $(this).popover('show');
-                $('.popover').on('mouseleave', function() {
-                    $(_this).popover('hide');
-                });
-            }).on('mouseleave', function() {
-                var _this = this;
-                setTimeout(function() {
-                    if (!$('.popover:hover').length) {
-                        $(_this).popover('hide');
-                    }
-                }, 300);
-            });
-            $('[class="put-team-container"]').popover();
+      // Adds interaction handlers for the team dropdown.
+      $('[data-toggle="tooltip"]').tooltip();
+      $('[id="edit-team-dropdown"]').popover({
+        trigger: 'manual',
+        html: true,
+        animation: false
+      }).on('mouseenter', function() {
+        var _this = this;
+        $(this).popover('show');
+        $('.popover').on('mouseleave', function() {
+          $(_this).popover('hide');
         });
-    </script>
+      }).on('mouseleave', function() {
+        var _this = this;
+        setTimeout(function() {
+          if (!$('.popover:hover').length) {
+            $(_this).popover('hide');
+          }
+        }, 300);
+      });
+      $('[class="put-team-container"]').popover();
+    });
+  </script>
 }

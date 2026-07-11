@@ -51,7 +51,7 @@ function createPSMap($, params) {
     // Also shift the map center to account for the sidebar covering part of the map.
     const sidebar = document.getElementById('map-sidebar');
     if (sidebar) {
-      sidebar.style.visibility = 'visible';
+      sidebar.classList.remove('ps-invisible');
       sidebar.classList.add('map-sidebar--loading');
       map.setPadding({ left: sidebar.offsetWidth, top: 0, right: 0, bottom: 0 });
     }

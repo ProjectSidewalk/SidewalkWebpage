@@ -57,6 +57,6 @@ class ModalNoNewMission {
       this.#uiModalMission.closeButton.css('width', 'fit-content');
     }
     this.#uiModalMission.closeButton.on('click', this.#handleButtonClick);
-    this.#uiModalMission.holder.css('display', '');
+    this.#uiModalMission.holder.removeClass('ps-hidden');
   }
 }

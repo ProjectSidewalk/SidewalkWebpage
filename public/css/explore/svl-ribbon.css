@@ -47,13 +47,13 @@
   justify-content: center;
 }
 
-#ribbon-menu-title {
+.ribbon-menu-title {
   font: var(--text-tiny-regular);
   position: relative;
 }
 
 /* Add lines to the left and right of the titles. Similar to this https://silvawebdesigns.com/line-on-sides-headers/ */
-#ribbon-menu-title::before, #ribbon-menu-title::after {
+.ribbon-menu-title::before, .ribbon-menu-title::after {
   position: absolute;
   top: 51%;
   width: 1000px; /* Set to a very large value, cut off from outer div with overflow: hidden. */
@@ -62,12 +62,12 @@
   background-color: var(--color-neutral-300);
 }
 
-#ribbon-menu-title::before {
+.ribbon-menu-title::before {
   right: 100%;
   margin-right: calc(5px * var(--ui-scale));
 }
 
-#ribbon-menu-title::after {
+.ribbon-menu-title::after {
   left: 100%;
   margin-left: calc(5px * var(--ui-scale));
 }

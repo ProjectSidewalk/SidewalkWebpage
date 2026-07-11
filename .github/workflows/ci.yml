@@ -1,14 +1,13 @@
 name: CI
 
 #   - backend:         `sbt compile` + `scalafmtCheckAll` (both BLOCKING)
-#   - frontend:        asset build (grunt) + `eslint` (JS) + `stylelint` (CSS) (all BLOCKING)
+#   - frontend:        asset build (grunt) + `eslint` (JS) + `stylelint` (CSS) + `htmlhint` (HTML) (all BLOCKING)
 #   - evolutions-lint: static checks on conf/evolutions/default/*.sql (BLOCKING — fast, deterministic, no DB).
 #   - backend-tests:   DB-backed public-API functional tests against a real Postgres+PostGIS (ADVISORY for now). Boots
 #                      the app, which auto-applies pending evolutions -- so it doubles as the forward-apply gate.
 #   - python-tests:    pytest unit tests for the standalone scripts in scripts/ (ADVISORY for now).
-# ESLint (JavaScript) and Stylelint (CSS) are both wired into the `frontend` job as blocking steps now that their trees
-# are lint-clean (#2487). The last frontend linter, htmlhint (HTML), is still owned by #2487 and intentionally NOT wired
-# in yet — its clean-up pass is unfinished — so it'll be added on that track once the HTML tree is clean.
+# ESLint (JavaScript), Stylelint (CSS), and htmlhint (HTML) are all wired into the `frontend` job as blocking steps now
+# that their trees are lint-clean (#2487).
 
 on:
   pull_request:
@@ -80,8 +79,7 @@ jobs:
       # and lib/ are carved out by eslint.config.js's own `ignores`. No `--max-warnings` flag on purpose: the config's
       # one `warn` rule (max-len) is deliberately advisory — CLAUDE.md sanctions long-line exceptions, so an over-limit
       # line nags but doesn't block; every other rule is an `error`. `if: always()` runs it even when the build step
-      # failed, so a contributor sees build and lint problems in one run. htmlhint stays manual until its tree is clean
-      # (#2487). Auto-fix locally with `make eslint-fix`.
+      # failed, so a contributor sees build and lint problems in one run. Auto-fix locally with `make eslint-fix`.
       - name: ESLint (blocking)
         if: always()
         run: npx eslint public/js/
@@ -95,6 +93,14 @@ jobs:
       - name: Stylelint (blocking)
         if: always()
         run: npx stylelint 'public/**/*.css'
+
+      # Blocking: the HTML tree (Twirl templates under app/views) is kept htmlhint-clean (#2487), the HTML counterpart to
+      # the ESLint/Stylelint gates above. Same path `make lint-htmlhint` defaults to; htmlhint reads its rules from
+      # .htmlhintrc. `if: always()` runs it even when an earlier step failed, so all frontend problems surface in one
+      # run. Auto-check locally with `make htmlhint`.
+      - name: HTMLHint (blocking)
+        if: always()
+        run: npx htmlhint app/views
 
   evolutions-lint:
     name: Evolutions lint

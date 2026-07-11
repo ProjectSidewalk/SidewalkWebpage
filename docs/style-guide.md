@@ -125,6 +125,20 @@ consistent with it.
 - **JS files → Airbnb "filename matches what it defines":** **PascalCase** for a file that defines a
   class/constructor (`AppManager.js`, `LabelPopup.js`, `GsvViewer.js`), **camelCase** for a function/utility/entry
   file (`main.js`, `aggregateStats.js`, `timestampLocalization.js`). Kebab-case is **not** used for JS files.
+- **HTML `id`/`class` values → kebab-case** (`page-loading`, `severity-button`, `nav-user-menu`), with two deliberate
+  exceptions:
+  - **BEM** element/modifier syntax is allowed — `__` for elements, `--` for modifiers
+    (`severity-button__icon`, `label-detail__col--severity`, `ps-progress-bar__fill--segmented`).
+  - **`id`/`class` values that embed a backend-sourced domain value keep the backend spelling.** Label types are
+    PascalCase (`label-count-CurbRamp-today`, matching the `LabelType` enum, the icon filenames, and
+    `/v3/api/labelTypes`); stat/filter keys are snake_case
+    (`user-count-explore-all-all_time-no_task_constraint-any_quality`). JS builds and queries these ids by
+    concatenating those backend values, so kebab-casing them would break the lookups and drift from the source of
+    truth (see the "backend is the source of truth" rule in [`CLAUDE.md`](../CLAUDE.md)).
+
+  Because of those two exceptions, the htmlhint `id-class-value` rule is left **off** — its `dash` mode enforces strict
+  kebab-case and can express neither BEM nor the backend-sourced values, so it can't be brought to zero. New markup
+  should still default to kebab-case.
 
 **Deferred namespace mismatch:** the reorg renamed the app *directories* (`SVLabel → explore`, `SVValidate →
 validate`, `Progress → user-dashboard`), but the apps' internal JS namespace **globals** `svl` (Explore) and `sg`

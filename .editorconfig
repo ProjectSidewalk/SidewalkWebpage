@@ -11,8 +11,8 @@ trim_trailing_whitespace = true
 # [*.scala]
 
 # TODO we want to reformat all files to use 2 spaces. It's set to 4 until we can reformat all files.
-[{*.json,*.html}]
+[*.json]
 indent_size = 4
 
-[{*.js,*.css}]
+[{*.js,*.css,*.html}]
 indent_size = 2

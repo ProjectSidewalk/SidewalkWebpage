@@ -28,7 +28,6 @@
 
   width: var(--app-width); /* Overrides bootstrap .container media queries to keep a consistent width. */
   padding: 0; /* Drop bootstrap .container's 15px side padding so the app-width holder inside stays centered. */
-  visibility: hidden; /* Hidden until mission start tutorial overlay is ready to cover it. */
 }
 
 #svv-application-holder {

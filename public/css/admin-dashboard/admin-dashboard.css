@@ -2162,6 +2162,12 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 }
 .ac-legend-dot--nostats { background: #9aa7b0; }
 
+/* Lifecycle status fills — keep in sync with #LIFECYCLE_COLORS in AcrossCitiesPage.js (the map circle colors). */
+.ac-legend-dot--active { background: #4a90d9; }
+.ac-legend-dot--wrapped-up { background: #1f7a4d; }
+.ac-legend-dot--stalled { background: #e0a800; }
+.ac-legend-dot--low-traction { background: #c0392b; }
+
 /* Private marker: neutral fill with the thick dark ring used on the map. */
 .ac-legend-dot--private {
   background: #9aa7b0;

@@ -4,186 +4,133 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @content = {
-    <script src="@routes.Assets.versioned("js/common/aggregateStats.js")"></script>
-    <link rel="stylesheet" href="@routes.Assets.versioned("css/api-docs/label-tags.css")">
-    <script src="@routes.Assets.versioned("js/api-docs/labelTagsPreview.js")"></script>
-    <link rel="stylesheet" href="@routes.Assets.versioned("css/api-docs/label-types.css")">
-    <script src="@routes.Assets.versioned("js/api-docs/labelTypesPreview.js")"></script>
+  <script src="@routes.Assets.versioned("js/common/aggregateStats.js")"></script>
+  <link rel="stylesheet" href="@routes.Assets.versioned("css/api-docs/label-tags.css")">
+  <script src="@routes.Assets.versioned("js/api-docs/labelTagsPreview.js")"></script>
+  <link rel="stylesheet" href="@routes.Assets.versioned("css/api-docs/label-types.css")">
+  <script src="@routes.Assets.versioned("js/api-docs/labelTypesPreview.js")"></script>
 
 
-    <div class="api-section" id="introduction">
-        <h1 class="api-heading" id="project-sidewalk-apis">Project Sidewalk APIs <a href="#project-sidewalk-apis" class="permalink">#</a></h1>
-        <p><i>Unlock the world's sidewalk data!</i></p>
-        <p>
-            Imagine a world where <strong>every sidewalk is accessible, safe, and easily navigable</strong>.
-            Project Sidewalk is building that world, one data point at a time.
-            Through a fusion of crowdsourcing, AI, and online map imagery, we're on a mission to accurately
-            <strong>map and assess every sidewalk globally</strong>. Our ultimate goal? To revolutionize
-            urban walkability, rollability, and safety, while empowering innovative urban analytics and
-            personalized mapping solutions.
-        </p>
-        @* Populated client-side by aggregateStats.js with live deployment stats; this is the no-JS fallback. *@
-        <p id="project-sidewalk-aggregate-stats">
-            Working with local community groups and governmental partners, we have deployed Project Sidewalk in
-            cities across several countries and many natively translated languages, including Spanish, German, and
-            Chinese. Together, our users have assessed thousands of kilometers of city streets.
-        </p>
-        <p>
-            Ready to build the future of urban accessibility? All Project Sidewalk <strong>data is open and public</strong>, accessible in popular formats like CSV, GeoJSON, or shape files
-            or accessed programmatically via our APIs.
-        </p>
-        <h2 class="api-heading" id="api-overview">API Overview<a href="#api-overview" class="permalink">#</a></h2>
-        Our API is divided into four sections:
-        <ul class="api-list">
-            <li><a href="#metadata-apis"><strong>Metadata APIs:</strong></a> for describing our data structures and deployment cities</li>
-            <li><a href="#data-apis"><strong>Data APIs:</strong></a> for our collected label data and validations</li>
-            <li><a href="#accessibility-score-apis"><strong>AccessScores APIs:</strong></a> for scoring of sidewalk accessibility of streets and regions</li>
-            <li><a href="#stats-apis"><strong>Stats APIs:</strong></a> for overall stats on users and collected data</li>
-        </ul>
+  <div class="api-section" id="introduction">
+    <h1 class="api-heading" id="project-sidewalk-apis">Project Sidewalk APIs <a href="#project-sidewalk-apis" class="permalink">#</a></h1>
+    <p><i>Unlock the world's sidewalk data!</i></p>
+    <p>Imagine a world where <strong>every sidewalk is accessible, safe, and easily navigable</strong>. Project Sidewalk is building that world, one data point at a time. Through a fusion of crowdsourcing, AI, and online map imagery, we're on a mission to accurately <strong>map and assess every sidewalk globally</strong>. Our ultimate goal? To revolutionize urban walkability, rollability, and safety, while empowering innovative urban analytics and personalized mapping solutions.</p>
+    @* Populated client-side by aggregateStats.js with live deployment stats; this is the no-JS fallback. *@
+    <p id="project-sidewalk-aggregate-stats">Working with local community groups and governmental partners, we have deployed Project Sidewalk in cities across several countries and many natively translated languages, including Spanish, German, and Chinese. Together, our users have assessed thousands of kilometers of city streets.</p>
+    <p>Ready to build the future of urban accessibility? All Project Sidewalk <strong>data is open and public</strong>, accessible in popular formats like CSV, GeoJSON, or shape files or accessed programmatically via our APIs.</p>
+    <h2 class="api-heading" id="api-overview">API Overview<a href="#api-overview" class="permalink">#</a></h2>
+    Our API is divided into four sections:
+    <ul class="api-list">
+      <li><a href="#metadata-apis"><strong>Metadata APIs:</strong></a> for describing our data structures and deployment cities</li>
+      <li><a href="#data-apis"><strong>Data APIs:</strong></a> for our collected label data and validations</li>
+      <li><a href="#accessibility-score-apis"><strong>AccessScores APIs:</strong></a> for scoring of sidewalk accessibility of streets and regions</li>
+      <li><a href="#stats-apis"><strong>Stats APIs:</strong></a> for overall stats on users and collected data</li>
+    </ul>
 
-        <p>
-            We expand on each below. You can also navigate to the individual API pages on the left sidebar. Before
-            describing the API endpoints, we first explain the core data type in Project Sidewalk:
-            <strong>labels</strong>.
-        </p>
+    <p>We expand on each below. You can also navigate to the individual API pages on the left sidebar. Before describing the API endpoints, we first explain the core data type in Project Sidewalk: <strong>labels</strong>.</p>
 
-        <h2 class="api-heading" id="conventions">Conventions<a href="#conventions" class="permalink">#</a></h2>
-        <p>
-            <strong>Preview.</strong> The <code>/v3</code> API is currently in <strong>preview</strong>. We may make
-            breaking changes (including field renames) in place as we refine it, so depend on a specific response shape
-            with care.
-        </p>
-        <ul class="api-list">
-            <li><strong>Query parameters</strong> use <code>camelCase</code> (for example <code>minSeverity</code>,
-                <code>regionId</code>, <code>validationStatus</code>).</li>
-            <li><strong>Output field names</strong> use <code>snake_case</code> consistently across every format &mdash;
-                JSON, GeoJSON <code>properties</code>, CSV headers, and shapefile/GeoPackage fields (for example
-                <code>label_id</code>, <code>region_name</code>, <code>city_id</code>).</li>
-            <li><strong>Output format</strong> is selected with the <code>filetype</code> query parameter (for example
-                <code>?filetype=csv</code>); the HTTP <code>Accept</code> header is not used.</li>
-        </ul>
+    <h2 class="api-heading" id="conventions">Conventions<a href="#conventions" class="permalink">#</a></h2>
+    <p><strong>Preview.</strong> The <code>/v3</code> API is currently in <strong>preview</strong>. We may make breaking changes (including field renames) in place as we refine it, so depend on a specific response shape with care.</p>
+    <ul class="api-list">
+      <li><strong>Query parameters</strong> use <code>camelCase</code> (for example <code>minSeverity</code>, <code>regionId</code>, <code>validationStatus</code>).</li>
+      <li><strong>Output field names</strong> use <code>snake_case</code> consistently across every format &mdash; JSON, GeoJSON <code>properties</code>, CSV headers, and shapefile/GeoPackage fields (for example <code>label_id</code>, <code>region_name</code>, <code>city_id</code>).</li>
+      <li><strong>Output format</strong> is selected with the <code>filetype</code> query parameter (for example <code>?filetype=csv</code>); the HTTP <code>Accept</code> header is not used.</li>
+    </ul>
 
-        <h2 class="api-heading" id="labels">Labels<a href="#labels" class="permalink">#</a></h2>
-        <div class="video-container">
-            <video autoplay loop muted playsinline class="demo-video">
-                <source src="@routes.Assets.versioned("videos/ProjectSidewalk_LabelingFromSeattle_KerryPark4_optimized1.5x.mp4")" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
-        </div>
-        <p>
-            In Project Sidewalk, users navigate street view imagery and <strong>label sidewalk features</strong> (like
-            <i>curb ramps</i>) as well as barriers (like <i>surface problems</i>), which are then geolocated by our
-            tool (<i>i.e.,</i> assigned a <code>lat,lng</code>). For each label, users can provide tags, a severity
-            rating, and an open-ended description. For quality control, labels are also validated by other users in
-            tools like <a href="@routes.ValidateController.validate()">Validator</a>,
-            <a href="@routes.ApplicationController.labelMap(None)">LabelMap</a>, or
-            <a href="@routes.GalleryController.gallery()">Gallery</a>. You can filter labels by their validation
-            ratings.
-        </p>
-        <p>
-            You can download either the <a href="@routes.ApiDocsController.rawLabels">raw label dataset</a> or
-            <a href="@routes.ApiDocsController.labelClusters">label clusters</a>.
-        </p>
-
-        <div class="api-section" id="label-types-preview-section">
-            <h3 class="api-heading" id="label-types">Label Types <a href="#label-types" class="permalink">#</a></h3>
-            <p>Project Sidewalk has the following label types (see the <a href="@routes.ApiDocsController.labelTypes">Label Types API</a>):</p>
-
-            <div id="label-types-preview"></div>
-
-            <script>
-                // Initialize the label types preview
-                document.addEventListener('DOMContentLoaded', function() {
-                    LabelTypesPreview.setup({
-                        maxWidth: 1000
-                    }).init();
-                });
-            </script>
-        </div>
-
-        <div class="api-section" id="label-tags-preview-section">
-            <h3 class="api-heading" id="label-tags">Label Tags <a href="#label-tags" class="permalink">#</a></h3>
-            <p>
-                Each label can have one or more tags for more detailed categorization. These tags are customizable per
-                city, reflecting the diverse needs of different communities, geographies, and sidewalk designs. Below is
-                a summary of available tags by label type (see the
-                <a href="@routes.ApiDocsController.labelTags">Label Tags API</a>):
-            </p>
-
-            <div id="label-tags-preview"></div>
-
-            <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    LabelTagsPreview.setup({
-                        maxWidth: 1000,
-                        displayMode: "summary"  // Use summary mode for the index page
-                    }).init()
-                            .then(() => {
-                                if (typeof generateTableOfContents === 'function') {
-                                    generateTableOfContents(); // Regenerate the TOC if needed
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error initializing label tags summary:', error);
-                            });
-                });
-            </script>
-        </div>
-
-        <h2 class="api-heading" id="metadata-apis">Metadata APIs<a href="#metadata-apis" class="permalink">#</a></h2>
-        We have four Metadata APIs:
-        <ul class="api-list">
-            <li><a href="@routes.ApiDocsController.cities"><strong>Cities:</strong></a> lists Project Sidewalk deployment sites</li>
-            <li><a href="@routes.ApiDocsController.labelTypes"><strong>Label Types:</strong></a> lists Project Sidewalk label types</li>
-            <li><a href="@routes.ApiDocsController.labelTags"><strong>Label Tags:</strong></a> lists tags associated with each label type</li>
-            <li><a href="@routes.ApiDocsController.streetTypes"><strong>Street Types:</strong></a> lists Project Sidewalk street types</li>
-        </ul>
-
-
-        <h2 class="api-heading" id="data-apis">Label Data APIs<a href="#data-apis" class="permalink">#</a></h2>
-        <p>We provide two different labeling datasets plus an aggregated version (by street) along with validation data.</p>
-        <ul class="api-list">
-            <li><a href="@routes.ApiDocsController.rawLabels"><b>Raw Labels:</b></a> Individual geolocated labels provided by our users.</li>
-            <li><a href="@routes.ApiDocsController.labelClusters"><b>Label Clusters (recommended):</b></a> Because the same sidewalk feature/barrier could be labeled by multiple users or even the same user from different street view images (<i>i.e.,</i> from different perspectives), we use a custom clustering algorithm to group labels together.</li>
-            <li><a href="@routes.ApiDocsController.streets"><b>Streets:</b></a> Labeling data organized per street.</li>
-            <li><a href="@routes.ApiDocsController.validations"><b>Validations:</b></a> User judgments of label data.</li>
-        </ul>
-
-        <h2 class="api-heading" id="accessibility-score-apis">Access Score APIs<a href="#accessibility-score-apis" class="permalink">#</a></h2>
-        <p>
-            Inspired by <a href="https://www.walkscore.com/">WalkScore</a>, we also compute an aggregate
-            <b>AccessScore</b> based on Project Sidewalk data. AccessScore extends the method from
-            <a href="https://makeabilitylab.cs.washington.edu/media/publications/Li_APilotStudyOfSidewalkEquityInSeattleUsingCrowdsourcedSidewalkAssessmentData_UrbanAccess2022.pdf">Li et&nbsp;al. (Urban Access 2022)</a>
-            by weighting each feature by its severity/quality rating and its tags. These scoring algorithms are
-            experimental and the weights are subject to change; you can also compute your own indices via the Labels API.
-        </p>
-        <ul class="api-list">
-            <li><b><a href="@routes.ApiDocsController.accessScoreStreets">AccessScore: Streets</a>:</b> AccessScore for individual streets (<code>GET /v3/api/accessScoreStreets</code>).</li>
-            <li><b><a href="@routes.ApiDocsController.accessScoreRegions">AccessScore: Regions</a>:</b> AccessScore for regions (neighborhoods), length-weighted across their streets (<code>GET /v3/api/accessScoreRegions</code>).</li>
-        </ul>
-        <p>
-            Both endpoints accept the standard geo-filters (<code>bbox</code>, <code>regionId</code>,
-            <code>regionName</code>) and output formats (<code>filetype=</code> geojson [default], <code>csv</code>,
-            <code>shapefile</code>, <code>geopackage</code>).
-        </p>
-        <p>How the score is computed:</p>
-        <ul class="api-list">
-            <li>Each clustered label contributes a weight: positive features (curb ramps, crosswalks) are rated on a Good/Okay/Bad quality scale (a <i>Bad</i> one counts <i>against</i> the score); negative features (missing curb ramps, obstacles, surface problems) are rated Low/Medium/High severity; pedestrian signals and missing sidewalks have no rating and contribute a fixed amount for their presence.</li>
-            <li>Certain tags adjust the weight further (e.g. a signal tagged <i>hard to reach buttons</i> counts negatively).</li>
-            <li>A <b>street's</b> score is the logistic (sigmoid) of the summed weights, mapped to (0,&nbsp;1) — higher is more accessible.</li>
-            <li>A <b>region's</b> score is the street-length-weighted mean of its audited streets' scores; <code>coverage</code> reports the fraction of the region's streets that have been audited.</li>
-        </ul>
-
-        <h2 class="api-heading" id="stats-apis">Stats API<a href="#stats-apis" class="permalink">#</a></h2>
-        <p>Finally, we also provide basic statistics about Project Sidewalk data and users.</p>
-        <ul class="api-list">
-            <li><b><a href="@routes.ApiDocsController.overallStats">Overall Stats:</a></b> Basic data stats, including number of users, kilometers audited, label counts (broken down by label type), accuracy, severity.</li>
-            <li><b><a href="@routes.ApiDocsController.userStats">User Stats:</a></b> Basic user stats, including total labels placed, validations, meters explored. The IDs for users are anonymized but persist over time.</li>
-        </ul>
+    <h2 class="api-heading" id="labels">Labels<a href="#labels" class="permalink">#</a></h2>
+    <div class="video-container">
+      <video autoplay loop muted playsinline class="demo-video">
+        <source src="@routes.Assets.versioned("videos/ProjectSidewalk_LabelingFromSeattle_KerryPark4_optimized1.5x.mp4")" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
     </div>
+    <p>In Project Sidewalk, users navigate street view imagery and <strong>label sidewalk features</strong> (like <i>curb ramps</i>) as well as barriers (like <i>surface problems</i>), which are then geolocated by our tool (<i>i.e.,</i> assigned a <code>lat,lng</code>). For each label, users can provide tags, a severity rating, and an open-ended description. For quality control, labels are also validated by other users in tools like <a href="@routes.ValidateController.validate()">Validator</a>, <a href="@routes.ApplicationController.labelMap(None)">LabelMap</a>, or <a href="@routes.GalleryController.gallery()">Gallery</a>. You can filter labels by their validation ratings.</p>
+    <p>You can download either the <a href="@routes.ApiDocsController.rawLabels">raw label dataset</a> or <a href="@routes.ApiDocsController.labelClusters">label clusters</a>.</p>
+
+    <div class="api-section" id="label-types-preview-section">
+      <h3 class="api-heading" id="label-types">Label Types <a href="#label-types" class="permalink">#</a></h3>
+      <p>Project Sidewalk has the following label types (see the <a href="@routes.ApiDocsController.labelTypes">Label Types API</a>):</p>
+
+      <div id="label-types-preview"></div>
+
+      <script>
+        // Initialize the label types preview
+        document.addEventListener('DOMContentLoaded', function() {
+          LabelTypesPreview.setup({
+            maxWidth: 1000
+          }).init();
+        });
+      </script>
+    </div>
+
+    <div class="api-section" id="label-tags-preview-section">
+      <h3 class="api-heading" id="label-tags">Label Tags <a href="#label-tags" class="permalink">#</a></h3>
+      <p>Each label can have one or more tags for more detailed categorization. These tags are customizable per city, reflecting the diverse needs of different communities, geographies, and sidewalk designs. Below is a summary of available tags by label type (see the <a href="@routes.ApiDocsController.labelTags">Label Tags API</a>):</p>
+
+      <div id="label-tags-preview"></div>
+
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          LabelTagsPreview.setup({
+            maxWidth: 1000,
+            displayMode: "summary"  // Use summary mode for the index page
+          }).init()
+            .then(() => {
+              if (typeof generateTableOfContents === 'function') {
+                generateTableOfContents(); // Regenerate the TOC if needed
+              }
+            })
+            .catch(error => {
+              console.error('Error initializing label tags summary:', error);
+            });
+        });
+      </script>
+    </div>
+
+    <h2 class="api-heading" id="metadata-apis">Metadata APIs<a href="#metadata-apis" class="permalink">#</a></h2>
+    We have four Metadata APIs:
+    <ul class="api-list">
+      <li><a href="@routes.ApiDocsController.cities"><strong>Cities:</strong></a> lists Project Sidewalk deployment sites</li>
+      <li><a href="@routes.ApiDocsController.labelTypes"><strong>Label Types:</strong></a> lists Project Sidewalk label types</li>
+      <li><a href="@routes.ApiDocsController.labelTags"><strong>Label Tags:</strong></a> lists tags associated with each label type</li>
+      <li><a href="@routes.ApiDocsController.streetTypes"><strong>Street Types:</strong></a> lists Project Sidewalk street types</li>
+    </ul>
+
+
+    <h2 class="api-heading" id="data-apis">Label Data APIs<a href="#data-apis" class="permalink">#</a></h2>
+    <p>We provide two different labeling datasets plus an aggregated version (by street) along with validation data.</p>
+    <ul class="api-list">
+      <li><a href="@routes.ApiDocsController.rawLabels"><b>Raw Labels:</b></a> Individual geolocated labels provided by our users.</li>
+      <li><a href="@routes.ApiDocsController.labelClusters"><b>Label Clusters (recommended):</b></a> Because the same sidewalk feature/barrier could be labeled by multiple users or even the same user from different street view images (<i>i.e.,</i> from different perspectives), we use a custom clustering algorithm to group labels together.</li>
+      <li><a href="@routes.ApiDocsController.streets"><b>Streets:</b></a> Labeling data organized per street.</li>
+      <li><a href="@routes.ApiDocsController.validations"><b>Validations:</b></a> User judgments of label data.</li>
+    </ul>
+
+    <h2 class="api-heading" id="accessibility-score-apis">Access Score APIs<a href="#accessibility-score-apis" class="permalink">#</a></h2>
+    <p>Inspired by <a href="https://www.walkscore.com/">WalkScore</a>, we also compute an aggregate <b>AccessScore</b> based on Project Sidewalk data. AccessScore extends the method from <a href="https://makeabilitylab.cs.washington.edu/media/publications/Li_APilotStudyOfSidewalkEquityInSeattleUsingCrowdsourcedSidewalkAssessmentData_UrbanAccess2022.pdf">Li et&nbsp;al. (Urban Access 2022)</a> by weighting each feature by its severity/quality rating and its tags. These scoring algorithms are experimental and the weights are subject to change; you can also compute your own indices via the Labels API.</p>
+    <ul class="api-list">
+      <li><b><a href="@routes.ApiDocsController.accessScoreStreets">AccessScore: Streets</a>:</b> AccessScore for individual streets (<code>GET /v3/api/accessScoreStreets</code>).</li>
+      <li><b><a href="@routes.ApiDocsController.accessScoreRegions">AccessScore: Regions</a>:</b> AccessScore for regions (neighborhoods), length-weighted across their streets (<code>GET /v3/api/accessScoreRegions</code>).</li>
+    </ul>
+    <p>Both endpoints accept the standard geo-filters (<code>bbox</code>, <code>regionId</code>, <code>regionName</code>) and output formats (<code>filetype=</code> geojson [default], <code>csv</code>, <code>shapefile</code>, <code>geopackage</code>).</p>
+    <p>How the score is computed:</p>
+    <ul class="api-list">
+      <li>Each clustered label contributes a weight: positive features (curb ramps, crosswalks) are rated on a Good/Okay/Bad quality scale (a <i>Bad</i> one counts <i>against</i> the score); negative features (missing curb ramps, obstacles, surface problems) are rated Low/Medium/High severity; pedestrian signals and missing sidewalks have no rating and contribute a fixed amount for their presence.</li>
+      <li>Certain tags adjust the weight further (e.g. a signal tagged <i>hard to reach buttons</i> counts negatively).</li>
+      <li>A <b>street's</b> score is the logistic (sigmoid) of the summed weights, mapped to (0,&nbsp;1) — higher is more accessible.</li>
+      <li>A <b>region's</b> score is the street-length-weighted mean of its audited streets' scores; <code>coverage</code> reports the fraction of the region's streets that have been audited.</li>
+    </ul>
+
+    <h2 class="api-heading" id="stats-apis">Stats API<a href="#stats-apis" class="permalink">#</a></h2>
+    <p>Finally, we also provide basic statistics about Project Sidewalk data and users.</p>
+    <ul class="api-list">
+      <li><b><a href="@routes.ApiDocsController.overallStats">Overall Stats:</a></b> Basic data stats, including number of users, kilometers audited, label counts (broken down by label type), accuracy, severity.</li>
+      <li><b><a href="@routes.ApiDocsController.userStats">User Stats:</a></b> Basic user stats, including total labels placed, validations, meters explored. The IDs for users are anonymized but persist over time.</li>
+    </ul>
+  </div>
 }
 
 @common.main(commonData, "API Docs") {
-    @common.navbar(commonData, Some(user))
-    @apiDocs.layout("introduction")(content)
+  @common.navbar(commonData, Some(user))
+  @apiDocs.layout("introduction")(content)
 }

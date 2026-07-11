@@ -290,6 +290,11 @@ a:hover {
   border: 1px solid var(--color-border-table);
 }
 
+/* Column widths for the three-column "Field Path / Type / Description" response-field tables. */
+.api-field-col { width: 30%; }
+.api-type-col { width: 15%; }
+.api-desc-col { width: 55%; }
+
 /* ---- Code Blocks and Inline Code ---- */
 
 pre {

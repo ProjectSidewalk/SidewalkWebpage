@@ -16,7 +16,7 @@ util.EXPLORE_CANVAS_ASPECT_RATIO = util.EXPLORE_CANVAS_WIDTH / util.EXPLORE_CANV
  * @returns {number} displayWidth / EXPLORE_CANVAS_WIDTH, or 1 if the street view is not present
  */
 util.exploreDisplayScale = function () {
-  const layer = document.getElementById('labelDrawingLayer');
+  const layer = document.getElementById('label-drawing-layer');
   return layer ? layer.getBoundingClientRect().width / util.EXPLORE_CANVAS_WIDTH : 1;
 };
 

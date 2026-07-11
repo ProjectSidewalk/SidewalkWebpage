@@ -4,107 +4,84 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@*
- * Admin Management page (#4272): the operational console for deployment-wide, state-changing actions that the
- * read-only lens pages don't carry. Full user directory with inline role + team assignment, team open/closed and
- * visible/hidden toggles, and the maintenance jobs. Built in the redesign idiom (lightweight accessible tables, no
- * DataTables/jQuery); all data + mutations go through existing /adminapi endpoints. Per-user actions (quality,
- * infra3d, task flags) live on /admin/user/:username, linked from each row.
- *@
+@* Admin Management page (#4272): the operational console for deployment-wide, state-changing actions that the read-only lens pages don't carry. Full user directory with inline role + team assignment, team open/closed and visible/hidden toggles, and the maintenance jobs. Built in the redesign idiom (lightweight accessible tables, no DataTables/jQuery); all data + mutations go through existing /adminapi endpoints. Per-user actions (quality, infra3d, task flags) live on /admin/user/:username, linked from each row. *@
 
 @content = {
-    <div class="api-section" id="management-intro-section">
-        <h1 class="api-heading" id="management">Management <a href="#management" class="permalink">#</a></h1>
-        <p>
-            Operational controls for this deployment: find and manage any contributor, set their role or team, open or
-            hide teams, and run the maintenance jobs. These actions change live data — they take effect immediately.
-            Per-user controls (manual quality, infra3D access, marking work by date) live on each
-            contributor's <em>admin profile</em>, linked from their name below.
-        </p>
-        <div class="coverage-status" id="mgmt-status" role="status" aria-live="polite">Loading…</div>
-    </div>
+  <div class="api-section" id="management-intro-section">
+    <h1 class="api-heading" id="management">Management <a href="#management" class="permalink">#</a></h1>
+    <p>Operational controls for this deployment: find and manage any contributor, set their role or team, open or hide teams, and run the maintenance jobs. These actions change live data — they take effect immediately. Per-user controls (manual quality, infra3D access, marking work by date) live on each contributor's <em>admin profile</em>, linked from their name below.</p>
+    <div class="coverage-status" id="mgmt-status" role="status" aria-live="polite">Loading…</div>
+  </div>
 
-    <div class="api-section" id="users-section">
-        <h2 class="api-heading" id="users">Users <a href="#users" class="permalink">#</a></h2>
-        <p>
-            Every contributing account on this deployment. Search by name or email, sort any column, and assign a role
-            or team inline. Owner accounts can't be reassigned. Per-user quality, infra3D access, and marking work by
-            date live on each contributor's admin profile — click a name to open it.
-        </p>
-        <div class="mgmt-toolbar">
-            <input type="search" id="mgmt-user-search" class="mgmt-search"
-                   placeholder="Search username or email…" aria-label="Search users by username or email">
-            <span class="mgmt-count dq-sub" id="mgmt-user-count"></span>
+  <div class="api-section" id="users-section">
+    <h2 class="api-heading" id="users">Users <a href="#users" class="permalink">#</a></h2>
+    <p>Every contributing account on this deployment. Search by name or email, sort any column, and assign a role or team inline. Owner accounts can't be reassigned. Per-user quality, infra3D access, and marking work by date live on each contributor's admin profile — click a name to open it.</p>
+    <div class="mgmt-toolbar">
+      <label class="sr-only" for="mgmt-user-search">Search users by username or email</label>
+      <input type="search" id="mgmt-user-search" class="mgmt-search"
+      placeholder="Search username or email…">
+      <span class="mgmt-count dq-sub" id="mgmt-user-count"></span>
+    </div>
+    <div class="mgmt-pagination" id="mgmt-pagination-top"></div>
+    <div class="mgmt-table-scroll">
+      <div id="mgmt-users"></div>
+    </div>
+    <div class="mgmt-pagination" id="mgmt-pagination-bottom"></div>
+  </div>
+
+  <div class="api-section" id="teams-section">
+    <h2 class="api-heading" id="teams">Teams <a href="#teams" class="permalink">#</a></h2>
+    <p>Teams contributors can join. <b>Status</b> controls whether a team is open to new members; <b>visibility</b> controls whether it shows in public team lists. Toggle either inline.</p>
+    <div id="mgmt-teams"></div>
+  </div>
+
+  <div class="api-section" id="maintenance-section">
+    <h2 class="api-heading" id="maintenance">Maintenance <a href="#maintenance" class="permalink">#</a></h2>
+    <p>Deployment-wide jobs. These can be expensive and affect what every user sees, so each asks for confirmation before running.</p>
+    <div class="mgmt-actions">
+      <div class="mgmt-action">
+        <div class="mgmt-action-text">
+          <b>Recalculate user stats</b>
+          <span class="dq-sub">Recomputes each contributor's labeling frequency and high-quality flag.</span>
         </div>
-        <div class="mgmt-pagination" id="mgmt-pagination-top"></div>
-        <div class="mgmt-table-scroll">
-            <div id="mgmt-users"></div>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-recalc-stats" data-confirm="Recalculate user stats for all recent contributors?">Run</button>
+      </div>
+      <div class="mgmt-action">
+        <div class="mgmt-action-text">
+          <b>Recalculate street priority</b>
+          <span class="dq-sub">Recomputes audit priority for every street so under-audited streets resurface.</span>
         </div>
-        <div class="mgmt-pagination" id="mgmt-pagination-bottom"></div>
-    </div>
-
-    <div class="api-section" id="teams-section">
-        <h2 class="api-heading" id="teams">Teams <a href="#teams" class="permalink">#</a></h2>
-        <p>
-            Teams contributors can join. <b>Status</b> controls whether a team is open to new members; <b>visibility</b>
-            controls whether it shows in public team lists. Toggle either inline.
-        </p>
-        <div id="mgmt-teams"></div>
-    </div>
-
-    <div class="api-section" id="maintenance-section">
-        <h2 class="api-heading" id="maintenance">Maintenance <a href="#maintenance" class="permalink">#</a></h2>
-        <p>
-            Deployment-wide jobs. These can be expensive and affect what every user sees, so each asks for confirmation
-            before running.
-        </p>
-        <div class="mgmt-actions">
-            <div class="mgmt-action">
-                <div class="mgmt-action-text">
-                    <b>Recalculate user stats</b>
-                    <span class="dq-sub">Recomputes each contributor's labeling frequency and high-quality flag.</span>
-                </div>
-                <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-recalc-stats"
-                        data-confirm="Recalculate user stats for all recent contributors?">Run</button>
-            </div>
-            <div class="mgmt-action">
-                <div class="mgmt-action-text">
-                    <b>Recalculate street priority</b>
-                    <span class="dq-sub">Recomputes audit priority for every street so under-audited streets resurface.</span>
-                </div>
-                <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-recalc-priority"
-                        data-confirm="Recalculate street priority for all streets? This can take a while.">Run</button>
-            </div>
-            <div class="mgmt-action">
-                <div class="mgmt-action-text">
-                    <b>Clear server cache</b>
-                    <span class="dq-sub">Clears Play's cached values; the next page loads rebuild them.</span>
-                </div>
-                <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-clear-cache"
-                        data-confirm="Clear the server cache now?">Run</button>
-            </div>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-recalc-priority" data-confirm="Recalculate street priority for all streets? This can take a while.">Run</button>
+      </div>
+      <div class="mgmt-action">
+        <div class="mgmt-action-text">
+          <b>Clear server cache</b>
+          <span class="dq-sub">Clears Play's cached values; the next page loads rebuild them.</span>
         </div>
-        <p class="mgmt-result dq-sub" id="mgmt-maint-result" role="status" aria-live="polite"></p>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-clear-cache" data-confirm="Clear the server cache now?">Run</button>
+      </div>
     </div>
+    <p class="mgmt-result dq-sub" id="mgmt-maint-result" role="status" aria-live="polite"></p>
+  </div>
 
-    <script src="@assets.path("js/admin-dashboard/ManagementPage.js")"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            new ManagementPage({
-                userStatsUrl: '/adminapi/getUserStats',
-                setRoleUrl: '/adminapi/setRole',
-                setTeamUrl: '/userapi/setUserTeam',
-                teamStatusUrl: '/adminapi/updateTeamStatus',
-                teamVisibilityUrl: '/adminapi/updateTeamVisibility',
-                clearCacheUrl: '/adminapi/clearPlayCache',
-                recalcStatsUrl: '/adminapi/updateUserStats',
-                recalcPriorityUrl: '/explore/recalculateStreetPriority'
-            }).init();
-        });
-    </script>
+  <script src="@assets.path("js/admin-dashboard/ManagementPage.js")"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      new ManagementPage({
+        userStatsUrl: '/adminapi/getUserStats',
+        setRoleUrl: '/adminapi/setRole',
+        setTeamUrl: '/userapi/setUserTeam',
+        teamStatusUrl: '/adminapi/updateTeamStatus',
+        teamVisibilityUrl: '/adminapi/updateTeamVisibility',
+        clearCacheUrl: '/adminapi/clearPlayCache',
+        recalcStatsUrl: '/adminapi/updateUserStats',
+        recalcPriorityUrl: '/explore/recalculateStreetPriority'
+      }).init();
+    });
+  </script>
 }
 
 @common.main(commonData, "Sidewalk - Admin Management") {
-    @common.navbar(commonData, Some(user))
-    @admin.dashboard.adminLayout("management", user.role == "Owner")(content)
+  @common.navbar(commonData, Some(user))
+  @admin.dashboard.adminLayout("management", user.role == "Owner")(content)
 }

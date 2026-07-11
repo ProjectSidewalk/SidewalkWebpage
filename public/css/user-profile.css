@@ -230,3 +230,12 @@ svg {
 .modal-header .custom-close {
   margin-top: -30px;
 }
+
+.user-stats-row {
+  margin-top: 15px;
+}
+
+/* Info (ⓘ) tooltip trigger next to the labeling-frequency column header. */
+.stats-info-icon {
+  cursor: pointer;
+}

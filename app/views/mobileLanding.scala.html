@@ -8,136 +8,144 @@
 @formatNumber(n: Int) = @{java.text.NumberFormat.getInstance(messages.lang.toLocale).format(n)}
 
 @common.main(commonData, title, url = "/mobileLanding") {
-    <link rel="stylesheet" href='@assets.path("css/mobile-landing.css")'>
+  <link rel="stylesheet" href='@assets.path("css/mobile-landing.css")'>
 
     <!-- Slim header: logo + sign-in link. No full navbar on mobile landing. -->
-    <header id="mobile-landing-header">
-        <img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))'
-             id="mobile-landing-logo-header"
-             alt="Project Sidewalk Logo">
-        @if(user.role == "Anonymous") {
-            <a href='@routes.UserController.signInMobile()' class="mobile-header-signin">@Messages("navbar.signin")</a>
-        } else {
-            <span class="mobile-header-signin">@user.username</span>
-        }
-    </header>
+  <header id="mobile-landing-header">
+    <img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))'
+    id="mobile-landing-logo-header"
+    alt="Project Sidewalk Logo">
+    @if(user.role == "Anonymous") {
+      <a href='@routes.UserController.signInMobile()' class="mobile-header-signin">@Messages("navbar.signin")</a>
+    } else {
+      <span class="mobile-header-signin">@user.username</span>
+    }
+  </header>
 
     <!-- Hero section with background video, tagline, and CTA -->
-    <section id="mobile-landing-hero">
-        <video id="mobile-hero-video" autoplay muted loop playsinline
-               poster='@assets.path("images/psmockup.jpg")'>
-            <source src='@assets.path("videos/mainvideo.webm")' type="video/webm">
-            <source src='@assets.path("videos/mainvideo.mp4")' type="video/mp4">
-        </video>
-        <h1 id="mobile-landing-tagline">@Messages("landing.create.path")</h1>
-        <a class="mobile-landing-cta-btn" id="mobile-hero-cta-btn" href="/mobile"
-           onclick='window.logWebpageActivity("Click_module=StartValidating_location=MobileLanding")'>
-            @Messages("landing.mobile.start.validating", currentCity.cityNameShort)
-        </a>
-    </section>
+  <section id="mobile-landing-hero">
+    <video id="mobile-hero-video" autoplay muted loop playsinline
+    poster='@assets.path("images/psmockup.jpg")'>
+      <source src='@assets.path("videos/mainvideo.webm")' type="video/webm">
+      <source src='@assets.path("videos/mainvideo.mp4")' type="video/mp4">
+    </video>
+    <h1 id="mobile-landing-tagline">@Messages("landing.create.path")</h1>
+    <a class="mobile-landing-cta-btn" id="mobile-hero-cta-btn" href="/mobile">
+    @Messages("landing.mobile.start.validating", currentCity.cityNameShort)
+    </a>
+  </section>
 
     <!-- How you can help: narrative flow showing the chain of impact -->
-    <section class="mobile-landing-section" id="mobile-landing-howhelp">
-        <div class="mobile-section-title">@Messages("landing.how.you.help")</div>
-        <p class="mobile-section-subtitle">
-            @Messages("landing.mobile.how.you.help.content", currentCity.cityNameShort)
-        </p>
-        <ol id="mobile-impact-flow" aria-label="How validation works">
-            <li class="mobile-impact-step">
-                <div class="mobile-impact-icon" aria-hidden="true">📍</div>
-                <p class="mobile-impact-caption">@Messages("landing.mobile.impact.step1")</p>
-            </li>
-            <li class="mobile-impact-step">
-                <div class="mobile-impact-icon" aria-hidden="true">👀</div>
-                <p class="mobile-impact-caption">@Messages("landing.mobile.impact.step2")</p>
-            </li>
-            <li class="mobile-impact-step">
-                <div class="mobile-impact-icon" aria-hidden="true">🗺️</div>
-                <p class="mobile-impact-caption">@Messages("landing.mobile.impact.step3")</p>
-            </li>
-        </ol>
-    </section>
+  <section class="mobile-landing-section" id="mobile-landing-howhelp">
+    <div class="mobile-section-title">@Messages("landing.how.you.help")</div>
+    <p class="mobile-section-subtitle">
+    @Messages("landing.mobile.how.you.help.content", currentCity.cityNameShort)
+    </p>
+    <ol id="mobile-impact-flow" aria-label="How validation works">
+      <li class="mobile-impact-step">
+        <div class="mobile-impact-icon" aria-hidden="true">📍</div>
+        <p class="mobile-impact-caption">@Messages("landing.mobile.impact.step1")</p>
+      </li>
+      <li class="mobile-impact-step">
+        <div class="mobile-impact-icon" aria-hidden="true">👀</div>
+        <p class="mobile-impact-caption">@Messages("landing.mobile.impact.step2")</p>
+      </li>
+      <li class="mobile-impact-step">
+        <div class="mobile-impact-icon" aria-hidden="true">🗺️</div>
+        <p class="mobile-impact-caption">@Messages("landing.mobile.impact.step3")</p>
+      </li>
+    </ol>
+  </section>
 
     <!-- Laptop nudge: encourage desktop labeling missions -->
-    <section id="mobile-laptop-cta">
-        <div class="mobile-laptop-icon" aria-hidden="true">💻</div>
-        <h2 class="mobile-section-title">@Messages("landing.mobile.laptop.heading")</h2>
-        <p class="mobile-section-subtitle">@Messages("landing.mobile.laptop.content", currentCity.cityNameShort)</p>
-    </section>
+  <section id="mobile-laptop-cta">
+    <div class="mobile-laptop-icon" aria-hidden="true">💻</div>
+    <h2 class="mobile-section-title">@Messages("landing.mobile.laptop.heading")</h2>
+    <p class="mobile-section-subtitle">@Messages("landing.mobile.laptop.content", currentCity.cityNameShort)</p>
+  </section>
 
     <!-- Community stats -->
-    <section id="mobile-landing-stats">
-        <div class="mobile-section-title">@Messages("landing.stats.title")</div>
-        <p class="mobile-stats-subtitle">@Messages("landing.mobile.stats.content")</p>
-        <div id="mobile-stats-grid">
-            <div class="mobile-stat">
-                <span class="mobile-stat-number">@formatNumber(labelCount)</span>
-                <span class="mobile-stat-label">@Messages("landing.stats.labels")</span>
-            </div>
-            <div class="mobile-stat">
-                <span class="mobile-stat-number">@formatNumber(valCount)</span>
-                <span class="mobile-stat-label">@Messages("landing.stats.validations")</span>
-            </div>
-        </div>
-    </section>
+  <section id="mobile-landing-stats">
+    <div class="mobile-section-title">@Messages("landing.stats.title")</div>
+    <p class="mobile-stats-subtitle">@Messages("landing.mobile.stats.content")</p>
+    <div id="mobile-stats-grid">
+      <div class="mobile-stat">
+        <span class="mobile-stat-number">@formatNumber(labelCount)</span>
+        <span class="mobile-stat-label">@Messages("landing.stats.labels")</span>
+      </div>
+      <div class="mobile-stat">
+        <span class="mobile-stat-number">@formatNumber(valCount)</span>
+        <span class="mobile-stat-label">@Messages("landing.stats.validations")</span>
+      </div>
+    </div>
+  </section>
 
     <!-- Collaborators -->
-    <section id="mobile-collaborators">
-        <div class="mobile-section-title">@Messages("landing.collaborators.title")</div>
-        <div class="mobile-collaborators-grid">
-            <div class="mobile-collaborator-image">
-                <a href="https://makeabilitylab.cs.washington.edu/">
-                    <img src='@assets.path("images/MakeabilityLogo.png")' alt='@Messages("landing.collaborators.logo.makeability.alt")'>
-                </a>
-            </div>
-            <div class="mobile-collaborator-image">
-                <a href="https://idhd.ahs.uic.edu/">
-                    <img src='@assets.path("images/uic_logo.png")' alt='@Messages("landing.collaborators.logo.uic.alt")'>
-                </a>
-            </div>
-            @if(currentCity.countryId == "taiwan") {
-                <div class="mobile-collaborator-image">
-                    <a href="https://peoplenudgeplatform.wixsite.com/people-nudge">
-                        <img src='@assets.path("images/public_nudge_logo.png")' alt='@Messages("landing.collaborators.logo.public.nudge.alt")'>
-                    </a>
-                </div>
-            } else {
-                <div class="mobile-collaborator-image">
-                    <a href="https://ligapeatonal.org/">
-                        <img src='@assets.path("images/LigaLogo.png")' alt='@Messages("landing.collaborators.logo.liga.peatonal.alt")'>
-                    </a>
-                </div>
-            }
-            @if("amsterdam" == currentCity.cityId) {
-                <div class="mobile-collaborator-image">
-                    <a href="https://worldenabled.org/">
-                        <img src='@assets.path("images/amsterdam/world_enabled.png")' alt='@Messages("landing.collaborators.logo.world.enabled.alt")'>
-                    </a>
-                </div>
-                <div class="mobile-collaborator-image">
-                    <a href="https://www.amsterdam.nl/en/">
-                        <img src='@assets.path("images/amsterdam/city_of_amsterdam.png")' alt='@Messages("landing.collaborators.logo.city.of.amsterdam.alt")'>
-                    </a>
-                </div>
-            }
-            @if("columbus-oh" == currentCity.cityId) {
-                <div class="mobile-collaborator-image">
-                    <img src='@assets.path("images/columbus-oh/open_columbus_logo.png")' alt='@Messages("landing.collaborators.logo.open.columbus.alt")'>
-                </div>
-            }
+  <section id="mobile-collaborators">
+    <div class="mobile-section-title">@Messages("landing.collaborators.title")</div>
+    <div class="mobile-collaborators-grid">
+      <div class="mobile-collaborator-image">
+        <a href="https://makeabilitylab.cs.washington.edu/">
+          <img src='@assets.path("images/MakeabilityLogo.png")' alt='@Messages("landing.collaborators.logo.makeability.alt")'>
+        </a>
+      </div>
+      <div class="mobile-collaborator-image">
+        <a href="https://idhd.ahs.uic.edu/">
+          <img src='@assets.path("images/uic_logo.png")' alt='@Messages("landing.collaborators.logo.uic.alt")'>
+        </a>
+      </div>
+      @if(currentCity.countryId == "taiwan") {
+        <div class="mobile-collaborator-image">
+          <a href="https://peoplenudgeplatform.wixsite.com/people-nudge">
+            <img src='@assets.path("images/public_nudge_logo.png")' alt='@Messages("landing.collaborators.logo.public.nudge.alt")'>
+          </a>
         </div>
-    </section>
+      } else {
+        <div class="mobile-collaborator-image">
+          <a href="https://ligapeatonal.org/">
+            <img src='@assets.path("images/LigaLogo.png")' alt='@Messages("landing.collaborators.logo.liga.peatonal.alt")'>
+          </a>
+        </div>
+      }
+      @if("amsterdam" == currentCity.cityId) {
+        <div class="mobile-collaborator-image">
+          <a href="https://worldenabled.org/">
+            <img src='@assets.path("images/amsterdam/world_enabled.png")' alt='@Messages("landing.collaborators.logo.world.enabled.alt")'>
+          </a>
+        </div>
+        <div class="mobile-collaborator-image">
+          <a href="https://www.amsterdam.nl/en/">
+            <img src='@assets.path("images/amsterdam/city_of_amsterdam.png")' alt='@Messages("landing.collaborators.logo.city.of.amsterdam.alt")'>
+          </a>
+        </div>
+      }
+      @if("columbus-oh" == currentCity.cityId) {
+        <div class="mobile-collaborator-image">
+          <img src='@assets.path("images/columbus-oh/open_columbus_logo.png")' alt='@Messages("landing.collaborators.logo.open.columbus.alt")'>
+        </div>
+      }
+    </div>
+  </section>
 
     <!-- Bottom CTA with footer info merged in -->
-    <section id="mobile-landing-bottom-cta">
-        <h2 class="mobile-cta-heading">@Messages("landing.mobile.cta.heading")</h2>
-        <p class="mobile-cta-subtext">@Messages("landing.mobile.cta.content", currentCity.cityNameShort)</p>
-        <a class="mobile-landing-cta-btn" href="/mobile" onclick='window.logWebpageActivity("Click_module=StartValidating_location=MobileLanding_bottom")'>
-            @Messages("landing.mobile.start.validating", currentCity.cityNameShort)
-        </a>
-        <div id="mobile-cta-footer-info">
-            @Html(Messages("footer.designed.operated"))<br>
-            <span>@Html(Messages("footer.version", commonData.versionId, commonData.versionTimestamp.toString))</span>
-        </div>
-    </section>
+  <section id="mobile-landing-bottom-cta">
+    <h2 class="mobile-cta-heading">@Messages("landing.mobile.cta.heading")</h2>
+    <p class="mobile-cta-subtext">@Messages("landing.mobile.cta.content", currentCity.cityNameShort)</p>
+    <a class="mobile-landing-cta-btn" id="mobile-bottom-cta-btn" href="/mobile">@Messages("landing.mobile.start.validating", currentCity.cityNameShort)</a>
+    <div id="mobile-cta-footer-info">
+      @Html(Messages("footer.designed.operated"))<br>
+      <span>@Html(Messages("footer.version", commonData.versionId, commonData.versionTimestamp.toString))</span>
+    </div>
+  </section>
+
+  <script>
+    window.appManager.ready(function() {
+      document.getElementById("mobile-hero-cta-btn").addEventListener("click", function() {
+        window.logWebpageActivity("Click_module=StartValidating_location=MobileLanding");
+      });
+      document.getElementById("mobile-bottom-cta-btn").addEventListener("click", function() {
+        window.logWebpageActivity("Click_module=StartValidating_location=MobileLanding_bottom");
+      });
+    });
+  </script>
 }

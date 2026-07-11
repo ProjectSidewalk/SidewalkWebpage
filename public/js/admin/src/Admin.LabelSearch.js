@@ -16,6 +16,9 @@ class AdminLabelSearch {
 
     const input = document.getElementById('form-control-input');
 
+    // Search runs via JS, so keep the wrapping form from submitting/refreshing the page.
+    input.closest('form')?.addEventListener('submit', (e) => e.preventDefault());
+
     // Show the label on Enter, and stop the keypress from submitting/refreshing the page.
     input.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
