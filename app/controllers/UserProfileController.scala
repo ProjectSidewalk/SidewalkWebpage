@@ -1,7 +1,7 @@
 package controllers
 
 import controllers.base._
-import controllers.helper.ControllerUtils.parseIntegerSeq
+import controllers.helper.ControllerUtils.{isMobile, parseIntegerSeq}
 import executors.CpuIntensiveExecutionContext
 import formats.json.LabelFormats.labelMetadataUserDashToJson
 import formats.json.UserFormats._
@@ -45,15 +45,21 @@ class UserProfileController @Inject() (
   def userProfile = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
     val user: SidewalkUserWithRole = request.identity
     val metricSystem: Boolean      = Messages("measurement.system") == "metric"
-    for {
-      userProfileData <- userService.getUserProfileData(user.userId, metricSystem)
-      commonData      <- configService.getCommonPageData(request2Messages.lang)
-      tags            <- labelService.getTagsForCurrentCity
-    } yield {
-      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboard")
-      Ok(
-        views.html.userProfile(commonData, "Sidewalk - Dashboard", user, user, tags, userProfileData, adminData = None)
-      )
+    if (isMobile(request)) {
+      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboard_RedirectMobileLanding")
+      Future.successful(Redirect("/mobileLanding"))
+    } else {
+      for {
+        userProfileData <- userService.getUserProfileData(user.userId, metricSystem)
+        commonData      <- configService.getCommonPageData(request2Messages.lang)
+        tags            <- labelService.getTagsForCurrentCity
+      } yield {
+        cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboard")
+        Ok(
+          views.html
+            .userProfile(commonData, "Sidewalk - Dashboard", user, user, tags, userProfileData, adminData = None)
+        )
+      }
     }
   }
 

@@ -6,93 +6,78 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole, tags: Seq[Tag] = Seq.empty
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@*
- * Admin Label Map page (#4272): the redesign's home for the legacy "Map" tab — an interactive per-label point map for
- * spatially exploring and inspecting labels. Reuses the shared PSMap component, the common map sidebar (filters), and
- * the label-detail popup, exactly as the legacy admin map did, but wrapped in the dashboard shell. Loads all labels
- * from /adminapi/labels/all. A label-ID search box jumps straight to any label's popup (replaces the legacy
- * "Label Search" tab and gives /admin/label/:labelId discoverability).
- *@
+@* Admin Label Map page (#4272): the redesign's home for the legacy "Map" tab — an interactive per-label point map for spatially exploring and inspecting labels. Reuses the shared PSMap component, the common map sidebar (filters), and the label-detail popup, exactly as the legacy admin map did, but wrapped in the dashboard shell. Loads all labels from /adminapi/labels/all. A label-ID search box jumps straight to any label's popup (replaces the legacy "Label Search" tab and gives /admin/label/:labelId discoverability). *@
 
 @content = {
-    <div class="api-section" id="label-map-intro-section">
-        <h1 class="api-heading" id="label-map">Label Map <a href="#label-map" class="permalink">#</a></h1>
-        <p>
-            Every label on this deployment, plotted by location and colored by type. Use the sidebar to filter by label
-            type, severity, tags, and validation status — including the admin-only “not validated by an admin” filter —
-            and click any point to open its full detail. To jump straight to a specific label, enter its ID below.
-        </p>
-        <form class="label-map-search" id="label-map-search" onsubmit="return false;">
-            <label for="label-map-search-input" class="label-map-search-label">Go to label ID</label>
-            <input type="number" inputmode="numeric" min="1" step="1" id="label-map-search-input"
-                   class="mgmt-search" placeholder="e.g. 12345" aria-label="Label ID to open">
-            <button type="submit" class="coverage-sort-btn" id="label-map-search-btn">Open</button>
-            <span class="label-map-search-msg dq-sub" id="label-map-search-msg" role="status" aria-live="polite"></span>
-        </form>
-    </div>
+  <div class="api-section" id="label-map-intro-section">
+    <h1 class="api-heading" id="label-map">Label Map <a href="#label-map" class="permalink">#</a></h1>
+    <p>Every label on this deployment, plotted by location and colored by type. Use the sidebar to filter by label type, severity, tags, and validation status — including the admin-only “not validated by an admin” filter — and click any point to open its full detail. To jump straight to a specific label, enter its ID below.</p>
+    <form class="label-map-search" id="label-map-search">
+      <label for="label-map-search-input" class="label-map-search-label">Go to label ID</label>
+      <input type="number" inputmode="numeric" min="1" step="1" id="label-map-search-input" class="mgmt-search" placeholder="e.g. 12345" aria-label="Label ID to open">
+      <button type="submit" class="coverage-sort-btn" id="label-map-search-btn">Open</button>
+      <span class="label-map-search-msg dq-sub" id="label-map-search-msg" role="status" aria-live="polite"></span>
+    </form>
+  </div>
 
-    <div class="api-section" id="label-map-section">
-        <div id="admin-labelmap-choropleth-holder" class="choropleth-holder label-map-holder">
-            <div id="admin-labelmap-choropleth" class="choropleth"></div>
-            @common.mapSidebar(tags = tags, adminVersion = true)
-        </div>
-    </div>
+  <div class="api-section" id="label-map-section">
+    <div id="admin-labelmap-choropleth-holder" class="choropleth-holder label-map-holder">
+      <div id="admin-labelmap-choropleth" class="choropleth"></div>@common.mapSidebar(tags = tags, adminVersion = true)</div>
+  </div>
 
-    @* Label-detail popup + PSMap dependencies. The label-detail modules are pulled in individually (not via the legacy
-       Admin.js bundle) to keep with the dashboard's standalone-script convention; i18next, AppManager, util, jQuery and
-       the Google Maps loader are already loaded by common.main / adminLayout. *@
-    @common.labelPopup(admin = true)
-    <link href='@assets.path("stylesheets/labelDetail.css")' rel="stylesheet"/>
-    <link href='@assets.path("stylesheets/tag-pills.css")' rel="stylesheet"/>
-    <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
-    <link href='@assets.path("stylesheets/mapSidebar.css")' rel="stylesheet"/>
-    <link href='@assets.path("javascripts/lib/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
-    <link rel="stylesheet" href='@assets.path("stylesheets/pannellum-2.5.7.css")'/>
+  @* Label-detail popup + PSMap dependencies. The label-detail modules are pulled in individually (not via the legacy Admin.js bundle) to keep with the dashboard's standalone-script convention; i18next, AppManager, util, jQuery and the Google Maps loader are already loaded by common.main / adminLayout. *@
+@common.labelPopup(admin = true)
+  <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
+  <link href='@assets.path("css/tag-pills.css")' rel="stylesheet">
+  <link href='@assets.path("css/choropleth.css")' rel="stylesheet">
+  <link href='@assets.path("css/map-sidebar.css")' rel="stylesheet">
+  <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet">
+  <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
 
-    @if(commonData.imagerySource == PanoSource.Infra3d) {
-        <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
-        <script src='@assets.path("javascripts/lib/infra3dapi-1.8.0.js")'></script>
-    } else if (commonData.imagerySource == PanoSource.Mapillary) {
-        <script src='@assets.path("javascripts/lib/three-0.160.1-min.js")'></script>
-        <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
-        <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
-    }
-    @* Pannellum is loaded everywhere the label popup is, since any expired pano may have a self-hosted fallback. *@
-    <script src='@assets.path("javascripts/lib/pannellum-2.5.7.js")'></script>
-    <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
-    <script src='@assets.path("javascripts/lib/panzoom-9.4.4.min.js")'></script>
-    @* Label-detail modules (order matters: PopupPanoManager + LabelDetail precede LabelPopup; Toast precedes Badges). *@
-    <script src='@assets.path("javascripts/common/AiLabelIndicator.js")'></script>
-    <script src='@assets.path("javascripts/common/Toast.js")'></script>
-    <script src='@assets.path("javascripts/common/BadgeAchievements.js")'></script>
-    <script src='@assets.path("javascripts/common/PanoMarker.js")'></script>
-    <script src='@assets.path("javascripts/common/label-detail/PopupPanoManager.js")'></script>
-    <script src='@assets.path("javascripts/common/label-detail/LabelDetail.js")'></script>
-    <script src='@assets.path("javascripts/common/label-detail/LabelPopup.js")'></script>
+@if(commonData.imagerySource == PanoSource.Infra3d) {
+  <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
+  <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
+} else if (commonData.imagerySource == PanoSource.Mapillary) {
+  <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
+  <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
+  <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
+  }
+  @* Pannellum is loaded everywhere the label popup is, since any expired pano may have a self-hosted fallback. *@
+  <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
+  <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
+  <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
+  @* Label-detail modules (order matters: PopupPanoManager + LabelDetail precede LabelPopup; Toast precedes Badges). *@
+  <script src='@assets.path("js/common/aiLabelIndicator.js")'></script>
+  <script src='@assets.path("js/common/Toast.js")'></script>
+  <script src='@assets.path("js/common/BadgeAchievements.js")'></script>
+  <script src='@assets.path("js/common/PanoMarker.js")'></script>
+  <script src='@assets.path("js/common/label-detail/PopupPanoManager.js")'></script>
+  <script src='@assets.path("js/common/label-detail/LabelDetail.js")'></script>
+  <script src='@assets.path("js/common/label-detail/LabelPopup.js")'></script>
 
-    @* PSMap + its map dependencies (mapbox-gl, language plugin, turf). *@
-    <script src='@assets.path("javascripts/lib/mapbox-gl-3.21.0.js")'></script>
-    <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <script src='@assets.path("javascripts/lib/turf-7.3.4.min.js")'></script>
-    <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
+  @* PSMap + its map dependencies (mapbox-gl, language plugin, turf). *@
+  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
+  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
+  <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
+  <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
 
-    <script src='@assets.path("javascripts/admin-dashboard/label-map-page.js")'></script>
-    <script>
-        window.appManager.ready(async function () {
-            const imagerySrc = "@commonData.imagerySource.toString";
-            const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer
-                : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
-            new LabelMapPage({
-                mapboxToken: '@commonData.mapboxApiKey',
-                viewerType: viewerType,
-                accessToken: "@commonData.imageryAccessToken",
-                username: "@user.username"
-            }).init();
-        });
-    </script>
+  <script src='@assets.path("js/admin-dashboard/LabelMapPage.js")'></script>
+  <script>
+    window.appManager.ready(async function () {
+      const imagerySrc = "@commonData.imagerySource.toString";
+      const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer
+        : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+      new LabelMapPage({
+        mapboxToken: '@commonData.mapboxApiKey',
+        viewerType: viewerType,
+        accessToken: "@commonData.imageryAccessToken",
+        username: "@user.username"
+      }).init();
+    });
+  </script>
 }
 
 @common.main(commonData, "Sidewalk - Admin Label Map", i18Namespaces = Seq("common", "labelmap")) {
-    @common.navbar(commonData, Some(user))
-    @admin.dashboard.adminLayout("label-map", user.role == "Owner")(content)
+  @common.navbar(commonData, Some(user))
+  @admin.dashboard.adminLayout("label-map", user.role == "Owner")(content)
 }

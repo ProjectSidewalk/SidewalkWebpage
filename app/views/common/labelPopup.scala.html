@@ -1,13 +1,12 @@
 @*
- * Modal-popup wrapper around label detail using a native <dialog> with the `.label-detail` styling.
- *
- * Used by: LabelMap, the User Dashboard, admin/label, admin/index. Each host page also imports the
- * stylesheet (`labelDetail.css`) and instantiates the JS controller via `LabelPopup(...)`.
- *@
+* Modal-popup wrapper around label detail using a native <dialog> with the `.label-detail` styling.
+*
+* Used by: LabelMap, the User Dashboard, admin/label, admin/index. Each host page also imports the stylesheet (`label-detail.css`) and instantiates the JS controller via `LabelPopup(...)`.
+*@
 @(admin: Boolean = false)(implicit assets: AssetsFinder)
 
 <dialog id="label-modal" class="label-detail" aria-label="Label details">
-    @common.labelDetail(admin = admin)
-    @* Popover must live inside <dialog> so the modal's blocking behavior doesn't suppress its pointer events. *@
-    @common.panoInfoPopover()
+  @common.labelDetail(admin = admin)
+  @* Popover must live inside <dialog> so the modal's blocking behavior doesn't suppress its pointer events. *@
+  @common.panoInfoPopover()
 </dialog>

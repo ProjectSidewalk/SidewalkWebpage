@@ -1,9 +1,11 @@
-.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh stage-import test-python lint-evolutions scalafmt scalafmt-fix
+.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh stage-import test-python lint-evolutions lint-locales scalafmt scalafmt-fix
 
 db ?= sidewalk
 dir ?= ./
 args ?=
-html-ignore ?= **/bootstrap/**
+# dir= as stylelint sees it: passed through if it already names a .css file/glob, else treated as a directory and
+# recursed (stylelint only accepts file paths/globs; see lint-stylelint).
+css-glob = $(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css)
 
 dev: | docker-up-db docker-run
 
@@ -18,7 +20,7 @@ eslint-fix: | lint-fix-eslint
 stylelint-fix: | lint-fix-stylelint
 
 lint:
-	@make lint-eslint; make lint-htmlhint; make lint-stylelint
+	@make lint-eslint; make lint-htmlhint; make lint-stylelint; make lint-locales
 
 lint-fix:
 	@make lint-fix-eslint; make lint-fix-stylelint
@@ -70,6 +72,14 @@ reveal-or-hide-neighborhoods:
 lint-evolutions:
 	@bash db/scripts/lint-evolutions.sh
 
+# Cross-locale key-parity check for public/locales/ (i18next-aware: plural-suffix + override-only handling that the
+# eslint-plugin-i18n-json rules can't do). Pure-node, no node_modules, but run in the web container so node is present,
+# matching the other lint targets. Also a blocking step in CI's frontend job.
+lint-locales:
+	@echo "Checking locale parity...";
+	@docker exec projectsidewalk-web bash -lc "cd /home && node tools/check-locale-parity.mjs"
+	@echo "Finished checking locale parity";
+
 # Scala formatting (.scalafmt.conf), the backend counterpart to the eslint/stylelint targets above. Runs in the web
 # container via the sbt thin client (`--client`) so it shares the running `sbt ~ run`'s server instead of colliding
 # with it over build locks. `scalafmt` checks (matches the blocking CI gate); `scalafmt-fix` reformats in place.
@@ -79,23 +89,58 @@ scalafmt:
 scalafmt-fix:
 	@echo "Formatting Scala..."; docker exec -it projectsidewalk-web bash -lc "cd /home && sbt --client scalafmtAll"
 
+# The JS/CSS/HTML linters live in the web container's node_modules (there's no host-side npm install), so — like the
+# scalafmt targets above — these run in the container via `docker exec` and can therefore be invoked from the host.
+# `-e FORCE_COLOR=1` (not `docker exec -t`) restores the linters' colorized output: chalk auto-disables color when
+# stdout isn't a TTY, and forcing it this way keeps the targets working when piped/redirected, unlike a `-t` TTY.
 lint-htmlhint:
 	@echo "Running HTMLHint...";
 	@if [ "$(dir)" = "./" ]; then \
-		./node_modules/htmlhint/bin/htmlhint $(args) --ignore $(html-ignore) ./app/views; \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/htmlhint/bin/htmlhint $(args) ./app/views"; \
 	else \
-		./node_modules/htmlhint/bin/htmlhint $(args) --ignore $(html-ignore) $(dir); \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/htmlhint/bin/htmlhint $(args) $(dir)"; \
 	fi
 	@echo "Finished Running HTMLHint";
 
 lint-eslint:
-	@echo "Running eslint..."; ./node_modules/eslint/bin/eslint.js $(args) $(dir); echo "Finished Running eslint"
+	@echo "Running eslint...";
+	@if [ "$(dir)" = "./" ]; then \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) public/js/ public/locales/"; \
+	else \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) $(dir)"; \
+	fi
+	@echo "Finished Running eslint";
 
+# Unlike eslint, stylelint doesn't recurse into a bare directory, so a dir= that isn't already a .css file/glob gets
+# /**/*.css appended (css-glob, defined at the top). Globs are single-quoted so stylelint's globber expands the `**`,
+# not the container shell (where bare `**` means `*`).
 lint-stylelint:
-	@echo "Running stylelint..."; ./node_modules/stylelint/bin/stylelint.js $(args) $(dir); echo "Finished Running stylelint"
+	@echo "Running stylelint...";
+	@if [ "$(dir)" = "./" ]; then \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/.bin/stylelint $(args) 'public/**/*.css'"; \
+	else \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/.bin/stylelint $(args) '$(css-glob)'"; \
+	fi
+	@echo "Finished Running stylelint";
 
 lint-fix-eslint:
-	@echo "Running eslint..."; ./node_modules/eslint/bin/eslint.js --fix $(args) $(dir); echo "Finished Running eslint"
+	@echo "Running eslint...";
+	@if [ "$(dir)" = "./" ]; then \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) public/js/ public/locales/"; \
+	else \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) $(dir)"; \
+	fi
+	@echo "Finished Running eslint";
 
+# Runs --fix twice: stylelint applies fixers in a single pass, so when the brace-newline fixers insert newlines the
+# indentation fixer has already computed against the old positions and leaves the new lines mis-indented — a second
+# pass corrects them. The first pass is silenced (output + exit code discarded); only the second pass's output and
+# exit status surface, so the target looks like a single run.
 lint-fix-stylelint:
-	@echo "Running stylelint..."; ./node_modules/stylelint/bin/stylelint.js --fix $(args) $(dir); echo "Finished Running stylelint"
+	@echo "Running stylelint...";
+	@if [ "$(dir)" = "./" ]; then \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/.bin/stylelint --fix $(args) 'public/**/*.css' > /dev/null 2>&1; ./node_modules/.bin/stylelint --fix $(args) 'public/**/*.css'"; \
+	else \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/.bin/stylelint --fix $(args) '$(css-glob)' > /dev/null 2>&1; ./node_modules/.bin/stylelint --fix $(args) '$(css-glob)'"; \
+	fi
+	@echo "Finished Running stylelint";

@@ -62,7 +62,7 @@ orphans remain.
 3. **Add the translated files:** backend as `conf/messages/messages.<lang>`, frontend as
    `public/locales/<lang>/<namespace>.json` (mirror the namespaces in `public/locales/en/`).
 4. **Add the moment.js locale** (for localized dates) if one exists for the language: drop the locale file into
-   `public/javascripts/lib/moment/` and add a `<script>` import in
+   `public/vendor/moment/` and add a `<script>` import in
    [`app/views/common/main.scala.html`](../app/views/common/main.scala.html) alongside the existing per-locale imports
    (`es.js`, `nl.js`, `zh-tw.js`, `en-nz.js`). We import locales individually to keep the bundle small. (There's an
    open ticket, [#1258](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1258), about moving off moment.js —
@@ -74,6 +74,23 @@ orphans remain.
    between them) to catch layout breakage from differing text lengths. On Explore, place a label of each type and
    open the various sub-menus. Then open a PR and deploy to the test servers so the requesting partner can review the
    live result.
+
+## Linting the translation files
+
+The frontend i18next JSON under `public/locales/` is linted in CI (blocking steps in the `frontend` job — see
+[`docs/testing-and-ci.md`](testing-and-ci.md)), in two layers:
+
+- **Per-file** — `eslint-plugin-i18n-json` (configured in [`eslint.config.js`](../eslint.config.js)) checks each file
+  for JSON validity, **duplicate keys** (a plain `JSON.parse` silently keeps the last of a duplicated key, so a dup
+  translation is otherwise invisible), and empty values. Run with `make eslint`.
+- **Cross-locale key parity** — `tools/check-locale-parity.mjs` (`make lint-locales`) checks that every locale carries
+  the same keys as the `en` reference. It's i18next-aware where the ESLint plugin isn't: it **normalizes plural
+  suffixes** (`_one`/`_other`/… legitimately differ per language's CLDR plural rules) and treats the regional
+  (`en-US`/`en-NZ`) and per-city (`*-zurich`/`*-india`) overlays as **override-only** — they may hold a subset of keys,
+  so it flags only keys that are *absent from the reference* (typos / stale keys), never missing ones.
+
+So when you add or remove a translation key, add or remove it across **all** full locales (the parity check enforces
+this); the overlays need only the keys they actually change.
 
 ## See also
 

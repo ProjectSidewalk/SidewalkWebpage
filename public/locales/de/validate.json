@@ -1,130 +1,130 @@
 {
-    "user-description": "Beschreibung Nutzer:in: ",
-    "top-ui": {
-        "title": {
-            "curb-ramp": "Ist das eine <b>Trottoirabsenkung</b>?",
-            "no-curb-ramp": "Ist das eine <b>fehlende Trottoirabsenkung</b>?",
-            "obstacle": "Ist das ein <b>Hindernis</b>?",
-            "surface-problem": "Ist das ein <b>Oberflächenproblem</b>?",
-            "no-sidewalk": "Sollte hier eine<b>kein Trottoir</b>-Beschriftung vorhanden sein?",
-            "crosswalk": "Ist das ein <b>Markierter Fussgängerstreifen</b>?",
-            "signal": "Ist das ein <b>Fussgänger:innensignal</b>?"
-        },
-        "visibility-control-hide": "Beschriftung ausblenden (<u>H</u>)",
-        "visibility-control-show": "Beschriftung einblenden (<u>h</u>)"
+  "user-description": "Beschreibung Nutzer:in: ",
+  "top-ui": {
+    "title": {
+      "curb-ramp": "Ist das eine <b>Trottoirabsenkung</b>?",
+      "no-curb-ramp": "Ist das eine <b>fehlende Trottoirabsenkung</b>?",
+      "obstacle": "Ist das ein <b>Hindernis</b>?",
+      "surface-problem": "Ist das ein <b>Oberflächenproblem</b>?",
+      "no-sidewalk": "Sollte hier eine<b>kein Trottoir</b>-Beschriftung vorhanden sein?",
+      "crosswalk": "Ist das ein <b>Markierter Fussgängerstreifen</b>?",
+      "signal": "Ist das ein <b>Fussgänger:innensignal</b>?"
     },
-    "validate-menu": {
-        "disagree-reason": {
-            "curb-ramp": {
-                "no-button-1": "Dies ist eine Einfahrt.",
-                "no-button-2": "Dies ist ein Übergang vom Trottoir zur Einfahrt.",
-                "no-button-2-tooltip": "Übergänge zwischen Trottoir und Ein- bzw. Ausfahrten sind keine Trottoirabsenkungen, es sei denn, es wurde eine spezielle Rampe hinzugefügt",
-                "no-button-3": "Dies sollte ein Etikett „Fehlende Trottorabsenkung“ sein.",
-                "no-button-3-tooltip": "Manchmal wird eine fehlende Trottorabsenkung versehentlich fälschlicherweise als Trottorabsenkung bezeichnet."
-            },
-            "no-curb-ramp": {
-                "no-button-1": "Dies ist ein Gehweg in einem Wohngebiet.",
-                "no-button-2": "Hier gibt es keinen Bürgersteig.",
-                "no-button-3": "Dies sollte ein Etikett für eine Trottorabsenkung sein.",
-                "no-button-3-tooltip": "Manchmal wird eine Trottorabsenkung fälschlicherweise als fehlende Trottorabsenkung gekennzeichnet, oft weil eine taktile Warnmarkierung fehlt."
-            },
-            "obstacle": {
-                "no-button-1": "Dies ist kein Weg für Fussgänger:innen.",
-                "no-button-1-tooltip": "Wenn kein Trottoir vorhanden ist oder sich das Objekt nicht auf einem für Fussgänger:innen vorgesehenen Weg befindet, wie in der Abbildung unten, ist keine Hinderniskennzeichnung erforderlich.",
-                "no-button-2": "Es ist ausreichend Platz vorhanden, um diesem Objekt auszuweichen.",
-                "no-button-2-tooltip": "Auf sehr breiten Trottoirs sollten leicht vermeidbare Objekte <b>nicht</b> als Hindernisse gekennzeichnet werden.",
-                "no-button-3": "Dies sollte ein Etikett für ein Oberflächenproblem sein.",
-                "no-button-3-tooltip": "Gras und Ablagerungen wie Laub sollten mit einem Etikett „Oberflächenproblem“ gekennzeichnet werden."
-            },
-            "surface-problem": {
-                "no-button-1": "Dies sollte ein „kein Trottoir“-Schild sein.",
-                "no-button-1-tooltip": "Schotter oder Gras gelten nicht als Gehweg und sollten mit einem „kein Trottoir“-Schild gekennzeichnet werden.",
-                "no-button-2": "Dies ist kein Weg für Fussgänger:innen.",
-                "no-button-2-tooltip": "Wenn sich ein Oberflächenproblem nicht auf einem für Fussgänger:innen vorgesehenen Weg befindet, sollte es <b>nicht</b>  als Oberflächenproblem gekennzeichnet werden.",
-                "no-button-3": "Das sind normale Belagsplatten."
-            },
-            "no-sidewalk": {
-                "no-button-1": "Hier gibt es ein Trottoir.",
-                "no-button-2": "Dies ist eine Verkehrsinsel.",
-                "no-button-3": "Dies sollte mit einem anderen Etikettentyp gekennzeichnet werden.",
-                "no-button-3-tooltip": "Oberflächenprobleme oder Hindernisse können fälschlicherweise als „kein Trottoir“ gekennzeichnet werden."
-            },
-            "crosswalk": {
-                "no-button-1": "Hier ist kein Zebrastreifen sichtbar.",
-                "no-button-2": "Dies ist eine Haltelinie für Autos.",
-                "no-button-3": "Dies ist eine Bremsschwelle"
-            },
-            "signal": {
-                "no-button-1": "Dieses Lichtsignal ist nur für Fahrzeuge vorgesehen.",
-                "no-button-2": "Dies ist ein Schild ohne Beleuchtung, das einen sicheren Übergang signalisiert.",
-                "no-button-3": "Dies ist ein Pfosten ohne Fussgänger:innenlichtsignal oder -knopf."
-            }
-        },
-        "unsure-reason": {
-            "common": {
-                "reason-1": "Ich benötige ein besseres Bild.",
-                "reason-1-tooltip": "Dies könnte daran liegen, dass das Bild unscharf ist, das zu beschriftende Objekt zu weit entfernt ist oder ein anderer Blickwinkel erforderlich ist.",
-                "reason-2": "Die Platzierung des Etiketts sieht falsch aus.",
-                "reason-2-tooltip": "Manchmal ist das, was beschriftet wird, sichtbar, aber die Beschriftung selbst erscheint weit entfernt davon."
-            },
-            "curb-ramp": {
-                "unsure-button-3-tooltip": "Manche Gassen oder gewerbliche Einfahrten erfordern aufgrund von Höhenunterschieden eine Rampe, andere nicht. Manchmal ist nicht klar, ob ein Übergang an einem Trottoir eine Rampe oder einen taktilen Bodenindikator benötigt."
-            },
-            "no-curb-ramp": {
-                "unsure-button-3": "Ich bin mir nicht sicher, ob eine Trottoirabsenkung erforderlich ist.",
-                "unsure-button-3-tooltip": "Es kann unklar sein, ob die Überquerung von Fussgänger:innen an einer Kreuzung mit einer stärker befahrenen Strasse erlaubt sein sollte."
-            },
-            "obstacle": {
-                "unsure-button-3": "Möglicherweise ist genügend Platz vorhanden, um dem Objekt auszuweichen.",
-                "unsure-button-3-tooltip": "Die Breite des Gehwegs lässt sich anhand eines Bildes möglicherweise nur schwer einschätzen."
-            },
-            "surface-problem": {
-                "unsure-button-3": "Könnte zu unbedeutend sein, um es als solches zu kennzeichnen.",
-                "unsure-button-3-tooltip": "Es kann unklar sein, ob ein Problem wie beispielsweise Gras zwischen Belagsplatten gekennzeichnet werden muss."
-            },
-            "no-sidewalk": {
-                "unsure-button-3": "Ich bin mir nicht sicher, ob hier ein Trottoir sein sollte.",
-                "unsure-button-3-tooltip": "Manchmal ist mehr Kontext erforderlich, und es ist schwierig, anhand eines einzelnen Bildes zu beurteilen, ob ein Trottoir notwendig ist."
-            }
-        }
+    "visibility-control-hide": "Beschriftung ausblenden (<u>H</u>)",
+    "visibility-control-show": "Beschriftung einblenden (<u>h</u>)"
+  },
+  "validate-menu": {
+    "disagree-reason": {
+      "curb-ramp": {
+        "no-button-1": "Dies ist eine Einfahrt.",
+        "no-button-2": "Dies ist ein Übergang vom Trottoir zur Einfahrt.",
+        "no-button-2-tooltip": "Übergänge zwischen Trottoir und Ein- bzw. Ausfahrten sind keine Trottoirabsenkungen, es sei denn, es wurde eine spezielle Rampe hinzugefügt",
+        "no-button-3": "Dies sollte ein Etikett „Fehlende Trottorabsenkung“ sein.",
+        "no-button-3-tooltip": "Manchmal wird eine fehlende Trottorabsenkung versehentlich fälschlicherweise als Trottorabsenkung bezeichnet."
+      },
+      "no-curb-ramp": {
+        "no-button-1": "Dies ist ein Gehweg in einem Wohngebiet.",
+        "no-button-2": "Hier gibt es keinen Bürgersteig.",
+        "no-button-3": "Dies sollte ein Etikett für eine Trottorabsenkung sein.",
+        "no-button-3-tooltip": "Manchmal wird eine Trottorabsenkung fälschlicherweise als fehlende Trottorabsenkung gekennzeichnet, oft weil eine taktile Warnmarkierung fehlt."
+      },
+      "obstacle": {
+        "no-button-1": "Dies ist kein Weg für Fussgänger:innen.",
+        "no-button-1-tooltip": "Wenn kein Trottoir vorhanden ist oder sich das Objekt nicht auf einem für Fussgänger:innen vorgesehenen Weg befindet, wie in der Abbildung unten, ist keine Hinderniskennzeichnung erforderlich.",
+        "no-button-2": "Es ist ausreichend Platz vorhanden, um diesem Objekt auszuweichen.",
+        "no-button-2-tooltip": "Auf sehr breiten Trottoirs sollten leicht vermeidbare Objekte <b>nicht</b> als Hindernisse gekennzeichnet werden.",
+        "no-button-3": "Dies sollte ein Etikett für ein Oberflächenproblem sein.",
+        "no-button-3-tooltip": "Gras und Ablagerungen wie Laub sollten mit einem Etikett „Oberflächenproblem“ gekennzeichnet werden."
+      },
+      "surface-problem": {
+        "no-button-1": "Dies sollte ein „kein Trottoir“-Schild sein.",
+        "no-button-1-tooltip": "Schotter oder Gras gelten nicht als Gehweg und sollten mit einem „kein Trottoir“-Schild gekennzeichnet werden.",
+        "no-button-2": "Dies ist kein Weg für Fussgänger:innen.",
+        "no-button-2-tooltip": "Wenn sich ein Oberflächenproblem nicht auf einem für Fussgänger:innen vorgesehenen Weg befindet, sollte es <b>nicht</b>  als Oberflächenproblem gekennzeichnet werden.",
+        "no-button-3": "Das sind normale Belagsplatten."
+      },
+      "no-sidewalk": {
+        "no-button-1": "Hier gibt es ein Trottoir.",
+        "no-button-2": "Dies ist eine Verkehrsinsel.",
+        "no-button-3": "Dies sollte mit einem anderen Etikettentyp gekennzeichnet werden.",
+        "no-button-3-tooltip": "Oberflächenprobleme oder Hindernisse können fälschlicherweise als „kein Trottoir“ gekennzeichnet werden."
+      },
+      "crosswalk": {
+        "no-button-1": "Hier ist kein Zebrastreifen sichtbar.",
+        "no-button-2": "Dies ist eine Haltelinie für Autos.",
+        "no-button-3": "Dies ist eine Bremsschwelle"
+      },
+      "signal": {
+        "no-button-1": "Dieses Lichtsignal ist nur für Fahrzeuge vorgesehen.",
+        "no-button-2": "Dies ist ein Schild ohne Beleuchtung, das einen sicheren Übergang signalisiert.",
+        "no-button-3": "Dies ist ein Pfosten ohne Fussgänger:innenlichtsignal oder -knopf."
+      }
     },
-    "center-ui": {
-        "no-info": "Keine Informationen verfügbar"
-    },
-    "mission-start": {
-        "title": "Validieren Sie {{n}} {{label_type}} Beschriftungen",
-        "body": "Ihre Mission ist es, die Richtigkeit von __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span> Beschriftungen anderer Nutzenden zu bestimmen!"
-    },
-    "mission-complete": {
-        "title": "Gute Arbeit!",
-        "body-1": "Sie haben gerade {{n}} Beschriftungen von Trottoirabsenkungen validiert.",
-        "body-2": "Sie haben gerade {{n}} Beschriftungen von fehlenden Trottoirabsenkungen validiert.",
-        "body-3": "Sie haben gerade {{n}} Beschriftungen von Hindernissen validiert.",
-        "body-4": "Sie haben gerade {{n}} Beschriftungen von Oberflächenproblemen validiert.",
-        "body-7": "Sie haben gerade {{n}} Beschriftungen von kein Trottoir validiert.",
-        "body-9": "Sie haben gerade {{n}} Beschriftungen von Markierter Fussgängerstreifen validiert.",
-        "body-10": "Sie haben gerade {{n}} Beschriftungen von Fussgänger:innensignal validiert.",
-        "validate-more": "Mehr Beschriftungen validieren",
-        "continue": "Validierung fortsetzen",
-        "explore": "Erkundungsmission starten",
-        "no-new-mission-title": "Keine weiteren Validierungsmissionen übrig",
-        "no-new-mission-body": "Klicken Sie auf die Schaltfläche, um mit der Erkundung zu beginnen.",
-        "no-new-mission-button": "Beginnen Sie mit der Erkundung"
-    },
-    "mobile": {
-        "no-new-mission-body": "Sie können weitere Etiketten mit einem Laptop/Desktop-Computer hinzufügen oder Etiketten in einer anderen Stadt validieren!",
-        "no-new-mission-button": "Validieren in"
-    },
-    "expert-validate": {
-        "add-tag": "Hinzufügen: {{tag}}",
-        "remove-tag": "Entfernen: {{tag}}"
-    },
-    "mission-start-tutorial": {
-        "mst-instruction-1": "IHRE MISSION",
-        "mst-instruction-2": "Validieren Sie {{nLabels}} Beschriftungen von {{- labelType}}",
-        "example-type-label-incorrect": "FALSCHES BEISPIEL",
-        "label-on-image-title-incorrect": "Falsche Beschriftung",
-        "label-on-image-description-correct": "Bewerten mit <b>Einverstanden</b>",
-        "label-on-image-description-incorrect": "Bewerten mit <b>Nicht Einverstanden</b>"
+    "unsure-reason": {
+      "common": {
+        "reason-1": "Ich benötige ein besseres Bild.",
+        "reason-1-tooltip": "Dies könnte daran liegen, dass das Bild unscharf ist, das zu beschriftende Objekt zu weit entfernt ist oder ein anderer Blickwinkel erforderlich ist.",
+        "reason-2": "Die Platzierung des Etiketts sieht falsch aus.",
+        "reason-2-tooltip": "Manchmal ist das, was beschriftet wird, sichtbar, aber die Beschriftung selbst erscheint weit entfernt davon."
+      },
+      "curb-ramp": {
+        "unsure-button-3-tooltip": "Manche Gassen oder gewerbliche Einfahrten erfordern aufgrund von Höhenunterschieden eine Rampe, andere nicht. Manchmal ist nicht klar, ob ein Übergang an einem Trottoir eine Rampe oder einen taktilen Bodenindikator benötigt."
+      },
+      "no-curb-ramp": {
+        "unsure-button-3": "Ich bin mir nicht sicher, ob eine Trottoirabsenkung erforderlich ist.",
+        "unsure-button-3-tooltip": "Es kann unklar sein, ob die Überquerung von Fussgänger:innen an einer Kreuzung mit einer stärker befahrenen Strasse erlaubt sein sollte."
+      },
+      "obstacle": {
+        "unsure-button-3": "Möglicherweise ist genügend Platz vorhanden, um dem Objekt auszuweichen.",
+        "unsure-button-3-tooltip": "Die Breite des Gehwegs lässt sich anhand eines Bildes möglicherweise nur schwer einschätzen."
+      },
+      "surface-problem": {
+        "unsure-button-3": "Könnte zu unbedeutend sein, um es als solches zu kennzeichnen.",
+        "unsure-button-3-tooltip": "Es kann unklar sein, ob ein Problem wie beispielsweise Gras zwischen Belagsplatten gekennzeichnet werden muss."
+      },
+      "no-sidewalk": {
+        "unsure-button-3": "Ich bin mir nicht sicher, ob hier ein Trottoir sein sollte.",
+        "unsure-button-3-tooltip": "Manchmal ist mehr Kontext erforderlich, und es ist schwierig, anhand eines einzelnen Bildes zu beurteilen, ob ein Trottoir notwendig ist."
+      }
     }
+  },
+  "center-ui": {
+    "no-info": "Keine Informationen verfügbar"
+  },
+  "mission-start": {
+    "title": "Validieren Sie {{n}} {{label_type}} Beschriftungen",
+    "body": "Ihre Mission ist es, die Richtigkeit von __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span> Beschriftungen anderer Nutzenden zu bestimmen!"
+  },
+  "mission-complete": {
+    "title": "Gute Arbeit!",
+    "body-1": "Sie haben gerade {{n}} Beschriftungen von Trottoirabsenkungen validiert.",
+    "body-2": "Sie haben gerade {{n}} Beschriftungen von fehlenden Trottoirabsenkungen validiert.",
+    "body-3": "Sie haben gerade {{n}} Beschriftungen von Hindernissen validiert.",
+    "body-4": "Sie haben gerade {{n}} Beschriftungen von Oberflächenproblemen validiert.",
+    "body-7": "Sie haben gerade {{n}} Beschriftungen von kein Trottoir validiert.",
+    "body-9": "Sie haben gerade {{n}} Beschriftungen von Markierter Fussgängerstreifen validiert.",
+    "body-10": "Sie haben gerade {{n}} Beschriftungen von Fussgänger:innensignal validiert.",
+    "validate-more": "Mehr Beschriftungen validieren",
+    "continue": "Validierung fortsetzen",
+    "explore": "Erkundungsmission starten",
+    "no-new-mission-title": "Keine weiteren Validierungsmissionen übrig",
+    "no-new-mission-body": "Klicken Sie auf die Schaltfläche, um mit der Erkundung zu beginnen.",
+    "no-new-mission-button": "Beginnen Sie mit der Erkundung"
+  },
+  "mobile": {
+    "no-new-mission-body": "Sie können weitere Etiketten mit einem Laptop/Desktop-Computer hinzufügen oder Etiketten in einer anderen Stadt validieren!",
+    "no-new-mission-button": "Validieren in"
+  },
+  "expert-validate": {
+    "add-tag": "Hinzufügen: {{tag}}",
+    "remove-tag": "Entfernen: {{tag}}"
+  },
+  "mission-start-tutorial": {
+    "mst-instruction-1": "IHRE MISSION",
+    "mst-instruction-2": "Validieren Sie {{nLabels}} Beschriftungen von {{- labelType}}",
+    "example-type-label-incorrect": "FALSCHES BEISPIEL",
+    "label-on-image-title-incorrect": "Falsche Beschriftung",
+    "label-on-image-description-correct": "Bewerten mit <b>Einverstanden</b>",
+    "label-on-image-description-incorrect": "Bewerten mit <b>Nicht Einverstanden</b>"
+  }
 }

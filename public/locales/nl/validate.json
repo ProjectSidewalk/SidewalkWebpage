@@ -1,130 +1,130 @@
 {
-    "user-description": "Beschrijving van gebruiker: ",
-    "top-ui": {
-        "title": {
-            "curb-ramp": "Is dit een <b>Trottoir Oprit</b>?",
-            "no-curb-ramp": "Is dit een <b>Ontbrekende Trottoir Oprit</b>?",
-            "obstacle": "Is dit een <b>Obstakel</b>?",
-            "surface-problem": "Is dit een <b>Oppervlakte probleem</b>?",
-            "no-sidewalk": "Zou er een <b>Geen Trottoir</b> label moeten zijn hier?",
-            "crosswalk": "Is dit een <b>Gemarkeerde oversteekplaats</b>?",
-            "signal": "is dit een <b>Verkeerslicht</b>?"
-        },
-        "visibility-control-hide": "Verberg Label (<u>H</u>)",
-        "visibility-control-show": "Toon Label (<u>H</u>)"
+  "user-description": "Beschrijving van gebruiker: ",
+  "top-ui": {
+    "title": {
+      "curb-ramp": "Is dit een <b>Trottoir Oprit</b>?",
+      "no-curb-ramp": "Is dit een <b>Ontbrekende Trottoir Oprit</b>?",
+      "obstacle": "Is dit een <b>Obstakel</b>?",
+      "surface-problem": "Is dit een <b>Oppervlakte probleem</b>?",
+      "no-sidewalk": "Zou er een <b>Geen Trottoir</b> label moeten zijn hier?",
+      "crosswalk": "Is dit een <b>Gemarkeerde oversteekplaats</b>?",
+      "signal": "is dit een <b>Verkeerslicht</b>?"
     },
-    "validate-menu": {
-        "disagree-reason": {
-            "curb-ramp": {
-                "no-button-1": "Dit is een oprit.",
-                "no-button-2": "Dit is een overgang van trottoir naar oprit.",
-                "no-button-2-tooltip": "Trottoir naar auto-oprit overgangen zijn geen trottoir opritten, tenzij er een speciale oprit is toegevoegd",
-                "no-button-3": "Dit zou een ontbrekend trottoir oprit-label moeten zijn.",
-                "no-button-3-tooltip": "Soms wordt een ontbrekende trottoir oprit per ongeluk ten onrechte als trottoir oprit aangeduid."
-            },
-            "no-curb-ramp": {
-                "no-button-1": "Dit is een wandelpad in een woonwijk.",
-                "no-button-2": "Er is hier geen trottoir.",
-                "no-button-3": "Dit zou een trottoir oprit-label moeten zijn.",
-                "no-button-3-tooltip": "Soms wordt een trottoir oprit ten onrechte als ontbrekende helling aangemerkt, vaak omdat er een voelbare waarschuwing ontbreekt."
-            },
-            "obstacle": {
-                "no-button-1": "Dit is geen voetpad.",
-                "no-button-1-tooltip": "Als er geen trottoir is of als het object zich niet op het gedeelte van het trottoir bevindt dat bestemd is voor voetgangers, zoals in de afbeelding hieronder, is een label met 'Obstakel' niet nodig.",
-                "no-button-2": "Er is voldoende ruimte om dit object te ontwijken.",
-                "no-button-2-tooltip": "Op zeer brede trottoirs mogen gemakkelijk te vermijden objecten <b>niet</b> als obstakels worden aangemerkt.",
-                "no-button-3": "Dit zou een label voor een oppervlakkig probleem moeten zijn.",
-                "no-button-3-tooltip": "Gras en ander vuil, zoals bladeren, moeten worden gemarkeerd met een label 'Oppervlakteprobleem'."
-            },
-            "surface-problem": {
-                "no-button-1": "Dit zou een 'Verboden te betreden'-label moeten zijn.",
-                "no-button-1-tooltip": "Grind of gras wordt niet beschouwd als een trottoir en moet worden gemarkeerd met een bordje 'Geen trottoir'.",
-                "no-button-2": "Dit is geen voetpad.",
-                "no-button-2-tooltip": "Als een gemarkeerde oversteekplaats zich niet op een pad bevindt dat bedoeld is voor voetgangers, mag het niet als zodanig worden bestempeld.",
-                "no-button-3": "Dit zijn gewone stoeptegels."
-            },
-            "no-sidewalk": {
-                "no-button-1": "Hier is een trottoir.",
-                "no-button-2": "Dit is een middenberm voor verkeer.",
-                "no-button-3": "Dit moet met een ander labeltype worden gemarkeerd.",
-                "no-button-3-tooltip": "Problemen met het wegdek of obstakels kunnen ten onrechte worden aangemerkt als 'Geen trottoir'."
-            },
-            "crosswalk": {
-                "no-button-1": "Er is hier geen zichtbaar zebrapad.",
-                "no-button-2": "Dit is een stoplijn voor auto's.",
-                "no-button-3": "Dit is een verkeersdrempel."
-            },
-            "signal": {
-                "no-button-1": "Dit is slechts een verkeerslicht voor voertuigen.",
-                "no-button-2": "Dit is een verkeersbord zonder verlichting om een veilige oversteekplaats aan te geven.",
-                "no-button-3": "Dit is een paal zonder verkeerslicht of -knop."
-            }
-        },
-        "unsure-reason": {
-            "common": {
-                "reason-1": "Een betere afbeelding nodig",
-                "reason-1-tooltip": "Dit kan komen doordat de afbeelding onscherp is, het te labelen object te ver weg is, of doordat een andere invalshoek nodig is.",
-                "reason-2": "De plaatsing van het label lijkt onjuist.",
-                "reason-2-tooltip": "Soms is hetgeen gelabeld moet worden wel zichtbaar, maar lijkt het label er ver vanaf te staan."
-            },
-            "curb-ramp": {
-                "unsure-button-3-tooltip": "Sommige steegjes of commerciële opritten vereisen vanwege hoogteverschillen een oprit, andere niet. Soms is het niet duidelijk of een overgang in een trottoir een oprit of voelbare oppervlakte-indicator nodig heeft."
-            },
-            "no-curb-ramp": {
-                "unsure-button-3": "Ik weet niet zeker of een trottoir oprit verplicht is.",
-                "unsure-button-3-tooltip": "Het is wellicht onduidelijk of voetgangers wel zouden moeten kunnen oversteken op een kruispunt met een drukke weg."
-            },
-            "obstacle": {
-                "unsure-button-3": "Er is mogelijk voldoende ruimte<br>om het object te ontwijken",
-                "unsure-button-3-tooltip": "De breedte van het trottoir is op een foto moeilijk in te schatten."
-            },
-            "surface-problem": {
-                "unsure-button-3": "Het is wellicht te onbeduidend om als label te dienen.",
-                "unsure-button-3-tooltip": "Het is wellicht onduidelijk of een kwestie zoals gras tussen stoeptegels een label nodig heeft."
-            },
-            "no-sidewalk": {
-                "unsure-button-3": "Ik weet niet zeker of hier een trottoir hoort te liggen.",
-                "unsure-button-3-tooltip": "Soms is meer context nodig, en het is moeilijk om op basis van slechts één afbeelding te bepalen of een trottoir nodig is."
-            }
-        }
+    "visibility-control-hide": "Verberg Label (<u>H</u>)",
+    "visibility-control-show": "Toon Label (<u>H</u>)"
+  },
+  "validate-menu": {
+    "disagree-reason": {
+      "curb-ramp": {
+        "no-button-1": "Dit is een oprit.",
+        "no-button-2": "Dit is een overgang van trottoir naar oprit.",
+        "no-button-2-tooltip": "Trottoir naar auto-oprit overgangen zijn geen trottoir opritten, tenzij er een speciale oprit is toegevoegd",
+        "no-button-3": "Dit zou een ontbrekend trottoir oprit-label moeten zijn.",
+        "no-button-3-tooltip": "Soms wordt een ontbrekende trottoir oprit per ongeluk ten onrechte als trottoir oprit aangeduid."
+      },
+      "no-curb-ramp": {
+        "no-button-1": "Dit is een wandelpad in een woonwijk.",
+        "no-button-2": "Er is hier geen trottoir.",
+        "no-button-3": "Dit zou een trottoir oprit-label moeten zijn.",
+        "no-button-3-tooltip": "Soms wordt een trottoir oprit ten onrechte als ontbrekende helling aangemerkt, vaak omdat er een voelbare waarschuwing ontbreekt."
+      },
+      "obstacle": {
+        "no-button-1": "Dit is geen voetpad.",
+        "no-button-1-tooltip": "Als er geen trottoir is of als het object zich niet op het gedeelte van het trottoir bevindt dat bestemd is voor voetgangers, zoals in de afbeelding hieronder, is een label met 'Obstakel' niet nodig.",
+        "no-button-2": "Er is voldoende ruimte om dit object te ontwijken.",
+        "no-button-2-tooltip": "Op zeer brede trottoirs mogen gemakkelijk te vermijden objecten <b>niet</b> als obstakels worden aangemerkt.",
+        "no-button-3": "Dit zou een label voor een oppervlakkig probleem moeten zijn.",
+        "no-button-3-tooltip": "Gras en ander vuil, zoals bladeren, moeten worden gemarkeerd met een label 'Oppervlakteprobleem'."
+      },
+      "surface-problem": {
+        "no-button-1": "Dit zou een 'Verboden te betreden'-label moeten zijn.",
+        "no-button-1-tooltip": "Grind of gras wordt niet beschouwd als een trottoir en moet worden gemarkeerd met een bordje 'Geen trottoir'.",
+        "no-button-2": "Dit is geen voetpad.",
+        "no-button-2-tooltip": "Als een gemarkeerde oversteekplaats zich niet op een pad bevindt dat bedoeld is voor voetgangers, mag het niet als zodanig worden bestempeld.",
+        "no-button-3": "Dit zijn gewone stoeptegels."
+      },
+      "no-sidewalk": {
+        "no-button-1": "Hier is een trottoir.",
+        "no-button-2": "Dit is een middenberm voor verkeer.",
+        "no-button-3": "Dit moet met een ander labeltype worden gemarkeerd.",
+        "no-button-3-tooltip": "Problemen met het wegdek of obstakels kunnen ten onrechte worden aangemerkt als 'Geen trottoir'."
+      },
+      "crosswalk": {
+        "no-button-1": "Er is hier geen zichtbaar zebrapad.",
+        "no-button-2": "Dit is een stoplijn voor auto's.",
+        "no-button-3": "Dit is een verkeersdrempel."
+      },
+      "signal": {
+        "no-button-1": "Dit is slechts een verkeerslicht voor voertuigen.",
+        "no-button-2": "Dit is een verkeersbord zonder verlichting om een veilige oversteekplaats aan te geven.",
+        "no-button-3": "Dit is een paal zonder verkeerslicht of -knop."
+      }
     },
-    "center-ui": {
-        "no-info": "Geen informatie beschikbaar"
-    },
-    "mission-start": {
-        "title": "Valideer {{n}} {{label_type}} labels",
-        "body": "Je missie is om de correctheid te bepalen van  __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span> labels geplaatst door andere gebruikers!"
-    },
-    "mission-complete": {
-        "title": "Goed gedaan!",
-        "body-1": "Je hebt net {{n}} Trottoir Oprit labels gelabeld.",
-        "body-2": "Je hebt net {{n}} Ontbrekende Trottoir Oprit labels gelabeld.",
-        "body-3": "Je hebt net {{n}} Obstakel labels gelabeld.",
-        "body-4": "Je hebt net {{n}} Oppervlakte Probleem labels gelabeld.",
-        "body-7": "Je hebt net {{n}} Geen Trottoir labels gelabeld.",
-        "body-9": "Je hebt net {{n}} Gemarkeerde oversteekplaats labels gelabeld.",
-        "body-10": "Je hebt net {{n}} Verkeerslicht labels gelabeld.",
-        "validate-more": "Valideer meer labels",
-        "continue": "Ga door met valideren",
-        "explore": "Start een ondtekkingsmissie",
-        "no-new-mission-title": "Geen valideermissies meer te gaan",
-        "no-new-mission-body": "Klik op de knop om te beginnen met verkennen.",
-        "no-new-mission-button": "Begin met verkennen"
-    },
-    "mobile": {
-        "no-new-mission-body": "U kunt meer labels toevoegen met behulp van een laptop / desktopcomputer, of u kunt labels valideren in een andere stad!",
-        "no-new-mission-button": "Valideren in"
-    },
-    "expert-validate": {
-        "add-tag": "Voeg toe: {{tag}}",
-        "remove-tag": "Verwijderen: {{tag}}"
-    },
-    "mission-start-tutorial": {
-        "mst-instruction-1": "JOUW MISSIE",
-        "mst-instruction-2": "Valideer {{nLabels}} {{- labelType}} labels",
-        "example-type-label-incorrect": "VERKEERD VOORBEELD",
-        "label-on-image-title-incorrect": "Verkeerd etiket",
-        "label-on-image-description-correct": "Markeer <b>Akkoord</b>",
-        "label-on-image-description-incorrect": "Markeer <b>Niet akkoord</b>"
+    "unsure-reason": {
+      "common": {
+        "reason-1": "Een betere afbeelding nodig",
+        "reason-1-tooltip": "Dit kan komen doordat de afbeelding onscherp is, het te labelen object te ver weg is, of doordat een andere invalshoek nodig is.",
+        "reason-2": "De plaatsing van het label lijkt onjuist.",
+        "reason-2-tooltip": "Soms is hetgeen gelabeld moet worden wel zichtbaar, maar lijkt het label er ver vanaf te staan."
+      },
+      "curb-ramp": {
+        "unsure-button-3-tooltip": "Sommige steegjes of commerciële opritten vereisen vanwege hoogteverschillen een oprit, andere niet. Soms is het niet duidelijk of een overgang in een trottoir een oprit of voelbare oppervlakte-indicator nodig heeft."
+      },
+      "no-curb-ramp": {
+        "unsure-button-3": "Ik weet niet zeker of een trottoir oprit verplicht is.",
+        "unsure-button-3-tooltip": "Het is wellicht onduidelijk of voetgangers wel zouden moeten kunnen oversteken op een kruispunt met een drukke weg."
+      },
+      "obstacle": {
+        "unsure-button-3": "Er is mogelijk voldoende ruimte<br>om het object te ontwijken",
+        "unsure-button-3-tooltip": "De breedte van het trottoir is op een foto moeilijk in te schatten."
+      },
+      "surface-problem": {
+        "unsure-button-3": "Het is wellicht te onbeduidend om als label te dienen.",
+        "unsure-button-3-tooltip": "Het is wellicht onduidelijk of een kwestie zoals gras tussen stoeptegels een label nodig heeft."
+      },
+      "no-sidewalk": {
+        "unsure-button-3": "Ik weet niet zeker of hier een trottoir hoort te liggen.",
+        "unsure-button-3-tooltip": "Soms is meer context nodig, en het is moeilijk om op basis van slechts één afbeelding te bepalen of een trottoir nodig is."
+      }
     }
+  },
+  "center-ui": {
+    "no-info": "Geen informatie beschikbaar"
+  },
+  "mission-start": {
+    "title": "Valideer {{n}} {{label_type}} labels",
+    "body": "Je missie is om de correctheid te bepalen van  __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span> labels geplaatst door andere gebruikers!"
+  },
+  "mission-complete": {
+    "title": "Goed gedaan!",
+    "body-1": "Je hebt net {{n}} Trottoir Oprit labels gelabeld.",
+    "body-2": "Je hebt net {{n}} Ontbrekende Trottoir Oprit labels gelabeld.",
+    "body-3": "Je hebt net {{n}} Obstakel labels gelabeld.",
+    "body-4": "Je hebt net {{n}} Oppervlakte Probleem labels gelabeld.",
+    "body-7": "Je hebt net {{n}} Geen Trottoir labels gelabeld.",
+    "body-9": "Je hebt net {{n}} Gemarkeerde oversteekplaats labels gelabeld.",
+    "body-10": "Je hebt net {{n}} Verkeerslicht labels gelabeld.",
+    "validate-more": "Valideer meer labels",
+    "continue": "Ga door met valideren",
+    "explore": "Start een ondtekkingsmissie",
+    "no-new-mission-title": "Geen valideermissies meer te gaan",
+    "no-new-mission-body": "Klik op de knop om te beginnen met verkennen.",
+    "no-new-mission-button": "Begin met verkennen"
+  },
+  "mobile": {
+    "no-new-mission-body": "U kunt meer labels toevoegen met behulp van een laptop / desktopcomputer, of u kunt labels valideren in een andere stad!",
+    "no-new-mission-button": "Valideren in"
+  },
+  "expert-validate": {
+    "add-tag": "Voeg toe: {{tag}}",
+    "remove-tag": "Verwijderen: {{tag}}"
+  },
+  "mission-start-tutorial": {
+    "mst-instruction-1": "JOUW MISSIE",
+    "mst-instruction-2": "Valideer {{nLabels}} {{- labelType}} labels",
+    "example-type-label-incorrect": "VERKEERD VOORBEELD",
+    "label-on-image-title-incorrect": "Verkeerd etiket",
+    "label-on-image-description-correct": "Markeer <b>Akkoord</b>",
+    "label-on-image-description-incorrect": "Markeer <b>Niet akkoord</b>"
+  }
 }

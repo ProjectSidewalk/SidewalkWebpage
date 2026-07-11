@@ -18,9 +18,9 @@ Each interactive tool has its own `Tracker` that buffers events and periodically
 
 | Tool | Tracker (frontend) | Backend table | Table model (Slick) |
 |------|--------------------|---------------|---------------------|
-| **Explore / Audit** (`SVLabel`) | `public/javascripts/SVLabel/src/data/Tracker.js` | `audit_task_interaction` | `app/models/audit/AuditTaskInteractionTable.scala` |
-| **Validate** (`SVValidate`, incl. mobile) | `public/javascripts/SVValidate/src/Tracker.js` | `validation_task_interaction` | `app/models/validation/ValidationTaskInteractionTable.scala` |
-| **Gallery** (`Gallery`) | `public/javascripts/Gallery/src/data/Tracker.js` | `gallery_task_interaction` | `app/models/gallery/GalleryTaskInteractionTable.scala` |
+| **Explore / Audit** (`explore`) | `public/js/explore/src/data/Tracker.js` | `audit_task_interaction` | `app/models/audit/AuditTaskInteractionTable.scala` |
+| **Validate** (`validate`, incl. mobile) | `public/js/validate/src/Tracker.js` | `validation_task_interaction` | `app/models/validation/ValidationTaskInteractionTable.scala` |
+| **Gallery** (`gallery`) | `public/js/gallery/src/data/Tracker.js` | `gallery_task_interaction` | `app/models/gallery/GalleryTaskInteractionTable.scala` |
 
 The core call is **`tracker.push(action, note)`** (see `Tracker.push` in each Tracker file):
 
@@ -65,13 +65,13 @@ Most events are fixed, transparently-named strings (`ContextMenu_Open`, `Onboard
 worth knowing about are the **families assembled at runtime**, which you won't find as full string literals:
 
 - **`LowLevelEvent_<domType>`** — raw DOM events. `Tracker.trackWindowEvents()` (in
-  `SVLabel/src/data/Tracker.js`) binds `mousedown`, `mouseup`, `mouseover`, `mouseout`, `mousemove`, `click`,
+  `explore/src/data/Tracker.js`) binds `mousedown`, `mouseup`, `mouseover`, `mouseout`, `mousemove`, `click`,
   `contextmenu`, `dblclick`, `keydown`, `keyup` and pushes `"LowLevelEvent_" + e.type`, with `cursorX`/`cursorY` or
   `keyCode` in the note.
 - **`ModeSwitch_<LabelType>`**, **`Click_ModeSwitch_<LabelType>`**, **`KeyboardShortcut_ModeSwitch_<LabelType>`** —
   labeling-mode changes; suffix is the label type (`CurbRamp`, `NoSidewalk`, …) or `Walk`. The prefix encodes *how*
-  the switch happened: programmatic vs. a mouse click (emitted in `SVLabel/src/menu/RibbonMenu.js`) vs. a keyboard
-  shortcut (`SVLabel/src/keyboard/Keyboard.js`).
+  the switch happened: programmatic vs. a mouse click (emitted in `explore/src/menu/RibbonMenu.js`) vs. a keyboard
+  shortcut (`explore/src/keyboard/Keyboard.js`).
 - **`Click_Subcategory_<Subcategory>`**, **`KeyboardShortcut_Severity_<n>`** — suffix is the chosen subcategory /
   severity value (also `RibbonMenu.js` / `Keyboard.js`).
 
@@ -108,12 +108,12 @@ The reference above is intentionally partial. To get the **authoritative, curren
 literals):
 
 ```bash
-# Literal event names emitted by the Explore tool (swap in SVValidate/src or Gallery/src for the others):
-grep -rhoE "push\(\s*['\"][A-Za-z0-9_]+" public/javascripts/SVLabel/src --include=*.js | sort -u
+# Literal event names emitted by the Explore tool (swap in validate/src or gallery/src for the others):
+grep -rhoE "push\(\s*['\"][A-Za-z0-9_]+" public/js/explore/src --include=*.js | sort -u
 ```
 
 Then read each tool's `Tracker.js` for the generated families (start with `trackWindowEvents()` in
-`SVLabel/src/data/Tracker.js`), and `SVLabel/src/menu/RibbonMenu.js` + `SVLabel/src/keyboard/Keyboard.js` for the
+`explore/src/data/Tracker.js`), and `explore/src/menu/RibbonMenu.js` + `explore/src/keyboard/Keyboard.js` for the
 `ModeSwitch_`/`Severity_`/`Subcategory_` suffixes. The backend table models (table above) define the columns each
 event is stored in.
 

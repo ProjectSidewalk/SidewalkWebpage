@@ -1,0 +1,90 @@
+/* Generic toast notification, positioned over a host element (typically the panorama). See common/Toast.js. */
+
+.ps-toast {
+  /* Fixed on <body> and floated over a reference element (the pano); left/top are set in JS from the reference rect. */
+  position: fixed;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: calc(20px * var(--ui-scale, 1));
+  max-width: calc(460px * var(--ui-scale, 1));
+  padding: calc(12px * var(--ui-scale, 1)) calc(20px * var(--ui-scale, 1));
+  background: var(--color-neutral-white);
+  border-radius: calc(20px * var(--ui-scale, 1));
+  border: calc(1px * var(--ui-scale, 1)) solid var(--color-asphalt-200);
+
+  /* Resting (pre-entry/exit) state: hidden and nudged up. The visible state below fades it in. */
+  opacity: 0;
+  transform: translateX(-50%) translateY(calc(-8px * var(--ui-scale, 1)));
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Shown state: slightly transparent at rest so the panorama stays partly visible behind it. */
+.ps-toast--visible {
+  opacity: 0.85;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Hovering brings it fully opaque (the auto-dismiss timer is also paused while hovered; see Toast.js). */
+.ps-toast--visible.ps-toast--hover {
+  opacity: 1;
+}
+
+.ps-toast__icon {
+  flex: 0 0 auto;
+  width: calc(50px * var(--ui-scale, 1));
+  height: auto;
+}
+
+.ps-toast__text {
+  display: flex;
+  flex-direction: column;
+  gap: calc(4px * var(--ui-scale, 1));
+}
+
+.ps-toast__title {
+  font: var(--text-subtitle-bold);
+  color: var(--color-neutral-black);
+}
+
+.ps-toast__message {
+  font: var(--text-caption-regular);
+}
+
+.ps-toast__button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/*
+ * Close (X) button: a white circle over top-right corner. Revealed on hover or keyboard focus.
+ */
+.ps-toast__close {
+  position: absolute;
+  top: calc(-9px * var(--ui-scale, 1));
+  right: calc(-9px * var(--ui-scale, 1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(24px * var(--ui-scale, 1));
+  height: calc(24px * var(--ui-scale, 1));
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-neutral-white);
+  box-shadow: 0 calc(1px * var(--ui-scale, 1)) calc(3px * var(--ui-scale, 1)) rgb(0 0 0 / 25%);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.ps-toast__close-icon {
+  display: block;
+  width: calc(14px * var(--ui-scale, 1));
+  height: calc(14px * var(--ui-scale, 1));
+}
+
+.ps-toast--hover .ps-toast__close,
+.ps-toast:focus-within .ps-toast__close {
+  opacity: 1;
+}

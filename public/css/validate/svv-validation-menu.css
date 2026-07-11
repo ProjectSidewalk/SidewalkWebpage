@@ -1,0 +1,334 @@
+#validation-menu-holder {
+  margin: 0;
+  position: absolute;
+  left: var(--menu-left);
+  top: var(--header-height);
+  width: var(--menu-width);
+  height: var(--pano-height);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: calc(20px * var(--ui-scale));
+}
+
+.validate-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.validation-menu-section {
+  display: none; /* Initially hidden, sections shown when validation buttons are clicked. */
+}
+
+#main-validate-section {
+  display: block;
+}
+
+#validate-submit-section {
+  display: flex;
+  justify-content: space-between;
+  margin-top: auto; /* Pushes the section to the bottom of the validation-menu-holder. */
+}
+
+.validation-menu-section-header {
+  font: var(--text-small-bold);
+  margin-bottom: calc(10px * var(--ui-scale));
+}
+
+#validation-button-holder {
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Overriding some of our design system tokens, though we could likely bring them more in line with DST. */
+.validate-page-button {
+  display: inline-block;
+  width: calc(86px * var(--ui-scale));
+  height: calc(32px * var(--ui-scale));
+  border: 1px solid var(--color-asphalt-500);
+  text-align: center;
+
+  background-color: var(--color-neutral-white);
+  outline: none; /* Removes focus outline that shows up when I press shift after clicking on a button. */
+}
+
+.validate-button:hover {
+  border: none;
+}
+
+.validate-button.chosen {
+  border: none;
+}
+
+#validate-yes-button.chosen {
+  background: var(--color-pine-500);
+}
+
+#validate-no-button.chosen {
+  background: var(--color-orange-400);
+}
+
+#validate-unsure-button.chosen {
+  background: var(--color-neutral-900);
+  color: var(--color-neutral-white);
+}
+
+/* Only show hover states on non-touch devices. */
+@media (hover: hover) {
+  #validate-yes-button:hover {
+    background: var(--color-pine-300);
+  }
+
+  #validate-yes-button.chosen:hover {
+    background: var(--color-pine-500);
+  }
+
+  #validate-no-button:hover {
+    background: var(--color-orange-300);
+  }
+
+  #validate-no-button.chosen:hover {
+    background: var(--color-orange-400);
+  }
+
+  #validate-unsure-button:hover {
+    background: var(--color-neutral-700);
+    color: var(--color-neutral-white);
+  }
+
+  #validate-unsure-button.chosen:hover {
+    background: var(--color-neutral-900);
+  }
+}
+
+#sidewalk-ai-suggestions-block {
+  margin-top: calc(15px * var(--ui-scale));
+  margin-bottom: calc(15px * var(--ui-scale));
+}
+
+.sidewalk-ai-suggestions-header {
+  font: var(--text-tiny-semibold);
+  margin-bottom: calc(6px * var(--ui-scale));
+}
+
+.ai-icon {
+  width: calc(16px * var(--ui-scale));
+  height: calc(16px * var(--ui-scale));
+}
+
+.sidewalk-ai-suggestions-list-holder {
+  display: flex;
+  gap: calc(5px * var(--ui-scale));
+  flex-wrap: wrap;
+}
+
+/* Shared pill look from tag-pills.css; these modifiers add the AI add/remove color semantics. The pill text is set
+   directly on the element (no label span), so the pill font lives here. */
+.sidewalk-ai-suggested-tag {
+  font: var(--text-tiny-semibold);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.sidewalk-ai-suggested-tag.to-add {
+  outline-color: var(--color-pine-700);
+  color: var(--color-pine-700);
+}
+
+.sidewalk-ai-suggested-tag.to-remove {
+  outline-color: var(--color-orange-500);
+  color: var(--color-orange-500);
+}
+
+.sidewalk-ai-suggested-tag.to-add:hover {
+  background: rgb(from var(--color-pine-500) r g b / 21%);
+  outline-color: var(--color-pine-600);
+}
+
+.sidewalk-ai-suggested-tag.to-remove:hover {
+  background: rgb(from var(--color-orange-500) r g b / 15%);
+  outline-color: var(--color-orange-500);
+}
+
+.validate-text-input {
+  width: 100%;
+  margin-top: calc(10px * var(--ui-scale));
+}
+
+/* Bootstrap is getting loaded after this file hence overriding this. To avoid it, I am adding important but ideally the
+  order of inclusion should be flipped. */
+.validate-text-input input, .selectize-input {
+  display: flex !important;
+  width: 100% !important;
+  height: calc(36px * var(--ui-scale)) !important;
+  padding: calc(8px * var(--ui-scale)) calc(18px * var(--ui-scale)) !important;
+  align-items: center !important;
+  gap: calc(4px * var(--ui-scale)) !important;
+  flex-shrink: 0 !important;
+  border-radius: calc(6px * var(--ui-scale)) !important;
+  border: calc(1px * var(--ui-scale)) solid var(--color-neutral-500) !important;
+  background: var(--color-neutral-white) !important;
+  font: var(--text-tiny-semibold) !important;
+
+}
+
+.selectize-input.focus.input-active.has-options {
+  border-radius: calc(6px * var(--ui-scale)) calc(6px * var(--ui-scale)) 0 0;
+}
+
+.selectize-dropdown {
+  border-radius: 0 0 calc(6px * var(--ui-scale)) calc(6px * var(--ui-scale)) !important;
+}
+
+.selectize-input input {
+  font: var(--text-tiny-semibold);
+  width: 100% !important; /* Text was getting cut off by default. */
+}
+
+#current-tags-list {
+  display: flex; /* display:none when there are no tags, display: flex when there are; updated in JS. */
+  flex-wrap: wrap;
+  gap: calc(5px * var(--ui-scale));
+  margin-bottom: calc(10px * var(--ui-scale));
+}
+
+/* Shared pill look (including the active green background) from tag-pills.css; this only adds the X-to-remove gap. */
+.current-tag.tag-pill {
+  cursor: default;
+}
+
+.remove-tag-x {
+  cursor: pointer;
+  width: calc(9px * var(--ui-scale));
+  height: calc(9px * var(--ui-scale));
+  fill: var(--color-neutral-black);
+}
+
+.remove-tag-x svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.selectize-dropdown-content {
+  display: flex;
+  width: calc(285px * var(--ui-scale));
+  height: fit-content;
+  max-height: calc(200px * var(--ui-scale)); /* Selectize's own stylesheet caps this at a fixed 200px. */
+  padding: calc(12px * var(--ui-scale));
+  align-items: center;
+  align-content: center;
+  gap: calc(6px * var(--ui-scale));
+  flex-wrap: wrap;
+}
+
+/* Selectize renders its own .option nodes; DesktopValidationMenu adds the tag-pill classes so they pick up the
+   shared pill look. These rules out-rank selectize's own stylesheet, which is more specific than .tag-pill. */
+.selectize-dropdown .option.tag-pill {
+  padding: calc(5px * var(--ui-scale)) calc(10px * var(--ui-scale));
+  font: var(--text-tiny-semibold);
+  text-align: center;
+  transition: all 0.3s;
+}
+
+/* Removing default styling for "active" options in dropdown. Would be left over after hover. */
+.selectize-dropdown .option.active {
+  background: inherit;
+  color: inherit;
+}
+
+.selectize-dropdown .option.tag-pill:hover {
+  background: var(--color-pine-200);
+  outline: none;
+}
+
+#severity-radio-holder {
+  display: flex;
+  align-items: center;
+  gap: calc(16px * var(--ui-scale));
+}
+
+#optional-comment-input {
+  margin-top: 0; /* Overrides .validate-text-input margin, since the textbox for agreeing looks different. */
+}
+
+#no-reason-options, #unsure-reason-options {
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--ui-scale));
+}
+
+.validation-reason-button {
+  display: flex;
+  height: calc(36px * var(--ui-scale));
+  justify-content: center;
+  align-items: center;
+  border: calc(1px * var(--ui-scale)) solid var(--color-neutral-700);
+  background-color: var(--color-neutral-white);
+}
+
+/* Matching style of 'No' and 'Unsure' button for now. */
+#no-reason-options .validation-reason-button.chosen {
+  background: var(--color-orange-400);
+  border: none;
+  color: var(--color-neutral-white);
+}
+
+#add-disagree-comment.chosen {
+  border-color: var(--color-orange-400) !important;
+}
+
+#unsure-reason-options .validation-reason-button.chosen {
+  background: var(--color-neutral-900);
+  border: none;
+  color: var(--color-neutral-white);
+}
+
+#add-unsure-comment.chosen {
+  border-color: var(--color-orange-900) !important;
+}
+
+/* Only show hover states on non-touch devices. Same CSS as for chosen state. */
+@media (hover: hover) {
+  #no-reason-options .validation-reason-button:hover {
+    background: var(--color-orange-300);
+    border: none;
+    color: var(--color-neutral-white);
+  }
+
+  #no-reason-options .validation-reason-button.chosen:hover {
+    background: var(--color-orange-400);
+  }
+
+  #add-disagree-comment:hover {
+    border-color: var(--color-orange-300) !important;
+  }
+
+  #add-disagree-comment.chosen:hover {
+    border-color: var(--color-orange-400) !important;
+  }
+
+  #unsure-reason-options .validation-reason-button:hover {
+    background: var(--color-neutral-700);
+    border: none;
+    color: var(--color-neutral-white);
+  }
+
+  #unsure-reason-options .validation-reason-button.chosen:hover {
+    background: var(--color-neutral-900);
+  }
+
+  #add-unsure-comment:hover {
+    border-color: var(--color-neutral-700) !important;
+  }
+
+  #add-unsure-comment.chosen:hover {
+    border-color: var(--color-neutral-900) !important;
+  }
+}
+
+/* Tooltip example images (reason buttons, tags, severity) are sized by JS via this class so they scale with the UI. */
+.validate-tooltip-img {
+  height: calc(140px * var(--ui-scale));
+}
