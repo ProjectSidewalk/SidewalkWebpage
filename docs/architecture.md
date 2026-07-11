@@ -94,12 +94,15 @@ The response/filter data structures (DTOs) live in **`app/models/api/`** (`packa
 ### Public label-share surface (`/label/:id`)
 
 A public, account-free share surface (issue #456, `ShareController`) lets a single label be linked externally.
-`GET /label/:id` renders LabelMap focused on that label with server-rendered Open Graph / Twitter Card meta so a
-pasted link produces a rich preview. `GET /label/:id/image` serves the preview image — self-hosted, with the
-label-type marker composited onto the crop (or a branded fallback) — cached under `share.image.directory`
+`GET /label/:id` renders a single-label spotlight page — the shared LabelDetail component as the hero plus a
+nearby-labels minimap fed by the cheap, bbox-bounded `/v3/api/rawLabels` API (deliberately not LabelMap's
+city-wide `/labels/all` layer) — with server-rendered Open Graph / Twitter Card meta so a pasted link produces a
+rich preview. `GET /label/:id/image` serves the preview image — self-hosted, with the label-type marker
+composited onto the crop (or a branded fallback) — cached under `share.image.directory`
 (`SIDEWALK_SHARE_IMAGES_DIR`), the same mounted volume as label crops so share links persist across container
-recreation. To support the anonymous landing, LabelMap's `RegionController.listNeighborhoods` and
-`LabelController.getLabelData` reads were opened to anonymous access.
+recreation; the per-city cache is LRU-bounded so the public, enumerable URL space can't fill the volume. To
+support the anonymous landing, the `LabelController.getLabelData` read backing the label-detail popup was opened
+to anonymous access.
 
 ## Frontend
 

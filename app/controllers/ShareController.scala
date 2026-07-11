@@ -16,6 +16,7 @@ import service.{AuthenticationService, ConfigService, LabelService, PanoDataServ
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayInputStream, File}
+import java.nio.file.{Files, StandardCopyOption}
 import javax.imageio.stream.FileImageOutputStream
 import javax.imageio.{IIOImage, ImageIO, ImageWriteParam}
 import javax.inject._
@@ -57,6 +58,11 @@ class ShareController @Inject() (
   // the card image into its own CDN, and 0.85 is visually transparent at card sizes while ~10-20x smaller than PNG —
   // which matters for crawler fetch timeouts and per-city cache volume.
   private val SHARE_IMAGE_JPEG_QUALITY = 0.85f
+
+  // Ceiling on cached previews per city. The image endpoint is public and label ids are enumerable, so without a
+  // ceiling a crawler sweep could write one JPEG per label id and fill the volume; at ~250KB each this caps the cache
+  // near 2.5GB. Past it, the least-recently-served files are evicted (see evictStaleShareImages).
+  private val MAX_CACHED_SHARE_IMAGES = 10000
 
   /**
    * Renders the public single-label spotlight page: the label's crop and read-only metadata as a hero, a small map of
@@ -159,9 +165,16 @@ class ShareController @Inject() (
   private def cityNameOf(commonData: service.CommonPageData): String =
     commonData.allCityInfo.find(_.cityId == commonData.cityId).map(_.cityNameFormatted).getOrElse("")
 
-  /** Directory where cached share preview images live: `<share.image.directory>/<city-id>/`. */
-  private def shareImageDir: File =
-    new File(config.get[String]("share.image.directory") + File.separator + configService.getCityId)
+  /**
+   * Directory where cached share preview images live: `<share.image.directory>/<city-id>/`. A relative configured
+   * path (the `.share-images` default) is resolved against the application root, not the process working directory —
+   * a staged prod app runs from the stage dir, so a CWD-relative path would silently point somewhere else there.
+   */
+  private[controllers] def shareImageDir: File = {
+    val configured = new File(config.get[String]("share.image.directory"))
+    val base       = if (configured.isAbsolute) configured else environment.getFile(configured.getPath)
+    new File(base, configService.getCityId)
+  }
 
   /**
    * Resolves the base image for a label (stored crop → fetched GSV still → none), composites the label-type marker onto
@@ -179,12 +192,30 @@ class ShareController @Inject() (
         val composited: BufferedImage = compositeMarker(base, meta.labelType, meta.canvasXY)
         cacheFile.getParentFile.mkdirs()
         writeJpeg(composited, cacheFile)
-        if (cacheFile.exists()) Some(cacheFile)
-        else {
+        if (cacheFile.exists()) {
+          evictStaleShareImages(cacheFile.getParentFile)
+          Some(cacheFile)
+        } else {
           logger.error(s"Failed to write share image: ${cacheFile.getPath}")
           None
         }
       case None => None
+    }
+  }
+
+  /**
+   * Evicts the least-recently-served cached previews once the per-city cache holds more than `maxFiles` images.
+   *
+   * serveImage touches each file's mtime on every hit, so sorting by mtime approximates LRU. Runs on the cache-miss
+   * path only (right after a build), where the O(n) directory listing is noise next to the imagery fetch + composite
+   * it follows. The branded fallback can be evicted like any other file — it's rebuilt on demand.
+   */
+  private[controllers] def evictStaleShareImages(dir: File, maxFiles: Int = MAX_CACHED_SHARE_IMAGES): Unit = {
+    val cached = Option(dir.listFiles()).getOrElse(Array.empty[File]).filter(_.isFile)
+    if (cached.length > maxFiles) {
+      cached.sortBy(_.lastModified()).take(cached.length - maxFiles).foreach { f =>
+        val _ = f.delete()
+      }
     }
   }
 
@@ -287,21 +318,36 @@ class ShareController @Inject() (
   }
 
   /** Serves a cached JPEG with a long cache lifetime (the image content for a label is immutable once generated). */
-  private def serveImage(file: File): Result =
+  private def serveImage(file: File): Result = {
+    // Best-effort mtime touch so evictStaleShareImages approximates LRU; eviction order degrades gracefully if the
+    // filesystem refuses.
+    val _ = file.setLastModified(System.currentTimeMillis())
     Ok.sendFile(file, inline = true).as("image/jpeg").withHeaders("Cache-Control" -> "public, max-age=86400")
+  }
 
-  /** Writes the image to the given file as a quality-controlled JPEG (ImageIO's default writer quality is lower). */
+  /**
+   * Writes the image to the given file as a quality-controlled JPEG (ImageIO's default writer quality is lower).
+   *
+   * The write is atomic: bytes go to a temp file in the same directory, which is then moved over the target.
+   * Concurrent first requests for the same label may build in parallel (harmless duplicate work; last mover wins),
+   * but a reader can never be served a half-written file.
+   */
   private def writeJpeg(img: BufferedImage, file: File): Unit = {
+    val tmp    = File.createTempFile(s"${file.getName}.", ".tmp", file.getParentFile)
     val writer = ImageIO.getImageWritersByFormatName("jpg").next()
     try {
       val params = writer.getDefaultWriteParam
       params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT)
       params.setCompressionQuality(SHARE_IMAGE_JPEG_QUALITY)
-      Using.resource(new FileImageOutputStream(file)) { out =>
+      Using.resource(new FileImageOutputStream(tmp)) { out =>
         writer.setOutput(out)
         writer.write(null, new IIOImage(img, null, null), params)
       }
-    } finally writer.dispose()
+      val _ = Files.move(tmp.toPath, file.toPath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+    } finally {
+      writer.dispose()
+      val _ = tmp.delete() // No-op after a successful move; cleans up the temp file if the write failed midway.
+    }
   }
 
   /**

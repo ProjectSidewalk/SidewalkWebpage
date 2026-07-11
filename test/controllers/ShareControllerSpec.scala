@@ -13,6 +13,7 @@ import service.LabelService
 
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayInputStream, File}
+import java.nio.file.Files
 import javax.imageio.ImageIO
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -302,6 +303,53 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       }
         img.setRGB(x, y, ((x * 31 + y * 17) % 200 << 16) | ((x * 13 + y * 7) % 200 << 8) | ((x + y) % 200))
       controller.looksLikeBlankImagery(img) mustBe false
+    }
+  }
+
+  "shareImageDir" should {
+    "resolve the relative default under the application root, not the process working directory" in {
+      // A staged prod app runs from the stage dir, so a CWD-relative cache path would silently point somewhere else
+      // there (the same trap the clustering-script packaging hit).
+      val controller  = app.injector.instanceOf[ShareController]
+      val environment = app.injector.instanceOf[play.api.Environment]
+      controller.shareImageDir.getAbsolutePath must startWith(environment.rootPath.getAbsolutePath)
+    }
+  }
+
+  "evictStaleShareImages" should {
+    val controller = app.injector.instanceOf[ShareController]
+
+    /** Creates `n` empty cache files with strictly increasing mtimes (index 0 = oldest). */
+    def fillCache(dir: File, n: Int): Seq[File] =
+      (1 to n).map { i =>
+        val f = new File(dir, s"share_$i.jpg")
+        val _ = f.createNewFile()
+        val _ = f.setLastModified(1700000000000L + i * 60000L)
+        f
+      }
+
+    "delete only the least-recently-modified files past the ceiling" in {
+      val dir = Files.createTempDirectory("share-evict-spec").toFile
+      try {
+        val files = fillCache(dir, 5)
+        controller.evictStaleShareImages(dir, maxFiles = 3)
+        files.map(_.exists()) mustBe Seq(false, false, true, true, true)
+      } finally {
+        Option(dir.listFiles()).getOrElse(Array.empty[File]).foreach(f => f.delete())
+        val _ = dir.delete()
+      }
+    }
+
+    "leave a cache at or under the ceiling untouched" in {
+      val dir = Files.createTempDirectory("share-evict-spec").toFile
+      try {
+        val files = fillCache(dir, 3)
+        controller.evictStaleShareImages(dir, maxFiles = 3)
+        files.map(_.exists()) mustBe Seq(true, true, true)
+      } finally {
+        Option(dir.listFiles()).getOrElse(Array.empty[File]).foreach(f => f.delete())
+        val _ = dir.delete()
+      }
     }
   }
 

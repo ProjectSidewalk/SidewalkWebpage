@@ -476,6 +476,33 @@ class LabelDetail {
   // ───────────────────────────────────────────────────────────────────
 
   /**
+   * POSTs JSON to a session-requiring endpoint, minting the shared anonymous session first if it's missing.
+   *
+   * The public spotlight page (#456) is reachable with no session at all, and SecuredAction answers a session-less
+   * POST by bouncing it through /anonSignUp — which mints the session but swallows the submission. So on a failed
+   * first attempt, mint the session explicitly (idempotent: signUpAnon just redirects when a session exists) and
+   * retry once. redirect: 'manual' keeps the mint cheap — the Set-Cookie on the redirect response is stored without
+   * fetching the page it points at. On every other surface a session always exists, so the retry never fires.
+   *
+   * @param {string} url - The endpoint to POST to.
+   * @param {object} data - The JSON-serializable request body.
+   * @returns {Promise<Response>} The first OK response, or the retry's response (which may itself not be OK).
+   */
+  async #postJson(url, data) {
+    const post = () => fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      body: JSON.stringify(data),
+    });
+    let res = await post();
+    if (!res.ok) {
+      await fetch('/anonSignUp?url=%2F', { redirect: 'manual' });
+      res = await post();
+    }
+    return res;
+  }
+
+  /**
    * POSTs a validation for the current label to /labelmap/validate, then updates the count and validation display.
    * Fires opts.onVote after a successful submission so hosts can sync upstream UI.
    * @param {'Agree'|'Disagree'|'Unsure'} action
@@ -516,11 +543,7 @@ class LabelDetail {
       viewer_type: this.panoManager.activeViewerName,
     };
 
-    fetch('/labelmap/validate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
-      body: JSON.stringify(data),
-    }).then((res) => {
+    this.#postJson('/labelmap/validate', data).then((res) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       this.#updateVoteCount(action);
       this.#highlightVote(action);
@@ -722,11 +745,7 @@ class LabelDetail {
       lng: pos.lng,
     };
 
-    fetch('/labelmap/comment', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
-      body: JSON.stringify(data),
-    }).then(async (res) => {
+    this.#postJson('/labelmap/comment', data).then(async (res) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const body = await res.json();
       els.commentInput.value = '';

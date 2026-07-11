@@ -6,9 +6,10 @@
  * built once and re-pointed at different targets via {@link ShareWidget#setTarget}, so a host that shows a sequence
  * of items (e.g. the label detail view paging between labels) constructs a single instance and just updates the URL.
  *
- * Accessibility (WCAG 2.1/2.2 AA): the trigger carries `aria-haspopup`/`aria-expanded`; the popover is a labeled
- * `role="menu"`; ESC and click-outside close it; focus moves into the popover on open and returns to the trigger on
- * close; all actions are real <button>s with visible focus states (styled in labelDetail.css).
+ * Accessibility (WCAG 2.1/2.2 AA, ARIA menu pattern): the trigger carries `aria-haspopup`/`aria-expanded`; the
+ * popover is a labeled `role="menu"`; ESC and click-outside close it; focus moves into the popover on open and
+ * returns to the trigger on close; ArrowUp/ArrowDown cycle the items and Home/End jump to the first/last one; all
+ * actions are real <button>s with visible focus states (styled in label-detail.css).
  */
 class ShareWidget {
   /** @type {HTMLElement} The container the popover is appended into (positioned relative to the trigger). */
@@ -249,7 +250,8 @@ class ShareWidget {
   }
 
   /**
-   * ESC closes the popover (and stops propagation so a host <dialog> doesn't also close).
+   * Keyboard handling while the popover is open: ESC closes it (stopping propagation so a host <dialog> doesn't
+   * also close), and ArrowUp/ArrowDown/Home/End move focus between the menu items per the ARIA menu pattern.
    * @param {KeyboardEvent} e
    * @private
    */
@@ -257,7 +259,21 @@ class ShareWidget {
     if (e.key === 'Escape') {
       e.stopPropagation();
       this.#closePopover();
+      return;
     }
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
+    const items = [...this.#popover.querySelectorAll('[role="menuitem"]')];
+    if (items.length === 0) return;
+    e.preventDefault();
+
+    // When focus sits outside the menu (e.g. the user clicked elsewhere without closing), arrows re-enter at an end.
+    const idx = items.indexOf(document.activeElement);
+    let next;
+    if (e.key === 'Home' || (e.key === 'ArrowDown' && idx === -1)) next = items[0];
+    else if (e.key === 'End' || (e.key === 'ArrowUp' && idx === -1)) next = items[items.length - 1];
+    else if (e.key === 'ArrowDown') next = items[(idx + 1) % items.length];
+    else next = items[(idx - 1 + items.length) % items.length];
+    next.focus();
   }
 
   /**

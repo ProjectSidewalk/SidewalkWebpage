@@ -6,8 +6,8 @@
  * the jsdom global scope with an explicit `window.ShareWidget = ShareWidget` epilogue.
  *
  * Coverage: the native-share vs popover fork, popover construction + ARIA contract, ESC/outside-click close with
- * focus management, copy-link clipboard flow with the transient "Copied!" state, share-intent URLs, activity
- * logging, and setTarget's stale-popover guard.
+ * focus management, arrow-key/Home/End menu navigation, copy-link clipboard flow with the transient "Copied!"
+ * state, share-intent URLs, activity logging, and setTarget's stale-popover guard.
  */
 
 const fs = require('fs');
@@ -141,6 +141,53 @@ describe('ShareWidget', () => {
             trigger.click();
             widget.setTarget({ ...TARGET, url: 'https://sidewalk-test.example.org/label/456' });
             expect(popover().hidden).toBe(true);
+        });
+    });
+
+    describe('menu keyboard navigation', () => {
+        /** Opens the popover, waits for the deferred document listeners, and returns the four menu items. */
+        async function openMenu() {
+            buildWidget();
+            trigger.click();
+            await flushPromises();
+            return [...popover().querySelectorAll('[role="menuitem"]')];
+        }
+
+        const press = (key) => document.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true }));
+
+        test('ArrowDown cycles focus forward through the items and wraps to the first', async () => {
+            const items = await openMenu();
+            expect(document.activeElement).toBe(items[0]);
+            press('ArrowDown');
+            expect(document.activeElement).toBe(items[1]);
+            press('ArrowDown');
+            press('ArrowDown');
+            expect(document.activeElement).toBe(items[3]);
+            press('ArrowDown');
+            expect(document.activeElement).toBe(items[0]);
+        });
+
+        test('ArrowUp cycles focus backward and wraps to the last', async () => {
+            const items = await openMenu();
+            press('ArrowUp');
+            expect(document.activeElement).toBe(items[3]);
+            press('ArrowUp');
+            expect(document.activeElement).toBe(items[2]);
+        });
+
+        test('Home and End jump to the first and last items', async () => {
+            const items = await openMenu();
+            press('End');
+            expect(document.activeElement).toBe(items[3]);
+            press('Home');
+            expect(document.activeElement).toBe(items[0]);
+        });
+
+        test('arrow keys re-enter the menu when focus has wandered outside it', async () => {
+            const items = await openMenu();
+            trigger.focus();
+            press('ArrowDown');
+            expect(document.activeElement).toBe(items[0]);
         });
     });
 
