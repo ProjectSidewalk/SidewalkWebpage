@@ -1,4 +1,4 @@
-.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh stage-import test-python lint-evolutions scalafmt scalafmt-fix
+.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh stage-import test-python lint-evolutions lint-locales scalafmt scalafmt-fix
 
 db ?= sidewalk
 dir ?= ./
@@ -20,7 +20,7 @@ eslint-fix: | lint-fix-eslint
 stylelint-fix: | lint-fix-stylelint
 
 lint:
-	@make lint-eslint; make lint-htmlhint; make lint-stylelint
+	@make lint-eslint; make lint-htmlhint; make lint-stylelint; make lint-locales
 
 lint-fix:
 	@make lint-fix-eslint; make lint-fix-stylelint
@@ -72,6 +72,14 @@ reveal-or-hide-neighborhoods:
 lint-evolutions:
 	@bash db/scripts/lint-evolutions.sh
 
+# Cross-locale key-parity check for public/locales/ (i18next-aware: plural-suffix + override-only handling that the
+# eslint-plugin-i18n-json rules can't do). Pure-node, no node_modules, but run in the web container so node is present,
+# matching the other lint targets. Also a blocking step in CI's frontend job.
+lint-locales:
+	@echo "Checking locale parity...";
+	@docker exec projectsidewalk-web bash -lc "cd /home && node tools/check-locale-parity.mjs"
+	@echo "Finished checking locale parity";
+
 # Scala formatting (.scalafmt.conf), the backend counterpart to the eslint/stylelint targets above. Runs in the web
 # container via the sbt thin client (`--client`) so it shares the running `sbt ~ run`'s server instead of colliding
 # with it over build locks. `scalafmt` checks (matches the blocking CI gate); `scalafmt-fix` reformats in place.
@@ -97,7 +105,7 @@ lint-htmlhint:
 lint-eslint:
 	@echo "Running eslint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) public/js/"; \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) public/js/ public/locales/"; \
 	else \
 		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) $(dir)"; \
 	fi
@@ -118,7 +126,7 @@ lint-stylelint:
 lint-fix-eslint:
 	@echo "Running eslint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) public/js/"; \
+		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) public/js/ public/locales/"; \
 	else \
 		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) $(dir)"; \
 	fi

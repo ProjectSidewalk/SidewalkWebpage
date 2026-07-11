@@ -82,7 +82,7 @@ jobs:
       # failed, so a contributor sees build and lint problems in one run. Auto-fix locally with `make eslint-fix`.
       - name: ESLint (blocking)
         if: always()
-        run: npx eslint public/js/
+        run: npx eslint public/js/ public/locales/
 
       # Blocking: the CSS tree is kept stylelint-clean (#2487), the CSS counterpart to the ESLint gate above. Same glob
       # `make stylelint` defaults to; vendored/generated CSS is carved out by stylelint.config.mjs's own `ignoreFiles`.
@@ -101,6 +101,14 @@ jobs:
       - name: HTMLHint (blocking)
         if: always()
         run: npx htmlhint app/views
+
+      # Blocking: cross-locale key parity for public/locales/. Pure-node (no deps), i18next-aware where
+      # eslint-plugin-i18n-json isn't -- it normalizes plural suffixes and treats en-US/en-NZ and the per-city overlays
+      # as override-only. Complements the per-file i18n-json ESLint rules run above. `if: always()` so it reports even
+      # when an earlier frontend step failed. Run locally with `make lint-locales`.
+      - name: Locale parity (blocking)
+        if: always()
+        run: node tools/check-locale-parity.mjs
 
   evolutions-lint:
     name: Evolutions lint
