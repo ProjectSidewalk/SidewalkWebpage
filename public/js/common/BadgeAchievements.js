@@ -17,6 +17,16 @@ class BadgeAchievements {
 
   static ROMAN = Object.freeze(['I', 'II', 'III', 'IV', 'V']);
 
+  // Themed, progressively cooler level names per badge type — the single source of truth for the dashboard/profile
+  // tier pills (e.g. "Labeler IV: Barrier Buster"). Index 0 = level I. Brand names kept in English for now (the badge
+  // *type* names are i18n'd via #NAME_KEYS; these per-level names can move to i18n later if we localize them).
+  static LEVEL_NAMES = Object.freeze({
+    missions: ['First Steps', 'Trailblazer', 'Pathfinder', 'Quest Master', 'Grand Wayfarer'],
+    distance: ['Block Walker', 'Neighborhood Nomad', 'District Rambler', 'City Trekker', 'Metro Voyager'],
+    labels: ['Curb Spotter', 'Sidewalk Scout', 'Access Ace', 'Barrier Buster', 'Sidewalk Sage'],
+    validations: ['Fact Checker', 'Peer Reviewer', 'Quality Guardian', 'Truth Keeper', 'Validation Virtuoso'],
+  });
+
   // i18next key (in the shared `common` namespace) for each badge type's display name, e.g. "Explorer".
   static #NAME_KEYS = Object.freeze({
     missions: 'common:badges.adventurer-name',

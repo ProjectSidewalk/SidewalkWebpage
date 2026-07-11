@@ -39,6 +39,26 @@ rather than as `push(...)` events. These values come from the **Bowser** library
 sniffing, use a different vocabulary (`mozilla` for Firefox, `MacOS`, `UNIX`); newer rows use Bowser's (`Firefox`,
 `macOS`, `Linux`, …). When analyzing browser/OS across time ranges, expect both.
 
+### Page-level activity (`webpage_activity`)
+
+Separate from the per-tool trackers, a lighter path records **page visits and one-off actions** on pages that aren't
+the labeling tools (dashboards, leaderboard, settings, API docs, admin, …). These land in the **`webpage_activity`**
+table (`app/models/utils/WebpageActivityTable.scala`) rather than the interaction tables above:
+
+- **Backend** — a controller calls `LoggingService.insert(userId, ipAddress, activity)` (`app/service/LoggingService.scala`),
+  typically once per request to mark a page view or a server-handled action.
+- **Frontend** — `window.logWebpageActivity(activity)` (set up in `common/AppManager.js`) POSTs to
+  `/userapi/logWebpageActivity` for client-side clicks.
+
+Two naming conventions dominate here: **`Visit_<Page>`** for a page view (e.g. `Visit_UserDashboardPreview`,
+`Visit_LeaderboardPreview`, `Visit_SettingsPreview`, `Visit_PublicProfilePreview`) and **`Click_module=<Action>`** for
+a discrete action (e.g. `Click_module=SaveSettings`, `Click_module=CreateTeam`, `Click_module=MistakeVote_agrees=<bool>`, `Click_module=MistakeNote`).
+Follow these when adding a page or action. The current set lives in the code — grep the controllers:
+
+```bash
+grep -rhoE 'loggingService\.insert\([^)]*"[^"]+"' app/controllers | grep -oE '"[^"]+"$' | sort -u
+```
+
 ## Event naming
 
 Most events are fixed, transparently-named strings (`ContextMenu_Open`, `Onboarding_Start`, `Click_ZoomIn`). The ones

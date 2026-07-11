@@ -157,7 +157,18 @@ GET     /contribution/streets                           controllers.UserProfileC
 GET     /contribution/streets/all                       controllers.UserProfileController.getAllStreets(filterLowQuality: Boolean ?= false, regions: Option[String] ?= None, routes: Option[String] ?= None)
 GET     /contribution/auditCounts/all                   controllers.AdminController.getAllAuditCounts
 GET     /dashboard                                      controllers.UserProfileController.userProfile
+# Redesigned dashboard + leaderboard prototype (behind /preview; prod routes above/at /leaderboard stay live until parity).
+GET     /dashboard/preview                              controllers.UserDashboardController.dashboardPreview
+GET     /dashboard/preview/settings                     controllers.UserDashboardController.settingsPreview
+POST    /dashboard/preview/settings                     controllers.UserDashboardController.saveSettings
+GET     /dashboard/preview/u/:username                  controllers.UserDashboardController.publicProfilePreview(username: String)
+GET     /leaderboard/preview                            controllers.UserDashboardController.leaderboardPreview
+# Public-profile map data: username-keyed, gated on the target's public_profile flag (or owner). Returns 403 if private.
+GET     /userapi/public/:username/streets               controllers.UserProfileController.getPublicAuditedStreets(username: String)
+GET     /userapi/public/:username/labels                controllers.UserProfileController.getPublicSubmittedLabels(username: String)
 GET     /userapi/mistakes                               controllers.UserProfileController.getRecentMistakes(userId: String, n: Int ?= 5)
+POST    /userapi/mistakeVote                             controllers.UserProfileController.mistakeVote()
+POST    /userapi/mistakeNote                             controllers.UserProfileController.mistakeNote()
 
 GET     /userapi/basicStats                             controllers.UserProfileController.getBasicUserStats
 GET     /userapi/labels                                 controllers.UserProfileController.getSubmittedLabels(userId: String, regionId: Option[Int] ?= None)

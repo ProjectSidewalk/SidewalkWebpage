@@ -83,6 +83,8 @@ trait LabelService {
       labelTypes: Set[LabelTypeEnum.Base],
       nPerType: Int
   ): Future[Map[LabelTypeEnum.Base, Seq[LabelMetadataUserDash]]]
+  def recordMistakeVote(labelId: Int, userId: String, agrees: Boolean): Future[Boolean]
+  def recordMistakeNote(labelId: Int, userId: String, comment: Option[String]): Future[Boolean]
   def getLabelsFromUserInRegion(regionId: Int, userId: String): Future[Seq[ResumeLabelMetadata]]
   def insertLabel(label: Label): DBIO[Int]
   def updateLabelFromExplore(
@@ -531,6 +533,12 @@ class LabelServiceImpl @Inject() (
       })
       .map(_.toMap)
   }
+
+  def recordMistakeVote(labelId: Int, userId: String, agrees: Boolean): Future[Boolean] =
+    db.run(labelTable.recordMistakeVote(labelId, userId, agrees))
+
+  def recordMistakeNote(labelId: Int, userId: String, comment: Option[String]): Future[Boolean] =
+    db.run(labelTable.recordMistakeNote(labelId, userId, comment))
 
   def getLabelsFromUserInRegion(regionId: Int, userId: String): Future[Seq[ResumeLabelMetadata]] =
     db.run(labelTable.getLabelsFromUserInRegion(regionId, userId))
