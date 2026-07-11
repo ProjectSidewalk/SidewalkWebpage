@@ -6,81 +6,81 @@
 // stylistic rules in v16 (the same move ESLint made) and the plugin is their non-deprecated home — mirroring our
 // @stylistic/eslint-plugin choice on the JS side rather than delegating formatting to Prettier.
 export default {
-    // Current-standard CSS conventions (correctness rules plus opinions like modern `rgb(0 0 0 / 50%)` color notation).
-    // Listed first so the explicit rules below override it.
-    extends: ['stylelint-config-standard'],
-    plugins: ['@stylistic/stylelint-plugin', 'stylelint-plugin-use-baseline'],
-    // Generated bundles and vendored libraries. Unlike JS (where vendored code all lives under lib/), some vendored
-    // CSS sits directly in public/stylesheets/ next to our own files, so it's carved out file-by-file.
-    ignoreFiles: [
-        'public/javascripts/**/build/**',
-        'public/javascripts/lib/**',
-        'public/stylesheets/bootstrap/**',
-        'public/stylesheets/animate.css',
-        'public/stylesheets/dataTables.bootstrap.min.css',
-        'public/stylesheets/magnific-popup.css',
-        'public/stylesheets/pannellum-2.5.7.css',
+  // Current-standard CSS conventions (correctness rules plus opinions like modern `rgb(0 0 0 / 50%)` color notation).
+  // Listed first so the explicit rules below override it.
+  extends: ['stylelint-config-standard'],
+  plugins: ['@stylistic/stylelint-plugin', 'stylelint-plugin-use-baseline'],
+  // Generated bundles and vendored libraries. Unlike JS (where vendored code all lives under lib/), some vendored
+  // CSS sits directly in public/stylesheets/ next to our own files, so it's carved out file-by-file.
+  ignoreFiles: [
+    'public/javascripts/**/build/**',
+    'public/javascripts/lib/**',
+    'public/stylesheets/bootstrap/**',
+    'public/stylesheets/animate.css',
+    'public/stylesheets/dataTables.bootstrap.min.css',
+    'public/stylesheets/magnific-popup.css',
+    'public/stylesheets/pannellum-2.5.7.css',
+  ],
+  rules: {
+    // Only allow CSS features that are Baseline "newly available" (shipped in every core browser, but not yet for
+    // the 30+ months "widely" requires) — the CSS analogue of the JS side's ES2022 target. Wrap genuinely
+    // bleeding-edge exceptions in @supports.
+    //
+    // ignoreProperties allowlists four features the plugin classifies as "limited availability" (not Baseline at
+    // any tier) that we've reviewed and accepted: each degrades gracefully when unsupported (a lost visual/UX
+    // nicety, never broken layout), and the two that just need a vendor prefix already carry a -webkit- sibling.
+    // An empty array ignores only the property-level flag; a value list is required for the features the plugin
+    // flags per-value (user-select, overscroll-behavior, background-attachment), and scopes the ignore to those.
+    //   - user-select: none:            text becomes selectable mid-drag; -webkit- prefix covers Safari.
+    //   - resize:                       textarea shows/omits its resize grip.
+    //   - overscroll-behavior: contain: scroll can chain to the page behind a modal.
+    //   - background-attachment: fixed: footer parallax falls back to normal scroll (already a no-op on mobile).
+    'plugin/use-baseline': [
+      true,
+      {
+        available: 'newly',
+        ignoreProperties: {
+          'user-select': ['none'],
+          resize: [],
+          'overscroll-behavior': ['contain'],
+          'background-attachment': ['fixed'],
+        },
+      },
     ],
-    rules: {
-        // Only allow CSS features that are Baseline "newly available" (shipped in every core browser, but not yet for
-        // the 30+ months "widely" requires) — the CSS analogue of the JS side's ES2022 target. Wrap genuinely
-        // bleeding-edge exceptions in @supports.
-        //
-        // ignoreProperties allowlists four features the plugin classifies as "limited availability" (not Baseline at
-        // any tier) that we've reviewed and accepted: each degrades gracefully when unsupported (a lost visual/UX
-        // nicety, never broken layout), and the two that just need a vendor prefix already carry a -webkit- sibling.
-        // An empty array ignores only the property-level flag; a value list is required for the features the plugin
-        // flags per-value (user-select, overscroll-behavior, background-attachment), and scopes the ignore to those.
-        //   - user-select: none:            text becomes selectable mid-drag; -webkit- prefix covers Safari.
-        //   - resize:                       textarea shows/omits its resize grip.
-        //   - overscroll-behavior: contain: scroll can chain to the page behind a modal.
-        //   - background-attachment: fixed: footer parallax falls back to normal scroll (already a no-op on mobile).
-        'plugin/use-baseline': [
-            true,
-            {
-                available: 'newly',
-                ignoreProperties: {
-                    'user-select': ['none'],
-                    resize: [],
-                    'overscroll-behavior': ['contain'],
-                    'background-attachment': ['fixed'],
-                },
-            },
-        ],
 
-        'declaration-empty-line-before': null,
-        'custom-property-empty-line-before': null,
-        'color-hex-length': 'long',
-        'no-descending-specificity': null,
+    'declaration-empty-line-before': null,
+    'custom-property-empty-line-before': null,
+    'color-hex-length': 'long',
+    'no-descending-specificity': null,
 
-        // No Autoprefixer in the build (Grunt concatenates only), so vendor prefixes are written by hand and are
-        // legitimate. config-standard bans them assuming a build-time autoprefixer we don't run.
-        'property-no-vendor-prefix': null,
-        'value-no-vendor-prefix': null,
-        'selector-no-vendor-prefix': null,
-        'at-rule-no-vendor-prefix': null,
-        'media-feature-name-no-vendor-prefix': null,
+    // No Autoprefixer in the build (Grunt concatenates only), so vendor prefixes are written by hand and are
+    // legitimate. config-standard bans them assuming a build-time autoprefixer we don't run.
+    'property-no-vendor-prefix': null,
+    'value-no-vendor-prefix': null,
+    'selector-no-vendor-prefix': null,
+    'at-rule-no-vendor-prefix': null,
+    'media-feature-name-no-vendor-prefix': null,
 
-        // Kebab-case BEM (block__element--modifier). config-standard's pattern is plain kebab-case and rejects the
-        // __/-- delimiters; this widens it to allow an optional __element and --modifier, each kebab-case internally.
-        'selector-class-pattern': [
-            '^[a-z][a-z0-9]*(-[a-z0-9]+)*(__[a-z0-9]+(-[a-z0-9]+)*)?(--[a-z0-9]+(-[a-z0-9]+)*)?$',
-            { message: 'Expected class selector to be kebab-case BEM (block__element--modifier)' },
-        ],
+    // Kebab-case BEM (block__element--modifier). config-standard's pattern is plain kebab-case and rejects the
+    // __/-- delimiters; this widens it to allow an optional __element and --modifier, each kebab-case internally.
+    'selector-class-pattern': [
+      '^[a-z][a-z0-9]*(-[a-z0-9]+)*(__[a-z0-9]+(-[a-z0-9]+)*)?(--[a-z0-9]+(-[a-z0-9]+)*)?$',
+      {message: 'Expected class selector to be kebab-case BEM (block__element--modifier)'},
+    ],
 
-        // --- Stylistic/formatting rules (@stylistic plugin) ---
-        '@stylistic/indentation': 2,
-        '@stylistic/string-quotes': 'double',
-        '@stylistic/max-empty-lines': 2,
-        // One declaration per line. config-standard's declaration-block-single-line-max-declarations flags packed
-        // one-liners but can't fix them; this @stylistic rule carries the fixer, so `make stylelint-fix` splits them.
-        '@stylistic/declaration-block-semicolon-newline-after': 'always',
-        // Braces on their own lines for multi-line blocks (newline after `{`, before `}`), so a split block reads as
-        // one-declaration-per-line rather than leaving the outer declarations hugging the braces. `-multi-line` leaves
-        // genuine single-declaration one-liners (`.spacer10 { height: 10px; }`) compact.
-        '@stylistic/block-opening-brace-newline-after': 'always-multi-line',
-        '@stylistic/block-closing-brace-newline-before': 'always-multi-line',
-        // Warning, not error, matching the JS max-len rule: CLAUDE.md sanctions long-line exceptions.
-        '@stylistic/max-line-length': [120, { severity: 'warning' }],
-    },
+    // --- Stylistic/formatting rules (@stylistic plugin) ---
+    '@stylistic/indentation': 2,
+    '@stylistic/string-quotes': 'double',
+    '@stylistic/max-empty-lines': 2,
+    // One declaration per line. config-standard's declaration-block-single-line-max-declarations flags packed
+    // one-liners but can't fix them; this @stylistic rule carries the fixer, so `make stylelint-fix` splits them.
+    '@stylistic/declaration-block-semicolon-newline-after': 'always',
+    // Braces on their own lines for multi-line blocks (newline after `{`, before `}`), so a split block reads as
+    // one-declaration-per-line rather than leaving the outer declarations hugging the braces. `-multi-line` leaves
+    // genuine single-declaration one-liners (`.spacer10 { height: 10px; }`) compact.
+    '@stylistic/block-opening-brace-newline-after': 'always-multi-line',
+    '@stylistic/block-closing-brace-newline-before': 'always-multi-line',
+    // Warning, not error, matching the JS max-len rule: CLAUDE.md sanctions long-line exceptions.
+    '@stylistic/max-line-length': [120, {severity: 'warning'}],
+  },
 };

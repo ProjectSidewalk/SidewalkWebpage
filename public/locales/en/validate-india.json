@@ -1,10 +1,10 @@
 {
-    "top-ui": {
-        "title": {
-            "curb-ramp": "Is this a <b>Curb Style</b>?"
-        }
-    },
-    "mission-complete": {
-        "body-1": "You just validated {{n}} Curb Style labels."
+  "top-ui": {
+    "title": {
+      "curb-ramp": "Is this a <b>Curb Style</b>?"
     }
+  },
+  "mission-complete": {
+    "body-1": "You just validated {{n}} Curb Style labels."
+  }
 }

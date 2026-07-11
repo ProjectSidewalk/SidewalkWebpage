@@ -1,6 +1,6 @@
 {
-    "tag": {
-        "pole": "Pfosten/Verkehrsschild/Strassenlaterne",
-        "APS": "taktil-hörbare Box"
-    }
+  "tag": {
+    "pole": "Pfosten/Verkehrsschild/Strassenlaterne",
+    "APS": "taktil-hörbare Box"
+  }
 }
