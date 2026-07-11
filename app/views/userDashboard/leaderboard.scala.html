@@ -2,20 +2,20 @@
 @import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStanding}
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole, isSignedIn: Boolean, isMetric: Boolean, cityName: String,
-        aggregate: AggregateStats, overall: Seq[LeaderboardStat], weekly: Seq[LeaderboardStat],
-        teams: Seq[LeaderboardStat], standing: Option[UserStanding]
+    aggregate: AggregateStats, overall: Seq[LeaderboardStat], weekly: Seq[LeaderboardStat],
+    teams: Seq[LeaderboardStat], standing: Option[UserStanding]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
- * Redesigned Leaderboard, all real data: the cross-city community band (getAggregateStats), the podium + this-week +
- * teams + all-time tables (getLeaderboardStats), and "you vs community" (getUserStanding). PUBLIC page: anyone incl.
- * anonymous can view; personal "you" pieces render only when signed in, with a sign-up CTA otherwise.
- *@
+* Redesigned Leaderboard, all real data: the cross-city community band (getAggregateStats), the podium + this-week +
+* teams + all-time tables (getLeaderboardStats), and "you vs community" (getUserStanding). PUBLIC page: anyone incl.
+* anonymous can view; personal "you" pieces render only when signed in, with a sign-up CTA otherwise.
+*@
 
 @* Unit-aware distance, matching the live leaderboard's formatting (km/m for metric, miles/feet otherwise). *@
 @fmtDist(m: Double) = @{
-    if (isMetric) { if (m > 2000) f"${m / 1000}%.1f km" else f"$m%.0f m" }
-    else { val ft = m * 3.28084; if (ft > 2500) f"${ft / 5280}%.1f mi" else f"$ft%.0f ft" }
+  if (isMetric) { if (m > 2000) f"${m / 1000}%.1f km" else f"$m%.0f m" }
+  else { val ft = m * 3.28084; if (ft > 2500) f"${ft / 5280}%.1f mi" else f"$ft%.0f ft" }
 }
 
 @* Accuracy as a whole percent, or "N/A" when there aren't enough validated labels to be meaningful. *@
@@ -26,198 +26,198 @@
 
 @* Total distance explored across all cities, unit-aware and comma-grouped (kmExplored is stored in km). *@
 @fmtBigDist(km: Double) = @{
-    if (isMetric) f"${"%,.0f".format(km)} km" else f"${"%,.0f".format(km * 0.621371)} mi"
+  if (isMetric) f"${"%,.0f".format(km)} km" else f"${"%,.0f".format(km * 0.621371)} mi"
 }
 
 @* Shared header row for the ranked tables. The Accuracy column carries a hover/focus tooltip explaining the metric. *@
 @lbHead(entity: String) = {
-    <tr>
-        <th>#</th><th>@entity</th><th>Labels</th><th>Missions</th><th>Distance</th>
-        <th><span class="ud-th-tip" tabindex="0" role="note" aria-label="How accuracy is calculated: the share of a mapper's validated labels that other mappers agreed were correct. Shown once they have at least 10 validated labels." data-tooltip="The share of a mapper's validated labels that other mappers agreed were correct. Shown once they have at least 10 validated labels.">Accuracy<span class="ud-th-info" aria-hidden="true">&#9432;</span></span></th>
-    </tr>
+  <tr>
+    <th>#</th><th>@entity</th><th>Labels</th><th>Missions</th><th>Distance</th>
+    <th><span class="ud-th-tip" tabindex="0" role="note" aria-label="How accuracy is calculated: the share of a mapper's validated labels that other mappers agreed were correct. Shown once they have at least 10 validated labels." data-tooltip="The share of a mapper's validated labels that other mappers agreed were correct. Shown once they have at least 10 validated labels.">Accuracy<span class="ud-th-info" aria-hidden="true">&#9432;</span></span></th>
+  </tr>
 }
 
 @rankCell(rank: Int) = @{
-    rank match {
-        case 1 => "🥇"
-        case 2 => "🥈"
-        case 3 => "🥉"
-        case _ => rank.toString
-    }
+  rank match {
+    case 1 => "🥇"
+    case 2 => "🥈"
+    case 3 => "🥉"
+    case _ => rank.toString
+  }
 }
 
 @statRow(rank: Int, stat: LeaderboardStat, linkUser: Boolean) = {
-    @defining(linkUser && isSignedIn && stat.username == user.username) { you =>
-        <tr @if(you){class="highlighted"}>
-            <td class="ud-lb-rank">@rankCell(rank)</td>
-            <td>@if(you){<strong>You</strong>}else{
-                @if(linkUser){<a href="@routes.UserDashboardController.publicProfilePreview(stat.username)" class="ud-lb-user">@stat.username</a>}else{@stat.username}
-            }</td>
-            <td>@{"%,d".format(stat.labelCount)}</td>
-            <td>@stat.missionCount</td>
-            <td>@fmtDist(stat.distanceMeters)</td>
-            <td>@fmtAcc(stat.accuracy)</td>
-        </tr>
-    }
+  @defining(linkUser && isSignedIn && stat.username == user.username) { you =>
+    <tr @if(you){class="highlighted"}>
+      <td class="ud-lb-rank">@rankCell(rank)</td>
+      <td>@if(you){<strong>You</strong>}else{
+        @if(linkUser){<a href="@routes.UserDashboardController.publicProfilePreview(stat.username)" class="ud-lb-user">@stat.username</a>}else{@stat.username}
+      }</td>
+      <td>@{"%,d".format(stat.labelCount)}</td>
+      <td>@stat.missionCount</td>
+      <td>@fmtDist(stat.distanceMeters)</td>
+      <td>@fmtAcc(stat.accuracy)</td>
+    </tr>
+  }
 }
 
 @podiumSpot(stat: LeaderboardStat, place: Int, medal: String) = {
-    <div class="ud-podium-spot ud-podium-@place">
-        <div class="ud-podium-name"><a href="@routes.UserDashboardController.publicProfilePreview(stat.username)" class="ud-lb-user">@stat.username</a></div>
-        <div class="ud-podium-score">@{"%,d".format(stat.labelCount)} labels</div>
-        <div class="ud-podium-block" aria-hidden="true">@medal</div>
-    </div>
+  <div class="ud-podium-spot ud-podium-@place">
+    <div class="ud-podium-name"><a href="@routes.UserDashboardController.publicProfilePreview(stat.username)" class="ud-lb-user">@stat.username</a></div>
+    <div class="ud-podium-score">@{"%,d".format(stat.labelCount)} labels</div>
+    <div class="ud-podium-block" aria-hidden="true">@medal</div>
+  </div>
 }
 
 @content = {
-    <div class="api-section" id="lb-intro-section">
-        <h1 class="api-heading" id="leaderboard">Leaderboard <a href="#leaderboard" class="permalink">#</a></h1>
-        <p>Every label makes sidewalks more accessible and safe for everyone. Here's how the community@if(isSignedIn){ — and you} — are doing.</p>
+  <div class="api-section" id="lb-intro-section">
+    <h1 class="api-heading" id="leaderboard">Leaderboard <a href="#leaderboard" class="permalink">#</a></h1>
+    <p>Every label makes sidewalks more accessible and safe for everyone. Here's how the community@if(isSignedIn){ — and you} — are doing.</p>
 
-        @if(!isSignedIn) {
-            <div class="ud-cta">
-                <div class="ud-cta-text">
-                    <strong>Want to see where you rank?</strong>
-                    <span>Create a free account to track your labels, earn badges and trophies, and climb the board.</span>
-                </div>
-                <div class="ud-cta-actions">
-                    <a class="ud-btn-primary" href="@routes.UserController.signUp()">Create an account</a>
-                    <a class="ud-btn-secondary" href="@routes.UserController.signIn()">Sign in</a>
-                </div>
-            </div>
-        }
-    </div>
-
-    @* ---- Podium (real: top 3 all-time) -------------------------------------------------------------------- *@
-    <div class="api-section" id="lb-podium-section">
-        <h2 class="api-heading" id="podium">Top of the board <a href="#podium" class="permalink">#</a></h2>
-        <p>@{cityName}'s all-time leaders. 🏆</p>
-        @if(overall.length >= 3) {
-            <div class="ud-podium">
-                @podiumSpot(overall(1), 2, "🥈")
-                @podiumSpot(overall(0), 1, "🥇")
-                @podiumSpot(overall(2), 3, "🥉")
-            </div>
-        } else {
-            <div class="ud-nudge">🌱 The board is just getting started — be one of the first to top it. Start mapping!</div>
-        }
-    </div>
-
-    @* ---- All-time (real) ---------------------------------------------------------------------------------- *@
-    <div class="api-section" id="lb-alltime-section">
-        <h2 class="api-heading" id="all-time">All-time <a href="#all-time" class="permalink">#</a></h2>
-        <p>The top all-time mappers ranked by overall score</p>
-        <details class="ud-explainer">
-            <summary>How is the ranking computed?</summary>
-            <div>Rank is an overall <strong>score</strong> that rewards a balance of <strong>labels placed</strong>,
-                <strong>distance explored</strong>, and <strong>label accuracy</strong> — so steady, high-quality
-                mapping counts for more than sheer volume. That's why the label counts below aren't in strict order.
-                (The weekly and team boards use the same score.)</div>
-        </details>
-        @if(overall.nonEmpty) {
-            <div class="coverage-table-wrap">
-                <table class="coverage-table">
-                    <thead>
-                        @lbHead("Mapper")
-                    </thead>
-                    <tbody>
-                        @for((stat, i) <- overall.zipWithIndex) { @statRow(i + 1, stat, linkUser = true) }
-                    </tbody>
-                </table>
-            </div>
-        } else {
-            <div class="ud-nudge">🌱 No labels yet — you could be the very first name here.</div>
-        }
-    </div>
-
-    @* ---- This week (real) --------------------------------------------------------------------------------- *@
-    <div class="api-section" id="lb-weekly-section">
-        <h2 class="api-heading" id="weekly">This week <a href="#weekly" class="permalink">#</a></h2>
-        <p>Fresh every Monday — the best place to climb fast.</p>
-        @if(weekly.nonEmpty) {
-            <div class="coverage-table-wrap">
-                <table class="coverage-table">
-                    <thead>
-                        @lbHead("Mapper")
-                    </thead>
-                    <tbody>
-                        @for((stat, i) <- weekly.zipWithIndex) { @statRow(i + 1, stat, linkUser = true) }
-                    </tbody>
-                </table>
-            </div>
-        } else {
-            <div class="ud-nudge">✨ No labels yet this week — be the first on the board!</div>
-        }
-    </div>
-
-    @* ---- Teams (real) ------------------------------------------------------------------------------------- *@
-    <div class="api-section" id="lb-teams-section">
-        <h2 class="api-heading" id="teams">Teams <a href="#teams" class="permalink">#</a></h2>
-        <p>Create or join a team to make a difference together!</p>
-        @if(teams.nonEmpty) {
-            <div class="coverage-table-wrap">
-                <table class="coverage-table">
-                    <thead>
-                        @lbHead("Team")
-                    </thead>
-                    <tbody>
-                        @for((stat, i) <- teams.zipWithIndex) { @statRow(i + 1, stat, linkUser = false) }
-                    </tbody>
-                </table>
-            </div>
-        } else {
-            <div class="ud-nudge">👥 No teams yet — be the first! Create one and invite friends or classmates.</div>
-        }
-        @if(isSignedIn) {
-            <button type="button" class="ud-btn-primary ud-create-team-btn"><span class="ud-btn-plus" aria-hidden="true">+</span> Create a team</button>
-        }
-    </div>
-
-    @* ---- Your place in the community (signed-in only) ------------------------------------------------------ *@
-    @if(isSignedIn) {
-        <div class="api-section" id="lb-you-section">
-            <h2 class="api-heading" id="you">Your place in the community <a href="#you" class="permalink">#</a></h2>
-            <p>Where you sit this week, and who's just ahead and behind.</p>
-            @userDashboard._standing(standing, seeAllLink = false)
+    @if(!isSignedIn) {
+      <div class="ud-cta">
+        <div class="ud-cta-text">
+          <strong>Want to see where you rank?</strong>
+          <span>Create a free account to track your labels, earn badges and trophies, and climb the board.</span>
         </div>
-    }
-
-    @* ---- Community impact band (cross-city, real: getAggregateStats — #3719) -------------------------------- *@
-    <div class="api-section" id="lb-global-section">
-        <h2 class="api-heading" id="global">Community impact <a href="#global" class="permalink">#</a></h2>
-        <p>The whole Project Sidewalk community, across every city.</p>
-        <div class="ud-community-band">
-            <div class="ud-community-stat">
-                <img class="ud-community-icon" src="@assets.path("images/icons/project_sidewalk_flag.png")" alt="">
-                <span class="ud-community-value">@fmtBig(aggregate.totalUsers)</span><span class="ud-community-label">Contributors</span>
-            </div>
-            <div class="ud-community-stat">
-                <img class="ud-community-icon" src="@assets.path("images/icons/noun_pin_location_2342268_cropped.png")" alt="">
-                <span class="ud-community-value">@fmtBig(aggregate.totalLabels)</span><span class="ud-community-label">Labels placed</span>
-            </div>
-            <div class="ud-community-stat">
-                <img class="ud-community-icon" src="@assets.path("images/icons/noun_validation_1876484_cropped.png")" alt="">
-                <span class="ud-community-value">@fmtBig(aggregate.totalValidations)</span><span class="ud-community-label">Validations</span>
-            </div>
-            <div class="ud-community-stat">
-                <img class="ud-community-icon" src="@assets.path("images/icons/noun_distance_2587675_cropped.png")" alt="">
-                <span class="ud-community-value">@fmtBigDist(aggregate.kmExplored)</span><span class="ud-community-label">Streets explored</span>
-            </div>
-            <div class="ud-community-stat">
-                @* Placeholder globe until a matching line-art cities icon is added (Jon to source). *@
-                <span class="ud-community-emoji" aria-hidden="true">🌎</span>
-                <span class="ud-community-value">@aggregate.numCities</span><span class="ud-community-label">Cities</span>
-            </div>
+        <div class="ud-cta-actions">
+          <a class="ud-btn-primary" href="@routes.UserController.signUp()">Create an account</a>
+          <a class="ud-btn-secondary" href="@routes.UserController.signIn()">Sign in</a>
         </div>
-    </div>
-
-    @if(isSignedIn) {
-        @userDashboard._createTeamDialog()
-        <script src="@assets.path("javascripts/UserDashboard/src/TeamCreate.js")"></script>
+      </div>
     }
+  </div>
+
+  @* ---- Podium (real: top 3 all-time) -------------------------------------------------------------------- *@
+  <div class="api-section" id="lb-podium-section">
+    <h2 class="api-heading" id="podium">Top of the board <a href="#podium" class="permalink">#</a></h2>
+    <p>@{cityName}'s all-time leaders. 🏆</p>
+    @if(overall.length >= 3) {
+      <div class="ud-podium">
+        @podiumSpot(overall(1), 2, "🥈")
+        @podiumSpot(overall(0), 1, "🥇")
+        @podiumSpot(overall(2), 3, "🥉")
+      </div>
+    } else {
+      <div class="ud-nudge">🌱 The board is just getting started — be one of the first to top it. Start mapping!</div>
+    }
+  </div>
+
+  @* ---- All-time (real) ---------------------------------------------------------------------------------- *@
+  <div class="api-section" id="lb-alltime-section">
+    <h2 class="api-heading" id="all-time">All-time <a href="#all-time" class="permalink">#</a></h2>
+    <p>The top all-time mappers ranked by overall score</p>
+    <details class="ud-explainer">
+      <summary>How is the ranking computed?</summary>
+      <div>Rank is an overall <strong>score</strong> that rewards a balance of <strong>labels placed</strong>,
+        <strong>distance explored</strong>, and <strong>label accuracy</strong> — so steady, high-quality
+        mapping counts for more than sheer volume. That's why the label counts below aren't in strict order.
+        (The weekly and team boards use the same score.)</div>
+    </details>
+    @if(overall.nonEmpty) {
+      <div class="coverage-table-wrap">
+        <table class="coverage-table">
+          <thead>
+            @lbHead("Mapper")
+          </thead>
+          <tbody>
+            @for((stat, i) <- overall.zipWithIndex) { @statRow(i + 1, stat, linkUser = true) }
+          </tbody>
+        </table>
+      </div>
+    } else {
+      <div class="ud-nudge">🌱 No labels yet — you could be the very first name here.</div>
+    }
+  </div>
+
+  @* ---- This week (real) --------------------------------------------------------------------------------- *@
+  <div class="api-section" id="lb-weekly-section">
+    <h2 class="api-heading" id="weekly">This week <a href="#weekly" class="permalink">#</a></h2>
+    <p>Fresh every Monday — the best place to climb fast.</p>
+    @if(weekly.nonEmpty) {
+      <div class="coverage-table-wrap">
+        <table class="coverage-table">
+          <thead>
+            @lbHead("Mapper")
+          </thead>
+          <tbody>
+            @for((stat, i) <- weekly.zipWithIndex) { @statRow(i + 1, stat, linkUser = true) }
+          </tbody>
+        </table>
+      </div>
+    } else {
+      <div class="ud-nudge">✨ No labels yet this week — be the first on the board!</div>
+    }
+  </div>
+
+  @* ---- Teams (real) ------------------------------------------------------------------------------------- *@
+  <div class="api-section" id="lb-teams-section">
+    <h2 class="api-heading" id="teams">Teams <a href="#teams" class="permalink">#</a></h2>
+    <p>Create or join a team to make a difference together!</p>
+    @if(teams.nonEmpty) {
+      <div class="coverage-table-wrap">
+        <table class="coverage-table">
+          <thead>
+            @lbHead("Team")
+          </thead>
+          <tbody>
+            @for((stat, i) <- teams.zipWithIndex) { @statRow(i + 1, stat, linkUser = false) }
+          </tbody>
+        </table>
+      </div>
+    } else {
+      <div class="ud-nudge">👥 No teams yet — be the first! Create one and invite friends or classmates.</div>
+    }
+    @if(isSignedIn) {
+      <button type="button" class="ud-btn-primary ud-create-team-btn"><span class="ud-btn-plus" aria-hidden="true">+</span> Create a team</button>
+    }
+  </div>
+
+  @* ---- Your place in the community (signed-in only) ------------------------------------------------------ *@
+  @if(isSignedIn) {
+    <div class="api-section" id="lb-you-section">
+      <h2 class="api-heading" id="you">Your place in the community <a href="#you" class="permalink">#</a></h2>
+      <p>Where you sit this week, and who's just ahead and behind.</p>
+      @userDashboard._standing(standing, seeAllLink = false)
+    </div>
+  }
+
+  @* ---- Community impact band (cross-city, real: getAggregateStats — #3719) -------------------------------- *@
+  <div class="api-section" id="lb-global-section">
+    <h2 class="api-heading" id="global">Community impact <a href="#global" class="permalink">#</a></h2>
+    <p>The whole Project Sidewalk community, across every city.</p>
+    <div class="ud-community-band">
+      <div class="ud-community-stat">
+        <img class="ud-community-icon" src="@assets.path("images/icons/project_sidewalk_flag.png")" alt="">
+        <span class="ud-community-value">@fmtBig(aggregate.totalUsers)</span><span class="ud-community-label">Contributors</span>
+      </div>
+      <div class="ud-community-stat">
+        <img class="ud-community-icon" src="@assets.path("images/icons/noun_pin_location_2342268_cropped.png")" alt="">
+        <span class="ud-community-value">@fmtBig(aggregate.totalLabels)</span><span class="ud-community-label">Labels placed</span>
+      </div>
+      <div class="ud-community-stat">
+        <img class="ud-community-icon" src="@assets.path("images/icons/noun_validation_1876484_cropped.png")" alt="">
+        <span class="ud-community-value">@fmtBig(aggregate.totalValidations)</span><span class="ud-community-label">Validations</span>
+      </div>
+      <div class="ud-community-stat">
+        <img class="ud-community-icon" src="@assets.path("images/icons/noun_distance_2587675_cropped.png")" alt="">
+        <span class="ud-community-value">@fmtBigDist(aggregate.kmExplored)</span><span class="ud-community-label">Streets explored</span>
+      </div>
+      <div class="ud-community-stat">
+        @* Placeholder globe until a matching line-art cities icon is added (Jon to source). *@
+        <span class="ud-community-emoji" aria-hidden="true">🌎</span>
+        <span class="ud-community-value">@aggregate.numCities</span><span class="ud-community-label">Cities</span>
+      </div>
+    </div>
+  </div>
+
+  @if(isSignedIn) {
+    @userDashboard._createTeamDialog()
+    <script src="@assets.path("js/user-dashboard/TeamCreate.js")"></script>
+  }
 }
 
 @common.main(commonData, "Sidewalk - Leaderboard") {
-    @common.navbar(commonData, Some(user))
-    @userDashboard.layout("leaderboard")(content)
+  @common.navbar(commonData, Some(user))
+  @userDashboard.layout("leaderboard")(content)
 }

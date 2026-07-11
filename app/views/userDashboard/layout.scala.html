@@ -1,33 +1,33 @@
 @(activePage: String)(content: Html)(implicit request: RequestHeader, assets: AssetsFinder)
 
 @*
- * Shared shell for the redesigned User Dashboard + Leaderboard. Deliberately reuses the API-docs/admin-dashboard
- * stylesheets and their .api-* class names so all three surfaces look identical; user-dashboard.css adds only the
- * gamification components (streak heatmap, trophy case, podium, medals, standing widget). The right "On this page" TOC
- * is populated client-side from the page's h2/h3 headings by admin-shell.js (reused unchanged — it is generic).
- *
- * Unlike the admin dashboard (one page per route), the user surface is a small set of pages — Dashboard and
- * Leaderboard — so the left nav lists those surfaces and the right TOC handles within-page section navigation.
- *@
+* Shared shell for the redesigned User Dashboard + Leaderboard. Deliberately reuses the API-docs/admin-dashboard
+* stylesheets and their .api-* class names so all three surfaces look identical; user-dashboard.css adds only the
+* gamification components (streak heatmap, trophy case, podium, medals, standing widget). The right "On this page" TOC
+* is populated client-side from the page's h2/h3 headings by admin-shell.js (reused unchanged — it is generic).
+*
+* Unlike the admin dashboard (one page per route), the user surface is a small set of pages — Dashboard and
+* Leaderboard — so the left nav lists those surfaces and the right TOC handles within-page section navigation.
+*@
 
-<link rel="stylesheet" href="@assets.path("stylesheets/api-docs/api-docs.css")">
-<link rel="stylesheet" href="@assets.path("stylesheets/admin-dashboard/admin-dashboard.css")">
-<link rel="stylesheet" href="@assets.path("stylesheets/user-dashboard/user-dashboard.css")">
+<link rel="stylesheet" href="@assets.path("css/api-docs/api-docs.css")">
+<link rel="stylesheet" href="@assets.path("css/admin-dashboard/admin-dashboard.css")">
+<link rel="stylesheet" href="@assets.path("css/user-dashboard/user-dashboard.css")">
 
 <div class="api-container">
-    @userDashboard._sidebar(activePage)
+  @userDashboard._sidebar(activePage)
 
-    <main class="api-content">
-        @content
-    </main>
+  <main class="api-content">
+    @content
+  </main>
 
-    <aside class="api-toc" aria-label="On this page">
-        <div class="api-toc-header">On This Page</div>
-        <ul>
-            @* Populated by admin-shell.js from headings in .api-content. *@
-        </ul>
-    </aside>
+  <aside class="api-toc" aria-label="On this page">
+    <div class="api-toc-header">On This Page</div>
+    <ul>
+      @* Populated by admin-shell.js from headings in .api-content. *@
+    </ul>
+  </aside>
 </div>
 
-<script src="@assets.path("javascripts/common/UtilitiesSidewalk.js")"></script>
-<script src="@assets.path("javascripts/admin-dashboard/admin-shell.js")"></script>
+<script src="@assets.path("js/common/utilitiesSidewalk.js")"></script>
+<script src="@assets.path("js/admin-dashboard/AdminShell.js")"></script>
