@@ -75,6 +75,23 @@ orphans remain.
    open the various sub-menus. Then open a PR and deploy to the test servers so the requesting partner can review the
    live result.
 
+## Linting the translation files
+
+The frontend i18next JSON under `public/locales/` is linted in CI (blocking steps in the `frontend` job — see
+[`docs/testing-and-ci.md`](testing-and-ci.md)), in two layers:
+
+- **Per-file** — `eslint-plugin-i18n-json` (configured in [`eslint.config.js`](../eslint.config.js)) checks each file
+  for JSON validity, **duplicate keys** (a plain `JSON.parse` silently keeps the last of a duplicated key, so a dup
+  translation is otherwise invisible), and empty values. Run with `make eslint`.
+- **Cross-locale key parity** — `tools/check-locale-parity.mjs` (`make lint-locales`) checks that every locale carries
+  the same keys as the `en` reference. It's i18next-aware where the ESLint plugin isn't: it **normalizes plural
+  suffixes** (`_one`/`_other`/… legitimately differ per language's CLDR plural rules) and treats the regional
+  (`en-US`/`en-NZ`) and per-city (`*-zurich`/`*-india`) overlays as **override-only** — they may hold a subset of keys,
+  so it flags only keys that are *absent from the reference* (typos / stale keys), never missing ones.
+
+So when you add or remove a translation key, add or remove it across **all** full locales (the parity check enforces
+this); the overlays need only the keys they actually change.
+
 ## See also
 
 - [`CONTRIBUTING.md`](../CONTRIBUTING.md) — the contribution workflow this fits into.

@@ -166,7 +166,12 @@ When you catch yourself writing a frontend constant that mirrors a backend value
 - Replace uses of Bootstrap with native JS alternatives as you come across them
 - When writing SQL, avoid table aliases
 - After editing any Scala file, run `make scalafmt-fix` (reformats the whole tree in place via the sbt thin client) before treating the change as done — scalafmt is a blocking CI gate, so unformatted Scala fails the build. One run after a batch of edits is enough; no need to format after every single edit.
-- After editing any JavaScript file, run `make eslint-fix dir=<files or dirs you touched>`, then hand-fix anything `--fix` couldn't resolve — **`make eslint` must pass (zero errors/warnings) before the change is done**. The whole tree is lint-clean (#2487), so a bare `make eslint` should come back green; any finding it reports is yours to fix. ESLint is now a **blocking CI gate** (a step in the `frontend` job — see Continuous integration), the JS counterpart to the scalafmt rule above, so failing lint fails the build.
+- After editing frontend files, lint what you touched and get to zero before the change is done. All four frontend linters are **blocking CI gates** (steps in the `frontend` job — see Continuous integration), the JS/CSS/HTML/i18n counterparts to the scalafmt rule above, so a finding fails the build. The whole tree is lint-clean (#2487), so any finding is from your change.
+  - **JavaScript** (`public/js/`): `make eslint-fix dir=<what you touched>`, hand-fix what `--fix` can't, until `make eslint` passes.
+  - **CSS** (`public/css/`): `make stylelint-fix dir=<…>`, then `make stylelint`.
+  - **HTML** (Twirl views in `app/views/`): `make htmlhint`.
+  - **Translation JSON** (`public/locales/`): `make eslint` (per-file validity/dup-key checks) plus `make lint-locales` (cross-locale key parity).
+  - `make lint` runs all of them at once; `make lint-fix` autofixes the ESLint + Stylelint mechanical findings.
 - User interactions are logged (clicks, key presses, mode switches, pano changes, mission/task events, etc.) to the activity/interaction tables. When you **add or change an interaction**, add or adjust the corresponding logging so analytics stay complete; keep event names consistent with the existing ones, and update [`docs/logged-events.md`](docs/logged-events.md) (how logging works + the event reference).
 - Ensure WCAG 2.1/2.2 Level AA accessibility standards are met
 - When adding or refactoring code, use the fonts, colors, button styling, etc. defined in main.css :root. These are pulled from our "Design System Tokens" Figma, and we are pushing to use these going forward.
@@ -304,9 +309,9 @@ Good targets for inline comments:
 - Do not add a header just because a function was touched; only add one if it is missing
   and the function is non-trivial.
 
-## Linting Rules (`make eslint` must pass before check-in — now a blocking CI gate for JS, like Scala `scalafmt`; htmlhint/stylelint still manual — see Continuous integration)
+## Linting Rules (all four frontend linters must pass before check-in — blocking CI gates, like Scala `scalafmt`; see Continuous integration)
 - ESLint: ES2022, `const`/`let` only (no `var`), arrow functions, template literals, semicolons required, 120-char line limit
-- Stylelint: stylelint-config-standard + @stylistic (4-space indentation, 120-char lines) + Baseline widely-available features only (`stylelint.config.mjs`; rules still being iterated on — #2487)
+- Stylelint: stylelint-config-standard + @stylistic (2-space indentation, 120-char lines) + Baseline widely-available features only (`stylelint.config.mjs`)
 - HTMLHint: lowercase tags/attrs, double quotes, no inline scripts/styles, alt text required
 
 ## Testing the Local Web App
@@ -358,7 +363,7 @@ A **Python** unit suite (`pytest`) for the `scripts/` utilities lives under `tes
 
 ### Continuous integration
 
-`.github/workflows/ci.yml` runs on PRs and pushes to `develop`/`master`: backend **`sbt compile`** (blocking gate), **`scalafmtCheckAll`** (blocking — the tree is kept format-clean; auto-format with `make scalafmt-fix` / `sbt scalafmtAll`, config in `.scalafmt.conf`), the **frontend grunt build** plus **ESLint** (blocking — `npx eslint public/js/` as a step in the `frontend` job, so it rides the required `Frontend (build)` check; blocks on `error` rules, while the lone `warn` rule `max-len` is advisory so there's no `--max-warnings 0`; the JS tree is kept lint-clean, auto-fix with `make eslint-fix`; htmlhint/stylelint not yet wired in — #2487), the **evolutions lint** (blocking — static checks on `conf/evolutions/default/*.sql`, e.g. a semicolon mid-`--`-comment that Play's parser splits on; run locally with `make lint-evolutions`), and the **DB-backed API tests** (advisory while the suite stabilizes — boots the app, so it also exercises forward evolution application). "Advisory" steps report findings but don't block merges yet. **Branch protection** on `develop` (set 2026-06-29) wires the deterministic blocking jobs as **required status checks** (`Backend (compile + scalafmt)`, `Frontend (build)` — now also covers ESLint; `Evolutions lint` being added) so a red build can't merge; `enforce_admins=true`, **no required reviews** (self-merge preserved), advisory jobs not required. Full policy: [`docs/testing-and-ci.md`](docs/testing-and-ci.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
+`.github/workflows/ci.yml` runs on PRs and pushes to `develop`/`master`: backend **`sbt compile`** (blocking gate), **`scalafmtCheckAll`** (blocking — the tree is kept format-clean; auto-format with `make scalafmt-fix` / `sbt scalafmtAll`, config in `.scalafmt.conf`), the **frontend grunt build** plus the four frontend linters — **ESLint** (JS + translation JSON), **Stylelint** (CSS), **HTMLHint** (HTML), and **locale key-parity** — all **blocking** steps in the `frontend` job, so they ride the required `Frontend (build)` check (each blocks on `error`-severity findings; the lone `warn` rule on ESLint/Stylelint, `max-len`, is advisory so there's no `--max-warnings 0`; the trees are kept lint-clean, auto-fix with `make lint-fix`), the **evolutions lint** (blocking — static checks on `conf/evolutions/default/*.sql`, e.g. a semicolon mid-`--`-comment that Play's parser splits on; run locally with `make lint-evolutions`), and the **DB-backed API tests** (advisory while the suite stabilizes — boots the app, so it also exercises forward evolution application). "Advisory" steps report findings but don't block merges yet. **Branch protection** on `develop` (set 2026-06-29) wires the deterministic blocking jobs as **required status checks** (`Backend (compile + scalafmt)`, `Frontend (build)` — covers all four frontend linters; `Evolutions lint` being added) so a red build can't merge; `enforce_admins=true`, **no required reviews** (self-merge preserved), advisory jobs not required. Full policy: [`docs/testing-and-ci.md`](docs/testing-and-ci.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ### Building frontend assets
 
@@ -393,26 +398,27 @@ Each city has its own schema (`sidewalk_<city>`), and they are essentially ident
 ### Linting
 
 ```bash
-make lint           # eslint + htmlhint + stylelint -- not ready for user yet, only eslint is ready (#2487)
-make lint-fix       # eslint --fix + stylelint --fix -- not ready for user yet, only eslint is ready (#2487)
-make eslint         # defaults to public/js/ (build/ carved out by eslint.config.js ignores; vendor/ is out of the files glob)
-make eslint dir=public/js/validate   # scope to a dir or file; also htmlhint / stylelint targets
+make lint           # eslint + stylelint + htmlhint + lint-locales (all of it)
+make lint-fix       # eslint --fix + stylelint --fix
+make eslint         # JS + translation JSON; defaults to public/js/ + public/locales/ (build/ carved out by config ignores; vendor/ is out of the files glob)
+make stylelint      # CSS; defaults to public/**/*.css (vendor/ carved out by the config's ignoreFiles)
+make htmlhint       # HTML; defaults to app/views/
+make lint-locales   # cross-locale key parity (tools/check-locale-parity.mjs)
+make eslint dir=public/js/validate   # scope any target to a dir/file; also stylelint / htmlhint
 ```
 
-**`make eslint` must pass (zero errors/warnings) before code is checked in** — like scalafmt for Scala. The tree is
-fully lint-clean (#2487), so a bare run should come back green and any finding is yours: run
-`make eslint-fix dir=<what you touched>` for the mechanical fixes, hand-fix the rest, then confirm with `make eslint`.
-ESLint is now a **blocking CI gate** (a step in the `frontend` job, `npx eslint public/js/`), so an `error`
-finding fails the build — the JS counterpart to scalafmt. Severities are the gate: nearly every rule is `error`; the
-one `warn` rule (`max-len`) is deliberately advisory (CLAUDE.md permits long-line exceptions), so CI runs without
-`--max-warnings 0` and an over-limit line nags but doesn't block. `htmlhint`/`stylelint` are still manual and not in CI
-(their trees aren't clean yet — #2487).
+**All four frontend linters must pass (zero errors) before code is checked in** — like scalafmt for Scala. The trees are
+fully lint-clean (#2487), so a bare run should come back green and any finding is yours: `make lint-fix` handles the
+mechanical ESLint + Stylelint fixes, hand-fix the rest, then confirm with `make lint`. All four are **blocking CI gates**
+(steps in the `frontend` job), so an `error`-severity finding fails the build — the frontend counterpart to scalafmt.
+The one `warn` rule on ESLint and Stylelint (`max-len` / `max-line-length`) is deliberately advisory (CLAUDE.md permits
+long-line exceptions), so CI runs without `--max-warnings 0` and an over-limit line nags but doesn't block.
 
 These are run **from the host** (like `make scalafmt`): the targets `docker exec` into the running web container,
 where the linters' `node_modules` live (there is no host-side `npm install`), so the web container must be up. Scope a
 run with `dir=` and pass extra flags with `args=`.
 
-Config: `eslint.config.js`, `stylelint.config.mjs`, `.htmlhintrc`. Scala formatting is `.scalafmt.conf`.
+Config: `eslint.config.js`, `stylelint.config.mjs`, `.htmlhintrc`; cross-locale parity is `tools/check-locale-parity.mjs`. Scala formatting is `.scalafmt.conf`.
 
 ### What not to automate
 

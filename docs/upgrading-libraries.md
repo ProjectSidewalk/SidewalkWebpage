@@ -95,7 +95,7 @@ These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`]
 
 - **sbt-plugin (Play): 3.0.10** — tracks the Play version above (`project/plugins.sbt`).
 - **scalafmt: 3.9.7** — pinned in [`.scalafmt.conf`](../.scalafmt.conf); the **sbt-scalafmt** plugin (**2.5.4**,
-  `project/plugins.sbt`) fetches it. Runs as advisory in CI (`scalafmtCheckAll`).
+  `project/plugins.sbt`) fetches it. `scalafmtCheckAll` is a blocking CI gate.
   [Releases](https://github.com/scalameta/scalafmt/releases)
 - **sbt-scoverage: 2.3.1** — coverage, for a later CI phase with a ratcheting threshold.
   [Releases](https://github.com/scoverage/sbt-scoverage/releases)
