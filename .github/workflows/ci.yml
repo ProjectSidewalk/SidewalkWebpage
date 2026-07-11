@@ -101,6 +101,8 @@ jobs:
       - name: HTMLHint (blocking)
         if: always()
         run: npx htmlhint app/views
+
+  evolutions-lint:
     name: Evolutions lint
     runs-on: ubuntu-latest
     steps:
