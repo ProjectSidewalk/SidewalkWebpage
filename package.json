@@ -1,30 +1,30 @@
 {
-    "devDependencies": {
-        "@eslint/js": "^9.39.4",
-        "@stylistic/eslint-plugin": "^2.0.0",
-        "@stylistic/stylelint-plugin": "^5.2.1",
-        "eslint": "^9.0.0",
-        "eslint-plugin-i18n-json": "^4.0.1",
-        "globals": "^15.0.0",
-        "grunt": "^1.6.2",
-        "grunt-concat-css": "*",
-        "grunt-contrib-concat": "*",
-        "grunt-contrib-watch": "*",
-        "htmlhint": "^1.9.2",
-        "jest": "^29.7.0",
-        "jest-environment-jsdom": "^29.7.0",
-        "stylelint": "^17.14.0",
-        "stylelint-config-standard": "^40.0.0",
-        "stylelint-plugin-use-baseline": "^1.4.4"
-    },
-    "scripts": {
-        "grunt-concat": "grunt concat && grunt concat_css",
-        "build": "npm install && grunt",
-        "debug": "npm run grunt-concat && grunt watch & sbt -jvm-debug 9998 run",
-        "start": "npm run grunt-concat && grunt watch & sbt -Dconfig.file=/home/conf/application.local.conf -Dsbt.coursier.home='.coursier' -Dsbt.global.base='.sbt' -Dsbt.boot.directory='.sbt/boot' -Dsbt.repository.config='.sbt/repositories' -J-Xmx1536m \"~ run\"",
-        "start-no-docker": "npm run grunt-concat && grunt watch & sbt -Dhttp.port=$SIDEWALK_HTTP_PORT -Dsbt.coursier.home='.coursier' -Dsbt.global.base='.sbt' -Dsbt.boot.directory='.sbt/boot' -Dsbt.repository.config='.sbt/repositories' $SBT_MEM_ARG \"~ run\"",
-        "play-shell": "npm run grunt-concat && grunt watch & sbt -Dconfig.file=/home/conf/application.local.conf -Dsbt.coursier.home='.coursier' -Dsbt.global.base='.sbt' -Dsbt.boot.directory='.sbt/boot' -Dsbt.repository.config='.sbt/repositories' -J-Xmx1536m",
-        "test": "echo \"No JS tests yet. A Jest suite is being added — see docs/testing-and-ci.md (Phase 1).\" && exit 0",
-        "test:js": "jest --config jest.config.js"
-    }
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@stylistic/eslint-plugin": "^2.0.0",
+    "@stylistic/stylelint-plugin": "^5.2.1",
+    "eslint": "^9.0.0",
+    "eslint-plugin-i18n-json": "^4.0.1",
+    "globals": "^15.0.0",
+    "grunt": "^1.6.2",
+    "grunt-concat-css": "*",
+    "grunt-contrib-concat": "*",
+    "grunt-contrib-watch": "*",
+    "htmlhint": "^1.9.2",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "stylelint": "^17.14.0",
+    "stylelint-config-standard": "^40.0.0",
+    "stylelint-plugin-use-baseline": "^1.4.4"
+  },
+  "scripts": {
+    "grunt-concat": "grunt concat && grunt concat_css",
+    "build": "npm install && grunt",
+    "debug": "npm run grunt-concat && grunt watch & sbt -jvm-debug 9998 run",
+    "start": "npm run grunt-concat && grunt watch & sbt -Dconfig.file=/home/conf/application.local.conf -Dsbt.coursier.home='.coursier' -Dsbt.global.base='.sbt' -Dsbt.boot.directory='.sbt/boot' -Dsbt.repository.config='.sbt/repositories' -J-Xmx1536m \"~ run\"",
+    "start-no-docker": "npm run grunt-concat && grunt watch & sbt -Dhttp.port=$SIDEWALK_HTTP_PORT -Dsbt.coursier.home='.coursier' -Dsbt.global.base='.sbt' -Dsbt.boot.directory='.sbt/boot' -Dsbt.repository.config='.sbt/repositories' $SBT_MEM_ARG \"~ run\"",
+    "play-shell": "npm run grunt-concat && grunt watch & sbt -Dconfig.file=/home/conf/application.local.conf -Dsbt.coursier.home='.coursier' -Dsbt.global.base='.sbt' -Dsbt.boot.directory='.sbt/boot' -Dsbt.repository.config='.sbt/repositories' -J-Xmx1536m",
+    "test": "echo \"No JS tests yet. A Jest suite is being added — see docs/testing-and-ci.md (Phase 1).\" && exit 0",
+    "test:js": "jest --config jest.config.js"
+  }
 }

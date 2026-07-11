@@ -6,13 +6,14 @@ the ScalaDoc/JSDoc comment standards. This page explains the conventions a linte
 ones it can.
 
 **The linters are the source of truth for mechanically-checkable rules.** JavaScript/CSS/HTML rules live in
-[`eslint.config.js`](../eslint.config.js), [`.stylelintrc.json`](../.stylelintrc.json), and
+[`eslint.config.js`](../eslint.config.js), [`stylelint.config.mjs`](../stylelint.config.mjs), and
 [`.htmlhintrc`](../.htmlhintrc); Scala formatting lives in [`.scalafmt.conf`](../.scalafmt.conf). When this guide and a
-config disagree, the config wins — fix the config and this doc together. (Frontend linting isn't wired into CI yet —
-that's the last step of [#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487) — but the tree is
-fully lint-clean and stays that way: **`make eslint` must pass, zero errors/warnings, before code is checked in.**
-Run `make eslint-fix dir=<the JS you touched>` for the mechanical fixes and hand-fix the rest. `scalafmtCheckAll`
-*does* run in CI, as a blocking gate.)
+config disagree, the config wins — fix the config and this doc together. **The linters are all blocking CI gates** —
+ESLint (JS + translation JSON), Stylelint (CSS), HTMLHint (HTML), cross-locale key parity, and `scalafmtCheckAll` for
+Scala. The trees are kept fully lint-clean
+([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so run the relevant linter — or `make lint`
+for all of them — and get to zero before you push: `make lint-fix` autofixes the mechanical JS/CSS findings, hand-fix
+the rest. CI wiring is in [`docs/testing-and-ci.md`](testing-and-ci.md).
 
 ## General
 
@@ -20,7 +21,7 @@ These apply across every language in the repo.
 
 - **Line length: 120 characters max**, with sensible exceptions where a break would hurt readability (e.g. long
   URLs, string literals). For multi-line comments, treat 120 as a target, not a hard cap.
-- **Indent with spaces, never tabs.** Scala/JS use 2-space indent; CSS uses 4-space (`stylelint-config-standard`).
+- **Indent with spaces, never tabs.** Scala, JS, and CSS all use 2-space indent.
 - **End every file with a single newline.** A missing final newline shows up as a red marker on the GitHub diff.
 - **Comments explain _why_, not _what_** — well-named identifiers cover the *what*. Start a comment with a capital
   letter and end it with a period:
@@ -100,7 +101,7 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
   ([`.htmlhintrc`](../.htmlhintrc)).
 - **Prefer `data-i18n="ns:key"`** in HTML over hardcoded strings so translations stay in i18next and aren't
   duplicated (see [`CONTRIBUTING.md`](../CONTRIBUTING.md) → Internationalization).
-- **CSS:** 4-space indent, `stylelint-config-standard` ([`.stylelintrc.json`](../.stylelintrc.json)). Use the
+- **CSS:** 2-space indent, `stylelint-config-standard` ([`stylelint.config.mjs`](../stylelint.config.mjs)). Use the
   `main.css` `:root` design tokens for colors/fonts/spacing.
 
 ## Frontend file & directory organization
@@ -147,8 +148,8 @@ refactor touching nearly every source line of those apps. Don't "fix" the mismat
 
 ## Scala
 
-Formatting is handled by **scalafmt** ([`.scalafmt.conf`](../.scalafmt.conf)) — run it before pushing (CI checks it
-as advisory). Conventions scalafmt doesn't cover:
+Formatting is handled by **scalafmt** ([`.scalafmt.conf`](../.scalafmt.conf)) — run it before pushing (`scalafmtCheckAll`
+is a blocking CI gate). Conventions scalafmt doesn't cover:
 
 - **Follow the request flow** `routes → Controller → Service → Table (DAO)`; keep controllers thin and put business
   logic in services. (See [`CLAUDE.md`](../CLAUDE.md) / [`docs/architecture.md`](architecture.md).)

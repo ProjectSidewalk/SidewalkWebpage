@@ -79,11 +79,13 @@ before your first PR:
 - **New JavaScript targets ES2022** (`const`/`let`, arrow functions, `#private` fields, native `fetch`). We're
   actively migrating *off* ES5/jQuery/Bootstrap — don't add to them.
 - **Format Scala with scalafmt** before pushing (`make scalafmt-fix`, or format-on-save) — CI blocks the merge on it.
-- **Keep `make eslint` passing on JavaScript you change** before pushing — run `make eslint-fix dir=<files or dirs
-  you touched>` for the mechanical fixes, hand-fix the rest, and confirm `make eslint` reports zero errors/warnings.
-  The tree is fully lint-clean ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so any
-  finding is from your change. **ESLint is a blocking CI check** now (it runs in the `Frontend (build)` job), so a lint
-  failure blocks the merge — just like scalafmt. (htmlhint/stylelint aren't in CI yet — still #2487.)
+- **Keep the frontend linters passing on what you change** before pushing. Run `make lint-fix` for the mechanical
+  ESLint/Stylelint fixes, hand-fix the rest, then confirm the relevant linter is clean — `make eslint` (JS + translation
+  JSON), `make stylelint` (CSS), `make htmlhint` (HTML), `make lint-locales` (cross-locale key parity), or `make lint`
+  for all of them. The trees are kept fully lint-clean
+  ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so any finding is from your change.
+  **All four are blocking CI checks** now (they run in the `Frontend (build)` job), so a lint failure blocks the
+  merge — just like scalafmt.
 - **UI work** must meet WCAG 2.1/2.2 Level AA and use the `main.css` `:root` design tokens.
 - **Public API (`/v3`):** response fields are `snake_case`, query params are `camelCase`, and new DTOs go in
   `app/models/api/`.
@@ -140,10 +142,11 @@ visiting `<your-computer-ip>:9000` (phone and computer on the same Wi-Fi; this o
 
 1. Merge the latest `develop` (`git pull origin develop`) and test one more time.
 2. **Run scalafmt** on any Scala files you changed — `make scalafmt-fix` (CI blocks the merge on formatting). Set up
-   format-on-save once via [`docs/editor-setup.md`](docs/editor-setup.md) so this is automatic. Likewise **make sure
-   `make eslint` passes** on any JavaScript you changed — `make eslint-fix dir=<path>` plus hand-fixing whatever
-   remains (ESLint is a blocking CI check now, so a lint failure blocks the merge; the tree is kept lint-clean —
-   [#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)).
+   format-on-save once via [`docs/editor-setup.md`](docs/editor-setup.md) so this is automatic. Likewise **run the
+   frontend linters** on anything you changed — `make lint` (or the specific `make eslint`/`stylelint`/`htmlhint`/
+   `lint-locales` target), with `make lint-fix` for the mechanical fixes. They're all blocking CI checks now, so a lint
+   failure blocks the merge; the trees are kept lint-clean —
+   [#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487).
 3. Push your branch and [open a PR](https://github.com/ProjectSidewalk/SidewalkWebpage/compare) with **base
    `develop`** ← your branch. Fill out the [PR template](.github/PULL_REQUEST_TEMPLATE.md): clear title, description,
    before/after screenshots for UI, testing instructions, translations, and logging updates. Link the issue
@@ -157,8 +160,8 @@ visiting `<your-computer-ip>:9000` (phone and computer on the same Wi-Fi; this o
 
 `develop` is branch-protected so a red build can't land (the failure mode that once shipped a migration that wouldn't
 apply). A PR can only merge once the **blocking CI checks pass** — currently **`Backend (compile + scalafmt)`** and
-**`Frontend (build)`** (which now also runs ESLint, so a JS lint failure blocks the merge; the **`Evolutions lint`**
-check is being added to this set). The rule:
+**`Frontend (build)`** (which also runs ESLint, Stylelint, HTMLHint, and locale key-parity, so any frontend lint
+failure blocks the merge; the **`Evolutions lint`** check is being added to this set). The rule:
 
 - **Applies to everyone, maintainers included** — there is no admin bypass; it only ever stops a merge while CI is red.
 - **Does not require review approvals.** Tooling won't force a second person to sign off, so you can still open and
