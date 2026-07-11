@@ -4,261 +4,231 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@*
- * Across Cities page for the redesigned admin dashboard (#4329). A cross-deployment overview comparing every Project
- * Sidewalk city across four lenses — coverage (how much is left), activity (what's happening and when), data patterns
- * (the label-type mix, city vs city), and data quality (how trustworthy the data is) — plus a "needs attention" panel
- * of server-computed anomalies and overview line charts of labels / validations / active users over time. Owner-only.
- * Driven entirely client-side from /adminapi/cityScorecards.
- *@
+@* Across Cities page for the redesigned admin dashboard (#4329). A cross-deployment overview comparing every Project Sidewalk city across four lenses — coverage (how much is left), activity (what's happening and when), data patterns (the label-type mix, city vs city), and data quality (how trustworthy the data is) — plus a "needs attention" panel of server-computed anomalies and overview line charts of labels / validations / active users over time. Owner-only. Driven entirely client-side from /adminapi/cityScorecards. *@
 
 @content = {
-    <div class="api-section" id="ac-intro-section">
-        <h1 class="api-heading" id="across-cities">Across Cities <a href="#across-cities" class="permalink">#</a></h1>
-        <p>
-            Every Project Sidewalk deployment at a glance — how each city is doing on coverage, activity, data patterns,
-            and data quality, and which ones need a look right now. Numbers are summarized across all city databases and
-            cached for a few minutes, so they may lag live activity slightly.
-        </p>
-        <div class="ac-pulse" id="ac-pulse" role="status" aria-live="polite">Loading cities…</div>
+  <div class="api-section" id="ac-intro-section">
+    <h1 class="api-heading" id="across-cities">Across Cities <a href="#across-cities" class="permalink">#</a></h1>
+    <p>Every Project Sidewalk deployment at a glance — how each city is doing on coverage, activity, data patterns, and data quality, and which ones need a look right now. Numbers are summarized across all city databases and cached for a few minutes, so they may lag live activity slightly.</p>
+    <div class="ac-pulse" id="ac-pulse" role="status" aria-live="polite">Loading cities…</div>
 
-        <div class="ac-hero">
-            <div class="ac-hero-row">
-                <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-cities">—</span><span class="ac-hero-label">Cities</span></div>
-                <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-countries">—</span><span class="ac-hero-label">Countries</span></div>
-                <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-languages">—</span><span class="ac-hero-label">Languages</span></div>
-                <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-users">—</span><span class="ac-hero-label">Contributors</span></div>
-            </div>
-            <div class="ac-hero-row">
-                <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-distance">—</span><span class="ac-hero-label">Distance explored</span></div>
-                <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-labels">—</span><span class="ac-hero-label">Total labels</span></div>
-                <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-validations">—</span><span class="ac-hero-label">Total validations</span></div>
-                <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-datapoints">—</span><span class="ac-hero-label">Total datapoints</span></div>
-                <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-agreement">—</span><span class="ac-hero-label">Validation agreement</span></div>
-            </div>
-        </div>
+    <div class="ac-hero">
+      <div class="ac-hero-row">
+        <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-cities">—</span><span class="ac-hero-label">Cities</span></div>
+        <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-countries">—</span><span class="ac-hero-label">Countries</span></div>
+        <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-languages">—</span><span class="ac-hero-label">Languages</span></div>
+        <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-users">—</span><span class="ac-hero-label">Contributors</span></div>
+      </div>
+      <div class="ac-hero-row">
+        <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-distance">—</span><span class="ac-hero-label">Distance explored</span></div>
+        <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-labels">—</span><span class="ac-hero-label">Total labels</span></div>
+        <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-validations">—</span><span class="ac-hero-label">Total validations</span></div>
+        <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-datapoints">—</span><span class="ac-hero-label">Total datapoints</span></div>
+        <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-agreement">—</span><span class="ac-hero-label">Validation agreement</span></div>
+      </div>
     </div>
+  </div>
 
-    <div class="api-section" id="ac-map-section">
-        <h2 class="api-heading" id="deployment-map">Deployment cities <a href="#deployment-map" class="permalink">#</a></h2>
-        <p>Every deployment on the map — circle area is proportional to label count, color shows lifecycle status.
-            Click a city for its stats.</p>
-        <div id="ac-cities-map" class="ac-map"></div>
-        <div class="ac-map-legend" aria-label="Map legend">
-            <span class="ac-legend-item"><span class="ac-legend-dot ac-legend-dot--active"></span>Active</span>
-            <span class="ac-legend-item"><span class="ac-legend-dot ac-legend-dot--wrapped-up"></span>Wrapped up</span>
-            <span class="ac-legend-item"><span class="ac-legend-dot ac-legend-dot--stalled"></span>Stalled</span>
-            <span class="ac-legend-item"><span class="ac-legend-dot ac-legend-dot--low-traction"></span>Low traction</span>
-            <span class="ac-legend-item"><span class="ac-legend-dot ac-legend-dot--nostats"></span>No local stats</span>
-            <span class="ac-legend-sep" aria-hidden="true"></span>
-            <span class="ac-legend-item"><span class="ac-legend-dot ac-legend-dot--private"></span>Private deployment (ring)</span>
-            <span class="ac-legend-item"><span class="ac-legend-size" aria-hidden="true"></span>Circle area ∝ labels</span>
-        </div>
-        <div class="coverage-status" id="ac-map-status" role="status" aria-live="polite"></div>
+  <div class="api-section" id="ac-map-section">
+    <h2 class="api-heading" id="deployment-map">Deployment cities <a href="#deployment-map" class="permalink">#</a></h2>
+    <p>Every deployment on the map — circle area is proportional to label count, color shows lifecycle status. Click a city for its stats.</p>
+    <div id="ac-cities-map" class="ac-map"></div>
+    <div class="ac-map-legend" aria-label="Map legend">
+      <span class="ac-legend-item"><span class="ac-legend-dot ac-legend-dot--active"></span>Active</span>
+      <span class="ac-legend-item"><span class="ac-legend-dot ac-legend-dot--wrapped-up"></span>Wrapped up</span>
+      <span class="ac-legend-item"><span class="ac-legend-dot ac-legend-dot--stalled"></span>Stalled</span>
+      <span class="ac-legend-item"><span class="ac-legend-dot ac-legend-dot--low-traction"></span>Low traction</span>
+      <span class="ac-legend-item"><span class="ac-legend-dot ac-legend-dot--nostats"></span>No local stats</span>
+      <span class="ac-legend-sep" aria-hidden="true"></span>
+      <span class="ac-legend-item"><span class="ac-legend-dot ac-legend-dot--private"></span>Private deployment (ring)</span>
+      <span class="ac-legend-item"><span class="ac-legend-size" aria-hidden="true"></span>Circle area ∝ labels</span>
     </div>
+    <div class="coverage-status" id="ac-map-status" role="status" aria-live="polite"></div>
+  </div>
 
-    <div class="api-section" id="ac-attention-section">
-        <h2 class="api-heading" id="needs-attention">Needs attention <a href="#needs-attention" class="permalink">#</a></h2>
-        <p>Deployments flagged by an automatic check. Each links out to that city's site.</p>
-        <div class="ov-attention" id="ac-attention"></div>
+  <div class="api-section" id="ac-attention-section">
+    <h2 class="api-heading" id="needs-attention">Needs attention <a href="#needs-attention" class="permalink">#</a></h2>
+    <p>Deployments flagged by an automatic check. Each links out to that city's site.</p>
+    <div class="ov-attention" id="ac-attention"></div>
+  </div>
+
+  <div class="api-section" id="ac-trends-section">
+    <h2 class="api-heading" id="over-time">Over time <a href="#over-time" class="permalink">#</a></h2>
+    <p>Weekly totals across all cities.</p>
+    <div class="ac-toggle" id="ac-trend-toggle" role="group" aria-label="Trend range">
+      <button type="button" class="ac-toggle-btn active" data-range="recent">12 weeks</button>
+      <button type="button" class="ac-toggle-btn" data-range="all">All time</button>
     </div>
-
-    <div class="api-section" id="ac-trends-section">
-        <h2 class="api-heading" id="over-time">Over time <a href="#over-time" class="permalink">#</a></h2>
-        <p>Weekly totals across all cities.</p>
-        <div class="ac-toggle" id="ac-trend-toggle" role="group" aria-label="Trend range">
-            <button type="button" class="ac-toggle-btn active" data-range="recent">12 weeks</button>
-            <button type="button" class="ac-toggle-btn" data-range="all">All time</button>
-        </div>
-        <div class="ac-charts">
-            <div class="ac-chart">
-                <h3 class="ac-chart-title">Labels per week</h3>
-                <div class="mini-chart" id="ac-chart-labels"></div>
-            </div>
-            <div class="ac-chart">
-                <h3 class="ac-chart-title">Validations per week</h3>
-                <div class="mini-chart" id="ac-chart-validations"></div>
-            </div>
-            <div class="ac-chart">
-                <h3 class="ac-chart-title">Active users per week</h3>
-                <div class="mini-chart" id="ac-chart-users"></div>
-            </div>
-        </div>
-        <p class="ac-note">“Active users” counts distinct people who labeled or validated that week, summed across
-            cities (a person active in two cities is counted in each).</p>
+    <div class="ac-charts">
+      <div class="ac-chart">
+        <h3 class="ac-chart-title">Labels per week</h3>
+        <div class="mini-chart" id="ac-chart-labels"></div>
+      </div>
+      <div class="ac-chart">
+        <h3 class="ac-chart-title">Validations per week</h3>
+        <div class="mini-chart" id="ac-chart-validations"></div>
+      </div>
+      <div class="ac-chart">
+        <h3 class="ac-chart-title">Active users per week</h3>
+        <div class="mini-chart" id="ac-chart-users"></div>
+      </div>
     </div>
+    <p class="ac-note">“Active users” counts distinct people who labeled or validated that week, summed across cities (a person active in two cities is counted in each).</p>
+  </div>
 
-    <div class="api-section" id="ac-scorecard-section">
-        <h2 class="api-heading" id="scorecard">Scorecard <a href="#scorecard" class="permalink">#</a></h2>
-        <p>One row per city — the at-a-glance index. Click a column header to sort; click a city to open its site.</p>
-        <div class="ac-table-wrap">
-            <table class="ac-table" id="ac-table">
-                <thead>
-                    <tr>
-                        <th data-sort="city_name" class="ac-th-text">City</th>
-                        <th data-sort="lifecycle" class="ac-th-text">Status</th>
-                        <th data-sort="coverage" class="ac-th-text">Coverage</th>
-                        <th data-sort="total_labels">Labels</th>
-                        <th data-sort="total_validations">Validations</th>
-                        <th data-sort="active_contributors">Contributors</th>
-                        <th data-sort="ai_label_share">AI labels</th>
-                        <th data-sort="days_since_activity">Last activity</th>
-                    </tr>
-                </thead>
-                <tbody id="ac-tbody"></tbody>
-            </table>
-        </div>
-        <div class="coverage-status" id="ac-status" role="status" aria-live="polite"></div>
+  <div class="api-section" id="ac-scorecard-section">
+    <h2 class="api-heading" id="scorecard">Scorecard <a href="#scorecard" class="permalink">#</a></h2>
+    <p>One row per city — the at-a-glance index. Click a column header to sort; click a city to open its site.</p>
+    <div class="ac-table-wrap">
+      <table class="ac-table" id="ac-table">
+        <thead>
+          <tr>
+            <th data-sort="city_name" class="ac-th-text">City</th>
+            <th data-sort="lifecycle" class="ac-th-text">Status</th>
+            <th data-sort="coverage" class="ac-th-text">Coverage</th>
+            <th data-sort="total_labels">Labels</th>
+            <th data-sort="total_validations">Validations</th>
+            <th data-sort="active_contributors">Contributors</th>
+            <th data-sort="ai_label_share">AI labels</th>
+            <th data-sort="days_since_activity">Last activity</th>
+          </tr>
+        </thead>
+        <tbody id="ac-tbody"></tbody>
+      </table>
     </div>
+    <div class="coverage-status" id="ac-status" role="status" aria-live="polite"></div>
+  </div>
 
-    <div class="api-section" id="ac-coverage-section">
-        <h2 class="api-heading" id="coverage">Coverage — how much is left <a href="#coverage" class="permalink">#</a></h2>
-        <p>Audited vs. total street network, and what remains, per city.</p>
-        <div class="ac-table-wrap">
-            <table class="ac-table">
-                <thead>
-                    <tr>
-                        <th class="ac-th-text">City</th>
-                        <th class="ac-th-text">Progress</th>
-                        <th>Streets audited</th>
-                        <th>Streets left</th>
-                        <th>km audited</th>
-                        <th>km left</th>
-                    </tr>
-                </thead>
-                <tbody id="ac-coverage-tbody"></tbody>
-            </table>
-        </div>
+  <div class="api-section" id="ac-coverage-section">
+    <h2 class="api-heading" id="coverage">Coverage — how much is left <a href="#coverage" class="permalink">#</a></h2>
+    <p>Audited vs. total street network, and what remains, per city.</p>
+    <div class="ac-table-wrap">
+      <table class="ac-table">
+        <thead>
+          <tr>
+            <th class="ac-th-text">City</th>
+            <th class="ac-th-text">Progress</th>
+            <th>Streets audited</th>
+            <th>Streets left</th>
+            <th>km audited</th>
+            <th>km left</th>
+          </tr>
+        </thead>
+        <tbody id="ac-coverage-tbody"></tbody>
+      </table>
     </div>
+  </div>
 
-    <div class="api-section" id="ac-activity-section">
-        <h2 class="api-heading" id="activity">Activity — what &amp; when <a href="#activity" class="permalink">#</a></h2>
-        <p>Recent volume (last 7 and 30 days), most recent activity, and a 12-week trend per city.</p>
-        <div class="ac-table-wrap">
-            <table class="ac-table">
-                <thead>
-                    <tr>
-                        <th class="ac-th-text">City</th>
-                        <th>Labels 7d / 30d</th>
-                        <th>Validations 7d / 30d</th>
-                        <th>Streets 7d / 30d</th>
-                        <th>Last activity</th>
-                        <th>Trend (labels)</th>
-                    </tr>
-                </thead>
-                <tbody id="ac-activity-tbody"></tbody>
-            </table>
-        </div>
+  <div class="api-section" id="ac-activity-section">
+    <h2 class="api-heading" id="activity">Activity — what &amp; when <a href="#activity" class="permalink">#</a></h2>
+    <p>Recent volume (last 7 and 30 days), most recent activity, and a 12-week trend per city.</p>
+    <div class="ac-table-wrap">
+      <table class="ac-table">
+        <thead>
+          <tr>
+            <th class="ac-th-text">City</th>
+            <th>Labels 7d / 30d</th>
+            <th>Validations 7d / 30d</th>
+            <th>Streets 7d / 30d</th>
+            <th>Last activity</th>
+            <th>Trend (labels)</th>
+          </tr>
+        </thead>
+        <tbody id="ac-activity-tbody"></tbody>
+      </table>
     </div>
+  </div>
 
-    <div class="api-section" id="ac-funnel-section">
-        <h2 class="api-heading" id="funnel">Engagement funnels <a href="#funnel" class="permalink">#</a></h2>
-        <p>Of the people who arrive, how many make it through each step, for each city. Two funnels: the
-            <strong>mapping</strong> funnel follows the Explore onboarding (tutorial → first label → first mission), and
-            the <strong>contribution</strong> funnel is the broader “did they contribute anything (labeling or
-            validation) and finish a mission”. Bars are normalized to visitors (= 100%); the percentage on each step is
-            its share of the step before it (the drop-off).</p>
-        <p class="ac-note">Two caveats. <strong>Anonymous visitors are counted per browser</strong> (a new id each time
-            cookies are cleared), so the top of each funnel counts sessions, not unique people, and headline conversion
-            reads low. <strong>The mapping tool is desktop-only</strong> — mobile visitors are redirected to a landing
-            page and can't proceed, so in the “Desktop vs mobile” view mobile drops off early by design. In the mapping
-            funnel, “took a step” means a user walked some distance in a real (non-tutorial) mission.</p>
-        <div class="ac-funnel-controls">
-            <div class="ac-toggle" id="ac-funnel-window" role="group" aria-label="Funnel time window">
-                <button type="button" class="ac-toggle-btn active" data-window="30d">Last 30 days</button>
-                <button type="button" class="ac-toggle-btn" data-window="90d">Last 90 days</button>
-                <button type="button" class="ac-toggle-btn" data-window="all">All time</button>
-            </div>
-            <div class="ac-toggle" id="ac-funnel-dim" role="group" aria-label="Funnel breakdown">
-                <button type="button" class="ac-toggle-btn active" data-dim="all">All users</button>
-                <button type="button" class="ac-toggle-btn" data-dim="role">Registered vs anonymous</button>
-                <button type="button" class="ac-toggle-btn" data-dim="device">Desktop vs mobile</button>
-            </div>
-        </div>
-        <div id="ac-funnels"></div>
-        <div class="coverage-status" id="ac-funnel-status" role="status" aria-live="polite"></div>
+  <div class="api-section" id="ac-funnel-section">
+    <h2 class="api-heading" id="funnel">Engagement funnels <a href="#funnel" class="permalink">#</a></h2>
+    <p>Of the people who arrive, how many make it through each step, for each city. Two funnels: the <strong>mapping</strong> funnel follows the Explore onboarding (tutorial → first label → first mission), and the <strong>contribution</strong> funnel is the broader “did they contribute anything (labeling or validation) and finish a mission”. Bars are normalized to visitors (= 100%); the percentage on each step is its share of the step before it (the drop-off).</p>
+    <p class="ac-note">Two caveats. <strong>Anonymous visitors are counted per browser</strong> (a new id each time cookies are cleared), so the top of each funnel counts sessions, not unique people, and headline conversion reads low. <strong>The mapping tool is desktop-only</strong> — mobile visitors are redirected to a landing page and can't proceed, so in the “Desktop vs mobile” view mobile drops off early by design. In the mapping funnel, “took a step” means a user walked some distance in a real (non-tutorial) mission.</p>
+    <div class="ac-funnel-controls">
+      <div class="ac-toggle" id="ac-funnel-window" role="group" aria-label="Funnel time window">
+        <button type="button" class="ac-toggle-btn active" data-window="30d">Last 30 days</button>
+        <button type="button" class="ac-toggle-btn" data-window="90d">Last 90 days</button>
+        <button type="button" class="ac-toggle-btn" data-window="all">All time</button>
+      </div>
+      <div class="ac-toggle" id="ac-funnel-dim" role="group" aria-label="Funnel breakdown">
+        <button type="button" class="ac-toggle-btn active" data-dim="all">All users</button>
+        <button type="button" class="ac-toggle-btn" data-dim="role">Registered vs anonymous</button>
+        <button type="button" class="ac-toggle-btn" data-dim="device">Desktop vs mobile</button>
+      </div>
     </div>
+    <div id="ac-funnels"></div>
+    <div class="coverage-status" id="ac-funnel-status" role="status" aria-live="polite"></div>
+  </div>
 
-    <div class="api-section" id="ac-effort-section">
-        <h2 class="api-heading" id="effort">Contributors &amp; effort <a href="#effort" class="permalink">#</a></h2>
-        <p>How much each contributor produces and how fast they work. Per-user output is shown as <strong>median</strong>
-            and <strong>p90</strong> (90th percentile), because a handful of power users make the average misleading.</p>
-        <div class="ac-table-wrap">
-            <table class="ac-table">
-                <thead>
-                    <tr>
-                        <th class="ac-th-text">City</th>
-                        <th>Labelers</th>
-                        <th>Labels / labeler<br><span class="ac-th-sub">median · p90</span></th>
-                        <th>Validators</th>
-                        <th>Validations / validator<br><span class="ac-th-sub">median · p90</span></th>
-                        <th>Time to validate 10</th>
-                        <th title="Active auditing time per 100 m (idle gaps over 5 min excluded), refreshed about once a day.">Time to label 100 m <span class="ac-fn">†</span></th>
-                    </tr>
-                </thead>
-                <tbody id="ac-effort-tbody"></tbody>
-            </table>
-        </div>
-        <p class="ac-note"><span class="ac-fn">†</span> <strong>Time to label 100&nbsp;m</strong> is active auditing
-            time (idle gaps over 5&nbsp;minutes excluded) per 100&nbsp;m of street covered, and <strong>time to validate
-            10</strong> is the median per-validation time ×10. The labeling-speed figure is recomputed about once a day
-            and is blank where a deployment's interaction data isn't available.</p>
+  <div class="api-section" id="ac-effort-section">
+    <h2 class="api-heading" id="effort">Contributors &amp; effort <a href="#effort" class="permalink">#</a></h2>
+    <p>How much each contributor produces and how fast they work. Per-user output is shown as <strong>median</strong> and <strong>p90</strong> (90th percentile), because a handful of power users make the average misleading.</p>
+    <div class="ac-table-wrap">
+      <table class="ac-table">
+        <thead>
+          <tr>
+            <th class="ac-th-text">City</th>
+            <th>Labelers</th>
+            <th>Labels / labeler<br><span class="ac-th-sub">median · p90</span></th>
+            <th>Validators</th>
+            <th>Validations / validator<br><span class="ac-th-sub">median · p90</span></th>
+            <th>Time to validate 10</th>
+            <th title="Active auditing time per 100 m (idle gaps over 5 min excluded), refreshed about once a day.">Time to label 100 m <span class="ac-fn">†</span></th>
+          </tr>
+        </thead>
+        <tbody id="ac-effort-tbody"></tbody>
+      </table>
     </div>
+    <p class="ac-note"><span class="ac-fn">†</span> <strong>Time to label 100&nbsp;m</strong> is active auditing time (idle gaps over 5&nbsp;minutes excluded) per 100&nbsp;m of street covered, and <strong>time to validate 10</strong> is the median per-validation time ×10. The labeling-speed figure is recomputed about once a day and is blank where a deployment's interaction data isn't available.</p>
+  </div>
 
-    <div class="api-section" id="ac-patterns-section">
-        <h2 class="api-heading" id="patterns">Data patterns — city vs city <a href="#patterns" class="permalink">#</a></h2>
-        <p>The mix of accessibility problems each city has found, as a share of its labels. Comparable across cities.</p>
-        <div id="ac-patterns-legend" class="ac-legend"></div>
-        <div id="ac-patterns"></div>
+  <div class="api-section" id="ac-patterns-section">
+    <h2 class="api-heading" id="patterns">Data patterns — city vs city <a href="#patterns" class="permalink">#</a></h2>
+    <p>The mix of accessibility problems each city has found, as a share of its labels. Comparable across cities.</p>
+    <div id="ac-patterns-legend" class="ac-legend"></div>
+    <div id="ac-patterns"></div>
+  </div>
+
+  <div class="api-section" id="ac-quality-section">
+    <h2 class="api-heading" id="quality">Data quality — how good <a href="#quality" class="permalink">#</a></h2>
+    <p>How much of each city's data has been validated, how often validators agree, and how much was AI-generated or came from users later flagged low-quality.</p>
+    <div class="ac-table-wrap">
+      <table class="ac-table">
+        <thead>
+          <tr>
+            <th class="ac-th-text">City</th>
+            <th>% validated</th>
+            <th>Validations / label</th>
+            <th title="Share of HUMAN agree/disagree validations that agreed. AI verdicts are excluded here and shown in the AI validations column.">Agreement <span class="ac-fn">†</span></th>
+            <th title="Calculated only over label types that can have a severity (excludes No Sidewalk, Signal, Occlusion).">% w/ severity <span class="ac-fn">†</span></th>
+            <th title="Calculated only over label types that have tags defined for this deployment (e.g. excludes Occlusion).">% w/ tags <span class="ac-fn">†</span></th>
+            <th>AI labels</th>
+            <th>AI validations</th>
+            <th>Low-quality share</th>
+          </tr>
+        </thead>
+        <tbody id="ac-quality-tbody"></tbody>
+      </table>
     </div>
+    <p class="ac-note"><span class="ac-fn">†</span> <strong>% w/ severity</strong> and <strong>% w/ tags</strong> are calculated only over the labels whose type <em>can</em> have them, not all labels. Severity excludes No&nbsp;Sidewalk, Signal, and Occlusion; tags exclude types with no tags defined for the deployment (e.g. Occlusion). So a city can reach 100% even though some label types never carry a severity or tag. <strong>Agreement</strong> (and the High-disagreement flag) counts only <strong>human</strong> validators — AI verdicts are excluded and shown separately in <strong>AI validations</strong>.</p>
+  </div>
 
-    <div class="api-section" id="ac-quality-section">
-        <h2 class="api-heading" id="quality">Data quality — how good <a href="#quality" class="permalink">#</a></h2>
-        <p>How much of each city's data has been validated, how often validators agree, and how much was AI-generated or
-            came from users later flagged low-quality.</p>
-        <div class="ac-table-wrap">
-            <table class="ac-table">
-                <thead>
-                    <tr>
-                        <th class="ac-th-text">City</th>
-                        <th>% validated</th>
-                        <th>Validations / label</th>
-                        <th title="Share of HUMAN agree/disagree validations that agreed. AI verdicts are excluded here and shown in the AI validations column.">Agreement <span class="ac-fn">†</span></th>
-                        <th title="Calculated only over label types that can have a severity (excludes No Sidewalk, Signal, Occlusion).">% w/ severity <span class="ac-fn">†</span></th>
-                        <th title="Calculated only over label types that have tags defined for this deployment (e.g. excludes Occlusion).">% w/ tags <span class="ac-fn">†</span></th>
-                        <th>AI labels</th>
-                        <th>AI validations</th>
-                        <th>Low-quality share</th>
-                    </tr>
-                </thead>
-                <tbody id="ac-quality-tbody"></tbody>
-            </table>
-        </div>
-        <p class="ac-note"><span class="ac-fn">†</span> <strong>% w/ severity</strong> and <strong>% w/ tags</strong> are
-            calculated only over the labels whose type <em>can</em> have them, not all labels. Severity excludes
-            No&nbsp;Sidewalk, Signal, and Occlusion; tags exclude types with no tags defined for the deployment
-            (e.g. Occlusion). So a city can reach 100% even though some label types never carry a severity or tag.
-            <strong>Agreement</strong> (and the High-disagreement flag) counts only <strong>human</strong> validators —
-            AI verdicts are excluded and shown separately in <strong>AI validations</strong>.</p>
-    </div>
-
-    <link rel="stylesheet" href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")">
-    <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")"></script>
-    <script src="@assets.path("js/admin-dashboard/MiniLineChart.js")"></script>
-    <script src="@assets.path("js/admin-dashboard/AcrossCitiesPage.js")"></script>
-    <script>
-        window.addEventListener('DOMContentLoaded', function () {
-            new AcrossCitiesPage({
-                scorecardsUrl: '/adminapi/cityScorecards',
-                citiesUrl: '/v3/api/cities',
-                funnelsUrl: '/adminapi/cityFunnels',
-                mapboxToken: '@commonData.mapboxApiKey'
-            }).init();
-        });
-    </script>
+  <link rel="stylesheet" href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")">
+  <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")"></script>
+  <script src="@assets.path("js/admin-dashboard/MiniLineChart.js")"></script>
+  <script src="@assets.path("js/admin-dashboard/AcrossCitiesPage.js")"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', function () {
+      new AcrossCitiesPage({
+        scorecardsUrl: '/adminapi/cityScorecards',
+        citiesUrl: '/v3/api/cities',
+        funnelsUrl: '/adminapi/cityFunnels',
+        mapboxToken: '@commonData.mapboxApiKey'
+      }).init();
+    });
+  </script>
 }
 
 @common.main(commonData, "Sidewalk - Across Cities") {
-    @common.navbar(commonData, Some(user))
-    @admin.dashboard.adminLayout("across-cities", user.role == "Owner")(content)
+  @common.navbar(commonData, Some(user))
+  @admin.dashboard.adminLayout("across-cities", user.role == "Owner")(content)
 }

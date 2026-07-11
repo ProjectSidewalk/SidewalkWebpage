@@ -5,282 +5,268 @@
 @import service.CommonPageData
 @import models.pano.PanoSource
 @import formats.json.LabelFormats.tagWrites
-@(
-    commonData: CommonPageData, url: String, title: String, user: SidewalkUserWithRole, validateParams: ValidateParams,
-    validatePageData: ValidatePageData
+@(commonData: CommonPageData, url: String, title: String, user: SidewalkUserWithRole, validateParams: ValidateParams, validatePageData: ValidatePageData
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
 @common.main(commonData, title, defaultI18nNamespace = "validate", i18Namespaces = Seq("validate", "common"), url) {
-    @common.navbar(commonData, Some(user))
-    @common.icons()
+  @common.navbar(commonData, Some(user))
+  @common.icons()
 
-    <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
-    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
-    <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
-    <script src='@assets.path("vendor/selectize/selectize-0.15.2.min.js")'></script>
-    <link rel="stylesheet" href='@assets.path("vendor/selectize/selectize-0.15.2.min.css")'>
-    @if(commonData.imagerySource == PanoSource.Infra3d) {
-        <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
-        <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
-    } else if (commonData.imagerySource == PanoSource.Mapillary) {
-        <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
-        <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-        <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
-    }
-    <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
-    <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
-    <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
-    <script src='@assets.path("js/validate/build/validate.js")'></script>
-    <link rel="stylesheet" href='@assets.path("js/validate/build/validate.css")'>
-    <link rel="stylesheet" href='@assets.path("css/progress-bar.css")'>
-    <link rel="stylesheet" href='@assets.path("css/pano-overlay-buttons.css")'>
-    <link rel="stylesheet" href='@assets.path("css/tag-pills.css")'>
+  <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
+  <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
+  <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
+  <script src='@assets.path("vendor/selectize/selectize-0.15.2.min.js")'></script>
+  <link rel="stylesheet" href='@assets.path("vendor/selectize/selectize-0.15.2.min.css")'>
+  @if(commonData.imagerySource == PanoSource.Infra3d) {
+    <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
+    <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
+  } else if (commonData.imagerySource == PanoSource.Mapillary) {
+  <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
+  <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
+  <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
+  }
+  <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
+  <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
+  <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
+  <script src='@assets.path("js/validate/build/validate.js")'></script>
+  <link rel="stylesheet" href='@assets.path("js/validate/build/validate.css")'>
+  <link rel="stylesheet" href='@assets.path("css/progress-bar.css")'>
+  <link rel="stylesheet" href='@assets.path("css/pano-overlay-buttons.css")'>
+  <link rel="stylesheet" href='@assets.path("css/tag-pills.css")'>
 
-    @common.missionStartTutorial()
-    @common.panoInfoPopover()
+  @common.missionStartTutorial()
+  @common.panoInfoPopover()
 
-    <div id="page-loading">
-        <div id="loading-animation">
-            <p class="loading-text">@Messages("loading")</p>
-            <img src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'>
-            <p class="loading-sub-text">@Messages("loading.encouragement")</p>
-        </div>
+  <div id="page-loading">
+    <div id="loading-animation">
+      <p class="loading-text">@Messages("loading")</p>
+      <img src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'>
+      <p class="loading-sub-text">@Messages("loading.encouragement")</p>
     </div>
+  </div>
 
-    <div class="container tool-ui ps-invisible"><!-- ps-invisible until the mission start tutorial overlay is ready to cover it -->
+  <div class="container tool-ui ps-invisible"><!-- ps-invisible until the mission start tutorial overlay is ready to cover it -->
 
-        @* These are templates and are not visible on the screen directly. *@
-        @* JS clones them, adjusts the attributes and then appends to DOM. *@
-        <div class="current-tag tag-pill tag-pill--interactive tag-pill--active template">
-            <div class="tag-name tag-pill__label"></div>
-            <div class="remove-tag-x">
-                <svg viewBox="0 0 22 22"><use xlink:href="#close-icon"></use></svg>
-            </div>
-        </div>
-        <template id="admin-info-template">
-            <div id="admin-info-content">
-                <h1>Admin Info</h1>
-                <p id="admin-url-instructions">
-                    You can choose to validate a specific label type, user, or neighborhood by editing the URL and
-                    pressing enter. For example:
-                    <br><code>?labelType=CurbRamp</code>
-                    <br><code>?users=User1</code>
-                    <br><code>?neighborhoods=Neighborhood1</code>
-                    <br>You can also combine the filters by using the & symbol. For example:
-                    <br><code>?labelType=CurbRamp&users=User1</code>
-                    <br>You can also filter for multiple users or neighborhoods by separating them with commas.
-                    For example:
-                    <br><code>?users=User1,User2</code>
-                </p>
-                <h2>Labeler</h2>
-                <p id="curr-label-username"></p>
-                <h2>Label ID</h2>
-                <p id="curr-label-id"></p>
-                <h2 id="curr-label-prev-validations">Previous Validations</h2>
-            </div>
-        </template>
-
-        <div id="svv-application-holder">
-            <div id="mission-title"></div>
-            @components.progressBar(
-                rootId = "mission-progress-bar-section",
-                fillId = "mission-progress-bar-complete",
-                labelId = "mission-progress-bar-text"
-            )
-            <div id="admin-info-section">
-                <button type="button" id="admin-info-button"class="button-ps button--secondary button--small">Admin info</button>
-            </div>
-            <div id="svv-panorama-holder">
-                <div id="svv-panorama"></div>
-                <div id="view-control-layer">
-                    <button type="button" id="label-visibility-button-on-label"class="label-visibility-button-on-label" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">@Html(Messages("validate.top.ui.hide.label"))</button>
-                    <div id="label-description-box"></div>
-                </div>
-                <div id="pano-border-frame"></div>
-                <div id="speed-limit-sign" class="speed-limit-sign" data-design-style="us-canada">
-                    <div class="speed-limit-holder">
-                        <span class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></span>
-                    </div>
-                </div>
-                <button type="button" id="label-visibility-control-button"class="button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top"></button>
-                <div id="svv-panorama-date-holder">
-                    <span id="svv-panorama-date"></span>
-                </div>
-                <div id="zoom-buttons-holder" class="zoom-buttons-holder">
-                    <button type="button" id="zoom-in-button"class="zoom-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in">
-                        <img class="zoom-button-icon" src='@assets.path("images/icons/plus-white-material.svg")' alt="">
-                    </button>
-                    <button type="button" id="zoom-out-button"class="zoom-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out">
-                        <img class="zoom-button-icon" src='@assets.path("images/icons/minus-white-material.svg")' alt="">
-                    </button>
-                </div>
-            </div>
-            <div id="modal-mission-holder" class="ps-hidden">
-                <div id="modal-mission-background" class="modal-background"></div>
-                <div id="modal-mission-foreground" class="modal-foreground">
-                    <h1 id="modal-mission-header" class="text-center"></h1>
-                    <div id="modal-mission-instruction"></div>
-                    <button type="button" class="button-ps button--primary button--large" id="modal-mission-close-button">OK</button>
-                </div>
-            </div>
-            <div id="modal-mission-complete-holder">
-                <div id="modal-mission-complete-background" class="modal-background"></div>
-                <div id="modal-mission-complete-foreground" class="modal-foreground">
-                    <h1 id="modal-mission-complete-title"></h1>
-                    <p><div id="modal-mission-complete-message"></div></p>
-                    <div id="modal-mission-complete-table">
-                        <div class="col-sm-10">
-                            <h3>@Messages("validate.mission.complete.category")</h3>
-                            <table class="table">
-                                <tr>
-                                    <th>@Messages("yes.caps")</th>
-                                    <td id="modal-mission-complete-agree-count" class="col-right text-right"></td>
-                                </tr>
-                                <tr>
-                                    <th>@Messages("no.caps")</th>
-                                    <td id="modal-mission-complete-disagree-count" class="col-right text-right"></td>
-                                </tr>
-                                <tr>
-                                    <th>@Messages("unsure.caps")</th>
-                                    <td id="modal-mission-complete-unsure-count" class="col-right text-right"></td>
-                                </tr>
-                                <tr id="your-overall-total">
-                                    <th>@Messages("validate.mission.complete.your.overall.total")</th>
-                                    <td id="modal-mission-complete-your-overall-total-count" class="col-right text-right"></td>
-                                </tr>
-                            </table>
-                            <button type="button" class="btn btn-primary" id="modal-mission-complete-close-button-primary"></button>
-                            <button type="button" class="btn btn-secondary" id="modal-mission-complete-close-button-secondary"></button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div id="validation-menu-holder">
-                <div id="main-validate-section" class="validation-menu-section button-section">
-                    <div id="main-validate-header" class="validation-menu-section-header">Is this a curb ramp?</div>
-                    <div id="validation-button-holder">
-                        <button type="button" id="validate-yes-button"class="validate-page-button validate-button button-ps button--small">
-                        @Html(Messages("yes.caps.shortcut"))
-                        </button>
-                        <button type="button" id="validate-no-button"class="validate-page-button validate-button button-ps button--small">
-                        @Html(Messages("no.caps.shortcut"))
-                        </button>
-                        <button type="button" id="validate-unsure-button"class="validate-page-button validate-button button-ps button--small">
-                        @Html(Messages("unsure.caps.shortcut"))
-                        </button>
-                    </div>
-                </div>
-                <div id="validate-tags-section" class="validation-menu-section">
-                    <div id="validate-tags-header" class="validation-menu-section-header">Add/remove tags</div>
-                    <div id="current-tags-list"></div>
-                    <div id="sidewalk-ai-suggestions-block">
-                        <div class="sidewalk-ai-suggestions-header">
-                            <img
-                                src='@assets.path("images/icons/ai-icon-small.png")'
-                                alt="AI icon"
-                                title="@Messages("validate.ai.disclaimer")"
-                                class="ai-icon"
-                            >
-                            @Messages("validate.suggestions")
-                        </div>
-                        <div class="sidewalk-ai-suggestions-list-holder">
-                            <div class="sidewalk-ai-suggested-tag tag-pill template"></div>
-                        </div>
-                    </div>
-                    <select id="select-tag" multiple></select>
-                </div>
-                <div id="validate-severity-section" class="validation-menu-section">
-                    @* Header and severity level labels are swapped by DesktopValidationMenu JS based on curr label type. *@
-                    <div id="validate-severity-header" class="validation-menu-section-header"></div>
-                    <div id="severity-radio-holder">
-                        <label class="severity-button" id="severity-button-1" for="validate-severity-radio-1" data-severity="1" data-toggle="tooltip">
-                            <input type="radio" name="label-severity" id="validate-severity-radio-1" value="1" class="severity-button__radio">
-                            <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
-                            <span class="severity-button__label"></span>
-                        </label>
-                        <label class="severity-button" id="severity-button-2" for="validate-severity-radio-2" data-severity="2" data-toggle="tooltip">
-                            <input type="radio" name="label-severity" id="validate-severity-radio-2" value="2" class="severity-button__radio">
-                            <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
-                            <span class="severity-button__label"></span>
-                        </label>
-                        <label class="severity-button" id="severity-button-3" for="validate-severity-radio-3" data-severity="3" data-toggle="tooltip">
-                            <input type="radio" name="label-severity" id="validate-severity-radio-3" value="3" class="severity-button__radio">
-                            <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
-                            <span class="severity-button__label"></span>
-                        </label>
-                    </div>
-                </div>
-                <div id="validate-optional-comment-section" class="validation-menu-section">
-                    <div id="optional-comment-input" class="input-group input-group-sm validate-text-input">
-                        <input type="text" class="form-control" placeholder="@Messages("validate.comment.placeholder")" id="add-optional-comment" size="36" aria-label=@Messages("validate.comment.placeholder")>
-                    </div>
-                </div>
-                <div id="validate-why-no-section" class="validation-menu-section">
-                    <div id="validate-why-not-header" class="validation-menu-section-header">@Messages("validate.why.not")</div>
-                    <div id="no-reason-options">
-                        <button type="button" id="no-button-1"class="validation-reason-button ps-button button--small"></button>
-                        <button type="button" id="no-button-2"class="validation-reason-button ps-button button--small"></button>
-                        <button type="button" id="no-button-3"class="validation-reason-button ps-button button--small"></button>
-                        <div class="input-group input-group-sm validate-text-input">
-                            <input type="text" class="form-control" placeholder="@Messages("validate.add.own.reason")" id="add-disagree-comment" size="36" aria-label="Add no reason input">
-                        </div>
-                    </div>
-                </div>
-                <div id="validate-why-unsure-section" class="validation-menu-section">
-                    <div id="validate-why-unsure-header" class="validation-menu-section-header">@Messages("validate.why.unsure")</div>
-                    <div id="unsure-reason-options">
-                        <button type="button" id="unsure-button-1"class="validation-reason-button ps-button button--small"></button>
-                        <button type="button" id="unsure-button-2"class="validation-reason-button ps-button button--small"></button>
-                        <button type="button" id="unsure-button-3"class="validation-reason-button ps-button button--small"></button>
-                        <div class="input-group input-group-sm validate-text-input">
-                            <input type="text" class="form-control" placeholder="@Messages("validate.add.own.reason")" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
-                        </div>
-                    </div>
-                </div>
-                <div id="validate-submit-section" class="validation-menu-section button-section">
-                    <button type="button" id="validate-undo-button"class="button-ps button--secondary button--small">@Html(Messages("back.shortcut"))</button>
-                    <button type="button" id="validate-submit-button"class="button-ps button--primary button--small">@Html(Messages("submit.shortcut"))</button>
-                </div>
-            </div>
-        </div>
+    @* These are templates and are not visible on the screen directly. *@
+    @* JS clones them, adjusts the attributes and then appends to DOM. *@
+    <div class="current-tag tag-pill tag-pill--interactive tag-pill--active template">
+      <div class="tag-name tag-pill__label"></div>
+      <div class="remove-tag-x">
+        <svg viewBox="0 0 22 22"><use xlink:href="#close-icon"></use></svg>
+      </div>
     </div>
+    <template id="admin-info-template">
+      <div id="admin-info-content">
+        <h1>Admin Info</h1>
+        <p id="admin-url-instructions">
+          You can choose to validate a specific label type, user, or neighborhood by editing the URL and pressing enter. For example:
+          <br><code>?labelType=CurbRamp</code>
+          <br><code>?users=User1</code>
+          <br><code>?neighborhoods=Neighborhood1</code>
+          <br>You can also combine the filters by using the & symbol. For example:
+          <br><code>?labelType=CurbRamp&users=User1</code>
+          <br>You can also filter for multiple users or neighborhoods by separating them with commas.
+          For example:
+          <br><code>?users=User1,User2</code>
+        </p>
+        <h2>Labeler</h2>
+        <p id="curr-label-username"></p>
+        <h2>Label ID</h2>
+        <p id="curr-label-id"></p>
+        <h2 id="curr-label-prev-validations">Previous Validations</h2>
+      </div>
+    </template>
 
-    <script>
-        window.appManager.ready(function() {
-            var svv = svv || {};
-            const param = {};
+    <div id="svv-application-holder">
+      <div id="mission-title"></div>
+      @components.progressBar(
+        rootId = "mission-progress-bar-section",
+        fillId = "mission-progress-bar-complete",
+        labelId = "mission-progress-bar-text"
+      )
+      <div id="admin-info-section">
+        <button type="button" id="admin-info-button"class="button-ps button--secondary button--small">Admin info</button>
+      </div>
+      <div id="svv-panorama-holder">
+        <div id="svv-panorama"></div>
+        <div id="view-control-layer">
+          <button type="button" id="label-visibility-button-on-label"class="label-visibility-button-on-label" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">@Html(Messages("validate.top.ui.hide.label"))</button>
+          <div id="label-description-box"></div>
+        </div>
+        <div id="pano-border-frame"></div>
+        <div id="speed-limit-sign" class="speed-limit-sign" data-design-style="us-canada">
+          <div class="speed-limit-holder">
+            <span class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></span>
+          </div>
+        </div>
+        <button type="button" id="label-visibility-control-button"class="button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top"></button>
+        <div id="svv-panorama-date-holder">
+          <span id="svv-panorama-date"></span>
+        </div>
+        <div id="zoom-buttons-holder" class="zoom-buttons-holder">
+          <button type="button" id="zoom-in-button"class="zoom-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in">
+            <img class="zoom-button-icon" src='@assets.path("images/icons/plus-white-material.svg")' alt="">
+          </button>
+          <button type="button" id="zoom-out-button"class="zoom-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out">
+            <img class="zoom-button-icon" src='@assets.path("images/icons/minus-white-material.svg")' alt="">
+          </button>
+        </div>
+      </div>
+      <div id="modal-mission-holder" class="ps-hidden">
+        <div id="modal-mission-background" class="modal-background"></div>
+        <div id="modal-mission-foreground" class="modal-foreground">
+          <h1 id="modal-mission-header" class="text-center"></h1>
+          <div id="modal-mission-instruction"></div>
+          <button type="button" class="button-ps button--primary button--large" id="modal-mission-close-button">OK</button>
+        </div>
+      </div>
+      <div id="modal-mission-complete-holder">
+        <div id="modal-mission-complete-background" class="modal-background"></div>
+        <div id="modal-mission-complete-foreground" class="modal-foreground">
+          <h1 id="modal-mission-complete-title"></h1>
+          <p><div id="modal-mission-complete-message"></div></p>
+          <div id="modal-mission-complete-table">
+            <div class="col-sm-10">
+              <h3>@Messages("validate.mission.complete.category")</h3>
+              <table class="table">
+                <tr>
+                  <th>@Messages("yes.caps")</th>
+                  <td id="modal-mission-complete-agree-count" class="col-right text-right"></td>
+                </tr>
+                <tr>
+                  <th>@Messages("no.caps")</th>
+                  <td id="modal-mission-complete-disagree-count" class="col-right text-right"></td>
+                </tr>
+                <tr>
+                  <th>@Messages("unsure.caps")</th>
+                  <td id="modal-mission-complete-unsure-count" class="col-right text-right"></td>
+                </tr>
+                <tr id="your-overall-total">
+                  <th>@Messages("validate.mission.complete.your.overall.total")</th>
+                  <td id="modal-mission-complete-your-overall-total-count" class="col-right text-right"></td>
+                </tr>
+              </table>
+              <button type="button" class="btn btn-primary" id="modal-mission-complete-close-button-primary"></button>
+              <button type="button" class="btn btn-secondary" id="modal-mission-complete-close-button-secondary"></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="validation-menu-holder">
+        <div id="main-validate-section" class="validation-menu-section button-section">
+          <div id="main-validate-header" class="validation-menu-section-header">Is this a curb ramp?</div>
+          <div id="validation-button-holder">
+            <button type="button" id="validate-yes-button"class="validate-page-button validate-button button-ps button--small">@Html(Messages("yes.caps.shortcut"))</button>
+            <button type="button" id="validate-no-button"class="validate-page-button validate-button button-ps button--small">@Html(Messages("no.caps.shortcut"))</button>
+            <button type="button" id="validate-unsure-button"class="validate-page-button validate-button button-ps button--small">@Html(Messages("unsure.caps.shortcut"))</button>
+          </div>
+        </div>
+        <div id="validate-tags-section" class="validation-menu-section">
+          <div id="validate-tags-header" class="validation-menu-section-header">Add/remove tags</div>
+          <div id="current-tags-list"></div>
+          <div id="sidewalk-ai-suggestions-block">
+            <div class="sidewalk-ai-suggestions-header">
+              <img src='@assets.path("images/icons/ai-icon-small.png")' alt="AI icon" title="@Messages("validate.ai.disclaimer")" class="ai-icon">
+              @Messages("validate.suggestions")
+            </div>
+            <div class="sidewalk-ai-suggestions-list-holder">
+              <div class="sidewalk-ai-suggested-tag tag-pill template"></div>
+            </div>
+          </div>
+          <select id="select-tag" multiple></select>
+        </div>
+        <div id="validate-severity-section" class="validation-menu-section">
+          @* Header and severity level labels are swapped by DesktopValidationMenu JS based on curr label type. *@
+          <div id="validate-severity-header" class="validation-menu-section-header"></div>
+          <div id="severity-radio-holder">
+            <label class="severity-button" id="severity-button-1" for="validate-severity-radio-1" data-severity="1" data-toggle="tooltip">
+              <input type="radio" name="label-severity" id="validate-severity-radio-1" value="1" class="severity-button__radio">
+              <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
+              <span class="severity-button__label"></span>
+            </label>
+            <label class="severity-button" id="severity-button-2" for="validate-severity-radio-2" data-severity="2" data-toggle="tooltip">
+              <input type="radio" name="label-severity" id="validate-severity-radio-2" value="2" class="severity-button__radio">
+              <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
+              <span class="severity-button__label"></span>
+            </label>
+            <label class="severity-button" id="severity-button-3" for="validate-severity-radio-3" data-severity="3" data-toggle="tooltip">
+              <input type="radio" name="label-severity" id="validate-severity-radio-3" value="3" class="severity-button__radio">
+              <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
+              <span class="severity-button__label"></span>
+            </label>
+          </div>
+        </div>
+        <div id="validate-optional-comment-section" class="validation-menu-section">
+          <div id="optional-comment-input" class="input-group input-group-sm validate-text-input">
+            <input type="text" class="form-control" placeholder="@Messages("validate.comment.placeholder")" id="add-optional-comment" size="36" aria-label=@Messages("validate.comment.placeholder")>
+          </div>
+        </div>
+        <div id="validate-why-no-section" class="validation-menu-section">
+          <div id="validate-why-not-header" class="validation-menu-section-header">@Messages("validate.why.not")</div>
+          <div id="no-reason-options">
+            <button type="button" id="no-button-1"class="validation-reason-button ps-button button--small"></button>
+            <button type="button" id="no-button-2"class="validation-reason-button ps-button button--small"></button>
+            <button type="button" id="no-button-3"class="validation-reason-button ps-button button--small"></button>
+            <div class="input-group input-group-sm validate-text-input">
+              <input type="text" class="form-control" placeholder="@Messages("validate.add.own.reason")" id="add-disagree-comment" size="36" aria-label="Add no reason input">
+            </div>
+          </div>
+        </div>
+        <div id="validate-why-unsure-section" class="validation-menu-section">
+          <div id="validate-why-unsure-header" class="validation-menu-section-header">@Messages("validate.why.unsure")</div>
+          <div id="unsure-reason-options">
+            <button type="button" id="unsure-button-1"class="validation-reason-button ps-button button--small"></button>
+            <button type="button" id="unsure-button-2"class="validation-reason-button ps-button button--small"></button>
+            <button type="button" id="unsure-button-3"class="validation-reason-button ps-button button--small"></button>
+            <div class="input-group input-group-sm validate-text-input">
+              <input type="text" class="form-control" placeholder="@Messages("validate.add.own.reason")" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
+            </div>
+          </div>
+        </div>
+        <div id="validate-submit-section" class="validation-menu-section button-section">
+          <button type="button" id="validate-undo-button"class="button-ps button--secondary button--small">@Html(Messages("back.shortcut"))</button>
+          <button type="button" id="validate-submit-button"class="button-ps button--primary button--small">@Html(Messages("submit.shortcut"))</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-            // Store user object.
-            const userParam = {
-                username: '@user.username',
-                role: '@user.role'
-            };
-            svv.user = new User(userParam);
+  <script>
+    window.appManager.ready(function() {
+      var svv = svv || {};
+      const param = {};
 
-            param.dataStoreUrl = '@routes.ValidateController.post';
-            param.hasNextMission = @validatePageData.hasNextMission;
-            param.completedValidations = @validatePageData.completedValidations;
-            param.language = "@messages.lang.code";
-            const imagerySrc = "@commonData.imagerySource.toString";
-            param.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
-            param.viewerAccessToken = "@commonData.imageryAccessToken";
-            param.validateParams = {
-                adminVersion: @validateParams.adminVersion,
-                labelTypeId: @Html(validateParams.labelType.map(_.id.toString).getOrElse("null")),
-                userIds: @Html(validateParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null")),
-                regionIds: @Html(validateParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null")),
-                unvalidatedOnly: @validateParams.unvalidatedOnly
-            }
-            param.tagList = @Html(JsArray(validatePageData.tagList.map(t => Json.toJson(t))).toString);
+      // Store user object.
+      const userParam = {
+        username: '@user.username',
+        role: '@user.role'
+      };
+      svv.user = new User(userParam);
 
-            if (@validatePageData.hasNextMission) {
-                param.mission = @Html(validatePageData.mission.getOrElse("\"\"").toString);
-                param.labelList = @Html(validatePageData.labelList.getOrElse("\"\"").toString);
-                param.progress = @Html(validatePageData.missionProgress.getOrElse("\"\"").toString);
-            }
-            svv.main = new Main(param);
-        });
-    </script>
+      param.dataStoreUrl = '@routes.ValidateController.post';
+      param.hasNextMission = @validatePageData.hasNextMission;
+      param.completedValidations = @validatePageData.completedValidations;
+      param.language = "@messages.lang.code";
+      const imagerySrc = "@commonData.imagerySource.toString";
+      param.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+      param.viewerAccessToken = "@commonData.imageryAccessToken";
+      param.validateParams = {
+        adminVersion: @validateParams.adminVersion,
+        labelTypeId: @Html(validateParams.labelType.map(_.id.toString).getOrElse("null")),
+        userIds: @Html(validateParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null")),
+        regionIds: @Html(validateParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null")),
+        unvalidatedOnly: @validateParams.unvalidatedOnly
+      }
+      param.tagList = @Html(JsArray(validatePageData.tagList.map(t => Json.toJson(t))).toString);
+
+      if (@validatePageData.hasNextMission) {
+        param.mission = @Html(validatePageData.mission.getOrElse("\"\"").toString);
+        param.labelList = @Html(validatePageData.labelList.getOrElse("\"\"").toString);
+        param.progress = @Html(validatePageData.missionProgress.getOrElse("\"\"").toString);
+      }
+      svv.main = new Main(param);
+    });
+  </script>
 }

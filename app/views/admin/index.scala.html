@@ -9,890 +9,890 @@
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
 @common.main(commonData, title, i18Namespaces = Seq("common", "labelmap")) {
-    @common.navbar(commonData, Some(user))
-    <div id="page-loading">
-        <div id="loading-animation">
-            <p class="loading-text">@Messages("loading")</p>
-            <img src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'>
-        </div>
+  @common.navbar(commonData, Some(user))
+  <div id="page-loading">
+    <div id="loading-animation">
+      <p class="loading-text">@Messages("loading")</p>
+      <img src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'>
     </div>
-    <div id="admin-page-container" class="container ps-invisible">
-        <div id="row">
-            <div class="col-lg-2">
-                <ul class="nav nav-pills nav-stacked">
-                    <li class="active"><a href="#tabs-1" data-toggle="pill" id="overview">Overview</a></li>
-                    <li><a href="#tabs-2" data-toggle="pill" id="visualization">Map</a></li>
-                    <li><a href="#tabs-3" data-toggle="pill" id="analytics">Analytics</a></li>
-                    <li><a href="#tabs-4" data-toggle="pill" id="labels">Labels</a></li>
-                    <li><a href="#tabs-5" data-toggle="pill" id="users">Users</a></li>
-                    <li><a href="#tabs-6" data-toggle="pill" id="label-search">Label Search</a></li>
-                    <li><a href="#tabs-7" data-toggle="pill" id="teams">Teams</a></li>
-                    <li><a href="#tabs-8" data-toggle="pill" id="api-analytics">API Analytics</a></li>
-                </ul>
+  </div>
+  <div id="admin-page-container" class="container ps-invisible">
+    <div id="row">
+      <div class="col-lg-2">
+        <ul class="nav nav-pills nav-stacked">
+          <li class="active"><a href="#tabs-1" data-toggle="pill" id="overview">Overview</a></li>
+          <li><a href="#tabs-2" data-toggle="pill" id="visualization">Map</a></li>
+          <li><a href="#tabs-3" data-toggle="pill" id="analytics">Analytics</a></li>
+          <li><a href="#tabs-4" data-toggle="pill" id="labels">Labels</a></li>
+          <li><a href="#tabs-5" data-toggle="pill" id="users">Users</a></li>
+          <li><a href="#tabs-6" data-toggle="pill" id="label-search">Label Search</a></li>
+          <li><a href="#tabs-7" data-toggle="pill" id="teams">Teams</a></li>
+          <li><a href="#tabs-8" data-toggle="pill" id="api-analytics">API Analytics</a></li>
+        </ul>
+      </div>
+      <div class="col-lg-10">
+        <div class="tab-content">
+          <div class="tab-pane active" id="tabs-1">
+            <div class="row">
+              <div class="col-lg-6">
+                <h1>Activities</h1>
+                Today and Past Week are based on the Pacific time zone.
+                <table class="table table-striped table-condensed">
+                  <tr>
+                    <th></th>
+                    <th>Overall</th>
+                    <th>Today</th>
+                    <th>Past Week</th>
+                  </tr>
+                  <tr>
+                    <th>Total Users<sup>*</sup></th>
+                    <th>
+                      <span id="user-count-combined-all-all_time-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-combined-all-all_time-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-combined-all-today-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-combined-all-today-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-combined-all-week-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-combined-all-week-task_completed-any_quality"></span>)
+                    </th>
+                  </tr>
+                  <tr>
+                    <th>Total Auditing Time</th>
+                    <th id="time-explore_total-all_time"></th>
+                    <th id="time-explore_total-today"></th>
+                    <th id="time-explore_total-week"></th>
+                  </tr>
+                  <tr>
+                    <th>Total Validating Time</th>
+                    <th id="time-validate_total-all_time"></th>
+                    <th id="time-validate_total-today"></th>
+                    <th id="time-validate_total-week"></th>
+                  </tr>
+                  <tr>
+                    <th>Avg Auditing Time / 100m </th>
+                    <th id="time-explore_per_100m-all_time"></th>
+                    <th id="time-explore_per_100m-today"></th>
+                    <th id="time-explore_per_100m-week"></th>
+                  </tr>
+                  <tr>
+                    <th>Total Users (High Quality)<sup>*</sup></th>
+                    <th>
+                      <span id="user-count-combined-all-all_time-no_task_constraint-high_quality"></span>
+                      (<span id="user-count-combined-all-all_time-task_completed-high_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-combined-all-today-no_task_constraint-high_quality"></span>
+                      (<span id="user-count-combined-all-today-task_completed-high_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-combined-all-week-no_task_constraint-high_quality"></span>
+                      (<span id="user-count-combined-all-week-task_completed-high_quality"></span>)
+                    </th>
+                  </tr>
+                  <tr>
+                    <th>Total Explore Users<sup>*</sup></th>
+                    <th>
+                      <span id="user-count-explore-all-all_time-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-explore-all-all_time-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-explore-all-today-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-explore-all-today-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-explore-all-week-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-explore-all-week-task_completed-any_quality"></span>)
+                    </th>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">Registered</td>
+                    <th>
+                      <span id="user-count-explore-registered-all_time-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-explore-registered-all_time-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-explore-registered-today-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-explore-registered-today-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-explore-registered-week-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-explore-registered-week-task_completed-any_quality"></span>)
+                    </th>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">Anonymous</td>
+                    <th>
+                      <span id="user-count-explore-anonymous-all_time-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-explore-anonymous-all_time-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-explore-anonymous-today-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-explore-anonymous-today-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-explore-anonymous-week-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-explore-anonymous-week-task_completed-any_quality"></span>)
+                    </th>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">Turkers</td>
+                    <th>
+                      <span id="user-count-explore-turker-all_time-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-explore-turker-all_time-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-explore-turker-today-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-explore-turker-today-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-explore-turker-week-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-explore-turker-week-task_completed-any_quality"></span>)
+                    </th>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">Researchers</td>
+                    <th>
+                      <span id="user-count-explore-researcher-all_time-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-explore-researcher-all_time-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-explore-researcher-today-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-explore-researcher-today-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-explore-researcher-week-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-explore-researcher-week-task_completed-any_quality"></span>)
+                    </th>
+                  </tr>
+
+                  <tr>
+                    <th>Total Labels</th>
+                    <th id="label-count-All-all_time"></th>
+                    <th id="label-count-All-today"></th>
+                    <th id="label-count-All-week"></th>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">@Messages("curb.ramp")</td>
+                    <td id="label-count-CurbRamp-all_time"></td>
+                    <td id="label-count-CurbRamp-today"></td>
+                    <td id="label-count-CurbRamp-week"></td>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">@Messages("missing.ramp")</td>
+                    <td id="label-count-NoCurbRamp-all_time"></td>
+                    <td id="label-count-NoCurbRamp-today"></td>
+                    <td id="label-count-NoCurbRamp-week"></td>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">@Messages("obstacle")</td>
+                    <td id="label-count-Obstacle-all_time"></td>
+                    <td id="label-count-Obstacle-today"></td>
+                    <td id="label-count-Obstacle-week"></td>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">@Messages("surface.problem")</td>
+                    <td id="label-count-SurfaceProblem-all_time"></td>
+                    <td id="label-count-SurfaceProblem-today"></td>
+                    <td id="label-count-SurfaceProblem-week"></td>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">@Messages("no.sidewalk")</td>
+                    <td id="label-count-NoSidewalk-all_time"></td>
+                    <td id="label-count-NoSidewalk-today"></td>
+                    <td id="label-count-NoSidewalk-week"></td>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">@Messages("crosswalk")</td>
+                    <td id="label-count-Crosswalk-all_time"></td>
+                    <td id="label-count-Crosswalk-today"></td>
+                    <td id="label-count-Crosswalk-week"></td>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">@Messages("signal")</td>
+                    <td id="label-count-Signal-all_time"></td>
+                    <td id="label-count-Signal-today"></td>
+                    <td id="label-count-Signal-week"></td>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">@Messages("other")</td>
+                    <td id="label-count-Other-all_time"></td>
+                    <td id="label-count-Other-today"></td>
+                    <td id="label-count-Other-week"></td>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">@Messages("occlusion")</td>
+                    <td id="label-count-Occlusion-all_time"></td>
+                    <td id="label-count-Occlusion-today"></td>
+                    <td id="label-count-Occlusion-week"></td>
+                  </tr>
+
+                  <tr>
+                    <th>Streets Explored</th>
+                    <th id="explored-street-count-all-time"></th>
+                    <th id="explored-street-count-today"></th>
+                    <th id="explored-street-count-week"></th>
+                  </tr>
+                  <tr>
+                    <th>Distance Explored</th>
+                    <th><span id="audited-distance-all-time"></span></th>
+                    <th><span id="audited-distance-today"></span></th>
+                    <th><span id="audited-distance-week"></span></th>
+                  </tr>
+                  <tr>
+                    <th>Total Validation Users<sup>*</sup></th>
+                    <th>
+                      <span id="user-count-validate-all-all_time-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-validate-all-all_time-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-validate-all-today-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-validate-all-today-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-validate-all-week-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-validate-all-week-task_completed-any_quality"></span>)
+                    </th>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">Registered</td>
+                    <th>
+                      <span id="user-count-validate-registered-all_time-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-validate-registered-all_time-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-validate-registered-today-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-validate-registered-today-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-validate-registered-week-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-validate-registered-week-task_completed-any_quality"></span>)
+                    </th>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">Anonymous</td>
+                    <th>
+                      <span id="user-count-validate-anonymous-all_time-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-validate-anonymous-all_time-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-validate-anonymous-today-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-validate-anonymous-today-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-validate-anonymous-week-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-validate-anonymous-week-task_completed-any_quality"></span>)
+                    </th>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">Turkers</td>
+                    <th>
+                      <span id="user-count-validate-turker-all_time-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-validate-turker-all_time-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-validate-turker-today-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-validate-turker-today-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-validate-turker-week-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-validate-turker-week-task_completed-any_quality"></span>)
+                    </th>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">Researchers</td>
+                    <th>
+                      <span id="user-count-validate-researcher-all_time-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-validate-researcher-all_time-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-validate-researcher-today-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-validate-researcher-today-task_completed-any_quality"></span>)
+                    </th>
+                    <th>
+                      <span id="user-count-validate-researcher-week-no_task_constraint-any_quality"></span>
+                      (<span id="user-count-validate-researcher-week-task_completed-any_quality"></span>)
+                    </th>
+                  </tr>
+
+                  <tr class="admin-stats-row">
+                    <th>Total Validations<sup>**</sup></th>
+                    <th id="val-count-All-all_time"></th>
+                    <th id="val-count-All-today"></th>
+                    <th id="val-count-All-week"></th>
+                  </tr>
+
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">Agree</td>
+                    <td id="val-count-Agree-all_time"></td>
+                    <td id="val-count-Agree-today"></td>
+                    <td id="val-count-Agree-week"></td>
+                  </tr>
+
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">Disagree</td>
+                    <td id="val-count-Disagree-all_time"></td>
+                    <td id="val-count-Disagree-today"></td>
+                    <td id="val-count-Disagree-week"></td>
+                  </tr>
+
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">@Messages("unsure.caps")</td>
+                    <td id="val-count-Unsure-all_time"></td>
+                    <td id="val-count-Unsure-today"></td>
+                    <td id="val-count-Unsure-week"></td>
+                  </tr>
+                </table>
+                <p>
+                  <sup>*</sup>For cells with the format X (Y). The "Y" is the number of users who have
+                  completed at least 1 audit task or have validated at least one label. The X is the total
+                  number of users who opened the audit or validation tool regardless of finishing a task.
+                  number of users who opened the audit or validation tool regardless of finishing a task.
+                </p>
+
+                <p>
+                  <sup>**</sup>These include AI validations. For a breakdown of human vs AI validations,
+                  see the Analytics tab.
+                </p>
+              </div>
+              <div class="col-lg-6">
+                <h1>Coverage</h1>
+                <table class="table table-striped table-condensed w-auto">
+                  <tr>
+                    <th></th>
+                    <th>All Users</th>
+                    <th>High Quality</th>
+                    <th>Total</th>
+                  </tr>
+                  <tr>
+                    <th>Audited Streets</th>
+                    <td><span id="street-count-audited-all"></span></td>
+                    <td><span id="street-count-audited-high-quality"></span></td>
+                    <td><span id="street-count-total"></span></td>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">Registered</td>
+                    <td><span id="street-count-audited-registered-all"></span></td>
+                    <td><span id="street-count-audited-registered-high-quality"></span></td>
+                    <td></td>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">Anonymous</td>
+                    <td><span id="street-count-audited-anonymous-all"></span></td>
+                    <td><span id="street-count-audited-anonymous-high-quality"></span></td>
+                    <td></td>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">Turker</td>
+                    <td><span id="street-count-audited-turker-all"></span></td>
+                    <td><span id="street-count-audited-turker-high-quality"></span></td>
+                    <td></td>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">Researcher</td>
+                    <td><span id="street-count-audited-researcher-all"></span></td>
+                    <td><span id="street-count-audited-researcher-high-quality"></span></td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <th>Distance</th>
+                    <td><span id="street-distance-audited-all"></span></td>
+                    <td><span id="street-distance-audited-high-quality"></span></td>
+                    <td><span id="street-distance-total"></span></td>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">Registered</td>
+                    <td><span id="street-distance-registered-all"></span></td>
+                    <td><span id="street-distance-registered-high-quality"></span></td>
+                    <td></td>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">Anonymous</td>
+                    <td><span id="street-distance-anonymous-all"></span></td>
+                    <td><span id="street-distance-anonymous-high-quality"></span></td>
+                    <td></td>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">Turker</td>
+                    <td><span id="street-distance-turker-all"></span></td>
+                    <td><span id="street-distance-turker-high-quality"></span></td>
+                    <td></td>
+                  </tr>
+                  <tr class="admin-stats-row">
+                    <td class="admin-stats-label">Researcher</td>
+                    <td><span id="street-distance-researcher-all"></span></td>
+                    <td><span id="street-distance-researcher-high-quality"></span></td>
+                    <td></td>
+                  </tr>
+                </table>
+              </div>
+              <div class="col-lg-4">
+                <h1></h1>
+
+              </div>
+              <button type="button" id="clear-play-cache-button">@Messages("admin.clear.play.cache")</button>
+              <p id="clear-play-cache-success"></p>
             </div>
-            <div class="col-lg-10">
-                <div class="tab-content">
-                <div class="tab-pane active" id="tabs-1">
-                    <div class="row">
-                        <div class="col-lg-6">
-                            <h1>Activities</h1>
-                            Today and Past Week are based on the Pacific time zone.
-                            <table class="table table-striped table-condensed">
-                                <tr>
-                                    <th></th>
-                                    <th>Overall</th>
-                                    <th>Today</th>
-                                    <th>Past Week</th>
-                                </tr>
-                                <tr>
-                                    <th>Total Users<sup>*</sup></th>
-                                    <th>
-                                        <span id="user-count-combined-all-all_time-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-combined-all-all_time-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-combined-all-today-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-combined-all-today-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-combined-all-week-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-combined-all-week-task_completed-any_quality"></span>)
-                                    </th>
-                                </tr>
-                                <tr>
-                                    <th>Total Auditing Time</th>
-                                    <th id="time-explore_total-all_time"></th>
-                                    <th id="time-explore_total-today"></th>
-                                    <th id="time-explore_total-week"></th>
-                                </tr>
-                                <tr>
-                                    <th>Total Validating Time</th>
-                                    <th id="time-validate_total-all_time"></th>
-                                    <th id="time-validate_total-today"></th>
-                                    <th id="time-validate_total-week"></th>
-                                </tr>
-                                <tr>
-                                    <th>Avg Auditing Time / 100m </th>
-                                    <th id="time-explore_per_100m-all_time"></th>
-                                    <th id="time-explore_per_100m-today"></th>
-                                    <th id="time-explore_per_100m-week"></th>
-                                </tr>
-                                <tr>
-                                    <th>Total Users (High Quality)<sup>*</sup></th>
-                                    <th>
-                                        <span id="user-count-combined-all-all_time-no_task_constraint-high_quality"></span>
-                                        (<span id="user-count-combined-all-all_time-task_completed-high_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-combined-all-today-no_task_constraint-high_quality"></span>
-                                        (<span id="user-count-combined-all-today-task_completed-high_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-combined-all-week-no_task_constraint-high_quality"></span>
-                                        (<span id="user-count-combined-all-week-task_completed-high_quality"></span>)
-                                    </th>
-                                </tr>
-                                <tr>
-                                    <th>Total Explore Users<sup>*</sup></th>
-                                    <th>
-                                        <span id="user-count-explore-all-all_time-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-explore-all-all_time-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-explore-all-today-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-explore-all-today-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-explore-all-week-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-explore-all-week-task_completed-any_quality"></span>)
-                                    </th>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">Registered</td>
-                                    <th>
-                                        <span id="user-count-explore-registered-all_time-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-explore-registered-all_time-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-explore-registered-today-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-explore-registered-today-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-explore-registered-week-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-explore-registered-week-task_completed-any_quality"></span>)
-                                    </th>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">Anonymous</td>
-                                    <th>
-                                        <span id="user-count-explore-anonymous-all_time-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-explore-anonymous-all_time-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-explore-anonymous-today-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-explore-anonymous-today-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-explore-anonymous-week-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-explore-anonymous-week-task_completed-any_quality"></span>)
-                                    </th>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">Turkers</td>
-                                    <th>
-                                        <span id="user-count-explore-turker-all_time-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-explore-turker-all_time-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-explore-turker-today-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-explore-turker-today-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-explore-turker-week-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-explore-turker-week-task_completed-any_quality"></span>)
-                                    </th>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">Researchers</td>
-                                    <th>
-                                        <span id="user-count-explore-researcher-all_time-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-explore-researcher-all_time-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-explore-researcher-today-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-explore-researcher-today-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-explore-researcher-week-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-explore-researcher-week-task_completed-any_quality"></span>)
-                                    </th>
-                                </tr>
-
-                                <tr>
-                                    <th>Total Labels</th>
-                                    <th id="label-count-All-all_time"></th>
-                                    <th id="label-count-All-today"></th>
-                                    <th id="label-count-All-week"></th>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">@Messages("curb.ramp")</td>
-                                    <td id="label-count-CurbRamp-all_time"></td>
-                                    <td id="label-count-CurbRamp-today"></td>
-                                    <td id="label-count-CurbRamp-week"></td>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">@Messages("missing.ramp")</td>
-                                    <td id="label-count-NoCurbRamp-all_time"></td>
-                                    <td id="label-count-NoCurbRamp-today"></td>
-                                    <td id="label-count-NoCurbRamp-week"></td>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">@Messages("obstacle")</td>
-                                    <td id="label-count-Obstacle-all_time"></td>
-                                    <td id="label-count-Obstacle-today"></td>
-                                    <td id="label-count-Obstacle-week"></td>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">@Messages("surface.problem")</td>
-                                    <td id="label-count-SurfaceProblem-all_time"></td>
-                                    <td id="label-count-SurfaceProblem-today"></td>
-                                    <td id="label-count-SurfaceProblem-week"></td>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">@Messages("no.sidewalk")</td>
-                                    <td id="label-count-NoSidewalk-all_time"></td>
-                                    <td id="label-count-NoSidewalk-today"></td>
-                                    <td id="label-count-NoSidewalk-week"></td>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">@Messages("crosswalk")</td>
-                                    <td id="label-count-Crosswalk-all_time"></td>
-                                    <td id="label-count-Crosswalk-today"></td>
-                                    <td id="label-count-Crosswalk-week"></td>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">@Messages("signal")</td>
-                                    <td id="label-count-Signal-all_time"></td>
-                                    <td id="label-count-Signal-today"></td>
-                                    <td id="label-count-Signal-week"></td>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">@Messages("other")</td>
-                                    <td id="label-count-Other-all_time"></td>
-                                    <td id="label-count-Other-today"></td>
-                                    <td id="label-count-Other-week"></td>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">@Messages("occlusion")</td>
-                                    <td id="label-count-Occlusion-all_time"></td>
-                                    <td id="label-count-Occlusion-today"></td>
-                                    <td id="label-count-Occlusion-week"></td>
-                                </tr>
-
-                                <tr>
-                                    <th>Streets Explored</th>
-                                    <th id="explored-street-count-all-time"></th>
-                                    <th id="explored-street-count-today"></th>
-                                    <th id="explored-street-count-week"></th>
-                                </tr>
-                                <tr>
-                                    <th>Distance Explored</th>
-                                    <th><span id="audited-distance-all-time"></span></th>
-                                    <th><span id="audited-distance-today"></span></th>
-                                    <th><span id="audited-distance-week"></span></th>
-                                </tr>
-                                <tr>
-                                    <th>Total Validation Users<sup>*</sup></th>
-                                    <th>
-                                        <span id="user-count-validate-all-all_time-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-validate-all-all_time-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-validate-all-today-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-validate-all-today-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-validate-all-week-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-validate-all-week-task_completed-any_quality"></span>)
-                                    </th>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">Registered</td>
-                                    <th>
-                                        <span id="user-count-validate-registered-all_time-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-validate-registered-all_time-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-validate-registered-today-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-validate-registered-today-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-validate-registered-week-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-validate-registered-week-task_completed-any_quality"></span>)
-                                    </th>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">Anonymous</td>
-                                    <th>
-                                        <span id="user-count-validate-anonymous-all_time-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-validate-anonymous-all_time-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-validate-anonymous-today-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-validate-anonymous-today-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-validate-anonymous-week-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-validate-anonymous-week-task_completed-any_quality"></span>)
-                                    </th>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">Turkers</td>
-                                    <th>
-                                        <span id="user-count-validate-turker-all_time-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-validate-turker-all_time-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-validate-turker-today-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-validate-turker-today-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-validate-turker-week-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-validate-turker-week-task_completed-any_quality"></span>)
-                                    </th>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">Researchers</td>
-                                    <th>
-                                        <span id="user-count-validate-researcher-all_time-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-validate-researcher-all_time-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-validate-researcher-today-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-validate-researcher-today-task_completed-any_quality"></span>)
-                                    </th>
-                                    <th>
-                                        <span id="user-count-validate-researcher-week-no_task_constraint-any_quality"></span>
-                                        (<span id="user-count-validate-researcher-week-task_completed-any_quality"></span>)
-                                    </th>
-                                </tr>
-
-                                <tr class="admin-stats-row">
-                                    <th>Total Validations<sup>**</sup></th>
-                                    <th id="val-count-All-all_time"></th>
-                                    <th id="val-count-All-today"></th>
-                                    <th id="val-count-All-week"></th>
-                                </tr>
-
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">Agree</td>
-                                    <td id="val-count-Agree-all_time"></td>
-                                    <td id="val-count-Agree-today"></td>
-                                    <td id="val-count-Agree-week"></td>
-                                </tr>
-
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">Disagree</td>
-                                    <td id="val-count-Disagree-all_time"></td>
-                                    <td id="val-count-Disagree-today"></td>
-                                    <td id="val-count-Disagree-week"></td>
-                                </tr>
-
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">@Messages("unsure.caps")</td>
-                                    <td id="val-count-Unsure-all_time"></td>
-                                    <td id="val-count-Unsure-today"></td>
-                                    <td id="val-count-Unsure-week"></td>
-                                </tr>
-                            </table>
-                            <p>
-                                <sup>*</sup>For cells with the format X (Y). The "Y" is the number of users who have
-                                completed at least 1 audit task or have validated at least one label. The X is the total
-                                number of users who opened the audit or validation tool regardless of finishing a task.
-                                number of users who opened the audit or validation tool regardless of finishing a task.
-                            </p>
-
-                            <p>
-                                <sup>**</sup>These include AI validations. For a breakdown of human vs AI validations,
-                                see the Analytics tab.
-                            </p>
-                        </div>
-                        <div class="col-lg-6">
-                            <h1>Coverage</h1>
-                            <table class="table table-striped table-condensed w-auto">
-                                <tr>
-                                    <th></th>
-                                    <th>All Users</th>
-                                    <th>High Quality</th>
-                                    <th>Total</th>
-                                </tr>
-                                <tr>
-                                    <th>Audited Streets</th>
-                                    <td><span id="street-count-audited-all"></span></td>
-                                    <td><span id="street-count-audited-high-quality"></span></td>
-                                    <td><span id="street-count-total"></span></td>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">Registered</td>
-                                    <td><span id="street-count-audited-registered-all"></span></td>
-                                    <td><span id="street-count-audited-registered-high-quality"></span></td>
-                                    <td></td>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">Anonymous</td>
-                                    <td><span id="street-count-audited-anonymous-all"></span></td>
-                                    <td><span id="street-count-audited-anonymous-high-quality"></span></td>
-                                    <td></td>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">Turker</td>
-                                    <td><span id="street-count-audited-turker-all"></span></td>
-                                    <td><span id="street-count-audited-turker-high-quality"></span></td>
-                                    <td></td>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">Researcher</td>
-                                    <td><span id="street-count-audited-researcher-all"></span></td>
-                                    <td><span id="street-count-audited-researcher-high-quality"></span></td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <th>Distance</th>
-                                    <td><span id="street-distance-audited-all"></span></td>
-                                    <td><span id="street-distance-audited-high-quality"></span></td>
-                                    <td><span id="street-distance-total"></span></td>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">Registered</td>
-                                    <td><span id="street-distance-registered-all"></span></td>
-                                    <td><span id="street-distance-registered-high-quality"></span></td>
-                                    <td></td>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">Anonymous</td>
-                                    <td><span id="street-distance-anonymous-all"></span></td>
-                                    <td><span id="street-distance-anonymous-high-quality"></span></td>
-                                    <td></td>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">Turker</td>
-                                    <td><span id="street-distance-turker-all"></span></td>
-                                    <td><span id="street-distance-turker-high-quality"></span></td>
-                                    <td></td>
-                                </tr>
-                                <tr class="admin-stats-row">
-                                    <td class="admin-stats-label">Researcher</td>
-                                    <td><span id="street-distance-researcher-all"></span></td>
-                                    <td><span id="street-distance-researcher-high-quality"></span></td>
-                                    <td></td>
-                                </tr>
-                            </table>
-                        </div>
-                        <div class="col-lg-4">
-                            <h1></h1>
-
-                        </div>
-                        <button type="button" id="clear-play-cache-button">@Messages("admin.clear.play.cache")</button>
-                        <p id="clear-play-cache-success"></p>
-                    </div>
-                    <div class="row">
-                        <h1>Comments</h1>
-                        <div class="col-lg-12">
-                            <p>Last 100 comments</p>
-                            <table id="comments-table" class="table table-striped table-condensed">
-                                <thead>
-                                    <tr>
-                                        <th class="col-md-2">Username</th>
-                                        <th class="col-md-3" data-type="date">Timestamp</th>
-                                        <th class="col-md-2">Panorama Id</th>
-                                        <th class="col-md-1">Interface</th>
-                                        <th class="col-md-4">Comment</th>
-                                    </tr>
-                                </thead>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                <div id="tabs-2" class="tab-pane">
-                    <div class="row">
-                        <div class="col-lg-12">
-                            <div id="admin-labelmap-choropleth-holder" class="choropleth-holder">
-                                <div id="admin-labelmap-choropleth" class="choropleth"></div>
-                                @common.mapSidebar(tags = tags, adminVersion = true)
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div id="tabs-3" class="tab-pane">
-                    <div class="row">
-                        <div class="col-lg-12">
-                            <div id="admin-landing-choropleth-holder" class="choropleth-holder">
-                                <div id="admin-landing-choropleth" class="choropleth"></div>
-                                <div id="admin-percentage-legend">
-                                    <strong>Percent of Neighborhood Complete</strong>
-                                    <nav class='legend clearfix'>
-                                        <span class="legend-swatch legend-swatch-1"></span>
-                                        <span class="legend-swatch legend-swatch-2"></span>
-                                        <span class="legend-swatch legend-swatch-3"></span>
-                                        <span class="legend-swatch legend-swatch-4"></span>
-                                        <span class="legend-swatch legend-swatch-5"></span>
-                                        <span class="legend-swatch legend-swatch-6"></span>
-                                        <span class="legend-swatch legend-swatch-7"></span>
-                                        <span class="legend-swatch legend-swatch-8"></span>
-                                        <span class="legend-swatch legend-swatch-9"></span>
-                                        <span class="legend-swatch legend-swatch-10"></span>
-                                        <span class="legend-swatch legend-swatch-11"></span>
-                                        <div id="legend-percentages-container">
-                                            <label>0%</label>
-                                            <label>100%</label>
-                                        </div>
-                                    </nav>
-                                </div>
-                            </div>
-                        </div>
-
-                        <h2>Coverage Percentage by Neighborhood</h2>
-                        <div class="col-lg-12">
-                            <div id="neighborhood-completion-rate"></div>
-                        </div>
-                        <button type="button" id="neighborhood-completion-sort-button">Sort By Completion %</button>
-                        <button type="button" id="neighborhood-alphabetical-sort-button">Sort Alphabetically</button>
-                        <h2>Neighborhood Coverage Percentages</h2>
-                        <div class="col-lg-12">
-                            <p>
-                                <span>Standard Deviation: </span><span id="neighborhood-std"></span><br>
-                            </p>
-                        </div>
-                        <div class="col-lg-12">
-                            <div id="neighborhood-completed-distance"></div>
-                        </div>
-
-                        <h2>City Coverage Progress</h2>
-                        <div class="col-lg-12">
-                            <div id="completion-progress-chart"></div>
-                        </div>
-
-                        <h2>Daily Audits</h2>
-                        <div class="col-lg-12">
-                            <p>
-                                <span>Standard Deviation: </span><span id="audit-std"></span><br>
-                            </p>
-                        </div>
-                        <div class="col-lg-12">
-                            <div id="audit-count-chart"></div>
-                        </div>
-
-                        <h2>Daily Label Counts</h2>
-                        <div class="col-lg-12">
-                            <p>
-                                <span>Standard Deviation: </span><span id="label-std"></span><br>
-                            </p>
-                        </div>
-                        <div class="col-lg-12">
-                            <div id="label-count-chart"></div>
-                        </div>
-
-                        <h2>Severity Ratings by Label Type</h2>
-                        <div class="col-lg-12">
-                            <div class="stats-grid">
-                                <p>
-                                    <span>Average (curb ramp): </span><span id="curb-ramp-mean"></span><br>
-                                    <span>Average (missing curb ramp): </span><span id="missing-ramp-mean"></span><br>
-                                    <span>Average (obstacle): </span><span id="obstacle-mean"></span><br>
-                                    <span>Average (surface problem): </span><span id="surface-mean"></span><br>
-                                    <span>Average (marked crosswalk): </span><span id="crosswalk-mean"></span><br>
-                                    <span>Average (all label types): </span><span id="labels-mean"></span><br>
-                                </p>
-                                <p>
-                                    <span>Standard Deviation (curb ramp): </span><span id="curb-ramp-std"></span><br>
-                                    <span>Standard Deviation (missing curb ramp): </span><span id="missing-ramp-std"></span><br>
-                                    <span>Standard Deviation (obstacle): </span><span id="obstacle-std"></span><br>
-                                    <span>Standard Deviation (surface problem): </span><span id="surface-std"></span><br>
-                                    <span>Standard Deviation (marked crosswalk): </span><span id="crosswalk-std"></span><br>
-                                    <span>Standard Deviation (all label types): </span><span id="labels-std"></span><br>
-                                </p>
-                            </div>
-
-                            <div id="severity-histograms"></div>
-                            <div id="severity-histograms2"></div>
-                        </div>
-
-                        <h2>Tag Usage by Label Type</h2>
-                        <div class="col-lg-12">
-                            <div id="tag-usage-histograms"></div>
-                            <div id="tag-usage-histograms2"></div>
-                        </div>
-
-                        <h2>Missions Completed By Users</h2>
-                        <div class="col-lg-12">
-                            <p>
-                                <span>Standard Deviation (all users): </span><span id="missions-std"></span><br>
-                                <span>Standard Deviation (turker users): </span><span id="turker-missions-std"></span><br>
-                                <span>Standard Deviation (registered users): </span><span id="reg-missions-std"></span><br>
-                                <span>Standard Deviation (anon users): </span><span id="anon-missions-std"></span><br>
-                                <span>
-                                    Note: We only consider anonymous users who have completed at least one audit task.
-                                </span>
-                            </p>
-                        </div>
-                        <div class="col-lg-12">
-                            <div id="mission-count-chart"></div>
-                        </div>
-                        <label for="mission-count-include-researchers-checkbox"><input type="checkbox" id="mission-count-include-researchers-checkbox"> Include researchers</label>
-
-                        <h2>Labels per User</h2>
-                        <div class="col-lg-12">
-                            <p>
-                                <span>Standard Deviation (all users): </span><span id="all-labels-std"></span><br>
-                                <span>Standard Deviation (turker users): </span><span id="turker-labels-std"></span><br>
-                                <span>Standard Deviation (registered users): </span><span id="reg-labels-std"></span><br>
-                                <span>Standard Deviation (anon users): </span><span id="anon-labels-std"></span><br>
-                            </p>
-                        </div>
-                        <div class="col-lg-12">
-                            <div id="label-count-hist"></div>
-                        </div>
-                        <label for="label-count-include-researchers-checkbox"><input type="checkbox" id="label-count-include-researchers-checkbox"> Include researchers</label>
-
-                        <h2>Logins Per User</h2>
-                        <div class="col-lg-12">
-                            <p>
-                                <span>Standard Deviation: </span><span id="login-count-std"></span><br>
-                            </p>
-                        </div>
-                        <div class="col-lg-12">
-                            <div id="login-count-chart"></div>
-                        </div>
-                        <label for="login-count-include-researchers-checkbox"><input type="checkbox" id="login-count-include-researchers-checkbox"> Include researchers</label>
-
-                        <h2 class="d-block">User Accuracy</h2>
-                        <div class="col-lg-12">
-                            <p>
-                                <span>Standard Deviation: </span><span id="validation-agreed-std"></span><br>
-                            </p>
-                        </div>
-                        <div class="col-lg-12">
-                            <div id="validation-agreed"></div>
-                        </div>
-
-                        <h2>Daily Validation Counts</h2>
-                        <div class="col-lg-12">
-                            <p>
-                                <span>Standard Deviation: </span><span id="validation-std"></span><br>
-                            </p>
-                        </div>
-                        <div class="col-lg-12">
-                            <div id="validation-count-chart"></div>
-                        </div>
-
-                        <h2># Own Labels Validated per User</h2>
-                        <div class="col-lg-12">
-                            <p>
-                                <span>Standard Deviation (all users): </span><span id="all-validation-std"></span><br>
-                                <span>Standard Deviation (turker users): </span><span id="turker-validation-std"></span><br>
-                                <span>Standard Deviation (registered users): </span><span id="reg-validation-std"></span><br>
-                                <span>Standard Deviation (anon users): </span><span id="anon-validation-std"></span><br>
-                            </p>
-                        </div>
-                        <div class="col-lg-12">
-                            <div id="validation-count-hist"></div>
-                        </div>
-                        <label for="validation-count-include-researchers-checkbox"><input type="checkbox" id="validation-count-include-researchers-checkbox"> Include researchers</label>
-
-                        <div class="row">
-                            <div class="col-lg-23">
-                                <h1>Validations Per Label Type</h1>
-                                <p>
-                                    Breaks down validations by label type, yes/no/unsure, and whether the validation
-                                    came from a human (H), AI (AI), or either.
-                                </p>
-                                <table class="table table-striped table-condensed">
-                                    <tr>
-                                        <th></th>
-                                        <th>Yes</th>
-                                        <th>Yes (H)</th>
-                                        <th>Yes (AI)</th>
-                                        <th>No</th>
-                                        <th>No (H)</th>
-                                        <th>No (AI)</th>
-                                        <th>Unsure</th>
-                                        <th>Unsure (H)</th>
-                                        <th>Unsure (AI)</th>
-                                        <th>Count</th>
-                                        <th>Count (H)</th>
-                                        <th>Count (AI)</th>
-                                    </tr>
-                                    <tr>
-                                        <th>Overall</th>
-                                        <td id="val-count-All-Agree-Both"></td>
-                                        <td id="val-count-All-Agree-Human"></td>
-                                        <td id="val-count-All-Agree-AI"></td>
-                                        <td id="val-count-All-Disagree-Both"></td>
-                                        <td id="val-count-All-Disagree-Human"></td>
-                                        <td id="val-count-All-Disagree-AI"></td>
-                                        <td id="val-count-All-Unsure-Both"></td>
-                                        <td id="val-count-All-Unsure-Human"></td>
-                                        <td id="val-count-All-Unsure-AI"></td>
-                                        <td id="val-count-All-All-Both"></td>
-                                        <td id="val-count-All-All-Human"></td>
-                                        <td id="val-count-All-All-AI"></td>
-                                    </tr>
-                                    <tr class="admin-stats-row">
-                                        <td class="admin-stats-label">@Messages("curb.ramp")</td>
-                                        <td id="val-count-CurbRamp-Agree-Both"></td>
-                                        <td id="val-count-CurbRamp-Agree-Human"></td>
-                                        <td id="val-count-CurbRamp-Agree-AI"></td>
-                                        <td id="val-count-CurbRamp-Disagree-Both"></td>
-                                        <td id="val-count-CurbRamp-Disagree-Human"></td>
-                                        <td id="val-count-CurbRamp-Disagree-AI"></td>
-                                        <td id="val-count-CurbRamp-Unsure-Both"></td>
-                                        <td id="val-count-CurbRamp-Unsure-Human"></td>
-                                        <td id="val-count-CurbRamp-Unsure-AI"></td>
-                                        <td id="val-count-CurbRamp-All-Both"></td>
-                                        <td id="val-count-CurbRamp-All-Human"></td>
-                                        <td id="val-count-CurbRamp-All-AI"></td>
-                                    </tr>
-                                    <tr class="admin-stats-row">
-                                        <td class="admin-stats-label">@Messages("missing.ramp")</td>
-                                        <td id="val-count-NoCurbRamp-Agree-Both"></td>
-                                        <td id="val-count-NoCurbRamp-Agree-Human"></td>
-                                        <td id="val-count-NoCurbRamp-Agree-AI"></td>
-                                        <td id="val-count-NoCurbRamp-Disagree-Both"></td>
-                                        <td id="val-count-NoCurbRamp-Disagree-Human"></td>
-                                        <td id="val-count-NoCurbRamp-Disagree-AI"></td>
-                                        <td id="val-count-NoCurbRamp-Unsure-Both"></td>
-                                        <td id="val-count-NoCurbRamp-Unsure-Human"></td>
-                                        <td id="val-count-NoCurbRamp-Unsure-AI"></td>
-                                        <td id="val-count-NoCurbRamp-All-Both"></td>
-                                        <td id="val-count-NoCurbRamp-All-Human"></td>
-                                        <td id="val-count-NoCurbRamp-All-AI"></td>
-                                    </tr>
-                                    <tr class="admin-stats-row">
-                                        <td class="admin-stats-label">@Messages("obstacle")</td>
-                                        <td id="val-count-Obstacle-Agree-Both"></td>
-                                        <td id="val-count-Obstacle-Agree-Human"></td>
-                                        <td id="val-count-Obstacle-Agree-AI"></td>
-                                        <td id="val-count-Obstacle-Disagree-Both"></td>
-                                        <td id="val-count-Obstacle-Disagree-Human"></td>
-                                        <td id="val-count-Obstacle-Disagree-AI"></td>
-                                        <td id="val-count-Obstacle-Unsure-Both"></td>
-                                        <td id="val-count-Obstacle-Unsure-Human"></td>
-                                        <td id="val-count-Obstacle-Unsure-AI"></td>
-                                        <td id="val-count-Obstacle-All-Both"></td>
-                                        <td id="val-count-Obstacle-All-Human"></td>
-                                        <td id="val-count-Obstacle-All-AI"></td>
-                                    </tr>
-                                    <tr class="admin-stats-row">
-                                        <td class="admin-stats-label">@Messages("surface.problem")</td>
-                                        <td id="val-count-SurfaceProblem-Agree-Both"></td>
-                                        <td id="val-count-SurfaceProblem-Agree-Human"></td>
-                                        <td id="val-count-SurfaceProblem-Agree-AI"></td>
-                                        <td id="val-count-SurfaceProblem-Disagree-Both"></td>
-                                        <td id="val-count-SurfaceProblem-Disagree-Human"></td>
-                                        <td id="val-count-SurfaceProblem-Disagree-AI"></td>
-                                        <td id="val-count-SurfaceProblem-Unsure-Both"></td>
-                                        <td id="val-count-SurfaceProblem-Unsure-Human"></td>
-                                        <td id="val-count-SurfaceProblem-Unsure-AI"></td>
-                                        <td id="val-count-SurfaceProblem-All-Both"></td>
-                                        <td id="val-count-SurfaceProblem-All-Human"></td>
-                                        <td id="val-count-SurfaceProblem-All-AI"></td>
-                                    </tr>
-                                    <tr class="admin-stats-row">
-                                        <td class="admin-stats-label">@Messages("no.sidewalk")</td>
-                                        <td id="val-count-NoSidewalk-Agree-Both"></td>
-                                        <td id="val-count-NoSidewalk-Agree-Human"></td>
-                                        <td id="val-count-NoSidewalk-Agree-AI"></td>
-                                        <td id="val-count-NoSidewalk-Disagree-Both"></td>
-                                        <td id="val-count-NoSidewalk-Disagree-Human"></td>
-                                        <td id="val-count-NoSidewalk-Disagree-AI"></td>
-                                        <td id="val-count-NoSidewalk-Unsure-Both"></td>
-                                        <td id="val-count-NoSidewalk-Unsure-Human"></td>
-                                        <td id="val-count-NoSidewalk-Unsure-AI"></td>
-                                        <td id="val-count-NoSidewalk-All-Both"></td>
-                                        <td id="val-count-NoSidewalk-All-Human"></td>
-                                        <td id="val-count-NoSidewalk-All-AI"></td>
-                                    </tr>
-                                    <tr class="admin-stats-row">
-                                        <td class="admin-stats-label">@Messages("crosswalk")</td>
-                                        <td id="val-count-Crosswalk-Agree-Both"></td>
-                                        <td id="val-count-Crosswalk-Agree-Human"></td>
-                                        <td id="val-count-Crosswalk-Agree-AI"></td>
-                                        <td id="val-count-Crosswalk-Disagree-Both"></td>
-                                        <td id="val-count-Crosswalk-Disagree-Human"></td>
-                                        <td id="val-count-Crosswalk-Disagree-AI"></td>
-                                        <td id="val-count-Crosswalk-Unsure-Both"></td>
-                                        <td id="val-count-Crosswalk-Unsure-Human"></td>
-                                        <td id="val-count-Crosswalk-Unsure-AI"></td>
-                                        <td id="val-count-Crosswalk-All-Both"></td>
-                                        <td id="val-count-Crosswalk-All-Human"></td>
-                                        <td id="val-count-Crosswalk-All-AI"></td>
-                                    </tr>
-                                    <tr class="admin-stats-row">
-                                        <td class="admin-stats-label">@Messages("signal")</td>
-                                        <td id="val-count-Signal-Agree-Both"></td>
-                                        <td id="val-count-Signal-Agree-Human"></td>
-                                        <td id="val-count-Signal-Agree-AI"></td>
-                                        <td id="val-count-Signal-Disagree-Both"></td>
-                                        <td id="val-count-Signal-Disagree-Human"></td>
-                                        <td id="val-count-Signal-Disagree-AI"></td>
-                                        <td id="val-count-Signal-Unsure-Both"></td>
-                                        <td id="val-count-Signal-Unsure-Human"></td>
-                                        <td id="val-count-Signal-Unsure-AI"></td>
-                                        <td id="val-count-Signal-All-Both"></td>
-                                        <td id="val-count-Signal-All-Human"></td>
-                                        <td id="val-count-Signal-All-AI"></td>
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div id="tabs-4" class="tab-pane">
-                    <div class="row">
-                        <h1>Labels</h1>
-                        <div class="col-lg-12">
-                            <p>Recent labels</p>
-                            <table id="label-table" class="table table-striped table-condensed">
-                                <thead>
-                                    <tr>
-                                        <th class="col-md-1">Username</th>
-                                        <th class="col-md-1" data-type="date">Timestamp</th>
-                                        <th class="col-md-1 admin-label-type-col">Label Type</th>
-                                        <th class="col-md-1">Severity</th>
-                                        <th class="col-md-2">Tags</th>
-                                        <th class="col-md-2">Description</th>
-                                        <th class="col-md-1">Agree</th>
-                                        <th class="col-md-1">Disagree</th>
-                                        <th class="col-md-1">Unsure</th>
-                                        <th class="col-md-1">Pano</th>
-                                    </tr>
-                                </thead>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                <div id="tabs-5" class="tab-pane">
-                    <div class="row">
-                        <h1>Users</h1>
-                        <div id="user-table-container" class="col-lg-12">
-                            <table id="user-table" data-order='[[ 6, "desc" ]]' class="table table-striped table-condensed">
-                                <thead>
-                                    <tr>
-                                        <th class="col-md-1">Username</th>
-                                        <th class="col-md-2">User Id</th>
-                                        <th class="col-md-1">Email</th>
-                                        <th class="col-md-1">Role</th>
-                                        <th class="col-md-1">Team</th>
-                                        <th class="col-md-1">High Quality</th>
-                                        <th class="col-md-1">Label Count</th>
-                                        <th class="col-md-1">Own Labels Validated</th>
-                                        <th class="col-md-1">%Own Labels Agree</th>
-                                        <th class="col-md-1">Others' Labels Validated</th>
-                                        <th class="col-md-1">%Others' Labels Agreed</th>
-                                        <th class="col-md-2">Date Registered</th>
-                                        <th class="col-md-2" data-class-name="priority">Last Login</th>
-                                        <th class="col-md-1">Login Count</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="user-stats-table-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                <div id="tabs-6" class="tab-pane">
-                    <h1>Label Search</h1>
-                    <form>
-                        <div class="form-group">
-                            <label for="form-control-input">Label ID</label>
-                            <input type="text" class="form-control" id="form-control-input" placeholder="Enter Label ID here...">
-                        </div>
-                    </form>
-                    <button type="submit" id="submit" class="btn btn-primary">Submit</button>
-                </div>
-                <div id="tabs-7" class="tab-pane">
-                    <h1>Teams</h1>
-                    <table id="teams-table" class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>@Messages("dashboard.team.name")</th>
-                                <th>Description</th>
-                                <th class="col-md-1">Status</th>
-                                <th class="col-md-1">Visibility</th>
-                            </tr>
-                        </thead>
-                        <tbody id="teams-body">
-                        </tbody>
-                    </table>
-                </div>
-                <div id="tabs-8" class="tab-pane">
-                    <h1>API Analytics</h1>
-                    <p class="text-muted">
-                        Usage statistics for the v3 public API, derived from the <code>webpage_activity</code> log.
-                        Internal use only.
-                    </p>
-                    <div class="api-analytics-controls">
-                        <label for="api-analytics-exclude-docs" title="The live-preview widgets on the /api-docs page tag their calls with ?source=apiDocs. Check this box to exclude those automated calls so you see only real external consumer traffic.">
-                            <input type="checkbox" id="api-analytics-exclude-docs" checked>
-                            Exclude API Docs traffic (<code>source=apiDocs</code>)
-                        </label>
-                        <label>
-                            Time range:
-                            <select id="api-analytics-days" class="form-control">
-                                <option value="30" selected>Last 30 days</option>
-                                <option value="90">Last 90 days</option>
-                                <option value="0">All time</option>
-                            </select>
-                        </label>
-                    </div>
-                    <div id="api-analytics-content">
-                        <div id="api-analytics-summary"></div>
-                        <div id="api-analytics-endpoint-table" class="api-analytics-section"></div>
-                        <div id="api-analytics-daily-chart" class="api-analytics-section"></div>
-                        <div id="api-analytics-format-table" class="api-analytics-section"></div>
-                    </div>
-                </div>
+            <div class="row">
+              <h1>Comments</h1>
+              <div class="col-lg-12">
+                <p>Last 100 comments</p>
+                <table id="comments-table" class="table table-striped table-condensed">
+                  <thead>
+                    <tr>
+                      <th class="col-md-2">Username</th>
+                      <th class="col-md-3" data-type="date">Timestamp</th>
+                      <th class="col-md-2">Panorama Id</th>
+                      <th class="col-md-1">Interface</th>
+                      <th class="col-md-4">Comment</th>
+                    </tr>
+                  </thead>
+                </table>
+              </div>
             </div>
+          </div>
+          <div id="tabs-2" class="tab-pane">
+            <div class="row">
+              <div class="col-lg-12">
+                <div id="admin-labelmap-choropleth-holder" class="choropleth-holder">
+                  <div id="admin-labelmap-choropleth" class="choropleth"></div>
+                  @common.mapSidebar(tags = tags, adminVersion = true)
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="tabs-3" class="tab-pane">
+            <div class="row">
+              <div class="col-lg-12">
+                <div id="admin-landing-choropleth-holder" class="choropleth-holder">
+                  <div id="admin-landing-choropleth" class="choropleth"></div>
+                  <div id="admin-percentage-legend">
+                    <strong>Percent of Neighborhood Complete</strong>
+                    <nav class='legend clearfix'>
+                      <span class="legend-swatch legend-swatch-1"></span>
+                      <span class="legend-swatch legend-swatch-2"></span>
+                      <span class="legend-swatch legend-swatch-3"></span>
+                      <span class="legend-swatch legend-swatch-4"></span>
+                      <span class="legend-swatch legend-swatch-5"></span>
+                      <span class="legend-swatch legend-swatch-6"></span>
+                      <span class="legend-swatch legend-swatch-7"></span>
+                      <span class="legend-swatch legend-swatch-8"></span>
+                      <span class="legend-swatch legend-swatch-9"></span>
+                      <span class="legend-swatch legend-swatch-10"></span>
+                      <span class="legend-swatch legend-swatch-11"></span>
+                      <div id="legend-percentages-container">
+                        <label>0%</label>
+                        <label>100%</label>
+                      </div>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+
+              <h2>Coverage Percentage by Neighborhood</h2>
+              <div class="col-lg-12">
+                <div id="neighborhood-completion-rate"></div>
+              </div>
+              <button type="button" id="neighborhood-completion-sort-button">Sort By Completion %</button>
+              <button type="button" id="neighborhood-alphabetical-sort-button">Sort Alphabetically</button>
+              <h2>Neighborhood Coverage Percentages</h2>
+              <div class="col-lg-12">
+                <p>
+                  <span>Standard Deviation: </span><span id="neighborhood-std"></span><br>
+                </p>
+              </div>
+              <div class="col-lg-12">
+                <div id="neighborhood-completed-distance"></div>
+              </div>
+
+              <h2>City Coverage Progress</h2>
+              <div class="col-lg-12">
+                <div id="completion-progress-chart"></div>
+              </div>
+
+              <h2>Daily Audits</h2>
+              <div class="col-lg-12">
+                <p>
+                  <span>Standard Deviation: </span><span id="audit-std"></span><br>
+                </p>
+              </div>
+              <div class="col-lg-12">
+                <div id="audit-count-chart"></div>
+              </div>
+
+              <h2>Daily Label Counts</h2>
+              <div class="col-lg-12">
+                <p>
+                  <span>Standard Deviation: </span><span id="label-std"></span><br>
+                </p>
+              </div>
+              <div class="col-lg-12">
+                <div id="label-count-chart"></div>
+              </div>
+
+              <h2>Severity Ratings by Label Type</h2>
+              <div class="col-lg-12">
+                <div class="stats-grid">
+                  <p>
+                    <span>Average (curb ramp): </span><span id="curb-ramp-mean"></span><br>
+                    <span>Average (missing curb ramp): </span><span id="missing-ramp-mean"></span><br>
+                    <span>Average (obstacle): </span><span id="obstacle-mean"></span><br>
+                    <span>Average (surface problem): </span><span id="surface-mean"></span><br>
+                    <span>Average (marked crosswalk): </span><span id="crosswalk-mean"></span><br>
+                    <span>Average (all label types): </span><span id="labels-mean"></span><br>
+                  </p>
+                  <p>
+                    <span>Standard Deviation (curb ramp): </span><span id="curb-ramp-std"></span><br>
+                    <span>Standard Deviation (missing curb ramp): </span><span id="missing-ramp-std"></span><br>
+                    <span>Standard Deviation (obstacle): </span><span id="obstacle-std"></span><br>
+                    <span>Standard Deviation (surface problem): </span><span id="surface-std"></span><br>
+                    <span>Standard Deviation (marked crosswalk): </span><span id="crosswalk-std"></span><br>
+                    <span>Standard Deviation (all label types): </span><span id="labels-std"></span><br>
+                  </p>
+                </div>
+
+                <div id="severity-histograms"></div>
+                <div id="severity-histograms2"></div>
+              </div>
+
+              <h2>Tag Usage by Label Type</h2>
+              <div class="col-lg-12">
+                <div id="tag-usage-histograms"></div>
+                <div id="tag-usage-histograms2"></div>
+              </div>
+
+              <h2>Missions Completed By Users</h2>
+              <div class="col-lg-12">
+                <p>
+                  <span>Standard Deviation (all users): </span><span id="missions-std"></span><br>
+                  <span>Standard Deviation (turker users): </span><span id="turker-missions-std"></span><br>
+                  <span>Standard Deviation (registered users): </span><span id="reg-missions-std"></span><br>
+                  <span>Standard Deviation (anon users): </span><span id="anon-missions-std"></span><br>
+                  <span>
+                    Note: We only consider anonymous users who have completed at least one audit task.
+                  </span>
+                </p>
+              </div>
+              <div class="col-lg-12">
+                <div id="mission-count-chart"></div>
+              </div>
+              <label for="mission-count-include-researchers-checkbox"><input type="checkbox" id="mission-count-include-researchers-checkbox"> Include researchers</label>
+
+              <h2>Labels per User</h2>
+              <div class="col-lg-12">
+                <p>
+                  <span>Standard Deviation (all users): </span><span id="all-labels-std"></span><br>
+                  <span>Standard Deviation (turker users): </span><span id="turker-labels-std"></span><br>
+                  <span>Standard Deviation (registered users): </span><span id="reg-labels-std"></span><br>
+                  <span>Standard Deviation (anon users): </span><span id="anon-labels-std"></span><br>
+                </p>
+              </div>
+              <div class="col-lg-12">
+                <div id="label-count-hist"></div>
+              </div>
+              <label for="label-count-include-researchers-checkbox"><input type="checkbox" id="label-count-include-researchers-checkbox"> Include researchers</label>
+
+              <h2>Logins Per User</h2>
+              <div class="col-lg-12">
+                <p>
+                  <span>Standard Deviation: </span><span id="login-count-std"></span><br>
+                </p>
+              </div>
+              <div class="col-lg-12">
+                <div id="login-count-chart"></div>
+              </div>
+              <label for="login-count-include-researchers-checkbox"><input type="checkbox" id="login-count-include-researchers-checkbox"> Include researchers</label>
+
+              <h2 class="d-block">User Accuracy</h2>
+              <div class="col-lg-12">
+                <p>
+                  <span>Standard Deviation: </span><span id="validation-agreed-std"></span><br>
+                </p>
+              </div>
+              <div class="col-lg-12">
+                <div id="validation-agreed"></div>
+              </div>
+
+              <h2>Daily Validation Counts</h2>
+              <div class="col-lg-12">
+                <p>
+                  <span>Standard Deviation: </span><span id="validation-std"></span><br>
+                </p>
+              </div>
+              <div class="col-lg-12">
+                <div id="validation-count-chart"></div>
+              </div>
+
+              <h2># Own Labels Validated per User</h2>
+              <div class="col-lg-12">
+                <p>
+                  <span>Standard Deviation (all users): </span><span id="all-validation-std"></span><br>
+                  <span>Standard Deviation (turker users): </span><span id="turker-validation-std"></span><br>
+                  <span>Standard Deviation (registered users): </span><span id="reg-validation-std"></span><br>
+                  <span>Standard Deviation (anon users): </span><span id="anon-validation-std"></span><br>
+                </p>
+              </div>
+              <div class="col-lg-12">
+                <div id="validation-count-hist"></div>
+              </div>
+              <label for="validation-count-include-researchers-checkbox"><input type="checkbox" id="validation-count-include-researchers-checkbox"> Include researchers</label>
+
+              <div class="row">
+                <div class="col-lg-23">
+                  <h1>Validations Per Label Type</h1>
+                  <p>
+                    Breaks down validations by label type, yes/no/unsure, and whether the validation
+                    came from a human (H), AI (AI), or either.
+                  </p>
+                  <table class="table table-striped table-condensed">
+                    <tr>
+                      <th></th>
+                      <th>Yes</th>
+                      <th>Yes (H)</th>
+                      <th>Yes (AI)</th>
+                      <th>No</th>
+                      <th>No (H)</th>
+                      <th>No (AI)</th>
+                      <th>Unsure</th>
+                      <th>Unsure (H)</th>
+                      <th>Unsure (AI)</th>
+                      <th>Count</th>
+                      <th>Count (H)</th>
+                      <th>Count (AI)</th>
+                    </tr>
+                    <tr>
+                      <th>Overall</th>
+                      <td id="val-count-All-Agree-Both"></td>
+                      <td id="val-count-All-Agree-Human"></td>
+                      <td id="val-count-All-Agree-AI"></td>
+                      <td id="val-count-All-Disagree-Both"></td>
+                      <td id="val-count-All-Disagree-Human"></td>
+                      <td id="val-count-All-Disagree-AI"></td>
+                      <td id="val-count-All-Unsure-Both"></td>
+                      <td id="val-count-All-Unsure-Human"></td>
+                      <td id="val-count-All-Unsure-AI"></td>
+                      <td id="val-count-All-All-Both"></td>
+                      <td id="val-count-All-All-Human"></td>
+                      <td id="val-count-All-All-AI"></td>
+                    </tr>
+                    <tr class="admin-stats-row">
+                      <td class="admin-stats-label">@Messages("curb.ramp")</td>
+                      <td id="val-count-CurbRamp-Agree-Both"></td>
+                      <td id="val-count-CurbRamp-Agree-Human"></td>
+                      <td id="val-count-CurbRamp-Agree-AI"></td>
+                      <td id="val-count-CurbRamp-Disagree-Both"></td>
+                      <td id="val-count-CurbRamp-Disagree-Human"></td>
+                      <td id="val-count-CurbRamp-Disagree-AI"></td>
+                      <td id="val-count-CurbRamp-Unsure-Both"></td>
+                      <td id="val-count-CurbRamp-Unsure-Human"></td>
+                      <td id="val-count-CurbRamp-Unsure-AI"></td>
+                      <td id="val-count-CurbRamp-All-Both"></td>
+                      <td id="val-count-CurbRamp-All-Human"></td>
+                      <td id="val-count-CurbRamp-All-AI"></td>
+                    </tr>
+                    <tr class="admin-stats-row">
+                      <td class="admin-stats-label">@Messages("missing.ramp")</td>
+                      <td id="val-count-NoCurbRamp-Agree-Both"></td>
+                      <td id="val-count-NoCurbRamp-Agree-Human"></td>
+                      <td id="val-count-NoCurbRamp-Agree-AI"></td>
+                      <td id="val-count-NoCurbRamp-Disagree-Both"></td>
+                      <td id="val-count-NoCurbRamp-Disagree-Human"></td>
+                      <td id="val-count-NoCurbRamp-Disagree-AI"></td>
+                      <td id="val-count-NoCurbRamp-Unsure-Both"></td>
+                      <td id="val-count-NoCurbRamp-Unsure-Human"></td>
+                      <td id="val-count-NoCurbRamp-Unsure-AI"></td>
+                      <td id="val-count-NoCurbRamp-All-Both"></td>
+                      <td id="val-count-NoCurbRamp-All-Human"></td>
+                      <td id="val-count-NoCurbRamp-All-AI"></td>
+                    </tr>
+                    <tr class="admin-stats-row">
+                      <td class="admin-stats-label">@Messages("obstacle")</td>
+                      <td id="val-count-Obstacle-Agree-Both"></td>
+                      <td id="val-count-Obstacle-Agree-Human"></td>
+                      <td id="val-count-Obstacle-Agree-AI"></td>
+                      <td id="val-count-Obstacle-Disagree-Both"></td>
+                      <td id="val-count-Obstacle-Disagree-Human"></td>
+                      <td id="val-count-Obstacle-Disagree-AI"></td>
+                      <td id="val-count-Obstacle-Unsure-Both"></td>
+                      <td id="val-count-Obstacle-Unsure-Human"></td>
+                      <td id="val-count-Obstacle-Unsure-AI"></td>
+                      <td id="val-count-Obstacle-All-Both"></td>
+                      <td id="val-count-Obstacle-All-Human"></td>
+                      <td id="val-count-Obstacle-All-AI"></td>
+                    </tr>
+                    <tr class="admin-stats-row">
+                      <td class="admin-stats-label">@Messages("surface.problem")</td>
+                      <td id="val-count-SurfaceProblem-Agree-Both"></td>
+                      <td id="val-count-SurfaceProblem-Agree-Human"></td>
+                      <td id="val-count-SurfaceProblem-Agree-AI"></td>
+                      <td id="val-count-SurfaceProblem-Disagree-Both"></td>
+                      <td id="val-count-SurfaceProblem-Disagree-Human"></td>
+                      <td id="val-count-SurfaceProblem-Disagree-AI"></td>
+                      <td id="val-count-SurfaceProblem-Unsure-Both"></td>
+                      <td id="val-count-SurfaceProblem-Unsure-Human"></td>
+                      <td id="val-count-SurfaceProblem-Unsure-AI"></td>
+                      <td id="val-count-SurfaceProblem-All-Both"></td>
+                      <td id="val-count-SurfaceProblem-All-Human"></td>
+                      <td id="val-count-SurfaceProblem-All-AI"></td>
+                    </tr>
+                    <tr class="admin-stats-row">
+                      <td class="admin-stats-label">@Messages("no.sidewalk")</td>
+                      <td id="val-count-NoSidewalk-Agree-Both"></td>
+                      <td id="val-count-NoSidewalk-Agree-Human"></td>
+                      <td id="val-count-NoSidewalk-Agree-AI"></td>
+                      <td id="val-count-NoSidewalk-Disagree-Both"></td>
+                      <td id="val-count-NoSidewalk-Disagree-Human"></td>
+                      <td id="val-count-NoSidewalk-Disagree-AI"></td>
+                      <td id="val-count-NoSidewalk-Unsure-Both"></td>
+                      <td id="val-count-NoSidewalk-Unsure-Human"></td>
+                      <td id="val-count-NoSidewalk-Unsure-AI"></td>
+                      <td id="val-count-NoSidewalk-All-Both"></td>
+                      <td id="val-count-NoSidewalk-All-Human"></td>
+                      <td id="val-count-NoSidewalk-All-AI"></td>
+                    </tr>
+                    <tr class="admin-stats-row">
+                      <td class="admin-stats-label">@Messages("crosswalk")</td>
+                      <td id="val-count-Crosswalk-Agree-Both"></td>
+                      <td id="val-count-Crosswalk-Agree-Human"></td>
+                      <td id="val-count-Crosswalk-Agree-AI"></td>
+                      <td id="val-count-Crosswalk-Disagree-Both"></td>
+                      <td id="val-count-Crosswalk-Disagree-Human"></td>
+                      <td id="val-count-Crosswalk-Disagree-AI"></td>
+                      <td id="val-count-Crosswalk-Unsure-Both"></td>
+                      <td id="val-count-Crosswalk-Unsure-Human"></td>
+                      <td id="val-count-Crosswalk-Unsure-AI"></td>
+                      <td id="val-count-Crosswalk-All-Both"></td>
+                      <td id="val-count-Crosswalk-All-Human"></td>
+                      <td id="val-count-Crosswalk-All-AI"></td>
+                    </tr>
+                    <tr class="admin-stats-row">
+                      <td class="admin-stats-label">@Messages("signal")</td>
+                      <td id="val-count-Signal-Agree-Both"></td>
+                      <td id="val-count-Signal-Agree-Human"></td>
+                      <td id="val-count-Signal-Agree-AI"></td>
+                      <td id="val-count-Signal-Disagree-Both"></td>
+                      <td id="val-count-Signal-Disagree-Human"></td>
+                      <td id="val-count-Signal-Disagree-AI"></td>
+                      <td id="val-count-Signal-Unsure-Both"></td>
+                      <td id="val-count-Signal-Unsure-Human"></td>
+                      <td id="val-count-Signal-Unsure-AI"></td>
+                      <td id="val-count-Signal-All-Both"></td>
+                      <td id="val-count-Signal-All-Human"></td>
+                      <td id="val-count-Signal-All-AI"></td>
+                    </tr>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="tabs-4" class="tab-pane">
+            <div class="row">
+              <h1>Labels</h1>
+              <div class="col-lg-12">
+                <p>Recent labels</p>
+                <table id="label-table" class="table table-striped table-condensed">
+                  <thead>
+                    <tr>
+                      <th class="col-md-1">Username</th>
+                      <th class="col-md-1" data-type="date">Timestamp</th>
+                      <th class="col-md-1 admin-label-type-col">Label Type</th>
+                      <th class="col-md-1">Severity</th>
+                      <th class="col-md-2">Tags</th>
+                      <th class="col-md-2">Description</th>
+                      <th class="col-md-1">Agree</th>
+                      <th class="col-md-1">Disagree</th>
+                      <th class="col-md-1">Unsure</th>
+                      <th class="col-md-1">Pano</th>
+                    </tr>
+                  </thead>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div id="tabs-5" class="tab-pane">
+            <div class="row">
+              <h1>Users</h1>
+              <div id="user-table-container" class="col-lg-12">
+                <table id="user-table" data-order='[[ 6, "desc" ]]' class="table table-striped table-condensed">
+                  <thead>
+                    <tr>
+                      <th class="col-md-1">Username</th>
+                      <th class="col-md-2">User Id</th>
+                      <th class="col-md-1">Email</th>
+                      <th class="col-md-1">Role</th>
+                      <th class="col-md-1">Team</th>
+                      <th class="col-md-1">High Quality</th>
+                      <th class="col-md-1">Label Count</th>
+                      <th class="col-md-1">Own Labels Validated</th>
+                      <th class="col-md-1">%Own Labels Agree</th>
+                      <th class="col-md-1">Others' Labels Validated</th>
+                      <th class="col-md-1">%Others' Labels Agreed</th>
+                      <th class="col-md-2">Date Registered</th>
+                      <th class="col-md-2" data-class-name="priority">Last Login</th>
+                      <th class="col-md-1">Login Count</th>
+                    </tr>
+                  </thead>
+                  <tbody id="user-stats-table-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div id="tabs-6" class="tab-pane">
+            <h1>Label Search</h1>
+            <form>
+              <div class="form-group">
+                <label for="form-control-input">Label ID</label>
+                <input type="text" class="form-control" id="form-control-input" placeholder="Enter Label ID here...">
+              </div>
+            </form>
+            <button type="submit" id="submit" class="btn btn-primary">Submit</button>
+          </div>
+          <div id="tabs-7" class="tab-pane">
+            <h1>Teams</h1>
+            <table id="teams-table" class="table table-striped">
+              <thead>
+                <tr>
+                  <th>@Messages("dashboard.team.name")</th>
+                  <th>Description</th>
+                  <th class="col-md-1">Status</th>
+                  <th class="col-md-1">Visibility</th>
+                </tr>
+              </thead>
+              <tbody id="teams-body">
+              </tbody>
+            </table>
+          </div>
+          <div id="tabs-8" class="tab-pane">
+            <h1>API Analytics</h1>
+            <p class="text-muted">
+              Usage statistics for the v3 public API, derived from the <code>webpage_activity</code> log.
+              Internal use only.
+            </p>
+            <div class="api-analytics-controls">
+              <label for="api-analytics-exclude-docs" title="The live-preview widgets on the /api-docs page tag their calls with ?source=apiDocs. Check this box to exclude those automated calls so you see only real external consumer traffic.">
+                <input type="checkbox" id="api-analytics-exclude-docs" checked>
+                Exclude API Docs traffic (<code>source=apiDocs</code>)
+              </label>
+              <label>
+                Time range:
+                <select id="api-analytics-days" class="form-control">
+                  <option value="30" selected>Last 30 days</option>
+                  <option value="90">Last 90 days</option>
+                  <option value="0">All time</option>
+                </select>
+              </label>
+            </div>
+            <div id="api-analytics-content">
+              <div id="api-analytics-summary"></div>
+              <div id="api-analytics-endpoint-table" class="api-analytics-section"></div>
+              <div id="api-analytics-daily-chart" class="api-analytics-section"></div>
+              <div id="api-analytics-format-table" class="api-analytics-section"></div>
+            </div>
+          </div>
         </div>
+      </div>
     </div>
 
     @common.labelPopup(admin = true)
@@ -900,12 +900,12 @@
 
     <script src='@assets.path("vendor/d3/d3-3.5.6.js")'></script>
     @if(commonData.imagerySource == PanoSource.Infra3d) {
-        <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
-        <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
+      <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
+      <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
     } else if (commonData.imagerySource == PanoSource.Mapillary) {
-        <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
-        <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-        <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
+    <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
+    <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
+    <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
     }
     @* Pannellum is loaded everywhere the label popup is, since any expired pano may have a self-hosted fallback. *@
     <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
@@ -937,20 +937,20 @@
     <link href='@assets.path("css/admin.css")' rel="stylesheet">
 
     <script>
-        // Gets all translations before loading the choropleths.
-        window.appManager.ready(async function () {
-            // Sets up sorting in DataTables on timestamps.
-            $.fn.dataTable.ext.type.order['date-pre'] = function(data) { return new Date(data).getTime(); };
+      // Gets all translations before loading the choropleths.
+      window.appManager.ready(async function () {
+        // Sets up sorting in DataTables on timestamps.
+        $.fn.dataTable.ext.type.order['date-pre'] = function(data) { return new Date(data).getTime(); };
 
-            // Kick off all the API requests to get data to fill in the Admin page.
-            const imagerySrc = "@commonData.imagerySource.toString";
-            const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
-            const accessToken = "@commonData.imageryAccessToken";
-            window.admin = await Admin.create($, '@commonData.mapboxApiKey', viewerType, accessToken, "@user.username");
+        // Kick off all the API requests to get data to fill in the Admin page.
+        const imagerySrc = "@commonData.imagerySource.toString";
+        const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+        const accessToken = "@commonData.imageryAccessToken";
+        window.admin = await Admin.create($, '@commonData.mapboxApiKey', viewerType, accessToken, "@user.username");
 
-            document.getElementById('clear-play-cache-button').addEventListener('click', function() {
-                window.admin.clearPlayCache();
-            });
+        document.getElementById('clear-play-cache-button').addEventListener('click', function() {
+          window.admin.clearPlayCache();
         });
+      });
     </script>
 }

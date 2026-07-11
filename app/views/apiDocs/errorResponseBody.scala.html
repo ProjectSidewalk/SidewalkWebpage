@@ -1,20 +1,12 @@
-@**
- * Shared documentation of the RFC 7807 (`application/problem+json`) error envelope returned by every v3 API
- * endpoint. Rendered via `@@apiDocs.errorResponseBody()` so the error schema is documented in exactly one place
- * (#3931) rather than copy-pasted (and drifting) across each endpoint page.
- *@
+@** Shared documentation of the RFC 7807 (`application/problem+json`) error envelope returned by every v3 API endpoint. Rendered via `@@apiDocs.errorResponseBody()` so the error schema is documented in exactly one place (#3931) rather than copy-pasted (and drifting) across each endpoint page. *@
 @()
 <h4 id="error-body">Error Response Body <a href="#error-body" class="permalink">#</a></h4>
-<p>
-    All errors are returned as <a href="https://www.rfc-editor.org/rfc/rfc7807" target="_blank">RFC 7807</a>
-    &ldquo;problem details&rdquo; with the <code>application/problem+json</code> content type and the following
-    structure:
-</p>
+<p>All errors are returned as <a href="https://www.rfc-editor.org/rfc/rfc7807" target="_blank">RFC 7807</a> &ldquo;problem details&rdquo; with the <code>application/problem+json</code> content type and the following structure:</p>
 <pre><code class="language-json">{
-    "type": "about:blank",          // RFC 7807 problem-type URI ("about:blank" means no type beyond the status)
-    "title": "Invalid Parameter",   // Short, human-readable summary of the problem type (stable for a given code)
-    "status": 400,                  // HTTP status code (also repeated in the body)
-    "detail": "Invalid value for the bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", // This occurrence
-    "code": "INVALID_PARAMETER",    // Stable, machine-readable error code you can branch on
-    "parameter": "bbox"             // Extension member: the specific parameter at fault (omitted when not applicable)
+  "type": "about:blank",          // RFC 7807 problem-type URI ("about:blank" means no type beyond the status)
+  "title": "Invalid Parameter",   // Short, human-readable summary of the problem type (stable for a given code)
+  "status": 400,                  // HTTP status code (also repeated in the body)
+  "detail": "Invalid value for the bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", // This occurrence
+  "code": "INVALID_PARAMETER",    // Stable, machine-readable error code you can branch on
+  "parameter": "bbox"             // Extension member: the specific parameter at fault (omitted when not applicable)
 }</code></pre>

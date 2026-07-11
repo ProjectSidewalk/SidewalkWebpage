@@ -5,99 +5,76 @@
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @content = {
-    <div class="api-section" id="hva-intro-section">
-        <h1 class="api-heading" id="humans-vs-ai">Humans vs AI <a href="#humans-vs-ai" class="permalink">#</a></h1>
-        <p>
-            How does the AI compare to people on this deployment? Project Sidewalk's AI plays three distinct roles, and
-            this page compares each against human contributions: it <b>places labels</b> (the auto-labeler), it
-            <b>validates</b> human labels (agree / disagree), and it <b>tags</b> labels. AI isn't yet at human level, so
-            the comparisons keep the two clearly separate rather than blending them.
-        </p>
-        <p class="hva-boundary">
-            Per-validator-type agreement lives on <a href="@routes.AdminDashboardController.quality">Data Quality</a>,
-            and per-person ranking on <a href="@routes.AdminDashboardController.contributors">Contributors</a>. This page
-            is strictly the human-vs-AI cut.
-        </p>
-        <div class="coverage-kpis" id="hva-kpis">
-            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-ai-labels">—</span><span class="coverage-kpi-label">AI-placed labels</span><span class="coverage-kpi-note" id="kpi-ai-labels-note"></span></div>
-            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-ai-validations">—</span><span class="coverage-kpi-label">AI validations</span><span class="coverage-kpi-note" id="kpi-ai-validations-note"></span></div>
-            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-ai-assessed">—</span><span class="coverage-kpi-label">AI tagger assessments</span><span class="coverage-kpi-note" id="kpi-ai-assessed-note"></span></div>
-        </div>
-        <div class="coverage-status" id="hva-status" role="status" aria-live="polite">Loading comparison…</div>
-        <p class="hva-summary" id="hva-summary"></p>
+  <div class="api-section" id="hva-intro-section">
+    <h1 class="api-heading" id="humans-vs-ai">Humans vs AI <a href="#humans-vs-ai" class="permalink">#</a></h1>
+    <p>How does the AI compare to people on this deployment? Project Sidewalk's AI plays three distinct roles, and this page compares each against human contributions: it <b>places labels</b> (the auto-labeler), it <b>validates</b> human labels (agree / disagree), and it <b>tags</b> labels. AI isn't yet at human level, so the comparisons keep the two clearly separate rather than blending them.</p>
+    <p class="hva-boundary">Per-validator-type agreement lives on <a href="@routes.AdminDashboardController.quality">Data Quality</a>, and per-person ranking on <a href="@routes.AdminDashboardController.contributors">Contributors</a>. This page is strictly the human-vs-AI cut.</p>
+    <div class="coverage-kpis" id="hva-kpis">
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-ai-labels">—</span><span class="coverage-kpi-label">AI-placed labels</span><span class="coverage-kpi-note" id="kpi-ai-labels-note"></span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-ai-validations">—</span><span class="coverage-kpi-label">AI validations</span><span class="coverage-kpi-note" id="kpi-ai-validations-note"></span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-ai-assessed">—</span><span class="coverage-kpi-label">AI tagger assessments</span><span class="coverage-kpi-note" id="kpi-ai-assessed-note"></span></div>
     </div>
+    <div class="coverage-status" id="hva-status" role="status" aria-live="polite">Loading comparison…</div>
+    <p class="hva-summary" id="hva-summary"></p>
+  </div>
 
-    <div class="api-section" id="hva-labeler-section">
-        <h2 class="api-heading" id="ai-labeler">AI as a labeler <a href="#ai-labeler" class="permalink">#</a></h2>
-        <p>
-            The auto-labeler places labels just like a person does. Here's how its output compares to human labeling —
-            in volume, what it labels, how it rates severity, and crucially whether its labels hold up when validated.
-        </p>
-        <div class="hva-empty" id="hva-labeler-empty" hidden>This deployment has no AI-placed labels.</div>
-        <div id="hva-labeler-body" hidden>
-            <h3 class="api-heading" id="labeler-volume">Label volume by type <a href="#labeler-volume" class="permalink">#</a></h3>
-            <p>Labels placed by humans and by the AI, per label type. The AI typically specializes in a few types rather than labeling everything.</p>
-            <div class="hva-grouped" id="hva-type-mix"></div>
+  <div class="api-section" id="hva-labeler-section">
+    <h2 class="api-heading" id="ai-labeler">AI as a labeler <a href="#ai-labeler" class="permalink">#</a></h2>
+    <p>The auto-labeler places labels just like a person does. Here's how its output compares to human labeling — in volume, what it labels, how it rates severity, and crucially whether its labels hold up when validated.</p>
+    <div class="hva-empty" id="hva-labeler-empty" hidden>This deployment has no AI-placed labels.</div>
+    <div id="hva-labeler-body" hidden>
+      <h3 class="api-heading" id="labeler-volume">Label volume by type <a href="#labeler-volume" class="permalink">#</a></h3>
+      <p>Labels placed by humans and by the AI, per label type. The AI typically specializes in a few types rather than labeling everything.</p>
+      <div class="hva-grouped" id="hva-type-mix"></div>
 
-            <h3 class="api-heading" id="labeler-correctness">How often labels are validated as correct <a href="#labeler-correctness" class="permalink">#</a></h3>
-            <p>
-                Of the labels that have since been validated, the share judged <b>correct</b> — human-placed vs
-                AI-placed, per type. This is the clearest read on whether AI labels are trustworthy. Each bar shows the
-                number of validated labels it's based on; types with too few validations to be meaningful are muted.
-            </p>
-            <div class="hva-grouped" id="hva-acceptance"></div>
+      <h3 class="api-heading" id="labeler-correctness">How often labels are validated as correct <a href="#labeler-correctness" class="permalink">#</a></h3>
+      <p>Of the labels that have since been validated, the share judged <b>correct</b> — human-placed vs AI-placed, per type. This is the clearest read on whether AI labels are trustworthy. Each bar shows the number of validated labels it's based on; types with too few validations to be meaningful are muted.</p>
+      <div class="hva-grouped" id="hva-acceptance"></div>
 
-            <h3 class="api-heading" id="labeler-severity">Severity ratings <a href="#labeler-severity" class="permalink">#</a></h3>
-            <p>How humans and the AI distribute severity ratings (1–3) across the labels they place — does the AI skew milder or harsher?</p>
-            <div class="hva-grouped" id="hva-severity"></div>
-        </div>
+      <h3 class="api-heading" id="labeler-severity">Severity ratings <a href="#labeler-severity" class="permalink">#</a></h3>
+      <p>How humans and the AI distribute severity ratings (1–3) across the labels they place — does the AI skew milder or harsher?</p>
+      <div class="hva-grouped" id="hva-severity"></div>
     </div>
+  </div>
 
-    <div class="api-section" id="hva-validator-section">
-        <h2 class="api-heading" id="ai-validator">AI as a validator <a href="#ai-validator" class="permalink">#</a></h2>
-        <p>
-            The AI validation layer reviews human labels and votes agree, disagree, or unsure. Here's how much of that
-            work it does relative to people, and how its verdict mix compares.
-        </p>
-        <div class="hva-empty" id="hva-validator-empty" hidden>This deployment has no AI validations.</div>
-        <div id="hva-validator-body" hidden>
-            <h3 class="api-heading" id="validator-volume">Validation volume <a href="#validator-volume" class="permalink">#</a></h3>
-            <p>How many validations each has performed.</p>
-            <div class="hva-grouped" id="hva-val-volume"></div>
+  <div class="api-section" id="hva-validator-section">
+    <h2 class="api-heading" id="ai-validator">AI as a validator <a href="#ai-validator" class="permalink">#</a></h2>
+    <p>The AI validation layer reviews human labels and votes agree, disagree, or unsure. Here's how much of that work it does relative to people, and how its verdict mix compares.</p>
+    <div class="hva-empty" id="hva-validator-empty" hidden>This deployment has no AI validations.</div>
+    <div id="hva-validator-body" hidden>
+      <h3 class="api-heading" id="validator-volume">Validation volume <a href="#validator-volume" class="permalink">#</a></h3>
+      <p>How many validations each has performed.</p>
+      <div class="hva-grouped" id="hva-val-volume"></div>
 
-            <h3 class="api-heading" id="validator-verdicts">Verdict mix <a href="#validator-verdicts" class="permalink">#</a></h3>
-            <p>The breakdown of agree / disagree / unsure votes for each. A very different AI mix — e.g. far more "unsure" — is a signal worth watching.</p>
-            <div class="hva-verdicts" id="hva-verdicts"></div>
-        </div>
+      <h3 class="api-heading" id="validator-verdicts">Verdict mix <a href="#validator-verdicts" class="permalink">#</a></h3>
+      <p>The breakdown of agree / disagree / unsure votes for each. A very different AI mix — e.g. far more "unsure" — is a signal worth watching.</p>
+      <div class="hva-verdicts" id="hva-verdicts"></div>
     </div>
+  </div>
 
-    <div class="api-section" id="hva-tagger-section">
-        <h2 class="api-heading" id="ai-tagger">AI as a tagger <a href="#ai-tagger" class="permalink">#</a></h2>
-        <p>
-            The AI tagger suggests descriptive tags for labels (e.g. <i>missing tactile warning</i>). Humans add tags
-            inline while labeling, so this isn't a symmetric head-to-head — instead it shows what the AI tagger has done
-            and how its tag mix lines up with the tags people apply.
-        </p>
-        <div class="hva-empty" id="hva-tagger-empty" hidden>This deployment has no AI tagger assessments.</div>
-        <div id="hva-tagger-body" hidden>
-            <h3 class="api-heading" id="tagger-tags">Tags applied <a href="#tagger-tags" class="permalink">#</a></h3>
-            <p>The most common tags applied by the AI tagger, alongside the most common human-applied tags for comparison.</p>
-            <div class="hva-tags" id="hva-tags"></div>
-        </div>
+  <div class="api-section" id="hva-tagger-section">
+    <h2 class="api-heading" id="ai-tagger">AI as a tagger <a href="#ai-tagger" class="permalink">#</a></h2>
+    <p>The AI tagger suggests descriptive tags for labels (e.g. <i>missing tactile warning</i>). Humans add tags inline while labeling, so this isn't a symmetric head-to-head — instead it shows what the AI tagger has done and how its tag mix lines up with the tags people apply.</p>
+    <div class="hva-empty" id="hva-tagger-empty" hidden>This deployment has no AI tagger assessments.</div>
+    <div id="hva-tagger-body" hidden>
+      <h3 class="api-heading" id="tagger-tags">Tags applied <a href="#tagger-tags" class="permalink">#</a></h3>
+      <p>The most common tags applied by the AI tagger, alongside the most common human-applied tags for comparison.</p>
+      <div class="hva-tags" id="hva-tags"></div>
     </div>
+  </div>
 
-    <script src="@assets.path("js/admin-dashboard/HumanVsAiPage.js")"></script>
-    <script>
-        window.addEventListener('DOMContentLoaded', function () {
-            new HumanVsAiPage({
-                statsUrl: '/adminapi/humanVsAi',
-                labelTypesUrl: '/v3/api/labelTypes'
-            }).init();
-        });
-    </script>
+  <script src="@assets.path("js/admin-dashboard/HumanVsAiPage.js")"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', function () {
+      new HumanVsAiPage({
+        statsUrl: '/adminapi/humanVsAi',
+        labelTypesUrl: '/v3/api/labelTypes'
+      }).init();
+    });
+  </script>
 }
 
 @common.main(commonData, "Sidewalk - Humans vs AI") {
-    @common.navbar(commonData, Some(user))
-    @admin.dashboard.adminLayout("humans-vs-ai", user.role == "Owner")(content)
+  @common.navbar(commonData, Some(user))
+  @admin.dashboard.adminLayout("humans-vs-ai", user.role == "Owner")(content)
 }

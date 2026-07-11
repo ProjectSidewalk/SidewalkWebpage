@@ -4,161 +4,159 @@
 @import service.CommonPageData
 @import models.pano.PanoSource
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, tags: Seq[Tag] = Seq.empty, regionIds: Seq[Int],
-    routeIds: Seq[Int], aiValidationOptions: Seq[String]
+  routeIds: Seq[Int], aiValidationOptions: Seq[String]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
 @common.main(commonData, title, i18Namespaces = Seq("common", "labelmap"), url = "/labelMap") {
-    @common.navbar(commonData, Some(user))
-    <div id="page-loading">
-        <img id="loading-animation" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'>
-    </div>
-    <div id="labelmap-choropleth-container" class="container choropleth-container">
-        <div id="labelmap-choropleth-holder" class="choropleth-holder">
-            <div id="labelmap-choropleth" class="choropleth"></div>
-            @common.mapSidebar(tags = tags, showSearch = true)
-            @* Feedback while the (large) label layer streams in — the map itself loads in ~1s but labels
-               can be tens of MB, during which the sidebar sits greyed with no cue that work is happening. *@
-            <div id="labelmap-loading" class="labelmap-loading" hidden role="status" aria-live="polite" aria-busy="true">
-                <div class="labelmap-loading__card">
-                    <div class="labelmap-loading__spinner" aria-hidden="true"></div>
-                    <p class="labelmap-loading__message" data-i18n="labelmap:loading-labels">Loading sidewalk labels…</p>
-                    <p id="labelmap-loading-elapsed" class="labelmap-loading__elapsed"></p>
-                </div>
-            </div>
+  @common.navbar(commonData, Some(user))
+  <div id="page-loading">
+    <img id="loading-animation" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'>
+  </div>
+  <div id="labelmap-choropleth-container" class="container choropleth-container">
+    <div id="labelmap-choropleth-holder" class="choropleth-holder">
+      <div id="labelmap-choropleth" class="choropleth"></div>
+      @common.mapSidebar(tags = tags, showSearch = true)
+      @* Feedback while the (large) label layer streams in — the map itself loads in ~1s but labels can be tens of MB, during which the sidebar sits greyed with no cue that work is happening. *@
+      <div id="labelmap-loading" class="labelmap-loading" hidden role="status" aria-live="polite" aria-busy="true">
+        <div class="labelmap-loading__card">
+          <div class="labelmap-loading__spinner" aria-hidden="true"></div>
+          <p class="labelmap-loading__message" data-i18n="labelmap:loading-labels">Loading sidewalk labels…</p>
+          <p id="labelmap-loading-elapsed" class="labelmap-loading__elapsed"></p>
         </div>
+      </div>
     </div>
+  </div>
 
-    @common.labelPopup(admin = false)
+  @common.labelPopup(admin = false)
 
-    <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
-    <link href='@assets.path("css/map-sidebar.css")' rel="stylesheet">
-    <link href='@assets.path("css/tag-pills.css")' rel="stylesheet">
+  <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
+  <link href='@assets.path("css/map-sidebar.css")' rel="stylesheet">
+  <link href='@assets.path("css/tag-pills.css")' rel="stylesheet">
 
-    <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
-    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
-    <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
-    <script src='@assets.path("js/admin/build/admin.js")'></script>
-    <script src='@assets.path("vendor/datatables/jquery.dataTables.min.js")'></script>
-    <script src='@assets.path("vendor/datatables/dataTables.bootstrap.min.js")'></script>
-    <script src='@assets.path("js/common/utilitiesSidewalk.js")'></script>
-    @if(commonData.imagerySource == PanoSource.Infra3d) {
-        <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
-        <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
-    } else if (commonData.imagerySource == PanoSource.Mapillary) {
-        <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
-        <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-        <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
+  <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
+  <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
+  <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
+  <script src='@assets.path("js/admin/build/admin.js")'></script>
+  <script src='@assets.path("vendor/datatables/jquery.dataTables.min.js")'></script>
+  <script src='@assets.path("vendor/datatables/dataTables.bootstrap.min.js")'></script>
+  <script src='@assets.path("js/common/utilitiesSidewalk.js")'></script>
+  @if(commonData.imagerySource == PanoSource.Infra3d) {
+    <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
+    <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
+  } else if (commonData.imagerySource == PanoSource.Mapillary) {
+  <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
+  <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
+  <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
+  }
+  <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
+  <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
+  <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
+  <script src='@assets.path("js/common/timestampLocalization.js")'></script>
+  <script>updateTimestamps("@messages.lang.code");</script>
+
+  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
+  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
+  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-search-1.5.0.js")'></script>
+  <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet">
+  <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
+  <script src='@assets.path("js/labelMapLocationSearch.js")'></script>
+  <link href='@assets.path("css/choropleth.css")' rel="stylesheet">
+  <link href='@assets.path("css/admin.css")' rel="stylesheet">
+
+  <script>
+    const imagerySrc = "@commonData.imagerySource.toString";
+    const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+    const accessToken = "@commonData.imageryAccessToken";
+
+    // Loading overlay for the label layer. Indeterminate spinner + a live elapsed-time counter: the
+    // response is gzipped (Content-Length is the compressed size), so a byte-percentage bar isn't
+    // meaningful, and the exact count isn't known until the payload has fully parsed.
+    let labelMapLoadingTimer = null;
+    function showLabelMapLoading() {
+      const overlay = document.getElementById('labelmap-loading');
+      if (!overlay) return;
+      const elapsedEl = document.getElementById('labelmap-loading-elapsed');
+      const start = performance.now();
+      const renderElapsed = () => {
+        if (!elapsedEl) return;
+        const seconds = ((performance.now() - start) / 1000).toFixed(1);
+        elapsedEl.textContent = i18next.t('labelmap:loading-elapsed', { seconds: seconds });
+      };
+      renderElapsed();
+      overlay.hidden = false;
+      labelMapLoadingTimer = setInterval(renderElapsed, 100);
     }
-    <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
-    <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
-    <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
-    <script src='@assets.path("js/common/timestampLocalization.js")'></script>
-    <script>updateTimestamps("@messages.lang.code");</script>
+    function hideLabelMapLoading() {
+      const overlay = document.getElementById('labelmap-loading');
+      if (overlay) overlay.hidden = true;
+      if (labelMapLoadingTimer) {
+        clearInterval(labelMapLoadingTimer);
+        labelMapLoadingTimer = null;
+      }
+    }
 
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-search-1.5.0.js")'></script>
-    <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet">
-    <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
-    <script src='@assets.path("js/labelMapLocationSearch.js")'></script>
-    <link href='@assets.path("css/choropleth.css")' rel="stylesheet">
-    <link href='@assets.path("css/admin.css")' rel="stylesheet">
+    // Gets all translations before loading the choropleth.
+    window.appManager.ready(async function () {
+      let params = {
+        mapName: 'labelmap-choropleth',
+        mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
+        mapboxApiKey: '@commonData.mapboxApiKey',
+        mapboxLogoLocation: 'bottom-right',
+        neighborhoodFillMode: 'singleColor',
+        neighborhoodFillColor: '#808080',
+        neighborhoodFillOpacity: 0.1,
+        neighborhoodTooltip: 'none',
+        differentiateUnauditedStreets: true,
+        interactiveStreets: true,
+        uiSource: 'LabelMap',
+        popupLabelViewer: await LabelPopup(false, viewerType, accessToken, "@user.username"),
+        navigationControlPosition: 'top-right',
+        highQualityFilter: true
+      };
+      params.neighborhoodsURL = new URL('/neighborhoods', window.location.origin);
+      params.completionRatesURL = new URL('/adminapi/neighborhoodCompletionRate', window.location.origin);
+      params.streetsURL = new URL('/contribution/streets/all?filterLowQuality=true', window.location.origin);
+      params.labelsURL = new URL('/labels/all', window.location.origin);
 
-    <script>
-        const imagerySrc = "@commonData.imagerySource.toString";
-        const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
-        const accessToken = "@commonData.imageryAccessToken";
+      let regionsParam = '@{regionIds.mkString(",")}';
+      if (regionsParam) {
+        params.neighborhoodsURL.searchParams.append('regions', regionsParam);
+        params.completionRatesURL.searchParams.append('regions', regionsParam);
+        params.streetsURL.searchParams.append('regions', regionsParam);
+        params.labelsURL.searchParams.append('regions', regionsParam);
+      }
 
-        // Loading overlay for the label layer. Indeterminate spinner + a live elapsed-time counter: the
-        // response is gzipped (Content-Length is the compressed size), so a byte-percentage bar isn't
-        // meaningful, and the exact count isn't known until the payload has fully parsed.
-        let labelMapLoadingTimer = null;
-        function showLabelMapLoading() {
-            const overlay = document.getElementById('labelmap-loading');
-            if (!overlay) return;
-            const elapsedEl = document.getElementById('labelmap-loading-elapsed');
-            const start = performance.now();
-            const renderElapsed = () => {
-                if (!elapsedEl) return;
-                const seconds = ((performance.now() - start) / 1000).toFixed(1);
-                elapsedEl.textContent = i18next.t('labelmap:loading-elapsed', { seconds: seconds });
-            };
-            renderElapsed();
-            overlay.hidden = false;
-            labelMapLoadingTimer = setInterval(renderElapsed, 100);
-        }
-        function hideLabelMapLoading() {
-            const overlay = document.getElementById('labelmap-loading');
-            if (overlay) overlay.hidden = true;
-            if (labelMapLoadingTimer) {
-                clearInterval(labelMapLoadingTimer);
-                labelMapLoadingTimer = null;
-            }
-        }
+      let routesParam = '@{routeIds.mkString(",")}';
+      if (routesParam) {
+        params.streetsURL.searchParams.append('routes', routesParam);
+        params.labelsURL.searchParams.append('routes', routesParam);
+      }
 
-        // Gets all translations before loading the choropleth.
-        window.appManager.ready(async function () {
-            let params = {
-                mapName: 'labelmap-choropleth',
-                mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
-                mapboxApiKey: '@commonData.mapboxApiKey',
-                mapboxLogoLocation: 'bottom-right',
-                neighborhoodFillMode: 'singleColor',
-                neighborhoodFillColor: '#808080',
-                neighborhoodFillOpacity: 0.1,
-                neighborhoodTooltip: 'none',
-                differentiateUnauditedStreets: true,
-                interactiveStreets: true,
-                uiSource: 'LabelMap',
-                popupLabelViewer: await LabelPopup(false, viewerType, accessToken, "@user.username"),
-                navigationControlPosition: 'top-right',
-                highQualityFilter: true
-            };
-            params.neighborhoodsURL = new URL('/neighborhoods', window.location.origin);
-            params.completionRatesURL = new URL('/adminapi/neighborhoodCompletionRate', window.location.origin);
-            params.streetsURL = new URL('/contribution/streets/all?filterLowQuality=true', window.location.origin);
-            params.labelsURL = new URL('/labels/all', window.location.origin);
+      let aiValidationOptionsParam = '@{aiValidationOptions.mkString(",")}';
+      if (aiValidationOptionsParam) {
+        params.labelsURL.searchParams.append('aiValidationOptions', aiValidationOptionsParam);
+      }
 
-            let regionsParam = '@{regionIds.mkString(",")}';
-            if (regionsParam) {
-                params.neighborhoodsURL.searchParams.append('regions', regionsParam);
-                params.completionRatesURL.searchParams.append('regions', regionsParam);
-                params.streetsURL.searchParams.append('regions', regionsParam);
-                params.labelsURL.searchParams.append('regions', regionsParam);
-            }
+      // Mount the address search and reveal the loading indicator as soon as the map is ready, not after the (large)
+      // label layer finishes loading, so they appear with the sidebar rather than popping in late (#4370/#4447).
+      params.onMapReady = (map) => {
+        initLabelMapLocationSearch(map, params.mapboxApiKey);
+        showLabelMapLoading();
+      };
 
-            let routesParam = '@{routeIds.mkString(",")}';
-            if (routesParam) {
-                params.streetsURL.searchParams.append('routes', routesParam);
-                params.labelsURL.searchParams.append('routes', routesParam);
-            }
-
-            let aiValidationOptionsParam = '@{aiValidationOptions.mkString(",")}';
-            if (aiValidationOptionsParam) {
-                params.labelsURL.searchParams.append('aiValidationOptions', aiValidationOptionsParam);
-            }
-
-            // Mount the address search and reveal the loading indicator as soon as the map is ready, not
-            // after the (large) label layer finishes loading, so they appear with the sidebar rather than
-            // popping in late (#4370/#4447).
-            params.onMapReady = (map) => {
-                initLabelMapLocationSearch(map, params.mapboxApiKey);
-                showLabelMapLoading();
-            };
-
-            const self = {};
-            createPSMap($, params).then(m => {
-                self.map = m[0];
-                self.mapData = m[4];
-                new MapSidebarFilter(self.map, self.mapData, { highQualityFilter: true });
-                hideLabelMapLoading();
-            }).catch(e => {
-                console.error('LabelMap failed to load', e);
-                hideLabelMapLoading();
-            });
-            window.map = self;
-        });
-    </script>
+      const self = {};
+      createPSMap($, params).then(m => {
+        self.map = m[0];
+        self.mapData = m[4];
+        new MapSidebarFilter(self.map, self.mapData, { highQualityFilter: true });
+        hideLabelMapLoading();
+      }).catch(e => {
+        console.error('LabelMap failed to load', e);
+        hideLabelMapLoading();
+      });
+      window.map = self;
+    });
+  </script>
 }

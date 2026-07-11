@@ -6,138 +6,117 @@
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @content = {
-    <div class="api-section" id="activity-intro-section">
-        <h1 class="api-heading" id="activity">Activity <a href="#activity" class="permalink">#</a></h1>
-        <p>
-            How busy is this deployment, and when? This page is the time/tempo lens: daily and weekly volume of the
-            work people do, how many contributors show up over time, and a feed of what just happened. It stays
-            aggregate — who contributes most is on <a href="@routes.AdminDashboardController.contributors">Contributors</a>,
-            whether quality is trending is on <a href="@routes.AdminDashboardController.quality">Data Quality</a>, and
-            cumulative map completion is on <a href="@routes.AdminDashboardController.coverage">Coverage</a>.
-        </p>
-        <div class="coverage-kpis" id="activity-kpis">
-            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-labels">—</span><span class="coverage-kpi-label">Labels</span><span class="coverage-kpi-note" id="kpi-labels-note"></span></div>
-            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-validations">—</span><span class="coverage-kpi-label">Validations</span><span class="coverage-kpi-note" id="kpi-validations-note"></span></div>
-            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-audits">—</span><span class="coverage-kpi-label">Streets explored</span><span class="coverage-kpi-note" id="kpi-audits-note"></span></div>
-            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-missions">—</span><span class="coverage-kpi-label">Missions</span><span class="coverage-kpi-note" id="kpi-missions-note"></span></div>
-            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-newusers">—</span><span class="coverage-kpi-label">New users</span><span class="coverage-kpi-note" id="kpi-newusers-note"></span></div>
-        </div>
-        <div class="coverage-status" id="activity-status" role="status" aria-live="polite">Loading activity…</div>
-        <div class="activity-latest" id="activity-latest" role="status" aria-live="polite"></div>
+  <div class="api-section" id="activity-intro-section">
+    <h1 class="api-heading" id="activity">Activity <a href="#activity" class="permalink">#</a></h1>
+    <p>How busy is this deployment, and when? This page is the time/tempo lens: daily and weekly volume of the work people do, how many contributors show up over time, and a feed of what just happened. It stays aggregate — who contributes most is on <a href="@routes.AdminDashboardController.contributors">Contributors</a>, whether quality is trending is on <a href="@routes.AdminDashboardController.quality">Data Quality</a>, and cumulative map completion is on <a href="@routes.AdminDashboardController.coverage">Coverage</a>.</p>
+    <div class="coverage-kpis" id="activity-kpis">
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-labels">—</span><span class="coverage-kpi-label">Labels</span><span class="coverage-kpi-note" id="kpi-labels-note"></span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-validations">—</span><span class="coverage-kpi-label">Validations</span><span class="coverage-kpi-note" id="kpi-validations-note"></span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-audits">—</span><span class="coverage-kpi-label">Streets explored</span><span class="coverage-kpi-note" id="kpi-audits-note"></span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-missions">—</span><span class="coverage-kpi-label">Missions</span><span class="coverage-kpi-note" id="kpi-missions-note"></span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-newusers">—</span><span class="coverage-kpi-label">New users</span><span class="coverage-kpi-note" id="kpi-newusers-note"></span></div>
     </div>
+    <div class="coverage-status" id="activity-status" role="status" aria-live="polite">Loading activity…</div>
+    <div class="activity-latest" id="activity-latest" role="status" aria-live="polite"></div>
+  </div>
 
-    <div class="api-section" id="time-spent-section">
-        <h2 class="api-heading" id="time-spent">Time spent contributing <a href="#time-spent" class="permalink">#</a></h2>
-        <p>
-            All-time effort logged across the deployment: the total hours people have spent exploring (auditing) streets
-            and validating others' labels, plus the typical pace of auditing. Pace is the median minutes spent per 100&nbsp;m
-            of street audited, computed over users with enough activity to be meaningful.
-        </p>
-        <div class="coverage-kpis" id="time-spent-kpis">
-            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-explore-time">—</span><span class="coverage-kpi-label">Time exploring</span><span class="coverage-kpi-note">total, all users</span></div>
-            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-validate-time">—</span><span class="coverage-kpi-label">Time validating</span><span class="coverage-kpi-note">total, all users</span></div>
-            <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-explore-pace">—</span><span class="coverage-kpi-label">Median pace exploring</span><span class="coverage-kpi-note">per 100&nbsp;m audited</span></div>
-        </div>
+  <div class="api-section" id="time-spent-section">
+    <h2 class="api-heading" id="time-spent">Time spent contributing <a href="#time-spent" class="permalink">#</a></h2>
+    <p>All-time effort logged across the deployment: the total hours people have spent exploring (auditing) streets and validating others' labels, plus the typical pace of auditing. Pace is the median minutes spent per 100&nbsp;m of street audited, computed over users with enough activity to be meaningful.</p>
+    <div class="coverage-kpis" id="time-spent-kpis">
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-explore-time">—</span><span class="coverage-kpi-label">Time exploring</span><span class="coverage-kpi-note">total, all users</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-validate-time">—</span><span class="coverage-kpi-label">Time validating</span><span class="coverage-kpi-note">total, all users</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-explore-pace">—</span><span class="coverage-kpi-label">Median pace exploring</span><span class="coverage-kpi-note">per 100&nbsp;m audited</span></div>
     </div>
+  </div>
 
-    <div class="api-section" id="volume-over-time-section">
-        <h2 class="api-heading" id="volume-over-time">Volume over time <a href="#volume-over-time" class="permalink">#</a></h2>
-        <p>
-            How much of each kind of work happened over time. Each metric has its own scale — they range from thousands
-            of labels to a handful of missions — so they're shown as separate charts rather than crammed onto one axis.
-            Use the controls to change the window and switch between daily and weekly buckets.
-        </p>
-        <div class="activity-controls">
-            <div class="coverage-toggle" role="group" aria-label="Time range">
-                <span class="coverage-sort-label">Range</span>
-                <button type="button" class="coverage-toggle-btn act-range-btn" data-range="30" aria-pressed="false">30 days</button>
-                <button type="button" class="coverage-toggle-btn act-range-btn active" data-range="90" aria-pressed="true">90 days</button>
-                <button type="button" class="coverage-toggle-btn act-range-btn" data-range="all" aria-pressed="false">All time</button>
-            </div>
-            <div class="coverage-toggle" role="group" aria-label="Bucket size">
-                <span class="coverage-sort-label">Bucket</span>
-                <button type="button" class="coverage-toggle-btn act-gran-btn active" data-gran="day" aria-pressed="true">Daily</button>
-                <button type="button" class="coverage-toggle-btn act-gran-btn" data-gran="week" aria-pressed="false">Weekly</button>
-            </div>
-        </div>
-        <div class="activity-smallmultiples" id="activity-volume"></div>
+  <div class="api-section" id="volume-over-time-section">
+    <h2 class="api-heading" id="volume-over-time">Volume over time <a href="#volume-over-time" class="permalink">#</a></h2>
+    <p>How much of each kind of work happened over time. Each metric has its own scale — they range from thousands of labels to a handful of missions — so they're shown as separate charts rather than crammed onto one axis. Use the controls to change the window and switch between daily and weekly buckets.</p>
+    <div class="activity-controls">
+      <div class="coverage-toggle" role="group" aria-label="Time range">
+        <span class="coverage-sort-label">Range</span>
+        <button type="button" class="coverage-toggle-btn act-range-btn" data-range="30" aria-pressed="false">30 days</button>
+        <button type="button" class="coverage-toggle-btn act-range-btn active" data-range="90" aria-pressed="true">90 days</button>
+        <button type="button" class="coverage-toggle-btn act-range-btn" data-range="all" aria-pressed="false">All time</button>
+      </div>
+      <div class="coverage-toggle" role="group" aria-label="Bucket size">
+        <span class="coverage-sort-label">Bucket</span>
+        <button type="button" class="coverage-toggle-btn act-gran-btn active" data-gran="day" aria-pressed="true">Daily</button>
+        <button type="button" class="coverage-toggle-btn act-gran-btn" data-gran="week" aria-pressed="false">Weekly</button>
+      </div>
     </div>
+    <div class="activity-smallmultiples" id="activity-volume"></div>
+  </div>
 
-    <div class="api-section" id="active-contributors-section">
-        <h2 class="api-heading" id="active-contributors">Active contributors over time <a href="#active-contributors" class="permalink">#</a></h2>
-        <p>
-            Distinct people with any logged activity in each bucket, sharing the range and bucket controls above.
-            Registered users and anonymous (signed-out) sessions are shown as separate lines — anonymous traffic is
-            real labeling effort but much higher-volume and more transient, so the two shouldn't be conflated.
-        </p>
-        <div class="activity-chart-card" id="activity-active"></div>
-    </div>
+  <div class="api-section" id="active-contributors-section">
+    <h2 class="api-heading" id="active-contributors">Active contributors over time <a href="#active-contributors" class="permalink">#</a></h2>
+    <p>Distinct people with any logged activity in each bucket, sharing the range and bucket controls above. Registered users and anonymous (signed-out) sessions are shown as separate lines — anonymous traffic is real labeling effort but much higher-volume and more transient, so the two shouldn't be conflated.</p>
+    <div class="activity-chart-card" id="activity-active"></div>
+  </div>
 
-    <div class="api-section" id="recent-activity-section">
-        <h2 class="api-heading" id="recent-activity">Recent activity <a href="#recent-activity" class="permalink">#</a></h2>
-        <p>The freshest contributions across the deployment — labels placed, validations made, and comments left — newest first.</p>
-        <div class="activity-feed" id="activity-feed"></div>
-    </div>
+  <div class="api-section" id="recent-activity-section">
+    <h2 class="api-heading" id="recent-activity">Recent activity <a href="#recent-activity" class="permalink">#</a></h2>
+    <p>The freshest contributions across the deployment — labels placed, validations made, and comments left — newest first.</p>
+    <div class="activity-feed" id="activity-feed"></div>
+  </div>
 
-    @* Label-detail popup: lets a recent comment's label open inline (same modal the rest of the app uses) instead of
-       navigating away. The label-detail modules are pulled in individually (not via the legacy Admin.js bundle) to keep
-       with the dashboard's standalone-script convention; i18next, AppManager, util and Google Maps are already loaded by
-       common.main / adminLayout. *@
-    @common.labelPopup(admin = true)
-    <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
-    <link href='@assets.path("css/tag-pills.css")' rel="stylesheet">
-    <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
+  @* Label-detail popup: lets a recent comment's label open inline (same modal the rest of the app uses) instead of navigating away. The label-detail modules are pulled in individually (not via the legacy Admin.js bundle) to keep with the dashboard's standalone-script convention; i18next, AppManager, util and Google Maps are already loaded by common.main / adminLayout. *@
+@common.labelPopup(admin = true)
+  <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
+  <link href='@assets.path("css/tag-pills.css")' rel="stylesheet">
+  <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
 
-    <script src='@assets.path("js/common/timestampLocalization.js")'></script>
-    @if(commonData.imagerySource == PanoSource.Infra3d) {
-        <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
-        <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
-    } else if (commonData.imagerySource == PanoSource.Mapillary) {
-        <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
-        <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
-        <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
-    }
-    @* Pannellum is loaded everywhere the label popup is, since any expired pano may have a self-hosted fallback. *@
-    <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
-    <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
-    <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
-    @* Label-detail modules (order matters: PopupPanoManager + LabelDetail precede LabelPopup; Toast precedes Badges). *@
-    <script src='@assets.path("js/common/aiLabelIndicator.js")'></script>
-    <script src='@assets.path("js/common/Toast.js")'></script>
-    <script src='@assets.path("js/common/BadgeAchievements.js")'></script>
-    <script src='@assets.path("js/common/PanoMarker.js")'></script>
-    <script src='@assets.path("js/common/label-detail/PopupPanoManager.js")'></script>
-    <script src='@assets.path("js/common/label-detail/LabelDetail.js")'></script>
-    <script src='@assets.path("js/common/label-detail/LabelPopup.js")'></script>
+  <script src='@assets.path("js/common/timestampLocalization.js")'></script>
+@if(commonData.imagerySource == PanoSource.Infra3d) {
+  <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
+  <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
+} else if (commonData.imagerySource == PanoSource.Mapillary) {
+  <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
+  <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
+  <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
+  }
+  @* Pannellum is loaded everywhere the label popup is, since any expired pano may have a self-hosted fallback. *@
+  <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
+  <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
+  <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
+  @* Label-detail modules (order matters: PopupPanoManager + LabelDetail precede LabelPopup; Toast precedes Badges). *@
+  <script src='@assets.path("js/common/aiLabelIndicator.js")'></script>
+  <script src='@assets.path("js/common/Toast.js")'></script>
+  <script src='@assets.path("js/common/BadgeAchievements.js")'></script>
+  <script src='@assets.path("js/common/PanoMarker.js")'></script>
+  <script src='@assets.path("js/common/label-detail/PopupPanoManager.js")'></script>
+  <script src='@assets.path("js/common/label-detail/LabelDetail.js")'></script>
+  <script src='@assets.path("js/common/label-detail/LabelPopup.js")'></script>
 
-    <script src="@assets.path("js/admin-dashboard/MiniLineChart.js")"></script>
-    <script src="@assets.path("js/admin-dashboard/ActivityPage.js")"></script>
-    <script>
-        window.appManager.ready(async function () {
-            const page = new ActivityPage({
-                seriesUrl: '/adminapi/activityByDay',
-                recentUrl: '/adminapi/recentActivity',
-                contributionTimeUrl: '/adminapi/getContributionTimeStats'
-            });
-            page.init();
-            updateTimestamps("@messages.lang.code");
-            // The pano viewer initializes asynchronously; once it's ready, hand the popup to the page so feed label
-            // links open inline. If this fails, the links keep their href fallback (navigate to /admin/label/:id).
-            try {
-                const imagerySrc = "@commonData.imagerySource.toString";
-                const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer
-                    : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
-                const accessToken = "@commonData.imageryAccessToken";
-                const popup = await LabelPopup(true, viewerType, accessToken, "@user.username");
-                page.setLabelPopup(popup);
-            } catch (err) {
-                console.error('Activity page: label popup failed to initialize; links will navigate instead.', err);
-            }
-        });
-    </script>
+  <script src="@assets.path("js/admin-dashboard/MiniLineChart.js")"></script>
+  <script src="@assets.path("js/admin-dashboard/ActivityPage.js")"></script>
+  <script>
+    window.appManager.ready(async function () {
+      const page = new ActivityPage({
+        seriesUrl: '/adminapi/activityByDay',
+        recentUrl: '/adminapi/recentActivity',
+        contributionTimeUrl: '/adminapi/getContributionTimeStats'
+      });
+      page.init();
+      updateTimestamps("@messages.lang.code");
+      // The pano viewer initializes asynchronously; once it's ready, hand the popup to the page so feed label
+      // links open inline. If this fails, the links keep their href fallback (navigate to /admin/label/:id).
+      try {
+        const imagerySrc = "@commonData.imagerySource.toString";
+        const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer
+          : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+        const accessToken = "@commonData.imageryAccessToken";
+        const popup = await LabelPopup(true, viewerType, accessToken, "@user.username");
+        page.setLabelPopup(popup);
+      } catch (err) {
+        console.error('Activity page: label popup failed to initialize; links will navigate instead.', err);
+      }
+    });
+  </script>
 }
 
 @common.main(commonData, "Sidewalk - Admin Activity") {
-    @common.navbar(commonData, Some(user))
-    @admin.dashboard.adminLayout("activity", user.role == "Owner")(content)
+  @common.navbar(commonData, Some(user))
+  @admin.dashboard.adminLayout("activity", user.role == "Owner")(content)
 }

@@ -4,62 +4,41 @@
 
 <div class="api-container">
     <!-- Left Sidebar Navigation -->
-    @apiDocs._sidebar(activePage)
+  @apiDocs._sidebar(activePage)
 
     <!-- Main Content Area -->
-    <div class="api-content">
-        @content
+  <div class="api-content">
+    @content
 
-        <div class="api-section api-licensing-footer" id="data-licensing-section">
-            <h2 class="api-heading" id="data-licensing-terms-of-use">Terms of Use <a href="#data-licensing-terms-of-use" class="permalink">#</a></h2>
-            <p>
-                If you use Project Sidewalk data in your research, please cite the following paper (awarded 🏆 <i>Best Paper</i> at CHI 2019):
-            </p>
-            <div class="citation-container">
-                <div class="citation">
-                    Manaswi Saha, Michael Saugstad, Hanuma Teja Maddali, Aileen Zeng, Ryan Holland, Steven Bower,
-                    Aditya Dash, Sage Chen, Anthony Li, Kotaro Hara, and Jon Froehlich. 2019. <i>
-                   <a href="https://doi.org/10.1145/3290605.3300292">Project Sidewalk: A Web-based Crowdsourcing Tool for Collecting Sidewalk Accessibility Data At Scale.</a></i>
-                    In Proceedings of the 2019 CHI Conference on Human Factors in Computing Systems (CHI '19).
-                    Association for Computing Machinery, New York, NY, USA, Paper 62, 1–14.
-
-                </div>
-                <button type="button" id="download-bibtex" class="bibtex-btn">Download BibTeX</button>
-            </div>
-
-        </div>
-
-        <div class="api-section">
-            <h2 class="api-heading" id="contribute-cta">Contribute<a href="#contribute-cta" class="permalink">#</a></h2>
-            <p>
-                Project Sidewalk is an open-source project created by the
-                <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> and hosted on
-                <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a>. We welcome your contributions!
-                If you found a bug or have a feature request, please
-                <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/issues"> open an issue on GitHub.</a>
-            </p>
-            <p>
-                You can also email us at <a href="mailto:sidewalk@@cs.uw.edu">sidewalk@@cs.uw.edu</a>
-            </p>
-        </div>
-
-        <div class="api-section">
-            <h2 class="api-heading" id="ps-in-your-city">Project Sidewalk in Your City!<a href="#ps-in-your-city" class="permalink">#</a></h2>
-            <p>
-                If you are interested in bringing Project Sidewalk to your city, please <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Considerations-when-Preparing-for-and-Deploying-to-New-Cities">
-                read our Wiki page.</a>
-            </p>
-        </div>
-
+    <div class="api-section api-licensing-footer" id="data-licensing-section">
+      <h2 class="api-heading" id="data-licensing-terms-of-use">Terms of Use <a href="#data-licensing-terms-of-use" class="permalink">#</a></h2>
+      <p>If you use Project Sidewalk data in your research, please cite the following paper (awarded 🏆 <i>Best Paper</i> at CHI 2019):</p>
+      <div class="citation-container">
+        <div class="citation">Manaswi Saha, Michael Saugstad, Hanuma Teja Maddali, Aileen Zeng, Ryan Holland, Steven Bower, Aditya Dash, Sage Chen, Anthony Li, Kotaro Hara, and Jon Froehlich. 2019. <i> <a href="https://doi.org/10.1145/3290605.3300292">Project Sidewalk: A Web-based Crowdsourcing Tool for Collecting Sidewalk Accessibility Data At Scale.</a></i> In Proceedings of the 2019 CHI Conference on Human Factors in Computing Systems (CHI '19). Association for Computing Machinery, New York, NY, USA, Paper 62, 1–14.</div>
+        <button type="button" id="download-bibtex" class="bibtex-btn">Download BibTeX</button>
+      </div>
     </div>
+
+    <div class="api-section">
+      <h2 class="api-heading" id="contribute-cta">Contribute<a href="#contribute-cta" class="permalink">#</a></h2>
+      <p>Project Sidewalk is an open-source project created by the <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> and hosted on <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a>. We welcome your contributions! If you found a bug or have a feature request, please <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/issues"> open an issue on GitHub.</a></p>
+      <p>You can also email us at <a href="mailto:sidewalk@@cs.uw.edu">sidewalk@@cs.uw.edu</a></p>
+    </div>
+
+    <div class="api-section">
+      <h2 class="api-heading" id="ps-in-your-city">Project Sidewalk in Your City!<a href="#ps-in-your-city" class="permalink">#</a></h2>
+      <p>If you are interested in bringing Project Sidewalk to your city, please <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Considerations-when-Preparing-for-and-Deploying-to-New-Cities"> read our Wiki page.</a></p>
+    </div>
+
+  </div>
 
     <!-- Right Sidebar TOC -->
-    <div class="api-toc">
-        <div class="api-toc-header">On This Page</div>
-        <ul>
-            <!-- To be populated by JavaScript -->
-        </ul>
-    </div>
+  <div class="api-toc">
+    <div class="api-toc-header">On This Page</div>
+    <ul>
+        <!-- To be populated by JavaScript -->
+    </ul>
+  </div>
 </div>
 
 
@@ -67,8 +46,8 @@
 <script src="@assets.path("js/common/utilitiesSidewalk.js")"></script>
 
 <script>
-    document.getElementById('download-bibtex').addEventListener('click', function() {
-        const bibtex = `
+  document.getElementById('download-bibtex').addEventListener('click', function() {
+    const bibtex = `
             @@inproceedings{Saha_ProjectSidewalk_CHI2019,
             author = {Saha, Manaswi and Saugstad, Michael and Maddali, Hanuma Teja and Zeng, Aileen and Holland, Ryan and Bower, Steven and Dash, Aditya and Chen, Sage and Li, Anthony and Hara, Kotaro and Froehlich, Jon},
             title = {Project Sidewalk: A Web-based Crowdsourcing Tool for Collecting Sidewalk Accessibility Data At Scale},
@@ -88,23 +67,23 @@
             }
         `;
 
-        // Create a blob with the BibTeX content
-        const blob = new Blob([bibtex], {type: 'text/plain'});
+    // Create a blob with the BibTeX content
+    const blob = new Blob([bibtex], {type: 'text/plain'});
 
-        // Create a URL for the blob
-        const url = URL.createObjectURL(blob);
+    // Create a URL for the blob
+    const url = URL.createObjectURL(blob);
 
-        // Create a temporary link element
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'project_sidewalk.bib';
+    // Create a temporary link element
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'project_sidewalk.bib';
 
-        // Append, click, and remove
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+    // Append, click, and remove
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
 
-        // Clean up the URL
-        URL.revokeObjectURL(url);
-    });
+    // Clean up the URL
+    URL.revokeObjectURL(url);
+  });
 </script>

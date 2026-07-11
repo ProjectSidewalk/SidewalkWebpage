@@ -8,14 +8,14 @@
 
 <!DOCTYPE html>
 <html lang="@messages.lang.code">
-<head>
-        <!-- Global site tag (gtag.js) - Google Analytics -->
+  <head>
+      <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=@commonData.googleAnalyticsId"></script>
     <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '@commonData.googleAnalyticsId');
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '@commonData.googleAnalyticsId');
     </script>
     <meta charset="utf-8">
     <title>@title</title>
@@ -33,10 +33,10 @@
     <script src='@assets.path("vendor/js-cookie/js-cookie-3.0.5-min.js")'></script>
 
     <script>
-        (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
-            key: "@commonData.gMapsApiKey",
-            v: "weekly"
-        });
+      (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
+        key: "@commonData.gMapsApiKey",
+        v: "weekly"
+      });
     </script>
 
     <link href='@assets.path("css/fonts.css")' rel="stylesheet">
@@ -51,189 +51,189 @@
     <script src='@assets.path("js/common/utilitiesMath.js")'></script>
     <script src='@assets.path("js/common/i18nDom.js")'></script>
     <script src='@assets.path("/js/common/AppManager.js")'></script>
-</head>
-<body>
+  </head>
+  <body>
     <script>
-        // Removes top padding on the pages that render without a fixed navbar. Fires on full load to match the old
-        // <body onload>, which ran after all resources settled.
-        window.addEventListener('load', checkIfPaddingNeeded);
+      // Removes top padding on the pages that render without a fixed navbar. Fires on full load to match the old
+      // <body onload>, which ran after all resources settled.
+      window.addEventListener('load', checkIfPaddingNeeded);
 
-        // Set up AppManager to initialize stuff that we need on every page (CSRF token, i18next, etc.).
-        $(document).ready(function() {
-            const csrfToken = "@CSRF.getToken.map(_.value)";
-            const i18nextParams = {
-                language: "@messages.lang.code",
-                defaultNS: "@defaultI18nNamespace",
-                namespaces: @Html(i18Namespaces.map(namespace => s""""$namespace"""").mkString("[", ",", "]")),
-                countryId: "@currentCity.countryId"
-            };
-            const globals = {
-                cityId: "@commonData.cityId",
-                cityName: "@currentCity.cityNameFormatted",
-                cityNameShort: "@currentCity.cityNameShort"
-            };
-            window.appManager.init(csrfToken, i18nextParams, globals);
-        });
+      // Set up AppManager to initialize stuff that we need on every page (CSRF token, i18next, etc.).
+      $(document).ready(function() {
+        const csrfToken = "@CSRF.getToken.map(_.value)";
+        const i18nextParams = {
+          language: "@messages.lang.code",
+          defaultNS: "@defaultI18nNamespace",
+          namespaces: @Html(i18Namespaces.map(namespace => s""""$namespace"""").mkString("[", ",", "]")),
+          countryId: "@currentCity.countryId"
+        };
+        const globals = {
+          cityId: "@commonData.cityId",
+          cityName: "@currentCity.cityNameFormatted",
+          cityNameShort: "@currentCity.cityNameShort"
+        };
+        window.appManager.init(csrfToken, i18nextParams, globals);
+      });
     </script>
     <div id="wrap" class='@if(url == "/labelMap"){wrap--full-window}'>
-            <!-- Banner is only visible if user is on local/test server-->
-        @if(commonData.environmentType != "prod") {
-            <div class="test-server-banner">
-                <div class="test-server-banner-content">
-                    <div class="test-server-banner-text">
-                        @Html(Messages("test.server.warning.message")): <a href="@commonData.prodUrl">@commonData.prodUrl</a>
-                    </div>
-                    <button class="test-server-banner-dont-show-again" type="button">
-                        <span>@Messages("dont.show.again")</span>
-                    </button>
-                    <button class="test-server-banner-close" type="button">
-                        <span class="glyphicon glyphicon-remove"></span>
-                    </button>
-                </div>
+        <!-- Banner is only visible if user is on local/test server-->
+      @if(commonData.environmentType != "prod") {
+        <div class="test-server-banner">
+          <div class="test-server-banner-content">
+            <div class="test-server-banner-text">
+              @Html(Messages("test.server.warning.message")): <a href="@commonData.prodUrl">@commonData.prodUrl</a>
             </div>
+            <button class="test-server-banner-dont-show-again" type="button">
+              <span>@Messages("dont.show.again")</span>
+            </button>
+            <button class="test-server-banner-close" type="button">
+              <span class="glyphicon glyphicon-remove"></span>
+            </button>
+          </div>
+        </div>
 
-            <script>
-                    // Hide the warning banner if the user has clicked the "don't show again" button in the past.
-                    if (JSON.parse(window.localStorage.getItem('hideTestServerWarningBanner'))) {
-                        document.getElementsByClassName('test-server-banner')[0].style.display = 'none';
-                    }
-                    // If they click the "don't show again" button, save that info in local storage.
-                    document.querySelector(".test-server-banner-dont-show-again").addEventListener("click", function() {
-                        this.closest(".test-server-banner").style.display = "none";
-                        window.localStorage.setItem('hideTestServerWarningBanner', true);
-                    });
-                    document.querySelector(".test-server-banner-close").addEventListener("click", function() {
-                        this.closest(".test-server-banner").style.display = "none";
-                    });
-            </script>
-        }
-        @content
+        <script>
+          // Hide the warning banner if the user has clicked the "don't show again" button in the past.
+          if (JSON.parse(window.localStorage.getItem('hideTestServerWarningBanner'))) {
+            document.getElementsByClassName('test-server-banner')[0].style.display = 'none';
+          }
+          // If they click the "don't show again" button, save that info in local storage.
+          document.querySelector(".test-server-banner-dont-show-again").addEventListener("click", function() {
+            this.closest(".test-server-banner").style.display = "none";
+            window.localStorage.setItem('hideTestServerWarningBanner', true);
+          });
+          document.querySelector(".test-server-banner-close").addEventListener("click", function() {
+            this.closest(".test-server-banner").style.display = "none";
+          });
+        </script>
+      }
+      @content
     </div>
     @if(url != "/mobile") {
-        <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-        </head>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+      </head>
     }
     @if(url == "/explore" || url == "/labelMap") {
-        <script>
-                // Prevents extra whitespace at the bottom of the page, not sure why that's an issue.
-                document.getElementsByTagName("body")[0].style.overflow = "hidden";
-        </script>
+      <script>
+        // Prevents extra whitespace at the bottom of the page, not sure why that's an issue.
+        document.getElementsByTagName("body")[0].style.overflow = "hidden";
+      </script>
     }
-        <!-- Trying out no footer on Explore or Validate. Mini footer on mobile sign in/up. Code is weird bc "else if" doesn't work in template scala rn. -->
+      <!-- Trying out no footer on Explore or Validate. Mini footer on mobile sign in/up. Code is weird bc "else if" doesn't work in template scala rn. -->
     @if(url == "/explore" || url == "/validate" || url == "/expertValidate" || url == "/mobile" || url == "/signInMobile" || url == "/signUpMobile" || url == "/mobileLanding" || url == "/labelMap") {
-        @if(url == "/explore" || url == "/validate" || url == "/expertValidate" || url == "/mobile" || url == "/mobileLanding" || url == "/labelMap") {
-        } else {
-            <!-- footer code found in app/views/footer.scala.html -->
-            @common.miniFooter(commonData)
+      @if(url == "/explore" || url == "/validate" || url == "/expertValidate" || url == "/mobile" || url == "/mobileLanding" || url == "/labelMap") {
+      } else {
+        <!-- footer code found in app/views/footer.scala.html -->
+    @common.miniFooter(commonData)
     }
     } else {
 
     <div class="filler"></div>
 
     <div class="container" id="footer-container">
-        <div class="row footer-links-row">
-            <div class="col-sm-4 footer-link">
-                <span class="footer-header">PROJECT SIDEWALK</span><br>
-                    <!-- Back to top<br>-->
-                <a href='https://accessiblecommunities.org/about/' id="sidewalk-about-link" target="_blank">@Messages("footer.about")</a> <br>
-                <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link" target="_blank">@Messages("footer.terms")</a> <br>
-                <a href='@routes.ApplicationController.help' id="sidewalk-help-link" target="_blank">@Messages("footer.help")</a> <br>
-                <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link" target="_blank">@Messages("footer.guide")</a> <br>
-            </div>
-            <div class="col-sm-4 footer-link">
-                <span class="footer-header">@Messages("footer.developer")</span><br>
-                <a href='@routes.ApiDocsController.index' id="developer-api-link">@Messages("footer.api")</a><br>
-            </div>
-            <div class="col-sm-4 footer-link">
-                <span class="footer-header">@Messages("footer.connect")</span><br>
-                <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link"><img width="15" src='@assets.path("images/github_logo.png")' alt="Github logo">&nbsp;Github</a> <br>
-                <a target="_blank" href="https://twitter.com/projsidewalk" id="connect-twitter-link"><img width="15" src='@assets.path("images/twitter_logo.png")' alt="Twitter logo">&nbsp;Twitter</a><br>
-                <a target="_blank" href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link"><img width="15" src='@assets.path("images/email.png")' alt="Email icon">&nbsp;@Messages("footer.email")</a><br>
-                <a target="_blank" href="https://www.facebook.com/projsidewalk" id="connect-facebook-link"><img width="15" src='@assets.path("images/facebook_logo.png")' alt="Facebook logo">&nbsp;Facebook</a><br>
-            </div>
+      <div class="row footer-links-row">
+        <div class="col-sm-4 footer-link">
+          <span class="footer-header">PROJECT SIDEWALK</span><br>
+            <!-- Back to top<br>-->
+          <a href='https://accessiblecommunities.org/about/' id="sidewalk-about-link" target="_blank">@Messages("footer.about")</a> <br>
+          <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link" target="_blank">@Messages("footer.terms")</a> <br>
+          <a href='@routes.ApplicationController.help' id="sidewalk-help-link" target="_blank">@Messages("footer.help")</a> <br>
+          <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link" target="_blank">@Messages("footer.guide")</a> <br>
         </div>
+        <div class="col-sm-4 footer-link">
+          <span class="footer-header">@Messages("footer.developer")</span><br>
+          <a href='@routes.ApiDocsController.index' id="developer-api-link">@Messages("footer.api")</a><br>
+        </div>
+        <div class="col-sm-4 footer-link">
+          <span class="footer-header">@Messages("footer.connect")</span><br>
+          <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link"><img width="15" src='@assets.path("images/github_logo.png")' alt="Github logo">&nbsp;Github</a> <br>
+          <a target="_blank" href="https://twitter.com/projsidewalk" id="connect-twitter-link"><img width="15" src='@assets.path("images/twitter_logo.png")' alt="Twitter logo">&nbsp;Twitter</a><br>
+          <a target="_blank" href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link"><img width="15" src='@assets.path("images/email.png")' alt="Email icon">&nbsp;@Messages("footer.email")</a><br>
+          <a target="_blank" href="https://www.facebook.com/projsidewalk" id="connect-facebook-link"><img width="15" src='@assets.path("images/facebook_logo.png")' alt="Facebook logo">&nbsp;Facebook</a><br>
+        </div>
+      </div>
     </div>
     <div class="container" id="info-footer">
-        <br>
-        <p><span id="funding-title">@Messages("footer.funding")</span></p>
-        <div class="row footer-logos-row">
-            <div class="col-sm-1">
-                <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" id="nsf-link">
-                    <img src="@assets.path("images/nsf.png")" alt="@Messages("footer.logo.nsf.alt")">
-                </a>
-                <div class="col-sm-2" id="award-num">@Html(Messages("footer.award"))</div>
-            </div>
-            <div class="col-sm-3">
-                <a href="http://www.google.com/" id="google-link"><img src="@assets.path("images/google.png")" alt="@Messages("footer.logo.google.alt")"></a>
-            </div>
-            <div class="col-sm-3">
-                <a href="https://sloan.org/fellowships/" id="sloan-link">
-                    <img src="@assets.path("images/sloan_logo.png")" alt="@Messages("footer.logo.sloan.alt")">
-                </a>
-            </div>
-            <div class="col-sm-2">
-                <a href="https://www.washington.edu/research/research-centers/pacific-northwest-transportation-consortium-pactrans/" id="pactrans-link">
-                    <img src="@assets.path("images/pactrans_logo.png")" alt="@Messages("footer.logo.pactrans.alt")">
-                </a>
-            </div>
-            <div class="col-sm-3">
-                <a href="https://create.uw.edu/" id="create-link">
-                    <img src="@assets.path("images/CREATE_logo.png")" alt="@Messages("footer.logo.create.alt")">
-                </a>
-            </div>
+      <br>
+      <p><span id="funding-title">@Messages("footer.funding")</span></p>
+      <div class="row footer-logos-row">
+        <div class="col-sm-1">
+          <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" id="nsf-link">
+            <img src="@assets.path("images/nsf.png")" alt="@Messages("footer.logo.nsf.alt")">
+          </a>
+          <div class="col-sm-2" id="award-num">@Html(Messages("footer.award"))</div>
         </div>
-        <div class="row footer-logos-row">
-            <div class="col-sm-8"></div>
+        <div class="col-sm-3">
+          <a href="http://www.google.com/" id="google-link"><img src="@assets.path("images/google.png")" alt="@Messages("footer.logo.google.alt")"></a>
         </div>
+        <div class="col-sm-3">
+          <a href="https://sloan.org/fellowships/" id="sloan-link">
+            <img src="@assets.path("images/sloan_logo.png")" alt="@Messages("footer.logo.sloan.alt")">
+          </a>
+        </div>
+        <div class="col-sm-2">
+          <a href="https://www.washington.edu/research/research-centers/pacific-northwest-transportation-consortium-pactrans/" id="pactrans-link">
+            <img src="@assets.path("images/pactrans_logo.png")" alt="@Messages("footer.logo.pactrans.alt")">
+          </a>
+        </div>
+        <div class="col-sm-3">
+          <a href="https://create.uw.edu/" id="create-link">
+            <img src="@assets.path("images/CREATE_logo.png")" alt="@Messages("footer.logo.create.alt")">
+          </a>
+        </div>
+      </div>
+      <div class="row footer-logos-row">
+        <div class="col-sm-8"></div>
+      </div>
 
-        @Html(Messages("footer.designed.operated"))<br>
-        <span id="application-version">
-        @Html(Messages("footer.version", commonData.versionId, commonData.versionTimestamp.toString))
-        </span>
+      @Html(Messages("footer.designed.operated"))<br>
+      <span id="application-version">
+      @Html(Messages("footer.version", commonData.versionId, commonData.versionTimestamp.toString))
+      </span>
     </div>
-}
+  }
 
     <script>
-        window.appManager.ready(function () {
-            // Log clicks on links in the footer to WebpageActivityTable.
-            // Depending on column, form of log varies by the following:
-            // Column is 'Project Sidewalk' or 'Developer',
-            //    log is of form: "Click_module=Footer_section=<"sidewalk" or "developer">_target=<link>"
-            // Column is 'Connect',
-            //    log is of form: "Click_module=Footer_section=connect_platform=<"github", "twitter", or "email">"
-            $('#footer-container').on('click', 'a', function(e){
-                const currentRoute = window.location.pathname;
-                const id = e.currentTarget.id.split('-');
-                const column = id[0];
-                const link = id[1];
+      window.appManager.ready(function () {
+        // Log clicks on links in the footer to WebpageActivityTable.
+        // Depending on column, form of log varies by the following:
+        // Column is 'Project Sidewalk' or 'Developer',
+        //    log is of form: "Click_module=Footer_section=<"sidewalk" or "developer">_target=<link>"
+        // Column is 'Connect',
+        //    log is of form: "Click_module=Footer_section=connect_platform=<"github", "twitter", or "email">"
+        $('#footer-container').on('click', 'a', function(e){
+          const currentRoute = window.location.pathname;
+          const id = e.currentTarget.id.split('-');
+          const column = id[0];
+          const link = id[1];
 
-                let activity = 'Click_module=Footer_section=' + column + '_';
-                if (column === 'sidewalk' || column === 'developer') {
-                    activity = activity + 'target=' + link;
-                } else {
-                    activity = activity + 'platform=' + link;
-                }
-                activity = activity + '_route=' + currentRoute;
+          let activity = 'Click_module=Footer_section=' + column + '_';
+          if (column === 'sidewalk' || column === 'developer') {
+            activity = activity + 'target=' + link;
+          } else {
+            activity = activity + 'platform=' + link;
+          }
+          activity = activity + '_route=' + currentRoute;
 
-                window.logWebpageActivity(activity);
+          window.logWebpageActivity(activity);
 
-                // We are using the ML site's about page, so log the "Visit_About" from here. All other pages that are
-                // part of the Sidewalk codebase end up logging "Visit_*" on the back-end.
-                if (link === 'about') {
-                    window.logWebpageActivity('Visit_About', true);
-                }
-            });
-
-            // Log clicks on links in the information footer to WebpageActivityTable.
-            // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/explore|/help|...>"
-            $('#info-footer').on('click','a', function(e){
-                const currentRoute = window.location.pathname;
-                const link = e.currentTarget.id.split('-')[0];
-                const activity = 'Click_module=InfoFooter_' + 'target=' + link + '_route=' + currentRoute;
-                window.logWebpageActivity(activity);
-            });
+          // We are using the ML site's about page, so log the "Visit_About" from here. All other pages that are
+          // part of the Sidewalk codebase end up logging "Visit_*" on the back-end.
+          if (link === 'about') {
+            window.logWebpageActivity('Visit_About', true);
+          }
         });
+
+        // Log clicks on links in the information footer to WebpageActivityTable.
+        // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/explore|/help|...>"
+        $('#info-footer').on('click','a', function(e){
+          const currentRoute = window.location.pathname;
+          const link = e.currentTarget.id.split('-')[0];
+          const activity = 'Click_module=InfoFooter_' + 'target=' + link + '_route=' + currentRoute;
+          window.logWebpageActivity(activity);
+        });
+      });
     </script>
 
     <script src='@assets.path("vendor/moment/moment-2.30.1.js")'></script>
@@ -243,5 +243,5 @@
     <script src='@assets.path("vendor/moment/en-nz.js")'></script>
     <script src='@assets.path("js/common/timestampLocalization.js")'></script>
     <script>updateTimestamps("@messages.lang.code");</script>
-</body>
+  </body>
 </html>
