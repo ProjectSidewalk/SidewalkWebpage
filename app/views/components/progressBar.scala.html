@@ -1,43 +1,41 @@
 @*
- * Shared progress bar: a rounded track holding either a single fill or two flush segments, optionally followed by a
- * label. Styling lives in stylesheets/progress-bar.css. Used by the Explore sidebar (mission, neighborhood), the
- * mission-complete modal, and the Validate tools.
- *
- * @param rootId      ID for the root row element, or "" for none.
- * @param rootClass   Extra class(es) for the root row element, or "" for none.
- * @param trackId     ID for the track element, or "" for none.
- * @param fillId      ID for the fill element (the pill, when segmented), or "" for none.
- * @param labelId     ID for the label element, or "" to omit the label.
- * @param segmented   If true, render community + you segments instead of a single fill.
- * @param communityId      ID for the community segment (segmented only), or "" for none.
- * @param youId            ID for the "you" segment (segmented only), or "" for none.
- * @param communityTooltip i18n key for the community segment's tooltip/aria-label, or "" for none.
- * @param youTooltip       i18n key for the "you" segment's tooltip/aria-label, or "" for none.
- *@
+* Shared progress bar: a rounded track holding either a single fill or two flush segments, optionally followed by a label. Styling lives in css/progress-bar.css. Used by the Explore sidebar (mission, neighborhood), the mission-complete modal, and the Validate tools.
+*
+* @param rootId      ID for the root row element, or "" for none.
+* @param rootClass   Extra class(es) for the root row element, or "" for none.
+* @param trackId     ID for the track element, or "" for none.
+* @param fillId      ID for the fill element (the pill, when segmented), or "" for none.
+* @param labelId     ID for the label element, or "" to omit the label.
+* @param segmented   If true, render community + you segments instead of a single fill.
+* @param communityId      ID for the community segment (segmented only), or "" for none.
+* @param youId            ID for the "you" segment (segmented only), or "" for none.
+* @param communityTooltip i18n key for the community segment's tooltip/aria-label, or "" for none.
+* @param youTooltip       i18n key for the "you" segment's tooltip/aria-label, or "" for none.
+*@
 @(
-    rootId: String = "",
-    rootClass: String = "",
-    trackId: String = "",
-    fillId: String = "",
-    labelId: String = "",
-    segmented: Boolean = false,
-    communityId: String = "",
-    youId: String = "",
-    communityTooltip: String = "",
-    youTooltip: String = ""
+  rootId: String = "",
+  rootClass: String = "",
+  trackId: String = "",
+  fillId: String = "",
+  labelId: String = "",
+  segmented: Boolean = false,
+  communityId: String = "",
+  youId: String = "",
+  communityTooltip: String = "",
+  youTooltip: String = ""
 )
 <div@if(rootId != ""){ id="@rootId"} class="ps-progress-bar@if(rootClass != ""){ @rootClass}">
-    <div@if(trackId != ""){ id="@trackId"} class="ps-progress-bar__track">
-        @if(segmented) {
-            <div@if(fillId != ""){ id="@fillId"} class="ps-progress-bar__fill ps-progress-bar__fill--segmented">
-                <div@if(communityId != ""){ id="@communityId"} class="ps-progress-bar__segment ps-progress-bar__segment--community"@if(communityTooltip != ""){ data-i18n-title="@communityTooltip" data-i18n-aria-label="@communityTooltip"}></div>
-                <div@if(youId != ""){ id="@youId"} class="ps-progress-bar__segment ps-progress-bar__segment--you"@if(youTooltip != ""){ data-i18n-title="@youTooltip" data-i18n-aria-label="@youTooltip"}></div>
-            </div>
-        } else {
-            <div@if(fillId != ""){ id="@fillId"} class="ps-progress-bar__fill"></div>
-        }
-    </div>
-    @if(labelId != "") {
-        <span id="@labelId" class="ps-progress-bar__label"></span>
-    }
-</div>
+<div@if(trackId != ""){ id="@trackId"} class="ps-progress-bar__track">
+@if(segmented) {
+  <div@if(fillId != ""){ id="@fillId"} class="ps-progress-bar__fill ps-progress-bar__fill--segmented">
+  <div@if(communityId != ""){ id="@communityId"} class="ps-progress-bar__segment ps-progress-bar__segment--community"@if(communityTooltip != ""){ data-i18n-title="@communityTooltip" data-i18n-aria-label="@communityTooltip"}></div>
+  <div@if(youId != ""){ id="@youId"} class="ps-progress-bar__segment ps-progress-bar__segment--you"@if(youTooltip != ""){ data-i18n-title="@youTooltip" data-i18n-aria-label="@youTooltip"}></div>
+  </div>
+} else {
+  <div@if(fillId != ""){ id="@fillId"} class="ps-progress-bar__fill"></div>
+}
+  </div>
+@if(labelId != "") {
+  <span id="@labelId" class="ps-progress-bar__label"></span>
+}
+  </div>

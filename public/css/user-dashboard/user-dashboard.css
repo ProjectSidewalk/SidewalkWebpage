@@ -1,0 +1,1548 @@
+/*
+ * User Dashboard + Leaderboard redesign — gamification components.
+ *
+ * Layered on top of api-docs.css and admin-dashboard.css: this file adds ONLY the components those two surfaces don't
+ * already provide (hero banner, streak heatmap, badge tracks, trophy case, podium, medals, standing widget, mistake
+ * gallery cards). It reuses their design tokens (--space-*, --color-*, --font-size-*, brand ramps from main.css, and
+ * label-type colors --color-label-*) rather than introducing new literals, so the three surfaces stay visually unified.
+ * Label-type colors come from the --color-label-* tokens (source of truth: /v3/api/labelTypes) — never hardcoded hex.
+ *
+ * Type scale policy (per design review): ALL content — table cells, badge/trophy detail, card text, stat labels,
+ * podium — is at least --font-size-md (16px). The smaller steps (sm/xs/xxs) are reserved for legends
+ * (.ud-heatmap-legend) and small decorative pills/ribbons (.ud-trophy-tag, .ud-standing-tag, .ud-card-verdict,
+ * .ud-public-tag). Never size real content below md — and avoid footnote-style asides entirely (design review:
+ * if a note matters it belongs in real copy; if it doesn't, delete it).
+ */
+
+/* Primary-content tables on the user surface read much larger than the admin default (which stays --font-size-sm):
+   body cells at xxl so the data is loud, headers at lg. */
+.api-content .coverage-table { font-size: var(--font-size-xxl, 1.5rem); }
+
+/* Header cells must share the body cells' horizontal padding, or every header sits left of its column. */
+.api-content .coverage-table thead th {
+  font-size: var(--font-size-lg, 1.125rem);
+  padding: 10px 16px;
+}
+.api-content .coverage-table tbody td { padding: 14px 16px; }
+
+/* Leaderboard tables are capped at ~10 rows, so show them in full — no inner scroll (admin tables keep theirs), and
+   overflow visible so the Accuracy header tooltip can escape the wrap. The responsive rule restores mobile scroll. */
+.api-content .coverage-table-wrap {
+  max-height: none;
+  overflow: visible;
+}
+
+/* The admin tables right-align every non-first column (numeric); on the leaderboard the name column — and the
+   all-time "Most active in" city column — are text, so left-align them. */
+.api-content .coverage-table td:nth-child(2),
+.api-content .coverage-table th:nth-child(2) { text-align: left; }
+
+.api-content .ud-lb-alltime td:nth-child(3),
+.api-content .ud-lb-alltime th:nth-child(3) { text-align: left; }
+.api-content .coverage-table tbody tr { cursor: default; }
+
+/* Medal (or number) in the leaderboard rank column — bump the medals so they read clearly. */
+.api-content .coverage-table td.ud-lb-rank {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+/* Header tooltip (e.g. Accuracy): a CSS popover shown on hover/focus — more reliable than a native title. */
+.ud-th-tip {
+  position: relative;
+  cursor: help;
+}
+
+.ud-th-tip:focus-visible {
+  outline: 2px solid var(--color-accent-link, #0566f5);
+  outline-offset: 2px;
+}
+
+.ud-th-info {
+  margin-left: 4px;
+  color: var(--color-text-tertiary, #88a1ad);
+  font-size: 0.8em;
+  vertical-align: middle;
+}
+
+.ud-th-tip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 5;
+  width: max-content;
+  max-width: 260px;
+  padding: 8px 11px;
+  border-radius: var(--border-radius, 4px);
+  background: var(--color-asphalt-700, #2d2a3f);
+  color: var(--color-neutral-white, #ffffff);
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: 400;
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+  text-transform: none;
+  box-shadow: var(--box-shadow-md, 0 2px 8px rgb(0 0 0 / 20%));
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-fast, 0.15s ease);
+  pointer-events: none;
+}
+
+.ud-th-tip:hover::after,
+.ud-th-tip:focus-visible::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+.ud-lb-user,
+.ud-lb-city {
+  color: var(--color-accent-link, #0566f5);
+  text-decoration: none;
+}
+
+.ud-lb-user:hover,
+.ud-lb-city:hover { text-decoration: underline; }
+
+/* ---- Hero / "Your impact" -------------------------------------------------------------------------------------- */
+.ud-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg, 24px);
+  padding: var(--space-lg, 24px);
+  margin: var(--space-md, 16px) 0 var(--space-lg, 24px);
+  border: 1px solid var(--color-neutral-200, #e1e1e1);
+  border-radius: var(--border-radius-lg, 8px);
+  background: linear-gradient(120deg, var(--color-pine-100, #eaf3ec), var(--color-banana-100, #fdf6e3));
+}
+
+.ud-hero-avatar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--color-pine-600, #4a7c59);
+  color: var(--color-neutral-white, #ffffff);
+  font-family: var(--font-accent, "Raleway", sans-serif);
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.ud-hero-greeting {
+  margin: 0 0 4px;
+  font-size: var(--font-size-lg, 1.125rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-hero-headline {
+  margin: 0 0 4px;
+  font-family: var(--font-accent, "Raleway", sans-serif);
+  font-size: var(--font-size-xxl, 1.5rem);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text-heading, #263238);
+}
+
+.ud-hero-sub {
+  margin: 0;
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+/* Friendly, supportive nudge/encouragement callout — sprinkled through both surfaces. */
+.ud-nudge {
+  margin: var(--space-md, 16px) 0 0;
+  padding: var(--space-sm, 12px) var(--space-md, 16px);
+  border-left: 4px solid var(--color-banana-500, #f3c220);
+  border-radius: var(--border-radius, 4px);
+  background: var(--color-banana-100, #fdf6e3);
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-heading, #263238);
+}
+
+/* ---- Streak / activity heatmap --------------------------------------------------------------------------------- */
+.ud-streak {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg, 24px);
+  align-items: flex-start;
+}
+
+.ud-streak-stats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm, 12px);
+  flex: 0 0 200px;
+}
+
+.ud-streak-kpi {
+  margin: 0;
+}
+
+.ud-streak-current {
+  border-color: var(--color-orange-400, #f0913e);
+  background: var(--color-orange-100, #fdeede);
+}
+
+/* Fixed-size cells (GitHub-style) so the grid is a compact block instead of stretching to fill the width. */
+.ud-heatmap {
+  flex: 0 1 auto;
+  margin: 0;
+  overflow-x: auto;
+}
+
+/* GitHub-style scaffold: month labels across the top, weekday labels down the left, cells bottom-right. */
+.ud-heatmap-scaffold {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  gap: 4px 6px;
+  width: max-content;
+}
+
+.ud-heatmap-corner {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.ud-heatmap-months {
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 15px;
+  gap: 3px;
+  font-size: var(--font-size-xs, 0.8125rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+/* Each label sits in one cell-column but overflows right over the (empty) following columns, like GitHub. */
+.ud-heatmap-months > span {
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.ud-heatmap-days {
+  grid-column: 1;
+  grid-row: 2;
+  display: grid;
+  grid-template-rows: repeat(7, 15px);
+  gap: 3px;
+  align-items: center;
+  font-size: var(--font-size-xs, 0.8125rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-heatmap-grid {
+  grid-column: 2;
+  grid-row: 2;
+  display: grid;
+  grid-template-rows: repeat(7, 15px);
+  grid-auto-flow: column;
+  grid-auto-columns: 15px;
+  gap: 3px;
+  width: max-content;
+}
+
+.ud-heat {
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+  background: var(--color-neutral-100, #f0f0f0);
+}
+
+.ud-heat-0 { background: var(--color-neutral-200, #e6e6e6); }
+.ud-heat-1 { background: var(--color-pine-200, #cfe3d4); }
+.ud-heat-2 { background: var(--color-pine-400, #8fc09b); }
+.ud-heat-3 { background: var(--color-pine-600, #4a7c59); }
+.ud-heat-4 { background: var(--color-pine-800, #2f5239); }
+
+/* Out-of-window padding cells (before the start / after today): keep the grid shape but invisible. */
+.ud-heat-empty { background: transparent; }
+
+.ud-heat[tabindex]:focus-visible {
+  outline: 2px solid var(--color-accent-link, #0566f5);
+  outline-offset: 1px;
+}
+
+.ud-heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: var(--space-sm, 12px);
+  font-size: var(--font-size-xxs, 0.75rem);
+  color: var(--color-text-tertiary, #88a1ad);
+}
+
+.ud-heatmap-legend .ud-heat {
+  width: 12px;
+  height: 12px;
+  aspect-ratio: auto;
+}
+
+/* ---- Badge tracks ---------------------------------------------------------------------------------------------- */
+.ud-badge-tracks {
+  display: grid;
+
+  /* Cap at two tracks per row — at four across, the tier icons and their numbers get too small to read. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md, 16px);
+  margin: var(--space-md, 16px) 0;
+}
+
+.ud-badge-track {
+  border: 1px solid var(--color-neutral-200, #e1e1e1);
+  border-radius: var(--border-radius-lg, 8px);
+  padding: var(--space-md, 16px);
+  background: var(--color-neutral-white, #ffffff);
+}
+
+.ud-badge-track-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm, 12px);
+  margin-bottom: var(--space-sm, 12px);
+}
+
+.ud-badge-track-name {
+  font-family: var(--font-accent, "Raleway", sans-serif);
+  font-weight: 700;
+  color: var(--color-text-heading, #263238);
+}
+
+/* One-line explanation of what the track counts — especially useful on another mapper's public profile. */
+.ud-badge-track-desc {
+  margin: 0 0 var(--space-sm, 12px);
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+/* The user's current tier name in this track (e.g. "IV: Barrier Buster") — a small pill whose color echoes the badge
+   level's color ramp (white -> green -> yellow -> orange -> legendary), set via a .ud-tier-N modifier. */
+.ud-badge-track-current {
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: var(--font-size-md, 1rem);
+  font-weight: 600;
+}
+
+.ud-tier-0,
+.ud-tier-1 {
+  background: var(--color-neutral-200, #e6e6e6);
+  color: var(--color-text-heading, #263238);
+}
+
+.ud-tier-2 {
+  background: var(--color-pine-600, #4a7c59);
+  color: var(--color-neutral-white, #ffffff);
+}
+
+.ud-tier-3 {
+  background: var(--color-banana-500, #f3c220);
+  color: var(--color-asphalt-900, #2d2a3f);
+}
+
+.ud-tier-4 {
+  background: var(--color-orange-500, #e07b2f);
+  color: var(--color-neutral-white, #ffffff);
+}
+
+.ud-tier-5 {
+  background: var(--color-asphalt-600, #4a4660);
+  color: var(--color-neutral-white, #ffffff);
+}
+
+.ud-badge-track-next {
+  display: block;
+  margin-top: var(--space-sm, 12px);
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-badge-levels {
+  display: flex;
+  justify-content: space-between; /* spread the five tiers across the full card width */
+  gap: var(--space-xs, 8px);
+  margin-bottom: var(--space-sm, 12px);
+}
+
+.ud-badge {
+  width: 64px;
+  height: 64px;
+  max-width: 18%;
+  object-fit: contain;
+}
+
+.ud-badge-locked {
+  opacity: 0.18;
+  filter: grayscale(1);
+}
+
+/* ---- Progress bar (shared) ------------------------------------------------------------------------------------- */
+.ud-progress {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--color-neutral-200, #e6e6e6);
+  overflow: hidden;
+}
+
+.ud-progress-lg {
+  height: 14px;
+  border-radius: 7px;
+  margin: var(--space-sm, 12px) 0;
+}
+
+.ud-progress-fill {
+  width: 0; /* JS (DashboardBadges) animates this to the real percent. */
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-pine-500, #5a8f6a), var(--color-pine-700, #3a6347));
+}
+
+/* ---- Trophy case ----------------------------------------------------------------------------------------------- */
+.ud-trophy-case {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md, 16px);
+  margin: var(--space-md, 16px) 0;
+}
+
+.ud-trophy {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  width: 184px;
+  padding: var(--space-lg, 24px) var(--space-md, 16px);
+  border: 1px solid var(--color-neutral-200, #e1e1e1);
+  border-radius: var(--border-radius-lg, 8px);
+  background: var(--color-neutral-white, #ffffff);
+  border-top: 4px solid var(--color-neutral-300, #c5cdd2);
+}
+
+/* Region/pioneer trophies link to Explore that neighborhood: keep the card look, add a lift + reveal the affordance. */
+.ud-trophy-link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: transform var(--transition-fast, 0.15s ease), box-shadow var(--transition-fast, 0.15s ease);
+}
+
+.ud-trophy-link:hover,
+.ud-trophy-link:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow-md, 0 2px 8px rgb(0 0 0 / 12%));
+  outline: none;
+}
+
+.ud-trophy-explore {
+  margin-top: 4px;
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--color-accent-link, #0566f5);
+  opacity: 0;
+  transition: opacity var(--transition-fast, 0.15s ease);
+}
+
+.ud-trophy-link:hover .ud-trophy-explore,
+.ud-trophy-link:focus-visible .ud-trophy-explore { opacity: 1; }
+
+.ud-trophy-1 { border-top-color: var(--color-banana-500, #f3c220); }
+.ud-trophy-2 { border-top-color: var(--color-neutral-400, #a8b0b5); }
+.ud-trophy-3 { border-top-color: var(--color-orange-500, #e07b2f); }
+
+.ud-trophy-region {
+  border-top-color: var(--color-pine-600, #4a7c59);
+  background: linear-gradient(160deg, var(--color-pine-100, #eaf3ec), var(--color-neutral-white, #ffffff));
+}
+
+.ud-trophy-pioneer {
+  border-top-color: var(--color-banana-600, #d9a916);
+  background: linear-gradient(160deg, var(--color-banana-100, #fdf6e3), var(--color-neutral-white, #ffffff));
+}
+
+.ud-trophy-tag {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 1px 7px;
+  border-radius: 9px;
+  font-size: var(--font-size-xxs, 0.75rem);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-pine-800, #2f5239);
+  background: var(--color-pine-200, #cfe3d4);
+}
+
+.ud-trophy-medal {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.ud-trophy-title {
+  font-weight: 700;
+  font-size: var(--font-size-lg, 1.125rem);
+  color: var(--color-text-heading, #263238);
+}
+
+.ud-trophy-sub {
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-tertiary, #88a1ad);
+}
+
+/* ---- Your standing --------------------------------------------------------------------------------------------- */
+.ud-standing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-md, 16px);
+  margin: var(--space-md, 16px) 0;
+}
+
+.ud-standing-card {
+  border: 1px solid var(--color-neutral-200, #e1e1e1);
+  border-radius: var(--border-radius-lg, 8px);
+  padding: var(--space-lg, 24px);
+  background: var(--color-neutral-white, #ffffff);
+}
+
+.ud-standing-community {
+  background: linear-gradient(120deg, var(--color-pine-100, #eaf3ec), var(--color-neutral-white, #ffffff));
+}
+
+.ud-standing-card-wide { max-width: 560px; }
+
+.ud-standing-tag {
+  font-size: var(--font-size-xxs, 0.75rem);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary, #5a7785);
+  margin-bottom: var(--space-xs, 8px);
+}
+
+.ud-standing-rank {
+  font-family: var(--font-accent, "Raleway", sans-serif);
+  font-size: var(--font-size-xxl, 1.5rem);
+  font-weight: 700;
+  color: var(--color-text-heading, #263238);
+}
+
+.ud-standing-detail {
+  margin-top: var(--space-xs, 8px);
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-standing-of {
+  font-weight: 400;
+  color: var(--color-text-secondary, #5a7785);
+}
+
+/* Week-over-week rank movement: climbed (green) / dropped (red). */
+.ud-delta-up {
+  color: #1f7a44;
+  font-weight: 700;
+}
+
+.ud-delta-down {
+  color: #c0392b;
+  font-weight: 700;
+}
+
+.ud-standing-slice {
+  list-style: none;
+  margin: var(--space-md, 16px) 0 0;
+  padding: 0;
+}
+
+.ud-standing-slice li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm, 12px);
+  padding: 8px 10px;
+  border-radius: var(--border-radius, 4px);
+  font-size: var(--font-size-md, 1rem);
+}
+
+.ud-rank-you {
+  background: var(--color-banana-100, #fdf6e3);
+  font-weight: 700;
+}
+
+.ud-rank {
+  flex: 0 0 28px;
+  color: var(--color-text-tertiary, #88a1ad);
+  font-variant-numeric: tabular-nums;
+}
+
+.ud-rank-user {
+  flex: 1 1 auto;
+  color: var(--color-text-heading, #263238);
+}
+
+.ud-rank-val {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--color-text-secondary, #5a7785);
+}
+
+/* ---- Accuracy-by-type bars ------------------------------------------------------------------------------------- */
+.ud-accuracy-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs, 8px);
+  margin: var(--space-md, 16px) 0;
+}
+
+.ud-acc-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm, 12px);
+  padding: 4px 6px;
+  border-radius: var(--border-radius, 4px);
+}
+
+.ud-acc-weakest {
+  background: var(--color-orange-100, #fdeede);
+  outline: 1px solid var(--color-orange-300, #f4b277);
+}
+
+.ud-acc-label {
+  flex: 0 0 170px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs, 8px);
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-heading, #263238);
+}
+
+.ud-acc-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+  background: var(--label-color, var(--color-neutral-400, #a8b0b5));
+}
+
+.ud-acc-bar {
+  flex: 1 1 auto;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--color-neutral-200, #e6e6e6);
+  overflow: hidden;
+}
+
+.ud-acc-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--label-color, var(--color-pine-500, #5a8f6a));
+}
+
+/* Each row sets --label-color from its label type's canonical token (source of truth: /v3/api/labelTypes); the
+   swatch and fill both read it, so the per-type color lives in CSS rather than an inline style. */
+.ud-lt-curb-ramp { --label-color: var(--color-label-curb-ramp); }
+.ud-lt-no-curb-ramp { --label-color: var(--color-label-no-curb-ramp); }
+.ud-lt-obstacle { --label-color: var(--color-label-obstacle); }
+.ud-lt-surface-problem { --label-color: var(--color-label-surface-problem); }
+.ud-lt-no-sidewalk { --label-color: var(--color-label-no-sidewalk); }
+.ud-lt-crosswalk { --label-color: var(--color-label-crosswalk); }
+.ud-lt-signal { --label-color: var(--color-label-signal); }
+
+.ud-acc-pct {
+  flex: 0 0 48px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-md, 1rem);
+  font-weight: 600;
+  color: var(--color-text-secondary, #5a7785);
+}
+
+/* ---- Mistake gallery cards (#4388) ----------------------------------------------------------------------------- */
+.ud-mistake-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-md, 16px);
+  margin: var(--space-md, 16px) 0;
+}
+
+.ud-card {
+  margin: 0;
+  border: 1px solid var(--color-neutral-200, #e1e1e1);
+  border-radius: var(--border-radius-lg, 8px);
+  overflow: hidden;
+  background: var(--color-neutral-white, #ffffff);
+}
+
+.ud-card-img {
+  position: relative;
+  aspect-ratio: 3 / 2; /* Match the Explore canvas (720x480) so the label marker lines up, like the Gallery. */
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--color-neutral-200, #d7dbde), var(--color-neutral-400, #a8b0b5));
+  background-size: cover;
+  background-position: center;
+}
+
+/* The label's own icon, placed over the pano at the label's canvas position (left/top set inline) to mark exactly
+   which feature was labeled. Small, like the Gallery's marker. */
+.ud-card-label-marker {
+  position: absolute;
+  width: clamp(20px, 7%, 30px);
+  height: auto;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 1px 4px rgb(0 0 0 / 55%));
+  pointer-events: none;
+}
+
+.ud-card-verdict {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: var(--font-size-xxs, 0.75rem);
+  font-weight: 600;
+  color: var(--color-neutral-white, #ffffff);
+  background: var(--color-error, #d32f2f);
+}
+
+.ud-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-sm, 12px);
+}
+
+.ud-card-title {
+  font-weight: 700;
+  color: var(--color-text-heading, #263238);
+}
+
+.ud-card-note {
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-secondary, #5a7785);
+  line-height: 1.4;
+}
+
+/* Applied when there's no validator comment, so the placeholder text reads as an aside. */
+.ud-card-note-muted { font-style: italic; }
+
+.ud-card-prompt {
+  margin: var(--space-sm, 12px) 0 4px;
+  font-size: var(--font-size-md, 1rem);
+  font-weight: 600;
+  color: var(--color-text-heading, #263238);
+}
+
+.ud-card-actions {
+  display: flex;
+  gap: var(--space-xs, 8px);
+  margin-top: var(--space-xs, 8px);
+}
+
+/* Two equal buttons side-by-side, each one line (nowrap). Short labels + tight padding keep them on one line. */
+.ud-card-actions .ud-chip {
+  flex: 1 1 0;
+  text-align: center;
+  white-space: nowrap;
+  padding: 6px 8px;
+}
+
+.ud-chip {
+  padding: 4px 10px;
+  border: 1px solid var(--color-neutral-300, #c5cdd2);
+  border-radius: 14px;
+  background: var(--color-neutral-white, #ffffff);
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-heading, #263238);
+  cursor: pointer;
+  transition: background var(--transition-fast, 0.15s ease), border-color var(--transition-fast, 0.15s ease);
+}
+
+.ud-chip-agree:hover {
+  background: var(--color-pine-100, #eaf3ec);
+  border-color: var(--color-pine-400, #8fc09b);
+}
+
+.ud-chip-disagree:hover {
+  background: var(--color-orange-100, #fdeede);
+  border-color: var(--color-orange-300, #f4b277);
+}
+
+.ud-card-note-link {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-accent-link, #0566f5);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ud-card-note-link:hover { text-decoration: underline; }
+
+.ud-card-comment-input {
+  width: 100%;
+  margin-top: var(--space-xs, 8px);
+  padding: 8px 10px;
+  border: 1px solid var(--color-neutral-300, #c5cdd2);
+  border-radius: var(--border-radius, 4px);
+  font-size: var(--font-size-md, 1rem);
+  font-family: inherit;
+  resize: vertical;
+}
+
+.ud-card-comment-input:focus-visible {
+  outline: 2px solid var(--color-accent-link, #0566f5);
+  outline-offset: 1px;
+}
+
+.ud-card-note-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs, 8px);
+  margin-top: var(--space-xs, 8px);
+}
+
+/* The `hidden` attribute must win over display:flex, or the note stays open before "Add a note" is clicked. */
+.ud-card-note-wrap[hidden] { display: none; }
+
+.ud-card-note-submit {
+  align-self: flex-start;
+  padding: 6px 14px;
+  font-size: var(--font-size-md, 1rem);
+}
+
+.ud-card-vote {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs, 8px);
+}
+
+/* Voted state tints just the vote section (works on the card and inside the popup panel). */
+.ud-card-vote--done {
+  padding: var(--space-xs, 8px);
+  border-radius: var(--border-radius, 4px);
+  background: var(--color-pine-100, #eaf3ec);
+}
+
+/* Clickable card image opens the interactive label popup. */
+.ud-card-img-clickable { cursor: pointer; }
+
+.ud-card-img-clickable:focus-visible {
+  outline: 2px solid var(--color-accent-link, #0566f5);
+  outline-offset: 2px;
+}
+
+.ud-card-expand-hint {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--color-neutral-white, #ffffff);
+  background: rgb(0 0 0 / 55%);
+  opacity: 0;
+  transition: opacity var(--transition-fast, 0.15s ease);
+  pointer-events: none;
+}
+
+.ud-card-img-clickable:hover .ud-card-expand-hint,
+.ud-card-img-clickable:focus-visible .ud-card-expand-hint { opacity: 1; }
+
+/* The mistake vote/note panel injected into the label popup dialog so you can respond from the expanded view. It sits
+   outside .api-content, so set a readable base font here (children inherit it) and size the heading up. Full-width
+   (no side margins), a small gap from the content above, and tight internal spacing. */
+.ud-mistake-response {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs, 8px);
+  margin: var(--space-xs, 8px) 0 0;
+  padding: var(--space-md, 16px);
+  border: 1px solid var(--color-pine-200, #cfe3d4);
+  border-radius: var(--border-radius-lg, 8px);
+  background: var(--color-neutral-white, #ffffff);
+  font-size: var(--font-size-lg, 1.125rem);
+}
+
+.ud-mistake-response-heading {
+  margin: 0;
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: 600;
+  color: var(--color-text-heading, #263238);
+}
+
+/* The panel heading already asks "Do you agree…", so drop the vote section's own prompt inside the popup. */
+.ud-mistake-response .ud-card-vote .ud-card-prompt { display: none; }
+
+.ud-mistake-response .ud-card-vote,
+.ud-mistake-response .ud-card-note-section { margin-top: 0; }
+
+.ud-mistake-response .ud-card-voted-msg,
+.ud-mistake-response .ud-card-your-note,
+.ud-mistake-response .ud-chip,
+.ud-mistake-response .ud-card-note-link,
+.ud-mistake-response .ud-card-note-submit,
+.ud-mistake-response .ud-card-change { font-size: var(--font-size-md, 1rem); }
+
+/* On the dashboard the label popup shows the viewer's OWN labels (mistake cards + their map), so the
+   validate-on-hover overlay (Agree/Disagree/Unsure) and the add-a-comment row are never applicable and clash with the
+   mistake-response panel below — hide both. The public profile shares this rule deliberately: its popup is a
+   view-only showcase of someone's work, not a validation surface (that's LabelMap's job). */
+#label-modal .label-detail__pano-overlay,
+#label-modal .label-detail__comment-row { display: none; }
+
+/* Tighten the Comments heading so its empty "None" doesn't tower over the Description row, and give it a colon so it
+   reads like "Description :". */
+#label-modal .label-detail__comments-section .label-detail__col-title { margin: 0 0 2px; }
+#label-modal .label-detail__comments-section .label-detail__col-title::after { content: ":"; }
+
+.ud-card-voted-msg {
+  margin: 0;
+  font-size: var(--font-size-md, 1rem);
+  font-weight: 600;
+  color: var(--color-pine-800, #2f5239);
+}
+
+.ud-card-change {
+  align-self: flex-start;
+  padding: 6px 14px;
+}
+
+/* The user's own note, independent of the vote. */
+.ud-card-note-section {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--space-xs, 8px);
+}
+
+.ud-card-your-note {
+  margin: 0 0 4px;
+  font-size: var(--font-size-md, 1rem);
+  font-style: italic;
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-see-all {
+  display: inline-block;
+  margin-top: var(--space-xs, 8px);
+  font-size: var(--font-size-md, 1rem);
+  font-weight: 600;
+  color: var(--color-accent-link, #0566f5);
+  text-decoration: none;
+}
+
+.ud-see-all:hover { text-decoration: underline; }
+
+/* Beat the inline-block display so the `hidden` attribute actually hides the "See all" link until cards load. */
+.ud-see-all[hidden] { display: none; }
+
+/* ---- Contribution map ------------------------------------------------------------------------------------------ */
+
+/* Override choropleth.css's very tall fixed heights so the map is width-responsive and fits without page scroll.
+   ID selector matches choropleth.css specificity and wins by load order (this file loads after). */
+.ud-map-caption {
+  margin: var(--space-md, 16px) 0 6px;
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+#user-dashboard-choropleth-holder {
+  position: relative;
+  width: 100%;
+  height: 480px;
+  margin: 0 0 var(--space-md, 16px);
+  border: 1px solid var(--color-neutral-200, #e1e1e1);
+  border-radius: var(--border-radius-lg, 8px);
+  overflow: hidden;
+}
+
+#user-dashboard-choropleth-holder .choropleth {
+  width: 100%;
+  height: 100%;
+}
+
+@media (width <= 768px) {
+  #user-dashboard-choropleth-holder { height: 360px; }
+}
+
+/* Placeholder still used on the public profile (its map isn't wired yet). */
+.ud-map-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 320px;
+  border: 1px dashed var(--color-neutral-300, #c5cdd2);
+  border-radius: var(--border-radius-lg, 8px);
+  background: var(--color-neutral-100, #f5f6f7);
+  color: var(--color-text-tertiary, #88a1ad);
+  font-size: var(--font-size-lg, 1.125rem);
+}
+
+.ud-map-placeholder small { font-size: var(--font-size-xs, 0.8125rem); }
+
+/* ---- Team / class ---------------------------------------------------------------------------------------------- */
+.ud-team {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-md, 16px);
+  margin: var(--space-md, 16px) 0;
+}
+
+.ud-team-card,
+.ud-team-board {
+  border: 1px solid var(--color-neutral-200, #e1e1e1);
+  border-radius: var(--border-radius-lg, 8px);
+  padding: var(--space-md, 16px);
+  background: var(--color-neutral-white, #ffffff);
+}
+
+.ud-team-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs, 8px);
+  align-items: flex-start;
+}
+
+.ud-team-name {
+  font-family: var(--font-accent, "Raleway", sans-serif);
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: 700;
+  color: var(--color-text-heading, #263238);
+}
+
+.ud-team-meta {
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-team-board-head {
+  font-size: var(--font-size-md, 1rem);
+  font-weight: 600;
+  color: var(--color-text-secondary, #5a7785);
+  margin-bottom: var(--space-xs, 8px);
+}
+
+.ud-btn-secondary {
+  padding: 6px 14px;
+  border: 1px solid var(--color-neutral-300, #c5cdd2);
+  border-radius: var(--border-radius, 4px);
+  background: var(--color-neutral-white, #ffffff);
+  color: var(--color-text-heading, #263238);
+  font-size: var(--font-size-md, 1rem);
+  cursor: pointer;
+  transition: background var(--transition-fast, 0.15s ease);
+}
+
+.ud-btn-secondary:hover { background: var(--color-neutral-100, #f0f0f0); }
+
+.ud-btn-primary {
+  display: inline-block;
+  padding: 8px 18px;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius, 4px);
+  background: var(--color-pine-600, #4a7c59);
+  color: var(--color-neutral-white, #ffffff);
+  font-size: var(--font-size-md, 1rem);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--transition-fast, 0.15s ease);
+}
+
+.ud-btn-primary:hover {
+  background: var(--color-pine-700, #3a6347);
+  text-decoration: none;
+}
+
+/* "Create a team" sits below the teams table / empty-state banner, so give it breathing room. */
+.ud-btn-primary.ud-create-team-btn { margin-top: var(--space-md, 16px); }
+
+/* Plain "+" affordance that inherits the button's white text (a "➕" emoji renders blue and clashes with green). */
+.ud-btn-plus { font-weight: 700; }
+
+/* Public sign-up call-to-action shown to anonymous leaderboard visitors. */
+.ud-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md, 16px);
+  margin: var(--space-md, 16px) 0;
+  padding: var(--space-lg, 24px);
+  border: 1px solid var(--color-pine-300, #aacdb4);
+  border-radius: var(--border-radius-lg, 8px);
+  background: linear-gradient(120deg, var(--color-pine-100, #eaf3ec), var(--color-banana-100, #fdf6e3));
+}
+
+/* Warning variant of the CTA banner (e.g. the "sample data" notice on the public profile). */
+.ud-cta-warning { border-color: var(--color-warning, #ff9800); }
+
+.ud-cta-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ud-cta-text strong {
+  font-size: var(--font-size-lg, 1.125rem);
+  color: var(--color-text-heading, #263238);
+}
+
+.ud-cta-text span {
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-cta-actions {
+  display: flex;
+  gap: var(--space-sm, 12px);
+}
+
+/* ---- Leaderboard: community band + podium ---------------------------------------------------------------------- */
+.ud-community-band {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-lg, 24px);
+  padding: var(--space-lg, 24px);
+  margin: var(--space-md, 16px) 0;
+  border: 1px solid var(--color-pine-200, #cfe3d4);
+  border-radius: var(--border-radius-lg, 8px);
+
+  /* Light, on-brand card so the black line-art stat icons read clearly (they were invisible on the old dark band). */
+  background: linear-gradient(120deg, var(--color-pine-100, #eaf3ec), var(--color-banana-100, #fdf6e3));
+  color: var(--color-text-heading, #263238);
+}
+
+.ud-community-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+/* Stat icons: the same line-art PNGs the classic dashboard uses. The emoji placeholder matches their height. */
+.ud-community-icon {
+  height: 56px;
+  width: auto;
+  object-fit: contain;
+}
+
+.ud-community-emoji {
+  font-size: 48px;
+  line-height: 56px;
+}
+
+/* Loud, celebratory community totals — a hero display size (no token goes this big). */
+.ud-community-value {
+  display: block;
+  font-family: var(--font-accent, "Raleway", sans-serif);
+  font-size: clamp(2rem, 3.5vw, 2.75rem);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.ud-community-label {
+  display: block;
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-podium {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: var(--space-md, 16px);
+  margin: var(--space-lg, 24px) 0;
+}
+
+.ud-podium-spot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs, 8px);
+  width: 150px;
+}
+
+.ud-podium-name {
+  font-weight: 700;
+  font-size: 1.6rem;
+  color: var(--color-text-heading, #263238);
+}
+
+.ud-podium-score {
+  font-size: var(--font-size-xl, 1.25rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-podium-block {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  padding-top: var(--space-sm, 12px);
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  font-size: 3.4rem;
+  color: var(--color-neutral-white, #ffffff);
+}
+
+.ud-podium-1 .ud-podium-block {
+  height: 128px;
+  background: var(--color-banana-500, #f3c220);
+}
+
+.ud-podium-2 .ud-podium-block {
+  height: 98px;
+  background: var(--color-neutral-400, #a8b0b5);
+}
+
+.ud-podium-3 .ud-podium-block {
+  height: 74px;
+  background: var(--color-orange-500, #e07b2f);
+}
+.ud-podium-1 { order: 2; }
+.ud-podium-2 { order: 1; }
+.ud-podium-3 { order: 3; }
+
+/* ---- Public profile -------------------------------------------------------------------------------------------- */
+.ud-public-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: var(--color-pine-200, #cfe3d4);
+  color: var(--color-pine-800, #2f5239);
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ---- Settings form --------------------------------------------------------------------------------------------- */
+.ud-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg, 24px);
+  max-width: 620px;
+  margin: var(--space-md, 16px) 0;
+}
+
+.ud-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ud-label {
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: 600;
+  color: var(--color-text-heading, #263238);
+}
+
+.ud-input {
+  padding: 10px 13px;
+  border: 1px solid var(--color-neutral-300, #c5cdd2);
+  border-radius: var(--border-radius, 4px);
+  font-size: var(--font-size-lg, 1.125rem);
+  color: var(--color-text-heading, #263238);
+  background: var(--color-neutral-white, #ffffff);
+}
+
+.ud-input:focus-visible {
+  outline: 2px solid var(--color-accent-link, #0566f5);
+  outline-offset: 1px;
+  border-color: var(--color-accent-link, #0566f5);
+}
+
+.ud-field-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm, 12px);
+  align-items: center;
+}
+.ud-field-inline .ud-input { flex: 1 1 240px; }
+
+.ud-field-help {
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-radio-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md, 16px);
+}
+
+.ud-radio,
+.ud-check {
+  display: flex;
+  gap: var(--space-xs, 8px);
+  font-size: var(--font-size-lg, 1.125rem);
+  color: var(--color-text-heading, #263238);
+  cursor: pointer;
+}
+
+.ud-radio { align-items: center; }
+.ud-check { align-items: flex-start; }
+.ud-check input { margin-top: 3px; }
+
+.ud-check-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Read-only setting value (e.g. measurement units, which follow the site language). */
+.ud-static-value {
+  margin: 0;
+  font-size: var(--font-size-lg, 1.125rem);
+  color: var(--color-text-heading, #263238);
+}
+
+.ud-input[readonly] {
+  background: var(--color-neutral-100, #f2f5f6);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+/* Inline "Saved ✓" / error message next to the Save button. */
+.ud-save-status {
+  margin-left: var(--space-sm, 12px);
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+.ud-save-status.ud-save-ok { color: var(--color-success, #2e7d32); }
+.ud-save-status.ud-save-err { color: var(--color-error, #d32f2f); }
+
+/* "Kept private" state on a public profile whose owner turned off public_profile. */
+.ud-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs, 8px);
+  text-align: center;
+  padding: var(--space-xl, 32px) var(--space-md, 16px);
+  color: var(--color-text-heading, #263238);
+}
+.ud-empty-emoji { font-size: 2.5rem; }
+
+/* ---- "How is this ranked?" explainer --------------------------------------------------------------------------- */
+.ud-explainer {
+  margin: 0 0 var(--space-md, 16px);
+  font-size: var(--font-size-lg, 1.125rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-explainer > summary {
+  cursor: pointer;
+  color: var(--color-accent-link, #0566f5);
+  width: fit-content;
+}
+
+.ud-explainer > div {
+  margin-top: var(--space-xs, 8px);
+  line-height: 1.5;
+  max-width: 720px;
+}
+
+/* ---- Create-team dialog ---------------------------------------------------------------------------------------- */
+.ud-dialog {
+  width: min(460px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--color-neutral-200, #e1e1e1);
+  border-radius: var(--border-radius-lg, 8px);
+  box-shadow: var(--box-shadow-lg, 0 4px 12px rgb(0 0 0 / 15%));
+}
+
+.ud-dialog::backdrop { background: rgb(0 0 0 / 35%); }
+
+.ud-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-lg, 24px);
+}
+
+.ud-dialog-title {
+  margin: 0;
+  font-family: var(--font-accent, "Raleway", sans-serif);
+  font-size: var(--font-size-xl, 1.25rem);
+  color: var(--color-text-heading, #263238);
+}
+
+.ud-dialog-sub {
+  margin: 0 0 var(--space-sm, 12px);
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+.ud-dialog-form .ud-label { margin-top: var(--space-sm, 12px); }
+
+.ud-optional {
+  font-weight: 400;
+  color: var(--color-text-tertiary, #88a1ad);
+}
+
+.ud-dialog-error {
+  margin-top: var(--space-sm, 12px);
+  padding: 8px 12px;
+  border-radius: var(--border-radius, 4px);
+  background: var(--color-error-light, #ffebee);
+  color: var(--color-error, #d32f2f);
+  font-size: var(--font-size-md, 1rem);
+}
+
+.ud-dialog-note {
+  margin: var(--space-sm, 12px) 0 0;
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-text-tertiary, #88a1ad);
+}
+
+.ud-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm, 12px);
+  margin-top: var(--space-lg, 24px);
+}
+
+.ud-team-join-label {
+  display: block;
+  margin-top: var(--space-sm, 12px);
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+/* ---- Responsive ------------------------------------------------------------------------------------------------ */
+
+/* 768px matches the shell breakpoint (api-docs.css), where the left nav goes off-canvas behind a hamburger and the
+   right TOC is already hidden — so here we just make the content itself stack and stay reachable on a phone. */
+@media (width <= 768px) {
+  .ud-hero {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  /* One badge track per row on phones (two would squeeze the tier icons). */
+  .ud-badge-tracks { grid-template-columns: 1fr; }
+  .ud-hero-text { text-align: center; }
+
+  .ud-streak { flex-direction: column; }
+
+  .ud-streak-stats {
+    flex-flow: row wrap;
+    flex: 1 1 100%;
+  }
+  .ud-streak-kpi { flex: 1 1 140px; }
+
+  .ud-heatmap {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .ud-acc-label { flex-basis: 120px; }
+
+  /* Wide leaderboard tables scroll horizontally instead of overflowing off the screen. */
+  .api-content .coverage-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .api-content .coverage-table { min-width: 520px; }
+
+  /* Podium shrinks to fit a phone: equal-width columns instead of fixed 150px spots. */
+  .ud-podium { gap: var(--space-xs, 8px); }
+
+  .ud-podium-spot {
+    width: auto;
+    flex: 1 1 0;
+    min-width: 92px;
+  }
+
+  /* CTA and inline form controls stack full width and stay tappable. */
+  .ud-cta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ud-cta-actions { flex-wrap: wrap; }
+
+  .ud-cta-actions .ud-btn-primary,
+  .ud-cta-actions .ud-btn-secondary {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+
+  .ud-field-inline {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ud-field-inline .ud-input { flex: 1 1 auto; }
+
+  /* Mobile nav: the shared shell floats a fixed hamburger that overlaps our heading and uses an off-brand blue.
+       Our section nav is only a few links and the sidebar is the first child of the container, so instead we show it
+       inline above the content as a tidy chip row and hide that floating toggle entirely. */
+  .api-sidebar-toggle { display: none !important; }
+
+  .api-container .api-sidebar {
+    display: block;
+    position: static;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    border-right: none;
+    border-bottom: 1px solid var(--color-neutral-200, #e1e1e1);
+    background: var(--color-neutral-white, #ffffff);
+  }
+
+  .api-container .api-sidebar .api-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs, 8px);
+    padding: var(--space-sm, 12px) var(--space-md, 16px);
+  }
+
+  .api-container .api-sidebar .api-nav-header { display: none; }
+
+  .api-container .api-sidebar .api-nav-item {
+    padding: 6px 14px;
+    border: 1px solid var(--color-neutral-200, #e1e1e1);
+    border-radius: 16px;
+    background: var(--color-neutral-white, #ffffff);
+    font-size: var(--font-size-md, 1rem);
+    color: var(--color-text-heading, #263238);
+  }
+
+  .api-container .api-sidebar .api-nav-item.active {
+    background: var(--color-pine-600, #4a7c59);
+    border-color: var(--color-pine-600, #4a7c59);
+    color: var(--color-neutral-white, #ffffff);
+  }
+
+  .api-container .api-sidebar .api-nav-item.disabled {
+    background: var(--color-neutral-100, #f5f6f7);
+    color: var(--color-text-tertiary, #88a1ad);
+  }
+}
+
+@media (width <= 480px) {
+  .ud-acc-label {
+    flex-basis: 100px;
+    font-size: var(--font-size-md, 1rem);
+  }
+  .ud-trophy { width: 100%; }
+
+  .ud-badge {
+    width: 38px;
+    height: 38px;
+  }
+  .ud-badge-track-head { flex-wrap: wrap; }
+}

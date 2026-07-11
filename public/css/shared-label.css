@@ -1,0 +1,363 @@
+/*
+ * Styles for the public single-label spotlight page (sharedLabel.scala.html, issue #456).
+ *
+ * The hero mounts the shared LabelDetail component (labelDetail.css owns its internals); this file only lays out the
+ * page around it — a two-column hero/map row and a city-stats + call-to-action footer — plus a few overrides so the
+ * inline LabelDetail fills its column and drops its (irrelevant here) close button. Uses the Design-System tokens from
+ * main.css (:root). Scoped under .spotlight.
+ */
+
+/* Fixed, centered layout tuned for a common laptop (not responsive by design). The content column is capped and
+   centered; it never causes a horizontal scrollbar (it shrinks with the viewport but has no breakpoints). */
+.spotlight {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px clamp(16px, 3vw, 40px) 48px;
+  background: var(--color-neutral-100);
+}
+
+.spotlight *,
+.spotlight *::before,
+.spotlight *::after {
+  box-sizing: border-box;
+}
+
+.spotlight__spotted,
+.spotlight__cols,
+.spotlight__engage {
+  width: 100%;
+  max-width: 1080px;
+}
+
+.spotlight__spotted {
+  margin: 4px 2px 12px;
+  font: var(--text-subtitle-medium);
+  color: var(--color-asphalt-400);
+}
+
+/* The LabelDetail hero (left, larger — "this is about the image") and a right rail holding a half-size minimap plus a
+   label legend. Top-aligned so the rail keeps its natural height next to the taller hero. */
+.spotlight__cols {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: clamp(16px, 2vw, 28px);
+  align-items: start;
+}
+
+.spotlight__detail-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.spotlight__side {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 2vw, 24px);
+  min-width: 0;
+}
+
+/* Let the inline LabelDetail take its natural height (the page scrolls, not the card) instead of labelDetail.css's
+   dialog cap, and reclaim the 60px side padding it reserves for paging arrows (not rendered here). */
+.spotlight__detail.label-detail--inline {
+  width: 100%;
+  max-width: none;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+  padding: 16px 22px;
+  box-shadow: 0 1px 3px rgb(9 8 13 / 8%), 0 8px 28px rgb(9 8 13 / 7%);
+}
+
+/* Size the pano by its width to a landscape 3:2 (the native 720×480 Explore canvas ratio) rather than a flex fill. */
+.spotlight__detail.label-detail--inline .label-detail__pano-wrap {
+  flex: 0 0 auto;
+}
+
+.spotlight__detail.label-detail--inline .label-detail__pano {
+  aspect-ratio: 3 / 2;
+  height: auto;
+}
+
+/* The close button dismisses a popup; here the detail IS the page content, so there's nothing to close. */
+.spotlight__detail .label-detail__close {
+  display: none;
+}
+
+/* ── Minimap column ──────────────────────────────────────────────────────── */
+
+.spotlight__map-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 12px;
+  padding: 14px 16px 12px;
+  box-shadow: 0 1px 3px rgb(9 8 13 / 8%), 0 8px 28px rgb(9 8 13 / 7%);
+}
+
+.spotlight-map__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.spotlight-map__head h2 {
+  margin: 0;
+  font: var(--text-h3-bold);
+  color: var(--color-asphalt-600);
+}
+
+.spotlight-map__link {
+  color: var(--color-link-200);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.spotlight-map__link:hover {
+  text-decoration: underline;
+}
+
+.spotlight-map__link:focus-visible {
+  outline: 3px solid var(--color-link-100);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.spotlight-map {
+  height: 380px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--color-neutral-200);
+}
+
+.spotlight-map__caption {
+  margin: 10px 2px 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+/* Focal-label highlight marker on the minimap. --lt-color is set inline per marker in JS. */
+.spotlight-focal-marker {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--color-neutral-white);
+  border: 3px solid var(--lt-color);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--lt-color) 35%, transparent), 0 2px 6px rgb(9 8 13 / 40%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spotlight-focal-marker img {
+  width: 22px;
+  height: 22px;
+}
+
+/* Native popup on nearby markers. */
+.spotlight-popup .mapboxgl-popup-content {
+  padding: 12px 14px;
+  border-radius: 10px;
+}
+
+.spotlight-popup__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: var(--text-body-bold);
+  color: var(--color-asphalt-600);
+  margin-bottom: 6px;
+}
+
+.spotlight-popup__icon {
+  width: 20px;
+  height: 20px;
+}
+
+.spotlight-popup__link {
+  font: var(--text-small-bold);
+  color: var(--color-link-200);
+  text-decoration: none;
+}
+
+.spotlight-popup__link:hover {
+  text-decoration: underline;
+}
+
+/* ── Label legend (right rail, under the minimap) ────────────────────────── */
+
+.spotlight-legend {
+  background: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 12px;
+  padding: 14px 16px 16px;
+  box-shadow: 0 1px 3px rgb(9 8 13 / 8%), 0 8px 28px rgb(9 8 13 / 7%);
+}
+
+.spotlight-legend__title {
+  margin: 0 0 12px;
+  font: var(--text-h3-bold);
+  color: var(--color-asphalt-600);
+}
+
+.spotlight-legend__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 14px;
+}
+
+.spotlight-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: var(--text-small-medium);
+  color: var(--color-asphalt-500);
+}
+
+.spotlight-legend__swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgb(9 8 13 / 20%);
+  flex: 0 0 auto;
+}
+
+/* ── Engage footer: city stats + CTA ─────────────────────────────────────── */
+
+.spotlight__engage {
+  margin-top: 28px;
+}
+
+.spotlight-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0 28px;
+}
+
+.spotlight-stats__heading {
+  margin: 0;
+  font: var(--text-h3-bold);
+  color: var(--color-asphalt-600);
+  text-align: center;
+}
+
+.spotlight-stats__row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(24px, 6vw, 80px);
+}
+
+.spotlight-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.spotlight-stat__num {
+  font: var(--text-h1-bold);
+  color: var(--color-asphalt-600);
+}
+
+.spotlight-stat__label {
+  font: var(--text-body-regular);
+  color: var(--color-neutral-700);
+}
+
+.spotlight-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 32px 24px;
+  border-radius: 16px;
+  background: var(--color-pine-100);
+}
+
+.spotlight-cta__logo {
+  width: 96px;
+  height: auto;
+}
+
+.spotlight-cta__title {
+  margin: 0;
+  font: var(--text-h2-bold);
+  color: var(--color-asphalt-600);
+}
+
+.spotlight-cta__body {
+  margin: 0 auto;
+  max-width: 560px;
+  font: var(--text-body-regular);
+  color: var(--color-asphalt-500);
+}
+
+.spotlight-cta__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.spotlight-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 11px 24px;
+  border-radius: 999px;
+  font: var(--text-body-bold);
+  cursor: pointer;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.spotlight-btn--primary {
+  background: var(--color-pine-500);
+  color: var(--color-asphalt-700);
+}
+
+.spotlight-btn--primary:hover {
+  background: var(--color-pine-600);
+  text-decoration: none;
+}
+
+.spotlight-btn--ghost {
+  background: var(--color-neutral-white);
+  border-color: var(--color-neutral-300);
+  color: var(--color-asphalt-600);
+}
+
+.spotlight-btn--ghost:hover {
+  border-color: var(--color-asphalt-400);
+  text-decoration: none;
+}
+
+.spotlight-btn:focus-visible {
+  outline: 3px solid var(--color-link-100);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spotlight-btn {
+    transition: none;
+  }
+}

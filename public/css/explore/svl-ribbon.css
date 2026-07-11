@@ -1,0 +1,132 @@
+.icon-ribbon-menu-medium {
+  height: calc(35px * var(--ui-scale));
+  margin: 0 calc(5px * var(--ui-scale));
+  position: relative;
+  left: 0;
+  top: calc(-2px * var(--ui-scale));
+}
+
+.label-type-button-holder {
+  cursor: pointer;
+  position: relative;
+  width: calc(77px * var(--ui-scale));
+}
+
+#label-type-divider-major {
+  border-left: 2px solid var(--color-neutral-300);
+  align-self: center;
+  top: var(--ribbon-title-height);
+  height: calc(20px * var(--ui-scale));
+}
+
+.label-type-icon {
+  display: block;
+  margin: auto;
+  height: calc(66px * var(--ui-scale));
+  border-color: transparent;
+  border-style: solid;
+  border-width: calc(5px * var(--ui-scale));
+  border-radius: 50%;
+}
+
+.label-type-name {
+  font-size: calc(8px * var(--ui-scale));
+  line-height: 0.9; /* Tighter than the token's line-height so two-line names fit in the fixed-height ribbon. */
+  text-align: center;
+  display: block;
+  width: 100%;
+  padding-top: calc(3px * var(--ui-scale));
+}
+
+.ribbon-menu-title-holder {
+  height: var(--ribbon-title-height);
+  overflow: hidden;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ribbon-menu-title {
+  font: var(--text-tiny-regular);
+  position: relative;
+}
+
+/* Add lines to the left and right of the titles. Similar to this https://silvawebdesigns.com/line-on-sides-headers/ */
+.ribbon-menu-title::before, .ribbon-menu-title::after {
+  position: absolute;
+  top: 51%;
+  width: 1000px; /* Set to a very large value, cut off from outer div with overflow: hidden. */
+  height: 1px;
+  content: "";
+  background-color: var(--color-neutral-300);
+}
+
+.ribbon-menu-title::before {
+  right: 100%;
+  margin-right: calc(5px * var(--ui-scale));
+}
+
+.ribbon-menu-title::after {
+  left: 100%;
+  margin-left: calc(5px * var(--ui-scale));
+}
+
+#ribbon-menu-holder {
+  background: transparent;
+  position: absolute;
+  top: var(--ribbon-top);
+  height: var(--ribbon-height);
+  width: var(--pano-width);
+
+  /* Center the button row vertically within the holder, to avoid pooling whitespace in some languages. */
+  display: flex;
+  align-items: center;
+
+  --ribbon-title-height: calc(14px * var(--ui-scale));
+}
+
+#ribbon-menu-buttons {
+  flex: 1;
+  display: flex;
+  align-items: stretch;          /* groups share a height so their button rows (and icons) line up */
+  justify-content: space-between;
+}
+
+/* The Explore button has no section title above it, so offset it by the title height to line. */
+#mode-switch-button-walk {
+  margin-top: var(--ribbon-title-height);
+}
+
+/* A labeled section (e.g. Curb Ramp): the title sits on top, its buttons in a row beneath. */
+.ribbon-menu-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.ribbon-menu-group-buttons {
+  display: flex;
+  align-items: stretch;          /* buttons in the row share a height so their icons line up */
+}
+
+#ribbon-menu-other-subcategory-holder {
+  position: absolute;
+  top: calc(54px * var(--ui-scale));
+  left: calc(-10px * var(--ui-scale));
+  width: calc(260px * var(--ui-scale));
+  padding: calc(10px * var(--ui-scale));
+  z-index: 4;
+  visibility: hidden;
+}
+
+.ribbon-menu-other-subcategory {
+  padding: calc(10px * var(--ui-scale)) calc(5px * var(--ui-scale));
+  margin: calc(5px * var(--ui-scale)) calc(5px * var(--ui-scale)) 0;
+  background: var(--color-neutral-white);
+  border-radius: calc(28px * var(--ui-scale));
+  border: calc(1px * var(--ui-scale)) solid var(--color-neutral-200);
+}
+
+.ribbon-menu-other-subcategory:hover {
+  background-color: var(--color-neutral-200);
+}

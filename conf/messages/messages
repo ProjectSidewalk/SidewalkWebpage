@@ -57,6 +57,7 @@ city.name.gainesville-fl = Gainesville
 city.name.sao-paulo-brazil = São Paulo
 city.name.winterthur-infra3d = Winterthur
 city.name.waltham-ma = Waltham
+city.name.houston-tx = Houston
 
 state.name.oregon = Oregon
 state.name.washington = Washington
@@ -75,6 +76,7 @@ state.name.virginia = Virginia
 state.name.indiana = Indiana
 state.name.florida = Florida
 state.name.massachusetts = Massachusetts
+state.name.texas = Texas
 
 country.name.usa = USA
 country.name.mexico = Mexico

@@ -21,7 +21,7 @@ aggregated, scored, and served back out through a public API and a set of dashbo
 ## System at a glance
 
 ```
-Browser (vanilla-JS apps: Explore, Validate, Gallery, Admin, Progress, PSMap)
+Browser (vanilla-JS apps: Explore, Validate, Gallery, Admin, UserDashboard, PSMap)
         │  HTTP
         ▼
 Play backend ── routes → Controller → Service → Table (DAO/Slick)
@@ -103,22 +103,27 @@ recreation. To support the anonymous landing, LabelMap's `RegionController.listN
 
 ## Frontend
 
-Each major UI is a self-contained app under `public/javascripts/`, bundled separately by Grunt and loaded by the
+Each major UI is a self-contained app under `public/js/`, bundled separately by Grunt and loaded by the
 corresponding Twirl view:
 
-- **`SVLabel/`** — the Explore/Audit tool (label accessibility issues on street-view panoramas). The largest app.
-- **`SVValidate/`** — the Validate tool (confirm/reject others' labels).
-- **`Gallery/`** — browsable, filterable gallery of labels.
-- **`Admin/`** — admin dashboards and maps.
-- **`Progress/`** — user dashboards.
-- **`PSMap/`** — shared map component used across pages.
-- **`Help/`** — help/FAQ page.
+- **`explore/`** — the Explore/Audit tool (label accessibility issues on street-view panoramas). The largest app.
+- **`validate/`** — the Validate tool (confirm/reject others' labels).
+- **`gallery/`** — browsable, filterable gallery of labels.
+- **`admin/`** — admin dashboards and maps.
+- **`user-dashboard/`** — user dashboards.
+- **`ps-map/`** — shared map component used across pages.
+- **`help/`** — help/FAQ page.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Pannellum imagery providers), `label-detail/` (label popups), and various utilities.
 
-There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`); external
-libraries live in `public/javascripts/lib/`. Edit `src/` files only — bundles are generated into
-`public/javascripts/*/build/`.
+There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`). Third-party
+libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or linted). Edit `src/`
+files only — bundles are generated into `public/js/*/build/`.
+
+First-party assets split by type: `public/js/` is JavaScript-only, `public/css/` holds all styles (per-app subdirs
+`css/explore/`, `css/validate/`, `css/gallery/`), and media lives in `public/images/`, `public/audio/`, and
+`public/videos/`. Directories and CSS files are kebab-case; JS files use Airbnb casing (PascalCase for class files,
+camelCase otherwise). See [`style-guide.md`](style-guide.md) for the full layout and naming conventions.
 
 ## Internationalization
 

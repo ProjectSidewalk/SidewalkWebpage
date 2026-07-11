@@ -317,7 +317,7 @@ class ShareController @Inject() (
 
   /** Renders the logo centered on a white fixed-size canvas to the given cache file (no-op if the logo is missing). */
   private[controllers] def buildFallbackImage(cached: File): Unit = {
-    val logo: File = environment.getFile("public/assets/sidewalk-logo.png")
+    val logo: File = environment.getFile("public/images/sidewalk-logo.png")
     Option(if (logo.exists()) ImageIO.read(logo) else null).foreach { mark =>
       val out = new BufferedImage(SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, BufferedImage.TYPE_INT_RGB)
       val g   = out.createGraphics()

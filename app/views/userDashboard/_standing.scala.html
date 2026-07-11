@@ -1,0 +1,72 @@
+@import models.user.UserStanding
+@import service.UserService
+@(standing: Option[UserStanding], seeAllLink: Boolean)
+
+@*
+* Shared "your standing" card, used by the dashboard teaser and the leaderboard's "you vs community" section.
+*
+* Renders one of three framings from real data (no meta-commentary):
+*  - cohort >= threshold: numeric rank/percentile + week-over-week delta arrow + a slice of neighbors;
+*  - cohort below threshold: a shared-goal / top-contributor celebration (never "ranked 3 of 4");
+*  - not ranked this week: an encouragement to place a few labels.
+*@
+
+@topPct(s: UserStanding) = @{ math.max(1, math.ceil(s.rank.toDouble / s.cohortSize * 100).toInt) }
+
+@delta(s: UserStanding) = {
+  @s.delta match {
+    case Some(d) if d > 0 => {
+      <div class="ud-standing-detail">Up <span class="ud-delta-up">▲ @d</span> from last week — keep it going! 📈</div>
+    }
+    case Some(d) if d < 0 => {
+      <div class="ud-standing-detail">Down <span class="ud-delta-down">▼ @{ -d }</span> from last week — climb back up! 💪</div>
+    }
+    case Some(_) => { <div class="ud-standing-detail">Holding steady from last week.</div> }
+    case None    => { <div class="ud-standing-detail">New on the board this week — welcome! 👋</div> }
+  }
+}
+
+@seeAll = {
+  @if(seeAllLink) {
+    <a class="ud-see-all" href="@routes.UserDashboardController.leaderboardPreview">See the full leaderboard →</a>
+  }
+}
+
+@standing match {
+  case Some(s) if s.cohortSize >= UserService.StandingCohortThreshold => {
+    <div class="ud-standing-card ud-standing-card-wide">
+      <div class="ud-standing-tag">This week · @s.cohortSize mappers</div>
+      @if(s.cohortSize >= 20) {
+        <div class="ud-standing-rank">Top <strong>@topPct(s)%</strong> · #@s.rank</div>
+      } else {
+        <div class="ud-standing-rank">#@s.rank <span class="ud-standing-of">of @s.cohortSize</span></div>
+      }
+      @delta(s)
+      <ul class="ud-standing-slice">
+        @for(row <- s.slice) {
+          <li @if(row.isYou){class="ud-rank-you"}>
+            <span class="ud-rank">@row.rank</span>
+            <span class="ud-rank-user">@if(row.isYou){You}else{@row.username}</span>
+            <span class="ud-rank-val">@row.labelCount</span>
+          </li>
+        }
+      </ul>
+      @seeAll
+    </div>
+  }
+  case Some(s) => {
+    <div class="ud-standing-card ud-standing-card-wide ud-standing-community">
+      <div class="ud-standing-tag">This week</div>
+      <div class="ud-standing-rank">@if(s.rank == 1){🏅 Top contributor this week!}else{🌟 You're on the board this week}</div>
+      <div class="ud-standing-detail">You've placed <strong>@s.labelCount</strong> labels this week — every one helps your community. 🎉</div>
+      @seeAll
+    </div>
+  }
+  case None => {
+    <div class="ud-standing-card ud-standing-card-wide">
+      <div class="ud-standing-rank">✨ Map this week to join the board!</div>
+      <div class="ud-standing-detail">Place a few labels this week and you'll show up here with your rank.</div>
+      @seeAll
+    </div>
+  }
+}

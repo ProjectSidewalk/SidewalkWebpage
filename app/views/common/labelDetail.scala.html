@@ -1,176 +1,152 @@
 @*
- * Inner markup for the label detail view. Hosted two ways:
- *   - Modal popup (LabelMap, Dashboard, Admin): wrapped in `common.labelPopup()` (a <dialog>).
- *   - Inline (Gallery expanded view): wrapped in a <div class="label-detail label-detail--inline"> in
- *     gallery.scala.html, with `withPaging = true` to render prev/next arrows around the pano.
- *
- * All ids that used to live inside the popup partial have been converted to BEM classes
- * (`.label-detail__*`). The JS controller scopes its queries to the host root element so that multiple
- * instances on different pages cannot collide with each other or with arbitrary `id="tags"`/`id="severity"`
- * style elsewhere on the host page.
- *@
+* Inner markup for the label detail view. Hosted two ways:
+*   - Modal popup (LabelMap, Dashboard, Admin): wrapped in `common.labelPopup()` (a <dialog>).
+*   - Inline (Gallery expanded view): wrapped in a <div class="label-detail label-detail--inline"> in gallery.scala.html, with `withPaging = true` to render prev/next arrows around the pano.
+*
+* All ids that used to live inside the popup partial have been converted to BEM classes (`.label-detail__*`). The JS controller scopes its queries to the host root element so that multiple instances on different pages cannot collide with each other or with arbitrary `id="tags"`/`id="severity"` style elsewhere on the host page.
+*@
 @(admin: Boolean = false, withPaging: Boolean = false)(implicit assets: AssetsFinder)
 
 <header class="label-detail__header">
-    <h2 class="label-detail__title"><!-- populated by JS --></h2>
-    <button type="button" class="label-detail__close" aria-label="Close" data-action="close-label-detail">
-        <img src="@assets.path("images/icons/cross.svg")" alt="Close">
-    </button>
+  <h2 class="label-detail__title"><!-- populated by JS --></h2>
+  <button type="button" class="label-detail__close" aria-label="Close" data-action="close-label-detail">
+    <img src="@assets.path("images/icons/cross.svg")" alt="Close">
+  </button>
 </header>
 
 <div class="label-detail__pano-wrap">
-    @if(withPaging) {
-        <button type="button" class="label-detail__paging label-detail__paging--prev"
-                data-action="prev-label" aria-label="Previous label">&lt;</button>
-    }
-    <div class="label-detail__pano"></div>
-    @* Hover overlay with Agree/Disagree/Unsure buttons. *@
-    <div class="label-detail__pano-overlay" role="group" aria-label="Validate label">
-        <button type="button"
-                class="label-detail__pano-overlay-button label-detail__pano-overlay-button--agree"
-                data-action="validate" data-result="Agree" data-i18n="common:agree">Agree</button>
-        <button type="button"
-                class="label-detail__pano-overlay-button label-detail__pano-overlay-button--disagree"
-                data-action="validate" data-result="Disagree" data-i18n="common:disagree">Disagree</button>
-        <button type="button"
-                class="label-detail__pano-overlay-button label-detail__pano-overlay-button--unsure"
-                data-action="validate" data-result="Unsure" data-i18n="common:unsure">Unsure</button>
-    </div>
-    @if(withPaging) {
-        <button type="button" class="label-detail__paging label-detail__paging--next"
-                data-action="next-label" aria-label="Next label">&gt;</button>
-    }
+  @if(withPaging) {
+    <button type="button" class="label-detail__paging label-detail__paging--prev" data-action="prev-label" aria-label="Previous label">&lt;</button>
+  }
+  <div class="label-detail__pano"></div>
+  @* Hover overlay with Agree/Disagree/Unsure buttons. *@
+  <div class="label-detail__pano-overlay" role="group" aria-label="Validate label">
+    <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--agree" data-action="validate" data-result="Agree" data-i18n="common:agree">Agree</button>
+    <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--disagree" data-action="validate" data-result="Disagree" data-i18n="common:disagree">Disagree</button>
+    <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--unsure" data-action="validate" data-result="Unsure" data-i18n="common:unsure">Unsure</button>
+  </div>
+  @if(withPaging) {
+    <button type="button" class="label-detail__paging label-detail__paging--next" data-action="next-label" aria-label="Next label">&gt;</button>
+  }
 </div>
 
 <div class="label-detail__meta-row">
-    <div class="label-detail__meta-cell">
-        @* The meta cell is a flex row with a gap, so label + colon must be ONE flex item or the bare-text colon
-           becomes its own item with gap on both sides ("Labeled : "). The inner span keeps punctuation out of the
-           translated string. *@
-        <span><span data-i18n="common:labeled">Labeled</span>:</span>
-        <span class="label-detail__timestamp label-detail__meta-value"></span>
-        @* PanoInfoPopover appends its info button into this container on init. *@
-        <span class="label-detail__info-button-host"></span>
-    </div>
-    <div class="label-detail__meta-cell">
-        <span><span data-i18n="common:image-capture-date">Image Capture Date</span>:</span>
-        <span class="label-detail__image-capture-date label-detail__meta-value"></span>
-    </div>
+  <div class="label-detail__meta-cell">
+    @* The meta cell is a flex row with a gap, so label + colon must be ONE flex item or the bare-text colon
+       becomes its own item with gap on both sides ("Labeled : "). The inner span keeps punctuation out of the
+       translated string. *@
+    <span><span data-i18n="common:labeled">Labeled</span>:</span>
+    <span class="label-detail__timestamp label-detail__meta-value"></span>
+    @* PanoInfoPopover appends its info button into this container on init. *@
+    <span class="label-detail__info-button-host"></span>
+  </div>
+  <div class="label-detail__meta-cell">
+    <span><span data-i18n="common:image-capture-date">Image Capture Date</span>:</span>
+    <span class="label-detail__image-capture-date label-detail__meta-value"></span>
+  </div>
 </div>
 
 <div class="label-detail__columns">
-    <section class="label-detail__col label-detail__col--validations">
-        <h3 class="label-detail__col-title" data-i18n="labelmap:validations">Validations</h3>
-        @* Validation count display. Each icon's `src` is swapped by JS between the four variants — outline /
-           filled / outline-ai / filled-ai — depending on whether the user (filled) and/or the AI (ai badge)
-           validated this option. The base URL for the icon files is provided via `data-icon-base` so JS doesn't
-           need to know the assets' path. *@
-        <div class="label-detail__vote-display" data-icon-base='@assets.path("images/icons/validation/")'>
-            <button type="button" class="label-detail__vote label-detail__vote--agree" aria-label="Agree">
-                <img src='@assets.path("images/icons/validation/agree-outline.svg")' alt="" class="label-detail__vote-icon">
-                <span class="label-detail__vote-count">0</span>
-            </button>
-            <button type="button" class="label-detail__vote label-detail__vote--disagree" aria-label="Disagree">
-                <img src='@assets.path("images/icons/validation/disagree-outline.svg")' alt="" class="label-detail__vote-icon">
-                <span class="label-detail__vote-count">0</span>
-            </button>
-            <button type="button" class="label-detail__vote label-detail__vote--unsure" aria-label="Unsure">
-                <img src='@assets.path("images/icons/validation/unsure-outline.svg")' alt="" class="label-detail__vote-icon">
-                <span class="label-detail__vote-count">0</span>
-            </button>
-        </div>
-    </section>
-    <section class="label-detail__col label-detail__col--severity">
-        @* Title and severity level labels are swapped by LabelDetail JS based on current label type. *@
-        <h3 class="label-detail__col-title label-detail__severity-title">Severity</h3>
-        <div class="label-detail__severity-faces" role="img" aria-label="Severity">
-            <div class="severity-button severity-button--static" data-severity="1">
-                <img src="" alt="" class="severity-button__icon">
-                <span class="severity-button__label">Low</span>
-            </div>
-            <div class="severity-button severity-button--static" data-severity="2">
-                <img src="" alt="" class="severity-button__icon">
-                <span class="severity-button__label">Medium</span>
-            </div>
-            <div class="severity-button severity-button--static" data-severity="3">
-                <img src="" alt="" class="severity-button__icon">
-                <span class="severity-button__label">High</span>
-            </div>
-        </div>
-    </section>
+  <section class="label-detail__col label-detail__col--validations">
+    <h3 class="label-detail__col-title" data-i18n="labelmap:validations">Validations</h3>
+    @* Validation count display. Each icon's `src` is swapped by JS between the four variants — outline / filled / outline-ai / filled-ai — depending on whether the user (filled) and/or the AI (ai badge) validated this option. The base URL for the icon files is provided via `data-icon-base` so JS doesn't need to know the assets' path. *@
+    <div class="label-detail__vote-display" data-icon-base='@assets.path("images/icons/validation/")'>
+      <button type="button" class="label-detail__vote label-detail__vote--agree" aria-label="Agree">
+        <img src='@assets.path("images/icons/validation/agree-outline.svg")' alt="" class="label-detail__vote-icon">
+        <span class="label-detail__vote-count">0</span>
+      </button>
+      <button type="button" class="label-detail__vote label-detail__vote--disagree" aria-label="Disagree">
+        <img src='@assets.path("images/icons/validation/disagree-outline.svg")' alt="" class="label-detail__vote-icon">
+        <span class="label-detail__vote-count">0</span>
+      </button>
+      <button type="button" class="label-detail__vote label-detail__vote--unsure" aria-label="Unsure">
+        <img src='@assets.path("images/icons/validation/unsure-outline.svg")' alt="" class="label-detail__vote-icon">
+        <span class="label-detail__vote-count">0</span>
+      </button>
+    </div>
+  </section>
+  <section class="label-detail__col label-detail__col--severity">
+    @* Title and severity level labels are swapped by LabelDetail JS based on current label type. *@
+    <h3 class="label-detail__col-title label-detail__severity-title">Severity</h3>
+    <div class="label-detail__severity-faces" role="img" aria-label="Severity">
+      <div class="severity-button severity-button--static" data-severity="1">
+        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
+        <span class="severity-button__label">Low</span>
+      </div>
+      <div class="severity-button severity-button--static" data-severity="2">
+        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
+        <span class="severity-button__label">Medium</span>
+      </div>
+      <div class="severity-button severity-button--static" data-severity="3">
+        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
+        <span class="severity-button__label">High</span>
+      </div>
+    </div>
+  </section>
 
-    <section class="label-detail__col label-detail__col--tags">
-        <h3 class="label-detail__col-title" data-i18n="common:tags">Tags</h3>
-        <div class="label-detail__tags"></div>
-    </section>
+  <section class="label-detail__col label-detail__col--tags">
+    <h3 class="label-detail__col-title" data-i18n="common:tags">Tags</h3>
+    <div class="label-detail__tags"></div>
+  </section>
 </div>
 
 <div class="label-detail__comment-row">
-    <input type="text"
-           class="label-detail__comment-input"
-           data-i18n-placeholder="labelmap:add-comment"
-           placeholder="Add comment here..">
-    <button type="button"
-            class="label-detail__comment-submit"
-            data-action="submit-comment"
-            data-i18n="labelmap:comment">Comment</button>
-    <span class="label-detail__comment-confirmation"
-          role="status"
-          aria-live="polite"
-          hidden
-          data-i18n="labelmap:comment-submitted">Comment submitted</span>
+  <label class="sr-only" for="label-detail-comment-input" data-i18n="labelmap:add-comment">Add a comment</label>
+  <input type="text" id="label-detail-comment-input" class="label-detail__comment-input" data-i18n-placeholder="labelmap:add-comment" placeholder="Add comment here..">
+  <button type="button" class="label-detail__comment-submit" data-action="submit-comment" data-i18n="labelmap:comment">Comment</button>
+  <span class="label-detail__comment-confirmation" role="status" aria-live="polite" hidden data-i18n="labelmap:comment-submitted">Comment submitted</span>
 </div>
 
 <div class="label-detail__desc-comments">
-    <p class="label-detail__description-row">
-        <strong data-i18n="common:description">Description</strong>:
-        <span class="label-detail__description"></span>
-    </p>
+  <p class="label-detail__description-row">
+    <strong data-i18n="common:description">Description</strong>:
+    <span class="label-detail__description"></span>
+  </p>
 
-    <section class="label-detail__comments-section">
-        <h3 class="label-detail__col-title" data-i18n="labelmap:comments">Comments</h3>
-        <div class="label-detail__validator-comments"></div>
-    </section>
+  <section class="label-detail__comments-section">
+    <h3 class="label-detail__col-title" data-i18n="labelmap:comments">Comments</h3>
+    <div class="label-detail__validator-comments"></div>
+  </section>
 </div>
 
 @* Subtle, YouTube-style share control. ShareWidget (share/ShareWidget.js) wires this up and builds its popover into
    the wrapping .label-detail__share div, which is positioned so the popover anchors to the trigger. *@
 <div class="label-detail__footer">
-    <div class="label-detail__share">
-        <button type="button" class="label-detail__share-trigger"
-                data-i18n-aria-label="common:share.button" aria-label="Share">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
-                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="18" cy="5" r="3"/>
-                <circle cx="6" cy="12" r="3"/>
-                <circle cx="18" cy="19" r="3"/>
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-            </svg>
-            <span class="label-detail__share-trigger-label" data-i18n="common:share.button">Share</span>
-        </button>
-    </div>
+  <div class="label-detail__share">
+    <button type="button" class="label-detail__share-trigger"
+            data-i18n-aria-label="common:share.button" aria-label="Share">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="18" cy="5" r="3"/>
+        <circle cx="6" cy="12" r="3"/>
+        <circle cx="18" cy="19" r="3"/>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+      </svg>
+      <span class="label-detail__share-trigger-label" data-i18n="common:share.button">Share</span>
+    </button>
+  </div>
 </div>
 
 @if(admin) {
-    <details class="label-detail__details label-detail__details--admin" open>
-        <summary class="label-detail__details-summary">Admin info</summary>
-        <dl class="label-detail__details-list">
-            <dt>Username</dt>
-            <dd class="label-detail__admin-username"></dd>
-            <dt>Audit Task ID</dt>
-            <dd class="label-detail__admin-task"></dd>
-            <dt>Previous Validations</dt>
-            <dd class="label-detail__admin-prev-validations"></dd>
-        </dl>
-        <div class="label-detail__flag-controls">
-            <h4>Manually set work quality for street</h4>
-            <p>Click on a button to apply or remove that flag from the <b>audit task</b> (street) the label belongs to. Incomplete means they didn't finish or didn't use all label types. Stale means imagery is out of date.</p>
-            <div class="label-detail__flag-buttons">
-                <button type="button" class="label-detail__flag-button" data-flag="low_quality">Low Quality</button>
-                <button type="button" class="label-detail__flag-button" data-flag="incomplete">Incomplete</button>
-                <button type="button" class="label-detail__flag-button" data-flag="stale">Stale</button>
-            </div>
-        </div>
-    </details>
+  <details class="label-detail__details label-detail__details--admin" open>
+    <summary class="label-detail__details-summary">Admin info</summary>
+    <dl class="label-detail__details-list">
+      <dt>Username</dt>
+      <dd class="label-detail__admin-username"></dd>
+      <dt>Audit Task ID</dt>
+      <dd class="label-detail__admin-task"></dd>
+      <dt>Previous Validations</dt>
+      <dd class="label-detail__admin-prev-validations"></dd>
+    </dl>
+    <div class="label-detail__flag-controls">
+      <h4>Manually set work quality for street</h4>
+      <p>Click on a button to apply or remove that flag from the <b>audit task</b> (street) the label belongs to. Incomplete means they didn't finish or didn't use all label types. Stale means imagery is out of date.</p>
+      <div class="label-detail__flag-buttons">
+        <button type="button" class="label-detail__flag-button" data-flag="low_quality">Low Quality</button>
+        <button type="button" class="label-detail__flag-button" data-flag="incomplete">Incomplete</button>
+        <button type="button" class="label-detail__flag-button" data-flag="stale">Stale</button>
+      </div>
+    </div>
+  </details>
 }

@@ -1,0 +1,360 @@
+/**
+ Most of this file contains overrides to elements/classes used in Validate on desktop.
+ */
+
+html {
+  position: fixed;
+}
+
+body {
+  height: 100vh;
+  width: 100vw;
+  text-align: center;
+  padding: 2vh 10vw;
+  font-family: raleway, sans-serif;
+  color: var(--color-neutral-black);
+}
+
+.tool-ui {
+  position: static;
+  width: unset;
+}
+
+#page-loading {
+  max-width: unset;
+  max-height: unset;
+  top: 40vw;
+  left: 20vw;
+}
+
+#loading-animation {
+  width: unset;
+  height: unset;
+  margin: 0;
+}
+
+#loading-animation img {
+  width: 55vw;
+  height: 55vw;
+}
+
+.loading-text {
+  font-size: 10vw;
+}
+
+.loading-sub-text {
+  font-size: 5vw;
+}
+
+.modal-foreground {
+  top: 0;
+  height: 100%;
+  width: 100%;
+  font-size: 40pt;
+  line-height: 125%;
+}
+
+#modal-landscape-description {
+  font-size: 20pt;
+}
+
+#modal-landscape-holder {
+  visibility: hidden;
+}
+
+#modal-mission-complete-foreground {
+  top: 0;
+  padding-top: 8vw;
+}
+
+#ps-logo-mission {
+  width: calc(80vw - 40px);
+  margin-left: calc(10vw - 20px); /* Subtracting modal padding. */
+}
+
+#ps-logo-mission-complete {
+  width: 80vw;
+}
+
+#modal-mission-close-button {
+  font-size: 50pt;
+  height: 80pt;
+}
+
+#modal-mission-header {
+  font-size: 46pt;
+  line-height: 110%;
+  margin: 5vw;
+}
+
+#modal-mission-complete-title {
+  font-size: 50pt;
+  line-height: 100%;
+}
+
+.modal-foreground .btn-primary {
+  line-height: 125%;
+}
+
+#modal-mission-complete-message {
+  width: 84%;
+  margin-left: 8%;
+}
+
+#modal-mission-complete-table {
+  width: 94%;
+  margin-left: 11%;
+  padding-left: 0;
+}
+
+#ps-logo-landscape {
+  width: 350px;
+}
+
+#svv-panorama-holder {
+  position: absolute;
+  top: 80px;
+}
+
+#mission-progress-bar-section {
+  --ps-progress-bar-height: 20px;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+#mission-progress-bar-section .ps-progress-bar__track {
+  border-radius: 0;
+}
+
+#mission-progress-bar-section .ps-progress-bar__fill {
+  border-radius: 0 10px 10px 0;
+}
+
+#mission-title {
+  font-size: 38px;
+  color: var(--color-neutral-white);
+  top: 20px;
+  left: 0;
+  height: 60px;
+  width: 100%;
+  background-color: #2C293E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#view-control-layer {
+  pointer-events: none; /* For now, just letting the SV viewer handle panning on it's own. */
+}
+
+.button-on-pano {
+  height: 66px;
+  padding: 0 18px;
+  gap: 16px;
+  border-radius: 12px;
+  border: 3px solid #525252;
+  font-size: 26px;
+}
+
+#label-visibility-control-button {
+  top: 20px;
+  left: 20px;
+  right: auto;
+}
+
+#validate-undo-button {
+  top: 20px;
+  right: 20px;
+}
+
+.hide-label-button-icon {
+  width: 26px;
+  height: 26px;
+}
+
+.animate-button:active {
+  transition: all 0.3s ease-in;
+  animation-name: confirm-press;
+  animation-duration: 0.4s;
+  animation-timing-function: ease-in;
+}
+
+@keyframes confirm-press {
+  0% {
+    transform: scale(0.7);
+  }
+
+  50% {
+    transform: scale(1.2);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+#validation-button-holder {
+  z-index: 1;
+  position: absolute;
+  height: 9vw;
+  bottom: 6vw;
+  left: 0;
+  right: 0;
+  padding: 0 7vw;
+}
+
+.validate-page-button {
+  width: 25vw;
+  height: inherit;
+  border-radius: 16px;
+  font-size: 28px;
+}
+
+#validate-yes-button.chosen {
+  background: #76C9AB;
+}
+
+#validate-no-button.chosen {
+  background: var(--color-orange-400);
+}
+
+#validate-unsure-button.chosen {
+  background: #1A1A1A;
+}
+
+#mobile-popup-notch {
+  visibility: hidden;
+  position: absolute;
+  height: 21px;
+  bottom: 15vw; /* = 6vw (button holder bottom) + 9vw (button holder height) */
+  z-index: 1;
+}
+
+.mobile-popup-notch-no {
+  visibility: visible !important;
+  left: calc(7vw + 12.5vw - 24px); /* Dist to start of no button + no button width / 2 - notch width / 2. */
+}
+
+.mobile-popup-notch-unsure {
+  visibility: visible !important;
+
+  /* Distance to start of buttons + no button width + button gap + unsure button width / 2 - notch width / 2. */
+  left: calc(7vw + 25vw + 5.5vw + 12.5vw - 24px);
+}
+
+.validation-menu-section {
+  z-index: 2;
+  position: absolute;
+  bottom: calc(15vw + 21px); /* = button holder top (15vw) + notch height (21px) */
+  width: 60vw;
+  padding: 16px 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  background: rgb(255 255 255 / 70%);
+}
+
+#validate-why-no-section {
+  left: 7vw;
+}
+
+#validate-why-unsure-section {
+  left: 20vw;
+}
+
+.validation-menu-section-header {
+  font-size: 28px;
+  line-height: 100%;
+  display: flex;
+  padding: 0 32px;
+  align-items: flex-start;
+  gap: 12px;
+  align-self: stretch;
+}
+
+#no-reason-options, #unsure-reason-options {
+  gap: 16px;
+  padding: 0 32px;
+  align-items: flex-start;
+  align-self: stretch;
+}
+
+.validation-reason-button {
+  width: unset;
+  height: 80px;
+  border-radius: 16px;
+  font-size: 24px;
+  align-self: stretch;
+}
+
+.validate-text-input {
+  width: unset;
+  align-self: stretch;
+}
+
+/* Bootstrap is getting loaded after this file hence overriding this. To avoid it, I am adding important but ideally
+  the order of inclusion should be flipped. */
+.validate-text-input input {
+  height: 80px !important;
+  padding: 8px 18px !important;
+  border-radius: 16px !important;
+  font-size: 24px !important;
+}
+
+#no-submit-section, #unsure-submit-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  align-self: stretch;
+  margin-top: 20px;
+  padding: 0 32px;
+}
+
+#no-menu-skip-reason-button, #unsure-menu-skip-reason-button {
+  height: 76px;
+  width: auto;
+  padding: 0 12px;
+  border: none;
+  background: none;
+}
+
+#no-menu-submit-button, #unsure-menu-submit-button {
+  height: 76px;
+  width: auto;
+  padding: 10px 24px;
+  border-radius: 16px;
+  border: 3px solid #666666;
+  background: var(--color-banana-500);
+}
+
+.sign-in-up-button-mobile {
+  position: absolute;
+  background-color: rgb(251 215 139 / 100%);
+  border-radius: 15px;
+  border: none;
+  right: 45px;
+  top: 45px;
+  color: var(--color-asphalt-500);
+  font: normal normal normal 14px/1.4em raleway,sans-serif;
+  font-family: Raleway, sans-serif;
+  font-weight: bolder;
+  font-size: 40px;
+  max-width: 500px;
+  height: 75px;
+  padding: 5px 25px;
+  transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
+}
+
+.test-server-banner {
+  position: absolute;
+  top: 80px;
+  width: 100%;
+  left: 0;
+  z-index: 3;
+}
+
+.test-server-banner-content {
+  font-size: xx-large;
+}

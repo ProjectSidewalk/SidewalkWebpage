@@ -91,16 +91,15 @@ project/.sbtserver.lock
 *.mp4
 
 # JavaScript and Node
-public/javascripts/SVLabel/build/*
-public/javascripts/Admin/build/*
-public/javascripts/Help/build/*
-public/javascripts/help/build/*
-public/javascripts/Progress/build/*
-public/javascripts/SVValidate/build/*
-public/javascripts/Gallery/build/*
-public/javascripts/PSMap/build/*
-public/javascripts/SharedLabel/build/*
-public/javascripts/common/pano-viewer/build/*
+public/js/explore/build/*
+public/js/admin/build/*
+public/js/help/build/*
+public/js/user-dashboard/build/*
+public/js/validate/build/*
+public/js/gallery/build/*
+public/js/ps-map/build/*
+public/js/shared-label/build/*
+public/js/common/pano-viewer/build/*
 download
 
 # Keys

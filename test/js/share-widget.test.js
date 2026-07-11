@@ -1,5 +1,5 @@
 /**
- * Tests for the ShareWidget class (public/javascripts/common/share/ShareWidget.js, issue #456).
+ * Tests for the ShareWidget class (public/js/common/share/ShareWidget.js, issue #456).
  *
  * ShareWidget is a top-level `class` declaration written for the Grunt-concatenation world, so unlike the
  * `window.X = ...` IIFE modules, require()-ing it would leave the class module-scoped. We instead eval the source in
@@ -14,7 +14,7 @@ const fs = require('fs');
 const path = require('path');
 
 const WIDGET_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/javascripts/common/share/ShareWidget.js'), 'utf8'
+    path.resolve(__dirname, '..', '..', 'public/js/common/share/ShareWidget.js'), 'utf8'
 );
 
 /** Loads a fresh ShareWidget class into the jsdom global scope. */

@@ -71,6 +71,7 @@ state.name.virginia = VA
 state.name.indiana = IN
 state.name.florida = FL
 state.name.massachusetts = MA
+state.name.texas = TX
 
 navbar.explore = Explore
 navbar.validate = Validate

@@ -89,7 +89,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
           // a city's single most expensive endpoint, on every bot-crawled hit. The nearby-labels map uses the cheap,
           // bbox-bounded /v3/api/rawLabels instead — wired client-side from the SharedLabel bundle + config below.
           body must not include "/labels/all"
-          body must include("SharedLabel/build/SharedLabel.js")
+          body must include("js/shared-label/build/shared-label.js")
           body must include("window.sharedLabelData")
           // The hero reuses the shared LabelDetail component mounted inline; plus the label legend and Explore CTA.
           body must include("label-detail--inline")
@@ -311,7 +311,7 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       val tmp        = new File(System.getProperty("java.io.tmpdir"), s"share-fallback-spec-${System.nanoTime()}.jpg")
       try {
         controller.buildFallbackImage(tmp)
-        assert(tmp.exists(), "fallback image file was not written (is public/assets/sidewalk-logo.png present?)")
+        assert(tmp.exists(), "fallback image file was not written (is public/images/sidewalk-logo.png present?)")
         val img = ImageIO.read(tmp)
         img.getWidth mustBe 1440
         img.getHeight mustBe 960

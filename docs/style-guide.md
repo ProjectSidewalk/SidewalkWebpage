@@ -6,11 +6,14 @@ the ScalaDoc/JSDoc comment standards. This page explains the conventions a linte
 ones it can.
 
 **The linters are the source of truth for mechanically-checkable rules.** JavaScript/CSS/HTML rules live in
-[`.eslintrc.json`](../.eslintrc.json), [`.stylelintrc.json`](../.stylelintrc.json), and
+[`eslint.config.js`](../eslint.config.js), [`stylelint.config.mjs`](../stylelint.config.mjs), and
 [`.htmlhintrc`](../.htmlhintrc); Scala formatting lives in [`.scalafmt.conf`](../.scalafmt.conf). When this guide and a
-config disagree, the config wins — fix the config and this doc together. (Frontend linting isn't wired into CI yet —
-it's sequenced with the ES5→ES2022 migration, [#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487) —
-but the rules already describe the standard we write to. `scalafmtCheckAll` *does* run in CI, as advisory.)
+config disagree, the config wins — fix the config and this doc together. **The linters are all blocking CI gates** —
+ESLint (JS + translation JSON), Stylelint (CSS), HTMLHint (HTML), cross-locale key parity, and `scalafmtCheckAll` for
+Scala. The trees are kept fully lint-clean
+([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so run the relevant linter — or `make lint`
+for all of them — and get to zero before you push: `make lint-fix` autofixes the mechanical JS/CSS findings, hand-fix
+the rest. CI wiring is in [`docs/testing-and-ci.md`](testing-and-ci.md).
 
 ## General
 
@@ -18,7 +21,7 @@ These apply across every language in the repo.
 
 - **Line length: 120 characters max**, with sensible exceptions where a break would hurt readability (e.g. long
   URLs, string literals). For multi-line comments, treat 120 as a target, not a hard cap.
-- **Indent with spaces, never tabs.** Scala/JS use 2-space indent; CSS uses 4-space (`stylelint-config-standard`).
+- **Indent with spaces, never tabs.** Scala, JS, and CSS all use 2-space indent.
 - **End every file with a single newline.** A missing final newline shows up as a red marker on the GitHub diff.
 - **Comments explain _why_, not _what_** — well-named identifiers cover the *what*. Start a comment with a capital
   letter and end it with a period:
@@ -38,7 +41,7 @@ These apply across every language in the repo.
 
 The frontend is vanilla ES, organized as independent apps that Grunt concatenates (no transpiler, no module system).
 Edit files under `src/`; never edit the generated `build/` bundles. Most rules below are enforced by
-[`.eslintrc.json`](../.eslintrc.json).
+[`eslint.config.js`](../eslint.config.js).
 
 - **Write ES2022 for new and modernized code:** `const`/`let` (`no-var`), arrow functions, template literals
   (`prefer-template`), object shorthand, and `===`/`!==` (`eqeqeq`). When you're editing a file that is *entirely*
@@ -54,6 +57,24 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
 
 - **Single quotes** for string literals (`quotes: single`); use backticks when you need interpolation or multi-line
   strings.
+- **Build HTML strings with template literals, never `+` concatenation.** Indent the markup inside the backticks to
+  mirror its HTML nesting — ESLint deliberately doesn't reformat template-literal interiors, so the structure stays
+  readable:
+
+  ```js
+  el.innerHTML = `
+      <div class="card">
+          <span class="card-title">${title}</span>
+      </div>`;
+  ```
+
+  Two things to keep in mind:
+  - The newlines/indentation become part of the string. That's fine between elements in block/flex/grid containers
+    and in collapsible inline text, but when converting an old concatenation, check the target container's CSS — a
+    plain inline container would gain a visible space between elements. And never break a line *inside* an attribute
+    value: a newline in `title="..."` renders literally in the tooltip.
+  - `eslint --fix` can't do this conversion for you (`prefer-template` only fires when a variable is involved, not on
+    literal-plus-literal chains), so convert concatenated HTML by hand as you touch it.
 - **Semicolons required** (`semi`); always parenthesize arrow-function params (`arrow-parens`).
 - **No space between a function name and its `(`**; **do** put a space before a block's `{` and around operators and
   keywords (`if`, `for`). Blank line before and after function declarations (`padding-line-between-statements`).
@@ -80,13 +101,55 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
   ([`.htmlhintrc`](../.htmlhintrc)).
 - **Prefer `data-i18n="ns:key"`** in HTML over hardcoded strings so translations stay in i18next and aren't
   duplicated (see [`CONTRIBUTING.md`](../CONTRIBUTING.md) → Internationalization).
-- **CSS:** 4-space indent, `stylelint-config-standard` ([`.stylelintrc.json`](../.stylelintrc.json)). Use the
+- **CSS:** 2-space indent, `stylelint-config-standard` ([`stylelint.config.mjs`](../stylelint.config.mjs)). Use the
   `main.css` `:root` design tokens for colors/fonts/spacing.
+
+## Frontend file & directory organization
+
+The `public/` static-asset tree follows an industry-standard layout, settled in the #2292 reorg. Keep new files
+consistent with it.
+
+- **First-party assets split by type.** `public/js/` is **JavaScript only** — no `css/`, `img/`, or `audio/` dirs
+  nested inside an app dir. Styles live in `public/css/` (with per-app subdirs `css/explore/`, `css/validate/`,
+  `css/gallery/`); media lives in `public/images/`, `public/audio/`, and `public/videos/`. App-private styles go to
+  `css/<app>/`, app-private images to `images/<app>/`.
+- **Third-party code groups by library** under `public/vendor/<lib>/`, each folder self-contained (its JS + CSS +
+  fonts + images together, upstream internal layout preserved so relative `url()` refs keep working). **Nothing under
+  `vendor/` is ever edited or linted.** Vendored filenames carry their version (`pannellum-2.5.7.js`) — the app has
+  no asset fingerprinting, so version-in-filename is the only cache-buster (see
+  [`docs/upgrading-libraries.md`](upgrading-libraries.md)).
+
+**Naming conventions:**
+
+- **Directories → kebab-case**, always (`user-dashboard/`, `ps-map/`, `label-detail/`).
+- **CSS files → kebab-case**, always (`labeling-guide.css`, `user-profile.css`, `map-sidebar.css`).
+- **JS files → Airbnb "filename matches what it defines":** **PascalCase** for a file that defines a
+  class/constructor (`AppManager.js`, `LabelPopup.js`, `GsvViewer.js`), **camelCase** for a function/utility/entry
+  file (`main.js`, `aggregateStats.js`, `timestampLocalization.js`). Kebab-case is **not** used for JS files.
+- **HTML `id`/`class` values → kebab-case** (`page-loading`, `severity-button`, `nav-user-menu`), with two deliberate
+  exceptions:
+  - **BEM** element/modifier syntax is allowed — `__` for elements, `--` for modifiers
+    (`severity-button__icon`, `label-detail__col--severity`, `ps-progress-bar__fill--segmented`).
+  - **`id`/`class` values that embed a backend-sourced domain value keep the backend spelling.** Label types are
+    PascalCase (`label-count-CurbRamp-today`, matching the `LabelType` enum, the icon filenames, and
+    `/v3/api/labelTypes`); stat/filter keys are snake_case
+    (`user-count-explore-all-all_time-no_task_constraint-any_quality`). JS builds and queries these ids by
+    concatenating those backend values, so kebab-casing them would break the lookups and drift from the source of
+    truth (see the "backend is the source of truth" rule in [`CLAUDE.md`](../CLAUDE.md)).
+
+  Because of those two exceptions, the htmlhint `id-class-value` rule is left **off** — its `dash` mode enforces strict
+  kebab-case and can express neither BEM nor the backend-sourced values, so it can't be brought to zero. New markup
+  should still default to kebab-case.
+
+**Deferred namespace mismatch:** the reorg renamed the app *directories* (`SVLabel → explore`, `SVValidate →
+validate`, `Progress → user-dashboard`), but the apps' internal JS namespace **globals** `svl` (Explore) and `sg`
+(Gallery) are identifiers, not filenames, and were intentionally left as-is — renaming them is a large independent
+refactor touching nearly every source line of those apps. Don't "fix" the mismatch as a drive-by.
 
 ## Scala
 
-Formatting is handled by **scalafmt** ([`.scalafmt.conf`](../.scalafmt.conf)) — run it before pushing (CI checks it
-as advisory). Conventions scalafmt doesn't cover:
+Formatting is handled by **scalafmt** ([`.scalafmt.conf`](../.scalafmt.conf)) — run it before pushing (`scalafmtCheckAll`
+is a blocking CI gate). Conventions scalafmt doesn't cover:
 
 - **Follow the request flow** `routes → Controller → Service → Table (DAO)`; keep controllers thin and put business
   logic in services. (See [`CLAUDE.md`](../CLAUDE.md) / [`docs/architecture.md`](architecture.md).)

@@ -526,6 +526,7 @@ trait ConfigService {
   def getCurrentCountryId: String
   def getCityName(lang: Lang): String
   def getAiTagSuggestionsEnabled: Boolean
+  def getPrivateProfilesByDefault: Boolean
   def getPanoSource: PanoSource
   def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Double): Future[Int]
   def cachedDBIO[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => DBIO[T]): DBIO[T]
@@ -1303,6 +1304,13 @@ class ConfigServiceImpl @Inject() (
   def getCityName(lang: Lang): String = messagesApi(s"city.name.$getCityId")(lang)
 
   def getAiTagSuggestionsEnabled: Boolean = config.get[Boolean](s"city-params.ai-tag-suggestions-enabled.$getCityId")
+
+  // A city omitted from private-profiles-by-default (or a deployment whose config predates the block entirely) is
+  // public by default. hasPath returns false for a missing key OR a missing parent block, so this never throws.
+  def getPrivateProfilesByDefault: Boolean = {
+    val path = s"city-params.private-profiles-by-default.$getCityId"
+    config.underlying.hasPath(path) && config.get[Boolean](path)
+  }
 
   def getPanoSource: PanoSource = PanoSource.withName(config.get[String](s"city-params.pano-viewer-type.$getCityId"))
 

@@ -48,6 +48,7 @@ object LabelTypeEnum {
   }
 
   // Representations for the full set of label types in the system.
+  // TODO These colors should probably match the colors in our Design System Tokens in main.css.
   case object CurbRamp   extends Base(1, "CurbRamp", "curb.ramp.description", "#90C31F", isAccessProblem = false)
   case object NoCurbRamp extends Base(2, "NoCurbRamp", "missing.ramp.description", "#E679B6", isAccessProblem = true)
   case object Obstacle   extends Base(3, "Obstacle", "obstacle.description", "#78B0EA", isAccessProblem = true)

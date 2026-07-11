@@ -7,13 +7,17 @@ import models.mission.{MissionTable, RegionalMission}
 import models.region.Region
 import models.street.StreetEdge
 import models.user._
+import models.userdashboard.{Trophy, TrophyTable}
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.MyPostgresProfile
+import models.utils.ProfanityGuard
 import models.validation.LabelValidationTable
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.DBIO
 
-import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, OffsetDateTime, ZoneId}
+import java.util.Locale
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -27,6 +31,45 @@ case class UserProfileData(
     validationCount: Int,
     accuracy: Option[Double]
 )
+
+/**
+ * Everything the public profile page needs for one mapper, or the states in between.
+ *
+ * The service returns `None` when the username doesn't exist (404 state). When it exists, `visible` is the target's
+ * `public_profile` flag OR-ed with the viewer being the owner; `profile`/`trophies` are populated only when visible so
+ * a private profile leaks no stats.
+ *
+ * @param username Display name (as stored).
+ * @param visible  Whether the accomplishments may be shown to this viewer.
+ * @param profile  KPI/team data, present only when visible.
+ * @param trophies The mapper's trophies, empty when not visible.
+ */
+case class PublicProfile(
+    username: String,
+    visible: Boolean,
+    profile: Option[UserProfileData],
+    trophies: Seq[Trophy]
+)
+
+/**
+ * A user's accuracy for one label type, for the dashboard's learning section.
+ *
+ * @param labelType   LabelTypeEnum name (e.g. "NoCurbRamp").
+ * @param cssKey      Kebab-case key for the `--color-label-*` token (e.g. "no-curb-ramp").
+ * @param displayName Human-readable name (e.g. "No Curb Ramp").
+ * @param pct         Accuracy percent (correct / validated), 0–100.
+ * @param validated   Number of the user's labels of this type that were validated (correct + incorrect).
+ * @param weakest     True for the user's lowest-accuracy type (among those with enough validations), to highlight.
+ */
+case class AccuracyByType(
+    labelType: String,
+    cssKey: String,
+    displayName: String,
+    pct: Int,
+    validated: Int,
+    weakest: Boolean
+)
+
 case class AdminUserProfileData(
     currentRegion: Option[Region],
     numCompletedAudits: Int,
@@ -35,6 +78,126 @@ case class AdminUserProfileData(
     completedMissions: Seq[RegionalMission],
     exploreComments: Seq[AuditTaskComment]
 )
+
+object UserService {
+
+  /**
+   * Minimum cohort size for showing a numeric rank/percentile in "your standing". Below this, the UI reframes to a
+   * shared-goal celebration so a small city/class never reads as e.g. "ranked 3 of 4". Source of truth for the UI.
+   */
+  val StandingCohortThreshold: Int = 8
+
+  /** Number of weeks shown in the activity heatmap (~4 months — enough to read a rhythm without lots of empty cells). */
+  val HeatmapWeeks: Int = 18
+
+  /** Label types shown in the per-type accuracy bars (the ones with canonical `--color-label-*` colors), in order. */
+  private val PrimaryLabelTypes: Seq[String] =
+    Seq("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "NoSidewalk", "Crosswalk", "Signal")
+
+  /** Minimum validated labels of a type before it's eligible to be flagged as the user's "weakest" (avoids noise). */
+  private val MinValidatedForWeakest: Int = 5
+
+  /**
+   * The public-profile visibility decision, isolated so it can be unit-tested without a DB. A profile is shown only if
+   * the viewer owns it or its `public_profile` flag is on; a missing user_stat row (privacy = None) reads as private so
+   * nothing leaks by default.
+   *
+   * @param privacy The (onLeaderboard, publicProfile) flags, or None if the user has no user_stat row.
+   * @param isOwner Whether the viewer is the profile's owner.
+   * @return        True if the profile's accomplishments may be shown to this viewer.
+   */
+  def profileVisible(privacy: Option[(Boolean, Boolean)], isOwner: Boolean): Boolean =
+    isOwner || privacy.exists(_._2)
+
+  /**
+   * Builds the per-type accuracy rows from raw (labelType, correct, incorrect) tallies. Pure/testable.
+   *
+   * Keeps only the primary (colored) label types the user has validated labels for, computes each type's accuracy,
+   * flags the lowest-accuracy type (among those with enough validations) as `weakest`, and orders canonically.
+   */
+  def computeAccuracyByType(rows: Seq[(String, Int, Int)]): Seq[AccuracyByType] = {
+    val primary                       = PrimaryLabelTypes.toSet
+    val pcts: Seq[(String, Int, Int)] = rows.collect {
+      case (t, correct, incorrect) if primary.contains(t) && (correct + incorrect) > 0 =>
+        (t, math.round(correct.toDouble / (correct + incorrect) * 100).toInt, correct + incorrect)
+    }
+    val weakest: Option[String] = pcts.filter(_._3 >= MinValidatedForWeakest).sortBy(_._2).headOption.map(_._1)
+    pcts.sortBy(p => PrimaryLabelTypes.indexOf(p._1)).map { case (t, pct, total) =>
+      AccuracyByType(t, kebabCase(t), spacedCase(t), pct, total, weakest.contains(t))
+    }
+  }
+
+  /** "NoCurbRamp" -> "no-curb-ramp" (matches the `--color-label-*` token names). */
+  private def kebabCase(labelType: String): String = labelType.replaceAll("(?<=[a-z])(?=[A-Z])", "-").toLowerCase
+
+  /** "NoCurbRamp" -> "No Curb Ramp". */
+  private def spacedCase(labelType: String): String = labelType.replaceAll("(?<=[a-z])(?=[A-Z])", " ")
+
+  /**
+   * Computes streak stats and the heatmap grid from a user's per-day activity counts. Pure (no I/O) so it's easy to
+   * test and reason about.
+   *
+   * @param counts Map of active calendar day (US/Pacific) to that day's contribution count.
+   * @param today  Today's date in US/Pacific (passed in so the logic is deterministic/testable).
+   * @return       Current/longest/total streak plus heatmap cells in column-major order.
+   */
+  def computeStreakStats(counts: Map[LocalDate, Int], today: LocalDate): StreakStats = {
+    val dates: Set[LocalDate] = counts.keySet
+
+    // Current streak: consecutive active days ending today, or ending yesterday if today isn't active yet.
+    var current = 0
+    var cursor  = if (dates.contains(today)) today else today.minusDays(1)
+    while (dates.contains(cursor)) { current += 1; cursor = cursor.minusDays(1) }
+
+    // Longest streak: the longest run of consecutive days across all activity.
+    var longest         = 0
+    var run             = 0
+    var prev: LocalDate = null
+    for (d <- dates.toSeq.sorted) {
+      run = if (prev != null && prev.plusDays(1) == d) run + 1 else 1
+      if (run > longest) longest = run
+      prev = d
+    }
+
+    // Heatmap: 7 rows (Sun–Sat) × HeatmapWeeks columns, aligned so the last column is the current week.
+    val daysFromSunday                 = today.getDayOfWeek.getValue % 7 // Mon=1..Sat=6, Sun=0
+    val currentWeekSunday              = today.minusDays(daysFromSunday.toLong)
+    val startSunday                    = currentWeekSunday.minusWeeks((HeatmapWeeks - 1).toLong)
+    val fmt                            = DateTimeFormatter.ofPattern("EEE, MMM d", Locale.ENGLISH)
+    val cells: Seq[Option[StreakCell]] = for {
+      w <- 0 until HeatmapWeeks
+      d <- 0 until 7
+    } yield {
+      val cellDate = startSunday.plusWeeks(w.toLong).plusDays(d.toLong)
+      if (cellDate.isAfter(today)) None
+      else {
+        val c         = counts.getOrElse(cellDate, 0)
+        val intensity = c match {
+          case 0           => 0
+          case n if n <= 2 => 1
+          case n if n <= 5 => 2
+          case n if n <= 9 => 3
+          case _           => 4
+        }
+        val word = if (c == 1) "contribution" else "contributions"
+        Some(StreakCell(intensity, s"$c $word on ${cellDate.format(fmt)}"))
+      }
+    }
+
+    // Month label for each week column: the abbreviated month on the first column that falls in a new month (GitHub
+    // style), so the heatmap has date scaffolding along the top.
+    val monthFmt                          = DateTimeFormatter.ofPattern("MMM", Locale.ENGLISH)
+    var prevMonth                         = -1
+    val columnMonths: Seq[Option[String]] = (0 until HeatmapWeeks).map { w =>
+      val weekSunday = startSunday.plusWeeks(w.toLong)
+      if (weekSunday.getMonthValue != prevMonth) {
+        prevMonth = weekSunday.getMonthValue; Some(weekSunday.format(monthFmt))
+      } else None
+    }
+
+    StreakStats(current, longest, dates.size, cells, columnMonths)
+  }
+}
 
 @ImplementedBy(classOf[UserServiceImpl])
 trait UserService {
@@ -52,8 +215,19 @@ trait UserService {
    * @return The user's new value in the high_quality column; None if user marked excluded or no user found
    */
   def setManualUserQuality(userId: String, highQualityManual: Option[Boolean]): Future[Option[Boolean]]
+  def getPrivacySettings(userId: String): Future[Option[(Boolean, Boolean)]]
+  def updatePrivacySettings(userId: String, onLeaderboard: Boolean, publicProfile: Boolean): Future[Int]
+  def getPublicProfile(
+      username: String,
+      isOwner: Boolean,
+      isMetric: Boolean,
+      cityName: String
+  ): Future[Option[PublicProfile]]
+  def resolveVisibleUser(username: String, isOwner: Boolean): Future[Option[String]]
+  def changeUsername(userId: String, newUsername: String): Future[Either[String, String]]
   def getUserTeam(userId: String): Future[Option[Team]]
   def setUserTeam(userId: String, newTeamId: Int): Future[Int]
+  def leaveTeam(userId: String): Future[Int]
   def getAllTeams: Future[Seq[Team]]
   def getAllOpenTeams: Future[Seq[Team]]
   def createTeam(name: String, description: String): Future[Int]
@@ -63,6 +237,10 @@ trait UserService {
       byTeam: Boolean = false,
       userIdForTeam: Option[String] = None
   ): Future[Seq[LeaderboardStat]]
+  def getUserStanding(userId: String): Future[Option[UserStanding]]
+  def getActivityStreak(userId: String): Future[StreakStats]
+  def getAccuracyByType(userId: String): Future[Seq[AccuracyByType]]
+  def getTrophies(userId: String, cityName: String): Future[Seq[Trophy]]
   def getHoursAuditingAndValidating(userId: String): Future[Double]
   def getAuditedStreets(userId: String): Future[Seq[StreetEdge]]
   def getLabelLocations(userId: String, regionId: Option[Int] = None): Future[Seq[LabelLocation]]
@@ -75,6 +253,8 @@ trait UserService {
 class UserServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     userStatTable: UserStatTable,
+    sidewalkUserTable: SidewalkUserTable,
+    trophyTable: TrophyTable,
     missionTable: MissionTable,
     labelTable: LabelTable,
     labelValidationTable: LabelValidationTable,
@@ -154,6 +334,79 @@ class UserServiceImpl @Inject() (
 
   def getUserAccuracy(userId: String): Future[Option[Double]] = db.run(labelValidationTable.getUserAccuracy(userId))
 
+  def getPrivacySettings(userId: String): Future[Option[(Boolean, Boolean)]] =
+    db.run(userStatTable.getPrivacySettings(userId))
+
+  def updatePrivacySettings(userId: String, onLeaderboard: Boolean, publicProfile: Boolean): Future[Int] =
+    db.run(userStatTable.updatePrivacySettings(userId, onLeaderboard, publicProfile))
+
+  def getPublicProfile(
+      username: String,
+      isOwner: Boolean,
+      isMetric: Boolean,
+      cityName: String
+  ): Future[Option[PublicProfile]] = {
+    sidewalkUserTable.findByUsername(username).flatMap {
+      case None    => Future.successful(None) // No such user -> the view shows a "not found" state.
+      case Some(u) =>
+        db.run(userStatTable.getPrivacySettings(u.userId)).flatMap { privacy =>
+          val visible = UserService.profileVisible(privacy, isOwner)
+          if (visible) {
+            for {
+              profile  <- getUserProfileData(u.userId, isMetric)
+              trophies <- getTrophies(u.userId, cityName)
+            } yield Some(PublicProfile(u.username, visible = true, Some(profile), trophies))
+          } else {
+            Future.successful(Some(PublicProfile(u.username, visible = false, None, Seq.empty)))
+          }
+        }
+    }
+  }
+
+  /**
+   * Resolves a username to its user id only if the profile may be shown to this viewer, gating the public profile's
+   * map endpoints. Returns None for an unknown username or a private profile the viewer doesn't own.
+   *
+   * @param username The mapper's username.
+   * @param isOwner  Whether the viewer is that mapper (owners always see their own map).
+   * @return         Some(userId) if visible, else None.
+   */
+  def resolveVisibleUser(username: String, isOwner: Boolean): Future[Option[String]] = {
+    sidewalkUserTable.findByUsername(username).flatMap {
+      case None    => Future.successful(None)
+      case Some(u) =>
+        if (isOwner) Future.successful(Some(u.userId))
+        else
+          db.run(userStatTable.getPrivacySettings(u.userId))
+            .map(p => if (UserService.profileVisible(p, isOwner)) Some(u.userId) else None)
+    }
+  }
+
+  /**
+   * Validates and applies a username change (#4373), enforcing the same rules the Settings UI advertises.
+   *
+   * Rejects (returns `Left(message)`) empty/too-short/too-long names, disallowed characters, profanity, and names
+   * already taken by another user. A no-op change to the user's current name is allowed. Usernames are display-only
+   * (everything keys on user_id), so no downstream references need updating.
+   *
+   * @param userId      The user changing their name.
+   * @param newUsername The requested new username (leading/trailing whitespace is trimmed).
+   * @return `Right(trimmedUsername)` on success, or `Left(userFacingError)` if rejected.
+   */
+  def changeUsername(userId: String, newUsername: String): Future[Either[String, String]] = {
+    val name = newUsername.trim
+    if (name.length < 3 || name.length > 30) Future.successful(Left("Username must be 3–30 characters."))
+    else if (!name.matches("^[A-Za-z0-9_-]+$"))
+      Future.successful(Left("Use only letters, numbers, hyphens, and underscores."))
+    else if (!ProfanityGuard.isClean(name))
+      Future.successful(Left("That username isn't allowed — please choose another."))
+    else
+      sidewalkUserTable.findByUsername(name).flatMap {
+        case Some(existing) if existing.userId != userId => Future.successful(Left("That username is already taken."))
+        case _ => db.run(sidewalkUserTable.updateUsername(userId, name)).map(_ => Right(name))
+      }
+  }
+
   def getUserTeam(userId: String): Future[Option[Team]] = db.run(userTeamTable.getTeam(userId))
 
   def setUserTeam(userId: String, newTeamId: Int): Future[Int] = {
@@ -166,6 +419,14 @@ class UserServiceImpl @Inject() (
       case _    => DBIO.successful(0)
     }
     db.run(updateTeamAction)
+  }
+
+  def leaveTeam(userId: String): Future[Int] = {
+    val action: DBIO[Int] = userTeamTable.getTeam(userId).flatMap {
+      case Some(team) => userTeamTable.remove(userId, team.teamId)
+      case None       => DBIO.successful(0)
+    }
+    db.run(action)
   }
 
   def getAllTeams: Future[Seq[Team]] = db.run(teamTable.getAllTeams)
@@ -189,6 +450,77 @@ class UserServiceImpl @Inject() (
       streetDist: Double          <- streetService.getTotalStreetDistanceDBIO
       stats: Seq[LeaderboardStat] <- userStatTable.getLeaderboardStats(n, timePeriod, byTeam, teamId, streetDist)
     } yield stats)
+  }
+
+  /**
+   * Gets the user's weekly standing (rank by labels) plus how many spots they've moved since last week.
+   *
+   * Computes this week's standing (with a neighbor slice) and last week's rank in one round trip, then sets `delta`
+   * to `lastWeekRank - thisWeekRank` (positive = climbed). `delta` is `None` if the user wasn't ranked last week.
+   */
+  def getUserStanding(userId: String): Future[Option[UserStanding]] = {
+    db.run(for {
+      thisWeek <- userStatTable.getUserStanding(userId, "weekly", n = 2)
+      lastWeek <- userStatTable.getUserStanding(userId, "lastWeek", n = 0)
+    } yield thisWeek.map(tw => tw.copy(delta = lastWeek.map(lw => lw.rank - tw.rank))))
+  }
+
+  def getActivityStreak(userId: String): Future[StreakStats] = {
+    db.run(userStatTable.getActivityDayCounts(userId)).map { rows =>
+      val counts = rows.map { case (day, count) => LocalDate.parse(day) -> count }.toMap
+      UserService.computeStreakStats(counts, LocalDate.now(ZoneId.of("US/Pacific")))
+    }
+  }
+
+  def getAccuracyByType(userId: String): Future[Seq[AccuracyByType]] = {
+    db.run(userStatTable.getLabelTypeAccuracy(userId)).map(UserService.computeAccuracyByType)
+  }
+
+  /** Explore-this-neighborhood link for a region trophy — opens the audit tool scoped to that region. */
+  private def exploreRegionLink(regionId: Int): String = s"/explore?regionId=$regionId"
+
+  def getTrophies(userId: String, cityName: String): Future[Seq[Trophy]] = {
+    val aiId = SidewalkUserTable.aiUserId
+    // Kick off the four independent queries before the for-comprehension so they run in parallel.
+    val cityPioneerF    = db.run(trophyTable.getCityPioneerUserId(aiId))
+    val regionPioneersF = db.run(trophyTable.getRegionPioneers(userId, aiId, 5))
+    val championsF      = db.run(trophyTable.getRegionChampions(userId, aiId, 6))
+    val weeklyF         = db.run(trophyTable.getWeeklyPodiums(userId, 6))
+    val medals          = Map(1 -> "🥇", 2 -> "🥈", 3 -> "🥉")
+    for {
+      cityPioneer    <- cityPioneerF
+      regionPioneers <- regionPioneersF
+      champions      <- championsF
+      weekly         <- weeklyF
+    } yield {
+      // Order by prestige/rarity: city pioneer, then region pioneers, then region champions, then weekly podiums.
+      val cityTrophy =
+        if (cityPioneer.contains(userId))
+          Seq(Trophy("🌱", "City pioneer", s"First-ever labeler in $cityName", "pioneer"))
+        else Seq.empty
+      val regionPioneerTrophies = regionPioneers.map { case (name, regionId) =>
+        Trophy(
+          "🧭",
+          "Region pioneer",
+          s"First-ever labeler in $name",
+          "pioneer",
+          link = Some(exploreRegionLink(regionId))
+        )
+      }
+      val championTrophies = champions.map { case (name, regionId, count) =>
+        Trophy(
+          "👑",
+          s"$name champion",
+          s"""${"%,d".format(count)} labels — most in this neighborhood""",
+          "region",
+          link = Some(exploreRegionLink(regionId))
+        )
+      }
+      val weeklyTrophies = weekly.map { case (weekOf, rank, _) =>
+        Trophy(medals.getOrElse(rank, "🏅"), "Top labeler", s"Week of $weekOf", "podium", rank)
+      }
+      cityTrophy ++ regionPioneerTrophies ++ championTrophies ++ weeklyTrophies
+    }
   }
 
   def getHoursAuditingAndValidating(userId: String): Future[Double] =

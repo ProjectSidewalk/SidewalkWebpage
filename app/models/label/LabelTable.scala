@@ -592,6 +592,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val streetEdgeRegions      = TableQuery[StreetEdgeRegionTableDef]
   val routeStreets           = TableQuery[RouteStreetTableDef]
   val validationTaskComments = TableQuery[ValidationTaskCommentTableDef]
+  val mistakeResponses       = TableQuery[MistakeResponseTableDef]
 
   // Note that we are assuming only a single AI assessment and validation per label.
   val aiData        = labelAiAssessments.joinLeft(labelValidations).on(_.labelValidationId === _.labelValidationId)
@@ -1459,6 +1460,50 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
+   * Records (or updates) a user's agree/contest vote on their own incorrectly-validated label (#2996). Preserves any
+   * existing note on the row — the vote and the note are independent.
+   *
+   * @param labelId The label being voted on.
+   * @param userId  The voting user; must own the label or this is a no-op.
+   * @param agrees  True = agrees it was a mistake; false = contests it (claims it was correct).
+   * @return        True if the vote was recorded; false if the label isn't the user's.
+   */
+  def recordMistakeVote(labelId: Int, userId: String, agrees: Boolean): DBIO[Boolean] = {
+    labelsUnfiltered.filter(l => l.labelId === labelId && l.userId === userId).exists.result.flatMap { owns =>
+      if (!owns) DBIO.successful(false)
+      else
+        sqlu"""
+          INSERT INTO user_mistake_response (label_id, user_id, agrees)
+          VALUES ($labelId, $userId, $agrees)
+          ON CONFLICT (label_id, user_id)
+          DO UPDATE SET agrees = EXCLUDED.agrees, created_at = now()
+        """.map(_ => true)
+    }
+  }
+
+  /**
+   * Records (or updates) a user's note on their own incorrectly-validated label (#2996). The note stands alone — it
+   * preserves any existing vote and does not require one (a note-only row has `agrees` NULL).
+   *
+   * @param labelId The label being annotated.
+   * @param userId  The user; must own the label or this is a no-op.
+   * @param comment The note (None clears it).
+   * @return        True if the note was recorded; false if the label isn't the user's.
+   */
+  def recordMistakeNote(labelId: Int, userId: String, comment: Option[String]): DBIO[Boolean] = {
+    labelsUnfiltered.filter(l => l.labelId === labelId && l.userId === userId).exists.result.flatMap { owns =>
+      if (!owns) DBIO.successful(false)
+      else
+        sqlu"""
+          INSERT INTO user_mistake_response (label_id, user_id, comment)
+          VALUES ($labelId, $userId, $comment)
+          ON CONFLICT (label_id, user_id)
+          DO UPDATE SET comment = EXCLUDED.comment, created_at = now()
+        """.map(_ => true)
+    }
+  }
+
+  /**
    * Get user's labels most recently validated as incorrect.
    * @param userId    ID of the user who made these mistakes.
    * @param labelType Label types where we are looking for mistakes.
@@ -1491,7 +1536,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         _us.highQuality === true &&             // For now, we only include validations from high quality users.
         _pd.expired === false &&                // Only include those with non-expired imagery.
         _lb.correct.isDefined && _lb.correct === false && // Exclude outlier validations on a correct label.
-        _lt.labelType === labelType.name                  // Only include given label types.
+        _lt.labelType === labelType.name &&               // Only include given label types.
+        // Drop labels the user has already agreed/disagreed on, so answered mistakes don't reappear (#2996).
+        !mistakeResponses.filter(r => r.labelId === _lb.labelId && r.userId === userId).exists
     } yield (
       _lb.labelId,
       _lb.panoId,
