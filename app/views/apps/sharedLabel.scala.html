@@ -93,31 +93,30 @@
     </div>
 
     <section class="spotlight__engage">
-      @* Live city stats (filled by SharedLabel.js from /v3/api/overallStats); hidden until populated so a slow or
-         failed fetch just leaves the call-to-action. *@
-      <div class="spotlight-stats" id="spotlight-stats" hidden>
-        <h2 class="spotlight-stats__heading">@Messages("sharedlabel.stats.heading", cityName)</h2>
-        <div class="spotlight-stats__row">
-          <div class="spotlight-stat">
-            <span class="spotlight-stat__num" data-stat="labels">—</span>
-            <span class="spotlight-stat__label">@Messages("sharedlabel.stat.labels")</span>
-          </div>
-          <div class="spotlight-stat">
-            <span class="spotlight-stat__num" data-stat="validations">—</span>
-            <span class="spotlight-stat__label">@Messages("sharedlabel.stat.validations")</span>
-          </div>
-          <div class="spotlight-stat">
-            <span class="spotlight-stat__num" data-stat="miles">—</span>
-            <span class="spotlight-stat__label">@Messages("sharedlabel.stat.miles")</span>
-          </div>
-        </div>
-      </div>
-
       <div class="spotlight-cta">
         <img class="spotlight-cta__logo" alt=""
              src='@assets.path("images/logos/ProjectSidewalkLogo_WithCurvedText_3600x3600.png")'>
         <h2 class="spotlight-cta__title">@Messages("sharedlabel.engage.title", cityName)</h2>
-        <p class="spotlight-cta__body">@Messages("sharedlabel.engage.body")</p>
+
+        @* Live city stats (filled by SharedLabel.js from /v3/api/overallStats); hidden until populated so a slow or
+           failed fetch just leaves the call-to-action. *@
+        <div class="spotlight-stats" id="spotlight-stats" hidden>
+          <div class="spotlight-stats__row">
+            <div class="spotlight-stat">
+              <span class="spotlight-stat__num" data-stat="labels">—</span>
+              <span class="spotlight-stat__label">@Messages("sharedlabel.stat.labels")</span>
+            </div>
+            <div class="spotlight-stat">
+              <span class="spotlight-stat__num" data-stat="validations">—</span>
+              <span class="spotlight-stat__label">@Messages("sharedlabel.stat.validations")</span>
+            </div>
+            <div class="spotlight-stat">
+              <span class="spotlight-stat__num" data-stat="miles">—</span>
+              <span class="spotlight-stat__label">@Messages("sharedlabel.stat.miles")</span>
+            </div>
+          </div>
+        </div>
+
         <div class="spotlight-cta__buttons">
           <a class="spotlight-btn spotlight-btn--primary" id="spotlight-explore-cta" href="/explore">
             @Messages("sharedlabel.engage.explore", cityName)

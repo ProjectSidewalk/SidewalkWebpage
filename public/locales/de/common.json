@@ -54,9 +54,8 @@
     "private-deployment": "Private Bereitstellung"
   },
   "errors": {
-    "title": "Ups, unser Fehler! Für diese Beschriftung sind keine Bilder mehr verfügbar.",
-    "explanation": "Entweder haben wir Probleme beim Zugriff auf die Webseite, die dieses Bild bereitstellt, oder das Bild wurde entfernt.",
-    "explore-street": "Erkunden Sie die Straße</a>  erneut, um neuere Bilder zu verwenden!"
+    "title": "Bilder für diese Beschriftung sind nicht mehr verfügbar.",
+    "explore-street": "Straße erkunden"
   },
   "severity": "Schweregrad",
   "quality": "Qualität",

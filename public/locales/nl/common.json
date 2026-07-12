@@ -54,9 +54,8 @@
     "private-deployment": "Privé-implementatie"
   },
   "errors": {
-    "title": "Oeps, onze fout, maar er zijn geen afbeeldingen meer beschikbaar voor dit label.",
-    "explanation": "We ondervinden problemen met de toegang tot de website die deze afbeelding aanbiedt, of de afbeelding is verwijderd.",
-    "explore-street": "Verken de straat</a> opnieuw om nieuwere afbeeldingen te gebruiken!"
+    "title": "Afbeeldingen voor dit label zijn niet meer beschikbaar.",
+    "explore-street": "Verken de straat"
   },
   "severity": "Ernst",
   "quality": "Kwaliteit",

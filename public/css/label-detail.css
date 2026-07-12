@@ -146,6 +146,59 @@ dialog.label-detail[open]::backdrop {
   overflow: hidden;
 }
 
+/* No-imagery / expired-label panel (#4483): shown by PopupPanoManager when a pano fails to load and there is no crop
+   fallback. Absolutely fills svHolder (kept position:relative in JS) and centers a branded logo, one concise message,
+   and a button CTA. Shared by every LabelDetail surface (Gallery expanded, LabelMap popup, Admin, share page). */
+.pano-not-avail {
+  position: absolute;
+  inset: 0;
+  display: none; /* PopupPanoManager toggles this to flex */
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 200px; /* floor so the panel is visible even if svHolder momentarily has no resolved height */
+  padding: 24px;
+  background: var(--color-asphalt-100);
+  text-align: center;
+}
+
+.pano-not-avail__logo {
+  width: 64px;
+  height: 64px;
+}
+
+.pano-not-avail__msg {
+  max-width: 480px; /* wide enough to keep the message on one line on a full-size pano; wraps on narrow surfaces */
+  margin: 0;
+  font-weight: 600;
+  font-size: 18px;
+  font-family: Raleway, sans-serif;
+  color: var(--color-neutral-black);
+}
+
+.pano-not-avail__cta {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 9px 22px;
+  border-radius: 999px;
+  background: var(--color-pine-500);
+  color: var(--color-neutral-black);
+  font-weight: 600;
+  font-size: 15px;
+  font-family: Raleway, sans-serif;
+  text-decoration: none;
+  transition: opacity 120ms ease;
+}
+
+.pano-not-avail__cta:hover { opacity: 0.9; }
+
+.pano-not-avail__cta:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}
+
 /* Hover-reveal validation buttons at bottom of pano. Modeled after Gallery's old expanded-view validation buttons. */
 .label-detail__pano-overlay {
   position: absolute;

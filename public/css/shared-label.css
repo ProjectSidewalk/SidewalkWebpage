@@ -81,6 +81,13 @@
   height: auto;
 }
 
+/* Slimmer hover-reveal validation buttons on the large share hero. labelDetail.css sizes them 56px for the smaller
+   popup/gallery panos, which reads as too tall spanning the full-width spotlight pano. */
+.spotlight__detail .label-detail__pano-overlay-button {
+  height: 40px;
+  padding: 0 16px;
+}
+
 /* The close button dismisses a popup; here the detail IS the page content, so there's nothing to close. */
 .spotlight__detail .label-detail__close {
   display: none;
@@ -240,18 +247,7 @@
 }
 
 .spotlight-stats {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 8px 0 28px;
-}
-
-.spotlight-stats__heading {
-  margin: 0;
-  font: var(--text-h3-bold);
-  color: var(--color-asphalt-600);
-  text-align: center;
+  padding: 4px 0;
 }
 
 .spotlight-stats__row {
