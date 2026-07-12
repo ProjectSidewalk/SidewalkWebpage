@@ -164,8 +164,10 @@ class LandingValidationGrid {
     question.className = 'lvg-card-question';
     // The translations deliberately contain <b> emphasis around the label-type name; they're our own locale files.
     question.innerHTML = i18next.t(`validate:top-ui.title.${typeKebab}`);
+    // The (i) lives inside the question span so it flows inline right after the closing "?", wherever the
+    // question happens to wrap; the share chip sits at the row's end.
+    question.appendChild(this.#buildInfoTip(label, typeKebab));
     questionRow.appendChild(question);
-    questionRow.appendChild(this.#buildInfoTip(label, typeKebab));
     questionRow.appendChild(this.#buildShareChip(label, typeKebab));
     body.appendChild(questionRow);
 
@@ -294,8 +296,13 @@ class LandingValidationGrid {
         show();
       }
     });
+    // Hide on a short grace delay rather than instantly: the (i) sits at the end of the (possibly wrapped)
+    // question text while the tooltip spans the top of the row, so the pointer may cross a small gap of plain
+    // text on its way up — the delay keeps that path valid (WCAG 1.4.13 "hoverable").
+    let hideTimer;
+    wrap.addEventListener('mouseenter', () => clearTimeout(hideTimer));
     wrap.addEventListener('mouseleave', () => {
-      if (!pinned && document.activeElement !== button) hide();
+      if (!pinned && document.activeElement !== button) hideTimer = setTimeout(hide, 250);
     });
     wrap.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !tip.hidden) hide();

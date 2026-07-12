@@ -88,16 +88,37 @@
   color: var(--color-asphalt-500, #2d2a3f);
 }
 
-/* "What is this label type?" affordance: a small circled-i button revealing the type's one-line explanation. */
+/* "What is this label type?" affordance: a small circled-i button revealing the type's one-line explanation.
+   Lives inline inside the question span, flowing right after the closing "?". */
 .lvg-info {
   display: inline-flex;
-  flex-shrink: 0;
+  margin-left: 4px;
+  vertical-align: text-bottom;
 }
 
-/* The share chip reuses .label-detail__share(-trigger) from label-detail.css for the shared pill + popover look. */
+/* The share chip reuses .label-detail__share(-trigger) from label-detail.css for the shared popover look, slimmed
+   to white and the (i) button's exact 20px height so the two read as one row of quiet controls. */
 .lvg-share {
   margin-left: auto;
   flex-shrink: 0;
+}
+
+.lvg-share .label-detail__share-trigger {
+  height: 20px;
+  padding: 0 8px;
+  gap: 4px;
+  background: var(--color-neutral-white, #ffffff);
+  border-color: var(--color-asphalt-300, #615e78);
+  color: var(--color-asphalt-400, #424055);
+}
+
+.lvg-share .label-detail__share-trigger:hover {
+  background: var(--color-neutral-100, #f0f0f0);
+}
+
+.lvg-share .label-detail__share-trigger svg {
+  width: 14px;
+  height: 14px;
 }
 
 .lvg-info-btn {
