@@ -57,7 +57,9 @@ trait LabelService {
       severity: Set[Option[Int]],
       tags: Set[String],
       aiValOptions: Set[String],
-      userId: String
+      userId: String,
+      recentFirst: Boolean = false,
+      staticImageryOnly: Boolean = false
   ): Future[Seq[LabelValidationMetadata]]
   def retrieveLabelListForValidation(
       userId: String,
@@ -198,6 +200,7 @@ class LabelServiceImpl @Inject() (
    * @param tags              Set of tags the labels grabbed can have.
    * @param aiValOptions      Set of AI validations to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param userId            User ID of the user requesting the labels.
+   * @param recentFirst       If true, draw from the most recent labels (shuffled) instead of sampling all labels.
    * @return Seq[LabelValidationMetadata]
    */
   def getGalleryLabels(
@@ -209,28 +212,35 @@ class LabelServiceImpl @Inject() (
       severity: Set[Option[Int]],
       tags: Set[String],
       aiValOptions: Set[String],
-      userId: String
+      userId: String,
+      recentFirst: Boolean = false,
+      staticImageryOnly: Boolean = false
   ): Future[Seq[LabelValidationMetadata]] = {
     val viewer: PanoSource = configService.getPanoSource
 
     // If a label type is specified, get labels for that type. Otherwise, get labels for all types. Include useCrops so
     // that labels with expired or non-Google imagery are still included if a local crop exists.
+    // With recentFirst the query is ordered newest-first, so findValidLabelsForType's batching draws from the most
+    // recent labels and randomize=true shuffles within that recent pool.
     if (labelType.isDefined) {
       findValidLabelsForType(
         labelTable.getGalleryLabelsQuery(viewer, labelType.get, loadedLabelIds, valOptions, regionIds, severity, tags,
-          aiValOptions, userId),
+          aiValOptions, userId, recentFirst),
         randomize = true,
         useCrops = true,
         n
       )
     } else {
-      // Get labels for each type in parallel.
-      val nPerType: Int = n / LabelTypeEnum.primaryLabelTypes.size
+      // Get labels for each type in parallel. staticImageryOnly narrows the spread to the types a static image can
+      // support (the landing grid can't pan, so e.g. Signal is out — see staticValidatableLabelTypes).
+      val typesToSpread: Set[LabelTypeEnum.Base] =
+        if (staticImageryOnly) LabelTypeEnum.staticValidatableLabelTypes else LabelTypeEnum.primaryLabelTypes
+      val nPerType: Int = n / typesToSpread.size
       Future
-        .sequence(LabelTypeEnum.primaryLabelTypes.map { labelType =>
+        .sequence(typesToSpread.map { labelType =>
           findValidLabelsForType(
             labelTable.getGalleryLabelsQuery(viewer, labelType, loadedLabelIds, valOptions, regionIds, severity, tags,
-              aiValOptions, userId),
+              aiValOptions, userId, recentFirst),
             randomize = true,
             useCrops = true,
             nPerType

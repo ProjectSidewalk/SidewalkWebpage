@@ -23,6 +23,15 @@ class LabelTypeEnumSpec extends PlaySpec {
     }
   }
 
+  "staticValidatableLabelTypes" should {
+    "be the primary types minus Signal" in {
+      // Signal is labeled at the base of its pole, so judging it needs a pan upward that a static image (the
+      // landing-page validation grid, #1638) can't provide.
+      LabelTypeEnum.staticValidatableLabelTypes mustBe LabelTypeEnum.primaryLabelTypes - LabelTypeEnum.Signal
+      LabelTypeEnum.staticValidatableLabelTypes must not contain LabelTypeEnum.Signal
+    }
+  }
+
   "nameKey" should {
     "be the descriptionKey without its .description suffix for every label type" in {
       for (lt <- LabelTypeEnum.values) {

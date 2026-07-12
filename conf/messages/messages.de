@@ -101,6 +101,8 @@ landing.how.you.help.content = Erkunden Sie virtuell die Straßen der Stadt in {
 landing.how.you.help.explore = ERKUNDEN
 landing.how.you.help.find = PROBLEME FINDEN
 landing.how.you.help.assess = SCHWEREGRAD BEWERTEN
+landing.validate.title = Überprüfen Sie, was andere gefunden haben
+landing.validate.content = Helfen Sie in Sekunden mit: Sehen Sie sich aktuelle Beschriftungen an, die Freiwillige in {0} platziert haben, und sagen Sie uns, ob sie richtig sind.
 landing.choropleth.title = Quartier wählen
 landing.choropleth.content = Wählen Sie unten ein Viertel zum Erkunden aus oder klicken Sie auf die Schaltfläche <a href="/explore">''Erkunden''</a> und Ihnen wird automatisch ein Viertel zugewiesen!
 landing.choropleth.legend = Prozent des Quartiers abgeschlossen
