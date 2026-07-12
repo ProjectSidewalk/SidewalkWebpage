@@ -72,7 +72,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 12px;
+  padding: 10px;
 }
 
 /* Question + inline (i) on the left, share chip pushed to the row's end. Also the tooltip's positioning anchor. */
@@ -80,7 +80,7 @@
   position: relative;
   display: flex;
   align-items: flex-start;
-  gap: 6px;
+  gap: 4px;
 }
 
 .lvg-card-question {
@@ -92,38 +92,40 @@
    Lives inline inside the question span, flowing right after the closing "?". */
 .lvg-info {
   display: inline-flex;
-  margin-left: 4px;
+  margin-left: 3px;
   vertical-align: text-bottom;
 }
 
-/* The share chip reuses .label-detail__share(-trigger) from label-detail.css for the shared popover look, slimmed
-   to white and the (i) button's exact 20px height so the two read as one row of quiet controls. */
+/* The share chip reuses .label-detail__share(-trigger) from label-detail.css for the shared popover look, restyled
+   as a quiet tertiary control: borderless, faint gray fill, and the (i) button's exact 18px height — it must not
+   compete with the Agree/Disagree/Unsure buttons below. */
 .lvg-share {
   margin-left: auto;
   flex-shrink: 0;
 }
 
 .lvg-share .label-detail__share-trigger {
-  height: 20px;
-  padding: 0 8px;
-  gap: 4px;
-  background: var(--color-neutral-white, #ffffff);
-  border-color: var(--color-asphalt-300, #615e78);
+  height: 18px;
+  padding: 0 7px;
+  gap: 3px;
+  background: var(--color-neutral-100, #f0f0f0);
+  border: 0;
   color: var(--color-asphalt-400, #424055);
+  font-size: 12px;
 }
 
 .lvg-share .label-detail__share-trigger:hover {
-  background: var(--color-neutral-100, #f0f0f0);
+  background: var(--color-neutral-200, #e1e1e1);
 }
 
 .lvg-share .label-detail__share-trigger svg {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
 }
 
 .lvg-info-btn {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   padding: 0;
   font: var(--text-small-bold, 700 13px/18px sans-serif);
   color: var(--color-asphalt-400, #424055);
