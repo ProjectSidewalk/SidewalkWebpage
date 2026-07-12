@@ -23,6 +23,15 @@ function numbersInView() {
   }
 }
 
+/**
+ * Plays a video, swallowing the AbortError that fires when a pause() interrupts a still-pending play() — benign
+ * here, where lazyPlay (scroll) and switchToVideo (tab clicks + auto-advance) legitimately race each other.
+ * @param {HTMLVideoElement} video - The video to play.
+ */
+function safePlay(video) {
+  video.play().catch(() => {});
+}
+
 function switchToVideo(vidnum) {
   if (vidnum === 1) {
     document.getElementById('vid1').classList.remove('ps-hidden');
@@ -42,7 +51,7 @@ function switchToVideo(vidnum) {
     $('#number3').addClass('tab-word').removeClass('activetab');
 
     document.getElementById('vid1').currentTime = 0;
-    document.getElementById('vid1').play();
+    safePlay(document.getElementById('vid1'));
 
     document.getElementById('vid2').pause();
     document.getElementById('vid3').pause();
@@ -64,7 +73,7 @@ function switchToVideo(vidnum) {
     $('#number3').addClass('tab-word').removeClass('activetab');
 
     document.getElementById('vid2').currentTime = 0;
-    document.getElementById('vid2').play();
+    safePlay(document.getElementById('vid2'));
 
     document.getElementById('vid1').pause();
     document.getElementById('vid3').pause();
@@ -86,7 +95,7 @@ function switchToVideo(vidnum) {
     $('#number3').addClass('tab-word activetab');
 
     document.getElementById('vid3').currentTime = 0;
-    document.getElementById('vid3').play();
+    safePlay(document.getElementById('vid3'));
 
     document.getElementById('vid2').pause();
     document.getElementById('vid1').pause();
@@ -264,7 +273,7 @@ function lazyPlay(el, video) {
   if (isElementVerticallyVisible(el)) {
     if (!isVideoPlaying(video)) {
       pausedVideos[video.id] = false;
-      video.play();
+      safePlay(video);
     }
   } else if (isVideoPlaying(video)) {
     pausedVideos[video.id] = true;

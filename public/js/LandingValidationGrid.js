@@ -12,10 +12,11 @@
  */
 class LandingValidationGrid {
   static #GRID_SIZE = 6;
-  // The server splits n across the 7 primary label types, so fetch sizes are multiples of 7: 2 per type up front
-  // (6 rendered + the rest pooled for replacements), 1 per type on refills.
-  static #INITIAL_FETCH = 14;
-  static #REFILL_FETCH = 7;
+  // The server splits n across the 6 label types validatable from a static image (static_imagery_only — Signal
+  // needs a pan up its pole, so it's excluded server-side), so fetch sizes are multiples of 6: 2 per type up
+  // front (6 rendered + the rest pooled for replacements), 1 per type on refills.
+  static #INITIAL_FETCH = 12;
+  static #REFILL_FETCH = 6;
   // Refill the pool in the background once it runs this low, so replacements stay instant.
   static #REFILL_THRESHOLD = 2;
   static #THANKS_MS = 1200;
@@ -87,6 +88,7 @@ class LandingValidationGrid {
           loaded_labels: [...this.#loadedLabelIds],
           validation_options: ['unvalidated', 'unsure'],
           sort: 'recent',
+          static_imagery_only: true,
         }),
       });
       if (!response.ok) throw new Error(`label fetch failed: ${response.status}`);
@@ -126,6 +128,8 @@ class LandingValidationGrid {
     imgWrap.className = 'lvg-card-img';
     const img = document.createElement('img');
     img.className = 'lvg-card-photo';
+    // Lazy so the cards CSS hides at narrow widths (the 4th+) never fetch their images.
+    img.loading = 'lazy';
     img.alt = i18next.t(`common:${typeKebab}`);
     img.addEventListener('error', () => {
       // The saved crop can 404 (signed URLs expire after a while); fall back to the GSV Static API image. A card

@@ -58,7 +58,8 @@ trait LabelService {
       tags: Set[String],
       aiValOptions: Set[String],
       userId: String,
-      recentFirst: Boolean = false
+      recentFirst: Boolean = false,
+      staticImageryOnly: Boolean = false
   ): Future[Seq[LabelValidationMetadata]]
   def retrieveLabelListForValidation(
       userId: String,
@@ -212,7 +213,8 @@ class LabelServiceImpl @Inject() (
       tags: Set[String],
       aiValOptions: Set[String],
       userId: String,
-      recentFirst: Boolean = false
+      recentFirst: Boolean = false,
+      staticImageryOnly: Boolean = false
   ): Future[Seq[LabelValidationMetadata]] = {
     val viewer: PanoSource = configService.getPanoSource
 
@@ -229,10 +231,13 @@ class LabelServiceImpl @Inject() (
         n
       )
     } else {
-      // Get labels for each type in parallel.
-      val nPerType: Int = n / LabelTypeEnum.primaryLabelTypes.size
+      // Get labels for each type in parallel. staticImageryOnly narrows the spread to the types a static image can
+      // support (the landing grid can't pan, so e.g. Signal is out — see staticValidatableLabelTypes).
+      val typesToSpread: Set[LabelTypeEnum.Base] =
+        if (staticImageryOnly) LabelTypeEnum.staticValidatableLabelTypes else LabelTypeEnum.primaryLabelTypes
+      val nPerType: Int = n / typesToSpread.size
       Future
-        .sequence(LabelTypeEnum.primaryLabelTypes.map { labelType =>
+        .sequence(typesToSpread.map { labelType =>
           findValidLabelsForType(
             labelTable.getGalleryLabelsQuery(viewer, labelType, loadedLabelIds, valOptions, regionIds, severity, tags,
               aiValOptions, userId, recentFirst),

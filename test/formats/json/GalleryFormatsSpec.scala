@@ -4,7 +4,7 @@ import formats.json.GalleryFormats._
 import formats.json.ValidateFormats.uiSourceReads
 import models.utils.CommonUtils.UiSource
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.{JsError, JsString, JsSuccess, Json}
+import play.api.libs.json.{JsBoolean, JsError, JsString, JsSuccess, Json}
 
 /**
  * Pure JSON-contract tests for the Gallery label-request reads and the UiSource wire format, covering the pieces the
@@ -27,6 +27,15 @@ class GalleryFormatsSpec extends PlaySpec {
 
     "reject a non-string sort" in {
       (baseRequest + ("sort" -> Json.obj())).validate[GalleryLabelsRequest] mustBe a[JsError]
+    }
+
+    "parse static_imagery_only when present" in {
+      val result = (baseRequest + ("static_imagery_only" -> JsBoolean(true))).validate[GalleryLabelsRequest]
+      result.map(_.staticImageryOnly) mustBe JsSuccess(Some(true))
+    }
+
+    "leave static_imagery_only as None when absent" in {
+      baseRequest.validate[GalleryLabelsRequest].map(_.staticImageryOnly) mustBe JsSuccess(None)
     }
   }
 

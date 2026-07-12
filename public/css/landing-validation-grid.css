@@ -9,6 +9,15 @@
   margin: 24px 0 40px;
 }
 
+/* Once the grid collapses to a single column (~650px viewport: two 300px columns + 16px gap no longer fit the
+   Bootstrap container), six stacked cards push the rest of the page too far down — show only three. The hidden
+   cards' images are loading="lazy", so they're never fetched. */
+@media (width <= 650px) {
+  .landing-validation-grid .lvg-card:nth-child(n+4) {
+    display: none;
+  }
+}
+
 .lvg-card {
   margin: 0;
   border: 1px solid var(--color-neutral-200, #e1e1e1);

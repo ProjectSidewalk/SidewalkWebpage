@@ -37,7 +37,8 @@ object GalleryFormats {
       tags: Option[Seq[String]],
       aiValidationOptions: Option[Seq[String]],
       loadedLabels: Seq[Int],
-      sort: Option[String]
+      sort: Option[String],
+      staticImageryOnly: Option[Boolean]
   )
 
   implicit val galleryEnvironmentSubmissionReads: Reads[GalleryEnvironmentSubmission] = (
@@ -74,6 +75,7 @@ object GalleryFormats {
       (JsPath \ "tags").readNullable[Seq[String]] and
       (JsPath \ "ai_validation_options").readNullable[Seq[String]] and
       (JsPath \ "loaded_labels").read[Seq[Int]] and
-      (JsPath \ "sort").readNullable[String]
+      (JsPath \ "sort").readNullable[String] and
+      (JsPath \ "static_imagery_only").readNullable[Boolean]
   )(GalleryLabelsRequest.apply _)
 }
