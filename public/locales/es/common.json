@@ -7,7 +7,6 @@
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
   "format-number": "{{val, number}}",
-  "label-type-info": "¿Qué significa este tipo de etiqueta?",
   "curb-ramp": "Rampa peatonal",
   "no-curb-ramp": "Rampa peatonal ausente",
   "obstacle": "Obstáculo en la banqueta",

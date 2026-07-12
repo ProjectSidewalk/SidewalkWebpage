@@ -7,7 +7,6 @@
   "unit-abbreviation-mission-distance": "公尺",
   "unit-distance": "kilometers",
   "format-number": "{{val, number}}",
-  "label-type-info": "這個標籤類型是什麼意思？",
   "curb-ramp": "路緣斜坡",
   "no-curb-ramp": "缺路緣斜坡",
   "obstacle": "有障礙物",

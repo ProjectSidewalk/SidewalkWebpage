@@ -7,7 +7,6 @@
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
   "format-number": "{{val, number}}",
-  "label-type-info": "O que significa este tipo de rótulo?",
   "agree": "Concordo",
   "disagree": "Discordo",
   "unsure": "Não tenho certeza",

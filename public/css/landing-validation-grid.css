@@ -88,18 +88,26 @@
   color: var(--color-asphalt-500, #2d2a3f);
 }
 
-/* "What is this label type?" affordance: a small circled-i button revealing the type's one-line explanation.
-   Lives inline inside the question span, flowing right after the closing "?". */
-.lvg-info {
-  display: inline-flex;
-  margin-left: 3px;
-  vertical-align: text-bottom;
+/* The bolded label-type name doubles as the "what is this?" trigger — dotted underline as the definition
+   affordance, focusable for keyboard users (tabindex set in JS). */
+.lvg-type-term {
+  cursor: help;
+  text-decoration: underline dotted var(--color-asphalt-300, #615e78);
+  text-underline-offset: 3px;
+}
+
+.lvg-type-term:focus-visible {
+  outline: 2px solid var(--color-link-200, #0f5faf);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 /* The share chip reuses .label-detail__share(-trigger) from label-detail.css for the shared popover look, restyled
    as a quiet tertiary control: borderless, faint gray fill, and the (i) button's exact 18px height — it must not
    compete with the Agree/Disagree/Unsure buttons below. */
 .lvg-share {
+  /* 2px centers the 18px chip against the question's 22px first line. */
+  margin-top: 2px;
   margin-left: auto;
   flex-shrink: 0;
 }
@@ -123,33 +131,10 @@
   height: 12px;
 }
 
-.lvg-info-btn {
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  font: var(--text-small-bold, 700 13px/18px sans-serif);
-  color: var(--color-asphalt-400, #424055);
-  background: transparent;
-  border: 1px solid var(--color-asphalt-300, #615e78);
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-.lvg-info-btn:hover,
-.lvg-info-btn[aria-expanded="true"] {
-  color: var(--color-neutral-white, #ffffff);
-  background: var(--color-asphalt-400, #424055);
-}
-
-.lvg-info-btn:focus-visible {
-  outline: 2px solid var(--color-link-200, #0f5faf);
-  outline-offset: 2px;
-}
-
-/* Spans the question row, flush above it (no gap) so a pointer can travel from the (i) button straight up into
-   the tooltip without it closing (WCAG 1.4.13 "hoverable"). Growing upward over the image keeps it inside the
-   card so overflow: hidden can't clip it. */
-.lvg-info-tip {
+/* Spans the question row, flush above it, so the pointer's path from the underlined term up into the tooltip
+   stays short (a grace delay in JS covers the strip of plain text in between — WCAG 1.4.13 "hoverable").
+   Growing upward over the image keeps it inside the card so overflow: hidden can't clip it. */
+.lvg-type-tip {
   position: absolute;
   left: 0;
   right: 0;

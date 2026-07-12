@@ -164,10 +164,8 @@ class LandingValidationGrid {
     question.className = 'lvg-card-question';
     // The translations deliberately contain <b> emphasis around the label-type name; they're our own locale files.
     question.innerHTML = i18next.t(`validate:top-ui.title.${typeKebab}`);
-    // The (i) lives inside the question span so it flows inline right after the closing "?", wherever the
-    // question happens to wrap; the share chip sits at the row's end.
-    question.appendChild(this.#buildInfoTip(label, typeKebab));
     questionRow.appendChild(question);
+    this.#attachTypeTooltip(questionRow, question, label, typeKebab);
     questionRow.appendChild(this.#buildShareChip(label, typeKebab));
     body.appendChild(questionRow);
 
@@ -237,42 +235,42 @@ class LandingValidationGrid {
   }
 
   /**
-   * Builds the "what is this label type?" info affordance: a small circled-i button that reveals the label type's
-   * one-line explanation (the Explore tutorial's intro copy, already translated in every locale).
+   * Turns the question's bolded label-type name into the "what is this?" trigger: dotted-underlined and focusable,
+   * revealing the type's one-line explanation (the Explore tutorial's intro copy, already translated in every
+   * locale). Piggybacking on the term itself keeps the card free of extra controls.
    *
-   * Follows the accessible tooltip pattern: shown on hover and on keyboard focus, click-to-pin for touch users,
-   * dismissable with Escape (WCAG 1.4.13). The tooltip sits flush above the button so a pointer can travel onto
-   * it without it closing.
+   * Accessible tooltip pattern: shown on hover and on keyboard focus, click/tap-to-pin for touch users,
+   * dismissable with Escape (WCAG 1.4.13). Hover-hide runs on a grace delay because the pointer crosses plain
+   * question text between the (possibly wrapped) term and the tooltip spanning the top of the row.
    *
+   * @param {HTMLElement} row - The question row (the tooltip's positioning anchor).
+   * @param {HTMLElement} question - The question span whose <b> holds the label-type name.
    * @param {Object} label - The card's label from /label/labels.
    * @param {string} typeKebab - The label type in kebab-case (e.g. 'curb-ramp'), as used in locale keys.
-   * @returns {HTMLElement}
    */
-  #buildInfoTip(label, typeKebab) {
-    const wrap = document.createElement('span');
-    wrap.className = 'lvg-info';
-
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'lvg-info-btn';
-    button.textContent = 'i';
-    button.setAttribute('aria-label', i18next.t('common:label-type-info'));
-    button.setAttribute('aria-expanded', 'false');
-    button.setAttribute('aria-describedby', `lvg-info-tip-${label.label_id}`);
+  #attachTypeTooltip(row, question, label, typeKebab) {
+    const term = question.querySelector('b');
+    if (!term) return; // A translation without <b> emphasis just goes without the tooltip.
 
     const tip = document.createElement('span');
-    tip.className = 'lvg-info-tip';
-    tip.id = `lvg-info-tip-${label.label_id}`;
+    tip.className = 'lvg-type-tip';
+    tip.id = `lvg-type-tip-${label.label_id}`;
     tip.setAttribute('role', 'tooltip');
     tip.hidden = true;
     // Our own locale strings; they contain <b>/<br> markup by design.
     tip.innerHTML = i18next.t(`common:mission-start-tutorial.${typeKebab}.slide-1.description`);
+    row.appendChild(tip);
+
+    term.className = 'lvg-type-term';
+    term.tabIndex = 0;
+    term.setAttribute('aria-describedby', tip.id);
 
     let pinned = false;
     let logged = false;
+    let hideTimer;
     const show = () => {
+      clearTimeout(hideTimer);
       tip.hidden = false;
-      button.setAttribute('aria-expanded', 'true');
       if (!logged) {
         logged = true;
         window.logWebpageActivity(`Click_module=LandingValidationGridInfo_labelType=${label.label_type}`);
@@ -281,14 +279,19 @@ class LandingValidationGrid {
     const hide = () => {
       pinned = false;
       tip.hidden = true;
-      button.setAttribute('aria-expanded', 'false');
     };
-    button.addEventListener('mouseenter', show);
-    button.addEventListener('focus', show);
-    button.addEventListener('blur', () => {
+    const scheduleHide = () => {
+      if (!pinned && document.activeElement !== term) hideTimer = setTimeout(hide, 250);
+    };
+    term.addEventListener('mouseenter', show);
+    term.addEventListener('mouseleave', scheduleHide);
+    tip.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+    tip.addEventListener('mouseleave', scheduleHide);
+    term.addEventListener('focus', show);
+    term.addEventListener('blur', () => {
       if (!pinned) hide();
     });
-    button.addEventListener('click', () => {
+    term.addEventListener('click', () => {
       if (pinned) {
         hide();
       } else {
@@ -296,21 +299,9 @@ class LandingValidationGrid {
         show();
       }
     });
-    // Hide on a short grace delay rather than instantly: the (i) sits at the end of the (possibly wrapped)
-    // question text while the tooltip spans the top of the row, so the pointer may cross a small gap of plain
-    // text on its way up — the delay keeps that path valid (WCAG 1.4.13 "hoverable").
-    let hideTimer;
-    wrap.addEventListener('mouseenter', () => clearTimeout(hideTimer));
-    wrap.addEventListener('mouseleave', () => {
-      if (!pinned && document.activeElement !== button) hideTimer = setTimeout(hide, 250);
-    });
-    wrap.addEventListener('keydown', (e) => {
+    row.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !tip.hidden) hide();
     });
-
-    wrap.appendChild(button);
-    wrap.appendChild(tip);
-    return wrap;
   }
 
   /**
