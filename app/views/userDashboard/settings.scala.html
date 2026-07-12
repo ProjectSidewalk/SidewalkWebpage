@@ -41,6 +41,21 @@
     </div>
   </div>
 
+  <div class="api-section" id="settings-service-hours-section">
+    <h2 class="api-heading" id="service-hours">Volunteer service hours <a href="#service-hours" class="permalink">#</a></h2>
+    <div class="ud-form">
+      <label class="ud-check" for="set-community-service">
+        <input type="checkbox" id="set-community-service" @if(user.communityService){checked}>
+        <span class="ud-check-text">
+          <strong>Track my time for volunteer or community service hours</strong>
+          <span class="ud-field-help">Adds "Service hours" and "Time check" to your account menu so you can see your
+          logged time and how to report it.
+          <a href="@routes.ApplicationController.serviceHoursInstructions">How service hours work</a></span>
+        </span>
+      </label>
+    </div>
+  </div>
+
   <div class="api-section" id="settings-team-section">
     <h2 class="api-heading" id="team">Team <a href="#team" class="permalink">#</a></h2>
     <div class="ud-form">

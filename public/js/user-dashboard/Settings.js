@@ -1,6 +1,7 @@
 /**
  * Saves the User Dashboard Settings form (#4323) in one request: an optional username change plus the two privacy
- * flags and the user's team. Posts JSON to the settings save endpoint; CSRF is added by the global fetch wrapper.
+ * flags, the service-hours opt-in (#4375), and the user's team. Posts JSON to the settings save endpoint; CSRF is
+ * added by the global fetch wrapper.
  * A rejected username (taken, too short, disallowed characters, profanity) comes back as a 400 with a message that
  * is shown inline without applying the rest.
  */
@@ -31,6 +32,7 @@ class Settings {
       username,
       onLeaderboard: document.getElementById('set-on-leaderboard')?.checked ?? true,
       publicProfile: document.getElementById('set-public-profile')?.checked ?? true,
+      communityService: document.getElementById('set-community-service')?.checked ?? false,
       // Empty string = "No team"; send null so the server leaves any current team.
       teamId: teamVal === '' ? null : parseInt(teamVal, 10),
     };

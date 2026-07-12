@@ -395,8 +395,12 @@ class UserServiceImpl @Inject() (
    */
   def changeUsername(userId: String, newUsername: String): Future[Either[String, String]] = {
     val name = newUsername.trim
-    if (name.length < 3 || name.length > 30) Future.successful(Left("Username must be 3–30 characters."))
-    else if (!name.matches("^[A-Za-z0-9_-]+$"))
+    // Rules come from UsernamePolicy so rename and sign-up enforce the same contract (#4375).
+    if (name.length < forms.UsernamePolicy.minLength || name.length > forms.UsernamePolicy.maxLength)
+      Future.successful(
+        Left(s"Username must be ${forms.UsernamePolicy.minLength}–${forms.UsernamePolicy.maxLength} characters.")
+      )
+    else if (forms.UsernamePolicy.pattern.findFirstIn(name).isEmpty)
       Future.successful(Left("Use only letters, numbers, hyphens, and underscores."))
     else if (!ProfanityGuard.isClean(name))
       Future.successful(Left("That username isn't allowed — please choose another."))
