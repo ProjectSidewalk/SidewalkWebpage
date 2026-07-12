@@ -36,7 +36,8 @@ object GalleryFormats {
       severities: Option[Seq[String]],
       tags: Option[Seq[String]],
       aiValidationOptions: Option[Seq[String]],
-      loadedLabels: Seq[Int]
+      loadedLabels: Seq[Int],
+      sort: Option[String]
   )
 
   implicit val galleryEnvironmentSubmissionReads: Reads[GalleryEnvironmentSubmission] = (
@@ -72,6 +73,7 @@ object GalleryFormats {
       (JsPath \ "severities").readNullable[Seq[String]] and
       (JsPath \ "tags").readNullable[Seq[String]] and
       (JsPath \ "ai_validation_options").readNullable[Seq[String]] and
-      (JsPath \ "loaded_labels").read[Seq[Int]]
+      (JsPath \ "loaded_labels").read[Seq[Int]] and
+      (JsPath \ "sort").readNullable[String]
   )(GalleryLabelsRequest.apply _)
 }

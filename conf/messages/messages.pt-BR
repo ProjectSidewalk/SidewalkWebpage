@@ -106,6 +106,8 @@ landing.how.you.help.content = Explore virtualmente as ruas da cidade em {0} par
 landing.how.you.help.explore = EXPLORAR
 landing.how.you.help.find = ENCONTRAR PROBLEMAS
 landing.how.you.help.assess = AVALIAR A SEVERIDADE
+landing.validate.title = Valide o que outras pessoas encontraram
+landing.validate.content = Comece a ajudar em segundos: veja os rótulos recentes que voluntários colocaram em {0} e diga se estão corretos.
 landing.choropleth.title = Escolha um bairro
 landing.choropleth.content = Escolha um bairro para explorar abaixo ou clique no botão <a href="/explore">"Explorar"</a> e você receberá um bairro automaticamente!
 landing.choropleth.legend = Percentual do bairro concluído

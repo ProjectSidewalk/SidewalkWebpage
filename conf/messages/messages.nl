@@ -98,6 +98,8 @@ landing.how.you.help.content = Verken virtueel de straten van de stad in {0} om 
 landing.how.you.help.explore = VERKEN
 landing.how.you.help.find = ONTDEK PROBLEMEN
 landing.how.you.help.assess = BEOORDEEL DE ERNST
+landing.validate.title = Beoordeel wat anderen hebben gevonden
+landing.validate.content = Help binnen enkele seconden mee: bekijk recente labels die vrijwilligers in {0} hebben geplaatst en laat ons weten of ze kloppen.
 landing.choropleth.title = Selecteer een wijk
 landing.choropleth.content = Kies hieronder een buurt die je wilt verkennen, of klik op de knop <a href="/explore">''Verkennen''</a> en er wordt automatisch een buurt aan je toegewezen!
 landing.choropleth.legend = Procent van de wijk compleet

@@ -3,7 +3,7 @@ package models.utils
 object CommonUtils {
   val METERS_TO_MILES: Double = 0.000621371d
 
-  // NOTE need to update ui_source enum in postgres as well if changing this Enumeration.
+  // NOTE: if adding values here, also update the ui_source PostgreSQL enum (add via ALTER TYPE).
   object UiSource extends Enumeration {
     type UiSource = Value
     val Explore                         = Value("Explore")
@@ -24,6 +24,7 @@ object CommonUtils {
     val AdminLabelSearchTab             = Value("AdminLabelSearchTab")
     val SidewalkAI                      = Value("SidewalkAI")
     val ExternalTagValidationASSETS2024 = Value("ExternalTagValidationASSETS2024")
+    val LandingPage                     = Value("LandingPage")
     val OldDataUnknownSource            = Value("Old data, unknown source")
   }
 

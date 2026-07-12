@@ -10,7 +10,7 @@
 @newsRibbonLink = @{config.get[Option[String]]("custom.news.ribbon.link")}
 @streetCompletionRate = @{100 * auditedDistance / streetDistance}
 
-@common.main(commonData, title) {
+@common.main(commonData, title, i18Namespaces = Seq("common", "validate")) {
   @common.navbar(commonData, Some(user))
   <div id="vidbanner">
     <video playsinline autoplay muted loop controls poster='@assets.path("images/psmockup.jpg")' id="bgvid" class="visible-desktop">
@@ -88,6 +88,14 @@
           </video>
         </div>
       </div>
+    </div>
+
+    <div class="container" id="landing-validation-container" hidden>
+      <div class="section-title-and-subtitle">
+        <div class="row section-title" id="landing-validation-title">@Messages("landing.validate.title")</div>
+        <div class="row section-subtitle" id="landing-validation-subtitle">@Messages("landing.validate.content", currentCity.cityNameShort)</div>
+      </div>
+      <div id="landing-validation-grid" class="landing-validation-grid" aria-live="polite"></div>
     </div>
 
     <div id="landing-choropleth-container" class="container choropleth-container">
@@ -277,11 +285,17 @@
     <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
     <link href='@assets.path("css/choropleth.css")' rel="stylesheet">
     <link href='@assets.path("css/deployment-map.css")' rel="stylesheet">
+    <link href='@assets.path("css/landing-validation-grid.css")' rel="stylesheet">
     <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
+    <script src='@assets.path("js/common/utilitiesSidewalk.js")'></script>
+    <script src='@assets.path("js/LandingValidationGrid.js")'></script>
 
     <script>
       // Gets all translations before loading the maps.
       window.appManager.ready(function () {
+        // Set up the validation grid of recently-found labels. It lazy-loads once scrolled near.
+        new LandingValidationGrid(document.getElementById('landing-validation-container'));
+
         // Create the choropleth map.
         const choroplethParams = {
           mapName: 'landing-choropleth',
