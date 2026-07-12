@@ -358,3 +358,23 @@ cities.dashboard.cta.title = Breng Project Sidewalk naar uw stad!
 cities.dashboard.cta.content = Wilt u de toegankelijkheid in uw omgeving in kaart brengen? <br/> We zijn altijd op zoek naar nieuwe partners die ons kunnen helpen de toekomst van stedelijke toegankelijkheid te transformeren.
 cities.dashboard.cta.button = Leer hoe u kunt implementeren
 cities.dashboard.cta.logo.alt = Het logo van Project Sidewalk met de tekst projectsidewalk.org
+
+share.meta.title.issue = Ik heb een toegankelijkheidsprobleem gevonden op Project Sidewalk: {0}
+share.meta.title.feature = Kijk wat ik heb gevonden op Project Sidewalk: {0}
+share.meta.description.spotted = Gespot in {0}.
+share.meta.description.severity = Ernst: {0} van 3.
+share.meta.description.tags = Tags: {0}.
+share.meta.description.cta = Verken de kaart en help stoepen toegankelijk te maken voor iedereen.
+share.meta.image.alt = Straatfoto met de gemarkeerde locatie: {0}
+
+# Openbare spotlight-/deelpagina voor een enkel label (#456).
+sharedlabel.nearby.title = Labels in de buurt
+sharedlabel.nearby.caption = Een greep uit toegankelijkheidslabels in de buurt. Zie {0} voor de volledige kaart.
+sharedlabel.view.this.label = Bekijk dit label
+sharedlabel.engage.title = Help stoepen in {0} te beoordelen
+sharedlabel.engage.explore = Vind toegankelijkheidsproblemen in {0}
+sharedlabel.engage.validate = Valideer labels
+sharedlabel.stat.labels = labels
+sharedlabel.stat.validations = validaties
+sharedlabel.stat.miles = mijl verkend
+sharedlabel.legend.title = Wat deze labels betekenen

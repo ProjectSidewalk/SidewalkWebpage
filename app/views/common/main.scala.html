@@ -1,7 +1,7 @@
 @import play.api.Configuration
 @import service.CommonPageData
 @import play.filters.csrf.CSRF
-@(commonData: CommonPageData, title: String, defaultI18nNamespace: String = "common", i18Namespaces: Seq[String] = Seq("common"), url: String = "/"
+@(commonData: CommonPageData, title: String, defaultI18nNamespace: String = "common", i18Namespaces: Seq[String] = Seq("common"), url: String = "/", extraHead: Html = Html("")
 )(content: Html)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
@@ -19,6 +19,8 @@
     </script>
     <meta charset="utf-8">
     <title>@title</title>
+    @* Per-page <head> injection point, e.g. Open Graph / Twitter Card meta for social sharing (#456). *@
+    @extraHead
     <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
     <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
     <link rel="icon" type="image/png" href='@assets.path("images/favicon.png")'>

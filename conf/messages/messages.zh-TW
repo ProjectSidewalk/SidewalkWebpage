@@ -430,3 +430,23 @@ cities.dashboard.cta.title = 將 Project Sidewalk 帶到您的城市！
 cities.dashboard.cta.content = 有興趣繪製您所在社區的無障礙地圖嗎？ <br/>我們一直在尋找新的合作夥伴來幫助改變城市無障礙的未來。
 cities.dashboard.cta.button = 了解如何部署
 cities.dashboard.cta.logo.alt = Project Sidewalk 徽標，帶有文字 projectsidewalk.org
+
+share.meta.title.issue = 我在 Project Sidewalk 上發現了一個無障礙問題：{0}
+share.meta.title.feature = 看看我在 Project Sidewalk 上發現了什麼：{0}
+share.meta.description.spotted = 在 {0} 發現。
+share.meta.description.severity = 嚴重程度：{0}/3。
+share.meta.description.tags = 標籤：{0}。
+share.meta.description.cta = 探索地圖，一起讓人行道對所有人都更友善。
+share.meta.image.alt = 街景照片，已標記 {0} 的位置
+
+# 單一標記的公開展示/分享頁面 (#456)。
+sharedlabel.nearby.title = 附近的標記
+sharedlabel.nearby.caption = 附近無障礙標記的樣本。查看 {0} 以瀏覽完整地圖。
+sharedlabel.view.this.label = 檢視此標記
+sharedlabel.engage.title = 協助評估 {0} 的人行道
+sharedlabel.engage.explore = 在 {0} 尋找無障礙問題
+sharedlabel.engage.validate = 驗證標記
+sharedlabel.stat.labels = 個標記
+sharedlabel.stat.validations = 次驗證
+sharedlabel.stat.miles = 英里已探索
+sharedlabel.legend.title = 這些標記代表什麼

@@ -72,11 +72,12 @@ function createPSMap($, params) {
     return map;
   });
 
-  // Render the neighborhoods on the map if applicable.
+  // Render the neighborhoods on the map if applicable. The fetches are kept inside the guard so callers that omit
+  // these URLs (e.g. the shared-label minimap) don't fire a stray $.getJSON(undefined) at the current page.
   let renderNeighborhoods;
-  const loadNeighborhoods = $.getJSON(params.neighborhoodsURL);
-  const loadCompletionRates = $.getJSON(params.completionRatesURL);
   if (params.neighborhoodsURL && params.completionRatesURL) {
+    const loadNeighborhoods = $.getJSON(params.neighborhoodsURL);
+    const loadCompletionRates = $.getJSON(params.completionRatesURL);
     renderNeighborhoods = Promise.all([mapLoaded, loadNeighborhoods, loadCompletionRates]).then((data) => {
       addNeighborhoodsToMap(map, data[1], data[2], params);
     });

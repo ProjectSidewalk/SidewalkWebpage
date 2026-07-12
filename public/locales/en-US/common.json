@@ -8,5 +8,15 @@
     "distance-left": "Only {{n}} miles left!",
     "distance-left-one-unit": "Only 1 mile left!",
     "less-than-one-unit-left": "Less than a mile left!"
+  },
+  "share": {
+    "button": "Share",
+    "heading": "Share this label",
+    "text": "Check out this {{labelType}} on Project Sidewalk",
+    "copy-link": "Copy link",
+    "copied": "Copied!",
+    "on-x": "Share on X",
+    "on-facebook": "Share on Facebook",
+    "via-email": "Share via email"
   }
 }

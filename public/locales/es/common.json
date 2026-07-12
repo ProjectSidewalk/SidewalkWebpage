@@ -54,9 +54,8 @@
     "private-deployment": "Despliegue privado"
   },
   "errors": {
-    "title": "Vaya, es culpa nuestra, pero ya no hay imágenes disponibles para esta etiqueta.",
-    "explanation": "Estamos teniendo problemas para acceder al sitio que proporciona esta imagen, o la imagen ha sido eliminada.",
-    "explore-street": "¡Explora la calle</a> nuevamente para usar imágenes más nuevas!"
+    "title": "Las imágenes de esta etiqueta ya no están disponibles.",
+    "explore-street": "Explorar la calle"
   },
   "severity": "Calificación ",
   "quality": "Calidad",
@@ -310,5 +309,15 @@
         "description": "Este semáforo es solo para vehículos, no para peatones."
       }
     }
+  },
+  "share": {
+    "button": "Compartir",
+    "heading": "Compartir esta etiqueta",
+    "text": "Mira esta {{labelType}} en Project Sidewalk",
+    "copy-link": "Copiar enlace",
+    "copied": "¡Copiado!",
+    "on-x": "Compartir en X",
+    "on-facebook": "Compartir en Facebook",
+    "via-email": "Compartir por correo electrónico"
   }
 }

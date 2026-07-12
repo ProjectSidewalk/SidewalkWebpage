@@ -110,27 +110,93 @@ dialog.label-detail[open]::backdrop {
 
 /* ─── Pano viewer ─────────────────────────────────────────────────────── */
 
-/* Wrap holds the pano + the hover-reveal validation overlay. The border doubles as the "selected validation"
-   indicator (transparent by default, colored when a vote is set). */
+/* Wrap holds the pano + the hover-reveal validation overlay, and clips both to the rounded corners. The ::after
+   ring is the "selected validation" indicator (invisible by default, colored when a vote is set) — an overlay
+   rather than a border so the image sits flush edge-to-edge and nothing shifts when the ring appears. */
 .label-detail__pano-wrap {
   position: relative;
   width: 100%;
-  border: 5px solid transparent;
-  border-radius: 6px;
+  border-radius: 8px;
+  overflow: hidden;
   margin-bottom: 10px;
+}
+
+.label-detail__pano-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  /* The GSV widget's internal layers carry small positive z-indexes that leak into this stacking context, so the
+     ring must sit above them (and above the z-index:1 hover overlay); the info popover stays higher at 10/11. */
+  z-index: 5;
+  border: 5px solid transparent;
+  border-radius: inherit;
+  pointer-events: none;
   transition: border-color 150ms ease;
 }
-.label-detail__pano-wrap.is-agree    { border-color: var(--color-pine-500); }
-.label-detail__pano-wrap.is-disagree { border-color: #eb734d; }
-.label-detail__pano-wrap.is-unsure   { border-color: var(--color-asphalt-100); }
+.label-detail__pano-wrap.is-agree::after    { border-color: var(--color-pine-500); }
+.label-detail__pano-wrap.is-disagree::after { border-color: #eb734d; }
+.label-detail__pano-wrap.is-unsure::after   { border-color: var(--color-asphalt-100); }
 
 .label-detail__pano {
   position: relative;
   width: 100%;
   aspect-ratio: 720 / 480;
   background: #e9e9e9;
-  border-radius: 2px;
   overflow: hidden;
+}
+
+/* No-imagery / expired-label panel (#4483): shown by PopupPanoManager when a pano fails to load and there is no crop
+   fallback. Absolutely fills svHolder (kept position:relative in JS) and centers a branded logo, one concise message,
+   and a button CTA. Shared by every LabelDetail surface (Gallery expanded, LabelMap popup, Admin, share page). */
+.pano-not-avail {
+  position: absolute;
+  inset: 0;
+  display: none; /* PopupPanoManager toggles this to flex */
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 200px; /* floor so the panel is visible even if svHolder momentarily has no resolved height */
+  padding: 24px;
+  background: var(--color-asphalt-100);
+  text-align: center;
+}
+
+.pano-not-avail__logo {
+  width: 64px;
+  height: 64px;
+}
+
+.pano-not-avail__msg {
+  max-width: 480px; /* wide enough to keep the message on one line on a full-size pano; wraps on narrow surfaces */
+  margin: 0;
+  font-weight: 600;
+  font-size: 18px;
+  font-family: Raleway, sans-serif;
+  color: var(--color-neutral-black);
+}
+
+.pano-not-avail__cta {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 9px 22px;
+  border-radius: 999px;
+  background: var(--color-pine-500);
+  color: var(--color-neutral-black);
+  font-weight: 600;
+  font-size: 15px;
+  font-family: Raleway, sans-serif;
+  text-decoration: none;
+  transition: opacity 120ms ease;
+}
+
+.pano-not-avail__cta:hover { opacity: 0.9; }
+
+.pano-not-avail__cta:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
 }
 
 /* Hover-reveal validation buttons at bottom of pano. Modeled after Gallery's old expanded-view validation buttons. */
@@ -554,4 +620,112 @@ dialog.label-detail[open]::backdrop {
   flex: 1 1 0;
   min-width: 0;
   margin-bottom: 0;
+}
+
+/* ─── Share control (#456) ────────────────────────────────────────────────
+   Subtle, YouTube-style share button anchored bottom-right, with an accessible popover. */
+.label-detail__footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+/* Anchor for the absolutely-positioned popover. */
+.label-detail__share {
+  position: relative;
+}
+
+.label-detail__share-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-800);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 18px;
+  font: var(--text-small-medium);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.label-detail__share-trigger:hover {
+  background: var(--color-neutral-200);
+  border-color: var(--color-neutral-400);
+}
+
+.label-detail__share-trigger:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+}
+
+.label-detail__share-trigger svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Popover: opens above the trigger, right-aligned. */
+.label-detail__share-popover {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 10;
+  min-width: 200px;
+  padding: 6px;
+  background: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 18%);
+}
+
+.label-detail__share-popover[hidden] {
+  display: none;
+}
+
+.label-detail__share-heading {
+  margin: 4px 8px 6px;
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-700);
+}
+
+.label-detail__share-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  font: var(--text-small-medium);
+  color: var(--color-neutral-900);
+  text-align: left;
+  cursor: pointer;
+}
+
+.label-detail__share-item:hover {
+  background: var(--color-neutral-100);
+}
+
+.label-detail__share-item:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: -2px;
+}
+
+.label-detail__share-item.is-copied {
+  color: var(--color-success-200);
+}
+
+.label-detail__share-item-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-neutral-700);
+}
+
+.label-detail__share-item.is-copied .label-detail__share-item-icon {
+  color: var(--color-success-200);
+}
+
+.label-detail__share-item-icon svg {
+  display: block;
 }

@@ -27,6 +27,7 @@ module.exports = function (grunt) {
           // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
           'public/js/common/label-detail/PopupPanoManager.js',
           'public/js/common/label-detail/LabelDetail.js',
+          'public/js/common/share/ShareWidget.js',
           'public/js/common/label-detail/LabelPopup.js',
           'public/js/validate/src/util/*.js',
           'public/js/common/PanoMarker.js',
@@ -48,6 +49,7 @@ module.exports = function (grunt) {
           // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
           'public/js/common/label-detail/PopupPanoManager.js',
           'public/js/common/label-detail/LabelDetail.js',
+          'public/js/common/share/ShareWidget.js',
           'public/js/common/label-detail/LabelPopup.js',
           'public/js/common/utilitiesSidewalk.js',
           'public/js/common/PanoMarker.js',
@@ -95,6 +97,7 @@ module.exports = function (grunt) {
           // PopupPanoManager and LabelDetail must be concatenated before ExpandedView.
           'public/js/common/label-detail/PopupPanoManager.js',
           'public/js/common/label-detail/LabelDetail.js',
+          'public/js/common/share/ShareWidget.js',
           'public/js/gallery/src/cards/*.js',
           'public/js/gallery/src/data/*.js',
           'public/js/gallery/src/filter/*.js',
@@ -113,6 +116,23 @@ module.exports = function (grunt) {
           'public/js/ps-map/*.js',
         ],
         dest: 'public/js/ps-map/build/ps-map.js'
+      },
+      dist_shared_label: {
+        src: [
+          // The shared LabelDetail component + its deps (same set the Gallery bundle pulls in), plus the
+          // SharedLabel app. The pano-viewer classes and ps-map load from their own bundles (script tags).
+          'public/js/common/aiLabelIndicator.js',
+          // Toast must precede BadgeAchievements, which builds badge-unlock toasts.
+          'public/js/common/Toast.js',
+          'public/js/common/BadgeAchievements.js',
+          'public/js/common/PanoMarker.js',
+          // PopupPanoManager + LabelDetail must precede anything that uses them.
+          'public/js/common/label-detail/PopupPanoManager.js',
+          'public/js/common/label-detail/LabelDetail.js',
+          'public/js/common/share/ShareWidget.js',
+          'public/js/shared-label/*.js'
+        ],
+        dest: 'public/js/shared-label/build/shared-label.js'
       },
       dist_pano_viewer: {
         src: [
@@ -179,6 +199,7 @@ module.exports = function (grunt) {
           'public/js/gallery/src/**/*.js',
           'public/css/gallery/*.css',
           'public/js/ps-map/*.js',
+          'public/js/shared-label/*.js',
           'public/css/common/*.css'
         ],
         tasks: [

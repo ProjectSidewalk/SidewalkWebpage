@@ -367,3 +367,23 @@ cities.dashboard.cta.title = Bring Project Sidewalk to Your City!
 cities.dashboard.cta.content = Interested in mapping accessibility in your community? <br/> We're always looking for new partners to help transform the future of urban accessibility.
 cities.dashboard.cta.button = Learn How to Deploy
 cities.dashboard.cta.logo.alt = The Project Sidewalk logo with text saying projectsidewalk.org
+
+share.meta.title.issue = I found an accessibility issue on Project Sidewalk: {0}
+share.meta.title.feature = Look what I found on Project Sidewalk: {0}
+share.meta.description.spotted = Spotted in {0}.
+share.meta.description.severity = Severity: {0} of 3.
+share.meta.description.tags = Tagged: {0}.
+share.meta.description.cta = Explore the map and help make sidewalks accessible for everyone.
+share.meta.image.alt = Street-level photo with the {0} location marked
+
+# Public single-label spotlight / share page (#456).
+sharedlabel.nearby.title = Nearby labels
+sharedlabel.nearby.caption = A sample of accessibility labels nearby. See {0} for the full map.
+sharedlabel.view.this.label = View this label
+sharedlabel.engage.title = Help assess sidewalks in {0}
+sharedlabel.engage.explore = Find accessibility problems in {0}
+sharedlabel.engage.validate = Validate labels
+sharedlabel.stat.labels = labels
+sharedlabel.stat.validations = validations
+sharedlabel.stat.miles = miles explored
+sharedlabel.legend.title = What these labels mean
