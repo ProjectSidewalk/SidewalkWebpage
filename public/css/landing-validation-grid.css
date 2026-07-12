@@ -66,9 +66,65 @@
   padding: 12px;
 }
 
+.lvg-card-question-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .lvg-card-question {
   font: var(--text-body-regular, 400 16px/22px sans-serif);
   color: var(--color-asphalt-500, #2d2a3f);
+}
+
+/* "What is this label type?" affordance: a small ? button revealing the type's one-line explanation. */
+.lvg-info {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.lvg-info-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  font: var(--text-small-bold, 700 13px/18px sans-serif);
+  color: var(--color-asphalt-400, #424055);
+  background: transparent;
+  border: 1px solid var(--color-asphalt-300, #615e78);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.lvg-info-btn:hover,
+.lvg-info-btn[aria-expanded="true"] {
+  color: var(--color-neutral-white, #ffffff);
+  background: var(--color-asphalt-400, #424055);
+}
+
+.lvg-info-btn:focus-visible {
+  outline: 2px solid var(--color-link-200, #0f5faf);
+  outline-offset: 2px;
+}
+
+/* Flush above the button (no gap) so a pointer can travel from button to tooltip without it closing
+   (WCAG 1.4.13 "hoverable"). Anchored to the card's right edge, it grows leftward/upward over the image,
+   staying inside the card so overflow: hidden can't clip it. */
+.lvg-info-tip {
+  position: absolute;
+  right: -2px;
+  bottom: 100%;
+  z-index: 2;
+  width: 260px;
+  max-height: 190px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  font: var(--text-small-regular, 400 13px/18px sans-serif);
+  color: var(--color-neutral-white, #ffffff);
+  background: var(--color-asphalt-500, #2d2a3f);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
 }
 
 .lvg-card-thanks {
@@ -102,23 +158,33 @@
   opacity: 0.6;
 }
 
-/* Per-choice hover tints use the darker pine/orange ramps rather than --color-success/error-200, which don't have
-   enough contrast against white for text. */
-.lvg-btn-agree:hover:not(:disabled) {
-  background: var(--color-pine-100, #e4f4ee);
+/* Rest-state fills borrow the Gallery card's validation-button palette (pine/orange/asphalt) so the two label-card
+   UIs read as one family. Dark asphalt text keeps ≥4.5:1 contrast on all three fills; hovers shift one shade. */
+.lvg-btn-agree {
+  background: var(--color-pine-500, #78c9ab);
   border-color: var(--color-pine-600, #60a189);
-  color: var(--color-pine-800, #305044);
+}
+
+.lvg-btn-agree:hover:not(:disabled) {
+  background: var(--color-pine-400, #93d4bc);
+}
+
+.lvg-btn-disagree {
+  background: var(--color-orange-500, #eb724e);
+  border-color: var(--color-orange-600, #a74d32);
 }
 
 .lvg-btn-disagree:hover:not(:disabled) {
-  background: var(--color-orange-100, #fdede8);
-  border-color: var(--color-orange-600, #a74d32);
-  color: var(--color-orange-800, #5e2e1f);
+  background: var(--color-orange-400, #f29173);
+}
+
+.lvg-btn-unsure {
+  background: var(--color-asphalt-100, #d5d3e4);
+  border-color: var(--color-asphalt-200, #9f9db1);
 }
 
 .lvg-btn-unsure:hover:not(:disabled) {
   background: var(--color-neutral-100, #f0f0f0);
-  border-color: var(--color-neutral-600, #8f8f8f);
 }
 
 /* The vote the visitor just cast, held filled during the thanks state. */

@@ -154,11 +154,15 @@ class LandingValidationGrid {
 
     const body = document.createElement('figcaption');
     body.className = 'lvg-card-body';
+    const questionRow = document.createElement('div');
+    questionRow.className = 'lvg-card-question-row';
     const question = document.createElement('span');
     question.className = 'lvg-card-question';
     // The translations deliberately contain <b> emphasis around the label-type name; they're our own locale files.
     question.innerHTML = i18next.t(`validate:top-ui.title.${typeKebab}`);
-    body.appendChild(question);
+    questionRow.appendChild(question);
+    questionRow.appendChild(this.#buildInfoTip(label, typeKebab));
+    body.appendChild(questionRow);
 
     const actions = document.createElement('div');
     actions.className = 'lvg-card-actions';
@@ -174,6 +178,78 @@ class LandingValidationGrid {
     body.appendChild(actions);
     card.appendChild(body);
     return card;
+  }
+
+  /**
+   * Builds the "what is this label type?" info affordance: a small ? button that reveals the label type's
+   * one-line explanation (the Explore tutorial's intro copy, already translated in every locale).
+   *
+   * Follows the accessible tooltip pattern: shown on hover and on keyboard focus, click-to-pin for touch users,
+   * dismissable with Escape (WCAG 1.4.13). The tooltip sits flush above the button so a pointer can travel onto
+   * it without it closing.
+   *
+   * @param {Object} label - The card's label from /label/labels.
+   * @param {string} typeKebab - The label type in kebab-case (e.g. 'curb-ramp'), as used in locale keys.
+   * @returns {HTMLElement}
+   */
+  #buildInfoTip(label, typeKebab) {
+    const wrap = document.createElement('span');
+    wrap.className = 'lvg-info';
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'lvg-info-btn';
+    button.textContent = '?';
+    button.setAttribute('aria-label', i18next.t('common:label-type-info'));
+    button.setAttribute('aria-expanded', 'false');
+    button.setAttribute('aria-describedby', `lvg-info-tip-${label.label_id}`);
+
+    const tip = document.createElement('span');
+    tip.className = 'lvg-info-tip';
+    tip.id = `lvg-info-tip-${label.label_id}`;
+    tip.setAttribute('role', 'tooltip');
+    tip.hidden = true;
+    // Our own locale strings; they contain <b>/<br> markup by design.
+    tip.innerHTML = i18next.t(`common:mission-start-tutorial.${typeKebab}.slide-1.description`);
+
+    let pinned = false;
+    let logged = false;
+    const show = () => {
+      tip.hidden = false;
+      button.setAttribute('aria-expanded', 'true');
+      if (!logged) {
+        logged = true;
+        window.logWebpageActivity(`Click_module=LandingValidationGridInfo_labelType=${label.label_type}`);
+      }
+    };
+    const hide = () => {
+      pinned = false;
+      tip.hidden = true;
+      button.setAttribute('aria-expanded', 'false');
+    };
+    button.addEventListener('mouseenter', show);
+    button.addEventListener('focus', show);
+    button.addEventListener('blur', () => {
+      if (!pinned) hide();
+    });
+    button.addEventListener('click', () => {
+      if (pinned) {
+        hide();
+      } else {
+        pinned = true;
+        show();
+      }
+    });
+    wrap.addEventListener('mouseleave', () => {
+      if (!pinned && document.activeElement !== button) hide();
+    });
+    wrap.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !tip.hidden) hide();
+    });
+
+    wrap.appendChild(button);
+    wrap.appendChild(tip);
+    return wrap;
   }
 
   /**
@@ -231,7 +307,7 @@ class LandingValidationGrid {
       const thanks = document.createElement('span');
       thanks.className = 'lvg-card-thanks';
       thanks.textContent = i18next.t('common:map.thanks');
-      card.querySelector('.lvg-card-question').replaceWith(thanks);
+      card.querySelector('.lvg-card-question-row').replaceWith(thanks);
       setTimeout(() => this.#replaceCard(card), LandingValidationGrid.#THANKS_MS);
     } catch (e) {
       console.error('Failed to submit validation', e);
