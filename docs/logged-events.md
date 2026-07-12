@@ -58,8 +58,9 @@ Follow these when adding a page or action. The landing page's validation grid lo
 this marks the grid actually being seen, not just the page view) and
 `Click_module=LandingValidationGrid_result=<Agree|Disagree|Unsure>_labelId=<id>` per vote; the vote itself lands in
 `label_validation` with `source = 'LandingPage'`. Opening a card's "what is this label type?" tooltip logs
-`Click_module=LandingValidationGridInfo_labelType=<type>`, once per card. The current set lives in the code — grep the
-controllers:
+`Click_module=LandingValidationGridInfo_labelType=<type>`, once per card. Clicking a card's share chip logs
+`Click_module=LandingValidationGridShare_labelId=<id>` (surface + label attribution) alongside ShareWidget's own
+generic `Share_*` events. The current set lives in the code — grep the controllers:
 
 ```bash
 grep -rhoE 'loggingService\.insert\([^)]*"[^"]+"' app/controllers | grep -oE '"[^"]+"$' | sort -u

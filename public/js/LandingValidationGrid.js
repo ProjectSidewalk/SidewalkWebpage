@@ -166,6 +166,7 @@ class LandingValidationGrid {
     question.innerHTML = i18next.t(`validate:top-ui.title.${typeKebab}`);
     questionRow.appendChild(question);
     questionRow.appendChild(this.#buildInfoTip(label, typeKebab));
+    questionRow.appendChild(this.#buildShareChip(label, typeKebab));
     body.appendChild(questionRow);
 
     const actions = document.createElement('div');
@@ -185,7 +186,56 @@ class LandingValidationGrid {
   }
 
   /**
-   * Builds the "what is this label type?" info affordance: a small ? button that reveals the label type's
+   * Builds the card's share chip: the same pill + popover the label-detail popup uses (ShareWidget, #456), pointed
+   * at this label's public /label/:id spotlight page — so a visitor who spots something zany or particularly
+   * problematic can pass it along, straight from the landing page.
+   *
+   * @param {Object} label - The card's label from /label/labels.
+   * @param {string} typeKebab - The label type in kebab-case (e.g. 'curb-ramp'), as used in locale keys.
+   * @returns {HTMLElement}
+   */
+  #buildShareChip(label, typeKebab) {
+    // .label-detail__share supplies the popover's positioning anchor; .lvg-share pushes the chip to the row's end.
+    const wrap = document.createElement('span');
+    wrap.className = 'label-detail__share lvg-share';
+    if (typeof ShareWidget === 'undefined') return wrap; // Grid still works if the share script failed to load.
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'label-detail__share-trigger';
+    trigger.setAttribute('aria-label', i18next.t('common:share.button'));
+    // Same share glyph as the label-detail popup's trigger (labelDetail.scala.html).
+    trigger.innerHTML = `
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="18" cy="5" r="3"/>
+        <circle cx="6" cy="12" r="3"/>
+        <circle cx="18" cy="19" r="3"/>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+      </svg>`;
+    const chipLabel = document.createElement('span');
+    chipLabel.className = 'label-detail__share-trigger-label';
+    chipLabel.textContent = i18next.t('common:share.button');
+    trigger.appendChild(chipLabel);
+    wrap.appendChild(trigger);
+
+    // Surface + label attribution for analytics; ShareWidget logs its own generic Share_* events on top.
+    trigger.addEventListener('click', () => {
+      window.logWebpageActivity(`Click_module=LandingValidationGridShare_labelId=${label.label_id}`);
+    });
+
+    const widget = new ShareWidget(trigger, { host: wrap });
+    widget.setTarget({
+      url: `${window.location.origin}/label/${label.label_id}`,
+      title: i18next.t('common:share.button'),
+      text: i18next.t('common:share.text', { labelType: i18next.t(`common:${typeKebab}`) }),
+    });
+    return wrap;
+  }
+
+  /**
+   * Builds the "what is this label type?" info affordance: a small circled-i button that reveals the label type's
    * one-line explanation (the Explore tutorial's intro copy, already translated in every locale).
    *
    * Follows the accessible tooltip pattern: shown on hover and on keyboard focus, click-to-pin for touch users,
@@ -203,7 +253,7 @@ class LandingValidationGrid {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'lvg-info-btn';
-    button.textContent = '?';
+    button.textContent = 'i';
     button.setAttribute('aria-label', i18next.t('common:label-type-info'));
     button.setAttribute('aria-expanded', 'false');
     button.setAttribute('aria-describedby', `lvg-info-tip-${label.label_id}`);

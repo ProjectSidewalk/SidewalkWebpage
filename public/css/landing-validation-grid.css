@@ -75,11 +75,12 @@
   padding: 12px;
 }
 
+/* Question + inline (i) on the left, share chip pushed to the row's end. Also the tooltip's positioning anchor. */
 .lvg-card-question-row {
+  position: relative;
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
 }
 
 .lvg-card-question {
@@ -87,10 +88,15 @@
   color: var(--color-asphalt-500, #2d2a3f);
 }
 
-/* "What is this label type?" affordance: a small ? button revealing the type's one-line explanation. */
+/* "What is this label type?" affordance: a small circled-i button revealing the type's one-line explanation. */
 .lvg-info {
-  position: relative;
   display: inline-flex;
+  flex-shrink: 0;
+}
+
+/* The share chip reuses .label-detail__share(-trigger) from label-detail.css for the shared pill + popover look. */
+.lvg-share {
+  margin-left: auto;
   flex-shrink: 0;
 }
 
@@ -117,15 +123,15 @@
   outline-offset: 2px;
 }
 
-/* Flush above the button (no gap) so a pointer can travel from button to tooltip without it closing
-   (WCAG 1.4.13 "hoverable"). Anchored to the card's right edge, it grows leftward/upward over the image,
-   staying inside the card so overflow: hidden can't clip it. */
+/* Spans the question row, flush above it (no gap) so a pointer can travel from the (i) button straight up into
+   the tooltip without it closing (WCAG 1.4.13 "hoverable"). Growing upward over the image keeps it inside the
+   card so overflow: hidden can't clip it. */
 .lvg-info-tip {
   position: absolute;
-  right: -2px;
+  left: 0;
+  right: 0;
   bottom: 100%;
   z-index: 2;
-  width: 260px;
   max-height: 190px;
   overflow-y: auto;
   padding: 10px 12px;
