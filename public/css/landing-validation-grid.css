@@ -158,33 +158,22 @@
   opacity: 0.6;
 }
 
-/* Rest-state fills borrow the Gallery card's validation-button palette (pine/orange/asphalt) so the two label-card
-   UIs read as one family. Dark asphalt text keeps ≥4.5:1 contrast on all three fills; hovers shift one shade. */
-.lvg-btn-agree {
+/* White at rest so six cards' buttons don't compete with the photos; hovering fills with the Gallery card's
+   validation palette (pine/orange/asphalt) so the two label-card UIs read as one family at the moment of action.
+   Dark asphalt text keeps ≥4.5:1 contrast on all three hover fills. */
+.lvg-btn-agree:hover:not(:disabled) {
   background: var(--color-pine-500, #78c9ab);
   border-color: var(--color-pine-600, #60a189);
 }
 
-.lvg-btn-agree:hover:not(:disabled) {
-  background: var(--color-pine-400, #93d4bc);
-}
-
-.lvg-btn-disagree {
+.lvg-btn-disagree:hover:not(:disabled) {
   background: var(--color-orange-500, #eb724e);
   border-color: var(--color-orange-600, #a74d32);
 }
 
-.lvg-btn-disagree:hover:not(:disabled) {
-  background: var(--color-orange-400, #f29173);
-}
-
-.lvg-btn-unsure {
+.lvg-btn-unsure:hover:not(:disabled) {
   background: var(--color-asphalt-100, #d5d3e4);
   border-color: var(--color-asphalt-200, #9f9db1);
-}
-
-.lvg-btn-unsure:hover:not(:disabled) {
-  background: var(--color-neutral-100, #f0f0f0);
 }
 
 /* The vote the visitor just cast, held filled during the thanks state. */
