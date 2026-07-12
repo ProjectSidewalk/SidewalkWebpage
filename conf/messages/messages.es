@@ -373,3 +373,23 @@ cities.dashboard.cta.title = ¡Trae Project Sidewalk a tu ciudad!
 cities.dashboard.cta.content = ¿Está interesado en mapear la accesibilidad en su comunidad? <br/> Siempre estamos buscando nuevos socios para ayudar a transformar el futuro de la accesibilidad urbana.
 cities.dashboard.cta.button = Aprenda a implementar
 cities.dashboard.cta.logo.alt = El logotipo de Project Sidewalk con el texto projectsidewalk.org
+
+share.meta.title.issue = Encontré un problema de accesibilidad en Project Sidewalk: {0}
+share.meta.title.feature = Mira lo que encontré en Project Sidewalk: {0}
+share.meta.description.spotted = Detectado en {0}.
+share.meta.description.severity = Gravedad: {0} de 3.
+share.meta.description.tags = Etiquetas: {0}.
+share.meta.description.cta = Explora el mapa y ayuda a hacer las aceras accesibles para todos.
+share.meta.image.alt = Foto a nivel de calle con la ubicación marcada: {0}
+
+# Página pública de detalle/compartir de una sola etiqueta (#456).
+sharedlabel.nearby.title = Etiquetas cercanas
+sharedlabel.nearby.caption = Una muestra de etiquetas de accesibilidad cercanas. Consulta {0} para ver el mapa completo.
+sharedlabel.view.this.label = Ver esta etiqueta
+sharedlabel.engage.title = Ayuda a evaluar las aceras en {0}
+sharedlabel.engage.explore = Encuentra problemas de accesibilidad en {0}
+sharedlabel.engage.validate = Validar etiquetas
+sharedlabel.stat.labels = etiquetas
+sharedlabel.stat.validations = validaciones
+sharedlabel.stat.miles = millas exploradas
+sharedlabel.legend.title = Qué significan estas etiquetas

@@ -22,8 +22,6 @@ class PopupPanoManager {
   #panoCanvas;
   #pannellumCanvas;
   #panoNotAvailable;
-  #panoNotAvailableDetails;
-  #panoNotAvailableAuditSuggestion;
   #fallbackContainer;
   #fallbackPanzoomWrap;
   #fallbackImage;
@@ -96,23 +94,15 @@ class PopupPanoManager {
     // instance when we hit an expired pano that has a self-hosted copy.
     this.#pannellumCanvas = $('<div id=\'pano-pannellum\'>').css({ width: '100%', height: '100%', display: 'none' })[0];
 
-    this.#panoNotAvailable = $(`<div id='pano-not-avail'>${i18next.t('common:errors.title')}</div>`).css({
-      'font-size': '200%',
-      'padding-bottom': '15px',
-    })[0];
-
-    this.#panoNotAvailableDetails
-            = $(`<div id='pano-not-avail-2'>${i18next.t('common:errors.explanation')}</div>`).css({
-        'font-size': '85%',
-        'padding-bottom': '15px',
-      })[0];
-
-    this.#panoNotAvailableAuditSuggestion = $(
-      `<div id="pano-not-avail-audit"><a id="explore-street">${i18next.t('common:errors.explore-street')}</div>`,
-    ).css({
-      'font-size': '85%',
-      'padding-bottom': '15px',
-    })[0];
+    // No-imagery / expired-label panel (#4483): a branded logo, one concise line, and a button CTA. Absolutely fills
+    // svHolder (kept position:relative above) and centers its content; styled via .pano-not-avail in label-detail.css.
+    this.#panoNotAvailable = $(`<div id="pano-not-avail" class="pano-not-avail">
+        <img class="pano-not-avail__logo" alt=""
+             src="/assets/images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_100x100.png">
+        <p class="pano-not-avail__msg">${i18next.t('common:errors.title')}</p>
+        <a id="explore-street" class="pano-not-avail__cta"
+           href="#">${i18next.t('common:errors.explore-street')}<span aria-hidden="true">→</span></a>
+      </div>`)[0];
 
     this.#fallbackContainer = $('<div id="pano-fallback-container">').css({
       position: 'relative',
@@ -150,8 +140,6 @@ class PopupPanoManager {
     this.svHolder.append($(this.#pannellumCanvas));
     this.svHolder.append($(this.#fallbackContainer));
     this.svHolder.append($(this.#panoNotAvailable));
-    this.svHolder.append($(this.#panoNotAvailableDetails));
-    this.svHolder.append($(this.#panoNotAvailableAuditSuggestion));
 
     // Initialize panzoom on the wrapper.
     this.#fallbackPanzoom = panzoom(this.#fallbackPanzoomWrap, {
@@ -293,8 +281,6 @@ class PopupPanoManager {
     $(this.#panoCanvas).css('display', 'none');
     $(this.#fallbackContainer).css('display', 'none');
     $(this.#panoNotAvailable).css('display', 'none');
-    $(this.#panoNotAvailableDetails).css('display', 'none');
-    $(this.#panoNotAvailableAuditSuggestion).css('display', 'none');
     this.#buttonHolder.css('display', '');
     $(this.#pannellumCanvas).css('display', 'block');
 
@@ -325,8 +311,6 @@ class PopupPanoManager {
     $(this.#panoCanvas).css('display', 'block');
     $(this.#fallbackContainer).css('display', 'none');
     $(this.#panoNotAvailable).css('display', 'none');
-    $(this.#panoNotAvailableDetails).css('display', 'none');
-    $(this.#panoNotAvailableAuditSuggestion).css('display', 'none');
     this.#buttonHolder.css('display', '');
 
     // There is a bug that can sometimes cause Google's panos to go black when you load a new one. We can deal with
@@ -360,17 +344,14 @@ class PopupPanoManager {
         $(this.#fallbackMarker).css('display', 'none');
       }
       $(this.#panoNotAvailable).css('display', 'none');
-      $(this.#panoNotAvailableDetails).css('display', 'none');
-      $(this.#panoNotAvailableAuditSuggestion).css('display', 'none');
       this.#buttonHolder.css('display', '');
     } else {
+      // Clear any inline height the failed viewer left on svHolder so its CSS (aspect-ratio) height returns; the
+      // absolute-positioned .pano-not-avail panel fills that box.
       this.svHolder.css('height', '');
       $(this.#fallbackContainer).css('display', 'none');
-      $(this.#panoNotAvailable).text(i18next.t('common:errors.title'));
-      $(this.#panoNotAvailable).css('display', 'block');
-      $(this.#panoNotAvailableDetails).css('display', 'block');
       if (this.label) $('#explore-street').attr('href', `/explore?streetEdgeId=${this.label.streetEdgeId}`);
-      $(this.#panoNotAvailableAuditSuggestion).css('display', 'block');
+      $(this.#panoNotAvailable).css('display', 'flex');
       this.#buttonHolder.css('display', 'none');
     }
     return Promise.resolve();

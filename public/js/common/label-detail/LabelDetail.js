@@ -39,6 +39,7 @@ class LabelDetail {
   #aiValidation;
   #comments;
   #myCommentIdx;
+  #shareWidget;
 
   /**
    * @param {HTMLElement} root - The host element containing the labelDetail markup (see labelDetail.scala.html).
@@ -109,9 +110,21 @@ class LabelDetail {
     );
 
     this.#initInfoPopover();
+    this.#initShareWidget();
 
     // Seed the all-time counts so a validation here can celebrate a newly unlocked validation badge.
     BadgeAchievements.seedCounts();
+  }
+
+  /**
+   * Instantiates the ShareWidget on the footer share button. The widget is built once and re-pointed at the current
+   * label in each #handleData() call via this.#shareWidget.setTarget().
+   */
+  #initShareWidget() {
+    const trigger = this.#q('.label-detail__share-trigger');
+    if (trigger && typeof ShareWidget !== 'undefined') {
+      this.#shareWidget = new ShareWidget(trigger);
+    }
   }
 
   /**
@@ -366,6 +379,16 @@ class LabelDetail {
     const labelTypeName = i18next.t(`common:${camelToKebab(meta.label_type)}`);
     els.title.textContent = labelTypeName;
 
+    // Point the share widget at this label's public permalink (#456). The /label/:id route renders the label
+    // spotlight page and serves the og:image crawlers embed in the share card.
+    if (this.#shareWidget) {
+      this.#shareWidget.setTarget({
+        url: `${window.location.origin}/label/${meta.label_id}`,
+        title: i18next.t('common:share.button'),
+        text: i18next.t('common:share.text', { labelType: labelTypeName }),
+      });
+    }
+
     // Severity faces.
     this.#renderSeverity(meta.severity, meta.label_type);
 
@@ -453,6 +476,33 @@ class LabelDetail {
   // ───────────────────────────────────────────────────────────────────
 
   /**
+   * POSTs JSON to a session-requiring endpoint, minting the shared anonymous session first if it's missing.
+   *
+   * The public spotlight page (#456) is reachable with no session at all, and SecuredAction answers a session-less
+   * POST by bouncing it through /anonSignUp — which mints the session but swallows the submission. So on a failed
+   * first attempt, mint the session explicitly (idempotent: signUpAnon just redirects when a session exists) and
+   * retry once. redirect: 'manual' keeps the mint cheap — the Set-Cookie on the redirect response is stored without
+   * fetching the page it points at. On every other surface a session always exists, so the retry never fires.
+   *
+   * @param {string} url - The endpoint to POST to.
+   * @param {object} data - The JSON-serializable request body.
+   * @returns {Promise<Response>} The first OK response, or the retry's response (which may itself not be OK).
+   */
+  async #postJson(url, data) {
+    const post = () => fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      body: JSON.stringify(data),
+    });
+    let res = await post();
+    if (!res.ok) {
+      await fetch('/anonSignUp?url=%2F', { redirect: 'manual' });
+      res = await post();
+    }
+    return res;
+  }
+
+  /**
    * POSTs a validation for the current label to /labelmap/validate, then updates the count and validation display.
    * Fires opts.onVote after a successful submission so hosts can sync upstream UI.
    * @param {'Agree'|'Disagree'|'Unsure'} action
@@ -493,11 +543,7 @@ class LabelDetail {
       viewer_type: this.panoManager.activeViewerName,
     };
 
-    fetch('/labelmap/validate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
-      body: JSON.stringify(data),
-    }).then((res) => {
+    this.#postJson('/labelmap/validate', data).then((res) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       this.#updateVoteCount(action);
       this.#highlightVote(action);
@@ -699,11 +745,7 @@ class LabelDetail {
       lng: pos.lng,
     };
 
-    fetch('/labelmap/comment', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
-      body: JSON.stringify(data),
-    }).then(async (res) => {
+    this.#postJson('/labelmap/comment', data).then(async (res) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const body = await res.json();
       els.commentInput.value = '';

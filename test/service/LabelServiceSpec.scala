@@ -69,7 +69,7 @@ class LabelServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
   }
 
-  "the ui_source enum (evolution 331)" should {
+  "the ui_source enum (evolution 332)" should {
     "include the LandingPage value" in {
       run(sql"SELECT 'LandingPage'::ui_source::text".as[String].head) mustBe "LandingPage"
     }

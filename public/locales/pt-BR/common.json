@@ -54,9 +54,8 @@
     "private-deployment": "Implementação Privada"
   },
   "errors": {
-    "title": "Ops, não há mais imagens disponíveis para este rótulo.",
-    "explanation": "Estamos tendo problemas para acessar o site que fornece esta imagem, ou a imagem foi removida.",
-    "explore-street": "Explore a rua</a> novamente para usar imagens mais recentes!"
+    "title": "As imagens deste rótulo não estão mais disponíveis.",
+    "explore-street": "Explorar a rua"
   },
   "severity": "Gravidade",
   "quality": "Qualidade",
@@ -310,5 +309,15 @@
         "description": "Este semáforo é apenas para veículos, não para pedestres."
       }
     }
+  },
+  "share": {
+    "button": "Compartilhar",
+    "heading": "Compartilhar este rótulo",
+    "text": "Veja este(a) {{labelType}} no Project Sidewalk",
+    "copy-link": "Copiar link",
+    "copied": "Copiado!",
+    "on-x": "Compartilhar no X",
+    "on-facebook": "Compartilhar no Facebook",
+    "via-email": "Compartilhar por e-mail"
   }
 }

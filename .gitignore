@@ -98,6 +98,7 @@ public/js/user-dashboard/build/*
 public/js/validate/build/*
 public/js/gallery/build/*
 public/js/ps-map/build/*
+public/js/shared-label/build/*
 public/js/common/pano-viewer/build/*
 download
 
@@ -122,6 +123,7 @@ htmlcov/
 # Local images.
 .panos/
 .crops/
+.share-images/
 
 # VSCode
 # Metals is a linter and code formatter for Scala

@@ -364,3 +364,23 @@ cities.dashboard.cta.title = Bringen Sie Project Sidewalk in Ihre Stadt!
 cities.dashboard.cta.content = Möchten Sie die Barrierefreiheit in Ihrer Gemeinde kartieren? <br/> Wir sind immer auf der Suche nach neuen Partnern, die uns dabei helfen, die Zukunft der städtischen Barrierefreiheit zu verändern.
 cities.dashboard.cta.button = Informationen zur Bereitstellung
 cities.dashboard.cta.logo.alt = Das Project Sidewalk-Logo mit dem Text projectsidewalk.org
+
+share.meta.title.issue = Ich habe ein Barrierefreiheitsproblem auf Project Sidewalk gefunden: {0}
+share.meta.title.feature = Sehen Sie, was ich auf Project Sidewalk gefunden habe: {0}
+share.meta.description.spotted = Entdeckt in {0}.
+share.meta.description.severity = Schweregrad: {0} von 3.
+share.meta.description.tags = Markiert mit: {0}.
+share.meta.description.cta = Erkunden Sie die Karte und helfen Sie mit, Gehwege für alle zugänglich zu machen.
+share.meta.image.alt = Straßenansicht mit markierter Position: {0}
+
+# Öffentliche Spotlight-/Teilen-Seite für ein einzelnes Label (#456).
+sharedlabel.nearby.title = Labels in der Nähe
+sharedlabel.nearby.caption = Eine Auswahl von Barrierefreiheits-Labels in der Nähe. Siehe {0} für die vollständige Karte.
+sharedlabel.view.this.label = Dieses Label ansehen
+sharedlabel.engage.title = Hilf mit, die Gehwege in {0} zu bewerten
+sharedlabel.engage.explore = Barrierefreiheitsprobleme in {0} finden
+sharedlabel.engage.validate = Labels validieren
+sharedlabel.stat.labels = Labels
+sharedlabel.stat.validations = Validierungen
+sharedlabel.stat.miles = Meilen erkundet
+sharedlabel.legend.title = Was diese Labels bedeuten

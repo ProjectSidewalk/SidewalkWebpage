@@ -25,6 +25,9 @@ object CommonUtils {
     val SidewalkAI                      = Value("SidewalkAI")
     val ExternalTagValidationASSETS2024 = Value("ExternalTagValidationASSETS2024")
     val LandingPage                     = Value("LandingPage")
+    val SharedLabel                     = Value("SharedLabel")
+    val SharedLabelImage                = Value("SharedLabelImage")
+    val SharedLabelThumbs               = Value("SharedLabelThumbs")
     val OldDataUnknownSource            = Value("Old data, unknown source")
   }
 
