@@ -1,7 +1,7 @@
 package controllers
 
 import controllers.base._
-import controllers.helper.ControllerUtils.parseIntegerSeq
+import controllers.helper.ControllerUtils.{isMobile, parseIntegerSeq}
 import formats.json.GalleryFormats._
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
@@ -43,50 +43,58 @@ class GalleryController @Inject() (
       aiValidationOptions: String
   ): Action[AnyContent] =
     cc.securityService.SecuredAction { implicit request =>
-      val labelTypes: Seq[(String, String)] = Seq(
-        ("Assorted", Messages("gallery.all")),
-        (LabelTypeEnum.CurbRamp.name, Messages("curb.ramp")),
-        (LabelTypeEnum.NoCurbRamp.name, Messages("missing.ramp")),
-        (LabelTypeEnum.Obstacle.name, Messages("obstacle")),
-        (LabelTypeEnum.SurfaceProblem.name, Messages("surface.problem")),
-        (LabelTypeEnum.Occlusion.name, Messages("occlusion")),
-        (LabelTypeEnum.NoSidewalk.name, Messages("no.sidewalk")),
-        (LabelTypeEnum.Crosswalk.name, Messages("crosswalk")),
-        (LabelTypeEnum.Signal.name, Messages("signal")),
-        (LabelTypeEnum.Other.name, Messages("other"))
-      )
-      val labType: String = if (labelTypes.exists(x => { x._1 == labelType })) labelType else "Assorted"
-
-      for {
-        possibleRegions: Seq[Int] <- regionService.getAllRegions.map(_.map(_.regionId))
-        possibleTags: Seq[String] <- {
-          if (labType != "Assorted") labelService.selectTagsByLabelType(labelType).map(_.map(_.tag))
-          else Future.successful(Seq())
-        }
-        commonData <- configService.getCommonPageData(request2Messages.lang)
-      } yield {
-        // Make sure that list of region IDs, severities, and validation options are formatted correctly.
-        val regionIdsList: Seq[Int]      = parseIntegerSeq(neighborhoods).filter(possibleRegions.contains)
-        val validSeverities: Seq[String] = Seq("null", "1", "2", "3")
-        val severityList: Seq[String]    = {
-          val tokens = severities.split(",").filter(validSeverities.contains).distinct.toSeq
-          if (tokens.isEmpty) validSeverities else tokens
-        }
-        val tagList: List[String]   = tags.split(",").filter(possibleTags.contains).toList
-        val valOptions: Seq[String] =
-          validationOptions.split(",").filter(Seq("correct", "incorrect", "unsure", "unvalidated").contains(_)).toSeq
-        val aiValOptions: Seq[String] =
-          aiValidationOptions.split(",").filter(Seq("correct", "incorrect", "unsure", "unvalidated").contains(_)).toSeq
-
-        // Log visit to Gallery async.
-        val activityStr: String =
-          s"Visit_Gallery_LabelType=${labType}_RegionIDs=${regionIdsList}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"
-        cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
-
-        Ok(
-          views.html.apps.gallery(commonData, "Sidewalk - Gallery", request.identity, labType, labelTypes,
-            regionIdsList, severityList, tagList, valOptions, aiValOptions)
+      if (isMobile(request)) {
+        cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Gallery_RedirectMobileLanding")
+        Future.successful(Redirect("/mobileLanding"))
+      } else {
+        val labelTypes: Seq[(String, String)] = Seq(
+          ("Assorted", Messages("gallery.all")),
+          (LabelTypeEnum.CurbRamp.name, Messages("curb.ramp")),
+          (LabelTypeEnum.NoCurbRamp.name, Messages("missing.ramp")),
+          (LabelTypeEnum.Obstacle.name, Messages("obstacle")),
+          (LabelTypeEnum.SurfaceProblem.name, Messages("surface.problem")),
+          (LabelTypeEnum.Occlusion.name, Messages("occlusion")),
+          (LabelTypeEnum.NoSidewalk.name, Messages("no.sidewalk")),
+          (LabelTypeEnum.Crosswalk.name, Messages("crosswalk")),
+          (LabelTypeEnum.Signal.name, Messages("signal")),
+          (LabelTypeEnum.Other.name, Messages("other"))
         )
+        val labType: String = if (labelTypes.exists(x => { x._1 == labelType })) labelType else "Assorted"
+
+        for {
+          possibleRegions: Seq[Int] <- regionService.getAllRegions.map(_.map(_.regionId))
+          possibleTags: Seq[String] <- {
+            if (labType != "Assorted") labelService.selectTagsByLabelType(labelType).map(_.map(_.tag))
+            else Future.successful(Seq())
+          }
+          commonData <- configService.getCommonPageData(request2Messages.lang)
+        } yield {
+          // Make sure that list of region IDs, severities, and validation options are formatted correctly.
+          val regionIdsList: Seq[Int]      = parseIntegerSeq(neighborhoods).filter(possibleRegions.contains)
+          val validSeverities: Seq[String] = Seq("null", "1", "2", "3")
+          val severityList: Seq[String]    = {
+            val tokens = severities.split(",").filter(validSeverities.contains).distinct.toSeq
+            if (tokens.isEmpty) validSeverities else tokens
+          }
+          val tagList: List[String]   = tags.split(",").filter(possibleTags.contains).toList
+          val valOptions: Seq[String] =
+            validationOptions.split(",").filter(Seq("correct", "incorrect", "unsure", "unvalidated").contains(_)).toSeq
+          val aiValOptions: Seq[String] =
+            aiValidationOptions
+              .split(",")
+              .filter(Seq("correct", "incorrect", "unsure", "unvalidated").contains(_))
+              .toSeq
+
+          // Log visit to Gallery async.
+          val activityStr: String =
+            s"Visit_Gallery_LabelType=${labType}_RegionIDs=${regionIdsList}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"
+          cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
+
+          Ok(
+            views.html.apps.gallery(commonData, "Sidewalk - Gallery", request.identity, labType, labelTypes,
+              regionIdsList, severityList, tagList, valOptions, aiValOptions)
+          )
+        }
       }
     }
 
