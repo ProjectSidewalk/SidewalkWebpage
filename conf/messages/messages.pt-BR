@@ -243,6 +243,46 @@ authenticate.terms = Você concorda com nossos <a target="_blank" href="/terms">
 authenticate.signup = Cadastre-se
 authenticate.signup.new.account = Crie uma nova conta
 authenticate.has.account = Já tem uma conta? <a href="#" id="form-open-sign-in">Entrar</a>
+
+# Sign-in/sign-up redesign (#4375) — draft translations, pending native-speaker polish (#4494).
+authenticate.welcome.back = Bem-vindo(a) de volta
+authenticate.join = Participe do Project Sidewalk
+authenticate.tagline = Mapeie calçadas. Ajude a tornar sua cidade acessível para todos.
+authenticate.close = Fechar
+authenticate.show.password = Mostrar senha
+authenticate.hide.password = Ocultar senha
+authenticate.username.rule = 3–30 caracteres — letras, números, hifens e sublinhados
+authenticate.pw.rule.length = Pelo menos {0} caracteres
+authenticate.pw.rule.uppercase = Uma letra maiúscula
+authenticate.pw.rule.lowercase = Uma letra minúscula
+authenticate.pw.rule.digit = Um número
+authenticate.pw.match = As senhas coincidem
+authenticate.pw.match.not = As senhas ainda não coincidem
+authenticate.pw.strength.1 = Fraca
+authenticate.pw.strength.2 = Razoável
+authenticate.pw.strength.3 = Boa
+authenticate.pw.strength.4 = Forte
+authenticate.create.account = Criar minha conta
+authenticate.new.detail = Novo(a) no Project Sidewalk? <a href="#" id="form-open-sign-up">Crie uma conta</a>
+authenticate.new.detail.link = Novo(a) no Project Sidewalk? <a href="{0}">Crie uma conta</a>
+authenticate.error.invalid.credentials.detail = Esse e-mail e senha não correspondem aos nossos registros. Verifique-os e tente novamente.
+authenticate.error.generic = Algo deu errado do nosso lado. Tente novamente.
+authenticate.error.too.many = Tentativas em excesso. Aguarde um momento e tente novamente.
+authenticate.error.username.charset = Os nomes de usuário só podem conter letras, números, hifens e sublinhados.
+authenticate.error.username.inappropriate = Esse nome de usuário não é permitido; escolha outro.
+authenticate.error.password.requirements = As senhas precisam de uma letra maiúscula, uma minúscula e um número.
+authenticate.error.terms.required = Você precisa aceitar os termos para criar uma conta.
+welcome.title = Você está no mapa, {0}!
+welcome.subtitle = Sua conta do Project Sidewalk está pronta. Tudo o que você mapear a partir de agora conta para a sua cidade — e para você. Veja o que você acabou de desbloquear:
+welcome.card.dashboard.title = Seu painel
+welcome.card.dashboard.body = Acompanhe suas ruas, rótulos e precisão à medida que seu impacto cresce.
+welcome.card.badges.title = Distintivos
+welcome.card.badges.body = Ganhe-os enquanto mapeia, valida e atinge marcos de missões.
+welcome.card.leaderboard.title = O ranking
+welcome.card.leaderboard.body = Veja como seu mapeamento se compara na cidade — sozinho ou em equipe.
+welcome.cta.dashboard = Ver meu painel
+welcome.hint.username = Você pode alterar seu nome de usuário quando quiser em <a href="{0}">Painel → Configurações</a>.
+welcome.hint.service.hours = Mapeando para créditos escolares ou de voluntariado? <a href="{0}">Ative o registro de horas de serviço</a> nas Configurações.
 authenticate.is.member = Já é membro? <a href="{0}">Entrar agora</a>
 authenticate.signin.with.credentials = Entrar com suas credenciais
 
