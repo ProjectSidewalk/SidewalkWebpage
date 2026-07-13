@@ -1,25 +1,35 @@
-@(activePage: String)
+@(activePage: String, isSignedIn: Boolean = true)(implicit messages: Messages)
 
 @*
 * Left navigation for the redesigned User Dashboard surface. Mirrors the API-docs/admin sidebar markup/classes so the
-* surfaces share a look. The user surface is only a few pages, so this lists those (Dashboard, Leaderboard) while the
-* right-hand TOC handles within-page sections. Not-yet-built surfaces (Settings — #2285/#2228) render as disabled
-* "soon" items so the intended information architecture is visible as the dashboard grows.
+* surfaces share a look. The user surface is only a few pages, so this lists those (Dashboard, Settings, Leaderboard)
+* while the right-hand TOC handles within-page sections.
+*
+* For anonymous visitors (who can reach the public leaderboard and public profiles), the personal "You" links would
+* dead-end at the sign-in page — so they become a friendly sign-up encouragement instead.
 *@
 
 <div class="api-sidebar">
-  <nav class="api-nav" aria-label="Dashboard sections">
-    <div class="api-nav-header">You</div>
-    <a href="@routes.UserDashboardController.dashboardPreview"
-     class="api-nav-item @if(activePage == "dashboard"){active}"
-     @if(activePage == "dashboard"){aria-current="page"}>Dashboard</a>
-    <a href="@routes.UserDashboardController.settingsPreview"
-     class="api-nav-item @if(activePage == "settings"){active}"
-     @if(activePage == "settings"){aria-current="page"}>Settings</a>
+  <nav class="api-nav" aria-label="@Messages("dashboard.nav.aria")">
+    <div class="api-nav-header">@Messages("dashboard.nav.you")</div>
+    @if(isSignedIn) {
+      <a href="@routes.UserDashboardController.dashboardPreview"
+       class="api-nav-item @if(activePage == "dashboard"){active}"
+       @if(activePage == "dashboard"){aria-current="page"}>@Messages("dashboard.nav.dashboard")</a>
+      <a href="@routes.UserDashboardController.settingsPreview"
+       class="api-nav-item @if(activePage == "settings"){active}"
+       @if(activePage == "settings"){aria-current="page"}>@Messages("dashboard.nav.settings")</a>
+    } else {
+      <div class="ud-nav-cta">
+        <p class="ud-nav-cta-text">@Messages("dashboard.nav.signup.blurb")</p>
+        <a class="ud-btn-primary ud-nav-cta-btn" href="@routes.UserController.signUp()">@Messages("leaderboard.cta.signup")</a>
+        <a class="ud-nav-cta-signin" href="@routes.UserController.signIn()">@Messages("navbar.signin")</a>
+      </div>
+    }
 
-    <div class="api-nav-header">Community</div>
+    <div class="api-nav-header">@Messages("dashboard.nav.community")</div>
     <a href="@routes.UserDashboardController.leaderboardPreview"
      class="api-nav-item @if(activePage == "leaderboard"){active}"
-     @if(activePage == "leaderboard"){aria-current="page"}>Leaderboard</a>
+     @if(activePage == "leaderboard"){aria-current="page"}>@Messages("navbar.leaderboard")</a>
   </nav>
 </div>

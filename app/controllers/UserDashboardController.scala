@@ -46,9 +46,9 @@ class UserDashboardController @Inject() (
       commonData  <- configService.getCommonPageData(request2Messages.lang)
       tags        <- labelService.getTagsForCurrentCity
       standing    <- userService.getUserStanding(user.userId)
-      streak      <- userService.getActivityStreak(user.userId)
+      streak      <- userService.getActivityStreak(user.userId, request2Messages.lang.toLocale)
       accuracy    <- userService.getAccuracyByType(user.userId)
-      trophies    <- userService.getTrophies(user.userId, cityName)
+      trophies    <- userService.getTrophies(user.userId, cityName, request2Messages)
     } yield {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboardPreview")
       Ok(
@@ -131,8 +131,9 @@ class UserDashboardController @Inject() (
       case _                                   => Future.successful(Right(()))
     }
     usernameResult.flatMap {
-      case Left(error) => Future.successful(BadRequest(Json.obj("success" -> false, "error" -> error)))
-      case Right(_)    =>
+      // The service returns an i18n key; localize it for the viewer here at the HTTP boundary.
+      case Left(errorKey) => Future.successful(BadRequest(Json.obj("success" -> false, "error" -> Messages(errorKey))))
+      case Right(_)       =>
         for {
           _ <- userService.updatePrivacySettings(user.userId, onLeaderboard, publicProfile)
           _ <- teamId.map(id => userService.setUserTeam(user.userId, id)).getOrElse(userService.leaveTeam(user.userId))
@@ -160,7 +161,7 @@ class UserDashboardController @Inject() (
     val cityName = configService.getCityName(request2Messages.lang)
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
-      profile    <- userService.getPublicProfile(username, isOwner, isMetric, cityName)
+      profile    <- userService.getPublicProfile(username, isOwner, isMetric, cityName, request2Messages)
       tags       <- labelService.getTagsForCurrentCity
     } yield {
       cc.loggingService.insert(viewer.userId, request.ipAddress, "Visit_PublicProfilePreview")

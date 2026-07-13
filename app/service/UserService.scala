@@ -13,6 +13,7 @@ import models.utils.MyPostgresProfile
 import models.utils.ProfanityGuard
 import models.validation.LabelValidationTable
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.i18n.Messages
 import slick.dbio.DBIO
 
 import java.time.format.DateTimeFormatter
@@ -139,9 +140,14 @@ object UserService {
    *
    * @param counts Map of active calendar day (US/Pacific) to that day's contribution count.
    * @param today  Today's date in US/Pacific (passed in so the logic is deterministic/testable).
+   * @param locale Locale for the heatmap's cell-date and month labels (defaults to English for tests).
    * @return       Current/longest/total streak plus heatmap cells in column-major order.
    */
-  def computeStreakStats(counts: Map[LocalDate, Int], today: LocalDate): StreakStats = {
+  def computeStreakStats(
+      counts: Map[LocalDate, Int],
+      today: LocalDate,
+      locale: Locale = Locale.ENGLISH
+  ): StreakStats = {
     val dates: Set[LocalDate] = counts.keySet
 
     // Current streak: consecutive active days ending today, or ending yesterday if today isn't active yet.
@@ -163,7 +169,7 @@ object UserService {
     val daysFromSunday                 = today.getDayOfWeek.getValue % 7 // Mon=1..Sat=6, Sun=0
     val currentWeekSunday              = today.minusDays(daysFromSunday.toLong)
     val startSunday                    = currentWeekSunday.minusWeeks((HeatmapWeeks - 1).toLong)
-    val fmt                            = DateTimeFormatter.ofPattern("EEE, MMM d", Locale.ENGLISH)
+    val fmt                            = DateTimeFormatter.ofPattern("EEE, MMM d", locale)
     val cells: Seq[Option[StreakCell]] = for {
       w <- 0 until HeatmapWeeks
       d <- 0 until 7
@@ -179,14 +185,13 @@ object UserService {
           case n if n <= 9 => 3
           case _           => 4
         }
-        val word = if (c == 1) "contribution" else "contributions"
-        Some(StreakCell(intensity, s"$c $word on ${cellDate.format(fmt)}"))
+        Some(StreakCell(intensity, c, cellDate.format(fmt)))
       }
     }
 
     // Month label for each week column: the abbreviated month on the first column that falls in a new month (GitHub
     // style), so the heatmap has date scaffolding along the top.
-    val monthFmt                          = DateTimeFormatter.ofPattern("MMM", Locale.ENGLISH)
+    val monthFmt                          = DateTimeFormatter.ofPattern("MMM", locale)
     var prevMonth                         = -1
     val columnMonths: Seq[Option[String]] = (0 until HeatmapWeeks).map { w =>
       val weekSunday = startSunday.plusWeeks(w.toLong)
@@ -221,7 +226,8 @@ trait UserService {
       username: String,
       isOwner: Boolean,
       isMetric: Boolean,
-      cityName: String
+      cityName: String,
+      messages: Messages
   ): Future[Option[PublicProfile]]
   def resolveVisibleUser(username: String, isOwner: Boolean): Future[Option[String]]
   def changeUsername(userId: String, newUsername: String): Future[Either[String, String]]
@@ -238,9 +244,9 @@ trait UserService {
       userIdForTeam: Option[String] = None
   ): Future[Seq[LeaderboardStat]]
   def getUserStanding(userId: String): Future[Option[UserStanding]]
-  def getActivityStreak(userId: String): Future[StreakStats]
+  def getActivityStreak(userId: String, locale: Locale = Locale.ENGLISH): Future[StreakStats]
   def getAccuracyByType(userId: String): Future[Seq[AccuracyByType]]
-  def getTrophies(userId: String, cityName: String): Future[Seq[Trophy]]
+  def getTrophies(userId: String, cityName: String, messages: Messages): Future[Seq[Trophy]]
   def getHoursAuditingAndValidating(userId: String): Future[Double]
   def getAuditedStreets(userId: String): Future[Seq[StreetEdge]]
   def getLabelLocations(userId: String, regionId: Option[Int] = None): Future[Seq[LabelLocation]]
@@ -344,7 +350,8 @@ class UserServiceImpl @Inject() (
       username: String,
       isOwner: Boolean,
       isMetric: Boolean,
-      cityName: String
+      cityName: String,
+      messages: Messages
   ): Future[Option[PublicProfile]] = {
     sidewalkUserTable.findByUsername(username).flatMap {
       case None    => Future.successful(None) // No such user -> the view shows a "not found" state.
@@ -354,7 +361,7 @@ class UserServiceImpl @Inject() (
           if (visible) {
             for {
               profile  <- getUserProfileData(u.userId, isMetric)
-              trophies <- getTrophies(u.userId, cityName)
+              trophies <- getTrophies(u.userId, cityName, messages)
             } yield Some(PublicProfile(u.username, visible = true, Some(profile), trophies))
           } else {
             Future.successful(Some(PublicProfile(u.username, visible = false, None, Seq.empty)))
@@ -385,24 +392,25 @@ class UserServiceImpl @Inject() (
   /**
    * Validates and applies a username change (#4373), enforcing the same rules the Settings UI advertises.
    *
-   * Rejects (returns `Left(message)`) empty/too-short/too-long names, disallowed characters, profanity, and names
+   * Rejects (returns `Left(messageKey)`) empty/too-short/too-long names, disallowed characters, profanity, and names
    * already taken by another user. A no-op change to the user's current name is allowed. Usernames are display-only
    * (everything keys on user_id), so no downstream references need updating.
    *
    * @param userId      The user changing their name.
    * @param newUsername The requested new username (leading/trailing whitespace is trimmed).
-   * @return `Right(trimmedUsername)` on success, or `Left(userFacingError)` if rejected.
+   * @return `Right(trimmedUsername)` on success, or `Left(i18nKey)` if rejected — the caller localizes the key.
    */
   def changeUsername(userId: String, newUsername: String): Future[Either[String, String]] = {
     val name = newUsername.trim
-    if (name.length < 3 || name.length > 30) Future.successful(Left("Username must be 3–30 characters."))
+    if (name.length < 3 || name.length > 30) Future.successful(Left("dashboard.settings.username.error.length"))
     else if (!name.matches("^[A-Za-z0-9_-]+$"))
-      Future.successful(Left("Use only letters, numbers, hyphens, and underscores."))
+      Future.successful(Left("dashboard.settings.username.error.charset"))
     else if (!ProfanityGuard.isClean(name))
-      Future.successful(Left("That username isn't allowed — please choose another."))
+      Future.successful(Left("dashboard.settings.username.error.allowed"))
     else
       sidewalkUserTable.findByUsername(name).flatMap {
-        case Some(existing) if existing.userId != userId => Future.successful(Left("That username is already taken."))
+        case Some(existing) if existing.userId != userId =>
+          Future.successful(Left("dashboard.settings.username.error.taken"))
         case _ => db.run(sidewalkUserTable.updateUsername(userId, name)).map(_ => Right(name))
       }
   }
@@ -465,10 +473,10 @@ class UserServiceImpl @Inject() (
     } yield thisWeek.map(tw => tw.copy(delta = lastWeek.map(lw => lw.rank - tw.rank))))
   }
 
-  def getActivityStreak(userId: String): Future[StreakStats] = {
+  def getActivityStreak(userId: String, locale: Locale = Locale.ENGLISH): Future[StreakStats] = {
     db.run(userStatTable.getActivityDayCounts(userId)).map { rows =>
       val counts = rows.map { case (day, count) => LocalDate.parse(day) -> count }.toMap
-      UserService.computeStreakStats(counts, LocalDate.now(ZoneId.of("US/Pacific")))
+      UserService.computeStreakStats(counts, LocalDate.now(ZoneId.of("US/Pacific")), locale)
     }
   }
 
@@ -479,7 +487,13 @@ class UserServiceImpl @Inject() (
   /** Explore-this-neighborhood link for a region trophy — opens the audit tool scoped to that region. */
   private def exploreRegionLink(regionId: Int): String = s"/explore?regionId=$regionId"
 
-  def getTrophies(userId: String, cityName: String): Future[Seq[Trophy]] = {
+  /**
+   * Assembles a user's trophy case from the four trophy queries.
+   *
+   * Trophy titles are deliberately untranslated brand names (#4475); the sub lines localize through `messages`,
+   * whose locale also formats the weekly-podium dates.
+   */
+  def getTrophies(userId: String, cityName: String, messages: Messages): Future[Seq[Trophy]] = {
     val aiId = SidewalkUserTable.aiUserId
     // Kick off the four independent queries before the for-comprehension so they run in parallel.
     val cityPioneerF    = db.run(trophyTable.getCityPioneerUserId(aiId))
@@ -487,6 +501,7 @@ class UserServiceImpl @Inject() (
     val championsF      = db.run(trophyTable.getRegionChampions(userId, aiId, 6))
     val weeklyF         = db.run(trophyTable.getWeeklyPodiums(userId, 6))
     val medals          = Map(1 -> "🥇", 2 -> "🥈", 3 -> "🥉")
+    val weekOfFmt       = DateTimeFormatter.ofPattern("MMM d, yyyy", messages.lang.toLocale)
     for {
       cityPioneer    <- cityPioneerF
       regionPioneers <- regionPioneersF
@@ -496,13 +511,13 @@ class UserServiceImpl @Inject() (
       // Order by prestige/rarity: city pioneer, then region pioneers, then region champions, then weekly podiums.
       val cityTrophy =
         if (cityPioneer.contains(userId))
-          Seq(Trophy("🌱", "City pioneer", s"First-ever labeler in $cityName", "pioneer"))
+          Seq(Trophy("🌱", "City pioneer", messages("dashboard.trophy.sub.pioneer", cityName), "pioneer"))
         else Seq.empty
       val regionPioneerTrophies = regionPioneers.map { case (name, regionId) =>
         Trophy(
           "🧭",
           "Region pioneer",
-          s"First-ever labeler in $name",
+          messages("dashboard.trophy.sub.pioneer", name),
           "pioneer",
           link = Some(exploreRegionLink(regionId))
         )
@@ -511,13 +526,20 @@ class UserServiceImpl @Inject() (
         Trophy(
           "👑",
           s"$name champion",
-          s"""${"%,d".format(count)} labels — most in this neighborhood""",
+          messages("dashboard.trophy.sub.champion", "%,d".format(count)),
           "region",
           link = Some(exploreRegionLink(regionId))
         )
       }
       val weeklyTrophies = weekly.map { case (weekOf, rank, _) =>
-        Trophy(medals.getOrElse(rank, "🏅"), "Top labeler", s"Week of $weekOf", "podium", rank)
+        val weekLabel = LocalDate.parse(weekOf).format(weekOfFmt)
+        Trophy(
+          medals.getOrElse(rank, "🏅"),
+          "Top labeler",
+          messages("dashboard.trophy.sub.weekly", weekLabel),
+          "podium",
+          rank
+        )
       }
       cityTrophy ++ regionPioneerTrophies ++ championTrophies ++ weeklyTrophies
     }

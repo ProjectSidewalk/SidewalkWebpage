@@ -30,6 +30,7 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val userService = app.injector.instanceOf[UserService]
+  private val messages    = play.api.test.Helpers.stubMessages()
   private val authService = app.injector.instanceOf[AuthenticationService]
 
   private val ghostId = "00000000-0000-0000-0000-000000000000"
@@ -110,7 +111,7 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
   "getTrophies" should {
     "respect the per-category caps and only mint fully-formed trophies" in {
       topUser.foreach { u =>
-        val trophies = await(userService.getTrophies(u.userId, "Testville"))
+        val trophies = await(userService.getTrophies(u.userId, "Testville", messages))
         trophies.length must be <= 17 // pioneers/champions/weekly capped at 5/6/6 in UserService.getTrophies
         trophies.foreach { t =>
           t.title must not be empty
@@ -125,36 +126,43 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
       topUser.foreach { u =>
         val flagIsPublic = await(userService.getPrivacySettings(u.userId)).exists(_._2)
 
-        val asStranger = await(userService.getPublicProfile(u.username, isOwner = false, isMetric = true, "Testville"))
+        val asStranger =
+          await(userService.getPublicProfile(u.username, isOwner = false, isMetric = true, "Testville", messages))
         asStranger mustBe defined
         asStranger.get.visible mustBe flagIsPublic
         asStranger.get.profile.isDefined mustBe flagIsPublic // stats populated ONLY when visible: nothing leaks
         if (!flagIsPublic) asStranger.get.trophies mustBe empty
 
-        val asOwner = await(userService.getPublicProfile(u.username, isOwner = true, isMetric = true, "Testville"))
+        val asOwner =
+          await(userService.getPublicProfile(u.username, isOwner = true, isMetric = true, "Testville", messages))
         asOwner.map(_.visible) mustBe Some(true)
       }
     }
   }
 
+  // The reject ladder returns i18n keys (the controller localizes them), so assert on the keys.
   "changeUsername" should {
     "reject a name that is too short" in {
-      await(userService.changeUsername(ghostId, "ab")).left.toOption.get must include("3–30")
+      await(userService.changeUsername(ghostId, "ab")).left.toOption.get must
+        be("dashboard.settings.username.error.length")
     }
 
     "reject a name with characters outside letters, numbers, hyphens, underscores" in {
-      await(userService.changeUsername(ghostId, "bad name!")).left.toOption.get must include("letters")
+      await(userService.changeUsername(ghostId, "bad name!")).left.toOption.get must
+        be("dashboard.settings.username.error.charset")
     }
 
     "reject a profane name" in {
-      await(userService.changeUsername(ghostId, "shithead99")).left.toOption.get must include("allowed")
+      await(userService.changeUsername(ghostId, "shithead99")).left.toOption.get must
+        be("dashboard.settings.username.error.allowed")
     }
 
     "reject a name another user already holds" in {
       // Legacy usernames may contain characters the charset rule now forbids (that reject fires first), so pick a
       // board user whose name would pass it.
       overallBoard.map(_.username).find(_.matches("^[A-Za-z0-9_-]+$")).foreach { takenName =>
-        await(userService.changeUsername(ghostId, takenName)).left.toOption.get must include("taken")
+        await(userService.changeUsername(ghostId, takenName)).left.toOption.get must
+          be("dashboard.settings.username.error.taken")
       }
     }
   }

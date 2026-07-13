@@ -254,6 +254,10 @@
   height: 15px;
   border-radius: 3px;
   background: var(--color-neutral-100, #f0f0f0);
+
+  /* Subtle inset ring (GitHub-style) so the lightest buckets stay distinguishable from the page background and each
+   other (WCAG 1.4.11 non-text contrast; exact counts are in each cell's tooltip/aria-label). */
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%);
 }
 
 .ud-heat-0 { background: var(--color-neutral-200, #e6e6e6); }
@@ -263,7 +267,10 @@
 .ud-heat-4 { background: var(--color-pine-800, #2f5239); }
 
 /* Out-of-window padding cells (before the start / after today): keep the grid shape but invisible. */
-.ud-heat-empty { background: transparent; }
+.ud-heat-empty {
+  background: transparent;
+  box-shadow: none;
+}
 
 .ud-heat[tabindex]:focus-visible {
   outline: 2px solid var(--color-accent-link, #0566f5);
@@ -276,7 +283,9 @@
   gap: 4px;
   margin-top: var(--space-sm, 12px);
   font-size: var(--font-size-xxs, 0.75rem);
-  color: var(--color-text-tertiary, #88a1ad);
+
+  /* text-secondary, not tertiary: tertiary is ~2.7:1 on white, below the 4.5:1 AA floor for this small text. */
+  color: var(--color-text-secondary, #5a7785);
 }
 
 .ud-heatmap-legend .ud-heat {
@@ -350,7 +359,9 @@
 
 .ud-tier-4 {
   background: var(--color-orange-500, #e07b2f);
-  color: var(--color-neutral-white, #ffffff);
+
+  /* Dark text like tier-3: white on orange-500 is ~3:1, below the 4.5:1 AA floor. */
+  color: var(--color-asphalt-900, #2d2a3f);
 }
 
 .ud-tier-5 {
@@ -437,10 +448,12 @@
 }
 
 .ud-trophy-link:hover,
+/* Keyboard focus keeps the hover lift but needs a real indicator — the soft shadow alone isn't visible enough. */
 .ud-trophy-link:focus-visible {
   transform: translateY(-2px);
   box-shadow: var(--box-shadow-md, 0 2px 8px rgb(0 0 0 / 12%));
-  outline: none;
+  outline: 2px solid var(--color-accent-link, #0566f5);
+  outline-offset: 2px;
 }
 
 .ud-trophy-explore {
@@ -496,7 +509,9 @@
 
 .ud-trophy-sub {
   font-size: var(--font-size-md, 1rem);
-  color: var(--color-text-tertiary, #88a1ad);
+
+  /* text-secondary, not tertiary: tertiary is ~2.7:1 on white, below the 4.5:1 AA floor for body text. */
+  color: var(--color-text-secondary, #5a7785);
 }
 
 /* ---- Your standing --------------------------------------------------------------------------------------------- */
@@ -546,7 +561,9 @@
   color: var(--color-text-secondary, #5a7785);
 }
 
-/* Week-over-week rank movement: climbed (green) / dropped (red). */
+/* Week-over-week rank movement: climbed (green) / dropped (red). Deliberate hexes: the design-system success/error
+ tokens are too light to pass 4.5:1 on white, and the movement is also conveyed in words ("Up"/"Down"), not color
+ alone. Both hexes pass AA (~5.4:1). */
 .ud-delta-up {
   color: #1f7a44;
   font-weight: 700;
@@ -1546,3 +1563,65 @@
   }
   .ud-badge-track-head { flex-wrap: wrap; }
 }
+
+/* ---- Accessibility utilities ------------------------------------------------------------------------------------ */
+
+/* Visually-hidden text for screen readers (e.g. the rank number behind a medal emoji, podium places). */
+.ud-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The only movement on these pages is the trophy-card hover lift; drop it (and its transition) for users who
+ prefer reduced motion. Color/opacity transitions stay — they don't move anything. */
+@media (prefers-reduced-motion: reduce) {
+  .ud-trophy-link {
+    transition: box-shadow var(--transition-fast, 0.15s ease);
+  }
+
+  .ud-trophy-link:hover,
+  .ud-trophy-link:focus-visible {
+    transform: none;
+  }
+}
+
+/* Sidebar sign-up encouragement, shown to anonymous visitors instead of the personal Dashboard/Settings links
+ (those would only dead-end at the sign-in page). */
+.ud-nav-cta {
+  margin: 4px 10px 8px;
+  padding: var(--space-sm, 12px);
+  border: 1px solid var(--color-pine-300, #aacdb4);
+  border-radius: var(--border-radius, 4px);
+  background: var(--color-pine-100, #eaf3ec);
+}
+
+.ud-nav-cta-text {
+  margin: 0 0 10px;
+  font-size: var(--font-size-md, 1rem);
+  line-height: 1.4;
+  color: var(--color-text-heading, #263238);
+}
+
+.ud-nav-cta-btn {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+}
+
+.ud-nav-cta-signin {
+  display: block;
+  margin-top: 8px;
+  text-align: center;
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-accent-link, #0566f5);
+  text-decoration: none;
+}
+
+.ud-nav-cta-signin:hover { text-decoration: underline; }

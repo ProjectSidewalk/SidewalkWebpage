@@ -10,7 +10,9 @@
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* Formats the already-unit-converted audited distance (km when metric, else miles) with one decimal + unit. *@
-@distanceLabel = @{ f"${profileData.auditedDistance}%.1f ${if(isMetric) "km" else "mi"}" }
+@distanceLabel = @{
+  f"${profileData.auditedDistance}%.1f ${if (isMetric) Messages("dashboard.unit.km") else Messages("dashboard.unit.mi")}"
+}
 @accuracyLabel = @{ profileData.accuracy.map(a => f"${a * 100}%.0f%%").getOrElse("—") }
 
 @*
@@ -22,54 +24,74 @@
 * accuracy bars, the contribution map, the recent-mistakes gallery + contest flow, and the trophy case.
 *@
 
+@cellTooltip(c: StreakCell) = @{
+  if (c.count == 1) Messages("dashboard.streak.cell.tooltip.one", c.dateLabel)
+  else Messages("dashboard.streak.cell.tooltip.many", c.count, c.dateLabel)
+}
+
 @heatCell(cell: Option[StreakCell]) = {
   @for(c <- cell) {
-    <span class="ud-heat ud-heat-@c.intensity" title="@c.tooltip" tabindex="0"></span>
+    <span class="ud-heat ud-heat-@c.intensity" role="img" title="@cellTooltip(c)" aria-label="@cellTooltip(c)" tabindex="0"></span>
   }
   @if(cell.isEmpty) {
     <span class="ud-heat ud-heat-empty" aria-hidden="true"></span>
   }
 }
 
+@weekdayAbbr(day: java.time.DayOfWeek) = @{
+  day.getDisplayName(java.time.format.TextStyle.SHORT, messages.lang.toLocale)
+}
+
+@streakDays(n: Int) = @{
+  if (n == 1) Messages("dashboard.streak.day.one") else Messages("dashboard.streak.day.many", n)
+}
+
+@* The message keys for label-type names predate the kebab-case css keys, so the two don't line up 1:1. *@
+@labelTypeMsgKey(cssKey: String) = @{
+  if (cssKey == "no-curb-ramp") "missing.ramp" else cssKey.replace("-", ".")
+}
+
 @content = {
   @* ---- Hero / "Your impact" ----------------------------------------------------------------------------- *@
   <div class="api-section" id="ud-hero-section">
-    <h1 class="api-heading" id="overview">Your dashboard <a href="#overview" class="permalink">#</a></h1>
+    <h1 class="api-heading" id="overview">@Messages("dashboard.title") <a href="#overview" class="permalink">#</a></h1>
 
     <div class="ud-hero">
       <div class="ud-hero-avatar" aria-hidden="true">@user.username.take(2).toUpperCase</div>
       <div class="ud-hero-text">
-        <p class="ud-hero-greeting">Welcome back, <strong>@user.username</strong> 👋</p>
-        <p class="ud-hero-headline">You've placed <strong>@{"%,d".format(profileData.labelCount)} labels</strong> making sidewalks more accessible.</p>
-        <p class="ud-hero-sub">Every label helps make sidewalks better.</p>
+        @* Usernames predating the charset rule may contain HTML metacharacters, so escape before @Html. *@
+        <p class="ud-hero-greeting">@Html(Messages("dashboard.hero.greeting",
+          s"<strong>${play.twirl.api.HtmlFormat.escape(user.username)}</strong>"))</p>
+        <p class="ud-hero-headline">@Html(Messages("dashboard.hero.headline", "%,d".format(profileData.labelCount)))</p>
+        <p class="ud-hero-sub">@Messages("dashboard.hero.sub")</p>
       </div>
     </div>
 
     <div class="coverage-kpis ud-kpis">
       <div class="coverage-kpi">
         <span class="coverage-kpi-value">@profileData.missionCount</span>
-        <span class="coverage-kpi-label">Missions completed</span>
+        <span class="coverage-kpi-label">@Messages("dashboard.kpi.missions")</span>
       </div>
       <div class="coverage-kpi">
         <span class="coverage-kpi-value">@distanceLabel</span>
-        <span class="coverage-kpi-label">Distance explored</span>
+        <span class="coverage-kpi-label">@Messages("dashboard.kpi.distance")</span>
       </div>
       <div class="coverage-kpi">
         <span class="coverage-kpi-value">@{"%,d".format(profileData.labelCount)}</span>
-        <span class="coverage-kpi-label">Labels placed</span>
+        <span class="coverage-kpi-label">@Messages("dashboard.kpi.labels")</span>
       </div>
       <div class="coverage-kpi">
         <span class="coverage-kpi-value">@{"%,d".format(profileData.validationCount)}</span>
-        <span class="coverage-kpi-label">Validations given</span>
+        <span class="coverage-kpi-label">@Messages("dashboard.kpi.validations")</span>
       </div>
       <div class="coverage-kpi">
         <span class="coverage-kpi-value">@accuracyLabel</span>
-        <span class="coverage-kpi-label">Label accuracy</span>
+        <span class="coverage-kpi-label">@Messages("dashboard.kpi.accuracy")</span>
       </div>
     </div>
 
     @* Contribution map is part of the hero (no h2, so it doesn't get its own on-this-page entry). *@
-    <p class="ud-map-caption">Where you've explored — your audited streets and labels. Open the legend to filter.</p>
+    <p class="ud-map-caption">@Messages("dashboard.map.caption")</p>
     <div id="user-dashboard-choropleth-holder" class="choropleth-holder">
       <div id="user-dashboard-choropleth" class="choropleth"></div>
       @common.mapSidebar(tags = tags, streetsShownByDefault = true)
@@ -78,34 +100,34 @@
 
   @* ---- Streak / activity rhythm -------------------------------------------------------------------------- *@
   <div class="api-section" id="ud-streak-section">
-    <h2 class="api-heading" id="streak">Your streak <a href="#streak" class="permalink">#</a></h2>
-    <p>Keep your momentum going — every day you map, validate, or explore counts.
-      @if(streak.currentStreak > 0){<strong>Map today to keep your @streak.currentStreak-day streak alive!</strong>}else{<strong>Map, validate, or explore today to start a streak!</strong>} 🔥</p>
+    <h2 class="api-heading" id="streak">@Messages("dashboard.streak.title") <a href="#streak" class="permalink">#</a></h2>
+    <p>@Messages("dashboard.streak.intro")
+      @if(streak.currentStreak > 0){<strong>@Messages("dashboard.streak.keep.alive", streak.currentStreak)</strong>}else{<strong>@Messages("dashboard.streak.start")</strong>} <span aria-hidden="true">🔥</span></p>
 
     <div class="ud-streak">
       <div class="ud-streak-stats">
         <div class="coverage-kpi ud-streak-kpi ud-streak-current">
-          <span class="coverage-kpi-value">🔥 @streak.currentStreak day@if(streak.currentStreak != 1){s}</span>
-          <span class="coverage-kpi-label">Current streak</span>
+          <span class="coverage-kpi-value"><span aria-hidden="true">🔥</span> @streakDays(streak.currentStreak)</span>
+          <span class="coverage-kpi-label">@Messages("dashboard.streak.current")</span>
         </div>
         <div class="coverage-kpi ud-streak-kpi">
-          <span class="coverage-kpi-value">@streak.longestStreak day@if(streak.longestStreak != 1){s}</span>
-          <span class="coverage-kpi-label">Longest streak</span>
+          <span class="coverage-kpi-value">@streakDays(streak.longestStreak)</span>
+          <span class="coverage-kpi-label">@Messages("dashboard.streak.longest")</span>
         </div>
         <div class="coverage-kpi ud-streak-kpi">
           <span class="coverage-kpi-value">@streak.totalActiveDays</span>
-          <span class="coverage-kpi-label">Total active days</span>
+          <span class="coverage-kpi-label">@Messages("dashboard.streak.active.days")</span>
         </div>
       </div>
 
-      <figure class="ud-heatmap" aria-label="Your activity over the last @service.UserService.HeatmapWeeks weeks">
+      <figure class="ud-heatmap" aria-label="@Messages("dashboard.streak.heatmap.aria", service.UserService.HeatmapWeeks)">
         <div class="ud-heatmap-scaffold">
           <div class="ud-heatmap-corner" aria-hidden="true"></div>
           <div class="ud-heatmap-months" aria-hidden="true">
             @for(m <- streak.columnMonths) { <span>@m.getOrElse("")</span> }
           </div>
           <div class="ud-heatmap-days" aria-hidden="true">
-            <span></span><span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span>
+            <span></span><span>@weekdayAbbr(java.time.DayOfWeek.MONDAY)</span><span></span><span>@weekdayAbbr(java.time.DayOfWeek.WEDNESDAY)</span><span></span><span>@weekdayAbbr(java.time.DayOfWeek.FRIDAY)</span><span></span>
           </div>
           <div class="ud-heatmap-grid">
             @for(cell <- streak.cells) {
@@ -114,13 +136,13 @@
           </div>
         </div>
         <figcaption class="ud-heatmap-legend">
-          <span>Less</span>
+          <span>@Messages("dashboard.streak.legend.less")</span>
           <span class="ud-heat ud-heat-0"></span>
           <span class="ud-heat ud-heat-1"></span>
           <span class="ud-heat ud-heat-2"></span>
           <span class="ud-heat ud-heat-3"></span>
           <span class="ud-heat ud-heat-4"></span>
-          <span>More</span>
+          <span>@Messages("dashboard.streak.legend.more")</span>
         </figcaption>
       </figure>
     </div>
@@ -128,62 +150,62 @@
 
   @* ---- Badges + Trophies ------------------------------------------------------------------------------- *@
   <div class="api-section" id="ud-achievements-section">
-    <h2 class="api-heading" id="achievements">Badges &amp; trophies <a href="#achievements" class="permalink">#</a></h2>
-    <p>Badges you've earned by labeling, exploring, and validating — plus trophies for leaderboard placements.</p>
+    <h2 class="api-heading" id="achievements">@Messages("dashboard.achievements.title") <a href="#achievements" class="permalink">#</a></h2>
+    <p>@Messages("dashboard.achievements.intro")</p>
 
     @* Skeleton is server-rendered from real counts (data-value); DashboardBadges.js fills in the earned level,
      tier pill, locked icons, progress, and next-tier nudge using BadgeAchievements (the source of truth). *@
     @userDashboard._badgeTracks(profileData.labelCount, profileData.auditedDistance, profileData.missionCount,
       profileData.validationCount, isMetric)
 
-    <h3 class="api-heading" id="trophy-case">Trophy case <a href="#trophy-case" class="permalink">#</a></h3>
-    <p>Trophies you've earned for pioneering neighborhoods, topping them, and placing on the weekly board.</p>
+    <h3 class="api-heading" id="trophy-case">@Messages("dashboard.trophy.title") <a href="#trophy-case" class="permalink">#</a></h3>
+    <p>@Messages("dashboard.trophy.intro")</p>
     @if(trophies.nonEmpty) {
       @userDashboard._trophyCase(trophies)
     } else {
-      <div class="ud-nudge">🏆 No trophies yet — finish in the weekly top 3, or be the first or top mapper in a neighborhood, and they'll show up here.</div>
+      <div class="ud-nudge">@Messages("dashboard.trophy.none")</div>
     }
   </div>
 
   @* ---- Your standing — compact teaser into the full /leaderboard (Option 2) ----------------------------- *@
   <div class="api-section" id="ud-standing-section">
-    <h2 class="api-heading" id="standing">Your standing <a href="#standing" class="permalink">#</a></h2>
-    <p>A peek at where you sit this week. The full board lives <a href="@routes.UserDashboardController.leaderboardPreview">on the leaderboard</a>.</p>
+    <h2 class="api-heading" id="standing">@Messages("dashboard.standing.title") <a href="#standing" class="permalink">#</a></h2>
+    <p>@Html(Messages("dashboard.standing.intro", routes.UserDashboardController.leaderboardPreview))</p>
     @userDashboard._standing(standing, seeAllLink = true)
   </div>
 
   @* ---- Learning — Recent mistakes gallery ------------------------------------------------------------- *@
   <div class="api-section" id="ud-mistakes-section">
-    <h2 class="api-heading" id="mistakes">What you can improve <a href="#mistakes" class="permalink">#</a></h2>
-    <p>Labels that other mappers validated as incorrect, so you can sharpen your eye. Your accuracy varies by label type@if(accuracyByType.exists(_.weakest)){ — your trickiest type is highlighted}.</p>
+    <h2 class="api-heading" id="mistakes">@Messages("dashboard.mistakes.title") <a href="#mistakes" class="permalink">#</a></h2>
+    <p>@if(accuracyByType.exists(_.weakest)){@Messages("dashboard.mistakes.intro.weakest")}else{@Messages("dashboard.mistakes.intro")}</p>
 
     @if(accuracyByType.nonEmpty) {
       <div class="ud-accuracy-bars">
         @for(a <- accuracyByType) {
           <div class="ud-acc-row ud-lt-@a.cssKey @if(a.weakest){ud-acc-weakest}">
             <span class="ud-acc-label">
-              <span class="ud-acc-swatch"></span>@a.displayName
+              <span class="ud-acc-swatch"></span>@Messages(labelTypeMsgKey(a.cssKey))
             </span>
             <span class="ud-acc-bar"><span class="ud-acc-fill" data-ud-pct="@a.pct"></span></span>
-            <span class="ud-acc-pct" title="@a.validated validated">@a.pct%</span>
+            <span class="ud-acc-pct" title="@Messages("dashboard.mistakes.validated.count", a.validated)">@a.pct%</span>
           </div>
         }
       </div>
     } else {
-      <div class="ud-nudge">📊 Once your labels have been validated by others, your accuracy by type will show up here.</div>
+      <div class="ud-nudge">@Messages("dashboard.mistakes.accuracy.none")</div>
     }
 
-    <h3 class="api-heading" id="recent-mistakes">Recent mistakes <a href="#recent-mistakes" class="permalink">#</a></h3>
-    <p>Disagree with a validation? Tell us — you can stand by your label and leave a note for context.</p>
+    <h3 class="api-heading" id="recent-mistakes">@Messages("dashboard.mistakes.recent.title") <a href="#recent-mistakes" class="permalink">#</a></h3>
+    <p>@Messages("dashboard.mistakes.recent.intro")</p>
     @* Cards are rendered from /userapi/mistakes by MistakeGallery.js (empty -> encouraging state). *@
     <div class="ud-mistake-cards" id="ud-mistakes" data-user-id="@user.userId" data-limit="6"></div>
-    <a class="ud-see-all" id="ud-mistakes-seeall" href="#" hidden>See all your labels →</a>
+    <a class="ud-see-all" id="ud-mistakes-seeall" href="#" hidden>@Messages("dashboard.mistakes.see.all")</a>
   </div>
 
   @* ---- Team / class --------------------------------------------------------------------------------- *@
   <div class="api-section" id="ud-team-section">
-    <h2 class="api-heading" id="team">Your team <a href="#team" class="permalink">#</a></h2>
-    <p>Map together with a team or class. Friendly competition within a small group is half the fun.</p>
+    <h2 class="api-heading" id="team">@Messages("dashboard.team.title") <a href="#team" class="permalink">#</a></h2>
+    <p>@Messages("dashboard.team.intro")</p>
 
     <div class="ud-team">
       <div class="ud-team-card">
@@ -191,29 +213,29 @@
           <span class="ud-team-name">@t.name</span>
           @if(t.description.nonEmpty){<span class="ud-team-meta">@t.description</span>}
         }.getOrElse {
-          <span class="ud-team-name">You're not on a team yet</span>
-          <span class="ud-team-meta">Join a team or class to map together and climb the team leaderboard.</span>
+          <span class="ud-team-name">@Messages("dashboard.team.none")</span>
+          <span class="ud-team-meta">@Messages("dashboard.team.none.detail")</span>
         }
         @defining(profileData.allTeams.filter(t => t.open && !profileData.userTeam.contains(t))) { joinable =>
           @if(joinable.nonEmpty) {
-            <label class="ud-team-join-label" for="ud-team-select">@if(profileData.userTeam.isDefined){Switch to another team}else{Join an existing team}</label>
+            <label class="ud-team-join-label" for="ud-team-select">@if(profileData.userTeam.isDefined){@Messages("dashboard.team.switch")}else{@Messages("dashboard.team.join.existing")}</label>
             <div class="ud-field-inline">
-              <select class="ud-input" id="ud-team-select" aria-label="Choose a team to join">
-                <option value="0" selected>Choose a team…</option>
+              <select class="ud-input" id="ud-team-select" aria-label="@Messages("dashboard.team.choose.aria")">
+                <option value="0" selected>@Messages("dashboard.team.choose")</option>
                 @for(t <- joinable) { <option value="@t.teamId">@t.name</option> }
               </select>
-              <button type="button" class="ud-btn-secondary ud-join-team-btn" data-user-id="@user.userId">Join team</button>
+              <button type="button" class="ud-btn-secondary ud-join-team-btn" data-user-id="@user.userId">@Messages("dashboard.team.join")</button>
             </div>
           }
         }
-        <button type="button" class="ud-btn-primary ud-create-team-btn"><span class="ud-btn-plus" aria-hidden="true">+</span> Create a team</button>
+        <button type="button" class="ud-btn-primary ud-create-team-btn"><span class="ud-btn-plus" aria-hidden="true">+</span> @Messages("dashboard.create.team")</button>
         @profileData.userTeam.map { _ =>
-          <a class="ud-see-all" href="@routes.UserDashboardController.leaderboardPreview#teams">See the team leaderboard →</a>
+          <a class="ud-see-all" href="@routes.UserDashboardController.leaderboardPreview#teams">@Messages("dashboard.team.see.board")</a>
         }
       </div>
     </div>
 
-    <div class="ud-nudge">👋 Invite classmates or friends to your team — mapping together is more fun, and you'll climb the team board faster!</div>
+    <div class="ud-nudge">@Messages("dashboard.team.nudge")</div>
   </div>
 
   @* Contribution map: the shared PSMap choropleth wired to the signed-in user's own streets/labels. Map labels
@@ -293,8 +315,9 @@
   </script>
 }
 
-@* labelmap namespace is needed so the reused label-detail popup's strings (Comments, Validations, Tags, …) resolve. *@
-@common.main(commonData, "Sidewalk - Dashboard", i18Namespaces = Seq("common", "labelmap")) {
+@* labelmap: the reused label-detail popup's strings; dashboard: the mistake-card/badge strings MistakeGallery.js and
+ DashboardBadges.js render client-side. *@
+@common.main(commonData, "Sidewalk - Dashboard", i18Namespaces = Seq("common", "labelmap", "dashboard")) {
   @common.navbar(commonData, Some(user))
   @userDashboard.layout("dashboard")(content)
 }

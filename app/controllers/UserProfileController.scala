@@ -241,23 +241,25 @@ class UserProfileController @Inject() (
   /**
    * Creates a team and puts it in the team table.
    */
-  def createTeam() = cc.securityService.SecuredAction(parse.json) { request =>
+  def createTeam() = cc.securityService.SecuredAction(parse.json) { implicit request =>
     val user                = request.identity
     val name: String        = (request.body \ "name").as[String].trim
     val description: String = (request.body \ "description").asOpt[String].getOrElse("").trim
 
-    def bad(msg: String) = Future.successful(BadRequest(Json.obj("success" -> false, "error" -> msg)))
+    def bad(msgKey: String) = Future.successful(BadRequest(Json.obj("success" -> false, "error" -> Messages(msgKey))))
 
     // Validate before inserting: signed-in only, sane lengths, and no abusive language in the public-facing name or
     // description (moderation; consolidate with the sign-up guard in #4375).
     if (user.role == "Anonymous")
-      Future.successful(Forbidden(Json.obj("success" -> false, "error" -> "Please sign in to create a team.")))
+      Future.successful(
+        Forbidden(Json.obj("success" -> false, "error" -> Messages("dashboard.team.error.signin")))
+      )
     else if (name.length < 2 || name.length > 50)
-      bad("Team name must be 2–50 characters.")
+      bad("dashboard.team.error.name.length")
     else if (description.length > 300)
-      bad("Description is too long (max 300 characters).")
+      bad("dashboard.team.error.desc.length")
     else if (!ProfanityGuard.isClean(name) || !ProfanityGuard.isClean(description))
-      bad("That name isn't allowed — please choose another.")
+      bad("dashboard.team.error.name.allowed")
     else {
       // Create the team and immediately join it, so creating a team is one seamless step.
       userService.createTeam(name, description).flatMap { teamId =>

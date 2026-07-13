@@ -39,3 +39,16 @@ share.meta.description.cta = Explore the map and help make footpaths accessible 
 share.meta.image.alt = Street-level photo with the {0} location marked
 
 # Public single-label spotlight / share page (#456).
+
+# Redesigned user dashboard + leaderboard (#4475): NZ dialect overrides only.
+dashboard.hero.headline = You''ve placed <strong>{0} labels</strong> making footpaths more accessible.
+dashboard.hero.sub = Every label helps make footpaths better.
+dashboard.trophy.intro = Trophies you''ve earned for pioneering neighbourhoods, topping them, and placing on the weekly board.
+dashboard.trophy.none = 🏆 No trophies yet — finish in the weekly top 3, or be the first or top mapper in a neighbourhood, and they''ll show up here.
+dashboard.trophy.explore.region = Explore this neighbourhood →
+dashboard.trophy.sub.champion = {0} labels — most in this neighbourhood
+dashboard.settings.units.metric = Kilometres & metres
+dashboard.profile.headline = {0} has placed <strong>{1} labels</strong> making footpaths more accessible.
+dashboard.profile.private.detail = They''re still out there making footpaths more accessible — they''ve just chosen not to share a public profile.
+leaderboard.intro = Every label makes footpaths more accessible and safe for everyone. Here''s how the community is doing.
+leaderboard.intro.you = Every label makes footpaths more accessible and safe for everyone. Here''s how the community — and you — are doing.

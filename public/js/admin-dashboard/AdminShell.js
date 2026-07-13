@@ -83,7 +83,9 @@ class AdminShell {
         if (!target) return;
         e.preventDefault();
         const top = target.offsetTop - AdminShell.#NAVBAR_OFFSET;
-        window.scrollTo({ top, behavior: 'smooth' });
+        // Jump instantly for users who prefer reduced motion (WCAG 2.3.3).
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        window.scrollTo({ top, behavior: reduceMotion ? 'auto' : 'smooth' });
         history.replaceState(null, '', `#${id}`);
       });
     });
