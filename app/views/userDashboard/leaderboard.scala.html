@@ -45,7 +45,7 @@
 @* Top-3 rows show a medal; a visually-hidden rank number keeps the cell meaningful to screen readers. *@
 @rankCell(rank: Int) = {
   @if(rank <= 3) {
-    <span aria-hidden="true">@{Seq("🥇", "🥈", "🥉")(rank - 1)}</span><span class="ud-sr-only">@rank</span>
+    <span class="ud-lb-medal" aria-hidden="true">@{Seq("🥇", "🥈", "🥉")(rank - 1)}</span><span class="ud-sr-only">@rank</span>
   } else {
     @rank
   }

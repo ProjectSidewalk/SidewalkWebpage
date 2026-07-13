@@ -41,8 +41,8 @@
 .api-content .ud-lb-alltime th:nth-child(3) { text-align: left; }
 .api-content .coverage-table tbody tr { cursor: default; }
 
-/* Medal (or number) in the leaderboard rank column — bump the medals so they read clearly. */
-.api-content .coverage-table td.ud-lb-rank {
+/* Bump only the top-3 medal emoji so they read clearly; plain rank numbers keep the table's font size. */
+.ud-lb-rank .ud-lb-medal {
   font-size: 2rem;
   line-height: 1;
 }
@@ -1126,6 +1126,15 @@
 .ud-cta-actions {
   display: flex;
   gap: var(--space-sm, 12px);
+}
+
+/* Both actions are anchors styled as buttons; the flex row stretches them to equal heights, so without this the
+ shorter "Sign in" link's text sits on the baseline instead of vertically centering in the stretched box. */
+.ud-cta-actions .ud-btn-primary,
+.ud-cta-actions .ud-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ---- Leaderboard: community band + podium ---------------------------------------------------------------------- */
