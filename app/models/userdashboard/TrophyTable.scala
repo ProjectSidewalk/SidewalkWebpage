@@ -30,7 +30,8 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    *
    * @param userId The user whose placements to find.
    * @param limit  Max rows to return.
-   * @return       (formatted "Week of ..." date, rank 1-3, label count) per qualifying week.
+   * @return       (week-start date as ISO yyyy-MM-dd, rank 1-3, label count) per qualifying week; the caller
+   *               formats the date for the viewer's locale.
    */
   def getWeeklyPodiums(userId: String, limit: Int): DBIO[Seq[(String, Int, Int)]] = {
     val labelWeek = weekStart("label.time_created AT TIME ZONE 'US/Pacific'")
@@ -54,7 +55,7 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               AND #$labelWeek < #$nowWeek
           GROUP BY sidewalk_user.user_id, wk
       )
-      SELECT to_char(wk, 'Mon FMDD, YYYY'), rnk, lc::int
+      SELECT to_char(wk, 'YYYY-MM-DD'), rnk, lc::int
       FROM weekly
       WHERE uid = $userId AND rnk <= 3
       ORDER BY wk DESC

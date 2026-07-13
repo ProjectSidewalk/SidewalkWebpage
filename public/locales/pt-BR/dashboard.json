@@ -37,5 +37,49 @@
   "no-mistakes-subheader": "Nenhum rótulo foi relatado como incorreto até agora, bom trabalho! <a href=\"/explore\">Comece a explorar</a> para continuar o bom trabalho! ",
   "validator-comment": "Comentário do validador: {{c}}",
   "validator-no-comment": "Nenhum comentário fornecido pelo validador.",
-  "characters-not-allowed": "O nome ou descrição da equipe contém caracteres especiais como &, <, >, \", ou '. Por favor, remova-os e tente novamente."
+  "characters-not-allowed": "O nome ou descrição da equipe contém caracteres especiais como &, <, >, \", ou '. Por favor, remova-os e tente novamente.",
+  "badges": {
+    "not-started": "Ainda não começou",
+    "maxed-out": "Nível máximo — você é uma lenda! 🎉",
+    "remaining-labels_one": "Mais {{count}} rótulo",
+    "remaining-labels_other": "Mais {{count}} rótulos",
+    "remaining-missions_one": "Mais {{count}} missão",
+    "remaining-missions_other": "Mais {{count}} missões",
+    "remaining-validations_one": "Mais {{count}} validação",
+    "remaining-validations_other": "Mais {{count}} validações",
+    "remaining-distance-km": "Mais {{dist}} km",
+    "remaining-distance-mi": "Mais {{dist}} mi"
+  },
+  "mistake-cards": {
+    "empty": "🎉 Nenhum erro para revisar — seus rótulos estão indo muito bem. Continue assim!",
+    "marked-incorrect": "Marcado como incorreto",
+    "open-title": "Abrir a visualização interativa do rótulo",
+    "open-hint": "⤢ Abrir",
+    "validator-quote": "“{{c}}”",
+    "vote-prompt": "Você concorda que foi um erro?",
+    "vote-yes": "👍 Sim, foi um erro.",
+    "vote-yes-title": "Você concorda que este rótulo foi um erro",
+    "vote-no": "✋ Não, está correto.",
+    "vote-no-title": "Você mantém seu rótulo — ele estava correto",
+    "voted-agree": "👍 Você concordou que foi um erro.",
+    "voted-contest": "✋ Você disse que seu rótulo estava correto — vamos dar outra olhada.",
+    "change-response": "Mudar resposta",
+    "your-note": "Sua nota: “{{note}}”",
+    "edit-note": "✏️ Editar nota",
+    "add-note": "💬 Adicionar uma nota",
+    "note-placeholder": "Adicione uma nota sobre este rótulo (opcional)…",
+    "save-note": "Salvar nota",
+    "popup-heading": "Seu rótulo foi validado como incorreto. Você concorda que foi um erro?",
+    "your-label": "Seu rótulo: {{type}}"
+  },
+  "settings-form": {
+    "saving": "Salvando…",
+    "saved": "Salvo ✓",
+    "save-failed": "Não foi possível salvar suas alterações. Tente novamente."
+  },
+  "team-dialog": {
+    "name-too-short": "O nome da equipe deve ter pelo menos 2 caracteres.",
+    "create-failed": "Não foi possível criar a equipe. Tente novamente.",
+    "network-error": "Erro de rede — tente novamente."
+  }
 }
