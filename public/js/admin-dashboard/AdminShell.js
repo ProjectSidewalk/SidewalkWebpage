@@ -26,10 +26,14 @@ class AdminShell {
     this.#setupMobileNav();
   }
 
-  /** Builds the TOC from h2/h3 headings (that have ids) inside the main content area. */
+  /**
+     * Builds the TOC from the section headings (h2/h3.api-heading with ids) inside the main content area. Scoped to
+     * .api-heading so headings inside closed <dialog>s (e.g. the dashboard's create-team dialog) stay out — a hidden
+     * heading has offsetTop 0, which would also wedge the scroll-spy on its TOC entry forever.
+     */
   #buildTableOfContents() {
     if (!this.#tocList) return;
-    this.#headings = Array.from(this.#content.querySelectorAll('h2[id], h3[id]'));
+    this.#headings = Array.from(this.#content.querySelectorAll('h2.api-heading[id], h3.api-heading[id]'));
 
     if (this.#headings.length === 0) {
       const toc = document.querySelector('.api-toc');

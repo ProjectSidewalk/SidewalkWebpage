@@ -177,7 +177,7 @@
   @* ---- Learning — Recent mistakes gallery ------------------------------------------------------------- *@
   <div class="api-section" id="ud-mistakes-section">
     <h2 class="api-heading" id="mistakes">@Messages("dashboard.mistakes.title") <a href="#mistakes" class="permalink">#</a></h2>
-    <p>@if(accuracyByType.exists(_.weakest)){@Messages("dashboard.mistakes.intro.weakest")}else{@Messages("dashboard.mistakes.intro")}</p>
+    <p>@if(accuracyByType.exists(_.weakest)){@Messages("dashboard.mistakes.intro.weakest", service.UserService.MinValidatedForWeakest)}else{@Messages("dashboard.mistakes.intro")}</p>
 
     @if(accuracyByType.nonEmpty) {
       <div class="ud-accuracy-bars">

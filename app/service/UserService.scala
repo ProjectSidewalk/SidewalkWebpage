@@ -95,8 +95,11 @@ object UserService {
   private val PrimaryLabelTypes: Seq[String] =
     Seq("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "NoSidewalk", "Crosswalk", "Signal")
 
-  /** Minimum validated labels of a type before it's eligible to be flagged as the user's "weakest" (avoids noise). */
-  private val MinValidatedForWeakest: Int = 5
+  /**
+   * Minimum validated labels of a type before it's eligible to be flagged as the user's "weakest" (avoids flagging a
+   * type off one or two validations). Public because the dashboard copy states the rule — source of truth for the UI.
+   */
+  val MinValidatedForWeakest: Int = 5
 
   /**
    * The public-profile visibility decision, isolated so it can be unit-tested without a DB. A profile is shown only if
