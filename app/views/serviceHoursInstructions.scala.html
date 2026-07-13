@@ -37,8 +37,8 @@
           </span>
           <div class="sh-track-body">
             <strong>You're signed up for service hours</strong>
-            <span>Your volunteer hours are officially recognized, so Mikey can verify and support your effort. You can
-            opt out anytime, or manage this in <a href="@routes.UserDashboardController.settings.url#service-hours">Settings</a>.</span>
+            <span>You have currently opted in to earning community service hours with Project Sidewalk. You can opt out
+            anytime, or manage this in <a href="@routes.UserDashboardController.settings.url#service-hours">Settings</a>.</span>
           </div>
           <form method="post" action="@routes.UserController.setServiceHours(false, Some("/serviceHoursInstructions"))">
             @CSRF.formField

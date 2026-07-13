@@ -4,17 +4,79 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole, isMobile: Boolean, timeSpent: Double
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
+@*
+* Time Check (#4375): shows the hours Project Sidewalk has logged for the signed-in user, framed to be encouraging and
+* supportive. Shares the serviceHoursInstructions design language (crosswalk band, hero, fact cards, tokens). Copy is
+* English-only today, like its sibling page; keys come with the epic's i18n pass.
+*@
+
+@* One encouraging line, scaled to how much the user has contributed. *@
+@cheer = @{
+  if (timeSpent <= 0) "Your very first hour is waiting — jump in and make your mark on the map!"
+  else if (timeSpent < 1) "You're off the mark, and every single label already counts."
+  else if (timeSpent < 5) "You're building real momentum. Keep it going!"
+  else if (timeSpent < 20) "That's serious dedication — your city is more accessible because of you."
+  else if (timeSpent < 50) "Incredible commitment. You're a force for accessibility."
+  else "You're a Project Sidewalk legend. The whole community thanks you."
+}
+
 @common.main(commonData, "Sidewalk - Time Check") {
   @if(!isMobile) {
     @common.navbar(commonData, Some(user))
   }
-  <div class="container">
-    <div class="row">
-      <div class="col-lg-8">
-        <h3>Time check!</h3>
-        <p>This page simply shows you how long our system has logged you working on Project Sidewalk. Crunching the numbers can take a while, so please be patient if the page take a long time to load!</p>
-        <p>If you see a large discrepancy between the time below and how long you estimate that you've worked on the website, you can email volunteer.sidewalk@@gmail.com to try and sort out the issue. The most common reason is that you forgot to log in while working. Try to include as much info you can about when you worked on Project Sidewalk and which pages you were using on the website at those times.</p>
-        <p>You've worked for <b>@{"%.2f".format(timeSpent)} hours</b>!</p>
+  <div class="sh-page">
+    <div class="au-crosswalk"></div>
+    <div class="sh-hero">
+      <p class="sh-eyebrow">Your impact so far</p>
+      <h1>Nice work, @user.username!</h1>
+      <p>Every hour you spend labeling makes sidewalks easier to navigate for people with disabilities. Here's the time
+      Project Sidewalk has logged for you.</p>
+    </div>
+
+    <div class="tc-stat">
+      <span class="tc-stat-num">@{"%.1f".format(timeSpent)}</span>
+      <span class="tc-stat-unit">@{if (timeSpent == 1.0) "hour" else "hours"} mapping &amp; validating</span>
+      <p class="tc-stat-cheer">@cheer</p>
+    </div>
+
+    <div class="sh-main">
+      <div class="sh-facts">
+        <div class="sh-fact">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          <span>Crunching the numbers can take a moment — thanks for your patience while this page loads.</span>
+        </div>
+        <div class="sh-fact">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          <span>Total looks off? The usual cause is mapping while signed out. Email
+          <a href="mailto:volunteer.sidewalk@@gmail.com">volunteer.sidewalk@@gmail.com</a> with when you worked and which
+          pages you used, and we'll help sort it out.</span>
+        </div>
+      </div>
+
+      @if(user.communityService) {
+        <div class="sh-track sh-track--on">
+          <span class="sh-track-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </span>
+          <div class="sh-track-body">
+            <strong>You're signed up for service hours</strong>
+            <span>Remember to email your supervisor for feedback each round — see
+            <a href="@routes.ApplicationController.serviceHoursInstructions">how service hours work</a>.</span>
+          </div>
+        </div>
+      } else {
+        <div class="sh-track sh-track--off">
+          <div class="sh-track-body">
+            <strong>Earning school or volunteer credit?</strong>
+            <span>Sign up to have these hours officially recognized and verified by a supervisor.</span>
+          </div>
+          <a class="button-ps button--secondary" href="@routes.ApplicationController.serviceHoursInstructions">How it works</a>
+        </div>
+      }
+
+      <div class="sh-ctas">
+        <a class="button-ps button--primary button--large" id="time-check-explore-btn" href="@routes.ExploreController.explore()">Keep mapping</a>
+        <a class="button-ps button--secondary button--large" id="time-check-dashboard-btn" href="/dashboard">See my dashboard</a>
       </div>
     </div>
   </div>
