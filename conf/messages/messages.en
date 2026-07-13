@@ -305,20 +305,10 @@ labeling.guide.occlusion.summary = Sometimes the view of the sidewalk is complet
 
 admin.clear.play.cache = Clear Play cache
 
-leaderboard.overall.title = Overall Leaderboard
-leaderboard.weekly.title = Weekly Leaderboard
-leaderboard.inter.team.title = Teams Leaderboard
-leaderboard.team.title = {0} Leaderboard
-leaderboard.overall.detail = Leaders are calculated based on their labels, distance, and accuracy
-leaderboard.team.detail = Top 10 overall contributors to {0}
 leaderboard.header.team = Team
 leaderboard.header.labels = Labels
 leaderboard.header.missions = Missions
 leaderboard.header.distance = Distance
-leaderboard.tooltip.accuracy = Accuracy is only shown if at least 10 of your labels have been validated
-leaderboard.encouragement = Want to make it into the Top 10? <a id="encouragement-link" href="/explore"><u>Start exploring!</u></a>
-leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Sign up</u></a> to track your progress!
-leaderboard.encouragement.no.team = Want to improve your accuracy? Read our <a id="encouragement-link" href="{0}" target="_blank"><u>labeling guide</u></a> and view your recent incorrect labels on <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>your dashboard</u></a>
 
 gallery = Gallery
 gallery.filter.by = Filter By

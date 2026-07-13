@@ -297,19 +297,9 @@ labeling.guide.occlusion.summary = Soms is het zicht op het trottoir volledig ge
 
 admin.clear.play.cache = Wis Play cache
 
-leaderboard.overall.title = Algemeen klassement
-leaderboard.weekly.title = Wekelijks Scoreboard
-leaderboard.inter.team.title = Teams klassement
-leaderboard.team.title = {0} Scoreboard
-leaderboard.overall.detail = Leiders worden berekend op basis van hun labels, afstand en nauwkeurigheid
-leaderboard.team.detail = Top 10 algemene bijdragers aan {0}
 leaderboard.header.labels = Labels
 leaderboard.header.missions = Missies
 leaderboard.header.distance = Afstand
-leaderboard.tooltip.accuracy = Nauwkeurigheid wordt alleen weergegeven als ten minste 10 van je labels zijn gevalideerd
-leaderboard.encouragement = Wil je in de Top 10 komen? <a id="encouragement-link" href="/explore"><u>Begin met verkennen!</u></a>
-leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Meld je aan</u></a> om je voortgang bij te houden!
-leaderboard.encouragement.no.team = Wilt u uw nauwkeurigheid verbeteren? Lees onze <a id="encouragement-link" href="{0}" target="_blank"><u>labelgids</u></a> en bekijk uw recente onjuiste labels op <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>uw dashboard</u></a>
 
 gallery = Galerij
 gallery.filter.by = Filteren op

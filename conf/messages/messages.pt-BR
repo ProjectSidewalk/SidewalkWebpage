@@ -305,20 +305,10 @@ labeling.guide.occlusion.summary = Às vezes a visão da calçada está completa
 
 admin.clear.play.cache = Limpar cache do Play
 
-leaderboard.overall.title = Classificação geral
-leaderboard.weekly.title = Classificação semanal
-leaderboard.inter.team.title = Classificação das equipes
-leaderboard.team.title = Classificação de {0}
-leaderboard.overall.detail = Os líderes são calculados com base em seus rótulos, distância e precisão
-leaderboard.team.detail = Top 10 maiores contribuidores de {0}
 leaderboard.header.team = Equipe
 leaderboard.header.labels = Rótulos
 leaderboard.header.missions = Missões
 leaderboard.header.distance = Distância
-leaderboard.tooltip.accuracy = A precisão é exibida apenas se pelo menos 10 de seus rótulos tiverem sido validados
-leaderboard.encouragement = Quer entrar no Top 10? <a id="encouragement-link" href="/explore"><u>Comece a explorar!</u></a>
-leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Cadastre-se</u></a> para acompanhar seu progresso!
-leaderboard.encouragement.no.team = Quer melhorar sua precisão? Leia nosso <a id="encouragement-link" href="{0}" target="_blank"><u>guia de rotulagem</u></a> e veja sueus rótulos incorretos recentes no <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>seu painel</u></a>
 
 gallery = Galeria
 gallery.filter.by = Filtrar por

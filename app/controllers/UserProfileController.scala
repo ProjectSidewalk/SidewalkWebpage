@@ -1,13 +1,12 @@
 package controllers
 
 import controllers.base._
-import controllers.helper.ControllerUtils.{isMobile, parseIntegerSeq}
+import controllers.helper.ControllerUtils.parseIntegerSeq
 import executors.CpuIntensiveExecutionContext
 import formats.json.LabelFormats.labelMetadataUserDashToJson
 import formats.json.UserFormats._
 import models.auth._
 import models.label.LabelTypeEnum
-import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.ProfanityGuard
 import models.utils.MyPostgresProfile.api._
@@ -25,7 +24,6 @@ class UserProfileController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[DefaultEnv],
     val config: Configuration,
-    configService: service.ConfigService,
     authenticationService: service.AuthenticationService,
     userService: service.UserService,
     labelService: service.LabelService,
@@ -33,35 +31,10 @@ class UserProfileController @Inject() (
     panoDataService: service.PanoDataService,
     implicit val ec: ExecutionContext,
     cpuEc: CpuIntensiveExecutionContext
-)(implicit assets: AssetsFinder)
-    extends CustomBaseController(cc) {
+) extends CustomBaseController(cc) {
 
   implicit val implicitConfig: Configuration = config
   private val logger                         = Logger(this.getClass)
-
-  /**
-   * Loads the user dashboard page.
-   */
-  def userProfile = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
-    val user: SidewalkUserWithRole = request.identity
-    val metricSystem: Boolean      = Messages("measurement.system") == "metric"
-    if (isMobile(request)) {
-      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboard_RedirectMobileLanding")
-      Future.successful(Redirect("/mobileLanding"))
-    } else {
-      for {
-        userProfileData <- userService.getUserProfileData(user.userId, metricSystem)
-        commonData      <- configService.getCommonPageData(request2Messages.lang)
-        tags            <- labelService.getTagsForCurrentCity
-      } yield {
-        cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboard")
-        Ok(
-          views.html
-            .userProfile(commonData, "Sidewalk - Dashboard", user, user, tags, userProfileData, adminData = None)
-        )
-      }
-    }
-  }
 
   /** Builds the choropleth GeoJSON FeatureCollection for a set of a user's audited streets. */
   private def streetsToGeoJson(streets: Seq[models.street.StreetEdge]): JsObject = {

@@ -56,7 +56,7 @@
     <tr @if(you){class="highlighted"}>
       <td class="ud-lb-rank">@rankCell(rank)</td>
       <td>@if(you){<strong>@Messages("dashboard.you")</strong>}else{
-        @if(linkUser){<a href="@routes.UserDashboardController.publicProfilePreview(stat.username)" class="ud-lb-user">@stat.username</a>}else{@stat.username}
+        @if(linkUser){<a href="@routes.UserDashboardController.publicProfile(stat.username)" class="ud-lb-user">@stat.username</a>}else{@stat.username}
       }</td>
       <td>@{"%,d".format(stat.labelCount)}</td>
       <td>@stat.missionCount</td>
@@ -68,7 +68,7 @@
 
 @podiumSpot(stat: LeaderboardStat, place: Int, medal: String) = {
   <div class="ud-podium-spot ud-podium-@place">
-    <div class="ud-podium-name"><a href="@routes.UserDashboardController.publicProfilePreview(stat.username)" class="ud-lb-user">@stat.username</a></div>
+    <div class="ud-podium-name"><a href="@routes.UserDashboardController.publicProfile(stat.username)" class="ud-lb-user">@stat.username</a></div>
     <div class="ud-podium-score">@Messages("leaderboard.podium.labels", "%,d".format(stat.labelCount))</div>
     <div class="ud-podium-block"><span aria-hidden="true">@medal</span><span class="ud-sr-only">@Messages(s"dashboard.rank.place.${Seq("one", "two", "three")(place - 1)}")</span></div>
   </div>

@@ -14,10 +14,10 @@
 @youSection = {
   @if(isSignedIn) {
     <div class="api-nav-header">@Messages("dashboard.nav.you")</div>
-    <a href="@routes.UserDashboardController.dashboardPreview"
+    <a href="@routes.UserDashboardController.dashboard"
      class="api-nav-item @if(activePage == "dashboard"){active}"
      @if(activePage == "dashboard"){aria-current="page"}>@Messages("dashboard.nav.dashboard")</a>
-    <a href="@routes.UserDashboardController.settingsPreview"
+    <a href="@routes.UserDashboardController.settings"
      class="api-nav-item @if(activePage == "settings"){active}"
      @if(activePage == "settings"){aria-current="page"}>@Messages("dashboard.nav.settings")</a>
   }
@@ -25,7 +25,7 @@
 
 @communitySection = {
   <div class="api-nav-header">@Messages("dashboard.nav.community")</div>
-  <a href="@routes.UserDashboardController.leaderboardPreview"
+  <a href="@routes.UserDashboardController.leaderboard"
    class="api-nav-item @if(activePage == "leaderboard"){active}"
    @if(activePage == "leaderboard"){aria-current="page"}>@Messages("navbar.leaderboard")</a>
 }
