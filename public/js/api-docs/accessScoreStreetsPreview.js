@@ -89,7 +89,7 @@
     /** Pick a sample region (the one with the most labels) to keep the preview focused. Null = whole city. */
     fetchSampleRegionId() {
       // getRegionWithMostLabels returns a flat Region object (region_id at the top level), not a GeoJSON Feature.
-      return fetch(`${config.apiBaseUrl}/regionWithMostLabels?source=apiDocs`)
+      return fetch(`${config.apiBaseUrl}/regionWithMostLabels?utm_source=apiDocs`)
         .then((response) => (response.ok ? response.json() : null))
         .then((region) => (region ? region.region_id : null))
         .catch(() => null);
@@ -98,7 +98,7 @@
     /** Fetch street AccessScores (optionally scoped to a region) as a GeoJSON FeatureCollection. */
     fetchStreets(regionId) {
       const regionParam = regionId ? `&regionId=${regionId}` : '';
-      return fetch(`${config.apiBaseUrl}${config.endpoint}?inline=true&source=apiDocs${regionParam}`)
+      return fetch(`${config.apiBaseUrl}${config.endpoint}?inline=true&utm_source=apiDocs${regionParam}`)
         .then((response) => {
           if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
           return response.json();
