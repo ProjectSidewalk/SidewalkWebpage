@@ -35,11 +35,14 @@ class DashboardBadges {
     const level = BadgeAchievements.getLevelForValue(type, value);
     const trackName = track.querySelector('.ud-badge-track-name')?.textContent.trim() ?? '';
 
-    // Tier pill: "IV: Barrier Buster", colored by the level's ramp color (.ud-tier-N).
+    // Tier pill: "IV: Barrier Buster", colored by the level's ramp color (.ud-tier-N). Per-level names are
+    // deliberately untranslated brand names (#4475).
     const pill = track.querySelector('[data-tier]');
     if (pill) {
       pill.className = `ud-badge-track-current ud-tier-${level}`;
-      pill.textContent = level >= 1 ? `${roman[level - 1]}: ${names[level - 1]}` : 'Not started';
+      pill.textContent = level >= 1
+        ? `${roman[level - 1]}: ${names[level - 1]}`
+        : i18next.t('dashboard:badges.not-started');
     }
 
     // Dim the badge icons above the earned level.
@@ -53,7 +56,7 @@ class DashboardBadges {
 
     if (level >= 5) {
       if (fill) fill.style.width = '100%';
-      if (next) next.textContent = 'Maxed out — you\'re a legend! 🎉';
+      if (next) next.textContent = i18next.t('dashboard:badges.maxed-out');
       return;
     }
 
@@ -77,10 +80,13 @@ class DashboardBadges {
      */
   #formatRemaining(type, remaining) {
     if (type === 'distance') {
-      if (this.isMetric) return `${util.math.milesToKms(remaining).toFixed(1)} km more`;
-      return `${remaining.toFixed(1)} mi more`;
+      if (this.isMetric) {
+        const dist = util.math.milesToKms(remaining).toFixed(1);
+        return i18next.t('dashboard:badges.remaining-distance-km', { dist });
+      }
+      return i18next.t('dashboard:badges.remaining-distance-mi', { dist: remaining.toFixed(1) });
     }
     const unit = type === 'missions' ? 'missions' : type === 'validations' ? 'validations' : 'labels';
-    return `${Math.ceil(remaining).toLocaleString()} more ${unit}`;
+    return i18next.t(`dashboard:badges.remaining-${unit}`, { count: Math.ceil(remaining) });
   }
 }

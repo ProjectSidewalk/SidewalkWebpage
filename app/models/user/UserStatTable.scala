@@ -106,12 +106,13 @@ case class StandingRow(rank: Int, username: String, labelCount: Int, isYou: Bool
 case class UserStanding(rank: Int, cohortSize: Int, labelCount: Int, slice: Seq[StandingRow], delta: Option[Int] = None)
 
 /**
- * One cell of the activity heatmap.
+ * One cell of the activity heatmap. The view assembles the localized tooltip from these parts.
  *
  * @param intensity 0 (no activity) … 4 (most), bucketed from the day's contribution count.
- * @param tooltip   Human-readable hover text, e.g. "7 contributions on Mon, Jun 23".
+ * @param count     The day's contribution count.
+ * @param dateLabel The cell's date, formatted in the viewer's locale (e.g. "Mon, Jun 23").
  */
-case class StreakCell(intensity: Int, tooltip: String)
+case class StreakCell(intensity: Int, count: Int, dateLabel: String)
 
 /**
  * A user's activity streak summary plus the heatmap grid.

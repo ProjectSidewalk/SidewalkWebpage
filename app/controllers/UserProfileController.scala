@@ -1,13 +1,12 @@
 package controllers
 
 import controllers.base._
-import controllers.helper.ControllerUtils.{isMobile, parseIntegerSeq}
+import controllers.helper.ControllerUtils.parseIntegerSeq
 import executors.CpuIntensiveExecutionContext
 import formats.json.LabelFormats.labelMetadataUserDashToJson
 import formats.json.UserFormats._
 import models.auth._
 import models.label.LabelTypeEnum
-import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.ProfanityGuard
 import models.utils.MyPostgresProfile.api._
@@ -25,7 +24,6 @@ class UserProfileController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[DefaultEnv],
     val config: Configuration,
-    configService: service.ConfigService,
     authenticationService: service.AuthenticationService,
     userService: service.UserService,
     labelService: service.LabelService,
@@ -33,35 +31,10 @@ class UserProfileController @Inject() (
     panoDataService: service.PanoDataService,
     implicit val ec: ExecutionContext,
     cpuEc: CpuIntensiveExecutionContext
-)(implicit assets: AssetsFinder)
-    extends CustomBaseController(cc) {
+) extends CustomBaseController(cc) {
 
   implicit val implicitConfig: Configuration = config
   private val logger                         = Logger(this.getClass)
-
-  /**
-   * Loads the user dashboard page.
-   */
-  def userProfile = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
-    val user: SidewalkUserWithRole = request.identity
-    val metricSystem: Boolean      = Messages("measurement.system") == "metric"
-    if (isMobile(request)) {
-      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboard_RedirectMobileLanding")
-      Future.successful(Redirect("/mobileLanding"))
-    } else {
-      for {
-        userProfileData <- userService.getUserProfileData(user.userId, metricSystem)
-        commonData      <- configService.getCommonPageData(request2Messages.lang)
-        tags            <- labelService.getTagsForCurrentCity
-      } yield {
-        cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboard")
-        Ok(
-          views.html
-            .userProfile(commonData, "Sidewalk - Dashboard", user, user, tags, userProfileData, adminData = None)
-        )
-      }
-    }
-  }
 
   /** Builds the choropleth GeoJSON FeatureCollection for a set of a user's audited streets. */
   private def streetsToGeoJson(streets: Seq[models.street.StreetEdge]): JsObject = {
@@ -241,23 +214,25 @@ class UserProfileController @Inject() (
   /**
    * Creates a team and puts it in the team table.
    */
-  def createTeam() = cc.securityService.SecuredAction(parse.json) { request =>
+  def createTeam() = cc.securityService.SecuredAction(parse.json) { implicit request =>
     val user                = request.identity
     val name: String        = (request.body \ "name").as[String].trim
     val description: String = (request.body \ "description").asOpt[String].getOrElse("").trim
 
-    def bad(msg: String) = Future.successful(BadRequest(Json.obj("success" -> false, "error" -> msg)))
+    def bad(msgKey: String) = Future.successful(BadRequest(Json.obj("success" -> false, "error" -> Messages(msgKey))))
 
     // Validate before inserting: signed-in only, sane lengths, and no abusive language in the public-facing name or
     // description (moderation; consolidate with the sign-up guard in #4375).
     if (user.role == "Anonymous")
-      Future.successful(Forbidden(Json.obj("success" -> false, "error" -> "Please sign in to create a team.")))
+      Future.successful(
+        Forbidden(Json.obj("success" -> false, "error" -> Messages("dashboard.team.error.signin")))
+      )
     else if (name.length < 2 || name.length > 50)
-      bad("Team name must be 2–50 characters.")
+      bad("dashboard.team.error.name.length")
     else if (description.length > 300)
-      bad("Description is too long (max 300 characters).")
+      bad("dashboard.team.error.desc.length")
     else if (!ProfanityGuard.isClean(name) || !ProfanityGuard.isClean(description))
-      bad("That name isn't allowed — please choose another.")
+      bad("dashboard.team.error.name.allowed")
     else {
       // Create the team and immediately join it, so creating a team is one seamless step.
       userService.createTeam(name, description).flatMap { teamId =>

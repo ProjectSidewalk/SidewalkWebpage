@@ -22,16 +22,20 @@
   <h1 class="api-heading" id="overview">@title <a href="#overview" class="permalink">#</a></h1>
 }
 
-@distanceLabel(d: Double) = @{ f"$d%.1f ${if(isMetric) "km" else "mi"}" }
+@distanceLabel(d: Double) = @{
+  f"$d%.1f ${if (isMetric) Messages("dashboard.unit.km") else Messages("dashboard.unit.mi")}"
+}
 @accuracyLabel(a: Option[Double]) = @{ a.map(x => f"${x * 100}%.0f%%").getOrElse("—") }
+
+@escapedName = @{ play.twirl.api.HtmlFormat.escape(profileName).toString }
 
 @notFoundState = {
   <div class="api-section" id="pp-notfound-section">
-    @pageHeading("Mapper not found")
+    @pageHeading(Messages("dashboard.profile.notfound.title"))
     <div class="ud-empty-state">
       <span class="ud-empty-emoji" aria-hidden="true">🔍</span>
-      <p><strong>We couldn't find a mapper named "@profileName".</strong></p>
-      <p class="ud-hero-sub">The name may have changed. Head back to the <a href="@routes.UserDashboardController.leaderboardPreview">leaderboard</a> to find them.</p>
+      <p><strong>@Messages("dashboard.profile.notfound", profileName)</strong></p>
+      <p class="ud-hero-sub">@Html(Messages("dashboard.profile.notfound.detail", routes.UserDashboardController.leaderboard))</p>
     </div>
   </div>
 }
@@ -41,8 +45,8 @@
     @pageHeading(profileName)
     <div class="ud-empty-state">
       <span class="ud-empty-emoji" aria-hidden="true">🔒</span>
-      <p><strong>@profileName has kept their profile private.</strong></p>
-      <p class="ud-hero-sub">They're still out there making sidewalks more accessible — they've just chosen not to share a public profile.</p>
+      <p><strong>@Messages("dashboard.profile.private", profileName)</strong></p>
+      <p class="ud-hero-sub">@Messages("dashboard.profile.private.detail")</p>
     </div>
   </div>
 }
@@ -54,22 +58,24 @@
     <div class="ud-hero">
       <div class="ud-hero-avatar" aria-hidden="true">@monogram</div>
       <div class="ud-hero-text">
-        <p class="ud-hero-greeting"><span class="ud-public-tag">Public profile</span></p>
-        <p class="ud-hero-headline"><strong>@profileName</strong> has placed <strong>@{"%,d".format(pd.labelCount)} labels</strong> making sidewalks more accessible.</p>
+        <p class="ud-hero-greeting"><span class="ud-public-tag">@Messages("dashboard.profile.tag")</span></p>
+        @* profileName comes from the URL, so escape it before it goes through @Html. *@
+        <p class="ud-hero-headline">@Html(Messages("dashboard.profile.headline",
+          s"<strong>$escapedName</strong>", "%,d".format(pd.labelCount)))</p>
       </div>
     </div>
 
     <div class="coverage-kpis ud-kpis">
-      <div class="coverage-kpi"><span class="coverage-kpi-value">@{"%,d".format(pd.missionCount)}</span><span class="coverage-kpi-label">Missions completed</span></div>
-      <div class="coverage-kpi"><span class="coverage-kpi-value">@distanceLabel(pd.auditedDistance)</span><span class="coverage-kpi-label">Distance explored</span></div>
-      <div class="coverage-kpi"><span class="coverage-kpi-value">@{"%,d".format(pd.labelCount)}</span><span class="coverage-kpi-label">Labels placed</span></div>
-      <div class="coverage-kpi"><span class="coverage-kpi-value">@{"%,d".format(pd.validationCount)}</span><span class="coverage-kpi-label">Validations given</span></div>
-      <div class="coverage-kpi"><span class="coverage-kpi-value">@accuracyLabel(pd.accuracy)</span><span class="coverage-kpi-label">Label accuracy</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value">@{"%,d".format(pd.missionCount)}</span><span class="coverage-kpi-label">@Messages("dashboard.kpi.missions")</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value">@distanceLabel(pd.auditedDistance)</span><span class="coverage-kpi-label">@Messages("dashboard.kpi.distance")</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value">@{"%,d".format(pd.labelCount)}</span><span class="coverage-kpi-label">@Messages("dashboard.kpi.labels")</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value">@{"%,d".format(pd.validationCount)}</span><span class="coverage-kpi-label">@Messages("dashboard.kpi.validations")</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value">@accuracyLabel(pd.accuracy)</span><span class="coverage-kpi-label">@Messages("dashboard.kpi.accuracy")</span></div>
     </div>
 
     @* Contribution map is part of the hero (no h2, so it doesn't get its own on-this-page entry) — same
      placement as the owner's dashboard so the two pages read alike. *@
-    <p class="ud-map-caption">Where they've explored — @{profileName}'s audited streets and labels. Open the legend to filter.</p>
+    <p class="ud-map-caption">@Messages("dashboard.profile.map.caption", profileName)</p>
     <div id="public-profile-choropleth-holder" class="choropleth-holder">
       <div id="public-profile-choropleth" class="choropleth"></div>
       @common.mapSidebar(tags = tags, streetsShownByDefault = true)
@@ -77,20 +83,20 @@
   </div>
 
   <div class="api-section" id="pp-achievements-section">
-    <h2 class="api-heading" id="achievements">Badges &amp; trophies <a href="#achievements" class="permalink">#</a></h2>
+    <h2 class="api-heading" id="achievements">@Messages("dashboard.achievements.title") <a href="#achievements" class="permalink">#</a></h2>
     @userDashboard._badgeTracks(pd.labelCount, pd.auditedDistance, pd.missionCount, pd.validationCount, isMetric)
 
-    <h3 class="api-heading" id="trophy-case">Trophy case <a href="#trophy-case" class="permalink">#</a></h3>
+    <h3 class="api-heading" id="trophy-case">@Messages("dashboard.trophy.title") <a href="#trophy-case" class="permalink">#</a></h3>
     @if(trophies.nonEmpty) {
       @userDashboard._trophyCase(trophies)
     } else {
-      <div class="ud-nudge">🏆 @profileName hasn't earned any trophies yet — but every label counts.</div>
+      <div class="ud-nudge">@Messages("dashboard.profile.trophy.none", profileName)</div>
     }
   </div>
 
   @pd.userTeam.map { team =>
     <div class="api-section" id="pp-team-section">
-      <h2 class="api-heading" id="team">Team <a href="#team" class="permalink">#</a></h2>
+      <h2 class="api-heading" id="team">@Messages("dashboard.settings.team") <a href="#team" class="permalink">#</a></h2>
       <div class="ud-team-card">
         <span class="ud-team-name">@team.name</span>
       </div>
@@ -159,8 +165,8 @@
   }
 }
 
-@* labelmap namespace is needed so the reused label-detail popup's strings (Comments, Validations, Tags, …) resolve. *@
-@common.main(commonData, s"Sidewalk - ${profileName}", i18Namespaces = Seq("common", "labelmap")) {
+@* labelmap: the reused label-detail popup's strings; dashboard: DashboardBadges.js's client-side strings. *@
+@common.main(commonData, s"Sidewalk - ${profileName}", i18Namespaces = Seq("common", "labelmap", "dashboard")) {
   @common.navbar(commonData, Some(user))
-  @userDashboard.layout("")(body)
+  @userDashboard.layout("", isSignedIn = user.role != "Anonymous")(body)
 }

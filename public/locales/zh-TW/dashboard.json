@@ -37,5 +37,46 @@
   "no-mistakes-subheader": "到目前為止，沒有任何標籤被通報為不正確，做得好！<a href=\"/explore\">開始探索</a> 以持續做優質的工作！",
   "validator-comment": "其他檢核者評論：{{c}}",
   "validator-no-comment": "無其他檢核者評論。",
-  "characters-not-allowed": "團隊名稱或描述包含特殊字符，例如 &、<、>、\" 或 '。請刪除它們並重試。"
+  "characters-not-allowed": "團隊名稱或描述包含特殊字符，例如 &、<、>、\" 或 '。請刪除它們並重試。",
+  "badges": {
+    "not-started": "尚未開始",
+    "maxed-out": "已達最高等級——您是傳奇！ 🎉",
+    "remaining-labels_other": "再 {{count}} 個標記",
+    "remaining-missions_other": "再 {{count}} 個任務",
+    "remaining-validations_other": "再 {{count}} 個檢核",
+    "remaining-distance-km": "再 {{dist}} 公里",
+    "remaining-distance-mi": "再 {{dist}} 英里"
+  },
+  "mistake-cards": {
+    "empty": "🎉 沒有需要檢視的錯誤——您的標記表現很好。繼續保持！",
+    "marked-incorrect": "被標為錯誤",
+    "open-title": "開啟互動式標記檢視",
+    "open-hint": "⤢ 開啟",
+    "validator-quote": "「{{c}}」",
+    "vote-prompt": "您同意這是一個錯誤嗎？",
+    "vote-yes": "👍 是，是個錯誤。",
+    "vote-yes-title": "您同意這個標記是個錯誤",
+    "vote-no": "✋ 不，它是正確的。",
+    "vote-no-title": "您堅持自己的標記——它是正確的",
+    "voted-agree": "👍 您已同意這是一個錯誤。",
+    "voted-contest": "✋ 您表示您的標記是正確的——我們會再檢視一次。",
+    "change-response": "變更回覆",
+    "your-note": "您的附註：「{{note}}」",
+    "edit-note": "✏️ 編輯附註",
+    "add-note": "💬 新增附註",
+    "note-placeholder": "為這個標記新增附註（選填）…",
+    "save-note": "儲存附註",
+    "popup-heading": "您的標記被檢核為錯誤。您同意這是一個錯誤嗎？",
+    "your-label": "您的標記：{{type}}"
+  },
+  "settings-form": {
+    "saving": "儲存中…",
+    "saved": "已儲存 ✓",
+    "save-failed": "無法儲存您的變更。請再試一次。"
+  },
+  "team-dialog": {
+    "name-too-short": "團隊名稱至少需要 2 個字元。",
+    "create-failed": "無法建立團隊。請再試一次。",
+    "network-error": "網路錯誤——請再試一次。"
+  }
 }
