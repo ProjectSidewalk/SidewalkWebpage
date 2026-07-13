@@ -114,9 +114,12 @@
       "follow-red-line": "Folgen Sie der roten Linie, um die Mission fortzusetzen.",
       "explore-current-location": "Drehen Sie sich um 360 Grad, um sicherzustellen, dass nichts übersehen wird."
     },
+    "stats": {
+      "leaderboard-cta": "Bestenliste der Gemeinschaft ansehen"
+    },
     "badges": {
       "title": "Abzeichen",
-      "see-all": "Alle Abzeichen anzeigen",
+      "dashboard-cta": "Ihr Dashboard ansehen",
       "labeler-goal": "Verdienen Sie Beschrifter-Abzeichen, indem Sie beim Erkunden Barrierefreiheits-Markierungen setzen.",
       "explorer-goal": "Verdienen Sie Erkunder-Abzeichen, indem Sie auf der Erkunden-Seite Strassen bewerten.",
       "next-labels_one": "Setzen Sie {{count, number}} Markierung, um das nächste zu erhalten.",

@@ -235,6 +235,12 @@
               </div>
             </div>
           </div>
+          <a id="explore-sidebar__leaderboard-cta" class="explore-sidebar__see-all" href="/leaderboard">
+            <span data-i18n="audit:right-ui.stats.leaderboard-cta">See the community leaderboard</span>
+            <svg class="explore-sidebar__see-all-chevron" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
+              <path d="M7.5 4.5L13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+          </a>
         </section>
 
         @* Progress toward the next labeling and exploring badges. Populated by BadgeProgress. *@
@@ -262,8 +268,8 @@
               </div>
             </div>
           </div>
-          <a id="explore-sidebar__see-all-badges" class="explore-sidebar__see-all" href="/dashboard#achievements">
-            <span data-i18n="audit:right-ui.badges.see-all">See all badges</span>
+          <a id="explore-sidebar__dashboard-cta" class="explore-sidebar__see-all" href="/dashboard#achievements">
+            <span data-i18n="audit:right-ui.badges.dashboard-cta">Check out your dashboard</span>
             <svg class="explore-sidebar__see-all-chevron" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
               <path d="M7.5 4.5L13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
             </svg>
@@ -423,7 +429,7 @@
               <div class="context-menu-header">
                 <span id="tag-header-num">1.</span>
                 <span>@Messages("audit.center.ui.tags.header")</span>
-                <img src='@assets.path("images/icons/info-button.svg")' class="context-menu-info-icon" title="@Messages("audit.center.ui.tags.info")" data-toggle="tooltip" data-placement="top" alt="More information about tags">`
+                <img src='@assets.path("images/icons/info-button.svg")' class="context-menu-info-icon" title="@Messages("audit.center.ui.tags.info")" data-toggle="tooltip" data-placement="top" alt="More information about tags">
               </div>
               <div id="context-menu-tag-holder" class="context-menu-section">
                 <button type="button" class="context-menu-tag tag-pill tag-pill--interactive" name='tag' id="0"></button>

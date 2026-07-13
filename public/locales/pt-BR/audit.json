@@ -114,9 +114,12 @@
       "follow-red-line": "Siga a linha vermelha para continuar a missão",
       "explore-current-location": "Vire 360 graus para garantir que nada seja perdido."
     },
+    "stats": {
+      "leaderboard-cta": "Ver a classificação da comunidade"
+    },
     "badges": {
       "title": "Insígnias",
-      "see-all": "Ver todas as insígnias",
+      "dashboard-cta": "Confira seu painel",
       "labeler-goal": "Ganhe insígnias de Rotulador adicionando rótulos de acessibilidade enquanto explora.",
       "explorer-goal": "Ganhe insígnias de Explorador avaliando ruas na página Explorar.",
       "next-labels_one": "Adicione {{count, number}} rótulo para conquistar a próxima.",

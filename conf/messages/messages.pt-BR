@@ -196,7 +196,7 @@ audit.ribbon.signal = Semáforo de <u>p</u>edestres
 audit.ribbon.other = Outro
 audit.ribbon.occlusion = Não consigo ver a calçada (<u>B</u>)
 
-audit.right.ui.overall.stats = Estatísticas Gerais
+audit.right.ui.overall.stats = Suas Estatísticas Gerais
 audit.center.ui.tags.header = Adicionar etiquetas
 audit.center.ui.tags.info = Adicione etiquetas aos seus rótulos para enriquecer os dados com informações úteis. Passe o mouse sobre as tags para ver exemplos.
 audit.center.ui.description.header = Descreva (opcional)

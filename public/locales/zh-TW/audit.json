@@ -114,9 +114,12 @@
       "follow-red-line": "請沿著紅線繼續任務",
       "explore-current-location": "旋轉 360 度以確保沒有遺漏任何內容。"
     },
+    "stats": {
+      "leaderboard-cta": "查看社群排行榜"
+    },
     "badges": {
       "title": "徽章",
-      "see-all": "查看所有徽章",
+      "dashboard-cta": "看看您的儀表板",
       "labeler-goal": "在探索時放置無障礙標記即可獲得標記者徽章。",
       "explorer-goal": "在探索頁面評估街道即可獲得探索者徽章。",
       "next-labels_other": "放置 {{count, number}} 個標記即可獲得下一個徽章。",

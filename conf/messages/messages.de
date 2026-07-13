@@ -191,7 +191,7 @@ audit.ribbon.signal = Fussgänger:innensignal (<u>P</u>)
 audit.ribbon.other = Andere
 audit.ribbon.occlusion = Trottoir nicht sichtbar (<u>B</u>)
 
-audit.right.ui.overall.stats = Gesamtübersicht
+audit.right.ui.overall.stats = Ihre Gesamtübersicht
 audit.center.ui.tags.header = Tags hinzufügen
 audit.center.ui.tags.info = Fügen Sie Ihren Etiketten Tags hinzu, um die Daten mit nützlichen Informationen anzureichern. Bewegen Sie den Mauszeiger über die Tags, um Beispiele anzuzeigen.
 audit.center.ui.description.header = Beschreiben (optional)

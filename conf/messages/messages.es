@@ -200,7 +200,7 @@ audit.ribbon.signal = Semáforo <u>p</u>eatonal
 audit.ribbon.other = Otro
 audit.ribbon.occlusion = <span style="font-size: 13px;">No puedo ver la <u>b</u>anqueta</span>
 
-audit.right.ui.overall.stats = Estadísticas generales
+audit.right.ui.overall.stats = Tus estadísticas generales
 audit.center.ui.tags.header = Agregar etiquetas
 audit.center.ui.tags.info = Añade etiquetas a tus etiquetas para enriquecer los datos con información útil. Pasa el cursor sobre las etiquetas para ver ejemplos.
 audit.center.ui.description.header = Describe (opcional)

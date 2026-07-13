@@ -114,9 +114,12 @@
       "follow-red-line": "Sigue la línea roja para continuar la misión",
       "explore-current-location": "Gire 360 grados para asegurarse de que no se pierda nada."
     },
+    "stats": {
+      "leaderboard-cta": "Ver la clasificación de la comunidad"
+    },
     "badges": {
       "title": "Insignias",
-      "see-all": "Ver todas las insignias",
+      "dashboard-cta": "Descubre tu panel",
       "labeler-goal": "Gana insignias de Etiquetador colocando etiquetas de accesibilidad mientras exploras.",
       "explorer-goal": "Gana insignias de Explorador evaluando calles en la página Explorar.",
       "next-labels_one": "Coloca {{count, number}} etiqueta para conseguir la siguiente.",

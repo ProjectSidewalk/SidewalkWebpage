@@ -195,7 +195,7 @@ audit.ribbon.signal = <u>P</u>edestrian Signal
 audit.ribbon.other = Other
 audit.ribbon.occlusion = Can''t See the Sidewalk (<u>B</u>)
 
-audit.right.ui.overall.stats = Overall Stats
+audit.right.ui.overall.stats = Your Overall Stats
 
 audit.center.ui.tags.header = Add tags
 audit.center.ui.tags.info = Please add tags to your labels, which enriches the data with useful information. Mouseover the tags for examples.

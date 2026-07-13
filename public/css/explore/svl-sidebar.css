@@ -52,8 +52,20 @@
   --ps-progress-bar-height: calc(10px * var(--ui-scale));
 }
 
+/* The badge count labels ("current / target") reserve a fixed-width column so both badge bars render the same length
+   regardless of the text (#4450), sized to the widest realistic label ("12.3 / 20.0 mi"); shorter labels just leave
+   the reserved space empty. */
 .explore-sidebar__badge-progress .ps-progress-bar__label {
   font: var(--text-tiny-semibold);
+  flex: 0 0 auto;
+  min-width: calc(64px * var(--ui-scale));
+}
+
+/* Same equal-length treatment for the mission and neighborhood bars (#4450): their labels are percentages
+   ("0%"–"100%"), so a narrower reserved column keeps both bars aligned regardless of the value. */
+.explore-sidebar__progress-group .ps-progress-bar__label {
+  flex: 0 0 auto;
+  min-width: calc(34px * var(--ui-scale));
 }
 
 /* Overall stats: three equal columns, each an icon over a value over a label. */

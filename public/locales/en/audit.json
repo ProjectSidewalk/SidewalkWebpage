@@ -114,9 +114,12 @@
       "follow-red-line": "Follow the red line to continue the mission",
       "explore-current-location": "Turn 360 degrees to make sure nothing is missed."
     },
+    "stats": {
+      "leaderboard-cta": "See the community leaderboard"
+    },
     "badges": {
       "title": "Badges",
-      "see-all": "See all badges",
+      "dashboard-cta": "Check out your dashboard",
       "labeler-goal": "Earn Labeler badges by placing accessibility labels as you explore.",
       "explorer-goal": "Earn Explorer badges by auditing streets on the Explore page.",
       "next-labels_one": "Place {{count, number}} label to earn the next one.",
