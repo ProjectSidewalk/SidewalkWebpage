@@ -491,7 +491,6 @@ dashboard.nav.you = Tú
 dashboard.nav.community = Comunidad
 dashboard.nav.dashboard = Panel
 dashboard.nav.settings = Configuración
-dashboard.nav.signup.blurb = ¡Ten tu propio panel! Lleva registro de tus etiquetas, gana insignias y trofeos, y mira crecer tu impacto. ✨
 dashboard.toc.header = En esta página
 dashboard.settings.title = Configuración
 dashboard.settings.intro = Administra tu cuenta, tu equipo y lo que compartes con la comunidad.
