@@ -5,7 +5,8 @@
   z-index: 2;
   padding: calc(5px * var(--ui-scale));
   min-width: calc(120px * var(--ui-scale));
-  white-space: nowrap;
+  max-width: calc(320px * var(--ui-scale));
+  overflow-wrap: break-word;
   border-radius: calc(3px * var(--ui-scale));
   transition: background-color 150ms ease, transform 150ms ease;
   background-color: rgb(from var(--color-neutral-white) r g b / 75%);
