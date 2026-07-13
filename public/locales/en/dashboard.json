@@ -37,5 +37,49 @@
   "no-mistakes-subheader": "No labels have been reported as incorrect so far, good job! <a href=\"/explore\">Start exploring</a> to keep up the good work! ",
   "validator-comment": "Comment from validator: {{c}}",
   "validator-no-comment": "No comment supplied by validator.",
-  "characters-not-allowed": "Team name or description contains special characters like &, <, >, \", or '. Please remove them and try again."
+  "characters-not-allowed": "Team name or description contains special characters like &, <, >, \", or '. Please remove them and try again.",
+  "badges": {
+    "not-started": "Not started",
+    "maxed-out": "Maxed out — you're a legend! 🎉",
+    "remaining-labels_one": "{{count}} more label",
+    "remaining-labels_other": "{{count}} more labels",
+    "remaining-missions_one": "{{count}} more mission",
+    "remaining-missions_other": "{{count}} more missions",
+    "remaining-validations_one": "{{count}} more validation",
+    "remaining-validations_other": "{{count}} more validations",
+    "remaining-distance-km": "{{dist}} km more",
+    "remaining-distance-mi": "{{dist}} mi more"
+  },
+  "mistake-cards": {
+    "empty": "🎉 No mistakes to review — your labels are holding up great. Keep it up!",
+    "marked-incorrect": "Marked incorrect",
+    "open-title": "Open the interactive label view",
+    "open-hint": "⤢ Open",
+    "validator-quote": "“{{c}}”",
+    "vote-prompt": "Do you agree this was a mistake?",
+    "vote-yes": "👍 Yes, a mistake.",
+    "vote-yes-title": "You agree this label was a mistake",
+    "vote-no": "✋ No, it's correct.",
+    "vote-no-title": "You stand by your label — it was correct",
+    "voted-agree": "👍 You agreed this was a mistake.",
+    "voted-contest": "✋ You said your label was correct — we'll take another look.",
+    "change-response": "Change response",
+    "your-note": "Your note: “{{note}}”",
+    "edit-note": "✏️ Edit note",
+    "add-note": "💬 Add a note",
+    "note-placeholder": "Add a note about this label (optional)…",
+    "save-note": "Save note",
+    "popup-heading": "Your label was validated as incorrect. Do you agree this was a mistake?",
+    "your-label": "Your label: {{type}}"
+  },
+  "settings-form": {
+    "saving": "Saving…",
+    "saved": "Saved ✓",
+    "save-failed": "Couldn't save your changes. Please try again."
+  },
+  "team-dialog": {
+    "name-too-short": "Team name must be at least 2 characters.",
+    "create-failed": "Could not create the team. Please try again.",
+    "network-error": "Network error — please try again."
+  }
 }

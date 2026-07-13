@@ -23,6 +23,7 @@ class PublicProfileServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val userService = app.injector.instanceOf[UserService]
+  private val messages    = play.api.test.Helpers.stubMessages()
 
   // A username/id that cannot exist, so every assertion below is deterministic regardless of DB contents.
   private val ghostName = "__no_such_user_ud_spec__"
@@ -40,7 +41,7 @@ class PublicProfileServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
   "UserService.getPublicProfile" should {
     "return None (the not-found state) for an unknown username" in {
       await(
-        userService.getPublicProfile(ghostName, isOwner = false, isMetric = false, cityName = "Testville")
+        userService.getPublicProfile(ghostName, isOwner = false, isMetric = false, cityName = "Testville", messages)
       ) mustBe None
     }
   }
@@ -53,7 +54,7 @@ class PublicProfileServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   "UserService.getTrophies" should {
     "run all four queries and return an empty list for a user with no contributions (no crash)" in {
-      await(userService.getTrophies(ghostId, "Testville")) mustBe empty
+      await(userService.getTrophies(ghostId, "Testville", messages)) mustBe empty
     }
   }
 
