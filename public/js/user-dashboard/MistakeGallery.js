@@ -82,7 +82,7 @@ class MistakeGallery {
   #renderEmpty() {
     const div = document.createElement('div');
     div.className = 'ud-nudge';
-    div.textContent = '🎉 No mistakes to review — your labels are holding up great. Keep it up!';
+    div.textContent = i18next.t('dashboard:mistake-cards.empty');
     this.root.appendChild(div);
   }
 
@@ -117,7 +117,7 @@ class MistakeGallery {
     }
     const verdict = document.createElement('span');
     verdict.className = 'ud-card-verdict';
-    verdict.textContent = 'Marked incorrect';
+    verdict.textContent = i18next.t('dashboard:mistake-cards.marked-incorrect');
     img.appendChild(verdict);
 
     // Clicking the image opens the shared interactive label popup (pano + detail), when available.
@@ -125,7 +125,8 @@ class MistakeGallery {
       img.classList.add('ud-card-img-clickable');
       img.setAttribute('role', 'button');
       img.setAttribute('tabindex', '0');
-      img.title = 'Open the interactive label view';
+      img.title = i18next.t('dashboard:mistake-cards.open-title');
+      img.setAttribute('aria-label', i18next.t('dashboard:mistake-cards.open-title'));
       const open = () => this.#openPopup(m);
       img.addEventListener('click', open);
       img.addEventListener('keydown', (e) => {
@@ -136,7 +137,7 @@ class MistakeGallery {
       });
       const hint = document.createElement('span');
       hint.className = 'ud-card-expand-hint';
-      hint.textContent = '⤢ Open';
+      hint.textContent = i18next.t('dashboard:mistake-cards.open-hint');
       img.appendChild(hint);
     }
     card.appendChild(img);
@@ -146,15 +147,17 @@ class MistakeGallery {
 
     const title = document.createElement('span');
     title.className = 'ud-card-title';
-    title.textContent = MistakeGallery.#prettyType(type);
+    title.textContent = MistakeGallery.#typeName(type);
     body.appendChild(title);
 
     const valNote = document.createElement('span');
     valNote.className = 'ud-card-note';
     if (m.validator_comment) {
-      valNote.textContent = `“${m.validator_comment}”`;
+      // escapeValue off: the result lands in textContent, so i18next's HTML-escaping would show literal entities.
+      valNote.textContent = i18next.t('dashboard:mistake-cards.validator-quote',
+        { c: m.validator_comment, interpolation: { escapeValue: false } });
     } else {
-      valNote.textContent = 'No comment left by validators.';
+      valNote.textContent = i18next.t('dashboard:validator-no-comment');
       valNote.classList.add('ud-card-note-muted');
     }
     body.appendChild(valNote);
@@ -177,7 +180,10 @@ class MistakeGallery {
       await this.labelPopup.showLabel(m.label_id, 'UserDashboard');
       // These are always the viewer's own labels, so prefix the (already-localized) title with "Your label:".
       const titleEl = document.querySelector('#label-modal .label-detail__title');
-      if (titleEl) titleEl.textContent = `Your label: ${titleEl.textContent}`;
+      if (titleEl) {
+        titleEl.textContent = i18next.t('dashboard:mistake-cards.your-label',
+          { type: titleEl.textContent, interpolation: { escapeValue: false } });
+      }
       this.#mountPopupPanel(m);
     } catch (e) {
       console.error('Failed to open the label popup', e);
@@ -196,7 +202,7 @@ class MistakeGallery {
     panel.className = 'ud-mistake-response';
     const heading = document.createElement('p');
     heading.className = 'ud-mistake-response-heading';
-    heading.textContent = 'Your label was validated as incorrect. Do you agree this was a mistake?';
+    heading.textContent = i18next.t('dashboard:mistake-cards.popup-heading');
     panel.append(heading, this.#voteSection(m), this.#noteSection(m));
     dialog.appendChild(panel);
     this.popupPanel = panel;
@@ -217,13 +223,13 @@ class MistakeGallery {
     if (agrees === null) {
       const prompt = document.createElement('p');
       prompt.className = 'ud-card-prompt';
-      prompt.textContent = 'Do you agree this was a mistake?';
+      prompt.textContent = i18next.t('dashboard:mistake-cards.vote-prompt');
       const actions = document.createElement('div');
       actions.className = 'ud-card-actions';
-      const agreeBtn = MistakeGallery.#chip('ud-chip-agree', '👍 Yes, a mistake.',
-        'You agree this label was a mistake');
-      const contestBtn = MistakeGallery.#chip('ud-chip-disagree', '✋ No, it\'s correct.',
-        'You stand by your label — it was correct');
+      const agreeBtn = MistakeGallery.#chip('ud-chip-agree', i18next.t('dashboard:mistake-cards.vote-yes'),
+        i18next.t('dashboard:mistake-cards.vote-yes-title'));
+      const contestBtn = MistakeGallery.#chip('ud-chip-disagree', i18next.t('dashboard:mistake-cards.vote-no'),
+        i18next.t('dashboard:mistake-cards.vote-no-title'));
       agreeBtn.addEventListener('click', () => this.#vote(m, sec, true));
       contestBtn.addEventListener('click', () => this.#vote(m, sec, false));
       actions.append(agreeBtn, contestBtn);
@@ -233,12 +239,12 @@ class MistakeGallery {
       const msg = document.createElement('p');
       msg.className = 'ud-card-voted-msg';
       msg.textContent = agrees
-        ? '👍 You agreed this was a mistake.'
-        : '✋ You said your label was correct — we\'ll take another look.';
+        ? i18next.t('dashboard:mistake-cards.voted-agree')
+        : i18next.t('dashboard:mistake-cards.voted-contest');
       const change = document.createElement('button');
       change.type = 'button';
       change.className = 'ud-btn-secondary ud-card-change';
-      change.textContent = 'Change response';
+      change.textContent = i18next.t('dashboard:mistake-cards.change-response');
       change.addEventListener('click', () => {
         this.#stateFor(m.label_id).agrees = null;
         this.#sync(m);
@@ -287,14 +293,17 @@ class MistakeGallery {
     if (note) {
       const saved = document.createElement('p');
       saved.className = 'ud-card-your-note';
-      saved.textContent = `Your note: “${note}”`;
+      saved.textContent = i18next.t('dashboard:mistake-cards.your-note',
+        { note, interpolation: { escapeValue: false } });
       sec.appendChild(saved);
     }
 
     const link = document.createElement('a');
     link.className = 'ud-card-note-link';
     link.href = '#';
-    link.textContent = note ? '✏️ Edit note' : '💬 Add a note';
+    link.textContent = note
+      ? i18next.t('dashboard:mistake-cards.edit-note')
+      : i18next.t('dashboard:mistake-cards.add-note');
     sec.appendChild(link);
 
     const wrap = document.createElement('div');
@@ -303,12 +312,12 @@ class MistakeGallery {
     const textarea = document.createElement('textarea');
     textarea.className = 'ud-card-comment-input';
     textarea.rows = 2;
-    textarea.placeholder = 'Add a note about this label (optional)…';
+    textarea.placeholder = i18next.t('dashboard:mistake-cards.note-placeholder');
     textarea.value = note;
     const saveBtn = document.createElement('button');
     saveBtn.type = 'button';
     saveBtn.className = 'ud-btn-primary ud-card-note-submit';
-    saveBtn.textContent = 'Save note';
+    saveBtn.textContent = i18next.t('dashboard:mistake-cards.save-note');
     wrap.append(textarea, saveBtn);
     sec.appendChild(wrap);
 
@@ -362,11 +371,13 @@ class MistakeGallery {
   }
 
   /**
-     * "NoCurbRamp" -> "No Curb Ramp".
+     * The localized display name for a label type, via the shared common-namespace keys ("NoCurbRamp" ->
+     * t('common:no-curb-ramp')).
      * @param {string} type - LabelTypeEnum name.
      * @returns {string}
      */
-  static #prettyType(type) {
-    return String(type).replace(/([A-Z])/g, ' $1').trim();
+  static #typeName(type) {
+    const key = String(type).replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+    return i18next.t(`common:${key}`);
   }
 }

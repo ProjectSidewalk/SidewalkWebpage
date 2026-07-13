@@ -70,7 +70,7 @@ class TeamCreate {
     const submitBtn = document.getElementById('ud-team-submit');
 
     if (name.length < 2) {
-      TeamCreate.#showError('Team name must be at least 2 characters.');
+      TeamCreate.#showError(i18next.t('dashboard:team-dialog.name-too-short'));
       return;
     }
 
@@ -86,10 +86,11 @@ class TeamCreate {
         window.location.reload();
         return;
       }
-      TeamCreate.#showError(data.error || 'Could not create the team. Please try again.');
+      // Server errors arrive already localized (Play messages keyed off the request language).
+      TeamCreate.#showError(data.error || i18next.t('dashboard:team-dialog.create-failed'));
     } catch (e) {
       console.error('Create team failed', e);
-      TeamCreate.#showError('Network error — please try again.');
+      TeamCreate.#showError(i18next.t('dashboard:team-dialog.network-error'));
     } finally {
       submitBtn.removeAttribute('disabled');
     }
@@ -105,7 +106,8 @@ class TeamCreate {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+// appManager.ready (not DOMContentLoaded) so i18next is initialized before any error string can be shown.
+window.appManager.ready(() => {
   TeamCreate.init();
   TeamCreate.initJoin();
 });

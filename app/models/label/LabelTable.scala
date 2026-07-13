@@ -1341,6 +1341,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param tags              Set of tags the labels grabbed can have.
    * @param aiValOptions      Set of AI validations to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param userId            User ID of the user requesting the labels.
+   * @param recentFirst       If true, order the labels newest-first instead of randomly.
    * @return                  Query object to get the labels.
    */
   def getGalleryLabelsQuery(
@@ -1352,7 +1353,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       severity: Set[Option[Int]],
       tags: Set[String],
       aiValOptions: Set[String],
-      userId: String
+      userId: String,
+      recentFirst: Boolean = false
   ): Query[LabelValidationMetadataTupleRep, LabelValidationMetadataTuple, Seq] = {
     val severityRatings: Set[Int]   = severity.flatten
     val severityAllowsNull: Boolean = severity.contains(None)
@@ -1448,15 +1450,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       (pd.width, pd.height, pd.tileWidth, pd.tileHeight, pd.cameraHeading, pd.cameraPitch, pd.cameraRoll, pd.copyright)
     )
 
-    // Remove duplicates if needed and randomize.
+    // Remove duplicates if needed, then order newest-first or randomized. Callers that batch through this query
+    // (findValidLabelsForType) shuffle each batch themselves, so recentFirst yields a shuffled recent pool.
     val rand          = SimpleFunction.nullary[Double]("random")
-    val _uniqueLabels =
-      if (tags.nonEmpty)
-        _labelInfoWithUserVals.groupBy(x => x).map(_._1).sortBy(_ => rand)
-      else
-        _labelInfoWithUserVals.sortBy(_ => rand)
-
-    _uniqueLabels
+    val _uniqueLabels = if (tags.nonEmpty) _labelInfoWithUserVals.groupBy(x => x).map(_._1) else _labelInfoWithUserVals
+    if (recentFirst) _uniqueLabels.sortBy(_._7.desc) else _uniqueLabels.sortBy(_ => rand)
   }
 
   /**

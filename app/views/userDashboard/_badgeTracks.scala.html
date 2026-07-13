@@ -1,5 +1,5 @@
 @(labelCount: Int, auditedDistance: Double, missionCount: Int, validationCount: Int, isMetric: Boolean
-)(implicit assets: AssetsFinder)
+)(implicit assets: AssetsFinder, messages: Messages)
 
 @*
 * Shared badge-tracks skeleton for the dashboard and public profile. Server-renders each track's type + raw value as
@@ -18,23 +18,23 @@
 }
 
 <div class="ud-badge-tracks" id="ud-badges" data-metric="@isMetric">
-  @for((name, badgeType, baseStem, desc) <- Seq(
-    ("Labeler", "labels", "labels", "Accessibility labels placed"),
-    ("Explorer", "distance", "distance", "Distance explored"),
-    ("Adventurer", "missions", "missions", "Missions completed"),
-    ("Validator", "validations", "validation", "Labels validated")
+  @for((nameKey, badgeType, baseStem, descKey) <- Seq(
+    ("dashboard.badges.labeler", "labels", "labels", "dashboard.badges.labeler.desc"),
+    ("dashboard.badges.explorer", "distance", "distance", "dashboard.badges.explorer.desc"),
+    ("dashboard.badges.adventurer", "missions", "missions", "dashboard.badges.adventurer.desc"),
+    ("dashboard.badges.validator", "validations", "validation", "dashboard.badges.validator.desc")
   )) {
     <div class="ud-badge-track" data-badge-type="@badgeType" data-value="@badgeValue(badgeType)">
       <div class="ud-badge-track-head">
-        <span class="ud-badge-track-name">@name</span>
+        <span class="ud-badge-track-name">@Messages(nameKey)</span>
         <span class="ud-badge-track-current ud-tier-0" data-tier>—</span>
       </div>
-      <p class="ud-badge-track-desc">@desc</p>
+      <p class="ud-badge-track-desc">@Messages(descKey)</p>
       <div class="ud-badge-levels">
         @for(level <- 1 to 5) {
           <img class="ud-badge" data-level="@level"
             src="@assets.path(s"images/badges/badge_${if(badgeType == "distance" && isMetric) "distance_km" else baseStem}_badge${level}.png")"
-            alt="@name badge level @level">
+            alt="@Messages("dashboard.badges.alt", Messages(nameKey), level)">
         }
       </div>
       <div class="ud-progress"><div class="ud-progress-fill" data-fill></div></div>

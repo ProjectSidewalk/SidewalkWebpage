@@ -1,5 +1,5 @@
 @import models.userdashboard.Trophy
-@(trophies: Seq[Trophy])(implicit assets: AssetsFinder)
+@(trophies: Seq[Trophy])(implicit assets: AssetsFinder, messages: Messages)
 
 @*
 * The trophy-case grid, shared by the dashboard and public profile. A trophy with a `link` (region/pioneer trophies →
@@ -7,8 +7,9 @@
 * empty state is left to each caller (the copy differs first- vs third-person).
 *@
 
+@* Trophy titles are English brand names by design (#4475); the corner tag and sub line localize. *@
 @trophyBody(t: Trophy) = {
-  @t.tagLabel.map { l => <span class="ud-trophy-tag">@l</span> }
+  @t.tagLabel.map { l => <span class="ud-trophy-tag">@Messages(s"dashboard.trophy.tag.${l.toLowerCase}")</span> }
   <span class="ud-trophy-medal" aria-hidden="true">@t.medal</span>
   <span class="ud-trophy-title">@t.title</span>
   <span class="ud-trophy-sub">@t.sub</span>
@@ -18,7 +19,7 @@
   @for(href <- t.link) {
     <a class="ud-trophy ud-trophy-link @t.cssClass" href="@href">
       @trophyBody(t)
-      <span class="ud-trophy-explore" aria-hidden="true">Explore this neighborhood →</span>
+      <span class="ud-trophy-explore" aria-hidden="true">@Messages("dashboard.trophy.explore.region")</span>
     </a>
   }
   @if(t.link.isEmpty) {

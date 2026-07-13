@@ -112,6 +112,7 @@ module.exports = [
       }).rules,
 
       // Rules the preset doesn't set -- keep our own:
+      '@stylistic/eol-last': ['error', 'always'], // Every file ends with a single trailing newline (docs/style-guide.md).
       '@stylistic/function-call-spacing': ['error', 'never'],
       // Permit (not enforce) hand-aligned object tables: 'minimum' allows extra spaces after the colon, and the
       // ObjectExpression exception allows padding between same-line properties (the rule attributes the gap after

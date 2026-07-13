@@ -220,6 +220,19 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
   }
 
+  // Regression guard for #456: the GET /label/:labelId share route binds a non-optional Int, so Play returns 400 (it
+  // does NOT fall through) whenever a non-numeric /label/<x> path matches it. Placed above its literal siblings in
+  // conf/routes, the wildcard silently shadowed /label/tags, /label/resumeMission and /label/countInRegion, 400ing the
+  // Explore tag menu / mission-resume / region-count and the Gallery tag filter. The literal routes must be matched
+  // first. /label/tags needs no query param, so it is the cleanest probe: a 400 here means the wildcard shadows again.
+  "the /label/:labelId share route" should {
+    "not shadow the literal /label/tags route (conf/routes order)" in {
+      val resp = route(app, FakeRequest(GET, "/label/tags")).get
+      status(resp) mustBe OK // A 400 would mean /label/:labelId captured "tags" and failed to bind it as an Int.
+      contentType(resp) mustBe Some("application/json")
+    }
+  }
+
   "compositeMarker" should {
     val controller = app.injector.instanceOf[ShareController]
 

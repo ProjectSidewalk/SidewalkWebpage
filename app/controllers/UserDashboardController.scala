@@ -11,13 +11,11 @@ import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * Controller for the redesigned User Dashboard + Leaderboard (issue #4323 and the User Dashboard redesign).
+ * Controller for the User Dashboard, Leaderboard, Settings, and public profiles (#4323 redesign, cut over in #4474).
  *
- * These pages are a clean-slate rebuild of the legacy `/dashboard` (`UserProfileController.userProfile`) and
- * `/leaderboard` (`ApplicationController.leaderboard`), restructured around the API-docs/admin shell (left nav +
- * content + right "On this page" TOC). They live behind `/preview` routes so production stays on the current pages
- * until the cutover; only then do `/dashboard` and `/leaderboard` flip over. The pages are fully real data now — the
- * remaining pre-cutover work is i18n of the copy and a11y polish (see the redesign's Phase 7).
+ * The four pages share the API-docs/admin shell (left nav + content + right "On this page" TOC). The pre-cutover
+ * `/preview` URLs permanently redirect to the production ones. Unlike the pre-redesign dashboard, mobile visitors are
+ * served the page itself (it is responsive) rather than being redirected to /mobileLanding.
  */
 @Singleton
 class UserDashboardController @Inject() (
@@ -38,7 +36,7 @@ class UserDashboardController @Inject() (
    *
    * Secured to any signed-in user, matching the real `/dashboard`.
    */
-  def dashboardPreview = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
+  def dashboard = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
     val user     = request.identity
     val isMetric = Messages("measurement.system") == "metric"
     val cityName = configService.getCityName(request2Messages.lang)
@@ -47,11 +45,11 @@ class UserDashboardController @Inject() (
       commonData  <- configService.getCommonPageData(request2Messages.lang)
       tags        <- labelService.getTagsForCurrentCity
       standing    <- userService.getUserStanding(user.userId)
-      streak      <- userService.getActivityStreak(user.userId)
+      streak      <- userService.getActivityStreak(user.userId, request2Messages.lang.toLocale)
       accuracy    <- userService.getAccuracyByType(user.userId)
-      trophies    <- userService.getTrophies(user.userId, cityName)
+      trophies    <- userService.getTrophies(user.userId, cityName, request2Messages)
     } yield {
-      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboardPreview")
+      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboard")
       Ok(
         views.html.userDashboard
           .dashboard(commonData, user, profileData, isMetric, tags, standing, streak, accuracy, trophies)
@@ -67,7 +65,7 @@ class UserDashboardController @Inject() (
    * anonymous auto-accounts — can view it. The view shows the community/podium/tables to everyone and gates the
    * personal "you" pieces behind `isSignedIn` (role != "Anonymous"), offering a sign-up CTA otherwise.
    */
-  def leaderboardPreview = cc.securityService.SecuredAction { implicit request =>
+  def leaderboard = cc.securityService.SecuredAction { implicit request =>
     val user                = request.identity
     val isSignedIn: Boolean = user.role != "Anonymous"
     val isMetric: Boolean   = Messages("measurement.system") == "metric"
@@ -80,7 +78,7 @@ class UserDashboardController @Inject() (
       teams      <- userService.getLeaderboardStats(10, "overall", byTeam = true)
       standing   <- if (isSignedIn) userService.getUserStanding(user.userId) else Future.successful(None)
     } yield {
-      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_LeaderboardPreview")
+      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Leaderboard")
       Ok(
         views.html.userDashboard
           .leaderboard(commonData, user, isSignedIn, isMetric, cityName, aggregate, overall, weekly, teams, standing)
@@ -95,7 +93,7 @@ class UserDashboardController @Inject() (
    * `privateByDefault` tells the view whether this deployment starts users private (school/minor cities) so it can
    * explain the default.
    */
-  def settingsPreview = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
+  def settings = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
     val user     = request.identity
     val isMetric = Messages("measurement.system") == "metric"
     for {
@@ -104,7 +102,7 @@ class UserDashboardController @Inject() (
       currTeam   <- userService.getUserTeam(user.userId)
       privacy    <- userService.getPrivacySettings(user.userId)
     } yield {
-      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_SettingsPreview")
+      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Settings")
       val (onLeaderboard, publicProfile) = privacy.getOrElse((true, true))
       Ok(
         views.html.userDashboard.settings(commonData, user, openTeams, currTeam, onLeaderboard, publicProfile, isMetric,
@@ -133,8 +131,9 @@ class UserDashboardController @Inject() (
       case _                                   => Future.successful(Right(()))
     }
     usernameResult.flatMap {
-      case Left(error) => Future.successful(BadRequest(Json.obj("success" -> false, "error" -> error)))
-      case Right(_)    =>
+      // The service returns an i18n key; localize it for the viewer here at the HTTP boundary.
+      case Left(errorKey) => Future.successful(BadRequest(Json.obj("success" -> false, "error" -> Messages(errorKey))))
+      case Right(_)       =>
         for {
           _ <- userService.updatePrivacySettings(user.userId, onLeaderboard, publicProfile)
           _ <- teamId.map(id => userService.setUserTeam(user.userId, id)).getOrElse(userService.leaveTeam(user.userId))
@@ -158,18 +157,38 @@ class UserDashboardController @Inject() (
    *
    * @param username The mapper whose public profile to show.
    */
-  def publicProfilePreview(username: String) = cc.securityService.SecuredAction { implicit request =>
+  def publicProfile(username: String) = cc.securityService.SecuredAction { implicit request =>
     val viewer   = request.identity
     val isOwner  = viewer.username == username
     val isMetric = Messages("measurement.system") == "metric"
     val cityName = configService.getCityName(request2Messages.lang)
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
-      profile    <- userService.getPublicProfile(username, isOwner, isMetric, cityName)
+      profile    <- userService.getPublicProfile(username, isOwner, isMetric, cityName, request2Messages)
       tags       <- labelService.getTagsForCurrentCity
     } yield {
-      cc.loggingService.insert(viewer.userId, request.ipAddress, "Visit_PublicProfilePreview")
+      cc.loggingService.insert(viewer.userId, request.ipAddress, "Visit_PublicProfile")
       Ok(views.html.userDashboard.publicProfile(commonData, viewer, username, isMetric, profile, tags))
     }
+  }
+
+  /** Permanent redirect from a pre-cutover `/preview` URL to its production URL (#4474). */
+  def dashboardPreviewRedirect = Action {
+    MovedPermanently(routes.UserDashboardController.dashboard.url)
+  }
+
+  /** Permanent redirect from a pre-cutover `/preview` URL to its production URL (#4474). */
+  def settingsPreviewRedirect = Action {
+    MovedPermanently(routes.UserDashboardController.settings.url)
+  }
+
+  /** Permanent redirect from a pre-cutover `/preview` URL to its production URL (#4474). */
+  def leaderboardPreviewRedirect = Action {
+    MovedPermanently(routes.UserDashboardController.leaderboard.url)
+  }
+
+  /** Permanent redirect from a pre-cutover `/preview` URL to its production URL (#4474). */
+  def publicProfilePreviewRedirect(username: String) = Action {
+    MovedPermanently(routes.UserDashboardController.publicProfile(username).url)
   }
 }

@@ -38,7 +38,7 @@ class Settings {
     };
 
     this.saveBtn.setAttribute('disabled', 'disabled');
-    this.#setStatus('Saving…', null);
+    this.#setStatus(i18next.t('dashboard:settings-form.saving'), null);
     try {
       const res = await fetch(this.saveUrl, {
         method: 'POST',
@@ -48,13 +48,14 @@ class Settings {
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.success) {
         this.currentUsername = username || this.currentUsername;
-        this.#setStatus('Saved ✓', true);
+        this.#setStatus(i18next.t('dashboard:settings-form.saved'), true);
       } else {
-        this.#setStatus(data.error || 'Couldn\'t save your changes. Please try again.', false);
+        // Server errors arrive already localized (Play messages keyed off the request language).
+        this.#setStatus(data.error || i18next.t('dashboard:settings-form.save-failed'), false);
       }
     } catch (e) {
       console.error('Failed to save settings', e);
-      this.#setStatus('Couldn\'t save your changes. Please try again.', false);
+      this.#setStatus(i18next.t('dashboard:settings-form.save-failed'), false);
     } finally {
       this.saveBtn.removeAttribute('disabled');
     }

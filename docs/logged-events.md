@@ -50,10 +50,18 @@ table (`app/models/utils/WebpageActivityTable.scala`) rather than the interactio
 - **Frontend** — `window.logWebpageActivity(activity)` (set up in `common/AppManager.js`) POSTs to
   `/userapi/logWebpageActivity` for client-side clicks.
 
-Two naming conventions dominate here: **`Visit_<Page>`** for a page view (e.g. `Visit_UserDashboardPreview`,
-`Visit_LeaderboardPreview`, `Visit_SettingsPreview`, `Visit_PublicProfilePreview`) and **`Click_module=<Action>`** for
+Two naming conventions dominate here: **`Visit_<Page>`** for a page view (e.g. `Visit_UserDashboard`,
+`Visit_Leaderboard`, `Visit_Settings`, `Visit_PublicProfile` — the dashboard/leaderboard names carry over from the
+pre-redesign pages, so per-page analytics stay continuous across the #4474 cutover) and **`Click_module=<Action>`** for
 a discrete action (e.g. `Click_module=SaveSettings`, `Click_module=CreateTeam`, `Click_module=MistakeVote_agrees=<bool>`, `Click_module=MistakeNote`).
-Follow these when adding a page or action. The current set lives in the code — grep the controllers:
+Follow these when adding a page or action. The landing page's validation grid logs
+`View_module=LandingValidationGrid_labelCount=<n>` when the grid first loads (it's below the fold and lazy-loaded, so
+this marks the grid actually being seen, not just the page view) and
+`Click_module=LandingValidationGrid_result=<Agree|Disagree|Unsure>_labelId=<id>` per vote; the vote itself lands in
+`label_validation` with `source = 'LandingPage'`. Opening a card's "what is this label type?" tooltip logs
+`Click_module=LandingValidationGridInfo_labelType=<type>`, once per card. Clicking a card's share chip logs
+`Click_module=LandingValidationGridShare_labelId=<id>` (surface + label attribution) alongside ShareWidget's own
+generic `Share_*` events. The current set lives in the code — grep the controllers:
 
 ```bash
 grep -rhoE 'loggingService\.insert\([^)]*"[^"]+"' app/controllers | grep -oE '"[^"]+"$' | sort -u

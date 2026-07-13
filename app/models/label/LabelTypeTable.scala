@@ -96,6 +96,10 @@ object LabelTypeEnum {
   lazy val primaryLabelTypeNames: Set[String] = primaryLabelTypes.map(_.name)
   lazy val primaryLabelTypeIds: Set[Int]      = primaryLabelTypes.map(_.id)
 
+  // Label types that can be judged from a single static image. Signal is excluded: labelers place it at the base of
+  // the signal pole, so confirming a real pedestrian signal means panning up — impossible without a pano viewer.
+  lazy val staticValidatableLabelTypes: Set[Base] = primaryLabelTypes - Signal
+
   // Set of label types that require primary validation. NoSidewalk is only validated once all others have been.
   lazy val primaryValidateLabelTypes: Set[Base]  = primaryLabelTypes - NoSidewalk
   lazy val primaryValidateLabelTypeIds: Set[Int] = primaryValidateLabelTypes.map(_.id)

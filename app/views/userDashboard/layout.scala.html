@@ -1,4 +1,4 @@
-@(activePage: String)(content: Html)(implicit request: RequestHeader, assets: AssetsFinder)
+@(activePage: String, isSignedIn: Boolean = true)(content: Html)(implicit request: RequestHeader, assets: AssetsFinder, messages: Messages)
 
 @*
 * Shared shell for the redesigned User Dashboard + Leaderboard. Deliberately reuses the API-docs/admin-dashboard
@@ -15,14 +15,14 @@
 <link rel="stylesheet" href="@assets.path("css/user-dashboard/user-dashboard.css")">
 
 <div class="api-container">
-  @userDashboard._sidebar(activePage)
+  @userDashboard._sidebar(activePage, isSignedIn)
 
   <main class="api-content">
     @content
   </main>
 
-  <aside class="api-toc" aria-label="On this page">
-    <div class="api-toc-header">On This Page</div>
+  <aside class="api-toc" aria-label="@Messages("dashboard.toc.header")">
+    <div class="api-toc-header">@Messages("dashboard.toc.header")</div>
     <ul>
       @* Populated by admin-shell.js from headings in .api-content. *@
     </ul>
