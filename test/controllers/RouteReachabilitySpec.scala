@@ -90,7 +90,7 @@ class RouteReachabilitySpec extends PlaySpec with GuiceOneAppPerSuite {
     literals += pattern.substring(idx)
     if (bad) return None
 
-    val k = if (dynCands.isEmpty) 1 else math.min(2, dynCands.map(_.size).max)
+    val k       = if (dynCands.isEmpty) 1 else math.min(2, dynCands.map(_.size).max)
     val samples = (0 until k).map { i =>
       val sb = new StringBuilder
       for (p <- dynCands.indices) {
@@ -106,20 +106,23 @@ class RouteReachabilitySpec extends PlaySpec with GuiceOneAppPerSuite {
 
   "conf/routes" should {
     "declare no route that is unreachable (fully shadowed by an earlier same-method route)" in {
-      val compiled = declaredRoutes.map { case (m, p, h) => (m, p, h, patternToRegex(p)) }.toIndexedSeq
+      val compiled   = declaredRoutes.map { case (m, p, h) => (m, p, h, patternToRegex(p)) }.toIndexedSeq
       val skipped    = mutable.ArrayBuffer.empty[String]
       val violations = mutable.ArrayBuffer.empty[String]
 
       for (j <- compiled.indices) {
         val (mth, pat, handler, _) = compiled(j)
         pathSamples(pat) match {
-          case None => skipped += s"$mth $pat"
+          case None          => skipped += s"$mth $pat"
           case Some(samples) =>
-            (0 until j).map(compiled).find { case (mi, _, _, rxi) =>
-              mi == mth && samples.forall(s => rxi.pattern.matcher(s).matches())
-            }.foreach { case (mi, pi, hi, _) =>
-              violations += s"  $mth $pat -> $handler\n      is shadowed by earlier  $mi $pi -> $hi"
-            }
+            (0 until j)
+              .map(compiled)
+              .find { case (mi, _, _, rxi) =>
+                mi == mth && samples.forall(s => rxi.pattern.matcher(s).matches())
+              }
+              .foreach { case (mi, pi, hi, _) =>
+                violations += s"  $mth $pat -> $handler\n      is shadowed by earlier  $mi $pi -> $hi"
+              }
         }
       }
 

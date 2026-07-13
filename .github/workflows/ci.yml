@@ -194,12 +194,15 @@ jobs:
           ALTER SCHEMA sidewalk_init RENAME TO sidewalk_teaneck;
           ALTER ROLE sidewalk SET search_path = sidewalk_teaneck, sidewalk_login, public;"
 
-      # Boot the real app and run the public-API functional tests against the imported city, plus the route-reachability
-      # guard (reads the compiled router; DB-independent) and the share-surface spec (#456; its DB-dependent cases
-      # cancel gracefully on the empty CI schema). RouteReachabilitySpec is the faithful counterpart to the blocking
-      # route-lint job above -- it runs here (advisory) and becomes a hard gate when this suite is promoted to blocking.
-      - name: Run backend functional tests
-        run: sbt "testOnly controllers.api.PublicApiSpec controllers.RouteReachabilitySpec controllers.ShareControllerSpec"
+      # Boot the real app and run the public-API functional tests against the imported city.
+      #
+      # Kept to PublicApiSpec only. Adding more GuiceOneAppPerSuite specs here boots several apps in parallel (ScalaTest
+      # runs suites concurrently), each opening its own DB connection pool, which exhausts the CI Postgres connections
+      # ("Pool is empty, failed to create/setup connection") and aborts the whole run. The route-shadowing invariant is
+      # instead enforced by the DB-free, blocking `route-lint` job above; test/controllers/RouteReachabilitySpec.scala is
+      # the equivalent spec, runnable locally and ready to join here once this suite is made sequential + promoted.
+      - name: Run public API tests
+        run: sbt "testOnly controllers.api.PublicApiSpec"
         # Dummy env mirroring docker-compose.yml's web service, so the app boots exactly as it does in dev. The
         # application secret must be >=256 bits (32+ chars) for Play's HS256 JWT sessions, hence the long value.
         env:
