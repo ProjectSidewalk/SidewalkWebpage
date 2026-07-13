@@ -21,7 +21,14 @@ import sys
 from pathlib import Path
 
 METHODS = {"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"}
-SAMPLE_POOL = ["1", "zqx", "abc123", "12", "a-b_c"]
+# Concrete tokens for sampling each dynamic segment. A rest-of-path segment (*name -> .+) accepts a token
+# containing "/", so "a/b" leads the list: it forces wildcard routes to be sampled with a genuine MULTI-segment path,
+# which correctly distinguishes /assets/*file from an earlier single-segment sibling (/assets/:x, i.e. [^/]+) that it
+# out-covers. A normal :name (-> [^/]+) segment rejects the slash, so "a/b" filters out for those and the two-sample
+# cap (toks[:2]) yields a diverse numeric/alpha pair. The remaining tokens are deliberately diverse (numeric vs alpha)
+# so two samples defeat the subset-regex false positive where an earlier route is stricter on the same shape (e.g. an
+# earlier :id<[0-9]+> over a plain :id).
+SAMPLE_POOL = ["a/b", "1", "zqx", "abc123", "12", "a-b_c"]
 
 
 def parse_routes(path):

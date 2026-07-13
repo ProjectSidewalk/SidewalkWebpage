@@ -51,8 +51,14 @@ class RouteReachabilitySpec extends PlaySpec with GuiceOneAppPerSuite {
     else if (tok.startsWith("*")) ".+" // rest-of-path capture
     else "[^/]+"                       // :name -> one path segment
 
-  /** Diverse candidate tokens; picking >1 that satisfy a segment defeats subset-regex false positives. */
-  private val samplePool: Seq[String] = Seq("1", "zqx", "abc123", "12", "a-b_c")
+  /**
+   * Diverse candidate tokens; picking >1 that satisfy a segment defeats subset-regex false positives. "a/b" leads
+   * the list and contains a "/": a rest-of-path token ($file<.+>, compiled from *file) accepts it, forcing wildcard
+   * routes to be sampled with a genuine MULTI-segment path, which correctly distinguishes /assets/*file from an
+   * earlier single-segment sibling (/assets/:x, i.e. [^/]+) that it out-covers. A single-segment $x<[^/]+> token
+   * rejects the slash, so "a/b" filters out for those and the two-token cap (.take(2)) yields the diverse pair there.
+   */
+  private val samplePool: Seq[String] = Seq("a/b", "1", "zqx", "abc123", "12", "a-b_c")
 
   private def matchesFully(regex: String, candidate: String): Boolean =
     ("^(?:" + regex + ")$").r.pattern.matcher(candidate).matches()
