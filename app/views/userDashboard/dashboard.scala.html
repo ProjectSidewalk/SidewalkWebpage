@@ -177,7 +177,7 @@
   @* ---- Learning — Recent mistakes gallery ------------------------------------------------------------- *@
   <div class="api-section" id="ud-mistakes-section">
     <h2 class="api-heading" id="mistakes">@Messages("dashboard.mistakes.title") <a href="#mistakes" class="permalink">#</a></h2>
-    <p>@if(accuracyByType.exists(_.weakest)){@Messages("dashboard.mistakes.intro.weakest", service.UserService.MinValidatedForWeakest)}else{@Messages("dashboard.mistakes.intro")}</p>
+    <p>@if(accuracyByType.exists(_.weakest)){@Messages("dashboard.mistakes.intro.weakest")}else{@Messages("dashboard.mistakes.intro")}</p>
 
     @if(accuracyByType.nonEmpty) {
       <div class="ud-accuracy-bars">
@@ -187,10 +187,14 @@
               <span class="ud-acc-swatch"></span>@Messages(labelTypeMsgKey(a.cssKey))
             </span>
             <span class="ud-acc-bar"><span class="ud-acc-fill" data-ud-pct="@a.pct"></span></span>
-            <span class="ud-acc-pct" title="@Messages("dashboard.mistakes.validated.count", a.validated)">@a.pct%</span>
+            <span class="ud-acc-pct">@a.pct%</span>
+            <span class="ud-acc-n">(@Messages("dashboard.mistakes.validated.count", a.validated))</span>
           </div>
         }
       </div>
+      @if(accuracyByType.exists(_.weakest)) {
+        <p class="ud-acc-note">@Messages("dashboard.mistakes.weakest.note", service.UserService.MinValidatedForWeakest)</p>
+      }
     } else {
       <div class="ud-nudge">@Messages("dashboard.mistakes.accuracy.none")</div>
     }

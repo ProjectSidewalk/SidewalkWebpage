@@ -9,9 +9,10 @@
  *
  * Type scale policy (per design review): ALL content — table cells, badge/trophy detail, card text, stat labels,
  * podium — is at least --font-size-md (16px). The smaller steps (sm/xs/xxs) are reserved for legends
- * (.ud-heatmap-legend) and small decorative pills/ribbons (.ud-trophy-tag, .ud-standing-tag, .ud-card-verdict,
- * .ud-public-tag). Never size real content below md — and avoid footnote-style asides entirely (design review:
- * if a note matters it belongs in real copy; if it doesn't, delete it).
+ * (.ud-heatmap-legend), chart captions (.ud-acc-note), and small decorative pills/ribbons (.ud-trophy-tag,
+ * .ud-standing-tag, .ud-card-verdict, .ud-public-tag). Never size real content below md — and avoid footnote-style
+ * asides (design review: if a note matters it belongs in real copy). The one sanctioned exception is a caption that
+ * explains the chart it sits under (owner call on the accuracy chart's min-validations rule).
  */
 
 /* Primary-content tables on the user surface read much larger than the admin default (which stays --font-size-sm):
@@ -681,6 +682,21 @@
   font-variant-numeric: tabular-nums;
   font-size: var(--font-size-md, 1rem);
   font-weight: 600;
+  color: var(--color-text-secondary, #5a7785);
+}
+
+/* The percentage's sample size, e.g. "(32 validated)" — fixed basis so the column lines up across rows. */
+.ud-acc-n {
+  flex: 0 0 130px;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-secondary, #5a7785);
+}
+
+/* Chart caption stating the trickiest-type eligibility rule (min validations, from the backend constant). */
+.ud-acc-note {
+  margin: var(--space-xs, 8px) 0 0;
+  font-size: var(--font-size-sm, 0.875rem);
   color: var(--color-text-secondary, #5a7785);
 }
 
@@ -1564,6 +1580,9 @@
     flex-basis: 100px;
     font-size: var(--font-size-md, 1rem);
   }
+
+  /* Sample-size column shrinks to fit on phones instead of holding its aligned desktop width. */
+  .ud-acc-n { flex: 0 1 auto; }
   .ud-trophy { width: 100%; }
 
   .ud-badge {
