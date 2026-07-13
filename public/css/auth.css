@@ -55,17 +55,6 @@ dialog.au-dialog::backdrop {
   }
 }
 
-/* Signature: every auth surface begins at a crosswalk, painted in the Crosswalk label's canonical color. */
-.au-crosswalk {
-  flex: 0 0 auto;
-  height: 8px;
-  background: repeating-linear-gradient(
-    90deg,
-    var(--color-label-crosswalk) 0 16px,
-    var(--color-asphalt-600) 16px 30px
-  );
-}
-
 .au-body {
   padding: 24px 32px 28px;
   overflow-y: auto;
