@@ -36,6 +36,16 @@
             "statusMessage": "Checking for changelog-style comments"
           }
         ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -e '(.tool_input.content // \"\") as $c | ($c == \"\" or ($c | endswith(\"\\n\")))' >/dev/null 2>&1 || jq -n '{decision:\"block\", reason:\"This Write produced a file with no final newline. docs/style-guide.md requires every file to end with a single trailing newline (a missing one shows as a red marker on the GitHub diff). Re-run Write with a trailing newline added to the content.\", systemMessage:\"final-newline hook: blocked a Write missing its trailing newline\"}'",
+            "statusMessage": "Checking for final newline"
+          }
+        ]
       }
     ]
   }
