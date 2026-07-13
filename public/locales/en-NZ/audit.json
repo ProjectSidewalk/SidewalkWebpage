@@ -60,7 +60,7 @@
       }
     },
     "compass": {
-      "end-neighborhood": "You've explored this entire neighbourhood! Finish labeling this intersection, then <br><span class='bold'>click here to complete the neighbourhood.</span>"
+      "end-neighborhood": "You've explored this entire neighbourhood! Finish labeling this intersection, then <b>click here to complete the neighbourhood.</b>"
     }
   },
   "popup": {

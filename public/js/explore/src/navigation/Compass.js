@@ -224,11 +224,11 @@ class Compass {
 
   #setLabelBeforeJumpMessage() {
     if (svl.neighborhoodModel.isRouteComplete) {
-      this.#uiCompass.message.html(`<div style="width: 20%">${i18next.t('center-ui.compass.end-route')}</div>`);
+      this.#uiCompass.message.html(`<div>${i18next.t('center-ui.compass.end-route')}</div>`);
     } else if (svl.neighborhoodModel.isNeighborhoodComplete) {
-      this.#uiCompass.message.html(`<div style="width: 20%">${i18next.t('center-ui.compass.end-neighborhood')}</div>`);
+      this.#uiCompass.message.html(`<div>${i18next.t('center-ui.compass.end-neighborhood')}</div>`);
     } else {
-      this.#uiCompass.message.html(`<div style="width: 20%">${i18next.t('center-ui.compass.end-street')}</div>`);
+      this.#uiCompass.message.html(`<div>${i18next.t('center-ui.compass.end-street')}</div>`);
     }
   }
 
