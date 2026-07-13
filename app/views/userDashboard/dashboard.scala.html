@@ -170,7 +170,7 @@
   @* ---- Your standing — compact teaser into the full /leaderboard (Option 2) ----------------------------- *@
   <div class="api-section" id="ud-standing-section">
     <h2 class="api-heading" id="standing">@Messages("dashboard.standing.title") <a href="#standing" class="permalink">#</a></h2>
-    <p>@Html(Messages("dashboard.standing.intro", routes.UserDashboardController.leaderboardPreview))</p>
+    <p>@Html(Messages("dashboard.standing.intro", routes.UserDashboardController.leaderboard))</p>
     @userDashboard._standing(standing, seeAllLink = true)
   </div>
 
@@ -234,7 +234,7 @@
         }
         <button type="button" class="ud-btn-primary ud-create-team-btn"><span class="ud-btn-plus" aria-hidden="true">+</span> @Messages("dashboard.create.team")</button>
         @profileData.userTeam.map { _ =>
-          <a class="ud-see-all" href="@routes.UserDashboardController.leaderboardPreview#teams">@Messages("dashboard.team.see.board")</a>
+          <a class="ud-see-all" href="@routes.UserDashboardController.leaderboard#teams">@Messages("dashboard.team.see.board")</a>
         }
       </div>
     </div>

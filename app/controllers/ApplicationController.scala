@@ -101,24 +101,6 @@ class ApplicationController @Inject() (
     }
   }
 
-  def leaderboard = cc.securityService.SecuredAction { implicit request =>
-    val countryId: String = configService.getCurrentCountryId
-    for {
-      commonData      <- configService.getCommonPageData(request2Messages.lang)
-      overallLeaders  <- userService.getLeaderboardStats(10)
-      teamLeaders     <- userService.getLeaderboardStats(10, "overall", byTeam = true)
-      weeklyLeaders   <- userService.getLeaderboardStats(10, "weekly")
-      currTeamLeaders <- userService.getLeaderboardStats(10, "overall", byTeam = false, Some(request.identity.userId))
-      userTeam        <- userService.getUserTeam(request.identity.userId)
-    } yield {
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Leaderboard")
-      Ok(
-        views.html.leaderboard("Sidewalk - Leaderboard", commonData, request.identity, overallLeaders, teamLeaders,
-          weeklyLeaders, currTeamLeaders, userTeam, countryId)
-      )
-    }
-  }
-
   /**
    * Updates user language preference cookie, returns to current page.
    */
