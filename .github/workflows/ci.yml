@@ -3,6 +3,7 @@ name: CI
 #   - backend:         `sbt compile` + `scalafmtCheckAll` (both BLOCKING)
 #   - frontend:        asset build (grunt) + `eslint` (JS) + `stylelint` (CSS) + `htmlhint` (HTML) (all BLOCKING)
 #   - evolutions-lint: static checks on conf/evolutions/default/*.sql (BLOCKING — fast, deterministic, no DB).
+#   - route-lint:      conf/routes reachability — fails if any route is shadowed by an earlier one (BLOCKING — no DB).
 #   - backend-tests:   DB-backed public-API functional tests against a real Postgres+PostGIS (ADVISORY for now). Boots
 #                      the app, which auto-applies pending evolutions -- so it doubles as the forward-apply gate.
 #   - python-tests:    pytest unit tests for the standalone scripts in scripts/ (ADVISORY for now).
@@ -123,6 +124,26 @@ jobs:
       - name: Lint evolution files
         run: bash db/scripts/lint-evolutions.sh
 
+  route-lint:
+    name: Route reachability lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.8'
+
+      # Fast, deterministic, no DB: fails if any conf/routes entry is unreachable because an earlier same-method route
+      # already matches all of its request paths. Play commits to the first path-pattern match and 400s on a typed-param
+      # mismatch instead of falling through, so a wildcard placed above a literal sibling silently breaks it -- the #456
+      # `/label/:labelId`-over-`/label/tags` regression. Blocking from day one, like the evolutions/locale lints. Uses
+      # only the Python stdlib (no pip install). The faithful compiled-router counterpart is RouteReachabilitySpec (run
+      # in backend-tests), which additionally covers routes contributed by any sub-router includes.
+      - name: Check route reachability
+        run: python3 tools/check_route_reachability.py
+
   backend-tests:
     name: Backend tests (API, PostGIS)
     runs-on: ubuntu-latest
@@ -174,6 +195,12 @@ jobs:
           ALTER ROLE sidewalk SET search_path = sidewalk_teaneck, sidewalk_login, public;"
 
       # Boot the real app and run the public-API functional tests against the imported city.
+      #
+      # Kept to PublicApiSpec only. Adding more GuiceOneAppPerSuite specs here boots several apps in parallel (ScalaTest
+      # runs suites concurrently), each opening its own DB connection pool, which exhausts the CI Postgres connections
+      # ("Pool is empty, failed to create/setup connection") and aborts the whole run. The route-shadowing invariant is
+      # instead enforced by the DB-free, blocking `route-lint` job above; test/controllers/RouteReachabilitySpec.scala is
+      # the equivalent spec, runnable locally and ready to join here once this suite is made sequential + promoted.
       - name: Run public API tests
         run: sbt "testOnly controllers.api.PublicApiSpec"
         # Dummy env mirroring docker-compose.yml's web service, so the app boots exactly as it does in dev. The
