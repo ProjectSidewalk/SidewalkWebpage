@@ -31,6 +31,7 @@ class LabelDetail {
 
   #source = undefined; // Set in showLabel().
   #readonly = false;   // Set per-label in #handleData() based on meta.from_current_user.
+  #noImagery = false;  // Set per-label once setPano() resolves; true when no navigable imagery could be loaded.
   #validationCounts = { Agree: null, Disagree: null, Unsure: null };
   #flags = { low_quality: null, incomplete: null, stale: null };
   #prevAction = null;
@@ -228,7 +229,7 @@ class LabelDetail {
     const els = this.#els;
     // buttonSource overrides #source for this specific button group; falls back to #source if null.
     const voteHandler = (action, buttonSource) => () => {
-      if (this.#readonly) return;
+      if (this.#locked) return;
       if (this.#prevAction !== action) {
         this.#setVoteButtonsDisabled(true);
         this.#validateLabel(action, buttonSource || this.#source);
@@ -242,12 +243,12 @@ class LabelDetail {
       const btn = els.voteButtons[action];
       const img = els.voteIcons[action];
       btn.addEventListener('mouseenter', () => {
-        if (this.#readonly) return;
+        if (this.#locked) return;
         const ai = this.#aiValidation === action ? '-ai' : '';
         img.src = `${this.#iconBase}${action.toLowerCase()}-filled${ai}.svg`;
       });
       btn.addEventListener('mouseleave', () => {
-        if (this.#readonly) return;
+        if (this.#locked) return;
         this.#renderVoteIcons();
       });
     }
@@ -258,7 +259,7 @@ class LabelDetail {
     els.commentInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        if (this.#readonly) return;
+        if (this.#locked) return;
         const comment = els.commentInput.value.trim();
         if (comment) this.#submitComment(comment);
       } else if (e.key === 'Escape') {
@@ -275,7 +276,7 @@ class LabelDetail {
       }
     });
     els.commentButton.addEventListener('click', () => {
-      if (this.#readonly) return;
+      if (this.#locked) return;
       const comment = els.commentInput.value.trim();
       if (comment) this.#submitComment(comment);
     });
@@ -329,10 +330,11 @@ class LabelDetail {
     const els = this.#els;
     this.#currentLabelMeta = meta;
 
-    // Read-only mode for the user's own labels — no validating/commenting.
+    // Read-only mode for the user's own labels — no validating/commenting. Imagery availability is unknown until
+    // setPano() resolves below, so assume it's present for now and re-apply the lock once we know.
     this.#readonly = !!meta.from_current_user;
-    this.#root.classList.toggle('label-detail--readonly', this.#readonly);
-    this.#setReadonlyState(this.#readonly);
+    this.#noImagery = false;
+    this.#applyInteractionLock();
 
     const labelPov = { heading: meta.heading, pitch: meta.pitch, zoom: meta.zoom };
 
@@ -356,7 +358,16 @@ class LabelDetail {
     this.panoManager.setLabel(popupLabel);
     // Accept a pre-constructed backup_image object (Gallery path) or build from server fields (API path).
     const backupImage = meta.backup_image || buildBackupImageData(meta);
-    this.panoManager.setPano(meta.pano_id, labelPov, meta.crop_url, meta.expired, backupImage);
+    // setPano() resolves to whether a viewable image of the label was shown — live/Pannellum imagery or the static
+    // crop. It's only false for the "imagery not available" panel, i.e. nothing to look at. Lock validating/
+    // commenting only in that case: if the user can see the label in an image (crop included), they can validate it.
+    this.panoManager.setPano(meta.pano_id, labelPov, meta.crop_url, meta.expired, backupImage)
+      .then((imageShown) => {
+        // Guard against a newer label having been opened while this resolved.
+        if (this.#currentLabelMeta !== meta) return;
+        this.#noImagery = !imageShown;
+        this.#applyInteractionLock();
+      });
 
     // Validation counts + AI validation.
     this.#validationCounts.Agree = meta.num_agree;
@@ -606,7 +617,7 @@ class LabelDetail {
   #resetVoteButtonStyles() {
     for (const btn of Object.values(this.#els.panoOverlayButtons)) {
       btn.classList.remove('is-selected');
-      if (!this.#readonly) btn.disabled = false;
+      if (!this.#locked) btn.disabled = false;
     }
     if (this.#els.panoWrap) {
       this.#els.panoWrap.classList.remove('is-agree', 'is-disagree', 'is-unsure');
@@ -614,29 +625,43 @@ class LabelDetail {
   }
 
   /**
-   * Toggles the disabled state + tooltip on interactive elements when viewing your own label.
-   * @param {boolean} readonly
+   * Whether validating/commenting is blocked for the current label — the viewer's own label or no available imagery.
+   * navigable imagery is available for it.
+   * @returns {boolean}
    */
-  #setReadonlyState(readonly) {
+  get #locked() {
+    return this.#readonly || this.#noImagery;
+  }
+
+  /**
+   * Toggles the disabled state + tooltip on interactive elements based on the current lock reasons. The viewer's
+   * own label and no-imagery both disable validating/commenting; own-label wins the tooltip since it's the more
+   * specific reason to surface.
+   */
+  #applyInteractionLock() {
     const els = this.#els;
-    const tip = readonly ? i18next.t('labelmap:own-label-disabled') : '';
+    const locked = this.#locked;
+    this.#root.classList.toggle('label-detail--readonly', locked);
+    const tip = this.#readonly
+      ? i18next.t('labelmap:own-label-disabled')
+      : this.#noImagery ? i18next.t('labelmap:no-imagery-disabled') : '';
 
     // Pano overlay buttons.
     for (const btn of Object.values(els.panoOverlayButtons)) {
-      btn.disabled = readonly;
+      btn.disabled = locked;
       btn.title = tip;
     }
 
     // Validation column buttons.
     for (const btn of Object.values(els.voteButtons)) {
-      btn.disabled = readonly;
+      btn.disabled = locked;
       btn.title = tip;
     }
 
     // Comment input and submit button.
-    els.commentInput.disabled = readonly;
+    els.commentInput.disabled = locked;
     els.commentInput.title = tip;
-    els.commentButton.disabled = readonly;
+    els.commentButton.disabled = locked;
     els.commentButton.title = tip;
   }
 

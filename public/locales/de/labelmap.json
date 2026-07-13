@@ -22,6 +22,7 @@
   "comments": "Kommentare",
   "comment-submitted": "Kommentar gesendet",
   "own-label-disabled": "Sie können Ihre eigene Beschriftung nicht validieren oder kommentieren",
+  "no-imagery-disabled": "Sie können nicht validieren oder kommentieren, wenn für diese Beschriftung keine Bilddaten verfügbar sind",
   "admin-only": "Nur Admin",
   "not-admin-validated": "Nicht von einem Administrator validiert"
 }

@@ -246,7 +246,7 @@ dialog.label-detail[open]::backdrop {
 
 .label-detail__pano-overlay-button.is-selected { opacity: 1; }
 
-/* Read-only mode: viewer is looking at their own labels, so we don't allow validating or commenting.
+/* Read-only mode: validating/commenting is blocked (the viewer's own label, or no imagery is available for it).
    Elements remain visible but appear disabled. */
 .label-detail--readonly .label-detail__pano-overlay-button {
   opacity: 0.8;

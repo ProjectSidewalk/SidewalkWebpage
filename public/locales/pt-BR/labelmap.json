@@ -22,6 +22,7 @@
   "comments": "Comentários",
   "comment-submitted": "Comentários Enviados",
   "own-label-disabled": "Você não pode validar nem comentar seu próprio rótulo",
+  "no-imagery-disabled": "Você não pode validar nem comentar quando não há imagens disponíveis para este rótulo",
   "admin-only": "Apenas administradores",
   "not-admin-validated": "Não validado por um administrador"
 }
