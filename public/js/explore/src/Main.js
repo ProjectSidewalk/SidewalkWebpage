@@ -162,7 +162,7 @@ class Main {
 
     svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.dateHolder, svl.panoViewer, svl.panoViewer.getPosition,
       svl.panoViewer.getPanoId, () => svl.taskContainer.getCurrentTaskStreetEdgeId(),
-      svl.neighborhoodModel.currentNeighborhood().getRegionId,
+      () => svl.neighborhoodModel.currentNeighborhood().getRegionId(),
       () => svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('captureDate'),
       () => svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('address'),
       svl.panoViewer.getPov, true,
