@@ -237,7 +237,7 @@
      * @returns {Promise} A promise that resolves with the region data
      */
     fetchRegionWithMostLabels() {
-      return fetch(`${config.apiBaseUrl}${config.regionWithMostLabelsEndpoint}?source=apiDocs`)
+      return fetch(`${config.apiBaseUrl}${config.regionWithMostLabelsEndpoint}?utm_source=apiDocs`)
         .then((response) => {
           if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
@@ -293,7 +293,7 @@
      * @returns {Promise} A promise that resolves with the streets data
      */
     fetchStreetsByRegionId(regionId) {
-      const url = `${config.apiBaseUrl}${config.streetsEndpoint}?regionId=${regionId}&source=apiDocs`;
+      const url = `${config.apiBaseUrl}${config.streetsEndpoint}?regionId=${regionId}&utm_source=apiDocs`;
       return fetch(url)
         .then((response) => {
           if (!response.ok) {

@@ -230,6 +230,11 @@
   font: var(--text-tiny-semibold);
   text-align: center;
   transition: all 0.3s;
+
+  /* Selectize wraps the matched search substring in a <span class="highlight">, splitting the option's text into
+     separate children. The shared .tag-pill class is an inline-flex container with a gap, which would then insert a
+     visible space around the highlight span (#4523). Zero the gap here to fix the issue. */
+  gap: 0;
 }
 
 /* Removing default styling for "active" options in dropdown. Would be left over after hover. */

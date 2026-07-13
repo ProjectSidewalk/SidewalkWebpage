@@ -3,6 +3,12 @@
 db ?= sidewalk
 dir ?= ./
 args ?=
+
+# ANSI colors for the `lint` summary (interpreted by printf's backslash-escape handling).
+GREEN := \033[0;32m
+RED   := \033[0;31m
+BOLD  := \033[1m
+RESET := \033[0m
 # dir= as stylelint sees it: passed through if it already names a .css file/glob, else treated as a directory and
 # recursed (stylelint only accepts file paths/globs; see lint-stylelint).
 css-glob = $(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css)
@@ -19,8 +25,26 @@ eslint-fix: | lint-fix-eslint
 
 stylelint-fix: | lint-fix-stylelint
 
+# Runs all four frontend linters, streaming each one's output, then prints a green ✓ / red ✗ line per linter and a
+# colored final summary so pass/fail is legible at a glance. Every linter runs even if an earlier one fails (so you see
+# every problem in one pass), and the target still exits non-zero if any failed.
 lint:
-	@make lint-eslint; make lint-htmlhint; make lint-stylelint; make lint-locales
+	@fail=0; \
+	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales; do \
+		if $(MAKE) --no-print-directory $$t; then \
+			printf "$(GREEN)✓ %s passed$(RESET)\n" "$$t"; \
+		else \
+			printf "$(RED)✗ %s FAILED$(RESET)\n" "$$t"; \
+			fail=1; \
+		fi; \
+	done; \
+	echo ""; \
+	if [ $$fail -eq 0 ]; then \
+		printf "$(GREEN)$(BOLD)✓ All lint checks passed$(RESET)\n"; \
+	else \
+		printf "$(RED)$(BOLD)✗ Some lint checks FAILED$(RESET)\n"; \
+	fi; \
+	exit $$fail
 
 lint-fix:
 	@make lint-fix-eslint; make lint-fix-stylelint

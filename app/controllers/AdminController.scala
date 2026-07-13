@@ -1160,7 +1160,7 @@ class AdminController @Inject() (
    * Returns v3 API usage analytics aggregated from the webpage_activity log.
    *
    * Requires admin authentication. Accepts two optional query params:
-   *  - `excludeApiDocs` (Boolean, default true): exclude requests that carry `source=apiDocs` so that
+   *  - `excludeApiDocs` (Boolean, default true): exclude requests that carry `utm_source=apiDocs` so that
    *    automated previews in the API docs page are not counted as real consumer traffic.
    *  - `days` (Int, default 30): number of calendar days of history to include; 0 = all time.
    *
