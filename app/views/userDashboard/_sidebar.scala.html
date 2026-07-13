@@ -2,8 +2,9 @@
 
 @*
 * Left navigation for the redesigned User Dashboard surface. Mirrors the API-docs/admin sidebar markup/classes so the
-* surfaces share a look. The user surface is only a few pages, so this lists those (Dashboard, Settings, Leaderboard)
-* while the right-hand TOC handles within-page sections.
+* surfaces share a look. The user surface is only a few pages, so this lists those while the right-hand TOC handles
+* within-page sections. Community sits above You (review call on the #4474 cutover): the leaderboard is the surface's
+* public front door, and the order stays fixed across pages so the nav never reshuffles underfoot.
 *
 * For anonymous visitors (who can reach the public leaderboard and public profiles), the personal "You" section is
 * hidden entirely — its links would dead-end at the sign-in page, and the leaderboard's own sign-up CTA plus the
@@ -12,6 +13,11 @@
 
 <div class="api-sidebar">
   <nav class="api-nav" aria-label="@Messages("dashboard.nav.aria")">
+    <div class="api-nav-header">@Messages("dashboard.nav.community")</div>
+    <a href="@routes.UserDashboardController.leaderboardPreview"
+     class="api-nav-item @if(activePage == "leaderboard"){active}"
+     @if(activePage == "leaderboard"){aria-current="page"}>@Messages("navbar.leaderboard")</a>
+
     @if(isSignedIn) {
       <div class="api-nav-header">@Messages("dashboard.nav.you")</div>
       <a href="@routes.UserDashboardController.dashboardPreview"
@@ -21,10 +27,5 @@
        class="api-nav-item @if(activePage == "settings"){active}"
        @if(activePage == "settings"){aria-current="page"}>@Messages("dashboard.nav.settings")</a>
     }
-
-    <div class="api-nav-header">@Messages("dashboard.nav.community")</div>
-    <a href="@routes.UserDashboardController.leaderboardPreview"
-     class="api-nav-item @if(activePage == "leaderboard"){active}"
-     @if(activePage == "leaderboard"){aria-current="page"}>@Messages("navbar.leaderboard")</a>
   </nav>
 </div>
