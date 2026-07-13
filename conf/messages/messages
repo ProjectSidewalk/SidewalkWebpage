@@ -259,6 +259,7 @@ authenticate.pw.strength.3 = Good
 authenticate.pw.strength.4 = Strong
 authenticate.create.account = Create my account
 authenticate.new.detail = New to Project Sidewalk? <a href="#" id="form-open-sign-up">Create an account</a>
+authenticate.new.detail.link = New to Project Sidewalk? <a href="{0}">Create an account</a>
 authenticate.error.invalid.credentials.detail = That email and password don''t match our records. Double-check them and try again.
 authenticate.error.generic = Something went wrong on our end. Please try again.
 authenticate.error.username.charset = Usernames can only use letters, numbers, hyphens, and underscores.

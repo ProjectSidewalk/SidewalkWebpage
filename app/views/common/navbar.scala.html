@@ -9,20 +9,6 @@
 @currentCityInfo = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
 @cityInfo = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId || c.visibility == "public" || (currentCityInfo.countryId == "taiwan" && c.countryId == "taiwan"))}
 
-@* Check-mark inside the checklist/match dots; shown by CSS only when the rule is met. *@
-@authCheckIcon() = {<svg class="au-ic-check" viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 5.5l2 2 5-5" fill="none" stroke="var(--color-neutral-white)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>}
-
-@* Cross inside the username-rule / password-match dots; shown by CSS only when the rule is failing. *@
-@authCrossIcon() = {<svg class="au-ic-x" viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 2.5l5 5m0-5l-5 5" fill="none" stroke="var(--color-error-200)" stroke-width="2" stroke-linecap="round"></path></svg>}
-
-@* Show/hide-password toggle; AuthModal.js swaps the two icons and the aria state. *@
-@authEyeButton(inputId: String) = {
-  <button type="button" class="au-eye" data-eye="@inputId" aria-pressed="false" aria-label="@Messages("authenticate.show.password")" data-label-show="@Messages("authenticate.show.password")" data-label-hide="@Messages("authenticate.hide.password")">
-    <svg class="au-eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-    <svg class="au-eye-off ps-hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-  </button>
-}
-
   <!-- Fixed navbar -->
 @isLanding = @{request.path == "/" || request.path == "/home"}
 <nav id="header"@if(isLanding) { class="header--tall"}>
@@ -154,7 +140,9 @@
             </li>
           </ul>
         } else {
-          <button type="button" id="navbar-sign-in-btn" data-au-open="signIn" class="navbar-button button-ps button--primary button__static--tiny">@Messages("navbar.signin")</button>
+          @* Real href so it works on pages without the dialog (e.g. /signIn itself); AuthModal intercepts the
+             click to open the dialog everywhere else. *@
+          <a id="navbar-sign-in-btn" href="@routes.UserController.signIn()" data-au-open="signIn" class="navbar-button button-ps button--primary button__static--tiny">@Messages("navbar.signin")</a>
         }
         </li>
 
@@ -268,16 +256,9 @@
   });
 </script>
 
-@if(!user || user.get.role == "Anonymous") {
-  <script>
-    $(document).ready(function () {
-      // The full-page sign-in/up routes are the no-JS fallback; the dialog would duplicate them there.
-      if (location.pathname === '/signIn' || location.pathname === '/signUp') {
-        $('#sign-in-modal-container').remove();
-        $('#navbar-user-dropdown-list').remove();
-      }
-    });
-  </script>
+@* The full-page /signIn·/signUp routes own the same form ids as the no-JS fallback, so the dialog is not rendered
+   there (avoids duplicate ids). *@
+@if((!user || user.get.role == "Anonymous") && request.path != "/signIn" && request.path != "/signUp") {
   <dialog id="sign-in-modal-container" class="au-dialog" aria-labelledby="sign-in-label">
     <div class="au-crosswalk"></div>
     <div class="au-body">
@@ -305,7 +286,7 @@
             </div>
             <div class="au-input-wrap">
               <input class="au-input au-input--with-eye" id="sign-in-password" name="password" type="password" autocomplete="current-password" required>
-              @authEyeButton("sign-in-password")
+              @common.authEyeButton("sign-in-password")
             </div>
           </div>
           <label class="au-check" for="sign-in-remember"><input type="checkbox" id="sign-in-remember" name="rememberMe" value="true" checked> @Messages("authenticate.remember.me")</label>
@@ -331,7 +312,7 @@
             <label class="au-label" for="sign-up-username">@Messages("username")</label>
             <input class="au-input" id="sign-up-username" name="username" type="text" autocomplete="username" spellcheck="false" maxlength="@forms.UsernamePolicy.maxLength" data-rule-regex="@forms.UsernamePolicy.jsPattern" aria-describedby="sign-up-username-rule" required>
             <div class="au-match" id="sign-up-username-rule">
-              <span class="au-dot">@authCheckIcon()@authCrossIcon()</span>
+              @common.authDot(withCross = true)
               <span>@Messages("authenticate.username.rule")</span>
             </div>
           </div>
@@ -343,12 +324,12 @@
             <label class="au-label" for="sign-up-password">@Messages("authenticate.password")</label>
             <div class="au-input-wrap">
               <input class="au-input au-input--with-eye" id="sign-up-password" name="password" type="password" autocomplete="new-password" aria-describedby="sign-up-pw-rules" required>
-              @authEyeButton("sign-up-password")
+              @common.authEyeButton("sign-up-password")
             </div>
             <ul class="au-checklist" id="sign-up-pw-rules" aria-live="polite">
               @for((msgKey, ruleRegex) <- forms.PasswordPolicy.checklist) {
                 <li data-rule-regex="@ruleRegex">
-                  <span class="au-dot">@authCheckIcon()</span>@Messages(msgKey, forms.PasswordPolicy.minLength)
+                  @common.authDot()@Messages(msgKey, forms.PasswordPolicy.minLength)
                 </li>
               }
             </ul>
@@ -361,10 +342,10 @@
             <label class="au-label" for="sign-up-password-confirm">@Messages("authenticate.confirm.password")</label>
             <div class="au-input-wrap">
               <input class="au-input au-input--with-eye" id="sign-up-password-confirm" name="passwordConfirm" type="password" autocomplete="new-password" aria-describedby="sign-up-pw-match" required>
-              @authEyeButton("sign-up-password-confirm")
+              @common.authEyeButton("sign-up-password-confirm")
             </div>
             <div class="au-match" id="sign-up-pw-match" data-label-match="@Messages("authenticate.pw.match")" data-label-no-match="@Messages("authenticate.pw.match.not")">
-              <span class="au-dot">@authCheckIcon()@authCrossIcon()</span>
+              @common.authDot(withCross = true)
               <span id="sign-up-pw-match-text">@Messages("authenticate.pw.match")</span>
             </div>
           </div>
