@@ -98,7 +98,9 @@
       // Load aggregate statistics from the API.
       function loadAggregateStats() {
         return $.getJSON('/v3/api/aggregateStats')
-          .fail(function(error) {
+          .then(function(stats) {
+            return stats;
+          }, function(error) {
             console.error('Failed to load aggregate stats:', error);
             // Return empty stats as fallback (snake_case to match API response format).
             return {
