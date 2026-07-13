@@ -100,13 +100,13 @@
         return $.getJSON('/v3/api/aggregateStats')
           .fail(function(error) {
             console.error('Failed to load aggregate stats:', error);
-            // Return empty stats as fallback.
+            // Return empty stats as fallback (snake_case to match API response format).
             return {
-              numCities: 0,
-              numCountries: 0,
-              kmExplored: 0,
-              totalLabels: 0,
-              totalValidations: 0
+              num_cities: 0,
+              num_countries: 0,
+              km_explored: 0,
+              total_labels: 0,
+              total_validations: 0
             };
           });
       }
@@ -133,11 +133,11 @@
           return i18next.t('common:format-number', { val: Math.round(dist) }) + ' ' + distUnit;
         }
 
-        // Update the stats display.
-        $('#stat-cities').text(stats.numCities || 0);
-        $('#stat-distance').text(formatDistance(stats.kmExplored || 0));
-        $('#stat-labels').text(formatNumber(stats.totalLabels || 0));
-        $('#stat-validations').text(formatNumber(stats.totalValidations || 0));
+        // Update the stats display (keys are snake_case per the v3 API convention).
+        $('#stat-cities').text(stats.num_cities || 0);
+        $('#stat-distance').text(formatDistance(stats.km_explored || 0));
+        $('#stat-labels').text(formatNumber(stats.total_labels || 0));
+        $('#stat-validations').text(formatNumber(stats.total_validations || 0));
       }
     });
   </script>
