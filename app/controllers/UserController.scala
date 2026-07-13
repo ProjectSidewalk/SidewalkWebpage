@@ -489,7 +489,7 @@ class UserController @Inject() (
     val ipAddress: String      = request.ipAddress
     val userId: Option[String] = request.identity.map(_.userId)
 
-    // Per-IP + email throttle on reset requests (inert unless rate-limit.enabled).
+    // Per-IP throttle on reset requests (inert unless rate-limit.enabled).
     rateLimited("forgot", Seq(s"forgot:ip:$ipAddress"), "/forgotPassword").map(Future.successful).getOrElse {
 
       ForgotPasswordForm.form
@@ -528,7 +528,7 @@ class UserController @Inject() (
                         ipAddress,
                         s"""PasswordResetFail_Email="$email"_Reason=${e.getClass.getCanonicalName}"""
                       )
-                      logger.error(e.getCause.toString + "")
+                      logger.error("Failed to send password reset email", e)
                       Future.failed(e)
                   }
                 }
