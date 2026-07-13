@@ -42,6 +42,11 @@ class PanoOverlay {
    * @param {Event} e
    */
   #handlerViewControlLayerMouseDown = (e) => {
+    // The hide-label button lives inside the control layer, so its mousedown bubbles here. Bail before starting a pan
+    // (and before hiding the hover info) so the button isn't hidden out from under the click, which would swallow it
+    // and leave the label untoggled (#4521).
+    if (e.target.closest('#label-visibility-button-on-label')) return;
+
     this.#mouseStatus.isLeftDown = true;
     this.#viewControlLayer.css('cursor', 'url(/assets/images/icons/closedhand.cur) 4 4, move');
 
