@@ -1,314 +1,323 @@
 {
-    "measurement-system": "metric",
-    "mapbox-language-code": "en",
-    "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Click here</a> to explore this street!",
-    "admin-clear-play-cache": "Play cache successfully cleared",
-    "unit-distance-abbreviation": "km",
-    "unit-abbreviation-mission-distance": "m",
-    "unit-distance": "kilometers",
-    "format-number": "{{val, number}}",
-    "agree": "Agree",
-    "disagree": "Disagree",
-    "unsure": "Unsure",
-    "correct": "Validated correct",
-    "incorrect": "Validated incorrect",
-    "unvalidated": "Unvalidated",
-    "curb-ramp": "Curb Ramp",
-    "no-curb-ramp": "Missing Curb Ramp",
-    "obstacle": "Obstacle in Path",
-    "surface-problem": "Surface Problem",
-    "occlusion": "Can't See the Sidewalk",
-    "no-sidewalk": "No Sidewalk",
-    "crosswalk": "Marked Crosswalk",
-    "signal": "Pedestrian Signal",
-    "other": "Other",
-    "surface-problems": "Surface Problems",
-    "close": "Close",
-    "badges": {
-        "congratulations": "Congratulations!",
-        "you-earned": "You earned the “{{badge}}” badge!",
-        "my-dashboard": "My Dashboard",
-        "labeler-name": "Labeler",
-        "explorer-name": "Explorer",
-        "adventurer-name": "Adventurer",
-        "validator-name": "Validator"
+  "measurement-system": "metric",
+  "mapbox-language-code": "en",
+  "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Click here</a> to explore this street!",
+  "admin-clear-play-cache": "Play cache successfully cleared",
+  "unit-distance-abbreviation": "km",
+  "unit-abbreviation-mission-distance": "m",
+  "unit-distance": "kilometers",
+  "format-number": "{{val, number}}",
+  "agree": "Agree",
+  "disagree": "Disagree",
+  "unsure": "Unsure",
+  "correct": "Validated correct",
+  "incorrect": "Validated incorrect",
+  "unvalidated": "Unvalidated",
+  "curb-ramp": "Curb Ramp",
+  "no-curb-ramp": "Missing Curb Ramp",
+  "obstacle": "Obstacle in Path",
+  "surface-problem": "Surface Problem",
+  "occlusion": "Can't See the Sidewalk",
+  "no-sidewalk": "No Sidewalk",
+  "crosswalk": "Marked Crosswalk",
+  "signal": "Pedestrian Signal",
+  "other": "Other",
+  "surface-problems": "Surface Problems",
+  "close": "Close",
+  "badges": {
+    "congratulations": "Congratulations!",
+    "you-earned": "You earned the “{{badge}}” badge!",
+    "my-dashboard": "My Dashboard",
+    "labeler-name": "Labeler",
+    "explorer-name": "Explorer",
+    "adventurer-name": "Adventurer",
+    "validator-name": "Validator"
+  },
+  "sign-up": "Sign up",
+  "sign-in": "Sign in",
+  "complete": "complete",
+  "zoom-in": "Zoom in",
+  "zoom-out": "Zoom out",
+  "more-options": "More options",
+  "map": {
+    "distance-left": "Only {{n}} kilometers left!",
+    "distance-left-one-unit": "Only 1 kilometer left!",
+    "less-than-one-unit-left": "Less than a kilometer left!",
+    "click-to-help": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Click here</a> to help finish this neighborhood",
+    "thanks": "Thanks for all your help!",
+    "100-percent-complete": "100% Complete!",
+    "percent-complete": "{{percent}}% Complete"
+  },
+  "cities-map": {
+    "explore": "Explore {{cityName}}",
+    "loading-stats": "Loading stats...",
+    "private-deployment": "Private Deployment"
+  },
+  "errors": {
+    "title": "Imagery for this label is no longer available.",
+    "explore-street": "Explore the street"
+  },
+  "severity": "Severity",
+  "quality": "Quality",
+  "rate-severity": "Rate severity",
+  "rate-quality": "Rate quality",
+  "rate-severity-info": "Do your best to assess how severely the labeled obstacle or feature hinders pedestrian access.",
+  "rate-quality-info": "Do your best to assess the quality of the labeled feature.",
+  "update-severity-level": "Update severity level",
+  "update-quality-level": "Update quality level",
+  "severity-example-tooltip-1": "Low severity example",
+  "severity-example-tooltip-2": "Medium severity example",
+  "severity-example-tooltip-3": "High severity example",
+  "quality-example-tooltip-1": "Good quality example",
+  "quality-example-tooltip-2": "Okay quality example",
+  "quality-example-tooltip-3": "Bad quality example",
+  "no-severity": "A severity rating was not provided for this label",
+  "no-quality": "A quality rating was not provided for this label",
+  "tags": "Tags",
+  "description": "Description",
+  "no-description": "No description",
+  "comments": "Validator Comments",
+  "none": "None",
+  "image-capture-date": "Image Capture Date",
+  "labeled": "Labeled",
+  "low": "Low",
+  "medium": "Medium",
+  "high": "High",
+  "good": "Good",
+  "okay": "Okay",
+  "bad": "Bad",
+  "yes": "Yes",
+  "no": "No",
+  "ai-disclaimer": "AI analyzed this label and voted \"$t({{aiVal}})\"; however, AI can make mistakes. Please make your own assessment.",
+  "ai-generated-label-tooltip": "This label was AI generated. AI can make mistakes, so please make your own assessment.",
+  "tag": {
+    "narrow": "narrow",
+    "points into traffic": "points into cross traffic",
+    "missing tactile warning": "missing tactile warning",
+    "tactile warning": "tactile warning",
+    "steep": "steep",
+    "not enough landing space": "not enough landing space",
+    "not level with street": "not level with street",
+    "surface problem": "surface problem",
+    "debris / pooled water": "debris / pooled water",
+    "parallel lines": "parallel lines",
+    "alternate route present": "alternate route present",
+    "no alternate route": "no alternate route",
+    "unclear if needed": "unclear if needed",
+    "trash/recycling can": "trash/recycling can",
+    "fire hydrant": "fire hydrant",
+    "pole": "pole",
+    "tree": "tree",
+    "vegetation": "vegetation",
+    "parked car": "parked car",
+    "parked bike": "parked bike",
+    "construction": "construction",
+    "sign": "sign",
+    "garage entrance": "garage entrance",
+    "stairs": "stairs",
+    "street vendor": "street vendor",
+    "litter/garbage": "litter/garbage",
+    "parked scooter/motorcycle": "parked scooter/motorcycle",
+    "bumpy": "bumpy",
+    "uneven/slanted": "uneven/slanted",
+    "cracks": "cracks",
+    "grass": "grass",
+    "narrow sidewalk": "narrow sidewalk",
+    "brick/cobblestone": "brick/cobblestone",
+    "very broken": "very broken",
+    "rail/tram track": "rail/tram track",
+    "sand/gravel": "mud/sand/gravel",
+    "uncovered manhole": "uncovered manhole",
+    "ends abruptly": "ends abruptly",
+    "street has a sidewalk": "street has a sidewalk",
+    "street has no sidewalks": "street has no sidewalks",
+    "gravel/dirt road": "gravel/dirt road",
+    "shared pedestrian/car space": "shared pedestrian/car space",
+    "height difference": "height difference",
+    "paint fading": "paint fading",
+    "broken surface": "broken surface",
+    "uneven surface": "uneven surface",
+    "no pedestrian priority": "no pedestrian priority",
+    "very long crossing": "very long crossing",
+    "level with sidewalk": "level with sidewalk",
+    "button waist height": "button waist height",
+    "APS": "tactile-audible buttons",
+    "one button": "one button",
+    "two buttons": "two buttons",
+    "hard to reach buttons": "hard to reach buttons",
+    "missing crosswalk": "missing marked crosswalk",
+    "no bus stop access": "no bus stop access",
+    "pedestrian lane marking": "pedestrian lane marking",
+    "covered walkway": "covered walkway",
+    "too close to traffic": "too close to traffic",
+    "utility panel": "utility panel",
+    "outdoor dining area": "outdoor dining area",
+    "mailbox": "mailbox",
+    "debris": "debris",
+    "not aligned with crosswalk": "not aligned with crosswalk",
+    "utility cabinet": "utility cabinet",
+    "cycle lane- protection from traffic": "cycle lane: protection from traffic",
+    "cycle lane- no protection from traffic": "cycle lane: no protection from traffic",
+    "cycle lane- surface problem": "cycle lane: surface problem",
+    "cycle lane- faded paint": "cycle lane: faded paint",
+    "cycle lane- debris / pooled water": "cycle lane: debris / pooled water",
+    "cycle lane- parked car": "cycle lane: parked car",
+    "cycle box": "cycle box",
+    "not visible": "not visible",
+    "cart": "cart",
+    "drainage": "drainage",
+    "electrical box": "electrical box",
+    "too dirty/cluttered": "too dirty/cluttered",
+    "yellow box, accessibility features not visible": "yellow box, accessibility features not visible",
+    "bollard": "bollard"
+  },
+  "pano-info": {
+    "details-title": "Details",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "image-id": "Image ID",
+    "street-id": "Street ID",
+    "google-street-view": "Google Street View",
+    "mapillary": "Mapillary",
+    "infra3d": "infra3D",
+    "region-id": "Region ID",
+    "label-id": "Label ID",
+    "label-date": "$t(common:labeled)",
+    "pano-date": "$t(common:image-capture-date)",
+    "pano-address": "Address",
+    "view-in-gsv": "View in Google Street View",
+    "view-in-mapillary": "View in Mapillary",
+    "city": "City",
+    "copied-to-clipboard": "Data copied to your clipboard!"
+  },
+  "mission-start-tutorial": {
+    "example-type-label-correct": "CORRECT EXAMPLE",
+    "label-type-subtitle": "Why is this wrong?",
+    "label-on-image-title-correct": "Correct label",
+    "start-mission": "Start mission",
+    "curb-ramp": {
+      "slide-1": {
+        "title": "{{- labelType}}",
+        "description": "Curb ramps allow people to transition from the sidewalk to the street. They should exist at all crossable intersections."
+      },
+      "slide-2": {
+        "title": "Driveway",
+        "description": "Driveways are <b>not</b> curb ramps. They are designed for vehicles and not pedestrians. Driveways should <b>not</b> be labeled as Curb Ramps."
+      },
+      "slide-3": {
+        "title": "Garage",
+        "description": "Driveways to garages are <b>not</b> curb ramps. Driveways should <b>not</b> be labeled as Curb Ramps."
+      }
     },
-    "sign-up": "Sign up",
-    "sign-in": "Sign in",
-    "complete": "complete",
-    "zoom-in": "Zoom in",
-    "zoom-out": "Zoom out",
-    "more-options": "More options",
-    "map": {
-        "distance-left": "Only {{n}} kilometers left!",
-        "distance-left-one-unit": "Only 1 kilometer left!",
-        "less-than-one-unit-left": "Less than a kilometer left!",
-        "click-to-help": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Click here</a> to help finish this neighborhood",
-        "thanks": "Thanks for all your help!",
-        "100-percent-complete": "100% Complete!",
-        "percent-complete": "{{percent}}% Complete"
+    "no-curb-ramp": {
+      "slide-1": {
+        "title": "{{- labelType}}",
+        "description": "Sidewalk intersections should have curb ramps—ideally two per corner. If a corner has a sidewalk but does not have a curb ramp, place the Missing Curb Ramp label where you think a curb ramp should exist."
+      },
+      "slide-2": {
+        "title": "Residential walkways",
+        "description": "Residential walkways should <b>not</b> be labeled as Missing Curb Ramps."
+      },
+      "slide-3": {
+        "title": "Not on pedestrian path",
+        "description": "Curb ramps are not needed at paths <b>not</b> intended for pedestrians to pass."
+      },
+      "slide-4": {
+        "title": "$t(common:no-sidewalk)",
+        "description": "For corners with <b>no sidewalks</b>, use the No Sidewalk label rather than a Missing Curb Ramp label."
+      }
     },
-    "cities-map": {
-        "explore": "Explore {{cityName}}",
-        "loading-stats": "Loading stats...",
-        "private-deployment": "Private Deployment"
+    "obstacle": {
+      "slide-1": {
+        "title": "{{- labelType}}",
+        "description": "Obstacles are barriers that impede <b>pedestrian pathways</b> for people using wheelchairs, walkers, or other mobility aids.<br><br>Not all fire hydrants, poles, and signs are obstacles—only those that clearly obstruct pedestrian paths."
+      },
+      "slide-2": {
+        "title": "Ample space to maneuver around",
+        "description": "The motorcycle is parked on the side; there is ample space for pedestrians on the remaining space of the sidewalk."
+      },
+      "slide-3": {
+        "title": "Obstacle not on sidewalk",
+        "description": "This traffic cone is <b>not</b> on a pedestrian pathway so it should not be marked as an Obstacle.<br><br> Only mark obstacles on sidewalks, crosswalks, and other pedestrian pathways."
+      },
+      "slide-4": {
+        "title": "Moving object",
+        "description": "The car seems to be moving in the image and should not be labeled as an Obstacle."
+      }
     },
-    "errors": {
-        "title": "Oops, there is no longer imagery available for this label.",
-        "explanation": "We are either having trouble accessing the site that provides this image, or the image has been taken down.",
-        "explore-street": "Explore the street</a> again to use newer images!"
+    "surface-problem": {
+      "slide-1": {
+        "title": "{{- labelType}}",
+        "description": "If something on the sidewalk or crosswalk surface would make it <b>uncomfortable or impossible to cross,</b> it should be labeled as a Surface Problem."
+      },
+      "slide-2": {
+        "title": "Normal sidewalk tiles",
+        "description": "Normal sidewalk tiles (without gaps, cracks or bumps) are not surface problems."
+      },
+      "slide-3": {
+        "title": "Not on pedestrian path",
+        "description": "This gravel is <b>not</b> on a pedestrian pathway so it should not be marked as a Surface Problem.<br><br>Only mark surface problems on sidewalks, crosswalks, and other pedestrian pathways."
+      }
     },
-    "severity": "Severity",
-    "quality": "Quality",
-    "rate-severity": "Rate severity",
-    "rate-quality": "Rate quality",
-    "rate-severity-info": "Do your best to assess how severely the labeled obstacle or feature hinders pedestrian access.",
-    "rate-quality-info": "Do your best to assess the quality of the labeled feature.",
-    "update-severity-level": "Update severity level",
-    "update-quality-level": "Update quality level",
-    "severity-example-tooltip-1": "Low severity example",
-    "severity-example-tooltip-2": "Medium severity example",
-    "severity-example-tooltip-3": "High severity example",
-    "quality-example-tooltip-1": "Good quality example",
-    "quality-example-tooltip-2": "Okay quality example",
-    "quality-example-tooltip-3": "Bad quality example",
-    "no-severity": "A severity rating was not provided for this label",
-    "no-quality": "A quality rating was not provided for this label",
-    "tags": "Tags",
-    "description": "Description",
-    "no-description": "No description",
-    "comments": "Validator Comments",
-    "none": "None",
-    "image-capture-date": "Image Capture Date",
-    "labeled": "Labeled",
-    "low": "Low",
-    "medium": "Medium",
-    "high": "High",
-    "good": "Good",
-    "okay": "Okay",
-    "bad": "Bad",
-    "yes": "Yes",
-    "no": "No",
-    "ai-disclaimer": "AI analyzed this label and voted \"$t({{aiVal}})\"; however, AI can make mistakes. Please make your own assessment.",
-    "ai-generated-label-tooltip": "This label was AI generated. AI can make mistakes, so please make your own assessment.",
-    "tag": {
-        "narrow": "narrow",
-        "points into traffic": "points into cross traffic",
-        "missing tactile warning": "missing tactile warning",
-        "tactile warning": "tactile warning",
-        "steep": "steep",
-        "not enough landing space": "not enough landing space",
-        "not level with street": "not level with street",
-        "surface problem": "surface problem",
-        "debris / pooled water": "debris / pooled water",
-        "parallel lines": "parallel lines",
-        "alternate route present": "alternate route present",
-        "no alternate route": "no alternate route",
-        "unclear if needed": "unclear if needed",
-        "trash/recycling can": "trash/recycling can",
-        "fire hydrant": "fire hydrant",
-        "pole": "pole",
-        "tree": "tree",
-        "vegetation": "vegetation",
-        "parked car": "parked car",
-        "parked bike": "parked bike",
-        "construction": "construction",
-        "sign": "sign",
-        "garage entrance": "garage entrance",
-        "stairs": "stairs",
-        "street vendor": "street vendor",
-        "litter/garbage": "litter/garbage",
-        "parked scooter/motorcycle": "parked scooter/motorcycle",
-        "bumpy": "bumpy",
-        "uneven/slanted": "uneven/slanted",
-        "cracks": "cracks",
-        "grass": "grass",
-        "narrow sidewalk": "narrow sidewalk",
-        "brick/cobblestone": "brick/cobblestone",
-        "very broken": "very broken",
-        "rail/tram track": "rail/tram track",
-        "sand/gravel": "mud/sand/gravel",
-        "uncovered manhole": "uncovered manhole",
-        "ends abruptly": "ends abruptly",
-        "street has a sidewalk": "street has a sidewalk",
-        "street has no sidewalks": "street has no sidewalks",
-        "gravel/dirt road": "gravel/dirt road",
-        "shared pedestrian/car space": "shared pedestrian/car space",
-        "height difference": "height difference",
-        "paint fading": "paint fading",
-        "broken surface": "broken surface",
-        "uneven surface": "uneven surface",
-        "no pedestrian priority": "no pedestrian priority",
-        "very long crossing": "very long crossing",
-        "level with sidewalk": "level with sidewalk",
-        "button waist height": "button waist height",
-        "APS": "tactile-audible buttons",
-        "one button": "one button",
-        "two buttons": "two buttons",
-        "hard to reach buttons": "hard to reach buttons",
-        "missing crosswalk": "missing marked crosswalk",
-        "no bus stop access": "no bus stop access",
-        "pedestrian lane marking": "pedestrian lane marking",
-        "covered walkway": "covered walkway",
-        "too close to traffic": "too close to traffic",
-        "utility panel": "utility panel",
-        "outdoor dining area": "outdoor dining area",
-        "mailbox": "mailbox",
-        "debris": "debris",
-        "not aligned with crosswalk": "not aligned with crosswalk",
-        "utility cabinet": "utility cabinet",
-        "cycle lane- protection from traffic": "cycle lane: protection from traffic",
-        "cycle lane- no protection from traffic": "cycle lane: no protection from traffic",
-        "cycle lane- surface problem": "cycle lane: surface problem",
-        "cycle lane- faded paint": "cycle lane: faded paint",
-        "cycle lane- debris / pooled water": "cycle lane: debris / pooled water",
-        "cycle lane- parked car": "cycle lane: parked car",
-        "cycle box": "cycle box",
-        "not visible": "not visible",
-        "cart": "cart",
-        "drainage": "drainage",
-        "electrical box": "electrical box",
-        "too dirty/cluttered": "too dirty/cluttered",
-        "yellow box, accessibility features not visible": "yellow box, accessibility features not visible",
-        "bollard": "bollard"
+    "no-sidewalk": {
+      "slide-1": {
+        "title": "{{- labelType}}",
+        "description": "If a street side does not have a sidewalk, please mark it with a <b>No Sidewalk</b> label."
+      },
+      "slide-2": {
+        "title": "Median",
+        "description": "A median that separates two directions of a traffic and is not intended for pedestrians should <b>not</b> be labeled as No Sidewalk."
+      },
+      "slide-3": {
+        "title": "Pavement",
+        "description": "There is a sidewalk here. It should <b>not</b> be marked as No Sidewalk."
+      }
     },
-    "pano-info": {
-        "details-title": "Details",
-        "latitude": "Latitude",
-        "longitude": "Longitude",
-        "image-id": "Image ID",
-        "street-id": "Street ID",
-        "google-street-view": "Google Street View",
-        "mapillary": "Mapillary",
-        "infra3d": "infra3D",
-        "region-id": "Region ID",
-        "label-id": "Label ID",
-        "label-date": "$t(common:labeled)",
-        "pano-date": "$t(common:image-capture-date)",
-        "pano-address": "Address",
-        "view-in-gsv": "View in Google Street View",
-        "view-in-mapillary": "View in Mapillary",
-        "city": "City",
-        "copied-to-clipboard": "Data copied to your clipboard!"
+    "crosswalk": {
+      "slide-1": {
+        "title": "{{- labelType}}",
+        "description": "A crosswalk is a legally defined space to cross a road.<br><br>Crosswalks are often indicated by <b>parallel dashed lines.</b>"
+      },
+      "slide-2": {
+        "title": "No visual indicator",
+        "description": "Crossings with no visual indicator should <b>not</b> be labeled as Marked Crosswalks."
+      },
+      "slide-3": {
+        "title": "Stop line",
+        "description": "Stop lines for cars should not be labeled as Marked Crosswalks."
+      },
+      "slide-4": {
+        "title": "Speed bump",
+        "description": "Speed bumps should not be labeled as Marked Crosswalks."
+      }
     },
-    "mission-start-tutorial": {
-        "example-type-label-correct": "CORRECT EXAMPLE",
-        "label-type-subtitle": "Why is this wrong?",
-        "label-on-image-title-correct": "Correct label",
-        "start-mission": "Start mission",
-        "curb-ramp": {
-            "slide-1": {
-                "title": "{{- labelType}}",
-                "description": "Curb ramps allow people to transition from the sidewalk to the street. They should exist at all crossable intersections."
-            },
-            "slide-2": {
-                "title": "Driveway",
-                "description": "Driveways are <b>not</b> curb ramps. They are designed for vehicles and not pedestrians. Driveways should <b>not</b> be labeled as Curb Ramps."
-            },
-            "slide-3": {
-                "title": "Garage",
-                "description": "Driveways to garages are <b>not</b> curb ramps. Driveways should <b>not</b> be labeled as Curb Ramps."
-            }
-        },
-        "no-curb-ramp": {
-            "slide-1": {
-                "title": "{{- labelType}}",
-                "description": "Sidewalk intersections should have curb ramps—ideally two per corner. If a corner has a sidewalk but does not have a curb ramp, place the Missing Curb Ramp label where you think a curb ramp should exist."
-            },
-            "slide-2": {
-                "title": "Residential walkways",
-                "description": "Residential walkways should <b>not</b> be labeled as Missing Curb Ramps."
-            },
-            "slide-3": {
-                "title": "Not on pedestrian path",
-                "description": "Curb ramps are not needed at paths <b>not</b> intended for pedestrians to pass."
-            },
-            "slide-4": {
-                "title": "$t(common:no-sidewalk)",
-                "description": "For corners with <b>no sidewalks</b>, use the No Sidewalk label rather than a Missing Curb Ramp label."
-            }
-        },
-        "obstacle": {
-            "slide-1": {
-                "title": "{{- labelType}}",
-                "description": "Obstacles are barriers that impede <b>pedestrian pathways</b> for people using wheelchairs, walkers, or other mobility aids.<br><br>Not all fire hydrants, poles, and signs are obstacles—only those that clearly obstruct pedestrian paths."
-            },
-            "slide-2": {
-                "title": "Ample space to maneuver around",
-                "description": "The motorcycle is parked on the side; there is ample space for pedestrians on the remaining space of the sidewalk."
-            },
-            "slide-3": {
-                "title": "Obstacle not on sidewalk",
-                "description": "This traffic cone is <b>not</b> on a pedestrian pathway so it should not be marked as an Obstacle.<br><br> Only mark obstacles on sidewalks, crosswalks, and other pedestrian pathways."
-            },
-            "slide-4": {
-                "title": "Moving object",
-                "description": "The car seems to be moving in the image and should not be labeled as an Obstacle."
-            }
-        },
-        "surface-problem": {
-            "slide-1": {
-                "title": "{{- labelType}}",
-                "description": "If something on the sidewalk or crosswalk surface would make it <b>uncomfortable or impossible to cross,</b> it should be labeled as a Surface Problem."
-            },
-            "slide-2": {
-                "title": "Normal sidewalk tiles",
-                "description": "Normal sidewalk tiles (without gaps, cracks or bumps) are not surface problems."
-            },
-            "slide-3": {
-                "title": "Not on pedestrian path",
-                "description": "This gravel is <b>not</b> on a pedestrian pathway so it should not be marked as a Surface Problem.<br><br>Only mark surface problems on sidewalks, crosswalks, and other pedestrian pathways."
-            }
-        },
-        "no-sidewalk": {
-            "slide-1": {
-                "title": "{{- labelType}}",
-                "description": "If a street side does not have a sidewalk, please mark it with a <b>No Sidewalk</b> label."
-            },
-            "slide-2": {
-                "title": "Median",
-                "description": "A median that separates two directions of a traffic and is not intended for pedestrians should <b>not</b> be labeled as No Sidewalk."
-            },
-            "slide-3": {
-                "title": "Pavement",
-                "description": "There is a sidewalk here. It should <b>not</b> be marked as No Sidewalk."
-            }
-        },
-        "crosswalk": {
-            "slide-1": {
-                "title": "{{- labelType}}",
-                "description": "A crosswalk is a legally defined space to cross a road.<br><br>Crosswalks are often indicated by <b>parallel dashed lines.</b>"
-            },
-            "slide-2": {
-                "title": "No visual indicator",
-                "description": "Crossings with no visual indicator should <b>not</b> be labeled as Marked Crosswalks."
-            },
-            "slide-3": {
-                "title": "Stop line",
-                "description": "Stop lines for cars should not be labeled as Marked Crosswalks."
-            },
-            "slide-4": {
-                "title": "Speed bump",
-                "description": "Speed bumps should not be labeled as Marked Crosswalks."
-            }
-        },
-        "signal": {
-            "slide-1": {
-                "title": "{{- labelType}}",
-                "description": "A pedestrian signal indicates when pedestrians can cross the street and provides time for them to do so safely.<br><br> Some pedestrian signals are activated by a pedestrian push button at waist height."
-            },
-            "slide-2": {
-                "title": "Signage",
-                "description": "This sign does not indicate when pedestrians can cross the street."
-            },
-            "slide-3": {
-                "title": "Pole",
-                "description": "This pole does not show traffic signals to pedestrians."
-            },
-            "slide-4": {
-                "title": "Traffic light for vehicles",
-                "description": "This traffic light is only for vehicles, not for pedestrians."
-            }
-        }
+    "signal": {
+      "slide-1": {
+        "title": "{{- labelType}}",
+        "description": "A pedestrian signal indicates when pedestrians can cross the street and provides time for them to do so safely.<br><br> Some pedestrian signals are activated by a pedestrian push button at waist height."
+      },
+      "slide-2": {
+        "title": "Signage",
+        "description": "This sign does not indicate when pedestrians can cross the street."
+      },
+      "slide-3": {
+        "title": "Pole",
+        "description": "This pole does not show traffic signals to pedestrians."
+      },
+      "slide-4": {
+        "title": "Traffic light for vehicles",
+        "description": "This traffic light is only for vehicles, not for pedestrians."
+      }
     }
+  },
+  "share": {
+    "button": "Share",
+    "heading": "Share this label",
+    "text": "Check out this {{labelType}} on Project Sidewalk",
+    "copy-link": "Copy link",
+    "copied": "Copied!",
+    "on-x": "Share on X",
+    "on-facebook": "Share on Facebook",
+    "via-email": "Share via email"
+  }
 }

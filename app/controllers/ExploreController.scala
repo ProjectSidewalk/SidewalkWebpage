@@ -1,7 +1,7 @@
 package controllers
 
 import controllers.base._
-import controllers.helper.ControllerUtils.isAdmin
+import controllers.helper.ControllerUtils.{isAdmin, isMobile}
 import formats.json.CommentSubmissionFormats._
 import formats.json.ExploreFormats._
 import formats.json.MissionFormats._
@@ -54,41 +54,48 @@ class ExploreController @Inject() (
     val user: SidewalkUserWithRole = request.identity
     val pageTitle: String          = "Sidewalk - Explore"
 
-    // NOTE: streetEdgeId takes precedence over routeId, which takes precedence over regionId.
-    for {
-      exploreData <- (routeId, streetEdgeId, regionId) match {
-        case (Some(routeId), _, _) =>
-          exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion = false,
-            Some(routeId), resumeRoute, regionId = None, streetEdgeId = None)
-        case (_, Some(streetEdgeId), _) =>
-          exploreService.getDataForExplorePage(user.userId, retakingTutorial = false, newRegion = false, routeId = None,
-            resumeRoute = false, regionId = None, Some(streetEdgeId))
-        case (_, _, Some(regionId)) =>
-          exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion = false,
-            routeId = None, resumeRoute = resumeRoute, Some(regionId), streetEdgeId = None)
-        case (_, _, _) =>
-          exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion, routeId = None,
-            resumeRoute, regionId = None, streetEdgeId = None)
-      }
-      commonData <- configService.getCommonPageData(request2Messages.lang)
-    } yield {
-      // Log visit to the Explore page.
-      val activityStr: String =
-        if (exploreData.userRoute.isDefined) s"Visit_Audit_RouteId=${exploreData.userRoute.get.routeId}"
-        else if (streetEdgeId.isDefined) s"Visit_Audit_StreetEdgeId=${streetEdgeId.get}"
-        else if (regionId.isDefined) s"Visit_Audit_RegionId=${regionId.get}"
-        else if (newRegion) "Visit_Audit_NewRegionSelected"
-        else "Visit_Audit"
-      cc.loggingService.insert(user.userId, request.ipAddress, activityStr)
+    // Labeling isn't supported on phones/tablets, so send mobile users to the mobile landing page instead.
+    if (isMobile(request)) {
+      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Audit_RedirectMobileLanding")
+      Future.successful(Redirect("/mobileLanding"))
+    } else {
+      // NOTE: streetEdgeId takes precedence over routeId, which takes precedence over regionId.
+      for {
+        exploreData <- (routeId, streetEdgeId, regionId) match {
+          case (Some(routeId), _, _) =>
+            exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion = false,
+              Some(routeId), resumeRoute, regionId = None, streetEdgeId = None)
+          case (_, Some(streetEdgeId), _) =>
+            exploreService.getDataForExplorePage(user.userId, retakingTutorial = false, newRegion = false,
+              routeId = None, resumeRoute = false, regionId = None, Some(streetEdgeId))
+          case (_, _, Some(regionId)) =>
+            exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion = false,
+              routeId = None, resumeRoute = resumeRoute, Some(regionId), streetEdgeId = None)
+          case (_, _, _) =>
+            exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion,
+              routeId = None, resumeRoute, regionId = None, streetEdgeId = None)
+        }
+        commonData <- configService.getCommonPageData(request2Messages.lang)
+      } yield {
+        // Log visit to the Explore page.
+        val activityStr: String =
+          if (exploreData.userRoute.isDefined) s"Visit_Audit_RouteId=${exploreData.userRoute.get.routeId}"
+          else if (streetEdgeId.isDefined) s"Visit_Audit_StreetEdgeId=${streetEdgeId.get}"
+          else if (regionId.isDefined) s"Visit_Audit_RegionId=${regionId.get}"
+          else if (newRegion) "Visit_Audit_NewRegionSelected"
+          else "Visit_Audit"
+        cc.loggingService.insert(user.userId, request.ipAddress, activityStr)
 
-      // Load the Explore page. The match statement below just passes along any extra params when using `streetEdgeId`.
-      // If user is an admin and a panoId or lat/lng are supplied, send to that location, o/w send to street.
-      (streetEdgeId, isAdmin(user), panoId, lat, lng) match {
-        case (Some(s), true, Some(p), _, _) =>
-          Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, None, None, Some(p)))
-        case (Some(s), true, _, Some(lt), Some(lg)) =>
-          Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg)))
-        case _ => Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData))
+        // Load the Explore page. The match statement below just passes along any extra params when using
+        // `streetEdgeId`. If user is an admin and a panoId or lat/lng are supplied, send to that location, o/w send
+        // to street.
+        (streetEdgeId, isAdmin(user), panoId, lat, lng) match {
+          case (Some(s), true, Some(p), _, _) =>
+            Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, None, None, Some(p)))
+          case (Some(s), true, _, Some(lt), Some(lg)) =>
+            Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg)))
+          case _ => Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData))
+        }
       }
     }
   }

@@ -1,13 +1,13 @@
 name: CI
 
 #   - backend:         `sbt compile` + `scalafmtCheckAll` (both BLOCKING)
-#   - frontend:        asset build (grunt)
+#   - frontend:        asset build (grunt) + `eslint` (JS) + `stylelint` (CSS) + `htmlhint` (HTML) (all BLOCKING)
 #   - evolutions-lint: static checks on conf/evolutions/default/*.sql (BLOCKING — fast, deterministic, no DB).
 #   - backend-tests:   DB-backed public-API functional tests against a real Postgres+PostGIS (ADVISORY for now). Boots
 #                      the app, which auto-applies pending evolutions -- so it doubles as the forward-apply gate.
 #   - python-tests:    pytest unit tests for the standalone scripts in scripts/ (ADVISORY for now).
-# Frontend linting (eslint/htmlhint/stylelint) is intentionally NOT wired in here: it is owned by issue #2487 and
-# sequenced with the in-progress JS ES5->ES6 migration, so it'll be introduced separately on that track.
+# ESLint (JavaScript), Stylelint (CSS), and htmlhint (HTML) are all wired into the `frontend` job as blocking steps now
+# that their trees are lint-clean (#2487).
 
 on:
   pull_request:
@@ -73,6 +73,42 @@ jobs:
       # Exercises the grunt concat/concat_css asset build (the project's `default` grunt task).
       - name: Build assets
         run: npx grunt
+
+      # Blocking: the JS tree is kept eslint-clean (#2487), so any `error`-severity finding fails the build — the
+      # frontend counterpart to the backend job's scalafmt gate. Same path the `make eslint` target defaults to; build/
+      # and lib/ are carved out by eslint.config.js's own `ignores`. No `--max-warnings` flag on purpose: the config's
+      # one `warn` rule (max-len) is deliberately advisory — CLAUDE.md sanctions long-line exceptions, so an over-limit
+      # line nags but doesn't block; every other rule is an `error`. `if: always()` runs it even when the build step
+      # failed, so a contributor sees build and lint problems in one run. Auto-fix locally with `make eslint-fix`.
+      - name: ESLint (blocking)
+        if: always()
+        run: npx eslint public/js/ public/locales/
+
+      # Blocking: the CSS tree is kept stylelint-clean (#2487), the CSS counterpart to the ESLint gate above. Same glob
+      # `make stylelint` defaults to; vendored/generated CSS is carved out by stylelint.config.mjs's own `ignoreFiles`.
+      # The glob is single-quoted so Stylelint's own globber expands `**` (not the shell). Like ESLint, no
+      # `--max-warnings` flag: the one `warning` rule (max-line-length) is deliberately advisory — CLAUDE.md sanctions
+      # long-line exceptions — so an over-limit line nags but doesn't block. `if: always()` runs it even when an earlier
+      # step failed, so all frontend problems surface in one run. Auto-fix locally with `make stylelint-fix`.
+      - name: Stylelint (blocking)
+        if: always()
+        run: npx stylelint 'public/**/*.css'
+
+      # Blocking: the HTML tree (Twirl templates under app/views) is kept htmlhint-clean (#2487), the HTML counterpart to
+      # the ESLint/Stylelint gates above. Same path `make lint-htmlhint` defaults to; htmlhint reads its rules from
+      # .htmlhintrc. `if: always()` runs it even when an earlier step failed, so all frontend problems surface in one
+      # run. Auto-check locally with `make htmlhint`.
+      - name: HTMLHint (blocking)
+        if: always()
+        run: npx htmlhint app/views
+
+      # Blocking: cross-locale key parity for public/locales/. Pure-node (no deps), i18next-aware where
+      # eslint-plugin-i18n-json isn't -- it normalizes plural suffixes and treats en-US/en-NZ and the per-city overlays
+      # as override-only. Complements the per-file i18n-json ESLint rules run above. `if: always()` so it reports even
+      # when an earlier frontend step failed. Run locally with `make lint-locales`.
+      - name: Locale parity (blocking)
+        if: always()
+        run: node tools/check-locale-parity.mjs
 
   evolutions-lint:
     name: Evolutions lint

@@ -1,35 +1,34 @@
 @(activePage: String)
 
 <div class="api-sidebar">
-    <div class="api-nav">
-        <!-- Getting Started Section -->
-        <div class="api-nav-header">Getting Started</div>
-        <a href="@routes.ApiDocsController.index" class="api-nav-item @if(activePage == "introduction"){active}">Introduction</a>
+  <div class="api-nav">
+      <!-- Getting Started Section -->
+    <div class="api-nav-header">Getting Started</div>
+    <a href="@routes.ApiDocsController.index" class="api-nav-item @if(activePage == "introduction"){active}">Introduction</a>
 
-        <div class="api-nav-header">Metadata APIs</div>
-        <a href="@routes.ApiDocsController.cities" class="api-nav-item @if(activePage == "cities"){active}">Cities</a>
-        <a href="@routes.ApiDocsController.labelTypes" class="api-nav-item @if(activePage == "label-types"){active}">Label Types</a>
-        <a href="@routes.ApiDocsController.labelTags" class="api-nav-item @if(activePage == "label-tags"){active}">Label Tags</a>
-        <a href="@routes.ApiDocsController.streetTypes" class="api-nav-item @if(activePage == "street-types"){active}">Street Types</a>
+    <div class="api-nav-header">Metadata APIs</div>
+    <a href="@routes.ApiDocsController.cities" class="api-nav-item @if(activePage == "cities"){active}">Cities</a>
+    <a href="@routes.ApiDocsController.labelTypes" class="api-nav-item @if(activePage == "label-types"){active}">Label Types</a>
+    <a href="@routes.ApiDocsController.labelTags" class="api-nav-item @if(activePage == "label-tags"){active}">Label Tags</a>
+    <a href="@routes.ApiDocsController.streetTypes" class="api-nav-item @if(activePage == "street-types"){active}">Street Types</a>
 
-        <div class="api-nav-header">Data APIs</div>
-        <a href="@routes.ApiDocsController.rawLabels" class="api-nav-item @if(activePage == "raw-labels"){active}">Raw Labels</a>
-        <a href="@routes.ApiDocsController.labelClusters" class="api-nav-item @if(activePage == "label-clusters"){active}">Label Clusters</a>
-        <a href="@routes.ApiDocsController.streets" class="api-nav-item @if(activePage == "streets"){active}">Streets</a>
-        <a href="@routes.ApiDocsController.regions" class="api-nav-item @if(activePage == "regions"){active}">Regions</a>
-        <a href="@routes.ApiDocsController.validations" class="api-nav-item @if(activePage == "validations"){active}">Validations</a>
-        <a href="@routes.ApiDocsController.validationResultTypes" class="api-nav-item @if(activePage == "validation-result-types"){active}">Validation Result Types</a>
+    <div class="api-nav-header">Data APIs</div>
+    <a href="@routes.ApiDocsController.rawLabels" class="api-nav-item @if(activePage == "raw-labels"){active}">Raw Labels</a>
+    <a href="@routes.ApiDocsController.labelClusters" class="api-nav-item @if(activePage == "label-clusters"){active}">Label Clusters</a>
+    <a href="@routes.ApiDocsController.streets" class="api-nav-item @if(activePage == "streets"){active}">Streets</a>
+    <a href="@routes.ApiDocsController.regions" class="api-nav-item @if(activePage == "regions"){active}">Regions</a>
+    <a href="@routes.ApiDocsController.validations" class="api-nav-item @if(activePage == "validations"){active}">Validations</a>
+    <a href="@routes.ApiDocsController.validationResultTypes" class="api-nav-item @if(activePage == "validation-result-types"){active}">Validation Result Types</a>
 
+    <div class="api-nav-header">Access Score APIs</div>
+    <a href="@routes.ApiDocsController.accessScoreStreets" class="api-nav-item @if(activePage == "access-score-streets"){active}">AccessScore: Streets</a>
+    <a href="@routes.ApiDocsController.accessScoreRegions" class="api-nav-item @if(activePage == "access-score-regions"){active}">AccessScore: Regions</a>
 
-        <div class="api-nav-header">Access Score APIs</div>
-        <a href="@routes.ApiDocsController.accessScoreStreets" class="api-nav-item @if(activePage == "access-score-streets"){active}">AccessScore: Streets</a>
-        <a href="@routes.ApiDocsController.accessScoreRegions" class="api-nav-item @if(activePage == "access-score-regions"){active}">AccessScore: Regions</a>
-
-        <div class="api-nav-header">Stat APIs</div>
-        <a href="@routes.ApiDocsController.userStats" class="api-nav-item @if(activePage == "user-stats"){active}">User Stats</a>
-        <a href="@routes.ApiDocsController.overallStats" class="api-nav-item @if(activePage == "overall-stats"){active}">Overall Stats</a>
-        <a href="@routes.ApiDocsController.overallStatsByDay" class="api-nav-item @if(activePage == "overall-stats-by-day"){active}">Overall Stats by Day</a>
-        <a href="@routes.ApiDocsController.aggregateStats" class="api-nav-item @if(activePage == "aggregate-stats"){active}">Aggregate Stats</a>
-        <a href="@routes.ApiDocsController.aggregateStatsByDay" class="api-nav-item @if(activePage == "aggregate-stats-by-day"){active}">Aggregate Stats by Day</a>
-    </div>
+    <div class="api-nav-header">Stat APIs</div>
+    <a href="@routes.ApiDocsController.userStats" class="api-nav-item @if(activePage == "user-stats"){active}">User Stats</a>
+    <a href="@routes.ApiDocsController.overallStats" class="api-nav-item @if(activePage == "overall-stats"){active}">Overall Stats</a>
+    <a href="@routes.ApiDocsController.overallStatsByDay" class="api-nav-item @if(activePage == "overall-stats-by-day"){active}">Overall Stats by Day</a>
+    <a href="@routes.ApiDocsController.aggregateStats" class="api-nav-item @if(activePage == "aggregate-stats"){active}">Aggregate Stats</a>
+    <a href="@routes.ApiDocsController.aggregateStatsByDay" class="api-nav-item @if(activePage == "aggregate-stats-by-day"){active}">Aggregate Stats by Day</a>
+  </div>
 </div>

@@ -72,13 +72,20 @@ git pull origin develop
 
 Code-style conventions for JavaScript, Scala, and HTML/CSS live in **[`docs/style-guide.md`](docs/style-guide.md)** —
 that's the single source of truth, and most rules are enforced for you by the linters
-([`.eslintrc.json`](.eslintrc.json), [`.scalafmt.conf`](.scalafmt.conf), [`.stylelintrc.json`](.stylelintrc.json)).
+([`eslint.config.js`](eslint.config.js), [`.scalafmt.conf`](.scalafmt.conf), [`stylelint.config.mjs`](stylelint.config.mjs)).
 [`CLAUDE.md`](CLAUDE.md) holds the architecture and the ScalaDoc/JSDoc comment standards. A few things worth knowing
 before your first PR:
 
 - **New JavaScript targets ES2022** (`const`/`let`, arrow functions, `#private` fields, native `fetch`). We're
   actively migrating *off* ES5/jQuery/Bootstrap — don't add to them.
 - **Format Scala with scalafmt** before pushing (`make scalafmt-fix`, or format-on-save) — CI blocks the merge on it.
+- **Keep the frontend linters passing on what you change** before pushing. Run `make lint-fix` for the mechanical
+  ESLint/Stylelint fixes, hand-fix the rest, then confirm the relevant linter is clean — `make eslint` (JS + translation
+  JSON), `make stylelint` (CSS), `make htmlhint` (HTML), `make lint-locales` (cross-locale key parity), or `make lint`
+  for all of them. The trees are kept fully lint-clean
+  ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so any finding is from your change.
+  **All four are blocking CI checks** now (they run in the `Frontend (build)` job), so a lint failure blocks the
+  merge — just like scalafmt.
 - **UI work** must meet WCAG 2.1/2.2 Level AA and use the `main.css` `:root` design tokens.
 - **Public API (`/v3`):** response fields are `snake_case`, query params are `camelCase`, and new DTOs go in
   `app/models/api/`.
@@ -135,7 +142,11 @@ visiting `<your-computer-ip>:9000` (phone and computer on the same Wi-Fi; this o
 
 1. Merge the latest `develop` (`git pull origin develop`) and test one more time.
 2. **Run scalafmt** on any Scala files you changed — `make scalafmt-fix` (CI blocks the merge on formatting). Set up
-   format-on-save once via [`docs/editor-setup.md`](docs/editor-setup.md) so this is automatic.
+   format-on-save once via [`docs/editor-setup.md`](docs/editor-setup.md) so this is automatic. Likewise **run the
+   frontend linters** on anything you changed — `make lint` (or the specific `make eslint`/`stylelint`/`htmlhint`/
+   `lint-locales` target), with `make lint-fix` for the mechanical fixes. They're all blocking CI checks now, so a lint
+   failure blocks the merge; the trees are kept lint-clean —
+   [#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487).
 3. Push your branch and [open a PR](https://github.com/ProjectSidewalk/SidewalkWebpage/compare) with **base
    `develop`** ← your branch. Fill out the [PR template](.github/PULL_REQUEST_TEMPLATE.md): clear title, description,
    before/after screenshots for UI, testing instructions, translations, and logging updates. Link the issue
@@ -149,7 +160,8 @@ visiting `<your-computer-ip>:9000` (phone and computer on the same Wi-Fi; this o
 
 `develop` is branch-protected so a red build can't land (the failure mode that once shipped a migration that wouldn't
 apply). A PR can only merge once the **blocking CI checks pass** — currently **`Backend (compile + scalafmt)`** and
-**`Frontend (build)`** (the **`Evolutions lint`** check is being added to this set). The rule:
+**`Frontend (build)`** (which also runs ESLint, Stylelint, HTMLHint, and locale key-parity, so any frontend lint
+failure blocks the merge; the **`Evolutions lint`** check is being added to this set). The rule:
 
 - **Applies to everyone, maintainers included** — there is no admin bypass; it only ever stops a merge while CI is red.
 - **Does not require review approvals.** Tooling won't force a second person to sign off, so you can still open and

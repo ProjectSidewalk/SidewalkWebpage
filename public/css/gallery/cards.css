@@ -1,0 +1,311 @@
+.gallery-card {
+  position: relative;
+  display: inline-block;
+  padding: 0;
+  margin: 0.6vw;
+  border-radius: 20px;
+  width: 25vw;
+  height: fit-content;
+}
+
+.gallery-card:hover {
+  box-shadow: 0 4px 8px 0 rgb(0 0 0 / 10%), 0 6px 20px 0 rgb(0 0 0 / 5%);
+}
+
+.validate-agree {
+  background-color: var(--color-pine-500);
+}
+
+.validate-disagree {
+  background-color: #eb734d;
+}
+
+.validate-unsure {
+  background-color: var(--color-asphalt-100);
+}
+
+/*
+We make sure that the image holder is positioned relatively so that the validation menu can be positioned absolutely
+with respect to the image holder. This allows the validation menu to be placed over the actual image (like an overlay).
+*/
+.image-holder {
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 3 / 2; /* Match the Explore canvas ratio (720x480). */
+  --gallery-marker-size: clamp(16px, 1.1vw, 22px);
+}
+
+.gallery-card:hover::after {
+  opacity: 1;
+}
+
+.static-gallery-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Fills 3:2 container; crops excess from Google's 4:3 images. */
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+}
+
+#gallery-validation-button-holder {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 14%;
+  z-index: 2;
+}
+
+#gallery-card-agree-button {
+  width: 33%;
+  border-right: 1px solid #dcdbdb;
+  background-color: var(--color-pine-500);
+  color: var(--color-asphalt-500);
+}
+
+#gallery-card-disagree-button {
+  width: 34%;
+  background-color: #eb734d;
+  color: var(--color-asphalt-500);
+}
+
+#gallery-card-unsure-button {
+  border-left: 1px solid #dcdbdb;
+  width: 33%;
+  background-color: var(--color-asphalt-100);
+  color: var(--color-asphalt-500);
+}
+
+.card-header {
+  padding: 5px 5px 3px 7px;
+  font: var(--text-body-bold);
+  font-size: 1vw;
+}
+
+.card-info {
+  padding-bottom: 0.5vw;
+  padding-left: 0.5vw;
+  padding-right: 0.5vw;
+  color: var(--color-asphalt-500);
+  border-width: 0 1px 1px;
+  border-color: #dcdbdb;
+  border-style: solid;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+  cursor: default;
+}
+
+.gallery-card:hover > .card-info {
+  border-width: 0; /* Using a drop shadow on hover, and we don't need both the border and shadow. */
+}
+
+.card-data {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+  font: var(--text-small-regular);
+  font-size: 0.6vw;
+  height: 2.5vh;
+}
+
+.card-severity {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  flex-direction: row;
+  flex: 0 0 auto; /* Takes only the space needed for content */
+  padding-left: 7px;
+}
+
+.label-severity-header {
+  padding-right: .25vw;
+}
+
+.label-severity-content {
+  display: flex;
+  flex-direction: row;
+}
+
+.no-severity-header {
+  opacity: 0.6;
+}
+
+.card-tags {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  flex-direction: row;
+  flex: 1; /* Takes all remaining space */
+  right: 0;
+  padding-left: 7px;
+}
+
+.label-tags-header {
+  padding-right: .25vw;
+}
+
+.label-tags-holder {
+  display: flex;
+  align-items: center;
+  overflow-y: auto;
+  width: 100%;
+  flex-flow: row wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.label-tags-content {
+  text-overflow: ellipsis;
+  width:fit-content;
+  color: var(--color-neutral-black);
+}
+
+.gallery-marker-wrapper {
+  position: absolute;
+  width: var(--gallery-marker-size);
+  height: var(--gallery-marker-size);
+  pointer-events: none;
+}
+
+.gallery-marker-wrapper .label-icon-gallery {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+}
+
+.gallery-marker-wrapper .ai-icon-marker {
+  pointer-events: auto;
+}
+
+
+.card-validation-info {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  flex-direction: row;
+  flex: 0 0 19%; /* Replaces width: 19%; */
+  padding-left: 7px;
+}
+
+.validation-info-content {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.validation-section-content {
+  display: flex;
+  width: 50%;
+  height: 100%;
+  flex-direction: column;
+  cursor: pointer;
+
+  /* Prevent text selection. */
+  -webkit-user-select: none; /* Safari */
+}
+
+.validation-info-count-container {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: 100%;
+  gap: 2px;
+}
+
+.validation-info-count {
+  display: flex;
+  flex: 1;
+  height: 100%;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* The validation SVGs have ~30% internal whitespace in their viewBox, so size
+   them to fill the section height rather than using the old PNG-based width %. */
+.validation-info-image {
+  height: 100%;
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.validation-button, .validation-button-selected {
+  opacity: 0;
+  font: var(--text-body-bold);
+  font-size: 0.75vw;
+  background-color: var(--color-neutral-white);
+  border-style: none;
+  color: var(--color-asphalt-500);
+  transition: opacity 120ms ease;
+}
+
+.gallery-card:hover .validation-button {
+  opacity: 0.75;
+}
+
+.gallery-card:hover .validation-button:hover {
+  opacity: 0.95;
+}
+
+.gallery-card:hover .validation-button-selected {
+  opacity: 1;
+  background-color: gray;
+}
+
+/* Read-only mode: the card shows the viewer's own label, so validating isn't allowed. The UI stays in place but
+   appears disabled, matching the Gallery expanded view / LabelMap popup. */
+.gallery-card--readonly #gallery-card-agree-button,
+.gallery-card--readonly #gallery-card-disagree-button,
+.gallery-card--readonly #gallery-card-unsure-button {
+  background-color: #E2E2E2;
+  color: rgb(0 0 0 / 40%);
+  cursor: default;
+}
+
+.gallery-card--readonly .card-validation-info {
+  opacity: 0.5;
+}
+
+.gallery-card--readonly:hover .validation-button:hover {
+  opacity: 0.75; /* No hover bump in readonly: nothing to validate. */
+}
+
+.gallery-card--readonly .validation-section-content {
+  cursor: default;
+}
+
+.gallery-card--readonly .validation-info-image {
+  pointer-events: none;
+}
+
+.expanded-view-background-card {
+  opacity: 0.5;
+}
+
+.severity-circle {
+  color: var(--color-neutral-white);
+  border: 1px solid var(--color-asphalt-500);
+  width: 0.7vw;
+  height: 0.7vw;
+  border-radius: 50%;
+  text-align: center;
+  margin: 2px;
+  font-size: 0.9vw;
+}
+
+.no-severity-circle {
+  opacity: 0.4;
+}
+
+#current-severity {
+  border: 2px solid var(--color-asphalt-500);
+  background-color: var(--color-asphalt-500);
+  color: var(--color-asphalt-500);
+}

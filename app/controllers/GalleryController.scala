@@ -105,13 +105,16 @@ class GalleryController @Inject() (
         val regionIds: Set[Int]                   = submission.regionIds.getOrElse(Seq()).toSet
         val severities: Set[Option[Int]]          =
           submission.severities.getOrElse(Seq()).toSet.map { (s: String) => if (s == "null") None else Some(s.toInt) }
-        val tags: Set[String]         = submission.tags.getOrElse(Seq()).toSet
-        val aiValOptions: Set[String] = submission.aiValidationOptions.getOrElse(Seq()).toSet
-        val userId: String            = request.identity.userId
+        val tags: Set[String]          = submission.tags.getOrElse(Seq()).toSet
+        val aiValOptions: Set[String]  = submission.aiValidationOptions.getOrElse(Seq()).toSet
+        val userId: String             = request.identity.userId
+        val recentFirst: Boolean       = submission.sort.contains("recent")
+        val staticImageryOnly: Boolean = submission.staticImageryOnly.getOrElse(false)
 
         // Get labels from LabelTable.
         labelService
-          .getGalleryLabels(n, labelType, loadedLabels, valOptions, regionIds, severities, tags, aiValOptions, userId)
+          .getGalleryLabels(n, labelType, loadedLabels, valOptions, regionIds, severities, tags, aiValOptions, userId,
+            recentFirst, staticImageryOnly)
           .map { labels =>
             val jsonList = labels.map { l =>
               Json.obj(

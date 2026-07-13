@@ -4,109 +4,100 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@*
- * Overview landing page for the redesigned admin dashboard (#4272). Deliberately built last: it introduces no new
- * analysis, it's the at-a-glance snapshot that routes into the six detailed pages. A "needs attention" panel of
- * deep-linked action items, one KPI card per lens (with a week-over-week trend + sparkline), and a live recent-activity
- * strip. Driven by /adminapi/overviewSummary (headline numbers + attention counts), /adminapi/activityByDay (trends +
- * sparklines), and /adminapi/recentActivity (the strip).
- *@
+@* Overview landing page for the redesigned admin dashboard (#4272). Deliberately built last: it introduces no new analysis, it's the at-a-glance snapshot that routes into the six detailed pages. A "needs attention" panel of deep-linked action items, one KPI card per lens (with a week-over-week trend + sparkline), and a live recent-activity strip. Driven by /adminapi/overviewSummary (headline numbers + attention counts), /adminapi/activityByDay (trends + sparklines), and /adminapi/recentActivity (the strip). *@
 
 @content = {
-    <div class="api-section" id="ov-intro-section">
-        <h1 class="api-heading" id="overview">Overview <a href="#overview" class="permalink">#</a></h1>
-        <p>
-            A one-screen read on the health of this Project Sidewalk deployment — what needs attention, how the key
-            numbers are trending, and what just happened. Each card and action links to the page where you can dig in.
-        </p>
-        <div class="ov-pulse" id="ov-pulse" role="status" aria-live="polite">Loading snapshot…</div>
+  <div class="api-section" id="ov-intro-section">
+    <h1 class="api-heading" id="overview">Overview <a href="#overview" class="permalink">#</a></h1>
+    <p>A one-screen read on the health of this Project Sidewalk deployment — what needs attention, how the key numbers are trending, and what just happened. Each card and action links to the page where you can dig in.</p>
+    <div class="ov-pulse" id="ov-pulse" role="status" aria-live="polite">Loading snapshot…</div>
+  </div>
+
+  <div class="api-section" id="ov-attention-section">
+    <h2 class="api-heading" id="needs-attention">Needs attention <a href="#needs-attention" class="permalink">#</a></h2>
+    <p>Things worth a look right now, each linking to where you can act on them.</p>
+    <div class="ov-attention" id="ov-attention"></div>
+  </div>
+
+  <div class="api-section" id="ov-health-section">
+    <h2 class="api-heading" id="at-a-glance">At a glance <a href="#at-a-glance" class="permalink">#</a></h2>
+    <p>Top-line numbers across the six lenses, with the last-7-days trend. Each card links to the page that owns it.</p>
+
+    <div class="ov-cards" id="ov-cards">
+      <a class="ov-card" href="@routes.AdminDashboardController.coverage" id="ov-card-coverage">
+        <div class="ov-card-head"><span class="ov-card-title">Coverage</span><span class="ov-card-arrow" aria-hidden="true">→</span></div>
+        <span class="ov-card-value" id="ov-coverage-value">—</span>
+        <span class="ov-card-trend" id="ov-coverage-trend"></span>
+        <span class="ov-card-sub" id="ov-coverage-sub"></span>
+        <div class="ov-card-spark" id="ov-coverage-spark"></div>
+        <p class="ov-card-desc">Share of the street network that has been explored.</p>
+      </a>
+
+      <a class="ov-card" href="@routes.AdminDashboardController.quality" id="ov-card-quality">
+        <div class="ov-card-head"><span class="ov-card-title">Data Quality</span><span class="ov-card-arrow" aria-hidden="true">→</span></div>
+        <span class="ov-card-value" id="ov-quality-value">—</span>
+        <span class="ov-card-trend" id="ov-quality-trend"></span>
+        <span class="ov-card-sub" id="ov-quality-sub"></span>
+        <div class="ov-card-spark" id="ov-quality-spark"></div>
+        <p class="ov-card-desc">Labels collected and how many have been validated.</p>
+      </a>
+
+      <a class="ov-card" href="@routes.AdminDashboardController.contributors" id="ov-card-contributors">
+        <div class="ov-card-head"><span class="ov-card-title">Contributors</span><span class="ov-card-arrow" aria-hidden="true">→</span></div>
+        <span class="ov-card-value" id="ov-contributors-value">—</span>
+        <span class="ov-card-trend" id="ov-contributors-trend"></span>
+        <span class="ov-card-sub" id="ov-contributors-sub"></span>
+        <div class="ov-card-spark" id="ov-contributors-spark"></div>
+        <p class="ov-card-desc">People who have placed labels or validated.</p>
+      </a>
+
+      <a class="ov-card" href="@routes.AdminDashboardController.activity" id="ov-card-activity">
+        <div class="ov-card-head"><span class="ov-card-title">Activity</span><span class="ov-card-arrow" aria-hidden="true">→</span></div>
+        <span class="ov-card-value" id="ov-activity-value">—</span>
+        <span class="ov-card-trend" id="ov-activity-trend"></span>
+        <span class="ov-card-sub" id="ov-activity-sub"></span>
+        <div class="ov-card-spark" id="ov-activity-spark"></div>
+        <p class="ov-card-desc">Overall tempo — labels, validations, and streets per week.</p>
+      </a>
+
+      <a class="ov-card" href="@routes.AdminDashboardController.humansVsAi" id="ov-card-hva">
+        <div class="ov-card-head"><span class="ov-card-title">Humans vs AI</span><span class="ov-card-arrow" aria-hidden="true">→</span></div>
+        <span class="ov-card-value" id="ov-hva-value">—</span>
+        <span class="ov-card-sub" id="ov-hva-sub"></span>
+        <p class="ov-card-desc">How much of the data comes from AI versus people.</p>
+      </a>
+
+      <a class="ov-card" href="@routes.AdminDashboardController.apiAnalytics" id="ov-card-api">
+        <div class="ov-card-head"><span class="ov-card-title">API Analytics</span><span class="ov-card-arrow" aria-hidden="true">→</span></div>
+        <span class="ov-card-value" id="ov-api-value">—</span>
+        <span class="ov-card-sub" id="ov-api-sub"></span>
+        <p class="ov-card-desc">External use of the public v3 API.</p>
+      </a>
     </div>
+    <div class="coverage-status" id="ov-status" role="status" aria-live="polite"></div>
+  </div>
 
-    <div class="api-section" id="ov-attention-section">
-        <h2 class="api-heading" id="needs-attention">Needs attention <a href="#needs-attention" class="permalink">#</a></h2>
-        <p>Things worth a look right now, each linking to where you can act on them.</p>
-        <div class="ov-attention" id="ov-attention"></div>
-    </div>
+  <div class="api-section" id="ov-recent-section">
+    <h2 class="api-heading" id="latest-activity">Latest activity <a href="#latest-activity" class="permalink">#</a></h2>
+    <p>The most recent contributions across the deployment.</p>
+    <div class="ov-recent" id="ov-recent"></div>
+    <a class="ov-recent-more" href="@routes.AdminDashboardController.activity">View all activity →</a>
+  </div>
 
-    <div class="api-section" id="ov-health-section">
-        <h2 class="api-heading" id="at-a-glance">At a glance <a href="#at-a-glance" class="permalink">#</a></h2>
-        <p>Top-line numbers across the six lenses, with the last-7-days trend. Each card links to the page that owns it.</p>
-
-        <div class="ov-cards" id="ov-cards">
-            <a class="ov-card" href="@routes.AdminDashboardController.coverage" id="ov-card-coverage">
-                <div class="ov-card-head"><span class="ov-card-title">Coverage</span><span class="ov-card-arrow" aria-hidden="true">→</span></div>
-                <span class="ov-card-value" id="ov-coverage-value">—</span>
-                <span class="ov-card-trend" id="ov-coverage-trend"></span>
-                <span class="ov-card-sub" id="ov-coverage-sub"></span>
-                <div class="ov-card-spark" id="ov-coverage-spark"></div>
-                <p class="ov-card-desc">Share of the street network that has been explored.</p>
-            </a>
-
-            <a class="ov-card" href="@routes.AdminDashboardController.quality" id="ov-card-quality">
-                <div class="ov-card-head"><span class="ov-card-title">Data Quality</span><span class="ov-card-arrow" aria-hidden="true">→</span></div>
-                <span class="ov-card-value" id="ov-quality-value">—</span>
-                <span class="ov-card-trend" id="ov-quality-trend"></span>
-                <span class="ov-card-sub" id="ov-quality-sub"></span>
-                <div class="ov-card-spark" id="ov-quality-spark"></div>
-                <p class="ov-card-desc">Labels collected and how many have been validated.</p>
-            </a>
-
-            <a class="ov-card" href="@routes.AdminDashboardController.contributors" id="ov-card-contributors">
-                <div class="ov-card-head"><span class="ov-card-title">Contributors</span><span class="ov-card-arrow" aria-hidden="true">→</span></div>
-                <span class="ov-card-value" id="ov-contributors-value">—</span>
-                <span class="ov-card-trend" id="ov-contributors-trend"></span>
-                <span class="ov-card-sub" id="ov-contributors-sub"></span>
-                <div class="ov-card-spark" id="ov-contributors-spark"></div>
-                <p class="ov-card-desc">People who have placed labels or validated.</p>
-            </a>
-
-            <a class="ov-card" href="@routes.AdminDashboardController.activity" id="ov-card-activity">
-                <div class="ov-card-head"><span class="ov-card-title">Activity</span><span class="ov-card-arrow" aria-hidden="true">→</span></div>
-                <span class="ov-card-value" id="ov-activity-value">—</span>
-                <span class="ov-card-trend" id="ov-activity-trend"></span>
-                <span class="ov-card-sub" id="ov-activity-sub"></span>
-                <div class="ov-card-spark" id="ov-activity-spark"></div>
-                <p class="ov-card-desc">Overall tempo — labels, validations, and streets per week.</p>
-            </a>
-
-            <a class="ov-card" href="@routes.AdminDashboardController.humansVsAi" id="ov-card-hva">
-                <div class="ov-card-head"><span class="ov-card-title">Humans vs AI</span><span class="ov-card-arrow" aria-hidden="true">→</span></div>
-                <span class="ov-card-value" id="ov-hva-value">—</span>
-                <span class="ov-card-sub" id="ov-hva-sub"></span>
-                <p class="ov-card-desc">How much of the data comes from AI versus people.</p>
-            </a>
-
-            <a class="ov-card" href="@routes.AdminDashboardController.apiAnalytics" id="ov-card-api">
-                <div class="ov-card-head"><span class="ov-card-title">API Analytics</span><span class="ov-card-arrow" aria-hidden="true">→</span></div>
-                <span class="ov-card-value" id="ov-api-value">—</span>
-                <span class="ov-card-sub" id="ov-api-sub"></span>
-                <p class="ov-card-desc">External use of the public v3 API.</p>
-            </a>
-        </div>
-        <div class="coverage-status" id="ov-status" role="status" aria-live="polite"></div>
-    </div>
-
-    <div class="api-section" id="ov-recent-section">
-        <h2 class="api-heading" id="latest-activity">Latest activity <a href="#latest-activity" class="permalink">#</a></h2>
-        <p>The most recent contributions across the deployment.</p>
-        <div class="ov-recent" id="ov-recent"></div>
-        <a class="ov-recent-more" href="@routes.AdminDashboardController.activity">View all activity →</a>
-    </div>
-
-    <script src="@assets.path("javascripts/admin-dashboard/overview-page.js")"></script>
-    <script>
-        window.addEventListener('DOMContentLoaded', function () {
-            new OverviewPage({
-                summaryUrl: '/adminapi/overviewSummary',
-                activityByDayUrl: '/adminapi/activityByDay',
-                recentActivityUrl: '/adminapi/recentActivity?n=6',
-                labelTypesUrl: '/v3/api/labelTypes'
-            }).init();
-        });
-    </script>
+  <script src="@assets.path("js/admin-dashboard/OverviewPage.js")"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', function () {
+      new OverviewPage({
+        summaryUrl: '/adminapi/overviewSummary',
+        activityByDayUrl: '/adminapi/activityByDay',
+        recentActivityUrl: '/adminapi/recentActivity?n=6',
+        labelTypesUrl: '/v3/api/labelTypes'
+      }).init();
+    });
+  </script>
 }
 
 @common.main(commonData, "Sidewalk - Admin Overview") {
-    @common.navbar(commonData, Some(user))
-    @admin.dashboard.adminLayout("overview", user.role == "Owner")(content)
+  @common.navbar(commonData, Some(user))
+  @admin.dashboard.adminLayout("overview", user.role == "Owner")(content)
 }

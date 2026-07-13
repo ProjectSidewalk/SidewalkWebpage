@@ -1,0 +1,189 @@
+package controllers
+
+import controllers.base.{CustomBaseController, CustomControllerComponents}
+import models.auth.WithSignedIn
+import play.api.Configuration
+import play.api.i18n.Messages
+import play.api.libs.json.Json
+import service.{ConfigService, UserService}
+
+import javax.inject._
+import scala.concurrent.{ExecutionContext, Future}
+
+/**
+ * Controller for the User Dashboard, Leaderboard, Settings, and public profiles (#4323 redesign, cut over in #4474).
+ *
+ * The four pages share the API-docs/admin shell (left nav + content + right "On this page" TOC). The pre-cutover
+ * `/preview` URLs permanently redirect to the production ones. Unlike the pre-redesign dashboard, mobile visitors are
+ * served the page itself (it is responsive) rather than being redirected to /mobileLanding.
+ */
+@Singleton
+class UserDashboardController @Inject() (
+    cc: CustomControllerComponents,
+    val config: Configuration,
+    implicit val assets: AssetsFinder,
+    configService: ConfigService,
+    userService: UserService,
+    labelService: service.LabelService
+)(implicit ec: ExecutionContext)
+    extends CustomBaseController(cc) {
+  implicit val implicitConfig: Configuration = config
+
+  /**
+   * Renders the redesigned User Dashboard prototype: a single page of "your impact" sections (hero stats, activity
+   * streak, badges + trophies, your standing, learning/mistakes, map, team) on the shared shell.
+   *
+   * Secured to any signed-in user, matching the real `/dashboard`.
+   */
+  def dashboard = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
+    val user     = request.identity
+    val isMetric = Messages("measurement.system") == "metric"
+    val cityName = configService.getCityName(request2Messages.lang)
+    for {
+      profileData <- userService.getUserProfileData(user.userId, isMetric)
+      commonData  <- configService.getCommonPageData(request2Messages.lang)
+      tags        <- labelService.getTagsForCurrentCity
+      standing    <- userService.getUserStanding(user.userId)
+      streak      <- userService.getActivityStreak(user.userId, request2Messages.lang.toLocale)
+      accuracy    <- userService.getAccuracyByType(user.userId)
+      trophies    <- userService.getTrophies(user.userId, cityName, request2Messages)
+    } yield {
+      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboard")
+      Ok(
+        views.html.userDashboard
+          .dashboard(commonData, user, profileData, isMetric, tags, standing, streak, accuracy, trophies)
+      )
+    }
+  }
+
+  /**
+   * Renders the redesigned Leaderboard prototype: community-impact band, podium, weekly/all-time/team tables, and a
+   * "you vs community" standing widget, sharing the dashboard shell.
+   *
+   * Like the live `/leaderboard`, this is a bare `SecuredAction` (no `WithSignedIn`), so the general public — including
+   * anonymous auto-accounts — can view it. The view shows the community/podium/tables to everyone and gates the
+   * personal "you" pieces behind `isSignedIn` (role != "Anonymous"), offering a sign-up CTA otherwise.
+   */
+  def leaderboard = cc.securityService.SecuredAction { implicit request =>
+    val user                = request.identity
+    val isSignedIn: Boolean = user.role != "Anonymous"
+    val isMetric: Boolean   = Messages("measurement.system") == "metric"
+    val cityName            = configService.getCityName(request2Messages.lang)
+    for {
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+      aggregate  <- configService.getAggregateStats()
+      overall    <- userService.getLeaderboardStats(10)
+      weekly     <- userService.getLeaderboardStats(10, "weekly")
+      teams      <- userService.getLeaderboardStats(10, "overall", byTeam = true)
+      standing   <- if (isSignedIn) userService.getUserStanding(user.userId) else Future.successful(None)
+    } yield {
+      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Leaderboard")
+      Ok(
+        views.html.userDashboard
+          .leaderboard(commonData, user, isSignedIn, isMetric, cityName, aggregate, overall, weekly, teams, standing)
+      )
+    }
+  }
+
+  /**
+   * Renders the Settings page: editable username, read-only email + measurement units (units follow the site
+   * language), team membership, and the two privacy toggles ("Show me on the leaderboard" and "Make my dashboard
+   * public"). Secured to a signed-in user (settings are personal). The toggles reflect the user's real flags;
+   * `privateByDefault` tells the view whether this deployment starts users private (school/minor cities) so it can
+   * explain the default.
+   */
+  def settings = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
+    val user     = request.identity
+    val isMetric = Messages("measurement.system") == "metric"
+    for {
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+      openTeams  <- userService.getAllOpenTeams
+      currTeam   <- userService.getUserTeam(user.userId)
+      privacy    <- userService.getPrivacySettings(user.userId)
+    } yield {
+      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Settings")
+      val (onLeaderboard, publicProfile) = privacy.getOrElse((true, true))
+      Ok(
+        views.html.userDashboard.settings(commonData, user, openTeams, currTeam, onLeaderboard, publicProfile, isMetric,
+          configService.getPrivateProfilesByDefault)
+      )
+    }
+  }
+
+  /**
+   * Persists the Settings form in one save: an optional username change (validated) plus the two privacy flags and
+   * the user's team. `teamId` is a positive id to join/switch or absent/non-positive to leave any current team. A
+   * username that fails validation (length, allowed characters, profanity, or already taken) aborts the whole save
+   * with a 400 and a user-facing message, so nothing is partially applied.
+   */
+  def saveSettings = cc.securityService.SecuredAction(WithSignedIn(), parse.json) { implicit request =>
+    val user          = request.identity
+    val onLeaderboard = (request.body \ "onLeaderboard").asOpt[Boolean].getOrElse(true)
+    val publicProfile = (request.body \ "publicProfile").asOpt[Boolean].getOrElse(true)
+    val teamId        = (request.body \ "teamId").asOpt[Int].filter(_ > 0)
+    val usernameEdit  = (request.body \ "username").asOpt[String].map(_.trim).filter(_.nonEmpty)
+
+    // Only a username change can be rejected, so resolve it first and touch nothing else unless it succeeds.
+    val usernameResult: Future[Either[String, Unit]] = usernameEdit match {
+      case Some(name) if name != user.username => userService.changeUsername(user.userId, name).map(_.map(_ => ()))
+      case _                                   => Future.successful(Right(()))
+    }
+    usernameResult.flatMap {
+      // The service returns an i18n key; localize it for the viewer here at the HTTP boundary.
+      case Left(errorKey) => Future.successful(BadRequest(Json.obj("success" -> false, "error" -> Messages(errorKey))))
+      case Right(_)       =>
+        for {
+          _ <- userService.updatePrivacySettings(user.userId, onLeaderboard, publicProfile)
+          _ <- teamId.map(id => userService.setUserTeam(user.userId, id)).getOrElse(userService.leaveTeam(user.userId))
+        } yield {
+          cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=SaveSettings")
+          Ok(Json.obj("success" -> true))
+        }
+    }
+  }
+
+  /**
+   * Renders a public version of a mapper's dashboard (their accomplishments only — no email, mistakes, or settings).
+   *
+   * Bare `SecuredAction` so anyone, including anonymous accounts, can view it after clicking a name on the leaderboard.
+   * The service resolves the three states: a missing username (`None` → not-found), a private profile the viewer
+   * doesn't own (`visible = false` → "kept private"), or a visible profile with real KPIs, badges, trophies, and a
+   * contribution map (fed by the public `/userapi/public/:username/...` endpoints, gated on the same flag).
+   *
+   * @param username The mapper whose public profile to show.
+   */
+  def publicProfile(username: String) = cc.securityService.SecuredAction { implicit request =>
+    val viewer   = request.identity
+    val isOwner  = viewer.username == username
+    val isMetric = Messages("measurement.system") == "metric"
+    val cityName = configService.getCityName(request2Messages.lang)
+    for {
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+      profile    <- userService.getPublicProfile(username, isOwner, isMetric, cityName, request2Messages)
+      tags       <- labelService.getTagsForCurrentCity
+    } yield {
+      cc.loggingService.insert(viewer.userId, request.ipAddress, "Visit_PublicProfile")
+      Ok(views.html.userDashboard.publicProfile(commonData, viewer, username, isMetric, profile, tags))
+    }
+  }
+
+  /** Permanent redirect from a pre-cutover `/preview` URL to its production URL (#4474). */
+  def dashboardPreviewRedirect = Action {
+    MovedPermanently(routes.UserDashboardController.dashboard.url)
+  }
+
+  /** Permanent redirect from a pre-cutover `/preview` URL to its production URL (#4474). */
+  def settingsPreviewRedirect = Action {
+    MovedPermanently(routes.UserDashboardController.settings.url)
+  }
+
+  /** Permanent redirect from a pre-cutover `/preview` URL to its production URL (#4474). */
+  def leaderboardPreviewRedirect = Action {
+    MovedPermanently(routes.UserDashboardController.leaderboard.url)
+  }
+
+  /** Permanent redirect from a pre-cutover `/preview` URL to its production URL (#4474). */
+  def publicProfilePreviewRedirect(username: String) = Action {
+    MovedPermanently(routes.UserDashboardController.publicProfile(username).url)
+  }
+}

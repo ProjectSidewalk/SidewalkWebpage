@@ -1,0 +1,44 @@
+@(labelCount: Int, auditedDistance: Double, missionCount: Int, validationCount: Int, isMetric: Boolean
+)(implicit assets: AssetsFinder, messages: Messages)
+
+@*
+* Shared badge-tracks skeleton for the dashboard and public profile. Server-renders each track's type + raw value as
+* data attributes; DashboardBadges.js fills in the earned level, tier pill, locked icons, progress, and next-tier
+* nudge from BadgeAchievements (the single source of truth for thresholds + level names). `auditedDistance` is in the
+* viewer's unit system; badge thresholds are canonical miles, so km is converted here to match badgeValue's contract.
+*@
+
+@badgeValue(t: String) = @{
+  t match {
+    case "distance"    => (if (isMetric) auditedDistance / 1.60934d else auditedDistance).toString
+    case "missions"    => missionCount.toString
+    case "validations" => validationCount.toString
+    case _             => labelCount.toString
+  }
+}
+
+<div class="ud-badge-tracks" id="ud-badges" data-metric="@isMetric">
+  @for((nameKey, badgeType, baseStem, descKey) <- Seq(
+    ("dashboard.badges.labeler", "labels", "labels", "dashboard.badges.labeler.desc"),
+    ("dashboard.badges.explorer", "distance", "distance", "dashboard.badges.explorer.desc"),
+    ("dashboard.badges.adventurer", "missions", "missions", "dashboard.badges.adventurer.desc"),
+    ("dashboard.badges.validator", "validations", "validation", "dashboard.badges.validator.desc")
+  )) {
+    <div class="ud-badge-track" data-badge-type="@badgeType" data-value="@badgeValue(badgeType)">
+      <div class="ud-badge-track-head">
+        <span class="ud-badge-track-name">@Messages(nameKey)</span>
+        <span class="ud-badge-track-current ud-tier-0" data-tier>—</span>
+      </div>
+      <p class="ud-badge-track-desc">@Messages(descKey)</p>
+      <div class="ud-badge-levels">
+        @for(level <- 1 to 5) {
+          <img class="ud-badge" data-level="@level"
+            src="@assets.path(s"images/badges/badge_${if(badgeType == "distance" && isMetric) "distance_km" else baseStem}_badge${level}.png")"
+            alt="@Messages("dashboard.badges.alt", Messages(nameKey), level)">
+        }
+      </div>
+      <div class="ud-progress"><div class="ud-progress-fill" data-fill></div></div>
+      <span class="ud-badge-track-next" data-next></span>
+    </div>
+  }
+</div>

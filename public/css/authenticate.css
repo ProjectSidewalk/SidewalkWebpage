@@ -1,0 +1,11 @@
+/* Shared layout for the authentication forms (sign in, sign up, forgot/reset password). */
+
+.auth-alert {
+  float: none;
+  margin-top: 20px;
+  margin-bottom: 0;
+}
+
+.auth-fieldset {
+  margin-top: 51px;
+}

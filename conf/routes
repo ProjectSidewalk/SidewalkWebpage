@@ -17,7 +17,7 @@ GET     /labelingGuide/noSidewalk                       controllers.ApplicationC
 GET     /labelingGuide/occlusion                        controllers.ApplicationController.labelingGuideOcclusion
 GET     /mobileLanding                                  controllers.ApplicationController.mobileLanding
 GET     /mobile                                         controllers.ValidateController.mobileValidate(neighborhoods: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None)
-GET     /leaderboard                                    controllers.ApplicationController.leaderboard
+GET     /leaderboard                                    controllers.UserDashboardController.leaderboard
 GET     /serviceHoursInstructions                       controllers.ApplicationController.serviceHoursInstructions
 GET     /timeCheck                                      controllers.ApplicationController.timeCheck
 GET     /routeBuilder                                   controllers.ApplicationController.routeBuilder
@@ -115,7 +115,12 @@ GET     /adminapi/checkImagery                          controllers.AdminControl
 GET     /adminapi/threadPoolStats                       controllers.AdminController.getThreadPoolStats
 
 GET     /labels/all                                     controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
-GET     /label/id/:labelId                              controllers.AdminController.getLabelData(labelId: Int)
+GET     /label/id/:labelId                              controllers.LabelController.getLabelData(labelId: Int)
+
+# Public share permalink for a single label (#456). Renders the single-label spotlight page with rich OG/Twitter preview
+# meta; /label/:labelId/image serves the unsigned, marker-composited preview image that crawlers embed in the card.
+GET     /label/:labelId                                 controllers.ShareController.label(labelId: Int)
+GET     /label/:labelId/image                           controllers.ShareController.shareImage(labelId: Int)
 
 # Auditing tasks
 GET     /explore                                        controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
@@ -156,8 +161,22 @@ GET     /neighborhoods                                  controllers.RegionContro
 GET     /contribution/streets                           controllers.UserProfileController.getAuditedStreets(userId: String)
 GET     /contribution/streets/all                       controllers.UserProfileController.getAllStreets(filterLowQuality: Boolean ?= false, regions: Option[String] ?= None, routes: Option[String] ?= None)
 GET     /contribution/auditCounts/all                   controllers.AdminController.getAllAuditCounts
-GET     /dashboard                                      controllers.UserProfileController.userProfile
+# User dashboard, settings, and public profiles (redesigned in #4323, cut over in #4474; /leaderboard is up top).
+GET     /dashboard                                      controllers.UserDashboardController.dashboard
+GET     /dashboard/settings                             controllers.UserDashboardController.settings
+POST    /dashboard/settings                             controllers.UserDashboardController.saveSettings
+GET     /profile/:username                              controllers.UserDashboardController.publicProfile(username: String)
+# Pre-cutover /preview URLs redirect permanently to the production ones.
+GET     /dashboard/preview                              controllers.UserDashboardController.dashboardPreviewRedirect
+GET     /dashboard/preview/settings                     controllers.UserDashboardController.settingsPreviewRedirect
+GET     /dashboard/preview/u/:username                  controllers.UserDashboardController.publicProfilePreviewRedirect(username: String)
+GET     /leaderboard/preview                            controllers.UserDashboardController.leaderboardPreviewRedirect
+# Public-profile map data: username-keyed, gated on the target's public_profile flag (or owner). Returns 403 if private.
+GET     /userapi/public/:username/streets               controllers.UserProfileController.getPublicAuditedStreets(username: String)
+GET     /userapi/public/:username/labels                controllers.UserProfileController.getPublicSubmittedLabels(username: String)
 GET     /userapi/mistakes                               controllers.UserProfileController.getRecentMistakes(userId: String, n: Int ?= 5)
+POST    /userapi/mistakeVote                             controllers.UserProfileController.mistakeVote()
+POST    /userapi/mistakeNote                             controllers.UserProfileController.mistakeNote()
 
 GET     /userapi/basicStats                             controllers.UserProfileController.getBasicUserStats
 GET     /userapi/labels                                 controllers.UserProfileController.getSubmittedLabels(userId: String, regionId: Option[Int] ?= None)

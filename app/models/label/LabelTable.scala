@@ -592,6 +592,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val streetEdgeRegions      = TableQuery[StreetEdgeRegionTableDef]
   val routeStreets           = TableQuery[RouteStreetTableDef]
   val validationTaskComments = TableQuery[ValidationTaskCommentTableDef]
+  val mistakeResponses       = TableQuery[MistakeResponseTableDef]
 
   // Note that we are assuming only a single AI assessment and validation per label.
   val aiData        = labelAiAssessments.joinLeft(labelValidations).on(_.labelValidationId === _.labelValidationId)
@@ -1340,6 +1341,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param tags              Set of tags the labels grabbed can have.
    * @param aiValOptions      Set of AI validations to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param userId            User ID of the user requesting the labels.
+   * @param recentFirst       If true, order the labels newest-first instead of randomly.
    * @return                  Query object to get the labels.
    */
   def getGalleryLabelsQuery(
@@ -1351,7 +1353,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       severity: Set[Option[Int]],
       tags: Set[String],
       aiValOptions: Set[String],
-      userId: String
+      userId: String,
+      recentFirst: Boolean = false
   ): Query[LabelValidationMetadataTupleRep, LabelValidationMetadataTuple, Seq] = {
     val severityRatings: Set[Int]   = severity.flatten
     val severityAllowsNull: Boolean = severity.contains(None)
@@ -1447,15 +1450,55 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       (pd.width, pd.height, pd.tileWidth, pd.tileHeight, pd.cameraHeading, pd.cameraPitch, pd.cameraRoll, pd.copyright)
     )
 
-    // Remove duplicates if needed and randomize.
+    // Remove duplicates if needed, then order newest-first or randomized. Callers that batch through this query
+    // (findValidLabelsForType) shuffle each batch themselves, so recentFirst yields a shuffled recent pool.
     val rand          = SimpleFunction.nullary[Double]("random")
-    val _uniqueLabels =
-      if (tags.nonEmpty)
-        _labelInfoWithUserVals.groupBy(x => x).map(_._1).sortBy(_ => rand)
-      else
-        _labelInfoWithUserVals.sortBy(_ => rand)
+    val _uniqueLabels = if (tags.nonEmpty) _labelInfoWithUserVals.groupBy(x => x).map(_._1) else _labelInfoWithUserVals
+    if (recentFirst) _uniqueLabels.sortBy(_._7.desc) else _uniqueLabels.sortBy(_ => rand)
+  }
 
-    _uniqueLabels
+  /**
+   * Records (or updates) a user's agree/contest vote on their own incorrectly-validated label (#2996). Preserves any
+   * existing note on the row — the vote and the note are independent.
+   *
+   * @param labelId The label being voted on.
+   * @param userId  The voting user; must own the label or this is a no-op.
+   * @param agrees  True = agrees it was a mistake; false = contests it (claims it was correct).
+   * @return        True if the vote was recorded; false if the label isn't the user's.
+   */
+  def recordMistakeVote(labelId: Int, userId: String, agrees: Boolean): DBIO[Boolean] = {
+    labelsUnfiltered.filter(l => l.labelId === labelId && l.userId === userId).exists.result.flatMap { owns =>
+      if (!owns) DBIO.successful(false)
+      else
+        sqlu"""
+          INSERT INTO user_mistake_response (label_id, user_id, agrees)
+          VALUES ($labelId, $userId, $agrees)
+          ON CONFLICT (label_id, user_id)
+          DO UPDATE SET agrees = EXCLUDED.agrees, created_at = now()
+        """.map(_ => true)
+    }
+  }
+
+  /**
+   * Records (or updates) a user's note on their own incorrectly-validated label (#2996). The note stands alone — it
+   * preserves any existing vote and does not require one (a note-only row has `agrees` NULL).
+   *
+   * @param labelId The label being annotated.
+   * @param userId  The user; must own the label or this is a no-op.
+   * @param comment The note (None clears it).
+   * @return        True if the note was recorded; false if the label isn't the user's.
+   */
+  def recordMistakeNote(labelId: Int, userId: String, comment: Option[String]): DBIO[Boolean] = {
+    labelsUnfiltered.filter(l => l.labelId === labelId && l.userId === userId).exists.result.flatMap { owns =>
+      if (!owns) DBIO.successful(false)
+      else
+        sqlu"""
+          INSERT INTO user_mistake_response (label_id, user_id, comment)
+          VALUES ($labelId, $userId, $comment)
+          ON CONFLICT (label_id, user_id)
+          DO UPDATE SET comment = EXCLUDED.comment, created_at = now()
+        """.map(_ => true)
+    }
   }
 
   /**
@@ -1491,7 +1534,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         _us.highQuality === true &&             // For now, we only include validations from high quality users.
         _pd.expired === false &&                // Only include those with non-expired imagery.
         _lb.correct.isDefined && _lb.correct === false && // Exclude outlier validations on a correct label.
-        _lt.labelType === labelType.name                  // Only include given label types.
+        _lt.labelType === labelType.name &&               // Only include given label types.
+        // Drop labels the user has already agreed/disagreed on, so answered mistakes don't reappear (#2996).
+        !mistakeResponses.filter(r => r.labelId === _lb.labelId && r.userId === userId).exists
     } yield (
       _lb.labelId,
       _lb.panoId,
@@ -1665,6 +1710,28 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     // error, which is why we couldn't use `.tupled` here. This was the error message:
     // SlickException: Expected an option type, found Float/REAL
     _labels.result.map(_.map(l => LabelLocation(l._1, l._2, l._3, l._4, l._5.get, l._6.get, l._7, l._8, l._9)))
+  }
+
+  /**
+   * Returns the geographic location (lat/lng) of a single label from its label point, if recorded.
+   *
+   * Backs the public shared-label spotlight page, which centers its nearby-labels minimap on the label. Reads the
+   * label_point's stored lat/lng — the same coordinate the v3 rawLabels API emits as the label's geometry — so the
+   * minimap and the API-fed markers agree on where the label sits.
+   *
+   * @param labelId The label whose location to look up.
+   * @return `Some(LatLng)` if the label exists and has a recorded point location, `None` otherwise.
+   */
+  def getLabelLatLng(labelId: Int): DBIO[Option[LatLng]] = {
+    labelPoints
+      .filter(_.labelId === labelId)
+      .map(lp => (lp.lat, lp.lng))
+      .result
+      .headOption
+      .map {
+        case Some((Some(lat), Some(lng))) => Some(LatLng(lat, lng))
+        case _                            => None
+      }
   }
 
   /**

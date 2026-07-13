@@ -1,0 +1,114 @@
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import models.user.Team
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole, openTeams: Seq[Team], currTeam: Option[Team],
+    onLeaderboard: Boolean, publicProfile: Boolean, isMetric: Boolean, privateByDefault: Boolean
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@*
+* User Dashboard — Settings page. Editable username (#4373), read-only email and measurement units (units follow the
+* site language), team membership, and the two privacy toggles from #4323 — "Show me on the leaderboard"
+* (on_leaderboard) and "Make my dashboard public" (public_profile). The whole form saves in one POST to
+* /dashboard/settings via Settings.js. Shown on the shared shell as its own nav item (#2545).
+*@
+
+@content = {
+  <div class="api-section" id="settings-section">
+    <h1 class="api-heading" id="settings">@Messages("dashboard.settings.title") <a href="#settings" class="permalink">#</a></h1>
+    <p>@Messages("dashboard.settings.intro")</p>
+  </div>
+
+  <div class="api-section" id="settings-account-section">
+    <h2 class="api-heading" id="account">@Messages("dashboard.settings.account") <a href="#account" class="permalink">#</a></h2>
+    <div class="ud-form">
+      <div class="ud-field">
+        <label class="ud-label" for="set-username">@Messages("username")</label>
+        <input class="ud-input" id="set-username" type="text" value="@user.username"
+           maxlength="30" autocomplete="off" spellcheck="false">
+        <span class="ud-field-help">@Messages("dashboard.settings.username.help")</span>
+      </div>
+      <div class="ud-field">
+        <label class="ud-label" for="set-email">@Messages("dashboard.settings.email")</label>
+        <input class="ud-input" id="set-email" type="email" value="@user.email" readonly disabled>
+        <span class="ud-field-help">@Html(Messages("dashboard.settings.email.help"))</span>
+      </div>
+      <div class="ud-field">
+        <span class="ud-label">@Messages("dashboard.settings.units")</span>
+        <p class="ud-static-value">@if(isMetric){@Messages("dashboard.settings.units.metric")}else{@Messages("dashboard.settings.units.imperial")}</p>
+        <span class="ud-field-help">@Messages("dashboard.settings.units.help")</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="api-section" id="settings-team-section">
+    <h2 class="api-heading" id="team">@Messages("dashboard.settings.team") <a href="#team" class="permalink">#</a></h2>
+    <div class="ud-form">
+      <div class="ud-field">
+        <label class="ud-label" for="set-team">@Messages("dashboard.settings.team.label")</label>
+        <div class="ud-field-inline">
+          <select class="ud-input" id="set-team">
+            @currTeam.map { t =>
+              <option value="@t.teamId" selected>@t.name</option>
+            }
+            @defining(openTeams.filterNot(t => currTeam.exists(_.teamId == t.teamId))) { joinableTeams =>
+              @for(t <- joinableTeams) {
+                <option value="@t.teamId">@t.name</option>
+              }
+            }
+            <option value="">@Messages("dashboard.settings.team.none")</option>
+          </select>
+          <button type="button" class="ud-btn-secondary ud-create-team-btn">@Messages("dashboard.create.team")</button>
+        </div>
+        <span class="ud-field-help">@Messages("dashboard.settings.team.help")</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="api-section" id="settings-privacy-section">
+    <h2 class="api-heading" id="privacy">@Messages("dashboard.settings.privacy") <a href="#privacy" class="permalink">#</a></h2>
+    @if(privateByDefault){
+      <p class="ud-nudge">@Messages("dashboard.settings.privacy.default.note")</p>
+    }
+    <div class="ud-form">
+      <label class="ud-check" for="set-on-leaderboard">
+        <input type="checkbox" id="set-on-leaderboard" @if(onLeaderboard){checked}>
+        <span class="ud-check-text">
+          <strong>@Messages("dashboard.settings.leaderboard.toggle")</strong>
+          <span class="ud-field-help">@Messages("dashboard.settings.leaderboard.help")</span>
+        </span>
+      </label>
+      <label class="ud-check" for="set-public-profile">
+        <input type="checkbox" id="set-public-profile" @if(publicProfile){checked}>
+        <span class="ud-check-text">
+          <strong>@Messages("dashboard.settings.public.toggle")</strong>
+          <span class="ud-field-help">@Messages("dashboard.settings.public.help")</span>
+        </span>
+      </label>
+    </div>
+  </div>
+
+  <div class="api-section" id="settings-save-section">
+    <button type="button" class="ud-btn-primary" id="set-save-btn">@Messages("dashboard.settings.save")</button>
+    <span class="ud-save-status" id="set-save-status" role="status" aria-live="polite"></span>
+  </div>
+
+  @userDashboard._createTeamDialog()
+  <script src="@assets.path("js/user-dashboard/TeamCreate.js")"></script>
+  <script src="@assets.path("js/user-dashboard/Settings.js")"></script>
+  <script>
+    // appManager.ready (not DOMContentLoaded) so i18next is initialized before Settings can show a status string.
+    window.appManager.ready(function () {
+      new Settings({
+        saveUrl: '@routes.UserDashboardController.saveSettings',
+        currentUsername: '@user.username'
+      });
+    });
+  </script>
+}
+
+@* dashboard namespace: Settings.js's and TeamCreate.js's client-side status/error strings. *@
+@common.main(commonData, "Sidewalk - Settings", i18Namespaces = Seq("common", "dashboard")) {
+  @common.navbar(commonData, Some(user))
+  @userDashboard.layout("settings")(content)
+}

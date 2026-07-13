@@ -243,7 +243,7 @@ Password: sidewalk
 The dev server hot-reloads, so you rarely restart it.
 
 - **Scala / Twirl views** — `sbt ~ run` recompiles on save; reload the browser once compilation finishes.
-- **JavaScript / CSS** — Grunt's `watch` re-concatenates your `src/` edits into `public/javascripts/*/build/`
+- **JavaScript / CSS** — Grunt's `watch` re-concatenates your `src/` edits into `public/js/*/build/`
   automatically. **Edit `src/` files only; never edit `build/` output**, and don't run `grunt` by hand. If a new
   `src/` file isn't picked up, check that its path matches a glob in `Gruntfile.js`.
 - **`build.sbt` or config changes** — these aren't hot-reloaded. In the Docker shell press `Ctrl+D`, then run
