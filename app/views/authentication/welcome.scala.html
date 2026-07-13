@@ -63,7 +63,7 @@
           <p class="wl-service-prompt">@Messages("welcome.service.prompt")</p>
           <form method="post" action="@routes.UserController.setServiceHours(true, Some("/serviceHoursInstructions"))">
             @CSRF.formField
-            <button type="submit" class="button-ps button--secondary wl-service-btn">@Messages("welcome.service.button")</button>
+            <button type="submit" class="button-ps button--secondary button--medium wl-service-btn">@Messages("welcome.service.button")</button>
           </form>
         </div>
       </div>

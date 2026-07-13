@@ -27,7 +27,7 @@
           <strong>Sign up to earn service hours</strong>
           <span>Create a free account, then opt in to have your volunteer hours officially recognized.</span>
         </div>
-        <a class="button-ps button--primary" href="@routes.UserController.signUp()">Create an account</a>
+        <a class="button-ps button--primary button--medium" href="@routes.UserController.signUp()">Create an account</a>
       </div>
     } else {
       @if(user.communityService) {
@@ -42,7 +42,7 @@
           </div>
           <form method="post" action="@routes.UserController.setServiceHours(false, Some("/serviceHoursInstructions"))">
             @CSRF.formField
-            <button type="submit" class="button-ps button--secondary">Opt out</button>
+            <button type="submit" class="button-ps button--secondary button--medium">Opt out</button>
           </form>
         </div>
       } else {
@@ -53,7 +53,7 @@
           </div>
           <form method="post" action="@routes.UserController.setServiceHours(true, Some("/serviceHoursInstructions"))">
             @CSRF.formField
-            <button type="submit" class="button-ps button--primary">Sign me up</button>
+            <button type="submit" class="button-ps button--primary button--medium">Sign me up</button>
           </form>
         </div>
       }
