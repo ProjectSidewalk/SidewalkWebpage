@@ -117,7 +117,7 @@
      * @returns {Promise} A promise that resolves with the label types data
      */
     fetchLabelTypes() {
-      return fetch(`${config.apiBaseUrl}${config.labelTypesEndpoint}?source=apiDocs`)
+      return fetch(`${config.apiBaseUrl}${config.labelTypesEndpoint}?utm_source=apiDocs`)
         .then((response) => {
           if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
@@ -148,7 +148,7 @@
      * @returns {Promise} A promise that resolves with the overall stats data
      */
     fetchOverallStats() {
-      return fetch(`${config.apiBaseUrl}${config.overallStatsEndpoint}?source=apiDocs`)
+      return fetch(`${config.apiBaseUrl}${config.overallStatsEndpoint}?utm_source=apiDocs`)
         .then((response) => {
           if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);

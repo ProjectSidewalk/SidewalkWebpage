@@ -268,7 +268,7 @@
 
       container.innerHTML = '<p style="text-align:center;color:#888;padding:40px 0">Loading…</p>';
 
-      const url = `${config.apiBaseUrl}/overallStatsByDay?source=apiDocs`;
+      const url = `${config.apiBaseUrl}/overallStatsByDay?utm_source=apiDocs`;
 
       return fetch(url)
         .then((r) => {

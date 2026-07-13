@@ -92,7 +92,7 @@
 
     /** Fetch region AccessScores as a GeoJSON FeatureCollection. */
     fetchRegions() {
-      return fetch(`${config.apiBaseUrl}${config.endpoint}?inline=true&source=apiDocs`)
+      return fetch(`${config.apiBaseUrl}${config.endpoint}?inline=true&utm_source=apiDocs`)
         .then((response) => {
           if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
           return response.json();
