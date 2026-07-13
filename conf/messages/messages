@@ -277,3 +277,5 @@ welcome.card.leaderboard.body = See how your mapping stacks up across the city â
 welcome.cta.dashboard = See my dashboard
 welcome.hint.username = You can change your username anytime in <a href="{0}">Dashboard â†’ Settings</a>.
 welcome.hint.service.hours = Mapping for school or volunteer credit? <a href="{0}">Turn on service-hour tracking</a> in Settings.
+
+authenticate.error.too.many = Too many attempts. Please wait a moment and try again.

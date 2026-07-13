@@ -274,6 +274,7 @@ authenticate.new.detail = New to Project Sidewalk? <a href="#" id="form-open-sig
 authenticate.new.detail.link = New to Project Sidewalk? <a href="{0}">Create an account</a>
 authenticate.error.invalid.credentials.detail = That email and password don''t match our records. Double-check them and try again.
 authenticate.error.generic = Something went wrong on our end. Please try again.
+authenticate.error.too.many = Too many attempts. Please wait a moment and try again.
 authenticate.error.username.charset = Usernames can only use letters, numbers, hyphens, and underscores.
 authenticate.error.username.inappropriate = That username isn''t allowed — please choose another.
 authenticate.error.password.requirements = Passwords need an uppercase letter, a lowercase letter, and a number.

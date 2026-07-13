@@ -35,7 +35,8 @@ class UserController @Inject() (
     userService: service.UserService,
     passwordHasher: PasswordHasher,
     clock: Clock,
-    mailerClient: MailerClient
+    mailerClient: MailerClient,
+    rateLimiter: service.RateLimiter
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -65,6 +66,33 @@ class UserController @Inject() (
    */
   private def fieldErrorJson(field: String, message: String): JsObject =
     Json.obj("errors" -> Json.obj(field -> message))
+
+  /**
+   * Checks a named rate limit for the given keys; if any is exceeded, returns a ready 429 response, else `None`.
+   *
+   * Inert unless `rate-limit.enabled` (see `RateLimiter`). All keys are counted (so IP- and email-scoped limits both
+   * register the attempt) before deciding. The 429 is JSON for async submits and a flashed redirect for the no-JS
+   * fallback, so both surfaces show the same throttle message.
+   *
+   * @param name     The `rate-limit.<name>` block to read the max/window from.
+   * @param keys     The keys to count this attempt against (e.g. IP and email scopes).
+   * @param redirect Where the no-JS fallback should bounce to when throttled.
+   * @return `Some(result)` if throttled, `None` if the attempt is allowed.
+   */
+  private def rateLimited(name: String, keys: Seq[String], redirect: String)(implicit
+      request: play.api.mvc.RequestHeader
+  ): Option[play.api.mvc.Result] = {
+    val limit   = rateLimiter.limit(name)
+    val allowed = keys.map(k => rateLimiter.allow(k, limit.maxAttempts, limit.window)).forall(identity)
+    if (allowed) None
+    else {
+      val msg    = Messages("authenticate.error.too.many")
+      val result =
+        if (wantsJson) TooManyRequests(fieldErrorJson("_summary", msg))
+        else Redirect(redirect).flashing("error" -> msg)
+      Some(result.withHeaders("Retry-After" -> limit.window.toSeconds.toString))
+    }
+  }
 
   /**
    * Handles the Sign In action.
@@ -185,98 +213,101 @@ class UserController @Inject() (
     val ipAddress: String          = request.ipAddress
     val currUserId: Option[String] = request.identity.map(_.userId)
 
-    SignInForm.form
-      .bindFromRequest()
-      .fold(
-        formWithErrors => {
-          if (wantsJson) Future.successful(BadRequest(formErrorsJson(formWithErrors)))
-          else {
-            configService
-              .getCommonPageData(request2Messages.lang)
-              .map(commonData => {
-                BadRequest(views.html.authentication.signIn(formWithErrors, commonData, request.identity))
-              })
-          }
-        },
-        data => {
-          // Logs sign-in attempt.
-          val email: String    = data.email.toLowerCase
-          val activity: String = s"""SignInAttempt_Email="$email""""
-          cc.loggingService.insert(currUserId, ipAddress, activity)
+    // Per-IP throttle before we do any work (inert unless rate-limit.enabled).
+    rateLimited("login", Seq(s"login:ip:$ipAddress"), "/signIn").map(Future.successful).getOrElse {
+      SignInForm.form
+        .bindFromRequest()
+        .fold(
+          formWithErrors => {
+            if (wantsJson) Future.successful(BadRequest(formErrorsJson(formWithErrors)))
+            else {
+              configService
+                .getCommonPageData(request2Messages.lang)
+                .map(commonData => {
+                  BadRequest(views.html.authentication.signIn(formWithErrors, commonData, request.identity))
+                })
+            }
+          },
+          data => {
+            // Logs sign-in attempt.
+            val email: String    = data.email.toLowerCase
+            val activity: String = s"""SignInAttempt_Email="$email""""
+            cc.loggingService.insert(currUserId, ipAddress, activity)
 
-          // Grab the URL we want to redirect to that was passed as a hidden field in the form.
-          val returnUrl = request.body.asFormUrlEncoded
-            .flatMap(_.get("returnUrl"))
-            .flatMap(_.headOption)
-            .getOrElse("/") // Default redirect path if no returnUrl.
-          val (returnUrlPath, returnUrlQuery) = parseURL(returnUrl)
-          // Constrain to a same-origin path so a crafted returnUrl can't open-redirect a signed-in user off-site.
-          // Async submits get the destination as JSON (the dialog navigates itself); the authenticator cookie is
-          // embedded into whichever result we hand Silhouette below.
-          val redirectTarget = safeLocalPath(returnUrl)
-          val result         = if (wantsJson) Ok(Json.obj("redirect" -> redirectTarget)) else Redirect(redirectTarget)
+            // Grab the URL we want to redirect to that was passed as a hidden field in the form.
+            val returnUrl = request.body.asFormUrlEncoded
+              .flatMap(_.get("returnUrl"))
+              .flatMap(_.headOption)
+              .getOrElse("/") // Default redirect path if no returnUrl.
+            val (returnUrlPath, returnUrlQuery) = parseURL(returnUrl)
+            // Constrain to a same-origin path so a crafted returnUrl can't open-redirect a signed-in user off-site.
+            // Async submits get the destination as JSON (the dialog navigates itself); the authenticator cookie is
+            // embedded into whichever result we hand Silhouette below.
+            val redirectTarget = safeLocalPath(returnUrl)
+            val result         = if (wantsJson) Ok(Json.obj("redirect" -> redirectTarget)) else Redirect(redirectTarget)
 
-          // Try to authenticate the user.
-          authenticationService
-            .authenticate(email, data.password)
-            .flatMap { loginInfo =>
-              authenticationService.retrieve(loginInfo).flatMap {
-                case Some(user) =>
-                  val c = config.underlying
-                  silhouette.env.authenticatorService
-                    .create(loginInfo)
-                    .map {
-                      case authenticator if data.rememberMe =>
-                        // Set up the remember me cookie.
-                        authenticator.copy(
-                          expirationDateTime =
-                            clock.now + c.as[FiniteDuration]("silhouette.authenticator.rememberMe.authenticatorExpiry"),
-                          idleTimeout =
-                            c.getAs[FiniteDuration]("silhouette.authenticator.rememberMe.authenticatorIdleTimeout"),
-                          cookieMaxAge = c.getAs[FiniteDuration]("silhouette.authenticator.rememberMe.cookieMaxAge")
-                        )
-                      case authenticator => authenticator
-                    }
-                    .flatMap { authenticator =>
-                      // Log successful sign in attempt.
-                      val activity: String = s"""SignInSuccess_Email="${user.email}""""
-                      cc.loggingService.insert(user.userId, ipAddress, activity)
-
-                      // Sign in the user.
-                      silhouette.env.eventBus.publish(LoginEvent(user, request))
-                      silhouette.env.authenticatorService.init(authenticator).flatMap { v =>
-                        silhouette.env.authenticatorService.embed(v, result)
+            // Try to authenticate the user.
+            authenticationService
+              .authenticate(email, data.password)
+              .flatMap { loginInfo =>
+                authenticationService.retrieve(loginInfo).flatMap {
+                  case Some(user) =>
+                    val c = config.underlying
+                    silhouette.env.authenticatorService
+                      .create(loginInfo)
+                      .map {
+                        case authenticator if data.rememberMe =>
+                          // Set up the remember me cookie.
+                          authenticator.copy(
+                            expirationDateTime = clock.now + c
+                              .as[FiniteDuration]("silhouette.authenticator.rememberMe.authenticatorExpiry"),
+                            idleTimeout =
+                              c.getAs[FiniteDuration]("silhouette.authenticator.rememberMe.authenticatorIdleTimeout"),
+                            cookieMaxAge = c.getAs[FiniteDuration]("silhouette.authenticator.rememberMe.cookieMaxAge")
+                          )
+                        case authenticator => authenticator
                       }
-                    }
-                case None =>
-                  // Log failed sign-in due to a database issue.
-                  val activity: String = s"""SignInFailed_Email="$email"_Reason="user not found in db""""
-                  cc.loggingService.insert(currUserId, ipAddress, activity)
-                  Future.failed(new IdentityNotFoundException("Couldn't find the user in db"))
+                      .flatMap { authenticator =>
+                        // Log successful sign in attempt.
+                        val activity: String = s"""SignInSuccess_Email="${user.email}""""
+                        cc.loggingService.insert(user.userId, ipAddress, activity)
+
+                        // Sign in the user.
+                        silhouette.env.eventBus.publish(LoginEvent(user, request))
+                        silhouette.env.authenticatorService.init(authenticator).flatMap { v =>
+                          silhouette.env.authenticatorService.embed(v, result)
+                        }
+                      }
+                  case None =>
+                    // Log failed sign-in due to a database issue.
+                    val activity: String = s"""SignInFailed_Email="$email"_Reason="user not found in db""""
+                    cc.loggingService.insert(currUserId, ipAddress, activity)
+                    Future.failed(new IdentityNotFoundException("Couldn't find the user in db"))
+                }
               }
-            }
-            .recover {
-              case e: ProviderException =>
-                // Log failed sign-in due to invalid credentials. Should be the only reason for failed sign-in.
-                val activity: String = s"""SignInFailed_Email="$email"_Reason="invalid credentials""""
-                cc.loggingService.insert(currUserId, ipAddress, activity)
+              .recover {
+                case e: ProviderException =>
+                  // Log failed sign-in due to invalid credentials. Should be the only reason for failed sign-in.
+                  val activity: String = s"""SignInFailed_Email="$email"_Reason="invalid credentials""""
+                  cc.loggingService.insert(currUserId, ipAddress, activity)
 
-                if (wantsJson)
-                  Unauthorized(fieldErrorJson("_summary", Messages("authenticate.error.invalid.credentials.detail")))
-                else
-                  Redirect("/signIn", returnUrlQuery + ("url" -> Seq(returnUrlPath)))
-                    .flashing("error" -> Messages("authenticate.error.invalid.credentials"))
-              case e: Exception =>
-                val activity: String = s"""SignInFailed_Email="$email"_Reason="unexpected""""
-                cc.loggingService.insert(currUserId, ipAddress, activity)
+                  if (wantsJson)
+                    Unauthorized(fieldErrorJson("_summary", Messages("authenticate.error.invalid.credentials.detail")))
+                  else
+                    Redirect("/signIn", returnUrlQuery + ("url" -> Seq(returnUrlPath)))
+                      .flashing("error" -> Messages("authenticate.error.invalid.credentials"))
+                case e: Exception =>
+                  val activity: String = s"""SignInFailed_Email="$email"_Reason="unexpected""""
+                  cc.loggingService.insert(currUserId, ipAddress, activity)
 
-                if (wantsJson) InternalServerError(fieldErrorJson("_summary", Messages("authenticate.error.generic")))
-                else
-                  Redirect("/signIn", returnUrlQuery + ("url" -> Seq(returnUrlPath)))
-                    .flashing("error" -> "Unexpected error")
-            }
-        }
-      )
+                  if (wantsJson) InternalServerError(fieldErrorJson("_summary", Messages("authenticate.error.generic")))
+                  else
+                    Redirect("/signIn", returnUrlQuery + ("url" -> Seq(returnUrlPath)))
+                      .flashing("error" -> "Unexpected error")
+              }
+          }
+        )
+    }
   }
 
   /**
@@ -293,85 +324,88 @@ class UserController @Inject() (
       .getOrElse("/") // Default redirect path if no returnUrl.
     val (returnUrlPath, returnUrlQuery) = parseURL(returnUrl)
 
-    SignUpForm.form
-      .bindFromRequest()
-      .fold(
-        formWithErrors => {
-          // Errors determined by the form validation in SignUpForm.scala show up here.
-          if (wantsJson) Future.successful(BadRequest(formErrorsJson(formWithErrors)))
-          else
-            Future.successful(
-              Redirect("/signUp", returnUrlQuery + ("url" -> Seq(returnUrlPath)))
-                .flashing(
-                  "error" -> Messages(formWithErrors.errors.headOption.map(_.message).getOrElse("unknown.error"))
-                )
-            )
-        },
-        data => {
-          val email: String = data.email.toLowerCase
-
-          // Every new registration lands on /welcome, which hands the interrupted page back via ?next=.
-          // safeLocalPath constrains returnUrl to a same-origin path (open-redirect guard).
-          val resumeUrl: String   = safeLocalPath(returnUrl)
-          val redirectUrl: String = s"/welcome?next=${java.net.URLEncoder.encode(resumeUrl, "UTF-8")}"
-          val result              = if (wantsJson) Ok(Json.obj("redirect" -> redirectUrl)) else Redirect(redirectUrl)
-
-          /** One rejection shape for both submit modes: JSON for the dialog, flash-redirect for the no-JS pages. */
-          def rejection(logLabel: String, field: String, message: String, status: Status = BadRequest) = {
-            cc.loggingService.insert(oldUserId, ipAddress, logLabel)
-            if (wantsJson) Future.successful(status(fieldErrorJson(field, message)))
+    // Per-IP throttle on account creation (inert unless rate-limit.enabled).
+    rateLimited("signup", Seq(s"signup:ip:$ipAddress"), "/signUp").map(Future.successful).getOrElse {
+      SignUpForm.form
+        .bindFromRequest()
+        .fold(
+          formWithErrors => {
+            // Errors determined by the form validation in SignUpForm.scala show up here.
+            if (wantsJson) Future.successful(BadRequest(formErrorsJson(formWithErrors)))
             else
               Future.successful(
-                Redirect("/signUp", returnUrlQuery + ("url" -> Seq(returnUrlPath))).flashing("error" -> message)
+                Redirect("/signUp", returnUrlQuery + ("url" -> Seq(returnUrlPath)))
+                  .flashing(
+                    "error" -> Messages(formWithErrors.errors.headOption.map(_.message).getOrElse("unknown.error"))
+                  )
               )
-          }
+          },
+          data => {
+            val email: String = data.email.toLowerCase
 
-          (for {
-            userFromEmail: Option[SidewalkUserWithRole]    <- authenticationService.findByEmail(email)
-            userFromUsername: Option[SidewalkUserWithRole] <- authenticationService.findByUsername(data.username)
-          } yield {
-            // Cheap, pure moderation check first; then uniqueness. "user.exists" is overriding a Play default key.
-            if (!ProfanityGuard.isClean(data.username)) {
-              rejection(
-                "Inappropriate_Username_Error",
-                "username",
-                Messages("authenticate.error.username.inappropriate")
-              )
-            } else if (userFromEmail.isDefined) {
-              rejection("Duplicate_Email_Error", "email", Messages("user.exists"), Conflict)
-            } else if (userFromUsername.isDefined) {
-              rejection(
-                "Duplicate_Username_Error",
-                "username",
-                Messages("authenticate.error.username.exists"),
-                Conflict
-              )
-            } else {
-              // If username and email are unique, create the new user.
-              val loginInfo         = LoginInfo(CredentialsProvider.ID, email)
-              val newUserId: String = oldUserId.getOrElse(UUID.randomUUID().toString)
-              val newUser           =
-                SidewalkUserWithRole(newUserId, data.username, email, "Registered", communityService = false, false)
-              val pwInfo = passwordHasher.hash(data.password)
+            // Every new registration lands on /welcome, which hands the interrupted page back via ?next=.
+            // safeLocalPath constrains returnUrl to a same-origin path (open-redirect guard).
+            val resumeUrl: String   = safeLocalPath(returnUrl)
+            val redirectUrl: String = s"/welcome?next=${java.net.URLEncoder.encode(resumeUrl, "UTF-8")}"
+            val result              = if (wantsJson) Ok(Json.obj("redirect" -> redirectUrl)) else Redirect(redirectUrl)
 
-              for {
-                user          <- authenticationService.createUser(newUser, CredentialsProvider.ID, pwInfo, oldUserId)
-                authenticator <- silhouette.env.authenticatorService.create(loginInfo)
-                value         <- silhouette.env.authenticatorService.init(authenticator)
-                result        <- silhouette.env.authenticatorService.embed(value, result)
-              } yield {
-                // Log the sign-up/in.
-                cc.loggingService.insert(user.userId, ipAddress, "SignUp")
-                cc.loggingService.insert(user.userId, ipAddress, "SignIn")
-
-                silhouette.env.eventBus.publish(SignUpEvent(user, request))
-                silhouette.env.eventBus.publish(LoginEvent(user, request))
-                result
-              }
+            /** One rejection shape for both submit modes: JSON for the dialog, flash-redirect for the no-JS pages. */
+            def rejection(logLabel: String, field: String, message: String, status: Status = BadRequest) = {
+              cc.loggingService.insert(oldUserId, ipAddress, logLabel)
+              if (wantsJson) Future.successful(status(fieldErrorJson(field, message)))
+              else
+                Future.successful(
+                  Redirect("/signUp", returnUrlQuery + ("url" -> Seq(returnUrlPath))).flashing("error" -> message)
+                )
             }
-          }).flatMap(identity) // Flatten the Future[Future[T]] to Future[T].
-        }
-      )
+
+            (for {
+              userFromEmail: Option[SidewalkUserWithRole]    <- authenticationService.findByEmail(email)
+              userFromUsername: Option[SidewalkUserWithRole] <- authenticationService.findByUsername(data.username)
+            } yield {
+              // Cheap, pure moderation check first; then uniqueness. "user.exists" is overriding a Play default key.
+              if (!ProfanityGuard.isClean(data.username)) {
+                rejection(
+                  "Inappropriate_Username_Error",
+                  "username",
+                  Messages("authenticate.error.username.inappropriate")
+                )
+              } else if (userFromEmail.isDefined) {
+                rejection("Duplicate_Email_Error", "email", Messages("user.exists"), Conflict)
+              } else if (userFromUsername.isDefined) {
+                rejection(
+                  "Duplicate_Username_Error",
+                  "username",
+                  Messages("authenticate.error.username.exists"),
+                  Conflict
+                )
+              } else {
+                // If username and email are unique, create the new user.
+                val loginInfo         = LoginInfo(CredentialsProvider.ID, email)
+                val newUserId: String = oldUserId.getOrElse(UUID.randomUUID().toString)
+                val newUser           =
+                  SidewalkUserWithRole(newUserId, data.username, email, "Registered", communityService = false, false)
+                val pwInfo = passwordHasher.hash(data.password)
+
+                for {
+                  user          <- authenticationService.createUser(newUser, CredentialsProvider.ID, pwInfo, oldUserId)
+                  authenticator <- silhouette.env.authenticatorService.create(loginInfo)
+                  value         <- silhouette.env.authenticatorService.init(authenticator)
+                  result        <- silhouette.env.authenticatorService.embed(value, result)
+                } yield {
+                  // Log the sign-up/in.
+                  cc.loggingService.insert(user.userId, ipAddress, "SignUp")
+                  cc.loggingService.insert(user.userId, ipAddress, "SignIn")
+
+                  silhouette.env.eventBus.publish(SignUpEvent(user, request))
+                  silhouette.env.eventBus.publish(LoginEvent(user, request))
+                  result
+                }
+              }
+            }).flatMap(identity) // Flatten the Future[Future[T]] to Future[T].
+          }
+        )
+    }
   }
 
   /**
@@ -455,54 +489,59 @@ class UserController @Inject() (
     val ipAddress: String      = request.ipAddress
     val userId: Option[String] = request.identity.map(_.userId)
 
-    ForgotPasswordForm.form
-      .bindFromRequest()
-      .fold(
-        form =>
-          configService.getCommonPageData(request2Messages.lang).map { commonData =>
-            BadRequest(views.html.authentication.forgotPassword(form, commonData))
-          },
-        email => {
-          val result = Redirect(routes.UserController.forgotPassword())
-            .flashing("info" -> Messages("reset.pw.email.reset.pw.sent"))
-          cc.loggingService.insert(userId, ipAddress, s"""PasswordResetAttempt_Email="$email"""")
+    // Per-IP + email throttle on reset requests (inert unless rate-limit.enabled).
+    rateLimited("forgot", Seq(s"forgot:ip:$ipAddress"), "/forgotPassword").map(Future.successful).getOrElse {
 
-          authenticationService.findByEmail(email).flatMap {
-            case Some(user) =>
-              // User exists, create a new token and send an email with the reset link.
-              authenticationService.createToken(user.userId).flatMap { authTokenID =>
-                val url = routes.UserController.resetPasswordPage(authTokenID).absoluteURL()
+      ForgotPasswordForm.form
+        .bindFromRequest()
+        .fold(
+          form =>
+            configService.getCommonPageData(request2Messages.lang).map { commonData =>
+              BadRequest(views.html.authentication.forgotPassword(form, commonData))
+            },
+          email => {
+            val result = Redirect(routes.UserController.forgotPassword())
+              .flashing("info" -> Messages("reset.pw.email.reset.pw.sent"))
+            cc.loggingService.insert(userId, ipAddress, s"""PasswordResetAttempt_Email="$email"""")
 
-                val resetEmail = Email(
-                  Messages("reset.pw.email.reset.title"),
-                  s"Project Sidewalk <${config.get[String]("noreply-email-address")}>",
-                  Seq(email),
-                  bodyHtml = Some(views.html.authentication.resetPasswordEmail(user, url).body)
-                )
+            authenticationService.findByEmail(email).flatMap {
+              case Some(user) =>
+                // User exists, create a new token and send an email with the reset link.
+                authenticationService.createToken(user.userId).flatMap { authTokenID =>
+                  val url = routes.UserController.resetPasswordPage(authTokenID).absoluteURL()
 
-                try {
-                  mailerClient.send(resetEmail)
-                  cc.loggingService.insert(userId, ipAddress, s"""PasswordResetSuccess_Email="$email"""")
-                  Future.successful(result)
-                } catch {
-                  case e: Exception =>
-                    cc.loggingService.insert(
-                      userId,
-                      ipAddress,
-                      s"""PasswordResetFail_Email="$email"_Reason=${e.getClass.getCanonicalName}"""
-                    )
-                    logger.error(e.getCause.toString + "")
-                    Future.failed(e)
+                  val resetEmail = Email(
+                    Messages("reset.pw.email.reset.title"),
+                    s"Project Sidewalk <${config.get[String]("noreply-email-address")}>",
+                    Seq(email),
+                    bodyHtml = Some(views.html.authentication.resetPasswordEmail(user, url).body)
+                  )
+
+                  try {
+                    mailerClient.send(resetEmail)
+                    cc.loggingService.insert(userId, ipAddress, s"""PasswordResetSuccess_Email="$email"""")
+                    Future.successful(result)
+                  } catch {
+                    case e: Exception =>
+                      cc.loggingService.insert(
+                        userId,
+                        ipAddress,
+                        s"""PasswordResetFail_Email="$email"_Reason=${e.getClass.getCanonicalName}"""
+                      )
+                      logger.error(e.getCause.toString + "")
+                      Future.failed(e)
+                  }
                 }
-              }
 
-            // This is the case where the email was not found in the database.
-            case None =>
-              cc.loggingService.insert(userId, ipAddress, s"""PasswordResetFail_Email="$email"_Reason=EmailNotFound""")
-              Future.successful(result)
+              // This is the case where the email was not found in the database.
+              case None =>
+                cc.loggingService
+                  .insert(userId, ipAddress, s"""PasswordResetFail_Email="$email"_Reason=EmailNotFound""")
+                Future.successful(result)
+            }
           }
-        }
-      )
+        )
+    }
   }
 
   /**
