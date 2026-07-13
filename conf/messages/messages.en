@@ -285,7 +285,6 @@ welcome.card.badges.title = Badges
 welcome.card.badges.body = Earn them as you map, validate, and hit mission milestones.
 welcome.card.leaderboard.title = The leaderboard
 welcome.card.leaderboard.body = See how your mapping stacks up across the city — solo or with a team.
-welcome.cta.explore = Keep exploring
 welcome.cta.dashboard = See my dashboard
 welcome.hint.username = You can change your username anytime in <a href="{0}">Dashboard → Settings</a>.
 welcome.hint.service.hours = Mapping for school or volunteer credit? <a href="{0}">Turn on service-hour tracking</a> in Settings.

@@ -10,7 +10,10 @@
 @cityInfo = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId || c.visibility == "public" || (currentCityInfo.countryId == "taiwan" && c.countryId == "taiwan"))}
 
 @* Check-mark inside the checklist/match dots; shown by CSS only when the rule is met. *@
-@authCheckIcon() = {<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 5.5l2 2 5-5" fill="none" stroke="var(--color-neutral-white)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>}
+@authCheckIcon() = {<svg class="au-ic-check" viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 5.5l2 2 5-5" fill="none" stroke="var(--color-neutral-white)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>}
+
+@* Cross inside the username-rule / password-match dots; shown by CSS only when the rule is failing. *@
+@authCrossIcon() = {<svg class="au-ic-x" viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 2.5l5 5m0-5l-5 5" fill="none" stroke="var(--color-error-200)" stroke-width="2" stroke-linecap="round"></path></svg>}
 
 @* Show/hide-password toggle; AuthModal.js swaps the two icons and the aria state. *@
 @authEyeButton(inputId: String) = {
@@ -328,7 +331,7 @@
             <label class="au-label" for="sign-up-username">@Messages("username")</label>
             <input class="au-input" id="sign-up-username" name="username" type="text" autocomplete="username" spellcheck="false" maxlength="@forms.UsernamePolicy.maxLength" data-rule-regex="@forms.UsernamePolicy.jsPattern" aria-describedby="sign-up-username-rule" required>
             <div class="au-match" id="sign-up-username-rule">
-              <span class="au-dot">@authCheckIcon()</span>
+              <span class="au-dot">@authCheckIcon()@authCrossIcon()</span>
               <span>@Messages("authenticate.username.rule")</span>
             </div>
           </div>
@@ -361,7 +364,7 @@
               @authEyeButton("sign-up-password-confirm")
             </div>
             <div class="au-match" id="sign-up-pw-match" data-label-match="@Messages("authenticate.pw.match")" data-label-no-match="@Messages("authenticate.pw.match.not")">
-              <span class="au-dot">@authCheckIcon()</span>
+              <span class="au-dot">@authCheckIcon()@authCrossIcon()</span>
               <span id="sign-up-pw-match-text">@Messages("authenticate.pw.match")</span>
             </div>
           </div>

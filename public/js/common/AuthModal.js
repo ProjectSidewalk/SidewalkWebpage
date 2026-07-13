@@ -139,6 +139,7 @@ class AuthModal {
       if (match && matchText) {
         const same = pw.value.length > 0 && pw.value === pw2.value;
         match.classList.toggle('met', same);
+        match.classList.toggle('unmet', pw2.value.length > 0 && !same);
         matchText.textContent = pw2.value && !same ? match.dataset.labelNoMatch : match.dataset.labelMatch;
       }
     };
@@ -148,7 +149,11 @@ class AuthModal {
     if (username?.dataset.ruleRegex) {
       const usernameRegex = new RegExp(username.dataset.ruleRegex);
       const rule = document.getElementById('sign-up-username-rule');
-      username.addEventListener('input', () => rule?.classList.toggle('met', usernameRegex.test(username.value)));
+      username.addEventListener('input', () => {
+        const ok = usernameRegex.test(username.value);
+        rule?.classList.toggle('met', ok);
+        rule?.classList.toggle('unmet', username.value.length > 0 && !ok);
+      });
     }
   }
 

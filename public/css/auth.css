@@ -14,7 +14,7 @@
 
 /* ---- Dialog shell ------------------------------------------------------------------------------------------- */
 dialog.au-dialog {
-  width: min(420px, 92vw);
+  width: min(460px, 92vw);
   max-height: calc(100dvh - 32px);
   border: none;
   border-radius: 16px;
@@ -100,6 +100,8 @@ dialog.au-dialog::backdrop {
 .au-title {
   margin: 0;
   font: var(--text-h2-bold);
+  font-size: 26px;
+  line-height: 32px;
   color: var(--color-asphalt-500);
 }
 
@@ -297,6 +299,26 @@ dialog.au-dialog::backdrop {
   display: block;
 }
 
+.au-dot .au-ic-x {
+  display: none;
+}
+
+.au-match.unmet {
+  color: var(--auth-error-ink);
+}
+
+.au-match.unmet .au-dot {
+  border-color: var(--color-error-200);
+}
+
+.au-match.unmet .au-dot .au-ic-x {
+  display: block;
+}
+
+.au-match.unmet .au-dot .au-ic-check {
+  display: none;
+}
+
 /* Password strength: four sidewalk slabs with expansion joints, paved as rules are met. */
 .au-strength {
   display: flex;
@@ -419,6 +441,39 @@ dialog.au-dialog::backdrop {
 
 .au-footer a:hover {
   text-decoration: underline;
+}
+
+/* ---- Full-page auth card (forgot/reset password) ---------------------------------------------------------------- */
+.au-page {
+  display: flex;
+  justify-content: center;
+  padding: 48px 16px 72px;
+}
+
+.au-card {
+  width: min(460px, 100%);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--color-neutral-white);
+  box-shadow: 0 8px 28px rgb(9 8 13 / 8%);
+  font: var(--text-body-regular);
+  color: var(--color-neutral-900);
+}
+
+.au-copy {
+  margin: 12px 0 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.au-summary--info {
+  background: var(--color-pine-100);
+  border-left-color: var(--color-pine-700);
+}
+
+.au-summary--info svg {
+  color: var(--color-pine-700);
 }
 
 /* ---- Welcome page (/welcome) ---------------------------------------------------------------------------------- */
