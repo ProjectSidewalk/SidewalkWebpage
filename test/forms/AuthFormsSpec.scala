@@ -87,11 +87,19 @@ class AuthFormsSpec extends AnyFunSuite with Matchers {
     bound.value.map(_.rememberMe) shouldBe Some(true)
   }
 
-  test("sign-in still requires a non-empty password and a valid email") {
+  test("sign-in requires a non-empty identifier and password, but accepts a username or an email") {
+    // Empty password is rejected.
     SignInForm.form
       .bind(Map("email" -> "a@b.com", "password" -> "", "rememberMe" -> "false"))
       .errors should not be empty
-    SignInForm.form.bind(Map("email" -> "nope", "password" -> "x", "rememberMe" -> "false")).errors should not be empty
+    // Empty identifier is rejected.
+    SignInForm.form
+      .bind(Map("email" -> "", "password" -> "x", "rememberMe" -> "false"))
+      .errors should not be empty
+    // A plain username (not an email) now binds cleanly; the controller resolves it to an email (#4375).
+    SignInForm.form
+      .bind(Map("email" -> "just_a_username", "password" -> "x", "rememberMe" -> "false"))
+      .errors shouldBe empty
   }
 
   test("reset-password enforces the shared password policy and confirm-match") {

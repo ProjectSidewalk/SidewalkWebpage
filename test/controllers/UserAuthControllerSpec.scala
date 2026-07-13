@@ -177,6 +177,18 @@ class UserAuthControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       status(signIn) mustBe OK
       (contentAsJson(signIn) \ "redirect").asOpt[String] mustBe defined
       cookies(signIn).exists(_.name.toLowerCase.contains("authenticator")) mustBe true
+
+      // 4. The same account also signs in by username, not just email — the controller resolves it (#4375).
+      val signInByUsername = route(
+        app,
+        FakeRequest(POST, "/authenticate/credentials")
+          .withHeaders(XHR)
+          .withFormUrlEncodedBody("email" -> username, "password" -> password, "rememberMe" -> "false")
+          .withCSRFToken
+      ).get
+      status(signInByUsername) mustBe OK
+      (contentAsJson(signInByUsername) \ "redirect").asOpt[String] mustBe defined
+      cookies(signInByUsername).exists(_.name.toLowerCase.contains("authenticator")) mustBe true
     }
   }
 }

@@ -227,6 +227,7 @@ validate.mission.complete.category = Categorie
 validate.mission.complete.your.overall.total = Je Totaal
 
 authenticate.email = Email-adres
+authenticate.identifier = E-mailadres of gebruikersnaam
 authenticate.password = Wachtwoord
 authenticate.remember.me = Houd mij aangemeld
 authenticate.new = Ben je nieuw? <a href="#" id="form-open-sign-up">Nieuw account maken!</a>
@@ -276,7 +277,8 @@ welcome.card.leaderboard.title = Het scorebord
 welcome.card.leaderboard.body = Zie hoe jouw werk zich verhoudt in de stad — alleen of met een team.
 welcome.cta.dashboard = Mijn dashboard bekijken
 welcome.hint.username = Je kunt je gebruikersnaam altijd wijzigen in <a href="{0}">Dashboard → Instellingen</a>.
-welcome.hint.service.hours = Breng je in kaart voor school- of vrijwilligersuren? <a href="{0}">Zet urenregistratie aan</a> in Instellingen.
+welcome.service.prompt = Breng je in kaart voor school- of vrijwilligersuren?
+welcome.service.button = Aanmelden voor serviceuren
 authenticate.is.member = Al lid? <a href="{0}">Log direct in</a>
 authenticate.signin.with.credentials = Log in met je inloggegevens
 
@@ -525,8 +527,8 @@ dashboard.settings.units.metric = Kilometers & meters
 dashboard.settings.units.imperial = Mijlen & voet
 dashboard.settings.units.help = De eenheden volgen de taal van de site, die je kunt wijzigen via het taalmenu in de bovenbalk.
 dashboard.settings.service.hours = Vrijwilligersuren
-dashboard.settings.service.hours.toggle = Mijn tijd bijhouden voor vrijwilligers- of maatschappelijke dienstverleningsuren
-dashboard.settings.service.hours.help = Voegt "Serviceuren" en "Tijdcontrole" toe aan je accountmenu, zodat je je geregistreerde tijd kunt zien en hoe je die rapporteert.
+dashboard.settings.service.hours.toggle = Aanmelden voor maatschappelijke serviceuren
+dashboard.settings.service.hours.help = Meldt je aan voor officiële erkenning — je begeleider kan je uren verifiëren — en voegt "Serviceuren" en "Tijdcontrole" toe aan je accountmenu.
 dashboard.settings.service.hours.link = Hoe serviceuren werken
 dashboard.settings.team = Team
 dashboard.settings.team.label = Je team

@@ -298,6 +298,7 @@ validate.mission.complete.category = 類別
 validate.mission.complete.your.overall.total = 總成績
 
 authenticate.email = 電子郵件地址
+authenticate.identifier = 電子郵件或使用者名稱
 authenticate.password = 密碼
 authenticate.remember.me = 保持登入狀態
 authenticate.new = 您是新使用者嗎？ <a href="#" id="form-open-sign-up">請註冊！</a>
@@ -347,7 +348,8 @@ welcome.card.leaderboard.title = 排行榜
 welcome.card.leaderboard.body = 看看您的標記在整座城市中的表現 — 個人或團隊皆可。
 welcome.cta.dashboard = 查看我的儀表板
 welcome.hint.username = 您隨時可以在 <a href="{0}">儀表板 → 設定</a> 中變更使用者名稱。
-welcome.hint.service.hours = 為了學校或志工時數而標記嗎？請在設定中<a href="{0}">開啟服務時數追蹤</a>。
+welcome.service.prompt = 為了學校或志工時數而標記嗎？
+welcome.service.button = 報名服務時數
 authenticate.is.member = 已經是會員了嗎？ <a href="{0}">請登入</a>
 authenticate.signin.with.credentials = 透過您的身分認證登入
 
@@ -597,8 +599,8 @@ dashboard.settings.units.metric = 公里與公尺
 dashboard.settings.units.imperial = 英里與英尺
 dashboard.settings.units.help = 單位跟隨網站語言，您可以在頂端列的語言選單中變更。
 dashboard.settings.service.hours = 志工服務時數
-dashboard.settings.service.hours.toggle = 記錄我的志工或社區服務時數
-dashboard.settings.service.hours.help = 在您的帳戶選單中加入「服務時數」和「時間檢查」，讓您查看已記錄的時間以及如何回報。
+dashboard.settings.service.hours.toggle = 報名社區服務時數
+dashboard.settings.service.hours.help = 為您報名正式認可（您的督導可以核實您的時數），並在您的帳戶選單中加入「服務時數」和「時間檢查」。
 dashboard.settings.service.hours.link = 服務時數如何運作
 dashboard.settings.team = 團隊
 dashboard.settings.team.label = 您的團隊

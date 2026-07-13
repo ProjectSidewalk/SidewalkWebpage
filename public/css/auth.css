@@ -294,8 +294,8 @@ dialog.au-dialog::backdrop {
   border-color: var(--color-pine-600);
 }
 
-.au-checklist li.met .au-dot svg,
-.au-match.met .au-dot svg {
+.au-checklist li.met .au-dot .au-ic-check,
+.au-match.met .au-dot .au-ic-check {
   display: block;
 }
 
@@ -422,6 +422,39 @@ dialog.au-dialog::backdrop {
   width: 100%;
   justify-content: center;
   font-weight: 700;
+}
+
+/* Working state while the async submit is in flight: hide the label, show a spinner in its place. */
+.au-submit.is-loading {
+  color: transparent;
+  position: relative;
+  pointer-events: none;
+}
+
+.au-submit.is-loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 2px solid color-mix(in srgb, var(--color-asphalt-500) 35%, transparent);
+  border-top-color: var(--color-asphalt-500);
+  border-radius: 50%;
+  animation: au-spin 0.7s linear infinite;
+}
+
+@keyframes au-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .au-submit.is-loading::after {
+    animation-duration: 2s;
+  }
 }
 
 .au-footer {
@@ -737,8 +770,46 @@ dialog.au-dialog::backdrop {
   margin-top: 30px;
 }
 
+/* Service-hours prompt: a prominent callout, not a footnote (school/volunteer credit is a key entry path). */
+.wl-service {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  max-width: 540px;
+  margin: 26px auto 0;
+  padding: 15px 20px;
+  text-align: left;
+  background: var(--color-banana-100);
+  border: 1px solid var(--color-banana-300);
+  border-radius: 12px;
+}
+
+.wl-service-ic {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  color: var(--color-banana-700);
+}
+
+.wl-service-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.wl-service-prompt {
+  margin: 0;
+  font: var(--text-small-medium);
+  color: var(--color-asphalt-700);
+}
+
+.wl-service-btn {
+  align-self: flex-start;
+}
+
 .wl-hint {
-  margin: 18px 0 0;
+  margin: 16px 0 0;
   text-align: center;
   font: var(--text-caption-regular);
   color: var(--color-neutral-700);
@@ -781,6 +852,70 @@ dialog.au-dialog::backdrop {
   font: var(--text-body-regular);
   color: var(--color-neutral-800);
   max-width: 62ch;
+}
+
+/* Live opt-in status for the signed-in user: on (pine), off (banana prompt), or an anon sign-up nudge. */
+.sh-track {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  max-width: 760px;
+  margin: 0 auto 4px;
+  padding: 14px 18px;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 12px;
+}
+
+.sh-track--on {
+  background: var(--color-pine-100);
+  border-color: var(--color-pine-300);
+}
+
+.sh-track--off {
+  background: var(--color-banana-100);
+  border-color: var(--color-banana-300);
+}
+
+.sh-track-badge {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--color-pine-600);
+  color: var(--color-neutral-white);
+  display: grid;
+  place-items: center;
+}
+
+.sh-track-badge svg {
+  width: 18px;
+  height: 18px;
+}
+
+.sh-track-body {
+  flex: 1;
+  min-width: 180px;
+}
+
+.sh-track-body strong {
+  display: block;
+  font: var(--text-small-bold);
+  color: var(--color-asphalt-500);
+}
+
+.sh-track-body span {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+.sh-track-body a {
+  color: var(--color-link-200);
+}
+
+.sh-track form {
+  flex: 0 0 auto;
+  margin: 0;
 }
 
 .sh-super {

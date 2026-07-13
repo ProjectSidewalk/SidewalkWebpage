@@ -235,6 +235,7 @@ validate.mission.complete.category = Category
 validate.mission.complete.your.overall.total = Your Overall Total
 
 authenticate.email = Email address
+authenticate.identifier = Email or username
 authenticate.password = Password
 authenticate.remember.me = Keep me signed in
 authenticate.new = Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
@@ -291,7 +292,8 @@ welcome.card.leaderboard.title = The leaderboard
 welcome.card.leaderboard.body = See how your mapping stacks up across the city — solo or with a team.
 welcome.cta.dashboard = See my dashboard
 welcome.hint.username = You can change your username anytime in <a href="{0}">Dashboard → Settings</a>.
-welcome.hint.service.hours = Mapping for school or volunteer credit? <a href="{0}">Turn on service-hour tracking</a> in Settings.
+welcome.service.prompt = Mapping for school or volunteer credit?
+welcome.service.button = Sign me up for service hours
 
 
 reset.pw.forgot.title = Forgot your password?
@@ -535,8 +537,8 @@ dashboard.settings.units.metric = Kilometers & meters
 dashboard.settings.units.imperial = Miles & feet
 dashboard.settings.units.help = Units follow the site language, which you can change from the language menu in the top bar.
 dashboard.settings.service.hours = Volunteer service hours
-dashboard.settings.service.hours.toggle = Track my time for volunteer or community service hours
-dashboard.settings.service.hours.help = Adds "Service hours" and "Time check" to your account menu so you can see your logged time and how to report it.
+dashboard.settings.service.hours.toggle = Sign me up for community service hours
+dashboard.settings.service.hours.help = Opts you in to official recognition — your supervisor can verify your hours — and adds "Service hours" and "Time check" to your account menu.
 dashboard.settings.service.hours.link = How service hours work
 dashboard.settings.team = Team
 dashboard.settings.team.label = Your team

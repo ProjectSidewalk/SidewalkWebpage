@@ -1,4 +1,7 @@
 error.required = This field is required
+error.minLength = Must be at least {0} characters
+error.maxLength = Must be at most {0} characters
+error.email = Enter a valid email address
 invalid.credentials = Invalid credentials!
 access.denied = Access denied!
 
@@ -276,6 +279,7 @@ welcome.card.leaderboard.title = The leaderboard
 welcome.card.leaderboard.body = See how your mapping stacks up across the city — solo or with a team.
 welcome.cta.dashboard = See my dashboard
 welcome.hint.username = You can change your username anytime in <a href="{0}">Dashboard → Settings</a>.
-welcome.hint.service.hours = Mapping for school or volunteer credit? <a href="{0}">Turn on service-hour tracking</a> in Settings.
+welcome.service.prompt = Mapping for school or volunteer credit?
+welcome.service.button = Sign me up for service hours
 
 authenticate.error.too.many = Too many attempts. Please wait a moment and try again.

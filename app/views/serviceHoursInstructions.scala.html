@@ -1,3 +1,4 @@
+@import views.html.helper.CSRF
 @(commonData: service.CommonPageData, user: models.user.SidewalkUserWithRole, isMobile: Boolean
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
@@ -20,6 +21,43 @@
       <p>Mapping sidewalks counts as real volunteer work — many students earn school or organization service hours
       here. We track your time automatically; you map, get feedback, and submit your hours when you're done.</p>
     </div>
+    @if(user.role == "Anonymous") {
+      <div class="sh-track sh-track--off">
+        <div class="sh-track-body">
+          <strong>Sign up to earn service hours</strong>
+          <span>Create a free account, then opt in to have your volunteer hours officially recognized.</span>
+        </div>
+        <a class="button-ps button--primary" href="@routes.UserController.signUp()">Create an account</a>
+      </div>
+    } else {
+      @if(user.communityService) {
+        <div class="sh-track sh-track--on">
+          <span class="sh-track-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </span>
+          <div class="sh-track-body">
+            <strong>You're signed up for service hours</strong>
+            <span>Your volunteer hours are officially recognized, so Mikey can verify and support your effort. You can
+            opt out anytime, or manage this in <a href="@routes.UserDashboardController.settings.url#service-hours">Settings</a>.</span>
+          </div>
+          <form method="post" action="@routes.UserController.setServiceHours(false, Some("/serviceHoursInstructions"))">
+            @CSRF.formField
+            <button type="submit" class="button-ps button--secondary">Opt out</button>
+          </form>
+        </div>
+      } else {
+        <div class="sh-track sh-track--off">
+          <div class="sh-track-body">
+            <strong>You're not signed up for service hours</strong>
+            <span>Opt in to have your volunteer or school hours officially recognized and verified by your supervisor.</span>
+          </div>
+          <form method="post" action="@routes.UserController.setServiceHours(true, Some("/serviceHoursInstructions"))">
+            @CSRF.formField
+            <button type="submit" class="button-ps button--primary">Sign me up</button>
+          </form>
+        </div>
+      }
+    }
     <div class="sh-super">
       <span class="sh-avatar" aria-hidden="true">MS</span>
       <p><strong>Your volunteer supervisor: Mikey Saugstad</strong>

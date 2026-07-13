@@ -41,6 +41,7 @@ POST    /authenticate/credentials                       controllers.UserControll
 POST    /forgotPassword                                 controllers.UserController.submitForgottenPassword
 POST    /resetPassword                                  controllers.UserController.resetPassword(token: String)
 PUT     /updateVolunteerStatus                          controllers.UserController.updateVolunteerStatus(userId: String, communityService: Boolean)
+POST    /serviceHours/set                               controllers.UserController.setServiceHours(enabled: Boolean, next: Option[String] ?= None)
 
 # Security policy endpoints.
 + nocsrf

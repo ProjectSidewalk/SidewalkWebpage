@@ -276,8 +276,8 @@
           @htmlCSRF.formField
           <input type="hidden" name="returnUrl" value="@request.uri">
           <div class="au-field">
-            <label class="au-label" for="sign-in-email">@Messages("authenticate.email")</label>
-            <input class="au-input" id="sign-in-email" name="email" type="email" autocomplete="email" required>
+            <label class="au-label" for="sign-in-email">@Messages("authenticate.identifier")</label>
+            <input class="au-input" id="sign-in-email" name="email" type="text" autocomplete="username" required>
           </div>
           <div class="au-field">
             <div class="au-label-row">

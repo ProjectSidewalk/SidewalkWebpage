@@ -207,6 +207,26 @@ class UserController @Inject() (
     }
 
   /**
+   * Turns the signed-in user's service-hour tracking on or off, then returns to a same-origin page.
+   *
+   * Powers the one-click opt-in on `/welcome` and the toggle on `/serviceHoursInstructions` (both plain form POSTs so
+   * they work without JS). Anonymous users can't opt in — they're sent to sign-up instead.
+   *
+   * @param enabled Whether to enable (true) or disable (false) `user_role.community_service`.
+   * @param next    Same-origin path to return to; defaults to (and is constrained to) `/serviceHoursInstructions`.
+   */
+  def setServiceHours(enabled: Boolean, next: Option[String]) =
+    cc.securityService.SecuredAction { implicit request =>
+      val target = safeLocalPath(next.getOrElse("/serviceHoursInstructions"), "/serviceHoursInstructions")
+      if (request.identity.role == "Anonymous") Future.successful(Redirect(routes.UserController.signUp()))
+      else
+        authenticationService.setCommunityServiceStatus(request.identity.userId, enabled).map { _ =>
+          cc.loggingService.insert(request.identity.userId, request.ipAddress, s"ServiceHours_Set=$enabled")
+          Redirect(target)
+        }
+    }
+
+  /**
    * Authenticates a user.
    */
   def authenticate() = silhouette.UserAwareAction.async { implicit request =>
@@ -229,10 +249,11 @@ class UserController @Inject() (
             }
           },
           data => {
-            // Logs sign-in attempt.
-            val email: String    = data.email.toLowerCase
-            val activity: String = s"""SignInAttempt_Email="$email""""
-            cc.loggingService.insert(currUserId, ipAddress, activity)
+            // A user may sign in with either their email or their username (#4375). A username is resolved to its
+            // email below; an unrecognized identifier passes through unchanged so authentication fails with the same
+            // generic "email and password don't match" error — no account-enumeration signal.
+            val identifier: String = data.email.trim
+            cc.loggingService.insert(currUserId, ipAddress, s"""SignInAttempt_Email="$identifier"""")
 
             // Grab the URL we want to redirect to that was passed as a hidden field in the form.
             val returnUrl = request.body.asFormUrlEncoded
@@ -246,65 +267,77 @@ class UserController @Inject() (
             val redirectTarget = safeLocalPath(returnUrl)
             val result         = if (wantsJson) Ok(Json.obj("redirect" -> redirectTarget)) else Redirect(redirectTarget)
 
+            // Resolve the identifier to an email: pass an email through as-is; look a username up to its email; and
+            // fall back to the identifier unchanged when it matches nothing, so auth fails with the generic error.
+            val emailFut: Future[String] =
+              if (identifier.contains("@")) Future.successful(identifier.toLowerCase)
+              else
+                authenticationService.findByUsername(identifier).map(_.map(_.email).getOrElse(identifier.toLowerCase))
+
             // Try to authenticate the user.
-            authenticationService
-              .authenticate(email, data.password)
-              .flatMap { loginInfo =>
-                authenticationService.retrieve(loginInfo).flatMap {
-                  case Some(user) =>
-                    val c = config.underlying
-                    silhouette.env.authenticatorService
-                      .create(loginInfo)
-                      .map {
-                        case authenticator if data.rememberMe =>
-                          // Set up the remember me cookie.
-                          authenticator.copy(
-                            expirationDateTime = clock.now + c
-                              .as[FiniteDuration]("silhouette.authenticator.rememberMe.authenticatorExpiry"),
-                            idleTimeout =
-                              c.getAs[FiniteDuration]("silhouette.authenticator.rememberMe.authenticatorIdleTimeout"),
-                            cookieMaxAge = c.getAs[FiniteDuration]("silhouette.authenticator.rememberMe.cookieMaxAge")
-                          )
-                        case authenticator => authenticator
-                      }
-                      .flatMap { authenticator =>
-                        // Log successful sign in attempt.
-                        val activity: String = s"""SignInSuccess_Email="${user.email}""""
-                        cc.loggingService.insert(user.userId, ipAddress, activity)
-
-                        // Sign in the user.
-                        silhouette.env.eventBus.publish(LoginEvent(user, request))
-                        silhouette.env.authenticatorService.init(authenticator).flatMap { v =>
-                          silhouette.env.authenticatorService.embed(v, result)
+            emailFut.flatMap { email =>
+              authenticationService
+                .authenticate(email, data.password)
+                .flatMap { loginInfo =>
+                  authenticationService.retrieve(loginInfo).flatMap {
+                    case Some(user) =>
+                      val c = config.underlying
+                      silhouette.env.authenticatorService
+                        .create(loginInfo)
+                        .map {
+                          case authenticator if data.rememberMe =>
+                            // Set up the remember me cookie.
+                            authenticator.copy(
+                              expirationDateTime = clock.now + c
+                                .as[FiniteDuration]("silhouette.authenticator.rememberMe.authenticatorExpiry"),
+                              idleTimeout =
+                                c.getAs[FiniteDuration]("silhouette.authenticator.rememberMe.authenticatorIdleTimeout"),
+                              cookieMaxAge = c.getAs[FiniteDuration]("silhouette.authenticator.rememberMe.cookieMaxAge")
+                            )
+                          case authenticator => authenticator
                         }
-                      }
-                  case None =>
-                    // Log failed sign-in due to a database issue.
-                    val activity: String = s"""SignInFailed_Email="$email"_Reason="user not found in db""""
-                    cc.loggingService.insert(currUserId, ipAddress, activity)
-                    Future.failed(new IdentityNotFoundException("Couldn't find the user in db"))
+                        .flatMap { authenticator =>
+                          // Log successful sign in attempt.
+                          val activity: String = s"""SignInSuccess_Email="${user.email}""""
+                          cc.loggingService.insert(user.userId, ipAddress, activity)
+
+                          // Sign in the user.
+                          silhouette.env.eventBus.publish(LoginEvent(user, request))
+                          silhouette.env.authenticatorService.init(authenticator).flatMap { v =>
+                            silhouette.env.authenticatorService.embed(v, result)
+                          }
+                        }
+                    case None =>
+                      // Log failed sign-in due to a database issue.
+                      val activity: String = s"""SignInFailed_Email="$email"_Reason="user not found in db""""
+                      cc.loggingService.insert(currUserId, ipAddress, activity)
+                      Future.failed(new IdentityNotFoundException("Couldn't find the user in db"))
+                  }
                 }
-              }
-              .recover {
-                case e: ProviderException =>
-                  // Log failed sign-in due to invalid credentials. Should be the only reason for failed sign-in.
-                  val activity: String = s"""SignInFailed_Email="$email"_Reason="invalid credentials""""
-                  cc.loggingService.insert(currUserId, ipAddress, activity)
+                .recover {
+                  case e: ProviderException =>
+                    // Log failed sign-in due to invalid credentials. Should be the only reason for failed sign-in.
+                    val activity: String = s"""SignInFailed_Email="$email"_Reason="invalid credentials""""
+                    cc.loggingService.insert(currUserId, ipAddress, activity)
 
-                  if (wantsJson)
-                    Unauthorized(fieldErrorJson("_summary", Messages("authenticate.error.invalid.credentials.detail")))
-                  else
-                    Redirect("/signIn", returnUrlQuery + ("url" -> Seq(returnUrlPath)))
-                      .flashing("error" -> Messages("authenticate.error.invalid.credentials"))
-                case e: Exception =>
-                  val activity: String = s"""SignInFailed_Email="$email"_Reason="unexpected""""
-                  cc.loggingService.insert(currUserId, ipAddress, activity)
+                    if (wantsJson)
+                      Unauthorized(
+                        fieldErrorJson("_summary", Messages("authenticate.error.invalid.credentials.detail"))
+                      )
+                    else
+                      Redirect("/signIn", returnUrlQuery + ("url" -> Seq(returnUrlPath)))
+                        .flashing("error" -> Messages("authenticate.error.invalid.credentials"))
+                  case e: Exception =>
+                    val activity: String = s"""SignInFailed_Email="$email"_Reason="unexpected""""
+                    cc.loggingService.insert(currUserId, ipAddress, activity)
 
-                  if (wantsJson) InternalServerError(fieldErrorJson("_summary", Messages("authenticate.error.generic")))
-                  else
-                    Redirect("/signIn", returnUrlQuery + ("url" -> Seq(returnUrlPath)))
-                      .flashing("error" -> "Unexpected error")
-              }
+                    if (wantsJson)
+                      InternalServerError(fieldErrorJson("_summary", Messages("authenticate.error.generic")))
+                    else
+                      Redirect("/signIn", returnUrlQuery + ("url" -> Seq(returnUrlPath)))
+                        .flashing("error" -> "Unexpected error")
+                }
+            }
           }
         )
     }
@@ -529,7 +562,9 @@ class UserController @Inject() (
                         s"""PasswordResetFail_Email="$email"_Reason=${e.getClass.getCanonicalName}"""
                       )
                       logger.error("Failed to send password reset email", e)
-                      Future.failed(e)
+                      // Show the same confirmation regardless: a mailer outage must not 500 the user, nor reveal
+                      // (via a differing response) that this email is registered. Delivery health is ops' concern.
+                      Future.successful(result)
                   }
                 }
 

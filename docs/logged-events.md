@@ -110,6 +110,7 @@ ones whose meaning, parameters, or history aren't obvious:
 | `ValidationOptionApply` / `ValidationOptionUnapply` (Gallery) | A validation-status **filter** in the Gallery — *not* a validation of a label. |
 | `Visit_SharedLabel=<labelId>` | Server-logged (not via a `Tracker.js`) in `ShareController.label` when the public `/label/:id` share page is loaded; the suffix is the shared label id. |
 | `Visit_Welcome` | Server-logged in `UserController.welcome` when the post-registration `/welcome` page renders (#4375); every fresh registration lands there, so its volume tracks completed sign-ups. |
+| `ServiceHours_Set=<bool>` | Server-logged in `UserController.setServiceHours` when a user opts in to (`true`) or out of (`false`) official community-service-hour recognition from the `/welcome` callout or the `/serviceHoursInstructions` toggle (#4375). |
 | `Share_Click` / `Share_Native` / `Share_CopyLink` / `Share_Platform=<Twitter\|Facebook\|Email>` | Emitted by the frontend share widget: opening the share UI, invoking the native OS share sheet, copying the permalink, and sharing to a named platform (the `Share_Platform` suffix is the target). |
 | `Click_module=SharedLabel_target=<FullMap\|Explore\|Validate\|NearbyLabel>` | Outbound/interactive clicks on the public spotlight page (`SharedLabel.js`): `FullMap` = the "explore the full map" caption link into the LabelMap, `Explore`/`Validate` = the call-to-action buttons into those tools, `NearbyLabel_labelId=<id>` = clicking a nearby-labels map marker (the suffix is that neighbor's label id). |
 

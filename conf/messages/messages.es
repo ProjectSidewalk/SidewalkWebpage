@@ -239,6 +239,7 @@ validate.mission.complete.category = Categoría
 validate.mission.complete.your.overall.total = Su total en general
 
 authenticate.email = Correo electrónico
+authenticate.identifier = Correo electrónico o nombre de usuario
 authenticate.password = Contraseña
 authenticate.remember.me = Mantenerme conectado
 authenticate.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístrate!</a>
@@ -288,7 +289,8 @@ welcome.card.leaderboard.title = La clasificación
 welcome.card.leaderboard.body = Mira cómo se compara tu mapeo en la ciudad, en solitario o en equipo.
 welcome.cta.dashboard = Ver mi panel
 welcome.hint.username = Puedes cambiar tu nombre de usuario cuando quieras en <a href="{0}">Panel → Configuración</a>.
-welcome.hint.service.hours = ¿Mapeas por créditos escolares o de voluntariado? <a href="{0}">Activa el registro de horas de servicio</a> en Configuración.
+welcome.service.prompt = ¿Mapeas por créditos escolares o de voluntariado?
+welcome.service.button = Inscribirme en horas de servicio
 authenticate.is.member = ¿Ya eres miembro? <a href="{0}">Iniciar sesión ahora</a>
 authenticate.signin.with.credentials = Inicia sesión con tus credenciales
 
@@ -538,8 +540,8 @@ dashboard.settings.units.metric = Kilómetros y metros
 dashboard.settings.units.imperial = Millas y pies
 dashboard.settings.units.help = Las unidades siguen el idioma del sitio, que puedes cambiar desde el menú de idioma en la barra superior.
 dashboard.settings.service.hours = Horas de servicio voluntario
-dashboard.settings.service.hours.toggle = Registrar mi tiempo para horas de voluntariado o servicio comunitario
-dashboard.settings.service.hours.help = Añade "Horas de servicio" y "Control de tiempo" al menú de tu cuenta para que puedas ver el tiempo registrado y cómo reportarlo.
+dashboard.settings.service.hours.toggle = Inscribirme en horas de servicio comunitario
+dashboard.settings.service.hours.help = Te inscribe para el reconocimiento oficial —tu supervisor puede verificar tus horas— y añade "Horas de servicio" y "Control de tiempo" al menú de tu cuenta.
 dashboard.settings.service.hours.link = Cómo funcionan las horas de servicio
 dashboard.settings.team = Equipo
 dashboard.settings.team.label = Tu equipo

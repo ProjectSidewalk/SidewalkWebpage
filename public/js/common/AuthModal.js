@@ -143,6 +143,7 @@ function wireAsyncSubmit(form) {
     clearAuthErrors(form);
     const submitBtn = form.querySelector('.au-submit');
     submitBtn?.setAttribute('disabled', 'disabled');
+    submitBtn?.classList.add('is-loading');
     try {
       const res = await fetch(form.action, {
         method: 'POST',
@@ -164,6 +165,7 @@ function wireAsyncSubmit(form) {
       renderAuthErrors(form, { _summary: form.dataset.errorGeneric });
     }
     submitBtn?.removeAttribute('disabled');
+    submitBtn?.classList.remove('is-loading');
   });
 }
 
