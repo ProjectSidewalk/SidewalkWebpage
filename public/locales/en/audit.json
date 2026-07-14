@@ -103,6 +103,7 @@
     "feedback-title": "Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!"
   },
   "right-ui": {
+    "opens-new-tab": "(opens in a new tab)",
     "accuracy-tooltip": "Accuracy is based on validations from other users. If your accuracy is low, check out some recent mistakes on <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">your User Dashboard</a> to help you improve!",
     "no-accuracy-tooltip": "We need more data to calculate an accuracy rating for you. Add more labels and sign up to keep track of your accuracy rating!",
     "current-mission": {

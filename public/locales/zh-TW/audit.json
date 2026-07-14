@@ -103,6 +103,7 @@
     "feedback-title": "有任何想法或問題嗎？或是找到程式錯誤?<br>歡迎給我們任何回饋喔！"
   },
   "right-ui": {
+    "opens-new-tab": "(在新分頁中開啟)",
     "accuracy-tooltip": "精準度是依照其他用戶的檢核。若您的精準度很低，請查看近期檢核出的錯誤於 <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">您的用戶儀表板</a> 以協助您增加精準度！",
     "no-accuracy-tooltip": "我們需要更多的資料以計算您的精準度。請新增更多的標記並註冊帳號以持續追蹤進度及精準度！",
     "current-mission": {
