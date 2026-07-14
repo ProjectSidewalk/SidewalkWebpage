@@ -239,6 +239,7 @@ validate.mission.complete.category = Categoría
 validate.mission.complete.your.overall.total = Su total en general
 
 authenticate.email = Correo electrónico
+authenticate.identifier = Correo electrónico o nombre de usuario
 authenticate.password = Contraseña
 authenticate.remember.me = Mantenerme conectado
 authenticate.new = ¿Eres nuevo/a? <a href="#" id="form-open-sign-up">¡Regístrate!</a>
@@ -249,6 +250,47 @@ authenticate.terms = Usted acepta nuestros <a target="_blank" href="/terms">Tér
 authenticate.signup = Regístrate
 authenticate.signup.new.account = Regístrate para una nueva cuenta
 authenticate.has.account = ¿Tienes una cuenta? <a href="#" id="form-open-sign-in">Iniciar sesión</a>
+
+# Sign-in/sign-up redesign (#4375) — draft translations, pending native-speaker polish (#4494).
+authenticate.welcome.back = Bienvenido/a de nuevo
+authenticate.join = Únete a Project Sidewalk
+authenticate.tagline = Mapea las aceras. Ayuda a que tu ciudad sea accesible para todos.
+authenticate.close = Cerrar
+authenticate.show.password = Mostrar contraseña
+authenticate.hide.password = Ocultar contraseña
+authenticate.username.rule = 3–30 caracteres — letras, números, guiones y guiones bajos
+authenticate.pw.rule.length = Al menos {0} caracteres
+authenticate.pw.rule.uppercase = Una letra mayúscula
+authenticate.pw.rule.lowercase = Una letra minúscula
+authenticate.pw.rule.digit = Un número
+authenticate.pw.match = Las contraseñas coinciden
+authenticate.pw.match.not = Las contraseñas aún no coinciden
+authenticate.pw.strength.1 = Débil
+authenticate.pw.strength.2 = Aceptable
+authenticate.pw.strength.3 = Buena
+authenticate.pw.strength.4 = Fuerte
+authenticate.create.account = Crear mi cuenta
+authenticate.new.detail = ¿Nuevo/a en Project Sidewalk? <a href="#" id="form-open-sign-up">Crea una cuenta</a>
+authenticate.new.detail.link = ¿Nuevo/a en Project Sidewalk? <a href="{0}">Crea una cuenta</a>
+authenticate.error.invalid.credentials.detail = Ese correo y esa contraseña no coinciden con nuestros registros. Verifícalos e inténtalo de nuevo.
+authenticate.error.generic = Algo salió mal de nuestro lado. Inténtalo de nuevo.
+authenticate.error.too.many = Demasiados intentos. Espera un momento e inténtalo de nuevo.
+authenticate.error.username.charset = Los nombres de usuario solo pueden contener letras, números, guiones y guiones bajos.
+authenticate.error.username.inappropriate = Ese nombre de usuario no está permitido; elige otro.
+authenticate.error.password.requirements = Las contraseñas necesitan una letra mayúscula, una minúscula y un número.
+authenticate.error.terms.required = Debes aceptar los términos para crear una cuenta.
+welcome.title = ¡Ya estás en el mapa, {0}!
+welcome.subtitle = Tu cuenta de Project Sidewalk está lista. Todo lo que mapees a partir de ahora cuenta para tu ciudad y para ti. Esto es lo que acabas de desbloquear:
+welcome.card.dashboard.title = Tu panel
+welcome.card.dashboard.body = Sigue tus calles, etiquetas y precisión a medida que crece tu impacto.
+welcome.card.badges.title = Insignias
+welcome.card.badges.body = Gánalas mientras mapeas, validas y alcanzas hitos de misiones.
+welcome.card.leaderboard.title = La clasificación
+welcome.card.leaderboard.body = Mira cómo se compara tu mapeo en la ciudad, en solitario o en equipo.
+welcome.cta.dashboard = Ver mi panel
+welcome.hint.username = Puedes cambiar tu nombre de usuario cuando quieras en <a href="{0}">Panel → Configuración</a>.
+welcome.service.prompt = ¿Mapeas por créditos escolares o de voluntariado?
+welcome.service.button = Inscribirme en horas de servicio
 authenticate.is.member = ¿Ya eres miembro? <a href="{0}">Iniciar sesión ahora</a>
 authenticate.signin.with.credentials = Inicia sesión con tus credenciales
 
@@ -497,6 +539,10 @@ dashboard.settings.units = Unidades de medida
 dashboard.settings.units.metric = Kilómetros y metros
 dashboard.settings.units.imperial = Millas y pies
 dashboard.settings.units.help = Las unidades siguen el idioma del sitio, que puedes cambiar desde el menú de idioma en la barra superior.
+dashboard.settings.service.hours = Horas de servicio voluntario
+dashboard.settings.service.hours.toggle = Inscribirme en horas de servicio comunitario
+dashboard.settings.service.hours.help = Te inscribe para el reconocimiento oficial —tu supervisor puede verificar tus horas— y añade "Horas de servicio" y "Control de tiempo" al menú de tu cuenta.
+dashboard.settings.service.hours.link = Cómo funcionan las horas de servicio
 dashboard.settings.team = Equipo
 dashboard.settings.team.label = Tu equipo
 dashboard.settings.team.none = Sin equipo

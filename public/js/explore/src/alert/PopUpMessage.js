@@ -84,9 +84,7 @@ class PopUpMessage {
           auditStreetEdgeId: task.getStreetEdgeId(),
         });
         this.#status.signUp = true;
-        document.getElementById('sign-in-modal').classList.add('hidden');
-        document.getElementById('sign-up-modal').classList.remove('hidden');
-        $('#sign-in-modal-container').modal('show'); // Bootstrap modal API; jQuery until modals are replaced.
+        window.psAuthModal?.open('signUp');
       });
 
     // Add the 'Sign in' button.
@@ -96,9 +94,7 @@ class PopUpMessage {
           auditTaskId: task.getAuditTaskId(),
           auditStreetEdgeId: task.getStreetEdgeId(),
         });
-        document.getElementById('sign-in-modal').classList.remove('hidden');
-        document.getElementById('sign-up-modal').classList.add('hidden');
-        $('#sign-in-modal-container').modal('show'); // Bootstrap modal API; jQuery until modals are replaced.
+        window.psAuthModal?.open('signIn');
       });
 
     // Add the 'No' button.

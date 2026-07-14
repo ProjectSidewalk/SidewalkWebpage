@@ -230,6 +230,7 @@ validate.mission.complete.category = Kategorie
 validate.mission.complete.your.overall.total = Ihr Gesamtwert
 
 authenticate.email = E-Mail-Adresse
+authenticate.identifier = E-Mail oder Benutzername
 authenticate.password = Passwort
 authenticate.remember.me = Ich möchte angemeldet bleiben
 authenticate.new = Neu dabei? <a href="#" id="form-open-sign-up">Registrieren!</a>
@@ -240,6 +241,47 @@ authenticate.terms = Sie erklären sich mit unseren <a target="_blank" href="/te
 authenticate.signup = Registrieren
 authenticate.signup.new.account = Mit neuem Account registrieren
 authenticate.has.account = Haben Sie einen Account? <a href="#" id="form-open-sign-in">Anmelden</a>
+
+# Sign-in/sign-up redesign (#4375) — draft translations, pending native-speaker polish (#4494).
+authenticate.welcome.back = Willkommen zurück
+authenticate.join = Bei Project Sidewalk mitmachen
+authenticate.tagline = Kartiere Gehwege. Hilf mit, deine Stadt für alle zugänglich zu machen.
+authenticate.close = Schließen
+authenticate.show.password = Passwort anzeigen
+authenticate.hide.password = Passwort verbergen
+authenticate.username.rule = 3–30 Zeichen — Buchstaben, Zahlen, Bindestriche und Unterstriche
+authenticate.pw.rule.length = Mindestens {0} Zeichen
+authenticate.pw.rule.uppercase = Ein Großbuchstabe
+authenticate.pw.rule.lowercase = Ein Kleinbuchstabe
+authenticate.pw.rule.digit = Eine Zahl
+authenticate.pw.match = Passwörter stimmen überein
+authenticate.pw.match.not = Passwörter stimmen noch nicht überein
+authenticate.pw.strength.1 = Schwach
+authenticate.pw.strength.2 = Okay
+authenticate.pw.strength.3 = Gut
+authenticate.pw.strength.4 = Stark
+authenticate.create.account = Mein Konto erstellen
+authenticate.new.detail = Neu bei Project Sidewalk? <a href="#" id="form-open-sign-up">Konto erstellen</a>
+authenticate.new.detail.link = Neu bei Project Sidewalk? <a href="{0}">Konto erstellen</a>
+authenticate.error.invalid.credentials.detail = Diese E-Mail-Adresse und dieses Passwort passen nicht zu unseren Daten. Bitte überprüfe sie und versuche es erneut.
+authenticate.error.generic = Bei uns ist etwas schiefgelaufen. Bitte versuche es erneut.
+authenticate.error.too.many = Zu viele Versuche. Bitte warte einen Moment und versuche es erneut.
+authenticate.error.username.charset = Benutzernamen dürfen nur Buchstaben, Zahlen, Bindestriche und Unterstriche enthalten.
+authenticate.error.username.inappropriate = Dieser Benutzername ist nicht erlaubt – bitte wähle einen anderen.
+authenticate.error.password.requirements = Passwörter brauchen einen Großbuchstaben, einen Kleinbuchstaben und eine Zahl.
+authenticate.error.terms.required = Du musst den Bedingungen zustimmen, um ein Konto zu erstellen.
+welcome.title = Du bist auf der Karte, {0}!
+welcome.subtitle = Dein Project-Sidewalk-Konto ist bereit. Alles, was du ab jetzt kartierst, zählt für deine Stadt – und für dich. Das hast du gerade freigeschaltet:
+welcome.card.dashboard.title = Dein Dashboard
+welcome.card.dashboard.body = Verfolge deine Straßen, Markierungen und Genauigkeit, während deine Wirkung wächst.
+welcome.card.badges.title = Abzeichen
+welcome.card.badges.body = Verdiene sie beim Kartieren, Validieren und Erreichen von Missionszielen.
+welcome.card.leaderboard.title = Die Bestenliste
+welcome.card.leaderboard.body = Sieh, wie sich dein Kartieren in der Stadt schlägt – allein oder im Team.
+welcome.cta.dashboard = Mein Dashboard ansehen
+welcome.hint.username = Du kannst deinen Benutzernamen jederzeit unter <a href="{0}">Dashboard → Einstellungen</a> ändern.
+welcome.service.prompt = Kartierst du für Schul- oder Ehrenamtsstunden?
+welcome.service.button = Für Servicestunden anmelden
 authenticate.is.member = Schon ein Mitglied? <a href="{0}">Jetzt anmelden</a>
 authenticate.signin.with.credentials = Melden Sie sich mit Ihren Anmeldedaten an
 
@@ -488,6 +530,10 @@ dashboard.settings.units = Maßeinheiten
 dashboard.settings.units.metric = Kilometer & Meter
 dashboard.settings.units.imperial = Meilen & Fuß
 dashboard.settings.units.help = Die Einheiten folgen der Seitensprache, die Sie über das Sprachmenü in der oberen Leiste ändern können.
+dashboard.settings.service.hours = Ehrenamtliche Servicestunden
+dashboard.settings.service.hours.toggle = Für gemeinnützige Servicestunden anmelden
+dashboard.settings.service.hours.help = Meldet dich für die offizielle Anerkennung an – deine Betreuungsperson kann deine Stunden bestätigen – und fügt „Servicestunden“ und „Zeitkontrolle“ zu deinem Kontomenü hinzu.
+dashboard.settings.service.hours.link = So funktionieren Servicestunden
 dashboard.settings.team = Team
 dashboard.settings.team.label = Ihr Team
 dashboard.settings.team.none = Kein Team

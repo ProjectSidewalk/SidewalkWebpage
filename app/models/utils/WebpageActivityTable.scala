@@ -176,14 +176,14 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * `'GET /v3/api/%'` catches all v3 API GETs. The endpoint is extracted by stripping the HTTP method and
    * any query string using `SPLIT_PART`.
    *
-   * @param excludeApiDocs If true, excludes requests with `source=apiDocs` in the query string.
+   * @param excludeApiDocs If true, excludes requests with `utm_source=apiDocs` in the query string.
    * @param days           Number of past days to include (0 = no date filter / all time).
    * @return DBIO with a sequence of (endpoint, count) tuples, ordered by count descending.
    */
   def getApiEndpointCounts(excludeApiDocs: Boolean, days: Int): DBIO[Seq[ApiEndpointCount]] = {
     implicit val gr: GetResult[ApiEndpointCount] = GetResult(r => ApiEndpointCount(r.nextString(), r.nextLong()))
     val dateFilter    = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
-    val apiDocsFilter = if (excludeApiDocs) "AND activity NOT LIKE '%source=apiDocs%'" else ""
+    val apiDocsFilter = if (excludeApiDocs) "AND activity NOT LIKE '%utm_source=apiDocs%'" else ""
     sql"""
       SELECT SPLIT_PART(SPLIT_PART(activity, ' ', 2), '?', 1) AS endpoint, COUNT(*) AS call_count
       FROM webpage_activity
@@ -198,14 +198,14 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
   /**
    * Returns daily call counts for v3 API requests, ordered by date ascending.
    *
-   * @param excludeApiDocs If true, excludes requests with `source=apiDocs` in the query string.
+   * @param excludeApiDocs If true, excludes requests with `utm_source=apiDocs` in the query string.
    * @param days           Number of past days to include (0 = all time).
    * @return DBIO with a sequence of (date string, count) tuples.
    */
   def getApiDailyCounts(excludeApiDocs: Boolean, days: Int): DBIO[Seq[ApiDailyCount]] = {
     implicit val gr: GetResult[ApiDailyCount] = GetResult(r => ApiDailyCount(r.nextString(), r.nextLong()))
     val dateFilter                            = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
-    val apiDocsFilter                         = if (excludeApiDocs) "AND activity NOT LIKE '%source=apiDocs%'" else ""
+    val apiDocsFilter = if (excludeApiDocs) "AND activity NOT LIKE '%utm_source=apiDocs%'" else ""
     sql"""
       SELECT DATE(timestamp)::text AS date, COUNT(*) AS call_count
       FROM webpage_activity
@@ -220,13 +220,13 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
   /**
    * Returns the count of distinct IP addresses that have made v3 API requests.
    *
-   * @param excludeApiDocs If true, excludes requests with `source=apiDocs` in the query string.
+   * @param excludeApiDocs If true, excludes requests with `utm_source=apiDocs` in the query string.
    * @param days           Number of past days to include (0 = all time).
    * @return DBIO with the unique IP count.
    */
   def getApiUniqueIpCount(excludeApiDocs: Boolean, days: Int): DBIO[Long] = {
     val dateFilter    = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
-    val apiDocsFilter = if (excludeApiDocs) "AND activity NOT LIKE '%source=apiDocs%'" else ""
+    val apiDocsFilter = if (excludeApiDocs) "AND activity NOT LIKE '%utm_source=apiDocs%'" else ""
     sql"""
       SELECT COUNT(DISTINCT ip_address)
       FROM webpage_activity
@@ -242,7 +242,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * The `filetype` query parameter is extracted from the activity string; requests without a `filetype`
    * param are counted under `"json"` (the default output format for all v3 endpoints).
    *
-   * @param excludeApiDocs If true, excludes requests with `source=apiDocs` in the query string.
+   * @param excludeApiDocs If true, excludes requests with `utm_source=apiDocs` in the query string.
    * @param days           Number of past days to include (0 = all time).
    * @return DBIO with a sequence of (endpoint, format, count) tuples.
    */
@@ -250,7 +250,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
     implicit val gr: GetResult[ApiFormatCount] =
       GetResult(r => ApiFormatCount(r.nextString(), r.nextString(), r.nextLong()))
     val dateFilter    = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
-    val apiDocsFilter = if (excludeApiDocs) "AND activity NOT LIKE '%source=apiDocs%'" else ""
+    val apiDocsFilter = if (excludeApiDocs) "AND activity NOT LIKE '%utm_source=apiDocs%'" else ""
     sql"""
       SELECT
         SPLIT_PART(SPLIT_PART(activity, ' ', 2), '?', 1) AS endpoint,
@@ -266,7 +266,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
   }
 
   /** SQL CASE that tags each v3 API request as docs-driven ("apiDocs") vs "external". */
-  private val sourceCase = "CASE WHEN activity LIKE '%source=apiDocs%' THEN 'apiDocs' ELSE 'external' END"
+  private val sourceCase = "CASE WHEN activity LIKE '%utm_source=apiDocs%' THEN 'apiDocs' ELSE 'external' END"
 
   /**
    * Per-endpoint v3 API call counts split by source (external vs apiDocs).
@@ -354,7 +354,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    */
   def getLastApiCallDate: DBIO[Option[String]] = {
     sql"""
-      SELECT MAX(DATE(timestamp))::text
+      SELECT MAX(date(timestamp))::TEXT
       FROM webpage_activity
       WHERE activity LIKE 'GET /v3/api/%'
     """.as[Option[String]].head

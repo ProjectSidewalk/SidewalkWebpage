@@ -6,37 +6,49 @@
 @(signInForm: Form[forms.SignInForm.SignInData], commonData: CommonPageData, user: Option[SidewalkUserWithRole]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@implicitFieldConstructor = @{ b3.vertical.fieldConstructor() }
+@* Full-page sign-in: the no-JS fallback and the target of a direct /signIn visit. Same auth card and fields as the
+   navbar dialog; AuthModal.js progressively enhances it (eye toggle, async submit) but a plain POST still works. *@
 
 @common.main(commonData, "Sidewalk - Sign In") {
   @common.navbar(commonData, user)
-  <link href='@assets.path("css/authenticate.css")' rel="stylesheet">
-  @* Shows error messages from server side, like user not being found in db. *@
-  @request.flash.get("error").map { msg =>
-    <div class="alert alert-danger alert-dismissible col-md-6 col-md-offset-3 auth-alert" role="alert">
-      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-        <span aria-hidden="true">&times;</span>
-      </button>
-      <strong>@Messages("error")</strong> @msg
+  <div class="au-page">
+    <div class="au-card">
+      <div class="au-body">
+        <div class="au-top">
+          <img src='@assets.path("images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_100x100.png")' alt="" width="40" height="40">
+          <div class="au-heading">
+            <p class="au-eyebrow">Project Sidewalk</p>
+            <h1 class="au-title">@Messages("authenticate.welcome.back")</h1>
+          </div>
+        </div>
+        @request.flash.get("error").map { msg =>
+          <div class="au-summary" role="alert">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <p>@msg</p>
+          </div>
+        }
+        @form(action = routes.UserController.authenticate(), args = 'id -> "sign-in-form", 'class -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
+          @CSRF.formField
+          <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request.queryString)">
+          <div class="au-field">
+            <label class="au-label" for="sign-in-email">@Messages("authenticate.identifier")</label>
+            <input class="au-input" id="sign-in-email" name="email" type="text" autocomplete="username" required>
+          </div>
+          <div class="au-field">
+            <div class="au-label-row">
+              <label class="au-label" for="sign-in-password">@Messages("authenticate.password")</label>
+              <a class="au-link" href="@routes.UserController.forgotPassword()">@Messages("reset.pw.forgot.title")</a>
+            </div>
+            <div class="au-input-wrap">
+              <input class="au-input au-input--with-eye" id="sign-in-password" name="password" type="password" autocomplete="current-password" required>
+              @common.authEyeButton("sign-in-password")
+            </div>
+          </div>
+          <label class="au-check" for="sign-in-remember"><input type="checkbox" id="sign-in-remember" name="rememberMe" value="true" checked> @Messages("authenticate.remember.me")</label>
+          <button type="submit" class="button-ps button--primary button--large au-submit">@Messages("navbar.signin")</button>
+        }
+        <div class="au-footer">@Html(Messages("authenticate.new.detail.link", s"${routes.UserController.signUp().url}?url=${java.net.URLEncoder.encode(buildUrlFromQueryString(request.queryString), "UTF-8")}"))</div>
+      </div>
     </div>
-  }
-  <fieldset class="col-md-6 col-md-offset-3 auth-fieldset">
-    <legend>@Messages("authenticate.signin.with.credentials")</legend>
-    @form(action = routes.UserController.authenticate()) {
-      @CSRF.formField
-      <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request.queryString)">
-      @b3.email(signInForm("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"))
-      @b3.password(signInForm("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'pattern -> "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).*$", 'title -> "Password must contain at least one uppercase letter, one lowercase letter, and one number")
-      @b3.checkbox(signInForm("rememberMe"), '_text -> Messages("authenticate.remember.me"), 'checked -> true)
-      @b3.submit('class -> "btn btn-lg btn-primary btn-block") { @Messages("navbar.signin") }
-    }
-    <div>
-      <p class="not-a-member">@Html(Messages("authenticate.non.member", s"${routes.UserController.signUp().absoluteURL()}?url=${java.net.URLEncoder.encode(buildUrlFromQueryString(request.queryString), "UTF-8")}"))</p>
-    </div>
-    <div>
-      <p class="forgot-password">
-        <a href="@routes.UserController.forgotPassword()">@Messages("reset.pw.forgot.title")</a>
-      </p>
-    </div>
-  </fieldset>
+  </div>
 }

@@ -239,9 +239,14 @@ class ApplicationController @Inject() (
   }
 
   def routeBuilder = cc.securityService.SecuredAction { implicit request =>
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_RouteBuilder")
-      Ok(views.html.apps.routeBuilder(commonData, request.identity))
+    if (ControllerUtils.isMobile(request)) {
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_RouteBuilder_RedirectMobileLanding")
+      Future.successful(Redirect("/mobileLanding"))
+    } else {
+      configService.getCommonPageData(request2Messages.lang).map { commonData =>
+        cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_RouteBuilder")
+        Ok(views.html.apps.routeBuilder(commonData, request.identity))
+      }
     }
   }
 

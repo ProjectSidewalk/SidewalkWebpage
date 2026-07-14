@@ -22,6 +22,7 @@
   "comments": "Opmerkingen",
   "comment-submitted": "Commentaar ingediend",
   "own-label-disabled": "Je kunt je eigen etiket niet valideren of becommentariëren",
+  "no-imagery-disabled": "Je kunt niet valideren of becommentariëren wanneer er geen beeldmateriaal beschikbaar is voor dit etiket",
   "admin-only": "Alleen beheerders",
   "not-admin-validated": "Niet gevalideerd door een beheerder"
 }

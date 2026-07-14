@@ -233,10 +233,10 @@
       "slight-left": "Biegen Sie leicht links ab",
       "slight-right": "Biegen Sie leicht rechts ab",
       "u-turn": "Kehrtwende",
-      "end-route": "Sie sind am Ende Ihrer Route! Beenden Sie das Beschriften dieser Kreuzung. Anschliessend <br><span class='bold'>klicken Sie hier, um die Route zu beenden.</span>",
-      "end-neighborhood": "Sie haben das gesamte Quartier erkundet! Beenden Sie das Beschriften dieser Kreuzung. Anschliessend <br><span class='bold'>klicken Sie hier, um das Quartier zu beenden.</span>",
-      "end-street": "Wir werden Sie an einen neuen Ort bewegen. Beenden sie das Beschriften dieser Kreuzung. Anschliessend <br><span class='bold'>klicken Sie hier um zu einem neuen Ort gebracht zu werden.</span>",
-      "far-away": "Ups, Sie sind ziemlich weit von der Route entfernt. <br><span class='bold'>Klicken Sie hier, um zurückzukehren.</span>"
+      "end-route": "Sie sind am Ende Ihrer Route! Beenden Sie das Beschriften dieser Kreuzung. Anschliessend <b>klicken Sie hier, um die Route zu beenden.</b>",
+      "end-neighborhood": "Sie haben das gesamte Quartier erkundet! Beenden Sie das Beschriften dieser Kreuzung. Anschliessend <b>klicken Sie hier, um das Quartier zu beenden.</b>",
+      "end-street": "Wir werden Sie an einen neuen Ort bewegen. Beenden sie das Beschriften dieser Kreuzung. Anschliessend <b>klicken Sie hier um zu einem neuen Ort gebracht zu werden.</b>",
+      "far-away": "Ups, Sie sind ziemlich weit von der Route entfernt. <b>Klicken Sie hier, um zurückzukehren.</b>"
     }
   },
   "popup": {

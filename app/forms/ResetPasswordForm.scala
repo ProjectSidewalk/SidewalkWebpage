@@ -15,13 +15,8 @@ object ResetPasswordForm {
   val form = Form(
     mapping(
       "passwordReset" -> nonEmptyText
-        .verifying(minLength(8))
-        .verifying(
-          pattern(
-            """^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).*$""".r,
-            error = "Password must contain at least one uppercase letter, one lowercase letter, and one number"
-          )
-        ),
+        .verifying(minLength(PasswordPolicy.minLength))
+        .verifying(pattern(PasswordPolicy.pattern, error = "authenticate.error.password.requirements")),
       "passwordResetConfirm" -> nonEmptyText
     )(PasswordData.apply)(PasswordData.unapply).verifying(
       "authenticate.error.password.mismatch",

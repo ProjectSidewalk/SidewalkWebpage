@@ -41,6 +41,20 @@
     </div>
   </div>
 
+  <div class="api-section" id="settings-service-hours-section">
+    <h2 class="api-heading" id="service-hours">@Messages("dashboard.settings.service.hours") <a href="#service-hours" class="permalink">#</a></h2>
+    <div class="ud-form">
+      <label class="ud-check" for="set-community-service">
+        <input type="checkbox" id="set-community-service" @if(user.communityService){checked}>
+        <span class="ud-check-text">
+          <strong>@Messages("dashboard.settings.service.hours.toggle")</strong>
+          <span class="ud-field-help">@Messages("dashboard.settings.service.hours.help")
+          <a href="@routes.ApplicationController.serviceHoursInstructions">@Messages("dashboard.settings.service.hours.link")</a></span>
+        </span>
+      </label>
+    </div>
+  </div>
+
   <div class="api-section" id="settings-team-section">
     <h2 class="api-heading" id="team">@Messages("dashboard.settings.team") <a href="#team" class="permalink">#</a></h2>
     <div class="ud-form">

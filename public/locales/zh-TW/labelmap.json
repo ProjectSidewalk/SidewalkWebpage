@@ -22,6 +22,7 @@
   "comments": "評論",
   "comment-submitted": "已上傳評論",
   "own-label-disabled": "您無法驗證或評論自己的標記",
+  "no-imagery-disabled": "當此標記沒有可用的影像時，您無法驗證或評論",
   "admin-only": "僅限管理員",
   "not-admin-validated": "未經管理員驗證"
 }

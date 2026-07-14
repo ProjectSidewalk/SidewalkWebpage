@@ -24,7 +24,8 @@ class UserDashboardController @Inject() (
     implicit val assets: AssetsFinder,
     configService: ConfigService,
     userService: UserService,
-    labelService: service.LabelService
+    labelService: service.LabelService,
+    authenticationService: service.AuthenticationService
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -117,11 +118,12 @@ class UserDashboardController @Inject() (
    * with a 400 and a user-facing message, so nothing is partially applied.
    */
   def saveSettings = cc.securityService.SecuredAction(WithSignedIn(), parse.json) { implicit request =>
-    val user          = request.identity
-    val onLeaderboard = (request.body \ "onLeaderboard").asOpt[Boolean].getOrElse(true)
-    val publicProfile = (request.body \ "publicProfile").asOpt[Boolean].getOrElse(true)
-    val teamId        = (request.body \ "teamId").asOpt[Int].filter(_ > 0)
-    val usernameEdit  = (request.body \ "username").asOpt[String].map(_.trim).filter(_.nonEmpty)
+    val user             = request.identity
+    val onLeaderboard    = (request.body \ "onLeaderboard").asOpt[Boolean].getOrElse(true)
+    val publicProfile    = (request.body \ "publicProfile").asOpt[Boolean].getOrElse(true)
+    val teamId           = (request.body \ "teamId").asOpt[Int].filter(_ > 0)
+    val usernameEdit     = (request.body \ "username").asOpt[String].map(_.trim).filter(_.nonEmpty)
+    val communityService = (request.body \ "communityService").asOpt[Boolean]
 
     // Only a username change can be rejected, so resolve it first and touch nothing else unless it succeeds.
     val usernameResult: Future[Either[String, Unit]] = usernameEdit match {
@@ -135,6 +137,9 @@ class UserDashboardController @Inject() (
         for {
           _ <- userService.updatePrivacySettings(user.userId, onLeaderboard, publicProfile)
           _ <- teamId.map(id => userService.setUserTeam(user.userId, id)).getOrElse(userService.leaveTeam(user.userId))
+          _ <- communityService
+            .map(cs => authenticationService.setCommunityServiceStatus(user.userId, cs))
+            .getOrElse(Future.successful(0))
         } yield {
           cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=SaveSettings")
           Ok(Json.obj("success" -> true))

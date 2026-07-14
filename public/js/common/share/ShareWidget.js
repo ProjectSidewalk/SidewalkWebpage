@@ -235,7 +235,7 @@ class ShareWidget {
     this.#log('Share_Platform=Email');
     const subject = encodeURIComponent(this.#target.title);
     const body = encodeURIComponent(`${this.#target.text}\n\n${this.#target.url}`);
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank', 'noopener');
     this.#closePopover();
   }
 

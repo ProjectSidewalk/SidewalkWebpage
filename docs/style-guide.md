@@ -34,6 +34,8 @@ These apply across every language in the repo.
 - **Accessibility is part of style.** Any UI work must meet **WCAG 2.1/2.2 Level AA**. Pull fonts, colors, spacing,
   and button styles from the design-system tokens in `main.css` `:root` rather than hardcoding values — these come
   from our Figma "Design System Tokens" and are what we're standardizing on.
+- **Don't use `--font-accent` (Raleway) for numbers.** Its digits aren't tabular, so figures won't line up in columns
+  and jump around in changing counters/timers — use `--font-primary` for any numeric text.
 - **Write descriptive commit messages** that say what actually changed and why. `Fixes #880`, `Addresses PR
   feedback`, and `Update ModalMissionComplete.js` are all too vague to be useful in `git log` later.
 

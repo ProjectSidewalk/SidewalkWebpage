@@ -1102,7 +1102,7 @@ class AdminServiceImpl @Inject() (
   /**
    * Returns aggregated usage analytics for the v3 public API from the webpage_activity log.
    *
-   * @param excludeApiDocs If true, filters out requests that include `source=apiDocs` in the query string.
+   * @param excludeApiDocs If true, filters out requests that include `utm_source=apiDocs` in the query string.
    * @param days           Number of past days to include; 0 means all time.
    * @return A tuple of (endpoint counts, daily counts, unique IP count, format counts).
    */

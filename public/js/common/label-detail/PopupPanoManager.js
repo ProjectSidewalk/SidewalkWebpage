@@ -212,7 +212,8 @@ class PopupPanoManager {
    * @param {?string} cropUrl - URL for the screenshot fallback image, if available.
    * @param {boolean} [expired=false] - When true, skips the live attempt (imagery known to be expired).
    * @param {?Object} [backupImage=null] - Self-hosted pano metadata; fetched lazily from the backend if null.
-   * @returns {Promise<boolean>} Whether live/Pannellum imagery was shown (false if it fell back to a crop/error).
+   * @returns {Promise<boolean>} Whether a viewable image of the label was shown — live/Pannellum imagery or the
+   *                             static crop (step 1–3). Only `false` for step 4, the "imagery not available" panel.
    */
   async setPano(panoId, pov, cropUrl, expired = false, backupImage = null) {
     this.#cropUrl = typeof cropUrl === 'string' ? cropUrl : null;
@@ -254,11 +255,11 @@ class PopupPanoManager {
     }
 
     // Step 3 & 4: hand off to the existing failure callback, which shows the crop if cropUrl is set
-    // and a generic "imagery not available" message otherwise.
+    // and a generic "imagery not available" message otherwise. Its return distinguishes those two outcomes.
     this.activeViewerName = 'StaticCrop';
-    await this.#panoFailureCallback();
+    const cropShown = await this.#panoFailureCallback();
     if (!this.svHolder[0].dataset.closedDuringLoad) this.svHolder.css('visibility', 'visible');
-    return false;
+    return cropShown;
   }
 
   /**
@@ -328,7 +329,7 @@ class PopupPanoManager {
 
   /**
    * Shows an error message (or the crop fallback) if the pano fails to load.
-   * @returns {Promise<void>}
+   * @returns {Promise<boolean>} Whether the crop fallback was shown (false only when no imagery is available at all).
    */
   #panoFailureCallback() {
     $(this.#panoCanvas).css('display', 'none');
@@ -354,7 +355,7 @@ class PopupPanoManager {
       $(this.#panoNotAvailable).css('display', 'flex');
       this.#buttonHolder.css('display', 'none');
     }
-    return Promise.resolve();
+    return Promise.resolve(Boolean(this.#cropUrl));
   }
 
   /**

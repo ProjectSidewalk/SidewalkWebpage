@@ -3,13 +3,13 @@
  *
  * Renders the API Analytics tab on the admin page, showing v3 public API usage aggregated from the webpage_activity
  * log. Includes endpoint breakdown, daily call volume chart, unique IPs, and format (filetype) breakdown. A toggle lets
- * admins exclude `source=apiDocs` traffic (doc-preview calls) from all counts.
+ * admins exclude `utm_source=apiDocs` traffic (doc-preview calls) from all counts.
  */
 class AdminApiAnalytics {
   /** @type {object|null} - last fetched analytics payload from the server. */
   #data = null;
 
-  /** @type {boolean} - whether `source=apiDocs` requests are excluded from counts. */
+  /** @type {boolean} - whether `utm_source=apiDocs` requests are excluded from counts. */
   #excludeApiDocs = true;
 
   /** @type {number} - number of past days to show (0 = all time). */

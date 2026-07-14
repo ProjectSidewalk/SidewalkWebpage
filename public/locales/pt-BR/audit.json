@@ -233,10 +233,10 @@
       "slight-left": "Vire ligeiramente à esquerda",
       "slight-right": "Vire ligeiramente à direita",
       "u-turn": "Retorne",
-      "end-route": "Você está no final da sua rota! Termine de rotular este cruzamento e, em seguida, <br><span class='bold'>clique aqui para completar a rota.</span>",
-      "end-neighborhood": "Você explorou todo este bairro! Termine de rotular este cruzamento e, em seguida, <br><span class='bold'>clique aqui para completar o bairro.</span>",
-      "end-street": "Precisamos movê-lo para um novo local. Termine de rotular este cruzamento e, em seguida, <br><span class='bold'>clique aqui para ir para um novo local.</span>",
-      "far-away": "Opa, você está bem longe da rota. <br><span class='bold'>Clique aqui para voltar.</span>"
+      "end-route": "Você está no final da sua rota! Termine de rotular este cruzamento e, em seguida, <b>clique aqui para completar a rota.</b>",
+      "end-neighborhood": "Você explorou todo este bairro! Termine de rotular este cruzamento e, em seguida, <b>clique aqui para completar o bairro.</b>",
+      "end-street": "Precisamos movê-lo para um novo local. Termine de rotular este cruzamento e, em seguida, <b>clique aqui para ir para um novo local.</b>",
+      "far-away": "Opa, você está bem longe da rota. <b>Clique aqui para voltar.</b>"
     }
   },
   "popup": {

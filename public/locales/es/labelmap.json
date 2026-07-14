@@ -22,6 +22,7 @@
   "comments": "Comentarios",
   "comment-submitted": "Comentario enviado",
   "own-label-disabled": "No puedes validar ni comentar tu propia etiqueta",
+  "no-imagery-disabled": "No puedes validar ni comentar cuando no hay imágenes disponibles para esta etiqueta",
   "admin-only": "Solo administradores",
   "not-admin-validated": "No validado por un administrador"
 }

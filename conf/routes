@@ -34,12 +34,14 @@ GET     /signOut                                        controllers.UserControll
 GET     /forgotPassword                                 controllers.UserController.forgotPassword(url: String ?= "/")
 GET     /resetPassword                                  controllers.UserController.resetPasswordPage(token: String)
 GET     /anonSignUp                                     controllers.UserController.signUpAnon(url: String ?= "/")
+GET     /welcome                                        controllers.UserController.welcome(next: Option[String] ?= None)
 GET     /changeLanguage                                 controllers.ApplicationController.changeLanguage(url: String ?= "/", language: String, clickLocation: Option[String] ?= None)
 POST    /signUp                                         controllers.UserController.signUpPost()
 POST    /authenticate/credentials                       controllers.UserController.authenticate()
 POST    /forgotPassword                                 controllers.UserController.submitForgottenPassword
 POST    /resetPassword                                  controllers.UserController.resetPassword(token: String)
 PUT     /updateVolunteerStatus                          controllers.UserController.updateVolunteerStatus(userId: String, communityService: Boolean)
+POST    /serviceHours/set                               controllers.UserController.setServiceHours(enabled: Boolean, next: Option[String] ?= None)
 
 # Security policy endpoints.
 + nocsrf
