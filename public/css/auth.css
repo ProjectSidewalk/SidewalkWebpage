@@ -856,8 +856,8 @@ dialog.au-dialog::backdrop {
 
 .tc-stat-num {
   display: block;
-  font-family: var(--font-accent), sans-serif;
-  font-weight: 800;
+  font-family: var(--font-primary), sans-serif;
+  font-weight: 700;
   font-size: clamp(56px, 12vw, 92px);
   line-height: 1;
   color: var(--color-pine-800);
@@ -1010,7 +1010,7 @@ dialog.au-dialog::backdrop {
   color: var(--color-neutral-white);
   display: grid;
   place-items: center;
-  font: 700 13px/1 var(--font-accent);
+  font: 700 13px/1 var(--font-primary);
 }
 
 .sh-steps h2 {
