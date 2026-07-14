@@ -40,6 +40,11 @@ class MissionPanel {
     }
 
     this.#descriptionEl.innerHTML = missionMessage;
+
+    // The mission line is clamped to one line via CSS; when a long neighborhood name is clipped, keep the full text
+    // available on hover (and leave no redundant tooltip when it already fits).
+    const clipped = this.#descriptionEl.scrollWidth > this.#descriptionEl.clientWidth;
+    this.#descriptionEl.title = clipped ? this.#descriptionEl.textContent : '';
   }
 
   /**

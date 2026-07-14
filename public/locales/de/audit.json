@@ -103,6 +103,7 @@
     "feedback-title": "Weitere Ideen? War etwas verwirrend? Haben Sie einen Fehler gefunden?<br>Schicken Sie uns eine Rückmeldung!"
   },
   "right-ui": {
+    "opens-new-tab": "(wird in einem neuen Tab geöffnet)",
     "accuracy-tooltip": "Die Bewertung Ihrer Genauigkeit basiert auf der Validierung durch andere Nutzende. Wenn Ihre Genauigkeit tief ist, sehen Sie sich häufige Fehler unter <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">Ihrem Dashboard</a> an, um sich zu verbessern!",
     "no-accuracy-tooltip": "Wir benötigen mehr Daten, um Ihre Genauigkeit zu bewerten. Fügen Sie mehr Beschriftungen hinzu und melden Sie sich an, um die Bewertung Ihrer Genauigkeit zu verfolgen!",
     "current-mission": {
@@ -114,9 +115,12 @@
       "follow-red-line": "Folgen Sie der roten Linie, um die Mission fortzusetzen.",
       "explore-current-location": "Drehen Sie sich um 360 Grad, um sicherzustellen, dass nichts übersehen wird."
     },
+    "stats": {
+      "leaderboard-cta": "Bestenliste der Gemeinschaft ansehen"
+    },
     "badges": {
       "title": "Abzeichen",
-      "see-all": "Alle Abzeichen anzeigen",
+      "dashboard-cta": "Ihr Dashboard ansehen",
       "labeler-goal": "Verdienen Sie Beschrifter-Abzeichen, indem Sie beim Erkunden Barrierefreiheits-Markierungen setzen.",
       "explorer-goal": "Verdienen Sie Erkunder-Abzeichen, indem Sie auf der Erkunden-Seite Strassen bewerten.",
       "next-labels_one": "Setzen Sie {{count, number}} Markierung, um das nächste zu erhalten.",

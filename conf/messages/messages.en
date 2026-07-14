@@ -195,7 +195,7 @@ audit.ribbon.signal = <u>P</u>edestrian Signal
 audit.ribbon.other = Other
 audit.ribbon.occlusion = Can''t See the Sidewalk (<u>B</u>)
 
-audit.right.ui.overall.stats = Overall Stats
+audit.right.ui.overall.stats = Your Overall Stats
 
 audit.center.ui.tags.header = Add tags
 audit.center.ui.tags.info = Please add tags to your labels, which enriches the data with useful information. Mouseover the tags for examples.
@@ -516,6 +516,7 @@ dashboard.team.error.signin = Please sign in to create a team.
 dashboard.team.error.name.length = Team name must be 2–50 characters.
 dashboard.team.error.desc.length = Description is too long (max 300 characters).
 dashboard.team.error.name.allowed = That name isn''t allowed — please choose another.
+dashboard.team.error.desc.allowed = That description isn''t allowed — please choose another.
 dashboard.nav.aria = Dashboard sections
 dashboard.nav.you = You
 dashboard.nav.community = Community

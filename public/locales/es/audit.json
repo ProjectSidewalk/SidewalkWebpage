@@ -103,6 +103,7 @@
     "feedback-title": "¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!"
   },
   "right-ui": {
+    "opens-new-tab": "(se abre en una pestaña nueva)",
     "accuracy-tooltip": "La precisión se basa en validaciones de otros usuarios. Si su precisión es baja, consulte algunos errores recientes en <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">su panel de usuario</a> para ayudarlo a mejorar.",
     "no-accuracy-tooltip": "Necesitamos más datos para calcular una calificación de precisión para usted. ¡Agregue más etiquetas y regístrese para realizar un seguimiento de su calificación de precisión!",
     "current-mission": {
@@ -114,9 +115,12 @@
       "follow-red-line": "Sigue la línea roja para continuar la misión",
       "explore-current-location": "Gire 360 grados para asegurarse de que no se pierda nada."
     },
+    "stats": {
+      "leaderboard-cta": "Ver la clasificación de la comunidad"
+    },
     "badges": {
       "title": "Insignias",
-      "see-all": "Ver todas las insignias",
+      "dashboard-cta": "Descubre tu panel",
       "labeler-goal": "Gana insignias de Etiquetador colocando etiquetas de accesibilidad mientras exploras.",
       "explorer-goal": "Gana insignias de Explorador evaluando calles en la página Explorar.",
       "next-labels_one": "Coloca {{count, number}} etiqueta para conseguir la siguiente.",

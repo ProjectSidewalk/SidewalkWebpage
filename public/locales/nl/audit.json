@@ -103,6 +103,7 @@
     "feedback-title": "Nog ideeën? Ben je tegen iets verwarrends aangelopen? Of heb je een fout gevonden?<br>Stuur ons een reactie!"
   },
   "right-ui": {
+    "opens-new-tab": "(opent in een nieuw tabblad)",
     "accuracy-tooltip": "Nauwkeurigheid is gebaseerd op validaties van andere gebruikers. Als uw nauwkeurigheid laag is, bekijk dan enkele recente fouten op <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">uw gebruikersdashboard</a> om u te helpen verbeteren!",
     "no-accuracy-tooltip": "We hebben meer gegevens nodig om een nauwkeurigheidsbeoordeling voor u te berekenen. Voeg meer labels toe en meld u aan om uw nauwkeurigheidsbeoordeling bij te houden!",
     "current-mission": {
@@ -114,9 +115,12 @@
       "follow-red-line": "Volg de rode lijn om de missie voort te zetten",
       "explore-current-location": "Draai 360 graden om er zeker van te zijn dat u niets mist."
     },
+    "stats": {
+      "leaderboard-cta": "Bekijk het scorebord van de gemeenschap"
+    },
     "badges": {
       "title": "Badges",
-      "see-all": "Alle badges bekijken",
+      "dashboard-cta": "Bekijk je dashboard",
       "labeler-goal": "Verdien Labelaar-badges door toegankelijkheidslabels te plaatsen tijdens het verkennen.",
       "explorer-goal": "Verdien Ontdekker-badges door straten te beoordelen op de Verkennen-pagina.",
       "next-labels_one": "Plaats {{count, number}} label om de volgende te verdienen.",

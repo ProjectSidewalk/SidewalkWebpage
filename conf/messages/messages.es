@@ -200,7 +200,7 @@ audit.ribbon.signal = Semáforo <u>p</u>eatonal
 audit.ribbon.other = Otro
 audit.ribbon.occlusion = <span style="font-size: 13px;">No puedo ver la <u>b</u>anqueta</span>
 
-audit.right.ui.overall.stats = Estadísticas generales
+audit.right.ui.overall.stats = Tus estadísticas generales
 audit.center.ui.tags.header = Agregar etiquetas
 audit.center.ui.tags.info = Añade etiquetas a tus etiquetas para enriquecer los datos con información útil. Pasa el cursor sobre las etiquetas para ver ejemplos.
 audit.center.ui.description.header = Describe (opcional)
@@ -519,6 +519,7 @@ dashboard.team.error.signin = Inicia sesión para crear un equipo.
 dashboard.team.error.name.length = El nombre del equipo debe tener entre 2 y 50 caracteres.
 dashboard.team.error.desc.length = La descripción es demasiado larga (máx. 300 caracteres).
 dashboard.team.error.name.allowed = Ese nombre no está permitido; elige otro.
+dashboard.team.error.desc.allowed = Esa descripción no está permitida; elige otra.
 dashboard.nav.aria = Secciones del panel
 dashboard.nav.you = Tú
 dashboard.nav.community = Comunidad
