@@ -34,6 +34,14 @@
   margin: 0;
 }
 
+/* Long neighborhood names (e.g. "Teaneck Creek Conservancy") would wrap to a second line; clamp the mission line to
+   one line with an ellipsis. MissionPanel sets the element's title to the full text so it stays available on hover. */
+#current-mission-description {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Holds the mission and neighborhood progress groups, spaced from each other and from the minimap below. */
 .explore-sidebar__progress-groups {
   display: flex;
@@ -52,8 +60,20 @@
   --ps-progress-bar-height: calc(10px * var(--ui-scale));
 }
 
+/* The badge count labels ("current / target") reserve a fixed-width column so both badge bars render the same length
+   regardless of the text (#4450), sized to the widest realistic label ("12.3 / 20.0 mi"); shorter labels just leave
+   the reserved space empty. */
 .explore-sidebar__badge-progress .ps-progress-bar__label {
   font: var(--text-tiny-semibold);
+  flex: 0 0 auto;
+  min-width: calc(64px * var(--ui-scale));
+}
+
+/* Same equal-length treatment for the mission and neighborhood bars (#4450): their labels are percentages
+   ("0%"–"100%"), so a narrower reserved column keeps both bars aligned regardless of the value. */
+.explore-sidebar__progress-group .ps-progress-bar__label {
+  flex: 0 0 auto;
+  min-width: calc(34px * var(--ui-scale));
 }
 
 /* Overall stats: three equal columns, each an icon over a value over a label. */
@@ -210,7 +230,7 @@
   gap: calc(2px * var(--ui-scale));
   width: fit-content;
   margin-top: calc(6px * var(--ui-scale));
-  font: var(--text-caption-semibold);
+  font: var(--text-tiny-semibold);
   color: var(--exp-sidebar-link);
   text-decoration: none;
 }
@@ -220,10 +240,24 @@
   text-decoration: underline;
 }
 
-.explore-sidebar__see-all-chevron {
+/* External-link glyph on the CTAs, signalling that they open in a new tab. */
+.explore-sidebar__see-all-icon {
   flex: 0 0 auto;
   width: calc(12px * var(--ui-scale));
   height: calc(12px * var(--ui-scale));
+}
+
+/* Visually hidden but exposed to assistive tech (e.g. the "opens in a new tab" hint on CTAs). */
+.explore-sidebar__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* Current mission section (mission progress, neighborhood progress, and minimap): grows to fill the remaining

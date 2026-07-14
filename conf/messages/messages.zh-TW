@@ -259,7 +259,7 @@ audit.ribbon.signal = 行人號誌<u>P</u>
 audit.ribbon.other = 其他
 audit.ribbon.occlusion = 看不到人行道 (<u>B</u>)
 
-audit.right.ui.overall.stats = 整體統計數據
+audit.right.ui.overall.stats = 您的整體統計數據
 audit.center.ui.tags.header = 新增標籤
 audit.center.ui.tags.info = 請為您的標籤新增標籤，以便為資料提供有用的信息。將滑鼠懸停在標籤上即可查看範例。
 audit.center.ui.description.header = 描述（可選）

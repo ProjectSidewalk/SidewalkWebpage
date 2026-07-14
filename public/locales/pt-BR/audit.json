@@ -103,6 +103,7 @@
     "feedback-title": "Alguma opinião? Encontrou algo confuso? Viu algum bug?<br>Envie seus comentários!"
   },
   "right-ui": {
+    "opens-new-tab": "(abre em uma nova aba)",
     "accuracy-tooltip": "A precisão é baseada em validações de outros usuários. Se sua precisão estiver baixa, verifique alguns erros recentes em <a href=\"/dashboard\" target=\"_blank\" id=\"tooltip-dashboard-link\">seu Painel de Usuário</a> para ajudá-lo a melhorar!",
     "no-accuracy-tooltip": "Precisamos de mais dados para calcular uma classificação de precisão para você. Adicione mais rótulos e inscreva-se para acompanhar sua classificação de precisão!",
     "current-mission": {
@@ -114,9 +115,12 @@
       "follow-red-line": "Siga a linha vermelha para continuar a missão",
       "explore-current-location": "Vire 360 graus para garantir que nada seja perdido."
     },
+    "stats": {
+      "leaderboard-cta": "Ver a classificação da comunidade"
+    },
     "badges": {
       "title": "Insígnias",
-      "see-all": "Ver todas as insígnias",
+      "dashboard-cta": "Confira seu painel",
       "labeler-goal": "Ganhe insígnias de Rotulador adicionando rótulos de acessibilidade enquanto explora.",
       "explorer-goal": "Ganhe insígnias de Explorador avaliando ruas na página Explorar.",
       "next-labels_one": "Adicione {{count, number}} rótulo para conquistar a próxima.",

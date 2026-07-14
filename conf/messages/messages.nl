@@ -188,7 +188,7 @@ audit.ribbon.signal = Verkeerslicht (<u>P</u>)
 audit.ribbon.other = Anders
 audit.ribbon.occlusion = Het Trottoir is niet Zicht<u>b</u>aar
 
-audit.right.ui.overall.stats = Algemene statistieken
+audit.right.ui.overall.stats = Jouw algemene statistieken
 audit.center.ui.tags.header = Voeg tags toe
 audit.center.ui.tags.info = Voeg tags toe aan uw labels om de gegevens te verrijken met nuttige informatie. Beweeg de muis over de tags voor voorbeelden.
 audit.center.ui.description.header = Beschrijf (optioneel)
