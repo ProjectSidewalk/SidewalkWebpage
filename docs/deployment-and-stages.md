@@ -50,6 +50,42 @@ Practical implications for contributors:
 - A redeploy re-runs the full build (below) and restarts the affected city instances, so it is not instantaneous and
   briefly interrupts the sites on that stage.
 
+## Cutting a release (runbook)
+
+Production is deployed by **creating a GitHub Release with a `vX.Y.Z` tag on `master`** — per the table above, only a
+semver tag deploys to prod. A release is more than the tag, though. Do these steps **in order**:
+
+1. **Bump the app version** — edit `version := "X.Y.Z"` in [`build.sbt`](../build.sbt) (patch bump for a hotfix, e.g.
+   `11.6.0` → `11.6.1`).
+2. **Add a version-table evolution** — create the next-numbered `conf/evolutions/default/NNN.sql` that records the
+   release in the `version` table. This row is what the site footer / `commonData.versionId` displays (the app shows
+   the row with the latest `version_start_time`, so `now()` is correct and no manual date is needed):
+   ```sql
+   # --- !Ups
+   INSERT INTO version VALUES ('X.Y.Z', now(), 'One-line, user-facing summary of the release.');
+
+   # --- !Downs
+   DELETE FROM version WHERE version_id = 'X.Y.Z';
+   ```
+3. **Land it on `develop` first** (PR) — merging to `develop` redeploys the **test** stage; verify there.
+4. **Merge `develop` → `master`** (PR).
+5. **Create the GitHub Release** with tag `vX.Y.Z` targeting `master`. That tag/release triggers the **prod** build and
+   the rolling per-city restart. Match the existing tag format exactly (`v11.6.0`, `v11.5.1`, …).
+6. **Verify prod** — the build isn't instant and city instances come up one-by-one. Confirm the *new code* is live, not
+   just that the server responds. Until an explicit version endpoint exists (**#4548**), the reliable check is
+   **behavioral**: load a page whose behavior only the new code produces. (The `/anonSignUp` liveness probe is not
+   sufficient — it passes even when a page like `/leaderboard` is crashing.)
+
+**Two independent gotchas, both learned from #4545:**
+- Merging to `master` alone does **not** deploy to prod — the **tag** (step 5) does.
+- Bumping `build.sbt` alone does **not** change the version the site shows — the **evolution** (step 2) does.
+A hotfix that changes no schema *still* needs step 2 for the displayed version to update.
+
+> **Design note:** routing release-versioning through schema evolutions couples two unrelated concerns and duplicates
+> the version string across `build.sbt`, an evolution, and the git tag. Making the git tag / build metadata the single
+> source of truth (an `sbt-buildinfo`-backed `/version` endpoint) is tracked in **#4548**; follow that convention if it
+> lands.
+
 ## Runtime shape
 
 Each stage hosts **many cities at once**, and each city runs as its **own independent instance of this app** —
