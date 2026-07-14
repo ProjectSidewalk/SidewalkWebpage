@@ -1,0 +1,4 @@
+@(withCross: Boolean = false)
+@* The check / cross icons inside a live-validation dot. CSS shows the check when the rule is met, and (when
+   `withCross` is set, for indicators that can visibly fail) the cross when the current input is failing. *@
+<span class="au-dot"><svg class="au-ic-check" viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 5.5l2 2 5-5" fill="none" stroke="var(--color-neutral-white)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>@if(withCross){<svg class="au-ic-x" viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 2.5l5 5m0-5l-5 5" fill="none" stroke="var(--color-error-200)" stroke-width="2" stroke-linecap="round"></path></svg>}</span>

@@ -1,0 +1,72 @@
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@import views.html.helper.CSRF
+@(commonData: CommonPageData, user: SidewalkUserWithRole, resumeUrl: String
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@*
+* Post-registration welcome page (#4375): confirms the new account and shows what it unlocks (dashboard, badges,
+* leaderboard). "Keep exploring" resumes the page sign-up interrupted (the controller passes a same-origin-guarded
+* resumeUrl). Confetti is CSS-only, in the seven canonical label-type colors, and gated on prefers-reduced-motion.
+*@
+
+@common.main(commonData, "Sidewalk - Welcome") {
+  @common.navbar(commonData, Some(user))
+  <div class="wl-page">
+    <div class="wl-hero play">
+      <div class="wl-confetti" aria-hidden="true">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+      <img class="wl-logo" src='@assets.path("images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_100x100.png")' alt="" width="64" height="64">
+      <h1>@Messages("welcome.title", user.username)</h1>
+      <p class="wl-sub">@Messages("welcome.subtitle")</p>
+    </div>
+    <div class="wl-main">
+      <div class="wl-cards">
+        <div class="wl-card">
+          <div class="wl-icon">
+            <svg viewBox="0 0 38 38" fill="none" aria-hidden="true"><rect x="3" y="21" width="7" height="13" rx="1.5" fill="var(--color-pine-400)"></rect><rect x="15.5" y="12" width="7" height="22" rx="1.5" fill="var(--color-pine-600)"></rect><rect x="28" y="4" width="7" height="30" rx="1.5" fill="var(--color-pine-700)"></rect></svg>
+          </div>
+          <h2>@Messages("welcome.card.dashboard.title")</h2>
+          <p>@Messages("welcome.card.dashboard.body")</p>
+        </div>
+        <div class="wl-card">
+          <div class="wl-icon">
+            <img src='@assets.path("images/badges/badge_missions_badge1.png")' alt="" width="42" height="42">
+          </div>
+          <h2>@Messages("welcome.card.badges.title")</h2>
+          <p>@Messages("welcome.card.badges.body")</p>
+        </div>
+        <div class="wl-card">
+          <div class="wl-icon">
+            <svg viewBox="0 0 38 38" fill="none" aria-hidden="true"><rect x="2" y="18" width="10" height="16" rx="1.5" fill="var(--color-banana-500)"></rect><rect x="14" y="10" width="10" height="24" rx="1.5" fill="var(--color-banana-600)"></rect><rect x="26" y="22" width="10" height="12" rx="1.5" fill="var(--color-banana-300)"></rect><circle cx="19" cy="5" r="3" fill="var(--color-banana-800)"></circle></svg>
+          </div>
+          <h2>@Messages("welcome.card.leaderboard.title")</h2>
+          <p>@Messages("welcome.card.leaderboard.body")</p>
+        </div>
+      </div>
+      <div class="wl-ctas">
+        <a class="button-ps button--primary button--large" id="welcome-explore-btn" href="@resumeUrl">@Messages("landing.start.exploring")</a>
+        <a class="button-ps button--secondary button--large" id="welcome-dashboard-btn" href="/dashboard">@Messages("welcome.cta.dashboard")</a>
+      </div>
+      <div class="wl-service">
+        <svg class="wl-service-ic" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M2 8.5 12 4l10 4.5-10 4.5L2 8.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"></path>
+          <path d="M6.5 10.7V15c0 1.2 2.5 2.3 5.5 2.3s5.5-1.1 5.5-2.3v-4.3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path>
+          <path d="M22 8.5v4.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path>
+        </svg>
+        <div class="wl-service-body">
+          <p class="wl-service-prompt">@Messages("welcome.service.prompt")</p>
+          <form method="post" action="@routes.UserController.setServiceHours(true, Some("/serviceHoursInstructions"))">
+            @CSRF.formField
+            <button type="submit" class="button-ps button--secondary button--medium wl-service-btn">@Messages("welcome.service.button")</button>
+          </form>
+        </div>
+      </div>
+      <p class="wl-hint">@Html(Messages("welcome.hint.username", routes.UserDashboardController.settings.url))</p>
+    </div>
+  </div>
+}

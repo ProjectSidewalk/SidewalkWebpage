@@ -4,26 +4,26 @@ import play.api.data.Form
 import play.api.data.Forms._
 import play.api.data.validation.Constraints._
 
+/**
+ * The sign-up form, shared by the auth dialog and the full-page/mobile sign-up views.
+ *
+ * Username and password rules come from `UsernamePolicy` / `PasswordPolicy` so the live frontend checklist and the
+ * rename flow enforce the same contract. Error messages are i18n keys so the async JSON responses localize. The
+ * volunteer service-hours opt-in is not part of sign-up; it lives in the dashboard Settings page (#4375).
+ */
 object SignUpForm {
   val form = Form(
     mapping(
       "username" -> nonEmptyText
-        .verifying(minLength(3))
-        .verifying(maxLength(30))
-        .verifying(pattern("""[a-zA-Z0-9]+$""".r, error = "Username can only contain letters and numbers")),
+        .verifying(minLength(UsernamePolicy.minLength))
+        .verifying(maxLength(UsernamePolicy.maxLength))
+        .verifying(pattern(UsernamePolicy.pattern, error = "authenticate.error.username.charset")),
       "email"    -> email.verifying(nonEmpty),
       "password" -> nonEmptyText
-        .verifying(minLength(8))
-        .verifying(
-          pattern(
-            """^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).*$""".r,
-            error = "Password must contain at least one uppercase letter, one lowercase letter, and one number"
-          )
-        ),
+        .verifying(minLength(PasswordPolicy.minLength))
+        .verifying(pattern(PasswordPolicy.pattern, error = "authenticate.error.password.requirements")),
       "passwordConfirm" -> nonEmptyText,
-      "serviceHours"    -> nonEmptyText
-        .verifying("Please select Yes or No", value => value == "YES" || value == "NO"),
-      "terms" -> boolean.verifying("You must agree to the terms and conditions", value => value)
+      "terms"           -> boolean.verifying("authenticate.error.terms.required", value => value)
     )(SignUpData.apply)(SignUpData.unapply).verifying(
       "authenticate.error.password.mismatch",
       fields => fields.password == fields.passwordConfirm
@@ -33,16 +33,17 @@ object SignUpForm {
   /**
    * The form data.
    *
-   * @param username The last name of a user.
-   * @param email The email of the user.
-   * @param password The password of the user.
+   * @param username        Display name shown on leaderboards; must satisfy `UsernamePolicy`.
+   * @param email           The email of the user.
+   * @param password        The password of the user; must satisfy `PasswordPolicy`.
+   * @param passwordConfirm Must equal `password`.
+   * @param terms           Whether the user accepted the terms of use; must be true.
    */
   case class SignUpData(
       username: String,
       email: String,
       password: String,
       passwordConfirm: String,
-      serviceHours: String,
       terms: Boolean
   )
 }

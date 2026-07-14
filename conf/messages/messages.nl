@@ -227,6 +227,7 @@ validate.mission.complete.category = Categorie
 validate.mission.complete.your.overall.total = Je Totaal
 
 authenticate.email = Email-adres
+authenticate.identifier = E-mailadres of gebruikersnaam
 authenticate.password = Wachtwoord
 authenticate.remember.me = Houd mij aangemeld
 authenticate.new = Ben je nieuw? <a href="#" id="form-open-sign-up">Nieuw account maken!</a>
@@ -237,6 +238,47 @@ authenticate.terms = Je gaat akkoord met onze <a target="_blank" href="/terms">G
 authenticate.signup = Een account maken
 authenticate.signup.new.account = Maak een nieuw account
 authenticate.has.account = Heb je een account? <a href="#" id="form-open-sign-in">Log in</a>
+
+# Sign-in/sign-up redesign (#4375) — draft translations, pending native-speaker polish (#4494).
+authenticate.welcome.back = Welkom terug
+authenticate.join = Doe mee met Project Sidewalk
+authenticate.tagline = Breng trottoirs in kaart. Help je stad toegankelijk te maken voor iedereen.
+authenticate.close = Sluiten
+authenticate.show.password = Wachtwoord tonen
+authenticate.hide.password = Wachtwoord verbergen
+authenticate.username.rule = 3–30 tekens — letters, cijfers, koppeltekens en underscores
+authenticate.pw.rule.length = Minstens {0} tekens
+authenticate.pw.rule.uppercase = Eén hoofdletter
+authenticate.pw.rule.lowercase = Eén kleine letter
+authenticate.pw.rule.digit = Eén cijfer
+authenticate.pw.match = Wachtwoorden komen overeen
+authenticate.pw.match.not = Wachtwoorden komen nog niet overeen
+authenticate.pw.strength.1 = Zwak
+authenticate.pw.strength.2 = Oké
+authenticate.pw.strength.3 = Goed
+authenticate.pw.strength.4 = Sterk
+authenticate.create.account = Mijn account aanmaken
+authenticate.new.detail = Nieuw bij Project Sidewalk? <a href="#" id="form-open-sign-up">Maak een account</a>
+authenticate.new.detail.link = Nieuw bij Project Sidewalk? <a href="{0}">Maak een account</a>
+authenticate.error.invalid.credentials.detail = Dat e-mailadres en wachtwoord komen niet overeen met onze gegevens. Controleer ze en probeer het opnieuw.
+authenticate.error.generic = Er is iets misgegaan aan onze kant. Probeer het opnieuw.
+authenticate.error.too.many = Te veel pogingen. Wacht even en probeer het opnieuw.
+authenticate.error.username.charset = Gebruikersnamen mogen alleen letters, cijfers, koppeltekens en underscores bevatten.
+authenticate.error.username.inappropriate = Die gebruikersnaam is niet toegestaan; kies een andere.
+authenticate.error.password.requirements = Wachtwoorden hebben een hoofdletter, een kleine letter en een cijfer nodig.
+authenticate.error.terms.required = Je moet akkoord gaan met de voorwaarden om een account aan te maken.
+welcome.title = Je staat op de kaart, {0}!
+welcome.subtitle = Je Project Sidewalk-account is klaar. Alles wat je vanaf nu in kaart brengt, telt mee voor je stad — en voor jou. Dit heb je zojuist ontgrendeld:
+welcome.card.dashboard.title = Je dashboard
+welcome.card.dashboard.body = Volg je straten, labels en nauwkeurigheid terwijl je impact groeit.
+welcome.card.badges.title = Badges
+welcome.card.badges.body = Verdien ze terwijl je in kaart brengt, valideert en missiemijlpalen haalt.
+welcome.card.leaderboard.title = Het scorebord
+welcome.card.leaderboard.body = Zie hoe jouw werk zich verhoudt in de stad — alleen of met een team.
+welcome.cta.dashboard = Mijn dashboard bekijken
+welcome.hint.username = Je kunt je gebruikersnaam altijd wijzigen in <a href="{0}">Dashboard → Instellingen</a>.
+welcome.service.prompt = Breng je in kaart voor school- of vrijwilligersuren?
+welcome.service.button = Aanmelden voor serviceuren
 authenticate.is.member = Al lid? <a href="{0}">Log direct in</a>
 authenticate.signin.with.credentials = Log in met je inloggegevens
 
@@ -484,6 +526,10 @@ dashboard.settings.units = Maateenheden
 dashboard.settings.units.metric = Kilometers & meters
 dashboard.settings.units.imperial = Mijlen & voet
 dashboard.settings.units.help = De eenheden volgen de taal van de site, die je kunt wijzigen via het taalmenu in de bovenbalk.
+dashboard.settings.service.hours = Vrijwilligersuren
+dashboard.settings.service.hours.toggle = Aanmelden voor maatschappelijke serviceuren
+dashboard.settings.service.hours.help = Meldt je aan voor officiële erkenning — je begeleider kan je uren verifiëren — en voegt "Serviceuren" en "Tijdcontrole" toe aan je accountmenu.
+dashboard.settings.service.hours.link = Hoe serviceuren werken
 dashboard.settings.team = Team
 dashboard.settings.team.label = Je team
 dashboard.settings.team.none = Geen team

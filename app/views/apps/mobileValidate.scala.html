@@ -99,9 +99,9 @@
       <div id="modal-mission-background" class="modal-background"></div>
       <div id="modal-mission-foreground" class="modal-foreground">
         @if(user.role != "Anonymous") {
-          <button type="button" data-toggle="modal" data-target="#sign-in-modal-container" class="sign-in-up-button-mobile">@{user.username}</button>
+          <button type="button" data-au-open="signIn" class="sign-in-up-button-mobile">@{user.username}</button>
         } else {
-          <button type="button" id="mobile-validate-sign-in-btn"data-toggle="modal" data-target="#sign-in-modal-container" class="sign-in-up-button-mobile">@Messages("navbar.signin")</button>
+          <button type="button" id="mobile-validate-sign-in-btn" data-au-open="signIn" class="sign-in-up-button-mobile">@Messages("navbar.signin")</button>
         }
         <img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-mission" alt="Project Sidewalk logo"></img>
         <h1 id="modal-mission-header" class="text-center"></h1>

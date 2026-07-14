@@ -85,7 +85,9 @@
   /* Font stacks. Mulish handles ~all type (body, UI, headings H3 and below); Raleway is reserved for top-level H1/H2
        and the Small-Accent style. Mulish doesn't ship CJK glyphs, so its stack ends with Traditional-Chinese system
        fonts (PingFang TC on macOS/iOS, Microsoft JhengHei on Windows; Linux/Android fall through via sans-serif). The
-       browser does per-glyph fallback: Latin renders in Mulish, CJK in the OS CJK font. */
+       browser does per-glyph fallback: Latin renders in Mulish, CJK in the OS CJK font.
+       Avoid --font-accent (Raleway) for text that shows numbers — its digits aren't tabular, so figures don't align
+       vertically in columns or stay steady in changing counters/timers. Use --font-primary for numeric content. */
   --font-primary: "Mulish", "PingFang TC", "Microsoft JhengHei", sans-serif;
   --font-accent:  "Raleway", sans-serif;
 
@@ -181,10 +183,6 @@ body {
 
 footer {
   padding: 30px 0;
-}
-
-#sign-in-modal-container .modal-dialog {
-  width: 400px;
 }
 
 /*

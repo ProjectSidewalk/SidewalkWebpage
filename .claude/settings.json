@@ -16,7 +16,9 @@
       "Bash(make eslint:*)",
       "Bash(make eslint-fix:*)",
       "Bash(make lint-evolutions:*)",
-      "Bash(make test-python:*)"
+      "Bash(make test-python:*)",
+      "Bash(git grep:*)",
+      "Bash(git ls-tree:*)"
     ],
     "deny": [
       "Read(docker-compose.override.yml)"

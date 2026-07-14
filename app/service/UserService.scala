@@ -405,8 +405,11 @@ class UserServiceImpl @Inject() (
    */
   def changeUsername(userId: String, newUsername: String): Future[Either[String, String]] = {
     val name = newUsername.trim
-    if (name.length < 3 || name.length > 30) Future.successful(Left("dashboard.settings.username.error.length"))
-    else if (!name.matches("^[A-Za-z0-9_-]+$"))
+    // Bounds/charset come from UsernamePolicy so rename and sign-up enforce the same contract (#4375); the caller
+    // localizes the returned i18n key at the HTTP boundary.
+    if (name.length < forms.UsernamePolicy.minLength || name.length > forms.UsernamePolicy.maxLength)
+      Future.successful(Left("dashboard.settings.username.error.length"))
+    else if (forms.UsernamePolicy.pattern.findFirstIn(name).isEmpty)
       Future.successful(Left("dashboard.settings.username.error.charset"))
     else if (!ProfanityGuard.isClean(name))
       Future.successful(Left("dashboard.settings.username.error.allowed"))

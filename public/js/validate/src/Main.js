@@ -256,11 +256,13 @@ class Main {
     });
     logPageFocus();
 
-    $('#sign-in-modal-container').on('hide.bs.modal', () => {
+    // The auth dialog is absent when signed in; pause keyboard shortcuts while it's open (events from Modal.js).
+    const signInModal = document.getElementById('sign-in-modal-container');
+    signInModal?.addEventListener('ps:modal:hidden', () => {
       svv.keyboard.enableKeyboard();
       $('.tool-ui').css('opacity', 1);
     });
-    $('#sign-in-modal-container').on('show.bs.modal', () => {
+    signInModal?.addEventListener('ps:modal:show', () => {
       svv.keyboard.disableKeyboard();
       $('.tool-ui').css('opacity', 0.5);
     });

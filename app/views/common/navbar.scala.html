@@ -9,8 +9,6 @@
 @currentCityInfo = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
 @cityInfo = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId || c.visibility == "public" || (currentCityInfo.countryId == "taiwan" && c.countryId == "taiwan"))}
 
-@implicitFieldConstructor = @{ b3.vertical.fieldConstructor() }
-
   <!-- Fixed navbar -->
 @isLanding = @{request.path == "/" || request.path == "/home"}
 <nav id="header"@if(isLanding) { class="header--tall"}>
@@ -142,7 +140,9 @@
             </li>
           </ul>
         } else {
-          <button type="button" id="navbar-sign-in-btn" data-toggle="modal" data-target="#sign-in-modal-container" class="navbar-button button-ps button--primary button__static--tiny">@Messages("navbar.signin")</button>
+          @* Real href so it works on pages without the dialog (e.g. /signIn itself); AuthModal intercepts the
+             click to open the dialog everywhere else. *@
+          <a id="navbar-sign-in-btn" href="@routes.UserController.signIn()" data-au-open="signIn" class="navbar-button button-ps button--primary button__static--tiny">@Messages("navbar.signin")</a>
         }
         </li>
 
@@ -256,72 +256,103 @@
   });
 </script>
 
-@if(!user || user.get.role == "Anonymous") {
-  <script>
-    $(document).ready(function () {
-      $("#form-open-sign-up").on("mouseup", function () {
-        $("#sign-in-modal").addClass("hidden");
-        $("#sign-up-modal").removeClass("hidden");
-      });
-      $("#form-open-sign-in").on("mouseup", function () {
-        $("#sign-up-modal").addClass("hidden");
-        $("#sign-in-modal").removeClass("hidden");
-      });
-      // If on the sign in or sign up pages, remove the sign-in button from the navbar.
-      if (location.pathname === '/signIn' || location.pathname === '/signUp') {
-        $('#sign-in-modal-container').remove();
-        $('#navbar-user-dropdown-list').remove();
-      }
-    });
-  </script>
-  <div class="modal fade" id="sign-in-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <!-- Sign in form -->
-      <div class="modal-content" id="sign-in-modal">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-          <h4 class="modal-title" id="sign-in-label">@Messages("navbar.signin")</h4>
-        </div>
-        <div class="modal-body">
-        @form(action = routes.UserController.authenticate(), args = 'id -> "sign-in-form") {
-          @htmlCSRF.formField
-          <input type="hidden" name="returnUrl" value="@request.uri">
-            @b3.email(forms.SignInForm.form("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"))
-            @b3.password(forms.SignInForm.form("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'pattern -> "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).*$", 'title -> "Password must contain at least one uppercase letter, one lowercase letter, and one number")
-            @b3.checkbox(forms.SignInForm.form("rememberMe"), '_text -> Messages("authenticate.remember.me"), 'checked -> true)
-            @b3.submit('class -> "btn btn-sm btn-primary btn-block") { @Messages("navbar.signin") }
-          }
-        </div>
-        <div class="modal-footer">
-          <div>@Html(Messages("authenticate.new"))</div>
-          <div class="forgot-password-modal">
-            <a href="@routes.UserController.forgotPassword()">@Messages("reset.pw.forgot.title")</a>
+@* The full-page /signIn·/signUp routes own the same form ids as the no-JS fallback, so the dialog is not rendered
+   there (avoids duplicate ids). *@
+@if((!user || user.get.role == "Anonymous") && request.path != "/signIn" && request.path != "/signUp") {
+  <dialog id="sign-in-modal-container" class="au-dialog" aria-labelledby="sign-in-label">
+    <div class="au-body">
+        <!-- Sign-in panel -->
+      <div class="au-panel" id="sign-in-modal">
+        <div class="au-top">
+          <img src='@assets.path("images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_100x100.png")' alt="" width="40" height="40">
+          <div class="au-heading">
+            <p class="au-eyebrow">Project Sidewalk</p>
+            <h1 class="au-title" id="sign-in-label">@Messages("authenticate.welcome.back")</h1>
           </div>
+          <button type="button" class="au-close" aria-label="@Messages("authenticate.close")">&#10005;</button>
         </div>
-      </div><!-- /.modal-content -->
-      <!-- Sign up form -->
-      <div class="modal-content hidden" id="sign-up-modal">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-          <h4 class="modal-title" id="sign-up-label">@Messages("authenticate.signup")</h4>
-        </div>
-        <div class="modal-body">
-        @form(action = routes.UserController.signUpPost(), args = 'id -> "sign-up-form") {
+        @form(action = routes.UserController.authenticate(), args = 'id -> "sign-in-form", 'class -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
           @htmlCSRF.formField
           <input type="hidden" name="returnUrl" value="@request.uri">
-            @b3.text(forms.SignUpForm.form("username"), '_hiddenLabel -> Messages("username"), 'placeholder -> Messages("username"), 'title -> "Username can only contain letters and numbers")
-            @b3.email(forms.SignUpForm.form("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"))
-            @b3.password(forms.SignUpForm.form("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'pattern -> "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).*$", 'title -> "Password must contain at least one uppercase letter, one lowercase letter, and one number")
-            @b3.password(forms.SignUpForm.form("passwordConfirm"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.confirm.password"))
-            @b3.radio(forms.SignUpForm.form("serviceHours"), Seq("YES" -> Messages("yes.caps"), "NO" -> Messages("no.caps")), '_label -> Messages("authenticate.service.hours.title"))
-            @b3.checkbox(forms.SignUpForm.form("terms"), '_text -> Html(Messages("authenticate.terms")))
-            @b3.submit('class -> "btn btn-lg btn-primary btn-block") { @Messages("submit") }
-          }
+          <div class="au-field">
+            <label class="au-label" for="sign-in-email">@Messages("authenticate.identifier")</label>
+            <input class="au-input" id="sign-in-email" name="email" type="text" autocomplete="username" required>
+          </div>
+          <div class="au-field">
+            <div class="au-label-row">
+              <label class="au-label" for="sign-in-password">@Messages("authenticate.password")</label>
+              <a class="au-link" href="@routes.UserController.forgotPassword()">@Messages("reset.pw.forgot.title")</a>
+            </div>
+            <div class="au-input-wrap">
+              <input class="au-input au-input--with-eye" id="sign-in-password" name="password" type="password" autocomplete="current-password" required>
+              @common.authEyeButton("sign-in-password")
+            </div>
+          </div>
+          <label class="au-check" for="sign-in-remember"><input type="checkbox" id="sign-in-remember" name="rememberMe" value="true" checked> @Messages("authenticate.remember.me")</label>
+          <button type="submit" class="button-ps button--primary button--large au-submit">@Messages("navbar.signin")</button>
+        }
+        <div class="au-footer">@Html(Messages("authenticate.new.detail"))</div>
+      </div>
+        <!-- Sign-up panel -->
+      <div class="au-panel ps-hidden" id="sign-up-modal">
+        <div class="au-top">
+          <img src='@assets.path("images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_100x100.png")' alt="" width="40" height="40">
+          <div class="au-heading">
+            <p class="au-eyebrow">Project Sidewalk</p>
+            <h1 class="au-title" id="sign-up-label">@Messages("authenticate.join")</h1>
+            <p class="au-tagline">@Messages("authenticate.tagline")</p>
+          </div>
+          <button type="button" class="au-close" aria-label="@Messages("authenticate.close")">&#10005;</button>
         </div>
-        <div class="modal-footer">
-          <div>@Html(Messages("authenticate.has.account"))</div>
-        </div>
-      </div><!-- /.modal-content -->
-    </div><!-- /.modal-dialog -->
-  </div><!-- /.modal -->
+        @form(action = routes.UserController.signUpPost(), args = 'id -> "sign-up-form", 'class -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
+          @htmlCSRF.formField
+          <input type="hidden" name="returnUrl" value="@request.uri">
+          <div class="au-field">
+            <label class="au-label" for="sign-up-username">@Messages("username")</label>
+            <input class="au-input" id="sign-up-username" name="username" type="text" autocomplete="username" spellcheck="false" maxlength="@forms.UsernamePolicy.maxLength" data-rule-regex="@forms.UsernamePolicy.jsPattern" aria-describedby="sign-up-username-rule" required>
+            <div class="au-match" id="sign-up-username-rule">
+              @common.authDot(withCross = true)
+              <span>@Messages("authenticate.username.rule")</span>
+            </div>
+          </div>
+          <div class="au-field">
+            <label class="au-label" for="sign-up-email">@Messages("authenticate.email")</label>
+            <input class="au-input" id="sign-up-email" name="email" type="email" autocomplete="email" required>
+          </div>
+          <div class="au-field">
+            <label class="au-label" for="sign-up-password">@Messages("authenticate.password")</label>
+            <div class="au-input-wrap">
+              <input class="au-input au-input--with-eye" id="sign-up-password" name="password" type="password" autocomplete="new-password" aria-describedby="sign-up-pw-rules" required>
+              @common.authEyeButton("sign-up-password")
+            </div>
+            <ul class="au-checklist" id="sign-up-pw-rules" aria-live="polite">
+              @for((msgKey, ruleRegex) <- forms.PasswordPolicy.checklist) {
+                <li data-rule-regex="@ruleRegex">
+                  @common.authDot()@Messages(msgKey, forms.PasswordPolicy.minLength)
+                </li>
+              }
+            </ul>
+            <div class="au-strength" aria-hidden="true">
+              <div class="au-slabs" id="sign-up-pw-strength"><span></span><span></span><span></span><span></span></div>
+              <span class="au-strength-word" id="sign-up-pw-strength-word" data-word1="@Messages("authenticate.pw.strength.1")" data-word2="@Messages("authenticate.pw.strength.2")" data-word3="@Messages("authenticate.pw.strength.3")" data-word4="@Messages("authenticate.pw.strength.4")"></span>
+            </div>
+          </div>
+          <div class="au-field">
+            <label class="au-label" for="sign-up-password-confirm">@Messages("authenticate.confirm.password")</label>
+            <div class="au-input-wrap">
+              <input class="au-input au-input--with-eye" id="sign-up-password-confirm" name="passwordConfirm" type="password" autocomplete="new-password" aria-describedby="sign-up-pw-match" required>
+              @common.authEyeButton("sign-up-password-confirm")
+            </div>
+            <div class="au-match" id="sign-up-pw-match" data-label-match="@Messages("authenticate.pw.match")" data-label-no-match="@Messages("authenticate.pw.match.not")">
+              @common.authDot(withCross = true)
+              <span id="sign-up-pw-match-text">@Messages("authenticate.pw.match")</span>
+            </div>
+          </div>
+          <label class="au-check" for="sign-up-terms"><input type="checkbox" id="sign-up-terms" name="terms" value="true" required> <span>@Html(Messages("authenticate.terms"))</span></label>
+          <button type="submit" class="button-ps button--primary button--large au-submit">@Messages("authenticate.create.account")</button>
+        }
+        <div class="au-footer">@Html(Messages("authenticate.has.account"))</div>
+      </div>
+    </div>
+  </dialog>
 }
