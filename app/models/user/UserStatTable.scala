@@ -499,6 +499,23 @@ class UserStatTable @Inject() (
   }
 
   /**
+   * Runs `action` in a transaction with JIT disabled for the duration of that transaction.
+   *
+   * Interim workaround for #4376 (mirrors `ConfigTable.withJitOff`): the projectsidewalk/db image ships a broken
+   * Postgres JIT (PostGIS bitcode built with LLVM 16, runtime llvmjit linked against LLVM 11). A query expensive enough
+   * to cross the JIT inline-cost threshold and inline PostGIS bitcode (ST_TRANSFORM/ST_LENGTH) segfaults the backend,
+   * dropping the connection (SQLSTATE 08006) and forcing Postgres crash-recovery — which surfaces as a site-wide 502.
+   * `getLeaderboardStats` computes audited distance with ST_LENGTH(ST_TRANSFORM(...)) and is expensive enough to trip
+   * this (#4545), so it must run with JIT off. `SET LOCAL` scopes the setting to this one transaction. Remove once #4376
+   * disables JIT at the DB config level.
+   *
+   * @param action The DBIO to run with JIT off.
+   * @return       The same action, wrapped so JIT is disabled for its transaction.
+   */
+  private def withJitOff[T](action: DBIO[T]): DBIO[T] =
+    (sqlu"SET LOCAL jit = off" >> action).transactionally
+
+  /**
    * Gets leaderboard stats for the top `n` users in the given time period.
    *
    * Top users are calculated using: score = sqrt(# labels) * (0.5 * distance_audited / city_distance + 0.5 * accuracy).
@@ -547,7 +564,8 @@ class UserStatTable @Inject() (
         "INNER JOIN (SELECT user_id, username FROM sidewalk_user) \"usernames\" ON label_counts.user_id = usernames.user_id"
       }
     }
-    sql"""
+    withJitOff(
+      sql"""
       SELECT usernames.username,
              label_counts.label_count,
              mission_count,
@@ -606,13 +624,14 @@ class UserStatTable @Inject() (
       ) "accuracy" ON label_counts.#$groupingColName = accuracy.#$groupingColName
       ORDER BY score DESC;
     """
-      .as[(String, Int, Int, Double, Option[Double], Double)]
-      .map(_.map { stat =>
-        // Run the query and, if it's not a team name, remove the "@X.Y" from usernames that are just email addresses.
-        if (!byTeam && isValidEmail(stat._1))
-          LeaderboardStat(stat._1.slice(0, stat._1.lastIndexOf('@')), stat._2, stat._3, stat._4, stat._5, stat._6)
-        else LeaderboardStat.tupled(stat)
-      })
+        .as[(String, Int, Int, Double, Option[Double], Double)]
+        .map(_.map { stat =>
+          // Run the query and, if it's not a team name, remove the "@X.Y" from usernames that are just email addresses.
+          if (!byTeam && isValidEmail(stat._1))
+            LeaderboardStat(stat._1.slice(0, stat._1.lastIndexOf('@')), stat._2, stat._3, stat._4, stat._5, stat._6)
+          else LeaderboardStat.tupled(stat)
+        })
+    )
   }
 
   /**
