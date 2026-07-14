@@ -16,6 +16,7 @@ import play.api.{Configuration, Logger}
 import slick.dbio.DBIO
 
 import java.time.{LocalDate, OffsetDateTime}
+import java.time.temporal.ChronoUnit
 import javax.inject._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
@@ -69,6 +70,11 @@ case class LabelTypeStats(
  * @param tutorialLabels Total number of practice/tutorial labels across all cities. Tracked separately because tutorial
  *                       labels are excluded from `totalLabels` and `byLabelType` (they would skew the per-type ratios).
  * @param totalValidations Total number of validations across all cities
+ * @param totalUsers Number of distinct contributors across all cities — users who added at least one (non-tutorial)
+ *                   label or validated at least one label. Counted as distinct people: because `user_id` is a global
+ *                   identifier shared across city schemas, a user active in multiple cities is counted once (the union
+ *                   of contributor ids, not the sum of per-city counts). The legacy DC deployment contributes a fixed
+ *                   historical estimate (`legacyDCUserCount`) since it has no per-user records.
  * @param numCities Number of cities where Project Sidewalk is deployed
  * @param numCountries Number of countries where Project Sidewalk is deployed
  * @param numLanguages Number of distinct languages supported
@@ -80,14 +86,384 @@ case class AggregateStats(
     totalLabels: Int,
     tutorialLabels: Int,
     totalValidations: Int,
+    totalUsers: Int,
     numCities: Int,
     numCountries: Int,
     numLanguages: Int,
     byLabelType: Map[String, LabelTypeStats]
 )
 
+/**
+ * One week's contribution volume for a city, for the Across Cities activity trends (#4329).
+ *
+ * @param weekStart    Monday (Pacific) of the week.
+ * @param labels       Non-tutorial, non-excluded labels created that week.
+ * @param validations  Validations by non-excluded users that week.
+ * @param activeUsers  Distinct non-excluded users who labeled or validated that week. Summed across cities for the
+ *                     "active users over time" overview line, this slightly over-counts users active in multiple cities.
+ */
+case class WeeklyPoint(weekStart: LocalDate, labels: Int, validations: Int, activeUsers: Int)
+
+/**
+ * One city's summary row for the cross-city "Across Cities" admin overview (#4329).
+ *
+ * Unlike [[AggregateStats]], which sums every city into one total, this keeps each deployment separate so they can be
+ * compared side by side across four lenses: coverage (how much is left), activity (what's happening and when), data
+ * patterns (the label-type mix), and data quality (how trustworthy the data is). Display name / URL / visibility are
+ * intentionally NOT here — they come from `getAllCityInfo(lang)` and are merged at the controller layer, so this
+ * (cached) value stays language-agnostic.
+ *
+ * Counts use the same exclusions as the rest of the stats code (`NOT user_stat.excluded`, non-deleted, non-tutorial).
+ *
+ * @param cityId                  The city id (e.g. "seattle-wa").
+ * @param totalStreets            Non-deleted streets in the city.
+ * @param auditedStreets          Distinct streets with a completed audit by a non-excluded user.
+ * @param coverage                auditedStreets / totalStreets in [0, 1]; 0.0 when the city has no streets.
+ * @param totalKm                 Total length of the non-deleted street network, in km.
+ * @param auditedKm               Distinct audited length (no double-counting overlapping audits), in km.
+ * @param totalLabels             Non-tutorial, non-excluded labels (reconciles with the city's single-city total).
+ * @param aiLabels                Subset of totalLabels authored by the AI role.
+ * @param labelsWithSeverity      Subset of totalLabels that have a severity rating (a data-completeness signal).
+ * @param labelsSeverityEligible  Labels whose type CAN take a severity (excludes NoSidewalk/Signal/Occlusion) — the
+ *                                correct denominator for "% with severity".
+ * @param labelsWithTags          Subset of totalLabels that have at least one tag applied.
+ * @param labelsTagEligible       Labels whose type CAN take tags (types present in this deployment's tag table) — the
+ *                                correct denominator for "% with tags".
+ * @param labelsValidated         Labels that have at least one validation.
+ * @param totalValidations        All validations by non-excluded users (the volume, including AI).
+ * @param validationsAgree        HUMAN (non-AI) validations with an "Agree" result.
+ * @param validationsDisagree     HUMAN (non-AI) validations with a "Disagree" result. (Agreement/disagreement is a
+ *                                human-consensus signal; AI verdicts are reported separately via `aiValidations`.)
+ * @param aiValidations           Subset of totalValidations cast by the AI role (distinct from AI-authored labels).
+ * @param byLabelType             Per-label-type counts (labels, validated, agree, disagree) — the data-pattern lens.
+ * @param activeContributors      Distinct non-excluded, non-AI users who placed a label or a validation.
+ * @param lowQualityContributors  Distinct EXCLUDED (low-quality) users who placed a label — the quality lens.
+ * @param labels7d                Labels created in the last 7 days.
+ * @param labels30d               Labels created in the last 30 days.
+ * @param validations7d           Validations in the last 7 days.
+ * @param validations30d          Validations in the last 30 days.
+ * @param audits7d                Streets completed in the last 7 days.
+ * @param audits30d               Streets completed in the last 30 days.
+ * @param lastActivity            Most recent label/validation/audit timestamp; None if the city has no activity.
+ * @param weeklyTrend             Trailing weekly label/validation volume (oldest first) for the activity sparkline.
+ * @param labelsPerUserMedian     Median labels per labeler (robust to the power-law skew; mean would mislead).
+ * @param labelsPerUserP90        90th-percentile labels per labeler (the engaged tail).
+ * @param numLabelers             Distinct non-AI, non-excluded users who placed a label.
+ * @param validationsPerUserMedian Median validations per validator.
+ * @param validationsPerUserP90   90th-percentile validations per validator.
+ * @param numValidators           Distinct non-AI, non-excluded users who validated.
+ * @param validationSecondsMedian Median seconds per validation (clamped to <= 5 min); 0 if unknown. ×10 = "time to
+ *                                validate 10".
+ */
+case class CityScorecard(
+    cityId: String,
+    totalStreets: Int,
+    auditedStreets: Int,
+    coverage: Double,
+    totalKm: Double,
+    auditedKm: Double,
+    totalLabels: Int,
+    aiLabels: Int,
+    labelsWithSeverity: Int,
+    labelsSeverityEligible: Int,
+    labelsWithTags: Int,
+    labelsTagEligible: Int,
+    labelsValidated: Int,
+    totalValidations: Int,
+    validationsAgree: Int,
+    validationsDisagree: Int,
+    aiValidations: Int,
+    byLabelType: Map[String, LabelTypeStats],
+    activeContributors: Int,
+    lowQualityContributors: Int,
+    labels7d: Int,
+    labels30d: Int,
+    validations7d: Int,
+    validations30d: Int,
+    audits7d: Int,
+    audits30d: Int,
+    lastActivity: Option[OffsetDateTime],
+    weeklyTrend: Seq[WeeklyPoint],
+    labelsPerUserMedian: Double,
+    labelsPerUserP90: Double,
+    numLabelers: Int,
+    validationsPerUserMedian: Double,
+    validationsPerUserP90: Double,
+    numValidators: Int,
+    validationSecondsMedian: Double
+)
+
+/**
+ * A [[CityScorecard]] paired with the anomaly flags computed for it across the full cross-city set (#4329).
+ *
+ * @param scorecard The per-city metrics.
+ * @param anomalies Zero or more flag keys: "stalled", "low_coverage", "high_disagreement". The page turns these into a
+ *                  "needs attention" panel.
+ */
+case class CityScorecardWithFlags(scorecard: CityScorecard, anomalies: Seq[String])
+
+/**
+ * One demographic slice of a city's engagement funnel: the eight monotonic step counts for that slice (#288).
+ *
+ * @param steps Distinct users reaching each step, index 0 = step 1 (see [[ConfigService.FunnelDefs]]), non-increasing.
+ */
+case class FunnelSegment(steps: Seq[Int])
+
+/**
+ * One city's engagement funnel for a single time window, split by the dimensions the Across Cities page toggles (#288).
+ *
+ * The `all` segment is the whole (human, non-AI) population; the role and device segments partition it two different
+ * ways. Device is only reliably known once a user enters the (desktop-only) audit tool, so `deviceUnknown` collects
+ * everyone whose device could not be determined — see the page's caveat.
+ *
+ * @param cityId        The city id (e.g. "seattle-wa").
+ * @param all           The funnel for every counted user.
+ * @param registered    Users with a non-anonymous role.
+ * @param anonymous     Users with the Anonymous role (a per-cookie identity, not necessarily a unique person).
+ * @param desktop       Users classified as desktop.
+ * @param mobile        Users classified as mobile.
+ * @param deviceUnknown Users whose device could not be determined.
+ */
+case class CityFunnel(
+    cityId: String,
+    all: FunnelSegment,
+    registered: FunnelSegment,
+    anonymous: FunnelSegment,
+    desktop: FunnelSegment,
+    mobile: FunnelSegment,
+    deviceUnknown: FunnelSegment
+)
+
+/**
+ * The current deployment's own engagement funnels for a single time window, for the per-city Contributors page (#4379).
+ *
+ * This is the single-city counterpart of the cross-city read: one [[CityFunnel]] per funnel type for *this* schema
+ * only (no cross-schema fan-out), plus when the rows were last precomputed so the page can show a "data as of" label.
+ *
+ * @param computedAt When this city's `funnel_stat` was last recomputed; `None` if the table has no rows yet.
+ * @param byType     One [[CityFunnel]] per funnel type ("mapping", "contribution"); empty if there is no funnel data.
+ */
+case class CurrentCityFunnels(computedAt: Option[OffsetDateTime], byType: Map[String, CityFunnel])
+
+/**
+ * Lifecycle thresholds, the data-quality anomaly thresholds, and the (pure) classification helpers for the cross-city
+ * overview (#4329).
+ *
+ * Centralized here so the thresholds are defined once and both the service and the controller (which echoes them back in
+ * its summary block) read the same values.
+ */
+object ConfigService {
+
+  /** A city with activity within this many days is "active". */
+  val ActiveWithinDays: Long = 30
+
+  /**
+   * Coverage at or above this means a quiet city is treated as having reached its milestone ("wrapped up") rather than
+   * having failed — the Oradell case (#4329). Success is judged by street coverage.
+   */
+  val WrappedUpCoverage: Double = 0.80
+
+  /**
+   * A quiet, under-covered city with fewer than this many distinct contributors "never took off" (low traction) — the
+   * LA case — versus "stalled" (it had a real community and lost momentum before finishing).
+   */
+  val LowTractionContributors: Int = 15
+
+  /** A city with fewer than this many validations is never flagged "high_disagreement" (too small a sample). */
+  val MinValidationsForDisagreement: Int = 100
+
+  /** A disagreement rate above the cross-city median times this multiple flags "high_disagreement". */
+  val DisagreementMedianMultiple: Double = 1.5
+
+  /**
+   * Classifies a city's lifecycle/health into one of four states (#4329), so a quiet-but-finished deployment reads
+   * very differently from one that never took off:
+   *   - "active"       — activity within [[ActiveWithinDays]].
+   *   - "wrapped_up"   — quiet, but coverage >= [[WrappedUpCoverage]] (reached its milestone; celebrate, don't alarm).
+   *   - "low_traction" — quiet, under-covered, and fewer than [[LowTractionContributors]] contributors (never took off).
+   *   - "stalled"      — quiet, under-covered, but had a real community (had momentum, lost it before finishing).
+   *
+   * @param sc  The city scorecard.
+   * @param now Reference time for the recency comparison.
+   * @return    The lifecycle state key.
+   */
+  def lifecycle(sc: CityScorecard, now: OffsetDateTime): String = {
+    val active = sc.lastActivity.exists(ts => ChronoUnit.DAYS.between(ts, now) <= ActiveWithinDays)
+    if (active) "active"
+    else if (sc.coverage >= WrappedUpCoverage) "wrapped_up"
+    else if (sc.activeContributors < LowTractionContributors) "low_traction"
+    else "stalled"
+  }
+
+  /** True if a city's lifecycle is one that warrants attention (stalled or never-took-off). */
+  def lifecycleNeedsAttention(state: String): Boolean = state == "stalled" || state == "low_traction"
+
+  /** Share of a city's HUMAN agree/disagree validations that are disagreements; 0.0 when it has none (AI excluded). */
+  def disagreementRate(sc: CityScorecard): Double = {
+    val denom = sc.validationsAgree + sc.validationsDisagree
+    if (denom > 0) sc.validationsDisagree.toDouble / denom else 0.0
+  }
+
+  /**
+   * Median disagreement rate across cities with enough validations to be meaningful — the baseline the
+   * "high_disagreement" flag compares against.
+   *
+   * @param scorecards All gathered per-city scorecards.
+   * @return           The median rate among cities clearing [[MinValidationsForDisagreement]]; 0.0 if none do.
+   */
+  def medianDisagreementRate(scorecards: Seq[CityScorecard]): Double = {
+    val rates = scorecards.filter(_.totalValidations >= MinValidationsForDisagreement).map(disagreementRate).sorted
+    if (rates.isEmpty) 0.0
+    else if (rates.length % 2 == 1) rates(rates.length / 2)
+    else (rates(rates.length / 2 - 1) + rates(rates.length / 2)) / 2.0
+  }
+
+  /**
+   * The step keys for each engagement funnel (#288), in order. This is the source of truth for step identity and
+   * count; the API echoes the relevant list to the client so the frontend never hardcodes its own copy.
+   *   - "mapping":      the Explore onboarding flow (6 steps).
+   *   - "contribution": any labeling-or-validation contribution (3 steps).
+   * The iteration order here is the order the funnels are presented on the page.
+   */
+  val FunnelDefs: Seq[(String, Seq[String])] = Seq(
+    "mapping" -> Seq("visited", "tutorial_started", "tutorial_finished", "took_step", "labeled", "mission_completed"),
+    "contribution" -> Seq("visited", "contributed", "contribution_completed")
+  )
+
+  /** The funnel time windows offered by the API and precomputed in `funnel_stat`; the source of truth for the set. */
+  val FunnelWindowKeys: Seq[String] = Seq("30d", "90d", "all")
+
+  /** Step keys for one funnel type. */
+  def funnelStepKeys(funnelType: String): Seq[String] = FunnelDefs.toMap.getOrElse(funnelType, Seq.empty)
+
+  /** The longest funnel's step count (the mapping funnel), derived from [[FunnelDefs]] rather than hardcoded. */
+  val MaxFunnelSteps: Int = FunnelDefs.map(_._2.length).max
+
+  /** An all-zero funnel of the maximum length — the empty/identity input for the conversion helpers. */
+  val ZeroFunnelSteps: Seq[Int] = Seq.fill(MaxFunnelSteps)(0)
+
+  /**
+   * Step-over-step conversion for a funnel: `stepConversion(i)` = `steps(i) / steps(i-1)` (#288).
+   *
+   * The first element is 1.0 (the entry step converts from itself). A ratio is 0.0 when the previous step had no users
+   * (avoids divide-by-zero).
+   *
+   * @param steps The eight monotonic step counts.
+   * @return      One conversion ratio per step, same length as `steps`.
+   */
+  def stepConversion(steps: Seq[Int]): Seq[Double] = steps.zipWithIndex.map {
+    case (_, 0)     => 1.0
+    case (count, i) =>
+      val prev = steps(i - 1)
+      if (prev > 0) count.toDouble / prev else 0.0
+  }
+
+  /**
+   * Overall funnel conversion: last step / first step (#288).
+   *
+   * @param steps The eight monotonic step counts.
+   * @return      Fraction of entrants who reached the final step; 0.0 when there were no entrants.
+   */
+  def overallConversion(steps: Seq[Int]): Double =
+    if (steps.nonEmpty && steps.head > 0) steps.last.toDouble / steps.head else 0.0
+
+  /**
+   * Builds a [[CityFunnel]] for one funnel type from a city's precomputed `funnel_stat` rows (#288), zero-filling any
+   * segment that has no row (e.g. a city with no mobile or no anonymous users) and trimming the stored six-slot steps
+   * to the funnel's actual step count.
+   *
+   * Pure (depends only on [[funnelStepKeys]]) so both the cross-city read ([[ConfigService.getCityFunnels]]) and the
+   * single-city read ([[ConfigService.getCurrentCityFunnels]]) share one assembly, and it can be unit-tested without a
+   * DB.
+   *
+   * @param cityId     The city id to stamp on the result.
+   * @param funnelType "mapping" or "contribution"; determines the step count the steps are trimmed to.
+   * @param rowsOfType The `funnel_stat` rows for that city and funnel type (any subset of the six segments).
+   * @return           One [[CityFunnel]] with every segment present (zero-filled when absent).
+   */
+  def assembleCityFunnel(cityId: String, funnelType: String, rowsOfType: Seq[FunnelStat]): CityFunnel = {
+    val numSteps                              = funnelStepKeys(funnelType).length
+    val stepsBySegment: Map[String, Seq[Int]] = rowsOfType.map(r => r.segment -> r.steps.take(numSteps)).toMap
+    def seg(key: String): FunnelSegment       = FunnelSegment(stepsBySegment.getOrElse(key, Seq.fill(numSteps)(0)))
+    CityFunnel(
+      cityId = cityId, all = seg("all"), registered = seg("role:registered"), anonymous = seg("role:anon"),
+      desktop = seg("device:desktop"), mobile = seg("device:mobile"), deviceUnknown = seg("device:unknown")
+    )
+  }
+}
+
 @ImplementedBy(classOf[ConfigServiceImpl])
 trait ConfigService {
+
+  /**
+   * Computes a per-city summary scorecard for every configured city whose schema exists (#4329).
+   *
+   * Reuses the same cross-schema fan-out as [[getAggregateStats]] — read the configured city ids, keep the ones whose
+   * schema actually exists, query each in parallel with per-city recovery, cache the merged result — but keeps cities
+   * separate rather than summing them. Anomaly flags ("stalled", "low_coverage", "high_disagreement") are computed
+   * across the whole set (the disagreement flag is relative to the cross-city median), so they are returned together.
+   *
+   * @return A Future of one [[CityScorecardWithFlags]] per available city (legacy DC and "staging" excluded).
+   */
+  def getCityScorecards(): Future[Seq[CityScorecardWithFlags]]
+
+  /**
+   * Returns the weekly label/validation/active-user volume summed across all available cities (#4329), for the
+   * "over time" overview charts. Active users are summed per city, so a person active in multiple cities is counted in
+   * each (documented on the page).
+   *
+   * @param weeks Trailing weeks to include, or None for full history (the page's "All time" toggle).
+   * @return      Merged weekly series, ascending by week.
+   */
+  def getCrossCityWeeklyTrend(weeks: Option[Int]): Future[Seq[WeeklyPoint]]
+
+  /**
+   * Returns each city's labeling speed as seconds of active auditing per 100 m covered (#4329).
+   *
+   * This is the project's one EXPENSIVE cross-city metric (a window-function scan of each schema's
+   * `audit_task_interaction_small`), so it is computed on its own long (daily) cache rather than on every scorecard
+   * load — the "nightly precompute" half of the hybrid delivery. Cities with no interaction data are omitted from the
+   * map (the page shows them as unknown).
+   *
+   * @return A Future of cityId → seconds per 100 m (lower is faster).
+   */
+  def getCrossCityLabelingSpeed(): Future[Map[String, Double]]
+
+  /**
+   * Returns each available city's precomputed engagement funnels for a time window (#288).
+   *
+   * Reads each schema's nightly-precomputed `funnel_stat` table (cheap) and assembles one [[CityFunnel]] per city,
+   * using the same available-schema fan-out as [[getCityScorecards]]. Cities whose deployment has not yet created or
+   * populated `funnel_stat` are omitted (they appear once their nightly job has run). Segments absent from a city's
+   * rows (e.g. no mobile users) are zero-filled.
+   *
+   * @param window The funnel window key: "30d", "90d", or "all".
+   * @return       Per funnel type ("mapping", "contribution"), one [[CityFunnel]] per available city with funnel data.
+   */
+  def getCityFunnels(window: String): Future[Map[String, Seq[CityFunnel]]]
+
+  /**
+   * Returns THIS deployment's own precomputed engagement funnels for a time window (#4379), for the per-city
+   * Contributors page.
+   *
+   * The single-city counterpart of [[getCityFunnels]]: reads only the current city's `funnel_stat` (no cross-schema
+   * fan-out), so per-city Administrators can see their own onboarding/contribution conversion without Owner access.
+   * Returns an empty result (no funnel types) when the table has not been populated yet.
+   *
+   * @param window The funnel window key: "30d", "90d", or "all".
+   * @return       One [[CityFunnel]] per funnel type for this city, plus when the rows were last recomputed.
+   */
+  def getCurrentCityFunnels(window: String): Future[CurrentCityFunnels]
+
+  /**
+   * Drops the cached funnel reads ([[getCityFunnels]] and [[getCurrentCityFunnels]]) for every window (#4379).
+   *
+   * Called after a funnel recompute so a manual `/adminapi/updateFunnelStats` (or the nightly job) is reflected on the
+   * next page load instead of after the 10-minute cache TTL.
+   *
+   * @return Completes when all entries have been removed.
+   */
+  def invalidateFunnelCaches(): Future[Unit]
 
   /**
    * Maps a city ID to its corresponding database user/schema.
@@ -150,6 +526,7 @@ trait ConfigService {
   def getCurrentCountryId: String
   def getCityName(lang: Lang): String
   def getAiTagSuggestionsEnabled: Boolean
+  def getPrivateProfilesByDefault: Boolean
   def getPanoSource: PanoSource
   def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Double): Future[Int]
   def cachedDBIO[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => DBIO[T]): DBIO[T]
@@ -164,6 +541,7 @@ class ConfigServiceImpl @Inject() (
     cacheApi: AsyncCacheApi,
     ws: WSClient,
     configTable: ConfigTable,
+    funnelStatTable: FunnelStatTable,
     versionTable: VersionTable,
     panoDataService: PanoDataService
 )(implicit val ec: ExecutionContext)
@@ -186,50 +564,50 @@ class ConfigServiceImpl @Inject() (
    * NOT be used as the total. `legacyDCData.totalLabels` is therefore derived from this breakdown (#3981).
    */
   private val legacyDCByLabelType: Map[String, LabelTypeStats] = Map(
-      LabelTypeEnum.CurbRamp.name -> LabelTypeStats(
-        labels = 150680,
-        labelsValidated = 0,
-        labelsValidatedAgree = 0,
-        labelsValidatedDisagree = 0
-      ),
-      LabelTypeEnum.NoCurbRamp.name -> LabelTypeStats(
-        labels = 19792,
-        labelsValidated = 0,
-        labelsValidatedAgree = 0,
-        labelsValidatedDisagree = 0
-      ),
-      LabelTypeEnum.Obstacle.name -> LabelTypeStats(
-        labels = 22264,
-        labelsValidated = 0,
-        labelsValidatedAgree = 0,
-        labelsValidatedDisagree = 0
-      ),
-      LabelTypeEnum.SurfaceProblem.name -> LabelTypeStats(
-        labels = 8964,
-        labelsValidated = 0,
-        labelsValidatedAgree = 0,
-        labelsValidatedDisagree = 0
-      ),
-      LabelTypeEnum.NoSidewalk.name -> LabelTypeStats(
-        labels = 45395,
-        labelsValidated = 0,
-        labelsValidatedAgree = 0,
-        labelsValidatedDisagree = 0
-      ),
-      LabelTypeEnum.Other.name -> LabelTypeStats(
-        labels = 1471,
-        labelsValidated = 0,
-        labelsValidatedAgree = 0,
-        labelsValidatedDisagree = 0
-      ),
-      LabelTypeEnum.Occlusion.name -> LabelTypeStats(
-        labels = 1339,
-        labelsValidated = 0,
-        labelsValidatedAgree = 0,
-        labelsValidatedDisagree = 0
-      )
-      // Note: Crosswalk and Signal data not available (NA) for DC legacy deployment.
+    LabelTypeEnum.CurbRamp.name -> LabelTypeStats(
+      labels = 150680,
+      labelsValidated = 0,
+      labelsValidatedAgree = 0,
+      labelsValidatedDisagree = 0
+    ),
+    LabelTypeEnum.NoCurbRamp.name -> LabelTypeStats(
+      labels = 19792,
+      labelsValidated = 0,
+      labelsValidatedAgree = 0,
+      labelsValidatedDisagree = 0
+    ),
+    LabelTypeEnum.Obstacle.name -> LabelTypeStats(
+      labels = 22264,
+      labelsValidated = 0,
+      labelsValidatedAgree = 0,
+      labelsValidatedDisagree = 0
+    ),
+    LabelTypeEnum.SurfaceProblem.name -> LabelTypeStats(
+      labels = 8964,
+      labelsValidated = 0,
+      labelsValidatedAgree = 0,
+      labelsValidatedDisagree = 0
+    ),
+    LabelTypeEnum.NoSidewalk.name -> LabelTypeStats(
+      labels = 45395,
+      labelsValidated = 0,
+      labelsValidatedAgree = 0,
+      labelsValidatedDisagree = 0
+    ),
+    LabelTypeEnum.Other.name -> LabelTypeStats(
+      labels = 1471,
+      labelsValidated = 0,
+      labelsValidatedAgree = 0,
+      labelsValidatedDisagree = 0
+    ),
+    LabelTypeEnum.Occlusion.name -> LabelTypeStats(
+      labels = 1339,
+      labelsValidated = 0,
+      labelsValidatedAgree = 0,
+      labelsValidatedDisagree = 0
     )
+    // Note: Crosswalk and Signal data not available (NA) for DC legacy deployment.
+  )
 
   /**
    * DC's UNFILTERED historical label count from the source spreadsheet (gid=963888605 tab):
@@ -239,6 +617,16 @@ class ConfigServiceImpl @Inject() (
    * `legacyDCData` for how the filtered total and `tutorialLabels` are derived from it.
    */
   private val legacyDCUnfilteredLabelCount = 263403
+
+  /**
+   * Distinct contributors from the legacy DC deployment, a fixed historical estimate (#3976).
+   *
+   * The archived DC dataset has no per-user records we can query, so unlike live cities its user count can't be derived
+   * from the union of contributor ids. This value (from the gid=963888605 tab of the DC spreadsheet linked above) is
+   * added on top of the live-city distinct-user union in getAggregateStats. DC user_ids don't exist in current schemas,
+   * so there is nothing to dedup against — the addition is exact.
+   */
+  private val legacyDCUserCount = 1395
 
   /**
    * Legacy DC deployment rolled into an AggregateStats so getAggregateStats can sum it alongside live cities.
@@ -252,6 +640,9 @@ class ConfigServiceImpl @Inject() (
    * value bundles both and is really an UPPER BOUND on DC's tutorial labels. Documented as such in the API docs.
    *
    * Validations were never implemented during the DC deployment, so `totalValidations` is 0.
+   *
+   * `totalUsers` is 0 here: DC's contributors are added separately via `legacyDCUserCount` (they can't be deduped by
+   * union like live-city users), so this field must NOT also contribute to the aggregate user count.
    */
   private val legacyDCData = AggregateStats(
     kmExplored = 5482.0,
@@ -259,6 +650,7 @@ class ConfigServiceImpl @Inject() (
     totalLabels = legacyDCByLabelType.values.map(_.labels).sum,
     tutorialLabels = legacyDCUnfilteredLabelCount - legacyDCByLabelType.values.map(_.labels).sum,
     totalValidations = 0,
+    totalUsers = 0,
     numCities = 0,
     numCountries = 0,
     numLanguages = 0,
@@ -325,6 +717,200 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
+  def getCityScorecards(): Future[Seq[CityScorecardWithFlags]] = {
+    // Heavier than getAggregateStats (a multi-subquery per city) and only viewed by Owners, so cache a bit longer.
+    cacheApi.getOrElseUpdate[Seq[CityScorecardWithFlags]]("getCityScorecards", Duration(10, "minutes")) {
+      // Same available-schema guard as getAggregateStats. "staging" is skipped (not a real deployment), as in
+      // CitiesApiController; legacy DC is skipped because it predates the modern label_validation schema.
+      val configuredCityIds = config.get[Seq[String]]("city-params.city-ids").filter(_ != "staging")
+
+      val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
+        try {
+          val schema = getCitySchema(cityId)
+          checkSchemaExists(schema).map(cityId -> _).recover { case _ => cityId -> false }
+        } catch {
+          case _: Exception => Future.successful(cityId -> false)
+        }
+      }
+
+      Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
+        val availableCities = schemaResults.filter(_._2).map(_._1)
+
+        // Query each available city in parallel; one failing schema yields None rather than sinking the whole page.
+        val scorecardFutures: Seq[Future[Option[CityScorecard]]] = availableCities.map { cityId =>
+          val schema = getCitySchema(cityId)
+          db.run(configTable.getCityScorecardBySchema(schema))
+            .map(sc => Some(sc.copy(cityId = cityId))) // The DAO only knows the schema; restore the real cityId here.
+            .recover { case e: Exception =>
+              logger.warn(s"Failed to compute scorecard for city $cityId (schema $schema): ${e.getMessage}")
+              None
+            }
+        }
+
+        Future.sequence(scorecardFutures).map(opts => flagAnomalies(opts.flatten))
+      }
+    }
+  }
+
+  def getCrossCityWeeklyTrend(weeks: Option[Int]): Future[Seq[WeeklyPoint]] = {
+    val cacheKey = s"getCrossCityWeeklyTrend_${weeks.map(_.toString).getOrElse("all")}"
+    cacheApi.getOrElseUpdate[Seq[WeeklyPoint]](cacheKey, Duration(10, "minutes")) {
+      val configuredCityIds = config.get[Seq[String]]("city-params.city-ids").filter(_ != "staging")
+
+      val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
+        try {
+          checkSchemaExists(getCitySchema(cityId)).map(cityId -> _).recover { case _ => cityId -> false }
+        } catch {
+          case _: Exception => Future.successful(cityId -> false)
+        }
+      }
+
+      Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
+        val availableCities = schemaResults.filter(_._2).map(_._1)
+        val perCityFutures  = availableCities.map { cityId =>
+          db.run(configTable.getCityWeeklyTrendBySchema(getCitySchema(cityId), weeks))
+            .recover { case e: Exception =>
+              logger.warn(s"Failed to fetch weekly trend for city $cityId: ${e.getMessage}")
+              Seq.empty[WeeklyPoint]
+            }
+        }
+        Future.sequence(perCityFutures).map { perCity =>
+          // Sum each city's weekly points into one cross-city series, week by week.
+          perCity.flatten
+            .groupBy(_.weekStart)
+            .toSeq
+            .sortBy(_._1)
+            .map { case (week, pts) =>
+              WeeklyPoint(week, pts.map(_.labels).sum, pts.map(_.validations).sum, pts.map(_.activeUsers).sum)
+            }
+        }
+      }
+    }
+  }
+
+  def getCrossCityLabelingSpeed(): Future[Map[String, Double]] = {
+    // Daily cache: this is the heavy interaction-table scan, and labeling speed barely moves day to day.
+    cacheApi.getOrElseUpdate[Map[String, Double]]("getCrossCityLabelingSpeed", Duration(24, "hours")) {
+      val configuredCityIds = config.get[Seq[String]]("city-params.city-ids").filter(_ != "staging")
+
+      val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
+        try {
+          checkSchemaExists(getCitySchema(cityId)).map(cityId -> _).recover { case _ => cityId -> false }
+        } catch {
+          case _: Exception => Future.successful(cityId -> false)
+        }
+      }
+
+      Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
+        val availableCities                                       = schemaResults.filter(_._2).map(_._1)
+        val perCityFutures: Seq[Future[Option[(String, Double)]]] = availableCities.map { cityId =>
+          db.run(configTable.getCityLabelingSpeedBySchema(getCitySchema(cityId)))
+            .map { case (hours, km) =>
+              // Only report cities with both interaction data and audited distance; otherwise speed is unknowable.
+              if (hours > 0 && km > 0) Some(cityId -> (hours * 3600.0) / (km * 10.0)) else None
+            }
+            .recover { case e: Exception =>
+              logger.warn(s"Failed to compute labeling speed for city $cityId: ${e.getMessage}")
+              None
+            }
+        }
+        Future.sequence(perCityFutures).map(_.flatten.toMap)
+      }
+    }
+  }
+
+  def getCityFunnels(window: String): Future[Map[String, Seq[CityFunnel]]] = {
+    // Reads the precomputed funnel_stat per schema, so it is cheap; the short cache just coalesces bursts of requests.
+    cacheApi.getOrElseUpdate[Map[String, Seq[CityFunnel]]](s"getCityFunnels_$window", Duration(10, "minutes")) {
+      val configuredCityIds = config.get[Seq[String]]("city-params.city-ids").filter(_ != "staging")
+
+      val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
+        try {
+          checkSchemaExists(getCitySchema(cityId)).map(cityId -> _).recover { case _ => cityId -> false }
+        } catch {
+          case _: Exception => Future.successful(cityId -> false)
+        }
+      }
+
+      Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
+        val availableCities = schemaResults.filter(_._2).map(_._1)
+        // Each city's rows cover all funnel types for this window; None ⇒ no funnel_stat yet, so omit the city.
+        val perCityFutures: Seq[Future[Option[(String, Seq[FunnelStat])]]] = availableCities.map { cityId =>
+          db.run(funnelStatTable.getFunnelStatsBySchema(getCitySchema(cityId), window))
+            .map(rows => if (rows.isEmpty) None else Some(cityId -> rows))
+            .recover { case e: Exception =>
+              logger.warn(s"Failed to read funnel for city $cityId (window $window): ${e.getMessage}")
+              None
+            }
+        }
+        Future.sequence(perCityFutures).map { results =>
+          val citiesWithRows = results.flatten
+          // Group into funnelType -> one CityFunnel per city, in the page's funnel order.
+          ConfigService.FunnelDefs.map { case (funnelType, _) =>
+            funnelType -> citiesWithRows.map { case (cityId, rows) =>
+              ConfigService.assembleCityFunnel(cityId, funnelType, rows.filter(_.funnelType == funnelType))
+            }
+          }.toMap
+        }
+      }
+    }
+  }
+
+  def getCurrentCityFunnels(window: String): Future[CurrentCityFunnels] = {
+    // Reads only this deployment's own precomputed funnel_stat (no cross-schema fan-out), so it is cheap; the short
+    // cache just coalesces bursts of requests from the Contributors page.
+    cacheApi.getOrElseUpdate[CurrentCityFunnels](s"getCurrentCityFunnels_$window", Duration(10, "minutes")) {
+      val cityId = getCityId
+      db.run(funnelStatTable.getFunnelStatsBySchema(getCitySchema(cityId), window)).map { rows =>
+        // No rows yet (the nightly FunnelStatActor hasn't run, or /adminapi/updateFunnelStats hasn't been hit): return
+        // an empty result so the page can show its "no funnel data yet" state rather than zero-filled funnels.
+        if (rows.isEmpty) CurrentCityFunnels(None, Map.empty)
+        else {
+          val byType = ConfigService.FunnelDefs.map { case (funnelType, _) =>
+            funnelType -> ConfigService.assembleCityFunnel(cityId, funnelType, rows.filter(_.funnelType == funnelType))
+          }.toMap
+          CurrentCityFunnels(rows.headOption.map(_.computedAt), byType)
+        }
+      }
+    }
+  }
+
+  def invalidateFunnelCaches(): Future[Unit] = {
+    // Both reads cache per window for 10 min; drop every window's entry so a recompute is reflected immediately rather
+    // than after the TTL. Tiny, fixed key set — cheaper and clearer than a tagged/region cache.
+    Future
+      .sequence(ConfigService.FunnelWindowKeys.flatMap { w =>
+        Seq(cacheApi.remove(s"getCityFunnels_$w"), cacheApi.remove(s"getCurrentCityFunnels_$w"))
+      })
+      .map(_ => ())
+  }
+
+  /**
+   * Attaches data-quality anomaly flags to each scorecard, using the full set for the relative (median-based) check
+   * (#4329). The activity/coverage story is carried separately by the lifecycle classification
+   * ([[ConfigService.lifecycle]]), not here, so this only surfaces "high_disagreement".
+   *
+   * @param scorecards All gathered per-city scorecards.
+   * @return           Each scorecard paired with its data-quality flags.
+   */
+  private def flagAnomalies(scorecards: Seq[CityScorecard]): Seq[CityScorecardWithFlags] = {
+    val medianDisagreement = ConfigService.medianDisagreementRate(scorecards)
+
+    scorecards.map { sc =>
+      val flags = scala.collection.mutable.ListBuffer.empty[String]
+
+      // Outlier disagreement, but only among cities with a meaningful validation volume.
+      if (
+        sc.totalValidations >= ConfigService.MinValidationsForDisagreement &&
+        ConfigService.disagreementRate(sc) > medianDisagreement * ConfigService.DisagreementMedianMultiple
+      ) {
+        flags += "high_disagreement"
+      }
+
+      CityScorecardWithFlags(sc, flags.toSeq)
+    }
+  }
+
   /**
    * Calculates aggregate statistics across all Project Sidewalk deployments.
    *
@@ -362,7 +948,7 @@ class ConfigServiceImpl @Inject() (
           Future.successful(
             AggregateStats(
               kmExplored = 0.0, kmExploredNoOverlap = 0.0, totalLabels = 0, tutorialLabels = 0, totalValidations = 0,
-              numCities = 0, numCountries = 0, numLanguages = 0, byLabelType = Map.empty
+              totalUsers = 0, numCities = 0, numCountries = 0, numLanguages = 0, byLabelType = Map.empty
             )
           )
         } else {
@@ -376,8 +962,22 @@ class ConfigServiceImpl @Inject() (
             getCityAggregateData(cityId)
           }
 
+          // Distinct contributors across all live cities, deduped by the global `user_id` then DC added on top (#3976).
+          // Computed by unioning per-city contributor-id sets rather than summing per-city counts, so a user active in
+          // multiple cities is counted once. Each city recovers to an empty set so one bad schema can't sink the count.
+          val distinctUsersFut: Future[Int] = Future
+            .sequence(availableCities.map { cityId =>
+              db.run(configTable.getContributorUserIdsBySchema(getCitySchema(cityId)))
+                .map(_.toSet)
+                .recover { case e: Exception =>
+                  logger.warn(s"Failed to retrieve contributor ids for city $cityId: ${e.getMessage}")
+                  Set.empty[String]
+                }
+            })
+            .map(perCity => perCity.foldLeft(Set.empty[String])(_ ++ _).size + legacyDCUserCount)
+
           // Wait for all futures to complete and aggregate results.
-          Future.sequence(cityStatsFutures).map { cityStatsOptions =>
+          Future.sequence(cityStatsFutures).zip(distinctUsersFut).map { case (cityStatsOptions, totalUsers) =>
             // Filter out failed requests and aggregate the successful ones.
             val validCityStats = cityStatsOptions.flatten
 
@@ -386,11 +986,12 @@ class ConfigServiceImpl @Inject() (
               // Return empty aggregate stats if no cities provided data.
               AggregateStats(
                 kmExplored = 0.0, kmExploredNoOverlap = 0.0, totalLabels = 0, tutorialLabels = 0, totalValidations = 0,
-                numCities = numCities, numCountries = numCountries, numLanguages = numLanguages, byLabelType = Map.empty
+                totalUsers = 0, numCities = numCities, numCountries = numCountries, numLanguages = numLanguages,
+                byLabelType = Map.empty
               )
             } else {
               // Add legacy DC data to the valid city stats before aggregating.
-              aggregateCityData(validCityStats :+ legacyDCData, numCities, numCountries, numLanguages)
+              aggregateCityData(validCityStats :+ legacyDCData, numCities, numCountries, numLanguages, totalUsers)
             }
           }
         }
@@ -421,15 +1022,15 @@ class ConfigServiceImpl @Inject() (
         Future.successful(Seq.empty)
       } else {
         val cityDataFutures = availableCities.map { cityId =>
-          val schema = getCitySchema(cityId)
-          val labelsFuture = db.run(configTable.getCityDailyLabelStatsBySchema(schema, startDate, endDate,
-            filterLowQuality))
+          val schema       = getCitySchema(cityId)
+          val labelsFuture = db
+            .run(configTable.getCityDailyLabelStatsBySchema(schema, startDate, endDate, filterLowQuality))
             .recover { case e: Exception =>
               logger.warn(s"Failed daily label stats for city $cityId: ${e.getMessage}")
               Seq.empty[(LocalDate, String, Int, Int)]
             }
-          val valsFuture = db.run(configTable.getCityDailyValidationStatsBySchema(schema, startDate, endDate,
-            filterLowQuality))
+          val valsFuture = db
+            .run(configTable.getCityDailyValidationStatsBySchema(schema, startDate, endDate, filterLowQuality))
             .recover { case e: Exception =>
               logger.warn(s"Failed daily validation stats for city $cityId: ${e.getMessage}")
               Seq.empty[(LocalDate, String, Int, Int, Int, Int, Int, Int)]
@@ -446,19 +1047,20 @@ class ConfigServiceImpl @Inject() (
             .groupBy(r => (r.date, r.labelType))
             .map { case ((date, labelType), records) =>
               DailyStatRecord(
-                date                     = date,
-                labelType                = labelType,
-                humanLabels              = records.map(_.humanLabels).sum,
-                aiLabels                 = records.map(_.aiLabels).sum,
-                humanValidationsAgree    = records.map(_.humanValidationsAgree).sum,
+                date = date,
+                labelType = labelType,
+                humanLabels = records.map(_.humanLabels).sum,
+                aiLabels = records.map(_.aiLabels).sum,
+                humanValidationsAgree = records.map(_.humanValidationsAgree).sum,
                 humanValidationsDisagree = records.map(_.humanValidationsDisagree).sum,
-                humanValidationsUnsure   = records.map(_.humanValidationsUnsure).sum,
-                aiValidationsAgree       = records.map(_.aiValidationsAgree).sum,
-                aiValidationsDisagree    = records.map(_.aiValidationsDisagree).sum,
-                aiValidationsUnsure      = records.map(_.aiValidationsUnsure).sum
+                humanValidationsUnsure = records.map(_.humanValidationsUnsure).sum,
+                aiValidationsAgree = records.map(_.aiValidationsAgree).sum,
+                aiValidationsDisagree = records.map(_.aiValidationsDisagree).sum,
+                aiValidationsUnsure = records.map(_.aiValidationsUnsure).sum
               )
             }
-            .toSeq.sortBy(r => (r.date, r.labelType))
+            .toSeq
+            .sortBy(r => (r.date, r.labelType))
         }
       }
     }
@@ -556,13 +1158,16 @@ class ConfigServiceImpl @Inject() (
    * @param numCities Number of cities in deployment
    * @param numCountries Number of countries in deployment
    * @param numLanguages Number of languages supported
+   * @param totalUsers Distinct contributors across all deployments. Passed in (like numCountries/numLanguages) rather
+   *                   than summed from `cityData`, because it is a cross-schema deduped union, not a per-city sum (#3976).
    * @return Aggregated statistics across all provided cities
    */
   private def aggregateCityData(
       cityData: Seq[AggregateStats],
       numCities: Int,
       numCountries: Int,
-      numLanguages: Int
+      numLanguages: Int,
+      totalUsers: Int
   ): AggregateStats = {
     import scala.collection.mutable
 
@@ -592,8 +1197,9 @@ class ConfigServiceImpl @Inject() (
 
     AggregateStats(
       kmExplored = totalKmExplored, kmExploredNoOverlap = totalKmExploredNoOverlap, totalLabels = totalLabelsCount,
-      tutorialLabels = tutorialLabelsCount, totalValidations = totalValidationsCount, numCities = numCities,
-      numCountries = numCountries, numLanguages = numLanguages, byLabelType = labelTypeStatsMap.toMap
+      tutorialLabels = tutorialLabelsCount, totalValidations = totalValidationsCount, totalUsers = totalUsers,
+      numCities = numCities, numCountries = numCountries, numLanguages = numLanguages,
+      byLabelType = labelTypeStatsMap.toMap
     )
   }
 
@@ -698,6 +1304,13 @@ class ConfigServiceImpl @Inject() (
   def getCityName(lang: Lang): String = messagesApi(s"city.name.$getCityId")(lang)
 
   def getAiTagSuggestionsEnabled: Boolean = config.get[Boolean](s"city-params.ai-tag-suggestions-enabled.$getCityId")
+
+  // A city omitted from private-profiles-by-default (or a deployment whose config predates the block entirely) is
+  // public by default. hasPath returns false for a missing key OR a missing parent block, so this never throws.
+  def getPrivateProfilesByDefault: Boolean = {
+    val path = s"city-params.private-profiles-by-default.$getCityId"
+    config.underlying.hasPath(path) && config.get[Boolean](path)
+  }
 
   def getPanoSource: PanoSource = PanoSource.withName(config.get[String](s"city-params.pano-viewer-type.$getCityId"))
 

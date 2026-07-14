@@ -9,80 +9,80 @@
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
 @common.main(commonData, title) {
-    @common.navbar(commonData, Some(user))
-    <div class="container">
-        <div class="row">
-            <div class="col-md-4">
-                <div id="admin-task-choropleth" class="choropleth"></div>
-            </div>
-            <div class="col-md-4">
-                <div id="svholder"></div>
-                <div id="timeline">
-                    <div id="timeline-active"></div>
-                    <div id="timeline-handle"></div>
-                </div>
-                <div id="controls" class="col">
-                    <div class="col-md-4">
-                        <button id="control-btn">Play</button>
-                    </div>
-                    <div id="playback-inputs" class="col-md-8">
-                        <label for="speed-multiplier">Speed Multiplier:</label>
-                        <input type="number" id="speed-multiplier" name="Speed Multiplier" size="6" step="any" value="2"  required>
-                        <label for="pause-time">Max Wait Time (s):</label>
-                        <input type="number" id="wait-time" size ="6" step="any" value="5" required>
-                        <label for="fill-time">Fill Time (s):</label>
-                        <input type="number" id="fill-time" size="6" step="any" value=".5" required>
-                    </div>
-                </div>
-                <div clas="col">
-                    <div class="col-md-5">
-                        <label for="current-time-label">Current Time (s)</label>
-                        <p id="current-time-label">0</p>
-                    </div>
-                    <div id="total-time" class="col-md-7">
-                        <label for="total-time-label">Total Time (s)</label>
-                        <p id="total-time-label">0</p>
-                    </div>
-
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div id="eventsholder"></div>
-            </div>
+  @common.navbar(commonData, Some(user))
+  <div class="container">
+    <div class="row">
+      <div class="col-md-4">
+        <div id="admin-task-choropleth" class="choropleth"></div>
+      </div>
+      <div class="col-md-4">
+        <div id="svholder"></div>
+        <div id="timeline">
+          <div id="timeline-active"></div>
+          <div id="timeline-handle"></div>
         </div>
+        <div id="controls" class="col">
+          <div class="col-md-4">
+            <button type="button" id="control-btn">Play</button>
+          </div>
+          <div id="playback-inputs" class="col-md-8">
+            <label for="speed-multiplier">Speed Multiplier:</label>
+            <input type="number" id="speed-multiplier" name="Speed Multiplier" size="6" step="any" value="2"  required>
+            <label for="wait-time">Max Wait Time (s):</label>
+            <input type="number" id="wait-time" size="6" step="any" value="5" required>
+            <label for="fill-time">Fill Time (s):</label>
+            <input type="number" id="fill-time" size="6" step="any" value=".5" required>
+          </div>
+        </div>
+        <div clas="col">
+          <div class="col-md-5">
+            <label for="current-time-label">Current Time (s)</label>
+            <p id="current-time-label">0</p>
+          </div>
+          <div id="total-time" class="col-md-7">
+            <label for="total-time-label">Total Time (s)</label>
+            <p id="total-time-label">0</p>
+          </div>
+
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div id="eventsholder"></div>
+      </div>
     </div>
-    @if(commonData.imagerySource == PanoSource.Infra3d) {
-        <script src='@assets.path("javascripts/lib/proj4-2.19.10.js")'></script>
-        <script src='@assets.path("javascripts/lib/infra3dapi-1.8.0.js")'></script>
-    } else if (commonData.imagerySource == PanoSource.Mapillary) {
-        <script src='@assets.path("javascripts/lib/three-0.160.1-min.js")'></script>
-        <script src='@assets.path("javascripts/lib/mapillary-4.1.2.min.js")'></script>
-        <link href='@assets.path("javascripts/lib/mapillary-4.1.2.css")' rel="stylesheet"/>
-    }
-    <script src='@assets.path("javascripts/common/pano-viewer/build/pano-viewer.js")'></script>
-    <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
-    <script src='@assets.path("javascripts/common/UtilitiesSidewalk.js")'></script>
-    <script src='@assets.path("javascripts/lib/bootstrap-slider-7.1.1/js/bootstrap-slider.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/mapbox-gl-3.21.0.js")'></script>
-    <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@assets.path("javascripts/lib/mapbox-gl-3.21.0.css")' rel="stylesheet"/>
-    <link href='@assets.path("javascripts/lib/bootstrap-slider-7.1.1/css/bootstrap-slider.min.css")' rel="stylesheet"/>
-    <script src='@assets.path("javascripts/lib/i18next-23.16.8.min.js")'></script>
-    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-3.0.4.min.js")'></script>
-    <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
-    <link href='@assets.path("stylesheets/adminTask.css")' rel="stylesheet"/>
-    <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
-    <script>
-        // Load the translations, then initialize the AdminTask module.
-        window.appManager.ready(function () {
-            const imagerySrc = "@commonData.imagerySource.toString";
-            const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
-            window.admin = AdminTask({
-                auditTaskId: @task.auditTaskId,
-                mapboxApiKey: '@commonData.mapboxApiKey',
-                viewerType: viewerType,
-                accessToken: "@commonData.imageryAccessToken",
-            });
-        });
-    </script>
+  </div>
+  @if(commonData.imagerySource == PanoSource.Infra3d) {
+    <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
+    <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
+  } else if (commonData.imagerySource == PanoSource.Mapillary) {
+  <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
+  <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
+  <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
+  }
+  <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
+  <script src='@assets.path("js/admin/build/admin.js")'></script>
+  <script src='@assets.path("js/common/utilitiesSidewalk.js")'></script>
+  <script src='@assets.path("vendor/bootstrap-slider/js/bootstrap-slider.min.js")'></script>
+  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
+  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
+  <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet">
+  <link href='@assets.path("vendor/bootstrap-slider/css/bootstrap-slider.min.css")' rel="stylesheet">
+  <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
+  <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
+  <link href='@assets.path("css/admin.css")' rel="stylesheet">
+  <link href='@assets.path("css/admin-task.css")' rel="stylesheet">
+  <link href='@assets.path("css/choropleth.css")' rel="stylesheet">
+  <script>
+    // Load the translations, then initialize the AdminTask module.
+    window.appManager.ready(function () {
+      const imagerySrc = "@commonData.imagerySource.toString";
+      const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+      window.admin = new AdminTask({
+        auditTaskId: @task.auditTaskId,
+        mapboxApiKey: '@commonData.mapboxApiKey',
+        viewerType: viewerType,
+        accessToken: "@commonData.imageryAccessToken",
+      });
+    });
+  </script>
 }

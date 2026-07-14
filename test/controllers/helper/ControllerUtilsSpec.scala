@@ -35,4 +35,30 @@ class ControllerUtilsSpec extends PlaySpec {
       ControllerUtils.internalKeyValid(FakeRequest().withHeaders("Authorization" -> "Bearer "), "") mustBe false
     }
   }
+
+  "ControllerUtils.safeLocalPath" should {
+    "pass through same-origin relative paths unchanged" in {
+      ControllerUtils.safeLocalPath("/explore") mustBe "/explore"
+      ControllerUtils.safeLocalPath("/validate?foo=bar&baz=1") mustBe "/validate?foo=bar&baz=1"
+      ControllerUtils.safeLocalPath("/") mustBe "/"
+    }
+
+    "reject absolute, scheme, and protocol-relative URLs (open-redirect guard)" in {
+      ControllerUtils.safeLocalPath("https://evil.example") mustBe "/"
+      ControllerUtils.safeLocalPath("http://evil.example/x") mustBe "/"
+      ControllerUtils.safeLocalPath("//evil.example") mustBe "/"
+      ControllerUtils.safeLocalPath("/\\evil.example") mustBe "/" // browsers normalize /\ to //
+      ControllerUtils.safeLocalPath("javascript:alert(1)") mustBe "/"
+      ControllerUtils.safeLocalPath("evil.example/path") mustBe "/"
+    }
+
+    "trim surrounding whitespace before classifying" in {
+      ControllerUtils.safeLocalPath("  //evil.example") mustBe "/"
+      ControllerUtils.safeLocalPath("  /explore") mustBe "/explore"
+    }
+
+    "fall back to the supplied default when the target is unsafe" in {
+      ControllerUtils.safeLocalPath("https://evil.example", "/signIn") mustBe "/signIn"
+    }
+  }
 }

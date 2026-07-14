@@ -1,6 +1,15 @@
 package controllers.helper
 
-import models.api.{AccessScoreApiModels, LabelClusterForApi, LabelDataForApi, RawLabelInClusterDataForApi, RegionAccessScoreForApi, RegionDataForApi, StreetAccessScoreForApi, StreetDataForApi}
+import models.api.{
+  AccessScoreApiModels,
+  LabelClusterForApi,
+  LabelDataForApi,
+  RawLabelInClusterDataForApi,
+  RegionAccessScoreForApi,
+  RegionDataForApi,
+  StreetAccessScoreForApi,
+  StreetDataForApi
+}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import org.apache.pekko.util.ByteString
@@ -282,7 +291,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "cameraHdng:Double,"      // Camera heading
       + "cameraPtch:Double,"      // Camera pitch
       + "cameraRoll:Double,"      // Camera roll
-      + "imageUrl:String"         // Pano URL
+      + "panoUrl:String"          // Provider viewer URL (empty for providers without one)
     )
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
@@ -335,7 +344,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.cameraHeading.orNull)
       featureBuilder.add(label.cameraPitch.orNull)
       featureBuilder.add(label.cameraRoll.orNull)
-      featureBuilder.add(label.imageUrl)
+      featureBuilder.add(label.panoUrl.getOrElse(""))
 
       featureBuilder.buildFeature(null)
     }
@@ -734,7 +743,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "camera_heading:Double,"  // Camera heading
       + "camera_pitch:Double,"    // Camera pitch
       + "camera_roll:Double,"     // Camera pitch
-      + "image_url:String"        // Pano URL
+      + "pano_url:String"         // Provider viewer URL (empty for providers without one)
     )
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
@@ -779,7 +788,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.cameraHeading.orNull)
       featureBuilder.add(label.cameraPitch.orNull)
       featureBuilder.add(label.cameraRoll.orNull)
-      featureBuilder.add(label.imageUrl)
+      featureBuilder.add(label.panoUrl.getOrElse(""))
       featureBuilder.buildFeature(null)
     }
 
@@ -808,6 +817,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "regionId:Integer,"            // Region ID
       + "regionName:String,"           // Region name
       + "wayType:String,"              // Type of street/way
+      + "status:String,"               // Street availability: open, no_imagery, closed, or disabled
       + "labelCount:Integer,"          // Number of labels on this street
       + "auditCount:Integer,"          // Number of times audited
       + "userCount:Integer,"           // Number of unique users
@@ -826,6 +836,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(street.regionId)
       featureBuilder.add(street.regionName)
       featureBuilder.add(street.wayType)
+      featureBuilder.add(street.status)
       featureBuilder.add(street.labelCount)
       featureBuilder.add(street.auditCount)
       featureBuilder.add(street.userIds.size)
@@ -866,6 +877,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "region_id:Integer,"           // Region ID
       + "region_name:String,"          // Region name
       + "way_type:String,"         // Type of street/way. Using String instead of Long to avoid type resolution issues.
+      + "status:String,"           // Street availability: open, no_imagery, closed, or disabled
       + "label_count:Integer,"     // Number of labels on this street
       + "audit_count:Integer,"     // Number of times audited
       + "user_count:Integer,"      // Number of unique users
@@ -887,6 +899,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(street.regionId)
       featureBuilder.add(street.regionName)
       featureBuilder.add(street.wayType)
+      featureBuilder.add(street.status)
       featureBuilder.add(street.labelCount)
       featureBuilder.add(street.auditCount)
       featureBuilder.add(street.userIds.size)
@@ -923,6 +936,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "streetCount:Integer,"           // Number of streets in this region
       + "userCount:Integer,"             // Number of unique users who labeled in this region
       + "auditCount:Integer,"            // Number of completed audits in this region
+      + "totalDistM:Double,"             // Total street distance in this region, meters (DBF caps names at 10 chars)
+      + "audDistM:Double,"               // Audited street distance in this region, meters
+      + "complRate:Double,"              // Fraction of street distance audited (0.0–1.0)
       + "firstLabel:String,"             // First label date
       + "lastLabel:String"               // Last label date
     )
@@ -935,6 +951,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(region.streetCount)
       featureBuilder.add(region.userCount)
       featureBuilder.add(region.auditCount)
+      featureBuilder.add(region.totalDistanceM)
+      featureBuilder.add(region.auditedDistanceM)
+      featureBuilder.add(region.completionRate)
       featureBuilder.add(region.firstLabelDate.map(_.toString).orNull)
       featureBuilder.add(region.lastLabelDate.map(_.toString).orNull)
       featureBuilder.buildFeature(null)
@@ -966,6 +985,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "street_count:Integer,"          // Number of streets in this region
       + "user_count:Integer,"            // Number of unique users who labeled in this region
       + "audit_count:Integer,"           // Number of completed audits in this region
+      + "total_distance_m:Double,"       // Total street distance in this region, meters
+      + "audited_distance_m:Double,"     // Audited street distance in this region, meters
+      + "completion_rate:Double,"        // Fraction of street distance audited (0.0–1.0)
       + "first_label_time:String,"       // First label date
       + "last_label_time:String"         // Last label date
     )
@@ -978,6 +1000,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(region.streetCount)
       featureBuilder.add(region.userCount)
       featureBuilder.add(region.auditCount)
+      featureBuilder.add(region.totalDistanceM)
+      featureBuilder.add(region.auditedDistanceM)
+      featureBuilder.add(region.completionRate)
       featureBuilder.add(region.firstLabelDate.map(_.toString).orNull)
       featureBuilder.add(region.lastLabelDate.map(_.toString).orNull)
       featureBuilder.buildFeature(null)
@@ -998,7 +1023,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       batchSize: Int
   ): Future[Option[Path]] = {
     val perTypeSpec: String = AccessScoreApiModels.orderedTypes
-      .map { t => val c = AccessScoreApiModels.shapefileTypeCode(t); s"n$c:Integer,s$c:Double" }
+      .map { t =>
+        val c = AccessScoreApiModels.shapefileTypeCode(t); s"n$c:Integer,s$c:Double"
+      }
       .mkString(",")
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "AccessScoreStreet",
@@ -1039,7 +1066,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       batchSize: Int
   ): Future[Option[Path]] = {
     val perTypeSpec: String = AccessScoreApiModels.orderedTypes
-      .flatMap { t => val n = AccessScoreApiModels.snakeType(t); Seq(s"n_$n:Integer", s"score_$n:Double") }
+      .flatMap { t =>
+        val n = AccessScoreApiModels.snakeType(t); Seq(s"n_$n:Integer", s"score_$n:Double")
+      }
       .mkString(",")
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "access_score_streets",

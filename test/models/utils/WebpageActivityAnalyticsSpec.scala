@@ -29,7 +29,7 @@ class WebpageActivityAnalyticsSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   private lazy val table: WebpageActivityTable = app.injector.instanceOf[WebpageActivityTable]
 
-  private val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
+  private val dbConfig                   = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
   private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 10.seconds)
 
   "WebpageActivityTable.getApiEndpointCounts" should {
@@ -83,11 +83,62 @@ class WebpageActivityAnalyticsSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     "return 'json' as the format for requests without a filetype param" in {
       // If there is any data, calls without filetype= in the activity string must count as 'json'.
-      val results = run(table.getApiFormatCounts(excludeApiDocs = false, days = 0))
-      val nonJsonFormats = results.filter(r => r.format != "json" && r.format != "csv" &&
-        r.format != "shapefile" && r.format != "geopackage" && r.format != "geojson")
+      val results        = run(table.getApiFormatCounts(excludeApiDocs = false, days = 0))
+      val nonJsonFormats = results.filter(r =>
+        r.format != "json" && r.format != "csv" &&
+          r.format != "shapefile" && r.format != "geopackage" && r.format != "geojson"
+      )
       // Any format must be one of the known filetypes or the 'json' default.
       nonJsonFormats mustBe empty
+    }
+  }
+
+  // The source-split queries power the redesigned admin API Analytics page; every row's source must be one of the two
+  // known tags so the dashboard can pivot it into external/apiDocs columns.
+  private val validSources = Set("external", "apiDocs")
+
+  "WebpageActivityTable.getApiEndpointCountsBySource" should {
+    "execute and tag every row with a known source and non-negative count" in {
+      val results = run(table.getApiEndpointCountsBySource(days = 0))
+      results mustBe a[Seq[_]]
+      results.foreach { row =>
+        row.endpoint must not be empty
+        validSources must contain(row.source)
+        row.count must be >= 0L
+      }
+    }
+  }
+
+  "WebpageActivityTable.getApiDailyCountsBySource" should {
+    "execute, tag every row with a known source, and return dates in ascending order" in {
+      val results = run(table.getApiDailyCountsBySource(days = 90))
+      results mustBe a[Seq[_]]
+      results.foreach(row => validSources must contain(row.source))
+      val dates = results.map(_.date)
+      dates mustBe dates.sorted
+    }
+  }
+
+  "WebpageActivityTable.getApiFormatCountsBySource" should {
+    "execute and tag every row with a known source" in {
+      val results = run(table.getApiFormatCountsBySource(days = 30))
+      results mustBe a[Seq[_]]
+      results.foreach { row =>
+        row.format must not be empty
+        validSources must contain(row.source)
+      }
+    }
+  }
+
+  "WebpageActivityTable.getApiUniqueIpCountsBySource" should {
+    "execute, return at most one row per source, with non-negative distinct counts" in {
+      val results = run(table.getApiUniqueIpCountsBySource(days = 0))
+      results mustBe a[Seq[_]]
+      results.foreach { row =>
+        validSources must contain(row.source)
+        row.uniqueIps must be >= 0L
+      }
+      results.map(_.source).distinct.size mustBe results.size // No duplicate source rows.
     }
   }
 }

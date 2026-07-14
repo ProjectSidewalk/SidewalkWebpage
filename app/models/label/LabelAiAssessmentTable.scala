@@ -91,4 +91,33 @@ class LabelAiAssessmentTable @Inject() (protected val dbConfigProvider: Database
   def save(labelAiAssessment: LabelAiAssessment): DBIO[Int] = {
     (labelAiAssessments returning labelAiAssessments.map(_.labelAiAssessmentId)) += labelAiAssessment
   }
+
+  /**
+   * Summary of the AI's per-label assessments, for the Humans-vs-AI dashboard's tagger lens: how many labels the AI
+   * has assessed and its mean validation confidence across them.
+   *
+   * @return DBIO[(labelsAssessed, avgConfidence)] — avgConfidence is None when there are no assessments.
+   */
+  def getAssessmentSummary: DBIO[(Int, Option[Double])] = {
+    for {
+      count <- labelAiAssessments.length.result
+      avg   <- labelAiAssessments.map(_.validationConfidence).avg.result
+    } yield (count, avg)
+  }
+
+  /**
+   * AI-applied tag counts across all assessments, for the Humans-vs-AI tagger lens (compared against the human tag
+   * baseline). Each assessment's `tags` array is flattened in Scala — only the tags column is fetched — so the page
+   * can show which tags the AI tagger applies and how often.
+   *
+   * @return DBIO[Seq[(tag, count)]].
+   */
+  def getAiTagCounts: DBIO[Seq[(String, Int)]] = {
+    labelAiAssessments.map(_.tags).result.map { tagLists =>
+      tagLists.flatten.flatten
+        .groupBy(identity)
+        .map { case (tag, occurrences) => (tag, occurrences.size) }
+        .toSeq
+    }
+  }
 }

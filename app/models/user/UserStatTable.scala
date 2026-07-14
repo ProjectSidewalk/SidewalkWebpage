@@ -12,7 +12,7 @@ import models.utils.MyPostgresProfile.api._
 import models.validation.LabelValidationTableDef
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.functional.syntax._
-import play.api.libs.json.{Writes, __}
+import play.api.libs.json.{__, Writes}
 import service.TimeInterval
 import service.TimeInterval.TimeInterval
 import slick.jdbc.GetResult
@@ -30,7 +30,9 @@ case class UserStat(
     highQualityManual: Option[Boolean],
     ownLabelsValidated: Int,
     accuracy: Option[Double],
-    excluded: Boolean
+    excluded: Boolean,
+    onLeaderboard: Boolean,
+    publicProfile: Boolean
 )
 
 case class LabelTypeStat(labels: Int, validatedCorrect: Int, validatedIncorrect: Int, notValidated: Int)
@@ -58,7 +60,8 @@ case class UserStatsForAdminPage(
     ownValidatedAgreedPct: Double,
     othersValidated: Int,
     othersValidatedAgreedPct: Double,
-    highQuality: Boolean
+    highQuality: Boolean,
+    highQualityManual: Option[Boolean]
 )
 case class UserCount(
     count: Int,
@@ -81,6 +84,54 @@ case class LeaderboardStat(
     score: Double
 )
 
+/**
+ * One row in a user's "standing" slice — their neighbors on the board, ranked by label count for the period.
+ *
+ * @param rank       1-based rank among eligible users for the period.
+ * @param username   Display name (email domain stripped).
+ * @param labelCount Labels placed in the period.
+ * @param isYou      True for the viewing user's own row.
+ */
+case class StandingRow(rank: Int, username: String, labelCount: Int, isYou: Boolean)
+
+/**
+ * A user's standing among eligible contributors for a period (ranked by labels), plus a small slice of neighbors.
+ *
+ * @param rank       The user's 1-based rank.
+ * @param cohortSize Number of eligible ranked contributors (the "of N" denominator).
+ * @param labelCount The user's label count for the period.
+ * @param slice      The user's row ± a couple of neighbors, ordered by rank.
+ * @param delta      Spots moved since the previous week (positive = climbed), or None if not comparable.
+ */
+case class UserStanding(rank: Int, cohortSize: Int, labelCount: Int, slice: Seq[StandingRow], delta: Option[Int] = None)
+
+/**
+ * One cell of the activity heatmap. The view assembles the localized tooltip from these parts.
+ *
+ * @param intensity 0 (no activity) … 4 (most), bucketed from the day's contribution count.
+ * @param count     The day's contribution count.
+ * @param dateLabel The cell's date, formatted in the viewer's locale (e.g. "Mon, Jun 23").
+ */
+case class StreakCell(intensity: Int, count: Int, dateLabel: String)
+
+/**
+ * A user's activity streak summary plus the heatmap grid.
+ *
+ * @param currentStreak   Consecutive active days ending today (or yesterday if today isn't active yet).
+ * @param longestStreak   Longest run of consecutive active days ever.
+ * @param totalActiveDays Distinct days with any activity.
+ * @param cells           Heatmap cells in column-major order (7 rows × N weeks); `None` = out-of-window padding.
+ * @param columnMonths    One entry per week column: the abbreviated month name (e.g. "Jun") on the first column of a
+ *                        new month, else `None` — for the month labels along the top of the heatmap.
+ */
+case class StreakStats(
+    currentStreak: Int,
+    longestStreak: Int,
+    totalActiveDays: Int,
+    cells: Seq[Option[StreakCell]],
+    columnMonths: Seq[Option[String]]
+)
+
 class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
   def userStatId: Rep[Int]                    = column[Int]("user_stat_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String]                     = column[String]("user_id")
@@ -91,9 +142,12 @@ class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
   def ownLabelsValidated: Rep[Int]            = column[Int]("own_labels_validated")
   def accuracy: Rep[Option[Double]]           = column[Option[Double]]("accuracy")
   def excluded: Rep[Boolean]                  = column[Boolean]("excluded")
+  def onLeaderboard: Rep[Boolean]             = column[Boolean]("on_leaderboard")
+  def publicProfile: Rep[Boolean]             = column[Boolean]("public_profile")
 
-  override def * = (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual,
-    ownLabelsValidated, accuracy, excluded) <> ((UserStat.apply _).tupled, UserStat.unapply)
+  override def * =
+    (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual, ownLabelsValidated, accuracy,
+      excluded, onLeaderboard, publicProfile) <> ((UserStat.apply _).tupled, UserStat.unapply)
 }
 
 @ImplementedBy(classOf[UserStatTable])
@@ -479,6 +533,9 @@ class UserStatTable @Inject() (
         if (byTeam) "AND team.visible = TRUE"
         else ""
     }
+    // on_leaderboard hides a user by name from the individual rankings; team totals still include their contribution,
+    // so this filter is applied only to the per-user board (#4323).
+    val leaderboardVisibilityFilter: String = if (byTeam) "" else "AND user_stat.on_leaderboard = TRUE"
     // There are quite a few changes to make to the query when grouping by team instead of user. All of those below.
     val groupingCol: String        = if (byTeam) "user_team.team_id" else "sidewalk_user.user_id"
     val groupingColName: String    = if (byTeam) "team_id" else "user_id"
@@ -512,6 +569,7 @@ class UserStatTable @Inject() (
               AND label.tutorial = FALSE
               AND role.role IN ('Registered', 'Administrator', 'Researcher')
               AND user_stat.excluded = FALSE
+              #$leaderboardVisibilityFilter
               AND (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
               #$teamFilter
           GROUP BY #$groupingCol
@@ -558,6 +616,117 @@ class UserStatTable @Inject() (
   }
 
   /**
+   * Computes a user's standing (rank by label count) among eligible contributors for a period, plus a slice of
+   * neighbors around them.
+   *
+   * Reuses the leaderboard's eligibility filters — role IN (Registered, Administrator, Researcher), non-excluded,
+   * on_leaderboard = TRUE, non-deleted/non-tutorial labels — so Owners and users who opted out are excluded and the
+   * "of N" denominator reconciles with the board.
+   * Ranks by label count (the intuitive "your standing" metric), not the leaderboard's composite score.
+   *
+   * @param userId The user whose standing to compute.
+   * @param mode   "weekly" (since this US/Pacific week's start), "lastWeek" (the prior week), or "overall" (all time).
+   * @param n      How many neighbors to include on each side of the user in the returned slice.
+   * @return       The user's standing, or `None` if they have no qualifying labels in the period (so aren't ranked).
+   */
+  def getUserStanding(userId: String, mode: String, n: Int): DBIO[Option[UserStanding]] = {
+    val weekStart =
+      "((now() AT TIME ZONE 'US/Pacific')::date - (cast(extract(dow from (now() AT TIME ZONE 'US/Pacific')::date) as int) % 7))"
+    val timeFilter = mode.toLowerCase match {
+      case "weekly"   => s"AND (label.time_created AT TIME ZONE 'US/Pacific') >= $weekStart"
+      case "lastweek" =>
+        s"AND (label.time_created AT TIME ZONE 'US/Pacific') >= ($weekStart - INTERVAL '7 days') " +
+          s"AND (label.time_created AT TIME ZONE 'US/Pacific') < $weekStart"
+      case _ => ""
+    }
+    sql"""
+      WITH ranked AS (
+          SELECT sidewalk_user.user_id AS uid,
+                 sidewalk_user.username AS uname,
+                 COUNT(label.label_id)::int AS lc,
+                 RANK() OVER (ORDER BY COUNT(label.label_id) DESC)::int AS rnk,
+                 COUNT(*) OVER ()::int AS cohort
+          FROM sidewalk_user
+          INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
+          INNER JOIN role ON user_role.role_id = role.role_id
+          INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
+          INNER JOIN label ON sidewalk_user.user_id = label.user_id
+          WHERE label.deleted = FALSE
+              AND label.tutorial = FALSE
+              AND role.role IN ('Registered', 'Administrator', 'Researcher')
+              AND user_stat.excluded = FALSE
+              AND user_stat.on_leaderboard = TRUE
+              #$timeFilter
+          GROUP BY sidewalk_user.user_id, sidewalk_user.username
+      ),
+      me AS (SELECT rnk, cohort, lc FROM ranked WHERE uid = $userId)
+      SELECT ranked.rnk, ranked.uname, ranked.lc, (ranked.uid = $userId) AS is_you, me.cohort, me.rnk, me.lc
+      FROM ranked CROSS JOIN me
+      WHERE ranked.rnk BETWEEN me.rnk - $n AND me.rnk + $n
+      ORDER BY ranked.rnk, ranked.uname;
+    """.as[(Int, String, Int, Boolean, Int, Int, Int)].map { rows =>
+      rows.headOption.map { head =>
+        val slice = rows.map { r =>
+          val name = if (isValidEmail(r._2)) r._2.slice(0, r._2.lastIndexOf('@')) else r._2
+          StandingRow(r._1, name, r._3, r._4)
+        }
+        UserStanding(rank = head._6, cohortSize = head._5, labelCount = head._7, slice = slice)
+      }
+    }
+  }
+
+  /**
+   * Per-day activity counts for a user (US/Pacific calendar days), across labeling, exploring, and validating.
+   *
+   * A day counts if the user placed a (non-deleted, non-tutorial) label, completed an audit task, or made a
+   * validation on it. Returned as (ISO date string, count) so the streak/heatmap math is done in Scala.
+   *
+   * @param userId The user whose activity to summarize.
+   * @return       One row per active day, ascending by date.
+   */
+  def getActivityDayCounts(userId: String): DBIO[Seq[(String, Int)]] = {
+    sql"""
+      WITH activity AS (
+          SELECT (label.time_created AT TIME ZONE 'US/Pacific')::date AS d
+          FROM label
+          WHERE label.user_id = $userId AND label.deleted = FALSE AND label.tutorial = FALSE
+          UNION ALL
+          SELECT (audit_task.task_end AT TIME ZONE 'US/Pacific')::date
+          FROM audit_task
+          WHERE audit_task.user_id = $userId AND audit_task.completed AND audit_task.task_end IS NOT NULL
+          UNION ALL
+          SELECT (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date
+          FROM label_validation
+          WHERE label_validation.user_id = $userId AND label_validation.end_timestamp IS NOT NULL
+      )
+      SELECT to_char(d, 'YYYY-MM-DD') AS day, COUNT(*)::int AS c
+      FROM activity
+      GROUP BY d
+      ORDER BY d;
+    """.as[(String, Int)]
+  }
+
+  /**
+   * Per-label-type validation tallies for a user: how many of their labels of each type were judged correct vs
+   * incorrect (by majority vote). Only non-deleted, non-tutorial labels. Drives the dashboard's per-type accuracy
+   * bars.
+   *
+   * @param userId The user whose labels to tally.
+   * @return       One row per label type present: (label type name, correct count, incorrect count).
+   */
+  def getLabelTypeAccuracy(userId: String): DBIO[Seq[(String, Int, Int)]] = {
+    sql"""
+      SELECT label_type.label_type,
+             COUNT(*) FILTER (WHERE label.correct IS TRUE)::int AS correct,
+             COUNT(*) FILTER (WHERE label.correct IS FALSE)::int AS incorrect
+      FROM label
+      INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
+      WHERE label.user_id = $userId AND label.deleted = FALSE AND label.tutorial = FALSE
+      GROUP BY label_type.label_type;
+    """.as[(String, Int, Int)]
+  }
+
+  /**
    * Get all users, excluding anon users who haven't placed any labels or done any validations (to limit table size).
    */
   def usersMinusAnonUsersWithNoLabelsAndNoValidations: DBIO[Seq[SidewalkUserWithRole]] = {
@@ -585,15 +754,32 @@ class UserStatTable @Inject() (
     otherUsers.result.map(_.map(SidewalkUserWithRole.tupled))
   }
 
-  def getUserQuality: DBIO[Seq[(String, Boolean)]] = {
-    // TODO temporarily removing to improve admin page load time:
-    // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3802
-    //    val userHighQuality = userStats.map { x => (x.userId, x.highQuality) }.list.toMap
+  /**
+   * Counts non-anonymous users currently flagged as low quality (high_quality = false), for the admin Overview's
+   * "needs attention" panel. Mirrors `getUserQuality`'s anonymous exclusion so the count matches what's reviewable.
+   *
+   * @return Number of low-quality registered users.
+   */
+  def countLowQualityUsers: DBIO[Int] = {
     userStats
       .join(userRoleTable)
       .on(_.userId === _.userId)
       .filter(_._2.roleId =!= 6) // Exclude anonymous users.
-      .map(x => (x._1.userId, x._1.highQuality))
+      .filter(!_._1.highQuality)
+      .length
+      .result
+  }
+
+  def getUserQuality: DBIO[Seq[(String, Boolean, Option[Boolean])]] = {
+    // TODO temporarily removing to improve admin page load time:
+    // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3802
+    //    val userHighQuality = userStats.map { x => (x.userId, x.highQuality) }.list.toMap
+    // high_quality_manual is included so the admin UI can flag users whose quality was set by hand vs auto-computed.
+    userStats
+      .join(userRoleTable)
+      .on(_.userId === _.userId)
+      .filter(_._2.roleId =!= 6) // Exclude anonymous users.
+      .map(x => (x._1.userId, x._1.highQuality, x._1.highQualityManual))
       .result
   }
 
@@ -935,10 +1121,40 @@ class UserStatTable @Inject() (
 
   /**
    * Insert a new user_stat entry for the given userId.
-   * @param userId The userId to insert a user_stat entry for
-   * @return DBIO action that returns the number of rows inserted (should be 1)
+   *
+   * @param userId        The userId to insert a user_stat entry for.
+   * @param onLeaderboard Whether the user appears in leaderboard rankings. Defaults true (public); the sign-up path
+   *                      passes false for private-by-default (school/minor) deployments.
+   * @param publicProfile Whether the user's dashboard is publicly viewable. Defaults true; same private-by-default rule.
+   * @return DBIO action that returns the number of rows inserted (should be 1).
    */
-  def insert(userId: String): DBIO[Int] = {
-    userStats += UserStat(0, userId, 0d, None, highQuality = true, None, 0, None, excluded = false)
+  def insert(userId: String, onLeaderboard: Boolean = true, publicProfile: Boolean = true): DBIO[Int] = {
+    userStats += UserStat(0, userId, 0d, None, highQuality = true, None, 0, None, excluded = false, onLeaderboard,
+      publicProfile)
+  }
+
+  /**
+   * Reads a user's two privacy flags.
+   *
+   * @param userId The user to look up.
+   * @return (onLeaderboard, publicProfile), or None if the user has no user_stat row.
+   */
+  def getPrivacySettings(userId: String): DBIO[Option[(Boolean, Boolean)]] = {
+    userStats.filter(_.userId === userId).map(u => (u.onLeaderboard, u.publicProfile)).result.headOption
+  }
+
+  /**
+   * Updates a user's two privacy flags.
+   *
+   * @param userId        The user to update.
+   * @param onLeaderboard New leaderboard-visibility flag.
+   * @param publicProfile New public-profile flag.
+   * @return Number of rows updated (1, or 0 if the user has no user_stat row).
+   */
+  def updatePrivacySettings(userId: String, onLeaderboard: Boolean, publicProfile: Boolean): DBIO[Int] = {
+    userStats
+      .filter(_.userId === userId)
+      .map(u => (u.onLeaderboard, u.publicProfile))
+      .update((onLeaderboard, publicProfile))
   }
 }

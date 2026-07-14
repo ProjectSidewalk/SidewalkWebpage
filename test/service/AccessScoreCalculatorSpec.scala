@@ -49,7 +49,7 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
   }
 
   test("null severity falls back to Okay for positives and Low for negatives") {
-    AccessScoreCalculator.scoreCluster(cluster("CurbRamp", None)) shouldBe (0.375 +- eps) // Okay
+    AccessScoreCalculator.scoreCluster(cluster("CurbRamp", None)) shouldBe (0.375 +- eps)       // Okay
     AccessScoreCalculator.scoreCluster(cluster("SurfaceProblem", None)) shouldBe (-0.33 +- eps) // Low
   }
 
@@ -97,7 +97,7 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
   test("scoreRegion is the street-length-weighted mean of scores, or None when nothing is audited") {
     AccessScoreCalculator.scoreRegion(Seq((0.2, 100.0), (0.8, 300.0))).get shouldBe (0.65 +- eps)
     AccessScoreCalculator.scoreRegion(Seq.empty) shouldBe None
-    AccessScoreCalculator.scoreRegion(Seq((0.5, 0.0))) shouldBe None // zero total length
+    AccessScoreCalculator.scoreRegion(Seq((0.5, 0.0))) shouldBe None                // zero total length
     AccessScoreCalculator.scoreRegion(Seq((0.42, 50.0))).get shouldBe (0.42 +- eps) // single street
   }
 

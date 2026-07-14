@@ -1,0 +1,60 @@
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@content = {
+  <div class="api-section" id="street-status-intro-section">
+    <h1 class="api-heading" id="street-status">Street status <a href="#street-status" class="permalink">#</a></h1>
+    <p>Which streets are actually available for auditing, and where are they unavailable? Every street carries a status: <strong>open</strong> (usable), <strong>no imagery</strong> (no street-view available), <strong>closed</strong> (in a region not yet opened to the public), or <strong>disabled</strong> (manually hidden, e.g. an OSM miscategorization). Use this to spot neighborhoods with lots of missing imagery or disabled streets.</p>
+    <div class="coverage-kpis" id="street-status-kpis">
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-total-streets">—</span><span class="coverage-kpi-label">Total streets</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-no-imagery">—</span><span class="coverage-kpi-label">No imagery</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-closed">—</span><span class="coverage-kpi-label">Closed</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-disabled">—</span><span class="coverage-kpi-label">Disabled</span></div>
+    </div>
+    <div class="coverage-status" id="street-status-status" role="status" aria-live="polite">Loading street data…</div>
+  </div>
+
+  <div class="api-section" id="street-status-map-section">
+    <h2 class="api-heading" id="street-status-map">Status map <a href="#street-status-map" class="permalink">#</a></h2>
+    <p>Each street segment is colored by its status. Hover for details; click a segment to highlight its region's streets here and in the table below.</p>
+    <div id="street-status-choropleth" class="coverage-map"
+    role="img" aria-label="Map of street segments colored by availability status"></div>
+    <div class="street-status-legend" id="street-status-legend"></div>
+  </div>
+
+  <div class="api-section" id="street-status-by-region-section">
+    <h2 class="api-heading" id="street-status-by-region">Status by region <a href="#street-status-by-region" class="permalink">#</a></h2>
+    <p>Streets per status for each region, sorted to surface the regions with the most missing imagery first. Hover or click a row to highlight that region's streets on the map above (and vice-versa).</p>
+    <div class="coverage-table-controls">
+      <label class="sr-only" for="street-status-table-search">Search regions</label>
+      <input type="search" id="street-status-table-search" class="coverage-table-search" placeholder="Search regions…">
+    </div>
+    <div class="coverage-table-wrap">
+      <table id="street-status-table" class="coverage-table street-status-table"></table>
+    </div>
+  </div>
+
+    <!-- Page-specific library: Mapbox for the segment map (Vega isn't needed here). Loaded only on this page. -->
+  <link rel="stylesheet" href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")">
+  <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")"></script>
+
+  <script src="@assets.path("js/admin-dashboard/StreetStatusMap.js")"></script>
+  <script src="@assets.path("js/admin-dashboard/StreetStatusTable.js")"></script>
+  <script src="@assets.path("js/admin-dashboard/StreetStatusPage.js")"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      new StreetStatusPage({
+        mapboxToken: '@commonData.mapboxApiKey',
+        streetsUrl: '/v3/api/streets?filetype=geojson'
+      }).init();
+    });
+  </script>
+}
+
+@common.main(commonData, "Sidewalk - Admin Street Status") {
+  @common.navbar(commonData, Some(user))
+  @admin.dashboard.adminLayout("street-status")(content)
+}

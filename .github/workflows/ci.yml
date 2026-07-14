@@ -1,10 +1,14 @@
 name: CI
 
-#   - backend:       `sbt compile` (BLOCKING) + `scalafmtCheckAll` (advisory)
-#   - frontend:      asset build (grunt)
-#   - backend-tests: DB-backed public-API functional tests against a real Postgres+PostGIS (ADVISORY for now).
-# Frontend linting (eslint/htmlhint/stylelint) is intentionally NOT wired in here: it is owned by issue #2487 and
-# sequenced with the in-progress JS ES5->ES6 migration, so it'll be introduced separately on that track.
+#   - backend:         `sbt compile` + `scalafmtCheckAll` (both BLOCKING)
+#   - frontend:        asset build (grunt) + `eslint` (JS) + `stylelint` (CSS) + `htmlhint` (HTML) (all BLOCKING)
+#   - evolutions-lint: static checks on conf/evolutions/default/*.sql (BLOCKING — fast, deterministic, no DB).
+#   - route-lint:      conf/routes reachability — fails if any route is shadowed by an earlier one (BLOCKING — no DB).
+#   - backend-tests:   DB-backed public-API functional tests against a real Postgres+PostGIS (ADVISORY for now). Boots
+#                      the app, which auto-applies pending evolutions -- so it doubles as the forward-apply gate.
+#   - python-tests:    pytest unit tests for the standalone scripts in scripts/ (ADVISORY for now).
+# ESLint (JavaScript), Stylelint (CSS), and htmlhint (HTML) are all wired into the `frontend` job as blocking steps now
+# that their trees are lint-clean (#2487).
 
 on:
   pull_request:
@@ -44,10 +48,11 @@ jobs:
           SIDEWALK_APPLICATION_SECRET: dummy-ci-secret
           INTERNAL_API_KEY: dummy-ci-internal-key
 
-      # Advisory only for now: the codebase has not had a repo-wide reformat pass, so this is expected to report
-      # findings. It must not block PRs yet (continue-on-error). Flip to blocking once the baseline is clean.
-      - name: scalafmt check (advisory)
-        continue-on-error: true
+      # Blocking: the tree is kept scalafmt-clean, so any formatting drift fails the build. `if: always()` runs this
+      # even when the compile step above failed, so a contributor sees compile and format problems in one run instead
+      # of one at a time. Auto-format locally with `make scalafmt-fix` (or `sbt scalafmtAll`) before pushing.
+      - name: scalafmt check (blocking)
+        if: always()
         run: sbt scalafmtCheckAll
 
   frontend:
@@ -69,6 +74,75 @@ jobs:
       # Exercises the grunt concat/concat_css asset build (the project's `default` grunt task).
       - name: Build assets
         run: npx grunt
+
+      # Blocking: the JS tree is kept eslint-clean (#2487), so any `error`-severity finding fails the build — the
+      # frontend counterpart to the backend job's scalafmt gate. Same path the `make eslint` target defaults to; build/
+      # and lib/ are carved out by eslint.config.js's own `ignores`. No `--max-warnings` flag on purpose: the config's
+      # one `warn` rule (max-len) is deliberately advisory — CLAUDE.md sanctions long-line exceptions, so an over-limit
+      # line nags but doesn't block; every other rule is an `error`. `if: always()` runs it even when the build step
+      # failed, so a contributor sees build and lint problems in one run. Auto-fix locally with `make eslint-fix`.
+      - name: ESLint (blocking)
+        if: always()
+        run: npx eslint public/js/ public/locales/
+
+      # Blocking: the CSS tree is kept stylelint-clean (#2487), the CSS counterpart to the ESLint gate above. Same glob
+      # `make stylelint` defaults to; vendored/generated CSS is carved out by stylelint.config.mjs's own `ignoreFiles`.
+      # The glob is single-quoted so Stylelint's own globber expands `**` (not the shell). Like ESLint, no
+      # `--max-warnings` flag: the one `warning` rule (max-line-length) is deliberately advisory — CLAUDE.md sanctions
+      # long-line exceptions — so an over-limit line nags but doesn't block. `if: always()` runs it even when an earlier
+      # step failed, so all frontend problems surface in one run. Auto-fix locally with `make stylelint-fix`.
+      - name: Stylelint (blocking)
+        if: always()
+        run: npx stylelint 'public/**/*.css'
+
+      # Blocking: the HTML tree (Twirl templates under app/views) is kept htmlhint-clean (#2487), the HTML counterpart to
+      # the ESLint/Stylelint gates above. Same path `make lint-htmlhint` defaults to; htmlhint reads its rules from
+      # .htmlhintrc. `if: always()` runs it even when an earlier step failed, so all frontend problems surface in one
+      # run. Auto-check locally with `make htmlhint`.
+      - name: HTMLHint (blocking)
+        if: always()
+        run: npx htmlhint app/views
+
+      # Blocking: cross-locale key parity for public/locales/. Pure-node (no deps), i18next-aware where
+      # eslint-plugin-i18n-json isn't -- it normalizes plural suffixes and treats en-US/en-NZ and the per-city overlays
+      # as override-only. Complements the per-file i18n-json ESLint rules run above. `if: always()` so it reports even
+      # when an earlier frontend step failed. Run locally with `make lint-locales`.
+      - name: Locale parity (blocking)
+        if: always()
+        run: node tools/check-locale-parity.mjs
+
+  evolutions-lint:
+    name: Evolutions lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Fast, deterministic, no DB: catches Play-evolution footguns the database won't flag until apply time (e.g. a
+      # semicolon mid-`--`-comment, which Play splits on -- the bug that broke evolution 325). Blocking from day one.
+      # Invoked via `bash` (not `./`) so it doesn't depend on the file's executable bit, which git on some dev setups
+      # (core.fileMode=false) drops.
+      - name: Lint evolution files
+        run: bash db/scripts/lint-evolutions.sh
+
+  route-lint:
+    name: Route reachability lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.8'
+
+      # Fast, deterministic, no DB: fails if any conf/routes entry is unreachable because an earlier same-method route
+      # already matches all of its request paths. Play commits to the first path-pattern match and 400s on a typed-param
+      # mismatch instead of falling through, so a wildcard placed above a literal sibling silently breaks it -- the #456
+      # `/label/:labelId`-over-`/label/tags` regression. Blocking from day one, like the evolutions/locale lints. Uses
+      # only the Python stdlib (no pip install). The faithful compiled-router counterpart is RouteReachabilitySpec (run
+      # in backend-tests), which additionally covers routes contributed by any sub-router includes.
+      - name: Check route reachability
+        run: python3 tools/check_route_reachability.py
 
   backend-tests:
     name: Backend tests (API, PostGIS)
@@ -121,6 +195,12 @@ jobs:
           ALTER ROLE sidewalk SET search_path = sidewalk_teaneck, sidewalk_login, public;"
 
       # Boot the real app and run the public-API functional tests against the imported city.
+      #
+      # Kept to PublicApiSpec only. Adding more GuiceOneAppPerSuite specs here boots several apps in parallel (ScalaTest
+      # runs suites concurrently), each opening its own DB connection pool, which exhausts the CI Postgres connections
+      # ("Pool is empty, failed to create/setup connection") and aborts the whole run. The route-shadowing invariant is
+      # instead enforced by the DB-free, blocking `route-lint` job above; test/controllers/RouteReachabilitySpec.scala is
+      # the equivalent spec, runnable locally and ready to join here once this suite is made sequential + promoted.
       - name: Run public API tests
         run: sbt "testOnly controllers.api.PublicApiSpec"
         # Dummy env mirroring docker-compose.yml's web service, so the app boots exactly as it does in dev. The
@@ -146,3 +226,26 @@ jobs:
           INFRA3D_CLIENT_SECRET_WINTERTHUR: DUMMY_INFRA3D_CLIENT_SECRET
           ENV_TYPE: local
           SIDEWALK_IMAGES_DIR: .crops
+
+  python-tests:
+    name: Python tests (scripts)
+    runs-on: ubuntu-latest
+    # ADVISORY while the suite is young (plan: ramp to blocking once stable). Does not block PRs yet.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+
+      # Match the web container's interpreter (Dockerfile base eclipse-temurin:17-jdk-focal ships Python 3.8). 3.8 is
+      # EOL; bumping the container's Python is tracked separately and intentionally out of scope here.
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.8'
+
+      # The pure-logic unit tests need no DB and no network, only the scripts' runtime deps plus pytest. The suite
+      # imports both scripts, so the offline check_streets deps (requirements-offline-tools.txt) are required too.
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt -r requirements-offline-tools.txt
+
+      - name: Run pytest
+        run: pytest test/python

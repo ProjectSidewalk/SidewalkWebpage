@@ -9,7 +9,6 @@ import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import org.apache.pekko.util.ByteString
 import play.api.Logger
 import play.api.http.ContentTypes
-import play.api.libs.json.Json
 import play.api.mvc.Result
 
 import java.io.{BufferedInputStream, File}
@@ -121,7 +120,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       dateTime: Option[String],
       paramName: String
   ): Either[ApiError, Option[OffsetDateTime]] = dateTime match {
-    case None => Right(None)
+    case None    => Right(None)
     case Some(s) =>
       try {
         Right(Some(OffsetDateTime.parse(s)))
@@ -136,8 +135,8 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       }
   }
 
-  /** Builds a 400 Bad Request response from an `ApiError`. */
-  protected def badRequest(error: ApiError): Result = BadRequest(Json.toJson(error))
+  /** Renders an `ApiError` as an RFC 7807 `application/problem+json` response with the error's HTTP status. */
+  protected def badRequest(error: ApiError): Result = ApiError.toResult(error)
 
   // Instance method wrappers — delegate to the companion object so the pure logic is unit-testable without DI.
   protected def validateBBoxParam(bbox: Option[String], parsed: Option[LatLngBBox]): Option[ApiError] =
@@ -145,8 +144,11 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
   protected def validateRegionId(regionId: Option[Int]): Option[ApiError] =
     BaseApiController.validateRegionId(regionId)
   protected def resolveGeoFilters(
-      bbox: Option[String], parsedBbox: Option[LatLngBBox], regionId: Option[Int],
-      regionName: Option[String], cityMapParams: MapParams
+      bbox: Option[String],
+      parsedBbox: Option[LatLngBBox],
+      regionId: Option[Int],
+      regionName: Option[String],
+      cityMapParams: MapParams
   ): (Option[LatLngBBox], Option[Int], Option[String]) =
     BaseApiController.resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
   protected def parseCommaSeparated(raw: Option[String]): Option[Seq[String]] =
@@ -294,7 +296,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
             .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip")
 
         case None =>
-          InternalServerError("Failed to create shapefile")
+          ApiError.toResult(ApiError.internalServerError("Failed to create shapefile"))
       }
   }
 
@@ -336,21 +338,13 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
 
         case None =>
           logger.error("Failed to create GeoPackage file")
-          InternalServerError(
-            Json.toJson(
-              ApiError.internalServerError("Failed to create GeoPackage file")
-            )
-          )
+          ApiError.toResult(ApiError.internalServerError("Failed to create GeoPackage file"))
       }
     } catch {
       case e: Exception =>
         logger.error(s"Error creating GeoPackage output: ${e.getMessage}", e)
         Future.successful(
-          InternalServerError(
-            Json.toJson(
-              ApiError.internalServerError(s"Error creating GeoPackage: ${e.getMessage}")
-            )
-          )
+          ApiError.toResult(ApiError.internalServerError(s"Error creating GeoPackage: ${e.getMessage}"))
         )
     }
   }
@@ -372,8 +366,10 @@ object BaseApiController {
    */
   def validateBBoxParam(bbox: Option[String], parsed: Option[LatLngBBox]): Option[ApiError] =
     if (bbox.isDefined && parsed.isEmpty)
-      Some(ApiError.invalidParameter(
-        "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", "bbox"))
+      Some(
+        ApiError
+          .invalidParameter("Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", "bbox")
+      )
     else None
 
   /**
@@ -412,8 +408,9 @@ object BaseApiController {
       maxLng = Math.max(cityMapParams.lng1, cityMapParams.lng2),
       maxLat = Math.max(cityMapParams.lat1, cityMapParams.lat2)
     )
-    val bboxActive   = bbox.isDefined && parsedBbox.isDefined
-    val finalBbox    = if (bboxActive) parsedBbox else if (regionId.isDefined || regionName.isDefined) None else Some(defaultBox)
+    val bboxActive = bbox.isDefined && parsedBbox.isDefined
+    val finalBbox  =
+      if (bboxActive) parsedBbox else if (regionId.isDefined || regionName.isDefined) None else Some(defaultBox)
     val finalRegId   = if (bboxActive) None else regionId
     val finalRegName = if (bboxActive || regionId.isDefined) None else regionName
     (finalBbox, finalRegId, finalRegName)

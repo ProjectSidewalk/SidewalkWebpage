@@ -5,6 +5,7 @@ import com.github.tminglei.slickpg._
 import com.github.tminglei.slickpg.geom.PgPostGISExtensions
 import models.label.AiImageSource
 import models.pano.PanoSource
+import models.street.StreetEdgeStatus
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.validation.ValidationOption
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
@@ -128,6 +129,15 @@ trait MyPostgresProfile
         ValidationOption.withName,
         quoteName = false
       )
+
+    // Mapper for street_edge_status enum type.
+    implicit val streetEdgeStatusMapper: BaseColumnType[StreetEdgeStatus.Value] =
+      createEnumJdbcType[StreetEdgeStatus.Value](
+        "street_edge_status",
+        _.toString,
+        StreetEdgeStatus.withName,
+        quoteName = false
+      )
   }
 }
 
@@ -180,7 +190,7 @@ object ClusteringThreshold {
     )(ClusteringThreshold.apply _)
 
     val writes: Writes[ClusteringThreshold] = (
-      (__ \ "label_type_id").write[String] and
+      (__ \ "label_type").write[String] and
         (__ \ "threshold").write[Double]
     )(unlift(ClusteringThreshold.unapply))
 

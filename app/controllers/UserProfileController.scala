@@ -7,8 +7,8 @@ import formats.json.LabelFormats.labelMetadataUserDashToJson
 import formats.json.UserFormats._
 import models.auth._
 import models.label.LabelTypeEnum
-import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.METERS_TO_MILES
+import models.utils.ProfanityGuard
 import models.utils.MyPostgresProfile.api._
 import play.api.i18n.Messages
 import play.api.libs.json.{JsObject, Json}
@@ -24,7 +24,6 @@ class UserProfileController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[DefaultEnv],
     val config: Configuration,
-    configService: service.ConfigService,
     authenticationService: service.AuthenticationService,
     userService: service.UserService,
     labelService: service.LabelService,
@@ -32,28 +31,38 @@ class UserProfileController @Inject() (
     panoDataService: service.PanoDataService,
     implicit val ec: ExecutionContext,
     cpuEc: CpuIntensiveExecutionContext
-)(implicit assets: AssetsFinder)
-    extends CustomBaseController(cc) {
+) extends CustomBaseController(cc) {
 
   implicit val implicitConfig: Configuration = config
   private val logger                         = Logger(this.getClass)
 
-  /**
-   * Loads the user dashboard page.
-   */
-  def userProfile = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
-    val user: SidewalkUserWithRole = request.identity
-    val metricSystem: Boolean      = Messages("measurement.system") == "metric"
-    for {
-      userProfileData <- userService.getUserProfileData(user.userId, metricSystem)
-      commonData      <- configService.getCommonPageData(request2Messages.lang)
-      tags            <- labelService.getTagsForCurrentCity
-    } yield {
-      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboard")
-      Ok(
-        views.html.userProfile(commonData, "Sidewalk - Dashboard", user, user, tags, userProfileData, adminData = None)
+  /** Builds the choropleth GeoJSON FeatureCollection for a set of a user's audited streets. */
+  private def streetsToGeoJson(streets: Seq[models.street.StreetEdge]): JsObject = {
+    val features: Seq[JsObject] = streets.map { street =>
+      val properties: JsObject = Json.obj("street_edge_id" -> street.streetEdgeId, "way_type" -> street.wayType)
+      Json.obj("type" -> "Feature", "geometry" -> street.geom, "properties" -> properties)
+    }
+    Json.obj("type" -> "FeatureCollection", "features" -> features)
+  }
+
+  /** Builds the GeoJSON FeatureCollection of a user's label points for the choropleth. */
+  private def labelsToGeoJson(labels: Seq[models.label.LabelLocation]): JsObject = {
+    val features: Seq[JsObject] = labels.map { label =>
+      Json.obj(
+        "type"       -> "Feature",
+        "geometry"   -> Json.obj("type" -> "Point", "coordinates" -> Json.arr(label.lng, label.lat)),
+        "properties" -> Json.obj(
+          "audit_task_id"   -> label.auditTaskId,
+          "label_id"        -> label.labelId,
+          "pano_id"         -> label.panoId,
+          "label_type"      -> label.labelType,
+          "correct"         -> label.correct,
+          "has_validations" -> label.hasValidations,
+          "expired"         -> label.expired
+        )
       )
     }
+    Json.obj("type" -> "FeatureCollection", "features" -> features)
   }
 
   /**
@@ -63,20 +72,23 @@ class UserProfileController @Inject() (
     implicit request =>
       logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
       authenticationService.findByUserId(userId).flatMap {
-        case Some(user) =>
-          userService.getAuditedStreets(userId).map { streets =>
-            val features: Seq[JsObject] = streets.map { street =>
-              val properties: JsObject = Json.obj(
-                "street_edge_id" -> street.streetEdgeId,
-                "way_type"       -> street.wayType
-              )
-              Json.obj("type" -> "Feature", "geometry" -> street.geom, "properties" -> properties)
-            }
-            val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
-            Ok(featureCollection)
-          }
-        case _ => Future.failed(new IdentityNotFoundException("Username not found."))
+        case Some(user) => userService.getAuditedStreets(userId).map(streets => Ok(streetsToGeoJson(streets)))
+        case _          => Future.failed(new IdentityNotFoundException("Username not found."))
       }
+  }
+
+  /**
+   * Public version of [[getAuditedStreets]] for the public profile map, keyed by username and gated on the target's
+   * `public_profile` flag (or the viewer being the owner). Returns 403 for a private profile or unknown user, so the
+   * map on a private profile stays empty.
+   *
+   * @param username The mapper whose audited streets to return.
+   */
+  def getPublicAuditedStreets(username: String) = cc.securityService.SecuredAction { implicit request =>
+    userService.resolveVisibleUser(username, isOwner = request.identity.username == username).flatMap {
+      case Some(uid) => userService.getAuditedStreets(uid).map(streets => Ok(streetsToGeoJson(streets)))
+      case None      => Future.successful(Forbidden(Json.obj("status" -> "private")))
+    }
   }
 
   /**
@@ -112,32 +124,23 @@ class UserProfileController @Inject() (
     cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { implicit request =>
       logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
       authenticationService.findByUserId(userId).flatMap {
-        case Some(user) =>
-          userService.getLabelLocations(userId, regionId).map { labels =>
-            val features: Seq[JsObject] = labels.map { label =>
-              Json.obj(
-                "type"     -> "Feature",
-                "geometry" -> Json.obj(
-                  "type"        -> "Point",
-                  "coordinates" -> Json.arr(label.lng, label.lat)
-                ),
-                "properties" -> Json.obj(
-                  "audit_task_id"   -> label.auditTaskId,
-                  "label_id"        -> label.labelId,
-                  "pano_id"         -> label.panoId,
-                  "label_type"      -> label.labelType,
-                  "correct"         -> label.correct,
-                  "has_validations" -> label.hasValidations,
-                  "expired"         -> label.expired
-                )
-              )
-            }
-            val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
-            Ok(featureCollection)
-          }
-        case _ => Future.failed(new IdentityNotFoundException("Username not found."))
+        case Some(user) => userService.getLabelLocations(userId, regionId).map(labels => Ok(labelsToGeoJson(labels)))
+        case _          => Future.failed(new IdentityNotFoundException("Username not found."))
       }
     }
+
+  /**
+   * Public version of [[getSubmittedLabels]] for the public profile map, keyed by username and gated on the target's
+   * `public_profile` flag (or the viewer being the owner). Returns 403 for a private profile or unknown user.
+   *
+   * @param username The mapper whose labels to return.
+   */
+  def getPublicSubmittedLabels(username: String) = cc.securityService.SecuredAction { implicit request =>
+    userService.resolveVisibleUser(username, isOwner = request.identity.username == username).flatMap {
+      case Some(uid) => userService.getLabelLocations(uid, None).map(labels => Ok(labelsToGeoJson(labels)))
+      case None      => Future.successful(Forbidden(Json.obj("status" -> "private")))
+    }
+  }
 
   /**
    * Get up `n` recent mistakes for each label type, using validations provided by other users.
@@ -166,6 +169,38 @@ class UserProfileController @Inject() (
   }
 
   /**
+   * Records the signed-in user's agree/contest vote on one of their own labels validated as incorrect (#2996): agree
+   * it was a mistake, or contest it (claim it was correct). Only affects the user's own labels (the service verifies
+   * ownership); once answered, the label drops off the dashboard's "recent mistakes". Instant — the dashboard card
+   * commits on click, and the vote preserves any note already on the row.
+   *
+   * Expects a JSON body: `{ "label_id": Int, "agrees": Boolean }`.
+   */
+  def mistakeVote() = cc.securityService.SecuredAction(parse.json) { request =>
+    val userId: String  = request.identity.userId
+    val labelId: Int    = (request.body \ "label_id").as[Int]
+    val agrees: Boolean = (request.body \ "agrees").as[Boolean]
+    cc.loggingService.insert(userId, request.ipAddress, s"Click_module=MistakeVote_agrees=$agrees")
+    labelService.recordMistakeVote(labelId, userId, agrees).map { recorded =>
+      if (recorded) Ok(Json.obj("success" -> true)) else Forbidden(Json.obj("success" -> false))
+    }
+  }
+
+  /**
+   * Records (or clears) the user's note on one of their own labels validated as incorrect (#2996). Independent of the
+   * vote — a note can stand alone, and saving one preserves any existing vote.
+   */
+  def mistakeNote() = cc.securityService.SecuredAction(parse.json) { request =>
+    val userId: String          = request.identity.userId
+    val labelId: Int            = (request.body \ "label_id").as[Int]
+    val comment: Option[String] = (request.body \ "comment").asOpt[String].map(_.trim).filter(_.nonEmpty)
+    cc.loggingService.insert(userId, request.ipAddress, "Click_module=MistakeNote")
+    labelService.recordMistakeNote(labelId, userId, comment).map { recorded =>
+      if (recorded) Ok(Json.obj("success" -> true)) else Forbidden(Json.obj("success" -> false))
+    }
+  }
+
+  /**
    * Sets the team of the given user.
    */
   def setUserTeam(userId: String, teamId: Int) =
@@ -179,18 +214,35 @@ class UserProfileController @Inject() (
   /**
    * Creates a team and puts it in the team table.
    */
-  def createTeam() = cc.securityService.SecuredAction(parse.json) { request =>
-    val name: String        = (request.body \ "name").as[String]
-    val description: String = (request.body \ "description").as[String]
+  def createTeam() = cc.securityService.SecuredAction(parse.json) { implicit request =>
+    val user                = request.identity
+    val name: String        = (request.body \ "name").as[String].trim
+    val description: String = (request.body \ "description").asOpt[String].getOrElse("").trim
 
-    // Inserting into the database and capturing the generated teamId.
-    userService.createTeam(name, description).map { teamId =>
-      Ok(
-        Json.obj(
-          "message" -> "Team created successfully!",
-          "team_id" -> teamId
-        )
+    def bad(msgKey: String) = Future.successful(BadRequest(Json.obj("success" -> false, "error" -> Messages(msgKey))))
+
+    // Validate before inserting: signed-in only, sane lengths, and no abusive language in the public-facing name or
+    // description (moderation; consolidate with the sign-up guard in #4375).
+    if (user.role == "Anonymous")
+      Future.successful(
+        Forbidden(Json.obj("success" -> false, "error" -> Messages("dashboard.team.error.signin")))
       )
+    else if (name.length < 2 || name.length > 50)
+      bad("dashboard.team.error.name.length")
+    else if (description.length > 300)
+      bad("dashboard.team.error.desc.length")
+    else if (!ProfanityGuard.isClean(name))
+      bad("dashboard.team.error.name.allowed")
+    else if (!ProfanityGuard.isClean(description))
+      bad("dashboard.team.error.desc.allowed")
+    else {
+      // Create the team and immediately join it, so creating a team is one seamless step.
+      userService.createTeam(name, description).flatMap { teamId =>
+        userService.setUserTeam(user.userId, teamId).map { _ =>
+          cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=CreateTeam")
+          Ok(Json.obj("success" -> true, "team_id" -> teamId))
+        }
+      }
     }
   }
 

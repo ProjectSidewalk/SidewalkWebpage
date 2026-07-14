@@ -1,0 +1,52 @@
+name: Dependency auto-merge
+
+# Enable GitHub auto-merge for green patch & minor dependency bumps so they clear the review queue on their
+# own once the required checks pass. Majors, and anything a required check fails, still wait for a human.
+# Security is unaffected: this only decides *when to merge*, never *what to merge* — branch protection's
+# required checks (compile + scalafmt, frontend build) are the gate. See issue #4385, workstream B.
+#
+# `pull_request_target` runs in the base-repo context (needed for the token to enable auto-merge on bot PRs),
+# so this workflow file must never checkout or execute PR-authored code.
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, labeled, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  dependabot:
+    # Dependabot: derive the semver bump from official metadata (reliable), auto-merge patch & minor.
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Enable auto-merge for patch & minor
+        if: >-
+          steps.meta.outputs.update-type == 'version-update:semver-patch' ||
+          steps.meta.outputs.update-type == 'version-update:semver-minor'
+        run: gh pr merge --auto --merge "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  scala-steward:
+    # Scala Steward has no metadata action, so key off the semver labels it attaches to its PRs.
+    # If a Steward PR arrives unlabeled it simply won't auto-merge (falls back to the monthly manual sweep).
+    if: >-
+      github.actor == 'scala-steward' &&
+      (contains(github.event.pull_request.labels.*.name, 'semver-patch') ||
+       contains(github.event.pull_request.labels.*.name, 'semver-minor'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enable auto-merge for patch & minor
+        run: gh pr merge --auto --merge "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

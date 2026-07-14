@@ -1,7 +1,8 @@
 package modules
 
+import models.api.ApiError
 import play.api.http.DefaultHttpErrorHandler
-import play.api.http.Status.{FORBIDDEN, NOT_FOUND}
+import play.api.http.Status.NOT_FOUND
 import play.api.libs.typedmap.TypedMap
 import play.api.mvc.Results._
 import play.api.mvc._
@@ -26,32 +27,56 @@ class CustomErrorHandler @Inject() (
 
   private val logger = Logger(this.getClass)
 
+  /**
+   * True for requests to the public data API. Framework-level errors on these paths are rendered as RFC 7807
+   * `application/problem+json` (matching what the API controllers emit) instead of the HTML/plain-text used for
+   * the rest of the site. Note `/v3/api-docs/...` does NOT match (those are HTML doc pages).
+   */
+  private def isApiRequest(request: RequestHeader): Boolean = request.path.startsWith("/v3/api/")
+
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] = {
     // Don't log common, harmless 404s
-    val shouldSkipLogging = (
+    val shouldSkipLogging =
       statusCode == NOT_FOUND && (
         request.path.endsWith(".map") ||              // Source maps
           request.path.startsWith("/.well-known/") || // Well-known URLs
           request.path == "/favicon.ico" ||           // Common favicon requests
-          request.path.endsWith("-india.json") // We only added the India files for en so far so we expect these.
+          request.path.endsWith("-india.json")        // We only added the India files for en so far so we expect these.
       )
-    ) || // Beacon requests that we need to fix, but they happen constantly so we don't need this extra logging.
-      (statusCode == FORBIDDEN && request.path.contains("Beacon"))
 
     if (!shouldSkipLogging) {
       logger.warn(s"Client error occurred: ${request.uri} - $statusCode - $message")
       logUserInfo(request)
     }
-    statusCode match {
-      case NOT_FOUND => Future.successful(NotFound(views.html.errors.onHandlerNotFound(request)))
-      case _         => Future.successful(Status(statusCode)("A client error occurred: " + message))
+    // API requests get the same RFC 7807 problem+json envelope the controllers use, so framework-level errors
+    // (unknown route, malformed typed route param, etc.) are consistent with handler-level errors (#3931).
+    if (isApiRequest(request)) {
+      val detail = statusCode match {
+        case NOT_FOUND             => s"No API endpoint matches ${request.method} ${request.path}."
+        case _ if message.nonEmpty => message
+        case _                     => "The request could not be processed."
+      }
+      Future.successful(ApiError.toResult(ApiError.forStatus(statusCode, detail)))
+    } else {
+      statusCode match {
+        case NOT_FOUND => Future.successful(NotFound(views.html.errors.onHandlerNotFound(request)))
+        case _         => Future.successful(Status(statusCode)("A client error occurred: " + message))
+      }
     }
   }
 
   override def onServerError(request: RequestHeader, exception: Throwable): Future[Result] = {
-    logger.info("Server error occurred: " + exception.getMessage, exception)
+    logger.error("Server error occurred: " + exception.getMessage, exception)
     logUserInfo(request)
-    super.onServerError(request, exception) // Continue with default error handling.
+    // API requests get a problem+json 500 (without leaking exception internals); other routes keep Play's default
+    // (dev error page / generic HTML) error handling.
+    if (isApiRequest(request)) {
+      Future.successful(
+        ApiError.toResult(ApiError.internalServerError("An internal error occurred while processing the request."))
+      )
+    } else {
+      super.onServerError(request, exception)
+    }
   }
 
   /**

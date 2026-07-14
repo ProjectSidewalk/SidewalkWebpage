@@ -1,0 +1,103 @@
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@content = {
+  <div class="api-section" id="contributors-intro-section">
+    <h1 class="api-heading" id="contributors">Contributors <a href="#contributors" class="permalink">#</a></h1>
+    <p>Who produces this deployment's data, and how much can we trust it? Project Sidewalk flags each contributor as high- or low-quality from their labeling and validation behavior. This page aggregates that: how many contributors there are by quality and role, how much of the data comes from low-quality users, and how contributor accuracy is distributed.</p>
+    <div class="coverage-kpis" id="contrib-kpis">
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-contributors">—</span><span class="coverage-kpi-label">Contributors (labelers)</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-high-quality">—</span><span class="coverage-kpi-label">High-quality</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-low-quality">—</span><span class="coverage-kpi-label">Low-quality</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-labels-high-quality">—</span><span class="coverage-kpi-label">Labels from high-quality users</span><span class="coverage-kpi-note" id="kpi-labels-high-quality-note"></span></div>
+    </div>
+    <div class="coverage-status" id="contrib-status" role="status" aria-live="polite">Loading contributor data…</div>
+  </div>
+
+  <div class="api-section" id="funnel-section">
+    <h2 class="api-heading" id="funnels">Engagement funnels <a href="#funnels" class="permalink">#</a></h2>
+    <p>Of the people who arrive, how many make it through each step? Two funnels: the <strong>mapping</strong> funnel follows the Explore onboarding (tutorial → first label → first mission), and the <strong>contribution</strong> funnel is the broader “did they contribute anything (labeling or validation) and finish a mission”. Bars are normalized to visitors (= 100%); the percentage on each step is its share of the step before it (the drop-off).</p>
+    <p class="ac-note">Two caveats. <strong>Anonymous visitors are counted per browser</strong> (a new id each time cookies are cleared), so the top of each funnel counts sessions, not unique people, and headline conversion reads low. <strong>The mapping tool is desktop-only</strong> — mobile visitors are redirected to a landing page and can’t proceed, so in the “Desktop vs mobile” view mobile drops off early by design. In the mapping funnel, “took a step” means a user walked some distance in a real (non-tutorial) mission.</p>
+    <div class="ac-funnel-controls">
+      <div class="ac-toggle" id="funnel-window" role="group" aria-label="Funnel time window">
+        <button type="button" class="ac-toggle-btn active" data-window="30d">Last 30 days</button>
+        <button type="button" class="ac-toggle-btn" data-window="90d">Last 90 days</button>
+        <button type="button" class="ac-toggle-btn" data-window="all">All time</button>
+      </div>
+      <div class="ac-toggle" id="funnel-dim" role="group" aria-label="Funnel breakdown">
+        <button type="button" class="ac-toggle-btn active" data-dim="all">All users</button>
+        <button type="button" class="ac-toggle-btn" data-dim="role">Registered vs anonymous</button>
+        <button type="button" class="ac-toggle-btn" data-dim="device">Desktop vs mobile</button>
+      </div>
+    </div>
+    <div id="funnel-blocks"></div>
+    <div class="coverage-status" id="funnel-status" role="status" aria-live="polite"></div>
+  </div>
+
+  <div class="api-section" id="contributor-quality-section">
+    <h2 class="api-heading" id="contributor-quality">Contributors by quality <a href="#contributor-quality" class="permalink">#</a></h2>
+    <p>How many contributors are flagged high- vs low-quality.</p>
+    <div id="contrib-quality"></div>
+  </div>
+
+  <div class="api-section" id="label-source-section">
+    <h2 class="api-heading" id="label-source">Where the labels come from <a href="#label-source" class="permalink">#</a></h2>
+    <p>Share of all labels contributed by high- vs low-quality users — a sense of how much low-quality data is in the mix.</p>
+    <h3 class="dq-subhead">By contributor quality</h3>
+    <div id="contrib-label-source"></div>
+    <h3 class="dq-subhead">By account role</h3>
+    <p>The same labels, split by who placed them — registered volunteers, crowd workers, staff, and so on.</p>
+    <div id="contrib-label-role"></div>
+  </div>
+
+  <div class="api-section" id="top-labelers-section">
+    <h2 class="api-heading" id="top-labelers">Top labelers <a href="#top-labelers" class="permalink">#</a></h2>
+    <p>The most prolific labelers, by label count. Accuracy is the agreement rate on each labeler's own validated labels (with the number validated) — volume and trustworthiness side by side. Click a name for their admin profile.
+    </p>
+    <div id="contrib-top-labelers"></div>
+  </div>
+
+  <div class="api-section" id="top-validators-section">
+    <h2 class="api-heading" id="top-validators">Top validators <a href="#top-validators" class="permalink">#</a></h2>
+    <p>The most active validators, by number of others' labels they've validated. Agreement is how often their validation matched the eventual consensus — a check on validation quality, not just quantity.</p>
+    <div id="contrib-top-validators"></div>
+  </div>
+
+  <div class="api-section" id="contributor-accuracy-section">
+    <h2 class="api-heading" id="contributor-accuracy">Contributor accuracy <a href="#contributor-accuracy" class="permalink">#</a></h2>
+    <p>Distribution of contributors by the agreement rate of their own labels (for those with validated labels).</p>
+    <div class="dq-rows" id="contrib-accuracy"></div>
+  </div>
+
+  <div class="api-section" id="contributors-by-role-section">
+    <h2 class="api-heading" id="contributors-by-role">Contributors by role <a href="#contributors-by-role" class="permalink">#</a></h2>
+    <p>Contributors broken down by account role.</p>
+    <div class="dq-rows" id="contrib-roles"></div>
+  </div>
+
+  <script src="@assets.path("js/admin-dashboard/ContributorsPage.js")"></script>
+  <script src="@assets.path("js/admin-dashboard/FunnelsSection.js")"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      new ContributorsPage({
+        userStatsUrl: '/adminapi/getUserStats',
+        leaderboardsUrl: '/adminapi/contributorLeaderboards'
+      }).init();
+      new FunnelsSection({
+        funnelsUrl: '/adminapi/funnels',
+        hostId: 'funnel-blocks',
+        statusId: 'funnel-status',
+        windowToggleId: 'funnel-window',
+        dimToggleId: 'funnel-dim'
+      }).init();
+    });
+  </script>
+}
+
+@common.main(commonData, "Sidewalk - Admin Contributors") {
+  @common.navbar(commonData, Some(user))
+  @admin.dashboard.adminLayout("contributors", user.role == "Owner")(content)
+}

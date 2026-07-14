@@ -45,6 +45,24 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       (json \ "validations").asOpt[JsObject] mustBe defined
     }
 
+    "expose the label/image date metrics, including the standard deviations (#3031)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/overallStats")).get
+      status(resp) mustBe OK
+
+      // Driving these through the real query also exercises the positional GetResult converter: a column-order drift
+      // between the SELECT and the converter would surface here as a missing key or a parse failure.
+      val labels = (contentAsJson(resp) \ "labels").as[JsObject]
+      labels.keys must contain("avg_label_timestamp")
+      labels.keys must contain("avg_age_of_image_when_labeled")
+      labels.keys must contain("stddev_label_timestamp")
+      labels.keys must contain("stddev_age_of_image_when_labeled")
+
+      // A standard deviation of dates is a duration: when the dataset has enough labels to compute one, it renders as
+      // a day-valued string (e.g. "188 days"). Tolerate null so the contract holds on a sparse test DB.
+      (labels \ "stddev_label_timestamp").asOpt[String].foreach(_ must fullyMatch regex """-?\d+ days""")
+      (labels \ "stddev_age_of_image_when_labeled").asOpt[String].foreach(_ must fullyMatch regex """-?\d+ days""")
+    }
+
     "return CSV with snake_case keys when filetype=csv" in {
       val resp = route(app, FakeRequest(GET, "/v3/api/overallStats?filetype=csv")).get
       status(resp) mustBe OK
@@ -52,6 +70,9 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       body must include("launch_date")
       body must include("km_explored")
       body must not include "Launch Date" // old Title-Case key gone
+      // The #3031 standard-deviation date metrics appear in the CSV with the same snake_case keys as the JSON.
+      body must include("stddev_label_timestamp")
+      body must include("stddev_age_of_image_when_labeled")
     }
   }
 
@@ -70,7 +91,8 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, "/v3/api/regions?filetype=csv")).get
       status(resp) mustBe OK
       contentAsString(resp) must include(
-        "region_id,name,label_count,street_count,user_count,audit_count,first_label_date,last_label_date,center_point"
+        "region_id,name,label_count,street_count,user_count,audit_count,total_distance_m,audited_distance_m," +
+          "completion_rate,first_label_date,last_label_date,center_point"
       )
     }
 

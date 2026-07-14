@@ -159,7 +159,8 @@ class RegionTable @Inject() (
     val regionIdFilter = filters.regionId.map { regionId => s"AND region.region_id = $regionId" }.getOrElse("")
 
     val regionNameFilter =
-      filters.regionName.map { regionName => s"AND LOWER(region.name) = LOWER('${regionName.replace("'", "''")}')" }
+      filters.regionName
+        .map { regionName => s"AND LOWER(region.name) = LOWER('${regionName.replace("'", "''")}')" }
         .getOrElse("")
 
     val minLabelCountFilter =
@@ -179,7 +180,7 @@ class RegionTable @Inject() (
         SELECT street_edge_region.region_id, COUNT(DISTINCT street_edge.street_edge_id) AS street_count
         FROM street_edge_region
         JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
-        WHERE street_edge.deleted = FALSE
+        WHERE street_edge.status = 'open'
             AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
             AND street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
         GROUP BY street_edge_region.region_id
@@ -189,7 +190,7 @@ class RegionTable @Inject() (
         SELECT street_edge_region.region_id, COUNT(audit_task.audit_task_id) AS audit_count
         FROM street_edge_region
         JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
-            AND street_edge.deleted = FALSE
+            AND street_edge.status = 'open'
             AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
         JOIN audit_task ON street_edge_region.street_edge_id = audit_task.street_edge_id
             AND audit_task.completed = TRUE
@@ -205,7 +206,7 @@ class RegionTable @Inject() (
                MAX(label.time_created) AS last_label_date
         FROM street_edge_region
         JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
-            AND street_edge.deleted = FALSE
+            AND street_edge.status = 'open'
             AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
         JOIN label ON street_edge_region.street_edge_id = label.street_edge_id
             AND label.deleted = FALSE
@@ -215,12 +216,19 @@ class RegionTable @Inject() (
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
         GROUP BY street_edge_region.region_id
       )
-      -- Final selection with all aggregates joined back to the filtered regions.
+      -- Final selection with all aggregates joined back to the filtered regions. Distance-based completion comes from
+      -- the maintained region_completion table (one source of truth) rather than being re-derived live here; missing
+      -- rows COALESCE to 0 so regions absent from that table simply report 0% complete.
       SELECT filtered_regions.region_id, filtered_regions.name,
              COALESCE(region_labels.label_count, 0) AS label_count,
              COALESCE(region_streets.street_count, 0) AS street_count,
              COALESCE(region_labels.user_count, 0) AS user_count,
              COALESCE(region_audits.audit_count, 0) AS audit_count,
+             COALESCE(region_completion.total_distance, 0) AS total_distance_m,
+             COALESCE(region_completion.audited_distance, 0) AS audited_distance_m,
+             CASE WHEN COALESCE(region_completion.total_distance, 0) > 0
+                  THEN region_completion.audited_distance / region_completion.total_distance
+                  ELSE 0 END AS completion_rate,
              region_labels.first_label_date,
              region_labels.last_label_date,
              filtered_regions.geom
@@ -228,6 +236,7 @@ class RegionTable @Inject() (
       LEFT JOIN region_streets ON filtered_regions.region_id = region_streets.region_id
       LEFT JOIN region_audits ON filtered_regions.region_id = region_audits.region_id
       LEFT JOIN region_labels ON filtered_regions.region_id = region_labels.region_id
+      LEFT JOIN region_completion ON filtered_regions.region_id = region_completion.region_id
       WHERE 1=1
         $minLabelCountFilter
       ORDER BY filtered_regions.region_id
@@ -241,6 +250,9 @@ class RegionTable @Inject() (
         streetCount = r.nextInt(),
         userCount = r.nextInt(),
         auditCount = r.nextInt(),
+        totalDistanceM = r.nextDouble(),
+        auditedDistanceM = r.nextDouble(),
+        completionRate = r.nextDouble(),
         firstLabelDate = r.nextTimestampOption().map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC)),
         lastLabelDate = r.nextTimestampOption().map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC)),
         geometry = r.nextGeometry[MultiPolygon]()

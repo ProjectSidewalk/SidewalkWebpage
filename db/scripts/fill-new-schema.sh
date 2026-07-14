@@ -1,5 +1,21 @@
-#!/bin/bash
-set -e  # Exit on any error
+#!/usr/bin/env bash
+# =====================================================================================================================
+# fill-new-schema.sh — populate a fresh city schema's streets and regions from QGIS-imported staging tables.
+#
+# WHY THIS EXISTS: after create-new-schema.sh gives you an empty city schema, the geographic data (streets + regions)
+# is loaded into two staging tables — qgis_road and qgis_region — from a QGIS/OSM export. This script turns that
+# staging data into the app's real tables (street_edge, region, street_edge_region, street_edge_priority, ...), adds
+# the shared DC tutorial street, sets the city center/bounds in `config`, and drops the staging tables when done.
+# It's interactive: it asks for the column/value details that vary per import, prints a summary, and confirms before
+# touching the DB. Everything runs in one transaction, so a failure rolls the whole thing back.
+#
+# HOW IT'S RUN:  make fill-new-schema   →   /opt/scripts/fill-new-schema.sh   (inside projectsidewalk-db).
+# PRECONDITION:  the target schema exists (create-new-schema.sh) and qgis_road + qgis_region are loaded into it.
+#
+# GOTCHA: prompt answers are interpolated into SQL. Region-id lists must be space-separated integers; the schema must
+# be a real city schema with the QGIS staging tables present.
+# =====================================================================================================================
+set -euo pipefail
 
 source /opt/scripts/helpers.sh
 
@@ -13,6 +29,12 @@ TUTORIAL_REGION_ID=$(prompt_with_default "Tutorial region id" "1")
 # Ask whether all regions are being included.
 INCLUDE_ALL_REGIONS=$(prompt_with_default "Including all regions?" "y" "y|n")
 
+# Declared up-front (empty) so references stay valid under `set -u` even when "include all regions" skips the branch
+# that fills them.
+MODE=""
+REGIONS_SHOWN=""
+REGIONS_HIDDEN=""
+
 # If excluding some, ask if we are listing included or listing excluded region ids.
 if [ "$INCLUDE_ALL_REGIONS" = "n" ]; then
     MODE=$(prompt_with_default "Is it easier to list regions to include or exclude?" "include" "include|exclude")
@@ -20,15 +42,15 @@ if [ "$INCLUDE_ALL_REGIONS" = "n" ]; then
     # Prompt for REGIONS_HIDDEN/SHOWN list, space-separated.
     if [ "$MODE" = "include" ]; then
         REGIONS_SHOWN=$(prompt_with_default "Enter IDs to include (space-separated)" "")
-        # Check if tutorial region is in the include list
-        if [[ ! " $REGIONS_SHOWN " =~ " $TUTORIAL_REGION_ID " ]]; then
+        # Check if tutorial region is in the include list (space-padded literal containment, not a regex).
+        if [[ " $REGIONS_SHOWN " != *" $TUTORIAL_REGION_ID "* ]]; then
             echo "Error: Tutorial region $TUTORIAL_REGION_ID must be in the include list"
             exit 1
         fi
     else
         REGIONS_HIDDEN=$(prompt_with_default "Enter IDs to exclude (space-separated)" "")
-        # Check if tutorial region is in the exclude list
-        if [[ " $REGIONS_HIDDEN " =~ " $TUTORIAL_REGION_ID " ]]; then
+        # Check if tutorial region is in the exclude list (space-padded literal containment, not a regex).
+        if [[ " $REGIONS_HIDDEN " == *" $TUTORIAL_REGION_ID "* ]]; then
             echo "Error: Tutorial region $TUTORIAL_REGION_ID cannot be in the exclude list"
             exit 1
         fi
@@ -45,9 +67,9 @@ echo "tutorial region id: $TUTORIAL_REGION_ID"
 if [ "$INCLUDE_ALL_REGIONS" = "y" ]; then
     echo "regions to include: all"
 elif [ "$MODE" = "include" ]; then
-    echo "regions to include: ${REGIONS_SHOWN[@]}"
+    echo "regions to include: $REGIONS_SHOWN"
 else
-    echo "regions to exclude: ${REGIONS_HIDDEN[@]}"
+    echo "regions to exclude: $REGIONS_HIDDEN"
 fi
 
 # Check for confirmation before making changes to the db.
@@ -69,13 +91,16 @@ else
 fi
 
 # Run the queries.
-# TODO coerce some data types in case they are strings instead of ints, for example.
-#      I'll add these as the situation arises organically in future deployments.
-psql -v ON_ERROR_STOP=1 -d sidewalk -U $SCHEMA_NAME <<-EOSQL
+# NOTE: this assumes qgis_road/qgis_region columns already have the expected types (e.g. integer ids). If a future
+# import arrives with string-typed columns, add explicit CAST()s here rather than relying on implicit coercion.
+psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
     BEGIN;
-    -- Fill in the street_edge table using the qgis_road table.
-    INSERT INTO street_edge (street_edge_id, geom, way_type, deleted, timestamp, x1, y1, x2, y2)
-        SELECT road_id, geom, $WAY_TYPE, $REGION_DELETED_Q, now(),
+    -- Fill in the street_edge table using the qgis_road table. A street in a hidden region is seeded 'closed' (the
+    -- whole neighborhood isn't open yet); everything else starts 'open' (#3888). $REGION_DELETED_Q is a boolean
+    -- expression that is TRUE for streets whose region is hidden.
+    INSERT INTO street_edge (street_edge_id, geom, way_type, status, timestamp, x1, y1, x2, y2)
+        SELECT road_id, geom, $WAY_TYPE,
+               (CASE WHEN $REGION_DELETED_Q THEN 'closed' ELSE 'open' END)::street_edge_status, now(),
                ST_X(ST_StartPoint(geom)), ST_Y(ST_StartPoint(geom)), ST_X(ST_EndPoint(geom)), ST_Y(ST_EndPoint(geom))
         FROM qgis_road;
 
@@ -84,8 +109,8 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U $SCHEMA_NAME <<-EOSQL
         SELECT CAST(osm_id AS INT), road_id FROM qgis_road;
 
     -- Add the tutorial street edge from DC into the database and update tutorial id in the config table.
-    INSERT INTO street_edge(street_edge_id, geom, x1, y1, x2, y2, way_type, deleted, timestamp)
-        SELECT MAX(street_edge_id) + 1, '0102000020E6100000040000007C9E3F6D544453C00A2E56D460784340ECF7C43A554453C02B685A6265784340F29A5775564453C0C4D2C08F6A784340F73DEAAF574453C0B0CBF09F6E784340', -77.067653, 38.940455, -77.067852, 38.940876, 'tertiary', FALSE, '2015-11-17 04:20:19.46+00'
+    INSERT INTO street_edge(street_edge_id, geom, x1, y1, x2, y2, way_type, status, timestamp)
+        SELECT MAX(street_edge_id) + 1, '0102000020E6100000040000007C9E3F6D544453C00A2E56D460784340ECF7C43A554453C02B685A6265784340F29A5775564453C0C4D2C08F6A784340F73DEAAF574453C0B0CBF09F6E784340', -77.067653, 38.940455, -77.067852, 38.940876, 'tertiary', 'open'::street_edge_status, '2015-11-17 04:20:19.46+00'
         FROM street_edge;
     UPDATE config SET tutorial_street_edge_id = (SELECT MAX(street_edge_id) FROM street_edge);
 
@@ -102,16 +127,17 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U $SCHEMA_NAME <<-EOSQL
         SELECT MAX(street_edge_id), $TUTORIAL_REGION_ID
         FROM street_edge;
 
-    -- Initialize the street_edge_priority table.
+    -- Initialize the street_edge_priority table for auditable streets only (#3888).
     INSERT INTO street_edge_priority (street_edge_id, priority)
         SELECT street_edge_id, 1
         FROM street_edge
-        WHERE deleted = FALSE;
+        WHERE status = 'open';
 
     -- Update config table's open_status column based on whether regions were removed.
     UPDATE config SET open_status = '$OPEN_STATUS_Q';
 
-    -- Set the city_center lat/lng in the config table using the open regions' geoms.
+    -- Set the city_center lat/lng in the config table using the open regions' geoms. The ±1° boundary box is a rough
+    -- placeholder (~111 km) meant to comfortably contain the city; tighten it per-city later if needed.
     UPDATE config
     SET city_center_lat = city_lat,
         city_center_lng = city_lng,

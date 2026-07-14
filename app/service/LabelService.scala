@@ -36,10 +36,11 @@ trait LabelService {
   def countLabelsInRegion(regionId: Int): Future[Int]
   def selectAllTags: DBIO[Seq[models.label.Tag]]
   def selectAllTagsFuture: Future[Seq[models.label.Tag]]
-  def selectTagsByLabelType(labelType: String): DBIO[Seq[models.label.Tag]]
+  def selectTagsByLabelType(labelType: String): Future[Seq[models.label.Tag]]
   def getTagsForCurrentCity: Future[Seq[models.label.Tag]]
   def cleanTagList(tags: Seq[String], labelTypeId: Int): DBIO[Seq[String]]
   def getSingleLabelMetadata(labelId: Int, userId: String): Future[Option[LabelMetadata]]
+  def getLabelLatLng(labelId: Int): Future[Option[LatLng]]
   def getRecentLabelMetadata(takeN: Int): Future[Seq[LabelMetadata]]
   def getExtraAdminValidateData(labelIds: Seq[Int]): Future[Seq[AdminValidationData]]
   def getLabelsForLabelMap(
@@ -56,7 +57,9 @@ trait LabelService {
       severity: Set[Option[Int]],
       tags: Set[String],
       aiValOptions: Set[String],
-      userId: String
+      userId: String,
+      recentFirst: Boolean = false,
+      staticImageryOnly: Boolean = false
   ): Future[Seq[LabelValidationMetadata]]
   def retrieveLabelListForValidation(
       userId: String,
@@ -83,6 +86,8 @@ trait LabelService {
       labelTypes: Set[LabelTypeEnum.Base],
       nPerType: Int
   ): Future[Map[LabelTypeEnum.Base, Seq[LabelMetadataUserDash]]]
+  def recordMistakeVote(labelId: Int, userId: String, agrees: Boolean): Future[Boolean]
+  def recordMistakeNote(labelId: Int, userId: String, comment: Option[String]): Future[Boolean]
   def getLabelsFromUserInRegion(regionId: Int, userId: String): Future[Seq[ResumeLabelMetadata]]
   def insertLabel(label: Label): DBIO[Int]
   def updateLabelFromExplore(
@@ -128,8 +133,8 @@ class LabelServiceImpl @Inject() (
     selectAllTags.map(_.filter(_.labelTypeId == labelTypeId))
   }
 
-  def selectTagsByLabelType(labelType: String): DBIO[Seq[models.label.Tag]] =
-    selectTagsByLabelTypeId(LabelTypeEnum.labelTypeToId(labelType))
+  def selectTagsByLabelType(labelType: String): Future[Seq[models.label.Tag]] =
+    db.run(selectTagsByLabelTypeId(LabelTypeEnum.labelTypeToId(labelType)))
 
   def getTagsForCurrentCity: Future[Seq[models.label.Tag]] = {
     db.run(for {
@@ -170,6 +175,8 @@ class LabelServiceImpl @Inject() (
   def getSingleLabelMetadata(labelId: Int, userId: String): Future[Option[LabelMetadata]] =
     db.run(labelTable.getRecentLabelsMetadata(1, None, Some(userId), Some(labelId)).map(_.headOption))
 
+  def getLabelLatLng(labelId: Int): Future[Option[LatLng]] = db.run(labelTable.getLabelLatLng(labelId))
+
   def getRecentLabelMetadata(takeN: Int): Future[Seq[LabelMetadata]] = db.run(labelTable.getRecentLabelsMetadata(takeN))
 
   def getExtraAdminValidateData(labelIds: Seq[Int]): Future[Seq[AdminValidationData]] =
@@ -193,6 +200,7 @@ class LabelServiceImpl @Inject() (
    * @param tags              Set of tags the labels grabbed can have.
    * @param aiValOptions      Set of AI validations to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param userId            User ID of the user requesting the labels.
+   * @param recentFirst       If true, draw from the most recent labels (shuffled) instead of sampling all labels.
    * @return Seq[LabelValidationMetadata]
    */
   def getGalleryLabels(
@@ -204,28 +212,35 @@ class LabelServiceImpl @Inject() (
       severity: Set[Option[Int]],
       tags: Set[String],
       aiValOptions: Set[String],
-      userId: String
+      userId: String,
+      recentFirst: Boolean = false,
+      staticImageryOnly: Boolean = false
   ): Future[Seq[LabelValidationMetadata]] = {
     val viewer: PanoSource = configService.getPanoSource
 
     // If a label type is specified, get labels for that type. Otherwise, get labels for all types. Include useCrops so
     // that labels with expired or non-Google imagery are still included if a local crop exists.
+    // With recentFirst the query is ordered newest-first, so findValidLabelsForType's batching draws from the most
+    // recent labels and randomize=true shuffles within that recent pool.
     if (labelType.isDefined) {
       findValidLabelsForType(
         labelTable.getGalleryLabelsQuery(viewer, labelType.get, loadedLabelIds, valOptions, regionIds, severity, tags,
-          aiValOptions, userId),
+          aiValOptions, userId, recentFirst),
         randomize = true,
         useCrops = true,
         n
       )
     } else {
-      // Get labels for each type in parallel.
-      val nPerType: Int = n / LabelTypeEnum.primaryLabelTypes.size
+      // Get labels for each type in parallel. staticImageryOnly narrows the spread to the types a static image can
+      // support (the landing grid can't pan, so e.g. Signal is out — see staticValidatableLabelTypes).
+      val typesToSpread: Set[LabelTypeEnum.Base] =
+        if (staticImageryOnly) LabelTypeEnum.staticValidatableLabelTypes else LabelTypeEnum.primaryLabelTypes
+      val nPerType: Int = n / typesToSpread.size
       Future
-        .sequence(LabelTypeEnum.primaryLabelTypes.map { labelType =>
+        .sequence(typesToSpread.map { labelType =>
           findValidLabelsForType(
             labelTable.getGalleryLabelsQuery(viewer, labelType, loadedLabelIds, valOptions, regionIds, severity, tags,
-              aiValOptions, userId),
+              aiValOptions, userId, recentFirst),
             randomize = true,
             useCrops = true,
             nPerType
@@ -531,6 +546,12 @@ class LabelServiceImpl @Inject() (
       })
       .map(_.toMap)
   }
+
+  def recordMistakeVote(labelId: Int, userId: String, agrees: Boolean): Future[Boolean] =
+    db.run(labelTable.recordMistakeVote(labelId, userId, agrees))
+
+  def recordMistakeNote(labelId: Int, userId: String, comment: Option[String]): Future[Boolean] =
+    db.run(labelTable.recordMistakeNote(labelId, userId, comment))
 
   def getLabelsFromUserInRegion(regionId: Int, userId: String): Future[Seq[ResumeLabelMetadata]] =
     db.run(labelTable.getLabelsFromUserInRegion(regionId, userId))

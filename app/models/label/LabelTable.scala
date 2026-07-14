@@ -110,6 +110,12 @@ case class ProjectSidewalkStats(
     avgTimestampLast100Labels: Option[OffsetDateTime],
     kmExplored: Double,
     kmExploreNoOverlap: Double,
+    kmExploredMultipleUsers: Double,
+    kmExploredSingleUser: Double,
+    kmOpen: Double,
+    kmNoImagery: Double,
+    kmClosed: Double,
+    kmDisabled: Double,
     nUsers: Int,
     nExplorers: Int,
     nValidators: Int,
@@ -121,6 +127,8 @@ case class ProjectSidewalkStats(
     nLabelsWithSeverity: Int,
     avgLabelTimestamp: Option[OffsetDateTime],
     avgImageAgeByLabel: Option[Duration],
+    stddevLabelTimestamp: Option[Duration],
+    stddevImageAgeByLabel: Option[Duration],
     severityByLabelType: Map[String, LabelSevStats],
     validations: ValidationStats,
     aiPerformance: Map[String, Map[String, AiConcurrence]]
@@ -476,6 +484,7 @@ object LabelTable {
       labelId = r.nextInt(),
       userId = r.nextString(),
       panoId = r.nextString(),
+      panoSource = PanoSource.withName(r.nextString()),
       labelType = r.nextString(),
       severity = r.nextIntOption(),
       tags = {
@@ -583,6 +592,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val streetEdgeRegions      = TableQuery[StreetEdgeRegionTableDef]
   val routeStreets           = TableQuery[RouteStreetTableDef]
   val validationTaskComments = TableQuery[ValidationTaskCommentTableDef]
+  val mistakeResponses       = TableQuery[MistakeResponseTableDef]
 
   // Note that we are assuming only a single AI assessment and validation per label.
   val aiData        = labelAiAssessments.joinLeft(labelValidations).on(_.labelValidationId === _.labelValidationId)
@@ -683,12 +693,32 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     )
   }
 
-  implicit val projectSidewalkStatsConverter: GetResult[ProjectSidewalkStats] = GetResult[ProjectSidewalkStats](r =>
+  implicit val projectSidewalkStatsConverter: GetResult[ProjectSidewalkStats] = GetResult[ProjectSidewalkStats] { r =>
+    // Read the leading scalar columns into locals (rather than inline constructor args) so we can derive
+    // kmExploredSingleUser. Reads must stay in SELECT order; GetResult is positional. km_explored_no_overlap counts
+    // streets with ≥1 completed audit and km_explored_multiple_users counts streets with ≥2 distinct auditors, so
+    // single-user = no_overlap − multiple_users by construction.
+    val launchDate                = r.nextString()
+    val avgTimestampLast100Labels = r.nextOffsetDateTimeOption()
+    val kmExplored                = r.nextDouble()
+    val kmExploreNoOverlap        = r.nextDouble()
+    val kmExploredMultipleUsers   = r.nextDouble()
+    val kmExploredSingleUser      = kmExploreNoOverlap - kmExploredMultipleUsers
+    val kmOpen                    = r.nextDouble()
+    val kmNoImagery               = r.nextDouble()
+    val kmClosed                  = r.nextDouble()
+    val kmDisabled                = r.nextDouble()
     ProjectSidewalkStats(
-      r.nextString(),
-      r.nextOffsetDateTimeOption(),
-      r.nextDouble(),
-      r.nextDouble(),
+      launchDate,
+      avgTimestampLast100Labels,
+      kmExplored,
+      kmExploreNoOverlap,
+      kmExploredMultipleUsers,
+      kmExploredSingleUser,
+      kmOpen,
+      kmNoImagery,
+      kmClosed,
+      kmDisabled,
       r.nextInt(),
       r.nextInt(),
       r.nextInt(),
@@ -699,6 +729,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextInt(),
       r.nextInt(),
       r.nextOffsetDateTimeOption(),
+      r.nextDurationOption(),
+      r.nextDurationOption(),
       r.nextDurationOption(),
       Map(
         CurbRamp.name   -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption()),
@@ -755,7 +787,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         )
       )
     )
-  )
+  }
 
   def find(labelId: Int): DBIO[Option[Label]] = {
     labelsUnfiltered.filter(_.labelId === labelId).result.headOption
@@ -804,6 +836,34 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
+   * Counts labels that have not yet received a single validation (agree/disagree/unsure all zero), for the admin
+   * Overview's "needs attention" panel. Uses the standard `labels` base, so it counts real, non-excluded labels.
+   *
+   * @return Number of labels awaiting their first validation.
+   */
+  def countLabelsAwaitingValidation: DBIO[Int] = {
+    labels
+      .filter(label => label.agreeCount === 0 && label.disagreeCount === 0 && label.unsureCount === 0)
+      .length
+      .result
+  }
+
+  /**
+   * Per-user label counts scoped to the given users (cheap version of `countLabelsByUser` for a small batch). Uses the
+   * same label base as `countLabelsByUser` so the totals agree with the rest of the admin pages.
+   *
+   * @param userIds User ids to count for.
+   * @return Per user with any labels: (userId, labelCount). Users with none are absent.
+   */
+  def countLabelsForUsers(userIds: Seq[String]): DBIO[Seq[(String, Int)]] = {
+    labelsWithTutorialAndExcludedUsers
+      .filter(_.userId inSet userIds)
+      .groupBy(_.userId)
+      .map { case (_userId, rows) => (_userId, rows.length) }
+      .result
+  }
+
+  /**
    * Returns the number of labels submitted by the given user.
    * @param userId ID of user whose labels we're counting
    * @return A number of labels submitted by the user
@@ -826,6 +886,130 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
+   * Lightweight feed of the most recently placed labels, for the admin Activity stream.
+   *
+   * Excludes AI-placed labels (role "AI") so the stream reads as people's activity; deleted/tutorial/excluded-user
+   * labels are already excluded by the `labels` subquery. Returns just what the feed renders, not full metadata.
+   *
+   * @param n Number of labels to retrieve.
+   * @return DBIO[Seq[(labelId, labelType, username, timeCreated)]], most recent first.
+   */
+  def getRecentLabels(n: Int): DBIO[Seq[(Int, String, String, OffsetDateTime)]] = {
+    (for {
+      _label     <- labels
+      _labelType <- labelTypes if _label.labelTypeId === _labelType.labelTypeId
+      _user      <- usersUnfiltered if _label.userId === _user.userId
+      _userRole  <- userRoles if _user.userId === _userRole.userId
+      _role      <- roleTable if _userRole.roleId === _role.roleId && _role.role =!= "AI"
+    } yield (_label.labelId, _labelType.labelType, _user.username, _label.timeCreated))
+      .sortBy(_._4.desc)
+      .take(n)
+      .result
+  }
+
+  /**
+   * Per-user label counts broken down by label type, for the given users (the Contributors leaderboard's top labelers).
+   *
+   * Scoped to a small set of user ids so it stays cheap. Uses the `labels` subquery, so deleted/tutorial/excluded-user
+   * labels are already excluded.
+   *
+   * @param userIds The users to break down.
+   * @return DBIO[Seq[(userId, labelType, count)]].
+   */
+  def getLabelTypeCountsForUsers(userIds: Seq[String]): DBIO[Seq[(String, String, Int)]] = {
+    (for {
+      _label     <- labels if _label.userId inSet userIds
+      _labelType <- labelTypes if _label.labelTypeId === _labelType.labelTypeId
+    } yield (_label.userId, _labelType.labelType))
+      .groupBy(x => x)
+      .map { case ((userId, labelType), group) => (userId, labelType, group.length) }
+      .result
+  }
+
+  /**
+   * Per-user counts of labels at each severity rating, for the given users (the Contributors leaderboard's top
+   * labelers). Labels with no severity are excluded.
+   *
+   * @param userIds The users to break down.
+   * @return DBIO[Seq[(userId, severity, count)]] — severity is the raw rating value present in the data.
+   */
+  def getSeverityCountsForUsers(userIds: Seq[String]): DBIO[Seq[(String, Option[Int], Int)]] = {
+    (for {
+      _label <- labels if (_label.userId inSet userIds) && _label.severity.isDefined
+    } yield (_label.userId, _label.severity))
+      .groupBy(x => x)
+      .map { case ((userId, severity), group) => (userId, severity, group.length) }
+      .result
+  }
+
+  /**
+   * Per-label-type label counts split by whether the author is the AI user, for the Humans-vs-AI dashboard's labeler
+   * lens. For each (isAi, labelType) returns the total placed, how many have a validation verdict (`correct` set),
+   * and how many were judged correct — so the page can compare AI's acceptance rate against humans' per type.
+   *
+   * Built on `labelsWithExcludedUsers` rather than `labels` on purpose: that base does not inner-join `user_stat`, so
+   * AI-placed labels (whose AI user may have no `user_stat` row) are counted instead of silently dropped. The tradeoff
+   * is that excluded human users' labels are included; for an aggregate human-vs-AI split that is acceptable.
+   *
+   * @return DBIO[Seq[(isAi, labelType, total, validated, correct)]].
+   */
+  def getLabelStatsByAuthorRole: DBIO[Seq[(Boolean, String, Int, Int, Int)]] = {
+    (for {
+      _label     <- labelsWithExcludedUsers
+      _labelType <- labelTypes if _label.labelTypeId === _labelType.labelTypeId
+      _userRole  <- userRoles if _label.userId === _userRole.userId
+      _role      <- roleTable if _userRole.roleId === _role.roleId
+    } yield (_role.role === "AI", _labelType.labelType, _label.correct))
+      .groupBy(r => (r._1, r._2))
+      .map { case ((isAi, labelType), group) =>
+        (
+          isAi,
+          labelType,
+          group.length,
+          group.map(r => Case.If(r._3.isDefined).Then(1).Else(0)).sum.getOrElse(0),
+          group.map(r => Case.If(r._3.getOrElse(false) === true).Then(1).Else(0)).sum.getOrElse(0)
+        )
+      }
+      .result
+  }
+
+  /**
+   * Per-severity-rating label counts split by whether the author is the AI user, for the Humans-vs-AI labeler lens'
+   * severity-distribution comparison. Labels with no severity are excluded; the raw rating is returned (callers bucket
+   * it to the canonical 1–3 scale). Uses `labelsWithExcludedUsers` for the same AI-safe reason as
+   * [[getLabelStatsByAuthorRole]].
+   *
+   * @return DBIO[Seq[(isAi, severity, count)]].
+   */
+  def getSeverityCountsByAuthorRole: DBIO[Seq[(Boolean, Option[Int], Int)]] = {
+    (for {
+      _label    <- labelsWithExcludedUsers if _label.severity.isDefined
+      _userRole <- userRoles if _label.userId === _userRole.userId
+      _role     <- roleTable if _userRole.roleId === _role.roleId
+    } yield (_role.role === "AI", _label.severity))
+      .groupBy(r => (r._1, r._2))
+      .map { case ((isAi, severity), group) => (isAi, severity, group.length) }
+      .result
+  }
+
+  /**
+   * Tag-application counts on human-authored labels, for the Humans-vs-AI tagger lens' baseline (the AI tagger's tag
+   * distribution is compared against this). AI-authored labels are excluded so the baseline is purely human tagging.
+   *
+   * @return DBIO[Seq[(tag, count)]].
+   */
+  def getHumanTagCounts: DBIO[Seq[(String, Int)]] = {
+    (for {
+      _label    <- labelsWithExcludedUsers
+      _userRole <- userRoles if _label.userId === _userRole.userId
+      _role     <- roleTable if _userRole.roleId === _role.roleId && _role.role =!= "AI"
+    } yield _label.tags.unnest)
+      .groupBy(tag => tag)
+      .map { case (tag, group) => (tag, group.length) }
+      .result
+  }
+
+  /**
    * Gets metadata for the `takeN` most recent labels. Optionally filter by user_id of the labeler.
    * @param takeN Number of labels to retrieve
    * @param labelerId user_id of the person who placed the labels; an optional filter
@@ -839,22 +1023,27 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       validatorId: Option[String] = None,
       labelId: Option[Int] = None
   ): DBIO[Seq[LabelMetadata]] = {
-    // Optional filter to only get labels placed by the given user.
-    val labelerFilter: String = if (labelerId.isDefined) s"""u.user_id = '${labelerId.get}'""" else "TRUE"
+    // These user_ids are spliced into raw SQL below, so escape single quotes to keep the query injection-safe if a
+    // caller ever passes a request-derived id (today they are server-generated UUIDs).
+    val escapedLabelerId: Option[String]   = labelerId.map(_.replace("'", "''"))
+    val escapedValidatorId: Option[String] = validatorId.map(_.replace("'", "''"))
 
-    // Whether the label was placed by the current user (used to prevent self-validation).
-    val fromCurrentUserExpr: String = if (validatorId.isDefined) s"""u.user_id = '${validatorId.get}'""" else "FALSE"
+    // Optional filter to only get labels placed by the given user.
+    val labelerFilter: String = escapedLabelerId.map(id => s"""u.user_id = '$id'""").getOrElse("TRUE")
+
+    // Whether the label was placed by the current user (prevents self-validation).
+    val fromCurrentUserExpr: String = escapedValidatorId.map(id => s"""u.user_id = '$id'""").getOrElse("FALSE")
 
     // Optionally include the given user's validation info for each label in the userValidation field.
     val validatorJoin: String =
-      if (validatorId.isDefined) {
-        s"""LEFT JOIN (
-           |    SELECT label_id, validation_result
-           |    FROM label_validation WHERE user_id = '${validatorId.get}'
-           |) AS user_validation ON lb.label_id = user_validation.label_id""".stripMargin
-      } else {
-        "LEFT JOIN ( SELECT NULL AS validation_result ) AS user_validation ON lb.label_id = NULL"
-      }
+      escapedValidatorId
+        .map { id =>
+          s"""LEFT JOIN (
+             |    SELECT label_id, validation_result
+             |    FROM label_validation WHERE user_id = '$id'
+             |) AS user_validation ON lb.label_id = user_validation.label_id""".stripMargin
+        }
+        .getOrElse("LEFT JOIN ( SELECT NULL AS validation_result ) AS user_validation ON lb.label_id = NULL")
 
     // Either filter for the given labelId or filter out deleted and tutorial labels.
     val labelFilter: String = if (labelId.isDefined) {
@@ -1152,6 +1341,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param tags              Set of tags the labels grabbed can have.
    * @param aiValOptions      Set of AI validations to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param userId            User ID of the user requesting the labels.
+   * @param recentFirst       If true, order the labels newest-first instead of randomly.
    * @return                  Query object to get the labels.
    */
   def getGalleryLabelsQuery(
@@ -1163,7 +1353,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       severity: Set[Option[Int]],
       tags: Set[String],
       aiValOptions: Set[String],
-      userId: String
+      userId: String,
+      recentFirst: Boolean = false
   ): Query[LabelValidationMetadataTupleRep, LabelValidationMetadataTuple, Seq] = {
     val severityRatings: Set[Int]   = severity.flatten
     val severityAllowsNull: Boolean = severity.contains(None)
@@ -1259,15 +1450,55 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       (pd.width, pd.height, pd.tileWidth, pd.tileHeight, pd.cameraHeading, pd.cameraPitch, pd.cameraRoll, pd.copyright)
     )
 
-    // Remove duplicates if needed and randomize.
+    // Remove duplicates if needed, then order newest-first or randomized. Callers that batch through this query
+    // (findValidLabelsForType) shuffle each batch themselves, so recentFirst yields a shuffled recent pool.
     val rand          = SimpleFunction.nullary[Double]("random")
-    val _uniqueLabels =
-      if (tags.nonEmpty)
-        _labelInfoWithUserVals.groupBy(x => x).map(_._1).sortBy(_ => rand)
-      else
-        _labelInfoWithUserVals.sortBy(_ => rand)
+    val _uniqueLabels = if (tags.nonEmpty) _labelInfoWithUserVals.groupBy(x => x).map(_._1) else _labelInfoWithUserVals
+    if (recentFirst) _uniqueLabels.sortBy(_._7.desc) else _uniqueLabels.sortBy(_ => rand)
+  }
 
-    _uniqueLabels
+  /**
+   * Records (or updates) a user's agree/contest vote on their own incorrectly-validated label (#2996). Preserves any
+   * existing note on the row — the vote and the note are independent.
+   *
+   * @param labelId The label being voted on.
+   * @param userId  The voting user; must own the label or this is a no-op.
+   * @param agrees  True = agrees it was a mistake; false = contests it (claims it was correct).
+   * @return        True if the vote was recorded; false if the label isn't the user's.
+   */
+  def recordMistakeVote(labelId: Int, userId: String, agrees: Boolean): DBIO[Boolean] = {
+    labelsUnfiltered.filter(l => l.labelId === labelId && l.userId === userId).exists.result.flatMap { owns =>
+      if (!owns) DBIO.successful(false)
+      else
+        sqlu"""
+          INSERT INTO user_mistake_response (label_id, user_id, agrees)
+          VALUES ($labelId, $userId, $agrees)
+          ON CONFLICT (label_id, user_id)
+          DO UPDATE SET agrees = EXCLUDED.agrees, created_at = now()
+        """.map(_ => true)
+    }
+  }
+
+  /**
+   * Records (or updates) a user's note on their own incorrectly-validated label (#2996). The note stands alone — it
+   * preserves any existing vote and does not require one (a note-only row has `agrees` NULL).
+   *
+   * @param labelId The label being annotated.
+   * @param userId  The user; must own the label or this is a no-op.
+   * @param comment The note (None clears it).
+   * @return        True if the note was recorded; false if the label isn't the user's.
+   */
+  def recordMistakeNote(labelId: Int, userId: String, comment: Option[String]): DBIO[Boolean] = {
+    labelsUnfiltered.filter(l => l.labelId === labelId && l.userId === userId).exists.result.flatMap { owns =>
+      if (!owns) DBIO.successful(false)
+      else
+        sqlu"""
+          INSERT INTO user_mistake_response (label_id, user_id, comment)
+          VALUES ($labelId, $userId, $comment)
+          ON CONFLICT (label_id, user_id)
+          DO UPDATE SET comment = EXCLUDED.comment, created_at = now()
+        """.map(_ => true)
+    }
   }
 
   /**
@@ -1303,7 +1534,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         _us.highQuality === true &&             // For now, we only include validations from high quality users.
         _pd.expired === false &&                // Only include those with non-expired imagery.
         _lb.correct.isDefined && _lb.correct === false && // Exclude outlier validations on a correct label.
-        _lt.labelType === labelType.name                  // Only include given label types.
+        _lt.labelType === labelType.name &&               // Only include given label types.
+        // Drop labels the user has already agreed/disagreed on, so answered mistakes don't reappear (#2996).
+        !mistakeResponses.filter(r => r.labelId === _lb.labelId && r.userId === userId).exists
     } yield (
       _lb.labelId,
       _lb.panoId,
@@ -1428,6 +1661,26 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
+   * Counts of (label type, tag, severity) over labels that carry a severity, for the Data Quality tag-severity heatmap.
+   *
+   * Tags are a label array column, so they're unnested — a label contributes to one row per tag it carries. Severity is
+   * returned raw (callers bucket it to the 1–3 scale). Deleted/tutorial/excluded-user labels are excluded via `labels`.
+   *
+   * @return DBIO[Seq[(labelType, tag, severity, count)]]; severity is the raw rating, `None`-filtered by the query.
+   */
+  def getTagSeverityCounts: DBIO[Seq[(String, String, Option[Int], Int)]] = {
+    val rows = for {
+      _l     <- labels if _l.severity.isDefined
+      _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
+    } yield (_lType.labelType, _l.tags.unnest, _l.severity)
+
+    rows
+      .groupBy(r => (r._1, r._2, r._3))
+      .map { case ((labelType, tag, severity), group) => (labelType, tag, severity, group.length) }
+      .result
+  }
+
+  /**
    * Returns a list of labels submitted by the given user, either everywhere or just in the given region.
    */
   def getLabelLocations(userId: String, regionId: Option[Int] = None): DBIO[Seq[LabelLocation]] = {
@@ -1457,6 +1710,28 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     // error, which is why we couldn't use `.tupled` here. This was the error message:
     // SlickException: Expected an option type, found Float/REAL
     _labels.result.map(_.map(l => LabelLocation(l._1, l._2, l._3, l._4, l._5.get, l._6.get, l._7, l._8, l._9)))
+  }
+
+  /**
+   * Returns the geographic location (lat/lng) of a single label from its label point, if recorded.
+   *
+   * Backs the public shared-label spotlight page, which centers its nearby-labels minimap on the label. Reads the
+   * label_point's stored lat/lng — the same coordinate the v3 rawLabels API emits as the label's geometry — so the
+   * minimap and the API-fed markers agree on where the label sits.
+   *
+   * @param labelId The label whose location to look up.
+   * @return `Some(LatLng)` if the label exists and has a recorded point location, `None` otherwise.
+   */
+  def getLabelLatLng(labelId: Int): DBIO[Option[LatLng]] = {
+    labelPoints
+      .filter(_.labelId === labelId)
+      .map(lp => (lp.lat, lp.lng))
+      .result
+      .headOption
+      .map {
+        case Some((Some(lat), Some(lng))) => Some(LatLng(lat, lng))
+        case _                            => None
+      }
   }
 
   /**
@@ -1526,7 +1801,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         CROSS JOIN LATERAL (
           SELECT street_edge_id
           FROM street_edge
-          WHERE deleted = FALSE
+          WHERE status = 'open'
           ORDER BY geom <-> point_data.geom
           LIMIT 1
         ) closest_street
@@ -1638,6 +1913,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       SELECT label.label_id,
              label.user_id,
              label.pano_id,
+             pano_data.source::text,
              label_type.label_type,
              label.severity,
              array_to_string(label.tags, ','),
@@ -1784,6 +2060,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              #${avgRecentLabels.map(avg => s"'$avg'").getOrElse("NULL")} AS avg_timestamp_last_100_labels,
              km_audited.km_audited AS km_audited,
              km_audited_no_overlap.km_audited_no_overlap AS km_audited_no_overlap,
+             km_explored_multiple_users.km_explored_multiple_users AS km_explored_multiple_users,
+             km_by_status.km_open,
+             km_by_status.km_no_imagery,
+             km_by_status.km_closed,
+             km_by_status.km_disabled,
              users.total_users,
              users.audit_users,
              users.validation_users,
@@ -1795,6 +2076,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              label_counts_and_severity.n_with_sev,
              label_counts_and_severity.avg_label_timestamp,
              label_counts_and_severity.avg_age_when_labeled,
+             label_counts_and_severity.stddev_label_timestamp,
+             label_counts_and_severity.stddev_age_when_labeled,
              label_counts_and_severity.n_ramp,
              label_counts_and_severity.n_ramp_with_sev,
              label_counts_and_severity.ramp_sev_mean,
@@ -1896,6 +2179,33 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               WHERE completed = TRUE AND #$userFilter
           ) distinct_streets
       ) AS km_audited_no_overlap, (
+          -- Redundant-coverage km: streets with a completed audit by ≥2 distinct (non-excluded) users. Mirrors the
+          -- km_audited_no_overlap subquery but groups per street and keeps only those audited by 2+ people. Single-user
+          -- km is derived (no_overlap − multiple_users) in projectSidewalkStatsConverter, so it is not selected here.
+          SELECT COALESCE(SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000, 0) AS km_explored_multiple_users
+          FROM (
+              SELECT street_edge.street_edge_id, geom
+              FROM street_edge
+              INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+              INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
+              WHERE completed = TRUE AND #$userFilter
+              GROUP BY street_edge.street_edge_id, geom
+              HAVING COUNT(DISTINCT audit_task.user_id) >= 2
+          ) multi_user_streets
+      ) AS km_explored_multiple_users, (
+          -- Total street km by availability status (#3888 enum). The `open` bucket is the auditable-now network and is
+          -- surfaced as `km_explorable`. The tutorial street is excluded from every bucket. COALESCE guards buckets a
+          -- given city may have none of (e.g. no `disabled` streets), since the converter reads non-Option Doubles.
+          SELECT COALESCE(SUM(len) FILTER (WHERE status = 'open'), 0)       AS km_open,
+                 COALESCE(SUM(len) FILTER (WHERE status = 'no_imagery'), 0) AS km_no_imagery,
+                 COALESCE(SUM(len) FILTER (WHERE status = 'closed'), 0)     AS km_closed,
+                 COALESCE(SUM(len) FILTER (WHERE status = 'disabled'), 0)   AS km_disabled
+          FROM (
+              SELECT status, ST_LENGTH(ST_TRANSFORM(geom, 26918)) / 1000 AS len
+              FROM street_edge
+              WHERE street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+          ) street_lengths
+      ) AS km_by_status, (
           SELECT COUNT(DISTINCT(users.user_id)) AS total_users,
                  COUNT(CASE WHEN mission_type = 'validation' THEN 1 END) AS validation_users,
                  COUNT(CASE WHEN mission_type = 'audit' THEN 1 END) AS audit_users,
@@ -1928,6 +2238,17 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                          THEN time_created - TO_TIMESTAMP(EXTRACT(epoch from CAST(pano_data.capture_date || '-01' AS DATE)))
                      END
                  ) AS avg_age_when_labeled,
+                 -- STDDEV operates on seconds, then `* INTERVAL '1 second'` yields an interval so the spread is read as
+                 -- a Duration (a standard deviation of dates is a duration/spread, not itself a date).
+                 STDDEV(EXTRACT(EPOCH FROM time_created)) * INTERVAL '1 second' AS stddev_label_timestamp,
+                 STDDEV(
+                     EXTRACT(EPOCH FROM (
+                         CASE
+                             WHEN pano_data.capture_date IS NOT NULL AND pano_data.capture_date <> ''
+                             THEN time_created - TO_TIMESTAMP(EXTRACT(epoch from CAST(pano_data.capture_date || '-01' AS DATE)))
+                         END
+                     ))
+                 ) * INTERVAL '1 second' AS stddev_age_when_labeled,
                  COUNT(CASE WHEN label_type.label_type = 'CurbRamp' THEN 1 END) AS n_ramp,
                  COUNT(CASE WHEN label_type.label_type = 'CurbRamp' AND severity IS NOT NULL THEN 1 END) AS n_ramp_with_sev,
                  avg(CASE WHEN label_type.label_type = 'CurbRamp' THEN severity END) AS ramp_sev_mean,
@@ -2148,6 +2469,25 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    */
   def nextTempLabelId(userId: String): DBIO[Int] = {
     labelsUnfiltered.filter(_.userId === userId).map(_.temporaryLabelId).max.result.map(_.map(x => x + 1).getOrElse(1))
+  }
+
+  /**
+   * Gets the pano + point-of-view metadata needed to build a preview image URL for a set of labels.
+   *
+   * Scoped to the given label ids (typically a small recent-activity batch) so the join stays cheap. Returns the pano
+   * id, imagery source, and the camera heading/pitch/zoom captured when the label was placed — enough to construct a
+   * Street View Static thumbnail or to look up a saved crop.
+   *
+   * @param labelIds Label ids to fetch metadata for.
+   * @return Per label: (labelId, panoId, panoSource, heading, pitch, zoom).
+   */
+  def getPanoMetadataForLabels(labelIds: Seq[Int]): DBIO[Seq[(Int, String, PanoSource, Double, Double, Double)]] = {
+    (for {
+      _label      <- labels if _label.labelId inSet labelIds
+      _labelPoint <- labelPoints if _label.labelId === _labelPoint.labelId
+      _panoData   <- panoData if _label.panoId === _panoData.panoId
+    } yield (_label.labelId, _label.panoId, _panoData.source, _labelPoint.heading, _labelPoint.pitch,
+      _labelPoint.zoom)).result
   }
 
   /**

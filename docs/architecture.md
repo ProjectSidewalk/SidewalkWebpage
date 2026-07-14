@@ -21,7 +21,7 @@ aggregated, scored, and served back out through a public API and a set of dashbo
 ## System at a glance
 
 ```
-Browser (vanilla-JS apps: Explore, Validate, Gallery, Admin, Progress, PSMap)
+Browser (vanilla-JS apps: Explore, Validate, Gallery, Admin, UserDashboard, PSMap)
         │  HTTP
         ▼
 Play backend ── routes → Controller → Service → Table (DAO/Slick)
@@ -32,7 +32,7 @@ Play backend ── routes → Controller → Service → Table (DAO/Slick)
         ▼
 External imagery providers (Google Street View / Mapillary / Infra3d / Pannellum)
 
-Out-of-band Python utilities: label_clustering.py, check_streets_for_imagery.py
+Out-of-band Python utilities: scripts/label_clustering.py, scripts/check_streets_for_imagery.py
 ```
 
 ## Backend
@@ -59,7 +59,11 @@ The backend follows a consistent layering: **routes → Controller → Service �
 - **Per-city schemas** — each city is its own schema (`sidewalk_<city>`); they're essentially identical.
   Authentication lives in `sidewalk_login`.
 - **Evolutions** — schema changes are Play evolutions: numbered SQL files in `conf/evolutions/default/`, each with
-  `# --- !Ups` / `# --- !Downs`. The dev DB is seeded from a dump rather than built up from evolutions.
+  `# --- !Ups` / `# --- !Downs`. The dev DB is seeded from a dump rather than built up from evolutions; the scripts that
+  do that seeding (and other DB lifecycle/maintenance tasks) live in [`db/scripts/`](../db/scripts/README.md). Every new
+  table must be followed by `ALTER TABLE <name> OWNER TO sidewalk;` (see 309.sql) — on prod, evolutions run as an admin
+  role, so without it the `sidewalk` app role lacks permissions on the table. This applies to tables only; SERIAL
+  sequences follow the table owner automatically, and enum types/views don't need it.
 
 ### Dependency injection & runtime
 
@@ -87,24 +91,42 @@ The response/filter data structures (DTOs) live in **`app/models/api/`** (`packa
 `*FiltersForApi`. Response DTOs extend `StreamingApiType` and implement `toJson`/`toCsvRow` inline so the
 `BaseApiController` helpers can serialize a stream of them uniformly.
 
+### Public label-share surface (`/label/:id`)
+
+A public, account-free share surface (issue #456, `ShareController`) lets a single label be linked externally.
+`GET /label/:id` renders a single-label spotlight page — the shared LabelDetail component as the hero plus a
+nearby-labels minimap fed by the cheap, bbox-bounded `/v3/api/rawLabels` API (deliberately not LabelMap's
+city-wide `/labels/all` layer) — with server-rendered Open Graph / Twitter Card meta so a pasted link produces a
+rich preview. `GET /label/:id/image` serves the preview image — self-hosted, with the label-type marker
+composited onto the crop (or a branded fallback) — cached under `share.image.directory`
+(`SIDEWALK_SHARE_IMAGES_DIR`), the same mounted volume as label crops so share links persist across container
+recreation; the per-city cache is LRU-bounded so the public, enumerable URL space can't fill the volume. To
+support the anonymous landing, the `LabelController.getLabelData` read backing the label-detail popup was opened
+to anonymous access.
+
 ## Frontend
 
-Each major UI is a self-contained app under `public/javascripts/`, bundled separately by Grunt and loaded by the
+Each major UI is a self-contained app under `public/js/`, bundled separately by Grunt and loaded by the
 corresponding Twirl view:
 
-- **`SVLabel/`** — the Explore/Audit tool (label accessibility issues on street-view panoramas). The largest app.
-- **`SVValidate/`** — the Validate tool (confirm/reject others' labels).
-- **`Gallery/`** — browsable, filterable gallery of labels.
-- **`Admin/`** — admin dashboards and maps.
-- **`Progress/`** — user dashboards.
-- **`PSMap/`** — shared map component used across pages.
-- **`Help/`** — help/FAQ page.
+- **`explore/`** — the Explore/Audit tool (label accessibility issues on street-view panoramas). The largest app.
+- **`validate/`** — the Validate tool (confirm/reject others' labels).
+- **`gallery/`** — browsable, filterable gallery of labels.
+- **`admin/`** — admin dashboards and maps.
+- **`user-dashboard/`** — user dashboards.
+- **`ps-map/`** — shared map component used across pages.
+- **`help/`** — help/FAQ page.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Pannellum imagery providers), `label-detail/` (label popups), and various utilities.
 
-There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`); external
-libraries live in `public/javascripts/lib/`. Edit `src/` files only — bundles are generated into
-`public/javascripts/*/build/`.
+There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`). Third-party
+libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or linted). Edit `src/`
+files only — bundles are generated into `public/js/*/build/`.
+
+First-party assets split by type: `public/js/` is JavaScript-only, `public/css/` holds all styles (per-app subdirs
+`css/explore/`, `css/validate/`, `css/gallery/`), and media lives in `public/images/`, `public/audio/`, and
+`public/videos/`. Directories and CSS files are kebab-case; JS files use Airbnb casing (PascalCase for class files,
+camelCase otherwise). See [`style-guide.md`](style-guide.md) for the full layout and naming conventions.
 
 ## Internationalization
 
@@ -125,13 +147,19 @@ Supported languages: en, es, de, nl, zh-TW, pt-BR, plus regional English variant
 - Secrets/keys (Mapbox, Google Maps, Gemini, Mapillary, Infra3d, Silhouette signer/crypter, DB credentials) come
   from environment variables; local values live in a `docker-compose.override.yml`.
 
+For how these configs map to hosted **stages** (test / staging / prod), how a branch or tag deploys to each, and the
+production runtime shape, see [`docs/deployment-and-stages.md`](deployment-and-stages.md).
+
 ## Python utilities
 
-Two standalone scripts (run out-of-band, not from the web app):
+Two standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`](../scripts/README.md)):
 
-- `label_clustering.py` — clusters nearby labels (used by the clustering flow; see `ClusterController` /
+- `scripts/label_clustering.py` — clusters nearby labels (used by the clustering flow; see `ClusterService` /
   `app/models/cluster/`).
-- `check_streets_for_imagery.py` — checks streets for available street-view imagery.
+- `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery.
+
+Their pure logic is unit-tested under [`test/python/`](../test/python) (`pytest`, advisory in CI). See
+[`docs/testing-and-ci.md`](testing-and-ci.md).
 
 ## Label types
 
@@ -143,6 +171,7 @@ canonical color table and icon locations.
 ## Where to go next
 
 - [`docs/dev-environment.md`](dev-environment.md) — get it running locally.
+- [`docs/deployment-and-stages.md`](deployment-and-stages.md) — hosted stages, branch/tag → stage deploys, prod runtime shape.
 - [`CONTRIBUTING.md`](../CONTRIBUTING.md) — workflow, coding standards, i18n, testing.
 - [`docs/testing-and-ci.md`](testing-and-ci.md) — testing strategy and CI.
 - [`CLAUDE.md`](../CLAUDE.md) — the same architecture plus conventions and operational notes, used as AI-assistant

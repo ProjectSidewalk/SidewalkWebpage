@@ -7,7 +7,7 @@ import models.label._
 import play.api.Logger
 import play.api.libs.json._
 import play.silhouette.api.Silhouette
-import service.LabelService
+import service.{LabelService, PanoDataService}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
@@ -17,7 +17,8 @@ class LabelController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[DefaultEnv],
     implicit val ec: ExecutionContext,
-    labelService: LabelService
+    labelService: LabelService,
+    panoDataService: PanoDataService
 ) extends CustomBaseController(cc) {
 
   private val logger = Logger(this.getClass)
@@ -43,6 +44,28 @@ class LabelController @Inject() (
   def getRegionLabelCount(regionId: Int) = cc.securityService.SecuredAction { implicit request =>
     logger.debug(request.toString) // The request is unused, but SecuredAction needs it and the compiler wants it read.
     labelService.countLabelsInRegion(regionId).map { labelCount => Ok(Json.obj("label_count" -> labelCount)) }
+  }
+
+  /**
+   * Get metadata for a given label ID (excludes personal identifiers like username).
+   *
+   * Backs the shared label-detail popup on Gallery/LabelMap. Public read (#456): the share landing (/label/:id)
+   * opens the popup anonymously, so per-user fields (userValidation, fromCurrentUser) fall back to "no user" when
+   * there's no signed-in identity. The admin variant with personal identifiers is AdminController.getAdminLabelData.
+   */
+  def getLabelData(labelId: Int) = silhouette.UserAwareAction.async { implicit request =>
+    val userId: String = request.identity.map(_.userId).getOrElse("")
+    labelService.getSingleLabelMetadata(labelId, userId).map {
+      case Some(metadata) =>
+        Ok(
+          LabelFormats.labelMetadataWithValidationToJson(metadata) ++
+            Json.obj(
+              "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
+              "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId)
+            )
+        )
+      case None => NotFound(s"No label found with ID: $labelId")
+    }
   }
 
   /**

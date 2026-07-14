@@ -68,7 +68,18 @@ object ApiFormats {
       "avg_timestamp_last_100_labels" -> stats.avgTimestampLast100Labels.map(_.toString),
       "km_explored"                   -> stats.kmExplored,
       "km_explored_no_overlap"        -> stats.kmExploreNoOverlap,
-      "user_counts"                   -> Json.obj(
+      "km_explored_multiple_users"    -> stats.kmExploredMultipleUsers,
+      "km_explored_single_user"       -> stats.kmExploredSingleUser,
+      // `km_explorable` is the auditable-now network (status = open). A street can be audited and later become
+      // closed/no_imagery, so km_explored_no_overlap is NOT bounded by km_explorable.
+      "km_explorable" -> stats.kmOpen,
+      "km_by_status"  -> Json.obj(
+        "open"       -> stats.kmOpen,
+        "no_imagery" -> stats.kmNoImagery,
+        "closed"     -> stats.kmClosed,
+        "disabled"   -> stats.kmDisabled
+      ),
+      "user_counts" -> Json.obj(
         "all_users"  -> stats.nUsers,
         "labelers"   -> stats.nExplorers,
         "validators" -> stats.nValidators,
@@ -85,6 +96,14 @@ object ApiFormats {
           (
             "avg_age_of_image_when_labeled",
             stats.avgImageAgeByLabel.map(avgImgAge => JsString(s"${avgImgAge.toDays} days")).getOrElse(JsNull)
+          ),
+          (
+            "stddev_label_timestamp",
+            stats.stddevLabelTimestamp.map(sd => JsString(s"${sd.toDays} days")).getOrElse(JsNull)
+          ),
+          (
+            "stddev_age_of_image_when_labeled",
+            stats.stddevImageAgeByLabel.map(sd => JsString(s"${sd.toDays} days")).getOrElse(JsNull)
           )
         ) ++
           // Turns into { "CurbRamp" -> { "count" -> ###, ... }, ... }.

@@ -1,0 +1,731 @@
+/*
+ * Styles for the redesigned label detail view (see app/views/common/labelDetail.scala.html).
+ *
+ * The base `.label-detail` rules style a self-contained label-info card. Two host modes are supported:
+ *   - Modal popup (LabelMap, Dashboard, Admin): the host is a <dialog id="label-modal" class="label-detail">.
+ *     Modal-specific styling (fixed width, ::backdrop, opening transition, init-offscreen hack) lives below.
+ *   - Inline (Gallery's expanded view): the host adds `.label-detail--inline`, which drops the dialog-fixed
+ *     sizing and lets the parent grid drive the dimensions. Paging-arrow rules also live in the inline section.
+ *
+ * Scoped under `.label-detail` so nothing here leaks into Bootstrap-3-styled pages elsewhere.
+ */
+
+.label-detail {
+  box-sizing: border-box;
+  width: 650px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  padding: 22px;
+  border: none;
+  border-radius: 12px;
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-black);
+  box-shadow: 0 20px 50px rgb(0 0 0 / 25%);
+  font-family: "Open Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  /* When content overflows (e.g. the Dashboard adds its mistake-response panel), a default opaque scrollbar
+     track paints square over the right rounded corners. A thin thumb on a transparent track keeps them round. */
+  scrollbar-width: thin;
+  scrollbar-color: rgb(0 0 0 / 35%) transparent;
+}
+
+.label-detail::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+/* Used during pano-viewer init: dialog must be in the DOM and visible to lay out, but invisible to the user. */
+.label-detail.label-detail--initializing,
+.label-detail.label-detail--initializing::backdrop {
+  visibility: hidden;
+  transition: none;
+}
+
+/* Open / close transition. Requires @starting-style + transition-behavior: allow-discrete. Only applies to the
+   modal host (Gallery's inline host doesn't use [open] / ::backdrop). */
+dialog.label-detail,
+dialog.label-detail::backdrop {
+  opacity: 0;
+  transition:
+    opacity 180ms ease,
+    overlay 180ms ease allow-discrete,
+    display 180ms ease allow-discrete;
+}
+
+dialog.label-detail[open],
+dialog.label-detail[open]::backdrop {
+  opacity: 1;
+}
+
+@starting-style {
+  dialog.label-detail[open],
+  dialog.label-detail[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+/* ─── Header ──────────────────────────────────────────────────────────── */
+
+.label-detail__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.label-detail__title {
+  flex: 1 0 0;
+  margin: 0;
+  font-family: Raleway, sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.2;
+  color: var(--color-neutral-black);
+}
+
+.label-detail__close {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--color-neutral-black);
+  cursor: pointer;
+  border-radius: 4px;
+}
+.label-detail__close:hover { background: rgb(0 0 0 / 6%); }
+
+.label-detail__close:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+.label-detail__close svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ─── Pano viewer ─────────────────────────────────────────────────────── */
+
+/* Wrap holds the pano + the hover-reveal validation overlay, and clips both to the rounded corners. The ::after
+   ring is the "selected validation" indicator (invisible by default, colored when a vote is set) — an overlay
+   rather than a border so the image sits flush edge-to-edge and nothing shifts when the ring appears. */
+.label-detail__pano-wrap {
+  position: relative;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.label-detail__pano-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  /* The GSV widget's internal layers carry small positive z-indexes that leak into this stacking context, so the
+     ring must sit above them (and above the z-index:1 hover overlay); the info popover stays higher at 10/11. */
+  z-index: 5;
+  border: 5px solid transparent;
+  border-radius: inherit;
+  pointer-events: none;
+  transition: border-color 150ms ease;
+}
+.label-detail__pano-wrap.is-agree::after    { border-color: var(--color-pine-500); }
+.label-detail__pano-wrap.is-disagree::after { border-color: #eb734d; }
+.label-detail__pano-wrap.is-unsure::after   { border-color: var(--color-asphalt-100); }
+
+.label-detail__pano {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 720 / 480;
+  background: #e9e9e9;
+  overflow: hidden;
+}
+
+/* No-imagery / expired-label panel (#4483): shown by PopupPanoManager when a pano fails to load and there is no crop
+   fallback. Absolutely fills svHolder (kept position:relative in JS) and centers a branded logo, one concise message,
+   and a button CTA. Shared by every LabelDetail surface (Gallery expanded, LabelMap popup, Admin, share page). */
+.pano-not-avail {
+  position: absolute;
+  inset: 0;
+  display: none; /* PopupPanoManager toggles this to flex */
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 200px; /* floor so the panel is visible even if svHolder momentarily has no resolved height */
+  padding: 24px;
+  background: var(--color-asphalt-100);
+  text-align: center;
+}
+
+.pano-not-avail__logo {
+  width: 64px;
+  height: 64px;
+}
+
+.pano-not-avail__msg {
+  max-width: 480px; /* wide enough to keep the message on one line on a full-size pano; wraps on narrow surfaces */
+  margin: 0;
+  font-weight: 600;
+  font-size: 18px;
+  font-family: Raleway, sans-serif;
+  color: var(--color-neutral-black);
+}
+
+.pano-not-avail__cta {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 9px 22px;
+  border-radius: 999px;
+  background: var(--color-pine-500);
+  color: var(--color-neutral-black);
+  font-weight: 600;
+  font-size: 15px;
+  font-family: Raleway, sans-serif;
+  text-decoration: none;
+  transition: opacity 120ms ease;
+}
+
+.pano-not-avail__cta:hover { opacity: 0.9; }
+
+.pano-not-avail__cta:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+/* Hover-reveal validation buttons at bottom of pano. Modeled after Gallery's old expanded-view validation buttons. */
+.label-detail__pano-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  gap: 1px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.label-detail__pano-wrap:hover .label-detail__pano-overlay,
+.label-detail__pano-overlay:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.label-detail__pano-overlay-button {
+  flex: 1 0 0;
+  height: 56px;
+  padding: 16px;
+  border: none;
+  color: var(--color-neutral-black);
+  font-family: Raleway, sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 120ms ease;
+}
+.label-detail__pano-overlay-button:hover { opacity: 0.95; }
+
+.label-detail__pano-overlay-button:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: -2px;
+}
+.label-detail__pano-overlay-button[disabled] { cursor: wait; }
+
+.label-detail__pano-overlay-button--agree    { background: var(--color-pine-500); }
+.label-detail__pano-overlay-button--disagree { background: #eb734d; }
+.label-detail__pano-overlay-button--unsure   { background: var(--color-asphalt-100); }
+
+.label-detail__pano-overlay-button.is-selected { opacity: 1; }
+
+/* Read-only mode: validating/commenting is blocked (the viewer's own label, or no imagery is available for it).
+   Elements remain visible but appear disabled. */
+.label-detail--readonly .label-detail__pano-overlay-button {
+  opacity: 0.8;
+  background: #E2E2E2;
+  cursor: default;
+  color: rgb(0 0 0 / 40%);
+}
+.label-detail--readonly .label-detail__pano-overlay-button:hover { opacity: 0.8; }
+.label-detail--readonly .label-detail__vote[disabled] { cursor: default; }
+
+.label-detail--readonly .label-detail__comment-input:disabled {
+  background: #f5f5f5;
+  color: #999999;
+  cursor: default;
+}
+
+.label-detail--readonly .label-detail__comment-submit:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* ─── Metadata strip (labeled date / capture date) ────────────────────── */
+
+.label-detail__meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.label-detail__meta-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.label-detail__meta-value { font-weight: 400; }
+
+/* Vertically center the PanoInfoPopover info button (img) with the surrounding text. */
+.label-detail__info-button-host {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ─── Three-column row: Validations / Severity / Tags ─────────────────── */
+
+.label-detail__columns {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.label-detail__col-title {
+  margin: 0 0 8px;
+  font-family: Raleway, sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--color-neutral-black);
+}
+
+.label-detail__col--validations { flex: 0 0 auto; }
+.label-detail__col--severity    { flex: 0 0 auto; }
+
+.label-detail__col--tags        {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Validation count display — non-interactive icon + count groups, modeled on the Figma redesign
+   (LabelMap-Redesign frame 537:17). The actual validate action lives on the pano hover overlay. */
+.label-detail__vote-display {
+  display: flex;
+  gap: 8px;
+}
+
+.label-detail__vote {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--color-neutral-black);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.label-detail__vote:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.label-detail__vote[disabled] {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.label-detail__vote-icon {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  display: block;
+}
+
+.label-detail__vote-count {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Severity faces — the inner faces use the shared .severity-button (--static) styles in main.css. */
+.label-detail__severity-faces {
+  display: inline-grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  align-items: flex-start;
+}
+
+/* Tag pills — base styles are in tag-pills.css (.tag-pill class). */
+.label-detail__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* ─── Comment row ─────────────────────────────────────────────────────── */
+
+.label-detail__comment-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.label-detail__comment-input {
+  flex: 0 1 291px;
+  height: 30px;
+  padding: 8px 18px;
+  border: 1px solid #807f7f;
+  border-radius: 6px;
+  font-family: Raleway, sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--color-neutral-black);
+}
+
+.label-detail__comment-input:focus {
+  outline: none;
+  border-color: #4a90e2;
+}
+.label-detail__comment-input::placeholder { color: #807f7f; }
+
+.label-detail__comment-submit {
+  height: 30px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 6px;
+  background: #e2e2e2;
+  color: rgb(45 42 63 / 40%);
+  font-family: Raleway, sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.label-detail__comment-submit.is-active {
+  background: #37a17b;
+  color: var(--color-neutral-white);
+}
+
+.label-detail__comment-submit:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+.label-detail__comment-confirmation {
+  font-size: 12px;
+  color: #4a8c4a;
+}
+
+/* ─── Description / comments ──────────────────────────────────────────── */
+
+.label-detail__description-row {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.label-detail__description-row strong {
+  font-family: Raleway, sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.label-detail__description {
+  display: block;
+  max-height: 30px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.label-detail__validator-comments {
+  max-height: 30px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.label-detail__empty {
+  color: #595959;
+  font-weight: 400;
+}
+
+.label-detail__validator-comments hr {
+  border: none;
+  border-top: 1px solid #eeeeee;
+  margin: 4px 0;
+}
+
+/* ─── Collapsible details / admin sections ───────────────────────────── */
+
+.label-detail__details {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eeeeee;
+  font-size: 13px;
+}
+
+.label-detail__details-summary {
+  cursor: pointer;
+  font-family: Raleway, sans-serif;
+  font-weight: 600;
+  color: #555555;
+}
+
+.label-detail__details-summary:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+.label-detail__details-list {
+  display: grid;
+  grid-template-columns: minmax(120px, auto) 1fr;
+  gap: 4px 12px;
+  margin: 8px 0 0;
+}
+
+.label-detail__details-list dt {
+  font-weight: 600;
+  color: #555555;
+}
+.label-detail__details-list dd { margin: 0; }
+
+/* Admin flag controls */
+.label-detail__flag-controls h4 {
+  margin: 12px 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.label-detail__flag-controls p {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: #555555;
+}
+
+.label-detail__flag-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.label-detail__flag-button {
+  padding: 6px 12px;
+  border: 1px solid #999999;
+  border-radius: 4px;
+  background: var(--color-neutral-white);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.label-detail__flag-button.is-active {
+  background: var(--color-neutral-300);
+}
+
+/* ─── Inline mode (Gallery expanded view) ──────────────────────────────
+ * Drops the modal-style fixed sizing and adds prev/next paging buttons. The host element supplies its own
+ * width/height via the parent grid; we just stretch and lay out children to fit. */
+
+.label-detail--inline {
+  padding: 12px 60px;
+  display: flex;
+  flex-direction: column;
+}
+
+.label-detail--inline .label-detail__meta-row { margin-bottom: 10px; }
+
+.label-detail--inline .label-detail__columns {
+  margin-bottom: 10px;
+  gap: 46px;
+}
+
+/* Push the comments + description down so the pano can grow to fill remaining space. */
+.label-detail--inline .label-detail__pano-wrap {
+  flex: 1 1 auto;
+  margin-bottom: 4px;
+}
+
+.label-detail--inline .label-detail__pano {
+  aspect-ratio: auto;
+  height: 100%;
+}
+
+.label-detail--inline .label-detail__pano-overlay-button {
+  height: 8vh;
+  padding: 1vh;
+}
+
+/* Paging arrows (only rendered when @withPaging = true). Absolutely positioned just outside the pano-wrap. */
+.label-detail__paging {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 11;
+  width: 40px;
+  height: 50px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-asphalt-500);
+  font-size: 50px;
+  line-height: 1;
+  cursor: pointer;
+}
+.label-detail__paging:hover { color: #000000; }
+
+.label-detail__paging:disabled {
+  color: #cccccc;
+  cursor: default;
+}
+
+.label-detail__paging:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}
+.label-detail__paging--prev { left: calc(-30px - 20px); }  /* Centered based on padding and icon width */
+.label-detail__paging--next { right: calc(-30px - 20px); } /* Centered based on padding and icon width */
+
+.label-detail--inline .label-detail__vote-display {
+  gap: 10px;
+}
+
+/* Increasing tag font size for Gallery since we have more space */
+.label-detail--inline .tag-pill {
+  font-size: 12px;
+}
+
+/* Place description and comments side-by-side, each taking half the row. */
+.label-detail--inline .label-detail__desc-comments {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.label-detail--inline .label-detail__desc-comments .label-detail__description-row,
+.label-detail--inline .label-detail__desc-comments .label-detail__comments-section {
+  flex: 1 1 0;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+/* ─── Share control (#456) ────────────────────────────────────────────────
+   Subtle, YouTube-style share button anchored bottom-right, with an accessible popover. */
+.label-detail__footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+/* Anchor for the absolutely-positioned popover. */
+.label-detail__share {
+  position: relative;
+}
+
+.label-detail__share-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-800);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 18px;
+  font: var(--text-small-medium);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.label-detail__share-trigger:hover {
+  background: var(--color-neutral-200);
+  border-color: var(--color-neutral-400);
+}
+
+.label-detail__share-trigger:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+}
+
+.label-detail__share-trigger svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Popover: opens above the trigger, right-aligned. */
+.label-detail__share-popover {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 10;
+  min-width: 200px;
+  padding: 6px;
+  background: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 18%);
+}
+
+.label-detail__share-popover[hidden] {
+  display: none;
+}
+
+.label-detail__share-heading {
+  margin: 4px 8px 6px;
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-700);
+}
+
+.label-detail__share-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  font: var(--text-small-medium);
+  color: var(--color-neutral-900);
+  text-align: left;
+  cursor: pointer;
+}
+
+.label-detail__share-item:hover {
+  background: var(--color-neutral-100);
+}
+
+.label-detail__share-item:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: -2px;
+}
+
+.label-detail__share-item.is-copied {
+  color: var(--color-success-200);
+}
+
+.label-detail__share-item-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-neutral-700);
+}
+
+.label-detail__share-item.is-copied .label-detail__share-item-icon {
+  color: var(--color-success-200);
+}
+
+.label-detail__share-item-icon svg {
+  display: block;
+}

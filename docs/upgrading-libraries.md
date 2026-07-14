@@ -85,8 +85,6 @@ These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`]
 
 ### Other Scala
 
-- **scala-parallel-collections: 1.2.0** — parallel collections, separated out of the stdlib as of Scala 2.13.
-  [Releases](https://mvnrepository.com/artifact/org.scala-lang.modules/scala-parallel-collections)
 - **play-bootstrap: 1.6.1-P28-B3** — Twirl helpers for the sign-in/up views. **Note:** the `P28-B3` suffix means
   "Play 2.8, Bootstrap 3"; 1.6.1 is the newest and there have been no releases since April 2020. It still works, only
   a few pages use it (mostly auth), and we don't expect further updates — we'd rather move off Bootstrap entirely.
@@ -97,7 +95,7 @@ These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`]
 
 - **sbt-plugin (Play): 3.0.10** — tracks the Play version above (`project/plugins.sbt`).
 - **scalafmt: 3.9.7** — pinned in [`.scalafmt.conf`](../.scalafmt.conf); the **sbt-scalafmt** plugin (**2.5.4**,
-  `project/plugins.sbt`) fetches it. Runs as advisory in CI (`scalafmtCheckAll`).
+  `project/plugins.sbt`) fetches it. `scalafmtCheckAll` is a blocking CI gate.
   [Releases](https://github.com/scalameta/scalafmt/releases)
 - **sbt-scoverage: 2.3.1** — coverage, for a later CI phase with a ratcheting threshold.
   [Releases](https://github.com/scoverage/sbt-scoverage/releases)
@@ -106,14 +104,17 @@ These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`]
 
 ## JavaScript
 
-In almost all cases we **self-host** JS libraries (download the file into `public/javascripts/lib/`) rather than use a
+In almost all cases we **self-host** JS libraries (download the file into `public/vendor/<lib>/`) rather than use a
 CDN — it's generally faster for users and gives us clearer control over exactly what we ship. Prefer minified
-(`.min.js`) builds.
+(`.min.js`) builds. Each library gets its own self-contained folder under `public/vendor/` (its JS + CSS + fonts +
+images together, upstream layout preserved so relative `url()` refs keep working). **Nothing under `vendor/` is ever
+edited or linted.**
 
-**To upgrade a self-hosted library:** download the new version, drop it in `public/javascripts/lib/`, **rename it to
+**To upgrade a self-hosted library:** download the new version, drop it in `public/vendor/<lib>/`, **rename it to
 include the version number** (e.g. `turf-7.3.4.min.js`) for clarity, update every reference to the old filename across
-the code, and delete the old file. The version baked into each filename in `lib/` is the real source of truth for the
-frontend — keep this list matching it.
+the code, and delete the old file. The version baked into each filename under `vendor/` is the real source of truth for
+the frontend — the app has no asset fingerprinting, so version-in-filename is the only cache-buster — keep this list
+matching it.
 
 - **async-lock: 1.4.1** — **note:** a fresh download probably needs the trailing `module.export` line removed.
   [Download](https://cdn.jsdelivr.net/npm/async-lock@1.4.1/lib/index.min.js) ·
@@ -125,13 +126,13 @@ frontend — keep this list matching it.
   remove the dependency entirely (a slow, ongoing transition). (A separate copy of Bootstrap 3.1.1 ships inside the
   `bootstrap-accessibility-plugin/` bundle below.)
 - **bootstrap-accessibility-plugin** (bundles Bootstrap 3.1.1 + jQuery 1.12.2) — accessibility patches for our
-  Bootstrap 3 UI; lives in `public/javascripts/lib/bootstrap-accessibility-plugin/`. Tied to the Bootstrap-removal
-  effort.
+  Bootstrap 3 UI; lives in `public/vendor/bootstrap-accessibility/` (with the bundled Bootstrap 3.1.1 JS and jQuery
+  1.12.2 split out into `public/vendor/bootstrap/` and `public/vendor/jquery/`). Tied to the Bootstrap-removal effort.
 - **bootstrap-datepicker: 1.9.0** — admin pages only; language packs not yet bundled.
   [Download JS](https://unpkg.com/bootstrap-datepicker@1.9.0/dist/js/bootstrap-datepicker.min.js) ·
   [Download CSS](https://unpkg.com/bootstrap-datepicker@1.9.0/dist/css/bootstrap-datepicker.min.css) ·
   [Changelog](https://github.com/uxsolutions/bootstrap-datepicker/blob/master/CHANGELOG.md)
-- **bootstrap-slider: 7.1.1** — slider UI control; in `public/javascripts/lib/bootstrap-slider-7.1.1/`.
+- **bootstrap-slider: 7.1.1** — slider UI control; in `public/vendor/bootstrap-slider/`.
   [Changelog](https://github.com/seiyria/bootstrap-slider/releases)
 - **bowser: 2.14.1** — browser detection.
   [Versions](https://www.npmjs.com/package/bowser?activeTab=versions) ·

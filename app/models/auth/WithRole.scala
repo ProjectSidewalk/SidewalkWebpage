@@ -16,6 +16,20 @@ case class WithAdmin() extends RoleBasedAuthorization[SidewalkUserWithRole, Defa
   }
 }
 
+// Authorized only for the global "Owner" super-role. Used by cross-deployment views (e.g. the Across Cities admin
+// overview, #4329): every city's data lives in one database, so per-city Administrators must NOT see other cities'
+// detail — only Owners, who operate across deployments, may.
+case class WithOwner() extends RoleBasedAuthorization[SidewalkUserWithRole, DefaultEnv#A] {
+  override def checkAuthorization[B](identity: SidewalkUserWithRole, authenticator: DefaultEnv#A)(implicit
+      request: Request[B]
+  ): Future[AuthorizationResult] = {
+    Future.successful {
+      if (identity.role == "Owner") Authorized
+      else NotAuthorized(currRole = identity.role, requiredRole = "Owner")
+    }
+  }
+}
+
 case class WithSignedIn() extends RoleBasedAuthorization[SidewalkUserWithRole, DefaultEnv#A] {
   override def checkAuthorization[B](identity: SidewalkUserWithRole, authenticator: DefaultEnv#A)(implicit
       request: Request[B]

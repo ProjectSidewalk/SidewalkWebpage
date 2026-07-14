@@ -104,6 +104,13 @@ class StatsApiController @Inject() (
             row("Recent Labels Average Timestamp", stats.avgTimestampLast100Labels.getOrElse("NA"))
             row("KM Explored", stats.kmExplored)
             row("KM Explored Without Overlap", stats.kmExploreNoOverlap)
+            row("KM Explored Multiple Users", stats.kmExploredMultipleUsers)
+            row("KM Explored Single User", stats.kmExploredSingleUser)
+            row("KM Explorable", stats.kmOpen) // Auditable-now network (status = open); alias of KM Open below.
+            row("KM Open", stats.kmOpen)
+            row("KM No Imagery", stats.kmNoImagery)
+            row("KM Closed", stats.kmClosed)
+            row("KM Disabled", stats.kmDisabled)
             row("Total User Count", stats.nUsers)
             row("Explore User Count", stats.nExplorers)
             row("Validate User Count", stats.nValidators)
@@ -116,6 +123,10 @@ class StatsApiController @Inject() (
             row("Average Label Timestamp", stats.avgLabelTimestamp.getOrElse("NA"))
             val avgImgAge: String = stats.avgImageAgeByLabel.map(avg => s"${avg.toDays} Days").getOrElse("NA")
             row("Average Age of Image When Labeled", avgImgAge)
+            val stddevLabelTs: String = stats.stddevLabelTimestamp.map(sd => s"${sd.toDays} Days").getOrElse("NA")
+            row("Stddev Label Timestamp", stddevLabelTs)
+            val stddevImgAge: String = stats.stddevImageAgeByLabel.map(sd => s"${sd.toDays} Days").getOrElse("NA")
+            row("Stddev Age of Image When Labeled", stddevImgAge)
             for ((labType, sevStats) <- stats.severityByLabelType.toSeq.sorted(labelTypeOrdering)) {
               row(s"$labType Count", sevStats.n)
               row(s"$labType Count With Severity", sevStats.nWithSeverity.getOrElse("NA"))
@@ -199,7 +210,7 @@ class StatsApiController @Inject() (
       }
       .recover { case e: Exception =>
         logger.error(s"Failed to retrieve aggregate statistics: ${e.getMessage}", e)
-        InternalServerError(Json.toJson(ApiError.internalServerError(s"Failed to retrieve aggregate statistics: ${e.getMessage}")))
+        ApiError.toResult(ApiError.internalServerError(s"Failed to retrieve aggregate statistics: ${e.getMessage}"))
       }
   }
 
@@ -232,6 +243,7 @@ class StatsApiController @Inject() (
       "total_labels"           -> stats.totalLabels,
       "tutorial_labels"        -> stats.tutorialLabels,
       "total_validations"      -> stats.totalValidations,
+      "total_users"            -> stats.totalUsers,
       "num_cities"             -> stats.numCities,
       "num_countries"          -> stats.numCountries,
       "num_languages"          -> stats.numLanguages,
@@ -257,6 +269,7 @@ class StatsApiController @Inject() (
       s"${toSnakeKey("Total Labels")},${stats.totalLabels}",
       s"${toSnakeKey("Tutorial Labels")},${stats.tutorialLabels}",
       s"${toSnakeKey("Total Validations")},${stats.totalValidations}",
+      s"${toSnakeKey("Total Users")},${stats.totalUsers}",
       s"${toSnakeKey("Number of Cities")},${stats.numCities}",
       s"${toSnakeKey("Number of Countries")},${stats.numCountries}",
       s"${toSnakeKey("Number of Languages")},${stats.numLanguages}"
@@ -290,7 +303,7 @@ class StatsApiController @Inject() (
   ): Either[ApiError, (Option[LocalDate], Option[LocalDate])] = {
     def parseOpt(opt: Option[String], paramName: String): Either[ApiError, Option[LocalDate]] =
       opt match {
-        case None => Right(None)
+        case None    => Right(None)
         case Some(s) =>
           try Right(Some(LocalDate.parse(s)))
           catch {
@@ -301,7 +314,7 @@ class StatsApiController @Inject() (
     for {
       start <- parseOpt(startDateStr, "startDate")
       end   <- parseOpt(endDateStr, "endDate")
-      _ <- (start, end) match {
+      _     <- (start, end) match {
         case (Some(s), Some(e)) if s.isAfter(e) =>
           Left(ApiError.invalidParameter("startDate must not be after endDate.", "startDate"))
         case _ => Right(())
@@ -353,7 +366,7 @@ class StatsApiController @Inject() (
       filetype: Option[String]
   ) = silhouette.UserAwareAction.async { implicit request =>
     parseDateParams(startDate, endDate) match {
-      case Left(err) => Future.successful(BadRequest(Json.toJson(err)))
+      case Left(err)           => Future.successful(ApiError.toResult(err))
       case Right((start, end)) =>
         apiService.getOverallStatsByDay(start, end, filterLowQuality).map { stats =>
           cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
@@ -379,7 +392,7 @@ class StatsApiController @Inject() (
       filetype: Option[String]
   ) = silhouette.UserAwareAction.async { implicit request =>
     parseDateParams(startDate, endDate) match {
-      case Left(err) => Future.successful(BadRequest(Json.toJson(err)))
+      case Left(err)           => Future.successful(ApiError.toResult(err))
       case Right((start, end)) =>
         configService.getAggregateStatsByDay(start, end, filterLowQuality).map { stats =>
           cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)

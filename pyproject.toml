@@ -1,0 +1,23 @@
+# Python tooling config for the standalone utility scripts in scripts/ and their tests in test/python/.
+# (The application itself is Scala/Play; this file only covers the Python utilities.)
+
+[tool.pytest.ini_options]
+# Only collect the Python utility tests; keep pytest away from the Scala/JS test trees.
+testpaths = ["test/python"]
+# Put scripts/ on sys.path so tests can `import label_clustering` / `import check_streets_for_imagery` without packaging.
+pythonpath = ["scripts"]
+python_files = ["test_*.py"]
+# Always measure correctness coverage of the scripts and fail the run if it regresses below the gate. Branch coverage
+# is on so both sides of every decision must be exercised, not just every line.
+addopts = "--cov=scripts --cov-branch --cov-report=term-missing --cov-fail-under=100"
+
+[tool.coverage.run]
+source = ["scripts"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+# The script entrypoint guard only runs when executed as `python3 scripts/...`, never under pytest.
+exclude_also = [
+    "if __name__ == .__main__.:",
+]

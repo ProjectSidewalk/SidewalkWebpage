@@ -115,13 +115,15 @@ Make sure Docker is running (you'll see the whale icon in your tray; you can set
 4. **Import users and data** from a *second* terminal on your host (outside the web-container shell):
 
    ```bash
-   make import-users                   # load sidewalk_users-dump (the login schema); ~1–2 min
+   make import-users                   # load sidewalk_users-dump (the login schema)
    make import-dump db=<database_user> # load <database_user>-dump; db= defaults to "sidewalk"
    ```
 
-   `import-dump` can take a while for large dumps. Read its output carefully — if it errors, **don't** continue;
-   check [Troubleshooting](#troubleshooting) and ask. (A `schema "public" already exists` notice is the one error
-   you can safely ignore.)
+   Both restore from a binary dump and show a live elapsed-time clock — the users dump is ~900 MB, so it runs for a
+   couple of minutes (the restore is parallelized to keep that short); a city dump varies with its size. Read the
+   output carefully — if it errors, **don't** continue; check [Troubleshooting](#troubleshooting) and ask. (A
+   `schema "public" already exists` notice is the one error you can safely ignore.) For what each script does and the
+   full set of DB lifecycle/maintenance targets, see [`db/scripts/README.md`](../db/scripts/README.md).
 
 5. **Start the app** from inside the web-container shell opened by `make dev`:
 
@@ -241,7 +243,7 @@ Password: sidewalk
 The dev server hot-reloads, so you rarely restart it.
 
 - **Scala / Twirl views** — `sbt ~ run` recompiles on save; reload the browser once compilation finishes.
-- **JavaScript / CSS** — Grunt's `watch` re-concatenates your `src/` edits into `public/javascripts/*/build/`
+- **JavaScript / CSS** — Grunt's `watch` re-concatenates your `src/` edits into `public/js/*/build/`
   automatically. **Edit `src/` files only; never edit `build/` output**, and don't run `grunt` by hand. If a new
   `src/` file isn't picked up, check that its path matches a glob in `Gruntfile.js`.
 - **`build.sbt` or config changes** — these aren't hot-reloaded. In the Docker shell press `Ctrl+D`, then run

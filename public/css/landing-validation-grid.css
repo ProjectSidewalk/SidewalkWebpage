@@ -1,0 +1,222 @@
+/* Landing-page validation grid (#1638): gallery-style cards of recently-found labels with inline
+   Agree/Disagree/Unsure buttons. Grid + card pattern adapted from the dashboard's mistake gallery
+   (user-dashboard.css), colors and type from the main.css design tokens. */
+
+.landing-validation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  margin: 24px 0 40px;
+}
+
+/* Once the grid collapses to a single column (~650px viewport: two 300px columns + 16px gap no longer fit the
+   Bootstrap container), six stacked cards push the rest of the page too far down — show only three. The hidden
+   cards' images are loading="lazy", so they're never fetched. */
+@media (width <= 650px) {
+  .landing-validation-grid .lvg-card:nth-child(n+4) {
+    display: none;
+  }
+}
+
+.lvg-card {
+  margin: 0;
+  border: 1px solid var(--color-neutral-200, #e1e1e1);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--color-neutral-white, #ffffff);
+}
+
+/* Placeholder shown while the label batch loads, so the section holds its space and cards swap in without a
+   layout shift. */
+.lvg-card-skeleton {
+  aspect-ratio: 3 / 2;
+  background: var(--color-neutral-100, #f0f0f0);
+  animation: lvg-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes lvg-pulse {
+  50% { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lvg-card-skeleton { animation: none; }
+}
+
+.lvg-card-img {
+  position: relative;
+
+  /* Match the Explore canvas (720x480) so the label marker's percentage position lines up, like the Gallery. */
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  background: var(--color-neutral-100, #f0f0f0);
+}
+
+.lvg-card-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The label's own icon over the pano at the label's canvas position (left/top set inline), marking exactly which
+   feature the question asks about. */
+.lvg-card-marker {
+  position: absolute;
+  width: clamp(20px, 7%, 30px);
+  height: auto;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 1px 4px rgb(0 0 0 / 55%));
+  pointer-events: none;
+}
+
+.lvg-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+}
+
+/* Question + inline (i) on the left, share chip pushed to the row's end. Also the tooltip's positioning anchor. */
+.lvg-card-question-row {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.lvg-card-question {
+  font: var(--text-body-regular, 400 16px/22px sans-serif);
+  color: var(--color-asphalt-500, #2d2a3f);
+}
+
+/* The bolded label-type name doubles as the "what is this?" trigger — dotted underline as the definition
+   affordance, focusable for keyboard users (tabindex set in JS). */
+.lvg-type-term {
+  cursor: help;
+  text-decoration: underline dotted var(--color-asphalt-300, #615e78);
+  text-underline-offset: 3px;
+}
+
+.lvg-type-term:focus-visible {
+  outline: 2px solid var(--color-link-200, #0f5faf);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* The share chip reuses .label-detail__share(-trigger) from label-detail.css for the shared popover look, restyled
+   as a quiet tertiary control: borderless, faint gray fill, and the (i) button's exact 18px height — it must not
+   compete with the Agree/Disagree/Unsure buttons below. */
+.lvg-share {
+  /* 2px centers the 18px chip against the question's 22px first line. */
+  margin-top: 2px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.lvg-share .label-detail__share-trigger {
+  height: 18px;
+  padding: 0 7px;
+  gap: 3px;
+  background: var(--color-neutral-100, #f0f0f0);
+  border: 0;
+  color: var(--color-asphalt-400, #424055);
+  font-size: 12px;
+}
+
+.lvg-share .label-detail__share-trigger:hover {
+  background: var(--color-neutral-200, #e1e1e1);
+}
+
+.lvg-share .label-detail__share-trigger svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Spans the question row, flush above it, so the pointer's path from the underlined term up into the tooltip
+   stays short (a grace delay in JS covers the strip of plain text in between — WCAG 1.4.13 "hoverable").
+   Growing upward over the image keeps it inside the card so overflow: hidden can't clip it. */
+.lvg-type-tip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  z-index: 2;
+  max-height: 190px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  font: var(--text-small-regular, 400 13px/18px sans-serif);
+  color: var(--color-neutral-white, #ffffff);
+  background: var(--color-asphalt-500, #2d2a3f);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
+}
+
+.lvg-card-thanks {
+  font: var(--text-body-bold, 700 16px/22px sans-serif);
+  color: var(--color-pine-800, #305044);
+}
+
+.lvg-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.lvg-btn {
+  flex: 1;
+  padding: 6px 8px;
+  font: var(--text-body-medium, 500 16px/22px sans-serif);
+  color: var(--color-asphalt-500, #2d2a3f);
+  background: var(--color-neutral-white, #ffffff);
+  border: 1px solid var(--color-neutral-300, #d1d1d1);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.lvg-btn:focus-visible {
+  outline: 2px solid var(--color-link-200, #0f5faf);
+  outline-offset: 2px;
+}
+
+.lvg-btn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* White at rest so six cards' buttons don't compete with the photos; hovering fills with the Gallery card's
+   validation palette (pine/orange/asphalt) so the two label-card UIs read as one family at the moment of action.
+   Dark asphalt text keeps ≥4.5:1 contrast on all three hover fills. */
+.lvg-btn-agree:hover:not(:disabled) {
+  background: var(--color-pine-500, #78c9ab);
+  border-color: var(--color-pine-600, #60a189);
+}
+
+.lvg-btn-disagree:hover:not(:disabled) {
+  background: var(--color-orange-500, #eb724e);
+  border-color: var(--color-orange-600, #a74d32);
+}
+
+.lvg-btn-unsure:hover:not(:disabled) {
+  background: var(--color-asphalt-100, #d5d3e4);
+  border-color: var(--color-asphalt-200, #9f9db1);
+}
+
+/* The vote the visitor just cast, held filled during the thanks state. */
+.lvg-btn-chosen.lvg-btn-agree {
+  background: var(--color-pine-800, #305044);
+  border-color: var(--color-pine-800, #305044);
+  color: var(--color-neutral-white, #ffffff);
+  opacity: 1;
+}
+
+.lvg-btn-chosen.lvg-btn-disagree {
+  background: var(--color-orange-800, #5e2e1f);
+  border-color: var(--color-orange-800, #5e2e1f);
+  color: var(--color-neutral-white, #ffffff);
+  opacity: 1;
+}
+
+.lvg-btn-chosen.lvg-btn-unsure {
+  background: var(--color-asphalt-500, #2d2a3f);
+  border-color: var(--color-asphalt-500, #2d2a3f);
+  color: var(--color-neutral-white, #ffffff);
+  opacity: 1;
+}

@@ -24,6 +24,7 @@ import java.time.OffsetDateTime
  * @param changedTags Optional boolean to filter validations where tags were changed (oldTags != newTags)
  * @param changedSeverityLevels Optional boolean to filter validations where severity was changed
  *                              (oldSeverity != newSeverity)
+ * @param source Optional validation interface (UiSource) to filter by, e.g. Validate, ValidateMobile, ExpertValidate
  */
 case class ValidationFiltersForApi(
     labelId: Option[Int] = None,
@@ -32,7 +33,8 @@ case class ValidationFiltersForApi(
     labelTypeId: Option[Int] = None,
     validationTimestamp: Option[OffsetDateTime] = None,
     changedTags: Option[Boolean] = None,
-    changedSeverityLevels: Option[Boolean] = None
+    changedSeverityLevels: Option[Boolean] = None,
+    source: Option[UiSource] = None
 )
 
 /**
@@ -190,6 +192,6 @@ case class ValidationResultTypeForApi(
  */
 object ValidationResultTypeForApi {
   // snake_case JSON output per the v3 API convention (#3871).
-  private implicit val config: JsonConfiguration              = JsonConfiguration(JsonNaming.SnakeCase)
+  implicit private val config: JsonConfiguration           = JsonConfiguration(JsonNaming.SnakeCase)
   implicit val format: OFormat[ValidationResultTypeForApi] = Json.format[ValidationResultTypeForApi]
 }

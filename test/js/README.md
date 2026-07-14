@@ -6,19 +6,26 @@ where this fits in the larger plan.
 
 ## What this proves
 
-A "smoke test" for the API-docs **live-preview** modules under `public/javascripts/api-docs/*-preview.js`. These
+A "smoke test" for the API-docs **live-preview** modules under `public/js/api-docs/*Preview.js`. These
 modules `fetch()` a `/v3/api/...` endpoint and render the JSON into a `<div>`. They are tightly coupled to the exact
 **field names** the API returns.
 
-The motivating bug: `overall-stats-preview.js` read `data.validations.total_validations` after that field had moved
+The motivating bug: `overallStatsPreview.js` read `data.validations.total_validations` after that field had moved
 under `data.validations.combined`, throwing `Cannot read properties of undefined`. Nothing caught it before it
 shipped. These tests pin the contract between a captured **snake_case** API response (per the v3 naming convention,
 issue #3871) and the renderer, so a field-name drift fails loudly here instead of silently in the browser.
 
 Two modules are covered (the newest, dependency-light, vanilla-DOM ones):
 
-- `aggregate-stats-preview.js` → `aggregate-stats-preview.test.js`
-- `validation-result-types-preview.js` → `validation-result-types-preview.test.js`
+- `aggregateStatsPreview.js` → `aggregateStatsPreview.test.js`
+- `validationResultTypesPreview.js` → `validationResultTypesPreview.test.js`
+
+Also covered, beyond the api-docs previews:
+
+- `common/share/ShareWidget.js` → `share-widget.test.js` — the label share control (#456): native-share vs popover
+  fork, the popover's ARIA contract and focus management, clipboard/intents, and activity logging. `ShareWidget` is a
+  top-level `class` declaration (not a `window.X = ...` assignment), so the test evals the source into the jsdom
+  global scope instead of using `loadGlobalScript`.
 
 Each test file has:
 
@@ -67,7 +74,7 @@ For these two modules, almost nothing — they are deliberately dependency-light
 
 ## Extending to the other previews
 
-The remaining `*-preview.js` modules pull in heavier globals. To bring them under test, stub these in `beforeEach`
+The remaining `*Preview.js` modules pull in heavier globals. To bring them under test, stub these in `beforeEach`
 **before** calling `loadGlobalScript`:
 
 - **Chart.js** (`label-types`, `validations`, `street-types`, …): set `window.Chart = jest.fn()` — a constructor
@@ -83,12 +90,12 @@ The general recipe stays the same: container div → stub fetch with a captured 
 `loadGlobalScript` → `setup({}).init()` → assert no "Failed to load" + expected content. A shared
 `beforeEach` helper (e.g. `stubChartJs()`, `stubLeaflet()`) can live alongside `loadGlobalScript.js` as coverage grows.
 
-`common/aggregate-stats.js` (named as a first target in the plan) is a good next addition — it has retry/timeout logic
+`common/aggregateStats.js` (named as a first target in the plan) is a good next addition — it has retry/timeout logic
 worth unit-testing with fake timers.
 
 ## Why this is opt-in and NOT in CI
 
-Frontend linting and the JS **ES5→ES6 migration** are owned by a separate in-flight effort, **issue #2487**. Dropping
+Frontend linting and the JS **ES5→ES2022 migration** are owned by a separate in-flight effort, **issue #2487**. Dropping
 test/lint tooling into CI mid-migration would create large, conflict-prone churn and risks colliding with that work.
 So:
 

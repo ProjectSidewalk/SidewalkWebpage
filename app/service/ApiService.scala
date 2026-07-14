@@ -51,7 +51,7 @@ trait ApiService {
   def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _]
 
   def getLabelsToClusterInRegion(regionId: Int): Future[Seq[LabelToCluster]]
-  def getRegionsToClusterAndWipeOldData: Future[Seq[Int]]
+  def getRegionsToCluster: Future[Seq[Int]]
 
   /**
    * Submits clustering results for a region.
@@ -316,13 +316,11 @@ class ApiServiceImpl @Inject() (
   def getLabelsToClusterInRegion(regionId: Int): Future[Seq[LabelToCluster]] =
     db.run(clusteringSessionTable.getLabelsToClusterInRegion(regionId))
 
-  def getRegionsToClusterAndWipeOldData: Future[Seq[Int]] = {
-    db.run(for {
-      // Get the list of region that need to be updated because the underlying labels have changed.
-      regionIds: Seq[Int] <- clusteringSessionTable.getRegionsToCluster
-      // Delete the data for those regions.
-      _ <- clusteringSessionTable.deleteClusteringSessions(regionIds)
-    } yield regionIds)
+  def getRegionsToCluster: Future[Seq[Int]] = {
+    // The list of regions that need re-clustering because their underlying labels have changed. Old data is no longer
+    // wiped here: each region's old clusters are deleted inside submitClusteringResults' transaction, so the API keeps
+    // serving the region's previous clusters until its re-cluster commits (#2507).
+    db.run(clusteringSessionTable.getRegionsToCluster)
   }
 
   def submitClusteringResults(
@@ -333,6 +331,11 @@ class ApiServiceImpl @Inject() (
   ): Future[Int] = {
     val timestamp = OffsetDateTime.now
     db.run((for {
+      // Delete this region's old clusters and insert the new ones in a single transaction so API readers never see the
+      // region empty mid-clustering: they get the previous clusters until this swap commits (#2507). Cascades to
+      // cluster/cluster_label via ON DELETE CASCADE.
+      _ <- clusteringSessionTable.deleteClusteringSessions(Seq(regionId))
+
       // Add the corresponding entry to the clustering_session table.
       sessionId: Int <- clusteringSessionTable.insert(ClusteringSession(0, regionId, thresholds, timestamp))
 

@@ -65,29 +65,33 @@ class RegionApiController @Inject() (
 
     firstError match {
       case Some(error) => Future.successful(badRequest(error))
-      case None =>
+      case None        =>
         configService.getCityMapParams.flatMap { cityMapParams =>
-        val (finalBbox, finalRegionId, finalRegionName) = resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
+          val (finalBbox, finalRegionId, finalRegionName) =
+            resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
 
-        val filters = RegionFiltersForApi(
-          bbox = finalBbox, regionId = finalRegionId, regionName = finalRegionName, minLabelCount = minLabelCount
-        )
+          val filters = RegionFiltersForApi(
+            bbox = finalBbox,
+            regionId = finalRegionId,
+            regionName = finalRegionName,
+            minLabelCount = minLabelCount
+          )
 
-        val dbDataStream: Source[RegionDataForApi, _] = apiService.getRegions(filters, DEFAULT_BATCH_SIZE)
-        val baseFileName: String                      = s"regions_${OffsetDateTime.now()}"
-        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
+          val dbDataStream: Source[RegionDataForApi, _] = apiService.getRegions(filters, DEFAULT_BATCH_SIZE)
+          val baseFileName: String                      = s"regions_${OffsetDateTime.now()}"
+          cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
-        filetype match {
-          case Some("csv") =>
-            outputCSV(dbDataStream, RegionDataForApi.csvHeader, inline, baseFileName + ".csv")
-          case Some("shapefile") =>
-            outputShapefile(dbDataStream, baseFileName, shapefileCreator.createRegionDataShapefile, shapefileCreator)
-          case Some("geopackage") =>
-            outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createRegionDataGeopackage, inline)
-          case _ => // Default to GeoJSON.
-            outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
+          filetype match {
+            case Some("csv") =>
+              outputCSV(dbDataStream, RegionDataForApi.csvHeader, inline, baseFileName + ".csv")
+            case Some("shapefile") =>
+              outputShapefile(dbDataStream, baseFileName, shapefileCreator.createRegionDataShapefile, shapefileCreator)
+            case Some("geopackage") =>
+              outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createRegionDataGeopackage, inline)
+            case _ => // Default to GeoJSON.
+              outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
+          }
         }
-      }
     }
   }
 
@@ -102,7 +106,7 @@ class RegionApiController @Inject() (
         cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
         Ok(Json.toJson(region))
       case None =>
-        NotFound(Json.toJson(ApiError.notFound("No region found with labels")))
+        ApiError.toResult(ApiError.notFound("No region found with labels"))
     }
   }
 }

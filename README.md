@@ -66,6 +66,7 @@ guide: **[`docs/dev-environment.md`](docs/dev-environment.md)**.
 | [`docs/upgrading-libraries.md`](docs/upgrading-libraries.md) | Dependency-version inventory and how to update each. |
 | [`docs/logged-events.md`](docs/logged-events.md) | How user-interaction logging works + the event reference. |
 | [`docs/data-notes.md`](docs/data-notes.md) | Release-specific caveats for analyzing Project Sidewalk data. |
+| [`docs/ai-subsystems.md`](docs/ai-subsystems.md) | Map of all AI/CV subsystems and repos: what's in production, how the pieces connect, and the project timeline since 2018. |
 | [`SECURITY.md`](SECURITY.md) | How to report a vulnerability. |
 | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) | Community standards. |
 
@@ -80,6 +81,25 @@ independently of the code or is maintained by non-developers.
 Rule of thumb: *if it describes the code or how to contribute, it's in the repo; if it's a runbook for operating a
 server or onboarding a new city's data, it's in the wiki.* We keep one source of truth per topic and cross-link rather
 than duplicate.
+
+## AI in Project Sidewalk
+
+Project Sidewalk increasingly combines crowdsourcing with AI. Two model families are in use
+today, reflecting our research finding that *validating* an existing human label is a much
+easier CV task than *finding and labeling* features from scratch:
+
+- **AI validation & tag suggestions** (in production, ~55 cities): DINOv2-based models judge
+  whether human labels are correct and suggest tags, run daily against a hosted GPU service
+  ([`sidewalk-ai-api`](https://github.com/ProjectSidewalk/sidewalk-ai-api); trained in
+  [`sidewalk-validator-ai`](https://github.com/ProjectSidewalk/sidewalk-validator-ai) and
+  [`sidewalk-tagger-ai`](https://github.com/ProjectSidewalk/sidewalk-tagger-ai)).
+- **AI labeling** (piloting): [RampNet](https://github.com/ProjectSidewalk/RampNet)
+  (ICCV'25) detects curb ramps in whole GSV panoramas at human-level accuracy;
+  [`sidewalk-auto-labeler`](https://github.com/ProjectSidewalk/sidewalk-auto-labeler)
+  deploys it city-wide and submits labels for human validation.
+
+See [`docs/ai-subsystems.md`](docs/ai-subsystems.md) for the full map — production data
+flows, config keys, DB tables, and a timeline of every AI/CV repo since 2018.
 
 ## Contributing
 

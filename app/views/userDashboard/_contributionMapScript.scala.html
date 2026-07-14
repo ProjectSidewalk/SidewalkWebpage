@@ -1,0 +1,76 @@
+@(mapId: String, mapboxApiKey: String, streetsURL: String, labelsURL: String, wireLabelPopup: Boolean = false)(implicit assets: AssetsFinder)
+
+@*
+* Loads the shared PSMap choropleth (audited streets + label points) into an existing holder `#@mapId`, wiring it to
+* whichever streets/labels endpoints the caller passes. Used by the dashboard (the signed-in user's own map) and the
+* public profile (another mapper's map, via the public username-keyed endpoints). jQuery, appManager, i18next, and
+* util.* come from common.main. The caller renders the `#@mapId` holder + map sidebar.
+*
+* With `wireLabelPopup = true`, map labels become hoverable/clickable and open the shared label-detail popup, exactly
+* like LabelMap. The caller must then load the label-popup stack (common.labelPopup + pano-viewer/label-detail
+* scripts) and expose `window.udLabelPopupReady` — a Promise resolving to the page's LabelPopup instance (or null if
+* its init failed, which leaves clicks as harmless no-ops).
+*@
+
+<link href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")" rel="stylesheet">
+<link href="@assets.path("css/choropleth.css")" rel="stylesheet">
+<link href="@assets.path("css/map-sidebar.css")" rel="stylesheet">
+<link href="@assets.path("css/tag-pills.css")" rel="stylesheet">
+<script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")"></script>
+<script src="@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")"></script>
+<script src="@assets.path("vendor/turf/turf-7.3.4.min.js")"></script>
+<script src="@assets.path("js/ps-map/build/ps-map.js")"></script>
+<script>
+  window.appManager.ready(async function () {
+    const params = {
+      mapName: '@mapId',
+      mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
+      mapboxApiKey: '@mapboxApiKey',
+      zoomCorrection: -0.5,
+      mapboxLogoLocation: 'bottom-right',
+      neighborhoodsURL: '/neighborhoods',
+      completionRatesURL: '/adminapi/neighborhoodCompletionRate',
+      streetsURL: '@streetsURL',
+      labelsURL: '@labelsURL',
+      neighborhoodFillMode: 'singleColor',
+      neighborhoodTooltip: 'none',
+      neighborhoodFillColor: '#5d6d6b',
+      neighborhoodFillOpacity: 0.1,
+      uiSource: 'UserMap',
+      navigationControlPosition: 'top-right'
+    };
+    @if(wireLabelPopup) {
+      // Label hover/click in AddLabelsToMap only activates when a popupLabelViewer is present. This thin
+      // adapter resolves the host page's popup lazily at click time, so map setup can't race popup init.
+      params.popupLabelViewer = {
+        showLabel: async (labelId, uiSource) => {
+          const popup = await window.udLabelPopupReady;
+          if (!popup) return;
+          // A mistake card may have left its vote/note panel inside the shared dialog, and a map-clicked
+          // label isn't necessarily that card's — clear it so the popup shows only this label's details.
+          document.querySelector('#label-modal .ud-mistake-response')?.remove();
+          await popup.showLabel(labelId, uiSource);
+        }
+      };
+    }
+    try {
+      const m = await createPSMap($, params);
+      new MapSidebarFilter(m[0], m[4], { highQualityFilter: false });
+      // Wheel/trackpad zooms the map whenever the pointer is over it, and scrolls the page everywhere else.
+      const map = m[0];
+      if (map && map.scrollZoom) {
+        map.scrollZoom.disable();
+        const holder = document.getElementById('@{mapId}-holder');
+        if (holder) {
+          holder.addEventListener('mouseenter', () => map.scrollZoom.enable());
+          holder.addEventListener('mouseleave', () => map.scrollZoom.disable());
+        }
+      }
+      // Start with the legend drawer closed (re-centers the map via the real close handler).
+      const closeBtn = document.getElementById('map-sidebar-close');
+      if (closeBtn) closeBtn.click();
+    } catch (e) {
+      console.error('Contribution map failed to load', e);
+    }
+  });
+</script>

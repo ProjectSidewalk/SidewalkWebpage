@@ -5,46 +5,46 @@
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @common.main(commonData, title) {
-    @common.navbar(commonData, Some(user))
-    <div id="content">
-        <div class="container">
-            <h1>Clustering labels</h1>
-            <button id="btn-run-clustering">Run Clustering</button>
-            <br/>
-            <p id="clustering-status"></p>
-        </div>
+  @common.navbar(commonData, Some(user))
+  <div id="content">
+    <div class="container">
+      <h1>Clustering labels</h1>
+      <button type="button" id="btn-run-clustering">Run Clustering</button>
+      <br>
+      <p id="clustering-status"></p>
     </div>
+  </div>
 
-    <script>
-        // Add onclick to the run clustering button and extracts results from the response.
-        $(document).ready(function () {
-            let clusterStatusEl = document.getElementById('clustering-status');
+  <script>
+    // Add onclick to the run clustering button and extracts results from the response.
+    $(document).ready(function () {
+      let clusterStatusEl = document.getElementById('clustering-status');
 
-            // Handles the event stream. Updates the clustering-status element as clustering progresses.
-            function clusteringEventOnMessage(event) {
-                const data = JSON.parse(event.data);
-                clusterStatusEl.textContent = data.status;
+      // Handles the event stream. Updates the clustering-status element as clustering progresses.
+      function clusteringEventOnMessage(event) {
+        const data = JSON.parse(event.data);
+        clusterStatusEl.textContent = data.status;
 
-                // If processing is complete, show final results and close the connection.
-                if (data.status === 'Complete') {
-                    clusterStatusEl.textContent = `Labels: ${data.results.labels}, Clusters: ${data.results.clusters}`;
-                    this.close();
-                }
-            }
+        // If processing is complete, show final results and close the connection.
+        if (data.status === 'Complete') {
+          clusterStatusEl.textContent = `Labels: ${data.results.labels}, Clusters: ${data.results.clusters}`;
+          this.close();
+        }
+      }
 
-            // Handles errors in the clustering event stream.
-            function clusteringEventOnError(event) {
-                console.error('EventSource error:', event);
-                clusterStatusEl.textContent = 'Error occurred.';
-                this.close();
-            }
+      // Handles errors in the clustering event stream.
+      function clusteringEventOnError(event) {
+        console.error('EventSource error:', event);
+        clusterStatusEl.textContent = 'Error occurred.';
+        this.close();
+      }
 
-            // Creates a new EventSource for the run clustering button click and sets up the event handlers.
-            document.getElementById('btn-run-clustering').onclick = function() {
-                const eventSource = new EventSource('/runClustering');
-                eventSource.onmessage = clusteringEventOnMessage;
-                eventSource.onerror = clusteringEventOnError;
-            };
-        });
-    </script>
+      // Creates a new EventSource for the run clustering button click and sets up the event handlers.
+      document.getElementById('btn-run-clustering').onclick = function() {
+        const eventSource = new EventSource('/runClustering');
+        eventSource.onmessage = clusteringEventOnMessage;
+        eventSource.onerror = clusteringEventOnError;
+      };
+    });
+  </script>
 }

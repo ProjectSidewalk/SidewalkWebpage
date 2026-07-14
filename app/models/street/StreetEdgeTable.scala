@@ -50,7 +50,7 @@ case class StreetEdge(
     x2: Double,
     y2: Double,
     wayType: String,
-    deleted: Boolean,
+    status: StreetEdgeStatus.Value,
     timestamp: Option[OffsetDateTime]
 )
 case class StreetEdgeInfo(val street: StreetEdge, osmId: Long, regionId: Int, val auditCount: Int)
@@ -63,10 +63,10 @@ class StreetEdgeTableDef(tag: Tag) extends Table[StreetEdge](tag, "street_edge")
   def x2: Rep[Double]                        = column[Double]("x2")
   def y2: Rep[Double]                        = column[Double]("y2")
   def wayType: Rep[String]                   = column[String]("way_type")
-  def deleted: Rep[Boolean]                  = column[Boolean]("deleted", O.Default(false))
+  def status: Rep[StreetEdgeStatus.Value]    = column[StreetEdgeStatus.Value]("status")
   def timestamp: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("timestamp")
 
-  def * = (streetEdgeId, geom, x1, y1, x2, y2, wayType, deleted, timestamp) <> (
+  def * = (streetEdgeId, geom, x1, y1, x2, y2, wayType, status, timestamp) <> (
     (StreetEdge.apply _).tupled,
     StreetEdge.unapply
   )
@@ -92,7 +92,7 @@ class StreetEdgeTable @Inject() (
         r.nextDouble(),
         r.nextDouble(),
         r.nextString(),
-        r.nextBoolean(),
+        StreetEdgeStatus.withName(r.nextString()),
         r.nextTimestampOption().map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC))
       ),
       r.nextLong(),
@@ -113,10 +113,14 @@ class StreetEdgeTable @Inject() (
 
   val tutorialStreetId: Query[Rep[Int], Int, Seq] = configTable.map(_.tutorialStreetEdgeID)
 
-  // `streetsWithTutorial` drops deleted streets only. `streets` is the default set: drops deleted AND the tutorial
-  // street, which is randomly assigned to a region at db init but should not be user-routable outside the tutorial.
-  // Use `streetsUnfiltered` only when you specifically need access to the tutorial or deleted streets.
-  val streetsWithTutorial = streetsUnfiltered.filterNot(_.deleted)
+  // A street is live/auditable only when its status is `open`. Every other status (`no_imagery`, `closed`, `disabled`)
+  // is unavailable; in particular streets in unopened regions carry `closed` (kept in sync with region.deleted by
+  // reveal-or-hide-neighborhoods.sh), so filtering on `open` matches the pre-enum behavior where the old `deleted`
+  // flag was set on no-imagery, closed-region, and disabled streets alike.
+  // `streetsWithTutorial` keeps the tutorial street; `streets` (the default set) also drops it, since it is randomly
+  // assigned to a region at db init but should not be user-routable outside the tutorial. Use `streetsUnfiltered`
+  // only when you specifically need the tutorial or non-open streets.
+  val streetsWithTutorial = streetsUnfiltered.filter(_.status === StreetEdgeStatus.Open)
   val streets             = streetsWithTutorial.filterNot(_.streetEdgeId in tutorialStreetId)
 
   val roleTableWithResearchersCollapsed = roleTable.map(_roles =>
@@ -356,8 +360,13 @@ class StreetEdgeTable @Inject() (
     val regionIdFilter = filters.regionId.map { regionId => s"AND r.region_id = $regionId" }.getOrElse("")
 
     val regionNameFilter =
-      filters.regionName.map { regionName => s"AND LOWER(reg.name) = LOWER('${regionName.replace("'", "''")}')" }
+      filters.regionName
+        .map { regionName => s"AND LOWER(reg.name) = LOWER('${regionName.replace("'", "''")}')" }
         .getOrElse("")
+
+    val statusFilter = filters.statuses
+      .map { statuses => s"AND s.status IN (${statuses.map(st => s"'${st.replace("'", "''")}'").mkString(",")})" }
+      .getOrElse("")
 
     val minLabelCountFilter = filters.minLabelCount.map { count => s"AND label_count >= $count" }.getOrElse("")
 
@@ -370,17 +379,19 @@ class StreetEdgeTable @Inject() (
     // numeric filters are safe; see #2756 for migrating these raw builders to bound parameters.
     val queryStr = s"""
       WITH filtered_streets AS (
-        SELECT s.street_edge_id, s.geom, s.way_type, o.osm_way_id, r.region_id, reg.name as region_name
+        SELECT s.street_edge_id, s.geom, s.way_type, s.status, o.osm_way_id, r.region_id, reg.name as region_name
         FROM street_edge s
         JOIN osm_way_street_edge o ON s.street_edge_id = o.street_edge_id
         JOIN street_edge_region r ON s.street_edge_id = r.street_edge_id
         JOIN region reg ON r.region_id = reg.region_id
-        WHERE s.deleted = false
-            AND s.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+        -- The API returns all streets (open, no_imagery, disabled) tagged with their status (#3888); only the tutorial
+        -- street is excluded. Availability filtering is opt-in via the `status` query param ($statusFilter).
+        WHERE s.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
             $bboxFilter
             $wayTypeFilter
             $regionIdFilter
             $regionNameFilter
+            $statusFilter
       ),
       -- Get audit counts.
       audit_counts AS (
@@ -410,7 +421,7 @@ class StreetEdgeTable @Inject() (
         GROUP BY s.street_edge_id
       )
       -- Final selection with all filters applied.
-      SELECT s.street_edge_id, s.osm_way_id, s.region_id, s.region_name, s.way_type,
+      SELECT s.street_edge_id, s.osm_way_id, s.region_id, s.region_name, s.way_type, s.status,
              COALESCE(l.user_ids, ARRAY[]::text[]) as user_ids,
              COALESCE(l.label_count, 0) as label_count,
              COALESCE(a.audit_count, 0) as audit_count,
@@ -434,6 +445,7 @@ class StreetEdgeTable @Inject() (
         regionId = r.nextInt(),
         regionName = r.nextString(),
         wayType = r.nextString(),
+        status = r.nextString(),
         userIds = {
           // Handle PostgreSQL array type properly.
           val pgArray = r.nextObject().asInstanceOf[PgArray]

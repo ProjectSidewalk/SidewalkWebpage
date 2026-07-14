@@ -101,24 +101,6 @@ class ApplicationController @Inject() (
     }
   }
 
-  def leaderboard = cc.securityService.SecuredAction { implicit request =>
-    val countryId: String = configService.getCurrentCountryId
-    for {
-      commonData      <- configService.getCommonPageData(request2Messages.lang)
-      overallLeaders  <- userService.getLeaderboardStats(10)
-      teamLeaders     <- userService.getLeaderboardStats(10, "overall", byTeam = true)
-      weeklyLeaders   <- userService.getLeaderboardStats(10, "weekly")
-      currTeamLeaders <- userService.getLeaderboardStats(10, "overall", byTeam = false, Some(request.identity.userId))
-      userTeam        <- userService.getUserTeam(request.identity.userId)
-    } yield {
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Leaderboard")
-      Ok(
-        views.html.leaderboard("Sidewalk - Leaderboard", commonData, request.identity, overallLeaders, teamLeaders,
-          weeklyLeaders, currTeamLeaders, userTeam, countryId)
-      )
-    }
-  }
-
   /**
    * Updates user language preference cookie, returns to current page.
    */
@@ -208,20 +190,25 @@ class ApplicationController @Inject() (
    */
   def labelMap(regions: Option[String], routes: Option[String], aiValidationOptions: Option[String]) =
     cc.securityService.SecuredAction { implicit request =>
-      val regionIds: Seq[Int]    = parseIntegerSeq(regions)
-      val routeIds: Seq[Int]     = parseIntegerSeq(routes)
-      val aiValOpts: Seq[String] = aiValidationOptions.map(_.split(",").toSeq.distinct).getOrElse(Seq())
-      val activityStr: String    = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
+      if (ControllerUtils.isMobile(request)) {
+        cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_LabelMap_RedirectMobileLanding")
+        Future.successful(Redirect("/mobileLanding"))
+      } else {
+        val regionIds: Seq[Int]    = parseIntegerSeq(regions)
+        val routeIds: Seq[Int]     = parseIntegerSeq(routes)
+        val aiValOpts: Seq[String] = aiValidationOptions.map(_.split(",").toSeq.distinct).getOrElse(Seq())
+        val activityStr: String    = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
 
-      for {
-        commonData <- configService.getCommonPageData(request2Messages.lang)
-        tags       <- labelService.getTagsForCurrentCity
-      } yield {
-        cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
-        Ok(
-          views.html.apps.labelMap(commonData, "Sidewalk - LabelMap", request.identity, tags, regionIds, routeIds,
-            aiValOpts)
-        )
+        for {
+          commonData <- configService.getCommonPageData(request2Messages.lang)
+          tags       <- labelService.getTagsForCurrentCity
+        } yield {
+          cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
+          Ok(
+            views.html.apps.labelMap(commonData, "Sidewalk - LabelMap", request.identity, tags, regionIds, routeIds,
+              aiValOpts)
+          )
+        }
       }
     }
 
@@ -252,9 +239,14 @@ class ApplicationController @Inject() (
   }
 
   def routeBuilder = cc.securityService.SecuredAction { implicit request =>
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_RouteBuilder")
-      Ok(views.html.apps.routeBuilder(commonData, request.identity))
+    if (ControllerUtils.isMobile(request)) {
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_RouteBuilder_RedirectMobileLanding")
+      Future.successful(Redirect("/mobileLanding"))
+    } else {
+      configService.getCommonPageData(request2Messages.lang).map { commonData =>
+        cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_RouteBuilder")
+        Ok(views.html.apps.routeBuilder(commonData, request.identity))
+      }
     }
   }
 

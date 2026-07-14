@@ -7,6 +7,8 @@
 package models.api
 
 import models.api.ApiModelUtils.{createGeoJsonPointGeometry, escapeCsvField}
+import models.pano.PanoSource
+import models.pano.PanoSource.PanoSource
 import models.utils.LatLngBBox
 import play.api.libs.json.{JsObject, JsValue, Json, JsonConfiguration, JsonNaming, OFormat, Writes}
 
@@ -57,7 +59,7 @@ case class LabelValidationSummaryForApi(
  */
 object LabelValidationSummaryForApi {
   // snake_case JSON output per the v3 API convention (#3871).
-  private implicit val config: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+  implicit private val config: JsonConfiguration                           = JsonConfiguration(JsonNaming.SnakeCase)
   implicit val validationDataFormat: OFormat[LabelValidationSummaryForApi] =
     Json.format[LabelValidationSummaryForApi]
 }
@@ -70,6 +72,7 @@ object LabelValidationSummaryForApi {
  * @param labelId Unique identifier for the label
  * @param userId Anonymized identifier of the user who created the label
  * @param panoId Panorama identifier where the label was placed
+ * @param panoSource Imagery provider the panorama came from (GSV, Mapillary, or infra3d); drives `panoUrl`
  * @param labelType Type of accessibility issue (e.g., "CurbRamp", "SurfaceProblem")
  * @param severity Optional severity rating (1-3 scale)
  * @param tags List of descriptive tags applied to the label
@@ -108,6 +111,7 @@ case class LabelDataForApi(
     labelId: Int,
     userId: String,
     panoId: String,
+    panoSource: PanoSource,
     labelType: String,
     severity: Option[Int],
     tags: List[String],
@@ -144,39 +148,28 @@ case class LabelDataForApi(
 ) extends StreamingApiType {
 
   /**
-   * Generates a direct panorama URL for this label location.
+   * Builds a browser-openable link to view this label's panorama in the provider's own viewer, positioned at the
+   * label's heading/pitch. The format is provider-specific, mirroring the in-app "view in pano" links in
+   * `PanoInfoPopover.js` so the API and frontend stay on one canonical URL shape per provider:
    *
-   * This URL can be opened in a browser to view the Street View at the label position.
-   * The URL format follows Google's standard Street View URL structure:
-   * https://www.google.com/maps/@{lat},{lng},3a,75y,{heading}h,{pitch}t/data=!3m4!1e1!3m2!1s{panoId}!2e0
+   *  - GSV: Google's officially documented Maps URLs API for Street View (`map_action=pano`), which needs no API key.
+   *    See https://developers.google.com/maps/documentation/urls/get-started#street-view-action. `heading` (-180..360)
+   *    and `pitch` (-90..90) match Project Sidewalk's own conventions, so they pass through unchanged.
+   *  - Mapillary: the web app's image-permalink form (`pKey`).
+   *  - infra3d: no public, shareable viewer URL exists, so this is `None`.
    *
-   * URL components:
-   * - @{lat},{lng}: The geographic coordinates
-   * - 3a: Specifies Street View mode
-   * - 75y: Default field of view (75 degrees)
-   * - {heading}h: Horizontal view direction in degrees followed by 'h'
-   * - {pitch}t: Vertical view angle in degrees followed by 't'
-   * - !3m4!1e1!3m2!1s{panoId}!2e0: Data parameter specifying panorama ID
-   *
-   * @return A complete panorama URL pointing to this label's location
+   * @return The provider's viewer URL for this label, or `None` when the provider has no shareable external viewer.
    */
-  def imageUrl: String = {
-    // Base URL for Google Maps.
-    val baseUrl = "https://www.google.com/maps/@"
-
-    // Format latitude and longitude with default Street View settings.
-    val latLng = s"$latitude,$longitude,3a,75y" // '75y' is FOV
-
-    // Handle optional parameters with defaults where needed.
-    val headingStr = s"${heading.getOrElse(0)}h"
-    val pitchStr   = s"${90.0 + pitch.getOrElse(0.0)}t"
-
-    // The data parameter contains the panorama ID information.
-    // Format is: !3m4!1e1!3m2!1s{PANORAMA_ID}!2e0
-    val panoParam = s"data=!3m4!1e1!3m2!1s$panoId!2e0"
-
-    // Assemble all components into the final URL
-    s"$baseUrl$latLng,$headingStr,$pitchStr/$panoParam"
+  def panoUrl: Option[String] = panoSource match {
+    case PanoSource.Gsv =>
+      Some(
+        s"https://www.google.com/maps/@?api=1&map_action=pano&pano=$panoId" +
+          s"&heading=${heading.getOrElse(0.0)}&pitch=${pitch.getOrElse(0.0)}"
+      )
+    case PanoSource.Mapillary =>
+      Some(s"https://www.mapillary.com/app/?pKey=$panoId&focus=photo")
+    case _ =>
+      None
   }
 
   /**
@@ -232,7 +225,7 @@ case class LabelDataForApi(
         "camera_heading"     -> cameraHeading,
         "camera_pitch"       -> cameraPitch,
         "camera_roll"        -> cameraRoll,
-        "image_url"          -> imageUrl // Include the direct pano URL
+        "pano_url"           -> panoUrl // Provider-specific viewer link; null for providers without one (infra3d)
       )
     )
   }
@@ -284,7 +277,7 @@ case class LabelDataForApi(
       cameraHeading.map(_.toString).getOrElse(""),
       cameraPitch.map(_.toString).getOrElse(""),
       cameraRoll.map(_.toString).getOrElse(""),
-      escapeCsvField(imageUrl),
+      escapeCsvField(panoUrl.getOrElse("")),
       latitude.toString,
       longitude.toString
     )
@@ -304,7 +297,7 @@ object LabelDataForApi {
   val csvHeader: String = "label_id,user_id,pano_id,label_type,severity,tags,description,time_created,street_edge_id," +
     "osm_way_id,region_id,region_name,correct,agree_count,disagree_count,unsure_count,validations,audit_task_id,mission_id," +
     "image_capture_date,heading,pitch,zoom,canvas_x,canvas_y,canvas_width,canvas_height,pano_x,pano_y,pano_width," +
-    "pano_height,camera_heading,camera_pitch,camera_roll,image_url,latitude,longitude\n"
+    "pano_height,camera_heading,camera_pitch,camera_roll,pano_url,latitude,longitude\n"
 
   /**
    * Implicit JSON writer for LabelData that uses the toJson method.
@@ -390,6 +383,6 @@ object LabelCVMetadata {
     "Camera Heading,Camera Pitch,Camera Roll\n"
 
   // snake_case JSON output per the v3 API convention (#3871).
-  private implicit val config: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+  implicit private val config: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
   implicit val writes: Writes[LabelCVMetadata]   = Json.writes[LabelCVMetadata]
 }

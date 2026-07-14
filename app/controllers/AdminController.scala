@@ -6,7 +6,8 @@ import executors.CpuIntensiveExecutionContext
 import formats.json.AdminFormats._
 import formats.json.LabelFormats._
 import formats.json.UserFormats._
-import models.auth.{DefaultEnv, WithAdmin}
+import models.auth.{DefaultEnv, WithAdmin, WithOwner}
+import models.label.LabelTypeEnum
 import models.user.{RoleTable, SidewalkUserWithRole}
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.dispatch.Dispatcher
@@ -19,10 +20,10 @@ import play.silhouette.impl.exceptions.IdentityNotFoundException
 import service._
 
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.concurrent.ThreadPoolExecutor
 import javax.inject.{Inject, Singleton}
-import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Try
@@ -126,7 +127,7 @@ class AdminController @Inject() (
     labelService
       .getLabelsForLabelMap(Seq(), Seq(), Seq())
       .map { labels =>
-        val features: Seq[JsObject] = labels.par.map { label =>
+        val features: Seq[JsObject] = labels.map { label =>
           Json.obj(
             "type"     -> "Feature",
             "geometry" -> Json.obj(
@@ -149,7 +150,7 @@ class AdminController @Inject() (
               "tags"                 -> label.tags
             )
           )
-        }.seq
+        }
         val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
         Ok(featureCollection)
       }(cpuEc)
@@ -171,6 +172,19 @@ class AdminController @Inject() (
   }
 
   /**
+   * Tag-by-severity counts for the Data Quality tag-severity heatmap (#4272): how each label type's tags distribute
+   * across the 1–3 severity scale. snake_case per the dashboard convention.
+   */
+  def getTagSeverityCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getTagSeverityCounts.map { counts =>
+      Ok(Json.obj("tag_severity" -> JsArray(counts.map { c =>
+        Json.obj("label_type" -> c.labelType, "tag" -> c.tag, "severity" -> c.severity, "count" -> c.count)
+      })))
+    }
+  }
+
+  /**
    * Get a list of all labels with metadata needed for /labelMap.
    */
   def getAllLabelsForLabelMap(regions: Option[String], routes: Option[String], aiValidationOptions: Option[String]) =
@@ -183,7 +197,7 @@ class AdminController @Inject() (
       labelService
         .getLabelsForLabelMap(regionIds, routeIds, aiValOpts)
         .map { labels =>
-          val features: Seq[JsObject] = labels.par.map { label =>
+          val features: Seq[JsObject] = labels.map { label =>
             Json.obj(
               "type"     -> "Feature",
               "geometry" -> Json.obj(
@@ -204,7 +218,7 @@ class AdminController @Inject() (
                 "tags"              -> label.tags
               )
             )
-          }.seq
+          }
           val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
           Ok(featureCollection)
         }(cpuEc)
@@ -307,24 +321,6 @@ class AdminController @Inject() (
   }
 
   /**
-   * Get metadata for a given label ID (excludes personal identifiers like username).
-   */
-  def getLabelData(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
-    val userId: String = request.identity.userId
-    labelService.getSingleLabelMetadata(labelId, userId).map {
-      case Some(metadata) =>
-        Ok(
-          labelMetadataWithValidationToJson(metadata) ++
-            Json.obj(
-              "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
-              "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId)
-            )
-        )
-      case None => NotFound(s"No label found with ID: $labelId")
-    }
-  }
-
-  /**
    * Get a count of the number of labels placed by each user.
    */
   def getAllUserLabelCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
@@ -378,6 +374,33 @@ class AdminController @Inject() (
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     adminService.getValidationCountsByDate.map { valCounts =>
       Ok(Json.toJson(valCounts.map(x => Json.obj("date" -> dateFormatter.format(x._1), "count" -> x._2))))
+    }
+  }
+
+  /**
+   * Unified daily activity time series for the redesigned admin dashboard's Activity page (#4272).
+   *
+   * Returns one row per calendar day with the volume of each contribution type (labels, validations, audits, missions),
+   * sign-ins and active users split registered-vs-anonymous, and new registered accounts. Only days with activity are
+   * emitted; the client zero-fills and rolls up by range/granularity. snake_case output per the dashboard convention.
+   */
+  def getActivityByDay = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getActivityByDay.map { series =>
+      Ok(Json.obj("series" -> JsArray(series.map { r =>
+        Json.obj(
+          "date"               -> r.date.toString,
+          "labels"             -> r.labels,
+          "validations"        -> r.validations,
+          "audits"             -> r.audits,
+          "missions"           -> r.missions,
+          "signins_registered" -> r.signinsRegistered,
+          "signins_anon"       -> r.signinsAnon,
+          "active_registered"  -> r.activeRegistered,
+          "active_anon"        -> r.activeAnon,
+          "new_users"          -> r.newUsers
+        )
+      })))
     }
   }
 
@@ -509,6 +532,15 @@ class AdminController @Inject() (
   }
 
   /**
+   * Forces an immediate recompute of this deployment's engagement funnel (#288) into `funnel_stat` — the same work the
+   * nightly FunnelStatActor does. Handy after a deploy so the Across Cities page shows this city without waiting a day.
+   */
+  def updateFunnelStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    adminService.updateFunnelStatTable().map { rowsUpdated => Ok(s"Funnel stats updated ($rowsUpdated rows)!") }
+  }
+
+  /**
    * Updates a single flag for a single audit task specified by the audit task id.
    */
   def setTaskFlag() = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
@@ -595,7 +627,7 @@ class AdminController @Inject() (
     adminService.getNumUsersContributed.map(userCounts => Ok(Json.toJson(userCounts)))
   }
 
-  def getContributionTimeStats = silhouette.UserAwareAction.async { implicit request =>
+  def getContributionTimeStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     adminService.getContributionTimeStats.map(timeStat => Ok(Json.toJson(timeStat)))
   }
@@ -615,6 +647,67 @@ class AdminController @Inject() (
     adminService.getRecentExploreAndValidateComments.map(comment => Ok(Json.toJson(comment)))
   }
 
+  /**
+   * Recent-activity stream for the redesigned admin dashboard's Activity page (#4272): the latest labels, validations,
+   * and comments interleaved by recency, each tagged with who did it and (where applicable) the label it points at.
+   * snake_case output per the dashboard convention.
+   */
+  def getRecentActivity(n: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getRecentActivity(n).flatMap { items =>
+      // Enrich the feed batch with two cheap scoped lookups, run in parallel: a preview thumbnail per labelled item,
+      // and a "who is this contributor" summary (role + totals) per distinct user.
+      val labelIds  = items.collect { case i if i.labelId.isDefined && i.labelType.isDefined => i.labelId.get }.distinct
+      val usernames = items.map(_.username).distinct
+      val metaFut   = adminService.getLabelThumbnailMeta(labelIds)
+      val userFut   = adminService.getUserSummaries(usernames)
+      for {
+        metaById   <- metaFut
+        userByName <- userFut
+      } yield {
+        Ok(Json.obj("activity" -> JsArray(items.map { i =>
+          val user = userByName.get(i.username)
+          Json.obj(
+            "activity_type"     -> i.activityType,
+            "username"          -> i.username,
+            "timestamp"         -> i.timestamp,
+            "label_id"          -> i.labelId,
+            "label_type"        -> i.labelType,
+            "validation_result" -> i.validationResult,
+            "comment"           -> i.comment,
+            "thumbnail_url"     -> thumbnailUrl(i, metaById),
+            "user_role"         -> user.map(_.role),
+            "user_labels"       -> user.map(_.labels),
+            "user_validations"  -> user.map(_.validations)
+          )
+        })))
+      }
+    }
+  }
+
+  /**
+   * Builds the best available preview-image URL for a recent-activity item, or None when it has no label to preview.
+   *
+   * Prefers a saved label crop (the actual cropped label view) when one exists on disk; otherwise falls back to a
+   * Street View Static thumbnail built from the label's pano/POV metadata (GSV panos only). Mirrors the Gallery's
+   * crop-then-GSV image strategy.
+   *
+   * @param item     The recent-activity item.
+   * @param metaById Pano/POV metadata for the batch's label ids, keyed by label id.
+   * @return A signed image URL, or None for items without a previewable label (e.g. comments).
+   */
+  private def thumbnailUrl(item: RecentActivityItem, metaById: Map[Int, LabelThumbnailMeta]): Option[String] = {
+    (item.labelId, item.labelType) match {
+      case (Some(id), Some(labelType)) if LabelTypeEnum.validLabelTypes.contains(labelType) =>
+        panoDataService
+          .cropUrl(id, LabelTypeEnum.byName(labelType))
+          .orElse(metaById.get(id).flatMap { m =>
+            panoDataService.getImageUrl(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom)
+          })
+      case _ => None
+    }
+  }
+
   def getRecentLabelMetadata = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     labelService.getRecentLabelMetadata(5000).map(labelMetadata => Ok(Json.toJson(labelMetadata)))
@@ -623,6 +716,390 @@ class AdminController @Inject() (
   /**
    * Get the stats for the users table in the admin page.
    */
+  /**
+   * Contributors-page leaderboards for the redesigned admin dashboard (#4272): top labelers (with label-type mix and
+   * severity distribution) and top validators (with agree/disagree/unsure split). snake_case per the dashboard convention.
+   */
+  def getContributorLeaderboards(n: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getContributorLeaderboards(n).map { boards =>
+      Ok(
+        Json.obj(
+          "top_labelers" -> JsArray(boards.labelers.map { l =>
+            Json.obj(
+              "user_id"                  -> l.userId,
+              "username"                 -> l.username,
+              "role"                     -> l.role,
+              "labels"                   -> l.labels,
+              "own_validated"            -> l.ownValidated,
+              "own_validated_agreed_pct" -> l.ownValidatedAgreedPct,
+              "high_quality"             -> l.highQuality,
+              "label_type_counts"        -> JsArray(l.labelTypeCounts.map { case (labelType, count) =>
+                Json.obj("label_type" -> labelType, "count" -> count)
+              }),
+              "severity_counts" -> JsArray(l.severityCounts.map { case (severity, count) =>
+                Json.obj("severity" -> severity, "count" -> count)
+              })
+            )
+          }),
+          "top_validators" -> JsArray(boards.validators.map { v =>
+            Json.obj(
+              "user_id"       -> v.userId,
+              "username"      -> v.username,
+              "role"          -> v.role,
+              "validations"   -> v.validations,
+              "agree"         -> v.agree,
+              "disagree"      -> v.disagree,
+              "unsure"        -> v.unsure,
+              "agreement_pct" -> v.agreementPct
+            )
+          })
+        )
+      )
+    }
+  }
+
+  /**
+   * Humans-vs-AI comparison for the redesigned admin dashboard: AI vs human as labeler, validator, and tagger.
+   * Output is snake_case per the v3 naming convention; the AI group is always present (all-zero where there's no AI
+   * activity) so the page can render consistent empty states.
+   */
+  def getHumanVsAiStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getHumanVsAiStats.map { stats =>
+      def labelerJson(l: service.HumanAiLabelerStats): JsObject = Json.obj(
+        "group"      -> l.group,
+        "total"      -> l.total,
+        "validated"  -> l.validated,
+        "correct"    -> l.correct,
+        "type_stats" -> JsArray(l.typeStats.map { t =>
+          Json.obj("label_type" -> t.labelType, "count" -> t.count, "validated" -> t.validated, "correct" -> t.correct)
+        }),
+        "severity_counts" -> JsArray(l.severityCounts.map { case (severity, count) =>
+          Json.obj("severity" -> severity, "count" -> count)
+        })
+      )
+      def validatorJson(v: service.HumanAiValidatorStats): JsObject = Json.obj(
+        "group"    -> v.group,
+        "total"    -> v.total,
+        "agree"    -> v.agree,
+        "disagree" -> v.disagree,
+        "unsure"   -> v.unsure
+      )
+      def tagsJson(tags: Seq[(String, Int)]): JsArray =
+        JsArray(tags.map { case (tag, count) => Json.obj("tag" -> tag, "count" -> count) })
+      Ok(
+        Json.obj(
+          "labelers"   -> JsArray(stats.labelers.map(labelerJson)),
+          "validators" -> JsArray(stats.validators.map(validatorJson)),
+          "tagger"     -> Json.obj(
+            "labels_assessed" -> stats.tagger.labelsAssessed,
+            "avg_confidence"  -> stats.tagger.avgConfidence,
+            "ai_tags"         -> tagsJson(stats.tagger.aiTags),
+            "human_tags"      -> tagsJson(stats.tagger.humanTags)
+          )
+        )
+      )
+    }
+  }
+
+  /**
+   * Top-line snapshot for the redesigned admin dashboard's Overview landing page (#4272): one KPI cluster per lens
+   * (coverage, data quality, contributors, activity pulse, humans-vs-AI share, API usage). snake_case per the dashboard
+   * convention. Every percentage's denominator is included so the page can show its N.
+   */
+  def getOverviewSummary = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getOverviewSummary.map { s =>
+      val lastActivity = s.lastActivity.map { i =>
+        Json.obj(
+          "activity_type"     -> i.activityType,
+          "username"          -> i.username,
+          "timestamp"         -> i.timestamp,
+          "label_id"          -> i.labelId,
+          "label_type"        -> i.labelType,
+          "validation_result" -> i.validationResult,
+          "comment"           -> i.comment
+        )
+      }
+      Ok(
+        Json.obj(
+          "total_streets"              -> s.totalStreets,
+          "audited_streets"            -> s.auditedStreets,
+          "total_distance_mi"          -> s.totalDistanceMi,
+          "audited_distance_mi"        -> s.auditedDistanceMi,
+          "total_labels"               -> s.totalLabels,
+          "total_validations"          -> s.totalValidations,
+          "labels_past_week"           -> s.labelsPastWeek,
+          "validations_past_week"      -> s.validationsPastWeek,
+          "audits_past_week"           -> s.auditsPastWeek,
+          "contributors"               -> s.contributors,
+          "human_labels"               -> s.humanLabels,
+          "ai_labels"                  -> s.aiLabels,
+          "human_validations"          -> s.humanValidations,
+          "ai_validations"             -> s.aiValidations,
+          "ai_assessments"             -> s.aiAssessments,
+          "api_calls_external"         -> s.apiCallsExternal,
+          "api_unique_clients"         -> s.apiUniqueClients,
+          "api_window_days"            -> s.apiWindowDays,
+          "labels_awaiting_validation" -> s.labelsAwaitingValidation,
+          "low_quality_users"          -> s.lowQualityUsers,
+          "last_activity"              -> lastActivity
+        )
+      )
+    }
+  }
+
+  /**
+   * Returns a per-city summary scorecard for every deployment, for the cross-city "Across Cities" overview (#4329).
+   *
+   * Owner-gated: all cities share one database, so per-city Administrators must not see other cities' detail. Merges the
+   * computed metrics ([[service.ConfigService.getCityScorecards]]) with each city's display name / URL / visibility
+   * (from config, so they stay language-aware) and echoes the anomaly thresholds + cross-city median in the summary
+   * block so the page can label the "needs attention" items. All field names are snake_case (v3 API convention).
+   */
+  def getCityScorecards = cc.securityService.SecuredAction(WithOwner()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    val cityInfoById: Map[String, CityInfo] =
+      configService.getAllCityInfo(request2Messages.lang).map(ci => ci.cityId -> ci).toMap
+
+    // Fetch the per-city scorecards and the all-time cross-city weekly series in parallel; the page's "over time" charts
+    // default to the last 12 weeks (derived client-side from each city's weekly_trend) and toggle to this all-time set.
+    val scorecardsF    = configService.getCityScorecards()
+    val allTimeF       = configService.getCrossCityWeeklyTrend(None)
+    val labelingSpeedF = configService.getCrossCityLabelingSpeed()
+
+    for {
+      withFlags     <- scorecardsF
+      allTimeTrend  <- allTimeF
+      labelingSpeed <- labelingSpeedF
+    } yield {
+      val now        = OffsetDateTime.now()
+      val scorecards = withFlags.map(_.scorecard)
+
+      val cities = withFlags.map { case CityScorecardWithFlags(sc, anomalies) =>
+        val info = cityInfoById.get(sc.cityId)
+        // Per-label-type breakdown (the data-pattern lens), keyed by label type with snake_case stat names.
+        val byLabelType = JsObject(sc.byLabelType.toSeq.map { case (labelType, s) =>
+          labelType -> Json.obj(
+            "labels"    -> s.labels,
+            "validated" -> s.labelsValidated,
+            "agree"     -> s.labelsValidatedAgree,
+            "disagree"  -> s.labelsValidatedDisagree
+          )
+        })
+        // Trailing weekly activity (oldest first) — drives per-city sparklines and the aggregate overview line charts.
+        val weeklyTrend = JsArray(sc.weeklyTrend.map { w =>
+          Json.obj(
+            "week_start"   -> w.weekStart.toString,
+            "labels"       -> w.labels,
+            "validations"  -> w.validations,
+            "active_users" -> w.activeUsers
+          )
+        })
+        Json.obj(
+          "city_id"             -> sc.cityId,
+          "city_name"           -> info.map(_.cityNameShort),
+          "city_name_formatted" -> info.map(_.cityNameFormatted),
+          "url"                 -> info.map(_.URL),
+          "visibility"          -> info.map(_.visibility),
+          // Coverage lens.
+          "coverage"          -> sc.coverage,
+          "total_streets"     -> sc.totalStreets,
+          "audited_streets"   -> sc.auditedStreets,
+          "streets_remaining" -> (sc.totalStreets - sc.auditedStreets),
+          "total_km"          -> sc.totalKm,
+          "audited_km"        -> sc.auditedKm,
+          "km_remaining"      -> math.max(0.0, sc.totalKm - sc.auditedKm),
+          // Data + quality lens.
+          "total_labels"             -> sc.totalLabels,
+          "ai_labels"                -> sc.aiLabels,
+          "ai_label_share"           -> (if (sc.totalLabels > 0) sc.aiLabels.toDouble / sc.totalLabels else 0.0),
+          "labels_validated"         -> sc.labelsValidated,
+          "labels_validated_share"   -> (if (sc.totalLabels > 0) sc.labelsValidated.toDouble / sc.totalLabels else 0.0),
+          "labels_with_severity"     -> sc.labelsWithSeverity,
+          "labels_severity_eligible" -> sc.labelsSeverityEligible,
+          // Share computed only over types that CAN have a severity (NoSidewalk/Signal/Occlusion excluded).
+          "severity_share" -> (if (sc.labelsSeverityEligible > 0)
+                                 sc.labelsWithSeverity.toDouble / sc.labelsSeverityEligible
+                               else 0.0),
+          "labels_with_tags"    -> sc.labelsWithTags,
+          "labels_tag_eligible" -> sc.labelsTagEligible,
+          // Share computed only over types that CAN have tags (types present in the deployment's tag table).
+          "tags_share" -> (if (sc.labelsTagEligible > 0) sc.labelsWithTags.toDouble / sc.labelsTagEligible else 0.0),
+          "validations_per_label" -> (if (sc.totalLabels > 0) sc.totalValidations.toDouble / sc.totalLabels else 0.0),
+          "total_validations"     -> sc.totalValidations,
+          "validations_agree"     -> sc.validationsAgree,
+          "validations_disagree"  -> sc.validationsDisagree,
+          "validation_disagreement_rate" -> ConfigService.disagreementRate(sc),
+          "ai_validations"               -> sc.aiValidations,
+          "ai_validation_share" -> (if (sc.totalValidations > 0) sc.aiValidations.toDouble / sc.totalValidations
+                                    else 0.0),
+          "by_label_type" -> byLabelType,
+          // People lens.
+          "active_contributors"      -> sc.activeContributors,
+          "low_quality_contributors" -> sc.lowQualityContributors,
+          // Activity lens.
+          "labels_7d"           -> sc.labels7d,
+          "labels_30d"          -> sc.labels30d,
+          "validations_7d"      -> sc.validations7d,
+          "validations_30d"     -> sc.validations30d,
+          "audits_7d"           -> sc.audits7d,
+          "audits_30d"          -> sc.audits30d,
+          "last_activity"       -> sc.lastActivity,
+          "days_since_activity" -> sc.lastActivity.map(ts => ChronoUnit.DAYS.between(ts, now)),
+          "weekly_trend"        -> weeklyTrend,
+          // Contributors & effort (per-user output is median/p90, not mean±SD — the distribution is power-law).
+          "labels_per_user_median"      -> sc.labelsPerUserMedian,
+          "labels_per_user_p90"         -> sc.labelsPerUserP90,
+          "num_labelers"                -> sc.numLabelers,
+          "validations_per_user_median" -> sc.validationsPerUserMedian,
+          "validations_per_user_p90"    -> sc.validationsPerUserP90,
+          "num_validators"              -> sc.numValidators,
+          "seconds_per_validation"      -> sc.validationSecondsMedian,
+          "seconds_to_validate_10"      -> (sc.validationSecondsMedian * 10),
+          // Labeling speed (seconds of active auditing per 100 m) from the daily-cached heavy path; None if no data.
+          "seconds_per_100m" -> labelingSpeed.get(sc.cityId),
+          // Lifecycle/health state: active | wrapped_up | stalled | low_traction (#4329).
+          "lifecycle" -> ConfigService.lifecycle(sc, now),
+          "anomalies" -> anomalies
+        )
+      }
+
+      // Cross-city weekly series for the full project history (the "All time" toggle on the over-time charts).
+      val overTimeAllTime = JsArray(allTimeTrend.map { w =>
+        Json.obj(
+          "week_start"   -> w.weekStart.toString,
+          "labels"       -> w.labels,
+          "validations"  -> w.validations,
+          "active_users" -> w.activeUsers
+        )
+      })
+
+      // Project-wide "hero" totals, summed from the cities shown above so they reconcile with the table. Distinct
+      // countries come from city config; languages from the app's supported set. global_agreement is the share of
+      // agree/disagree validations that agreed. total_users is the sum of per-city contributors (a person who
+      // contributes in two cities counts in each — there is no cross-city dedup here).
+      val numCountries      = scorecards.flatMap(sc => cityInfoById.get(sc.cityId).map(_.countryId)).distinct.size
+      val numLanguages      = config.get[Seq[String]]("play.i18n.langs").size
+      val totalContributors = scorecards.map(_.activeContributors).sum
+      val totalKm           = scorecards.map(_.auditedKm).sum
+      val totalLabels       = scorecards.map(_.totalLabels).sum
+      val totalValidations  = scorecards.map(_.totalValidations).sum
+      val sumAgree          = scorecards.map(_.validationsAgree).sum
+      val sumDisagree       = scorecards.map(_.validationsDisagree).sum
+      val globalAgreement   = if (sumAgree + sumDisagree > 0) sumAgree.toDouble / (sumAgree + sumDisagree) else 0.0
+
+      Ok(
+        Json.obj(
+          "cities"             -> cities,
+          "over_time_all_time" -> overTimeAllTime,
+          "summary"            -> Json.obj(
+            "num_cities"                -> scorecards.length,
+            "num_countries"             -> numCountries,
+            "num_languages"             -> numLanguages,
+            "total_users"               -> totalContributors,
+            "total_km"                  -> totalKm,
+            "total_labels"              -> totalLabels,
+            "total_validations"         -> totalValidations,
+            "total_datapoints"          -> (totalLabels.toLong + totalValidations.toLong),
+            "global_agreement"          -> globalAgreement,
+            "median_disagreement_rate"  -> ConfigService.medianDisagreementRate(scorecards),
+            "active_within_days"        -> ConfigService.ActiveWithinDays,
+            "wrapped_up_coverage"       -> ConfigService.WrappedUpCoverage,
+            "low_traction_contributors" -> ConfigService.LowTractionContributors
+          )
+        )
+      )
+    }
+  }
+
+  /**
+   * Returns every available city's precomputed engagement funnel for one time window (#288), for the Across Cities
+   * page's funnel comparison. Owner-only (cross-deployment data). Output is snake_case per the v3 convention; the
+   * `steps` array names the eight funnel steps in order so the client never hardcodes them.
+   *
+   * @param window "30d", "90d", or "all"; anything else (or absent) falls back to "30d".
+   */
+  /**
+   * Serializes one funnel segment to snake_case JSON (#288): its raw step counts plus the derived step-over-step and
+   * overall conversion ratios. Shared by the cross-city and single-city funnel endpoints so both emit the same shape.
+   */
+  private def funnelSegJson(seg: FunnelSegment): JsObject = Json.obj(
+    "steps"              -> seg.steps,
+    "step_conversion"    -> ConfigService.stepConversion(seg.steps),
+    "overall_conversion" -> ConfigService.overallConversion(seg.steps)
+  )
+
+  def getCityFunnels(window: Option[String]) = cc.securityService.SecuredAction(WithOwner()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    // Only these three windows are precomputed in funnel_stat; reject anything else rather than 500 on a cache miss.
+    val windowKey                           = window.filter(Set("30d", "90d", "all")).getOrElse("30d")
+    val cityInfoById: Map[String, CityInfo] =
+      configService.getAllCityInfo(request2Messages.lang).map(ci => ci.cityId -> ci).toMap
+
+    configService.getCityFunnels(windowKey).map { funnelsByType =>
+      def cityJson(f: CityFunnel): JsObject = {
+        val info = cityInfoById.get(f.cityId)
+        Json.obj(
+          "city_id"             -> f.cityId,
+          "city_name"           -> info.map(_.cityNameShort),
+          "city_name_formatted" -> info.map(_.cityNameFormatted),
+          "url"                 -> info.map(_.URL),
+          "visibility"          -> info.map(_.visibility),
+          "all"                 -> funnelSegJson(f.all),
+          "registered"          -> funnelSegJson(f.registered),
+          "anonymous"           -> funnelSegJson(f.anonymous),
+          "desktop"             -> funnelSegJson(f.desktop),
+          "mobile"              -> funnelSegJson(f.mobile),
+          "device_unknown"      -> funnelSegJson(f.deviceUnknown)
+        )
+      }
+      // One entry per funnel type ("mapping", "contribution"), each with its own step list and per-city rows. `steps`
+      // names the steps in order so the client never hardcodes them.
+      val funnels = JsObject(ConfigService.FunnelDefs.map { case (funnelType, stepKeys) =>
+        funnelType -> Json.obj(
+          "steps"  -> stepKeys,
+          "cities" -> JsArray(funnelsByType.getOrElse(funnelType, Seq.empty).map(cityJson))
+        )
+      })
+      Ok(Json.obj("window" -> windowKey, "funnels" -> funnels))
+    }
+  }
+
+  /**
+   * Returns THIS deployment's own precomputed engagement funnels for one time window (#4379), for the per-city
+   * Contributors page. Admin-gated (per-city Administrators see their own city), unlike the Owner-gated cross-city
+   * [[getCityFunnels]]. Output is snake_case per the v3 convention; each funnel's `steps` array names its steps in
+   * order so the client never hardcodes them, and segments are keyed (not a `cities` array) since there is one city.
+   *
+   * @param window "30d", "90d", or "all"; anything else (or absent) falls back to "30d".
+   */
+  def getCurrentCityFunnels(window: Option[String]) = cc.securityService.SecuredAction(WithAdmin()) {
+    implicit request =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+      // Only these three windows are precomputed in funnel_stat; reject anything else rather than 500 on a cache miss.
+      val windowKey = window.filter(Set("30d", "90d", "all")).getOrElse("30d")
+
+      configService.getCurrentCityFunnels(windowKey).map { result =>
+        def segmentsJson(f: CityFunnel): JsObject = Json.obj(
+          "all"            -> funnelSegJson(f.all),
+          "registered"     -> funnelSegJson(f.registered),
+          "anonymous"      -> funnelSegJson(f.anonymous),
+          "desktop"        -> funnelSegJson(f.desktop),
+          "mobile"         -> funnelSegJson(f.mobile),
+          "device_unknown" -> funnelSegJson(f.deviceUnknown)
+        )
+        // One entry per funnel type the city has data for, each with its ordered step keys and this city's segments.
+        val funnels = JsObject(ConfigService.FunnelDefs.collect {
+          case (funnelType, stepKeys) if result.byType.contains(funnelType) =>
+            funnelType -> Json.obj("steps" -> stepKeys, "segments" -> segmentsJson(result.byType(funnelType)))
+        })
+        // ISO-8601 string (OffsetDateTime.toString) so the page can show a "data as of" label; null until precomputed.
+        Ok(Json.obj("window" -> windowKey, "computed_at" -> result.computedAt.map(_.toString), "funnels" -> funnels))
+      }
+  }
+
   def getUserStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     for {
@@ -683,7 +1160,7 @@ class AdminController @Inject() (
    * Returns v3 API usage analytics aggregated from the webpage_activity log.
    *
    * Requires admin authentication. Accepts two optional query params:
-   *  - `excludeApiDocs` (Boolean, default true): exclude requests that carry `source=apiDocs` so that
+   *  - `excludeApiDocs` (Boolean, default true): exclude requests that carry `utm_source=apiDocs` so that
    *    automated previews in the API docs page are not counted as real consumer traffic.
    *  - `days` (Int, default 30): number of calendar days of history to include; 0 = all time.
    *
@@ -708,6 +1185,68 @@ class AdminController @Inject() (
             )
           )
       }
+  }
+
+  /**
+   * Returns v3 API usage split by source (external vs the docs "Try it" widgets) for the redesigned admin dashboard.
+   *
+   * Pivots the per-source rows into `external`/`api_docs` columns per endpoint, day, and format so the page can show
+   * real external adoption alongside docs-driven traffic in one request.
+   *
+   * @param days Number of past days to include (0 = all time).
+   */
+  def getApiAnalyticsBySource(days: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getApiAnalyticsBySource(days).map { data =>
+      def split(rows: Seq[(String, Long)]): (Long, Long) = (
+        rows.collect { case (s, c) if s == "external" => c }.sum,
+        rows.collect { case (s, c) if s == "apiDocs" => c }.sum
+      )
+      // Pivot the per-source rows for each dimension into (key, external, apiDocs); sort endpoints/formats by external
+      // usage (the signal we care about) and days chronologically.
+      val endpoints = data.endpointCounts
+        .groupBy(_.endpoint)
+        .map { case (ep, rows) => val (e, d) = split(rows.map(r => (r.source, r.count))); (ep, e, d) }
+        .toSeq
+        .sortBy(-_._2)
+      val daily = data.dailyCounts
+        .groupBy(_.date)
+        .map { case (date, rows) => val (e, d) = split(rows.map(r => (r.source, r.count))); (date, e, d) }
+        .toSeq
+        .sortBy(_._1)
+      val formats = data.formatCounts
+        .groupBy(_.format)
+        .map { case (fmt, rows) => val (e, d) = split(rows.map(r => (r.source, r.count))); (fmt, e, d) }
+        .toSeq
+        .sortBy(-_._2)
+
+      val extCalls  = endpoints.map(_._2).sum
+      val docsCalls = endpoints.map(_._3).sum
+      val extIps    = data.ipCounts.find(_.source == "external").map(_.uniqueIps).getOrElse(0L)
+      val docsIps   = data.ipCounts.find(_.source == "apiDocs").map(_.uniqueIps).getOrElse(0L)
+
+      Ok(
+        Json.obj(
+          "days"             -> days,
+          "total_calls"      -> (extCalls + docsCalls),
+          "total_unique_ips" -> data.totalUniqueIps,
+          "last_api_call"    -> data.lastApiCall,
+          "sources"          -> Json.obj(
+            "external" -> Json.obj("calls" -> extCalls, "unique_ips" -> extIps),
+            "api_docs" -> Json.obj("calls" -> docsCalls, "unique_ips" -> docsIps)
+          ),
+          "endpoints" -> JsArray(endpoints.map { case (ep, e, d) =>
+            Json.obj("endpoint" -> ep, "external" -> e, "api_docs" -> d)
+          }),
+          "daily" -> JsArray(daily.map { case (date, e, d) =>
+            Json.obj("date" -> date, "external" -> e, "api_docs" -> d)
+          }),
+          "formats" -> JsArray(formats.map { case (fmt, e, d) =>
+            Json.obj("format" -> fmt, "external" -> e, "api_docs" -> d)
+          })
+        )
+      )
+    }
   }
 
   def getThreadPoolStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>

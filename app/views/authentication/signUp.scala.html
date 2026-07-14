@@ -4,48 +4,86 @@
 @import views.html.helper.{CSRF, form}
 @import controllers.helper.ControllerUtils.buildUrlFromQueryString
 @(signUpForm: Form[forms.SignUpForm.SignUpData], commonData: CommonPageData, user: Option[SidewalkUserWithRole],
-        url: String = "/"
+  url: String = "/"
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@implicitFieldConstructor = @{ b3.vertical.fieldConstructor() }
+@* Full-page sign-up: the no-JS fallback and the target of a direct /signUp visit. Same auth card, fields, and live
+   checklist as the navbar dialog; AuthModal.js progressively enhances it but a plain POST still works. *@
 
-@common.main(commonData, "Sidewalk - SignUp") {
-    @common.navbar(commonData, user)
-    @* Shows error messages from server side, like username being taken. *@
-    @request.flash.get("error").map { msgKey =>
-        <div class="alert alert-danger alert-dismissible col-md-6 col-md-offset-3" role="alert" style="float:none; margin-top:20px; margin-bottom: 0px;">
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-            <strong>@Messages("error")</strong> @Messages(msgKey)
+@common.main(commonData, "Sidewalk - Sign Up") {
+  @common.navbar(commonData, user)
+  <div class="au-page">
+    <div class="au-card">
+      <div class="au-body">
+        <div class="au-top">
+          <img src='@assets.path("images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_100x100.png")' alt="" width="40" height="40">
+          <div class="au-heading">
+            <p class="au-eyebrow">Project Sidewalk</p>
+            <h1 class="au-title">@Messages("authenticate.join")</h1>
+            <p class="au-tagline">@Messages("authenticate.tagline")</p>
+          </div>
         </div>
-    }
-    <fieldset class="col-md-6 col-md-offset-3" style="margin-top: 51px">
-        <legend>@Messages("authenticate.signup.new.account")</legend>
-        @form(action = routes.UserController.signUpPost()) {
-            @CSRF.formField
-            @* Shows error messages from form validation that aren't specific to a field (like matching passwords). *@
-            @if(signUpForm.hasGlobalErrors) {
-                <div class="alert alert-danger">
-                @signUpForm.globalErrors.map { error =>
-                    <p>@Messages(error.message)</p>
-                }
-                </div>
-            }
-            <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request.queryString)">
-            @b3.text(signUpForm("username"), '_hiddenLabel -> Messages("username"), 'placeholder -> Messages("username"), 'title -> "Username can only contain letters and numbers")
-            @b3.email(signUpForm("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"))
-            @b3.password(signUpForm("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'pattern -> "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).*$", 'title -> "Password must contain at least one uppercase letter, one lowercase letter, and one number")
-            @b3.password(signUpForm("passwordConfirm"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.confirm.password"))
-            @b3.radio(signUpForm("serviceHours"), Seq("YES" -> Messages("yes.caps"), "NO" -> Messages("no.caps")), '_label -> Messages("authenticate.service.hours.title"))
-            @b3.checkbox(signUpForm("terms"), '_text -> Html(Messages("authenticate.terms")))
-            @b3.submit('class -> "btn btn-lg btn-primary btn-block") { @Messages("submit") }
-            <div class="sign-in-now">
-                <p>@Html(Messages(
-                    "authenticate.is.member",
-                    s"${routes.UserController.signIn().absoluteURL()}?url=${java.net.URLEncoder.encode(buildUrlFromQueryString(request.queryString), "UTF-8")}"
-                ))</p>
-            </div>
+        @request.flash.get("error").map { msgKey =>
+          <div class="au-summary" role="alert">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <p>@Messages(msgKey)</p>
+          </div>
         }
-    </fieldset>
+        @form(action = routes.UserController.signUpPost(), args = 'id -> "sign-up-form", 'class -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
+          @CSRF.formField
+          @if(signUpForm.hasGlobalErrors) {
+            <div class="au-summary" role="alert">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              <p>@signUpForm.globalErrors.map(e => Messages(e.message)).mkString(" ")</p>
+            </div>
+          }
+          <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request.queryString)">
+          <div class="au-field">
+            <label class="au-label" for="sign-up-username">@Messages("username")</label>
+            <input class="au-input" id="sign-up-username" name="username" type="text" autocomplete="username" spellcheck="false" maxlength="@forms.UsernamePolicy.maxLength" data-rule-regex="@forms.UsernamePolicy.jsPattern" aria-describedby="sign-up-username-rule" required>
+            <div class="au-match" id="sign-up-username-rule">
+              @common.authDot(withCross = true)
+              <span>@Messages("authenticate.username.rule")</span>
+            </div>
+          </div>
+          <div class="au-field">
+            <label class="au-label" for="sign-up-email">@Messages("authenticate.email")</label>
+            <input class="au-input" id="sign-up-email" name="email" type="email" autocomplete="email" required>
+          </div>
+          <div class="au-field">
+            <label class="au-label" for="sign-up-password">@Messages("authenticate.password")</label>
+            <div class="au-input-wrap">
+              <input class="au-input au-input--with-eye" id="sign-up-password" name="password" type="password" autocomplete="new-password" aria-describedby="sign-up-pw-rules" required>
+              @common.authEyeButton("sign-up-password")
+            </div>
+            <ul class="au-checklist" id="sign-up-pw-rules" aria-live="polite">
+              @for((msgKey, ruleRegex) <- forms.PasswordPolicy.checklist) {
+                <li data-rule-regex="@ruleRegex">
+                  @common.authDot()@Messages(msgKey, forms.PasswordPolicy.minLength)
+                </li>
+              }
+            </ul>
+            <div class="au-strength" aria-hidden="true">
+              <div class="au-slabs" id="sign-up-pw-strength"><span></span><span></span><span></span><span></span></div>
+              <span class="au-strength-word" id="sign-up-pw-strength-word" data-word1="@Messages("authenticate.pw.strength.1")" data-word2="@Messages("authenticate.pw.strength.2")" data-word3="@Messages("authenticate.pw.strength.3")" data-word4="@Messages("authenticate.pw.strength.4")"></span>
+            </div>
+          </div>
+          <div class="au-field">
+            <label class="au-label" for="sign-up-password-confirm">@Messages("authenticate.confirm.password")</label>
+            <div class="au-input-wrap">
+              <input class="au-input au-input--with-eye" id="sign-up-password-confirm" name="passwordConfirm" type="password" autocomplete="new-password" aria-describedby="sign-up-pw-match" required>
+              @common.authEyeButton("sign-up-password-confirm")
+            </div>
+            <div class="au-match" id="sign-up-pw-match" data-label-match="@Messages("authenticate.pw.match")" data-label-no-match="@Messages("authenticate.pw.match.not")">
+              @common.authDot(withCross = true)
+              <span id="sign-up-pw-match-text">@Messages("authenticate.pw.match")</span>
+            </div>
+          </div>
+          <label class="au-check" for="sign-up-terms"><input type="checkbox" id="sign-up-terms" name="terms" value="true" required> <span>@Html(Messages("authenticate.terms"))</span></label>
+          <button type="submit" class="button-ps button--primary button--large au-submit">@Messages("authenticate.create.account")</button>
+        }
+        <div class="au-footer">@Html(Messages("authenticate.is.member", s"${routes.UserController.signIn().url}?url=${java.net.URLEncoder.encode(buildUrlFromQueryString(request.queryString), "UTF-8")}"))</div>
+      </div>
+    </div>
+  </div>
 }

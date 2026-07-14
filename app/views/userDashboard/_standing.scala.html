@@ -1,0 +1,75 @@
+@import models.user.UserStanding
+@import service.UserService
+@(standing: Option[UserStanding], seeAllLink: Boolean)(implicit messages: Messages)
+
+@*
+* Shared "your standing" card, used by the dashboard teaser and the leaderboard's "you vs community" section.
+*
+* Renders one of three framings from real data (no meta-commentary):
+*  - cohort >= threshold: numeric rank/percentile + week-over-week delta arrow + a slice of neighbors;
+*  - cohort below threshold: a shared-goal / top-contributor celebration (never "ranked 3 of 4");
+*  - not ranked this week: an encouragement to place a few labels.
+*@
+
+@topPct(s: UserStanding) = @{ math.max(1, math.ceil(s.rank.toDouble / s.cohortSize * 100).toInt) }
+
+@* The arrow spans are decorative (aria-hidden); the surrounding sentence already says "Up"/"Down". *@
+@delta(s: UserStanding) = {
+  @s.delta match {
+    case Some(d) if d > 0 => {
+      <div class="ud-standing-detail">@Html(Messages("dashboard.standing.delta.up",
+        s"""<span class="ud-delta-up"><span aria-hidden="true">▲</span> $d</span>"""))</div>
+    }
+    case Some(d) if d < 0 => {
+      <div class="ud-standing-detail">@Html(Messages("dashboard.standing.delta.down",
+        s"""<span class="ud-delta-down"><span aria-hidden="true">▼</span> ${-d}</span>"""))</div>
+    }
+    case Some(_) => { <div class="ud-standing-detail">@Messages("dashboard.standing.delta.steady")</div> }
+    case None    => { <div class="ud-standing-detail">@Messages("dashboard.standing.delta.new")</div> }
+  }
+}
+
+@seeAll = {
+  @if(seeAllLink) {
+    <a class="ud-see-all" href="@routes.UserDashboardController.leaderboard">@Messages("dashboard.standing.see.full")</a>
+  }
+}
+
+@standing match {
+  case Some(s) if s.cohortSize >= UserService.StandingCohortThreshold => {
+    <div class="ud-standing-card ud-standing-card-wide">
+      <div class="ud-standing-tag">@Messages("dashboard.standing.tag.week.cohort", s.cohortSize)</div>
+      @if(s.cohortSize >= 20) {
+        <div class="ud-standing-rank">@Html(Messages("dashboard.standing.top.pct", topPct(s), s.rank))</div>
+      } else {
+        <div class="ud-standing-rank">#@s.rank <span class="ud-standing-of">@Messages("dashboard.standing.of", s.cohortSize)</span></div>
+      }
+      @delta(s)
+      <ul class="ud-standing-slice">
+        @for(row <- s.slice) {
+          <li @if(row.isYou){class="ud-rank-you"}>
+            <span class="ud-rank">@row.rank</span>
+            <span class="ud-rank-user">@if(row.isYou){@Messages("dashboard.you")}else{@row.username}</span>
+            <span class="ud-rank-val">@row.labelCount</span>
+          </li>
+        }
+      </ul>
+      @seeAll
+    </div>
+  }
+  case Some(s) => {
+    <div class="ud-standing-card ud-standing-card-wide ud-standing-community">
+      <div class="ud-standing-tag">@Messages("dashboard.standing.tag.week")</div>
+      <div class="ud-standing-rank">@if(s.rank == 1){@Messages("dashboard.standing.top.contributor")}else{@Messages("dashboard.standing.on.board")}</div>
+      <div class="ud-standing-detail">@Html(Messages("dashboard.standing.community.detail", s.labelCount))</div>
+      @seeAll
+    </div>
+  }
+  case None => {
+    <div class="ud-standing-card ud-standing-card-wide">
+      <div class="ud-standing-rank">@Messages("dashboard.standing.join")</div>
+      <div class="ud-standing-detail">@Messages("dashboard.standing.join.detail")</div>
+      @seeAll
+    </div>
+  }
+}

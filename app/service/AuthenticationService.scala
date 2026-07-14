@@ -3,6 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import models.user._
 import models.utils.MyPostgresProfile
+import play.api.Configuration
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.silhouette.api.LoginInfo
@@ -53,6 +54,7 @@ trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
 class AuthenticationServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     implicit val ec: ExecutionContext,
+    config: Configuration,
     passwordHasher: PasswordHasher,
     cacheApi: AsyncCacheApi,
     sidewalkUserTable: SidewalkUserTable,
@@ -67,6 +69,21 @@ class AuthenticationServiceImpl @Inject() (
   import profile.api._
 
   def sha256Hasher: MessageDigest = MessageDigest.getInstance("SHA-256")
+
+  /**
+   * The initial values for a new user's two privacy flags in this deployment.
+   *
+   * Public cities start users ON (visible); school/minor deployments that set city-params.private-profiles-by-default
+   * start them OFF so usernames aren't public without an explicit opt-in (#4323). Both flags share the one default.
+   *
+   * @return (onLeaderboard, publicProfile) for a newly created user_stat row.
+   */
+  private def defaultPrivacyFlags: (Boolean, Boolean) = {
+    val path = s"city-params.private-profiles-by-default.${config.get[String]("city-id")}"
+    // hasPath is false for a missing key OR a missing parent block, so this never throws (public by default).
+    val isPublic = !(config.underlying.hasPath(path) && config.get[Boolean](path))
+    (isPublic, isPublic)
+  }
 
   /**
    * Retrieves a user that matches the specified login info.
@@ -163,7 +180,7 @@ class AuthenticationServiceImpl @Inject() (
       _                 <- userLoginInfoTable.insert(UserLoginInfo(0, user.userId, loginInfoId))
       _ <- userPasswordInfoTable.insert(UserPasswordInfo(0, pwInfo.hasher, pwInfo.password, pwInfo.salt, loginInfoId))
       _ <- userRoleTable.addRole(user.userId, user.role, user.communityService)
-      _ <- userStatTable.insert(user.userId)
+      _ <- { val (onLb, pubProf) = defaultPrivacyFlags; userStatTable.insert(user.userId, onLb, pubProf) }
     } yield user
     db.run(dbActions.transactionally)
   }
@@ -248,7 +265,8 @@ class AuthenticationServiceImpl @Inject() (
               DBIO.successful(0)
             case None =>
               // User stat doesn't exist - insert and then cache.
-              userStatTable.insert(userId).map { rows =>
+              val (onLb, pubProf) = defaultPrivacyFlags
+              userStatTable.insert(userId, onLb, pubProf).map { rows =>
                 if (rows > 0) {
                   // Successfully inserted - now cache that it exists.
                   cacheApi.set(cacheKey, true, 1.day)
