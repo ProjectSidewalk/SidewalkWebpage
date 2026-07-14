@@ -510,6 +510,7 @@ dashboard.team.error.signin = Bitte melden Sie sich an, um ein Team zu erstellen
 dashboard.team.error.name.length = Der Teamname muss 2–50 Zeichen lang sein.
 dashboard.team.error.desc.length = Die Beschreibung ist zu lang (max. 300 Zeichen).
 dashboard.team.error.name.allowed = Dieser Name ist nicht erlaubt — bitte wählen Sie einen anderen.
+dashboard.team.error.desc.allowed = Diese Beschreibung ist nicht erlaubt — bitte wählen Sie eine andere.
 dashboard.nav.aria = Dashboard-Bereiche
 dashboard.nav.you = Sie
 dashboard.nav.community = Gemeinschaft

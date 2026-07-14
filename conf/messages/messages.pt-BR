@@ -515,6 +515,7 @@ dashboard.team.error.signin = Faça login para criar uma equipe.
 dashboard.team.error.name.length = O nome da equipe deve ter de 2 a 50 caracteres.
 dashboard.team.error.desc.length = A descrição é longa demais (máx. 300 caracteres).
 dashboard.team.error.name.allowed = Esse nome não é permitido — escolha outro.
+dashboard.team.error.desc.allowed = Essa descrição não é permitida — escolha outra.
 dashboard.nav.aria = Seções do painel
 dashboard.nav.you = Você
 dashboard.nav.community = Comunidade
