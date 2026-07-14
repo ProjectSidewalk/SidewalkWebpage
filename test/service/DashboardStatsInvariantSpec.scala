@@ -1,12 +1,17 @@
 package service
 
-import models.user.SidewalkUserWithRole
+import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStatTable}
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
+import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
+import slick.dbio.DBIO
 
 import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 
 /**
@@ -21,21 +26,83 @@ import scala.concurrent.duration.DurationInt
  *   - `changeUsername` is covered only on its reject ladder (length/charset/profanity/uniqueness) — every reject
  *     happens before any write, so these are safe against a shared dev DB. The accept path needs a disposable user
  *     (Silhouette fixtures) and stays a documented gap.
- *   - The `on_leaderboard` opt-out test is the one write in the file: it flips a real user's flag and restores it in
- *     a `finally`, so even an assertion failure leaves the DB as it was found.
+ *   - Two sections write. The `on_leaderboard` opt-out test flips a real user's flag and restores it in a `finally`.
+ *     The #4533 regression synthesizes a label-only mapper and runs the board query in one transaction that is always
+ *     rolled back (`runRolledBack`). Both leave the shared dev DB exactly as found, even on assertion failure.
  */
 class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  private val userService = app.injector.instanceOf[UserService]
-  private val messages    = play.api.test.Helpers.stubMessages()
-  private val authService = app.injector.instanceOf[AuthenticationService]
+  private val userService   = app.injector.instanceOf[UserService]
+  private val userStatTable = app.injector.instanceOf[UserStatTable]
+  private val messages      = play.api.test.Helpers.stubMessages()
+  private val authService   = app.injector.instanceOf[AuthenticationService]
+  // Stable DatabaseConfig val; call .db.run inline (binding .db to a val infers a path-dependent existential type).
+  private val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
 
   private val ghostId = "00000000-0000-0000-0000-000000000000"
 
   private def await[T](f: => scala.concurrent.Future[T]): T = Await.result(f, 60.seconds)
+
+  // Carries a successful result out through the forced-rollback failure path of `runRolledBack`.
+  private case class RollbackWithResult(result: Any) extends RuntimeException with scala.util.control.NoStackTrace
+
+  /**
+   * Runs `action` inside a transaction that is ALWAYS rolled back, returning the action's result. Lets a test insert a
+   * synthetic fixture, exercise the real query against it in the same transaction (so uncommitted rows are visible),
+   * and leave the shared dev DB exactly as it was found — even if an assertion later fails.
+   */
+  private def runRolledBack[T](action: DBIO[T]): T = {
+    val alwaysRollback = action.flatMap(r => DBIO.failed(RollbackWithResult(r))).transactionally
+    Await.result(
+      dbConfig.db.run(alwaysRollback).recover { case RollbackWithResult(r) => r.asInstanceOf[T] },
+      60.seconds
+    )
+  }
+
+  private val FixtureUserId   = "zz-fixture-4533"
+  private val FixtureUsername = "zz_fixture_4533"
+
+  /**
+   * Inserts a mapper whose only period activity is a label placed *now* — their mission ended 30 days ago and their
+   * audit task is not completed, so neither the mission-count nor the distance aggregate has a qualifying weekly row —
+   * then runs the real leaderboard query in the same (rolled-back) transaction. Reference ids are looked up from the
+   * connected DB so the fixture is city-agnostic.
+   *
+   * @param onLeaderboard Value for the user's `on_leaderboard` privacy flag.
+   * @param timePeriod    "weekly" or "overall".
+   * @return              The board, including the fixture user iff the query admits label-only mappers.
+   */
+  private def boardWithLabelOnlyUser(onLeaderboard: Boolean, timePeriod: String): Seq[LeaderboardStat] =
+    runRolledBack(for {
+      roleId      <- sql"SELECT role_id FROM role WHERE role = 'Registered'".as[Int].head
+      missionType <- sql"SELECT mission_type_id FROM mission_type LIMIT 1".as[Int].head
+      labelType   <- sql"SELECT label_type_id FROM label_type LIMIT 1".as[Int].head
+      streetEdge  <- sql"SELECT street_edge_id FROM street_edge LIMIT 1".as[Int].head
+      _           <- sqlu"""INSERT INTO sidewalk_user (user_id, username, email)
+                  VALUES ($FixtureUserId, $FixtureUsername, 'zz_fixture_4533@example.com')"""
+      _ <- sqlu"INSERT INTO user_role (user_id, role_id) VALUES ($FixtureUserId, $roleId)"
+      _ <-
+        sqlu"""INSERT INTO user_stat (user_id, meters_audited, high_quality, excluded, on_leaderboard, public_profile)
+                  VALUES ($FixtureUserId, 0, TRUE, FALSE, $onLeaderboard, TRUE)"""
+      missionId <- sql"""INSERT INTO mission
+                             (mission_type_id, user_id, mission_start, mission_end, completed, pay, paid, skipped)
+                         VALUES ($missionType, $FixtureUserId, now() - INTERVAL '30 days', now() - INTERVAL '30 days',
+                                 TRUE, 0, FALSE, FALSE)
+                         RETURNING mission_id""".as[Int].head
+      auditTaskId <- sql"""INSERT INTO audit_task
+                               (user_id, street_edge_id, task_start, task_end, completed, current_lat, current_lng)
+                           VALUES ($FixtureUserId, $streetEdge, now(), now(), FALSE, 0, 0)
+                           RETURNING audit_task_id""".as[Int].head
+      _ <- sqlu"""INSERT INTO label
+                      (audit_task_id, pano_id, label_type_id, deleted, temporary_label_id, time_created, mission_id,
+                       tutorial, street_edge_id, agree_count, disagree_count, unsure_count, tags, user_id)
+                  VALUES ($auditTaskId, 'fixture_pano', $labelType, FALSE, 1, now(), $missionId, FALSE, $streetEdge,
+                          0, 0, 0, '{}', $FixtureUserId)"""
+      board <- userStatTable.getLeaderboardStats(100000, timePeriod, byTeam = false, None, streetDistance = 1000000d)
+    } yield board)
 
   // One user who is definitely eligible for the boards (rows here passed the role/excluded/on_leaderboard filters).
   private lazy val overallBoard                          = await(userService.getLeaderboardStats(10, "overall"))
@@ -68,6 +135,27 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     "return a team board with the same invariants" in {
       assertBoardInvariants(await(userService.getLeaderboardStats(10, "overall", byTeam = true)))
+    }
+  }
+
+  // Regression for #4533: qualification is by labels placed in the period. A new mapper who has labels but hasn't
+  // finished a mission or a street was dropped by the query's INNER JOINs onto mission/distance; they must now appear
+  // (mission/distance default to 0), matching getUserStanding's label-based eligibility.
+  "getLeaderboardStats (labels alone qualify, #4533)" should {
+    "list a mapper who placed a label this week but has no completed mission or street, with mission/distance = 0" in {
+      val row = boardWithLabelOnlyUser(onLeaderboard = true, "weekly").find(_.username == FixtureUsername)
+      row mustBe defined
+      row.get.labelCount mustBe 1
+      row.get.missionCount mustBe 0 // mission ended 30 days ago -> no qualifying weekly row -> COALESCE 0, not dropped
+      row.get.distanceMeters mustBe 0.0 // audit task not completed -> no distance row -> COALESCE 0, not dropped
+    }
+
+    "also list that same label-only mapper on the overall board" in {
+      boardWithLabelOnlyUser(onLeaderboard = true, "overall").map(_.username) must contain(FixtureUsername)
+    }
+
+    "keep honoring the on_leaderboard opt-out for a label-only mapper" in {
+      boardWithLabelOnlyUser(onLeaderboard = false, "weekly").map(_.username) must not contain FixtureUsername
     }
   }
 
