@@ -25,28 +25,29 @@
       <p class="wl-sub">@Messages("welcome.subtitle")</p>
     </div>
     <div class="wl-main">
+      @* Each card is a link into the section it previews — users reach for the card itself before the CTA below (#4530). *@
       <div class="wl-cards">
-        <div class="wl-card">
+        <a class="wl-card" href="@routes.UserDashboardController.dashboard">
           <div class="wl-icon">
             <svg viewBox="0 0 38 38" fill="none" aria-hidden="true"><rect x="3" y="21" width="7" height="13" rx="1.5" fill="var(--color-pine-400)"></rect><rect x="15.5" y="12" width="7" height="22" rx="1.5" fill="var(--color-pine-600)"></rect><rect x="28" y="4" width="7" height="30" rx="1.5" fill="var(--color-pine-700)"></rect></svg>
           </div>
           <h2>@Messages("welcome.card.dashboard.title")</h2>
           <p>@Messages("welcome.card.dashboard.body")</p>
-        </div>
-        <div class="wl-card">
+        </a>
+        <a class="wl-card" href="@{routes.UserDashboardController.dashboard.url}#achievements">
           <div class="wl-icon">
             <img src='@assets.path("images/badges/badge_missions_badge1.png")' alt="" width="42" height="42">
           </div>
           <h2>@Messages("welcome.card.badges.title")</h2>
           <p>@Messages("welcome.card.badges.body")</p>
-        </div>
-        <div class="wl-card">
+        </a>
+        <a class="wl-card" href="@routes.UserDashboardController.leaderboard">
           <div class="wl-icon">
             <svg viewBox="0 0 38 38" fill="none" aria-hidden="true"><rect x="2" y="18" width="10" height="16" rx="1.5" fill="var(--color-banana-500)"></rect><rect x="14" y="10" width="10" height="24" rx="1.5" fill="var(--color-banana-600)"></rect><rect x="26" y="22" width="10" height="12" rx="1.5" fill="var(--color-banana-300)"></rect><circle cx="19" cy="5" r="3" fill="var(--color-banana-800)"></circle></svg>
           </div>
           <h2>@Messages("welcome.card.leaderboard.title")</h2>
           <p>@Messages("welcome.card.leaderboard.body")</p>
-        </div>
+        </a>
       </div>
       <div class="wl-ctas">
         <a class="button-ps button--primary button--large" id="welcome-explore-btn" href="@resumeUrl">@Messages("landing.start.exploring")</a>
