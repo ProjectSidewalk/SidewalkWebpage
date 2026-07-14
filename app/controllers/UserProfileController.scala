@@ -231,8 +231,10 @@ class UserProfileController @Inject() (
       bad("dashboard.team.error.name.length")
     else if (description.length > 300)
       bad("dashboard.team.error.desc.length")
-    else if (!ProfanityGuard.isClean(name) || !ProfanityGuard.isClean(description))
+    else if (!ProfanityGuard.isClean(name))
       bad("dashboard.team.error.name.allowed")
+    else if (!ProfanityGuard.isClean(description))
+      bad("dashboard.team.error.desc.allowed")
     else {
       // Create the team and immediately join it, so creating a team is one seamless step.
       userService.createTeam(name, description).flatMap { teamId =>

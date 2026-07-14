@@ -578,6 +578,7 @@ dashboard.team.error.signin = 請先登入才能建立團隊。
 dashboard.team.error.name.length = 團隊名稱必須為 2–50 個字元。
 dashboard.team.error.desc.length = 描述過長（最多 300 個字元）。
 dashboard.team.error.name.allowed = 這個名稱不被允許——請換一個。
+dashboard.team.error.desc.allowed = 這個描述不被允許——請換一個。
 dashboard.nav.aria = 儀表板區塊
 dashboard.nav.you = 您
 dashboard.nav.community = 社群

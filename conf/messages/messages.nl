@@ -506,6 +506,7 @@ dashboard.team.error.signin = Log in om een team aan te maken.
 dashboard.team.error.name.length = De teamnaam moet 2–50 tekens lang zijn.
 dashboard.team.error.desc.length = De beschrijving is te lang (max. 300 tekens).
 dashboard.team.error.name.allowed = Die naam is niet toegestaan — kies een andere.
+dashboard.team.error.desc.allowed = Die beschrijving is niet toegestaan — kies een andere.
 dashboard.nav.aria = Dashboardonderdelen
 dashboard.nav.you = Jij
 dashboard.nav.community = Gemeenschap
