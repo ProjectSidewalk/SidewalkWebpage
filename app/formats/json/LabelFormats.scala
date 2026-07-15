@@ -148,14 +148,14 @@ object LabelFormats {
     )
   }
 
-  // Has the label metadata excluding a few admin-only fields.
   /**
    * The comment shape the shared label-detail card consumes: the text plus whether the requesting user wrote it
    * (so the card can mark "your" comment without exposing other validators' usernames on public surfaces).
    */
   private def commentToJson(c: LabelComment, currUsername: Option[String]): JsObject =
-    Json.obj("comment" -> c.comment, "mine" -> currUsername.contains(c.username))
+    Json.obj("comment" -> c.comment, "mine" -> currUsername.contains(c.username), "time_created" -> c.timeCreated)
 
+  // Has the label metadata excluding a few admin-only fields.
   def labelMetadataWithValidationToJson(labelMetadata: LabelMetadata, currUsername: Option[String] = None): JsObject = {
     Json.obj(
       "label_id"           -> labelMetadata.labelId,
@@ -198,10 +198,12 @@ object LabelFormats {
       "audit_task_id" -> labelMetadata.auditTaskId,
       "user_id"       -> labelMetadata.userId,
       "username"      -> labelMetadata.username,
-      "comments"      -> labelMetadata.comments.map(c => Json.obj("username" -> c.username, "comment" -> c.comment)),
-      "low_quality"   -> labelMetadata.lowQualityIncompleteStaleFlags._1,
-      "incomplete"    -> labelMetadata.lowQualityIncompleteStaleFlags._2,
-      "stale"         -> labelMetadata.lowQualityIncompleteStaleFlags._3,
+      "comments"      -> labelMetadata.comments.map(c =>
+        Json.obj("username" -> c.username, "comment" -> c.comment, "time_created" -> c.timeCreated)
+      ),
+      "low_quality" -> labelMetadata.lowQualityIncompleteStaleFlags._1,
+      "incomplete"  -> labelMetadata.lowQualityIncompleteStaleFlags._2,
+      "stale"       -> labelMetadata.lowQualityIncompleteStaleFlags._3,
       // The part below is just lifted straight from Expert Validate without much care.
       "admin_data" -> Json.obj(
         "username"             -> adminData.username,

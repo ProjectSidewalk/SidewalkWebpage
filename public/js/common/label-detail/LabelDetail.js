@@ -842,11 +842,26 @@ class LabelDetail {
       if (i > 0) els.validatorComments.appendChild(document.createElement('hr'));
       const p = document.createElement('p');
       p.style.margin = '0';
+
+      // Relative-time pill; the exact date lives in the tooltip.
+      const timeCreated = typeof c === 'object' && c !== null ? c.time_created : null;
+      const whenPill = () => {
+        const when = document.createElement('span');
+        when.className = 'label-detail__comment-when';
+        when.textContent = moment(timeCreated).fromNow();
+        when.title = moment(timeCreated).format('ll, LT');
+        return when;
+      };
+
       if (this.#admin && typeof c === 'object' && c !== null) {
         const a = document.createElement('a');
         a.href = `/admin/user/${encodeURI(c.username)}`;
         a.textContent = c.username;
         p.appendChild(a);
+        if (timeCreated) {
+          p.appendChild(document.createTextNode(' '));
+          p.appendChild(whenPill());
+        }
         p.appendChild(document.createTextNode(`: ${c.comment}`));
       } else {
         // Non-admin: {comment, mine} objects. A small "You" chip marks the signed-in user's own comment; the
@@ -858,6 +873,7 @@ class LabelDetail {
           you.textContent = i18next.t('labelmap:you');
           p.appendChild(you);
         }
+        if (timeCreated) p.appendChild(whenPill());
         p.appendChild(document.createTextNode(typeof c === 'object' && c !== null ? c.comment : c));
       }
       els.validatorComments.appendChild(p);
@@ -902,7 +918,10 @@ class LabelDetail {
       // strings. Replace the user's existing comment (if any) rather than appending — the backend deletes prior
       // comments from the same user before inserting, so the visible list should match.
       if (!this.#comments) this.#comments = [];
-      const newEntry = this.#admin ? { username: body.username, comment } : { comment, mine: true };
+      const timeCreated = new Date().toISOString();
+      const newEntry = this.#admin
+        ? { username: body.username, comment, time_created: timeCreated }
+        : { comment, mine: true, time_created: timeCreated };
       if (this.#myCommentIdx >= 0 && this.#myCommentIdx < this.#comments.length) {
         this.#comments[this.#myCommentIdx] = newEntry;
       } else {

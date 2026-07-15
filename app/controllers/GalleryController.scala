@@ -126,9 +126,12 @@ class GalleryController @Inject() (
           .map { labels =>
             val jsonList = labels.map { l =>
               Json.obj(
-                "label" -> LabelFormats.validationLabelMetadataToJson(l, panoDataService.backupImageUrl(l.panoId),
-                  currUsername = Some(request.identity.username)),
-                "cropUrl" -> panoDataService.cropUrl(l.labelId, l.labelType),
+                "label" -> LabelFormats.validationLabelMetadataToJson(
+                  l,
+                  panoDataService.backupImageUrl(l.panoId),
+                  currUsername = Some(request.identity.username)
+                ),
+                "cropUrl"     -> panoDataService.cropUrl(l.labelId, l.labelType),
                 "gsvImageUrl" ->
                   panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom)
               )

@@ -357,8 +357,9 @@ button.label-detail__meta-cell:focus-visible {
 }
 
 /* The "Details" text is the whole visible control; the (i) img PanoInfoPopover appends stays zero-width rather
-   than display: none so the popover can still measure it as its positioning anchor. */
-.label-detail__info-button-host img {
+   than display: none so the popover can still measure it as its positioning anchor. The id qualifier outranks
+   main.css's `#pano-info-button { width: 24px }`. */
+.label-detail__info-button-host #pano-info-button {
   display: block;
   width: 0;
   height: 14px;
@@ -432,12 +433,14 @@ button.label-detail__meta-cell:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
-/* Severity faces — the inner faces use the shared .severity-button (--static) styles in main.css. */
+/* Severity faces — the inner faces use the shared .severity-button (--static) styles in main.css. Content-sized
+   columns with start alignment keep the first face flush with the SEVERITY eyebrow (1fr columns all take the
+   widest word's width, which centers "Low" — and its face — visibly right of the header). */
 .label-detail__severity-faces {
   display: inline-grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, auto);
+  place-items: flex-start start;
   gap: 8px;
-  align-items: flex-start;
 }
 
 /* Tag pills — base styles are in tag-pills.css (.tag-pill class). */
@@ -568,6 +571,17 @@ button.label-detail__meta-cell:focus-visible {
   color: var(--color-pine-900);
   text-transform: uppercase;
   letter-spacing: 0.03em;
+}
+
+/* When the comment was left (relative time; exact date in the tooltip). */
+.label-detail__comment-when {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--color-neutral-100);
+  font: var(--text-tiny-medium);
+  color: var(--color-neutral-700);
 }
 
 .label-detail__validator-comments hr {

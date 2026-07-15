@@ -177,7 +177,7 @@ case class LabelMetadata(
     panoMetadata: Option[PanoViewerMetadata]
 )
 
-case class LabelComment(username: String, comment: String)
+case class LabelComment(username: String, comment: String, timeCreated: Option[OffsetDateTime])
 
 // Extra data to include with validations for Expert Validate. Includes usernames and previous validators.
 case class AdminValidationData(
@@ -443,7 +443,11 @@ object LabelTable {
         comments = t._20
           .map { json =>
             play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
-              LabelComment((obj \ "username").as[String], (obj \ "comment").as[String])
+              LabelComment(
+                (obj \ "username").as[String],
+                (obj \ "comment").as[String],
+                (obj \ "time_created").asOpt[OffsetDateTime]
+              )
             }
           }
           .getOrElse(Seq.empty),
@@ -670,7 +674,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextStringOption()
         .map { json =>
           play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
-            LabelComment((obj \ "username").as[String], (obj \ "comment").as[String])
+            LabelComment(
+              (obj \ "username").as[String],
+              (obj \ "comment").as[String],
+              (obj \ "time_created").asOpt[OffsetDateTime]
+            )
           }
         }
         .getOrElse(Seq.empty),
@@ -1133,7 +1141,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       ) AS ai_val ON lb1.label_id = ai_val.label_id
       LEFT JOIN (
           SELECT label_id,
-                 json_agg(json_build_object('username', username, 'comment', comment) ORDER BY timestamp)::text AS comments
+                 json_agg(json_build_object('username', username, 'comment', comment, 'time_created', timestamp)
+                          ORDER BY timestamp)::text AS comments
           FROM validation_task_comment
           INNER JOIN sidewalk_user ON validation_task_comment.user_id = sidewalk_user.user_id
           GROUP BY label_id
