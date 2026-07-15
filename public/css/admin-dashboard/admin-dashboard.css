@@ -2357,3 +2357,16 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   font-size: var(--font-size-xs, 0.8125rem);
   color: var(--color-text-heading, #263238);
 }
+
+/* Health dashboard (#4561): tint a KPI value by its status so a red count reads at a glance. */
+.health-kpi--bad {
+  color: var(--color-error, #d32f2f);
+}
+
+.health-kpi--warn {
+  color: var(--color-warning, #ff9800);
+}
+
+.health-kpi--good {
+  color: var(--color-success, #4caf50);
+}

@@ -3,7 +3,9 @@ package controllers
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import models.auth.{WithAdmin, WithOwner}
 import play.api.Configuration
-import service.{ConfigService, LabelService}
+import play.api.libs.json.Json
+import service.HealthService.dbHealthDataWrites
+import service.{ConfigService, HealthService, LabelService}
 
 import javax.inject._
 import scala.concurrent.ExecutionContext
@@ -22,7 +24,8 @@ class AdminDashboardController @Inject() (
     val config: Configuration,
     implicit val assets: AssetsFinder,
     configService: ConfigService,
-    labelService: LabelService
+    labelService: LabelService,
+    healthService: HealthService
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -187,5 +190,29 @@ class AdminDashboardController @Inject() (
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_AcrossCities")
       Ok(views.html.admin.dashboard.acrossCities(commonData, request.identity))
     }
+  }
+
+  /**
+   * Renders the Health page: an at-a-glance view of database and application operational-health signals (#4561).
+   *
+   * Surfaces the class of problem that is invisible in the app log and otherwise only found by hand-inspecting server
+   * logs — blocking locks, idle-in-transaction sessions, stuck evolutions, table bloat, and connection pressure.
+   * Owner-gated because the signals are cluster-wide (all cities share one database). Driven client-side by a poller
+   * hitting `/adminapi/dbHealth`.
+   */
+  def health = cc.securityService.SecuredAction(WithOwner()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Health")
+      Ok(views.html.admin.dashboard.health(commonData, request.identity))
+    }
+  }
+
+  /**
+   * The Health dashboard's data endpoint: the current database/app health payload as snake_case JSON, polled by the
+   * page. Owner-gated like the page itself.
+   */
+  def getDbHealth = cc.securityService.SecuredAction(WithOwner()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    healthService.getDbHealth.map(data => Ok(Json.toJson(data)))
   }
 }
