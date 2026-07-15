@@ -16,6 +16,8 @@
   "hide-tags": "隱藏標籤",
   "ai-validation": "人工智慧驗證",
   "ai-val-included": "$t(common:{{aiVal}})（包含在上面的計數中）",
+  "no-description-provided": "未提供描述",
+  "no-comments-yet": "尚無評論",
   "why-disagree": "告訴我們您為什麼不同意…",
   "why-unsure": "告訴我們您為什麼不確定…",
   "submit-comment": "上傳評論",

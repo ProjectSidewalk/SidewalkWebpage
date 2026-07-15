@@ -16,6 +16,8 @@
   "hide-tags": "Tags verbergen",
   "ai-validation": "AI-validatie",
   "ai-val-included": "$t(common:{{aiVal}}) (inbegrepen in bovenstaande telling)",
+  "no-description-provided": "Geen beschrijving opgegeven",
+  "no-comments-yet": "Nog geen opmerkingen",
   "why-disagree": "Vertel ons waarom je het er niet mee eens bent…",
   "why-unsure": "Vertel ons waarom je twijfelt…",
   "submit-comment": "Opmerking",

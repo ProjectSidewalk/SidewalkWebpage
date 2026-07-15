@@ -16,6 +16,8 @@
   "hide-tags": "Hide tags",
   "ai-validation": "AI Validation",
   "ai-val-included": "$t(common:{{aiVal}}) (included in count above)",
+  "no-description-provided": "No description provided",
+  "no-comments-yet": "No comments yet",
   "why-disagree": "Tell us why you disagree…",
   "why-unsure": "Tell us what makes you unsure…",
   "submit-comment": "Submit comment",

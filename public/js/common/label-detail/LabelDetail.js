@@ -457,14 +457,14 @@ class LabelDetail {
       els.tags.textContent = i18next.t('common:none');
     }
 
-    // Description. Empty copy matches the comments list's "None".
+    // Description.
     this.#hasDescription = meta.description !== null && meta.description !== undefined;
     if (this.#hasDescription) {
       els.description.classList.remove('label-detail__empty');
       els.description.textContent = meta.description;
     } else {
       els.description.classList.add('label-detail__empty');
-      els.description.textContent = i18next.t('common:none');
+      els.description.textContent = i18next.t('labelmap:no-description-provided');
     }
 
     // Dates. Short month names ('ll' / 'MMM', locale-aware) keep the meta chips on one line (#4572).
@@ -773,7 +773,7 @@ class LabelDetail {
       setTimeout(() => {
         hint.hidden = true;
       }, 400); // Matches the CSS opacity transition.
-    }, 3000);
+    }, 5500);
   }
 
   /**
@@ -875,7 +875,7 @@ class LabelDetail {
     els.validatorComments.classList.remove('label-detail__empty');
     if (count === 0) {
       els.validatorComments.classList.add('label-detail__empty');
-      els.validatorComments.textContent = i18next.t('common:none');
+      els.validatorComments.textContent = i18next.t('labelmap:no-comments-yet');
       return;
     }
     // Newest first, so a just-submitted comment lands right beneath the input above the list.

@@ -30,16 +30,17 @@ class PopupPanoManager {
   #logo;
   #cropUrl;
 
+  // The scalable variants of the canonical label-type markers, so the in-pano marker stays crisp at any size.
   #icons = {
-    CurbRamp: '/assets/images/icons/AdminTool_CurbRamp.png',
-    NoCurbRamp: '/assets/images/icons/AdminTool_NoCurbRamp.png',
-    Obstacle: '/assets/images/icons/AdminTool_Obstacle.png',
-    SurfaceProblem: '/assets/images/icons/AdminTool_SurfaceProblem.png',
-    Other: '/assets/images/icons/AdminTool_Other.png',
-    Occlusion: '/assets/images/icons/AdminTool_Occlusion.png',
-    NoSidewalk: '/assets/images/icons/AdminTool_NoSidewalk.png',
-    Crosswalk: '/assets/images/icons/AdminTool_Crosswalk.png',
-    Signal: '/assets/images/icons/AdminTool_Signal.png',
+    CurbRamp: '/assets/images/icons/label_type_icons/CurbRamp_small.svg',
+    NoCurbRamp: '/assets/images/icons/label_type_icons/NoCurbRamp_small.svg',
+    Obstacle: '/assets/images/icons/label_type_icons/Obstacle_small.svg',
+    SurfaceProblem: '/assets/images/icons/label_type_icons/SurfaceProblem_small.svg',
+    Other: '/assets/images/icons/label_type_icons/Other_small.svg',
+    Occlusion: '/assets/images/icons/label_type_icons/Occlusion_small.svg',
+    NoSidewalk: '/assets/images/icons/label_type_icons/NoSidewalk_small.svg',
+    Crosswalk: '/assets/images/icons/label_type_icons/Crosswalk_small.svg',
+    Signal: '/assets/images/icons/label_type_icons/Signal_small.svg',
   };
 
   /**

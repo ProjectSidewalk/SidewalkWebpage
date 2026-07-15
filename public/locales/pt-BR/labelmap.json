@@ -16,6 +16,8 @@
   "hide-tags": "Ocultar tags",
   "ai-validation": "Validação de IA",
   "ai-val-included": "$t(common:{{aiVal}}) (incluido na contagem anterior)",
+  "no-description-provided": "Nenhuma descrição fornecida",
+  "no-comments-yet": "Ainda não há comentários",
   "why-disagree": "Conte-nos por que você discorda…",
   "why-unsure": "Conte-nos o que te deixa em dúvida…",
   "submit-comment": "Enviar comentários",
