@@ -459,11 +459,14 @@ button.label-detail__meta-cell:focus-visible {
   border-top: 1px solid var(--color-neutral-200);
 }
 
+/* Explicit border-box + flex centering keep the input and button the same height with the text dead-center —
+   fixed heights plus vertical padding drift apart under the two elements' different default box models. */
 .label-detail__comment-input {
+  box-sizing: border-box;
   flex: 1 1 auto;
   min-width: 0;
-  height: 30px;
-  padding: 8px 18px;
+  height: 34px;
+  padding: 0 18px;
   border: 1px solid var(--color-neutral-400);
   border-radius: 999px;
   font: var(--text-caption-regular);
@@ -477,8 +480,12 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__comment-input::placeholder { color: var(--color-neutral-600); }
 
 .label-detail__comment-submit {
-  height: 30px;
-  padding: 8px 18px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  padding: 0 18px;
   border: none;
   border-radius: 999px;
   background: var(--color-neutral-200);
@@ -523,6 +530,34 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__empty {
   color: var(--color-neutral-700);
   font-weight: 400;
+}
+
+/* Comments eyebrow + its count badge. */
+.label-detail__comments-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.label-detail__comments-count {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--color-neutral-200);
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-800);
+}
+
+/* Marks the signed-in user's own comment in the list. */
+.label-detail__comment-you {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--color-pine-200);
+  font: var(--text-tiny-semibold);
+  color: var(--color-pine-900);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .label-detail__validator-comments hr {

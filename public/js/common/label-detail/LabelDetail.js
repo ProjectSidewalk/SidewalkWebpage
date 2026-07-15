@@ -193,6 +193,7 @@ class LabelDetail {
     els.tags = this.#q('.label-detail__tags');
     els.description = this.#q('.label-detail__description');
     els.validatorComments = this.#q('.label-detail__validator-comments');
+    els.commentsCount = this.#q('.label-detail__comments-count');
     els.commentInput = this.#q('.label-detail__comment-input');
     els.commentButton = this.#q('.label-detail__comment-submit');
     els.commentConfirm = this.#q('.label-detail__comment-confirmation');
@@ -469,11 +470,14 @@ class LabelDetail {
     // Validator comments. Admin endpoint returns objects {username, comment}; non-admin returns bare
     // strings. Stash them so #submitComment() can append after a successful POST.
     this.#comments = meta.comments || [];
-    // Index of the current user's comment in #comments, if any. The backend replaces comments rather than just
-    // adding new ones, so we mirror that here (but in non-admin, who added comments, so we just always append).
+    // Index of the current user's comment in #comments, if any. The backend replaces comments rather than adding
+    // new ones, so we mirror that here. Admin payloads carry usernames; non-admin ones carry a `mine` flag instead
+    // (no identifiers on public surfaces).
     this.#myCommentIdx = -1;
     if (this.#admin && this.#currUsername) {
       this.#myCommentIdx = this.#comments.findIndex((c) => c && c.username === this.#currUsername);
+    } else if (!this.#admin) {
+      this.#myCommentIdx = this.#comments.findIndex((c) => c && typeof c === 'object' && c.mine);
     }
     this.#renderComments();
 
@@ -793,9 +797,17 @@ class LabelDetail {
    */
   #renderComments() {
     const els = this.#els;
+    const count = this.#comments ? this.#comments.length : 0;
+
+    // Count badge next to the section eyebrow — signals comments exist before the reader reaches the list.
+    if (els.commentsCount) {
+      els.commentsCount.textContent = String(count);
+      els.commentsCount.hidden = count === 0;
+    }
+
     els.validatorComments.replaceChildren();
     els.validatorComments.classList.remove('label-detail__empty');
-    if (!this.#comments || this.#comments.length === 0) {
+    if (count === 0) {
       els.validatorComments.classList.add('label-detail__empty');
       els.validatorComments.textContent = i18next.t('common:none');
       return;
@@ -811,8 +823,16 @@ class LabelDetail {
         p.appendChild(a);
         p.appendChild(document.createTextNode(`: ${c.comment}`));
       } else {
-        // Non-admin: bare comment string. textContent escapes — no HTML injection.
-        p.textContent = typeof c === 'object' ? c.comment : c;
+        // Non-admin: {comment, mine} objects. A small "You" chip marks the signed-in user's own comment; the
+        // admin branch above doesn't need one since it shows usernames. textContent/createTextNode escape — no
+        // HTML injection.
+        if (typeof c === 'object' && c !== null && c.mine) {
+          const you = document.createElement('span');
+          you.className = 'label-detail__comment-you';
+          you.textContent = i18next.t('labelmap:you');
+          p.appendChild(you);
+        }
+        p.appendChild(document.createTextNode(typeof c === 'object' && c !== null ? c.comment : c));
       }
       els.validatorComments.appendChild(p);
     });
@@ -856,7 +876,7 @@ class LabelDetail {
       // strings. Replace the user's existing comment (if any) rather than appending — the backend deletes prior
       // comments from the same user before inserting, so the visible list should match.
       if (!this.#comments) this.#comments = [];
-      const newEntry = this.#admin ? { username: body.username, comment } : comment;
+      const newEntry = this.#admin ? { username: body.username, comment } : { comment, mine: true };
       if (this.#myCommentIdx >= 0 && this.#myCommentIdx < this.#comments.length) {
         this.#comments[this.#myCommentIdx] = newEntry;
       } else {

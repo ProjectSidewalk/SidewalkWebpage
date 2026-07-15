@@ -97,7 +97,8 @@ object LabelFormats {
   def validationLabelMetadataToJson(
       labelMetadata: LabelValidationMetadata,
       backupImageUrl: Option[String],
-      adminData: Option[AdminValidationData] = None
+      adminData: Option[AdminValidationData] = None,
+      currUsername: Option[String] = None
   ): JsObject = {
     Json.obj(
       "label_id"            -> labelMetadata.labelId,
@@ -129,7 +130,7 @@ object LabelFormats {
       "ai_tags_not_present" -> labelMetadata.aiTagsNotPresent,
       "ai_generated"        -> labelMetadata.aiGenerated,
       "expired"             -> labelMetadata.expired,
-      "comments"            -> labelMetadata.comments.map(_.comment),
+      "comments"            -> labelMetadata.comments.map(commentToJson(_, currUsername)),
       "from_current_user"   -> labelMetadata.fromCurrentUser,
       "backup_image_url"    -> backupImageUrl,
       "pano_data"           -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson),
@@ -148,7 +149,14 @@ object LabelFormats {
   }
 
   // Has the label metadata excluding a few admin-only fields.
-  def labelMetadataWithValidationToJson(labelMetadata: LabelMetadata): JsObject = {
+  /**
+   * The comment shape the shared label-detail card consumes: the text plus whether the requesting user wrote it
+   * (so the card can mark "your" comment without exposing other validators' usernames on public surfaces).
+   */
+  private def commentToJson(c: LabelComment, currUsername: Option[String]): JsObject =
+    Json.obj("comment" -> c.comment, "mine" -> currUsername.contains(c.username))
+
+  def labelMetadataWithValidationToJson(labelMetadata: LabelMetadata, currUsername: Option[String] = None): JsObject = {
     Json.obj(
       "label_id"           -> labelMetadata.labelId,
       "pano_id"            -> labelMetadata.panoId,
@@ -172,7 +180,7 @@ object LabelFormats {
       "num_agree"          -> labelMetadata.validations("agree"),
       "num_disagree"       -> labelMetadata.validations("disagree"),
       "num_unsure"         -> labelMetadata.validations("unsure"),
-      "comments"           -> labelMetadata.comments.map(_.comment),
+      "comments"           -> labelMetadata.comments.map(commentToJson(_, currUsername)),
       "tags"               -> labelMetadata.tags,
       "ai_generated"       -> labelMetadata.aiGenerated,
       "expired"            -> labelMetadata.expired,

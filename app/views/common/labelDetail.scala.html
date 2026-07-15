@@ -117,7 +117,12 @@
   </section>
 
   <section class="label-detail__comments-section">
-    <h3 class="label-detail__col-title" data-i18n="common:comments">Validator Comments</h3>
+    @* The count badge signals that comments exist before the reader reaches the list; data-i18n lives on the inner
+       span so the i18n pass doesn't overwrite the badge. *@
+    <h3 class="label-detail__col-title label-detail__comments-title">
+      <span data-i18n="common:comments">Validator Comments</span>
+      <span class="label-detail__comments-count" hidden></span>
+    </h3>
     <div class="label-detail__validator-comments"></div>
   </section>
 </div>
