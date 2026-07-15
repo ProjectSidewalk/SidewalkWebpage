@@ -96,6 +96,14 @@ navbar.lang.icon.alt = ícone de idiomas
 navbar.servicehours = Informação voluntária
 navbar.timecheck = Verificação de tempo
 navbar.cities = Cidades
+navbar.menu.toggle = Alternar menu de navegação
+navbar.tools.analyze = Analisar
+navbar.tools.community = Comunidade
+navbar.tools.build = Criar
+navbar.tools.admin = Administração
+navbar.city.search = Buscar cidades…
+navbar.city.viewall = Ver todas as cidades no mapa
+navbar.city.none = Nenhuma cidade correspondente
 
 landing.create.path = Vamos criar um caminho para todos
 landing.start.exploring = Começar a explorar
