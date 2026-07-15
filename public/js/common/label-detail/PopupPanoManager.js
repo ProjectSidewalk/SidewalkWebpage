@@ -113,10 +113,11 @@ class PopupPanoManager {
     })[0];
     // The panzoom target — wraps the image. The marker stays OUTSIDE this wrapper so it doesn't scale
     // with the image; instead we reposition it manually whenever panzoom emits a transform event.
+    // Cursor comes from CSS (#pano-fallback-pz grab/grabbing) — an inline cursor here would override the
+    // :active grabbing state.
     this.#fallbackPanzoomWrap = $('<div id="pano-fallback-pz">').css({
       width: '100%',
       height: '100%',
-      cursor: 'grab',
     })[0];
     this.#fallbackImage = $('<img id="pano-fallback-image">').css({
       'width': '100%',

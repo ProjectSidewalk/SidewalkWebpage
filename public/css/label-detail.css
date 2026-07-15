@@ -143,6 +143,19 @@ dialog.label-detail[open]::backdrop {
   overflow: hidden;
 }
 
+/* Standard pan affordance: open hand over the draggable imagery, closed while dragging. Applies wherever the
+   viewer's own internals don't set a closer cursor (GSV and Pannellum bring their own; the crop fallback and any
+   gaps inherit these). */
+.label-detail__pano,
+#pano-fallback-pz {
+  cursor: grab;
+}
+
+.label-detail__pano:active,
+#pano-fallback-pz:active {
+  cursor: grabbing;
+}
+
 /* No-imagery / expired-label panel (#4483): shown by PopupPanoManager when a pano fails to load and there is no crop
    fallback. Absolutely fills svHolder (kept position:relative in JS) and centers a branded logo, one concise message,
    and a button CTA. Shared by every LabelDetail surface (Gallery expanded, LabelMap popup, Admin, share page). */
