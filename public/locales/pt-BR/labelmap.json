@@ -19,7 +19,7 @@
   "add-comment": "Adicione comentários aqui...",
   "submit-comment": "Enviar comentários",
   "comment": "Comentário",
-  "comments": "Comentários",
+  "labeler-description": "Descrição de quem rotulou",
   "comment-submitted": "Comentários Enviados",
   "own-label-disabled": "Você não pode validar nem comentar seu próprio rótulo",
   "no-imagery-disabled": "Você não pode validar nem comentar quando não há imagens disponíveis para este rótulo",

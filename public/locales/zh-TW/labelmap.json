@@ -19,7 +19,7 @@
   "add-comment": "在此新增評論...",
   "submit-comment": "上傳評論",
   "comment": "評論",
-  "comments": "評論",
+  "labeler-description": "標記者的描述",
   "comment-submitted": "已上傳評論",
   "own-label-disabled": "您無法驗證或評論自己的標記",
   "no-imagery-disabled": "當此標記沒有可用的影像時，您無法驗證或評論",

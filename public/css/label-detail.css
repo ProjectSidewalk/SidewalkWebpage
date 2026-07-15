@@ -19,9 +19,9 @@
   border: none;
   border-radius: 12px;
   background: var(--color-neutral-white);
-  color: var(--color-neutral-black);
+  color: var(--color-neutral-900);
   box-shadow: 0 20px 50px rgb(0 0 0 / 25%);
-  font-family: "Open Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-primary);
   overflow-y: auto;
   overscroll-behavior: contain;
 
@@ -77,10 +77,7 @@ dialog.label-detail[open]::backdrop {
 .label-detail__title {
   flex: 1 0 0;
   margin: 0;
-  font-family: Raleway, sans-serif;
-  font-weight: 700;
-  font-size: 20px;
-  line-height: 1.2;
+  font: var(--text-h3-bold);
   color: var(--color-neutral-black);
 }
 
@@ -98,7 +95,7 @@ dialog.label-detail[open]::backdrop {
 .label-detail__close:hover { background: rgb(0 0 0 / 6%); }
 
 .label-detail__close:focus-visible {
-  outline: 2px solid #4a90e2;
+  outline: 2px solid var(--color-link-100);
   outline-offset: 2px;
 }
 
@@ -195,7 +192,7 @@ dialog.label-detail[open]::backdrop {
 .pano-not-avail__cta:hover { opacity: 0.9; }
 
 .pano-not-avail__cta:focus-visible {
-  outline: 2px solid #4a90e2;
+  outline: 2px solid var(--color-link-100);
   outline-offset: 2px;
 }
 
@@ -235,7 +232,7 @@ dialog.label-detail[open]::backdrop {
 .label-detail__pano-overlay-button:hover { opacity: 0.95; }
 
 .label-detail__pano-overlay-button:focus-visible {
-  outline: 2px solid #4a90e2;
+  outline: 2px solid var(--color-link-100);
   outline-offset: -2px;
 }
 .label-detail__pano-overlay-button[disabled] { cursor: wait; }
@@ -268,32 +265,42 @@ dialog.label-detail[open]::backdrop {
   opacity: 0.5;
 }
 
-/* ─── Metadata strip (labeled date / capture date) ────────────────────── */
+/* ─── Metadata chips (labeled date / image date / address, #4572) ─────── */
 
+/* Left-clustered so the chips read as one group of label facts under the pano. */
 .label-detail__meta-row {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
   margin-bottom: 16px;
-  font-size: 14px;
 }
 
 .label-detail__meta-cell {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--color-neutral-100);
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-700);
 }
 
-.label-detail__meta-value { font-weight: 400; }
+.label-detail__meta-value {
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-900);
+}
 
 /* Explicit display: none so the hidden attribute wins over the cell's display: flex. */
 .label-detail__meta-cell--address[hidden] { display: none; }
 
-.label-detail__meta-cell--address { min-width: 0; }
+.label-detail__meta-cell--address {
+  min-width: 0;
+  max-width: 100%;
+}
 
-/* Addresses can be long; ellipsize instead of widening the row. */
+/* Addresses can be long; ellipsize inside the chip instead of widening the row. */
 .label-detail__address {
   min-width: 0;
   overflow: hidden;
@@ -316,12 +323,13 @@ dialog.label-detail[open]::backdrop {
   margin-bottom: 16px;
 }
 
+/* Section eyebrows: quiet, uppercase, muted — the section's *content* carries the visual weight, not its label. */
 .label-detail__col-title {
   margin: 0 0 8px;
-  font-family: Raleway, sans-serif;
-  font-weight: 600;
-  font-size: 16px;
-  color: var(--color-neutral-black);
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-700);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .label-detail__col--validations { flex: 0 0 auto; }
@@ -353,7 +361,7 @@ dialog.label-detail[open]::backdrop {
 }
 
 .label-detail__vote:focus-visible {
-  outline: 2px solid #4a90e2;
+  outline: 2px solid var(--color-link-100);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -391,97 +399,85 @@ dialog.label-detail[open]::backdrop {
 
 /* ─── Comment row ─────────────────────────────────────────────────────── */
 
+/* The top border groups everything below the label facts (comment box, description, comments, share) into one
+   "community input" zone — the card's single divider. */
 .label-detail__comment-row {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-neutral-200);
 }
 
 .label-detail__comment-input {
   flex: 0 1 291px;
   height: 30px;
   padding: 8px 18px;
-  border: 1px solid #807f7f;
-  border-radius: 6px;
-  font-family: Raleway, sans-serif;
-  font-weight: 400;
-  font-size: 12px;
-  color: var(--color-neutral-black);
+  border: 1px solid var(--color-neutral-400);
+  border-radius: 999px;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-900);
 }
 
 .label-detail__comment-input:focus {
   outline: none;
-  border-color: #4a90e2;
+  border-color: var(--color-link-100);
 }
-.label-detail__comment-input::placeholder { color: #807f7f; }
+.label-detail__comment-input::placeholder { color: var(--color-neutral-600); }
 
 .label-detail__comment-submit {
   height: 30px;
   padding: 8px 18px;
   border: none;
-  border-radius: 6px;
-  background: #e2e2e2;
-  color: rgb(45 42 63 / 40%);
-  font-family: Raleway, sans-serif;
-  font-weight: 600;
-  font-size: 12px;
+  border-radius: 999px;
+  background: var(--color-neutral-200);
+  color: var(--color-neutral-600);
+  font: var(--text-caption-semibold);
   cursor: pointer;
   transition: background-color 120ms ease, color 120ms ease;
 }
 
 .label-detail__comment-submit.is-active {
-  background: #37a17b;
+  background: var(--color-pine-600);
   color: var(--color-neutral-white);
 }
 
 .label-detail__comment-submit:focus-visible {
-  outline: 2px solid #4a90e2;
+  outline: 2px solid var(--color-link-100);
   outline-offset: 2px;
 }
 
 .label-detail__comment-confirmation {
-  font-size: 12px;
-  color: #4a8c4a;
+  font: var(--text-caption-regular);
+  color: var(--color-pine-700);
 }
 
 /* ─── Description / comments ──────────────────────────────────────────── */
 
-.label-detail__description-row {
+.label-detail__description-section {
   margin: 0 0 16px;
-  font-size: 14px;
-  line-height: 1.4;
 }
 
-.label-detail__description-row strong {
-  font-family: Raleway, sans-serif;
-  font-weight: 600;
-  font-size: 16px;
-}
-
-.label-detail__description {
-  display: block;
-  max-height: 30px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
+/* Room for ~4 lines before scrolling; both wells share the same shape so the two sources read as siblings. */
+.label-detail__description,
 .label-detail__validator-comments {
-  max-height: 30px;
+  display: block;
+  max-height: 72px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  font-size: 14px;
-  line-height: 1.4;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
 }
 
 .label-detail__empty {
-  color: #595959;
+  color: var(--color-neutral-700);
   font-weight: 400;
 }
 
 .label-detail__validator-comments hr {
   border: none;
-  border-top: 1px solid #eeeeee;
+  border-top: 1px solid var(--color-neutral-200);
   margin: 4px 0;
 }
 
@@ -490,19 +486,20 @@ dialog.label-detail[open]::backdrop {
 .label-detail__details {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #eeeeee;
+  border-top: 1px solid var(--color-neutral-200);
   font-size: 13px;
 }
 
 .label-detail__details-summary {
   cursor: pointer;
-  font-family: Raleway, sans-serif;
-  font-weight: 600;
-  color: #555555;
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-700);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .label-detail__details-summary:focus-visible {
-  outline: 2px solid #4a90e2;
+  outline: 2px solid var(--color-link-100);
   outline-offset: 2px;
 }
 
@@ -515,7 +512,7 @@ dialog.label-detail[open]::backdrop {
 
 .label-detail__details-list dt {
   font-weight: 600;
-  color: #555555;
+  color: var(--color-neutral-700);
 }
 .label-detail__details-list dd { margin: 0; }
 
@@ -607,7 +604,7 @@ dialog.label-detail[open]::backdrop {
 }
 
 .label-detail__paging:focus-visible {
-  outline: 2px solid #4a90e2;
+  outline: 2px solid var(--color-link-100);
   outline-offset: 2px;
 }
 .label-detail__paging--prev { left: calc(-30px - 20px); }  /* Centered based on padding and icon width */
@@ -629,7 +626,7 @@ dialog.label-detail[open]::backdrop {
   margin-bottom: 8px;
 }
 
-.label-detail--inline .label-detail__desc-comments .label-detail__description-row,
+.label-detail--inline .label-detail__desc-comments .label-detail__description-section,
 .label-detail--inline .label-detail__desc-comments .label-detail__comments-section {
   flex: 1 1 0;
   min-width: 0;

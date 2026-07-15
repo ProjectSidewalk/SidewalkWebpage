@@ -19,7 +19,7 @@
   "add-comment": "Add comment here...",
   "submit-comment": "Submit comment",
   "comment": "Comment",
-  "comments": "Comments",
+  "labeler-description": "Labeler's Description",
   "comment-submitted": "Comment Submitted",
   "own-label-disabled": "You cannot validate or comment on your own label",
   "no-imagery-disabled": "You cannot validate or comment when no imagery is available for this label",
