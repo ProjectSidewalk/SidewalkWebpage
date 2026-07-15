@@ -216,6 +216,17 @@ GET     /cropImage/:labelType/:labelId                  controllers.ImageControl
 GET     /backupImage/:panoId/metadata                   controllers.ImageController.getBackupImageMetadata(panoId: String)
 GET     /backupImage/:panoId                            controllers.ImageController.serveBackupImage(panoId: String)
 
+# Lived-experience stories (#4054). Read + media serving are public (the /label/:id share page has no session);
+# labelId rides as a query param so nothing shadows the /label/:labelId wildcard family (see the note above /label).
+GET     /stories                                        controllers.StoryController.getStories(labelId: Int)
+GET     /storyMedia/:storyMediaId                       controllers.StoryController.serveStoryMedia(storyMediaId: Int)
+POST    /userapi/stories                                controllers.StoryController.submitStory
+DELETE  /userapi/stories/:storyId                       controllers.StoryController.deleteOwnStory(storyId: Int)
+GET     /userapi/stories/mine                           controllers.StoryController.getMyStories
+GET     /adminapi/stories                               controllers.StoryController.getRecentStories(n: Int ?= 50)
+PUT     /adminapi/stories/:storyId/visibility           controllers.StoryController.setStoryVisibility(storyId: Int)
+DELETE  /adminapi/stories/:storyId                      controllers.StoryController.adminDeleteStory(storyId: Int)
+
 # AI
 POST    /ai/analyzeScene                                controllers.AiController.analyzeScene()
 POST    /ai/submitLabelsOnPano                          controllers.AiController.submitAiLabel
