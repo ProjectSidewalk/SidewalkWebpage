@@ -280,6 +280,7 @@ dialog.label-detail[open]::backdrop {
   display: flex;
   align-items: center;
   gap: 5px;
+  min-height: 26px; /* Text-only and icon-bearing chips must match heights. */
   padding: 4px 12px;
   border-radius: 999px;
   background: var(--color-neutral-100);
@@ -306,12 +307,51 @@ dialog.label-detail[open]::backdrop {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: inherit;
+  text-decoration: none;
 }
+
+/* Linked state (live imagery available): read as a link, open the provider's viewer. */
+.label-detail__address[href] { color: var(--color-link-200); }
+.label-detail__address[href]::after { content: " ↗"; }
+.label-detail__address[href]:hover { text-decoration: underline; }
+
+.label-detail__address[href]:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* The Details chip is a real <button>: strip UA styles, restate the chip look buttons don't inherit. */
+button.label-detail__meta-cell {
+  border: none;
+  cursor: pointer;
+  background: var(--color-neutral-100);
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-700);
+}
+button.label-detail__meta-cell:hover { background: var(--color-neutral-200); }
+
+button.label-detail__meta-cell:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+}
+
+/* Sits apart from the data chips, at the row's right edge. */
+.label-detail__meta-cell--details { margin-left: auto; }
 
 /* Vertically center the PanoInfoPopover info button (img) with the surrounding text. */
 .label-detail__info-button-host {
   display: inline-flex;
   align-items: center;
+}
+
+/* Keep the (i) icon within the chip's text line so this chip stays the same height as its siblings. */
+.label-detail__info-button-host img {
+  display: block;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
 }
 
 /* ─── Three-column row: Validations / Severity / Tags ─────────────────── */

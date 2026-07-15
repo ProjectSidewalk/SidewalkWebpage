@@ -37,19 +37,24 @@
        translated string. *@
     <span><span data-i18n="common:labeled">Labeled</span>:</span>
     <span class="label-detail__timestamp label-detail__meta-value"></span>
-    @* PanoInfoPopover appends its info button into this container on init. *@
-    <span class="label-detail__info-button-host"></span>
   </div>
   <div class="label-detail__meta-cell">
     <span><span data-i18n="common:image-capture-date">Image Date</span>:</span>
     <span class="label-detail__image-capture-date label-detail__meta-value"></span>
   </div>
   @* Street-level address from the pano's metadata (#4489). Hidden until an address is known for the current label —
-     it arrives either with the label payload (stored address) or once the live pano finishes loading. *@
+     it arrives either with the label payload (stored address) or once the live pano finishes loading. When live
+     imagery loads, LabelDetail links the value to the imagery provider's own viewer (href set in JS). *@
   <div class="label-detail__meta-cell label-detail__meta-cell--address" hidden>
     <span><span data-i18n="common:pano-info.pano-address">Address</span>:</span>
-    <span class="label-detail__address label-detail__meta-value"></span>
+    <a class="label-detail__address label-detail__meta-value"></a>
   </div>
+  @* Details chip (#4572): PanoInfoPopover appends its (i) trigger into the host span; LabelDetail forwards clicks
+     on the rest of the chip to it so the whole pill is one hit target. *@
+  <button type="button" class="label-detail__meta-cell label-detail__meta-cell--details">
+    <span data-i18n="common:pano-info.details-title">Details</span>
+    <span class="label-detail__info-button-host"></span>
+  </button>
 </div>
 
 <div class="label-detail__columns">

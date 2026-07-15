@@ -157,6 +157,21 @@ class LabelDetail {
       noopLog,  // viewPanoLogging
       () => this.#currentLabelMeta && this.#currentLabelMeta.label_id,
     );
+
+    // The popover's own trigger is the (i) icon it appends into the host span; forward clicks on the rest of the
+    // Details chip to it so the whole pill is one hit target. stopPropagation keeps the popover's outside-click
+    // light-dismiss from seeing the original event and instantly re-closing the popover it just opened.
+    const chip = this.#q('.label-detail__meta-cell--details');
+    const infoImg = host.querySelector('img');
+    if (chip && infoImg) {
+      infoImg.alt = ''; // The chip's visible "Details" text labels the control; a non-empty alt would be read twice.
+      chip.addEventListener('click', (e) => {
+        if (e.target !== infoImg) {
+          e.stopPropagation();
+          infoImg.click();
+        }
+      });
+    }
   }
 
   /**
@@ -370,14 +385,16 @@ class LabelDetail {
         this.#noImagery = !imageShown;
         this.#applyInteractionLock();
 
-        // The live imagery's metadata (GSV or Pannellum backup) may carry an address the label payload didn't.
-        // Only read it when the shown pano is actually this label's — on the static-crop fallback, currPanoData
-        // still describes whatever pano the viewer showed last.
+        // The live imagery's metadata may carry an address the label payload didn't. Only read it when the shown
+        // pano is actually this label's on the primary viewer — on the static-crop fallback, currPanoData still
+        // describes whatever pano the viewer showed last.
         const panoData = this.panoManager.panoViewer.currPanoData;
-        const liveAddress = imageShown && panoData && panoData.getPanoId() === meta.pano_id
-          ? panoData.getProperty('address')
-          : null;
-        if (liveAddress) this.#showAddress(liveAddress);
+        const livePano = imageShown && this.panoManager.activeViewerName === 'Default'
+          && panoData && panoData.getPanoId() === meta.pano_id;
+        const address = (livePano && panoData.getProperty('address')) || this.#els.address.textContent;
+        // Link the address to the provider's public viewer only when live imagery actually loaded — for an
+        // expired pano the provider link would land on a "no imagery here" page.
+        if (address) this.#showAddress(address, livePano ? this.#panoUrl(meta) : null);
       });
 
     // Validation counts + AI validation.
@@ -702,12 +719,39 @@ class LabelDetail {
    * Shows or hides the address meta cell. The whole cell is hidden when no address is known so the meta row
    * doesn't render a dangling "Address:" label (non-GSV imagery and never-captured panos have none).
    * @param {?string} address - The street-level address to display, or null/empty to hide the cell.
+   * @param {?string} [url] - External imagery-provider URL to link the address to; plain text when null.
    */
-  #showAddress(address) {
+  #showAddress(address, url = null) {
     const els = this.#els;
     if (!els.addressCell) return;
     els.address.textContent = address || '';
     els.addressCell.hidden = !address;
+    if (address && url) {
+      els.address.href = url;
+      els.address.target = '_blank';
+      els.address.rel = 'noopener noreferrer';
+    } else {
+      els.address.removeAttribute('href');
+      els.address.removeAttribute('target');
+      els.address.removeAttribute('rel');
+    }
+  }
+
+  /**
+   * External URL for viewing the label's pano on its imagery provider's own site. Mirrors the URL shapes
+   * PanoInfoPopover builds for its view-in-pano link.
+   * @param {Object} meta - The label metadata payload (pano id + the label's POV).
+   * @returns {?string} The provider URL, or null for providers without a public viewer (e.g. Infra3d).
+   */
+  #panoUrl(meta) {
+    const viewerType = this.panoManager.panoViewer.getViewerType();
+    if (viewerType === 'gsv') {
+      return `https://www.google.com/maps/@?api=1&map_action=pano&pano=${meta.pano_id}`
+        + `&heading=${meta.heading}&pitch=${meta.pitch}`;
+    } else if (viewerType === 'mapillary') {
+      return `https://www.mapillary.com/app/?pKey=${meta.pano_id}&focus=photo`;
+    }
+    return null;
   }
 
   /**
