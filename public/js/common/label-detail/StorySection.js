@@ -92,9 +92,6 @@ class StorySection {
 
     els.count.textContent = String(stories.length);
     els.count.hidden = stories.length === 0;
-    els.shareBtn.textContent = i18next.t(
-      stories.length === 0 ? 'labelmap:story.share-first' : 'labelmap:story.share-yours',
-    );
     // One story per user per label (server-enforced): once yours exists, delete-and-repost is the edit path.
     els.shareBtn.hidden = stories.some((s) => s.is_own);
 

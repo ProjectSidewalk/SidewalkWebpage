@@ -27,8 +27,7 @@
   "not-admin-validated": "Nicht von einem Administrator validiert",
   "story": {
     "heading": "Erfahrungsberichte",
-    "share-yours": "Teilen Sie Ihre Geschichte",
-    "share-first": "Teilen Sie die erste Geschichte",
+    "share-yours": "Geschichte teilen",
     "anonymous": "Anonym",
     "your-story-chip": "Ihre Geschichte",
     "hidden-chip": "Von der Moderation ausgeblendet",
@@ -48,7 +47,7 @@
     "post-as": "Veröffentlichen als",
     "post-anonymous": "Anonym – es wird kein Name angezeigt",
     "post-username": "Meinen Benutzernamen anzeigen: {{username}}",
-    "privacy-note": "Geschichten sind öffentlich. Sie können Ihre jederzeit endgültig löschen.",
+    "privacy-note": "Geschichten sind öffentlich und können von allen gesehen werden, die diese Beschriftung ansehen. Sie können Ihre Geschichte jederzeit endgültig löschen – über diese Karte oder über <a href=\"/dashboard\">Ihr Dashboard</a>. Fotos werden von der Moderation geprüft.",
     "discard-confirm": "Ihre Geschichte verwerfen?",
     "cancel": "Abbrechen",
     "submit": "Geschichte teilen",

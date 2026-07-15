@@ -45,6 +45,7 @@ class StoryComposer {
       nameAnon: q('.story-composer__name-anon'),
       nameUser: q('.story-composer__name-username'),
       usernameOption: q('.story-composer__username-option'),
+      privacy: q('.story-composer__privacy'),
       error: q('.story-composer__error'),
       cancel: q('.story-composer__cancel'),
       submit: q('.story-composer__submit'),
@@ -57,6 +58,10 @@ class StoryComposer {
     this.#els.nameUser.name = `story-display-name-${n}`;
     this.#els.title.id = `story-composer-title-${n}`;
     dialog.setAttribute('aria-labelledby', this.#els.title.id);
+
+    // The privacy note embeds the dashboard link, so the translated string carries markup — innerHTML by design.
+    // Safe: the string comes from our own locale files, never from user input.
+    this.#els.privacy.innerHTML = i18next.t('labelmap:story.privacy-note');
 
     this.#wireHandlers();
   }

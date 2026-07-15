@@ -28,7 +28,6 @@
   "story": {
     "heading": "社群故事",
     "share-yours": "分享您的故事",
-    "share-first": "成為第一個分享故事的人",
     "anonymous": "匿名",
     "your-story-chip": "您的故事",
     "hidden-chip": "已被管理員隱藏",
@@ -48,7 +47,7 @@
     "post-as": "發布身分",
     "post-anonymous": "匿名——不顯示名稱",
     "post-username": "顯示我的使用者名稱 {{username}}",
-    "privacy-note": "故事是公開的。您可以隨時永久刪除自己的故事。",
+    "privacy-note": "故事是公開的，任何查看此標記的人都能看到。您可以隨時從此卡片或<a href=\"/dashboard\">您的儀表板</a>永久刪除自己的故事。照片會由管理員審核。",
     "discard-confirm": "捨棄您的故事？",
     "cancel": "取消",
     "submit": "分享故事",

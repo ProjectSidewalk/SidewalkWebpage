@@ -28,7 +28,6 @@
   "story": {
     "heading": "Verhalen uit de community",
     "share-yours": "Deel jouw verhaal",
-    "share-first": "Deel als eerste jouw verhaal",
     "anonymous": "Anoniem",
     "your-story-chip": "Jouw verhaal",
     "hidden-chip": "Verborgen door moderatie",
@@ -48,7 +47,7 @@
     "post-as": "Plaatsen als",
     "post-anonymous": "Anoniem: er wordt geen naam getoond",
     "post-username": "Toon mijn gebruikersnaam, {{username}}",
-    "privacy-note": "Verhalen zijn openbaar. Je kunt jouw verhaal op elk moment definitief verwijderen.",
+    "privacy-note": "Verhalen zijn openbaar en kunnen worden gezien door iedereen die dit etiket bekijkt. Je kunt je verhaal op elk moment definitief verwijderen via deze kaart of via <a href=\"/dashboard\">je dashboard</a>. Foto's worden door moderatoren gecontroleerd.",
     "discard-confirm": "Je verhaal verwerpen zonder te plaatsen?",
     "cancel": "Annuleren",
     "submit": "Verhaal delen",

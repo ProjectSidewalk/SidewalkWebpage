@@ -117,8 +117,11 @@
     <summary class="label-detail__stories-summary">
       <span class="label-detail__stories-heading" data-i18n="labelmap:story.heading">Community stories</span>
       <span class="label-detail__stories-count" hidden></span>
-      <button type="button" class="label-detail__story-share" data-action="open-story-composer"
-              data-i18n="labelmap:story.share-yours">Share yours</button>
+      @* Green pill CTA (Variant B treatment on the C.2 disclosure, per Yochai). The "+" is decorative. *@
+      <button type="button" class="label-detail__story-share" data-action="open-story-composer">
+        <span aria-hidden="true">＋</span>
+        <span data-i18n="labelmap:story.share-yours">Share your story</span>
+      </button>
       <span class="label-detail__stories-arrow" aria-hidden="true">&#9662;</span>
     </summary>
     <div class="label-detail__stories-list"></div>
@@ -195,8 +198,11 @@
       <span class="story-composer__username-option" data-i18n="labelmap:story.post-username">Show my username</span>
     </label>
   </fieldset>
-  <p class="story-composer__privacy" data-i18n="labelmap:story.privacy-note">
-    Stories are public. You can permanently delete yours at any time.
+  @* No data-i18n: the note embeds a link, so StoryComposer.js sets the translated string via innerHTML instead
+     (the binder writes textContent, which would show the anchor markup literally). *@
+  <p class="story-composer__privacy">
+    Stories are public and may be seen by anyone viewing this label. You can permanently delete your story at any
+    time from this card or from <a href="/dashboard">your dashboard</a>. Photos are checked by moderators.
   </p>
   <p class="story-composer__error" role="alert" hidden></p>
   <div class="story-composer__actions">

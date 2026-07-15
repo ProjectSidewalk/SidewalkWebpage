@@ -27,8 +27,7 @@
   "not-admin-validated": "Not validated by an admin",
   "story": {
     "heading": "Community stories",
-    "share-yours": "Share yours",
-    "share-first": "Be the first to share yours",
+    "share-yours": "Share your story",
     "anonymous": "Anonymous",
     "your-story-chip": "Your story",
     "hidden-chip": "Hidden by moderators",
@@ -48,7 +47,7 @@
     "post-as": "Post as",
     "post-anonymous": "Anonymous — no name shown",
     "post-username": "Show my username, {{username}}",
-    "privacy-note": "Stories are public. You can permanently delete yours at any time.",
+    "privacy-note": "Stories are public and may be seen by anyone viewing this label. You can permanently delete your story at any time from this card or from <a href=\"/dashboard\">your dashboard</a>. Photos are checked by moderators.",
     "discard-confirm": "Discard your story?",
     "cancel": "Cancel",
     "submit": "Share story",

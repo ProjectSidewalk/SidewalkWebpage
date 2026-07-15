@@ -27,8 +27,7 @@
   "not-admin-validated": "Não validado por um administrador",
   "story": {
     "heading": "Histórias da comunidade",
-    "share-yours": "Compartilhe a sua",
-    "share-first": "Seja a primeira pessoa a compartilhar",
+    "share-yours": "Compartilhe sua história",
     "anonymous": "Anônimo",
     "your-story-chip": "Sua história",
     "hidden-chip": "Oculta pela moderação",
@@ -48,7 +47,7 @@
     "post-as": "Publicar como",
     "post-anonymous": "Anônimo: nenhum nome é exibido",
     "post-username": "Mostrar meu nome de usuário, {{username}}",
-    "privacy-note": "As histórias são públicas. Você pode excluir a sua permanentemente a qualquer momento.",
+    "privacy-note": "As histórias são públicas e podem ser vistas por qualquer pessoa que veja este rótulo. Você pode excluir sua história permanentemente a qualquer momento neste cartão ou no <a href=\"/dashboard\">seu painel</a>. As fotos são verificadas por moderadores.",
     "discard-confirm": "Descartar sua história?",
     "cancel": "Cancelar",
     "submit": "Compartilhar história",
