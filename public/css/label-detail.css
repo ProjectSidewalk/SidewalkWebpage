@@ -764,17 +764,6 @@ button.label-detail__meta-cell:focus-visible {
   gap: 46px;
 }
 
-/* Push the comments + description down so the pano can grow to fill remaining space (capped for big monitors). */
-.label-detail--inline .label-detail__pano-wrap {
-  flex: 1 1 auto;
-  max-height: 62vh;
-  margin-bottom: 4px;
-}
-
-.label-detail--inline .label-detail__pano {
-  aspect-ratio: auto;
-  height: 100%;
-}
 
 .label-detail--inline .label-detail__pano-overlay-button {
   height: min(6vh, 60px);

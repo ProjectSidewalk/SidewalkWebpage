@@ -111,8 +111,11 @@
   top: calc(var(--navbar-height) + 1vh);
   right: 3vw;
   z-index: 1000; /* Above the cards and sticky sidebar, below the navbar (--navbar-z-index: 1030). */
-  height: calc(100vh - var(--navbar-height) - 2vh);
-  max-height: 880px;
+
+  /* Content-hugging height (the pano's fixed aspect ratio drives it), like the modal: no orphaned white space
+     when sections collapse. Short viewports scroll inside the card instead of shrinking the pano. */
+  height: auto;
+  max-height: calc(100vh - var(--navbar-height) - 2vh);
   width: 52vw;
   max-width: 920px;
   border-radius: 12px;
