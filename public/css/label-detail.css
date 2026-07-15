@@ -299,11 +299,18 @@ dialog.label-detail[open]::backdrop {
   color: var(--color-neutral-700);
 }
 
-/* Hairline divider riding each fact's left edge. */
-.label-detail__meta-cell + .label-detail__meta-cell {
-  border-left: 1px solid var(--color-neutral-300);
-  padding-left: 10px;
+/* Dividers are their own flex items, so space-between centers each one in its gap; slightly shorter than the
+   18px text line and self-centered vertically. */
+.label-detail__meta-divider {
+  align-self: center;
+  flex-shrink: 0;
+  width: 1px;
+  height: 13px;
+  background: var(--color-neutral-300);
 }
+
+/* The trailing divider belongs to the address: both disappear when no address is known. */
+.label-detail__meta-cell--address[hidden] + .label-detail__meta-divider { display: none; }
 
 .label-detail__meta-value {
   font: var(--text-caption-semibold);
@@ -355,11 +362,6 @@ button.label-detail__meta-cell:focus-visible {
   border-radius: 4px;
 }
 
-/* No divider before the button — it's an action, not the next fact in the series. */
-.label-detail__meta-cell + .label-detail__meta-cell--details {
-  border-left: none;
-  padding-left: 0;
-}
 
 /* Vertically center the PanoInfoPopover info button (img) with the surrounding text. */
 .label-detail__info-button-host {
