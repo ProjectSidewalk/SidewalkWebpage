@@ -673,6 +673,32 @@ button.label-detail__meta-cell:focus-visible {
   letter-spacing: 0.03em;
 }
 
+/* Anonymous per-commenter avatar; the color class comes from the backend's per-label commenter index. */
+.label-detail__comment-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-right: 6px;
+  border-radius: 50%;
+  color: var(--color-neutral-white);
+  vertical-align: middle;
+}
+
+.label-detail__comment-avatar svg {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+
+.label-detail__comment-avatar--0 { background: var(--color-asphalt-400); }
+.label-detail__comment-avatar--1 { background: var(--color-pine-600); }
+.label-detail__comment-avatar--2 { background: var(--color-orange-400); }
+.label-detail__comment-avatar--3 { background: var(--color-link-100); }
+.label-detail__comment-avatar--4 { background: var(--color-banana-700); }
+.label-detail__comment-avatar--5 { background: var(--color-asphalt-200); }
+
 /* When the comment was left (relative time; exact date in the tooltip). */
 .label-detail__comment-when {
   display: inline-block;

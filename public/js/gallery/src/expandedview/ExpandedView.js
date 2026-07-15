@@ -76,15 +76,25 @@ class ExpandedView {
     const closeBtn = root.querySelector('[data-action="close-label-detail"]');
     if (closeBtn) closeBtn.addEventListener('click', () => this.closeExpandedViewAndRemoveCardTransparency());
 
-    // Reopen the label a shared or refreshed ?labelId= URL points at. Cards load after init, so the deep link
-    // opens the detail directly by id — no thumbnail highlight, and paging picks up from the first card.
-    const initialLabelId = parseInt(new URLSearchParams(window.location.search).get('labelId'), 10);
-    if (initialLabelId) {
-      this.#uiModal.css('visibility', 'visible');
-      this.open = true;
-      this.labelDetail.showLabel(initialLabelId, 'Gallery')
-        .catch(() => this.closeExpandedViewAndRemoveCardTransparency());
-    }
+    // Capture a ?labelId= deep link now: the initial query's refreshUI() closes the expanded view, which also
+    // scrubs the param from the URL, so it must be read before that and acted on after (restoreFromUrl()).
+    this.initialUrlLabelId = parseInt(new URLSearchParams(window.location.search).get('labelId'), 10);
+  }
+
+  /**
+   * Reopens the label a shared or refreshed ?labelId= URL points at. Called by CardContainer after cards have
+   * rendered — any earlier and the initial query's refreshUI() would immediately close it again. The deep link
+   * opens the detail directly by id: no thumbnail highlight, and paging picks up from the first card.
+   */
+  restoreFromUrl() {
+    if (!this.initialUrlLabelId) return;
+    const labelId = this.initialUrlLabelId;
+    this.initialUrlLabelId = null; // One shot; later renders (paging, filters) shouldn't reopen it.
+    this.#uiModal.css('visibility', 'visible');
+    this.open = true;
+    this.#syncUrl(labelId); // refreshUI's close scrubbed the param; put it back for refresh/re-share.
+    this.labelDetail.showLabel(labelId, 'Gallery')
+      .catch(() => this.closeExpandedViewAndRemoveCardTransparency());
   }
 
   /**

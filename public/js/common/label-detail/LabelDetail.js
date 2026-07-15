@@ -892,11 +892,25 @@ class LabelDetail {
       els.validatorComments.textContent = i18next.t('labelmap:no-comments-yet');
       return;
     }
+    // Anonymous avatar: a person glyph on a color keyed by the backend's per-label commenter index, so each
+    // validator reads as a consistent "someone" within this card without any usernames on public surfaces.
+    const AVATAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" '
+      + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+      + '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    const avatarFor = (c) => {
+      const idx = typeof c === 'object' && c !== null && Number.isInteger(c.commenter) ? c.commenter : 0;
+      const avatar = document.createElement('span');
+      avatar.className = `label-detail__comment-avatar label-detail__comment-avatar--${idx % 6}`;
+      avatar.innerHTML = AVATAR_SVG; // Static markup above — no user data involved.
+      return avatar;
+    };
+
     // Newest first, so a just-submitted comment lands right beneath the input above the list.
     [...this.#comments].reverse().forEach((c, i) => {
       if (i > 0) els.validatorComments.appendChild(document.createElement('hr'));
       const p = document.createElement('p');
       p.style.margin = '0';
+      p.appendChild(avatarFor(c));
 
       // Relative-time pill; the exact date lives in the tooltip.
       const timeCreated = typeof c === 'object' && c !== null ? c.time_created : null;
@@ -974,9 +988,13 @@ class LabelDetail {
       // comments from the same user before inserting, so the visible list should match.
       if (!this.#comments) this.#comments = [];
       const timeCreated = new Date().toISOString();
+      // Keep the avatar color stable across the replace-own-comment flow; new commenters take the next index.
+      const commenter = this.#myCommentIdx >= 0 && this.#comments[this.#myCommentIdx]
+        ? this.#comments[this.#myCommentIdx].commenter ?? 0
+        : this.#comments.reduce((max, c) => Math.max(max, (c && c.commenter) ?? -1), -1) + 1;
       const newEntry = this.#admin
-        ? { username: body.username, comment, time_created: timeCreated }
-        : { comment, mine: true, time_created: timeCreated };
+        ? { username: body.username, comment, time_created: timeCreated, commenter }
+        : { comment, mine: true, time_created: timeCreated, commenter };
       if (this.#myCommentIdx >= 0 && this.#myCommentIdx < this.#comments.length) {
         this.#comments[this.#myCommentIdx] = newEntry;
       } else {

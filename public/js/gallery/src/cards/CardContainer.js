@@ -383,7 +383,10 @@ class CardContainer {
         uiCardContainer.holder.css('margin-left', sg.ui.cardFilter.wrapper.css('width'));
         sg.scrollStatus.stickySidebar = true;
         sg.cardFilter.enable();
-        this.#expandedView && this.#expandedView.onPageCardsRendered();
+        if (this.#expandedView) {
+          this.#expandedView.onPageCardsRendered();
+          this.#expandedView.restoreFromUrl();
+        }
       });
     } else {
       // TODO: figure out how to better do the toggling of this element.

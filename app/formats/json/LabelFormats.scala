@@ -130,11 +130,13 @@ object LabelFormats {
       "ai_tags_not_present" -> labelMetadata.aiTagsNotPresent,
       "ai_generated"        -> labelMetadata.aiGenerated,
       "expired"             -> labelMetadata.expired,
-      "comments"            -> labelMetadata.comments.map(commentToJson(_, currUsername)),
-      "from_current_user"   -> labelMetadata.fromCurrentUser,
-      "backup_image_url"    -> backupImageUrl,
-      "pano_data"           -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson),
-      "admin_data"          -> adminData.map(ad =>
+      "comments"            -> labelMetadata.comments.map(
+        commentToJson(_, currUsername, commenterIndices(labelMetadata.comments))
+      ),
+      "from_current_user" -> labelMetadata.fromCurrentUser,
+      "backup_image_url"  -> backupImageUrl,
+      "pano_data"         -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson),
+      "admin_data"        -> adminData.map(ad =>
         Json.obj(
           "username"             -> ad.username,
           "previous_validations" -> ad.previousValidations.map(prevVal =>
@@ -149,11 +151,24 @@ object LabelFormats {
   }
 
   /**
-   * The comment shape the shared label-detail card consumes: the text plus whether the requesting user wrote it
-   * (so the card can mark "your" comment without exposing other validators' usernames on public surfaces).
+   * The comment shape the shared label-detail card consumes: the text, whether the requesting user wrote it, and a
+   * per-label commenter index (distinct commenters numbered by first comment). The index lets the card draw a
+   * consistent anonymous avatar per validator within one label without exposing usernames on public surfaces or
+   * creating an identifier that links a validator across labels.
    */
-  private def commentToJson(c: LabelComment, currUsername: Option[String]): JsObject =
-    Json.obj("comment" -> c.comment, "mine" -> currUsername.contains(c.username), "time_created" -> c.timeCreated)
+  private def commentToJson(c: LabelComment, currUsername: Option[String], commenterIdx: Map[String, Int]): JsObject = {
+    val idx: Int = commenterIdx.getOrElse(c.username, 0)
+    Json.obj(
+      "comment"      -> c.comment,
+      "mine"         -> currUsername.contains(c.username),
+      "time_created" -> c.timeCreated,
+      "commenter"    -> idx
+    )
+  }
+
+  /** Numbers a label's distinct commenters in order of first comment; keys commentToJson's `commenter` field. */
+  private def commenterIndices(comments: Seq[LabelComment]): Map[String, Int] =
+    comments.map(_.username).distinct.zipWithIndex.toMap
 
   // Has the label metadata excluding a few admin-only fields.
   def labelMetadataWithValidationToJson(labelMetadata: LabelMetadata, currUsername: Option[String] = None): JsObject = {
@@ -180,12 +195,14 @@ object LabelFormats {
       "num_agree"          -> labelMetadata.validations("agree"),
       "num_disagree"       -> labelMetadata.validations("disagree"),
       "num_unsure"         -> labelMetadata.validations("unsure"),
-      "comments"           -> labelMetadata.comments.map(commentToJson(_, currUsername)),
-      "tags"               -> labelMetadata.tags,
-      "ai_generated"       -> labelMetadata.aiGenerated,
-      "expired"            -> labelMetadata.expired,
-      "from_current_user"  -> labelMetadata.fromCurrentUser,
-      "pano_data"          -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson)
+      "comments"           -> labelMetadata.comments.map(
+        commentToJson(_, currUsername, commenterIndices(labelMetadata.comments))
+      ),
+      "tags"              -> labelMetadata.tags,
+      "ai_generated"      -> labelMetadata.aiGenerated,
+      "expired"           -> labelMetadata.expired,
+      "from_current_user" -> labelMetadata.fromCurrentUser,
+      "pano_data"         -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson)
     )
   }
 
@@ -198,9 +215,15 @@ object LabelFormats {
       "audit_task_id" -> labelMetadata.auditTaskId,
       "user_id"       -> labelMetadata.userId,
       "username"      -> labelMetadata.username,
-      "comments"      -> labelMetadata.comments.map(c =>
-        Json.obj("username" -> c.username, "comment" -> c.comment, "time_created" -> c.timeCreated)
-      ),
+      "comments"      -> labelMetadata.comments.map { c =>
+        val idx: Int = commenterIndices(labelMetadata.comments).getOrElse(c.username, 0)
+        Json.obj(
+          "username"     -> c.username,
+          "comment"      -> c.comment,
+          "time_created" -> c.timeCreated,
+          "commenter"    -> idx
+        )
+      },
       "low_quality" -> labelMetadata.lowQualityIncompleteStaleFlags._1,
       "incomplete"  -> labelMetadata.lowQualityIncompleteStaleFlags._2,
       "stale"       -> labelMetadata.lowQualityIncompleteStaleFlags._3,
