@@ -333,13 +333,13 @@ dialog.label-detail[open]::backdrop {
 
 /* ─── Metadata strip (labeled / image date / address / details, #4572) ── */
 
-/* One quiet line of facts under the pano: Labeled pinned far left, Details far right, the rest evenly spread. */
+/* One quiet caption line of facts under the pano, clustered left with even gaps; Details sits alone at the
+   right edge (spreading the facts edge-to-edge read awkwardly at wide card widths). */
 .label-detail__meta-row {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
   align-items: center;
-  gap: 6px 10px;
+  gap: 6px 14px;
   margin-bottom: 16px;
 }
 
@@ -352,8 +352,8 @@ dialog.label-detail[open]::backdrop {
   color: var(--color-neutral-700);
 }
 
-/* Dividers are their own flex items, so space-between centers each one in its gap; slightly shorter than the
-   18px text line and self-centered vertically. */
+/* Dividers are their own flex items, centered in the row's even gaps; slightly shorter than the 18px text line
+   and self-centered vertically. LabelDetail toggles the address's divider together with its cell. */
 .label-detail__meta-divider {
   align-self: center;
   flex-shrink: 0;
@@ -361,9 +361,6 @@ dialog.label-detail[open]::backdrop {
   height: 13px;
   background: var(--color-neutral-300);
 }
-
-/* The trailing divider belongs to the address: both disappear when no address is known. */
-.label-detail__meta-cell--address[hidden] + .label-detail__meta-divider { display: none; }
 
 .label-detail__meta-value {
   font: var(--text-caption-semibold);
@@ -414,6 +411,9 @@ button.label-detail__meta-cell:focus-visible {
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* The lone action at the row's right edge, apart from the fact cluster. */
+.label-detail__meta-cell--details { margin-left: auto; }
 
 
 /* Vertically center the PanoInfoPopover info button (img) with the surrounding text. */
@@ -748,26 +748,11 @@ button.label-detail__meta-cell:focus-visible {
  * Drops the modal-style fixed sizing and adds prev/next paging buttons. The host element supplies its own
  * width/height via the parent grid; we just stretch and lay out children to fit. */
 
-/* The host panel (.gallery-expanded-view) owns the size caps; the paging arrows float over the pano's edges,
-   so the card needs no side gutters for them. */
+/* The host panel (.gallery-expanded-view) owns the size caps; inside, the card styles exactly like the modal
+   (same padding, spacing, and pano aspect) so the shared component reads identically on every surface. The
+   paging arrows float over the pano's edges, so no side gutters are needed for them. */
 .label-detail--inline {
-  display: flex;
-  flex-direction: column;
-  padding: 12px 24px;
-}
-
-
-.label-detail--inline .label-detail__meta-row { margin-bottom: 10px; }
-
-.label-detail--inline .label-detail__columns {
-  margin-bottom: 10px;
-  gap: 46px;
-}
-
-
-.label-detail--inline .label-detail__pano-overlay-button {
-  height: min(6vh, 60px);
-  padding: 8px;
+  padding: 22px;
 }
 
 /* Paging arrows (only rendered when @withPaging = true): translucent carousel-style chips floating over the
@@ -777,6 +762,9 @@ button.label-detail__meta-cell:focus-visible {
   top: 50%;
   transform: translateY(-50%);
   z-index: 11;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 38px;
   height: 38px;
   padding: 0;
@@ -785,10 +773,21 @@ button.label-detail__meta-cell:focus-visible {
   background: rgb(255 255 255 / 85%);
   box-shadow: 0 1px 4px rgb(0 0 0 / 25%);
   color: var(--color-asphalt-500);
-  font-size: 24px;
-  line-height: 1;
   cursor: pointer;
+
+  /* Hover-revealed like the vote overlay, so the imagery stays clean at rest; keyboard focus reveals too. */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
 }
+
+.label-detail__pano-wrap:hover .label-detail__paging,
+.label-detail__paging:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.label-detail__paging svg { display: block; }
 
 .label-detail__paging:hover {
   background: var(--color-neutral-white);
@@ -808,29 +807,6 @@ button.label-detail__meta-cell:focus-visible {
 }
 .label-detail__paging--prev { left: 10px; }
 .label-detail__paging--next { right: 10px; }
-
-.label-detail--inline .label-detail__vote-display {
-  gap: 10px;
-}
-
-/* Increasing tag font size for Gallery since we have more space */
-.label-detail--inline .tag-pill {
-  font-size: 12px;
-}
-
-/* Place description and comments side-by-side, each taking half the row. */
-.label-detail--inline .label-detail__desc-comments {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 8px;
-}
-
-.label-detail--inline .label-detail__desc-comments .label-detail__description-section,
-.label-detail--inline .label-detail__desc-comments .label-detail__comments-section {
-  flex: 1 1 0;
-  min-width: 0;
-  margin-bottom: 0;
-}
 
 /* ─── Share control (#456) ────────────────────────────────────────────────
    Subtle, YouTube-style share button anchored bottom-right, with an accessible popover. */

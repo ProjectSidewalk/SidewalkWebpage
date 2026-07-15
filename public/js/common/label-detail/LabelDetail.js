@@ -114,6 +114,10 @@ class LabelDetail {
     this.#initInfoPopover();
     this.#initShareWidget();
 
+    // Static section-header tooltip; per-control tooltips are set as content renders.
+    const tagsTitle = this.#q('.label-detail__col--tags .label-detail__col-title');
+    if (tagsTitle) tagsTitle.title = i18next.t('labelmap:tags-tooltip');
+
     // Seed the all-time counts so a validation here can celebrate a newly unlocked validation badge.
     BadgeAchievements.seedCounts();
   }
@@ -187,6 +191,7 @@ class LabelDetail {
     els.timestamp = this.#q('.label-detail__timestamp');
     els.imageDate = this.#q('.label-detail__image-capture-date');
     els.addressCell = this.#q('.label-detail__meta-cell--address');
+    els.addressDivider = this.#q('.label-detail__meta-divider--address');
     els.address = this.#q('.label-detail__address');
     els.severitySection = this.#q('.label-detail__col--severity');
     els.severity = this.#q('.label-detail__severity-faces');
@@ -720,16 +725,23 @@ class LabelDetail {
       ? i18next.t('labelmap:own-label-disabled')
       : this.#noImagery ? i18next.t('labelmap:no-imagery-disabled') : '';
 
+    // When unlocked, each vote control explains what its count means; when locked, the lock reason wins.
+    const voteTips = {
+      Agree: i18next.t('labelmap:agree-tooltip'),
+      Disagree: i18next.t('labelmap:disagree-tooltip'),
+      Unsure: i18next.t('labelmap:unsure-tooltip'),
+    };
+
     // Pano overlay buttons.
-    for (const btn of Object.values(els.panoOverlayButtons)) {
+    for (const [action, btn] of Object.entries(els.panoOverlayButtons)) {
       btn.disabled = locked;
-      btn.title = tip;
+      btn.title = locked ? tip : voteTips[action];
     }
 
     // Validation column buttons.
-    for (const btn of Object.values(els.voteButtons)) {
+    for (const [action, btn] of Object.entries(els.voteButtons)) {
       btn.disabled = locked;
-      btn.title = tip;
+      btn.title = locked ? tip : voteTips[action];
     }
 
     // Comment input and submit button.
@@ -787,6 +799,7 @@ class LabelDetail {
     if (!els.addressCell) return;
     els.address.textContent = address || '';
     els.addressCell.hidden = !address;
+    if (els.addressDivider) els.addressDivider.hidden = !address;
     if (address && link) {
       els.address.href = link.url;
       els.address.target = '_blank';
@@ -848,6 +861,7 @@ class LabelDetail {
       const selected = faceSev === Number(severity);
       face.classList.toggle('is-selected', selected);
       face.querySelector('.severity-button__icon').src = util.misc.getSmileyIconPath(faceSev, labelType, selected);
+      face.title = `${i18next.t(`common:${titleKey}`)}: ${i18next.t(`common:${levelKeys[faceSev]}`)}`;
       const labelSpan = face.querySelector('.severity-button__label');
       if (labelSpan) labelSpan.textContent = i18next.t(`common:${levelKeys[faceSev]}`);
     });
