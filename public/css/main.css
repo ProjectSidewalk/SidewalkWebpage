@@ -645,10 +645,9 @@ a {
   max-width: calc(400px * var(--ui-scale, 1));
   padding: calc(14px * var(--ui-scale, 1));
   background: var(--color-neutral-white);
-  border: 1px solid var(--color-neutral-600);
+  border: 1px solid var(--color-neutral-300);
   border-radius: calc(12px * var(--ui-scale, 1));
-  font-size: calc(14px * var(--ui-scale, 1));
-  box-shadow: 0 2px 8px rgb(0 0 0 / 12%);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 15%);
 }
 
 /* Downward-pointing arrow: ::before is the border, ::after is the white fill on top. */
@@ -666,7 +665,7 @@ a {
 .pano-info-popover::before {
   bottom: calc(-10px * var(--ui-scale, 1));
   border-width: calc(10px * var(--ui-scale, 1)) calc(9px * var(--ui-scale, 1)) 0;
-  border-color: var(--color-neutral-600) transparent transparent;
+  border-color: var(--color-neutral-300) transparent transparent;
 }
 
 .pano-info-popover::after {
@@ -682,31 +681,52 @@ a {
   margin-bottom: calc(10px * var(--ui-scale, 1));
 }
 
+/* Matches the label-detail card's section eyebrows. */
 .pano-info-popover__title {
-  font-size: calc(15px * var(--ui-scale, 1));
-  font-weight: bold;
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-700);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.pano-info-popover__clipboard {
+.pano-info-popover__actions {
+  display: flex;
+  align-items: center;
+  gap: calc(2px * var(--ui-scale, 1));
+}
+
+.pano-info-popover__clipboard,
+.pano-info-popover__close {
   background: none;
   border: none;
-  padding: 0;
+  padding: calc(3px * var(--ui-scale, 1));
+  border-radius: calc(4px * var(--ui-scale, 1));
   cursor: pointer;
   line-height: 0;
   opacity: 0.75;
 }
 
-.pano-info-popover__clipboard:hover {
+.pano-info-popover__clipboard:hover,
+.pano-info-popover__close:hover {
+  background: rgb(0 0 0 / 6%);
   opacity: 1;
 }
 
-.pano-info-popover__clipboard:active {
+.pano-info-popover__clipboard:active,
+.pano-info-popover__close:active {
   opacity: 0.5;
 }
 
-.pano-info-popover__clipboard img {
-  width: calc(18px * var(--ui-scale, 1));
-  height: calc(18px * var(--ui-scale, 1));
+.pano-info-popover__clipboard:focus-visible,
+.pano-info-popover__close:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 1px;
+}
+
+.pano-info-popover__clipboard img,
+.pano-info-popover__close img {
+  width: calc(16px * var(--ui-scale, 1));
+  height: calc(16px * var(--ui-scale, 1));
 }
 
 /* Shown briefly after clipboard copy. Absolutely positioned so it doesn't shift the body rows. */
@@ -725,39 +745,64 @@ a {
   z-index: 1;
 }
 
+/* Spec-sheet body: muted labels left, semibold values right. */
 .pano-info-popover__body {
   display: flex;
   flex-direction: column;
   gap: calc(6px * var(--ui-scale, 1));
+  margin: 0;
 }
 
 .pano-info-popover__row {
-  margin: 0;
-  line-height: 1.4;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: calc(12px * var(--ui-scale, 1));
+}
+
+.pano-info-popover__row dt {
+  flex-shrink: 0;
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-700);
 }
 
 .pano-info-popover__row--hidden {
   display: none;
 }
 
-.pano-info-popover__row strong {
-  font-weight: bold;
-}
-
+/* overflow-wrap keeps long pano IDs inside the popover; tabular numerals hold the id/coordinate columns steady. */
 .pano-info-popover__val {
-  /* Values use the default (regular) font weight inherited from the row. */
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-900);
+  font-variant-numeric: tabular-nums;
 }
 
 .pano-info-popover__view-link {
   display: block;
+  margin-top: calc(10px * var(--ui-scale, 1));
+  padding-top: calc(10px * var(--ui-scale, 1));
+  border-top: 1px solid var(--color-neutral-200);
   text-align: center;
-  color: #4990cc;
+  font: var(--text-caption-semibold);
+  color: var(--color-link-200);
   text-decoration: none;
-  margin-top: calc(4px * var(--ui-scale, 1));
+}
+
+.pano-info-popover__view-link::after {
+  content: " ↗";
 }
 
 .pano-info-popover__view-link:hover {
   text-decoration: underline;
+}
+
+.pano-info-popover__view-link:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
 }
 
 @media only screen and (device-width <= 500px) {

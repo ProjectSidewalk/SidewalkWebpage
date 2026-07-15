@@ -49,10 +49,11 @@
     <span><span data-i18n="common:pano-info.pano-address">Address</span>:</span>
     <a class="label-detail__address label-detail__meta-value"></a>
   </div>
-  @* Details chip (#4572): PanoInfoPopover appends its (i) trigger into the host span; LabelDetail forwards clicks
-     on the rest of the chip to it so the whole pill is one hit target. *@
+  @* Details control (#4572): "Details:" label + the (i) value mirrors the strip's "label: value" pattern.
+     PanoInfoPopover appends its (i) trigger into the host span; LabelDetail forwards clicks on the rest of the
+     button to it so label + icon are one hit target. *@
   <button type="button" class="label-detail__meta-cell label-detail__meta-cell--details">
-    <span data-i18n="common:pano-info.details-title">Details</span>
+    <span><span data-i18n="common:pano-info.details-title">Details</span>:</span>
     <span class="label-detail__info-button-host"></span>
   </button>
 </div>
@@ -101,16 +102,6 @@
   </section>
 </div>
 
-@* Validator comments justify a disputed vote, so the box appears only alongside a Disagree/Unsure vote (#4572);
-   LabelDetail toggles it and sets the per-vote prompt on the label + placeholder. Open-ended notes about a place
-   belong to lived-experience stories (#4054), not here. *@
-<div class="label-detail__comment-row" hidden>
-  <label class="sr-only" for="label-detail-comment-input">Tell us why you disagree…</label>
-  <input type="text" id="label-detail-comment-input" class="label-detail__comment-input" placeholder="Tell us why you disagree…">
-  <button type="button" class="label-detail__comment-submit" data-action="submit-comment" data-i18n="labelmap:comment">Comment</button>
-  <span class="label-detail__comment-confirmation" role="status" aria-live="polite" hidden data-i18n="labelmap:comment-submitted">Comment submitted</span>
-</div>
-
 <div class="label-detail__desc-comments">
   @* Both sources are attributed (#4572): the description comes from whoever placed the label, the comments from
      the people who validated it. *@
@@ -127,6 +118,15 @@
       <span class="label-detail__comments-count" hidden></span>
     </h3>
     <div class="label-detail__validator-comments"></div>
+    @* The input lives under the header of the comments it creates. It appears only alongside a Disagree/Unsure
+       vote (#4572); LabelDetail toggles it and sets the per-vote prompt on the label + placeholder. Open-ended
+       notes about a place belong to lived-experience stories (#4054), not here. *@
+    <div class="label-detail__comment-row" hidden>
+      <label class="sr-only" for="label-detail-comment-input">Tell us why you disagree…</label>
+      <input type="text" id="label-detail-comment-input" class="label-detail__comment-input" placeholder="Tell us why you disagree…">
+      <button type="button" class="label-detail__comment-submit" data-action="submit-comment" data-i18n="labelmap:comment">Comment</button>
+      <span class="label-detail__comment-confirmation" role="status" aria-live="polite" hidden data-i18n="labelmap:comment-submitted">Comment submitted</span>
+    </div>
   </section>
 </div>
 

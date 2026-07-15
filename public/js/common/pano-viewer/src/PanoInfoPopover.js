@@ -116,6 +116,10 @@ class PanoInfoPopover {
       }
     });
 
+    // Explicit close button in the header.
+    const closeBtn = this.#popoverEl.querySelector('.pano-info-popover__close');
+    if (closeBtn) closeBtn.addEventListener('click', () => this.#popoverEl.hidePopover());
+
     // Light-dismiss: close when clicking outside the popover (but not the trigger button).
     document.addEventListener('click', (e) => {
       if (this.#popoverEl.matches(':popover-open')

@@ -334,7 +334,6 @@ button.label-detail__meta-cell {
   color: var(--color-neutral-700);
 }
 button.label-detail__meta-cell:hover { color: var(--color-neutral-900); }
-button.label-detail__meta-cell:hover span { text-decoration: underline; }
 
 button.label-detail__meta-cell:focus-visible {
   outline: 2px solid var(--color-link-100);
@@ -356,13 +355,12 @@ button.label-detail__meta-cell:focus-visible {
   align-items: center;
 }
 
-/* The "Details" text is the whole visible control; the (i) img PanoInfoPopover appends stays zero-width rather
-   than display: none so the popover can still measure it as its positioning anchor. The id qualifier outranks
-   main.css's `#pano-info-button { width: 24px }`. */
+/* The (i) is the "value" of the Details: control; sized to the strip's text line (the id qualifier outranks
+   main.css's `#pano-info-button { width: 24px }`). */
 .label-detail__info-button-host #pano-info-button {
   display: block;
-  width: 0;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 /* ─── Three-column row: Validations / Severity / Tags ─────────────────── */
@@ -452,25 +450,16 @@ button.label-detail__meta-cell:focus-visible {
 
 /* ─── Comment row ─────────────────────────────────────────────────────── */
 
-/* The top border groups everything below the label facts (comment box, description, comments, share) into one
-   "community input" zone — the card's single divider. */
+/* Lives inside the Validator Comments section, under the list it adds to. */
 .label-detail__comment-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
-  padding-top: 14px;
-  border-top: 1px solid var(--color-neutral-200);
+  margin-top: 8px;
 }
 
-/* Explicit display: none so the hidden attribute wins over display: flex; when the comment box is hidden (no
-   Disagree/Unsure vote), the description/comments zone carries the divider instead. */
+/* Explicit display: none so the hidden attribute wins over display: flex. */
 .label-detail__comment-row[hidden] { display: none; }
-
-.label-detail__comment-row[hidden] + .label-detail__desc-comments {
-  padding-top: 14px;
-  border-top: 1px solid var(--color-neutral-200);
-}
 
 /* Explicit border-box + flex centering keep the input and button the same height with the text dead-center —
    fixed heights plus vertical padding drift apart under the two elements' different default box models. */
@@ -524,6 +513,13 @@ button.label-detail__meta-cell:focus-visible {
 }
 
 /* ─── Description / comments ──────────────────────────────────────────── */
+
+/* The top border groups the community-input zone (description, comments, comment box, share) apart from the
+   label facts above — the card's single divider. */
+.label-detail__desc-comments {
+  padding-top: 14px;
+  border-top: 1px solid var(--color-neutral-200);
+}
 
 .label-detail__description-section {
   margin: 0 0 16px;
@@ -661,10 +657,16 @@ button.label-detail__meta-cell:focus-visible {
  * width/height via the parent grid; we just stretch and lay out children to fit. */
 
 .label-detail--inline {
-  padding: 12px 60px;
   display: flex;
   flex-direction: column;
+
+  /* Caps for large monitors: uncapped, the pano grows to fill the whole panel and the card stretches
+     edge-to-edge, which reads comically large on ≥27" screens. Auto margins center the capped card. */
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 12px 60px;
 }
+
 
 .label-detail--inline .label-detail__meta-row { margin-bottom: 10px; }
 
@@ -673,9 +675,10 @@ button.label-detail__meta-cell:focus-visible {
   gap: 46px;
 }
 
-/* Push the comments + description down so the pano can grow to fill remaining space. */
+/* Push the comments + description down so the pano can grow to fill remaining space (capped for big monitors). */
 .label-detail--inline .label-detail__pano-wrap {
   flex: 1 1 auto;
+  max-height: 62vh;
   margin-bottom: 4px;
 }
 
