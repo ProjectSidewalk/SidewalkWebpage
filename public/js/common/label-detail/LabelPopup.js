@@ -10,10 +10,14 @@
  * @param {boolean} admin If true, this is an admin UI, so additional info can be shown.
  * @param {typeof PanoViewer} viewerType The type of pano viewer to initialize.
  * @param {string} viewerAccessToken An access token used to request images for the pano viewer.
- * @param {string} [currUsername] Username of the current viewer. Used to identify comments from this user.
+ * @param {string} [currUsername] Username of the current viewer; identifies this user's own comments.
+ * @param {Object} [opts]
+ * @param {string} [opts.syncUrlSource] When set, the open label is mirrored into the page URL as ?labelId=<id>
+ *     (cleared on close) so the view is shareable and survives a refresh; a labelId already in the URL is opened
+ *     after init, using this string as the validation source (e.g. 'LabelMap').
  * @returns {Promise<object>} Resolves once the pano viewer has been initialized.
  */
-async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername) {
+async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, opts = {}) {
   const dialog = document.getElementById('label-modal');
   if (!dialog) {
     throw new Error('LabelPopup: #label-modal not found. Did you include common.labelPopup() on the page?');
@@ -51,13 +55,37 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername) {
   const innerShowLabel = labelDetail.showLabel;
 
   /**
+   * Sets or clears the labelId query param without adding history entries, so the open label is shareable
+   * and survives a refresh but Back still leaves the page.
+   * @param {?number} labelId The open label's ID, or null to clear the param.
+   */
+  function syncUrl(labelId) {
+    const url = new URL(window.location);
+    if (labelId) url.searchParams.set('labelId', labelId);
+    else url.searchParams.delete('labelId');
+    history.replaceState(null, '', url);
+  }
+
+  /**
    * Opens the dialog and shows the requested label.
    * @param {number} labelId The ID of the label to show.
    * @param {string} source  The UI that created the popup (recorded with validations).
    */
   async function showLabel(labelId, source) {
     if (!dialog.open) dialog.showModal();
+    if (opts.syncUrlSource) syncUrl(labelId);
     await innerShowLabel(labelId, source);
+  }
+
+  if (opts.syncUrlSource) {
+    // Every close path (X, backdrop, ESC) fires the dialog's close event.
+    dialog.addEventListener('close', () => syncUrl(null));
+
+    // Reopen the label a shared or refreshed URL points at.
+    const initialLabelId = parseInt(new URLSearchParams(window.location.search).get('labelId'), 10);
+    if (initialLabelId) {
+      showLabel(initialLabelId, opts.syncUrlSource).catch(() => syncUrl(null));
+    }
   }
 
   // Expose the LabelDetail instance's properties for backwards compatibility with callsites that reach

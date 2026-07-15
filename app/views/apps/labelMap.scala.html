@@ -111,7 +111,7 @@
         differentiateUnauditedStreets: true,
         interactiveStreets: true,
         uiSource: 'LabelMap',
-        popupLabelViewer: await LabelPopup(false, viewerType, accessToken, "@user.username"),
+        popupLabelViewer: await LabelPopup(false, viewerType, accessToken, "@user.username", { syncUrlSource: 'LabelMap' }),
         navigationControlPosition: 'top-right',
         highQualityFilter: true
       };
