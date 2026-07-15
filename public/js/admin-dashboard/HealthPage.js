@@ -58,6 +58,7 @@ class HealthPage {
       this.#renderKpis(data);
       this.#renderMeta(data);
       this.#renderLocks(data.blocking_sessions || []);
+      this.#renderActive(data.active_queries || []);
       this.#renderIdle(data.idle_in_transaction || []);
       this.#renderEvolutions(data.stuck_evolutions || []);
       this.#renderBloat(data.table_bloat || []);
@@ -87,6 +88,12 @@ class HealthPage {
       tone = tone === 'bad' ? 'bad' : 'warn';
       problems.push(`${badIdle} long idle transaction${badIdle === 1 ? '' : 's'}`);
     }
+    const longQ = data.active_queries || [];
+    if (longQ.length > 0) {
+      const longQBad = longQ.filter((q) => (q.query_seconds || 0) >= t.active_query_bad_seconds).length;
+      tone = longQBad > 0 || tone === 'bad' ? 'bad' : 'warn';
+      problems.push(`${longQ.length} long-running quer${longQ.length === 1 ? 'y' : 'ies'}`);
+    }
     const stuck = (data.stuck_evolutions || []).length;
     if (stuck > 0) {
       tone = 'bad';
@@ -108,13 +115,16 @@ class HealthPage {
   #renderKpis(data) {
     const t = this.#thresholds;
     const blocking = data.blocking_sessions || [];
+    const active = data.active_queries || [];
     const idle = data.idle_in_transaction || [];
     const evolutions = data.stuck_evolutions || [];
     const conns = (data.connections || []).reduce((sum, c) => sum + (c.count || 0), 0);
     const atRisk = data.pano_backups?.at_risk;
     const bloated = (data.table_bloat || []).filter((b) => this.#bloatTone(b) !== 'good').length;
     const longIdle = idle.filter((s) => (s.idle_seconds || 0) >= t.idle_txn_warn_seconds).length;
+    const activeBad = active.filter((q) => (q.query_seconds || 0) >= t.active_query_bad_seconds).length;
     this.#setKpi('kpi-blocking', blocking.length, blocking.length > 0 ? 'bad' : 'good');
+    this.#setKpi('kpi-active', active.length, activeBad > 0 ? 'bad' : active.length > 0 ? 'warn' : 'good');
     this.#setKpi('kpi-idle', idle.length, longIdle > 0 ? 'warn' : 'good');
     this.#setKpi('kpi-evolutions', evolutions.length, evolutions.length > 0 ? 'bad' : 'good');
     this.#setKpi('kpi-bloat', bloated, bloated > 0 ? 'warn' : 'good');
@@ -157,6 +167,28 @@ class HealthPage {
     this.#table('health-locks',
       [['PID', true], 'Role', 'State', ['Txn age', true], ['Blocks', true], ['Longest wait', true], 'Held locks',
         'Query'], body);
+  }
+
+  // ---- Panel: long-running queries -------------------------------------------------------------------------------
+
+  #renderActive(rows) {
+    if (!rows.length) return this.#renderEmpty('health-active', 'No long-running queries.');
+    const t = this.#thresholds;
+    const body = rows.map((r) => {
+      const secs = r.query_seconds || 0;
+      const tone = secs >= t.active_query_bad_seconds ? 'bad' : secs >= t.active_query_warn_seconds ? 'warn' : 'ok';
+      return `
+        <tr>
+          <td class="ac-num">${r.pid}</td>
+          <td>${HealthPage.#esc(r.usename) || '—'}</td>
+          <td>${HealthPage.#esc(r.application_name) || '—'}</td>
+          <td class="ac-num"><span class="ac-badge ac-badge--${tone}">${HealthPage.#dur(r.query_seconds)}</span></td>
+          <td>${HealthPage.#esc(r.wait_event_type) || '—'}</td>
+          <td class="ac-muted">${this.#queryCell(r.query)}</td>
+        </tr>`;
+    }).join('');
+    this.#table('health-active',
+      [['PID', true], 'Role', 'Application', ['Running for', true], 'Waiting on', 'Query'], body);
   }
 
   // ---- Panel: idle in transaction --------------------------------------------------------------------------------

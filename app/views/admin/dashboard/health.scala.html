@@ -17,6 +17,7 @@
 
     <div class="coverage-kpis" id="health-kpis">
       <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-blocking">—</span><span class="coverage-kpi-label">Blocking sessions</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-active">—</span><span class="coverage-kpi-label">Long queries</span></div>
       <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-idle">—</span><span class="coverage-kpi-label">Idle in transaction</span></div>
       <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-evolutions">—</span><span class="coverage-kpi-label">Stuck evolutions</span></div>
       <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-bloat">—</span><span class="coverage-kpi-label">Bloated tables</span></div>
@@ -30,6 +31,12 @@
     <h2 class="api-heading" id="blocking-locks">Blocking locks <a href="#blocking-locks" class="permalink">#</a></h2>
     <p>Sessions that are currently blocking one or more others from acquiring a lock. A session that holds a strong lock (for example on <code>street_edge</code>) while idle in a transaction can silently stall every reader of that table. Ordered worst-first.</p>
     <div id="health-locks"></div>
+  </div>
+
+  <div class="api-section" id="health-active-section">
+    <h2 class="api-heading" id="long-queries">Long-running queries <a href="#long-queries" class="permalink">#</a></h2>
+    <p>Client queries that have been running for a while. One runaway query — an expensive aggregate, a missing index — can saturate the database without blocking anyone, so it won't show up in the locks panel above. Oldest first.</p>
+    <div id="health-active"></div>
   </div>
 
   <div class="api-section" id="health-idle-section">

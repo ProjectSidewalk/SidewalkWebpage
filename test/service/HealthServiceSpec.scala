@@ -52,6 +52,9 @@ class HealthServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
     "run getIdleInTransactionSessions without error" in {
       run(healthTable.getIdleInTransactionSessions).size must be >= 0
     }
+    "run getActiveQueries without error" in {
+      run(healthTable.getActiveQueries(30)).size must be >= 0
+    }
     "run getTableBloat without error" in {
       run(healthTable.getTableBloat).size must be >= 0
     }

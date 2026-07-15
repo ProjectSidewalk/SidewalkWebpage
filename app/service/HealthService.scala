@@ -38,6 +38,16 @@ case class IdleTxnSession(
     query: Option[String]
 )
 
+/** A client query that has been actively executing longer than the reporting floor. */
+case class ActiveQuery(
+    pid: Int,
+    usename: Option[String],
+    applicationName: Option[String],
+    querySeconds: Option[Long],
+    waitEventType: Option[String],
+    query: Option[String]
+)
+
 /** A `play_evolutions` row that is stuck mid-apply or carries a recorded problem, tagged with its schema. */
 case class StuckEvolution(
     schema: String,
@@ -83,6 +93,8 @@ case class HealthThresholds(
     idleTxnBadSeconds: Long,
     lockWaitWarnSeconds: Long,
     lockWaitBadSeconds: Long,
+    activeQueryWarnSeconds: Long,
+    activeQueryBadSeconds: Long,
     bloatWarnRatio: Double,
     bloatBadRatio: Double,
     bloatMinDeadTuples: Long,
@@ -100,6 +112,7 @@ case class DbHealthData(
     canSeeAllQueries: Boolean,
     blockingSessions: Seq[BlockingSession],
     idleInTransaction: Seq[IdleTxnSession],
+    activeQueries: Seq[ActiveQuery],
     stuckEvolutions: Seq[StuckEvolution],
     tableBloat: Seq[TableBloat],
     connections: Seq[ConnCount],
@@ -152,6 +165,8 @@ class HealthServiceImpl @Inject() (
     idleTxnBadSeconds = 600,  // 10 min
     lockWaitWarnSeconds = 10,
     lockWaitBadSeconds = 60,
+    activeQueryWarnSeconds = 30, // a query running this long is worth a look; also the panel's reporting floor
+    activeQueryBadSeconds = 120, // 2 min of continuous execution is almost always a problem
     bloatWarnRatio = 0.2,
     bloatBadRatio = 0.4,
     bloatMinDeadTuples = 10000,    // ignore ratios on tables with few dead tuples (stale post-restore estimates)
@@ -174,6 +189,11 @@ class HealthServiceImpl @Inject() (
     val idleF = cacheApi
       .getOrElseUpdate[Seq[IdleTxnSession]]("health.idle", liveTtl)(db.run(healthTable.getIdleInTransactionSessions))
       .recover(logAndEmpty("idle-in-transaction"))
+    val activeF = cacheApi
+      .getOrElseUpdate[Seq[ActiveQuery]]("health.active", liveTtl)(
+        db.run(healthTable.getActiveQueries(thresholds.activeQueryWarnSeconds))
+      )
+      .recover(logAndEmpty("active queries"))
     val bloatF = cacheApi
       .getOrElseUpdate[Seq[TableBloat]]("health.bloat", slowTtl)(db.run(healthTable.getTableBloat))
       .recover(logAndEmpty("table bloat"))
@@ -193,6 +213,7 @@ class HealthServiceImpl @Inject() (
       env      <- envF
       blocking <- blockingF
       idle     <- idleF
+      active   <- activeF
       evo      <- evoF
       bloat    <- bloatF
       conn     <- connF
@@ -204,6 +225,7 @@ class HealthServiceImpl @Inject() (
       canSeeAllQueries = env.canSeeAllQueries,
       blockingSessions = blocking,
       idleInTransaction = idle,
+      activeQueries = active,
       stuckEvolutions = evo,
       tableBloat = bloat,
       connections = conn,
@@ -245,6 +267,7 @@ object HealthService {
 
   implicit val blockingSessionWrites: Writes[BlockingSession]   = Json.writes[BlockingSession]
   implicit val idleTxnSessionWrites: Writes[IdleTxnSession]     = Json.writes[IdleTxnSession]
+  implicit val activeQueryWrites: Writes[ActiveQuery]           = Json.writes[ActiveQuery]
   implicit val stuckEvolutionWrites: Writes[StuckEvolution]     = Json.writes[StuckEvolution]
   implicit val tableBloatWrites: Writes[TableBloat]             = Json.writes[TableBloat]
   implicit val connCountWrites: Writes[ConnCount]               = Json.writes[ConnCount]

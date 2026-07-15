@@ -35,6 +35,11 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       r.nextLongOption(), r.nextStringOption())
   }
 
+  implicit private val getActiveQuery: GetResult[ActiveQuery] = GetResult { r =>
+    ActiveQuery(r.nextInt(), r.nextStringOption(), r.nextStringOption(), r.nextLongOption(), r.nextStringOption(),
+      r.nextStringOption())
+  }
+
   implicit private val getStuckEvolution: GetResult[StuckEvolution] = GetResult { r =>
     StuckEvolution(r.nextString(), r.nextInt(), r.nextStringOption(), r.nextStringOption(), r.nextStringOption())
   }
@@ -133,6 +138,32 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         AND xact_start IS NOT NULL
       ORDER BY xact_start ASC
     """.as[IdleTxnSession]
+  }
+
+  /**
+   * Client queries that have been actively executing longer than `minSeconds`. A single runaway query — an expensive
+   * aggregate, a missing index — can saturate CPU or I/O without ever blocking another session, so it appears in
+   * neither the blocking-locks nor the idle-in-transaction panels; this is the shape of the #4545-era leaderboard
+   * aggregate. Excludes this probe itself and non-client backends. Oldest-running first.
+   *
+   * @param minSeconds Floor on run time in seconds; anything younger is transient and omitted.
+   */
+  def getActiveQueries(minSeconds: Long): DBIO[Seq[ActiveQuery]] = bounded {
+    sql"""
+      SELECT pid,
+             usename,
+             application_name,
+             EXTRACT(EPOCH FROM (now() - query_start))::bigint AS query_seconds,
+             wait_event_type,
+             query
+      FROM pg_stat_activity
+      WHERE state = 'active'
+        AND backend_type = 'client backend'
+        AND pid <> pg_backend_pid()
+        AND query_start IS NOT NULL
+        AND EXTRACT(EPOCH FROM (now() - query_start)) >= $minSeconds
+      ORDER BY query_start ASC
+    """.as[ActiveQuery]
   }
 
   /** Every schema in this database that has a `play_evolutions` table (one per city schema). */
