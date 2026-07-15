@@ -327,8 +327,6 @@ a {
   display: flex;
   align-items: center;
   flex: 1;
-  max-width: 1440px; /* Cap the content column so the two nav groups don't sprawl to the edges on wide screens. */
-  margin: 0 auto;
   padding: 0 4.5%;
 }
 
@@ -485,11 +483,11 @@ a {
   height: 50px;
 }
 
-/* Sit the nav text on the logo wordmark's baseline by bottom-aligning the row. At this height the 5px bottom pad
-   also balances the ~5px above the 40px logo, so the whitespace reads even. */
-#header.header--tall .navbar-container {
-  align-items: flex-end;
-  padding-bottom: 5px;
+/* In the taller landing bar the row inherits the base .navbar-container centering, so brand + nav + divider sit
+   vertically centered in the 50px bar. The divider is lengthened to suit the taller bar; the compact scrolled bar
+   keeps the base 22px. */
+#header.header--tall .navbar-nav--primary::before {
+  height: 30px;
 }
 
 #header.header--tall #navbar-brand img {
