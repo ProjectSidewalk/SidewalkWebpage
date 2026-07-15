@@ -239,7 +239,8 @@ object LabelFormats {
     "camera_heading" -> pm.cameraHeading,
     "camera_pitch"   -> pm.cameraPitch,
     "camera_roll"    -> pm.cameraRoll,
-    "copyright"      -> pm.copyright
+    "copyright"      -> pm.copyright,
+    "address"        -> pm.address
   )
 
   /**
@@ -261,7 +262,8 @@ object LabelFormats {
       "cameraPitch"   -> p.cameraPitch,
       "cameraRoll"    -> p.cameraRoll,
       "captureDate"   -> p.captureDate,
-      "copyright"     -> p.copyright
+      "copyright"     -> p.copyright,
+      "address"       -> p.address
     )
   }
 

@@ -213,6 +213,19 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       }
     }
 
+    "carry the pano_data.address field in the label detail JSON (#4489)" in {
+      validLabelId match {
+        case None     => cancel("No labels in the connected test DB; cannot exercise the valid-label path.")
+        case Some(id) =>
+          val json = contentAsJson(route(app, FakeRequest(GET, s"/label/id/$id")).get)
+          // The shared label-detail component reads pano_data.address for its visible Address row. The key must be
+          // present (null until an address is captured for the pano) — a missing key would mean the positional
+          // SQL→GetResult mapping in getSingleLabelMetadata dropped or misaligned the column.
+          (json \ "pano_data").toOption must not be empty
+          ((json \ "pano_data").get \ "address").isDefined mustBe true
+      }
+    }
+
     "serve nearby labels as GeoJSON from /v3/api/rawLabels with no auth cookie" in {
       val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?filetype=geojson")).get
       status(resp) mustBe OK

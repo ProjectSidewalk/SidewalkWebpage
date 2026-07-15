@@ -367,8 +367,9 @@ object LabelTable {
           Option[Double],
           Option[Double],
           Option[Double],
+          Option[String],
           Option[String]
-      ) // 22. pano dims & camera
+      ) // 22. pano dims, camera & address
   )
   type LabelValidationMetadataTupleRep = (
       Rep[Int],                                   // 1.  labelId
@@ -399,7 +400,7 @@ object LabelTable {
       Rep[Boolean],                               // 19. aiGenerated
       Rep[Option[String]],                        // 20. comments (JSON-aggregated)
       Rep[Boolean],                               // 21. fromCurrentUser
-      (                                           // 22. pano dims & camera
+      (                                           // 22. pano dims, camera & address
           Rep[Option[Int]],                       // 1. width
           Rep[Option[Int]],                       // 2. height
           Rep[Option[Int]],                       // 3. tileWidth
@@ -407,7 +408,8 @@ object LabelTable {
           Rep[Option[Double]],                    // 5. cameraHeading
           Rep[Option[Double]],                    // 6. cameraPitch
           Rep[Option[Double]],                    // 7. cameraRoll
-          Rep[Option[String]]                     // 8. copyright
+          Rep[Option[String]],                    // 8. copyright
+          Rep[Option[String]]                     // 9. address
       )
   )
 
@@ -446,8 +448,9 @@ object LabelTable {
           }
           .getOrElse(Seq.empty),
         fromCurrentUser = t._21,
-        panoMetadata =
-          Some(PanoViewerMetadata(t._22._1, t._22._2, t._22._3, t._22._4, t._22._5, t._22._6, t._22._7, t._22._8))
+        panoMetadata = Some(
+          PanoViewerMetadata(t._22._1, t._22._2, t._22._3, t._22._4, t._22._5, t._22._6, t._22._7, t._22._8, t._22._9)
+        )
       )
     }
 
@@ -687,7 +690,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           r.nextDoubleOption(), // cameraHeading
           r.nextDoubleOption(), // cameraPitch
           r.nextDoubleOption(), // cameraRoll
-          r.nextStringOption()  // copyright
+          r.nextStringOption(), // copyright
+          r.nextStringOption()  // address
         )
       )
     )
@@ -1091,7 +1095,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              pano_data.camera_heading,
              pano_data.camera_pitch,
              pano_data.camera_roll,
-             pano_data.copyright
+             pano_data.copyright,
+             pano_data.address
       FROM label AS lb1
       INNER JOIN pano_data ON lb1.pano_id = pano_data.pano_id
       INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
@@ -1295,7 +1300,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           None.asInstanceOf[Option[String]].asColumnOf[Option[String]], // Comments not needed for validation rn.
           false.bind,
           (pd.width, pd.height, pd.tileWidth, pd.tileHeight, pd.cameraHeading, pd.cameraPitch, pd.cameraRoll,
-            pd.copyright)
+            pd.copyright, pd.address)
         )
       }
 
@@ -1447,7 +1452,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       isAiUser,
       comments.flatMap(_.comments), // pre-aggregated comments string from VIEW
       lb.userId === userId.bind,
-      (pd.width, pd.height, pd.tileWidth, pd.tileHeight, pd.cameraHeading, pd.cameraPitch, pd.cameraRoll, pd.copyright)
+      (pd.width, pd.height, pd.tileWidth, pd.tileHeight, pd.cameraHeading, pd.cameraPitch, pd.cameraRoll, pd.copyright,
+        pd.address)
     )
 
     // Remove duplicates if needed, then order newest-first or randomized. Callers that batch through this query

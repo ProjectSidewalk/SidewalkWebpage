@@ -272,6 +272,7 @@ dialog.label-detail[open]::backdrop {
 
 .label-detail__meta-row {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
@@ -286,6 +287,19 @@ dialog.label-detail[open]::backdrop {
 }
 
 .label-detail__meta-value { font-weight: 400; }
+
+/* Explicit display: none so the hidden attribute wins over the cell's display: flex. */
+.label-detail__meta-cell--address[hidden] { display: none; }
+
+.label-detail__meta-cell--address { min-width: 0; }
+
+/* Addresses can be long; ellipsize instead of widening the row. */
+.label-detail__address {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* Vertically center the PanoInfoPopover info button (img) with the surrounding text. */
 .label-detail__info-button-host {

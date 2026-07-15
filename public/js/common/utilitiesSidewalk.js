@@ -673,5 +673,6 @@ function buildBackupImageData(meta) {
     cameraRoll: pd.camera_roll,
     captureDate: meta.image_capture_date,
     copyright: pd.copyright,
+    address: pd.address,
   };
 }

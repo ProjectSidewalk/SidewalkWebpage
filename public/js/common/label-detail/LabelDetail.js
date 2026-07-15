@@ -170,6 +170,8 @@ class LabelDetail {
     els.title = this.#q('.label-detail__title');
     els.timestamp = this.#q('.label-detail__timestamp');
     els.imageDate = this.#q('.label-detail__image-capture-date');
+    els.addressCell = this.#q('.label-detail__meta-cell--address');
+    els.address = this.#q('.label-detail__address');
     els.severitySection = this.#q('.label-detail__col--severity');
     els.severity = this.#q('.label-detail__severity-faces');
     els.severityTitle = this.#q('.label-detail__severity-title');
@@ -367,6 +369,15 @@ class LabelDetail {
         if (this.#currentLabelMeta !== meta) return;
         this.#noImagery = !imageShown;
         this.#applyInteractionLock();
+
+        // The live imagery's metadata (GSV or Pannellum backup) may carry an address the label payload didn't.
+        // Only read it when the shown pano is actually this label's — on the static-crop fallback, currPanoData
+        // still describes whatever pano the viewer showed last.
+        const panoData = this.panoManager.panoViewer.currPanoData;
+        const liveAddress = imageShown && panoData && panoData.getPanoId() === meta.pano_id
+          ? panoData.getProperty('address')
+          : null;
+        if (liveAddress) this.#showAddress(liveAddress);
       });
 
     // Validation counts + AI validation.
@@ -433,6 +444,10 @@ class LabelDetail {
     // Dates.
     els.timestamp.textContent = moment(new Date(meta.timestamp)).format('LL, LT');
     els.imageDate.textContent = moment(new Date(meta.image_capture_date)).format('MMMM YYYY');
+
+    // Address (#4489): seed from the stored pano address; the setPano() callback above upgrades to the live
+    // imagery's value once it loads, which covers panos whose address hasn't been captured server-side yet.
+    this.#showAddress(meta.pano_data?.address ?? meta.backup_image?.address ?? null);
 
     // Validator comments. Admin endpoint returns objects {username, comment}; non-admin returns bare
     // strings. Stash them so #submitComment() can append after a successful POST.
@@ -681,6 +696,18 @@ class LabelDetail {
         img.removeAttribute('title');
       }
     }
+  }
+
+  /**
+   * Shows or hides the address meta cell. The whole cell is hidden when no address is known so the meta row
+   * doesn't render a dangling "Address:" label (non-GSV imagery and never-captured panos have none).
+   * @param {?string} address - The street-level address to display, or null/empty to hide the cell.
+   */
+  #showAddress(address) {
+    const els = this.#els;
+    if (!els.addressCell) return;
+    els.address.textContent = address || '';
+    els.addressCell.hidden = !address;
   }
 
   /**

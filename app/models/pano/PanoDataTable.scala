@@ -20,7 +20,8 @@ case class PanoViewerMetadata(
     cameraHeading: Option[Double],
     cameraPitch: Option[Double],
     cameraRoll: Option[Double],
-    copyright: Option[String]
+    copyright: Option[String],
+    address: Option[String]
 )
 
 case class PanoData(
@@ -41,7 +42,8 @@ case class PanoData(
     panoHistorySaved: Option[OffsetDateTime],
     lastChecked: OffsetDateTime,
     source: PanoSource,
-    hasBackup: Option[Boolean]
+    hasBackup: Option[Boolean],
+    address: Option[String]
 )
 
 // NOTE need to update pano_source enum in postgres as well if changing this Enumeration.
@@ -84,9 +86,10 @@ class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {
   def lastChecked: Rep[OffsetDateTime]              = column[OffsetDateTime]("last_checked")
   def source: Rep[PanoSource]                       = column[PanoSource]("source")
   def hasBackup: Rep[Option[Boolean]]               = column[Option[Boolean]]("has_backup")
+  def address: Rep[Option[String]]                  = column[Option[String]]("address")
 
   def * = (panoId, width, height, tileWidth, tileHeight, captureDate, copyright, lat, lng, cameraHeading, cameraPitch,
-    cameraRoll, expired, lastViewed, panoHistorySaved, lastChecked, source, hasBackup) <>
+    cameraRoll, expired, lastViewed, panoHistorySaved, lastChecked, source, hasBackup, address) <>
     ((PanoData.apply _).tupled, PanoData.unapply)
 }
 
@@ -203,6 +206,7 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
       heading: Option[Double],
       pitch: Option[Double],
       roll: Option[Double],
+      address: Option[String],
       expired: Boolean,
       lastViewed: OffsetDateTime,
       panoHistorySaved: Option[OffsetDateTime]
@@ -211,7 +215,17 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
       pano <- panoDataRecords if pano.panoId === panoId
     } yield (pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll, pano.expired, pano.lastViewed,
       pano.panoHistorySaved, pano.lastChecked)
-    q.update((lat, lng, heading, pitch, roll, expired, lastViewed, panoHistorySaved, lastViewed))
+    val baseUpdate = q.update((lat, lng, heading, pitch, roll, expired, lastViewed, panoHistorySaved, lastViewed))
+
+    // A stored address is only ever replaced, never cleared: submissions without one (e.g. non-GSV sources) leave
+    // the column untouched.
+    val addressUpdate =
+      if (address.isDefined) panoDataRecords.filter(_.panoId === panoId).map(_.address).update(address)
+      else DBIO.successful(0)
+    for {
+      n <- baseUpdate
+      _ <- addressUpdate
+    } yield n
   }
 
   /**
