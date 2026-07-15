@@ -103,11 +103,15 @@
 }
 
 /* Gallery's inline expanded view — host-level sizing for the LabelDetail inline card. Height is 100vh minus the fixed
-   navbar height and some margin. Note that the top is also set dynamically as the user scrolls in Main.js. */
+   navbar height and some margin. Note that the top is also set dynamically as the user scrolls in Main.js.
+   The max caps keep the panel content-scaled on large monitors — uncapped, the viewport-derived sizing balloons the
+   card (and its flex-grown pano) on ≥27" screens while laptops sit under the caps either way. */
 .gallery-expanded-view {
   height: calc(100vh - var(--navbar-height) - 2vh);
+  max-height: 880px;
   top: 1vh;
   width: 52vw;
+  max-width: 1080px;
   right: 3vw;
   border-radius: 12px;
   box-shadow: 0 5px 10px rgb(0 0 0 / 30%);
