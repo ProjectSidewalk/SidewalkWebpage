@@ -265,14 +265,14 @@ dialog.label-detail[open]::backdrop {
   opacity: 0.5;
 }
 
-/* ─── Metadata chips (labeled date / image date / address, #4572) ─────── */
+/* ─── Metadata strip (labeled / image date / address / details, #4572) ── */
 
-/* Left-clustered so the chips read as one group of label facts under the pano. */
+/* One quiet line of facts under the pano, separated by hairline dividers. */
 .label-detail__meta-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px 10px;
   margin-bottom: 16px;
 }
 
@@ -280,12 +280,15 @@ dialog.label-detail[open]::backdrop {
   display: flex;
   align-items: center;
   gap: 5px;
-  min-height: 26px; /* Text-only and icon-bearing chips must match heights. */
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: var(--color-neutral-100);
+  min-width: 0;
   font: var(--text-caption-medium);
   color: var(--color-neutral-700);
+}
+
+/* Hairline divider between consecutive facts. */
+.label-detail__meta-cell + .label-detail__meta-cell {
+  border-left: 1px solid var(--color-neutral-300);
+  padding-left: 10px;
 }
 
 .label-detail__meta-value {
@@ -297,13 +300,10 @@ dialog.label-detail[open]::backdrop {
 .label-detail__meta-cell--address[hidden] { display: none; }
 
 /* The width cap makes an extreme address ellipsize instead of line-wrapping the row: with flex-wrap, line
-   breaks are decided from the chip's natural width, so without a cap a long address pushes Details down. */
-.label-detail__meta-cell--address {
-  min-width: 0;
-  max-width: 45%;
-}
+   breaks are decided from the item's natural width, so without a cap a long address pushes Details down. */
+.label-detail__meta-cell--address { max-width: 45%; }
 
-/* Addresses can be long; ellipsize inside the chip instead of widening the row. */
+/* Addresses can be long; ellipsize instead of widening the row. */
 .label-detail__address {
   min-width: 0;
   overflow: hidden;
@@ -324,23 +324,30 @@ dialog.label-detail[open]::backdrop {
   border-radius: 2px;
 }
 
-/* The Details chip is a real <button>: strip UA styles, restate the chip look buttons don't inherit. */
+/* Details is an action, not a fact: a quiet text button at the row's right edge (no divider). */
 button.label-detail__meta-cell {
+  padding: 0;
   border: none;
+  background: none;
   cursor: pointer;
-  background: var(--color-neutral-100);
   font: var(--text-caption-medium);
   color: var(--color-neutral-700);
 }
-button.label-detail__meta-cell:hover { background: var(--color-neutral-200); }
+button.label-detail__meta-cell:hover { color: var(--color-neutral-900); }
 
 button.label-detail__meta-cell:focus-visible {
   outline: 2px solid var(--color-link-100);
   outline-offset: 2px;
+  border-radius: 4px;
 }
 
-/* Sits apart from the data chips, at the row's right edge. */
 .label-detail__meta-cell--details { margin-left: auto; }
+
+/* Beats the sibling-divider rule above, which would otherwise draw a divider before the button. */
+.label-detail__meta-cell + .label-detail__meta-cell--details {
+  border-left: none;
+  padding-left: 0;
+}
 
 /* Vertically center the PanoInfoPopover info button (img) with the surrounding text. */
 .label-detail__info-button-host {
@@ -348,7 +355,7 @@ button.label-detail__meta-cell:focus-visible {
   align-items: center;
 }
 
-/* Keep the (i) icon within the chip's text line so this chip stays the same height as its siblings. */
+/* Keep the (i) icon within the strip's text line so the button doesn't grow taller than the facts. */
 .label-detail__info-button-host img {
   display: block;
   width: 14px;

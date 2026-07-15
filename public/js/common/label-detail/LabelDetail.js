@@ -725,6 +725,7 @@ class LabelDetail {
     const els = this.#els;
     if (!els.addressCell) return;
     els.address.textContent = address || '';
+    els.address.title = address || ''; // Native tooltip reveals the full address when the strip ellipsizes it.
     els.addressCell.hidden = !address;
     if (address && url) {
       els.address.href = url;
