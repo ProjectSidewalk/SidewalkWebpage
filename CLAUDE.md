@@ -81,6 +81,17 @@ Supported languages: en, es, nl, zh-TW, de, pt-BR, en-US, en-NZ.
 
 User-facing text changes require translations for all supported languages
 
+**Backend: English goes in `messages.en`, never the base `messages` file.** For a `@Messages("...")` key, put the
+English string in **`conf/messages/messages.en`** and a (best-effort, machine-translation-OK) translation in **each**
+`messages.<lang>` (`.es`, `.nl`, `.de`, `.pt-BR`, `.zh-TW`). The base **`conf/messages/messages`** (no suffix) is the
+Play *default/fallback* file — reserve it for genuinely language-neutral values (city-name proper nouns, way-type keys)
+and never add translatable English prose there. **The common trap:** doing an English-only first pass and dropping the
+strings into the base `messages` (it looks like "the English/default file"), then adding `messages.en` + `messages.<lang>`
+in a later translation pass — which leaves a stale, duplicated English copy in the base file. Even the English-only
+first pass belongs in `messages.en`. (Regional English overlays `messages.en-US`/`messages.en-NZ` fall back through
+`messages.en`; the other languages fall back straight to the base default, so a missing `messages.<lang>` key shows the
+raw key — which is why every language file must carry the key.)
+
 Lean towards using `data-i18n="ns:key"` in HTML so that we can keep the translations in the i18next JS library and reduce duplicate translations.
 
 Full details (both systems, regional `en-US`/`en-NZ` rules, adding a new language): [`docs/internationalization.md`](docs/internationalization.md).
