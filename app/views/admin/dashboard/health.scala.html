@@ -22,7 +22,7 @@
       <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-evolutions">—</span><span class="coverage-kpi-label">Stuck evolutions</span></div>
       <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-bloat">—</span><span class="coverage-kpi-label">Bloated tables</span></div>
       <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-connections">—</span><span class="coverage-kpi-label">DB connections</span></div>
-      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-panos">—</span><span class="coverage-kpi-label">At-risk panos</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-panos">—</span><span class="coverage-kpi-label">At-risk panos (this city)</span></div>
     </div>
     <p class="ac-note" id="health-meta"></p>
   </div>
@@ -59,7 +59,7 @@
 
   <div class="api-section" id="health-connections-section">
     <h2 class="api-heading" id="connections">DB connections <a href="#connections" class="permalink">#</a></h2>
-    <p>Client-backend connections grouped by role and state. Each city's app instance has its own pool ceiling, so a role whose active connections approach that ceiling is under pressure.</p>
+    <p>Client-backend connections grouped by role and state. Each city's app instance connects as its own per-city role with its own pool ceiling, so a role whose active connections approach that ceiling is under pressure.</p>
     <div id="health-connections"></div>
   </div>
 

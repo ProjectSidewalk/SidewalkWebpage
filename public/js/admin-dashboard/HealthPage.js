@@ -129,7 +129,9 @@ class HealthPage {
     this.#setKpi('kpi-evolutions', evolutions.length, evolutions.length > 0 ? 'bad' : 'good');
     this.#setKpi('kpi-bloat', bloated, bloated > 0 ? 'warn' : 'good');
     this.#setKpi('kpi-connections', conns, 'ok');
-    this.#setKpi('kpi-panos', HealthPage.#nil(atRisk) ? '—' : HealthPage.#compact(atRisk), atRisk > 0 ? 'warn' : 'good');
+    // A missing value ("—") means unknown, not healthy, so tone it neutral ('ok') instead of 'good' (green).
+    const panoTone = HealthPage.#nil(atRisk) ? 'ok' : atRisk > 0 ? 'warn' : 'good';
+    this.#setKpi('kpi-panos', HealthPage.#nil(atRisk) ? '—' : HealthPage.#compact(atRisk), panoTone);
   }
 
   /** Renders the "updated Ns ago · db · role" meta line, including whether other sessions' query text is visible. */
@@ -139,7 +141,10 @@ class HealthPage {
     if (data.current_database) parts.push(`db <code>${HealthPage.#esc(data.current_database)}</code>`);
     if (data.current_role) parts.push(`role <code>${HealthPage.#esc(data.current_role)}</code>`);
     if (data.can_see_all_queries === false) {
-      parts.push('statement text of other sessions is hidden (role lacks <code>pg_monitor</code>)');
+      // Without pg_monitor Postgres nulls out other sessions' state/wait/query, so those rows drop out of the
+      // state-filtered panels entirely — say so, rather than implying only the query text is missing.
+      parts.push('role lacks <code>pg_monitor</code>: other sessions\' state and query are hidden, so the '
+        + 'idle-transaction and long-query panels show only this app\'s own sessions');
     }
     this.#setHtml('health-meta', parts.join(' · '));
   }
@@ -286,6 +291,8 @@ class HealthPage {
           <td class="ac-num">${e.total}</td>
         </tr>`;
       }).join('');
+    // Each city's app instance connects as its own per-city role, so a role's active count is one instance's pool
+    // draw — labeled with that instance's pool ceiling so it reads as "17 of 25 in use".
     this.#table('health-connections',
       ['Role', [`Active (pool ${t.conn_pool_max})`, true], ['Idle', true], ['Total', true]], body);
   }

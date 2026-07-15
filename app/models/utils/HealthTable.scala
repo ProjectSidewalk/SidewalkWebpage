@@ -85,20 +85,26 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * blocker: who it is, its state (an abandoned lock holder shows as `idle in transaction`), how long its transaction
    * and current state have been open, how many sessions it blocks and the longest wait among them, and the notable
    * (non-read) locks it holds. Ordered so the worst offender is first.
+   *
+   * A blocker owned by another role still shows its identity and held locks even when the connecting role isn't in
+   * `pg_monitor` (those come from `pg_locks`, which every role can read); its `state`/`query`/`xact_start` fill in only
+   * once the role can see them.
    */
   def getBlockingSessions: DBIO[Seq[BlockingSession]] = bounded {
     sql"""
-      WITH blocked AS (
-        -- Only a session that is WAITING on a lock can be blocked, so probe pg_blocking_pids() on those alone.
-        -- The function briefly takes an exclusive lock on the lock manager's shared state, so calling it once per
-        -- backend on every poll would itself add contention — the very anti-pattern this dashboard exists to flag.
-        -- wait_event_type = 'Lock' is non-lossy here: the app runs READ COMMITTED, so there are no deferrable-
-        -- serializable waiters (the one blocked-but-not-'Lock' case) to miss.
-        SELECT pid AS blocked_pid,
-               pg_blocking_pids(pid) AS blockers,
-               EXTRACT(EPOCH FROM (now() - query_start))::bigint AS wait_seconds
-        FROM pg_stat_activity
-        WHERE wait_event_type = 'Lock' AND cardinality(pg_blocking_pids(pid)) > 0
+      WITH blocked AS MATERIALIZED (
+        -- Discover lock-waiters from pg_locks, NOT from pg_stat_activity.wait_event_type: that column reads NULL for
+        -- other roles' sessions whenever the connecting role isn't superuser / in pg_monitor, so anchoring on it would
+        -- miss every waiter that belongs to another city's role — exactly the cross-role blocking this panel exists to
+        -- catch. pg_locks and pg_blocking_pids() are visible to every role, and pg_locks.waitstart (PG14+) gives the
+        -- lock-wait age without pg_stat_activity.query_start (also redacted). pg_blocking_pids() briefly locks the
+        -- lock-manager shared state, so compute it ONCE per waiter here; AS MATERIALIZED fences this CTE from being
+        -- inlined and re-evaluated by the three outer references below (the function is VOLATILE). A waiter with no
+        -- blocker carries an empty array and drops out of the unnest()/ANY() checks on its own.
+        SELECT w.pid AS blocked_pid,
+               pg_blocking_pids(w.pid) AS blockers,
+               EXTRACT(EPOCH FROM (now() - w.waitstart))::bigint AS wait_seconds
+        FROM (SELECT pid, min(waitstart) AS waitstart FROM pg_locks WHERE NOT granted GROUP BY pid) w
       )
       SELECT a.pid,
              a.usename,
@@ -185,6 +191,10 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @return        One row per stuck/flagged evolution, tagged with its schema; empty if every schema is clean.
    */
   def getStuckEvolutionsForSchemas(schemas: Seq[String]): DBIO[Seq[StuckEvolution]] = {
+    require(
+      schemas.nonEmpty,
+      "getStuckEvolutionsForSchemas requires at least one schema (empty input builds invalid SQL)"
+    )
     val union = schemas
       .map { schema =>
         s"""SELECT text '$schema' AS schema, id, state, last_problem, applied_at::text
@@ -217,8 +227,11 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   }
 
   /**
-   * Client-backend connection counts grouped by role and state for this database — a per-city view of connection
-   * pressure against each instance's pool ceiling (#4559). Cluster-global, so one instance sees every city's role.
+   * Client-backend connection counts to this database, grouped by role and state (#4559). On prod each city's app
+   * instance connects as its OWN per-city role (`sidewalk_<city>`, set via `DATABASE_USER`), so grouping by role gives
+   * a per-city view of connection pressure that the dashboard compares against each instance's pool ceiling. Cluster-
+   * global: `pg_stat_activity` spans every session, so one instance sees every city's role plus any shared roles
+   * (monitoring, replication, ad-hoc psql), each in its own row.
    */
   def getConnectionCounts: DBIO[Seq[ConnCount]] = bounded {
     sql"""

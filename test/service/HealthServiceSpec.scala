@@ -47,19 +47,19 @@ class HealthServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
     // Each of these asserts the SQL executes and maps into its DTO against a real PostGIS DB; the result may legitimately
     // be empty (a healthy DB has no blocking locks), so the value is that `run` completes without throwing.
     "run getBlockingSessions without error" in {
-      run(healthTable.getBlockingSessions).size must be >= 0
+      noException must be thrownBy run(healthTable.getBlockingSessions)
     }
     "run getIdleInTransactionSessions without error" in {
-      run(healthTable.getIdleInTransactionSessions).size must be >= 0
+      noException must be thrownBy run(healthTable.getIdleInTransactionSessions)
     }
     "run getActiveQueries without error" in {
-      run(healthTable.getActiveQueries(30)).size must be >= 0
+      noException must be thrownBy run(healthTable.getActiveQueries(30))
     }
     "run getTableBloat without error" in {
-      run(healthTable.getTableBloat).size must be >= 0
+      noException must be thrownBy run(healthTable.getTableBloat)
     }
     "run getPanoBackupStats without error" in {
-      run(healthTable.getPanoBackupStats).labeledPanos must be >= 0L
+      noException must be thrownBy run(healthTable.getPanoBackupStats)
     }
     "report the connecting database and role via getDbEnvInfo" in {
       val env = run(healthTable.getDbEnvInfo)
