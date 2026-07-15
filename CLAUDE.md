@@ -155,6 +155,9 @@ When you catch yourself writing a frontend constant that mirrors a backend value
 
 ## Development Guidelines
 - Main development branch is **develop**; **master** is the release branch. PRs target `develop`.
+- **Never open a pull request (or merge/tag/release) without the maintainer's specific OK.** Do the work, run the
+  CI-equivalent checks locally, and push the branch if useful — then stop and ask before running `gh pr create`.
+  Filing GitHub *issues* is fine; the consent gate is at PR creation, and again (separately) at merge.
 - **Deploying to production is tag-triggered, not branch-triggered:** pushing `develop` redeploys the **test** stage, but prod only deploys when a **`vX.Y.Z` GitHub Release/tag** is cut on `master`. Cutting a release also requires bumping `build.sbt` **and** adding a `version`-table evolution (the two are separate: the tag deploys the code, the evolution updates the displayed version). Full step-by-step runbook: [`docs/deployment-and-stages.md`](docs/deployment-and-stages.md) ("Cutting a release").
 - **Maintainers / GitHub @-mentions:** Project Sidewalk is maintained by **@jonfroehlich** (Professor Jon Froehlich) and
   **@misaugstad** (Mikey / Michael Saugstad).
