@@ -327,62 +327,169 @@ a {
   display: flex;
   align-items: center;
   flex: 1;
+  max-width: 1440px; /* Cap the content column so the two nav groups don't sprawl to the edges on wide screens. */
+  margin: 0 auto;
   padding: 0 4.5%;
 }
 
 .navbar-lnk {
   display: inline;
   margin-left: 8px;
-}
-
-/* Overriding bootstrap settings for city list for now because the list is so long */
-#nav-city-menu>li>a {
-  padding: 2px 16px;
-  font-size: 12px;
+  position: relative; /* Anchor each dropdown panel beneath its own trigger. */
 }
 
 #navbar {
   flex: 1;
   display: flex !important;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between; /* Primary nav left, utility (city/account/language) right. */
+  gap: 4px;
+}
+
+.navbar-toggle {
+  display: none; /* Shown only at the mobile breakpoint below. */
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
+  color: var(--color-asphalt-500);
+}
+
+.navbar-toggle-icon {
+  display: block;
+  width: 24px;
+  height: 24px;
 }
 
 #language-icon {
-  height: 26px;
-  width: 26px;
+  height: 16px;
+  width: 16px;
 }
 
-.navbar-nav > li > a.navbar-button {
-  border-radius: 10px;
-  display: inline-block;
+.navbar-nav > li > .navbar-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   cursor: pointer;
   color: var(--color-asphalt-500);
-  font-size: 12px;
+  font-size: 13px;
   font-family: Mulish, sans-serif;
-  padding: 4px 10px;
+  padding: 5px 10px;
   text-decoration: none;
-  transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
+  border: none;
+  border-radius: 8px;
+  background-color: transparent;
+  line-height: 1.4;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.navbar-nav > li > .navbar-button#language-button {
+  padding: 4px 12px;
+}
+
+/*
+ * The bar splits into two semantic groups: left = text-link destinations, right = bordered-pill state selectors
+ * (city / account / language). The styling backs that split so yellow is reserved for the active indicator and CTAs.
+ */
+.navbar-nav > li > .navbar-button:hover {
+  color: var(--color-asphalt-700);
+  background-color: var(--color-asphalt-100);
+}
+
+/* Active destination: weight + a gold underline (never color-only), paired with aria-current in the markup. */
+.navbar-nav--primary > li > .navbar-button.is-active {
+  position: relative;
+  color: var(--color-asphalt-700);
+  font-weight: 700;
+}
+
+.navbar-nav--primary > li > .navbar-button.is-active::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 2px;
+  height: 2px;
+  border-radius: 2px;
+  background-color: var(--color-banana-600);
+}
+
+/* Divider between the brand lockup and the primary destinations. */
+.navbar-nav--primary::before {
+  content: "";
+  align-self: center;
+  width: 1px;
+  height: 22px;
+  margin: 0 18px 0 28px;
+  background-color: var(--color-neutral-300);
+}
+
+/* Leading icon on each selector pill (city / account / language); keeps the three the same height. */
+.navbar-select-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+/* Right group: state selectors read as bordered pills, grouped tighter than the destinations. */
+.navbar-nav--utility {
+  gap: 6px;
+}
+
+.navbar-nav--utility .navbar-lnk {
+  margin-left: 0;
+}
+
+.navbar-nav--utility > li > .navbar-button {
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 99px;
+  padding: 4px 12px;
+}
+
+.navbar-nav--utility > li > .navbar-button:hover {
+  background-color: var(--color-asphalt-100);
+  border-color: var(--color-neutral-400);
+}
+
+/* Active selector pill (a page from its menu is current): a filled brand-yellow pill clearly marks the section. */
+.navbar-nav--utility > li > .navbar-button.is-active {
+  background-color: var(--color-banana-300);
+  border-color: var(--color-banana-300);
+  color: var(--color-neutral-black);
+  font-weight: 700;
+}
+
+.navbar-nav--utility > li > .navbar-button.is-active:hover {
+  background-color: var(--color-banana-500);
+  border-color: var(--color-banana-500);
+}
+
+.navbar-nav > li > .navbar-button:focus {
   outline: none;
 }
 
-.navbar-nav > li > a.navbar-button#language-button {
-  padding: 0 12px;
+.navbar-nav > li > .navbar-button:focus-visible,
+.navbar-toggle:focus-visible,
+.nav-city-search:focus-visible {
+  outline: 2px solid var(--color-banana-800);
+  outline-offset: 2px;
 }
 
-.navbar-nav > li > a {
-  background-color: transparent;
-}
-
-.navbar-nav > li > a.navbar-button:hover {
-  background-color: #FCECBE;
-  color: var(--color-asphalt-500);
-  text-shadow: none;
+.caret {
+  margin-left: 2px;
 }
 
 /* Taller navbar variant used on the landing page (and removed on scroll). */
 #header.header--tall {
-  height: 70px;
+  height: 50px;
+}
+
+/* Sit the nav text on the logo wordmark's baseline by bottom-aligning the row. At this height the 5px bottom pad
+   also balances the ~5px above the 40px logo, so the whitespace reads even. */
+#header.header--tall .navbar-container {
+  align-items: flex-end;
+  padding-bottom: 5px;
 }
 
 #header.header--tall #navbar-brand img {
@@ -391,24 +498,6 @@ a {
 
 #navbar-brand img {
   transition: height 0.2s ease 0s;
-}
-
-#header.header--tall .navbar-nav > li > a.navbar-button {
-  border: 1px solid var(--color-asphalt-500);
-  padding: 5px 17px;
-}
-
-#header.header--tall .navbar-nav > li > a.navbar-button#language-button {
-  border: none;
-  padding: 0 12px;
-}
-
-#header.header--tall .navbar-nav > li > a.navbar-button:hover {
-  border: 1px solid #FCECBE;
-}
-
-#header.header--tall #navbar-sign-in-btn {
-  padding: 6px 16px;
 }
 
 .new-city {
@@ -778,7 +867,7 @@ body:has(#vidbanner) .test-server-banner {
 }
 
 body:has(#header.header--tall) .test-server-banner {
-  top: 70px;
+  top: 50px;
 }
 
 .test-server-banner-content {
@@ -837,30 +926,169 @@ body:has(#header.header--tall) .test-server-banner {
   padding: 0;
 }
 
-.navbar-nav .open .dropdown-menu {
+/* Dropdown panels are hidden until Navbar.js adds .is-open to the wrapping .navbar-lnk. */
+.navbar-lnk > .dropdown-menu {
+  display: none;
+}
+
+.navbar-lnk.is-open > .dropdown-menu {
   position: absolute;
   top: 100%;
   right: 0;
   left: auto;
   z-index: 1000;
   display: block;
-  min-width: 160px;
-  padding: 5px 0;
+  min-width: 180px;
+  padding: 6px 0;
   margin: 2px 0 0;
-  margin-top: 0;
   font-size: 13px;
   list-style: none;
   background-color: var(--color-neutral-white);
   background-clip: padding-box;
-  border: 1px solid #cccccc;
   border: 1px solid rgb(0 0 0 / 15%);
-  border-radius: 4px;
-  box-shadow: 0 6px 12px rgb(0 0 0 / 17.5%);
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgb(0 0 0 / 17.5%);
 }
 
-.navbar-nav .open .dropdown-menu#nav-language-menu {
-  /* Override dropdown menu properties for the languages dropdown. */
-  top: 100%;
+.dropdown-menu li {
+  list-style: none;
+}
+
+.dropdown-menu li > a {
+  display: block;
+  padding: 5px 16px;
+  font-size: 13px;
+  color: var(--color-asphalt-600);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.dropdown-menu li > a:hover,
+.dropdown-menu li > a:focus {
+  background-color: #FCECBE;
+  color: var(--color-asphalt-700);
+  outline: none;
+}
+
+.dropdown-menu li > a:focus-visible {
+  outline: 2px solid var(--color-banana-800);
+  outline-offset: -2px;
+}
+
+/* Active menu item (its page is current): weight + a gold rail, echoing the top-level underline. */
+.dropdown-menu li > a.is-active {
+  font-weight: 700;
+  color: var(--color-asphalt-700);
+  box-shadow: inset 3px 0 0 var(--color-banana-600);
+}
+
+/* Non-interactive section labels grouping the Tools menu. */
+.dropdown-section {
+  padding: 8px 16px 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-asphalt-400);
+  pointer-events: none;
+}
+
+.dropdown-section:first-child {
+  padding-top: 2px;
+}
+
+/* Searchable city switcher panel. */
+.nav-city-panel {
+  width: 260px;
+}
+
+.navbar-lnk.is-open > .dropdown-menu.nav-city-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.nav-city-search-wrap {
+  padding: 8px;
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.nav-city-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  font-size: 13px;
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 8px;
+}
+
+.nav-city-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.nav-city-group-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-city-group-header {
+  display: block;
+  padding: 8px 16px 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-asphalt-400);
+}
+
+.nav-city-item > a {
+  padding-left: 20px;
+}
+
+.nav-city-current {
+  padding: 6px 16px;
+}
+
+.nav-city-current .current-city {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-neutral-900);
+}
+
+.nav-city-check {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.nav-city-empty {
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--color-asphalt-400);
+}
+
+.nav-city-footer {
+  border-top: 1px solid var(--color-neutral-200);
+  padding: 4px 0;
+}
+
+.nav-city-footer a {
+  display: block;
+  padding: 6px 16px;
+  font-size: 12px;
+  color: var(--color-asphalt-500);
+  text-decoration: none;
+}
+
+.nav-city-footer a:hover {
+  background-color: #FCECBE;
 }
 
 .tool-ui {
@@ -989,10 +1217,29 @@ body:has(#header.header--tall) .test-server-banner {
 
 
 /*
-* Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar
-* https://bootstrapdocs.com/v3.3.5/docs/components/#navbar
+* Responsive navigation.
+*
+* As the window narrows, the lowest-priority items are shed from the inline bar (How to Label first, then API;
+* both stay reachable in the footer) before the whole nav collapses into the hamburger menu. Breakpoints below are a
+* first pass tuned for English label widths and are meant to be adjusted by eye.
 */
-@media only screen and (width <= 1125px) {
+@media only screen and (width >= 861px) and (width <= 1100px) {
+  .nav-shed-1 {
+    display: none;
+  }
+}
+
+@media only screen and (width >= 861px) and (width <= 1000px) {
+  .nav-shed-2 {
+    display: none;
+  }
+}
+
+/*
+* Hamburger menu: at the narrowest widths the whole nav collapses into a single stacked menu opened by the
+* hamburger. The menu box lives on #navbar so both nav groups render inside one shared panel.
+*/
+@media only screen and (width <= 860px) {
   .navbar-brand-area {
     display: flex;
     align-items: center;
@@ -1012,24 +1259,47 @@ body:has(#header.header--tall) .test-server-banner {
     background-color: #dddddd;
   }
 
-  .navbar-nav {
-    display: block;
+  .navbar-container {
+    position: relative;
+  }
+
+  .navbar-container > .navbar-brand-area {
+    margin-left: 0;
+  }
+
+  #navbar {
+    position: absolute;
+    top: var(--navbar-height);
+    right: 4.5%;
+    min-width: 220px;
+    padding: 6px 0;
+    z-index: var(--navbar-z-index);
     background-color: var(--color-neutral-white);
     box-shadow: 0 1px 8px 0 #999999;
     border-radius: 5px;
+  }
+
+  #header.header--tall #navbar {
+    top: 50px;
+  }
+
+  #navbar:not(.is-open) {
+    display: none !important;
+  }
+
+  #navbar.is-open {
+    display: block !important;
+    overflow: hidden !important;
+  }
+
+  .navbar-nav {
+    display: block !important;
+    width: 100%;
     margin: 0;
-    padding-top: 10px;
-    padding-bottom: 10px;
-  }
-
-  .navbar-nav > li > a.navbar-button {
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
     border-radius: 0;
-    border: none;
-    display: block;
-  }
-
-  #header.header--tall .navbar-nav > li > a.navbar-button {
-    border: none;
   }
 
   .navbar-nav > li {
@@ -1041,55 +1311,29 @@ body:has(#header.header--tall) .test-server-banner {
     margin-left: 0;
   }
 
-  .navbar-button {
+  .navbar-nav > li > .navbar-button {
+    border-radius: 0;
     border: none;
+    outline: none;
     width: 100%;
-    border-radius: 0 0 5px 5px;
+    display: flex;
+    justify-content: flex-start;
   }
 
-  .navbar-container {
-    position: relative;
+  .navbar-nav--primary::before {
+    display: none; /* No brand divider in the stacked menu. */
   }
 
-  .navbar-container > .navbar-brand-area {
-    margin-left: 0;
-  }
-
-  .navbar-nav > li > a.navbar-button:hover {
-    border: none;
-  }
-
-  #navbar {
-    position: absolute;
-    top: var(--navbar-height);
-    right: 4.5%;
-    border: none;
-    padding: 0;
-    z-index: var(--navbar-z-index);
-  }
-
-  #header.header--tall #navbar {
-    top: 70px;
-  }
-
-  #navbar.collapse:not(.in) {
-    display: none !important;
-  }
-
-  #navbar.collapse.in {
-    display: block !important;
-    overflow: hidden !important;
-  }
-
-  .navbar-nav .open .dropdown-menu {
+  .navbar-lnk.is-open > .dropdown-menu {
     position: relative;
     border: none;
-    border-radius: 0 0 5px 5px;
+    border-radius: 0;
     width: 100%;
+    box-shadow: none;
   }
 
-  .navbar-nav:last-child {
-    margin-right: 0;
+  .navbar-lnk.is-open > .dropdown-menu.nav-city-panel {
+    width: 100%;
   }
 }
 

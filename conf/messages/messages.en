@@ -94,6 +94,14 @@ navbar.lang.icon.alt = languages icon
 navbar.servicehours = Volunteer Info
 navbar.timecheck = Time Check
 navbar.cities = Cities
+navbar.menu.toggle = Toggle navigation menu
+navbar.tools.analyze = Analyze
+navbar.tools.community = Community
+navbar.tools.build = Build
+navbar.tools.admin = Admin
+navbar.city.search = Search cities…
+navbar.city.viewall = View all cities on the map
+navbar.city.none = No matching cities
 
 landing.create.path = Let''s create a path for everyone
 landing.start.exploring = Start Exploring

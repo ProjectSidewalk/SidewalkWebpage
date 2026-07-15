@@ -91,6 +91,14 @@ navbar.lang.icon.alt = Sprachsymbol
 navbar.servicehours = Informationen zu Freiwilligen
 navbar.timecheck = Zeitkontrolle
 navbar.cities = Städte
+navbar.menu.toggle = Navigationsmenü umschalten
+navbar.tools.analyze = Analysieren
+navbar.tools.community = Community
+navbar.tools.build = Erstellen
+navbar.tools.admin = Verwaltung
+navbar.city.search = Städte suchen…
+navbar.city.viewall = Alle Städte auf der Karte anzeigen
+navbar.city.none = Keine passenden Städte
 
 landing.create.path = Schaffen wir einen Weg für alle!
 landing.start.exploring = Erkundung starten
