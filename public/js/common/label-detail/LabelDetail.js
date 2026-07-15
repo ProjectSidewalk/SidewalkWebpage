@@ -397,7 +397,7 @@ class LabelDetail {
         const address = (livePano && panoData.getProperty('address')) || this.#els.address.textContent;
         // Link the address to the provider's public viewer only when live imagery actually loaded — for an
         // expired pano the provider link would land on a "no imagery here" page.
-        if (address) this.#showAddress(address, livePano ? this.#panoUrl(meta) : null);
+        if (address) this.#showAddress(address, livePano ? this.#panoLink(meta) : null);
       });
 
     // Validation counts + AI validation.
@@ -749,38 +749,47 @@ class LabelDetail {
    * Shows or hides the address meta cell. The whole cell is hidden when no address is known so the meta row
    * doesn't render a dangling "Address:" label (non-GSV imagery and never-captured panos have none).
    * @param {?string} address - The street-level address to display, or null/empty to hide the cell.
-   * @param {?string} [url] - External imagery-provider URL to link the address to; plain text when null.
+   * @param {?{url: string, tooltip: string}} [link] - Imagery-provider link for the address; plain text when null.
    */
-  #showAddress(address, url = null) {
+  #showAddress(address, link = null) {
     const els = this.#els;
     if (!els.addressCell) return;
     els.address.textContent = address || '';
-    els.address.title = address || ''; // Native tooltip reveals the full address when the strip ellipsizes it.
     els.addressCell.hidden = !address;
-    if (address && url) {
-      els.address.href = url;
+    if (address && link) {
+      els.address.href = link.url;
       els.address.target = '_blank';
       els.address.rel = 'noopener noreferrer';
+      // Full address (the strip may ellipsize it) plus where the link goes.
+      els.address.title = `${address} — ${link.tooltip}`;
     } else {
       els.address.removeAttribute('href');
       els.address.removeAttribute('target');
       els.address.removeAttribute('rel');
+      els.address.title = address || ''; // Native tooltip reveals the full address when the strip ellipsizes it.
     }
   }
 
   /**
-   * External URL for viewing the label's pano on its imagery provider's own site. Mirrors the URL shapes
-   * PanoInfoPopover builds for its view-in-pano link.
+   * External link for viewing the label's pano on its imagery provider's own site. Mirrors the URL shapes
+   * PanoInfoPopover builds for its view-in-pano link, and reuses its translated link text as the tooltip.
    * @param {Object} meta - The label metadata payload (pano id + the label's POV).
-   * @returns {?string} The provider URL, or null for providers without a public viewer (e.g. Infra3d).
+   * @returns {?{url: string, tooltip: string}} The provider link, or null for providers without a public
+   *     viewer (e.g. Infra3d).
    */
-  #panoUrl(meta) {
+  #panoLink(meta) {
     const viewerType = this.panoManager.panoViewer.getViewerType();
     if (viewerType === 'gsv') {
-      return `https://www.google.com/maps/@?api=1&map_action=pano&pano=${meta.pano_id}`
-        + `&heading=${meta.heading}&pitch=${meta.pitch}`;
+      return {
+        url: `https://www.google.com/maps/@?api=1&map_action=pano&pano=${meta.pano_id}`
+          + `&heading=${meta.heading}&pitch=${meta.pitch}`,
+        tooltip: i18next.t('common:pano-info.view-in-gsv'),
+      };
     } else if (viewerType === 'mapillary') {
-      return `https://www.mapillary.com/app/?pKey=${meta.pano_id}&focus=photo`;
+      return {
+        url: `https://www.mapillary.com/app/?pKey=${meta.pano_id}&focus=photo`,
+        tooltip: i18next.t('common:pano-info.view-in-mapillary'),
+      };
     }
     return null;
   }
