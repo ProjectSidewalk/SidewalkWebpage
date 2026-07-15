@@ -169,19 +169,11 @@ footer.award = Prêmio <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID
 footer.designed.operated = O Project Sidewalk é projetado e operado pelo <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> da <a id="universityofwashington" href="http://www.cs.uw.edu/">University of Washington</a>
 footer.version = Versão {0} | Última atualização: <span class="timestamp date">{1}</span>
 
-audit.tutorial.welcome.1 = No <span class="bold">Project Sidewalk,</span> você viajará virtualmente pelas cidades completando missões para encontrar e rotular características e problemas de acessibilidade no ambiente, incluindo:
-audit.tutorial.welcome.2 = Começaremos com um breve tutorial interativo.
-audit.tutorial.welcome.3 = Vamos começar!
-audit.tutorial.welcome.4 = Já fez o tutorial? Já tem uma conta? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Entre</a> agora ou <a value="Skip" class="onboarding-transition-trigger">pule o tutorial.</a>
-audit.tutorial.accessible = <span style="color:limegreen">Acessível</span>
-audit.tutorial.inaccessible = <span style="color:red">Inacessível</span>
-audit.tutorial.examples.curb.ramp = <span style="color:limegreen">Rampas de calçada</span> ajudam usuários de cadeira de rodas a subir e descer das calçadas
-audit.tutorial.examples.missing.ramp = Usuários de cadeira de rodas não conseguem movimentar-se pelas calçadas quando <span style="color:#ff0066">faltam rampas.</span>
-audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">Obstáculos</span> bloqueiam o caminho de usuários de cadeira de rodas
-audit.tutorial.examples.surface.problem = Calçadas com <span style="color:orange">problemas na superfície</span> podem não ser transitáveis
-audit.tutorial.end.1 = Ótimo! Você aprendeu a usar a interface! Agora vá em frente e <span class="bold">rotule os seguintes atributos de acessibilidade nas imagens do Street View</span> que afetam significativamente a forma como usuários de cadeira de rodas se deslocam pela cidade:
-audit.tutorial.end.2 = Mais uma vez, obrigado por <span class="bold">tornar o mundo mais acessível para todos!</span>
-audit.tutorial.examples = Exemplos de atributos de acessibilidade: rampas de calçada, rampas de calçada ausentes, obstáculos no caminho e problemas na superfície.
+audit.tutorial.complete.1 = Você conseguiu!
+audit.tutorial.complete.2 = Você completou o tutorial!
+audit.tutorial.complete.learn-more = Saiba mais
+audit.tutorial.complete.start-contributing = Começar a contribuir
+
 audit.ribbon.curb.ramp.labels = RÓTULOS DE RAMPA DE CALÇADA
 audit.ribbon.sidewalk.labels = RÓTULOS DE CALÇADA
 audit.ribbon.other.labels = OUTROS RÓTULOS DE ACESSIBILIDADE

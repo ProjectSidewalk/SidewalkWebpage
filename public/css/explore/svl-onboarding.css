@@ -100,33 +100,3 @@
   overflow: hidden auto;
   z-index: 1029;
 }
-
-#onboarding-example-image-1, #onboarding-example-image-2-top, #onboarding-example-image-2-bottom {
-  width: calc(980px * var(--ui-scale));
-  max-width: 100%;
-}
-
-.tutorial-table {
-  width: 100%;
-}
-
-.tutorial-table-cell {
-  text-align:center;
-}
-
-.tutorial-cell-intro {
-  width: 25%;
-}
-
-.tutorial-spacer {
-  padding-bottom: calc(8px * var(--ui-scale));
-}
-
-#onboarding-welcome-ok-button {
-  position: relative;
-  top: -4px;
-}
-
-#onboarding-skip-option span {
-  font-size: 65%;
-}

@@ -602,76 +602,90 @@
     </div>
   </div>
 
-  <template class="onboarding" val="initial-instruction" id="onboarding-initial-instruction">
-    <div class="row">
-      <div class="col-md-12">
-        <p>@Html(Messages("audit.tutorial.welcome.1"))</p>
-        <table class="tutorial-table">
-          <tr>
-            <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("curb.ramps"))</td>
-            <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("missing.ramps"))</td>
-            <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("obstacles")) </td>
-            <td class="tutorial-table-cell tutorial-cell-intro">@Html(Messages("surface.problems"))</td>
-          </tr>
-        </table>
+  @* Pre-tutorial intro walkthrough shown before the onboarding tutorial begins (driven by TutorialIntro.js). The
+     per-step illustrations are animated PNGs dropped into images/explore/onboarding/intro/ later. *@
+  <div id="tutorial-intro" class="tutorial-intro audit-selectable" role="region" aria-labelledby="tutorial-intro-title">
+    <div class="tutorial-intro__inner">
+      <div class="tutorial-intro__header">
+        <p class="tutorial-intro__eyebrow" data-i18n="audit:tutorial-intro.eyebrow"></p>
+        <h1 class="tutorial-intro__title" id="tutorial-intro-title" data-i18n="audit:tutorial-intro.title"></h1>
+      </div>
+      <div class="tutorial-intro__body">
+        <div class="tutorial-intro__illustration">
+          <img class="tutorial-intro__illustration-img is-active" data-step="0" alt="" data-i18n-alt="audit:tutorial-intro.explore.title" src='@assets.path("images/explore/onboarding/intro/explore.png")'>
+          <img class="tutorial-intro__illustration-img" data-step="1" alt="" data-i18n-alt="audit:tutorial-intro.label.title" src='@assets.path("images/explore/onboarding/intro/label.png")'>
+          <img class="tutorial-intro__illustration-img" data-step="2" alt="" data-i18n-alt="audit:tutorial-intro.validate.title" src='@assets.path("images/explore/onboarding/intro/validate.png")'>
+          <img class="tutorial-intro__illustration-img" data-step="3" alt="" data-i18n-alt="audit:tutorial-intro.impact.title" src='@assets.path("images/explore/onboarding/intro/impact.png")'>
+        </div>
+        <div class="tutorial-intro__panel">
+          <div class="tutorial-intro__step is-active" data-step="0">
+            <div class="tutorial-intro__step-heading">
+              <img class="tutorial-intro__step-icon" alt="" src='@assets.path("images/icons/noun_distance_2587675_cropped.png")'>
+              <span class="tutorial-intro__step-title" data-i18n="audit:tutorial-intro.explore.title"></span>
+            </div>
+            <div class="tutorial-intro__divider"></div>
+            <p class="tutorial-intro__step-description" data-i18n="audit:tutorial-intro.explore.description"></p>
+          </div>
+          <div class="tutorial-intro__step" data-step="1">
+            <div class="tutorial-intro__step-heading">
+              <img class="tutorial-intro__step-icon" alt="" src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")'>
+              <span class="tutorial-intro__step-title" data-i18n="audit:tutorial-intro.label.title"></span>
+            </div>
+            <div class="tutorial-intro__divider"></div>
+            <p class="tutorial-intro__step-description" data-i18n="audit:tutorial-intro.label.description"></p>
+          </div>
+          <div class="tutorial-intro__step" data-step="2">
+            <div class="tutorial-intro__step-heading">
+              <img class="tutorial-intro__step-icon" alt="" src='@assets.path("images/icons/noun_validation_1876484_cropped.png")'>
+              <span class="tutorial-intro__step-title" data-i18n="audit:tutorial-intro.validate.title"></span>
+            </div>
+            <div class="tutorial-intro__divider"></div>
+            <p class="tutorial-intro__step-description" data-i18n="audit:tutorial-intro.validate.description"></p>
+          </div>
+          <div class="tutorial-intro__step" data-step="3">
+            <div class="tutorial-intro__step-heading">
+              <img class="tutorial-intro__step-icon" alt="" src='@assets.path("images/explore/icons/heart-check.svg")'>
+              <span class="tutorial-intro__step-title" data-i18n="audit:tutorial-intro.impact.title"></span>
+            </div>
+            <div class="tutorial-intro__divider"></div>
+            @* Composed at runtime by TutorialIntro.js from live /v3/api/aggregateStats numbers; the stat lines are
+               omitted (leaving just the tagline) until/unless that fetch resolves. *@
+            <p class="tutorial-intro__step-description" id="tutorial-intro-impact-desc"></p>
+          </div>
+          <button type="button" id="tutorial-intro-next-btn" class="button-ps button--primary button--medium tutorial-intro__next"></button>
+        </div>
+      </div>
+      <div class="tutorial-intro__links">
+        @if(user.role == "Anonymous") {
+          <p>
+            <span data-i18n="audit:tutorial-intro.have-account"></span>
+            <a href="@routes.UserController.signIn()" data-au-open="signIn" class="tutorial-intro__link" data-i18n="audit:tutorial-intro.sign-in"></a>
+          </p>
+        }
         <p>
-          <img src='@assets.path("images/explore/onboarding/ExamplePictures03.png")' id="onboarding-example-image-1" alt="Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.">
+          <span data-i18n="audit:tutorial-intro.already-tutorial"></span>
+          <a href="#" id="tutorial-intro-skip" class="tutorial-intro__link" data-i18n="audit:tutorial-intro.skip"></a>
         </p>
-
-      </div>
-      <div class="col-md-6">
-        <p><span>@Messages("audit.tutorial.welcome.2")</span></p>
-      </div>
-      <div class="col-md-offset-3 col-md-3">
-        <p>
-          <button type="button" class="button-ps button--medium button--secondary onboarding-transition-trigger" id="onboarding-welcome-ok-button" value="OK">@Messages("audit.tutorial.welcome.3")</button>
-        </p>
-      </div>
-
-      <div class="col-md-12" id="onboarding-skip-option">
-        <p class="text-right"><span>@Html(Messages("audit.tutorial.welcome.4"))</span></p>
       </div>
     </div>
-  </template>
+  </div>
+  @* Tutorial-complete "You did it!" screen, injected into the onboarding takeover holder by the outro state. The
+     hero animation lives at images/explore/onboarding/tutorial-complete.gif; the fireworks are placeholders. *@
   <template class="onboarding" val="outro" id="onboarding-outro">
-    <div class="row">
-      <div class="col-md-12">
-        <p>@Html(Messages("audit.tutorial.end.1"))</p>
-
-        <table class="tutorial-table">
-          <tr>
-            <th class="tutorial-table-cell">@Html(Messages("audit.tutorial.accessible"))</th>
-            <th class="tutorial-table-cell">@Html(Messages("audit.tutorial.inaccessible"))</th>
-          </tr>
-          <tr>
-            <td colspan=2>
-              <img id="onboarding-example-image-2-top" src='@assets.path("images/explore/onboarding/ExamplePictures02_top.png")' alt="@Messages("audit.tutorial.examples")">
-            </td>
-          </tr>
-          <tr >
-            <td class="tutorial-table-cell tutorial-spacer">@Html(Messages("audit.tutorial.examples.curb.ramp"))</td>
-            <td class="tutorial-table-cell tutorial-spacer">@Html(Messages("audit.tutorial.examples.missing.ramp"))</td>
-          </tr>
-          <tr>
-            <th class="tutorial-table-cell">@Html(Messages("audit.tutorial.inaccessible"))</th>
-            <th class="tutorial-table-cell">@Html(Messages("audit.tutorial.inaccessible"))</th>
-          </tr>
-          <tr>
-            <td colspan=2>
-              <img id="onboarding-example-image-2-bottom" src='@assets.path("images/explore/onboarding/ExamplePictures02_bot.png")' alt="@Messages("audit.tutorial.examples")" >
-            </td>
-          </tr>
-          <tr>
-            <td class="tutorial-table-cell tutorial-spacer">@Html(Messages("audit.tutorial.examples.obstacle"))</td>
-            <td class="tutorial-table-cell tutorial-spacer">@Html(Messages("audit.tutorial.examples.surface.problem"))</td>
-          </tr>
-        </table>
-
-        <p>@Html(Messages("audit.tutorial.end.2"))</p>
+    <div class="tutorial-complete">
+      <div class="tutorial-complete__animation">
+        <img class="tutorial-complete__fireworks tutorial-complete__fireworks--1" alt="" src='@assets.path("images/explore/onboarding/intro/fireworks.png")'>
+        <img class="tutorial-complete__fireworks tutorial-complete__fireworks--2" alt="" src='@assets.path("images/explore/onboarding/intro/fireworks.png")'>
+        <img class="tutorial-complete__hero" alt="" src='@assets.path("images/explore/onboarding/tutorial-complete.gif")'>
       </div>
-    </div>
-    <div class="onboarding-ok-button-holder">
-      <button type="button" class="button-ps button--medium button--secondary" id="onboarding-ok-button">OK</button>
+      <div class="tutorial-complete__text">
+        <p>@Messages("audit.tutorial.complete.1")</p>
+        <p>@Messages("audit.tutorial.complete.2")</p>
+      </div>
+      <div class="tutorial-complete__buttons">
+        <a href="@routes.ApplicationController.labelingGuide" target="_blank" rel="noopener" class="button-ps button--secondary button--medium">@Messages("audit.tutorial.complete.learn-more")</a>
+        <button type="button" id="onboarding-ok-button" class="button-ps button--primary button--medium">@Messages("audit.tutorial.complete.start-contributing")</button>
+      </div>
     </div>
   </template>
   @if(commonData.imagerySource == PanoSource.Infra3d) {

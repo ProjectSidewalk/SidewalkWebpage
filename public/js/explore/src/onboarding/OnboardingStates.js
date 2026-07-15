@@ -18,6 +18,8 @@ function OnboardingStates(contextMenu, compass, panoManager) {
 
   this.states = [
     {
+      // The welcome/skip UI now lives in the pre-tutorial intro (TutorialIntro), so this first state only positions
+      // the pano at the tutorial's opening POV and immediately advances to the first labeling step.
       id: 'initialize',
       progression: true,
       properties: {
@@ -25,34 +27,10 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         heading: 230,
         pitch: -6,
         zoom: 1,
-        lat: 38.9404982935884,
-        lng: -77.06762207994893,
-      },
-      message: {
-        message() {
-          const dom = document.getElementById('onboarding-initial-instruction');
-          return dom ? dom.innerHTML : '';
-        },
-        width: 1000,
-        background: true,
       },
       panoId,
       annotations: null,
-      transition() {
-        const value = this.getAttribute('value');
-        // If "Let's get started!" button is clicked.
-        if (value === 'OK') {
-          return 'select-label-type-1';
-        } else {
-          return 'end-onboarding-skip';
-        }
-      },
-    }, {
-      'id': 'end-onboarding-skip',
-      'progression': false,
-      'end-onboarding': {
-        skip: true,
-      },
+      transition: 'select-label-type-1',
     },
     {
       id: 'select-label-type-1',

@@ -173,19 +173,11 @@ footer.award = Premio <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_I
 footer.designed.operated = Project Sidewalk está diseñado y operado por el <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> de la <a id="universityofwashington" href="http://www.cs.uw.edu/">Universidad de Washington</a>
 footer.version = Versión {0} |  Última actualización: <span class = "timestamp date">{1}</span>
 
-audit.tutorial.welcome.1 = En <span class="bold">Project Sidewalk,</span> viajarás virtualmente por ciudades completando misiones para encontrar y etiquetar las características de accesibilidad y las problemáticas del entorno urbano, que incluyen: rampas peatonales, rampas peatonales ausentes, obstáculos en la banqueta, problemas en superficie.
-audit.tutorial.welcome.2 = Comenzaremos con un breve tutorial interactivo.
-audit.tutorial.welcome.3 = ¡Empecemos!
-audit.tutorial.welcome.4 = ¿Ya tomaste el tutorial? ¿Tienes una cuenta? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Iniciar sesión</a> o <a value="Skip" class="onboarding-transition-trigger">saltar el tutorial</a>.
-audit.tutorial.accessible = <span style="color:limegreen">Accesible</span>
-audit.tutorial.inaccessible = <span style="color:red">Inaccesible</span>
-audit.tutorial.examples.curb.ramp = Las <span style="color:limegreen">rampas peatonales</span> ayudan a las personas usuarias de sillas de ruedas a subir y bajar de las banquetas.
-audit.tutorial.examples.missing.ramp = Las personas usuarias de sillas de ruedas no pueden circular por las banquetas cuando <span style="color:#ff0066">faltan las rampas.</span>
-audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">Los obstáculos</span> en la banqueta bloquean el camino de las personas usuarias de sillas de ruedas.
-audit.tutorial.examples.surface.problem = Las banquetas con <span style="color:orange">problemas en la superficie</span> pueden no ser transitables.
-audit.tutorial.end.1 = ¡Excelente! ¡Has aprendido a usar la interfaz! Ahora, sigue adelante y <span class="bold">Etiquetar los siguientes atributos de accesibilidad en imágenes de Street View</span>, que afectan significativamente la forma en que las personas usuarias de sillas de ruedas se mueven por la ciudad:
-audit.tutorial.end.2 = Nuevamente, ¡gracias por <b>hacer que el mundo sea más accesible para todas!</b>
-audit.tutorial.examples = Ejemplos de atributos de accesibilidad: rampas peatonales, rampas peatonales ausentes, obstáculos en la banqueta, y problemas en superficie.
+audit.tutorial.complete.1 = ¡Lo lograste!
+audit.tutorial.complete.2 = ¡Completaste el tutorial!
+audit.tutorial.complete.learn-more = Más información
+audit.tutorial.complete.start-contributing = Empezar a contribuir
+
 audit.ribbon.curb.ramp.labels = ETIQUETAS DE RAMPA PEATONAL
 audit.ribbon.sidewalk.labels = ETIQUETAS DE BANQUETA
 audit.ribbon.other.labels = OTRAS ETIQUETAS DE ACCESIBILIDAD

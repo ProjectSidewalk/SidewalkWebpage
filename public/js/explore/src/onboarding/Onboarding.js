@@ -720,23 +720,23 @@ class Onboarding {
     }
   }
 
+  /**
+   * Position the pano at the tutorial's opening POV, then advance to the first interactive step.
+   *
+   * The welcome/skip UI lives in the pre-tutorial intro (TutorialIntro), whose "Start Mission" button leads here, so
+   * this state is non-interactive: it just sets the POV and moves on.
+   *
+   * @param state    The 'initialize' state from OnboardingStates.js.
+   * @param listener An optional Google Maps event listener to remove before advancing.
+   */
   #visitIntroduction(state, listener) {
-    const svl = this.#svl;
-    // When user clicks 'Let's get started!' to start the tutorial, we set the pano's POV and move to next state.
-    const $target = $('#onboarding-message-holder').find('.onboarding-transition-trigger');
-    $('.onboarding-transition-trigger').css({ cursor: 'pointer' });
-    const callback = (e) => {
-      if (listener) google.maps.event.removeListener(listener);
-      $target.off('click', callback);
-      svl.panoManager.setPov({
-        heading: state.properties.heading,
-        pitch: state.properties.pitch,
-        zoom: state.properties.zoom,
-      });
-      this.#transitionTo(state.transition, undefined, e.currentTarget);
-    };
-
-    $target.on('click', callback);
+    if (listener) google.maps.event.removeListener(listener);
+    this.#svl.panoManager.setPov({
+      heading: state.properties.heading,
+      pitch: state.properties.pitch,
+      zoom: state.properties.zoom,
+    });
+    this.#transitionTo(state.transition);
   }
 
   /**

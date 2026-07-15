@@ -164,19 +164,11 @@ footer.award = Zuschlag <a href = "https://www.nsf.gov/awardsearch/showAward?AWD
 footer.designed.operated = Project Sidewalk wird entwickelt und betrieben durch das <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> der <a id="universityofwashington" href="http://www.cs.uw.edu/">Universität Washington</a>
 footer.version = Version {0} | Zuletzt aktualisiert: <span class = "timestamp date">{1}</span>
 
-audit.tutorial.welcome.1 = Mit <span class="bold">Project Sidewalk</span> werden Sie virtuell durch die Stadt gehen und Missionen erfüllen, in denen Sie Zugänglichkeitsmerkmale und -probleme in Ihrer Umgebung finden und beschriften, einschliesslich:
-audit.tutorial.welcome.2 = Wir beginnen mit einem kurzen, interaktiven Tutorial.
-audit.tutorial.welcome.3 = Los geht''s!
-audit.tutorial.welcome.4 = Haben Sie das Tutorial schon absolviert? Haben Sie bereits ein Account? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Anmelden</a> oder <a value="Skip" class="onboarding-transition-trigger">Tutorial überspringen.</a>
-audit.tutorial.accessible = <span style="color:limegreen">Zugänglich</span>
-audit.tutorial.inaccessible = <span style="color:red">Nicht zugänglich</span>
-audit.tutorial.examples.curb.ramp = <span style="color:limegreen">Trottoirabsenkungen</span> helfen Rollstuhlfahrenden, auf das Trottoir hochzugelangen bzw. vom Trottoir herunterzugelangen
-audit.tutorial.examples.missing.ramp = Rollstuhlnutzende können Gehwege nicht befahren, wenn <span style="color:#ff0066">Trottoirabsenkungen fehlen</span>
-audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">Hindernisse</span> versperren den Weg für Rollstuhlfahrende
-audit.tutorial.examples.surface.problem = Trottoirs mit <span style="color:orange">Oberflächenprobleme</span> sind möglicherweise nicht befahrbar
-audit.tutorial.end.1 = Gut! Sie haben nun gelernt, die Benutzeroberfläche zu bedienen! Beginnen Sie nun mit dem <span class="bold">Beschriften Sie die folgenden Zugänglichkeitsattribute in Street-View-Bildern.</span>, die das Fortbewegen von Rollstuhlfahrenden in der Stadt erheblich beeinflussen:
-audit.tutorial.end.2 = Herzlichen Dank, dass Sie dabei helfen, <span class="bold">die Welt für alle zugänglicher machen!</span>
-audit.tutorial.examples = Beispiele von Zugänglichkeitsmerkmalen: Trottoirabsenkungen, fehlende Trottoirabsenkungen, Hindernisse im Weg und Oberflächenprobleme.
+audit.tutorial.complete.1 = Geschafft!
+audit.tutorial.complete.2 = Sie haben das Tutorial abgeschlossen!
+audit.tutorial.complete.learn-more = Mehr erfahren
+audit.tutorial.complete.start-contributing = Mit dem Beitragen beginnen
+
 audit.ribbon.curb.ramp.labels = BESCHR. TROTTOIRABSENKUNGEN
 audit.ribbon.sidewalk.labels = BESCHR. GEHWEG
 audit.ribbon.other.labels = BESCHR. ANDERE ZUGÄNGLICHKEITSMERKMALE

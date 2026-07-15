@@ -113,6 +113,7 @@ ones whose meaning, parameters, or history aren't obvious:
 | `ServiceHours_Set=<bool>` | Server-logged in `UserController.setServiceHours` when a user opts in to (`true`) or out of (`false`) official community-service-hour recognition from the `/welcome` callout or the `/serviceHoursInstructions` toggle (#4375). |
 | `Share_Click` / `Share_Native` / `Share_CopyLink` / `Share_Platform=<Twitter\|Facebook\|Email>` | Emitted by the frontend share widget: opening the share UI, invoking the native OS share sheet, copying the permalink, and sharing to a named platform (the `Share_Platform` suffix is the target). |
 | `Click_module=SharedLabel_target=<FullMap\|Explore\|Validate\|NearbyLabel>` | Outbound/interactive clicks on the public spotlight page (`SharedLabel.js`): `FullMap` = the "explore the full map" caption link into the LabelMap, `Explore`/`Validate` = the call-to-action buttons into those tools, `NearbyLabel_labelId=<id>` = clicking a nearby-labels map marker (the suffix is that neighbor's label id). |
+| `TutorialIntro_Start` / `TutorialIntro_Next` / `TutorialIntro_StartMission` / `TutorialIntro_Skip` | The pre-tutorial intro walkthrough shown before the Explore onboarding (`explore/src/onboarding/TutorialIntro.js`): shown, advanced a step (`step` note = new index), finished into the tutorial, or skipped. `TutorialIntro_Skip` precedes the same `Onboarding_Skip` the onboarding itself emits, so a skip logs both. |
 
 ## Finding the current list
 
