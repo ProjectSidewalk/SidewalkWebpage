@@ -28,6 +28,8 @@
   @if(withPaging) {
     <button type="button" class="label-detail__paging label-detail__paging--next" data-action="next-label" aria-label="Next label">&gt;</button>
   }
+  @* One-time hint that the imagery is pannable; LabelDetail shows it briefly on the first open per session. *@
+  <span class="label-detail__pan-hint" hidden data-i18n="common:drag-to-look-around">Drag to look around</span>
 </div>
 
 <div class="label-detail__meta-row">

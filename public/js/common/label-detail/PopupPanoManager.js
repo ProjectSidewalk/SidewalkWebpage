@@ -128,8 +128,8 @@ class PopupPanoManager {
     })[0];
     this.#fallbackMarker = $('<img id="pano-fallback-marker">').addClass('icon-outline').css({
       'position': 'absolute',
-      'width': '20px',
-      'height': '20px',
+      'width': '28px',
+      'height': '28px',
       'transform': 'translate(-50%, -50%)',
       'display': 'none',
       'pointer-events': 'none',
@@ -410,8 +410,10 @@ class PopupPanoManager {
       panoViewer: this.panoViewer,
       position: { heading: pos.heading, pitch: pos.pitch },
       icon: this.#icons[label.label_type],
-      size: { width: 20, height: 20 },
+      size: { width: 28, height: 28 },
     });
+    // Halo pulse draws the eye to the (small, often low-contrast) marker when the card opens.
+    panoMarker.marker_.classList.add('label-detail__marker-pulse');
     this.#labelMarkers.push({
       panoId: this.panoViewer.getPanoId(),
       marker: panoMarker,

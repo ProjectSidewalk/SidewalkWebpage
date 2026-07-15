@@ -156,6 +156,44 @@ dialog.label-detail[open]::backdrop {
   cursor: grabbing;
 }
 
+/* Halo pulse draws the eye to the label marker when the card opens; the marker icon alone is small and often
+   low-contrast against pavement. */
+@keyframes label-detail-marker-pulse {
+  from { box-shadow: 0 0 0 0 rgb(255 255 255 / 90%); }
+  to { box-shadow: 0 0 0 16px rgb(255 255 255 / 0%); }
+}
+
+.label-detail__marker-pulse {
+  border-radius: 50%;
+  animation: label-detail-marker-pulse 1.1s ease-out 3;
+}
+
+/* One-time "pannable" hint chip over the imagery; LabelDetail toggles is-visible briefly on first open. */
+.label-detail__pan-hint {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6; /* Above the validation ring (5), below the info popover (10). */
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 65%);
+  color: var(--color-neutral-white);
+  font: var(--text-caption-medium);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+
+.label-detail__pan-hint.is-visible { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .label-detail__marker-pulse { animation: none; }
+
+  .label-detail__pan-hint { transition: none; }
+}
+
 /* GSV sets a plain cursor inline on its own drag surface, so it needs !important to lose. */
 .label-detail__pano .widget-scene,
 .label-detail__pano .widget-scene-canvas {
@@ -563,6 +601,10 @@ button.label-detail__meta-cell:focus-visible {
   border-top: 1px solid var(--color-neutral-200);
 }
 
+/* Collapsed by LabelDetail when there is no description, no comments, and no comment box to type into.
+   Explicit so the hidden attribute wins over the inline mode's display: flex. */
+.label-detail__desc-comments[hidden] { display: none; }
+
 .label-detail__description-section {
   margin: 0 0 16px;
 }
@@ -730,8 +772,8 @@ button.label-detail__meta-cell:focus-visible {
 }
 
 .label-detail--inline .label-detail__pano-overlay-button {
-  height: 8vh;
-  padding: 1vh;
+  height: min(6vh, 60px);
+  padding: 8px;
 }
 
 /* Paging arrows (only rendered when @withPaging = true). Absolutely positioned just outside the pano-wrap. */

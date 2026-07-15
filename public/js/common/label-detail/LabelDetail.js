@@ -29,8 +29,9 @@ class LabelDetail {
   // Field references — populated in #cacheElements().
   #els = {};
 
-  #source = undefined; // Set in showLabel().
-  #readonly = false;   // Set per-label in #handleData() based on meta.from_current_user.
+  #source = undefined;      // Set in showLabel().
+  #readonly = false;        // Set per-label in #handleData() based on meta.from_current_user.
+  #hasDescription = false;  // Set per-label in #handleData(); drives collapsing the desc/comments zone.
   #noImagery = false;  // Set per-label once setPano() resolves; true when no navigable imagery could be loaded.
   #validationCounts = { Agree: null, Disagree: null, Unsure: null };
   #flags = { low_quality: null, incomplete: null, stale: null };
@@ -194,6 +195,8 @@ class LabelDetail {
     els.description = this.#q('.label-detail__description');
     els.validatorComments = this.#q('.label-detail__validator-comments');
     els.commentsCount = this.#q('.label-detail__comments-count');
+    els.descComments = this.#q('.label-detail__desc-comments');
+    els.panHint = this.#q('.label-detail__pan-hint');
     els.commentRow = this.#q('.label-detail__comment-row');
     els.commentLabel = this.#q('.label-detail__comment-row label');
     els.commentInput = this.#q('.label-detail__comment-input');
@@ -398,6 +401,8 @@ class LabelDetail {
         // Link the address to the provider's public viewer only when live imagery actually loaded — for an
         // expired pano the provider link would land on a "no imagery here" page.
         if (address) this.#showAddress(address, livePano ? this.#panoLink(meta) : null);
+
+        if (imageShown) this.#showPanHintOnce();
       });
 
     // Validation counts + AI validation.
@@ -452,13 +457,14 @@ class LabelDetail {
       els.tags.textContent = i18next.t('common:none');
     }
 
-    // Description.
-    if (meta.description !== null && meta.description !== undefined) {
+    // Description. Empty copy matches the comments list's "None".
+    this.#hasDescription = meta.description !== null && meta.description !== undefined;
+    if (this.#hasDescription) {
       els.description.classList.remove('label-detail__empty');
       els.description.textContent = meta.description;
     } else {
       els.description.classList.add('label-detail__empty');
-      els.description.textContent = i18next.t('common:no-description');
+      els.description.textContent = i18next.t('common:none');
     }
 
     // Dates. Short month names ('ll' / 'MMM', locale-aware) keep the meta chips on one line (#4572).
@@ -539,6 +545,13 @@ class LabelDetail {
       els.commentInput.placeholder = prompt;
       if (els.commentLabel) els.commentLabel.textContent = prompt;
       if (wasHidden && focusOnReveal) els.commentInput.focus();
+    }
+
+    // The whole desc/comments zone collapses when it would show nothing but empty states: no description, no
+    // comments, and no comment box to type into.
+    if (els.descComments) {
+      const hasComments = this.#comments && this.#comments.length > 0;
+      els.descComments.hidden = !this.#hasDescription && !hasComments && !show;
     }
   }
 
@@ -743,6 +756,24 @@ class LabelDetail {
         img.removeAttribute('title');
       }
     }
+  }
+
+  /**
+   * Briefly shows the "drag to look around" hint over the imagery, once per session — nothing else signals
+   * that the pano is pannable until the cursor is already over it.
+   */
+  #showPanHintOnce() {
+    const hint = this.#els.panHint;
+    if (!hint || sessionStorage.getItem('psLabelDetailPanHintShown')) return;
+    sessionStorage.setItem('psLabelDetailPanHintShown', 'true');
+    hint.hidden = false;
+    requestAnimationFrame(() => hint.classList.add('is-visible'));
+    setTimeout(() => {
+      hint.classList.remove('is-visible');
+      setTimeout(() => {
+        hint.hidden = true;
+      }, 400); // Matches the CSS opacity transition.
+    }, 3000);
   }
 
   /**
