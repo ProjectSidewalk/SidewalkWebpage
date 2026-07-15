@@ -155,7 +155,8 @@ class HealthPage {
         </tr>`;
     }).join('');
     this.#table('health-locks',
-      ['PID', 'Role', 'State', 'Txn age', 'Blocks', 'Longest wait', 'Held locks', 'Query'], body);
+      [['PID', true], 'Role', 'State', ['Txn age', true], ['Blocks', true], ['Longest wait', true], 'Held locks',
+        'Query'], body);
   }
 
   // ---- Panel: idle in transaction --------------------------------------------------------------------------------
@@ -176,7 +177,8 @@ class HealthPage {
           <td class="ac-muted">${this.#queryCell(r.query)}</td>
         </tr>`;
     }).join('');
-    this.#table('health-idle', ['PID', 'Role', 'Application', 'Idle for', 'Txn age', 'Query'], body);
+    this.#table('health-idle',
+      [['PID', true], 'Role', 'Application', ['Idle for', true], ['Txn age', true], 'Query'], body);
   }
 
   // ---- Panel: stuck evolutions -----------------------------------------------------------------------------------
@@ -190,7 +192,7 @@ class HealthPage {
           <td><span class="ac-badge ac-badge--bad">${HealthPage.#esc(r.state) || 'unknown'}</span></td>
           <td class="ac-muted">${HealthPage.#esc(r.last_problem) || '—'}</td>
         </tr>`).join('');
-    this.#table('health-evolutions', ['Schema', 'Evolution', 'State', 'Problem'], body);
+    this.#table('health-evolutions', ['Schema', ['Evolution', true], 'State', 'Problem'], body);
   }
 
   // ---- Panel: table bloat ----------------------------------------------------------------------------------------
@@ -211,7 +213,8 @@ class HealthPage {
         </tr>`;
     }).join('');
     this.#table('health-bloat',
-      ['Schema', 'Table', 'Live rows', 'Dead rows', 'Dead ratio', 'Last vacuum'], body);
+      ['Schema', 'Table', ['Live rows', true], ['Dead rows', true], ['Dead ratio', true], ['Last vacuum', true]],
+      body);
   }
 
   /** Bloat is only meaningful with a real absolute dead-tuple count (post-restore estimates read as 0 live rows). */
@@ -252,7 +255,7 @@ class HealthPage {
         </tr>`;
       }).join('');
     this.#table('health-connections',
-      ['Role', `Active (pool ${t.conn_pool_max})`, 'Idle', 'Total'], body);
+      ['Role', [`Active (pool ${t.conn_pool_max})`, true], ['Idle', true], ['Total', true]], body);
   }
 
   // ---- Panel: pano downloads -------------------------------------------------------------------------------------
@@ -284,9 +287,20 @@ class HealthPage {
 
   // ---- Small helpers ---------------------------------------------------------------------------------------------
 
-  /** Renders a standard table into a container. */
+  /**
+   * Renders a standard table into a container. Each header is either a plain string (a text column, left-aligned) or a
+   * `[label, true]` pair marking a numeric column, whose header is right-aligned to sit over its `.ac-num` cells.
+   *
+   * @param {string} id - Container element id.
+   * @param {Array<string|[string, boolean]>} headers - Column headers; `[label, true]` right-aligns a numeric column.
+   * @param {string} bodyHtml - Pre-rendered `<tr>` rows.
+   */
   #table(id, headers, bodyHtml) {
-    const head = headers.map((h) => `<th class="ac-th-text">${h}</th>`).join('');
+    const head = headers.map((h) => {
+      const [label, num] = Array.isArray(h) ? h : [h, false];
+      // Default `.ac-table thead th` is right-aligned; a text column opts into left via `ac-th-text`.
+      return `<th${num ? '' : ' class="ac-th-text"'}>${label}</th>`;
+    }).join('');
     this.#setHtml(id, `
       <div class="ac-table-wrap">
         <table class="ac-table">
