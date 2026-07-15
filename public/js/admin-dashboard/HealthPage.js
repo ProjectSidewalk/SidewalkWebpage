@@ -262,20 +262,25 @@ class HealthPage {
 
   #renderPanos(p) {
     if (!p) return this.#renderEmpty('health-panos', 'Pano backup stats are unavailable.');
-    const pct = p.labeled_panos > 0 ? Math.round((p.backed_up / p.labeled_panos) * 100) : 0;
-    const atRisk = p.at_risk > 0
+    // Every count is a share of labeled panos, so show its percentage alongside the raw number.
+    const share = (n) => (p.labeled_panos > 0 ? Math.round((n / p.labeled_panos) * 100) : 0);
+    const atRiskValue = p.at_risk > 0
       ? `<span class="ac-badge ac-badge--warn">${HealthPage.#compact(p.at_risk)}</span>`
       : HealthPage.#compact(p.at_risk);
     const cards = [
-      { value: HealthPage.#compact(p.labeled_panos), label: 'Labeled panos' },
-      { value: HealthPage.#compact(p.backed_up), label: `Backed up (${pct}%)` },
-      { value: HealthPage.#compact(p.unchecked), label: 'Unchecked' },
-      { value: HealthPage.#compact(p.no_backup), label: 'No backup' },
-      { value: HealthPage.#compact(p.missing_metadata), label: 'No metadata row' },
-      { value: atRisk, label: 'At risk (expired, no backup)' },
+      { value: HealthPage.#compact(p.labeled_panos), label: 'Labeled panos',
+        title: 'Distinct panos that have at least one label.' },
+      { value: HealthPage.#compact(p.backed_up), label: `Backed up (${share(p.backed_up)}%)`,
+        title: 'Have a locally-hosted backup image.' },
+      { value: HealthPage.#compact(p.unchecked), label: `Unchecked (${share(p.unchecked)}%)`,
+        title: 'Backup status not yet determined — refreshed lazily by the nightly imagery job.' },
+      { value: HealthPage.#compact(p.no_backup), label: `No backup (${share(p.no_backup)}%)`,
+        title: 'Checked, but no local backup exists.' },
+      { value: atRiskValue, label: `At risk (${share(p.at_risk)}%)`,
+        title: 'Source imagery has expired and there is no local backup, so these labels can no longer be shown.' },
     ];
     const html = cards.map((c) => `
-        <div class="coverage-kpi">
+        <div class="coverage-kpi" title="${HealthPage.#esc(c.title)}">
           <span class="coverage-kpi-value">${c.value}</span>
           <span class="coverage-kpi-label">${c.label}</span>
         </div>`).join('');

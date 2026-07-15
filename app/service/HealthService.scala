@@ -68,8 +68,7 @@ case class PanoBackupStats(
     backedUp: Long,
     noBackup: Long,
     unchecked: Long,
-    atRisk: Long,
-    missingMetadata: Long
+    atRisk: Long
 )
 
 /** The connecting role's environment: database, role, and whether it can read every session's statement text. */

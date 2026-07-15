@@ -48,18 +48,27 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     GetResult(r => ConnCount(r.nextStringOption(), r.nextStringOption(), r.nextInt()))
 
   implicit private val grPanoBackupStats: GetResult[PanoBackupStats] = GetResult { r =>
-    PanoBackupStats(r.nextLong(), r.nextLong(), r.nextLong(), r.nextLong(), r.nextLong(), r.nextLong())
+    PanoBackupStats(r.nextLong(), r.nextLong(), r.nextLong(), r.nextLong(), r.nextLong())
   }
 
   implicit private val grDbEnvInfo: GetResult[DbEnvInfo] =
     GetResult(r => DbEnvInfo(r.nextString(), r.nextString(), r.nextBoolean()))
 
   /**
+   * Caps a health read so it can never hold a pool connection for long. A monitoring query must not add load — least
+   * of all when the database is already stressed, which is exactly when this dashboard gets opened. `statement_timeout`
+   * makes the query self-abort after 5s instead of queuing; `.transactionally` scopes the setting to this one query and
+   * auto-commits it, so the probe never lingers as an idle-in-transaction of its own.
+   */
+  private def bounded[T](action: DBIO[T]): DBIO[T] =
+    (sqlu"SET LOCAL statement_timeout = 5000" >> action).transactionally
+
+  /**
    * The connecting role's environment: database name, role name, and whether it can read every session's statement
    * text (superuser or `pg_monitor` member). The dashboard uses the last flag to tell the viewer when other sessions'
    * `query` columns are hidden as `<insufficient privilege>` rather than genuinely empty.
    */
-  def getDbEnvInfo: DBIO[DbEnvInfo] = {
+  def getDbEnvInfo: DBIO[DbEnvInfo] = bounded {
     sql"""SELECT current_database(),
                  current_user,
                  (current_setting('is_superuser') = 'on'
@@ -72,14 +81,19 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * and current state have been open, how many sessions it blocks and the longest wait among them, and the notable
    * (non-read) locks it holds. Ordered so the worst offender is first.
    */
-  def getBlockingSessions: DBIO[Seq[BlockingSession]] = {
+  def getBlockingSessions: DBIO[Seq[BlockingSession]] = bounded {
     sql"""
       WITH blocked AS (
+        -- Only a session that is WAITING on a lock can be blocked, so probe pg_blocking_pids() on those alone.
+        -- The function briefly takes an exclusive lock on the lock manager's shared state, so calling it once per
+        -- backend on every poll would itself add contention — the very anti-pattern this dashboard exists to flag.
+        -- wait_event_type = 'Lock' is non-lossy here: the app runs READ COMMITTED, so there are no deferrable-
+        -- serializable waiters (the one blocked-but-not-'Lock' case) to miss.
         SELECT pid AS blocked_pid,
                pg_blocking_pids(pid) AS blockers,
                EXTRACT(EPOCH FROM (now() - query_start))::bigint AS wait_seconds
         FROM pg_stat_activity
-        WHERE cardinality(pg_blocking_pids(pid)) > 0
+        WHERE wait_event_type = 'Lock' AND cardinality(pg_blocking_pids(pid)) > 0
       )
       SELECT a.pid,
              a.usename,
@@ -105,7 +119,7 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * commits or rolls back can hold locks for hours). Oldest transaction first; `idle_seconds` is time in the idle
    * state, `xact_seconds` the total transaction age.
    */
-  def getIdleInTransactionSessions: DBIO[Seq[IdleTxnSession]] = {
+  def getIdleInTransactionSessions: DBIO[Seq[IdleTxnSession]] = bounded {
     sql"""
       SELECT pid,
              usename,
@@ -122,7 +136,7 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   }
 
   /** Every schema in this database that has a `play_evolutions` table (one per city schema). */
-  def getEvolutionSchemas: DBIO[Seq[String]] = {
+  def getEvolutionSchemas: DBIO[Seq[String]] = bounded {
     sql"""SELECT table_schema FROM information_schema.tables
           WHERE table_name = 'play_evolutions' ORDER BY table_schema""".as[String]
   }
@@ -147,7 +161,7 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
             WHERE state LIKE 'applying%' OR (last_problem IS NOT NULL AND btrim(last_problem) <> '')"""
       }
       .mkString("\nUNION ALL\n")
-    sql"""#$union ORDER BY schema, id""".as[StuckEvolution]
+    bounded(sql"""#$union ORDER BY schema, id""".as[StuckEvolution])
   }
 
   /**
@@ -155,7 +169,7 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * is a planner estimate and can read as 0 right after a dump restore, so `dead_ratio` alone is not trustworthy —
    * the dashboard also gates on the absolute `n_dead_tup` before flagging.
    */
-  def getTableBloat: DBIO[Seq[TableBloat]] = {
+  def getTableBloat: DBIO[Seq[TableBloat]] = bounded {
     sql"""
       SELECT schemaname,
              relname,
@@ -175,7 +189,7 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * Client-backend connection counts grouped by role and state for this database — a per-city view of connection
    * pressure against each instance's pool ceiling (#4559). Cluster-global, so one instance sees every city's role.
    */
-  def getConnectionCounts: DBIO[Seq[ConnCount]] = {
+  def getConnectionCounts: DBIO[Seq[ConnCount]] = bounded {
     sql"""
       SELECT usename, state, count(*)::int AS cnt
       FROM pg_stat_activity
@@ -191,7 +205,7 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * has no viewable imagery). `has_backup` is refreshed lazily by the imagery check, so a large `unchecked` (NULL)
    * count is normal and these counts approximate on-disk truth. Schema-local (resolves via the connection search_path).
    */
-  def getPanoBackupStats: DBIO[PanoBackupStats] = {
+  def getPanoBackupStats: DBIO[PanoBackupStats] = bounded {
     sql"""
       WITH labeled AS (
         SELECT DISTINCT pano_id FROM label WHERE pano_id IS NOT NULL AND pano_id <> 'tutorial'
@@ -200,8 +214,7 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
              count(*) FILTER (WHERE pd.has_backup IS TRUE)::bigint                             AS backed_up,
              count(*) FILTER (WHERE pd.has_backup IS FALSE)::bigint                            AS no_backup,
              count(*) FILTER (WHERE pd.has_backup IS NULL)::bigint                             AS unchecked,
-             count(*) FILTER (WHERE pd.expired IS TRUE AND pd.has_backup IS NOT TRUE)::bigint  AS at_risk,
-             count(*) FILTER (WHERE pd.pano_id IS NULL)::bigint                                AS missing_metadata
+             count(*) FILTER (WHERE pd.expired IS TRUE AND pd.has_backup IS NOT TRUE)::bigint  AS at_risk
       FROM labeled
       LEFT JOIN pano_data pd ON pd.pano_id = labeled.pano_id
     """.as[PanoBackupStats].head
