@@ -109,6 +109,23 @@
   </section>
 </div>
 
+@* Lived-experience stories (#4054): a collapsed disclosure with a count badge; expanding reveals the story list.
+   StorySection.js lazily fetches /stories per label and renders the list, count, CTA state, and delete controls.
+   Rendered even with zero stories so the share CTA is always reachable. *@
+<section class="label-detail__stories">
+  <details class="label-detail__stories-details">
+    <summary class="label-detail__stories-summary">
+      <span class="label-detail__stories-heading" data-i18n="labelmap:story.heading">Community stories</span>
+      <span class="label-detail__stories-count" hidden></span>
+      <button type="button" class="label-detail__story-share" data-action="open-story-composer"
+              data-i18n="labelmap:story.share-yours">Share yours</button>
+      <span class="label-detail__stories-arrow" aria-hidden="true">&#9662;</span>
+    </summary>
+    <div class="label-detail__stories-list"></div>
+  </details>
+  <span class="label-detail__story-status sr-only" role="status" aria-live="polite"></span>
+</section>
+
 @* Subtle, YouTube-style share control. ShareWidget (share/ShareWidget.js) wires this up and builds its popover into
    the wrapping .label-detail__share div, which is positioned so the popover anchors to the trigger. *@
 <div class="label-detail__footer">
@@ -127,6 +144,75 @@
     </button>
   </div>
 </div>
+
+@* Story composer (#4054): opened from the stories CTA. StoryComposer.js owns all behavior. Inputs carry static ids
+   for their <label for>s (htmlhint input-requires-label) — same multi-instance caveat as the comment input's id
+   above; no page renders two instances today. Radio `name`s and the dialog's aria-labelledby id are made
+   instance-unique by JS at init. *@
+<dialog class="story-composer">
+  <h3 class="story-composer__title" data-i18n="labelmap:story.composer-title">Share your story</h3>
+  <p class="story-composer__intro" data-i18n="labelmap:story.composer-intro">
+    How has this barrier affected you? Your story appears publicly on this label.
+  </p>
+  <label class="story-composer__field" for="story-composer-text">
+    <span class="story-composer__field-label" data-i18n="labelmap:story.your-story">Your story</span>
+    <textarea class="story-composer__text" id="story-composer-text" rows="5"
+              data-i18n-placeholder="labelmap:story.text-placeholder"></textarea>
+  </label>
+  <div class="story-composer__counter" aria-hidden="true"></div>
+  <div class="story-composer__photo-row">
+    <label class="story-composer__photo-attach" for="story-composer-photo">
+      <input type="file" id="story-composer-photo" class="story-composer__photo-input sr-only"
+             accept="image/jpeg,image/png,image/webp">
+      <span data-i18n="labelmap:story.add-photo">Add a photo (optional)</span>
+    </label>
+    <div class="story-composer__photo-preview" hidden>
+      <img class="story-composer__photo-thumb" alt="" width="120" height="90">
+      <div class="story-composer__photo-fields">
+        <label class="story-composer__field" for="story-composer-alt">
+          <span class="story-composer__field-label" data-i18n="labelmap:story.photo-alt-label">
+            Describe the photo for people who can't see it
+          </span>
+          <input type="text" id="story-composer-alt" class="story-composer__alt-input">
+        </label>
+        <label class="story-composer__check-row" for="story-composer-alt-skip">
+          <input type="checkbox" id="story-composer-alt-skip" class="story-composer__alt-skip">
+          <span data-i18n="labelmap:story.photo-alt-skip">My story already fully describes this photo</span>
+        </label>
+        <button type="button" class="story-composer__photo-remove"
+                data-i18n="labelmap:story.remove-photo">Remove photo</button>
+      </div>
+    </div>
+  </div>
+  <fieldset class="story-composer__post-as">
+    <legend class="story-composer__field-label" data-i18n="labelmap:story.post-as">Post as</legend>
+    <label class="story-composer__check-row" for="story-composer-name-anon">
+      <input type="radio" id="story-composer-name-anon" class="story-composer__name-anon" checked>
+      <span data-i18n="labelmap:story.post-anonymous">Anonymous &mdash; no name shown</span>
+    </label>
+    <label class="story-composer__check-row" for="story-composer-name-username">
+      <input type="radio" id="story-composer-name-username" class="story-composer__name-username">
+      <span class="story-composer__username-option" data-i18n="labelmap:story.post-username">Show my username</span>
+    </label>
+  </fieldset>
+  <p class="story-composer__privacy" data-i18n="labelmap:story.privacy-note">
+    Stories are public. You can permanently delete yours at any time.
+  </p>
+  <p class="story-composer__error" role="alert" hidden></p>
+  <div class="story-composer__actions">
+    <button type="button" class="story-composer__cancel" data-i18n="labelmap:story.cancel">Cancel</button>
+    <button type="button" class="story-composer__submit" data-i18n="labelmap:story.submit">Share story</button>
+  </div>
+</dialog>
+
+@* Enlarge view for a story photo (#4054): the photo's author-written alt text doubles as the visible caption. *@
+<dialog class="story-lightbox">
+  <figure class="story-lightbox__figure">
+    <img class="story-lightbox__img" alt="">
+    <figcaption class="story-lightbox__caption"></figcaption>
+  </figure>
+  <button type="button" class="story-lightbox__close" data-i18n="labelmap:story.close">Close</button>
+</dialog>
 
 @if(admin) {
   <details class="label-detail__details label-detail__details--admin" open>

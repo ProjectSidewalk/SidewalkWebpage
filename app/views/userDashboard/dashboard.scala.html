@@ -206,6 +206,14 @@
     <a class="ud-see-all" id="ud-mistakes-seeall" href="#" hidden>@Messages("dashboard.mistakes.see.all")</a>
   </div>
 
+  @* ---- Your stories (#4054) ------------------------------------------------------------------------- *@
+  <div class="api-section" id="ud-stories-section">
+    <h2 class="api-heading" id="your-stories">@Messages("dashboard.stories.title") <a href="#your-stories" class="permalink">#</a></h2>
+    <p>@Messages("dashboard.stories.intro")</p>
+    @* Rows are rendered from /userapi/stories/mine by StoriesSection.js (empty -> quiet nudge). *@
+    <div class="ud-stories" id="ud-stories"></div>
+  </div>
+
   @* ---- Team / class --------------------------------------------------------------------------------- *@
   <div class="api-section" id="ud-team-section">
     <h2 class="api-heading" id="team">@Messages("dashboard.team.title") <a href="#team" class="permalink">#</a></h2>
@@ -268,6 +276,8 @@
   <script src='@assets.path("js/common/PanoMarker.js")'></script>
   <script src='@assets.path("js/common/Toast.js")'></script>
   <script src='@assets.path("js/common/label-detail/PopupPanoManager.js")'></script>
+  <script src='@assets.path("js/common/label-detail/StoryComposer.js")'></script>
+  <script src='@assets.path("js/common/label-detail/StorySection.js")'></script>
   <script src='@assets.path("js/common/label-detail/LabelDetail.js")'></script>
   <script src='@assets.path("js/common/label-detail/LabelPopup.js")'></script>
 
@@ -277,6 +287,7 @@
   <script src="@assets.path("js/common/BadgeAchievements.js")"></script>
   <script src="@assets.path("js/user-dashboard/DashboardBadges.js")"></script>
   <script src="@assets.path("js/user-dashboard/MistakeGallery.js")"></script>
+  <script src="@assets.path("js/user-dashboard/StoriesSection.js")"></script>
   <script>
     // Deferred handle the contribution map's click adapter awaits; resolved (popup or null) once init finishes.
     let labelPopupReadyResolve;
@@ -314,6 +325,11 @@
           seeAllEl: document.getElementById('ud-mistakes-seeall'),
           labelPopup: labelPopup
         }).render();
+      }
+
+      var stories = document.getElementById('ud-stories');
+      if (stories && typeof StoriesSection !== 'undefined') {
+        new StoriesSection(stories, { labelPopup: labelPopup }).render();
       }
     });
   </script>

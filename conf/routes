@@ -62,6 +62,7 @@ GET     /admin/label-map                                controllers.AdminDashboa
 GET     /admin/quality                                  controllers.AdminDashboardController.quality
 GET     /admin/contributors                             controllers.AdminDashboardController.contributors
 GET     /admin/activity                                 controllers.AdminDashboardController.activity
+GET     /admin/stories                                  controllers.AdminDashboardController.stories
 GET     /admin/humans-vs-ai                             controllers.AdminDashboardController.humansVsAi
 GET     /admin/api-analytics                            controllers.AdminDashboardController.apiAnalytics
 GET     /admin/management                               controllers.AdminDashboardController.management

@@ -41,6 +41,7 @@ class LabelDetail {
   #comments;
   #myCommentIdx;
   #shareWidget;
+  #storySection;
 
   /**
    * @param {HTMLElement} root - The host element containing the labelDetail markup (see labelDetail.scala.html).
@@ -112,6 +113,7 @@ class LabelDetail {
 
     this.#initInfoPopover();
     this.#initShareWidget();
+    this.#initStorySection();
 
     // Seed the all-time counts so a validation here can celebrate a newly unlocked validation badge.
     BadgeAchievements.seedCounts();
@@ -125,6 +127,18 @@ class LabelDetail {
     const trigger = this.#q('.label-detail__share-trigger');
     if (trigger && typeof ShareWidget !== 'undefined') {
       this.#shareWidget = new ShareWidget(trigger);
+    }
+  }
+
+  /**
+   * Instantiates the StorySection on the stories disclosure (#4054). Built once; re-pointed at the current label in
+   * each #handleData() call. Deliberately NOT part of #applyInteractionLock() — sharing a story about your own label
+   * is a first-class use case, the inverse of the own-label validation lock.
+   */
+  #initStorySection() {
+    const section = this.#q('.label-detail__stories');
+    if (section && typeof StorySection !== 'undefined') {
+      this.#storySection = new StorySection(this.#root, { currUsername: this.#currUsername });
     }
   }
 
@@ -444,6 +458,9 @@ class LabelDetail {
       this.#myCommentIdx = this.#comments.findIndex((c) => c && c.username === this.#currUsername);
     }
     this.#renderComments();
+
+    // Lived-experience stories (#4054): lazy per-label fetch, so the metadata payload stays untouched.
+    this.#storySection?.setLabel(meta.label_id);
 
     // Fill in some admin-only fields at the bottom if applicable.
     if (this.#admin) {
