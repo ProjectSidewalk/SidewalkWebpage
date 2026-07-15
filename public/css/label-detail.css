@@ -296,9 +296,11 @@ dialog.label-detail[open]::backdrop {
 /* Explicit display: none so the hidden attribute wins over the cell's display: flex. */
 .label-detail__meta-cell--address[hidden] { display: none; }
 
+/* The width cap makes an extreme address ellipsize instead of line-wrapping the row: with flex-wrap, line
+   breaks are decided from the chip's natural width, so without a cap a long address pushes Details down. */
 .label-detail__meta-cell--address {
   min-width: 0;
-  max-width: 100%;
+  max-width: 45%;
 }
 
 /* Addresses can be long; ellipsize inside the chip instead of widening the row. */

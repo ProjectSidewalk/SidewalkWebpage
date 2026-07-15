@@ -458,9 +458,9 @@ class LabelDetail {
       els.description.textContent = i18next.t('common:no-description');
     }
 
-    // Dates.
-    els.timestamp.textContent = moment(new Date(meta.timestamp)).format('LL, LT');
-    els.imageDate.textContent = moment(new Date(meta.image_capture_date)).format('MMMM YYYY');
+    // Dates. Short month names ('ll' / 'MMM', locale-aware) keep the meta chips on one line (#4572).
+    els.timestamp.textContent = moment(new Date(meta.timestamp)).format('ll, LT');
+    els.imageDate.textContent = moment(new Date(meta.image_capture_date)).format('MMM YYYY');
 
     // Address (#4489): seed from the stored pano address; the setPano() callback above upgrades to the live
     // imagery's value once it loads, which covers panos whose address hasn't been captured server-side yet.
