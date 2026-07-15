@@ -421,10 +421,12 @@ button.label-detail__meta-cell:focus-visible {
   gap: 8px;
 }
 
+/* Icon + count over the action word, mirroring the severity faces' icon-over-word rhythm. */
 .label-detail__vote {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
-  gap: 1px;
+  gap: 2px;
   padding: 0;
   background: none;
   border: none;
@@ -432,6 +434,18 @@ button.label-detail__meta-cell:focus-visible {
   font: inherit;
   font-size: 14px;
   cursor: pointer;
+}
+
+.label-detail__vote-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.label-detail__vote-label {
+  font: var(--text-caption-medium);
+  text-align: center;
+  white-space: nowrap;
 }
 
 .label-detail__vote:focus-visible {

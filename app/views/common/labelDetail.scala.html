@@ -67,17 +67,28 @@
     <h3 class="label-detail__col-title" data-i18n="labelmap:validations">Validations</h3>
     @* Validation count display. Each icon's `src` is swapped by JS between the four variants — outline / filled / outline-ai / filled-ai — depending on whether the user (filled) and/or the AI (ai badge) validated this option. The base URL for the icon files is provided via `data-icon-base` so JS doesn't need to know the assets' path. *@
     <div class="label-detail__vote-display" data-icon-base='@assets.path("images/icons/validation/")'>
-      <button type="button" class="label-detail__vote label-detail__vote--agree" aria-label="Agree">
-        <img src='@assets.path("images/icons/validation/agree-outline.svg")' alt="" class="label-detail__vote-icon">
-        <span class="label-detail__vote-count">0</span>
+      @* Each vote is icon + count with the action word beneath, mirroring the severity faces' icon-over-word
+         rhythm; the visible word also names the button for assistive tech. *@
+      <button type="button" class="label-detail__vote label-detail__vote--agree">
+        <span class="label-detail__vote-top">
+          <img src='@assets.path("images/icons/validation/agree-outline.svg")' alt="" class="label-detail__vote-icon">
+          <span class="label-detail__vote-count">0</span>
+        </span>
+        <span class="label-detail__vote-label" data-i18n="common:agree">Agree</span>
       </button>
-      <button type="button" class="label-detail__vote label-detail__vote--disagree" aria-label="Disagree">
-        <img src='@assets.path("images/icons/validation/disagree-outline.svg")' alt="" class="label-detail__vote-icon">
-        <span class="label-detail__vote-count">0</span>
+      <button type="button" class="label-detail__vote label-detail__vote--disagree">
+        <span class="label-detail__vote-top">
+          <img src='@assets.path("images/icons/validation/disagree-outline.svg")' alt="" class="label-detail__vote-icon">
+          <span class="label-detail__vote-count">0</span>
+        </span>
+        <span class="label-detail__vote-label" data-i18n="common:disagree">Disagree</span>
       </button>
-      <button type="button" class="label-detail__vote label-detail__vote--unsure" aria-label="Unsure">
-        <img src='@assets.path("images/icons/validation/unsure-outline.svg")' alt="" class="label-detail__vote-icon">
-        <span class="label-detail__vote-count">0</span>
+      <button type="button" class="label-detail__vote label-detail__vote--unsure">
+        <span class="label-detail__vote-top">
+          <img src='@assets.path("images/icons/validation/unsure-outline.svg")' alt="" class="label-detail__vote-icon">
+          <span class="label-detail__vote-count">0</span>
+        </span>
+        <span class="label-detail__vote-label" data-i18n="common:unsure">Unsure</span>
       </button>
     </div>
   </section>
