@@ -16,7 +16,7 @@
   "hide-tags": "Tags ausblenden",
   "ai-validation": "KI-Validierung",
   "ai-val-included": "$t(common:{{aiVal}}) (in der obigen Zählung enthalten)",
-  "add-comment": "Hier Kommentar hinzufügen...",
+  "add-comment": "Kennen Sie diese Stelle? Teilen Sie Neuigkeiten oder Korrekturen – wurde das Problem z. B. behoben?",
   "submit-comment": "Kommentar senden",
   "comment": "Kommentar",
   "labeler-description": "Beschreibung des Erstellers",

@@ -16,7 +16,7 @@
   "hide-tags": "Tags verbergen",
   "ai-validation": "AI-validatie",
   "ai-val-included": "$t(common:{{aiVal}}) (inbegrepen in bovenstaande telling)",
-  "add-comment": "Voeg opmerking hier toe...",
+  "add-comment": "Ken je deze plek? Deel updates of correcties – is het bijv. al verholpen?",
   "submit-comment": "Opmerking",
   "comment": "Opmerking",
   "labeler-description": "Beschrijving van de labelaar",

@@ -453,7 +453,8 @@ button.label-detail__meta-cell:focus-visible {
 }
 
 .label-detail__comment-input {
-  flex: 0 1 291px;
+  flex: 1 1 auto;
+  min-width: 0;
   height: 30px;
   padding: 8px 18px;
   border: 1px solid var(--color-neutral-400);

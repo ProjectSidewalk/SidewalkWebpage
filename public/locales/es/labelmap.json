@@ -16,7 +16,7 @@
   "hide-tags": "Ocultar etiquetas",
   "ai-validation": "Validación de IA",
   "ai-val-included": "$t(common:{{aiVal}}) (incluido en el recuento anterior)",
-  "add-comment": "Agrega un comentario aquí...",
+  "add-comment": "¿Conoces este lugar? Comparte novedades o correcciones, p. ej., ¿ya se arregló?",
   "submit-comment": "Enviar comentario",
   "comment": "Comentario",
   "labeler-description": "Descripción de quien etiquetó",

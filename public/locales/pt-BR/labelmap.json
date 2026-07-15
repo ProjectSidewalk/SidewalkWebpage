@@ -16,7 +16,7 @@
   "hide-tags": "Ocultar tags",
   "ai-validation": "Validação de IA",
   "ai-val-included": "$t(common:{{aiVal}}) (incluido na contagem anterior)",
-  "add-comment": "Adicione comentários aqui...",
+  "add-comment": "Conhece este lugar? Compartilhe atualizações ou correções — por ex., já foi consertado?",
   "submit-comment": "Enviar comentários",
   "comment": "Comentário",
   "labeler-description": "Descrição de quem rotulou",

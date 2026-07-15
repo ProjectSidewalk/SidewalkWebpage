@@ -16,7 +16,7 @@
   "hide-tags": "Hide tags",
   "ai-validation": "AI Validation",
   "ai-val-included": "$t(common:{{aiVal}}) (included in count above)",
-  "add-comment": "Add comment here...",
+  "add-comment": "Know this spot? Share updates or corrections — e.g. has it been fixed?",
   "submit-comment": "Submit comment",
   "comment": "Comment",
   "labeler-description": "Labeler's Description",
