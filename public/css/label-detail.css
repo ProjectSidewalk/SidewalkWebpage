@@ -854,7 +854,42 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__footer {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
   margin-top: 8px;
+}
+
+/* Cross-surface hop to the LabelMap; styled as a sibling of the share pill. Hidden until LabelDetail fills the
+   href (hosts opt in) — explicit so the attribute beats display: inline-flex. */
+.label-detail__labelmap-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-800);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 18px;
+  font: var(--text-small-medium);
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.label-detail__labelmap-link[hidden] { display: none; }
+
+.label-detail__labelmap-link:hover {
+  background: var(--color-neutral-200);
+  border-color: var(--color-neutral-400);
+}
+
+.label-detail__labelmap-link:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+}
+
+.label-detail__labelmap-link img {
+  width: 14px;
+  height: 14px;
+  display: block;
 }
 
 /* Anchor for the absolutely-positioned popover. */

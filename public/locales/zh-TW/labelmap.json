@@ -20,6 +20,7 @@
   "disagree-tooltip": "認為此標記錯誤的檢核者",
   "unsure-tooltip": "不確定的檢核者",
   "tags-tooltip": "標記者為描述問題所加的屬性",
+  "view-on-labelmap": "在標記地圖中檢視",
   "no-description-provided": "未提供描述",
   "no-comments-yet": "尚無評論",
   "why-disagree": "告訴我們您為什麼不同意…",

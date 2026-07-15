@@ -20,6 +20,7 @@
   "disagree-tooltip": "Validators who said this label is incorrect",
   "unsure-tooltip": "Validators who couldn't tell",
   "tags-tooltip": "Attributes the labeler applied to describe the problem",
+  "view-on-labelmap": "View on Label Map",
   "no-description-provided": "No description provided",
   "no-comments-yet": "No comments yet",
   "why-disagree": "Tell us why you disagree…",

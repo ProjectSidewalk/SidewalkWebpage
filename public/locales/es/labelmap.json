@@ -20,6 +20,7 @@
   "disagree-tooltip": "Validadores que indicaron que esta etiqueta es incorrecta",
   "unsure-tooltip": "Validadores que no estaban seguros",
   "tags-tooltip": "Atributos que quien etiquetó aplicó para describir el problema",
+  "view-on-labelmap": "Ver en el mapa de etiquetas",
   "no-description-provided": "No se proporcionó descripción",
   "no-comments-yet": "Aún no hay comentarios",
   "why-disagree": "Cuéntanos por qué no estás de acuerdo…",

@@ -20,6 +20,7 @@
   "disagree-tooltip": "Validadores que indicaram que este rótulo está incorreto",
   "unsure-tooltip": "Validadores que não tinham certeza",
   "tags-tooltip": "Atributos que quem rotulou aplicou para descrever o problema",
+  "view-on-labelmap": "Ver no mapa de rótulos",
   "no-description-provided": "Nenhuma descrição fornecida",
   "no-comments-yet": "Ainda não há comentários",
   "why-disagree": "Conte-nos por que você discorda…",

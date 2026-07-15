@@ -56,5 +56,8 @@ function createNearbyLabelNavigator(mapData) {
     hasPrev(currentId) {
       return trail.length > (trail[trail.length - 1] === currentId ? 1 : 0);
     },
+    getCoords(labelId) {
+      return coordsById.get(labelId) ?? null;
+    },
   };
 }

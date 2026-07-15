@@ -20,6 +20,7 @@ class LabelDetail {
   #onVote;
   #panoOverlaySource;
   #voteColumnSource;
+  #showLabelMapLink;
 
   // Updated in each showLabel() call so PanoInfoPopover's accessor closures see the current label.
   #currentLabelMeta = null;
@@ -54,6 +55,8 @@ class LabelDetail {
    *      successfully submitted. Hosts use this to sync upstream UI (e.g. recolor a Gallery card).
    * @param {string} [opts.panoOverlaySource] - Source recorded when voting via the pano overlay buttons.
    * @param {string} [opts.voteColumnSource] - Source recorded when voting via the column vote buttons.
+   * @param {boolean} [opts.showLabelMapLink] - Show a footer link to this label on /labelMap (for hosts that
+   *     aren't the LabelMap itself).
    */
   constructor(root, opts) {
     this.#root = root;
@@ -64,6 +67,7 @@ class LabelDetail {
     this.#onVote = opts.onVote;
     this.#panoOverlaySource = opts.panoOverlaySource;
     this.#voteColumnSource = opts.voteColumnSource;
+    this.#showLabelMapLink = !!opts.showLabelMapLink;
   }
 
   /**
@@ -202,6 +206,7 @@ class LabelDetail {
     els.commentsCount = this.#q('.label-detail__comments-count');
     els.descComments = this.#q('.label-detail__desc-comments');
     els.panHint = this.#q('.label-detail__pan-hint');
+    els.labelMapLink = this.#q('.label-detail__labelmap-link');
     els.commentRow = this.#q('.label-detail__comment-row');
     els.commentLabel = this.#q('.label-detail__comment-row label');
     els.commentInput = this.#q('.label-detail__comment-input');
@@ -430,6 +435,12 @@ class LabelDetail {
     // Title is just the label-type name (e.g. "Curb Ramp") — the popup is self-evidently about a label.
     const labelTypeName = i18next.t(`common:${camelToKebab(meta.label_type)}`);
     els.title.textContent = labelTypeName;
+
+    // Cross-surface hop to the LabelMap, which opens this label's popup and pulses its map location.
+    if (this.#showLabelMapLink && els.labelMapLink) {
+      els.labelMapLink.href = `/labelMap?labelId=${meta.label_id}`;
+      els.labelMapLink.hidden = false;
+    }
 
     // Point the share widget at this label's public permalink (#456). The /label/:id route renders the label
     // spotlight page and serves the og:image crawlers embed in the share card.

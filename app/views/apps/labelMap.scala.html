@@ -153,7 +153,20 @@
         self.mapData = m[4];
         new MapSidebarFilter(self.map, self.mapData, { highQualityFilter: true });
         // Popup arrows step through spatially nearby labels using the already-loaded map data.
-        params.popupLabelViewer.setNearbyNavigator(createNearbyLabelNavigator(self.mapData));
+        const nearbyNav = createNearbyLabelNavigator(self.mapData);
+        params.popupLabelViewer.setNearbyNavigator(nearbyNav);
+
+        // A ?labelId= deep link centers the map on the label and pulses its spot, so it's findable on the map
+        // once the popup closes.
+        const deepLinkLabelId = parseInt(new URLSearchParams(window.location.search).get('labelId'), 10);
+        const deepLinkCoords = deepLinkLabelId ? nearbyNav.getCoords(deepLinkLabelId) : null;
+        if (deepLinkCoords) {
+          self.map.jumpTo({ center: deepLinkCoords, zoom: Math.max(self.map.getZoom(), 16) });
+          const pulseEl = document.createElement('div');
+          pulseEl.className = 'labelmap-deeplink-pulse';
+          const pulseMarker = new mapboxgl.Marker({ element: pulseEl }).setLngLat(deepLinkCoords).addTo(self.map);
+          setTimeout(() => pulseMarker.remove(), 5000);
+        }
         hideLabelMapLoading();
       }).catch(e => {
         console.error('LabelMap failed to load', e);

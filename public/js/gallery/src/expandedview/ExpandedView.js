@@ -59,6 +59,7 @@ class ExpandedView {
       onVote: this.#handleVote,
       panoOverlaySource: 'GalleryExpandedImage',
       voteColumnSource: 'GalleryExpandedThumbs',
+      showLabelMapLink: true,
     });
 
     // Expose panoManager for Keyboard.js zoom shortcuts.

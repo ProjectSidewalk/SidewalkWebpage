@@ -154,6 +154,12 @@
 @* Subtle, YouTube-style share control. ShareWidget (share/ShareWidget.js) wires this up and builds its popover into
    the wrapping .label-detail__share div, which is positioned so the popover anchors to the trigger. *@
 <div class="label-detail__footer">
+  @* Cross-surface hop (#4572): hosts other than LabelMap opt in via LabelDetail's showLabelMapLink, which fills
+     the href with /labelMap?labelId=<id> so the map opens with this label's popup and a location pulse. *@
+  <a class="label-detail__labelmap-link" hidden>
+    <img src='@assets.path("images/icons/map-pin-feather.svg")' alt="">
+    <span data-i18n="labelmap:view-on-labelmap">View on Label Map</span>
+  </a>
   <div class="label-detail__share">
     <button type="button" class="label-detail__share-trigger"
             data-i18n-aria-label="common:share.button" aria-label="Share">
