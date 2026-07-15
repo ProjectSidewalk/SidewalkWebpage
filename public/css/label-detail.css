@@ -748,15 +748,12 @@ button.label-detail__meta-cell:focus-visible {
  * Drops the modal-style fixed sizing and adds prev/next paging buttons. The host element supplies its own
  * width/height via the parent grid; we just stretch and lay out children to fit. */
 
+/* The host panel (.gallery-expanded-view) owns the size caps; the paging arrows float over the pano's edges,
+   so the card needs no side gutters for them. */
 .label-detail--inline {
   display: flex;
   flex-direction: column;
-
-  /* Caps for large monitors: uncapped, the pano grows to fill the whole panel and the card stretches
-     edge-to-edge, which reads comically large on ≥27" screens. Auto margins center the capped card. */
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 12px 60px;
+  padding: 12px 24px;
 }
 
 
@@ -784,26 +781,35 @@ button.label-detail__meta-cell:focus-visible {
   padding: 8px;
 }
 
-/* Paging arrows (only rendered when @withPaging = true). Absolutely positioned just outside the pano-wrap. */
+/* Paging arrows (only rendered when @withPaging = true): translucent carousel-style chips floating over the
+   pano's left/right edges. */
 .label-detail__paging {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
   z-index: 11;
-  width: 40px;
-  height: 50px;
+  width: 38px;
+  height: 38px;
   padding: 0;
   border: none;
-  background: transparent;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 85%);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 25%);
   color: var(--color-asphalt-500);
-  font-size: 50px;
+  font-size: 24px;
   line-height: 1;
   cursor: pointer;
 }
-.label-detail__paging:hover { color: #000000; }
+
+.label-detail__paging:hover {
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-black);
+}
 
 .label-detail__paging:disabled {
-  color: #cccccc;
+  background: rgb(255 255 255 / 55%);
+  color: var(--color-neutral-500);
+  box-shadow: none;
   cursor: default;
 }
 
@@ -811,8 +817,8 @@ button.label-detail__meta-cell:focus-visible {
   outline: 2px solid var(--color-link-100);
   outline-offset: 2px;
 }
-.label-detail__paging--prev { left: calc(-30px - 20px); }  /* Centered based on padding and icon width */
-.label-detail__paging--next { right: calc(-30px - 20px); } /* Centered based on padding and icon width */
+.label-detail__paging--prev { left: 10px; }
+.label-detail__paging--next { right: 10px; }
 
 .label-detail--inline .label-detail__vote-display {
   gap: 10px;

@@ -114,7 +114,7 @@
   height: calc(100vh - var(--navbar-height) - 2vh);
   max-height: 880px;
   width: 52vw;
-  max-width: 1080px;
+  max-width: 920px;
   border-radius: 12px;
   background: var(--color-neutral-white);
   box-shadow: 0 12px 40px rgb(0 0 0 / 35%);
