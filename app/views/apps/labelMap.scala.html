@@ -29,7 +29,8 @@
     </div>
   </div>
 
-  @common.labelPopup(admin = false)
+  @* withPaging renders prev/next arrows; LabelPopup keeps them hidden until the nearby-label navigator is set. *@
+  @common.labelPopup(admin = false, withPaging = true)
 
   <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
   <link href='@assets.path("css/map-sidebar.css")' rel="stylesheet">
@@ -151,6 +152,8 @@
         self.map = m[0];
         self.mapData = m[4];
         new MapSidebarFilter(self.map, self.mapData, { highQualityFilter: true });
+        // Popup arrows step through spatially nearby labels using the already-loaded map data.
+        params.popupLabelViewer.setNearbyNavigator(createNearbyLabelNavigator(self.mapData));
         hideLabelMapLoading();
       }).catch(e => {
         console.error('LabelMap failed to load', e);

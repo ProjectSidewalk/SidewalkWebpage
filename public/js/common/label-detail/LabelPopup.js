@@ -66,6 +66,20 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
     history.replaceState(null, '', url);
   }
 
+  // Prev/next arrows (rendered when the host's labelPopup include sets withPaging): hidden until a navigator
+  // arrives via setNearbyNavigator() — the map's label data loads after the popup is built.
+  const prevBtn = dialog.querySelector('.label-detail__paging--prev');
+  const nextBtn = dialog.querySelector('.label-detail__paging--next');
+  let nearbyNav = null;
+  let currentLabelId = null;
+  let lastSource = null;
+  if (prevBtn) prevBtn.hidden = true;
+  if (nextBtn) nextBtn.hidden = true;
+
+  function updatePagingState() {
+    if (prevBtn && nearbyNav) prevBtn.disabled = !nearbyNav.hasPrev(currentLabelId);
+  }
+
   /**
    * Opens the dialog and shows the requested label.
    * @param {number} labelId The ID of the label to show.
@@ -74,7 +88,10 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
   async function showLabel(labelId, source) {
     if (!dialog.open) dialog.showModal();
     if (opts.syncUrlSource) syncUrl(labelId);
+    currentLabelId = labelId;
+    lastSource = source;
     await innerShowLabel(labelId, source);
+    updatePagingState();
   }
 
   if (opts.syncUrlSource) {
@@ -87,6 +104,26 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
       showLabel(initialLabelId, opts.syncUrlSource).catch(() => syncUrl(null));
     }
   }
+
+  /**
+   * Enables the prev/next arrows, stepping through labels via the given navigator (see nearbyLabelNavigator.js).
+   * @param {{next: function, prev: function, hasPrev: function}} nav Navigator over the host's label set.
+   */
+  labelDetail.setNearbyNavigator = (nav) => {
+    nearbyNav = nav;
+    if (!prevBtn || !nextBtn) return;
+    prevBtn.hidden = false;
+    nextBtn.hidden = false;
+    prevBtn.addEventListener('click', () => {
+      const id = nearbyNav.prev(currentLabelId);
+      if (id) showLabel(id, lastSource);
+    });
+    nextBtn.addEventListener('click', () => {
+      const id = nearbyNav.next(currentLabelId);
+      if (id) showLabel(id, lastSource);
+    });
+    updatePagingState();
+  };
 
   // Expose the LabelDetail instance's properties for backwards compatibility with callsites that reach
   // into the popup (e.g. for `panoManager`).

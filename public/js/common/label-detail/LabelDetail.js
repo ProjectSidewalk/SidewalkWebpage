@@ -543,13 +543,13 @@ class LabelDetail {
     if (!els.commentRow) return;
     const action = this.#prevAction;
     const show = !this.#locked && (action === 'Disagree' || action === 'Unsure');
-    const wasHidden = els.commentRow.hidden;
-    els.commentRow.hidden = !show;
+    const wasOpen = els.commentRow.classList.contains('is-open');
+    els.commentRow.classList.toggle('is-open', show);
     if (show) {
       const prompt = i18next.t(action === 'Disagree' ? 'labelmap:why-disagree' : 'labelmap:why-unsure');
       els.commentInput.placeholder = prompt;
       if (els.commentLabel) els.commentLabel.textContent = prompt;
-      if (wasHidden && focusOnReveal) els.commentInput.focus();
+      if (!wasOpen && focusOnReveal) els.commentInput.focus();
     }
 
     // The whole desc/comments zone collapses when it would show nothing but empty states: no description, no

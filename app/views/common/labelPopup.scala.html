@@ -3,10 +3,10 @@
 *
 * Used by: LabelMap, the User Dashboard, admin/label, admin/index. Each host page also imports the stylesheet (`label-detail.css`) and instantiates the JS controller via `LabelPopup(...)`.
 *@
-@(admin: Boolean = false)(implicit assets: AssetsFinder)
+@(admin: Boolean = false, withPaging: Boolean = false)(implicit assets: AssetsFinder)
 
 <dialog id="label-modal" class="label-detail" aria-label="Label details">
-  @common.labelDetail(admin = admin)
+  @common.labelDetail(admin = admin, withPaging = withPaging)
   @* Popover must live inside <dialog> so the modal's blocking behavior doesn't suppress its pointer events. *@
   @common.panoInfoPopover()
 </dialog>

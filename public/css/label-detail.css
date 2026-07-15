@@ -534,19 +534,31 @@ button.label-detail__meta-cell:focus-visible {
 
 /* ─── Comment row ─────────────────────────────────────────────────────── */
 
-/* Leads the Validator Comments section; newest comments render right beneath it. */
+/* Leads the Validator Comments section; newest comments render right beneath it. Collapsed until a
+   Disagree/Unsure vote adds .is-open; the max-height transition slides it out rather than popping. */
 .label-detail__comment-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 2px 0 8px;
+  margin: 2px 0 0;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 220ms ease, opacity 180ms ease, margin-bottom 220ms ease;
 }
 
-/* Explicit display: none so the hidden attribute wins over display: flex. */
-.label-detail__comment-row[hidden] { display: none; }
+.label-detail__comment-row.is-open {
+  max-height: 60px; /* Anything comfortably above the input's 34px; the transition end point. */
+  margin-bottom: 8px;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .label-detail__comment-row { transition: none; }
+}
 
 /* While the input is up, it replaces the list's "None" placeholder rather than stacking with it. */
-.label-detail__comment-row:not([hidden]) ~ .label-detail__validator-comments.label-detail__empty { display: none; }
+.label-detail__comment-row.is-open ~ .label-detail__validator-comments.label-detail__empty { display: none; }
 
 /* Explicit border-box + flex centering keep the input and button the same height with the text dead-center —
    fixed heights plus vertical padding drift apart under the two elements' different default box models. */
@@ -788,6 +800,9 @@ button.label-detail__meta-cell:focus-visible {
 }
 
 .label-detail__paging svg { display: block; }
+
+/* Hosts without a navigator keep the arrows hidden; explicit so the attribute beats display: flex. */
+.label-detail__paging[hidden] { display: none; }
 
 .label-detail__paging:hover {
   background: var(--color-neutral-white);
