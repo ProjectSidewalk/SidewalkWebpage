@@ -143,6 +143,14 @@ consistent with it.
   kebab-case and can express neither BEM nor the backend-sourced values, so it can't be brought to zero. New markup
   should still default to kebab-case.
 
+**Icons.** SVG icons live as **their own files** in `public/images/icons/` — **never inlined** in Twirl templates
+(inlined SVGs are hard to find, reuse, and review — see #4058). Reference them with an `<img>`, e.g.
+`<img src='@assets.path("images/icons/map-pin-feather.svg")' alt="">` (empty `alt` when the icon sits next to a text
+label). Default to icons from the **feather** and **material** sets in the "Design System Tokens" Figma, and name each
+file `<icon>-<set>.svg` (`map-pin-feather.svg`, `comment-material.svg`). These SVGs carry a **fixed** stroke color
+(`#242424` for the standard dark icon), so a different color is a **separate file** with a color qualifier
+(`chevron-left-white-feather.svg`) rather than a CSS override.
+
 **Deferred namespace mismatch:** the reorg renamed the app *directories* (`SVLabel → explore`, `SVValidate →
 validate`, `Progress → user-dashboard`), but the apps' internal JS namespace **globals** `svl` (Explore) and `sg`
 (Gallery) are identifiers, not filenames, and were intentionally left as-is — renaming them is a large independent

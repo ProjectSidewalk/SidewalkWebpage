@@ -88,6 +88,14 @@ navbar.lang.icon.alt = talen icoon
 navbar.servicehours = Vrijwilligersinformatie
 navbar.timecheck = Tijdcontrole
 navbar.cities = Steden
+navbar.menu.toggle = Navigatiemenu wisselen
+navbar.tools.analyze = Analyseren
+navbar.tools.community = Community
+navbar.tools.build = Bouwen
+navbar.tools.admin = Beheer
+navbar.city.search = Steden zoeken…
+navbar.city.viewall = Alle steden op de kaart bekijken
+navbar.city.none = Geen overeenkomende steden
 
 landing.create.path = Laten we een pad creëren voor iedereen!
 landing.start.exploring = Start met Verkennen
