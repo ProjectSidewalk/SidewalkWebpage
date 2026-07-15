@@ -144,8 +144,8 @@ dialog.label-detail[open]::backdrop {
 }
 
 /* Standard pan affordance: open hand over the draggable imagery, closed while dragging. Applies wherever the
-   viewer's own internals don't set a closer cursor (GSV and Pannellum bring their own; the crop fallback and any
-   gaps inherit these). */
+   viewer's own internals don't set a closer cursor (Pannellum brings its own; the crop fallback and any gaps
+   inherit these). */
 .label-detail__pano,
 #pano-fallback-pz {
   cursor: grab;
@@ -154,6 +154,17 @@ dialog.label-detail[open]::backdrop {
 .label-detail__pano:active,
 #pano-fallback-pz:active {
   cursor: grabbing;
+}
+
+/* GSV sets a plain cursor inline on its own drag surface, so it needs !important to lose. */
+.label-detail__pano .widget-scene,
+.label-detail__pano .widget-scene-canvas {
+  cursor: grab !important;
+}
+
+.label-detail__pano .widget-scene:active,
+.label-detail__pano .widget-scene-canvas:active {
+  cursor: grabbing !important;
 }
 
 /* No-imagery / expired-label panel (#4483): shown by PopupPanoManager when a pano fails to load and there is no crop

@@ -76,7 +76,15 @@ class ExpandedView {
     const closeBtn = root.querySelector('[data-action="close-label-detail"]');
     if (closeBtn) closeBtn.addEventListener('click', () => this.closeExpandedViewAndRemoveCardTransparency());
 
-    this.#attachCursorHandlers();
+    // Reopen the label a shared or refreshed ?labelId= URL points at. Cards load after init, so the deep link
+    // opens the detail directly by id — no thumbnail highlight, and paging picks up from the first card.
+    const initialLabelId = parseInt(new URLSearchParams(window.location.search).get('labelId'), 10);
+    if (initialLabelId) {
+      this.#uiModal.css('visibility', 'visible');
+      this.open = true;
+      this.labelDetail.showLabel(initialLabelId, 'Gallery')
+        .catch(() => this.closeExpandedViewAndRemoveCardTransparency());
+    }
   }
 
   /**
@@ -144,6 +152,19 @@ class ExpandedView {
     // Highlight selected card thumbnail.
     this.#highlightThumbnail(document.getElementById(`gallery_card_${this.refCard.getLabelId()}`));
     this.open = true;
+    this.#syncUrl(this.refCard.getLabelId());
+  }
+
+  /**
+   * Sets or clears the labelId query param without adding history entries, so the open label is shareable
+   * and survives a refresh but Back still leaves the page.
+   * @param {?number} labelId The open label's ID, or null to clear the param.
+   */
+  #syncUrl(labelId) {
+    const url = new URL(window.location);
+    if (labelId) url.searchParams.set('labelId', labelId);
+    else url.searchParams.delete('labelId');
+    history.replaceState(null, '', url);
   }
 
   /**
@@ -151,9 +172,8 @@ class ExpandedView {
    * NOTE: does not remove card transparency. For that, use closeExpandedViewAndRemoveCardTransparency().
    */
   closeExpandedView() {
-    $('.grid-container').css('grid-template-columns', 'none');
-    this.#uiModal.css('position', 'absolute');
     this.#uiModal.css('visibility', 'hidden');
+    this.#syncUrl(null);
     // Clear the inline visibility set by PopupPanoManager.setPano() so the parent's visibility:hidden cascades.
     // Also set a data flag so that if a pano load is still in-flight, it won't reveal itself when it finishes.
     const panoEl = this.#root.querySelector('.label-detail__pano');
@@ -324,42 +344,8 @@ class ExpandedView {
     if (this.pendingCardIndex === undefined) return;
     const idx = this.pendingCardIndex;
     this.pendingCardIndex = undefined;
-    this.#uiModal.css('top', `calc(${$(window).scrollTop()}px + 1vh)`);
     this.#uiModal.css('visibility', 'visible');
-    this.#uiModal.css('position', 'relative');
-    $('.grid-container').css('grid-template-columns', '1fr 5fr');
     this.#updateExpandedViewCardByIndex(idx);
-  }
-
-  /**
-   * Sets up cursor handlers for the GSV widget-scene-canvas inside the pano.
-   */
-  #attachCursorHandlers() {
-    const panoEl = this.#root.querySelector('.label-detail__pano');
-    if (!panoEl) return;
-
-    const cursorObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'childList') {
-          mutation.addedNodes.forEach((node) => {
-            if (node.nodeType === Node.ELEMENT_NODE
-              && node.className
-              && typeof node.className === 'string'
-              && node.className.indexOf('widget-scene-canvas') > -1) {
-              node.addEventListener('mousedown', () => {
-                $(node).css('cursor', 'url(/assets/images/icons/closedhand.cur) 4 4, move');
-              });
-              node.addEventListener('mouseup', () => {
-                $(node).css('cursor', '');
-              });
-              cursorObserver.disconnect();
-            }
-          });
-        }
-      });
-    });
-
-    cursorObserver.observe(panoEl, { childList: true, subtree: true });
   }
 
   /**
