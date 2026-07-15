@@ -2,6 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import models.utils.HealthTable
+import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json._
 import play.api.{Configuration, Logger}
@@ -9,6 +10,7 @@ import models.utils.MyPostgresProfile
 
 import java.time.OffsetDateTime
 import javax.inject._
+import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 
 /** A session that currently blocks one or more other sessions from acquiring a lock. */
@@ -125,6 +127,7 @@ trait HealthService {
 class HealthServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     config: Configuration,
+    cacheApi: AsyncCacheApi,
     healthTable: HealthTable
 )(implicit val ec: ExecutionContext)
     extends HealthService
@@ -134,6 +137,16 @@ class HealthServiceImpl @Inject() (
 
   // Per-instance Slick/Hikari pool ceiling; a city role whose active backends approach it is saturated (#4559).
   private val poolMax: Int = config.getOptional[Int]("slick.dbs.default.db.maxConnections").getOrElse(25)
+
+  // Cache each signal so that N Owner tabs polling every ~20s don't each re-run the catalog queries against the one
+  // shared database — the dashboard must never itself become the connection-pressure problem it exists to surface
+  // (#4559). Live signals (an active lock, connection counts) are cheap and want freshness; the cross-schema
+  // evolution/bloat scans and the labeled-pano scan are heavier and change slowly, so they cache longer. Recovery
+  // happens OUTSIDE the cache (see getDbHealth), so a transient query failure is never cached — the next poll retries.
+  private val liveTtl: Duration = Duration(10, "seconds") // blocking locks, idle txns, connection counts
+  private val slowTtl: Duration = Duration(60, "seconds") // cross-schema evolutions + table bloat
+  private val panoTtl: Duration = Duration(5, "minutes")  // labeled-pano scan; changes slowly
+  private val envTtl: Duration  = Duration(10, "minutes") // database/role/superuser status — constant per instance
 
   private val thresholds: HealthThresholds = HealthThresholds(
     idleTxnWarnSeconds = 120, // 2 min
@@ -150,14 +163,31 @@ class HealthServiceImpl @Inject() (
   )
 
   def getDbHealth: Future[DbHealthData] = {
-    val envF      = db.run(healthTable.getDbEnvInfo)
-    val blockingF = db.run(healthTable.getBlockingSessions).recover(logAndEmpty("blocking sessions"))
-    val idleF     = db.run(healthTable.getIdleInTransactionSessions).recover(logAndEmpty("idle-in-transaction"))
-    val bloatF    = db.run(healthTable.getTableBloat).recover(logAndEmpty("table bloat"))
-    val connF     = db.run(healthTable.getConnectionCounts).recover(logAndEmpty("connection counts"))
-    val panoF     = db.run(healthTable.getPanoBackupStats).map(Option(_)).recover { case e: Exception =>
-      logger.warn(s"Health: failed to read pano backup stats: ${e.getMessage}"); None
-    }
+    val envF = cacheApi
+      .getOrElseUpdate[DbEnvInfo]("health.env", envTtl)(db.run(healthTable.getDbEnvInfo))
+      .recover { case e: Exception =>
+        logger.warn(s"Health: failed to read db env info: ${e.getMessage}")
+        DbEnvInfo("unknown", "unknown", canSeeAllQueries = false)
+      }
+    val blockingF = cacheApi
+      .getOrElseUpdate[Seq[BlockingSession]]("health.blocking", liveTtl)(db.run(healthTable.getBlockingSessions))
+      .recover(logAndEmpty("blocking sessions"))
+    val idleF = cacheApi
+      .getOrElseUpdate[Seq[IdleTxnSession]]("health.idle", liveTtl)(db.run(healthTable.getIdleInTransactionSessions))
+      .recover(logAndEmpty("idle-in-transaction"))
+    val bloatF = cacheApi
+      .getOrElseUpdate[Seq[TableBloat]]("health.bloat", slowTtl)(db.run(healthTable.getTableBloat))
+      .recover(logAndEmpty("table bloat"))
+    val connF = cacheApi
+      .getOrElseUpdate[Seq[ConnCount]]("health.conn", liveTtl)(db.run(healthTable.getConnectionCounts))
+      .recover(logAndEmpty("connection counts"))
+    val panoF = cacheApi
+      .getOrElseUpdate[Option[PanoBackupStats]]("health.pano", panoTtl)(
+        db.run(healthTable.getPanoBackupStats).map(Option(_))
+      )
+      .recover { case e: Exception =>
+        logger.warn(s"Health: failed to read pano backup stats: ${e.getMessage}"); None
+      }
     val evoF = getStuckEvolutions
 
     for {
@@ -183,23 +213,24 @@ class HealthServiceImpl @Inject() (
     )
   }
 
-  /** Fans out over every schema that has a `play_evolutions` table and collects the stuck rows from each. */
+  /**
+   * Collects the stuck/failed evolution rows across every city schema. Discovers the schemas that have a
+   * `play_evolutions` table, then reads them all in a SINGLE union query rather than one query per schema. On prod all
+   * ~50 city schemas live in one shared database, so a per-schema fan-out would demand ~50 pool connections on every
+   * poll — the exact flood (#4559) this dashboard is meant to catch. Cached (`slowTtl`) so the two round-trips are rare.
+   */
   private def getStuckEvolutions: Future[Seq[StuckEvolution]] = {
-    db.run(healthTable.getEvolutionSchemas)
-      .flatMap { schemas =>
-        // Defense in depth: the names come from the catalog, but they are spliced as identifiers, so validate first.
-        val valid = schemas.filter(_.matches("^[A-Za-z0-9_]+$"))
-        Future
-          .sequence(valid.map { schema =>
-            db.run(healthTable.getStuckEvolutionsBySchema(schema)).recover { case e: Exception =>
-              logger.warn(s"Health: failed to read play_evolutions for schema $schema: ${e.getMessage}")
-              Seq.empty[StuckEvolution]
-            }
-          })
-          .map(_.flatten)
+    cacheApi
+      .getOrElseUpdate[Seq[StuckEvolution]]("health.evolutions", slowTtl) {
+        db.run(healthTable.getEvolutionSchemas).flatMap { schemas =>
+          // Defense in depth: names come from the catalog, but they are spliced as identifiers, so validate first.
+          val valid = schemas.filter(_.matches("^[A-Za-z0-9_]+$"))
+          if (valid.isEmpty) Future.successful(Seq.empty[StuckEvolution])
+          else db.run(healthTable.getStuckEvolutionsForSchemas(valid))
+        }
       }
       .recover { case e: Exception =>
-        logger.warn(s"Health: failed to enumerate evolution schemas: ${e.getMessage}")
+        logger.warn(s"Health: failed to read stuck evolutions: ${e.getMessage}")
         Seq.empty[StuckEvolution]
       }
   }

@@ -227,6 +227,37 @@ jobs:
           ENV_TYPE: local
           SIDEWALK_IMAGES_DIR: .crops
 
+      # Health dashboard (#4561): route/gating smoke (HealthDashboardSpec) + the DB-backed service safety &
+      # concurrency-stress spec (HealthServiceSpec). Run in a SEPARATE sbt invocation from PublicApiSpec above — a second
+      # concurrent app would double the pool draw against CI Postgres — and `set Test / parallelExecution := false` so
+      # the two health suites boot one app at a time within this invocation, the same single-app-at-a-time discipline the
+      # PublicApiSpec note above relies on. HealthServiceSpec fires a burst of concurrent polls and asserts they stay
+      # within the connection pool, so a regression that made the dashboard flood the pool (#4559) — the very thing it
+      # exists to detect — fails the build here rather than in production.
+      - name: Run Health dashboard tests (routes + service safety/concurrency)
+        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec'
+        env:
+          DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
+          DATABASE_USER: sidewalk
+          DATABASE_PASSWORD: sidewalk
+          SIDEWALK_CITY_ID: teaneck-nj
+          SIDEWALK_APPLICATION_SECRET: DUMMY_APPLICATION_SECRET_SET_CORRECTLY_ON_PRODUCTION
+          SILHOUETTE_SIGNER_KEY: DUMMY_SILHOUETTE_SIGNER_KEY
+          SILHOUETTE_CRYPTER_KEY: DUMMY_SILHOUETTE_CRYPTER_KEY
+          INTERNAL_API_KEY: DUMMY_INTERNAL_API_KEY
+          MAPBOX_API_KEY: DUMMY_MAPBOX_API_KEY
+          GOOGLE_MAPS_API_KEY: DUMMY_GOOGLE_API_KEY
+          GOOGLE_MAPS_SECRET: DUMMY_GOOGLE_SECRET
+          GEMINI_API_KEY: DUMMY_GEMINI_API_KEY
+          SCISTARTER_API_KEY: DUMMY_SCISTARTER_API_KEY
+          MAPILLARY_ACCESS_TOKEN: DUMMY_MAPILLARY_ACCESS_TOKEN
+          INFRA3D_CLIENT_ID_ZURICH: DUMMY_INFRA3D_CLIENT_ID
+          INFRA3D_CLIENT_ID_WINTERTHUR: DUMMY_INFRA3D_CLIENT_ID
+          INFRA3D_CLIENT_SECRET_ZURICH: DUMMY_INFRA3D_CLIENT_SECRET
+          INFRA3D_CLIENT_SECRET_WINTERTHUR: DUMMY_INFRA3D_CLIENT_SECRET
+          ENV_TYPE: local
+          SIDEWALK_IMAGES_DIR: .crops
+
   python-tests:
     name: Python tests (scripts)
     runs-on: ubuntu-latest

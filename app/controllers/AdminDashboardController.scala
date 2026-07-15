@@ -209,10 +209,10 @@ class AdminDashboardController @Inject() (
 
   /**
    * The Health dashboard's data endpoint: the current database/app health payload as snake_case JSON, polled by the
-   * page. Owner-gated like the page itself.
+   * page. Owner-gated like the page itself. Deliberately NOT activity-logged: the page polls this every ~20s, so
+   * logging each hit would flood `webpage_activity`; the one-time page visit is logged by [[health]] instead.
    */
-  def getDbHealth = cc.securityService.SecuredAction(WithOwner()) { implicit request =>
-    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+  def getDbHealth = cc.securityService.SecuredAction(WithOwner()) { _ =>
     healthService.getDbHealth.map(data => Ok(Json.toJson(data)))
   }
 }

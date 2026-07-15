@@ -9,6 +9,7 @@ class HealthPage {
   #healthUrl;
   #pollMs;
   #thresholds = null;
+  #loading = false;
 
   /**
    * @param {Object} opts
@@ -41,8 +42,15 @@ class HealthPage {
     return resp.json();
   }
 
-  /** Fetches the payload and repaints every panel; on failure marks the pulse without blanking prior data. */
+  /**
+   * Fetches the payload and repaints every panel; on failure marks the pulse without blanking prior data. Guards
+   * against overlapping polls: if a fetch is already in flight (e.g. the endpoint is slow under load, or a
+   * visibilitychange fires mid-poll), this returns immediately rather than stacking a second concurrent request onto
+   * the same DB connection pool — the page must not compound the pressure it is meant to observe.
+   */
   async #load() {
+    if (this.#loading) return;
+    this.#loading = true;
     try {
       const data = await this.#fetchJson(this.#healthUrl);
       this.#thresholds = data.thresholds || {};
@@ -57,6 +65,8 @@ class HealthPage {
       this.#renderPanos(data.pano_backups || null);
     } catch (e) {
       this.#setHtml('health-pulse', `<strong>Could not load health data.</strong> ${HealthPage.#esc(e.message)}`);
+    } finally {
+      this.#loading = false;
     }
   }
 
@@ -258,6 +268,7 @@ class HealthPage {
       { value: HealthPage.#compact(p.backed_up), label: `Backed up (${pct}%)` },
       { value: HealthPage.#compact(p.unchecked), label: 'Unchecked' },
       { value: HealthPage.#compact(p.no_backup), label: 'No backup' },
+      { value: HealthPage.#compact(p.missing_metadata), label: 'No metadata row' },
       { value: atRisk, label: 'At risk (expired, no backup)' },
     ];
     const html = cards.map((c) => `

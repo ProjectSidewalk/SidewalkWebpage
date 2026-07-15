@@ -128,19 +128,26 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   }
 
   /**
-   * Evolution rows in one schema that are stuck mid-apply or carry a recorded problem — catches #4557 (evolution 326
-   * failing to apply on a prod city). `schema` MUST be validated by the caller before splicing.
+   * Evolution rows that are stuck mid-apply or carry a recorded problem, across the given schemas in ONE query —
+   * catches #4557 (evolution 326 failing to apply on a prod city). Built as a `UNION ALL` with one branch per schema
+   * so a cluster with ~50 city schemas costs a single query, not one-per-schema: an N-way fan-out would demand ~50
+   * pool connections on every poll and become the connection flood (#4559) this dashboard exists to detect.
    *
-   * @param schema The schema whose `play_evolutions` table to inspect (spliced as an identifier).
+   * Every `schema` MUST already be validated as a bare identifier by the caller (see [[HealthService]]); the names are
+   * spliced literally into the SQL, so an unvalidated name would be an injection vector.
+   *
+   * @param schemas Validated schema names whose `play_evolutions` tables to inspect. Must be non-empty.
+   * @return        One row per stuck/flagged evolution, tagged with its schema; empty if every schema is clean.
    */
-  def getStuckEvolutionsBySchema(schema: String): DBIO[Seq[StuckEvolution]] = {
-    sql"""
-      SELECT text '#$schema' AS schema, id, state, last_problem, applied_at::text
-      FROM "#$schema".play_evolutions
-      WHERE state LIKE 'applying%'
-         OR (last_problem IS NOT NULL AND btrim(last_problem) <> '')
-      ORDER BY id
-    """.as[StuckEvolution]
+  def getStuckEvolutionsForSchemas(schemas: Seq[String]): DBIO[Seq[StuckEvolution]] = {
+    val union = schemas
+      .map { schema =>
+        s"""SELECT text '$schema' AS schema, id, state, last_problem, applied_at::text
+            FROM "$schema".play_evolutions
+            WHERE state LIKE 'applying%' OR (last_problem IS NOT NULL AND btrim(last_problem) <> '')"""
+      }
+      .mkString("\nUNION ALL\n")
+    sql"""#$union ORDER BY schema, id""".as[StuckEvolution]
   }
 
   /**
