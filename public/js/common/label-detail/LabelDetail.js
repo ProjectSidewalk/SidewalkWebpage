@@ -838,7 +838,8 @@ class LabelDetail {
       els.validatorComments.textContent = i18next.t('common:none');
       return;
     }
-    this.#comments.forEach((c, i) => {
+    // Newest first, so a just-submitted comment lands right beneath the input above the list.
+    [...this.#comments].reverse().forEach((c, i) => {
       if (i > 0) els.validatorComments.appendChild(document.createElement('hr'));
       const p = document.createElement('p');
       p.style.margin = '0';

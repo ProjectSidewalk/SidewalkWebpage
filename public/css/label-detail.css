@@ -450,16 +450,19 @@ button.label-detail__meta-cell:focus-visible {
 
 /* ─── Comment row ─────────────────────────────────────────────────────── */
 
-/* Lives inside the Validator Comments section, under the list it adds to. */
+/* Leads the Validator Comments section; newest comments render right beneath it. */
 .label-detail__comment-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 8px;
+  margin: 2px 0 8px;
 }
 
 /* Explicit display: none so the hidden attribute wins over display: flex. */
 .label-detail__comment-row[hidden] { display: none; }
+
+/* While the input is up, it replaces the list's "None" placeholder rather than stacking with it. */
+.label-detail__comment-row:not([hidden]) ~ .label-detail__validator-comments.label-detail__empty { display: none; }
 
 /* Explicit border-box + flex centering keep the input and button the same height with the text dead-center —
    fixed heights plus vertical padding drift apart under the two elements' different default box models. */
