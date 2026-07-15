@@ -101,9 +101,12 @@
   </section>
 </div>
 
-<div class="label-detail__comment-row">
-  <label class="sr-only" for="label-detail-comment-input" data-i18n="labelmap:add-comment">Know this spot? Share updates or corrections — e.g. has it been fixed?</label>
-  <input type="text" id="label-detail-comment-input" class="label-detail__comment-input" data-i18n-placeholder="labelmap:add-comment" placeholder="Know this spot? Share updates or corrections — e.g. has it been fixed?">
+@* Validator comments justify a disputed vote, so the box appears only alongside a Disagree/Unsure vote (#4572);
+   LabelDetail toggles it and sets the per-vote prompt on the label + placeholder. Open-ended notes about a place
+   belong to lived-experience stories (#4054), not here. *@
+<div class="label-detail__comment-row" hidden>
+  <label class="sr-only" for="label-detail-comment-input">Tell us why you disagree…</label>
+  <input type="text" id="label-detail-comment-input" class="label-detail__comment-input" placeholder="Tell us why you disagree…">
   <button type="button" class="label-detail__comment-submit" data-action="submit-comment" data-i18n="labelmap:comment">Comment</button>
   <span class="label-detail__comment-confirmation" role="status" aria-live="polite" hidden data-i18n="labelmap:comment-submitted">Comment submitted</span>
 </div>

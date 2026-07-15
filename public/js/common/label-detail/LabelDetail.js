@@ -194,6 +194,8 @@ class LabelDetail {
     els.description = this.#q('.label-detail__description');
     els.validatorComments = this.#q('.label-detail__validator-comments');
     els.commentsCount = this.#q('.label-detail__comments-count');
+    els.commentRow = this.#q('.label-detail__comment-row');
+    els.commentLabel = this.#q('.label-detail__comment-row label');
     els.commentInput = this.#q('.label-detail__comment-input');
     els.commentButton = this.#q('.label-detail__comment-submit');
     els.commentConfirm = this.#q('.label-detail__comment-confirmation');
@@ -516,6 +518,28 @@ class LabelDetail {
     // If the user has already validated this label, mark the chosen vote on the pano overlay.
     if (meta.user_validation && !this.#readonly) this.#highlightVote(meta.user_validation);
     else this.#highlightVote(null);
+    this.#updateCommentRow();
+  }
+
+  /**
+   * Shows the comment box only alongside a Disagree/Unsure vote, prompting for the reasoning behind it (#4572).
+   * Validator comments exist to justify a disputed label; open-ended notes about a place belong to
+   * lived-experience stories (#4054), not here.
+   * @param {boolean} [focusOnReveal=false] - Focus the input when this call reveals the row (fresh-vote flow).
+   */
+  #updateCommentRow(focusOnReveal = false) {
+    const els = this.#els;
+    if (!els.commentRow) return;
+    const action = this.#prevAction;
+    const show = !this.#locked && (action === 'Disagree' || action === 'Unsure');
+    const wasHidden = els.commentRow.hidden;
+    els.commentRow.hidden = !show;
+    if (show) {
+      const prompt = i18next.t(action === 'Disagree' ? 'labelmap:why-disagree' : 'labelmap:why-unsure');
+      els.commentInput.placeholder = prompt;
+      if (els.commentLabel) els.commentLabel.textContent = prompt;
+      if (wasHidden && focusOnReveal) els.commentInput.focus();
+    }
   }
 
   // ───────────────────────────────────────────────────────────────────
@@ -594,6 +618,7 @@ class LabelDetail {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       this.#updateVoteCount(action);
       this.#highlightVote(action);
+      this.#updateCommentRow(true);
       this.#setVoteButtonsDisabled(false);
       if (isNewValidation) BadgeAchievements.recordValidation(this.panoManager.svHolder[0]);
       if (typeof this.#onVote === 'function') this.#onVote(action, this.#currentLabelMeta);
@@ -699,6 +724,7 @@ class LabelDetail {
     els.commentInput.title = tip;
     els.commentButton.disabled = locked;
     els.commentButton.title = tip;
+    this.#updateCommentRow(); // Locking also hides the comment box (it only shows with a Disagree/Unsure vote).
   }
 
   /**

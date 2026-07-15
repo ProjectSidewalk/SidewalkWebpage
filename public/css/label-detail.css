@@ -115,7 +115,7 @@ dialog.label-detail[open]::backdrop {
   width: 100%;
   border-radius: 8px;
   overflow: hidden;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .label-detail__pano-wrap::after {
@@ -334,6 +334,7 @@ button.label-detail__meta-cell {
   color: var(--color-neutral-700);
 }
 button.label-detail__meta-cell:hover { color: var(--color-neutral-900); }
+button.label-detail__meta-cell:hover span { text-decoration: underline; }
 
 button.label-detail__meta-cell:focus-visible {
   outline: 2px solid var(--color-link-100);
@@ -355,12 +356,12 @@ button.label-detail__meta-cell:focus-visible {
   align-items: center;
 }
 
-/* Keep the (i) icon within the strip's text line so the button doesn't grow taller than the facts. */
+/* The "Details" text is the whole visible control; the (i) img PanoInfoPopover appends stays zero-width rather
+   than display: none so the popover can still measure it as its positioning anchor. */
 .label-detail__info-button-host img {
   display: block;
-  width: 14px;
+  width: 0;
   height: 14px;
-  cursor: pointer;
 }
 
 /* ─── Three-column row: Validations / Severity / Tags ─────────────────── */
@@ -455,6 +456,15 @@ button.label-detail__meta-cell:focus-visible {
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+/* Explicit display: none so the hidden attribute wins over display: flex; when the comment box is hidden (no
+   Disagree/Unsure vote), the description/comments zone carries the divider instead. */
+.label-detail__comment-row[hidden] { display: none; }
+
+.label-detail__comment-row[hidden] + .label-detail__desc-comments {
   padding-top: 14px;
   border-top: 1px solid var(--color-neutral-200);
 }
