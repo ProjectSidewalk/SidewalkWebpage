@@ -114,8 +114,9 @@
         uiSource: 'LabelMap',
         popupLabelViewer: await LabelPopup(false, viewerType, accessToken, "@user.username", {
           syncUrlSource: 'LabelMap',
-          // Re-anchor the user when the popup closes: pulse the just-viewed label's spot on the map.
-          // self.pulseLabelOnMap is assigned once the map data has loaded, below.
+          // Keep the shown label spotlighted beside the dialog while paging, and pulse it on close so the user
+          // is re-anchored. Both functions are assigned once the map data has loaded, below.
+          onShow: labelId => self.spotlightLabelOnMap && self.spotlightLabelOnMap(labelId),
           onClose: labelId => self.pulseLabelOnMap && self.pulseLabelOnMap(labelId)
         }),
         navigationControlPosition: 'top-right',
@@ -163,32 +164,49 @@
 
         // Pulses a label's spot on the map (easing it into view first if it's outside the viewport, e.g. after
         // arrow-touring away). Used by ?labelId= deep links and whenever the popup closes, so it's always clear
-        // which dot was just viewed — crucial on a busy map.
+        // which dot was just viewed — crucial on a busy map. persist keeps the ring up (pulse, then a static
+        // ring) instead of auto-removing; the next call replaces it either way.
         let pulseMarker = null;
-        self.pulseLabelOnMap = (labelId) => {
+        self.pulseLabelOnMap = (labelId, persist = false, easeIfOffscreen = true) => {
           const coords = nearbyNav.getCoords(labelId);
           if (!coords) return;
-          if (!self.map.getBounds().contains(coords)) {
+          if (easeIfOffscreen && !self.map.getBounds().contains(coords)) {
             self.map.easeTo({ center: coords, zoom: Math.max(self.map.getZoom(), 16) });
           }
           if (pulseMarker) pulseMarker.remove();
           const pulseEl = document.createElement('div');
           pulseEl.className = 'labelmap-label-pulse';
           pulseMarker = new mapboxgl.Marker({ element: pulseEl }).setLngLat(coords).addTo(self.map);
-          setTimeout(() => {
-            if (pulseMarker && pulseMarker.getElement() === pulseEl) {
-              pulseMarker.remove();
-              pulseMarker = null;
-            }
-          }, 5000);
+          if (!persist) {
+            setTimeout(() => {
+              if (pulseMarker && pulseMarker.getElement() === pulseEl) {
+                pulseMarker.remove();
+                pulseMarker = null;
+              }
+            }, 5000);
+          }
         };
 
-        // A ?labelId= deep link centers the map on the label and pulses its spot.
+        // Spotlights the label the popup is showing: a persistent ring on its dot, with the map positioned so
+        // the dot sits in the gutter beside the centered dialog — popup and highlighted label visible
+        // simultaneously, and paging with the arrows visibly walks the ring across the map. Falls back to plain
+        // centering when the viewport leaves no meaningful gutter.
+        self.spotlightLabelOnMap = (labelId, jump = false) => {
+          const coords = nearbyNav.getCoords(labelId);
+          if (!coords) return;
+          const dialogEl = document.getElementById('label-modal');
+          const dialogW = (dialogEl && dialogEl.open && dialogEl.getBoundingClientRect().width) || 650;
+          const gutter = (window.innerWidth - dialogW) / 2;
+          const offset = gutter > 140 ? [gutter / 2 - window.innerWidth / 2, 0] : [0, 0];
+          const camera = { center: coords, zoom: Math.max(self.map.getZoom(), 16), offset };
+          if (jump) self.map.jumpTo(camera);
+          else self.map.easeTo(camera);
+          self.pulseLabelOnMap(labelId, true, false);
+        };
+
+        // A ?labelId= deep link arrives with the popup already open; spotlight it without animating.
         const deepLinkLabelId = parseInt(new URLSearchParams(window.location.search).get('labelId'), 10);
-        if (deepLinkLabelId && nearbyNav.getCoords(deepLinkLabelId)) {
-          self.map.jumpTo({ center: nearbyNav.getCoords(deepLinkLabelId), zoom: Math.max(self.map.getZoom(), 16) });
-          self.pulseLabelOnMap(deepLinkLabelId);
-        }
+        if (deepLinkLabelId) self.spotlightLabelOnMap(deepLinkLabelId, true);
         hideLabelMapLoading();
       }).catch(e => {
         console.error('LabelMap failed to load', e);
