@@ -117,6 +117,12 @@ module.exports = function (grunt) {
         ],
         dest: 'public/js/ps-map/build/ps-map.js'
       },
+      dist_route_builder: {
+        src: [
+          'public/js/route-builder/src/*.js'
+        ],
+        dest: 'public/js/route-builder/build/route-builder.js'
+      },
       dist_shared_label: {
         src: [
           // The shared LabelDetail component + its deps (same set the Gallery bundle pulls in), plus the
@@ -199,6 +205,7 @@ module.exports = function (grunt) {
           'public/js/gallery/src/**/*.js',
           'public/css/gallery/*.css',
           'public/js/ps-map/*.js',
+          'public/js/route-builder/src/*.js',
           'public/js/shared-label/*.js',
           'public/css/common/*.css'
         ],

@@ -1,14 +1,9 @@
 /**
  * RouteBuilder — the /routeBuilder page. Lets a user click streets on a Mapbox map to assemble a custom route,
- * then save/share it.
+ * then save/share it. The save flow lives in SaveModal; the anonymous "recent routes on this device" recovery
+ * panel lives in GuestRoutes.
  */
 class RouteBuilder {
-  // Storage keys: the pending route stashed across the sign-in page reload, and the guest "recent routes" list
-  // that lets users without an account find a saved route again if they forgot to copy its link.
-  static PENDING_ROUTE_KEY = 'rb-pending-route';
-  static GUEST_ROUTES_KEY = 'rb-guest-routes';
-  static GUEST_ROUTES_MAX = 20;
-
   #status = {
     mapLoaded: false,
     neighborhoodsLoaded: false,
@@ -33,17 +28,16 @@ class RouteBuilder {
   #currentMarkers = [];
   #searchBox;
 
+  // Collaborators.
+  #saveModal;
+  #guestRoutes;
+
   // DOM elements.
   #introUI;
   #streetDistOverlay;
   #deleteRouteModal;
   #routeSavedModal;
-  #saveRouteModal;
-  #routeNameInput;
-  #routeNameError;
   #routeSavedNameEl;
-  #recentRoutesPanel;
-  #recentRoutesList;
   #streetDistanceEl;
   #saveButton;
   #exploreButton;
@@ -68,12 +62,7 @@ class RouteBuilder {
     this.#streetDistOverlay = document.getElementById('creating-route-overlay');
     this.#deleteRouteModal = document.getElementById('delete-route-modal-backdrop');
     this.#routeSavedModal = document.getElementById('route-saved-modal-backdrop');
-    this.#saveRouteModal = document.getElementById('save-route-modal-backdrop');
-    this.#routeNameInput = document.getElementById('route-name-input');
-    this.#routeNameError = document.getElementById('route-name-error');
     this.#routeSavedNameEl = document.getElementById('route-saved-name');
-    this.#recentRoutesPanel = document.getElementById('recent-routes-panel'); // Only rendered for anonymous users.
-    this.#recentRoutesList = document.getElementById('recent-routes-list');
     this.#streetDistanceEl = document.getElementById('route-length-val');
     this.#saveButton = document.getElementById('save-button');
     this.#exploreButton = $('#explore-button');
@@ -87,15 +76,16 @@ class RouteBuilder {
     document.getElementById('cancel-delete-route-button').addEventListener('click', () => this.#clickResumeRoute());
     document.getElementById('build-new-route-button').addEventListener('click', (e) => this.#clearRoute(e));
 
-    // Save-modal buttons. The sign-in button only exists for anonymous users.
-    document.getElementById('confirm-save-button').addEventListener('click', () => this.#submitRoute());
-    document.getElementById('back-save-button').addEventListener('click', () => this.#closeSaveModal());
-    document.getElementById('signin-save-button')?.addEventListener('click', () => this.#stashRouteAndSignIn());
-    this.#routeNameInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') this.#submitRoute();
+    this.#saveModal = new SaveModal({
+      isSignedIn: this.#isSignedIn,
+      getRegionId: () => this.#currRegionId,
+      getRegionName: () => this.#getRegionName(this.#currRegionId),
+      getStreetsPayload: () => this.#routeStreetsPayload(),
+      onSaved: (routeId, name) => this.#showRouteSavedModal(routeId, name),
+      onClose: () => this.#saveButton.focus(),
     });
-
-    this.#renderRecentGuestRoutes();
+    this.#guestRoutes = new GuestRoutes((btn, message) => this.#setTemporaryTooltip(btn, message));
+    this.#guestRoutes.render();
 
     // Initialize the map.
     mapboxgl.accessToken = mapboxApiKey;
@@ -128,7 +118,7 @@ class RouteBuilder {
     // Once all the layers have loaded, put them in the correct order.
     this.#map.on('sourcedataloading', this.#moveLayers);
 
-    this.#saveButton.addEventListener('click', () => this.#openSaveModal());
+    this.#saveButton.addEventListener('click', () => this.#saveModal.open());
   }
 
   // Arrow field so the reference stays stable for the map on/off pair.
@@ -655,7 +645,7 @@ class RouteBuilder {
     if (this.#streetsInRoute.features.length === 1) {
       // Remove the intro instructions and show the route length UI on the right.
       this.#introUI.style.visibility = 'hidden';
-      if (this.#recentRoutesPanel) this.#recentRoutesPanel.hidden = true;
+      this.#guestRoutes.hide();
       this.#streetDistOverlay.style.visibility = 'visible';
       map.removeControl(this.#searchBox);
 
@@ -678,16 +668,9 @@ class RouteBuilder {
     if (this.#status.pendingRouteRestored || !this.#status.mapLoaded
       || !this.#status.neighborhoodsLoaded || !this.#status.streetsLoaded || !this.#searchBox) return;
 
-    let pending = null;
-    try {
-      const stash = sessionStorage.getItem(RouteBuilder.PENDING_ROUTE_KEY);
-      if (stash) pending = JSON.parse(stash);
-      sessionStorage.removeItem(RouteBuilder.PENDING_ROUTE_KEY);
-    } catch {
-      return; // Storage unavailable or corrupted stash: nothing to restore.
-    }
     this.#status.pendingRouteRestored = true;
-    if (!pending || !Array.isArray(pending.streets) || pending.streets.length === 0) return;
+    const pending = SaveModal.consumePendingRoute();
+    if (!pending) return;
 
     pending.streets.forEach((stashedStreet) => {
       const street = this.#streetData.features.find(
@@ -699,7 +682,7 @@ class RouteBuilder {
 
     this.#updateMarkers();
     this.#setRouteDistanceText();
-    this.#openSaveModal(pending.name || null);
+    this.#saveModal.open(pending.name || null);
   }
 
   #clickCancelRoute() {
@@ -756,8 +739,8 @@ class RouteBuilder {
     this.#streetDistOverlay.style.visibility = 'hidden';
     this.#routeSavedModal.style.visibility = 'hidden';
     this.#deleteRouteModal.style.visibility = 'hidden';
-    this.#saveRouteModal.style.visibility = 'hidden';
-    this.#renderRecentGuestRoutes();
+    this.#saveModal.hide();
+    this.#guestRoutes.render();
     map.addControl(this.#searchBox);
   }
 
@@ -773,28 +756,6 @@ class RouteBuilder {
   }
 
   /**
-   * Opens the save modal with a name suggestion the user can overwrite.
-   *
-   * @param {string} [prefillName] - Name to prefill (used when restoring a stashed route); defaults to a
-   *                                 localized "Route in {region}" suggestion.
-   */
-  #openSaveModal(prefillName = null) {
-    window.logWebpageActivity('RouteBuilder_Click=OpenSaveModal');
-    const regionName = this.#getRegionName(this.#currRegionId);
-    this.#routeNameInput.value
-      = prefillName ?? (regionName ? i18next.t('route-name-default', { region: regionName }) : '');
-    this.#routeNameError.hidden = true;
-    this.#saveRouteModal.style.visibility = 'visible';
-    this.#routeNameInput.focus();
-    this.#routeNameInput.select();
-  }
-
-  #closeSaveModal() {
-    this.#saveRouteModal.style.visibility = 'hidden';
-    this.#saveButton.focus();
-  }
-
-  /**
    * Returns the ordered street list for the route in the POST /saveRoute wire format.
    * @returns {Array<{street_id: number, reverse: boolean}>}
    */
@@ -803,67 +764,6 @@ class RouteBuilder {
       street_id: s.properties.street_edge_id,
       reverse: s.properties.reverse === true,
     }));
-  }
-
-  /**
-   * Stashes the in-progress route in sessionStorage and opens the sign-in modal. Signing in reloads the page;
-   * the stash is picked up by #maybeRestorePendingRoute so the user lands back in the save flow with their
-   * route (and typed name) intact — the route is then saved under their registered account.
-   */
-  #stashRouteAndSignIn() {
-    window.logWebpageActivity('RouteBuilder_Click=SignInToSave');
-    try {
-      sessionStorage.setItem(RouteBuilder.PENDING_ROUTE_KEY, JSON.stringify({
-        regionId: this.#currRegionId,
-        name: this.#routeNameInput.value.trim(),
-        streets: this.#routeStreetsPayload(),
-      }));
-    } catch {
-      // Storage unavailable: sign-in still works, the route just can't be carried across the reload.
-    }
-    if (window.psAuthModal) {
-      window.psAuthModal.open('signIn');
-    } else {
-      window.location.assign('/signIn?url=%2FrouteBuilder');
-    }
-  }
-
-  /**
-   * Saves the route to the database, shows the Route Saved modal, and updates the links/buttons in that modal.
-   */
-  #submitRoute() {
-    if (!this.#isSignedIn) window.logWebpageActivity('RouteBuilder_Click=ContinueAsGuest');
-    const name = this.#routeNameInput.value.trim();
-
-    // Save the route and then update UI.
-    fetch('/saveRoute', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ region_id: this.#currRegionId, streets: this.#routeStreetsPayload(), name }),
-    })
-      .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
-      .then(({ ok, data }) => {
-        if (!ok) {
-          // The server's message is already localized (e.g. a name rejected by the profanity guard).
-          this.#routeNameError.textContent
-            = typeof data.message === 'string' ? data.message : i18next.t('save-error');
-          this.#routeNameError.hidden = false;
-          window.logWebpageActivity('RouteBuilder_Click=SaveError');
-          return;
-        }
-        this.#closeSaveModal();
-        this.#showRouteSavedModal(data.route_id, data.name);
-        window.logWebpageActivity(`RouteBuilder_Click=SaveSuccess_RouteId=${data.route_id}`);
-      })
-      .catch((error) => {
-        console.error('Error:', error);
-        this.#routeNameError.textContent = i18next.t('save-error');
-        this.#routeNameError.hidden = false;
-        window.logWebpageActivity('RouteBuilder_Click=SaveError');
-      });
   }
 
   /**
@@ -879,7 +779,9 @@ class RouteBuilder {
     this.#routeSavedNameEl.textContent = name;
 
     // For guests, remember the route on this device so a forgotten link isn't fatal.
-    if (!this.#isSignedIn) this.#recordGuestRoute(routeId, name, exploreURL);
+    if (!this.#isSignedIn) {
+      this.#guestRoutes.record(routeId, name, this.#getRegionName(this.#currRegionId), exploreURL);
+    }
 
     // Update link and tooltip for Explore route button.
     this.#exploreButton.off('click');
@@ -902,86 +804,6 @@ class RouteBuilder {
     this.#viewInLabelmapButton.click(() => {
       window.logWebpageActivity(`RouteBuilder_Click=LabelMap_RouteId=${routeId}`);
       window.open(`/labelMap?routes=${routeId}`, '_blank');
-    });
-  }
-
-  /**
-   * Reads the guest routes list from localStorage.
-   * @returns {Array<Object>} Saved route records, newest first; empty if none or storage is unavailable.
-   */
-  #readGuestRoutes() {
-    try {
-      const raw = localStorage.getItem(RouteBuilder.GUEST_ROUTES_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  }
-
-  /**
-   * Prepends a guest-saved route to the device-local recent routes list (capped, newest first).
-   *
-   * @param {number} routeId
-   * @param {string} name
-   * @param {string} url - The shareable /explore?routeId= link.
-   */
-  #recordGuestRoute(routeId, name, url) {
-    const routes = this.#readGuestRoutes().filter((r) => r.routeId !== routeId);
-    routes.unshift({
-      routeId,
-      name,
-      regionName: this.#getRegionName(this.#currRegionId),
-      savedAt: new Date().toISOString(),
-      url,
-    });
-    try {
-      const capped = routes.slice(0, RouteBuilder.GUEST_ROUTES_MAX);
-      localStorage.setItem(RouteBuilder.GUEST_ROUTES_KEY, JSON.stringify(capped));
-    } catch {
-      // Storage unavailable (e.g. private browsing): the copy-link flow still works.
-    }
-  }
-
-  /**
-   * Renders the "recent routes on this device" panel for guests (hidden for signed-in users and empty lists).
-   */
-  #renderRecentGuestRoutes() {
-    if (!this.#recentRoutesPanel) return; // Panel only exists for anonymous users.
-    const routes = this.#readGuestRoutes();
-    this.#recentRoutesPanel.hidden = routes.length === 0;
-    if (routes.length === 0) return;
-
-    this.#recentRoutesList.innerHTML = routes.map((r) => `
-      <li class="recent-route-item">
-        <div class="recent-route-info">
-          <a href="${r.url}" class="recent-route-name" data-route-id="${r.routeId}"></a>
-          <span class="recent-route-meta"></span>
-        </div>
-        <button type="button" class="recent-route-copy routebuilder-button white-button" data-url="${r.url}"
-                data-route-id="${r.routeId}">${i18next.t('recent-copy-link')}</button>
-      </li>`).join('');
-
-    // Names and region/date are user/geo data: set via textContent so they can't inject markup.
-    this.#recentRoutesList.querySelectorAll('.recent-route-item').forEach((item, i) => {
-      const route = routes[i];
-      item.querySelector('.recent-route-name').textContent = route.name;
-      const date = new Date(route.savedAt).toLocaleDateString(i18next.language);
-      item.querySelector('.recent-route-meta').textContent
-        = route.regionName ? `${route.regionName} · ${date}` : date;
-    });
-
-    this.#recentRoutesList.querySelectorAll('.recent-route-name').forEach((link) => {
-      link.addEventListener('click', () => {
-        window.logWebpageActivity(`RouteBuilder_Click=RecoverGuestRoute_RouteId=${link.dataset.routeId}`);
-      });
-    });
-    this.#recentRoutesList.querySelectorAll('.recent-route-copy').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        navigator.clipboard.writeText(btn.dataset.url);
-        this.#setTemporaryTooltip(btn, i18next.t('copied-to-clipboard'));
-        window.logWebpageActivity(`RouteBuilder_Click=RecoverGuestRoute_Copy_RouteId=${btn.dataset.routeId}`);
-      });
     });
   }
 }
