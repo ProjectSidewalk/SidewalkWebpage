@@ -109,7 +109,10 @@ class UserProfileController @Inject() (
               "street_edge_id" -> street.streetEdgeId,
               "way_type"       -> street.wayType.toString,
               "region_id"      -> street.regionId,
-              "audited"        -> street.audited
+              "audited"        -> street.audited,
+              // Audited before, but every audit predates newer imagery (needs re-audit, #4384). Never true when
+              // audited is true; a street with neither is unaudited.
+              "outdated" -> street.outdated
             )
             Json.obj("type" -> "Feature", "geometry" -> street.geom, "properties" -> properties)
           }

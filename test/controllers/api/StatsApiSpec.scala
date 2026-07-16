@@ -76,6 +76,7 @@ class StatsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val json = contentAsJson(resp)
       (json \ "km_explored_multiple_users").asOpt[Double] mustBe defined
       (json \ "km_explored_single_user").asOpt[Double] mustBe defined
+      (json \ "km_needs_reaudit").asOpt[Double] mustBe defined
       (json \ "km_explorable").asOpt[Double] mustBe defined
       (json \ "km_by_status" \ "open").asOpt[Double] mustBe defined
       (json \ "km_by_status" \ "no_imagery").asOpt[Double] mustBe defined
@@ -98,6 +99,8 @@ class StatsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       // single + multiple == no_overlap (single is derived as no_overlap − multiple), and multiple ≤ no_overlap.
       (single + multiple) mustBe (noOverlap +- 0.001)
       multiple must be <= (noOverlap + 0.001)
+      // Streets needing re-audit (#4384) are disjoint from the up-to-date no-overlap set.
+      (json \ "km_needs_reaudit").as[Double] must be >= 0.0
       // km_explorable is an alias of the open bucket. NOTE: we deliberately do NOT assert noOverlap ≤ explorable —
       // a street can be audited and later become closed/no_imagery, so explored can exceed the auditable-now network.
       explorable mustBe (open +- 0.001)
@@ -108,8 +111,8 @@ class StatsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       status(resp) mustBe OK
       val body = contentAsString(resp)
       Seq(
-        "km_explored_multiple_users", "km_explored_single_user", "km_explorable", "km_open", "km_no_imagery",
-        "km_closed", "km_disabled"
+        "km_explored_multiple_users", "km_explored_single_user", "km_needs_reaudit", "km_explorable", "km_open",
+        "km_no_imagery", "km_closed", "km_disabled"
       ).foreach(key => body must include(key))
     }
   }

@@ -145,6 +145,7 @@ ones whose meaning, parameters, or history aren't obvious:
 | `RouteBuilder_Click=Undo` / `RouteBuilder_KeyboardShortcut=Undo` | The same undo action (#4576) via the button vs Ctrl/Cmd+Z — don't double-count. |
 | `RouteBuilder_Click=CancelRoute` / `ResumeRoute` / `ConfirmCancelRoute` | The clear-route flow: opening the discard-confirm dialog, backing out of it, or confirming the discard. While a saved route is being edited, the dialog is about discarding unsaved edits — the saved route itself is never deleted from here. |
 | `Click_module=RouteList_<View\|Explore\|LabelMap\|Copy\|Rename\|Delete>_RouteId=<id>` | Actions on a saved route in the dashboard's "My Routes" section (`MyRoutes.js`); `View` is the thumbnail click that opens the route in the RouteBuilder editor. |
+| `Click_module=<mapName>_streetId=<id>_audited=<bool>_outdated=<bool>_target=explore` | Clicking a street's "explore this street" popup link on a `ps-map` street layer (`addStreetsToMap.js`). `audited` = the street has an audit on current imagery; `outdated` = audited before but newer imagery exists (#4384); both `false` = unaudited. |
 
 ## Finding the current list
 

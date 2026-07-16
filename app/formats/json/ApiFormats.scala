@@ -67,9 +67,13 @@ object ApiFormats {
       "launch_date"                   -> stats.launchDate,
       "avg_timestamp_last_100_labels" -> stats.avgTimestampLast100Labels.map(_.toString),
       "km_explored"                   -> stats.kmExplored,
-      "km_explored_no_overlap"        -> stats.kmExploreNoOverlap,
-      "km_explored_multiple_users"    -> stats.kmExploredMultipleUsers,
-      "km_explored_single_user"       -> stats.kmExploredSingleUser,
+      // The no_overlap/multiple/single km count only audits with current imagery; km_needs_reaudit is the unique km
+      // audited before whose audits all predate newer imagery (#4384). Ever-audited unique km = no_overlap +
+      // needs_reaudit. km_explored keeps counting all completed audits (total work done, with overlap).
+      "km_explored_no_overlap"     -> stats.kmExploreNoOverlap,
+      "km_explored_multiple_users" -> stats.kmExploredMultipleUsers,
+      "km_explored_single_user"    -> stats.kmExploredSingleUser,
+      "km_needs_reaudit"           -> stats.kmNeedsReaudit,
       // `km_explorable` is the auditable-now network (status = open). A street can be audited and later become
       // closed/no_imagery, so km_explored_no_overlap is NOT bounded by km_explorable.
       "km_explorable" -> stats.kmOpen,

@@ -35,10 +35,18 @@ function addStreetsToMap(map, streetData, params) {
     },
     paint: {
       'line-opacity': 0.6,
-      'line-color': [ // Grey if unaudited, black if audited. All black if the map doesn't differentiate.
-        'case', ['all', params.differentiateUnauditedStreets, ['==', ['get', 'audited'], false]],
+      'line-color': [ // Grey if unaudited, black if audited or outdated. All black if the map doesn't differentiate.
+        'case', ['all', params.differentiateUnauditedStreets, ['==', ['get', 'audited'], false],
+          ['!=', ['get', 'outdated'], true]],
         UNAUDITED_STREET_COLOR,
         AUDITED_STREET_COLOR,
+      ],
+      // Outdated streets (audited, but newer imagery exists; #4384) render dashed in the audited color rather than
+      // with a third color, so they can't collide with the canonical label-type palette.
+      'line-dasharray': [
+        'case', ['all', params.differentiateUnauditedStreets, ['==', ['get', 'outdated'], true]],
+        ['literal', [2, 2]],
+        ['literal', [1, 0]],
       ],
       'line-width': [ // Twice the thickness if hovered. Increase thickness as we zoom in.
         'interpolate', ['linear'], ['zoom'],
@@ -85,12 +93,12 @@ function addStreetsToMap(map, streetData, params) {
     // Log clicks on the link to explore a street.
     if (params.logClicks) {
       // Log to the webpage_activity table when a street is selected from the map and 'Click here' is clicked.
-      // Logs are of the form 'Click_module=<mapName>_streetId=<streetId>_audited=<boolean>_target=explore'.
+      // Logs look like 'Click_module=<mapName>_streetId=<streetId>_audited=<bool>_outdated=<bool>_target=explore'.
       $(`#${params.mapName}`).on('click', '.street-selection-trigger', function () {
         const streetId = parseInt($(this).attr('streetId'), 10);
         const street = streetData.features.find((s) => streetId === s.properties.street_edge_id);
         const activity = `Click_module=${params.mapName}_streetId=${streetId}`
-          + `_audited=${street.properties.audited}_target=explore`;
+          + `_audited=${street.properties.audited}_outdated=${street.properties.outdated}_target=explore`;
         window.logWebpageActivity(activity);
       });
     }
