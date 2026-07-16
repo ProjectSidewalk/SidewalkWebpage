@@ -15,6 +15,8 @@
  * @param {string} [opts.syncUrlSource] When set, the open label is mirrored into the page URL as ?labelId=<id>
  *     (cleared on close) so the view is shareable and survives a refresh; a labelId already in the URL is opened
  *     after init, using this string as the validation source (e.g. 'LabelMap').
+ * @param {function(number): void} [opts.onClose] Called with the last-shown label's ID whenever the dialog
+ *     closes (X, ESC, or backdrop); LabelMap uses it to pulse that label's spot on the map.
  * @returns {Promise<object>} Resolves once the pano viewer has been initialized.
  */
 async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, opts = {}) {
@@ -94,10 +96,13 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
     updatePagingState();
   }
 
-  if (opts.syncUrlSource) {
-    // Every close path (X, backdrop, ESC) fires the dialog's close event.
-    dialog.addEventListener('close', () => syncUrl(null));
+  // Every close path (X, backdrop, ESC) fires the dialog's close event.
+  dialog.addEventListener('close', () => {
+    if (opts.syncUrlSource) syncUrl(null);
+    if (typeof opts.onClose === 'function' && currentLabelId) opts.onClose(currentLabelId);
+  });
 
+  if (opts.syncUrlSource) {
     // Reopen the label a shared or refreshed URL points at.
     const initialLabelId = parseInt(new URLSearchParams(window.location.search).get('labelId'), 10);
     if (initialLabelId) {

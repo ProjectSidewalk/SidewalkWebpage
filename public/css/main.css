@@ -1258,24 +1258,25 @@ body:has(#header.header--tall) .test-server-banner {
   width: 24px;
 }
 
-/* Pulsing halo dropped on a deep-linked label's map location on /labelMap; removed by JS after a few seconds. */
-.labelmap-deeplink-pulse {
+/* Pulsing halo marking a label's spot on /labelMap — dropped for ?labelId= deep links and whenever the label
+   popup closes, so it's clear which dot was just viewed; removed by JS after a few seconds. */
+.labelmap-label-pulse {
   width: 18px;
   height: 18px;
   border-radius: 50%;
   border: 2px solid var(--color-link-100);
   background: rgb(62 139 217 / 35%);
-  animation: labelmap-deeplink-pulse 1.3s ease-out 3;
+  animation: labelmap-label-pulse 1.3s ease-out 3;
   pointer-events: none;
 }
 
-@keyframes labelmap-deeplink-pulse {
+@keyframes labelmap-label-pulse {
   from { box-shadow: 0 0 0 0 rgb(62 139 217 / 55%); }
   to { box-shadow: 0 0 0 22px rgb(62 139 217 / 0%); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .labelmap-deeplink-pulse { animation: none; }
+  .labelmap-label-pulse { animation: none; }
 }
 
 

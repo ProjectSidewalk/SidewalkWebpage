@@ -112,7 +112,12 @@
         differentiateUnauditedStreets: true,
         interactiveStreets: true,
         uiSource: 'LabelMap',
-        popupLabelViewer: await LabelPopup(false, viewerType, accessToken, "@user.username", { syncUrlSource: 'LabelMap' }),
+        popupLabelViewer: await LabelPopup(false, viewerType, accessToken, "@user.username", {
+          syncUrlSource: 'LabelMap',
+          // Re-anchor the user when the popup closes: pulse the just-viewed label's spot on the map.
+          // self.pulseLabelOnMap is assigned once the map data has loaded, below.
+          onClose: labelId => self.pulseLabelOnMap && self.pulseLabelOnMap(labelId)
+        }),
         navigationControlPosition: 'top-right',
         highQualityFilter: true
       };
@@ -156,16 +161,33 @@
         const nearbyNav = createNearbyLabelNavigator(self.mapData);
         params.popupLabelViewer.setNearbyNavigator(nearbyNav);
 
-        // A ?labelId= deep link centers the map on the label and pulses its spot, so it's findable on the map
-        // once the popup closes.
-        const deepLinkLabelId = parseInt(new URLSearchParams(window.location.search).get('labelId'), 10);
-        const deepLinkCoords = deepLinkLabelId ? nearbyNav.getCoords(deepLinkLabelId) : null;
-        if (deepLinkCoords) {
-          self.map.jumpTo({ center: deepLinkCoords, zoom: Math.max(self.map.getZoom(), 16) });
+        // Pulses a label's spot on the map (easing it into view first if it's outside the viewport, e.g. after
+        // arrow-touring away). Used by ?labelId= deep links and whenever the popup closes, so it's always clear
+        // which dot was just viewed — crucial on a busy map.
+        let pulseMarker = null;
+        self.pulseLabelOnMap = (labelId) => {
+          const coords = nearbyNav.getCoords(labelId);
+          if (!coords) return;
+          if (!self.map.getBounds().contains(coords)) {
+            self.map.easeTo({ center: coords, zoom: Math.max(self.map.getZoom(), 16) });
+          }
+          if (pulseMarker) pulseMarker.remove();
           const pulseEl = document.createElement('div');
-          pulseEl.className = 'labelmap-deeplink-pulse';
-          const pulseMarker = new mapboxgl.Marker({ element: pulseEl }).setLngLat(deepLinkCoords).addTo(self.map);
-          setTimeout(() => pulseMarker.remove(), 5000);
+          pulseEl.className = 'labelmap-label-pulse';
+          pulseMarker = new mapboxgl.Marker({ element: pulseEl }).setLngLat(coords).addTo(self.map);
+          setTimeout(() => {
+            if (pulseMarker && pulseMarker.getElement() === pulseEl) {
+              pulseMarker.remove();
+              pulseMarker = null;
+            }
+          }, 5000);
+        };
+
+        // A ?labelId= deep link centers the map on the label and pulses its spot.
+        const deepLinkLabelId = parseInt(new URLSearchParams(window.location.search).get('labelId'), 10);
+        if (deepLinkLabelId && nearbyNav.getCoords(deepLinkLabelId)) {
+          self.map.jumpTo({ center: nearbyNav.getCoords(deepLinkLabelId), zoom: Math.max(self.map.getZoom(), 16) });
+          self.pulseLabelOnMap(deepLinkLabelId);
         }
         hideLabelMapLoading();
       }).catch(e => {
