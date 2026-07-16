@@ -1266,7 +1266,7 @@ body:has(#header.header--tall) .test-server-banner {
   border-radius: 50%;
   border: 2px solid var(--color-link-100);
   background: rgb(62 139 217 / 35%);
-  animation: labelmap-label-pulse 1.3s ease-out 3;
+  animation: labelmap-label-pulse 1.3s ease-out 1;
   pointer-events: none;
 }
 

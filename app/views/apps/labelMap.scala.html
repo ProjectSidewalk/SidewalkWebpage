@@ -100,6 +100,11 @@
 
     // Gets all translations before loading the choropleth.
     window.appManager.ready(async function () {
+      // Declared before params because the popup's onShow/onClose callbacks below reference it, and a ?labelId=
+      // deep link fires onShow while LabelPopup() is still being awaited — i.e. before this line would otherwise
+      // run, which threw a temporal-dead-zone ReferenceError and aborted the deep-linked label load.
+      const self = {};
+
       let params = {
         mapName: 'labelmap-choropleth',
         mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
@@ -153,7 +158,6 @@
         showLabelMapLoading();
       };
 
-      const self = {};
       createPSMap($, params).then(m => {
         self.map = m[0];
         self.mapData = m[4];
