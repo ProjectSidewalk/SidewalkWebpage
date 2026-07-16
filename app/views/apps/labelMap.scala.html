@@ -111,14 +111,31 @@
 
       const deepLinkLabelId = parseInt(new URLSearchParams(window.location.search).get('labelId'), 10) || null;
 
-      // label_id -> [lng, lat] of the label's pano, from the popup's metadata fetch. Fallback position (within
-      // ~15m of the label — under a beacon-width at zoom 16) for when the map's own label data can't locate it:
-      // before the large label layer has streamed in, or for labels /labels/all doesn't carry.
+      // label_id -> [lng, lat] of the label's pano and label_id -> label type, from the popup's metadata fetch.
+      // Fallback data (the pano sits within ~15m of the label — under a beacon-width at zoom 16) for when the
+      // map's own label data can't describe the label: before the large label layer has streamed in, or for
+      // labels /labels/all doesn't carry.
       const cameraCoordsByLabelId = new Map();
+      const labelTypeByLabelId = new Map();
 
-      // Best known [lng, lat] for a label: exact point once the map data is loaded, else the pano position.
+      // Best known [lng, lat] / label type for a label: from the map data once loaded, else the popup metadata.
       const labelCoords = (labelId) =>
         (self.nearbyNav && self.nearbyNav.getCoords(labelId)) || cameraCoordsByLabelId.get(labelId) || null;
+      const labelType = (labelId) =>
+        (self.nearbyNav && self.nearbyNav.getLabelType(labelId)) || labelTypeByLabelId.get(labelId) || null;
+
+      // Returns the map center [lng, lat] that renders `coords` exactly `dx`px right / `dy`px below the
+      // viewport center at `zoom`, via plain web-mercator math. Computed by hand because jumpTo silently
+      // ignores CameraOptions.offset (only the animated easeTo/flyTo honor it), which left deep-linked labels
+      // dead-center — directly under the centered dialog.
+      const centerShowingLabelAt = (coords, dx, dy, zoom) => {
+        const worldSize = 512 * Math.pow(2, zoom); // Mapbox GL's tile size is 512px.
+        const sinLat = Math.sin(coords[1] * Math.PI / 180);
+        const pxX = ((coords[0] + 180) / 360) * worldSize - dx;
+        const pxY = (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * worldSize - dy;
+        const merc = Math.PI - 2 * Math.PI * (pxY / worldSize);
+        return [(pxX / worldSize) * 360 - 180, (180 / Math.PI) * Math.atan(0.5 * (Math.exp(merc) - Math.exp(-merc)))];
+      };
 
       // Marks `labelId` (or null) as exempt from the sidebar filters, so the dot a user explicitly asked to see
       // (deep link, arrow paging) can't be hidden by them — e.g. the default incorrect/low-quality exclusions
@@ -129,8 +146,44 @@
         filterLabelLayers(null, self.map, self.mapData, true);
       };
 
-      // A single reusable beacon marker over the label currently tied to the popup. It's a hollow reticle, so
-      // the label's own colored dot still shows through the center. `mode` controls it:
+      // Chat-bubble tail connecting the dialog to the spotlighted dot, so the pair visibly reads as one unit:
+      // a triangle whose base sits on the dialog edge facing the dot and whose tip stops at the beacon's rim.
+      // A fixed full-viewport SVG under the dialog's top layer, repositioned on every map/dialog change and
+      // hidden while the dot is behind the dialog or off-screen.
+      const tailSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      tailSvg.setAttribute('class', 'labelmap-tail');
+      const tailShape = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      tailSvg.appendChild(tailShape);
+      document.body.appendChild(tailSvg);
+      let tailLabelId = null;
+      const updateTail = () => {
+        const dialogEl = document.getElementById('label-modal');
+        const coords = tailLabelId && labelCoords(tailLabelId);
+        tailSvg.style.display = 'none';
+        if (!coords || !self.map || !dialogEl.open) return;
+        const mapRect = self.map.getContainer().getBoundingClientRect();
+        const p = self.map.project(coords);
+        const dot = { x: mapRect.left + p.x, y: mapRect.top + p.y };
+        const r = dialogEl.getBoundingClientRect();
+        const inDialog = dot.x >= r.left && dot.x <= r.right && dot.y >= r.top && dot.y <= r.bottom;
+        const onScreen = dot.x >= 0 && dot.x <= window.innerWidth && dot.y >= 0 && dot.y <= window.innerHeight;
+        if (inDialog || !onScreen) return;
+        const baseX = dot.x >= (r.left + r.right) / 2 ? r.right - 1 : r.left + 1;
+        const baseY = Math.min(Math.max(dot.y, r.top + 48), r.bottom - 48);
+        const dx = dot.x - baseX;
+        const dy = dot.y - baseY;
+        const len = Math.hypot(dx, dy);
+        if (len < 40) return; // Too close for a triangle to read; the beacon alone marks it.
+        const tip = { x: dot.x - (dx / len) * 18, y: dot.y - (dy / len) * 18 }; // Stop at the beacon's rim.
+        tailShape.setAttribute('points', `${baseX},${baseY - 26} ${baseX},${baseY + 26} ${tip.x},${tip.y}`);
+        tailSvg.style.display = 'block';
+      };
+      new ResizeObserver(updateTail).observe(document.getElementById('label-modal'));
+      window.addEventListener('resize', updateTail);
+
+      // A single reusable beacon marker over the label currently tied to the popup: a reticle whose center is
+      // filled with the label type's canonical color, so the label reads even when the map's own dot is tiny
+      // or would be filtered out. `mode` controls it:
       //   'spotlight' — continuously pulsing beacon while the popup is open (the eye can find it on a busy map)
       //   'flash'     — one pulse then auto-remove, to re-anchor the user after the popup closes
       let beacon = null;
@@ -143,6 +196,14 @@
         setSpotlightFilter(labelId);
         const el = document.createElement('div');
         el.className = `labelmap-beacon labelmap-beacon--${mode}`;
+        const type = labelType(labelId);
+        const fill = type && util.misc.getLabelColors()[type];
+        if (fill) {
+          const centerDot = document.createElement('div');
+          centerDot.className = 'labelmap-beacon__dot';
+          centerDot.style.background = fill.fillStyle;
+          el.appendChild(centerDot);
+        }
         beacon = new mapboxgl.Marker({ element: el }).setLngLat(coords).addTo(self.map);
         if (mode === 'flash') {
           beaconTimer = setTimeout(() => {
@@ -153,26 +214,31 @@
       };
 
       // Spotlights the label the popup is showing: a continuously pulsing beacon on its dot, with the map
-      // positioned so the dot sits in the gutter to the RIGHT of the centered dialog — the left gutter is
-      // covered by the filter sidebar. Falls back to plain centering when the viewport leaves no gutter wide
-      // enough for the beacon's pulse ring.
+      // positioned so the dot sits centered in the gutter to the RIGHT of the centered dialog (the left gutter
+      // is covered by the filter sidebar), tail-tied to the dialog. Falls back to plain centering when the
+      // viewport leaves no gutter wide enough for the beacon's pulse ring.
       self.spotlightLabelOnMap = (labelId, jump = false) => {
         const coords = labelCoords(labelId);
         if (!self.map || !coords) return;
         const dialogEl = document.getElementById('label-modal');
         const dialogW = (dialogEl && dialogEl.open && dialogEl.getBoundingClientRect().width) || 650;
         const gutter = (window.innerWidth - dialogW) / 2;
-        const offset = gutter > 80 ? [(window.innerWidth - gutter) / 2, 0] : [0, 0];
-        const camera = { center: coords, zoom: Math.max(self.map.getZoom(), 16), offset };
+        const dx = gutter > 80 ? (window.innerWidth - gutter) / 2 : 0;
+        const zoom = Math.max(self.map.getZoom(), 16);
+        const camera = { center: centerShowingLabelAt(coords, dx, 0, zoom), zoom };
         if (jump) self.map.jumpTo(camera);
         else self.map.easeTo(camera);
         setBeacon(labelId, 'spotlight');
         self.spotlightedLabelId = labelId;
+        tailLabelId = labelId;
+        updateTail();
       };
 
       // On popup close, leave a brief flash so the user is re-anchored to the dot they were viewing.
       self.pulseLabelOnMap = (labelId) => {
         self.spotlightedLabelId = null;
+        tailLabelId = null;
+        updateTail();
         const coords = labelCoords(labelId);
         if (!self.map || !coords) return;
         if (!self.map.getBounds().contains(coords)) {
@@ -202,6 +268,7 @@
           // A deep-linked label opens before (or without) the map's label data; once the popup's metadata
           // arrives, spotlight from its camera position rather than leaving the city-wide view up.
           onMetadata: (labelId, meta) => {
+            if (meta.label_type) labelTypeByLabelId.set(labelId, meta.label_type);
             if (typeof meta.camera_lng !== 'number' || typeof meta.camera_lat !== 'number') return;
             cameraCoordsByLabelId.set(labelId, [meta.camera_lng, meta.camera_lat]);
             if (self.spotlightedLabelId !== labelId) self.spotlightLabelOnMap(labelId, true);
@@ -238,6 +305,7 @@
       // label layer finishes loading, so they appear with the sidebar rather than popping in late (#4370/#4447).
       params.onMapReady = (map) => {
         self.map = map;
+        map.on('move', updateTail); // Keep the tail pinned to the dot through pans/zooms/eases.
         initLabelMapLocationSearch(map, params.mapboxApiKey);
         showLabelMapLoading();
         // A deep-linked popup's metadata fetch races map init; if it already arrived, place the camera now

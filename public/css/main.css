@@ -1258,9 +1258,10 @@ body:has(#header.header--tall) .test-server-banner {
   width: 24px;
 }
 
-/* Beacon marking the label tied to the /labelMap popup. A hollow reticle so the label's own colored dot shows
-   through the center; the expanding ::after ring is what draws the eye on a busy map. Two modes: a continuously
-   pulsing 'spotlight' while the popup is open, and a single 'flash' to re-anchor the user on close. */
+/* Beacon marking the label tied to the /labelMap popup. A reticle whose center carries the label type's
+   canonical color (set inline from getLabelColors()), so the label reads even when the map's own dot is tiny;
+   the expanding ::after ring is what draws the eye on a busy map. Two modes: a continuously pulsing
+   'spotlight' while the popup is open, and a single 'flash' to re-anchor the user on close. */
 .labelmap-beacon {
   position: relative;
   width: 26px;
@@ -1269,6 +1270,14 @@ body:has(#header.header--tall) .test-server-banner {
   border: 3px solid var(--color-asphalt-600);
   box-shadow: 0 0 0 2px rgb(255 255 255 / 90%), 0 1px 4px rgb(0 0 0 / 40%);
   pointer-events: none;
+}
+
+/* Center fill in the label type's color (background set inline by the /labelMap script). */
+.labelmap-beacon__dot {
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  border: 1.5px solid rgb(255 255 255 / 90%);
 }
 
 .labelmap-beacon::after {
@@ -1301,6 +1310,26 @@ body:has(#header.header--tall) .test-server-banner {
 
 @media (prefers-reduced-motion: reduce) {
   .labelmap-beacon::after { animation: none; }
+}
+
+/* Chat-bubble tail tying the /labelMap popup dialog to the spotlighted label's beacon: a full-viewport fixed
+   SVG whose one polygon the page script repositions on every map/dialog change. Sits below the dialog's top
+   layer (so the light backdrop dims it slightly) but above the map and its controls. */
+.labelmap-tail {
+  position: fixed;
+  inset: 0;
+  display: none;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.labelmap-tail polygon {
+  fill: var(--color-neutral-white);
+  stroke: rgb(0 0 0 / 12%);
+  stroke-width: 1;
+  filter: drop-shadow(0 2px 5px rgb(0 0 0 / 18%));
 }
 
 

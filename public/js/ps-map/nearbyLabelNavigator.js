@@ -4,15 +4,20 @@
  * trail. Operates on the same in-memory GeoJSON features the map layers draw, so paging costs no requests.
  *
  * @param {Object} mapData The map layer tracker returned by addLabelsToMap (reads .sortedLabels).
- * @returns {{next: function(number): ?number, prev: function(number): ?number, hasPrev: function(number): boolean}}
- *     Navigator whose methods take the currently shown label ID and return the label ID to show (null when there
- *     is nowhere to go).
+ * @returns {{next: function(number): ?number, prev: function(number): ?number, hasPrev: function(number): boolean,
+ *     getCoords: function(number): ?Array<number>, getLabelType: function(number): ?string}}
+ *     Navigator whose paging methods take the currently shown label ID and return the label ID to show (null when
+ *     there is nowhere to go); getCoords/getLabelType look up a loaded label's [lng, lat] / label type.
  */
 function createNearbyLabelNavigator(mapData) {
-  // label_id -> [lng, lat] for every label on the map, flattened across types.
+  // label_id -> [lng, lat] and label_id -> label type for every label on the map, flattened across types.
   const coordsById = new Map();
-  for (const features of Object.values(mapData.sortedLabels)) {
-    for (const f of features) coordsById.set(f.properties.label_id, f.geometry.coordinates);
+  const typeById = new Map();
+  for (const [labelType, features] of Object.entries(mapData.sortedLabels)) {
+    for (const f of features) {
+      coordsById.set(f.properties.label_id, f.geometry.coordinates);
+      typeById.set(f.properties.label_id, labelType);
+    }
   }
 
   const trail = [];         // Visited label IDs in visit order; backs prev().
@@ -58,6 +63,9 @@ function createNearbyLabelNavigator(mapData) {
     },
     getCoords(labelId) {
       return coordsById.get(labelId) ?? null;
+    },
+    getLabelType(labelId) {
+      return typeById.get(labelId) ?? null;
     },
   };
 }

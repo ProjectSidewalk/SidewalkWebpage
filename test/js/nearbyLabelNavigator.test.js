@@ -66,7 +66,7 @@ describe('createNearbyLabelNavigator', () => {
         expect(nav.next(3)).toBe(4);
     });
 
-    test('flattens labels across types and looks up coordinates for deep links', () => {
+    test('flattens labels across types and looks up coordinates and types for deep links', () => {
         const nav = loadFactory()(mapDataWith({
             CurbRamp: [[1, 0, 0]],
             Obstacle: [[2, 0.0005, 0]],
@@ -74,6 +74,9 @@ describe('createNearbyLabelNavigator', () => {
         expect(nav.next(1)).toBe(2);
         expect(nav.getCoords(2)).toEqual([0.0005, 0]);
         expect(nav.getCoords(999)).toBeNull();
+        expect(nav.getLabelType(1)).toBe('CurbRamp');
+        expect(nav.getLabelType(2)).toBe('Obstacle');
+        expect(nav.getLabelType(999)).toBeNull();
     });
 
     test('next() from an unknown label is a harmless no-op', () => {
