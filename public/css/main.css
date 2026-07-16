@@ -1260,8 +1260,9 @@ body:has(#header.header--tall) .test-server-banner {
 
 /* Beacon marking the label tied to the /labelMap popup. A reticle whose center carries the label type's
    canonical color (set inline from getLabelColors()), so the label reads even when the map's own dot is tiny;
-   the expanding ::after ring is what draws the eye on a busy map. Two modes: a continuously pulsing
-   'spotlight' while the popup is open, and a single 'flash' to re-anchor the user on close. */
+   the expanding ::after ring is what draws the eye on a busy map. Both modes pulse exactly once: 'spotlight'
+   pulses on landing then stays as a calm reticle while the popup is open, and 'flash' pulses once on close
+   to re-anchor the user (its marker is then removed). */
 .labelmap-beacon {
   position: relative;
   width: 26px;
@@ -1289,7 +1290,7 @@ body:has(#header.header--tall) .test-server-banner {
 }
 
 .labelmap-beacon--spotlight::after {
-  animation: labelmap-beacon-ring 1.5s ease-out infinite;
+  animation: labelmap-beacon-ring 1.5s ease-out forwards;
 }
 
 .labelmap-beacon--flash::after {

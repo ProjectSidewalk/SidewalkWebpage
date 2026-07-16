@@ -183,8 +183,8 @@
 
       // A single reusable beacon marker over the label currently tied to the popup: a reticle whose center is
       // filled with the label type's canonical color, so the label reads even when the map's own dot is tiny
-      // or would be filtered out. `mode` controls it:
-      //   'spotlight' — continuously pulsing beacon while the popup is open (the eye can find it on a busy map)
+      // or would be filtered out. Each mode pulses its ring exactly once:
+      //   'spotlight' — pulses on landing, then stays as a calm reticle while the popup is open
       //   'flash'     — one pulse then auto-remove, to re-anchor the user after the popup closes
       let beacon = null;
       let beaconTimer = null;
@@ -213,7 +213,7 @@
         }
       };
 
-      // Spotlights the label the popup is showing: a continuously pulsing beacon on its dot, with the map
+      // Spotlights the label the popup is showing: a beacon on its dot (one pulse on landing), with the map
       // positioned so the dot sits centered in the gutter to the RIGHT of the centered dialog (the left gutter
       // is covered by the filter sidebar), tail-tied to the dialog. Falls back to plain centering when the
       // viewport leaves no gutter wide enough for the beacon's pulse ring.
