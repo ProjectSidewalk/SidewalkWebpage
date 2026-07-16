@@ -306,3 +306,107 @@
   box-shadow: none;
   padding: 10px;
 }
+
+/* Street action menu (#4578): labeled reverse/remove buttons that open when a route street is clicked. */
+.street-popover {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.street-popover-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  border: none;
+  border-radius: 6px;
+  background: var(--color-neutral-white);
+  text-align: left;
+}
+
+.street-popover-btn:hover,
+.street-popover-btn:focus-visible {
+  background: #ddefff;
+}
+
+.street-popover-icon {
+  width: 28px;
+  height: 28px;
+}
+
+/* Start/End markers (#3433): keep the rotated flag separate from the always-upright text label. */
+.marker-endpoint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.marker-endpoint-label {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--color-neutral-white);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 25%);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Map legend (#4577, #4580): collapsible key for the flags, numbered gap markers, and direction arrows. */
+#routebuilder-legend {
+  bottom: 4%;
+  right: 3%;
+  width: 280px;
+  padding: 12px 16px;
+}
+
+#routebuilder-legend-title {
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#routebuilder-legend-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.legend-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.legend-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.legend-gap-markers {
+  display: flex;
+  flex-direction: row;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.legend-number {
+  background: #80c32a;
+  font-size: 12px;
+  line-height: 21px;
+}
+
+.legend-direction-arrow {
+  width: 22px;
+  text-align: center;
+  color: #236EE0;
+  font-size: 18px;
+  flex-shrink: 0;
+}

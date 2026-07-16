@@ -58,9 +58,31 @@
     <span id="save-route-instruction">@Messages("routebuilder.save.route.instruction")</span>
     <div id="creating-route-buttons" class="flex-div-row">
       <button type="button" id="save-button" class="routebuilder-button blue-button">@Messages("routebuilder.save")</button>
+      <button type="button" id="undo-button" class="routebuilder-button white-button" disabled>@Messages("routebuilder.undo")</button>
       <button type="button" id="cancel-button" class="routebuilder-button white-button">@Messages("cancel")</button>
     </div>
   </div>
+  <details id="routebuilder-legend" class="routebuilder-overlay">
+    <summary id="routebuilder-legend-title">@Messages("routebuilder.legend.title")</summary>
+    <ul id="routebuilder-legend-list">
+      <li class="legend-item">
+        <img src="@assets.path("images/icons/routebuilder/start-point.png")" class="legend-icon" alt="">
+        <span>@Messages("routebuilder.legend.start")</span>
+      </li>
+      <li class="legend-item">
+        <img src="@assets.path("images/icons/routebuilder/end-point.png")" class="legend-icon" alt="">
+        <span>@Messages("routebuilder.legend.end")</span>
+      </li>
+      <li class="legend-item">
+        <span class="legend-gap-markers" aria-hidden="true"><span class="marker-number legend-number">1</span><span class="marker-number legend-number">1</span></span>
+        <span>@Messages("routebuilder.legend.gap")</span>
+      </li>
+      <li class="legend-item">
+        <span class="legend-direction-arrow" aria-hidden="true">➔</span>
+        <span>@Messages("routebuilder.legend.direction")</span>
+      </li>
+    </ul>
+  </details>
   <div id="delete-route-modal-backdrop" class="routebuilder-overlay-backdrop">
     <div id="delete-route-modal" class="routebuilder-overlay routebuilder-centered-overlay">
       <div id="delete-route-title-section" class="flex-div-col">

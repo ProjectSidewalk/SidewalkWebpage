@@ -5,5 +5,14 @@
   "one-neighborhood-warning": "As rotas só podem ter ruas de um unico bairro nesse momento.",
   "route-name-default": "Rota em {{region}}",
   "save-error": "Algo deu errado ao salvar. Tente novamente.",
-  "recent-copy-link": "Copiar link"
+  "recent-copy-link": "Copiar link",
+  "reverse-direction": "Inverter direção",
+  "remove-street": "Remover rua",
+  "hover-add-street-named": "Clique para adicionar {{street}} à sua rota",
+  "hover-street-options": "Clique para ver opções da rota",
+  "hover-street-options-named": "{{street}} — clique para ver opções",
+  "marker-start": "Início",
+  "marker-end": "Fim",
+  "section-gap-end-aria": "Fim do trecho {{num}} da rota",
+  "section-gap-start-aria": "Início do trecho {{num}} da rota"
 }

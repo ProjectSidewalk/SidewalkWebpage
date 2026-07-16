@@ -5,5 +5,14 @@
   "one-neighborhood-warning": "A route can only have streets from one neighborhood in it at this time.",
   "route-name-default": "Route in {{region}}",
   "save-error": "Something went wrong while saving. Please try again.",
-  "recent-copy-link": "Copy link"
+  "recent-copy-link": "Copy link",
+  "reverse-direction": "Reverse direction",
+  "remove-street": "Remove street",
+  "hover-add-street-named": "Click to add {{street}} to your route",
+  "hover-street-options": "Click for route options",
+  "hover-street-options-named": "{{street}} — click for route options",
+  "marker-start": "Start",
+  "marker-end": "End",
+  "section-gap-end-aria": "End of route section {{num}}",
+  "section-gap-start-aria": "Start of route section {{num}}"
 }

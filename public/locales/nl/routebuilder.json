@@ -5,5 +5,14 @@
   "one-neighborhood-warning": "Een route kan op dit moment slechts straten uit één buurt hebben.",
   "route-name-default": "Route in {{region}}",
   "save-error": "Er ging iets mis bij het opslaan. Probeer het opnieuw.",
-  "recent-copy-link": "Link kopiëren"
+  "recent-copy-link": "Link kopiëren",
+  "reverse-direction": "Richting omkeren",
+  "remove-street": "Straat verwijderen",
+  "hover-add-street-named": "Klik om {{street}} aan je route toe te voegen",
+  "hover-street-options": "Klik voor route-opties",
+  "hover-street-options-named": "{{street}} — klik voor opties",
+  "marker-start": "Start",
+  "marker-end": "Einde",
+  "section-gap-end-aria": "Einde van routedeel {{num}}",
+  "section-gap-start-aria": "Begin van routedeel {{num}}"
 }

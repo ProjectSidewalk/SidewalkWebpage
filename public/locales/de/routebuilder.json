@@ -5,5 +5,14 @@
   "one-neighborhood-warning": "Eine Route kann zu diesem Zeitpunkt nur Straßen aus einer Nachbarschaft aus sein.",
   "route-name-default": "Route in {{region}}",
   "save-error": "Beim Speichern ist etwas schiefgelaufen. Bitte versuchen Sie es erneut.",
-  "recent-copy-link": "Link kopieren"
+  "recent-copy-link": "Link kopieren",
+  "reverse-direction": "Richtung umkehren",
+  "remove-street": "Straße entfernen",
+  "hover-add-street-named": "Klicken, um {{street}} zur Route hinzuzufügen",
+  "hover-street-options": "Klicken für Routenoptionen",
+  "hover-street-options-named": "{{street}} — klicken für Optionen",
+  "marker-start": "Start",
+  "marker-end": "Ziel",
+  "section-gap-end-aria": "Ende von Routenabschnitt {{num}}",
+  "section-gap-start-aria": "Beginn von Routenabschnitt {{num}}"
 }
