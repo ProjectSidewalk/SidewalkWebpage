@@ -413,6 +413,20 @@ object LabelTable {
       )
   )
 
+  /**
+   * Parses the JSON built by the comment aggregations (the label_comments_agg view and the matching inline SQL in
+   * getRecentLabelsMetadata) into LabelComment objects — the single Scala-side reader of that wire shape.
+   */
+  private def parseCommentsJson(json: String): Seq[LabelComment] = {
+    play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
+      LabelComment(
+        (obj \ "username").as[String],
+        (obj \ "comment").as[String],
+        (obj \ "time_created").asOpt[OffsetDateTime]
+      )
+    }
+  }
+
   // Define an implicit conversion from the tuple representation to the case class.
   implicit val labelValidationMetadataConverter: TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] =
     new TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] {
@@ -440,17 +454,7 @@ object LabelTable {
         aiTags = t._17,
         aiTagsNotPresent = t._18,
         aiGenerated = t._19,
-        comments = t._20
-          .map { json =>
-            play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
-              LabelComment(
-                (obj \ "username").as[String],
-                (obj \ "comment").as[String],
-                (obj \ "time_created").asOpt[OffsetDateTime]
-              )
-            }
-          }
-          .getOrElse(Seq.empty),
+        comments = t._20.map(parseCommentsJson).getOrElse(Seq.empty),
         fromCurrentUser = t._21,
         panoMetadata = Some(
           PanoViewerMetadata(t._22._1, t._22._2, t._22._3, t._22._4, t._22._5, t._22._6, t._22._7, t._22._8, t._22._9)
@@ -671,17 +675,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextString().split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
       r.nextString().split(",").filter(_.nonEmpty).toList,
       (r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
-      r.nextStringOption()
-        .map { json =>
-          play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
-            LabelComment(
-              (obj \ "username").as[String],
-              (obj \ "comment").as[String],
-              (obj \ "time_created").asOpt[OffsetDateTime]
-            )
-          }
-        }
-        .getOrElse(Seq.empty),
+      r.nextStringOption().map(LabelTable.parseCommentsJson).getOrElse(Seq.empty),
       (r.nextDoubleOption(), r.nextDoubleOption()) match {
         case (Some(lat), Some(lng)) => Some(LatLng(lat, lng))
         case _                      => None

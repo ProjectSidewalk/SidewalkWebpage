@@ -28,10 +28,10 @@ function createNearbyLabelNavigator(mapData) {
    * Squared equirectangular distance — plenty for ranking nearby points.
    * @param {Array<number>} a [lng, lat]
    * @param {Array<number>} b [lng, lat]
+   * @param {number} kx cos(reference latitude), precomputed once per ranking pass.
    * @returns {number}
    */
-  const dist2 = (a, b) => {
-    const kx = Math.cos(((a[1] + b[1]) / 2) * (Math.PI / 180));
+  const dist2 = (a, b, kx) => {
     const dx = (a[0] - b[0]) * kx;
     const dy = a[1] - b[1];
     return dx * dx + dy * dy;
@@ -43,11 +43,14 @@ function createNearbyLabelNavigator(mapData) {
       if (!here) return null;
       visited.add(currentId);
       if (trail[trail.length - 1] !== currentId) trail.push(currentId);
+      // cos(current latitude) hoisted out of the scan: for ranking nearby candidates it differs negligibly
+      // from the per-pair midpoint latitude, and the scan covers every loaded label.
+      const kx = Math.cos(here[1] * (Math.PI / 180));
       let best = null;
       let bestD = Infinity;
       for (const [id, coords] of coordsById) {
         if (visited.has(id)) continue;
-        const d = dist2(here, coords);
+        const d = dist2(here, coords, kx);
         if (d < bestD) {
           bestD = d;
           best = id;

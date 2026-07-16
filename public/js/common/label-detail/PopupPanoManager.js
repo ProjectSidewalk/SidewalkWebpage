@@ -30,18 +30,15 @@ class PopupPanoManager {
   #logo;
   #cropUrl;
 
-  // The scalable variants of the canonical label-type markers, so the in-pano marker stays crisp at any size.
-  #icons = {
-    CurbRamp: '/assets/images/icons/label_type_icons/CurbRamp_small.svg',
-    NoCurbRamp: '/assets/images/icons/label_type_icons/NoCurbRamp_small.svg',
-    Obstacle: '/assets/images/icons/label_type_icons/Obstacle_small.svg',
-    SurfaceProblem: '/assets/images/icons/label_type_icons/SurfaceProblem_small.svg',
-    Other: '/assets/images/icons/label_type_icons/Other_small.svg',
-    Occlusion: '/assets/images/icons/label_type_icons/Occlusion_small.svg',
-    NoSidewalk: '/assets/images/icons/label_type_icons/NoSidewalk_small.svg',
-    Crosswalk: '/assets/images/icons/label_type_icons/Crosswalk_small.svg',
-    Signal: '/assets/images/icons/label_type_icons/Signal_small.svg',
-  };
+  /**
+   * The scalable variant of a label type's canonical marker icon, from util.misc's central label-type registry,
+   * so the in-pano marker stays crisp at any size.
+   * @param {string} labelType
+   * @returns {?string} The icon URL, or null for types without one.
+   */
+  #iconFor(labelType) {
+    return util.misc.getIconImagePaths(labelType)?.scalableIconImagePath ?? null;
+  }
 
   /**
    * @param {boolean} admin - Whether the user is an admin (enables pano navigation).
@@ -340,8 +337,9 @@ class PopupPanoManager {
       $(this.#fallbackImage).attr('src', this.#cropUrl);
       $(this.#fallbackContainer).css('display', 'block');
       // Position the label icon on the fallback image.
-      if (this.label && this.#icons[this.label.label_type]) {
-        $(this.#fallbackMarker).attr('src', this.#icons[this.label.label_type]).css('display', 'block');
+      const fallbackIcon = this.label && this.#iconFor(this.label.label_type);
+      if (fallbackIcon) {
+        $(this.#fallbackMarker).attr('src', fallbackIcon).css('display', 'block');
         this.#updateFallbackMarkerPosition();
       } else {
         $(this.#fallbackMarker).css('display', 'none');
@@ -410,7 +408,7 @@ class PopupPanoManager {
       markerContainer: activeCanvas,
       panoViewer: this.panoViewer,
       position: { heading: pos.heading, pitch: pos.pitch },
-      icon: this.#icons[label.label_type],
+      icon: this.#iconFor(label.label_type),
       size: { width: 28, height: 28 },
     });
     // Halo pulse draws the eye to the (small, often low-contrast) marker when the card opens.

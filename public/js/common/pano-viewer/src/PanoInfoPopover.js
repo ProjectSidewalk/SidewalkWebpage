@@ -203,21 +203,18 @@ class PanoInfoPopover {
     setVal('region-id', currRegionId);
     if (currLabelDate) setVal('label-date', currLabelDate);
 
-    // Update the view-in-pano link.
+    // Update the view-in-pano link (at the live camera angle, unlike the label card's stored-POV address link).
     const viewLink = this.#popoverEl.querySelector('.pano-info-popover__view-link');
     if (viewLink && !viewLink.hidden) {
       viewLink.onclick = this.#viewPanoLogging;
-      const viewerType = this.#panoViewer.getViewerType();
-      if (viewerType === 'gsv') {
-        viewLink.href = `https://www.google.com/maps/@?api=1&map_action=pano&pano=${currPanoId}`
-          + `&heading=${currPov.heading}&pitch=${currPov.pitch}`;
-        viewLink.textContent = i18next.t('common:pano-info.view-in-gsv');
-      } else if (viewerType === 'mapillary') {
-        // TODO: include zoom parameter once we can retrieve it synchronously from the viewer.
-        const center = this.#panoViewer.currCenter;
-        const centerStr = center ? `&x=${center[0]}&y=${center[1]}` : '';
-        viewLink.href = `https://www.mapillary.com/app/?pKey=${currPanoId}&focus=photo${centerStr}`;
-        viewLink.textContent = i18next.t('common:pano-info.view-in-mapillary');
+      const link = this.#panoViewer.publicViewerLink(currPanoId, {
+        heading: currPov.heading,
+        pitch: currPov.pitch,
+        center: this.#panoViewer.currCenter,
+      });
+      if (link) {
+        viewLink.href = link.url;
+        viewLink.textContent = i18next.t(link.i18nKey);
       }
     }
 

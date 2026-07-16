@@ -61,18 +61,6 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
   // Capture inner showLabel before we replace it on returned object, otherwise the wrapper would recurse into itself.
   const innerShowLabel = labelDetail.showLabel;
 
-  /**
-   * Sets or clears the labelId query param without adding history entries, so the open label is shareable
-   * and survives a refresh but Back still leaves the page.
-   * @param {?number} labelId The open label's ID, or null to clear the param.
-   */
-  function syncUrl(labelId) {
-    const url = new URL(window.location);
-    if (labelId) url.searchParams.set('labelId', labelId);
-    else url.searchParams.delete('labelId');
-    history.replaceState(null, '', url);
-  }
-
   // Prev/next arrows (rendered when the host's labelPopup include sets withPaging): hidden until a navigator
   // arrives via setNearbyNavigator() — the map's label data loads after the popup is built.
   const prevBtn = dialog.querySelector('.label-detail__paging--prev');
@@ -88,6 +76,7 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
   if (prevBtn) {
     prevBtn.addEventListener('click', () => {
       if (!nearbyNav) return;
+      window.logWebpageActivity(`Click_module=LabelPopup_action=PrevLabel_labelId=${currentLabelId}`);
       const id = nearbyNav.prev(currentLabelId);
       if (id) showLabel(id, lastSource);
     });
@@ -95,6 +84,7 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
   if (nextBtn) {
     nextBtn.addEventListener('click', () => {
       if (!nearbyNav) return;
+      window.logWebpageActivity(`Click_module=LabelPopup_action=NextLabel_labelId=${currentLabelId}`);
       const id = nearbyNav.next(currentLabelId);
       if (id) showLabel(id, lastSource);
     });
@@ -113,7 +103,7 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
    */
   async function showLabel(labelId, source) {
     if (!dialog.open) dialog.showModal();
-    if (opts.syncUrlSource) syncUrl(labelId);
+    if (opts.syncUrlSource) LabelDetail.syncUrlLabelId(labelId);
     currentLabelId = labelId;
     lastSource = source;
     // Before the await so the host's map movement runs in parallel with the pano load.
@@ -126,15 +116,15 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
 
   // Every close path (X, backdrop, ESC) fires the dialog's close event.
   dialog.addEventListener('close', () => {
-    if (opts.syncUrlSource) syncUrl(null);
+    if (opts.syncUrlSource) LabelDetail.syncUrlLabelId(null);
     if (typeof opts.onClose === 'function' && currentLabelId) opts.onClose(currentLabelId);
   });
 
   if (opts.syncUrlSource) {
     // Reopen the label a shared or refreshed URL points at.
-    const initialLabelId = parseInt(new URLSearchParams(window.location.search).get('labelId'), 10);
+    const initialLabelId = LabelDetail.urlLabelId();
     if (initialLabelId) {
-      showLabel(initialLabelId, opts.syncUrlSource).catch(() => syncUrl(null));
+      showLabel(initialLabelId, opts.syncUrlSource).catch(() => LabelDetail.syncUrlLabelId(null));
     }
   }
 

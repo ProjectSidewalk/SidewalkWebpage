@@ -79,7 +79,7 @@ class ExpandedView {
 
     // Capture a ?labelId= deep link now: the initial query's refreshUI() closes the expanded view, which also
     // scrubs the param from the URL, so it must be read before that and acted on after (restoreFromUrl()).
-    this.initialUrlLabelId = parseInt(new URLSearchParams(window.location.search).get('labelId'), 10);
+    this.initialUrlLabelId = LabelDetail.urlLabelId();
   }
 
   /**
@@ -97,7 +97,7 @@ class ExpandedView {
     // an enabled Prev here would drive cardIndex below -1 and break the paging state machine.
     if (this.leftArrow) this.leftArrow.disabled = true;
     this.leftArrowDisabled = true;
-    this.#syncUrl(labelId); // refreshUI's close scrubbed the param; put it back for refresh/re-share.
+    LabelDetail.syncUrlLabelId(labelId); // refreshUI's close scrubbed the param; put it back for refresh/re-share.
     this.labelDetail.showLabel(labelId, 'Gallery')
       .catch(() => this.closeExpandedViewAndRemoveCardTransparency());
   }
@@ -167,19 +167,7 @@ class ExpandedView {
     // Highlight selected card thumbnail.
     this.#highlightThumbnail(document.getElementById(`gallery_card_${this.refCard.getLabelId()}`));
     this.open = true;
-    this.#syncUrl(this.refCard.getLabelId());
-  }
-
-  /**
-   * Sets or clears the labelId query param without adding history entries, so the open label is shareable
-   * and survives a refresh but Back still leaves the page.
-   * @param {?number} labelId The open label's ID, or null to clear the param.
-   */
-  #syncUrl(labelId) {
-    const url = new URL(window.location);
-    if (labelId) url.searchParams.set('labelId', labelId);
-    else url.searchParams.delete('labelId');
-    history.replaceState(null, '', url);
+    LabelDetail.syncUrlLabelId(this.refCard.getLabelId());
   }
 
   /**
@@ -188,7 +176,7 @@ class ExpandedView {
    */
   closeExpandedView() {
     this.#uiModal.css('visibility', 'hidden');
-    this.#syncUrl(null);
+    LabelDetail.syncUrlLabelId(null);
     // Clear the inline visibility set by PopupPanoManager.setPano() so the parent's visibility:hidden cascades.
     // Also set a data flag so that if a pano load is still in-flight, it won't reveal itself when it finishes.
     const panoEl = this.#root.querySelector('.label-detail__pano');

@@ -110,6 +110,21 @@ class PanoViewer {
   }
 
   /**
+   * The provider's public-site link for viewing a pano — the one URL shape every surface that links out to the
+   * provider shares (PanoInfoPopover's view-in-pano link, the label card's address link).
+   * @param {string} panoId - The pano/image ID to link to.
+   * @param {Object} [opts]
+   * @param {number} [opts.heading] - Camera heading to open the viewer at (GSV).
+   * @param {number} [opts.pitch] - Camera pitch to open the viewer at (GSV).
+   * @param {Array<number>} [opts.center] - Normalized [x, y] view center to open the viewer at (Mapillary).
+   * @returns {?{url: string, i18nKey: string}} The URL plus the i18n key naming the destination, or null for
+   *     providers without a public viewer (e.g. Infra3d).
+   */
+  publicViewerLink() {
+    return null;
+  }
+
+  /**
    * Gets the CSS class for the canvas that shows the image. Used for taking screenshots.
    * @returns {string} The CSS class for the canvas that shows the image.
    */

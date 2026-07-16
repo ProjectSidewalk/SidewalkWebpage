@@ -10,6 +10,10 @@
  * Scoped under `.label-detail` so nothing here leaks into Bootstrap-3-styled pages elsewhere.
  */
 
+/* Many of the card's elements carry their own display: flex/inline-flex, which would beat the UA stylesheet's
+   `[hidden] { display: none }` regardless of specificity. One guard so every hidden-toggled element actually hides. */
+.label-detail [hidden] { display: none !important; }
+
 .label-detail {
   box-sizing: border-box;
   width: 650px;
@@ -373,9 +377,6 @@ dialog.label-detail[open]::backdrop {
   color: var(--color-neutral-900);
 }
 
-/* Explicit display: none so the hidden attribute wins over the cell's display: flex. */
-.label-detail__meta-cell--address[hidden] { display: none; }
-
 /* The width cap makes an extreme address ellipsize instead of line-wrapping the row: with flex-wrap, line
    breaks are decided from the item's natural width, so without a cap a long address pushes Details down. */
 .label-detail__meta-cell--address { max-width: 45%; }
@@ -422,18 +423,12 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__meta-cell--details { margin-left: auto; }
 
 
-/* Vertically center the PanoInfoPopover info button (img) with the surrounding text. */
+/* Vertically center the PanoInfoPopover info button (img) with the surrounding text. The (i) is the "value" of
+   the Details: control; the size hook main.css's `#pano-info-button` rule exposes fits it to the text line. */
 .label-detail__info-button-host {
   display: inline-flex;
   align-items: center;
-}
-
-/* The (i) is the "value" of the Details: control; sized to the strip's text line (the id qualifier outranks
-   main.css's `#pano-info-button { width: 24px }`). */
-.label-detail__info-button-host #pano-info-button {
-  display: block;
-  width: 16px;
-  height: 16px;
+  --pano-info-button-size: 16px;
 }
 
 /* ─── Three-column row: Validations / Severity / Tags ─────────────────── */
@@ -631,11 +626,6 @@ button.label-detail__meta-cell:focus-visible {
   padding-top: 14px;
   border-top: 1px solid var(--color-neutral-200);
 }
-
-/* Collapsed by LabelDetail when there is no description, no comments, and no comment box to type into. The
-   .label-detail qualifier outranks the inline mode's display: flex (same specificity as the bare class pair,
-   which loses the tie on file order). */
-.label-detail .label-detail__desc-comments[hidden] { display: none; }
 
 .label-detail__description-section {
   margin: 0 0 16px;
@@ -839,9 +829,6 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__paging svg { display: block; }
 
-/* Hosts without a navigator keep the arrows hidden; explicit so the attribute beats display: flex. */
-.label-detail__paging[hidden] { display: none; }
-
 .label-detail__paging:hover {
   background: var(--color-neutral-white);
   color: var(--color-neutral-black);
@@ -885,8 +872,6 @@ button.label-detail__meta-cell:focus-visible {
   text-decoration: none;
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
-
-.label-detail__labelmap-link[hidden] { display: none; }
 
 .label-detail__labelmap-link:hover {
   background: var(--color-neutral-200);
@@ -950,10 +935,6 @@ button.label-detail__meta-cell:focus-visible {
   border: 1px solid var(--color-neutral-300);
   border-radius: 10px;
   box-shadow: 0 6px 20px rgb(0 0 0 / 18%);
-}
-
-.label-detail__share-popover[hidden] {
-  display: none;
 }
 
 .label-detail__share-heading {

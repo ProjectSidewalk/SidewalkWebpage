@@ -10,6 +10,27 @@
  * non-zero dimensions) before create() is called, because the pano viewer needs to measure its container at init.
  */
 class LabelDetail {
+  /**
+   * Sets or clears the ?labelId= query param without adding history entries, so the open label is shareable
+   * and survives a refresh but Back still leaves the page. The single deep-link contract for every host
+   * (LabelPopup, Gallery's ExpandedView, the LabelMap page).
+   * @param {?number} labelId The open label's ID, or null to clear the param.
+   */
+  static syncUrlLabelId(labelId) {
+    const url = new URL(window.location);
+    if (labelId) url.searchParams.set('labelId', labelId);
+    else url.searchParams.delete('labelId');
+    history.replaceState(null, '', url);
+  }
+
+  /**
+   * Reads the ?labelId= deep-link param syncUrlLabelId() writes.
+   * @returns {?number} The label ID in the URL, or null when absent/invalid.
+   */
+  static urlLabelId() {
+    return parseInt(new URLSearchParams(window.location.search).get('labelId'), 10) || null;
+  }
+
   panoManager; // Public: hosts (ExpandedView, LabelPopup callsites) reach in for the pano manager.
 
   #root;
@@ -32,7 +53,6 @@ class LabelDetail {
 
   #source = undefined;      // Set in showLabel().
   #readonly = false;        // Set per-label in #handleData() based on meta.from_current_user.
-  #hasDescription = false;  // Set per-label in #handleData(); drives collapsing the desc/comments zone.
   #noImagery = false;  // Set per-label once setPano() resolves; true when no navigable imagery could be loaded.
   #validationCounts = { Agree: null, Disagree: null, Unsure: null };
   #flags = { low_quality: null, incomplete: null, stale: null };
@@ -145,7 +165,6 @@ class LabelDetail {
     const host = this.#q('.label-detail__info-button-host');
     if (!host) return;
 
-    const noopLog = () => {};
     const panoViewer = this.panoManager.panoViewer;
     new PanoInfoPopover(
       host,
@@ -160,10 +179,10 @@ class LabelDetail {
       () => this.#currentLabelMeta && {
         heading: this.#currentLabelMeta.heading, pitch: this.#currentLabelMeta.pitch, zoom: this.#currentLabelMeta.zoom,
       },
-      false,    // whiteIcon
-      noopLog,  // infoLogging
-      noopLog,  // clipboardLogging
-      noopLog,  // viewPanoLogging
+      false, // whiteIcon
+      () => this.#logClick('PanoInfoButton'),
+      () => this.#logClick('PanoInfoCopyToClipboard'),
+      () => this.#logClick('PanoInfoViewInPano'),
       () => this.#currentLabelMeta && this.#currentLabelMeta.label_id,
     );
 
@@ -181,6 +200,15 @@ class LabelDetail {
         }
       });
     }
+  }
+
+  /**
+   * Logs a card interaction to the webpage_activity table, tagged with the shown label.
+   * @param {string} action - The interaction name, e.g. 'ViewOnLabelMap' (see docs/logged-events.md).
+   */
+  #logClick(action) {
+    const labelId = this.#currentLabelMeta?.label_id;
+    window.logWebpageActivity(`Click_module=LabelDetail_action=${action}_labelId=${labelId}`);
   }
 
   /**
@@ -260,6 +288,10 @@ class LabelDetail {
    */
   #wireHandlers() {
     const els = this.#els;
+    // Cross-surface hop into the LabelMap (only rendered on hosts that aren't the LabelMap itself).
+    if (els.labelMapLink) {
+      els.labelMapLink.addEventListener('click', () => this.#logClick('ViewOnLabelMap'));
+    }
     // buttonSource overrides #source for this specific button group; falls back to #source if null.
     const voteHandler = (action, buttonSource) => () => {
       if (this.#locked) return;
@@ -410,7 +442,8 @@ class LabelDetail {
         const panoData = this.panoManager.panoViewer.currPanoData;
         const livePano = imageShown && this.panoManager.activeViewerName === 'Default'
           && panoData && panoData.getPanoId() === meta.pano_id;
-        const address = (livePano && panoData.getProperty('address')) || this.#els.address.textContent;
+        const address = (livePano && panoData.getProperty('address'))
+          || meta.pano_data?.address || meta.backup_image?.address || null;
         // Link the address to the provider's public viewer only when live imagery actually loaded — for an
         // expired pano the provider link would land on a "no imagery here" page.
         if (address) this.#showAddress(address, livePano ? this.#panoLink(meta) : null);
@@ -477,8 +510,7 @@ class LabelDetail {
     }
 
     // Description.
-    this.#hasDescription = meta.description !== null && meta.description !== undefined;
-    if (this.#hasDescription) {
+    if (meta.description !== null && meta.description !== undefined) {
       els.description.classList.remove('label-detail__empty');
       els.description.textContent = meta.description;
     } else {
@@ -569,8 +601,10 @@ class LabelDetail {
     // The whole desc/comments zone collapses when it would show nothing but empty states: no description, no
     // comments, and no comment box to type into.
     if (els.descComments) {
+      const desc = this.#currentLabelMeta?.description;
+      const hasDescription = desc !== null && desc !== undefined;
       const hasComments = this.#comments && this.#comments.length > 0;
-      els.descComments.hidden = !this.#hasDescription && !hasComments && !show;
+      els.descComments.hidden = !hasDescription && !hasComments && !show;
     }
   }
 
@@ -834,27 +868,17 @@ class LabelDetail {
   }
 
   /**
-   * External link for viewing the label's pano on its imagery provider's own site. Mirrors the URL shapes
-   * PanoInfoPopover builds for its view-in-pano link, and reuses its translated link text as the tooltip.
+   * External link for viewing the label's pano on its imagery provider's own site, at the label's stored POV.
    * @param {Object} meta - The label metadata payload (pano id + the label's POV).
    * @returns {?{url: string, tooltip: string}} The provider link, or null for providers without a public
    *     viewer (e.g. Infra3d).
    */
   #panoLink(meta) {
-    const viewerType = this.panoManager.panoViewer.getViewerType();
-    if (viewerType === 'gsv') {
-      return {
-        url: `https://www.google.com/maps/@?api=1&map_action=pano&pano=${meta.pano_id}`
-          + `&heading=${meta.heading}&pitch=${meta.pitch}`,
-        tooltip: i18next.t('common:pano-info.view-in-gsv'),
-      };
-    } else if (viewerType === 'mapillary') {
-      return {
-        url: `https://www.mapillary.com/app/?pKey=${meta.pano_id}&focus=photo`,
-        tooltip: i18next.t('common:pano-info.view-in-mapillary'),
-      };
-    }
-    return null;
+    const link = this.panoManager.panoViewer.publicViewerLink(meta.pano_id, {
+      heading: meta.heading,
+      pitch: meta.pitch,
+    });
+    return link && { url: link.url, tooltip: i18next.t(link.i18nKey) };
   }
 
   /**
@@ -913,9 +937,13 @@ class LabelDetail {
     }
     // Anonymous avatar: a person glyph on a color keyed by the backend's per-label commenter index, so each
     // validator reads as a consistent "someone" within this card without any usernames on public surfaces.
-    const AVATAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" '
-      + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-      + '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    // The glyph is images/icons/user-feather.svg's path data, inlined (the icon files hardcode their stroke
+    // color) so it inherits currentColor, with a heavier stroke tuned for this tiny size.
+    const AVATAR_SVG = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+          stroke-linejoin="round" aria-hidden="true">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+      </svg>`;
     const avatarFor = (c) => {
       const idx = typeof c === 'object' && c !== null && Number.isInteger(c.commenter) ? c.commenter : 0;
       const avatar = document.createElement('span');

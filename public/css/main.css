@@ -1253,9 +1253,12 @@ body:has(#header.header--tall) .test-server-banner {
   margin-right: 2px;
 }
 
+/* Contexts that need a different size (e.g. the label card's Details strip) set the custom property on an
+   ancestor instead of fighting this id selector's specificity. */
 #pano-info-button {
   cursor: pointer;
-  width: 24px;
+  width: var(--pano-info-button-size, 24px);
+  height: var(--pano-info-button-size, auto);
 }
 
 /* Beacon marking the label tied to the /labelMap popup. A reticle whose center carries the label type's

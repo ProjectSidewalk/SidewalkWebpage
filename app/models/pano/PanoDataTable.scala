@@ -211,21 +211,21 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
       lastViewed: OffsetDateTime,
       panoHistorySaved: Option[OffsetDateTime]
   ): DBIO[Int] = {
-    val q = for {
-      pano <- panoDataRecords if pano.panoId === panoId
-    } yield (pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll, pano.expired, pano.lastViewed,
-      pano.panoHistorySaved, pano.lastChecked)
-    val baseUpdate = q.update((lat, lng, heading, pitch, roll, expired, lastViewed, panoHistorySaved, lastViewed))
-
     // A stored address is only ever replaced, never cleared: submissions without one (e.g. non-GSV sources) leave
-    // the column untouched.
-    val addressUpdate =
-      if (address.isDefined) panoDataRecords.filter(_.panoId === panoId).map(_.address).update(address)
-      else DBIO.successful(0)
-    for {
-      n <- baseUpdate
-      _ <- addressUpdate
-    } yield n
+    // the column untouched, so it needs its own (still static) query shape rather than a second UPDATE round trip.
+    if (address.isDefined) {
+      val q = for {
+        pano <- panoDataRecords if pano.panoId === panoId
+      } yield (pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll, pano.expired, pano.lastViewed,
+        pano.panoHistorySaved, pano.lastChecked, pano.address)
+      q.update((lat, lng, heading, pitch, roll, expired, lastViewed, panoHistorySaved, lastViewed, address))
+    } else {
+      val q = for {
+        pano <- panoDataRecords if pano.panoId === panoId
+      } yield (pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll, pano.expired, pano.lastViewed,
+        pano.panoHistorySaved, pano.lastChecked)
+      q.update((lat, lng, heading, pitch, roll, expired, lastViewed, panoHistorySaved, lastViewed))
+    }
   }
 
   /**
