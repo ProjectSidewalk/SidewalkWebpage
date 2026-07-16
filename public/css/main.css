@@ -1288,8 +1288,15 @@ body:has(#header.header--tall) .test-server-banner {
 }
 
 @keyframes labelmap-beacon-ring {
-  from { transform: scale(1); opacity: 0.85; }
-  to { transform: scale(2.4); opacity: 0; }
+  from {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+
+  to {
+    transform: scale(2.4);
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
