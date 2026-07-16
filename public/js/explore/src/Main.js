@@ -239,6 +239,30 @@ class Main {
     });
   }
 
+  /**
+   * Show the pre-tutorial intro walkthrough. Only once the user picks "Start Mission" does the tutorial itself begin;
+   * "Skip" bypasses it. This runs before #startOnboarding so the intro is not part of the onboarding state machine.
+   */
+  #startTutorialIntro() {
+    svl.tutorialIntro = new TutorialIntro(svl.tracker, {
+      onStart: () => this.#startOnboarding(),
+      onSkip: () => this.#skipTutorial(),
+    });
+    svl.tutorialIntro.show();
+  }
+
+  /**
+   * Skip the onboarding tutorial from the intro: mark the onboarding mission skipped/complete, submit, and reload into
+   * a real Explore mission. Mirrors how the onboarding itself ends on skip.
+   */
+  #skipTutorial() {
+    svl.tracker.push('Onboarding_Skip');
+    const mission = svl.missionContainer.getCurrentMission();
+    mission.setProperty('skipped', true);
+    mission.setProperty('isComplete', true);
+    svl.form.submitData().then(() => window.location.replace('/explore'));
+  }
+
   #startOnboarding() {
     // TODO probably have a GET endpoint to get onboarding mission..?
     // hide any alerts
@@ -315,7 +339,7 @@ class Main {
       // Check if the user has completed the onboarding tutorial.
       const mission = svl.missionContainer.getCurrentMission();
       if (mission.getProperty('missionType') === 'auditOnboarding') {
-        this.#startOnboarding();
+        this.#startTutorialIntro();
       } else {
         this.#calculateAndSetTasksMissionsOffset();
 

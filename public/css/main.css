@@ -58,6 +58,49 @@
   --color-neutral-900: #242424;
   --color-neutral-black: #000000;
 
+  /* Project Sidewalk secondary color palette. Each ramp's 500 is a canonical label-type color (see below). */
+  --color-blue-100: #F6FAFE;
+  --color-blue-200: #F1F7FD;
+  --color-blue-300: #E8F2FC;
+  --color-blue-400: #C6E0FA;
+  --color-blue-500: #78B0EA;
+
+  --color-mint-100: #EDF8F5;
+  --color-mint-200: #DBF0EC;
+  --color-mint-300: #AEDFCD;
+  --color-mint-400: #92D3C5;
+  --color-mint-500: #62C0AC;
+
+  --color-lime-100: #F6FCE9;
+  --color-lime-200: #ECF8D3;
+  --color-lime-300: #C7EB7A;
+  --color-lime-400: #A7D447;
+  --color-lime-500: #8FC31E;
+
+  --color-purple-100: #F5ECF9;
+  --color-purple-200: #EAD9F2;
+  --color-purple-300: #D6B2E6;
+  --color-purple-400: #C99ADE;
+  --color-purple-500: #BE87D8;
+
+  --color-pink-100: #FBEAF3;
+  --color-pink-200: #F7D4E7;
+  --color-pink-300: #EFA9CF;
+  --color-pink-400: #F092C6;
+  --color-pink-500: #E679B5;
+
+  --color-pumpkin-100: #FEF1E7;
+  --color-pumpkin-200: #FDE2CE;
+  --color-pumpkin-300: #FAC69E;
+  --color-pumpkin-400: #F8A96D;
+  --color-pumpkin-500: #F68D3E;
+
+  --color-yellow-100: #FEFAF0;
+  --color-yellow-200: #FEF7E6;
+  --color-yellow-300: #FEEECD;
+  --color-yellow-400: #FCD977;
+  --color-yellow-500: #FABF1C;
+
   /* Project Sidewalk functional color pallete. */
   --color-success-100: #43EF8E;
   --color-success-200: #11C961;
@@ -72,15 +115,13 @@
   --color-link-200: #0F5FAF;
 
   /* Project Sidewalk label-type color palette. The canonical color for each accessibility label type. */
-
-  /* TODO these have different shades defined in Figma, not sure if we need those. */
-  --color-label-curb-ramp: #8FC31E;
-  --color-label-no-curb-ramp: #E679B5;
-  --color-label-obstacle: #78B0EA;
-  --color-label-surface-problem: #F68D3E;
-  --color-label-no-sidewalk: #BE87D8;
-  --color-label-crosswalk: #FABF1C;
-  --color-label-signal: #62C0AB;
+  --color-label-curb-ramp: var(--color-lime-500);
+  --color-label-no-curb-ramp: var(--color-pink-500);
+  --color-label-obstacle: var(--color-blue-500);
+  --color-label-surface-problem: var(--color-pumpkin-500);
+  --color-label-no-sidewalk: var(--color-purple-500);
+  --color-label-crosswalk: var(--color-yellow-500);
+  --color-label-signal: var(--color-mint-500);
 
   /* Font stacks. Mulish handles ~all type (body, UI, headings H3 and below); Raleway is reserved for top-level H1/H2
        and the Small-Accent style. Mulish doesn't ship CJK glyphs, so its stack ends with Traditional-Chinese system

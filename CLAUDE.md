@@ -81,6 +81,17 @@ Supported languages: en, es, nl, zh-TW, de, pt-BR, en-US, en-NZ.
 
 User-facing text changes require translations for all supported languages
 
+**Backend: English goes in `messages.en`, never the base `messages` file.** For a `@Messages("...")` key, put the
+English string in **`conf/messages/messages.en`** and a (best-effort, machine-translation-OK) translation in **each**
+`messages.<lang>` (`.es`, `.nl`, `.de`, `.pt-BR`, `.zh-TW`). The base **`conf/messages/messages`** (no suffix) is the
+Play *default/fallback* file — reserve it for genuinely language-neutral values (city-name proper nouns, way-type keys)
+and never add translatable English prose there. **The common trap:** doing an English-only first pass and dropping the
+strings into the base `messages` (it looks like "the English/default file"), then adding `messages.en` + `messages.<lang>`
+in a later translation pass — which leaves a stale, duplicated English copy in the base file. Even the English-only
+first pass belongs in `messages.en`. (Regional English overlays `messages.en-US`/`messages.en-NZ` fall back through
+`messages.en`; the other languages fall back straight to the base default, so a missing `messages.<lang>` key shows the
+raw key — which is why every language file must carry the key.)
+
 Lean towards using `data-i18n="ns:key"` in HTML so that we can keep the translations in the i18next JS library and reduce duplicate translations.
 
 Full details (both systems, regional `en-US`/`en-NZ` rules, adding a new language): [`docs/internationalization.md`](docs/internationalization.md).
@@ -176,6 +187,7 @@ When you catch yourself writing a frontend constant that mirrors a backend value
 - User interactions are logged (clicks, key presses, mode switches, pano changes, mission/task events, etc.) to the activity/interaction tables. When you **add or change an interaction**, add or adjust the corresponding logging so analytics stay complete; keep event names consistent with the existing ones, and update [`docs/logged-events.md`](docs/logged-events.md) (how logging works + the event reference).
 - Ensure WCAG 2.1/2.2 Level AA accessibility standards are met
 - When adding or refactoring code, use the fonts, colors, button styling, etc. defined in main.css :root. These are pulled from our "Design System Tokens" Figma, and we are pushing to use these going forward.
+- **Scale tool UI with `var(--ui-scale)`.** The Explore and Validate tools (and self-contained overlays layered over them — the mission-complete modal, the tutorial intro/complete screens, etc.) are zoomed uniformly to fit the viewport by `util.applyToolScale` (`public/js/common/utilities.js`), which sets `--ui-scale` on both `.tool-ui` and the document root. So **every fixed dimension you author for tool/overlay UI must be expressed as `calc(<base>px * var(--ui-scale, 1))`** — paddings, gaps, widths, heights, border widths/radii, icon sizes, and any hardcoded `font-size`/`letter-spacing`. For type, prefer the `--text-*` tokens (they already bake in `var(--ui-scale)`); only drop to a raw `calc(... * var(--ui-scale, 1))` font-size when no token matches the size. A bare `px` value here is a bug: it won't grow/shrink with the rest of the tool. (Fluid values — `%`, `flex`, `aspect-ratio`, viewport units — don't need it.) This does **not** apply to fixed page chrome like the navbar, which deliberately stays unscaled.
 - Max line length of 120 characters, with long line exceptions where appropriate. For multi-line comments, TARGET line length is 120 characters
 - **Keep docs in sync.** When you change architecture, framework versions, supported languages, label types, or other conventions, update the affected docs in the *same* change: [`docs/architecture.md`](docs/architecture.md) mirrors this file's architecture (and the README's tech-stack summary), and [`CONTRIBUTING.md`](CONTRIBUTING.md) holds the workflow/standards. To avoid drift, keep exact dependency/patch versions in **one** place — the dependency-version inventory ([`docs/upgrading-libraries.md`](docs/upgrading-libraries.md)) — rather than copying them across docs. README/architecture mention only stable major versions (e.g. Scala 2.13, Play 3.0, Java 17).
 

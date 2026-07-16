@@ -1,4 +1,32 @@
 {
+  "tutorial-intro": {
+    "eyebrow": "探索任務",
+    "title": "加入 Sidewalk 任務",
+    "next": "下一步",
+    "start-mission": "開始任務",
+    "have-account": "已經有帳戶了嗎？",
+    "sign-in": "登入",
+    "already-tutorial": "已經完成教學了嗎？",
+    "skip": "跳過",
+    "explore": {
+      "title": "探索",
+      "description": "在城市中發現無障礙問題。"
+    },
+    "label": {
+      "title": "標記",
+      "description": "標記路緣斜坡與人行道鋪面問題，並加上無障礙評分。"
+    },
+    "validate": {
+      "title": "驗證",
+      "description": "檢視其他人標記的標籤，確認其正確性。"
+    },
+    "impact": {
+      "title": "影響力",
+      "stat-labels": "志工已新增 {{total}} 個標籤",
+      "stat-cities": "資料已應用於全球 {{cities}} 個城市",
+      "tagline": "每個標籤都有助於改善現實世界的無障礙環境"
+    }
+  },
   "curb-ramp": "路緣斜坡",
   "missing-curb-ramp": "缺路緣斜坡",
   "obstacle": "有障礙物",
