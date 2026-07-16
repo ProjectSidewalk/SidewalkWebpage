@@ -5,5 +5,14 @@
   "one-neighborhood-warning": "目前，一條路線內只能包涵一個社區內的街道。",
   "route-name-default": "{{region}}的路線",
   "save-error": "儲存時發生錯誤，請再試一次。",
-  "recent-copy-link": "複製連結"
+  "recent-copy-link": "複製連結",
+  "reverse-direction": "反轉方向",
+  "remove-street": "移除街道",
+  "hover-add-street-named": "點選即可將{{street}}加入路線",
+  "hover-street-options": "點選查看路線選項",
+  "hover-street-options-named": "{{street}} — 點選查看選項",
+  "marker-start": "起點",
+  "marker-end": "終點",
+  "section-gap-end-aria": "路線第 {{num}} 段的終點",
+  "section-gap-start-aria": "路線第 {{num}} 段的起點"
 }

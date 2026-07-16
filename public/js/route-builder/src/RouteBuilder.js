@@ -31,6 +31,8 @@ class RouteBuilder {
   // Collaborators.
   #saveModal;
   #guestRoutes;
+  #undoStack;
+  #streetPopover;
 
   // DOM elements.
   #introUI;
@@ -87,6 +89,25 @@ class RouteBuilder {
     this.#guestRoutes = new GuestRoutes((btn, message) => this.#setTemporaryTooltip(btn, message));
     this.#guestRoutes.render();
 
+    this.#undoStack = new UndoStack(document.getElementById('undo-button'));
+    document.getElementById('undo-button').addEventListener('click', () => {
+      window.logWebpageActivity('RouteBuilder_Click=Undo');
+      this.#undo();
+    });
+    document.addEventListener('keydown', (e) => {
+      // Ctrl/Cmd+Z undoes the last route edit, except while typing in a form field.
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !/^(input|textarea|select)$/i.test(e.target.tagName)) {
+        e.preventDefault();
+        window.logWebpageActivity('RouteBuilder_KeyboardShortcut=Undo');
+        this.#undo();
+      }
+    });
+
+    const legend = document.getElementById('routebuilder-legend');
+    legend?.addEventListener('toggle', () => {
+      window.logWebpageActivity(`RouteBuilder_Click=ToggleLegend_Open=${legend.open}`);
+    });
+
     // Initialize the map.
     mapboxgl.accessToken = mapboxApiKey;
     this.#map = new mapboxgl.Map({
@@ -118,17 +139,20 @@ class RouteBuilder {
     // Once all the layers have loaded, put them in the correct order.
     this.#map.on('sourcedataloading', this.#moveLayers);
 
+    this.#streetPopover = new StreetPopover(
+      this.#map,
+      (streetId) => this.#reverseStreet(streetId),
+      (streetId) => this.#removeStreet(streetId),
+    );
+
     this.#saveButton.addEventListener('click', () => this.#saveModal.open());
   }
 
   // Arrow field so the reference stays stable for the map on/off pair.
   #moveLayers = () => {
     const map = this.#map;
-    if (map.getLayer('streets') && map.getLayer('streets-chosen') && map.getLayer('chosen-hover-flip')
-      && map.getLayer('chosen-hover-remove') && map.getLayer('neighborhoods')) {
+    if (map.getLayer('streets') && map.getLayer('streets-chosen') && map.getLayer('neighborhoods')) {
       map.moveLayer('streets', 'streets-chosen');
-      map.moveLayer('chosen-hover-flip', 'streets-chosen');
-      map.moveLayer('chosen-hover-remove', 'streets-chosen');
       map.moveLayer('streets', 'neighborhoods');
       map.off('sourcedataloading', this.#moveLayers); // Remove the listener so we only do this once.
     }
@@ -235,15 +259,9 @@ class RouteBuilder {
    * Renders the streets on the map. Adds the hover/click events for the streets as well.
    *
    * We have two separate data sources for the streets. The 'streets' source contains all the streets in the city. The
-   * 'streets-chosen' source contains the streets that have been added to the route. This just makes it a bit easier
-   * to keep track of the streets in the route and render streets differently when we reverse their direction.
-   *
-   * Because Mapbox doesn't allow us to change the line-pattern (or switch between line-pattern and line-color) based
-   * on feature state, we have four separate layers for the streets:
-   * 1. streets: streets that aren't in the route (light blue colored).
-   * 2. streets-chosen: streets that are in the route (white/blue arrow pattern).
-   * 3. chosen-hover-flip: streets in the route on hover (translucent dark/light blue arrow pattern).
-   * 4. chosen-hover-remove: streets in the route after being reversed, on hover (red/purple arrow pattern).
+   * 'streets-chosen' source contains the streets that have been added to the route (white/blue arrow pattern). This
+   * just makes it a bit easier to keep track of the streets in the route and render streets differently when we
+   * reverse their direction. Clicking a chosen street opens the labeled reverse/remove menu (StreetPopover).
    */
   #renderStreetsHelper() {
     const map = this.#map;
@@ -276,8 +294,7 @@ class RouteBuilder {
         ],
         // Show only when street hasn't been chosen.
         'line-opacity': ['case',
-          ['==', ['string', ['feature-state', 'chosen'], 'not chosen'], 'not chosen'], 0.75,
-          0.0,
+          ['boolean', ['feature-state', 'chosen'], false], 0.0, 0.75,
         ],
       },
     });
@@ -293,67 +310,15 @@ class RouteBuilder {
           12, 2,
           15, 7,
         ],
-        // Hide when street is being hovered over.
-        'line-opacity': ['case',
-          ['boolean', ['feature-state', 'hover'], false], 0.0, 0.75,
-        ],
-      },
-    });
-    map.addLayer({
-      id: 'chosen-hover-flip',
-      type: 'line',
-      source: 'streets-chosen',
-      paint: {
-        'line-pattern': 'street-arrow-hover-reverse',
-        // Line width scales based on zoom level.
-        'line-width': [
-          'interpolate', ['linear'], ['zoom'],
-          12, 2,
-          15, 7,
-        ],
-        // Show only when hovered and street has been chosen.
-        'line-opacity': ['case',
-          ['all',
-            ['boolean', ['feature-state', 'hover'], false],
-            ['==', ['string', ['feature-state', 'chosen'], 'not chosen'], 'chosen'],
-          ], 0.75, 0.0,
-        ],
-      },
-    });
-    map.addLayer({
-      id: 'chosen-hover-remove',
-      type: 'line',
-      source: 'streets-chosen',
-      paint: {
-        'line-pattern': 'street-arrow-hover-delete',
-        // Line width scales based on zoom level.
-        'line-width': [
-          'interpolate', ['linear'], ['zoom'],
-          12, 2,
-          15, 7,
-        ],
-        // Show only when hovered and street has been chosen and reversed.
-        'line-opacity': ['case',
-          ['all',
-            ['boolean', ['feature-state', 'hover'], false],
-            ['==', ['string', ['feature-state', 'chosen'], 'not chosen'], 'chosen reversed'],
-          ], 0.75, 0.0,
-        ],
+        'line-opacity': 0.75,
       },
     });
 
     // Create tooltips for when the user hovers over a street.
     const neighborhoodPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
       .setHTML(i18next.t('one-neighborhood-warning'));
-    const hoverChoosePopup
-      = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 10, maxWidth: '340px' })
-        .setHTML(i18next.t('hover-add-street'));
-    const hoverReversePopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
-      .setHTML(`<img src="/assets/images/icons/routebuilder/reverse-hover.png" alt="Reverse" width="24" height="24">`);
-    hoverReversePopup._content.className = 'tooltip-no-outline'; // Remove default styling.
-    const hoverDeletePopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
-      .setHTML(`<img src="/assets/images/icons/routebuilder/delete-hover.png" alt="Reverse" width="24" height="24">`);
-    hoverDeletePopup._content.className = 'tooltip-no-outline'; // Remove default styling.
+    const hoverInfoPopup
+      = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 10, maxWidth: '340px' });
 
     // Mark when a street is being hovered over.
     let hoveredStreet = null;
@@ -362,40 +327,34 @@ class RouteBuilder {
       const street = event.features[0];
       // Don't show hover effects if the street was just clicked on.
       if (street.properties.street_edge_id === clickedStreet) return;
-      const chosenState = street.state ? street.state.chosen : 'not chosen';
+      const isChosen = street.state?.chosen === true;
 
       // If we moved directly from hovering over one street to another, set the previous as hover: false.
       if (hoveredStreet) {
         map.setFeatureState({ source: 'streets', id: hoveredStreet }, { hover: false });
-        map.setFeatureState({ source: 'streets-chosen', id: hoveredStreet }, { hover: false });
       }
       hoveredStreet = street.properties.street_edge_id;
-
-      // Set the hover state.
       map.setFeatureState({ source: 'streets', id: hoveredStreet }, { hover: true });
-      if (chosenState !== 'not chosen' && clickedStreet !== street.properties.street_edge_id) {
-        map.setFeatureState({ source: 'streets-chosen', id: hoveredStreet }, { hover: true });
-      }
 
-      // Update the reverse/delete tooltips above the cursor.
-      if (chosenState === 'chosen') {
-        hoverReversePopup.setLngLat(event.lngLat);
-        if (!hoverReversePopup.isOpen()) {
-          hoverReversePopup.addTo(map);
-          hoverReversePopup._content.parentNode.querySelector('[class*="tip"]').remove(); // Remove the arrow.
-        }
-      } else if (chosenState === 'chosen reversed') {
-        hoverDeletePopup.setLngLat(event.lngLat);
-        if (!hoverDeletePopup.isOpen()) {
-          hoverDeletePopup.addTo(map);
-          hoverDeletePopup._content.parentNode.querySelector('[class*="tip"]').remove(); // Remove the arrow.
-        }
-      } else if (this.#streetsInRoute.features.length === 0) { // Not yet chosen and route is empty.
-        hoverChoosePopup.setLngLat(event.lngLat);
-        if (!hoverChoosePopup.isOpen()) {
-          hoverChoosePopup.addTo(map);
-          hoverChoosePopup._content.parentNode.querySelector('[class*="tip"]').remove(); // Remove the arrow.
-        }
+      // Tooltip above the cursor: the street's name (from the basemap, when one renders nearby) plus what a
+      // click will do — add the street, or open the reverse/remove menu for a street already in the route.
+      const streetName = this.#basemapStreetName(event.point);
+      // escapeValue off: the name goes through Popup.setText (plain text), not into markup.
+      const interp = { street: streetName, interpolation: { escapeValue: false } };
+      let tooltipText;
+      if (isChosen) {
+        tooltipText = streetName
+          ? i18next.t('hover-street-options-named', interp)
+          : i18next.t('hover-street-options');
+      } else {
+        tooltipText = streetName
+          ? i18next.t('hover-add-street-named', interp)
+          : i18next.t('hover-add-street');
+      }
+      hoverInfoPopup.setLngLat(event.lngLat).setText(tooltipText);
+      if (!hoverInfoPopup.isOpen()) {
+        hoverInfoPopup.addTo(map);
+        hoverInfoPopup._content.parentNode.querySelector('[class*="tip"]').remove(); // Remove the arrow.
       }
       map.getCanvas().style.cursor = 'pointer';
 
@@ -409,18 +368,15 @@ class RouteBuilder {
     map.on('mouseleave', 'streets', () => {
       if (hoveredStreet) {
         map.setFeatureState({ source: 'streets', id: hoveredStreet }, { hover: false });
-        map.setFeatureState({ source: 'streets-chosen', id: hoveredStreet }, { hover: false });
       }
       hoveredStreet = null;
       clickedStreet = null; // This helps avoid showing hover effects directly after clicking a street.
       map.getCanvas().style.cursor = '';
       neighborhoodPopup.remove();
-      hoverChoosePopup.remove();
-      hoverReversePopup.remove();
-      hoverDeletePopup.remove();
+      hoverInfoPopup.remove();
     });
 
-    // When a street is clicked, toggle it as being chosen for the route or not.
+    // Clicking an unchosen street adds it to the route; clicking a chosen one opens the reverse/remove menu.
     map.on('click', 'streets', (event) => {
       const streetFeature = event.features[0];
 
@@ -436,45 +392,41 @@ class RouteBuilder {
 
       hoveredStreet = street.properties.street_edge_id;
       clickedStreet = hoveredStreet;
-      const prevState = streetFeature.state;
 
-      if (prevState.chosen === 'chosen') { // If the street was in the route, reverse it.
-        map.setFeatureState({ source: 'streets', id: clickedStreet }, { chosen: 'chosen reversed' });
-        map.setFeatureState({ source: 'streets-chosen', id: clickedStreet }, { chosen: 'chosen reversed' });
-
-        const streetToReverse
-          = this.#streetsInRoute.features.find((s) => s.properties.street_edge_id === clickedStreet);
-        streetToReverse.geometry.coordinates.reverse();
-        streetToReverse.properties.reverse = !streetToReverse.properties.reverse;
-        map.getSource('streets-chosen').setData(this.#streetsInRoute);
-
-        hoverReversePopup.remove(); // Hide the reverse tooltip.
-      } else if (prevState.chosen === 'chosen reversed') { // If street was in the route & reversed, remove it.
-        map.setFeatureState({ source: 'streets', id: clickedStreet }, { chosen: 'not chosen' });
-
-        this.#streetsInRoute.features
-          = this.#streetsInRoute.features.filter((s) => s.properties.street_edge_id !== clickedStreet);
-        map.getSource('streets-chosen').setData(this.#streetsInRoute);
-
-        hoverDeletePopup.remove(); // Hide the delete tooltip.
-
-        // Once the route is empty again, any street can be selected. Update styles.
-        if (this.#streetsInRoute.features.length === 0) {
-          this.#resetUI();
-        }
+      if (streetFeature.state.chosen === true) { // Street already in the route: open the action menu.
+        this.#streetPopover.open(clickedStreet, event.lngLat);
       } else { // If the street was not in the route, add it to the route.
         this.#addStreetToRoute(street);
-        hoverChoosePopup.remove(); // Hide the start building a route tooltip.
+        hoverInfoPopup.remove(); // Hide the add-street tooltip.
+        this.#updateMarkers();
+        this.#setRouteDistanceText();
       }
 
       // Set hover to false so that we don't show hover effect immediately after being clicked.
       map.setFeatureState({ source: 'streets', id: hoveredStreet }, { hover: false });
-      map.setFeatureState({ source: 'streets-chosen', id: hoveredStreet }, { hover: false });
-      this.#updateMarkers();
-      this.#setRouteDistanceText();
     });
 
     this.#maybeRestorePendingRoute();
+  }
+
+  /**
+   * Best-effort street-name lookup from the basemap's rendered road labels near a screen point (#4575).
+   *
+   * Road names aren't in our own street data, and basemap label features only exist where a label happens to
+   * render — so this returns null along unlabeled stretches and the tooltip degrades to generic text. Purely
+   * presentational, which is why it reads the basemap instead of a backend source.
+   *
+   * @param {Object} point - Screen point ({x, y}) from a map mouse event.
+   * @returns {string|null} The street name, or null if no labeled road is nearby.
+   */
+  #basemapStreetName(point) {
+    const radius = 30; // px search window around the cursor.
+    const features = this.#map.queryRenderedFeatures([
+      [point.x - radius, point.y - radius],
+      [point.x + radius, point.y + radius],
+    ]);
+    const named = features.find((f) => f.sourceLayer === 'road' && f.properties?.name);
+    return named ? named.properties.name : null;
   }
 
   /**
@@ -515,15 +467,24 @@ class RouteBuilder {
     const contigSections = this.#computeContiguousRoutes();
     if (contigSections.length === 0) return;
 
-    // Add start point.
+    // Add start point, with a visible "Start" label (#3433).
     const startPointEl = document.createElement('div');
-    startPointEl.className = 'marker-start';
+    startPointEl.className = 'marker-endpoint';
+    startPointEl.setAttribute('role', 'img');
+    startPointEl.setAttribute('aria-label', i18next.t('marker-start'));
+    const startFlag = document.createElement('div');
+    startFlag.className = 'marker-start';
+    const startLabel = document.createElement('span');
+    startLabel.className = 'marker-endpoint-label';
+    startLabel.textContent = i18next.t('marker-start');
+    startPointEl.append(startFlag, startLabel);
     const startPoint = contigSections[0][0].geometry.coordinates[0];
     const rotation = turf.bearing(startPoint, contigSections[0][0].geometry.coordinates[1]);
-    const startMarker = new mapboxgl.Marker(startPointEl).setLngLat(startPoint).setRotation(rotation).addTo(map);
+    startFlag.style.transform = `rotate(${rotation}deg)`; // Rotate only the flag so the label stays upright.
+    const startMarker = new mapboxgl.Marker(startPointEl).setLngLat(startPoint).addTo(map);
     this.#currentMarkers.push(startMarker);
 
-    // Add colors for the midpoints.
+    // Numbered pairs mark a gap between contiguous sections: section i ends and section i+1 begins (#4577).
     for (let i = 0; i < contigSections.length - 1; i++) {
       const midpointEl1 = document.createElement('div');
       const midpointEl2 = document.createElement('div');
@@ -531,6 +492,14 @@ class RouteBuilder {
       midpointEl1.innerHTML = midpointEl2.innerHTML = (i + 1).toString();
       midpointEl1.style.background = this.#endpointColors[i % this.#endpointColors.length];
       midpointEl2.style.background = this.#endpointColors[i % this.#endpointColors.length];
+      const gapEndAria = i18next.t('section-gap-end-aria', { num: i + 1 });
+      const gapStartAria = i18next.t('section-gap-start-aria', { num: i + 2 });
+      midpointEl1.setAttribute('role', 'img');
+      midpointEl1.setAttribute('aria-label', gapEndAria);
+      midpointEl1.title = gapEndAria;
+      midpointEl2.setAttribute('role', 'img');
+      midpointEl2.setAttribute('aria-label', gapStartAria);
+      midpointEl2.title = gapStartAria;
       const midPoint1 = contigSections[i].slice(-1)[0].geometry.coordinates.slice(-1)[0];
       const midPoint2 = contigSections[i + 1][0].geometry.coordinates[0];
       const p1Marker = new mapboxgl.Marker(midpointEl1).setLngLat(midPoint1).addTo(map);
@@ -539,9 +508,17 @@ class RouteBuilder {
       this.#currentMarkers.push(p2Marker);
     }
 
-    // Add endpoint.
+    // Add endpoint, with a visible "End" label (#3433).
     const endPointEl = document.createElement('div');
-    endPointEl.className = 'marker-end';
+    endPointEl.className = 'marker-endpoint';
+    endPointEl.setAttribute('role', 'img');
+    endPointEl.setAttribute('aria-label', i18next.t('marker-end'));
+    const endFlag = document.createElement('div');
+    endFlag.className = 'marker-end';
+    const endLabel = document.createElement('span');
+    endLabel.className = 'marker-endpoint-label';
+    endLabel.textContent = i18next.t('marker-end');
+    endPointEl.append(endFlag, endLabel);
     const endPoint = contigSections.slice(-1)[0].slice(-1)[0].geometry.coordinates.slice(-1)[0];
     const endMarker = new mapboxgl.Marker(endPointEl).setLngLat(endPoint).addTo(map);
     this.#currentMarkers.push(endMarker);
@@ -621,13 +598,17 @@ class RouteBuilder {
    * Adds a street to the route: sets its orientation and feature states, and applies the first-street UI changes.
    *
    * @param {Object} street - The street's full GeoJSON feature from the streets source data.
-   * @param {boolean} [forceReverse] - Target orientation (used when restoring a stashed route); when omitted, the
-   *                                   street is oriented to minimize the number of contiguous sections.
+   * @param {boolean} [forceReverse] - Target orientation (used when restoring a stashed route or undoing a
+   *                                   removal); when omitted, the street is oriented to minimize the number of
+   *                                   contiguous sections.
+   * @param {Object} [opts]
+   * @param {boolean} [opts.record=true] - Whether to record the action on the undo stack (off during undo).
+   * @param {number} [opts.index] - Position in the route to insert at (used when undoing a removal).
    */
-  #addStreetToRoute(street, forceReverse = null) {
+  #addStreetToRoute(street, forceReverse = null, { record = true, index = null } = {}) {
     const map = this.#map;
     const streetId = street.properties.street_edge_id;
-    map.setFeatureState({ source: 'streets', id: streetId }, { chosen: 'chosen' });
+    map.setFeatureState({ source: 'streets', id: streetId }, { chosen: true });
 
     const flip = forceReverse === null
       ? this.#shouldReverseStreet(street)
@@ -637,9 +618,14 @@ class RouteBuilder {
       street.properties.reverse = !street.properties.reverse;
     }
 
-    this.#streetsInRoute.features.push(street);
+    if (index === null) {
+      this.#streetsInRoute.features.push(street);
+    } else {
+      this.#streetsInRoute.features.splice(index, 0, street);
+    }
     map.getSource('streets-chosen').setData(this.#streetsInRoute);
-    map.setFeatureState({ source: 'streets-chosen', id: streetId }, { chosen: 'chosen' });
+    map.setFeatureState({ source: 'streets-chosen', id: streetId }, { chosen: true });
+    if (record) this.#undoStack.push({ type: 'add', streetId });
 
     // If this was first street added, make additional UI changes.
     if (this.#streetsInRoute.features.length === 1) {
@@ -656,6 +642,81 @@ class RouteBuilder {
         'neighborhoods', 'fill-opacity', ['case', ['boolean', ['feature-state', 'current'], false], 0.0, 0.3],
       );
       map.setPaintProperty('outside-neighborhoods', 'fill-opacity', 0.5);
+    }
+  }
+
+  /**
+   * Reverses a street's walking direction in the route.
+   *
+   * @param {number} streetId
+   * @param {Object} [opts]
+   * @param {boolean} [opts.record=true] - Whether to record the action on the undo stack (off during undo).
+   */
+  #reverseStreet(streetId, { record = true } = {}) {
+    const street = this.#streetsInRoute.features.find((s) => s.properties.street_edge_id === streetId);
+    if (!street) return;
+    street.geometry.coordinates.reverse();
+    street.properties.reverse = !street.properties.reverse;
+    this.#map.getSource('streets-chosen').setData(this.#streetsInRoute);
+    if (record) this.#undoStack.push({ type: 'reverse', streetId });
+    this.#updateMarkers();
+  }
+
+  /**
+   * Removes a street from the route; resets to the intro state if the route becomes empty.
+   *
+   * @param {number} streetId
+   * @param {Object} [opts]
+   * @param {boolean} [opts.record=true] - Whether to record the action on the undo stack (off during undo).
+   */
+  #removeStreet(streetId, { record = true } = {}) {
+    const index = this.#streetsInRoute.features.findIndex((s) => s.properties.street_edge_id === streetId);
+    if (index === -1) return;
+    const [street] = this.#streetsInRoute.features.splice(index, 1);
+    this.#map.setFeatureState({ source: 'streets', id: streetId }, { chosen: false });
+    this.#map.getSource('streets-chosen').setData(this.#streetsInRoute);
+    if (record) {
+      this.#undoStack.push({ type: 'remove', streetId, index, reverse: street.properties.reverse === true });
+    }
+    this.#updateMarkers();
+    this.#setRouteDistanceText();
+
+    // Once the route is empty again, any street can be selected. Update styles.
+    if (this.#streetsInRoute.features.length === 0) {
+      this.#resetUI();
+    }
+  }
+
+  /**
+   * Undoes the most recent route edit by applying its inverse (without re-recording it).
+   */
+  #undo() {
+    const action = this.#undoStack.pop();
+    if (!action) return;
+    switch (action.type) {
+      case 'add':
+        this.#removeStreet(action.streetId, { record: false });
+        break;
+      case 'reverse':
+        this.#reverseStreet(action.streetId, { record: false });
+        break;
+      case 'remove': {
+        const street = this.#streetData.features.find((s) => s.properties.street_edge_id === action.streetId);
+        if (street) {
+          this.#addStreetToRoute(street, action.reverse, { record: false, index: action.index });
+          this.#updateMarkers();
+          this.#setRouteDistanceText();
+        }
+        break;
+      }
+      case 'clear':
+        action.streets.forEach((s) => {
+          const street = this.#streetData.features.find((f) => f.properties.street_edge_id === s.streetId);
+          if (street) this.#addStreetToRoute(street, s.reverse, { record: false });
+        });
+        this.#updateMarkers();
+        this.#setRouteDistanceText();
+        break;
     }
   }
 
@@ -701,9 +762,20 @@ class RouteBuilder {
    */
   #clearRoute(e) {
     const map = this.#map;
+    // Record the whole route so a clear can be undone in one step.
+    if (this.#streetsInRoute.features.length > 0) {
+      this.#undoStack.push({
+        type: 'clear',
+        streets: this.#streetsInRoute.features.map((s) => ({
+          streetId: s.properties.street_edge_id,
+          reverse: s.properties.reverse === true,
+        })),
+      });
+    }
+
     // Remove all the streets from the route.
     this.#streetsInRoute.features.forEach((s) => {
-      map.setFeatureState({ source: 'streets', id: s.properties.street_edge_id }, { chosen: 'not chosen' });
+      map.setFeatureState({ source: 'streets', id: s.properties.street_edge_id }, { chosen: false });
     });
     this.#streetsInRoute.features = [];
     map.getSource('streets-chosen').setData(this.#streetsInRoute);
@@ -740,6 +812,7 @@ class RouteBuilder {
     this.#routeSavedModal.style.visibility = 'hidden';
     this.#deleteRouteModal.style.visibility = 'hidden';
     this.#saveModal.hide();
+    this.#streetPopover.close();
     this.#guestRoutes.render();
     map.addControl(this.#searchBox);
   }

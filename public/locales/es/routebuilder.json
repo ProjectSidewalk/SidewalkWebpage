@@ -5,5 +5,14 @@
   "one-neighborhood-warning": "Una ruta solo puede tener calles de un vecindario en este momento.",
   "route-name-default": "Ruta en {{region}}",
   "save-error": "Algo salió mal al guardar. Inténtalo de nuevo.",
-  "recent-copy-link": "Copiar enlace"
+  "recent-copy-link": "Copiar enlace",
+  "reverse-direction": "Invertir dirección",
+  "remove-street": "Quitar calle",
+  "hover-add-street-named": "Haz clic para añadir {{street}} a tu ruta",
+  "hover-street-options": "Haz clic para ver opciones de la ruta",
+  "hover-street-options-named": "{{street}} — haz clic para ver opciones",
+  "marker-start": "Inicio",
+  "marker-end": "Fin",
+  "section-gap-end-aria": "Fin de la sección {{num}} de la ruta",
+  "section-gap-start-aria": "Inicio de la sección {{num}} de la ruta"
 }
