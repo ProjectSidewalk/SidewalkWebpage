@@ -4,9 +4,19 @@ import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import slick.jdbc.GetResult
 
+import java.sql.Date
 import java.time.{LocalDate, OffsetDateTime}
 import javax.inject.{Inject, Singleton}
+
+/**
+ * A street selected for an imagery-age poll, with the sample points to query (#4384).
+ *
+ * @param streetEdgeId The street to poll.
+ * @param points       (lat, lng) sample points along the street: both endpoints plus the midpoint.
+ */
+case class StreetToPoll(streetEdgeId: Int, points: Seq[(Double, Double)])
 
 /**
  * Per-street imagery age (#4348): the capture-date range of the street-view panos observed on one street.
@@ -18,9 +28,9 @@ import javax.inject.{Inject, Singleton}
  * @param oldestCapture Earliest observed capture date, standardized to a date (`None` if none were parseable).
  * @param newestCapture Latest observed capture date, standardized to a date (`None` if none were parseable).
  * @param nPanos        Number of distinct dated panos observed on the street.
- * @param dataSource    Which feeder created this row: `pano_data` (in-app, from panos observed while labeling) or
+ * @param dataSource    Which feeder created this row: `pano_data` (in-app, from panos observed while labeling),
  *                      `imagery_scan` (the check_streets_for_imagery.py summary, ingested by
- *                      db/scripts/import-street-imagery.sh).
+ *                      db/scripts/import-street-imagery.sh), or `imagery_poll` (the nightly in-app freshness poll).
  * @param updatedAt     When this row was last written.
  */
 case class StreetImagery(
@@ -78,6 +88,72 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
    * Number of streets that have a recorded imagery summary.
    */
   def count: DBIO[Int] = streetImageryRecords.length.result
+
+  /**
+   * Picks the streets most in need of an imagery-age poll (#4384).
+   *
+   * Open, non-tutorial streets, ordered so that audited streets come first (their outdated_imagery flags are what the
+   * poll exists to feed) and, within each group, streets whose imagery knowledge is oldest (no street_imagery row at
+   * all first, then stale updated_at). The poller bumps updated_at on every street it successfully polls -- even when
+   * the dates don't change -- which is what advances this rotation.
+   *
+   * @param limit Maximum number of streets to return.
+   */
+  def streetsToPoll(limit: Int): DBIO[Seq[StreetToPoll]] = {
+    implicit val getStreetToPoll: GetResult[StreetToPoll] = GetResult { r =>
+      val (id, x1, y1, x2, y2) = (r.nextInt(), r.nextDouble(), r.nextDouble(), r.nextDouble(), r.nextDouble())
+      val (midLat, midLng)     = (r.nextDouble(), r.nextDouble())
+      // x = lng and y = lat in street_edge. Midpoint between the endpoints so short streets still get 3 spread points.
+      StreetToPoll(id, Seq((y1, x1), (midLat, midLng), (y2, x2)))
+    }
+    sql"""
+      SELECT street_edge.street_edge_id, street_edge.x1, street_edge.y1, street_edge.x2, street_edge.y2,
+             ST_Y(ST_LineInterpolatePoint(street_edge.geom, 0.5)) AS mid_lat,
+             ST_X(ST_LineInterpolatePoint(street_edge.geom, 0.5)) AS mid_lng
+      FROM street_edge
+      LEFT JOIN street_imagery ON street_edge.street_edge_id = street_imagery.street_edge_id
+      WHERE street_edge.status = 'open'
+          AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+      ORDER BY EXISTS (
+                   SELECT FROM audit_task
+                   WHERE audit_task.street_edge_id = street_edge.street_edge_id AND audit_task.completed = TRUE
+               ) DESC,
+               street_imagery.updated_at ASC NULLS FIRST,
+               street_edge.street_edge_id
+      LIMIT $limit;
+    """.as[StreetToPoll]
+  }
+
+  /**
+   * Records one poll's result for a street: widens the capture-date range and always bumps updated_at (#4384).
+   *
+   * On conflict, capture dates only ever widen (LEAST/GREATEST ignore NULLs) and n_panos / data_source are left
+   * alone -- a 3-point poll sees at most a few panos, so a scan's richer pano count stays authoritative. A street
+   * where every sample point returned no imagery still gets its row upserted (NULL dates, n_panos 0 on insert), which
+   * records "checked, nothing there" and keeps the streetsToPoll rotation advancing.
+   *
+   * @param streetEdgeId The polled street.
+   * @param oldest       Earliest capture date observed across the sample points, if any.
+   * @param newest       Latest capture date observed across the sample points, if any.
+   * @param nPanos       Number of distinct panos observed across the sample points.
+   */
+  def upsertFromPoll(
+      streetEdgeId: Int,
+      oldest: Option[LocalDate],
+      newest: Option[LocalDate],
+      nPanos: Int
+  ): DBIO[Int] = {
+    val oldestDate = oldest.map(Date.valueOf).orNull
+    val newestDate = newest.map(Date.valueOf).orNull
+    sqlu"""
+      INSERT INTO street_imagery (street_edge_id, oldest_capture, newest_capture, n_panos, data_source, updated_at)
+      VALUES ($streetEdgeId, $oldestDate, $newestDate, $nPanos, 'imagery_poll', now())
+      ON CONFLICT (street_edge_id) DO UPDATE
+      SET oldest_capture = LEAST(street_imagery.oldest_capture, EXCLUDED.oldest_capture),
+          newest_capture = GREATEST(street_imagery.newest_capture, EXCLUDED.newest_capture),
+          updated_at     = EXCLUDED.updated_at;
+    """
+  }
 
   /**
    * Refreshes street_imagery from the panos observed on recently-labeled streets (zero API cost).
