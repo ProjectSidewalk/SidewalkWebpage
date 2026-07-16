@@ -334,6 +334,7 @@ class LabelDetail {
    *
    * @param {number|Object} idOrMeta - Either a label id (number) to fetch, or a pre-built meta object.
    * @param {string} source - The UI that created the popup (recorded with validations).
+   * @returns {Promise<Object>} The label metadata payload that was rendered.
    */
   showLabel = async (idOrMeta, source) => {
     this.#source = source;
@@ -342,7 +343,7 @@ class LabelDetail {
 
     if (typeof idOrMeta === 'object' && idOrMeta !== null) {
       this.#handleData(idOrMeta);
-      return;
+      return idOrMeta;
     }
 
     const labelId = idOrMeta;
@@ -352,7 +353,9 @@ class LabelDetail {
       alert('Server error. Most likely a label with this ID did not exist.');
       throw new Error(`HTTP error ${response.status}`);
     }
-    this.#handleData(await response.json());
+    const meta = await response.json();
+    this.#handleData(meta);
+    return meta;
   };
 
   /**

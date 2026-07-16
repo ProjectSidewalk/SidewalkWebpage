@@ -100,10 +100,86 @@
 
     // Gets all translations before loading the choropleth.
     window.appManager.ready(async function () {
-      // Declared before params because the popup's onShow/onClose callbacks below reference it, and a ?labelId=
-      // deep link fires onShow while LabelPopup() is still being awaited — i.e. before this line would otherwise
-      // run, which threw a temporal-dead-zone ReferenceError and aborted the deep-linked label load.
+      // Declared before params because the popup's callbacks below reference it, and a ?labelId= deep link
+      // fires onShow while LabelPopup() is still being awaited — i.e. before this line would otherwise run,
+      // which threw a temporal-dead-zone ReferenceError and aborted the deep-linked label load.
       const self = {};
+
+      // On this page the map is the open label's context (the spotlight beacon sits beside the dialog), so
+      // swap the dialog's default dark backdrop for a light veil that keeps the spotlighted dot readable.
+      document.getElementById('label-modal').classList.add('label-detail--map-host');
+
+      const deepLinkLabelId = parseInt(new URLSearchParams(window.location.search).get('labelId'), 10) || null;
+
+      // label_id -> [lng, lat] of the label's pano, from the popup's metadata fetch. Fallback position (within
+      // ~15m of the label — under a beacon-width at zoom 16) for when the map's own label data can't locate it:
+      // before the large label layer has streamed in, or for labels /labels/all doesn't carry.
+      const cameraCoordsByLabelId = new Map();
+
+      // Best known [lng, lat] for a label: exact point once the map data is loaded, else the pano position.
+      const labelCoords = (labelId) =>
+        (self.nearbyNav && self.nearbyNav.getCoords(labelId)) || cameraCoordsByLabelId.get(labelId) || null;
+
+      // Marks `labelId` (or null) as exempt from the sidebar filters, so the dot a user explicitly asked to see
+      // (deep link, arrow paging) can't be hidden by them — e.g. the default incorrect/low-quality exclusions
+      // hide dots that Gallery deep links routinely point at. No-op until the label layers exist.
+      const setSpotlightFilter = (labelId) => {
+        if (!self.mapData || self.mapData.spotlightLabelId === labelId) return;
+        self.mapData.spotlightLabelId = labelId;
+        filterLabelLayers(null, self.map, self.mapData, true);
+      };
+
+      // A single reusable beacon marker over the label currently tied to the popup. It's a hollow reticle, so
+      // the label's own colored dot still shows through the center. `mode` controls it:
+      //   'spotlight' — continuously pulsing beacon while the popup is open (the eye can find it on a busy map)
+      //   'flash'     — one pulse then auto-remove, to re-anchor the user after the popup closes
+      let beacon = null;
+      let beaconTimer = null;
+      const setBeacon = (labelId, mode) => {
+        const coords = labelCoords(labelId);
+        if (!coords) return;
+        if (beacon) beacon.remove();
+        if (beaconTimer) { clearTimeout(beaconTimer); beaconTimer = null; }
+        setSpotlightFilter(labelId);
+        const el = document.createElement('div');
+        el.className = `labelmap-beacon labelmap-beacon--${mode}`;
+        beacon = new mapboxgl.Marker({ element: el }).setLngLat(coords).addTo(self.map);
+        if (mode === 'flash') {
+          beaconTimer = setTimeout(() => {
+            if (beacon && beacon.getElement() === el) { beacon.remove(); beacon = null; }
+            setSpotlightFilter(null); // Re-hide a filtered-out dot only after the flash is done ringing it.
+          }, 2600);
+        }
+      };
+
+      // Spotlights the label the popup is showing: a continuously pulsing beacon on its dot, with the map
+      // positioned so the dot sits in the gutter to the RIGHT of the centered dialog — the left gutter is
+      // covered by the filter sidebar. Falls back to plain centering when the viewport leaves no gutter wide
+      // enough for the beacon's pulse ring.
+      self.spotlightLabelOnMap = (labelId, jump = false) => {
+        const coords = labelCoords(labelId);
+        if (!self.map || !coords) return;
+        const dialogEl = document.getElementById('label-modal');
+        const dialogW = (dialogEl && dialogEl.open && dialogEl.getBoundingClientRect().width) || 650;
+        const gutter = (window.innerWidth - dialogW) / 2;
+        const offset = gutter > 80 ? [(window.innerWidth - gutter) / 2, 0] : [0, 0];
+        const camera = { center: coords, zoom: Math.max(self.map.getZoom(), 16), offset };
+        if (jump) self.map.jumpTo(camera);
+        else self.map.easeTo(camera);
+        setBeacon(labelId, 'spotlight');
+        self.spotlightedLabelId = labelId;
+      };
+
+      // On popup close, leave a brief flash so the user is re-anchored to the dot they were viewing.
+      self.pulseLabelOnMap = (labelId) => {
+        self.spotlightedLabelId = null;
+        const coords = labelCoords(labelId);
+        if (!self.map || !coords) return;
+        if (!self.map.getBounds().contains(coords)) {
+          self.map.easeTo({ center: coords, zoom: Math.max(self.map.getZoom(), 16) });
+        }
+        setBeacon(labelId, 'flash');
+      };
 
       let params = {
         mapName: 'labelmap-choropleth',
@@ -120,9 +196,16 @@
         popupLabelViewer: await LabelPopup(false, viewerType, accessToken, "@user.username", {
           syncUrlSource: 'LabelMap',
           // Keep the shown label spotlighted beside the dialog while paging, and pulse it on close so the user
-          // is re-anchored. Both functions are assigned once the map data has loaded, below.
-          onShow: labelId => self.spotlightLabelOnMap && self.spotlightLabelOnMap(labelId),
-          onClose: labelId => self.pulseLabelOnMap && self.pulseLabelOnMap(labelId)
+          // is re-anchored.
+          onShow: labelId => self.spotlightLabelOnMap(labelId),
+          onClose: labelId => self.pulseLabelOnMap(labelId),
+          // A deep-linked label opens before (or without) the map's label data; once the popup's metadata
+          // arrives, spotlight from its camera position rather than leaving the city-wide view up.
+          onMetadata: (labelId, meta) => {
+            if (typeof meta.camera_lng !== 'number' || typeof meta.camera_lat !== 'number') return;
+            cameraCoordsByLabelId.set(labelId, [meta.camera_lng, meta.camera_lat]);
+            if (self.spotlightedLabelId !== labelId) self.spotlightLabelOnMap(labelId, true);
+          }
         }),
         navigationControlPosition: 'top-right',
         highQualityFilter: true
@@ -154,8 +237,12 @@
       // Mount the address search and reveal the loading indicator as soon as the map is ready, not after the (large)
       // label layer finishes loading, so they appear with the sidebar rather than popping in late (#4370/#4447).
       params.onMapReady = (map) => {
+        self.map = map;
         initLabelMapLocationSearch(map, params.mapboxApiKey);
         showLabelMapLoading();
+        // A deep-linked popup's metadata fetch races map init; if it already arrived, place the camera now
+        // instead of leaving the city-wide view up while the label layer streams in.
+        if (deepLinkLabelId && !self.spotlightedLabelId) self.spotlightLabelOnMap(deepLinkLabelId, true);
       };
 
       createPSMap($, params).then(m => {
@@ -163,58 +250,15 @@
         self.mapData = m[4];
         new MapSidebarFilter(self.map, self.mapData, { highQualityFilter: true });
         // Popup arrows step through spatially nearby labels using the already-loaded map data.
-        const nearbyNav = createNearbyLabelNavigator(self.mapData);
-        params.popupLabelViewer.setNearbyNavigator(nearbyNav);
+        self.nearbyNav = createNearbyLabelNavigator(self.mapData);
+        params.popupLabelViewer.setNearbyNavigator(self.nearbyNav);
 
-        // A single reusable beacon marker over the label currently tied to the popup. It's a hollow reticle, so
-        // the label's own colored dot still shows through the center. `mode` controls it:
-        //   'spotlight' — continuously pulsing beacon while the popup is open (the eye can find it on a busy map)
-        //   'flash'     — one pulse then auto-remove, to re-anchor the user after the popup closes
-        let beacon = null;
-        let beaconTimer = null;
-        const setBeacon = (labelId, mode) => {
-          const coords = nearbyNav.getCoords(labelId);
-          if (!coords) return;
-          if (beacon) beacon.remove();
-          if (beaconTimer) { clearTimeout(beaconTimer); beaconTimer = null; }
-          const el = document.createElement('div');
-          el.className = `labelmap-beacon labelmap-beacon--${mode}`;
-          beacon = new mapboxgl.Marker({ element: el }).setLngLat(coords).addTo(self.map);
-          if (mode === 'flash') {
-            beaconTimer = setTimeout(() => {
-              if (beacon && beacon.getElement() === el) { beacon.remove(); beacon = null; }
-            }, 2600);
-          }
-        };
-
-        // Spotlights the label the popup is showing: a continuously pulsing beacon on its dot, with the map
-        // positioned so the dot sits in the gutter beside the centered dialog — popup and highlighted label
-        // visible at once, and paging with the arrows visibly walks the beacon across the map. Falls back to
-        // plain centering when the viewport leaves no meaningful gutter.
-        self.spotlightLabelOnMap = (labelId, jump = false) => {
-          const coords = nearbyNav.getCoords(labelId);
-          if (!coords) return;
-          const dialogEl = document.getElementById('label-modal');
-          const dialogW = (dialogEl && dialogEl.open && dialogEl.getBoundingClientRect().width) || 650;
-          const gutter = (window.innerWidth - dialogW) / 2;
-          const offset = gutter > 140 ? [gutter / 2 - window.innerWidth / 2, 0] : [0, 0];
-          const camera = { center: coords, zoom: Math.max(self.map.getZoom(), 16), offset };
-          if (jump) self.map.jumpTo(camera);
-          else self.map.easeTo(camera);
-          setBeacon(labelId, 'spotlight');
-        };
-
-        // On popup close, leave a brief flash so the user is re-anchored to the dot they were viewing.
-        self.pulseLabelOnMap = (labelId) => {
-          if (!self.map.getBounds().contains(nearbyNav.getCoords(labelId) || [999, 999])) {
-            self.map.easeTo({ center: nearbyNav.getCoords(labelId), zoom: Math.max(self.map.getZoom(), 16) });
-          }
-          setBeacon(labelId, 'flash');
-        };
-
-        // A ?labelId= deep link arrives with the popup already open; spotlight it without animating the camera.
-        const deepLinkLabelId = parseInt(new URLSearchParams(window.location.search).get('labelId'), 10);
-        if (deepLinkLabelId) self.spotlightLabelOnMap(deepLinkLabelId, true);
+        // Re-spotlight the open (deep-linked) label now that exact coords and the label layers exist — refines
+        // an approximate camera-coords placement and applies the filter bypass so the dot is actually drawn.
+        const openLabelId = self.spotlightedLabelId || deepLinkLabelId;
+        if (openLabelId && document.getElementById('label-modal').open) {
+          self.spotlightLabelOnMap(openLabelId, true);
+        }
         hideLabelMapLoading();
       }).catch(e => {
         console.error('LabelMap failed to load', e);

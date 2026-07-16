@@ -35,6 +35,12 @@
   background: rgb(0 0 0 / 45%);
 }
 
+/* LabelMap host: the map behind the dialog is the open label's context (the spotlight beacon sits beside the
+   dialog), so keep the veil light enough that the spotlighted dot stays readable. */
+.label-detail--map-host::backdrop {
+  background: rgb(0 0 0 / 12%);
+}
+
 /* Used during pano-viewer init: dialog must be in the DOM and visible to lay out, but invisible to the user. */
 .label-detail.label-detail--initializing,
 .label-detail.label-detail--initializing::backdrop {

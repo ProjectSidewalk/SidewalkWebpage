@@ -17,6 +17,9 @@
  *     after init, using this string as the validation source (e.g. 'LabelMap').
  * @param {function(number): void} [opts.onShow] Called with the label's ID every time one is shown (map click,
  *     deep link, prev/next arrows); LabelMap uses it to keep the shown label spotlighted on the map.
+ * @param {function(number, Object): void} [opts.onMetadata] Called with the label's ID and its fetched metadata
+ *     payload once the shown label's data has loaded (skipped if another label was opened in the meantime);
+ *     LabelMap uses the payload's camera coords to position the map for labels its own layer data can't locate.
  * @param {function(number): void} [opts.onClose] Called with the last-shown label's ID whenever the dialog
  *     closes (X, ESC, or backdrop); LabelMap uses it to pulse that label's spot on the map.
  * @returns {Promise<object>} Resolves once the pano viewer has been initialized.
@@ -96,8 +99,10 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
     lastSource = source;
     // Before the await so the host's map movement runs in parallel with the pano load.
     if (typeof opts.onShow === 'function') opts.onShow(labelId);
-    await innerShowLabel(labelId, source);
+    const meta = await innerShowLabel(labelId, source);
     updatePagingState();
+    // Guard against a newer label having been opened while the fetch resolved.
+    if (typeof opts.onMetadata === 'function' && meta && currentLabelId === labelId) opts.onMetadata(labelId, meta);
   }
 
   // Every close path (X, backdrop, ESC) fires the dialog's close event.
