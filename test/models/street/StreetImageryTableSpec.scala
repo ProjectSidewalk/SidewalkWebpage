@@ -34,7 +34,7 @@ class StreetImageryTableSpec extends PlaySpec with GuiceOneAppPerSuite {
   private val dbConfig                   = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
   private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 60.seconds)
 
-  private val validSources = Set("pano_data", "imagery_scan")
+  private val validSources = Set("pano_data", "imagery_scan", "imagery_poll")
 
   "street_imagery (evolution 326) + StreetImageryTable" should {
     "exist and be countable through the DAO" in {
