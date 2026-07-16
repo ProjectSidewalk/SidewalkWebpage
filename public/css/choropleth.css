@@ -239,3 +239,22 @@
 .clearfix {
   width: 100%;
 }
+
+/* "Explore the sidewalks here" popup shown after an address search on the public LabelMap (#4451). */
+.explore-here-button {
+  display: block;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background-color: var(--color-pine-700); /* Dark enough for AA contrast with white text. */
+  color: var(--color-neutral-white);
+  font: var(--text-small-bold);
+  text-align: center;
+  text-decoration: none;
+}
+
+.explore-here-button:hover,
+.explore-here-button:focus {
+  background-color: var(--color-pine-800);
+  color: var(--color-neutral-white);
+  text-decoration: none;
+}

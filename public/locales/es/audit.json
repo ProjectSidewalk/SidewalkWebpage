@@ -137,8 +137,10 @@
     "current-mission": {
       "header": "Misión actual",
       "header-route": "$t(right-ui.current-mission.header): Ruta {{route_number}}",
+      "header-free-explore": "Exploración libre",
       "message": "Explora __PLACEHOLDER__ de {{neighborhoodName}}"
     },
+    "free-explore-banner": "Estás explorando el área alrededor de la dirección que buscaste. Etiqueta lo que veas: tus etiquetas se guardan, pero la calle no se marcará como auditada.",
     "minimap": {
       "follow-red-line": "Sigue la línea roja para continuar la misión",
       "explore-current-location": "Gire 360 grados para asegurarse de que no se pierda nada."
@@ -293,6 +295,8 @@
     "label-shortcuts-occlusion": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta de No Puedo Ver la Banqueta.",
     "still-stuck": "Si todavía estás atorado, otra vez haz clic en el botón Atorado.",
     "stuck-skipped-street": "No pudimos encontrar un lugar para ti en esa calle, así que te trasladamos a una nueva calle.",
+    "free-explore-start": "Te hemos colocado cerca de la dirección que buscaste. ¡Mira a tu alrededor y etiqueta lo que encuentres!",
+    "free-explore-no-imagery": "No hay más imágenes de la calle en esta dirección. Intenta mirar alrededor o ir hacia el otro lado.",
     "stuck-suggestion": "Si no puede moverse con las flechas, intente hacer clic en las direcciones de navegación en la parte inferior derecha. O intente hacer clic en el botón Atascado a la izquierda."
   },
   "mission-start-tutorial": {

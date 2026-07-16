@@ -15,18 +15,26 @@ class MissionPanel {
    * @param mission The current Mission object.
    */
   setMessage(mission) {
+    const missionType = mission.getProperty('missionType');
+
     // The header gains a "Route: <route-number>" suffix when on a user-defined route.
     if (svl.neighborhoodModel.isRoute) {
       this.#headerEl.innerHTML = i18next.t('right-ui.current-mission.header-route', { route_number: svl.routeId });
+    } else if (missionType === 'exploreAddress') {
+      this.#headerEl.innerHTML = i18next.t('right-ui.current-mission.header-free-explore');
     } else {
       this.#headerEl.innerHTML = i18next.t('right-ui.current-mission.header');
     }
 
-    const missionType = mission.getProperty('missionType');
-
+    // In free exploration the description sits inside the hidden mission-progress group; the always-visible
+    // #free-explore-banner carries the explanatory text. Reuse the banner copy here (rather than the neighborhood
+    // message, which contains a distance __PLACEHOLDER__ this mode never substitutes) so nothing stray shows if the
+    // group is ever revealed.
     let missionMessage;
     if (missionType === 'auditOnboarding') {
       missionMessage = i18next.t('tutorial.mission-message');
+    } else if (missionType === 'exploreAddress') {
+      missionMessage = i18next.t('right-ui.free-explore-banner');
     } else {
       // The regular mission message names the neighborhood being explored.
       const neighborhood = svl.neighborhoodModel.currentNeighborhood();

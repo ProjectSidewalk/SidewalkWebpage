@@ -4,10 +4,9 @@
  * Mounts a Mapbox Search JS `MapboxSearchBox` at the top of the map's left filter sidebar and
  * hard-limits suggestions to the deployment city's actual extent, so this stays a within-city finder
  * (hospitals, schools, libraries, ...) rather than a general-purpose geocoder. Selecting a result flies
- * the map to the place and drops a marker. Mirrors the setup in `routeBuilder.js` (`#setUpSearchBox`),
+ * the map to the place, drops a marker, and shows an "Explore the sidewalks here" popup that opens the
+ * Explore tool at that exact spot (#4451). Mirrors the setup in `routeBuilder.js` (`#setUpSearchBox`),
  * except the control is mounted inside the sidebar (per #4370) rather than added as a floating control.
- *
- * The follow-up "Explore the sidewalks here" action (a separate ticket) will hook into the selection.
  */
 
 // Fraction of the region's own span to pad the search bbox by on each edge, so places just outside the audited
@@ -72,6 +71,30 @@ function initLabelMapLocationSearch(map, mapboxApiKey) {
   // onAdd(map) binds the map (enabling the auto-flyTo and a map-center proximity bias) and returns the
   // control's DOM element, which we place inside the sidebar instead of handing to map.addControl().
   container.appendChild(searchBox.onAdd(map));
+
+  // On selecting a result, offer to open the Explore tool right at that spot (#4451). The popup is offset above the
+  // component's own result marker; searching again replaces the previous popup.
+  let exploreHerePopup = null;
+  searchBox.addEventListener('retrieve', (e) => {
+    const feature = e.detail?.features?.[0];
+    if (!feature) return;
+    const [lng, lat] = feature.geometry.coordinates;
+
+    if (exploreHerePopup) exploreHerePopup.remove();
+    exploreHerePopup = new mapboxgl.Popup({ offset: 40, closeOnClick: false, focusAfterOpen: false })
+      .setHTML(`
+        <a class="explore-here-button" href="/explore?lat=${lat}&lng=${lng}">
+          ${i18next.t('labelmap:explore-here')}
+        </a>
+      `)
+      .setLngLat([lng, lat])
+      .addTo(map);
+    exploreHerePopup.getElement().querySelector('.explore-here-button').addEventListener('click', () => {
+      if (typeof window.logWebpageActivity === 'function') {
+        window.logWebpageActivity(`Click_module=ExploreSidewalksHere_lat=${lat}_lng=${lng}`);
+      }
+    });
+  });
 
   // Hard-limit suggestions to the deployment city's actual footprint (the bounding box of its
   // neighborhoods), NOT the map's deliberately-generous pan-bounds (which can span a whole metro area).

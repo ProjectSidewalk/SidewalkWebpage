@@ -120,6 +120,9 @@ ones whose meaning, parameters, or history aren't obvious:
 | `Click_module=StoryDelete_storyId=<id>` vs `Click_module=StoryDeleteClient_…` | A story retraction: server-logged on every DELETE attempt (including a non-owner's 404), client-logged when the confirm dialog is accepted on the card or dashboard. |
 | `Click_module=AdminStoryVisibility_storyId=<id>_hidden=<bool>` / `Click_module=AdminStoryDelete_storyId=<id>` | Server-logged admin moderation actions on `/admin/stories`: hide/unhide (reversible quarantine) and permanent delete. |
 | `TutorialIntro_Start` / `TutorialIntro_Next` / `TutorialIntro_StartMission` / `TutorialIntro_Skip` | The pre-tutorial intro walkthrough shown before the Explore onboarding (`explore/src/onboarding/TutorialIntro.js`): shown, advanced a step (`step` note = new index), finished into the tutorial, or skipped. `TutorialIntro_Skip` precedes the same `Onboarding_Skip` the onboarding itself emits, so a skip logs both. |
+| `Click_module=ExploreSidewalksHere_lat=<lat>_lng=<lng>` | LabelMap: the "Explore the sidewalks here" popup button after an address search (#4451) — an outbound click into the free-exploration Explore session at those coordinates. |
+| `Visit_Audit_ExploreAddress_Lat=<lat>_Lng=<lng>` | Server-logged in `ExploreController.explore` when `/explore?lat&lng` opens a free-exploration (exploreAddress) session at a searched address (#4451). |
+| `ExploreAddress_SessionStart` | Explore (`audit_task_interaction`): the free-exploration UI finished loading. Sessions under the `exploreAddress` mission type label normally but never complete tasks/missions, so don't mix them into street-completion or mission-funnel analyses. |
 
 ## Finding the current list
 

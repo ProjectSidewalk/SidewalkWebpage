@@ -257,6 +257,8 @@ class Compass {
    * Update the compass message.
    */
   update() {
+    // No route guidance in free exploration (#4451): there is no red line to follow or route to return to.
+    if (svl.isExploreAddressMode()) return;
     if (!this.#navigationService.getLabelBeforeJumpState() && !svl.isOnboarding()) {
       if (this.#checkEnRoute()) {
         this.stopBlinking();

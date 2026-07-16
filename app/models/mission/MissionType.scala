@@ -15,6 +15,7 @@ object MissionType extends Enumeration {
   val CvGroundTruth: Value        = Value("cvGroundTruth")
   val LabelmapValidation: Value   = Value("labelmapValidation")
   val AiValidation: Value         = Value("aiValidation")
+  val ExploreAddress: Value       = Value("exploreAddress")
 
   /** The tutorial mission types, which don't represent real contribution activity. */
   val onboardingTypes: Set[Value] = Set(AuditOnboarding, ValidationOnboarding)

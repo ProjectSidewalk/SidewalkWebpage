@@ -23,6 +23,8 @@ class Main {
     svl.audioDirectory = ('audioDirectory' in params) ? params.audioDirectory : '/';
     svl.onboarding = null;
     svl.isOnboarding = () => this.#params.mission.mission_type === 'auditOnboarding';
+    // Free exploration at a searched address (#4451): labeling works normally, but the task/mission never complete.
+    svl.isExploreAddressMode = () => this.#params.mission.mission_type === 'exploreAddress';
     svl.regionId = params.regionId;
 
     svl.LABEL_ICON_RADIUS = 17;
@@ -63,15 +65,20 @@ class Main {
     svl.alertController = new AlertController();
     svl.stuckAlert = new StuckAlert(svl.alertController);
 
-    const startLat = params.task.properties.current_lat;
-    const startLng = params.task.properties.current_lng;
+    // The task's current position is the default start; an explicit pano seed (an admin auditing a street from a
+    // given pano/lat-lng, or an address drop-in per #4451) takes precedence.
+    const startLat = params.startLat ?? params.task.properties.current_lat;
+    const startLng = params.startLng ?? params.task.properties.current_lng;
     svl.panoStore = new PanoStore();
     svl.viewerType = svl.isOnboarding() ? GsvViewer : params.viewerType;
 
     // Set up the PanoManager and PanoViewer.
     const isTutorialTask = params.task.properties.street_edge_id === params.tutorialStreetId;
     const newTask = new Task(params.task, isTutorialTask);
-    const initParams = isTutorialTask ? { startPanoId: 'tutorial' } : { startLat, startLng };
+    let initParams;
+    if (isTutorialTask) initParams = { startPanoId: 'tutorial' };
+    else if (params.startPanoId) initParams = { startPanoId: params.startPanoId };
+    else initParams = { startLat, startLng };
     const errorParams = { task: newTask, missionId: params.mission.mission_id };
     svl.panoManager = await PanoManager.create(svl.viewerType, params.viewerAccessToken, initParams, errorParams);
     const currLatLng = svl.panoViewer.getPosition();
@@ -343,14 +350,25 @@ class Main {
       } else {
         this.#calculateAndSetTasksMissionsOffset();
 
-        // Initialize explore mission screens focused on a randomized label type, though users can switch between them.
         const currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
-        const potentialLabelTypes = util.misc.PRIMARY_LABEL_TYPES;
-        const labelType = potentialLabelTypes[Math.floor(Math.random() * potentialLabelTypes.length)];
-        new MissionStartTutorial('audit', labelType, {
-          nLength: svl.missionContainer.getCurrentMission().getDistance('miles'),
-          neighborhood: currentNeighborhood.getProperty('name'),
-        }, svl, this.#params.language);
+        if (svl.isExploreAddressMode()) {
+          // Free exploration (#4451): show the persistent banner instead of the mission progress UI, and skip the
+          // mission-start modal (its copy interpolates a mission distance, which this mission type doesn't have).
+          document.getElementById('mission-progress-group').classList.add('ps-hidden');
+          document.getElementById('free-explore-banner').classList.remove('ps-hidden');
+          document.getElementById('compass-message-holder').classList.add('ps-hidden');
+          svl.tracker.push('ExploreAddress_SessionStart');
+          svl.alertController.showAlert(i18next.t('popup.free-explore-start'), 'exploreAddressStart', true);
+        } else {
+          // Initialize explore mission screens focused on a randomized label type, though users can switch between
+          // them.
+          const potentialLabelTypes = util.misc.PRIMARY_LABEL_TYPES;
+          const labelType = potentialLabelTypes[Math.floor(Math.random() * potentialLabelTypes.length)];
+          new MissionStartTutorial('audit', labelType, {
+            nLength: svl.missionContainer.getCurrentMission().getDistance('miles'),
+            neighborhood: currentNeighborhood.getProperty('name'),
+          }, svl, this.#params.language);
+        }
 
         this.#startTheMission(mission, currentNeighborhood);
       }
@@ -404,6 +422,10 @@ class Main {
     let newURL = `${window.location.protocol}//${window.location.host}/explore`;
     if (window.location.search.includes('retakeTutorial=true')) {
       newURL += '?retakeTutorial=true';
+    } else if (svl.isExploreAddressMode()) {
+      // Keep the address params so a refresh resumes the free-exploration session; a bare /explore would fall back to
+      // a normal audit mission (#4451).
+      newURL += `?lat=${this.#params.startLat}&lng=${this.#params.startLng}`;
     }
     if (newURL !== window.location.href) {
       window.history.pushState({ }, '', newURL);

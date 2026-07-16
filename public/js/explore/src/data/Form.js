@@ -86,6 +86,9 @@ class Form {
         last_priority_update_time: this.#lastPriorityUpdateTime,
         // Request updated street priorities if we are at least 60% of the way through the current street.
         request_updated_street_priority: !svl.isOnboarding() && (task.getAuditedDistance() / task.lineDistance()) > 0.6,
+        // How far along the street the user has gotten. Persisted but never read today: it accumulates real partial-
+        // audit data so a future fractional-coverage model has history to build on (#4451).
+        audited_distance_m: util.math.kmsToMeters(task.getAuditedDistance()),
       },
       environment: {
         browser: util.getBrowser(),
