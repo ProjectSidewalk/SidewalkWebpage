@@ -17,7 +17,7 @@
   <div id="labelmap-choropleth-container" class="container choropleth-container">
     <div id="labelmap-choropleth-holder" class="choropleth-holder">
       <div id="labelmap-choropleth" class="choropleth"></div>
-      @common.mapSidebar(tags = tags, showSearch = true, showCounts = true)
+      @common.mapSidebar(tags = tags, showSearch = true, showCounts = true, showCopyLink = true)
       @* Feedback while the (large) label layer streams in — the map itself loads in ~1s but labels can be tens of MB, during which the sidebar sits greyed with no cue that work is happening. *@
       <div id="labelmap-loading" class="labelmap-loading" hidden role="status" aria-live="polite" aria-busy="true">
         <div class="labelmap-loading__card">
@@ -150,7 +150,9 @@
       createPSMap($, params).then(m => {
         self.map = m[0];
         self.mapData = m[4];
-        new MapSidebarFilter(self.map, self.mapData, { highQualityFilter: true });
+        const sidebarFilter = new MapSidebarFilter(self.map, self.mapData, { highQualityFilter: true });
+        // Restore shared-link filters/viewport from the URL and keep the URL updated as they change (#4585).
+        self.urlSync = new MapSidebarUrlSync(sidebarFilter, self.map);
         hideLabelMapLoading();
       }).catch(e => {
         console.error('LabelMap failed to load', e);

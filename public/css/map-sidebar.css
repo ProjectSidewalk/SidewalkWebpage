@@ -393,6 +393,19 @@ body.map-sidebar-resizing {
   visibility: visible;
 }
 
+/* ---- Copy link button (public LabelMap only) ---- */
+
+.map-sidebar__copy-link {
+  width: 100%;
+  justify-content: center;
+  gap: 6px;
+}
+
+.map-sidebar__copy-link img {
+  width: 16px;
+  height: 16px;
+}
+
 /* ---- Tag expand/collapse toggle ---- */
 
 .map-sidebar__tag-toggle {

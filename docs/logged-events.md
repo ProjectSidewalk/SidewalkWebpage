@@ -71,7 +71,8 @@ vocabulary mirrors the Gallery filter events (`SeverityApply`, `TagApply`, `Vali
 `MapSidebar_ValidationOptionApply_option=<correct|incorrect|unsure|unvalidated>`,
 `MapSidebar_TagApply_labelType=<type>_tag=<tag>`, `MapSidebar_StreetApply_street=<audited|unaudited>` (each with an
 `Unapply` twin), `MapSidebar_SelectAll_section=<…>` / `…DeselectAll…`, `MapSidebar_Only_section=<…>_value=<…>`,
-`MapSidebar_NotAdminValidated_checked=<bool>`, and `MapSidebar_Open` / `MapSidebar_Close`. These fire on every page
+`MapSidebar_NotAdminValidated_checked=<bool>`, `MapSidebar_Open` / `MapSidebar_Close`, and `MapSidebar_CopyLink`
+(the LabelMap-only button that copies the current filters + viewport as a shareable URL). These fire on every page
 that renders the sidebar; use the accompanying page-visit events to segment by page.
 
 The current set lives in the code — grep the controllers:

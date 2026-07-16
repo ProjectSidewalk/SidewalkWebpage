@@ -1,5 +1,5 @@
 @import models.label.{LabelTypeEnum, Tag}
-@(tags: Seq[Tag] = Seq.empty, streetsShownByDefault: Boolean = false, adminVersion: Boolean = false, showSearch: Boolean = false, showCounts: Boolean = false
+@(tags: Seq[Tag] = Seq.empty, streetsShownByDefault: Boolean = false, adminVersion: Boolean = false, showSearch: Boolean = false, showCounts: Boolean = false, showCopyLink: Boolean = false
 )(implicit messages: Messages, assets: AssetsFinder)
 
 @tagsByLabelType = @{tags.groupBy(t => LabelTypeEnum.labelTypeIdToLabelType.getOrElse(t.labelTypeId, ""))}
@@ -193,6 +193,16 @@
       </li>
     </ul>
   </section>
+
+  @* ---- Copy link (public LabelMap only): shares the current filters + viewport as a URL (#4585). ---- *@
+  @if(showCopyLink) {
+    <section class="map-sidebar__section">
+      <button type="button" id="map-sidebar-copy-link" class="button-ps button--secondary button--small map-sidebar__copy-link">
+        <img src='@assets.path("images/icons/clipboard_copy.svg")' alt="">
+        <span class="map-sidebar__copy-link-text" data-i18n="labelmap:copy-link">Copy link to this view</span>
+      </button>
+    </section>
+  }
 </div>
 
 @* Drag handle on the right edge of the sidebar for resizing. *@
