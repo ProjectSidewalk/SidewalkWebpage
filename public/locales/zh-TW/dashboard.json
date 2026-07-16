@@ -78,5 +78,13 @@
     "name-too-short": "團隊名稱至少需要 2 個字元。",
     "create-failed": "無法建立團隊。請再試一次。",
     "network-error": "網路錯誤——請再試一次。"
-  }
+  },
+  "routes-link-copied": "已複製連結！",
+  "routes-rename-aria": "新的路線名稱",
+  "routes-rename-save": "儲存",
+  "routes-rename-cancel": "取消",
+  "routes-renamed": "路線已重新命名。",
+  "routes-deleted": "已刪除「{{name}}」。",
+  "routes-delete-confirm": "確定要刪除「{{name}}」嗎？擁有此連結的人將無法再使用它。",
+  "routes-error": "發生錯誤，請再試一次。"
 }

@@ -3,10 +3,17 @@
  * then save/share it.
  */
 class RouteBuilder {
+  // Storage keys: the pending route stashed across the sign-in page reload, and the guest "recent routes" list
+  // that lets users without an account find a saved route again if they forgot to copy its link.
+  static PENDING_ROUTE_KEY = 'rb-pending-route';
+  static GUEST_ROUTES_KEY = 'rb-guest-routes';
+  static GUEST_ROUTES_MAX = 20;
+
   #status = {
     mapLoaded: false,
     neighborhoodsLoaded: false,
     streetsLoaded: false,
+    pendingRouteRestored: false,
   };
 
   // Constants used throughout the code.
@@ -16,6 +23,7 @@ class RouteBuilder {
   #mapboxApiKey;
   #mapParams;
   #map;
+  #isSignedIn;
 
   // Variables used throughout the code.
   #neighborhoodData = null;
@@ -30,6 +38,12 @@ class RouteBuilder {
   #streetDistOverlay;
   #deleteRouteModal;
   #routeSavedModal;
+  #saveRouteModal;
+  #routeNameInput;
+  #routeNameError;
+  #routeSavedNameEl;
+  #recentRoutesPanel;
+  #recentRoutesList;
   #streetDistanceEl;
   #saveButton;
   #exploreButton;
@@ -41,10 +55,12 @@ class RouteBuilder {
    * @param {Function} $ - jQuery.
    * @param {string} mapboxApiKey
    * @param {Object} mapParams - City center/boundaries/zoom for initializing the map.
+   * @param {boolean} isSignedIn - Whether the user is signed in (vs anonymous), from the server.
    */
-  constructor($, mapboxApiKey, mapParams) {
+  constructor($, mapboxApiKey, mapParams, isSignedIn) {
     this.#mapboxApiKey = mapboxApiKey;
     this.#mapParams = mapParams;
+    this.#isSignedIn = isSignedIn === true;
     this.#units = i18next.t('common:unit-distance');
 
     // Get the DOM elements.
@@ -52,6 +68,12 @@ class RouteBuilder {
     this.#streetDistOverlay = document.getElementById('creating-route-overlay');
     this.#deleteRouteModal = document.getElementById('delete-route-modal-backdrop');
     this.#routeSavedModal = document.getElementById('route-saved-modal-backdrop');
+    this.#saveRouteModal = document.getElementById('save-route-modal-backdrop');
+    this.#routeNameInput = document.getElementById('route-name-input');
+    this.#routeNameError = document.getElementById('route-name-error');
+    this.#routeSavedNameEl = document.getElementById('route-saved-name');
+    this.#recentRoutesPanel = document.getElementById('recent-routes-panel'); // Only rendered for anonymous users.
+    this.#recentRoutesList = document.getElementById('recent-routes-list');
     this.#streetDistanceEl = document.getElementById('route-length-val');
     this.#saveButton = document.getElementById('save-button');
     this.#exploreButton = $('#explore-button');
@@ -64,6 +86,16 @@ class RouteBuilder {
     document.getElementById('delete-route-button').addEventListener('click', (e) => this.#clearRoute(e));
     document.getElementById('cancel-delete-route-button').addEventListener('click', () => this.#clickResumeRoute());
     document.getElementById('build-new-route-button').addEventListener('click', (e) => this.#clearRoute(e));
+
+    // Save-modal buttons. The sign-in button only exists for anonymous users.
+    document.getElementById('confirm-save-button').addEventListener('click', () => this.#submitRoute());
+    document.getElementById('back-save-button').addEventListener('click', () => this.#closeSaveModal());
+    document.getElementById('signin-save-button')?.addEventListener('click', () => this.#stashRouteAndSignIn());
+    this.#routeNameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') this.#submitRoute();
+    });
+
+    this.#renderRecentGuestRoutes();
 
     // Initialize the map.
     mapboxgl.accessToken = mapboxApiKey;
@@ -96,7 +128,7 @@ class RouteBuilder {
     // Once all the layers have loaded, put them in the correct order.
     this.#map.on('sourcedataloading', this.#moveLayers);
 
-    this.#saveButton.addEventListener('click', () => this.#saveRoute());
+    this.#saveButton.addEventListener('click', () => this.#openSaveModal());
   }
 
   // Arrow field so the reference stays stable for the map on/off pair.
@@ -194,6 +226,7 @@ class RouteBuilder {
       },
     });
     this.#setUpSearchBox();
+    this.#maybeRestorePendingRoute();
   }
 
   /**
@@ -440,36 +473,8 @@ class RouteBuilder {
           this.#resetUI();
         }
       } else { // If the street was not in the route, add it to the route.
-        map.setFeatureState({ source: 'streets', id: hoveredStreet }, { chosen: 'chosen' });
-
-        // Check if we should reverse the street direction to minimize number of contiguous sections.
-        if (this.#shouldReverseStreet(street)) {
-          street.geometry.coordinates.reverse();
-          street.properties.reverse = !street.properties.reverse;
-        }
-
-        // Add the new street to the route and set it's state.
-        this.#streetsInRoute.features.push(street);
-        map.getSource('streets-chosen').setData(this.#streetsInRoute);
-        map.setFeatureState({ source: 'streets-chosen', id: hoveredStreet }, { chosen: 'chosen' });
-
+        this.#addStreetToRoute(street);
         hoverChoosePopup.remove(); // Hide the start building a route tooltip.
-
-        // If this was first street added, make additional UI changes.
-        if (this.#streetsInRoute.features.length === 1) {
-          // Remove the intro instructions and show the route length UI on the right.
-          this.#introUI.style.visibility = 'hidden';
-          this.#streetDistOverlay.style.visibility = 'visible';
-          map.removeControl(this.#searchBox);
-
-          // Change style to show you can't choose streets in other regions.
-          this.#currRegionId = street.properties.region_id;
-          map.setFeatureState({ source: 'neighborhoods', id: this.#currRegionId }, { current: true });
-          map.setPaintProperty(
-            'neighborhoods', 'fill-opacity', ['case', ['boolean', ['feature-state', 'current'], false], 0.0, 0.3],
-          );
-          map.setPaintProperty('outside-neighborhoods', 'fill-opacity', 0.5);
-        }
       }
 
       // Set hover to false so that we don't show hover effect immediately after being clicked.
@@ -478,6 +483,8 @@ class RouteBuilder {
       this.#updateMarkers();
       this.#setRouteDistanceText();
     });
+
+    this.#maybeRestorePendingRoute();
   }
 
   /**
@@ -620,6 +627,81 @@ class RouteBuilder {
     return shouldReverse;
   }
 
+  /**
+   * Adds a street to the route: sets its orientation and feature states, and applies the first-street UI changes.
+   *
+   * @param {Object} street - The street's full GeoJSON feature from the streets source data.
+   * @param {boolean} [forceReverse] - Target orientation (used when restoring a stashed route); when omitted, the
+   *                                   street is oriented to minimize the number of contiguous sections.
+   */
+  #addStreetToRoute(street, forceReverse = null) {
+    const map = this.#map;
+    const streetId = street.properties.street_edge_id;
+    map.setFeatureState({ source: 'streets', id: streetId }, { chosen: 'chosen' });
+
+    const flip = forceReverse === null
+      ? this.#shouldReverseStreet(street)
+      : (street.properties.reverse === true) !== forceReverse;
+    if (flip) {
+      street.geometry.coordinates.reverse();
+      street.properties.reverse = !street.properties.reverse;
+    }
+
+    this.#streetsInRoute.features.push(street);
+    map.getSource('streets-chosen').setData(this.#streetsInRoute);
+    map.setFeatureState({ source: 'streets-chosen', id: streetId }, { chosen: 'chosen' });
+
+    // If this was first street added, make additional UI changes.
+    if (this.#streetsInRoute.features.length === 1) {
+      // Remove the intro instructions and show the route length UI on the right.
+      this.#introUI.style.visibility = 'hidden';
+      if (this.#recentRoutesPanel) this.#recentRoutesPanel.hidden = true;
+      this.#streetDistOverlay.style.visibility = 'visible';
+      map.removeControl(this.#searchBox);
+
+      // Change style to show you can't choose streets in other regions.
+      this.#currRegionId = street.properties.region_id;
+      map.setFeatureState({ source: 'neighborhoods', id: this.#currRegionId }, { current: true });
+      map.setPaintProperty(
+        'neighborhoods', 'fill-opacity', ['case', ['boolean', ['feature-state', 'current'], false], 0.0, 0.3],
+      );
+      map.setPaintProperty('outside-neighborhoods', 'fill-opacity', 0.5);
+    }
+  }
+
+  /**
+   * Restores a route stashed in sessionStorage before a sign-in reload, then reopens the save modal.
+   *
+   * Runs once, after the map, neighborhoods, and streets have all rendered (so sources/feature states exist).
+   */
+  #maybeRestorePendingRoute() {
+    if (this.#status.pendingRouteRestored || !this.#status.mapLoaded
+      || !this.#status.neighborhoodsLoaded || !this.#status.streetsLoaded || !this.#searchBox) return;
+
+    let pending = null;
+    try {
+      const stash = sessionStorage.getItem(RouteBuilder.PENDING_ROUTE_KEY);
+      if (stash) pending = JSON.parse(stash);
+      sessionStorage.removeItem(RouteBuilder.PENDING_ROUTE_KEY);
+    } catch {
+      return; // Storage unavailable or corrupted stash: nothing to restore.
+    }
+    this.#status.pendingRouteRestored = true;
+    if (!pending || !Array.isArray(pending.streets) || pending.streets.length === 0) return;
+
+    pending.streets.forEach((stashedStreet) => {
+      const street = this.#streetData.features.find(
+        (s) => s.properties.street_edge_id === stashedStreet.street_id,
+      );
+      if (street) this.#addStreetToRoute(street, stashedStreet.reverse === true);
+    });
+    if (this.#streetsInRoute.features.length === 0) return;
+
+    this.#updateMarkers();
+    this.#setRouteDistanceText();
+    this.#openSaveModal(pending.name || null);
+  }
+
   #clickCancelRoute() {
     window.logWebpageActivity('RouteBuilder_Click=CancelRoute');
     this.#deleteRouteModal.style.visibility = 'visible';
@@ -674,18 +756,84 @@ class RouteBuilder {
     this.#streetDistOverlay.style.visibility = 'hidden';
     this.#routeSavedModal.style.visibility = 'hidden';
     this.#deleteRouteModal.style.visibility = 'hidden';
+    this.#saveRouteModal.style.visibility = 'hidden';
+    this.#renderRecentGuestRoutes();
     map.addControl(this.#searchBox);
+  }
+
+  /**
+   * Looks up a region's display name from the neighborhoods GeoJSON.
+   *
+   * @param {number} regionId
+   * @returns {string|null} The region name, or null if unknown.
+   */
+  #getRegionName(regionId) {
+    const region = this.#neighborhoodData?.features.find((n) => n.properties.region_id === regionId);
+    return region ? region.properties.region_name : null;
+  }
+
+  /**
+   * Opens the save modal with a name suggestion the user can overwrite.
+   *
+   * @param {string} [prefillName] - Name to prefill (used when restoring a stashed route); defaults to a
+   *                                 localized "Route in {region}" suggestion.
+   */
+  #openSaveModal(prefillName = null) {
+    window.logWebpageActivity('RouteBuilder_Click=OpenSaveModal');
+    const regionName = this.#getRegionName(this.#currRegionId);
+    this.#routeNameInput.value
+      = prefillName ?? (regionName ? i18next.t('route-name-default', { region: regionName }) : '');
+    this.#routeNameError.hidden = true;
+    this.#saveRouteModal.style.visibility = 'visible';
+    this.#routeNameInput.focus();
+    this.#routeNameInput.select();
+  }
+
+  #closeSaveModal() {
+    this.#saveRouteModal.style.visibility = 'hidden';
+    this.#saveButton.focus();
+  }
+
+  /**
+   * Returns the ordered street list for the route in the POST /saveRoute wire format.
+   * @returns {Array<{street_id: number, reverse: boolean}>}
+   */
+  #routeStreetsPayload() {
+    return this.#computeContiguousRoutes().flat().map((s) => ({
+      street_id: s.properties.street_edge_id,
+      reverse: s.properties.reverse === true,
+    }));
+  }
+
+  /**
+   * Stashes the in-progress route in sessionStorage and opens the sign-in modal. Signing in reloads the page;
+   * the stash is picked up by #maybeRestorePendingRoute so the user lands back in the save flow with their
+   * route (and typed name) intact — the route is then saved under their registered account.
+   */
+  #stashRouteAndSignIn() {
+    window.logWebpageActivity('RouteBuilder_Click=SignInToSave');
+    try {
+      sessionStorage.setItem(RouteBuilder.PENDING_ROUTE_KEY, JSON.stringify({
+        regionId: this.#currRegionId,
+        name: this.#routeNameInput.value.trim(),
+        streets: this.#routeStreetsPayload(),
+      }));
+    } catch {
+      // Storage unavailable: sign-in still works, the route just can't be carried across the reload.
+    }
+    if (window.psAuthModal) {
+      window.psAuthModal.open('signIn');
+    } else {
+      window.location.assign('/signIn?url=%2FrouteBuilder');
+    }
   }
 
   /**
    * Saves the route to the database, shows the Route Saved modal, and updates the links/buttons in that modal.
    */
-  #saveRoute() {
-    // Get list of street IDs in the correct order.
-    const streetProps = this.#computeContiguousRoutes().flat().map((s) => ({
-      street_id: s.properties.street_edge_id,
-      reverse: s.properties.reverse === true,
-    }));
+  #submitRoute() {
+    if (!this.#isSignedIn) window.logWebpageActivity('RouteBuilder_Click=ContinueAsGuest');
+    const name = this.#routeNameInput.value.trim();
 
     // Save the route and then update UI.
     fetch('/saveRoute', {
@@ -694,42 +842,146 @@ class RouteBuilder {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ region_id: this.#currRegionId, streets: streetProps }),
+      body: JSON.stringify({ region_id: this.#currRegionId, streets: this.#routeStreetsPayload(), name }),
     })
-      .then((response) => response.json())
-      .then((data) => {
-        this.#routeSavedModal.style.visibility = 'visible';
-        const exploreRelURL = `/explore?routeId=${data.route_id}`;
-        const exploreURL = `${window.location.origin}${exploreRelURL}`;
-
-        // Update link and tooltip for Explore route button.
-        this.#exploreButton.off('click');
-        this.#exploreButton.click(() => {
-          window.logWebpageActivity(`RouteBuilder_Click=Explore_RouteId=${data.route_id}`);
-          window.location.replace(exploreRelURL);
-        });
-
-        // Add the 'copied to clipboard' tooltip on click.
-        this.#linkTextEl.textContent = exploreURL;
-        this.#copyLinkButton.off('click');
-        this.#copyLinkButton.click((e) => {
-          navigator.clipboard.writeText(exploreURL);
-          this.#setTemporaryTooltip(e.currentTarget, i18next.t('copied-to-clipboard'));
-          window.logWebpageActivity(`RouteBuilder_Click=Copy_RouteId=${data.route_id}`);
-        });
-
-        // Update link for the 'View in LabelMap' button.
-        this.#viewInLabelmapButton.off('click');
-        this.#viewInLabelmapButton.click(() => {
-          window.logWebpageActivity(`RouteBuilder_Click=LabelMap_RouteId=${data.route_id}`);
-          window.open(`/labelMap?routes=${data.route_id}`, '_blank');
-        });
-
+      .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) {
+          // The server's message is already localized (e.g. a name rejected by the profanity guard).
+          this.#routeNameError.textContent
+            = typeof data.message === 'string' ? data.message : i18next.t('save-error');
+          this.#routeNameError.hidden = false;
+          window.logWebpageActivity('RouteBuilder_Click=SaveError');
+          return;
+        }
+        this.#closeSaveModal();
+        this.#showRouteSavedModal(data.route_id, data.name);
         window.logWebpageActivity(`RouteBuilder_Click=SaveSuccess_RouteId=${data.route_id}`);
       })
       .catch((error) => {
         console.error('Error:', error);
-        window.logWebpageActivity(`RouteBuilder_Click=SaveError`);
+        this.#routeNameError.textContent = i18next.t('save-error');
+        this.#routeNameError.hidden = false;
+        window.logWebpageActivity('RouteBuilder_Click=SaveError');
       });
+  }
+
+  /**
+   * Shows the Route Saved modal and wires up its share/explore/labelmap actions.
+   *
+   * @param {number} routeId
+   * @param {string} name - The route's saved name.
+   */
+  #showRouteSavedModal(routeId, name) {
+    this.#routeSavedModal.style.visibility = 'visible';
+    const exploreRelURL = `/explore?routeId=${routeId}`;
+    const exploreURL = `${window.location.origin}${exploreRelURL}`;
+    this.#routeSavedNameEl.textContent = name;
+
+    // For guests, remember the route on this device so a forgotten link isn't fatal.
+    if (!this.#isSignedIn) this.#recordGuestRoute(routeId, name, exploreURL);
+
+    // Update link and tooltip for Explore route button.
+    this.#exploreButton.off('click');
+    this.#exploreButton.click(() => {
+      window.logWebpageActivity(`RouteBuilder_Click=Explore_RouteId=${routeId}`);
+      window.location.replace(exploreRelURL);
+    });
+
+    // Add the 'copied to clipboard' tooltip on click.
+    this.#linkTextEl.textContent = exploreURL;
+    this.#copyLinkButton.off('click');
+    this.#copyLinkButton.click((e) => {
+      navigator.clipboard.writeText(exploreURL);
+      this.#setTemporaryTooltip(e.currentTarget, i18next.t('copied-to-clipboard'));
+      window.logWebpageActivity(`RouteBuilder_Click=Copy_RouteId=${routeId}`);
+    });
+
+    // Update link for the 'View in LabelMap' button.
+    this.#viewInLabelmapButton.off('click');
+    this.#viewInLabelmapButton.click(() => {
+      window.logWebpageActivity(`RouteBuilder_Click=LabelMap_RouteId=${routeId}`);
+      window.open(`/labelMap?routes=${routeId}`, '_blank');
+    });
+  }
+
+  /**
+   * Reads the guest routes list from localStorage.
+   * @returns {Array<Object>} Saved route records, newest first; empty if none or storage is unavailable.
+   */
+  #readGuestRoutes() {
+    try {
+      const raw = localStorage.getItem(RouteBuilder.GUEST_ROUTES_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Prepends a guest-saved route to the device-local recent routes list (capped, newest first).
+   *
+   * @param {number} routeId
+   * @param {string} name
+   * @param {string} url - The shareable /explore?routeId= link.
+   */
+  #recordGuestRoute(routeId, name, url) {
+    const routes = this.#readGuestRoutes().filter((r) => r.routeId !== routeId);
+    routes.unshift({
+      routeId,
+      name,
+      regionName: this.#getRegionName(this.#currRegionId),
+      savedAt: new Date().toISOString(),
+      url,
+    });
+    try {
+      const capped = routes.slice(0, RouteBuilder.GUEST_ROUTES_MAX);
+      localStorage.setItem(RouteBuilder.GUEST_ROUTES_KEY, JSON.stringify(capped));
+    } catch {
+      // Storage unavailable (e.g. private browsing): the copy-link flow still works.
+    }
+  }
+
+  /**
+   * Renders the "recent routes on this device" panel for guests (hidden for signed-in users and empty lists).
+   */
+  #renderRecentGuestRoutes() {
+    if (!this.#recentRoutesPanel) return; // Panel only exists for anonymous users.
+    const routes = this.#readGuestRoutes();
+    this.#recentRoutesPanel.hidden = routes.length === 0;
+    if (routes.length === 0) return;
+
+    this.#recentRoutesList.innerHTML = routes.map((r) => `
+      <li class="recent-route-item">
+        <div class="recent-route-info">
+          <a href="${r.url}" class="recent-route-name" data-route-id="${r.routeId}"></a>
+          <span class="recent-route-meta"></span>
+        </div>
+        <button type="button" class="recent-route-copy routebuilder-button white-button" data-url="${r.url}"
+                data-route-id="${r.routeId}">${i18next.t('recent-copy-link')}</button>
+      </li>`).join('');
+
+    // Names and region/date are user/geo data: set via textContent so they can't inject markup.
+    this.#recentRoutesList.querySelectorAll('.recent-route-item').forEach((item, i) => {
+      const route = routes[i];
+      item.querySelector('.recent-route-name').textContent = route.name;
+      const date = new Date(route.savedAt).toLocaleDateString(i18next.language);
+      item.querySelector('.recent-route-meta').textContent
+        = route.regionName ? `${route.regionName} · ${date}` : date;
+    });
+
+    this.#recentRoutesList.querySelectorAll('.recent-route-name').forEach((link) => {
+      link.addEventListener('click', () => {
+        window.logWebpageActivity(`RouteBuilder_Click=RecoverGuestRoute_RouteId=${link.dataset.routeId}`);
+      });
+    });
+    this.#recentRoutesList.querySelectorAll('.recent-route-copy').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        navigator.clipboard.writeText(btn.dataset.url);
+        this.#setTemporaryTooltip(btn, i18next.t('copied-to-clipboard'));
+        window.logWebpageActivity(`RouteBuilder_Click=RecoverGuestRoute_Copy_RouteId=${btn.dataset.routeId}`);
+      });
+    });
   }
 }

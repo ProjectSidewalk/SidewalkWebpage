@@ -2,5 +2,8 @@
   "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
   "hover-add-street": "Haga clic en una calle para comenzar a construir su ruta.",
   "copied-to-clipboard": "¡Copiado al portapapeles!",
-  "one-neighborhood-warning": "Una ruta solo puede tener calles de un vecindario en este momento."
+  "one-neighborhood-warning": "Una ruta solo puede tener calles de un vecindario en este momento.",
+  "route-name-default": "Ruta en {{region}}",
+  "save-error": "Algo salió mal al guardar. Inténtalo de nuevo.",
+  "recent-copy-link": "Copiar enlace"
 }

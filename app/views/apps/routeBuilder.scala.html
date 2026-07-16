@@ -4,6 +4,7 @@
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
+@isAnon = @{user.role == "Anonymous"}
 
 @common.main(commonData, Messages("routebuilder.name"), defaultI18nNamespace = "routebuilder", i18Namespaces = Seq("routebuilder", "common")) {
   @common.navbar(commonData, Some(user))
@@ -25,6 +26,13 @@
     <span id="routebuilder-intro-content">@Messages("routebuilder.intro.content")</span>
     <span id="routebuilder-intro-instruction" class="routebuilder-h2">@Messages("routebuilder.intro.instruction")</span>
   </div>
+  @if(isAnon) {
+    <div id="recent-routes-panel" class="routebuilder-overlay" hidden>
+      <span id="recent-routes-title" class="routebuilder-h2">@Messages("routebuilder.recent.routes")</span>
+      <span id="recent-routes-note">@Messages("routebuilder.recent.routes.note")</span>
+      <ul id="recent-routes-list"></ul>
+    </div>
+  }
   <div id="creating-route-overlay" class="routebuilder-overlay">
     <span id="creating-route-title" class="routebuilder-h1">@Messages("routebuilder.creating.route")</span>
     <div id="route-length-section" class="flex-div-col">
@@ -66,11 +74,33 @@
       </div>
     </div>
   </div>
+  <div id="save-route-modal-backdrop" class="routebuilder-overlay-backdrop">
+    <div id="save-route-modal" class="routebuilder-overlay routebuilder-centered-overlay" role="dialog" aria-modal="true" aria-labelledby="save-route-title">
+      <span id="save-route-title" class="routebuilder-h1">@Messages("routebuilder.name.your.route")</span>
+      <label id="route-name-label" for="route-name-input">@Messages("routebuilder.route.name.label")</label>
+      <input type="text" id="route-name-input" maxlength="@models.route.Route.MaxNameLength" autocomplete="off" placeholder="@Messages("routebuilder.route.name.placeholder")">
+      <span id="route-name-error" role="alert" hidden></span>
+      @if(isAnon) {
+        <span id="save-route-signin-nudge">@Messages("routebuilder.signin.nudge")</span>
+      }
+      <div id="save-route-buttons" class="flex-div-row">
+        @if(isAnon) {
+          <button type="button" id="signin-save-button" class="routebuilder-button blue-button">@Messages("routebuilder.signin.to.save")</button>
+        }
+        <button type="button" id="confirm-save-button" class="routebuilder-button @if(isAnon) {white-button} else {blue-button}">@if(isAnon) {@Messages("routebuilder.continue.without.account")} else {@Messages("routebuilder.save")}</button>
+        <button type="button" id="back-save-button" class="routebuilder-button white-button">@Messages("back")</button>
+      </div>
+    </div>
+  </div>
   <div id="route-saved-modal-backdrop" class="routebuilder-overlay-backdrop">
-    <div id="route-saved-modal" class="routebuilder-overlay routebuilder-centered-overlay">
+    <div id="route-saved-modal" class="routebuilder-overlay routebuilder-centered-overlay" role="dialog" aria-modal="true" aria-labelledby="route-saved-title">
       <div id="route-saved-title-section" class="flex-div-col">
         <img id="route-saved-checkmark" src="@assets.path("images/icons/routebuilder/green-check.svg")" alt="@Messages("routebuilder.saved.icon.alt")">
         <span id="route-saved-title" class="routebuilder-h1">@Messages("routebuilder.saved")</span>
+        <span id="route-saved-name"></span>
+        @if(!isAnon) {
+          <span id="route-saved-account-note">@Messages("routebuilder.saved.to.account") <a href="/dashboard#my-routes" id="route-saved-dashboard-link">@Messages("routebuilder.view.in.dashboard")</a></span>
+        }
       </div>
       <div id="route-saved-share-section" class="flex-div-col">
         <span id="route-saved-share-title">@Messages("routebuilder.share.title")</span>
@@ -78,7 +108,9 @@
           <span id="share-route-link"></span>
           <button type="button" id="copy-link-button" class="routebuilder-button  blue-button">@Messages("routebuilder.copy.link")</button>
         </div>
-        <span id="route-saved-share-warnings">@Messages("routebuilder.share.warning")</span>
+        @if(isAnon) {
+          <span id="route-saved-share-warnings">@Messages("routebuilder.share.warning")</span>
+        }
       </div>
       <div id="route-saved-buttons" class="flex-div-row">
         <button type="button" id="explore-button" class="routebuilder-button  blue-button">@Messages("routebuilder.explore.route")</button>
@@ -97,7 +129,7 @@
       const loadStreets = $.getJSON('/contribution/streets/all?filterLowQuality=true');
 
       const initMap = $.when(loadMapParams).done(function(mapParams) {
-        routeBuilder = new RouteBuilder($, '@commonData.mapboxApiKey', mapParams);
+        routeBuilder = new RouteBuilder($, '@commonData.mapboxApiKey', mapParams, @(!isAnon));
       });
       $.when(initMap, loadPolygons).done(function(d0, neighborhoodData) {
         routeBuilder.renderNeighborhoods(neighborhoodData[0]);

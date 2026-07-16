@@ -81,5 +81,13 @@
     "name-too-short": "De teamnaam moet minstens 2 tekens lang zijn.",
     "create-failed": "Het team kon niet worden aangemaakt. Probeer het opnieuw.",
     "network-error": "Netwerkfout — probeer het opnieuw."
-  }
+  },
+  "routes-link-copied": "Link gekopieerd!",
+  "routes-rename-aria": "Nieuwe routenaam",
+  "routes-rename-save": "Bewaren",
+  "routes-rename-cancel": "Annuleren",
+  "routes-renamed": "Route hernoemd.",
+  "routes-deleted": "\"{{name}}\" verwijderd.",
+  "routes-delete-confirm": "\"{{name}}\" verwijderen? Mensen met wie je de link hebt gedeeld, kunnen hem daarna niet meer gebruiken.",
+  "routes-error": "Er ging iets mis. Probeer het opnieuw."
 }

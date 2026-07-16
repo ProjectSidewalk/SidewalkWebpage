@@ -2,5 +2,8 @@
   "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
   "hover-add-street": "Clique na rua para começar a construir sua rota.",
   "copied-to-clipboard": "Coiado para a área de transferência!",
-  "one-neighborhood-warning": "As rotas só podem ter ruas de um unico bairro nesse momento."
+  "one-neighborhood-warning": "As rotas só podem ter ruas de um unico bairro nesse momento.",
+  "route-name-default": "Rota em {{region}}",
+  "save-error": "Algo deu errado ao salvar. Tente novamente.",
+  "recent-copy-link": "Copiar link"
 }

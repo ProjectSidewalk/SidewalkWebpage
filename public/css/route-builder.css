@@ -166,6 +166,111 @@
   font-weight: 600;
 }
 
+#save-route-modal {
+  gap: 12px;
+}
+
+#route-name-label {
+  font-weight: 600;
+  margin-bottom: 0;
+}
+
+#route-name-input {
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1.5px solid #525252;
+  border-radius: 6px;
+}
+
+#route-name-input:focus {
+  outline: 2px solid #236EE0;
+  outline-offset: 1px;
+}
+
+#route-name-error {
+  color: var(--color-label-surface-problem);
+  font-weight: 600;
+}
+
+#save-route-signin-nudge {
+  color: #5F5F5F;
+}
+
+#save-route-buttons {
+  gap: 12px;
+  padding-top: 8px;
+}
+
+#route-saved-name {
+  font-weight: 700;
+}
+
+#route-saved-account-note {
+  text-align: center;
+}
+
+#recent-routes-panel {
+  bottom: 4%;
+  left: 3%;
+  width: 320px;
+  max-height: 320px;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+/* The overlay's display: flex would otherwise override the hidden attribute's UA display: none. */
+#recent-routes-panel[hidden] {
+  display: none;
+}
+
+#recent-routes-note {
+  color: #5F5F5F;
+  font-size: 12px;
+}
+
+#recent-routes-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recent-route-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #b6b6b6;
+}
+
+.recent-route-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 0;
+  min-width: 0;
+}
+
+.recent-route-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-route-meta {
+  color: #5F5F5F;
+  font-size: 12px;
+}
+
+.recent-route-copy {
+  padding: 4px 8px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
 .marker-start, .marker-end {
   width: 27px;
   height: 27px;

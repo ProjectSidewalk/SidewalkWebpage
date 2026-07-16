@@ -81,5 +81,13 @@
     "name-too-short": "Der Teamname muss mindestens 2 Zeichen lang sein.",
     "create-failed": "Das Team konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
     "network-error": "Netzwerkfehler — bitte versuchen Sie es erneut."
-  }
+  },
+  "routes-link-copied": "Link kopiert!",
+  "routes-rename-aria": "Neuer Routenname",
+  "routes-rename-save": "Speichern",
+  "routes-rename-cancel": "Abbrechen",
+  "routes-renamed": "Route umbenannt.",
+  "routes-deleted": "\"{{name}}\" gelöscht.",
+  "routes-delete-confirm": "\"{{name}}\" löschen? Personen, mit denen Sie den Link geteilt haben, können ihn dann nicht mehr verwenden.",
+  "routes-error": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut."
 }
