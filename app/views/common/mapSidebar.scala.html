@@ -1,8 +1,19 @@
 @import models.label.{LabelTypeEnum, Tag}
-@(tags: Seq[Tag] = Seq.empty, streetsShownByDefault: Boolean = false, adminVersion: Boolean = false, showSearch: Boolean = false
+@(tags: Seq[Tag] = Seq.empty, streetsShownByDefault: Boolean = false, adminVersion: Boolean = false, showSearch: Boolean = false, showCounts: Boolean = false
 )(implicit messages: Messages, assets: AssetsFinder)
 
 @tagsByLabelType = @{tags.groupBy(t => LabelTypeEnum.labelTypeIdToLabelType.getOrElse(t.labelTypeId, ""))}
+
+@* Right-aligned slot at the end of a filter row: an optional live label count, and an "Only" button that swaps in
+   on hover/focus to exclusive-select that row within its section. *@
+@rightSlot(section: String, value: String, withCount: Boolean = true) = {
+  <span class="map-sidebar__right-slot">
+    @if(showCounts && withCount) {
+      <span class="map-sidebar__count" data-count-for="@value"></span>
+    }
+    <button type="button" class="map-sidebar__only" data-section="@section" data-value="@value" data-i18n="common:only">Only</button>
+  </span>
+}
 
   @* Helper to render a label type row with optional tag expansion. *@
 @labelTypeItem(labelType: String, i18nKey: String, msgKey: String, legendId: String) = {
@@ -13,6 +24,7 @@
         <svg width="14" height="14"><circle cx="7" cy="7" r="6"/></svg>
       </span>
       <label for="@(labelType)-checkbox" data-i18n="@i18nKey">@Messages(msgKey)</label>
+      @rightSlot("label-type", labelType)
       @if(tagsByLabelType.getOrElse(labelType, Seq.empty).nonEmpty) {
         <button type="button" class="map-sidebar__tag-toggle" aria-expanded="false" aria-label="Show tags" data-i18n-aria-label="labelmap:show-tags">
           <img src='@assets.path("images/icons/chevron-right-feather.svg")' alt="" data-down-src='@assets.path("images/icons/chevron-right-feather.svg")' data-up-src='@assets.path("images/icons/chevron-down-feather.svg")'>
@@ -51,22 +63,34 @@
       <button type="button" class="map-sidebar__deselect-all" data-section="severity" data-i18n="labelmap:deselect-all">Deselect all</button>
     </div>
     <div class="map-sidebar__severity-toggles" role="group" aria-label="@Messages("severity")" data-i18n-aria-label="common:severity">
-      <button type="button" class="severity-button" data-severity="0" aria-pressed="true">
-        <img class="severity-button__icon" src='@assets.path("images/icons/smileys/sev-0-negative-filled.svg")' data-selected-src='@assets.path("images/icons/smileys/sev-0-negative-filled.svg")' data-unselected-src='@assets.path("images/icons/smileys/sev-0-negative.svg")' alt="@Messages("not.applicable.abbr")" data-i18n-alt="labelmap:not-applicable-abbr">
-        <span class="severity-button__label" data-i18n="labelmap:not-applicable-abbr">@Messages("not.applicable.abbr")</span>
-      </button>
-      <button type="button" class="severity-button" data-severity="1" aria-pressed="true">
-        <img class="severity-button__icon" src='@assets.path("images/icons/smileys/sev-1-negative-filled.svg")' data-selected-src='@assets.path("images/icons/smileys/sev-1-negative-filled.svg")' data-unselected-src='@assets.path("images/icons/smileys/sev-1-negative.svg")' alt="@Messages("low")" data-i18n-alt="common:low">
-        <span class="severity-button__label" data-i18n="common:low">@Messages("low")</span>
-      </button>
-      <button type="button" class="severity-button" data-severity="2" aria-pressed="true">
-        <img class="severity-button__icon" src='@assets.path("images/icons/smileys/sev-2-negative-filled.svg")' data-selected-src='@assets.path("images/icons/smileys/sev-2-negative-filled.svg")' data-unselected-src='@assets.path("images/icons/smileys/sev-2-negative.svg")' alt="@Messages("medium")" data-i18n-alt="common:medium">
-        <span class="severity-button__label" data-i18n="common:medium">@Messages("medium")</span>
-      </button>
-      <button type="button" class="severity-button" data-severity="3" aria-pressed="true">
-        <img class="severity-button__icon" src='@assets.path("images/icons/smileys/sev-3-negative-filled.svg")' data-selected-src='@assets.path("images/icons/smileys/sev-3-negative-filled.svg")' data-unselected-src='@assets.path("images/icons/smileys/sev-3-negative.svg")' alt="@Messages("high")" data-i18n-alt="common:high">
-        <span class="severity-button__label" data-i18n="common:high">@Messages("high")</span>
-      </button>
+      <div class="map-sidebar__severity-cell">
+        <button type="button" class="severity-button" data-severity="0" aria-pressed="true">
+          <img class="severity-button__icon" src='@assets.path("images/icons/smileys/sev-0-negative-filled.svg")' data-selected-src='@assets.path("images/icons/smileys/sev-0-negative-filled.svg")' data-unselected-src='@assets.path("images/icons/smileys/sev-0-negative.svg")' alt="@Messages("not.applicable.abbr")" data-i18n-alt="labelmap:not-applicable-abbr">
+          <span class="severity-button__label" data-i18n="labelmap:not-applicable-abbr">@Messages("not.applicable.abbr")</span>
+        </button>
+        <button type="button" class="map-sidebar__only" data-section="severity" data-value="0" data-i18n="common:only">Only</button>
+      </div>
+      <div class="map-sidebar__severity-cell">
+        <button type="button" class="severity-button" data-severity="1" aria-pressed="true">
+          <img class="severity-button__icon" src='@assets.path("images/icons/smileys/sev-1-negative-filled.svg")' data-selected-src='@assets.path("images/icons/smileys/sev-1-negative-filled.svg")' data-unselected-src='@assets.path("images/icons/smileys/sev-1-negative.svg")' alt="@Messages("low")" data-i18n-alt="common:low">
+          <span class="severity-button__label" data-i18n="common:low">@Messages("low")</span>
+        </button>
+        <button type="button" class="map-sidebar__only" data-section="severity" data-value="1" data-i18n="common:only">Only</button>
+      </div>
+      <div class="map-sidebar__severity-cell">
+        <button type="button" class="severity-button" data-severity="2" aria-pressed="true">
+          <img class="severity-button__icon" src='@assets.path("images/icons/smileys/sev-2-negative-filled.svg")' data-selected-src='@assets.path("images/icons/smileys/sev-2-negative-filled.svg")' data-unselected-src='@assets.path("images/icons/smileys/sev-2-negative.svg")' alt="@Messages("medium")" data-i18n-alt="common:medium">
+          <span class="severity-button__label" data-i18n="common:medium">@Messages("medium")</span>
+        </button>
+        <button type="button" class="map-sidebar__only" data-section="severity" data-value="2" data-i18n="common:only">Only</button>
+      </div>
+      <div class="map-sidebar__severity-cell">
+        <button type="button" class="severity-button" data-severity="3" aria-pressed="true">
+          <img class="severity-button__icon" src='@assets.path("images/icons/smileys/sev-3-negative-filled.svg")' data-selected-src='@assets.path("images/icons/smileys/sev-3-negative-filled.svg")' data-unselected-src='@assets.path("images/icons/smileys/sev-3-negative.svg")' alt="@Messages("high")" data-i18n-alt="common:high">
+          <span class="severity-button__label" data-i18n="common:high">@Messages("high")</span>
+        </button>
+        <button type="button" class="map-sidebar__only" data-section="severity" data-value="3" data-i18n="common:only">Only</button>
+      </div>
     </div>
   </section>
 
@@ -100,21 +124,25 @@
         <input type="checkbox" id="correct" checked data-filter-type="label-validations" disabled>
         <img class="map-sidebar__validation-icon" src='@assets.path("images/icons/validation/agree-filled.svg")' alt="Validated correct" data-i18n-alt="common:correct">
         <label for="correct" data-i18n="common:correct">Validated correct</label>
+        @rightSlot("label-validations", "correct")
       </li>
       <li class="map-sidebar__item">
         <input type="checkbox" id="incorrect" data-filter-type="label-validations" disabled>
         <img class="map-sidebar__validation-icon" src='@assets.path("images/icons/validation/disagree-filled.svg")' alt="Validated incorrect" data-i18n-alt="common:incorrect">
         <label for="incorrect" data-i18n="common:incorrect">Validated incorrect</label>
+        @rightSlot("label-validations", "incorrect")
       </li>
       <li class="map-sidebar__item">
         <input type="checkbox" id="unsure" checked data-filter-type="label-validations" disabled>
         <img class="map-sidebar__validation-icon" src='@assets.path("images/icons/validation/unsure-filled.svg")' alt="@Messages("unsure.caps")" data-i18n-alt="common:unsure">
         <label for="unsure" data-i18n="common:unsure">@Messages("unsure.caps")</label>
+        @rightSlot("label-validations", "unsure")
       </li>
       <li class="map-sidebar__item">
         <input type="checkbox" id="unvalidated" checked data-filter-type="label-validations" disabled>
         <img class="map-sidebar__unvalidated-icon" src='@assets.path("images/icons/alert-circle.svg")' alt="Unvalidated" data-i18n-alt="common:unvalidated">
         <label for="unvalidated" data-i18n="common:unvalidated">Unvalidated</label>
+        @rightSlot("label-validations", "unvalidated")
       </li>
     </ul>
   </section>
@@ -152,6 +180,7 @@
           <path d="M 2 10 L 18 10 z"></path>
         </svg>
         <label for="audited-street" data-i18n="labelmap:audited-street">Audited Street</label>
+        @rightSlot("streets", "audited-street", withCount = false)
       </li>
       <li class="map-sidebar__item">
         <input type="checkbox" id="unaudited-street" data-filter-type="streets"
@@ -160,6 +189,7 @@
           <path d="M 2 10 L 18 10 z"></path>
         </svg>
         <label for="unaudited-street" data-i18n="labelmap:unaudited-street">Unaudited Street</label>
+        @rightSlot("streets", "unaudited-street", withCount = false)
       </li>
     </ul>
   </section>

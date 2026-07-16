@@ -164,16 +164,17 @@ body.map-sidebar-resizing {
 .map-sidebar__deselect-all {
   background: none;
   border: none;
-  color: #666666;
+  color: var(--color-asphalt-400);
   cursor: pointer;
-  font-family: Roboto, sans-serif;
-  font-size: 14px;
+  font-family: Raleway, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
   padding: 0;
-  text-decoration: underline;
 }
 
 .map-sidebar__deselect-all:hover {
-  color: #333333;
+  color: var(--color-asphalt-500);
+  text-decoration: underline;
 }
 
 /* ---- Severity toggles ---- */
@@ -186,6 +187,14 @@ body.map-sidebar-resizing {
 }
 
 /* The actual button styles live in main.css under .severity-button (and related). */
+
+/* Each grid cell stacks a severity toggle over its (hover-revealed) "Only" button. */
+.map-sidebar__severity-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
 
 /* ---- Checkbox list items ---- */
 
@@ -215,27 +224,56 @@ body.map-sidebar-resizing {
   gap: 9px;
 }
 
+/* Whole rows read as clickable: constant padding (negative margin keeps text aligned with the headings) so the
+   hover background doesn't shift layout. Expandable items get this on their inner row, flat items directly. */
+.map-sidebar__item:not(.map-sidebar__item--expandable),
+.map-sidebar__item-row {
+  padding: 3px 6px;
+  margin: 0 -6px;
+  border-radius: 4px;
+}
+
+.map-sidebar__item:not(.map-sidebar__item--expandable):hover,
+.map-sidebar__item-row:hover {
+  background: var(--color-neutral-100);
+}
+
 .map-sidebar__item input[type="checkbox"] {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
   margin: 0;
   flex-shrink: 0;
   cursor: pointer;
-  border: 1.5px solid var(--color-neutral-black);
-  border-radius: 2px;
+  border: 1.5px solid var(--color-neutral-700);
+  border-radius: 3px;
   background: var(--color-neutral-white);
 }
 
 .map-sidebar__item input[type="checkbox"]:checked {
-  background: var(--color-neutral-black);
-  border-color: var(--color-neutral-black);
+  background-color: var(--color-asphalt-500);
+  border-color: var(--color-asphalt-500);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23FFFFFF' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
+  background-size: 12px;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .map-sidebar__item input[type="checkbox"]:focus {
-  outline: unset; /* Removing some default styling from Bootstrap */
+  outline: none; /* Removing some default styling from Bootstrap; :focus-visible below restores a keyboard ring. */
+}
+
+/* Keyboard focus ring (WCAG 2.4.7) for every interactive sidebar control. */
+.map-sidebar__item input[type="checkbox"]:focus-visible,
+.map-sidebar .severity-button:focus-visible,
+.map-sidebar .tag-pill:focus-visible,
+.map-sidebar__only:focus-visible,
+.map-sidebar__deselect-all:focus-visible,
+.map-sidebar__tag-toggle:focus-visible {
+  outline: 2px solid var(--color-asphalt-400);
+  outline-offset: 2px;
 }
 
 .map-sidebar__item label {
@@ -247,6 +285,7 @@ body.map-sidebar-resizing {
   cursor: pointer;
   white-space: nowrap;
   line-height: normal;
+  flex: 1; /* Fill the middle of the row so the whole hover area toggles the checkbox, not just the text. */
 }
 
 /* Label type circle icons */
@@ -298,10 +337,65 @@ body.map-sidebar-resizing {
   stroke: var(--color-neutral-500);
 }
 
+/* ---- Right-aligned row slot: label count + hover-revealed "Only" ---- */
+
+.map-sidebar__right-slot {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.map-sidebar__count {
+  font-family: Raleway, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-neutral-700);
+}
+
+.map-sidebar__only {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: Raleway, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-asphalt-400);
+  display: none;
+}
+
+.map-sidebar__only:hover {
+  color: var(--color-asphalt-500);
+  text-decoration: underline;
+}
+
+/* Swap the count for "Only" while the pointer or keyboard focus is in the row (kayak.com-style exclusive select). */
+.map-sidebar__item:hover .map-sidebar__only,
+.map-sidebar__item:focus-within .map-sidebar__only {
+  display: inline;
+}
+
+.map-sidebar__item:hover .map-sidebar__count,
+.map-sidebar__item:focus-within .map-sidebar__count {
+  display: none;
+}
+
+/* Severity cells have no count to swap with, so "Only" keeps its space (visibility) to avoid grid reflow. */
+.map-sidebar__severity-cell .map-sidebar__only {
+  display: block;
+  visibility: hidden;
+}
+
+.map-sidebar__severity-cell:hover .map-sidebar__only,
+.map-sidebar__severity-cell:focus-within .map-sidebar__only {
+  visibility: visible;
+}
+
 /* ---- Tag expand/collapse toggle ---- */
 
 .map-sidebar__tag-toggle {
-  margin-left: auto;
   background: none;
   border: none;
   padding: 0;
@@ -325,7 +419,7 @@ body.map-sidebar-resizing {
 .map-sidebar__tag-pills {
   flex-wrap: wrap;
   gap: 4px;
-  padding: 4px 0 8px 21px;
+  padding: 4px 0 8px 25px; /* Left inset lines pills up under the row's circle icon (16px checkbox + 9px gap). */
 }
 
 .map-sidebar__tag-pills[hidden] {
@@ -336,8 +430,12 @@ body.map-sidebar-resizing {
   display: flex;
 }
 
-/* Gray checkbox when a label type is only partially filtered by tags. */
+/* Indeterminate-style dash when a label type is only partially shown because of active tag filters. */
 .map-sidebar__item input[type="checkbox"].checkbox--partial {
-  background: #888888;
-  border-color: #888888;
+  background-color: var(--color-asphalt-500);
+  border-color: var(--color-asphalt-500);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23FFFFFF' stroke-width='2.5' stroke-linecap='round' d='M4 8h8'/%3E%3C/svg%3E");
+  background-size: 12px;
+  background-position: center;
+  background-repeat: no-repeat;
 }

@@ -10,6 +10,8 @@ class MapSidebarFilter {
   #highQualityFilter;
   /** @type {HTMLElement} */
   #sidebar;
+  /** @type {HTMLElement[]} */
+  #countSpans;
 
   /**
    * Initializes the sidebar filter, binding all event handlers and enabling controls.
@@ -23,6 +25,7 @@ class MapSidebarFilter {
     this.#mapData = mapData;
     this.#highQualityFilter = highQualityFilter;
     this.#sidebar = document.getElementById('map-sidebar');
+    this.#countSpans = Array.from(this.#sidebar.querySelectorAll('.map-sidebar__count'));
 
     this.#initSeverityToggles();
     this.#initLabelTypeCheckboxes();
@@ -30,6 +33,7 @@ class MapSidebarFilter {
     this.#initAdminValidationCheckbox();
     this.#initStreetCheckboxes();
     this.#initDeselectAllButtons();
+    this.#initOnlyButtons();
     this.#initTagToggles();
     this.#initTagPills();
     this.#initSidebarOpenClose();
@@ -38,6 +42,7 @@ class MapSidebarFilter {
 
     // Sync the streets layer visibility with the initial checkbox state (the streets layer starts hidden).
     filterStreetLayer(this.#map);
+    this.#updateCounts();
   }
 
   /** Binds click handlers to the severity toggle buttons. */
@@ -56,6 +61,9 @@ class MapSidebarFilter {
 
         filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
         this.#updateDeselectAllButton('severity');
+        this.#updateCounts();
+        const sevValue = severity === 0 ? 'null' : severity;
+        this.#log(`Click_module=MapSidebar_Severity${newState ? 'Apply' : 'Unapply'}_severity=${sevValue}`);
       });
     });
   }
@@ -72,6 +80,8 @@ class MapSidebarFilter {
         // Reapply filters so stale tag constraints are cleared from the Mapbox layer.
         filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
         this.#updateDeselectAllButton('label-type');
+        this.#updateCounts();
+        this.#log(`Click_module=MapSidebar_LabelType${cb.checked ? 'Apply' : 'Unapply'}_labelType=${labelType}`);
       });
     });
   }
@@ -82,6 +92,8 @@ class MapSidebarFilter {
       cb.addEventListener('click', () => {
         filterLabelLayers(cb, this.#map, this.#mapData, this.#highQualityFilter);
         this.#updateDeselectAllButton('label-validations');
+        this.#updateCounts();
+        this.#log(`Click_module=MapSidebar_ValidationOption${cb.checked ? 'Apply' : 'Unapply'}_option=${cb.id}`);
       });
     });
   }
@@ -95,6 +107,8 @@ class MapSidebarFilter {
     cb.addEventListener('click', () => {
       this.#mapData.notAdminValidated = cb.checked;
       filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
+      this.#updateCounts();
+      this.#log(`Click_module=MapSidebar_NotAdminValidated_checked=${cb.checked}`);
     });
   }
 
@@ -104,6 +118,8 @@ class MapSidebarFilter {
       cb.addEventListener('click', () => {
         filterStreetLayer(this.#map);
         this.#updateDeselectAllButton('streets');
+        const street = cb.id.replace('-street', '');
+        this.#log(`Click_module=MapSidebar_Street${cb.checked ? 'Apply' : 'Unapply'}_street=${street}`);
       });
     });
   }
@@ -155,6 +171,63 @@ class MapSidebarFilter {
         }
 
         this.#updateDeselectAllButton(section);
+        this.#updateCounts();
+        this.#log(`Click_module=MapSidebar_${newState ? 'SelectAll' : 'DeselectAll'}_section=${section}`);
+      });
+    });
+  }
+
+  /**
+   * Initializes the hover-revealed "Only" buttons that exclusive-select a single option within their section,
+   * so isolating one value (e.g. only severity High) is one click instead of "Deselect all" plus a re-click.
+   */
+  #initOnlyButtons() {
+    this.#sidebar.querySelectorAll('.map-sidebar__only').forEach((btn) => {
+      // Give the visible "Only" text its row's context for screen readers (e.g. "Only: Obstacle").
+      const row = btn.closest('.map-sidebar__item-row, .map-sidebar__item, .map-sidebar__severity-cell');
+      const rowLabel = row?.querySelector('label, .severity-button__label')?.textContent.trim();
+      if (rowLabel) btn.setAttribute('aria-label', `${i18next.t('common:only')}: ${rowLabel}`);
+
+      btn.addEventListener('click', () => {
+        const section = btn.dataset.section;
+        const value = btn.dataset.value;
+
+        if (section === 'severity') {
+          this.#sidebar.querySelectorAll('.severity-button').forEach((toggle) => {
+            const severity = Number(toggle.dataset.severity);
+            const on = String(severity) === value;
+            this.#mapData.severities[severity] = on;
+            toggle.setAttribute('aria-pressed', String(on));
+            const img = toggle.querySelector('.severity-button__icon');
+            if (img) img.src = on ? img.dataset.selectedSrc : img.dataset.unselectedSrc;
+          });
+          filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
+        } else if (section === 'label-type') {
+          this.#sidebar.querySelectorAll('input[data-filter-type="label-type"]').forEach((cb) => {
+            const labelType = cb.id.replace('-checkbox', '');
+            const on = labelType === value;
+            cb.checked = on;
+            // Match the single-checkbox click path: turning a label type off clears its tag filters.
+            if (!on) this.#clearTagsForLabelType(labelType);
+            toggleLabelLayer(labelType, on, this.#map, this.#mapData);
+          });
+          filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
+        } else if (section === 'label-validations') {
+          this.#sidebar.querySelectorAll('input[data-filter-type="label-validations"]').forEach((cb) => {
+            cb.checked = cb.id === value;
+            this.#mapData[cb.id] = cb.checked;
+          });
+          filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
+        } else if (section === 'streets') {
+          this.#sidebar.querySelectorAll('input[data-filter-type="streets"]').forEach((cb) => {
+            cb.checked = cb.id === value;
+          });
+          filterStreetLayer(this.#map);
+        }
+
+        this.#updateDeselectAllButton(section);
+        this.#updateCounts();
+        this.#log(`Click_module=MapSidebar_Only_section=${section}_value=${value}`);
       });
     });
   }
@@ -222,10 +295,12 @@ class MapSidebarFilter {
           this.#updateDeselectAllButton('label-type');
         }
 
-        // Update the checkbox appearance: gray when partially filtered by tags.
+        // Update the checkbox appearance: dash glyph when partially filtered by tags.
         this.#updateCheckboxPartialState(labelType);
 
         filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
+        this.#updateCounts();
+        this.#log(`Click_module=MapSidebar_Tag${isActive ? 'Apply' : 'Unapply'}_labelType=${labelType}_tag=${tag}`);
       });
     });
   }
@@ -276,6 +351,7 @@ class MapSidebarFilter {
       handle.style.display = 'none';
       openBtn.style.display = 'block';
       this.#map.easeTo({ padding: { left: 0, top: 0, right: 0, bottom: 0 } });
+      this.#log('Click_module=MapSidebar_Close');
     });
     openBtn.addEventListener('click', () => {
       const width = this.#sidebar.offsetWidth;
@@ -283,6 +359,7 @@ class MapSidebarFilter {
       handle.style.display = '';
       openBtn.style.display = 'none';
       this.#map.easeTo({ padding: { left: width, top: 0, right: 0, bottom: 0 } });
+      this.#log('Click_module=MapSidebar_Open');
     });
   }
 
@@ -323,6 +400,93 @@ class MapSidebarFilter {
       handle.addEventListener('pointerup', onPointerUp);
       handle.addEventListener('pointercancel', onPointerUp);
     });
+  }
+
+  /**
+   * Recomputes and renders the per-option label counts. No-op on pages that don't render count spans.
+   *
+   * Counts are faceted: each option's count applies every *other* active filter but ignores its own section's
+   * on/off state, so it answers "how many labels would this option contribute if it were enabled" and never
+   * zeroes out just because the option itself is unchecked.
+   */
+  #updateCounts() {
+    if (this.#countSpans.length === 0) return;
+
+    const typeCounts = {};
+    const validationCounts = { correct: 0, incorrect: 0, unsure: 0, unvalidated: 0 };
+    for (const [labelType, features] of Object.entries(this.#mapData.sortedLabels)) {
+      const typeChecked = this.#sidebar.querySelector(`#${labelType}-checkbox`)?.checked ?? false;
+      let count = 0;
+      for (const feature of features) {
+        const props = feature.properties;
+        if (!this.#passesQualityFilters(props)) continue;
+        const severityOk = this.#passesSeverity(props);
+        const tagsOk = this.#passesTags(labelType, props);
+        if (severityOk && tagsOk && this.#mapData[this.#validationCategory(props)]) count += 1;
+        if (severityOk && tagsOk && typeChecked) validationCounts[this.#validationCategory(props)] += 1;
+      }
+      typeCounts[labelType] = count;
+    }
+
+    for (const span of this.#countSpans) {
+      const key = span.dataset.countFor;
+      const count = key in validationCounts ? validationCounts[key] : typeCounts[key] ?? 0;
+      span.textContent = count.toLocaleString(i18next.language);
+    }
+  }
+
+  /**
+   * Returns true when the label passes the selected severity toggles (toggle 0 covers labels with no severity).
+   * @param {object} props The label's GeoJSON properties.
+   * @returns {boolean} Whether the label's severity is currently enabled.
+   */
+  #passesSeverity(props) {
+    return Number.isInteger(props.severity)
+      ? Boolean(this.#mapData.severities[props.severity])
+      : this.#mapData.severities[0];
+  }
+
+  /**
+   * Returns which validation checkbox a label falls under. Mirrors the Mapbox expressions in filterLabelLayers.
+   * @param {object} props The label's GeoJSON properties.
+   * @returns {string} One of 'correct', 'incorrect', 'unsure', 'unvalidated'.
+   */
+  #validationCategory(props) {
+    if (props.correct === true) return 'correct';
+    if (props.correct === false) return 'incorrect';
+    return props.has_validations ? 'unsure' : 'unvalidated';
+  }
+
+  /**
+   * Returns true when the label passes the page-level quality filters (high-quality users, admin validation).
+   * @param {object} props The label's GeoJSON properties.
+   * @returns {boolean} Whether the label survives the quality/admin base filters.
+   */
+  #passesQualityFilters(props) {
+    if (this.#highQualityFilter && !this.#mapData.lowQualityUsers && props.high_quality_user !== true) return false;
+    if (this.#mapData.notAdminValidated && props.has_admin_validation !== false) return false;
+    return true;
+  }
+
+  /**
+   * Returns true when the label matches the active tag filters for its label type (no tags selected = pass).
+   * @param {string} labelType The label type key.
+   * @param {object} props The label's GeoJSON properties.
+   * @returns {boolean} Whether the label carries at least one of the selected tags.
+   */
+  #passesTags(labelType, props) {
+    const selected = this.#mapData.selectedTags[labelType];
+    if (!selected || selected.size === 0) return true;
+    const tags = props.tags ?? [];
+    return Array.from(selected).some((tag) => tags.includes(tag));
+  }
+
+  /**
+   * Logs a sidebar interaction to the `webpage_activity` table. No-op on pages without the shared logger.
+   * @param {string} activity The activity string, following the Click_module=<Action> convention.
+   */
+  #log(activity) {
+    window.logWebpageActivity?.(activity);
   }
 
   /** Enables all disabled controls and removes the loading appearance. */
