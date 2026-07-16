@@ -1947,8 +1947,8 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         message() {
           return document.getElementById('onboarding-outro').innerHTML;
         },
-        width: 1000,
         background: true,
+        fullPage: true,
       },
       okButton: false,
       panoId: afterWalkPanoId,

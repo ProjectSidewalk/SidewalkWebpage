@@ -176,63 +176,75 @@
 
 /* ---- Tutorial-complete "You did it!" screen ---------------------------------------------------------------------- */
 
+/* Vertical stack across the full-page canvas: a fireworks-framed hero, the "You did it!" copy, then the two actions,
+   each placed by an explicit --tc-* knob below. Percent offsets/sizes keep the composition proportional as the window
+   resizes; the px gaps carry var(--ui-scale) so they track the tool zoom. */
 .tutorial-complete {
-  position: relative;
+  --tc-hero-top: 14%; /* Where the hero starts, measured from the top (share of canvas height). */
+  --tc-hero-width: 40%; /* Hero illustration width (share of canvas width). */
+  --tc-text-gap: calc(5px * var(--ui-scale, 1)); /* Space between the hero and the "You did it!" text. */
+  --tc-buttons-gap: calc(50px * var(--ui-scale, 1)); /* Space between the text and the buttons. */
+
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
+  min-height: 100%;
+  padding: var(--tc-hero-top) calc(24px * var(--ui-scale, 1)) calc(48px * var(--ui-scale, 1));
 }
 
+/* Hero plus its two decorative fireworks. position: relative makes this the reference box for the absolute fireworks;
+   with no padding here the box wraps the hero, so a firework's `top` is measured from the hero's top edge. */
 .tutorial-complete__animation {
   position: relative;
   display: flex;
-  align-items: center;
   justify-content: center;
   width: 100%;
 }
 
 .tutorial-complete__hero {
-  width: 55%;
-  max-width: calc(420px * var(--ui-scale, 1));
+  width: var(--tc-hero-width);
   height: auto;
 }
 
+/* Fireworks sit relative to the hero: `top` is measured from the hero's top edge (negative lifts them above it);
+   left/width are canvas-relative so the pair scales with the hero. Tune each burst's top/left/width to taste. */
 .tutorial-complete__fireworks {
   position: absolute;
-  width: calc(140px * var(--ui-scale, 1));
   height: auto;
   pointer-events: none;
 }
 
 .tutorial-complete__fireworks--1 {
-  top: 0;
-  left: 24%;
+  top: calc(-75px * var(--ui-scale, 1));
+  left: 38%;
+  width: 10%;
 }
 
 .tutorial-complete__fireworks--2 {
-  top: 8%;
-  right: 22%;
-  width: calc(110px * var(--ui-scale, 1));
-  opacity: 0.8;
+  top: calc(-145px * var(--ui-scale, 1));
+  left: 50%;
+  width: 13%;
 }
 
 .tutorial-complete__text {
   display: flex;
   flex-direction: column;
   gap: calc(8px * var(--ui-scale, 1));
-  margin-top: calc(14px * var(--ui-scale, 1)); /* Space between the animation and the "You did it!" text. */
+  margin-top: var(--tc-text-gap);
   font: var(--text-h3-bold);
   text-align: center;
-  color: var(--color-neutral-700);
 }
 
 .tutorial-complete__text p {
   margin: 0;
 }
 
+/* A fixed gap below the text (--tc-buttons-gap), with the two actions pushed to the outer edges of a capped-width row
+   so they sit apart. (To glue the buttons to the very bottom of the canvas instead, set margin-top: auto.) */
 .tutorial-complete__buttons {
   display: flex;
-  gap: calc(24px * var(--ui-scale, 1));
-  margin-top: calc(28px * var(--ui-scale, 1)); /* Space between the text and the buttons. */
-  justify-content: center;
+  justify-content: space-between;
+  width: min(88%, calc(560px * var(--ui-scale, 1)));
+  margin-top: var(--tc-buttons-gap);
 }

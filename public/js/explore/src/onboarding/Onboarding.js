@@ -531,7 +531,7 @@ class Onboarding {
     // Reset positioning state so each message starts clean.
     this.#uiOnboarding.messageHolder
       .removeClass('animated fadeIn fadeInLeft fadeInRight fadeInDown fadeInUp callout-floating '
-        + 'onboarding-message-takeover onboarding-message-top-right')
+        + 'onboarding-message-takeover onboarding-message-fullpage onboarding-message-top-right')
       .css({ position: '', top: '', left: '', transform: '', width: '' });
     this.#uiOnboarding.background.css('visibility', 'hidden');
 
@@ -550,9 +550,10 @@ class Onboarding {
 
     // Place the message in one of three coordinate-free modes; otherwise it keeps its default top-left corner.
     if (parameters.background) {
-      // Full-page intro/outro takeover: dim the viewport and center the panel on it.
+      // Takeover: dim the viewport behind the message. Centered by default; fullPage opts into a full-page canvas.
       this.#uiOnboarding.background.css('visibility', 'visible');
       this.#uiOnboarding.messageHolder.addClass('onboarding-message-takeover');
+      if (parameters.fullPage) this.#uiOnboarding.messageHolder.addClass('onboarding-message-fullpage');
     } else if (parameters.anchor) {
       // Anchor to a live UI element; Floating UI computes the position and arrow.
       this.#uiOnboarding.messageHolder.addClass('callout-floating');

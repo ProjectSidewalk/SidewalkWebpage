@@ -100,3 +100,20 @@
   overflow: hidden auto;
   z-index: 1029;
 }
+
+/* Full-page celebratory outro (the tutorial-complete screen). The outro is the only takeover message, and unlike the
+   small centered instruction boxes it wants the whole canvas so its content can be placed from top to bottom. Layered
+   after the takeover rule (same specificity) so it wins, this turns the centered/shrink-wrapped box into a full-height,
+   edge-to-edge container; .tutorial-complete lays itself out inside it (see css/explore/tutorial-screens.css). */
+#onboarding-message-holder.onboarding-message-fullpage {
+  top: var(--navbar-height);
+  left: 0;
+  width: 100%;
+  height: calc(100% - var(--navbar-height));
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  transform: none;
+  background: none;
+  border-radius: 0;
+}
