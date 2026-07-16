@@ -100,6 +100,8 @@ function clearAuthErrors(form) {
 
 /**
  * Renders the async error contract: `_summary` becomes a banner above the form, any other key attaches to its field.
+ * Each error dismisses itself once the user starts fixing it — a field error clears when its own field is edited, and
+ * the `_summary` banner clears on the next edit to any field (#4532), so a stale error can't linger after it's fixed.
  *
  * @param {HTMLFormElement} form - The form the errors belong to.
  * @param {Object<string, string>} errors - Field name (or `_summary`) to localized message.
@@ -113,6 +115,7 @@ function renderAuthErrors(form, errors) {
       banner.innerHTML = `${AU_ALERT_ICON}<p></p>`;
       banner.querySelector('p').textContent = message;
       form.parentElement.insertBefore(banner, form);
+      form.addEventListener('input', () => banner.remove(), { once: true });
       return;
     }
     const input = form.querySelector(`[name="${field}"]`);
@@ -125,6 +128,11 @@ function renderAuthErrors(form, errors) {
     msg.innerHTML = AU_ALERT_ICON;
     msg.appendChild(document.createTextNode(` ${message}`));
     (input.closest('.au-input-wrap') || input).insertAdjacentElement('afterend', msg);
+    input.addEventListener('input', () => {
+      input.classList.remove('au-input--error');
+      input.removeAttribute('aria-invalid');
+      msg.remove();
+    }, { once: true });
   });
   const firstBad = form.querySelector('.au-input--error');
   if (firstBad) firstBad.focus();
