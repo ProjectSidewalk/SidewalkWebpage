@@ -6,6 +6,7 @@ import models.route.Route
 import models.utils.ProfanityGuard
 import play.api.i18n.Messages
 import play.api.libs.json._
+import play.api.mvc.Result
 import service.RouteService
 
 import javax.inject.{Inject, Singleton}
@@ -17,15 +18,17 @@ class RouteBuilderController @Inject() (cc: CustomControllerComponents, routeSer
 ) extends CustomBaseController(cc) {
 
   /**
-   * Validates a user-supplied route name: None if acceptable, or Some(error message key) if not.
+   * Validates a user-supplied route name: None if acceptable, or Some(400 response) with a localized message.
    *
    * An absent/empty name is acceptable — the service falls back to a default name.
    */
-  private def validateRouteName(name: Option[String]): Option[String] = {
-    val trimmed: String = name.map(_.trim).getOrElse("")
-    if (trimmed.length > Route.MaxNameLength) Some("routebuilder.name.error.length")
-    else if (trimmed.nonEmpty && !ProfanityGuard.isClean(trimmed)) Some("routebuilder.name.error.allowed")
-    else None
+  private def routeNameError(name: Option[String])(implicit messages: Messages): Option[Result] = {
+    val trimmed: String          = name.map(_.trim).getOrElse("")
+    val errorKey: Option[String] =
+      if (trimmed.length > Route.MaxNameLength) Some("routebuilder.name.error.length")
+      else if (trimmed.nonEmpty && !ProfanityGuard.isClean(trimmed)) Some("routebuilder.name.error.allowed")
+      else None
+    errorKey.map { key => BadRequest(Json.obj("status" -> "Error", "message" -> Messages(key, Route.MaxNameLength))) }
   }
 
   def saveRoute = cc.securityService.SecuredAction(parse.json) { implicit request =>
@@ -33,12 +36,9 @@ class RouteBuilderController @Inject() (cc: CustomControllerComponents, routeSer
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       data => {
-        validateRouteName(data.name) match {
-          case Some(errorKey) =>
-            Future.successful(
-              BadRequest(Json.obj("status" -> "Error", "message" -> Messages(errorKey, Route.MaxNameLength)))
-            )
-          case None =>
+        routeNameError(data.name) match {
+          case Some(error) => Future.successful(error)
+          case None        =>
             routeService.saveRoute(data, request.identity.userId).map { case (routeId, name) =>
               Ok(Json.obj("route_id" -> routeId, "name" -> name))
             }
@@ -58,23 +58,17 @@ class RouteBuilderController @Inject() (cc: CustomControllerComponents, routeSer
    * @param routeId ID of the route to rename; 404 if it doesn't exist or isn't owned by the requesting user.
    */
   def renameRoute(routeId: Int) = cc.securityService.SecuredAction(parse.json) { implicit request =>
-    (request.body \ "name").validate[String] match {
-      case JsSuccess(name, _) =>
-        val trimmed: String = name.trim
-        validateRouteName(Some(trimmed)) match {
-          case Some(errorKey) =>
-            Future.successful(
-              BadRequest(Json.obj("status" -> "Error", "message" -> Messages(errorKey, Route.MaxNameLength)))
-            )
-          case None if trimmed.isEmpty =>
-            Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Missing name")))
-          case None =>
-            routeService.renameRoute(routeId, request.identity.userId, trimmed).map {
-              case true  => Ok(Json.obj("route_id" -> routeId, "name" -> trimmed))
+    (request.body \ "name").validate[String].map(_.trim) match {
+      case JsSuccess(name, _) if name.nonEmpty =>
+        routeNameError(Some(name)) match {
+          case Some(error) => Future.successful(error)
+          case None        =>
+            routeService.renameRoute(routeId, request.identity.userId, name).map {
+              case true  => Ok(Json.obj("route_id" -> routeId, "name" -> name))
               case false => NotFound(Json.obj("status" -> "Error", "message" -> "Route not found"))
             }
         }
-      case JsError(_) =>
+      case _ =>
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Missing name")))
     }
   }

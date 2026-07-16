@@ -103,7 +103,12 @@ class MyRoutes {
           body: JSON.stringify({ name: newName }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'rename failed');
+        if (!res.ok) {
+          // The server's message is already localized (e.g. a name rejected by the profanity guard).
+          const message = typeof data.message === 'string' ? data.message : i18next.t('dashboard:routes-error');
+          Toast.show({ message, reference: btn });
+          return;
+        }
         nameEl.textContent = data.name;
         closeForm();
         this.#announce(i18next.t('dashboard:routes-renamed'));

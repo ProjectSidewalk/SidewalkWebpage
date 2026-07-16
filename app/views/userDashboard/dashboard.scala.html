@@ -54,7 +54,7 @@
 
 @routeDistanceLabel(meters: Double) = @{
   if (isMetric) f"${meters / 1000}%.2f ${Messages("dashboard.unit.km")}"
-  else f"${meters * 0.000621371}%.2f ${Messages("dashboard.unit.mi")}"
+  else f"${meters * models.utils.CommonUtils.METERS_TO_MILES}%.2f ${Messages("dashboard.unit.mi")}"
 }
 
 @routeDateLabel(dt: java.time.OffsetDateTime) = @{
@@ -359,7 +359,7 @@
       }
       labelPopupReadyResolve(labelPopup);
 
-      var routesList = document.getElementById('ud-routes-list');
+      const routesList = document.getElementById('ud-routes-list');
       if (routesList && typeof MyRoutes !== 'undefined') {
         new MyRoutes(routesList).init();
       }

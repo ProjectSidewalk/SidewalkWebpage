@@ -41,6 +41,8 @@ class UserDashboardController @Inject() (
     val user     = request.identity
     val isMetric = Messages("measurement.system") == "metric"
     val cityName = configService.getCityName(request2Messages.lang)
+    // Kicked off before the for-comprehension so it runs concurrently with the chain below.
+    val myRoutesF = routeService.getRoutesForUser(user.userId)
     for {
       profileData <- userService.getUserProfileData(user.userId, isMetric)
       commonData  <- configService.getCommonPageData(request2Messages.lang)
@@ -49,7 +51,7 @@ class UserDashboardController @Inject() (
       streak      <- userService.getActivityStreak(user.userId, request2Messages.lang.toLocale)
       accuracy    <- userService.getAccuracyByType(user.userId)
       trophies    <- userService.getTrophies(user.userId, cityName, request2Messages)
-      myRoutes    <- routeService.getRoutesForUser(user.userId)
+      myRoutes    <- myRoutesF
     } yield {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboard")
       Ok(

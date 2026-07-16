@@ -301,12 +301,6 @@
   border-radius: 10px; /* Default 3px */
 }
 
-.tooltip-no-outline {
-  background: none;
-  box-shadow: none;
-  padding: 10px;
-}
-
 /* Street action menu (#4578): labeled reverse/remove buttons that open when a route street is clicked. */
 .street-popover {
   display: flex;
@@ -337,21 +331,27 @@
   height: 28px;
 }
 
-/* Start/End markers (#3433): keep the rotated flag separate from the always-upright text label. */
+/* Start/End markers (#3433): the marker element's box is exactly the 27px flag (so Mapbox centers the flag on
+   the route point); the always-upright text label hangs below it, out of layout. */
 .marker-endpoint {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
+  position: relative;
+  width: 27px;
+  height: 27px;
 }
 
 .marker-endpoint-label {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 3px;
   padding: 1px 6px;
   border-radius: 6px;
   background: var(--color-neutral-white);
   box-shadow: 0 1px 2px 0 rgb(0 0 0 / 25%);
   font-size: 11px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 /* Map legend (#4577, #4580): collapsible key for the flags, numbered gap markers, and direction arrows. */

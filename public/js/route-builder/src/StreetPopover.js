@@ -1,7 +1,6 @@
 /**
  * The labeled action menu that opens when a street already in the route is clicked (#4578): two explicit
- * buttons — "Reverse direction" and "Remove street" — replacing the old undiscoverable click-to-reverse /
- * click-again-to-remove cycling.
+ * buttons — "Reverse direction" and "Remove street".
  */
 class StreetPopover {
   #popup;

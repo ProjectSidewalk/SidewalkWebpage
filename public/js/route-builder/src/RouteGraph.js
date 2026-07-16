@@ -14,6 +14,7 @@ class RouteGraph {
 
   #nodes = new Map(); // key -> { lng, lat, edges: [{ streetId, regionId, weightM, otherKey }] }
   #features = new Map(); // streetId -> live GeoJSON feature (geometry may be reversed in place by editing)
+  #featureLengths = new Map(); // streetId -> geometry length in meters (for the snap prefilter)
 
   /**
    * @param {Array<Object>} streetFeatures - GeoJSON LineString features with street_edge_id + region_id properties.
@@ -24,6 +25,8 @@ class RouteGraph {
       if (!coords || coords.length < 2) return;
       const streetId = feature.properties.street_edge_id;
       this.#features.set(streetId, feature);
+      const lengthM = RouteGraph.lineLengthM(coords);
+      this.#featureLengths.set(streetId, lengthM);
 
       const keyA = this.#nodeKeyFor(coords[0]);
       const keyB = this.#nodeKeyFor(coords[coords.length - 1]);
@@ -31,7 +34,7 @@ class RouteGraph {
       const edge = {
         streetId,
         regionId: feature.properties.region_id,
-        weightM: RouteGraph.lineLengthM(coords),
+        weightM: lengthM,
       };
       this.#nodes.get(keyA).edges.push({ ...edge, otherKey: keyB });
       this.#nodes.get(keyB).edges.push({ ...edge, otherKey: keyA });
@@ -64,16 +67,17 @@ class RouteGraph {
 
   /**
    * Returns the node key for a coordinate, merging with any existing node within NODE_TOLERANCE_M
-   * (checks the 3x3 neighborhood of quantized cells so near-boundary endpoints still merge).
+   * (scans the neighboring quantized cells so near-boundary endpoints still merge).
    *
    * @param {Array<number>} coord - [lng, lat].
    * @returns {string} The (possibly newly created) node's key.
    */
   #nodeKeyFor(coord) {
-    // ~11 m cells at the equator; fine-grained enough that a 3x3 scan covers the 10 m tolerance.
+    // Cells are ~11 m N-S, but longitude cells shrink with latitude (~7.6 m at 47°N), so the scan reaches
+    // ±2 cells east-west to keep covering the 10 m tolerance away from the equator.
     const cellLng = Math.round(coord[0] * 10000);
     const cellLat = Math.round(coord[1] * 10000);
-    for (let dx = -1; dx <= 1; dx++) {
+    for (let dx = -2; dx <= 2; dx++) {
       for (let dy = -1; dy <= 1; dy++) {
         const key = `${cellLng + dx},${cellLat + dy}`;
         const node = this.#nodes.get(key);
@@ -98,6 +102,12 @@ class RouteGraph {
     let best = null;
     this.#features.forEach((feature, streetId) => {
       const coords = feature.geometry.coordinates;
+      // Prefilter: no vertex can be closer than (distance to the first vertex - geometry length), so the
+      // per-vertex scan is skipped for the vast majority of streets that are nowhere near the point.
+      if (best !== null
+        && RouteGraph.distanceM(p, coords[0]) - this.#featureLengths.get(streetId) > best.distanceM) {
+        return;
+      }
       // Nearest vertex is a good-enough proxy for nearest point on the line at street-segment scale.
       let minD = Infinity;
       for (const c of coords) {

@@ -8,6 +8,10 @@ class DirectionsPanel {
   // Skip a reverse-geocode when an endpoint moved less than this — the label wouldn't meaningfully change.
   static MIN_MOVE_FOR_GEOCODE_M = 15;
 
+  // A typed address label is kept while the endpoint stays within this distance of it — the route snapping to
+  // a nearby street must not overwrite the user's own words with a reverse-geocoded neighbor.
+  static KEEP_USER_LABEL_M = 100;
+
   #map;
   #mapboxApiKey;
   #onPinsChanged;
@@ -15,6 +19,7 @@ class DirectionsPanel {
   #startPin = null;
   #endPin = null;
   #lastGeocoded = { start: null, end: null }; // Last [lng, lat] each field was reverse-geocoded for.
+  #userLabelCoord = { start: null, end: null }; // Where the user last picked an address by typing (if anywhere).
 
   /**
    * @param {Object} opts
@@ -60,6 +65,7 @@ class DirectionsPanel {
       window.logWebpageActivity(`RouteBuilder_Click=${eventName}`);
       this.#setPin(which, { lng: coord[0], lat: coord[1] });
       this.#lastGeocoded[which] = coord; // The user just named this point; no need to reverse-geocode it.
+      this.#userLabelCoord[which] = coord;
       this.#firePinsChanged();
     });
     return box;
@@ -83,6 +89,7 @@ class DirectionsPanel {
     }).setLngLat(lngLat).addTo(this.#map);
     marker.on('dragend', () => {
       window.logWebpageActivity(`RouteBuilder_Drag=${which === 'start' ? 'StartPin' : 'EndPin'}`);
+      this.#userLabelCoord[which] = null; // A drag supersedes any typed address for this endpoint.
       this.#reverseGeocodeInto(which, marker.getLngLat());
       this.#firePinsChanged();
     });
@@ -122,6 +129,7 @@ class DirectionsPanel {
     this.#startPin = null;
     this.#endPin = null;
     this.#lastGeocoded = { start: null, end: null };
+    this.#userLabelCoord = { start: null, end: null };
     this.#setFieldText('start', '');
     this.#setFieldText('end', '');
     this.clearError();
@@ -152,14 +160,22 @@ class DirectionsPanel {
     const coord = [lngLat.lng, lngLat.lat];
     const last = this.#lastGeocoded[which];
     if (last && RouteGraph.distanceM(last, coord) < DirectionsPanel.MIN_MOVE_FOR_GEOCODE_M) return;
+    // A user-typed address stays in the field while the endpoint is still near it (e.g. after route snapping).
+    const typedAt = this.#userLabelCoord[which];
+    if (typedAt && RouteGraph.distanceM(typedAt, coord) < DirectionsPanel.KEEP_USER_LABEL_M) return;
     const slot = document.getElementById(`directions-${which}-slot`);
     if (slot?.contains(document.activeElement)) return; // Don't clobber what the user is typing.
     this.#lastGeocoded[which] = coord;
+    this.#userLabelCoord[which] = null; // The endpoint left the typed address behind; the field follows it now.
 
-    const url = 'https://api.mapbox.com/search/geocode/v6/reverse'
-      + `?longitude=${lngLat.lng}&latitude=${lngLat.lat}&types=address,street`
-      + `&language=${i18next.t('common:mapbox-language-code')}&access_token=${this.#mapboxApiKey}`;
-    fetch(url)
+    const params = new URLSearchParams({
+      longitude: lngLat.lng,
+      latitude: lngLat.lat,
+      types: 'address,street',
+      language: i18next.t('common:mapbox-language-code'),
+      access_token: this.#mapboxApiKey,
+    });
+    fetch(`https://api.mapbox.com/search/geocode/v6/reverse?${params}`)
       .then((response) => response.json())
       .then((data) => {
         const props = data.features?.[0]?.properties;

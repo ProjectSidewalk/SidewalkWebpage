@@ -128,6 +128,7 @@ module.exports = function (grunt) {
       },
       dist_route_builder: {
         src: [
+          'public/js/common/Toast.js',
           'public/js/route-builder/src/*.js'
         ],
         dest: 'public/js/route-builder/build/route-builder.js'

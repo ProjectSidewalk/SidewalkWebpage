@@ -27,7 +27,6 @@ class RouteBuilder {
   #streetsInRoute = null;
   #currentMarkers = [];
   #searchBox;
-  #searchBoxOnMap = false;
   #routeGraph = null; // Built lazily from #streetData on the first auto-route (#4579).
 
   // Collaborators.
@@ -204,16 +203,9 @@ class RouteBuilder {
     map.addControl(this.#searchBox);
   }
 
-  // Temporarily shows a tooltip. Used when the user clicks the 'Copy Link' button.
+  // Confirms a copy-link click with a transient toast over the button (same pattern as the dashboard).
   #setTemporaryTooltip(btn, message) {
-    $(btn).attr('data-original-title', message).tooltip('enable').tooltip('show');
-    this.#hideTooltip(btn);
-  }
-
-  #hideTooltip(btn) {
-    setTimeout(() => {
-      $(btn).tooltip('hide').tooltip('disable');
-    }, 1000);
+    Toast.show({ message, reference: btn, duration: 1500 });
   }
 
   /**
@@ -253,7 +245,6 @@ class RouteBuilder {
       },
     });
     this.#setUpSearchBox();
-    this.#searchBoxOnMap = true;
     this.#maybeRestorePendingRoute();
   }
 
@@ -334,25 +325,42 @@ class RouteBuilder {
     const hoverInfoPopup
       = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 10, maxWidth: '340px' });
 
-    // Mark when a street is being hovered over.
+    // Mark when a street is being hovered over. Street names are resolved once per hovered street — the
+    // basemap query is not free, and mousemove fires many times per second.
     let hoveredStreet = null;
     let clickedStreet = null;
+    const streetNameCache = new Map();
     map.on('mousemove', 'streets', (event) => {
       const street = event.features[0];
       // Don't show hover effects if the street was just clicked on.
       if (street.properties.street_edge_id === clickedStreet) return;
       const isChosen = street.state?.chosen === true;
+      const streetId = street.properties.street_edge_id;
+      const streetChanged = streetId !== hoveredStreet;
 
       // If we moved directly from hovering over one street to another, set the previous as hover: false.
-      if (hoveredStreet) {
+      if (hoveredStreet && streetChanged) {
         map.setFeatureState({ source: 'streets', id: hoveredStreet }, { hover: false });
       }
-      hoveredStreet = street.properties.street_edge_id;
+      hoveredStreet = streetId;
       map.setFeatureState({ source: 'streets', id: hoveredStreet }, { hover: true });
+      map.getCanvas().style.cursor = 'pointer';
+
+      // A street in another neighborhood can't be added, so only the warning is shown — not an add tooltip
+      // inviting a click that would be refused.
+      if (this.#currRegionId && this.#currRegionId !== street.properties.region_id) {
+        hoverInfoPopup.remove();
+        neighborhoodPopup.setLngLat(event.lngLat).addTo(map);
+        return;
+      }
+      neighborhoodPopup.remove();
 
       // Tooltip above the cursor: the street's name (from the basemap, when one renders nearby) plus what a
       // click will do — add the street, or open the reverse/remove menu for a street already in the route.
-      const streetName = this.#basemapStreetName(event.point);
+      if (streetChanged && !streetNameCache.has(streetId)) {
+        streetNameCache.set(streetId, this.#basemapStreetName(event.point));
+      }
+      const streetName = streetNameCache.get(streetId);
       // escapeValue off: the name goes through Popup.setText (plain text), not into markup.
       const interp = { street: streetName, interpolation: { escapeValue: false } };
       let tooltipText;
@@ -369,12 +377,6 @@ class RouteBuilder {
       if (!hoverInfoPopup.isOpen()) {
         hoverInfoPopup.addTo(map);
         hoverInfoPopup._content.parentNode.querySelector('[class*="tip"]').remove(); // Remove the arrow.
-      }
-      map.getCanvas().style.cursor = 'pointer';
-
-      // Show a tooltip informing user that they can't have multiple regions in the same route.
-      if (this.#currRegionId && this.#currRegionId !== street.properties.region_id) {
-        neighborhoodPopup.setLngLat(event.lngLat).addTo(map);
       }
     });
 
@@ -466,19 +468,22 @@ class RouteBuilder {
 
   /**
    * Delete old markers and draw new ones, and keep the directions panel in sync with the route's endpoints.
+   * The contiguous sections are computed once here (it's O(n²)) and shared by both consumers.
    */
   #updateMarkers() {
     this.#currentMarkers.forEach((m) => m.remove());
     this.#currentMarkers = [];
-    this.#drawContiguousEndpointMarkers();
-    this.#syncDirectionsPanel();
+    const sections = this.#computeContiguousRoutes();
+    this.#drawContiguousEndpointMarkers(sections);
+    this.#syncDirectionsPanel(sections);
   }
 
   /**
    * Mirrors the route's current endpoints onto the directions panel (pins + reverse-geocoded field text).
+   *
+   * @param {Array<Array<Object>>} sections - The route's contiguous sections.
    */
-  #syncDirectionsPanel() {
-    const sections = this.#computeContiguousRoutes();
+  #syncDirectionsPanel(sections) {
     if (sections.length === 0) {
       this.#directionsPanel.clearPins();
       return;
@@ -532,7 +537,9 @@ class RouteBuilder {
    * @param {Object} end - {lng, lat}.
    */
   #autoRoute(start, end) {
-    if (!this.#status.mapLoaded || !this.#status.streetsLoaded || this.#streetsInRoute === null) return;
+    // The neighborhoods source must exist too: adding the first street sets a feature state on it.
+    if (!this.#status.mapLoaded || !this.#status.streetsLoaded || !this.#status.neighborhoodsLoaded
+      || this.#streetsInRoute === null) return;
 
     const result = this.#getRouteGraph().route(start, end);
     if (result.error) {
@@ -558,27 +565,43 @@ class RouteBuilder {
   }
 
   /**
-   * Draws the endpoints for the contiguous sections of the route on the map.
+   * Builds a start/end flag marker element: the flag (centered on the route point) with an always-upright
+   * text label hanging below it (#3433). The label is positioned absolutely so the marker element's box — and
+   * therefore Mapbox's centering — is exactly the flag.
+   *
+   * @param {string} flagClass - 'marker-start' or 'marker-end'.
+   * @param {string} label - The visible/aria label text.
+   * @param {number} [rotationDeg] - Bearing to rotate the flag by (the label stays upright).
+   * @returns {HTMLElement}
    */
-  #drawContiguousEndpointMarkers() {
+  static #makeEndpointMarkerEl(flagClass, label, rotationDeg = null) {
+    const el = document.createElement('div');
+    el.className = 'marker-endpoint';
+    el.setAttribute('role', 'img');
+    el.setAttribute('aria-label', label);
+    const flag = document.createElement('div');
+    flag.className = flagClass;
+    if (rotationDeg !== null) flag.style.transform = `rotate(${rotationDeg}deg)`;
+    const labelEl = document.createElement('span');
+    labelEl.className = 'marker-endpoint-label';
+    labelEl.textContent = label;
+    el.append(flag, labelEl);
+    return el;
+  }
+
+  /**
+   * Draws the endpoints for the contiguous sections of the route on the map.
+   *
+   * @param {Array<Array<Object>>} contigSections - The route's contiguous sections.
+   */
+  #drawContiguousEndpointMarkers(contigSections) {
     const map = this.#map;
-    const contigSections = this.#computeContiguousRoutes();
     if (contigSections.length === 0) return;
 
     // Add start point, with a visible "Start" label (#3433).
-    const startPointEl = document.createElement('div');
-    startPointEl.className = 'marker-endpoint';
-    startPointEl.setAttribute('role', 'img');
-    startPointEl.setAttribute('aria-label', i18next.t('marker-start'));
-    const startFlag = document.createElement('div');
-    startFlag.className = 'marker-start';
-    const startLabel = document.createElement('span');
-    startLabel.className = 'marker-endpoint-label';
-    startLabel.textContent = i18next.t('marker-start');
-    startPointEl.append(startFlag, startLabel);
     const startPoint = contigSections[0][0].geometry.coordinates[0];
     const rotation = turf.bearing(startPoint, contigSections[0][0].geometry.coordinates[1]);
-    startFlag.style.transform = `rotate(${rotation}deg)`; // Rotate only the flag so the label stays upright.
+    const startPointEl = RouteBuilder.#makeEndpointMarkerEl('marker-start', i18next.t('marker-start'), rotation);
     const startMarker = new mapboxgl.Marker(startPointEl).setLngLat(startPoint).addTo(map);
     this.#currentMarkers.push(startMarker);
 
@@ -607,16 +630,7 @@ class RouteBuilder {
     }
 
     // Add endpoint, with a visible "End" label (#3433).
-    const endPointEl = document.createElement('div');
-    endPointEl.className = 'marker-endpoint';
-    endPointEl.setAttribute('role', 'img');
-    endPointEl.setAttribute('aria-label', i18next.t('marker-end'));
-    const endFlag = document.createElement('div');
-    endFlag.className = 'marker-end';
-    const endLabel = document.createElement('span');
-    endLabel.className = 'marker-endpoint-label';
-    endLabel.textContent = i18next.t('marker-end');
-    endPointEl.append(endFlag, endLabel);
+    const endPointEl = RouteBuilder.#makeEndpointMarkerEl('marker-end', i18next.t('marker-end'));
     const endPoint = contigSections.slice(-1)[0].slice(-1)[0].geometry.coordinates.slice(-1)[0];
     const endMarker = new mapboxgl.Marker(endPointEl).setLngLat(endPoint).addTo(map);
     this.#currentMarkers.push(endMarker);
@@ -722,7 +736,6 @@ class RouteBuilder {
       this.#streetsInRoute.features.splice(index, 0, street);
     }
     map.getSource('streets-chosen').setData(this.#streetsInRoute);
-    map.setFeatureState({ source: 'streets-chosen', id: streetId }, { chosen: true });
     if (record) this.#undoStack.push({ type: 'add', streetId });
 
     // If this was first street added, make additional UI changes.
@@ -731,9 +744,8 @@ class RouteBuilder {
       this.#introUI.style.visibility = 'hidden';
       this.#guestRoutes.hide();
       this.#streetDistOverlay.style.visibility = 'visible';
-      if (this.#searchBoxOnMap) {
+      if (this.#searchBox && map.hasControl(this.#searchBox)) {
         map.removeControl(this.#searchBox);
-        this.#searchBoxOnMap = false;
       }
 
       // Change style to show you can't choose streets in other regions.
@@ -761,6 +773,7 @@ class RouteBuilder {
     this.#map.getSource('streets-chosen').setData(this.#streetsInRoute);
     if (record) this.#undoStack.push({ type: 'reverse', streetId });
     this.#updateMarkers();
+    this.#setRouteDistanceText(); // Unchanged by a reverse today, but every mutation refreshes the readout.
   }
 
   /**
@@ -789,6 +802,21 @@ class RouteBuilder {
   }
 
   /**
+   * Re-adds a snapshot's streets to the route (without recording) and refreshes markers + distance.
+   *
+   * @param {Array<{streetId: number, reverse: boolean}>} streets - Snapshot from #routeSnapshot.
+   * @param {number} [insertIndex] - Position to insert at (single-street restores); appends when omitted.
+   */
+  #restoreSnapshot(streets, insertIndex = null) {
+    streets.forEach((s) => {
+      const street = this.#streetData.features.find((f) => f.properties.street_edge_id === s.streetId);
+      if (street) this.#addStreetToRoute(street, s.reverse, { record: false, index: insertIndex });
+    });
+    this.#updateMarkers();
+    this.#setRouteDistanceText();
+  }
+
+  /**
    * Undoes the most recent route edit by applying its inverse (without re-recording it).
    */
   #undo() {
@@ -801,31 +829,15 @@ class RouteBuilder {
       case 'reverse':
         this.#reverseStreet(action.streetId, { record: false });
         break;
-      case 'remove': {
-        const street = this.#streetData.features.find((s) => s.properties.street_edge_id === action.streetId);
-        if (street) {
-          this.#addStreetToRoute(street, action.reverse, { record: false, index: action.index });
-          this.#updateMarkers();
-          this.#setRouteDistanceText();
-        }
+      case 'remove':
+        this.#restoreSnapshot([{ streetId: action.streetId, reverse: action.reverse }], action.index);
         break;
-      }
       case 'clear':
-        action.streets.forEach((s) => {
-          const street = this.#streetData.features.find((f) => f.properties.street_edge_id === s.streetId);
-          if (street) this.#addStreetToRoute(street, s.reverse, { record: false });
-        });
-        this.#updateMarkers();
-        this.#setRouteDistanceText();
+        this.#restoreSnapshot(action.streets);
         break;
       case 'replace': // An auto-route replaced the whole route; restore the prior snapshot (possibly empty).
         this.#emptyRouteSilently();
-        action.streets.forEach((s) => {
-          const street = this.#streetData.features.find((f) => f.properties.street_edge_id === s.streetId);
-          if (street) this.#addStreetToRoute(street, s.reverse, { record: false });
-        });
-        this.#updateMarkers();
-        this.#setRouteDistanceText();
+        this.#restoreSnapshot(action.streets);
         if (this.#streetsInRoute.features.length === 0) this.#resetUI();
         break;
     }
@@ -920,9 +932,8 @@ class RouteBuilder {
     this.#streetPopover.close();
     this.#guestRoutes.render();
     this.#directionsPanel.clearPins();
-    if (!this.#searchBoxOnMap) {
+    if (this.#searchBox && !map.hasControl(this.#searchBox)) {
       map.addControl(this.#searchBox);
-      this.#searchBoxOnMap = true;
     }
   }
 
