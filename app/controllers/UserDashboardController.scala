@@ -25,6 +25,7 @@ class UserDashboardController @Inject() (
     configService: ConfigService,
     userService: UserService,
     labelService: service.LabelService,
+    routeService: service.RouteService,
     authenticationService: service.AuthenticationService
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
@@ -48,11 +49,12 @@ class UserDashboardController @Inject() (
       streak      <- userService.getActivityStreak(user.userId, request2Messages.lang.toLocale)
       accuracy    <- userService.getAccuracyByType(user.userId)
       trophies    <- userService.getTrophies(user.userId, cityName, request2Messages)
+      myRoutes    <- routeService.getRoutesForUser(user.userId)
     } yield {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_UserDashboard")
       Ok(
         views.html.userDashboard
-          .dashboard(commonData, user, profileData, isMetric, tags, standing, streak, accuracy, trophies)
+          .dashboard(commonData, user, profileData, isMetric, tags, standing, streak, accuracy, trophies, myRoutes)
       )
     }
   }

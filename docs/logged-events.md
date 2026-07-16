@@ -123,6 +123,9 @@ ones whose meaning, parameters, or history aren't obvious:
 | `Click_module=ExploreSidewalksHere_lat=<lat>_lng=<lng>` | LabelMap: the "Explore the sidewalks here" popup button after an address search (#4451) — an outbound click into the free-exploration Explore session at those coordinates. |
 | `Visit_Audit_ExploreAddress_Lat=<lat>_Lng=<lng>` | Server-logged in `ExploreController.explore` when `/explore?lat&lng` opens a free-exploration (exploreAddress) session at a searched address (#4451). |
 | `ExploreAddress_SessionStart` | Explore (`audit_task_interaction`): the free-exploration UI finished loading. Sessions under the `exploreAddress` mission type label normally but never complete tasks/missions, so don't mix them into street-completion or mission-funnel analyses. |
+| `RouteBuilder_Click=OpenSaveModal` / `SignInToSave` / `ContinueAsGuest` | The RouteBuilder save flow (#3343): opening the name-your-route modal, choosing to sign in before saving (the route is stashed and restored after the sign-in reload), or saving as a guest. `SaveSuccess_RouteId=<id>` / `SaveError` mark the POST's outcome, as before the redesign. |
+| `RouteBuilder_Click=RecoverGuestRoute[_Copy]_RouteId=<id>` | A guest reopened (`RecoverGuestRoute`) or re-copied the link of (`_Copy`) a previously saved route from the device-local "Your recent routes" panel. |
+| `Click_module=RouteList_<Explore\|LabelMap\|Copy\|Rename\|Delete>_RouteId=<id>` | Actions on a saved route in the dashboard's "My Routes" section (`MyRoutes.js`). |
 
 ## Finding the current list
 

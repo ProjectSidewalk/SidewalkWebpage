@@ -2,5 +2,8 @@
   "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
   "hover-add-street": "請點選一條街道來開始設立您的路線。",
   "copied-to-clipboard": "已複製到剪貼板！",
-  "one-neighborhood-warning": "目前，一條路線內只能包涵一個社區內的街道。"
+  "one-neighborhood-warning": "目前，一條路線內只能包涵一個社區內的街道。",
+  "route-name-default": "{{region}}的路線",
+  "save-error": "儲存時發生錯誤，請再試一次。",
+  "recent-copy-link": "複製連結"
 }
