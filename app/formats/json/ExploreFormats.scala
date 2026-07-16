@@ -153,7 +153,8 @@ object ExploreFormats {
       (__ \ "incomplete").write[Boolean] and
       (__ \ "stale").write[Boolean] and
       (__ \ "audited_distance_m").writeNullable[Double] and
-      (__ \ "start_offset_m").writeNullable[Double]
+      (__ \ "start_offset_m").writeNullable[Double] and
+      (__ \ "outdated_imagery").write[Boolean]
   )(unlift(AuditTask.unapply))
 
   implicit val auditTaskInteractionWrites: Writes[AuditTaskInteraction] = (
