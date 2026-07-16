@@ -128,6 +128,8 @@ ones whose meaning, parameters, or history aren't obvious:
 | `RouteBuilder_Click=ReverseStreet_StreetId=<id>` / `RemoveStreet_StreetId=<id>` | The labeled street action menu (#4578) — clicking a route street opens it; these fire on its two buttons. |
 | `RouteBuilder_Click=Undo` / `RouteBuilder_KeyboardShortcut=Undo` | The same undo action (#4576) via the button vs Ctrl/Cmd+Z — don't double-count. |
 | `RouteBuilder_Click=ToggleLegend_Open=<bool>` | The collapsible map legend was opened (`true`) or closed (`false`). |
+| `RouteBuilder_Click=SetStartPin` / `SetEndPin`, `RouteBuilder_Drag=StartPin` / `EndPin` | Directions-panel auto-routing (#4579): a pin placed via address search vs. dragged to a new spot (each triggers a route computation once both pins exist). |
+| `RouteBuilder_AutoRoute=Success_Streets=<n>` / `NoPath` / `DifferentRegion` | The outcome of an auto-route computation: a route with `n` streets replaced the current route (undoable in one step), no connected path existed, or the pins snapped to different neighborhoods. |
 | `Click_module=RouteList_<Explore\|LabelMap\|Copy\|Rename\|Delete>_RouteId=<id>` | Actions on a saved route in the dashboard's "My Routes" section (`MyRoutes.js`). |
 
 ## Finding the current list

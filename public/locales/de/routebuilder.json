@@ -14,5 +14,9 @@
   "marker-start": "Start",
   "marker-end": "Ziel",
   "section-gap-end-aria": "Ende von Routenabschnitt {{num}}",
-  "section-gap-start-aria": "Beginn von Routenabschnitt {{num}}"
+  "section-gap-start-aria": "Beginn von Routenabschnitt {{num}}",
+  "directions-start-placeholder": "Startadresse oder Ort",
+  "directions-end-placeholder": "Zieladresse oder Ort",
+  "no-path-error": "Keine verbundenen Straßen zwischen diesen Punkten gefunden. Verschieben Sie einen Pin oder erstellen Sie die Route manuell.",
+  "different-region-error": "Start und Ziel müssen vorerst im selben Quartier liegen."
 }

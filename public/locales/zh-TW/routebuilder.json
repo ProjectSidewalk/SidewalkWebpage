@@ -14,5 +14,9 @@
   "marker-start": "起點",
   "marker-end": "終點",
   "section-gap-end-aria": "路線第 {{num}} 段的終點",
-  "section-gap-start-aria": "路線第 {{num}} 段的起點"
+  "section-gap-start-aria": "路線第 {{num}} 段的起點",
+  "directions-start-placeholder": "起點地址或地點",
+  "directions-end-placeholder": "終點地址或地點",
+  "no-path-error": "找不到連接這兩點的街道。請移動圖釘，或手動建立路線。",
+  "different-region-error": "目前起點和終點必須位於同一個社區。"
 }

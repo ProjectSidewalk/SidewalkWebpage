@@ -27,12 +27,15 @@ class RouteBuilder {
   #streetsInRoute = null;
   #currentMarkers = [];
   #searchBox;
+  #searchBoxOnMap = false;
+  #routeGraph = null; // Built lazily from #streetData on the first auto-route (#4579).
 
   // Collaborators.
   #saveModal;
   #guestRoutes;
   #undoStack;
   #streetPopover;
+  #directionsPanel;
 
   // DOM elements.
   #introUI;
@@ -145,6 +148,16 @@ class RouteBuilder {
       (streetId) => this.#removeStreet(streetId),
     );
 
+    this.#directionsPanel = new DirectionsPanel({
+      map: this.#map,
+      mapboxApiKey: this.#mapboxApiKey,
+      bbox: [
+        [mapParams.southwest_boundary.lng, mapParams.southwest_boundary.lat],
+        [mapParams.northeast_boundary.lng, mapParams.northeast_boundary.lat],
+      ],
+      onPinsChanged: (start, end) => this.#autoRoute(start, end),
+    });
+
     this.#saveButton.addEventListener('click', () => this.#saveModal.open());
   }
 
@@ -240,6 +253,7 @@ class RouteBuilder {
       },
     });
     this.#setUpSearchBox();
+    this.#searchBoxOnMap = true;
     this.#maybeRestorePendingRoute();
   }
 
@@ -451,12 +465,96 @@ class RouteBuilder {
   }
 
   /**
-   * Delete old markers and draw new ones.
+   * Delete old markers and draw new ones, and keep the directions panel in sync with the route's endpoints.
    */
   #updateMarkers() {
     this.#currentMarkers.forEach((m) => m.remove());
     this.#currentMarkers = [];
     this.#drawContiguousEndpointMarkers();
+    this.#syncDirectionsPanel();
+  }
+
+  /**
+   * Mirrors the route's current endpoints onto the directions panel (pins + reverse-geocoded field text).
+   */
+  #syncDirectionsPanel() {
+    const sections = this.#computeContiguousRoutes();
+    if (sections.length === 0) {
+      this.#directionsPanel.clearPins();
+      return;
+    }
+    const startCoord = sections[0][0].geometry.coordinates[0];
+    const lastSection = sections[sections.length - 1];
+    const lastCoords = lastSection[lastSection.length - 1].geometry.coordinates;
+    this.#directionsPanel.updateFromRoute(startCoord, lastCoords[lastCoords.length - 1]);
+  }
+
+  /**
+   * Builds (once) and returns the street-network graph used for auto-routing.
+   */
+  #getRouteGraph() {
+    if (!this.#routeGraph) this.#routeGraph = new RouteGraph(this.#streetData.features);
+    return this.#routeGraph;
+  }
+
+  /**
+   * The route in undo-snapshot form: ordered street ids with their current orientation.
+   * @returns {Array<{streetId: number, reverse: boolean}>}
+   */
+  #routeSnapshot() {
+    return this.#streetsInRoute.features.map((s) => ({
+      streetId: s.properties.street_edge_id,
+      reverse: s.properties.reverse === true,
+    }));
+  }
+
+  /**
+   * Empties the route's streets and region state without touching overlays or the undo stack (callers decide
+   * what to record and which UI state follows).
+   */
+  #emptyRouteSilently() {
+    const map = this.#map;
+    this.#streetsInRoute.features.forEach((s) => {
+      map.setFeatureState({ source: 'streets', id: s.properties.street_edge_id }, { chosen: false });
+    });
+    this.#streetsInRoute.features = [];
+    map.getSource('streets-chosen').setData(this.#streetsInRoute);
+    map.setFeatureState({ source: 'neighborhoods', id: this.#currRegionId }, { current: false });
+    this.#currRegionId = null;
+  }
+
+  /**
+   * Computes a walking route between the directions panel's pins and replaces the current route with it
+   * (undoable in one step). The result feeds the normal editing pipeline, so the auto-routed streets can be
+   * tweaked street-by-street afterwards (#4579).
+   *
+   * @param {Object} start - {lng, lat}.
+   * @param {Object} end - {lng, lat}.
+   */
+  #autoRoute(start, end) {
+    if (!this.#status.mapLoaded || !this.#status.streetsLoaded || this.#streetsInRoute === null) return;
+
+    const result = this.#getRouteGraph().route(start, end);
+    if (result.error) {
+      const isRegionError = result.error === 'different-region';
+      this.#directionsPanel.setError(i18next.t(isRegionError ? 'different-region-error' : 'no-path-error'));
+      window.logWebpageActivity(`RouteBuilder_AutoRoute=${isRegionError ? 'DifferentRegion' : 'NoPath'}`);
+      return;
+    }
+
+    // One undo step brings back whatever the route looked like before (possibly empty).
+    this.#undoStack.push({ type: 'replace', streets: this.#routeSnapshot() });
+    this.#emptyRouteSilently();
+
+    result.streets.forEach(({ streetId, flip }) => {
+      const street = this.#streetData.features.find((s) => s.properties.street_edge_id === streetId);
+      if (!street) return;
+      const forceReverse = flip ? !(street.properties.reverse === true) : street.properties.reverse === true;
+      this.#addStreetToRoute(street, forceReverse, { record: false });
+    });
+    this.#updateMarkers();
+    this.#setRouteDistanceText();
+    window.logWebpageActivity(`RouteBuilder_AutoRoute=Success_Streets=${result.streets.length}`);
   }
 
   /**
@@ -633,7 +731,10 @@ class RouteBuilder {
       this.#introUI.style.visibility = 'hidden';
       this.#guestRoutes.hide();
       this.#streetDistOverlay.style.visibility = 'visible';
-      map.removeControl(this.#searchBox);
+      if (this.#searchBoxOnMap) {
+        map.removeControl(this.#searchBox);
+        this.#searchBoxOnMap = false;
+      }
 
       // Change style to show you can't choose streets in other regions.
       this.#currRegionId = street.properties.region_id;
@@ -717,6 +818,16 @@ class RouteBuilder {
         this.#updateMarkers();
         this.#setRouteDistanceText();
         break;
+      case 'replace': // An auto-route replaced the whole route; restore the prior snapshot (possibly empty).
+        this.#emptyRouteSilently();
+        action.streets.forEach((s) => {
+          const street = this.#streetData.features.find((f) => f.properties.street_edge_id === s.streetId);
+          if (street) this.#addStreetToRoute(street, s.reverse, { record: false });
+        });
+        this.#updateMarkers();
+        this.#setRouteDistanceText();
+        if (this.#streetsInRoute.features.length === 0) this.#resetUI();
+        break;
     }
   }
 
@@ -764,13 +875,7 @@ class RouteBuilder {
     const map = this.#map;
     // Record the whole route so a clear can be undone in one step.
     if (this.#streetsInRoute.features.length > 0) {
-      this.#undoStack.push({
-        type: 'clear',
-        streets: this.#streetsInRoute.features.map((s) => ({
-          streetId: s.properties.street_edge_id,
-          reverse: s.properties.reverse === true,
-        })),
-      });
+      this.#undoStack.push({ type: 'clear', streets: this.#routeSnapshot() });
     }
 
     // Remove all the streets from the route.
@@ -814,7 +919,11 @@ class RouteBuilder {
     this.#saveModal.hide();
     this.#streetPopover.close();
     this.#guestRoutes.render();
-    map.addControl(this.#searchBox);
+    this.#directionsPanel.clearPins();
+    if (!this.#searchBoxOnMap) {
+      map.addControl(this.#searchBox);
+      this.#searchBoxOnMap = true;
+    }
   }
 
   /**

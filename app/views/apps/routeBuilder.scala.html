@@ -21,6 +21,15 @@
   <script src='@assets.path("js/route-builder/build/route-builder.js")'></script>
 
   <div id="routebuilder-map"></div>
+  <div id="directions-panel" class="routebuilder-overlay">
+    <span id="directions-title" class="routebuilder-h2">@Messages("routebuilder.directions.title")</span>
+    <span class="directions-label">@Messages("routebuilder.directions.start")</span>
+    <div id="directions-start-slot" class="directions-slot"></div>
+    <span class="directions-label">@Messages("routebuilder.directions.end")</span>
+    <div id="directions-end-slot" class="directions-slot"></div>
+    <span id="directions-hint">@Messages("routebuilder.directions.hint")</span>
+    <span id="directions-error" role="alert" hidden></span>
+  </div>
   <div id="routebuilder-intro" class="routebuilder-overlay routebuilder-centered-overlay">
     <span id="routebuilder-intro-title" class="routebuilder-h1">@Messages("routebuilder.welcome")</span>
     <span id="routebuilder-intro-content">@Messages("routebuilder.intro.content")</span>

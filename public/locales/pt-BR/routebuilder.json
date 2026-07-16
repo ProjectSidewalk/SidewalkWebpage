@@ -14,5 +14,9 @@
   "marker-start": "Início",
   "marker-end": "Fim",
   "section-gap-end-aria": "Fim do trecho {{num}} da rota",
-  "section-gap-start-aria": "Início do trecho {{num}} da rota"
+  "section-gap-start-aria": "Início do trecho {{num}} da rota",
+  "directions-start-placeholder": "Endereço ou local de início",
+  "directions-end-placeholder": "Endereço ou local de destino",
+  "no-path-error": "Nenhuma rua conectada foi encontrada entre esses pontos. Mova um marcador ou crie a rota manualmente.",
+  "different-region-error": "Por enquanto, o início e o fim devem estar no mesmo bairro."
 }

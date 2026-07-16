@@ -14,5 +14,9 @@
   "marker-start": "Inicio",
   "marker-end": "Fin",
   "section-gap-end-aria": "Fin de la sección {{num}} de la ruta",
-  "section-gap-start-aria": "Inicio de la sección {{num}} de la ruta"
+  "section-gap-start-aria": "Inicio de la sección {{num}} de la ruta",
+  "directions-start-placeholder": "Dirección o lugar de inicio",
+  "directions-end-placeholder": "Dirección o lugar de destino",
+  "no-path-error": "No se encontraron calles conectadas entre esos puntos. Mueve un marcador o crea la ruta manualmente.",
+  "different-region-error": "Por ahora, el inicio y el fin deben estar en el mismo vecindario."
 }

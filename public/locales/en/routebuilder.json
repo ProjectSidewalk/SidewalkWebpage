@@ -14,5 +14,9 @@
   "marker-start": "Start",
   "marker-end": "End",
   "section-gap-end-aria": "End of route section {{num}}",
-  "section-gap-start-aria": "Start of route section {{num}}"
+  "section-gap-start-aria": "Start of route section {{num}}",
+  "directions-start-placeholder": "Start address or place",
+  "directions-end-placeholder": "End address or place",
+  "no-path-error": "No connected streets found between those points. Try moving a pin, or build the route manually.",
+  "different-region-error": "Start and end must be in the same neighborhood for now."
 }

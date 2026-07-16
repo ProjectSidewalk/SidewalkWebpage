@@ -410,3 +410,36 @@
   font-size: 18px;
   flex-shrink: 0;
 }
+
+/* Directions panel (#4579): Google-Maps-style start/end fields for auto-routing, upper-left of the map. */
+#directions-panel {
+  top: calc(2% + var(--navbar-height) + 15px);
+  left: 60px; /* Clears the zoom/navigation control in the map's top-left corner. */
+  width: 300px;
+  padding: 12px 16px;
+  gap: 6px;
+  z-index: 1;
+}
+
+.directions-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #5F5F5F;
+}
+
+.directions-slot mapbox-search-box,
+.directions-slot input {
+  width: 100%;
+}
+
+#directions-hint {
+  padding-top: 4px;
+  font-size: 12px;
+  color: #5F5F5F;
+}
+
+#directions-error {
+  color: var(--color-label-surface-problem);
+  font-size: 13px;
+  font-weight: 600;
+}

@@ -443,6 +443,10 @@ routebuilder.legend.start = Where your route starts
 routebuilder.legend.end = Where your route ends
 routebuilder.legend.gap = Matching numbers mark a gap: one part of your route ends and the next begins
 routebuilder.legend.direction = Arrows show the walking direction
+routebuilder.directions.title = Or plan a route by address
+routebuilder.directions.start = Start
+routebuilder.directions.end = End
+routebuilder.directions.hint = Type addresses or drag the pins — we suggest a walking route you can still edit street by street.
 
 footer.logo.nsf.alt = National Science Foundation Logo
 footer.logo.google.alt = Google Logo
