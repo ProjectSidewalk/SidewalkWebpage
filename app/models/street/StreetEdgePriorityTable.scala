@@ -182,13 +182,17 @@ class StreetEdgePriorityTable @Inject() (
     // NOTE We are calling the getQualityOfUsers function below, which does the heavy lifting.
     val completions = completedTasks
       // Select distinct street edge ids, and keep user id and street flags
-      .groupBy(task => (task.streetEdgeId, task.userId, task.lowQuality, task.incomplete, task.stale))
+      .groupBy(task =>
+        (task.streetEdgeId, task.userId, task.lowQuality, task.incomplete, task.stale, task.outdatedImagery)
+      )
       .map(_._1)
       .join(userStats)
       .on(_._2 === _.userId)    // join on user_id
       .filterNot(_._2.excluded) // filter out users marked with excluded = TRUE
-      // SELECT street_edge_id, (is_good_user AND NOT (low_quality or incomplete or stale))
-      .map { case (_task, _qual) => (_task._1, _qual.highQuality && !(_task._3 || _task._4 || _task._5)) }
+      // SELECT street_edge_id, (is_good_user AND NOT (low_quality or incomplete or stale or outdated_imagery)).
+      // An audit on since-replaced imagery doesn't count as a good audit, so a street whose audits are all outdated
+      // returns to priority 1.0 and is routed like an unaudited street (#4384).
+      .map { case (_task, _qual) => (_task._1, _qual.highQuality && !(_task._3 || _task._4 || _task._5 || _task._6)) }
 
     /**
      * ******** Compute Audit Counts *********
