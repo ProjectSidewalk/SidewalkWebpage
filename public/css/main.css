@@ -1258,25 +1258,42 @@ body:has(#header.header--tall) .test-server-banner {
   width: 24px;
 }
 
-/* Pulsing halo marking a label's spot on /labelMap — dropped for ?labelId= deep links and whenever the label
-   popup closes, so it's clear which dot was just viewed; removed by JS after a few seconds. */
-.labelmap-label-pulse {
-  width: 18px;
-  height: 18px;
+/* Beacon marking the label tied to the /labelMap popup. A hollow reticle so the label's own colored dot shows
+   through the center; the expanding ::after ring is what draws the eye on a busy map. Two modes: a continuously
+   pulsing 'spotlight' while the popup is open, and a single 'flash' to re-anchor the user on close. */
+.labelmap-beacon {
+  position: relative;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  border: 2px solid var(--color-link-100);
-  background: rgb(62 139 217 / 35%);
-  animation: labelmap-label-pulse 1.3s ease-out 1;
+  border: 3px solid var(--color-asphalt-600);
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 90%), 0 1px 4px rgb(0 0 0 / 40%);
   pointer-events: none;
 }
 
-@keyframes labelmap-label-pulse {
-  from { box-shadow: 0 0 0 0 rgb(62 139 217 / 55%); }
-  to { box-shadow: 0 0 0 22px rgb(62 139 217 / 0%); }
+.labelmap-beacon::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 3px solid var(--color-asphalt-600);
+}
+
+.labelmap-beacon--spotlight::after {
+  animation: labelmap-beacon-ring 1.5s ease-out infinite;
+}
+
+.labelmap-beacon--flash::after {
+  animation: labelmap-beacon-ring 1.3s ease-out 1;
+}
+
+@keyframes labelmap-beacon-ring {
+  from { transform: scale(1); opacity: 0.85; }
+  to { transform: scale(2.4); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .labelmap-label-pulse { animation: none; }
+  .labelmap-beacon::after { animation: none; }
 }
 
 
