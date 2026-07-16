@@ -1,8 +1,56 @@
+/* Full-window map area: the flex-growing child of #wrap.wrap--full-window (mirrors LabelMap's choropleth holder).
+   The map fills it; the left panel and legend are its absolutely-positioned children. */
+#routebuilder-map-area {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 #routebuilder-map {
-  width: 98%;
-  height: 800px;
-  margin-top: 15px;
-  left: 1%;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  left: 0;
+}
+
+/* Left trip-planner panel. Reuses the map-sidebar chrome (position/shadow/scroll); data-state toggles which
+   blocks show. The directions block is outside both state selectors, so it stays visible in both states. */
+#routebuilder-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 350px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 40px 30px 30px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  background: var(--color-neutral-white);
+  box-shadow: 2px 0 6px rgb(0 0 0 / 12%);
+  color: var(--color-neutral-black);
+}
+
+.routebuilder-panel__empty,
+.routebuilder-panel__directions,
+.routebuilder-panel__building {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#routebuilder-panel[data-state="empty"] .routebuilder-panel__building {
+  display: none;
+}
+
+#routebuilder-panel[data-state="building"] .routebuilder-panel__empty,
+#routebuilder-panel[data-state="building"] .routebuilder-panel__recent {
+  display: none;
 }
 
 .flex-div-col, .routebuilder-overlay {
@@ -10,7 +58,7 @@
   flex-direction: column;
 }
 
-.flex-div-row, .editing-route-subsection, .routebuilder-button {
+.flex-div-row, .routebuilder-button {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -27,7 +75,7 @@
 
 .routebuilder-centered-overlay {
   width: 590px;
-  top: calc(4% + var(--navbar-height) + 15px); /* 2% + navbar height + map margin-top */
+  top: calc(var(--navbar-height) + 4%); /* Below the navbar; the backdrop is a fixed full-viewport scrim. */
   left: calc(50% - 295px); /* 50% - width/2 */
 }
 
@@ -47,39 +95,9 @@
   padding-top: 16px;
 }
 
-#creating-route-overlay {
-  visibility: hidden; /* Show once the first street has been selected. */
-  top: calc(2% + var(--navbar-height) + 15px); /* 2% + navbar height + map margin-top */
-  right: 3%;
-  width: 320px;
-  gap: 16px;
-}
-
 #route-length-val {
   font-size: 36px;
   line-height: 44px; /* 122.222% */
-}
-
-#line-divider {
-  height: 1px;
-  background: #b6b6b6;
-}
-
-#editing-route-section {
-  gap: 12px;
-}
-
-.editing-route-subsection {
-  gap: 12px;
-}
-
-.editing-route-icon {
-  width: 48px;
-  height: 48px;
-}
-
-.editing-route-subsection-content {
-  flex: 1 0 0;
 }
 
 #creating-route-buttons {
@@ -107,13 +125,13 @@
 
 .routebuilder-overlay-backdrop {
   visibility: hidden; /* Show using JS at the appropriate times. */
-  height: calc(var(--navbar-height) + 865px); /* navbar height + map height and margin + filler */
+  height: 100%;
   width: 100%;
   position: fixed;
   top: 0;
   left: 0;
   background: rgb(0 0 0 / 10%);
-  z-index: 2;
+  z-index: 20; /* Above the left panel (z-index 10) so modals cover it. */
 }
 
 #delete-route-modal {
@@ -210,15 +228,12 @@
 }
 
 #recent-routes-panel {
-  bottom: 4%;
-  left: 3%;
-  width: 320px;
-  max-height: 320px;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  overflow-y: auto;
 }
 
-/* The overlay's display: flex would otherwise override the hidden attribute's UA display: none. */
+/* The flex display would otherwise override the hidden attribute's UA display: none. */
 #recent-routes-panel[hidden] {
   display: none;
 }
@@ -411,16 +426,7 @@
   flex-shrink: 0;
 }
 
-/* Directions panel (#4579): Google-Maps-style start/end fields for auto-routing, upper-left of the map. */
-#directions-panel {
-  top: calc(2% + var(--navbar-height) + 15px);
-  left: 60px; /* Clears the zoom/navigation control in the map's top-left corner. */
-  width: 300px;
-  padding: 12px 16px;
-  gap: 6px;
-  z-index: 1;
-}
-
+/* Directions block (#4579): Google-Maps-style start/end fields for auto-routing, now inside the left panel. */
 .directions-label {
   font-size: 12px;
   font-weight: 700;

@@ -6,7 +6,7 @@
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 @isAnon = @{user.role == "Anonymous"}
 
-@common.main(commonData, Messages("seo.title.route.builder"), defaultI18nNamespace = "routebuilder", i18Namespaces = Seq("routebuilder", "common")) {
+@common.main(commonData, Messages("seo.title.route.builder"), defaultI18nNamespace = "routebuilder", i18Namespaces = Seq("routebuilder", "common"), url = "/routeBuilder") {
   @common.navbar(commonData, Some(user))
 
   <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
@@ -21,78 +21,68 @@
   <link rel="stylesheet" href='@assets.path("css/route-builder.css")'>
   <script src='@assets.path("js/route-builder/build/route-builder.js")'></script>
 
-  <div id="routebuilder-map"></div>
-  <div id="directions-panel" class="routebuilder-overlay">
-    <span id="directions-title" class="routebuilder-h2">@Messages("routebuilder.directions.title")</span>
-    <span class="directions-label">@Messages("routebuilder.directions.start")</span>
-    <div id="directions-start-slot" class="directions-slot"></div>
-    <span class="directions-label">@Messages("routebuilder.directions.end")</span>
-    <div id="directions-end-slot" class="directions-slot"></div>
-    <span id="directions-hint">@Messages("routebuilder.directions.hint")</span>
-    <span id="directions-error" role="alert" hidden></span>
-  </div>
-  <div id="routebuilder-intro" class="routebuilder-overlay routebuilder-centered-overlay">
-    <span id="routebuilder-intro-title" class="routebuilder-h1">@Messages("routebuilder.welcome")</span>
-    <span id="routebuilder-intro-content">@Messages("routebuilder.intro.content")</span>
-    <span id="routebuilder-intro-instruction" class="routebuilder-h2">@Messages("routebuilder.intro.instruction")</span>
-  </div>
-  @if(isAnon) {
-    <div id="recent-routes-panel" class="routebuilder-overlay" hidden>
-      <span id="recent-routes-title" class="routebuilder-h2">@Messages("routebuilder.recent.routes")</span>
-      <span id="recent-routes-note">@Messages("routebuilder.recent.routes.note")</span>
-      <ul id="recent-routes-list"></ul>
-    </div>
-  }
-  <div id="creating-route-overlay" class="routebuilder-overlay">
-    <span id="creating-route-title" class="routebuilder-h1">@Messages("routebuilder.creating.route")</span>
-    <div id="route-length-section" class="flex-div-col">
-      <span id="route-length-title" class="routebuilder-h2">@Messages("routebuilder.route.length")</span>
-      <span id="route-length-val"></span>
-    </div>
-    <div id="line-divider"></div>
-    <div id="editing-route-section" class="flex-div-col">
-      <span id="editing-route-title" class="routebuilder-h2">@Messages("routebuilder.editing.route")</span>
-      <div id="editing-route-add-street" class="editing-route-subsection">
-        <img src="@assets.path("images/icons/routebuilder/add-street.svg")" class="editing-route-icon" alt="@Messages("routebuilder.add.street.icon.alt")">
-        <span class="editing-route-subsection-content">@Messages("routebuilder.add.street.instruction")</span>
+  @* Full-window map with a single left "trip-planner" panel. The panel's data-state (empty|building) drives which
+     sections show (see route-builder.css); the directions block is always visible so DirectionsPanel can mount its
+     two MapboxSearchBox controls into the slots once. The map legend and modals are unchanged. *@
+  <div id="routebuilder-map-area">
+    <div id="routebuilder-map"></div>
+    <div id="routebuilder-panel" data-state="empty">
+      <div class="routebuilder-panel__empty">
+        <span id="routebuilder-intro-title" class="routebuilder-h1">@Messages("routebuilder.welcome")</span>
+        <span id="routebuilder-intro-content">@Messages("routebuilder.intro.content")</span>
+        <span id="routebuilder-intro-instruction" class="routebuilder-h2">@Messages("routebuilder.intro.instruction")</span>
       </div>
-      <div id="editing-route-reverse-street" class="editing-route-subsection">
-        <img src="@assets.path("images/icons/routebuilder/reverse-street.svg")" class="editing-route-icon" alt="@Messages("routebuilder.reverse.street.icon.alt")">
-        <span class="editing-route-subsection-content">@Messages("routebuilder.reverse.street.instruction")</span>
+      <div class="routebuilder-panel__directions">
+        <span id="directions-title" class="routebuilder-h2">@Messages("routebuilder.directions.title")</span>
+        <span class="directions-label">@Messages("routebuilder.directions.start")</span>
+        <div id="directions-start-slot" class="directions-slot"></div>
+        <span class="directions-label">@Messages("routebuilder.directions.end")</span>
+        <div id="directions-end-slot" class="directions-slot"></div>
+        <span id="directions-hint">@Messages("routebuilder.directions.hint")</span>
+        <span id="directions-error" role="alert" hidden></span>
       </div>
-      <div id="editing-route-delete-street" class="editing-route-subsection">
-        <img src="@assets.path("images/icons/routebuilder/delete-street.svg")" class="editing-route-icon" alt="@Messages("routebuilder.delete.street.icon.alt")">
-        <span class="editing-route-subsection-content">@Messages("routebuilder.delete.street.instruction")</span>
+      <div class="routebuilder-panel__building">
+        <span id="creating-route-title" class="routebuilder-h1">@Messages("routebuilder.creating.route")</span>
+        <div id="route-length-section" class="flex-div-col">
+          <span id="route-length-title" class="routebuilder-h2">@Messages("routebuilder.route.length")</span>
+          <span id="route-length-val"></span>
+        </div>
+        <div id="creating-route-buttons" class="flex-div-row">
+          <button type="button" id="save-button" class="routebuilder-button blue-button">@Messages("routebuilder.save")</button>
+          <button type="button" id="undo-button" class="routebuilder-button white-button" disabled>@Messages("routebuilder.undo")</button>
+          <button type="button" id="cancel-button" class="routebuilder-button white-button">@Messages("cancel")</button>
+        </div>
       </div>
+      @if(isAnon) {
+        <div id="recent-routes-panel" class="routebuilder-panel__recent" hidden>
+          <span id="recent-routes-title" class="routebuilder-h2">@Messages("routebuilder.recent.routes")</span>
+          <span id="recent-routes-note">@Messages("routebuilder.recent.routes.note")</span>
+          <ul id="recent-routes-list"></ul>
+        </div>
+      }
     </div>
-    <span id="save-route-instruction">@Messages("routebuilder.save.route.instruction")</span>
-    <div id="creating-route-buttons" class="flex-div-row">
-      <button type="button" id="save-button" class="routebuilder-button blue-button">@Messages("routebuilder.save")</button>
-      <button type="button" id="undo-button" class="routebuilder-button white-button" disabled>@Messages("routebuilder.undo")</button>
-      <button type="button" id="cancel-button" class="routebuilder-button white-button">@Messages("cancel")</button>
-    </div>
+    <details id="routebuilder-legend" class="routebuilder-overlay">
+      <summary id="routebuilder-legend-title">@Messages("routebuilder.legend.title")</summary>
+      <ul id="routebuilder-legend-list">
+        <li class="legend-item">
+          <img src="@assets.path("images/icons/routebuilder/start-point.png")" class="legend-icon" alt="">
+          <span>@Messages("routebuilder.legend.start")</span>
+        </li>
+        <li class="legend-item">
+          <img src="@assets.path("images/icons/routebuilder/end-point.png")" class="legend-icon" alt="">
+          <span>@Messages("routebuilder.legend.end")</span>
+        </li>
+        <li class="legend-item">
+          <span class="legend-gap-markers" aria-hidden="true"><span class="marker-number legend-number">1</span><span class="marker-number legend-number">1</span></span>
+          <span>@Messages("routebuilder.legend.gap")</span>
+        </li>
+        <li class="legend-item">
+          <span class="legend-direction-arrow" aria-hidden="true">➔</span>
+          <span>@Messages("routebuilder.legend.direction")</span>
+        </li>
+      </ul>
+    </details>
   </div>
-  <details id="routebuilder-legend" class="routebuilder-overlay">
-    <summary id="routebuilder-legend-title">@Messages("routebuilder.legend.title")</summary>
-    <ul id="routebuilder-legend-list">
-      <li class="legend-item">
-        <img src="@assets.path("images/icons/routebuilder/start-point.png")" class="legend-icon" alt="">
-        <span>@Messages("routebuilder.legend.start")</span>
-      </li>
-      <li class="legend-item">
-        <img src="@assets.path("images/icons/routebuilder/end-point.png")" class="legend-icon" alt="">
-        <span>@Messages("routebuilder.legend.end")</span>
-      </li>
-      <li class="legend-item">
-        <span class="legend-gap-markers" aria-hidden="true"><span class="marker-number legend-number">1</span><span class="marker-number legend-number">1</span></span>
-        <span>@Messages("routebuilder.legend.gap")</span>
-      </li>
-      <li class="legend-item">
-        <span class="legend-direction-arrow" aria-hidden="true">➔</span>
-        <span>@Messages("routebuilder.legend.direction")</span>
-      </li>
-    </ul>
-  </details>
   <div id="delete-route-modal-backdrop" class="routebuilder-overlay-backdrop">
     <div id="delete-route-modal" class="routebuilder-overlay routebuilder-centered-overlay">
       <div id="delete-route-title-section" class="flex-div-col">

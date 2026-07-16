@@ -6,7 +6,8 @@
 class RouteBuilder {
   #status = {
     mapLoaded: false,
-    neighborhoodsLoaded: false,
+    neighborhoodsLoaded: false, // Neighborhood GeoJSON has arrived from the server.
+    neighborhoodsRendered: false, // Neighborhood source/layers have been added to the map.
     streetsLoaded: false,
     pendingRouteRestored: false,
   };
@@ -16,7 +17,6 @@ class RouteBuilder {
   #units;
 
   #mapboxApiKey;
-  #mapParams;
   #map;
   #isSignedIn;
 
@@ -26,7 +26,6 @@ class RouteBuilder {
   #streetData = null;
   #streetsInRoute = null;
   #currentMarkers = [];
-  #searchBox;
   #routeGraph = null; // Built lazily from #streetData on the first auto-route (#4579).
 
   // Collaborators.
@@ -37,8 +36,7 @@ class RouteBuilder {
   #directionsPanel;
 
   // DOM elements.
-  #introUI;
-  #streetDistOverlay;
+  #panel;
   #deleteRouteModal;
   #routeSavedModal;
   #routeSavedNameEl;
@@ -57,13 +55,11 @@ class RouteBuilder {
    */
   constructor($, mapboxApiKey, mapParams, isSignedIn) {
     this.#mapboxApiKey = mapboxApiKey;
-    this.#mapParams = mapParams;
     this.#isSignedIn = isSignedIn === true;
     this.#units = i18next.t('common:unit-distance');
 
     // Get the DOM elements.
-    this.#introUI = document.getElementById('routebuilder-intro');
-    this.#streetDistOverlay = document.getElementById('creating-route-overlay');
+    this.#panel = document.getElementById('routebuilder-panel');
     this.#deleteRouteModal = document.getElementById('delete-route-modal-backdrop');
     this.#routeSavedModal = document.getElementById('route-saved-modal-backdrop');
     this.#routeSavedNameEl = document.getElementById('route-saved-name');
@@ -174,38 +170,18 @@ class RouteBuilder {
    * Function definitions.
    */
 
-  // Setting up SearchBox.
-  #setUpSearchBox() {
-    const map = this.#map;
-    const mapParams = this.#mapParams;
-    const wholeAreaBbox = [
-      mapParams.southwest_boundary.lng, mapParams.southwest_boundary.lat,
-      mapParams.northeast_boundary.lng, mapParams.northeast_boundary.lat,
-    ];
-    this.#searchBox = new MapboxSearchBox();
-    this.#searchBox.accessToken = this.#mapboxApiKey;
-    this.#searchBox.options = {
-      bbox: [[wholeAreaBbox[0], wholeAreaBbox[1]], [wholeAreaBbox[2], wholeAreaBbox[3]]],
-      language: i18next.t('common:mapbox-language-code'),
-    };
-
-    this.#searchBox.addEventListener('retrieve', () => {
-      const getNeighborhoodInView = () => {
-        if (map.queryRenderedFeatures({ layers: ['neighborhoods'] }).length === 0) {
-          map.flyTo({ zoom: map.getZoom() - 1 });
-        } else {
-          map.off('moveend', getNeighborhoodInView);
-        }
-      };
-      map.on('moveend', getNeighborhoodInView);
-    });
-
-    map.addControl(this.#searchBox);
-  }
-
   // Confirms a copy-link click with a transient toast over the button (same pattern as the dashboard).
   #setTemporaryTooltip(btn, message) {
     Toast.show({ message, reference: btn, duration: 1500 });
+  }
+
+  /**
+   * Switches the left trip-planner panel between its two states (CSS shows/hides the matching sections).
+   * @param {'empty'|'building'} state - 'empty' shows the intro/getting-started block; 'building' shows the
+   *                                     route length + Save/Undo/Clear.
+   */
+  #setPanelState(state) {
+    this.#panel.dataset.state = state;
   }
 
   /**
@@ -244,7 +220,7 @@ class RouteBuilder {
         'fill-color': '#000000',
       },
     });
-    this.#setUpSearchBox();
+    this.#status.neighborhoodsRendered = true;
     this.#maybeRestorePendingRoute();
   }
 
@@ -740,13 +716,8 @@ class RouteBuilder {
 
     // If this was first street added, make additional UI changes.
     if (this.#streetsInRoute.features.length === 1) {
-      // Remove the intro instructions and show the route length UI on the right.
-      this.#introUI.style.visibility = 'hidden';
-      this.#guestRoutes.hide();
-      this.#streetDistOverlay.style.visibility = 'visible';
-      if (this.#searchBox && map.hasControl(this.#searchBox)) {
-        map.removeControl(this.#searchBox);
-      }
+      // Switch the panel from its intro state to the route-building state (length + Save/Undo/Clear).
+      this.#setPanelState('building');
 
       // Change style to show you can't choose streets in other regions.
       this.#currRegionId = street.properties.region_id;
@@ -850,7 +821,7 @@ class RouteBuilder {
    */
   #maybeRestorePendingRoute() {
     if (this.#status.pendingRouteRestored || !this.#status.mapLoaded
-      || !this.#status.neighborhoodsLoaded || !this.#status.streetsLoaded || !this.#searchBox) return;
+      || !this.#status.neighborhoodsRendered || !this.#status.streetsLoaded) return;
 
     this.#status.pendingRouteRestored = true;
     const pending = SaveModal.consumePendingRoute();
@@ -923,18 +894,14 @@ class RouteBuilder {
     map.setPaintProperty('outside-neighborhoods', 'fill-opacity', 0.3);
     this.#currRegionId = null;
 
-    // Show intro UI and hide all others.
-    this.#introUI.style.visibility = 'visible';
-    this.#streetDistOverlay.style.visibility = 'hidden';
+    // Return the panel to its intro state and hide all modals.
+    this.#setPanelState('empty');
     this.#routeSavedModal.style.visibility = 'hidden';
     this.#deleteRouteModal.style.visibility = 'hidden';
     this.#saveModal.hide();
     this.#streetPopover.close();
     this.#guestRoutes.render();
     this.#directionsPanel.clearPins();
-    if (this.#searchBox && !map.hasControl(this.#searchBox)) {
-      map.addControl(this.#searchBox);
-    }
   }
 
   /**
