@@ -83,4 +83,16 @@ describe('createNearbyLabelNavigator', () => {
         const nav = loadFactory()(mapDataWith(LINE));
         expect(nav.next(999)).toBeNull();
     });
+
+    test('hasNext() gates the Next button: true mid-tour, false when exhausted or the label is unknown', () => {
+        const nav = loadFactory()(mapDataWith(LINE));
+        expect(nav.hasNext(999)).toBe(false); // Unknown label, e.g. a deep link outside the loaded set.
+        expect(nav.hasNext(1)).toBe(true);
+        nav.next(1); // -> 2
+        expect(nav.hasNext(2)).toBe(true);
+        nav.next(2); // -> 3
+        nav.next(3); // -> 4
+        nav.next(4); // -> 5; every other label is now visited.
+        expect(nav.hasNext(5)).toBe(false);
+    });
 });

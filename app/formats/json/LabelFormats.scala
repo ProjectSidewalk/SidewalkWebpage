@@ -172,6 +172,14 @@ object LabelFormats {
   // Has the label metadata excluding a few admin-only fields.
   def labelMetadataWithValidationToJson(labelMetadata: LabelMetadata, currUsername: Option[String] = None): JsObject = {
     val commenterIdx: Map[String, Int] = commenterIndices(labelMetadata.comments)
+    labelMetadataWithValidationCore(
+      labelMetadata,
+      labelMetadata.comments.map(commentToJson(_, currUsername, commenterIdx))
+    )
+  }
+
+  /** Shared field set for the with-validation serializers; `commentsJson` carries the surface-specific comment shape. */
+  private def labelMetadataWithValidationCore(labelMetadata: LabelMetadata, commentsJson: Seq[JsObject]): JsObject = {
     Json.obj(
       "label_id"           -> labelMetadata.labelId,
       "pano_id"            -> labelMetadata.panoId,
@@ -195,7 +203,7 @@ object LabelFormats {
       "num_agree"          -> labelMetadata.validations("agree"),
       "num_disagree"       -> labelMetadata.validations("disagree"),
       "num_unsure"         -> labelMetadata.validations("unsure"),
-      "comments"           -> labelMetadata.comments.map(commentToJson(_, currUsername, commenterIdx)),
+      "comments"           -> commentsJson,
       "tags"               -> labelMetadata.tags,
       "ai_generated"       -> labelMetadata.aiGenerated,
       "expired"            -> labelMetadata.expired,
@@ -209,23 +217,18 @@ object LabelFormats {
       adminData: AdminValidationData
   ): JsObject = {
     val commenterIdx: Map[String, Int] = commenterIndices(labelMetadata.comments)
+    // The shared shape plus the commenter's username; public surfaces expose only the anonymous commenter index.
+    val commentsJson: Seq[JsObject] = labelMetadata.comments.map { c =>
+      commentToJson(c, None, commenterIdx) + ("username" -> Json.toJson(c.username))
+    }
     // Start with normal metadata, then add the admin-only fields.
-    labelMetadataWithValidationToJson(labelMetadata) ++ Json.obj(
+    labelMetadataWithValidationCore(labelMetadata, commentsJson) ++ Json.obj(
       "audit_task_id" -> labelMetadata.auditTaskId,
       "user_id"       -> labelMetadata.userId,
       "username"      -> labelMetadata.username,
-      "comments"      -> labelMetadata.comments.map { c =>
-        val idx: Int = commenterIdx.getOrElse(c.username, 0)
-        Json.obj(
-          "username"     -> c.username,
-          "comment"      -> c.comment,
-          "time_created" -> c.timeCreated,
-          "commenter"    -> idx
-        )
-      },
-      "low_quality" -> labelMetadata.lowQualityIncompleteStaleFlags._1,
-      "incomplete"  -> labelMetadata.lowQualityIncompleteStaleFlags._2,
-      "stale"       -> labelMetadata.lowQualityIncompleteStaleFlags._3,
+      "low_quality"   -> labelMetadata.lowQualityIncompleteStaleFlags._1,
+      "incomplete"    -> labelMetadata.lowQualityIncompleteStaleFlags._2,
+      "stale"         -> labelMetadata.lowQualityIncompleteStaleFlags._3,
       // The part below is just lifted straight from Expert Validate without much care.
       "admin_data" -> Json.obj(
         "username"             -> adminData.username,

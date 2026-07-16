@@ -83,8 +83,27 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
   if (prevBtn) prevBtn.hidden = true;
   if (nextBtn) nextBtn.hidden = true;
 
+  // Attached once here, guarded on the current navigator, so a repeat setNearbyNavigator() call can't stack
+  // duplicate handlers that would double-advance the navigator on a single click.
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => {
+      if (!nearbyNav) return;
+      const id = nearbyNav.prev(currentLabelId);
+      if (id) showLabel(id, lastSource);
+    });
+  }
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+      if (!nearbyNav) return;
+      const id = nearbyNav.next(currentLabelId);
+      if (id) showLabel(id, lastSource);
+    });
+  }
+
   function updatePagingState() {
-    if (prevBtn && nearbyNav) prevBtn.disabled = !nearbyNav.hasPrev(currentLabelId);
+    if (!nearbyNav) return;
+    if (prevBtn) prevBtn.disabled = !nearbyNav.hasPrev(currentLabelId);
+    if (nextBtn) nextBtn.disabled = !nearbyNav.hasNext(currentLabelId);
   }
 
   /**
@@ -121,21 +140,14 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
 
   /**
    * Enables the prev/next arrows, stepping through labels via the given navigator (see nearbyLabelNavigator.js).
-   * @param {{next: function, prev: function, hasPrev: function}} nav Navigator over the host's label set.
+   * @param {{next: function, prev: function, hasPrev: function, hasNext: function}} nav Navigator over the
+   *     host's label set.
    */
   labelDetail.setNearbyNavigator = (nav) => {
     nearbyNav = nav;
     if (!prevBtn || !nextBtn) return;
     prevBtn.hidden = false;
     nextBtn.hidden = false;
-    prevBtn.addEventListener('click', () => {
-      const id = nearbyNav.prev(currentLabelId);
-      if (id) showLabel(id, lastSource);
-    });
-    nextBtn.addEventListener('click', () => {
-      const id = nearbyNav.next(currentLabelId);
-      if (id) showLabel(id, lastSource);
-    });
     updatePagingState();
   };
 

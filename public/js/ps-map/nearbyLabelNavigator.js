@@ -5,7 +5,8 @@
  *
  * @param {Object} mapData The map layer tracker returned by addLabelsToMap (reads .sortedLabels).
  * @returns {{next: function(number): ?number, prev: function(number): ?number, hasPrev: function(number): boolean,
- *     getCoords: function(number): ?Array<number>, getLabelType: function(number): ?string}}
+ *     hasNext: function(number): boolean, getCoords: function(number): ?Array<number>,
+ *     getLabelType: function(number): ?string}}
  *     Navigator whose paging methods take the currently shown label ID and return the label ID to show (null when
  *     there is nowhere to go); getCoords/getLabelType look up a loaded label's [lng, lat] / label type.
  */
@@ -60,6 +61,15 @@ function createNearbyLabelNavigator(mapData) {
     },
     hasPrev(currentId) {
       return trail.length > (trail[trail.length - 1] === currentId ? 1 : 0);
+    },
+    hasNext(currentId) {
+      // Mirrors next()'s reachability without mutating state: a known current label plus at least one other
+      // unvisited label. Backs the Next button's disabled state.
+      if (!coordsById.has(currentId)) return false;
+      for (const id of coordsById.keys()) {
+        if (id !== currentId && !visited.has(id)) return true;
+      }
+      return false;
     },
     getCoords(labelId) {
       return coordsById.get(labelId) ?? null;

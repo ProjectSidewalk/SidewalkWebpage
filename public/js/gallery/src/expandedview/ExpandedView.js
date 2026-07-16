@@ -93,6 +93,10 @@ class ExpandedView {
     this.initialUrlLabelId = null; // One shot; later renders (paging, filters) shouldn't reopen it.
     this.#uiModal.css('visibility', 'visible');
     this.open = true;
+    // With no reference card, paging picks up from the first card (Next), so there is nothing to page back to;
+    // an enabled Prev here would drive cardIndex below -1 and break the paging state machine.
+    if (this.leftArrow) this.leftArrow.disabled = true;
+    this.leftArrowDisabled = true;
     this.#syncUrl(labelId); // refreshUI's close scrubbed the param; put it back for refresh/re-share.
     this.labelDetail.showLabel(labelId, 'Gallery')
       .catch(() => this.closeExpandedViewAndRemoveCardTransparency());
@@ -244,6 +248,13 @@ class ExpandedView {
     }
     this.cardIndex = index;
     this.refCard = sg.cardContainer.getCardByIndex(this.cardIndex);
+
+    // An index with no card behind it (e.g. paging from a deep link on an empty page, or a filter change that
+    // shrank the card set) has nothing to show — close gracefully rather than crash on the missing card.
+    if (!this.refCard) {
+      this.closeExpandedViewAndRemoveCardTransparency();
+      return;
+    }
 
     this.#openExpandedView();
 

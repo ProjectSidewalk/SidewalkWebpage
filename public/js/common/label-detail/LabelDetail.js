@@ -790,8 +790,13 @@ class LabelDetail {
    */
   #showPanHintOnce() {
     const hint = this.#els.panHint;
-    if (!hint || sessionStorage.getItem('psLabelDetailPanHintShown')) return;
-    sessionStorage.setItem('psLabelDetailPanHintShown', 'true');
+    if (!hint) return;
+    try {
+      if (sessionStorage.getItem('psLabelDetailPanHintShown')) return;
+      sessionStorage.setItem('psLabelDetailPanHintShown', 'true');
+    } catch {
+      return; // Storage access throws under "block all site data" settings; skip the hint rather than reject.
+    }
     hint.hidden = false;
     requestAnimationFrame(() => hint.classList.add('is-visible'));
     setTimeout(() => {

@@ -226,6 +226,7 @@ way.type.steps = A path consisting of one or more flights of steps to facilitate
 share.meta.title.issue = I found an accessibility issue on Project Sidewalk: {0}
 share.meta.title.feature = Look what I found on Project Sidewalk: {0}
 share.meta.description.spotted = Spotted in {0}.
+share.meta.description.address = Near {0}.
 share.meta.description.severity = Severity: {0} of 3.
 share.meta.description.tags = Tagged: {0}.
 share.meta.description.cta = Explore the map and help make sidewalks accessible for everyone.
