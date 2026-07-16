@@ -112,6 +112,7 @@ case class ProjectSidewalkStats(
     kmExploreNoOverlap: Double,
     kmExploredMultipleUsers: Double,
     kmExploredSingleUser: Double,
+    kmNeedsReaudit: Double,
     kmOpen: Double,
     kmNoImagery: Double,
     kmClosed: Double,
@@ -705,6 +706,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     val kmExploreNoOverlap        = r.nextDouble()
     val kmExploredMultipleUsers   = r.nextDouble()
     val kmExploredSingleUser      = kmExploreNoOverlap - kmExploredMultipleUsers
+    val kmNeedsReaudit            = r.nextDouble()
     val kmOpen                    = r.nextDouble()
     val kmNoImagery               = r.nextDouble()
     val kmClosed                  = r.nextDouble()
@@ -716,6 +718,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       kmExploreNoOverlap,
       kmExploredMultipleUsers,
       kmExploredSingleUser,
+      kmNeedsReaudit,
       kmOpen,
       kmNoImagery,
       kmClosed,
@@ -2066,6 +2069,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              km_audited.km_audited AS km_audited,
              km_audited_no_overlap.km_audited_no_overlap AS km_audited_no_overlap,
              km_explored_multiple_users.km_explored_multiple_users AS km_explored_multiple_users,
+             km_needs_reaudit.km_needs_reaudit AS km_needs_reaudit,
              km_by_status.km_open,
              km_by_status.km_no_imagery,
              km_by_status.km_closed,
@@ -2175,19 +2179,36 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
           WHERE completed = TRUE AND #$userFilter
       ) AS km_audited, (
+          -- Unique street km with at least one completed audit on current imagery (#4384): audits flagged
+          -- outdated_imagery don't count, so this drops when newer imagery lands on an audited street.
           SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km_audited_no_overlap
           FROM (
               SELECT DISTINCT street_edge.street_edge_id, geom
               FROM street_edge
               INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
               INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
-              WHERE completed = TRUE AND #$userFilter
+              WHERE completed = TRUE AND audit_task.outdated_imagery = FALSE AND #$userFilter
           ) distinct_streets
       ) AS km_audited_no_overlap, (
-          -- Redundant-coverage km: streets with a completed audit by ≥2 distinct (non-excluded) users. Mirrors the
-          -- km_audited_no_overlap subquery but groups per street and keeps only those audited by 2+ people. Single-user
-          -- km is derived (no_overlap − multiple_users) in projectSidewalkStatsConverter, so it is not selected here.
+          -- Redundant-coverage km: streets with an up-to-date completed audit by ≥2 distinct (non-excluded) users.
+          -- Mirrors the km_audited_no_overlap subquery but groups per street and keeps only those audited by 2+
+          -- people. Single-user km is derived (no_overlap − multiple_users) in projectSidewalkStatsConverter, so it is
+          -- not selected here.
           SELECT COALESCE(SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000, 0) AS km_explored_multiple_users
+          FROM (
+              SELECT street_edge.street_edge_id, geom
+              FROM street_edge
+              INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+              INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
+              WHERE completed = TRUE AND audit_task.outdated_imagery = FALSE AND #$userFilter
+              GROUP BY street_edge.street_edge_id, geom
+              HAVING COUNT(DISTINCT audit_task.user_id) >= 2
+          ) multi_user_streets
+      ) AS km_explored_multiple_users, (
+          -- Unique street km needing re-audit (#4384): streets audited before, but whose completed audits all predate
+          -- newer imagery. Exact complement of km_audited_no_overlap within ever-audited streets, so
+          -- ever-audited km = km_audited_no_overlap + km_needs_reaudit.
+          SELECT COALESCE(SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000, 0) AS km_needs_reaudit
           FROM (
               SELECT street_edge.street_edge_id, geom
               FROM street_edge
@@ -2195,9 +2216,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
               WHERE completed = TRUE AND #$userFilter
               GROUP BY street_edge.street_edge_id, geom
-              HAVING COUNT(DISTINCT audit_task.user_id) >= 2
-          ) multi_user_streets
-      ) AS km_explored_multiple_users, (
+              HAVING BOOL_AND(audit_task.outdated_imagery)
+          ) outdated_streets
+      ) AS km_needs_reaudit, (
           -- Total street km by availability status (#3888 enum). The `open` bucket is the auditable-now network and is
           -- surfaced as `km_explorable`. The tutorial street is excluded from every bucket. COALESCE guards buckets a
           -- given city may have none of (e.g. no `disabled` streets), since the converter reads non-Option Doubles.

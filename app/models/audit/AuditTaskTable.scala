@@ -65,12 +65,20 @@ case class AuditedStreetWithTimestamp(
     geom: LineString
 )
 
+/**
+ * A street edge with its three-state audit status for map rendering (#4384).
+ *
+ * @param audited  The street has a completed audit on current imagery.
+ * @param outdated The street has completed audits, but all of them predate newer imagery (needs re-audit). Never true
+ *                 together with audited; a street with neither flag is unaudited.
+ */
 case class StreetEdgeWithAuditStatus(
     streetEdgeId: Int,
     geom: LineString,
     regionId: Int,
     wayType: WayType.Value,
-    audited: Boolean
+    audited: Boolean,
+    outdated: Boolean
 )
 
 class AuditTaskTableDef(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "audit_task") {
@@ -305,17 +313,30 @@ class AuditTaskTable @Inject() (
       completedTasks
     }
 
-    // Filter out the duplicated street edges.
-    val _distinctCompleted = _filteredTasks.groupBy(_.streetEdgeId).map(_._1)
+    // Distinct streets with any completed audit, and with a completed audit on current imagery (#4384).
+    val _distinctEverCompleted = _filteredTasks.groupBy(_.streetEdgeId).map(_._1)
+    val _distinctUpToDate      = _filteredTasks.filterNot(_.outdatedImagery).groupBy(_.streetEdgeId).map(_._1)
 
-    // Left join list of streets with list of audited streets to record whether each street has been audited.
+    // Left join streets against both sets: audited = has an up-to-date audit; outdated = audited before, but every
+    // audit predates newer imagery (needs re-audit). Unaudited streets match neither.
     val streetsWithAuditedStatus = streetEdgeTable.streets
       .join(streetEdgeRegionTable)
       .on(_.streetEdgeId === _.streetEdgeId)
       .filter(x => (x._2.regionId inSetBind regionIds) || regionIds.isEmpty)
-      .joinLeft(_distinctCompleted)
+      .joinLeft(_distinctUpToDate)
       .on(_._1.streetEdgeId === _)
-      .map(s => (s._1._1.streetEdgeId, s._1._1.geom, s._1._2.regionId, s._1._1.wayType, !s._2.isEmpty))
+      .joinLeft(_distinctEverCompleted)
+      .on(_._1._1.streetEdgeId === _)
+      .map { case (((street, region), upToDate), everCompleted) =>
+        (
+          street.streetEdgeId,
+          street.geom,
+          region.regionId,
+          street.wayType,
+          upToDate.isDefined,
+          upToDate.isEmpty && everCompleted.isDefined
+        )
+      }
 
     // If routeIds are provided, filter out streets that are not part of the route.
     val streetsWithAuditedStatusFiltered = if (routeIds.nonEmpty) {

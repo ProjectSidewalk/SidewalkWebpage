@@ -169,6 +169,10 @@
         "street_count": 36,
         "user_count": 12,
         "audit_count": 58,
+        "total_distance_m": 5481.0,
+        "audited_distance_m": 4287.3,
+        "outdated_distance_m": 512.6,
+        "completion_rate": 0.782,
         "first_label_date": "2023-06-20T14:32:45Z",
         "last_label_date": "2023-08-15T10:22:18Z"
       }
@@ -223,7 +227,27 @@
           <tr>
             <td><code>properties.audit_count</code></td>
             <td><code>integer</code></td>
-            <td>Number of completed audits (virtual walks) of streets within this region.</td>
+            <td>Number of completed audits (virtual walks) of streets within this region, including audits whose imagery has since been replaced.</td>
+          </tr>
+          <tr>
+            <td><code>properties.total_distance_m</code></td>
+            <td><code>number</code></td>
+            <td>Total length of the region's (non-tutorial) streets, in meters.</td>
+          </tr>
+          <tr>
+            <td><code>properties.audited_distance_m</code></td>
+            <td><code>number</code></td>
+            <td>Length of the region's streets audited with current imagery, in meters. When newer street-view imagery lands on an audited street, that street stops counting here until it is re-audited.</td>
+          </tr>
+          <tr>
+            <td><code>properties.outdated_distance_m</code></td>
+            <td><code>number</code></td>
+            <td>Length of the region's streets needing re-audit, in meters: streets audited before, but whose completed audits all predate newer imagery. Ever-audited distance = <code>audited_distance_m + outdated_distance_m</code>.</td>
+          </tr>
+          <tr>
+            <td><code>properties.completion_rate</code></td>
+            <td><code>number</code></td>
+            <td>Fraction (0.0–1.0) of the region's street distance audited with current imagery (<code>audited_distance_m / total_distance_m</code>). This can decrease over time as new imagery is detected.</td>
           </tr>
           <tr>
             <td><code>properties.first_label_date</code></td>
@@ -241,8 +265,8 @@
 
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the headers, corresponding to the fields in the GeoJSON properties object, plus a geometry representation. CRS is WGS84 (EPSG:4326).</p>
-    <pre tabindex="0"><code class="language-csv">region_id,name,label_count,street_count,user_count,audit_count,first_label_date,last_label_date,center_point
-8,Teaneck Community Charter School,423,36,12,58,2023-06-20T14:32:45Z,2023-08-15T10:22:18Z,"-74.0244835449219,40.8838416503906"
+    <pre tabindex="0"><code class="language-csv">region_id,name,label_count,street_count,user_count,audit_count,total_distance_m,audited_distance_m,outdated_distance_m,completion_rate,first_label_date,last_label_date,center_point
+8,Teaneck Community Charter School,423,36,12,58,5481.0,4287.3,512.6,0.782,2023-06-20T14:32:45Z,2023-08-15T10:22:18Z,"-74.0244835449219,40.8838416503906"
 ...</code></pre>
 
     <p>Note: The complete MultiPolygon geometry is simplified to a single center point in the CSV format due to the tabular nature of CSV. For full geometry data, use the GeoJSON format.</p>

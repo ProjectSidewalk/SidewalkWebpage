@@ -42,7 +42,14 @@ class StreetsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
 
       val json = contentAsJson(resp)
       (json \ "type").as[String] mustBe "FeatureCollection"
-      (json \ "features").asOpt[Seq[JsObject]] mustBe defined
+      val features = (json \ "features").asOpt[Seq[JsObject]]
+      features mustBe defined
+      // Every feature carries the needs-re-audit boolean (#4384), and a never-audited street is never outdated.
+      features.get.foreach { feature =>
+        val props    = feature \ "properties"
+        val outdated = (props \ "outdated").as[Boolean]
+        if ((props \ "audit_count").as[Int] == 0) outdated mustBe false
+      }
     }
 
     "return CSV with the documented snake_case header when filetype=csv" in {
@@ -53,8 +60,8 @@ class StreetsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val body = contentAsString(resp)
       // Header from StreetDataForApi.csvHeader; assert snake_case field names are present and camelCase absent.
       body must include(
-        "street_edge_id,osm_way_id,region_id,region_name,way_type,status,user_ids,label_count,audit_count,user_count," +
-          "first_label_date,last_label_date,start_point,end_point"
+        "street_edge_id,osm_way_id,region_id,region_name,way_type,status,user_ids,label_count,audit_count,outdated," +
+          "user_count,first_label_date,last_label_date,start_point,end_point"
       )
       body must not include "streetEdgeId"
       body must not include "labelCount"

@@ -87,23 +87,28 @@ function filterLabelLayers(checkbox, map, mapData, highQualityFilter) {
 }
 
 /**
- * Filters the street layer based on the audited/unaudited street checkboxes.
+ * Filters the street layer based on the audited/outdated/unaudited street checkboxes.
+ *
+ * Streets carry a three-state status (#4384): audited (has an audit on current imagery), outdated (audited before,
+ * but newer imagery exists), or unaudited (neither property set). On pages without the outdated checkbox, outdated
+ * streets follow the audited checkbox.
  * @param {object} map The Mapbox map object.
  */
 function filterStreetLayer(map) {
   const includeAudited = document.getElementById('audited-street').checked;
+  const includeOutdated = document.getElementById('outdated-street')?.checked ?? includeAudited;
   const includeUnaudited = document.getElementById('unaudited-street').checked;
-  if (includeAudited && includeUnaudited) {
-    map.setLayoutProperty('streets', 'visibility', 'visible');
-    map.setFilter('streets', null);
-  } else if (includeAudited) {
-    map.setLayoutProperty('streets', 'visibility', 'visible');
-    map.setFilter('streets', ['==', 'audited', true]);
-  } else if (includeUnaudited) {
-    map.setLayoutProperty('streets', 'visibility', 'visible');
-    map.setFilter('streets', ['==', 'audited', false]);
-  } else {
+
+  const included = [];
+  if (includeAudited) included.push(['==', ['get', 'audited'], true]);
+  if (includeOutdated) included.push(['==', ['get', 'outdated'], true]);
+  if (includeUnaudited) included.push(['all', ['!=', ['get', 'audited'], true], ['!=', ['get', 'outdated'], true]]);
+
+  if (included.length === 0) {
     map.setLayoutProperty('streets', 'visibility', 'none');
+  } else {
+    map.setLayoutProperty('streets', 'visibility', 'visible');
+    map.setFilter('streets', included.length === 3 ? null : ['any', ...included]);
   }
 }
 

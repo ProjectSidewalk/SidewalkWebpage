@@ -10,6 +10,7 @@
   "legend": "圖例",
   "streets": "街道",
   "audited-street": "已標記街道",
+  "outdated-street": "已標記但有更新影像的街道",
   "unaudited-street": "尚未標記街道",
   "not-applicable-abbr": "不適用",
   "deselect-all": "取消全選",

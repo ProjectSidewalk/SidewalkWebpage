@@ -154,6 +154,14 @@
         <label for="audited-street" data-i18n="labelmap:audited-street">Audited Street</label>
       </li>
       <li class="map-sidebar__item">
+        <input type="checkbox" id="outdated-street" data-filter-type="streets"
+        @if(streetsShownByDefault){checked} disabled>
+        <svg class="map-sidebar__street-icon map-sidebar__street-icon--outdated" width="17" height="14" viewBox="0 0 20 20">
+          <path d="M 2 10 L 18 10 z"></path>
+        </svg>
+        <label for="outdated-street" data-i18n="labelmap:outdated-street">Audited, Newer Imagery Available</label>
+      </li>
+      <li class="map-sidebar__item">
         <input type="checkbox" id="unaudited-street" data-filter-type="streets"
         @if(streetsShownByDefault){checked} disabled>
         <svg class="map-sidebar__street-icon map-sidebar__street-icon--unaudited" width="17" height="14" viewBox="0 0 20 20">

@@ -294,6 +294,13 @@ body.map-sidebar-resizing {
   stroke: var(--color-neutral-black);
 }
 
+/* Audited but newer imagery exists (#4384): same color as audited, dashed like the map rendering. */
+.map-sidebar__item .map-sidebar__street-icon--outdated path {
+  stroke: var(--color-neutral-black);
+  stroke-dasharray: 4 3;
+  stroke-linecap: butt;
+}
+
 .map-sidebar__item .map-sidebar__street-icon--unaudited path {
   stroke: var(--color-neutral-500);
 }

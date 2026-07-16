@@ -677,8 +677,10 @@ class AdminController @Inject() (
         Json.obj(
           "total_streets"              -> s.totalStreets,
           "audited_streets"            -> s.auditedStreets,
+          "reaudit_streets"            -> s.reauditStreets,
           "total_distance_mi"          -> s.totalDistanceMi,
           "audited_distance_mi"        -> s.auditedDistanceMi,
+          "reaudit_distance_mi"        -> s.reauditDistanceMi,
           "total_labels"               -> s.totalLabels,
           "total_validations"          -> s.totalValidations,
           "labels_past_week"           -> s.labelsPastWeek,

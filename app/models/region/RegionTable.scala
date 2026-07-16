@@ -198,6 +198,29 @@ class RegionTable @Inject() (
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
         GROUP BY street_edge_region.region_id
       ),
+      -- Get the distance of streets needing re-audit in each region: streets audited before, but whose completed
+      -- audits all predate newer imagery (audit_task.outdated_imagery, #4384).
+      region_outdated AS (
+        SELECT street_edge_region.region_id,
+               SUM(ST_Length(ST_Transform(street_edge.geom, 26918))) AS outdated_distance
+        FROM street_edge_region
+        JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
+            AND street_edge.status = 'open'
+            AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+        WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
+            AND EXISTS (
+                SELECT FROM audit_task
+                WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
+                    AND audit_task.completed = TRUE
+            )
+            AND NOT EXISTS (
+                SELECT FROM audit_task
+                WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
+                    AND audit_task.completed = TRUE
+                    AND audit_task.outdated_imagery = FALSE
+            )
+        GROUP BY street_edge_region.region_id
+      ),
       -- Get label counts, distinct user counts, and label timestamps for each region.
       region_labels AS (
         SELECT street_edge_region.region_id,
@@ -227,6 +250,7 @@ class RegionTable @Inject() (
              COALESCE(region_audits.audit_count, 0) AS audit_count,
              COALESCE(region_completion.total_distance, 0) AS total_distance_m,
              COALESCE(region_completion.audited_distance, 0) AS audited_distance_m,
+             COALESCE(region_outdated.outdated_distance, 0) AS outdated_distance_m,
              CASE WHEN COALESCE(region_completion.total_distance, 0) > 0
                   THEN region_completion.audited_distance / region_completion.total_distance
                   ELSE 0 END AS completion_rate,
@@ -236,6 +260,7 @@ class RegionTable @Inject() (
       FROM filtered_regions
       LEFT JOIN region_streets ON filtered_regions.region_id = region_streets.region_id
       LEFT JOIN region_audits ON filtered_regions.region_id = region_audits.region_id
+      LEFT JOIN region_outdated ON filtered_regions.region_id = region_outdated.region_id
       LEFT JOIN region_labels ON filtered_regions.region_id = region_labels.region_id
       LEFT JOIN region_completion ON filtered_regions.region_id = region_completion.region_id
       WHERE 1=1
@@ -253,6 +278,7 @@ class RegionTable @Inject() (
         auditCount = r.nextInt(),
         totalDistanceM = r.nextDouble(),
         auditedDistanceM = r.nextDouble(),
+        outdatedDistanceM = r.nextDouble(),
         completionRate = r.nextDouble(),
         firstLabelDate = r.nextTimestampOption().map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC)),
         lastLabelDate = r.nextTimestampOption().map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC)),
