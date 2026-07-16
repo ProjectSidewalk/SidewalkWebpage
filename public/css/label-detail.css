@@ -550,13 +550,19 @@ button.label-detail__meta-cell:focus-visible {
   max-height: 0;
   overflow: hidden;
   opacity: 0;
-  transition: max-height 220ms ease, opacity 180ms ease, margin-bottom 220ms ease;
+
+  /* visibility keeps the collapsed input/button out of the tab order and accessibility tree; its 220ms delay
+     holds the row visible until the collapse transition finishes. */
+  visibility: hidden;
+  transition: max-height 220ms ease, opacity 180ms ease, margin-bottom 220ms ease, visibility 0s 220ms;
 }
 
 .label-detail__comment-row.is-open {
   max-height: 60px; /* Anything comfortably above the input's 34px; the transition end point. */
   margin-bottom: 8px;
   opacity: 1;
+  visibility: visible;
+  transition-delay: 0s; /* Reveal immediately on open; the delay above only applies to the collapse. */
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -100,6 +100,7 @@ object LabelFormats {
       adminData: Option[AdminValidationData] = None,
       currUsername: Option[String] = None
   ): JsObject = {
+    val commenterIdx: Map[String, Int] = commenterIndices(labelMetadata.comments)
     Json.obj(
       "label_id"            -> labelMetadata.labelId,
       "label_type"          -> labelMetadata.labelType.name,
@@ -130,13 +131,11 @@ object LabelFormats {
       "ai_tags_not_present" -> labelMetadata.aiTagsNotPresent,
       "ai_generated"        -> labelMetadata.aiGenerated,
       "expired"             -> labelMetadata.expired,
-      "comments"            -> labelMetadata.comments.map(
-        commentToJson(_, currUsername, commenterIndices(labelMetadata.comments))
-      ),
-      "from_current_user" -> labelMetadata.fromCurrentUser,
-      "backup_image_url"  -> backupImageUrl,
-      "pano_data"         -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson),
-      "admin_data"        -> adminData.map(ad =>
+      "comments"            -> labelMetadata.comments.map(commentToJson(_, currUsername, commenterIdx)),
+      "from_current_user"   -> labelMetadata.fromCurrentUser,
+      "backup_image_url"    -> backupImageUrl,
+      "pano_data"           -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson),
+      "admin_data"          -> adminData.map(ad =>
         Json.obj(
           "username"             -> ad.username,
           "previous_validations" -> ad.previousValidations.map(prevVal =>
@@ -172,6 +171,7 @@ object LabelFormats {
 
   // Has the label metadata excluding a few admin-only fields.
   def labelMetadataWithValidationToJson(labelMetadata: LabelMetadata, currUsername: Option[String] = None): JsObject = {
+    val commenterIdx: Map[String, Int] = commenterIndices(labelMetadata.comments)
     Json.obj(
       "label_id"           -> labelMetadata.labelId,
       "pano_id"            -> labelMetadata.panoId,
@@ -195,14 +195,12 @@ object LabelFormats {
       "num_agree"          -> labelMetadata.validations("agree"),
       "num_disagree"       -> labelMetadata.validations("disagree"),
       "num_unsure"         -> labelMetadata.validations("unsure"),
-      "comments"           -> labelMetadata.comments.map(
-        commentToJson(_, currUsername, commenterIndices(labelMetadata.comments))
-      ),
-      "tags"              -> labelMetadata.tags,
-      "ai_generated"      -> labelMetadata.aiGenerated,
-      "expired"           -> labelMetadata.expired,
-      "from_current_user" -> labelMetadata.fromCurrentUser,
-      "pano_data"         -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson)
+      "comments"           -> labelMetadata.comments.map(commentToJson(_, currUsername, commenterIdx)),
+      "tags"               -> labelMetadata.tags,
+      "ai_generated"       -> labelMetadata.aiGenerated,
+      "expired"            -> labelMetadata.expired,
+      "from_current_user"  -> labelMetadata.fromCurrentUser,
+      "pano_data"          -> labelMetadata.panoMetadata.map(panoViewerMetadataToJson)
     )
   }
 
@@ -210,13 +208,14 @@ object LabelFormats {
       labelMetadata: LabelMetadata,
       adminData: AdminValidationData
   ): JsObject = {
+    val commenterIdx: Map[String, Int] = commenterIndices(labelMetadata.comments)
     // Start with normal metadata, then add the admin-only fields.
     labelMetadataWithValidationToJson(labelMetadata) ++ Json.obj(
       "audit_task_id" -> labelMetadata.auditTaskId,
       "user_id"       -> labelMetadata.userId,
       "username"      -> labelMetadata.username,
       "comments"      -> labelMetadata.comments.map { c =>
-        val idx: Int = commenterIndices(labelMetadata.comments).getOrElse(c.username, 0)
+        val idx: Int = commenterIdx.getOrElse(c.username, 0)
         Json.obj(
           "username"     -> c.username,
           "comment"      -> c.comment,
