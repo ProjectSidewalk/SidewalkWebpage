@@ -70,6 +70,18 @@ object StoryRejection {
       extends StoryRejection("story.error.text-too-long", s"Stories are limited to $maxLength characters.")
   case object TextRejected
       extends StoryRejection("story.error.text-rejected", "Your story contains language we can't publish.")
+  case class AltTextTooLong(maxLength: Int)
+      extends StoryRejection(
+        "story.error.alt-text-too-long",
+        s"Photo descriptions are limited to $maxLength characters."
+      )
+  case object AltTextRejected
+      extends StoryRejection(
+        "story.error.alt-text-rejected",
+        "Your photo description contains language we can't publish."
+      )
+  case object LinksNotAllowed
+      extends StoryRejection("story.error.links-not-allowed", "Links aren't allowed in stories or photo descriptions.")
   case object InvalidDisplayNameMode
       extends StoryRejection("story.error.invalid-display-name", "Invalid display-name option.")
   case object AlreadyExists

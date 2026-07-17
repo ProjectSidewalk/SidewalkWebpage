@@ -74,7 +74,7 @@ class StoryController @Inject() (
 
       // Inert-until-enabled IP burst layer on top of the always-on per-user DB limit in StoryService.
       val ipLimit = rateLimiter.limit("story-submit")
-      if (!rateLimiter.allow(s"story-submit:ip:${request.ipAddress}", ipLimit.maxAttempts, ipLimit.window)) {
+      if (!rateLimiter.allow(s"story-submit:ip:${request.ipAddress}", ipLimit)) {
         Future.successful(
           TooManyRequests(StoryFormats.rejectionToJson(StoryRejection.RateLimited))
             .withHeaders("Retry-After" -> ipLimit.window.toSeconds.toString)
@@ -114,7 +114,7 @@ class StoryController @Inject() (
       def dataPart(name: String): Option[String] = request.body.dataParts.get(name).flatMap(_.headOption)
 
       val ipLimit = rateLimiter.limit("story-submit")
-      if (!rateLimiter.allow(s"story-submit:ip:${request.ipAddress}", ipLimit.maxAttempts, ipLimit.window)) {
+      if (!rateLimiter.allow(s"story-submit:ip:${request.ipAddress}", ipLimit)) {
         Future.successful(
           TooManyRequests(StoryFormats.rejectionToJson(StoryRejection.RateLimited))
             .withHeaders("Retry-After" -> ipLimit.window.toSeconds.toString)
@@ -194,7 +194,8 @@ class StoryController @Inject() (
   /** Most recent stories across all users, hidden included — the admin moderation queue feed. */
   def getRecentStories(n: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // The request is unused, but SecuredAction needs it and the compiler wants it read.
-    storyService.getRecentStories(math.min(n, 500)).map { stories =>
+    // Clamp both ends: a negative n would reach Slick's .take and emit an invalid negative SQL LIMIT (500 otherwise).
+    storyService.getRecentStories(math.min(math.max(n, 0), 500)).map { stories =>
       Ok(Json.obj("stories" -> stories.map(StoryFormats.storyForAdminToJson)))
     }
   }

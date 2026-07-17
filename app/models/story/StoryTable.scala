@@ -215,6 +215,15 @@ class StoryTable @Inject() (
     storyMedia.filter(_.storyId === storyId).delete
   }
 
+  /**
+   * Deletes specific media rows by id. Used by the photo-replace path to retire the old row *after* the replacement
+   * is safely on disk, and to compensate the new row if placement fails — deleteMediaForStory can't, since during
+   * that swap both the old and new rows briefly coexist. An empty id list deletes nothing.
+   */
+  def deleteMediaRows(storyMediaIds: Seq[Int]): DBIO[Int] = {
+    storyMedia.filter(_.storyMediaId inSet storyMediaIds).delete
+  }
+
   def updateMediaAltText(storyId: Int, altText: Option[String]): DBIO[Int] = {
     storyMedia.filter(_.storyId === storyId).map(_.altText).update(altText)
   }

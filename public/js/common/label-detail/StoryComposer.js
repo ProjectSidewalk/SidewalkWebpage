@@ -23,11 +23,13 @@ class StoryComposer {
   #username;
   #objectUrl = null;
   #busy = false;
-  // Edit mode (#4054): non-null while editing an existing story. The existing photo is previewed from its signed
-  // URL (it can't be loaded into the file input), so its kept/removed/replaced state is tracked separately.
+  // Edit mode (#4054): non-null while editing an existing story. The existing photo is previewed from its signed URL
+  // (it can't be loaded into the file input). #existingMedia holds the still-shown existing photo (nulled once a
+  // replacement is picked or it's removed); #editHadMedia records whether the story had a photo when editing opened,
+  // so a removal is detectable at submit even after a replacement was picked and then cleared.
   #editStoryId = null;
   #existingMedia = null;
-  #removeExistingPhoto = false;
+  #editHadMedia = false;
   #editSnapshot = null;
 
   /**
@@ -104,7 +106,7 @@ class StoryComposer {
     this.#labelId = labelId;
     this.#editStoryId = null;
     this.#existingMedia = null;
-    this.#removeExistingPhoto = false;
+    this.#editHadMedia = false;
     this.#editSnapshot = null;
     if (maxTextLength) {
       this.#maxLength = maxTextLength;
@@ -130,7 +132,7 @@ class StoryComposer {
     this.#labelId = story.label_id;
     this.#editStoryId = story.story_id;
     this.#existingMedia = null;
-    this.#removeExistingPhoto = false;
+    this.#editHadMedia = false;
     if (maxTextLength) {
       this.#maxLength = maxTextLength;
       this.#els.text.maxLength = maxTextLength;
@@ -145,6 +147,7 @@ class StoryComposer {
     }
     if (story.media) {
       this.#existingMedia = story.media;
+      this.#editHadMedia = true;
       this.#revokeObjectUrl();
       els.photoThumb.src = story.media.url;
       els.photoPreview.hidden = false;
@@ -207,17 +210,15 @@ class StoryComposer {
       }
       // A newly picked file supersedes an existing photo being edited (the server treats it as a replacement).
       this.#existingMedia = null;
-      this.#removeExistingPhoto = false;
       this.#renderPhotoPreview(file);
       this.#clearError();
       els.altInput.focus();
     });
 
     els.photoRemove.addEventListener('click', () => {
-      if (this.#existingMedia) {
-        this.#existingMedia = null;
-        this.#removeExistingPhoto = true;
-      }
+      // Removal intent is derived at submit from #editHadMedia, so clearing the shown photo is all that's needed here
+      // — this stays correct even after a replacement was picked (which already nulled #existingMedia).
+      this.#existingMedia = null;
       this.#clearPhoto();
       els.photoInput.focus();
     });
@@ -289,12 +290,13 @@ class StoryComposer {
       const altText = els.altInput.value.trim();
       if (altText) formData.append('alt_text', altText);
     } else if (editing) {
-      // No new file: either the existing photo was removed, or it's kept and its description re-applied.
-      if (this.#removeExistingPhoto) {
-        formData.append('remove_photo', 'true');
-      } else if (this.#existingMedia) {
+      // No new file. If the existing photo is still shown, keep it and re-apply its (possibly edited) description; if
+      // the story had a photo at open and none is shown now, the author removed it.
+      if (this.#existingMedia) {
         const altText = els.altInput.value.trim();
         if (altText) formData.append('alt_text', altText);
+      } else if (this.#editHadMedia) {
+        formData.append('remove_photo', 'true');
       }
     }
 
@@ -456,28 +458,39 @@ class StoryComposer {
   }
 
   /**
-   * Reads and removes the draft for a label (one-shot: a restore consumes it so a later reload doesn't refill).
+   * Reads the draft for a label without removing it. The delete is a separate step (#deleteDraft) so a restore only
+   * consumes the draft once it has committed to applying it — a stale-label bail must not destroy the stash.
    * @param {number} labelId
    * @returns {Promise<?Object>} The draft, or null if none is stored.
    */
-  async #takeDraft(labelId) {
+  async #readDraft(labelId) {
     const db = await this.#openDraftDb();
     try {
       const store = StoryComposer.#DRAFT_STORE;
-      const draft = await new Promise((resolve, reject) => {
+      return await new Promise((resolve, reject) => {
         const req = db.transaction(store, 'readonly').objectStore(store).get(labelId);
         req.onsuccess = () => resolve(req.result || null);
         req.onerror = () => reject(req.error);
       });
-      if (draft) {
-        await new Promise((resolve, reject) => {
-          const tx = db.transaction(store, 'readwrite');
-          tx.objectStore(store).delete(labelId);
-          tx.oncomplete = resolve;
-          tx.onerror = () => reject(tx.error);
-        });
-      }
-      return draft;
+    } finally {
+      db.close();
+    }
+  }
+
+  /**
+   * Removes the stashed draft for a label (one-shot: a restore consumes it so a later reload doesn't refill).
+   * @param {number} labelId
+   */
+  async #deleteDraft(labelId) {
+    const db = await this.#openDraftDb();
+    try {
+      const store = StoryComposer.#DRAFT_STORE;
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(store, 'readwrite');
+        tx.objectStore(store).delete(labelId);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
     } finally {
       db.close();
     }
@@ -517,13 +530,17 @@ class StoryComposer {
   async #restoreDraft(labelId) {
     let draft;
     try {
-      draft = await this.#takeDraft(labelId);
+      draft = await this.#readDraft(labelId);
     } catch (err) {
       console.error('Could not read stashed story draft:', err);
       return;
     }
-    // Bail if nothing stashed, or the shown label changed while we were reading (don't clobber the new composer).
+    // Bail if nothing stashed, or the shown label changed while we were reading (don't clobber the new composer). The
+    // read didn't delete, so bailing here leaves the draft intact for the correct label's next open.
     if (!draft || this.#labelId !== labelId) return;
+    // Committed to restoring: consume the draft now so a later reload doesn't refill. Fire-and-forget — we already
+    // hold it in memory, and a failed delete only means it may reappear on the next open, never lost work.
+    this.#deleteDraft(labelId).catch((err) => console.error('Could not clear stashed story draft:', err));
     const els = this.#els;
     els.text.value = draft.text || '';
     this.#renderCounter();

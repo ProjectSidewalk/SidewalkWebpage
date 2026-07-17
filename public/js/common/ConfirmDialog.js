@@ -11,6 +11,9 @@ class ConfirmDialog {
   static #dialog = null;
   static #els = null;
   static #resolve = null;
+  // Set while #settle is programmatically closing the dialog, so the resulting queued `close` event knows the close
+  // was ours (already settled) and doesn't re-settle a confirmation that was reopened in the same tick.
+  static #settling = false;
 
   /**
    * Shows the confirmation and resolves with the user's choice.
@@ -26,6 +29,9 @@ class ConfirmDialog {
    */
   static confirm({ message, confirmText, cancelText, danger = false, confirmIconSrc = null }) {
     const els = ConfirmDialog.#ensureDialog();
+    // A prior confirmation is still open (only reachable programmatically — the native modal blocks user-driven
+    // double-opens): resolve it false and reset before reusing the shared dialog, so its caller can't hang.
+    if (ConfirmDialog.#resolve) ConfirmDialog.#settle(false);
     els.message.textContent = message;
     els.confirmLabel.textContent = confirmText;
     els.cancel.textContent = cancelText;
@@ -68,22 +74,32 @@ class ConfirmDialog {
     };
     els.confirm.addEventListener('click', () => ConfirmDialog.#settle(true));
     els.cancel.addEventListener('click', () => ConfirmDialog.#settle(false));
-    // Catches every dismissal the buttons don't (Esc, programmatic close): the pending promise settles false.
-    dialog.addEventListener('close', () => ConfirmDialog.#settle(false));
+    // Catches every dismissal the buttons don't (Esc, backdrop): the pending promise settles false. A close that
+    // #settle itself triggered is flagged, so its queued close event doesn't re-settle a reopened confirmation.
+    dialog.addEventListener('close', () => {
+      if (ConfirmDialog.#settling) {
+        ConfirmDialog.#settling = false;
+        return;
+      }
+      ConfirmDialog.#settle(false);
+    });
     ConfirmDialog.#dialog = dialog;
     ConfirmDialog.#els = els;
     return els;
   }
 
   /**
-   * Resolves the pending promise exactly once and closes the dialog. The close event re-enters here with the
-   * resolver already cleared, so the double call is harmless.
+   * Resolves the pending promise exactly once and closes the dialog. Flags the programmatic close so its queued
+   * `close` event (handled above) doesn't re-settle a confirmation reopened before the event fires.
    * @param {boolean} confirmed
    */
   static #settle(confirmed) {
     const resolve = ConfirmDialog.#resolve;
     ConfirmDialog.#resolve = null;
-    if (ConfirmDialog.#dialog.open) ConfirmDialog.#dialog.close();
+    if (ConfirmDialog.#dialog.open) {
+      ConfirmDialog.#settling = true;
+      ConfirmDialog.#dialog.close();
+    }
     resolve?.(confirmed);
   }
 }

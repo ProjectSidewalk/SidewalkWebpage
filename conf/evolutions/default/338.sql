@@ -10,7 +10,7 @@ CREATE TYPE story_visibility AS ENUM ('visible', 'hidden');
 CREATE TABLE story (
     story_id SERIAL PRIMARY KEY,
     label_id INTEGER NOT NULL REFERENCES label (label_id),
-    user_id TEXT NOT NULL,
+    user_id TEXT NOT NULL REFERENCES sidewalk_login.sidewalk_user (user_id),
     story_text TEXT NOT NULL,
     display_name_mode TEXT NOT NULL DEFAULT 'anonymous' CHECK (display_name_mode IN ('anonymous', 'username')),
     visibility story_visibility NOT NULL DEFAULT 'visible',

@@ -21,7 +21,7 @@ import scala.concurrent.duration._
 
 /**
  * Functional tests for the lived-experience story endpoints (#4054). Boots the real app against Postgres (applying
- * evolution 337 forward), exercising the full stack: routing, CSRF, Silhouette anon sessions, multipart parsing, the
+ * evolution 338 forward), exercising the full stack: routing, CSRF, Silhouette anon sessions, multipart parsing, the
  * photo re-encode pipeline, signed media serving, and the hard-delete retraction contract (row AND bytes gone).
  *
  * Story-creating tests clean up after themselves via the retraction endpoint, so repeated runs against the shared dev
@@ -33,13 +33,19 @@ import scala.concurrent.duration._
 class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    new GuiceApplicationBuilder()
+      .disable[modules.ActorModule]
+      // The suite posts well over the 20/day/IP story-submit cap from one test IP; disable that layer here so it
+      // doesn't throttle the functional tests. The limiter's own behavior is covered by RateLimiterSpec.
+      .configure("rate-limit.story-submit.enabled" -> false)
+      .build()
 
   implicit lazy val mat: Materializer = app.materializer
 
   private val labelService: LabelService = app.injector.instanceOf[LabelService]
   private val storyService: StoryService = app.injector.instanceOf[StoryService]
   private val maxTextLength: Int         = app.configuration.get[Int]("stories.max-text-length")
+  private val maxAltTextLength: Int      = app.configuration.get[Int]("stories.max-alt-text-length")
   private val maxPerDay: Int             = app.configuration.get[Int]("stories.max-per-user-per-day")
 
   private lazy val labelIds: Seq[Int] =
@@ -76,9 +82,10 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       session: Seq[Cookie],
       storyId: Int,
       text: String,
-      extraParts: Map[String, Seq[String]] = Map.empty
+      extraParts: Map[String, Seq[String]] = Map.empty,
+      files: Seq[MultipartFormData.FilePart[play.api.libs.Files.TemporaryFile]] = Seq.empty
   ) = {
-    val body = multipartBody(Map("text" -> Seq(text)) ++ extraParts)
+    val body = multipartBody(Map("text" -> Seq(text)) ++ extraParts, files)
     route(
       app,
       FakeRequest(PUT, s"/userapi/stories/$storyId")
@@ -178,6 +185,8 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
             status(updateStory(session, storyId, "   ")) mustBe BAD_REQUEST
             status(updateStory(session, storyId, "x" * (maxTextLength + 1))) mustBe BAD_REQUEST
+            // The edit path shares submission's content validation — the same link rule applies here.
+            status(updateStory(session, storyId, "now visit http://spam.example")) mustBe BAD_REQUEST
           } finally {
             val _ = status(deleteStory(session, storyId))
           }
@@ -193,6 +202,45 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
           status(postStory(session, id, "x" * (maxTextLength + 1))) mustBe BAD_REQUEST
           status(postStory(session, id, "valid text", Map("display_name_mode" -> Seq("full-legal-name")))) mustBe
             BAD_REQUEST
+      }
+    }
+
+    "reject a link in the story text (anti-spam)" in {
+      labelIds.headOption match {
+        case None     => cancel("No labels in the connected test DB.")
+        case Some(id) =>
+          val session = freshAnonSession()
+          val resp    = postStory(session, id, "Great deals at http://spam.example, check it out!")
+          status(resp) mustBe BAD_REQUEST
+          (contentAsJson(resp) \ "error").as[String] mustBe "story.error.links-not-allowed"
+      }
+    }
+
+    "reject a link or over-long description in a photo's alt text" in {
+      labelIds.headOption match {
+        case None     => cancel("No labels in the connected test DB.")
+        case Some(id) =>
+          val session = freshAnonSession()
+          // alt_text rides the photo part and is validated before the (skipped) decode, so a real photo isn't needed.
+          val linked = postStory(
+            session,
+            id,
+            "valid story text",
+            Map("alt_text" -> Seq("see www.spam.example")),
+            files = Seq(testJpegFilePart())
+          )
+          status(linked) mustBe BAD_REQUEST
+          (contentAsJson(linked) \ "error").as[String] mustBe "story.error.links-not-allowed"
+
+          val tooLong = postStory(
+            session,
+            id,
+            "valid story text",
+            Map("alt_text" -> Seq("d" * (maxAltTextLength + 1))),
+            files = Seq(testJpegFilePart())
+          )
+          status(tooLong) mustBe BAD_REQUEST
+          (contentAsJson(tooLong) \ "error").as[String] mustBe "story.error.alt-text-too-long"
       }
     }
 
@@ -264,6 +312,41 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
           status(deleteStory(session, storyId)) mustBe OK
           storyService.storyMediaFile(mediaId).exists() mustBe false
           status(route(app, FakeRequest(GET, mediaUrl)).get) mustBe NOT_FOUND
+      }
+    }
+
+    "replace a story's photo on edit: new bytes served, old bytes removed, text updated" in {
+      labelIds.headOption match {
+        case None     => cancel("No labels in the connected test DB.")
+        case Some(id) =>
+          val session = freshAnonSession()
+          val posted  = postStory(
+            session,
+            id,
+            "story before photo swap",
+            Map("alt_text" -> Seq("first photo")),
+            files = Seq(testJpegFilePart())
+          )
+          status(posted) mustBe OK
+          val storyId    = (contentAsJson(posted) \ "story_id").as[Int]
+          val oldMediaId = (contentAsJson(posted) \ "media" \ "story_media_id").as[Int]
+          try {
+            storyService.storyMediaFile(oldMediaId).exists() mustBe true
+
+            status(updateStory(session, storyId, "story after photo swap", files = Seq(testJpegFilePart()))) mustBe OK
+
+            val read = storiesArray(contentAsJson(getStories(id, session)))
+              .find(s => (s \ "story_id").as[Int] == storyId)
+            read mustBe defined
+            (read.get \ "text").as[String] mustBe "story after photo swap"
+            val newMediaId = (read.get \ "media" \ "story_media_id").as[Int]
+            newMediaId must not be oldMediaId
+
+            // New bytes serve; the retired photo's bytes are gone (place-before-destroy completed).
+            status(route(app, FakeRequest(GET, (read.get \ "media" \ "url").as[String])).get) mustBe OK
+            storyService.storyMediaFile(oldMediaId).exists() mustBe false
+            storyService.storyMediaFile(newMediaId).exists() mustBe true
+          } finally { val _ = status(deleteStory(session, storyId)) }
       }
     }
 

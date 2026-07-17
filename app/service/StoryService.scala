@@ -71,10 +71,11 @@ class StoryServiceImpl @Inject() (
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger = Logger(this.getClass)
 
-  val maxTextLength: Int           = config.get[Int]("stories.max-text-length")
-  private val maxPerDay: Int       = config.get[Int]("stories.max-per-user-per-day")
-  private val photoMaxBytes: Long  = config.get[Long]("stories.photo-max-bytes")
-  private val mediaBaseDir: String =
+  val maxTextLength: Int            = config.get[Int]("stories.max-text-length")
+  private val maxAltTextLength: Int = config.get[Int]("stories.max-alt-text-length")
+  private val maxPerDay: Int        = config.get[Int]("stories.max-per-user-per-day")
+  private val photoMaxBytes: Long   = config.get[Long]("stories.photo-max-bytes")
+  private val mediaBaseDir: String  =
     config.get[String]("story.media.directory") + File.separator + config.get[String]("city-id")
 
   // Upload formats the composer's accept attribute advertises, validated against the SNIFFED format (never the
@@ -83,12 +84,21 @@ class StoryServiceImpl @Inject() (
   private val ACCEPTED_FORMATS = Set("jpeg", "png")
   // Decompression-bomb guard: reject images whose declared dimensions are absurd before fully decoding them.
   private val MAX_SOURCE_DIMENSION = 12000
+  // A sane per-edge size can still be a decompression bomb: a 12000x12000 flat-color PNG is ~100 KB on the wire but
+  // decodes to a ~576 MB raster. Cap total decoded pixels too, so a handful of concurrent uploads can't exhaust the
+  // shared JVM heap regardless of how small the compressed bytes are (#4054 hardening).
+  private val MAX_SOURCE_PIXELS: Long = 40000000L
   // Longest edge of the re-encoded photo; large enough for the enlarge view, small enough to serve cheaply.
   private val MAX_OUTPUT_EDGE = 2560
   private val JPEG_QUALITY    = 0.85f
   // Upload GPS within this many meters of the label counts as "near" — consumer GPS is ±5-50m in urban canyons, so
   // this only corroborates rough co-location, never adjudicates position (#4054).
   private val NEAR_LABEL_METERS = 250.0
+  // Lived-experience stories are personal accounts that essentially never legitimately contain URLs, so any link reads
+  // as spam (#4054 anti-abuse). Matches an explicit scheme, a `www.` host, or a bare domain on a common/abused TLD.
+  private val LinkPattern =
+    ("(?i)(https?://|www\\.|\\b[a-z0-9-]+\\.(com|net|org|io|co|ru|cn|xyz|top|info|biz|link|click|shop|online|site|" +
+      "store)\\b)").r
 
   /** The re-encoded photo staged in a temp file, plus the derived (metadata-free) facts we keep. */
   private case class ProcessedPhoto(
@@ -128,45 +138,39 @@ class StoryServiceImpl @Inject() (
     val text = storyText.trim
     // firstError sequence: cheap syntactic checks, then DB checks, then the expensive photo pipeline last so
     // rate-limited or duplicate submissions never cost a decode.
-    if (!Story.validDisplayNameModes.contains(displayNameMode)) {
-      Future.successful(Left(StoryRejection.InvalidDisplayNameMode))
-    } else if (text.isEmpty) {
-      Future.successful(Left(StoryRejection.TextMissing))
-    } else if (text.length > maxTextLength) {
-      Future.successful(Left(StoryRejection.TextTooLong(maxTextLength)))
-    } else if (!ProfanityGuard.isClean(text)) {
-      Future.successful(Left(StoryRejection.TextRejected))
-    } else {
-      val since  = OffsetDateTime.now(ZoneOffset.UTC).minusHours(24)
-      val checks = for {
-        labelOk   <- storyTable.labelExists(labelId)
-        duplicate <- storyTable.userHasStoryOnLabel(labelId, userId)
-        recent    <- storyTable.countByUserSince(userId, since)
-      } yield {
-        if (!labelOk) Some(StoryRejection.LabelNotFound)
-        else if (duplicate) Some(StoryRejection.AlreadyExists)
-        else if (recent >= maxPerDay) Some(StoryRejection.RateLimited)
-        else None
-      }
-      db.run(checks).flatMap {
-        case Some(rejection) => Future.successful(Left(rejection))
-        case None            =>
-          photo match {
-            case None         => insertStory(labelId, userId, text, displayNameMode, None)
-            case Some(upload) =>
-              labelService.getLabelLatLng(labelId).flatMap { labelLatLng =>
-                Future(processPhoto(upload, labelLatLng))(cpuEc).flatMap {
-                  case Left(rejection) => Future.successful(Left(rejection))
-                  case Right(p)        =>
-                    // Whatever happens downstream (duplicate-race Left, DB error, failed move), the staged file was
-                    // either moved into place or must not outlive the request — one cleanup for every path.
-                    insertStory(labelId, userId, text, displayNameMode, Some((upload, p))).andThen { case _ =>
-                      val _ = Try(Files.deleteIfExists(p.staged.toPath))
-                    }
+    contentRejection(text, displayNameMode, photo.flatMap(_.altText)) match {
+      case Some(rejection) => Future.successful(Left(rejection))
+      case None            =>
+        val since  = OffsetDateTime.now(ZoneOffset.UTC).minusHours(24)
+        val checks = for {
+          labelOk   <- storyTable.labelExists(labelId)
+          duplicate <- storyTable.userHasStoryOnLabel(labelId, userId)
+          recent    <- storyTable.countByUserSince(userId, since)
+        } yield {
+          if (!labelOk) Some(StoryRejection.LabelNotFound)
+          else if (duplicate) Some(StoryRejection.AlreadyExists)
+          else if (recent >= maxPerDay) Some(StoryRejection.RateLimited)
+          else None
+        }
+        db.run(checks).flatMap {
+          case Some(rejection) => Future.successful(Left(rejection))
+          case None            =>
+            photo match {
+              case None         => insertStory(labelId, userId, text, displayNameMode, None)
+              case Some(upload) =>
+                labelService.getLabelLatLng(labelId).flatMap { labelLatLng =>
+                  Future(processPhoto(upload, labelLatLng))(cpuEc).flatMap {
+                    case Left(rejection) => Future.successful(Left(rejection))
+                    case Right(p)        =>
+                      // Whatever happens downstream (duplicate-race Left, DB error, failed move), the staged file was
+                      // either moved into place or must not outlive the request — one cleanup for every path.
+                      insertStory(labelId, userId, text, displayNameMode, Some((upload, p))).andThen { case _ =>
+                        val _ = Try(Files.deleteIfExists(p.staged.toPath))
+                      }
+                  }
                 }
-              }
-          }
-      }
+            }
+        }
     }
   }
 
@@ -187,51 +191,52 @@ class StoryServiceImpl @Inject() (
       altText: Option[String]
   ): Future[Either[StoryRejection, Unit]] = {
     val text = storyText.trim
-    if (!Story.validDisplayNameModes.contains(displayNameMode)) {
-      Future.successful(Left(StoryRejection.InvalidDisplayNameMode))
-    } else if (text.isEmpty) {
-      Future.successful(Left(StoryRejection.TextMissing))
-    } else if (text.length > maxTextLength) {
-      Future.successful(Left(StoryRejection.TextTooLong(maxTextLength)))
-    } else if (!ProfanityGuard.isClean(text)) {
-      Future.successful(Left(StoryRejection.TextRejected))
-    } else {
-      db.run(storyTable.getOwned(storyId, userId)).flatMap {
-        case None        => Future.successful(Left(StoryRejection.StoryNotFound))
-        case Some(story) =>
-          newPhoto match {
-            case Some(upload) =>
-              labelService.getLabelLatLng(story.labelId).flatMap { labelLatLng =>
-                Future(processPhoto(upload, labelLatLng))(cpuEc).flatMap {
-                  case Left(rejection) => Future.successful(Left(rejection))
-                  case Right(p)        =>
-                    replaceStoryPhoto(story, text, displayNameMode, upload, p).andThen { case _ =>
-                      val _ = Try(Files.deleteIfExists(p.staged.toPath))
-                    }
+    // The alt text is validated whether it rides a replacement photo (newPhoto) or re-applies to the kept one; the
+    // controller derives both from the same form field, so `altText` carries it in every case except a bare removal.
+    contentRejection(text, displayNameMode, if (removePhoto) None else altText) match {
+      case Some(rejection) => Future.successful(Left(rejection))
+      case None            =>
+        db.run(storyTable.getOwned(storyId, userId)).flatMap {
+          case None        => Future.successful(Left(StoryRejection.StoryNotFound))
+          case Some(story) =>
+            newPhoto match {
+              case Some(upload) =>
+                labelService.getLabelLatLng(story.labelId).flatMap { labelLatLng =>
+                  Future(processPhoto(upload, labelLatLng))(cpuEc).flatMap {
+                    case Left(rejection) => Future.successful(Left(rejection))
+                    case Right(p)        =>
+                      replaceStoryPhoto(story, text, displayNameMode, upload, p).andThen { case _ =>
+                        val _ = Try(Files.deleteIfExists(p.staged.toPath))
+                      }
+                  }
                 }
-              }
-            case None =>
-              val action = (for {
-                oldMedia <- storyTable.getMediaForStory(storyId)
-                _        <- storyTable.updateOwnedContent(storyId, userId, text, displayNameMode)
-                _        <-
-                  if (removePhoto) storyTable.deleteMediaForStory(storyId)
-                  else if (oldMedia.nonEmpty) storyTable.updateMediaAltText(storyId, altText)
-                  else DBIO.successful(0)
-              } yield oldMedia).transactionally
-              db.run(action).map { oldMedia =>
-                if (removePhoto) oldMedia.foreach(m => deleteMediaFile(m.storyMediaId))
-                Right(())
-              }
-          }
-      }
+              case None =>
+                val action = (for {
+                  oldMedia <- storyTable.getMediaForStory(storyId)
+                  _        <- storyTable.updateOwnedContent(storyId, userId, text, displayNameMode)
+                  _        <-
+                    if (removePhoto) storyTable.deleteMediaForStory(storyId)
+                    else if (oldMedia.nonEmpty) storyTable.updateMediaAltText(storyId, altText)
+                    else DBIO.successful(0)
+                } yield oldMedia).transactionally
+                db.run(action).map { oldMedia =>
+                  if (removePhoto) oldMedia.foreach(m => deleteMediaFile(m.storyMediaId))
+                  Right(())
+                }
+            }
+        }
     }
   }
 
   /**
-   * Swaps the story's photo for an already-processed replacement and updates the text, transactionally. The old
-   * bytes are removed only after the new file is atomically in place; a failed move compensates by dropping the
-   * new media row so the story never references missing bytes (mirroring insertStory).
+   * Swaps the story's photo for an already-processed replacement and updates the text. Place-before-destroy: the new
+   * media row is inserted (to mint its id-derived path) and the file moved into place *before* the text edit and the
+   * old row are committed, so any failure — a failed move or a failed commit — compensates back to a true no-op: the
+   * old photo, its bytes, and the pre-edit text are all left untouched rather than a story stripped of its photo.
+   *
+   * The tradeoff is a brief window (the duration of the file move) where both the old and new media rows exist; the
+   * card would render the story twice for that sub-second span. That is strictly preferable to the alternative's
+   * silent data loss, and consistent with insertStory's existing "row exists before its file lands" window.
    */
   private def replaceStoryPhoto(
       story: Story,
@@ -241,30 +246,38 @@ class StoryServiceImpl @Inject() (
       p: ProcessedPhoto
   ): Future[Either[StoryRejection, Unit]] = {
     val now    = OffsetDateTime.now
-    val action = (for {
-      oldMedia <- storyTable.getMediaForStory(story.storyId)
-      _        <- storyTable.updateOwnedContent(story.storyId, story.userId, text, displayNameMode)
-      _        <- storyTable.deleteMediaForStory(story.storyId)
-      mediaId  <- storyTable.insertMedia(
-        StoryMedia(0, story.storyId, "photo", "image/jpeg", Some(p.width), Some(p.height), None, Some(p.sizeBytes),
-          upload.altText, p.captureRecency, p.nearLabel, now)
-      )
-    } yield (oldMedia, mediaId)).transactionally
-    db.run(action).flatMap { case (oldMedia, mediaId) =>
-      Future {
-        val target = storyMediaFile(mediaId)
-        target.getParentFile.mkdirs()
-        Files.move(p.staged.toPath, target.toPath, StandardCopyOption.ATOMIC_MOVE)
-        ()
-      }(cpuEc)
-        .map { _ =>
-          oldMedia.foreach(m => deleteMediaFile(m.storyMediaId))
-          Right(())
-        }
-        .recoverWith { case e =>
-          logger.error(s"Failed to place replacement media file for story ${story.storyId}: ${e.getMessage}")
-          db.run(storyTable.deleteMediaForStory(story.storyId)).flatMap(_ => Future.failed(e))
-        }
+    val newRow = StoryMedia(0, story.storyId, "photo", "image/jpeg", Some(p.width), Some(p.height), None,
+      Some(p.sizeBytes), upload.altText, p.captureRecency, p.nearLabel, now)
+    db.run(storyTable.getMediaForStory(story.storyId)).flatMap { oldMedia =>
+      db.run(storyTable.insertMedia(newRow)).flatMap { newMediaId =>
+        val placeThenCommit = for {
+          _ <- Future {
+            val target = storyMediaFile(newMediaId)
+            target.getParentFile.mkdirs()
+            Files.move(p.staged.toPath, target.toPath, StandardCopyOption.ATOMIC_MOVE)
+            ()
+          }(cpuEc)
+          _ <- db.run(
+            (for {
+              _ <- storyTable.updateOwnedContent(story.storyId, story.userId, text, displayNameMode)
+              _ <- storyTable.deleteMediaRows(oldMedia.map(_.storyMediaId))
+            } yield ()).transactionally
+          )
+        } yield ()
+        placeThenCommit
+          .map { _ =>
+            oldMedia.foreach(m => deleteMediaFile(m.storyMediaId))
+            Right(())
+          }
+          .recoverWith { case e =>
+            logger.error(s"Failed to replace media file for story ${story.storyId}: ${e.getMessage}")
+            // Undo the new row and any file we placed; the old photo/bytes/text were never touched.
+            db.run(storyTable.deleteMediaRows(Seq(newMediaId))).flatMap { _ =>
+              val _ = Try(Files.deleteIfExists(storyMediaFile(newMediaId).toPath))
+              Future.failed(e)
+            }
+          }
+      }
     }
   }
 
@@ -346,6 +359,39 @@ class StoryServiceImpl @Inject() (
       altText = m.altText
     )
   }
+
+  /**
+   * The content-validation checks shared by submission and in-place edit (#4054): display-name mode, story text
+   * (presence, length, profanity), and the photo's alt text (length, profanity). Centralizing this is what keeps an
+   * edit from bypassing a rule the submit path enforces — the alt text especially, since it renders publicly (card
+   * caption, `img alt`, `aria-label`) yet isn't the story body.
+   *
+   * @param text            The trimmed story text.
+   * @param displayNameMode The requested display-name mode.
+   * @param altText         The photo's alt text, if a photo is attached; None when there's no photo to describe.
+   * @return                The first failing check, or None when the content is acceptable.
+   */
+  private def contentRejection(
+      text: String,
+      displayNameMode: String,
+      altText: Option[String]
+  ): Option[StoryRejection] = {
+    if (!Story.validDisplayNameModes.contains(displayNameMode)) Some(StoryRejection.InvalidDisplayNameMode)
+    else if (text.isEmpty) Some(StoryRejection.TextMissing)
+    else if (text.length > maxTextLength) Some(StoryRejection.TextTooLong(maxTextLength))
+    else if (!ProfanityGuard.isClean(text)) Some(StoryRejection.TextRejected)
+    else if (containsLink(text)) Some(StoryRejection.LinksNotAllowed)
+    else
+      altText match {
+        case Some(alt) if alt.length > maxAltTextLength => Some(StoryRejection.AltTextTooLong(maxAltTextLength))
+        case Some(alt) if !ProfanityGuard.isClean(alt)  => Some(StoryRejection.AltTextRejected)
+        case Some(alt) if containsLink(alt)             => Some(StoryRejection.LinksNotAllowed)
+        case _                                          => None
+      }
+  }
+
+  /** Whether the text contains something that looks like a URL/link — treated as spam in a personal story (#4054). */
+  private def containsLink(s: String): Boolean = LinkPattern.findFirstIn(s).isDefined
 
   /**
    * Inserts the story (and media row) transactionally, then moves the staged photo into its id-derived location.
@@ -463,8 +509,11 @@ class StoryServiceImpl @Inject() (
         readers.nextOption().exists { reader =>
           try {
             reader.setInput(stream)
+            val width  = reader.getWidth(0)
+            val height = reader.getHeight(0)
             ACCEPTED_FORMATS.contains(reader.getFormatName.toLowerCase) &&
-            reader.getWidth(0) <= MAX_SOURCE_DIMENSION && reader.getHeight(0) <= MAX_SOURCE_DIMENSION
+            width <= MAX_SOURCE_DIMENSION && height <= MAX_SOURCE_DIMENSION &&
+            width.toLong * height.toLong <= MAX_SOURCE_PIXELS
           } finally reader.dispose()
         }
       } finally stream.close()

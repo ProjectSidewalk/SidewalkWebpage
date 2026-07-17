@@ -70,8 +70,9 @@ object StoryFormats {
     r match {
       // The composer interpolates {{max}} client-side; ride the real limit along so it can never render blank
       // (the composer may not have fetched /stories — and its max_text_length — before submitting).
-      case StoryRejection.TextTooLong(maxLength) => base + ("max" -> JsNumber(maxLength))
-      case _                                     => base
+      case StoryRejection.TextTooLong(maxLength)    => base + ("max" -> JsNumber(maxLength))
+      case StoryRejection.AltTextTooLong(maxLength) => base + ("max" -> JsNumber(maxLength))
+      case _                                        => base
     }
   }
 }

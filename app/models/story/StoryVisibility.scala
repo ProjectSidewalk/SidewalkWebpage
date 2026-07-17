@@ -8,7 +8,7 @@ package models.story
  *   - `hidden`  admin quarantine: reversible and keeps the row and media bytes as abuse evidence; only admins and
  *               the author (flagged, still able to retract) can see it. The author's retraction is a row DELETE.
  *
- * NOTE: if changing these values, update the `story_visibility` Postgres enum type as well (see 336.sql).
+ * NOTE: if changing these values, update the `story_visibility` Postgres enum type as well (see 338.sql).
  */
 object StoryVisibility extends Enumeration {
   type StoryVisibility = Value

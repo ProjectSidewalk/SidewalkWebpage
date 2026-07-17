@@ -29,6 +29,8 @@ object CommonUtils {
     val SharedLabel                     = Value("SharedLabel")
     val SharedLabelImage                = Value("SharedLabelImage")
     val SharedLabelThumbs               = Value("SharedLabelThumbs")
+    val DashboardStories                = Value("DashboardStories")
+    val AdminStories                    = Value("AdminStories")
     val OldDataUnknownSource            = Value("Old data, unknown source")
   }
 
