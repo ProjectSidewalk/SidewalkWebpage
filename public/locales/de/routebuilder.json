@@ -1,8 +1,12 @@
 {
   "cta-select-region": "Klicke auf die Nachbarschaft, in der du eine Route erstellen möchtest, oder gib eine Startadresse ein",
   "cta-pick-start": "Klicke irgendwo in der Nachbarschaft, um deinen Startpunkt zu setzen",
-  "hint-pick-end": "Klicke nun dorthin, wo deine Route enden soll",
+  "guide-select-region": "Klicken, um eine Route in {{region}} zu erstellen",
+  "guide-pick-start": "Klicken, um deine Route zu starten",
+  "guide-pick-end": "Klicken, um den Endpunkt zu setzen — klicke weiter, um zu verlängern",
   "hint-extend": "Klicke weiter, um deine Route zu verlängern — oder speichere sie, wenn du fertig bist",
+  "route-saved": "Route gespeichert!",
+  "saved-explore": "Erkunden",
   "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
   "est-time-minutes": "~{{min}} Min.",
   "est-time-hours": "~{{hours}} Std. {{min}} Min.",

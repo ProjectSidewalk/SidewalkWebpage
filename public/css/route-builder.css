@@ -53,7 +53,7 @@
 }
 
 #routebuilder-panel[data-state="building"] .routebuilder-panel__empty,
-#routebuilder-panel[data-state="building"] .routebuilder-panel__recent {
+#routebuilder-panel[data-state="building"] .routebuilder-panel__saved {
   display: none;
 }
 
@@ -262,42 +262,16 @@
   gap: 24px;
 }
 
-#route-saved-modal {
-  gap: 24px;
-}
-
-#route-saved-title-section, #delete-route-title-section {
+#delete-route-title-section {
   padding-top: 8px;
   align-items: center;
   gap: 12px;
 }
 
-#route-saved-buttons, #delete-route-buttons {
+#delete-route-buttons {
   gap: 12px;
   justify-content: center;
   flex-wrap: wrap;
-}
-
-#route-saved-share-section {
-  gap: 8px;
-}
-
-#share-route-subsection {
-  padding: 10px 20px;
-  border-radius: 10px;
-  background: var(--color-neutral-100);
-}
-
-#share-route-link {
-  flex: 1 0 0;
-  color: var(--color-neutral-700);
-  font: var(--text-caption-regular);
-  word-break: break-all;
-}
-
-#route-saved-share-warnings {
-  color: var(--color-label-surface-problem);
-  font-weight: 600;
 }
 
 #save-route-modal {
@@ -336,31 +310,26 @@
   flex-wrap: wrap;
 }
 
-#route-saved-name {
-  font-weight: 700;
-}
-
-#route-saved-account-note {
-  text-align: center;
-}
-
-#recent-routes-panel {
+/* "Your saved routes": one card per route on the intro panel, separated from the address block by a rule. */
+#saved-routes-panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-neutral-200);
 }
 
 /* The flex display would otherwise override the hidden attribute's UA display: none. */
-#recent-routes-panel[hidden] {
+#saved-routes-panel[hidden] {
   display: none;
 }
 
-#recent-routes-note {
+#saved-routes-note {
   color: var(--color-neutral-700);
   font: var(--text-caption-regular);
 }
 
-#recent-routes-list {
+#saved-routes-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -369,36 +338,47 @@
   gap: 8px;
 }
 
-.recent-route-item {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--color-neutral-300);
-}
-
-.recent-route-info {
+.saved-route-card {
   display: flex;
   flex-direction: column;
-  flex: 1 0 0;
-  min-width: 0;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 10px;
+  background: var(--color-neutral-white);
 }
 
-.recent-route-name {
+/* The just-saved route gets a soft success tint so the eye lands on it after the save toast. */
+.saved-route-card--new {
+  border-color: var(--color-pine-500);
+  background: var(--color-pine-100);
+}
+
+.saved-route-name {
   font: var(--text-small-bold);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.recent-route-meta {
+.saved-route-meta {
   color: var(--color-neutral-700);
   font: var(--text-caption-regular);
 }
 
-.recent-route-copy {
-  flex-shrink: 0;
+.saved-route-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+a.saved-route-explore {
+  text-decoration: none;
+}
+
+#saved-routes-dashboard-link {
+  font: var(--text-caption-medium);
 }
 
 /* The reverse/delete menu that opens on click or a short hover over the drawn route. */
@@ -478,12 +458,31 @@
   border-right-color: var(--color-asphalt-500);
 }
 
-/* Always-visible map legend: top-right, tucked under the zoom/compass controls. Compact card matching the planner
-   chrome. */
+/* The pointer-following guide bubble ("Click to start your route"). Non-interactive so it never eats a click. */
+.rb-cursor-guide {
+  pointer-events: none;
+}
+
+.rb-cursor-guide .mapboxgl-popup-content {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--color-asphalt-500);
+  color: var(--color-neutral-white);
+  font: var(--text-caption-medium);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 25%);
+  pointer-events: none;
+}
+
+.rb-cursor-guide .mapboxgl-popup-tip {
+  display: none; /* It follows the cursor, so an anchor tip would just jitter. */
+}
+
+/* Always-visible map legend: top-right, beside (left of) the zoom/compass controls. Compact card matching the
+   planner chrome. */
 #routebuilder-legend {
   position: absolute;
-  top: 120px;
-  right: 16px;
+  top: 16px;
+  right: 66px;
   z-index: 10;
   width: 190px;
   padding: 12px 16px;

@@ -69,13 +69,16 @@
           </button>
         </div>
       </div>
-      @if(isAnon) {
-        <div id="recent-routes-panel" class="routebuilder-panel__recent" hidden>
-          <span id="recent-routes-title" class="routebuilder-h2">@Messages("routebuilder.recent.routes")</span>
-          <span id="recent-routes-note">@Messages("routebuilder.recent.routes.note")</span>
-          <ul id="recent-routes-list"></ul>
-        </div>
-      }
+      <div id="saved-routes-panel" class="routebuilder-panel__saved" hidden>
+        <span id="saved-routes-title" class="routebuilder-h2">@Messages("routebuilder.saved.routes")</span>
+        @if(isAnon) {
+          <span id="saved-routes-note">@Messages("routebuilder.recent.routes.note")</span>
+        }
+        <ul id="saved-routes-list"></ul>
+        @if(!isAnon) {
+          <a id="saved-routes-dashboard-link" href="/dashboard#my-routes">@Messages("routebuilder.view.in.dashboard")</a>
+        }
+      </div>
     </div>
     <div id="routebuilder-legend">
       <span id="routebuilder-legend-title">@Messages("routebuilder.legend.title")</span>
@@ -130,33 +133,6 @@
       </div>
     </div>
   </div>
-  <div id="route-saved-modal-backdrop" class="routebuilder-overlay-backdrop">
-    <div id="route-saved-modal" class="routebuilder-overlay routebuilder-centered-overlay" role="dialog" aria-modal="true" aria-labelledby="route-saved-title">
-      <div id="route-saved-title-section" class="flex-div-col">
-        <img id="route-saved-checkmark" src="@assets.path("images/icons/routebuilder/green-check.svg")" alt="@Messages("routebuilder.saved.icon.alt")">
-        <span id="route-saved-title" class="routebuilder-h1">@Messages("routebuilder.saved")</span>
-        <span id="route-saved-name"></span>
-        @if(!isAnon) {
-          <span id="route-saved-account-note">@Messages("routebuilder.saved.to.account") <a href="/dashboard#my-routes" id="route-saved-dashboard-link">@Messages("routebuilder.view.in.dashboard")</a></span>
-        }
-      </div>
-      <div id="route-saved-share-section" class="flex-div-col">
-        <span id="route-saved-share-title">@Messages("routebuilder.share.title")</span>
-        <div id="share-route-subsection" class="flex-div-row">
-          <span id="share-route-link"></span>
-          <button type="button" id="copy-link-button" class="button-ps button--primary button--small">@Messages("routebuilder.copy.link")</button>
-        </div>
-        @if(isAnon) {
-          <span id="route-saved-share-warnings">@Messages("routebuilder.share.warning")</span>
-        }
-      </div>
-      <div id="route-saved-buttons" class="flex-div-row">
-        <button type="button" id="explore-button" class="button-ps button--primary button--medium">@Messages("routebuilder.explore.route")</button>
-        <button type="button" id="view-in-labelmap-button" class="button-ps button--secondary button--medium">@Messages("routebuilder.view.in.labelmap")</button>
-        <button type="button" id="build-new-route-button" class="button-ps button--secondary button--medium">@Messages("routebuilder.build.another.route")</button>
-      </div>
-    </div>
-  </div>
 
   <script>
     // Gets all translations before loading the map.
@@ -167,7 +143,7 @@
       const loadStreets = $.getJSON('/contribution/streets/all?filterLowQuality=true');
 
       const initMap = $.when(loadMapParams).done(function(mapParams) {
-        routeBuilder = new RouteBuilder($, '@commonData.mapboxApiKey', mapParams, @(!isAnon), @minutesPer100m);
+        routeBuilder = new RouteBuilder('@commonData.mapboxApiKey', mapParams, @(!isAnon), @minutesPer100m);
       });
       $.when(initMap, loadPolygons).done(function(d0, neighborhoodData) {
         routeBuilder.renderNeighborhoods(neighborhoodData[0]);

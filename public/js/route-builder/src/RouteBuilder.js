@@ -5,8 +5,8 @@
  * extends the route from the last point along an A* walking path over the street network (RouteGraph). Routes are
  * contiguous by construction. Clicking the drawn route opens a small action menu (RoutePopover: reverse / delete).
  * A slim Start/End address seed (DirectionsPanel) can plant the first two points, implicitly selecting the region.
- * The save flow lives in SaveModal; the anonymous "recent routes on this device" recovery list lives in
- * GuestRoutes.
+ * The save flow lives in SaveModal; saved routes surface as cards on the intro panel (SavedRoutesPanel). The
+ * in-progress route is drafted to sessionStorage so reloads (e.g. the sign-in round-trip) can't lose it.
  *
  * The route is defined entirely by #waypoints (ordered snapped points); the drawn streets, endpoint flags, and
  * stats are all derived from them by #recompute, so add / undo / reverse are just edits to that list followed by a
@@ -21,16 +21,21 @@ class RouteBuilder {
   static ROUTE_MENU_HOVER_MS = 500;
   // How long the co-located next-step hint stays anchored to the newest flag.
   static HINT_DURATION_MS = 7000;
+  // Storage key for the in-progress route draft, restored after any reload (e.g. the sign-in round-trip).
+  static DRAFT_KEY = 'rb-route-draft';
+
+  // Muted categorical tints cycled by region id, so adjacent neighborhoods read as visually distinct choices.
+  static NEIGHBORHOOD_FILL_COLORS = ['#78C9AB', '#FBD98C', '#F29173', '#9F9DB1', '#78B0EA'];
 
   // Neighborhood paints by stage: while choosing, every region is washed and outlined so the map reads as a set of
   // clickable choices; once one is selected, only it stays outlined and the wash drops to a hover-only tint.
   static NEIGHBORHOOD_PAINT_CHOOSING = {
-    fillOpacity: ['case', ['boolean', ['feature-state', 'hover'], false], 0.24, 0.10],
+    fillOpacity: ['case', ['boolean', ['feature-state', 'hover'], false], 0.38, 0.18],
     lineOpacity: 0.4,
   };
 
   static NEIGHBORHOOD_PAINT_SELECTED = {
-    fillOpacity: ['case', ['boolean', ['feature-state', 'hover'], false], 0.12, 0.0],
+    fillOpacity: ['case', ['boolean', ['feature-state', 'hover'], false], 0.15, 0.0],
     lineOpacity: ['case', ['boolean', ['feature-state', 'current'], false], 0.5, 0.0],
   };
 
@@ -38,7 +43,8 @@ class RouteBuilder {
     mapLoaded: false,
     neighborhoodsLoaded: false, // Neighborhood GeoJSON has arrived from the server.
     neighborhoodsRendered: false, // Neighborhood source/layers have been added to the map.
-    streetsLoaded: false,
+    streetsLoaded: false, // Street GeoJSON has arrived from the server.
+    streetsRendered: false, // Street source/layers/handlers have been added to the map.
     pendingRouteRestored: false,
   };
 
@@ -63,10 +69,11 @@ class RouteBuilder {
   #explorerRaf = null; // Pending requestAnimationFrame id for the save-hover explorer animation.
   #hintPopup = null; // The next-step hint anchored at the newest flag (null when not showing).
   #hintTimeout = null; // Auto-hide timer for #hintPopup.
+  #cursorGuide = null; // The pointer-following what-a-click-does bubble (created lazily).
 
   // Collaborators.
   #saveModal;
-  #guestRoutes;
+  #savedRoutes;
   #undoStack;
   #directionsPanel;
   #routePopover;
@@ -75,8 +82,6 @@ class RouteBuilder {
   #panel;
   #ctaEl;
   #deleteRouteModal;
-  #routeSavedModal;
-  #routeSavedNameEl;
   #streetDistanceEl;
   #routeTimeEl;
   #streetCountEl;
@@ -84,20 +89,15 @@ class RouteBuilder {
   #routeStatsEl;
   #routeMetaRowEl;
   #saveButton;
-  #exploreButton;
-  #linkTextEl;
-  #copyLinkButton;
-  #viewInLabelmapButton;
 
   /**
-   * @param {Function} $ - jQuery.
    * @param {string} mapboxApiKey
    * @param {Object} mapParams - City center/boundaries/zoom for initializing the map.
    * @param {boolean} isSignedIn - Whether the user is signed in (vs anonymous), from the server.
    * @param {number} minutesPer100m - The city's labeling pace (minutes per 100 m), for the exploration-time
    *   estimate; server-provided (ConfigService.getCityLabelingSpeed).
    */
-  constructor($, mapboxApiKey, mapParams, isSignedIn, minutesPer100m) {
+  constructor(mapboxApiKey, mapParams, isSignedIn, minutesPer100m) {
     this.#mapboxApiKey = mapboxApiKey;
     this.#isSignedIn = isSignedIn === true;
     this.#units = i18next.t('common:unit-distance');
@@ -107,8 +107,6 @@ class RouteBuilder {
     this.#panel = document.getElementById('routebuilder-panel');
     this.#ctaEl = document.getElementById('routebuilder-cta');
     this.#deleteRouteModal = document.getElementById('delete-route-modal-backdrop');
-    this.#routeSavedModal = document.getElementById('route-saved-modal-backdrop');
-    this.#routeSavedNameEl = document.getElementById('route-saved-name');
     this.#streetDistanceEl = document.getElementById('route-length-val');
     this.#routeTimeEl = document.getElementById('route-time-val');
     this.#streetCountEl = document.getElementById('route-street-count');
@@ -116,27 +114,26 @@ class RouteBuilder {
     this.#routeStatsEl = document.getElementById('route-stats');
     this.#routeMetaRowEl = document.getElementById('route-meta-row');
     this.#saveButton = document.getElementById('save-button');
-    this.#exploreButton = $('#explore-button');
-    this.#linkTextEl = document.getElementById('share-route-link');
-    this.#copyLinkButton = $('#copy-link-button');
-    this.#viewInLabelmapButton = $('#view-in-labelmap-button');
 
     // Wire the route-management buttons.
     document.getElementById('cancel-button').addEventListener('click', () => this.#clickCancelRoute());
     document.getElementById('delete-route-button').addEventListener('click', (e) => this.#clearRoute(e));
     document.getElementById('cancel-delete-route-button').addEventListener('click', () => this.#clickResumeRoute());
-    document.getElementById('build-new-route-button').addEventListener('click', (e) => this.#clearRoute(e));
 
     this.#saveModal = new SaveModal({
       isSignedIn: this.#isSignedIn,
       getRegionId: () => this.#currRegionId,
       getRegionName: () => this.#getRegionName(this.#currRegionId),
       getStreetsPayload: () => this.#routeStreetsPayload(),
-      onSaved: (routeId, name) => this.#showRouteSavedModal(routeId, name),
+      onSaved: (routeId, name) => this.#handleRouteSaved(routeId, name),
       onClose: () => this.#saveButton.focus(),
     });
-    this.#guestRoutes = new GuestRoutes((btn, message) => this.#setTemporaryTooltip(btn, message));
-    this.#guestRoutes.render();
+    this.#savedRoutes = new SavedRoutesPanel({
+      isSignedIn: this.#isSignedIn,
+      formatMeta: (distanceMeters, regionName) => this.#formatRouteMeta(distanceMeters, regionName),
+      setTemporaryTooltip: (btn, message) => this.#setTemporaryTooltip(btn, message),
+    });
+    this.#savedRoutes.refresh();
 
     this.#undoStack = new UndoStack(document.getElementById('undo-button'));
     document.getElementById('undo-button').addEventListener('click', () => {
@@ -327,7 +324,9 @@ class RouteBuilder {
       type: 'fill',
       source: 'neighborhoods',
       paint: {
-        'fill-color': '#2D2A3F', // --color-asphalt-500 (map paint can't read CSS tokens).
+        // Tint per region (DS pine/banana/orange/asphalt/obstacle-blue; map paint can't read CSS tokens).
+        'fill-color': ['at', ['%', ['get', 'region_id'], RouteBuilder.NEIGHBORHOOD_FILL_COLORS.length],
+          ['literal', RouteBuilder.NEIGHBORHOOD_FILL_COLORS]],
         'fill-opacity': RouteBuilder.NEIGHBORHOOD_PAINT_CHOOSING.fillOpacity,
       },
     });
@@ -402,7 +401,9 @@ class RouteBuilder {
     map.setPaintProperty(
       'neighborhoods-outline', 'line-opacity', RouteBuilder.NEIGHBORHOOD_PAINT_SELECTED.lineOpacity,
     );
-    this.#clearGhostStart(); // Mousemove doesn't fire during the zoom animation, so drop any stale ghost now.
+    // Mousemove doesn't fire during the zoom animation, so drop the stale pointer feedback now.
+    this.#clearGhostStart();
+    this.#setCursorGuide(null);
 
     if (fit) {
       const region = this.#neighborhoodData?.features.find((n) => n.properties.region_id === regionId);
@@ -557,8 +558,11 @@ class RouteBuilder {
       clearTimeout(routeHoverTimer);
       map.getCanvas().style.cursor = '';
     });
-    map.on('mousemove', (event) => this.#updateGhostStart(event.lngLat));
-    map.on('mouseout', () => this.#clearGhostStart());
+    map.on('mousemove', (event) => this.#onMapPointerMove(event.lngLat));
+    map.on('mouseout', () => {
+      this.#clearGhostStart();
+      this.#setCursorGuide(null);
+    });
 
     // Click handling follows the staged flow. On the drawn route: open the reverse/delete menu (a small pixel box
     // around the click gives the thin line a comfortable hit target). Before any point exists: clicking a
@@ -585,6 +589,7 @@ class RouteBuilder {
       this.#addWaypoint(event.lngLat, 'MapClick');
     });
 
+    this.#status.streetsRendered = true;
     this.#maybeRestorePendingRoute();
   }
 
@@ -601,43 +606,100 @@ class RouteBuilder {
   }
 
   /**
-   * Moves the ghost flag to the intersection nearest the mouse (rAF-throttled: snapping scans the street network,
-   * so at most one scan per frame). Once a neighborhood is selected this is the click affordance: a translucent
-   * start flag before the first point, then a translucent end flag while extending. Snapping is restricted to the
-   * selected region; hovering a different region shows a not-allowed cursor instead.
+   * Pointer pipeline for the map (rAF-throttled — snapping scans the street network, so at most one pass per
+   * frame): keeps the ghost flag (where the next click lands) and the cursor guide (what the next click does) in
+   * sync with the mouse.
    *
    * @param {Object} lngLat - The mouse position {lng, lat}.
    */
-  #updateGhostStart(lngLat) {
-    if (this.#currRegionId === null || !this.#routeGraph) return;
+  #onMapPointerMove(lngLat) {
     this.#ghostLngLat = lngLat;
     if (this.#ghostRaf !== null) return;
     this.#ghostRaf = requestAnimationFrame(() => {
       this.#ghostRaf = null;
-      if (this.#currRegionId === null) return; // State may have changed mid-frame.
-      const source = this.#map.getSource('ghost-start');
-      if (!source) return;
-
-      // Hovering a different region: no preview there — the route can't leave the selected neighborhood. (Before
-      // the route starts, clicking a different region moves the selection, so the pointer cursor applies instead.)
-      const hoverRegionId = this.#regionIdAtPoint(this.#map.project(this.#ghostLngLat));
-      if (this.#routeStarted() && hoverRegionId !== null && hoverRegionId !== this.#currRegionId) {
-        this.#clearGhostStart();
-        this.#map.getCanvas().style.cursor = 'not-allowed';
-        return;
-      }
-      if (this.#map.getCanvas().style.cursor === 'not-allowed') this.#map.getCanvas().style.cursor = '';
-
-      const snap = this.#routeGraph.snapToStreet(this.#ghostLngLat, this.#currRegionId);
-      if (!snap) return;
-      const kind = this.#routeStarted() ? 'end' : 'start';
-      source.setData({
-        type: 'FeatureCollection',
-        features: [{
-          type: 'Feature', properties: { kind }, geometry: { type: 'Point', coordinates: snap.nodeLngLat },
-        }],
-      });
+      const point = this.#map.project(this.#ghostLngLat);
+      const hoverRegionId = this.#regionIdAtPoint(point);
+      this.#updateGhost(hoverRegionId);
+      this.#updateCursorGuide(hoverRegionId, point);
     });
+  }
+
+  /**
+   * Moves the ghost flag to the intersection nearest the mouse. Once a neighborhood is selected this is the click
+   * affordance: a translucent start flag before the first point, then a translucent end flag while extending.
+   * Snapping is restricted to the selected region; hovering a different region shows a not-allowed cursor once the
+   * route is locked there.
+   *
+   * @param {number|null} hoverRegionId - Region under the pointer, if any.
+   */
+  #updateGhost(hoverRegionId) {
+    const source = this.#map.getSource('ghost-start');
+    if (!source || this.#currRegionId === null || !this.#routeGraph) return;
+    if (this.#routeStarted() && hoverRegionId !== null && hoverRegionId !== this.#currRegionId) {
+      this.#clearGhostStart();
+      this.#map.getCanvas().style.cursor = 'not-allowed';
+      return;
+    }
+    if (this.#map.getCanvas().style.cursor === 'not-allowed') this.#map.getCanvas().style.cursor = '';
+
+    const snap = this.#routeGraph.snapToStreet(this.#ghostLngLat, this.#currRegionId);
+    if (!snap) return;
+    const kind = this.#routeStarted() ? 'end' : 'start';
+    source.setData({
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature', properties: { kind }, geometry: { type: 'Point', coordinates: snap.nodeLngLat },
+      }],
+    });
+  }
+
+  /**
+   * The cursor guide: a small bubble following the pointer that says what a click here does — pick or switch a
+   * neighborhood (named), start the route, or set the end point. It retires once the mechanic is demonstrably
+   * learned (2+ points) and stays out of the way of the drawn route's own menu.
+   *
+   * @param {number|null} hoverRegionId - Region under the pointer, if any.
+   * @param {Object} point - Screen {x, y} of the pointer.
+   */
+  #updateCursorGuide(hoverRegionId, point) {
+    let text = null;
+    const overRoute = this.#streetsInRoute !== null && this.#streetsInRoute.features.length > 0
+      && this.#map.queryRenderedFeatures([[point.x - 6, point.y - 6], [point.x + 6, point.y + 6]],
+        { layers: ['streets-chosen'] }).length > 0;
+    if (!overRoute && !this.#routePopover.isOpen()) {
+      if (!this.#routeStarted()) {
+        if (hoverRegionId !== null && hoverRegionId !== this.#currRegionId) {
+          text = i18next.t('guide-select-region', { region: this.#getRegionName(hoverRegionId) ?? '' });
+        } else if (hoverRegionId !== null) {
+          text = i18next.t('guide-pick-start');
+        }
+      } else if (this.#waypoints.length === 1 && hoverRegionId === this.#currRegionId) {
+        text = i18next.t('guide-pick-end');
+      }
+    }
+    this.#setCursorGuide(text);
+  }
+
+  /**
+   * Shows the pointer-following guide bubble with the given text, or hides it when null.
+   * @param {string|null} text
+   */
+  #setCursorGuide(text) {
+    if (text === null) {
+      this.#cursorGuide?.remove();
+      return;
+    }
+    if (!this.#cursorGuide) {
+      this.#cursorGuide = new mapboxgl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        maxWidth: '260px',
+        offset: 18,
+        className: 'rb-cursor-guide',
+      }).trackPointer();
+    }
+    this.#cursorGuide.setText(text);
+    if (!this.#cursorGuide.isOpen()) this.#cursorGuide.addTo(this.#map);
   }
 
   /** Hides the ghost flag (mouse left the map, or the click just landed). */
@@ -717,13 +779,10 @@ class RouteBuilder {
       }
     }
     this.#recompute();
-    // Co-located guidance at the point that just landed: what the next click does.
-    if (this.#waypoints.length === 1) {
-      this.#showHint([point.lng, point.lat], i18next.t('hint-pick-end'));
-    } else if (this.#waypoints.length === 2) {
+    this.#setCursorGuide(null); // Stale until the next pointer move re-evaluates it for the new stage.
+    // The one static hint: right after the end point lands, reassure that the route isn't capped at two clicks.
+    if (this.#waypoints.length === 2) {
       this.#showHint([point.lng, point.lat], i18next.t('hint-extend'));
-    } else {
-      this.#hideHint();
     }
     window.logWebpageActivity(`RouteBuilder_AddWaypoint=Success_Count=${this.#waypoints.length}_Source=${source}`);
   }
@@ -767,6 +826,7 @@ class RouteBuilder {
     this.#syncDirectionsFields();
     this.#directionsPanel.setEndVisible(this.#routeStarted());
     this.#updateCta();
+    this.#saveDraft();
   }
 
   /**
@@ -807,19 +867,47 @@ class RouteBuilder {
     }
 
     const km = feats.reduce((sum, street) => sum + turf.length(street, { units: 'kilometers' }), 0);
-    const routeDist = this.#units === 'miles' ? km / 1.609344 : km;
-    this.#streetDistanceEl.innerText = i18next.t('route-length', { dist: routeDist.toFixed(2) });
-
-    const minutes = Math.max(1, Math.round((km * 1000 / 100) * this.#minutesPer100m));
-    this.#routeTimeEl.innerText = minutes < 60
-      ? i18next.t('est-time-minutes', { min: minutes })
-      : i18next.t('est-time-hours', { hours: Math.floor(minutes / 60), min: minutes % 60 });
-
+    this.#streetDistanceEl.innerText = this.#formatDistance(km);
+    this.#routeTimeEl.innerText = this.#formatEstTime(km);
     this.#streetCountEl.innerText = i18next.t('street-count', { count: feats.length });
 
     const regionName = this.#getRegionName(this.#currRegionId);
     this.#regionChipEl.textContent = regionName ?? '';
     this.#regionChipEl.hidden = regionName === null;
+  }
+
+  /**
+   * Formats a route length in the user's display units, e.g. "0.48 mi".
+   * @param {number} km
+   * @returns {string}
+   */
+  #formatDistance(km) {
+    const dist = this.#units === 'miles' ? km / 1.609344 : km;
+    return i18next.t('route-length', { dist: dist.toFixed(2) });
+  }
+
+  /**
+   * Formats the estimated exploration time for a route length, e.g. "~31 min" or "~1 hr 5 min".
+   * @param {number} km
+   * @returns {string}
+   */
+  #formatEstTime(km) {
+    const minutes = Math.max(1, Math.round((km * 1000 / 100) * this.#minutesPer100m));
+    return minutes < 60
+      ? i18next.t('est-time-minutes', { min: minutes })
+      : i18next.t('est-time-hours', { hours: Math.floor(minutes / 60), min: minutes % 60 });
+  }
+
+  /**
+   * One-line meta description for a saved-route card: distance, estimated exploration time, and neighborhood.
+   *
+   * @param {number} distanceMeters
+   * @param {string|null} regionName
+   * @returns {string}
+   */
+  #formatRouteMeta(distanceMeters, regionName) {
+    const km = distanceMeters / 1000;
+    return [this.#formatDistance(km), this.#formatEstTime(km), regionName].filter(Boolean).join(' · ');
   }
 
   /**
@@ -976,6 +1064,7 @@ class RouteBuilder {
     this.#hideHint();
     this.#unlockRegion();
     this.#updateStats();
+    this.#saveDraft();
   }
 
   /** Releases the region selection: back to the choosing stage (all regions washed/outlined, labels visible). */
@@ -995,18 +1084,23 @@ class RouteBuilder {
   }
 
   /**
-   * Restores a route stashed in sessionStorage before a sign-in reload, then reopens the save modal.
+   * Restores a route stashed in sessionStorage before a sign-in reload, then reopens the save modal. With no
+   * stash, falls back to the in-progress draft (#restoreDraft) so a plain reload doesn't lose work either.
    *
-   * Runs once, after the map, neighborhoods, and streets have all rendered. The stash holds the saved street list
-   * (not waypoints), so it's drawn directly; the user lands in the save flow rather than mid-edit.
+   * Runs once, after the map, neighborhoods, and streets have all *rendered* — the streets-rendered gate matters:
+   * drawing the route needs the 'streets-chosen' source, which doesn't exist while the street GeoJSON has merely
+   * arrived.
    */
   #maybeRestorePendingRoute() {
-    if (this.#status.pendingRouteRestored || !this.#status.mapLoaded
-      || !this.#status.neighborhoodsRendered || !this.#status.streetsLoaded) return;
+    if (this.#status.pendingRouteRestored
+      || !this.#status.neighborhoodsRendered || !this.#status.streetsRendered) return;
 
     this.#status.pendingRouteRestored = true;
     const pending = SaveModal.consumePendingRoute();
-    if (!pending) return;
+    if (!pending) {
+      this.#restoreDraft();
+      return;
+    }
 
     const map = this.#map;
     const features = [];
@@ -1037,6 +1131,48 @@ class RouteBuilder {
     this.#saveModal.open(pending.name || null);
   }
 
+  /**
+   * Persists the in-progress route (waypoints + region) to this tab's storage so a reload — including the sign-in
+   * round-trip — can restore it. Cleared when the route empties.
+   */
+  #saveDraft() {
+    try {
+      if (this.#waypoints.length > 0) {
+        sessionStorage.setItem(
+          RouteBuilder.DRAFT_KEY, JSON.stringify({ regionId: this.#currRegionId, waypoints: this.#waypoints }),
+        );
+      } else {
+        sessionStorage.removeItem(RouteBuilder.DRAFT_KEY);
+      }
+    } catch {
+      // Storage unavailable (e.g. private browsing): building still works, it just won't survive a reload.
+    }
+  }
+
+  /**
+   * Restores an unsaved in-progress route from this tab's draft stash. The draft holds only the waypoints and
+   * region; everything else is recomputed, and the camera fits the restored route.
+   */
+  #restoreDraft() {
+    let draft = null;
+    try {
+      draft = JSON.parse(sessionStorage.getItem(RouteBuilder.DRAFT_KEY));
+    } catch {
+      return; // Storage unavailable or a corrupted draft: start fresh.
+    }
+    if (!draft || !Array.isArray(draft.waypoints) || draft.waypoints.length === 0) return;
+    if (draft.regionId === null || draft.regionId === undefined) return;
+
+    this.#selectRegion(draft.regionId, false);
+    this.#waypoints = draft.waypoints;
+    this.#setPanelState('building');
+    this.#recompute();
+    const coords = this.#streetsInRoute.features.flatMap((f) => f.geometry.coordinates);
+    const points = coords.length > 0 ? coords : this.#waypoints.map((wp) => [wp.lng, wp.lat]);
+    this.#map.fitBounds(turf.bbox({ type: 'MultiPoint', coordinates: points }),
+      { padding: 80, maxZoom: 16, duration: 800 });
+  }
+
   /** Shows the delete-route confirmation modal. */
   #openDeleteConfirm() {
     this.#deleteRouteModal.style.visibility = 'visible';
@@ -1063,17 +1199,13 @@ class RouteBuilder {
 
     if (e && e.target && e.target.id === 'delete-route-button') {
       window.logWebpageActivity('RouteBuilder_Click=ConfirmCancelRoute');
-    } else if (e && e.target && e.target.id === 'build-new-route-button') {
-      window.logWebpageActivity('RouteBuilder_Click=BuildNewRoute');
     }
   }
 
   #resetUI() {
     this.#setPanelState('empty');
-    this.#routeSavedModal.style.visibility = 'hidden';
     this.#deleteRouteModal.style.visibility = 'hidden';
     this.#saveModal.hide();
-    this.#guestRoutes.render();
     this.#directionsPanel.clearFields();
     this.#directionsPanel.setEndVisible(false);
     this.#updateCta();
@@ -1103,43 +1235,29 @@ class RouteBuilder {
   }
 
   /**
-   * Shows the Route Saved modal and wires up its share/explore/labelmap actions.
+   * After a successful save: records the route (device-local list for guests), resets the builder to the intro
+   * state, refreshes the "Your saved routes" panel with the new route highlighted, and confirms with a toast —
+   * the card carries the share/explore actions, so there is no post-save modal.
    *
    * @param {number} routeId
    * @param {string} name - The route's saved name.
    */
-  #showRouteSavedModal(routeId, name) {
-    this.#routeSavedModal.style.visibility = 'visible';
-    const exploreRelURL = `/explore?routeId=${routeId}`;
-    const exploreURL = `${window.location.origin}${exploreRelURL}`;
-    this.#routeSavedNameEl.textContent = name;
-
-    // For guests, remember the route on this device so a forgotten link isn't fatal.
+  #handleRouteSaved(routeId, name) {
     if (!this.#isSignedIn) {
-      this.#guestRoutes.record(routeId, name, this.#getRegionName(this.#currRegionId), exploreURL);
+      const km = this.#streetsInRoute.features
+        .reduce((sum, street) => sum + turf.length(street, { units: 'kilometers' }), 0);
+      this.#savedRoutes.recordGuestRoute({
+        routeId,
+        name,
+        regionName: this.#getRegionName(this.#currRegionId),
+        url: `${window.location.origin}/explore?routeId=${routeId}`,
+        distanceMeters: km * 1000,
+      });
     }
-
-    // Update link and tooltip for Explore route button.
-    this.#exploreButton.off('click');
-    this.#exploreButton.click(() => {
-      window.logWebpageActivity(`RouteBuilder_Click=Explore_RouteId=${routeId}`);
-      window.location.replace(exploreRelURL);
-    });
-
-    // Add the 'copied to clipboard' tooltip on click.
-    this.#linkTextEl.textContent = exploreURL;
-    this.#copyLinkButton.off('click');
-    this.#copyLinkButton.click((e) => {
-      navigator.clipboard.writeText(exploreURL);
-      this.#setTemporaryTooltip(e.currentTarget, i18next.t('copied-to-clipboard'));
-      window.logWebpageActivity(`RouteBuilder_Click=Copy_RouteId=${routeId}`);
-    });
-
-    // Update link for the 'View in LabelMap' button.
-    this.#viewInLabelmapButton.off('click');
-    this.#viewInLabelmapButton.click(() => {
-      window.logWebpageActivity(`RouteBuilder_Click=LabelMap_RouteId=${routeId}`);
-      window.open(`/labelMap?routes=${routeId}`, '_blank');
-    });
+    this.#emptyRoute();
+    this.#undoStack.clear();
+    this.#resetUI();
+    this.#savedRoutes.refresh(routeId);
+    Toast.show({ message: i18next.t('route-saved'), duration: 3000 });
   }
 }

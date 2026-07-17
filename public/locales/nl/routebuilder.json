@@ -1,8 +1,12 @@
 {
   "cta-select-region": "Klik op de buurt waar je een route wilt bouwen, of voer een startadres in",
   "cta-pick-start": "Klik ergens in de buurt om je startpunt te plaatsen",
-  "hint-pick-end": "Klik nu waar je route moet eindigen",
+  "guide-select-region": "Klik om een route te maken in {{region}}",
+  "guide-pick-start": "Klik om je route te starten",
+  "guide-pick-end": "Klik om je eindpunt te plaatsen — blijf klikken om uit te breiden",
   "hint-extend": "Blijf klikken om je route uit te breiden — of sla hem op als je klaar bent",
+  "route-saved": "Route opgeslagen!",
+  "saved-explore": "Verkennen",
   "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
   "est-time-minutes": "~{{min}} min",
   "est-time-hours": "~{{hours}} u {{min}} min",

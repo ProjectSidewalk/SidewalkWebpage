@@ -1,8 +1,12 @@
 {
   "cta-select-region": "Clique no bairro onde você quer criar sua rota, ou digite um endereço de início",
   "cta-pick-start": "Clique em qualquer lugar do bairro para colocar seu ponto de partida",
-  "hint-pick-end": "Agora clique onde sua rota deve terminar",
+  "guide-select-region": "Clique para criar uma rota em {{region}}",
+  "guide-pick-start": "Clique para começar sua rota",
+  "guide-pick-end": "Clique para definir o ponto final — continue clicando para estender",
   "hint-extend": "Continue clicando para estender sua rota — ou salve quando terminar",
+  "route-saved": "Rota salva!",
+  "saved-explore": "Explorar",
   "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
   "est-time-minutes": "~{{min}} min",
   "est-time-hours": "~{{hours}} h {{min}} min",
