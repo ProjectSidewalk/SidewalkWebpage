@@ -20,6 +20,8 @@ class LabelAiFailureTableDef(tag: Tag) extends Table[LabelAiFailure](tag, "label
     (LabelAiFailure.apply _).tupled,
     LabelAiFailure.unapply
   )
+
+  def label = foreignKey("label_ai_failure_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
 }
 
 @ImplementedBy(classOf[LabelAiFailureTable])

@@ -1,6 +1,7 @@
 package models.cluster
 
 import com.google.inject.ImplementedBy
+import models.label.LabelTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -16,11 +17,12 @@ class ClusterLabelTableDef(tag: Tag) extends Table[ClusterLabel](tag, "cluster_l
 
   def * = (clusterLabelId, clusterId, labelId) <> ((ClusterLabel.apply _).tupled, ClusterLabel.unapply)
 
-//  def cluster: ForeignKeyQuery[ClusterTable, Cluster] =
-//    foreignKey("cluster_label_cluster_id_fkey", clusterId, TableQuery[ClusterTableDef])(_.clusterId)
-//
-//  def label: ForeignKeyQuery[LabelTable, Label] =
-//    foreignKey("cluster_label_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
+  def cluster =
+    foreignKey("cluster_label_cluster_id_fkey", clusterId, TableQuery[ClusterTableDef])(
+      _.clusterId,
+      onDelete = ForeignKeyAction.Cascade
+    )
+  def label = foreignKey("cluster_label_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
 }
 
 @ImplementedBy(classOf[ClusterLabelTable]) trait ClusterLabelTableRepository {

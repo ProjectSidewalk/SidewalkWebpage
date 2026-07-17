@@ -1,6 +1,7 @@
 package models.utils
 
 import com.google.inject.ImplementedBy
+import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.{AggregateStats, CityScorecard, LabelTypeStats, WeeklyPoint}
@@ -67,6 +68,11 @@ class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
       )
     }
   )
+
+  def tutorialStreetEdge =
+    foreignKey("config_tutorial_street_edge_id_fkey", tutorialStreetEdgeID, TableQuery[StreetEdgeTableDef])(
+      _.streetEdgeId
+    )
 }
 
 @ImplementedBy(classOf[ConfigTable])

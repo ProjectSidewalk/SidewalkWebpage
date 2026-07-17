@@ -28,6 +28,9 @@ class UserRoleTableDef(tag: Tag) extends Table[UserRole](tag, "user_role") {
 
   def * = (userRoleId, userId, roleId, communityService, zurichInfra3dAccess, winterthurInfra3dAccess) <>
     ((UserRole.apply _).tupled, UserRole.unapply)
+
+  def user = foreignKey("user_role_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def role = foreignKey("user_role_role_id_fkey", roleId, TableQuery[RoleTableDef])(_.roleId)
 }
 
 /**

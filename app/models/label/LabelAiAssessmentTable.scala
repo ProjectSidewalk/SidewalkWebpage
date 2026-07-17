@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.label.AiImageSource.AiImageSource
 import models.utils.MyPostgresProfile.api._
 import models.utils.{AiTagConfidence, MyPostgresProfile}
-import models.validation.ValidationOption
+import models.validation.{LabelValidationTableDef, ValidationOption}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -63,8 +63,9 @@ class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, 
       LabelAiAssessment.unapply
     )
 
-//  def label: ForeignKeyQuery[LabelTable, Label] =
-//    foreignKey("label_ai_assessment_label_id_fkey", labelId, TableQuery[LabelTable])(_.labelId)
+  def label           = foreignKey("label_ai_assessment_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
+  def labelValidation =
+    foreignKey("fk_label_validation", labelValidationId, TableQuery[LabelValidationTableDef])(_.labelValidationId.?)
 }
 
 @ImplementedBy(classOf[LabelAiAssessmentTable])

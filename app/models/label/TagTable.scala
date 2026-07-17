@@ -17,9 +17,8 @@ class TagTableDef(tagParam: slick.lifted.Tag) extends Table[Tag](tagParam, "tag"
 
   def * = (tagId, labelTypeId, tag, mutuallyExclusiveWith) <> ((Tag.apply _).tupled, Tag.unapply)
 
-//  def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
-//    foreignKey("tag_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId)
-//
+  def labelType = foreignKey("tag_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId)
+
 //  def labelTypeTagUnique: Index = index("tag_label_type_id_tag_unique", (labelTypeId, tag), unique = true)
 }
 

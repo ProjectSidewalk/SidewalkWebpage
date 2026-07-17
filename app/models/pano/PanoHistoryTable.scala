@@ -17,7 +17,8 @@ class PanoHistoryTableDef(tag: Tag) extends Table[PanoHistory](tag, "pano_histor
 
   def * = (panoId, captureDate, locationCurrPanoId) <> ((PanoHistory.apply _).tupled, PanoHistory.unapply)
 
-//  def locationCurrentPano: ForeignKeyQuery[PanoDataTable, PanoData] = foreignKey("pano_history_pano_id_fkey", locationCurrPanoId, TableQuery[PanoDataTableDef])(_.panoId)
+  def locationCurrentPano =
+    foreignKey("pano_history_location_curr_pano_id_fkey", locationCurrPanoId, TableQuery[PanoDataTableDef])(_.panoId)
 }
 
 @ImplementedBy(classOf[PanoHistoryTable])

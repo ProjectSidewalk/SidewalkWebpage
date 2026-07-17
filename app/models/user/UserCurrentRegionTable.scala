@@ -17,6 +17,17 @@ class UserCurrentRegionTableDef(tag: Tag) extends Table[UserCurrentRegion](tag, 
   def regionId: Rep[Int]            = column[Int]("region_id")
 
   def * = (userCurrentRegionId, userId, regionId) <> ((UserCurrentRegion.apply _).tupled, UserCurrentRegion.unapply)
+
+  def user =
+    foreignKey("user_current_region_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(
+      _.userId,
+      onDelete = ForeignKeyAction.Cascade
+    )
+  def region =
+    foreignKey("user_current_region_region_id_fkey", regionId, TableQuery[RegionTableDef])(
+      _.regionId,
+      onDelete = ForeignKeyAction.Cascade
+    )
 }
 
 @ImplementedBy(classOf[UserCurrentRegionTable])
