@@ -1,6 +1,6 @@
 package controllers
 
-import models.story.{Story, StoryVisibility}
+import models.story.Story
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -501,8 +501,7 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
   }
 
   "story enum constants" should {
-    "match the evolution's story_visibility enum and display-name CHECK constraint" in {
-      StoryVisibility.values.map(_.toString) mustBe Set("visible", "hidden")
+    "match the evolution's display-name CHECK constraint" in {
       Story.validDisplayNameModes mustBe Set("anonymous", "username")
     }
   }

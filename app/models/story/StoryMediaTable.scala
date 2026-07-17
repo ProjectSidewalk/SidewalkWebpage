@@ -63,4 +63,9 @@ class StoryMediaTableDef(tag: Tag) extends Table[StoryMedia](tag, "story_media")
   def * : ProvenShape[StoryMedia] =
     (storyMediaId, storyId, mediaType, mimeType, width, height, durationSecs, fileSizeBytes, altText, captureRecency,
       nearLabel, photoCapturedAt, photoLat, photoLng, createdAt) <> ((StoryMedia.apply _).tupled, StoryMedia.unapply)
+
+  def story = foreignKey("story_media_story_id_fkey", storyId, TableQuery[StoryTableDef])(
+    _.storyId,
+    onDelete = ForeignKeyAction.Cascade
+  )
 }

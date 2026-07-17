@@ -320,8 +320,7 @@ class StoryServiceImpl @Inject() (
   }
 
   def setStoryVisibility(storyId: Int, adminUserId: String, hidden: Boolean): Future[Boolean] = {
-    val visibility = if (hidden) StoryVisibility.Hidden else StoryVisibility.Visible
-    db.run(storyTable.setVisibility(storyId, visibility, adminUserId, OffsetDateTime.now)).map(_ > 0)
+    db.run(storyTable.setVisibility(storyId, visible = !hidden, adminUserId, OffsetDateTime.now)).map(_ > 0)
   }
 
   def adminDeleteStory(storyId: Int): Future[Boolean] = {
@@ -353,7 +352,7 @@ class StoryServiceImpl @Inject() (
       storyText = story.storyText,
       displayName = displayName,
       isOwn = viewerUserId.contains(story.userId),
-      hidden = story.visibility == StoryVisibility.Hidden,
+      hidden = !story.visible,
       createdAt = story.createdAt,
       media = media.map(toMediaForView)
     )
@@ -417,7 +416,7 @@ class StoryServiceImpl @Inject() (
       photo: Option[(StoryPhotoUpload, ProcessedPhoto)]
   ): Future[Either[StoryRejection, StoryForView]] = {
     val now   = OffsetDateTime.now
-    val story = Story(0, labelId, userId, text, displayNameMode, StoryVisibility.Visible, None, None, now)
+    val story = Story(0, labelId, userId, text, displayNameMode, visible = true, None, None, now)
 
     val insertAction = (for {
       storyId <- storyTable.insert(story)

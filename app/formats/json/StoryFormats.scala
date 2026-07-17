@@ -42,7 +42,7 @@ object StoryFormats {
       "label_type"        -> s.labelType,
       "text"              -> s.story.storyText,
       "display_name_mode" -> s.story.displayNameMode,
-      "hidden"            -> (s.story.visibility == StoryVisibility.Hidden),
+      "hidden"            -> !s.story.visible,
       "created_at"        -> s.story.createdAt,
       "media"             -> s.media.map(mediaToJson)
     )
@@ -57,7 +57,7 @@ object StoryFormats {
       "username"          -> s.username,
       "text"              -> s.story.storyText,
       "display_name_mode" -> s.story.displayNameMode,
-      "hidden"            -> (s.story.visibility == StoryVisibility.Hidden),
+      "hidden"            -> !s.story.visible,
       "moderated_by"      -> s.story.moderatedBy,
       "moderated_at"      -> s.story.moderatedAt,
       "created_at"        -> s.story.createdAt,

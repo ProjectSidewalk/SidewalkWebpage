@@ -20,8 +20,8 @@ import scala.concurrent.ExecutionContext
  * @param userId          The author. Anonymous-session users are real DB users, so they can own stories too.
  * @param storyText       The story itself.
  * @param displayNameMode `anonymous` (default) or `username` — what the public sees as the author.
- * @param visibility      Moderation state (see StoryVisibility). Hidden = admin quarantine (reversible, preserves
- *                        abuse evidence); retraction is a real row DELETE instead.
+ * @param visible         False = admin quarantine (reversible, preserves abuse evidence); retraction is a real row
+ *                        DELETE instead.
  * @param moderatedBy     The admin who last changed visibility; None if never moderated.
  * @param moderatedAt     When visibility last changed.
  * @param createdAt       When the story was posted.
@@ -32,7 +32,7 @@ case class Story(
     userId: String,
     storyText: String,
     displayNameMode: String,
-    visibility: StoryVisibility.Value,
+    visible: Boolean,
     moderatedBy: Option[String],
     moderatedAt: Option[OffsetDateTime],
     createdAt: OffsetDateTime
@@ -44,7 +44,7 @@ case class Story(
    * policy as a SQL predicate — keep the two in sync.
    */
   def viewableBy(viewerUserId: Option[String], isAdmin: Boolean): Boolean =
-    isAdmin || visibility == StoryVisibility.Visible || viewerUserId.contains(userId)
+    isAdmin || visible || viewerUserId.contains(userId)
 }
 
 object Story {
@@ -60,15 +60,20 @@ class StoryTableDef(tag: Tag) extends Table[Story](tag, "story") {
   def userId: Rep[String]                      = column[String]("user_id")
   def storyText: Rep[String]                   = column[String]("story_text")
   def displayNameMode: Rep[String]             = column[String]("display_name_mode")
-  def visibility: Rep[StoryVisibility.Value]   = column[StoryVisibility.Value]("visibility")
+  def visible: Rep[Boolean]                    = column[Boolean]("visible")
   def moderatedBy: Rep[Option[String]]         = column[Option[String]]("moderated_by")
   def moderatedAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("moderated_at")
   def createdAt: Rep[OffsetDateTime]           = column[OffsetDateTime]("created_at")
 
-  def * = (storyId, labelId, userId, storyText, displayNameMode, visibility, moderatedBy, moderatedAt, createdAt) <> (
+  def * = (storyId, labelId, userId, storyText, displayNameMode, visible, moderatedBy, moderatedAt, createdAt) <> (
     (Story.apply _).tupled,
     Story.unapply
   )
+
+  def label = foreignKey("story_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
+  def user  = foreignKey("story_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+
+  def labelUserUnique = index("story_label_id_user_id_key", (labelId, userId), unique = true)
 }
 
 @ImplementedBy(classOf[StoryTable])
@@ -140,12 +145,12 @@ class StoryTable @Inject() (
       isAdmin: Boolean
   ): DBIO[Seq[(Story, Option[StoryMedia], String)]] = {
     // The SQL twin of Story.viewableBy — keep the two in sync.
-    val visible = stories.filter { s =>
+    val viewable = stories.filter { s =>
       val base = s.labelId === labelId
       if (isAdmin) base
-      else base && (s.visibility === StoryVisibility.Visible || s.userId === viewerUserId.getOrElse(""))
+      else base && (s.visible || s.userId === viewerUserId.getOrElse(""))
     }
-    visible
+    viewable
       .join(users)
       .on(_.userId === _.userId)
       .joinLeft(storyMedia)
@@ -183,16 +188,11 @@ class StoryTable @Inject() (
       .map(_.map { case (((story, user), label), media) => (story, media, user.username, label.labelTypeId) })
   }
 
-  def setVisibility(
-      storyId: Int,
-      visibility: StoryVisibility.Value,
-      adminUserId: String,
-      now: OffsetDateTime
-  ): DBIO[Int] = {
+  def setVisibility(storyId: Int, visible: Boolean, adminUserId: String, now: OffsetDateTime): DBIO[Int] = {
     stories
       .filter(_.storyId === storyId)
-      .map(s => (s.visibility, s.moderatedBy, s.moderatedAt))
-      .update((visibility, Some(adminUserId), Some(now)))
+      .map(s => (s.visible, s.moderatedBy, s.moderatedAt))
+      .update((visible, Some(adminUserId), Some(now)))
   }
 
   /** The story only if `userId` owns it — the ownership gate for in-place edits. */
