@@ -809,10 +809,11 @@ class LabelDetail {
   }
 
   /**
-   * Sets one unified tooltip on each vote control (pano overlay button + column button) so hovering anywhere on
-   * it — icon, count, or word — reads the same thing: what clicking does, how many validators have already voted
-   * that way, and whether our AI's vote is among them (#4572, Mikey review). When the label is locked, the lock
-   * reason wins instead.
+   * Sets the count-aware tooltip on each column vote control (the thumbs in the Validations section) so hovering
+   * anywhere on one — icon, count, or word — reads what clicking does, how many validators have already voted that
+   * way, and whether our AI's vote is among them (#4572). The pano hover-overlay buttons deliberately get no
+   * tooltip: their full-width Agree/Disagree/Unsure labels already say what they do (Jon, #4574). When the label
+   * is locked, the lock reason wins instead.
    */
   #renderVoteTooltips() {
     const els = this.#els;
@@ -828,7 +829,6 @@ class LabelDetail {
         if (this.#aiValidation === action) title += ` ${i18next.t('labelmap:vote-tooltip-ai-included')}`;
       }
       els.voteButtons[action].title = title;
-      els.panoOverlayButtons[action].title = title;
     }
   }
 
