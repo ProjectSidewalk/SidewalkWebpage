@@ -1,7 +1,8 @@
 {
   "cta-select-region": "Clique no bairro onde você quer criar sua rota, ou digite um endereço de início",
   "cta-pick-start": "Clique em qualquer lugar do bairro para colocar seu ponto de partida",
-  "cta-extend": "Clique novamente para estender sua rota",
+  "hint-pick-end": "Agora clique onde sua rota deve terminar",
+  "hint-extend": "Continue clicando para estender sua rota — ou salve quando terminar",
   "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
   "est-time-minutes": "~{{min}} min",
   "est-time-hours": "~{{hours}} h {{min}} min",
@@ -12,7 +13,7 @@
   "route-name-default": "Rota em {{region}}",
   "save-error": "Algo deu errado ao salvar. Tente novamente.",
   "recent-copy-link": "Copiar link",
-  "reverse-direction": "Inverter direção",
+  "reverse-direction": "Inverter direção da rota",
   "delete-route": "Excluir rota",
   "marker-start": "Início",
   "marker-end": "Fim",

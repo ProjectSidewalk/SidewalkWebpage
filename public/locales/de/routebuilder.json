@@ -1,7 +1,8 @@
 {
   "cta-select-region": "Klicke auf die Nachbarschaft, in der du eine Route erstellen möchtest, oder gib eine Startadresse ein",
   "cta-pick-start": "Klicke irgendwo in der Nachbarschaft, um deinen Startpunkt zu setzen",
-  "cta-extend": "Klicke erneut, um deine Route zu verlängern",
+  "hint-pick-end": "Klicke nun dorthin, wo deine Route enden soll",
+  "hint-extend": "Klicke weiter, um deine Route zu verlängern — oder speichere sie, wenn du fertig bist",
   "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
   "est-time-minutes": "~{{min}} Min.",
   "est-time-hours": "~{{hours}} Std. {{min}} Min.",
@@ -12,7 +13,7 @@
   "route-name-default": "Route in {{region}}",
   "save-error": "Beim Speichern ist etwas schiefgelaufen. Bitte versuchen Sie es erneut.",
   "recent-copy-link": "Link kopieren",
-  "reverse-direction": "Richtung umkehren",
+  "reverse-direction": "Routenrichtung umkehren",
   "delete-route": "Route löschen",
   "marker-start": "Start",
   "marker-end": "Ziel",

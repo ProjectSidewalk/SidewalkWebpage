@@ -395,11 +395,12 @@ gallery.clear.filters = Filter löschen
 
 routebuilder.name = RouteBuilder
 routebuilder.welcome = Willkommen bei RouteBuilder
-routebuilder.intro.content = Erstelle deine eigene Route und teile sie mit anderen.
+routebuilder.intro.content = Erstelle eine Route und teile sie mit anderen.
 routebuilder.directions.start.aria = Startadresse oder Ort
 routebuilder.directions.end.aria = Zieladresse oder Ort
 routebuilder.stat.distance = Entfernung
-routebuilder.stat.time = Geschätzte Erkundungszeit
+routebuilder.stat.time = Erkundungszeit
+routebuilder.stat.time.tooltip = Geschätzt anhand des typischen Tempos von Project-Sidewalk-Erkundern in dieser Stadt (etwa {0} Minuten pro 100 Meter).
 routebuilder.save = Route speichern
 routebuilder.delete.route.icon.alt = Ein orangefarbener Kreis mit einem weißen Ausrufezeichen in der Mitte
 routebuilder.not.saved = Die Route wurde nicht gerettet.

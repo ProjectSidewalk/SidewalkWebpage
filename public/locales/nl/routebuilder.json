@@ -1,7 +1,8 @@
 {
   "cta-select-region": "Klik op de buurt waar je een route wilt bouwen, of voer een startadres in",
   "cta-pick-start": "Klik ergens in de buurt om je startpunt te plaatsen",
-  "cta-extend": "Klik nogmaals om je route uit te breiden",
+  "hint-pick-end": "Klik nu waar je route moet eindigen",
+  "hint-extend": "Blijf klikken om je route uit te breiden — of sla hem op als je klaar bent",
   "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
   "est-time-minutes": "~{{min}} min",
   "est-time-hours": "~{{hours}} u {{min}} min",
@@ -12,7 +13,7 @@
   "route-name-default": "Route in {{region}}",
   "save-error": "Er ging iets mis bij het opslaan. Probeer het opnieuw.",
   "recent-copy-link": "Link kopiëren",
-  "reverse-direction": "Richting omkeren",
+  "reverse-direction": "Routerichting omkeren",
   "delete-route": "Route verwijderen",
   "marker-start": "Start",
   "marker-end": "Einde",

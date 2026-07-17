@@ -29,8 +29,8 @@
   z-index: 10;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 20px;
+  gap: 14px;
+  padding: 16px;
   overflow-y: auto;
   scrollbar-gutter: stable;
   background: var(--color-neutral-white);
@@ -132,6 +132,13 @@
   gap: 8px;
 }
 
+/* The flex displays would otherwise override the hidden attribute's UA display: none (stats stay hidden until the
+   route has at least one street). */
+#route-meta-row[hidden],
+#route-stats[hidden] {
+  display: none;
+}
+
 #route-region-chip {
   padding: 3px 12px;
   border-radius: 999px;
@@ -169,6 +176,17 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--color-neutral-600);
+  white-space: nowrap;
+}
+
+/* The explore-time stat carries a title tooltip explaining the estimate; the dotted underline signals it. */
+.route-stat--help {
+  cursor: help;
+}
+
+.route-stat--help .route-stat-label {
+  align-self: flex-start;
+  border-bottom: 1px dotted var(--color-neutral-500);
 }
 
 #route-street-count {
@@ -182,13 +200,24 @@
 }
 
 #save-button {
-  flex: 1 1 auto;
+  min-height: 40px;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+#undo-button {
+  margin-left: auto; /* Save sits left; the undo/delete icon pair sits right. */
 }
 
 /* Square icon-only secondary buttons (undo / delete); the accessible name is on the aria-label. */
 .button--icon-only {
   flex-shrink: 0;
-  padding: 8px 10px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .button-icon-img {
@@ -372,34 +401,60 @@
   flex-shrink: 0;
 }
 
-/* The reverse/delete menu that opens when the drawn route is clicked. */
+/* The reverse/delete menu that opens on click or a short hover over the drawn route. */
+.route-popover-popup .mapboxgl-popup-content {
+  padding: 6px;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 22%);
+}
+
 .route-popover {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  min-width: 220px;
 }
 
 .route-popover-btn {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  font-size: 13px;
+  gap: 10px;
+  padding: 8px 12px 8px 8px;
+  font: var(--text-small-medium);
+  color: var(--color-neutral-900);
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--color-neutral-white);
   text-align: left;
 }
 
 .route-popover-btn:hover,
 .route-popover-btn:focus-visible {
-  background: #ddefff;
+  background: var(--color-neutral-100);
+}
+
+.route-popover-delete {
+  color: var(--color-error-200);
+}
+
+.route-popover-icon-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--color-neutral-100);
+  flex-shrink: 0;
+}
+
+.route-popover-icon-chip--danger {
+  background: var(--color-orange-100);
 }
 
 .route-popover-icon {
-  width: 28px;
-  height: 28px;
+  width: 17px;
+  height: 17px;
 }
 
 /* Overwriting Mapbox popup styling. */
@@ -409,10 +464,25 @@
   border-radius: 10px;
 }
 
-/* Always-visible map legend (bottom-right). Compact card matching the planner chrome. */
+/* The next-step hint anchored beside the newest flag: a small dark bubble that reads as guidance, not data. */
+.rb-map-hint .mapboxgl-popup-content {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--color-asphalt-500);
+  color: var(--color-neutral-white);
+  font: var(--text-small-medium);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 25%);
+}
+
+.rb-map-hint.mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
+  border-right-color: var(--color-asphalt-500);
+}
+
+/* Always-visible map legend: top-right, tucked under the zoom/compass controls. Compact card matching the planner
+   chrome. */
 #routebuilder-legend {
   position: absolute;
-  bottom: 16px;
+  top: 120px;
   right: 16px;
   z-index: 10;
   width: 190px;

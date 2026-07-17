@@ -391,11 +391,12 @@ gallery.clear.filters = Filters Wissen
 
 routebuilder.name = Routebuilder
 routebuilder.welcome = Welkom bij Routebuilder
-routebuilder.intro.content = Maak je eigen route en deel hem met anderen.
+routebuilder.intro.content = Bouw een route en deel deze met anderen.
 routebuilder.directions.start.aria = Startadres of plaats
 routebuilder.directions.end.aria = Eindadres of plaats
 routebuilder.stat.distance = Afstand
-routebuilder.stat.time = Geschatte verkenningstijd
+routebuilder.stat.time = Verkenningstijd
+routebuilder.stat.time.tooltip = Geschat op basis van het gebruikelijke tempo van Project Sidewalk-verkenners in deze stad (ongeveer {0} minuten per 100 meter).
 routebuilder.save = Route bewaren
 routebuilder.delete.route.icon.alt = Een oranje cirkel met een witte uitroepteken in het midden
 routebuilder.not.saved = Route is niet opgeslagen.

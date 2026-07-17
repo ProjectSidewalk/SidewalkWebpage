@@ -17,6 +17,23 @@ class RouteBuilder {
   static BUILD_ZOOM = 15.5;
   // How long the explorer takes to walk the route in the save-hover preview animation.
   static EXPLORER_ANIMATION_MS = 2500;
+  // How long the pointer rests on the drawn route before its action menu opens (discoverable but not twitchy).
+  static ROUTE_MENU_HOVER_MS = 500;
+  // How long the co-located next-step hint stays anchored to the newest flag.
+  static HINT_DURATION_MS = 7000;
+
+  // Neighborhood paints by stage: while choosing, every region is washed and outlined so the map reads as a set of
+  // clickable choices; once one is selected, only it stays outlined and the wash drops to a hover-only tint.
+  static NEIGHBORHOOD_PAINT_CHOOSING = {
+    fillOpacity: ['case', ['boolean', ['feature-state', 'hover'], false], 0.24, 0.10],
+    lineOpacity: 0.4,
+  };
+
+  static NEIGHBORHOOD_PAINT_SELECTED = {
+    fillOpacity: ['case', ['boolean', ['feature-state', 'hover'], false], 0.12, 0.0],
+    lineOpacity: ['case', ['boolean', ['feature-state', 'current'], false], 0.5, 0.0],
+  };
+
   #status = {
     mapLoaded: false,
     neighborhoodsLoaded: false, // Neighborhood GeoJSON has arrived from the server.
@@ -40,10 +57,12 @@ class RouteBuilder {
   #waypoints = []; // Ordered [{ lng, lat }] snapped points the user clicked/seeded.
   #chosenIds = new Set(); // Street ids currently drawn (their 'chosen' feature-state hides the base street).
   #endpointData = { type: 'FeatureCollection', features: [] }; // The 'route-endpoints' symbol source (flags).
-  #routeGraph = null; // Built from #streetData as soon as it arrives (the ghost start flag needs it pre-click).
-  #ghostRaf = null; // Pending requestAnimationFrame id for the ghost-start-flag update.
-  #ghostLngLat = null; // Latest mouse position awaiting a ghost-start-flag update.
+  #routeGraph = null; // Built from #streetData as soon as it arrives (the ghost flag needs it pre-click).
+  #ghostRaf = null; // Pending requestAnimationFrame id for the ghost-flag update.
+  #ghostLngLat = null; // Latest mouse position awaiting a ghost-flag update.
   #explorerRaf = null; // Pending requestAnimationFrame id for the save-hover explorer animation.
+  #hintPopup = null; // The next-step hint anchored at the newest flag (null when not showing).
+  #hintTimeout = null; // Auto-hide timer for #hintPopup.
 
   // Collaborators.
   #saveModal;
@@ -62,6 +81,8 @@ class RouteBuilder {
   #routeTimeEl;
   #streetCountEl;
   #regionChipEl;
+  #routeStatsEl;
+  #routeMetaRowEl;
   #saveButton;
   #exploreButton;
   #linkTextEl;
@@ -92,6 +113,8 @@ class RouteBuilder {
     this.#routeTimeEl = document.getElementById('route-time-val');
     this.#streetCountEl = document.getElementById('route-street-count');
     this.#regionChipEl = document.getElementById('route-region-chip');
+    this.#routeStatsEl = document.getElementById('route-stats');
+    this.#routeMetaRowEl = document.getElementById('route-meta-row');
     this.#saveButton = document.getElementById('save-button');
     this.#exploreButton = $('#explore-button');
     this.#linkTextEl = document.getElementById('share-route-link');
@@ -243,8 +266,8 @@ class RouteBuilder {
   }
 
   /**
-   * Updates the on-map call-to-action to match the staged flow: pick a neighborhood, then a start point, then
-   * extend (hidden once the route has 2+ points).
+   * Updates the on-map call-to-action for the pre-route stages: pick a neighborhood, then a start point. Once the
+   * route has started, guidance moves to the hint anchored at the newest flag (#showHint) and the pill hides.
    */
   #updateCta() {
     if (!this.#ctaEl) return;
@@ -254,12 +277,37 @@ class RouteBuilder {
         <img src="/assets/images/icons/routebuilder/flag-start.svg" class="cta-flag" alt="">
         <span>${i18next.t(key)}</span>`;
       this.#ctaEl.hidden = false;
-    } else if (this.#waypoints.length === 1) {
-      this.#ctaEl.textContent = i18next.t('cta-extend');
-      this.#ctaEl.hidden = false;
     } else {
       this.#ctaEl.hidden = true;
     }
+  }
+
+  /**
+   * Shows a transient next-step hint anchored beside a route point, so guidance sits where the user is already
+   * looking instead of in the far-away top-center pill.
+   *
+   * @param {Array<number>} coord - [lng, lat] to anchor at (the newest flag).
+   * @param {string} text
+   */
+  #showHint(coord, text) {
+    this.#hideHint();
+    this.#hintPopup = new mapboxgl.Popup({
+      closeButton: false,
+      closeOnClick: false,
+      anchor: 'left',
+      offset: 18,
+      maxWidth: '260px',
+      className: 'rb-map-hint',
+    }).setLngLat(coord).setText(text).addTo(this.#map);
+    this.#hintTimeout = setTimeout(() => this.#hideHint(), RouteBuilder.HINT_DURATION_MS);
+  }
+
+  /** Removes the next-step hint (if showing). */
+  #hideHint() {
+    clearTimeout(this.#hintTimeout);
+    this.#hintTimeout = null;
+    this.#hintPopup?.remove();
+    this.#hintPopup = null;
   }
 
   /**
@@ -280,7 +328,7 @@ class RouteBuilder {
       source: 'neighborhoods',
       paint: {
         'fill-color': '#2D2A3F', // --color-asphalt-500 (map paint can't read CSS tokens).
-        'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.12, 0.0],
+        'fill-opacity': RouteBuilder.NEIGHBORHOOD_PAINT_CHOOSING.fillOpacity,
       },
     });
     map.addLayer({
@@ -289,9 +337,8 @@ class RouteBuilder {
       source: 'neighborhoods',
       paint: {
         'line-color': '#2D2A3F',
-        'line-width': 2,
-        // Only the selected region is outlined; every other boundary stays invisible.
-        'line-opacity': ['case', ['boolean', ['feature-state', 'current'], false], 0.5, 0.0],
+        'line-width': ['case', ['boolean', ['feature-state', 'current'], false], 2, 1.5],
+        'line-opacity': RouteBuilder.NEIGHBORHOOD_PAINT_CHOOSING.lineOpacity,
       },
     });
     map.addLayer({
@@ -351,6 +398,10 @@ class RouteBuilder {
     this.#currRegionId = regionId;
     map.setFeatureState({ source: 'neighborhoods', id: regionId }, { current: true });
     if (map.getLayer('neighborhoods-label')) map.setLayoutProperty('neighborhoods-label', 'visibility', 'none');
+    map.setPaintProperty('neighborhoods-fill', 'fill-opacity', RouteBuilder.NEIGHBORHOOD_PAINT_SELECTED.fillOpacity);
+    map.setPaintProperty(
+      'neighborhoods-outline', 'line-opacity', RouteBuilder.NEIGHBORHOOD_PAINT_SELECTED.lineOpacity,
+    );
     this.#clearGhostStart(); // Mousemove doesn't fire during the zoom animation, so drop any stale ghost now.
 
     if (fit) {
@@ -403,11 +454,8 @@ class RouteBuilder {
       type: 'line',
       source: 'streets',
       paint: {
-        // Quiet neutral base network; the street a click would snap to lights up in the DS link blue on hover.
-        'line-color': ['case',
-          ['boolean', ['feature-state', 'hover'], false], '#3E8BD9', // --color-link-100
-          '#B3B3B3', // --color-neutral-500
-        ],
+        // Quiet neutral base network; the ghost flag (not a street highlight) previews where a click lands.
+        'line-color': '#B3B3B3', // --color-neutral-500 (map paint can't read CSS tokens).
         'line-width': ['interpolate', ['linear'], ['zoom'], 12, 1, 15, 4],
         // Hidden where the street is part of the drawn route (that copy renders in 'streets-chosen' instead).
         'line-opacity': ['case', ['boolean', ['feature-state', 'chosen'], false], 0.0, 0.45],
@@ -436,14 +484,15 @@ class RouteBuilder {
       map.addImage('routebuilder-end-flag', endFlag.data, { pixelRatio: endFlag.pixelRatio });
       map.addImage('routebuilder-explorer', explorer.data, { pixelRatio: explorer.pixelRatio });
 
-      // Ghost start flag: a translucent preview of exactly where the first click would plant the start.
+      // Ghost flag: a translucent preview of exactly where the next click lands — the start flag before the route
+      // begins, the end flag while extending it.
       map.addSource('ghost-start', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addLayer({
         id: 'ghost-start',
         type: 'symbol',
         source: 'ghost-start',
         layout: {
-          'icon-image': 'routebuilder-start-flag',
+          'icon-image': ['concat', 'routebuilder-', ['get', 'kind'], '-flag'],
           'icon-anchor': 'bottom',
           'icon-allow-overlap': true,
         },
@@ -490,31 +539,22 @@ class RouteBuilder {
       });
     }).catch((e) => console.error('Failed to prepare map icons:', e));
 
-    // Hover highlights the street a click would snap to — only once the route has started (before that, the ghost
-    // dot is the hover affordance). Out-of-region streets show a not-allowed cursor.
-    let hoveredStreet = null;
-    map.on('mousemove', 'streets', (event) => {
-      if (!this.#routeStarted()) return;
-      const streetId = event.features[0].properties.street_edge_id;
-      const regionId = event.features[0].properties.region_id;
-      if (this.#currRegionId !== null && this.#currRegionId !== regionId) {
-        if (hoveredStreet !== null) {
-          map.setFeatureState({ source: 'streets', id: hoveredStreet }, { hover: false });
-          hoveredStreet = null;
-        }
-        map.getCanvas().style.cursor = 'not-allowed';
-        return;
-      }
-      if (streetId !== hoveredStreet) {
-        if (hoveredStreet !== null) map.setFeatureState({ source: 'streets', id: hoveredStreet }, { hover: false });
-        hoveredStreet = streetId;
-        map.setFeatureState({ source: 'streets', id: hoveredStreet }, { hover: true });
-      }
+    // Resting the pointer on the drawn route opens its action menu (so it's discoverable without knowing to
+    // click); clicking opens it immediately, with keyboard focus.
+    let routeHoverTimer = null;
+    map.on('mousemove', 'streets-chosen', (event) => {
       map.getCanvas().style.cursor = 'pointer';
+      if (this.#routePopover.isOpen()) return;
+      clearTimeout(routeHoverTimer);
+      const lngLat = event.lngLat;
+      routeHoverTimer = setTimeout(() => {
+        if (this.#routePopover.isOpen() || this.#streetsInRoute.features.length === 0) return;
+        window.logWebpageActivity('RouteBuilder_Hover=RouteMenu_Open');
+        this.#routePopover.open(lngLat);
+      }, RouteBuilder.ROUTE_MENU_HOVER_MS);
     });
-    map.on('mouseleave', 'streets', () => {
-      if (hoveredStreet !== null) map.setFeatureState({ source: 'streets', id: hoveredStreet }, { hover: false });
-      hoveredStreet = null;
+    map.on('mouseleave', 'streets-chosen', () => {
+      clearTimeout(routeHoverTimer);
       map.getCanvas().style.cursor = '';
     });
     map.on('mousemove', (event) => this.#updateGhostStart(event.lngLat));
@@ -530,7 +570,7 @@ class RouteBuilder {
         && map.queryRenderedFeatures([[x - 6, y - 6], [x + 6, y + 6]], { layers: ['streets-chosen'] }).length > 0;
       if (onRoute) {
         window.logWebpageActivity('RouteBuilder_Click=RouteMenu_Open');
-        this.#routePopover.open(event.lngLat);
+        this.#routePopover.open(event.lngLat, true);
         return;
       }
       if (!this.#routeStarted()) {
@@ -561,32 +601,46 @@ class RouteBuilder {
   }
 
   /**
-   * Moves the ghost start flag to the intersection nearest the mouse (rAF-throttled: snapping scans the street
-   * network, so at most one scan per frame). Active only between selecting a neighborhood and placing the start;
-   * snapping is restricted to the selected region so the preview can't slip across a boundary.
+   * Moves the ghost flag to the intersection nearest the mouse (rAF-throttled: snapping scans the street network,
+   * so at most one scan per frame). Once a neighborhood is selected this is the click affordance: a translucent
+   * start flag before the first point, then a translucent end flag while extending. Snapping is restricted to the
+   * selected region; hovering a different region shows a not-allowed cursor instead.
    *
    * @param {Object} lngLat - The mouse position {lng, lat}.
    */
   #updateGhostStart(lngLat) {
-    if (this.#routeStarted() || this.#currRegionId === null || !this.#routeGraph) {
-      return;
-    }
+    if (this.#currRegionId === null || !this.#routeGraph) return;
     this.#ghostLngLat = lngLat;
     if (this.#ghostRaf !== null) return;
     this.#ghostRaf = requestAnimationFrame(() => {
       this.#ghostRaf = null;
-      if (this.#routeStarted() || this.#currRegionId === null) return; // State may have changed mid-frame.
-      const snap = this.#routeGraph.snapToStreet(this.#ghostLngLat, this.#currRegionId);
+      if (this.#currRegionId === null) return; // State may have changed mid-frame.
       const source = this.#map.getSource('ghost-start');
-      if (!snap || !source) return;
+      if (!source) return;
+
+      // Hovering a different region: no preview there — the route can't leave the selected neighborhood. (Before
+      // the route starts, clicking a different region moves the selection, so the pointer cursor applies instead.)
+      const hoverRegionId = this.#regionIdAtPoint(this.#map.project(this.#ghostLngLat));
+      if (this.#routeStarted() && hoverRegionId !== null && hoverRegionId !== this.#currRegionId) {
+        this.#clearGhostStart();
+        this.#map.getCanvas().style.cursor = 'not-allowed';
+        return;
+      }
+      if (this.#map.getCanvas().style.cursor === 'not-allowed') this.#map.getCanvas().style.cursor = '';
+
+      const snap = this.#routeGraph.snapToStreet(this.#ghostLngLat, this.#currRegionId);
+      if (!snap) return;
+      const kind = this.#routeStarted() ? 'end' : 'start';
       source.setData({
         type: 'FeatureCollection',
-        features: [{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: snap.nodeLngLat } }],
+        features: [{
+          type: 'Feature', properties: { kind }, geometry: { type: 'Point', coordinates: snap.nodeLngLat },
+        }],
       });
     });
   }
 
-  /** Hides the ghost start flag (mouse left the map, or the start was placed). */
+  /** Hides the ghost flag (mouse left the map, or the click just landed). */
   #clearGhostStart() {
     this.#map.getSource('ghost-start')?.setData({ type: 'FeatureCollection', features: [] });
   }
@@ -663,6 +717,14 @@ class RouteBuilder {
       }
     }
     this.#recompute();
+    // Co-located guidance at the point that just landed: what the next click does.
+    if (this.#waypoints.length === 1) {
+      this.#showHint([point.lng, point.lat], i18next.t('hint-pick-end'));
+    } else if (this.#waypoints.length === 2) {
+      this.#showHint([point.lng, point.lat], i18next.t('hint-extend'));
+    } else {
+      this.#hideHint();
+    }
     window.logWebpageActivity(`RouteBuilder_AddWaypoint=Success_Count=${this.#waypoints.length}_Source=${source}`);
   }
 
@@ -674,6 +736,7 @@ class RouteBuilder {
    */
   #recompute() {
     const map = this.#map;
+    this.#hideHint(); // Any old next-step hint is anchored to a point that may just have moved or vanished.
     // Clear the previous 'chosen' states so hidden base streets reappear if they left the route.
     this.#chosenIds.forEach((id) => map.setFeatureState({ source: 'streets', id }, { chosen: false }));
     this.#chosenIds.clear();
@@ -729,7 +792,12 @@ class RouteBuilder {
    */
   #updateStats() {
     const feats = this.#streetsInRoute.features;
-    if (feats.length === 0) {
+    // A lone start point isn't a route yet: no stats to show, nothing to save.
+    const hasRoute = feats.length > 0;
+    this.#routeStatsEl.hidden = !hasRoute;
+    this.#routeMetaRowEl.hidden = !hasRoute;
+    this.#saveButton.disabled = !hasRoute;
+    if (!hasRoute) {
       this.#streetDistanceEl.innerText = '';
       this.#routeTimeEl.innerText = '';
       this.#streetCountEl.innerText = '';
@@ -905,18 +973,24 @@ class RouteBuilder {
     this.#updateEndpointFlags();
     this.#routePopover.close();
     this.#cancelExplorer();
+    this.#hideHint();
     this.#unlockRegion();
     this.#updateStats();
   }
 
-  /** Releases the region selection: hides its outline and brings the region-name labels back. */
+  /** Releases the region selection: back to the choosing stage (all regions washed/outlined, labels visible). */
   #unlockRegion() {
+    const map = this.#map;
     if (this.#currRegionId !== null) {
-      this.#map.setFeatureState({ source: 'neighborhoods', id: this.#currRegionId }, { current: false });
+      map.setFeatureState({ source: 'neighborhoods', id: this.#currRegionId }, { current: false });
     }
     this.#currRegionId = null;
-    if (this.#map.getLayer('neighborhoods-label')) {
-      this.#map.setLayoutProperty('neighborhoods-label', 'visibility', 'visible');
+    if (map.getLayer('neighborhoods-label')) {
+      map.setLayoutProperty('neighborhoods-label', 'visibility', 'visible');
+      map.setPaintProperty('neighborhoods-fill', 'fill-opacity', RouteBuilder.NEIGHBORHOOD_PAINT_CHOOSING.fillOpacity);
+      map.setPaintProperty(
+        'neighborhoods-outline', 'line-opacity', RouteBuilder.NEIGHBORHOOD_PAINT_CHOOSING.lineOpacity,
+      );
     }
   }
 

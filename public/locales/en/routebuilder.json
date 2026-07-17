@@ -1,7 +1,8 @@
 {
   "cta-select-region": "Click the neighborhood where you want to build a route, or enter a start address",
   "cta-pick-start": "Click anywhere in the neighborhood to place your start point",
-  "cta-extend": "Click again to add to your route",
+  "hint-pick-end": "Now click where your route should end",
+  "hint-extend": "Keep clicking to extend your route — or save it when you're done",
   "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
   "est-time-minutes": "~{{min}} min",
   "est-time-hours": "~{{hours}} hr {{min}} min",
@@ -12,7 +13,7 @@
   "route-name-default": "Route in {{region}}",
   "save-error": "Something went wrong while saving. Please try again.",
   "recent-copy-link": "Copy link",
-  "reverse-direction": "Reverse direction",
+  "reverse-direction": "Reverse route direction",
   "delete-route": "Delete route",
   "marker-start": "Start",
   "marker-end": "End",

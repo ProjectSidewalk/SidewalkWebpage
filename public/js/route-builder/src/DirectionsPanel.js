@@ -53,6 +53,13 @@ class DirectionsPanel {
       language: i18next.t('common:mapbox-language-code'),
       placeholder,
     };
+    box.theme = {
+      variables: {
+        borderRadius: '8px',
+      },
+      // The library reserves 40px of input padding for its 20px search icon; tighten the icon-to-text gap.
+      cssText: '.Input { padding-left: 32px; height: 34px; } .SearchIcon { left: 8px; }',
+    };
     // onAdd builds the search box's element for this map; we place it in the panel instead of a map corner.
     document.getElementById(`directions-${which}-slot`).append(box.onAdd(this.#map));
 

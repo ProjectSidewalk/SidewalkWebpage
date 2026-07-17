@@ -5,6 +5,7 @@
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 @isAnon = @{user.role == "Anonymous"}
+@paceRounded = @{f"$minutesPer100m%.1f"}
 
 @common.main(commonData, Messages("seo.title.route.builder"), defaultI18nNamespace = "routebuilder", i18Namespaces = Seq("routebuilder", "common"), url = "/routeBuilder") {
   @common.navbar(commonData, Some(user))
@@ -44,24 +45,24 @@
         </div>
       </div>
       <div class="routebuilder-panel__building">
-        <div id="route-meta-row">
+        <div id="route-meta-row" hidden>
           <span id="route-region-chip" hidden></span>
           <span id="route-street-count"></span>
         </div>
-        <div id="route-stats">
+        <div id="route-stats" hidden>
           <div class="route-stat flex-div-col">
             <span id="route-length-val" class="route-stat-value"></span>
             <span class="route-stat-label">@Messages("routebuilder.stat.distance")</span>
           </div>
-          <div class="route-stat flex-div-col">
+          <div class="route-stat route-stat--help flex-div-col" title="@Messages("routebuilder.stat.time.tooltip", paceRounded)">
             <span id="route-time-val" class="route-stat-value"></span>
             <span class="route-stat-label">@Messages("routebuilder.stat.time")</span>
           </div>
         </div>
         <div id="creating-route-buttons" class="flex-div-row">
-          <button type="button" id="save-button" class="button-ps button--primary button--medium">@Messages("routebuilder.save")</button>
+          <button type="button" id="save-button" class="button-ps button--primary button--medium" disabled>@Messages("routebuilder.save")</button>
           <button type="button" id="undo-button" class="button-ps button--secondary button--medium button--icon-only" disabled aria-label="@Messages("routebuilder.undo")" title="@Messages("routebuilder.undo")">
-            <img src="@assets.path("images/icons/corner-up-left-feather.svg")" class="button-icon-img" alt="">
+            <img src="@assets.path("images/icons/undo-material.svg")" class="button-icon-img" alt="">
           </button>
           <button type="button" id="cancel-button" class="button-ps button--secondary button--medium button--icon-only" aria-label="@Messages("routebuilder.delete.route")" title="@Messages("routebuilder.delete.route")">
             <img src="@assets.path("images/icons/trash-2-feather.svg")" class="button-icon-img" alt="">

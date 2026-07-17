@@ -1,7 +1,8 @@
 {
   "cta-select-region": "點擊您想建立路線的社區，或輸入起點地址",
   "cta-pick-start": "點擊社區內的任意位置以放置起點",
-  "cta-extend": "再次點擊以延伸您的路線",
+  "hint-pick-end": "現在點擊您希望路線結束的位置",
+  "hint-extend": "繼續點擊以延伸路線，完成後即可儲存",
   "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
   "est-time-minutes": "約 {{min}} 分鐘",
   "est-time-hours": "約 {{hours}} 小時 {{min}} 分鐘",
@@ -11,7 +12,7 @@
   "route-name-default": "{{region}}的路線",
   "save-error": "儲存時發生錯誤，請再試一次。",
   "recent-copy-link": "複製連結",
-  "reverse-direction": "反轉方向",
+  "reverse-direction": "反轉路線方向",
   "delete-route": "刪除路線",
   "marker-start": "起點",
   "marker-end": "終點",

@@ -1,7 +1,8 @@
 {
   "cta-select-region": "Haz clic en el vecindario donde quieras crear tu ruta, o escribe una dirección de inicio",
   "cta-pick-start": "Haz clic en cualquier parte del vecindario para colocar tu punto de inicio",
-  "cta-extend": "Haz clic de nuevo para ampliar tu ruta",
+  "hint-pick-end": "Ahora haz clic donde deba terminar tu ruta",
+  "hint-extend": "Sigue haciendo clic para ampliar tu ruta, o guárdala cuando termines",
   "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
   "est-time-minutes": "~{{min}} min",
   "est-time-hours": "~{{hours}} h {{min}} min",
@@ -12,7 +13,7 @@
   "route-name-default": "Ruta en {{region}}",
   "save-error": "Algo salió mal al guardar. Inténtalo de nuevo.",
   "recent-copy-link": "Copiar enlace",
-  "reverse-direction": "Invertir dirección",
+  "reverse-direction": "Invertir dirección de la ruta",
   "delete-route": "Eliminar ruta",
   "marker-start": "Inicio",
   "marker-end": "Fin",
