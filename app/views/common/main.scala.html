@@ -84,40 +84,59 @@
         window.appManager.init(csrfToken, i18nextParams, globals);
       });
     </script>
-    <div id="wrap" class='@if(url == "/labelMap"){wrap--full-window}'>
-        <!-- Banner is only visible if user is on local/test server-->
-      @if(commonData.environmentType != "prod") {
-        <aside class="test-server-banner" aria-label="@Messages("test.server.warning.label")">
-          <div class="test-server-banner-content">
-            <svg class="test-server-banner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-            <p class="test-server-banner-text">
-              @Html(Messages("test.server.warning.message")): <a class="test-server-banner-link" href="@commonData.prodUrl">@commonData.prodUrl</a>
-            </p>
-            <div class="test-server-banner-actions">
-              <button class="test-server-banner-dont-show-again" type="button">@Messages("dont.show.again")</button>
-              <button class="test-server-banner-close" type="button" aria-label="@Messages("test.server.warning.close")">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-              </button>
-            </div>
+      <!-- Banner is only visible if user is on local/test server-->
+    @if(commonData.environmentType != "prod") {
+      <aside class="test-server-banner" aria-label="@Messages("test.server.warning.label")">
+        <div class="test-server-banner-content">
+          <svg class="test-server-banner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <p class="test-server-banner-text">
+            @Html(Messages("test.server.warning.message")): <a class="test-server-banner-link" href="@commonData.prodUrl">@commonData.prodUrl</a>
+          </p>
+          <div class="test-server-banner-actions">
+            <button class="test-server-banner-dont-show-again" type="button">@Messages("dont.show.again")</button>
+            <button class="test-server-banner-close" type="button" aria-label="@Messages("test.server.warning.close")">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
           </div>
-        </aside>
+        </div>
+      </aside>
 
-        <script>
-          const testServerBanner = document.querySelector(".test-server-banner");
-          // Respect a prior "don't show again" choice stored in localStorage.
-          if (JSON.parse(window.localStorage.getItem("hideTestServerWarningBanner"))) {
-            testServerBanner.classList.add("ps-hidden");
-          }
-          // "Don't show again" hides the banner and remembers the choice; the close button only hides it this visit.
-          testServerBanner.querySelector(".test-server-banner-dont-show-again").addEventListener("click", () => {
-            testServerBanner.classList.add("ps-hidden");
-            window.localStorage.setItem("hideTestServerWarningBanner", true);
-          });
-          testServerBanner.querySelector(".test-server-banner-close").addEventListener("click", () => {
-            testServerBanner.classList.add("ps-hidden");
-          });
-        </script>
-      }
+      <script>
+        const testServerBanner = document.querySelector(".test-server-banner");
+
+        // The banner is a fixed bar above the navbar. Publish its rendered height as --test-banner-height so the
+        // navbar and page content are offset by exactly that much: the banner reserves its own space instead of
+        // covering content. No-op (height 0) when the banner isn't fixed (the /mobile app positions it absolutely).
+        function updateTestBannerHeight() {
+          const isFixed = window.getComputedStyle(testServerBanner).position === "fixed";
+          const hidden = testServerBanner.classList.contains("ps-hidden");
+          const height = isFixed && !hidden ? testServerBanner.offsetHeight : 0;
+          document.documentElement.style.setProperty("--test-banner-height", `${height}px`);
+        }
+
+        function hideTestServerBanner() {
+          testServerBanner.classList.add("ps-hidden");
+          updateTestBannerHeight();
+        }
+
+        // Respect a prior "don't show again" choice stored in localStorage.
+        if (JSON.parse(window.localStorage.getItem("hideTestServerWarningBanner"))) {
+          testServerBanner.classList.add("ps-hidden");
+        }
+        // "Don't show again" hides the banner and remembers the choice; the close button only hides it this visit.
+        testServerBanner.querySelector(".test-server-banner-dont-show-again").addEventListener("click", () => {
+          window.localStorage.setItem("hideTestServerWarningBanner", true);
+          hideTestServerBanner();
+        });
+        testServerBanner.querySelector(".test-server-banner-close").addEventListener("click", hideTestServerBanner);
+
+        // Measure now and again whenever the banner may reflow (fonts finish loading, text wraps at a new width).
+        updateTestBannerHeight();
+        window.addEventListener("load", updateTestBannerHeight);
+        window.addEventListener("resize", updateTestBannerHeight);
+      </script>
+    }
+    <div id="wrap" class='@if(url == "/labelMap"){wrap--full-window}'>
       @content
     </div>
     @if(url != "/mobile") {

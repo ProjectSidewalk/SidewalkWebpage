@@ -215,8 +215,9 @@ body {
 body {
   overflow-x: clip; /* Prevent horizontal scroll on narrow devices */
 
-  /* Moves all page content down to start just below the navbar. */
-  padding-top: var(--navbar-height);
+  /* Offsets content below the fixed navbar, plus the test-server banner when present. --test-banner-height is
+     published by the banner's inline script and defaults to 0 (banner absent/dismissed, and always on prod). */
+  padding-top: calc(var(--navbar-height) + var(--test-banner-height, 0px));
 }
 
 .spacer10 { height: 10px; }
@@ -353,7 +354,8 @@ a {
 
 #header {
   position: fixed;
-  top: 0;
+  /* Drops below the test-server banner when present; --test-banner-height is 0 otherwise (and on prod). */
+  top: var(--test-banner-height, 0px);
   right: 0;
   left: 0;
   z-index: var(--navbar-z-index);
@@ -561,14 +563,14 @@ a {
 
 /*
  * Full-window app pages (e.g. /labelMap) opt in via this class: #wrap becomes a fixed-height flex
- * column so a flex-growing content area (the map) fills the viewport below the navbar, while the
- * in-flow test-server banner (dev only) keeps its natural height rather than being covered. Robust to
- * the banner wrapping or being dismissed; no effect on other pages, which don't get the class.
+ * column so a flex-growing content area (the map) fills the viewport below the navbar and the fixed
+ * test-server banner. --test-banner-height is 0 when the banner is absent/dismissed or on prod, so this
+ * reduces to 100vh minus the navbar. No effect on other pages, which don't get the class.
  */
 #wrap.wrap--full-window {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--navbar-height));
+  height: calc(100vh - var(--navbar-height) - var(--test-banner-height, 0px));
   min-height: 0;
   overflow: hidden;
 }
@@ -941,21 +943,18 @@ kbd {
  * the Design System Tokens (banana/neutral/link palettes) rather than the old hardcoded yellow + red "WARNING!" text.
  */
 .test-server-banner {
-  background-color: var(--color-banana-200);
-  border-bottom: 1px solid var(--color-banana-500);
-}
-
-/* Pin test server banner just below the navbar. */
-body:has(#vidbanner) .test-server-banner {
+  /*
+   * Fixed bar pinned to the very top, above the navbar. It reserves its own space via --test-banner-height
+   * (published by the inline script in common/main.scala.html) instead of covering content, and staying above
+   * the navbar keeps it clear of the navbar's height animation on the landing page.
+   */
   position: fixed;
-  top: var(--navbar-height);
+  top: 0;
   left: 0;
   right: 0;
-  z-index: 1029;
-}
-
-body:has(#header.header--tall) .test-server-banner {
-  top: 50px;
+  z-index: var(--navbar-z-index);
+  background-color: var(--color-banana-200);
+  border-bottom: 1px solid var(--color-banana-500);
 }
 
 .test-server-banner-content {
