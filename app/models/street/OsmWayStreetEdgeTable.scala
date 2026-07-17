@@ -18,6 +18,7 @@ class OsmWayStreetEdgeTableDef(tag: Tag) extends Table[OsmWayStreetEdge](tag, "o
 
   def streetEdge =
     foreignKey("osm_way_street_edge_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
+  def streetEdgeUnique = index("osm_way_street_edge_street_edge_id_key", streetEdgeId, unique = true)
 }
 
 @ImplementedBy(classOf[OsmWayStreetEdgeTable])

@@ -21,6 +21,7 @@ class RouteStreetTableDef(tag: slick.lifted.Tag) extends Table[RouteStreet](tag,
   def route      = foreignKey("route_street_route_id_fkey", routeId, TableQuery[RouteTableDef])(_.routeId)
   def streetEdge =
     foreignKey("route_street_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
+  def routeStreetUnique = index("route_street_route_id_street_edge_id_key", (routeId, streetEdgeId), unique = true)
 }
 
 @ImplementedBy(classOf[RouteStreetTable])
