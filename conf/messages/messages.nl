@@ -426,6 +426,8 @@ dashboard.routes.labelmap = Label Kaart
 dashboard.routes.copy = Link kopiëren
 dashboard.routes.rename = Hernoemen
 dashboard.routes.delete = Verwijderen
+dashboard.routes.stats = Door {0} verkend · door {1} voltooid
+dashboard.routes.view.title = Bekijk deze route in RouteBuilder
 dashboard.routes.none = Je hebt nog geen routes gemaakt.
 dashboard.routes.build.one = Maak je eerste route →
 

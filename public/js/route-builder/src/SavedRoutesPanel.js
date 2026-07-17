@@ -13,8 +13,10 @@ class SavedRoutesPanel {
   #formatMeta;
   #setTemporaryTooltip;
   #onView;
+  #thumbnailUrl;
   #panel;
   #list;
+  #activeRouteId = null; // Route currently previewed on the map (its card carries the active style).
 
   /**
    * @param {Object} opts
@@ -22,22 +24,26 @@ class SavedRoutesPanel {
    * @param {Function} opts.formatMeta - (distanceMeters, regionName) => the card's meta line.
    * @param {Function} opts.setTemporaryTooltip - (buttonEl, message) that flashes a confirmation tooltip.
    * @param {Function} opts.onView - Called with the route id when a card body is clicked (preview on the map).
+   * @param {Function} opts.thumbnailUrl - (encodedPolyline) => static-map thumbnail URL for a card.
    */
   constructor(opts) {
     this.#isSignedIn = opts.isSignedIn === true;
     this.#formatMeta = opts.formatMeta;
     this.#setTemporaryTooltip = opts.setTemporaryTooltip;
     this.#onView = opts.onView;
+    this.#thumbnailUrl = opts.thumbnailUrl;
     this.#panel = document.getElementById('saved-routes-panel');
     this.#list = document.getElementById('saved-routes-list');
   }
 
   /**
-   * Marks the card whose route is being previewed on the map (or clears the mark with null).
+   * Marks the card whose route is being previewed on the map (or clears the mark with null). The mark survives
+   * re-renders, so it also applies when a deep-linked preview loads before the cards do.
    *
    * @param {number|null} routeId
    */
   markActive(routeId) {
+    this.#activeRouteId = routeId;
     this.#list?.querySelectorAll('.saved-route-card').forEach((card) => {
       card.classList.toggle('saved-route-card--active', Number(card.dataset.routeId) === routeId);
     });
@@ -59,6 +65,9 @@ class SavedRoutesPanel {
           regionName: r.region_name,
           distanceMeters: r.distance_meters,
           savedAt: r.created_at,
+          startedCount: r.started_count,
+          completedCount: r.completed_count,
+          encodedPolyline: r.encoded_polyline,
         })), highlightRouteId))
         .catch(() => this.#render([], null));
     } else {
@@ -111,13 +120,26 @@ class SavedRoutesPanel {
     this.#panel.hidden = sorted.length === 0;
     if (sorted.length === 0) return;
 
-    this.#list.innerHTML = sorted.map((route) => `
-      <li class="saved-route-card${route.routeId === highlightRouteId ? ' saved-route-card--new' : ''}"
-          data-route-id="${route.routeId}">
+    this.#list.innerHTML = sorted.map((route) => {
+      const cardClasses = ['saved-route-card',
+        route.routeId === highlightRouteId ? 'saved-route-card--new' : '',
+        route.routeId === this.#activeRouteId ? 'saved-route-card--active' : ''].filter(Boolean).join(' ');
+      const thumb = route.encodedPolyline
+        ? `<img class="saved-route-thumb" src="${this.#thumbnailUrl(route.encodedPolyline)}" alt="" loading="lazy">`
+        : '';
+      const usage = typeof route.startedCount === 'number'
+        ? `<span class="saved-route-usage">
+             ${i18next.t('route-usage', { started: route.startedCount, completed: route.completedCount })}
+           </span>`
+        : '';
+      return `
+      <li class="${cardClasses}" data-route-id="${route.routeId}">
         <button type="button" class="saved-route-view" data-route-id="${route.routeId}"
                 title="${i18next.t('saved-view-title')}">
+          ${thumb}
           <span class="saved-route-name"></span>
           <span class="saved-route-meta"></span>
+          ${usage}
         </button>
         <div class="saved-route-actions">
           <a class="button-ps button--primary button--tiny saved-route-explore" href="/explore?routeId=${route.routeId}"
@@ -125,7 +147,8 @@ class SavedRoutesPanel {
           <button type="button" class="button-ps button--secondary button--tiny saved-route-copy"
                   data-route-id="${route.routeId}">${i18next.t('recent-copy-link')}</button>
         </div>
-      </li>`).join('');
+      </li>`;
+    }).join('');
 
     // Names and region text are user/geo data: set via textContent so they can't inject markup.
     this.#list.querySelectorAll('.saved-route-card').forEach((card, i) => {

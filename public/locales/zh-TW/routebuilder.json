@@ -9,6 +9,7 @@
   "route-saved": "路線已儲存！",
   "saved-explore": "探索",
   "saved-view-title": "在地圖上顯示此路線",
+  "route-usage": "{{started}} 人探索過 · {{completed}} 人完成",
   "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
   "est-time-minutes": "約 {{min}} 分鐘",
   "est-time-hours": "約 {{hours}} 小時 {{min}} 分鐘",

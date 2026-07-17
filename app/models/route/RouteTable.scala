@@ -6,7 +6,9 @@ import models.street.StreetEdgeTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
+import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import slick.lifted.Case
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
@@ -46,7 +48,10 @@ case class RouteWithStats(
     name: String,
     distanceMeters: Double,
     streetCount: Int,
-    createdAt: OffsetDateTime
+    createdAt: OffsetDateTime,
+    startedCount: Int = 0,       // Users who opened the route in Explore (a user_route row exists).
+    completedCount: Int = 0,     // Of those, users who finished it (user_route.completed).
+    encodedPolyline: String = "" // The route's (decimated) geometry for static-map thumbnails.
 )
 
 class RouteTableDef(tag: slick.lifted.Tag) extends Table[Route](tag, "route") {
@@ -79,6 +84,7 @@ class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   val routeStreets = TableQuery[RouteStreetTableDef]
   val regions      = TableQuery[RegionTableDef]
   val streetEdges  = TableQuery[StreetEdgeTableDef]
+  val userRoutes   = TableQuery[UserRouteTableDef]
 
   def getRoute(routeId: Int): DBIO[Option[Route]] = {
     routes.filter(r => r.routeId === routeId && r.deleted === false).result.headOption
@@ -118,7 +124,40 @@ class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       }
       .sortBy(_._7.desc)
       .result
-      .map(_.map(RouteWithStats.tupled))
+      .map(_.map { case (routeId, regionId, regionName, name, distanceMeters, streetCount, createdAt) =>
+        RouteWithStats(routeId, regionId, regionName, name, distanceMeters, streetCount, createdAt)
+      })
+  }
+
+  /**
+   * Counts, per route, how many users started exploring it (a non-discarded user_route row) and how many of those
+   * completed it. Routes nobody has explored are absent from the map.
+   */
+  def getUsageCounts(routeIds: Seq[Int]): DBIO[Map[Int, (Int, Int)]] = {
+    userRoutes
+      .filter(ur => (ur.routeId inSet routeIds) && !ur.discarded)
+      .groupBy(_.routeId)
+      .map { case (routeId, group) =>
+        (routeId, group.length, group.map(ur => Case.If(ur.completed).Then(1).Else(0)).sum.getOrElse(0))
+      }
+      .result
+      .map(_.map { case (routeId, started, completed) => routeId -> (started, completed) }.toMap)
+  }
+
+  /**
+   * Gets the street geometries for a set of routes, in walking order with each street's traversal direction, for
+   * assembling per-route path geometry (e.g. thumbnail polylines).
+   *
+   * @return (routeId, reverse, geom) tuples ordered by route position.
+   */
+  def getStreetGeometries(routeIds: Seq[Int]): DBIO[Seq[(Int, Boolean, LineString)]] = {
+    routeStreets
+      .filter(_.routeId inSet routeIds)
+      .join(streetEdges)
+      .on(_.streetEdgeId === _.streetEdgeId)
+      .sortBy { case (routeStreet, _) => routeStreet.routeStreetId }
+      .map { case (routeStreet, streetEdge) => (routeStreet.routeId, routeStreet.reverse, streetEdge.geom) }
+      .result
   }
 
   /**

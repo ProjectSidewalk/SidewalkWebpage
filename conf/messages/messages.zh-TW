@@ -498,6 +498,8 @@ dashboard.routes.labelmap = 標記地圖
 dashboard.routes.copy = 複製連結
 dashboard.routes.rename = 重新命名
 dashboard.routes.delete = 刪除
+dashboard.routes.stats = {0} 人探索過 · {1} 人完成
+dashboard.routes.view.title = 在路線設立工具中檢視此路線
 dashboard.routes.none = 您尚未建立任何路線。
 dashboard.routes.build.one = 建立您的第一條路線 →
 

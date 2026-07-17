@@ -28,6 +28,9 @@ object RouteBuilderFormats {
       (JsPath \ "name").write[String] and
       (JsPath \ "distance_meters").write[Double] and
       (JsPath \ "street_count").write[Int] and
-      (JsPath \ "created_at").write[OffsetDateTime]
+      (JsPath \ "created_at").write[OffsetDateTime] and
+      (JsPath \ "started_count").write[Int] and
+      (JsPath \ "completed_count").write[Int] and
+      (JsPath \ "encoded_polyline").write[String]
   )(unlift(RouteWithStats.unapply))
 }

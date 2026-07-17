@@ -430,6 +430,8 @@ dashboard.routes.labelmap = Beschriftungskarte
 dashboard.routes.copy = Link kopieren
 dashboard.routes.rename = Umbenennen
 dashboard.routes.delete = Löschen
+dashboard.routes.stats = Von {0} erkundet · von {1} abgeschlossen
+dashboard.routes.view.title = Diese Route im RouteBuilder ansehen
 dashboard.routes.none = Sie haben noch keine Routen erstellt.
 dashboard.routes.build.one = Erstellen Sie Ihre erste Route →
 

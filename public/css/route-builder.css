@@ -364,13 +364,27 @@
 .saved-route-view {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
   padding: 0;
   border: none;
   background: none;
   text-align: left;
   cursor: pointer;
+}
+
+.saved-route-thumb {
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  object-fit: cover;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 8px;
+  margin-bottom: 3px;
+}
+
+.saved-route-usage {
+  color: var(--color-neutral-600);
+  font: var(--text-caption-regular);
 }
 
 .saved-route-view:hover .saved-route-name,

@@ -435,6 +435,8 @@ dashboard.routes.labelmap = Mapa de rótulos
 dashboard.routes.copy = Copiar link
 dashboard.routes.rename = Renomear
 dashboard.routes.delete = Excluir
+dashboard.routes.stats = Explorada por {0} · concluída por {1}
+dashboard.routes.view.title = Ver esta rota no RouteBuilder
 dashboard.routes.none = Você ainda não criou nenhuma rota.
 dashboard.routes.build.one = Crie sua primeira rota →
 

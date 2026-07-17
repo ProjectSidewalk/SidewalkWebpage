@@ -134,6 +134,7 @@ class RouteBuilder {
       formatMeta: (distanceMeters, regionName) => this.#formatRouteMeta(distanceMeters, regionName),
       setTemporaryTooltip: (btn, message) => this.#setTemporaryTooltip(btn, message),
       onView: (routeId) => this.#toggleRoutePreview(routeId),
+      thumbnailUrl: (encodedPolyline) => this.#thumbnailUrl(encodedPolyline),
     });
     this.#savedRoutes.refresh();
 
@@ -936,6 +937,18 @@ class RouteBuilder {
   }
 
   /**
+   * Builds a Mapbox Static Images URL rendering a route's path on the project basemap, for saved-route cards.
+   *
+   * @param {string} encodedPolyline - The route geometry as an encoded polyline.
+   * @returns {string}
+   */
+  #thumbnailUrl(encodedPolyline) {
+    const path = encodeURIComponent(encodedPolyline);
+    return 'https://api.mapbox.com/styles/v1/projectsidewalk/cloov4big002801rc0qw75w5g/static/'
+      + `path-4+3E8BD9-0.9(${path})/auto/400x200@2x?padding=30&access_token=${this.#mapboxApiKey}`;
+  }
+
+  /**
    * Rebuilds the 'route-endpoints' symbol source from the current route (or a lone start point): the start and end
    * flags, each with a Start/End text label below the point.
    */
@@ -1125,7 +1138,13 @@ class RouteBuilder {
     this.#status.pendingRouteRestored = true;
     const pending = SaveModal.consumePendingRoute();
     if (!pending) {
-      this.#restoreDraft();
+      // Deep link from the dashboard's route cards: /routeBuilder?preview=<id> opens straight into the preview.
+      const previewParam = new URLSearchParams(window.location.search).get('preview');
+      if (previewParam !== null && /^\d+$/.test(previewParam)) {
+        this.#toggleRoutePreview(Number(previewParam));
+      } else {
+        this.#restoreDraft();
+      }
       return;
     }
 
@@ -1339,12 +1358,14 @@ class RouteBuilder {
     if (!this.#isSignedIn) {
       const km = this.#streetsInRoute.features
         .reduce((sum, street) => sum + turf.length(street, { units: 'kilometers' }), 0);
+      const coords = this.#streetsInRoute.features.flatMap((f) => f.geometry.coordinates);
       this.#savedRoutes.recordGuestRoute({
         routeId,
         name,
         regionName: this.#getRegionName(this.#currRegionId),
         url: `${window.location.origin}/explore?routeId=${routeId}`,
         distanceMeters: km * 1000,
+        encodedPolyline: encodePolyline(decimateCoords(coords, 60)),
       });
     }
     this.#emptyRoute();

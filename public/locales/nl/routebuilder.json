@@ -9,6 +9,7 @@
   "route-saved": "Route opgeslagen!",
   "saved-explore": "Verkennen",
   "saved-view-title": "Toon deze route op de kaart",
+  "route-usage": "Door {{started}} verkend · door {{completed}} voltooid",
   "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
   "est-time-minutes": "~{{min}} min",
   "est-time-hours": "~{{hours}} u {{min}} min",

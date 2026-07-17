@@ -36,6 +36,11 @@ class MyRoutes {
         window.logWebpageActivity(`Click_module=RouteList_${kind}_RouteId=${link.dataset.routeId}`);
       });
     });
+    this.#list.querySelectorAll('.ud-route-view').forEach((link) => {
+      link.addEventListener('click', () => {
+        window.logWebpageActivity(`Click_module=RouteList_View_RouteId=${link.dataset.routeId}`);
+      });
+    });
   }
 
   /** Announces a change to screen readers via the section's live region. */

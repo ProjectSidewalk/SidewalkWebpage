@@ -9,6 +9,7 @@
   "route-saved": "Route saved!",
   "saved-explore": "Explore",
   "saved-view-title": "Show this route on the map",
+  "route-usage": "Explored by {{started}} · completed by {{completed}}",
   "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
   "est-time-minutes": "~{{min}} min",
   "est-time-hours": "~{{hours}} hr {{min}} min",

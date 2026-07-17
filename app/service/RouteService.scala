@@ -3,7 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import formats.json.RouteBuilderFormats.NewRoute
 import models.route.{Route, RouteStreet, RouteStreetTable, RouteTable, RouteWithStats}
-import models.utils.MyPostgresProfile
+import models.utils.{MyPostgresProfile, PolylineEncoder}
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -54,7 +54,41 @@ class RouteServiceImpl @Inject() (
     } yield (routeId, savedName)).transactionally)
   }
 
-  def getRoutesForUser(userId: String): Future[Seq[RouteWithStats]] = db.run(routeTable.getRoutesForUser(userId))
+  /**
+   * Gets a user's routes with display stats, usage counts (how many users started/completed each in Explore), and
+   * an encoded-polyline geometry for static-map thumbnails.
+   */
+  def getRoutesForUser(userId: String): Future[Seq[RouteWithStats]] = {
+    db.run(routeTable.getRoutesForUser(userId)).flatMap { routes =>
+      val routeIds = routes.map(_.routeId)
+      if (routeIds.isEmpty) {
+        Future.successful(routes)
+      } else {
+        for {
+          usage      <- db.run(routeTable.getUsageCounts(routeIds))
+          geometries <- db.run(routeTable.getStreetGeometries(routeIds))
+        } yield {
+          val polylines: Map[Int, String] = geometries.groupBy(_._1).map { case (routeId, streets) =>
+            // Concatenate the streets' coordinates in walking order (flipping reversed streets), then thin the
+            // path — thumbnails are tiny, and the polyline rides in a URL.
+            val coords: Seq[(Double, Double)] = streets.flatMap { case (_, reverse, geom) =>
+              val pts = geom.getCoordinates.map(c => (c.x, c.y)).toSeq
+              if (reverse) pts.reverse else pts
+            }
+            routeId -> PolylineEncoder.encode(PolylineEncoder.decimate(coords, 60))
+          }
+          routes.map { route =>
+            val (started, completed) = usage.getOrElse(route.routeId, (0, 0))
+            route.copy(
+              startedCount = started,
+              completedCount = completed,
+              encodedPolyline = polylines.getOrElse(route.routeId, "")
+            )
+          }
+        }
+      }
+    }
+  }
 
   /**
    * Gets a route's ordered street list. No ownership restriction: routes are shareable by id (/explore?routeId=),

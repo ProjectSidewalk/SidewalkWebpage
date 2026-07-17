@@ -133,7 +133,7 @@ ones whose meaning, parameters, or history aren't obvious:
 | `RouteBuilder_RoutePreviewAnimation` | The explorer walked the route in the save-hover preview animation (fires once per run, on hover/focus of the Save button). Not a deliberate click; treat as engagement signal, not an action. |
 | `RouteBuilder_Click=Undo` / `RouteBuilder_KeyboardShortcut=Undo` | The same undo action (#4576) via the button vs Ctrl/Cmd+Z — don't double-count. |
 | `RouteBuilder_Click=CancelRoute` / `ResumeRoute` / `ConfirmCancelRoute` | The clear-route flow: opening the discard-confirm dialog, backing out of it, or confirming the discard. |
-| `Click_module=RouteList_<Explore\|LabelMap\|Copy\|Rename\|Delete>_RouteId=<id>` | Actions on a saved route in the dashboard's "My Routes" section (`MyRoutes.js`). |
+| `Click_module=RouteList_<View\|Explore\|LabelMap\|Copy\|Rename\|Delete>_RouteId=<id>` | Actions on a saved route in the dashboard's "My Routes" section (`MyRoutes.js`); `View` is the thumbnail click that opens the route preview in RouteBuilder. |
 
 ## Finding the current list
 
