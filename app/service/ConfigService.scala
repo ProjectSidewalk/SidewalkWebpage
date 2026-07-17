@@ -964,7 +964,10 @@ class ConfigServiceImpl @Inject() (
         // The cast is safe because a given key is only ever refreshed with one result type.
         case Some(inFlight) => inFlight.asInstanceOf[Future[T]]
         case None           =>
-          val computation = compute.flatMap { value =>
+          // Future.delegate guards against `compute` throwing synchronously (before producing a Future): the throw
+          // becomes a failed Future handled by the onComplete logging below, instead of escaping to a caller that
+          // could have been served stale data.
+          val computation = Future.delegate(compute).flatMap { value =>
             cacheApi.set(key, Timestamped(value, OffsetDateTime.now()), maxAge).map(_ => value)
           }
           computation.onComplete { result =>

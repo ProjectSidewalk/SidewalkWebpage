@@ -138,20 +138,20 @@ class StatsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     // The requested window is sliced from the cached full-range rows (#4600), so the sliced result must equal the
     // matching subset of the unbounded result — inclusive of both endpoint days, with no dates outside the window.
+    // Robust to an empty test DB: with no rows at all, any window must slice to empty (still a 200).
     "honor an inclusive startDate/endDate window consistently with the unbounded result" in {
       val allData = (contentAsJson(route(app, FakeRequest(GET, "/v3/api/aggregateStatsByDay")).get) \ "data")
         .as[Seq[JsObject]]
-      assume(allData.nonEmpty, "test DB has no daily stats to slice")
 
       // Pick a middle date so both bounds actually cut something when more than one day exists.
       val dates      = allData.map(row => (row \ "date").as[String]).distinct
-      val windowDate = dates(dates.size / 2)
+      val windowDate = if (dates.nonEmpty) dates(dates.size / 2) else "2026-01-01"
 
       val windowed = (contentAsJson(
         route(app, FakeRequest(GET, s"/v3/api/aggregateStatsByDay?startDate=$windowDate&endDate=$windowDate")).get
       ) \ "data").as[Seq[JsObject]]
 
-      windowed.map(row => (row \ "date").as[String]).distinct mustBe Seq(windowDate)
+      windowed.map(row => (row \ "date").as[String]).distinct mustBe dates.filter(_ == windowDate)
       windowed mustBe allData.filter(row => (row \ "date").as[String] == windowDate)
     }
 
