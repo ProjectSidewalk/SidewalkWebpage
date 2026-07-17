@@ -46,7 +46,8 @@ loading = Carregando...
 loading.encouragement = Vamos lá!
 submit = Enviar
 submit.shortcut = Enviar (<u>S</u>)
-test.server.warning.message = <strong>AVISO!</strong> Você está em um servidor de teste! Seus dados não serão salvos! Se quiser que seus dados sejam salvos, utilize o site principal
+test.server.warning.message = <strong>Você está em um servidor de teste.</strong> Seu trabalho não será salvo aqui. Para mantê-lo, use o site principal
+test.server.warning.close = Dispensar aviso
 dont.show.again = Não mostrar novamente
 
 press.key = Pressione a tecla "{0}"

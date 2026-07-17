@@ -850,9 +850,13 @@ kbd {
 }
 
 
-/* Formatting the test server warning banner. */
+/*
+ * Test server warning banner: a soft amber notice shown only on non-prod servers. Colors, type, and spacing come from
+ * the Design System Tokens (banana/neutral/link palettes) rather than the old hardcoded yellow + red "WARNING!" text.
+ */
 .test-server-banner {
-  background-color: rgb(251 215 139);
+  background-color: var(--color-banana-200);
+  border-bottom: 1px solid var(--color-banana-500);
 }
 
 /* Pin test server banner just below the navbar. */
@@ -869,49 +873,120 @@ body:has(#header.header--tall) .test-server-banner {
 }
 
 .test-server-banner-content {
-  padding: 0.5%;
-  max-width: 70%;
-  margin: 0 auto;
   display: flex;
-  font-size: medium;
+  align-items: center;
+  gap: 12px;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 10px 20px;
+  flex-wrap: wrap;
+}
+
+/* Warning triangle: the severity cue, so the message text can stay calm and informative. */
+.test-server-banner-icon {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  color: var(--color-banana-800);
 }
 
 .test-server-banner-text {
-  font-family: raleway-bold, sans-serif;
-  text-align: center;
+  flex: 1 1 240px;
+  min-width: 0;
+  margin: 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
 }
 
 .test-server-banner-text > strong {
-  color: red;
+  font-weight: 700;
+  color: var(--color-neutral-900);
+}
+
+.test-server-banner-link {
+  font-weight: 600;
+  color: var(--color-link-200);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+
+.test-server-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
 }
 
 .test-server-banner-dont-show-again {
-  background: none;
+  padding: 4px 8px;
   border: none;
+  border-radius: 6px;
+  background: transparent;
+  font: var(--text-small-medium);
+  color: var(--color-neutral-800);
   text-decoration: underline;
-  min-width: fit-content;
-  padding: 0 20px;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.test-server-banner-dont-show-again:hover {
+  background-color: var(--color-banana-300);
+  color: var(--color-neutral-900);
 }
 
 .test-server-banner-close {
-  background: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
   border: none;
-  margin-top: 2px;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-neutral-700);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.test-server-banner-close svg {
+  width: 16px;
+  height: 16px;
+}
+
+.test-server-banner-close:hover {
+  background-color: var(--color-banana-300);
+  color: var(--color-neutral-900);
+}
+
+.test-server-banner :focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .test-server-banner-dont-show-again,
+  .test-server-banner-close {
+    transition: none;
+  }
 }
 
 /*
- * Test server warning banner styling differences on mobile. This is used for all pages except for the default /mobile
- * for some reason. So CSS for that page is in mobile-validate.css.
+ * Test server warning banner on narrow screens. This applies to all pages except the default /mobile page, whose
+ * banner overrides live in mobile-validate.css.
  */
-@media only screen and (width <= 500px) {
-  .test-server-banner {
-    border-radius: 5px;
+@media only screen and (width <= 600px) {
+  .test-server-banner-content {
+    gap: 8px;
+    padding: 10px 14px;
   }
 
-  .test-server-banner-content {
-    max-width: 300px;
-    flex-wrap: wrap;
-    font-size: small;
+  /* Let the actions drop to their own full-width row and stay right-aligned once the message wraps. */
+  .test-server-banner-actions {
+    width: 100%;
   }
 }
 
