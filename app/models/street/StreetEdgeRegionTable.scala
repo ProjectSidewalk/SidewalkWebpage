@@ -22,6 +22,7 @@ class StreetEdgeRegionTableDef(tag: Tag) extends Table[StreetEdgeRegion](tag, "s
       onDelete = ForeignKeyAction.Cascade
     )
   def region = foreignKey("street_edge_region_region_id_fkey", regionId, TableQuery[RegionTableDef])(_.regionId)
+  def streetEdgeUnique = index("street_edge_region_street_edge_id_key", streetEdgeId, unique = true)
 }
 
 @ImplementedBy(classOf[StreetEdgeRegionTable])

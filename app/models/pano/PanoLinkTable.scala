@@ -11,7 +11,7 @@ import scala.concurrent.ExecutionContext
 case class PanoLink(panoId: String, targetPanoId: String, yawDeg: Double, description: Option[String])
 
 class PanoLinkTableDef(tag: Tag) extends Table[PanoLink](tag, "pano_link") {
-  def panoId: Rep[String]              = column[String]("pano_id", O.PrimaryKey)
+  def panoId: Rep[String]              = column[String]("pano_id")
   def targetPanoId: Rep[String]        = column[String]("target_pano_id")
   def yawDeg: Rep[Double]              = column[Double]("yaw_deg")
   def description: Rep[Option[String]] = column[Option[String]]("description")
@@ -19,6 +19,7 @@ class PanoLinkTableDef(tag: Tag) extends Table[PanoLink](tag, "pano_link") {
   def * = (panoId, targetPanoId, yawDeg, description) <> ((PanoLink.apply _).tupled, PanoLink.unapply)
 
   def pano = foreignKey("pano_link_pano_id_fkey", panoId, TableQuery[PanoDataTableDef])(_.panoId)
+  def pk   = primaryKey("gsv_link_pkey", (panoId, targetPanoId))
 }
 
 @ImplementedBy(classOf[PanoLinkTable])
