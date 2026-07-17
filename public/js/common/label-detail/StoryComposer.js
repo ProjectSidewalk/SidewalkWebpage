@@ -38,6 +38,7 @@ class StoryComposer {
     const q = (sel) => dialog.querySelector(sel);
     this.#els = {
       title: q('.story-composer__title'),
+      intro: q('.story-composer__intro'),
       text: q('.story-composer__text'),
       counter: q('.story-composer__counter'),
       photoAttach: q('.story-composer__photo-attach'),
@@ -70,6 +71,21 @@ class StoryComposer {
     this.#els.privacy.innerHTML = i18next.t('labelmap:story.privacy-note');
 
     this.#wireHandlers();
+  }
+
+  /**
+   * Switches the intro and textarea placeholder between problem and positive-feature phrasing, per the label type's
+   * backend-sourced `is_access_problem` flag (see /stories). Anything but an explicit false — including null while
+   * the flag is still unknown — keeps the default problem copy. Safe to call while the dialog is open: the host
+   * re-applies it when a late /stories response lands.
+   * @param {?boolean} isAccessProblem
+   */
+  setCopyVariant(isAccessProblem) {
+    const positive = isAccessProblem === false;
+    this.#els.intro.textContent
+      = i18next.t(positive ? 'labelmap:story.composer-intro-positive' : 'labelmap:story.composer-intro');
+    this.#els.text.placeholder
+      = i18next.t(positive ? 'labelmap:story.text-placeholder-positive' : 'labelmap:story.text-placeholder');
   }
 
   /**

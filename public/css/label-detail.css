@@ -1589,12 +1589,21 @@ dialog.ps-confirm::backdrop { background: rgb(0 0 0 / 45%); }
 }
 
 .ps-confirm__confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   border: none;
   background: var(--color-asphalt-500);
   color: var(--color-neutral-white);
 }
 
 .ps-confirm__confirm--danger { background: var(--color-error-200); }
+
+.ps-confirm__confirm-icon {
+  width: 14px;
+  height: 14px;
+}
 
 .ps-confirm__cancel:focus-visible,
 .ps-confirm__confirm:focus-visible {

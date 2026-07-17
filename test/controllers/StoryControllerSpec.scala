@@ -97,6 +97,8 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
           status(resp) mustBe OK
           (contentAsJson(resp) \ "label_id").as[Int] mustBe id
           (contentAsJson(resp) \ "max_text_length").as[Int] mustBe maxTextLength
+          // Real labels always resolve to a boolean (the card's problem-vs-feature prompt switch).
+          (contentAsJson(resp) \ "is_access_problem").asOpt[Boolean] mustBe defined
           (contentAsJson(resp) \ "stories").asOpt[JsArray] mustBe defined
       }
     }

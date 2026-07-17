@@ -13,6 +13,7 @@ class StorySection {
   #composer;
   #labelId = null;
   #maxTextLength = null;
+  #isAccessProblem = null; // From the /stories payload (LabelTypeEnum-sourced); flips the invite/composer phrasing.
   #fetchToken = 0; // Guards against a stale response landing after a newer label was opened.
 
   /**
@@ -69,6 +70,7 @@ class StorySection {
    */
   setLabel(labelId) {
     this.#labelId = labelId;
+    this.#isAccessProblem = null;
     this.#els.details.open = false;
     this.#els.list.replaceChildren();
     this.#els.count.hidden = true;
@@ -109,6 +111,11 @@ class StorySection {
       const data = await res.json();
       if (token !== this.#fetchToken) return;
       this.#maxTextLength = data.max_text_length;
+      this.#isAccessProblem = data.is_access_problem;
+      // Positive access features (curb ramps, signals, ...) get "story about a feature" phrasing instead of "has a
+      // problem affected you". Applied on every fetch so paging between label types re-picks the right copy — and
+      // reaches the composer even if it was opened before this response landed (the sign-in resume path).
+      this.#composer.setCopyVariant(this.#isAccessProblem);
       this.#render(data.stories);
     } catch (err) {
       console.error(err);
@@ -129,6 +136,10 @@ class StorySection {
     // so the card stays bounded); collapsing is still available via the summary.
     els.details.open = !empty;
     els.invite.hidden = !empty;
+    // Anything but an explicit false (unknown/absent) keeps the default problem phrasing.
+    els.invite.textContent = i18next.t(
+      this.#isAccessProblem === false ? 'labelmap:story.invite-positive' : 'labelmap:story.invite',
+    );
     // One story per user per label (server-enforced): once yours exists, delete-and-repost is the edit path.
     els.shareBtn.hidden = stories.some((s) => s.is_own);
 
@@ -223,6 +234,7 @@ class StorySection {
       confirmText: i18next.t('labelmap:story.delete'),
       cancelText: i18next.t('labelmap:story.cancel'),
       danger: true,
+      confirmIconSrc: '/assets/images/icons/delete-white-material.svg',
     });
     if (!confirmed) return;
     window.logWebpageActivity?.(`Click_module=StoryDeleteClient_storyId=${storyId}`);

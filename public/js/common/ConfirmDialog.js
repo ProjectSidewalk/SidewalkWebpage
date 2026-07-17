@@ -20,14 +20,18 @@ class ConfirmDialog {
    * @param {string} opts.confirmText - Label for the confirming button.
    * @param {string} opts.cancelText - Label for the dismissing button.
    * @param {boolean} [opts.danger=false] - Styles the confirm button red for destructive actions.
+   * @param {string} [opts.confirmIconSrc] - URL of a decorative icon shown before the confirm button's text
+   *     (e.g. the trash can on deletes). Omit for no icon.
    * @returns {Promise<boolean>} true if confirmed; false on cancel, Esc, or any other dismissal.
    */
-  static confirm({ message, confirmText, cancelText, danger = false }) {
+  static confirm({ message, confirmText, cancelText, danger = false, confirmIconSrc = null }) {
     const els = ConfirmDialog.#ensureDialog();
     els.message.textContent = message;
-    els.confirm.textContent = confirmText;
+    els.confirmLabel.textContent = confirmText;
     els.cancel.textContent = cancelText;
     els.confirm.classList.toggle('ps-confirm__confirm--danger', danger);
+    els.confirmIcon.hidden = !confirmIconSrc;
+    if (confirmIconSrc) els.confirmIcon.src = confirmIconSrc;
     return new Promise((resolve) => {
       ConfirmDialog.#resolve = resolve;
       ConfirmDialog.#dialog.showModal();
@@ -48,7 +52,10 @@ class ConfirmDialog {
       <p class="ps-confirm__message" id="ps-confirm-message"></p>
       <div class="ps-confirm__actions">
         <button type="button" class="ps-confirm__cancel"></button>
-        <button type="button" class="ps-confirm__confirm"></button>
+        <button type="button" class="ps-confirm__confirm">
+          <img class="ps-confirm__confirm-icon" alt="" hidden>
+          <span class="ps-confirm__confirm-label"></span>
+        </button>
       </div>
     `;
     document.body.appendChild(dialog);
@@ -56,6 +63,8 @@ class ConfirmDialog {
       message: dialog.querySelector('.ps-confirm__message'),
       cancel: dialog.querySelector('.ps-confirm__cancel'),
       confirm: dialog.querySelector('.ps-confirm__confirm'),
+      confirmIcon: dialog.querySelector('.ps-confirm__confirm-icon'),
+      confirmLabel: dialog.querySelector('.ps-confirm__confirm-label'),
     };
     els.confirm.addEventListener('click', () => ConfirmDialog.#settle(true));
     els.cancel.addEventListener('click', () => ConfirmDialog.#settle(false));

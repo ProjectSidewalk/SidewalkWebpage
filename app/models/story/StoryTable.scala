@@ -103,6 +103,11 @@ class StoryTable @Inject() (
     labels.filter(l => l.labelId === labelId && l.deleted === false).exists.result
   }
 
+  /** The label's type id, or None when the label doesn't exist. Drives the card's problem-vs-feature story copy. */
+  def labelTypeIdForLabel(labelId: Int): DBIO[Option[Int]] = {
+    labels.filter(_.labelId === labelId).map(_.labelTypeId).result.headOption
+  }
+
   def userHasStoryOnLabel(labelId: Int, userId: String): DBIO[Boolean] = {
     stories.filter(s => s.labelId === labelId && s.userId === userId).exists.result
   }

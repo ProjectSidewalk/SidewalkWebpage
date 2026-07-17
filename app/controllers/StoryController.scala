@@ -39,16 +39,22 @@ class StoryController @Inject() (
    * no session at all, so this mirrors LabelController.getLabelData's UserAwareAction (#456).
    */
   def getStories(labelId: Int) = silhouette.UserAwareAction.async { implicit request =>
-    val viewerUserId = request.identity.map(_.userId)
-    storyService.getStoriesForLabel(labelId, viewerUserId, isAdmin(request.identity)).map { stories =>
-      Ok(
-        Json.obj(
-          "label_id"        -> labelId,
-          "max_text_length" -> storyService.maxTextLength, // Composer counter limit; sourced here, never a JS literal.
-          "stories"         -> stories.map(StoryFormats.storyForViewToJson)
-        )
+    val viewerUserId    = request.identity.map(_.userId)
+    val storiesFuture   = storyService.getStoriesForLabel(labelId, viewerUserId, isAdmin(request.identity))
+    val isProblemFuture = storyService.isLabelAccessProblem(labelId)
+    for {
+      stories   <- storiesFuture
+      isProblem <- isProblemFuture
+    } yield Ok(
+      Json.obj(
+        "label_id"        -> labelId,
+        "max_text_length" -> storyService.maxTextLength, // Composer counter limit; sourced here, never a JS literal.
+        // Problem-vs-feature story prompts flip on this; sourced from LabelTypeEnum, never re-derived in JS. Null
+        // when the label doesn't exist (the card then keeps its default copy).
+        "is_access_problem" -> isProblem,
+        "stories"           -> stories.map(StoryFormats.storyForViewToJson)
       )
-    }
+    )
   }
 
   /**

@@ -27,6 +27,7 @@ import scala.util.Try
 @ImplementedBy(classOf[StoryServiceImpl])
 trait StoryService {
   def getStoriesForLabel(labelId: Int, viewerUserId: Option[String], isAdmin: Boolean): Future[Seq[StoryForView]]
+  def isLabelAccessProblem(labelId: Int): Future[Option[Boolean]]
   def submitStory(
       labelId: Int,
       userId: String,
@@ -97,6 +98,15 @@ class StoryServiceImpl @Inject() (
       .map(_.map { case (story, media, username) =>
         toStoryForView(story, media, username, viewerUserId)
       })
+  }
+
+  /**
+   * Whether the label marks an accessibility problem (vs a positive feature like a curb ramp), from
+   * LabelTypeEnum.isAccessProblem — the card's story prompts flip phrasing on this. None when the label doesn't exist.
+   */
+  def isLabelAccessProblem(labelId: Int): Future[Option[Boolean]] = {
+    db.run(storyTable.labelTypeIdForLabel(labelId))
+      .map(_.flatMap(typeId => LabelTypeEnum.byId.get(typeId).map(_.isAccessProblem)))
   }
 
   def submitStory(
