@@ -25,6 +25,14 @@ DELETE FROM pano_history a USING pano_history b
 WHERE a.pano_id = b.pano_id AND a.location_curr_pano_id = b.location_curr_pano_id
   AND (a.capture_date > b.capture_date OR (a.capture_date = b.capture_date AND a.ctid > b.ctid));
 
+-- === Fix corrupt label_point geometry (legacy bad data, ~1.2k rows across 6 cities). ===
+-- An old 'depth' position method wrote out-of-range garbage into geom while leaving lat/lng NULL. The current insert
+-- path derives geom from lat/lng (a NULL lat/lng yields a NULL geom, never garbage), and the bad coords are
+-- unrecoverable, so null the corrupt geom to match its NULL lat/lng ("position unknown"). public.ST_* is qualified
+-- because PostGIS lives in public and the evolution runs with the city schema on the search_path.
+UPDATE label_point SET geom = NULL
+WHERE geom IS NOT NULL AND (public.ST_X(geom) NOT BETWEEN -180 AND 180 OR public.ST_Y(geom) NOT BETWEEN -90 AND 90);
+
 -- === NOT NULL ===
 -- Non-Option in the Slick models, 0-null in every migrated city. SET NOT NULL is idempotent, so the two big interaction
 -- columns (validation_task_interaction.timestamp, audit_task_interaction_small.mission_id) can be pre-set by hand on
@@ -123,7 +131,7 @@ ALTER TABLE osm_way_street_edge DROP CONSTRAINT IF EXISTS osm_way_street_edge_st
 ALTER TABLE street_edge_region DROP CONSTRAINT IF EXISTS street_edge_region_street_edge_id_key;
 ALTER TABLE street_edge_priority DROP CONSTRAINT IF EXISTS street_edge_priority_street_edge_id_key;
 
--- NOT NULL. The dedup DELETEs above are data changes and are not restored on rollback.
+-- NOT NULL. The dedup DELETEs and the corrupt-geom UPDATE above are data changes and are not restored on rollback.
 ALTER TABLE audit_task_interaction_small ALTER COLUMN mission_id DROP NOT NULL;
 ALTER TABLE validation_task_interaction ALTER COLUMN timestamp DROP NOT NULL;
 ALTER TABLE user_survey_text_submission ALTER COLUMN num_missions_completed DROP NOT NULL;
