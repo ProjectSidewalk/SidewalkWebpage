@@ -4,8 +4,9 @@
 #
 # WHY THIS EXISTS: after create-new-schema.sh gives you an empty city schema, the geographic data (streets + regions)
 # is loaded into two staging tables — qgis_road and qgis_region — from a QGIS/OSM export. This script turns that
-# staging data into the app's real tables (street_edge, region, street_edge_region, street_edge_priority, ...), adds
-# the shared DC tutorial street, sets the city center/bounds in `config`, and drops the staging tables when done.
+# staging data into the app's real tables (street_edge, region, street_edge_region, street_edge_priority, ...),
+# relocates the template's seeded DC tutorial street to sit after the imported streets, sets the city center/bounds in
+# `config`, and drops the staging tables when done.
 # It's interactive: it asks for the column/value details that vary per import, prints a summary, and confirms before
 # touching the DB. Everything runs in one transaction, so a failure rolls the whole thing back.
 #
@@ -95,6 +96,17 @@ fi
 # import arrives with string-typed columns, add explicit CAST()s here rather than relying on implicit coercion.
 psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
     BEGIN;
+    -- The sidewalk_init template seeds the shared DC tutorial street at street_edge_id = 1 (so config's
+    -- tutorial_street_edge_id FK is satisfiable in the otherwise-empty template). Imported qgis road_ids also start at
+    -- 1, so relocate the tutorial to sit just past the imported streets before importing them -- this keeps every real
+    -- street's street_edge_id equal to its qgis road_id. config's FK is RESTRICT, so the id can't be UPDATEd in place:
+    -- copy the tutorial row to MAX(road_id) + 1, repoint config at the copy, then delete the original.
+    INSERT INTO street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status, timestamp)
+        SELECT (SELECT MAX(road_id) FROM qgis_road) + 1, geom, x1, y1, x2, y2, way_type, status, timestamp
+        FROM street_edge;
+    UPDATE config SET tutorial_street_edge_id = (SELECT MAX(street_edge_id) FROM street_edge);
+    DELETE FROM street_edge WHERE street_edge_id <> (SELECT tutorial_street_edge_id FROM config);
+
     -- Fill in the street_edge table using the qgis_road table. A street in a hidden region is seeded 'closed' (the
     -- whole neighborhood isn't open yet); everything else starts 'open' (#3888). $REGION_DELETED_Q is a boolean
     -- expression that is TRUE for streets whose region is hidden.
@@ -108,12 +120,6 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
     INSERT INTO osm_way_street_edge (osm_way_id, street_edge_id)
         SELECT CAST(osm_id AS INT), road_id FROM qgis_road;
 
-    -- Add the tutorial street edge from DC into the database and update tutorial id in the config table.
-    INSERT INTO street_edge(street_edge_id, geom, x1, y1, x2, y2, way_type, status, timestamp)
-        SELECT MAX(street_edge_id) + 1, '0102000020E6100000040000007C9E3F6D544453C00A2E56D460784340ECF7C43A554453C02B685A6265784340F29A5775564453C0C4D2C08F6A784340F73DEAAF574453C0B0CBF09F6E784340', -77.067653, 38.940455, -77.067852, 38.940876, 'tertiary', 'open'::street_edge_status, '2015-11-17 04:20:19.46+00'
-        FROM street_edge;
-    UPDATE config SET tutorial_street_edge_id = (SELECT MAX(street_edge_id) FROM street_edge);
-
     -- Fill in the region table using the qgis_region table.
     INSERT INTO region (region_id, data_source, name, geom, deleted)
         SELECT region_id, '$REGION_DATA_SOURCE', $REGION_NAME_COL, geom, $REGION_DELETED_Q
@@ -124,8 +130,8 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
         SELECT road_id, region_id
         FROM qgis_road;
     INSERT INTO street_edge_region (street_edge_id, region_id)
-        SELECT MAX(street_edge_id), $TUTORIAL_REGION_ID
-        FROM street_edge;
+        SELECT tutorial_street_edge_id, $TUTORIAL_REGION_ID
+        FROM config;
 
     -- Initialize the street_edge_priority table for auditable streets only (#3888).
     INSERT INTO street_edge_priority (street_edge_id, priority)
