@@ -51,20 +51,20 @@ case class StreetEdge(
     y2: Double,
     wayType: String,
     status: StreetEdgeStatus.Value,
-    timestamp: Option[OffsetDateTime]
+    timestamp: OffsetDateTime
 )
 case class StreetEdgeInfo(val street: StreetEdge, osmId: Long, regionId: Int, val auditCount: Int)
 
 class StreetEdgeTableDef(tag: Tag) extends Table[StreetEdge](tag, "street_edge") {
-  def streetEdgeId: Rep[Int]                 = column[Int]("street_edge_id", O.PrimaryKey)
-  def geom                                   = column[LineString]("geom")
-  def x1: Rep[Double]                        = column[Double]("x1")
-  def y1: Rep[Double]                        = column[Double]("y1")
-  def x2: Rep[Double]                        = column[Double]("x2")
-  def y2: Rep[Double]                        = column[Double]("y2")
-  def wayType: Rep[String]                   = column[String]("way_type")
-  def status: Rep[StreetEdgeStatus.Value]    = column[StreetEdgeStatus.Value]("status")
-  def timestamp: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("timestamp")
+  def streetEdgeId: Rep[Int]              = column[Int]("street_edge_id", O.PrimaryKey)
+  def geom                                = column[LineString]("geom")
+  def x1: Rep[Double]                     = column[Double]("x1")
+  def y1: Rep[Double]                     = column[Double]("y1")
+  def x2: Rep[Double]                     = column[Double]("x2")
+  def y2: Rep[Double]                     = column[Double]("y2")
+  def wayType: Rep[String]                = column[String]("way_type")
+  def status: Rep[StreetEdgeStatus.Value] = column[StreetEdgeStatus.Value]("status")
+  def timestamp: Rep[OffsetDateTime]      = column[OffsetDateTime]("timestamp")
 
   def * = (streetEdgeId, geom, x1, y1, x2, y2, wayType, status, timestamp) <> (
     (StreetEdge.apply _).tupled,
@@ -93,7 +93,7 @@ class StreetEdgeTable @Inject() (
         r.nextDouble(),
         r.nextString(),
         StreetEdgeStatus.withName(r.nextString()),
-        r.nextTimestampOption().map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC))
+        OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC)
       ),
       r.nextLong(),
       r.nextInt(),

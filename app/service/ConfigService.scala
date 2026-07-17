@@ -18,7 +18,7 @@ import slick.dbio.DBIO
 import java.time.{LocalDate, OffsetDateTime}
 import java.time.temporal.ChronoUnit
 import javax.inject._
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 
@@ -253,6 +253,12 @@ case class CurrentCityFunnels(computedAt: Option[OffsetDateTime], byType: Map[St
  * its summary block) read the same values.
  */
 object ConfigService {
+
+  /** Cached aggregate stats older than this trigger a background recompute when served (#4600). */
+  val AggregateStatsFreshFor: FiniteDuration = Duration(5, "minutes")
+
+  /** How long cached aggregate stats may be served at all; past this, a request blocks on recomputing them. */
+  val AggregateStatsMaxAge: FiniteDuration = Duration(24, "hours")
 
   /** A city with activity within this many days is "active". */
   val ActiveWithinDays: Long = 30
@@ -490,6 +496,8 @@ trait ConfigService {
    * Calculates aggregate statistics across all Project Sidewalk deployments.
    *
    * Fetches statistics from all configured cities by querying their respective db schemas and aggregating the results.
+   * Results are cached and may lag reality by roughly [[ConfigService.AggregateStatsFreshFor]]; stale data is served
+   * immediately while a background recompute refreshes it (#4600).
    *
    * @return A Future containing aggregated statistics across all cities
    */
@@ -501,7 +509,9 @@ trait ConfigService {
    * Queries each city schema in parallel and sums counts by (date, labelType) across cities.
    * Cities whose schemas do not exist in the current environment are silently skipped (same
    * guard as getAggregateStats). The legacy DC dataset is omitted because its schema predates
-   * the label_validation table format used here.
+   * the label_validation table format used here. The full-range result is cached like
+   * getAggregateStats (stale data served immediately, background refresh — #4600), and the
+   * requested date window is sliced from the cached per-day rows.
    *
    * @param startDate        Inclusive start date (Pacific time); no lower bound if None.
    * @param endDate          Inclusive end date; no upper bound if None.
@@ -911,88 +921,158 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
+  /** A cached value plus when it was computed, so stale data can be served while a refresh runs (#4600). */
+  private case class Timestamped[T](value: T, computedAt: OffsetDateTime)
+
+  /** In-flight cache recomputes by cache key, so concurrent refreshes of a key share one computation (#4600). */
+  private val refreshesInFlight = scala.collection.mutable.Map.empty[String, Future[_]]
+
   /**
-   * Calculates aggregate statistics across all Project Sidewalk deployments.
+   * Serves the cached value for `key` immediately — even when stale — while keeping it fresh in the background.
    *
-   * This method uses direct database queries with cross-schema access to efficiently gather only the essential
-   * statistics from all configured cities. It filters out cities whose schemas don't exist in the current environment
-   * (so plays nice with localhost dev setups). Additionally, calculates deployment counts for cities, countries, and
-   * supported languages.
+   * When the cached copy is older than `freshFor`, a single background recompute is kicked off and the stale copy is
+   * returned right away; requests arriving while a recompute runs share it rather than piling more load on the
+   * database. Only a request that finds nothing cached at all (first call since JVM start, or the value aged past
+   * `maxAge`) blocks on `compute`.
+   *
+   * @param key      Cache key; must uniquely identify the computation, including any parameters.
+   * @param freshFor Age beyond which serving the cached value also triggers a background recompute.
+   * @param maxAge   Hard cache-eviction bound; past this, a request blocks on recomputing.
+   * @param compute  The expensive computation producing a fresh value.
+   * @return         The cached (possibly stale) value, or the result of `compute` when nothing is cached.
+   */
+  private def staleWhileRevalidate[T: ClassTag](key: String, freshFor: FiniteDuration, maxAge: FiniteDuration)(
+      compute: => Future[T]
+  ): Future[T] = {
+    cacheApi.get[Timestamped[T]](key).flatMap {
+      case Some(cached) =>
+        val ageSeconds = ChronoUnit.SECONDS.between(cached.computedAt, OffsetDateTime.now())
+        if (ageSeconds >= freshFor.toSeconds) { val _ = refreshCachedValue(key, maxAge)(compute) }
+        Future.successful(cached.value)
+      case None => refreshCachedValue(key, maxAge)(compute) // Nothing cached yet: wait for the compute.
+    }
+  }
+
+  /**
+   * Recomputes the value behind `key` and caches it, coalescing concurrent calls into one shared computation.
+   *
+   * @return The freshly computed value, or the computation's failure (already-cached data is left untouched).
+   */
+  private def refreshCachedValue[T](key: String, maxAge: FiniteDuration)(compute: => Future[T]): Future[T] =
+    synchronized {
+      refreshesInFlight.get(key) match {
+        // The cast is safe because a given key is only ever refreshed with one result type.
+        case Some(inFlight) => inFlight.asInstanceOf[Future[T]]
+        case None           =>
+          // Future.delegate guards against `compute` throwing synchronously (before producing a Future): the throw
+          // becomes a failed Future handled by the onComplete logging below, instead of escaping to a caller that
+          // could have been served stale data.
+          val computation = Future.delegate(compute).flatMap { value =>
+            cacheApi.set(key, Timestamped(value, OffsetDateTime.now()), maxAge).map(_ => value)
+          }
+          computation.onComplete { result =>
+            synchronized { val _ = refreshesInFlight.remove(key) }
+            result.failed.foreach(e => logger.warn(s"Recompute of cached '$key' failed: ${e.getMessage}", e))
+          }
+          refreshesInFlight(key) = computation
+          computation
+      }
+    }
+
+  /**
+   * Calculates aggregate statistics across all Project Sidewalk deployments, serving cached results when available.
+   *
+   * The computation fans out several aggregate queries to every configured city schema, which can take well over 10s
+   * on a loaded database — long enough that a request hitting an expired cache would time out client-side (#4600). So
+   * cached stats are served immediately for up to [[ConfigService.AggregateStatsMaxAge]], with a single background
+   * recompute triggered once they are older than [[ConfigService.AggregateStatsFreshFor]]. Only the first request
+   * after a JVM start (nothing cached yet) waits for the full computation.
    *
    * @return A Future containing aggregated statistics across all cities
    */
-  def getAggregateStats(): Future[AggregateStats] = {
-    // Use cache to avoid repeated expensive calculations.
-    cacheApi.getOrElseUpdate[AggregateStats]("getAggregateStats", Duration(5, "minutes")) {
-      // Get all configured city IDs.
-      val configuredCityIds = config.get[Seq[String]]("city-params.city-ids")
+  def getAggregateStats(): Future[AggregateStats] =
+    staleWhileRevalidate("getAggregateStats", ConfigService.AggregateStatsFreshFor, ConfigService.AggregateStatsMaxAge)(
+      computeAggregateStats()
+    )
 
-      // Filter to only include cities whose schemas actually exist in the database.
-      val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
-        try {
-          val schema = getCitySchema(cityId)
-          // Check if the schema actually exists in the database.
-          checkSchemaExists(schema).map(cityId -> _).recover { case _ => cityId -> false }
-        } catch {
-          case _: Exception =>
-            Future.successful(cityId -> false)
-        }
+  /**
+   * Runs the full cross-schema fan-out that computes aggregate statistics.
+   *
+   * Uses direct database queries with cross-schema access to gather only the essential statistics from all configured
+   * cities. Filters out cities whose schemas don't exist in the current environment (so plays nice with localhost dev
+   * setups). Additionally, calculates deployment counts for cities, countries, and supported languages.
+   *
+   * @return A Future containing freshly computed aggregate statistics across all cities
+   */
+  private def computeAggregateStats(): Future[AggregateStats] = {
+    // Get all configured city IDs.
+    val configuredCityIds = config.get[Seq[String]]("city-params.city-ids")
+
+    // Filter to only include cities whose schemas actually exist in the database.
+    val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
+      try {
+        val schema = getCitySchema(cityId)
+        // Check if the schema actually exists in the database.
+        checkSchemaExists(schema).map(cityId -> _).recover { case _ => cityId -> false }
+      } catch {
+        case _: Exception =>
+          Future.successful(cityId -> false)
       }
+    }
 
-      // Wait for all schema checks to complete.
-      Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
-        val availableCities = schemaResults.filter(_._2).map(_._1)
+    // Wait for all schema checks to complete.
+    Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
+      val availableCities = schemaResults.filter(_._2).map(_._1)
 
-        if (availableCities.isEmpty) {
-          logger.warn("No cities with valid schemas found")
-          Future.successful(
+      if (availableCities.isEmpty) {
+        logger.warn("No cities with valid schemas found")
+        Future.successful(
+          AggregateStats(
+            kmExplored = 0.0, kmExploredNoOverlap = 0.0, totalLabels = 0, tutorialLabels = 0, totalValidations = 0,
+            totalUsers = 0, numCities = 0, numCountries = 0, numLanguages = 0, byLabelType = Map.empty
+          )
+        )
+      } else {
+        // Calculate deployment statistics.
+        val numCities    = availableCities.length + 1 // +1 for legacy DC city
+        val numCountries = calculateNumCountries(availableCities)
+        val numLanguages = calculateNumLanguages()
+
+        // Fetch essential statistics from available cities in parallel.
+        val cityStatsFutures: Seq[Future[Option[AggregateStats]]] = availableCities.map { cityId =>
+          getCityAggregateData(cityId)
+        }
+
+        // Distinct contributors across all live cities, deduped by the global `user_id` then DC added on top (#3976).
+        // Computed by unioning per-city contributor-id sets rather than summing per-city counts, so a user active in
+        // multiple cities is counted once. Each city recovers to an empty set so one bad schema can't sink the count.
+        val distinctUsersFut: Future[Int] = Future
+          .sequence(availableCities.map { cityId =>
+            db.run(configTable.getContributorUserIdsBySchema(getCitySchema(cityId)))
+              .map(_.toSet)
+              .recover { case e: Exception =>
+                logger.warn(s"Failed to retrieve contributor ids for city $cityId: ${e.getMessage}")
+                Set.empty[String]
+              }
+          })
+          .map(perCity => perCity.foldLeft(Set.empty[String])(_ ++ _).size + legacyDCUserCount)
+
+        // Wait for all futures to complete and aggregate results.
+        Future.sequence(cityStatsFutures).zip(distinctUsersFut).map { case (cityStatsOptions, totalUsers) =>
+          // Filter out failed requests and aggregate the successful ones.
+          val validCityStats = cityStatsOptions.flatten
+
+          if (validCityStats.isEmpty) {
+            logger.warn("No valid city statistics found for aggregate calculation")
+            // Return empty aggregate stats if no cities provided data.
             AggregateStats(
               kmExplored = 0.0, kmExploredNoOverlap = 0.0, totalLabels = 0, tutorialLabels = 0, totalValidations = 0,
-              totalUsers = 0, numCities = 0, numCountries = 0, numLanguages = 0, byLabelType = Map.empty
+              totalUsers = 0, numCities = numCities, numCountries = numCountries, numLanguages = numLanguages,
+              byLabelType = Map.empty
             )
-          )
-        } else {
-          // Calculate deployment statistics.
-          val numCities    = availableCities.length + 1 // +1 for legacy DC city
-          val numCountries = calculateNumCountries(availableCities)
-          val numLanguages = calculateNumLanguages()
-
-          // Fetch essential statistics from available cities in parallel.
-          val cityStatsFutures: Seq[Future[Option[AggregateStats]]] = availableCities.map { cityId =>
-            getCityAggregateData(cityId)
-          }
-
-          // Distinct contributors across all live cities, deduped by the global `user_id` then DC added on top (#3976).
-          // Computed by unioning per-city contributor-id sets rather than summing per-city counts, so a user active in
-          // multiple cities is counted once. Each city recovers to an empty set so one bad schema can't sink the count.
-          val distinctUsersFut: Future[Int] = Future
-            .sequence(availableCities.map { cityId =>
-              db.run(configTable.getContributorUserIdsBySchema(getCitySchema(cityId)))
-                .map(_.toSet)
-                .recover { case e: Exception =>
-                  logger.warn(s"Failed to retrieve contributor ids for city $cityId: ${e.getMessage}")
-                  Set.empty[String]
-                }
-            })
-            .map(perCity => perCity.foldLeft(Set.empty[String])(_ ++ _).size + legacyDCUserCount)
-
-          // Wait for all futures to complete and aggregate results.
-          Future.sequence(cityStatsFutures).zip(distinctUsersFut).map { case (cityStatsOptions, totalUsers) =>
-            // Filter out failed requests and aggregate the successful ones.
-            val validCityStats = cityStatsOptions.flatten
-
-            if (validCityStats.isEmpty) {
-              logger.warn("No valid city statistics found for aggregate calculation")
-              // Return empty aggregate stats if no cities provided data.
-              AggregateStats(
-                kmExplored = 0.0, kmExploredNoOverlap = 0.0, totalLabels = 0, tutorialLabels = 0, totalValidations = 0,
-                totalUsers = 0, numCities = numCities, numCountries = numCountries, numLanguages = numLanguages,
-                byLabelType = Map.empty
-              )
-            } else {
-              // Add legacy DC data to the valid city stats before aggregating.
-              aggregateCityData(validCityStats :+ legacyDCData, numCities, numCountries, numLanguages, totalUsers)
-            }
+          } else {
+            // Add legacy DC data to the valid city stats before aggregating.
+            aggregateCityData(validCityStats :+ legacyDCData, numCities, numCountries, numLanguages, totalUsers)
           }
         }
       }
@@ -1004,6 +1084,30 @@ class ConfigServiceImpl @Inject() (
       endDate: Option[LocalDate],
       filterLowQuality: Boolean
   ): Future[Seq[DailyStatRecord]] = {
+    // Cache the full date range once per filterLowQuality variant — a bounded key space, where caching per requested
+    // date range would let arbitrary query params mint unbounded cache entries — and slice the requested window out
+    // of it. A per-day row depends only on its own day's data, so slicing cached rows is equivalent to querying with
+    // bounds; and because rows are keyed by Pacific date, the slice honors the documented inclusive-Pacific-date
+    // window exactly, where the raw-timestamp WHERE it replaced could emit partial edge days outside it.
+    staleWhileRevalidate(
+      s"getAggregateStatsByDay:filterLowQuality=$filterLowQuality",
+      ConfigService.AggregateStatsFreshFor,
+      ConfigService.AggregateStatsMaxAge
+    )(computeAggregateStatsByDay(filterLowQuality)).map { allDays =>
+      allDays.filter(r => startDate.forall(!r.date.isBefore(_)) && endDate.forall(!r.date.isAfter(_)))
+    }
+  }
+
+  /**
+   * Runs the full cross-schema fan-out that computes daily stats over the entire date range.
+   *
+   * Queries each city schema in parallel and sums counts by (date, labelType) across cities. Cities whose schemas do
+   * not exist in the current environment are silently skipped (same guard as computeAggregateStats).
+   *
+   * @param filterLowQuality If true, restrict to high-quality users.
+   * @return                 Merged, sorted sequence of DailyStatRecord summed across all cities.
+   */
+  private def computeAggregateStatsByDay(filterLowQuality: Boolean): Future[Seq[DailyStatRecord]] = {
     val configuredCityIds = config.get[Seq[String]]("city-params.city-ids")
 
     val schemaChecks = configuredCityIds.map { cityId =>
@@ -1024,13 +1128,13 @@ class ConfigServiceImpl @Inject() (
         val cityDataFutures = availableCities.map { cityId =>
           val schema       = getCitySchema(cityId)
           val labelsFuture = db
-            .run(configTable.getCityDailyLabelStatsBySchema(schema, startDate, endDate, filterLowQuality))
+            .run(configTable.getCityDailyLabelStatsBySchema(schema, filterLowQuality))
             .recover { case e: Exception =>
               logger.warn(s"Failed daily label stats for city $cityId: ${e.getMessage}")
               Seq.empty[(LocalDate, String, Int, Int)]
             }
           val valsFuture = db
-            .run(configTable.getCityDailyValidationStatsBySchema(schema, startDate, endDate, filterLowQuality))
+            .run(configTable.getCityDailyValidationStatsBySchema(schema, filterLowQuality))
             .recover { case e: Exception =>
               logger.warn(s"Failed daily validation stats for city $cityId: ${e.getMessage}")
               Seq.empty[(LocalDate, String, Int, Int, Int, Int, Int, Int)]

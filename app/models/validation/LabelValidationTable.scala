@@ -88,8 +88,7 @@ class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidati
   def label   = foreignKey("label_validation_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
   def user    = foreignKey("label_validation_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
   def mission = foreignKey("label_validation_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
-
-//  def userLabelUnique: Index = index("label_validation_user_id_label_id_unique", (userId, labelId), unique = true)
+  def userLabelUnique = index("label_validation_user_id_label_id_unique", (userId, labelId), unique = true)
 }
 
 @ImplementedBy(classOf[LabelValidationTable])
