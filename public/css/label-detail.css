@@ -1382,13 +1382,22 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
 .story-composer__check-row input { margin-top: 2px; }
 
 /* The identity ("Anonymous" / the username) leads both post-as rows as a pill, so the two options read
-   symmetrically: <pill> — <what shows publicly>. */
+   symmetrically: <pill> then <what shows publicly>. The selected row's pill fills dark so the current
+   choice is visible at a glance, beyond the radio dot. */
 .story-composer__name-pill {
   padding: 0 8px;
   border-radius: 999px;
   background: var(--color-neutral-100);
   font-weight: 600;
 }
+
+.story-composer__check-row input:checked + .story-composer__name-pill {
+  background: var(--color-asphalt-500);
+  color: var(--color-neutral-white);
+}
+
+/* Same secondary gray as the composer intro, so the pill carries the emphasis. */
+.story-composer__name-desc { color: #595959; }
 
 .story-composer__photo-remove {
   justify-self: start;
