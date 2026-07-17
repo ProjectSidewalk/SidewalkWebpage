@@ -1,4 +1,24 @@
 /**
+ * The map center that makes `coords` render `dx`/`dy` pixels from the viewport center at `zoom`, via plain
+ * web-mercator math. Computed by hand because mapbox's instant camera moves silently drop CameraOptions.offset
+ * (jumpTo ignores it, and a zero-duration easeTo is treated as a jump) — so to drop a deep-linked dot into the
+ * gutter beside the dialog without an animation, we shift the center ourselves instead of passing an offset.
+ * @param {Array<number>} coords [lng, lat] to show.
+ * @param {number} dx Horizontal pixel offset from the viewport center (positive puts `coords` right of center).
+ * @param {number} dy Vertical pixel offset from the viewport center.
+ * @param {number} zoom Target zoom (the mercator world size depends on it).
+ * @returns {Array<number>} The [lng, lat] to pass as the map center.
+ */
+function centerShowingLabelAt(coords, dx, dy, zoom) {
+  const worldSize = 512 * (2 ** zoom); // Mapbox GL's tile size is 512px.
+  const sinLat = Math.sin(coords[1] * Math.PI / 180);
+  const pxX = ((coords[0] + 180) / 360) * worldSize - dx;
+  const pxY = (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * worldSize - dy;
+  const merc = Math.PI - 2 * Math.PI * (pxY / worldSize);
+  return [(pxX / worldSize) * 360 - 180, (180 / Math.PI) * Math.atan(0.5 * (Math.exp(merc) - Math.exp(-merc)))];
+}
+
+/**
  * Spotlight affordances tying the label popup to its label's dot on a Mapbox map (#4572): a beacon reticle over
  * the dot (one ring pulse on landing, one on close), camera placement that keeps the dot centered in the free
  * gutter beside the centered dialog, a chat-bubble tail connecting the dialog to the dot, and a sidebar-filter
@@ -133,11 +153,12 @@ function createLabelSpotlight({ dialog, getMap, getMapData, getCoords, getLabelT
     const gutter = (window.innerWidth - dialogW) / 2;
     const dx = gutter > 80 ? (window.innerWidth - gutter) / 2 : 0;
     const zoom = Math.max(map.getZoom(), 16);
-    // Always easeTo: jumpTo silently ignores CameraOptions.offset, but a zero-duration ease is an instant
-    // jump that honors it.
-    const camera = { center: coords, zoom, offset: [dx, 0] };
-    if (jump) camera.duration = 0;
-    map.easeTo(camera);
+    // Pre-shift the center by hand rather than passing CameraOptions.offset: a deep-link/paging jump must be
+    // instant, and mapbox drops offset on instant moves (see centerShowingLabelAt), which would bury the dot —
+    // and with it the beacon and tail — under the centered dialog. This keeps jump and ease placing identically.
+    const camera = { center: centerShowingLabelAt(coords, dx, 0, zoom), zoom };
+    if (jump) map.jumpTo(camera);
+    else map.easeTo(camera);
     setBeacon(labelId, 'spotlight');
     spotlightedLabelId = labelId;
     updateTail();
