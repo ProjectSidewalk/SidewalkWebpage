@@ -47,6 +47,7 @@ loading.encouragement = Los geht''s!
 submit = Übermitteln
 submit.shortcut = Übermitteln (<u>s</u>)
 test.server.warning.message = <strong>Sie befinden sich auf einem Testserver.</strong> Ihre Arbeit wird hier nicht gespeichert. Um sie zu behalten, nutzen Sie bitte die Hauptseite
+test.server.warning.label = Hinweis zum Testserver
 test.server.warning.close = Hinweis schließen
 dont.show.again = Nicht erneut anzeigen.
 

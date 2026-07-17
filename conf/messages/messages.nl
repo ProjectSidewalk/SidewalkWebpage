@@ -47,6 +47,7 @@ loading.encouragement = Let''s go!
 submit = Dien in
 submit.shortcut = Dien in (<u>s</u>)
 test.server.warning.message = <strong>U bevindt zich op een testserver.</strong> Uw werk wordt hier niet opgeslagen. Gebruik de hoofdsite om het te bewaren
+test.server.warning.label = Testservermelding
 test.server.warning.close = Melding sluiten
 dont.show.again = Laat niet opnieuw zien
 

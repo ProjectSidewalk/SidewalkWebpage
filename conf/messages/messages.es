@@ -47,6 +47,7 @@ loading.encouragement = ¡Hagámoslo!
 submit = Enviar
 submit.shortcut = Enviar (<u>s</u>)
 test.server.warning.message = <strong>Estás en un servidor de prueba.</strong> Tu trabajo no se guardará aquí. Para conservarlo, usa el sitio principal
+test.server.warning.label = Aviso de servidor de prueba
 test.server.warning.close = Descartar aviso
 dont.show.again = No mostrar de nuevo
 
