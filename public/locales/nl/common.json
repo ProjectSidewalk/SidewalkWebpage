@@ -7,6 +7,8 @@
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
   "format-number": "{{val, number}}",
+  "cities-cta-join_one": "Sluit u aan bij nog {{count, number}} gemeenschap",
+  "cities-cta-join_other": "Sluit u aan bij nog {{count, number}} gemeenschappen",
   "curb-ramp": "Trottoir oprit",
   "no-curb-ramp": "Ontbrekende trottoir oprit",
   "obstacle": "Obstakel op het pad",

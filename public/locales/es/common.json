@@ -7,6 +7,8 @@
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
   "format-number": "{{val, number}}",
+  "cities-cta-join_one": "Únete a {{count, number}} comunidad más",
+  "cities-cta-join_other": "Únete a {{count, number}} comunidades más",
   "curb-ramp": "Rampa peatonal",
   "no-curb-ramp": "Rampa peatonal ausente",
   "obstacle": "Obstáculo en la banqueta",
