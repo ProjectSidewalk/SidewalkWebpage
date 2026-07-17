@@ -22,6 +22,22 @@ Project Sidewalk has two separate translation systems; which one you use depends
 - Add a key to the relevant message file(s) and reference it in a `.scala.html` template with `@Messages("your.key")`
   (or the injected `messagesApi`).
 
+> **English lives in `messages.en`, not the base `messages`.** New English strings go in **`conf/messages/messages.en`**,
+> with a translation added to **every** `messages.<lang>`. The suffix-less **`conf/messages/messages`** is Play's
+> *default/fallback* file: reserve it for genuinely language-neutral values (city-name proper nouns, way-type keys) and
+> never put translatable English prose there.
+>
+> **Why this is easy to get wrong:** the base `messages` looks like "the English/default file," so an English-only first
+> pass tends to land there — and then the later translation pass adds `messages.en` + each `messages.<lang>`, leaving a
+> stale duplicate English copy in the base file. Do the English-only first pass **in `messages.en`** from the start.
+>
+> Fallback resolution matters here: `en-US`/`en-NZ` fall back through `messages.en` (so they inherit English there), but
+> the non-English languages fall back straight to the base `messages` default — they do **not** fall back through
+> `messages.en` — so a key missing from a `messages.<lang>` file surfaces as the raw key. That's why every language file
+> must carry every key (and why the base default should not be treated as an English safety net). Note there is **no**
+> automated parity check for the backend message files the way there is for the frontend JSON (see below), so this is on
+> you to keep complete.
+
 ### Frontend — i18next (client-side JavaScript)
 
 - Translations live in **`public/locales/<lang>/<namespace>.json`**, split into namespaces such as `common.json`,
@@ -35,7 +51,8 @@ Project Sidewalk has two separate translation systems; which one you use depends
 
 ## Adding or changing user-facing text
 
-1. **Add the key** to the appropriate backend message file or frontend namespace JSON, for the languages you can.
+1. **Add the key** to the appropriate backend message file or frontend namespace JSON, for the languages you can. For
+   backend keys, the English goes in **`messages.en`** (never the base `messages` — see the callout above).
 2. **Add temporary machine translations** for Spanish, Dutch, German, and Mandarin (`zh-TW`, traditional) — Google
    Translate is fine. A maintainer periodically sends the accumulated machine translations to our partners for proper
    ones, so don't block on official translations.

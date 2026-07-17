@@ -270,4 +270,12 @@ class GsvViewer extends PanoViewer {
   resize = () => {
     google.maps.event.trigger(this.gsvPano, 'resize');
   };
+
+  /** See PanoViewer.publicViewerLink(). */
+  publicViewerLink(panoId, { heading, pitch } = {}) {
+    return {
+      url: `https://www.google.com/maps/@?api=1&map_action=pano&pano=${panoId}&heading=${heading}&pitch=${pitch}`,
+      i18nKey: 'common:pano-info.view-in-gsv',
+    };
+  }
 }

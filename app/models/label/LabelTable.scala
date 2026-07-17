@@ -177,7 +177,7 @@ case class LabelMetadata(
     panoMetadata: Option[PanoViewerMetadata]
 )
 
-case class LabelComment(username: String, comment: String)
+case class LabelComment(username: String, comment: String, timeCreated: Option[OffsetDateTime])
 
 // Extra data to include with validations for Expert Validate. Includes usernames and previous validators.
 case class AdminValidationData(
@@ -367,8 +367,9 @@ object LabelTable {
           Option[Double],
           Option[Double],
           Option[Double],
+          Option[String],
           Option[String]
-      ) // 22. pano dims & camera
+      ) // 22. pano dims, camera & address
   )
   type LabelValidationMetadataTupleRep = (
       Rep[Int],                                   // 1.  labelId
@@ -399,7 +400,7 @@ object LabelTable {
       Rep[Boolean],                               // 19. aiGenerated
       Rep[Option[String]],                        // 20. comments (JSON-aggregated)
       Rep[Boolean],                               // 21. fromCurrentUser
-      (                                           // 22. pano dims & camera
+      (                                           // 22. pano dims, camera & address
           Rep[Option[Int]],                       // 1. width
           Rep[Option[Int]],                       // 2. height
           Rep[Option[Int]],                       // 3. tileWidth
@@ -407,9 +408,24 @@ object LabelTable {
           Rep[Option[Double]],                    // 5. cameraHeading
           Rep[Option[Double]],                    // 6. cameraPitch
           Rep[Option[Double]],                    // 7. cameraRoll
-          Rep[Option[String]]                     // 8. copyright
+          Rep[Option[String]],                    // 8. copyright
+          Rep[Option[String]]                     // 9. address
       )
   )
+
+  /**
+   * Parses the JSON built by the comment aggregations (the label_comments_agg view and the matching inline SQL in
+   * getRecentLabelsMetadata) into LabelComment objects — the single Scala-side reader of that wire shape.
+   */
+  private def parseCommentsJson(json: String): Seq[LabelComment] = {
+    play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
+      LabelComment(
+        (obj \ "username").as[String],
+        (obj \ "comment").as[String],
+        (obj \ "time_created").asOpt[OffsetDateTime]
+      )
+    }
+  }
 
   // Define an implicit conversion from the tuple representation to the case class.
   implicit val labelValidationMetadataConverter: TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] =
@@ -438,16 +454,11 @@ object LabelTable {
         aiTags = t._17,
         aiTagsNotPresent = t._18,
         aiGenerated = t._19,
-        comments = t._20
-          .map { json =>
-            play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
-              LabelComment((obj \ "username").as[String], (obj \ "comment").as[String])
-            }
-          }
-          .getOrElse(Seq.empty),
+        comments = t._20.map(parseCommentsJson).getOrElse(Seq.empty),
         fromCurrentUser = t._21,
-        panoMetadata =
-          Some(PanoViewerMetadata(t._22._1, t._22._2, t._22._3, t._22._4, t._22._5, t._22._6, t._22._7, t._22._8))
+        panoMetadata = Some(
+          PanoViewerMetadata(t._22._1, t._22._2, t._22._3, t._22._4, t._22._5, t._22._6, t._22._7, t._22._8, t._22._9)
+        )
       )
     }
 
@@ -664,13 +675,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextString().split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
       r.nextString().split(",").filter(_.nonEmpty).toList,
       (r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
-      r.nextStringOption()
-        .map { json =>
-          play.api.libs.json.Json.parse(json).as[Seq[play.api.libs.json.JsObject]].map { obj =>
-            LabelComment((obj \ "username").as[String], (obj \ "comment").as[String])
-          }
-        }
-        .getOrElse(Seq.empty),
+      r.nextStringOption().map(LabelTable.parseCommentsJson).getOrElse(Seq.empty),
       (r.nextDoubleOption(), r.nextDoubleOption()) match {
         case (Some(lat), Some(lng)) => Some(LatLng(lat, lng))
         case _                      => None
@@ -687,7 +692,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           r.nextDoubleOption(), // cameraHeading
           r.nextDoubleOption(), // cameraPitch
           r.nextDoubleOption(), // cameraRoll
-          r.nextStringOption()  // copyright
+          r.nextStringOption(), // copyright
+          r.nextStringOption()  // address
         )
       )
     )
@@ -1091,7 +1097,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              pano_data.camera_heading,
              pano_data.camera_pitch,
              pano_data.camera_roll,
-             pano_data.copyright
+             pano_data.copyright,
+             pano_data.address
       FROM label AS lb1
       INNER JOIN pano_data ON lb1.pano_id = pano_data.pano_id
       INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
@@ -1128,7 +1135,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       ) AS ai_val ON lb1.label_id = ai_val.label_id
       LEFT JOIN (
           SELECT label_id,
-                 json_agg(json_build_object('username', username, 'comment', comment) ORDER BY timestamp)::text AS comments
+                 json_agg(json_build_object('username', username, 'comment', comment, 'time_created', timestamp)
+                          ORDER BY timestamp)::text AS comments
           FROM validation_task_comment
           INNER JOIN sidewalk_user ON validation_task_comment.user_id = sidewalk_user.user_id
           GROUP BY label_id
@@ -1295,7 +1303,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           None.asInstanceOf[Option[String]].asColumnOf[Option[String]], // Comments not needed for validation rn.
           false.bind,
           (pd.width, pd.height, pd.tileWidth, pd.tileHeight, pd.cameraHeading, pd.cameraPitch, pd.cameraRoll,
-            pd.copyright)
+            pd.copyright, pd.address)
         )
       }
 
@@ -1447,7 +1455,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       isAiUser,
       comments.flatMap(_.comments), // pre-aggregated comments string from VIEW
       lb.userId === userId.bind,
-      (pd.width, pd.height, pd.tileWidth, pd.tileHeight, pd.cameraHeading, pd.cameraPitch, pd.cameraRoll, pd.copyright)
+      (pd.width, pd.height, pd.tileWidth, pd.tileHeight, pd.cameraHeading, pd.cameraPitch, pd.cameraRoll, pd.copyright,
+        pd.address)
     )
 
     // Remove duplicates if needed, then order newest-first or randomized. Callers that batch through this query

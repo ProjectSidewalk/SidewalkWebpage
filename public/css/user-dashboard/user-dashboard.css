@@ -936,9 +936,9 @@
 #label-modal .label-detail__comment-row { display: none; }
 
 /* Tighten the Comments heading so its empty "None" doesn't tower over the Description row, and give it a colon so it
-   reads like "Description :". */
+   reads like "Description :". The colon goes on the inner heading-text span so it lands before the count badge. */
 #label-modal .label-detail__comments-section .label-detail__col-title { margin: 0 0 2px; }
-#label-modal .label-detail__comments-section .label-detail__col-title::after { content: ":"; }
+#label-modal .label-detail__comments-section .label-detail__col-title > span:first-child::after { content: ":"; }
 
 .ud-card-voted-msg {
   margin: 0;

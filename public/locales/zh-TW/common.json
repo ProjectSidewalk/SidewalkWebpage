@@ -77,9 +77,10 @@
   "tags": "標籤",
   "description": "描述",
   "no-description": "無描述",
-  "comments": "验证者评论",
+  "comments": "檢核者評論",
   "none": "无",
   "image-capture-date": "影像拍攝日期",
+  "drag-to-look-around": "拖曳以環顧四周",
   "labeled": "已標記",
   "low": "低的",
   "medium": "中等的",
@@ -189,6 +190,7 @@
     "view-in-gsv": "在Google街景圖裡查看",
     "view-in-mapillary": "在Mapillary街景圖裡查看",
     "city": "城市",
+    "copy-to-clipboard": "複製到剪貼簿",
     "copied-to-clipboard": "資訊已複製於您的剪貼簿！"
   },
   "mission-start-tutorial": {

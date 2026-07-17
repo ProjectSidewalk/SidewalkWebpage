@@ -1,4 +1,32 @@
 {
+  "tutorial-intro": {
+    "eyebrow": "Misión de Exploración",
+    "title": "Únete a la Misión Sidewalk",
+    "next": "Siguiente",
+    "start-mission": "Iniciar misión",
+    "have-account": "¿Ya tienes una cuenta?",
+    "sign-in": "Iniciar sesión",
+    "already-tutorial": "¿Ya hiciste el tutorial?",
+    "skip": "Saltar",
+    "explore": {
+      "title": "Explorar",
+      "description": "Detecta problemas de accesibilidad por la ciudad."
+    },
+    "label": {
+      "title": "Etiquetar",
+      "description": "Marca rampas peatonales y problemas en la superficie de las banquetas, añadiendo valoraciones de accesibilidad."
+    },
+    "validate": {
+      "title": "Validar",
+      "description": "Revisa las etiquetas que otras personas han marcado para confirmar su exactitud."
+    },
+    "impact": {
+      "title": "Impacto",
+      "stat-labels": "{{total}} etiquetas añadidas por voluntarios",
+      "stat-cities": "Datos utilizados en {{cities}} ciudades de todo el mundo",
+      "tagline": "Cada etiqueta ayuda a mejorar la accesibilidad en el mundo real"
+    }
+  },
   "curb-ramp": "rampa peatonal",
   "missing-curb-ramp": "rampa peatonal ausente",
   "obstacle": "obstáculo",

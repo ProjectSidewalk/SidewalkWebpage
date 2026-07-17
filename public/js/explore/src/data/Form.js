@@ -189,6 +189,7 @@ class Form {
         camera_roll: panoData.cameraRoll,
         links,
         copyright: panoData.copyright || null,
+        address: panoData.address || null,
         history,
       };
 
