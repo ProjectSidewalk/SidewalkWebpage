@@ -7,6 +7,8 @@
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
   "format-number": "{{val, number}}",
+  "cities-cta-join_one": "Schließen Sie sich {{count, number}} weiteren Gemeinschaft an",
+  "cities-cta-join_other": "Schließen Sie sich {{count, number}} weiteren Gemeinschaften an",
   "agree": "Einverstanden",
   "disagree": "Nicht einverstanden",
   "unsure": "Unsicher",
