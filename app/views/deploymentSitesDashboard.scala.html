@@ -105,6 +105,9 @@
         loadAggregateStats()
       ]).then(function([mapComponents, aggregateStats]) {
         window.citiesMap = mapComponents[0]; // Store map reference globally
+        // Force a resize once the map is in its final laid-out container: on a narrow first load the canvas can
+        // otherwise keep a wider initial size and spill past the (horizontally clipped) viewport on mobile.
+        window.citiesMap.resize();
         displayAggregateStats(aggregateStats);
       }).catch(function(error) {
         console.error('Error loading cities dashboard:', error);

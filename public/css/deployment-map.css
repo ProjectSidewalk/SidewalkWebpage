@@ -71,6 +71,7 @@
   z-index: 500;
   display: flex;
   align-items: center;
+  box-sizing: border-box; /* No global border-box here, so fold padding+border into max-width. */
   gap: 12px;
   max-width: 300px;
   padding: 12px 14px;
@@ -435,6 +436,29 @@
    Responsive Design
    ========================================================================== */
 
+/*
+ * Tablets (e.g. iPad portrait at 820px) sit above the phone breakpoints but shouldn't get the desktop
+ * viewport-tall hero, which makes the map gigantic and pushes the stats off-screen. Relax the hero to a fixed
+ * map height and keep the floating CTA within the map here; the heavier font/grid scaling stays at <=768px.
+ */
+@media (width <= 1024px) {
+  .hero-section {
+    height: auto;
+    min-height: 0;
+    gap: 18px;
+  }
+
+  .map-section {
+    flex: 0 0 auto;
+    height: 60vh;
+    min-height: 340px;
+  }
+
+  .map-cta {
+    max-width: calc(100% - 32px);
+  }
+}
+
 @media (width <= 768px) {
   /* General map adjustments */
   #deployment-map {
@@ -462,7 +486,7 @@
     top: 12px;
     right: 12px;
     gap: 10px;
-    max-width: 250px;
+    max-width: calc(100% - 24px); /* Never exceed the map width so the card can't be clipped past the viewport. */
     padding: 10px 12px;
   }
 
@@ -492,14 +516,51 @@
     padding: 10px 15px;
     gap: 20px;
   }
-  .deployment-sites-stats-holder { gap: 25px; }
-  .stat-group { min-width: 100px; }
-  .deployment-sites-stats-header { font-size: 20px; }
+
+  /* Lay the four stats out as a 2x2 grid instead of an awkward 3 + 1 wrap. */
+  .deployment-sites-stats-holder {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px 16px;
+    max-width: 440px;
+  }
+
+  .stat-group { min-width: 0; }
+
+  .deployment-sites-stats-header {
+    height: 46px; /* Compact two-line allowance so 1- and 2-line headers still align across the grid row. */
+    font-size: 18px;
+  }
+
   .deployment-sites-stats-stat { font-size: 22px; }
 
   .stat-group img {
     height: 50px;
-    margin: 10px 0;
+    margin: 8px 0;
+  }
+
+  /* Scale the footer CTA down to match the stats section; its desktop sizes read oversized on a phone. */
+  .cta-section { padding: 18px 16px 22px; }
+
+  .cta-logo {
+    height: 72px;
+    margin-bottom: 14px;
+  }
+
+  .cta-title {
+    font-size: 22px;
+    margin-bottom: 10px;
+  }
+
+  .cta-text {
+    font-size: 15px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+  }
+
+  .cta-button {
+    padding: 10px 22px;
+    font-size: 15px;
   }
 }
 
@@ -520,13 +581,22 @@
     padding: 10px;
     gap: 15px;
   }
-  .deployment-sites-stats-holder { gap: 20px; }
-  .stat-group { min-width: 80px; }
-  .deployment-sites-stats-header { font-size: 16px; }
+
+  .deployment-sites-stats-holder { gap: 16px 12px; }
+
+  .deployment-sites-stats-header {
+    height: 42px;
+    font-size: 16px;
+  }
+
   .deployment-sites-stats-stat { font-size: 18px; }
 
   .stat-group img {
     height: 40px;
     margin: 8px 0;
   }
+
+  .cta-logo { height: 64px; }
+  .cta-title { font-size: 20px; }
+  .cta-text { font-size: 14px; }
 }
