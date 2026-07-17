@@ -5,6 +5,7 @@ import com.github.tminglei.slickpg._
 import com.github.tminglei.slickpg.geom.PgPostGISExtensions
 import models.label.AiImageSource
 import models.pano.PanoSource
+import models.story.StoryVisibility
 import models.street.StreetEdgeStatus
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.validation.ValidationOption
@@ -136,6 +137,15 @@ trait MyPostgresProfile
         "street_edge_status",
         _.toString,
         StreetEdgeStatus.withName,
+        quoteName = false
+      )
+
+    // Mapper for story_visibility enum type.
+    implicit val storyVisibilityMapper: BaseColumnType[StoryVisibility.Value] =
+      createEnumJdbcType[StoryVisibility.Value](
+        "story_visibility",
+        _.toString,
+        StoryVisibility.withName,
         quoteName = false
       )
   }

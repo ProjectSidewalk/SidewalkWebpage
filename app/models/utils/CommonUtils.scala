@@ -2,6 +2,7 @@ package models.utils
 
 object CommonUtils {
   val METERS_TO_MILES: Double = 0.000621371d
+  val EARTH_RADIUS_KM: Double = 6371.0
 
   // NOTE: if adding values here, also update the ui_source PostgreSQL enum (add via ALTER TYPE).
   object UiSource extends Enumeration {
@@ -50,11 +51,10 @@ object CommonUtils {
    * @return Tuple of (latitude, longitude) for the destination point
    */
   def calculateDestination(lat: Double, lng: Double, distanceKm: Double, bearingDegrees: Double): (Double, Double) = {
-    val earthRadiusKm = 6371.0
-    val lat1Rad       = math.toRadians(lat)
-    val lng1Rad       = math.toRadians(lng)
-    val bearingRad    = math.toRadians(bearingDegrees)
-    val angularDist   = distanceKm / earthRadiusKm
+    val lat1Rad     = math.toRadians(lat)
+    val lng1Rad     = math.toRadians(lng)
+    val bearingRad  = math.toRadians(bearingDegrees)
+    val angularDist = distanceKm / EARTH_RADIUS_KM
 
     val lat2Rad = math.asin(
       math.sin(lat1Rad) * math.cos(angularDist) + math.cos(lat1Rad) * math.sin(angularDist) * math.cos(bearingRad)
@@ -66,5 +66,22 @@ object CommonUtils {
     )
 
     (math.toDegrees(lat2Rad), math.toDegrees(lng2Rad))
+  }
+
+  /**
+   * Great-circle distance between two points in meters, via the haversine formula.
+   *
+   * @param lat1 First point's latitude in degrees
+   * @param lng1 First point's longitude in degrees
+   * @param lat2 Second point's latitude in degrees
+   * @param lng2 Second point's longitude in degrees
+   * @return Distance in meters
+   */
+  def haversineMeters(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Double = {
+    val dLat = math.toRadians(lat2 - lat1)
+    val dLng = math.toRadians(lng2 - lng1)
+    val a    = math.pow(math.sin(dLat / 2), 2) +
+      math.cos(math.toRadians(lat1)) * math.cos(math.toRadians(lat2)) * math.pow(math.sin(dLng / 2), 2)
+    2 * EARTH_RADIUS_KM * 1000 * math.asin(math.sqrt(a))
   }
 }

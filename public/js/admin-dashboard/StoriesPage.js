@@ -50,7 +50,7 @@ class StoriesPage {
    * @param {Array<Object>} stories - StoryForAdmin payloads, newest first.
    */
   #render(stories) {
-    const hiddenCount = stories.filter((s) => s.visibility === 'hidden').length;
+    const hiddenCount = stories.filter((s) => s.hidden).length;
     const summary = stories.length === 0
       ? 'No stories yet.'
       : `${stories.length} ${stories.length === 1 ? 'story' : 'stories'} · ${hiddenCount} hidden · newest first`;
@@ -119,6 +119,7 @@ class StoriesPage {
     if (story.media) {
       const img = document.createElement('img');
       img.className = 'stories-queue-thumb';
+      img.loading = 'lazy';
       img.src = story.media.url;
       img.alt = story.media.alt_text || 'Story photo (no description provided)';
       media.appendChild(img);
@@ -144,16 +145,15 @@ class StoriesPage {
     return row;
   }
 
-  /** Syncs a row's quarantine styling, chip, and Hide/Unhide button label with the story's visibility. */
+  /** Syncs a row's quarantine styling, chip, and Hide/Unhide button label with the story's hidden state. */
   #applyVisibilityState(story, row, hideBtn) {
-    const hidden = story.visibility === 'hidden';
-    row.classList.toggle('stories-queue-row--hidden', hidden);
-    row.querySelector('.stories-queue-chip').hidden = !hidden;
-    hideBtn.textContent = hidden ? 'Unhide' : 'Hide';
+    row.classList.toggle('stories-queue-row--hidden', story.hidden);
+    row.querySelector('.stories-queue-chip').hidden = !story.hidden;
+    hideBtn.textContent = story.hidden ? 'Unhide' : 'Hide';
   }
 
   async #toggleVisibility(story, row, hideBtn) {
-    const hide = story.visibility !== 'hidden';
+    const hide = !story.hidden;
     hideBtn.disabled = true;
     try {
       const res = await fetch(`/adminapi/stories/${story.story_id}/visibility`, {
@@ -162,7 +162,7 @@ class StoriesPage {
         body: JSON.stringify({ hidden: hide }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      story.visibility = hide ? 'hidden' : 'visible';
+      story.hidden = hide;
       this.#applyVisibilityState(story, row, hideBtn);
     } catch (err) {
       console.error('Stories page: visibility change failed.', err);

@@ -2369,7 +2369,7 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 }
 
 .stories-queue-row--hidden {
-  background: #fef7e8;
+  background: var(--color-banana-100, #fef7e8);
   border-radius: 8px;
   padding-left: 8px;
   padding-right: 8px;
@@ -2406,10 +2406,10 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
-  border: 1px solid #f1b12a;
+  border: 1px solid var(--color-banana-700, #f1b12a);
   border-radius: 999px;
-  background: #fef7e8;
-  color: #8a5a00;
+  background: var(--color-banana-100, #fef7e8);
+  color: var(--color-banana-900, #a87303);
   font-weight: 600;
 }
 

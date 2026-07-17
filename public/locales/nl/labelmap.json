@@ -65,7 +65,7 @@
       "already-exists": "Je hebt al een verhaal gedeeld bij dit etiket.",
       "rate-limited": "Je hebt onlangs meerdere verhalen gedeeld; probeer het morgen opnieuw.",
       "photo-too-large": "Die foto is te groot om te uploaden.",
-      "photo-invalid": "We konden dat bestand niet als afbeelding lezen (JPEG, PNG of WebP)."
+      "photo-invalid": "We konden dat bestand niet als afbeelding lezen (JPEG of PNG)."
     }
   }
 }

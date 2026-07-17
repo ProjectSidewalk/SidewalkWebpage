@@ -7,7 +7,7 @@ import executors.CpuIntensiveExecutionContext
 import models.label.{LabelTypeEnum, LatLng}
 import models.story._
 import models.utils.MyPostgresProfile.api._
-import models.utils.{MyPostgresProfile, ProfanityGuard}
+import models.utils.{CommonUtils, ImageUtils, MyPostgresProfile, ProfanityGuard}
 import org.postgresql.util.PSQLException
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.{Configuration, Logger}
@@ -17,8 +17,8 @@ import java.io.File
 import java.nio.file.{Files, StandardCopyOption}
 import java.time.temporal.ChronoUnit
 import java.time.{OffsetDateTime, ZoneOffset}
+import javax.imageio.ImageIO
 import javax.imageio.stream.FileImageInputStream
-import javax.imageio.{IIOImage, ImageIO, ImageWriteParam}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
@@ -67,6 +67,10 @@ class StoryServiceImpl @Inject() (
   private val mediaBaseDir: String =
     config.get[String]("story.media.directory") + File.separator + config.get[String]("city-id")
 
+  // Upload formats the composer's accept attribute advertises, validated against the SNIFFED format (never the
+  // client-declared MIME type). Deliberately narrow: the stock JVM ImageIO has no WebP/HEIC reader, so widening this
+  // list means adding a decoder dependency (e.g. TwelveMonkeys), not just a new name here.
+  private val ACCEPTED_FORMATS = Set("jpeg", "png")
   // Decompression-bomb guard: reject images whose declared dimensions are absurd before fully decoding them.
   private val MAX_SOURCE_DIMENSION = 12000
   // Longest edge of the re-encoded photo; large enough for the enlarge view, small enough to serve cheaply.
@@ -114,17 +118,18 @@ class StoryServiceImpl @Inject() (
     } else if (!ProfanityGuard.isClean(text)) {
       Future.successful(Left(StoryRejection.TextRejected))
     } else {
-      val since = OffsetDateTime.now(ZoneOffset.UTC).minusHours(24)
-      (for {
-        labelOk   <- db.run(storyTable.labelExists(labelId))
-        duplicate <- db.run(storyTable.userHasStoryOnLabel(labelId, userId))
-        recent    <- db.run(storyTable.countByUserSince(userId, since))
+      val since  = OffsetDateTime.now(ZoneOffset.UTC).minusHours(24)
+      val checks = for {
+        labelOk   <- storyTable.labelExists(labelId)
+        duplicate <- storyTable.userHasStoryOnLabel(labelId, userId)
+        recent    <- storyTable.countByUserSince(userId, since)
       } yield {
         if (!labelOk) Some(StoryRejection.LabelNotFound)
         else if (duplicate) Some(StoryRejection.AlreadyExists)
         else if (recent >= maxPerDay) Some(StoryRejection.RateLimited)
         else None
-      }).flatMap {
+      }
+      db.run(checks).flatMap {
         case Some(rejection) => Future.successful(Left(rejection))
         case None            =>
           photo match {
@@ -133,7 +138,12 @@ class StoryServiceImpl @Inject() (
               labelService.getLabelLatLng(labelId).flatMap { labelLatLng =>
                 Future(processPhoto(upload, labelLatLng))(cpuEc).flatMap {
                   case Left(rejection) => Future.successful(Left(rejection))
-                  case Right(p)        => insertStory(labelId, userId, text, displayNameMode, Some((upload, p)))
+                  case Right(p)        =>
+                    // Whatever happens downstream (duplicate-race Left, DB error, failed move), the staged file was
+                    // either moved into place or must not outlive the request — one cleanup for every path.
+                    insertStory(labelId, userId, text, displayNameMode, Some((upload, p))).andThen { case _ =>
+                      val _ = Try(Files.deleteIfExists(p.staged.toPath))
+                    }
                 }
               }
           }
@@ -142,10 +152,12 @@ class StoryServiceImpl @Inject() (
   }
 
   def deleteOwnStory(storyId: Int, userId: String): Future[Boolean] = {
-    for {
-      media   <- db.run(storyTable.getMediaForStory(storyId))
-      deleted <- db.run(storyTable.deleteOwned(storyId, userId))
-    } yield {
+    // One transaction: the media paths must be read before the story delete cascades the media rows away.
+    val action = (for {
+      media   <- storyTable.getMediaForStory(storyId)
+      deleted <- storyTable.deleteOwned(storyId, userId)
+    } yield (media, deleted)).transactionally
+    db.run(action).map { case (media, deleted) =>
       if (deleted > 0) media.foreach(m => deleteMediaFile(m.storyMediaId))
       deleted > 0
     }
@@ -166,15 +178,17 @@ class StoryServiceImpl @Inject() (
   }
 
   def setStoryVisibility(storyId: Int, adminUserId: String, hidden: Boolean): Future[Boolean] = {
-    val visibility = if (hidden) Story.VisibilityHidden else Story.VisibilityVisible
+    val visibility = if (hidden) StoryVisibility.Hidden else StoryVisibility.Visible
     db.run(storyTable.setVisibility(storyId, visibility, adminUserId, OffsetDateTime.now)).map(_ > 0)
   }
 
   def adminDeleteStory(storyId: Int): Future[Boolean] = {
-    for {
-      media   <- db.run(storyTable.getMediaForStory(storyId))
-      deleted <- db.run(storyTable.delete(storyId))
-    } yield {
+    // One transaction: the media paths must be read before the story delete cascades the media rows away.
+    val action = (for {
+      media   <- storyTable.getMediaForStory(storyId)
+      deleted <- storyTable.delete(storyId)
+    } yield (media, deleted)).transactionally
+    db.run(action).map { case (media, deleted) =>
       if (deleted > 0) media.foreach(m => deleteMediaFile(m.storyMediaId))
       deleted > 0
     }
@@ -197,7 +211,7 @@ class StoryServiceImpl @Inject() (
       storyText = story.storyText,
       displayName = displayName,
       isOwn = viewerUserId.contains(story.userId),
-      hidden = story.visibility == Story.VisibilityHidden,
+      hidden = story.visibility == StoryVisibility.Hidden,
       createdAt = story.createdAt,
       media = media.map(toMediaForView)
     )
@@ -208,7 +222,8 @@ class StoryServiceImpl @Inject() (
       storyMediaId = m.storyMediaId,
       mediaType = m.mediaType,
       mimeType = m.mimeType,
-      url = signingService.signedUrl(s"/storyMedia/${m.storyMediaId}"),
+      // Reverse-routed so the signed path can't drift from what serveStoryMedia verifies.
+      url = signingService.signedUrl(controllers.routes.StoryController.serveStoryMedia(m.storyMediaId).url),
       width = m.width,
       height = m.height,
       altText = m.altText
@@ -227,23 +242,15 @@ class StoryServiceImpl @Inject() (
       photo: Option[(StoryPhotoUpload, ProcessedPhoto)]
   ): Future[Either[StoryRejection, StoryForView]] = {
     val now   = OffsetDateTime.now
-    val story = Story(0, labelId, userId, text, displayNameMode, Story.VisibilityVisible, None, None, now)
+    val story = Story(0, labelId, userId, text, displayNameMode, StoryVisibility.Visible, None, None, now)
 
     val insertAction = (for {
       storyId <- storyTable.insert(story)
       media   <- photo match {
         case Some((upload, p)) =>
-          storyTable
-            .insertMedia(
-              StoryMedia(0, storyId, "photo", "image/jpeg", Some(p.width), Some(p.height), None, Some(p.sizeBytes),
-                upload.altText, p.captureRecency, p.nearLabel, now)
-            )
-            .map(mediaId =>
-              Some(
-                StoryMedia(mediaId, storyId, "photo", "image/jpeg", Some(p.width), Some(p.height), None,
-                  Some(p.sizeBytes), upload.altText, p.captureRecency, p.nearLabel, now)
-              )
-            )
+          val m = StoryMedia(0, storyId, "photo", "image/jpeg", Some(p.width), Some(p.height), None, Some(p.sizeBytes),
+            upload.altText, p.captureRecency, p.nearLabel, now)
+          storyTable.insertMedia(m).map(mediaId => Some(m.copy(storyMediaId = mediaId)))
         case None => DBIO.successful(None: Option[StoryMedia])
       }
     } yield (storyId, media)).transactionally
@@ -255,7 +262,9 @@ class StoryServiceImpl @Inject() (
             Future {
               val target = storyMediaFile(m.storyMediaId)
               target.getParentFile.mkdirs()
-              Files.move(p.staged.toPath, target.toPath, StandardCopyOption.REPLACE_EXISTING)
+              // Same filesystem by construction (staged under mediaBaseDir), so the rename is truly atomic — a
+              // concurrent reader sees the complete file or nothing.
+              Files.move(p.staged.toPath, target.toPath, StandardCopyOption.ATOMIC_MOVE)
               ()
             }(cpuEc).recoverWith { case e =>
               logger.error(s"Failed to place story media file for story $storyId: ${e.getMessage}")
@@ -286,7 +295,7 @@ class StoryServiceImpl @Inject() (
   ): Either[StoryRejection, ProcessedPhoto] = {
     if (upload.tempFile.length > photoMaxBytes) {
       Left(StoryRejection.PhotoTooLarge)
-    } else if (!declaredDimensionsOk(upload.tempFile)) {
+    } else if (!sourceImageOk(upload.tempFile)) {
       Left(StoryRejection.PhotoInvalid)
     } else {
       val (captureRecency, nearLabel) = extractTransientMetadata(upload.tempFile, labelLatLng)
@@ -294,9 +303,8 @@ class StoryServiceImpl @Inject() (
         case None      => Left(StoryRejection.PhotoInvalid)
         case Some(src) =>
           try {
-            val out    = reencodeJpeg(src)
-            val staged = File.createTempFile("story_staged_", ".jpg")
-            writeJpeg(out, staged)
+            val out    = ImageUtils.scaleToMaxEdge(src, MAX_OUTPUT_EDGE)
+            val staged = stageJpeg(out)
             Right(ProcessedPhoto(staged, out.getWidth, out.getHeight, staged.length, captureRecency, nearLabel))
           } catch {
             case e: Exception =>
@@ -307,8 +315,30 @@ class StoryServiceImpl @Inject() (
     }
   }
 
-  /** Reads declared dimensions from the image header without decoding pixel data (decompression-bomb guard). */
-  private def declaredDimensionsOk(file: File): Boolean = {
+  /**
+   * Writes the re-encoded photo to a temp file in the staging dir, deleting it again if the write dies midway.
+   * Staging lives inside the media tree (not java.io.tmpdir) so the post-commit placement is a same-filesystem
+   * atomic rename; a crash can only leave junk under staging/, never a half-written serving file.
+   */
+  private def stageJpeg(img: BufferedImage): File = {
+    val stagingDir = new File(mediaBaseDir, "staging")
+    stagingDir.mkdirs()
+    val staged = File.createTempFile("story_staged_", ".jpg", stagingDir)
+    try {
+      ImageUtils.writeJpeg(img, staged, JPEG_QUALITY)
+      staged
+    } catch {
+      case e: Exception =>
+        val _ = Try(Files.deleteIfExists(staged.toPath))
+        throw e
+    }
+  }
+
+  /**
+   * Probes the image header without decoding pixel data: the SNIFFED format must be an accepted one (the declared
+   * MIME type is untrusted and ignored) and the declared dimensions sane (decompression-bomb guard).
+   */
+  private def sourceImageOk(file: File): Boolean = {
     Try {
       val stream = new FileImageInputStream(file)
       try {
@@ -316,6 +346,7 @@ class StoryServiceImpl @Inject() (
         readers.nextOption().exists { reader =>
           try {
             reader.setInput(stream)
+            ACCEPTED_FORMATS.contains(reader.getFormatName.toLowerCase) &&
             reader.getWidth(0) <= MAX_SOURCE_DIMENSION && reader.getHeight(0) <= MAX_SOURCE_DIMENSION
           } finally reader.dispose()
         }
@@ -343,36 +374,9 @@ class StoryServiceImpl @Inject() (
       val near = for {
         g     <- geo
         label <- labelLatLng
-      } yield haversineMeters(g.getLatitude, g.getLongitude, label.lat, label.lng) <= NEAR_LABEL_METERS
+      } yield CommonUtils.haversineMeters(g.getLatitude, g.getLongitude, label.lat, label.lng) <= NEAR_LABEL_METERS
       (recency, near)
     }.getOrElse((None, None)) // Absent or corrupt metadata is normal; everything degrades to "unknown".
-  }
-
-  /** Scales to the output edge cap and repaints onto RGB (ImageIO's JPEG writer can't handle alpha channels). */
-  private def reencodeJpeg(src: BufferedImage): BufferedImage = {
-    val scale     = math.min(1.0, MAX_OUTPUT_EDGE.toDouble / math.max(src.getWidth, src.getHeight))
-    val outWidth  = math.max(1, math.round(src.getWidth * scale).toInt)
-    val outHeight = math.max(1, math.round(src.getHeight * scale).toInt)
-    val out       = new BufferedImage(outWidth, outHeight, BufferedImage.TYPE_INT_RGB)
-    val g2d       = out.createGraphics()
-    g2d.drawImage(src.getScaledInstance(outWidth, outHeight, java.awt.Image.SCALE_SMOOTH), 0, 0, null)
-    g2d.dispose()
-    out
-  }
-
-  private def writeJpeg(img: BufferedImage, target: File): Unit = {
-    val writer = ImageIO.getImageWritersByFormatName("jpg").next()
-    val param  = writer.getDefaultWriteParam
-    param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT)
-    param.setCompressionQuality(JPEG_QUALITY)
-    val output = ImageIO.createImageOutputStream(target)
-    try {
-      writer.setOutput(output)
-      writer.write(null, new IIOImage(img, null, null), param)
-    } finally {
-      writer.dispose()
-      output.close()
-    }
   }
 
   /** File deletion failures only leave an orphaned file (never a dangling DB row), so log-and-continue is safe. */
@@ -380,14 +384,5 @@ class StoryServiceImpl @Inject() (
     Try(Files.deleteIfExists(storyMediaFile(storyMediaId).toPath)).failed.foreach { e =>
       logger.error(s"Failed to delete story media file story_$storyMediaId.jpg: ${e.getMessage}")
     }
-  }
-
-  private def haversineMeters(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Double = {
-    val earthRadiusMeters = 6371000.0
-    val dLat              = math.toRadians(lat2 - lat1)
-    val dLng              = math.toRadians(lng2 - lng1)
-    val a                 = math.pow(math.sin(dLat / 2), 2) +
-      math.cos(math.toRadians(lat1)) * math.cos(math.toRadians(lat2)) * math.pow(math.sin(dLng / 2), 2)
-    2 * earthRadiusMeters * math.asin(math.sqrt(a))
   }
 }

@@ -61,6 +61,7 @@ class StoriesSection {
     if (story.media) {
       const img = document.createElement('img');
       img.className = 'ud-story-thumb';
+      img.loading = 'lazy';
       img.src = story.media.url;
       img.alt = story.media.alt_text || '';
       row.appendChild(img);

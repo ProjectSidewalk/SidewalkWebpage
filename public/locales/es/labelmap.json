@@ -65,7 +65,7 @@
       "already-exists": "Ya compartiste una historia en esta etiqueta.",
       "rate-limited": "Has compartido varias historias recientemente; inténtalo de nuevo mañana.",
       "photo-too-large": "Esa foto es demasiado grande para subirla.",
-      "photo-invalid": "No pudimos leer ese archivo como imagen (JPEG, PNG o WebP)."
+      "photo-invalid": "No pudimos leer ese archivo como imagen (JPEG o PNG)."
     }
   }
 }

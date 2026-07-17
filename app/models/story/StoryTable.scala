@@ -20,8 +20,8 @@ import scala.concurrent.ExecutionContext
  * @param userId          The author. Anonymous-session users are real DB users, so they can own stories too.
  * @param storyText       The story itself.
  * @param displayNameMode `anonymous` (default) or `username` — what the public sees as the author.
- * @param visibility      `visible` or `hidden`. Hidden = admin quarantine (reversible, preserves abuse evidence);
- *                        retraction is a real row DELETE instead.
+ * @param visibility      Moderation state (see StoryVisibility). Hidden = admin quarantine (reversible, preserves
+ *                        abuse evidence); retraction is a real row DELETE instead.
  * @param moderatedBy     The admin who last changed visibility; None if never moderated.
  * @param moderatedAt     When visibility last changed.
  * @param createdAt       When the story was posted.
@@ -32,17 +32,24 @@ case class Story(
     userId: String,
     storyText: String,
     displayNameMode: String,
-    visibility: String,
+    visibility: StoryVisibility.Value,
     moderatedBy: Option[String],
     moderatedAt: Option[OffsetDateTime],
     createdAt: OffsetDateTime
-)
+) {
+
+  /**
+   * The single viewer-visibility policy for a story (#4054): everyone sees a visible story; a hidden one stays in
+   * sight of admins and its author (who keeps the right to retract it). StoryTable.getForLabel encodes this same
+   * policy as a SQL predicate — keep the two in sync.
+   */
+  def viewableBy(viewerUserId: Option[String], isAdmin: Boolean): Boolean =
+    isAdmin || visibility == StoryVisibility.Visible || viewerUserId.contains(userId)
+}
 
 object Story {
   val DisplayNameAnonymous = "anonymous"
   val DisplayNameUsername  = "username"
-  val VisibilityVisible    = "visible"
-  val VisibilityHidden     = "hidden"
 
   val validDisplayNameModes: Set[String] = Set(DisplayNameAnonymous, DisplayNameUsername)
 }
@@ -53,7 +60,7 @@ class StoryTableDef(tag: Tag) extends Table[Story](tag, "story") {
   def userId: Rep[String]                      = column[String]("user_id")
   def storyText: Rep[String]                   = column[String]("story_text")
   def displayNameMode: Rep[String]             = column[String]("display_name_mode")
-  def visibility: Rep[String]                  = column[String]("visibility")
+  def visibility: Rep[StoryVisibility.Value]   = column[StoryVisibility.Value]("visibility")
   def moderatedBy: Rep[Option[String]]         = column[Option[String]]("moderated_by")
   def moderatedAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("moderated_at")
   def createdAt: Rep[OffsetDateTime]           = column[OffsetDateTime]("created_at")
@@ -105,10 +112,6 @@ class StoryTable @Inject() (
     stories.filter(s => s.userId === userId && s.createdAt >= since).length.result
   }
 
-  def getStory(storyId: Int): DBIO[Option[Story]] = {
-    stories.filter(_.storyId === storyId).result.headOption
-  }
-
   def getMediaForStory(storyId: Int): DBIO[Seq[StoryMedia]] = {
     storyMedia.filter(_.storyId === storyId).result
   }
@@ -131,10 +134,11 @@ class StoryTable @Inject() (
       viewerUserId: Option[String],
       isAdmin: Boolean
   ): DBIO[Seq[(Story, Option[StoryMedia], String)]] = {
+    // The SQL twin of Story.viewableBy — keep the two in sync.
     val visible = stories.filter { s =>
       val base = s.labelId === labelId
       if (isAdmin) base
-      else base && (s.visibility === Story.VisibilityVisible || s.userId === viewerUserId.getOrElse(""))
+      else base && (s.visibility === StoryVisibility.Visible || s.userId === viewerUserId.getOrElse(""))
     }
     visible
       .join(users)
@@ -174,7 +178,12 @@ class StoryTable @Inject() (
       .map(_.map { case (((story, user), label), media) => (story, media, user.username, label.labelTypeId) })
   }
 
-  def setVisibility(storyId: Int, visibility: String, adminUserId: String, now: OffsetDateTime): DBIO[Int] = {
+  def setVisibility(
+      storyId: Int,
+      visibility: StoryVisibility.Value,
+      adminUserId: String,
+      now: OffsetDateTime
+  ): DBIO[Int] = {
     stories
       .filter(_.storyId === storyId)
       .map(s => (s.visibility, s.moderatedBy, s.moderatedAt))

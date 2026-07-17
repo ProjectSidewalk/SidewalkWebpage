@@ -65,7 +65,7 @@
       "already-exists": "您已在此標記分享過故事。",
       "rate-limited": "您最近分享了多則故事，請明天再試。",
       "photo-too-large": "這張照片太大，無法上傳。",
-      "photo-invalid": "我們無法將該檔案讀取為圖片（JPEG、PNG 或 WebP）。"
+      "photo-invalid": "我們無法將該檔案讀取為圖片（JPEG 或 PNG）。"
     }
   }
 }

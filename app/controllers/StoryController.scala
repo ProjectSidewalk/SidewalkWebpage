@@ -32,6 +32,8 @@ class StoryController @Inject() (
 ) extends CustomBaseController(cc) {
   private val logger = Logger(this.getClass)
 
+  private val photoMaxBytes: Long = config.get[Long]("stories.photo-max-bytes")
+
   /**
    * All stories for a label, shaped for the viewer. Public read: the share landing (/label/:id) opens the card with
    * no session at all, so this mirrors LabelController.getLabelData's UserAwareAction (#456).
@@ -53,40 +55,44 @@ class StoryController @Inject() (
    * Submits a story (multipart form). Data parts: `label_id`, `text`, optional `display_name_mode`
    * (anonymous|username, default anonymous), optional `alt_text`; optional file part `photo`.
    * Any authenticated user may post, anonymous sessions included — the same bar as label-map comments.
+   *
+   * The parser is bounded at the photo cap plus 1 MiB of text/framing headroom, so an oversized upload is cut off
+   * at that point (Play answers 413 with a non-JSON body; the composer maps that status) instead of being buffered
+   * to disk in full only for StoryService to reject it.
    */
-  def submitStory = cc.securityService.SecuredAction(parse.multipartFormData) { implicit request =>
-    val userId = request.identity.userId
+  def submitStory = cc.securityService.SecuredAction(parse.multipartFormData(photoMaxBytes + (1L << 20))) {
+    implicit request =>
+      val userId = request.identity.userId
 
-    def dataPart(name: String): Option[String] = request.body.dataParts.get(name).flatMap(_.headOption)
+      def dataPart(name: String): Option[String] = request.body.dataParts.get(name).flatMap(_.headOption)
 
-    // Inert-until-enabled IP burst layer on top of the always-on per-user DB limit in StoryService.
-    val ipLimit = rateLimiter.limit("story-submit")
-    if (!rateLimiter.allow(s"story-submit:ip:${request.ipAddress}", ipLimit.maxAttempts, ipLimit.window)) {
-      Future.successful(
-        TooManyRequests(StoryFormats.rejectionToJson(StoryRejection.RateLimited))
-          .withHeaders("Retry-After" -> ipLimit.window.toSeconds.toString)
-      )
-    } else {
-      dataPart("label_id").flatMap(s => Try(s.toInt).toOption) match {
-        case None          => Future.successful(BadRequest(Json.obj("error" -> "story.error.label-id-missing")))
-        case Some(labelId) =>
-          val text            = dataPart("text").getOrElse("")
-          val displayNameMode = dataPart("display_name_mode").getOrElse(Story.DisplayNameAnonymous)
-          val altText         = dataPart("alt_text").map(_.trim).filter(_.nonEmpty)
-          val photo           = request.body.file("photo").map { filePart =>
-            StoryPhotoUpload(filePart.ref.path.toFile, filePart.contentType.getOrElse(""), altText)
-          }
-          cc.loggingService.insert(
-            userId,
-            request.ipAddress,
-            s"Click_module=StorySubmit_labelId=${labelId}_hasPhoto=${photo.isDefined}"
-          )
-          storyService.submitStory(labelId, userId, text, displayNameMode, photo).map {
-            case Right(story)    => Ok(StoryFormats.storyForViewToJson(story))
-            case Left(rejection) => rejectionResult(rejection)
-          }
+      // Inert-until-enabled IP burst layer on top of the always-on per-user DB limit in StoryService.
+      val ipLimit = rateLimiter.limit("story-submit")
+      if (!rateLimiter.allow(s"story-submit:ip:${request.ipAddress}", ipLimit.maxAttempts, ipLimit.window)) {
+        Future.successful(
+          TooManyRequests(StoryFormats.rejectionToJson(StoryRejection.RateLimited))
+            .withHeaders("Retry-After" -> ipLimit.window.toSeconds.toString)
+        )
+      } else {
+        dataPart("label_id").flatMap(s => Try(s.toInt).toOption) match {
+          case None          => Future.successful(BadRequest(Json.obj("error" -> "story.error.label-id-missing")))
+          case Some(labelId) =>
+            val text            = dataPart("text").getOrElse("")
+            val displayNameMode = dataPart("display_name_mode").getOrElse(Story.DisplayNameAnonymous)
+            val altText         = dataPart("alt_text").map(_.trim).filter(_.nonEmpty)
+            val photo           =
+              request.body.file("photo").map { filePart => StoryPhotoUpload(filePart.ref.path.toFile, altText) }
+            cc.loggingService.insert(
+              userId,
+              request.ipAddress,
+              s"Click_module=StorySubmit_labelId=${labelId}_hasPhoto=${photo.isDefined}"
+            )
+            storyService.submitStory(labelId, userId, text, displayNameMode, photo).map {
+              case Right(story)    => Ok(StoryFormats.storyForViewToJson(story))
+              case Left(rejection) => rejectionResult(rejection)
+            }
+        }
       }
-    }
   }
 
   /**
@@ -115,7 +121,13 @@ class StoryController @Inject() (
   def serveStoryMedia(storyMediaId: Int) = silhouette.UserAwareAction.async { implicit request =>
     val earlyReject =
       if (!SignedMediaUtils.refererAllowed(request, config)) Some(Forbidden("Request origin not allowed."))
-      else SignedMediaUtils.verifySignature(request, s"/storyMedia/$storyMediaId", signingService)
+      else
+        // Reverse-routed so the verified path can't drift from the one StoryService signs.
+        SignedMediaUtils.verifySignature(
+          request,
+          routes.StoryController.serveStoryMedia(storyMediaId).url,
+          signingService
+        )
 
     earlyReject match {
       case Some(result) => Future.successful(result)
@@ -123,11 +135,15 @@ class StoryController @Inject() (
         storyService.getMediaForServing(storyMediaId).map {
           case None                 => NotFound("Story media not found.")
           case Some((media, story)) =>
-            val viewerCanSee = story.visibility == Story.VisibilityVisible ||
-              request.identity.exists(_.userId == story.userId) || isAdmin(request.identity)
             val file = storyService.storyMediaFile(storyMediaId)
-            if (!viewerCanSee || !file.exists()) NotFound("Story media not found.")
-            else Ok.sendFile(file, inline = true).as(media.mimeType)
+            if (!story.viewableBy(request.identity.map(_.userId), isAdmin(request.identity)) || !file.exists())
+              NotFound("Story media not found.")
+            else
+              // `private`: whether a hidden story's media serves depends on who's asking, so shared caches must
+              // never hold it; the viewer's own browser may, for as long as the signed URL stays valid.
+              Ok.sendFile(file, inline = true)
+                .as(media.mimeType)
+                .withHeaders("Cache-Control" -> s"private, max-age=${signingService.expirySeconds}")
         }
     }
   }

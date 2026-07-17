@@ -1,7 +1,7 @@
 package formats.json
 
 import models.story._
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsNumber, JsObject, Json}
 
 /**
  * JSON writers for the lived-experience story surfaces (#4054). Snake_case keys throughout. Deliberately app-internal:
@@ -42,7 +42,7 @@ object StoryFormats {
       "label_type"        -> s.labelType,
       "text"              -> s.story.storyText,
       "display_name_mode" -> s.story.displayNameMode,
-      "hidden"            -> (s.story.visibility == Story.VisibilityHidden),
+      "hidden"            -> (s.story.visibility == StoryVisibility.Hidden),
       "created_at"        -> s.story.createdAt,
       "media"             -> s.media.map(mediaToJson)
     )
@@ -57,7 +57,7 @@ object StoryFormats {
       "username"          -> s.username,
       "text"              -> s.story.storyText,
       "display_name_mode" -> s.story.displayNameMode,
-      "visibility"        -> s.story.visibility,
+      "hidden"            -> (s.story.visibility == StoryVisibility.Hidden),
       "moderated_by"      -> s.story.moderatedBy,
       "moderated_at"      -> s.story.moderatedAt,
       "created_at"        -> s.story.createdAt,
@@ -66,6 +66,12 @@ object StoryFormats {
   }
 
   def rejectionToJson(r: StoryRejection): JsObject = {
-    Json.obj("error" -> r.messageKey, "message" -> r.defaultMessage)
+    val base = Json.obj("error" -> r.messageKey, "message" -> r.defaultMessage)
+    r match {
+      // The composer interpolates {{max}} client-side; ride the real limit along so it can never render blank
+      // (the composer may not have fetched /stories — and its max_text_length — before submitting).
+      case StoryRejection.TextTooLong(maxLength) => base + ("max" -> JsNumber(maxLength))
+      case _                                     => base
+    }
   }
 }

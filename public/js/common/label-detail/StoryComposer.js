@@ -194,12 +194,20 @@ class StoryComposer {
         try {
           body = await res.json();
         } catch {
-          // Non-JSON error body (e.g. a proxy error page); the generic message below covers it.
+          // Non-JSON error body (e.g. Play's body-parser cutoff or a proxy error page); handled by status below.
         }
         const key = body && body.error ? `labelmap:${body.error}` : null;
-        const message = key && i18next.exists(key)
-          ? i18next.t(key, { max: this.#maxLength })
-          : (body && body.message) || i18next.t('labelmap:story.error.generic');
+        let message;
+        if (key && i18next.exists(key)) {
+          // The server rides the real limit along on text-too-long (body.max); #maxLength is only the fallback
+          // since it's null until the /stories fetch lands.
+          message = i18next.t(key, { max: (body && body.max) || this.#maxLength });
+        } else if (res.status === 413) {
+          // Play's parser rejected the body before our controller saw it, so there's no JSON to translate from.
+          message = i18next.t('labelmap:story.error.photo-too-large');
+        } else {
+          message = (body && body.message) || i18next.t('labelmap:story.error.generic');
+        }
         this.#showError(message);
       }
     } catch {
@@ -212,9 +220,10 @@ class StoryComposer {
   }
 
   /**
-   * POSTs multipart form data, minting the shared anonymous session and retrying once on failure — same contract as
-   * LabelDetail's #postJson (the signed-out share page has no session until this mints one). No Content-Type header:
-   * the browser sets the multipart boundary itself.
+   * POSTs multipart form data, minting the shared anonymous session and retrying once — but only when the failure
+   * looks auth-shaped (401/403/redirect). That's deliberately narrower than LabelDetail's #postJson, which retries
+   * on any non-OK response: a story rejection (409 duplicate, 429 rate-limited) must surface, not be re-posted.
+   * No Content-Type header: the browser sets the multipart boundary itself.
    * @param {string} url
    * @param {FormData} formData
    * @returns {Promise<Response>}

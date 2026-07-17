@@ -68,7 +68,7 @@
   </script>
 }
 
-@common.main(commonData, "Sidewalk - Admin Stories") {
+@common.main(commonData, "Sidewalk - Admin Stories", i18Namespaces = Seq("common", "labelmap")) {
   @common.navbar(commonData, Some(user))
   @admin.dashboard.adminLayout("stories", user.role == "Owner")(content)
 }

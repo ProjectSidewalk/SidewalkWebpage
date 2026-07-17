@@ -65,6 +65,9 @@ class StorySection {
     this.#els.details.open = false;
     this.#els.list.replaceChildren();
     this.#els.count.hidden = true;
+    // Re-show the CTA immediately: if the previous label had the viewer's own story and this fetch fails, the
+    // CTA would otherwise stay stuck hidden on a label they haven't posted to.
+    this.#els.shareBtn.hidden = false;
     this.refresh();
   }
 
@@ -118,6 +121,7 @@ class StorySection {
       btn.setAttribute('aria-label', story.media.alt_text ? `${enlarge}: ${story.media.alt_text}` : enlarge);
       const img = document.createElement('img');
       img.className = 'label-detail__story-thumb';
+      img.loading = 'lazy';
       img.src = story.media.url;
       img.alt = story.media.alt_text || '';
       btn.appendChild(img);
@@ -187,6 +191,7 @@ class StorySection {
    * @param {Object} media - The story's media payload; alt text doubles as the visible caption.
    */
   #openLightbox(media) {
+    window.logWebpageActivity?.(`Click_module=StoryPhotoEnlarge_storyMediaId=${media.story_media_id}`);
     const els = this.#els;
     els.lightboxImg.src = media.url;
     els.lightboxImg.alt = media.alt_text || '';

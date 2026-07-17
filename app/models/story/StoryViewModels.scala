@@ -50,8 +50,11 @@ case class StoryForOwner(
     media: Option[StoryMediaForView]
 )
 
-/** An uploaded photo as it arrives from the multipart request, before validation/re-encoding. */
-case class StoryPhotoUpload(tempFile: File, declaredMime: String, altText: Option[String])
+/**
+ * An uploaded photo as it arrives from the multipart request, before validation/re-encoding. No declared MIME type:
+ * the ingest pipeline trusts only the sniffed image format, never what the client claims.
+ */
+case class StoryPhotoUpload(tempFile: File, altText: Option[String])
 
 /**
  * Why a story submission was refused. `messageKey` is a client-side i18n key (labelmap namespace) so the composer can
@@ -75,5 +78,5 @@ object StoryRejection {
       extends StoryRejection("story.error.rate-limited", "You've shared several stories recently — try again tomorrow.")
   case object PhotoTooLarge extends StoryRejection("story.error.photo-too-large", "That photo is too large to upload.")
   case object PhotoInvalid
-      extends StoryRejection("story.error.photo-invalid", "We couldn't read that file as an image (JPEG, PNG, WebP).")
+      extends StoryRejection("story.error.photo-invalid", "We couldn't read that file as an image (JPEG or PNG).")
 }

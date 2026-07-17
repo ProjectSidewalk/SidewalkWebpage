@@ -65,7 +65,7 @@
       "already-exists": "Sie haben an dieser Beschriftung bereits eine Geschichte geteilt.",
       "rate-limited": "Sie haben kürzlich mehrere Geschichten geteilt – bitte versuchen Sie es morgen erneut.",
       "photo-too-large": "Dieses Foto ist zu groß zum Hochladen.",
-      "photo-invalid": "Wir konnten diese Datei nicht als Bild lesen (JPEG, PNG oder WebP)."
+      "photo-invalid": "Wir konnten diese Datei nicht als Bild lesen (JPEG oder PNG)."
     }
   }
 }

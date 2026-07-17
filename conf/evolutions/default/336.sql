@@ -3,13 +3,17 @@
 -- optional attached media. Stories are public on submit and retractable: the author can hard-DELETE their own story
 -- (row and media bytes), while admins quarantine with visibility='hidden' (reversible, preserves abuse evidence) or
 -- hard-delete. One story per user per label. Media rows ride along and cascade on story deletion.
+-- Visibility is a first-class enum (street_edge_status precedent, 325.sql) because it round-trips through app code
+-- and toggles at runtime. The write-once discriminators below stay TEXT + CHECK.
+CREATE TYPE story_visibility AS ENUM ('visible', 'hidden');
+
 CREATE TABLE story (
     story_id SERIAL PRIMARY KEY,
     label_id INTEGER NOT NULL REFERENCES label (label_id),
     user_id TEXT NOT NULL,
     story_text TEXT NOT NULL,
     display_name_mode TEXT NOT NULL DEFAULT 'anonymous' CHECK (display_name_mode IN ('anonymous', 'username')),
-    visibility TEXT NOT NULL DEFAULT 'visible' CHECK (visibility IN ('visible', 'hidden')),
+    visibility story_visibility NOT NULL DEFAULT 'visible',
     moderated_by TEXT,
     moderated_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -43,3 +47,4 @@ CREATE INDEX story_media_story_id_idx ON story_media (story_id);
 # --- !Downs
 DROP TABLE story_media;
 DROP TABLE story;
+DROP TYPE story_visibility;

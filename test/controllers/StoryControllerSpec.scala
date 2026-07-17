@@ -1,6 +1,6 @@
 package controllers
 
-import models.story.Story
+import models.story.{Story, StoryVisibility}
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -240,6 +240,24 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
           status(postStory(session, id, "story with a fake photo", files = Seq(part))) mustBe BAD_REQUEST
       }
     }
+
+    "reject a real image in a format the composer doesn't accept (sniffed format, not the declared MIME type)" in {
+      labelIds.headOption match {
+        case None     => cancel("No labels in the connected test DB.")
+        case Some(id) =>
+          val session = freshAnonSession()
+          val img     = new BufferedImage(100, 100, BufferedImage.TYPE_INT_RGB)
+          val temp    = SingletonTemporaryFileCreator.create("story-spec-gif", ".jpg")
+          ImageIO.write(img, "gif", temp.path.toFile) mustBe true
+          val part = MultipartFormData.FilePart(
+            key = "photo",
+            filename = "sneaky.jpg",
+            contentType = Some("image/jpeg"),
+            ref = temp
+          )
+          status(postStory(session, id, "story with a GIF posing as a JPEG", files = Seq(part))) mustBe BAD_REQUEST
+      }
+    }
   }
 
   "DELETE /userapi/stories/:storyId" should {
@@ -261,6 +279,31 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
   }
 
   "moderation" should {
+    "404 a hidden story's media for strangers while still serving its author (Story.viewableBy contract)" in {
+      labelIds.headOption match {
+        case None     => cancel("No labels in the connected test DB.")
+        case Some(id) =>
+          val session = freshAnonSession()
+          val posted  = postStory(
+            session,
+            id,
+            "quarantined story with a photo",
+            Map("alt_text" -> Seq("A test image.")),
+            files = Seq(testJpegFilePart())
+          )
+          status(posted) mustBe OK
+          val storyId  = (contentAsJson(posted) \ "story_id").as[Int]
+          val mediaUrl = (contentAsJson(posted) \ "media" \ "url").as[String]
+          try {
+            Await.result(storyService.setStoryVisibility(storyId, "spec-admin", hidden = true), 30.seconds) mustBe true
+            // Even a valid signed URL serves nothing to a signed-out viewer once the story is quarantined...
+            status(route(app, FakeRequest(GET, mediaUrl)).get) mustBe NOT_FOUND
+            // ...but the author still sees their own photo (they keep sight of the story and the right to retract).
+            status(route(app, FakeRequest(GET, mediaUrl).withCookies(session: _*)).get) mustBe OK
+          } finally { val _ = status(deleteStory(session, storyId)) }
+      }
+    }
+
     "hide a story from the public card while keeping it visible (flagged) to its author" in {
       labelIds.headOption match {
         case None     => cancel("No labels in the connected test DB.")
@@ -297,10 +340,9 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
   }
 
-  "story visibility constants" should {
-    "match the evolution's CHECK constraints" in {
-      Story.VisibilityVisible mustBe "visible"
-      Story.VisibilityHidden mustBe "hidden"
+  "story enum constants" should {
+    "match the evolution's story_visibility enum and display-name CHECK constraint" in {
+      StoryVisibility.values.map(_.toString) mustBe Set("visible", "hidden")
       Story.validDisplayNameModes mustBe Set("anonymous", "username")
     }
   }

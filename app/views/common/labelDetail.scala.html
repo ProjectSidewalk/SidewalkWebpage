@@ -118,7 +118,7 @@
       <span class="label-detail__stories-heading" data-i18n="labelmap:story.heading">Community stories</span>
       <span class="label-detail__stories-count" hidden></span>
       @* Green pill CTA (Variant B treatment on the C.2 disclosure, per Yochai). The "+" is decorative. *@
-      <button type="button" class="label-detail__story-share" data-action="open-story-composer">
+      <button type="button" class="label-detail__story-share">
         <span aria-hidden="true">＋</span>
         <span data-i18n="labelmap:story.share-yours">Share your story</span>
       </button>
@@ -165,8 +165,9 @@
   <div class="story-composer__counter" aria-hidden="true"></div>
   <div class="story-composer__photo-row">
     <label class="story-composer__photo-attach" for="story-composer-photo">
+      @* Accepted types must stay in sync with StoryService's sniffed-format allowlist (stock ImageIO: no WebP). *@
       <input type="file" id="story-composer-photo" class="story-composer__photo-input sr-only"
-             accept="image/jpeg,image/png,image/webp">
+             accept="image/jpeg,image/png">
       <span data-i18n="labelmap:story.add-photo">Add a photo (optional)</span>
     </label>
     <div class="story-composer__photo-preview" hidden>
