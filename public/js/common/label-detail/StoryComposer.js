@@ -1,8 +1,8 @@
 /**
  * StoryComposer — dialog controller for submitting a lived-experience story (#4054).
  *
- * Owns the `.story-composer` <dialog> rendered by labelDetail.scala.html: text + counter, optional photo with a
- * required-or-explicitly-skipped description (WCAG), the anonymous/username display choice, and the multipart POST
+ * Owns the `.story-composer` <dialog> rendered by labelDetail.scala.html: text + counter, optional photo with an
+ * optional description (doubles as alt text), the anonymous/username display choice, and the multipart POST
  * to /userapi/stories (with the same mint-anon-session-and-retry behavior as LabelDetail's JSON posts, so the
  * signed-out /label/:id share page can submit too). Scoped to the elements it's given — the partial can render
  * multiple times per page, so radio-group names and the labelling id are made instance-unique here.
@@ -46,7 +46,6 @@ class StoryComposer {
       photoThumb: q('.story-composer__photo-thumb'),
       photoRemove: q('.story-composer__photo-remove'),
       altInput: q('.story-composer__alt-input'),
-      altSkip: q('.story-composer__alt-skip'),
       nameAnon: q('.story-composer__name-anon'),
       nameUser: q('.story-composer__name-username'),
       usernameOption: q('.story-composer__username-option'),
@@ -132,10 +131,6 @@ class StoryComposer {
       els.photoInput.focus();
     });
 
-    els.altSkip.addEventListener('change', () => {
-      els.altInput.disabled = els.altSkip.checked;
-      this.#clearError();
-    });
     els.altInput.addEventListener('input', () => this.#clearError());
 
     els.cancel.addEventListener('click', () => this.#dialog.close());
@@ -169,11 +164,6 @@ class StoryComposer {
       els.text.focus();
       return;
     }
-    if (photo && !els.altSkip.checked && !els.altInput.value.trim()) {
-      this.#showError(i18next.t('labelmap:story.photo-alt-required'));
-      els.altInput.focus();
-      return;
-    }
 
     const formData = new FormData();
     formData.append('label_id', String(this.#labelId));
@@ -184,7 +174,8 @@ class StoryComposer {
     );
     if (photo) {
       formData.append('photo', photo);
-      if (!els.altSkip.checked) formData.append('alt_text', els.altInput.value.trim());
+      const altText = els.altInput.value.trim();
+      if (altText) formData.append('alt_text', altText);
     }
 
     this.#busy = true;
@@ -274,8 +265,6 @@ class StoryComposer {
     els.photoPreview.hidden = true;
     els.photoAttach.hidden = false;
     els.altInput.value = '';
-    els.altInput.disabled = false;
-    els.altSkip.checked = false;
   }
 
   #revokeObjectUrl() {
@@ -377,7 +366,6 @@ class StoryComposer {
         labelId: this.#labelId,
         text: els.text.value,
         altText: els.altInput.value,
-        altSkip: els.altSkip.checked,
         useUsername: els.nameUser.checked,
         photoBlob: photo || null,
         photoName: photo ? photo.name : null,
@@ -416,8 +404,6 @@ class StoryComposer {
       const type = draft.photoType || draft.photoBlob.type;
       this.#setPhoto(new File([draft.photoBlob], draft.photoName || 'photo', { type }));
       els.altInput.value = draft.altText || '';
-      els.altSkip.checked = Boolean(draft.altSkip);
-      els.altInput.disabled = els.altSkip.checked;
     }
   }
 

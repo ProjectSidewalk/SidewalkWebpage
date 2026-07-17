@@ -4,8 +4,9 @@
  * Lazily fetches GET /stories?labelId=N when a label is shown (Gallery's host never calls the label-metadata
  * endpoint, so stories can't ride that payload), then renders the collapsed summary (count badge + share CTA) and,
  * on expand, the story list: text, byline (anonymous or username), photo thumbnails that open the enlarge dialog,
- * the author's own-story delete control, and the hidden-by-moderators chip on the author's quarantined story.
- * Scoped to the host root; owns the StoryComposer and the enlarge lightbox rendered by the same partial.
+ * the author's own-story delete + dashboard-link controls, and the hidden-by-moderators chip on the author's
+ * quarantined story. With zero stories the disclosure is inert (no arrow, nothing to expand) and an invite line
+ * shows instead. Scoped to the host root; owns the StoryComposer and the enlarge lightbox from the same partial.
  */
 class StorySection {
   #els = {};
@@ -23,8 +24,10 @@ class StorySection {
     const q = (sel) => root.querySelector(sel);
     this.#els = {
       details: q('.label-detail__stories-details'),
+      summary: q('.label-detail__stories-summary'),
       count: q('.label-detail__stories-count'),
       shareBtn: q('.label-detail__story-share'),
+      invite: q('.label-detail__stories-invite'),
       list: q('.label-detail__stories-list'),
       status: q('.label-detail__story-status'),
       lightbox: q('.story-lightbox'),
@@ -48,6 +51,10 @@ class StorySection {
       e.stopPropagation();
       this.#composer.open(this.#labelId, this.#maxTextLength);
     });
+    // With zero stories there is nothing to expand, so the summary click is inert (the CTA above still works).
+    this.#els.summary.addEventListener('click', (e) => {
+      if (this.#els.details.classList.contains('label-detail__stories-details--empty')) e.preventDefault();
+    });
     this.#els.details.addEventListener('toggle', () => {
       if (this.#els.details.open) {
         window.logWebpageActivity?.(`Click_module=StorySectionExpand_labelId=${this.#labelId}`);
@@ -65,6 +72,10 @@ class StorySection {
     this.#els.details.open = false;
     this.#els.list.replaceChildren();
     this.#els.count.hidden = true;
+    // Treat the section as empty until the fetch lands: no expand arrow, and no invite line either (it only
+    // shows once we know there are zero stories, so it can't flash on labels that have some).
+    this.#els.details.classList.add('label-detail__stories-details--empty');
+    this.#els.invite.hidden = true;
     // Re-show the CTA immediately: if the previous label had the viewer's own story and this fetch fails, the
     // CTA would otherwise stay stuck hidden on a label they haven't posted to.
     this.#els.shareBtn.hidden = false;
@@ -110,8 +121,12 @@ class StorySection {
   #render(stories) {
     const els = this.#els;
 
+    const empty = stories.length === 0;
     els.count.textContent = String(stories.length);
-    els.count.hidden = stories.length === 0;
+    els.count.hidden = empty;
+    els.details.classList.toggle('label-detail__stories-details--empty', empty);
+    if (empty) els.details.open = false;
+    els.invite.hidden = !empty;
     // One story per user per label (server-enforced): once yours exists, delete-and-repost is the edit path.
     els.shareBtn.hidden = stories.some((s) => s.is_own);
 
@@ -174,6 +189,15 @@ class StorySection {
       del.textContent = i18next.t('labelmap:story.delete');
       del.addEventListener('click', () => this.#deleteStory(story.story_id));
       byline.appendChild(del);
+
+      const dashLink = document.createElement('a');
+      dashLink.className = 'label-detail__story-dashboard-link';
+      dashLink.href = '/dashboard#ud-stories-section';
+      dashLink.textContent = i18next.t('labelmap:story.see-all-stories');
+      dashLink.addEventListener('click', () => {
+        window.logWebpageActivity?.(`Click_module=StoryDashboardLink_labelId=${this.#labelId}`);
+      });
+      byline.appendChild(dashLink);
     }
     if (story.hidden) {
       const chip = document.createElement('span');

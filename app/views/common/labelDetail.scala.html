@@ -155,13 +155,14 @@
 
 @* Lived-experience stories (#4054): a collapsed disclosure with a count badge; expanding reveals the story list.
    StorySection.js lazily fetches /stories per label and renders the list, count, CTA state, and delete controls.
-   Rendered even with zero stories so the share CTA is always reachable. *@
+   Rendered even with zero stories so the share CTA is always reachable — but with nothing to expand, the summary
+   is inert (no arrow) and the invite line below explains why someone would share. *@
 <section class="label-detail__stories">
   <details class="label-detail__stories-details">
     <summary class="label-detail__stories-summary">
       <span class="label-detail__stories-heading" data-i18n="labelmap:story.heading">Community stories</span>
       <span class="label-detail__stories-count" hidden></span>
-      @* Green pill CTA (Variant B treatment on the C.2 disclosure, per Yochai). The "+" is decorative. *@
+      @* Pill CTA (Variant B treatment on the C.2 disclosure, per Yochai). The "+" is decorative. *@
       <button type="button" class="label-detail__story-share">
         <span aria-hidden="true">＋</span>
         <span data-i18n="labelmap:story.share-yours">Share your story</span>
@@ -170,6 +171,9 @@
     </summary>
     <div class="label-detail__stories-list"></div>
   </details>
+  <p class="label-detail__stories-invite" hidden data-i18n="labelmap:story.invite">
+    Has a problem like this affected you? Share your experience.
+  </p>
   <span class="label-detail__story-status sr-only" role="status" aria-live="polite"></span>
 </section>
 
@@ -205,7 +209,8 @@
 <dialog class="story-composer">
   <h3 class="story-composer__title" data-i18n="labelmap:story.composer-title">Share your story</h3>
   <p class="story-composer__intro" data-i18n="labelmap:story.composer-intro">
-    Your story appears publicly on this label.
+    Stories help neighbors and city officials understand what problems like this mean for real people.
+    Yours appears publicly on this label.
   </p>
   <label class="story-composer__field" for="story-composer-text">
     <span class="story-composer__field-label" data-i18n="labelmap:story.your-story">Your story</span>
@@ -225,13 +230,9 @@
       <div class="story-composer__photo-fields">
         <label class="story-composer__field" for="story-composer-alt">
           <span class="story-composer__field-label" data-i18n="labelmap:story.photo-alt-label">
-            Describe the photo for people who can't see it
+            Describe the photo for people who can't see it (optional)
           </span>
           <input type="text" id="story-composer-alt" class="story-composer__alt-input">
-        </label>
-        <label class="story-composer__check-row" for="story-composer-alt-skip">
-          <input type="checkbox" id="story-composer-alt-skip" class="story-composer__alt-skip">
-          <span data-i18n="labelmap:story.photo-alt-skip">My story already fully describes this photo</span>
         </label>
         <button type="button" class="story-composer__photo-remove"
                 data-i18n="labelmap:story.remove-photo">Remove photo</button>
@@ -259,7 +260,7 @@
   @* No data-i18n: the note embeds a link, so StoryComposer.js sets the translated string via innerHTML instead
      (the binder writes textContent, which would show the anchor markup literally). *@
   <p class="story-composer__privacy">
-    Delete anytime from here or <a href="/dashboard">your dashboard</a>. Photos are checked by moderators.
+    Delete anytime from here or <a href="/dashboard">your dashboard</a>. Photos are moderated.
   </p>
   <p class="story-composer__error" role="alert" hidden></p>
   <div class="story-composer__actions">

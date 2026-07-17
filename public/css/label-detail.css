@@ -1047,26 +1047,27 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__stories-count[hidden] { display: none; }
 
-/* Green pill CTA — the Variant B primary-button treatment on the C.2 disclosure. */
+/* Outline pill CTA (Variant B placement on the C.2 disclosure). Deliberately NOT pine green: on this card green
+   already means "Agree" on the validation buttons right above, so the CTA stays neutral to keep that meaning. */
 .label-detail__story-share {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   padding: 6px 14px;
-  border: none;
+  border: 1px solid var(--color-neutral-500);
   border-radius: 999px;
-  background: var(--color-pine-500);
+  background: var(--color-neutral-white);
   cursor: pointer;
   font-family: Raleway, sans-serif;
   font-weight: 600;
   font-size: 13px;
-  color: var(--color-neutral-black);
-  transition: opacity 120ms ease;
+  color: var(--color-neutral-900);
+  transition: background-color 120ms ease;
 }
 
 .label-detail__story-share[hidden] { display: none; }
 
-.label-detail__story-share:hover { opacity: 0.9; }
+.label-detail__story-share:hover { background: var(--color-neutral-100); }
 
 .label-detail__story-share:focus-visible {
   outline: 2px solid #4a90e2;
@@ -1083,6 +1084,18 @@ button.label-detail__meta-cell:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .label-detail__stories-arrow { transition: none; }
+}
+
+/* Zero stories: nothing to expand, so the arrow goes away and the summary is inert (StorySection toggles the
+   class and swallows the toggle click); the invite line below explains why someone would share. */
+.label-detail__stories-details--empty .label-detail__stories-arrow { display: none; }
+
+.label-detail__stories-details--empty .label-detail__stories-summary { cursor: default; }
+
+.label-detail__stories-invite {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #595959;
 }
 
 .label-detail__stories-list {
@@ -1194,6 +1207,20 @@ button.label-detail__meta-cell:focus-visible {
   border-radius: 4px;
 }
 
+.label-detail__story-dashboard-link {
+  font-family: Raleway, sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--color-link-200);
+  text-decoration: underline;
+}
+
+.label-detail__story-dashboard-link:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* ─── Story composer dialog (#4054) ─────────────────────────────────────── */
 dialog.story-composer {
   box-sizing: border-box;
@@ -1212,10 +1239,13 @@ dialog.story-composer {
 dialog.story-composer::backdrop,
 dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
 
+/* Weight hierarchy (deliberate, and defended against Bootstrap 3's globals — `label { font-weight: bold }` and
+   normalize's `textarea/input { font: inherit }` would otherwise bolden option rows and typed text): title 600,
+   field labels 600, everything the user reads or types 400. */
 .story-composer__title {
   margin: 0 0 4px;
   font-family: Raleway, sans-serif;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 20px;
   line-height: 1.2;
 }
@@ -1226,7 +1256,11 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
   font-size: 13px;
 }
 
-.story-composer__field { display: block; }
+.story-composer__field {
+  display: block;
+  margin-bottom: 0;
+  font-weight: 400;
+}
 
 .story-composer__field-label {
   display: block;
@@ -1245,6 +1279,7 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
   border: 1px solid #807f7f;
   border-radius: 6px;
   font-family: inherit;
+  font-weight: 400;
   font-size: 14px;
   line-height: 1.5;
   color: var(--color-neutral-black);
@@ -1270,6 +1305,7 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  margin-bottom: 0;
   padding: 10px 14px;
   border: 1px dashed #999999;
   border-radius: 8px;
@@ -1323,6 +1359,7 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
   border: 1px solid #807f7f;
   border-radius: 6px;
   font-family: inherit;
+  font-weight: 400;
   font-size: 13px;
 }
 
@@ -1330,6 +1367,8 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
   display: flex;
   gap: 8px;
   align-items: flex-start;
+  margin-bottom: 0;
+  font-weight: 400;
   font-size: 13px;
 }
 
@@ -1359,8 +1398,10 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
 }
 
 .story-composer__post-as legend {
+  width: auto;
   padding: 0;
   margin-bottom: 4px;
+  border: 0;
 }
 
 .story-composer__signin-cta {
