@@ -28,6 +28,7 @@ class UserCurrentRegionTableDef(tag: Tag) extends Table[UserCurrentRegion](tag, 
       _.regionId,
       onDelete = ForeignKeyAction.Cascade
     )
+  def userUnique = index("user_current_region_user_id_key", userId, unique = true)
 }
 
 @ImplementedBy(classOf[UserCurrentRegionTable])

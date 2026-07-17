@@ -42,4 +42,5 @@ class MistakeResponseTableDef(tag: Tag) extends Table[MistakeResponse](tag, "use
 
   def label = foreignKey("user_mistake_response_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
   def user  = foreignKey("user_mistake_response_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def labelUserUnique = index("user_mistake_response_label_id_user_id_key", (labelId, userId), unique = true)
 }

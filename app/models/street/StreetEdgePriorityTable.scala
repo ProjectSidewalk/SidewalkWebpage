@@ -25,6 +25,7 @@ class StreetEdgePriorityTableDef(tag: slick.lifted.Tag) extends Table[StreetEdge
 
   def streetEdge =
     foreignKey("street_edge_priority_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
+  def streetEdgeUnique = index("street_edge_priority_street_edge_id_key", streetEdgeId, unique = true)
 }
 
 @ImplementedBy(classOf[StreetEdgePriorityTable])
