@@ -10,7 +10,7 @@
  */
 const CONFIG = {
   AGGREGATE_STATS_ENDPOINT: '/v3/api/aggregateStats',
-  REQUEST_TIMEOUT: 10000, // 10 seconds
+  REQUEST_TIMEOUT: 15000, // 15 seconds
   RETRY_ATTEMPTS: 2,
   RETRY_DELAY: 1000, // 1 second
 };
@@ -32,29 +32,26 @@ const CONFIG = {
 /**
  * Fetches data from a URL with timeout and retry logic.
  *
+ * Timeouts are retried like any other failure: the server finishes computing an aborted request and caches the
+ * result, so a follow-up attempt typically succeeds quickly even when the first one timed out (#4600).
+ *
  * @param {string} url - The URL to fetch data from
  * @param {number} [timeout=CONFIG.REQUEST_TIMEOUT] - Request timeout in milliseconds
  * @param {number} [retries=CONFIG.RETRY_ATTEMPTS] - Number of retry attempts
- * @returns {Promise<Object>} The parsed JSON response
+ * @returns {Promise<object>} The parsed JSON response
  * @throws {Error} When the request fails after all retries
  *
  * @example
  * const data = await fetchWithRetry('/v3/api/aggregateStats');
  */
 async function fetchWithRetry(url, timeout = CONFIG.REQUEST_TIMEOUT, retries = CONFIG.RETRY_ATTEMPTS) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
-
   try {
     const response = await fetch(url, {
-      signal: controller.signal,
+      signal: AbortSignal.timeout(timeout),
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
+        Accept: 'application/json',
       },
     });
-
-    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -62,15 +59,17 @@ async function fetchWithRetry(url, timeout = CONFIG.REQUEST_TIMEOUT, retries = C
 
     return await response.json();
   } catch (error) {
-    clearTimeout(timeoutId);
+    // Aborts surface as "signal is aborted without reason" — rewrap them into something a reader can act on.
+    const isTimeout = error.name === 'TimeoutError' || error.name === 'AbortError';
+    const friendlyError = isTimeout ? new Error(`Request timed out after ${timeout / 1000} seconds`) : error;
 
-    if (retries > 0 && error.name !== 'AbortError') {
-      console.warn(`Request failed, retrying... (${retries} attempts left)`, error.message);
+    if (retries > 0) {
+      console.warn(`Request failed, retrying... (${retries} attempts left)`, friendlyError.message);
       await new Promise((resolve) => setTimeout(resolve, CONFIG.RETRY_DELAY));
       return fetchWithRetry(url, timeout, retries - 1);
     }
 
-    throw error;
+    throw friendlyError;
   }
 }
 
