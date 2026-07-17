@@ -143,3 +143,9 @@ htmlcov/
 .claude/settings.local.json
 CLAUDE.local.md
 
+
+# Bloop/Metals build server artifacts (any depth) and Claude Code worktrees.
+.bloop/
+project/.bloop/
+project/project/
+.claude/worktrees/
