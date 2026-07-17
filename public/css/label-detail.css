@@ -1382,18 +1382,22 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
 .story-composer__check-row input { margin-top: 2px; }
 
 /* The identity ("Anonymous" / the username) leads both post-as rows as a pill, so the two options read
-   symmetrically: <pill> then <what shows publicly>. The selected row's pill fills dark so the current
-   choice is visible at a glance, beyond the radio dot. */
+   symmetrically: <pill> then <what shows publicly>. The selected row's pill takes the same green treatment
+   as the "Your story" chip — the card's established "yours/active" style — rather than a solid pine fill,
+   which would mimic the Share story button below and read as tappable. The transparent border reserves the
+   selected state's border width, so toggling never shifts layout. */
 .story-composer__name-pill {
   padding: 0 8px;
+  border: 1px solid transparent;
   border-radius: 999px;
   background: var(--color-neutral-100);
   font-weight: 600;
 }
 
 .story-composer__check-row input:checked + .story-composer__name-pill {
-  background: var(--color-asphalt-500);
-  color: var(--color-neutral-white);
+  background: var(--color-pine-100);
+  border-color: var(--color-pine-500);
+  color: var(--color-pine-800);
 }
 
 /* Same secondary gray as the composer intro, so the pill carries the emphasis. */
