@@ -1042,6 +1042,9 @@ button.label-detail__meta-cell:focus-visible {
   background: var(--color-asphalt-500);
   color: var(--color-neutral-white);
   font-size: 12px;
+
+  /* Tight line box so the digit sits on the flex center instead of high in an inherited ~1.5 line-height. */
+  line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1093,7 +1096,9 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__stories-details--empty .label-detail__stories-summary { cursor: default; }
 
 .label-detail__stories-invite {
-  margin: 6px 0 0;
+  /* Bottom gap separates the invite from the footer buttons so they don't read as one group (only shown when the
+     section is empty, so it never adds space in the story-list state). */
+  margin: 6px 0 16px;
   font-size: 13px;
   color: #595959;
 }
