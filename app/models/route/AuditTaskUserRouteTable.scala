@@ -23,9 +23,15 @@ class AuditTaskUserRouteTableDef(tag: slick.lifted.Tag)
     AuditTaskUserRoute.unapply
   )
 
-//  def userRoute: ForeignKeyQuery[UserRouteTable, UserRoute] = foreignKey("audit_task_user_route_user_route_id_fkey", userRouteId, TableQuery[UserRouteTable])(_.userRouteId)
-//  def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] = foreignKey("audit_task_user_route_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
-//  def routeStreet: ForeignKeyQuery[RouteStreetTable, RouteStreet] = foreignKey("audit_task_user_route_route_street_id_fkey", routeStreetId, TableQuery[RouteStreetTable])(_.routeStreetId)
+  def userRoute =
+    foreignKey("audit_task_user_route_user_route_id_fkey", userRouteId, TableQuery[UserRouteTableDef])(_.userRouteId)
+  def auditTask =
+    foreignKey("audit_task_user_route_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
+  def routeStreet =
+    foreignKey("audit_task_user_route_route_street_id_fkey", routeStreetId, TableQuery[RouteStreetTableDef])(
+      _.routeStreetId
+    )
+  def auditTaskUnique = index("audit_task_user_route_audit_task_id_key", auditTaskId, unique = true)
 }
 
 @ImplementedBy(classOf[AuditTaskUserRouteTable])

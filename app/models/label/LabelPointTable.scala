@@ -42,8 +42,8 @@ class LabelPointTableDef(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, "
   def * = (labelPointId, labelId, panoX, panoY, canvasX, canvasY, heading, pitch, zoom, lat, lng, geom,
     computationMethod) <> ((LabelPoint.apply _).tupled, LabelPoint.unapply)
 
-//  def label: ForeignKeyQuery[LabelTable, Label] =
-//    foreignKey("label_point_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
+  def label       = foreignKey("label_point_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
+  def labelUnique = index("label_point_label_id_key", labelId, unique = true)
 }
 
 /**

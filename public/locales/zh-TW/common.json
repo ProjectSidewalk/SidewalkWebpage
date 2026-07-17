@@ -7,6 +7,7 @@
   "unit-abbreviation-mission-distance": "公尺",
   "unit-distance": "kilometers",
   "format-number": "{{val, number}}",
+  "cities-cta-join_other": "加入其他 {{count, number}} 個社區",
   "curb-ramp": "路緣斜坡",
   "no-curb-ramp": "缺路緣斜坡",
   "obstacle": "有障礙物",

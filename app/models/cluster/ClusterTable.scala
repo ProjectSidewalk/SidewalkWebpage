@@ -2,6 +2,8 @@ package models.cluster
 
 import com.google.inject.ImplementedBy
 import models.api.{LabelClusterFiltersForApi, LabelClusterForApi, RawLabelInClusterDataForApi}
+import models.label.LabelTypeTableDef
+import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.{LatLngBBox, MyPostgresProfile, SpatialQueryType}
@@ -57,11 +59,14 @@ class ClusterTableDef(tag: slick.lifted.Tag) extends Table[Cluster](tag, "cluste
     Cluster.unapply
   )
 
-//  def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
-//    foreignKey("cluster_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId)
-//
-//  def clusteringSession: ForeignKeyQuery[ClusteringSessionTable, ClusteringSession] =
-//    foreignKey("cluster_clustering_session_id_fkey", clusteringSessionId, TableQuery[ClusteringSessionTableDef])(_.clusteringSessionId)
+  def labelType = foreignKey("cluster_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId)
+  def clusteringSession =
+    foreignKey("cluster_clustering_session_id_fkey", clusteringSessionId, TableQuery[ClusteringSessionTableDef])(
+      _.clusteringSessionId,
+      onDelete = ForeignKeyAction.Cascade
+    )
+  def streetEdge =
+    foreignKey("cluster_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
 }
 
 @ImplementedBy(classOf[ClusterTable]) trait ClusterTableRepository {

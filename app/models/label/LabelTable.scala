@@ -10,7 +10,7 @@ import models.pano.PanoSource.PanoSource
 import models.pano.{PanoData, PanoDataTableDef, PanoSource, PanoViewerMetadata}
 import models.region.RegionTableDef
 import models.route.RouteStreetTableDef
-import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable}
+import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable, StreetEdgeTableDef}
 import models.user._
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ConfigTableDef, MyPostgresProfile}
@@ -265,17 +265,12 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
     Label.unapply
   )
 
-//  def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
-//    foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
-//
-//  def mission: ForeignKeyQuery[MissionTable, Mission] =
-//    foreignKey("label_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
-//
-//  def user: ForeignKeyQuery[UserTable, DBUser] =
-//    foreignKey("label_user_id_fkey", userId, TableQuery[UserTableDef])(_.userId)
-//
-//  def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
-//    foreignKey("label_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId)
+  def auditTask  = foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
+  def mission    = foreignKey("label_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
+  def user       = foreignKey("label_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def labelType  = foreignKey("label_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId)
+  def streetEdge =
+    foreignKey("label_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
 }
 
 /**

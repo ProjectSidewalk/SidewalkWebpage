@@ -1,6 +1,7 @@
 package models.survey
 
 import com.google.inject.ImplementedBy
+import models.user.RoleTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -39,6 +40,9 @@ class SurveyQuestionTableDef(tag: Tag) extends Table[SurveyQuestion](tag, "surve
 
   def * = (surveyQuestionId, surveyQuestionTextId, surveyInputType, surveyDisplayRank, deleted, surveyUserRoleId,
     required) <> ((SurveyQuestion.apply _).tupled, SurveyQuestion.unapply)
+
+  def surveyUserRole =
+    foreignKey("survey_question_survey_user_role_id_fkey", surveyUserRoleId, TableQuery[RoleTableDef])(_.roleId)
 }
 
 @ImplementedBy(classOf[SurveyQuestionTable])

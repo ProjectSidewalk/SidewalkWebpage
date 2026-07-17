@@ -16,6 +16,8 @@ class AuthTokenTableDef(tag: Tag) extends Table[AuthToken](tag, "auth_tokens") {
   def userID: Rep[String]                      = column[String]("user_id", O.PrimaryKey)
   def expirationTimestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("expiration_timestamp")
   def * = (id, userID, expirationTimestamp) <> (AuthToken.tupled, AuthToken.unapply)
+
+  def user = foreignKey("auth_tokens_user_id_fkey", userID, TableQuery[SidewalkUserTableDef])(_.userId)
 }
 
 @ImplementedBy(classOf[AuthTokenTable])

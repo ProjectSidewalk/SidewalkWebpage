@@ -2,6 +2,9 @@ package models.validation
 
 import com.google.inject.ImplementedBy
 import models.audit.GenericComment
+import models.label.LabelTableDef
+import models.mission.MissionTableDef
+import models.pano.PanoDataTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
@@ -44,6 +47,12 @@ class ValidationTaskCommentTableDef(tag: Tag) extends Table[ValidationTaskCommen
 
   def * = (validationTaskCommentId, missionId, labelId, userId, ipAddress, panoId, heading, pitch, zoom, lat, lng,
     timestamp, comment) <> ((ValidationTaskComment.apply _).tupled, ValidationTaskComment.unapply)
+
+  def mission =
+    foreignKey("validation_task_comment_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
+  def label = foreignKey("validation_task_comment_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
+  def user  = foreignKey("validation_task_comment_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def pano  = foreignKey("validation_task_comment_pano_id_fkey", panoId, TableQuery[PanoDataTableDef])(_.panoId)
 }
 
 @ImplementedBy(classOf[ValidationTaskCommentTable])
