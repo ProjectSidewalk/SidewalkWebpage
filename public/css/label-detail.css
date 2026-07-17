@@ -1363,6 +1363,32 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
   margin-bottom: 4px;
 }
 
+.story-composer__signin-cta {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--color-asphalt-400);
+}
+
+.story-composer__signin-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: Raleway, sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-link-200);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.story-composer__signin-btn:hover { opacity: 0.85; }
+
+.story-composer__signin-btn:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 .story-composer__privacy {
   margin: 14px 0 0;
   padding: 10px 12px;

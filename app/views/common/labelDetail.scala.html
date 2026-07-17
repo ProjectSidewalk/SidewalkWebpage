@@ -205,7 +205,7 @@
 <dialog class="story-composer">
   <h3 class="story-composer__title" data-i18n="labelmap:story.composer-title">Share your story</h3>
   <p class="story-composer__intro" data-i18n="labelmap:story.composer-intro">
-    How has this barrier affected you? Your story appears publicly on this label.
+    Your story appears publicly on this label.
   </p>
   <label class="story-composer__field" for="story-composer-text">
     <span class="story-composer__field-label" data-i18n="labelmap:story.your-story">Your story</span>
@@ -249,11 +249,17 @@
       <span class="story-composer__username-option" data-i18n="labelmap:story.post-username">Show my username</span>
     </label>
   </fieldset>
+  @* Sign-in CTA (#4054): shown only to anonymous-session viewers. StoryComposer.js stashes the in-progress draft
+     (text, photo, options) to IndexedDB and returns here via ?resumeStory=<id>, so signing in loses no work. *@
+  <p class="story-composer__signin-cta" hidden>
+    <span data-i18n="labelmap:story.signin-prompt">Have an account?</span>
+    <button type="button" class="story-composer__signin-btn"
+            data-i18n="labelmap:story.signin-cta">Sign in to post under your name</button>
+  </p>
   @* No data-i18n: the note embeds a link, so StoryComposer.js sets the translated string via innerHTML instead
      (the binder writes textContent, which would show the anchor markup literally). *@
   <p class="story-composer__privacy">
-    Stories are public and may be seen by anyone viewing this label. You can permanently delete your story at any
-    time from this card or from <a href="/dashboard">your dashboard</a>. Photos are checked by moderators.
+    Delete anytime from here or <a href="/dashboard">your dashboard</a>. Photos are checked by moderators.
   </p>
   <p class="story-composer__error" role="alert" hidden></p>
   <div class="story-composer__actions">

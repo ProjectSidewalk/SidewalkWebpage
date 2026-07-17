@@ -69,6 +69,23 @@ class StorySection {
     // CTA would otherwise stay stuck hidden on a label they haven't posted to.
     this.#els.shareBtn.hidden = false;
     this.refresh();
+    this.#maybeResumeDraft(labelId);
+  }
+
+  /**
+   * After a sign-in bounce started from the composer (#4054), the return URL carries ?resumeStory=<labelId>. When
+   * it matches the label now shown, reopen the composer (which restores the stashed draft) and strip the marker so
+   * a reload doesn't reopen it. On surfaces where this label's card isn't shown on return, the draft still restores
+   * whenever the composer is next opened for it — this is only the auto-reopen nicety.
+   * @param {number} labelId
+   */
+  #maybeResumeDraft(labelId) {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('resumeStory') !== String(labelId)) return;
+    params.delete('resumeStory');
+    const qs = params.toString();
+    window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash);
+    this.#composer.open(labelId, this.#maxTextLength);
   }
 
   /** Re-fetches and re-renders the current label's stories. */

@@ -9,6 +9,11 @@
  */
 class StoryComposer {
   static #instances = 0;
+  // A signed-out viewer can sign in mid-compose without losing work: the draft is stashed in IndexedDB (keyed by
+  // label) before the /signIn bounce and restored on return (#4054). IndexedDB, not localStorage, because the photo
+  // is kept as a Blob — which localStorage can't hold.
+  static #DRAFT_DB = 'ps-story-drafts';
+  static #DRAFT_STORE = 'drafts';
 
   #dialog;
   #els = {};
@@ -46,6 +51,8 @@ class StoryComposer {
       nameUser: q('.story-composer__name-username'),
       usernameOption: q('.story-composer__username-option'),
       privacy: q('.story-composer__privacy'),
+      signinCta: q('.story-composer__signin-cta'),
+      signinBtn: q('.story-composer__signin-btn'),
       error: q('.story-composer__error'),
       cancel: q('.story-composer__cancel'),
       submit: q('.story-composer__submit'),
@@ -71,7 +78,7 @@ class StoryComposer {
    * @param {number} labelId - The label the story will attach to.
    * @param {?number} maxTextLength - Character cap from the /stories payload (backend source of truth).
    */
-  open(labelId, maxTextLength) {
+  async open(labelId, maxTextLength) {
     this.#labelId = labelId;
     if (maxTextLength) {
       this.#maxLength = maxTextLength;
@@ -81,6 +88,9 @@ class StoryComposer {
     this.#dialog.showModal();
     this.#els.text.focus();
     window.logWebpageActivity?.(`Click_module=StoryComposerOpen_labelId=${labelId}`);
+    // Restore a draft stashed before a sign-in redirect (#4054) so no in-progress work is lost. Best-effort: an
+    // absent or unreadable draft just leaves the freshly reset composer.
+    await this.#restoreDraft(labelId);
   }
 
   #wireHandlers() {
@@ -112,11 +122,7 @@ class StoryComposer {
         els.photoInput.value = '';
         return;
       }
-      this.#revokeObjectUrl();
-      this.#objectUrl = URL.createObjectURL(file);
-      els.photoThumb.src = this.#objectUrl;
-      els.photoPreview.hidden = false;
-      els.photoAttach.hidden = true;
+      this.#renderPhotoPreview(file);
       this.#clearError();
       els.altInput.focus();
     });
@@ -141,6 +147,7 @@ class StoryComposer {
     this.#dialog.addEventListener('close', () => this.#revokeObjectUrl());
 
     els.submit.addEventListener('click', () => this.#submit());
+    els.signinBtn.addEventListener('click', () => this.#signInWithDraft());
   }
 
   get #dirty() {
@@ -255,6 +262,8 @@ class StoryComposer {
     } else {
       userRow.hidden = true;
     }
+    // Anonymous-session viewers get the sign-in CTA; it disappears once they have an account (a username).
+    els.signinCta.hidden = Boolean(this.#username);
   }
 
   #clearPhoto() {
@@ -273,6 +282,142 @@ class StoryComposer {
     if (this.#objectUrl) {
       URL.revokeObjectURL(this.#objectUrl);
       this.#objectUrl = null;
+    }
+  }
+
+  /**
+   * Renders the photo thumbnail and swaps the attach button for the preview. Shared by the file-input change
+   * handler and draft restore.
+   * @param {File} file
+   */
+  #renderPhotoPreview(file) {
+    const els = this.#els;
+    this.#revokeObjectUrl();
+    this.#objectUrl = URL.createObjectURL(file);
+    els.photoThumb.src = this.#objectUrl;
+    els.photoPreview.hidden = false;
+    els.photoAttach.hidden = true;
+  }
+
+  /**
+   * Loads a File into the (read-only-to-users) file input via DataTransfer, then renders its preview. Used when
+   * restoring a photo from a stashed draft, where there was no user file-picker interaction to populate the input.
+   * @param {File} file
+   */
+  #setPhoto(file) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    this.#els.photoInput.files = dt.files;
+    this.#renderPhotoPreview(file);
+  }
+
+  #openDraftDb() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(StoryComposer.#DRAFT_DB, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(StoryComposer.#DRAFT_STORE, { keyPath: 'labelId' });
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  /** @param {Object} draft - The stashed draft, keyed by its `labelId`. */
+  async #putDraft(draft) {
+    const db = await this.#openDraftDb();
+    try {
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(StoryComposer.#DRAFT_STORE, 'readwrite');
+        tx.objectStore(StoryComposer.#DRAFT_STORE).put(draft);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+    } finally {
+      db.close();
+    }
+  }
+
+  /**
+   * Reads and removes the draft for a label (one-shot: a restore consumes it so a later reload doesn't refill).
+   * @param {number} labelId
+   * @returns {Promise<?Object>} The draft, or null if none is stored.
+   */
+  async #takeDraft(labelId) {
+    const db = await this.#openDraftDb();
+    try {
+      const store = StoryComposer.#DRAFT_STORE;
+      const draft = await new Promise((resolve, reject) => {
+        const req = db.transaction(store, 'readonly').objectStore(store).get(labelId);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+      });
+      if (draft) {
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(store, 'readwrite');
+          tx.objectStore(store).delete(labelId);
+          tx.oncomplete = resolve;
+          tx.onerror = () => reject(tx.error);
+        });
+      }
+      return draft;
+    } finally {
+      db.close();
+    }
+  }
+
+  /**
+   * Stashes the in-progress draft and redirects to sign-in, returning to this page with ?resumeStory=<labelId> so
+   * the composer reopens fully restored. Best-effort: if the stash fails (e.g. private-mode IndexedDB), we still
+   * proceed to sign-in rather than trap the user.
+   */
+  async #signInWithDraft() {
+    const els = this.#els;
+    const photo = els.photoInput.files[0];
+    window.logWebpageActivity?.(`Click_module=StorySignInCta_labelId=${this.#labelId}`);
+    try {
+      await this.#putDraft({
+        labelId: this.#labelId,
+        text: els.text.value,
+        altText: els.altInput.value,
+        altSkip: els.altSkip.checked,
+        useUsername: els.nameUser.checked,
+        photoBlob: photo || null,
+        photoName: photo ? photo.name : null,
+        photoType: photo ? photo.type : null,
+      });
+    } catch (err) {
+      console.error('Could not stash story draft before sign-in:', err);
+    }
+    const back = new URL(window.location.href);
+    back.searchParams.set('resumeStory', String(this.#labelId));
+    window.location.assign(`/signIn?url=${encodeURIComponent(back.pathname + back.search + back.hash)}`);
+  }
+
+  /**
+   * Repopulates the composer from a stashed draft, if one exists for this label. Consumes the draft.
+   * @param {number} labelId
+   */
+  async #restoreDraft(labelId) {
+    let draft;
+    try {
+      draft = await this.#takeDraft(labelId);
+    } catch (err) {
+      console.error('Could not read stashed story draft:', err);
+      return;
+    }
+    // Bail if nothing stashed, or the shown label changed while we were reading (don't clobber the new composer).
+    if (!draft || this.#labelId !== labelId) return;
+    const els = this.#els;
+    els.text.value = draft.text || '';
+    this.#renderCounter();
+    if (draft.useUsername && this.#username) {
+      els.nameUser.checked = true;
+      els.nameAnon.checked = false;
+    }
+    if (draft.photoBlob) {
+      const type = draft.photoType || draft.photoBlob.type;
+      this.#setPhoto(new File([draft.photoBlob], draft.photoName || 'photo', { type }));
+      els.altInput.value = draft.altText || '';
+      els.altSkip.checked = Boolean(draft.altSkip);
+      els.altInput.disabled = els.altSkip.checked;
     }
   }
 
