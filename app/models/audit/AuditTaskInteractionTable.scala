@@ -1,6 +1,7 @@
 package models.audit
 
 import com.google.inject.ImplementedBy
+import models.mission.MissionTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -72,10 +73,10 @@ class AuditTaskInteractionTableDef(tag: slick.lifted.Tag)
   def * = (auditTaskInteractionId, auditTaskId, missionId, action, panoId, lat, lng, heading, pitch, zoom, note,
     temporaryLabelId, timestamp) <> ((AuditTaskInteraction.apply _).tupled, AuditTaskInteraction.unapply)
 
-//  def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
-//    foreignKey("audit_task_interaction_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
-//  def mission: ForeignKeyQuery[MissionTable, Mission] =
-//    foreignKey("audit_task_interaction_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
+  def auditTask =
+    foreignKey("audit_task_interaction_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
+  def mission =
+    foreignKey("audit_task_interaction_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
 }
 
 // A copy of the audit_task_interaction table that holds only a subset of the records for fast SELECT queries.
@@ -98,12 +99,18 @@ class AuditTaskInteractionSmallTableDef(tag: slick.lifted.Tag)
   def * = (auditTaskInteractionId, auditTaskId, missionId, action, panoId, lat, lng, heading, pitch, zoom, note,
     temporaryLabelId, timestamp) <> ((AuditTaskInteraction.apply _).tupled, AuditTaskInteraction.unapply)
 
-//  def auditTaskInteraction: ForeignKeyQuery[AuditTaskInteractionTable, AuditTaskInteraction] =
-//    foreignKey("audit_task_interaction_small_audit_task_interaction_id_fkey", auditTaskInteractionId, TableQuery[AuditTaskInteractionTableDef])(_.auditTaskInteractionId)
-//  def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
-//    foreignKey("audit_task_interaction_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
-//  def mission: ForeignKeyQuery[MissionTable, Mission] =
-//    foreignKey("audit_task_interaction_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
+  def auditTaskInteraction =
+    foreignKey(
+      "audit_task_interaction_small_audit_task_interaction_id_fkey",
+      auditTaskInteractionId,
+      TableQuery[AuditTaskInteractionTableDef]
+    )(_.auditTaskInteractionId)
+  def auditTask =
+    foreignKey("audit_task_interaction_small_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(
+      _.auditTaskId
+    )
+  def mission =
+    foreignKey("audit_task_interaction_small_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
 }
 
 @ImplementedBy(classOf[AuditTaskInteractionTable])

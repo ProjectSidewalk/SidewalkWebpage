@@ -1,6 +1,8 @@
 package models.validation
 
 import com.google.inject.ImplementedBy
+import models.mission.MissionTableDef
+import models.pano.PanoDataTableDef
 import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
@@ -42,8 +44,10 @@ class ValidationTaskInteractionTableDef(tag: slick.lifted.Tag)
   def * = (validationTaskInteractionId, missionId, action, panoId, lat, lng, heading, pitch, zoom, note, timestamp,
     source) <> ((ValidationTaskInteraction.apply _).tupled, ValidationTaskInteraction.unapply)
 
-//  def mission: ForeignKeyQuery[MissionTable, Mission] =
-//    foreignKey("validation_task_interaction_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
+  def mission =
+    foreignKey("validation_task_interaction_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId.?)
+  def pano =
+    foreignKey("validation_task_interaction_pano_id_fkey", panoId, TableQuery[PanoDataTableDef])(_.panoId.?)
 }
 
 @ImplementedBy(classOf[ValidationTaskInteractionTable])

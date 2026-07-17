@@ -41,6 +41,9 @@ class StreetImageryTableDef(tag: Tag) extends Table[StreetImagery](tag, "street_
 
   def * = (streetEdgeId, oldestCapture, newestCapture, nPanos, dataSource, updatedAt) <>
     ((StreetImagery.apply _).tupled, StreetImagery.unapply)
+
+  def streetEdge =
+    foreignKey("street_imagery_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
 }
 
 @ImplementedBy(classOf[StreetImageryTable]) trait StreetImageryTableRepository {}

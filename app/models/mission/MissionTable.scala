@@ -3,6 +3,8 @@ package models.mission
 import com.google.inject.ImplementedBy
 import models.mission.MissionTable.{labelmapValidationMissionLength, normalValidationMissionLength}
 import models.mission.MissionTypeTable.{missionTypeIdToMissionType, missionTypeToId, onboardingTypeIds}
+import models.audit.AuditTaskTableDef
+import models.label.LabelTypeTableDef
 import models.region.RegionTableDef
 import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef}
 import models.utils.MyPostgresProfile
@@ -67,17 +69,14 @@ class MissionTableDef(tag: Tag) extends Table[Mission](tag, "mission") {
     Mission.unapply
   )
 
-//  def missionType: ForeignKeyQuery[MissionTypeTable, MissionType] =
-//    foreignKey("mission_mission_type_id_fkey", missionTypeId, TableQuery[MissionTypeTableDef])(_.missionTypeId)
-//
-//  def user: ForeignKeyQuery[UserTable, DBUser] =
-//    foreignKey("mission_user_id_fkey", userId, TableQuery[UserTableDef])(_.userId)
-//
-//  def region: ForeignKeyQuery[RegionTable, Region] =
-//    foreignKey("mission_region_id_fkey", regionId, TableQuery[RegionTableDef])(_.regionId)
-//
-//  def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
-//    foreignKey("mission_current_audit_task_id_fkey", currentAuditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
+  def missionType =
+    foreignKey("mission_mission_type_id_fkey", missionTypeId, TableQuery[MissionTypeTableDef])(_.missionTypeId)
+  def user      = foreignKey("mission_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def region    = foreignKey("mission_region_id_fkey", regionId, TableQuery[RegionTableDef])(_.regionId.?)
+  def labelType =
+    foreignKey("mission_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId.?)
+  def currentAuditTask =
+    foreignKey("mission_current_audit_task_id_fkey", currentAuditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId.?)
 }
 
 /**

@@ -1,6 +1,8 @@
 package models.route
 
 import com.google.inject.ImplementedBy
+import models.region.RegionTableDef
+import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -19,8 +21,8 @@ class RouteTableDef(tag: slick.lifted.Tag) extends Table[Route](tag, "route") {
 
   def * = (routeId, userId, regionId, name, public, deleted) <> ((Route.apply _).tupled, Route.unapply)
 
-//  def user: ForeignKeyQuery[UserTable, DBUser] = foreignKey("route_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
-//  def region: ForeignKeyQuery[RegionTable, Region] = foreignKey("route_region_id_fkey", regionId, TableQuery[RegionTable])(_.regionId)
+  def user   = foreignKey("route_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def region = foreignKey("route_region_id_fkey", regionId, TableQuery[RegionTableDef])(_.regionId)
 }
 
 @ImplementedBy(classOf[RouteTable])

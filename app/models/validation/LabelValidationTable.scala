@@ -4,6 +4,7 @@ import com.google.inject.ImplementedBy
 import models.api.{ValidationDataForApi, ValidationFiltersForApi, ValidationResultTypeForApi}
 import models.label.LabelTypeEnum.{labelTypeIdToLabelType, validLabelTypeIds, validLabelTypes}
 import models.label._
+import models.mission.MissionTableDef
 import models.user._
 import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.CommonUtils.ViewerType.ViewerType
@@ -84,14 +85,9 @@ class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidati
     canvasX, canvasY, heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp, source,
     viewerType) <> ((LabelValidation.apply _).tupled, LabelValidation.unapply)
 
-//  def label: ForeignKeyQuery[LabelTable, Label] =
-//    foreignKey("label_validation_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
-//
-//  def user: ForeignKeyQuery[UserTable, DBUser] =
-//    foreignKey("label_validation_user_id_fkey", userId, TableQuery[UserTableDef])(_.userId)
-//
-//  def mission: ForeignKeyQuery[MissionTable, Mission] =
-//    foreignKey("label_validation_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
+  def label   = foreignKey("label_validation_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
+  def user    = foreignKey("label_validation_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def mission = foreignKey("label_validation_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
 
 //  def userLabelUnique: Index = index("label_validation_user_id_label_id_unique", (userId, labelId), unique = true)
 }
