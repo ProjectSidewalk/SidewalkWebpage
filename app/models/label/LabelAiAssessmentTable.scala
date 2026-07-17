@@ -65,7 +65,9 @@ class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, 
 
   def label           = foreignKey("label_ai_assessment_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
   def labelValidation =
-    foreignKey("fk_label_validation", labelValidationId, TableQuery[LabelValidationTableDef])(_.labelValidationId.?)
+    foreignKey("label_ai_assessment_label_validation_id_fkey", labelValidationId, TableQuery[LabelValidationTableDef])(
+      _.labelValidationId.?
+    )
 }
 
 @ImplementedBy(classOf[LabelAiAssessmentTable])

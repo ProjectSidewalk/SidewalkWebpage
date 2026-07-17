@@ -39,6 +39,14 @@ ALTER TABLE street_edge_region ADD CONSTRAINT street_edge_region_street_edge_id_
 ALTER TABLE user_current_region ADD CONSTRAINT user_current_region_user_id_fkey FOREIGN KEY (user_id) REFERENCES sidewalk_login.sidewalk_user (user_id) ON DELETE CASCADE;
 ALTER TABLE user_current_region ADD CONSTRAINT user_current_region_region_id_fkey FOREIGN KEY (region_id) REFERENCES region (region_id) ON DELETE CASCADE;
 
+-- Standardize three legacy FK constraint names to the <table>_<column>_fkey convention (metadata-only renames). They
+-- predate the convention. `label_type_id` (evolution 30) was named after just the column. `fk_label_validation` (286)
+-- used a one-off style. `user_org_org_id_fkey` is a leftover from the pre-263 user_org/org_id names -- 263 renamed the
+-- table and column but Postgres does not rename a constraint along with them.
+ALTER TABLE mission RENAME CONSTRAINT label_type_id TO mission_label_type_id_fkey;
+ALTER TABLE label_ai_assessment RENAME CONSTRAINT fk_label_validation TO label_ai_assessment_label_validation_id_fkey;
+ALTER TABLE user_team RENAME CONSTRAINT user_org_org_id_fkey TO user_team_team_id_fkey;
+
 -- sidewalk_login FKs are intentionally NOT run by this evolution. The schema is shared, so an evolution touches it once
 -- per city (~55x), and each ADD CONSTRAINT re-validates the whole (large) child table -- far too expensive to repeat
 -- ~55 times. Run these ONCE by hand on the server instead:
@@ -77,6 +85,11 @@ ALTER TABLE region_completion DROP CONSTRAINT IF EXISTS region_completion_region
 ALTER TABLE street_edge_region DROP CONSTRAINT IF EXISTS street_edge_region_street_edge_id_fkey;
 ALTER TABLE user_current_region DROP CONSTRAINT IF EXISTS user_current_region_user_id_fkey;
 ALTER TABLE user_current_region DROP CONSTRAINT IF EXISTS user_current_region_region_id_fkey;
+
+-- Revert the constraint-name standardizations.
+ALTER TABLE mission RENAME CONSTRAINT mission_label_type_id_fkey TO label_type_id;
+ALTER TABLE label_ai_assessment RENAME CONSTRAINT label_ai_assessment_label_validation_id_fkey TO fk_label_validation;
+ALTER TABLE user_team RENAME CONSTRAINT user_team_team_id_fkey TO user_org_org_id_fkey;
 
 -- sidewalk_login FKs were added by hand (see !Ups), so drop them by hand too when rolling back:
 --   ALTER TABLE sidewalk_login.user_role DROP CONSTRAINT IF EXISTS user_role_user_id_fkey;
