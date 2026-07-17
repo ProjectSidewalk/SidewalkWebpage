@@ -918,23 +918,22 @@ body:has(#header.header--tall) .test-server-banner {
   margin-left: auto;
 }
 
+/* Secondary action styled as an outlined amber pill; the amber border ties it to the icon and band. */
 .test-server-banner-dont-show-again {
-  padding: 4px 8px;
-  border: none;
-  border-radius: 6px;
+  padding: 5px 14px;
+  border: 1px solid var(--color-banana-800);
+  border-radius: 999px;
   background: transparent;
   font: var(--text-small-medium);
-  color: var(--color-neutral-800);
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  color: var(--color-neutral-900);
   white-space: nowrap;
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .test-server-banner-dont-show-again:hover {
   background-color: var(--color-banana-300);
-  color: var(--color-neutral-900);
+  border-color: var(--color-banana-900);
 }
 
 .test-server-banner-close {
@@ -979,14 +978,28 @@ body:has(#header.header--tall) .test-server-banner {
  * banner overrides live in mobile-validate.css.
  */
 @media only screen and (width <= 600px) {
+  /* Top-align so the icon sits on the first line once the message wraps to several lines. */
   .test-server-banner-content {
-    gap: 8px;
-    padding: 10px 14px;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
   }
 
-  /* Let the actions drop to their own full-width row and stay right-aligned once the message wraps. */
+  /* Optical nudge to line the triangle up with the first line's cap height. */
+  .test-server-banner-icon {
+    margin-top: 1px;
+  }
+
+  /* Actions drop to their own row: pill anchored left, close anchored right, spanning the full width. */
   .test-server-banner-actions {
     width: 100%;
+    justify-content: space-between;
+  }
+
+  /* Roomier tap target for touch. */
+  .test-server-banner-close {
+    width: 32px;
+    height: 32px;
   }
 }
 
