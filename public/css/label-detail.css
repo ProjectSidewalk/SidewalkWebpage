@@ -1189,6 +1189,7 @@ button.label-detail__meta-cell:focus-visible {
   color: var(--color-banana-900);
 }
 
+.label-detail__story-edit,
 .label-detail__story-delete {
   padding: 2px;
   border: none;
@@ -1197,10 +1198,14 @@ button.label-detail__meta-cell:focus-visible {
   font-family: Raleway, sans-serif;
   font-weight: 600;
   font-size: 11px;
-  color: var(--color-orange-700);
   text-decoration: underline;
 }
 
+.label-detail__story-edit { color: var(--color-link-200); }
+
+.label-detail__story-delete { color: var(--color-orange-700); }
+
+.label-detail__story-edit:focus-visible,
 .label-detail__story-delete:focus-visible {
   outline: 2px solid #4a90e2;
   outline-offset: 2px;

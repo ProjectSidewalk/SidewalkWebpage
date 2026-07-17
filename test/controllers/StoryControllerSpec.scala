@@ -21,7 +21,7 @@ import scala.concurrent.duration._
 
 /**
  * Functional tests for the lived-experience story endpoints (#4054). Boots the real app against Postgres (applying
- * evolution 336 forward), exercising the full stack: routing, CSRF, Silhouette anon sessions, multipart parsing, the
+ * evolution 337 forward), exercising the full stack: routing, CSRF, Silhouette anon sessions, multipart parsing, the
  * photo re-encode pipeline, signed media serving, and the hard-delete retraction contract (row AND bytes gone).
  *
  * Story-creating tests clean up after themselves via the retraction endpoint, so repeated runs against the shared dev
@@ -69,6 +69,22 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     route(
       app,
       FakeRequest(POST, "/userapi/stories").withCookies(session: _*).withMultipartFormDataBody(body).withCSRFToken
+    ).get
+  }
+
+  private def updateStory(
+      session: Seq[Cookie],
+      storyId: Int,
+      text: String,
+      extraParts: Map[String, Seq[String]] = Map.empty
+  ) = {
+    val body = multipartBody(Map("text" -> Seq(text)) ++ extraParts)
+    route(
+      app,
+      FakeRequest(PUT, s"/userapi/stories/$storyId")
+        .withCookies(session: _*)
+        .withMultipartFormDataBody(body)
+        .withCSRFToken
     ).get
   }
 
@@ -140,6 +156,31 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
           status(deleteStory(session, storyId)) mustBe OK
           storiesArray(contentAsJson(getStories(id))).exists(s => (s \ "story_id").as[Int] == storyId) mustBe false
+      }
+    }
+
+    "edit a story in place for its author only, with the same text validation as submission" in {
+      labelIds.headOption match {
+        case None     => cancel("No labels in the connected test DB.")
+        case Some(id) =>
+          val session = freshAnonSession()
+          val posted  = postStory(session, id, "before edit")
+          status(posted) mustBe OK
+          val storyId = (contentAsJson(posted) \ "story_id").as[Int]
+          try {
+            // A stranger's edit attempt gets the same 404 as a missing story.
+            status(updateStory(freshAnonSession(), storyId, "hijacked")) mustBe NOT_FOUND
+
+            status(updateStory(session, storyId, "after edit")) mustBe OK
+            val read = storiesArray(contentAsJson(getStories(id, session)))
+              .find(s => (s \ "story_id").as[Int] == storyId)
+            read.map(s => (s \ "text").as[String]) mustBe Some("after edit")
+
+            status(updateStory(session, storyId, "   ")) mustBe BAD_REQUEST
+            status(updateStory(session, storyId, "x" * (maxTextLength + 1))) mustBe BAD_REQUEST
+          } finally {
+            val _ = status(deleteStory(session, storyId))
+          }
       }
     }
 

@@ -241,17 +241,17 @@
   </div>
   <fieldset class="story-composer__post-as">
     <legend class="story-composer__field-label" data-i18n="labelmap:story.post-as">Post as</legend>
-    @* Both rows share one shape — name pill, then an em-dash description — so the choice reads symmetrically.
+    @* Both rows share one shape — name pill, then a plain description — so the choice reads symmetrically.
        The username pill has no data-i18n: StoryComposer.js fills it with the account's username. *@
     <label class="story-composer__check-row" for="story-composer-name-anon">
       <input type="radio" id="story-composer-name-anon" class="story-composer__name-anon" checked>
       <span class="story-composer__name-pill" data-i18n="labelmap:story.anonymous">Anonymous</span>
-      <span data-i18n="labelmap:story.post-anonymous-desc">&mdash; no name shown</span>
+      <span data-i18n="labelmap:story.post-anonymous-desc">no name shown</span>
     </label>
     <label class="story-composer__check-row" for="story-composer-name-username">
       <input type="radio" id="story-composer-name-username" class="story-composer__name-username">
       <span class="story-composer__name-pill story-composer__username-option"></span>
-      <span data-i18n="labelmap:story.post-username-desc">&mdash; your username shown</span>
+      <span data-i18n="labelmap:story.post-username-desc">your username shown</span>
     </label>
   </fieldset>
   @* Sign-in CTA (#4054): shown only to anonymous-session viewers. StoryComposer.js stashes the in-progress draft
@@ -263,8 +263,10 @@
   </p>
   @* No data-i18n: the note embeds a link, so StoryComposer.js sets the translated string via innerHTML instead
      (the binder writes textContent, which would show the anchor markup literally). *@
+  @* The dashboard link opens a new tab: navigating away here would lose the in-progress story. *@
   <p class="story-composer__privacy">
-    Delete your story anytime, from the story itself or <a href="/dashboard">your dashboard</a>. Photos are moderated.
+    You can review, edit, or delete your stories from
+    <a href="/dashboard" target="_blank" rel="noopener">your dashboard</a>. Photos are moderated.
   </p>
   <p class="story-composer__error" role="alert" hidden></p>
   <div class="story-composer__actions">

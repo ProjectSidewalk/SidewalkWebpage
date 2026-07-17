@@ -195,6 +195,30 @@ class StoryTable @Inject() (
       .update((visibility, Some(adminUserId), Some(now)))
   }
 
+  /** The story only if `userId` owns it — the ownership gate for in-place edits. */
+  def getOwned(storyId: Int, userId: String): DBIO[Option[Story]] = {
+    stories.filter(s => s.storyId === storyId && s.userId === userId).result.headOption
+  }
+
+  /**
+   * Updates the author-editable fields only; visibility/moderation columns are deliberately untouched, so a
+   * moderator-hidden story stays hidden through an edit.
+   */
+  def updateOwnedContent(storyId: Int, userId: String, text: String, displayNameMode: String): DBIO[Int] = {
+    stories
+      .filter(s => s.storyId === storyId && s.userId === userId)
+      .map(s => (s.storyText, s.displayNameMode))
+      .update((text, displayNameMode))
+  }
+
+  def deleteMediaForStory(storyId: Int): DBIO[Int] = {
+    storyMedia.filter(_.storyId === storyId).delete
+  }
+
+  def updateMediaAltText(storyId: Int, altText: Option[String]): DBIO[Int] = {
+    storyMedia.filter(_.storyId === storyId).map(_.altText).update(altText)
+  }
+
   /** Deletes the story only if `userId` owns it. Returns the number of rows deleted (0 = not found or not owner). */
   def deleteOwned(storyId: Int, userId: String): DBIO[Int] = {
     stories.filter(s => s.storyId === storyId && s.userId === userId).delete

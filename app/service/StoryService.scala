@@ -35,6 +35,15 @@ trait StoryService {
       displayNameMode: String,
       photo: Option[StoryPhotoUpload]
   ): Future[Either[StoryRejection, StoryForView]]
+  def updateOwnStory(
+      storyId: Int,
+      userId: String,
+      storyText: String,
+      displayNameMode: String,
+      newPhoto: Option[StoryPhotoUpload],
+      removePhoto: Boolean,
+      altText: Option[String]
+  ): Future[Either[StoryRejection, Unit]]
   def deleteOwnStory(storyId: Int, userId: String): Future[Boolean]
   def getStoriesForUser(userId: String): Future[Seq[StoryForOwner]]
   def getRecentStories(n: Int): Future[Seq[StoryForAdmin]]
@@ -158,6 +167,104 @@ class StoryServiceImpl @Inject() (
               }
           }
       }
+    }
+  }
+
+  /**
+   * Edits the author's own story in place (#4054). Same text validation as submission, but no daily-rate-limit
+   * charge and no duplicate check — an edit isn't a new story. Visibility/moderation state is preserved: a
+   * moderator-hidden story stays hidden through an edit. Photo semantics: `newPhoto` replaces the existing photo
+   * (taking precedence over `removePhoto`), `removePhoto` drops it, and otherwise the photo is kept with its
+   * alt text set to `altText` (None clears it).
+   */
+  def updateOwnStory(
+      storyId: Int,
+      userId: String,
+      storyText: String,
+      displayNameMode: String,
+      newPhoto: Option[StoryPhotoUpload],
+      removePhoto: Boolean,
+      altText: Option[String]
+  ): Future[Either[StoryRejection, Unit]] = {
+    val text = storyText.trim
+    if (!Story.validDisplayNameModes.contains(displayNameMode)) {
+      Future.successful(Left(StoryRejection.InvalidDisplayNameMode))
+    } else if (text.isEmpty) {
+      Future.successful(Left(StoryRejection.TextMissing))
+    } else if (text.length > maxTextLength) {
+      Future.successful(Left(StoryRejection.TextTooLong(maxTextLength)))
+    } else if (!ProfanityGuard.isClean(text)) {
+      Future.successful(Left(StoryRejection.TextRejected))
+    } else {
+      db.run(storyTable.getOwned(storyId, userId)).flatMap {
+        case None        => Future.successful(Left(StoryRejection.StoryNotFound))
+        case Some(story) =>
+          newPhoto match {
+            case Some(upload) =>
+              labelService.getLabelLatLng(story.labelId).flatMap { labelLatLng =>
+                Future(processPhoto(upload, labelLatLng))(cpuEc).flatMap {
+                  case Left(rejection) => Future.successful(Left(rejection))
+                  case Right(p)        =>
+                    replaceStoryPhoto(story, text, displayNameMode, upload, p).andThen { case _ =>
+                      val _ = Try(Files.deleteIfExists(p.staged.toPath))
+                    }
+                }
+              }
+            case None =>
+              val action = (for {
+                oldMedia <- storyTable.getMediaForStory(storyId)
+                _        <- storyTable.updateOwnedContent(storyId, userId, text, displayNameMode)
+                _        <-
+                  if (removePhoto) storyTable.deleteMediaForStory(storyId)
+                  else if (oldMedia.nonEmpty) storyTable.updateMediaAltText(storyId, altText)
+                  else DBIO.successful(0)
+              } yield oldMedia).transactionally
+              db.run(action).map { oldMedia =>
+                if (removePhoto) oldMedia.foreach(m => deleteMediaFile(m.storyMediaId))
+                Right(())
+              }
+          }
+      }
+    }
+  }
+
+  /**
+   * Swaps the story's photo for an already-processed replacement and updates the text, transactionally. The old
+   * bytes are removed only after the new file is atomically in place; a failed move compensates by dropping the
+   * new media row so the story never references missing bytes (mirroring insertStory).
+   */
+  private def replaceStoryPhoto(
+      story: Story,
+      text: String,
+      displayNameMode: String,
+      upload: StoryPhotoUpload,
+      p: ProcessedPhoto
+  ): Future[Either[StoryRejection, Unit]] = {
+    val now    = OffsetDateTime.now
+    val action = (for {
+      oldMedia <- storyTable.getMediaForStory(story.storyId)
+      _        <- storyTable.updateOwnedContent(story.storyId, story.userId, text, displayNameMode)
+      _        <- storyTable.deleteMediaForStory(story.storyId)
+      mediaId  <- storyTable.insertMedia(
+        StoryMedia(0, story.storyId, "photo", "image/jpeg", Some(p.width), Some(p.height), None, Some(p.sizeBytes),
+          upload.altText, p.captureRecency, p.nearLabel, now)
+      )
+    } yield (oldMedia, mediaId)).transactionally
+    db.run(action).flatMap { case (oldMedia, mediaId) =>
+      Future {
+        val target = storyMediaFile(mediaId)
+        target.getParentFile.mkdirs()
+        Files.move(p.staged.toPath, target.toPath, StandardCopyOption.ATOMIC_MOVE)
+        ()
+      }(cpuEc)
+        .map { _ =>
+          oldMedia.foreach(m => deleteMediaFile(m.storyMediaId))
+          Right(())
+        }
+        .recoverWith { case e =>
+          logger.error(s"Failed to place replacement media file for story ${story.storyId}: ${e.getMessage}")
+          db.run(storyTable.deleteMediaForStory(story.storyId)).flatMap(_ => Future.failed(e))
+        }
     }
   }
 

@@ -23,12 +23,19 @@ class StoryComposer {
   #username;
   #objectUrl = null;
   #busy = false;
+  // Edit mode (#4054): non-null while editing an existing story. The existing photo is previewed from its signed
+  // URL (it can't be loaded into the file input), so its kept/removed/replaced state is tracked separately.
+  #editStoryId = null;
+  #existingMedia = null;
+  #removeExistingPhoto = false;
+  #editSnapshot = null;
 
   /**
    * @param {HTMLDialogElement} dialog - The `.story-composer` dialog element.
    * @param {Object} opts
    * @param {string} [opts.currUsername] - The viewer's username; empty/absent hides the show-username option.
-   * @param {() => void} [opts.onSubmitted] - Fired after a successful submission (hosts refresh the story list).
+   * @param {(edited: boolean) => void} [opts.onSubmitted] - Fired after a successful submission or in-place edit
+   *     (hosts refresh the story list); `edited` distinguishes the two for the announcement.
    */
   constructor(dialog, opts) {
     this.#dialog = dialog;
@@ -95,6 +102,10 @@ class StoryComposer {
    */
   async open(labelId, maxTextLength) {
     this.#labelId = labelId;
+    this.#editStoryId = null;
+    this.#existingMedia = null;
+    this.#removeExistingPhoto = false;
+    this.#editSnapshot = null;
     if (maxTextLength) {
       this.#maxLength = maxTextLength;
       this.#els.text.maxLength = maxTextLength;
@@ -106,6 +117,63 @@ class StoryComposer {
     // Restore a draft stashed before a sign-in redirect (#4054) so no in-progress work is lost. Best-effort: an
     // absent or unreadable draft just leaves the freshly reset composer.
     await this.#restoreDraft(labelId);
+  }
+
+  /**
+   * Opens the composer prefilled with an existing story for in-place editing. Submitting PUTs the changes to the
+   * story instead of creating a new one; no sign-in CTA or stashed-draft restore applies (only the author gets
+   * here, and prefilled content isn't a draft).
+   * @param {Object} story - The StoryForView payload being edited (must be the viewer's own).
+   * @param {?number} maxTextLength - Character cap from the /stories payload (backend source of truth).
+   */
+  openForEdit(story, maxTextLength) {
+    this.#labelId = story.label_id;
+    this.#editStoryId = story.story_id;
+    this.#existingMedia = null;
+    this.#removeExistingPhoto = false;
+    if (maxTextLength) {
+      this.#maxLength = maxTextLength;
+      this.#els.text.maxLength = maxTextLength;
+    }
+    this.#reset();
+    const els = this.#els;
+    els.text.value = story.text;
+    this.#renderCounter();
+    if (story.display_name && this.#username) {
+      els.nameUser.checked = true;
+      els.nameAnon.checked = false;
+    }
+    if (story.media) {
+      this.#existingMedia = story.media;
+      this.#revokeObjectUrl();
+      els.photoThumb.src = story.media.url;
+      els.photoPreview.hidden = false;
+      els.photoAttach.hidden = true;
+      els.altInput.value = story.media.alt_text || '';
+    }
+    els.signinCta.hidden = true;
+    this.#editSnapshot = this.#snapshot();
+    this.#dialog.showModal();
+    els.text.focus();
+    window.logWebpageActivity?.(`Click_module=StoryEditOpen_storyId=${story.story_id}`);
+  }
+
+  /**
+   * Captures the user-editable state for the edit-mode dirty check, so an untouched edit session can close without
+   * a discard prompt.
+   * @returns {string}
+   */
+  #snapshot() {
+    const file = this.#els.photoInput.files[0];
+    let photoKey = 'none';
+    if (file) photoKey = `file:${file.name}:${file.size}`;
+    else if (this.#existingMedia) photoKey = `media:${this.#existingMedia.story_media_id}`;
+    return JSON.stringify({
+      text: this.#els.text.value,
+      alt: this.#els.altInput.value,
+      useUsername: this.#els.nameUser.checked,
+      photoKey,
+    });
   }
 
   #wireHandlers() {
@@ -137,12 +205,19 @@ class StoryComposer {
         els.photoInput.value = '';
         return;
       }
+      // A newly picked file supersedes an existing photo being edited (the server treats it as a replacement).
+      this.#existingMedia = null;
+      this.#removeExistingPhoto = false;
       this.#renderPhotoPreview(file);
       this.#clearError();
       els.altInput.focus();
     });
 
     els.photoRemove.addEventListener('click', () => {
+      if (this.#existingMedia) {
+        this.#existingMedia = null;
+        this.#removeExistingPhoto = true;
+      }
       this.#clearPhoto();
       els.photoInput.focus();
     });
@@ -165,14 +240,17 @@ class StoryComposer {
   }
 
   get #dirty() {
+    // Editing: dirty means changed from the prefilled story, so an untouched session closes silently.
+    if (this.#editStoryId !== null) return this.#snapshot() !== this.#editSnapshot;
     return this.#els.text.value.trim().length > 0 || this.#els.photoInput.files.length > 0;
   }
 
   /** Closes immediately when pristine; typed content gets a discard confirmation first (it's a personal story). */
   async #requestClose() {
     if (this.#dirty) {
+      const editing = this.#editStoryId !== null;
       const confirmed = await ConfirmDialog.confirm({
-        message: i18next.t('labelmap:story.discard-confirm'),
+        message: i18next.t(editing ? 'labelmap:story.discard-changes-confirm' : 'labelmap:story.discard-confirm'),
         confirmText: i18next.t('labelmap:story.discard'),
         cancelText: i18next.t('labelmap:story.keep-writing'),
         danger: true,
@@ -191,6 +269,7 @@ class StoryComposer {
     const els = this.#els;
     const text = els.text.value.trim();
     const photo = els.photoInput.files[0];
+    const editing = this.#editStoryId !== null;
 
     if (!text) {
       this.#showError(i18next.t('labelmap:story.error.text-missing'));
@@ -199,7 +278,7 @@ class StoryComposer {
     }
 
     const formData = new FormData();
-    formData.append('label_id', String(this.#labelId));
+    if (!editing) formData.append('label_id', String(this.#labelId));
     formData.append('text', text);
     formData.append(
       'display_name_mode',
@@ -209,17 +288,31 @@ class StoryComposer {
       formData.append('photo', photo);
       const altText = els.altInput.value.trim();
       if (altText) formData.append('alt_text', altText);
+    } else if (editing) {
+      // No new file: either the existing photo was removed, or it's kept and its description re-applied.
+      if (this.#removeExistingPhoto) {
+        formData.append('remove_photo', 'true');
+      } else if (this.#existingMedia) {
+        const altText = els.altInput.value.trim();
+        if (altText) formData.append('alt_text', altText);
+      }
     }
 
     this.#busy = true;
     els.submit.disabled = true;
-    els.submit.textContent = i18next.t('labelmap:story.submitting');
+    els.submit.textContent = i18next.t(editing ? 'labelmap:story.saving' : 'labelmap:story.submitting');
     try {
-      const res = await this.#postForm('/userapi/stories', formData);
+      const res = editing
+        ? await this.#postForm(`/userapi/stories/${this.#editStoryId}`, formData, 'PUT')
+        : await this.#postForm('/userapi/stories', formData);
       if (res.ok) {
-        window.logWebpageActivity?.(`Click_module=StorySubmitClient_labelId=${this.#labelId}_hasPhoto=${!!photo}`);
+        if (editing) {
+          window.logWebpageActivity?.(`Click_module=StoryUpdateClient_storyId=${this.#editStoryId}`);
+        } else {
+          window.logWebpageActivity?.(`Click_module=StorySubmitClient_labelId=${this.#labelId}_hasPhoto=${!!photo}`);
+        }
         this.#dialog.close();
-        if (typeof this.#onSubmitted === 'function') this.#onSubmitted();
+        if (typeof this.#onSubmitted === 'function') this.#onSubmitted(editing);
       } else {
         let body = null;
         try {
@@ -246,7 +339,7 @@ class StoryComposer {
     } finally {
       this.#busy = false;
       els.submit.disabled = false;
-      els.submit.textContent = i18next.t('labelmap:story.submit');
+      els.submit.textContent = i18next.t(editing ? 'labelmap:story.save' : 'labelmap:story.submit');
     }
   }
 
@@ -257,10 +350,11 @@ class StoryComposer {
    * No Content-Type header: the browser sets the multipart boundary itself.
    * @param {string} url
    * @param {FormData} formData
+   * @param {string} [method='POST'] - 'PUT' for in-place story edits.
    * @returns {Promise<Response>}
    */
-  async #postForm(url, formData) {
-    const post = () => fetch(url, { method: 'POST', body: formData });
+  async #postForm(url, formData, method = 'POST') {
+    const post = () => fetch(url, { method, body: formData });
     let res = await post();
     if (!res.ok && (res.status === 401 || res.status === 403 || res.type === 'opaqueredirect' || res.redirected)) {
       await fetch('/anonSignUp?url=%2F', { redirect: 'manual' });
@@ -271,6 +365,10 @@ class StoryComposer {
 
   #reset() {
     const els = this.#els;
+    const editing = this.#editStoryId !== null;
+    els.title.textContent
+      = i18next.t(editing ? 'labelmap:story.composer-title-edit' : 'labelmap:story.composer-title');
+    els.submit.textContent = i18next.t(editing ? 'labelmap:story.save' : 'labelmap:story.submit');
     els.text.value = '';
     this.#renderCounter();
     this.#clearPhoto();

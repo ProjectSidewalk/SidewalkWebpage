@@ -76,6 +76,8 @@ object StoryRejection {
       extends StoryRejection("story.error.already-exists", "You've already shared a story on this label.")
   case object RateLimited
       extends StoryRejection("story.error.rate-limited", "You've shared several stories recently — try again tomorrow.")
+  case object StoryNotFound
+      extends StoryRejection("story.error.story-not-found", "That story doesn't exist or isn't yours.")
   case object PhotoTooLarge extends StoryRejection("story.error.photo-too-large", "That photo is too large to upload.")
   case object PhotoInvalid
       extends StoryRejection("story.error.photo-invalid", "We couldn't read that file as an image (JPEG or PNG).")

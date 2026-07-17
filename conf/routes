@@ -222,6 +222,7 @@ GET     /backupImage/:panoId                            controllers.ImageControl
 GET     /stories                                        controllers.StoryController.getStories(labelId: Int)
 GET     /storyMedia/:storyMediaId                       controllers.StoryController.serveStoryMedia(storyMediaId: Int)
 POST    /userapi/stories                                controllers.StoryController.submitStory
+PUT     /userapi/stories/:storyId                       controllers.StoryController.updateOwnStory(storyId: Int)
 DELETE  /userapi/stories/:storyId                       controllers.StoryController.deleteOwnStory(storyId: Int)
 GET     /userapi/stories/mine                           controllers.StoryController.getMyStories
 GET     /adminapi/stories                               controllers.StoryController.getRecentStories(n: Int ?= 50)

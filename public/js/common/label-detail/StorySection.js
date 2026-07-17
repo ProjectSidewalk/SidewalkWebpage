@@ -39,8 +39,8 @@ class StorySection {
 
     this.#composer = new StoryComposer(q('.story-composer'), {
       currUsername: opts.currUsername,
-      onSubmitted: () => {
-        this.#announce(i18next.t('labelmap:story.submitted'));
+      onSubmitted: (edited) => {
+        this.#announce(i18next.t(edited ? 'labelmap:story.updated' : 'labelmap:story.submitted'));
         this.#els.details.open = true;
         this.refresh();
       },
@@ -195,6 +195,13 @@ class StorySection {
       chip.className = 'label-detail__story-chip label-detail__story-chip--own';
       chip.textContent = i18next.t('labelmap:story.your-story-chip');
       byline.appendChild(chip);
+
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'label-detail__story-edit';
+      edit.textContent = i18next.t('labelmap:story.edit');
+      edit.addEventListener('click', () => this.#composer.openForEdit(story, this.#maxTextLength));
+      byline.appendChild(edit);
 
       const del = document.createElement('button');
       del.type = 'button';

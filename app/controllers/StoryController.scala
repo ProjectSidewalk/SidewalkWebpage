@@ -102,6 +102,43 @@ class StoryController @Inject() (
   }
 
   /**
+   * Edits the author's own story in place (multipart, same field names as submitStory minus `label_id`). Photo
+   * semantics: a `photo` file part replaces the existing photo, `remove_photo=true` drops it, and neither keeps it
+   * (with `alt_text` re-applied). No daily-rate-limit charge — an edit isn't a new story — but the IP burst layer
+   * still applies. A non-owner gets the same 404 as a missing story.
+   */
+  def updateOwnStory(storyId: Int) =
+    cc.securityService.SecuredAction(parse.multipartFormData(photoMaxBytes + (1L << 20))) { implicit request =>
+      val userId = request.identity.userId
+
+      def dataPart(name: String): Option[String] = request.body.dataParts.get(name).flatMap(_.headOption)
+
+      val ipLimit = rateLimiter.limit("story-submit")
+      if (!rateLimiter.allow(s"story-submit:ip:${request.ipAddress}", ipLimit.maxAttempts, ipLimit.window)) {
+        Future.successful(
+          TooManyRequests(StoryFormats.rejectionToJson(StoryRejection.RateLimited))
+            .withHeaders("Retry-After" -> ipLimit.window.toSeconds.toString)
+        )
+      } else {
+        val text            = dataPart("text").getOrElse("")
+        val displayNameMode = dataPart("display_name_mode").getOrElse(Story.DisplayNameAnonymous)
+        val altText         = dataPart("alt_text").map(_.trim).filter(_.nonEmpty)
+        val removePhoto     = dataPart("remove_photo").contains("true")
+        val photo           =
+          request.body.file("photo").map { filePart => StoryPhotoUpload(filePart.ref.path.toFile, altText) }
+        cc.loggingService.insert(
+          userId,
+          request.ipAddress,
+          s"Click_module=StoryUpdate_storyId=${storyId}_hasPhoto=${photo.isDefined}"
+        )
+        storyService.updateOwnStory(storyId, userId, text, displayNameMode, photo, removePhoto, altText).map {
+          case Right(_)        => Ok(Json.obj("success" -> true))
+          case Left(rejection) => rejectionResult(rejection)
+        }
+      }
+    }
+
+  /**
    * The author's retraction: a real hard delete of the row and any media bytes (#4054). Ownership is enforced in the
    * DAO's delete predicate; a non-owner gets the same 404 as a missing story.
    */
@@ -196,6 +233,7 @@ class StoryController @Inject() (
     val body = StoryFormats.rejectionToJson(rejection)
     rejection match {
       case StoryRejection.LabelNotFound => NotFound(body)
+      case StoryRejection.StoryNotFound => NotFound(body)
       case StoryRejection.AlreadyExists => Conflict(body)
       case StoryRejection.RateLimited   => TooManyRequests(body)
       case StoryRejection.PhotoTooLarge => EntityTooLarge(body)
