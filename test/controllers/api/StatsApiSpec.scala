@@ -113,4 +113,57 @@ class StatsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       ).foreach(key => body must include(key))
     }
   }
+
+  "GET /v3/api/aggregateStatsByDay" should {
+    "return 200 JSON with snake_case per-day rows sorted by date" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/aggregateStatsByDay")).get
+      status(resp) mustBe OK
+      contentType(resp) mustBe Some("application/json")
+
+      val json = contentAsJson(resp)
+      (json \ "status").as[String] mustBe "OK"
+      val data = (json \ "data").as[Seq[JsObject]]
+
+      data.headOption.foreach { row =>
+        (row \ "date").asOpt[String] mustBe defined
+        (row \ "label_type").asOpt[String] mustBe defined
+        (row \ "human_labels").asOpt[Long] mustBe defined
+        (row \ "ai_labels").asOpt[Long] mustBe defined
+        (row \ "human_validations_agree").asOpt[Long] mustBe defined
+        (row \ "ai_validations_unsure").asOpt[Long] mustBe defined
+      }
+      val dates = data.map(row => (row \ "date").as[String])
+      dates mustBe dates.sorted
+    }
+
+    // The requested window is sliced from the cached full-range rows (#4600), so the sliced result must equal the
+    // matching subset of the unbounded result — inclusive of both endpoint days, with no dates outside the window.
+    "honor an inclusive startDate/endDate window consistently with the unbounded result" in {
+      val allData = (contentAsJson(route(app, FakeRequest(GET, "/v3/api/aggregateStatsByDay")).get) \ "data")
+        .as[Seq[JsObject]]
+      assume(allData.nonEmpty, "test DB has no daily stats to slice")
+
+      // Pick a middle date so both bounds actually cut something when more than one day exists.
+      val dates      = allData.map(row => (row \ "date").as[String]).distinct
+      val windowDate = dates(dates.size / 2)
+
+      val windowed = (contentAsJson(
+        route(app, FakeRequest(GET, s"/v3/api/aggregateStatsByDay?startDate=$windowDate&endDate=$windowDate")).get
+      ) \ "data").as[Seq[JsObject]]
+
+      windowed.map(row => (row \ "date").as[String]).distinct mustBe Seq(windowDate)
+      windowed mustBe allData.filter(row => (row \ "date").as[String] == windowDate)
+    }
+
+    "reject a malformed date with a 400" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/aggregateStatsByDay?startDate=07-17-2026")).get
+      status(resp) mustBe BAD_REQUEST
+    }
+
+    "reject startDate after endDate with a 400" in {
+      val resp =
+        route(app, FakeRequest(GET, "/v3/api/aggregateStatsByDay?startDate=2026-02-01&endDate=2026-01-01")).get
+      status(resp) mustBe BAD_REQUEST
+    }
+  }
 }
