@@ -1,4 +1,32 @@
 {
+  "tutorial-intro": {
+    "eyebrow": "Verkenningsmissie",
+    "title": "Doe mee met de Sidewalk-missie",
+    "next": "Volgende",
+    "start-mission": "Missie starten",
+    "have-account": "Heb je een account?",
+    "sign-in": "Inloggen",
+    "already-tutorial": "Heb je de uitleg al gedaan?",
+    "skip": "Overslaan",
+    "explore": {
+      "title": "Verkennen",
+      "description": "Spot toegankelijkheidsproblemen in de stad."
+    },
+    "label": {
+      "title": "Labelen",
+      "description": "Markeer trottoir opritten en oppervlakteproblemen van trottoirs en voeg toegankelijkheidsbeoordelingen toe."
+    },
+    "validate": {
+      "title": "Valideren",
+      "description": "Bekijk labels die anderen hebben gemarkeerd om hun juistheid te bevestigen."
+    },
+    "impact": {
+      "title": "Impact",
+      "stat-labels": "{{total}} labels toegevoegd door vrijwilligers",
+      "stat-cities": "Gegevens gebruikt in {{cities}} steden wereldwijd",
+      "tagline": "Elk label helpt de toegankelijkheid in de echte wereld te verbeteren"
+    }
+  },
   "curb-ramp": "trottoir oprit",
   "missing-curb-ramp": "ontbrekende trottoir oprit",
   "obstacle": "obstakel",

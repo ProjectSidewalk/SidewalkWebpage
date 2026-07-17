@@ -240,19 +240,11 @@ footer.award = 獲獎 <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_I
 footer.designed.operated = Project Sidewalk 之設計及營運由 <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab 執行</a> ，其隸屬於 <a id="universityofwashington" href="http://www.cs.uw.edu/">華盛頓大學（University of Washington）</a>
 footer.version = Version {0} | 最後更新時間： <span class="timestamp date">{1}</span>
 
-audit.tutorial.welcome.1 = 於 <span class="bold">Project Sidewalk平台</span>中， 您將以虛擬的方式探索市區，尋找和檢視該環境中的可及性特徵及標記有可及性問題的地點，來完成改善人行環境的任務。涵蓋的項目包括：
-audit.tutorial.welcome.2 = 我們會以簡短、互動式的教學來學習。
-audit.tutorial.welcome.3 = 我們開始吧！
-audit.tutorial.welcome.4 = 已完成教學或已有帳戶了嗎？ <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">請登入</a>或<a value="Skip" class="onboarding-transition-trigger">來跳過教學。</a>
-audit.tutorial.accessible = <span style="color:limegreen">可通行的</span>
-audit.tutorial.inaccessible = <span style="color:red">不可通行的</span>
-audit.tutorial.examples.curb.ramp = <span style="color:limegreen">路緣斜坡</span> 協助輪椅使用者進出人行道
-audit.tutorial.examples.missing.ramp = 如果<span style="color:#ff0066">沒有設置路緣斜坡</span>，輪椅使用者將無法使用人行道
-audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">障礙物</span>阻擋輪椅使用者通行之路徑
-audit.tutorial.examples.surface.problem = 人行道的<span style="color:orange">鋪面問題</span>可能造成無法通行
-audit.tutorial.end.1 =很棒！您已學會如何使用平臺介面！請特別針對嚴重影響輪椅使用者之情形於街景中<span class="bold">在街景影像中標註以下無障礙屬性</span>：
-audit.tutorial.end.2 = 再次感謝您為這個世界<span class="bold">創造出能讓所有用路人更容易通行的環境！</span>
-audit.tutorial.examples = 無障礙屬性的案例：路緣斜坡、無路緣斜坡、有障礙物及鋪面問題。
+audit.tutorial.complete.1 = 你做到了！
+audit.tutorial.complete.2 = 你已完成教學！
+audit.tutorial.complete.learn-more = 了解更多
+audit.tutorial.complete.start-contributing = 開始貢獻
+
 audit.ribbon.curb.ramp.labels = 路緣坡道標籤
 audit.ribbon.sidewalk.labels = 人行道標籤
 audit.ribbon.other.labels = 其他可及性標籤
@@ -476,6 +468,7 @@ cities.dashboard.cta.logo.alt = Project Sidewalk 徽標，帶有文字 projectsi
 share.meta.title.issue = 我在 Project Sidewalk 上發現了一個無障礙問題：{0}
 share.meta.title.feature = 看看我在 Project Sidewalk 上發現了什麼：{0}
 share.meta.description.spotted = 在 {0} 發現。
+share.meta.description.address = 位於{0}附近。
 share.meta.description.severity = 嚴重程度：{0}/3。
 share.meta.description.tags = 標籤：{0}。
 share.meta.description.cta = 探索地圖，一起讓人行道對所有人都更友善。

@@ -1,7 +1,7 @@
 package models.utils
 
 import com.google.inject.ImplementedBy
-import models.user.{RoleTableDef, UserRoleTableDef}
+import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef}
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
@@ -43,8 +43,7 @@ class WebpageActivityTableDef(tag: Tag) extends Table[WebpageActivity](tag, "web
     WebpageActivity.unapply
   )
 
-//  def user: ForeignKeyQuery[UserTable, DBUser] =
-//    foreignKey("webpage_activity_user_id_fkey", userId, TableQuery[UserTableDef])(_.userId)
+  def user = foreignKey("webpage_activity_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
 }
 
 @ImplementedBy(classOf[WebpageActivityTable])

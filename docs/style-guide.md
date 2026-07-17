@@ -105,6 +105,11 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
   duplicated (see [`CONTRIBUTING.md`](../CONTRIBUTING.md) → Internationalization).
 - **CSS:** 2-space indent, `stylelint-config-standard` ([`stylelint.config.mjs`](../stylelint.config.mjs)). Use the
   `main.css` `:root` design tokens for colors/fonts/spacing.
+- **Scale tool UI with `var(--ui-scale)`.** The Explore/Validate tools and the overlays layered over them are zoomed
+  uniformly to fit the viewport (`util.applyToolScale` sets `--ui-scale` on `.tool-ui` and the document root). Author
+  every fixed dimension for that UI as `calc(<base>px * var(--ui-scale, 1))` (paddings, gaps, sizes, borders, radii,
+  and any raw `font-size`); prefer the `--text-*` type tokens, which already include it. A bare `px` there won't scale.
+  Fixed page chrome (e.g. the navbar) stays unscaled on purpose.
 
 ## Frontend file & directory organization
 

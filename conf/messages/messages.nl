@@ -169,19 +169,11 @@ footer.award = Prijs <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID
 footer.designed.operated = Project Sidewalk is ontworpen en beheerd door <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> op de <a id="universityofwashington" href="http://www.cs.uw.edu/">University of Washington</a>
 footer.version = Versie {0} | Laatst geupdated: <span class = "timestamp date">{1}</span>
 
-audit.tutorial.welcome.1 = In <span class="bold">Project Sidewalk,</span> zul je je virtueel door steden verplaatsen en missies volbrengen door toegankelijkheidskenmerken en problemen te vinden en te labelen in de buurt, waaronder:
-audit.tutorial.welcome.2 = We beginnen met een korte interactieve uitleg.
-audit.tutorial.welcome.3 = Laten we eraan beginnen!
-audit.tutorial.welcome.4 = Heb je al eerder de uitleg doorlopen? Heb je een Account? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Log In</a> of <a value="Skip" class="onboarding-transition-trigger">sla de uitleg over.</a>
-audit.tutorial.accessible = <span style="color:limegreen">Toegankelijk</span>
-audit.tutorial.inaccessible = <span style="color:red">Ontoegankelijk</span>
-audit.tutorial.examples.curb.ramp = <span style="color:limegreen">Trottoir opritten</span> helpen rolstoelgebruikers om op en van trottoirs te komen
-audit.tutorial.examples.missing.ramp = Rolstoelgebruikers kunnen geen gebruik maken van trottoirs als <span style="color:#ff0066">trottoir opritten ontbreken</span>
-audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">Obstakels</span> blokkeren het pad van rolstoelgebruikers
-audit.tutorial.examples.surface.problem = Trottoirs met <span style="color:orange">oppervlakte problemen</span> zijn mogelijk niet berijdbaar
-audit.tutorial.end.1 = Goed! Je hebt geleerd hoe je de interface moet gebruiken! Ga nu verder en <span class="bold">Label de volgende toegankelijkheidskenmerken in Street View-beelden.</span> wat positief impact zal hebben op hoe rolstoelgebruikers zich kunnen bewegen door de stad:
-audit.tutorial.end.2 = Nogmaals, dank voor <span class="bold">je bijdrage aan een toegankelijke wereld voor iedereen!</span>
-audit.tutorial.examples = Voorbeelden van toegankelijkheidskenmerken: stoep opritten, ontbrekende stoep opritten, obstakels in het pad, en oppervlakteproblemen.
+audit.tutorial.complete.1 = Het is gelukt!
+audit.tutorial.complete.2 = Je hebt de uitleg voltooid!
+audit.tutorial.complete.learn-more = Meer informatie
+audit.tutorial.complete.start-contributing = Beginnen met bijdragen
+
 audit.ribbon.curb.ramp.labels = TROTTOIR OPRIT LABELS
 audit.ribbon.sidewalk.labels = TROTTOIR LABELS
 audit.ribbon.other.labels = ANDERE TOEGANKELIJKHEIDSLABELS
@@ -404,6 +396,7 @@ cities.dashboard.cta.logo.alt = Het logo van Project Sidewalk met de tekst proje
 share.meta.title.issue = Ik heb een toegankelijkheidsprobleem gevonden op Project Sidewalk: {0}
 share.meta.title.feature = Kijk wat ik heb gevonden op Project Sidewalk: {0}
 share.meta.description.spotted = Gespot in {0}.
+share.meta.description.address = In de buurt van {0}.
 share.meta.description.severity = Ernst: {0} van 3.
 share.meta.description.tags = Tags: {0}.
 share.meta.description.cta = Verken de kaart en help stoepen toegankelijk te maken voor iedereen.

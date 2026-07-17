@@ -1,6 +1,7 @@
 package models.route
 
 import com.google.inject.ImplementedBy
+import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -17,8 +18,9 @@ class RouteStreetTableDef(tag: slick.lifted.Tag) extends Table[RouteStreet](tag,
 
   def * = (routeStreetId, routeId, streetEdgeId, reverse) <> ((RouteStreet.apply _).tupled, RouteStreet.unapply)
 
-//  def route: ForeignKeyQuery[RouteTable, Route] = foreignKey("route_street_route_id_fkey", routeId, TableQuery[RouteTable])(_.routeId)
-//  def streetEdge: ForeignKeyQuery[StreetEdgeTable, StreetEdge] = foreignKey("route_street_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTable])(_.streetEdgeId)
+  def route      = foreignKey("route_street_route_id_fkey", routeId, TableQuery[RouteTableDef])(_.routeId)
+  def streetEdge =
+    foreignKey("route_street_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
 }
 
 @ImplementedBy(classOf[RouteStreetTable])

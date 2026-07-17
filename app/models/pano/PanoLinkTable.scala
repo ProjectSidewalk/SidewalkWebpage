@@ -17,6 +17,8 @@ class PanoLinkTableDef(tag: Tag) extends Table[PanoLink](tag, "pano_link") {
   def description: Rep[Option[String]] = column[Option[String]]("description")
 
   def * = (panoId, targetPanoId, yawDeg, description) <> ((PanoLink.apply _).tupled, PanoLink.unapply)
+
+  def pano = foreignKey("pano_link_pano_id_fkey", panoId, TableQuery[PanoDataTableDef])(_.panoId)
 }
 
 @ImplementedBy(classOf[PanoLinkTable])

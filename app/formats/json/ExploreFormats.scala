@@ -93,6 +93,7 @@ object ExploreFormats {
       cameraRoll: Option[Double],
       links: Seq[PanoLinkSubmission],
       copyright: Option[String],
+      address: Option[String],
       history: Seq[PanoDate]
   )
   case class AuditMissionProgress(
@@ -300,6 +301,7 @@ object ExploreFormats {
       (JsPath \ "camera_roll").readNullable[Double] and
       (JsPath \ "links").read[Seq[PanoLinkSubmission]] and
       (JsPath \ "copyright").readNullable[String] and
+      (JsPath \ "address").readNullable[String] and
       (JsPath \ "history").read[Seq[PanoDate]]
   )(PanoSubmission.apply _)
 

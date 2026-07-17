@@ -1,4 +1,32 @@
 {
+  "tutorial-intro": {
+    "eyebrow": "Erkundungsmission",
+    "title": "Werden Sie Teil der Sidewalk-Mission",
+    "next": "Weiter",
+    "start-mission": "Mission starten",
+    "have-account": "Haben Sie ein Konto?",
+    "sign-in": "Anmelden",
+    "already-tutorial": "Haben Sie das Tutorial schon absolviert?",
+    "skip": "Überspringen",
+    "explore": {
+      "title": "Erkunden",
+      "description": "Entdecken Sie Zugänglichkeitsprobleme in der Stadt."
+    },
+    "label": {
+      "title": "Beschriften",
+      "description": "Markieren Sie Trottoirabsenkungen und Oberflächenprobleme von Trottoirs und fügen Sie Zugänglichkeitsbewertungen hinzu."
+    },
+    "validate": {
+      "title": "Validieren",
+      "description": "Überprüfen Sie von anderen gesetzte Beschriftungen, um deren Richtigkeit zu bestätigen."
+    },
+    "impact": {
+      "title": "Wirkung",
+      "stat-labels": "{{total}} von Freiwilligen hinzugefügte Beschriftungen",
+      "stat-cities": "Daten werden in {{cities}} Städten weltweit genutzt",
+      "tagline": "Jede Beschriftung verbessert die Zugänglichkeit in der realen Welt"
+    }
+  },
   "curb-ramp": "Trottoirabsenkung",
   "missing-curb-ramp": "fehlende Trottoirabsenkung",
   "obstacle": "Hindernis",

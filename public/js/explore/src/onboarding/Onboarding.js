@@ -531,7 +531,7 @@ class Onboarding {
     // Reset positioning state so each message starts clean.
     this.#uiOnboarding.messageHolder
       .removeClass('animated fadeIn fadeInLeft fadeInRight fadeInDown fadeInUp callout-floating '
-        + 'onboarding-message-takeover onboarding-message-top-right')
+        + 'onboarding-message-takeover onboarding-message-fullpage onboarding-message-top-right')
       .css({ position: '', top: '', left: '', transform: '', width: '' });
     this.#uiOnboarding.background.css('visibility', 'hidden');
 
@@ -550,9 +550,10 @@ class Onboarding {
 
     // Place the message in one of three coordinate-free modes; otherwise it keeps its default top-left corner.
     if (parameters.background) {
-      // Full-page intro/outro takeover: dim the viewport and center the panel on it.
+      // Takeover: dim the viewport behind the message. Centered by default; fullPage opts into a full-page canvas.
       this.#uiOnboarding.background.css('visibility', 'visible');
       this.#uiOnboarding.messageHolder.addClass('onboarding-message-takeover');
+      if (parameters.fullPage) this.#uiOnboarding.messageHolder.addClass('onboarding-message-fullpage');
     } else if (parameters.anchor) {
       // Anchor to a live UI element; Floating UI computes the position and arrow.
       this.#uiOnboarding.messageHolder.addClass('callout-floating');
@@ -720,23 +721,23 @@ class Onboarding {
     }
   }
 
+  /**
+   * Position the pano at the tutorial's opening POV, then advance to the first interactive step.
+   *
+   * The welcome/skip UI lives in the pre-tutorial intro (TutorialIntro), whose "Start Mission" button leads here, so
+   * this state is non-interactive: it just sets the POV and moves on.
+   *
+   * @param state    The 'initialize' state from OnboardingStates.js.
+   * @param listener An optional Google Maps event listener to remove before advancing.
+   */
   #visitIntroduction(state, listener) {
-    const svl = this.#svl;
-    // When user clicks 'Let's get started!' to start the tutorial, we set the pano's POV and move to next state.
-    const $target = $('#onboarding-message-holder').find('.onboarding-transition-trigger');
-    $('.onboarding-transition-trigger').css({ cursor: 'pointer' });
-    const callback = (e) => {
-      if (listener) google.maps.event.removeListener(listener);
-      $target.off('click', callback);
-      svl.panoManager.setPov({
-        heading: state.properties.heading,
-        pitch: state.properties.pitch,
-        zoom: state.properties.zoom,
-      });
-      this.#transitionTo(state.transition, undefined, e.currentTarget);
-    };
-
-    $target.on('click', callback);
+    if (listener) google.maps.event.removeListener(listener);
+    this.#svl.panoManager.setPov({
+      heading: state.properties.heading,
+      pitch: state.properties.pitch,
+      zoom: state.properties.zoom,
+    });
+    this.#transitionTo(state.transition);
   }
 
   /**

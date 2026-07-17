@@ -66,6 +66,12 @@ function filterLabelLayers(checkbox, map, mapData, highQualityFilter) {
     baseFilter.push(['==', ['get', 'has_admin_validation'], false]);
   }
 
+  // The label the popup is currently spotlighting bypasses every filter: a deep-linked or arrow-paged label must
+  // stay visible even when the active filters (e.g. the default incorrect/low-quality exclusions) would hide it.
+  const withSpotlight = (filter) => (mapData.spotlightLabelId
+    ? ['any', filter, ['==', ['get', 'label_id'], mapData.spotlightLabelId]]
+    : filter);
+
   // Apply per-layer, appending a tag sub-filter when that label type has active tags.
   for (const [labelType, layerName] of Object.entries(mapData.layerNames)) {
     if (!map.getLayer(layerName)) continue;
@@ -73,9 +79,9 @@ function filterLabelLayers(checkbox, map, mapData, highQualityFilter) {
     const selectedTags = mapData.selectedTags[labelType];
     if (selectedTags && selectedTags.size > 0) {
       const tagFilter = ['any', ...Array.from(selectedTags).map((t) => ['in', t, ['get', 'tags']])];
-      map.setFilter(layerName, [...baseFilter, tagFilter]);
+      map.setFilter(layerName, withSpotlight([...baseFilter, tagFilter]));
     } else {
-      map.setFilter(layerName, baseFilter);
+      map.setFilter(layerName, withSpotlight(baseFilter));
     }
   }
 }
@@ -117,6 +123,9 @@ function CreateMapLayerTracker() {
   // Admin-only filter (#4243): when true, restrict to labels not yet validated by an Administrator/Owner. Defaults
   // to off so the shared filter logic is a no-op on the public LabelMap, where the control isn't rendered.
   mapData.notAdminValidated = false;
+  // Label ID the label popup is spotlighting (or null). That one label bypasses all filters in filterLabelLayers so
+  // the dot a user explicitly asked to see (deep link, arrow paging) can't be hidden by the current filter state.
+  mapData.spotlightLabelId = null;
 
   // Severity filter state (all enabled by default).
   mapData.severities = { 0: true, 1: true, 2: true, 3: true };

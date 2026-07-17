@@ -15,6 +15,9 @@ class OsmWayStreetEdgeTableDef(tag: Tag) extends Table[OsmWayStreetEdge](tag, "o
   def streetEdgeId: Rep[Int]       = column[Int]("street_edge_id")
 
   def * = (osmWayStreetEdgeId, osmWayId, streetEdgeId) <> ((OsmWayStreetEdge.apply _).tupled, OsmWayStreetEdge.unapply)
+
+  def streetEdge =
+    foreignKey("osm_way_street_edge_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
 }
 
 @ImplementedBy(classOf[OsmWayStreetEdgeTable])

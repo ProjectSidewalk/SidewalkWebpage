@@ -1,6 +1,7 @@
 package models.user
 
 import com.google.inject.ImplementedBy
+import models.survey.SurveyQuestionTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -29,10 +30,14 @@ class UserSurveyTextSubmissionTableDef(tag: Tag)
   def * = (userSurveyTextSubmissionId, userId, surveyQuestionId, surveyTextSubmission, timeSubmitted,
     numMissionsCompleted) <> ((UserSurveyTextSubmission.apply _).tupled, UserSurveyTextSubmission.unapply)
 
-//  def user: ForeignKeyQuery[UserTable, DBUser] =
-//    foreignKey("user_survey_text_submission_user_id_fkey", userId, TableQuery[UserTableDef])(_.userId)
-//  def survey_question: ForeignKeyQuery[SurveyQuestionTable, SurveyQuestion] =
-//    foreignKey("user_survey_text_submission_survey_question_id_fkey", surveyQuestionId, TableQuery[SurveyQuestionTableDef])(_.surveyQuestionId)
+  def user =
+    foreignKey("user_survey_text_submission_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def surveyQuestion =
+    foreignKey(
+      "user_survey_text_submission_survey_question_id_fkey",
+      surveyQuestionId,
+      TableQuery[SurveyQuestionTableDef]
+    )(_.surveyQuestionId)
 }
 
 @ImplementedBy(classOf[UserSurveyTextSubmissionTable])

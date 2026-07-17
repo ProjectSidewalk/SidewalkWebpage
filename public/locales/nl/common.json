@@ -81,6 +81,7 @@
   "comments": "Effectiviteit beoordelingen",
   "none": "Geen",
   "image-capture-date": "Opnamedatum afbeelding",
+  "drag-to-look-around": "Sleep om rond te kijken",
   "labeled": "Gelabeled",
   "low": "Laag",
   "medium": "Medium",
@@ -190,6 +191,7 @@
     "view-in-gsv": "Bekijken in Google Streetview",
     "view-in-mapillary": "Bekijken in Mapillary",
     "city": "Stad",
+    "copy-to-clipboard": "Kopiëren naar klembord",
     "copied-to-clipboard": "Gegevens gekopieerd naar uw klembord!"
   },
   "mission-start-tutorial": {

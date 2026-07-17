@@ -25,7 +25,6 @@ class Main {
   #initUI() {
     sg.scrollStatus = {
       stickySidebar: true,
-      stickyExpandedView: true,
     };
 
     sg.ui = {};
@@ -66,9 +65,6 @@ class Main {
     sg.pageLoading = $('#page-loading');
     sg.labelsNotFound = $('#labels-not-found');
 
-    sg.ui.expandedView.container.css('position', 'absolute');
-    sg.ui.expandedView.container.css('visibility', 'hidden');
-
     // Calculate offset between bottom of navbar and sidebar.
     this.#headerSidebarOffset
             = sg.ui.cardFilter.wrapper.offset().top - (sg.ui.navbar.offset().top + sg.ui.navbar.outerHeight());
@@ -100,14 +96,13 @@ class Main {
 
     sg.ui.labelTypeMenu.select.change();
 
-    // Handle sidebar and expanded view stickiness while scrolling.
+    // Handle sidebar stickiness while scrolling. (The expanded view is position: fixed and needs no help.)
     $(window).scroll(() => {
       // Make sure the page isn't loading.
       if (!sg.pageLoading.is(':visible') && !sg.labelsNotFound.is(':visible')) {
         const sidebarBottomOffset = sidebarWrapper.offset().top + sidebarWrapper.outerHeight(true);
         const cardContainerBottomOffset = sg.ui.cardContainer.holder.offset().top
           + sg.ui.cardContainer.holder.outerHeight(true) - 5;
-        const visibleWindowBottomOffset = $(window).scrollTop() + $(window).height();
 
         // Handle sidebar stickiness.
         if (sg.scrollStatus.stickySidebar) {
@@ -138,20 +133,6 @@ class Main {
             sg.ui.cardContainer.holder.css('margin-left', sidebarWidth);
             sg.scrollStatus.stickySidebar = true;
           }
-        }
-
-        // Handle expanded view stickiness.
-        if (cardContainerBottomOffset < visibleWindowBottomOffset) {
-          if (sg.scrollStatus.stickyExpandedView) {
-            // Prevent expanded view from going too low (i.e., when a user scrolls down fast).
-            sg.ui.expandedView.container.css('top', cardContainerBottomOffset - $(window).height());
-            sg.scrollStatus.stickyExpandedView = false;
-          }
-        } else {
-          if (!sg.scrollStatus.stickyExpandedView) sg.scrollStatus.stickyExpandedView = true;
-
-          // Emulate the expanded view being "fixed".
-          sg.ui.expandedView.container.css('top', `calc(${$(window).scrollTop()}px + 1vh`);
         }
       }
     });
