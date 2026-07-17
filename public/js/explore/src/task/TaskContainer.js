@@ -312,9 +312,11 @@ class TaskContainer {
     }
 
     if (svl.neighborhoodModel.isRoute) {
-      // For a route, the user will go to the street with the next highest routeStreetId.
+      // For a route, the user walks the streets in the route's saved order. Position is the walking order
+      // (editable routes can insert streets mid-route, so serial routeStreetId is only a legacy fallback).
+      const walkOrder = (task) => task.getProperty('routeStreetPosition') ?? task.getProperty('routeStreetId');
       newTask = tasksNotCompletedByUser.reduce((min, current) => {
-        return current.getProperty('routeStreetId') < min.getProperty('routeStreetId') ? current : min;
+        return walkOrder(current) < walkOrder(min) ? current : min;
       }, tasksNotCompletedByUser[0]);
     } else {
       // If not part of a route, check for a connected task with a high priority. If none, jump to the highest

@@ -1,12 +1,12 @@
 package controllers
 
 import controllers.base._
-import formats.json.RouteBuilderFormats.{routeWithStatsWrites, NewRoute}
+import formats.json.RouteBuilderFormats.{routeWithStatsWrites, NewRoute, RouteUpdate}
 import models.route.Route
 import models.utils.ProfanityGuard
 import play.api.i18n.Messages
 import play.api.libs.json._
-import play.api.mvc.Result
+import play.api.mvc.{Action, AnyContent, Result}
 import service.RouteService
 
 import javax.inject.{Inject, Singleton}
@@ -31,16 +31,31 @@ class RouteBuilderController @Inject() (cc: CustomControllerComponents, routeSer
     errorKey.map { key => BadRequest(Json.obj("status" -> "Error", "message" -> Messages(key, Route.MaxNameLength))) }
   }
 
+  /**
+   * Validates a route's optional public description: None if acceptable, or Some(400 response) with a localized
+   * message. An absent/empty description is acceptable (the route just has none).
+   */
+  private def routeDescriptionError(description: Option[String])(implicit messages: Messages): Option[Result] = {
+    val trimmed: String          = description.map(_.trim).getOrElse("")
+    val errorKey: Option[String] =
+      if (trimmed.length > Route.MaxDescriptionLength) Some("routebuilder.description.error.length")
+      else if (trimmed.nonEmpty && !ProfanityGuard.isClean(trimmed)) Some("routebuilder.description.error.allowed")
+      else None
+    errorKey.map { key =>
+      BadRequest(Json.obj("status" -> "Error", "message" -> Messages(key, Route.MaxDescriptionLength)))
+    }
+  }
+
   def saveRoute = cc.securityService.SecuredAction(parse.json) { implicit request =>
     val submission = request.body.validate[NewRoute]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       data => {
-        routeNameError(data.name) match {
+        routeNameError(data.name).orElse(routeDescriptionError(data.description)) match {
           case Some(error) => Future.successful(error)
           case None        =>
-            routeService.saveRoute(data, request.identity.userId).map { case (routeId, name) =>
-              Ok(Json.obj("route_id" -> routeId, "name" -> name))
+            routeService.saveRoute(data, request.identity.userId).map { case (routeId, name, slug) =>
+              Ok(Json.obj("route_id" -> routeId, "name" -> name, "slug" -> slug))
             }
         }
       }
@@ -72,23 +87,51 @@ class RouteBuilderController @Inject() (cc: CustomControllerComponents, routeSer
   }
 
   /**
-   * Renames a route owned by the requesting user. Body: {"name": "..."}.
+   * Updates a route owned by the requesting user: any subset of {"name", "description", "streets"}. A rename
+   * regenerates the route's slug (the old slug keeps redirecting); a streets update replaces the walking order
+   * in place, so the route keeps its id, usage stats, and share links.
    *
-   * @param routeId ID of the route to rename; 404 if it doesn't exist or isn't owned by the requesting user.
+   * @param routeId ID of the route to update; 404 if it doesn't exist or isn't owned by the requesting user.
    */
-  def renameRoute(routeId: Int) = cc.securityService.SecuredAction(parse.json) { implicit request =>
-    (request.body \ "name").validate[String].map(_.trim) match {
-      case JsSuccess(name, _) if name.nonEmpty =>
-        routeNameError(Some(name)) match {
-          case Some(error) => Future.successful(error)
-          case None        =>
-            routeService.renameRoute(routeId, request.identity.userId, name).map {
-              case true  => Ok(Json.obj("route_id" -> routeId, "name" -> name))
-              case false => NotFound(Json.obj("status" -> "Error", "message" -> "Route not found"))
+  def updateRoute(routeId: Int) = cc.securityService.SecuredAction(parse.json) { implicit request =>
+    request.body
+      .validate[RouteUpdate]
+      .fold(
+        errors => Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))),
+        update => {
+          val validationError: Option[Result] =
+            if (update.name.isEmpty && update.description.isEmpty && update.streets.isEmpty) {
+              Some(BadRequest(Json.obj("status" -> "Error", "message" -> "Nothing to update")))
+            } else if (update.name.exists(_.trim.isEmpty)) {
+              Some(BadRequest(Json.obj("status" -> "Error", "message" -> "Missing name")))
+            } else if (update.streets.exists(_.isEmpty)) {
+              Some(BadRequest(Json.obj("status" -> "Error", "message" -> "A route must have at least one street")))
+            } else {
+              routeNameError(update.name).orElse(routeDescriptionError(update.description))
             }
+          validationError match {
+            case Some(error) => Future.successful(error)
+            case None        =>
+              routeService.updateRoute(routeId, request.identity.userId, update).map {
+                case Some((name, slug)) => Ok(Json.obj("route_id" -> routeId, "name" -> name, "slug" -> slug))
+                case None               => NotFound(Json.obj("status" -> "Error", "message" -> "Route not found"))
+              }
+          }
         }
-      case _ =>
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Missing name")))
+      )
+  }
+
+  /**
+   * Redirects a /r/<slug> share link to the route in Explore. Unauthenticated so share links work logged-out
+   * (/explore handles anonymous sign-up itself); retired slugs of renamed routes keep redirecting via the alias
+   * table.
+   *
+   * @param slug The route's slug; 404 if unknown or the route has been deleted.
+   */
+  def routeBySlug(slug: String): Action[AnyContent] = Action.async { implicit request =>
+    routeService.resolveSlug(slug).map {
+      case Some(routeId) => Redirect(s"/explore?routeId=$routeId", FOUND)
+      case None          => NotFound(views.html.errors.onHandlerNotFound(request))
     }
   }
 

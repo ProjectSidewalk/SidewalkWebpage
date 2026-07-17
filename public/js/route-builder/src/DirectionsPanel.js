@@ -18,6 +18,7 @@ class DirectionsPanel {
   #onSetEnd;
   #lastGeocoded = { start: null, end: null }; // Last [lng, lat] each field was reverse-geocoded for.
   #userLabelCoord = { start: null, end: null }; // Where the user last picked an address by typing (if anywhere).
+  #endpointStreets = { start: null, end: null }; // Street name at each endpoint (for the suggested route name).
 
   /**
    * @param {Object} opts
@@ -64,11 +65,13 @@ class DirectionsPanel {
     document.getElementById(`directions-${which}-slot`).append(box.onAdd(this.#map));
 
     box.addEventListener('retrieve', (event) => {
-      const coord = event.detail?.features?.[0]?.geometry?.coordinates;
+      const feature = event.detail?.features?.[0];
+      const coord = feature?.geometry?.coordinates;
       if (!coord) return;
       window.logWebpageActivity(`RouteBuilder_Click=${which === 'start' ? 'SetStartAddress' : 'SetEndAddress'}`);
       this.#lastGeocoded[which] = coord; // The user just named this point; no need to reverse-geocode it.
       this.#userLabelCoord[which] = coord;
+      this.#endpointStreets[which] = DirectionsPanel.#streetNameFromProps(feature.properties);
       const lngLat = { lng: coord[0], lat: coord[1] };
       if (which === 'start') this.#onSetStart(lngLat);
       else this.#onSetEnd(lngLat);
@@ -111,8 +114,31 @@ class DirectionsPanel {
   clearFields() {
     this.#lastGeocoded = { start: null, end: null };
     this.#userLabelCoord = { start: null, end: null };
+    this.#endpointStreets = { start: null, end: null };
     this.#setFieldText('start', '');
     this.#setFieldText('end', '');
+  }
+
+  /**
+   * The street name at each endpoint, as far as geocoding has resolved them (best-effort; either may be null).
+   * @returns {{start: string|null, end: string|null}}
+   */
+  getEndpointStreetNames() {
+    return { start: this.#endpointStreets.start, end: this.#endpointStreets.end };
+  }
+
+  /**
+   * Extracts the bare street name from a Mapbox geocoding/search feature's properties: the street context of an
+   * address result, or the feature's own name for a street result.
+   *
+   * @param {Object} [props] - The feature's properties.
+   * @returns {string|null}
+   */
+  static #streetNameFromProps(props) {
+    if (!props) return null;
+    const contextStreet = props.context?.street?.name;
+    const ownName = props.feature_type === 'street' ? (props.name_preferred || props.name) : null;
+    return contextStreet || ownName || null;
   }
 
   /**
@@ -133,6 +159,8 @@ class DirectionsPanel {
     if (slot?.contains(document.activeElement)) return; // Don't clobber what the user is typing.
     this.#lastGeocoded[which] = coord;
     this.#userLabelCoord[which] = null; // The endpoint left the typed address behind; the field follows it now.
+    // Cleared at dispatch, not on response: a failed lookup must not leave a street name for a stale coordinate.
+    this.#endpointStreets[which] = null;
 
     const params = new URLSearchParams({
       longitude: lngLat.lng,
@@ -145,6 +173,7 @@ class DirectionsPanel {
       .then((response) => response.json())
       .then((data) => {
         const props = data.features?.[0]?.properties;
+        this.#endpointStreets[which] = DirectionsPanel.#streetNameFromProps(props);
         const label = props?.name_preferred || props?.name || props?.full_address;
         if (label) this.#setFieldText(which, label);
       })

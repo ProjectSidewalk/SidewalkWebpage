@@ -19,6 +19,8 @@ case class Route(
     userId: String,
     regionId: Int,
     name: String,
+    slug: String,
+    description: Option[String],
     public: Boolean,
     deleted: Boolean,
     createdAt: OffsetDateTime
@@ -28,6 +30,9 @@ object Route {
 
   /** Maximum length of a user-supplied route name; shared by the API validation and the UI's input maxlength. */
   val MaxNameLength: Int = 100
+
+  /** Maximum length of a route's optional public description; shared by validation and the UI's maxlength. */
+  val MaxDescriptionLength: Int = 500
 }
 
 /**
@@ -37,6 +42,8 @@ object Route {
  * @param regionId       ID of the region (neighborhood) the route is in.
  * @param regionName     Name of that region.
  * @param name           User-supplied route name.
+ * @param slug           URL slug for the route's /r/<slug> share link.
+ * @param description    Optional public description of why the route matters.
  * @param distanceMeters Total length of the route's streets in meters.
  * @param streetCount    Number of streets in the route.
  * @param createdAt      When the route was saved.
@@ -46,6 +53,8 @@ case class RouteWithStats(
     regionId: Int,
     regionName: String,
     name: String,
+    slug: String,
+    description: Option[String],
     distanceMeters: Double,
     streetCount: Int,
     createdAt: OffsetDateTime,
@@ -55,15 +64,17 @@ case class RouteWithStats(
 )
 
 class RouteTableDef(tag: slick.lifted.Tag) extends Table[Route](tag, "route") {
-  def routeId: Rep[Int]              = column[Int]("route_id", O.PrimaryKey, O.AutoInc)
-  def userId: Rep[String]            = column[String]("user_id")
-  def regionId: Rep[Int]             = column[Int]("region_id")
-  def name: Rep[String]              = column[String]("name")
-  def public: Rep[Boolean]           = column[Boolean]("public")
-  def deleted: Rep[Boolean]          = column[Boolean]("deleted")
-  def createdAt: Rep[OffsetDateTime] = column[OffsetDateTime]("created_at")
+  def routeId: Rep[Int]                = column[Int]("route_id", O.PrimaryKey, O.AutoInc)
+  def userId: Rep[String]              = column[String]("user_id")
+  def regionId: Rep[Int]               = column[Int]("region_id")
+  def name: Rep[String]                = column[String]("name")
+  def slug: Rep[String]                = column[String]("slug")
+  def description: Rep[Option[String]] = column[Option[String]]("description")
+  def public: Rep[Boolean]             = column[Boolean]("public")
+  def deleted: Rep[Boolean]            = column[Boolean]("deleted")
+  def createdAt: Rep[OffsetDateTime]   = column[OffsetDateTime]("created_at")
 
-  def * = (routeId, userId, regionId, name, public, deleted, createdAt) <> (
+  def * = (routeId, userId, regionId, name, slug, description, public, deleted, createdAt) <> (
     (Route.apply _).tupled,
     Route.unapply
   )
@@ -109,23 +120,26 @@ class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .join(streetEdges)
       .on { case ((_, routeStreet), streetEdge) => routeStreet.streetEdgeId === streetEdge.streetEdgeId }
       .groupBy { case (((route, region), _), _) =>
-        (route.routeId, route.regionId, region.name, route.name, route.createdAt)
+        (route.routeId, route.regionId, region.name, route.name, route.slug, route.description, route.createdAt)
       }
-      .map { case ((routeId, regionId, regionName, name, createdAt), group) =>
+      .map { case ((routeId, regionId, regionName, name, slug, description, createdAt), group) =>
         (
           routeId,
           regionId,
           regionName,
           name,
+          slug,
+          description,
           group.map { case (_, streetEdge) => streetEdge.geom.transform(26918).lengthD }.sum.getOrElse(0d),
           group.length,
           createdAt
         )
       }
-      .sortBy(_._7.desc)
+      .sortBy(_._9.desc) // Newest first (createdAt).
       .result
-      .map(_.map { case (routeId, regionId, regionName, name, distanceMeters, streetCount, createdAt) =>
-        RouteWithStats(routeId, regionId, regionName, name, distanceMeters, streetCount, createdAt)
+      .map(_.map {
+        case (routeId, regionId, regionName, name, slug, description, distanceMeters, streetCount, createdAt) =>
+          RouteWithStats(routeId, regionId, regionName, name, slug, description, distanceMeters, streetCount, createdAt)
       })
   }
 
@@ -155,21 +169,60 @@ class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .filter(_.routeId inSet routeIds)
       .join(streetEdges)
       .on(_.streetEdgeId === _.streetEdgeId)
-      .sortBy { case (routeStreet, _) => routeStreet.routeStreetId }
+      .sortBy { case (routeStreet, _) => routeStreet.position }
       .map { case (routeStreet, streetEdge) => (routeStreet.routeId, routeStreet.reverse, streetEdge.geom) }
       .result
   }
 
   /**
-   * Renames a route. The WHERE clause enforces ownership, so a non-owner's rename updates 0 rows.
+   * Gets a non-deleted route only if it is owned by the given user.
+   */
+  def getRouteOwned(routeId: Int, userId: String): DBIO[Option[Route]] = {
+    routes.filter(r => r.routeId === routeId && r.userId === userId && r.deleted === false).result.headOption
+  }
+
+  /**
+   * Sets a route's name and slug together (a rename regenerates the slug). The WHERE clause enforces ownership,
+   * so a non-owner's rename updates 0 rows.
    *
    * @return Number of rows updated (0 if the route doesn't exist, is deleted, or isn't owned by userId).
    */
-  def rename(routeId: Int, userId: String, newName: String): DBIO[Int] = {
+  def updateNameAndSlug(routeId: Int, userId: String, newName: String, newSlug: String): DBIO[Int] = {
     routes
       .filter(r => r.routeId === routeId && r.userId === userId && r.deleted === false)
-      .map(_.name)
-      .update(newName)
+      .map(r => (r.name, r.slug))
+      .update((newName, newSlug))
+  }
+
+  /** Sets a route's slug without touching the name (used when an unnamed route gets its id-based default). */
+  def updateSlug(routeId: Int, newSlug: String): DBIO[Int] = {
+    routes.filter(_.routeId === routeId).map(_.slug).update(newSlug)
+  }
+
+  /**
+   * Sets a route's public description. The WHERE clause enforces ownership.
+   *
+   * @return Number of rows updated (0 if the route doesn't exist, is deleted, or isn't owned by userId).
+   */
+  def updateDescription(routeId: Int, userId: String, description: Option[String]): DBIO[Int] = {
+    routes
+      .filter(r => r.routeId === routeId && r.userId === userId && r.deleted === false)
+      .map(_.description)
+      .update(description)
+  }
+
+  /** Gets the id of the non-deleted route with the given slug, if any. */
+  def getRouteIdBySlug(slug: String): DBIO[Option[Int]] = {
+    routes.filter(r => r.slug === slug && r.deleted === false).map(_.routeId).result.headOption
+  }
+
+  /**
+   * Gets slugs (with their route ids) equal to the given base or starting with "<base>-" — the candidate set the
+   * slug uniquifier must avoid. Includes deleted routes: their slugs stay reserved so a recycled slug can't make
+   * an old share link point at someone else's route.
+   */
+  def slugsStartingWith(base: String): DBIO[Seq[(String, Int)]] = {
+    routes.filter(r => r.slug === base || r.slug.startsWith(base + "-")).map(r => (r.slug, r.routeId)).result
   }
 
   /**

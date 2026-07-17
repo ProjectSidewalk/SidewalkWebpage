@@ -7,7 +7,8 @@
 class SavedRoutesPanel {
   static STORAGE_KEY = 'rb-guest-routes';
   static MAX_GUEST_ROUTES = 20;
-  static MAX_SHOWN = 5;
+  // Kept small so the panel doesn't scroll; the dashboard link below the list is the "see all" path.
+  static MAX_SHOWN = 3;
 
   #isSignedIn;
   #formatMeta;
@@ -23,7 +24,7 @@ class SavedRoutesPanel {
    * @param {boolean} opts.isSignedIn - Whether the user is signed in (selects the routes source).
    * @param {Function} opts.formatMeta - (distanceMeters, regionName) => the card's meta line.
    * @param {Function} opts.setTemporaryTooltip - (buttonEl, message) that flashes a confirmation tooltip.
-   * @param {Function} opts.onView - Called with the route id when a card body is clicked (preview on the map).
+   * @param {Function} opts.onView - Called with the route id when a card body is clicked (opens it in the editor).
    * @param {Function} opts.thumbnailUrl - (encodedPolyline) => static-map thumbnail URL for a card.
    */
   constructor(opts) {
@@ -62,6 +63,8 @@ class SavedRoutesPanel {
         .then((routes) => this.#render(routes.map((r) => ({
           routeId: r.route_id,
           name: r.name,
+          slug: r.slug,
+          description: r.description,
           regionName: r.region_name,
           distanceMeters: r.distance_meters,
           savedAt: r.created_at,
@@ -120,6 +123,12 @@ class SavedRoutesPanel {
     this.#panel.hidden = sorted.length === 0;
     if (sorted.length === 0) return;
 
+    // With more routes than the panel shows, the dashboard link doubles as the "see the rest" affordance.
+    const dashboardLink = document.getElementById('saved-routes-dashboard-link');
+    if (dashboardLink && routes.length > SavedRoutesPanel.MAX_SHOWN) {
+      dashboardLink.textContent = i18next.t('see-all-routes', { count: routes.length });
+    }
+
     this.#list.innerHTML = sorted.map((route) => {
       const cardClasses = ['saved-route-card',
         route.routeId === highlightRouteId ? 'saved-route-card--new' : '',
@@ -128,7 +137,7 @@ class SavedRoutesPanel {
         ? `<img class="saved-route-thumb" src="${this.#thumbnailUrl(route.encodedPolyline)}" alt="" loading="lazy">`
         : '';
       const usage = typeof route.startedCount === 'number'
-        ? `<span class="saved-route-usage">
+        ? `<span class="saved-route-usage" title="${i18next.t('route-usage-tooltip')}">
              ${i18next.t('route-usage', { started: route.startedCount, completed: route.completedCount })}
            </span>`
         : '';
@@ -138,6 +147,7 @@ class SavedRoutesPanel {
                 title="${i18next.t('saved-view-title')}">
           ${thumb}
           <span class="saved-route-name"></span>
+          <span class="saved-route-desc" hidden></span>
           <span class="saved-route-meta"></span>
           ${usage}
         </button>
@@ -150,18 +160,23 @@ class SavedRoutesPanel {
       </li>`;
     }).join('');
 
-    // Names and region text are user/geo data: set via textContent so they can't inject markup.
+    // Names, descriptions, and region text are user/geo data: set via textContent so they can't inject markup.
     this.#list.querySelectorAll('.saved-route-card').forEach((card, i) => {
       const route = sorted[i];
       card.querySelector('.saved-route-name').textContent = route.name;
+      const descEl = card.querySelector('.saved-route-desc');
+      descEl.textContent = route.description ?? '';
+      descEl.hidden = !route.description;
       card.querySelector('.saved-route-meta').textContent = typeof route.distanceMeters === 'number'
         ? this.#formatMeta(route.distanceMeters, route.regionName)
         : (route.regionName ?? '');
+      // The copy button builds its URL from the slug; kept in a data attribute so user text can't inject markup.
+      if (route.slug) card.querySelector('.saved-route-copy').dataset.slug = route.slug;
     });
 
     this.#list.querySelectorAll('.saved-route-view').forEach((btn) => {
       btn.addEventListener('click', () => {
-        window.logWebpageActivity(`RouteBuilder_Click=SavedRoute_View_RouteId=${btn.dataset.routeId}`);
+        window.logWebpageActivity(`RouteBuilder_Click=SavedRoute_Edit_RouteId=${btn.dataset.routeId}`);
         this.#onView(Number(btn.dataset.routeId));
       });
     });
@@ -172,7 +187,11 @@ class SavedRoutesPanel {
     });
     this.#list.querySelectorAll('.saved-route-copy').forEach((btn) => {
       btn.addEventListener('click', () => {
-        navigator.clipboard.writeText(`${window.location.origin}/explore?routeId=${btn.dataset.routeId}`);
+        // Older guest records predate slugs; their links fall back to the routeId form, which keeps working.
+        const url = btn.dataset.slug
+          ? `${window.location.origin}/r/${btn.dataset.slug}`
+          : `${window.location.origin}/explore?routeId=${btn.dataset.routeId}`;
+        navigator.clipboard.writeText(url);
         this.#setTemporaryTooltip(btn, i18next.t('copied-to-clipboard'));
         window.logWebpageActivity(`RouteBuilder_Click=SavedRoute_Copy_RouteId=${btn.dataset.routeId}`);
       });

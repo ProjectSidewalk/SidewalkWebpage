@@ -1,25 +1,29 @@
 package service
 
 import com.google.inject.ImplementedBy
-import formats.json.RouteBuilderFormats.NewRoute
-import models.route.{Route, RouteStreet, RouteStreetTable, RouteTable, RouteWithStats}
-import models.utils.{MyPostgresProfile, PolylineEncoder}
+import formats.json.RouteBuilderFormats.{NewRoute, NewRouteStreet, RouteUpdate}
+import models.route._
+import models.utils.{MyPostgresProfile, PolylineEncoder, SlugUtils}
 import models.utils.MyPostgresProfile.api._
+import org.postgresql.util.PSQLException
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
+import java.util.UUID
 import javax.inject._
+import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * Business logic for user-created routes (RouteBuilder): saving, listing, renaming, and soft-deleting.
+ * Business logic for user-created routes (RouteBuilder): saving, listing, updating, and soft-deleting.
  */
 @ImplementedBy(classOf[RouteServiceImpl])
 trait RouteService {
-  def saveRoute(route: NewRoute, userId: String): Future[(Int, String)]
+  def saveRoute(route: NewRoute, userId: String): Future[(Int, String, String)]
   def getRoutesForUser(userId: String): Future[Seq[RouteWithStats]]
   def getRouteStreets(routeId: Int): Future[Option[Seq[RouteStreet]]]
-  def renameRoute(routeId: Int, userId: String, newName: String): Future[Boolean]
+  def updateRoute(routeId: Int, userId: String, update: RouteUpdate): Future[Option[(String, String)]]
+  def resolveSlug(slug: String): Future[Option[Int]]
   def deleteRoute(routeId: Int, userId: String): Future[Boolean]
 }
 
@@ -28,30 +32,86 @@ class RouteServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     routeTable: RouteTable,
     routeStreetTable: RouteStreetTable,
+    routeSlugAliasTable: RouteSlugAliasTable,
+    auditTaskUserRouteTable: AuditTaskUserRouteTable,
     implicit val ec: ExecutionContext
 ) extends RouteService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
+  /** SQLState for a Postgres unique-constraint violation, the backstop for concurrent slug generation. */
+  private val UniqueViolation: String = "23505"
+
   /**
-   * Saves a new route and its ordered streets.
-   *
-   * The order of the streets is preserved when saving to db (route_street's serial id carries the sequence).
-   * If no name was submitted, the route is named "Route <id>".
-   *
-   * @return The new route's id and its saved name.
+   * Runs a slug-generating action, retrying once if a concurrent save grabbed the same slug between our
+   * uniqueness check and the insert (the action recomputes the slug, so the retry picks the next free suffix).
    */
-  def saveRoute(route: NewRoute, userId: String): Future[(Int, String)] = {
+  private def withSlugRetry[T](action: => Future[T]): Future[T] = {
+    action.recoverWith { case e: PSQLException if e.getSQLState == UniqueViolation => action }
+  }
+
+  /**
+   * Picks a unique slug for the given name: the slugified name itself, or the first free "-2"/"-3"/... variant.
+   *
+   * Slugs of deleted routes and retired slugs in route_slug_alias stay reserved so recycled slugs can't point an
+   * old share link at a different route. The route's own current slug and own aliases are treated as free —
+   * renaming a route back to an earlier name reclaims the earlier slug (its alias row is deleted here so the
+   * slug can become current again).
+   *
+   * @param name        The route name to slugify.
+   * @param ownRouteId  The route being renamed, if any; its own slugs don't block the candidate.
+   */
+  private def uniqueSlugAction(name: String, ownRouteId: Option[Int]): DBIO[String] = {
+    val base: String = SlugUtils.slugify(name)
+    for {
+      routeSlugs: Seq[(String, Int)] <- routeTable.slugsStartingWith(base)
+      aliasSlugs: Seq[(String, Int)] <- routeSlugAliasTable.slugsStartingWith(base)
+      taken: Set[String] = (routeSlugs ++ aliasSlugs).collect {
+        case (slug, routeId) if !ownRouteId.contains(routeId) => slug
+      }.toSet
+      candidate: String =
+        if (!taken.contains(base)) { base }
+        else { LazyList.from(2).map(n => s"$base-$n").find(!taken.contains(_)).get }
+      // If the candidate is one of the route's own retired slugs, reclaim it (no-op otherwise).
+      _ <- ownRouteId.map(routeSlugAliasTable.deleteOwnAlias(candidate, _)).getOrElse(DBIO.successful(0))
+    } yield candidate
+  }
+
+  /** Trims a submitted description, mapping blank to None (a cleared/absent description is stored as NULL). */
+  private def cleanDescription(description: Option[String]): Option[String] =
+    description.map(_.trim).filter(_.nonEmpty)
+
+  /**
+   * Saves a new route and its ordered streets, generating a unique URL slug from the route's name.
+   *
+   * If no name was submitted, the route is named "Route <id>" (which needs the id, so the row is inserted with a
+   * placeholder slug that is replaced in the same transaction).
+   *
+   * @return The new route's id, saved name, and slug.
+   */
+  def saveRoute(route: NewRoute, userId: String): Future[(Int, String, String)] = withSlugRetry {
     val submittedName: Option[String] = route.name.map(_.trim).filter(_.nonEmpty)
+    val description: Option[String]   = cleanDescription(route.description)
     db.run((for {
+      initialSlug: String <- submittedName
+        .map(uniqueSlugAction(_, None))
+        .getOrElse(DBIO.successful(s"route-tmp-${UUID.randomUUID}"))
       routeId: Int <- routeTable.insert(
-        Route(0, userId, route.regionId, submittedName.getOrElse(""), public = false, deleted = false,
-          OffsetDateTime.now)
+        Route(0, userId, route.regionId, submittedName.getOrElse(""), initialSlug, description, public = false,
+          deleted = false, OffsetDateTime.now)
       )
       savedName: String = submittedName.getOrElse(s"Route $routeId")
-      _ <- if (submittedName.isEmpty) routeTable.rename(routeId, userId, savedName) else DBIO.successful(0)
-      newRouteStreets = route.streets.map(street => RouteStreet(0, routeId, street.streetId, street.reverse))
+      savedSlug: String <-
+        if (submittedName.isEmpty) {
+          for {
+            slug: String <- uniqueSlugAction(savedName, Some(routeId))
+            _            <- routeTable.updateNameAndSlug(routeId, userId, savedName, slug)
+          } yield slug
+        } else { DBIO.successful(initialSlug) }
+      newRouteStreets = route.streets.zipWithIndex.map { case (street, position) =>
+        RouteStreet(0, routeId, street.streetId, street.reverse, position)
+      }
       _ <- routeStreetTable.insertMultiple(newRouteStreets)
-    } yield (routeId, savedName)).transactionally)
+    } yield (routeId, savedName, savedSlug)).transactionally)
   }
 
   /**
@@ -103,12 +163,97 @@ class RouteServiceImpl @Inject() (
     }
 
   /**
-   * Renames a route owned by the given user.
+   * Updates a route owned by the given user: any subset of its name (regenerating the slug and retiring the old
+   * one as a redirect alias), its public description, and its full street list (reconciled in place so the route
+   * keeps its id, stats, and share links).
    *
-   * @return False if the route doesn't exist, is deleted, or isn't owned by userId.
+   * @return The route's resulting (name, slug), or None if the route doesn't exist, is deleted, or isn't owned
+   *         by userId.
    */
-  def renameRoute(routeId: Int, userId: String, newName: String): Future[Boolean] =
-    db.run(routeTable.rename(routeId, userId, newName)).map(_ > 0)
+  def updateRoute(routeId: Int, userId: String, update: RouteUpdate): Future[Option[(String, String)]] =
+    withSlugRetry {
+      db.run((for {
+        routeOpt: Option[Route] <- routeTable.getRouteOwned(routeId, userId)
+        result                  <- routeOpt match {
+          case None        => DBIO.successful(None)
+          case Some(route) =>
+            val newName: Option[String] = update.name.map(_.trim).filter(n => n.nonEmpty && n != route.name)
+            for {
+              nameAndSlug: (String, String) <- newName match {
+                case None       => DBIO.successful((route.name, route.slug))
+                case Some(name) =>
+                  for {
+                    slug: String <- uniqueSlugAction(name, Some(routeId))
+                    _            <- routeTable.updateNameAndSlug(routeId, userId, name, slug)
+                    // Retire the outgoing slug so its share links keep redirecting.
+                    _ <-
+                      if (slug != route.slug) {
+                        routeSlugAliasTable.insert(RouteSlugAlias(route.slug, routeId, OffsetDateTime.now))
+                      } else { DBIO.successful(0) }
+                  } yield (name, slug)
+              }
+              _ <- update.description match {
+                case Some(desc) => routeTable.updateDescription(routeId, userId, cleanDescription(Some(desc)))
+                case None       => DBIO.successful(0)
+              }
+              _ <- update.streets match {
+                case Some(streets) => reconcileStreetsAction(routeId, streets)
+                case None          => DBIO.successful(())
+              }
+            } yield Some(nameAndSlug)
+        }
+      } yield result).transactionally)
+    }
+
+  /**
+   * Replaces a route's street list in place, preserving the route_street rows of streets that stay in the route.
+   *
+   * Preserving surviving rows matters because audit_task_user_route rows (a user's route progress in Explore)
+   * FK-reference them: an in-progress exploration keeps its progress on surviving streets, loses it only for
+   * removed streets, and picks up added streets — completion recomputes naturally on the user's next submission.
+   * Rows are matched greedily in walking order by street_edge_id, which also handles a street appearing twice in
+   * one route (e.g. an out-and-back).
+   */
+  private def reconcileStreetsAction(routeId: Int, newStreets: Seq[NewRouteStreet]): DBIO[Unit] = {
+    routeStreetTable.getRouteStreets(routeId).flatMap { existing =>
+      val unmatched: mutable.Map[Int, mutable.Queue[RouteStreet]] =
+        mutable.Map.from(existing.groupBy(_.streetEdgeId).view.mapValues(rows => mutable.Queue.from(rows)))
+
+      val updatesAndInserts: Seq[DBIO[Int]] = newStreets.zipWithIndex.map { case (street, position) =>
+        unmatched.get(street.streetId).flatMap(queue => if (queue.nonEmpty) Some(queue.dequeue()) else None) match {
+          case Some(row) if row.position == position && row.reverse == street.reverse => DBIO.successful(0)
+          case Some(row) => routeStreetTable.updatePositionAndReverse(row.routeStreetId, position, street.reverse)
+          case None      =>
+            routeStreetTable.insert(RouteStreet(0, routeId, street.streetId, street.reverse, position))
+        }
+      }
+
+      val removedIds: Seq[Int] = unmatched.values.flatten.map(_.routeStreetId).toSeq
+      for {
+        _ <- DBIO.sequence(updatesAndInserts)
+        // Progress links FK-reference the removed rows, so they go first; the audit tasks themselves survive.
+        _ <-
+          if (removedIds.nonEmpty) auditTaskUserRouteTable.deleteForRouteStreets(removedIds)
+          else DBIO.successful(0)
+        _ <- if (removedIds.nonEmpty) routeStreetTable.deleteByIds(removedIds) else DBIO.successful(0)
+      } yield ()
+    }
+  }
+
+  /**
+   * Resolves a share slug to a route id: the current slug of a live route, or a retired slug still redirecting.
+   *
+   * @return None if the slug is unknown or its route has been soft-deleted.
+   */
+  def resolveSlug(slug: String): Future[Option[Int]] =
+    db.run(routeTable.getRouteIdBySlug(slug)).flatMap {
+      case Some(routeId) => Future.successful(Some(routeId))
+      case None          =>
+        db.run(routeSlugAliasTable.getRouteIdBySlug(slug)).flatMap {
+          case Some(routeId) => db.run(routeTable.getRoute(routeId)).map(_.map(_.routeId))
+          case None          => Future.successful(None)
+        }
+    }
 
   /**
    * Soft-deletes a route owned by the given user. Share links to the route stop working.

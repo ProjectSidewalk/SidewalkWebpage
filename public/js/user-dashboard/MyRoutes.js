@@ -49,11 +49,15 @@ class MyRoutes {
   }
 
   /**
-   * Copies the route's shareable Explore link to the clipboard and confirms with a toast.
+   * Copies the route's shareable link to the clipboard and confirms with a toast. The slug URL (/r/<slug>) is
+   * preferred; rows without one fall back to the routeId link, which also keeps working.
    * @param {HTMLElement} btn - The clicked copy button (carries data-route-id).
    */
   #copyLink(btn) {
-    const url = `${window.location.origin}/explore?routeId=${btn.dataset.routeId}`;
+    const slug = btn.closest('.ud-route-row')?.dataset.slug;
+    const url = slug
+      ? `${window.location.origin}/r/${slug}`
+      : `${window.location.origin}/explore?routeId=${btn.dataset.routeId}`;
     navigator.clipboard.writeText(url);
     Toast.show({ message: i18next.t('dashboard:routes-link-copied'), reference: btn });
     this.#announce(i18next.t('dashboard:routes-link-copied'));
@@ -115,6 +119,8 @@ class MyRoutes {
           return;
         }
         nameEl.textContent = data.name;
+        // A rename regenerates the slug; keep the row's copy-link fresh (old links still redirect).
+        if (typeof data.slug === 'string') row.dataset.slug = data.slug;
         closeForm();
         this.#announce(i18next.t('dashboard:routes-renamed'));
         window.logWebpageActivity(`Click_module=RouteList_Rename_RouteId=${row.dataset.routeId}`);

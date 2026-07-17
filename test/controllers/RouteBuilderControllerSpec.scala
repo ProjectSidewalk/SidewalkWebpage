@@ -14,11 +14,12 @@ import play.api.test.Helpers._
 import java.util.UUID
 
 /**
- * In-JVM functional tests for the RouteBuilder route CRUD (#3343/#3342): saving a named route, listing a user's
- * routes, renaming, and soft-deleting. Boots the real app against Postgres so routing, the CSRF filter, Silhouette,
- * the profanity guard, and the DAO layer all run.
+ * In-JVM functional tests for the RouteBuilder route CRUD (#3343/#3342): saving a named route (with its URL slug
+ * and optional description), listing a user's routes, updating a route in place (rename, description, street
+ * list), resolving /r/<slug> share links, and soft-deleting. Boots the real app against Postgres so routing, the
+ * CSRF filter, Silhouette, the profanity guard, and the DAO layer all run.
  *
- * Ownership is the key contract: rename/delete are scoped to the requesting user in the WHERE clause, so another
+ * Ownership is the key contract: updates/deletes are scoped to the requesting user in the WHERE clause, so another
  * user's mutation attempts must 404 without touching the row.
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
@@ -55,13 +56,21 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   /** Fetches a real (street_edge_id, region_id) pair so saved routes reference valid streets. */
   private def anyStreet(userCookies: Seq[Cookie]): (Int, Int) = {
+    val (streetIds, regionId) = streetsInRegion(userCookies, 1)
+    (streetIds.head, regionId)
+  }
+
+  /** Fetches n distinct street ids that share one region, for routes whose street list gets edited. */
+  private def streetsInRegion(userCookies: Seq[Cookie], n: Int): (Seq[Int], Int) = {
     val resp = route(
       app,
       FakeRequest(GET, "/contribution/streets/all?filterLowQuality=true").withCookies(userCookies: _*)
     ).get
     status(resp) mustBe OK
-    val props = ((contentAsJson(resp) \ "features")(0) \ "properties").as[JsObject]
-    ((props \ "street_edge_id").as[Int], (props \ "region_id").as[Int])
+    val features           = (contentAsJson(resp) \ "features").as[Seq[JsValue]]
+    val byRegion           = features.groupBy(f => (f \ "properties" \ "region_id").as[Int])
+    val (regionId, inSame) = byRegion.find(_._2.size >= n).get
+    (inSame.take(n).map(f => (f \ "properties" \ "street_edge_id").as[Int]), regionId)
   }
 
   private def saveRouteBody(regionId: Int, streetId: Int, name: Option[String]): JsObject = {
@@ -80,6 +89,30 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     status(resp) mustBe OK
     contentAsJson(resp).as[Seq[JsValue]]
   }
+
+  private def putRoute(userCookies: Seq[Cookie], routeId: Int, body: JsValue) = route(
+    app,
+    FakeRequest(PUT, s"/userapi/routes/$routeId")
+      .withHeaders(XHR)
+      .withCookies(userCookies: _*)
+      .withJsonBody(body)
+      .withCSRFToken
+  ).get
+
+  /** Fetches a route's street list as (street_id, reverse) pairs in walking order. */
+  private def getRouteStreets(userCookies: Seq[Cookie], routeId: Int): Seq[(Int, Boolean)] = {
+    val resp = route(app, FakeRequest(GET, s"/userapi/routes/$routeId/streets").withCookies(userCookies: _*)).get
+    status(resp) mustBe OK
+    (contentAsJson(resp) \ "streets")
+      .as[Seq[JsValue]]
+      .map(s => ((s \ "street_id").as[Int], (s \ "reverse").as[Boolean]))
+  }
+
+  private def streetsBody(streets: (Int, Boolean)*): JsValue =
+    Json.obj("streets" -> streets.map { case (id, rev) => Json.obj("street_id" -> id, "reverse" -> rev) })
+
+  /** A short unique tag for route names so slug assertions are deterministic against a shared database. */
+  private def uniqueTag(): String = UUID.randomUUID().toString.replace("-", "").take(12)
 
   "The RouteBuilder routes" should {
     "exist and redirect an unauthenticated GET /userapi/routes to sign-in (3xx, not 404)" in {
@@ -128,6 +161,126 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       val user                 = signUpFreshUser()
       val (streetId, regionId) = anyStreet(user)
       status(saveRoute(user, saveRouteBody(regionId, streetId, Some("x" * 101)))) mustBe BAD_REQUEST
+    }
+
+    "generate a slug from the name, suffixing duplicates" in {
+      val user                 = signUpFreshUser()
+      val (streetId, regionId) = anyStreet(user)
+      val tag                  = uniqueTag()
+
+      val first = saveRoute(user, saveRouteBody(regionId, streetId, Some(s"Walk $tag")))
+      status(first) mustBe OK
+      (contentAsJson(first) \ "slug").as[String] mustBe s"walk-$tag"
+
+      val second = saveRoute(user, saveRouteBody(regionId, streetId, Some(s"Walk $tag")))
+      status(second) mustBe OK
+      (contentAsJson(second) \ "slug").as[String] mustBe s"walk-$tag-2"
+
+      val listed = listRoutes(user).find(r => (r \ "route_id").as[Int] == (contentAsJson(first) \ "route_id").as[Int])
+      (listed.get \ "slug").as[String] mustBe s"walk-$tag"
+    }
+
+    "save an optional description, surfacing it in the route list" in {
+      val user                 = signUpFreshUser()
+      val (streetId, regionId) = anyStreet(user)
+
+      val body = saveRouteBody(regionId, streetId, Some(s"Described Walk ${uniqueTag()}")) +
+        ("description" -> Json.toJson("  An important route from our library to school.  "))
+      val saved = saveRoute(user, body)
+      status(saved) mustBe OK
+      val routeId = (contentAsJson(saved) \ "route_id").as[Int]
+
+      val listed = listRoutes(user).find(r => (r \ "route_id").as[Int] == routeId)
+      (listed.get \ "description").as[String] mustBe "An important route from our library to school."
+    }
+
+    "reject a description over 500 characters (400)" in {
+      val user                 = signUpFreshUser()
+      val (streetId, regionId) = anyStreet(user)
+      val body                 = saveRouteBody(regionId, streetId, None) + ("description" -> Json.toJson("x" * 501))
+      status(saveRoute(user, body)) mustBe BAD_REQUEST
+    }
+  }
+
+  "PUT /userapi/routes/:routeId with streets" should {
+    "replace the street list in place, serving it back in the updated walking order" in {
+      val user                  = signUpFreshUser()
+      val (streetIds, regionId) = streetsInRegion(user, 2)
+      val (a, b)                = (streetIds.head, streetIds(1))
+
+      val saved = saveRoute(user, saveRouteBody(regionId, a, Some(s"Edit Walk ${uniqueTag()}")))
+      status(saved) mustBe OK
+      val routeId = (contentAsJson(saved) \ "route_id").as[Int]
+
+      // Extend and reorder: the new first street (b) was inserted after a, so serving [b, a] proves the order
+      // comes from position, not from the serial route_street_id.
+      status(putRoute(user, routeId, streetsBody(b -> false, a -> true))) mustBe OK
+      getRouteStreets(user, routeId) mustBe Seq((b, false), (a, true))
+
+      // Shrink back to one street; the removed street's row is gone.
+      status(putRoute(user, routeId, streetsBody(a -> false))) mustBe OK
+      getRouteStreets(user, routeId) mustBe Seq((a, false))
+
+      // The route kept its id through both edits (same list row, updated street count).
+      val listed = listRoutes(user).find(r => (r \ "route_id").as[Int] == routeId)
+      (listed.get \ "street_count").as[Int] mustBe 1
+    }
+
+    "reject an empty street list and an empty update (400), and 404 a non-owner's street update" in {
+      val user                 = signUpFreshUser()
+      val (streetId, regionId) = anyStreet(user)
+      val saved                = saveRoute(user, saveRouteBody(regionId, streetId, None))
+      val routeId              = (contentAsJson(saved) \ "route_id").as[Int]
+
+      status(putRoute(user, routeId, Json.obj("streets" -> Json.arr()))) mustBe BAD_REQUEST
+      status(putRoute(user, routeId, Json.obj())) mustBe BAD_REQUEST
+
+      val other = signUpFreshUser()
+      status(putRoute(other, routeId, streetsBody(streetId -> true))) mustBe NOT_FOUND
+      getRouteStreets(user, routeId) mustBe Seq((streetId, false))
+    }
+  }
+
+  "GET /r/:slug" should {
+    "redirect current and retired slugs to Explore, 404ing unknown slugs and deleted routes" in {
+      val user                 = signUpFreshUser()
+      val (streetId, regionId) = anyStreet(user)
+      val tag                  = uniqueTag()
+
+      val saved = saveRoute(user, saveRouteBody(regionId, streetId, Some(s"Slug Walk $tag")))
+      status(saved) mustBe OK
+      val routeId = (contentAsJson(saved) \ "route_id").as[Int]
+      val slug1   = (contentAsJson(saved) \ "slug").as[String]
+      slug1 mustBe s"slug-walk-$tag"
+
+      // The share link works without any session cookies.
+      val visit = route(app, FakeRequest(GET, s"/r/$slug1")).get
+      status(visit) mustBe FOUND
+      header(LOCATION, visit).get must include(s"/explore?routeId=$routeId")
+
+      // A rename regenerates the slug; the retired slug keeps redirecting.
+      val renamed = putRoute(user, routeId, Json.obj("name" -> s"New Walk $tag"))
+      status(renamed) mustBe OK
+      val slug2 = (contentAsJson(renamed) \ "slug").as[String]
+      slug2 mustBe s"new-walk-$tag"
+      status(route(app, FakeRequest(GET, s"/r/$slug2")).get) mustBe FOUND
+      status(route(app, FakeRequest(GET, s"/r/$slug1")).get) mustBe FOUND
+
+      // Renaming back reclaims the original slug rather than minting a "-2" variant.
+      val renamedBack = putRoute(user, routeId, Json.obj("name" -> s"Slug Walk $tag"))
+      status(renamedBack) mustBe OK
+      (contentAsJson(renamedBack) \ "slug").as[String] mustBe slug1
+
+      status(route(app, FakeRequest(GET, s"/r/nope-$tag")).get) mustBe NOT_FOUND
+
+      // Deleting the route kills both its current and retired share links.
+      val delete = route(
+        app,
+        FakeRequest(DELETE, s"/userapi/routes/$routeId").withHeaders(XHR).withCookies(user: _*).withCSRFToken
+      ).get
+      status(delete) mustBe OK
+      status(route(app, FakeRequest(GET, s"/r/$slug1")).get) mustBe NOT_FOUND
+      status(route(app, FakeRequest(GET, s"/r/$slug2")).get) mustBe NOT_FOUND
     }
   }
 

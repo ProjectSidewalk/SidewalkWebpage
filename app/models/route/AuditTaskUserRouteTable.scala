@@ -84,4 +84,13 @@ class AuditTaskUserRouteTable @Inject() (
   def insert(newAuditTaskUserRoute: AuditTaskUserRoute): DBIO[Int] = {
     (auditTaskUserRoutes returning auditTaskUserRoutes.map(_.auditTaskId)) += newAuditTaskUserRoute
   }
+
+  /**
+   * Deletes the progress links for the given route streets. Used when a route edit removes streets: the links
+   * FK-reference route_street, and route-completion progress only makes sense for streets the route contains.
+   * The audit tasks themselves (and their labels) are untouched.
+   */
+  def deleteForRouteStreets(routeStreetIds: Seq[Int]): DBIO[Int] = {
+    auditTaskUserRoutes.filter(_.routeStreetId inSet routeStreetIds).delete
+  }
 }

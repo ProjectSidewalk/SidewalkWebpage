@@ -26,6 +26,7 @@ class Task {
     tutorialTask: null,
     wayType: null,
     routeStreetId: null,
+    routeStreetPosition: null,
   };
 
   /**
@@ -55,6 +56,7 @@ class Task {
     this.setProperty('auditTaskId', this.#geojson.properties.audit_task_id);
     this.setProperty('wayType', this.#geojson.properties.way_type);
     this.setProperty('routeStreetId', this.#geojson.properties.route_street_id);
+    this.setProperty('routeStreetPosition', this.#geojson.properties.route_street_position);
     this.setProperty('taskStart', new Date(this.#geojson.properties.task_start));
     if (this.#geojson.properties.completed) {
       this.#status.isComplete = true;

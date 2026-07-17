@@ -122,7 +122,7 @@
     <p>@Messages("dashboard.routes.intro")</p>
     <ul class="ud-routes" id="ud-routes-list" data-max-name-length="@models.route.Route.MaxNameLength" @if(myRoutes.isEmpty) {hidden}>
       @for(r <- myRoutes) {
-        <li class="ud-route-row" data-route-id="@r.routeId">
+        <li class="ud-route-row" data-route-id="@r.routeId" data-slug="@r.slug">
           @if(r.encodedPolyline.nonEmpty) {
             <a class="ud-route-view" data-route-id="@r.routeId" href="/routeBuilder?preview=@r.routeId" title="@Messages("dashboard.routes.view.title")">
               <img class="ud-route-thumb" src="@routeThumbUrl(r.encodedPolyline)" alt="" loading="lazy" width="180" height="90">
@@ -130,8 +130,11 @@
           }
           <div class="ud-route-info">
             <span class="ud-route-name">@r.name</span>
+            @r.description.map { desc =>
+              <span class="ud-route-desc">@desc</span>
+            }
             <span class="ud-route-meta">@r.regionName · @routeDistanceLabel(r.distanceMeters) · @routeDateLabel(r.createdAt)</span>
-            <span class="ud-route-usage">@Messages("dashboard.routes.stats", r.startedCount, r.completedCount)</span>
+            <span class="ud-route-usage" title="@Messages("dashboard.routes.stats.tooltip")">@Messages("dashboard.routes.stats", r.startedCount, r.completedCount)</span>
           </div>
           <div class="ud-route-actions">
             <a class="ud-btn-secondary ud-route-explore" data-route-id="@r.routeId" href="/explore?routeId=@r.routeId">@Messages("dashboard.routes.explore")</a>

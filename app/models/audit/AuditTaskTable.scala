@@ -51,8 +51,9 @@ case class NewTask(
     auditTaskId: Option[Int], // If it's not actually a "new" task, include the audit_task_id.
     currentMissionId: Option[Int],
     currentMissionStart: Option[Point], // If a mission was started mid-task, the loc where it started.
-    routeStreetId: Option[Int]
-) // The route_street_id if this task is part of a route.
+    routeStreetId: Option[Int],         // The route_street_id if this task is part of a route.
+    routeStreetPosition: Option[Int]    // The street's walking-order position within that route.
+)
 case class AuditedStreetWithTimestamp(
     streetEdgeId: Int,
     auditTaskId: Int,
@@ -377,7 +378,8 @@ class AuditTaskTable @Inject() (
       streetEdgeId: Int,
       missionId: Int,
       reverseStartPoint: Boolean = false,
-      routeStreetId: Option[Int] = None
+      routeStreetId: Option[Int] = None,
+      routeStreetPosition: Option[Int] = None
   ): DBIO[NewTask] = {
     val timestamp: OffsetDateTime = OffsetDateTime.now
 
@@ -400,7 +402,8 @@ class AuditTaskTable @Inject() (
       None: Option[Int], // auditTaskId is None for a new task.
       Some(missionId).asColumnOf[Option[Int]],
       None: Option[Point], // currentMissionStart is None for a new task.
-      routeStreetId
+      routeStreetId,
+      routeStreetPosition
     )
 
     edges.result.head.map(NewTask.tupled)
@@ -429,7 +432,8 @@ class AuditTaskTable @Inject() (
           None: Option[Int], // auditTaskId is None for a new task.
           missionId.asColumnOf[Option[Int]],
           None: Option[Point], // currentMissionStart is None for a new task.
-          None: Option[Int]    // routeStreetId is None for the tutorial task.
+          None: Option[Int],   // routeStreetId is None for the tutorial task.
+          None: Option[Int]    // routeStreetPosition is None for the tutorial task.
         )
       }
       .result
@@ -461,7 +465,8 @@ class AuditTaskTable @Inject() (
       None: Option[Int], // auditTaskId is None for a new task.
       Some(missionId).asColumnOf[Option[Int]],
       None: Option[Point], // currentMissionStart is None for a new task.
-      None: Option[Int]    // routeStreetId
+      None: Option[Int],   // routeStreetId
+      None: Option[Int]    // routeStreetPosition
     )
 
     // Get the priority of the highest priority task.
@@ -478,14 +483,16 @@ class AuditTaskTable @Inject() (
   /**
    * Gets the metadata for a task from its audit_task_id.
    *
-   * @param taskId           The audit_task_id to look up.
-   * @param routeStreetId    Route-street id to carry through onto the task, when auditing along a route.
-   * @param includeCompleted Match the task even if it is completed. Needed by the exploreAddress resume path (#4451),
-   *                         which must reload a drop-in street the session already finished.
+   * @param taskId              The audit_task_id to look up.
+   * @param routeStreetId       Route-street id to carry through onto the task, when auditing along a route.
+   * @param routeStreetPosition The street's walking-order position within that route.
+   * @param includeCompleted    Match the task even if it is completed. Needed by the exploreAddress resume path
+   *                            (#4451), which must reload a drop-in street the session already finished.
    */
   def selectTaskFromTaskId(
       taskId: Int,
       routeStreetId: Option[Int] = None,
+      routeStreetPosition: Option[Int] = None,
       includeCompleted: Boolean = false
   ): DBIO[Option[NewTask]] = {
     val matchingTasks = if (includeCompleted) auditTasks else activeTasks
@@ -496,7 +503,8 @@ class AuditTaskTable @Inject() (
       sc <- streetCompletedByAnyUser if sp.streetEdgeId === sc._1
     } yield (
       se.streetEdgeId, se.geom, at.currentLng, at.currentLat, se.wayType, at.startPointReversed, at.taskStart, sc._2,
-      sp.priority, at.completed, at.auditTaskId.?, at.currentMissionId, at.currentMissionStart, routeStreetId
+      sp.priority, at.completed, at.auditTaskId.?, at.currentMissionId, at.currentMissionStart, routeStreetId,
+      routeStreetPosition
     )
 
     newTask.result.headOption.map(_.map(NewTask.tupled))
@@ -536,7 +544,8 @@ class AuditTaskTable @Inject() (
       ucs.map(_._3),         // fill auditTaskId using the existing audit_task for this street if the user has one.
       ucs.map(_._4).flatten, // fill currentMissionId if the user has an existing mission for this street.
       ucs.map(_._5).flatten, // fill currentMissionStart if the user has an existing mission for this street.
-      None: Option[Int]
+      None: Option[Int],     // routeStreetId
+      None: Option[Int]      // routeStreetPosition
     )
 
     tasks.result.map(_.map(NewTask.tupled(_)))
@@ -588,7 +597,8 @@ class AuditTaskTable @Inject() (
       ucs.map(_._3),     // fill auditTaskId using the existing audit_task for this street if the user has one.
       ucs.flatMap(_._4), // fill currentMissionId if the user has an existing mission for this street.
       ucs.flatMap(_._5), // fill currentMissionStart if the user has an existing mission for this street.
-      _rs.routeStreetId.asColumnOf[Option[Int]]
+      _rs.routeStreetId.asColumnOf[Option[Int]],
+      _rs.position.asColumnOf[Option[Int]]
     )
 
     tasks.result.map(_.map(NewTask.tupled(_)))

@@ -15,7 +15,7 @@
 class RouteBuilder {
   // Zoom eased to when the first point lands, close enough that the basemap renders street names for building.
   static BUILD_ZOOM = 15.5;
-  // How long the explorer takes to walk the route in the save-hover preview animation.
+  // How long the explorer takes to walk the route in the preview animation.
   static EXPLORER_ANIMATION_MS = 2500;
   // How long the pointer rests on the drawn route before its action menu opens (discoverable but not twitchy).
   static ROUTE_MENU_HOVER_MS = 500;
@@ -53,6 +53,7 @@ class RouteBuilder {
 
   #mapboxApiKey;
   #map;
+  #cityView; // The city's default {center, zoom}, for resetting the camera when starting over.
   #isSignedIn;
 
   // Route state. The route is fully defined by #waypoints; everything else is derived from it.
@@ -70,7 +71,8 @@ class RouteBuilder {
   #hintPopup = null; // The next-step hint anchored at the newest flag (null when not showing).
   #hintTimeout = null; // Auto-hide timer for #hintPopup.
   #cursorGuide = null; // The pointer-following what-a-click-does bubble (created lazily).
-  #previewRouteId = null; // Saved route currently shown as a read-only preview (null when building normally).
+  #editingRouteId = null; // The saved route loaded in the editor (null while building a brand-new route).
+  #savedBaseline = null; // JSON of #routeStreetsPayload() at the last save/load; differing payload = unsaved edits.
 
   // Collaborators.
   #saveModal;
@@ -85,11 +87,15 @@ class RouteBuilder {
   #deleteRouteModal;
   #streetDistanceEl;
   #routeTimeEl;
-  #streetCountEl;
-  #regionChipEl;
+  #statsCaptionEl;
   #routeStatsEl;
-  #routeMetaRowEl;
   #saveButton;
+  #previewButton;
+  #defaultSaveLabel;
+  #deleteTitleEl;
+  #deleteExplanationEl;
+  #deleteConfirmButton;
+  #defaultDeleteCopy;
 
   /**
    * @param {string} mapboxApiKey
@@ -110,30 +116,47 @@ class RouteBuilder {
     this.#deleteRouteModal = document.getElementById('delete-route-modal-backdrop');
     this.#streetDistanceEl = document.getElementById('route-length-val');
     this.#routeTimeEl = document.getElementById('route-time-val');
-    this.#streetCountEl = document.getElementById('route-street-count');
-    this.#regionChipEl = document.getElementById('route-region-chip');
+    this.#statsCaptionEl = document.getElementById('route-stats-caption');
     this.#routeStatsEl = document.getElementById('route-stats');
-    this.#routeMetaRowEl = document.getElementById('route-meta-row');
     this.#saveButton = document.getElementById('save-button');
+    this.#previewButton = document.getElementById('preview-button');
+    this.#defaultSaveLabel = this.#saveButton.textContent;
+    this.#deleteTitleEl = document.getElementById('delete-route-title');
+    this.#deleteExplanationEl = document.getElementById('delete-route-explanation');
+    this.#deleteConfirmButton = document.getElementById('delete-route-button');
+    // The confirm modal's server-rendered copy is for the brand-new-route case; editing swaps it (and back).
+    this.#defaultDeleteCopy = {
+      title: this.#deleteTitleEl.textContent,
+      explanation: this.#deleteExplanationEl.textContent,
+      button: this.#deleteConfirmButton.textContent,
+    };
 
     // Wire the route-management buttons.
     document.getElementById('cancel-button').addEventListener('click', () => this.#clickCancelRoute());
+    // Clears everything so the user can start a fresh route (confirming first if unsaved work would be lost),
+    // zooming back out to the city view so the neighborhood choice is on screen.
+    document.getElementById('new-route-button').addEventListener('click', () => {
+      window.logWebpageActivity('RouteBuilder_Click=NewRoute');
+      if (!this.#unsavedWorkConfirmed()) return;
+      this.#exitEditSession();
+      this.#map.flyTo({ center: this.#cityView.center, zoom: this.#cityView.zoom, duration: 1200 });
+    });
     document.getElementById('delete-route-button').addEventListener('click', (e) => this.#clearRoute(e));
     document.getElementById('cancel-delete-route-button').addEventListener('click', () => this.#clickResumeRoute());
 
     this.#saveModal = new SaveModal({
       isSignedIn: this.#isSignedIn,
       getRegionId: () => this.#currRegionId,
-      getRegionName: () => this.#getRegionName(this.#currRegionId),
       getStreetsPayload: () => this.#routeStreetsPayload(),
-      onSaved: (routeId, name) => this.#handleRouteSaved(routeId, name),
+      getSuggestedName: () => this.#suggestedRouteName(),
+      onSaved: (routeId, name, slug) => this.#handleRouteSaved(routeId, name, slug),
       onClose: () => this.#saveButton.focus(),
     });
     this.#savedRoutes = new SavedRoutesPanel({
       isSignedIn: this.#isSignedIn,
       formatMeta: (distanceMeters, regionName) => this.#formatRouteMeta(distanceMeters, regionName),
       setTemporaryTooltip: (btn, message) => this.#setTemporaryTooltip(btn, message),
-      onView: (routeId) => this.#toggleRoutePreview(routeId),
+      onView: (routeId) => this.#loadRouteForEditing(routeId),
       thumbnailUrl: (encodedPolyline) => this.#thumbnailUrl(encodedPolyline),
     });
     this.#savedRoutes.refresh();
@@ -154,6 +177,7 @@ class RouteBuilder {
 
     // Initialize the map.
     mapboxgl.accessToken = mapboxApiKey;
+    this.#cityView = { center: [mapParams.city_center.lng, mapParams.city_center.lat], zoom: mapParams.default_zoom };
     this.#map = new mapboxgl.Map({
       container: 'routebuilder-map',
       style: 'mapbox://styles/projectsidewalk/cloov4big002801rc0qw75w5g',
@@ -204,10 +228,19 @@ class RouteBuilder {
     });
     this.#routePopover = new RoutePopover(this.#map, () => this.#reverseRoute(), () => this.#openDeleteConfirm());
 
-    this.#saveButton.addEventListener('click', () => this.#saveModal.open());
-    // A playful preview: hovering (or keyboard-focusing) Save walks the explorer along the route.
-    this.#saveButton.addEventListener('mouseenter', () => this.#animateExplorer());
-    this.#saveButton.addEventListener('focus', () => this.#animateExplorer());
+    // A brand-new route saves through the name modal; a loaded saved route updates in place, Word-style.
+    this.#saveButton.addEventListener('click', () => {
+      if (this.#editingRouteId !== null) {
+        this.#updateSavedRoute();
+      } else {
+        this.#saveModal.open();
+      }
+    });
+    // A playful preview: the explorer walks the route from start to end.
+    this.#previewButton.addEventListener('click', () => {
+      window.logWebpageActivity('RouteBuilder_Click=PreviewRoute');
+      this.#animateExplorer();
+    });
 
     document.getElementById('poi-toggle-checkbox')?.addEventListener('change', (e) => {
       window.logWebpageActivity(`RouteBuilder_Click=TogglePois_Visible=${e.target.checked}`);
@@ -280,10 +313,7 @@ class RouteBuilder {
    */
   #updateCta() {
     if (!this.#ctaEl) return;
-    if (this.#previewRouteId !== null) {
-      this.#ctaEl.textContent = i18next.t('cta-preview');
-      this.#ctaEl.hidden = false;
-    } else if (!this.#routeStarted()) {
+    if (!this.#routeStarted()) {
       const key = this.#currRegionId === null ? 'cta-select-region' : 'cta-pick-start';
       this.#ctaEl.innerHTML = `
         <img src="/assets/images/icons/routebuilder/flag-start.svg" class="cta-flag" alt="">
@@ -597,11 +627,6 @@ class RouteBuilder {
         this.#routePopover.open(event.lngLat, true);
         return;
       }
-      if (this.#previewRouteId !== null) {
-        window.logWebpageActivity('RouteBuilder_Click=ExitRoutePreview');
-        this.#clearPreview();
-        return;
-      }
       if (!this.#routeStarted()) {
         const clickedRegionId = this.#regionIdAtPoint(event.point);
         if (clickedRegionId === null) return; // Clicked outside every neighborhood.
@@ -660,7 +685,6 @@ class RouteBuilder {
   #updateGhost(hoverRegionId) {
     const source = this.#map.getSource('ghost-start');
     if (!source || this.#currRegionId === null || !this.#routeGraph) return;
-    if (this.#previewRouteId !== null) return; // A previewed route isn't being edited; no placement preview.
     if (this.#routeStarted() && hoverRegionId !== null && hoverRegionId !== this.#currRegionId) {
       this.#clearGhostStart();
       this.#map.getCanvas().style.cursor = 'not-allowed';
@@ -720,7 +744,7 @@ class RouteBuilder {
         closeButton: false,
         closeOnClick: false,
         maxWidth: '260px',
-        offset: 18,
+        offset: 30, // Large enough that the bubble clears the ghost flag sitting at the snapped intersection.
         className: 'rb-cursor-guide',
       }).trackPointer();
     }
@@ -873,33 +897,61 @@ class RouteBuilder {
   }
 
   /**
-   * Updates the stats block in the planner card: distance, estimated exploration time (distance x the city's
-   * labeling pace), street count, and the neighborhood chip. Cleared when the route is empty.
+   * Updates the stats block in the planner card: a headline of estimated exploration time (distance x the city's
+   * labeling pace) and distance, with a street-count + neighborhood caption below. Cleared when the route is empty.
    */
   #updateStats() {
     const feats = this.#streetsInRoute.features;
     // A lone start point isn't a route yet: no stats to show, nothing to save.
     const hasRoute = feats.length > 0;
     this.#routeStatsEl.hidden = !hasRoute;
-    this.#routeMetaRowEl.hidden = !hasRoute;
-    this.#saveButton.disabled = !hasRoute;
+    this.#updateSaveButton();
     if (!hasRoute) {
       this.#streetDistanceEl.innerText = '';
       this.#routeTimeEl.innerText = '';
-      this.#streetCountEl.innerText = '';
-      this.#regionChipEl.textContent = '';
-      this.#regionChipEl.hidden = true;
+      this.#statsCaptionEl.textContent = '';
       return;
     }
 
     const km = feats.reduce((sum, street) => sum + turf.length(street, { units: 'kilometers' }), 0);
     this.#streetDistanceEl.innerText = this.#formatDistance(km);
     this.#routeTimeEl.innerText = this.#formatEstTime(km);
-    this.#streetCountEl.innerText = i18next.t('street-count', { count: feats.length });
 
     const regionName = this.#getRegionName(this.#currRegionId);
-    this.#regionChipEl.textContent = regionName ?? '';
-    this.#regionChipEl.hidden = regionName === null;
+    this.#statsCaptionEl.textContent = regionName
+      ? i18next.t('street-count-in-region', { count: feats.length, region: regionName })
+      : i18next.t('street-count', { count: feats.length });
+  }
+
+  /**
+   * Whether the loaded saved route has edits that haven't been written back to the database.
+   * @returns {boolean}
+   */
+  #isDirty() {
+    return this.#editingRouteId !== null
+      && JSON.stringify(this.#routeStreetsPayload()) !== this.#savedBaseline;
+  }
+
+  /**
+   * Keeps the save button's label and enabled state in sync with the editing state: "Save route" for a new
+   * route, "Update route" for a loaded route with unsaved edits, and a disabled "Saved" once written back.
+   * Also mirrors the editing state onto the planner card, which shows the saved-route cards while a saved
+   * route is open so the just-saved/loaded route is visible in the panel.
+   */
+  #updateSaveButton() {
+    this.#panel.dataset.editing = this.#editingRouteId !== null;
+    const hasRoute = (this.#streetsInRoute?.features.length ?? 0) > 0;
+    this.#previewButton.disabled = !hasRoute;
+    if (this.#editingRouteId === null) {
+      this.#saveButton.textContent = this.#defaultSaveLabel;
+      this.#saveButton.disabled = !hasRoute;
+    } else if (this.#isDirty()) {
+      this.#saveButton.textContent = i18next.t('save-update');
+      this.#saveButton.disabled = !hasRoute;
+    } else {
+      this.#saveButton.textContent = i18next.t('save-saved');
+      this.#saveButton.disabled = true;
+    }
   }
 
   /**
@@ -1007,8 +1059,8 @@ class RouteBuilder {
   }
 
   /**
-   * Walks the explorer along the route from start to end — a playful preview, triggered by hovering/focusing the
-   * Save button. One run at a time; the icon lingers at the end for a beat, then disappears.
+   * Walks the explorer along the route from start to end — a playful preview, triggered by the Preview button.
+   * One run at a time; the icon lingers at the end for a beat, then disappears.
    */
   #animateExplorer() {
     const feats = this.#streetsInRoute.features;
@@ -1024,7 +1076,6 @@ class RouteBuilder {
     const totalDist = cumDist[cumDist.length - 1];
     if (totalDist === 0) return;
 
-    window.logWebpageActivity('RouteBuilder_RoutePreviewAnimation');
     let startTime = null;
     const step = (now) => {
       if (startTime === null) startTime = now;
@@ -1101,9 +1152,10 @@ class RouteBuilder {
     this.#cancelExplorer();
     this.#hideHint();
     this.#unlockRegion();
+    this.#editingRouteId = null;
+    this.#savedBaseline = null;
     this.#updateStats();
     this.#saveDraft();
-    this.#previewRouteId = null;
     this.#savedRoutes.markActive(null);
   }
 
@@ -1138,10 +1190,10 @@ class RouteBuilder {
     this.#status.pendingRouteRestored = true;
     const pending = SaveModal.consumePendingRoute();
     if (!pending) {
-      // Deep link from the dashboard's route cards: /routeBuilder?preview=<id> opens straight into the preview.
+      // Deep link from the dashboard's route cards: /routeBuilder?preview=<id> opens the route in the editor.
       const previewParam = new URLSearchParams(window.location.search).get('preview');
       if (previewParam !== null && /^\d+$/.test(previewParam)) {
-        this.#toggleRoutePreview(Number(previewParam));
+        this.#loadRouteForEditing(Number(previewParam));
       } else {
         this.#restoreDraft();
       }
@@ -1152,12 +1204,11 @@ class RouteBuilder {
     if (features.length === 0) return;
 
     this.#selectRegion(features[0].properties.region_id, false);
+    // Reconstruct the waypoints so the restored route is editable after the save modal closes.
+    this.#waypoints = this.#waypointsFromStreets(features);
     this.#setPanelState('building');
-    this.#updateEndpointFlags();
-    this.#updateStats();
-    this.#directionsPanel.setEndVisible(true);
-    this.#updateCta();
-    this.#saveModal.open(pending.name || null);
+    this.#recompute();
+    this.#saveModal.open(pending.name || null, pending.description || null);
   }
 
   /**
@@ -1192,43 +1243,120 @@ class RouteBuilder {
   }
 
   /**
-   * Shows or hides a saved route on the map. Clicking a card previews that route (drawn like a built route with
-   * the camera fit to it, while the panel stays on the saved-routes list); clicking the same card — or anywhere
-   * on the map — exits back to the fresh building flow.
+   * Derives the dense waypoint chain for an already-drawn (oriented) street list: the first street's start, then
+   * every street's end in walking order. With a waypoint at each street boundary, #recompute's A* pass between
+   * adjacent boundary nodes reproduces the street sequence, so a loaded saved route is editable exactly like one
+   * the user just clicked out — and what's drawn is always exactly what an update will save.
+   *
+   * @param {Array<Object>} features - Oriented street features (as returned by #drawStreetList).
+   * @returns {Array<{lng: number, lat: number}>}
+   */
+  #waypointsFromStreets(features) {
+    if (features.length === 0) return [];
+    const first = features[0].geometry.coordinates[0];
+    const waypoints = [{ lng: first[0], lat: first[1] }];
+    features.forEach((f) => {
+      const end = f.geometry.coordinates[f.geometry.coordinates.length - 1];
+      waypoints.push({ lng: end[0], lat: end[1] });
+    });
+    return waypoints;
+  }
+
+  /**
+   * Confirms with the user before an action that would discard unsaved work: edits to a loaded saved route, or a
+   * drawn-but-never-saved route. No-ops (returns true) when nothing would be lost.
+   *
+   * @returns {boolean} True to proceed.
+   */
+  #unsavedWorkConfirmed() {
+    const unsavedWork = this.#editingRouteId !== null
+      ? this.#isDirty()
+      : (this.#streetsInRoute?.features.length ?? 0) > 0;
+    return !unsavedWork || window.confirm(i18next.t('unsaved-continue-confirm'));
+  }
+
+  /** Closes the editing session (or clears a new route), back to the intro state. The saved route is untouched. */
+  #exitEditSession() {
+    this.#emptyRoute();
+    this.#undoStack.clear();
+    this.#resetUI();
+  }
+
+  /**
+   * Loads a saved route into the editor: its streets are drawn, its waypoints reconstructed, and further edits
+   * update the same route in place. Clicking the already-loaded route's card closes the session instead.
    *
    * @param {number} routeId
    */
-  #toggleRoutePreview(routeId) {
-    if (this.#previewRouteId === routeId) {
-      this.#clearPreview();
+  #loadRouteForEditing(routeId) {
+    if (this.#editingRouteId === routeId) {
+      if (!this.#unsavedWorkConfirmed()) return;
+      window.logWebpageActivity('RouteBuilder_Click=ExitEditSession');
+      this.#exitEditSession();
       return;
     }
+    if (!this.#unsavedWorkConfirmed()) return;
     fetch(`/userapi/routes/${routeId}/streets`, { headers: { Accept: 'application/json' } })
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))))
       .then((data) => {
         if (!this.#status.streetsRendered) return;
-        this.#emptyRoute(); // Also exits any previous preview.
+        this.#emptyRoute(); // Also closes any previous editing session.
+        this.#undoStack.clear();
         const features = this.#drawStreetList(data.streets);
         if (features.length === 0) return;
-        this.#previewRouteId = routeId;
         this.#selectRegion(features[0].properties.region_id, false);
-        this.#updateEndpointFlags();
+        this.#waypoints = this.#waypointsFromStreets(features);
+        this.#setPanelState('building');
+        this.#recompute();
+        // If streets were dropped (e.g. since hidden as low-quality) or rerouted, say so — the user is looking
+        // at, and will save, the adjusted route.
+        if (this.#streetsInRoute.features.length !== data.streets.length) {
+          Toast.show({ message: i18next.t('route-adjusted'), duration: 4000 });
+        }
+        this.#editingRouteId = routeId;
+        // The baseline is what's actually drawn (post-recompute), so an untouched load reads as clean.
+        this.#savedBaseline = JSON.stringify(this.#routeStreetsPayload());
+        this.#saveDraft();
         this.#savedRoutes.markActive(routeId);
-        this.#updateCta();
-        const coords = features.flatMap((f) => f.geometry.coordinates);
+        this.#updateSaveButton();
+        const coords = this.#streetsInRoute.features.flatMap((f) => f.geometry.coordinates);
         this.#map.fitBounds(turf.bbox({ type: 'MultiPoint', coordinates: coords }),
           { padding: 80, maxZoom: 16, duration: 900 });
       })
       .catch((e) => {
-        console.error('Failed to load the route for preview:', e);
+        console.error('Failed to load the route for editing:', e);
         this.#showMapMessage(i18next.t('route-load-error'));
       });
   }
 
-  /** Exits the saved-route preview and returns to the fresh building flow. */
-  #clearPreview() {
-    this.#emptyRoute();
-    this.#resetUI();
+  /**
+   * Writes the current street list back to the loaded saved route (PUT). The route keeps its id, slug, stats,
+   * and share links; in-progress explorations reconcile server-side.
+   */
+  #updateSavedRoute() {
+    const payload = this.#routeStreetsPayload();
+    const routeId = this.#editingRouteId;
+    window.logWebpageActivity(`RouteBuilder_Click=UpdateRoute_RouteId=${routeId}`);
+    fetch(`/userapi/routes/${routeId}`, {
+      method: 'PUT',
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ streets: payload }),
+    })
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`${response.status}`))))
+      .then(() => {
+        this.#savedBaseline = JSON.stringify(payload);
+        this.#saveDraft();
+        this.#updateSaveButton();
+        this.#savedRoutes.refresh();
+        Toast.show({ message: i18next.t('route-updated'), duration: 3000 });
+        window.logWebpageActivity(`RouteBuilder_Click=UpdateSuccess_RouteId=${routeId}`);
+      })
+      .catch((e) => {
+        // A 404 means the route isn't ours anymore (e.g. a guest whose anonymous session rotated).
+        const gone = e.message === '404' || e.message === '403';
+        this.#showMapMessage(i18next.t(gone ? 'route-update-gone' : 'save-error'));
+        window.logWebpageActivity('RouteBuilder_Click=UpdateError');
+      });
   }
 
   /**
@@ -1239,7 +1367,14 @@ class RouteBuilder {
     try {
       if (this.#waypoints.length > 0) {
         sessionStorage.setItem(
-          RouteBuilder.DRAFT_KEY, JSON.stringify({ regionId: this.#currRegionId, waypoints: this.#waypoints }),
+          RouteBuilder.DRAFT_KEY,
+          JSON.stringify({
+            regionId: this.#currRegionId,
+            waypoints: this.#waypoints,
+            // The editing session too, so a reload resumes updating the same route instead of saving a copy.
+            editingRouteId: this.#editingRouteId,
+            savedBaseline: this.#savedBaseline,
+          }),
         );
       } else {
         sessionStorage.removeItem(RouteBuilder.DRAFT_KEY);
@@ -1267,8 +1402,14 @@ class RouteBuilder {
     try {
       this.#selectRegion(draft.regionId, false);
       this.#waypoints = draft.waypoints;
+      if (Number.isInteger(draft.editingRouteId)) {
+        this.#editingRouteId = draft.editingRouteId;
+        this.#savedBaseline = typeof draft.savedBaseline === 'string' ? draft.savedBaseline : null;
+        this.#savedRoutes.markActive(draft.editingRouteId);
+      }
       this.#setPanelState('building');
       this.#recompute();
+      this.#updateSaveButton();
       const coords = this.#streetsInRoute.features.flatMap((f) => f.geometry.coordinates);
       const points = coords.length > 0 ? coords : this.#waypoints.map((wp) => [wp.lng, wp.lat]);
       this.#map.fitBounds(turf.bbox({ type: 'MultiPoint', coordinates: points }),
@@ -1285,8 +1426,25 @@ class RouteBuilder {
     }
   }
 
-  /** Shows the delete-route confirmation modal. */
+  /**
+   * The trash-can / route-menu delete action. For a loaded saved route with no unsaved edits there is nothing to
+   * lose, so the session just closes; otherwise the confirmation modal opens, with its copy swapped while editing
+   * (discarding edits leaves the saved route intact — the server-rendered copy is about losing an unsaved route).
+   */
   #openDeleteConfirm() {
+    const editing = this.#editingRouteId !== null;
+    if (editing && !this.#isDirty()) {
+      window.logWebpageActivity('RouteBuilder_Click=ExitEditSession');
+      this.#exitEditSession();
+      return;
+    }
+    this.#deleteTitleEl.textContent = editing ? i18next.t('discard-edit-title') : this.#defaultDeleteCopy.title;
+    this.#deleteExplanationEl.textContent = editing
+      ? i18next.t('discard-edit-explanation')
+      : this.#defaultDeleteCopy.explanation;
+    this.#deleteConfirmButton.textContent = editing
+      ? i18next.t('discard-edit-button')
+      : this.#defaultDeleteCopy.button;
     this.#deleteRouteModal.style.visibility = 'visible';
   }
 
@@ -1347,14 +1505,15 @@ class RouteBuilder {
   }
 
   /**
-   * After a successful save: records the route (device-local list for guests), resets the builder to the intro
-   * state, refreshes the "Your saved routes" panel with the new route highlighted, and confirms with a toast —
-   * the card carries the share/explore actions, so there is no post-save modal.
+   * After a successful first save: records the route (device-local list for guests), then keeps the route on the
+   * map as an editing session — like saving a document, further edits update the same route via "Update route".
+   * The new card is highlighted in "Your saved routes" and a toast confirms.
    *
    * @param {number} routeId
    * @param {string} name - The route's saved name.
+   * @param {string} slug - The route's URL slug, for the /r/<slug> share link.
    */
-  #handleRouteSaved(routeId, name) {
+  #handleRouteSaved(routeId, name, slug) {
     if (!this.#isSignedIn) {
       const km = this.#streetsInRoute.features
         .reduce((sum, street) => sum + turf.length(street, { units: 'kilometers' }), 0);
@@ -1362,16 +1521,35 @@ class RouteBuilder {
       this.#savedRoutes.recordGuestRoute({
         routeId,
         name,
+        slug,
         regionName: this.#getRegionName(this.#currRegionId),
-        url: `${window.location.origin}/explore?routeId=${routeId}`,
+        url: `${window.location.origin}/r/${slug}`,
         distanceMeters: km * 1000,
         encodedPolyline: encodePolyline(decimateCoords(coords, 60)),
       });
     }
-    this.#emptyRoute();
-    this.#undoStack.clear();
-    this.#resetUI();
+    this.#editingRouteId = routeId;
+    this.#savedBaseline = JSON.stringify(this.#routeStreetsPayload());
+    this.#saveDraft();
+    this.#savedRoutes.markActive(routeId);
     this.#savedRoutes.refresh(routeId);
+    this.#updateSaveButton();
     Toast.show({ message: i18next.t('route-saved'), duration: 3000 });
+  }
+
+  /**
+   * Suggests a route name for the save modal from the reverse-geocoded start/end streets — "Palisade Ave to
+   * Cedar Ln", or just the street name for a single-street loop. Falls back to "Route in {region}" when the
+   * street names haven't resolved (geocoding is async/best-effort).
+   *
+   * @returns {string}
+   */
+  #suggestedRouteName() {
+    const { start, end } = this.#directionsPanel.getEndpointStreetNames();
+    if (start && end) {
+      return start === end ? start : i18next.t('route-name-streets', { start, end });
+    }
+    const regionName = this.#getRegionName(this.#currRegionId);
+    return regionName ? i18next.t('route-name-default', { region: regionName }) : '';
   }
 }

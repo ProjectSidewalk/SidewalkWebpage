@@ -1754,12 +1754,24 @@
 .ud-route-usage {
   font-size: var(--font-size-sm, 0.875rem);
   color: var(--color-text-muted, #546e7a);
+  cursor: help;
 }
 
 .ud-route-name {
   font-weight: 600;
   color: var(--color-text-heading, #263238);
   overflow-wrap: anywhere;
+}
+
+/* The creator's "why this route matters" blurb, clamped so long stories keep the row scannable. */
+.ud-route-desc {
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-text-muted, #546e7a);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .ud-route-meta {

@@ -190,7 +190,8 @@ object ExploreFormats {
         "current_mission_id"    -> task.currentMissionId,
         "current_mission_start" -> task.currentMissionStart, // TODO test that this looks right on the front end.
         // "current_mission_start" -> currentMissionStart.map(p => geojson.LatLng(p.getY, p.getX)),
-        "route_street_id" -> task.routeStreetId
+        "route_street_id"       -> task.routeStreetId,
+        "route_street_position" -> task.routeStreetPosition
       )
     )
   }

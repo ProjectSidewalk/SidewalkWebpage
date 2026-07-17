@@ -9,11 +9,12 @@ class SaveModal {
 
   #backdrop;
   #nameInput;
+  #descriptionInput;
   #nameError;
   #isSignedIn;
   #getRegionId;
-  #getRegionName;
   #getStreetsPayload;
+  #getSuggestedName;
   #onSaved;
   #onClose;
 
@@ -21,35 +22,41 @@ class SaveModal {
    * @param {Object} opts
    * @param {boolean} opts.isSignedIn - Whether the user is signed in (vs anonymous), from the server.
    * @param {Function} opts.getRegionId - Returns the current route's region id.
-   * @param {Function} opts.getRegionName - Returns the current route's region display name (or null).
    * @param {Function} opts.getStreetsPayload - Returns the ordered street list in the /saveRoute wire format.
-   * @param {Function} opts.onSaved - Called with (routeId, name) after a successful save.
+   * @param {Function} opts.getSuggestedName - Returns a suggested route name (e.g. from the endpoint streets).
+   * @param {Function} opts.onSaved - Called with (routeId, name, slug) after a successful save.
    * @param {Function} opts.onClose - Called after the modal closes (e.g. to restore focus).
    */
   constructor(opts) {
     this.#isSignedIn = opts.isSignedIn === true;
     this.#getRegionId = opts.getRegionId;
-    this.#getRegionName = opts.getRegionName;
     this.#getStreetsPayload = opts.getStreetsPayload;
+    this.#getSuggestedName = opts.getSuggestedName;
     this.#onSaved = opts.onSaved;
     this.#onClose = opts.onClose;
 
     this.#backdrop = document.getElementById('save-route-modal-backdrop');
     this.#nameInput = document.getElementById('route-name-input');
+    this.#descriptionInput = document.getElementById('route-description-input');
     this.#nameError = document.getElementById('route-name-error');
 
     // The sign-in button only exists for anonymous users.
     document.getElementById('confirm-save-button').addEventListener('click', () => this.#submit());
-    document.getElementById('back-save-button').addEventListener('click', () => this.close());
+    document.getElementById('cancel-save-button').addEventListener('click', () => this.#cancel());
+    document.getElementById('close-save-modal-button').addEventListener('click', () => this.#cancel());
     document.getElementById('signin-save-button')?.addEventListener('click', () => this.#stashRouteAndSignIn());
     this.#nameInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') this.#submit();
+    });
+    // Focus is always inside the dialog while it's open, so Escape bubbles here.
+    this.#backdrop.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') this.#cancel();
     });
   }
 
   /**
    * Reads and clears the route stashed before a sign-in reload.
-   * @returns {Object|null} {regionId, name, streets} or null if there is nothing (valid) to restore.
+   * @returns {Object|null} {regionId, name, description, streets} or null if there is nothing (valid) to restore.
    */
   static consumePendingRoute() {
     try {
@@ -66,13 +73,15 @@ class SaveModal {
    * Opens the save modal with a name suggestion the user can overwrite.
    *
    * @param {string} [prefillName] - Name to prefill (used when restoring a stashed route); defaults to a
-   *                                 localized "Route in {region}" suggestion.
+   *                                 suggestion built from the route's endpoint streets (or the region).
+   * @param {string} [prefillDescription] - Description to prefill (used when restoring a stashed route).
    */
-  open(prefillName = null) {
+  open(prefillName = null, prefillDescription = null) {
     window.logWebpageActivity('RouteBuilder_Click=OpenSaveModal');
-    const regionName = this.#getRegionName();
-    this.#nameInput.value
-      = prefillName ?? (regionName ? i18next.t('route-name-default', { region: regionName }) : '');
+    // maxlength doesn't apply to values set from JS, so the suggestion is clipped by hand.
+    const suggestion = (prefillName ?? this.#getSuggestedName()).slice(0, this.#nameInput.maxLength);
+    this.#nameInput.value = suggestion;
+    if (this.#descriptionInput) this.#descriptionInput.value = prefillDescription ?? '';
     this.#nameError.hidden = true;
     this.#backdrop.style.visibility = 'visible';
     this.#nameInput.focus();
@@ -82,6 +91,12 @@ class SaveModal {
   close() {
     this.#backdrop.style.visibility = 'hidden';
     this.#onClose();
+  }
+
+  /** Dismisses the modal without saving (Cancel button, the X, or Escape). */
+  #cancel() {
+    window.logWebpageActivity('RouteBuilder_Click=CloseSaveModal');
+    this.close();
   }
 
   /** Hides the modal without the close callback (used by the full-UI reset). */
@@ -100,6 +115,7 @@ class SaveModal {
       sessionStorage.setItem(SaveModal.PENDING_ROUTE_KEY, JSON.stringify({
         regionId: this.#getRegionId(),
         name: this.#nameInput.value.trim(),
+        description: this.#descriptionInput?.value.trim() ?? '',
         streets: this.#getStreetsPayload(),
       }));
     } catch {
@@ -118,6 +134,7 @@ class SaveModal {
   #submit() {
     if (!this.#isSignedIn) window.logWebpageActivity('RouteBuilder_Click=ContinueAsGuest');
     const name = this.#nameInput.value.trim();
+    const description = this.#descriptionInput?.value.trim() ?? '';
 
     fetch('/saveRoute', {
       method: 'POST',
@@ -125,7 +142,12 @@ class SaveModal {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ region_id: this.#getRegionId(), streets: this.#getStreetsPayload(), name }),
+      body: JSON.stringify({
+        region_id: this.#getRegionId(),
+        streets: this.#getStreetsPayload(),
+        name,
+        description,
+      }),
     })
       .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
       .then(({ ok, data }) => {
@@ -138,7 +160,7 @@ class SaveModal {
           return;
         }
         this.hide();
-        this.#onSaved(data.route_id, data.name);
+        this.#onSaved(data.route_id, data.name, data.slug);
         window.logWebpageActivity(`RouteBuilder_Click=SaveSuccess_RouteId=${data.route_id}`);
       })
       .catch((error) => {

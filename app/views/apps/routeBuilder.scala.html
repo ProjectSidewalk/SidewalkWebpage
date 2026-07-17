@@ -45,22 +45,19 @@
         </div>
       </div>
       <div class="routebuilder-panel__building">
-        <div id="route-meta-row" hidden>
-          <span id="route-region-chip" hidden></span>
-          <span id="route-street-count"></span>
-        </div>
         <div id="route-stats" hidden>
-          <div class="route-stat flex-div-col">
-            <span id="route-length-val" class="route-stat-value"></span>
-            <span class="route-stat-label">@Messages("routebuilder.stat.distance")</span>
+          <div id="route-stats-headline">
+            <span id="route-length-val"></span>
+            <span aria-hidden="true">·</span>
+            <span id="route-time-val" title="@Messages("routebuilder.stat.time.tooltip", paceRounded)"></span>
           </div>
-          <div class="route-stat route-stat--help flex-div-col" title="@Messages("routebuilder.stat.time.tooltip", paceRounded)">
-            <span id="route-time-val" class="route-stat-value"></span>
-            <span class="route-stat-label">@Messages("routebuilder.stat.time")</span>
-          </div>
+          <span id="route-stats-caption"></span>
         </div>
         <div id="creating-route-buttons" class="flex-div-row">
           <button type="button" id="save-button" class="button-ps button--primary button--medium" disabled>@Messages("routebuilder.save")</button>
+          <button type="button" id="preview-button" class="button-ps button--secondary button--medium button--icon-only" disabled aria-label="@Messages("routebuilder.preview")" title="@Messages("routebuilder.preview")">
+            <img src="@assets.path("images/icons/play-feather.svg")" class="button-icon-img" alt="">
+          </button>
           <button type="button" id="undo-button" class="button-ps button--secondary button--medium button--icon-only" disabled aria-label="@Messages("routebuilder.undo")" title="@Messages("routebuilder.undo")">
             <img src="@assets.path("images/icons/undo-material.svg")" class="button-icon-img" alt="">
           </button>
@@ -68,6 +65,7 @@
             <img src="@assets.path("images/icons/trash-2-feather.svg")" class="button-icon-img" alt="">
           </button>
         </div>
+        <button type="button" id="new-route-button" class="button-ps button--secondary button--medium">@Messages("routebuilder.new.route")</button>
       </div>
       <div id="saved-routes-panel" class="routebuilder-panel__saved" hidden>
         <span id="saved-routes-title" class="routebuilder-h2">@Messages("routebuilder.saved.routes")</span>
@@ -117,19 +115,28 @@
   </div>
   <div id="save-route-modal-backdrop" class="routebuilder-overlay-backdrop">
     <div id="save-route-modal" class="routebuilder-overlay routebuilder-centered-overlay" role="dialog" aria-modal="true" aria-labelledby="save-route-title">
-      <span id="save-route-title" class="routebuilder-h1">@Messages("routebuilder.name.your.route")</span>
+      <div id="save-route-header">
+        <span id="save-route-title" class="routebuilder-h1">@Messages("routebuilder.name.your.route")</span>
+        <button type="button" id="close-save-modal-button" aria-label="@Messages("routebuilder.close")">&times;</button>
+      </div>
       <label id="route-name-label" for="route-name-input">@Messages("routebuilder.route.name.label")</label>
       <input type="text" id="route-name-input" maxlength="@models.route.Route.MaxNameLength" autocomplete="off" placeholder="@Messages("routebuilder.route.name.placeholder")">
+      <label id="route-description-label" for="route-description-input">@Messages("routebuilder.route.description.label")
+        <span class="optional-tag">@Messages("routebuilder.optional")</span></label>
+      <textarea id="route-description-input" rows="3" maxlength="@models.route.Route.MaxDescriptionLength" placeholder="@Messages("routebuilder.route.description.placeholder")"></textarea>
       <span id="route-name-error" role="alert" hidden></span>
       @if(isAnon) {
         <span id="save-route-signin-nudge">@Messages("routebuilder.signin.nudge")</span>
+      } else {
+        @* The dashboard link opens a new tab — navigating away here would lose the unsaved route. *@
+        <span id="save-route-dashboard-note">@Html(Messages("routebuilder.save.explanation", "/dashboard#my-routes"))</span>
       }
       <div id="save-route-buttons" class="flex-div-row">
         @if(isAnon) {
           <button type="button" id="signin-save-button" class="button-ps button--primary button--medium">@Messages("routebuilder.signin.to.save")</button>
         }
         <button type="button" id="confirm-save-button" class="button-ps button--medium @if(isAnon) {button--secondary} else {button--primary}">@if(isAnon) {@Messages("routebuilder.continue.without.account")} else {@Messages("routebuilder.save")}</button>
-        <button type="button" id="back-save-button" class="button-ps button--secondary button--medium">@Messages("back")</button>
+        <button type="button" id="cancel-save-button" class="button-ps button--secondary button--medium">@Messages("cancel")</button>
       </div>
     </div>
   </div>
