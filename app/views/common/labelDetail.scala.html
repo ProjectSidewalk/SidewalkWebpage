@@ -153,11 +153,11 @@
   </section>
 </div>
 
-@* Lived-experience stories (#4054): a collapsed disclosure with a count badge; expanding reveals the story list.
-   StorySection.js lazily fetches /stories per label and renders the list, count, CTA state, and delete controls.
-   Rendered even with zero stories so the share CTA is always reachable — but with nothing to expand, the summary
-   is inert (no arrow) and the invite line below explains why someone would share. *@
-<section class="label-detail__stories">
+@* Lived-experience stories (#4054): shown only when the label has stories — a disclosure with a count badge and
+   the story list. StorySection.js lazily fetches /stories per label and renders the list, count, CTA state, and
+   delete controls. With zero stories the whole section stays hidden and the share CTA lives in the footer row
+   instead, so an empty card gives the invitation just one compact button's worth of space. *@
+<section class="label-detail__stories" hidden>
   <details class="label-detail__stories-details">
     <summary class="label-detail__stories-summary">
       <span class="label-detail__stories-heading" data-i18n="labelmap:story.heading">Community stories</span>
@@ -171,15 +171,18 @@
     </summary>
     <div class="label-detail__stories-list"></div>
   </details>
-  <p class="label-detail__stories-invite" hidden data-i18n="labelmap:story.invite">
-    Has a problem like this affected you? Share your experience.
-  </p>
-  <span class="label-detail__story-status sr-only" role="status" aria-live="polite"></span>
 </section>
+@* Outside the section so submit/delete announcements still fire while the section is display: none. *@
+<span class="label-detail__story-status sr-only" role="status" aria-live="polite"></span>
 
 @* Subtle, YouTube-style share control. ShareWidget (share/ShareWidget.js) wires this up and builds its popover into
    the wrapping .label-detail__share div, which is positioned so the popover anchors to the trigger. *@
 <div class="label-detail__footer">
+  @* Zero-story share CTA (#4054): swaps in for the stories section when the label has no stories yet. *@
+  <button type="button" class="label-detail__story-share label-detail__story-share--footer" hidden>
+    <span aria-hidden="true">＋</span>
+    <span data-i18n="labelmap:story.share-yours">Share your story</span>
+  </button>
   @* Cross-surface hop (#4572): hosts other than LabelMap opt in via LabelDetail's showLabelMapLink, which fills
      the href with /labelMap?labelId=<id> so the map opens with this label's popup and a location pulse. *@
   <a class="label-detail__labelmap-link" hidden>

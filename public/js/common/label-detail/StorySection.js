@@ -2,18 +2,18 @@
  * StorySection — the lived-experience stories disclosure on the label-detail card (#4054).
  *
  * Lazily fetches GET /stories?labelId=N when a label is shown (Gallery's host never calls the label-metadata
- * endpoint, so stories can't ride that payload), then renders the collapsed summary (count badge + share CTA) and,
- * on expand, the story list: text, byline (anonymous or username), photo thumbnails that open the enlarge dialog,
- * the author's own-story delete + dashboard-link controls, and the hidden-by-moderators chip on the author's
- * quarantined story. With zero stories the disclosure is inert (no arrow, nothing to expand) and an invite line
- * shows instead. Scoped to the host root; owns the StoryComposer and the enlarge lightbox from the same partial.
+ * endpoint, so stories can't ride that payload), then renders the summary (count badge + share CTA) and the story
+ * list: text, byline (anonymous or username), photo thumbnails that open the enlarge dialog, the author's
+ * own-story delete + dashboard-link controls, and the hidden-by-moderators chip on the author's quarantined story.
+ * With zero stories the whole section stays hidden and the share CTA is a compact pill in the card's footer row
+ * instead. Scoped to the host root; owns the StoryComposer and the enlarge lightbox from the same partial.
  */
 class StorySection {
   #els = {};
   #composer;
   #labelId = null;
   #maxTextLength = null;
-  #isAccessProblem = null; // From the /stories payload (LabelTypeEnum-sourced); flips the invite/composer phrasing.
+  #isAccessProblem = null; // From the /stories payload (LabelTypeEnum-sourced); flips the composer's phrasing.
   #fetchToken = 0; // Guards against a stale response landing after a newer label was opened.
 
   /**
@@ -24,11 +24,12 @@ class StorySection {
   constructor(root, opts) {
     const q = (sel) => root.querySelector(sel);
     this.#els = {
+      section: q('.label-detail__stories'),
       details: q('.label-detail__stories-details'),
       summary: q('.label-detail__stories-summary'),
       count: q('.label-detail__stories-count'),
-      shareBtn: q('.label-detail__story-share'),
-      invite: q('.label-detail__stories-invite'),
+      shareBtn: q('.label-detail__stories-summary .label-detail__story-share'),
+      footerShareBtn: q('.label-detail__story-share--footer'),
       list: q('.label-detail__stories-list'),
       status: q('.label-detail__story-status'),
       lightbox: q('.story-lightbox'),
@@ -52,12 +53,12 @@ class StorySection {
       e.stopPropagation();
       this.#composer.open(this.#labelId, this.#maxTextLength);
     });
-    // With zero stories there is nothing to expand, so the summary click is inert (the CTA above still works).
-    // Expand logging lives here rather than on the toggle event so the auto-expand in #render isn't counted.
-    this.#els.summary.addEventListener('click', (e) => {
-      if (this.#els.details.classList.contains('label-detail__stories-details--empty')) {
-        e.preventDefault();
-      } else if (!this.#els.details.open) {
+    this.#els.footerShareBtn.addEventListener('click', () => {
+      this.#composer.open(this.#labelId, this.#maxTextLength);
+    });
+    // Expand logging lives on click rather than the toggle event so the auto-expand in #render isn't counted.
+    this.#els.summary.addEventListener('click', () => {
+      if (!this.#els.details.open) {
         window.logWebpageActivity?.(`Click_module=StorySectionExpand_labelId=${this.#labelId}`);
       }
     });
@@ -71,15 +72,13 @@ class StorySection {
   setLabel(labelId) {
     this.#labelId = labelId;
     this.#isAccessProblem = null;
-    this.#els.details.open = false;
     this.#els.list.replaceChildren();
     this.#els.count.hidden = true;
-    // Treat the section as empty until the fetch lands: no expand arrow, and no invite line either (it only
-    // shows once we know there are zero stories, so it can't flash on labels that have some).
-    this.#els.details.classList.add('label-detail__stories-details--empty');
-    this.#els.invite.hidden = true;
-    // Re-show the CTA immediately: if the previous label had the viewer's own story and this fetch fails, the
-    // CTA would otherwise stay stuck hidden on a label they haven't posted to.
+    // Empty posture until the fetch lands (most labels have no stories): section hidden, footer CTA up. This is
+    // also the fetch-failure fallback, so sharing stays reachable even when the story list can't load.
+    this.#els.section.hidden = true;
+    this.#els.details.open = false;
+    this.#els.footerShareBtn.hidden = false;
     this.#els.shareBtn.hidden = false;
     this.refresh();
     this.#maybeResumeDraft(labelId);
@@ -128,19 +127,17 @@ class StorySection {
   #render(stories) {
     const els = this.#els;
 
+    // With zero stories the section stays hidden entirely and the footer CTA carries the invitation; once any
+    // story exists the section takes the space to show it off (per review on #4593).
     const empty = stories.length === 0;
+    els.section.hidden = empty;
+    els.footerShareBtn.hidden = !empty;
     els.count.textContent = String(stories.length);
     els.count.hidden = empty;
-    els.details.classList.toggle('label-detail__stories-details--empty', empty);
     // Stories are the payoff, so the disclosure starts open whenever there are any (the list is height-capped,
     // so the card stays bounded); collapsing is still available via the summary.
     els.details.open = !empty;
-    els.invite.hidden = !empty;
-    // Anything but an explicit false (unknown/absent) keeps the default problem phrasing.
-    els.invite.textContent = i18next.t(
-      this.#isAccessProblem === false ? 'labelmap:story.invite-positive' : 'labelmap:story.invite',
-    );
-    // One story per user per label (server-enforced): once yours exists, delete-and-repost is the edit path.
+    // One story per user per label (server-enforced): once yours exists, edit-in-place is the change path.
     els.shareBtn.hidden = stories.some((s) => s.is_own);
 
     els.list.replaceChildren();

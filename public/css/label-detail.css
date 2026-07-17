@@ -1017,7 +1017,7 @@ button.label-detail__meta-cell:focus-visible {
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  font-family: Raleway, sans-serif;
+  font-family: var(--font-primary);
   font-weight: 600;
   font-size: 16px;
   color: var(--color-neutral-black);
@@ -1061,7 +1061,7 @@ button.label-detail__meta-cell:focus-visible {
   border-radius: 999px;
   background: var(--color-neutral-white);
   cursor: pointer;
-  font-family: Raleway, sans-serif;
+  font-family: var(--font-primary);
   font-weight: 600;
   font-size: 13px;
   color: var(--color-neutral-900);
@@ -1077,6 +1077,23 @@ button.label-detail__meta-cell:focus-visible {
   outline-offset: 2px;
 }
 
+/* Zero-story CTA in the footer row (the stories section is hidden until a story exists): dressed to match its
+   labelmap-link/share-trigger siblings so the three read as one group. */
+.label-detail__story-share--footer {
+  gap: 6px;
+  padding: 5px 12px;
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-800);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 18px;
+  font: var(--text-small-medium);
+}
+
+.label-detail__story-share--footer:hover {
+  background: var(--color-neutral-200);
+  border-color: var(--color-neutral-400);
+}
+
 .label-detail__stories-arrow {
   margin-left: auto;
   color: #555555;
@@ -1087,20 +1104,6 @@ button.label-detail__meta-cell:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .label-detail__stories-arrow { transition: none; }
-}
-
-/* Zero stories: nothing to expand, so the arrow goes away and the summary is inert (StorySection toggles the
-   class and swallows the toggle click); the invite line below explains why someone would share. */
-.label-detail__stories-details--empty .label-detail__stories-arrow { display: none; }
-
-.label-detail__stories-details--empty .label-detail__stories-summary { cursor: default; }
-
-.label-detail__stories-invite {
-  /* Bottom gap separates the invite from the footer buttons so they don't read as one group (only shown when the
-     section is empty, so it never adds space in the story-list state). */
-  margin: 6px 0 16px;
-  font-size: 13px;
-  color: #595959;
 }
 
 .label-detail__stories-list {
@@ -1176,7 +1179,7 @@ button.label-detail__meta-cell:focus-visible {
   align-items: center;
   padding: 3px 8px;
   border-radius: 999px;
-  font-family: Raleway, sans-serif;
+  font-family: var(--font-primary);
   font-weight: 600;
   font-size: 11px;
   line-height: 1;
@@ -1200,7 +1203,7 @@ button.label-detail__meta-cell:focus-visible {
   border: none;
   background: none;
   cursor: pointer;
-  font-family: Raleway, sans-serif;
+  font-family: var(--font-primary);
   font-weight: 600;
   font-size: 11px;
   text-decoration: underline;
@@ -1218,7 +1221,7 @@ button.label-detail__meta-cell:focus-visible {
 }
 
 .label-detail__story-dashboard-link {
-  font-family: Raleway, sans-serif;
+  font-family: var(--font-primary);
   font-weight: 600;
   font-size: 11px;
   color: var(--color-link-200);
@@ -1242,7 +1245,7 @@ dialog.story-composer {
   background: var(--color-neutral-white);
   color: var(--color-neutral-black);
   box-shadow: 0 20px 50px rgb(0 0 0 / 30%);
-  font-family: "Open Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-primary);
   font-size: 14px;
 }
 
@@ -1254,7 +1257,7 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
    field labels 600, everything the user reads or types 400. */
 .story-composer__title {
   margin: 0 0 4px;
-  font-family: Raleway, sans-serif;
+  font-family: var(--font-primary);
   font-weight: 600;
   font-size: 20px;
   line-height: 1.2;
@@ -1275,7 +1278,7 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
 .story-composer__field-label {
   display: block;
   margin-bottom: 4px;
-  font-family: Raleway, sans-serif;
+  font-family: var(--font-primary);
   font-weight: 600;
   font-size: 13px;
 }
@@ -1321,7 +1324,7 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
   border-radius: 8px;
   background: #fafafa;
   cursor: pointer;
-  font-family: Raleway, sans-serif;
+  font-family: var(--font-primary);
   font-weight: 600;
   font-size: 13px;
   color: var(--color-asphalt-400);
@@ -1414,7 +1417,7 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
   border: none;
   background: none;
   cursor: pointer;
-  font-family: Raleway, sans-serif;
+  font-family: var(--font-primary);
   font-weight: 600;
   font-size: 12px;
   color: var(--color-orange-700);
@@ -1446,7 +1449,7 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
   padding: 0;
   border: none;
   background: none;
-  font-family: Raleway, sans-serif;
+  font-family: var(--font-primary);
   font-weight: 600;
   font-size: 13px;
   color: var(--color-link-200);
@@ -1490,7 +1493,7 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
   border-radius: 999px;
   background: var(--color-neutral-white);
   cursor: pointer;
-  font-family: Raleway, sans-serif;
+  font-family: var(--font-primary);
   font-weight: 600;
   font-size: 14px;
   color: var(--color-neutral-900);
@@ -1502,7 +1505,7 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
   border-radius: 999px;
   background: var(--color-pine-500);
   cursor: pointer;
-  font-family: Raleway, sans-serif;
+  font-family: var(--font-primary);
   font-weight: 600;
   font-size: 14px;
   color: var(--color-neutral-black);
@@ -1533,7 +1536,7 @@ dialog.story-lightbox {
   padding: 16px;
   background: var(--color-neutral-white);
   box-shadow: 0 20px 50px rgb(0 0 0 / 35%);
-  font-family: "Open Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-primary);
 }
 
 /* Floats over the image's top-right corner — the standard lightbox dismiss spot. */
@@ -1586,7 +1589,7 @@ dialog.ps-confirm {
   background: var(--color-neutral-white);
   color: var(--color-neutral-black);
   box-shadow: 0 20px 50px rgb(0 0 0 / 30%);
-  font-family: "Open Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-primary);
   font-size: 14px;
 }
 
@@ -1609,7 +1612,7 @@ dialog.ps-confirm::backdrop { background: rgb(0 0 0 / 45%); }
   padding: 8px 16px;
   border-radius: 999px;
   cursor: pointer;
-  font-family: Raleway, sans-serif;
+  font-family: var(--font-primary);
   font-weight: 600;
   font-size: 13px;
 }
