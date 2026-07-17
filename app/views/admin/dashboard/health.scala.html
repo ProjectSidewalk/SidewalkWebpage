@@ -1,0 +1,87 @@
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@* Owner-only Health page for the redesigned admin dashboard (#4561). At-a-glance database & application
+   operational-health signals — blocking locks, idle-in-transaction sessions, stuck evolutions, table bloat, and
+   connection pressure — that are otherwise invisible in the app log. Driven client-side by a poller hitting
+   /adminapi/dbHealth. Admin-only surface, English only. *@
+
+@content = {
+  <div class="api-section" id="health-intro-section">
+    <h1 class="api-heading" id="health">Health <a href="#health" class="permalink">#</a></h1>
+    <p>Database and app health across all cities, refreshed automatically. Surfaces problems that don't show up in the app log — blocking locks, idle transactions, stuck evolutions, table bloat, and connection pressure.</p>
+    <div class="ac-pulse" id="health-pulse" role="status" aria-live="polite">Loading health…</div>
+
+    <div class="coverage-kpis" id="health-kpis">
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-blocking">—</span><span class="coverage-kpi-label">Blocking sessions</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-active">—</span><span class="coverage-kpi-label">Long queries</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-idle">—</span><span class="coverage-kpi-label">Idle in transaction</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-evolutions">—</span><span class="coverage-kpi-label">Stuck evolutions</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-bloat">—</span><span class="coverage-kpi-label">Bloated tables</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-connections">—</span><span class="coverage-kpi-label">DB connections</span></div>
+      <div class="coverage-kpi"><span class="coverage-kpi-value" id="kpi-panos">—</span><span class="coverage-kpi-label">At-risk panos (this city)</span></div>
+    </div>
+    <p class="ac-note" id="health-meta"></p>
+  </div>
+
+  <div class="api-section" id="health-locks-section">
+    <h2 class="api-heading" id="blocking-locks">Blocking locks <a href="#blocking-locks" class="permalink">#</a></h2>
+    <p>Sessions that are currently blocking one or more others from acquiring a lock. A session that holds a strong lock (for example on <code>street_edge</code>) while idle in a transaction can silently stall every reader of that table. Ordered worst-first.</p>
+    <div id="health-locks"></div>
+  </div>
+
+  <div class="api-section" id="health-active-section">
+    <h2 class="api-heading" id="long-queries">Long-running queries <a href="#long-queries" class="permalink">#</a></h2>
+    <p>Client queries that have been running for a while. One runaway query — an expensive aggregate, a missing index — can saturate the database without blocking anyone, so it won't show up in the locks panel above. Oldest first.</p>
+    <div id="health-active"></div>
+  </div>
+
+  <div class="api-section" id="health-idle-section">
+    <h2 class="api-heading" id="idle-transactions">Idle transactions <a href="#idle-transactions" class="permalink">#</a></h2>
+    <p>Sessions sitting in an open transaction while idle. A leaked transaction that never commits or rolls back holds its locks the whole time, so long-lived rows here are worth investigating. Oldest first.</p>
+    <div id="health-idle"></div>
+  </div>
+
+  <div class="api-section" id="health-evolutions-section">
+    <h2 class="api-heading" id="evolutions">Stuck evolutions <a href="#evolutions" class="permalink">#</a></h2>
+    <p>Play evolutions that are mid-apply or carry a recorded problem, across every city schema. A failed evolution keeps a city's app instance from coming up cleanly.</p>
+    <div id="health-evolutions"></div>
+  </div>
+
+  <div class="api-section" id="health-bloat-section">
+    <h2 class="api-heading" id="table-bloat">Table bloat &amp; autovacuum <a href="#table-bloat" class="permalink">#</a></h2>
+    <p>Dead-tuple bloat and last-vacuum age for the heavyweight tables (<code>street_edge</code>, <code>label</code>, <code>audit_task_interaction</code>) across cities. High bloat with a stale last-vacuum means autovacuum is falling behind — often because it can't get a lock.</p>
+    <div id="health-bloat"></div>
+  </div>
+
+  <div class="api-section" id="health-connections-section">
+    <h2 class="api-heading" id="connections">DB connections <a href="#connections" class="permalink">#</a></h2>
+    <p>Client-backend connections grouped by role and state. Each city's app instance connects as its own per-city role with its own pool ceiling, so a role whose active connections approach that ceiling is under pressure.</p>
+    <div id="health-connections"></div>
+  </div>
+
+  <div class="api-section" id="health-panos-section">
+    <h2 class="api-heading" id="pano-downloads">Pano downloads <a href="#pano-downloads" class="permalink">#</a></h2>
+    <p>Backup-image coverage for this city's labeled panos. The viewer shows a locally-hosted backup when one exists and otherwise falls back to the live source, so a labeled pano whose source has expired and has no backup can no longer be shown.</p>
+    <div id="health-panos"></div>
+    <p class="ac-note" id="health-panos-note"></p>
+  </div>
+
+  <script src="@assets.path("js/admin-dashboard/HealthPage.js")"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', function () {
+      new HealthPage({
+        healthUrl: '/adminapi/dbHealth',
+        pollSeconds: 20
+      }).init();
+    });
+  </script>
+}
+
+@common.main(commonData, "Sidewalk - Health") {
+  @common.navbar(commonData, Some(user))
+  @admin.dashboard.adminLayout("health", user.role == "Owner")(content)
+}

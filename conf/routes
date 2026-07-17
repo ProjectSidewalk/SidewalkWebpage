@@ -66,10 +66,12 @@ GET     /admin/humans-vs-ai                             controllers.AdminDashboa
 GET     /admin/api-analytics                            controllers.AdminDashboardController.apiAnalytics
 GET     /admin/management                               controllers.AdminDashboardController.management
 GET     /admin/across-cities                            controllers.AdminDashboardController.acrossCities
+GET     /admin/health                                   controllers.AdminDashboardController.health
 GET     /admin/user/:username                           controllers.AdminController.userProfile(username: String)
 GET     /admin/task/:taskId                             controllers.AdminController.task(taskId: Int)
 GET     /admin/label/:labelId                           controllers.AdminController.label(labelId: Int)
 
+GET     /adminapi/dbHealth                              controllers.AdminDashboardController.getDbHealth
 GET     /adminapi/neighborhoodCompletionRate            controllers.AdminController.getNeighborhoodCompletionRate(regions: Option[String] ?= None)
 GET     /adminapi/userMissionCounts                     controllers.AdminController.getAllUserCompletedMissionCounts
 GET     /adminapi/allSignInCounts                       controllers.AdminController.getAllUserSignInCounts
