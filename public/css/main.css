@@ -684,10 +684,9 @@ a {
   max-width: calc(400px * var(--ui-scale, 1));
   padding: calc(14px * var(--ui-scale, 1));
   background: var(--color-neutral-white);
-  border: 1px solid var(--color-neutral-600);
+  border: 1px solid var(--color-neutral-300);
   border-radius: calc(12px * var(--ui-scale, 1));
-  font-size: calc(14px * var(--ui-scale, 1));
-  box-shadow: 0 2px 8px rgb(0 0 0 / 12%);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 15%);
 }
 
 /* Downward-pointing arrow: ::before is the border, ::after is the white fill on top. */
@@ -705,7 +704,7 @@ a {
 .pano-info-popover::before {
   bottom: calc(-10px * var(--ui-scale, 1));
   border-width: calc(10px * var(--ui-scale, 1)) calc(9px * var(--ui-scale, 1)) 0;
-  border-color: var(--color-neutral-600) transparent transparent;
+  border-color: var(--color-neutral-300) transparent transparent;
 }
 
 .pano-info-popover::after {
@@ -721,31 +720,52 @@ a {
   margin-bottom: calc(10px * var(--ui-scale, 1));
 }
 
+/* Matches the label-detail card's section eyebrows. */
 .pano-info-popover__title {
-  font-size: calc(15px * var(--ui-scale, 1));
-  font-weight: bold;
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-700);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.pano-info-popover__clipboard {
+.pano-info-popover__actions {
+  display: flex;
+  align-items: center;
+  gap: calc(2px * var(--ui-scale, 1));
+}
+
+.pano-info-popover__clipboard,
+.pano-info-popover__close {
   background: none;
   border: none;
-  padding: 0;
+  padding: calc(3px * var(--ui-scale, 1));
+  border-radius: calc(4px * var(--ui-scale, 1));
   cursor: pointer;
   line-height: 0;
   opacity: 0.75;
 }
 
-.pano-info-popover__clipboard:hover {
+.pano-info-popover__clipboard:hover,
+.pano-info-popover__close:hover {
+  background: rgb(0 0 0 / 6%);
   opacity: 1;
 }
 
-.pano-info-popover__clipboard:active {
+.pano-info-popover__clipboard:active,
+.pano-info-popover__close:active {
   opacity: 0.5;
 }
 
-.pano-info-popover__clipboard img {
-  width: calc(18px * var(--ui-scale, 1));
-  height: calc(18px * var(--ui-scale, 1));
+.pano-info-popover__clipboard:focus-visible,
+.pano-info-popover__close:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 1px;
+}
+
+.pano-info-popover__clipboard img,
+.pano-info-popover__close img {
+  width: calc(16px * var(--ui-scale, 1));
+  height: calc(16px * var(--ui-scale, 1));
 }
 
 /* Shown briefly after clipboard copy. Absolutely positioned so it doesn't shift the body rows. */
@@ -764,39 +784,64 @@ a {
   z-index: 1;
 }
 
+/* Spec-sheet body: muted labels left, semibold values right. */
 .pano-info-popover__body {
   display: flex;
   flex-direction: column;
   gap: calc(6px * var(--ui-scale, 1));
+  margin: 0;
 }
 
 .pano-info-popover__row {
-  margin: 0;
-  line-height: 1.4;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: calc(12px * var(--ui-scale, 1));
+}
+
+.pano-info-popover__row dt {
+  flex-shrink: 0;
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-700);
 }
 
 .pano-info-popover__row--hidden {
   display: none;
 }
 
-.pano-info-popover__row strong {
-  font-weight: bold;
-}
-
+/* overflow-wrap keeps long pano IDs inside the popover; tabular numerals hold the id/coordinate columns steady. */
 .pano-info-popover__val {
-  /* Values use the default (regular) font weight inherited from the row. */
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-900);
+  font-variant-numeric: tabular-nums;
 }
 
 .pano-info-popover__view-link {
   display: block;
+  margin-top: calc(10px * var(--ui-scale, 1));
+  padding-top: calc(10px * var(--ui-scale, 1));
+  border-top: 1px solid var(--color-neutral-200);
   text-align: center;
-  color: #4990cc;
+  font: var(--text-caption-semibold);
+  color: var(--color-link-200);
   text-decoration: none;
-  margin-top: calc(4px * var(--ui-scale, 1));
+}
+
+.pano-info-popover__view-link::after {
+  content: " ↗";
 }
 
 .pano-info-popover__view-link:hover {
   text-decoration: underline;
+}
+
+.pano-info-popover__view-link:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
 }
 
 @media only screen and (device-width <= 500px) {
@@ -1249,9 +1294,87 @@ body:has(#header.header--tall) .test-server-banner {
   margin-right: 2px;
 }
 
+/* Contexts that need a different size (e.g. the label card's Details strip) set the custom property on an
+   ancestor instead of fighting this id selector's specificity. */
 #pano-info-button {
   cursor: pointer;
-  width: 24px;
+  width: var(--pano-info-button-size, 24px);
+  height: var(--pano-info-button-size, auto);
+}
+
+/* Beacon marking the label tied to the /labelMap popup. A reticle whose center carries the label type's
+   canonical color (set inline from getLabelColors()), so the label reads even when the map's own dot is tiny;
+   the expanding ::after ring is what draws the eye on a busy map. Both modes pulse exactly once: 'spotlight'
+   pulses on landing then stays as a calm reticle while the popup is open, and 'flash' pulses once on close
+   to re-anchor the user (its marker is then removed). */
+.labelmap-beacon {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 3px solid var(--color-asphalt-600);
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 90%), 0 1px 4px rgb(0 0 0 / 40%);
+  pointer-events: none;
+}
+
+/* Center fill in the label type's color (background set inline by the /labelMap script). */
+.labelmap-beacon__dot {
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  border: 1.5px solid rgb(255 255 255 / 90%);
+}
+
+.labelmap-beacon::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 3px solid var(--color-asphalt-600);
+}
+
+.labelmap-beacon--spotlight::after {
+  animation: labelmap-beacon-ring 1.5s ease-out forwards;
+}
+
+.labelmap-beacon--flash::after {
+  animation: labelmap-beacon-ring 1.3s ease-out 1;
+}
+
+@keyframes labelmap-beacon-ring {
+  from {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+
+  to {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .labelmap-beacon::after { animation: none; }
+}
+
+/* Chat-bubble tail tying the /labelMap popup dialog to the spotlighted label's beacon: a full-viewport fixed
+   SVG whose one polygon the page script repositions on every map/dialog change. Sits below the dialog's top
+   layer (so the light backdrop dims it slightly) but above the map and its controls. */
+.labelmap-tail {
+  position: fixed;
+  inset: 0;
+  display: none;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.labelmap-tail polygon {
+  fill: var(--color-neutral-white);
+  stroke: rgb(0 0 0 / 12%);
+  stroke-width: 1;
+  filter: drop-shadow(0 2px 5px rgb(0 0 0 / 18%));
 }
 
 

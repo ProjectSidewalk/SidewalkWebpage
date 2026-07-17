@@ -472,12 +472,13 @@ class ExploreServiceImpl @Inject() (
         _                   <-
           if (panoExists) {
             panoDataTable.updateFromExplore(pano.panoId, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch,
-              pano.cameraRoll, expired = false, currTime, Some(currTime))
+              pano.cameraRoll, pano.address, expired = false, currTime, Some(currTime))
           } else {
             panoDataTable.insert(
               PanoData(pano.panoId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate,
                 pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll,
-                expired = false, currTime, Some(currTime), currTime, pano.source, hasBackup = None)
+                expired = false, currTime, Some(currTime), currTime, pano.source, hasBackup = None,
+                address = pano.address)
             )
           }
       } yield {

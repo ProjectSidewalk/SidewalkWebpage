@@ -400,6 +400,7 @@ cities.dashboard.cta.logo.alt = Das Project Sidewalk-Logo mit dem Text projectsi
 share.meta.title.issue = Ich habe ein Barrierefreiheitsproblem auf Project Sidewalk gefunden: {0}
 share.meta.title.feature = Sehen Sie, was ich auf Project Sidewalk gefunden habe: {0}
 share.meta.description.spotted = Entdeckt in {0}.
+share.meta.description.address = In der Nähe von {0}.
 share.meta.description.severity = Schweregrad: {0} von 3.
 share.meta.description.tags = Markiert mit: {0}.
 share.meta.description.cta = Erkunden Sie die Karte und helfen Sie mit, Gehwege für alle zugänglich zu machen.

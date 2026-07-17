@@ -58,7 +58,7 @@ class LabelController @Inject() (
     labelService.getSingleLabelMetadata(labelId, userId).map {
       case Some(metadata) =>
         Ok(
-          LabelFormats.labelMetadataWithValidationToJson(metadata) ++
+          LabelFormats.labelMetadataWithValidationToJson(metadata, request.identity.map(_.username)) ++
             Json.obj(
               "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
               "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId)
