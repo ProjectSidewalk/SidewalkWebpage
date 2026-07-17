@@ -144,11 +144,13 @@ class ShareController @Inject() (
     val typeName: String = Messages(meta.labelType.nameKey)
     val cityName: String = cityNameOf(commonData)
     // The description is short, fully-localized sentences joined in a fixed order, with the data-dependent ones
-    // (severity, tags) included only when present. Severity is stated only for access-issue types — on positive
-    // features the same column encodes quality, not badness. Tag names are stored untranslated; server-side tag
-    // localization is #4445.
+    // (address, severity, tags) included only when present. The address is Google's street-level string for the
+    // label's pano, captured during Explore (#4489); it stays untranslated like tag names. Severity is stated only
+    // for access-issue types — on positive features the same column encodes quality, not badness. Tag names are
+    // stored untranslated; server-side tag localization is #4445.
     val description: String = Seq(
       Some(Messages("share.meta.description.spotted", cityName)),
+      meta.panoMetadata.flatMap(_.address).map(a => Messages("share.meta.description.address", a)),
       meta.severity
         .filter(_ => meta.labelType.isAccessProblem)
         .map(s => Messages("share.meta.description.severity", s)),

@@ -127,9 +127,11 @@ Every label type has a **canonical color** and a set of **icon images**. Always 
 | Occlusion      | `#B3B3B3` |
 | Problem        | `#B3B3B3` |
 
-**Icons** live in `public/images/icons/label_type_icons/` in three sizes: `{LabelType}.png` (large),
-`{LabelType}_small.png`, and `{LabelType}_tiny.png`. The canonical source of truth for both colors and icon URLs
-is the `/v3/api/labelTypes` endpoint.
+**Icons** live in `public/images/icons/label_type_icons/` in three PNG sizes — `{LabelType}.png` (large),
+`{LabelType}_small.png`, `{LabelType}_tiny.png` — plus a scalable `{LabelType}_small.svg` variant (used where the
+icon renders at arbitrary size, e.g. the label card's in-pano marker). The canonical source of truth for both
+colors and icon URLs is the `/v3/api/labelTypes` endpoint (PNG paths); frontend code reads all four paths from
+`util.misc.getIconImagePaths(labelType)` rather than hardcoding them.
 
 **In JavaScript:** call `util.misc.getLabelColors(labelType)` — defined in
 `public/js/common/UtilitiesSidewalk.js` and loaded on every page that includes

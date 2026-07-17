@@ -396,6 +396,7 @@ cities.dashboard.cta.logo.alt = Het logo van Project Sidewalk met de tekst proje
 share.meta.title.issue = Ik heb een toegankelijkheidsprobleem gevonden op Project Sidewalk: {0}
 share.meta.title.feature = Kijk wat ik heb gevonden op Project Sidewalk: {0}
 share.meta.description.spotted = Gespot in {0}.
+share.meta.description.address = In de buurt van {0}.
 share.meta.description.severity = Ernst: {0} van 3.
 share.meta.description.tags = Tags: {0}.
 share.meta.description.cta = Verken de kaart en help stoepen toegankelijk te maken voor iedereen.

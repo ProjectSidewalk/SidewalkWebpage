@@ -15,6 +15,7 @@ class Card {
     label_id: undefined,
     label_type: undefined,
     pano_id: undefined,
+    pano_data: undefined,
     camera_lat: undefined,
     camera_lng: undefined,
     expired: undefined,

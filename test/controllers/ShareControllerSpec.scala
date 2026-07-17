@@ -7,6 +7,7 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.i18n.{Lang, MessagesApi}
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.JsObject
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import service.LabelService
@@ -210,6 +211,35 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
           status(resp) mustBe OK
           contentType(resp) mustBe Some("application/json")
           contentAsString(resp) must include("label_id")
+      }
+    }
+
+    "carry the pano_data.address field in the label detail JSON (#4489)" in {
+      validLabelId match {
+        case None     => cancel("No labels in the connected test DB; cannot exercise the valid-label path.")
+        case Some(id) =>
+          val json = contentAsJson(route(app, FakeRequest(GET, s"/label/id/$id")).get)
+          // The shared label-detail component reads pano_data.address for its visible Address row. The key must be
+          // present (null until an address is captured for the pano) — a missing key would mean the positional
+          // SQL→GetResult mapping in getSingleLabelMetadata dropped or misaligned the column.
+          (json \ "pano_data").toOption must not be empty
+          ((json \ "pano_data").get \ "address").isDefined mustBe true
+      }
+    }
+
+    "carry the card's comment contract fields when a label has validator comments (#4572)" in {
+      recentLabels.find(_.comments.nonEmpty) match {
+        case None    => cancel("No commented labels among recent labels in the connected test DB.")
+        case Some(l) =>
+          val json     = contentAsJson(route(app, FakeRequest(GET, s"/label/id/${l.labelId}")).get)
+          val comments = (json \ "comments").as[Seq[JsObject]]
+          comments must not be empty
+          // The card renders the You chip from `mine`, the relative-time pill from `time_created`, and the
+          // anonymous avatar from `commenter`; usernames must NOT appear on this public payload.
+          comments.foreach { c =>
+            c.keys must contain allOf ("comment", "mine", "time_created", "commenter")
+            c.keys must not contain "username"
+          }
       }
     }
 
