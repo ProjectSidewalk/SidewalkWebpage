@@ -280,9 +280,14 @@ class ApplicationController @Inject() (
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_RouteBuilder_RedirectMobileLanding")
       Future.successful(Redirect("/mobileLanding"))
     } else {
-      configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      for {
+        commonData    <- configService.getCommonPageData(request2Messages.lang)
+        labelingSpeed <- configService.getCityLabelingSpeed()
+      } yield {
         cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_RouteBuilder")
-        Ok(views.html.apps.routeBuilder(commonData, request.identity))
+        // Fallback pace for cities with no interaction data yet: ~4 min/100 m, the typical value across deployments
+        // on /admin/across-cities as of 2026-07.
+        Ok(views.html.apps.routeBuilder(commonData, request.identity, labelingSpeed.getOrElse(4.0)))
       }
     }
   }

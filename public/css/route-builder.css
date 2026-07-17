@@ -1,5 +1,5 @@
 /* Full-window map area: the flex-growing child of #wrap.wrap--full-window (mirrors LabelMap's choropleth holder).
-   The map fills it; the left panel and legend are its absolutely-positioned children. */
+   The map fills it; the planner card, on-map CTA, and legend are its absolutely-positioned children. */
 #routebuilder-map-area {
   position: relative;
   flex: 1 1 auto;
@@ -16,24 +16,28 @@
   left: 0;
 }
 
-/* Left trip-planner panel. Reuses the map-sidebar chrome (position/shadow/scroll); data-state toggles which
-   blocks show. The directions block is outside both state selectors, so it stays visible in both states. */
+/* Floating planner card (top-left overlay, Google-Maps style). Card chrome matches the PS Label Detail card
+   (radius 12, elevated shadow). data-state toggles which blocks show; the Start/End address block sits outside both
+   state selectors so it stays visible in both. */
 #routebuilder-panel {
   position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 350px;
+  top: 16px;
+  left: 16px;
+  width: 340px;
+  max-width: calc(100% - 32px);
+  max-height: calc(100% - 32px);
   z-index: 10;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 40px 30px 30px;
+  gap: 18px;
+  padding: 20px;
   overflow-y: auto;
   scrollbar-gutter: stable;
   background: var(--color-neutral-white);
-  box-shadow: 2px 0 6px rgb(0 0 0 / 12%);
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgb(0 0 0 / 25%);
   color: var(--color-neutral-black);
+  font: var(--text-body-regular);
 }
 
 .routebuilder-panel__empty,
@@ -53,85 +57,175 @@
   display: none;
 }
 
-.flex-div-col, .routebuilder-overlay {
+/* On-map call-to-action: a floating pill, top-center, telling the user what a click will do. Non-interactive so
+   it never intercepts a map click. */
+#routebuilder-cta {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  padding: 12px 22px;
+  border-radius: 999px;
+  background: var(--color-neutral-white);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 18%);
+  font: var(--text-body-bold);
+  color: var(--color-asphalt-500);
+  text-align: center;
+  pointer-events: none;
+}
+
+#routebuilder-cta[hidden] {
+  display: none;
+}
+
+.cta-flag {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.flex-div-col {
   display: flex;
   flex-direction: column;
 }
 
-.flex-div-row, .routebuilder-button {
+.flex-div-row {
   display: flex;
   flex-direction: row;
   align-items: center;
 }
 
+.routebuilder-h1 {
+  margin: 0;
+  font: 700 20px/24px var(--font-accent); /* Raleway, matching the Label Detail card title. */
+}
+
+.routebuilder-h2 {
+  margin: 0;
+  font: var(--text-body-bold);
+}
+
+#routebuilder-intro-content {
+  font: var(--text-body-regular);
+  color: var(--color-neutral-800);
+}
+
+/* Stats block, separated from the address fields by a rule: neighborhood chip + street count on one line, then
+   distance + est. exploration time as a 2-up stat row, then the action row. */
+.routebuilder-panel__building {
+  gap: 14px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+#route-meta-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+#route-region-chip {
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: var(--color-asphalt-100);
+  color: var(--color-asphalt-500);
+  font: var(--text-caption-semibold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#route-region-chip[hidden] {
+  display: none;
+}
+
+#route-stats {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+}
+
+.route-stat {
+  flex: 1 1 0;
+  gap: 2px;
+}
+
+.route-stat-value {
+  font: 700 28px/34px var(--font-primary); /* Mulish: tabular digits keep the readout steady. */
+  color: var(--color-asphalt-500);
+  white-space: nowrap;
+}
+
+.route-stat-label {
+  font: var(--text-caption-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-neutral-600);
+}
+
+#route-street-count {
+  flex-shrink: 0;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+#creating-route-buttons {
+  gap: 8px;
+}
+
+#save-button {
+  flex: 1 1 auto;
+}
+
+/* Square icon-only secondary buttons (undo / delete); the accessible name is on the aria-label. */
+.button--icon-only {
+  flex-shrink: 0;
+  padding: 8px 10px;
+}
+
+.button-icon-img {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+/* Modal scrim: a fixed, full-viewport flex centering container. Toggled via visibility from JS. */
+.routebuilder-overlay-backdrop {
+  visibility: hidden;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgb(0 0 0 / 45%);
+  z-index: 20; /* Above the planner card (z-index 10). */
+}
+
+/* Modal card: the PS Label Detail card chrome (white, radius 12, elevated shadow). */
 .routebuilder-overlay {
-  position: absolute;
-  padding: 20px 40px;
-  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  padding: 22px;
   background: var(--color-neutral-white);
-  box-shadow: 0 4px 8px 0 rgb(0 0 0 / 25%);
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgb(0 0 0 / 25%);
   color: var(--color-neutral-black);
 }
 
 .routebuilder-centered-overlay {
-  width: 590px;
-  top: calc(var(--navbar-height) + 4%); /* Below the navbar; the backdrop is a fixed full-viewport scrim. */
-  left: calc(50% - 295px); /* 50% - width/2 */
-}
-
-.routebuilder-h1 {
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 28px; /* 127.273% */
-}
-
-.routebuilder-h2 {
-  font-size: 16px;
-}
-
-#routebuilder-intro-instruction {
-  color: #236EE0;
-  font-weight: 800;
-  padding-top: 16px;
-}
-
-#route-length-val {
-  font-size: 36px;
-  line-height: 44px; /* 122.222% */
-}
-
-#creating-route-buttons {
-  gap: 12px;
-}
-
-.routebuilder-button {
-  height: 30px;
-  padding: 8px 13px;
-  font-size: 13px;
-  border-radius: 6px;
-}
-
-.blue-button {
-  background: #236EE0;
-  color: var(--color-neutral-white);
-  border: 1.5px solid #236EE0;
-}
-
-.white-button {
-  background: var(--color-neutral-white);
-  color: var(--color-asphalt-500);
-  border: 1.5px solid #525252;
-}
-
-.routebuilder-overlay-backdrop {
-  visibility: hidden; /* Show using JS at the appropriate times. */
-  height: 100%;
-  width: 100%;
-  position: fixed;
-  top: 0;
-  left: 0;
-  background: rgb(0 0 0 / 10%);
-  z-index: 20; /* Above the left panel (z-index 10) so modals cover it. */
+  width: 520px;
+  max-width: 100%;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
 }
 
 #delete-route-modal {
@@ -149,13 +243,10 @@
   gap: 12px;
 }
 
-#route-saved-explore-title {
-  align-self: stretch;
-}
-
 #route-saved-buttons, #delete-route-buttons {
   gap: 12px;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 #route-saved-share-section {
@@ -165,18 +256,14 @@
 #share-route-subsection {
   padding: 10px 20px;
   border-radius: 10px;
-  background: #F2F2F2;
+  background: var(--color-neutral-100);
 }
 
 #share-route-link {
   flex: 1 0 0;
-  color: #5F5F5F;
-  font-size: 12px;
-}
-
-#copy-link-button {
-  padding: 4px 8px;
-  font-size: 12px;
+  color: var(--color-neutral-700);
+  font: var(--text-caption-regular);
+  word-break: break-all;
 }
 
 #route-saved-share-warnings {
@@ -189,19 +276,19 @@
 }
 
 #route-name-label {
-  font-weight: 600;
+  font: var(--text-small-bold);
   margin-bottom: 0;
 }
 
 #route-name-input {
   padding: 8px 12px;
-  font-size: 14px;
-  border: 1.5px solid #525252;
-  border-radius: 6px;
+  font: var(--text-body-regular);
+  border: 1.5px solid var(--color-neutral-800);
+  border-radius: 8px;
 }
 
 #route-name-input:focus {
-  outline: 2px solid #236EE0;
+  outline: 2px solid var(--color-link-100);
   outline-offset: 1px;
 }
 
@@ -211,12 +298,13 @@
 }
 
 #save-route-signin-nudge {
-  color: #5F5F5F;
+  color: var(--color-neutral-700);
 }
 
 #save-route-buttons {
   gap: 12px;
   padding-top: 8px;
+  flex-wrap: wrap;
 }
 
 #route-saved-name {
@@ -239,8 +327,8 @@
 }
 
 #recent-routes-note {
-  color: #5F5F5F;
-  font-size: 12px;
+  color: var(--color-neutral-700);
+  font: var(--text-caption-regular);
 }
 
 #recent-routes-list {
@@ -258,7 +346,7 @@
   align-items: center;
   gap: 8px;
   padding-top: 8px;
-  border-top: 1px solid #b6b6b6;
+  border-top: 1px solid var(--color-neutral-300);
 }
 
 .recent-route-info {
@@ -269,61 +357,29 @@
 }
 
 .recent-route-name {
-  font-weight: 600;
+  font: var(--text-small-bold);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .recent-route-meta {
-  color: #5F5F5F;
-  font-size: 12px;
+  color: var(--color-neutral-700);
+  font: var(--text-caption-regular);
 }
 
 .recent-route-copy {
-  padding: 4px 8px;
-  font-size: 12px;
   flex-shrink: 0;
 }
 
-.marker-start, .marker-end {
-  width: 27px;
-  height: 27px;
-}
-
-.marker-start {
-  background-image: url("/assets/images/icons/routebuilder/start-point.png");
-}
-
-.marker-end {
-  background-image: url("/assets/images/icons/routebuilder/end-point.png");
-}
-
-.marker-number {
-  width: 21px;
-  height: 21px;
-  border-radius: 50%;
-  color: var(--color-neutral-white);
-  text-align: center;
-  font-family: Roboto, serif;
-  font-weight: 900;
-}
-
-/* Overwriting Mapbox popup styling. */
-.mapboxgl-popup-content {
-  padding: 10px; /* Default 10px 10px 15px */
-  box-shadow: 0 2px 4px 0 rgb(0 0 0 / 25%); /* Default 0 1px 2px rgb(0 0 0/10%) */
-  border-radius: 10px; /* Default 3px */
-}
-
-/* Street action menu (#4578): labeled reverse/remove buttons that open when a route street is clicked. */
-.street-popover {
+/* The reverse/delete menu that opens when the drawn route is clicked. */
+.route-popover {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.street-popover-btn {
+.route-popover-btn {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -336,50 +392,39 @@
   text-align: left;
 }
 
-.street-popover-btn:hover,
-.street-popover-btn:focus-visible {
+.route-popover-btn:hover,
+.route-popover-btn:focus-visible {
   background: #ddefff;
 }
 
-.street-popover-icon {
+.route-popover-icon {
   width: 28px;
   height: 28px;
 }
 
-/* Start/End markers (#3433): the marker element's box is exactly the 27px flag (so Mapbox centers the flag on
-   the route point); the always-upright text label hangs below it, out of layout. */
-.marker-endpoint {
-  position: relative;
-  width: 27px;
-  height: 27px;
+/* Overwriting Mapbox popup styling. */
+.mapboxgl-popup-content {
+  padding: 10px;
+  box-shadow: 0 2px 4px 0 rgb(0 0 0 / 25%);
+  border-radius: 10px;
 }
 
-.marker-endpoint-label {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-top: 3px;
-  padding: 1px 6px;
-  border-radius: 6px;
-  background: var(--color-neutral-white);
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 25%);
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-/* Map legend (#4577, #4580): collapsible key for the flags, numbered gap markers, and direction arrows. */
+/* Always-visible map legend (bottom-right). Compact card matching the planner chrome. */
 #routebuilder-legend {
-  bottom: 4%;
-  right: 3%;
-  width: 280px;
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  z-index: 10;
+  width: 190px;
   padding: 12px 16px;
+  background: var(--color-neutral-white);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 15%);
+  color: var(--color-neutral-black);
 }
 
 #routebuilder-legend-title {
-  font-weight: 700;
-  cursor: pointer;
+  font: var(--text-small-bold);
 }
 
 #routebuilder-legend-list {
@@ -396,7 +441,7 @@
   flex-direction: row;
   align-items: center;
   gap: 10px;
-  font-size: 13px;
+  font: var(--text-caption-medium);
 }
 
 .legend-icon {
@@ -405,47 +450,62 @@
   flex-shrink: 0;
 }
 
-.legend-gap-markers {
-  display: flex;
-  flex-direction: row;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.legend-number {
-  background: #80c32a;
-  font-size: 12px;
-  line-height: 21px;
-}
-
 .legend-direction-arrow {
   width: 22px;
   text-align: center;
-  color: #236EE0;
+  color: var(--color-link-200);
   font-size: 18px;
   flex-shrink: 0;
 }
 
-/* Directions block (#4579): Google-Maps-style start/end fields for auto-routing, now inside the left panel. */
-.directions-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: #5F5F5F;
+/* Points-of-interest toggle at the bottom of the legend card. */
+#routebuilder-poi-toggle {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-neutral-200);
+  font: var(--text-caption-medium);
+  cursor: pointer;
 }
 
+#poi-toggle-checkbox {
+  margin: 0;
+}
+
+/* Start/End address seed (#4579): flag-icon + search-field rows inside the planner card. The End row stays hidden
+   until the route has a start. */
+.directions-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.directions-row[hidden] {
+  display: none; /* The flex display would otherwise override the hidden attribute's UA display: none. */
+}
+
+.directions-flag {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.directions-slot {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* The search box otherwise keeps its library default width and overflows the card (the web component and its
+   .mapboxgl-ctrl wrapper both carry their own sizing). */
 .directions-slot mapbox-search-box,
+.directions-slot .mapboxgl-ctrl,
 .directions-slot input {
+  display: block;
   width: 100%;
-}
-
-#directions-hint {
-  padding-top: 4px;
-  font-size: 12px;
-  color: #5F5F5F;
-}
-
-#directions-error {
-  color: var(--color-label-surface-problem);
-  font-size: 13px;
-  font-weight: 600;
+  min-width: 0;
+  max-width: 100%;
 }

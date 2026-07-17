@@ -1,9 +1,22 @@
 /**
- * RouteBuilder — the /routeBuilder page. Lets a user click streets on a Mapbox map to assemble a custom route,
- * then save/share it. The save flow lives in SaveModal; the anonymous "recent routes on this device" recovery
- * panel lives in GuestRoutes.
+ * RouteBuilder — the /routeBuilder page. Building is staged coarse-to-fine: the user first clicks the neighborhood
+ * to build in (routes are constrained to one region, so the choice is made explicit and the map zooms to it), then
+ * clicks points on the map — the first click drops a start (previewed by a ghost flag), and each further click
+ * extends the route from the last point along an A* walking path over the street network (RouteGraph). Routes are
+ * contiguous by construction. Clicking the drawn route opens a small action menu (RoutePopover: reverse / delete).
+ * A slim Start/End address seed (DirectionsPanel) can plant the first two points, implicitly selecting the region.
+ * The save flow lives in SaveModal; the anonymous "recent routes on this device" recovery list lives in
+ * GuestRoutes.
+ *
+ * The route is defined entirely by #waypoints (ordered snapped points); the drawn streets, endpoint flags, and
+ * stats are all derived from them by #recompute, so add / undo / reverse are just edits to that list followed by a
+ * recompute.
  */
 class RouteBuilder {
+  // Zoom eased to when the first point lands, close enough that the basemap renders street names for building.
+  static BUILD_ZOOM = 15.5;
+  // How long the explorer takes to walk the route in the save-hover preview animation.
+  static EXPLORER_ANIMATION_MS = 2500;
   #status = {
     mapLoaded: false,
     neighborhoodsLoaded: false, // Neighborhood GeoJSON has arrived from the server.
@@ -12,35 +25,43 @@ class RouteBuilder {
     pendingRouteRestored: false,
   };
 
-  // Constants used throughout the code.
-  #endpointColors = ['#80c32a', '#ffc300', '#ff9700', '#ff6a00'];
   #units;
+  #minutesPer100m;
 
   #mapboxApiKey;
   #map;
   #isSignedIn;
 
-  // Variables used throughout the code.
+  // Route state. The route is fully defined by #waypoints; everything else is derived from it.
   #neighborhoodData = null;
   #currRegionId = null;
   #streetData = null;
-  #streetsInRoute = null;
-  #currentMarkers = [];
-  #routeGraph = null; // Built lazily from #streetData on the first auto-route (#4579).
+  #streetsInRoute = null; // The 'streets-chosen' GeoJSON source: cloned, oriented street features for the route.
+  #waypoints = []; // Ordered [{ lng, lat }] snapped points the user clicked/seeded.
+  #chosenIds = new Set(); // Street ids currently drawn (their 'chosen' feature-state hides the base street).
+  #endpointData = { type: 'FeatureCollection', features: [] }; // The 'route-endpoints' symbol source (flags).
+  #routeGraph = null; // Built from #streetData as soon as it arrives (the ghost start flag needs it pre-click).
+  #ghostRaf = null; // Pending requestAnimationFrame id for the ghost-start-flag update.
+  #ghostLngLat = null; // Latest mouse position awaiting a ghost-start-flag update.
+  #explorerRaf = null; // Pending requestAnimationFrame id for the save-hover explorer animation.
 
   // Collaborators.
   #saveModal;
   #guestRoutes;
   #undoStack;
-  #streetPopover;
   #directionsPanel;
+  #routePopover;
 
   // DOM elements.
   #panel;
+  #ctaEl;
   #deleteRouteModal;
   #routeSavedModal;
   #routeSavedNameEl;
   #streetDistanceEl;
+  #routeTimeEl;
+  #streetCountEl;
+  #regionChipEl;
   #saveButton;
   #exploreButton;
   #linkTextEl;
@@ -52,25 +73,32 @@ class RouteBuilder {
    * @param {string} mapboxApiKey
    * @param {Object} mapParams - City center/boundaries/zoom for initializing the map.
    * @param {boolean} isSignedIn - Whether the user is signed in (vs anonymous), from the server.
+   * @param {number} minutesPer100m - The city's labeling pace (minutes per 100 m), for the exploration-time
+   *   estimate; server-provided (ConfigService.getCityLabelingSpeed).
    */
-  constructor($, mapboxApiKey, mapParams, isSignedIn) {
+  constructor($, mapboxApiKey, mapParams, isSignedIn, minutesPer100m) {
     this.#mapboxApiKey = mapboxApiKey;
     this.#isSignedIn = isSignedIn === true;
     this.#units = i18next.t('common:unit-distance');
+    this.#minutesPer100m = minutesPer100m;
 
     // Get the DOM elements.
     this.#panel = document.getElementById('routebuilder-panel');
+    this.#ctaEl = document.getElementById('routebuilder-cta');
     this.#deleteRouteModal = document.getElementById('delete-route-modal-backdrop');
     this.#routeSavedModal = document.getElementById('route-saved-modal-backdrop');
     this.#routeSavedNameEl = document.getElementById('route-saved-name');
     this.#streetDistanceEl = document.getElementById('route-length-val');
+    this.#routeTimeEl = document.getElementById('route-time-val');
+    this.#streetCountEl = document.getElementById('route-street-count');
+    this.#regionChipEl = document.getElementById('route-region-chip');
     this.#saveButton = document.getElementById('save-button');
     this.#exploreButton = $('#explore-button');
     this.#linkTextEl = document.getElementById('share-route-link');
     this.#copyLinkButton = $('#copy-link-button');
     this.#viewInLabelmapButton = $('#view-in-labelmap-button');
 
-    // Add the click event for the clear route buttons.
+    // Wire the route-management buttons.
     document.getElementById('cancel-button').addEventListener('click', () => this.#clickCancelRoute());
     document.getElementById('delete-route-button').addEventListener('click', (e) => this.#clearRoute(e));
     document.getElementById('cancel-delete-route-button').addEventListener('click', () => this.#clickResumeRoute());
@@ -101,11 +129,6 @@ class RouteBuilder {
       }
     });
 
-    const legend = document.getElementById('routebuilder-legend');
-    legend?.addEventListener('toggle', () => {
-      window.logWebpageActivity(`RouteBuilder_Click=ToggleLegend_Open=${legend.open}`);
-    });
-
     // Initialize the map.
     mapboxgl.accessToken = mapboxApiKey;
     this.#map = new mapboxgl.Map({
@@ -122,7 +145,7 @@ class RouteBuilder {
       doubleClickZoom: false,
     });
     this.#map.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
-    this.#map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-left');
+    this.#map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
     this.#map.on('load', () => {
       // If the streets and/or neighborhoods loaded before the map, render them now that the map has loaded.
       this.#status.mapLoaded = true;
@@ -137,12 +160,6 @@ class RouteBuilder {
     // Once all the layers have loaded, put them in the correct order.
     this.#map.on('sourcedataloading', this.#moveLayers);
 
-    this.#streetPopover = new StreetPopover(
-      this.#map,
-      (streetId) => this.#reverseStreet(streetId),
-      (streetId) => this.#removeStreet(streetId),
-    );
-
     this.#directionsPanel = new DirectionsPanel({
       map: this.#map,
       mapboxApiKey: this.#mapboxApiKey,
@@ -150,18 +167,47 @@ class RouteBuilder {
         [mapParams.southwest_boundary.lng, mapParams.southwest_boundary.lat],
         [mapParams.northeast_boundary.lng, mapParams.northeast_boundary.lat],
       ],
-      onPinsChanged: (start, end) => this.#autoRoute(start, end),
+      onSetStart: (lngLat) => this.#addWaypoint(lngLat, 'AddressStart'),
+      onSetEnd: (lngLat) => this.#addWaypoint(lngLat, 'AddressEnd'),
     });
+    this.#routePopover = new RoutePopover(this.#map, () => this.#reverseRoute(), () => this.#openDeleteConfirm());
 
     this.#saveButton.addEventListener('click', () => this.#saveModal.open());
+    // A playful preview: hovering (or keyboard-focusing) Save walks the explorer along the route.
+    this.#saveButton.addEventListener('mouseenter', () => this.#animateExplorer());
+    this.#saveButton.addEventListener('focus', () => this.#animateExplorer());
+
+    document.getElementById('poi-toggle-checkbox')?.addEventListener('change', (e) => {
+      window.logWebpageActivity(`RouteBuilder_Click=TogglePois_Visible=${e.target.checked}`);
+      this.#setPoiVisibility(e.target.checked);
+    });
+
+    this.#updateCta();
   }
 
-  // Arrow field so the reference stays stable for the map on/off pair.
+  /**
+   * Shows or hides the basemap's point-of-interest labels (schools, parks, libraries, ...). POIs help route
+   * builders aim for destinations that matter to pedestrians, but can clutter dense areas, so the legend offers a
+   * toggle.
+   *
+   * @param {boolean} visible
+   */
+  #setPoiVisibility(visible) {
+    (this.#map.getStyle()?.layers ?? [])
+      .filter((layer) => layer.type === 'symbol' && layer.id.includes('poi'))
+      .forEach((layer) => this.#map.setLayoutProperty(layer.id, 'visibility', visible ? 'visible' : 'none'));
+  }
+
+  // Arrow field so the reference stays stable for the map on/off pair. Stacks the layers bottom-to-top.
   #moveLayers = () => {
     const map = this.#map;
-    if (map.getLayer('streets') && map.getLayer('streets-chosen') && map.getLayer('neighborhoods')) {
-      map.moveLayer('streets', 'streets-chosen');
-      map.moveLayer('streets', 'neighborhoods');
+    if (map.getLayer('neighborhoods-outline') && map.getLayer('streets') && map.getLayer('streets-chosen')) {
+      // The flag/explorer layers may not exist yet (their icons rasterize async); they are then added on top
+      // anyway, so only the base layers gate the reordering.
+      ['neighborhoods-fill', 'neighborhoods-outline', 'streets', 'streets-chosen', 'neighborhoods-label',
+        'ghost-start', 'route-endpoints', 'route-explorer']
+        .filter((id) => map.getLayer(id))
+        .forEach((id) => map.moveLayer(id));
       map.off('sourcedataloading', this.#moveLayers); // Remove the listener so we only do this once.
     }
   };
@@ -175,18 +221,51 @@ class RouteBuilder {
     Toast.show({ message, reference: btn, duration: 1500 });
   }
 
+  // A transient message floated over the map (out-of-region / no-path feedback).
+  #showMapMessage(message) {
+    Toast.show({ message, duration: 2500 });
+  }
+
   /**
-   * Switches the left trip-planner panel between its two states (CSS shows/hides the matching sections).
-   * @param {'empty'|'building'} state - 'empty' shows the intro/getting-started block; 'building' shows the
-   *                                     route length + Save/Undo/Clear.
+   * Switches the left planner card between its two states (CSS shows/hides the matching sections).
+   * @param {'empty'|'building'} state - 'empty' shows the intro; 'building' shows the length + route actions.
    */
   #setPanelState(state) {
     this.#panel.dataset.state = state;
   }
 
   /**
-   * Renders the neighborhoods and an overlay outside the neighborhood boundaries on the map. Also configures
-   * SearchBox to filter out outside neighborhoods.
+   * Whether any route content exists yet (clicked/seeded waypoints, or a restored drawn route with no waypoints).
+   * @returns {boolean}
+   */
+  #routeStarted() {
+    return this.#waypoints.length > 0 || (this.#streetsInRoute?.features.length ?? 0) > 0;
+  }
+
+  /**
+   * Updates the on-map call-to-action to match the staged flow: pick a neighborhood, then a start point, then
+   * extend (hidden once the route has 2+ points).
+   */
+  #updateCta() {
+    if (!this.#ctaEl) return;
+    if (!this.#routeStarted()) {
+      const key = this.#currRegionId === null ? 'cta-select-region' : 'cta-pick-start';
+      this.#ctaEl.innerHTML = `
+        <img src="/assets/images/icons/routebuilder/flag-start.svg" class="cta-flag" alt="">
+        <span>${i18next.t(key)}</span>`;
+      this.#ctaEl.hidden = false;
+    } else if (this.#waypoints.length === 1) {
+      this.#ctaEl.textContent = i18next.t('cta-extend');
+      this.#ctaEl.hidden = false;
+    } else {
+      this.#ctaEl.hidden = true;
+    }
+  }
+
+  /**
+   * Renders the neighborhoods: an invisible fill that acts as the hover/click target while choosing where to
+   * build (lightly tinted on hover), name labels shown only during that choice, and a solid outline drawn for the
+   * selected region alone — boundaries stay off the map otherwise to keep the visual noise down.
    */
   #renderNeighborhoodsHelper() {
     const map = this.#map;
@@ -196,32 +275,89 @@ class RouteBuilder {
       promoteId: 'region_id',
     });
     map.addLayer({
-      id: 'neighborhoods',
+      id: 'neighborhoods-fill',
       type: 'fill',
       source: 'neighborhoods',
       paint: {
-        'fill-color': '#000000',
-        'fill-opacity': 0.0,
+        'fill-color': '#2D2A3F', // --color-asphalt-500 (map paint can't read CSS tokens).
+        'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.12, 0.0],
+      },
+    });
+    map.addLayer({
+      id: 'neighborhoods-outline',
+      type: 'line',
+      source: 'neighborhoods',
+      paint: {
+        'line-color': '#2D2A3F',
+        'line-width': 2,
+        // Only the selected region is outlined; every other boundary stays invisible.
+        'line-opacity': ['case', ['boolean', ['feature-state', 'current'], false], 0.5, 0.0],
+      },
+    });
+    map.addLayer({
+      id: 'neighborhoods-label',
+      type: 'symbol',
+      source: 'neighborhoods',
+      layout: {
+        'text-field': ['get', 'region_name'],
+        'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+        'text-size': ['interpolate', ['linear'], ['zoom'], 10, 11, 14, 15],
+      },
+      paint: {
+        'text-color': '#2D2A3F',
+        'text-halo-color': '#FFFFFF',
+        'text-halo-width': 1.5,
       },
     });
 
-    // Create layer for an overlay outside of neighborhood boundaries using turf.mask.
-    const outsideNeighborhoods = turf.mask(this.#neighborhoodData);
-    map.addSource('outside-neighborhoods', {
-      type: 'geojson',
-      data: outsideNeighborhoods,
+    // While choosing a neighborhood (any time the route hasn't started), regions highlight on hover.
+    let hoveredRegion = null;
+    map.on('mousemove', 'neighborhoods-fill', (event) => {
+      if (this.#routeStarted()) return;
+      const regionId = event.features[0].properties.region_id;
+      if (regionId !== hoveredRegion) {
+        if (hoveredRegion !== null) {
+          map.setFeatureState({ source: 'neighborhoods', id: hoveredRegion }, { hover: false });
+        }
+        hoveredRegion = regionId;
+        map.setFeatureState({ source: 'neighborhoods', id: hoveredRegion }, { hover: true });
+      }
+      // Inside the selected region the ghost flag is the affordance; elsewhere the region itself is clickable.
+      if (this.#currRegionId === null || regionId !== this.#currRegionId) map.getCanvas().style.cursor = 'pointer';
     });
-    map.addLayer({
-      id: 'outside-neighborhoods',
-      type: 'fill',
-      source: 'outside-neighborhoods',
-      paint: {
-        'fill-opacity': 0.3,
-        'fill-color': '#000000',
-      },
+    map.on('mouseleave', 'neighborhoods-fill', () => {
+      if (hoveredRegion !== null) map.setFeatureState({ source: 'neighborhoods', id: hoveredRegion }, { hover: false });
+      hoveredRegion = null;
+      map.getCanvas().style.cursor = '';
     });
+
     this.#status.neighborhoodsRendered = true;
     this.#maybeRestorePendingRoute();
+  }
+
+  /**
+   * Selects the neighborhood to build in: outlines it, hides the region-name labels and hover tint, and zooms the
+   * map to fit it. Re-selecting a different region (before any point is placed) just moves the selection.
+   *
+   * @param {number} regionId
+   * @param {boolean} [fit=true] - Whether to zoom the map to the region (false when an address already zoomed us).
+   */
+  #selectRegion(regionId, fit = true) {
+    const map = this.#map;
+    if (this.#currRegionId === regionId) return;
+    if (this.#currRegionId !== null) {
+      map.setFeatureState({ source: 'neighborhoods', id: this.#currRegionId }, { current: false });
+    }
+    this.#currRegionId = regionId;
+    map.setFeatureState({ source: 'neighborhoods', id: regionId }, { current: true });
+    if (map.getLayer('neighborhoods-label')) map.setLayoutProperty('neighborhoods-label', 'visibility', 'none');
+    this.#clearGhostStart(); // Mousemove doesn't fire during the zoom animation, so drop any stale ghost now.
+
+    if (fit) {
+      const region = this.#neighborhoodData?.features.find((n) => n.properties.region_id === regionId);
+      if (region) map.fitBounds(turf.bbox(region), { padding: 60, duration: 1200, maxZoom: 16 });
+    }
+    this.#updateCta();
   }
 
   /**
@@ -237,12 +373,14 @@ class RouteBuilder {
   }
 
   /**
-   * Renders the streets on the map. Adds the hover/click events for the streets as well.
+   * Renders the streets on the map and wires the routing interaction.
    *
-   * We have two separate data sources for the streets. The 'streets' source contains all the streets in the city. The
-   * 'streets-chosen' source contains the streets that have been added to the route (white/blue arrow pattern). This
-   * just makes it a bit easier to keep track of the streets in the route and render streets differently when we
-   * reverse their direction. Clicking a chosen street opens the labeled reverse/remove menu (StreetPopover).
+   * Two sources: 'streets' holds every street in the city (a thin, quiet base network you click to route along);
+   * 'streets-chosen' holds the drawn route (an arrow pattern showing walking direction). A street in the route has
+   * its base copy hidden via the 'chosen' feature-state. Clicking the drawn route opens the reverse/delete menu;
+   * clicking anywhere else extends the route to the nearest street. Before the route starts, a ghost dot previews
+   * the intersection the first click would snap to; the endpoint flags render as a symbol layer (drawn in the same
+   * WebGL pass as the route line, unlike DOM markers, so they can never drift off it).
    */
   #renderStreetsHelper() {
     const map = this.#map;
@@ -257,26 +395,22 @@ class RouteBuilder {
       data: this.#streetsInRoute,
       promoteId: 'street_edge_id',
     });
+    // The ghost start dot needs snapping before any click, so build the routing graph right away.
+    this.#getRouteGraph();
 
     map.addLayer({
       id: 'streets',
       type: 'line',
       source: 'streets',
       paint: {
+        // Quiet neutral base network; the street a click would snap to lights up in the DS link blue on hover.
         'line-color': ['case',
-          ['boolean', ['feature-state', 'hover'], false], '#236ee0',
-          '#ddefff',
+          ['boolean', ['feature-state', 'hover'], false], '#3E8BD9', // --color-link-100
+          '#B3B3B3', // --color-neutral-500
         ],
-        // Line width scales based on zoom level.
-        'line-width': [
-          'interpolate', ['linear'], ['zoom'],
-          12, 2,
-          15, 7,
-        ],
-        // Show only when street hasn't been chosen.
-        'line-opacity': ['case',
-          ['boolean', ['feature-state', 'chosen'], false], 0.0, 0.75,
-        ],
+        'line-width': ['interpolate', ['linear'], ['zoom'], 12, 1, 15, 4],
+        // Hidden where the street is part of the drawn route (that copy renders in 'streets-chosen' instead).
+        'line-opacity': ['case', ['boolean', ['feature-state', 'chosen'], false], 0.0, 0.45],
       },
     });
     map.addLayer({
@@ -285,140 +419,176 @@ class RouteBuilder {
       source: 'streets-chosen',
       paint: {
         'line-pattern': 'street-arrow',
-        // Line width scales based on zoom level.
-        'line-width': [
-          'interpolate', ['linear'], ['zoom'],
-          12, 2,
-          15, 7,
-        ],
-        'line-opacity': 0.75,
+        'line-width': ['interpolate', ['linear'], ['zoom'], 12, 3, 15, 8],
+        'line-opacity': 0.9,
       },
     });
 
-    // Create tooltips for when the user hovers over a street.
-    const neighborhoodPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
-      .setHTML(i18next.t('one-neighborhood-warning'));
-    const hoverInfoPopup
-      = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 10, maxWidth: '340px' });
+    // Flag + explorer icons render as symbol layers (drawn in the same WebGL pass as the route line, unlike DOM
+    // markers, so they can never drift off it). The SVGs/PNG are rasterized ourselves because Mapbox's loadImage
+    // only decodes raster formats and this GL build's callback API doesn't return a promise.
+    Promise.all([
+      RouteBuilder.#rasterizeIcon('/assets/images/icons/routebuilder/flag-start.svg', 27),
+      RouteBuilder.#rasterizeIcon('/assets/images/icons/routebuilder/flag-end.svg', 27),
+      RouteBuilder.#rasterizeIcon('/assets/images/icons/project_sidewalk_flag.png', 40),
+    ]).then(([startFlag, endFlag, explorer]) => {
+      map.addImage('routebuilder-start-flag', startFlag.data, { pixelRatio: startFlag.pixelRatio });
+      map.addImage('routebuilder-end-flag', endFlag.data, { pixelRatio: endFlag.pixelRatio });
+      map.addImage('routebuilder-explorer', explorer.data, { pixelRatio: explorer.pixelRatio });
 
-    // Mark when a street is being hovered over. Street names are resolved once per hovered street — the
-    // basemap query is not free, and mousemove fires many times per second.
+      // Ghost start flag: a translucent preview of exactly where the first click would plant the start.
+      map.addSource('ghost-start', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+      map.addLayer({
+        id: 'ghost-start',
+        type: 'symbol',
+        source: 'ghost-start',
+        layout: {
+          'icon-image': 'routebuilder-start-flag',
+          'icon-anchor': 'bottom',
+          'icon-allow-overlap': true,
+        },
+        paint: {
+          'icon-opacity': 0.55,
+        },
+      });
+
+      map.addSource('route-endpoints', { type: 'geojson', data: this.#endpointData });
+      map.addLayer({
+        id: 'route-endpoints',
+        type: 'symbol',
+        source: 'route-endpoints',
+        layout: {
+          'icon-image': ['concat', 'routebuilder-', ['get', 'kind'], '-flag'],
+          'icon-anchor': 'bottom', // The flag pole is planted on the route point; the label hangs below it.
+          'icon-allow-overlap': true,
+          'text-field': ['get', 'label'],
+          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+          'text-size': 13,
+          'text-anchor': 'top',
+          'text-offset': [0, 0.4],
+          'text-allow-overlap': true,
+        },
+        paint: {
+          'text-color': '#2D2A3F', // --color-asphalt-500 (map paint can't read CSS tokens).
+          'text-halo-color': '#FFFFFF',
+          'text-halo-width': 1.5,
+        },
+      });
+
+      // The explorer that walks the route in the save-hover preview animation.
+      map.addSource('route-explorer', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+      map.addLayer({
+        id: 'route-explorer',
+        type: 'symbol',
+        source: 'route-explorer',
+        layout: {
+          'icon-image': 'routebuilder-explorer',
+          'icon-anchor': 'bottom',
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
+        },
+      });
+    }).catch((e) => console.error('Failed to prepare map icons:', e));
+
+    // Hover highlights the street a click would snap to — only once the route has started (before that, the ghost
+    // dot is the hover affordance). Out-of-region streets show a not-allowed cursor.
     let hoveredStreet = null;
-    let clickedStreet = null;
-    const streetNameCache = new Map();
     map.on('mousemove', 'streets', (event) => {
-      const street = event.features[0];
-      // Don't show hover effects if the street was just clicked on.
-      if (street.properties.street_edge_id === clickedStreet) return;
-      const isChosen = street.state?.chosen === true;
-      const streetId = street.properties.street_edge_id;
-      const streetChanged = streetId !== hoveredStreet;
-
-      // If we moved directly from hovering over one street to another, set the previous as hover: false.
-      if (hoveredStreet && streetChanged) {
-        map.setFeatureState({ source: 'streets', id: hoveredStreet }, { hover: false });
+      if (!this.#routeStarted()) return;
+      const streetId = event.features[0].properties.street_edge_id;
+      const regionId = event.features[0].properties.region_id;
+      if (this.#currRegionId !== null && this.#currRegionId !== regionId) {
+        if (hoveredStreet !== null) {
+          map.setFeatureState({ source: 'streets', id: hoveredStreet }, { hover: false });
+          hoveredStreet = null;
+        }
+        map.getCanvas().style.cursor = 'not-allowed';
+        return;
       }
-      hoveredStreet = streetId;
-      map.setFeatureState({ source: 'streets', id: hoveredStreet }, { hover: true });
+      if (streetId !== hoveredStreet) {
+        if (hoveredStreet !== null) map.setFeatureState({ source: 'streets', id: hoveredStreet }, { hover: false });
+        hoveredStreet = streetId;
+        map.setFeatureState({ source: 'streets', id: hoveredStreet }, { hover: true });
+      }
       map.getCanvas().style.cursor = 'pointer';
-
-      // A street in another neighborhood can't be added, so only the warning is shown — not an add tooltip
-      // inviting a click that would be refused.
-      if (this.#currRegionId && this.#currRegionId !== street.properties.region_id) {
-        hoverInfoPopup.remove();
-        neighborhoodPopup.setLngLat(event.lngLat).addTo(map);
-        return;
-      }
-      neighborhoodPopup.remove();
-
-      // Tooltip above the cursor: the street's name (from the basemap, when one renders nearby) plus what a
-      // click will do — add the street, or open the reverse/remove menu for a street already in the route.
-      if (streetChanged && !streetNameCache.has(streetId)) {
-        streetNameCache.set(streetId, this.#basemapStreetName(event.point));
-      }
-      const streetName = streetNameCache.get(streetId);
-      // escapeValue off: the name goes through Popup.setText (plain text), not into markup.
-      const interp = { street: streetName, interpolation: { escapeValue: false } };
-      let tooltipText;
-      if (isChosen) {
-        tooltipText = streetName
-          ? i18next.t('hover-street-options-named', interp)
-          : i18next.t('hover-street-options');
-      } else {
-        tooltipText = streetName
-          ? i18next.t('hover-add-street-named', interp)
-          : i18next.t('hover-add-street');
-      }
-      hoverInfoPopup.setLngLat(event.lngLat).setText(tooltipText);
-      if (!hoverInfoPopup.isOpen()) {
-        hoverInfoPopup.addTo(map);
-        hoverInfoPopup._content.parentNode.querySelector('[class*="tip"]').remove(); // Remove the arrow.
-      }
     });
-
-    // When not hovering over any streets, set prev street to hover: false and reset cursor.
     map.on('mouseleave', 'streets', () => {
-      if (hoveredStreet) {
-        map.setFeatureState({ source: 'streets', id: hoveredStreet }, { hover: false });
-      }
+      if (hoveredStreet !== null) map.setFeatureState({ source: 'streets', id: hoveredStreet }, { hover: false });
       hoveredStreet = null;
-      clickedStreet = null; // This helps avoid showing hover effects directly after clicking a street.
       map.getCanvas().style.cursor = '';
-      neighborhoodPopup.remove();
-      hoverInfoPopup.remove();
     });
+    map.on('mousemove', (event) => this.#updateGhostStart(event.lngLat));
+    map.on('mouseout', () => this.#clearGhostStart());
 
-    // Clicking an unchosen street adds it to the route; clicking a chosen one opens the reverse/remove menu.
-    map.on('click', 'streets', (event) => {
-      const streetFeature = event.features[0];
-
-      // Retrieve complete street geometry from source data rather than using the
-      // viewport-limited feature from the event object which may be incomplete
-      const street = this.#streetData.features.find((s) =>
-        s.properties.street_edge_id === streetFeature.properties.street_edge_id,
-      );
-
-      if (this.#currRegionId && this.#currRegionId !== street.properties.region_id) {
+    // Click handling follows the staged flow. On the drawn route: open the reverse/delete menu (a small pixel box
+    // around the click gives the thin line a comfortable hit target). Before any point exists: clicking a
+    // neighborhood selects it (clicking a different one moves the selection); clicking inside the selected one
+    // plants the start. After that, clicks extend the route.
+    map.on('click', (event) => {
+      const { x, y } = event.point;
+      const onRoute = this.#streetsInRoute && this.#streetsInRoute.features.length > 0
+        && map.queryRenderedFeatures([[x - 6, y - 6], [x + 6, y + 6]], { layers: ['streets-chosen'] }).length > 0;
+      if (onRoute) {
+        window.logWebpageActivity('RouteBuilder_Click=RouteMenu_Open');
+        this.#routePopover.open(event.lngLat);
         return;
       }
-
-      hoveredStreet = street.properties.street_edge_id;
-      clickedStreet = hoveredStreet;
-
-      if (streetFeature.state.chosen === true) { // Street already in the route: open the action menu.
-        this.#streetPopover.open(clickedStreet, event.lngLat);
-      } else { // If the street was not in the route, add it to the route.
-        this.#addStreetToRoute(street);
-        hoverInfoPopup.remove(); // Hide the add-street tooltip.
-        this.#updateMarkers();
-        this.#setRouteDistanceText();
+      if (!this.#routeStarted()) {
+        const clickedRegionId = this.#regionIdAtPoint(event.point);
+        if (clickedRegionId === null) return; // Clicked outside every neighborhood.
+        if (clickedRegionId !== this.#currRegionId) {
+          window.logWebpageActivity(`RouteBuilder_Click=SelectRegion_RegionId=${clickedRegionId}`);
+          this.#selectRegion(clickedRegionId);
+          return;
+        }
       }
-
-      // Set hover to false so that we don't show hover effect immediately after being clicked.
-      map.setFeatureState({ source: 'streets', id: hoveredStreet }, { hover: false });
+      this.#addWaypoint(event.lngLat, 'MapClick');
     });
 
     this.#maybeRestorePendingRoute();
   }
 
   /**
-   * Best-effort street-name lookup from the basemap's rendered road labels near a screen point (#4575).
+   * Returns the region id of the neighborhood polygon under a screen point, or null if there is none.
    *
-   * Road names aren't in our own street data, and basemap label features only exist where a label happens to
-   * render — so this returns null along unlabeled stretches and the tooltip degrades to generic text. Purely
-   * presentational, which is why it reads the basemap instead of a backend source.
-   *
-   * @param {Object} point - Screen point ({x, y}) from a map mouse event.
-   * @returns {string|null} The street name, or null if no labeled road is nearby.
+   * @param {Object} point - Screen {x, y} of a map event.
+   * @returns {number|null}
    */
-  #basemapStreetName(point) {
-    const radius = 30; // px search window around the cursor.
-    const features = this.#map.queryRenderedFeatures([
-      [point.x - radius, point.y - radius],
-      [point.x + radius, point.y + radius],
-    ]);
-    const named = features.find((f) => f.sourceLayer === 'road' && f.properties?.name);
-    return named ? named.properties.name : null;
+  #regionIdAtPoint(point) {
+    if (!this.#map.getLayer('neighborhoods-fill')) return null;
+    const features = this.#map.queryRenderedFeatures(point, { layers: ['neighborhoods-fill'] });
+    return features.length > 0 ? features[0].properties.region_id : null;
+  }
+
+  /**
+   * Moves the ghost start flag to the intersection nearest the mouse (rAF-throttled: snapping scans the street
+   * network, so at most one scan per frame). Active only between selecting a neighborhood and placing the start;
+   * snapping is restricted to the selected region so the preview can't slip across a boundary.
+   *
+   * @param {Object} lngLat - The mouse position {lng, lat}.
+   */
+  #updateGhostStart(lngLat) {
+    if (this.#routeStarted() || this.#currRegionId === null || !this.#routeGraph) {
+      return;
+    }
+    this.#ghostLngLat = lngLat;
+    if (this.#ghostRaf !== null) return;
+    this.#ghostRaf = requestAnimationFrame(() => {
+      this.#ghostRaf = null;
+      if (this.#routeStarted() || this.#currRegionId === null) return; // State may have changed mid-frame.
+      const snap = this.#routeGraph.snapToStreet(this.#ghostLngLat, this.#currRegionId);
+      const source = this.#map.getSource('ghost-start');
+      if (!snap || !source) return;
+      source.setData({
+        type: 'FeatureCollection',
+        features: [{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: snap.nodeLngLat } }],
+      });
+    });
+  }
+
+  /** Hides the ghost start flag (mouse left the map, or the start was placed). */
+  #clearGhostStart() {
+    this.#map.getSource('ghost-start')?.setData({ type: 'FeatureCollection', features: [] });
   }
 
   /**
@@ -434,44 +604,7 @@ class RouteBuilder {
   }
 
   /**
-   * Updates the route distance text shown in the upper-right corner of the map.
-   */
-  #setRouteDistanceText() {
-    const routeDist = this.#streetsInRoute.features
-      .reduce((sum, street) => sum + turf.length(street, { units: this.#units }), 0);
-    this.#streetDistanceEl.innerText = i18next.t('route-length', { dist: routeDist.toFixed(2) });
-  }
-
-  /**
-   * Delete old markers and draw new ones, and keep the directions panel in sync with the route's endpoints.
-   * The contiguous sections are computed once here (it's O(n²)) and shared by both consumers.
-   */
-  #updateMarkers() {
-    this.#currentMarkers.forEach((m) => m.remove());
-    this.#currentMarkers = [];
-    const sections = this.#computeContiguousRoutes();
-    this.#drawContiguousEndpointMarkers(sections);
-    this.#syncDirectionsPanel(sections);
-  }
-
-  /**
-   * Mirrors the route's current endpoints onto the directions panel (pins + reverse-geocoded field text).
-   *
-   * @param {Array<Array<Object>>} sections - The route's contiguous sections.
-   */
-  #syncDirectionsPanel(sections) {
-    if (sections.length === 0) {
-      this.#directionsPanel.clearPins();
-      return;
-    }
-    const startCoord = sections[0][0].geometry.coordinates[0];
-    const lastSection = sections[sections.length - 1];
-    const lastCoords = lastSection[lastSection.length - 1].geometry.coordinates;
-    this.#directionsPanel.updateFromRoute(startCoord, lastCoords[lastCoords.length - 1]);
-  }
-
-  /**
-   * Builds (once) and returns the street-network graph used for auto-routing.
+   * Builds (once) and returns the street-network graph used for routing.
    */
   #getRouteGraph() {
     if (!this.#routeGraph) this.#routeGraph = new RouteGraph(this.#streetData.features);
@@ -479,345 +612,319 @@ class RouteBuilder {
   }
 
   /**
-   * The route in undo-snapshot form: ordered street ids with their current orientation.
-   * @returns {Array<{streetId: number, reverse: boolean}>}
-   */
-  #routeSnapshot() {
-    return this.#streetsInRoute.features.map((s) => ({
-      streetId: s.properties.street_edge_id,
-      reverse: s.properties.reverse === true,
-    }));
-  }
-
-  /**
-   * Empties the route's streets and region state without touching overlays or the undo stack (callers decide
-   * what to record and which UI state follows).
-   */
-  #emptyRouteSilently() {
-    const map = this.#map;
-    this.#streetsInRoute.features.forEach((s) => {
-      map.setFeatureState({ source: 'streets', id: s.properties.street_edge_id }, { chosen: false });
-    });
-    this.#streetsInRoute.features = [];
-    map.getSource('streets-chosen').setData(this.#streetsInRoute);
-    map.setFeatureState({ source: 'neighborhoods', id: this.#currRegionId }, { current: false });
-    this.#currRegionId = null;
-  }
-
-  /**
-   * Computes a walking route between the directions panel's pins and replaces the current route with it
-   * (undoable in one step). The result feeds the normal editing pipeline, so the auto-routed streets can be
-   * tweaked street-by-street afterwards (#4579).
+   * Adds a waypoint at the nearest street to a clicked/typed point and extends the route to it.
    *
-   * @param {Object} start - {lng, lat}.
-   * @param {Object} end - {lng, lat}.
+   * The first waypoint locks the route to its region (kept lightly — a click in another region is refused with a
+   * toast). A non-first waypoint must be reachable from the previous one along the street network.
+   *
+   * @param {Object} lngLat - {lng, lat} of the click or geocoded address.
+   * @param {string} source - Where the point came from, for activity logging ('MapClick'/'AddressStart'/...).
    */
-  #autoRoute(start, end) {
-    // The neighborhoods source must exist too: adding the first street sets a feature state on it.
-    if (!this.#status.mapLoaded || !this.#status.streetsLoaded || !this.#status.neighborhoodsLoaded
-      || this.#streetsInRoute === null) return;
+  #addWaypoint(lngLat, source) {
+    if (!this.#status.neighborhoodsRendered || !this.#status.streetsLoaded || this.#streetsInRoute === null) return;
+    // A route restored for the post-sign-in save flow is drawn but has no waypoints; a fresh click starts over
+    // rather than leaving the (waypoint-derived) route and the drawn streets out of sync.
+    if (this.#waypoints.length === 0 && this.#streetsInRoute.features.length > 0) this.#emptyRoute();
+    const graph = this.#getRouteGraph();
 
-    const result = this.#getRouteGraph().route(start, end);
-    if (result.error) {
-      const isRegionError = result.error === 'different-region';
-      this.#directionsPanel.setError(i18next.t(isRegionError ? 'different-region-error' : 'no-path-error'));
-      window.logWebpageActivity(`RouteBuilder_AutoRoute=${isRegionError ? 'DifferentRegion' : 'NoPath'}`);
+    // Region rule: a point in a different neighborhood than the selected one is refused (with a toast). The
+    // polygon under the point decides, and snapping is restricted to the selected region, so a point near a
+    // boundary can't silently slip across it.
+    const pointRegionId = this.#regionIdAtPoint(this.#map.project(lngLat));
+    if (this.#currRegionId !== null && pointRegionId !== null && pointRegionId !== this.#currRegionId) {
+      this.#showMapMessage(i18next.t('one-neighborhood-warning'));
+      window.logWebpageActivity(`RouteBuilder_AddWaypoint=DifferentRegion_Source=${source}`);
+      return;
+    }
+    const snap = graph.snapToStreet(lngLat, this.#currRegionId);
+    if (!snap) return;
+    // An address-seeded first point selects its region implicitly (no zoom-to-fit; we ease to the point below).
+    if (this.#currRegionId === null) this.#selectRegion(snap.regionId, false);
+
+    const point = { lng: snap.nodeLngLat[0], lat: snap.nodeLngLat[1] };
+    // A non-first point must be reachable from the current end along the street network.
+    if (this.#waypoints.length > 0) {
+      const result = graph.route(this.#waypoints[this.#waypoints.length - 1], point);
+      if (result.error) {
+        this.#showMapMessage(i18next.t('no-path-error'));
+        window.logWebpageActivity(`RouteBuilder_AddWaypoint=NoPath_Source=${source}`);
+        return;
+      }
+    }
+
+    this.#waypoints.push(point);
+    this.#undoStack.push({ type: 'waypoint' });
+    if (this.#waypoints.length === 1) {
+      this.#setPanelState('building');
+      this.#clearGhostStart();
+      // Ease in close enough that street names are legible, so the user can keep building from the start point.
+      if (this.#map.getZoom() < RouteBuilder.BUILD_ZOOM) {
+        this.#map.easeTo({ center: [point.lng, point.lat], zoom: RouteBuilder.BUILD_ZOOM, duration: 1200 });
+      }
+    }
+    this.#recompute();
+    window.logWebpageActivity(`RouteBuilder_AddWaypoint=Success_Count=${this.#waypoints.length}_Source=${source}`);
+  }
+
+  /**
+   * Rebuilds every derived piece of state (drawn streets, endpoint flags, stats, direction-panel fields, CTA)
+   * from #waypoints. Each consecutive waypoint pair is routed with A*; the resulting streets are cloned from the
+   * source data and oriented to the walking direction, so the originals are never mutated and rebuilds stay
+   * deterministic.
+   */
+  #recompute() {
+    const map = this.#map;
+    // Clear the previous 'chosen' states so hidden base streets reappear if they left the route.
+    this.#chosenIds.forEach((id) => map.setFeatureState({ source: 'streets', id }, { chosen: false }));
+    this.#chosenIds.clear();
+
+    const features = [];
+    for (let i = 1; i < this.#waypoints.length; i++) {
+      const result = this.#getRouteGraph().route(this.#waypoints[i - 1], this.#waypoints[i]);
+      if (result.error) continue; // Reachability was checked on add; guard defensively.
+      result.streets.forEach(({ streetId, flip }) => {
+        const orig = this.#streetData.features.find((s) => s.properties.street_edge_id === streetId);
+        if (!orig) return;
+        const coords = orig.geometry.coordinates.slice(); // Shallow copy: reversing it never touches the original.
+        if (flip) coords.reverse();
+        features.push({
+          type: 'Feature',
+          properties: { street_edge_id: streetId, region_id: orig.properties.region_id, reverse: flip },
+          geometry: { type: 'LineString', coordinates: coords },
+        });
+        map.setFeatureState({ source: 'streets', id: streetId }, { chosen: true });
+        this.#chosenIds.add(streetId);
+      });
+    }
+    this.#streetsInRoute.features = features;
+    map.getSource('streets-chosen').setData(this.#streetsInRoute);
+
+    this.#updateEndpointFlags();
+    this.#updateStats();
+    this.#syncDirectionsFields();
+    this.#directionsPanel.setEndVisible(this.#routeStarted());
+    this.#updateCta();
+  }
+
+  /**
+   * Mirrors the route's current endpoints into the Start/End address fields (reverse-geocoded), or clears them.
+   * A lone start point (first click, no segments yet) fills just the Start field.
+   */
+  #syncDirectionsFields() {
+    const feats = this.#streetsInRoute.features;
+    if (feats.length > 0) {
+      const startCoord = feats[0].geometry.coordinates[0];
+      const endCoord = feats[feats.length - 1].geometry.coordinates.slice(-1)[0];
+      this.#directionsPanel.updateFromRoute(startCoord, endCoord);
+    } else if (this.#waypoints.length === 1) {
+      this.#directionsPanel.updateStart([this.#waypoints[0].lng, this.#waypoints[0].lat]);
+    } else {
+      this.#directionsPanel.clearFields();
+    }
+  }
+
+  /**
+   * Updates the stats block in the planner card: distance, estimated exploration time (distance x the city's
+   * labeling pace), street count, and the neighborhood chip. Cleared when the route is empty.
+   */
+  #updateStats() {
+    const feats = this.#streetsInRoute.features;
+    if (feats.length === 0) {
+      this.#streetDistanceEl.innerText = '';
+      this.#routeTimeEl.innerText = '';
+      this.#streetCountEl.innerText = '';
+      this.#regionChipEl.textContent = '';
+      this.#regionChipEl.hidden = true;
       return;
     }
 
-    // One undo step brings back whatever the route looked like before (possibly empty).
-    this.#undoStack.push({ type: 'replace', streets: this.#routeSnapshot() });
-    this.#emptyRouteSilently();
+    const km = feats.reduce((sum, street) => sum + turf.length(street, { units: 'kilometers' }), 0);
+    const routeDist = this.#units === 'miles' ? km / 1.609344 : km;
+    this.#streetDistanceEl.innerText = i18next.t('route-length', { dist: routeDist.toFixed(2) });
 
-    result.streets.forEach(({ streetId, flip }) => {
-      const street = this.#streetData.features.find((s) => s.properties.street_edge_id === streetId);
-      if (!street) return;
-      const forceReverse = flip ? !(street.properties.reverse === true) : street.properties.reverse === true;
-      this.#addStreetToRoute(street, forceReverse, { record: false });
-    });
-    this.#updateMarkers();
-    this.#setRouteDistanceText();
-    window.logWebpageActivity(`RouteBuilder_AutoRoute=Success_Streets=${result.streets.length}`);
+    const minutes = Math.max(1, Math.round((km * 1000 / 100) * this.#minutesPer100m));
+    this.#routeTimeEl.innerText = minutes < 60
+      ? i18next.t('est-time-minutes', { min: minutes })
+      : i18next.t('est-time-hours', { hours: Math.floor(minutes / 60), min: minutes % 60 });
+
+    this.#streetCountEl.innerText = i18next.t('street-count', { count: feats.length });
+
+    const regionName = this.#getRegionName(this.#currRegionId);
+    this.#regionChipEl.textContent = regionName ?? '';
+    this.#regionChipEl.hidden = regionName === null;
   }
 
   /**
-   * Builds a start/end flag marker element: the flag (centered on the route point) with an always-upright
-   * text label hanging below it (#3433). The label is positioned absolutely so the marker element's box — and
-   * therefore Mapbox's centering — is exactly the flag.
-   *
-   * @param {string} flagClass - 'marker-start' or 'marker-end'.
-   * @param {string} label - The visible/aria label text.
-   * @param {number} [rotationDeg] - Bearing to rotate the flag by (the label stays upright).
-   * @returns {HTMLElement}
+   * Rebuilds the 'route-endpoints' symbol source from the current route (or a lone start point): the start and end
+   * flags, each with a Start/End text label below the point.
    */
-  static #makeEndpointMarkerEl(flagClass, label, rotationDeg = null) {
-    const el = document.createElement('div');
-    el.className = 'marker-endpoint';
-    el.setAttribute('role', 'img');
-    el.setAttribute('aria-label', label);
-    const flag = document.createElement('div');
-    flag.className = flagClass;
-    if (rotationDeg !== null) flag.style.transform = `rotate(${rotationDeg}deg)`;
-    const labelEl = document.createElement('span');
-    labelEl.className = 'marker-endpoint-label';
-    labelEl.textContent = label;
-    el.append(flag, labelEl);
-    return el;
-  }
-
-  /**
-   * Draws the endpoints for the contiguous sections of the route on the map.
-   *
-   * @param {Array<Array<Object>>} contigSections - The route's contiguous sections.
-   */
-  #drawContiguousEndpointMarkers(contigSections) {
-    const map = this.#map;
-    if (contigSections.length === 0) return;
-
-    // Add start point, with a visible "Start" label (#3433).
-    const startPoint = contigSections[0][0].geometry.coordinates[0];
-    const rotation = turf.bearing(startPoint, contigSections[0][0].geometry.coordinates[1]);
-    const startPointEl = RouteBuilder.#makeEndpointMarkerEl('marker-start', i18next.t('marker-start'), rotation);
-    const startMarker = new mapboxgl.Marker(startPointEl).setLngLat(startPoint).addTo(map);
-    this.#currentMarkers.push(startMarker);
-
-    // Numbered pairs mark a gap between contiguous sections: section i ends and section i+1 begins (#4577).
-    for (let i = 0; i < contigSections.length - 1; i++) {
-      const midpointEl1 = document.createElement('div');
-      const midpointEl2 = document.createElement('div');
-      midpointEl1.className = midpointEl2.className = 'marker-number';
-      midpointEl1.innerHTML = midpointEl2.innerHTML = (i + 1).toString();
-      midpointEl1.style.background = this.#endpointColors[i % this.#endpointColors.length];
-      midpointEl2.style.background = this.#endpointColors[i % this.#endpointColors.length];
-      const gapEndAria = i18next.t('section-gap-end-aria', { num: i + 1 });
-      const gapStartAria = i18next.t('section-gap-start-aria', { num: i + 2 });
-      midpointEl1.setAttribute('role', 'img');
-      midpointEl1.setAttribute('aria-label', gapEndAria);
-      midpointEl1.title = gapEndAria;
-      midpointEl2.setAttribute('role', 'img');
-      midpointEl2.setAttribute('aria-label', gapStartAria);
-      midpointEl2.title = gapStartAria;
-      const midPoint1 = contigSections[i].slice(-1)[0].geometry.coordinates.slice(-1)[0];
-      const midPoint2 = contigSections[i + 1][0].geometry.coordinates[0];
-      const p1Marker = new mapboxgl.Marker(midpointEl1).setLngLat(midPoint1).addTo(map);
-      const p2Marker = new mapboxgl.Marker(midpointEl2).setLngLat(midPoint2).addTo(map);
-      this.#currentMarkers.push(p1Marker);
-      this.#currentMarkers.push(p2Marker);
+  #updateEndpointFlags() {
+    const features = [];
+    const feats = this.#streetsInRoute.features;
+    if (feats.length > 0) {
+      const endCoord = feats[feats.length - 1].geometry.coordinates.slice(-1)[0];
+      features.push(RouteBuilder.#endpointFeature('start', feats[0].geometry.coordinates[0]));
+      features.push(RouteBuilder.#endpointFeature('end', endCoord));
+    } else if (this.#waypoints.length === 1) {
+      // A start has been dropped but no segment exists yet: show a provisional start flag.
+      const wp = this.#waypoints[0];
+      features.push(RouteBuilder.#endpointFeature('start', [wp.lng, wp.lat]));
     }
-
-    // Add endpoint, with a visible "End" label (#3433).
-    const endPointEl = RouteBuilder.#makeEndpointMarkerEl('marker-end', i18next.t('marker-end'));
-    const endPoint = contigSections.slice(-1)[0].slice(-1)[0].geometry.coordinates.slice(-1)[0];
-    const endMarker = new mapboxgl.Marker(endPointEl).setLngLat(endPoint).addTo(map);
-    this.#currentMarkers.push(endMarker);
+    this.#endpointData = { type: 'FeatureCollection', features };
+    // The source may not exist yet (icons rasterize async); it is then created with #endpointData as its data.
+    this.#map.getSource('route-endpoints')?.setData(this.#endpointData);
   }
 
-  // TODO do something to preserve ordering, I'm not sure if mapbox guarantees that ordering is preserved.
-  //      Could either add a property with the ordering, or keep track in a separate list.
+  /**
+   * Builds one endpoint feature for the 'route-endpoints' symbol source.
+   *
+   * @param {string} kind - 'start' or 'end'; selects the flag image via the layer's icon-image expression.
+   * @param {Array<number>} coord - [lng, lat] of the endpoint.
+   * @returns {Object} A GeoJSON Point feature.
+   */
+  static #endpointFeature(kind, coord) {
+    return {
+      type: 'Feature',
+      properties: { kind, label: i18next.t(`marker-${kind}`) },
+      geometry: { type: 'Point', coordinates: coord },
+    };
+  }
 
   /**
-   * Computes a set of contiguous sections of the route.
+   * Rasterizes an icon file for use as a map symbol image (map.addImage needs pixel data, and Mapbox's loadImage
+   * can't decode SVGs). Rendered at 2x for crisp display on high-DPI screens, preserving aspect ratio.
    *
-   * Loop through the streets in the order that they were added to the route, checking the remaining streets in the
-   * route (also in the order they were chosen) to see if any of their start points are connected to the end point of
-   * the current street. When there are no connected streets, that contiguous section is done, and we start a new one.
-   * @returns {Array<Array<Object>>}
+   * @param {string} url - Same-origin image url (SVG or raster).
+   * @param {number} heightPx - Displayed height in CSS pixels; width follows the image's aspect ratio.
+   * @returns {Promise<{data: ImageData, pixelRatio: number}>}
    */
-  #computeContiguousRoutes() {
-    const contiguousSections = [];
-    let currContiguousSection = [];
-    const streetsInRouteCopy = Array.from(this.#streetsInRoute.features); // shallow copy
-    while (streetsInRouteCopy.length > 0) {
-      if (currContiguousSection.length === 0) {
-        currContiguousSection.push(streetsInRouteCopy.shift());
+  static async #rasterizeIcon(url, heightPx) {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    const h = heightPx * 2;
+    const w = Math.round((img.naturalWidth / img.naturalHeight) * h);
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    return { data: ctx.getImageData(0, 0, w, h), pixelRatio: 2 };
+  }
+
+  /**
+   * Walks the explorer along the route from start to end — a playful preview, triggered by hovering/focusing the
+   * Save button. One run at a time; the icon lingers at the end for a beat, then disappears.
+   */
+  #animateExplorer() {
+    const feats = this.#streetsInRoute.features;
+    const source = this.#map.getSource('route-explorer');
+    if (this.#explorerRaf !== null || feats.length === 0 || !source) return;
+
+    // Cumulative distance along the route's coordinates, for constant-speed interpolation.
+    const coords = feats.flatMap((f) => f.geometry.coordinates);
+    const cumDist = [0];
+    for (let i = 1; i < coords.length; i++) {
+      cumDist.push(cumDist[i - 1] + RouteGraph.distanceM(coords[i - 1], coords[i]));
+    }
+    const totalDist = cumDist[cumDist.length - 1];
+    if (totalDist === 0) return;
+
+    window.logWebpageActivity('RouteBuilder_RoutePreviewAnimation');
+    let startTime = null;
+    const step = (now) => {
+      if (startTime === null) startTime = now;
+      const t = Math.min((now - startTime) / RouteBuilder.EXPLORER_ANIMATION_MS, 1);
+      const target = t * totalDist;
+      let i = 1;
+      while (i < cumDist.length - 1 && cumDist[i] < target) i++;
+      const segT = (target - cumDist[i - 1]) / (cumDist[i] - cumDist[i - 1] || 1);
+      const lng = coords[i - 1][0] + (coords[i][0] - coords[i - 1][0]) * segT;
+      const lat = coords[i - 1][1] + (coords[i][1] - coords[i - 1][1]) * segT;
+      source.setData({
+        type: 'FeatureCollection',
+        features: [{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [lng, lat] } }],
+      });
+      if (t < 1) {
+        this.#explorerRaf = requestAnimationFrame(step);
       } else {
-        // Search for least recently chosen street with endpoint within 10 m of the current street.
-        const currStreet = currContiguousSection.slice(-1)[0];
-        const p1 = turf.point(currStreet.geometry.coordinates.slice(-1)[0]);
-        let connectedStreetFound = false;
-        for (let i = 0; i < streetsInRouteCopy.length; i++) {
-          const p2 = turf.point(streetsInRouteCopy[i].geometry.coordinates[0]);
-          if (turf.distance(p1, p2, { units: 'kilometers' }) < 0.01) {
-            currContiguousSection.push(streetsInRouteCopy.splice(i, 1)[0]);
-            connectedStreetFound = true;
-            break;
-          }
-        }
-        // If no connected street was found, this contiguous section is done.
-        if (!connectedStreetFound) {
-          contiguousSections.push(currContiguousSection);
-          currContiguousSection = [];
-        }
+        this.#explorerRaf = null;
+        setTimeout(() => {
+          // Skip the cleanup if a new run started during the linger.
+          if (this.#explorerRaf === null) source.setData({ type: 'FeatureCollection', features: [] });
+        }, 500);
       }
-    }
-    if (currContiguousSection.length > 0) {
-      contiguousSections.push(currContiguousSection);
-    }
+    };
+    this.#explorerRaf = requestAnimationFrame(step);
+  }
 
-    return contiguousSections;
+  /** Stops the explorer animation and removes the icon (the route is being cleared or replaced). */
+  #cancelExplorer() {
+    if (this.#explorerRaf !== null) {
+      cancelAnimationFrame(this.#explorerRaf);
+      this.#explorerRaf = null;
+    }
+    this.#map.getSource('route-explorer')?.setData({ type: 'FeatureCollection', features: [] });
   }
 
   /**
-   * Checks if the given street should be reversed to minimize the number of contiguous sections in the route.
-   * @param {Object} street
-   * @returns {boolean}
+   * Reverses the whole route's walking direction (swaps start and end).
    */
-  #shouldReverseStreet(street) {
-    let shouldReverse = false;
-    const contiguousSegments = this.#computeContiguousRoutes();
-
-    // Look through last street in each segment (in reverse order) to see if any of them are connected to the
-    // current street. If so, check if the new street would add on to the contiguous route normally or reversed.
-    const currStreetStart = turf.point(street.geometry.coordinates[0]);
-    const currStreetEnd = turf.point(street.geometry.coordinates.slice(-1)[0]);
-    for (let i = contiguousSegments.length - 1; i >= 0; i--) {
-      const lastStreetEnd = turf.point(contiguousSegments[i].slice(-1)[0].geometry.coordinates.slice(-1)[0]);
-      if (turf.distance(lastStreetEnd, currStreetStart, { units: 'kilometers' }) < 0.01) {
-        break; // Street would already be part of contiguous route, no need to reverse.
-      } else if (turf.distance(lastStreetEnd, currStreetEnd, { units: 'kilometers' }) < 0.01) {
-        shouldReverse = true;
-        break; // Street would be part of contiguous route if reversed.
-      }
-    }
-    return shouldReverse;
+  #reverseRoute() {
+    if (this.#waypoints.length < 2) return;
+    this.#waypoints.reverse();
+    this.#recompute();
   }
 
   /**
-   * Adds a street to the route: sets its orientation and feature states, and applies the first-street UI changes.
-   *
-   * @param {Object} street - The street's full GeoJSON feature from the streets source data.
-   * @param {boolean} [forceReverse] - Target orientation (used when restoring a stashed route or undoing a
-   *                                   removal); when omitted, the street is oriented to minimize the number of
-   *                                   contiguous sections.
-   * @param {Object} [opts]
-   * @param {boolean} [opts.record=true] - Whether to record the action on the undo stack (off during undo).
-   * @param {number} [opts.index] - Position in the route to insert at (used when undoing a removal).
-   */
-  #addStreetToRoute(street, forceReverse = null, { record = true, index = null } = {}) {
-    const map = this.#map;
-    const streetId = street.properties.street_edge_id;
-    map.setFeatureState({ source: 'streets', id: streetId }, { chosen: true });
-
-    const flip = forceReverse === null
-      ? this.#shouldReverseStreet(street)
-      : (street.properties.reverse === true) !== forceReverse;
-    if (flip) {
-      street.geometry.coordinates.reverse();
-      street.properties.reverse = !street.properties.reverse;
-    }
-
-    if (index === null) {
-      this.#streetsInRoute.features.push(street);
-    } else {
-      this.#streetsInRoute.features.splice(index, 0, street);
-    }
-    map.getSource('streets-chosen').setData(this.#streetsInRoute);
-    if (record) this.#undoStack.push({ type: 'add', streetId });
-
-    // If this was first street added, make additional UI changes.
-    if (this.#streetsInRoute.features.length === 1) {
-      // Switch the panel from its intro state to the route-building state (length + Save/Undo/Clear).
-      this.#setPanelState('building');
-
-      // Change style to show you can't choose streets in other regions.
-      this.#currRegionId = street.properties.region_id;
-      map.setFeatureState({ source: 'neighborhoods', id: this.#currRegionId }, { current: true });
-      map.setPaintProperty(
-        'neighborhoods', 'fill-opacity', ['case', ['boolean', ['feature-state', 'current'], false], 0.0, 0.3],
-      );
-      map.setPaintProperty('outside-neighborhoods', 'fill-opacity', 0.5);
-    }
-  }
-
-  /**
-   * Reverses a street's walking direction in the route.
-   *
-   * @param {number} streetId
-   * @param {Object} [opts]
-   * @param {boolean} [opts.record=true] - Whether to record the action on the undo stack (off during undo).
-   */
-  #reverseStreet(streetId, { record = true } = {}) {
-    const street = this.#streetsInRoute.features.find((s) => s.properties.street_edge_id === streetId);
-    if (!street) return;
-    street.geometry.coordinates.reverse();
-    street.properties.reverse = !street.properties.reverse;
-    this.#map.getSource('streets-chosen').setData(this.#streetsInRoute);
-    if (record) this.#undoStack.push({ type: 'reverse', streetId });
-    this.#updateMarkers();
-    this.#setRouteDistanceText(); // Unchanged by a reverse today, but every mutation refreshes the readout.
-  }
-
-  /**
-   * Removes a street from the route; resets to the intro state if the route becomes empty.
-   *
-   * @param {number} streetId
-   * @param {Object} [opts]
-   * @param {boolean} [opts.record=true] - Whether to record the action on the undo stack (off during undo).
-   */
-  #removeStreet(streetId, { record = true } = {}) {
-    const index = this.#streetsInRoute.features.findIndex((s) => s.properties.street_edge_id === streetId);
-    if (index === -1) return;
-    const [street] = this.#streetsInRoute.features.splice(index, 1);
-    this.#map.setFeatureState({ source: 'streets', id: streetId }, { chosen: false });
-    this.#map.getSource('streets-chosen').setData(this.#streetsInRoute);
-    if (record) {
-      this.#undoStack.push({ type: 'remove', streetId, index, reverse: street.properties.reverse === true });
-    }
-    this.#updateMarkers();
-    this.#setRouteDistanceText();
-
-    // Once the route is empty again, any street can be selected. Update styles.
-    if (this.#streetsInRoute.features.length === 0) {
-      this.#resetUI();
-    }
-  }
-
-  /**
-   * Re-adds a snapshot's streets to the route (without recording) and refreshes markers + distance.
-   *
-   * @param {Array<{streetId: number, reverse: boolean}>} streets - Snapshot from #routeSnapshot.
-   * @param {number} [insertIndex] - Position to insert at (single-street restores); appends when omitted.
-   */
-  #restoreSnapshot(streets, insertIndex = null) {
-    streets.forEach((s) => {
-      const street = this.#streetData.features.find((f) => f.properties.street_edge_id === s.streetId);
-      if (street) this.#addStreetToRoute(street, s.reverse, { record: false, index: insertIndex });
-    });
-    this.#updateMarkers();
-    this.#setRouteDistanceText();
-  }
-
-  /**
-   * Undoes the most recent route edit by applying its inverse (without re-recording it).
+   * Undoes the last edit: removes the most recently added waypoint (and its segment). Empties the route once the
+   * start is removed.
    */
   #undo() {
-    const action = this.#undoStack.pop();
-    if (!action) return;
-    switch (action.type) {
-      case 'add':
-        this.#removeStreet(action.streetId, { record: false });
-        break;
-      case 'reverse':
-        this.#reverseStreet(action.streetId, { record: false });
-        break;
-      case 'remove':
-        this.#restoreSnapshot([{ streetId: action.streetId, reverse: action.reverse }], action.index);
-        break;
-      case 'clear':
-        this.#restoreSnapshot(action.streets);
-        break;
-      case 'replace': // An auto-route replaced the whole route; restore the prior snapshot (possibly empty).
-        this.#emptyRouteSilently();
-        this.#restoreSnapshot(action.streets);
-        if (this.#streetsInRoute.features.length === 0) this.#resetUI();
-        break;
+    if (this.#undoStack.pop() === null || this.#waypoints.length === 0) return;
+    this.#waypoints.pop();
+    if (this.#waypoints.length === 0) {
+      this.#emptyRoute();
+      this.#resetUI();
+    } else {
+      this.#recompute();
+    }
+  }
+
+  /**
+   * Clears #waypoints and all derived route state (drawn streets, flags, region lock). Does not touch the undo
+   * stack or the panel/CTA — callers decide those.
+   */
+  #emptyRoute() {
+    const map = this.#map;
+    this.#chosenIds.forEach((id) => map.setFeatureState({ source: 'streets', id }, { chosen: false }));
+    this.#chosenIds.clear();
+    this.#waypoints = [];
+    this.#streetsInRoute.features = [];
+    map.getSource('streets-chosen').setData(this.#streetsInRoute);
+    this.#updateEndpointFlags();
+    this.#routePopover.close();
+    this.#cancelExplorer();
+    this.#unlockRegion();
+    this.#updateStats();
+  }
+
+  /** Releases the region selection: hides its outline and brings the region-name labels back. */
+  #unlockRegion() {
+    if (this.#currRegionId !== null) {
+      this.#map.setFeatureState({ source: 'neighborhoods', id: this.#currRegionId }, { current: false });
+    }
+    this.#currRegionId = null;
+    if (this.#map.getLayer('neighborhoods-label')) {
+      this.#map.setLayoutProperty('neighborhoods-label', 'visibility', 'visible');
     }
   }
 
   /**
    * Restores a route stashed in sessionStorage before a sign-in reload, then reopens the save modal.
    *
-   * Runs once, after the map, neighborhoods, and streets have all rendered (so sources/feature states exist).
+   * Runs once, after the map, neighborhoods, and streets have all rendered. The stash holds the saved street list
+   * (not waypoints), so it's drawn directly; the user lands in the save flow rather than mid-edit.
    */
   #maybeRestorePendingRoute() {
     if (this.#status.pendingRouteRestored || !this.#status.mapLoaded
@@ -827,22 +934,43 @@ class RouteBuilder {
     const pending = SaveModal.consumePendingRoute();
     if (!pending) return;
 
-    pending.streets.forEach((stashedStreet) => {
-      const street = this.#streetData.features.find(
-        (s) => s.properties.street_edge_id === stashedStreet.street_id,
-      );
-      if (street) this.#addStreetToRoute(street, stashedStreet.reverse === true);
+    const map = this.#map;
+    const features = [];
+    pending.streets.forEach((stashed) => {
+      const orig = this.#streetData.features.find((s) => s.properties.street_edge_id === stashed.street_id);
+      if (!orig) return;
+      const coords = orig.geometry.coordinates.slice();
+      if (stashed.reverse === true) coords.reverse();
+      features.push({
+        type: 'Feature',
+        properties: { street_edge_id: orig.properties.street_edge_id, region_id: orig.properties.region_id,
+          reverse: stashed.reverse === true },
+        geometry: { type: 'LineString', coordinates: coords },
+      });
+      map.setFeatureState({ source: 'streets', id: orig.properties.street_edge_id }, { chosen: true });
+      this.#chosenIds.add(orig.properties.street_edge_id);
     });
-    if (this.#streetsInRoute.features.length === 0) return;
+    if (features.length === 0) return;
 
-    this.#updateMarkers();
-    this.#setRouteDistanceText();
+    this.#selectRegion(features[0].properties.region_id, false);
+    this.#streetsInRoute.features = features;
+    map.getSource('streets-chosen').setData(this.#streetsInRoute);
+    this.#setPanelState('building');
+    this.#updateEndpointFlags();
+    this.#updateStats();
+    this.#directionsPanel.setEndVisible(true);
+    this.#updateCta();
     this.#saveModal.open(pending.name || null);
+  }
+
+  /** Shows the delete-route confirmation modal. */
+  #openDeleteConfirm() {
+    this.#deleteRouteModal.style.visibility = 'visible';
   }
 
   #clickCancelRoute() {
     window.logWebpageActivity('RouteBuilder_Click=CancelRoute');
-    this.#deleteRouteModal.style.visibility = 'visible';
+    this.#openDeleteConfirm();
   }
 
   #clickResumeRoute() {
@@ -851,57 +979,30 @@ class RouteBuilder {
   }
 
   /**
-   * Clear the current route and reset the map.
+   * Clears the current route and resets the map to the intro state.
    * @param {Event} [e]
    */
   #clearRoute(e) {
-    const map = this.#map;
-    // Record the whole route so a clear can be undone in one step.
-    if (this.#streetsInRoute.features.length > 0) {
-      this.#undoStack.push({ type: 'clear', streets: this.#routeSnapshot() });
-    }
-
-    // Remove all the streets from the route.
-    this.#streetsInRoute.features.forEach((s) => {
-      map.setFeatureState({ source: 'streets', id: s.properties.street_edge_id }, { chosen: false });
-    });
-    this.#streetsInRoute.features = [];
-    map.getSource('streets-chosen').setData(this.#streetsInRoute);
-
-    // Reset the map.
-    map.setFeatureState({ source: 'neighborhoods', id: this.#currRegionId }, { current: false });
-    this.#currRegionId = null;
-    this.#setRouteDistanceText();
-    this.#updateMarkers();
-
+    this.#emptyRoute();
+    this.#undoStack.clear();
     this.#resetUI();
 
-    // Log if clearing route from a button.
-    if (e && e.target && e.target.id) {
-      if (e.target.id === 'delete-route-button') {
-        window.logWebpageActivity(`RouteBuilder_Click=ConfirmCancelRoute`);
-      } else if (e.target.id === 'build-new-route-button') {
-        window.logWebpageActivity(`RouteBuilder_Click=BuildNewRoute`);
-      }
+    if (e && e.target && e.target.id === 'delete-route-button') {
+      window.logWebpageActivity('RouteBuilder_Click=ConfirmCancelRoute');
+    } else if (e && e.target && e.target.id === 'build-new-route-button') {
+      window.logWebpageActivity('RouteBuilder_Click=BuildNewRoute');
     }
   }
 
   #resetUI() {
-    const map = this.#map;
-    // Update neighborhood styling.
-    map.setFeatureState({ source: 'neighborhoods', id: this.#currRegionId }, { current: false });
-    map.setPaintProperty('neighborhoods', 'fill-opacity', 0.0);
-    map.setPaintProperty('outside-neighborhoods', 'fill-opacity', 0.3);
-    this.#currRegionId = null;
-
-    // Return the panel to its intro state and hide all modals.
     this.#setPanelState('empty');
     this.#routeSavedModal.style.visibility = 'hidden';
     this.#deleteRouteModal.style.visibility = 'hidden';
     this.#saveModal.hide();
-    this.#streetPopover.close();
     this.#guestRoutes.render();
-    this.#directionsPanel.clearPins();
+    this.#directionsPanel.clearFields();
+    this.#directionsPanel.setEndVisible(false);
+    this.#updateCta();
   }
 
   /**
@@ -916,11 +1017,12 @@ class RouteBuilder {
   }
 
   /**
-   * Returns the ordered street list for the route in the POST /saveRoute wire format.
+   * Returns the ordered street list for the route in the POST /saveRoute wire format. The route is already an
+   * ordered, contiguous street sequence, so this is a direct map.
    * @returns {Array<{street_id: number, reverse: boolean}>}
    */
   #routeStreetsPayload() {
-    return this.#computeContiguousRoutes().flat().map((s) => ({
+    return this.#streetsInRoute.features.map((s) => ({
       street_id: s.properties.street_edge_id,
       reverse: s.properties.reverse === true,
     }));

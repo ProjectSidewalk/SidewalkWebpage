@@ -440,6 +440,16 @@ trait ConfigService {
   def getCrossCityLabelingSpeed(): Future[Map[String, Double]]
 
   /**
+   * Returns the current city's labeling pace as minutes of active auditing per 100 m covered.
+   *
+   * Same expensive interaction-table scan as [[getCrossCityLabelingSpeed]] but for this deployment's schema only,
+   * on its own daily cache. RouteBuilder bases its route exploration-time estimate on this.
+   *
+   * @return A Future of minutes per 100 m, or None when the city has no interaction data yet.
+   */
+  def getCityLabelingSpeed(): Future[Option[Double]]
+
+  /**
    * Returns each available city's precomputed engagement funnels for a time window (#288).
    *
    * Reads each schema's nightly-precomputed `funnel_stat` table (cheap) and assembles one [[CityFunnel]] per city,
@@ -830,6 +840,21 @@ class ConfigServiceImpl @Inject() (
         }
         Future.sequence(perCityFutures).map(_.flatten.toMap)
       }
+    }
+  }
+
+  def getCityLabelingSpeed(): Future[Option[Double]] = {
+    // Daily cache, matching getCrossCityLabelingSpeed: the underlying interaction-table scan is expensive.
+    cacheApi.getOrElseUpdate[Option[Double]](s"getCityLabelingSpeed_$getCityId", Duration(24, "hours")) {
+      db.run(configTable.getCityLabelingSpeedBySchema(getCitySchema(getCityId)))
+        .map { case (hours, km) =>
+          // Speed is unknowable without both interaction data and audited distance.
+          if (hours > 0 && km > 0) Some((hours * 60.0) / (km * 10.0)) else None
+        }
+        .recover { case e: Exception =>
+          logger.warn(s"Failed to compute labeling speed for city $getCityId: ${e.getMessage}")
+          None
+        }
     }
   }
 

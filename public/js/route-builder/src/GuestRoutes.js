@@ -79,7 +79,7 @@ class GuestRoutes {
           <a href="${r.url}" class="recent-route-name" data-route-id="${r.routeId}"></a>
           <span class="recent-route-meta"></span>
         </div>
-        <button type="button" class="recent-route-copy routebuilder-button white-button" data-url="${r.url}"
+        <button type="button" class="recent-route-copy button-ps button--secondary button--tiny" data-url="${r.url}"
                 data-route-id="${r.routeId}">${i18next.t('recent-copy-link')}</button>
       </li>`).join('');
 

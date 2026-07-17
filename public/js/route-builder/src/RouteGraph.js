@@ -95,12 +95,16 @@ class RouteGraph {
    * Finds the street nearest to a point, and which of its endpoint nodes is closer.
    *
    * @param {Object} point - {lng, lat}.
-   * @returns {Object|null} {streetId, regionId, nodeKey, distanceM} or null when there are no streets.
+   * @param {number} [regionId] - When given, only streets in this region are considered (e.g. so the start-point
+   *   preview near a boundary can't snap into a neighboring region).
+   * @returns {Object|null} {streetId, regionId, nodeKey, nodeLngLat, distanceM} or null when there are no streets.
+   *                        nodeLngLat is the [lng, lat] of the snapped endpoint node (where a route starts/joins).
    */
-  snapToStreet(point) {
+  snapToStreet(point, regionId = null) {
     const p = [point.lng, point.lat];
     let best = null;
     this.#features.forEach((feature, streetId) => {
+      if (regionId !== null && feature.properties.region_id !== regionId) return;
       const coords = feature.geometry.coordinates;
       // Prefilter: no vertex can be closer than (distance to the first vertex - geometry length), so the
       // per-vertex scan is skipped for the vast majority of streets that are nowhere near the point.
@@ -122,6 +126,7 @@ class RouteGraph {
           streetId,
           regionId: feature.properties.region_id,
           nodeKey: this.#findExistingNodeKey(nearerEnd),
+          nodeLngLat: nearerEnd,
           distanceM: minD,
         };
       }
