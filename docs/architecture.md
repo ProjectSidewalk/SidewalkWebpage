@@ -59,7 +59,9 @@ The backend follows a consistent layering: **routes → Controller → Service �
 - **Per-city schemas** — each city is its own schema (`sidewalk_<city>`); they're essentially identical.
   Authentication lives in `sidewalk_login`.
 - **Evolutions** — schema changes are Play evolutions: numbered SQL files in `conf/evolutions/default/`, each with
-  `# --- !Ups` / `# --- !Downs`. The dev DB is seeded from a dump rather than built up from evolutions; the scripts that
+  `# --- !Ups` / `# --- !Downs`. Keep all of a PR's schema changes in **one** evolution file — nothing ships until the
+  PR merges, so fold follow-up changes into the existing file rather than minting the next number. The dev DB is seeded
+  from a dump rather than built up from evolutions; the scripts that
   do that seeding (and other DB lifecycle/maintenance tasks) live in [`db/scripts/`](../db/scripts/README.md). Every new
   table must be followed by `ALTER TABLE <name> OWNER TO sidewalk;` (see 309.sql) — on prod, evolutions run as an admin
   role, so without it the `sidewalk` app role lacks permissions on the table. This applies to tables only; SERIAL
