@@ -17,8 +17,10 @@ ALTER TABLE validation_task_interaction ADD CONSTRAINT validation_task_interacti
 ALTER TABLE validation_task_interaction ADD CONSTRAINT validation_task_interaction_pano_id_fkey FOREIGN KEY (pano_id) REFERENCES pano_data (pano_id);
 ALTER TABLE pano_link ADD CONSTRAINT pano_link_pano_id_fkey FOREIGN KEY (pano_id) REFERENCES pano_data (pano_id);
 ALTER TABLE gallery_task_interaction ADD CONSTRAINT gallery_task_interaction_pano_id_fkey FOREIGN KEY (pano_id) REFERENCES pano_data (pano_id);
+ALTER TABLE validation_task_comment ADD CONSTRAINT validation_task_comment_pano_id_fkey FOREIGN KEY (pano_id) REFERENCES pano_data (pano_id);
 
 -- City-schema references into the shared sidewalk_login schema.
+ALTER TABLE label ADD CONSTRAINT label_user_id_fkey FOREIGN KEY (user_id) REFERENCES sidewalk_login.sidewalk_user (user_id);
 ALTER TABLE street_edge_issue ADD CONSTRAINT street_edge_issue_user_id_fkey FOREIGN KEY (user_id) REFERENCES sidewalk_login.sidewalk_user (user_id);
 ALTER TABLE audit_task_comment ADD CONSTRAINT audit_task_comment_user_id_fkey FOREIGN KEY (user_id) REFERENCES sidewalk_login.sidewalk_user (user_id);
 ALTER TABLE user_mistake_response ADD CONSTRAINT user_mistake_response_user_id_fkey FOREIGN KEY (user_id) REFERENCES sidewalk_login.sidewalk_user (user_id);
@@ -60,8 +62,10 @@ ALTER TABLE validation_task_interaction DROP CONSTRAINT IF EXISTS validation_tas
 ALTER TABLE validation_task_interaction DROP CONSTRAINT IF EXISTS validation_task_interaction_pano_id_fkey;
 ALTER TABLE pano_link DROP CONSTRAINT IF EXISTS pano_link_pano_id_fkey;
 ALTER TABLE gallery_task_interaction DROP CONSTRAINT IF EXISTS gallery_task_interaction_pano_id_fkey;
+ALTER TABLE validation_task_comment DROP CONSTRAINT IF EXISTS validation_task_comment_pano_id_fkey;
 
 -- City-schema references into sidewalk_login.
+ALTER TABLE label DROP CONSTRAINT IF EXISTS label_user_id_fkey;
 ALTER TABLE street_edge_issue DROP CONSTRAINT IF EXISTS street_edge_issue_user_id_fkey;
 ALTER TABLE audit_task_comment DROP CONSTRAINT IF EXISTS audit_task_comment_user_id_fkey;
 ALTER TABLE user_mistake_response DROP CONSTRAINT IF EXISTS user_mistake_response_user_id_fkey;
