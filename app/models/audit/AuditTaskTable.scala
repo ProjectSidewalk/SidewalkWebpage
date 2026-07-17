@@ -1,10 +1,12 @@
 package models.audit
 
 import com.google.inject.ImplementedBy
+import models.mission.MissionTableDef
+import models.mturk.AMTAssignmentTableDef
 import models.region.RegionTableDef
 import models.route.{AuditTaskUserRouteTableDef, RouteStreetTableDef, UserRouteTableDef}
 import models.street._
-import models.user.{RoleTableDef, UserRoleTableDef, UserStatTableDef}
+import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef, UserStatTableDef}
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ConfigTableDef, MyPostgresProfile}
 import org.locationtech.jts.geom.{LineString, Point}
@@ -91,14 +93,15 @@ class AuditTaskTableDef(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "au
     AuditTask.unapply
   )
 
-//  def streetEdge: ForeignKeyQuery[StreetEdgeTable, StreetEdge] =
-//    foreignKey("audit_task_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
-//
-//  def user: ForeignKeyQuery[UserTable, SidewalkUser] =
-//    foreignKey("audit_task_user_id_fkey", userId, TableQuery[UserTableDef])(_.userId)
-//
-//  def mission: ForeignKeyQuery[MissionTable, Mission] =
-//    foreignKey("audit_task_current_mission_id_fkey", currentMissionId, TableQuery[MissionTableDef])(_.missionId)
+  def streetEdge =
+    foreignKey("audit_task_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
+  def user           = foreignKey("audit_task_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def currentMission =
+    foreignKey("audit_task_current_mission_id_fkey", currentMissionId, TableQuery[MissionTableDef])(_.missionId.?)
+  def amtAssignment =
+    foreignKey("audit_task_amt_assignment_id_fkey", amtAssignmentId, TableQuery[AMTAssignmentTableDef])(
+      _.amtAssignmentId.?
+    )
 }
 
 @ImplementedBy(classOf[AuditTaskTable])

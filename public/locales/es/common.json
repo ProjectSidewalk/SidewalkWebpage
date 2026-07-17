@@ -7,6 +7,8 @@
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
   "format-number": "{{val, number}}",
+  "cities-cta-join_one": "Únete a {{count, number}} comunidad más",
+  "cities-cta-join_other": "Únete a {{count, number}} comunidades más",
   "curb-ramp": "Rampa peatonal",
   "no-curb-ramp": "Rampa peatonal ausente",
   "obstacle": "Obstáculo en la banqueta",
@@ -79,6 +81,7 @@
   "comments": "Revisiones de efectividad",
   "none": "Nada",
   "image-capture-date": "Fecha de captura de imagen",
+  "drag-to-look-around": "Arrastra para mirar alrededor",
   "labeled": "Etiquetada",
   "low": "Bajo",
   "medium": "Medio",
@@ -188,6 +191,7 @@
     "view-in-gsv": "Ver en Google Street View",
     "view-in-mapillary": "Ver en Mapillary",
     "city": "Ciudad",
+    "copy-to-clipboard": "Copiar al portapapeles",
     "copied-to-clipboard": "¡Datos copiados a su portapapeles!"
   },
   "mission-start-tutorial": {

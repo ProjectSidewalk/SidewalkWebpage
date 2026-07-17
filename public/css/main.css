@@ -58,6 +58,49 @@
   --color-neutral-900: #242424;
   --color-neutral-black: #000000;
 
+  /* Project Sidewalk secondary color palette. Each ramp's 500 is a canonical label-type color (see below). */
+  --color-blue-100: #F6FAFE;
+  --color-blue-200: #F1F7FD;
+  --color-blue-300: #E8F2FC;
+  --color-blue-400: #C6E0FA;
+  --color-blue-500: #78B0EA;
+
+  --color-mint-100: #EDF8F5;
+  --color-mint-200: #DBF0EC;
+  --color-mint-300: #AEDFCD;
+  --color-mint-400: #92D3C5;
+  --color-mint-500: #62C0AC;
+
+  --color-lime-100: #F6FCE9;
+  --color-lime-200: #ECF8D3;
+  --color-lime-300: #C7EB7A;
+  --color-lime-400: #A7D447;
+  --color-lime-500: #8FC31E;
+
+  --color-purple-100: #F5ECF9;
+  --color-purple-200: #EAD9F2;
+  --color-purple-300: #D6B2E6;
+  --color-purple-400: #C99ADE;
+  --color-purple-500: #BE87D8;
+
+  --color-pink-100: #FBEAF3;
+  --color-pink-200: #F7D4E7;
+  --color-pink-300: #EFA9CF;
+  --color-pink-400: #F092C6;
+  --color-pink-500: #E679B5;
+
+  --color-pumpkin-100: #FEF1E7;
+  --color-pumpkin-200: #FDE2CE;
+  --color-pumpkin-300: #FAC69E;
+  --color-pumpkin-400: #F8A96D;
+  --color-pumpkin-500: #F68D3E;
+
+  --color-yellow-100: #FEFAF0;
+  --color-yellow-200: #FEF7E6;
+  --color-yellow-300: #FEEECD;
+  --color-yellow-400: #FCD977;
+  --color-yellow-500: #FABF1C;
+
   /* Project Sidewalk functional color pallete. */
   --color-success-100: #43EF8E;
   --color-success-200: #11C961;
@@ -72,15 +115,13 @@
   --color-link-200: #0F5FAF;
 
   /* Project Sidewalk label-type color palette. The canonical color for each accessibility label type. */
-
-  /* TODO these have different shades defined in Figma, not sure if we need those. */
-  --color-label-curb-ramp: #8FC31E;
-  --color-label-no-curb-ramp: #E679B5;
-  --color-label-obstacle: #78B0EA;
-  --color-label-surface-problem: #F68D3E;
-  --color-label-no-sidewalk: #BE87D8;
-  --color-label-crosswalk: #FABF1C;
-  --color-label-signal: #62C0AB;
+  --color-label-curb-ramp: var(--color-lime-500);
+  --color-label-no-curb-ramp: var(--color-pink-500);
+  --color-label-obstacle: var(--color-blue-500);
+  --color-label-surface-problem: var(--color-pumpkin-500);
+  --color-label-no-sidewalk: var(--color-purple-500);
+  --color-label-crosswalk: var(--color-yellow-500);
+  --color-label-signal: var(--color-mint-500);
 
   /* Font stacks. Mulish handles ~all type (body, UI, headings H3 and below); Raleway is reserved for top-level H1/H2
        and the Small-Accent style. Mulish doesn't ship CJK glyphs, so its stack ends with Traditional-Chinese system
@@ -643,10 +684,9 @@ a {
   max-width: calc(400px * var(--ui-scale, 1));
   padding: calc(14px * var(--ui-scale, 1));
   background: var(--color-neutral-white);
-  border: 1px solid var(--color-neutral-600);
+  border: 1px solid var(--color-neutral-300);
   border-radius: calc(12px * var(--ui-scale, 1));
-  font-size: calc(14px * var(--ui-scale, 1));
-  box-shadow: 0 2px 8px rgb(0 0 0 / 12%);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 15%);
 }
 
 /* Downward-pointing arrow: ::before is the border, ::after is the white fill on top. */
@@ -664,7 +704,7 @@ a {
 .pano-info-popover::before {
   bottom: calc(-10px * var(--ui-scale, 1));
   border-width: calc(10px * var(--ui-scale, 1)) calc(9px * var(--ui-scale, 1)) 0;
-  border-color: var(--color-neutral-600) transparent transparent;
+  border-color: var(--color-neutral-300) transparent transparent;
 }
 
 .pano-info-popover::after {
@@ -680,31 +720,52 @@ a {
   margin-bottom: calc(10px * var(--ui-scale, 1));
 }
 
+/* Matches the label-detail card's section eyebrows. */
 .pano-info-popover__title {
-  font-size: calc(15px * var(--ui-scale, 1));
-  font-weight: bold;
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-700);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.pano-info-popover__clipboard {
+.pano-info-popover__actions {
+  display: flex;
+  align-items: center;
+  gap: calc(2px * var(--ui-scale, 1));
+}
+
+.pano-info-popover__clipboard,
+.pano-info-popover__close {
   background: none;
   border: none;
-  padding: 0;
+  padding: calc(3px * var(--ui-scale, 1));
+  border-radius: calc(4px * var(--ui-scale, 1));
   cursor: pointer;
   line-height: 0;
   opacity: 0.75;
 }
 
-.pano-info-popover__clipboard:hover {
+.pano-info-popover__clipboard:hover,
+.pano-info-popover__close:hover {
+  background: rgb(0 0 0 / 6%);
   opacity: 1;
 }
 
-.pano-info-popover__clipboard:active {
+.pano-info-popover__clipboard:active,
+.pano-info-popover__close:active {
   opacity: 0.5;
 }
 
-.pano-info-popover__clipboard img {
-  width: calc(18px * var(--ui-scale, 1));
-  height: calc(18px * var(--ui-scale, 1));
+.pano-info-popover__clipboard:focus-visible,
+.pano-info-popover__close:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 1px;
+}
+
+.pano-info-popover__clipboard img,
+.pano-info-popover__close img {
+  width: calc(16px * var(--ui-scale, 1));
+  height: calc(16px * var(--ui-scale, 1));
 }
 
 /* Shown briefly after clipboard copy. Absolutely positioned so it doesn't shift the body rows. */
@@ -723,39 +784,64 @@ a {
   z-index: 1;
 }
 
+/* Spec-sheet body: muted labels left, semibold values right. */
 .pano-info-popover__body {
   display: flex;
   flex-direction: column;
   gap: calc(6px * var(--ui-scale, 1));
+  margin: 0;
 }
 
 .pano-info-popover__row {
-  margin: 0;
-  line-height: 1.4;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: calc(12px * var(--ui-scale, 1));
+}
+
+.pano-info-popover__row dt {
+  flex-shrink: 0;
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-700);
 }
 
 .pano-info-popover__row--hidden {
   display: none;
 }
 
-.pano-info-popover__row strong {
-  font-weight: bold;
-}
-
+/* overflow-wrap keeps long pano IDs inside the popover; tabular numerals hold the id/coordinate columns steady. */
 .pano-info-popover__val {
-  /* Values use the default (regular) font weight inherited from the row. */
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-900);
+  font-variant-numeric: tabular-nums;
 }
 
 .pano-info-popover__view-link {
   display: block;
+  margin-top: calc(10px * var(--ui-scale, 1));
+  padding-top: calc(10px * var(--ui-scale, 1));
+  border-top: 1px solid var(--color-neutral-200);
   text-align: center;
-  color: #4990cc;
+  font: var(--text-caption-semibold);
+  color: var(--color-link-200);
   text-decoration: none;
-  margin-top: calc(4px * var(--ui-scale, 1));
+}
+
+.pano-info-popover__view-link::after {
+  content: " ↗";
 }
 
 .pano-info-popover__view-link:hover {
   text-decoration: underline;
+}
+
+.pano-info-popover__view-link:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
 }
 
 @media only screen and (device-width <= 500px) {
@@ -1296,9 +1382,87 @@ body:has(#header.header--tall) .test-server-banner {
   margin-right: 2px;
 }
 
+/* Contexts that need a different size (e.g. the label card's Details strip) set the custom property on an
+   ancestor instead of fighting this id selector's specificity. */
 #pano-info-button {
   cursor: pointer;
-  width: 24px;
+  width: var(--pano-info-button-size, 24px);
+  height: var(--pano-info-button-size, auto);
+}
+
+/* Beacon marking the label tied to the /labelMap popup. A reticle whose center carries the label type's
+   canonical color (set inline from getLabelColors()), so the label reads even when the map's own dot is tiny;
+   the expanding ::after ring is what draws the eye on a busy map. Both modes pulse exactly once: 'spotlight'
+   pulses on landing then stays as a calm reticle while the popup is open, and 'flash' pulses once on close
+   to re-anchor the user (its marker is then removed). */
+.labelmap-beacon {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 3px solid var(--color-asphalt-600);
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 90%), 0 1px 4px rgb(0 0 0 / 40%);
+  pointer-events: none;
+}
+
+/* Center fill in the label type's color (background set inline by the /labelMap script). */
+.labelmap-beacon__dot {
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  border: 1.5px solid rgb(255 255 255 / 90%);
+}
+
+.labelmap-beacon::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 3px solid var(--color-asphalt-600);
+}
+
+.labelmap-beacon--spotlight::after {
+  animation: labelmap-beacon-ring 1.5s ease-out forwards;
+}
+
+.labelmap-beacon--flash::after {
+  animation: labelmap-beacon-ring 1.3s ease-out 1;
+}
+
+@keyframes labelmap-beacon-ring {
+  from {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+
+  to {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .labelmap-beacon::after { animation: none; }
+}
+
+/* Chat-bubble tail tying the /labelMap popup dialog to the spotlighted label's beacon: a full-viewport fixed
+   SVG whose one polygon the page script repositions on every map/dialog change. Sits below the dialog's top
+   layer (so the light backdrop dims it slightly) but above the map and its controls. */
+.labelmap-tail {
+  position: fixed;
+  inset: 0;
+  display: none;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.labelmap-tail polygon {
+  fill: var(--color-neutral-white);
+  stroke: rgb(0 0 0 / 12%);
+  stroke-width: 1;
+  filter: drop-shadow(0 2px 5px rgb(0 0 0 / 18%));
 }
 
 

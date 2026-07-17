@@ -1,5 +1,6 @@
 package models.label
 
+import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile.api._
 import slick.lifted.{ProvenShape, Tag}
 
@@ -38,4 +39,7 @@ class MistakeResponseTableDef(tag: Tag) extends Table[MistakeResponse](tag, "use
       (MistakeResponse.apply _).tupled,
       MistakeResponse.unapply
     )
+
+  def label = foreignKey("user_mistake_response_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
+  def user  = foreignKey("user_mistake_response_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
 }

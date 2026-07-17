@@ -90,6 +90,34 @@
     "button-next-mission": "Next Explore Mission",
     "button-try-validation": "Try Validation"
   },
+  "tutorial-intro": {
+    "eyebrow": "Explore Mission",
+    "title": "Join the Sidewalk Mission",
+    "next": "Next",
+    "start-mission": "Start Mission",
+    "have-account": "Have an account?",
+    "sign-in": "Sign-In",
+    "already-tutorial": "Already taken the tutorial?",
+    "skip": "Skip",
+    "explore": {
+      "title": "Explore",
+      "description": "Spot accessibility issues around the city."
+    },
+    "label": {
+      "title": "Label",
+      "description": "Mark curb ramps and sidewalk surface issues, adding accessibility ratings."
+    },
+    "validate": {
+      "title": "Validate",
+      "description": "Review labels that others have marked to confirm their accuracy."
+    },
+    "impact": {
+      "title": "Impact",
+      "stat-labels": "{{total}} labels added by volunteers",
+      "stat-cities": "Data used in {{cities}} cities worldwide",
+      "tagline": "Every label helps improve real-world accessibility"
+    }
+  },
   "top-ui": {
     "press-key": "Press the \"{{key}}\" key"
   },

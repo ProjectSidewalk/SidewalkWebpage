@@ -101,32 +101,19 @@
   z-index: 1029;
 }
 
-#onboarding-example-image-1, #onboarding-example-image-2-top, #onboarding-example-image-2-bottom {
-  width: calc(980px * var(--ui-scale));
-  max-width: 100%;
-}
-
-.tutorial-table {
+/* Full-page celebratory outro (the tutorial-complete screen). The outro is the only takeover message, and unlike the
+   small centered instruction boxes it wants the whole canvas so its content can be placed from top to bottom. Layered
+   after the takeover rule (same specificity) so it wins, this turns the centered/shrink-wrapped box into a full-height,
+   edge-to-edge container; .tutorial-complete lays itself out inside it (see css/explore/tutorial-screens.css). */
+#onboarding-message-holder.onboarding-message-fullpage {
+  top: var(--navbar-height);
+  left: 0;
   width: 100%;
-}
-
-.tutorial-table-cell {
-  text-align:center;
-}
-
-.tutorial-cell-intro {
-  width: 25%;
-}
-
-.tutorial-spacer {
-  padding-bottom: calc(8px * var(--ui-scale));
-}
-
-#onboarding-welcome-ok-button {
-  position: relative;
-  top: -4px;
-}
-
-#onboarding-skip-option span {
-  font-size: 65%;
+  height: calc(100% - var(--navbar-height));
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  transform: none;
+  background: none;
+  border-radius: 0;
 }

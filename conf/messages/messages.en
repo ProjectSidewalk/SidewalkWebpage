@@ -177,19 +177,10 @@ footer.award = Award <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID
 footer.designed.operated = Project Sidewalk is designed and operated by the <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> at the <a id="universityofwashington" href="http://www.cs.uw.edu/">University of Washington</a>
 footer.version = Version {0} | Last Updated: <span class = "timestamp date">{1}</span>
 
-audit.tutorial.welcome.1 = In <span class="bold">Project Sidewalk,</span> you’ll virtually travel through cities completing missions to find and label accessibility features and problems in the environment, including:
-audit.tutorial.welcome.2 = We''ll begin with a short, interactive tutorial.
-audit.tutorial.welcome.3 = Let''s get started!
-audit.tutorial.welcome.4 = Already taken the tutorial? Have an account? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Sign in</a> now or <a value="Skip" class="onboarding-transition-trigger">skip the tutorial.</a>
-audit.tutorial.accessible = <span style="color:limegreen">Accessible</span>
-audit.tutorial.inaccessible = <span style="color:red">Inaccessible</span>
-audit.tutorial.examples.curb.ramp = <span style="color:limegreen">Curb ramps</span> help wheelchair users get on and off the sidewalks
-audit.tutorial.examples.missing.ramp = Wheelchair users cannot navigate sidewalks when <span style="color:#ff0066">curb ramps are missing</span>
-audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">Obstacles</span> block the paths of wheelchair users
-audit.tutorial.examples.surface.problem = Sidewalks with <span style="color:orange">surface problems</span> may not be navigable
-audit.tutorial.end.1 = Great! You’ve learned how to use the interface! Now, go ahead and <span class="bold">label the following accessibility attributes in street view imagery</span> that significantly affect how wheelchair users move about the city:
-audit.tutorial.end.2 = Again, thank you for <span class="bold">making the world more accessible for everyone!</span>
-audit.tutorial.examples = Examples of accessibility attributes: curb ramps, missing curb ramps, obstacles in path, and surface problems.
+audit.tutorial.complete.1 = You did it!
+audit.tutorial.complete.2 = You completed the tutorial!
+audit.tutorial.complete.learn-more = Learn more
+audit.tutorial.complete.start-contributing = Start contributing
 
 audit.ribbon.curb.ramp.labels = CURB RAMP LABELS
 audit.ribbon.sidewalk.labels = SIDEWALK LABELS
@@ -408,14 +399,15 @@ footer.logo.create.alt = Center for Research and Education on Accessible Technol
 cities.dashboard.cities = Deployment Cities
 cities.dashboard.distance = Streets Explored
 cities.dashboard.cities.icon.alt = Wheelchair user from Project Sidewalk logo holding a flag
-cities.dashboard.cta.title = Bring Project Sidewalk to Your City!
-cities.dashboard.cta.content = Interested in mapping accessibility in your community? <br/> We're always looking for new partners to help transform the future of urban accessibility.
+cities.dashboard.cta.title = Bring Project Sidewalk to Your City!
+cities.dashboard.cta.content = Interested in mapping accessibility in your community? <br/> We''re always looking for new partners to help transform the future of urban accessibility.
 cities.dashboard.cta.button = Learn How to Deploy
 cities.dashboard.cta.logo.alt = The Project Sidewalk logo with text saying projectsidewalk.org
 
 share.meta.title.issue = I found an accessibility issue on Project Sidewalk: {0}
 share.meta.title.feature = Look what I found on Project Sidewalk: {0}
 share.meta.description.spotted = Spotted in {0}.
+share.meta.description.address = Near {0}.
 share.meta.description.severity = Severity: {0} of 3.
 share.meta.description.tags = Tagged: {0}.
 share.meta.description.cta = Explore the map and help make sidewalks accessible for everyone.

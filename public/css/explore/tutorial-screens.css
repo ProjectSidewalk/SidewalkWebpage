@@ -1,0 +1,250 @@
+/*
+ * Styles for the two standalone tutorial framing screens:
+ *   - .tutorial-intro    the pre-tutorial "Join the Sidewalk Mission" walkthrough (Explore/Label/Validate/Impact).
+ *   - .tutorial-complete the "You did it!" screen shown when the tutorial finishes.
+ */
+
+/* ---- Pre-tutorial intro walkthrough ------------------------------------------------------------------------------ */
+
+.tutorial-intro {
+  display: none;
+  position: fixed;
+  top: var(--navbar-height);
+  left: 0;
+  width: 100%;
+  height: calc(100% - var(--navbar-height));
+  background: var(--color-neutral-white);
+  z-index: 1029; /* Just below the navbar (#header is 1030) so it covers the whole tool but leaves the navbar usable. */
+  overflow: auto;
+}
+
+.tutorial-intro.is-visible {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tutorial-intro__inner {
+  display: flex;
+  flex-direction: column;
+  width: 75%;
+  margin: 0 auto;
+}
+
+.tutorial-intro__header {
+  display: flex;
+  flex-direction: column;
+  gap: calc(12px * var(--ui-scale, 1));
+}
+
+.tutorial-intro__eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  font: var(--text-title-bold);
+  color: var(--color-neutral-700);
+}
+
+.tutorial-intro__title {
+  margin: 0;
+  font: var(--text-h1-bold);
+  color: var(--color-neutral-black);
+}
+
+.tutorial-intro__body {
+  display: flex;
+  align-items: stretch;
+  gap: calc(48px * var(--ui-scale, 1));
+  margin-top: calc(24px * var(--ui-scale, 1)); /* Space between the header and the illustration/panel row. */
+}
+
+.tutorial-intro__illustration {
+  position: relative;
+  flex: 1 1 auto;
+  aspect-ratio: 900 / 560;
+  border: calc(2px * var(--ui-scale, 1)) solid var(--color-neutral-black);
+  border-radius: calc(20px * var(--ui-scale, 1));
+  background: var(--color-neutral-100);
+  overflow: hidden;
+}
+
+.tutorial-intro__illustration-img {
+  display: none;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tutorial-intro__illustration-img.is-active {
+  display: block;
+}
+
+.tutorial-intro__panel {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 calc(340px * var(--ui-scale, 1));
+  width: calc(340px * var(--ui-scale, 1));
+}
+
+.tutorial-intro__step {
+  display: none;
+}
+
+.tutorial-intro__step.is-active {
+  display: block;
+}
+
+.tutorial-intro__step-heading {
+  display: flex;
+  align-items: center;
+  gap: calc(12px * var(--ui-scale, 1));
+}
+
+.tutorial-intro__step-icon {
+  width: auto;
+  height: calc(28px * var(--ui-scale, 1));
+}
+
+.tutorial-intro__step-title {
+  font: var(--text-title-bold);
+  text-transform: uppercase;
+  color: var(--color-neutral-black);
+}
+
+.tutorial-intro__divider {
+  width: 100%;
+  height: calc(5px * var(--ui-scale, 1));
+  margin: calc(14px * var(--ui-scale, 1)) 0 calc(24px * var(--ui-scale, 1));
+  background: var(--color-neutral-900);
+}
+
+.tutorial-intro__step-description {
+  margin: 0;
+  font: var(--text-body-medium);
+  white-space: pre-line; /* Renders the "\n"-separated stat lines of the Impact step as paragraphs. */
+  color: var(--color-neutral-900);
+}
+
+/* Pinned to the bottom of the panel so the button's base lines up with the bottom of the illustration. */
+.tutorial-intro__next {
+  justify-content: center;
+  width: 100%;
+  margin-top: auto;
+}
+
+/* The sign-in / skip links sit on their own full-width row below the illustration and panel. */
+.tutorial-intro__links {
+  display: flex;
+  flex-direction: column;
+  gap: calc(2px * var(--ui-scale, 1));
+  margin-top: calc(12px * var(--ui-scale, 1)); /* Space between the illustration/panel row and the links. */
+  text-align: right;
+}
+
+.tutorial-intro__links p {
+  margin: 0;
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-900);
+}
+
+.tutorial-intro__link {
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-900);
+  text-decoration: underline;
+}
+
+.tutorial-intro__link:hover,
+.tutorial-intro__link:focus {
+  color: var(--color-neutral-black);
+}
+
+/* Stack the illustration above the copy on narrow viewports. */
+@media (width <= 900px) {
+  .tutorial-intro__body {
+    flex-direction: column;
+    gap: calc(24px * var(--ui-scale, 1));
+  }
+
+  .tutorial-intro__panel {
+    flex-basis: auto;
+    width: 100%;
+  }
+
+  .tutorial-intro__links {
+    text-align: left;
+  }
+}
+
+/* ---- Tutorial-complete "You did it!" screen ---------------------------------------------------------------------- */
+
+/* Vertical stack across the full-page canvas: a fireworks-framed hero, the "You did it!" copy, then the two actions,
+   each placed by an explicit --tc-* knob below. Percent offsets/sizes keep the composition proportional as the window
+   resizes; the px gaps carry var(--ui-scale) so they track the tool zoom. */
+.tutorial-complete {
+  --tc-hero-top: 14%; /* Where the hero starts, measured from the top (share of canvas height). */
+  --tc-hero-width: 40%; /* Hero illustration width (share of canvas width). */
+  --tc-text-gap: calc(5px * var(--ui-scale, 1)); /* Space between the hero and the "You did it!" text. */
+  --tc-buttons-gap: calc(50px * var(--ui-scale, 1)); /* Space between the text and the buttons. */
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-height: 100%;
+  padding: var(--tc-hero-top) calc(24px * var(--ui-scale, 1)) calc(48px * var(--ui-scale, 1));
+}
+
+/* Hero plus its two decorative fireworks. position: relative makes this the reference box for the absolute fireworks;
+   with no padding here the box wraps the hero, so a firework's `top` is measured from the hero's top edge. */
+.tutorial-complete__animation {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.tutorial-complete__hero {
+  width: var(--tc-hero-width);
+  height: auto;
+}
+
+/* Fireworks sit relative to the hero: `top` is measured from the hero's top edge (negative lifts them above it);
+   left/width are canvas-relative so the pair scales with the hero. Tune each burst's top/left/width to taste. */
+.tutorial-complete__fireworks {
+  position: absolute;
+  height: auto;
+  pointer-events: none;
+}
+
+.tutorial-complete__fireworks--1 {
+  top: calc(-75px * var(--ui-scale, 1));
+  left: 38%;
+  width: 10%;
+}
+
+.tutorial-complete__fireworks--2 {
+  top: calc(-145px * var(--ui-scale, 1));
+  left: 50%;
+  width: 13%;
+}
+
+.tutorial-complete__text {
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--ui-scale, 1));
+  margin-top: var(--tc-text-gap);
+  font: var(--text-h3-bold);
+  text-align: center;
+}
+
+.tutorial-complete__text p {
+  margin: 0;
+}
+
+/* A fixed gap below the text (--tc-buttons-gap), with the two actions pushed to the outer edges of a capped-width row
+   so they sit apart. (To glue the buttons to the very bottom of the canvas instead, set margin-top: auto.) */
+.tutorial-complete__buttons {
+  display: flex;
+  justify-content: space-between;
+  width: min(88%, calc(560px * var(--ui-scale, 1)));
+  margin-top: var(--tc-buttons-gap);
+}

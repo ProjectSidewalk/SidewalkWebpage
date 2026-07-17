@@ -1,4 +1,32 @@
 {
+  "tutorial-intro": {
+    "eyebrow": "Missão de Exploração",
+    "title": "Participe da Missão Sidewalk",
+    "next": "Próximo",
+    "start-mission": "Iniciar missão",
+    "have-account": "Já tem uma conta?",
+    "sign-in": "Entrar",
+    "already-tutorial": "Já fez o tutorial?",
+    "skip": "Pular",
+    "explore": {
+      "title": "Explorar",
+      "description": "Encontre problemas de acessibilidade pela cidade."
+    },
+    "label": {
+      "title": "Rotular",
+      "description": "Marque rampas de calçada e problemas na superfície das calçadas, adicionando avaliações de acessibilidade."
+    },
+    "validate": {
+      "title": "Validar",
+      "description": "Revise os rótulos que outras pessoas marcaram para confirmar sua precisão."
+    },
+    "impact": {
+      "title": "Impacto",
+      "stat-labels": "{{total}} rótulos adicionados por voluntários",
+      "stat-cities": "Dados usados em {{cities}} cidades pelo mundo",
+      "tagline": "Cada rótulo ajuda a melhorar a acessibilidade no mundo real"
+    }
+  },
   "curb-ramp": "rampa de meio-fio",
   "missing-curb-ramp": "rampa de meio-fio ausente",
   "obstacle": "obstáculo",

@@ -1,6 +1,7 @@
 package models.audit
 
 import com.google.inject.ImplementedBy
+import models.mission.MissionTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -51,11 +52,10 @@ class AuditTaskEnvironmentTableDef(tag: Tag) extends Table[AuditTaskEnvironment]
     AuditTaskEnvironment.unapply
   )
 
-//  def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
-//    foreignKey("audit_task_environment_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
-//
-//  def mission: ForeignKeyQuery[MissionTable, Mission] =
-//    foreignKey("audit_task_environment_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
+  def auditTask =
+    foreignKey("audit_task_environment_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
+  def mission =
+    foreignKey("audit_task_environment_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
 }
 
 @ImplementedBy(classOf[AuditTaskEnvironmentTable])
