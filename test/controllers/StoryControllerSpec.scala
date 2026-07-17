@@ -7,7 +7,7 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.Files.SingletonTemporaryFileCreator
-import play.api.libs.json.{JsArray, JsValue}
+import play.api.libs.json.{JsArray, JsObject, JsValue}
 import play.api.mvc.{Cookie, MultipartFormData}
 import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
@@ -109,6 +109,14 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     val temp = SingletonTemporaryFileCreator.create("story-spec", ".jpg")
     ImageIO.write(img, "jpg", temp.path.toFile) mustBe true
     MultipartFormData.FilePart(key = "photo", filename = "story-spec.jpg", contentType = Some("image/jpeg"), ref = temp)
+  }
+
+  /** The committed EXIF fixture (GPS ~47.6063,-122.3332 + DateTimeOriginal 2024-06-15) as an upload part. */
+  private val exifFixture = new java.io.File("test/resources/story-with-exif.jpg")
+  private def exifJpegFilePart(): MultipartFormData.FilePart[play.api.libs.Files.TemporaryFile] = {
+    val temp = SingletonTemporaryFileCreator.create("story-exif", ".jpg")
+    java.nio.file.Files.copy(exifFixture.toPath, temp.path, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+    MultipartFormData.FilePart(key = "photo", filename = "story-exif.jpg", contentType = Some("image/jpeg"), ref = temp)
   }
 
   "GET /stories" should {
@@ -298,6 +306,11 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
           // 2600x400 source, 2560 edge cap -> downscaled, aspect preserved.
           (media \ "width").as[Int] mustBe 2560
           (media \ "height").as[Int] must be < 400
+          // Raw capture location/time are internal-only: they must never appear in a media payload.
+          val mediaKeys = media.as[JsObject].keys
+          mediaKeys must not contain "photo_lat"
+          mediaKeys must not contain "photo_lng"
+          mediaKeys must not contain "photo_captured_at"
 
           val mediaUrl = (media \ "url").as[String]
           mediaUrl must startWith(s"/storyMedia/$mediaId?exp=")
@@ -312,6 +325,27 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
           status(deleteStory(session, storyId)) mustBe OK
           storyService.storyMediaFile(mediaId).exists() mustBe false
           status(route(app, FakeRequest(GET, mediaUrl)).get) mustBe NOT_FOUND
+      }
+    }
+
+    "store a photo's EXIF GPS and capture time internally (for analysis, never surfaced)" in {
+      labelIds.headOption match {
+        case None                             => cancel("No labels in the connected test DB.")
+        case Some(_) if !exifFixture.exists() => cancel("EXIF fixture test/resources/story-with-exif.jpg missing.")
+        case Some(id)                         =>
+          val session = freshAnonSession()
+          val posted  = postStory(session, id, "story with an EXIF photo", files = Seq(exifJpegFilePart()))
+          status(posted) mustBe OK
+          val storyId = (contentAsJson(posted) \ "story_id").as[Int]
+          val mediaId = (contentAsJson(posted) \ "media" \ "story_media_id").as[Int]
+          try {
+            // Read the raw row (not the viewer-facing JSON): the EXIF values are persisted for internal use.
+            val row = await(storyService.getMediaForServing(mediaId)).map(_._1)
+            row mustBe defined
+            row.get.photoLat.get mustBe (47.6063 +- 0.01)
+            row.get.photoLng.get mustBe (-122.3332 +- 0.01)
+            row.get.photoCapturedAt.get.getYear mustBe 2024
+          } finally { val _ = status(deleteStory(session, storyId)) }
       }
     }
 

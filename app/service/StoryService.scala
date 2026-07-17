@@ -100,14 +100,25 @@ class StoryServiceImpl @Inject() (
     ("(?i)(https?://|www\\.|\\b[a-z0-9-]+\\.(com|net|org|io|co|ru|cn|xyz|top|info|biz|link|click|shop|online|site|" +
       "store)\\b)").r
 
-  /** The re-encoded photo staged in a temp file, plus the derived (metadata-free) facts we keep. */
+  /**
+   * Metadata read from an upload's EXIF: the coarse recency/near-label signals that drive the card, plus the raw
+   * capture time and GPS (when present). The raw values are persisted for internal analysis only — never surfaced.
+   */
+  private case class PhotoMetadata(
+      captureRecency: Option[String],
+      nearLabel: Option[Boolean],
+      capturedAt: Option[OffsetDateTime],
+      lat: Option[Double],
+      lng: Option[Double]
+  )
+
+  /** The re-encoded photo staged in a temp file, plus the metadata (`PhotoMetadata`) carried into the media row. */
   private case class ProcessedPhoto(
       staged: File,
       width: Int,
       height: Int,
       sizeBytes: Long,
-      captureRecency: Option[String],
-      nearLabel: Option[Boolean]
+      meta: PhotoMetadata
   )
 
   def storyMediaFile(storyMediaId: Int): File = new File(mediaBaseDir, s"story_$storyMediaId.jpg")
@@ -247,7 +258,8 @@ class StoryServiceImpl @Inject() (
   ): Future[Either[StoryRejection, Unit]] = {
     val now    = OffsetDateTime.now
     val newRow = StoryMedia(0, story.storyId, "photo", "image/jpeg", Some(p.width), Some(p.height), None,
-      Some(p.sizeBytes), upload.altText, p.captureRecency, p.nearLabel, now)
+      Some(p.sizeBytes), upload.altText, p.meta.captureRecency, p.meta.nearLabel, p.meta.capturedAt, p.meta.lat,
+      p.meta.lng, now)
     db.run(storyTable.getMediaForStory(story.storyId)).flatMap { oldMedia =>
       db.run(storyTable.insertMedia(newRow)).flatMap { newMediaId =>
         val placeThenCommit = for {
@@ -412,7 +424,7 @@ class StoryServiceImpl @Inject() (
       media   <- photo match {
         case Some((upload, p)) =>
           val m = StoryMedia(0, storyId, "photo", "image/jpeg", Some(p.width), Some(p.height), None, Some(p.sizeBytes),
-            upload.altText, p.captureRecency, p.nearLabel, now)
+            upload.altText, p.meta.captureRecency, p.meta.nearLabel, p.meta.capturedAt, p.meta.lat, p.meta.lng, now)
           storyTable.insertMedia(m).map(mediaId => Some(m.copy(storyMediaId = mediaId)))
         case None => DBIO.successful(None: Option[StoryMedia])
       }
@@ -448,9 +460,9 @@ class StoryServiceImpl @Inject() (
   }
 
   /**
-   * Validates and re-encodes an uploaded photo. Runs on the cpu-intensive EC (caller's responsibility). The transient
-   * metadata pass happens on the ORIGINAL bytes (re-encoding strips EXIF, which is also why we re-encode); only the
-   * derived recency bucket and near-label flag survive it — precise GPS/timestamps are discarded per #4054.
+   * Validates and re-encodes an uploaded photo. Runs on the cpu-intensive EC (caller's responsibility). Metadata is
+   * read from the ORIGINAL bytes (re-encoding strips EXIF from the served image, which is also why we re-encode); the
+   * capture time and GPS are carried into the media row for internal use, never onto the delivered file or any output.
    */
   private def processPhoto(
       upload: StoryPhotoUpload,
@@ -461,14 +473,14 @@ class StoryServiceImpl @Inject() (
     } else if (!sourceImageOk(upload.tempFile)) {
       Left(StoryRejection.PhotoInvalid)
     } else {
-      val (captureRecency, nearLabel) = extractTransientMetadata(upload.tempFile, labelLatLng)
+      val meta = extractPhotoMetadata(upload.tempFile, labelLatLng)
       Option(ImageIO.read(upload.tempFile)) match {
         case None      => Left(StoryRejection.PhotoInvalid)
         case Some(src) =>
           try {
             val out    = ImageUtils.scaleToMaxEdge(src, MAX_OUTPUT_EDGE)
             val staged = stageJpeg(out)
-            Right(ProcessedPhoto(staged, out.getWidth, out.getHeight, staged.length, captureRecency, nearLabel))
+            Right(ProcessedPhoto(staged, out.getWidth, out.getHeight, staged.length, meta))
           } catch {
             case e: Exception =>
               logger.error(s"Failed to re-encode story photo: ${e.getMessage}")
@@ -520,8 +532,12 @@ class StoryServiceImpl @Inject() (
     }.getOrElse(false)
   }
 
-  /** The extract-use-discard metadata pass: derive the coarse buckets, let the precise values go out of scope. */
-  private def extractTransientMetadata(file: File, labelLatLng: Option[LatLng]): (Option[String], Option[Boolean]) = {
+  /**
+   * Reads the EXIF metadata we keep from an upload: the coarse recency bucket + near-label flag that drive the card,
+   * plus the raw capture time and GPS (when present) that we persist for internal analysis but never surface. Absent
+   * or corrupt metadata is normal, and degrades every field to None.
+   */
+  private def extractPhotoMetadata(file: File, labelLatLng: Option[LatLng]): PhotoMetadata = {
     Try {
       val metadata = ImageMetadataReader.readMetadata(file)
       val geo      = Option(metadata.getFirstDirectoryOfType(classOf[GpsDirectory]))
@@ -530,8 +546,10 @@ class StoryServiceImpl @Inject() (
       val captureDate = Option(metadata.getFirstDirectoryOfType(classOf[ExifSubIFDDirectory]))
         .flatMap(d => Option(d.getDateOriginal))
 
-      val recency = captureDate.map { date =>
-        val days = math.max(0L, ChronoUnit.DAYS.between(date.toInstant, OffsetDateTime.now.toInstant))
+      // EXIF DateTimeOriginal carries no zone; store the instant read as UTC (good enough for coarse analysis).
+      val capturedAt = captureDate.map(_.toInstant.atOffset(ZoneOffset.UTC))
+      val recency    = capturedAt.map { at =>
+        val days = math.max(0L, ChronoUnit.DAYS.between(at.toInstant, OffsetDateTime.now.toInstant))
         if (days <= 7) "within_week"
         else if (days <= 31) "within_month"
         else if (days <= 366) "within_year"
@@ -541,8 +559,8 @@ class StoryServiceImpl @Inject() (
         g     <- geo
         label <- labelLatLng
       } yield CommonUtils.haversineMeters(g.getLatitude, g.getLongitude, label.lat, label.lng) <= NEAR_LABEL_METERS
-      (recency, near)
-    }.getOrElse((None, None)) // Absent or corrupt metadata is normal; everything degrades to "unknown".
+      PhotoMetadata(recency, near, capturedAt, geo.map(_.getLatitude), geo.map(_.getLongitude))
+    }.getOrElse(PhotoMetadata(None, None, None, None, None))
   }
 
   /** File deletion failures only leave an orphaned file (never a dangling DB row), so log-and-continue is safe. */

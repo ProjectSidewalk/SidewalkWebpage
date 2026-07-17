@@ -24,9 +24,10 @@ CREATE INDEX story_user_id_idx ON story (user_id);
 CREATE INDEX story_created_at_idx ON story (created_at);
 
 -- Media attached to a story. media_type/mime_type/duration_secs are provisioned for the audio/video increments of
--- #4054 (the first increment only writes 'photo' rows). capture_recency and near_label are the only values kept from
--- upload metadata (EXIF/MP4 atoms): precise GPS coordinates and timestamps are read transiently for these two derived
--- fields and then discarded, by design. alt_text NULL means the author explicitly skipped the description.
+-- #4054 (the first increment only writes 'photo' rows). capture_recency and near_label are the coarse signals the card
+-- shows. photo_captured_at/photo_lat/photo_lng hold the raw EXIF capture time and GPS (when present), kept for our own
+-- internal analysis only -- they are never emitted in any API response, export, or UI, and the re-encoded served image
+-- carries no EXIF. alt_text NULL means the author explicitly skipped the description.
 CREATE TABLE story_media (
     story_media_id SERIAL PRIMARY KEY,
     story_id INTEGER NOT NULL REFERENCES story (story_id) ON DELETE CASCADE,
@@ -39,6 +40,9 @@ CREATE TABLE story_media (
     alt_text TEXT,
     capture_recency TEXT CHECK (capture_recency IN ('within_week', 'within_month', 'within_year', 'older')),
     near_label BOOLEAN,
+    photo_captured_at TIMESTAMPTZ,
+    photo_lat DOUBLE PRECISION,
+    photo_lng DOUBLE PRECISION,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ALTER TABLE story_media OWNER TO sidewalk;
