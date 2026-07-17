@@ -112,7 +112,13 @@ class StoriesSection {
    * @param {HTMLElement} row
    */
   async #deleteStory(story, row) {
-    if (!window.confirm(i18next.t('labelmap:story.delete-confirm'))) return;
+    const confirmed = await ConfirmDialog.confirm({
+      message: i18next.t('labelmap:story.delete-confirm'),
+      confirmText: i18next.t('labelmap:story.delete'),
+      cancelText: i18next.t('labelmap:story.cancel'),
+      danger: true,
+    });
+    if (!confirmed) return;
     window.logWebpageActivity?.(`Click_module=StoryDeleteClient_storyId=${story.story_id}`);
     try {
       const res = await fetch(`/userapi/stories/${story.story_id}`, { method: 'DELETE' });

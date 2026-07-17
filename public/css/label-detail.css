@@ -1452,8 +1452,7 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
   margin-top: 16px;
 }
 
-.story-composer__cancel,
-.story-lightbox__close {
+.story-composer__cancel {
   padding: 9px 18px;
   border: 1px solid var(--color-neutral-400);
   border-radius: 999px;
@@ -1495,6 +1494,7 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
 /* ─── Story photo lightbox (#4054) ──────────────────────────────────────── */
 dialog.story-lightbox {
   box-sizing: border-box;
+  position: relative;
   max-width: min(560px, calc(100vw - 32px));
   border: none;
   border-radius: 12px;
@@ -1503,6 +1503,29 @@ dialog.story-lightbox {
   box-shadow: 0 20px 50px rgb(0 0 0 / 35%);
   font-family: "Open Sans", -apple-system, BlinkMacSystemFont, sans-serif;
 }
+
+/* Floats over the image's top-right corner — the standard lightbox dismiss spot. */
+.story-lightbox__close {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 85%);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 30%);
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--color-neutral-900);
+}
+
+.story-lightbox__close:hover { background: var(--color-neutral-white); }
 
 .story-lightbox__figure { margin: 0; }
 
@@ -1520,7 +1543,61 @@ dialog.story-lightbox {
   color: var(--color-asphalt-400);
 }
 
-.story-lightbox__close {
-  display: block;
-  margin: 12px 0 0 auto;
+/* ─── App-styled confirmation dialog (common/ConfirmDialog.js) ──────────── */
+dialog.ps-confirm {
+  box-sizing: border-box;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  border: none;
+  border-radius: 12px;
+  padding: 20px;
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-black);
+  box-shadow: 0 20px 50px rgb(0 0 0 / 30%);
+  font-family: "Open Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+}
+
+dialog.ps-confirm::backdrop { background: rgb(0 0 0 / 45%); }
+
+.ps-confirm__message {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.ps-confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.ps-confirm__cancel,
+.ps-confirm__confirm {
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: Raleway, sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.ps-confirm__cancel {
+  border: 1px solid var(--color-neutral-400);
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+}
+
+.ps-confirm__confirm {
+  border: none;
+  background: var(--color-asphalt-500);
+  color: var(--color-neutral-white);
+}
+
+.ps-confirm__confirm--danger { background: var(--color-error-200); }
+
+.ps-confirm__cancel:focus-visible,
+.ps-confirm__confirm:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
 }

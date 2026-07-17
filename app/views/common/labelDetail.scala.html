@@ -210,7 +210,7 @@
   <h3 class="story-composer__title" data-i18n="labelmap:story.composer-title">Share your story</h3>
   <p class="story-composer__intro" data-i18n="labelmap:story.composer-intro">
     Stories help neighbors and city officials understand what problems like this mean for real people.
-    Yours appears publicly on this label.
+    Your story will appear attached to this label.
   </p>
   <label class="story-composer__field" for="story-composer-text">
     <span class="story-composer__field-label" data-i18n="labelmap:story.your-story">Your story</span>
@@ -271,11 +271,14 @@
 
 @* Enlarge view for a story photo (#4054): the photo's author-written alt text doubles as the visible caption. *@
 <dialog class="story-lightbox">
+  <button type="button" class="story-lightbox__close" aria-label="Close"
+          data-i18n-aria-label="labelmap:story.close">
+    <span aria-hidden="true">&times;</span>
+  </button>
   <figure class="story-lightbox__figure">
     <img class="story-lightbox__img" alt="">
     <figcaption class="story-lightbox__caption"></figcaption>
   </figure>
-  <button type="button" class="story-lightbox__close" data-i18n="labelmap:story.close">Close</button>
 </dialog>
 
 @if(admin) {

@@ -52,11 +52,11 @@ class StorySection {
       this.#composer.open(this.#labelId, this.#maxTextLength);
     });
     // With zero stories there is nothing to expand, so the summary click is inert (the CTA above still works).
+    // Expand logging lives here rather than on the toggle event so the auto-expand in #render isn't counted.
     this.#els.summary.addEventListener('click', (e) => {
-      if (this.#els.details.classList.contains('label-detail__stories-details--empty')) e.preventDefault();
-    });
-    this.#els.details.addEventListener('toggle', () => {
-      if (this.#els.details.open) {
+      if (this.#els.details.classList.contains('label-detail__stories-details--empty')) {
+        e.preventDefault();
+      } else if (!this.#els.details.open) {
         window.logWebpageActivity?.(`Click_module=StorySectionExpand_labelId=${this.#labelId}`);
       }
     });
@@ -125,7 +125,9 @@ class StorySection {
     els.count.textContent = String(stories.length);
     els.count.hidden = empty;
     els.details.classList.toggle('label-detail__stories-details--empty', empty);
-    if (empty) els.details.open = false;
+    // Stories are the payoff, so the disclosure starts open whenever there are any (the list is height-capped,
+    // so the card stays bounded); collapsing is still available via the summary.
+    els.details.open = !empty;
     els.invite.hidden = !empty;
     // One story per user per label (server-enforced): once yours exists, delete-and-repost is the edit path.
     els.shareBtn.hidden = stories.some((s) => s.is_own);
@@ -216,7 +218,13 @@ class StorySection {
    * @param {number} storyId
    */
   async #deleteStory(storyId) {
-    if (!window.confirm(i18next.t('labelmap:story.delete-confirm'))) return;
+    const confirmed = await ConfirmDialog.confirm({
+      message: i18next.t('labelmap:story.delete-confirm'),
+      confirmText: i18next.t('labelmap:story.delete'),
+      cancelText: i18next.t('labelmap:story.cancel'),
+      danger: true,
+    });
+    if (!confirmed) return;
     window.logWebpageActivity?.(`Click_module=StoryDeleteClient_storyId=${storyId}`);
     try {
       const res = await fetch(`/userapi/stories/${storyId}`, { method: 'DELETE' });

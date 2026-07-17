@@ -26,6 +26,7 @@ module.exports = function (grunt) {
           'public/js/admin/src/*.js',
           // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
           'public/js/common/label-detail/PopupPanoManager.js',
+          'public/js/common/ConfirmDialog.js',
           'public/js/common/label-detail/StoryComposer.js',
           'public/js/common/label-detail/StorySection.js',
           'public/js/common/label-detail/LabelDetail.js',
@@ -50,6 +51,7 @@ module.exports = function (grunt) {
           'public/js/admin/src/*.js',
           // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
           'public/js/common/label-detail/PopupPanoManager.js',
+          'public/js/common/ConfirmDialog.js',
           'public/js/common/label-detail/StoryComposer.js',
           'public/js/common/label-detail/StorySection.js',
           'public/js/common/label-detail/LabelDetail.js',
@@ -100,6 +102,7 @@ module.exports = function (grunt) {
           'public/js/common/BadgeAchievements.js',
           // PopupPanoManager and LabelDetail must be concatenated before ExpandedView.
           'public/js/common/label-detail/PopupPanoManager.js',
+          'public/js/common/ConfirmDialog.js',
           'public/js/common/label-detail/StoryComposer.js',
           'public/js/common/label-detail/StorySection.js',
           'public/js/common/label-detail/LabelDetail.js',
@@ -134,6 +137,7 @@ module.exports = function (grunt) {
           'public/js/common/PanoMarker.js',
           // PopupPanoManager + LabelDetail must precede anything that uses them.
           'public/js/common/label-detail/PopupPanoManager.js',
+          'public/js/common/ConfirmDialog.js',
           'public/js/common/label-detail/StoryComposer.js',
           'public/js/common/label-detail/StorySection.js',
           'public/js/common/label-detail/LabelDetail.js',

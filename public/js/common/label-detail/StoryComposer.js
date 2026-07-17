@@ -133,11 +133,14 @@ class StoryComposer {
 
     els.altInput.addEventListener('input', () => this.#clearError());
 
-    els.cancel.addEventListener('click', () => this.#dialog.close());
+    els.cancel.addEventListener('click', () => this.#requestClose());
 
-    // Esc with typed content: confirm before discarding a personal story.
+    // Esc goes through the same discard guard as the Cancel button; preventDefault always, because the
+    // confirmation is async and the cancel event can't wait on it.
     this.#dialog.addEventListener('cancel', (e) => {
-      if (this.#dirty && !window.confirm(i18next.t('labelmap:story.discard-confirm'))) e.preventDefault();
+      if (!this.#dirty) return;
+      e.preventDefault();
+      this.#requestClose();
     });
     this.#dialog.addEventListener('close', () => this.#revokeObjectUrl());
 
@@ -147,6 +150,20 @@ class StoryComposer {
 
   get #dirty() {
     return this.#els.text.value.trim().length > 0 || this.#els.photoInput.files.length > 0;
+  }
+
+  /** Closes immediately when pristine; typed content gets a discard confirmation first (it's a personal story). */
+  async #requestClose() {
+    if (this.#dirty) {
+      const confirmed = await ConfirmDialog.confirm({
+        message: i18next.t('labelmap:story.discard-confirm'),
+        confirmText: i18next.t('labelmap:story.discard'),
+        cancelText: i18next.t('labelmap:story.keep-writing'),
+        danger: true,
+      });
+      if (!confirmed) return;
+    }
+    this.#dialog.close();
   }
 
   /**
