@@ -1,5 +1,22 @@
 # --- !Ups
 ALTER TABLE pano_data ADD COLUMN address TEXT;
 
+CREATE OR REPLACE VIEW label_comments_agg AS
+SELECT validation_task_comment.label_id,
+       json_agg(json_build_object('username', sidewalk_user.username, 'comment', validation_task_comment.comment,
+                                  'time_created', validation_task_comment.timestamp)
+                ORDER BY validation_task_comment.timestamp)::text AS comments
+FROM validation_task_comment
+INNER JOIN sidewalk_user ON validation_task_comment.user_id = sidewalk_user.user_id
+GROUP BY validation_task_comment.label_id;
+
 # --- !Downs
+CREATE OR REPLACE VIEW label_comments_agg AS
+SELECT validation_task_comment.label_id,
+       json_agg(json_build_object('username', sidewalk_user.username, 'comment', validation_task_comment.comment)
+                ORDER BY validation_task_comment.timestamp)::text AS comments
+FROM validation_task_comment
+INNER JOIN sidewalk_user ON validation_task_comment.user_id = sidewalk_user.user_id
+GROUP BY validation_task_comment.label_id;
+
 ALTER TABLE pano_data DROP COLUMN address;

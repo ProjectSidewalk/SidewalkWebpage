@@ -63,6 +63,7 @@ class LabelDetail {
   #comments;
   #myCommentIdx;
   #shareWidget;
+  #metaRowObserver;
 
   /**
    * @param {HTMLElement} root - The host element containing the labelDetail markup (see labelDetail.scala.html).
@@ -142,6 +143,13 @@ class LabelDetail {
     const tagsTitle = this.#q('.label-detail__col--tags .label-detail__col-title');
     if (tagsTitle) tagsTitle.title = i18next.t('labelmap:tags-tooltip');
 
+    // Re-fit the meta strip whenever the card's width changes (mobile, rotation, window resize). Toggling the
+    // strip's own child visibility never changes the observed row's width, so this can't feed back on itself.
+    if (this.#els.metaRow && typeof ResizeObserver !== 'undefined') {
+      this.#metaRowObserver = new ResizeObserver(() => this.#fitMetaRow());
+      this.#metaRowObserver.observe(this.#els.metaRow);
+    }
+
     // Seed the all-time counts so a validation here can celebrate a newly unlocked validation badge.
     BadgeAchievements.seedCounts();
   }
@@ -220,6 +228,7 @@ class LabelDetail {
     els.panoWrap = this.#q('.label-detail__pano-wrap');
     els.panoOverlay = this.#q('.label-detail__pano-overlay');
     els.title = this.#q('.label-detail__title');
+    els.metaRow = this.#q('.label-detail__meta-row');
     els.timestamp = this.#q('.label-detail__timestamp');
     els.imageDate = this.#q('.label-detail__image-capture-date');
     els.addressCell = this.#q('.label-detail__meta-cell--address');
@@ -229,7 +238,9 @@ class LabelDetail {
     els.severity = this.#q('.label-detail__severity-faces');
     els.severityTitle = this.#q('.label-detail__severity-title');
     els.tags = this.#q('.label-detail__tags');
+    els.descriptionSection = this.#q('.label-detail__description-section');
     els.description = this.#q('.label-detail__description');
+    els.commentsSection = this.#q('.label-detail__comments-section');
     els.validatorComments = this.#q('.label-detail__validator-comments');
     els.commentsCount = this.#q('.label-detail__comments-count');
     els.descComments = this.#q('.label-detail__desc-comments');
@@ -509,17 +520,17 @@ class LabelDetail {
       els.tags.textContent = i18next.t('common:none');
     }
 
-    // Description.
-    if (meta.description !== null && meta.description !== undefined) {
-      els.description.classList.remove('label-detail__empty');
-      els.description.textContent = meta.description;
-    } else {
-      els.description.classList.add('label-detail__empty');
-      els.description.textContent = i18next.t('labelmap:no-description-provided');
-    }
+    // Description text; #updateCommentRow shows or hides the section based on whether the labeler wrote one.
+    els.description.textContent = meta.description ?? '';
 
-    // Dates. Short month names ('ll' / 'MMM', locale-aware) keep the meta chips on one line (#4572).
-    els.timestamp.textContent = moment(new Date(meta.timestamp)).format('ll, LT');
+    // Dates. Short month names ('ll' / 'MMM', locale-aware) keep the meta chips on one line (#4572). The clock
+    // time lives in its own span so #fitMetaRow can drop it first when the row gets cramped.
+    const labeled = moment(new Date(meta.timestamp));
+    els.timestamp.textContent = labeled.format('ll');
+    const timePart = document.createElement('span');
+    timePart.className = 'label-detail__timestamp-time';
+    timePart.textContent = `, ${labeled.format('LT')}`;
+    els.timestamp.appendChild(timePart);
     els.imageDate.textContent = moment(new Date(meta.image_capture_date)).format('MMM YYYY');
 
     // Address (#4489): seed from the stored pano address; the setPano() callback above upgrades to the live
@@ -598,14 +609,16 @@ class LabelDetail {
       if (!wasOpen && focusOnReveal) els.commentInput.focus();
     }
 
-    // The whole desc/comments zone collapses when it would show nothing but empty states: no description, no
-    // comments, and no comment box to type into.
-    if (els.descComments) {
-      const desc = this.#currentLabelMeta?.description;
-      const hasDescription = desc !== null && desc !== undefined;
-      const hasComments = this.#comments && this.#comments.length > 0;
-      els.descComments.hidden = !hasDescription && !hasComments && !show;
-    }
+    // Show each half of the zone only when it has something to say: the labeler's description when one was
+    // written, the validator comments when any exist or the comment box is open. An empty heading over nothing
+    // is wasted space (#4572, Mikey review). The whole zone (and its single divider) collapses when neither half
+    // would show.
+    const desc = this.#currentLabelMeta?.description;
+    const hasDescription = desc !== null && desc !== undefined && String(desc).trim() !== '';
+    const hasComments = this.#comments && this.#comments.length > 0;
+    if (els.descriptionSection) els.descriptionSection.hidden = !hasDescription;
+    if (els.commentsSection) els.commentsSection.hidden = !hasComments && !show;
+    if (els.descComments) els.descComments.hidden = !hasDescription && !hasComments && !show;
   }
 
   // ───────────────────────────────────────────────────────────────────
@@ -710,6 +723,7 @@ class LabelDetail {
     for (const action of Object.keys(this.#els.voteCounts)) {
       this.#els.voteCounts[action].textContent = this.#validationCounts[action] ?? 0;
     }
+    this.#renderVoteTooltips(); // Counts are part of the tooltip text, so refresh them together.
   }
 
   /**
@@ -761,36 +775,30 @@ class LabelDetail {
   }
 
   /**
-   * Toggles the disabled state + tooltip on interactive elements based on the current lock reasons. The viewer's
-   * own label and no-imagery both disable validating/commenting; own-label wins the tooltip since it's the more
-   * specific reason to surface.
+   * The reason validating/commenting is blocked for the current label, or null when it's allowed. The viewer's
+   * own label wins over no-imagery since it's the more specific reason to surface.
+   * @returns {?string}
+   */
+  #lockReason() {
+    if (this.#readonly) return i18next.t('labelmap:own-label-disabled');
+    if (this.#noImagery) return i18next.t('labelmap:no-imagery-disabled');
+    return null;
+  }
+
+  /**
+   * Toggles the disabled state + tooltip on interactive elements based on the current lock reasons. Vote-control
+   * tooltips are built by #renderVoteTooltips (they also depend on counts/AI, which change independently of the
+   * lock); this just refreshes them and drives the disabled state + comment-box tooltips.
    */
   #applyInteractionLock() {
     const els = this.#els;
     const locked = this.#locked;
     this.#root.classList.toggle('label-detail--readonly', locked);
-    const tip = this.#readonly
-      ? i18next.t('labelmap:own-label-disabled')
-      : this.#noImagery ? i18next.t('labelmap:no-imagery-disabled') : '';
+    const tip = this.#lockReason() ?? '';
 
-    // When unlocked, each vote control explains what its count means; when locked, the lock reason wins.
-    const voteTips = {
-      Agree: i18next.t('labelmap:agree-tooltip'),
-      Disagree: i18next.t('labelmap:disagree-tooltip'),
-      Unsure: i18next.t('labelmap:unsure-tooltip'),
-    };
-
-    // Pano overlay buttons.
-    for (const [action, btn] of Object.entries(els.panoOverlayButtons)) {
-      btn.disabled = locked;
-      btn.title = locked ? tip : voteTips[action];
-    }
-
-    // Validation column buttons.
-    for (const [action, btn] of Object.entries(els.voteButtons)) {
-      btn.disabled = locked;
-      btn.title = locked ? tip : voteTips[action];
-    }
+    this.#renderVoteTooltips();
+    for (const btn of Object.values(els.panoOverlayButtons)) btn.disabled = locked;
+    for (const btn of Object.values(els.voteButtons)) btn.disabled = locked;
 
     // Comment input and submit button.
     els.commentInput.disabled = locked;
@@ -801,20 +809,41 @@ class LabelDetail {
   }
 
   /**
+   * Sets one unified tooltip on each vote control (pano overlay button + column button) so hovering anywhere on
+   * it — icon, count, or word — reads the same thing: what clicking does, how many validators have already voted
+   * that way, and whether our AI's vote is among them (#4572, Mikey review). When the label is locked, the lock
+   * reason wins instead.
+   */
+  #renderVoteTooltips() {
+    const els = this.#els;
+    const lockTip = this.#lockReason();
+    for (const action of Object.keys(els.voteButtons)) {
+      let title;
+      if (lockTip) {
+        title = lockTip;
+      } else {
+        const count = this.#validationCounts[action] ?? 0;
+        title = i18next.t(`labelmap:vote-tooltip-${action.toLowerCase()}`, { count });
+        // The AI's vote is folded into this option's count, so flag it where it applies.
+        if (this.#aiValidation === action) title += ` ${i18next.t('labelmap:vote-tooltip-ai-included')}`;
+      }
+      els.voteButtons[action].title = title;
+      els.panoOverlayButtons[action].title = title;
+    }
+  }
+
+  /**
    * Updates the three column icons to the right variant based on the user's current vote and the AI validation:
    *   - filled when the user voted this option, otherwise outline
    *   - `-ai` suffix when the AI validated this option
+   * The icon carries no title of its own; hovering it falls through to the vote button's unified tooltip
+   * (#renderVoteTooltips), so the icon and the button never show two competing explanations.
    */
   #renderVoteIcons() {
     for (const [action, img] of Object.entries(this.#els.voteIcons)) {
       const state = this.#prevAction === action ? 'filled' : 'outline';
       const ai = this.#aiValidation === action ? '-ai' : '';
       img.src = `${this.#iconBase}${action.toLowerCase()}-${state}${ai}.svg`;
-      if (this.#aiValidation === action) {
-        img.title = i18next.t('labelmap:ai-val-included', { aiVal: action.toLowerCase() });
-      } else {
-        img.removeAttribute('title');
-      }
     }
   }
 
@@ -865,6 +894,25 @@ class LabelDetail {
       els.address.removeAttribute('rel');
       els.address.title = address || ''; // Native tooltip reveals the full address when the strip ellipsizes it.
     }
+    this.#fitMetaRow(); // The address is the row's widest, most variable cell, so re-fit whenever it changes.
+  }
+
+  /**
+   * Keeps the meta strip on a single line (#4572, Mikey review). CSS makes the address the row's only shrinkable
+   * cell, so it ellipsizes rather than letting the row wrap. When that clipping kicks in, hand the address more
+   * room by dropping the least useful bits in order: first the clock time, then the "Details" word (the ⓘ and its
+   * aria-label remain). Idempotent — it resets to the roomiest state before measuring, so it's safe to re-run on
+   * every address change and on card resize.
+   */
+  #fitMetaRow() {
+    const els = this.#els;
+    if (!els.metaRow || !els.addressCell) return;
+    els.metaRow.classList.remove('label-detail__meta-row--no-time', 'label-detail__meta-row--compact-details');
+    if (els.addressCell.hidden) return; // No address competing for the row → nothing to trim.
+    // +1 absorbs sub-pixel rounding so a flush-fitting address doesn't flap the classes on and off.
+    const addressClipped = () => els.address.scrollWidth > els.address.clientWidth + 1;
+    if (addressClipped()) els.metaRow.classList.add('label-detail__meta-row--no-time');
+    if (addressClipped()) els.metaRow.classList.add('label-detail__meta-row--compact-details');
   }
 
   /**

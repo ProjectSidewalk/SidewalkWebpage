@@ -344,10 +344,11 @@ dialog.label-detail[open]::backdrop {
 /* ─── Metadata strip (labeled / image date / address / details, #4572) ── */
 
 /* One quiet caption line of facts under the pano, clustered left with even gaps; Details sits alone at the
-   right edge (spreading the facts edge-to-edge read awkwardly at wide card widths). */
+   right edge (spreading the facts edge-to-edge read awkwardly at wide card widths). nowrap: the row never breaks
+   to a second line — the address (the sole shrinkable cell below) ellipsizes instead (#4572, Mikey #4). */
 .label-detail__meta-row {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 6px 14px;
   margin-bottom: 16px;
@@ -358,6 +359,7 @@ dialog.label-detail[open]::backdrop {
   align-items: center;
   gap: 5px;
   min-width: 0;
+  flex-shrink: 0; /* Fixed facts hold their size; only the address cell below opts back into shrinking. */
   font: var(--text-caption-medium);
   color: var(--color-neutral-700);
 }
@@ -377,9 +379,13 @@ dialog.label-detail[open]::backdrop {
   color: var(--color-neutral-900);
 }
 
-/* The width cap makes an extreme address ellipsize instead of line-wrapping the row: with flex-wrap, line
-   breaks are decided from the item's natural width, so without a cap a long address pushes Details down. */
-.label-detail__meta-cell--address { max-width: 45%; }
+/* The address is the row's only shrinkable cell: it absorbs all the tightening and ellipsizes, so the fixed
+   facts and the Details action stay put on one line. #fitMetaRow drops the timestamp's clock time, then the
+   "Details" word, when the address is being clipped — handing it more room before it shortens too far. */
+.label-detail__meta-cell--address { flex-shrink: 1; }
+
+.label-detail__meta-row--no-time .label-detail__timestamp-time { display: none; }
+.label-detail__meta-row--compact-details .label-detail__meta-cell--details > span:first-child { display: none; }
 
 /* Addresses can be long; ellipsize instead of widening the row. */
 .label-detail__address {
@@ -585,7 +591,9 @@ button.label-detail__meta-cell:focus-visible {
   outline: none;
   border-color: var(--color-link-100);
 }
-.label-detail__comment-input::placeholder { color: var(--color-neutral-600); }
+
+/* neutral-700 (not -600) so the placeholder clears WCAG AA (4.5:1) on the white input. */
+.label-detail__comment-input::placeholder { color: var(--color-neutral-700); }
 
 .label-detail__comment-submit {
   box-sizing: border-box;
@@ -597,7 +605,10 @@ button.label-detail__meta-cell:focus-visible {
   border: none;
   border-radius: 999px;
   background: var(--color-neutral-200);
-  color: var(--color-neutral-600);
+
+  /* neutral-800 (not -600): the button is clickable even in this resting state, so its label must clear WCAG AA
+     (4.5:1) on the neutral-200 fill. The green .is-active state still reads as the clear "ready to send" change. */
+  color: var(--color-neutral-800);
   font: var(--text-caption-semibold);
   cursor: pointer;
   transition: background-color 120ms ease, color 120ms ease;

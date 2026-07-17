@@ -60,8 +60,10 @@
   </div>
   @* Details control (#4572): "Details:" label + the (i) value mirrors the strip's "label: value" pattern.
      PanoInfoPopover appends its (i) trigger into the host span; LabelDetail forwards clicks on the rest of the
-     button to it so label + icon are one hit target. *@
-  <button type="button" class="label-detail__meta-cell label-detail__meta-cell--details">
+     button to it so label + icon are one hit target. The aria-label names the button even when #fitMetaRow hides
+     the visible "Details:" text on a cramped row. *@
+  <button type="button" class="label-detail__meta-cell label-detail__meta-cell--details"
+          data-i18n-aria-label="common:pano-info.details-title" aria-label="Details">
     <span><span data-i18n="common:pano-info.details-title">Details</span>:</span>
     <span class="label-detail__info-button-host"></span>
   </button>
