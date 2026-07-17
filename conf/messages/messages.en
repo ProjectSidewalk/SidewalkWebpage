@@ -225,7 +225,7 @@ audit.survey.feedback.question = Do you have any feedback, design ideas, or ques
 
 validate.comment.placeholder = Add optional comment
 validate.why.not = Why not?
-validate.why.unsure = Why 'Unsure'?
+validate.why.unsure = Why ''Unsure''?
 validate.add.own.reason = Or add your own reason
 validate.skip.reason = Skip reason
 validate.suggestions = Suggestions
