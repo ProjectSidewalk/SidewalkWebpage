@@ -277,12 +277,12 @@ class StoryComposer {
     els.nameAnon.checked = true;
     els.nameUser.checked = false;
     this.#clearError();
-    // The show-username option only makes sense when we know the account; it interpolates the actual username so
-    // the choice is concrete ("Show my username, jonf").
+    // The show-username option only makes sense when we know the account; its pill carries the actual username so
+    // the choice is concrete and mirrors the anonymous row's shape.
     const userRow = els.nameUser.closest('.story-composer__check-row');
     if (this.#username) {
       userRow.hidden = false;
-      els.usernameOption.textContent = i18next.t('labelmap:story.post-username', { username: this.#username });
+      els.usernameOption.textContent = this.#username;
     } else {
       userRow.hidden = true;
     }

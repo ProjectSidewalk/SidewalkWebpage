@@ -1376,6 +1376,15 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
 
 .story-composer__check-row input { margin-top: 2px; }
 
+/* The identity ("Anonymous" / the username) leads both post-as rows as a pill, so the two options read
+   symmetrically: <pill> — <what shows publicly>. */
+.story-composer__name-pill {
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--color-neutral-100);
+  font-weight: 600;
+}
+
 .story-composer__photo-remove {
   justify-self: start;
   padding: 2px;
