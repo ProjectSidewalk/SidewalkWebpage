@@ -1078,8 +1078,10 @@ button.label-detail__meta-cell:focus-visible {
 }
 
 /* Zero-story CTA in the footer row (the stories section is hidden until a story exists): dressed to match its
-   labelmap-link/share-trigger siblings so the three read as one group. */
+   labelmap-link/share-trigger siblings, but pushed to the left edge so the share-this-page actions keep their own
+   group on the right. */
 .label-detail__story-share--footer {
+  margin-right: auto;
   gap: 6px;
   padding: 5px 12px;
   background: var(--color-neutral-100);
