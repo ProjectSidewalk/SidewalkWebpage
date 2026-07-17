@@ -18,6 +18,7 @@ import scala.concurrent.{ExecutionContext, Future}
 trait RouteService {
   def saveRoute(route: NewRoute, userId: String): Future[(Int, String)]
   def getRoutesForUser(userId: String): Future[Seq[RouteWithStats]]
+  def getRouteStreets(routeId: Int): Future[Option[Seq[RouteStreet]]]
   def renameRoute(routeId: Int, userId: String, newName: String): Future[Boolean]
   def deleteRoute(routeId: Int, userId: String): Future[Boolean]
 }
@@ -54,6 +55,18 @@ class RouteServiceImpl @Inject() (
   }
 
   def getRoutesForUser(userId: String): Future[Seq[RouteWithStats]] = db.run(routeTable.getRoutesForUser(userId))
+
+  /**
+   * Gets a route's ordered street list. No ownership restriction: routes are shareable by id (/explore?routeId=),
+   * so the street list carries no more than the share link already exposes.
+   *
+   * @return None when the route doesn't exist or has been soft-deleted.
+   */
+  def getRouteStreets(routeId: Int): Future[Option[Seq[RouteStreet]]] =
+    db.run(routeTable.getRoute(routeId)).flatMap {
+      case Some(_) => db.run(routeStreetTable.getRouteStreets(routeId)).map(Option(_))
+      case None    => Future.successful(None)
+    }
 
   /**
    * Renames a route owned by the given user.

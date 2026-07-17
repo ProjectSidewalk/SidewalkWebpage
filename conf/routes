@@ -198,6 +198,7 @@ POST    /clusteringResults                              controllers.ClusterContr
 # RouteBuilder
 POST    /saveRoute                                      controllers.RouteBuilderController.saveRoute
 GET     /userapi/routes                                 controllers.RouteBuilderController.getUserRoutes
+GET     /userapi/routes/:routeId/streets                controllers.RouteBuilderController.getRouteStreets(routeId: Int)
 PUT     /userapi/routes/:routeId                        controllers.RouteBuilderController.renameRoute(routeId: Int)
 DELETE  /userapi/routes/:routeId                        controllers.RouteBuilderController.deleteRoute(routeId: Int)
 

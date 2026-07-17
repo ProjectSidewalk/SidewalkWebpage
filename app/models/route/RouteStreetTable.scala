@@ -39,6 +39,13 @@ class RouteStreetTable @Inject() (protected val dbConfigProvider: DatabaseConfig
   }
 
   /**
+   * Gets a route's streets in walking order (the serial route_street_id preserves the insertion sequence).
+   */
+  def getRouteStreets(routeId: Int): DBIO[Seq[RouteStreet]] = {
+    routeStreets.filter(_.routeId === routeId).sortBy(_.routeStreetId).result
+  }
+
+  /**
    * Inserts a sequence of new route_streets, presumably representing a complete route.
    */
   def insertMultiple(newRouteStreets: Seq[RouteStreet]): DBIO[Seq[Int]] = {

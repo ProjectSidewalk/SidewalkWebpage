@@ -70,6 +70,7 @@ class RouteBuilder {
   #hintPopup = null; // The next-step hint anchored at the newest flag (null when not showing).
   #hintTimeout = null; // Auto-hide timer for #hintPopup.
   #cursorGuide = null; // The pointer-following what-a-click-does bubble (created lazily).
+  #previewRouteId = null; // Saved route currently shown as a read-only preview (null when building normally).
 
   // Collaborators.
   #saveModal;
@@ -132,6 +133,7 @@ class RouteBuilder {
       isSignedIn: this.#isSignedIn,
       formatMeta: (distanceMeters, regionName) => this.#formatRouteMeta(distanceMeters, regionName),
       setTemporaryTooltip: (btn, message) => this.#setTemporaryTooltip(btn, message),
+      onView: (routeId) => this.#toggleRoutePreview(routeId),
     });
     this.#savedRoutes.refresh();
 
@@ -277,7 +279,10 @@ class RouteBuilder {
    */
   #updateCta() {
     if (!this.#ctaEl) return;
-    if (!this.#routeStarted()) {
+    if (this.#previewRouteId !== null) {
+      this.#ctaEl.textContent = i18next.t('cta-preview');
+      this.#ctaEl.hidden = false;
+    } else if (!this.#routeStarted()) {
       const key = this.#currRegionId === null ? 'cta-select-region' : 'cta-pick-start';
       this.#ctaEl.innerHTML = `
         <img src="/assets/images/icons/routebuilder/flag-start.svg" class="cta-flag" alt="">
@@ -556,12 +561,14 @@ class RouteBuilder {
     // click); clicking opens it immediately, with keyboard focus.
     let routeHoverTimer = null;
     map.on('mousemove', 'streets-chosen', (event) => {
+      // The menu edits the in-progress route; a previewed/restored saved route (no waypoints) has no menu.
+      if (this.#waypoints.length === 0) return;
       map.getCanvas().style.cursor = 'pointer';
       if (this.#routePopover.isOpen()) return;
       clearTimeout(routeHoverTimer);
       const lngLat = event.lngLat;
       routeHoverTimer = setTimeout(() => {
-        if (this.#routePopover.isOpen() || this.#streetsInRoute.features.length === 0) return;
+        if (this.#routePopover.isOpen() || this.#waypoints.length === 0) return;
         window.logWebpageActivity('RouteBuilder_Hover=RouteMenu_Open');
         this.#routePopover.open(lngLat);
       }, RouteBuilder.ROUTE_MENU_HOVER_MS);
@@ -582,11 +589,16 @@ class RouteBuilder {
     // plants the start. After that, clicks extend the route.
     map.on('click', (event) => {
       const { x, y } = event.point;
-      const onRoute = this.#streetsInRoute && this.#streetsInRoute.features.length > 0
+      const onRoute = this.#waypoints.length > 0
         && map.queryRenderedFeatures([[x - 6, y - 6], [x + 6, y + 6]], { layers: ['streets-chosen'] }).length > 0;
       if (onRoute) {
         window.logWebpageActivity('RouteBuilder_Click=RouteMenu_Open');
         this.#routePopover.open(event.lngLat, true);
+        return;
+      }
+      if (this.#previewRouteId !== null) {
+        window.logWebpageActivity('RouteBuilder_Click=ExitRoutePreview');
+        this.#clearPreview();
         return;
       }
       if (!this.#routeStarted()) {
@@ -647,6 +659,7 @@ class RouteBuilder {
   #updateGhost(hoverRegionId) {
     const source = this.#map.getSource('ghost-start');
     if (!source || this.#currRegionId === null || !this.#routeGraph) return;
+    if (this.#previewRouteId !== null) return; // A previewed route isn't being edited; no placement preview.
     if (this.#routeStarted() && hoverRegionId !== null && hoverRegionId !== this.#currRegionId) {
       this.#clearGhostStart();
       this.#map.getCanvas().style.cursor = 'not-allowed';
@@ -1077,6 +1090,8 @@ class RouteBuilder {
     this.#unlockRegion();
     this.#updateStats();
     this.#saveDraft();
+    this.#previewRouteId = null;
+    this.#savedRoutes.markActive(null);
   }
 
   /** Releases the region selection: back to the choosing stage (all regions washed/outlined, labels visible). */
@@ -1114,9 +1129,29 @@ class RouteBuilder {
       return;
     }
 
+    const features = this.#drawStreetList(pending.streets);
+    if (features.length === 0) return;
+
+    this.#selectRegion(features[0].properties.region_id, false);
+    this.#setPanelState('building');
+    this.#updateEndpointFlags();
+    this.#updateStats();
+    this.#directionsPanel.setEndVisible(true);
+    this.#updateCta();
+    this.#saveModal.open(pending.name || null);
+  }
+
+  /**
+   * Draws a saved street list as the current route geometry: each street is cloned from the loaded street data
+   * and oriented to its walking direction.
+   *
+   * @param {Array<{street_id: number, reverse: boolean}>} streets - Ordered streets in the /saveRoute wire format.
+   * @returns {Array<Object>} The drawn features (empty when none of the ids exist in the loaded street data).
+   */
+  #drawStreetList(streets) {
     const map = this.#map;
     const features = [];
-    pending.streets.forEach((stashed) => {
+    streets.forEach((stashed) => {
       const orig = this.#streetData.features.find((s) => s.properties.street_edge_id === stashed.street_id);
       if (!orig) return;
       const coords = orig.geometry.coordinates.slice();
@@ -1130,17 +1165,51 @@ class RouteBuilder {
       map.setFeatureState({ source: 'streets', id: orig.properties.street_edge_id }, { chosen: true });
       this.#chosenIds.add(orig.properties.street_edge_id);
     });
-    if (features.length === 0) return;
+    if (features.length > 0) {
+      this.#streetsInRoute.features = features;
+      map.getSource('streets-chosen').setData(this.#streetsInRoute);
+    }
+    return features;
+  }
 
-    this.#selectRegion(features[0].properties.region_id, false);
-    this.#streetsInRoute.features = features;
-    map.getSource('streets-chosen').setData(this.#streetsInRoute);
-    this.#setPanelState('building');
-    this.#updateEndpointFlags();
-    this.#updateStats();
-    this.#directionsPanel.setEndVisible(true);
-    this.#updateCta();
-    this.#saveModal.open(pending.name || null);
+  /**
+   * Shows or hides a saved route on the map. Clicking a card previews that route (drawn like a built route with
+   * the camera fit to it, while the panel stays on the saved-routes list); clicking the same card — or anywhere
+   * on the map — exits back to the fresh building flow.
+   *
+   * @param {number} routeId
+   */
+  #toggleRoutePreview(routeId) {
+    if (this.#previewRouteId === routeId) {
+      this.#clearPreview();
+      return;
+    }
+    fetch(`/userapi/routes/${routeId}/streets`, { headers: { Accept: 'application/json' } })
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))))
+      .then((data) => {
+        if (!this.#status.streetsRendered) return;
+        this.#emptyRoute(); // Also exits any previous preview.
+        const features = this.#drawStreetList(data.streets);
+        if (features.length === 0) return;
+        this.#previewRouteId = routeId;
+        this.#selectRegion(features[0].properties.region_id, false);
+        this.#updateEndpointFlags();
+        this.#savedRoutes.markActive(routeId);
+        this.#updateCta();
+        const coords = features.flatMap((f) => f.geometry.coordinates);
+        this.#map.fitBounds(turf.bbox({ type: 'MultiPoint', coordinates: coords }),
+          { padding: 80, maxZoom: 16, duration: 900 });
+      })
+      .catch((e) => {
+        console.error('Failed to load the route for preview:', e);
+        this.#showMapMessage(i18next.t('route-load-error'));
+      });
+  }
+
+  /** Exits the saved-route preview and returns to the fresh building flow. */
+  #clearPreview() {
+    this.#emptyRoute();
+    this.#resetUI();
   }
 
   /**

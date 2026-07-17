@@ -12,6 +12,7 @@ class SavedRoutesPanel {
   #isSignedIn;
   #formatMeta;
   #setTemporaryTooltip;
+  #onView;
   #panel;
   #list;
 
@@ -20,13 +21,26 @@ class SavedRoutesPanel {
    * @param {boolean} opts.isSignedIn - Whether the user is signed in (selects the routes source).
    * @param {Function} opts.formatMeta - (distanceMeters, regionName) => the card's meta line.
    * @param {Function} opts.setTemporaryTooltip - (buttonEl, message) that flashes a confirmation tooltip.
+   * @param {Function} opts.onView - Called with the route id when a card body is clicked (preview on the map).
    */
   constructor(opts) {
     this.#isSignedIn = opts.isSignedIn === true;
     this.#formatMeta = opts.formatMeta;
     this.#setTemporaryTooltip = opts.setTemporaryTooltip;
+    this.#onView = opts.onView;
     this.#panel = document.getElementById('saved-routes-panel');
     this.#list = document.getElementById('saved-routes-list');
+  }
+
+  /**
+   * Marks the card whose route is being previewed on the map (or clears the mark with null).
+   *
+   * @param {number|null} routeId
+   */
+  markActive(routeId) {
+    this.#list?.querySelectorAll('.saved-route-card').forEach((card) => {
+      card.classList.toggle('saved-route-card--active', Number(card.dataset.routeId) === routeId);
+    });
   }
 
   /**
@@ -98,9 +112,13 @@ class SavedRoutesPanel {
     if (sorted.length === 0) return;
 
     this.#list.innerHTML = sorted.map((route) => `
-      <li class="saved-route-card${route.routeId === highlightRouteId ? ' saved-route-card--new' : ''}">
-        <span class="saved-route-name"></span>
-        <span class="saved-route-meta"></span>
+      <li class="saved-route-card${route.routeId === highlightRouteId ? ' saved-route-card--new' : ''}"
+          data-route-id="${route.routeId}">
+        <button type="button" class="saved-route-view" data-route-id="${route.routeId}"
+                title="${i18next.t('saved-view-title')}">
+          <span class="saved-route-name"></span>
+          <span class="saved-route-meta"></span>
+        </button>
         <div class="saved-route-actions">
           <a class="button-ps button--primary button--tiny saved-route-explore" href="/explore?routeId=${route.routeId}"
              data-route-id="${route.routeId}">${i18next.t('saved-explore')}</a>
@@ -118,6 +136,12 @@ class SavedRoutesPanel {
         : (route.regionName ?? '');
     });
 
+    this.#list.querySelectorAll('.saved-route-view').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        window.logWebpageActivity(`RouteBuilder_Click=SavedRoute_View_RouteId=${btn.dataset.routeId}`);
+        this.#onView(Number(btn.dataset.routeId));
+      });
+    });
     this.#list.querySelectorAll('.saved-route-explore').forEach((link) => {
       link.addEventListener('click', () => {
         window.logWebpageActivity(`RouteBuilder_Click=SavedRoute_Explore_RouteId=${link.dataset.routeId}`);

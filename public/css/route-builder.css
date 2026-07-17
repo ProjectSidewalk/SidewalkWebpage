@@ -354,6 +354,30 @@
   background: var(--color-pine-100);
 }
 
+/* The card whose route is being previewed on the map. */
+.saved-route-card--active {
+  border-color: var(--color-link-100);
+  box-shadow: 0 0 0 1px var(--color-link-100);
+}
+
+/* The card body is a button: clicking it previews the route on the map. */
+.saved-route-view {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.saved-route-view:hover .saved-route-name,
+.saved-route-view:focus-visible .saved-route-name {
+  color: var(--color-link-200);
+}
+
 .saved-route-name {
   font: var(--text-small-bold);
   overflow: hidden;

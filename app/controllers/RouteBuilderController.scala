@@ -53,6 +53,25 @@ class RouteBuilderController @Inject() (cc: CustomControllerComponents, routeSer
   }
 
   /**
+   * Returns a route's ordered street list, matching the POST /saveRoute wire format, so the client can draw the
+   * route from its local street GeoJSON. No ownership check — routes are shareable by id (/explore?routeId=).
+   *
+   * @param routeId ID of the route; 404 if it doesn't exist or has been deleted.
+   */
+  def getRouteStreets(routeId: Int) = cc.securityService.SecuredAction { _ =>
+    routeService.getRouteStreets(routeId).map {
+      case Some(streets) =>
+        Ok(
+          Json.obj(
+            "route_id" -> routeId,
+            "streets"  -> streets.map(s => Json.obj("street_id" -> s.streetEdgeId, "reverse" -> s.reverse))
+          )
+        )
+      case None => NotFound(Json.obj("status" -> "Error", "message" -> "Route not found"))
+    }
+  }
+
+  /**
    * Renames a route owned by the requesting user. Body: {"name": "..."}.
    *
    * @param routeId ID of the route to rename; 404 if it doesn't exist or isn't owned by the requesting user.
