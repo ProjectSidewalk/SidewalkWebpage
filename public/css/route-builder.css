@@ -477,12 +477,12 @@ a.saved-route-explore {
   display: none; /* It follows the cursor, so an anchor tip would just jitter. */
 }
 
-/* Always-visible map legend: top-right, beside (left of) the zoom/compass controls. Compact card matching the
-   planner chrome. */
+/* Always-visible map legend: bottom-right, aligned with the zoom/compass controls' right edge and clear of the
+   OSM/Mapbox attribution strip along the map's bottom. Compact card matching the planner chrome. */
 #routebuilder-legend {
   position: absolute;
-  top: 16px;
-  right: 66px;
+  bottom: 40px;
+  right: 10px;
   z-index: 10;
   width: 190px;
   padding: 12px 16px;

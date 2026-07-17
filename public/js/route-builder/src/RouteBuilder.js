@@ -168,12 +168,21 @@ class RouteBuilder {
     this.#map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
     this.#map.on('load', () => {
       // If the streets and/or neighborhoods loaded before the map, render them now that the map has loaded.
+      // Each render is isolated so a failure in one can't silently block the other from ever wiring up.
       this.#status.mapLoaded = true;
       if (this.#status.neighborhoodsLoaded) {
-        this.#renderNeighborhoodsHelper();
+        try {
+          this.#renderNeighborhoodsHelper();
+        } catch (e) {
+          console.error('Failed to render neighborhoods:', e);
+        }
       }
       if (this.#status.streetsLoaded) {
-        this.#renderStreetsHelper();
+        try {
+          this.#renderStreetsHelper();
+        } catch (e) {
+          console.error('Failed to render streets:', e);
+        }
       }
     });
 
@@ -314,6 +323,11 @@ class RouteBuilder {
    */
   #renderNeighborhoodsHelper() {
     const map = this.#map;
+    // Precompute each region's tint as a property — plain data beats a computed style expression here.
+    this.#neighborhoodData.features.forEach((feature) => {
+      const colors = RouteBuilder.NEIGHBORHOOD_FILL_COLORS;
+      feature.properties.fill_color = colors[Math.abs(feature.properties.region_id) % colors.length];
+    });
     map.addSource('neighborhoods', {
       type: 'geojson',
       data: this.#neighborhoodData,
@@ -324,9 +338,7 @@ class RouteBuilder {
       type: 'fill',
       source: 'neighborhoods',
       paint: {
-        // Tint per region (DS pine/banana/orange/asphalt/obstacle-blue; map paint can't read CSS tokens).
-        'fill-color': ['at', ['%', ['get', 'region_id'], RouteBuilder.NEIGHBORHOOD_FILL_COLORS.length],
-          ['literal', RouteBuilder.NEIGHBORHOOD_FILL_COLORS]],
+        'fill-color': ['get', 'fill_color'],
         'fill-opacity': RouteBuilder.NEIGHBORHOOD_PAINT_CHOOSING.fillOpacity,
       },
     });
@@ -1163,14 +1175,26 @@ class RouteBuilder {
     if (!draft || !Array.isArray(draft.waypoints) || draft.waypoints.length === 0) return;
     if (draft.regionId === null || draft.regionId === undefined) return;
 
-    this.#selectRegion(draft.regionId, false);
-    this.#waypoints = draft.waypoints;
-    this.#setPanelState('building');
-    this.#recompute();
-    const coords = this.#streetsInRoute.features.flatMap((f) => f.geometry.coordinates);
-    const points = coords.length > 0 ? coords : this.#waypoints.map((wp) => [wp.lng, wp.lat]);
-    this.#map.fitBounds(turf.bbox({ type: 'MultiPoint', coordinates: points }),
-      { padding: 80, maxZoom: 16, duration: 800 });
+    // A draft must never be able to break page init — on any failure, drop it and start fresh.
+    try {
+      this.#selectRegion(draft.regionId, false);
+      this.#waypoints = draft.waypoints;
+      this.#setPanelState('building');
+      this.#recompute();
+      const coords = this.#streetsInRoute.features.flatMap((f) => f.geometry.coordinates);
+      const points = coords.length > 0 ? coords : this.#waypoints.map((wp) => [wp.lng, wp.lat]);
+      this.#map.fitBounds(turf.bbox({ type: 'MultiPoint', coordinates: points }),
+        { padding: 80, maxZoom: 16, duration: 800 });
+    } catch (e) {
+      console.error('Failed to restore the route draft:', e);
+      try {
+        sessionStorage.removeItem(RouteBuilder.DRAFT_KEY);
+      } catch {
+        // Storage unavailable; nothing further to clean up.
+      }
+      this.#emptyRoute();
+      this.#resetUI();
+    }
   }
 
   /** Shows the delete-route confirmation modal. */
