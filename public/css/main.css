@@ -1079,9 +1079,14 @@ kbd {
     margin-top: 1px;
   }
 
-  /* Actions drop to their own row: pill anchored left, close anchored right, spanning the full width. */
+  /*
+   * Actions drop to their own full-width row: indent the pill to the message's text column (icon width + row gap)
+   * so it lines up under the text rather than the icon, while the close stays anchored at the right edge.
+   */
   .test-server-banner-actions {
+    box-sizing: border-box;
     width: 100%;
+    padding-inline-start: 30px;
     justify-content: space-between;
   }
 
