@@ -354,8 +354,9 @@ a {
 
 #header {
   position: fixed;
+
   /* Drops below the test-server banner when present; --test-banner-height is 0 otherwise (and on prod). */
-  top: var(--test-banner-height, 0px);
+  top: var(--test-banner-height, 0);
   right: 0;
   left: 0;
   z-index: var(--navbar-z-index);
@@ -961,7 +962,10 @@ kbd {
   display: flex;
   align-items: center;
   gap: 12px;
-  max-width: 1120px;
+
+  /* Wide cap so the single-line notice + a long deployment URL fits on one row on typical laptops; it still wraps
+     gracefully on narrow viewports. */
+  max-width: 1600px;
   margin: 0 auto;
   padding: 10px 20px;
   flex-wrap: wrap;
