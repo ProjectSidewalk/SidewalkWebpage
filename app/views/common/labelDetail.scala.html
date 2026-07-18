@@ -162,13 +162,9 @@
     <summary class="label-detail__stories-summary">
       <span class="label-detail__stories-heading" data-i18n="labelmap:story.heading">Community stories</span>
       <span class="label-detail__stories-count" hidden></span>
-      @* Pill CTA (Variant B treatment on the C.2 disclosure, per Yochai). The pen icon is decorative. *@
+      @* Pill CTA (Variant B treatment on the C.2 disclosure, per Yochai). The bubble icon is decorative. *@
       <button type="button" class="label-detail__story-share">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"
-             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12 20h9"/>
-          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-        </svg>
+        <img src='@assets.path("images/icons/message-circle-feather.svg")' alt="">
         <span data-i18n="labelmap:story.share-yours">Share your story</span>
       </button>
       <span class="label-detail__stories-arrow" aria-hidden="true">&#9662;</span>
@@ -184,11 +180,7 @@
 <div class="label-detail__footer">
   @* Zero-story share CTA (#4054): swaps in for the stories section when the label has no stories yet. *@
   <button type="button" class="label-detail__story-share label-detail__story-share--footer" hidden>
-    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"
-         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M12 20h9"/>
-      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-    </svg>
+    <img src='@assets.path("images/icons/message-circle-feather.svg")' alt="">
     <span data-i18n="labelmap:story.share-yours">Share your story</span>
   </button>
   @* Cross-surface hop (#4572): hosts other than LabelMap opt in via LabelDetail's showLabelMapLink, which fills

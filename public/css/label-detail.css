@@ -1068,6 +1068,12 @@ button.label-detail__meta-cell:focus-visible {
   transition: background-color 120ms ease;
 }
 
+.label-detail__story-share img {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+
 .label-detail__story-share[hidden] { display: none; }
 
 .label-detail__story-share:hover { background: var(--color-neutral-100); }
