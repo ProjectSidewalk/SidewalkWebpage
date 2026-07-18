@@ -1083,23 +1083,16 @@ button.label-detail__meta-cell:focus-visible {
   outline-offset: 2px;
 }
 
-/* Zero-story CTA in the footer row (the stories section is hidden until a story exists): dressed to match its
-   labelmap-link/share-trigger siblings, but pushed to the left edge so the share-this-page actions keep their own
+/* Zero-story CTA in the footer row (the stories section is hidden until a story exists): sized like its
+   labelmap-link/share-trigger siblings but keeping the base pill's white-and-outline look, so the primary invitation
+   stands apart from the gray utility buttons; pushed to the left edge so the share-this-page actions keep their own
    group on the right. */
 .label-detail__story-share--footer {
   margin-right: auto;
   gap: 6px;
   padding: 5px 12px;
-  background: var(--color-neutral-100);
-  color: var(--color-neutral-800);
-  border: 1px solid var(--color-neutral-300);
   border-radius: 18px;
   font: var(--text-small-medium);
-}
-
-.label-detail__story-share--footer:hover {
-  background: var(--color-neutral-200);
-  border-color: var(--color-neutral-400);
 }
 
 .label-detail__stories-arrow {
