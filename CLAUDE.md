@@ -367,6 +367,27 @@ make ssh target=db  # exec into a running container (projectsidewalk-db / -web)
 
 Inside the web container shell, the developer starts the app with `npm start` (runs Grunt concat + watch in the background, then `sbt run` — i.e. `sbt ~ run`, continuous recompile; `npm run debug` adds a JVM debug port). It serves on **http://localhost:9000** using `conf/application.local.conf`. First compile is slow (sbt resolves dependencies); sbt keeps its caches inside the project dir (`.coursier`, `.sbt`).
 
+### Running a worktree's app for QA
+
+To QA an uncommitted branch that lives in a git **worktree** (`.claude/worktrees/<name>`) rather than the main repo,
+run **`make qa-worktree wt=<name>`** (the same on Mac, Linux, and WSL — all the setup runs inside the web container).
+It handles what the plain `npm start` flow doesn't for a worktree: symlink the main repo's `node_modules` (gitignored,
+so absent in worktrees), build that branch's JS/CSS bundles (also gitignored/absent — without them every page 404s its
+assets), free `:9000`, kill any stray `sbt --client` server sharing the worktree's `target/` (it deadlocks `~ run` on
+compile locks), and launch `sbt ~ run` with `-Dconfig.file` at the worktree's own conf and the sbt caches pointed at the
+main repo's warm `.coursier`/`.sbt` (cwd-relative caches from a worktree would re-download gigabytes). The first HTTP
+request triggers the dev compile; Ctrl-C stops it. Implementation: `tools/qa-worktree.sh`.
+
+**Admin-authenticated QA:** the seeded `Administrator` accounts' production password hashes don't work locally, so sign
+up a fresh account (two-step CSRF `POST /signUp`) and promote it via a local DB write — role is resolved per-request, so
+an existing session cookie gains access without re-login:
+
+```sql
+UPDATE sidewalk_login.user_role
+SET role_id = (SELECT role_id FROM sidewalk_login.role WHERE role = 'Owner')
+WHERE user_id = (SELECT user_id FROM sidewalk_login.sidewalk_user WHERE username = '<user>');
+```
+
 ### Verifying backend (Scala) changes compile
 
 For a quick pass/fail without running tests, validate backend changes by compiling. The clean way is the **sbt thin client**, which runs against its own dedicated server and so does *not* fight the developer's running `sbt ~ run` (a plain second `sbt compile` collides with it over build/target locks and hangs):
