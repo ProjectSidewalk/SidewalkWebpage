@@ -51,10 +51,8 @@ POST    /cspReport                                      controllers.SecurityPoli
 GET     /cityMapParams                                  controllers.ConfigController.getCityMapParams()
 
 # Admin
-# Redesigned admin dashboard (#4272) is now the default /admin. The legacy monolith is kept reachable at /admin/classic
-# for one release (linked as "Classic Admin" in the dashboard sidebar) before it is removed.
+# Admin dashboard (redesign #4272).
 GET     /admin                                          controllers.AdminDashboardController.overview
-GET     /admin/classic                                  controllers.AdminController.index
 GET     /admin/overview                                 controllers.AdminDashboardController.overview
 GET     /admin/coverage                                 controllers.AdminDashboardController.coverage
 GET     /admin/street-status                             controllers.AdminDashboardController.streetStatus
@@ -72,34 +70,22 @@ GET     /admin/task/:taskId                             controllers.AdminControl
 GET     /admin/label/:labelId                           controllers.AdminController.label(labelId: Int)
 
 GET     /adminapi/neighborhoodCompletionRate            controllers.AdminController.getNeighborhoodCompletionRate(regions: Option[String] ?= None)
-GET     /adminapi/userMissionCounts                     controllers.AdminController.getAllUserCompletedMissionCounts
-GET     /adminapi/allSignInCounts                       controllers.AdminController.getAllUserSignInCounts
-GET     /adminapi/completionRateByDate                  controllers.AdminController.getCompletionRateByDate
 GET     /adminapi/auditpath/:id                         controllers.AdminController.getAnAuditTaskPath(id: Int)
 GET     /adminapi/auditedStreetTimes                    controllers.AdminController.getAuditedStreetsWithTimestamps
 GET     /adminapi/labels/all                            controllers.AdminController.getAllLabels
 GET     /adminapi/labelTags                             controllers.AdminController.getTagCounts
 GET     /adminapi/tagSeverity                            controllers.AdminController.getTagSeverityCounts
 GET     /adminapi/label/id/:labelId                     controllers.AdminController.getAdminLabelData(labelId: Int)
-GET     /adminapi/labelCounts                           controllers.AdminController.getAllUserLabelCounts
 GET     /adminapi/panos                                 controllers.api.LabelApiController.getAllPanoIdsWithLabels
 GET     /adminapi/labels/cvMetadata                     controllers.api.LabelApiController.getAllLabelMetadataForCV(filetype: Option[String], inline: Option[Boolean])
-GET     /adminapi/validationCounts                      controllers.AdminController.getAllUserValidationCounts
 PUT     /adminapi/clearPlayCache                        controllers.AdminController.clearPlayCache()
 GET     /adminapi/updateUserStats                       controllers.AdminController.updateUserStats(hoursCutoff: Option[Int])
 GET     /adminapi/updateFunnelStats                     controllers.AdminController.updateFunnelStats
-GET     /adminapi/getCoverageData                       controllers.AdminController.getCoverageData
-GET     /adminapi/getNumUsersContributed                controllers.AdminController.getNumUsersContributed
 GET     /adminapi/getContributionTimeStats              controllers.AdminController.getContributionTimeStats
-GET     /adminapi/getLabelCountStats                    controllers.AdminController.getLabelCountStats
-GET     /adminapi/getValidationCountStats               controllers.AdminController.getValidationCountStats
-GET     /adminapi/getRecentComments                     controllers.AdminController.getRecentComments
 GET     /adminapi/recentActivity                        controllers.AdminController.getRecentActivity(n: Int ?= 25)
-GET     /adminapi/getRecentLabelMetadata                controllers.AdminController.getRecentLabelMetadata
 GET     /adminapi/getUserStats                          controllers.AdminController.getUserStats
 GET     /adminapi/contributorLeaderboards               controllers.AdminController.getContributorLeaderboards(n: Int ?= 15)
 GET     /adminapi/funnels                               controllers.AdminController.getCurrentCityFunnels(window: Option[String])
-GET     /adminapi/apiAnalytics                          controllers.AdminController.getApiAnalytics(excludeApiDocs: Boolean ?= true, days: Int ?= 30)
 GET     /adminapi/apiAnalyticsBySource                  controllers.AdminController.getApiAnalyticsBySource(days: Int ?= 30)
 GET     /adminapi/activityByDay                          controllers.AdminController.getActivityByDay
 GET     /adminapi/humanVsAi                              controllers.AdminController.getHumanVsAiStats

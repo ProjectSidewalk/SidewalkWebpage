@@ -240,29 +240,10 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   }
 
   /**
-   * Select mission counts by user.
-   * @return DBIO[Seq[(user_id, role, count)]]
-   */
-  def selectMissionCountsPerUser: DBIO[Seq[(String, String, Int)]] = {
-    val userMissions = for {
-      _user        <- users
-      _userRole    <- userRoles if _user.userId === _userRole.userId
-      _role        <- roles if _userRole.roleId === _role.roleId
-      _mission     <- missions if _user.userId === _mission.userId
-      _missionType <- missionTypes if _mission.missionTypeId === _missionType.missionTypeId
-      if _missionType.missionType =!= "auditOnboarding"
-    } yield (_user.userId, _role.role, _mission.missionId)
-
-    // Count missions per user by grouping by (user_id, role).
-    userMissions.groupBy(m => (m._1, m._2)).map { case ((uId, role), group) => (uId, role, group.length) }.result
-  }
-
-  /**
    * Daily count of completed real missions, bucketed by `mission_end`.
    *
    * Counts only completed, non-skipped missions and excludes both onboarding tutorial types (they aren't real
-   * contribution activity). This is a stricter filter than `selectMissionCountsPerUser`, which excludes only
-   * `auditOnboarding`.
+   * contribution activity).
    *
    * @return DBIO[Seq[(day, count)]] — `day` is `mission_end` truncated to the day; sorted ascending.
    */

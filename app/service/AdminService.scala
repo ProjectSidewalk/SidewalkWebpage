@@ -1,7 +1,6 @@
 package service
 
 import com.google.inject.ImplementedBy
-import executors.CpuIntensiveExecutionContext
 import models.audit._
 import models.label.{LabelAiAssessmentTable, LabelCount, LabelTable, TagCount}
 import models.mission.{MissionTable, RegionalMission}
@@ -11,11 +10,8 @@ import models.street.StreetEdgeTable
 import models.user._
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.{
-  ApiDailyCount,
   ApiDailySourceCount,
-  ApiEndpointCount,
   ApiEndpointSourceCount,
-  ApiFormatCount,
   ApiFormatSourceCount,
   ApiSourceIpCount,
   FunnelStat,
@@ -25,7 +21,6 @@ import models.utils.{
 }
 import models.validation.{LabelValidationTable, ValidationCount, ValidationOption, ValidationTaskCommentTable}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import service.TimeInterval.TimeInterval
 import slick.dbio.DBIO
 
 import java.time.{LocalDate, OffsetDateTime}
@@ -38,20 +33,6 @@ object TimeInterval extends Enumeration {
   val Week    = Value("week")
   val Today   = Value("today")
 }
-
-case class StreetCountsData(
-    total: Int,
-    audited: Map[String, Int],
-    auditedHighQualityOnly: Map[String, Int],
-    withOverlap: Map[TimeInterval, Int]
-)
-case class StreetDistanceData(
-    total: Double,
-    audited: Map[String, Double],
-    auditedHighQualityOnly: Map[String, Double],
-    withOverlap: Map[TimeInterval, Double]
-)
-case class CoverageData(streetCounts: StreetCountsData, streetDistance: StreetDistanceData)
 
 /** Source-split v3 API usage, assembled for the admin API Analytics page. */
 case class ApiAnalyticsBySourceData(
@@ -289,25 +270,17 @@ private case class OverviewCore(
 trait AdminService {
   def updateTeamVisibility(teamId: Int, visible: Boolean): Future[Int]
   def updateTeamStatus(teamId: Int, open: Boolean): Future[Int]
-  def getValidationCountsByUser: Future[Seq[(String, (String, Int, Int))]]
-  def selectMissionCountsPerUser: Future[Seq[(String, String, Int)]]
-  def getLabelCountsByUser: Future[Seq[(String, String, Int)]]
   def getAuditCountsByDate: Future[Seq[(OffsetDateTime, Int)]]
   def getLabelCountsByDate: Future[Seq[(OffsetDateTime, Int)]]
   def getValidationCountsByDate: Future[Seq[(OffsetDateTime, Int)]]
   def getActivityByDay: Future[Seq[ActivityDayRecord]]
   def getTagCounts: Future[Seq[TagCount]]
   def getTagSeverityCounts: Future[Seq[TagSeverityCount]]
-  def getSignInCounts: Future[Seq[(String, String, Int)]]
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]]
   def findAuditTask(taskId: Int): Future[Option[AuditTask]]
   def getAuditInteractionsWithLabels(auditTaskId: Int): Future[Seq[InteractionWithLabel]]
   def getAdminUserProfileData(userId: String): Future[AdminUserProfileData]
-  def getCoverageData: Future[CoverageData]
-  def getNumUsersContributed: Future[Seq[UserCount]]
   def getContributionTimeStats: Future[Seq[ContributionTimeStat]]
-  def getLabelCountStats: Future[Seq[LabelCount]]
-  def getValidationCountStats: Future[Seq[ValidationCount]]
   def getRecentExploreAndValidateComments: Future[Seq[GenericComment]]
   def getRecentActivity(n: Int): Future[Seq[RecentActivityItem]]
   def getLabelThumbnailMeta(labelIds: Seq[Int]): Future[Map[Int, LabelThumbnailMeta]]
@@ -316,7 +289,6 @@ trait AdminService {
   def getHumanVsAiStats: Future[HumanVsAiStats]
   def getOverviewSummary: Future[OverviewSummary]
   def getUserStatsForAdminPage: Future[Seq[UserStatsForAdminPage]]
-  def streetDistanceCompletionRateByDate: Future[Seq[(OffsetDateTime, Double)]]
   def updateUserStatTable(cutoffTime: OffsetDateTime): Future[Int]
 
   /**
@@ -328,10 +300,6 @@ trait AdminService {
    * @return The number of rows written to `funnel_stat`.
    */
   def updateFunnelStatTable(): Future[Int]
-  def getApiAnalytics(
-      excludeApiDocs: Boolean,
-      days: Int
-  ): Future[(Seq[ApiEndpointCount], Seq[ApiDailyCount], Long, Seq[ApiFormatCount])]
   def getApiAnalyticsBySource(days: Int): Future[ApiAnalyticsBySourceData]
 }
 
@@ -356,8 +324,7 @@ class AdminServiceImpl @Inject() (
     teamTable: TeamTable,
     funnelStatTable: FunnelStatTable,
     configService: ConfigService,
-    implicit val ec: ExecutionContext,
-    cpuEc: CpuIntensiveExecutionContext
+    implicit val ec: ExecutionContext
 ) extends AdminService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -366,14 +333,10 @@ class AdminServiceImpl @Inject() (
 
   def updateTeamVisibility(teamId: Int, visible: Boolean): Future[Int] =
     db.run(teamTable.updateVisibility(teamId, visible))
-  def updateTeamStatus(teamId: Int, open: Boolean): Future[Int] = db.run(teamTable.updateStatus(teamId, open))
-  def getValidationCountsByUser: Future[Seq[(String, (String, Int, Int))]] =
-    db.run(labelValidationTable.getValidationCountsByUser)
-  def selectMissionCountsPerUser: Future[Seq[(String, String, Int)]] = db.run(missionTable.selectMissionCountsPerUser)
-  def getLabelCountsByUser: Future[Seq[(String, String, Int)]]       = db.run(labelTable.getLabelCountsByUser)
-  def getAuditCountsByDate: Future[Seq[(OffsetDateTime, Int)]]       = db.run(auditTaskTable.getAuditCountsByDate)
-  def getLabelCountsByDate: Future[Seq[(OffsetDateTime, Int)]]       = db.run(labelTable.getLabelCountsByDate)
-  def getValidationCountsByDate: Future[Seq[(OffsetDateTime, Int)]]  = db.run(labelValidationTable.getValidationsByDate)
+  def updateTeamStatus(teamId: Int, open: Boolean): Future[Int]     = db.run(teamTable.updateStatus(teamId, open))
+  def getAuditCountsByDate: Future[Seq[(OffsetDateTime, Int)]]      = db.run(auditTaskTable.getAuditCountsByDate)
+  def getLabelCountsByDate: Future[Seq[(OffsetDateTime, Int)]]      = db.run(labelTable.getLabelCountsByDate)
+  def getValidationCountsByDate: Future[Seq[(OffsetDateTime, Int)]] = db.run(labelValidationTable.getValidationsByDate)
 
   /**
    * Assembles the unified daily activity time series for the admin Activity page.
@@ -456,7 +419,6 @@ class AdminServiceImpl @Inject() (
         .toSeq
     }
   }
-  def getSignInCounts: Future[Seq[(String, String, Int)]] = db.run(webpageActivityTable.getSignInCounts)
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]] =
     db.run(auditTaskTable.getAuditedStreetsWithTimestamps)
   def findAuditTask(taskId: Int): Future[Option[AuditTask]] = db.run(auditTaskTable.find(taskId))
@@ -486,140 +448,6 @@ class AdminServiceImpl @Inject() (
     })
   }
 
-  def getCoverageData: Future[CoverageData] = {
-    val ALL_ROLES = Seq("All", "Registered", "Anonymous", "Turker", "Researcher")
-    db.run(for {
-      totalStreetCount: Int                <- streetService.getStreetCountDBIO
-      auditedStreetCount: Int              <- streetEdgeTable.countDistinctAuditedStreets()
-      auditedStreetCountHQ: Int            <- streetEdgeTable.countDistinctAuditedStreets(highQualityOnly = true)
-      auditCountByRole: Map[String, Int]   <- streetEdgeTable.countDistinctAuditedStreetsByRole()
-      auditCountByRoleHQ: Map[String, Int] <- streetEdgeTable.countDistinctAuditedStreetsByRole(highQualityOnly = true)
-      auditCountAllTime: Int               <- auditTaskTable.countCompletedAudits()
-      auditCountPastWeek: Int              <- auditTaskTable.countCompletedAudits(TimeInterval.Week)
-      auditCountToday: Int                 <- auditTaskTable.countCompletedAudits(TimeInterval.Today)
-      totalStreetDist: Double              <- streetService.getTotalStreetDistanceDBIO
-      auditedDist: Double                  <- streetEdgeTable.auditedStreetDistance()
-      auditedDistHQ: Double                <- streetEdgeTable.auditedStreetDistance(highQualityOnly = true)
-      auditedDistByRole: Map[String, Double]   <- streetEdgeTable.auditedStreetDistanceByRole()
-      auditedDistByRoleHQ: Map[String, Double] <- streetEdgeTable.auditedStreetDistanceByRole(highQualityOnly = true)
-      auditedDistAllTime: Double               <- streetEdgeTable.auditedStreetDistanceOverTime()
-      auditedDistPastWeek: Double              <- streetEdgeTable.auditedStreetDistanceOverTime(TimeInterval.Week)
-      auditedDistToday: Double                 <- streetEdgeTable.auditedStreetDistanceOverTime(TimeInterval.Today)
-    } yield {
-      // Make sure that each role has a value in all maps, default to 0.
-      val fullAuditCountByRole: Map[String, Int] = ALL_ROLES.map { role =>
-        role -> (if (role == "All") auditedStreetCount else auditCountByRole.getOrElse(role, 0))
-      }.toMap
-      val fullAuditCountByRoleHQ: Map[String, Int] = ALL_ROLES.map { role =>
-        role -> (if (role == "All") auditedStreetCountHQ else auditCountByRoleHQ.getOrElse(role, 0))
-      }.toMap
-      val fullAuditedDistByRole: Map[String, Double] = ALL_ROLES.map { role =>
-        role -> (if (role == "All") auditedDist else auditedDistByRole.getOrElse(role, 0d)) * METERS_TO_MILES
-      }.toMap
-      val fullAuditedDistByRoleHQ: Map[String, Double] = ALL_ROLES.map { role =>
-        role -> (if (role == "All") auditedDistHQ else auditedDistByRoleHQ.getOrElse(role, 0d)) * METERS_TO_MILES
-      }.toMap
-
-      CoverageData(
-        StreetCountsData(
-          totalStreetCount,
-          fullAuditCountByRole,
-          fullAuditCountByRoleHQ,
-          Map(
-            TimeInterval.AllTime -> auditCountAllTime,
-            TimeInterval.Week    -> auditCountPastWeek,
-            TimeInterval.Today   -> auditCountToday
-          )
-        ),
-        StreetDistanceData(
-          totalStreetDist * METERS_TO_MILES,
-          fullAuditedDistByRole,
-          fullAuditedDistByRoleHQ,
-          Map(
-            TimeInterval.AllTime -> auditedDistAllTime * METERS_TO_MILES,
-            TimeInterval.Week    -> auditedDistPastWeek * METERS_TO_MILES,
-            TimeInterval.Today   -> auditedDistToday * METERS_TO_MILES
-          )
-        )
-      )
-    })
-  }
-
-  /**
-   * Gets the number of users who contributed data to Project Sidewalk under various groupings/filters for Admin page.
-   */
-  def getNumUsersContributed: Future[Seq[UserCount]] = {
-    // Start by querying all the data we need from the db in parallel.
-    db.run(
-      DBIO
-        .sequence(
-          Seq(
-            userStatTable.countAllUsersContributed().map(Seq(_)),
-            userStatTable.countAllUsersContributed(taskCompletedOnly = true).map(Seq(_)),
-            userStatTable.countAllUsersContributed(highQualityOnly = true).map(Seq(_)),
-            userStatTable.countAllUsersContributed(taskCompletedOnly = true, highQualityOnly = true).map(Seq(_)),
-            userStatTable.countAllUsersContributed(TimeInterval.Week).map(Seq(_)),
-            userStatTable.countAllUsersContributed(TimeInterval.Week, taskCompletedOnly = true).map(Seq(_)),
-            userStatTable.countAllUsersContributed(TimeInterval.Week, highQualityOnly = true).map(Seq(_)),
-            userStatTable
-              .countAllUsersContributed(TimeInterval.Week, taskCompletedOnly = true, highQualityOnly = true)
-              .map(Seq(_)),
-            userStatTable.countAllUsersContributed(TimeInterval.Today).map(Seq(_)),
-            userStatTable.countAllUsersContributed(TimeInterval.Today, taskCompletedOnly = true).map(Seq(_)),
-            userStatTable.countAllUsersContributed(TimeInterval.Today, highQualityOnly = true).map(Seq(_)),
-            userStatTable
-              .countAllUsersContributed(TimeInterval.Today, taskCompletedOnly = true, highQualityOnly = true)
-              .map(Seq(_)),
-            userStatTable.countExploreUsersContributed(),
-            userStatTable.countExploreUsersContributed(taskCompletedOnly = true),
-            userStatTable.countExploreUsersContributed(TimeInterval.Week),
-            userStatTable.countExploreUsersContributed(TimeInterval.Week, taskCompletedOnly = true),
-            userStatTable.countExploreUsersContributed(TimeInterval.Today),
-            userStatTable.countExploreUsersContributed(TimeInterval.Today, taskCompletedOnly = true),
-            userStatTable.countValidateUsersContributed(),
-            userStatTable.countValidateUsersContributed(labelValidated = true),
-            userStatTable.countValidateUsersContributed(TimeInterval.Week),
-            userStatTable.countValidateUsersContributed(TimeInterval.Week, labelValidated = true),
-            userStatTable.countValidateUsersContributed(TimeInterval.Today),
-            userStatTable.countValidateUsersContributed(TimeInterval.Today, labelValidated = true)
-          )
-        )
-        .map(_.flatten)
-    ).map { userCounts: Seq[UserCount] =>
-      // For separated Explore and Validate users, sum all roles to create entries for "all".
-      val exploreCounts  = userCounts.filter(uc => uc.toolUsed == "explore")
-      val validateCounts = userCounts.filter(uc => uc.toolUsed == "validate")
-      // format: off
-      userCounts ++ Seq(
-        UserCount(exploreCounts.filter(uc => uc.timeInterval == TimeInterval.AllTime && !uc.taskCompletedOnly).map(_.count).sum,
-          "explore", "all", TimeInterval.AllTime, taskCompletedOnly = false, highQualityOnly = false),
-        UserCount(exploreCounts.filter(uc => uc.timeInterval == TimeInterval.AllTime && uc.taskCompletedOnly).map(_.count).sum,
-          "explore", "all", TimeInterval.AllTime, taskCompletedOnly = true, highQualityOnly = false),
-        UserCount(exploreCounts.filter(uc => uc.timeInterval == TimeInterval.Today && !uc.taskCompletedOnly).map(_.count).sum,
-          "explore", "all", TimeInterval.Today, taskCompletedOnly = false, highQualityOnly = false),
-        UserCount(exploreCounts.filter(uc => uc.timeInterval == TimeInterval.Today && uc.taskCompletedOnly).map(_.count).sum,
-          "explore", "all", TimeInterval.Today, taskCompletedOnly = true, highQualityOnly = false),
-        UserCount(exploreCounts.filter(uc => uc.timeInterval == TimeInterval.Week && !uc.taskCompletedOnly).map(_.count).sum,
-          "explore", "all", TimeInterval.Week, taskCompletedOnly = false, highQualityOnly = false),
-        UserCount(exploreCounts.filter(uc => uc.timeInterval == TimeInterval.Week && uc.taskCompletedOnly).map(_.count).sum,
-          "explore", "all", TimeInterval.Week, taskCompletedOnly = true, highQualityOnly = false),
-        UserCount(validateCounts.filter(uc => uc.timeInterval == TimeInterval.AllTime && !uc.taskCompletedOnly).map(_.count).sum,
-          "validate", "all", TimeInterval.AllTime, taskCompletedOnly = false, highQualityOnly = false),
-        UserCount(validateCounts.filter(uc => uc.timeInterval == TimeInterval.AllTime && uc.taskCompletedOnly).map(_.count).sum,
-          "validate", "all", TimeInterval.AllTime, taskCompletedOnly = true, highQualityOnly = false),
-        UserCount(validateCounts.filter(uc => uc.timeInterval == TimeInterval.Today && !uc.taskCompletedOnly).map(_.count).sum,
-          "validate", "all", TimeInterval.Today, taskCompletedOnly = false, highQualityOnly = false),
-        UserCount(validateCounts.filter(uc => uc.timeInterval == TimeInterval.Today && uc.taskCompletedOnly).map(_.count).sum,
-          "validate", "all", TimeInterval.Today, taskCompletedOnly = true, highQualityOnly = false),
-        UserCount(validateCounts.filter(uc => uc.timeInterval == TimeInterval.Week && !uc.taskCompletedOnly).map(_.count).sum,
-          "validate", "all", TimeInterval.Week, taskCompletedOnly = false, highQualityOnly = false),
-        UserCount(validateCounts.filter(uc => uc.timeInterval == TimeInterval.Week && uc.taskCompletedOnly).map(_.count).sum,
-          "validate", "all", TimeInterval.Week, taskCompletedOnly = true, highQualityOnly = false)
-      )
-      // format: on
-    }(cpuEc)
-  }
-
   /**
    * Gets the total/average contribution time across of Project Sidewalk users for the Admin page.
    */
@@ -640,38 +468,6 @@ class AdminServiceImpl @Inject() (
         )
       )
     )
-  }
-
-  /**
-   * Gets the number of labels added in Project Sidewalk grouped by label type and time interval for Admin page.
-   */
-  def getLabelCountStats: Future[Seq[LabelCount]] = {
-    // Query all the data we need from the db in parallel.
-    db.run(
-      DBIO.sequence(
-        Seq(
-          labelTable.countLabelsByType(),
-          labelTable.countLabelsByType(TimeInterval.Week),
-          labelTable.countLabelsByType(TimeInterval.Today)
-        )
-      )
-    ).map(_.flatten)
-  }
-
-  /**
-   * Gets the number of Project Sidewalk validations grouped by label type, result, and time interval for Admin page.
-   */
-  def getValidationCountStats: Future[Seq[ValidationCount]] = {
-    // Query all the data we need from the db in parallel.
-    db.run(
-      DBIO.sequence(
-        Seq(
-          labelValidationTable.countValidationsByResultAndLabelType(),
-          labelValidationTable.countValidationsByResultAndLabelType(TimeInterval.Week),
-          labelValidationTable.countValidationsByResultAndLabelType(TimeInterval.Today)
-        )
-      )
-    ).map(_.flatten)
   }
 
   /**
@@ -1043,23 +839,6 @@ class AdminServiceImpl @Inject() (
   }
 
   /**
-   * Gets the street distance completion rate by date. This is the cumulative distance of all streets audited.
-   */
-  def streetDistanceCompletionRateByDate: Future[Seq[(OffsetDateTime, Double)]] = {
-    db.run(for {
-      distancesByDate: Seq[(OffsetDateTime, Double)] <- streetEdgeTable.streetDistanceCompletionRateByDate
-      totalDist: Double                              <- streetService.getTotalStreetDistanceDBIO
-    } yield {
-      // Get the cumulative distance over time.
-      val cumDistsPerDay: Seq[(OffsetDateTime, Double)] =
-        distancesByDate.map { var dist = 0.0; pair => { dist += pair._2; (pair._1, dist) } }
-
-      // Calculate the completion percentage for each day.
-      cumDistsPerDay.map(pair => (pair._1, (100.0 * pair._2 / totalDist)))
-    })
-  }
-
-  /**
    * Calls functions to update all columns in user_stat table. Only updates users who have audited since cutoff time.
    * @param cutoffTime Only update users who have done any auditing since this cutoff time
    * @return The number of users whose stats were updated
@@ -1097,25 +876,6 @@ class AdminServiceImpl @Inject() (
     // show on the next page load rather than after the 10-minute TTL.
     db.run(DBIO.sequence(perWindow).flatMap(rows => funnelStatTable.replaceAll(rows.flatten)))
       .flatMap(rowsWritten => configService.invalidateFunnelCaches().map(_ => rowsWritten))
-  }
-
-  /**
-   * Returns aggregated usage analytics for the v3 public API from the webpage_activity log.
-   *
-   * @param excludeApiDocs If true, filters out requests that include `utm_source=apiDocs` in the query string.
-   * @param days           Number of past days to include; 0 means all time.
-   * @return A tuple of (endpoint counts, daily counts, unique IP count, format counts).
-   */
-  def getApiAnalytics(
-      excludeApiDocs: Boolean,
-      days: Int
-  ): Future[(Seq[ApiEndpointCount], Seq[ApiDailyCount], Long, Seq[ApiFormatCount])] = {
-    db.run(for {
-      endpointCounts <- webpageActivityTable.getApiEndpointCounts(excludeApiDocs, days)
-      dailyCounts    <- webpageActivityTable.getApiDailyCounts(excludeApiDocs, days)
-      uniqueIps      <- webpageActivityTable.getApiUniqueIpCount(excludeApiDocs, days)
-      formatCounts   <- webpageActivityTable.getApiFormatCounts(excludeApiDocs, days)
-    } yield (endpointCounts, dailyCounts, uniqueIps, formatCounts))
   }
 
   def getApiAnalyticsBySource(days: Int): Future[ApiAnalyticsBySourceData] = {

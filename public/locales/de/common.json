@@ -2,7 +2,6 @@
   "measurement-system": "metric",
   "mapbox-language-code": "de",
   "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Hier klicken</a>, um diese Strasse zu erkunden!",
-  "admin-clear-play-cache": "Play-Cache erfolgreich gelöscht",
   "unit-distance-abbreviation": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
