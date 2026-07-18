@@ -1,4 +1,4 @@
-.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh test-python \
+.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree test-python \
         import-users import-dump create-new-schema fill-new-schema hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-neighborhoods \
         lint lint-fix lint-evolutions lint-locales scalafmt scalafmt-fix \
@@ -12,6 +12,7 @@ db-container  ?= projectsidewalk-db
 db ?= sidewalk
 dir ?= ./
 args ?=
+wt ?=
 
 # ANSI colors for the `lint` summary.
 GREEN := \033[0;32m
@@ -72,6 +73,11 @@ docker-run:
 # Usage: make ssh target=web|db.
 ssh:
 	@docker exec -it $($(target)-container) /bin/bash
+
+# Run an uncommitted git worktree's app on :9000 for QA (not the main repo). See tools/qa-worktree.sh and CLAUDE.md
+# "Running a worktree's app for QA". e.g. `make qa-worktree wt=remove-admin-classic`.
+qa-worktree:
+	@docker exec -it $(web-container) bash /home/tools/qa-worktree.sh $(wt)
 
 import-users:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-users.sh"
