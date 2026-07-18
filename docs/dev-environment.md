@@ -261,6 +261,33 @@ docker exec projectsidewalk-web bash -lc "cd /home && sbt --client compile"
 The first call after a container boot starts the compile server (~30s); later calls are near-instant. `build.sbt`
 sets `-Xfatal-warnings`, so a `[success]` is also warning-clean.
 
+### Running a branch from a git worktree
+
+If you keep in-progress branches in **git worktrees** (`.claude/worktrees/<name>`) — for example to review a
+colleague's branch, or to run a second branch alongside your main checkout — you can bring that branch's app up on
+http://localhost:9000 with one command:
+
+```bash
+make qa-worktree wt=<worktree-name>
+```
+
+A worktree needs more setup than the main repo (its `node_modules` and built asset bundles aren't checked in, and
+sbt's caches and config have to be pointed at the right places), so this target handles all of it: it links the main
+repo's `node_modules`, builds that branch's JS/CSS bundles, frees `:9000`, and launches `sbt ~ run` against the
+worktree's own config while reusing the main repo's warm sbt caches. The first request triggers the dev compile;
+`Ctrl+C` stops it. It behaves the same on macOS, Linux, and WSL because the work runs inside the web container.
+
+To QA admin-only pages you need an account with a role. The seeded `Administrator` accounts can't be signed into
+locally (their passwords come from a production dump), so create a fresh account through the sign-up form, then grant
+it a role directly in the dev database — roles are checked per request, so you don't need to sign in again. Open a
+psql shell (`docker exec -it projectsidewalk-db psql -U sidewalk -d sidewalk`) and run:
+
+```sql
+UPDATE sidewalk_login.user_role
+SET role_id = (SELECT role_id FROM sidewalk_login.role WHERE role = 'Owner')
+WHERE user_id = (SELECT user_id FROM sidewalk_login.sidewalk_user WHERE username = '<your-username>');
+```
+
 ### Exercising authenticated routes
 
 Most routes need a session. Grab an anonymous cookie once, then reuse the jar:
