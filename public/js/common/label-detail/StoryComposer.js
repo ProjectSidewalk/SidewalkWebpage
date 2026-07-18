@@ -64,6 +64,7 @@ class StoryComposer {
       signinBtn: q('.story-composer__signin-btn'),
       error: q('.story-composer__error'),
       cancel: q('.story-composer__cancel'),
+      closeX: q('.story-composer__close'),
       submit: q('.story-composer__submit'),
     };
 
@@ -226,6 +227,7 @@ class StoryComposer {
     els.altInput.addEventListener('input', () => this.#clearError());
 
     els.cancel.addEventListener('click', () => this.#requestClose());
+    els.closeX.addEventListener('click', () => this.#requestClose());
 
     // Esc goes through the same discard guard as the Cancel button; preventDefault always, because the
     // confirmation is async and the cancel event can't wait on it.

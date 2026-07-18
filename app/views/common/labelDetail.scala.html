@@ -210,6 +210,11 @@
    above; no page renders two instances today. Radio `name`s and the dialog's aria-labelledby id are made
    instance-unique by JS at init. *@
 <dialog class="story-composer">
+  @* Same discard guard as Cancel (StoryComposer wires both through #requestClose). *@
+  <button type="button" class="story-composer__close" aria-label="Close"
+          data-i18n-aria-label="labelmap:story.close">
+    <img src='@assets.path("images/icons/cross.svg")' alt="">
+  </button>
   <h3 class="story-composer__title" data-i18n="labelmap:story.composer-title">Share your story</h3>
   <p class="story-composer__intro" data-i18n="labelmap:story.composer-intro">
     Stories help neighbors and city officials understand what problems like this mean for real people.

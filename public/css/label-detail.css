@@ -1083,16 +1083,23 @@ button.label-detail__meta-cell:focus-visible {
   outline-offset: 2px;
 }
 
-/* Zero-story CTA in the footer row (the stories section is hidden until a story exists): sized like its
-   labelmap-link/share-trigger siblings but keeping the base pill's white-and-outline look, so the primary invitation
-   stands apart from the gray utility buttons; pushed to the left edge so the share-this-page actions keep their own
-   group on the right. */
+/* Zero-story CTA in the footer row (the stories section is hidden until a story exists): dressed to match its
+   labelmap-link/share-trigger siblings so the three read as one row (per Jon: uniform light gray for now), but
+   pushed to the left edge so the share-this-page actions keep their own group on the right. */
 .label-detail__story-share--footer {
   margin-right: auto;
   gap: 6px;
   padding: 5px 12px;
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-800);
+  border: 1px solid var(--color-neutral-300);
   border-radius: 18px;
   font: var(--text-small-medium);
+}
+
+.label-detail__story-share--footer:hover {
+  background: var(--color-neutral-200);
+  border-color: var(--color-neutral-400);
 }
 
 .label-detail__stories-arrow {
@@ -1238,6 +1245,7 @@ button.label-detail__meta-cell:focus-visible {
 /* ─── Story composer dialog (#4054) ─────────────────────────────────────── */
 dialog.story-composer {
   box-sizing: border-box;
+  position: relative;
   width: 520px;
   max-width: calc(100vw - 32px);
   border: none;
@@ -1500,6 +1508,28 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
   color: var(--color-neutral-900);
 }
 
+/* Quiet corner X, matching the card header's close (the lightbox's floating circle is for sitting over a photo). */
+.story-composer__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.story-composer__close:hover { background: rgb(0 0 0 / 6%); }
+
+.story-composer__close img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 .story-composer__submit {
   padding: 9px 22px;
   border: none;
@@ -1520,6 +1550,7 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
 }
 
 .story-composer__cancel:focus-visible,
+.story-composer__close:focus-visible,
 .story-composer__submit:focus-visible,
 .story-composer__photo-remove:focus-visible,
 .story-lightbox__close:focus-visible {
