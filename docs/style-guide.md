@@ -31,11 +31,17 @@ These apply across every language in the repo.
   //this is incorrect
   ```
 
-- **Accessibility is part of style.** Any UI work must meet **WCAG 2.1/2.2 Level AA**. Pull fonts, colors, spacing,
-  and button styles from the design-system tokens in `main.css` `:root` rather than hardcoding values — these come
-  from our Figma "Design System Tokens" and are what we're standardizing on.
-- **Don't use `--font-accent` (Raleway) for numbers.** Its digits aren't tabular, so figures won't line up in columns
-  and jump around in changing counters/timers — use `--font-primary` for any numeric text.
+- **Accessibility is part of style.** Any UI work must meet **WCAG 2.1/2.2 Level AA**.
+- **Style from the design-system tokens in `main.css` `:root`.** Colors, type, spacing, and button styles come from
+  our Figma "Design System Tokens"; hardcoded values are what we're migrating away from. For type, use the composite
+  `--text-*` tokens (`font: var(--text-body-regular);`) rather than building on the raw `--font-primary`/
+  `--font-accent` stacks — they're complete `font` shorthands (weight, size/line-height, family) and bake in
+  `--ui-scale`. If a token's line-height (or another single aspect) doesn't suit, keep the token and override that
+  one property on the next line instead of hand-assembling the font.
+- **Raleway (`--font-accent`) is display-only — and never for numbers.** Default to the primary font (Mulish); the
+  accent font appears only in the tokens that already carry it (`--text-h1-bold`, `--text-h2-bold`,
+  `--text-small-accent`). Raleway defaults to old-style (text) figures — digits vary in height and 3/4/5/7/9 descend
+  below the baseline — so any text containing digits (counts, timers, stats, dates) must use a primary-font token.
 - **Write descriptive commit messages** that say what actually changed and why. `Fixes #880`, `Addresses PR
   feedback`, and `Update ModalMissionComplete.js` are all too vague to be useful in `git log` later.
 

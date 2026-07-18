@@ -189,10 +189,26 @@ When you catch yourself writing a frontend constant that mirrors a backend value
   - **CSS** (`public/css/`): `make stylelint-fix dir=<…>`, then `make stylelint`.
   - **HTML** (Twirl views in `app/views/`): `make htmlhint`.
   - **Translation JSON** (`public/locales/`): `make eslint` (per-file validity/dup-key checks) plus `make lint-locales` (cross-locale key parity).
-  - `make lint` runs all of them at once; `make lint-fix` autofixes the ESLint + Stylelint mechanical findings.
+  - `make lint` runs all of them (plus the evolutions lint) at once; `make lint-fix` autofixes the ESLint + Stylelint mechanical findings.
 - User interactions are logged (clicks, key presses, mode switches, pano changes, mission/task events, etc.) to the activity/interaction tables. When you **add or change an interaction**, add or adjust the corresponding logging so analytics stay complete; keep event names consistent with the existing ones, and update [`docs/logged-events.md`](docs/logged-events.md) (how logging works + the event reference).
 - Ensure WCAG 2.1/2.2 Level AA accessibility standards are met
-- When adding or refactoring code, use the fonts, colors, button styling, etc. defined in main.css :root. These are pulled from our "Design System Tokens" Figma, and we are pushing to use these going forward.
+- **Style all UI from the design-system tokens in `main.css` `:root`** — colors (`--color-*`), type (`--text-*`),
+  and button styles. They mirror our "Design System Tokens" Figma and are the default for any new or refactored UI:
+  a hardcoded hex color or hand-assembled font stack is a bug unless the token set genuinely has no fit. For type
+  specifically:
+  - **Set type with a composite `--text-*` token, not the raw font variables.** Write
+    `font: var(--text-body-regular);` — never `font-family: var(--font-primary)` plus hand-picked
+    size/weight/line-height. The `--text-*` tokens are complete `font` shorthands (weight, size/line-height, family)
+    and already bake in `var(--ui-scale)`. If one aspect of the token doesn't suit the design — usually line-height —
+    keep the token and override just that property after it (`font: var(--text-body-regular); line-height: 1.5;`)
+    rather than dropping to raw `font-*` properties.
+  - **Default to the primary font (Mulish).** The accent font (`--font-accent`, Raleway) is display-only and already
+    scoped to the few tokens that carry it (`--text-h1-bold`, `--text-h2-bold`, `--text-small-accent`) — don't
+    introduce it elsewhere.
+  - **Never set numbers in Raleway.** Raleway defaults to old-style (text) figures: digits vary in height and
+    3/4/5/7/9 descend below the baseline, so numeric strings look uneven and misaligned. Anything that renders
+    digits — counts, stats, timers, percentages, dates — gets a primary-font `--text-*` token, even inside an
+    otherwise accent-styled heading.
 - **Scale tool UI with `var(--ui-scale)`.** The Explore and Validate tools (and self-contained overlays layered over them — the mission-complete modal, the tutorial intro/complete screens, etc.) are zoomed uniformly to fit the viewport by `util.applyToolScale` (`public/js/common/utilities.js`), which sets `--ui-scale` on both `.tool-ui` and the document root. So **every fixed dimension you author for tool/overlay UI must be expressed as `calc(<base>px * var(--ui-scale, 1))`** — paddings, gaps, widths, heights, border widths/radii, icon sizes, and any hardcoded `font-size`/`letter-spacing`. For type, prefer the `--text-*` tokens (they already bake in `var(--ui-scale)`); only drop to a raw `calc(... * var(--ui-scale, 1))` font-size when no token matches the size. A bare `px` value here is a bug: it won't grow/shrink with the rest of the tool. (Fluid values — `%`, `flex`, `aspect-ratio`, viewport units — don't need it.) This does **not** apply to fixed page chrome like the navbar, which deliberately stays unscaled.
 - Max line length of 120 characters, with long line exceptions where appropriate. For multi-line comments, TARGET line length is 120 characters
 - **Keep docs in sync.** When you change architecture, framework versions, supported languages, label types, or other conventions, update the affected docs in the *same* change: [`docs/architecture.md`](docs/architecture.md) mirrors this file's architecture (and the README's tech-stack summary), and [`CONTRIBUTING.md`](CONTRIBUTING.md) holds the workflow/standards. To avoid drift, keep exact dependency/patch versions in **one** place — the dependency-version inventory ([`docs/upgrading-libraries.md`](docs/upgrading-libraries.md)) — rather than copying them across docs. README/architecture mention only stable major versions (e.g. Scala 2.13, Play 3.0, Java 17).
@@ -417,12 +433,13 @@ Each city has its own schema (`sidewalk_<city>`), and they are essentially ident
 ### Linting
 
 ```bash
-make lint           # eslint + stylelint + htmlhint + lint-locales (all of it)
+make lint           # eslint + stylelint + htmlhint + lint-locales + lint-evolutions (all of it)
 make lint-fix       # eslint --fix + stylelint --fix
 make eslint         # JS + translation JSON; defaults to public/js/ + public/locales/ (build/ carved out by config ignores; vendor/ is out of the files glob)
 make stylelint      # CSS; defaults to public/**/*.css (vendor/ carved out by the config's ignoreFiles)
 make htmlhint       # HTML; defaults to app/views/
 make lint-locales   # cross-locale key parity (tools/check-locale-parity.mjs)
+make lint-evolutions # static checks on conf/evolutions/default/*.sql (host-side bash, no container needed)
 make eslint dir=public/js/validate   # scope any target to a dir/file; also stylelint / htmlhint
 ```
 
