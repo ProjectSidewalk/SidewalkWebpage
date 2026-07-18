@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import formats.json.ExploreFormats._
 import models.audit._
 import models.label.{Tag, _}
-import models.mission.{Mission, MissionTable, MissionTypeTable}
+import models.mission.{Mission, MissionTable, MissionType}
 import models.pano.PanoSource.PanoSource
 import models.pano._
 import models.region.{Region, RegionCompletionTable, RegionTable}
@@ -35,11 +35,20 @@ case class ExplorePageData(
     tutorialStreetId: Int,
     makeCrops: Boolean
 )
+
+/** Core facts about a label inserted during an Explore submission, for post-submission side effects (AI, SciStarter). */
+case class NewLabelData(
+    labelId: Int,
+    temporaryLabelId: Int,
+    labelType: LabelTypeEnum.Base,
+    panoSource: PanoSource,
+    tutorial: Boolean,
+    timeCreated: OffsetDateTime
+)
 case class ExploreTaskPostReturnValue(
     auditTaskId: Int,
     mission: Option[Mission],
-    // A sequence of tuples containing (label_id, temporary_label_id, label_type, pano_source, time_created).
-    newLabels: Seq[(Int, Int, LabelTypeEnum.Base, PanoSource, OffsetDateTime)],
+    newLabels: Seq[NewLabelData],
     updatedStreets: Option[UpdatedStreets],
     refreshPage: Boolean
 )
@@ -217,7 +226,7 @@ class ExploreServiceImpl @Inject() (
 
       // If there is a partially completed task in this route or mission, get that, o/w make a new one.
       task: Option[NewTask] <- {
-        if (MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId) == "auditOnboarding") {
+        if (mission.missionType == MissionType.AuditOnboarding) {
           auditTaskTable.getATutorialTask(mission.missionId).map(Some(_))
         } else if (streetEdgeId.isDefined) {
           auditTaskTable.selectANewTask(streetEdgeId.get, mission.missionId).map(Some(_))
@@ -252,7 +261,7 @@ class ExploreServiceImpl @Inject() (
       }
 
       // Check if they've already completed an explore mission. Used to suggest Validate/Explore missions on front-end.
-      hasCompletedAMission: Boolean <- missionTable.countCompletedMissions(userId, missionType = "audit").map(_ > 0)
+      hasCompletedAMission: Boolean <- missionTable.countCompletedMissions(userId, MissionType.Audit).map(_ > 0)
 
       surveyData: Seq[SurveyQuestionWithOptions] <- surveyQuestionTable.listAllWithOptions
       tutorialStreetId: Int                      <- configTable.getTutorialStreetId
@@ -346,7 +355,7 @@ class ExploreServiceImpl @Inject() (
       for {
         missionType <- missionTable.getMissionType(missionId)
         _           <-
-          if (missionType.contains("audit")) {
+          if (missionType.contains(MissionType.Audit)) {
             auditTaskTable.updateTaskProgress(id, timestamp, task.currentLat, task.currentLng, missionId,
               task.currentMissionStart)
           } else DBIO.successful(())
@@ -398,7 +407,7 @@ class ExploreServiceImpl @Inject() (
    * @param auditTaskId The audit_task_id of the task the label was added during.
    * @param taskStreetId The street_edge_id of the street for the associated audit_task.
    * @param missionId The mission_id of the mission the label was added during.
-   * @return (label_id, temporary_label_id, label_type, time_created) for the new label. Used for logging/SciStarter.
+   * @return The new label's core facts, used for post-submission side effects (AI validation, SciStarter, logging).
    */
   private def insertLabel(
       label: LabelSubmission,
@@ -406,7 +415,7 @@ class ExploreServiceImpl @Inject() (
       auditTaskId: Int,
       taskStreetId: Int,
       missionId: Int
-  ): DBIO[(Int, Int, LabelTypeEnum.Base, PanoSource, OffsetDateTime)] = {
+  ): DBIO[NewLabelData] = {
     // Get the timestamp for a new label being added to db, log an error if there is a problem w/ timestamp.
     val timeCreated: OffsetDateTime = label.timeCreated match {
       case Some(time) => time
@@ -459,7 +468,8 @@ class ExploreServiceImpl @Inject() (
           point.zoom, point.lat, point.lng, pointGeom, point.computationMethod)
       )
     } yield {
-      (newLabelId, label.temporaryLabelId, LabelTypeEnum.byName(label.labelType), label.panoSource, timeCreated)
+      NewLabelData(newLabelId, label.temporaryLabelId, LabelTypeEnum.byName(label.labelType), label.panoSource,
+        label.tutorial, timeCreated)
     }
   }
 
@@ -566,7 +576,7 @@ class ExploreServiceImpl @Inject() (
           // Create and insert the label and label_point entries.
           labelPoint: LabelPointSubmission = LabelPointSubmission(label.panoX, label.panoY, canvasX, canvasY,
             heading = pov.heading, pitch = pov.pitch, pov.zoom, lat = Some(latLng._1), lng = Some(latLng._2),
-            computationMethod = Some("approximation2"))
+            computationMethod = Some(ComputationMethod.Approximation2))
           labelSubmission: LabelSubmission = LabelSubmission(
             panoId = pano.panoId,
             panoSource = pano.source,
@@ -580,7 +590,7 @@ class ExploreServiceImpl @Inject() (
             tagIds = Seq.empty[Int],
             point = labelPoint
           )
-          labelId <- insertLabel(labelSubmission, aiUserId, auditTaskId, streetEdgeId, missionId).map(_._1)
+          labelId <- insertLabel(labelSubmission, aiUserId, auditTaskId, streetEdgeId, missionId).map(_.labelId)
           _       <- labelAiInfoTable.save(
             LabelAiInfo(0, labelId, label.confidence, data.apiVersion, data.modelId, modelTrainingDate)
           )
@@ -608,8 +618,8 @@ class ExploreServiceImpl @Inject() (
 
       // Add to the audit_task_user_route and user_route tables if we are on a route and not in the tutorial.
       val userRouteAction: DBIO[Boolean] =
-        missionTable.getMissionType(missionId).flatMap { missionType: Option[String] =>
-          if (data.userRouteId.isDefined && missionType.contains("audit")) {
+        missionTable.getMissionType(missionId).flatMap { missionType: Option[MissionType.Value] =>
+          if (data.userRouteId.isDefined && missionType.contains(MissionType.Audit)) {
             for {
               _                      <- auditTaskUserRouteTable.insertIfNew(data.userRouteId.get, auditTaskId)
               routeComplete: Boolean <- userRouteTable.updateCompleteness(data.userRouteId.get)
@@ -622,7 +632,7 @@ class ExploreServiceImpl @Inject() (
         missionService.updateMissionTableExplore(userId, data.missionProgress)
 
       // Insert any labels.
-      val labelSubmitActions: Seq[DBIO[Option[(Int, Int, LabelTypeEnum.Base, PanoSource, OffsetDateTime)]]] =
+      val labelSubmitActions: Seq[DBIO[Option[NewLabelData]]] =
         data.labels.map { label: LabelSubmission =>
           val labelTypeId: Int = LabelTypeEnum.labelTypeToId(label.labelType)
           labelTable.find(label.temporaryLabelId, userId).flatMap {

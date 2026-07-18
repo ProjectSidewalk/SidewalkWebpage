@@ -1,6 +1,6 @@
 package formats.json
 
-import models.mission.{Mission, MissionTypeTable}
+import models.mission.{Mission, MissionType}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
@@ -9,7 +9,7 @@ import java.time.OffsetDateTime
 object MissionFormats {
   implicit val missionWrites: Writes[Mission] = (
     (__ \ "mission_id").write[Int] and
-      (__ \ "mission_type").write[String].contramap[Int](MissionTypeTable.missionTypeIdToMissionType) and
+      (__ \ "mission_type").write[String].contramap[MissionType.Value](_.toString) and
       (__ \ "user_id").write[String] and
       (__ \ "mission_start").write[OffsetDateTime] and
       (__ \ "mission_end").write[OffsetDateTime] and

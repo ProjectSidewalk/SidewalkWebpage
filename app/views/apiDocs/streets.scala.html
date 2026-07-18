@@ -142,7 +142,7 @@
           <tr>
             <td><code>wayType</code></td>
             <td><code>string</code></td>
-            <td>Filter by one or more way types (road classifications). Provide comma-separated values (e.g., <code>wayType=residential,primary</code>). Common values include: <code>residential</code>, <code>primary</code>, <code>secondary</code>, <code>tertiary</code>, <code>service</code>, <code>footway</code>, <code>path</code>, <code>trunk</code>.</td>
+            <td>Filter by one or more way types (road classifications, mostly following OSM's <code>highway</code> values). Provide comma-separated values (e.g., <code>wayType=residential,primary</code>). Valid values: <code>motorway</code>, <code>motorway_link</code>, <code>trunk</code>, <code>trunk_link</code>, <code>primary</code>, <code>primary_link</code>, <code>secondary</code>, <code>secondary_link</code>, <code>tertiary</code>, <code>tertiary_link</code>, <code>unclassified</code>, <code>residential</code>, <code>living_street</code>, <code>pedestrian</code>, <code>service</code>, <code>road</code>, <code>track</code>, <code>raceway</code>, <code>footway</code>, <code>cycleway</code>, <code>path</code>, <code>bridleway</code>, <code>steps</code>, <code>corridor</code>, <code>crossing</code>, <code>construction</code>, <code>border</code>, <code>subway</code>, and <code>unknown</code> (streets from non-OSM imports). The types present in a given city are listed by the <a href="/v3/api-docs/streetTypes">Street Types API</a>. Unrecognized values return a 400 error.</td>
           </tr>
           <tr>
             <td><code>status</code></td>
