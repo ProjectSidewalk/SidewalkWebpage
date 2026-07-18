@@ -219,7 +219,7 @@ about.history.body = Project Sidewalk 始於 2012 年，由 Jon E. Froehlich 教
 about.team.title = 團隊
 about.team.body = Project Sidewalk 由華盛頓大學 <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> 設計與營運，由 Jon E. Froehlich 教授帶領、首席工程師 Michael Saugstad 開發，並與伊利諾大學芝加哥分校及猶他州立大學的研究人員合作——同時仰賴世界各地數以千計的貢獻者。
 about.data.title = 開放資料與研究
-about.data.body = 我們收集的一切都是開放的。您可以透過<a href="/api">公開 API</a> 下載標記、標記群集、街道與無障礙分數，格式從 CSV 到 GeoJSON 都有。若您在研究中使用 Project Sidewalk 資料，請引用我們的 <a href="https://doi.org/10.1145/3290605.3300292">CHI 2019 論文</a>。
+about.data.body = 我們收集的一切都是開放的。您可以透過<a href="/api">公開 API</a> 下載標記、標記群集、街道與無障礙分數，格式從 CSV 到 GeoJSON 都有。若您在研究中使用 Project Sidewalk 資料，請引用我們的 <a href="https://doi.org/10.1145/3290605.3300292">CHI 2019 論文</a>。我們發布的所有 Project Sidewalk 資料均以 CC0 授權提供；詳情與引用指南請參閱 <a href="/api">API 文件</a>。
 about.data.publications = 在 Makeability Lab 網站上瀏覽<a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">所有 Project Sidewalk 論文</a>。
 about.funding.title = 經費來源
 about.funding.body = Project Sidewalk 由美國國家科學基金會（NSF）支持，並獲得 Google、Alfred P. Sloan 基金會、PacTrans 與華盛頓大學 CREATE 中心的額外支持。
