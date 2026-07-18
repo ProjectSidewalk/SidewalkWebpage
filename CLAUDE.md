@@ -189,7 +189,7 @@ When you catch yourself writing a frontend constant that mirrors a backend value
   - **CSS** (`public/css/`): `make stylelint-fix dir=<…>`, then `make stylelint`.
   - **HTML** (Twirl views in `app/views/`): `make htmlhint`.
   - **Translation JSON** (`public/locales/`): `make eslint` (per-file validity/dup-key checks) plus `make lint-locales` (cross-locale key parity).
-  - `make lint` runs all of them at once; `make lint-fix` autofixes the ESLint + Stylelint mechanical findings.
+  - `make lint` runs all of them (plus the evolutions lint) at once; `make lint-fix` autofixes the ESLint + Stylelint mechanical findings.
 - User interactions are logged (clicks, key presses, mode switches, pano changes, mission/task events, etc.) to the activity/interaction tables. When you **add or change an interaction**, add or adjust the corresponding logging so analytics stay complete; keep event names consistent with the existing ones, and update [`docs/logged-events.md`](docs/logged-events.md) (how logging works + the event reference).
 - Ensure WCAG 2.1/2.2 Level AA accessibility standards are met
 - When adding or refactoring code, use the fonts, colors, button styling, etc. defined in main.css :root. These are pulled from our "Design System Tokens" Figma, and we are pushing to use these going forward.
@@ -417,12 +417,13 @@ Each city has its own schema (`sidewalk_<city>`), and they are essentially ident
 ### Linting
 
 ```bash
-make lint           # eslint + stylelint + htmlhint + lint-locales (all of it)
+make lint           # eslint + stylelint + htmlhint + lint-locales + lint-evolutions (all of it)
 make lint-fix       # eslint --fix + stylelint --fix
 make eslint         # JS + translation JSON; defaults to public/js/ + public/locales/ (build/ carved out by config ignores; vendor/ is out of the files glob)
 make stylelint      # CSS; defaults to public/**/*.css (vendor/ carved out by the config's ignoreFiles)
 make htmlhint       # HTML; defaults to app/views/
 make lint-locales   # cross-locale key parity (tools/check-locale-parity.mjs)
+make lint-evolutions # static checks on conf/evolutions/default/*.sql (host-side bash, no container needed)
 make eslint dir=public/js/validate   # scope any target to a dir/file; also stylelint / htmlhint
 ```
 

@@ -82,7 +82,7 @@ before your first PR:
 - **Keep the frontend linters passing on what you change** before pushing. Run `make lint-fix` for the mechanical
   ESLint/Stylelint fixes, hand-fix the rest, then confirm the relevant linter is clean — `make eslint` (JS + translation
   JSON), `make stylelint` (CSS), `make htmlhint` (HTML), `make lint-locales` (cross-locale key parity), or `make lint`
-  for all of them. The trees are kept fully lint-clean
+  for all of them (it also runs the evolutions lint). The trees are kept fully lint-clean
   ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so any finding is from your change.
   **All four are blocking CI checks** now (they run in the `Frontend (build)` job), so a lint failure blocks the
   merge — just like scalafmt.
