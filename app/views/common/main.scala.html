@@ -101,40 +101,7 @@
         </div>
       </aside>
 
-      <script>
-        const testServerBanner = document.querySelector(".test-server-banner");
-
-        // The banner is a fixed bar above the navbar. Publish its rendered height as --test-banner-height so the
-        // navbar and page content are offset by exactly that much: the banner reserves its own space instead of
-        // covering content. No-op (height 0) when the banner isn't fixed (the /mobile app positions it absolutely).
-        function updateTestBannerHeight() {
-          const isFixed = window.getComputedStyle(testServerBanner).position === "fixed";
-          const hidden = testServerBanner.classList.contains("ps-hidden");
-          const height = isFixed && !hidden ? testServerBanner.offsetHeight : 0;
-          document.documentElement.style.setProperty("--test-banner-height", `${height}px`);
-        }
-
-        function hideTestServerBanner() {
-          testServerBanner.classList.add("ps-hidden");
-          updateTestBannerHeight();
-        }
-
-        // Respect a prior "don't show again" choice stored in localStorage.
-        if (JSON.parse(window.localStorage.getItem("hideTestServerWarningBanner"))) {
-          testServerBanner.classList.add("ps-hidden");
-        }
-        // "Don't show again" hides the banner and remembers the choice; the close button only hides it this visit.
-        testServerBanner.querySelector(".test-server-banner-dont-show-again").addEventListener("click", () => {
-          window.localStorage.setItem("hideTestServerWarningBanner", true);
-          hideTestServerBanner();
-        });
-        testServerBanner.querySelector(".test-server-banner-close").addEventListener("click", hideTestServerBanner);
-
-        // Measure now and again whenever the banner may reflow (fonts finish loading, text wraps at a new width).
-        updateTestBannerHeight();
-        window.addEventListener("load", updateTestBannerHeight);
-        window.addEventListener("resize", updateTestBannerHeight);
-      </script>
+      <script src='@assets.path("js/common/TestServerBanner.js")'></script>
     }
     <div id="wrap" class='@if(url == "/labelMap"){wrap--full-window}'>
       @content
