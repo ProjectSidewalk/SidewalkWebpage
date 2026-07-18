@@ -1,7 +1,39 @@
 @import play.api.Configuration
+@import play.api.libs.json.Json
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
 @(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@* schema.org Dataset JSON-LD (#4237) so each city's open data is discoverable in Google Dataset Search. Built with
+   the JSON library so quoting is always valid; escaping `<` blocks a `</script>` breakout. No `license` property yet:
+   the data license URL is unconfirmed (MIT in LICENSE.md covers the code, not the data). *@
+@datasetJsonLd = @{
+  val base = commonData.prodUrl.stripSuffix("/")
+  val city = commonData.currentCity.cityNameFormatted
+  Json.stringify(Json.obj(
+    "@context"    -> "https://schema.org",
+    "@type"       -> "Dataset",
+    "name"        -> s"Project Sidewalk Sidewalk Accessibility Data — $city",
+    "description" -> (s"Open, crowdsourced sidewalk accessibility data for $city: curb ramps, missing curb ramps, " +
+      "obstacles, surface problems, and more, with severity ratings and validations."),
+    "url"                 -> s"$base/api",
+    "isAccessibleForFree" -> true,
+    "creator" -> Json.obj("@type" -> "Organization", "name" -> "Project Sidewalk",
+      "url" -> "https://makeabilitylab.cs.washington.edu/"),
+    "spatialCoverage" -> city,
+    "distribution" -> Json.arr(
+      Json.obj("@type" -> "DataDownload", "encodingFormat" -> "application/geo+json",
+        "contentUrl" -> s"$base/v3/api/rawLabels"),
+      Json.obj("@type" -> "DataDownload", "encodingFormat" -> "text/csv",
+        "contentUrl" -> s"$base/v3/api/rawLabels?filetype=csv"),
+      Json.obj("@type" -> "DataDownload", "encodingFormat" -> "application/geopackage+sqlite3",
+        "contentUrl" -> s"$base/v3/api/rawLabels?filetype=geopackage")
+    )
+  )).replace("<", "\\u003c")
+}
+@structuredData = {
+  <script type="application/ld+json">@Html(datasetJsonLd)</script>
+}
 
 @content = {
   <script src="@routes.Assets.versioned("js/common/aggregateStats.js")"></script>
@@ -130,7 +162,7 @@
   </div>
 }
 
-@common.main(commonData, "API Docs — Project Sidewalk", pageMeta = service.PageMeta(
+@common.main(commonData, "API Docs — Project Sidewalk", extraHead = structuredData, pageMeta = service.PageMeta(
   description = Some(Messages("seo.description.api", commonData.currentCity.cityNameShort)))) {
   @common.navbar(commonData, Some(user))
   @apiDocs.layout("introduction")(content)

@@ -81,8 +81,17 @@ class ApplicationController @Inject() (
             valCount: Int                <- validationService.countHumanValidations
           } yield {
             Ok(
-              views.html.index(Messages("seo.title.landing", commonData.currentCity.cityNameShort), commonData, user,
-                openStatus, mapathonLink, streetDist, auditedDist, labelCount, valCount)
+              views.html.index(
+                Messages("seo.title.landing", commonData.currentCity.cityNameShort),
+                commonData,
+                user,
+                openStatus,
+                mapathonLink,
+                streetDist,
+                auditedDist,
+                labelCount,
+                valCount
+              )
             )
           }
         }
@@ -98,8 +107,13 @@ class ApplicationController @Inject() (
       valCount: Int   <- validationService.countHumanValidations
     } yield {
       Ok(
-        views.html.mobileLanding(Messages("seo.title.landing", commonData.currentCity.cityNameShort), commonData, user,
-          labelCount, valCount)
+        views.html.mobileLanding(
+          Messages("seo.title.landing", commonData.currentCity.cityNameShort),
+          commonData,
+          user,
+          labelCount,
+          valCount
+        )
       )
     }
   }
@@ -145,8 +159,8 @@ class ApplicationController @Inject() (
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Labeling_Guide_Curb_Ramps")
       Ok(
-        views.html.labelingGuide.labelingGuideCurbRamps(commonData, Messages("seo.title.labeling.guide"),
-          request.identity)
+        views.html.labelingGuide
+          .labelingGuideCurbRamps(commonData, Messages("seo.title.labeling.guide"), request.identity)
       )
     }
   }
@@ -155,8 +169,8 @@ class ApplicationController @Inject() (
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Labeling_Guide_Surface_Problems")
       Ok(
-        views.html.labelingGuide.labelingGuideSurfaceProblems(commonData, Messages("seo.title.labeling.guide"),
-          request.identity)
+        views.html.labelingGuide
+          .labelingGuideSurfaceProblems(commonData, Messages("seo.title.labeling.guide"), request.identity)
       )
     }
   }
@@ -165,8 +179,8 @@ class ApplicationController @Inject() (
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Labeling_Guide_Obstacles")
       Ok(
-        views.html.labelingGuide.labelingGuideObstacles(commonData, Messages("seo.title.labeling.guide"),
-          request.identity)
+        views.html.labelingGuide
+          .labelingGuideObstacles(commonData, Messages("seo.title.labeling.guide"), request.identity)
       )
     }
   }
@@ -175,8 +189,8 @@ class ApplicationController @Inject() (
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Labeling_Guide_No_Sidewalk")
       Ok(
-        views.html.labelingGuide.labelingGuideNoSidewalk(commonData, Messages("seo.title.labeling.guide"),
-          request.identity)
+        views.html.labelingGuide
+          .labelingGuideNoSidewalk(commonData, Messages("seo.title.labeling.guide"), request.identity)
       )
     }
   }
@@ -185,8 +199,8 @@ class ApplicationController @Inject() (
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Labeling_Guide_Occlusion")
       Ok(
-        views.html.labelingGuide.labelingGuideOcclusion(commonData, Messages("seo.title.labeling.guide"),
-          request.identity)
+        views.html.labelingGuide
+          .labelingGuideOcclusion(commonData, Messages("seo.title.labeling.guide"), request.identity)
       )
     }
   }
@@ -221,8 +235,15 @@ class ApplicationController @Inject() (
         } yield {
           cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
           Ok(
-            views.html.apps.labelMap(commonData, Messages("seo.title.label.map", commonData.currentCity.cityNameShort),
-              request.identity, tags, regionIds, routeIds, aiValOpts)
+            views.html.apps.labelMap(
+              commonData,
+              Messages("seo.title.label.map", commonData.currentCity.cityNameShort),
+              request.identity,
+              tags,
+              regionIds,
+              routeIds,
+              aiValOpts
+            )
           )
         }
       }

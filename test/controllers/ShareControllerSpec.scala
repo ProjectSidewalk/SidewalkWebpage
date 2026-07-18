@@ -69,6 +69,8 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
           val body = contentAsString(resp)
           body must include("og:title")
+          // Exactly one og:title: the page's own share meta must suppress the layout's default OG block (#4237).
+          "property=\"og:title\"".r.findAllMatchIn(body).size mustBe 1
           body must include("og:description")
           body must include("og:url")
           body must include("og:image")
