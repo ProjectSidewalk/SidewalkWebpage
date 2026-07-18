@@ -135,6 +135,26 @@ seo.description.api = Gratis en open data over trottoirtoegankelijkheid in {0}: 
 seo.description.about = Maak kennis met Project Sidewalk: onze missie om de trottoirs van de wereld in kaart te brengen, het onderzoeksteam erachter en de open data die het oplevert.
 seo.og.image.alt = Schermafbeelding van de virtuele straatverkenning van Project Sidewalk met toegankelijkheidslabels langs een trottoir.
 
+# Over-ons-pagina (#4237). {0}/{1} in about.where.body zijn de actuele aantallen steden/landen.
+about.title = Over Project Sidewalk
+about.mission.title = Onze missie
+about.mission.body = Project Sidewalk is een opensourceproject dat alle trottoirs ter wereld in kaart wil brengen en beoordelen met behulp van online crowdsourcing, kunstmatige intelligentie en straatbeelden. We maken data over trottoirtoegankelijkheid open voor iedereen, om steden beloopbaarder en toegankelijker te maken.
+about.how.title = Hoe het werkt
+about.how.body = Je verkent virtueel een stad in een spelachtige tool en labelt trottoir opritten, ontbrekende trottoirs, obstakels en oppervlakteproblemen in straatbeelden. Andere gebruikers valideren die labels vervolgens om de kwaliteit te waarborgen. Het resultaat is een open dataset die onderzoekers, overheden en gemeenschappen gebruiken om toegankelijkheid te begrijpen en te verbeteren. <a href="/explore">Begin met verkennen</a> of <a href="/validate">valideer labels</a> om bij te dragen.
+about.where.title = Waar we actief zijn
+about.where.body = Project Sidewalk is actief in <span data-live-stat="num_cities">{0}</span> steden in <span data-live-stat="num_countries">{1}</span> landen — en we groeien. <a href="/cities">Bekijk alle steden</a> of <a href="https://accessiblecommunities.org/use-project-sidewalk/">lees hoe je Project Sidewalk naar jouw stad brengt</a>.
+about.history.title = Onze geschiedenis
+about.history.body = Project Sidewalk begon in 2012 als onderzoeksproject van professor Jon E. Froehlich en promovendus Kotaro Hara, en wordt nu ontwikkeld in het <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> van de Paul G. Allen School of Computer Science &amp; Engineering aan de University of Washington. Onze eerste stadsbrede inzet — Washington, DC — toonde aan dat online crowdsourcing de trottoirs van een hele stad in kaart kan brengen, en won een Best Paper Award op CHI 2019.
+about.team.title = Het team
+about.team.body = Project Sidewalk wordt ontworpen en beheerd door het <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> aan de University of Washington, onder leiding van professor Jon E. Froehlich met hoofdingenieur Michael Saugstad, in samenwerking met onderzoekers van de University of Illinois Chicago en Utah State University — en aangedreven door duizenden bijdragers wereldwijd.
+about.data.title = Open data en onderzoek
+about.data.body = Alles wat we verzamelen is open. Download labels, labelclusters, straten en toegankelijkheidsscores via onze <a href="/api">publieke API''s</a>, in formaten van CSV tot GeoJSON. Gebruik je Project Sidewalk-data in je onderzoek? Citeer dan ons <a href="https://doi.org/10.1145/3290605.3300292">CHI 2019-artikel</a>.
+about.data.publications = Bekijk <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">alle Project Sidewalk-publicaties</a> op de website van het Makeability Lab.
+about.funding.title = Financiering
+about.funding.body = Project Sidewalk wordt ondersteund door de National Science Foundation, met aanvullende steun van Google, de Alfred P. Sloan Foundation, PacTrans en het CREATE-centrum van de University of Washington.
+about.contact.title = Contact
+about.contact.body = Vragen, ideeën of persverzoeken? Mail ons via <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, open een issue op <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a> of volg ons op <a href="https://twitter.com/projsidewalk">Twitter</a> en <a href="https://www.facebook.com/projsidewalk">Facebook</a>.
+
 landing.create.path = Laten we een pad creëren voor iedereen!
 landing.start.exploring = Start met Verkennen
 landing.new.deployment = Leer meer over de implementatie van Project Sidewalk in jouw stad.

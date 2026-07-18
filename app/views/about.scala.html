@@ -1,0 +1,102 @@
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import play.api.libs.json.Json
+@import service.{CommonPageData, PageMeta}
+@*
+ * About page (#4237): server-rendered, localized overview of Project Sidewalk — mission, how it works, deployments,
+ * history, team, open data, funding, and contact. This is the canonical "what is Project Sidewalk" page for search
+ * engines, linked from the footer on every page.
+ *
+ * @param commonData Per-page config; allCityInfo drives the live deployment city/country counts.
+ * @param title      Localized page title.
+ * @param user       The signed-in or anonymous display user (for the navbar).
+ *@
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@publicCities = @{commonData.allCityInfo.filter(_.visibility == "public")}
+@cityCount = @{publicCities.size}
+@countryCount = @{publicCities.map(_.countryId).distinct.size}
+
+@* AboutPage JSON-LD built with the JSON library (not hand-written markup) so quoting is always valid; escaping `<`
+   blocks a `</script>` breakout from any interpolated string. *@
+@jsonLd = @{
+  Json.stringify(Json.obj(
+    "@context" -> "https://schema.org",
+    "@type"    -> "AboutPage",
+    "name"     -> Messages("about.title"),
+    "url"      -> (commonData.prodUrl.stripSuffix("/") + "/about"),
+    "mainEntity" -> Json.obj(
+      "@type" -> "Organization",
+      "name"  -> "Project Sidewalk",
+      "url"   -> commonData.prodUrl,
+      "logo"  -> (commonData.prodUrl.stripSuffix("/") +
+        assets.path("images/logos/ProjectSidewalkLogo_WithCurvedText_3600x3600.png")),
+      "email" -> "sidewalk@cs.uw.edu",
+      "sameAs" -> Json.arr(
+        "https://github.com/ProjectSidewalk",
+        "https://twitter.com/projsidewalk",
+        "https://www.facebook.com/projsidewalk",
+        "https://makeabilitylab.cs.washington.edu/"
+      )
+    )
+  )).replace("<", "\\u003c")
+}
+
+@structuredData = {
+  <script type="application/ld+json">@Html(jsonLd)</script>
+}
+
+@common.main(commonData, title, extraHead = structuredData,
+  pageMeta = PageMeta(description = Some(Messages("seo.description.about")))) {
+  @common.navbar(commonData, Some(user))
+
+  <main id="about-page">
+    <h1>@Messages("about.title")</h1>
+
+    <section>
+      <h2>@Messages("about.mission.title")</h2>
+      <p>@Html(Messages("about.mission.body"))</p>
+    </section>
+
+    <section>
+      <h2>@Messages("about.how.title")</h2>
+      <p>@Html(Messages("about.how.body"))</p>
+    </section>
+
+    <section>
+      <h2>@Messages("about.where.title")</h2>
+      <p>@Html(Messages("about.where.body", cityCount, countryCount))</p>
+    </section>
+
+    <section>
+      <h2>@Messages("about.history.title")</h2>
+      <p>@Html(Messages("about.history.body"))</p>
+    </section>
+
+    <section>
+      <h2>@Messages("about.team.title")</h2>
+      <p>@Html(Messages("about.team.body"))</p>
+    </section>
+
+    <section>
+      <h2>@Html(Messages("about.data.title"))</h2>
+      <p>@Html(Messages("about.data.body"))</p>
+      <p>@Html(Messages("about.data.publications"))</p>
+    </section>
+
+    <section>
+      <h2>@Messages("about.funding.title")</h2>
+      <p>@Html(Messages("about.funding.body"))</p>
+    </section>
+
+    <section>
+      <h2>@Messages("about.contact.title")</h2>
+      <p>@Html(Messages("about.contact.body"))</p>
+    </section>
+  </main>
+
+  <link rel="stylesheet" href='@assets.path("css/about.css")'>
+  @* Hydrates the data-live-stat spans with live deployment numbers from /v3/api/aggregateStats. *@
+  <script src='@assets.path("js/common/aggregateStats.js")'></script>
+}

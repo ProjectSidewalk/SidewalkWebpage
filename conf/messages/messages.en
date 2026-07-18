@@ -141,6 +141,26 @@ seo.description.api = Free and open sidewalk accessibility data for {0}: raw lab
 seo.description.about = Learn about Project Sidewalk: our mission to map the world''s sidewalks, the research team behind it, and the open data it produces.
 seo.og.image.alt = Screenshot of Project Sidewalk''s virtual street-view exploration with accessibility labels placed along a sidewalk.
 
+# About page (#4237). {0}/{1} in about.where.body are the live deployment city/country counts.
+about.title = About Project Sidewalk
+about.mission.title = Our mission
+about.mission.body = Project Sidewalk is an open-source project that aims to map and assess every sidewalk in the world using remote crowdsourcing, artificial intelligence, and online street-level imagery. We make sidewalk accessibility data open to everyone to help build more walkable, accessible cities.
+about.how.title = How it works
+about.how.body = You virtually explore a city in a game-like tool, labeling curb ramps, missing sidewalks, obstacles, and surface problems in street-level imagery. Other users then validate those labels to ensure quality. The result is an open dataset that researchers, governments, and communities use to understand and improve sidewalk accessibility. <a href="/explore">Start exploring</a> or <a href="/validate">validate labels</a> to contribute.
+about.where.title = Where we are
+about.where.body = Project Sidewalk is deployed in <span data-live-stat="num_cities">{0}</span> cities across <span data-live-stat="num_countries">{1}</span> countries — and growing. <a href="/cities">See every deployment city</a> or <a href="https://accessiblecommunities.org/use-project-sidewalk/">learn how to bring Project Sidewalk to yours</a>.
+about.history.title = Our history
+about.history.body = Project Sidewalk began in 2012 as a research project by Professor Jon E. Froehlich and PhD student Kotaro Hara, and is now developed in the <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> at the University of Washington''s Paul G. Allen School of Computer Science &amp; Engineering. Our first city-scale deployment — Washington, DC — showed that online crowdsourcing can map an entire city''s sidewalks, and earned a Best Paper Award at CHI 2019.
+about.team.title = The team
+about.team.body = Project Sidewalk is designed and operated by the <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> at the University of Washington, led by Professor Jon E. Froehlich with lead engineer Michael Saugstad, in collaboration with researchers at the University of Illinois Chicago and Utah State University — and powered by thousands of contributors around the world.
+about.data.title = Open data &amp; research
+about.data.body = Everything we collect is open. Download raw labels, label clusters, streets, and accessibility scores through our <a href="/api">public APIs</a>, in formats from CSV to GeoJSON. If you use Project Sidewalk data in your research, please cite our <a href="https://doi.org/10.1145/3290605.3300292">CHI 2019 paper</a>.
+about.data.publications = Browse <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">all Project Sidewalk publications</a> on the Makeability Lab website.
+about.funding.title = Funding
+about.funding.body = Project Sidewalk is supported by the National Science Foundation, with additional support from Google, the Alfred P. Sloan Foundation, PacTrans, and the UW Center for Research and Education on Accessible Technology and Experiences (CREATE).
+about.contact.title = Contact us
+about.contact.body = Questions, ideas, or press inquiries? Email us at <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, open an issue on <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a>, or follow us on <a href="https://twitter.com/projsidewalk">Twitter</a> and <a href="https://www.facebook.com/projsidewalk">Facebook</a>.
+
 landing.create.path = Let''s create a path for everyone
 landing.start.exploring = Start Exploring
 landing.new.deployment = Learn about deploying Project Sidewalk in your city.

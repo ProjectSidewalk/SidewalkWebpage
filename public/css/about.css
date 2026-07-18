@@ -1,0 +1,28 @@
+/* About page (#4237). Typography and colors come from the design-system tokens in main.css :root. */
+#about-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 24px 20px 64px;
+}
+
+#about-page h1 {
+  font: var(--text-h1-bold);
+  color: var(--color-neutral-900);
+  margin: 24px 0 8px;
+}
+
+#about-page h2 {
+  font: var(--text-h2-bold);
+  color: var(--color-neutral-900);
+  margin: 32px 0 8px;
+}
+
+#about-page p {
+  font: var(--text-body-regular);
+  color: var(--color-neutral-900);
+  margin: 0 0 12px;
+}
+
+#about-page a {
+  color: var(--color-link-200);
+}

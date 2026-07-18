@@ -161,6 +161,14 @@ function updateStatsDisplay(stats) {
     `;
   }
 
+  // Update live-number placeholders on localized pages (e.g. About). The server renders config-derived counts as
+  // the crawlable no-JS fallback; only the number's textContent is replaced so the translated copy around it is
+  // untouched. Loading/error states deliberately leave the fallback numbers in place.
+  document.querySelectorAll('[data-live-stat]').forEach((el) => {
+    const value = stats[el.dataset.liveStat];
+    if (typeof value === 'number') el.textContent = formatNumber(value);
+  });
+
   // Update cities page intro paragraph.
   const citiesTargetParagraph = document.getElementById('cities-deployment-stats');
   if (citiesTargetParagraph) {

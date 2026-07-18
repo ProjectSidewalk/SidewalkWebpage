@@ -143,6 +143,26 @@ seo.description.api = Dados abertos e gratuitos de acessibilidade de calçadas d
 seo.description.about = Conheça o Project Sidewalk: nossa missão de mapear as calçadas do mundo, a equipe de pesquisa por trás dele e os dados abertos que ele produz.
 seo.og.image.alt = Captura de tela da exploração virtual do Project Sidewalk com rótulos de acessibilidade ao longo de uma calçada.
 
+# Página "Sobre" (#4237). {0}/{1} em about.where.body são as contagens atuais de cidades/países.
+about.title = Sobre o Project Sidewalk
+about.mission.title = Nossa missão
+about.mission.body = O Project Sidewalk é um projeto de código aberto que busca mapear e avaliar todas as calçadas do mundo usando colaboração coletiva remota, inteligência artificial e imagens de rua on-line. Tornamos os dados de acessibilidade de calçadas abertos a todos para ajudar a construir cidades mais caminháveis e acessíveis.
+about.how.title = Como funciona
+about.how.body = Você explora virtualmente uma cidade em uma ferramenta estilo jogo, rotulando rampas de calçada, calçadas ausentes, obstáculos e problemas de superfície em imagens de rua. Outras pessoas então validam esses rótulos para garantir a qualidade. O resultado é um conjunto de dados abertos que pesquisadores, governos e comunidades usam para entender e melhorar a acessibilidade. <a href="/explore">Comece a explorar</a> ou <a href="/validate">valide rótulos</a> para contribuir.
+about.where.title = Onde estamos
+about.where.body = O Project Sidewalk está presente em <span data-live-stat="num_cities">{0}</span> cidades de <span data-live-stat="num_countries">{1}</span> países — e crescendo. <a href="/cities">Veja todas as cidades</a> ou <a href="https://accessiblecommunities.org/use-project-sidewalk/">saiba como levar o Project Sidewalk para a sua</a>.
+about.history.title = Nossa história
+about.history.body = O Project Sidewalk começou em 2012 como um projeto de pesquisa do professor Jon E. Froehlich e do doutorando Kotaro Hara, e hoje é desenvolvido no <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> da Escola Paul G. Allen de Ciência da Computação e Engenharia da Universidade de Washington. Nossa primeira implantação em escala de cidade, Washington, DC, mostrou que a colaboração coletiva on-line pode mapear as calçadas de uma cidade inteira, e recebeu o prêmio de Best Paper na CHI 2019.
+about.team.title = A equipe
+about.team.body = O Project Sidewalk é projetado e operado pelo <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> da Universidade de Washington, liderado pelo professor Jon E. Froehlich com o engenheiro-chefe Michael Saugstad, em colaboração com pesquisadores da Universidade de Illinois em Chicago e da Universidade Estadual de Utah — e movido por milhares de colaboradores no mundo todo.
+about.data.title = Dados abertos e pesquisa
+about.data.body = Tudo o que coletamos é aberto. Baixe rótulos, grupos de rótulos, ruas e pontuações de acessibilidade pelas nossas <a href="/api">APIs públicas</a>, em formatos de CSV a GeoJSON. Se você usar dados do Project Sidewalk em sua pesquisa, cite nosso <a href="https://doi.org/10.1145/3290605.3300292">artigo da CHI 2019</a>.
+about.data.publications = Veja <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">todas as publicações do Project Sidewalk</a> no site do Makeability Lab.
+about.funding.title = Financiamento
+about.funding.body = O Project Sidewalk é apoiado pela National Science Foundation, com apoio adicional do Google, da Fundação Alfred P. Sloan, do PacTrans e do centro CREATE da Universidade de Washington.
+about.contact.title = Fale conosco
+about.contact.body = Dúvidas, ideias ou imprensa? Escreva para <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, abra um issue no <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a> ou siga-nos no <a href="https://twitter.com/projsidewalk">Twitter</a> e no <a href="https://www.facebook.com/projsidewalk">Facebook</a>.
+
 landing.create.path = Vamos criar um caminho para todos
 landing.start.exploring = Começar a explorar
 landing.new.deployment = Aprenda como implantar o projeto Sidewalk na sua cidade.

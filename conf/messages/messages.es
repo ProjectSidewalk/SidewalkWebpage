@@ -147,6 +147,26 @@ seo.description.api = Datos abiertos y gratuitos de accesibilidad de banquetas d
 seo.description.about = Conoce Project Sidewalk: nuestra misión de mapear las banquetas del mundo, el equipo de investigación detrás y los datos abiertos que produce.
 seo.og.image.alt = Captura de pantalla de la exploración virtual de Project Sidewalk con etiquetas de accesibilidad colocadas a lo largo de una banqueta.
 
+# Página "Acerca de" (#4237). {0}/{1} en about.where.body son los conteos actuales de ciudades/países.
+about.title = Acerca de Project Sidewalk
+about.mission.title = Nuestra misión
+about.mission.body = Project Sidewalk es un proyecto de código abierto que busca mapear y evaluar todas las banquetas del mundo mediante colaboración colectiva remota, inteligencia artificial e imágenes de calles en línea. Abrimos los datos de accesibilidad de banquetas a todo el mundo para ayudar a construir ciudades más caminables y accesibles.
+about.how.title = Cómo funciona
+about.how.body = Exploras virtualmente una ciudad en una herramienta tipo juego, etiquetando rampas peatonales, banquetas faltantes, obstáculos y problemas de superficie en imágenes a nivel de calle. Después, otras personas validan esas etiquetas para asegurar la calidad. El resultado es un conjunto de datos abiertos que investigadores, gobiernos y comunidades usan para entender y mejorar la accesibilidad. <a href="/explore">Comienza a explorar</a> o <a href="/validate">valida etiquetas</a> para contribuir.
+about.where.title = Dónde estamos
+about.where.body = Project Sidewalk está desplegado en <span data-live-stat="num_cities">{0}</span> ciudades de <span data-live-stat="num_countries">{1}</span> países, y seguimos creciendo. <a href="/cities">Consulta todas las ciudades</a> o <a href="https://accessiblecommunities.org/use-project-sidewalk/">aprende cómo llevar Project Sidewalk a la tuya</a>.
+about.history.title = Nuestra historia
+about.history.body = Project Sidewalk comenzó en 2012 como un proyecto de investigación del profesor Jon E. Froehlich y el estudiante de doctorado Kotaro Hara, y hoy se desarrolla en el <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> de la Escuela Paul G. Allen de Ciencias de la Computación e Ingeniería de la Universidad de Washington. Nuestro primer despliegue a escala de ciudad, Washington, DC, demostró que la colaboración colectiva en línea puede mapear las banquetas de una ciudad entera, y recibió el premio Best Paper en CHI 2019.
+about.team.title = El equipo
+about.team.body = Project Sidewalk es diseñado y operado por el <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> de la Universidad de Washington, dirigido por el profesor Jon E. Froehlich junto con el ingeniero principal Michael Saugstad, en colaboración con investigadores de la Universidad de Illinois en Chicago y la Universidad Estatal de Utah, e impulsado por miles de personas contribuyentes en todo el mundo.
+about.data.title = Datos abiertos e investigación
+about.data.body = Todo lo que recolectamos es abierto. Descarga etiquetas, grupos de etiquetas, calles y puntuaciones de accesibilidad mediante nuestras <a href="/api">API públicas</a>, en formatos desde CSV hasta GeoJSON. Si usas datos de Project Sidewalk en tu investigación, por favor cita nuestro <a href="https://doi.org/10.1145/3290605.3300292">artículo de CHI 2019</a>.
+about.data.publications = Consulta <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">todas las publicaciones de Project Sidewalk</a> en el sitio del Makeability Lab.
+about.funding.title = Financiamiento
+about.funding.body = Project Sidewalk cuenta con el apoyo de la National Science Foundation, con apoyo adicional de Google, la Fundación Alfred P. Sloan, PacTrans y el centro CREATE de la Universidad de Washington.
+about.contact.title = Contáctanos
+about.contact.body = ¿Preguntas, ideas o consultas de prensa? Escríbenos a <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, abre un reporte en <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a> o síguenos en <a href="https://twitter.com/projsidewalk">Twitter</a> y <a href="https://www.facebook.com/projsidewalk">Facebook</a>.
+
 landing.create.path = Creemos un camino para todas las personas
 landing.start.exploring = Comienza a explorar
 landing.new.deployment = Aprenda cómo implementar el Proyecto Sidewalk en su ciudad.
