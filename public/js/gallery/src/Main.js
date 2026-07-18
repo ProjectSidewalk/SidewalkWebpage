@@ -80,7 +80,7 @@ class Main {
 
     sg.cardFilter = new CardFilter(sg.ui.cardFilter, sg.labelTypeMenu, sg.cityMenu, params.initialFilters);
     sg.cardContainer = await CardContainer.create(
-      sg.ui.cardContainer, params.initialFilters, params.viewerType, params.viewerAccessToken,
+      sg.ui.cardContainer, params.initialFilters, params.viewerType, params.viewerAccessToken, params.currUsername,
     );
     sg.expandedView = () => sg.cardContainer.getExpandedView();
 

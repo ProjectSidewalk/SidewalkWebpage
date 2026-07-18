@@ -1002,3 +1002,678 @@ button.label-detail__meta-cell:focus-visible {
 .label-detail__share-item-icon svg {
   display: block;
 }
+
+/* ─── Lived-experience stories (#4054) ────────────────────────────────────
+   Collapsed disclosure with a count badge; expanding reveals the story list (text, optional photo thumbnail that
+   opens the enlarge dialog, own-story delete). The composer + lightbox dialogs are rendered by the same partial. */
+.label-detail__stories {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eeeeee;
+}
+
+.label-detail__stories-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-family: var(--font-primary);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--color-neutral-black);
+  list-style: none;
+}
+
+.label-detail__stories-summary::-webkit-details-marker { display: none; }
+
+.label-detail__stories-summary:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+.label-detail__stories-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--color-asphalt-500);
+  color: var(--color-neutral-white);
+  font-size: 12px;
+
+  /* Tight line box so the digit sits on the flex center instead of high in an inherited ~1.5 line-height. */
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.label-detail__stories-count[hidden] { display: none; }
+
+/* Outline pill CTA (Variant B placement on the C.2 disclosure). Deliberately NOT pine green: on this card green
+   already means "Agree" on the validation buttons right above, so the CTA stays neutral to keep that meaning. */
+.label-detail__story-share {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-neutral-500);
+  border-radius: 999px;
+  background: var(--color-neutral-white);
+  cursor: pointer;
+  font-family: var(--font-primary);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-neutral-900);
+  transition: background-color 120ms ease;
+}
+
+.label-detail__story-share img {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+
+.label-detail__story-share[hidden] { display: none; }
+
+.label-detail__story-share:hover { background: var(--color-neutral-100); }
+
+.label-detail__story-share:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+/* Zero-story CTA in the footer row (the stories section is hidden until a story exists): dressed to match its
+   labelmap-link/share-trigger siblings so the three read as one row (per Jon: uniform light gray for now), but
+   pushed to the left edge so the share-this-page actions keep their own group on the right. */
+.label-detail__story-share--footer {
+  margin-right: auto;
+  gap: 6px;
+  padding: 5px 12px;
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-800);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 18px;
+  font: var(--text-small-medium);
+}
+
+.label-detail__story-share--footer:hover {
+  background: var(--color-neutral-200);
+  border-color: var(--color-neutral-400);
+}
+
+.label-detail__stories-arrow {
+  margin-left: auto;
+  color: #555555;
+  transition: transform 150ms ease;
+}
+
+.label-detail__stories-details[open] .label-detail__stories-arrow { transform: rotate(180deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .label-detail__stories-arrow { transition: none; }
+}
+
+.label-detail__stories-list {
+  max-height: 220px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.label-detail__story {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding-top: 10px;
+}
+
+.label-detail__story--hidden { opacity: 0.75; }
+
+.label-detail__story-photo-btn {
+  flex: none;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  cursor: zoom-in;
+}
+
+.label-detail__story-photo-btn:hover .label-detail__story-thumb { box-shadow: 0 2px 8px rgb(0 0 0 / 25%); }
+
+.label-detail__story-photo-btn:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+.label-detail__story-thumb {
+  display: block;
+  width: 110px;
+  height: 82px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--color-neutral-300);
+}
+
+.label-detail__story-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.label-detail__story-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.label-detail__story-byline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #595959;
+}
+
+.label-detail__story-who {
+  font-weight: 600;
+  color: var(--color-neutral-900);
+}
+
+.label-detail__story-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-family: var(--font-primary);
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.label-detail__story-chip--own {
+  background: var(--color-pine-100);
+  border: 1px solid var(--color-pine-500);
+  color: var(--color-pine-800);
+}
+
+.label-detail__story-chip--hidden {
+  background: var(--color-banana-100);
+  border: 1px solid var(--color-banana-700);
+  color: var(--color-banana-900);
+}
+
+.label-detail__story-edit,
+.label-detail__story-delete {
+  padding: 2px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-primary);
+  font-weight: 600;
+  font-size: 11px;
+  text-decoration: underline;
+}
+
+.label-detail__story-edit { color: var(--color-link-200); }
+
+.label-detail__story-delete { color: var(--color-orange-700); }
+
+.label-detail__story-edit:focus-visible,
+.label-detail__story-delete:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.label-detail__story-dashboard-link {
+  font-family: var(--font-primary);
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--color-link-200);
+  text-decoration: underline;
+}
+
+.label-detail__story-dashboard-link:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── Story composer dialog (#4054) ─────────────────────────────────────── */
+dialog.story-composer {
+  box-sizing: border-box;
+  position: relative;
+  width: 520px;
+  max-width: calc(100vw - 32px);
+  border: none;
+  border-radius: 12px;
+  padding: 24px;
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-black);
+  box-shadow: 0 20px 50px rgb(0 0 0 / 30%);
+  font-family: var(--font-primary);
+  font-size: 14px;
+}
+
+dialog.story-composer::backdrop,
+dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
+
+/* Weight hierarchy (deliberate, and defended against Bootstrap 3's globals — `label { font-weight: bold }` and
+   normalize's `textarea/input { font: inherit }` would otherwise bolden option rows and typed text): title 600,
+   field labels 600, everything the user reads or types 400. */
+.story-composer__title {
+  margin: 0 0 4px;
+  font-family: var(--font-primary);
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.story-composer__intro {
+  margin: 0 0 16px;
+  color: #595959;
+  font-size: 13px;
+}
+
+.story-composer__field {
+  display: block;
+  margin-bottom: 0;
+  font-weight: 400;
+}
+
+.story-composer__field-label {
+  display: block;
+  margin-bottom: 4px;
+  font-family: var(--font-primary);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.story-composer__text {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 110px;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1px solid #807f7f;
+  border-radius: 6px;
+  font-family: inherit;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-neutral-black);
+}
+
+.story-composer__text:focus,
+.story-composer__alt-input:focus {
+  outline: none;
+  border-color: #4a90e2;
+}
+
+.story-composer__counter {
+  margin: 2px 0 14px;
+  text-align: right;
+  font-size: 11px;
+  color: var(--color-neutral-600);
+  font-variant-numeric: tabular-nums;
+}
+
+.story-composer__photo-row { margin-bottom: 14px; }
+
+.story-composer__photo-attach {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
+  padding: 10px 14px;
+  border: 1px dashed #999999;
+  border-radius: 8px;
+  background: #fafafa;
+  cursor: pointer;
+  font-family: var(--font-primary);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-asphalt-400);
+}
+
+.story-composer__photo-attach[hidden] { display: none; }
+
+.story-composer__photo-attach:hover {
+  border-color: var(--color-pine-700);
+  color: var(--color-pine-800);
+}
+
+.story-composer__photo-attach:focus-within {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+.story-composer__photo-preview {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.story-composer__photo-preview[hidden] { display: none; }
+
+.story-composer__photo-thumb {
+  width: 120px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--color-neutral-300);
+}
+
+.story-composer__photo-fields {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.story-composer__alt-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #807f7f;
+  border-radius: 6px;
+  font-family: inherit;
+  font-weight: 400;
+  font-size: 13px;
+}
+
+.story-composer__check-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-bottom: 0;
+  font-weight: 400;
+  font-size: 13px;
+}
+
+.story-composer__check-row[hidden] { display: none; }
+
+.story-composer__check-row input { margin-top: 2px; }
+
+/* The identity ("Anonymous" / the username) leads both post-as rows as a pill, so the two options read
+   symmetrically: <pill> then <what shows publicly>. The selected row's pill takes the same green treatment
+   as the "Your story" chip — the card's established "yours/active" style — rather than a solid pine fill,
+   which would mimic the Share story button below and read as tappable. The transparent border reserves the
+   selected state's border width, so toggling never shifts layout. */
+.story-composer__name-pill {
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--color-neutral-100);
+  font-weight: 600;
+}
+
+.story-composer__check-row input:checked + .story-composer__name-pill {
+  background: var(--color-pine-100);
+  border-color: var(--color-pine-500);
+  color: var(--color-pine-800);
+}
+
+/* Same secondary gray as the composer intro, so the pill carries the emphasis. */
+.story-composer__name-desc { color: #595959; }
+
+.story-composer__photo-remove {
+  justify-self: start;
+  padding: 2px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-primary);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--color-orange-700);
+  text-decoration: underline;
+}
+
+.story-composer__post-as {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 6px;
+  padding: 0;
+  border: none;
+}
+
+.story-composer__post-as legend {
+  width: auto;
+  padding: 0;
+  margin-bottom: 4px;
+  border: 0;
+}
+
+.story-composer__signin-cta {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--color-asphalt-400);
+}
+
+.story-composer__signin-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-primary);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-link-200);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.story-composer__signin-btn:hover { opacity: 0.85; }
+
+.story-composer__signin-btn:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.story-composer__privacy {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--color-neutral-100);
+  font-size: 12px;
+  color: var(--color-asphalt-400);
+}
+
+.story-composer__error {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--color-error-200);
+}
+
+.story-composer__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.story-composer__cancel {
+  padding: 9px 18px;
+  border: 1px solid var(--color-neutral-400);
+  border-radius: 999px;
+  background: var(--color-neutral-white);
+  cursor: pointer;
+  font-family: var(--font-primary);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-neutral-900);
+}
+
+/* Quiet corner X, matching the card header's close (the lightbox's floating circle is for sitting over a photo). */
+.story-composer__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.story-composer__close:hover { background: rgb(0 0 0 / 6%); }
+
+.story-composer__close img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.story-composer__submit {
+  padding: 9px 22px;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-pine-500);
+  cursor: pointer;
+  font-family: var(--font-primary);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-neutral-black);
+}
+
+.story-composer__submit:hover { opacity: 0.9; }
+
+.story-composer__submit:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.story-composer__cancel:focus-visible,
+.story-composer__close:focus-visible,
+.story-composer__submit:focus-visible,
+.story-composer__photo-remove:focus-visible,
+.story-lightbox__close:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+/* ─── Story photo lightbox (#4054) ──────────────────────────────────────── */
+dialog.story-lightbox {
+  box-sizing: border-box;
+  position: relative;
+  max-width: min(560px, calc(100vw - 32px));
+  border: none;
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--color-neutral-white);
+  box-shadow: 0 20px 50px rgb(0 0 0 / 35%);
+  font-family: var(--font-primary);
+}
+
+/* Floats over the image's top-right corner — the standard lightbox dismiss spot. */
+.story-lightbox__close {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 85%);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 30%);
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--color-neutral-900);
+}
+
+.story-lightbox__close:hover { background: var(--color-neutral-white); }
+
+.story-lightbox__figure { margin: 0; }
+
+.story-lightbox__img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.story-lightbox__caption {
+  margin-top: 10px;
+  max-width: 60ch;
+  font-size: 13px;
+  color: var(--color-asphalt-400);
+}
+
+/* ─── App-styled confirmation dialog (common/ConfirmDialog.js) ──────────── */
+dialog.ps-confirm {
+  box-sizing: border-box;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  border: none;
+  border-radius: 12px;
+  padding: 20px;
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-black);
+  box-shadow: 0 20px 50px rgb(0 0 0 / 30%);
+  font-family: var(--font-primary);
+  font-size: 14px;
+}
+
+dialog.ps-confirm::backdrop { background: rgb(0 0 0 / 45%); }
+
+.ps-confirm__message {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.ps-confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.ps-confirm__cancel,
+.ps-confirm__confirm {
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: var(--font-primary);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.ps-confirm__cancel {
+  border: 1px solid var(--color-neutral-400);
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+}
+
+.ps-confirm__confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  background: var(--color-asphalt-500);
+  color: var(--color-neutral-white);
+}
+
+.ps-confirm__confirm--danger { background: var(--color-error-200); }
+
+.ps-confirm__confirm-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.ps-confirm__cancel:focus-visible,
+.ps-confirm__confirm:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}

@@ -2357,3 +2357,108 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   font-size: var(--font-size-xs, 0.8125rem);
   color: var(--color-text-heading, #263238);
 }
+
+/* ─── Stories moderation queue (#4054) ──────────────────────────────────── */
+.stories-queue-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr) 130px 170px;
+  gap: 14px;
+  align-items: start;
+  padding: 14px 0;
+  border-top: 1px solid var(--color-border, #e0e0e0);
+}
+
+.stories-queue-row--hidden {
+  background: var(--color-banana-100, #fef7e8);
+  border-radius: 8px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.stories-queue-who a {
+  font-weight: 600;
+  overflow-wrap: break-word;
+}
+
+.stories-queue-public-as {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--font-size-xs, 0.8125rem);
+  color: var(--color-text-muted, #607d8b);
+}
+
+.stories-queue-text {
+  margin: 0 0 6px;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.stories-queue-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: var(--font-size-xs, 0.8125rem);
+  color: var(--color-text-muted, #607d8b);
+}
+
+.stories-queue-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid var(--color-banana-700, #f1b12a);
+  border-radius: 999px;
+  background: var(--color-banana-100, #fef7e8);
+  color: var(--color-banana-900, #a87303);
+  font-weight: 600;
+}
+
+.stories-queue-chip[hidden] { display: none; }
+
+.stories-queue-thumb {
+  display: block;
+  width: 120px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--color-border, #e0e0e0);
+}
+
+.stories-queue-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.stories-queue-btn {
+  padding: 6px 12px;
+  border: 1px solid #999999;
+  border-radius: 4px;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: var(--font-size-xs, 0.8125rem);
+}
+
+.stories-queue-btn:hover { background: #f0f0f0; }
+
+.stories-queue-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.stories-queue-btn--danger {
+  border-color: #ed1c24;
+  color: #a31217;
+}
+
+.stories-queue-btn:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+@media (width <= 900px) {
+  .stories-queue-row {
+    grid-template-columns: 1fr;
+  }
+}

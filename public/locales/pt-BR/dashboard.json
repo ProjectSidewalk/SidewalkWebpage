@@ -81,5 +81,8 @@
     "name-too-short": "O nome da equipe deve ter pelo menos 2 caracteres.",
     "create-failed": "Não foi possível criar a equipe. Tente novamente.",
     "network-error": "Erro de rede — tente novamente."
+  },
+  "stories": {
+    "none": "Você ainda não compartilhou nenhuma história. Abra um rótulo no mapa e escolha “Compartilhe a sua”."
   }
 }

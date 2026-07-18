@@ -124,6 +124,7 @@ htmlcov/
 .panos/
 .crops/
 .share-images/
+.story-media/
 
 # VSCode
 # Metals is a linter and code formatter for Scala

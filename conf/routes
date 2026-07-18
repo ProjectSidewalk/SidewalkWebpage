@@ -62,6 +62,7 @@ GET     /admin/label-map                                controllers.AdminDashboa
 GET     /admin/quality                                  controllers.AdminDashboardController.quality
 GET     /admin/contributors                             controllers.AdminDashboardController.contributors
 GET     /admin/activity                                 controllers.AdminDashboardController.activity
+GET     /admin/stories                                  controllers.AdminDashboardController.stories
 GET     /admin/humans-vs-ai                             controllers.AdminDashboardController.humansVsAi
 GET     /admin/api-analytics                            controllers.AdminDashboardController.apiAnalytics
 GET     /admin/management                               controllers.AdminDashboardController.management
@@ -215,6 +216,18 @@ GET     /cropImage/:labelType/:labelId/metadata         controllers.ImageControl
 GET     /cropImage/:labelType/:labelId                  controllers.ImageController.serveCropImage(labelType: String, labelId: Int)
 GET     /backupImage/:panoId/metadata                   controllers.ImageController.getBackupImageMetadata(panoId: String)
 GET     /backupImage/:panoId                            controllers.ImageController.serveBackupImage(panoId: String)
+
+# Lived-experience stories (#4054). Read + media serving are public (the /label/:id share page has no session);
+# labelId rides as a query param so nothing shadows the /label/:labelId wildcard family (see the note above /label).
+GET     /stories                                        controllers.StoryController.getStories(labelId: Int)
+GET     /storyMedia/:storyMediaId                       controllers.StoryController.serveStoryMedia(storyMediaId: Int)
+POST    /userapi/stories                                controllers.StoryController.submitStory
+PUT     /userapi/stories/:storyId                       controllers.StoryController.updateOwnStory(storyId: Int)
+DELETE  /userapi/stories/:storyId                       controllers.StoryController.deleteOwnStory(storyId: Int)
+GET     /userapi/stories/mine                           controllers.StoryController.getMyStories
+GET     /adminapi/stories                               controllers.StoryController.getRecentStories(n: Int ?= 50)
+PUT     /adminapi/stories/:storyId/visibility           controllers.StoryController.setStoryVisibility(storyId: Int)
+DELETE  /adminapi/stories/:storyId                      controllers.StoryController.adminDeleteStory(storyId: Int)
 
 # AI
 POST    /ai/analyzeScene                                controllers.AiController.analyzeScene()

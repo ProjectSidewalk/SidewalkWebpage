@@ -5,6 +5,7 @@ import models.auth.DefaultEnv
 import models.label.{LabelMetadata, LabelPointTable, LabelTypeEnum, LocationXY}
 import models.pano.PanoSource.PanoSource
 import models.user.SidewalkUserWithRole
+import models.utils.ImageUtils
 import play.api.i18n.Messages
 import play.api.libs.ws.WSClient
 import play.api.mvc._
@@ -16,12 +17,9 @@ import service.{AuthenticationService, ConfigService, LabelService, PanoDataServ
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayInputStream, File}
-import java.nio.file.{Files, StandardCopyOption}
-import javax.imageio.stream.FileImageOutputStream
-import javax.imageio.{IIOImage, ImageIO, ImageWriteParam}
+import javax.imageio.ImageIO
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Using
 
 /**
  * Public social-share surface for a single label (issue #456).
@@ -327,30 +325,9 @@ class ShareController @Inject() (
     Ok.sendFile(file, inline = true).as("image/jpeg").withHeaders("Cache-Control" -> "public, max-age=86400")
   }
 
-  /**
-   * Writes the image to the given file as a quality-controlled JPEG (ImageIO's default writer quality is lower).
-   *
-   * The write is atomic: bytes go to a temp file in the same directory, which is then moved over the target.
-   * Concurrent first requests for the same label may build in parallel (harmless duplicate work; last mover wins),
-   * but a reader can never be served a half-written file.
-   */
-  private def writeJpeg(img: BufferedImage, file: File): Unit = {
-    val tmp    = File.createTempFile(s"${file.getName}.", ".tmp", file.getParentFile)
-    val writer = ImageIO.getImageWritersByFormatName("jpg").next()
-    try {
-      val params = writer.getDefaultWriteParam
-      params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT)
-      params.setCompressionQuality(SHARE_IMAGE_JPEG_QUALITY)
-      Using.resource(new FileImageOutputStream(tmp)) { out =>
-        writer.setOutput(out)
-        writer.write(null, new IIOImage(img, null, null), params)
-      }
-      val _ = Files.move(tmp.toPath, file.toPath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
-    } finally {
-      writer.dispose()
-      val _ = tmp.delete() // No-op after a successful move; cleans up the temp file if the write failed midway.
-    }
-  }
+  /** Writes the image to the given file as a quality-controlled, atomically-placed JPEG (see ImageUtils.writeJpeg). */
+  private def writeJpeg(img: BufferedImage, file: File): Unit =
+    ImageUtils.writeJpeg(img, file, SHARE_IMAGE_JPEG_QUALITY)
 
   /**
    * Branded fallback served when no pano image is available for a label: the logo centered on a white

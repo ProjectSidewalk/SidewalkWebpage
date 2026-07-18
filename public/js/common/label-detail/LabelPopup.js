@@ -22,6 +22,8 @@
  *     LabelMap uses the payload's camera coords to position the map for labels its own layer data can't locate.
  * @param {function(number): void} [opts.onClose] Called with the last-shown label's ID whenever the dialog
  *     closes (X, ESC, or backdrop); LabelMap uses it to pulse that label's spot on the map.
+ * @param {boolean} [opts.showLabelMapLink] Show the popup's "View on Label Map" footer link (for hosts that
+ *     aren't the label map themselves — e.g. the user dashboard).
  * @returns {Promise<object>} Resolves once the pano viewer has been initialized.
  */
 async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, opts = {}) {
@@ -40,6 +42,7 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
     viewerType,
     viewerAccessToken,
     currUsername,
+    showLabelMapLink: opts.showLabelMapLink,
   });
   dialog.close();
   // Hold the initializing class through the close transition duration so the fade-out doesn't flash the dialog.

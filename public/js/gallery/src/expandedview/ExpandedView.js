@@ -14,17 +14,20 @@ class ExpandedView {
   #root;
   #panoViewerType;
   #viewerAccessToken;
+  #currUsername;
 
   /**
    * @param {jQuery} uiModal The `.gallery-expanded-view` container element.
    * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize.
    * @param {string} viewerAccessToken An access token that authorizes image requests for the pano viewer.
+   * @param {?string} currUsername The viewer's username when signed in to a real account, else null.
    */
-  constructor(uiModal, panoViewerType, viewerAccessToken) {
+  constructor(uiModal, panoViewerType, viewerAccessToken, currUsername) {
     this.#uiModal = uiModal;
     this.#root = uiModal[0]; // Unwrap jQuery to get the DOM element for LabelDetail.
     this.#panoViewerType = panoViewerType;
     this.#viewerAccessToken = viewerAccessToken;
+    this.#currUsername = currUsername;
   }
 
   /**
@@ -32,10 +35,11 @@ class ExpandedView {
    * @param {jQuery} uiModal The `.gallery-expanded-view` container element.
    * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize.
    * @param {string} viewerAccessToken An access token that authorizes image requests for the pano viewer.
+   * @param {?string} currUsername The viewer's username when signed in to a real account, else null.
    * @returns {Promise<ExpandedView>}
    */
-  static async create(uiModal, panoViewerType, viewerAccessToken) {
-    const expandedView = new ExpandedView(uiModal, panoViewerType, viewerAccessToken);
+  static async create(uiModal, panoViewerType, viewerAccessToken, currUsername) {
+    const expandedView = new ExpandedView(uiModal, panoViewerType, viewerAccessToken, currUsername);
     await expandedView.#init();
     return expandedView;
   }
@@ -55,7 +59,7 @@ class ExpandedView {
       admin: false,
       viewerType: this.#panoViewerType,
       viewerAccessToken: this.#viewerAccessToken,
-      currUsername: null,
+      currUsername: this.#currUsername,
       onVote: this.#handleVote,
       panoOverlaySource: 'GalleryExpandedImage',
       voteColumnSource: 'GalleryExpandedThumbs',

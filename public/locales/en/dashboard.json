@@ -81,5 +81,8 @@
     "name-too-short": "Team name must be at least 2 characters.",
     "create-failed": "Could not create the team. Please try again.",
     "network-error": "Network error — please try again."
+  },
+  "stories": {
+    "none": "You haven't shared any stories yet. Find a label on the map and choose “Share yours” to add one."
   }
 }
