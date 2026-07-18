@@ -18,8 +18,10 @@ import javax.inject.{Inject, Singleton}
  */
 @Singleton
 class ImageSigningService @Inject() (config: Configuration) {
-  private val secret        = config.get[String]("image.signing.secret")
-  private val ExpirySeconds = 3600 // 60 minutes
+  private val secret = config.get[String]("image.signing.secret")
+
+  /** Minimum lifetime of a signed URL — also the ceiling for any Cache-Control max-age on the responses it gates. */
+  val expirySeconds: Int = 3600 // 60 minutes
 
   private def hmac(data: String): String = {
     val mac = Mac.getInstance("HmacSHA256")
@@ -29,10 +31,15 @@ class ImageSigningService @Inject() (config: Configuration) {
 
   /**
    * Returns the given path with ?exp=<epoch>&sig=<hmac> appended.
+   *
+   * The expiry is quantized up to the next 15-minute boundary: a fresh `exp` on every call would hand the browser a
+   * new cache key for the same bytes each time it re-renders, making its cached copy unusable. Within a quantum the
+   * URL is stable, so effective lifetime is expirySeconds to expirySeconds + 15 minutes.
    * @param path URL path to sign (e.g. "/backupImage/abc123").
    */
   def signedUrl(path: String): String = {
-    val exp = Instant.now.getEpochSecond + ExpirySeconds
+    val quantumSeconds = 900L
+    val exp            = (Instant.now.getEpochSecond / quantumSeconds + 1) * quantumSeconds + expirySeconds
     s"$path?exp=$exp&sig=${hmac(s"$path:$exp")}"
   }
 

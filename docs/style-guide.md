@@ -105,6 +105,11 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
   duplicated (see [`CONTRIBUTING.md`](../CONTRIBUTING.md) → Internationalization).
 - **CSS:** 2-space indent, `stylelint-config-standard` ([`stylelint.config.mjs`](../stylelint.config.mjs)). Use the
   `main.css` `:root` design tokens for colors/fonts/spacing.
+- **Scale tool UI with `var(--ui-scale)`.** The Explore/Validate tools and the overlays layered over them are zoomed
+  uniformly to fit the viewport (`util.applyToolScale` sets `--ui-scale` on `.tool-ui` and the document root). Author
+  every fixed dimension for that UI as `calc(<base>px * var(--ui-scale, 1))` (paddings, gaps, sizes, borders, radii,
+  and any raw `font-size`); prefer the `--text-*` type tokens, which already include it. A bare `px` there won't scale.
+  Fixed page chrome (e.g. the navbar) stays unscaled on purpose.
 
 ## Frontend file & directory organization
 
@@ -142,6 +147,14 @@ consistent with it.
   Because of those two exceptions, the htmlhint `id-class-value` rule is left **off** — its `dash` mode enforces strict
   kebab-case and can express neither BEM nor the backend-sourced values, so it can't be brought to zero. New markup
   should still default to kebab-case.
+
+**Icons.** SVG icons live as **their own files** in `public/images/icons/` — **never inlined** in Twirl templates
+(inlined SVGs are hard to find, reuse, and review — see #4058). Reference them with an `<img>`, e.g.
+`<img src='@assets.path("images/icons/map-pin-feather.svg")' alt="">` (empty `alt` when the icon sits next to a text
+label). Default to icons from the **feather** and **material** sets in the "Design System Tokens" Figma, and name each
+file `<icon>-<set>.svg` (`map-pin-feather.svg`, `comment-material.svg`). These SVGs carry a **fixed** stroke color
+(`#242424` for the standard dark icon), so a different color is a **separate file** with a color qualifier
+(`chevron-left-white-feather.svg`) rather than a CSS override.
 
 **Deferred namespace mismatch:** the reorg renamed the app *directories* (`SVLabel → explore`, `SVValidate →
 validate`, `Progress → user-dashboard`), but the apps' internal JS namespace **globals** `svl` (Explore) and `sg`

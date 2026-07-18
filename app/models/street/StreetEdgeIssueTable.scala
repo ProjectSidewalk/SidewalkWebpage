@@ -1,6 +1,7 @@
 package models.street
 
 import com.google.inject.ImplementedBy
+import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -29,6 +30,10 @@ class StreetEdgeIssueTableDef(tag: Tag) extends Table[StreetEdgeIssue](tag, "str
     (StreetEdgeIssue.apply _).tupled,
     StreetEdgeIssue.unapply
   )
+
+  def streetEdge =
+    foreignKey("street_edge_issue_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
+  def user = foreignKey("street_edge_issue_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
 }
 
 @ImplementedBy(classOf[StreetEdgeIssueTable])

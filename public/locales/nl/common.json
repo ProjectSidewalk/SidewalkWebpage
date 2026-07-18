@@ -7,6 +7,8 @@
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
   "format-number": "{{val, number}}",
+  "cities-cta-join_one": "Sluit u aan bij nog {{count, number}} gemeenschap",
+  "cities-cta-join_other": "Sluit u aan bij nog {{count, number}} gemeenschappen",
   "curb-ramp": "Trottoir oprit",
   "no-curb-ramp": "Ontbrekende trottoir oprit",
   "obstacle": "Obstakel op het pad",
@@ -16,6 +18,7 @@
   "crosswalk": "Gemarkeerde oversteekplaats",
   "signal": "Verkeerslicht",
   "other": "Anders",
+  "problem": "Probleem",
   "agree": "Mee eens zijn",
   "disagree": "Het oneens zijn",
   "unsure": "Onzeker",
@@ -79,6 +82,7 @@
   "comments": "Effectiviteit beoordelingen",
   "none": "Geen",
   "image-capture-date": "Opnamedatum afbeelding",
+  "drag-to-look-around": "Sleep om rond te kijken",
   "labeled": "Gelabeled",
   "low": "Laag",
   "medium": "Medium",
@@ -188,6 +192,7 @@
     "view-in-gsv": "Bekijken in Google Streetview",
     "view-in-mapillary": "Bekijken in Mapillary",
     "city": "Stad",
+    "copy-to-clipboard": "Kopiëren naar klembord",
     "copied-to-clipboard": "Gegevens gekopieerd naar uw klembord!"
   },
   "mission-start-tutorial": {

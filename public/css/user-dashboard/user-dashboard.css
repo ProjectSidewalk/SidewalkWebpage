@@ -936,9 +936,9 @@
 #label-modal .label-detail__comment-row { display: none; }
 
 /* Tighten the Comments heading so its empty "None" doesn't tower over the Description row, and give it a colon so it
-   reads like "Description :". */
+   reads like "Description :". The colon goes on the inner heading-text span so it lands before the count badge. */
 #label-modal .label-detail__comments-section .label-detail__col-title { margin: 0 0 2px; }
-#label-modal .label-detail__comments-section .label-detail__col-title::after { content: ":"; }
+#label-modal .label-detail__comments-section .label-detail__col-title > span:first-child::after { content: ":"; }
 
 .ud-card-voted-msg {
   margin: 0;
@@ -1618,4 +1618,78 @@
   .ud-trophy-link:focus-visible {
     transform: none;
   }
+}
+
+/* ─── Your stories (#4054) ──────────────────────────────────────────────── */
+.ud-story-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-neutral-200, #e1e1e1);
+}
+
+.ud-story-row:first-child { border-top: none; }
+
+.ud-story-row--hidden { opacity: 0.8; }
+
+.ud-story-thumb {
+  flex: none;
+  width: 96px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--color-neutral-300, #d1d1d1);
+}
+
+.ud-story-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ud-story-text {
+  margin: 0 0 4px;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.ud-story-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-neutral-700, #6b6b6b);
+}
+
+.ud-story-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border: 1px solid var(--color-banana-700, #f1b12a);
+  border-radius: 999px;
+  background: var(--color-banana-100, #fef7e8);
+  color: var(--color-banana-900, #a87303);
+  font-family: var(--font-accent, Raleway, sans-serif);
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.ud-story-delete {
+  padding: 2px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-accent, Raleway, sans-serif);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--color-orange-700, #8d442f);
+  text-decoration: underline;
+}
+
+.ud-story-delete:focus-visible {
+  outline: 2px solid var(--color-link-100, #3e8bd9);
+  outline-offset: 2px;
+  border-radius: 4px;
 }

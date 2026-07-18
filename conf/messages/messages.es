@@ -46,7 +46,9 @@ loading = Cargando...
 loading.encouragement = ¡Hagámoslo!
 submit = Enviar
 submit.shortcut = Enviar (<u>s</u>)
-test.server.warning.message = <strong>¡ADVERTENCIA!</strong> ¡Estás en un servidor de prueba! ¡Tus datos no se guardarán! Si desea que sus datos se guarden, utilice el sitio principal
+test.server.warning.message = <strong>Estás en un servidor de prueba.</strong> Tu trabajo no se guardará aquí. Para conservar tus datos, usa el sitio principal
+test.server.warning.label = Aviso de servidor de prueba
+test.server.warning.close = Descartar aviso
 dont.show.again = No mostrar de nuevo
 
 press.key = Presiona la tecla "{0}"
@@ -100,6 +102,14 @@ navbar.lang.icon.alt = icono de idiomas
 navbar.servicehours = Información voluntaria
 navbar.timecheck = Chequeo de tiempo
 navbar.cities = Ciudades
+navbar.menu.toggle = Alternar el menú de navegación
+navbar.tools.analyze = Analizar
+navbar.tools.community = Comunidad
+navbar.tools.build = Crear
+navbar.tools.admin = Administración
+navbar.city.search = Buscar ciudades…
+navbar.city.viewall = Ver todas las ciudades en el mapa
+navbar.city.none = No hay ciudades que coincidan
 
 landing.create.path = Creemos un camino para todas las personas
 landing.start.exploring = Comienza a explorar
@@ -173,19 +183,11 @@ footer.award = Premio <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_I
 footer.designed.operated = Project Sidewalk está diseñado y operado por el <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> de la <a id="universityofwashington" href="http://www.cs.uw.edu/">Universidad de Washington</a>
 footer.version = Versión {0} |  Última actualización: <span class = "timestamp date">{1}</span>
 
-audit.tutorial.welcome.1 = En <span class="bold">Project Sidewalk,</span> viajarás virtualmente por ciudades completando misiones para encontrar y etiquetar las características de accesibilidad y las problemáticas del entorno urbano, que incluyen: rampas peatonales, rampas peatonales ausentes, obstáculos en la banqueta, problemas en superficie.
-audit.tutorial.welcome.2 = Comenzaremos con un breve tutorial interactivo.
-audit.tutorial.welcome.3 = ¡Empecemos!
-audit.tutorial.welcome.4 = ¿Ya tomaste el tutorial? ¿Tienes una cuenta? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Iniciar sesión</a> o <a value="Skip" class="onboarding-transition-trigger">saltar el tutorial</a>.
-audit.tutorial.accessible = <span style="color:limegreen">Accesible</span>
-audit.tutorial.inaccessible = <span style="color:red">Inaccesible</span>
-audit.tutorial.examples.curb.ramp = Las <span style="color:limegreen">rampas peatonales</span> ayudan a las personas usuarias de sillas de ruedas a subir y bajar de las banquetas.
-audit.tutorial.examples.missing.ramp = Las personas usuarias de sillas de ruedas no pueden circular por las banquetas cuando <span style="color:#ff0066">faltan las rampas.</span>
-audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">Los obstáculos</span> en la banqueta bloquean el camino de las personas usuarias de sillas de ruedas.
-audit.tutorial.examples.surface.problem = Las banquetas con <span style="color:orange">problemas en la superficie</span> pueden no ser transitables.
-audit.tutorial.end.1 = ¡Excelente! ¡Has aprendido a usar la interfaz! Ahora, sigue adelante y <span class="bold">Etiquetar los siguientes atributos de accesibilidad en imágenes de Street View</span>, que afectan significativamente la forma en que las personas usuarias de sillas de ruedas se mueven por la ciudad:
-audit.tutorial.end.2 = Nuevamente, ¡gracias por <b>hacer que el mundo sea más accesible para todas!</b>
-audit.tutorial.examples = Ejemplos de atributos de accesibilidad: rampas peatonales, rampas peatonales ausentes, obstáculos en la banqueta, y problemas en superficie.
+audit.tutorial.complete.1 = ¡Lo lograste!
+audit.tutorial.complete.2 = ¡Completaste el tutorial!
+audit.tutorial.complete.learn-more = Más información
+audit.tutorial.complete.start-contributing = Empezar a contribuir
+
 audit.ribbon.curb.ramp.labels = ETIQUETAS DE RAMPA PEATONAL
 audit.ribbon.sidewalk.labels = ETIQUETAS DE BANQUETA
 audit.ribbon.other.labels = OTRAS ETIQUETAS DE ACCESIBILIDAD
@@ -401,7 +403,7 @@ footer.logo.create = Logotipo del Centro de Investigación y Educación sobre Te
 cities.dashboard.cities = Ciudades de Despliegue
 cities.dashboard.distance = Calles Exploradas
 cities.dashboard.cities.icon.alt = Usuario de silla de ruedas del logotipo de Project Sidewalk sosteniendo una bandera
-cities.dashboard.cta.title = ¡Trae Project Sidewalk a tu ciudad!
+cities.dashboard.cta.title = ¡Trae Project Sidewalk a tu ciudad!
 cities.dashboard.cta.content = ¿Está interesado en mapear la accesibilidad en su comunidad? <br/> Siempre estamos buscando nuevos socios para ayudar a transformar el futuro de la accesibilidad urbana.
 cities.dashboard.cta.button = Aprenda a implementar
 cities.dashboard.cta.logo.alt = El logotipo de Project Sidewalk con el texto projectsidewalk.org
@@ -409,6 +411,7 @@ cities.dashboard.cta.logo.alt = El logotipo de Project Sidewalk con el texto pro
 share.meta.title.issue = Encontré un problema de accesibilidad en Project Sidewalk: {0}
 share.meta.title.feature = Mira lo que encontré en Project Sidewalk: {0}
 share.meta.description.spotted = Detectado en {0}.
+share.meta.description.address = Cerca de {0}.
 share.meta.description.severity = Gravedad: {0} de 3.
 share.meta.description.tags = Etiquetas: {0}.
 share.meta.description.cta = Explora el mapa y ayuda a hacer las aceras accesibles para todos.
@@ -496,6 +499,8 @@ dashboard.mistakes.validated.count = {0} validadas
 dashboard.mistakes.recent.title = Errores recientes
 dashboard.mistakes.recent.intro = ¿No estás de acuerdo con una validación? Cuéntanos: puedes defender tu etiqueta y dejar una nota para dar contexto.
 dashboard.mistakes.see.all = Ver todas tus etiquetas →
+dashboard.stories.title = Tus historias
+dashboard.stories.intro = Historias personales que compartiste en etiquetas. Las historias son públicas; puedes eliminarlas permanentemente aquí en cualquier momento.
 dashboard.team.title = Tu equipo
 dashboard.team.intro = Mapea junto a un equipo o una clase. La competencia amistosa en un grupo pequeño es la mitad de la diversión.
 dashboard.team.none = Aún no estás en un equipo

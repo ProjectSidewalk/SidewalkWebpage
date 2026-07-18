@@ -10,6 +10,27 @@
  * non-zero dimensions) before create() is called, because the pano viewer needs to measure its container at init.
  */
 class LabelDetail {
+  /**
+   * Sets or clears the ?labelId= query param without adding history entries, so the open label is shareable
+   * and survives a refresh but Back still leaves the page. The single deep-link contract for every host
+   * (LabelPopup, Gallery's ExpandedView, the LabelMap page).
+   * @param {?number} labelId The open label's ID, or null to clear the param.
+   */
+  static syncUrlLabelId(labelId) {
+    const url = new URL(window.location);
+    if (labelId) url.searchParams.set('labelId', labelId);
+    else url.searchParams.delete('labelId');
+    history.replaceState(null, '', url);
+  }
+
+  /**
+   * Reads the ?labelId= deep-link param syncUrlLabelId() writes.
+   * @returns {?number} The label ID in the URL, or null when absent/invalid.
+   */
+  static urlLabelId() {
+    return parseInt(new URLSearchParams(window.location.search).get('labelId'), 10) || null;
+  }
+
   panoManager; // Public: hosts (ExpandedView, LabelPopup callsites) reach in for the pano manager.
 
   #root;
@@ -20,6 +41,7 @@ class LabelDetail {
   #onVote;
   #panoOverlaySource;
   #voteColumnSource;
+  #showLabelMapLink;
 
   // Updated in each showLabel() call so PanoInfoPopover's accessor closures see the current label.
   #currentLabelMeta = null;
@@ -29,8 +51,8 @@ class LabelDetail {
   // Field references — populated in #cacheElements().
   #els = {};
 
-  #source = undefined; // Set in showLabel().
-  #readonly = false;   // Set per-label in #handleData() based on meta.from_current_user.
+  #source = undefined;      // Set in showLabel().
+  #readonly = false;        // Set per-label in #handleData() based on meta.from_current_user.
   #noImagery = false;  // Set per-label once setPano() resolves; true when no navigable imagery could be loaded.
   #validationCounts = { Agree: null, Disagree: null, Unsure: null };
   #flags = { low_quality: null, incomplete: null, stale: null };
@@ -41,6 +63,8 @@ class LabelDetail {
   #comments;
   #myCommentIdx;
   #shareWidget;
+  #storySection;
+  #metaRowObserver;
 
   /**
    * @param {HTMLElement} root - The host element containing the labelDetail markup (see labelDetail.scala.html).
@@ -53,6 +77,8 @@ class LabelDetail {
    *      successfully submitted. Hosts use this to sync upstream UI (e.g. recolor a Gallery card).
    * @param {string} [opts.panoOverlaySource] - Source recorded when voting via the pano overlay buttons.
    * @param {string} [opts.voteColumnSource] - Source recorded when voting via the column vote buttons.
+   * @param {boolean} [opts.showLabelMapLink] - Show a footer link to this label on /labelMap (for hosts that
+   *     aren't the LabelMap itself).
    */
   constructor(root, opts) {
     this.#root = root;
@@ -63,6 +89,7 @@ class LabelDetail {
     this.#onVote = opts.onVote;
     this.#panoOverlaySource = opts.panoOverlaySource;
     this.#voteColumnSource = opts.voteColumnSource;
+    this.#showLabelMapLink = !!opts.showLabelMapLink;
   }
 
   /**
@@ -112,6 +139,18 @@ class LabelDetail {
 
     this.#initInfoPopover();
     this.#initShareWidget();
+    this.#initStorySection();
+
+    // Static section-header tooltip; per-control tooltips are set as content renders.
+    const tagsTitle = this.#q('.label-detail__col--tags .label-detail__col-title');
+    if (tagsTitle) tagsTitle.title = i18next.t('labelmap:tags-tooltip');
+
+    // Re-fit the meta strip whenever the card's width changes (mobile, rotation, window resize). Toggling the
+    // strip's own child visibility never changes the observed row's width, so this can't feed back on itself.
+    if (this.#els.metaRow && typeof ResizeObserver !== 'undefined') {
+      this.#metaRowObserver = new ResizeObserver(() => this.#fitMetaRow());
+      this.#metaRowObserver.observe(this.#els.metaRow);
+    }
 
     // Seed the all-time counts so a validation here can celebrate a newly unlocked validation badge.
     BadgeAchievements.seedCounts();
@@ -129,6 +168,18 @@ class LabelDetail {
   }
 
   /**
+   * Instantiates the StorySection on the stories disclosure (#4054). Built once; re-pointed at the current label in
+   * each #handleData() call. Deliberately NOT part of #applyInteractionLock() — sharing a story about your own label
+   * is a first-class use case, the inverse of the own-label validation lock.
+   */
+  #initStorySection() {
+    const section = this.#q('.label-detail__stories');
+    if (section && typeof StorySection !== 'undefined') {
+      this.#storySection = new StorySection(this.#root, { currUsername: this.#currUsername });
+    }
+  }
+
+  /**
    * Mounts a PanoInfoPopover into the .label-detail__info-button-host span. Accessor closures read from
    * #currentLabelMeta, which is updated on every showLabel() call.
    */
@@ -136,7 +187,6 @@ class LabelDetail {
     const host = this.#q('.label-detail__info-button-host');
     if (!host) return;
 
-    const noopLog = () => {};
     const panoViewer = this.panoManager.panoViewer;
     new PanoInfoPopover(
       host,
@@ -151,12 +201,36 @@ class LabelDetail {
       () => this.#currentLabelMeta && {
         heading: this.#currentLabelMeta.heading, pitch: this.#currentLabelMeta.pitch, zoom: this.#currentLabelMeta.zoom,
       },
-      false,    // whiteIcon
-      noopLog,  // infoLogging
-      noopLog,  // clipboardLogging
-      noopLog,  // viewPanoLogging
+      false, // whiteIcon
+      () => this.#logClick('PanoInfoButton'),
+      () => this.#logClick('PanoInfoCopyToClipboard'),
+      () => this.#logClick('PanoInfoViewInPano'),
       () => this.#currentLabelMeta && this.#currentLabelMeta.label_id,
     );
+
+    // The popover's own trigger is the (i) icon it appends into the host span; forward clicks on the rest of the
+    // Details chip to it so the whole pill is one hit target. stopPropagation keeps the popover's outside-click
+    // light-dismiss from seeing the original event and instantly re-closing the popover it just opened.
+    const chip = this.#q('.label-detail__meta-cell--details');
+    const infoImg = host.querySelector('img');
+    if (chip && infoImg) {
+      infoImg.alt = ''; // The chip's visible "Details" text labels the control; a non-empty alt would be read twice.
+      chip.addEventListener('click', (e) => {
+        if (e.target !== infoImg) {
+          e.stopPropagation();
+          infoImg.click();
+        }
+      });
+    }
+  }
+
+  /**
+   * Logs a card interaction to the webpage_activity table, tagged with the shown label.
+   * @param {string} action - The interaction name, e.g. 'ViewOnLabelMap' (see docs/logged-events.md).
+   */
+  #logClick(action) {
+    const labelId = this.#currentLabelMeta?.label_id;
+    window.logWebpageActivity(`Click_module=LabelDetail_action=${action}_labelId=${labelId}`);
   }
 
   /**
@@ -168,14 +242,26 @@ class LabelDetail {
     els.panoWrap = this.#q('.label-detail__pano-wrap');
     els.panoOverlay = this.#q('.label-detail__pano-overlay');
     els.title = this.#q('.label-detail__title');
+    els.metaRow = this.#q('.label-detail__meta-row');
     els.timestamp = this.#q('.label-detail__timestamp');
     els.imageDate = this.#q('.label-detail__image-capture-date');
+    els.addressCell = this.#q('.label-detail__meta-cell--address');
+    els.addressDivider = this.#q('.label-detail__meta-divider--address');
+    els.address = this.#q('.label-detail__address');
     els.severitySection = this.#q('.label-detail__col--severity');
     els.severity = this.#q('.label-detail__severity-faces');
     els.severityTitle = this.#q('.label-detail__severity-title');
     els.tags = this.#q('.label-detail__tags');
+    els.descriptionSection = this.#q('.label-detail__description-section');
     els.description = this.#q('.label-detail__description');
+    els.commentsSection = this.#q('.label-detail__comments-section');
     els.validatorComments = this.#q('.label-detail__validator-comments');
+    els.commentsCount = this.#q('.label-detail__comments-count');
+    els.descComments = this.#q('.label-detail__desc-comments');
+    els.panHint = this.#q('.label-detail__pan-hint');
+    els.labelMapLink = this.#q('.label-detail__labelmap-link');
+    els.commentRow = this.#q('.label-detail__comment-row');
+    els.commentLabel = this.#q('.label-detail__comment-row label');
     els.commentInput = this.#q('.label-detail__comment-input');
     els.commentButton = this.#q('.label-detail__comment-submit');
     els.commentConfirm = this.#q('.label-detail__comment-confirmation');
@@ -227,6 +313,10 @@ class LabelDetail {
    */
   #wireHandlers() {
     const els = this.#els;
+    // Cross-surface hop into the LabelMap (only rendered on hosts that aren't the LabelMap itself).
+    if (els.labelMapLink) {
+      els.labelMapLink.addEventListener('click', () => this.#logClick('ViewOnLabelMap'));
+    }
     // buttonSource overrides #source for this specific button group; falls back to #source if null.
     const voteHandler = (action, buttonSource) => () => {
       if (this.#locked) return;
@@ -301,6 +391,7 @@ class LabelDetail {
    *
    * @param {number|Object} idOrMeta - Either a label id (number) to fetch, or a pre-built meta object.
    * @param {string} source - The UI that created the popup (recorded with validations).
+   * @returns {Promise<Object>} The label metadata payload that was rendered.
    */
   showLabel = async (idOrMeta, source) => {
     this.#source = source;
@@ -309,7 +400,7 @@ class LabelDetail {
 
     if (typeof idOrMeta === 'object' && idOrMeta !== null) {
       this.#handleData(idOrMeta);
-      return;
+      return idOrMeta;
     }
 
     const labelId = idOrMeta;
@@ -319,7 +410,9 @@ class LabelDetail {
       alert('Server error. Most likely a label with this ID did not exist.');
       throw new Error(`HTTP error ${response.status}`);
     }
-    this.#handleData(await response.json());
+    const meta = await response.json();
+    this.#handleData(meta);
+    return meta;
   };
 
   /**
@@ -367,6 +460,20 @@ class LabelDetail {
         if (this.#currentLabelMeta !== meta) return;
         this.#noImagery = !imageShown;
         this.#applyInteractionLock();
+
+        // The live imagery's metadata may carry an address the label payload didn't. Only read it when the shown
+        // pano is actually this label's on the primary viewer — on the static-crop fallback, currPanoData still
+        // describes whatever pano the viewer showed last.
+        const panoData = this.panoManager.panoViewer.currPanoData;
+        const livePano = imageShown && this.panoManager.activeViewerName === 'Default'
+          && panoData && panoData.getPanoId() === meta.pano_id;
+        const address = (livePano && panoData.getProperty('address'))
+          || meta.pano_data?.address || meta.backup_image?.address || null;
+        // Link the address to the provider's public viewer only when live imagery actually loaded — for an
+        // expired pano the provider link would land on a "no imagery here" page.
+        if (address) this.#showAddress(address, livePano ? this.#panoLink(meta) : null);
+
+        if (imageShown) this.#showPanHintOnce();
       });
 
     // Validation counts + AI validation.
@@ -389,6 +496,12 @@ class LabelDetail {
     // Title is just the label-type name (e.g. "Curb Ramp") — the popup is self-evidently about a label.
     const labelTypeName = i18next.t(`common:${camelToKebab(meta.label_type)}`);
     els.title.textContent = labelTypeName;
+
+    // Cross-surface hop to the LabelMap, which opens this label's popup and pulses its map location.
+    if (this.#showLabelMapLink && els.labelMapLink) {
+      els.labelMapLink.href = `/labelMap?labelId=${meta.label_id}`;
+      els.labelMapLink.hidden = false;
+    }
 
     // Point the share widget at this label's public permalink (#456). The /label/:id route renders the label
     // spotlight page and serves the og:image crawlers embed in the share card.
@@ -421,29 +534,39 @@ class LabelDetail {
       els.tags.textContent = i18next.t('common:none');
     }
 
-    // Description.
-    if (meta.description !== null && meta.description !== undefined) {
-      els.description.classList.remove('label-detail__empty');
-      els.description.textContent = meta.description;
-    } else {
-      els.description.classList.add('label-detail__empty');
-      els.description.textContent = i18next.t('common:no-description');
-    }
+    // Description text; #updateCommentRow shows or hides the section based on whether the labeler wrote one.
+    els.description.textContent = meta.description ?? '';
 
-    // Dates.
-    els.timestamp.textContent = moment(new Date(meta.timestamp)).format('LL, LT');
-    els.imageDate.textContent = moment(new Date(meta.image_capture_date)).format('MMMM YYYY');
+    // Dates. Short month names ('ll' / 'MMM', locale-aware) keep the meta chips on one line (#4572). The clock
+    // time lives in its own span so #fitMetaRow can drop it first when the row gets cramped.
+    const labeled = moment(new Date(meta.timestamp));
+    els.timestamp.textContent = labeled.format('ll');
+    const timePart = document.createElement('span');
+    timePart.className = 'label-detail__timestamp-time';
+    timePart.textContent = `, ${labeled.format('LT')}`;
+    els.timestamp.appendChild(timePart);
+    els.imageDate.textContent = moment(new Date(meta.image_capture_date)).format('MMM YYYY');
+
+    // Address (#4489): seed from the stored pano address; the setPano() callback above upgrades to the live
+    // imagery's value once it loads, which covers panos whose address hasn't been captured server-side yet.
+    this.#showAddress(meta.pano_data?.address ?? meta.backup_image?.address ?? null);
 
     // Validator comments. Admin endpoint returns objects {username, comment}; non-admin returns bare
     // strings. Stash them so #submitComment() can append after a successful POST.
     this.#comments = meta.comments || [];
-    // Index of the current user's comment in #comments, if any. The backend replaces comments rather than just
-    // adding new ones, so we mirror that here (but in non-admin, who added comments, so we just always append).
+    // Index of the current user's comment in #comments, if any. The backend replaces comments rather than adding
+    // new ones, so we mirror that here. Admin payloads carry usernames; non-admin ones carry a `mine` flag instead
+    // (no identifiers on public surfaces).
     this.#myCommentIdx = -1;
     if (this.#admin && this.#currUsername) {
       this.#myCommentIdx = this.#comments.findIndex((c) => c && c.username === this.#currUsername);
+    } else if (!this.#admin) {
+      this.#myCommentIdx = this.#comments.findIndex((c) => c && typeof c === 'object' && c.mine);
     }
     this.#renderComments();
+
+    // Lived-experience stories (#4054): lazy per-label fetch, so the metadata payload stays untouched.
+    this.#storySection?.setLabel(meta.label_id);
 
     // Fill in some admin-only fields at the bottom if applicable.
     if (this.#admin) {
@@ -480,6 +603,39 @@ class LabelDetail {
     // If the user has already validated this label, mark the chosen vote on the pano overlay.
     if (meta.user_validation && !this.#readonly) this.#highlightVote(meta.user_validation);
     else this.#highlightVote(null);
+    this.#updateCommentRow();
+  }
+
+  /**
+   * Shows the comment box only alongside a Disagree/Unsure vote, prompting for the reasoning behind it (#4572).
+   * Validator comments exist to justify a disputed label; open-ended notes about a place belong to
+   * lived-experience stories (#4054), not here.
+   * @param {boolean} [focusOnReveal=false] - Focus the input when this call reveals the row (fresh-vote flow).
+   */
+  #updateCommentRow(focusOnReveal = false) {
+    const els = this.#els;
+    if (!els.commentRow) return;
+    const action = this.#prevAction;
+    const show = !this.#locked && (action === 'Disagree' || action === 'Unsure');
+    const wasOpen = els.commentRow.classList.contains('is-open');
+    els.commentRow.classList.toggle('is-open', show);
+    if (show) {
+      const prompt = i18next.t(action === 'Disagree' ? 'labelmap:why-disagree' : 'labelmap:why-unsure');
+      els.commentInput.placeholder = prompt;
+      if (els.commentLabel) els.commentLabel.textContent = prompt;
+      if (!wasOpen && focusOnReveal) els.commentInput.focus();
+    }
+
+    // Show each half of the zone only when it has something to say: the labeler's description when one was
+    // written, the validator comments when any exist or the comment box is open. An empty heading over nothing
+    // is wasted space (#4572, Mikey review). The whole zone (and its single divider) collapses when neither half
+    // would show.
+    const desc = this.#currentLabelMeta?.description;
+    const hasDescription = desc !== null && desc !== undefined && String(desc).trim() !== '';
+    const hasComments = this.#comments && this.#comments.length > 0;
+    if (els.descriptionSection) els.descriptionSection.hidden = !hasDescription;
+    if (els.commentsSection) els.commentsSection.hidden = !hasComments && !show;
+    if (els.descComments) els.descComments.hidden = !hasDescription && !hasComments && !show;
   }
 
   // ───────────────────────────────────────────────────────────────────
@@ -558,6 +714,7 @@ class LabelDetail {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       this.#updateVoteCount(action);
       this.#highlightVote(action);
+      this.#updateCommentRow(true);
       this.#setVoteButtonsDisabled(false);
       if (isNewValidation) BadgeAchievements.recordValidation(this.panoManager.svHolder[0]);
       if (typeof this.#onVote === 'function') this.#onVote(action, this.#currentLabelMeta);
@@ -583,6 +740,7 @@ class LabelDetail {
     for (const action of Object.keys(this.#els.voteCounts)) {
       this.#els.voteCounts[action].textContent = this.#validationCounts[action] ?? 0;
     }
+    this.#renderVoteTooltips(); // Counts are part of the tooltip text, so refresh them together.
   }
 
   /**
@@ -634,53 +792,158 @@ class LabelDetail {
   }
 
   /**
-   * Toggles the disabled state + tooltip on interactive elements based on the current lock reasons. The viewer's
-   * own label and no-imagery both disable validating/commenting; own-label wins the tooltip since it's the more
-   * specific reason to surface.
+   * The reason validating/commenting is blocked for the current label, or null when it's allowed. The viewer's
+   * own label wins over no-imagery since it's the more specific reason to surface.
+   * @returns {?string}
+   */
+  #lockReason() {
+    if (this.#readonly) return i18next.t('labelmap:own-label-disabled');
+    if (this.#noImagery) return i18next.t('labelmap:no-imagery-disabled');
+    return null;
+  }
+
+  /**
+   * Toggles the disabled state + tooltip on interactive elements based on the current lock reasons. Vote-control
+   * tooltips are built by #renderVoteTooltips (they also depend on counts/AI, which change independently of the
+   * lock); this just refreshes them and drives the disabled state + comment-box tooltips.
    */
   #applyInteractionLock() {
     const els = this.#els;
     const locked = this.#locked;
     this.#root.classList.toggle('label-detail--readonly', locked);
-    const tip = this.#readonly
-      ? i18next.t('labelmap:own-label-disabled')
-      : this.#noImagery ? i18next.t('labelmap:no-imagery-disabled') : '';
+    const tip = this.#lockReason() ?? '';
 
-    // Pano overlay buttons.
-    for (const btn of Object.values(els.panoOverlayButtons)) {
-      btn.disabled = locked;
-      btn.title = tip;
-    }
-
-    // Validation column buttons.
-    for (const btn of Object.values(els.voteButtons)) {
-      btn.disabled = locked;
-      btn.title = tip;
-    }
+    this.#renderVoteTooltips();
+    for (const btn of Object.values(els.panoOverlayButtons)) btn.disabled = locked;
+    for (const btn of Object.values(els.voteButtons)) btn.disabled = locked;
 
     // Comment input and submit button.
     els.commentInput.disabled = locked;
     els.commentInput.title = tip;
     els.commentButton.disabled = locked;
     els.commentButton.title = tip;
+    this.#updateCommentRow(); // Locking also hides the comment box (it only shows with a Disagree/Unsure vote).
+  }
+
+  /**
+   * Sets the count-aware tooltip on each column vote control (the thumbs in the Validations section) so hovering
+   * anywhere on one — icon, count, or word — reads what clicking does, how many validators have already voted that
+   * way, and whether our AI's vote is among them (#4572). The pano hover-overlay buttons deliberately get no
+   * tooltip: their full-width Agree/Disagree/Unsure labels already say what they do (Jon, #4574). When the label
+   * is locked, the lock reason wins instead.
+   */
+  #renderVoteTooltips() {
+    const els = this.#els;
+    const lockTip = this.#lockReason();
+    for (const action of Object.keys(els.voteButtons)) {
+      let title;
+      if (lockTip) {
+        title = lockTip;
+      } else {
+        const count = this.#validationCounts[action] ?? 0;
+        title = i18next.t(`labelmap:vote-tooltip-${action.toLowerCase()}`, { count });
+        // The AI's vote is folded into this option's count, so flag it where it applies.
+        if (this.#aiValidation === action) title += ` ${i18next.t('labelmap:vote-tooltip-ai-included')}`;
+      }
+      els.voteButtons[action].title = title;
+    }
   }
 
   /**
    * Updates the three column icons to the right variant based on the user's current vote and the AI validation:
    *   - filled when the user voted this option, otherwise outline
    *   - `-ai` suffix when the AI validated this option
+   * The icon carries no title of its own; hovering it falls through to the vote button's unified tooltip
+   * (#renderVoteTooltips), so the icon and the button never show two competing explanations.
    */
   #renderVoteIcons() {
     for (const [action, img] of Object.entries(this.#els.voteIcons)) {
       const state = this.#prevAction === action ? 'filled' : 'outline';
       const ai = this.#aiValidation === action ? '-ai' : '';
       img.src = `${this.#iconBase}${action.toLowerCase()}-${state}${ai}.svg`;
-      if (this.#aiValidation === action) {
-        img.title = i18next.t('labelmap:ai-val-included', { aiVal: action.toLowerCase() });
-      } else {
-        img.removeAttribute('title');
-      }
     }
+  }
+
+  /**
+   * Briefly shows the "drag to look around" hint over the imagery, once per session — nothing else signals
+   * that the pano is pannable until the cursor is already over it.
+   */
+  #showPanHintOnce() {
+    const hint = this.#els.panHint;
+    if (!hint) return;
+    try {
+      if (sessionStorage.getItem('psLabelDetailPanHintShown')) return;
+      sessionStorage.setItem('psLabelDetailPanHintShown', 'true');
+    } catch {
+      return; // Storage access throws under "block all site data" settings; skip the hint rather than reject.
+    }
+    hint.hidden = false;
+    requestAnimationFrame(() => hint.classList.add('is-visible'));
+    setTimeout(() => {
+      hint.classList.remove('is-visible');
+      setTimeout(() => {
+        hint.hidden = true;
+      }, 400); // Matches the CSS opacity transition.
+    }, 5500);
+  }
+
+  /**
+   * Shows or hides the address meta cell. The whole cell is hidden when no address is known so the meta row
+   * doesn't render a dangling "Address:" label (non-GSV imagery and never-captured panos have none).
+   * @param {?string} address - The street-level address to display, or null/empty to hide the cell.
+   * @param {?{url: string, tooltip: string}} [link] - Imagery-provider link for the address; plain text when null.
+   */
+  #showAddress(address, link = null) {
+    const els = this.#els;
+    if (!els.addressCell) return;
+    els.address.textContent = address || '';
+    els.addressCell.hidden = !address;
+    if (els.addressDivider) els.addressDivider.hidden = !address;
+    if (address && link) {
+      els.address.href = link.url;
+      els.address.target = '_blank';
+      els.address.rel = 'noopener noreferrer';
+      // Full address (the strip may ellipsize it) plus where the link goes.
+      els.address.title = `${address} — ${link.tooltip}`;
+    } else {
+      els.address.removeAttribute('href');
+      els.address.removeAttribute('target');
+      els.address.removeAttribute('rel');
+      els.address.title = address || ''; // Native tooltip reveals the full address when the strip ellipsizes it.
+    }
+    this.#fitMetaRow(); // The address is the row's widest, most variable cell, so re-fit whenever it changes.
+  }
+
+  /**
+   * Keeps the meta strip on a single line (#4572, Mikey review). CSS makes the address the row's only shrinkable
+   * cell, so it ellipsizes rather than letting the row wrap. When that clipping kicks in, hand the address more
+   * room by dropping the least useful bits in order: first the clock time, then the "Details" word (the ⓘ and its
+   * aria-label remain). Idempotent — it resets to the roomiest state before measuring, so it's safe to re-run on
+   * every address change and on card resize.
+   */
+  #fitMetaRow() {
+    const els = this.#els;
+    if (!els.metaRow || !els.addressCell) return;
+    els.metaRow.classList.remove('label-detail__meta-row--no-time', 'label-detail__meta-row--compact-details');
+    if (els.addressCell.hidden) return; // No address competing for the row → nothing to trim.
+    // +1 absorbs sub-pixel rounding so a flush-fitting address doesn't flap the classes on and off.
+    const addressClipped = () => els.address.scrollWidth > els.address.clientWidth + 1;
+    if (addressClipped()) els.metaRow.classList.add('label-detail__meta-row--no-time');
+    if (addressClipped()) els.metaRow.classList.add('label-detail__meta-row--compact-details');
+  }
+
+  /**
+   * External link for viewing the label's pano on its imagery provider's own site, at the label's stored POV.
+   * @param {Object} meta - The label metadata payload (pano id + the label's POV).
+   * @returns {?{url: string, tooltip: string}} The provider link, or null for providers without a public
+   *     viewer (e.g. Infra3d).
+   */
+  #panoLink(meta) {
+    const link = this.panoManager.panoViewer.publicViewerLink(meta.pano_id, {
+      heading: meta.heading,
+      pitch: meta.pitch,
+    });
+    return link && { url: link.url, tooltip: i18next.t(link.i18nKey) };
   }
 
   /**
@@ -706,6 +969,7 @@ class LabelDetail {
       const selected = faceSev === Number(severity);
       face.classList.toggle('is-selected', selected);
       face.querySelector('.severity-button__icon').src = util.misc.getSmileyIconPath(faceSev, labelType, selected);
+      face.title = `${i18next.t(`common:${titleKey}`)}: ${i18next.t(`common:${levelKeys[faceSev]}`)}`;
       const labelSpan = face.querySelector('.severity-button__label');
       if (labelSpan) labelSpan.textContent = i18next.t(`common:${levelKeys[faceSev]}`);
     });
@@ -721,26 +985,77 @@ class LabelDetail {
    */
   #renderComments() {
     const els = this.#els;
+    const count = this.#comments ? this.#comments.length : 0;
+
+    // Count badge next to the section eyebrow — signals comments exist before the reader reaches the list.
+    if (els.commentsCount) {
+      els.commentsCount.textContent = String(count);
+      els.commentsCount.hidden = count === 0;
+    }
+
     els.validatorComments.replaceChildren();
     els.validatorComments.classList.remove('label-detail__empty');
-    if (!this.#comments || this.#comments.length === 0) {
+    if (count === 0) {
       els.validatorComments.classList.add('label-detail__empty');
-      els.validatorComments.textContent = i18next.t('common:none');
+      els.validatorComments.textContent = i18next.t('labelmap:no-comments-yet');
       return;
     }
-    this.#comments.forEach((c, i) => {
+    // Anonymous avatar: a person glyph on a color keyed by the backend's per-label commenter index, so each
+    // validator reads as a consistent "someone" within this card without any usernames on public surfaces.
+    // The glyph is images/icons/user-feather.svg's path data, inlined (the icon files hardcode their stroke
+    // color) so it inherits currentColor, with a heavier stroke tuned for this tiny size.
+    const AVATAR_SVG = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+          stroke-linejoin="round" aria-hidden="true">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+      </svg>`;
+    const avatarFor = (c) => {
+      const idx = typeof c === 'object' && c !== null && Number.isInteger(c.commenter) ? c.commenter : 0;
+      const avatar = document.createElement('span');
+      avatar.className = `label-detail__comment-avatar label-detail__comment-avatar--${idx % 6}`;
+      avatar.innerHTML = AVATAR_SVG; // Static markup above — no user data involved.
+      return avatar;
+    };
+
+    // Newest first, so a just-submitted comment lands right beneath the input above the list.
+    [...this.#comments].reverse().forEach((c, i) => {
       if (i > 0) els.validatorComments.appendChild(document.createElement('hr'));
       const p = document.createElement('p');
       p.style.margin = '0';
+      p.appendChild(avatarFor(c));
+
+      // Relative-time pill; the exact date lives in the tooltip.
+      const timeCreated = typeof c === 'object' && c !== null ? c.time_created : null;
+      const whenPill = () => {
+        const when = document.createElement('span');
+        when.className = 'label-detail__comment-when';
+        when.textContent = moment(timeCreated).fromNow();
+        when.title = moment(timeCreated).format('ll, LT');
+        return when;
+      };
+
       if (this.#admin && typeof c === 'object' && c !== null) {
         const a = document.createElement('a');
         a.href = `/admin/user/${encodeURI(c.username)}`;
         a.textContent = c.username;
         p.appendChild(a);
+        if (timeCreated) {
+          p.appendChild(document.createTextNode(' '));
+          p.appendChild(whenPill());
+        }
         p.appendChild(document.createTextNode(`: ${c.comment}`));
       } else {
-        // Non-admin: bare comment string. textContent escapes — no HTML injection.
-        p.textContent = typeof c === 'object' ? c.comment : c;
+        // Non-admin: {comment, mine} objects. A small "You" chip marks the signed-in user's own comment; the
+        // admin branch above doesn't need one since it shows usernames. textContent/createTextNode escape — no
+        // HTML injection.
+        if (typeof c === 'object' && c !== null && c.mine) {
+          const you = document.createElement('span');
+          you.className = 'label-detail__comment-you';
+          you.textContent = i18next.t('labelmap:you');
+          p.appendChild(you);
+        }
+        if (timeCreated) p.appendChild(whenPill());
+        p.appendChild(document.createTextNode(typeof c === 'object' && c !== null ? c.comment : c));
       }
       els.validatorComments.appendChild(p);
     });
@@ -784,7 +1099,14 @@ class LabelDetail {
       // strings. Replace the user's existing comment (if any) rather than appending — the backend deletes prior
       // comments from the same user before inserting, so the visible list should match.
       if (!this.#comments) this.#comments = [];
-      const newEntry = this.#admin ? { username: body.username, comment } : comment;
+      const timeCreated = new Date().toISOString();
+      // Keep the avatar color stable across the replace-own-comment flow; new commenters take the next index.
+      const commenter = this.#myCommentIdx >= 0 && this.#comments[this.#myCommentIdx]
+        ? this.#comments[this.#myCommentIdx].commenter ?? 0
+        : this.#comments.reduce((max, c) => Math.max(max, (c && c.commenter) ?? -1), -1) + 1;
+      const newEntry = this.#admin
+        ? { username: body.username, comment, time_created: timeCreated, commenter }
+        : { comment, mine: true, time_created: timeCreated, commenter };
       if (this.#myCommentIdx >= 0 && this.#myCommentIdx < this.#comments.length) {
         this.#comments[this.#myCommentIdx] = newEntry;
       } else {

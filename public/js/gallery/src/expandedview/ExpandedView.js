@@ -14,17 +14,20 @@ class ExpandedView {
   #root;
   #panoViewerType;
   #viewerAccessToken;
+  #currUsername;
 
   /**
    * @param {jQuery} uiModal The `.gallery-expanded-view` container element.
    * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize.
    * @param {string} viewerAccessToken An access token that authorizes image requests for the pano viewer.
+   * @param {?string} currUsername The viewer's username when signed in to a real account, else null.
    */
-  constructor(uiModal, panoViewerType, viewerAccessToken) {
+  constructor(uiModal, panoViewerType, viewerAccessToken, currUsername) {
     this.#uiModal = uiModal;
     this.#root = uiModal[0]; // Unwrap jQuery to get the DOM element for LabelDetail.
     this.#panoViewerType = panoViewerType;
     this.#viewerAccessToken = viewerAccessToken;
+    this.#currUsername = currUsername;
   }
 
   /**
@@ -32,10 +35,11 @@ class ExpandedView {
    * @param {jQuery} uiModal The `.gallery-expanded-view` container element.
    * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize.
    * @param {string} viewerAccessToken An access token that authorizes image requests for the pano viewer.
+   * @param {?string} currUsername The viewer's username when signed in to a real account, else null.
    * @returns {Promise<ExpandedView>}
    */
-  static async create(uiModal, panoViewerType, viewerAccessToken) {
-    const expandedView = new ExpandedView(uiModal, panoViewerType, viewerAccessToken);
+  static async create(uiModal, panoViewerType, viewerAccessToken, currUsername) {
+    const expandedView = new ExpandedView(uiModal, panoViewerType, viewerAccessToken, currUsername);
     await expandedView.#init();
     return expandedView;
   }
@@ -55,10 +59,11 @@ class ExpandedView {
       admin: false,
       viewerType: this.#panoViewerType,
       viewerAccessToken: this.#viewerAccessToken,
-      currUsername: null,
+      currUsername: this.#currUsername,
       onVote: this.#handleVote,
       panoOverlaySource: 'GalleryExpandedImage',
       voteColumnSource: 'GalleryExpandedThumbs',
+      showLabelMapLink: true,
     });
 
     // Expose panoManager for Keyboard.js zoom shortcuts.
@@ -76,7 +81,29 @@ class ExpandedView {
     const closeBtn = root.querySelector('[data-action="close-label-detail"]');
     if (closeBtn) closeBtn.addEventListener('click', () => this.closeExpandedViewAndRemoveCardTransparency());
 
-    this.#attachCursorHandlers();
+    // Capture a ?labelId= deep link now: the initial query's refreshUI() closes the expanded view, which also
+    // scrubs the param from the URL, so it must be read before that and acted on after (restoreFromUrl()).
+    this.initialUrlLabelId = LabelDetail.urlLabelId();
+  }
+
+  /**
+   * Reopens the label a shared or refreshed ?labelId= URL points at. Called by CardContainer after cards have
+   * rendered — any earlier and the initial query's refreshUI() would immediately close it again. The deep link
+   * opens the detail directly by id: no thumbnail highlight, and paging picks up from the first card.
+   */
+  restoreFromUrl() {
+    if (!this.initialUrlLabelId) return;
+    const labelId = this.initialUrlLabelId;
+    this.initialUrlLabelId = null; // One shot; later renders (paging, filters) shouldn't reopen it.
+    this.#uiModal.css('visibility', 'visible');
+    this.open = true;
+    // With no reference card, paging picks up from the first card (Next), so there is nothing to page back to;
+    // an enabled Prev here would drive cardIndex below -1 and break the paging state machine.
+    if (this.leftArrow) this.leftArrow.disabled = true;
+    this.leftArrowDisabled = true;
+    LabelDetail.syncUrlLabelId(labelId); // refreshUI's close scrubbed the param; put it back for refresh/re-share.
+    this.labelDetail.showLabel(labelId, 'Gallery')
+      .catch(() => this.closeExpandedViewAndRemoveCardTransparency());
   }
 
   /**
@@ -113,6 +140,7 @@ class ExpandedView {
       ai_generated: p.ai_generated,
       crop_url: card.getCropUrl(),
       backup_image: card.getBackupImageData(),
+      pano_data: p.pano_data,
       from_current_user: p.from_current_user,
       expired: p.expired,
       comments: p.comments,
@@ -143,6 +171,7 @@ class ExpandedView {
     // Highlight selected card thumbnail.
     this.#highlightThumbnail(document.getElementById(`gallery_card_${this.refCard.getLabelId()}`));
     this.open = true;
+    LabelDetail.syncUrlLabelId(this.refCard.getLabelId());
   }
 
   /**
@@ -150,9 +179,8 @@ class ExpandedView {
    * NOTE: does not remove card transparency. For that, use closeExpandedViewAndRemoveCardTransparency().
    */
   closeExpandedView() {
-    $('.grid-container').css('grid-template-columns', 'none');
-    this.#uiModal.css('position', 'absolute');
     this.#uiModal.css('visibility', 'hidden');
+    LabelDetail.syncUrlLabelId(null);
     // Clear the inline visibility set by PopupPanoManager.setPano() so the parent's visibility:hidden cascades.
     // Also set a data flag so that if a pano load is still in-flight, it won't reveal itself when it finishes.
     const panoEl = this.#root.querySelector('.label-detail__pano');
@@ -212,6 +240,13 @@ class ExpandedView {
     }
     this.cardIndex = index;
     this.refCard = sg.cardContainer.getCardByIndex(this.cardIndex);
+
+    // An index with no card behind it (e.g. paging from a deep link on an empty page, or a filter change that
+    // shrank the card set) has nothing to show — close gracefully rather than crash on the missing card.
+    if (!this.refCard) {
+      this.closeExpandedViewAndRemoveCardTransparency();
+      return;
+    }
 
     this.#openExpandedView();
 
@@ -323,42 +358,8 @@ class ExpandedView {
     if (this.pendingCardIndex === undefined) return;
     const idx = this.pendingCardIndex;
     this.pendingCardIndex = undefined;
-    this.#uiModal.css('top', `calc(${$(window).scrollTop()}px + 1vh)`);
     this.#uiModal.css('visibility', 'visible');
-    this.#uiModal.css('position', 'relative');
-    $('.grid-container').css('grid-template-columns', '1fr 5fr');
     this.#updateExpandedViewCardByIndex(idx);
-  }
-
-  /**
-   * Sets up cursor handlers for the GSV widget-scene-canvas inside the pano.
-   */
-  #attachCursorHandlers() {
-    const panoEl = this.#root.querySelector('.label-detail__pano');
-    if (!panoEl) return;
-
-    const cursorObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'childList') {
-          mutation.addedNodes.forEach((node) => {
-            if (node.nodeType === Node.ELEMENT_NODE
-              && node.className
-              && typeof node.className === 'string'
-              && node.className.indexOf('widget-scene-canvas') > -1) {
-              node.addEventListener('mousedown', () => {
-                $(node).css('cursor', 'url(/assets/images/icons/closedhand.cur) 4 4, move');
-              });
-              node.addEventListener('mouseup', () => {
-                $(node).css('cursor', '');
-              });
-              cursorObserver.disconnect();
-            }
-          });
-        }
-      });
-    });
-
-    cursorObserver.observe(panoEl, { childList: true, subtree: true });
   }
 
   /**

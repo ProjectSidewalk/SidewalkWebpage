@@ -46,7 +46,10 @@ class UserDashboard {
       neighborhoodFillOpacity: 0.1,
       uiSource: admin ? 'AdminUserDashboard' : 'UserMap',
       navigationControlPosition: 'top-right',
-      popupLabelViewer: await LabelPopup(admin, viewerType, viewerAccessToken, currentUsername),
+      // Off-map host (dashboard), so the label popup offers "View on Label Map" like the gallery does.
+      popupLabelViewer: await LabelPopup(admin, viewerType, viewerAccessToken, currentUsername, {
+        showLabelMapLink: true,
+      }),
     };
 
     const progress = new UserDashboard(userId, admin);

@@ -23,8 +23,9 @@ class StreetEdgePriorityTableDef(tag: slick.lifted.Tag) extends Table[StreetEdge
   def * =
     (streetEdgePriorityId, streetEdgeId, priority) <> ((StreetEdgePriority.apply _).tupled, StreetEdgePriority.unapply)
 
-//  def streetEdge: ForeignKeyQuery[StreetEdgeTable, StreetEdge] =
-//    foreignKey("street_edge_priority_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
+  def streetEdge =
+    foreignKey("street_edge_priority_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
+  def streetEdgeUnique = index("street_edge_priority_street_edge_id_key", streetEdgeId, unique = true)
 }
 
 @ImplementedBy(classOf[StreetEdgePriorityTable])

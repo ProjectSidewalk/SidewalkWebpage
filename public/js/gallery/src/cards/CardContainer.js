@@ -28,6 +28,7 @@ class CardContainer {
   #initialFilters;
   #panoViewerType;
   #viewerAccessToken;
+  #currUsername;
 
   #currentLabelType;
   #currentPage = 1;
@@ -60,12 +61,14 @@ class CardContainer {
    * @param {object} initialFilters Object containing initial set of filters in sidebar.
    * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize.
    * @param {string} viewerAccessToken An access token that authorizes image requests for the pano viewer.
+   * @param {?string} currUsername The viewer's username when signed in to a real account, else null.
    */
-  constructor(uiCardContainer, initialFilters, panoViewerType, viewerAccessToken) {
+  constructor(uiCardContainer, initialFilters, panoViewerType, viewerAccessToken, currUsername) {
     this.#uiCardContainer = uiCardContainer;
     this.#initialFilters = initialFilters;
     this.#panoViewerType = panoViewerType;
     this.#viewerAccessToken = viewerAccessToken;
+    this.#currUsername = currUsername;
 
     this.#currentLabelType = initialFilters.labelType;
     sg.neighborhoodIds = initialFilters.neighborhoods; // TODO remove when we add a UI for filtering neighborhoods.
@@ -78,10 +81,12 @@ class CardContainer {
    * @param {object} initialFilters Object containing initial set of filters in sidebar.
    * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize.
    * @param {string} viewerAccessToken An access token that authorizes image requests for the pano viewer.
+   * @param {?string} currUsername The viewer's username when signed in to a real account, else null.
    * @returns {Promise<CardContainer>}
    */
-  static async create(uiCardContainer, initialFilters, panoViewerType, viewerAccessToken) {
-    const cardContainer = new CardContainer(uiCardContainer, initialFilters, panoViewerType, viewerAccessToken);
+  static async create(uiCardContainer, initialFilters, panoViewerType, viewerAccessToken, currUsername) {
+    const cardContainer
+      = new CardContainer(uiCardContainer, initialFilters, panoViewerType, viewerAccessToken, currUsername);
     await cardContainer.#init();
     return cardContainer;
   }
@@ -127,14 +132,12 @@ class CardContainer {
     // Creates the ExpandedView object in the DOM element currently present.
     sg.panoStore = new PanoStore();
     this.#expandedView = await ExpandedView.create(
-      sg.ui.expandedView.container, this.#panoViewerType, this.#viewerAccessToken,
+      sg.ui.expandedView.container, this.#panoViewerType, this.#viewerAccessToken, this.#currUsername,
     );
     // Add the click event for opening the ExpandedView when a card is clicked.
     const cardClickSelector = '.static-gallery-image, .additional-count, .ai-icon-marker-card';
     sg.ui.cardContainer.holder.on('click', cardClickSelector, (event) => {
-      sg.ui.expandedView.container.css('position', 'relative');
       sg.ui.expandedView.container.css('visibility', 'visible');
-      $('.grid-container').css('grid-template-columns', '1fr 5fr');
       // If the user clicks on the image body in the card, just use the provided id.
       // If they click the AI icon, use the image id from the same card.
       // Otherwise, the user will have clicked on an existing "+n" icon on the card, meaning we need to acquire
@@ -385,7 +388,10 @@ class CardContainer {
         uiCardContainer.holder.css('margin-left', sg.ui.cardFilter.wrapper.css('width'));
         sg.scrollStatus.stickySidebar = true;
         sg.cardFilter.enable();
-        this.#expandedView && this.#expandedView.onPageCardsRendered();
+        if (this.#expandedView) {
+          this.#expandedView.onPageCardsRendered();
+          this.#expandedView.restoreFromUrl();
+        }
       });
     } else {
       // TODO: figure out how to better do the toggling of this element.

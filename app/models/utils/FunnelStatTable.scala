@@ -52,6 +52,7 @@ class FunnelStatTableDef(tag: Tag) extends Table[FunnelStat](tag, "funnel_stat")
       Some((f.funnelType, f.window, f.segment, s(0), s(1), s(2), s(3), s(4), s(5), f.computedAt))
     }
   )
+  def pk = primaryKey("funnel_stat_pkey", (funnelType, timeWindow, segment))
 }
 
 /**

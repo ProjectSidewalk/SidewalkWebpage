@@ -1,6 +1,8 @@
 package models.audit
 
 import com.google.inject.ImplementedBy
+import models.mission.MissionTableDef
+import models.street.StreetEdgeTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
@@ -58,11 +60,11 @@ class AuditTaskCommentTableDef(tag: Tag) extends Table[AuditTaskComment](tag, "a
     lng, timestamp, comment) <>
     ((AuditTaskComment.apply _).tupled, AuditTaskComment.unapply)
 
-//  def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
-//    foreignKey("audit_task_comment_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
-//
-//  def mission: ForeignKeyQuery[MissionTable, Mission] =
-//    foreignKey("audit_task_comment_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
+  def auditTask =
+    foreignKey("audit_task_comment_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
+  def mission = foreignKey("audit_task_comment_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
+  def edge    = foreignKey("audit_task_comment_edge_id_fkey", edgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
+  def user    = foreignKey("audit_task_comment_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
 }
 
 @ImplementedBy(classOf[AuditTaskCommentTable])

@@ -50,6 +50,8 @@
     @* Auth dialog (#4375): Modal.js must precede AuthModal.js; both no-op on pages without the dialog. *@
     <script src='@assets.path("js/common/Modal.js")' defer></script>
     <script src='@assets.path("js/common/AuthModal.js")' defer></script>
+    @* Navbar interactivity (dropdowns, city search, hamburger, click logging); no-ops on pages without the navbar. *@
+    <script src='@assets.path("js/common/Navbar.js")' defer></script>
 
     <script src='@assets.path("vendor/countup/countUp-1.9.3.min.js")'></script>
     <script src='@assets.path("vendor/bowser/bowser-2.14.1.min.js")'></script>
@@ -82,38 +84,26 @@
         window.appManager.init(csrfToken, i18nextParams, globals);
       });
     </script>
-    <div id="wrap" class='@if(url == "/labelMap"){wrap--full-window}'>
-        <!-- Banner is only visible if user is on local/test server-->
-      @if(commonData.environmentType != "prod") {
-        <div class="test-server-banner">
-          <div class="test-server-banner-content">
-            <div class="test-server-banner-text">
-              @Html(Messages("test.server.warning.message")): <a href="@commonData.prodUrl">@commonData.prodUrl</a>
-            </div>
-            <button class="test-server-banner-dont-show-again" type="button">
-              <span>@Messages("dont.show.again")</span>
-            </button>
-            <button class="test-server-banner-close" type="button">
-              <span class="glyphicon glyphicon-remove"></span>
+      <!-- Banner is only visible if user is on local/test server-->
+    @if(commonData.environmentType != "prod") {
+      <aside class="test-server-banner" aria-label="@Messages("test.server.warning.label")">
+        <div class="test-server-banner-content">
+          <svg class="test-server-banner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <p class="test-server-banner-text">
+            @Html(Messages("test.server.warning.message")): <a class="test-server-banner-link" href="@commonData.prodUrl">@commonData.prodUrl</a>
+          </p>
+          <div class="test-server-banner-actions">
+            <button class="test-server-banner-dont-show-again" type="button">@Messages("dont.show.again")</button>
+            <button class="test-server-banner-close" type="button" aria-label="@Messages("test.server.warning.close")">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
           </div>
         </div>
+      </aside>
 
-        <script>
-          // Hide the warning banner if the user has clicked the "don't show again" button in the past.
-          if (JSON.parse(window.localStorage.getItem('hideTestServerWarningBanner'))) {
-            document.getElementsByClassName('test-server-banner')[0].style.display = 'none';
-          }
-          // If they click the "don't show again" button, save that info in local storage.
-          document.querySelector(".test-server-banner-dont-show-again").addEventListener("click", function() {
-            this.closest(".test-server-banner").style.display = "none";
-            window.localStorage.setItem('hideTestServerWarningBanner', true);
-          });
-          document.querySelector(".test-server-banner-close").addEventListener("click", function() {
-            this.closest(".test-server-banner").style.display = "none";
-          });
-        </script>
-      }
+      <script src='@assets.path("js/common/TestServerBanner.js")'></script>
+    }
+    <div id="wrap" class='@if(url == "/labelMap"){wrap--full-window}'>
       @content
     </div>
     @if(url != "/mobile") {

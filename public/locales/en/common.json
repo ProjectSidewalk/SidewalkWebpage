@@ -7,6 +7,8 @@
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
   "format-number": "{{val, number}}",
+  "cities-cta-join_one": "Join {{count, number}} other community",
+  "cities-cta-join_other": "Join {{count, number}} other communities",
   "agree": "Agree",
   "disagree": "Disagree",
   "unsure": "Unsure",
@@ -22,6 +24,7 @@
   "crosswalk": "Marked Crosswalk",
   "signal": "Pedestrian Signal",
   "other": "Other",
+  "problem": "Problem",
   "surface-problems": "Surface Problems",
   "close": "Close",
   "badges": {
@@ -79,6 +82,7 @@
   "comments": "Validator Comments",
   "none": "None",
   "image-capture-date": "Image Capture Date",
+  "drag-to-look-around": "Drag to look around",
   "labeled": "Labeled",
   "low": "Low",
   "medium": "Medium",
@@ -188,6 +192,7 @@
     "view-in-gsv": "View in Google Street View",
     "view-in-mapillary": "View in Mapillary",
     "city": "City",
+    "copy-to-clipboard": "Copy to clipboard",
     "copied-to-clipboard": "Data copied to your clipboard!"
   },
   "mission-start-tutorial": {

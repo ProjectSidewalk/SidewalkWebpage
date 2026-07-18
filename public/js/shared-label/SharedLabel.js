@@ -58,9 +58,10 @@ class SharedLabelPage {
         admin: false,
         viewerType: this.#viewerType(),
         viewerAccessToken: this.#data.imageryAccessToken,
-        currUsername: null,
+        currUsername: this.#data.username,
         panoOverlaySource: 'SharedLabelImage',
         voteColumnSource: 'SharedLabelThumbs',
+        showLabelMapLink: true,
       });
       await this.#detail.showLabel(this.#data.labelId, 'SharedLabel');
     } catch (err) {

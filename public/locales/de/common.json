@@ -7,6 +7,8 @@
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
   "format-number": "{{val, number}}",
+  "cities-cta-join_one": "Schließen Sie sich {{count, number}} weiteren Gemeinschaft an",
+  "cities-cta-join_other": "Schließen Sie sich {{count, number}} weiteren Gemeinschaften an",
   "agree": "Einverstanden",
   "disagree": "Nicht einverstanden",
   "unsure": "Unsicher",
@@ -22,6 +24,7 @@
   "crosswalk": "Markierter Fussgängerstreifen",
   "signal": "Fussgänger:&shy;innensignal",
   "other": "Andere",
+  "problem": "Problem",
   "surface-problems": "Oberflächen&shy;probleme",
   "close": "Schließen",
   "badges": {
@@ -79,6 +82,7 @@
   "comments": "Validator Kommentare",
   "none": "Keine",
   "image-capture-date": "Datum der Bildaufnahme",
+  "drag-to-look-around": "Ziehen Sie, um sich umzusehen",
   "labeled": "Beschriftet",
   "low": "Niedrig",
   "medium": "Medium",
@@ -188,6 +192,7 @@
     "view-in-gsv": "Ansicht in Google Street View",
     "view-in-mapillary": "Ansicht in Mapillary",
     "city": "Stadt",
+    "copy-to-clipboard": "In die Zwischenablage kopieren",
     "copied-to-clipboard": "Daten wurden in Zwischenablage kopiert"
   },
   "mission-start-tutorial": {

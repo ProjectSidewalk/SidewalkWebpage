@@ -47,11 +47,15 @@ convention above.
 
 ### Database & evolutions
 
-Schema changes are **Play evolutions**: numbered SQL files in `conf/evolutions/default/`. Add the next-numbered file for schema changes; each has `# --- !Ups` and `# --- !Downs` sections. The dev DB is seeded from a dump — see [`db/scripts/README.md`](db/scripts/README.md) for the full DB lifecycle/maintenance scripts (`import-dump`, `create-new-schema`, etc., exposed as `make` targets). Connection config is env-driven (`DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`) in `conf/application.conf`.
+Schema changes are **Play evolutions**: numbered SQL files in `conf/evolutions/default/`. Add the next-numbered file for schema changes; each has `# --- !Ups` and `# --- !Downs` sections. **One evolution file per PR:** all of a PR's schema changes go in a single file, even when they land in separate commits or feel like separate concerns — until the PR merges, nothing has shipped, so fold later changes into the existing file instead of minting the next number (which also collides faster with other in-flight PRs). The dev DB is seeded from a dump — see [`db/scripts/README.md`](db/scripts/README.md) for the full DB lifecycle/maintenance scripts (`import-dump`, `create-new-schema`, etc., exposed as `make` targets). Connection config is env-driven (`DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`) in `conf/application.conf`.
 
 **Every `CREATE TABLE` must be followed by `ALTER TABLE <name> OWNER TO sidewalk;`** in the same evolution (see 309.sql for the pattern). On the prod server, evolutions run as an admin role, so a new table would otherwise be owned by that role and the `sidewalk` app role would lack permissions on it. This applies to **tables only** — it's easy to forget, and a missed one has to be patched by a later evolution (e.g. 321.sql fixed 314.sql; 329.sql fixed 326.sql/327.sql). Note:
 - **SERIAL / identity sequences** are covered automatically: `ALTER TABLE … OWNER TO` recursively reassigns any sequence a column owns, so no separate statement is needed for them.
 - **Enum types, views, and standalone (non-column-owned) sequences do *not* get an owner change** — the app only needs default `USAGE`/`SELECT` on those, which it already has, and they're never altered at runtime. Don't add `OWNER TO` for them.
+
+**Give every table its full set of constraints — don't lean on the app to enforce integrity.** When you `CREATE TABLE` (or `ALTER` one), add every constraint the data model implies: `NOT NULL` on any column the app never writes null to, `UNIQUE` on a natural key or one-to-one relationship (or make it the `PRIMARY KEY`), a `FOREIGN KEY` for every reference to another table, and a `CHECK` for a bounded domain (a severity `1`–`3`, a non-negative count, a `0`–`1` fraction, a valid lat/lng). A missing constraint silently rots into bad data — backfilling ones that should have been there from the start has cost whole PRs (#3574 for FKs, #3944 for NOT NULL/UNIQUE/PK/CHECK). **Mirror each in the Slick model** so schema and code agree: a non-`Option` `column[T]` means `NOT NULL`, `def pk = primaryKey(...)` declares a composite PK (single-column PKs use `O.PrimaryKey` inline), `index(..., unique = true)` a UNIQUE, and `foreignKey(...)` an FK. CHECK constraints have no Slick DSL, so they live only in the evolution — leave a comment noting the invariant.
+
+**Postgres does *not* rename a table's constraints or indexes when you rename the table or a column** — the old name sticks and silently drifts from what it enforces. So an evolution that renames a column (or table) must also `ALTER TABLE … RENAME CONSTRAINT` / `ALTER INDEX … RENAME` every constraint and index whose name embeds the old identifier, back to the `<table>_<column>_{fkey,key,pkey,check}` convention, and update the matching name string in the Slick model (`foreignKey`/`index`/`primaryKey`). Skipping this forces a later evolution to patch the fossils — 337.sql had to rename three, e.g. `user_org_org_id_fkey` → `user_team_team_id_fkey`, left over from an old `user_org` → `user_team` table rename.
 
 ## Frontend architecture
 
@@ -80,6 +84,17 @@ Two separate i18n systems:
 Supported languages: en, es, nl, zh-TW, de, pt-BR, en-US, en-NZ.
 
 User-facing text changes require translations for all supported languages
+
+**Backend: English goes in `messages.en`, never the base `messages` file.** For a `@Messages("...")` key, put the
+English string in **`conf/messages/messages.en`** and a (best-effort, machine-translation-OK) translation in **each**
+`messages.<lang>` (`.es`, `.nl`, `.de`, `.pt-BR`, `.zh-TW`). The base **`conf/messages/messages`** (no suffix) is the
+Play *default/fallback* file — reserve it for genuinely language-neutral values (city-name proper nouns, way-type keys)
+and never add translatable English prose there. **The common trap:** doing an English-only first pass and dropping the
+strings into the base `messages` (it looks like "the English/default file"), then adding `messages.en` + `messages.<lang>`
+in a later translation pass — which leaves a stale, duplicated English copy in the base file. Even the English-only
+first pass belongs in `messages.en`. (Regional English overlays `messages.en-US`/`messages.en-NZ` fall back through
+`messages.en`; the other languages fall back straight to the base default, so a missing `messages.<lang>` key shows the
+raw key — which is why every language file must carry the key.)
 
 Lean towards using `data-i18n="ns:key"` in HTML so that we can keep the translations in the i18next JS library and reduce duplicate translations.
 
@@ -116,9 +131,11 @@ Every label type has a **canonical color** and a set of **icon images**. Always 
 | Occlusion      | `#B3B3B3` |
 | Problem        | `#B3B3B3` |
 
-**Icons** live in `public/images/icons/label_type_icons/` in three sizes: `{LabelType}.png` (large),
-`{LabelType}_small.png`, and `{LabelType}_tiny.png`. The canonical source of truth for both colors and icon URLs
-is the `/v3/api/labelTypes` endpoint.
+**Icons** live in `public/images/icons/label_type_icons/` in three PNG sizes — `{LabelType}.png` (large),
+`{LabelType}_small.png`, `{LabelType}_tiny.png` — plus a scalable `{LabelType}_small.svg` variant (used where the
+icon renders at arbitrary size, e.g. the label card's in-pano marker). The canonical source of truth for both
+colors and icon URLs is the `/v3/api/labelTypes` endpoint (PNG paths); frontend code reads all four paths from
+`util.misc.getIconImagePaths(labelType)` rather than hardcoding them.
 
 **In JavaScript:** call `util.misc.getLabelColors(labelType)` — defined in
 `public/js/common/UtilitiesSidewalk.js` and loaded on every page that includes
@@ -176,6 +193,7 @@ When you catch yourself writing a frontend constant that mirrors a backend value
 - User interactions are logged (clicks, key presses, mode switches, pano changes, mission/task events, etc.) to the activity/interaction tables. When you **add or change an interaction**, add or adjust the corresponding logging so analytics stay complete; keep event names consistent with the existing ones, and update [`docs/logged-events.md`](docs/logged-events.md) (how logging works + the event reference).
 - Ensure WCAG 2.1/2.2 Level AA accessibility standards are met
 - When adding or refactoring code, use the fonts, colors, button styling, etc. defined in main.css :root. These are pulled from our "Design System Tokens" Figma, and we are pushing to use these going forward.
+- **Scale tool UI with `var(--ui-scale)`.** The Explore and Validate tools (and self-contained overlays layered over them — the mission-complete modal, the tutorial intro/complete screens, etc.) are zoomed uniformly to fit the viewport by `util.applyToolScale` (`public/js/common/utilities.js`), which sets `--ui-scale` on both `.tool-ui` and the document root. So **every fixed dimension you author for tool/overlay UI must be expressed as `calc(<base>px * var(--ui-scale, 1))`** — paddings, gaps, widths, heights, border widths/radii, icon sizes, and any hardcoded `font-size`/`letter-spacing`. For type, prefer the `--text-*` tokens (they already bake in `var(--ui-scale)`); only drop to a raw `calc(... * var(--ui-scale, 1))` font-size when no token matches the size. A bare `px` value here is a bug: it won't grow/shrink with the rest of the tool. (Fluid values — `%`, `flex`, `aspect-ratio`, viewport units — don't need it.) This does **not** apply to fixed page chrome like the navbar, which deliberately stays unscaled.
 - Max line length of 120 characters, with long line exceptions where appropriate. For multi-line comments, TARGET line length is 120 characters
 - **Keep docs in sync.** When you change architecture, framework versions, supported languages, label types, or other conventions, update the affected docs in the *same* change: [`docs/architecture.md`](docs/architecture.md) mirrors this file's architecture (and the README's tech-stack summary), and [`CONTRIBUTING.md`](CONTRIBUTING.md) holds the workflow/standards. To avoid drift, keep exact dependency/patch versions in **one** place — the dependency-version inventory ([`docs/upgrading-libraries.md`](docs/upgrading-libraries.md)) — rather than copying them across docs. README/architecture mention only stable major versions (e.g. Scala 2.13, Play 3.0, Java 17).
 

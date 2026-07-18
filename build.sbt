@@ -2,7 +2,7 @@ import com.typesafe.sbt.packager.MappingsHelper.directory
 
 name := """sidewalk-webpage"""
 
-version := "11.6.1"
+version := "11.7.0"
 
 scalaVersion := "2.13.18"
 
@@ -48,6 +48,10 @@ libraryDependencies ++= Seq(
 
   // For automatic WKT to GeoJSON and Shapefile conversion, used with slick-pg.
   "org.n52.jackson" % "jackson-datatype-jts" % "1.2.10",
+
+  // Reads EXIF (photos) and QuickTime/MP4 atoms (videos, for the later #4054 increments) from user-uploaded story
+  // media. Pure Java, one small transitive dep (xmpcore). Used transiently on ingest; precise values are discarded.
+  "com.drewnoakes" % "metadata-extractor" % "2.19.0",
 
   // Used for the sign in/up views. https://github.com/mohiva/play-silhouette-seed/blob/1710f9f3337cbe10d1928fd53a5ab933352b3cf5/build.sbt
   // Find versions here (P26-B3 is Play 2.6, Bootstrap 3): https://adrianhurt.github.io/play-bootstrap/changelog/

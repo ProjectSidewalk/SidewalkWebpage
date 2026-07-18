@@ -121,13 +121,18 @@ class ModalMissionComplete {
     if (svl.neighborhoodModel.isRouteComplete) {
       this.#els.title.textContent = i18next.t('mission-complete.title-route-complete');
     } else if (svl.neighborhoodModel.isNeighborhoodComplete) {
-      this.#els.title.textContent = i18next.t('mission-complete.title-neighborhood-complete', { neighborhoodName });
+      // escapeValue off: the result lands in textContent, so i18next's HTML-escaping would show literal entities.
+      this.#els.title.textContent = i18next.t('mission-complete.title-neighborhood-complete', {
+        neighborhoodName, interpolation: { escapeValue: false },
+      });
     } else {
       this.#els.title.textContent = i18next.t('mission-complete.title-generic');
     }
+    // escapeValue off: the result lands in textContent, so i18next's HTML-escaping would show literal entities.
     this.#els.subtitle.textContent = i18next.t('mission-complete.subtitle', {
       distance: this.#formatMissionDistance(mission.getDistance('miles')),
       neighborhoodName,
+      interpolation: { escapeValue: false },
     });
   }
 

@@ -46,7 +46,9 @@ loading = Laden...
 loading.encouragement = Let''s go!
 submit = Dien in
 submit.shortcut = Dien in (<u>s</u>)
-test.server.warning.message = <strong>WAARSCHUWING!</strong> U bevindt zich op een testserver! Uw gegevens worden niet opgeslagen! Als u wilt dat uw gegevens worden opgeslagen, gebruik dan de hoofdsite
+test.server.warning.message = <strong>U bevindt zich op een testserver.</strong> Uw werk wordt hier niet opgeslagen. Gebruik de hoofdsite om uw gegevens te bewaren
+test.server.warning.label = Testservermelding
+test.server.warning.close = Melding sluiten
 dont.show.again = Laat niet opnieuw zien
 
 press.key = Druk op de "{0}" toets
@@ -88,6 +90,14 @@ navbar.lang.icon.alt = talen icoon
 navbar.servicehours = Vrijwilligersinformatie
 navbar.timecheck = Tijdcontrole
 navbar.cities = Steden
+navbar.menu.toggle = Navigatiemenu wisselen
+navbar.tools.analyze = Analyseren
+navbar.tools.community = Community
+navbar.tools.build = Bouwen
+navbar.tools.admin = Beheer
+navbar.city.search = Steden zoeken…
+navbar.city.viewall = Alle steden op de kaart bekijken
+navbar.city.none = Geen overeenkomende steden
 
 landing.create.path = Laten we een pad creëren voor iedereen!
 landing.start.exploring = Start met Verkennen
@@ -161,19 +171,11 @@ footer.award = Prijs <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID
 footer.designed.operated = Project Sidewalk is ontworpen en beheerd door <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> op de <a id="universityofwashington" href="http://www.cs.uw.edu/">University of Washington</a>
 footer.version = Versie {0} | Laatst geupdated: <span class = "timestamp date">{1}</span>
 
-audit.tutorial.welcome.1 = In <span class="bold">Project Sidewalk,</span> zul je je virtueel door steden verplaatsen en missies volbrengen door toegankelijkheidskenmerken en problemen te vinden en te labelen in de buurt, waaronder:
-audit.tutorial.welcome.2 = We beginnen met een korte interactieve uitleg.
-audit.tutorial.welcome.3 = Laten we eraan beginnen!
-audit.tutorial.welcome.4 = Heb je al eerder de uitleg doorlopen? Heb je een Account? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Log In</a> of <a value="Skip" class="onboarding-transition-trigger">sla de uitleg over.</a>
-audit.tutorial.accessible = <span style="color:limegreen">Toegankelijk</span>
-audit.tutorial.inaccessible = <span style="color:red">Ontoegankelijk</span>
-audit.tutorial.examples.curb.ramp = <span style="color:limegreen">Trottoir opritten</span> helpen rolstoelgebruikers om op en van trottoirs te komen
-audit.tutorial.examples.missing.ramp = Rolstoelgebruikers kunnen geen gebruik maken van trottoirs als <span style="color:#ff0066">trottoir opritten ontbreken</span>
-audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">Obstakels</span> blokkeren het pad van rolstoelgebruikers
-audit.tutorial.examples.surface.problem = Trottoirs met <span style="color:orange">oppervlakte problemen</span> zijn mogelijk niet berijdbaar
-audit.tutorial.end.1 = Goed! Je hebt geleerd hoe je de interface moet gebruiken! Ga nu verder en <span class="bold">Label de volgende toegankelijkheidskenmerken in Street View-beelden.</span> wat positief impact zal hebben op hoe rolstoelgebruikers zich kunnen bewegen door de stad:
-audit.tutorial.end.2 = Nogmaals, dank voor <span class="bold">je bijdrage aan een toegankelijke wereld voor iedereen!</span>
-audit.tutorial.examples = Voorbeelden van toegankelijkheidskenmerken: stoep opritten, ontbrekende stoep opritten, obstakels in het pad, en oppervlakteproblemen.
+audit.tutorial.complete.1 = Het is gelukt!
+audit.tutorial.complete.2 = Je hebt de uitleg voltooid!
+audit.tutorial.complete.learn-more = Meer informatie
+audit.tutorial.complete.start-contributing = Beginnen met bijdragen
+
 audit.ribbon.curb.ramp.labels = TROTTOIR OPRIT LABELS
 audit.ribbon.sidewalk.labels = TROTTOIR LABELS
 audit.ribbon.other.labels = ANDERE TOEGANKELIJKHEIDSLABELS
@@ -218,7 +220,7 @@ audit.survey.feedback.question = Heb je feedback, design ideeën, of vragen?
 
 validate.comment.placeholder = Voeg een optionele opmerking toe
 validate.why.not = Waarom niet?
-validate.why.unsure = Waarom 'Onzeker'?
+validate.why.unsure = Waarom ''Onzeker''?
 validate.add.own.reason = Of voeg je eigen reden toe.
 validate.skip.reason = Reden overslaan
 validate.suggestions = Suggesties
@@ -388,7 +390,7 @@ footer.logo.create.alt = Centrum voor Onderzoek en Onderwijs over Toegankelijke 
 cities.dashboard.cities = Implementatiesteden
 cities.dashboard.distance = Verkende straten
 cities.dashboard.cities.icon.alt = Rolstoelgebruiker van Project Sidewalk-logo met een vlag
-cities.dashboard.cta.title = Breng Project Sidewalk naar uw stad!
+cities.dashboard.cta.title = Breng Project Sidewalk naar uw stad!
 cities.dashboard.cta.content = Wilt u de toegankelijkheid in uw omgeving in kaart brengen? <br/> We zijn altijd op zoek naar nieuwe partners die ons kunnen helpen de toekomst van stedelijke toegankelijkheid te transformeren.
 cities.dashboard.cta.button = Leer hoe u kunt implementeren
 cities.dashboard.cta.logo.alt = Het logo van Project Sidewalk met de tekst projectsidewalk.org
@@ -396,6 +398,7 @@ cities.dashboard.cta.logo.alt = Het logo van Project Sidewalk met de tekst proje
 share.meta.title.issue = Ik heb een toegankelijkheidsprobleem gevonden op Project Sidewalk: {0}
 share.meta.title.feature = Kijk wat ik heb gevonden op Project Sidewalk: {0}
 share.meta.description.spotted = Gespot in {0}.
+share.meta.description.address = In de buurt van {0}.
 share.meta.description.severity = Ernst: {0} van 3.
 share.meta.description.tags = Tags: {0}.
 share.meta.description.cta = Verken de kaart en help stoepen toegankelijk te maken voor iedereen.
@@ -483,6 +486,8 @@ dashboard.mistakes.validated.count = {0} gevalideerd
 dashboard.mistakes.recent.title = Recente fouten
 dashboard.mistakes.recent.intro = Oneens met een validatie? Laat het ons weten — je kunt achter je label blijven staan en een notitie met context achterlaten.
 dashboard.mistakes.see.all = Bekijk al je labels →
+dashboard.stories.title = Jouw verhalen
+dashboard.stories.intro = Persoonlijke verhalen die je bij etiketten hebt gedeeld. Verhalen zijn openbaar; je kunt ze hier op elk moment definitief verwijderen.
 dashboard.team.title = Je team
 dashboard.team.intro = Breng samen met een team of klas in kaart. Vriendschappelijke competitie in een kleine groep is het halve plezier.
 dashboard.team.none = Je zit nog niet in een team

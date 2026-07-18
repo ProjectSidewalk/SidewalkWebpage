@@ -81,5 +81,8 @@
     "name-too-short": "Der Teamname muss mindestens 2 Zeichen lang sein.",
     "create-failed": "Das Team konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
     "network-error": "Netzwerkfehler — bitte versuchen Sie es erneut."
+  },
+  "stories": {
+    "none": "Sie haben noch keine Geschichten geteilt. Öffnen Sie eine Beschriftung auf der Karte und wählen Sie „Geschichte teilen“."
   }
 }

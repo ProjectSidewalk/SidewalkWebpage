@@ -30,17 +30,15 @@ class PopupPanoManager {
   #logo;
   #cropUrl;
 
-  #icons = {
-    CurbRamp: '/assets/images/icons/AdminTool_CurbRamp.png',
-    NoCurbRamp: '/assets/images/icons/AdminTool_NoCurbRamp.png',
-    Obstacle: '/assets/images/icons/AdminTool_Obstacle.png',
-    SurfaceProblem: '/assets/images/icons/AdminTool_SurfaceProblem.png',
-    Other: '/assets/images/icons/AdminTool_Other.png',
-    Occlusion: '/assets/images/icons/AdminTool_Occlusion.png',
-    NoSidewalk: '/assets/images/icons/AdminTool_NoSidewalk.png',
-    Crosswalk: '/assets/images/icons/AdminTool_Crosswalk.png',
-    Signal: '/assets/images/icons/AdminTool_Signal.png',
-  };
+  /**
+   * The scalable variant of a label type's canonical marker icon, from util.misc's central label-type registry,
+   * so the in-pano marker stays crisp at any size.
+   * @param {string} labelType
+   * @returns {?string} The icon URL, or null for types without one.
+   */
+  #iconFor(labelType) {
+    return util.misc.getIconImagePaths(labelType)?.scalableIconImagePath ?? null;
+  }
 
   /**
    * @param {boolean} admin - Whether the user is an admin (enables pano navigation).
@@ -113,10 +111,11 @@ class PopupPanoManager {
     })[0];
     // The panzoom target — wraps the image. The marker stays OUTSIDE this wrapper so it doesn't scale
     // with the image; instead we reposition it manually whenever panzoom emits a transform event.
+    // Cursor comes from CSS (#pano-fallback-pz grab/grabbing) — an inline cursor here would override the
+    // :active grabbing state.
     this.#fallbackPanzoomWrap = $('<div id="pano-fallback-pz">').css({
       width: '100%',
       height: '100%',
-      cursor: 'grab',
     })[0];
     this.#fallbackImage = $('<img id="pano-fallback-image">').css({
       'width': '100%',
@@ -127,8 +126,8 @@ class PopupPanoManager {
     })[0];
     this.#fallbackMarker = $('<img id="pano-fallback-marker">').addClass('icon-outline').css({
       'position': 'absolute',
-      'width': '20px',
-      'height': '20px',
+      'width': '28px',
+      'height': '28px',
       'transform': 'translate(-50%, -50%)',
       'display': 'none',
       'pointer-events': 'none',
@@ -338,8 +337,9 @@ class PopupPanoManager {
       $(this.#fallbackImage).attr('src', this.#cropUrl);
       $(this.#fallbackContainer).css('display', 'block');
       // Position the label icon on the fallback image.
-      if (this.label && this.#icons[this.label.label_type]) {
-        $(this.#fallbackMarker).attr('src', this.#icons[this.label.label_type]).css('display', 'block');
+      const fallbackIcon = this.label && this.#iconFor(this.label.label_type);
+      if (fallbackIcon) {
+        $(this.#fallbackMarker).attr('src', fallbackIcon).css('display', 'block');
         this.#updateFallbackMarkerPosition();
       } else {
         $(this.#fallbackMarker).css('display', 'none');
@@ -408,9 +408,11 @@ class PopupPanoManager {
       markerContainer: activeCanvas,
       panoViewer: this.panoViewer,
       position: { heading: pos.heading, pitch: pos.pitch },
-      icon: this.#icons[label.label_type],
-      size: { width: 20, height: 20 },
+      icon: this.#iconFor(label.label_type),
+      size: { width: 28, height: 28 },
     });
+    // Halo pulse draws the eye to the (small, often low-contrast) marker when the card opens.
+    panoMarker.marker_.classList.add('label-detail__marker-pulse');
     this.#labelMarkers.push({
       panoId: this.panoViewer.getPanoId(),
       marker: panoMarker,

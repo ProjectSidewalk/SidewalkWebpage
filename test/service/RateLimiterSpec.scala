@@ -23,6 +23,7 @@ class RateLimiterSpec extends PlaySpec {
       rate-limit {
         enabled = $enabled
         login { max-attempts = 3, window-seconds = 60 }
+        story-submit { enabled = true, max-attempts = 2, window-seconds = 60 } # per-limiter override
       }
     """)))
 
@@ -69,6 +70,33 @@ class RateLimiterSpec extends PlaySpec {
       val lim = limiter(enabled = true).limit("login")
       lim.maxAttempts mustBe 3
       lim.window mustBe 60.seconds
+    }
+
+    "let a block's own enabled flag override the global default when the global is off" in {
+      val rl = limiter(enabled = false)
+      rl.limit("story-submit").enabled mustBe true // block sets enabled = true
+      rl.limit("login").enabled mustBe false       // no block flag -> inherits global (off)
+    }
+
+    "inherit the global enabled default when a block sets no flag" in {
+      limiter(enabled = true).limit("login").enabled mustBe true
+    }
+  }
+
+  "RateLimiter.allow(key, limit)" should {
+    "enforce a limit whose block opts in, even while global rate limiting is disabled" in {
+      val rl  = limiter(enabled = false)
+      val lim = rl.limit("story-submit") // enabled = true, max-attempts = 2
+      rl.allow("ip:1", lim) mustBe true
+      rl.allow("ip:1", lim) mustBe true
+      rl.allow("ip:1", lim) mustBe false
+    }
+
+    "be a no-op for a limit that is not enabled" in {
+      // A login limit with the global off and no block flag -> disabled -> never denies.
+      val rl  = limiter(enabled = false)
+      val lim = rl.limit("login")
+      (1 to 100).foreach(_ => rl.allow("ip:1", lim) mustBe true)
     }
   }
 }

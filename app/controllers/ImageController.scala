@@ -1,6 +1,7 @@
 package controllers
 
 import controllers.base._
+import controllers.helper.SignedMediaUtils
 import executors.CpuIntensiveExecutionContext
 import formats.json.LabelFormats
 import models.label.LabelTypeEnum
@@ -16,7 +17,6 @@ import java.util.Base64
 import javax.imageio.ImageIO
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
 
 @Singleton
 class ImageController @Inject() (
@@ -75,43 +75,11 @@ class ImageController @Inject() (
     }
   }
 
-  /**
-   * Returns true if the request's Referer or Origin header (when present) points to an allowed host.
-   *
-   * Missing headers are treated as allowed — they are legitimately absent in some privacy modes
-   * and on direct requests. Only explicit cross-origin indicators from a disallowed host are rejected.
-   * @param request The incoming request to check.
-   */
-  private def refererAllowed(request: RequestHeader): Boolean = {
-    val allowedHosts                       = config.get[Seq[String]]("play.filters.hosts.allowed")
-    def hostAllowed(host: String): Boolean = allowedHosts.exists { pattern =>
-      val patternHost = pattern.split(":")(0) // strip port, e.g. "localhost:9000" → "localhost"
-      if (patternHost.startsWith(".")) host.endsWith(patternHost) || host == patternHost.drop(1)
-      else host == patternHost
-    }
-    def extractHost(header: String): Option[String] =
-      Try(new java.net.URL(header).getHost).toOption
+  private def refererAllowed(request: RequestHeader): Boolean =
+    SignedMediaUtils.refererAllowed(request, config)
 
-    val originOk  = request.headers.get("Origin").flatMap(extractHost).forall(hostAllowed)
-    val refererOk = request.headers.get("Referer").flatMap(extractHost).forall(hostAllowed)
-    originOk && refererOk
-  }
-
-  /**
-   * Validates the ?exp and ?sig query parameters against the expected HMAC for this request path.
-   *
-   * Returns a Forbidden result if the signature is missing, invalid, or expired.
-   * @param request The incoming request.
-   * @param path    The canonical path to verify (e.g. "/backupImage/myPanoId").
-   */
-  private def verifySignature(request: RequestHeader, path: String): Option[play.api.mvc.Result] = {
-    val exp = request.getQueryString("exp").flatMap(s => Try(s.toLong).toOption)
-    val sig = request.getQueryString("sig")
-    (exp, sig) match {
-      case (Some(e), Some(s)) if signingService.verify(path, e, s) => None
-      case _                                                       => Some(Forbidden("Invalid or expired image URL."))
-    }
-  }
+  private def verifySignature(request: RequestHeader, path: String): Option[play.api.mvc.Result] =
+    SignedMediaUtils.verifySignature(request, path, signingService)
 
   // Creates the base directory for the crops if it doesn't exist. Uses subdirectories /<city-id>/<label-type>.
   private def initializeDirIfNeeded(labelType: String): Unit = {
