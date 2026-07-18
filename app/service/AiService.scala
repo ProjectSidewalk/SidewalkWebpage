@@ -68,8 +68,11 @@ class AiServiceImpl @Inject() (
               // Call the AI API to process the panorama data and validate labels.
               case Some(labelData) => callAiApiAndSubmitData(labelData)
               case None            =>
-                logger.warn(s"Info for label with ID $labelId not found.")
-                Future.failed(new Exception(s"Label with ID $labelId not found or user was marked as excluded."))
+                // Unexpected but recoverable: the label has no pano_data row with dimensions, e.g. because
+                // savePanoInfo (which runs in parallel with label submission) hasn't saved it yet. The nightly
+                // validateLabelsWithAiDaily sweep will pick the label up once its pano data exists.
+                logger.warn(s"Skipping AI validation for label $labelId: no label/pano data eligible for AI found.")
+                Future.successful(None)
             }
         }
       }

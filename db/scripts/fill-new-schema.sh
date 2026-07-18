@@ -111,7 +111,7 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
     -- whole neighborhood isn't open yet); everything else starts 'open' (#3888). $REGION_DELETED_Q is a boolean
     -- expression that is TRUE for streets whose region is hidden.
     INSERT INTO street_edge (street_edge_id, geom, way_type, status, timestamp, x1, y1, x2, y2)
-        SELECT road_id, geom, $WAY_TYPE,
+        SELECT road_id, geom, ($WAY_TYPE)::way_type,
                (CASE WHEN $REGION_DELETED_Q THEN 'closed' ELSE 'open' END)::street_edge_status, now(),
                ST_X(ST_StartPoint(geom)), ST_Y(ST_StartPoint(geom)), ST_X(ST_EndPoint(geom)), ST_Y(ST_EndPoint(geom))
         FROM qgis_road;

@@ -9,7 +9,7 @@ import models.audit._
 import models.auth.DefaultEnv
 import models.label.LabelTypeEnum
 import models.pano.PanoSource
-import models.street.StreetEdgeIssue
+import models.street.{StreetEdgeIssue, StreetEdgeIssueType}
 import models.user._
 import play.api.libs.json._
 import play.api.mvc.Result
@@ -164,8 +164,8 @@ class ExploreController @Inject() (
         exploreService
           .insertNoImagery(
             noSv.task,
-            StreetEdgeIssue(0, noSv.task.streetEdgeId, "PanoNotAvailable", request.identity.userId, request.ipAddress,
-              OffsetDateTime.now),
+            StreetEdgeIssue(0, noSv.task.streetEdgeId, StreetEdgeIssueType.PanoNotAvailable, request.identity.userId,
+              request.ipAddress, OffsetDateTime.now),
             noSv.missionId
           )
           .map(_ => Ok(Json.obj("success" -> noSv.task.streetEdgeId)))
@@ -239,10 +239,10 @@ class ExploreController @Inject() (
           .map { _ =>
             // Send labels to SidewalkAI API for AI validation. Only available for some label types and imagery sources.
             val labelsToSend = returnData.newLabels.filter { l =>
-              LabelTypeEnum.aiLabelTypes.contains(l._3) && l._4 == PanoSource.Gsv
+              LabelTypeEnum.aiLabelTypes.contains(l.labelType) && l.panoSource == PanoSource.Gsv && !l.tutorial
             }
             aiService
-              .validateLabelsWithAi(labelsToSend.map(_._1))
+              .validateLabelsWithAi(labelsToSend.map(_.labelId))
               .onComplete {
                 case Success(_) => if (labelsToSend.nonEmpty) logger.info(s"AI validation(s) completed successfully.")
                 case Failure(e) => logger.error("Error occurred when submitting AI validations:", e)
@@ -254,8 +254,8 @@ class ExploreController @Inject() (
               exploreService
                 .secondsSpentAuditing(
                   user.userId,
-                  returnData.newLabels.map(_._1).min,
-                  returnData.newLabels.map(_._5).max
+                  returnData.newLabels.map(_.labelId).min,
+                  returnData.newLabels.map(_.timeCreated).max
                 )
                 .flatMap { timeSpent: Double =>
                   configService.sendSciStarterContributions(user.email, returnData.newLabels.length, timeSpent)
@@ -269,7 +269,8 @@ class ExploreController @Inject() (
             "audit_task_id"  -> returnData.auditTaskId,
             "street_edge_id" -> data.auditTask.streetEdgeId,
             "mission"        -> returnData.mission.map(Json.toJson(_)),
-            "label_ids" -> returnData.newLabels.map(l => Json.obj("label_id" -> l._1, "temporary_label_id" -> l._2)),
+            "label_ids"      -> returnData.newLabels
+              .map(l => Json.obj("label_id" -> l.labelId, "temporary_label_id" -> l.temporaryLabelId)),
             "updated_streets" -> returnData.updatedStreets.map(Json.toJson(_)),
             "refresh_page" -> returnData.refreshPage // If we notice something out of whack, tell front-end to refresh.
           )

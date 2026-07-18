@@ -329,7 +329,7 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
                          (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
                   FROM audit_task_interaction_small
                   INNER JOIN mission ON audit_task_interaction_small.mission_id = mission.mission_id
-                  WHERE mission_type_id <> 1 -- exclude tutorials
+                  WHERE mission_type <> 'auditOnboarding' -- exclude tutorials
                       AND #$timeIntervalFilter
               ) "time_diffs"
               WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'

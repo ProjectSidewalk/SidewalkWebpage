@@ -68,7 +68,12 @@ The backend follows a consistent layering: **routes → Controller → Service �
   sequences follow the table owner automatically, and enum types/views don't need it. Give each table its **full set of
   constraints** up front — `NOT NULL`, `UNIQUE`/`PRIMARY KEY`, `FOREIGN KEY`, and `CHECK` for bounded domains (severity
   ranges, non-negative counts, valid coordinates) — and mirror them in the Slick model, rather than leaning on the app
-  to keep data clean; backfilling missing constraints later has taken whole PRs (#3574, #3944). And because Postgres
+  to keep data clean; backfilling missing constraints later has taken whole PRs (#3574, #3944). For a column with a
+  **closed set of values**, prefer a **Postgres enum type** when the column is on a high-row-count table, written at
+  runtime, or mapped to a Scala enum (add the mapper in `MyPostgresProfile` via `createEnumJdbcType`; growing a set
+  later is just `ALTER TYPE ... ADD VALUE`), and a plain **`CHECK (col IN (...))`** for tiny script-seeded config/cache
+  tables where an enum buys nothing (#4103). Watch the shared namespace: a lookup *table* being replaced by an enum
+  *type* of the same name must be dropped before the `CREATE TYPE`. And because Postgres
   keeps a constraint's or index's original name when you rename a table or column, an evolution that renames a column
   must also `RENAME CONSTRAINT` / rename the affected indexes (and their name strings in the model) back to the
   `<table>_<column>_{fkey,key,pkey,check}` convention.

@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.api.UserStatForApi
 import models.audit.AuditTaskTableDef
 import models.label.{LabelTable, LabelTypeEnum}
-import models.mission.{MissionTableDef, MissionTypeTable}
+import models.mission.{MissionTableDef, MissionType}
 import models.street.StreetEdgeTable
 import models.user.RoleTable.ROLES_RESEARCHER_COLLAPSED
 import models.utils.MyPostgresProfile
@@ -171,7 +171,7 @@ class UserStatTable @Inject() (
   private val missionTable         = TableQuery[MissionTableDef]
   private val labelValidationTable = TableQuery[LabelValidationTableDef]
 
-  private val auditMissions = missionTable.filter(_.missionTypeId === MissionTypeTable.missionTypeToId("audit"))
+  private val auditMissions = missionTable.filter(_.missionType === MissionType.Audit)
 
   private val LABEL_PER_METER_THRESHOLD: Double = 0.0375
 
@@ -845,9 +845,8 @@ class UserStatTable @Inject() (
       FROM (
           SELECT DISTINCT(mission.user_id)
           FROM mission
-          INNER JOIN mission_type ON mission.mission_type_id = mission_type.mission_type_id
           LEFT JOIN label_validation ON mission.mission_id = label_validation.mission_id
-          WHERE mission_type.mission_type IN ('validation', 'labelmapValidation')
+          WHERE mission.mission_type IN ('validation', 'labelmapValidation')
               AND #$lblValidationTimeIntervalSql
               AND #$validationCompletedSql
           UNION

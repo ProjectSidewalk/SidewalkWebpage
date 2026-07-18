@@ -5,7 +5,7 @@ import formats.json.ExploreFormats.AuditMissionProgress
 import formats.json.ValidateFormats.ValidationMissionProgress
 import models.audit.AuditTaskTable
 import models.mission.MissionTable.{distanceForLaterMissions, distancesForFirstAuditMissions}
-import models.mission.{Mission, MissionTable}
+import models.mission.{Mission, MissionTable, MissionType}
 import models.user.SidewalkUserTable.aiUserId
 import models.user.SidewalkUserWithRole
 import models.utils.MyPostgresProfile
@@ -27,11 +27,15 @@ trait MissionService {
   def resumeOrCreateNewAuditOnboardingMission(userId: String): DBIO[Option[Mission]]
   def resumeOrCreateNewAuditMission(userId: String, regionId: Int): DBIO[Option[Mission]]
   def resumeOrCreateNewAiExploreMission(regionId: Int): DBIO[Mission]
-  def resumeOrCreateNewValidateMission(userId: String, missionType: String, labelTypeId: Int): Future[Option[Mission]]
+  def resumeOrCreateNewValidateMission(
+      userId: String,
+      missionType: MissionType.Value,
+      labelTypeId: Int
+  ): Future[Option[Mission]]
   def updateCompleteAndGetNextValidationMission(
       userId: String,
       missionId: Int,
-      missionType: String,
+      missionType: MissionType.Value,
       labelsProgress: Int,
       labelTypeId: Option[Int],
       skipped: Boolean
@@ -258,7 +262,7 @@ class MissionServiceImpl @Inject() (
    */
   def resumeOrCreateNewValidateMission(
       userId: String,
-      missionType: String,
+      missionType: MissionType.Value,
       labelTypeId: Int
   ): Future[Option[Mission]] = {
     val actions: Seq[String] = Seq("getValidationMission")
@@ -277,7 +281,7 @@ class MissionServiceImpl @Inject() (
   def updateCompleteAndGetNextValidationMission(
       userId: String,
       missionId: Int,
-      missionType: String,
+      missionType: MissionType.Value,
       labelsProgress: Int,
       labelTypeId: Option[Int],
       skipped: Boolean
@@ -323,7 +327,7 @@ class MissionServiceImpl @Inject() (
       actions: Seq[String],
       userId: String,
       missionId: Option[Int],
-      missionType: Option[String],
+      missionType: Option[MissionType.Value],
       labelsProgress: Option[Int],
       labelTypeId: Option[Int],
       skipped: Option[Boolean]
@@ -401,7 +405,8 @@ class MissionServiceImpl @Inject() (
 
     if (missionProgress.completed) {
       updateCompleteAndGetNextValidationMission(
-        userId, missionId, missionProgress.missionType, labelsProgress, nextMissionLabelTypeId, skipped
+        userId, missionId, MissionType.withName(missionProgress.missionType), labelsProgress, nextMissionLabelTypeId,
+        skipped
       )
     } else {
       updateValidationProgressOnly(userId, missionId, labelsProgress, missionProgress.labelsTotal)

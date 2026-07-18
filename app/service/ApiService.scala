@@ -376,10 +376,10 @@ class ApiServiceImpl @Inject() (
     db.run(streetEdgeTable.getStreetTypes).map { wayTypeCounts =>
       // Transform to StreetTypeForApi objects with descriptions.
       wayTypeCounts
-        .sortBy(_._1) // Sort by name.
+        .sortBy(_._1.toString) // Sort by name.
         .map { case (wayType, count) =>
-          val description: String = messagesApi(s"way.type.${wayType.replace("_", ".")}")(lang)
-          StreetTypeForApi(wayType, description, count)
+          val description: String = messagesApi(s"way.type.${wayType.toString.replace("_", ".")}")(lang)
+          StreetTypeForApi(wayType.toString, description, count)
         }
     }
   }
