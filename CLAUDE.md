@@ -378,9 +378,11 @@ compile locks), and launch `sbt ~ run` with `-Dconfig.file` at the worktree's ow
 main repo's warm `.coursier`/`.sbt` (cwd-relative caches from a worktree would re-download gigabytes). The first HTTP
 request triggers the dev compile; Ctrl-C stops it. Implementation: `tools/qa-worktree.sh`.
 
-**Admin-authenticated QA:** the seeded `Administrator` accounts' production password hashes don't work locally, so sign
-up a fresh account (two-step CSRF `POST /signUp`) and promote it via a local DB write — role is resolved per-request, so
-an existing session cookie gains access without re-login:
+**Admin-authenticated QA:** the dev DB is seeded from a dump that includes real accounts and their bcrypt password
+hashes, and password verification is config-independent (plain bcrypt, no server-side pepper), so if your own account is
+in the dump you can just sign in with your normal credentials. If you don't have credentials for a seeded account — or
+want a throwaway admin — create a fresh account (two-step CSRF `POST /signUp`) and grant it a role via a local DB write;
+roles are resolved per-request, so an existing session cookie gains access without re-login:
 
 ```sql
 UPDATE sidewalk_login.user_role

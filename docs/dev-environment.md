@@ -277,9 +277,10 @@ repo's `node_modules`, builds that branch's JS/CSS bundles, frees `:9000`, and l
 worktree's own config while reusing the main repo's warm sbt caches. The first request triggers the dev compile;
 `Ctrl+C` stops it. It behaves the same on macOS, Linux, and WSL because the work runs inside the web container.
 
-To QA admin-only pages you need an account with a role. The seeded `Administrator` accounts can't be signed into
-locally (their passwords come from a production dump), so create a fresh account through the sign-up form, then grant
-it a role directly in the dev database — roles are checked per request, so you don't need to sign in again. Open a
+To QA admin-only pages you need an account with a role. The dev database is seeded from a dump that includes real
+accounts, so if your own account is in it you can sign in normally — password checks work the same locally as in
+production. Otherwise — or if you'd rather use a throwaway account — create a fresh one through the sign-up form and
+grant it a role directly in the dev database (roles are checked per request, so you don't need to sign in again). Open a
 psql shell (`docker exec -it projectsidewalk-db psql -U sidewalk -d sidewalk`) and run:
 
 ```sql
