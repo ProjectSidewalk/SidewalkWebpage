@@ -1,22 +1,22 @@
 # --- !Ups
 -- Convert mission.mission_type_id from an int FK into a mission_type enum (#4103). The mission_type lookup table must
--- be dropped before CREATE TYPE, since tables and types share a namespace. The id -> name mapping below matches the
--- (now deleted) hardcoded MissionTypeTable.missionTypeToId map that the app has always assumed holds in every schema.
+-- be dropped before CREATE TYPE, since tables and types share a namespace. The id -> name mapping is taken from each
+-- schema's own mission_type table (via a temp column, since USING can't hold a subquery) rather than hardcoding the
+-- canonical ids, because some prod schemas' lookup rows have drifted from them. A mission whose resolved name isn't
+-- one of the enum's values fails the cast loudly rather than being silently mislabeled.
 ALTER TABLE mission DROP CONSTRAINT mission_mission_type_id_fkey;
+ALTER TABLE mission ADD COLUMN mission_type_name TEXT;
+UPDATE mission
+SET mission_type_name = mission_type.mission_type
+FROM mission_type
+WHERE mission.mission_type_id = mission_type.mission_type_id;
 DROP TABLE mission_type;
 CREATE TYPE mission_type AS ENUM
   ('auditOnboarding', 'audit', 'validationOnboarding', 'validation', 'cvGroundTruth', 'labelmapValidation', 'aiValidation');
 ALTER TABLE mission
   ALTER COLUMN mission_type_id TYPE mission_type
-  USING (CASE mission_type_id
-    WHEN 1 THEN 'auditOnboarding'
-    WHEN 2 THEN 'audit'
-    WHEN 3 THEN 'validationOnboarding'
-    WHEN 4 THEN 'validation'
-    WHEN 5 THEN 'cvGroundTruth'
-    WHEN 6 THEN 'labelmapValidation'
-    WHEN 7 THEN 'aiValidation'
-  END)::mission_type;
+  USING mission_type_name::mission_type;
+ALTER TABLE mission DROP COLUMN mission_type_name;
 ALTER TABLE mission RENAME COLUMN mission_type_id TO mission_type;
 -- IF EXISTS because a few old, no-longer-deployed schemas never got this index.
 ALTER INDEX IF EXISTS mission_mission_type_id_idx RENAME TO mission_mission_type_idx;
