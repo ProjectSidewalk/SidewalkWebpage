@@ -21,11 +21,15 @@ ALTER TABLE mission RENAME COLUMN mission_type_id TO mission_type;
 -- IF EXISTS because a few old, no-longer-deployed schemas never got this index.
 ALTER INDEX IF EXISTS mission_mission_type_id_idx RENAME TO mission_mission_type_idx;
 
--- Convert street_edge.way_type from text into an enum (#4103). The value set is closed by our city-import whitelist
--- (fill-new-schema.sh casts the imported column, so an out-of-whitelist value fails the import loudly). Streets from
--- non-OSM imports (Infra3d) carry no OSM way type and historically stored '' -- those become 'unknown'.
+-- Convert street_edge.way_type from text into an enum (#4103). The value set is the union of our usual city-import
+-- whitelist and the broader OSM highway set that CDMX was imported with. fill-new-schema.sh casts the imported
+-- column, so a value outside this set fails a future import loudly (and gets an ALTER TYPE ... ADD VALUE evolution).
+-- Streets from non-OSM imports (Infra3d) carry no OSM way type and historically stored '' -- those become 'unknown'.
 CREATE TYPE way_type AS ENUM
-  ('trunk', 'primary', 'secondary', 'tertiary', 'residential', 'unclassified', 'pedestrian', 'living_street', 'service', 'unknown');
+  ('motorway', 'motorway_link', 'trunk', 'trunk_link', 'primary', 'primary_link', 'secondary', 'secondary_link',
+   'tertiary', 'tertiary_link', 'unclassified', 'residential', 'living_street', 'pedestrian', 'service', 'road',
+   'track', 'raceway', 'footway', 'cycleway', 'path', 'bridleway', 'steps', 'corridor', 'crossing', 'construction',
+   'border', 'subway', 'unknown');
 UPDATE street_edge SET way_type = 'unknown' WHERE way_type = '';
 ALTER TABLE street_edge ALTER COLUMN way_type TYPE way_type USING way_type::way_type;
 
