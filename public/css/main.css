@@ -215,8 +215,9 @@ body {
 body {
   overflow-x: clip; /* Prevent horizontal scroll on narrow devices */
 
-  /* Moves all page content down to start just below the navbar. */
-  padding-top: var(--navbar-height);
+  /* Offsets content below the fixed navbar, plus the test-server banner when present. --test-banner-height is
+     published by the banner's inline script and defaults to 0 (banner absent/dismissed, and always on prod). */
+  padding-top: calc(var(--navbar-height) + var(--test-banner-height, 0px));
 }
 
 .spacer10 { height: 10px; }
@@ -353,7 +354,9 @@ a {
 
 #header {
   position: fixed;
-  top: 0;
+
+  /* Drops below the test-server banner when present; --test-banner-height is 0 otherwise (and on prod). */
+  top: var(--test-banner-height, 0);
   right: 0;
   left: 0;
   z-index: var(--navbar-z-index);
@@ -561,14 +564,14 @@ a {
 
 /*
  * Full-window app pages (e.g. /labelMap) opt in via this class: #wrap becomes a fixed-height flex
- * column so a flex-growing content area (the map) fills the viewport below the navbar, while the
- * in-flow test-server banner (dev only) keeps its natural height rather than being covered. Robust to
- * the banner wrapping or being dismissed; no effect on other pages, which don't get the class.
+ * column so a flex-growing content area (the map) fills the viewport below the navbar and the fixed
+ * test-server banner. --test-banner-height is 0 when the banner is absent/dismissed or on prod, so this
+ * reduces to 100vh minus the navbar. No effect on other pages, which don't get the class.
  */
 #wrap.wrap--full-window {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--navbar-height));
+  height: calc(100vh - var(--navbar-height) - var(--test-banner-height, 0px));
   min-height: 0;
   overflow: hidden;
 }
@@ -936,68 +939,156 @@ kbd {
 }
 
 
-/* Formatting the test server warning banner. */
+/*
+ * Test server warning banner: a soft amber notice shown only on non-prod servers. Colors, type, and spacing come from
+ * the Design System Tokens (banana/neutral/link palettes) rather than the old hardcoded yellow + red "WARNING!" text.
+ */
 .test-server-banner {
-  background-color: rgb(251 215 139);
-}
-
-/* Pin test server banner just below the navbar. */
-body:has(#vidbanner) .test-server-banner {
+  /*
+   * Fixed bar pinned to the very top, above the navbar. It reserves its own space via --test-banner-height
+   * (published by the inline script in common/main.scala.html) instead of covering content, and staying above
+   * the navbar keeps it clear of the navbar's height animation on the landing page.
+   */
   position: fixed;
-  top: var(--navbar-height);
+  top: 0;
   left: 0;
   right: 0;
-  z-index: 1029;
-}
-
-body:has(#header.header--tall) .test-server-banner {
-  top: 50px;
+  z-index: var(--navbar-z-index);
+  background-color: var(--color-banana-200);
+  border-bottom: 1px solid var(--color-banana-500);
 }
 
 .test-server-banner-content {
-  padding: 0.5%;
-  max-width: 70%;
-  margin: 0 auto;
   display: flex;
-  font-size: medium;
+  align-items: center;
+  gap: 12px;
+
+  /* Cap tuned to be just wide enough for the notice + a long deployment URL on one row, so the content still shows
+     centered margins on typical laptops. It wraps gracefully on narrower viewports. */
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 10px 20px;
+  flex-wrap: wrap;
+}
+
+/* Warning triangle: the severity cue, so the message text can stay calm and informative. */
+.test-server-banner-icon {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  color: var(--color-banana-800);
 }
 
 .test-server-banner-text {
-  font-family: raleway-bold, sans-serif;
-  text-align: center;
+  flex: 1 1 240px;
+  min-width: 0;
+  margin: 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
 }
 
 .test-server-banner-text > strong {
-  color: red;
+  font-weight: 700;
+  color: var(--color-neutral-900);
 }
 
-.test-server-banner-dont-show-again {
-  background: none;
-  border: none;
+.test-server-banner-link {
+  font-weight: 600;
+  color: var(--color-link-200);
   text-decoration: underline;
-  min-width: fit-content;
-  padding: 0 20px;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+
+.test-server-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* Secondary action styled as an outlined amber pill; the amber border ties it to the icon and band. */
+.test-server-banner-dont-show-again {
+  padding: 5px 14px;
+  border: 1px solid var(--color-banana-800);
+  border-radius: 999px;
+  background: transparent;
+  font: var(--text-small-medium);
+  color: var(--color-neutral-900);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.test-server-banner-dont-show-again:hover {
+  background-color: var(--color-banana-300);
+  border-color: var(--color-banana-900);
 }
 
 .test-server-banner-close {
-  background: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
   border: none;
-  margin-top: 2px;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-neutral-700);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.test-server-banner-close svg {
+  width: 16px;
+  height: 16px;
+}
+
+.test-server-banner-close:hover {
+  background-color: var(--color-banana-300);
+  color: var(--color-neutral-900);
+}
+
+.test-server-banner :focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .test-server-banner-dont-show-again,
+  .test-server-banner-close {
+    transition: none;
+  }
 }
 
 /*
- * Test server warning banner styling differences on mobile. This is used for all pages except for the default /mobile
- * for some reason. So CSS for that page is in mobile-validate.css.
+ * Test server warning banner on narrow screens. This applies to all pages except the default /mobile page, whose
+ * banner overrides live in mobile-validate.css.
  */
-@media only screen and (width <= 500px) {
-  .test-server-banner {
-    border-radius: 5px;
+@media only screen and (width <= 600px) {
+  /* Top-align so the icon sits on the first line once the message wraps to several lines. */
+  .test-server-banner-content {
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
   }
 
-  .test-server-banner-content {
-    max-width: 300px;
-    flex-wrap: wrap;
-    font-size: small;
+  /* Optical nudge to line the triangle up with the first line's cap height. */
+  .test-server-banner-icon {
+    margin-top: 1px;
+  }
+
+  /* Actions drop to their own row: pill anchored left, close anchored right, spanning the full width. */
+  .test-server-banner-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  /* Roomier tap target for touch. */
+  .test-server-banner-close {
+    width: 32px;
+    height: 32px;
   }
 }
 
