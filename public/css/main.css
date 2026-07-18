@@ -963,9 +963,9 @@ kbd {
   align-items: center;
   gap: 12px;
 
-  /* Wide cap so the single-line notice + a long deployment URL fits on one row on typical laptops; it still wraps
-     gracefully on narrow viewports. */
-  max-width: 1600px;
+  /* Cap tuned to be just wide enough for the notice + a long deployment URL on one row, so the content still shows
+     centered margins on typical laptops. It wraps gracefully on narrower viewports. */
+  max-width: 1320px;
   margin: 0 auto;
   padding: 10px 20px;
   flex-wrap: wrap;
