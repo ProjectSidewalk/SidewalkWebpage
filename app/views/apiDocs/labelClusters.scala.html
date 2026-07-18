@@ -219,6 +219,7 @@
             "label_id": 8,
             "user_id": "18b26a38-24ab-402d-a64e-158fc0bb8a8a",
             "pano_id": "DsCvWstZYz9JL81V9NloOQ",
+            "pano_source": "gsv",
             "severity": 1,
             "time_created": 1692227245041,
             "latitude": 40.8839912414551,
@@ -230,6 +231,7 @@
             "label_id": 12,
             "user_id": "53ad4d79-9a7b-4d3c-a753-63bbfca34c9b",
             "pano_id": "DsCvWstZYz9JL81V9NloOQ",
+            "pano_source": "gsv",
             "severity": 1,
             "time_created": 1692228103532,
             "latitude": 40.8839912414551,
@@ -390,7 +392,7 @@
           <tr>
             <td><code>properties.labels</code></td>
             <td><code>array</code></td>
-            <td>Array of raw label objects that make up this cluster. Only included if <code>includeRawLabels=true</code> is specified in the request. Each object contains core information about the individual label including its ID, user ID, severity, coordinates, and validation status. To request all possible fields related to the raw labels, use the <a href="/api-docs/rawLabels">Raw Labels API</a></td>
+            <td>Array of raw label objects that make up this cluster. Only included if <code>includeRawLabels=true</code> is specified in the request. Each object contains core information about the individual label including its ID, user ID, imagery provider (<code>pano_source</code>), severity, coordinates, and validation status. To request all possible fields related to the raw labels, use the <a href="/api-docs/rawLabels">Raw Labels API</a></td>
           </tr>
         </tbody>
       </table>
@@ -406,7 +408,7 @@
     <p>When <code>includeRawLabels=true</code> is specified with <code>filetype=csv</code>, the response will be a ZIP archive containing two CSV files:</p>
     <ul>
       <li><code>*_clusters.csv</code> — The label clusters data (same format as above).</li>
-      <li><code>*_labels.csv</code> — The individual raw labels, with a <code>label_cluster_id</code> column to link each label back to its parent cluster. Columns: <code>label_cluster_id</code>, <code>label_id</code>, <code>user_id</code>, <code>pano_id</code>, <code>severity</code>, <code>time_created</code>, <code>latitude</code>, <code>longitude</code>, <code>correct</code>, <code>image_capture_date</code>.</li>
+      <li><code>*_labels.csv</code> — The individual raw labels, with a <code>label_cluster_id</code> column to link each label back to its parent cluster. Columns: <code>label_cluster_id</code>, <code>label_id</code>, <code>user_id</code>, <code>pano_id</code>, <code>pano_source</code>, <code>severity</code>, <code>time_created</code>, <code>latitude</code>, <code>longitude</code>, <code>correct</code>, <code>image_capture_date</code>.</li>
     </ul>
 
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>

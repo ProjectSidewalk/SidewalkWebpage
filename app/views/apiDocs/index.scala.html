@@ -5,8 +5,8 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* schema.org Dataset JSON-LD (#4237) so each city's open data is discoverable in Google Dataset Search. Built with
-   the JSON library so quoting is always valid; escaping `<` blocks a `</script>` breakout. No `license` property yet:
-   the data license URL is unconfirmed (MIT in LICENSE.md covers the code, not the data). *@
+   the JSON library so quoting is always valid; escaping `<` blocks a `</script>` breakout. `license` is CC0: the
+   data is public domain (MIT in LICENSE.md covers the code); see the Data License & Provenance section below. *@
 @datasetJsonLd = @{
   val base = commonData.prodUrl.stripSuffix("/")
   val city = commonData.currentCity.cityNameFormatted
@@ -18,6 +18,9 @@
       "obstacles, surface problems, and more, with severity ratings and validations."),
     "url"                 -> s"$base/api",
     "isAccessibleForFree" -> true,
+    "license"             -> "https://creativecommons.org/publicdomain/zero/1.0/",
+    "citation"            -> "https://doi.org/10.1145/3290605.3300292",
+    "isBasedOn"           -> Json.arr("https://www.google.com/streetview/", "https://www.mapillary.com/"),
     "creator" -> Json.obj("@type" -> "Organization", "name" -> "Project Sidewalk",
       "url" -> "https://makeabilitylab.cs.washington.edu/"),
     "spatialCoverage" -> city,
@@ -50,6 +53,12 @@
     @* Populated client-side by aggregateStats.js with live deployment stats; this is the no-JS fallback. *@
     <p id="project-sidewalk-aggregate-stats">Working with local community groups and governmental partners, we have deployed Project Sidewalk in cities across several countries and many natively translated languages, including Spanish, German, and Chinese. Together, our users have assessed thousands of kilometers of city streets.</p>
     <p>Ready to build the future of urban accessibility? All Project Sidewalk <strong>data is open and public</strong>, accessible in popular formats like CSV, GeoJSON, or shape files or accessed programmatically via our APIs.</p>
+
+    <h2 class="api-heading" id="data-license">Data License &amp; Provenance<a href="#data-license" class="permalink">#</a></h2>
+    <p>Project Sidewalk data is dedicated to the public domain under <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank">CC0 1.0</a>. We place no restrictions on its use.</p>
+    <p><strong>Citation.</strong> If you use this data in research, please cite our <a href="https://doi.org/10.1145/3290605.3300292" target="_blank">CHI 2019 paper</a>. If you use it in a product or service, we'd appreciate a credit &mdash; and we'd love to <a href="mailto:sidewalk@@cs.uw.edu">hear about it</a>.</p>
+    <p><strong>Provenance.</strong> Labels are placed by crowdworkers and derived from streetscape imagery accessed via each provider's official API. Every label record includes a <code>pano_source</code> field (e.g., <code>gsv</code>, <code>mapillary</code>) identifying its imagery provider. Source imagery itself is not included in this dataset and remains subject to each provider's terms; reusers should make their own assessment of those terms for their use case.</p>
+
     <h2 class="api-heading" id="api-overview">API Overview<a href="#api-overview" class="permalink">#</a></h2>
     Our API is divided into four sections:
     <ul class="api-list">

@@ -139,7 +139,8 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     // Parse labels if included (only when includeRawLabels=true).
     val labels = if (r.hasMoreColumns) {
       r.nextStringOption().map { labelsJson =>
-        implicit val rawLabelReads: Reads[RawLabelInClusterDataForApi] = Json.reads[RawLabelInClusterDataForApi]
+        implicit val panoSourceReads: Reads[models.pano.PanoSource.Value] = formats.json.PanoFormats.panoSourceReads
+        implicit val rawLabelReads: Reads[RawLabelInClusterDataForApi]    = Json.reads[RawLabelInClusterDataForApi]
         Json.parse(labelsJson).as[Seq[RawLabelInClusterDataForApi]]
       }
     } else {
@@ -361,6 +362,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
                        'labelId', l.label_id,
                        'userId', l.user_id,
                        'panoId', l.pano_id,
+                       'panoSource', gd.source::text,
                        'severity', l.severity,
                        'timeCreated', l.time_created,
                        'latitude', lp.lat,

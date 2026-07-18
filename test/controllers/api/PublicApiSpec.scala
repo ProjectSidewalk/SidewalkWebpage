@@ -162,6 +162,12 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       status(resp) mustBe OK
       (contentAsJson(resp) \ "type").as[String] mustBe "FeatureCollection"
     }
+
+    "include pano_source in the CSV header" in {
+      val resp = route(app, FakeRequest(GET, s"/v3/api/rawLabels?bbox=$emptyBbox&filetype=csv&inline=true")).get
+      status(resp) mustBe OK
+      contentAsString(resp) must include("pano_id,pano_source,label_type")
+    }
   }
 
   "GET /v3/api/validations parameter validation" should {
@@ -219,6 +225,20 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, "/v3/api/labelClusters?clusterSize=0")).get
       status(resp) mustBe BAD_REQUEST
       (contentAsJson(resp) \ "parameter").as[String] mustBe "clusterSize"
+    }
+
+    "return a FeatureCollection with pano_source on any included raw labels" in {
+      // Runs the includeRawLabels SQL (jsonb_agg + pano_data join) end to end; the field assertion is conditional so
+      // the contract holds on a sparse test DB.
+      val emptyBbox = "0,0,0.001,0.001"
+      val resp      = route(app, FakeRequest(GET, s"/v3/api/labelClusters?includeRawLabels=true&bbox=$emptyBbox")).get
+      status(resp) mustBe OK
+      val json = contentAsJson(resp)
+      (json \ "type").as[String] mustBe "FeatureCollection"
+      val rawLabels = (json \ "features")
+        .as[Seq[JsObject]]
+        .flatMap(f => (f \ "properties" \ "labels").asOpt[Seq[JsObject]].getOrElse(Seq.empty))
+      rawLabels.foreach { label => (label \ "pano_source").asOpt[String] mustBe defined }
     }
   }
 }
