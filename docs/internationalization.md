@@ -38,6 +38,13 @@ Project Sidewalk has two separate translation systems; which one you use depends
 > automated parity check for the backend message files the way there is for the frontend JSON (see below), so this is on
 > you to keep complete.
 
+> **Escape a literal apostrophe as `''` (two single quotes).** Play renders every message through
+> `java.text.MessageFormat`, which treats a single `'` as a quoting character and silently drops it — **even in messages
+> with no `{0}` placeholders.** So `We're` renders as `Were`, and quotation marks like `'Unsure'` render as `Unsure`
+> (text kept, quotes gone). Write the apostrophe doubled — `We''re`, `Why ''Unsure''?` — and MessageFormat collapses each
+> `''` back to a single `'`. There is no linter for this, so grep a new/edited message file for un-doubled apostrophes
+> before committing (a lone `'` is almost always the bug).
+
 ### Frontend — i18next (client-side JavaScript)
 
 - Translations live in **`public/locales/<lang>/<namespace>.json`**, split into namespaces such as `common.json`,

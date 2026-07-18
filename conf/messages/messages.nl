@@ -220,7 +220,7 @@ audit.survey.feedback.question = Heb je feedback, design ideeën, of vragen?
 
 validate.comment.placeholder = Voeg een optionele opmerking toe
 validate.why.not = Waarom niet?
-validate.why.unsure = Waarom 'Onzeker'?
+validate.why.unsure = Waarom ''Onzeker''?
 validate.add.own.reason = Of voeg je eigen reden toe.
 validate.skip.reason = Reden overslaan
 validate.suggestions = Suggesties
