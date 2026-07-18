@@ -9,7 +9,8 @@
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@common.main(commonData, title, i18Namespaces = Seq("common", "labelmap"), url = "/labelMap") {
+@common.main(commonData, title, i18Namespaces = Seq("common", "labelmap"), url = "/labelMap",
+  pageMeta = service.PageMeta(description = Some(Messages("seo.description.label.map", currentCity.cityNameShort)))) {
   @common.navbar(commonData, Some(user))
   <div id="page-loading">
     <img id="loading-animation" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'>

@@ -81,8 +81,8 @@ class ApplicationController @Inject() (
             valCount: Int                <- validationService.countHumanValidations
           } yield {
             Ok(
-              views.html.index("Project Sidewalk", commonData, user, openStatus, mapathonLink, streetDist, auditedDist,
-                labelCount, valCount)
+              views.html.index(Messages("seo.title.landing", commonData.currentCity.cityNameShort), commonData, user,
+                openStatus, mapathonLink, streetDist, auditedDist, labelCount, valCount)
             )
           }
         }
@@ -97,7 +97,10 @@ class ApplicationController @Inject() (
       labelCount: Int <- labelService.countLabels
       valCount: Int   <- validationService.countHumanValidations
     } yield {
-      Ok(views.html.mobileLanding("Project Sidewalk", commonData, user, labelCount, valCount))
+      Ok(
+        views.html.mobileLanding(Messages("seo.title.landing", commonData.currentCity.cityNameShort), commonData, user,
+          labelCount, valCount)
+      )
     }
   }
 
@@ -124,7 +127,7 @@ class ApplicationController @Inject() (
   def help = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Help")
-      Ok(views.html.help(commonData, "Sidewalk - Help", request.identity))
+      Ok(views.html.help(commonData, Messages("seo.title.help"), request.identity))
     }
   }
 
@@ -134,14 +137,17 @@ class ApplicationController @Inject() (
   def labelingGuide = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Labeling_Guide")
-      Ok(views.html.labelingGuide.labelingGuide(commonData, "Sidewalk - Labeling Guide", request.identity))
+      Ok(views.html.labelingGuide.labelingGuide(commonData, Messages("seo.title.labeling.guide"), request.identity))
     }
   }
 
   def labelingGuideCurbRamps = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Labeling_Guide_Curb_Ramps")
-      Ok(views.html.labelingGuide.labelingGuideCurbRamps(commonData, "Sidewalk - Labeling Guide", request.identity))
+      Ok(
+        views.html.labelingGuide.labelingGuideCurbRamps(commonData, Messages("seo.title.labeling.guide"),
+          request.identity)
+      )
     }
   }
 
@@ -149,7 +155,8 @@ class ApplicationController @Inject() (
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Labeling_Guide_Surface_Problems")
       Ok(
-        views.html.labelingGuide.labelingGuideSurfaceProblems(commonData, "Sidewalk - Labeling Guide", request.identity)
+        views.html.labelingGuide.labelingGuideSurfaceProblems(commonData, Messages("seo.title.labeling.guide"),
+          request.identity)
       )
     }
   }
@@ -157,21 +164,30 @@ class ApplicationController @Inject() (
   def labelingGuideObstacles = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Labeling_Guide_Obstacles")
-      Ok(views.html.labelingGuide.labelingGuideObstacles(commonData, "Sidewalk - Labeling Guide", request.identity))
+      Ok(
+        views.html.labelingGuide.labelingGuideObstacles(commonData, Messages("seo.title.labeling.guide"),
+          request.identity)
+      )
     }
   }
 
   def labelingGuideNoSidewalk = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Labeling_Guide_No_Sidewalk")
-      Ok(views.html.labelingGuide.labelingGuideNoSidewalk(commonData, "Sidewalk - Labeling Guide", request.identity))
+      Ok(
+        views.html.labelingGuide.labelingGuideNoSidewalk(commonData, Messages("seo.title.labeling.guide"),
+          request.identity)
+      )
     }
   }
 
   def labelingGuideOcclusion = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Labeling_Guide_Occlusion")
-      Ok(views.html.labelingGuide.labelingGuideOcclusion(commonData, "Sidewalk - Labeling Guide", request.identity))
+      Ok(
+        views.html.labelingGuide.labelingGuideOcclusion(commonData, Messages("seo.title.labeling.guide"),
+          request.identity)
+      )
     }
   }
 
@@ -181,7 +197,7 @@ class ApplicationController @Inject() (
   def terms = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Terms")
-      Ok(views.html.terms(commonData, "Sidewalk - Terms", request.identity))
+      Ok(views.html.terms(commonData, Messages("seo.title.terms"), request.identity))
     }
   }
 
@@ -205,8 +221,8 @@ class ApplicationController @Inject() (
         } yield {
           cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
           Ok(
-            views.html.apps.labelMap(commonData, "Sidewalk - LabelMap", request.identity, tags, regionIds, routeIds,
-              aiValOpts)
+            views.html.apps.labelMap(commonData, Messages("seo.title.label.map", commonData.currentCity.cityNameShort),
+              request.identity, tags, regionIds, routeIds, aiValOpts)
           )
         }
       }
@@ -256,7 +272,7 @@ class ApplicationController @Inject() (
   def cities = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Deployment_Cities_Dashboard")
-      Ok(views.html.deploymentSitesDashboard("Project Sidewalk - Cities", commonData, request.identity))
+      Ok(views.html.deploymentSitesDashboard(Messages("seo.title.cities"), commonData, request.identity))
     }
   }
 }

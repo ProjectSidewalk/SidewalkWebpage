@@ -10,7 +10,8 @@
 @newsRibbonLink = @{config.get[Option[String]]("custom.news.ribbon.link")}
 @streetCompletionRate = @{100 * auditedDistance / streetDistance}
 
-@common.main(commonData, title, i18Namespaces = Seq("common", "validate")) {
+@common.main(commonData, title, i18Namespaces = Seq("common", "validate"),
+  pageMeta = service.PageMeta(description = Some(Messages("seo.description.landing", currentCity.cityNameShort)))) {
   @common.navbar(commonData, Some(user))
   <div id="vidbanner">
     <video playsinline autoplay muted loop controls poster='@assets.path("images/psmockup.jpg")' id="bgvid" class="visible-desktop">

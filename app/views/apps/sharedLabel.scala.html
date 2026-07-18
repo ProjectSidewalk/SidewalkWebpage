@@ -3,7 +3,7 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import play.api.libs.json._
-@import service.CommonPageData
+@import service.{CommonPageData, PageMeta}
 @*
  * Public single-label "spotlight" page (issue #456), rendered by ShareController.label for /label/:labelId.
  *
@@ -46,7 +46,8 @@
   )).replace("<", "\\u003c")
 }
 
-@common.main(commonData, title, i18Namespaces = Seq("common", "labelmap"), extraHead = shareMeta) {
+@common.main(commonData, title, i18Namespaces = Seq("common", "labelmap"), extraHead = shareMeta,
+  pageMeta = PageMeta(customSocialMeta = true, canonicalPath = Some(s"/label/${meta.labelId}"))) {
   @common.navbar(commonData, Some(user))
 
   <main class="spotlight">

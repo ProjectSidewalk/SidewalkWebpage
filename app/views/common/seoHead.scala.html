@@ -1,0 +1,45 @@
+@import models.utils.SeoUtils
+@import service.{CityInfo, CommonPageData, PageMeta}
+@*
+ * Site-wide SEO <head> block rendered on every page by main.scala.html (issue #4237): canonical URL (prod only),
+ * noindex on test/local stages, and default meta description + Open Graph / Twitter Card tags. Pages that inject
+ * their own social meta via extraHead (e.g. shared-label permalinks) set pageMeta.customSocialMeta to suppress the
+ * defaults so crawlers never see duplicate tags.
+ *
+ * @param commonData  Per-page config (environment type, prod base URL).
+ * @param currentCity The deployment city, for city-parameterized default descriptions.
+ * @param title       The page title, reused as og:title / twitter:title.
+ * @param pageMeta    Per-page SEO overrides; the all-defaults instance yields sensible site-wide values.
+ *@
+@(commonData: CommonPageData, currentCity: CityInfo, title: String, pageMeta: PageMeta
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder)
+
+@canonicalUrl = @{SeoUtils.canonicalUrl(commonData.prodUrl, pageMeta.canonicalPath.getOrElse(request.path))}
+@description = @{pageMeta.description.getOrElse(Messages("seo.description.default", currentCity.cityNameShort))}
+@ogImageUrl = @{commonData.prodUrl.stripSuffix("/") + assets.path("images/psmockup.jpg")}
+
+@if(commonData.environmentType != "prod") {
+  @* Test/local stages must never be indexed (robots.txt also disallows them). No canonical on non-prod: a canonical
+     pointing at prod would conflict with the noindex signal. *@
+  <meta name="robots" content="noindex, nofollow">
+} else {
+  <link rel="canonical" href="@canonicalUrl">
+}
+@if(!pageMeta.customSocialMeta) {
+  <meta name="description" content="@description">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Project Sidewalk">
+  <meta property="og:title" content="@title">
+  <meta property="og:description" content="@description">
+  <meta property="og:url" content="@canonicalUrl">
+  <meta property="og:image" content="@ogImageUrl">
+  <meta property="og:image:width" content="1930">
+  <meta property="og:image:height" content="1080">
+  <meta property="og:image:alt" content="@Messages("seo.og.image.alt")">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@@projsidewalk">
+  <meta name="twitter:title" content="@title">
+  <meta name="twitter:description" content="@description">
+  <meta name="twitter:image" content="@ogImageUrl">
+  <meta name="twitter:image:alt" content="@Messages("seo.og.image.alt")">
+}

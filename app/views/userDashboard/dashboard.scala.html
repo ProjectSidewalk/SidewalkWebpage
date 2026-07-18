@@ -340,7 +340,7 @@
 
 @* labelmap: the reused label-detail popup's strings; dashboard: the mistake-card/badge strings MistakeGallery.js and
  DashboardBadges.js render client-side. *@
-@common.main(commonData, "Sidewalk - Dashboard", i18Namespaces = Seq("common", "labelmap", "dashboard")) {
+@common.main(commonData, Messages("seo.title.dashboard"), i18Namespaces = Seq("common", "labelmap", "dashboard")) {
   @common.navbar(commonData, Some(user))
   @userDashboard.layout("dashboard")(content)
 }

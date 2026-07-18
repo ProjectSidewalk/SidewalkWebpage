@@ -1,7 +1,7 @@
 @import play.api.Configuration
 @import service.CommonPageData
 @import play.filters.csrf.CSRF
-@(commonData: CommonPageData, title: String, defaultI18nNamespace: String = "common", i18Namespaces: Seq[String] = Seq("common"), url: String = "/", extraHead: Html = Html("")
+@(commonData: CommonPageData, title: String, defaultI18nNamespace: String = "common", i18Namespaces: Seq[String] = Seq("common"), url: String = "/", extraHead: Html = Html(""), pageMeta: service.PageMeta = service.PageMeta()
 )(content: Html)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
@@ -18,7 +18,9 @@
       gtag('config', '@commonData.googleAnalyticsId');
     </script>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@title</title>
+    @common.seoHead(commonData, currentCity, title, pageMeta)
     @* Per-page <head> injection point, e.g. Open Graph / Twitter Card meta for social sharing (#456). *@
     @extraHead
     <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
@@ -106,11 +108,6 @@
     <div id="wrap" class='@if(url == "/labelMap"){wrap--full-window}'>
       @content
     </div>
-    @if(url != "/mobile") {
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-      </head>
-    }
     @if(url == "/explore" || url == "/labelMap") {
       <script>
         // Prevents extra whitespace at the bottom of the page, not sure why that's an issue.

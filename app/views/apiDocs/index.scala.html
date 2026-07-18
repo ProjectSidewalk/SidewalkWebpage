@@ -130,7 +130,8 @@
   </div>
 }
 
-@common.main(commonData, "API Docs") {
+@common.main(commonData, "API Docs — Project Sidewalk", pageMeta = service.PageMeta(
+  description = Some(Messages("seo.description.api", commonData.currentCity.cityNameShort)))) {
   @common.navbar(commonData, Some(user))
   @apiDocs.layout("introduction")(content)
 }
