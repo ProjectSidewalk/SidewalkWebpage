@@ -187,15 +187,17 @@ class StoryComposer {
       this.#renderCounter();
       this.#clearError();
     });
-    // First Escape only blurs the textarea; the second closes the dialog (mirrors the card's comment input).
+    // With typed text, the first Escape only blurs the textarea (mirrors the card's comment input); the second
+    // closes the dialog through the discard guard. When the field is empty — including the auto-focus right after
+    // open — Escape falls through to the dialog's cancel so one press closes the composer.
     els.text.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && els.text.value.length > 0) {
         e.preventDefault();
         e.stopPropagation();
       }
     });
     els.text.addEventListener('keyup', (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && els.text.value.length > 0) {
         e.stopPropagation();
         els.text.blur();
       }
