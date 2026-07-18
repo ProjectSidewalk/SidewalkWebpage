@@ -4,8 +4,7 @@ import com.google.inject.ImplementedBy
 import models.api.{StreetDataForApi, StreetFiltersForApi}
 import models.audit.AuditTaskTableDef
 import models.region.RegionTableDef
-import models.user.RoleTable.RESEARCHER_ROLES
-import models.user.{RoleTableDef, UserRoleTableDef, UserStatTableDef}
+import models.user.UserStatTableDef
 import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.{ConfigTableDef, LatLngBBox, MyPostgresProfile, SpatialQueryType}
@@ -105,8 +104,6 @@ class StreetEdgeTable @Inject() (
   val osmWayStreetEdge  = TableQuery[OsmWayStreetEdgeTableDef]
   val regions           = TableQuery[RegionTableDef]
   val userStats         = TableQuery[UserStatTableDef]
-  val userRoles         = TableQuery[UserRoleTableDef]
-  val roleTable         = TableQuery[RoleTableDef]
   val configTable       = TableQuery[ConfigTableDef]
 
   val tutorialStreetId: Query[Rep[Int], Int, Seq] = configTable.map(_.tutorialStreetEdgeID)
@@ -120,13 +117,6 @@ class StreetEdgeTable @Inject() (
   // only when you specifically need the tutorial or non-open streets.
   val streetsWithTutorial = streetsUnfiltered.filter(_.status === StreetEdgeStatus.Open)
   val streets             = streetsWithTutorial.filterNot(_.streetEdgeId in tutorialStreetId)
-
-  val roleTableWithResearchersCollapsed = roleTable.map(_roles =>
-    (
-      _roles.roleId,
-      Case.If(_roles.role inSet RESEARCHER_ROLES).Then("Researcher").Else(_roles.role)
-    )
-  )
 
   val completedAuditTasksWithUsers = auditTasks
     .join(userStats)
