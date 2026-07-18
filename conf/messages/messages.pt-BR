@@ -347,7 +347,6 @@ labeling.guide.surface.problem.summary = Um problema na superfície é um proble
 labeling.guide.no.sidewalk.summary = Você deve colocar um rótulo de Sem Calçada a partir do ponto onde a calçada termina e continuar colocando rótulos a cada poucos metros (aproximadamente 1 por panorama) até chegar a um ponto onde a calçada comece novamente.
 labeling.guide.occlusion.summary = Às vezes a visão da calçada está completamente bloqueada. Nesses casos, você deve colocar um rótulo "Não é possível ver a calçada". Isso deve ser usado raramente, então utilize esse rótulo apenas quando uma calçada, rampa ou outro problema de acessibilidade não puder ser visto de nenhum ângulo devido a obstruções, como carros.
 
-admin.clear.play.cache = Limpar cache do Play
 
 leaderboard.header.team = Equipe
 leaderboard.header.labels = Rótulos

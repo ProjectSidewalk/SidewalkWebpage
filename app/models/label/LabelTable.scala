@@ -1751,22 +1751,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Select label counts by user.
-   * @return DBIO[Seq[(user_id, role, label_count)]]
-   */
-  def getLabelCountsByUser: DBIO[Seq[(String, String, Int)]] = {
-    val labs = for {
-      _user     <- usersUnfiltered
-      _userRole <- userRoles if _user.userId === _userRole.userId
-      _role     <- roleTable if _userRole.roleId === _role.roleId
-      _label    <- labelsWithTutorial if _user.userId === _label.userId
-    } yield (_user.userId, _role.role, _label.labelId)
-
-    // Counts the number of labels for each user by grouping by user_id and role.
-    labs.groupBy(l => (l._1, l._2)).map { case ((uId, role), group) => (uId, role, group.length) }.result
-  }
-
-  /**
    * Select street_edge_id of street closest to lat/lng position.
    */
   def getStreetEdgeIdClosestToLatLng(lat: Double, lng: Double): DBIO[Int] = {

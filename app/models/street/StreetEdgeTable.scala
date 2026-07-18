@@ -4,16 +4,13 @@ import com.google.inject.ImplementedBy
 import models.api.{StreetDataForApi, StreetFiltersForApi}
 import models.audit.AuditTaskTableDef
 import models.region.RegionTableDef
-import models.user.RoleTable.RESEARCHER_ROLES
-import models.user.{RoleTableDef, UserRoleTableDef, UserStatTableDef}
+import models.user.UserStatTableDef
 import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.{ConfigTableDef, LatLngBBox, MyPostgresProfile, SpatialQueryType}
 import org.locationtech.jts.geom.LineString
 import org.postgresql.jdbc.PgArray
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import service.TimeInterval
-import service.TimeInterval.TimeInterval
 import slick.dbio.Effect
 import slick.jdbc.GetResult
 import slick.sql.SqlStreamingAction
@@ -107,8 +104,6 @@ class StreetEdgeTable @Inject() (
   val osmWayStreetEdge  = TableQuery[OsmWayStreetEdgeTableDef]
   val regions           = TableQuery[RegionTableDef]
   val userStats         = TableQuery[UserStatTableDef]
-  val userRoles         = TableQuery[UserRoleTableDef]
-  val roleTable         = TableQuery[RoleTableDef]
   val configTable       = TableQuery[ConfigTableDef]
 
   val tutorialStreetId: Query[Rep[Int], Int, Seq] = configTable.map(_.tutorialStreetEdgeID)
@@ -122,13 +117,6 @@ class StreetEdgeTable @Inject() (
   // only when you specifically need the tutorial or non-open streets.
   val streetsWithTutorial = streetsUnfiltered.filter(_.status === StreetEdgeStatus.Open)
   val streets             = streetsWithTutorial.filterNot(_.streetEdgeId in tutorialStreetId)
-
-  val roleTableWithResearchersCollapsed = roleTable.map(_roles =>
-    (
-      _roles.roleId,
-      Case.If(_roles.role inSet RESEARCHER_ROLES).Then("Researcher").Else(_roles.role)
-    )
-  )
 
   val completedAuditTasksWithUsers = auditTasks
     .join(userStats)
@@ -172,94 +160,12 @@ class StreetEdgeTable @Inject() (
   }
 
   /**
-   * Get the total street distance in meters for all streets that have been audited, grouped by role.
-   * @param highQualityOnly if true, only count high quality audits.
-   */
-  def auditedStreetDistanceByRole(highQualityOnly: Boolean = false): DBIO[Map[String, Double]] = {
-    val filteredTasks = if (highQualityOnly) highQualityCompletedTasks else completedAuditTasks
-
-    // Group by role and sum distance of distinct street edges.
-    (for {
-      _tasks    <- filteredTasks
-      _edges    <- streets if _tasks.streetEdgeId === _edges.streetEdgeId
-      _userRole <- userRoles if _userRole.userId === _tasks.userId
-      _role     <- roleTableWithResearchersCollapsed if _role._1 === _userRole.roleId
-    } yield (_role._2, _edges.streetEdgeId, _edges.geom))
-      .distinctOn(x => (x._1, x._2)) // Distinct by role and street_edge_id since we can't do it within the groupBy.
-      .groupBy(x => x._1)
-      .map { case (role, rows) => (role, rows.map(_._3.transform(26918).lengthD).sum.getOrElse(0d)) }
-      .result
-      .map(_.toMap)
-  }
-
-  /**
-   * Calculates the total distance audited by all users over a specified time period.
-   *
-   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
-   * @return The total distance audited by all users in miles.
-   */
-  def auditedStreetDistanceOverTime(timeInterval: TimeInterval = TimeInterval.AllTime): DBIO[Double] = {
-    // Filter by the given time interval.
-    val tasksEndedInTimeInterval = timeInterval match {
-      case TimeInterval.Today => auditTasks.filter(a => a.taskEnd > OffsetDateTime.now().minusDays(1))
-      case TimeInterval.Week  => auditTasks.filter(a => a.taskEnd >= OffsetDateTime.now().minusDays(7))
-      case _                  => auditTasks
-    }
-
-    streets
-      .join(tasksEndedInTimeInterval)
-      .on(_.streetEdgeId === _.streetEdgeId)
-      .filter { case (_, task) => task.completed === true }
-      .map { case (street, _) => street.geom.transform(26918).lengthD }
-      .sum
-      .result
-      .map(_.getOrElse(0.0d))
-  }
-
-  /**
-   * Computes distances of the city audited by date.
-   * @return Dates and the distance of newly audited streets on those dates in meters.
-   */
-  def streetDistanceCompletionRateByDate: DBIO[Seq[(OffsetDateTime, Double)]] = {
-    completedAuditTasks
-      // Get date of earliest completed audit of each street.
-      .groupBy(_.streetEdgeId)
-      .map { case (streetId, rows) => (streetId, rows.map(_.taskEnd).min.trunc("day")) }
-      // Join with street edges to get the geometry.
-      .join(streets)
-      .on(_._1 === _.streetEdgeId)
-      // Group by date and sum the distances.
-      .groupBy(_._1._2)
-      .map { case (date, rows) => (date, rows.map(_._2.geom.transform(26918).lengthD).sum.getOrElse(0d)) }
-      // Set the date to no longer be an option (it's forced to an option when calling .min above).
-      .result
-      .map(_.collect { case (Some(date), dist) => (date, dist) })
-  }
-
-  /**
    * Counts the number of distinct audited streets.
    * @param highQualityOnly if true, only count high quality audits.
    */
   def countDistinctAuditedStreets(highQualityOnly: Boolean = false): DBIO[Int] = {
     val filteredTasks = if (highQualityOnly) highQualityCompletedTasks else completedAuditTasks
     filteredTasks.distinctOn(_.streetEdgeId).length.result
-  }
-
-  /**
-   * Counts the number of distinct audited streets by role.
-   * @param highQualityOnly if true, only count high quality audits.
-   */
-  def countDistinctAuditedStreetsByRole(highQualityOnly: Boolean = false): DBIO[Map[String, Int]] = {
-    val filteredTasks = if (highQualityOnly) highQualityCompletedTasks else completedAuditTasks
-    (for {
-      _tasks    <- filteredTasks
-      _userRole <- userRoles if _userRole.userId === _tasks.userId
-      _role     <- roleTableWithResearchersCollapsed if _role._1 === _userRole.roleId
-    } yield (_role._2, _tasks.streetEdgeId))
-      .groupBy(x => x._1)
-      .map { case (role, rows) => (role, rows.map(_._2).countDistinct) }
-      .result
-      .map(_.toMap)
   }
 
   /**

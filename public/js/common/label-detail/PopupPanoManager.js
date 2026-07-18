@@ -394,7 +394,7 @@ class PopupPanoManager {
 
   /**
    * Renders a PanoMarker (label) onto a Streetview Panorama.
-   * @param {Object} label - Plain-object label shape produced by LabelPopup / Admin.Task / Admin.CommentPopup.
+   * @param {Object} label - Plain-object label shape produced by LabelPopup / Admin.Task.
    *   Expected fields: labelId, label_type, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight, pov,
    *   streetEdgeId, oldSeverity, newSeverity, oldTags, newTags, aiGenerated.
    */

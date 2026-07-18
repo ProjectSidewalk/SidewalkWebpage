@@ -9,7 +9,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 
 /**
- * Smoke tests for GET /adminapi/apiAnalytics.
+ * Smoke tests for GET /adminapi/apiAnalyticsBySource.
  *
  * The endpoint requires admin authentication. These tests verify the route is wired correctly (not 404)
  * and that the auth guard is in place (unauthenticated users are redirected to sign-in rather than served
@@ -17,7 +17,7 @@ import play.api.test.Helpers._
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env).
  */
-class AdminApiAnalyticsSpec extends PlaySpec with GuiceOneAppPerSuite {
+class AdminApiAnalyticsBySourceSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
@@ -26,16 +26,16 @@ class AdminApiAnalyticsSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   implicit lazy val mat: Materializer = app.materializer
 
-  "GET /adminapi/apiAnalytics" should {
+  "GET /adminapi/apiAnalyticsBySource" should {
     "redirect unauthenticated users to the sign-in page (not 404)" in {
-      val resp = route(app, FakeRequest(GET, "/adminapi/apiAnalytics")).get
+      val resp = route(app, FakeRequest(GET, "/adminapi/apiAnalyticsBySource")).get
       // Must be a redirect (3xx) to sign-in — never a 404, which would indicate a missing route.
       val sc = status(resp)
       sc must (be >= 300 and be < 400)
     }
 
-    "also redirect with excludeApiDocs=false&days=90 params (route accepts optional params)" in {
-      val resp = route(app, FakeRequest(GET, "/adminapi/apiAnalytics?excludeApiDocs=false&days=90")).get
+    "also redirect with the days param (route accepts an optional days window)" in {
+      val resp = route(app, FakeRequest(GET, "/adminapi/apiAnalyticsBySource?days=90")).get
       val sc   = status(resp)
       sc must (be >= 300 and be < 400)
     }
