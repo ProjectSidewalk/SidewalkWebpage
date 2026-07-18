@@ -14,6 +14,15 @@ set -euo pipefail
 
 WT="${1:-}"
 [ -n "$WT" ] || { echo "usage: qa-worktree <name>   (a dir under .claude/worktrees/)"; exit 2; }
+# Require a bare directory name so $WT can't escape the worktrees dir (e.g. "../..").
+case "$WT" in
+  */* | . | ..) echo "error: wt must be a bare worktree directory name (no '/', '.', or '..')"; exit 2 ;;
+esac
+# procps' pgrep is used below to find the running app + thin-client servers; fail clearly if it's missing.
+command -v pgrep >/dev/null 2>&1 || { echo "error: pgrep not found — install procps in the web container"; exit 1; }
+
+# True (exit 0) when something is listening on :9000 inside the container.
+port_9000_in_use() { (exec 3<>/dev/tcp/127.0.0.1/9000) 2>/dev/null; }
 
 WT_DIR="/home/.claude/worktrees/$WT"
 if [ ! -d "$WT_DIR" ]; then
@@ -24,8 +33,10 @@ fi
 cd "$WT_DIR"
 echo "==> worktree: $WT_DIR"
 
-# 1. node_modules is gitignored (absent in worktrees) -> reuse the main repo's.
-if [ ! -e node_modules ]; then
+# 1. node_modules is gitignored (absent in worktrees) -> reuse the main repo's. `-d` follows the symlink, so this also
+#    replaces a broken/stale link (rm -f is a no-op when the path doesn't exist).
+if [ ! -d node_modules ]; then
+  rm -f node_modules
   ln -s /home/node_modules node_modules
   echo "==> linked node_modules -> /home/node_modules"
 fi
@@ -48,9 +59,15 @@ for p in $(pgrep -f '~ run' 2>/dev/null || true); do
   kill "$p" 2>/dev/null || true
 done
 sleep 2
-if (exec 3<>/dev/tcp/127.0.0.1/9000) 2>/dev/null; then
+if port_9000_in_use; then
   for p in $(pgrep -f '~ run' 2>/dev/null || true); do kill -9 "$p" 2>/dev/null || true; done
   sleep 1
+fi
+# Still held? It's something other than an sbt `~ run` we know how to stop — fail clearly instead of letting sbt die
+# later with an opaque "address already in use".
+if port_9000_in_use; then
+  echo "error: :9000 is still in use by a process that isn't an sbt '~ run'. Free it and retry."
+  exit 1
 fi
 
 # 5. Launch. Absolute cache paths reuse the main repo's warm .coursier/.sbt; cwd-relative caches from a
