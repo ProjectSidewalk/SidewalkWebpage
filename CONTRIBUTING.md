@@ -86,7 +86,8 @@ before your first PR:
   ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so any finding is from your change.
   **All four are blocking CI checks** now (they run in the `Frontend (build)` job), so a lint failure blocks the
   merge — just like scalafmt.
-- **UI work** must meet WCAG 2.1/2.2 Level AA and use the `main.css` `:root` design tokens.
+- **UI work** must meet WCAG 2.1/2.2 Level AA and use the `main.css` `:root` design tokens — type via the composite
+  `--text-*` tokens (see the [style guide](docs/style-guide.md)).
 - **Public API (`/v3`):** response fields are `snake_case`, query params are `camelCase`, and new DTOs go in
   `app/models/api/`.
 - **Don't hardcode backend values in the frontend.** Domain values — enums, ranges (min/max), thresholds, and
