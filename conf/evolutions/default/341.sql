@@ -7,13 +7,17 @@
 -- to a per-city review rather than swept here.
 --
 -- Rule (identical to the importer): title-case a name that is entirely uppercase AND is either multi-word or a single
--- token of 5+ characters -- shorter single tokens are treated as acronyms and left alone. COLLATE "default" makes
--- initcap use the database's UTF-8 collation instead of the name column's POSIX collation, under which initcap treats
--- accented letters as word boundaries and corrupts them. Houston is all-ASCII, but this keeps the statement identical
--- to the importer and correct for any accented data.
+-- token of 5+ characters, EXCEPT names that look like abbreviations -- single tokens of 4 chars or fewer, names with an
+-- "&" ("PSE&G"), and dotted initialisms ("P.I.C.O.") are left alone. (Houston has none of the abbreviation cases, but
+-- the guards keep this statement identical to the importer.) COLLATE "default" makes initcap use the database's UTF-8
+-- collation instead of the name column's POSIX collation, under which initcap treats accented letters as word
+-- boundaries and corrupts them -- Houston is all-ASCII, but this keeps the rule correct for any accented data.
 UPDATE region SET name = initcap(name COLLATE "default")
 WHERE current_schema() = 'sidewalk_houston'
-  AND name = upper(name) AND name ~ '[[:alpha:]]' AND (name LIKE '% %' OR char_length(name) >= 5);
+  AND name = upper(name) AND name ~ '[[:alpha:]]'
+  AND name NOT LIKE '%&%'
+  AND (char_length(name) - char_length(replace(name, '.', ''))) < 2
+  AND (name LIKE '% %' OR char_length(name) >= 5);
 
 # --- !Downs
 -- One-way data normalization: the original casing is not stored, so there is nothing to restore automatically.
