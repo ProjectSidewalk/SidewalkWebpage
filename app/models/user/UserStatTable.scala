@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.api.UserStatForApi
 import models.audit.AuditTaskTableDef
 import models.label.{LabelTable, LabelTypeEnum}
-import models.mission.{MissionTableDef, MissionTypeTable}
+import models.mission.{MissionTableDef, MissionType}
 import models.street.StreetEdgeTable
 import models.user.RoleTable.{RESEARCHER_ROLES, ROLES_RESEARCHER_COLLAPSED}
 import models.utils.MyPostgresProfile
@@ -171,7 +171,7 @@ class UserStatTable @Inject() (
   private val missionTable         = TableQuery[MissionTableDef]
   private val labelValidationTable = TableQuery[LabelValidationTableDef]
 
-  private val auditMissions = missionTable.filter(_.missionTypeId === MissionTypeTable.missionTypeToId("audit"))
+  private val auditMissions = missionTable.filter(_.missionType === MissionType.Audit)
 
   private val LABEL_PER_METER_THRESHOLD: Double = 0.0375
 
@@ -845,9 +845,8 @@ class UserStatTable @Inject() (
       FROM (
           SELECT DISTINCT(mission.user_id)
           FROM mission
-          INNER JOIN mission_type ON mission.mission_type_id = mission_type.mission_type_id
           LEFT JOIN label_validation ON mission.mission_id = label_validation.mission_id
-          WHERE mission_type.mission_type IN ('validation', 'labelmapValidation')
+          WHERE mission.mission_type IN ('validation', 'labelmapValidation')
               AND #$lblValidationTimeIntervalSql
               AND #$validationCompletedSql
           UNION
@@ -888,12 +887,11 @@ class UserStatTable @Inject() (
       FROM role
       LEFT JOIN (
         SELECT user_role.role_id, COUNT(DISTINCT(user_role.user_id)) AS count
-        FROM mission_type
-        INNER JOIN mission ON mission_type.mission_type_id = mission.mission_type_id
+        FROM mission
         LEFT JOIN label_validation ON mission.mission_id = label_validation.mission_id
         INNER JOIN user_role ON mission.user_id = user_role.user_id
         INNER JOIN role ON user_role.role_id = role.role_id
-        WHERE mission_type.mission_type IN ('validation', 'labelmapValidation')
+        WHERE mission.mission_type IN ('validation', 'labelmapValidation')
             AND role.role <> 'AI'
             AND #${if (labelValidated) "label_validation.end_timestamp IS NOT NULL" else "TRUE"}
             AND #$timeIntervalFilter

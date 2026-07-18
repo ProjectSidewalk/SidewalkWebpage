@@ -3,7 +3,7 @@ package controllers.api
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
 import models.api.{ApiError, StreetDataForApi, StreetFiltersForApi}
-import models.street.StreetEdgeStatus
+import models.street.{StreetEdgeStatus, WayType}
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
@@ -61,6 +61,7 @@ class StreetsApiController @Inject() (
     val firstError: Option[ApiError] = Seq(
       validateBBoxParam(bbox, parsedBbox),
       validateRegionId(regionId),
+      validateWayTypes(parsedWayTypes),
       validateStreetStatuses(parsedStatuses)
     ).flatten.headOption
 
@@ -97,6 +98,27 @@ class StreetsApiController @Inject() (
         }
     }
   }
+
+  /**
+   * Returns an ApiError if any supplied wayType value is not a recognized `way_type`. Returns None when the parameter
+   * was absent or every value is valid.
+   *
+   * @param parsedWayTypes The parsed way-type tokens, or None if the parameter was absent.
+   * @return `Some(ApiError)` naming the invalid value(s), else `None`.
+   */
+  private def validateWayTypes(parsedWayTypes: Option[Seq[String]]): Option[ApiError] =
+    parsedWayTypes.flatMap { wayTypes =>
+      val invalid = wayTypes.filter(WayType.fromString(_).isEmpty)
+      if (invalid.nonEmpty) {
+        val valid = WayType.values.map(_.toString).mkString(", ")
+        Some(
+          ApiError.invalidParameter(
+            s"Invalid wayType value(s): ${invalid.mkString(", ")}. Valid values: $valid.",
+            "wayType"
+          )
+        )
+      } else None
+    }
 
   /**
    * Returns an ApiError if any supplied status value is not a recognized `street_edge_status` (open, no_imagery,

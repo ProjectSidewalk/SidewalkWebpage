@@ -131,16 +131,17 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
         SELECT user_id, 1 AS step FROM "$schema".webpage_activity
             WHERE activity IN ('Visit_Index', 'Visit_MobileLanding') ${b.wa}
         UNION ALL
-        SELECT user_id, 2 AS step FROM "$schema".mission WHERE mission_type_id = 1 ${b.mStart}
+        SELECT user_id, 2 AS step FROM "$schema".mission WHERE mission_type = 'auditOnboarding' ${b.mStart}
         UNION ALL
-        SELECT user_id, 3 AS step FROM "$schema".mission WHERE mission_type_id = 1 AND completed = TRUE ${b.mEnd}
+        SELECT user_id, 3 AS step FROM "$schema".mission
+            WHERE mission_type = 'auditOnboarding' AND completed = TRUE ${b.mEnd}
         UNION ALL
         SELECT user_id, 4 AS step FROM "$schema".mission
-            WHERE mission_type_id = 2 AND COALESCE(distance_progress, 0) > 0 ${b.mStart}
+            WHERE mission_type = 'audit' AND COALESCE(distance_progress, 0) > 0 ${b.mStart}
         UNION ALL
         SELECT user_id, 5 AS step FROM "$schema".label WHERE deleted = FALSE AND tutorial = FALSE ${b.label}
         UNION ALL
-        SELECT user_id, 6 AS step FROM "$schema".mission WHERE mission_type_id = 2 AND completed = TRUE ${b.mEnd}
+        SELECT user_id, 6 AS step FROM "$schema".mission WHERE mission_type = 'audit' AND completed = TRUE ${b.mEnd}
       """
     computeFunnel(schema, events, numSteps = 6)
   }
@@ -166,7 +167,7 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
         SELECT user_id, 2 AS step FROM "$schema".label_validation WHERE TRUE ${b.validation}
         UNION ALL
         SELECT user_id, 3 AS step FROM "$schema".mission
-            WHERE mission_type_id IN (2, 4) AND completed = TRUE ${b.mEnd}
+            WHERE mission_type IN ('audit', 'validation') AND completed = TRUE ${b.mEnd}
       """
     computeFunnel(schema, events, numSteps = 3)
   }

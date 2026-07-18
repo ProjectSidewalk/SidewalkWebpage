@@ -2,6 +2,7 @@ package formats.json
 
 import formats.json.PanoFormats.{panoSourceReads, PanoDate}
 import models.audit.{AuditTask, AuditTaskInteraction, NewTask}
+import models.label.ComputationMethod
 import models.pano.PanoSource
 import models.pano.PanoSource.PanoSource
 import models.street.StreetEdgePriority
@@ -49,7 +50,7 @@ object ExploreFormats {
       zoom: Double,
       lat: Option[Double],
       lng: Option[Double],
-      computationMethod: Option[String]
+      computationMethod: Option[ComputationMethod.Value]
   )
   case class LabelSubmission(
       panoId: String,
@@ -176,7 +177,7 @@ object ExploreFormats {
         "street_edge_id"        -> task.edgeId,
         "current_lng"           -> task.currentLng,
         "current_lat"           -> task.currentLat,
-        "way_type"              -> task.wayType,
+        "way_type"              -> task.wayType.toString,
         "start_point_reversed"  -> task.startPointReversed,
         "task_start"            -> task.taskStart.toString,
         "completed_by_any_user" -> task.completedByAnyUser,
@@ -235,6 +236,18 @@ object ExploreFormats {
       (JsPath \ "timestamp").read[OffsetDateTime]
   )(InteractionSubmission.apply _)
 
+  implicit val computationMethodReads: Reads[ComputationMethod.Value] = Reads { json =>
+    json.validate[String].flatMap { method =>
+      ComputationMethod.fromString(method) match {
+        case Some(computationMethod) => JsSuccess(computationMethod)
+        case None                    =>
+          JsError(
+            s"Invalid computation method: $method. Valid methods are: ${ComputationMethod.values.mkString(", ")}."
+          )
+      }
+    }
+  }
+
   implicit val labelPointSubmissionReads: Reads[LabelPointSubmission] = (
     (JsPath \ "pano_x").read[Int] and
       (JsPath \ "pano_y").read[Int] and
@@ -245,7 +258,7 @@ object ExploreFormats {
       (JsPath \ "zoom").read[Double] and
       (JsPath \ "lat").readNullable[Double] and
       (JsPath \ "lng").readNullable[Double] and
-      (JsPath \ "computation_method").readNullable[String]
+      (JsPath \ "computation_method").readNullable[ComputationMethod.Value]
   )(LabelPointSubmission.apply _)
 
   implicit val labelSubmissionReads: Reads[LabelSubmission] = (
