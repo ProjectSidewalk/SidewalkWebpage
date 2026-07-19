@@ -47,40 +47,236 @@
   z-index: 2;
 }
 
-#minimap-message {
-  font: var(--text-tiny-regular);
-  inset: auto;
-  left: calc(3px * var(--ui-scale));
-  top: calc(3px * var(--ui-scale));
-  width: 60%;
-  height: auto;
-  padding: calc(2px * var(--ui-scale)) calc(4px * var(--ui-scale));
-  z-index: 3;
+/* Stronger than the old 30% wash so "not yet viewed" actually registers; the near-crisp frontier comes from the
+   small blur ObservedArea sets on the canvas context (#4639). */
+#minimap-fog-of-war-canvas {
+  opacity: 0.45;
 }
 
-#minimap-fog-of-war-canvas,
+/* The FOV cone's radial gradient carries its own falloff, so the canvas itself stays mostly opaque. */
 #minimap-fov-canvas {
-  opacity: 0.3;
+  opacity: 0.8;
 }
 
 #minimap-progress-circle-canvas {
-  opacity: 0.6;
+  opacity: 0.85;
 }
 
-/* Centered over the 360°-observed progress circle that ObservedArea draws at (width - 20, 20) with radius 16 (scaled
-   by --ui-scale). This box matches that circle's bounding box so the percentage sits in its center. */
+/* Small "N% observed" pill in the top-right; the matching progress ring is drawn around the position marker. */
 #minimap-percent-observed {
   font: var(--text-tiny-medium);
   inset: auto;
   top: calc(4px * var(--ui-scale));
   right: calc(4px * var(--ui-scale));
-  width: calc(32px * var(--ui-scale));
-  height: calc(32px * var(--ui-scale));
+  width: auto;
+  height: auto;
+  padding: calc(1px * var(--ui-scale)) calc(6px * var(--ui-scale));
+  border-radius: 999px;
+  background: rgb(255 255 255 / 85%);
+  color: var(--color-neutral-800);
+  z-index: 3;
+}
+
+#minimap-percent-observed:empty {
+  display: none;
+}
+
+/* "N m left" chip in the top-left, updated from the current mission's progress (Minimap.updateDistanceLeft). */
+#minimap-distance-left {
+  position: absolute;
+  top: calc(4px * var(--ui-scale));
+  left: calc(4px * var(--ui-scale));
+  font: var(--text-tiny-medium);
+  padding: calc(1px * var(--ui-scale)) calc(6px * var(--ui-scale));
+  border-radius: 999px;
+  background: rgb(255 255 255 / 85%);
+  color: var(--color-neutral-800);
+  z-index: 3;
+  pointer-events: none;
+}
+
+#minimap-distance-left:empty {
+  display: none;
+}
+
+/* First-run "turn 360°" coach mark; sits above the legend pill / zoom buttons row. Replaces the old permanent
+   banner (#4639); ObservedArea shows it once and dismisses it on "Got it" or the first completed 360°. */
+#minimap-coach {
+  position: absolute;
+  left: calc(4px * var(--ui-scale));
+  right: calc(4px * var(--ui-scale));
+  bottom: calc(34px * var(--ui-scale));
   display: flex;
   align-items: center;
-  justify-content: center;
-  text-align: center;
-  z-index: 3;
+  gap: calc(6px * var(--ui-scale));
+  font: var(--text-tiny-regular);
+  padding: calc(4px * var(--ui-scale)) calc(6px * var(--ui-scale));
+  border-radius: calc(8px * var(--ui-scale));
+  background: rgb(255 255 255 / 92%);
+  color: var(--color-neutral-900);
+  box-shadow: 0 calc(1px * var(--ui-scale)) calc(6px * var(--ui-scale)) rgb(0 0 0 / 25%);
+  z-index: 5;
+  transition: opacity 0.3s ease;
+}
+
+.minimap-coach-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#minimap-coach-dismiss {
+  flex: none;
+  font: var(--text-tiny-medium);
+  padding: calc(2px * var(--ui-scale)) calc(6px * var(--ui-scale));
+  border: 0;
+  border-radius: calc(6px * var(--ui-scale));
+  background: var(--color-pine-700);
+  color: var(--color-neutral-white);
+  cursor: pointer;
+}
+
+/* Collapsed legend pill in the bottom-left: the three route marks with no text (MinimapLegend.js). */
+#minimap-legend-toggle {
+  position: absolute;
+  left: calc(4px * var(--ui-scale));
+  bottom: calc(10px * var(--ui-scale));
+  display: flex;
+  align-items: center;
+  padding: calc(4px * var(--ui-scale)) calc(6px * var(--ui-scale));
+  border: 0;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 calc(1px * var(--ui-scale)) calc(4px * var(--ui-scale)) rgb(0 0 0 / 25%);
+  cursor: pointer;
+  z-index: 4;
+}
+
+.minimap-legend-toggle-hidden {
+  display: none;
+}
+
+#minimap-legend-toggle .minimap-legend-pill-icon {
+  display: block;
+  width: calc(34px * var(--ui-scale));
+  height: calc(10px * var(--ui-scale));
+}
+
+/* Expanded legend card, anchored where the pill was. */
+#minimap-legend-card {
+  position: absolute;
+  left: calc(4px * var(--ui-scale));
+  bottom: calc(10px * var(--ui-scale));
+  width: calc(150px * var(--ui-scale));
+  padding: calc(6px * var(--ui-scale)) calc(8px * var(--ui-scale));
+  border-radius: calc(8px * var(--ui-scale));
+  background: rgb(255 255 255 / 95%);
+  box-shadow: 0 calc(2px * var(--ui-scale)) calc(10px * var(--ui-scale)) rgb(0 0 0 / 30%);
+  z-index: 5;
+}
+
+.minimap-legend-card-hidden {
+  display: none;
+}
+
+.minimap-legend-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font: var(--text-tiny-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-neutral-700);
+}
+
+#minimap-legend-close {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-size: calc(12px * var(--ui-scale));
+  line-height: 1;
+  padding: 0 0 0 calc(4px * var(--ui-scale));
+  color: var(--color-neutral-700);
+}
+
+.minimap-legend-row {
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--ui-scale));
+  margin-top: calc(4px * var(--ui-scale));
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-900);
+}
+
+.minimap-legend-row svg {
+  flex: none;
+  width: calc(26px * var(--ui-scale));
+  height: calc(11px * var(--ui-scale));
+}
+
+/* Legend samples are the real map marks, drawn with the same design tokens the map uses. */
+.minimap-legend-sample-audited {
+  stroke: var(--color-pine-600);
+  stroke-width: 4;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.minimap-legend-sample-remaining {
+  stroke: var(--color-asphalt-400);
+  stroke-width: 4;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.minimap-legend-sample-dashed {
+  stroke-dasharray: 6 4;
+}
+
+.minimap-legend-sample-chevron {
+  fill: var(--color-neutral-white);
+  stroke: var(--color-asphalt-400);
+  stroke-width: 1;
+}
+
+.minimap-legend-sample-peg {
+  fill: var(--color-link-100);
+  stroke: var(--color-neutral-white);
+  stroke-width: 1.5;
+}
+
+.minimap-legend-sample-cone {
+  fill: var(--color-pine-600);
+  opacity: 0.35;
+}
+
+/* Basemap-green vs. fogged: literal colors on purpose — they depict the Google basemap, not our design system. */
+.minimap-legend-sample-seen {
+  fill: #cbe5c0;
+}
+
+.minimap-legend-sample-fog {
+  fill: var(--color-neutral-500);
+}
+
+/* GSV-style "you are here" dot (Peg.js); replaces the 16-sprite peg man (#4639). Markers anchor bottom-center, so
+   shift down half the dot's height to center it on the location. */
+.minimap-peg-dot {
+  width: calc(14px * var(--ui-scale, 1));
+  height: calc(14px * var(--ui-scale, 1));
+  border-radius: 50%;
+  background: var(--color-link-100);
+  border: calc(2.5px * var(--ui-scale, 1)) solid var(--color-neutral-white);
+  box-shadow: 0 0 calc(4px * var(--ui-scale, 1)) rgb(0 0 0 / 35%);
+  transform: translateY(50%);
+}
+
+/* While fitted to the whole route, the user-centered overlays (fog/FOV/ring/%/coach) don't apply. */
+#minimap-holder.minimap-overview #minimap-fog-of-war-canvas,
+#minimap-holder.minimap-overview #minimap-fov-canvas,
+#minimap-holder.minimap-overview #minimap-progress-circle-canvas,
+#minimap-holder.minimap-overview #minimap-percent-observed,
+#minimap-holder.minimap-overview #minimap-coach {
+  display: none;
 }
 
 .gm-svpc {
@@ -106,7 +302,17 @@
   height: calc(14px * var(--ui-scale, 1));
 }
 
-/* The tutorial minimap is a static screenshot; hide the live zoom controls there. */
-#minimap-holder.minimap-tutorial #minimap-zoom-controls {
+/* The tutorial minimap is a static screenshot; hide the live zoom controls and the live-map chrome there. */
+#minimap-holder.minimap-tutorial #minimap-zoom-controls,
+#minimap-holder.minimap-tutorial #minimap-distance-left,
+#minimap-holder.minimap-tutorial #minimap-legend-toggle,
+#minimap-holder.minimap-tutorial #minimap-legend-card,
+#minimap-holder.minimap-tutorial #minimap-coach {
   display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #minimap-coach {
+    transition: none;
+  }
 }

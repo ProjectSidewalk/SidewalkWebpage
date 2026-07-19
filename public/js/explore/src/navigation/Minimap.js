@@ -10,11 +10,18 @@ class Minimap {
   /** @type {number} */
   static #DEFAULT_ZOOM = 18;
 
+  // Zoom floor while fitted to the whole route/neighborhood; far below MIN_ZOOM, which only bounds manual zooming.
+  /** @type {number} */
+  static #OVERVIEW_MIN_ZOOM = 12;
+
   /** @type {google.maps.Map} */
   #map;
 
   /** @type {number} */
   #minimapPaneBlinkInterval;
+
+  /** True while the minimap is fitted to the whole route/neighborhood instead of following the user. */
+  #overviewMode = false;
 
   /**
    * Imports necessary libraries and creates the map. Resolves once the map has finished loading.
@@ -82,6 +89,19 @@ class Minimap {
     const zoomOutButton = document.getElementById('minimap-zoom-out');
     if (zoomInButton) zoomInButton.addEventListener('click', () => this.#changeZoom(1));
     if (zoomOutButton) zoomOutButton.addEventListener('click', () => this.#changeZoom(-1));
+
+    const fitButton = document.getElementById('minimap-zoom-fit');
+    if (fitButton) {
+      fitButton.addEventListener('click', () => {
+        if (svl.ui.minimap.holder.hasClass('minimap-tutorial')) return;
+        if (this.#overviewMode) {
+          this.exitOverview('fit-button');
+        } else {
+          this.enterOverview(false);
+        }
+        svl.tracker.push('Click_MinimapFitRoute', { mode: this.#overviewMode ? 'overview' : 'street' });
+      });
+    }
   }
 
   /**
@@ -90,10 +110,78 @@ class Minimap {
    */
   #changeZoom(delta) {
     if (svl.ui.minimap.holder.hasClass('minimap-tutorial')) return;
+    // Manual zooming while fitted means the user wants street level back; the exit already resets the zoom.
+    if (this.#overviewMode) {
+      this.exitOverview('zoom');
+      return;
+    }
     const newZoom = Math.min(Minimap.#MAX_ZOOM, Math.max(Minimap.#MIN_ZOOM, this.#map.getZoom() + delta));
     if (newZoom !== this.#map.getZoom()) {
       this.#map.setZoom(newZoom);
     }
+  }
+
+  /**
+   * Fits the minimap to all loaded streets (the route when on one, the neighborhood otherwise) so the user can see
+   * overall progress at a glance. The fog/FOV/ring overlays are hidden via the minimap-overview class while fitted —
+   * they only make sense at street zoom, centered on the user.
+   * @param {boolean} isIntro - True when shown automatically at mission start; auto-exits on first pano interaction.
+   */
+  enterOverview(isIntro) {
+    const bounds = this.#streetBounds();
+    if (!bounds || this.#overviewMode) return;
+    this.#overviewMode = true;
+    svl.ui.minimap.holder.addClass('minimap-overview');
+    this.#map.setOptions({ minZoom: Minimap.#OVERVIEW_MIN_ZOOM });
+    this.#map.fitBounds(bounds, 12);
+    if (isIntro) {
+      // Return to street level as soon as the user starts looking around; stepping to a new pano also exits (via
+      // setMinimapLocation). exitOverview no-ops if something else already ended the overview.
+      svl.ui.streetview.viewControlLayer[0].addEventListener('pointerdown',
+        () => this.exitOverview('pano-interaction'), { once: true });
+      svl.tracker.push('MinimapOverview_IntroShown');
+    }
+  }
+
+  /**
+   * Leaves the fitted overview and returns to street-level zoom centered on the user's pano.
+   * @param {string} trigger - What ended the overview (for interaction logging).
+   */
+  exitOverview(trigger) {
+    if (!this.#overviewMode) return;
+    this.#overviewMode = false;
+    svl.ui.minimap.holder.removeClass('minimap-overview');
+    this.#map.setOptions({ minZoom: Minimap.#MIN_ZOOM });
+    this.#map.setZoom(Minimap.#DEFAULT_ZOOM);
+    this.#map.setCenter(svl.panoViewer.getPosition());
+    svl.tracker.push('MinimapOverview_End', { trigger });
+  }
+
+  /**
+   * Bounds covering every loaded task's street geometry. On a user route that's the route; on a regular mission it's
+   * the neighborhood's streets — either way, the meaningful "whole picture" for the overview.
+   * @returns {google.maps.LatLngBounds|null} Null if no task geometry is available yet.
+   */
+  #streetBounds() {
+    if (!svl.taskContainer) return null;
+    const bounds = new google.maps.LatLngBounds();
+    for (const task of svl.taskContainer.getTasks()) {
+      for (const coord of task.getGeoJSON().geometry.coordinates) {
+        bounds.extend({ lat: coord[1], lng: coord[0] });
+      }
+    }
+    return bounds.isEmpty() ? null : bounds;
+  }
+
+  /**
+   * Updates the minimap's "distance left" chip with the given mission's remaining distance.
+   * @param {Mission} mission - The current mission.
+   */
+  updateDistanceLeft(mission) {
+    const remaining = Math.max(0, mission.getDistance('meters') - (mission.getProperty('distanceProgress') || 0));
+    svl.ui.minimap.distanceLeft.text(
+      i18next.t('right-ui.minimap.distance-left', { distance: util.misc.distanceToString(remaining) }),
+    );
   }
 
   /**
@@ -127,6 +215,8 @@ class Minimap {
    * @param {{lat: number, lng: number}} latLng
    */
   setMinimapLocation(latLng) {
+    // Reaching a new pano while fitted means the user is exploring again — drop back to street level first.
+    if (this.#overviewMode) this.exitOverview('pano-changed');
     this.#map.setCenter(new google.maps.LatLng(latLng.lat, latLng.lng));
   }
 

@@ -360,7 +360,6 @@ class NavigationService {
         window.clearInterval(this.#povSettlePoll);
         this.#povSettlePoll = null;
         this.#status.headingSettling = false; // Clear first so observedArea.update() recomputes from the settled pov.
-        svl.peg.setHeading(heading);
         svl.observedArea.panoChanged();
         svl.observedArea.update();
         svl.compass.update();

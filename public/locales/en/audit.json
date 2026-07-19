@@ -140,8 +140,15 @@
       "message": "Explore __PLACEHOLDER__ of {{neighborhoodName}}"
     },
     "minimap": {
-      "follow-red-line": "Follow the red line to continue the mission",
-      "explore-current-location": "Turn 360 degrees to make sure nothing is missed."
+      "coach-dismiss": "Got it",
+      "distance-left": "{{distance}} left",
+      "explore-current-location": "Turn 360 degrees to make sure nothing is missed.",
+      "fit-route": "Show whole route",
+      "legend-title": "Map key",
+      "legend-audited": "Audited",
+      "legend-ahead": "Route ahead",
+      "legend-you": "You + view direction",
+      "legend-unseen": "Not yet viewed"
     },
     "stats": {
       "leaderboard-cta": "See the community leaderboard"

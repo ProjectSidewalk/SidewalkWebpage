@@ -323,12 +323,62 @@
           <div id="minimap-holder">
             <div id="minimap" class="minimap-pane"></div>
             <div id="minimap-overlay" class="minimap-pane"></div>
-            <div id="minimap-message" class="minimap-pane"></div>
             <canvas id="minimap-fog-of-war-canvas" class="minimap-pane" height="200" width="200"></canvas>
             <canvas id="minimap-fov-canvas" class="minimap-pane" height="200" width="200"></canvas>
             <canvas id="minimap-progress-circle-canvas" class="minimap-pane" height="200" width="200"></canvas>
             <div id="minimap-percent-observed" class="minimap-pane"></div>
+            <div id="minimap-distance-left"></div>
+            @* First-run coach mark; replaces the old always-on banner. Shown/dismissed by ObservedArea. *@
+            <div id="minimap-coach" class="minimap-coach-hidden">
+              <span data-i18n="audit:right-ui.minimap.explore-current-location">Turn 360 degrees to make sure nothing is missed.</span>
+              <button id="minimap-coach-dismiss" type="button" data-i18n="audit:right-ui.minimap.coach-dismiss">Got it</button>
+            </div>
+            @* Collapsible legend: the pill shows the route marks themselves; the card names them (MinimapLegend.js). *@
+            <button id="minimap-legend-toggle" type="button" aria-expanded="false" aria-controls="minimap-legend-card"
+                    aria-label="Map key" data-i18n-aria-label="audit:right-ui.minimap.legend-title">
+              <svg class="minimap-legend-pill-icon" viewBox="0 0 34 10" aria-hidden="true">
+                <path class="minimap-legend-sample-audited" d="M2 5H12"></path>
+                <path class="minimap-legend-sample-remaining" d="M16 5H25"></path>
+                <circle class="minimap-legend-sample-peg" cx="30" cy="5" r="3"></circle>
+              </svg>
+            </button>
+            <div id="minimap-legend-card" class="minimap-legend-card-hidden">
+              <div class="minimap-legend-header">
+                <span data-i18n="audit:right-ui.minimap.legend-title">Map key</span>
+                <button id="minimap-legend-close" type="button" aria-label="Close" data-i18n-aria-label="common:close">&times;</button>
+              </div>
+              <div class="minimap-legend-row">
+                <svg viewBox="0 0 30 12" aria-hidden="true">
+                  <path class="minimap-legend-sample-audited" d="M2 6H28"></path>
+                </svg>
+                <span data-i18n="audit:right-ui.minimap.legend-audited">Audited</span>
+              </div>
+              <div class="minimap-legend-row">
+                <svg viewBox="0 0 30 12" aria-hidden="true">
+                  <path class="minimap-legend-sample-remaining minimap-legend-sample-dashed" d="M2 6H28"></path>
+                  <path class="minimap-legend-sample-chevron" d="M13 3L17.5 6L13 9Z"></path>
+                </svg>
+                <span data-i18n="audit:right-ui.minimap.legend-ahead">Route ahead</span>
+              </div>
+              <div class="minimap-legend-row">
+                <svg viewBox="0 0 30 12" aria-hidden="true">
+                  <path class="minimap-legend-sample-cone" d="M15 7L10.5 0.5A8 8 0 0 1 19.5 0.5Z"></path>
+                  <circle class="minimap-legend-sample-peg" cx="15" cy="7" r="3.5"></circle>
+                </svg>
+                <span data-i18n="audit:right-ui.minimap.legend-you">You + view direction</span>
+              </div>
+              <div class="minimap-legend-row">
+                <svg viewBox="0 0 30 12" aria-hidden="true">
+                  <rect class="minimap-legend-sample-seen" x="2" y="1" width="13" height="10" rx="2"></rect>
+                  <rect class="minimap-legend-sample-fog" x="15" y="1" width="13" height="10" rx="2"></rect>
+                </svg>
+                <span data-i18n="audit:right-ui.minimap.legend-unseen">Not yet viewed</span>
+              </div>
+            </div>
             <div id="minimap-zoom-controls" class="zoom-buttons-holder">
+              <button id="minimap-zoom-fit" class="zoom-button" type="button" aria-label="Show whole route" data-i18n-aria-label="audit:right-ui.minimap.fit-route">
+                <img class="zoom-button-icon" src='@assets.path("images/icons/route-fit-white-material.svg")' alt="">
+              </button>
               <button id="minimap-zoom-in" class="zoom-button" type="button" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in">
                 <img class="zoom-button-icon" src='@assets.path("images/icons/plus-white-material.svg")' alt="">
               </button>

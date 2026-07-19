@@ -140,8 +140,15 @@
       "message": "Explora __PLACEHOLDER__ de {{neighborhoodName}}"
     },
     "minimap": {
-      "follow-red-line": "Sigue la línea roja para continuar la misión",
-      "explore-current-location": "Gire 360 grados para asegurarse de que no se pierda nada."
+      "coach-dismiss": "Entendido",
+      "distance-left": "Quedan {{distance}}",
+      "explore-current-location": "Gire 360 grados para asegurarse de que no se pierda nada.",
+      "fit-route": "Ver toda la ruta",
+      "legend-title": "Leyenda",
+      "legend-audited": "Explorado",
+      "legend-ahead": "Ruta pendiente",
+      "legend-you": "Usted + dirección de vista",
+      "legend-unseen": "Aún sin ver"
     },
     "stats": {
       "leaderboard-cta": "Ver la clasificación de la comunidad"

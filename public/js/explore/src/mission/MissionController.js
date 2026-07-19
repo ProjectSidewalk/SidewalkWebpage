@@ -92,9 +92,10 @@ class MissionController {
     // Update the neighborhood progress bar (this user's vs. the community's share of the neighborhood).
     svl.neighborhoodProgressBar.update();
 
-    // Update mission completion rate in the right sidebar.
+    // Update mission completion rate in the right sidebar and the minimap's distance-left chip.
     const completionRate = currentMission.getMissionCompletionRate();
     svl.missionProgressBar.update(completionRate);
+    if (svl.minimap) svl.minimap.updateDistanceLeft(currentMission);
     if (!this.#neighborhoodModel.isRouteComplete && !this.#neighborhoodModel.isNeighborhoodComplete) {
       this.#checkMissionComplete(currentMission, currentRegion);
     }

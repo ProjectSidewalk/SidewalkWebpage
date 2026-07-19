@@ -366,10 +366,9 @@ class PanoManager {
     if (svl.compass) svl.compass.update();
 
     // Skip the heading-dependent viz while the heading is still settling; NavigationService's settle poll handles
-    // the final update so these don't swing through the mid-animation heading. (#4174)
+    // the final update so it doesn't swing through the mid-animation heading. (#4174)
     if (!svl.navigationService || !svl.navigationService.getStatus('headingSettling')) {
       if (svl.observedArea) svl.observedArea.update();
-      if (svl.peg) svl.peg.setHeading(heading);
     }
 
     const arrowGroup = svl.ui.streetview.navArrows[0];

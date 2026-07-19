@@ -140,8 +140,15 @@
       "message": "Erkunden Sie __PLACEHOLDER__ von {{neighborhoodName}}"
     },
     "minimap": {
-      "follow-red-line": "Folgen Sie der roten Linie, um die Mission fortzusetzen.",
-      "explore-current-location": "Drehen Sie sich um 360 Grad, um sicherzustellen, dass nichts übersehen wird."
+      "coach-dismiss": "Verstanden",
+      "distance-left": "Noch {{distance}}",
+      "explore-current-location": "Drehen Sie sich um 360 Grad, um sicherzustellen, dass nichts übersehen wird.",
+      "fit-route": "Gesamte Route anzeigen",
+      "legend-title": "Legende",
+      "legend-audited": "Erkundet",
+      "legend-ahead": "Verbleibende Route",
+      "legend-you": "Sie + Blickrichtung",
+      "legend-unseen": "Noch nicht gesehen"
     },
     "stats": {
       "leaderboard-cta": "Bestenliste der Gemeinschaft ansehen"

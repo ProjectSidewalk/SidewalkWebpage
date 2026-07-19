@@ -116,22 +116,17 @@ class Task {
       incompletePath.push(new google.maps.LatLng(unauditedCoordinates[i][1], unauditedCoordinates[i][0]));
     }
 
-    return [
-      new google.maps.Polyline({
-        path: completedPath,
-        geodesic: true,
-        strokeColor: '#00ff00',
-        strokeOpacity: 1.0,
-        strokeWeight: 2,
-      }),
-      new google.maps.Polyline({
-        path: incompletePath,
-        geodesic: true,
-        strokeColor: '#ff0000',
-        strokeOpacity: 1.0,
-        strokeWeight: 2,
-      }),
-    ];
+    // Each half is a casing + line pair; see MinimapStyle for the encoding rationale (#4639).
+    const polylines = [];
+    if (completedPath.length > 1) {
+      polylines.push(new google.maps.Polyline(MinimapStyle.routeCasing(completedPath)));
+      polylines.push(new google.maps.Polyline(MinimapStyle.auditedRoute(completedPath)));
+    }
+    if (incompletePath.length > 1) {
+      polylines.push(new google.maps.Polyline(MinimapStyle.routeCasing(incompletePath)));
+      polylines.push(new google.maps.Polyline(MinimapStyle.remainingRoute(incompletePath)));
+    }
+    return polylines;
   }
 
   #coordinatesToSegments(coordinates) {
@@ -376,20 +371,16 @@ class Task {
     this.eraseFromMinimap();
 
     // If the task has been completed already, or if it has not been completed and is not the current task,
-    // render it using one green or gray Polyline, respectively.
+    // render it using a single completed-or-context Polyline, respectively.
     if (this.isComplete() || this.getStreetEdgeId() !== svl.taskContainer.getCurrentTaskStreetEdgeId()) {
       const gCoordinates = this.#geojson.geometry.coordinates
         .map((coord) => new google.maps.LatLng(coord[1], coord[0]));
       this.#paths = [
-        new google.maps.Polyline({
-          path: gCoordinates,
-          geodesic: true,
-          strokeColor: this.isComplete() ? '#00ff00' : '#808080',
-          strokeOpacity: this.isComplete() ? 1.0 : 0.75,
-          strokeWeight: 2,
-        }),
+        new google.maps.Polyline(
+          this.isComplete() ? MinimapStyle.completedTask(gCoordinates) : MinimapStyle.otherTask(gCoordinates),
+        ),
       ];
-      // If the task is incomplete and is the current task, render it using two Polylines (red and green).
+      // If the task is incomplete and is the current task, render its audited and remaining halves separately.
     } else {
       this.#paths = this.getGooglePolylines();
     }

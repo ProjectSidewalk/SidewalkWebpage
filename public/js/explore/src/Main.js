@@ -120,6 +120,7 @@ class Main {
     svl.neighborhoodModel.setCurrentNeighborhood(neighborhood);
 
     svl.observedArea = new ObservedArea(svl.ui.minimap);
+    svl.minimapLegend = new MinimapLegend(svl.ui.minimap, svl.tracker, svl.storage);
 
     // Mission
     svl.missionContainer = new MissionContainer(svl.missionPanel, svl.missionModel);
@@ -299,6 +300,7 @@ class Main {
 
     svl.missionModel.updateMissionProgress(mission, neighborhood);
     svl.missionPanel.setMessage(mission);
+    svl.minimap.updateDistanceLeft(mission);
 
     svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getRegionId(), () => {
       svl.canvas.setOnlyLabelsOnPanoAsVisible(svl.panoViewer.getPanoId());
@@ -353,6 +355,10 @@ class Main {
         }, svl, this.#params.language);
 
         this.#startTheMission(mission, currentNeighborhood);
+
+        // Open on a fitted overview of the whole route so the user sees the mission's shape before street-level
+        // detail takes over; it auto-exits on their first pano interaction (#4639).
+        svl.minimap.enterOverview(true);
       }
 
       // Update the observed area now that everything has loaded.
@@ -421,11 +427,16 @@ class Main {
     svl.ui.minimap = {};
     svl.ui.minimap.holder = $('#minimap-holder');
     svl.ui.minimap.overlay = $('#minimap-overlay');
-    svl.ui.minimap.message = $('#minimap-message');
     svl.ui.minimap.fogOfWar = $('#minimap-fog-of-war-canvas');
     svl.ui.minimap.fov = $('#minimap-fov-canvas');
     svl.ui.minimap.progressCircle = $('#minimap-progress-circle-canvas');
     svl.ui.minimap.percentObserved = $('#minimap-percent-observed');
+    svl.ui.minimap.distanceLeft = $('#minimap-distance-left');
+    svl.ui.minimap.coach = $('#minimap-coach');
+    svl.ui.minimap.coachDismiss = $('#minimap-coach-dismiss');
+    svl.ui.minimap.legendToggle = $('#minimap-legend-toggle');
+    svl.ui.minimap.legendCard = $('#minimap-legend-card');
+    svl.ui.minimap.legendClose = $('#minimap-legend-close');
 
     // Street view area DOM elements.
     svl.ui.streetview = {};
