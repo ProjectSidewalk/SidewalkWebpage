@@ -39,56 +39,58 @@
         @* Explore is the single dominant call to action. It stays visible and is marked active on /explore (rather
            than being hidden), so the link set is stable page to page. *@
         <li class="navbar-lnk">
-          <a class="navbar-button@if(isExplore){ is-active}" id="navbar-start-btn" href="@routes.ExploreController.explore()"@if(isExplore){ aria-current="page"}>@Messages("navbar.explore")</a>
+          <a class="navbar-button@if(isExplore){ is-active}" id="navbar-start-btn" href="@routes.ExploreController.explore()"@if(isExplore){ aria-current="page"}>@common.navbarLnkIcon("compass")@Messages("navbar.explore")</a>
         </li>
         <li class="navbar-lnk">
-          <a class="navbar-button@if(request.path == "/validate"){ is-active}" id="navbar-validate-btn" href="@routes.ValidateController.validate()"@if(request.path == "/validate"){ aria-current="page"}>@Messages("navbar.validate")</a>
+          <a class="navbar-button@if(request.path == "/validate"){ is-active}" id="navbar-validate-btn" href="@routes.ValidateController.validate()"@if(request.path == "/validate"){ aria-current="page"}>@common.navbarLnkIcon("check-circle")@Messages("navbar.validate")</a>
         </li>
-        @* Label Map is the results/output view — a top-level peer of the Explore (contribute) + Validate (verify) loop. *@
-        <li class="navbar-lnk">
-          <a class="navbar-button@if(request.path.toLowerCase == "/labelmap"){ is-active}" id="navbar-labelmap-btn" href="@routes.ApplicationController.labelMap(None)"@if(request.path.toLowerCase == "/labelmap"){ aria-current="page"}>@Messages("navbar.labelmap")</a>
+        @* Label Map is the results/output view — a top-level peer of the Explore (contribute) + Validate (verify) loop.
+           `data-nav-shed` marks it droppable when the bar runs out of room (it stays reachable under Tools ▸ Analyze);
+           see the shed order in Navbar.js. *@
+        <li class="navbar-lnk" data-nav-shed="4">
+          <a class="navbar-button@if(request.path.toLowerCase == "/labelmap"){ is-active}" id="navbar-labelmap-btn" href="@routes.ApplicationController.labelMap(None)"@if(request.path.toLowerCase == "/labelmap"){ aria-current="page"}>@common.navbarLnkIcon("map")@Messages("navbar.labelmap")</a>
         </li>
         @* Retake Tutorial and Help are genuine /explore-only features, not the current page hidden. *@
         @if(isExplore) {
           <li class="navbar-lnk">
-            <a class="navbar-button" href="#" id="navbar-retake-tutorial-btn">@Messages("navbar.retake.tutorial")</a>
+            <a class="navbar-button" href="#" id="navbar-retake-tutorial-btn">@common.navbarLnkIcon("play-circle")@Messages("navbar.retake.tutorial")</a>
           </li>
         }
-        <li class="navbar-lnk nav-shed-1">
+        <li class="navbar-lnk" data-nav-shed="1">
         @if(currentCityInfo.countryId == "taiwan") {
-          <a class="navbar-button" id="navbar-guide-btn" href="@assets.path("documents/labeling-guide-Taiwan.pdf")" target="_blank" rel="noopener">@Messages("navbar.howto")</a>
+          <a class="navbar-button" id="navbar-guide-btn" href="@assets.path("documents/labeling-guide-Taiwan.pdf")" target="_blank" rel="noopener">@common.navbarLnkIcon("book-open")@Messages("navbar.howto")</a>
         } else {
-          <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide" target="_blank" rel="noopener">@Messages("navbar.howto")</a>
+          <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide" target="_blank" rel="noopener">@common.navbarLnkIcon("book-open")@Messages("navbar.howto")</a>
         }
         </li>
         @if(isExplore) {
-          <li class="navbar-lnk">
-            <a class="navbar-button" id="navbar-help-btn" href='@routes.ApplicationController.help' target="_blank" rel="noopener">@Messages("navbar.help")</a>
+          <li class="navbar-lnk" data-nav-shed="3">
+            <a class="navbar-button" id="navbar-help-btn" href='@routes.ApplicationController.help' target="_blank" rel="noopener">@common.navbarLnkIcon("help-circle")@Messages("navbar.help")</a>
           </li>
         }
 
         @* Tools: grouped into labeled sections so the menu stays scannable as tools are added. *@
         <li class="dropdown navbar-lnk" id="navbar-tools-dropdown-list">
           <button type="button" id="nav-tools-dropdown" class="navbar-button navbar-dropdown-toggle@if(toolsToggleActive){ is-active}" data-nav-dropdown aria-haspopup="true" aria-expanded="false" aria-controls="nav-tools-menu">
-            @Messages("navbar.tools")<b class="caret" aria-hidden="true"></b>
+            @common.navbarLnkIcon("tool")@Messages("navbar.tools")<b class="caret" aria-hidden="true"></b>
           </button>
           <ul id="nav-tools-menu" class="dropdown-menu" aria-label="@Messages("navbar.tools")">
             <li class="dropdown-section">@Messages("navbar.tools.analyze")</li>
-            <li><a id="navbar-gallery-btn" href="@routes.GalleryController.gallery()"@if(curPath == "/gallery"){ class="is-active" aria-current="page"}>@Messages("gallery")</a></li>
-            <li><a id="navbar-labelmap-btn-tools" href="@routes.ApplicationController.labelMap(None)"@if(curPath == "/labelmap"){ class="is-active" aria-current="page"}>@Messages("navbar.labelmap")</a></li>
+            <li><a id="navbar-gallery-btn" href="@routes.GalleryController.gallery()"@if(curPath == "/gallery"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("grid")@Messages("gallery")</a></li>
+            <li><a id="navbar-labelmap-btn-tools" href="@routes.ApplicationController.labelMap(None)"@if(curPath == "/labelmap"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("map")@Messages("navbar.labelmap")</a></li>
             <li class="dropdown-section">@Messages("navbar.tools.community")</li>
-            <li><a id="navbar-leaderboard-btn" href='@routes.UserDashboardController.leaderboard'@if(curPath == "/leaderboard"){ class="is-active" aria-current="page"}>@Messages("navbar.leaderboard")</a></li>
+            <li><a id="navbar-leaderboard-btn" href='@routes.UserDashboardController.leaderboard'@if(curPath == "/leaderboard"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("award")@Messages("navbar.leaderboard")</a></li>
             <li class="dropdown-section">@Messages("navbar.tools.build")</li>
-            <li><a id="navbar-route-builder-btn" href='@routes.ApplicationController.routeBuilder'@if(curPath == "/routebuilder"){ class="is-active" aria-current="page"}>@Messages("routebuilder.name")</a></li>
+            <li><a id="navbar-route-builder-btn" href='@routes.ApplicationController.routeBuilder'@if(curPath == "/routebuilder"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("navigation")@Messages("routebuilder.name")</a></li>
             @if(isAdmin) {
               <li class="dropdown-section">@Messages("navbar.tools.admin")</li>
-              <li><a id="navbar-expert-validate-btn-tools" href='@routes.ValidateController.expertValidate()'@if(curPath == "/expertvalidate" || curPath == "/adminvalidate"){ class="is-active" aria-current="page"}>@Messages("navbar.expert.validate")</a></li>
+              <li><a id="navbar-expert-validate-btn-tools" href='@routes.ValidateController.expertValidate()'@if(curPath == "/expertvalidate" || curPath == "/adminvalidate"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("check-square")@Messages("navbar.expert.validate")</a></li>
             }
           </ul>
         </li>
 
-        <li class="navbar-lnk nav-shed-2">
-          <a class="navbar-button" id="navbar-api-btn" href="@routes.ApiDocsController.index" aria-label="Developer API">@Messages("navbar.api")</a>
+        <li class="navbar-lnk" data-nav-shed="2">
+          <a class="navbar-button" id="navbar-api-btn" href="@routes.ApiDocsController.index" aria-label="Developer API">@common.navbarLnkIcon("code")@Messages("navbar.api")</a>
         </li>
       </ul>
 
@@ -134,43 +136,55 @@
         <li class="dropdown navbar-lnk" id="navbar-user-dropdown-list">
         @if(user.isDefined && user.get.role != "Anonymous") {
           <button type="button" id="nav-user-dropdown" class="navbar-button navbar-dropdown-toggle@if(userToggleActive){ is-active}" data-nav-dropdown aria-haspopup="true" aria-expanded="false" aria-controls="nav-user-menu" aria-label="User options for @user.get.username">
-            <img class="navbar-select-icon" src='@assets.path("images/icons/user-feather.svg")' alt="" aria-hidden="true">@user.get.username<b class="caret" aria-hidden="true"></b>
+            <img class="navbar-select-icon" src='@assets.path("images/icons/user-feather.svg")' alt="" aria-hidden="true"><span class="navbar-user-name">@user.get.username</span><b class="caret" aria-hidden="true"></b>
           </button>
+          @* Section headers only appear for admins: their menu carries a second, unrelated group of links, while a
+             contributor's handful of account links reads better as one flat list. *@
           <ul id="nav-user-menu" class="dropdown-menu" aria-label="User options for @user.get.username">
-            <li>
-              <a id="navbar-dashboard-btn" href='@routes.UserDashboardController.dashboard'@if(curPath == "/dashboard"){ class="is-active" aria-current="page"}>@Messages("navbar.dashboard")</a>
-            </li>
-            @if(user.get.role == "Administrator" || user.get.role == "Owner") {
-              <li>
-                <a id="navbar-admin-btn" href='@routes.AdminDashboardController.overview'@if(curPath == "/admin" || curPath == "/admin/overview"){ class="is-active" aria-current="page"}>@Messages("navbar.admin")</a>
-              </li>
-              <li>
-                <a id="navbar-expert-validate-btn-user" href='@routes.ValidateController.expertValidate()'@if(curPath == "/expertvalidate" || curPath == "/adminvalidate"){ class="is-active" aria-current="page"}>@Messages("navbar.expert.validate")</a>
-              </li>
+            @if(isAdmin) {
+              <li class="dropdown-section">@Messages("navbar.user.account")</li>
             }
+            <li>
+              <a id="navbar-dashboard-btn" href='@routes.UserDashboardController.dashboard'@if(curPath == "/dashboard"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("bar-chart-2")@Messages("navbar.dashboard")</a>
+            </li>
+            @* Also lives under Tools ▸ Community; duplicated here because contributors look for their own standing
+               in their own menu. *@
+            <li>
+              <a id="navbar-leaderboard-btn-user" href='@routes.UserDashboardController.leaderboard'@if(curPath == "/leaderboard"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("award")@Messages("navbar.leaderboard")</a>
+            </li>
             @if(user.get.communityService) {
               <li>
-                <a id="navbar-service-hours-btn" href='@routes.ApplicationController.serviceHoursInstructions'@if(curPath == "/servicehoursinstructions"){ class="is-active" aria-current="page"}>@Messages("navbar.servicehours")</a>
+                <a id="navbar-service-hours-btn" href='@routes.ApplicationController.serviceHoursInstructions'@if(curPath == "/servicehoursinstructions"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("info")@Messages("navbar.servicehours")</a>
               </li>
               <li>
-                <a id="navbar-time-check-btn" href='@routes.ApplicationController.timeCheck'@if(curPath == "/timecheck"){ class="is-active" aria-current="page"}>@Messages("navbar.timecheck")</a>
+                <a id="navbar-time-check-btn" href='@routes.ApplicationController.timeCheck'@if(curPath == "/timecheck"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("clock")@Messages("navbar.timecheck")</a>
               </li>
             }
+            @if(isAdmin) {
+              <li class="dropdown-section">@Messages("navbar.tools.admin")</li>
+              <li>
+                <a id="navbar-admin-btn" href='@routes.AdminDashboardController.overview'@if(curPath == "/admin" || curPath == "/admin/overview"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("shield")@Messages("navbar.admin")</a>
+              </li>
+              <li>
+                <a id="navbar-expert-validate-btn-user" href='@routes.ValidateController.expertValidate()'@if(curPath == "/expertvalidate" || curPath == "/adminvalidate"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("check-square")@Messages("navbar.expert.validate")</a>
+              </li>
+            }
+            <li class="dropdown-divider" role="separator"></li>
             <li>
-              <a id="navbar-sign-out-btn" href='@routes.UserController.signOut(request.uri)'>@Messages("navbar.signout")</a>
+              <a id="navbar-sign-out-btn" href='@routes.UserController.signOut(request.uri)'>@common.navbarMenuIcon("log-out")@Messages("navbar.signout")</a>
             </li>
           </ul>
         } else {
           @* Real href so it works on pages without the dialog (e.g. /signIn itself); AuthModal intercepts the
              click to open the dialog everywhere else. *@
-          <a id="navbar-sign-in-btn" href="@routes.UserController.signIn()" data-au-open="signIn" class="navbar-button">@Messages("navbar.signin")</a>
+          <a id="navbar-sign-in-btn" href="@routes.UserController.signIn()" data-au-open="signIn" class="navbar-button">@common.navbarLnkIcon("log-in")@Messages("navbar.signin")</a>
         }
         </li>
 
         <li class="dropdown navbar-lnk" id="language-dropdown">
           <button type="button" class="navbar-button navbar-dropdown-toggle" id="language-button" data-nav-dropdown aria-haspopup="true" aria-expanded="false" aria-controls="nav-language-menu" aria-label="@Messages("navbar.lang.aria")">
             <img id="language-icon" src='@assets.path("images/icons/globe-feather.svg")' alt="@Messages("navbar.lang.icon.alt")">
-            @Messages(s"lang.name.${messages.lang.code}")<b class="caret" aria-hidden="true"></b>
+            <span class="navbar-lang-label">@Messages(s"lang.name.${messages.lang.code}")</span><b class="caret" aria-hidden="true"></b>
           </button>
           <ul id="nav-language-menu" class="dropdown-menu" aria-label="@Messages("navbar.lang.aria")">
           @for(language <- config.get[Seq[String]]("play.i18n.langs")) {

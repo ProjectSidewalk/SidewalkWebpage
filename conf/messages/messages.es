@@ -107,6 +107,7 @@ navbar.tools.analyze = Analizar
 navbar.tools.community = Comunidad
 navbar.tools.build = Crear
 navbar.tools.admin = Administración
+navbar.user.account = Cuenta
 navbar.city.search = Buscar ciudades…
 navbar.city.viewall = Ver todas las ciudades en el mapa
 navbar.city.none = No hay ciudades que coincidan
@@ -386,7 +387,6 @@ labeling.guide.surface.problem.summary = Un problema en la superficie es un inco
 labeling.guide.no.sidewalk.summary = Se debe colocar una etiqueta de "No hay banqueta" si falta una banqueta donde debería haberla.
 labeling.guide.occlusion.summary = A veces no puedes ver la acera en absoluto. En estos casos, debes colocar una etiqueta de "No Puedo Ver la Banqueta". Esta etiqueta debe usarse en muy pocas ocasiones, así que sólo coloca la etiqueta de "Oclusión" cuando una banqueta, rampa u otro problema de accesibilidad no se pueda ver desde ningún ángulo debido a obstrucciones, como los automóviles.
 
-admin.clear.play.cache = Borrar caché de Play
 
 leaderboard.header.team = Equipo
 leaderboard.header.labels = Etiquetas
