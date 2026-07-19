@@ -1634,6 +1634,10 @@ kbd {
        inline bar — so the icons form a single column and the labels start on a single edge. */
     padding: 6px 16px;
     gap: 10px;
+
+    /* This vertical menu grows downward, so drop the bar's nowrap: a long translated label should wrap onto a second
+       line rather than be clipped by the panel's overflow: hidden. */
+    white-space: normal;
   }
 
   /* Carries its own padding in the inline bar, at a higher specificity than the rule above. */
