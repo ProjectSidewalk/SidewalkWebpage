@@ -200,6 +200,10 @@ matching it.
   [Changelog](https://github.com/mrdoob/three.js/releases)
 - **turf.js: 7.3.4** — [Download (set version in URL)](https://unpkg.com/@turf/turf@7.3.4/turf.min.js) ·
   [Changelog](https://github.com/Turfjs/turf/releases)
+- **jquery-ui: 1.12.1** — in `public/vendor/jquery-ui/`; self-hosted so the CSP `script-src` needn't allow
+  code.jquery.com. Tied to jQuery removal — don't invest in upgrades.
+  [Download](https://code.jquery.com/ui/1.12.1/jquery-ui.min.js) ·
+  [Changelog](https://github.com/jquery/jquery-ui/releases)
 - **jquery.magnific-popup** — **TODO:** unclear status; resolve the jQuery situation first. Tied to jQuery removal.
 
 > **jQuery / Bootstrap removal:** several entries above (Bootstrap, dataTables, magnific-popup, selectize) are part of

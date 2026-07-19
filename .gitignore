@@ -99,6 +99,7 @@ public/js/validate/build/*
 public/js/gallery/build/*
 public/js/ps-map/build/*
 public/js/shared-label/build/*
+public/js/route-builder/build/*
 public/js/common/pano-viewer/build/*
 download
 
@@ -131,7 +132,8 @@ htmlcov/
 # https://scalameta.org/metals/docs/editors/vscode.html
 .vscode/settings.json
 .metals/
-project/metals.sbt
+.bloop/
+**/metals.sbt
 
 # Windows Zone Identifier files
 **/*Zone.Identifier

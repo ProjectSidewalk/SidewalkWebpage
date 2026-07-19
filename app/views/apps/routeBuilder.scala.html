@@ -5,7 +5,7 @@
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@common.main(commonData, Messages("routebuilder.name"), defaultI18nNamespace = "routebuilder", i18Namespaces = Seq("routebuilder", "common")) {
+@common.main(commonData, Messages("seo.title.route.builder"), defaultI18nNamespace = "routebuilder", i18Namespaces = Seq("routebuilder", "common")) {
   @common.navbar(commonData, Some(user))
 
   <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
