@@ -119,6 +119,9 @@ class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers 
       body must include("<urlset")
       body must include("/explore</loc>")
       body must include("/v3/api-docs/rawLabels</loc>")
+      // The root <loc> keeps its trailing slash so it matches the landing page's rel=canonical URL exactly; no other
+      // sitemap path ends in a slash.
+      body must include("/</loc>")
       // Only canonical spellings belong in the sitemap; aliases would compete with their canonical pages.
       models.utils.SeoUtils.robotsDisallowedAliases.foreach { alias => body must not include s"$alias</loc>" }
       body must not include "/v3/api-docs</loc>"

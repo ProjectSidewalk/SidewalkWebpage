@@ -31,6 +31,8 @@ class SeoUtilsSpec extends AnyFunSuite with Matchers {
     SeoUtils.canonicalUrl(prodUrl, "/explore") shouldBe s"$prodUrl/explore"
     SeoUtils.canonicalUrl(s"$prodUrl/", "/explore") shouldBe s"$prodUrl/explore"
     SeoUtils.canonicalUrl(prodUrl, "/home") shouldBe s"$prodUrl/"
+    // The root keeps its trailing slash — the one canonical spelling of the landing page, shared with the sitemap.
+    SeoUtils.canonicalUrl(prodUrl, "/") shouldBe s"$prodUrl/"
   }
 
   test("robotsDisallowedAliases covers the alias set except /v3/api-docs (a prefix of canonical doc pages)") {

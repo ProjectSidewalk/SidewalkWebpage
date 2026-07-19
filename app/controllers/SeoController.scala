@@ -66,8 +66,10 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
     else "User-agent: *\nDisallow: /\n"
 
   private val sitemapBody: String = {
+    // Each <loc> goes through SeoUtils.canonicalUrl so the sitemap and the pages' rel=canonical tags agree by
+    // construction — notably the root, which canonicalizes with a trailing slash ("https://host/").
     val urls = sitemapPaths
-      .map(p => s"  <url><loc>$baseUrl${if (p == "/") "" else p}</loc></url>")
+      .map(p => s"  <url><loc>${SeoUtils.canonicalUrl(baseUrl, p)}</loc></url>")
       .mkString("\n")
     s"""<?xml version="1.0" encoding="UTF-8"?>
        |<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
