@@ -78,13 +78,17 @@ ssh:
 # "Running a worktree's app for QA". e.g. `make qa-worktree wt=remove-admin-classic`.
 # Prefer the worktree's own copy of the script so QA works while the main checkout sits on a branch whose copy is older
 # or absent (#4628); the main repo's copy is the fallback for worktrees branched before the script existed.
+# Held in a variable, not written inline in the recipe: make condenses a variable's backslash-continuations into single
+# spaces at parse time, so the container's shell receives one flat line — no reliance on how a given make version passes
+# continuations and leading tabs through to the shell (macOS still ships make 3.81, WSL/Linux run 4.x).
+qa-worktree-script = script="/home/.claude/worktrees/$(wt)/tools/qa-worktree.sh"; \
+  [ -f "$$script" ] || script=/home/tools/qa-worktree.sh; \
+  [ -f "$$script" ] || { echo "error: no tools/qa-worktree.sh in worktree $(wt) or main checkout"; exit 1; }; \
+  exec bash "$$script" "$(wt)"
+
 qa-worktree:
 	@[ -n "$(wt)" ] || { echo "usage: make qa-worktree wt=<name>   (a dir under .claude/worktrees/)"; exit 2; }
-	@docker exec -it $(web-container) bash -c '\
-	  script="/home/.claude/worktrees/$(wt)/tools/qa-worktree.sh"; \
-	  [ -f "$$script" ] || script=/home/tools/qa-worktree.sh; \
-	  [ -f "$$script" ] || { echo "error: no tools/qa-worktree.sh in worktree $(wt) or in the main checkout"; exit 1; }; \
-	  exec bash "$$script" "$(wt)"'
+	@docker exec -it $(web-container) bash -c '$(qa-worktree-script)'
 
 import-users:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-users.sh"
