@@ -227,18 +227,23 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       (contentAsJson(resp) \ "parameter").as[String] mustBe "clusterSize"
     }
 
-    "return a FeatureCollection with pano_source on any included raw labels" in {
-      // Runs the includeRawLabels SQL (jsonb_agg + pano_data join) end to end; the field assertion is conditional so
-      // the contract holds on a sparse test DB.
-      val emptyBbox = "0,0,0.001,0.001"
-      val resp      = route(app, FakeRequest(GET, s"/v3/api/labelClusters?includeRawLabels=true&bbox=$emptyBbox")).get
+    "return a parseable FeatureCollection with pano_source on included raw labels" in {
+      // Runs the includeRawLabels SQL (jsonb_agg + LEFT JOIN pano_data) end to end over the whole test DB. The
+      // full-world bbox matters: labels without a pano_data row must stream as raw labels with pano_source omitted
+      // rather than killing the response mid-stream, so contentAsJson parsing the complete body is the regression
+      // assertion. pano_source is optional in the contract, but when present it must be a known provider.
+      val worldBbox = "-180,-85,180,85"
+      val resp      = route(app, FakeRequest(GET, s"/v3/api/labelClusters?includeRawLabels=true&bbox=$worldBbox")).get
       status(resp) mustBe OK
       val json = contentAsJson(resp)
       (json \ "type").as[String] mustBe "FeatureCollection"
       val rawLabels = (json \ "features")
         .as[Seq[JsObject]]
         .flatMap(f => (f \ "properties" \ "labels").asOpt[Seq[JsObject]].getOrElse(Seq.empty))
-      rawLabels.foreach { label => (label \ "pano_source").asOpt[String] mustBe defined }
+      val knownSources = models.pano.PanoSource.values.map(_.toString)
+      rawLabels.foreach { label =>
+        (label \ "pano_source").asOpt[String].foreach { source => knownSources must contain(source) }
+      }
     }
   }
 }

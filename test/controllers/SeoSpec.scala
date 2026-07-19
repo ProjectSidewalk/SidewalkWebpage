@@ -26,6 +26,17 @@ trait SeoSpecHelpers { this: PlaySpec with GuiceOneAppPerSuite =>
     val resp = route(app, FakeRequest(GET, path).withCookies(anonCookies: _*)).get
     (status(resp), contentAsString(resp))
   }
+
+  /**
+   * Fetches a page as a mobile-browser anonymous user. Needs its own cookie jar: Silhouette fingerprints the session
+   * by User-Agent, so the shared desktop-minted cookies are rejected when replayed with a mobile UA.
+   */
+  def getMobilePage(path: String): (Int, String) = {
+    val mobileUa      = "User-Agent" -> "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)"
+    val mobileCookies = cookies(route(app, FakeRequest(GET, "/anonSignUp?url=%2F").withHeaders(mobileUa)).get).toSeq
+    val resp          = route(app, FakeRequest(GET, path).withCookies(mobileCookies: _*).withHeaders(mobileUa)).get
+    (status(resp), contentAsString(resp))
+  }
 }
 
 /**
@@ -49,6 +60,12 @@ class SeoSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers {
       val body = contentAsString(resp)
       body must include("Disallow: /")
       body must not include "Sitemap:"
+    }
+  }
+
+  "GET /sitemap.xml on a test stage" should {
+    "404 rather than serve cross-host prod URLs" in {
+      status(route(app, FakeRequest(GET, "/sitemap.xml")).get) mustBe NOT_FOUND
     }
   }
 
@@ -77,23 +94,34 @@ class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers 
 
   "GET /robots.txt on prod" should {
     "allow crawling, disallow the admin/auth/alias surface, and advertise the sitemap" in {
-      val body = contentAsString(route(app, FakeRequest(GET, "/robots.txt")).get)
+      val resp = route(app, FakeRequest(GET, "/robots.txt")).get
+      val body = contentAsString(resp)
       body must include("Disallow: /admin")
-      body must include("Disallow: /home")
       body must include("Sitemap: http")
       body must not include "Disallow: /\n"
+      // The alias Disallow lines are derived from the canonical-alias map, so assert against the same source.
+      models.utils.SeoUtils.robotsDisallowedAliases.foreach { alias => body must include(s"Disallow: $alias") }
+      // Crawlers reach every SecuredAction page via a 303 through /anonSignUp; blocking it blocks the whole site.
+      body must not include "Disallow: /anonSignUp"
+      // Aliases are prefix matches, so /v3/api-docs must not appear: it would block the /v3/api-docs/* doc pages.
+      body must not include "Disallow: /v3/api-docs"
+      header(CACHE_CONTROL, resp) mustBe defined
     }
   }
 
   "GET /sitemap.xml" should {
-    "list the public pages with absolute prod URLs" in {
+    "list the public pages with absolute prod URLs and no duplicate-alias URLs" in {
       val resp = route(app, FakeRequest(GET, "/sitemap.xml")).get
       status(resp) mustBe OK
       contentType(resp) mustBe Some("application/xml")
+      header(CACHE_CONTROL, resp) mustBe defined
       val body = contentAsString(resp)
       body must include("<urlset")
       body must include("/explore</loc>")
       body must include("/v3/api-docs/rawLabels</loc>")
+      // Only canonical spellings belong in the sitemap; aliases would compete with their canonical pages.
+      models.utils.SeoUtils.robotsDisallowedAliases.foreach { alias => body must not include s"$alias</loc>" }
+      body must not include "/v3/api-docs</loc>"
     }
   }
 
@@ -109,7 +137,7 @@ class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers 
       body must include("application/ld+json")
       body must include("<h1")
       body must not include "noindex"
-      // The viewport meta must be inside the real <head>, not the legacy in-body block.
+      // The viewport meta must appear before </head> so browsers apply it during initial layout.
       body.indexOf("name=\"viewport\"") must be < body.indexOf("</head>")
     }
 
@@ -120,6 +148,40 @@ class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers 
       val canonicalHref = "rel=\"canonical\" href=\"([^\"]+)\"".r.findFirstMatchIn(body).map(_.group(1))
       canonicalHref.isDefined mustBe true
       canonicalHref.get must not include "/home"
+    }
+
+    "canonicalize the /v3/api-docs alias to /api" in {
+      val (sc, body) = getPage("/v3/api-docs")
+      sc mustBe OK
+      val canonicalHref = "rel=\"canonical\" href=\"([^\"]+)\"".r.findFirstMatchIn(body).map(_.group(1))
+      canonicalHref.isDefined mustBe true
+      canonicalHref.get must endWith("/api")
+    }
+  }
+
+  "API-docs pages" should {
+    "carry the shared per-page title pattern" in {
+      val (sc, body) = getPage("/v3/api-docs/rawLabels")
+      sc mustBe OK
+      body must include(s"<title>${models.utils.SeoUtils.apiDocsTitle("Raw Labels API")}</title>")
+    }
+
+    "contain no links to the nonexistent /api-docs/* path family" in {
+      Seq("/v3/api-docs/rawLabels", "/v3/api-docs/labelClusters", "/v3/api-docs/regions", "/v3/api-docs/streets")
+        .foreach { path =>
+          val (sc, body) = getPage(path)
+          sc mustBe OK
+          withClue(s"$path links to a 404ing /api-docs/... URL: ") { body must not include "href=\"/api-docs/" }
+        }
+    }
+  }
+
+  "The mobile Validate page" should {
+    "not get the viewport meta tag its fixed-size CSS predates" in {
+      // mobile-validate.css is tuned for the ~980px fallback viewport phones use when no viewport meta is present.
+      val (sc, body) = getMobilePage("/mobile")
+      sc mustBe OK
+      body must not include "name=\"viewport\""
     }
   }
 }

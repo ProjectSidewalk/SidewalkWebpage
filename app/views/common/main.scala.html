@@ -4,7 +4,7 @@
 @(commonData: CommonPageData, title: String, defaultI18nNamespace: String = "common", i18Namespaces: Seq[String] = Seq("common"), url: String = "/", extraHead: Html = Html(""), pageMeta: service.PageMeta = service.PageMeta()
 )(content: Html)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
+@currentCity = @{commonData.currentCity}
 
 <!DOCTYPE html>
 <html lang="@messages.lang.code">
@@ -18,9 +18,13 @@
       gtag('config', '@commonData.googleAnalyticsId');
     </script>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    @* The mobile Validate page (url == "/mobile") deliberately gets no viewport meta: mobile-validate.css is tuned
+       for the ~980px legacy viewport that phones fall back to, and device-width would blow up its fixed sizes. *@
+    @if(url != "/mobile") {
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+    }
     <title>@title</title>
-    @common.seoHead(commonData, currentCity, title, pageMeta)
+    @common.seoHead(commonData, title, pageMeta)
     @* Per-page <head> injection point, e.g. Open Graph / Twitter Card meta for social sharing (#456). *@
     @extraHead
     @* Deferred: i18next is only touched from AppManager's $(document).ready callback, which runs after deferred

@@ -9,12 +9,20 @@ object SeoUtils {
   private val canonicalAliases: Map[String, String] = Map(
     "/home"            -> "/",
     "/developer"       -> "/api",
+    "/v3/api-docs"     -> "/api",
     "/citiesDashboard" -> "/cities",
     "/labelmap"        -> "/labelMap",
     "/labelingguide"   -> "/labelingGuide",
     "/audit"           -> "/explore",
     "/adminValidate"   -> "/expertValidate"
   )
+
+  /**
+   * Alias paths that robots.txt should discourage crawling, derived from canonicalAliases so the two surfaces can't
+   * drift. "/v3/api-docs" is excluded: robots Disallow rules are prefix matches, so listing it would also block the
+   * canonical per-endpoint doc pages that live underneath it (/v3/api-docs/rawLabels etc.).
+   */
+  val robotsDisallowedAliases: Seq[String] = (canonicalAliases.keySet - "/v3/api-docs").toSeq.sorted
 
   /**
    * Collapses duplicate route aliases so every alias reports the same canonical path.
@@ -33,4 +41,13 @@ object SeoUtils {
    * @return        Absolute canonical URL, never with a trailing slash except the bare root.
    */
   def canonicalUrl(prodUrl: String, path: String): String = prodUrl.stripSuffix("/") + canonicalPathFor(path)
+
+  /**
+   * Page title for a per-endpoint API-docs page, keeping the shared brand suffix in one place. The docs are
+   * English-only by design, so these titles bypass the seo.title.* Messages keys used by the rest of the site.
+   *
+   * @param pageName The docs page name, e.g. "Raw Labels API".
+   * @return         The full title, e.g. "Raw Labels API — Project Sidewalk API Docs".
+   */
+  def apiDocsTitle(pageName: String): String = s"$pageName — Project Sidewalk API Docs"
 }

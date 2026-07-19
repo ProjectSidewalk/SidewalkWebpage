@@ -1,6 +1,7 @@
 package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
+import models.utils.SeoUtils
 import play.api.Configuration
 import play.api.mvc.{Action, AnyContent}
 
@@ -33,53 +34,63 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
     "overall-stats-by-day", "aggregate-stats", "aggregate-stats-by-day"
   ).map(p => s"/v3/api-docs/$p")
 
+  /** Duplicate-alias Disallow lines, derived from the same alias map that drives canonical URLs (SeoUtils). */
+  private val aliasDisallowLines: String = SeoUtils.robotsDisallowedAliases.map(p => s"Disallow: $p").mkString("\n")
+
+  /**
+   * The robots.txt body is fully determined by construction-time config, so build it once.
+   *
+   * /anonSignUp is deliberately NOT disallowed: every SecuredAction page 303s cookie-less clients (i.e. crawlers)
+   * through it, so blocking it would make every sitemap-promoted page uncrawlable ("redirect blocked by robots.txt").
+   */
+  private val robotsBody: String =
+    if (envType == "prod")
+      s"""User-agent: *
+         |Disallow: /admin
+         |Disallow: /adminapi/
+         |Disallow: /userapi/
+         |Disallow: /signIn
+         |Disallow: /signInMobile
+         |Disallow: /signUp
+         |Disallow: /signUpMobile
+         |Disallow: /signOut
+         |Disallow: /forgotPassword
+         |Disallow: /resetPassword
+         |Disallow: /welcome
+         |Disallow: /changeLanguage
+         |Disallow: /dashboard
+         |$aliasDisallowLines
+         |
+         |Sitemap: $baseUrl/sitemap.xml
+         |""".stripMargin
+    else "User-agent: *\nDisallow: /\n"
+
+  private val sitemapBody: String = {
+    val urls = sitemapPaths
+      .map(p => s"  <url><loc>$baseUrl${if (p == "/") "" else p}</loc></url>")
+      .mkString("\n")
+    s"""<?xml version="1.0" encoding="UTF-8"?>
+       |<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+       |$urls
+       |</urlset>
+       |""".stripMargin
+  }
+
   /**
    * Serves robots.txt: on prod, allow crawling minus admin/auth/duplicate-alias surface and point at the sitemap;
    * on test/local, disallow everything (pages also carry a noindex meta via seoHead).
    */
   def robots: Action[AnyContent] = Action {
-    val body =
-      if (envType == "prod")
-        s"""User-agent: *
-           |Disallow: /admin
-           |Disallow: /adminapi/
-           |Disallow: /userapi/
-           |Disallow: /signIn
-           |Disallow: /signInMobile
-           |Disallow: /signUp
-           |Disallow: /signUpMobile
-           |Disallow: /signOut
-           |Disallow: /forgotPassword
-           |Disallow: /resetPassword
-           |Disallow: /anonSignUp
-           |Disallow: /welcome
-           |Disallow: /changeLanguage
-           |Disallow: /dashboard
-           |Disallow: /home
-           |Disallow: /developer
-           |Disallow: /citiesDashboard
-           |Disallow: /labelmap
-           |Disallow: /labelingguide
-           |Disallow: /audit
-           |Disallow: /adminValidate
-           |
-           |Sitemap: $baseUrl/sitemap.xml
-           |""".stripMargin
-      else "User-agent: *\nDisallow: /\n"
-    Ok(body).as("text/plain; charset=utf-8")
+    Ok(robotsBody).as("text/plain; charset=utf-8").withHeaders(CACHE_CONTROL -> "public, max-age=86400")
   }
 
-  /** Serves sitemap.xml listing the public pages with absolute prod URLs. */
+  /**
+   * Serves sitemap.xml listing the public pages with absolute prod URLs. Prod only: a sitemap on a test/local host
+   * would list cross-host (prod) URLs, which search engines reject, and those stages are noindexed anyway.
+   */
   def sitemap: Action[AnyContent] = Action {
-    val urls = sitemapPaths
-      .map(p => s"  <url><loc>$baseUrl${if (p == "/") "" else p}</loc></url>")
-      .mkString("\n")
-    Ok(
-      s"""<?xml version="1.0" encoding="UTF-8"?>
-         |<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-         |$urls
-         |</urlset>
-         |""".stripMargin
-    ).as("application/xml; charset=utf-8")
+    if (envType == "prod")
+      Ok(sitemapBody).as("application/xml; charset=utf-8").withHeaders(CACHE_CONTROL -> "public, max-age=86400")
+    else NotFound
   }
 }

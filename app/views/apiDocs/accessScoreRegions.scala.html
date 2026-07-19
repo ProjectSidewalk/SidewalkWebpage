@@ -1,3 +1,4 @@
+@import models.utils.SeoUtils
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
@@ -202,7 +203,7 @@
   </div>
 }
 
-@common.main(commonData, "Access Score Regions API — Project Sidewalk API Docs") {
+@common.main(commonData, SeoUtils.apiDocsTitle("Access Score Regions API")) {
   @common.navbar(commonData, Some(user))
   @apiDocs.layout("access-score-regions")(content)
 }

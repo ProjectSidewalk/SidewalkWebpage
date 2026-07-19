@@ -1,21 +1,20 @@
 @import models.utils.SeoUtils
-@import service.{CityInfo, CommonPageData, PageMeta}
+@import service.{CommonPageData, PageMeta}
 @*
  * Site-wide SEO <head> block rendered on every page by main.scala.html (issue #4237): canonical URL (prod only),
  * noindex on test/local stages, and default meta description + Open Graph / Twitter Card tags. Pages that inject
  * their own social meta via extraHead (e.g. shared-label permalinks) set pageMeta.customSocialMeta to suppress the
  * defaults so crawlers never see duplicate tags.
  *
- * @param commonData  Per-page config (environment type, prod base URL).
- * @param currentCity The deployment city, for city-parameterized default descriptions.
+ * @param commonData  Per-page config (environment type, prod base URL, deployment city).
  * @param title       The page title, reused as og:title / twitter:title.
  * @param pageMeta    Per-page SEO overrides; the all-defaults instance yields sensible site-wide values.
  *@
-@(commonData: CommonPageData, currentCity: CityInfo, title: String, pageMeta: PageMeta
+@(commonData: CommonPageData, title: String, pageMeta: PageMeta
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder)
 
 @canonicalUrl = @{SeoUtils.canonicalUrl(commonData.prodUrl, pageMeta.canonicalPath.getOrElse(request.path))}
-@description = @{pageMeta.description.getOrElse(Messages("seo.description.default", currentCity.cityNameShort))}
+@description = @{pageMeta.description.getOrElse(Messages("seo.description.default", commonData.currentCity.cityNameShort))}
 @ogImageUrl = @{commonData.prodUrl.stripSuffix("/") + assets.path("images/psmockup.jpg")}
 
 @if(commonData.environmentType != "prod") {

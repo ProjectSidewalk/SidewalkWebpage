@@ -1,3 +1,4 @@
+@import models.utils.SeoUtils
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
@@ -20,12 +21,12 @@
   <div class="api-section" id="raw-labels-intro-section"> @* ID on section is optional, but distinct from heading ID *@
     <h1 class="api-heading" id="raw-labels-api">Raw Labels API <a href="#raw-labels-api" class="permalink">#</a></h1>
     <p>The Raw Labels API provides access to individual geo-located labels placed by Project Sidewalk users. Each label represents a sidewalk feature or barrier that has been identified and categorized in street view imagery.</p>
-    <p>This endpoint returns raw, unclustered data. For most applications, we recommend using the <a href="/api-docs/labelClusters">Label Clusters API</a> as it groups potentially duplicate labels of the same feature using a custom clustering algorithm. Use this Raw Labels API when you need access to every individual label record, including metadata about the user (anonymized) and validation status.</p>
+    <p>This endpoint returns raw, unclustered data. For most applications, we recommend using the <a href="/v3/api-docs/labelClusters">Label Clusters API</a> as it groups potentially duplicate labels of the same feature using a custom clustering algorithm. Use this Raw Labels API when you need access to every individual label record, including metadata about the user (anonymized) and validation status.</p>
   </div>
 
   <div class="api-section" id="raw-labels-preview-section">
     <h2 class="api-heading" id="visual-example">Raw Labels API Preview <a href="#visual-example" class="permalink">#</a></h2>
-    <p>Below is a live preview of raw labels from a sample region in @cityName retrieved directly from the API. Compare this map to the <a href="/api-docs/labelClusters">Label Clusters</a> equivalent to see the difference between clustered labels <i>vs.</i> raw labels. Depending on the number of labels in the region, it may take a bit to load.</p>
+    <p>Below is a live preview of raw labels from a sample region in @cityName retrieved directly from the API. Compare this map to the <a href="/v3/api-docs/labelClusters">Label Clusters</a> equivalent to see the difference between clustered labels <i>vs.</i> raw labels. Depending on the number of labels in the region, it may take a bit to load.</p>
 
     <div id="raw-labels-preview" class="map-container">Loading raw labels data...</div>
 
@@ -550,7 +551,7 @@
   </div>
 }
 
-@common.main(commonData, "Raw Labels API — Project Sidewalk API Docs") {
+@common.main(commonData, SeoUtils.apiDocsTitle("Raw Labels API")) {
   @common.navbar(commonData, Some(user))
   @apiDocs.layout("raw-labels")(content)
 }
