@@ -76,8 +76,15 @@ ssh:
 
 # Run an uncommitted git worktree's app on :9000 for QA (not the main repo). See tools/qa-worktree.sh and CLAUDE.md
 # "Running a worktree's app for QA". e.g. `make qa-worktree wt=remove-admin-classic`.
+# Prefer the worktree's own copy of the script so QA works while the main checkout sits on a branch whose copy is older
+# or absent (#4628); the main repo's copy is the fallback for worktrees branched before the script existed.
 qa-worktree:
-	@docker exec -it $(web-container) bash /home/tools/qa-worktree.sh $(wt)
+	@[ -n "$(wt)" ] || { echo "usage: make qa-worktree wt=<name>   (a dir under .claude/worktrees/)"; exit 2; }
+	@docker exec -it $(web-container) bash -c '\
+	  script="/home/.claude/worktrees/$(wt)/tools/qa-worktree.sh"; \
+	  [ -f "$$script" ] || script=/home/tools/qa-worktree.sh; \
+	  [ -f "$$script" ] || { echo "error: no tools/qa-worktree.sh in worktree $(wt) or in the main checkout"; exit 1; }; \
+	  exec bash "$$script" "$(wt)"'
 
 import-users:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-users.sh"

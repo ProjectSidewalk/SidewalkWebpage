@@ -378,7 +378,12 @@ so absent in worktrees), build that branch's JS/CSS bundles (also gitignored/abs
 assets), free `:9000`, kill any stray `sbt --client` server sharing the worktree's `target/` (it deadlocks `~ run` on
 compile locks), and launch `sbt ~ run` with `-Dconfig.file` at the worktree's own conf and the sbt caches pointed at the
 main repo's warm `.coursier`/`.sbt` (cwd-relative caches from a worktree would re-download gigabytes). The first HTTP
-request triggers the dev compile; Ctrl-C stops it. Implementation: `tools/qa-worktree.sh`.
+request triggers the dev compile; Ctrl-C stops it. Implementation: `tools/qa-worktree.sh` — the target runs the
+*worktree's* copy of that script (falling back to the main repo's), so the branch being QA'd supplies its own tooling.
+
+`make` itself still reads the **main checkout's** Makefile, so if that checkout is on a branch without the target, make
+reports `No rule to make target 'qa-worktree'`. Either check out a branch that has it, or run the worktree's script
+directly: `docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/qa-worktree.sh <name>`.
 
 **Admin-authenticated QA:** the dev DB is seeded from a dump that includes real accounts and their bcrypt password
 hashes, and password verification is config-independent (plain bcrypt, no server-side pepper), so if your own account is

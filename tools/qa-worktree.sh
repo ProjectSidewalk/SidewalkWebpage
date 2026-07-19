@@ -6,6 +6,10 @@
 #     make qa-worktree wt=<name>                 # from the host - Mac, Linux, or WSL
 #     bash /home/tools/qa-worktree.sh <name>     # from inside the container shell
 #
+# `make` reads the MAIN checkout's Makefile, so if that checkout is on a branch without the qa-worktree target, make
+# reports "No rule to make target". Run the worktree's own copy directly instead (#4628):
+#     docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/qa-worktree.sh <name>
+#
 # Handles the worktree-specific setup the plain `npm start` flow doesn't (node_modules,
 # bundles, sbt caches, config.file, thin-client contention). See CLAUDE.md ->
 # "Running a worktree's app for QA".
