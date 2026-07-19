@@ -98,6 +98,7 @@ navbar.tools.analyze = Analysieren
 navbar.tools.community = Community
 navbar.tools.build = Erstellen
 navbar.tools.admin = Verwaltung
+navbar.user.account = Konto
 navbar.city.search = Städte suchen…
 navbar.city.viewall = Alle Städte auf der Karte anzeigen
 navbar.city.none = Keine passenden Städte

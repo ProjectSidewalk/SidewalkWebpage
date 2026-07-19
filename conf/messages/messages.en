@@ -101,6 +101,7 @@ navbar.tools.analyze = Analyze
 navbar.tools.community = Community
 navbar.tools.build = Build
 navbar.tools.admin = Admin
+navbar.user.account = Account
 navbar.city.search = Search cities…
 navbar.city.viewall = View all cities on the map
 navbar.city.none = No matching cities

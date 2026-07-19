@@ -166,6 +166,7 @@ navbar.tools.analyze = 分析
 navbar.tools.community = 社群
 navbar.tools.build = 建立
 navbar.tools.admin = 管理
+navbar.user.account = 帳戶
 navbar.city.search = 搜尋城市…
 navbar.city.viewall = 在地圖上檢視所有城市
 navbar.city.none = 沒有符合的城市
