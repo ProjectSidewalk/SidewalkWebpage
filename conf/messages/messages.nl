@@ -95,6 +95,7 @@ navbar.tools.analyze = Analyseren
 navbar.tools.community = Community
 navbar.tools.build = Bouwen
 navbar.tools.admin = Beheer
+navbar.user.account = Account
 navbar.city.search = Steden zoeken…
 navbar.city.viewall = Alle steden op de kaart bekijken
 navbar.city.none = Geen overeenkomende steden

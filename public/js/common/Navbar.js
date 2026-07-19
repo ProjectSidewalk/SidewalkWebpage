@@ -16,6 +16,19 @@ class NavbarController {
   /** @type {?{li: HTMLElement, btn: HTMLButtonElement}} The currently open dropdown, or null. */
   #current = null;
 
+  /** @type {?HTMLElement} The <div id="navbar"> holding both nav groups. */
+  #menu = null;
+
+  /** @type {?HTMLElement} The hamburger button; its visibility tells us the nav is in its stacked state. */
+  #hamburger = null;
+
+  /**
+   * Space-freeing steps for the inline bar, ordered lowest priority first. Each takes a boolean and applies or
+   * clears its effect; #fitNav applies as few as will make the bar fit.
+   * @type {Array<function(boolean): void>}
+   */
+  #shedSteps = [];
+
   /**
    * Click-target id → activity string logged for that navbar element.
    * @type {Object<string, string>}
@@ -33,6 +46,7 @@ class NavbarController {
     'navbar-gallery-btn': 'Click_module=Gallery',
     'navbar-expert-validate-btn-tools': 'Click_module=ExpertValidate_from=ToolsDropdown',
     'navbar-leaderboard-btn': 'Click_module=Leaderboard',
+    'navbar-leaderboard-btn-user': 'Click_module=Leaderboard_from=UserDropdown',
     'navbar-labelmap-btn': 'Click_module=LabelMap',
     'navbar-labelmap-btn-tools': 'Click_module=LabelMap_from=ToolsDropdown',
     'navbar-route-builder-btn': 'Click_module=RouteBuilder',
@@ -50,6 +64,7 @@ class NavbarController {
     this.#wireCitySearch();
     this.#wireGlobalHandlers();
     this.#wireLogging();
+    this.#wireResponsiveNav();
   }
 
   /**
@@ -196,6 +211,55 @@ class NavbarController {
       const open = menu.classList.toggle('is-open');
       toggle.setAttribute('aria-expanded', String(open));
     });
+  }
+
+  /**
+   * Sets up the progressive shedding that keeps the bar on one line, and re-runs it whenever the available width
+   * can have changed.
+   */
+  #wireResponsiveNav() {
+    this.#menu = document.getElementById('navbar');
+    this.#hamburger = this.#nav.querySelector('[data-nav-toggle]');
+    if (!this.#menu) return;
+
+    // Items opt in via data-nav-shed="<n>", n ascending from the first to be dropped.
+    this.#shedSteps = Array.from(this.#menu.querySelectorAll('[data-nav-shed]'))
+      .sort((a, b) => Number(a.dataset.navShed) - Number(b.dataset.navShed))
+      .map((li) => (on) => li.classList.toggle('is-shed', on));
+
+    const lang = document.getElementById('language-dropdown');
+    if (lang) this.#shedSteps.push((on) => lang.classList.toggle('is-compact', on));
+
+    let queued = false;
+    const update = () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => {
+        queued = false;
+        this.#fitNav();
+      });
+    };
+    window.addEventListener('resize', update);
+    // Web fonts land after first paint and change every label's width, so re-fit once they're in.
+    if (document.fonts) document.fonts.ready.then(update);
+    this.#fitNav();
+  }
+
+  /**
+   * Keeps the inline bar on a single line: restores every item, then applies shed steps in priority order until the
+   * two nav groups fit. Measured at runtime rather than pinned to breakpoints, because the widths involved depend on
+   * the active language's labels and on the signed-in username.
+   */
+  #fitNav() {
+    // In the stacked hamburger panel each item has its own row, so everything is shown.
+    const stacked = this.#hamburger && this.#hamburger.offsetParent !== null;
+    for (const step of this.#shedSteps) step(false);
+    if (stacked) return;
+    for (const step of this.#shedSteps) {
+      // A few pixels of slack so items never sit flush against the edge of the available space.
+      if (this.#menu.scrollWidth <= this.#menu.clientWidth - 8) return;
+      step(true);
+    }
   }
 
   /** Wires live client-side filtering of the city switcher, hiding empty country groups. */

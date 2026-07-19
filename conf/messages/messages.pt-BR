@@ -103,6 +103,7 @@ navbar.tools.analyze = Analisar
 navbar.tools.community = Comunidade
 navbar.tools.build = Criar
 navbar.tools.admin = Administração
+navbar.user.account = Conta
 navbar.city.search = Buscar cidades…
 navbar.city.viewall = Ver todas as cidades no mapa
 navbar.city.none = Nenhuma cidade correspondente

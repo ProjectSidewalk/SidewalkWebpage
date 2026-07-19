@@ -413,6 +413,10 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 3px;
+
+  /* A navbar item never wraps: the bar is a fixed-height single line, so a wrapped label overflows it. Items are
+     shed instead when space runs short (see Navbar.js). */
+  white-space: nowrap;
   cursor: pointer;
   color: var(--color-asphalt-500);
   font-size: 13px;
@@ -1104,6 +1108,34 @@ kbd {
   list-style: none;
   margin: 0;
   padding: 0;
+
+  /* Neither group compresses: squeezing is what forced labels onto a second line. When the two groups no longer fit
+     side by side, Navbar.js sheds items instead. */
+  flex: none;
+}
+
+.navbar-nav > li {
+  flex: none;
+}
+
+/* Applied by Navbar.js to items dropped from the inline bar; each one stays reachable elsewhere (site footer, or
+   the Tools menu for Label Map), and all of them return in the stacked hamburger panel. */
+.navbar-nav > li.is-shed {
+  display: none;
+}
+
+/* Last step before the hamburger: the language selector keeps its globe icon and drops its label. The button's
+   aria-label still names the control, so this is visual only. */
+#language-dropdown.is-compact .navbar-lang-label {
+  display: none;
+}
+
+/* A long username can't be allowed to push the bar past its width. */
+.navbar-user-name {
+  display: block;
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Dropdown panels are hidden until Navbar.js adds .is-open to the wrapping .navbar-lnk. */
@@ -1135,12 +1167,35 @@ kbd {
 }
 
 .dropdown-menu li > a {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 5px 16px;
   font-size: 13px;
   color: var(--color-asphalt-600);
   text-decoration: none;
   white-space: nowrap;
+}
+
+/* Leading icon on a menu item; sized to the 13px item text, never shrinking as labels get long. */
+.dropdown-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  opacity: 0.75;
+}
+
+.dropdown-menu li > a:hover .dropdown-icon,
+.dropdown-menu li > a:focus .dropdown-icon,
+.dropdown-menu li > a.is-active .dropdown-icon {
+  opacity: 1;
+}
+
+/* Rule setting Sign out apart from the destinations above it. */
+.dropdown-divider {
+  height: 1px;
+  margin: 6px 0;
+  background-color: var(--color-neutral-200);
 }
 
 .dropdown-menu li > a:hover,
@@ -1162,9 +1217,9 @@ kbd {
   box-shadow: inset 3px 0 0 var(--color-banana-600);
 }
 
-/* Non-interactive section labels grouping the Tools menu. */
+/* Non-interactive section labels grouping a menu's items. */
 .dropdown-section {
-  padding: 8px 16px 2px;
+  padding: 12px 16px 2px;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -1477,21 +1532,10 @@ kbd {
 /*
 * Responsive navigation.
 *
-* As the window narrows, the lowest-priority items are shed from the inline bar (How to Label first, then API;
-* both stay reachable in the footer) before the whole nav collapses into the hamburger menu. Breakpoints below are a
-* first pass tuned for English label widths and are meant to be adjusted by eye.
+* Shedding lower-priority items as the window narrows is measured at runtime in Navbar.js rather than pinned to
+* breakpoints here, because the widths that matter depend on the active language's label lengths and on the
+* signed-in username. Only the collapse-to-hamburger step below is a fixed breakpoint.
 */
-@media only screen and (width >= 861px) and (width <= 1100px) {
-  .nav-shed-1 {
-    display: none;
-  }
-}
-
-@media only screen and (width >= 861px) and (width <= 1000px) {
-  .nav-shed-2 {
-    display: none;
-  }
-}
 
 /*
 * Hamburger menu: at the narrowest widths the whole nav collapses into a single stacked menu opened by the
