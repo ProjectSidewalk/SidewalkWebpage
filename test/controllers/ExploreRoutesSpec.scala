@@ -32,5 +32,11 @@ class ExploreRoutesSpec extends PlaySpec with GuiceOneAppPerSuite {
       location must include("lng=-122.332")
       location must include("url=%2Fexplore")
     }
+
+    "preserve placeName through the anonSignUp redirect so the drop-in greeting can still name the place" in {
+      val result = route(app, FakeRequest(GET, "/explore?lat=47.615&lng=-122.332&placeName=Town%20Hall")).get
+      status(result) must (be >= 300 and be < 400)
+      redirectLocation(result).value must include("placeName")
+    }
   }
 }

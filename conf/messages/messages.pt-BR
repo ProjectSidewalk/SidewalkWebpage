@@ -466,9 +466,12 @@ dashboard.trophy.none = 🏆 Ainda sem troféus — termine no top 3 semanal, ou
 dashboard.trophy.explore.region = Explorar este bairro →
 dashboard.trophy.tag.region = Bairro
 dashboard.trophy.tag.pioneer = Pioneiro(a)
+dashboard.trophy.tag.explore = Exploração
 dashboard.trophy.sub.pioneer = Primeira pessoa a rotular em {0}
 dashboard.trophy.sub.champion = {0} rótulos — o maior número neste bairro
 dashboard.trophy.sub.weekly = Semana de {0}
+dashboard.trophy.sub.free-explore-tried = Você experimentou uma missão de Exploração Livre
+dashboard.trophy.sub.free-explore-labeled = Você rotulou durante uma missão de Exploração Livre
 dashboard.standing.title = Sua posição
 dashboard.standing.intro = Uma prévia de onde você está nesta semana. O quadro completo está <a href="{0}">na classificação</a>.
 dashboard.standing.tag.week = Esta semana

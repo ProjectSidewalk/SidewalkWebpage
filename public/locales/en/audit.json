@@ -140,7 +140,6 @@
       "header-free-explore": "Free Exploration",
       "message": "Explore __PLACEHOLDER__ of {{neighborhoodName}}"
     },
-    "free-explore-banner": "You're exploring the area around your searched address. Label what you see — your labels are saved, but the street won't be marked as audited.",
     "minimap": {
       "follow-red-line": "Follow the red line to continue the mission",
       "explore-current-location": "Turn 360 degrees to make sure nothing is missed."
@@ -296,6 +295,7 @@
     "still-stuck": "If you're still stuck, click the Stuck button again.",
     "stuck-skipped-street": "We couldn't find a spot for you on that street, so we moved you to a new street.",
     "free-explore-start": "You've been dropped near your searched address. Look around and label what you find!",
+    "free-explore-start-named": "You've been dropped close to <b>{{placeName}}</b>. Look around and label what you find!",
     "free-explore-no-imagery": "There's no more street imagery in this direction. Try looking around or heading the other way.",
     "stuck-suggestion": "If you can't move with the arrows, trying clicking on the navigation directions in the bottom right. Or try clicking on the Stuck button on the left."
   },

@@ -5,9 +5,11 @@
 @import play.api.libs.json.Json
 @import service.{CommonPageData, ExplorePageData}
 @import models.pano.PanoSource
+@import views.ViewHelpers.jsonForScript
 @(
   commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, data: ExplorePageData,
-  lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None
+  lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None,
+  placeName: Option[String] = None
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
@@ -285,9 +287,6 @@
         @* Current mission: header, description, mission progress, plus the neighborhood progress bar and the minimap that fills the remaining sidebar height. *@
         <section id="explore-sidebar__mission" class="explore-sidebar__section explore-sidebar__section--map">
           <h1 id="current-mission-header" class="explore-sidebar__heading"></h1>
-
-          @* Shown instead of the mission progress group during a free-exploration (exploreAddress) session. *@
-          <p id="free-explore-banner" class="explore-sidebar__subheading ps-hidden" data-i18n="audit:right-ui.free-explore-banner"></p>
 
           @* The mission and neighborhood progress bars, each paired with its label. *@
           <div class="explore-sidebar__progress-groups">
@@ -777,7 +776,7 @@
     const mainParam = {};
 
     if (@data.task.isDefined) {
-      mainParam.task = @Html(Json.toJson(data.task.get).toString);
+      mainParam.task = @jsonForScript(data.task.get);
     } else {
       $(".tool-ui").removeClass("ps-invisible");
       $('#already-completed-neighborhood-overlay').show();
@@ -788,17 +787,17 @@
     mainParam.audioDirectory = "@assets.path("audio/")";
 
     mainParam.user = {
-      username: '@user.username',
+      username: @jsonForScript(user.username),
       role: '@user.role',
       userId: '@user.userId'
     };
     mainParam.regionId = @data.region.regionId;
-    mainParam.regionName = @Html(Json.stringify(Json.toJson(data.region.name)));
+    mainParam.regionName = @jsonForScript(data.region.name);
     // TODO I think that we can replace this with Json.toJson(data.region.geom).toString after back end upgrades.
     mainParam.regionGeoJSON = window.betterknown.wktToGeoJSON("@data.region.geom");
 
     mainParam.nextTemporaryLabelId = @data.nextTempLabelId;
-    mainParam.mission = @Html(Json.toJson(data.mission).toString);
+    mainParam.mission = @jsonForScript(data.mission);
     mainParam.tutorialStreetId = @data.tutorialStreetId;
     mainParam.hasCompletedAMission = @data.hasCompletedAMission;
 
@@ -813,7 +812,13 @@
     mainParam.startLng = @lng.get;
     }
     @if(panoId.isDefined) {
-    mainParam.startPanoId = @Html(Json.stringify(Json.toJson(panoId.get)));
+    mainParam.startPanoId = @jsonForScript(panoId.get);
+    }
+    @* Name of the place the user searched, so the drop-in greeting can say where they landed (#4451). It arrives from
+       a URL parameter, so it is JSON-serialized AND has `<` escaped: JSON quoting alone still lets a literal
+       `</script>` close this block early and execute the rest as markup. Same guard as sharedLabel.scala.html. *@
+    @if(placeName.isDefined) {
+    mainParam.startPlaceName = @jsonForScript(placeName.get);
     }
 
     mainParam.language = "@messages.lang.code";

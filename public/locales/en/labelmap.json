@@ -1,6 +1,7 @@
 {
   "search-placeholder": "Search for an address or place",
   "explore-here": "Explore the sidewalks here",
+  "explore-here-percent": "{{percent}}% explored",
   "loading-labels": "Loading sidewalk labels…",
   "loading-elapsed": "{{seconds}}s elapsed",
   "is-correct": "Is this label correct?",

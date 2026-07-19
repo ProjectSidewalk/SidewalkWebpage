@@ -61,6 +61,14 @@ object ExploreService {
   // Max distance from a searched point to the nearest open street for an exploreAddress session (#4451). Beyond this,
   // the caller falls back to the normal explore flow rather than dropping the user somewhere unrelated.
   val exploreAddressMaxDistM: Double = 500d
+
+  // Fraction of a street a free-exploration session must cover — beyond where it dropped in — before the street counts
+  // as audited (#4451). A normal audit completes when the client gets within 25m of the endpoint, which is a proximity
+  // test rather than a fraction, so no single fraction reproduces it — 25m is ~88% of a 200m street but only ~75% of a
+  // 100m one (streets much longer than 250m imply a slightly higher fraction, where the few-meter difference is
+  // immaterial). 0.9 sits at the strict end of that band: completing a street credits the user its full length, so
+  // under-crediting a session costs a user nothing while over-crediting corrupts city-wide coverage.
+  val streetWalkedThreshold: Double = 0.9d
 }
 
 @ImplementedBy(classOf[ExploreServiceImpl])
@@ -306,9 +314,10 @@ class ExploreServiceImpl @Inject() (
                 mission: Mission <- missionService.resumeOrCreateNewExploreAddressMission(userId)
                 auditTaskId: Int <- resumeOrCreateExploreAddressTask(userId, mission.missionId, streetEdgeId, lat, lng)
                 _                <- missionTable.updateCurrentAuditTaskId(mission.missionId, Some(auditTaskId))
-                updatedMission: Mission       <- missionTable.getMission(mission.missionId).map(_.get)
-                task: Option[NewTask]         <- auditTaskTable.selectTaskFromTaskId(auditTaskId)
-                nextTempLabelId: Int          <- labelTable.nextTempLabelId(userId)
+                updatedMission: Mission <- missionTable.getMission(mission.missionId).map(_.get)
+                // includeCompleted: a drop-in street the session already finished must still load on resume (#4451).
+                task: Option[NewTask] <- auditTaskTable.selectTaskFromTaskId(auditTaskId, includeCompleted = true)
+                nextTempLabelId: Int  <- labelTable.nextTempLabelId(userId)
                 hasCompletedAMission: Boolean <-
                   missionTable.countCompletedMissions(userId, missionType = MissionType.Audit).map(_ > 0)
                 surveyData: Seq[SurveyQuestionWithOptions] <- surveyQuestionTable.listAllWithOptions
@@ -340,11 +349,12 @@ class ExploreServiceImpl @Inject() (
   }
 
   /**
-   * Returns the user's incomplete task on the given street within the given exploreAddress mission, creating one if
-   * none exists (#4451).
+   * Returns the user's task on the given street within the given exploreAddress mission, creating one if none exists
+   * (#4451).
    *
-   * New tasks start `completed = false` and are never completed, keeping street priority/coverage untouched. The
-   * searched lat/lng is used as the task's current position so the pano opens at the address itself.
+   * The searched lat/lng is used as the task's current position so the pano opens at the address itself. Its offset
+   * along the street is stored on the task so completion can credit only the distance covered beyond the drop-in
+   * point (see `streetWalkedFarEnough`).
    */
   private def resumeOrCreateExploreAddressTask(
       userId: String,
@@ -353,14 +363,24 @@ class ExploreServiceImpl @Inject() (
       lat: Double,
       lng: Double
   ): DBIO[Int] = {
-    auditTaskTable.findIncompleteTaskForMission(userId, streetEdgeId, missionId).flatMap {
+    auditTaskTable.findTaskForMission(userId, streetEdgeId, missionId).flatMap {
       case Some(existingTask) => DBIO.successful(existingTask.auditTaskId)
       case _                  =>
-        auditTaskTable.insert(
-          AuditTask(0, None, userId, streetEdgeId, OffsetDateTime.now, OffsetDateTime.now, completed = false, lat, lng,
-            startPointReversed = false, Some(missionId), None, lowQuality = false, incomplete = false, stale = false,
-            auditedDistanceM = None)
-        )
+        // ST_LineLocatePoint gives the searched point's fraction along the street; geodesic length converts it to
+        // meters so it is directly comparable to the client's audited_distance_m.
+        sql"""SELECT ST_LineLocatePoint(street_edge.geom, ST_SetSRID(ST_MakePoint($lng, $lat), 4326))
+                     * ST_Length(street_edge.geom::geography)
+              FROM street_edge
+              WHERE street_edge.street_edge_id = $streetEdgeId"""
+          .as[Double]
+          .headOption
+          .flatMap { startOffsetM: Option[Double] =>
+            auditTaskTable.insert(
+              AuditTask(0, None, userId, streetEdgeId, OffsetDateTime.now, OffsetDateTime.now, completed = false, lat,
+                lng, startPointReversed = false, Some(missionId), None, lowQuality = false, incomplete = false,
+                stale = false, auditedDistanceM = None, startOffsetM = startOffsetM)
+            )
+          }
     }
   }
 
@@ -460,6 +480,54 @@ class ExploreServiceImpl @Inject() (
           task.currentLng, task.startPointReversed, Some(missionId), task.currentMissionStart, lowQuality = false,
           incomplete = false, stale = false, task.auditedDistanceM)
       )
+    }
+  }
+
+  /**
+   * Whether a free-exploration session has covered enough of a street to count as having audited it (#4451).
+   *
+   * A normal audit is completed by the client, which marks the task done once the user gets within 25m of the street's
+   * endpoint. A drop-in has no equivalent client signal, so the server decides from the distance the user actually
+   * walked. Deriving it here rather than trusting a submitted flag also means a forged `completed=true` still can't
+   * shift coverage, so the invariant holds without a separate anti-forgery guard.
+   *
+   * `audited_distance_m` measures from the street's start coordinate to the furthest point reached, so for a drop-in
+   * it begins at the drop-in point's own offset rather than 0. The task's `start_offset_m` is subtracted so only
+   * ground actually covered counts — otherwise a session dropped near the far end of a street would complete it
+   * without walking at all. A consequence is that only sessions dropped near a street's start can ever complete it;
+   * mid-street drop-ins never do, which errs on the cheap side (under-crediting costs nothing, over-crediting
+   * corrupts coverage).
+   *
+   * Length is measured with `::geography` (geodesic) rather than a projected CRS because the value it is compared
+   * against — the client's `audited_distance_m` — is itself computed geodesically. Projecting to a fixed UTM zone the
+   * way `RegionCompletionTable` does would inflate the length outside that zone (~25% in Amsterdam), pushing the
+   * threshold past the street's real length so it could never be reached.
+   *
+   * @param auditTaskId      The session's task, holding where along the street it dropped in.
+   * @param streetEdgeId     The street being explored.
+   * @param auditedDistanceM How far along the street the client reports the user has gotten, in meters.
+   * @return `true` once the distance covered beyond the drop-in point reaches `ExploreService.streetWalkedThreshold`
+   *         of the street's length; `false` when the client sent no distance or the street has no geometry.
+   */
+  private def streetWalkedFarEnough(
+      auditTaskId: Int,
+      streetEdgeId: Int,
+      auditedDistanceM: Option[Double]
+  ): DBIO[Boolean] = {
+    auditedDistanceM match {
+      case None          => DBIO.successful(false)
+      case Some(walkedM) =>
+        sql"""SELECT ST_Length(street_edge.geom::geography),
+                     (SELECT audit_task.start_offset_m FROM audit_task WHERE audit_task.audit_task_id = $auditTaskId)
+              FROM street_edge
+              WHERE street_edge.street_edge_id = $streetEdgeId"""
+          .as[(Double, Option[Double])]
+          .headOption
+          .map { row: Option[(Double, Option[Double])] =>
+            row.exists { case (len, startOffsetM) =>
+              len > 0d && walkedM - startOffsetM.getOrElse(0d) >= len * ExploreService.streetWalkedThreshold
+            }
+          }
     }
   }
 
@@ -713,16 +781,25 @@ class ExploreServiceImpl @Inject() (
     // Update the audit_task table and get the audit_task_id. This is needed to submit all other data.
     db.run(updateAuditTaskTable(userId, data.auditTask, missionId).flatMap { auditTaskId: Int =>
       missionTable.getMissionType(missionId).flatMap { missionType: Option[MissionType.Value] =>
-        // If task is complete, mark it in the db and update the street priority. The audit-type check is a backend
-        // backstop for exploreAddress sessions (#4451): their client never sends completed=true, but a buggy or forged
-        // submission must still be unable to mark the street audited and shift coverage.
-        val taskCompletedAction: DBIO[Int] =
-          if (data.auditTask.completed.getOrElse(false) && missionType.contains(MissionType.Audit)) {
-            for {
-              newPriority: Option[Double] <- updateStreetPriority(streetEdgeId, userId)
-              atRowsUpdated: Int          <- auditTaskTable.updateCompleted(auditTaskId, completed = true)
-            } yield atRowsUpdated
-          } else DBIO.successful(0)
+        // If task is complete, mark it in the db and update the street priority. A normal audit is completed by the
+        // client; a free-exploration drop-in has no such client signal, so the server derives it from how far the user
+        // walked (#4451). Deriving it also means a forged completed=true can't mark a drop-in street audited.
+        // Ordering is load-bearing: updateStreetPriority skips streets the user already completed, so it must read the
+        // completed flag before updateCompleted flips it — flipping first would skip the one legitimate update, and it
+        // is also what keeps re-running this action (every post-completion submission) from shifting priority again.
+        val completeTaskAction: DBIO[Int] = for {
+          newPriority: Option[Double] <- updateStreetPriority(streetEdgeId, userId)
+          atRowsUpdated: Int          <- auditTaskTable.updateCompleted(auditTaskId, completed = true)
+        } yield atRowsUpdated
+
+        val taskCompletedAction: DBIO[Int] = missionType match {
+          case Some(MissionType.Audit) if data.auditTask.completed.getOrElse(false) => completeTaskAction
+          case Some(MissionType.ExploreAddress)                                     =>
+            streetWalkedFarEnough(auditTaskId, streetEdgeId, data.auditTask.auditedDistanceM).flatMap {
+              farEnough: Boolean => if (farEnough) completeTaskAction else DBIO.successful(0)
+            }
+          case _ => DBIO.successful(0)
+        }
 
         // Add to the audit_task_user_route and user_route tables if we are on a route and not in the tutorial.
         val userRouteAction: DBIO[Boolean] =

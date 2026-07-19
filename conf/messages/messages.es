@@ -470,9 +470,12 @@ dashboard.trophy.none = 🏆 Aún no hay trofeos: termina en el top 3 semanal, o
 dashboard.trophy.explore.region = Explora este vecindario →
 dashboard.trophy.tag.region = Vecindario
 dashboard.trophy.tag.pioneer = Pionero/a
+dashboard.trophy.tag.explore = Exploración
 dashboard.trophy.sub.pioneer = Primera persona en etiquetar en {0}
 dashboard.trophy.sub.champion = {0} etiquetas: las más de este vecindario
 dashboard.trophy.sub.weekly = Semana del {0}
+dashboard.trophy.sub.free-explore-tried = Probaste una misión de Exploración Libre
+dashboard.trophy.sub.free-explore-labeled = Etiquetaste durante una misión de Exploración Libre
 dashboard.standing.title = Tu posición
 dashboard.standing.intro = Un vistazo a tu lugar esta semana. La tabla completa está <a href="{0}">en la tabla de clasificación</a>.
 dashboard.standing.tag.week = Esta semana

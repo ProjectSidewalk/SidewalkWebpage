@@ -352,13 +352,19 @@ class Main {
 
         const currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
         if (svl.isExploreAddressMode()) {
-          // Free exploration (#4451): show the persistent banner instead of the mission progress UI, and skip the
-          // mission-start modal (its copy interpolates a mission distance, which this mission type doesn't have).
+          // Free exploration (#4451): hide the mission progress UI, and skip the mission-start modal (its copy
+          // interpolates a mission distance, which this mission type doesn't have).
           document.getElementById('mission-progress-group').classList.add('ps-hidden');
-          document.getElementById('free-explore-banner').classList.remove('ps-hidden');
           document.getElementById('compass-message-holder').classList.add('ps-hidden');
           svl.tracker.push('ExploreAddress_SessionStart');
-          svl.alertController.showAlert(i18next.t('popup.free-explore-start'), 'exploreAddressStart', true);
+          // Name the place when the search supplied one — "dropped near Teaneck High School" orients the user far
+          // better than a generic greeting. The name comes from a URL param and lands in innerHTML, so it must stay
+          // an i18next interpolation: the default escapeValue escapes it, while the <b> in the string itself renders.
+          const placeName = this.#params.startPlaceName;
+          const startMessage = placeName
+            ? i18next.t('popup.free-explore-start-named', { placeName })
+            : i18next.t('popup.free-explore-start');
+          svl.alertController.showAlert(startMessage, 'exploreAddressStart', true);
         } else {
           // Initialize explore mission screens focused on a randomized label type, though users can switch between
           // them.
@@ -426,6 +432,9 @@ class Main {
       // Keep the address params so a refresh resumes the free-exploration session; a bare /explore would fall back to
       // a normal audit mission (#4451).
       newURL += `?lat=${this.#params.startLat}&lng=${this.#params.startLng}`;
+      if (this.#params.startPlaceName) {
+        newURL += `&placeName=${encodeURIComponent(this.#params.startPlaceName)}`;
+      }
     }
     if (newURL !== window.location.href) {
       window.history.pushState({ }, '', newURL);

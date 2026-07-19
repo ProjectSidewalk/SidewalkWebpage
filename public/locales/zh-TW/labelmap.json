@@ -1,6 +1,7 @@
 {
   "search-placeholder": "搜尋地址或地點",
   "explore-here": "探索這裡的人行道",
+  "explore-here-percent": "已探索 {{percent}}%",
   "loading-labels": "正在載入標記…",
   "loading-elapsed": "已經過 {{seconds}} 秒",
   "is-correct": "這個標記是否正確?",

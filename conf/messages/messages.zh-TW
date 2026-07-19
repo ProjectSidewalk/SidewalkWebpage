@@ -529,9 +529,12 @@ dashboard.trophy.none = 🏆 目前還沒有獎盃——進入每週前三名，
 dashboard.trophy.explore.region = 探索這個社區 →
 dashboard.trophy.tag.region = 社區
 dashboard.trophy.tag.pioneer = 開拓者
+dashboard.trophy.tag.explore = 探索
 dashboard.trophy.sub.pioneer = {0}的第一位標記者
 dashboard.trophy.sub.champion = {0} 個標記——本社區最多
 dashboard.trophy.sub.weekly = {0}當週
+dashboard.trophy.sub.free-explore-tried = 嘗試了自由探索任務
+dashboard.trophy.sub.free-explore-labeled = 在自由探索任務中進行了標記
 dashboard.standing.title = 您的名次
 dashboard.standing.intro = 看看您本週的位置。完整榜單請見<a href="{0}">排行榜</a>。
 dashboard.standing.tag.week = 本週

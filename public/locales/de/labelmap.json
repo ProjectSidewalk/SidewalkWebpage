@@ -1,6 +1,7 @@
 {
   "search-placeholder": "Nach Adresse oder Ort suchen",
   "explore-here": "Gehwege hier erkunden",
+  "explore-here-percent": "{{percent}}% erkundet",
   "loading-labels": "Beschriftungen werden geladen…",
   "loading-elapsed": "{{seconds}} s vergangen",
   "is-correct": "Ist diese Beschriftung richtig?",

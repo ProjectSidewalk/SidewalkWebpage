@@ -50,7 +50,8 @@ class ExploreController @Inject() (
       streetEdgeId: Option[Int],
       lat: Option[Double],
       lng: Option[Double],
-      panoId: Option[String]
+      panoId: Option[String],
+      placeName: Option[String]
   ) = cc.securityService.SecuredAction { implicit request =>
     val user: SidewalkUserWithRole = request.identity
     val pageTitle: String          = "Sidewalk - Explore"
@@ -108,7 +109,8 @@ class ExploreController @Inject() (
           case (Some(s), true, _, Some(lt), Some(lg)) =>
             Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg)))
           case (None, _, _, Some(lt), Some(lg)) if isExploreAddress =>
-            Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg)))
+            // placeName rides along only on the drop-in path — it names the searched place in the landing greeting.
+            Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg), None, placeName))
           case _ => Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData))
         }
       }
