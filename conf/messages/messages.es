@@ -135,7 +135,7 @@ seo.title.service.hours = Información voluntaria — Project Sidewalk
 seo.title.time.check = Chequeo de tiempo — Project Sidewalk
 seo.title.about = Sobre nosotros — Project Sidewalk
 seo.description.default = Ayuda a mapear y evaluar las banquetas de {0} mediante exploración virtual. Datos abiertos sobre rampas peatonales, obstáculos y problemas de superficie para un mundo más accesible.
-seo.description.landing = Explora {0} virtualmente y ayuda a evaluar la accesibilidad de sus banquetas. Tus etiquetas se convierten en datos abiertos que usan investigadores, ciudades y comunidades.
+seo.description.landing = Ayuda a encontrar problemas de seguridad y accesibilidad en las banquetas de {0} desde tu laptop. Tus etiquetas ayudan a investigadores, ciudades y comunidades a mejorar sus banquetas.
 seo.description.explore = Recorre virtualmente las calles de {0} y etiqueta rampas peatonales, banquetas faltantes, obstáculos y problemas de superficie para mejorar la accesibilidad.
 seo.description.validate = Revisa las etiquetas de accesibilidad colocadas por otras personas en {0} y ayuda a mejorar la calidad de los datos.
 seo.description.gallery = Explora imágenes a nivel de calle de elementos y barreras de accesibilidad en las banquetas de {0}.
@@ -143,7 +143,7 @@ seo.description.label.map = Mapa interactivo de todas las etiquetas de accesibil
 seo.description.help = Aprende a usar Project Sidewalk: guías de etiquetado, consejos de precisión y preguntas frecuentes.
 seo.description.cities = Project Sidewalk está presente en ciudades de todo el mundo. Consulta todas las ciudades o lleva Project Sidewalk a la tuya.
 seo.description.api = Datos abiertos y gratuitos de accesibilidad de banquetas de {0}: etiquetas, grupos de etiquetas, calles y puntuaciones de acceso en JSON, CSV, GeoJSON, GeoPackage y Shapefile.
-seo.description.about = Conoce Project Sidewalk: nuestra misión de mapear las banquetas del mundo, cómo funciona el juego, el equipo de investigación detrás y los datos abiertos que produce.
+seo.description.about = Conoce Project Sidewalk: nuestra misión de mapear las banquetas del mundo, el equipo de investigación detrás y los datos abiertos que produce.
 seo.og.image.alt = Captura de pantalla de la exploración virtual de Project Sidewalk con etiquetas de accesibilidad colocadas a lo largo de una banqueta.
 
 landing.create.path = Creemos un camino para todas las personas

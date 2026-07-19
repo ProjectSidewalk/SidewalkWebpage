@@ -123,7 +123,7 @@ seo.title.service.hours = Vrijwilligersinformatie — Project Sidewalk
 seo.title.time.check = Tijdcontrole — Project Sidewalk
 seo.title.about = Over ons — Project Sidewalk
 seo.description.default = Help de trottoirs van {0} in kaart te brengen en te beoordelen via virtuele verkenning. Open data over opritten, obstakels en oppervlakteproblemen voor een toegankelijkere wereld.
-seo.description.landing = Verken {0} virtueel en help de toegankelijkheid van trottoirs te beoordelen. Jouw labels worden open data voor onderzoekers, steden en gemeenschappen.
+seo.description.landing = Help vanaf je laptop veiligheids- en toegankelijkheidsproblemen op de trottoirs van {0} te vinden. Jouw labels helpen onderzoekers, steden en gemeenschappen hun trottoirs te verbeteren.
 seo.description.explore = Wandel virtueel door de straten van {0} en label trottoir opritten, ontbrekende trottoirs, obstakels en oppervlakteproblemen om de toegankelijkheid te verbeteren.
 seo.description.validate = Beoordeel toegankelijkheidslabels die anderen in {0} hebben geplaatst en help de datakwaliteit te verbeteren.
 seo.description.gallery = Bekijk straatbeelden van toegankelijkheidskenmerken en obstakels op de trottoirs van {0}.
@@ -131,7 +131,7 @@ seo.description.label.map = Interactieve kaart van alle toegankelijkheidslabels 
 seo.description.help = Leer Project Sidewalk gebruiken: labelinstructies, tips voor nauwkeurigheid en veelgestelde vragen.
 seo.description.cities = Project Sidewalk is actief in steden over de hele wereld. Bekijk alle steden of breng Project Sidewalk naar jouw stad.
 seo.description.api = Gratis en open data over trottoirtoegankelijkheid in {0}: labels, labelclusters, straten en toegankelijkheidsscores in JSON, CSV, GeoJSON, GeoPackage en Shapefile.
-seo.description.about = Maak kennis met Project Sidewalk: onze missie om de trottoirs van de wereld in kaart te brengen, hoe het spel werkt, het onderzoeksteam erachter en de open data die het oplevert.
+seo.description.about = Maak kennis met Project Sidewalk: onze missie om de trottoirs van de wereld in kaart te brengen, het onderzoeksteam erachter en de open data die het oplevert.
 seo.og.image.alt = Schermafbeelding van de virtuele straatverkenning van Project Sidewalk met toegankelijkheidslabels langs een trottoir.
 
 landing.create.path = Laten we een pad creëren voor iedereen!

@@ -131,7 +131,7 @@ seo.title.service.hours = Informação voluntária — Project Sidewalk
 seo.title.time.check = Verificação de tempo — Project Sidewalk
 seo.title.about = Sobre nós — Project Sidewalk
 seo.description.default = Ajude a mapear e avaliar as calçadas de {0} por meio de exploração virtual. Dados abertos sobre rampas de calçada, obstáculos e problemas de superfície para um mundo mais acessível.
-seo.description.landing = Explore {0} virtualmente e ajude a avaliar a acessibilidade das calçadas. Seus rótulos viram dados abertos usados por pesquisadores, cidades e comunidades.
+seo.description.landing = Ajude a encontrar problemas de segurança e acessibilidade nas calçadas de {0} do seu laptop. Seus rótulos ajudam pesquisadores, cidades e comunidades a melhorar suas calçadas.
 seo.description.explore = Percorra virtualmente as ruas de {0} e rotule rampas de calçada, calçadas ausentes, obstáculos e problemas de superfície para melhorar a acessibilidade.
 seo.description.validate = Revise os rótulos de acessibilidade colocados por outras pessoas em {0} e ajude a melhorar a qualidade dos dados.
 seo.description.gallery = Navegue por imagens em nível de rua de recursos e barreiras de acessibilidade nas calçadas de {0}.
@@ -139,7 +139,7 @@ seo.description.label.map = Mapa interativo de todos os rótulos de acessibilida
 seo.description.help = Aprenda a usar o Project Sidewalk: instruções de rotulagem, dicas de precisão e perguntas frequentes.
 seo.description.cities = O Project Sidewalk está presente em cidades do mundo todo. Veja todas as cidades ou leve o Project Sidewalk para a sua.
 seo.description.api = Dados abertos e gratuitos de acessibilidade de calçadas de {0}: rótulos, grupos de rótulos, ruas e pontuações de acesso em JSON, CSV, GeoJSON, GeoPackage e Shapefile.
-seo.description.about = Conheça o Project Sidewalk: nossa missão de mapear as calçadas do mundo, como o jogo funciona, a equipe de pesquisa por trás dele e os dados abertos que ele produz.
+seo.description.about = Conheça o Project Sidewalk: nossa missão de mapear as calçadas do mundo, a equipe de pesquisa por trás dele e os dados abertos que ele produz.
 seo.og.image.alt = Captura de tela da exploração virtual do Project Sidewalk com rótulos de acessibilidade ao longo de uma calçada.
 
 landing.create.path = Vamos criar um caminho para todos
