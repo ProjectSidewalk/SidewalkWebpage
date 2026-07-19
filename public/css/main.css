@@ -471,6 +471,15 @@ a {
   background-color: var(--color-neutral-300);
 }
 
+/* Leading icon on a top-level destination. The inline bar keeps its destinations as plain text links, so this shows
+   only in the stacked hamburger panel (see the breakpoint below). */
+.navbar-lnk-icon {
+  display: none;
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
 /* Leading icon on each selector pill (city / account / language); keeps the three the same height. */
 .navbar-select-icon {
   width: 16px;
@@ -1620,6 +1629,22 @@ kbd {
     width: 100%;
     display: flex;
     justify-content: flex-start;
+
+    /* One padding and one gap for every row — including the city/language pills, which carry different values in the
+       inline bar — so the icons form a single column and the labels start on a single edge. */
+    padding: 6px 16px;
+    gap: 10px;
+  }
+
+  /* Carries its own padding in the inline bar, at a higher specificity than the rule above. */
+  .navbar-nav > li > .navbar-button#language-button {
+    padding: 6px 16px;
+  }
+
+  /* Destination icons are the stacked menu's reason for existing: with them the panel reads as one icon column
+     top to bottom, matching the selector pills that show theirs at every width. */
+  .navbar-lnk-icon {
+    display: block;
   }
 
   .navbar-nav--primary::before {

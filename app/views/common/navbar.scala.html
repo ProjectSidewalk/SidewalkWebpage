@@ -39,40 +39,40 @@
         @* Explore is the single dominant call to action. It stays visible and is marked active on /explore (rather
            than being hidden), so the link set is stable page to page. *@
         <li class="navbar-lnk">
-          <a class="navbar-button@if(isExplore){ is-active}" id="navbar-start-btn" href="@routes.ExploreController.explore()"@if(isExplore){ aria-current="page"}>@Messages("navbar.explore")</a>
+          <a class="navbar-button@if(isExplore){ is-active}" id="navbar-start-btn" href="@routes.ExploreController.explore()"@if(isExplore){ aria-current="page"}>@common.navbarLnkIcon("compass")@Messages("navbar.explore")</a>
         </li>
         <li class="navbar-lnk">
-          <a class="navbar-button@if(request.path == "/validate"){ is-active}" id="navbar-validate-btn" href="@routes.ValidateController.validate()"@if(request.path == "/validate"){ aria-current="page"}>@Messages("navbar.validate")</a>
+          <a class="navbar-button@if(request.path == "/validate"){ is-active}" id="navbar-validate-btn" href="@routes.ValidateController.validate()"@if(request.path == "/validate"){ aria-current="page"}>@common.navbarLnkIcon("check-circle")@Messages("navbar.validate")</a>
         </li>
         @* Label Map is the results/output view — a top-level peer of the Explore (contribute) + Validate (verify) loop.
            `data-nav-shed` marks it droppable when the bar runs out of room (it stays reachable under Tools ▸ Analyze);
            see the shed order in Navbar.js. *@
         <li class="navbar-lnk" data-nav-shed="4">
-          <a class="navbar-button@if(request.path.toLowerCase == "/labelmap"){ is-active}" id="navbar-labelmap-btn" href="@routes.ApplicationController.labelMap(None)"@if(request.path.toLowerCase == "/labelmap"){ aria-current="page"}>@Messages("navbar.labelmap")</a>
+          <a class="navbar-button@if(request.path.toLowerCase == "/labelmap"){ is-active}" id="navbar-labelmap-btn" href="@routes.ApplicationController.labelMap(None)"@if(request.path.toLowerCase == "/labelmap"){ aria-current="page"}>@common.navbarLnkIcon("map")@Messages("navbar.labelmap")</a>
         </li>
         @* Retake Tutorial and Help are genuine /explore-only features, not the current page hidden. *@
         @if(isExplore) {
           <li class="navbar-lnk">
-            <a class="navbar-button" href="#" id="navbar-retake-tutorial-btn">@Messages("navbar.retake.tutorial")</a>
+            <a class="navbar-button" href="#" id="navbar-retake-tutorial-btn">@common.navbarLnkIcon("play-circle")@Messages("navbar.retake.tutorial")</a>
           </li>
         }
         <li class="navbar-lnk" data-nav-shed="1">
         @if(currentCityInfo.countryId == "taiwan") {
-          <a class="navbar-button" id="navbar-guide-btn" href="@assets.path("documents/labeling-guide-Taiwan.pdf")" target="_blank" rel="noopener">@Messages("navbar.howto")</a>
+          <a class="navbar-button" id="navbar-guide-btn" href="@assets.path("documents/labeling-guide-Taiwan.pdf")" target="_blank" rel="noopener">@common.navbarLnkIcon("book-open")@Messages("navbar.howto")</a>
         } else {
-          <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide" target="_blank" rel="noopener">@Messages("navbar.howto")</a>
+          <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide" target="_blank" rel="noopener">@common.navbarLnkIcon("book-open")@Messages("navbar.howto")</a>
         }
         </li>
         @if(isExplore) {
           <li class="navbar-lnk" data-nav-shed="3">
-            <a class="navbar-button" id="navbar-help-btn" href='@routes.ApplicationController.help' target="_blank" rel="noopener">@Messages("navbar.help")</a>
+            <a class="navbar-button" id="navbar-help-btn" href='@routes.ApplicationController.help' target="_blank" rel="noopener">@common.navbarLnkIcon("help-circle")@Messages("navbar.help")</a>
           </li>
         }
 
         @* Tools: grouped into labeled sections so the menu stays scannable as tools are added. *@
         <li class="dropdown navbar-lnk" id="navbar-tools-dropdown-list">
           <button type="button" id="nav-tools-dropdown" class="navbar-button navbar-dropdown-toggle@if(toolsToggleActive){ is-active}" data-nav-dropdown aria-haspopup="true" aria-expanded="false" aria-controls="nav-tools-menu">
-            @Messages("navbar.tools")<b class="caret" aria-hidden="true"></b>
+            @common.navbarLnkIcon("tool")@Messages("navbar.tools")<b class="caret" aria-hidden="true"></b>
           </button>
           <ul id="nav-tools-menu" class="dropdown-menu" aria-label="@Messages("navbar.tools")">
             <li class="dropdown-section">@Messages("navbar.tools.analyze")</li>
@@ -90,7 +90,7 @@
         </li>
 
         <li class="navbar-lnk" data-nav-shed="2">
-          <a class="navbar-button" id="navbar-api-btn" href="@routes.ApiDocsController.index" aria-label="Developer API">@Messages("navbar.api")</a>
+          <a class="navbar-button" id="navbar-api-btn" href="@routes.ApiDocsController.index" aria-label="Developer API">@common.navbarLnkIcon("code")@Messages("navbar.api")</a>
         </li>
       </ul>
 
@@ -177,7 +177,7 @@
         } else {
           @* Real href so it works on pages without the dialog (e.g. /signIn itself); AuthModal intercepts the
              click to open the dialog everywhere else. *@
-          <a id="navbar-sign-in-btn" href="@routes.UserController.signIn()" data-au-open="signIn" class="navbar-button">@Messages("navbar.signin")</a>
+          <a id="navbar-sign-in-btn" href="@routes.UserController.signIn()" data-au-open="signIn" class="navbar-button">@common.navbarLnkIcon("log-in")@Messages("navbar.signin")</a>
         }
         </li>
 

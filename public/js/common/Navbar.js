@@ -22,6 +22,9 @@ class NavbarController {
   /** @type {?HTMLElement} The hamburger button; its visibility tells us the nav is in its stacked state. */
   #hamburger = null;
 
+  /** @type {HTMLElement[]} The two nav groups (primary, utility) whose combined width has to fit the bar. */
+  #navGroups = [];
+
   /**
    * Space-freeing steps for the inline bar, ordered lowest priority first. Each takes a boolean and applies or
    * clears its effect; #fitNav applies as few as will make the bar fit.
@@ -221,6 +224,7 @@ class NavbarController {
     this.#menu = document.getElementById('navbar');
     this.#hamburger = this.#nav.querySelector('[data-nav-toggle]');
     if (!this.#menu) return;
+    this.#navGroups = Array.from(this.#menu.querySelectorAll('.navbar-nav'));
 
     // Items opt in via data-nav-shed="<n>", n ascending from the first to be dropped.
     this.#shedSteps = Array.from(this.#menu.querySelectorAll('[data-nav-shed]'))
@@ -256,10 +260,22 @@ class NavbarController {
     for (const step of this.#shedSteps) step(false);
     if (stacked) return;
     for (const step of this.#shedSteps) {
-      // A few pixels of slack so items never sit flush against the edge of the available space.
-      if (this.#menu.scrollWidth <= this.#menu.clientWidth - 8) return;
+      if (this.#navFits()) return;
       step(true);
     }
+  }
+
+  /**
+   * @returns {boolean} Whether both nav groups currently fit side by side on one line.
+   */
+  #navFits() {
+    // #navbar is justify-content: space-between, so its children are spread to span the full width no matter how few
+    // remain — scrollWidth therefore reports the container's own width and can't reveal how much room is left. Sum the
+    // groups' own widths instead; they're flex: none, so each is already its intrinsic width.
+    const needed = this.#navGroups.reduce((sum, group) => sum + group.getBoundingClientRect().width, 0);
+
+    // Slack covers the gap between the groups plus a little breathing room, so items never sit flush together.
+    return needed <= this.#menu.clientWidth - 24;
   }
 
   /** Wires live client-side filtering of the city switcher, hiding empty country groups. */
