@@ -1,8 +1,12 @@
 /**
- * The user's "you are here" marker on the minimap: a GSV-style blue dot. Heading is shown by ObservedArea's FOV cone
- * rather than by the marker itself, so the dot needs no rotation sprites (#4639).
+ * The user's "you are here" marker on the minimap: a GSV-style blue dot with a triangle pointing in the direction the
+ * user is currently facing. The triangle rotates to the pano heading, echoing the classic maps "location + heading"
+ * puck (#4639).
  */
 class Peg {
+  /** @type {HTMLElement} The marker's DOM content; its --peg-heading custom property drives the triangle's rotation. */
+  #content;
+
   /**
    * @param {google.maps.Map} map - The Google Map instance.
    * @param {{lat: number, lng: number}} initialLocation - Initial lat/lng location.
@@ -12,15 +16,21 @@ class Peg {
   constructor(map, initialLocation, AdvancedMarkerElement, LatLng) {
     this.LatLng = LatLng;
 
-    // AdvancedMarkerElement anchors its content at bottom-center; the dot's CSS shifts it down half its height so
-    // it's centered on the location like GSV's blue dot.
-    const dot = document.createElement('div');
-    dot.className = 'minimap-peg-dot';
+    // AdvancedMarkerElement anchors content at bottom-center; .minimap-peg centers itself on the location and rotates
+    // about that center, so the dot stays planted while the triangle swings to the heading. The dot is drawn after
+    // the triangle so its white ring sits on top where they meet.
+    this.#content = document.createElement('div');
+    this.#content.className = 'minimap-peg';
+    this.#content.innerHTML = `
+      <svg viewBox="0 0 28 28" aria-hidden="true">
+        <path class="minimap-peg-heading" d="M14 0 18.5 8.5 9.5 8.5 Z"></path>
+        <circle class="minimap-peg-dot" cx="14" cy="14" r="6.5"></circle>
+      </svg>`;
 
     this.marker = new AdvancedMarkerElement({
       map,
       position: new this.LatLng(initialLocation.lat, initialLocation.lng),
-      content: dot,
+      content: this.#content,
       zIndex: 1000,
     });
   }
@@ -31,6 +41,15 @@ class Peg {
    */
   setLocation(location) {
     this.marker.position = new this.LatLng(location.lat, location.lng);
+  }
+
+  /**
+   * Points the heading triangle in the given direction.
+   * @param {number} heading - Compass heading in degrees (0 = north, clockwise). May be unwrapped (continuous) so the
+   *                           CSS rotation transitions the short way across the 0/360 boundary.
+   */
+  setHeading(heading) {
+    this.#content.style.setProperty('--peg-heading', `${heading}deg`);
   }
 
   /**

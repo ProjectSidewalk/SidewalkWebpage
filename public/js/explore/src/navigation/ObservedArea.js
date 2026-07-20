@@ -170,6 +170,10 @@ class ObservedArea {
         ObservedArea.#toRadians(observedArea.minAngle - 90), ObservedArea.#toRadians(observedArea.maxAngle - 90));
       this.#fogOfWarCtx.fill();
     }
+    // Always keep the peg fully clear of fog, no matter how far the user has turned.
+    this.#fogOfWarCtx.beginPath();
+    this.#fogOfWarCtx.arc(this.#width / 2, this.#height / 2, 8 * this.#scaleFactor, 0, 2 * Math.PI);
+    this.#fogOfWarCtx.fill();
     this.#fogOfWarCtx.globalCompositeOperation = 'source-over';
   }
 
@@ -195,24 +199,56 @@ class ObservedArea {
   }
 
   /**
+   * Draws a small translucent gray dot at each visited pano (skipping the current one, which the peg marks) — a
+   * breadcrumb trail of where the user has been — then clears a hole at the peg so neither the cone nor the dots
+   * occlude it. Rendered on the FOV canvas, on top of the cone (#4639).
+   */
+  #renderVisitedPanos() {
+    const ctx = this.#fovCtx;
+    const radius = 2.5 * this.#scaleFactor;
+    ctx.fillStyle = 'rgba(80, 80, 80, 0.55)';
+    for (const observedArea of this.#observedAreas) {
+      if (observedArea === this.#currArea) continue;
+      const center = this.#latLngToPixel(observedArea.latLng);
+      ctx.beginPath();
+      ctx.arc(center.x, center.y, radius, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+    // Keep the peg (canvas center) clear of the cone and the visited dots.
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    ctx.arc(this.#width / 2, this.#height / 2, 8 * this.#scaleFactor, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /**
    * Renders the 360°-observed progress ring around the position marker (the map stays centered on the current pano,
    * so the marker is at the canvas center). A faint full-circle track shows the goal; the arc fills as the user turns
    * and switches to the success color at 100%.
    */
   #renderProgressCircle() {
     const ctx = this.#progressCircleCtx;
-    const centerX = this.#width / 2;
-    const centerY = this.#height / 2;
-    const radius = 13 * this.#scaleFactor;
+    // Top-right corner; the ring sits on a white disc (chip-like) with the percentage label centered inside it.
+    const centerX = this.#width - 18 * this.#scaleFactor;
+    const centerY = 18 * this.#scaleFactor;
+    const radius = 12 * this.#scaleFactor;
 
     ctx.clearRect(0, 0, this.#width, this.#height);
-    ctx.lineWidth = 3 * this.#scaleFactor;
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.18)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 15 * this.#scaleFactor, 0, 2 * Math.PI);
+    ctx.fill();
+
+    ctx.lineWidth = 2.5 * this.#scaleFactor;
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
     ctx.stroke();
 
     if (this.#fractionObserved > 0) {
+      // Plain progress gauge filling clockwise from 12 o'clock; pine while in progress, success color at 100%.
       ctx.strokeStyle = this.#fractionObserved === 1 ? MinimapStyle.ringCompleteColor() : MinimapStyle.ringColor();
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius,
@@ -277,7 +313,8 @@ class ObservedArea {
       ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${0.8 * (1 - t)})`;
       ctx.lineWidth = 2.5 * this.#scaleFactor;
       ctx.beginPath();
-      ctx.arc(this.#width / 2, this.#height / 2, (13 + 22 * t) * this.#scaleFactor, 0, 2 * Math.PI);
+      ctx.arc(this.#width - 18 * this.#scaleFactor, 18 * this.#scaleFactor, (15 + 15 * t) * this.#scaleFactor, 0,
+        2 * Math.PI);
       ctx.stroke();
       requestAnimationFrame(animate);
     };
@@ -297,7 +334,11 @@ class ObservedArea {
       }
       this.#renderFogOfWar();
       this.#renderFov();
+      this.#renderVisitedPanos();
       this.#renderProgressCircle();
+      // Point the peg's heading triangle where the user is looking. #angle is unwrapped (continuous), so the CSS
+      // rotation transitions the short way across the 0/360 boundary.
+      if (svl.peg && this.#angle !== null) svl.peg.setHeading(this.#angle);
       this.#uiMinimap.percentObserved.text(`${Math.floor(100 * this.#fractionObserved)}%`);
       this.#maybeShowCoach();
       if (this.#fractionObserved === 1) {

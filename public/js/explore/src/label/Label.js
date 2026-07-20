@@ -531,7 +531,9 @@ class Label {
    */
   static createMinimapMarker(labelType, latLng) {
     const content = document.createElement('img');
-    content.src = util.misc.getIconImagePaths()[labelType].minimapIconImagePath;
+    // Use the scalable SVG icon so the marker stays crisp at any scale; sizing is set in .minimap-label-icon.
+    content.src = util.misc.getIconImagePaths()[labelType].scalableIconImagePath;
+    content.className = 'minimap-label-icon';
     // AdvancedMarkerElement anchors content by its bottom-center; shift it down half its height to center it.
     content.style.transform = 'translateY(50%)';
     return new google.maps.marker.AdvancedMarkerElement({

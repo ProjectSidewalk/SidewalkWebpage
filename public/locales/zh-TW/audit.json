@@ -145,9 +145,11 @@
       "explore-current-location": "旋轉 360 度以確保沒有遺漏任何內容。",
       "fit-route": "顯示整條路線",
       "legend-title": "圖例",
-      "legend-audited": "已探索",
+      "mission-progress": "任務進度",
+      "legend-explored": "已探索",
       "legend-ahead": "剩餘路線",
       "legend-you": "你的位置與視角方向",
+      "legend-visited": "已造訪",
       "legend-unseen": "尚未查看"
     },
     "stats": {

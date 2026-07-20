@@ -145,9 +145,11 @@
       "explore-current-location": "Drehen Sie sich um 360 Grad, um sicherzustellen, dass nichts übersehen wird.",
       "fit-route": "Gesamte Route anzeigen",
       "legend-title": "Legende",
-      "legend-audited": "Erkundet",
+      "mission-progress": "Missionsfortschritt",
+      "legend-explored": "Erkundet",
       "legend-ahead": "Verbleibende Route",
       "legend-you": "Sie + Blickrichtung",
+      "legend-visited": "Besucht",
       "legend-unseen": "Noch nicht gesehen"
     },
     "stats": {

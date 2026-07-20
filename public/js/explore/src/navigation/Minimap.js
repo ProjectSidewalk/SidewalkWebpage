@@ -158,14 +158,26 @@ class Minimap {
   }
 
   /**
-   * Bounds covering every loaded task's street geometry. On a user route that's the route; on a regular mission it's
-   * the neighborhood's streets — either way, the meaningful "whole picture" for the overview.
-   * @returns {google.maps.LatLngBounds|null} Null if no task geometry is available yet.
+   * Bounds framing "your route": on a designated route, every loaded street; on a neighborhood audit, the current
+   * mission's streets plus the one you're on (the region as a whole would zoom out far past the route — #4639).
+   * @returns {google.maps.LatLngBounds|null} Null if no street geometry is available yet.
    */
   #streetBounds() {
     if (!svl.taskContainer) return null;
+    let tasks;
+    if (svl.neighborhoodModel && svl.neighborhoodModel.isRoute) {
+      // On a designated route every loaded street IS the route, so fit them all.
+      tasks = svl.taskContainer.getTasks();
+    } else {
+      // A neighborhood audit loads the entire region; fit just this mission's streets plus the street you're on. Early
+      // in a mission that's essentially the current street — i.e. a normal street-level view, not the whole region.
+      const mission = svl.missionContainer && svl.missionContainer.getCurrentMission();
+      tasks = ((mission && mission.getRoute()) || []).slice();
+      const current = svl.taskContainer.getCurrentTask();
+      if (current && !tasks.includes(current)) tasks.push(current);
+    }
     const bounds = new google.maps.LatLngBounds();
-    for (const task of svl.taskContainer.getTasks()) {
+    for (const task of tasks) {
       for (const coord of task.getGeoJSON().geometry.coordinates) {
         bounds.extend({ lat: coord[1], lng: coord[0] });
       }
@@ -174,14 +186,43 @@ class Minimap {
   }
 
   /**
-   * Updates the minimap's "distance left" chip with the given mission's remaining distance.
+   * Updates the minimap's mission-progress bar: fills it to the mission's completion fraction and labels it with the
+   * percentage and the distance explored so far out of the mission's target (e.g. "65%  325/500 ft").
    * @param {Mission} mission - The current mission.
    */
-  updateDistanceLeft(mission) {
-    const remaining = Math.max(0, mission.getDistance('meters') - (mission.getProperty('distanceProgress') || 0));
-    svl.ui.minimap.distanceLeft.text(
-      i18next.t('right-ui.minimap.distance-left', { distance: util.misc.distanceToString(remaining) }),
-    );
+  updateMissionProgress(mission) {
+    const totalMeters = mission.getDistance('meters');
+    const fraction = mission.getMissionCompletionRate();
+    const doneMeters = Math.min(Math.max(mission.getProperty('distanceProgress') || 0, 0), totalMeters);
+    const metric = i18next.t('common:measurement-system') === 'metric';
+    const unit = i18next.t('common:unit-abbreviation-mission-distance');
+    const toDisplay = (meters) => util.math.roundToTwentyFive(metric ? meters : util.math.metersToFeet(meters));
+    const percent = Math.round(fraction * 100);
+
+    svl.ui.minimap.missionProgressFill.css('width', `${percent}%`);
+    svl.ui.minimap.missionProgressPercent.text(`${percent}%`);
+    svl.ui.minimap.missionProgressDistance.text(`${toDisplay(doneMeters)}/${toDisplay(totalMeters)} ${unit}`);
+    svl.ui.minimap.missionProgress.attr('aria-valuenow', percent);
+  }
+
+  /**
+   * Resets the mission-progress bar to 0% for a freshly started mission, mirroring the sidebar bar's reset when the
+   * mission-complete modal closes. Shows "0 / <target>" so the new mission's length is visible right away.
+   * @param {Mission} [mission] - The newly started mission; if absent, the distance label is cleared.
+   */
+  resetMissionProgress(mission) {
+    svl.ui.minimap.missionProgressFill.css('width', '0%');
+    svl.ui.minimap.missionProgressPercent.text('0%');
+    svl.ui.minimap.missionProgress.attr('aria-valuenow', 0);
+    if (mission) {
+      const totalMeters = mission.getDistance('meters');
+      const metric = i18next.t('common:measurement-system') === 'metric';
+      const unit = i18next.t('common:unit-abbreviation-mission-distance');
+      const total = util.math.roundToTwentyFive(metric ? totalMeters : util.math.metersToFeet(totalMeters));
+      svl.ui.minimap.missionProgressDistance.text(`0/${total} ${unit}`);
+    } else {
+      svl.ui.minimap.missionProgressDistance.text('');
+    }
   }
 
   /**

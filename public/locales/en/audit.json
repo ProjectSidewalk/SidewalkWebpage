@@ -145,9 +145,11 @@
       "explore-current-location": "Turn 360 degrees to make sure nothing is missed.",
       "fit-route": "Show whole route",
       "legend-title": "Map key",
-      "legend-audited": "Audited",
+      "mission-progress": "Mission progress",
+      "legend-explored": "Explored",
       "legend-ahead": "Route ahead",
       "legend-you": "You + view direction",
+      "legend-visited": "Visited",
       "legend-unseen": "Not yet viewed"
     },
     "stats": {

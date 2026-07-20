@@ -1,7 +1,6 @@
 /**
  * Collapsible legend ("map key") for the Explore minimap. Collapsed, it's a small pill showing the route marks
- * themselves; expanded, a card names each mark. Auto-expands once for new users so they learn the map's language,
- * then defaults to collapsed (#4639).
+ * themselves; expanded, a card names each mark. Defaults to collapsed; the user opens it from the pill (#4639).
  */
 class MinimapLegend {
   #uiMinimap;
@@ -11,9 +10,8 @@ class MinimapLegend {
   /**
    * @param {Object} uiMinimap - The svl.ui.minimap object holding the minimap's jQuery DOM elements.
    * @param {Tracker} tracker - Interaction logger.
-   * @param {TemporaryStorage} storage - Client-side storage for the first-run flag.
    */
-  constructor(uiMinimap, tracker, storage) {
+  constructor(uiMinimap, tracker) {
     this.#uiMinimap = uiMinimap;
     this.#tracker = tracker;
 
@@ -22,12 +20,6 @@ class MinimapLegend {
     $(document).on('keydown', (e) => {
       if (e.key === 'Escape' && this.#expanded) this.#setExpanded(false, 'MinimapLegend_EscapeClose');
     });
-
-    // First run: open the legend once so new users meet the marks, then default to collapsed forever after.
-    if (!storage.get('minimapLegendSeen') && !svl.isOnboarding()) {
-      storage.set('minimapLegendSeen', true);
-      this.#setExpanded(true, null);
-    }
   }
 
   /**

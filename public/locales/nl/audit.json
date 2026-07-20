@@ -145,9 +145,11 @@
       "explore-current-location": "Draai 360 graden om er zeker van te zijn dat u niets mist.",
       "fit-route": "Toon hele route",
       "legend-title": "Legenda",
-      "legend-audited": "Verkend",
+      "mission-progress": "Missievoortgang",
+      "legend-explored": "Verkend",
       "legend-ahead": "Resterende route",
       "legend-you": "U + kijkrichting",
+      "legend-visited": "Bezocht",
       "legend-unseen": "Nog niet bekeken"
     },
     "stats": {

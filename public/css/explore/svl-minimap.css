@@ -62,41 +62,69 @@
   opacity: 0.85;
 }
 
-/* Small "N% observed" pill in the top-right; the matching progress ring is drawn around the position marker. */
+/* "N% observed" label centered inside the progress ring drawn in the top-right corner (ObservedArea). */
 #minimap-percent-observed {
   font: var(--text-tiny-medium);
   inset: auto;
   top: calc(4px * var(--ui-scale));
   right: calc(4px * var(--ui-scale));
-  width: auto;
-  height: auto;
-  padding: calc(1px * var(--ui-scale)) calc(6px * var(--ui-scale));
-  border-radius: 999px;
-  background: rgb(255 255 255 / 85%);
+  width: calc(28px * var(--ui-scale));
+  height: calc(28px * var(--ui-scale));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   color: var(--color-neutral-800);
   z-index: 3;
+  pointer-events: none;
 }
 
 #minimap-percent-observed:empty {
   display: none;
 }
 
-/* "N m left" chip in the top-left, updated from the current mission's progress (Minimap.updateDistanceLeft). */
-#minimap-distance-left {
+/* Mission-progress chip in the top-left: a fill bar plus "N%  done/total" (Minimap.updateMissionProgress). */
+#minimap-mission-progress {
   position: absolute;
   top: calc(4px * var(--ui-scale));
   left: calc(4px * var(--ui-scale));
-  font: var(--text-tiny-medium);
-  padding: calc(1px * var(--ui-scale)) calc(6px * var(--ui-scale));
+  display: flex;
+  align-items: center;
+  gap: calc(5px * var(--ui-scale));
+  max-width: calc(100% - 8px * var(--ui-scale));
+  padding: calc(2px * var(--ui-scale)) calc(6px * var(--ui-scale));
   border-radius: 999px;
   background: rgb(255 255 255 / 85%);
   color: var(--color-neutral-800);
+  font: var(--text-tiny-medium);
   z-index: 3;
   pointer-events: none;
 }
 
-#minimap-distance-left:empty {
-  display: none;
+#minimap-mission-progress-bar {
+  position: relative;
+  flex: none;
+  width: calc(44px * var(--ui-scale));
+  height: calc(6px * var(--ui-scale));
+  border-radius: 999px;
+  background: var(--color-neutral-300);
+  overflow: hidden;
+}
+
+#minimap-mission-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: var(--color-pine-600);
+  border-radius: 999px;
+}
+
+.minimap-mission-progress-labels {
+  white-space: nowrap;
+}
+
+#minimap-mission-progress-distance {
+  color: var(--color-neutral-600);
 }
 
 /* First-run "turn 360°" coach mark; sits above the legend pill / zoom buttons row. Replaces the old permanent
@@ -135,30 +163,61 @@
   cursor: pointer;
 }
 
-/* Collapsed legend pill in the bottom-left: the three route marks with no text (MinimapLegend.js). */
+/* Always-on mini legend in the bottom-left: two labeled marks (Explored / Route ahead). Click to expand the full key
+   card (MinimapLegend.js). */
 #minimap-legend-toggle {
   position: absolute;
   left: calc(4px * var(--ui-scale));
   bottom: calc(10px * var(--ui-scale));
   display: flex;
-  align-items: center;
-  padding: calc(4px * var(--ui-scale)) calc(6px * var(--ui-scale));
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(2px * var(--ui-scale));
+  padding: calc(4px * var(--ui-scale)) calc(7px * var(--ui-scale));
+  padding-right: calc(17px * var(--ui-scale));
   border: 0;
-  border-radius: 999px;
+  border-radius: calc(8px * var(--ui-scale));
   background: rgb(255 255 255 / 92%);
   box-shadow: 0 calc(1px * var(--ui-scale)) calc(4px * var(--ui-scale)) rgb(0 0 0 / 25%);
   cursor: pointer;
   z-index: 4;
 }
 
+#minimap-legend-toggle:hover .minimap-legend-expand-icon {
+  stroke: var(--color-neutral-700);
+}
+
 .minimap-legend-toggle-hidden {
   display: none;
 }
 
-#minimap-legend-toggle .minimap-legend-pill-icon {
+.minimap-legend-mini-item {
+  display: flex;
+  align-items: center;
+  gap: calc(5px * var(--ui-scale));
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-900);
+}
+
+.minimap-legend-mini-icon {
   display: block;
-  width: calc(34px * var(--ui-scale));
-  height: calc(10px * var(--ui-scale));
+  flex: none;
+  width: calc(22px * var(--ui-scale));
+  height: calc(8px * var(--ui-scale));
+}
+
+/* Diagonal expand arrow in the mini legend's upper-right corner, cueing that it opens into the full key card. */
+.minimap-legend-expand-icon {
+  position: absolute;
+  top: calc(4px * var(--ui-scale));
+  right: calc(4px * var(--ui-scale));
+  width: calc(11px * var(--ui-scale));
+  height: calc(11px * var(--ui-scale));
+  fill: none;
+  stroke: var(--color-neutral-500);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* Expanded legend card, anchored where the pill was. */
@@ -188,14 +247,25 @@
   color: var(--color-neutral-700);
 }
 
+/* Chevron button that collapses the full key card back to the mini legend. */
 #minimap-legend-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   background: none;
   cursor: pointer;
-  font-size: calc(12px * var(--ui-scale));
-  line-height: 1;
-  padding: 0 0 0 calc(4px * var(--ui-scale));
-  color: var(--color-neutral-700);
+  padding: calc(2px * var(--ui-scale));
+}
+
+.minimap-legend-collapse-icon {
+  width: calc(12px * var(--ui-scale));
+  height: calc(12px * var(--ui-scale));
+  fill: none;
+  stroke: var(--color-neutral-600);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .minimap-legend-row {
@@ -216,16 +286,20 @@
 /* Legend samples are the real map marks, drawn with the same design tokens the map uses. */
 .minimap-legend-sample-audited {
   stroke: var(--color-pine-600);
-  stroke-width: 4;
+  stroke-width: 6;
   stroke-linecap: round;
   fill: none;
 }
 
 .minimap-legend-sample-remaining {
   stroke: var(--color-asphalt-400);
-  stroke-width: 4;
+  stroke-width: 6;
   stroke-linecap: round;
   fill: none;
+}
+
+.minimap-legend-sample-visited {
+  fill: rgb(80 80 80 / 55%);
 }
 
 .minimap-legend-sample-dashed {
@@ -249,25 +323,41 @@
   opacity: 0.35;
 }
 
-/* Basemap-green vs. fogged: literal colors on purpose — they depict the Google basemap, not our design system. */
-.minimap-legend-sample-seen {
-  fill: #cbe5c0;
+/* Label markers on the minimap (Label.createMinimapMarker) — scalable SVG icons sized here so they stay crisp. */
+.minimap-label-icon {
+  width: calc(9px * var(--ui-scale, 1));
+  height: auto;
 }
 
-.minimap-legend-sample-fog {
-  fill: var(--color-neutral-500);
+/* GSV-style "you are here" puck (Peg.js): a blue dot with a triangle pointing in the heading direction. Markers anchor
+   bottom-center, so the wrapper shifts down half its height to center on the location, then rotates about that center
+   so the dot stays planted while the triangle swings to --peg-heading (#4639). */
+.minimap-peg {
+  width: calc(28px * var(--ui-scale, 1));
+  height: calc(28px * var(--ui-scale, 1));
+  transform: translateY(50%) rotate(var(--peg-heading, 0deg));
+  transform-origin: center;
 }
 
-/* GSV-style "you are here" dot (Peg.js); replaces the 16-sprite peg man (#4639). Markers anchor bottom-center, so
-   shift down half the dot's height to center it on the location. */
+.minimap-peg svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 calc(2px * var(--ui-scale, 1)) rgb(0 0 0 / 35%));
+}
+
 .minimap-peg-dot {
-  width: calc(14px * var(--ui-scale, 1));
-  height: calc(14px * var(--ui-scale, 1));
-  border-radius: 50%;
-  background: var(--color-link-100);
-  border: calc(2.5px * var(--ui-scale, 1)) solid var(--color-neutral-white);
-  box-shadow: 0 0 calc(4px * var(--ui-scale, 1)) rgb(0 0 0 / 35%);
-  transform: translateY(50%);
+  fill: var(--color-link-100);
+  stroke: var(--color-neutral-white);
+  stroke-width: 2.5;
+}
+
+.minimap-peg-heading {
+  fill: var(--color-link-100);
+  stroke: var(--color-neutral-white);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
 }
 
 /* While fitted to the whole route, the user-centered overlays (fog/FOV/ring/%/coach) don't apply. */
@@ -304,7 +394,7 @@
 
 /* The tutorial minimap is a static screenshot; hide the live zoom controls and the live-map chrome there. */
 #minimap-holder.minimap-tutorial #minimap-zoom-controls,
-#minimap-holder.minimap-tutorial #minimap-distance-left,
+#minimap-holder.minimap-tutorial #minimap-mission-progress,
 #minimap-holder.minimap-tutorial #minimap-legend-toggle,
 #minimap-holder.minimap-tutorial #minimap-legend-card,
 #minimap-holder.minimap-tutorial #minimap-coach {

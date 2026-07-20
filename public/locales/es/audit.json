@@ -145,9 +145,11 @@
       "explore-current-location": "Gire 360 grados para asegurarse de que no se pierda nada.",
       "fit-route": "Ver toda la ruta",
       "legend-title": "Leyenda",
-      "legend-audited": "Explorado",
+      "mission-progress": "Progreso de la misión",
+      "legend-explored": "Explorado",
       "legend-ahead": "Ruta pendiente",
       "legend-you": "Usted + dirección de vista",
+      "legend-visited": "Visitado",
       "legend-unseen": "Aún sin ver"
     },
     "stats": {

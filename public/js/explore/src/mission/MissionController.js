@@ -95,7 +95,7 @@ class MissionController {
     // Update mission completion rate in the right sidebar and the minimap's distance-left chip.
     const completionRate = currentMission.getMissionCompletionRate();
     svl.missionProgressBar.update(completionRate);
-    if (svl.minimap) svl.minimap.updateDistanceLeft(currentMission);
+    if (svl.minimap) svl.minimap.updateMissionProgress(currentMission);
     if (!this.#neighborhoodModel.isRouteComplete && !this.#neighborhoodModel.isNeighborhoodComplete) {
       this.#checkMissionComplete(currentMission, currentRegion);
     }

@@ -12,8 +12,8 @@ class MinimapStyle {
   static #tokens = {};
 
   /** Route line weight (px) for the current street; casing covers the dashed line's gaps. */
-  static #ROUTE_WEIGHT = 4;
-  static #CASING_WEIGHT = 7;
+  static #ROUTE_WEIGHT = 6;
+  static #CASING_WEIGHT = 9;
 
   /**
    * Reads a design-token CSS custom property from the document root.
@@ -39,9 +39,9 @@ class MinimapStyle {
     return MinimapStyle.token('--color-asphalt-400', '#424055');
   }
 
-  /** @returns {string} Stroke color of the 360°-observed progress ring while in progress. */
+  /** @returns {string} Stroke color of the 360°-observed progress ring while in progress (matches the progress bar). */
   static ringColor() {
-    return MinimapStyle.token('--color-pine-700', '#487967');
+    return MinimapStyle.token('--color-pine-600', '#60A189');
   }
 
   /** @returns {string} Stroke color of the progress ring once the full 360° has been observed. */
@@ -134,11 +134,11 @@ class MinimapStyle {
             fillOpacity: 1.0,
             strokeColor: color,
             strokeOpacity: 1.0,
-            strokeWeight: 1.2,
-            scale: 1.4,
+            strokeWeight: 1.4,
+            scale: 2.4,
           },
-          offset: '24px',
-          repeat: '45px',
+          offset: '28px',
+          repeat: '55px',
         },
       ],
     };
