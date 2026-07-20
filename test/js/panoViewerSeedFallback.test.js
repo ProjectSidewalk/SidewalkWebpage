@@ -35,7 +35,8 @@ describe('PanoViewer._moveToInitialLocation', () => {
     /** A viewer whose setPano/setLocation record their calls and fail per the dead-set config. */
     let TestViewer;
 
-    beforeEach(() => {
+    // The classes are stateless, so one eval serves every test (each test builds its own viewer instance).
+    beforeAll(() => {
         const PanoViewer = loadPanoViewer();
         TestViewer = class extends PanoViewer {
             calls = [];
