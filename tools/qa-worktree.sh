@@ -73,10 +73,14 @@ if [ "$MODE" = "stop" ]; then
   # SIGKILL anything that ignored the SIGTERM above.
   reap_in_worktree KILL 'grunt' "grunt watch"
   reap_in_worktree KILL '~ run' "app on :9000 (~ run)"
-  rm -f "$GRUNT_WATCH_LOG"
-  if [ -n "$CLEAN" ] && [ -L "$WT_DIR/node_modules" ]; then
-    rm -f "$WT_DIR/node_modules"
-    echo "==> removed node_modules symlink"
+  # --clean drops the gitignored setup artifacts too; keep the grunt watch log by default so a watch failure stays
+  # diagnosable after a stop.
+  if [ -n "$CLEAN" ]; then
+    rm -f "$GRUNT_WATCH_LOG"
+    if [ -L "$WT_DIR/node_modules" ]; then
+      rm -f "$WT_DIR/node_modules"
+      echo "==> removed node_modules symlink"
+    fi
   fi
   echo "==> done."
   exit 0
