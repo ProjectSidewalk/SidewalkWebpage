@@ -52,8 +52,10 @@ class DirectionsPanel {
     box.options = {
       bbox,
       language: i18next.t('common:mapbox-language-code'),
-      placeholder,
     };
+    // Must be the element property — a `placeholder` inside `options` is silently ignored and the field
+    // falls back to the library's generic "Search".
+    box.placeholder = placeholder;
     box.theme = {
       variables: {
         borderRadius: '8px',
@@ -63,6 +65,7 @@ class DirectionsPanel {
     };
     // onAdd builds the search box's element for this map; we place it in the panel instead of a map corner.
     document.getElementById(`directions-${which}-slot`).append(box.onAdd(this.#map));
+    this.#wireEnterToFirstSuggestion(box, which);
 
     box.addEventListener('retrieve', (event) => {
       const feature = event.detail?.features?.[0];
@@ -77,6 +80,53 @@ class DirectionsPanel {
       else this.#onSetEnd(lngLat);
     });
     return box;
+  }
+
+  /**
+   * Makes Enter accept the top suggestion.
+   *
+   * The library only fires `retrieve` on Enter when a suggestion was first highlighted with the arrow keys —
+   * a plain "type an address, press Enter" silently does nothing. Intercept a trusted, unhandled Enter and
+   * replay it as ArrowDown + Enter, the library's own keyboard protocol for "take the first suggestion". An
+   * Enter that lands before the suggestions arrive is remembered and honored when they do.
+   *
+   * @param {Object} box - The mounted MapboxSearchBox element.
+   * @param {string} which - 'start' or 'end'.
+   */
+  #wireEnterToFirstSuggestion(box, which) {
+    const slot = document.getElementById(`directions-${which}-slot`);
+    let pendingEnter = false;
+    const acceptFirst = (input) => {
+      const key = { bubbles: true, cancelable: true };
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', ...key }));
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ...key }));
+    };
+    // Capture phase on the slot, so this runs before the library's own keydown listener on the input. The
+    // isTrusted check lets the synthetic Enter from acceptFirst pass through to the library untouched.
+    slot.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' || !event.isTrusted) return;
+      const input = slot.querySelector('input');
+      if (!input || input.value.trim() === '') return;
+      const listbox = document.getElementById(input.getAttribute('aria-controls') ?? '');
+      if (listbox?.querySelector('[aria-selected="true"]')) return; // The user arrow-keyed to a suggestion.
+      event.preventDefault();
+      event.stopPropagation();
+      if (listbox?.querySelector('[role="option"]')) acceptFirst(input);
+      else pendingEnter = true; // Suggestions still loading; accept the top one when they arrive.
+    }, true);
+    box.addEventListener('suggest', () => {
+      if (!pendingEnter) return;
+      pendingEnter = false;
+      const input = slot.querySelector('input');
+      if (input) acceptFirst(input);
+    });
+    // A queued Enter must not fire a stale retrieve after the user clears or leaves the field.
+    box.addEventListener('clear', () => {
+      pendingEnter = false;
+    });
+    slot.addEventListener('focusout', (event) => {
+      if (!slot.contains(event.relatedTarget)) pendingEnter = false;
+    });
   }
 
   /**
