@@ -31,8 +31,10 @@
   flex-direction: column;
   gap: 14px;
   padding: 16px;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
+
+  /* Must stay visible: the address search's suggestion dropdown renders inside the card and would be clipped by
+     any overflow here — long content scrolls inside #saved-routes-panel instead. */
+  overflow: visible;
   background: var(--color-neutral-white);
   border-radius: 12px;
   box-shadow: 0 20px 50px rgb(0 0 0 / 25%);
@@ -325,13 +327,18 @@
   flex-wrap: wrap;
 }
 
-/* "Your saved routes": one card per route on the intro panel, separated from the address block by a rule. */
+/* "Your saved routes": one card per route on the intro panel, separated from the address block by a rule. This is
+   the card's one growable section, so it scrolls on its own (the card itself must not clip — see
+   #routebuilder-panel); min-height lets flex shrink it below its content within the card's max-height. */
 #saved-routes-panel {
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding-top: 14px;
   border-top: 1px solid var(--color-neutral-200);
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 /* The flex display would otherwise override the hidden attribute's UA display: none. */
