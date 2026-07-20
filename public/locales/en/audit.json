@@ -144,6 +144,8 @@
       "distance-left": "{{distance}} left",
       "explore-current-location": "Turn 360 degrees to make sure nothing is missed.",
       "fit-route": "Show whole route",
+      "fit-street": "Back to street level",
+      "observed-tooltip": "How much of your surroundings you've looked around",
       "legend-title": "Map key",
       "mission-progress": "Mission progress",
       "legend-explored": "Explored",

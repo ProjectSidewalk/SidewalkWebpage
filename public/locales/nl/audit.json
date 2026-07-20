@@ -144,6 +144,8 @@
       "distance-left": "Nog {{distance}}",
       "explore-current-location": "Draai 360 graden om er zeker van te zijn dat u niets mist.",
       "fit-route": "Toon hele route",
+      "fit-street": "Terug naar straatniveau",
+      "observed-tooltip": "Hoeveel van je omgeving je hebt bekeken",
       "legend-title": "Legenda",
       "mission-progress": "Missievoortgang",
       "legend-explored": "Verkend",

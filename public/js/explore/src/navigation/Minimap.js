@@ -38,8 +38,10 @@ class Minimap {
       cameraControl: false,
       center: new LatLng(initialLocation.lat, initialLocation.lng),
       clickableIcons: false,
-      disableDefaultUi: true,
+      disableDefaultUI: true,
       fullscreenControl: false,
+      // No Street View pegman on the minimap — dropping it would open a "no imagery" panorama over the map.
+      streetViewControl: false,
       // Panning is disabled (the map must stay centered on the user's pano so the FOV cone lines up); zooming is
       // instead driven manually by #setupZoomControls so the center is preserved.
       gestureHandling: 'none',
@@ -131,6 +133,7 @@ class Minimap {
     const bounds = this.#streetBounds();
     if (!bounds || this.#overviewMode) return;
     this.#overviewMode = true;
+    this.#updateFitButtonLabel();
     svl.ui.minimap.holder.addClass('minimap-overview');
     this.#map.setOptions({ minZoom: Minimap.#OVERVIEW_MIN_ZOOM });
     this.#map.fitBounds(bounds, 12);
@@ -150,11 +153,25 @@ class Minimap {
   exitOverview(trigger) {
     if (!this.#overviewMode) return;
     this.#overviewMode = false;
+    this.#updateFitButtonLabel();
     svl.ui.minimap.holder.removeClass('minimap-overview');
     this.#map.setOptions({ minZoom: Minimap.#MIN_ZOOM });
     this.#map.setZoom(Minimap.#DEFAULT_ZOOM);
     this.#map.setCenter(svl.panoViewer.getPosition());
     svl.tracker.push('MinimapOverview_End', { trigger });
+  }
+
+  /**
+   * Syncs the fit/overview button's tooltip and aria-label to the current mode: "show whole route" at street level,
+   * "back to street level" while fitted to the route.
+   */
+  #updateFitButtonLabel() {
+    const fitButton = document.getElementById('minimap-zoom-fit');
+    if (!fitButton) return;
+    const key = this.#overviewMode ? 'audit:right-ui.minimap.fit-street' : 'audit:right-ui.minimap.fit-route';
+    const label = i18next.t(key);
+    fitButton.title = label;
+    fitButton.setAttribute('aria-label', label);
   }
 
   /**

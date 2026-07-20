@@ -199,20 +199,21 @@ class ObservedArea {
   }
 
   /**
-   * Draws a small translucent gray dot at each visited pano (skipping the current one, which the peg marks) — a
-   * breadcrumb trail of where the user has been — then clears a hole at the peg so neither the cone nor the dots
-   * occlude it. Rendered on the FOV canvas, on top of the cone (#4639).
+   * Draws a small faded-blue ring at each visited pano (skipping the current one, which the peg marks) — a breadcrumb
+   * trail, in the peg's own hue, of where the user has been — then clears a hole at the peg so neither the cone nor the
+   * rings occlude it. Rendered on the FOV canvas, on top of the cone (#4639).
    */
   #renderVisitedPanos() {
     const ctx = this.#fovCtx;
-    const radius = 2.5 * this.#scaleFactor;
-    ctx.fillStyle = 'rgba(80, 80, 80, 0.55)';
+    const radius = 3 * this.#scaleFactor;
+    ctx.lineWidth = 1.4 * this.#scaleFactor;
+    ctx.strokeStyle = 'rgba(62, 139, 217, 0.7)';
     for (const observedArea of this.#observedAreas) {
       if (observedArea === this.#currArea) continue;
       const center = this.#latLngToPixel(observedArea.latLng);
       ctx.beginPath();
       ctx.arc(center.x, center.y, radius, 0, 2 * Math.PI);
-      ctx.fill();
+      ctx.stroke();
     }
     // Keep the peg (canvas center) clear of the cone and the visited dots.
     ctx.save();

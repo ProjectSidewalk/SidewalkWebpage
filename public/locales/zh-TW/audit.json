@@ -144,6 +144,8 @@
       "distance-left": "剩餘 {{distance}}",
       "explore-current-location": "旋轉 360 度以確保沒有遺漏任何內容。",
       "fit-route": "顯示整條路線",
+      "fit-street": "返回街道視角",
+      "observed-tooltip": "你已環顧周遭環境的比例",
       "legend-title": "圖例",
       "mission-progress": "任務進度",
       "legend-explored": "已探索",

@@ -144,6 +144,8 @@
       "distance-left": "Quedan {{distance}}",
       "explore-current-location": "Gire 360 grados para asegurarse de que no se pierda nada.",
       "fit-route": "Ver toda la ruta",
+      "fit-street": "Volver al nivel de calle",
+      "observed-tooltip": "Cuánto de tu entorno has mirado",
       "legend-title": "Leyenda",
       "mission-progress": "Progreso de la misión",
       "legend-explored": "Explorado",

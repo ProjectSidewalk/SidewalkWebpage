@@ -144,6 +144,8 @@
       "distance-left": "Noch {{distance}}",
       "explore-current-location": "Drehen Sie sich um 360 Grad, um sicherzustellen, dass nichts übersehen wird.",
       "fit-route": "Gesamte Route anzeigen",
+      "fit-street": "Zurück zur Straßenansicht",
+      "observed-tooltip": "Wie viel deiner Umgebung du dir angesehen hast",
       "legend-title": "Legende",
       "mission-progress": "Missionsfortschritt",
       "legend-explored": "Erkundet",

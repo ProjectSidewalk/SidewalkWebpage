@@ -65,6 +65,7 @@
 /* "N% observed" label centered inside the progress ring drawn in the top-right corner (ObservedArea). */
 #minimap-percent-observed {
   font: var(--text-tiny-medium);
+  font-size: calc(8px * var(--ui-scale));
   inset: auto;
   top: calc(4px * var(--ui-scale));
   right: calc(4px * var(--ui-scale));
@@ -76,7 +77,6 @@
   text-align: center;
   color: var(--color-neutral-800);
   z-index: 3;
-  pointer-events: none;
 }
 
 #minimap-percent-observed:empty {
@@ -98,7 +98,6 @@
   color: var(--color-neutral-800);
   font: var(--text-tiny-medium);
   z-index: 3;
-  pointer-events: none;
 }
 
 #minimap-mission-progress-bar {
@@ -299,7 +298,9 @@
 }
 
 .minimap-legend-sample-visited {
-  fill: rgb(80 80 80 / 55%);
+  fill: none;
+  stroke: rgb(62 139 217 / 80%);
+  stroke-width: 1.5;
 }
 
 .minimap-legend-sample-dashed {
@@ -370,7 +371,7 @@
 }
 
 .gm-svpc {
-  visibility: hidden;
+  display: none;
 }
 
 /* The +/- buttons take their look from the shared .zoom-button styling, with some minor tweaks. */

@@ -326,10 +326,12 @@
             <canvas id="minimap-fog-of-war-canvas" class="minimap-pane" height="200" width="200"></canvas>
             <canvas id="minimap-fov-canvas" class="minimap-pane" height="200" width="200"></canvas>
             <canvas id="minimap-progress-circle-canvas" class="minimap-pane" height="200" width="200"></canvas>
-            <div id="minimap-percent-observed" class="minimap-pane"></div>
+            <div id="minimap-percent-observed" class="minimap-pane" title="How much of your surroundings you've looked around"
+                 data-i18n-title="audit:right-ui.minimap.observed-tooltip"></div>
             @* Mission-progress bar: fill + percent + distance explored / mission target. Updated by Minimap.updateMissionProgress. *@
             <div id="minimap-mission-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
-                 aria-label="Mission progress" data-i18n-aria-label="audit:right-ui.minimap.mission-progress">
+                 aria-label="Mission progress" data-i18n-aria-label="audit:right-ui.minimap.mission-progress"
+                 title="Mission progress" data-i18n-title="audit:right-ui.minimap.mission-progress">
               <div id="minimap-mission-progress-bar">
                 <div id="minimap-mission-progress-fill"></div>
               </div>
@@ -345,7 +347,8 @@
             </div>
             @* Always-on mini legend (Explored / Route ahead); click to expand the full key card (MinimapLegend.js). *@
             <button id="minimap-legend-toggle" type="button" aria-expanded="false" aria-controls="minimap-legend-card"
-                    aria-label="Map key" data-i18n-aria-label="audit:right-ui.minimap.legend-title">
+                    aria-label="Map key" data-i18n-aria-label="audit:right-ui.minimap.legend-title"
+                    title="Map key" data-i18n-title="audit:right-ui.minimap.legend-title">
               <span class="minimap-legend-mini-item">
                 <svg class="minimap-legend-mini-icon" viewBox="0 0 22 8" aria-hidden="true">
                   <path class="minimap-legend-sample-audited" d="M2 4H20"></path>
@@ -401,13 +404,13 @@
               </div>
             </div>
             <div id="minimap-zoom-controls" class="zoom-buttons-holder">
-              <button id="minimap-zoom-fit" class="zoom-button" type="button" aria-label="Show whole route" data-i18n-aria-label="audit:right-ui.minimap.fit-route">
+              <button id="minimap-zoom-fit" class="zoom-button" type="button" aria-label="Show whole route" data-i18n-aria-label="audit:right-ui.minimap.fit-route" title="Show whole route" data-i18n-title="audit:right-ui.minimap.fit-route">
                 <img class="zoom-button-icon" src='@assets.path("images/icons/route-fit-white-material.svg")' alt="">
               </button>
-              <button id="minimap-zoom-in" class="zoom-button" type="button" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in">
+              <button id="minimap-zoom-in" class="zoom-button" type="button" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in" title="Zoom in" data-i18n-title="common:zoom-in">
                 <img class="zoom-button-icon" src='@assets.path("images/icons/plus-white-material.svg")' alt="">
               </button>
-              <button id="minimap-zoom-out" class="zoom-button" type="button" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out">
+              <button id="minimap-zoom-out" class="zoom-button" type="button" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out" title="Zoom out" data-i18n-title="common:zoom-out">
                 <img class="zoom-button-icon" src='@assets.path("images/icons/minus-white-material.svg")' alt="">
               </button>
             </div>
