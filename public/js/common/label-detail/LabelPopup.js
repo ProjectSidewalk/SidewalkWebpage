@@ -43,6 +43,7 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
     viewerAccessToken,
     currUsername,
     showLabelMapLink: opts.showLabelMapLink,
+    showExploreHereLink: opts.showExploreHereLink,
   });
   dialog.close();
   // Hold the initializing class through the close transition duration so the fade-out doesn't flash the dialog.

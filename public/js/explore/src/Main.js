@@ -78,7 +78,7 @@ class Main {
     const newTask = new Task(params.task, isTutorialTask);
     let initParams;
     if (isTutorialTask) initParams = { startPanoId: 'tutorial' };
-    else initParams = { startPanoId: params.startPanoId, startLat, startLng };
+    else initParams = { startPanoId: params.startPanoId, startLat, startLng, startPov: params.startPov };
     const errorParams = { task: newTask, missionId: params.mission.mission_id };
     svl.panoManager = await PanoManager.create(svl.viewerType, params.viewerAccessToken, initParams, errorParams);
     // No viewer means PanoManager found no usable imagery and has already scheduled a redirect; stop initializing

@@ -52,7 +52,10 @@ class ExploreController @Inject() (
       lat: Option[Double],
       lng: Option[Double],
       panoId: Option[String],
-      placeName: Option[String]
+      placeName: Option[String],
+      heading: Option[Double],
+      pitch: Option[Double],
+      zoom: Option[Int]
   ) = cc.securityService.SecuredAction { implicit request =>
     val user: SidewalkUserWithRole = request.identity
 
@@ -103,15 +106,23 @@ class ExploreController @Inject() (
         cc.loggingService.insert(user.userId, request.ipAddress, activityStr)
 
         // Load the Explore page. The match statement below just passes along any extra params. The pano is seeded at
-        // panoId or lat/lng for an admin exploring a specific street, or at lat/lng for an address drop-in (any user).
+        // panoId or lat/lng for an admin exploring a specific street, or at lat/lng for an address drop-in (any
+        // user) — where a pano + POV seed can ride along (the label card's "Explore here", #4637): the pano wins
+        // when it loads, with the lat/lng as its fallback (#4635).
         (streetEdgeId, isAdmin(user), panoId, lat, lng) match {
           case (Some(s), true, Some(p), _, _) =>
-            Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, None, None, Some(p)))
+            Ok(
+              views.html.apps.explore(commonData, pageTitle, user, exploreData, None, None, Some(p), None, heading,
+                pitch, zoom)
+            )
           case (Some(s), true, _, Some(lt), Some(lg)) =>
             Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg)))
-          case (None, _, _, Some(lt), Some(lg)) if isExploreAddress =>
+          case (None, _, p, Some(lt), Some(lg)) if isExploreAddress =>
             // placeName rides along only on the drop-in path — it names the searched place in the landing greeting.
-            Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg), None, placeName))
+            Ok(
+              views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg), p, placeName,
+                heading, pitch, zoom)
+            )
           case _ => Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData))
         }
       }

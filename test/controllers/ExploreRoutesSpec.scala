@@ -38,5 +38,19 @@ class ExploreRoutesSpec extends PlaySpec with GuiceOneAppPerSuite {
       status(result) must (be >= 300 and be < 400)
       redirectLocation(result).value must include("placeName")
     }
+
+    "preserve a pano + POV seed through the anonSignUp redirect so the label card's hop survives sign-up (#4637)" in {
+      val result = route(
+        app,
+        FakeRequest(GET, "/explore?lat=47.615&lng=-122.332&panoId=abc-123&heading=182.5&pitch=-10.2&zoom=2")
+      ).get
+      status(result) must (be >= 300 and be < 400)
+
+      val location = redirectLocation(result).value
+      location must include("panoId")
+      location must include("heading")
+      location must include("pitch")
+      location must include("zoom")
+    }
   }
 }

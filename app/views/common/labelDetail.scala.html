@@ -183,6 +183,13 @@
     <img src='@assets.path("images/icons/message-circle-feather.svg")' alt="">
     <span data-i18n="labelmap:story.share-yours">Share your story</span>
   </button>
+  @* Drop into Explore at this label's pano + point of view (#4637). Hosts opt in via LabelDetail's
+     showExploreHereLink; the href is an address-style drop-in (#4451) seeded at the label's pano, with the label's
+     lat/lng as the fallback if the pano fails to load (#4635). *@
+  <a class="label-detail__explore-link" hidden>
+    <img src='@assets.path("images/icons/navigation-feather.svg")' alt="">
+    <span data-i18n="labelmap:explore-here">Explore the sidewalks here</span>
+  </a>
   @* Cross-surface hop (#4572): hosts other than LabelMap opt in via LabelDetail's showLabelMapLink, which fills
      the href with /labelMap?labelId=<id> so the map opens with this label's popup and a location pulse. *@
   <a class="label-detail__labelmap-link" hidden>

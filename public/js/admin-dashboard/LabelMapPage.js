@@ -26,7 +26,9 @@ class LabelMapPage {
     // Build the label-detail popup first so the map can hand clicks to it. If it fails (e.g. pano libs missing),
     // the map still renders and the search box falls back to opening /admin/label/:id as a page.
     try {
-      this.#popup = await LabelPopup(true, this.#opts.viewerType, this.#opts.accessToken, this.#opts.username);
+      this.#popup = await LabelPopup(true, this.#opts.viewerType, this.#opts.accessToken, this.#opts.username, {
+        showExploreHereLink: true,
+      });
     } catch (err) {
       console.error('Label Map: label popup failed to initialize; clicks/search will navigate instead.', err);
     }

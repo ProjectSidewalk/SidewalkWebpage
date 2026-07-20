@@ -170,6 +170,7 @@ case class LabelMetadata(
     tags: List[String],
     lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean),
     comments: Seq[LabelComment],
+    location: Option[LatLng],
     cameraLocation: Option[LatLng],
     aiGenerated: Boolean,
     expired: Boolean,
@@ -675,6 +676,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         case (Some(lat), Some(lng)) => Some(LatLng(lat, lng))
         case _                      => None
       },
+      (r.nextDoubleOption(), r.nextDoubleOption()) match {
+        case (Some(lat), Some(lng)) => Some(LatLng(lat, lng))
+        case _                      => None
+      },
       r.nextBoolean(),
       r.nextBoolean(),
       r.nextBoolean(),
@@ -1080,6 +1085,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              at.incomplete,
              at.stale,
              comment.comments,
+             lp.lat,
+             lp.lng,
              pano_data.lat AS camera_lat,
              pano_data.lng AS camera_lng,
              r.role = 'AI' AS ai_generated,

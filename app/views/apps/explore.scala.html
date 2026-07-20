@@ -9,7 +9,8 @@
 @(
   commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, data: ExplorePageData,
   lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None,
-  placeName: Option[String] = None
+  placeName: Option[String] = None, heading: Option[Double] = None, pitch: Option[Double] = None,
+  zoom: Option[Int] = None
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
@@ -814,6 +815,11 @@
     }
     @if(panoId.isDefined) {
     mainParam.startPanoId = @jsonForScript(panoId.get);
+    }
+    @* A POV seed (e.g. a label's stored point of view from the label card, #4637). Heading is its required core;
+       pitch/zoom just refine it, so they default rather than gate. *@
+    @if(heading.isDefined) {
+    mainParam.startPov = { heading: @heading.get, pitch: @pitch.getOrElse(0.0), zoom: @zoom.getOrElse(1) };
     }
     @* Name of the place the user searched, so the drop-in greeting can say where they landed (#4451). It arrives from
        a URL parameter, so it is JSON-serialized AND has `<` escaped: JSON quoting alone still lets a literal

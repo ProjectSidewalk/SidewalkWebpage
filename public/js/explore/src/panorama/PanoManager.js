@@ -31,6 +31,7 @@ class PanoManager {
    * @param {string} [params.startPanoId] Optional starting pano, tried before the lat/lng
    * @param {number} [params.startLat] Optional starting latitude; the fallback if startPanoId fails to load
    * @param {number} [params.startLng] Optional starting longitude; the fallback if startPanoId fails to load
+   * @param {{heading: number, pitch: number, zoom: number}} [params.startPov] Optional POV to face after loading
    * @param {object} errorParams Params necessary in case loading the initial location fails
    * @param {Task} errorParams.task The assigned Task; used if no imagery is found to record the street
    * @param {number} errorParams.missionId The current mission ID; used if no imagery is found
@@ -111,6 +112,24 @@ class PanoManager {
 
     // Make sure that we are set to a legal zoom level to start.
     this.setZoom(1);
+
+    // Face the seeded POV (e.g. a label's stored point of view from the label card, #4637). A stored POV is only
+    // meaningful from the camera it was recorded at, so when the pano seed fell back to coordinates we instead face
+    // the seed location itself (where the thing the user clicked on is).
+    if (params.startPov && svl.panoViewer.initialSeed === 'pano') {
+      svl.panoViewer.setPov({
+        heading: params.startPov.heading,
+        pitch: params.startPov.pitch ?? 0,
+        zoom: Math.min(3, Math.max(1, params.startPov.zoom ?? 1)),
+      });
+    } else if (params.startPov && panoOptions.startLatLng) {
+      const position = svl.panoViewer.getPosition();
+      const bearing = turf.bearing(
+        turf.point([position.lng, position.lat]),
+        turf.point([panoOptions.startLatLng.lng, panoOptions.startLatLng.lat]),
+      );
+      svl.panoViewer.setPov({ heading: (bearing + 360) % 360, pitch: 0, zoom: 1 });
+    }
 
     // Adds event listeners to the navigation arrows.
     svl.ui.streetview.navArrows.on('click', (event) => {

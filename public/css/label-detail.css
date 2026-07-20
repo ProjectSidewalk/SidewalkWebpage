@@ -875,9 +875,11 @@ button.label-detail__meta-cell:focus-visible {
   margin-top: 8px;
 }
 
-/* Cross-surface hop to the LabelMap; styled as a sibling of the share pill. Hidden until LabelDetail fills the
-   href (hosts opt in) — explicit so the attribute beats display: inline-flex. */
-.label-detail__labelmap-link {
+/* Cross-surface hops: to the LabelMap (#4572) and into Explore at the label's pano (#4637); styled as siblings of
+   the share pill. Hidden until LabelDetail fills the href (hosts opt in) — explicit so the attribute beats
+   display: inline-flex. */
+.label-detail__labelmap-link,
+.label-detail__explore-link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -891,17 +893,20 @@ button.label-detail__meta-cell:focus-visible {
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-.label-detail__labelmap-link:hover {
+.label-detail__labelmap-link:hover,
+.label-detail__explore-link:hover {
   background: var(--color-neutral-200);
   border-color: var(--color-neutral-400);
 }
 
-.label-detail__labelmap-link:focus-visible {
+.label-detail__labelmap-link:focus-visible,
+.label-detail__explore-link:focus-visible {
   outline: 2px solid var(--color-link-100);
   outline-offset: 2px;
 }
 
-.label-detail__labelmap-link img {
+.label-detail__labelmap-link img,
+.label-detail__explore-link img {
   width: 14px;
   height: 14px;
   display: block;
