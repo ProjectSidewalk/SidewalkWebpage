@@ -106,6 +106,7 @@ class StatsApiController @Inject() (
             row("KM Explored Without Overlap", stats.kmExploreNoOverlap)
             row("KM Explored Multiple Users", stats.kmExploredMultipleUsers)
             row("KM Explored Single User", stats.kmExploredSingleUser)
+            row("KM Needs Reaudit", stats.kmNeedsReaudit)
             row("KM Explorable", stats.kmOpen) // Auditable-now network (status = open); alias of KM Open below.
             row("KM Open", stats.kmOpen)
             row("KM No Imagery", stats.kmNoImagery)

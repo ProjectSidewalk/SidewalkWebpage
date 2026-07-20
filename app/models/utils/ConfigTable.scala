@@ -374,7 +374,19 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       )
     }
 
-    val coreQuery =
+    // Coverage counts only audits on current imagery (#4384), but this query runs against OTHER cities' schemas,
+    // which may not have applied the evolution adding audit_task.outdated_imagery yet (e.g. mid-deploy). Gate the
+    // filter on the column existing so unmigrated schemas fall back to counting every completed audit instead of
+    // erroring out their whole scorecard.
+    val upToDateFilterQuery =
+      sql"""
+        SELECT EXISTS (
+            SELECT FROM information_schema.columns
+            WHERE table_schema = '#$schema' AND table_name = 'audit_task' AND column_name = 'outdated_imagery'
+        );
+      """.as[Boolean].head
+
+    def coreQuery(upToDateFilter: String) =
       sql"""
       SELECT total_streets.cnt          AS total_streets,
              audited_streets.cnt        AS audited_streets,
@@ -408,7 +420,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           FROM "#$schema".street_edge
           INNER JOIN "#$schema".audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id
-          WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.status = 'open'
+          WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.status = 'open' #$upToDateFilter
       ) AS audited_streets, (
           SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km
           FROM "#$schema".street_edge WHERE status = 'open'
@@ -420,7 +432,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               FROM "#$schema".street_edge
               INNER JOIN "#$schema".audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
               INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id
-              WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.status = 'open'
+              WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.status = 'open' #$upToDateFilter
           ) AS distinct_audited
       ) AS audited_km, (
           SELECT COUNT(DISTINCT label.label_id) AS label_count,
@@ -523,7 +535,10 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     // a separate long-cached path (getCrossCityLabelingSpeed). Wrapped in withJitOff because coreQuery's km calc uses
     // PostGIS (#4376).
     withJitOff(for {
-      core        <- coreQuery
+      hasOutdatedImageryCol <- upToDateFilterQuery
+      core                  <- coreQuery(
+        if (hasOutdatedImageryCol) "AND audit_task.outdated_imagery = FALSE" else ""
+      )
       byLabelType <- getLabelTypeStatsBySchema(schema)
       weeklyTrend <- getCityWeeklyTrendBySchema(schema, Some(ScorecardTrendWeeks))
       output      <- getCityContributorOutputBySchema(schema)

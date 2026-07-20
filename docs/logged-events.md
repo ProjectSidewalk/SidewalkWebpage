@@ -123,6 +123,7 @@ ones whose meaning, parameters, or history aren't obvious:
 | `Click_module=ExploreSidewalksHere_lat=<lat>_lng=<lng>` | LabelMap: the "Explore the sidewalks here" popup button after an address search (#4451) — an outbound click into the free-exploration Explore session at those coordinates. |
 | `Visit_Audit_ExploreAddress_Lat=<lat>_Lng=<lng>` | Server-logged in `ExploreController.explore` when `/explore?lat&lng` opens a free-exploration (exploreAddress) session at a searched address (#4451). |
 | `ExploreAddress_SessionStart` | Explore (`audit_task_interaction`): the free-exploration UI finished loading. Sessions under the `exploreAddress` mission type label normally but never complete tasks/missions, so don't mix them into street-completion or mission-funnel analyses. |
+| `Click_module=<mapName>_streetId=<id>_audited=<bool>_outdated=<bool>_target=explore` | Clicking a street's "explore this street" popup link on a `ps-map` street layer (`addStreetsToMap.js`). `audited` = the street has an audit on current imagery; `outdated` = audited before but newer imagery exists (#4384); both `false` = unaudited. |
 
 ## Finding the current list
 

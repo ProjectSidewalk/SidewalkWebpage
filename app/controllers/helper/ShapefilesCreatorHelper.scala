@@ -828,6 +828,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "status:String,"               // Street availability: open, no_imagery, closed, or disabled
       + "labelCount:Integer,"          // Number of labels on this street
       + "auditCount:Integer,"          // Number of times audited
+      + "outdated:Boolean,"            // Audited before, but all audits predate newer imagery (needs re-audit)
       + "userCount:Integer,"           // Number of unique users
       + "userIds:String,"              // List of user IDs as a string
       + "firstLabel:String,"           // First label date
@@ -847,6 +848,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(street.status)
       featureBuilder.add(street.labelCount)
       featureBuilder.add(street.auditCount)
+      featureBuilder.add(street.outdated)
       featureBuilder.add(street.userIds.size)
 
       // Format user IDs as a JSON array string, handling potential null values
@@ -888,6 +890,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "status:String,"           // Street availability: open, no_imagery, closed, or disabled
       + "label_count:Integer,"     // Number of labels on this street
       + "audit_count:Integer,"     // Number of times audited
+      + "outdated:Boolean,"        // Audited before, but all audits predate newer imagery (needs re-audit)
       + "user_count:Integer,"      // Number of unique users
       + "user_ids:String,"         // List of user IDs as a string
       + "first_label_time:String," // First label date
@@ -910,6 +913,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(street.status)
       featureBuilder.add(street.labelCount)
       featureBuilder.add(street.auditCount)
+      featureBuilder.add(street.outdated)
       featureBuilder.add(street.userIds.size)
       featureBuilder.add(s"[$userIdsStr]")
       featureBuilder.add(street.firstLabelDate.map(_.toString).orNull)
@@ -945,8 +949,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "userCount:Integer,"             // Number of unique users who labeled in this region
       + "auditCount:Integer,"            // Number of completed audits in this region
       + "totalDistM:Double,"             // Total street distance in this region, meters (DBF caps names at 10 chars)
-      + "audDistM:Double,"               // Audited street distance in this region, meters
-      + "complRate:Double,"              // Fraction of street distance audited (0.0–1.0)
+      + "audDistM:Double,"               // Distance audited with current imagery in this region, meters
+      + "outdDistM:Double,"              // Distance needing re-audit (all audits predate newer imagery), meters
+      + "complRate:Double,"              // Fraction of street distance audited with current imagery (0.0–1.0)
       + "firstLabel:String,"             // First label date
       + "lastLabel:String"               // Last label date
     )
@@ -961,6 +966,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(region.auditCount)
       featureBuilder.add(region.totalDistanceM)
       featureBuilder.add(region.auditedDistanceM)
+      featureBuilder.add(region.outdatedDistanceM)
       featureBuilder.add(region.completionRate)
       featureBuilder.add(region.firstLabelDate.map(_.toString).orNull)
       featureBuilder.add(region.lastLabelDate.map(_.toString).orNull)
@@ -994,8 +1000,9 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "user_count:Integer,"            // Number of unique users who labeled in this region
       + "audit_count:Integer,"           // Number of completed audits in this region
       + "total_distance_m:Double,"       // Total street distance in this region, meters
-      + "audited_distance_m:Double,"     // Audited street distance in this region, meters
-      + "completion_rate:Double,"        // Fraction of street distance audited (0.0–1.0)
+      + "audited_distance_m:Double,"     // Distance audited with current imagery in this region, meters
+      + "outdated_distance_m:Double,"    // Distance needing re-audit (all audits predate newer imagery), meters
+      + "completion_rate:Double,"        // Fraction of street distance audited with current imagery (0.0–1.0)
       + "first_label_time:String,"       // First label date
       + "last_label_time:String"         // Last label date
     )
@@ -1010,6 +1017,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(region.auditCount)
       featureBuilder.add(region.totalDistanceM)
       featureBuilder.add(region.auditedDistanceM)
+      featureBuilder.add(region.outdatedDistanceM)
       featureBuilder.add(region.completionRate)
       featureBuilder.add(region.firstLabelDate.map(_.toString).orNull)
       featureBuilder.add(region.lastLabelDate.map(_.toString).orNull)

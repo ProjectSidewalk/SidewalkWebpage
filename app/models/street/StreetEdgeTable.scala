@@ -2,7 +2,7 @@ package models.street
 
 import com.google.inject.ImplementedBy
 import models.api.{StreetDataForApi, StreetFiltersForApi}
-import models.audit.AuditTaskTableDef
+import models.audit.{AuditTask, AuditTaskTableDef}
 import models.region.RegionTableDef
 import models.user.UserStatTableDef
 import models.utils.MyPostgresProfile.api._
@@ -127,6 +127,14 @@ class StreetEdgeTable @Inject() (
   val completedAuditTasks       = completedAuditTasksWithUsers.map(_._1._1)
   val highQualityCompletedTasks = completedAuditTasksWithUsers.filter(_._1._2.highQuality).map(_._1._1)
 
+  /** When upToDateOnly, drops audits performed on since-replaced imagery (audit_task.outdated_imagery, #4384). */
+  private def auditFreshnessFilter(
+      tasks: Query[AuditTaskTableDef, AuditTask, Seq],
+      upToDateOnly: Boolean
+  ): Query[AuditTaskTableDef, AuditTask, Seq] = {
+    if (upToDateOnly) tasks.filterNot(_.outdatedImagery) else tasks
+  }
+
   def getStreet(streetEdgeId: Int): DBIO[Option[StreetEdge]] = {
     streetsWithTutorial.filter(_.streetEdgeId === streetEdgeId).result.headOption
   }
@@ -145,9 +153,11 @@ class StreetEdgeTable @Inject() (
   /**
    * Get the total street distance in meters for all streets that have been audited.
    * @param highQualityOnly if true, only count high quality audits.
+   * @param upToDateOnly if true, only count audits on current imagery (exclude outdated_imagery audits, #4384).
    */
-  def auditedStreetDistance(highQualityOnly: Boolean = false): DBIO[Double] = {
-    val filteredTasks = if (highQualityOnly) highQualityCompletedTasks else completedAuditTasks
+  def auditedStreetDistance(highQualityOnly: Boolean = false, upToDateOnly: Boolean = false): DBIO[Double] = {
+    val filteredTasks =
+      auditFreshnessFilter(if (highQualityOnly) highQualityCompletedTasks else completedAuditTasks, upToDateOnly)
 
     // Get the street edges that have been audited.
     val edges = for {
@@ -162,9 +172,11 @@ class StreetEdgeTable @Inject() (
   /**
    * Counts the number of distinct audited streets.
    * @param highQualityOnly if true, only count high quality audits.
+   * @param upToDateOnly if true, only count audits on current imagery (exclude outdated_imagery audits, #4384).
    */
-  def countDistinctAuditedStreets(highQualityOnly: Boolean = false): DBIO[Int] = {
-    val filteredTasks = if (highQualityOnly) highQualityCompletedTasks else completedAuditTasks
+  def countDistinctAuditedStreets(highQualityOnly: Boolean = false, upToDateOnly: Boolean = false): DBIO[Int] = {
+    val filteredTasks =
+      auditFreshnessFilter(if (highQualityOnly) highQualityCompletedTasks else completedAuditTasks, upToDateOnly)
     filteredTasks.distinctOn(_.streetEdgeId).length.result
   }
 
@@ -301,7 +313,8 @@ class StreetEdgeTable @Inject() (
       ),
       -- Get audit counts.
       audit_counts AS (
-        SELECT s.street_edge_id, COUNT(a.audit_task_id) as audit_count
+        SELECT s.street_edge_id, COUNT(a.audit_task_id) as audit_count,
+               COUNT(a.audit_task_id) FILTER (WHERE NOT a.outdated_imagery) as up_to_date_audit_count
         FROM filtered_streets s
         LEFT JOIN audit_task a ON s.street_edge_id = a.street_edge_id AND a.completed = true
         GROUP BY s.street_edge_id
@@ -331,6 +344,9 @@ class StreetEdgeTable @Inject() (
              COALESCE(l.user_ids, ARRAY[]::text[]) as user_ids,
              COALESCE(l.label_count, 0) as label_count,
              COALESCE(a.audit_count, 0) as audit_count,
+             -- Audited before, but every audit predates newer imagery (needs re-audit, #4384); mirrors the
+             -- three-state semantics of /contribution/streets/all, over this API's audit population.
+             COALESCE(a.audit_count, 0) > 0 AND COALESCE(a.up_to_date_audit_count, 0) = 0 as outdated,
              l.first_label_date,
              l.last_label_date,
              s.geom
@@ -360,6 +376,7 @@ class StreetEdgeTable @Inject() (
         },
         labelCount = r.nextInt(),
         auditCount = r.nextInt(),
+        outdated = r.nextBoolean(),
         firstLabelDate = r.nextTimestampOption().map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC)),
         lastLabelDate = r.nextTimestampOption().map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC)),
         geometry = r.nextGeometry[LineString]()

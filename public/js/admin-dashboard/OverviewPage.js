@@ -78,11 +78,13 @@ class OverviewPage {
 
   /** Fills each lens card's headline value and secondary line from the summary payload. */
   #renderCards(s) {
-    // Coverage: share of the street network audited, with the distance/street denominators.
+    // Coverage: share of the street network audited with current imagery, with the distance/street denominators.
+    // Streets whose audits predate newer imagery (#4384) are excluded and called out separately when present.
     const covPct = s.total_distance_mi > 0 ? s.audited_distance_mi / s.total_distance_mi : 0;
+    const reauditNote = s.reaudit_streets > 0 ? ` · ${this.#num(s.reaudit_streets)} need re-audit` : '';
     this.#setCard('coverage', this.#pct(covPct), s.total_distance_mi > 0
       ? `${this.#mi(s.audited_distance_mi)} of ${this.#mi(s.total_distance_mi)} mi · `
-      + `${this.#num(s.audited_streets)} of ${this.#num(s.total_streets)} streets`
+      + `${this.#num(s.audited_streets)} of ${this.#num(s.total_streets)} streets${reauditNote}`
       : 'no streets loaded');
 
     // Data Quality: labels collected, with validations as the secondary figure.
@@ -252,6 +254,11 @@ class OverviewPage {
       const pctLeft = s.total_streets > 0 ? Math.round((streetsLeft / s.total_streets) * 100) : 0;
       items.push({ sev: 'info', action: 'Coverage', href: '/admin/coverage',
         html: `<strong>${this.#num(streetsLeft)}</strong> streets aren't audited yet (${pctLeft}% of the network)` });
+    }
+    if (s.reaudit_streets > 0) {
+      items.push({ sev: 'info', action: 'Coverage', href: '/admin/coverage',
+        html: `<strong>${this.#num(s.reaudit_streets)}</strong> audited streets have newer imagery `
+          + 'and need re-auditing' });
     }
     // Stalled activity — only one of these, the more fundamental gap first.
     if (s.audits_past_week === 0) {
