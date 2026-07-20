@@ -15,6 +15,7 @@ class SaveModal {
   #getRegionId;
   #getStreetsPayload;
   #getSuggestedName;
+  #getCamera;
   #onSaved;
   #onClose;
 
@@ -24,6 +25,7 @@ class SaveModal {
    * @param {Function} opts.getRegionId - Returns the current route's region id.
    * @param {Function} opts.getStreetsPayload - Returns the ordered street list in the /saveRoute wire format.
    * @param {Function} opts.getSuggestedName - Returns a suggested route name (e.g. from the endpoint streets).
+   * @param {Function} opts.getCamera - Returns the current map camera pose, for restoring the view post-sign-in.
    * @param {Function} opts.onSaved - Called with (routeId, name, slug) after a successful save.
    * @param {Function} opts.onClose - Called after the modal closes (e.g. to restore focus).
    */
@@ -32,6 +34,7 @@ class SaveModal {
     this.#getRegionId = opts.getRegionId;
     this.#getStreetsPayload = opts.getStreetsPayload;
     this.#getSuggestedName = opts.getSuggestedName;
+    this.#getCamera = opts.getCamera;
     this.#onSaved = opts.onSaved;
     this.#onClose = opts.onClose;
 
@@ -56,7 +59,8 @@ class SaveModal {
 
   /**
    * Reads and clears the route stashed before a sign-in reload.
-   * @returns {Object|null} {regionId, name, description, streets} or null if there is nothing (valid) to restore.
+   * @returns {Object|null} {regionId, name, description, streets, camera} or null if there is nothing (valid)
+   *                        to restore.
    */
   static consumePendingRoute() {
     try {
@@ -117,6 +121,7 @@ class SaveModal {
         name: this.#nameInput.value.trim(),
         description: this.#descriptionInput?.value.trim() ?? '',
         streets: this.#getStreetsPayload(),
+        camera: this.#getCamera(), // So the post-sign-in reload comes back to the exact view the user left.
       }));
     } catch {
       // Storage unavailable: sign-in still works, the route just can't be carried across the reload.

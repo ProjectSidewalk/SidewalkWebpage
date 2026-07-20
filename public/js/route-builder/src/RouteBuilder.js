@@ -149,6 +149,7 @@ class RouteBuilder {
       getRegionId: () => this.#currRegionId,
       getStreetsPayload: () => this.#routeStreetsPayload(),
       getSuggestedName: () => this.#suggestedRouteName(),
+      getCamera: () => this.#cameraSnapshot(),
       onSaved: (routeId, name, slug) => this.#handleRouteSaved(routeId, name, slug),
       onClose: () => this.#saveButton.focus(),
     });
@@ -246,6 +247,10 @@ class RouteBuilder {
       window.logWebpageActivity(`RouteBuilder_Click=TogglePois_Visible=${e.target.checked}`);
       this.#setPoiVisibility(e.target.checked);
     });
+
+    // The draft is written on route edits, but the camera moves without edits — rewrite it as the page unloads
+    // so a reload restores the exact view the user left.
+    window.addEventListener('pagehide', () => this.#saveDraft());
 
     this.#updateCta();
   }
@@ -1208,6 +1213,7 @@ class RouteBuilder {
     this.#waypoints = this.#waypointsFromStreets(features);
     this.#setPanelState('building');
     this.#recompute();
+    this.#applyCamera(pending.camera); // Back to the exact view the user left for the sign-in round trip.
     this.#saveModal.open(pending.name || null, pending.description || null);
   }
 
@@ -1360,6 +1366,40 @@ class RouteBuilder {
   }
 
   /**
+   * The current map camera pose, in the shape mapbox-gl's jumpTo accepts (JSON-safe for the draft stash).
+   * @returns {{center: Array<number>, zoom: number, bearing: number, pitch: number}}
+   */
+  #cameraSnapshot() {
+    const center = this.#map.getCenter();
+    return {
+      center: [center.lng, center.lat],
+      zoom: this.#map.getZoom(),
+      bearing: this.#map.getBearing(),
+      pitch: this.#map.getPitch(),
+    };
+  }
+
+  /**
+   * Restores a camera pose captured by #cameraSnapshot, so a reload puts the user back at the exact view they
+   * left rather than a recomputed one.
+   *
+   * @param {Object} [camera] - A stashed #cameraSnapshot (possibly absent or corrupt — stashes cross reloads).
+   * @returns {boolean} False when the pose was unusable, so the caller can fall back (e.g. to a fitBounds).
+   */
+  #applyCamera(camera) {
+    const usable = Array.isArray(camera?.center) && camera.center.length === 2
+      && camera.center.every(Number.isFinite) && Number.isFinite(camera.zoom);
+    if (!usable) return false;
+    this.#map.jumpTo({
+      center: camera.center,
+      zoom: camera.zoom,
+      bearing: Number.isFinite(camera.bearing) ? camera.bearing : 0,
+      pitch: Number.isFinite(camera.pitch) ? camera.pitch : 0,
+    });
+    return true;
+  }
+
+  /**
    * Persists the in-progress route (waypoints + region) to this tab's storage so a reload — including the sign-in
    * round-trip — can restore it. Cleared when the route empties.
    */
@@ -1374,6 +1414,7 @@ class RouteBuilder {
             // The editing session too, so a reload resumes updating the same route instead of saving a copy.
             editingRouteId: this.#editingRouteId,
             savedBaseline: this.#savedBaseline,
+            camera: this.#cameraSnapshot(), // Refreshed on pagehide, so a reload keeps the user's exact view.
           }),
         );
       } else {
@@ -1385,8 +1426,9 @@ class RouteBuilder {
   }
 
   /**
-   * Restores an unsaved in-progress route from this tab's draft stash. The draft holds only the waypoints and
-   * region; everything else is recomputed, and the camera fits the restored route.
+   * Restores an unsaved in-progress route from this tab's draft stash. The draft holds only the waypoints,
+   * region, and camera; everything else is recomputed. The camera returns to the stashed view, falling back to
+   * fitting the restored route when the draft predates the camera field or it's corrupt.
    */
   #restoreDraft() {
     let draft = null;
@@ -1410,10 +1452,12 @@ class RouteBuilder {
       this.#setPanelState('building');
       this.#recompute();
       this.#updateSaveButton();
-      const coords = this.#streetsInRoute.features.flatMap((f) => f.geometry.coordinates);
-      const points = coords.length > 0 ? coords : this.#waypoints.map((wp) => [wp.lng, wp.lat]);
-      this.#map.fitBounds(turf.bbox({ type: 'MultiPoint', coordinates: points }),
-        { padding: 80, maxZoom: 16, duration: 800 });
+      if (!this.#applyCamera(draft.camera)) {
+        const coords = this.#streetsInRoute.features.flatMap((f) => f.geometry.coordinates);
+        const points = coords.length > 0 ? coords : this.#waypoints.map((wp) => [wp.lng, wp.lat]);
+        this.#map.fitBounds(turf.bbox({ type: 'MultiPoint', coordinates: points }),
+          { padding: 80, maxZoom: 16, duration: 800 });
+      }
     } catch (e) {
       console.error('Failed to restore the route draft:', e);
       try {
