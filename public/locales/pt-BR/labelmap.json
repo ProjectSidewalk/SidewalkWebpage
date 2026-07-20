@@ -2,6 +2,7 @@
   "search-placeholder": "Pesquise um endereço ou local",
   "explore-here": "Explore as calçadas aqui",
   "explore-here-short": "Explore aqui",
+  "explore-here-brief": "Explorar",
   "explore-here-percent": "{{percent}}% explorado",
   "loading-labels": "Carregando rótulos…",
   "loading-elapsed": "{{seconds}} s decorridos",
@@ -27,6 +28,7 @@
   "vote-tooltip-ai-included": "O voto da nossa IA está incluído nesta contagem.",
   "tags-tooltip": "Atributos que quem rotulou aplicou para descrever o problema",
   "view-on-labelmap": "Ver no mapa de rótulos",
+  "view-on-labelmap-brief": "Mapa",
   "image-date": "Imagem",
   "no-comments-yet": "Ainda não há comentários",
   "why-disagree": "Conte-nos por que você discorda…",
@@ -43,6 +45,7 @@
   "story": {
     "heading": "Histórias da comunidade",
     "share-yours": "Compartilhe sua história",
+    "share-yours-brief": "Sua história",
     "anonymous": "Anônimo",
     "your-story-chip": "Sua história",
     "see-all-stories": "Ver todas as suas histórias",

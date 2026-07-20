@@ -2,6 +2,7 @@
   "search-placeholder": "Nach Adresse oder Ort suchen",
   "explore-here": "Gehwege hier erkunden",
   "explore-here-short": "Hier erkunden",
+  "explore-here-brief": "Erkunden",
   "explore-here-percent": "{{percent}}% erkundet",
   "loading-labels": "Beschriftungen werden geladen…",
   "loading-elapsed": "{{seconds}} s vergangen",
@@ -27,6 +28,7 @@
   "vote-tooltip-ai-included": "Die Stimme unserer KI ist in dieser Zählung enthalten.",
   "tags-tooltip": "Merkmale, die beim Labeln zur Beschreibung des Problems vergeben wurden",
   "view-on-labelmap": "Auf der Label-Karte ansehen",
+  "view-on-labelmap-brief": "Karte",
   "image-date": "Bild",
   "no-comments-yet": "Noch keine Kommentare",
   "why-disagree": "Sagen Sie uns, warum Sie nicht zustimmen…",
@@ -43,6 +45,7 @@
   "story": {
     "heading": "Erfahrungsberichte",
     "share-yours": "Geschichte teilen",
+    "share-yours-brief": "Geschichte",
     "anonymous": "Anonym",
     "your-story-chip": "Ihre Geschichte",
     "see-all-stories": "Alle Ihre Geschichten ansehen",
