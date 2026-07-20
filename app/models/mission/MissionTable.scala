@@ -223,11 +223,13 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
    * Get the user's incomplete exploreAddress mission if there is one.
    *
    * A user has at most one: every address-drop-in session (#4451) resumes it, and it is never marked complete.
+   * Sorted newest-first so that if the at-most-one invariant is ever violated (e.g. manual DB edits), we resume the
+   * most recent mission rather than a stale one.
    */
   def getIncompleteExploreAddressMission(userId: String): DBIO[Option[Mission]] = {
     missions
       .filter(m => m.userId === userId && m.missionType === MissionType.ExploreAddress && !m.completed)
-      .sortBy(_.missionId)
+      .sortBy(_.missionId.desc)
       .result
       .headOption
   }

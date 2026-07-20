@@ -366,10 +366,15 @@ class ExploreServiceImpl @Inject() (
     auditTaskTable.findTaskForMission(userId, streetEdgeId, missionId).flatMap {
       case Some(existingTask) => DBIO.successful(existingTask.auditTaskId)
       case _                  =>
-        // ST_LineLocatePoint gives the searched point's fraction along the street; geodesic length converts it to
-        // meters so it is directly comparable to the client's audited_distance_m.
-        sql"""SELECT ST_LineLocatePoint(street_edge.geom, ST_SetSRID(ST_MakePoint($lng, $lat), 4326))
-                     * ST_Length(street_edge.geom::geography)
+        // ST_LineLocatePoint gives the searched point's fraction along the street; the geodesic length of the line up
+        // to that fraction converts it to meters directly comparable to the client's audited_distance_m (which turf
+        // measures geodesically along the geometry). Scaling the street's total geodesic length by the fraction would
+        // drift instead: the fraction is planar (degrees), and meters-per-degree differs by bearing at a given
+        // latitude, so it doesn't equal the geodesic fraction on streets that bend.
+        sql"""SELECT ST_Length(ST_LineSubstring(
+                       street_edge.geom, 0,
+                       ST_LineLocatePoint(street_edge.geom, ST_SetSRID(ST_MakePoint($lng, $lat), 4326))
+                     )::geography)
               FROM street_edge
               WHERE street_edge.street_edge_id = $streetEdgeId"""
           .as[Double]
