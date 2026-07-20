@@ -1764,6 +1764,23 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
+   * Select street_edge_id of the street closest to the lat/lng position, if one is within maxDistM meters.
+   *
+   * Unlike the uncapped variant above, this excludes the tutorial street (an exploreAddress session shouldn't drop a
+   * user on it) and returns None rather than the globally-nearest street for a point far from the street network.
+   */
+  def getStreetEdgeIdClosestToLatLng(lat: Double, lng: Double, maxDistM: Double): DBIO[Option[Int]] = {
+    streetEdgeTable.streets
+      .map(s => (s.streetEdgeId, s.geom.distanceSphereD(makePoint(lng.bind, lat.bind).setSRID(4326))))
+      .filter(_._2 < maxDistM)
+      .sortBy(_._2)
+      .map(_._1)
+      .take(1)
+      .result
+      .headOption
+  }
+
+  /**
    * Select street_edge_id of the street closest to the lat/lng position for every lat/lng.
    *
    * Note that an attempt to take copy the Slick code from the function above and take a union between all the lat/lngs

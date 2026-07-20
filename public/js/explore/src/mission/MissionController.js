@@ -25,6 +25,8 @@ class MissionController {
    * auditing their last intersection: ends the current task and shows the mission-complete modal.
    */
   wrapUpRouteOrNeighborhood() {
+    // Free-exploration sessions (#4451) have no route/neighborhood goal to wrap up.
+    if (svl.isExploreAddressMode()) return;
     const currentTask = svl.taskContainer.getCurrentTask();
     svl.taskContainer.endTask(currentTask);
 
@@ -91,6 +93,10 @@ class MissionController {
 
     // Update the neighborhood progress bar (this user's vs. the community's share of the neighborhood).
     svl.neighborhoodProgressBar.update();
+
+    // Free-exploration missions (#4451) have no distance target: the completion rate would compute as
+    // distanceProgress / null → 1, immediately triggering the mission-complete modal. No progress bar, no survey.
+    if (svl.isExploreAddressMode()) return;
 
     // Update mission completion rate in the right sidebar.
     const completionRate = currentMission.getMissionCompletionRate();

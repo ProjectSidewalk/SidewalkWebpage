@@ -1,5 +1,7 @@
 {
   "search-placeholder": "Pesquise um endereço ou local",
+  "explore-here": "Explore as calçadas aqui",
+  "explore-here-percent": "{{percent}}% explorado",
   "loading-labels": "Carregando rótulos…",
   "loading-elapsed": "{{seconds}} s decorridos",
   "is-correct": "Esse rótulo esta correto?",

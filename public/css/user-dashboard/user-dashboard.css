@@ -483,6 +483,11 @@
   background: linear-gradient(160deg, var(--color-banana-100, #fdf6e3), var(--color-neutral-white, #ffffff));
 }
 
+.ud-trophy-free-explore {
+  border-top-color: var(--color-blue-400, #c6e0fa);
+  background: linear-gradient(160deg, var(--color-blue-100, #f6fafe), var(--color-neutral-white, #ffffff));
+}
+
 .ud-trophy-tag {
   position: absolute;
   top: 8px;

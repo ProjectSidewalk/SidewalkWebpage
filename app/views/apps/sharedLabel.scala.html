@@ -4,6 +4,7 @@
 @import play.api.Configuration
 @import play.api.libs.json._
 @import service.{CommonPageData, PageMeta}
+@import views.ViewHelpers.jsonForScript
 @*
  * Public single-label "spotlight" page (issue #456), rendered by ShareController.label for /label/:labelId.
  *
@@ -26,10 +27,9 @@
     labelLatLng: Option[LatLng], cityName: String, shareMeta: Html
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@* Config for SharedLabel.js, serialized once so the bundle carries no Twirl interpolation. Escaping `<` blocks a
-   `</script>` breakout from any interpolated string; the JSON is otherwise valid JS. *@
+@* Config for SharedLabel.js, serialized once so the bundle carries no Twirl interpolation. *@
 @configJson = @{
-  Json.stringify(Json.obj(
+  (Json.obj(
     "labelId"            -> meta.labelId,
     "labelType"          -> meta.labelType.name,
     "lat"                -> labelLatLng.map(_.lat),
@@ -43,7 +43,7 @@
       LabelTypeEnum.values.filter(_.name != "Problem").toSeq.map(lt => lt.name -> JsString(Messages(lt.nameKey)))
     ),
     "i18n" -> Json.obj("viewThisLabel" -> Messages("sharedlabel.view.this.label"))
-  )).replace("<", "\\u003c")
+  ))
 }
 
 @common.main(commonData, title, i18Namespaces = Seq("common", "labelmap"), extraHead = shareMeta,
@@ -161,7 +161,7 @@
   <script src='@assets.path("js/shared-label/build/shared-label.js")'></script>
 
   <script>
-    window.sharedLabelData = @Html(configJson);
+    window.sharedLabelData = @jsonForScript(configJson);
     window.appManager.ready(() => {
       new SharedLabelPage(window.sharedLabelData);
     });

@@ -502,9 +502,12 @@ dashboard.trophy.none = 🏆 No trophies yet — finish in the weekly top 3, or 
 dashboard.trophy.explore.region = Explore this neighborhood →
 dashboard.trophy.tag.region = Region
 dashboard.trophy.tag.pioneer = Pioneer
+dashboard.trophy.tag.explore = Explore
 dashboard.trophy.sub.pioneer = First-ever labeler in {0}
 dashboard.trophy.sub.champion = {0} labels — most in this neighborhood
 dashboard.trophy.sub.weekly = Week of {0}
+dashboard.trophy.sub.free-explore-tried = Tried a Free Exploration mission
+dashboard.trophy.sub.free-explore-labeled = Labeled during a Free Exploration mission
 dashboard.standing.title = Your standing
 dashboard.standing.intro = A peek at where you sit this week. The full board lives <a href="{0}">on the leaderboard</a>.
 dashboard.standing.tag.week = This week

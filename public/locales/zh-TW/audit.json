@@ -137,6 +137,7 @@
     "current-mission": {
       "header": "目前的任務",
       "header-route": "$t(right-ui.current-mission.header): 路線{{route_number}}",
+      "header-free-explore": "自由探索",
       "message": "探索{{neighborhoodName}}的__PLACEHOLDER__"
     },
     "minimap": {
@@ -292,6 +293,9 @@
     "label-shortcuts-occlusion": "您也可按下<kbd>{{key}}</kbd>鍵以選擇「看不見人行道」標記。",
     "still-stuck": "若您仍卡住無法動彈，請再次點選「卡住」鍵。",
     "stuck-skipped-street": "在前一條街道已無可標記的地點，因此我們把您帶往這一條新的街道。",
+    "free-explore-start": "您已被帶到搜尋地址的附近。請環顧四周並標記您發現的問題！",
+    "free-explore-start-named": "您已降落在 <b>{{placeName}}</b> 附近。四處看看，標記您發現的問題！",
+    "free-explore-no-imagery": "這個方向沒有更多街景影像了。請試著環顧四周或往另一個方向前進。",
     "stuck-suggestion": "若您無法透過箭頭移動，請嘗試點選右下角的導航方向，或嘗試點選左側的「卡住」鍵。"
   },
   "mission-start-tutorial": {

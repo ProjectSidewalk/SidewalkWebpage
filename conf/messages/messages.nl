@@ -493,9 +493,12 @@ dashboard.trophy.none = 🏆 Nog geen trofeeën — eindig in de wekelijkse top 
 dashboard.trophy.explore.region = Verken deze buurt →
 dashboard.trophy.tag.region = Buurt
 dashboard.trophy.tag.pioneer = Pionier
+dashboard.trophy.tag.explore = Verkenning
 dashboard.trophy.sub.pioneer = Allereerste labelaar in {0}
 dashboard.trophy.sub.champion = {0} labels — de meeste in deze buurt
 dashboard.trophy.sub.weekly = Week van {0}
+dashboard.trophy.sub.free-explore-tried = Een Vrije Verkenning-missie geprobeerd
+dashboard.trophy.sub.free-explore-labeled = Gelabeld tijdens een Vrije Verkenning-missie
 dashboard.standing.title = Jouw positie
 dashboard.standing.intro = Een blik op waar je deze week staat. Het volledige bord vind je <a href="{0}">op het scoreboard</a>.
 dashboard.standing.tag.week = Deze week

@@ -497,9 +497,12 @@ dashboard.trophy.none = 🏆 Noch keine Trophäen — schaffen Sie es in die wö
 dashboard.trophy.explore.region = Dieses Viertel erkunden →
 dashboard.trophy.tag.region = Viertel
 dashboard.trophy.tag.pioneer = Pionier/in
+dashboard.trophy.tag.explore = Erkundung
 dashboard.trophy.sub.pioneer = Erste Beschriftung überhaupt in {0}
 dashboard.trophy.sub.champion = {0} Beschriftungen — die meisten in diesem Viertel
 dashboard.trophy.sub.weekly = Woche vom {0}
+dashboard.trophy.sub.free-explore-tried = Eine Freie-Erkundung-Mission ausprobiert
+dashboard.trophy.sub.free-explore-labeled = Während einer Freien-Erkundung-Mission Labels hinzugefügt
 dashboard.standing.title = Ihre Platzierung
 dashboard.standing.intro = Ein Blick darauf, wo Sie diese Woche stehen. Das vollständige Board finden Sie <a href="{0}">in der Bestenliste</a>.
 dashboard.standing.tag.week = Diese Woche

@@ -8,6 +8,7 @@ import formats.json.MissionFormats._
 import models.audit._
 import models.auth.DefaultEnv
 import models.label.LabelTypeEnum
+import models.mission.MissionType
 import models.pano.PanoSource
 import models.street.{StreetEdgeIssue, StreetEdgeIssueType}
 import models.user._
@@ -50,7 +51,8 @@ class ExploreController @Inject() (
       streetEdgeId: Option[Int],
       lat: Option[Double],
       lng: Option[Double],
-      panoId: Option[String]
+      panoId: Option[String],
+      placeName: Option[String]
   ) = cc.securityService.SecuredAction { implicit request =>
     val user: SidewalkUserWithRole = request.identity
 
@@ -59,42 +61,57 @@ class ExploreController @Inject() (
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Audit_RedirectMobileLanding")
       Future.successful(Redirect("/mobileLanding"))
     } else {
-      // NOTE: streetEdgeId takes precedence over routeId, which takes precedence over regionId.
+      // NOTE: precedence is routeId, then streetEdgeId, then regionId, then lat/lng (an address drop-in, #4451).
       for {
-        exploreData <- (routeId, streetEdgeId, regionId) match {
-          case (Some(routeId), _, _) =>
+        exploreData <- (routeId, streetEdgeId, regionId, lat, lng) match {
+          case (Some(routeId), _, _, _, _) =>
             exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion = false,
               Some(routeId), resumeRoute, regionId = None, streetEdgeId = None)
-          case (_, Some(streetEdgeId), _) =>
+          case (_, Some(streetEdgeId), _, _, _) =>
             exploreService.getDataForExplorePage(user.userId, retakingTutorial = false, newRegion = false,
               routeId = None, resumeRoute = false, regionId = None, Some(streetEdgeId))
-          case (_, _, Some(regionId)) =>
+          case (_, _, Some(regionId), _, _) =>
             exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion = false,
               routeId = None, resumeRoute = resumeRoute, Some(regionId), streetEdgeId = None)
-          case (_, _, _) =>
+          case (_, _, _, Some(lt), Some(lg)) =>
+            // Free exploration at a searched address under an exploreAddress mission (#4451); falls back to the
+            // normal flow when no street is close enough to the requested point.
+            exploreService.getDataForExploreAddressPage(user.userId, lt, lg).flatMap {
+              case Some(exploreAddressData) => Future.successful(exploreAddressData)
+              case None                     =>
+                exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion,
+                  routeId = None, resumeRoute, regionId = None, streetEdgeId = None)
+            }
+          case _ =>
             exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion,
               routeId = None, resumeRoute, regionId = None, streetEdgeId = None)
         }
         commonData <- configService.getCommonPageData(request2Messages.lang)
       } yield {
+        val isExploreAddress: Boolean =
+          exploreData.mission.missionType == MissionType.ExploreAddress
         val pageTitle: String = Messages("seo.title.explore", commonData.currentCity.cityNameShort)
+
         // Log visit to the Explore page.
         val activityStr: String =
           if (exploreData.userRoute.isDefined) s"Visit_Audit_RouteId=${exploreData.userRoute.get.routeId}"
           else if (streetEdgeId.isDefined) s"Visit_Audit_StreetEdgeId=${streetEdgeId.get}"
           else if (regionId.isDefined) s"Visit_Audit_RegionId=${regionId.get}"
+          else if (isExploreAddress) s"Visit_Audit_ExploreAddress_Lat=${lat.get}_Lng=${lng.get}"
           else if (newRegion) "Visit_Audit_NewRegionSelected"
           else "Visit_Audit"
         cc.loggingService.insert(user.userId, request.ipAddress, activityStr)
 
-        // Load the Explore page. The match statement below just passes along any extra params when using
-        // `streetEdgeId`. If user is an admin and a panoId or lat/lng are supplied, send to that location, o/w send
-        // to street.
+        // Load the Explore page. The match statement below just passes along any extra params. The pano is seeded at
+        // panoId or lat/lng for an admin exploring a specific street, or at lat/lng for an address drop-in (any user).
         (streetEdgeId, isAdmin(user), panoId, lat, lng) match {
           case (Some(s), true, Some(p), _, _) =>
             Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, None, None, Some(p)))
           case (Some(s), true, _, Some(lt), Some(lg)) =>
             Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg)))
+          case (None, _, _, Some(lt), Some(lg)) if isExploreAddress =>
+            // placeName rides along only on the drop-in path — it names the searched place in the landing greeting.
+            Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg), None, placeName))
           case _ => Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData))
         }
       }
