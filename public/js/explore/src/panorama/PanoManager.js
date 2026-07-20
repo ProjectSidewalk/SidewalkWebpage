@@ -28,9 +28,9 @@ class PanoManager {
    * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize
    * @param {string} viewerAccessToken An access token used to request images for the pano viewer
    * @param {object} params Parameters that affect the initialization of the panorama viewer
-   * @param {string} [params.startPanoId] Optional starting pano, used over lat/lng
-   * @param {number} [params.startLat] Optional starting latitude, overridden by startPanoId
-   * @param {number} [params.startLng] Optional starting longitude, overridden by startPanoId
+   * @param {string} [params.startPanoId] Optional starting pano, tried before the lat/lng
+   * @param {number} [params.startLat] Optional starting latitude; the fallback if startPanoId fails to load
+   * @param {number} [params.startLng] Optional starting longitude; the fallback if startPanoId fails to load
    * @param {object} errorParams Params necessary in case loading the initial location fails
    * @param {Task} errorParams.task The assigned Task; used if no imagery is found to record the street
    * @param {number} errorParams.missionId The current mission ID; used if no imagery is found
@@ -73,25 +73,32 @@ class PanoManager {
       defaultNavigation: false, // We create our own navigation arrows.
     };
 
-    // Add the starting location to panoOptions.
+    // Add the starting location to panoOptions. A pano seed is tried first; the lat/lng (plus backups sampled along
+    // the street) doubles as its fallback, so a dead pano isn't misreported as a street with no imagery (#4635).
     if (params.startPanoId) {
       panoOptions.startPanoId = params.startPanoId;
-    } else if (params.startLat && params.startLng) {
+    }
+    if (params.startLat && params.startLng) {
       panoOptions.startLatLng = { lat: params.startLat, lng: params.startLng };
       panoOptions.backupLatLngs = PanoManager.#backupPointsAlongStreet(errorParams.task);
     }
 
     // Load the pano viewer.
-    svl.panoViewer = await panoViewerType.create(this.panoCanvas, panoOptions)
-      .catch(async () => {
-        // If no GSV at starting street, log it and refresh the page to get a new street.
-        await util.misc.reportNoImagery(errorParams.task, errorParams.missionId).then(() => {
-          window.location.replace('/explore');
-        });
-      });
+    try {
+      svl.panoViewer = await panoViewerType.create(this.panoCanvas, panoOptions);
+    } catch {
+      // No usable imagery anywhere on the street: record it and refresh the page to get a new street.
+      await util.misc.reportNoImagery(errorParams.task, errorParams.missionId);
+      // window.location.replace() doesn't halt execution, so bail out before the code below dereferences the
+      // missing viewer. Main.js sees the undefined svl.panoViewer and stops its own init the same way.
+      window.location.replace('/explore');
+      return;
+    }
 
-    // If we used a backup point closer to the end of the street, reverse the street direction.
-    if (panoOptions.startLatLng && panoOptions.backupLatLngs) {
+    // If we started from a lat/lng and used a backup point closer to the end of the street, reverse the street
+    // direction. An explicitly requested pano that loaded isn't a "couldn't start at the start" signal, so it
+    // doesn't reverse anything.
+    if (svl.panoViewer.initialSeed === 'latLng' && panoOptions.backupLatLngs) {
       const start = turf.point([params.startLng, params.startLat]);
       const end = turf.point([errorParams.task.getEndCoordinate().lng, errorParams.task.getEndCoordinate().lat]);
       const curr = turf.point([svl.panoViewer.getPosition().lng, svl.panoViewer.getPosition().lat]);

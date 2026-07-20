@@ -65,8 +65,9 @@ class Main {
     svl.alertController = new AlertController();
     svl.stuckAlert = new StuckAlert(svl.alertController);
 
-    // The task's current position is the default start; an explicit pano seed (an admin auditing a street from a
-    // given pano/lat-lng, or an address drop-in per #4451) takes precedence.
+    // The task's current position is the default start; an explicit seed (an admin auditing a street from a given
+    // pano/lat-lng, or an address drop-in per #4451) takes precedence. A pano seed keeps the lat/lng alongside it as
+    // the fallback for a pano that fails to load (#4635).
     const startLat = params.startLat ?? params.task.properties.current_lat;
     const startLng = params.startLng ?? params.task.properties.current_lng;
     svl.panoStore = new PanoStore();
@@ -77,10 +78,12 @@ class Main {
     const newTask = new Task(params.task, isTutorialTask);
     let initParams;
     if (isTutorialTask) initParams = { startPanoId: 'tutorial' };
-    else if (params.startPanoId) initParams = { startPanoId: params.startPanoId };
-    else initParams = { startLat, startLng };
+    else initParams = { startPanoId: params.startPanoId, startLat, startLng };
     const errorParams = { task: newTask, missionId: params.mission.mission_id };
     svl.panoManager = await PanoManager.create(svl.viewerType, params.viewerAccessToken, initParams, errorParams);
+    // No viewer means PanoManager found no usable imagery and has already scheduled a redirect; stop initializing
+    // so nothing dereferences the missing viewer while the navigation lands.
+    if (!svl.panoViewer) return;
     const currLatLng = svl.panoViewer.getPosition();
     newTask.updateTheFurthestPointReached(currLatLng);
 
