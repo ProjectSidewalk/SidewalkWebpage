@@ -50,6 +50,7 @@ test.server.warning.message = <strong>Você está em um servidor de teste.</stro
 test.server.warning.label = Aviso de servidor de teste
 test.server.warning.close = Dispensar aviso
 dont.show.again = Não mostrar novamente
+explore.alert.close = Fechar
 
 press.key = Pressione a tecla "{0}"
 press.keys = Pressione as teclas "{0}"

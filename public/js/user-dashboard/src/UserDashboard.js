@@ -49,6 +49,7 @@ class UserDashboard {
       // Off-map host (dashboard), so the label popup offers "View on Label Map" like the gallery does.
       popupLabelViewer: await LabelPopup(admin, viewerType, viewerAccessToken, currentUsername, {
         showLabelMapLink: true,
+        showExploreHereLink: true,
       }),
     };
 

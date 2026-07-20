@@ -142,6 +142,7 @@
     },
     "minimap": {
       "follow-red-line": "Follow the red line to continue the mission",
+      "free-explore-move": "Move to a new spot to keep exploring",
       "explore-current-location": "Turn 360 degrees to make sure nothing is missed."
     },
     "stats": {

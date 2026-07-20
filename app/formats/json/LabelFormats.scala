@@ -190,6 +190,8 @@ object LabelFormats {
       "zoom"               -> labelMetadata.pov.zoom,
       "canvas_x"           -> labelMetadata.canvasXY.x,
       "canvas_y"           -> labelMetadata.canvasXY.y,
+      "lat"                -> labelMetadata.location.map(_.lat),
+      "lng"                -> labelMetadata.location.map(_.lng),
       "camera_lat"         -> labelMetadata.cameraLocation.map(_.lat),
       "camera_lng"         -> labelMetadata.cameraLocation.map(_.lng),
       "street_edge_id"     -> labelMetadata.streetEdgeId,

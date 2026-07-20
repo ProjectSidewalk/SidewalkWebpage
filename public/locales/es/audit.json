@@ -142,6 +142,7 @@
     },
     "minimap": {
       "follow-red-line": "Sigue la línea roja para continuar la misión",
+      "free-explore-move": "Muévete a un nuevo lugar para seguir explorando",
       "explore-current-location": "Gire 360 grados para asegurarse de que no se pierda nada."
     },
     "stats": {

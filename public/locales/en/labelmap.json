@@ -1,6 +1,8 @@
 {
   "search-placeholder": "Search for an address or place",
   "explore-here": "Explore the sidewalks here",
+  "explore-here-short": "Explore here",
+  "explore-here-brief": "Explore",
   "explore-here-percent": "{{percent}}% explored",
   "loading-labels": "Loading sidewalk labels…",
   "loading-elapsed": "{{seconds}}s elapsed",
@@ -26,6 +28,7 @@
   "vote-tooltip-ai-included": "Our AI's vote is included in this count.",
   "tags-tooltip": "Attributes the labeler applied to describe the problem",
   "view-on-labelmap": "View on Label Map",
+  "view-on-labelmap-brief": "Label Map",
   "image-date": "Image",
   "no-comments-yet": "No comments yet",
   "why-disagree": "Tell us why you disagree…",
@@ -42,6 +45,7 @@
   "story": {
     "heading": "Community stories",
     "share-yours": "Share your story",
+    "share-yours-brief": "Your story",
     "anonymous": "Anonymous",
     "your-story-chip": "Your story",
     "see-all-stories": "See all your stories",

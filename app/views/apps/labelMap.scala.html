@@ -152,6 +152,7 @@
         popupLabelViewer: await LabelPopup(false, viewerType, accessToken,
                                            @if(user.role != "Anonymous") {"@user.username"} else {null}, {
           syncUrlSource: 'LabelMap',
+          showExploreHereLink: true,
           // Keep the shown label spotlighted beside the dialog while paging, and pulse it on close so the user
           // is re-anchored.
           onShow: labelId => spotlight.spotlight(labelId),

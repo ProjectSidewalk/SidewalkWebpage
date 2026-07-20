@@ -50,6 +50,7 @@ test.server.warning.message = <strong>U bevindt zich op een testserver.</strong>
 test.server.warning.label = Testservermelding
 test.server.warning.close = Melding sluiten
 dont.show.again = Laat niet opnieuw zien
+explore.alert.close = Sluiten
 
 press.key = Druk op de "{0}" toets
 press.keys = Druk op de "{0}" toetsen

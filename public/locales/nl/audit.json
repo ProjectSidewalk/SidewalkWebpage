@@ -142,6 +142,7 @@
     },
     "minimap": {
       "follow-red-line": "Volg de rode lijn om de missie voort te zetten",
+      "free-explore-move": "Ga naar een nieuwe plek om verder te verkennen",
       "explore-current-location": "Draai 360 graden om er zeker van te zijn dat u niets mist."
     },
     "stats": {
