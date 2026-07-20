@@ -11,7 +11,8 @@
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@common.main(commonData, title, defaultI18nNamespace = "validate", i18Namespaces = Seq("validate", "common"), url) {
+@common.main(commonData, title, defaultI18nNamespace = "validate", i18Namespaces = Seq("validate", "common"), url,
+  pageMeta = service.PageMeta(description = Some(Messages("seo.description.validate", currentCity.cityNameShort)))) {
   @common.navbar(commonData, Some(user))
   @common.icons()
 

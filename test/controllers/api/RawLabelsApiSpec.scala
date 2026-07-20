@@ -51,7 +51,7 @@ class RawLabelsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val body = contentAsString(resp)
       // Header from LabelDataForApi.csvHeader; assert snake_case field names are present and camelCase absent.
       body must include(
-        "label_id,user_id,pano_id,label_type,severity,tags,description,time_created,street_edge_id,osm_way_id," +
+        "label_id,user_id,pano_id,pano_source,label_type,severity,tags,description,time_created,street_edge_id,osm_way_id," +
           "region_id,region_name,correct,agree_count,disagree_count,unsure_count,validations,audit_task_id,mission_id," +
           "image_capture_date,heading,pitch,zoom,canvas_x,canvas_y,canvas_width,canvas_height,pano_x,pano_y," +
           "pano_width,pano_height,camera_heading,camera_pitch,camera_roll,pano_url,latitude,longitude"

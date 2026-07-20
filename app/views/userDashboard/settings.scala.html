@@ -122,7 +122,7 @@
 }
 
 @* dashboard namespace: Settings.js's and TeamCreate.js's client-side status/error strings. *@
-@common.main(commonData, "Sidewalk - Settings", i18Namespaces = Seq("common", "dashboard")) {
+@common.main(commonData, Messages("seo.title.settings"), i18Namespaces = Seq("common", "dashboard")) {
   @common.navbar(commonData, Some(user))
   @userDashboard.layout("settings")(content)
 }

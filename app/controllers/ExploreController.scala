@@ -12,6 +12,7 @@ import models.mission.MissionType
 import models.pano.PanoSource
 import models.street.{StreetEdgeIssue, StreetEdgeIssueType}
 import models.user._
+import play.api.i18n.Messages
 import play.api.libs.json._
 import play.api.mvc.Result
 import play.api.{Configuration, Logger}
@@ -54,7 +55,6 @@ class ExploreController @Inject() (
       placeName: Option[String]
   ) = cc.securityService.SecuredAction { implicit request =>
     val user: SidewalkUserWithRole = request.identity
-    val pageTitle: String          = "Sidewalk - Explore"
 
     // Labeling isn't supported on phones/tablets, so send mobile users to the mobile landing page instead.
     if (isMobile(request)) {
@@ -90,6 +90,7 @@ class ExploreController @Inject() (
       } yield {
         val isExploreAddress: Boolean =
           exploreData.mission.missionType == MissionType.ExploreAddress
+        val pageTitle: String = Messages("seo.title.explore", commonData.currentCity.cityNameShort)
 
         // Log visit to the Explore page.
         val activityStr: String =

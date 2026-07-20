@@ -1,5 +1,6 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
+@import play.api.libs.json.Json
 @import service.CommonPageData
 @(title: String, commonData: CommonPageData, user: SidewalkUserWithRole, openStatus: String,
   mapathonLink: Option[String], streetDistance: Double, auditedDistance: Double, labelCount: Int, valCount: Int
@@ -10,7 +11,36 @@
 @newsRibbonLink = @{config.get[Option[String]]("custom.news.ribbon.link")}
 @streetCompletionRate = @{100 * auditedDistance / streetDistance}
 
-@common.main(commonData, title, i18Namespaces = Seq("common", "validate")) {
+@* Organization + WebSite JSON-LD (#4237), built with the JSON library so quoting is always valid; escaping `<`
+   blocks a `</script>` breakout from any interpolated string. *@
+@jsonLd = @{
+  Json.stringify(Json.obj(
+    "@context" -> "https://schema.org",
+    "@graph" -> Json.arr(
+      Json.obj(
+        "@type"  -> "Organization",
+        "name"   -> "Project Sidewalk",
+        "url"    -> commonData.prodUrl,
+        "logo"   -> (commonData.prodUrl.stripSuffix("/") +
+          assets.path("images/logos/ProjectSidewalkLogo_WithCurvedText_3600x3600.png")),
+        "email"  -> "sidewalk@cs.uw.edu",
+        "sameAs" -> Json.arr("https://github.com/ProjectSidewalk", "https://twitter.com/projsidewalk",
+          "https://www.facebook.com/projsidewalk", "https://makeabilitylab.cs.washington.edu/")
+      ),
+      Json.obj(
+        "@type" -> "WebSite",
+        "name"  -> Messages("seo.title.landing", currentCity.cityNameShort),
+        "url"   -> commonData.prodUrl
+      )
+    )
+  )).replace("<", "\\u003c")
+}
+@structuredData = {
+  <script type="application/ld+json">@Html(jsonLd)</script>
+}
+
+@common.main(commonData, title, i18Namespaces = Seq("common", "validate"), extraHead = structuredData,
+  pageMeta = service.PageMeta(description = Some(Messages("seo.description.landing", currentCity.cityNameShort)))) {
   @common.navbar(commonData, Some(user))
   <div id="vidbanner">
     <video playsinline autoplay muted loop controls poster='@assets.path("images/psmockup.jpg")' id="bgvid" class="visible-desktop">
@@ -27,7 +57,7 @@
       <div class="row" id="bigtext">
         <div class="col-sm-3"></div>
         <div class="col-sm-6" id="bannertext">
-          <p id="text"><span class="tagline">@Messages("landing.create.path")</span></p>
+          <h1 id="text" class="tagline">@Messages("landing.create.path")</h1>
           <br>
           <a id="landing-cta-button" class="button-ps button--primary button--large" href="@routes.ExploreController.explore()">
             @Messages("landing.start.exploring") @currentCity.cityNameShort
@@ -49,7 +79,7 @@
   <div id="content">
     <div class="container home-content-container">
       <div class="section-title-and-subtitle">
-        <div class="row section-title" id="instruction-video-title">@Messages("landing.how.you.help")</div>
+        <h2 class="row section-title" id="instruction-video-title">@Messages("landing.how.you.help")</h2>
         <div class="row section-subtitle" id="instruction-video-subtitle">@Messages("landing.how.you.help.content", currentCity.cityNameShort)</div>
       </div>
 
@@ -94,7 +124,7 @@
 
     <div class="container" id="landing-validation-container" hidden>
       <div class="section-title-and-subtitle">
-        <div class="row section-title" id="landing-validation-title">@Messages("landing.validate.title")</div>
+        <h2 class="row section-title" id="landing-validation-title">@Messages("landing.validate.title")</h2>
         <div class="row section-subtitle" id="landing-validation-subtitle">@Messages("landing.validate.content", currentCity.cityNameShort)</div>
       </div>
       <div id="landing-validation-grid" class="landing-validation-grid" aria-live="polite"></div>
@@ -102,7 +132,7 @@
 
     <div id="landing-choropleth-container" class="container choropleth-container">
       <div class="section-title-and-subtitle">
-        <div class="row section-title" id="choose-neighborhood-title">@Messages("landing.choropleth.title")</div>
+        <h2 class="row section-title" id="choose-neighborhood-title">@Messages("landing.choropleth.title")</h2>
         <div class="row section-subtitle" id="choose-neighborhood-subtitle">
           <div id="exploredesc">@Html(Messages("landing.choropleth.content"))</div>
         </div>
@@ -159,11 +189,13 @@
         <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.validations")</span>
       </div>
       <div class="ps-skyline-overlay section-title-and-subtitle">
-        <div class="row section-title" id="skyline-title">@Messages("landing.stats.title")</div>
+        <h2 class="row section-title" id="skyline-title">@Messages("landing.stats.title")</h2>
         <div class="row section-subtitle" id="skyline-subtitle">
           <p id="conditional-text">Keep Mapping!</p>
         </div>
       </div>
+      @* countUp is only used by this inline stats script, so it loads here rather than in the global <head>. *@
+      <script src='@assets.path("vendor/countup/countUp-1.9.3.min.js")'></script>
       <script language="javascript">
         if ("@openStatus" === "partially" && @("%.0f".format(streetCompletionRate)) >= 100) {
           document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.partial", " %, .0f".format(auditedDistance), currentCity.cityNameFormatted)";
@@ -183,7 +215,7 @@
 
     <div class="container" id="machinelearning-container">
       <div class="section-title-and-subtitle">
-        <div class="row section-title" id="ml-title">@Messages("landing.ml.title")</div>
+        <h2 class="row section-title" id="ml-title">@Messages("landing.ml.title")</h2>
         <div class="row section-subtitle" id="ml-subtitle">
           <div class="exploredesc">@Messages("landing.ml.content")</div>
         </div>
@@ -204,7 +236,7 @@
 
     <div class="container-fluid" id="deployment-map-container">
       <div class="section-title-and-subtitle">
-        <div class="row section-title" id="deployment-map-title">@Messages("landing.deployment.map.title")</div>
+        <h2 class="row section-title" id="deployment-map-title">@Messages("landing.deployment.map.title")</h2>
         <div class="row section-subtitle" id="deployment-map-subtitle">
           <div class="exploredesc">@Messages("landing.deployment.map.subtitle")</div>
         </div>

@@ -1,6 +1,8 @@
 # Routes / URLs for the website.
 GET     /                                               controllers.ApplicationController.index
 GET     /home                                           controllers.ApplicationController.index
+GET     /robots.txt                                     controllers.SeoController.robots
+GET     /sitemap.xml                                    controllers.SeoController.sitemap
 GET     /api                                            controllers.ApiDocsController.index
 GET     /developer                                      controllers.ApiDocsController.index
 GET     /terms                                          controllers.ApplicationController.terms
