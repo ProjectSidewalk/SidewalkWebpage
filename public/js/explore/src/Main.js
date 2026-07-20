@@ -426,19 +426,28 @@ class Main {
   }
 
   /**
-   * Cleans up URL in address bar by removing query params that aren't necessary, changing /audit to /explore. etc.
+   * Cleans up the URL in the address bar: normalizes /audit to /explore and drops query params that aren't needed.
+   * For a drop-in session it keeps the seed params so a refresh — or a copied/shared link — resumes at the same
+   * place and camera rather than falling back to a normal audit mission (#4451, #4637).
    */
   #updateURL() {
     let newURL = `${window.location.protocol}//${window.location.host}/explore`;
     if (window.location.search.includes('retakeTutorial=true')) {
       newURL += '?retakeTutorial=true';
     } else if (svl.isExploreAddressMode()) {
-      // Keep the address params so a refresh resumes the free-exploration session; a bare /explore would fall back to
-      // a normal audit mission (#4451).
-      newURL += `?lat=${this.#params.startLat}&lng=${this.#params.startLng}`;
-      if (this.#params.startPlaceName) {
-        newURL += `&placeName=${encodeURIComponent(this.#params.startPlaceName)}`;
+      // Carry the whole drop-in seed, not just the coordinates: the label card's "Explore here" hop (#4637) also
+      // seeds a point of view and pano, so keeping them lets a refreshed or shared link land on the exact view the
+      // card pointed at instead of only the spot. An expired pano still falls back to the lat/lng (#4635).
+      const params = this.#params;
+      const urlParams = new URLSearchParams({ lat: params.startLat, lng: params.startLng });
+      if (params.startPov) {
+        urlParams.set('heading', params.startPov.heading);
+        urlParams.set('pitch', params.startPov.pitch);
+        urlParams.set('zoom', params.startPov.zoom);
       }
+      if (params.startPanoId) urlParams.set('panoId', params.startPanoId);
+      if (params.startPlaceName) urlParams.set('placeName', params.startPlaceName);
+      newURL += `?${urlParams.toString()}`;
     }
     if (newURL !== window.location.href) {
       window.history.pushState({ }, '', newURL);

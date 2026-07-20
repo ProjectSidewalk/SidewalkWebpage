@@ -638,8 +638,8 @@ button.label-detail__meta-cell:focus-visible {
 
 /* ─── Description / comments ──────────────────────────────────────────── */
 
-/* The top border groups the community-input zone (description, comments, comment box, share) apart from the
-   label facts above — the card's single divider. */
+/* Top border sets the community-input zone (labeler description + validator comments) apart from the label facts
+   above; the footer actions carry their own divider below. */
 .label-detail__desc-comments {
   padding-top: 14px;
   border-top: 1px solid var(--color-neutral-200);
@@ -872,7 +872,12 @@ button.label-detail__meta-cell:focus-visible {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+
+  /* Sets the action buttons apart from the content above in every state — the label facts, or the validator-comment
+     box when it's open (which otherwise crowds them). */
+  border-top: 1px solid var(--color-neutral-200);
 }
 
 /* Cross-surface hops: to the LabelMap (#4572) and into Explore at the label's pano (#4637); styled as siblings of
