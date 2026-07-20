@@ -136,7 +136,7 @@
     "no-accuracy-tooltip": "We hebben meer gegevens nodig om een nauwkeurigheidsbeoordeling voor u te berekenen. Voeg meer labels toe en meld u aan om uw nauwkeurigheidsbeoordeling bij te houden!",
     "current-mission": {
       "header": "Huidige Missie",
-      "header-route": "$t(right-ui.current-mission.header): Route {{route_number}}",
+      "message-route": "Verken {{routeName}}",
       "header-free-explore": "Vrij verkennen",
       "message": "Zoek __PLACEHOLDER__ voor {{neighborhoodName}}"
     },

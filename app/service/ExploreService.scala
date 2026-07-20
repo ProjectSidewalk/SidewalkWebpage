@@ -29,6 +29,7 @@ case class ExplorePageData(
     mission: Mission,
     region: Region,
     userRoute: Option[UserRoute],
+    route: Option[Route],
     hasCompletedAMission: Boolean,
     nextTempLabelId: Int,
     surveyData: Seq[SurveyQuestionWithOptions],
@@ -292,8 +293,8 @@ class ExploreServiceImpl @Inject() (
       tutorialStreetId: Int                      <- configTable.getTutorialStreetId
       makeCrops: Boolean                         <- configTable.getMakeCrops
     } yield {
-      ExplorePageData(task, updatedMission, region.get, userRoute, hasCompletedAMission, nextTempLabelId, surveyData,
-        tutorialStreetId, makeCrops)
+      ExplorePageData(task, updatedMission, region.get, userRoute, routeOption, hasCompletedAMission, nextTempLabelId,
+        surveyData, tutorialStreetId, makeCrops)
     }
     db.run(getExploreDataAction.transactionally)
   }
@@ -325,8 +326,8 @@ class ExploreServiceImpl @Inject() (
                 makeCrops: Boolean                         <- configTable.getMakeCrops
               } yield {
                 Some(
-                  ExplorePageData(task, updatedMission, region, userRoute = None, hasCompletedAMission, nextTempLabelId,
-                    surveyData, tutorialStreetId, makeCrops)
+                  ExplorePageData(task, updatedMission, region, userRoute = None, route = None, hasCompletedAMission,
+                    nextTempLabelId, surveyData, tutorialStreetId, makeCrops)
                 )
               }
           }

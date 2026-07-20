@@ -809,6 +809,7 @@
     @if(data.userRoute.isDefined) {
     mainParam.routeId = @data.userRoute.get.routeId;
     mainParam.userRouteId = @data.userRoute.get.userRouteId;
+    mainParam.routeName = @jsonForScript(data.route.map(_.name).getOrElse(""));
     }
 
     @* Optional pano seed: an admin auditing a specific street from a pano/lat-lng, or an address drop-in (#4451). *@

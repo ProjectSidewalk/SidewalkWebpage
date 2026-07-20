@@ -136,7 +136,7 @@
     "no-accuracy-tooltip": "Wir benötigen mehr Daten, um Ihre Genauigkeit zu bewerten. Fügen Sie mehr Beschriftungen hinzu und melden Sie sich an, um die Bewertung Ihrer Genauigkeit zu verfolgen!",
     "current-mission": {
       "header": "Aktuelle Mission",
-      "header-route": "$t(right-ui.current-mission.header): Route {{route_number}}",
+      "message-route": "Erkunde {{routeName}}",
       "header-free-explore": "Freies Erkunden",
       "message": "Erkunden Sie __PLACEHOLDER__ von {{neighborhoodName}}"
     },

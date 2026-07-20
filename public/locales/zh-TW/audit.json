@@ -136,7 +136,7 @@
     "no-accuracy-tooltip": "我們需要更多的資料以計算您的精準度。請新增更多的標記並註冊帳號以持續追蹤進度及精準度！",
     "current-mission": {
       "header": "目前的任務",
-      "header-route": "$t(right-ui.current-mission.header): 路線{{route_number}}",
+      "message-route": "探索{{routeName}}",
       "header-free-explore": "自由探索",
       "message": "探索{{neighborhoodName}}的__PLACEHOLDER__"
     },

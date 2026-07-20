@@ -66,6 +66,11 @@ class MissionController {
     if (mission.getMissionCompletionRate() > 0.999) {
       this.#completeTheCurrentMission(mission, neighborhood);
 
+      // On a user-defined route, the intermediate distance-based missions complete quietly (still logged and
+      // recorded) — the celebration only comes at the end of the route (wrapUpRouteOrNeighborhood), so the user
+      // isn't interrupted mid-route.
+      if (svl.neighborhoodModel.isRoute) return;
+
       // While the mission complete modal is open, after the **neighborhood** is 100% audited, the user is jumped
       // to the next neighborhood, which updates the modal's neighborhood information while it is still open.
       if (svl.modalMissionComplete.isOpen()) return;
@@ -98,8 +103,16 @@ class MissionController {
     // distanceProgress / null → 1, immediately triggering the mission-complete modal. No progress bar, no survey.
     if (svl.isExploreAddressMode()) return;
 
-    // Update mission completion rate in the right sidebar.
-    const completionRate = currentMission.getMissionCompletionRate();
+    // Update mission completion rate in the right sidebar. On a route, the Current Mission section describes the
+    // whole route (the server-side mission slices are invisible there), so its bar tracks route progress.
+    let completionRate;
+    if (this.#neighborhoodModel.isRoute) {
+      const unit = { units: i18next.t('common:unit-distance') };
+      const routeDistance = svl.taskContainer.totalLineDistanceInNeighborhood(unit);
+      completionRate = routeDistance ? Math.min(1, distance / routeDistance) : 0;
+    } else {
+      completionRate = currentMission.getMissionCompletionRate();
+    }
     svl.missionProgressBar.update(completionRate);
     if (!this.#neighborhoodModel.isRouteComplete && !this.#neighborhoodModel.isNeighborhoodComplete) {
       this.#checkMissionComplete(currentMission, currentRegion);

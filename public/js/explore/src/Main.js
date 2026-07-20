@@ -51,6 +51,7 @@ class Main {
     svl.userHasCompletedAMission = params.hasCompletedAMission;
     svl.routeId = params.routeId;
     svl.userRouteId = params.userRouteId;
+    svl.routeName = params.routeName;
     svl.makeCrops = params.makeCrops;
 
     svl.storage = new TemporaryStorage(JSON);

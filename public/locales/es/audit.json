@@ -136,7 +136,7 @@
     "no-accuracy-tooltip": "Necesitamos más datos para calcular una calificación de precisión para usted. ¡Agregue más etiquetas y regístrese para realizar un seguimiento de su calificación de precisión!",
     "current-mission": {
       "header": "Misión actual",
-      "header-route": "$t(right-ui.current-mission.header): Ruta {{route_number}}",
+      "message-route": "Explora {{routeName}}",
       "header-free-explore": "Exploración libre",
       "message": "Explora __PLACEHOLDER__ de {{neighborhoodName}}"
     },
