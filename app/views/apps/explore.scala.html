@@ -345,10 +345,15 @@
       </div>
       <div id="interaction-area-holder" onselectstart="return true;">
         <div id="alert-holder" class="ps-hidden">
-          <div id="alert">
-            <span id="alert-message"></span>
-            <a id="alert-dont-show" href="#">@Messages("dont.show.again")</a>
-            <a id="alert-close" href="#"><span class="glyphicon glyphicon-remove"></span></a>
+          <div id="alert" role="status" aria-live="polite">
+            <svg id="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <div id="alert-body">
+              <p id="alert-message"></p>
+              <button id="alert-dont-show" type="button">@Messages("dont.show.again")</button>
+            </div>
+            <button id="alert-close" type="button" aria-label="@Messages("explore.alert.close")">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
           </div>
         </div>
         <div id="street-view-holder">

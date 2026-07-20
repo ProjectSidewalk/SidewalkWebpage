@@ -1,47 +1,118 @@
-/* Overlaid on top of the pano (absolute) rather than in normal flow, so showing it doesn't push the GSV area down. */
+/* Overlaid on top of the pano (absolute) rather than in normal flow, so showing it doesn't push the GSV area down.
+   The holder spans a centered column but passes pointer events through its transparent margins to the pano — only
+   the card itself is interactive. */
 #alert-holder {
   z-index: 3;
   position: absolute;
   top: calc(50px * var(--ui-scale));
   left: 0;
   right: 0;
-  margin: 0 auto;
-  text-align: center;
-  font: var(--text-caption-regular);
   width: calc(730px * var(--ui-scale));
+  max-width: 92%;
+  margin: 0 auto;
+  pointer-events: none;
 }
 
+/* Toast card. Mirrors the site's test-server banner (banana band, outlined pill action, circular close) so the two
+   notices read as one family, adapted here to a floating, tool-scaled card. */
 #alert {
-  background-color: var(--color-warning-100);
-  border-radius: calc(10px * var(--ui-scale));
-  box-shadow: 0 1px 1px rgb(from var(--color-neutral-black) r g b / 10%);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  column-gap: calc(10px * var(--ui-scale));
-  padding: calc(6px * var(--ui-scale)) calc(10px * var(--ui-scale));
-  max-width: calc(600px * var(--ui-scale));
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: calc(12px * var(--ui-scale));
+  margin: 0 auto;
+  max-width: calc(560px * var(--ui-scale));
+  padding: calc(14px * var(--ui-scale)) calc(16px * var(--ui-scale));
+  background-color: var(--color-banana-200);
+  border: 1px solid var(--color-banana-500);
+  border-radius: calc(12px * var(--ui-scale));
+  box-shadow:
+    0 calc(4px * var(--ui-scale)) calc(16px * var(--ui-scale))
+    rgb(from var(--color-neutral-black) r g b / 12%);
   text-align: left;
 }
 
-#alert-message {
-  min-width: 0; /* Allow the message text to wrap inside the flex row. */
+/* Info cue on the left, nudged to sit on the first line's cap height. */
+#alert-icon {
+  flex: 0 0 auto;
+  width: calc(20px * var(--ui-scale));
+  height: calc(20px * var(--ui-scale));
+  margin-top: calc(1px * var(--ui-scale));
+  color: var(--color-banana-800);
 }
 
-#alert-holder a {
-  color: var(--color-neutral-black);
-}
-
-#alert-dont-show,
-#alert-close {
+/* Message stacked over its optional "don't show again" action. */
+#alert-body {
   display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  white-space: nowrap;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: calc(10px * var(--ui-scale));
+  min-width: 0; /* Allow the message text to wrap rather than force the row wider. */
 }
 
+#alert-message {
+  margin: 0;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-800);
+}
+
+/* Secondary action as an outlined amber pill, matching the banner's. display:none (set by AlertController when the
+   message doesn't offer an opt-out) drops it as a flex item, so the body collapses to just the message with no
+   leftover gap. */
 #alert-dont-show {
-  text-decoration: underline;
+  align-self: flex-end;
+  padding: calc(5px * var(--ui-scale)) calc(14px * var(--ui-scale));
+  border: 1px solid var(--color-banana-800);
+  border-radius: calc(999px * var(--ui-scale));
+  background: transparent;
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-900);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+#alert-dont-show:hover {
+  background-color: var(--color-banana-300);
+  border-color: var(--color-banana-900);
+}
+
+/* Circular close pinned to the card's top-right. */
+#alert-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: calc(28px * var(--ui-scale));
+  height: calc(28px * var(--ui-scale));
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-neutral-700);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+#alert-close svg {
+  width: calc(16px * var(--ui-scale));
+  height: calc(16px * var(--ui-scale));
+}
+
+#alert-close:hover {
+  background-color: var(--color-banana-300);
+  color: var(--color-neutral-900);
+}
+
+#alert :focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: calc(2px * var(--ui-scale));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #alert-dont-show,
+  #alert-close {
+    transition: none;
+  }
 }
 
 .browser-warning-holder {

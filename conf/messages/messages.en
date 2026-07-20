@@ -50,6 +50,7 @@ test.server.warning.message = <strong>You''re on a test server.</strong> Your wo
 test.server.warning.label = Test server notice
 test.server.warning.close = Dismiss notice
 dont.show.again = Don''t show again
+explore.alert.close = Close
 
 press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys

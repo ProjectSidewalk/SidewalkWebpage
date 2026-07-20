@@ -50,6 +50,7 @@ test.server.warning.message = <strong>Sie befinden sich auf einem Testserver.</s
 test.server.warning.label = Hinweis zum Testserver
 test.server.warning.close = Hinweis schließen
 dont.show.again = Nicht erneut anzeigen.
+explore.alert.close = Schließen
 
 press.key = Drücken Sie die Taste "{0}"
 press.keys = Drücken Sie die Tasten "{0}"
