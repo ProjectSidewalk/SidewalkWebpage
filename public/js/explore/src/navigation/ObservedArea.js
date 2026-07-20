@@ -221,7 +221,12 @@ class ObservedArea {
       this.#renderProgressCircle();
       this.#uiMinimap.percentObserved.text(`${Math.floor(100 * this.#fractionObserved)}%`);
       if (this.#fractionObserved === 1) {
-        this.#uiMinimap.message.text(i18next.t('right-ui.minimap.follow-red-line'));
+        // Free exploration has no mission route, so "follow the red line" makes no sense there (#4451); nudge the
+        // user to move on instead.
+        const doneKey = svl.isExploreAddressMode?.()
+          ? 'right-ui.minimap.free-explore-move'
+          : 'right-ui.minimap.follow-red-line';
+        this.#uiMinimap.message.text(i18next.t(doneKey));
       } else {
         this.#uiMinimap.message.text(i18next.t('right-ui.minimap.explore-current-location'));
       }

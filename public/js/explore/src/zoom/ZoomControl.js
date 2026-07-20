@@ -144,6 +144,26 @@ class ZoomControl {
   }
 
   /**
+   * Syncs the zoom buttons' enabled/disabled state to a zoom level applied to the pano outside this control — the
+   * label card's "Explore here" POV seed sets the pano zoom directly, before this control exists, so the buttons
+   * would otherwise keep their default (min-zoom) state and leave zoom-out dead until the first zoom-in (#4637).
+   * Only touches the button UI; it does not re-apply the zoom to the pano.
+   * @param {number} zoomLevel - The pano's current zoom level.
+   */
+  syncButtonsToZoom(zoomLevel) {
+    if (zoomLevel <= this.#properties.minZoomLevel) {
+      this.enableZoomIn();
+      this.disableZoomOut();
+    } else if (zoomLevel >= this.#properties.maxZoomLevel) {
+      this.disableZoomIn();
+      this.enableZoomOut();
+    } else {
+      this.enableZoomIn();
+      this.enableZoomOut();
+    }
+  }
+
+  /**
    * Get status.
    * @param {string} name
    * @returns {*}

@@ -336,7 +336,13 @@ class Main {
 
       // Set up a few initial views now that everything has loaded. A seeded POV (the labeler's stored view from the
       // label card's "Explore here" hop, #4637) wins over the default route-facing camera.
-      if (!this.#params.startPov) svl.panoManager.setPovToRouteDirection();
+      if (this.#params.startPov) {
+        // The seed set the pano zoom straight on the viewer, before ZoomControl existed — sync its buttons to that
+        // zoom so zoom-out isn't left dead (#4637).
+        svl.zoomControl.syncButtonsToZoom(svl.panoViewer.getPov().zoom);
+      } else {
+        svl.panoManager.setPovToRouteDirection();
+      }
       svl.minimap.setMinimapLocation(svl.panoViewer.getPosition());
       svl.observedArea.panoChanged();
       svl.observedArea.update();

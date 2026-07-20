@@ -142,6 +142,7 @@
     },
     "minimap": {
       "follow-red-line": "請沿著紅線繼續任務",
+      "free-explore-move": "移動到新地點以繼續探索",
       "explore-current-location": "旋轉 360 度以確保沒有遺漏任何內容。"
     },
     "stats": {
