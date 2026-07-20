@@ -519,12 +519,15 @@ class LabelDetail {
       const canExploreHere = this.#showExploreHereLink && Number.isFinite(meta.lat) && Number.isFinite(meta.lng);
       if (canExploreHere) {
         const exploreParams = new URLSearchParams({ lat: meta.lat, lng: meta.lng });
-        if (meta.pano_id && !meta.expired) {
-          exploreParams.set('panoId', meta.pano_id);
+        // The POV rides along even without the pano: it's Explore's signal to face the label (rather than the
+        // route direction) when it has to land on a different camera.
+        if ([meta.heading, meta.pitch, meta.zoom].every(Number.isFinite)) {
           exploreParams.set('heading', meta.heading);
           exploreParams.set('pitch', meta.pitch);
           exploreParams.set('zoom', Math.round(meta.zoom));
         }
+        // A known-expired pano is skipped up front; the coordinates above are the seed instead.
+        if (meta.pano_id && !meta.expired) exploreParams.set('panoId', meta.pano_id);
         const address = meta.pano_data?.address;
         if (address) exploreParams.set('placeName', address);
         els.exploreHereLink.href = `/explore?${exploreParams.toString()}`;

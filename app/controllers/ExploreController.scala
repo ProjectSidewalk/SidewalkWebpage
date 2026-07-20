@@ -116,7 +116,10 @@ class ExploreController @Inject() (
                 pitch, zoom)
             )
           case (Some(s), true, _, Some(lt), Some(lg)) =>
-            Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg)))
+            Ok(
+              views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg), None, None,
+                heading, pitch, zoom)
+            )
           case (None, _, p, Some(lt), Some(lg)) if isExploreAddress =>
             // placeName rides along only on the drop-in path — it names the searched place in the landing greeting.
             Ok(
