@@ -299,8 +299,8 @@
 
 .minimap-legend-sample-visited {
   fill: none;
-  stroke: rgb(62 139 217 / 80%);
-  stroke-width: 1.5;
+  stroke: rgb(62 139 217);
+  stroke-width: 2;
 }
 
 .minimap-legend-sample-dashed {

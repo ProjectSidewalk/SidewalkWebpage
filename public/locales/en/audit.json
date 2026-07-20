@@ -151,7 +151,7 @@
       "legend-explored": "Explored",
       "legend-ahead": "Route ahead",
       "legend-you": "You + view direction",
-      "legend-visited": "Visited",
+      "legend-visited": "Visited location",
       "legend-unseen": "Not yet viewed"
     },
     "stats": {
