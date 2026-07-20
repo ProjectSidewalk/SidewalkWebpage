@@ -334,8 +334,9 @@ class Main {
         svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
       }
 
-      // Set up a few initial views now that everything has loaded.
-      svl.panoManager.setPovToRouteDirection();
+      // Set up a few initial views now that everything has loaded. A seeded POV (the labeler's stored view from the
+      // label card's "Explore here" hop, #4637) wins over the default route-facing camera.
+      if (!this.#params.startPov) svl.panoManager.setPovToRouteDirection();
       svl.minimap.setMinimapLocation(svl.panoViewer.getPosition());
       svl.observedArea.panoChanged();
       svl.observedArea.update();

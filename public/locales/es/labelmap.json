@@ -1,6 +1,7 @@
 {
   "search-placeholder": "Busca una dirección o lugar",
   "explore-here": "Explora las aceras aquí",
+  "explore-here-short": "Explora aquí",
   "explore-here-percent": "{{percent}}% explorado",
   "loading-labels": "Cargando etiquetas…",
   "loading-elapsed": "{{seconds}} s transcurridos",
