@@ -524,6 +524,11 @@ class UserStatTable @Inject() (
    * Stats can be calculated for individual users or across teams. Overall and weekly are the possible time periods. We
    * only include accuracy if the user has at least 10 validated labels (must have either agree or disagree based off
    * of majority vote; an unsure or tie does not count).
+   *
+   * Qualification is by labels placed in the period: mission count and audited distance are LEFT-joined and default to
+   * 0 when absent, so a user who has placed labels but not yet finished a mission or a street still appears (with those
+   * columns at 0 and a low score). This matches getUserStanding's label-based eligibility, so the board and the "your
+   * standing" widget reconcile — a new mapper with labels but no completed street/mission still shows up (#4533).
    * @param n The number of top users to get stats for
    * @param timePeriod The time period over which to compute stats, either "weekly" or "overall"
    * @param byTeam True if grouping by team instead of by user.
@@ -570,12 +575,12 @@ class UserStatTable @Inject() (
       sql"""
       SELECT usernames.username,
              label_counts.label_count,
-             mission_count,
-             distance_meters,
+             COALESCE(mission_count, 0) AS mission_count,
+             COALESCE(distance_meters, 0) AS distance_meters,
              CASE WHEN validated_count > 9 THEN accuracy_temp ELSE NULL END AS accuracy,
              CASE WHEN accuracy_temp IS NOT NULL
-                 THEN SQRT(label_counts.label_count) * (0.5 * distance_meters / #$streetDistance + 0.5 * accuracy_temp)
-                 ELSE SQRT(label_counts.label_count) * (distance_meters / #$streetDistance)
+                 THEN SQRT(label_counts.label_count) * (0.5 * COALESCE(distance_meters, 0) / #$streetDistance + 0.5 * accuracy_temp)
+                 ELSE SQRT(label_counts.label_count) * (COALESCE(distance_meters, 0) / #$streetDistance)
                  END AS score
       FROM (
           SELECT #$groupingCol, COUNT(label_id) AS label_count
@@ -597,7 +602,8 @@ class UserStatTable @Inject() (
           LIMIT $n
       ) "label_counts"
       #$usernamesJoin
-      INNER JOIN (
+      -- LEFT joins so mission/distance are supplementary (default 0), not membership gates: labels alone qualify (#4533).
+      LEFT JOIN (
           SELECT #$groupingCol, COUNT(mission_id) AS mission_count
           FROM mission
           INNER JOIN sidewalk_user ON mission.user_id = sidewalk_user.user_id
@@ -605,7 +611,7 @@ class UserStatTable @Inject() (
           WHERE (mission_end AT TIME ZONE 'US/Pacific') > #$statStartTime
           GROUP BY #$groupingCol
       ) "missions_counts" ON label_counts.#$groupingColName = missions_counts.#$groupingColName
-      INNER JOIN (
+      LEFT JOIN (
           SELECT #$groupingCol, COALESCE(SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))), 0) AS distance_meters
           FROM street_edge
           INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
@@ -624,7 +630,7 @@ class UserStatTable @Inject() (
           WHERE (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
           GROUP BY #$groupingColName
       ) "accuracy" ON label_counts.#$groupingColName = accuracy.#$groupingColName
-      ORDER BY score DESC;
+      ORDER BY score DESC, label_counts.label_count DESC;
     """
         .as[(String, Int, Int, Double, Option[Double], Double)]
         .map(_.map { stat =>
