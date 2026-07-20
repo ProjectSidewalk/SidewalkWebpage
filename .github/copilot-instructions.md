@@ -14,7 +14,7 @@ Focus on correctness, domain rules, and the conventions in the path-scoped files
 - **Backend is the source of truth.** Flag hardcoded frontend literals that mirror
   backend domain values: label colors/icons, enum members, value ranges (min/max),
   thresholds, and especially mappings between them. Colors must come from
-  `util.misc.getLabelColors()`; other domain values from a `/v3/api/...` endpoint or
+  `util.misc.getLabelColors(labelType)`; other domain values from a `/v3/api/...` endpoint or
   a controller-injected view binding — never re-declared as a JS constant. Note:
   severity's good/ok/bad meaning is NOT fixed (positive vs negative features invert
   it), so flag any `{1:'good',2:'ok',3:'bad'}`-style literal.

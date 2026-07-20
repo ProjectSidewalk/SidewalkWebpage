@@ -9,7 +9,7 @@ applyTo: "public/js/**/*.js"
 - The constructor-function pattern (`function Foo(){ const self=this; ...; return
   self }`) should be a `class` with `#private` fields. Flag new code using it.
 - **No hardcoded domain values** (see repo-wide rule): use
-  `util.misc.getLabelColors(labelType)` and `getIconImagePaths()`; source enum
+  `util.misc.getLabelColors(labelType)` and `util.misc.getIconImagePaths(labelType)`; source enum
   members, ranges, and mappings from `/v3/api/...` or a view binding. Flag any
   `{1:'good',2:'ok',3:'bad'}`-style severity map.
 - **Tool UI scaling:** in Explore, Validate, and overlays layered over them, every
