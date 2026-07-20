@@ -14,15 +14,22 @@
 }
 
 /* Toast card. Mirrors the site's test-server banner (banana band, outlined pill action, circular close) so the two
-   notices read as one family, adapted here to a floating, tool-scaled card. */
+   notices read as one family, adapted here to a floating, tool-scaled card. One centered row — the icon, message,
+   and optional "don't show again" pill sit together and vertically center; the close pins to the top-right corner
+   like an OS window control. A short message keeps everything on one line; a longer one wraps and the pill holds the
+   right, centered against it. */
 #alert {
+  position: relative;
   pointer-events: auto;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: calc(12px * var(--ui-scale));
   margin: 0 auto;
-  max-width: calc(560px * var(--ui-scale));
-  padding: calc(14px * var(--ui-scale)) calc(16px * var(--ui-scale));
+  max-width: calc(640px * var(--ui-scale));
+
+  /* Extra right padding reserves the top-right corner for the absolutely-positioned close. */
+  padding: calc(14px * var(--ui-scale)) calc(50px * var(--ui-scale)) calc(14px * var(--ui-scale))
+    calc(18px * var(--ui-scale));
   background-color: var(--color-banana-200);
   border: 1px solid var(--color-banana-500);
   border-radius: calc(12px * var(--ui-scale));
@@ -32,40 +39,32 @@
   text-align: left;
 }
 
-/* Info cue on the left, nudged to sit on the first line's cap height. */
+/* Info cue on the left, vertically centered with the message. */
 #alert-icon {
   flex: 0 0 auto;
-  width: calc(20px * var(--ui-scale));
-  height: calc(20px * var(--ui-scale));
-  margin-top: calc(1px * var(--ui-scale));
+  width: calc(22px * var(--ui-scale));
+  height: calc(22px * var(--ui-scale));
   color: var(--color-banana-800);
 }
 
-/* Message stacked over its optional "don't show again" action. */
-#alert-body {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: calc(10px * var(--ui-scale));
-  min-width: 0; /* Allow the message text to wrap rather than force the row wider. */
-}
-
+/* Grows to fill the row, shrinking (wrapping its own text) rather than pushing the pill off the line. */
 #alert-message {
+  flex: 1 1 auto;
+  min-width: 0;
   margin: 0;
-  font: var(--text-caption-regular);
+  font: var(--text-small-regular);
   color: var(--color-neutral-800);
 }
 
-/* Secondary action as an outlined amber pill, matching the banner's. display:none (set by AlertController when the
-   message doesn't offer an opt-out) drops it as a flex item, so the body collapses to just the message with no
-   leftover gap. */
+/* Secondary action as an outlined amber pill, matching the banner's. Sits inline at the right of the message;
+   display:none (set by AlertController when the message doesn't offer an opt-out) drops it from the row entirely. */
 #alert-dont-show {
-  align-self: flex-end;
-  padding: calc(5px * var(--ui-scale)) calc(14px * var(--ui-scale));
+  flex: 0 0 auto;
+  padding: calc(5px * var(--ui-scale)) calc(16px * var(--ui-scale));
   border: 1px solid var(--color-banana-800);
   border-radius: calc(999px * var(--ui-scale));
   background: transparent;
-  font: var(--text-caption-medium);
+  font: var(--text-small-medium);
   color: var(--color-neutral-900);
   white-space: nowrap;
   cursor: pointer;
@@ -77,12 +76,15 @@
   border-color: var(--color-banana-900);
 }
 
-/* Circular close pinned to the card's top-right. */
+/* Circular close pinned to the card's top-right corner (OS-style), so it stays put whether the message is one line
+   or several. */
 #alert-close {
+  position: absolute;
+  top: calc(10px * var(--ui-scale));
+  right: calc(12px * var(--ui-scale));
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 auto;
   width: calc(28px * var(--ui-scale));
   height: calc(28px * var(--ui-scale));
   border: none;
