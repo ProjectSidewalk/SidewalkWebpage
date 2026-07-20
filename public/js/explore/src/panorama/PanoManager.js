@@ -79,7 +79,7 @@ class PanoManager {
     if (params.startPanoId) {
       panoOptions.startPanoId = params.startPanoId;
     }
-    if (params.startLat && params.startLng) {
+    if (Number.isFinite(params.startLat) && Number.isFinite(params.startLng)) {
       panoOptions.startLatLng = { lat: params.startLat, lng: params.startLng };
       panoOptions.backupLatLngs = PanoManager.#backupPointsAlongStreet(errorParams.task);
     }
@@ -87,8 +87,11 @@ class PanoManager {
     // Load the pano viewer.
     try {
       svl.panoViewer = await panoViewerType.create(this.panoCanvas, panoOptions);
-    } catch {
-      // No usable imagery anywhere on the street: record it and refresh the page to get a new street.
+    } catch (err) {
+      // Surface the error: creation can also fail for reasons beyond missing imagery (e.g. the maps library failing
+      // to load), and the redirect below would otherwise bury it.
+      console.error('Pano viewer creation failed at the starting location.', err);
+      // Record the street as having no usable imagery and refresh the page to get a new street.
       await util.misc.reportNoImagery(errorParams.task, errorParams.missionId);
       // window.location.replace() doesn't halt execution, so bail out before the code below dereferences the
       // missing viewer. Main.js sees the undefined svl.panoViewer and stops its own init the same way.
