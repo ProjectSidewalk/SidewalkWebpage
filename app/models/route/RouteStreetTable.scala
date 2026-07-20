@@ -26,7 +26,7 @@ class RouteStreetTableDef(tag: slick.lifted.Tag) extends Table[RouteStreet](tag,
   def streetEdge =
     foreignKey("route_street_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
   // Out-and-back routes traverse a street twice (once per direction), so the natural key is the walking-order
-  // position, not the street. Mirrors the UNIQUE (route_id, position) constraint from evolution 342.
+  // position, not the street. Mirrors the UNIQUE (route_id, position) constraint from evolution 344.
   def routeStreetUnique = index("route_street_route_id_position_key", (routeId, position), unique = true)
 }
 
