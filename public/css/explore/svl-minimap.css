@@ -62,6 +62,20 @@
   opacity: 0.85;
 }
 
+/* These full-cover panes are purely visual (the highlight-flash overlay + the fog/FOV/progress canvases). They must not
+   intercept pointer events, or the Google map's markers stacked below them never receive clicks (e.g. click a label to
+   return to it, #2561). Interactive children appended into the overlay re-enable pointer events. */
+#minimap-overlay,
+#minimap-fog-of-war-canvas,
+#minimap-fov-canvas,
+#minimap-progress-circle-canvas {
+  pointer-events: none;
+}
+
+#minimap-overlay > * {
+  pointer-events: auto;
+}
+
 /* "N% observed" label centered inside the progress ring drawn in the top-right corner (ObservedArea). */
 #minimap-percent-observed {
   font: var(--text-tiny-medium);
@@ -328,6 +342,7 @@
 .minimap-label-icon {
   width: calc(9px * var(--ui-scale, 1));
   height: auto;
+  cursor: pointer;
 }
 
 /* GSV-style "you are here" puck (Peg.js): a blue dot with a triangle pointing in the heading direction. Markers anchor

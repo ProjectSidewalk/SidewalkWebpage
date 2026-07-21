@@ -103,34 +103,25 @@ class Label {
     const latlng = this.toLatLng();
     this.#googleMarker = Label.createMinimapMarker(this.#properties.labelType, latlng);
     this.#googleMarker.map = svl.minimap.getMap();
-    this.#wireMinimapMarkerClick();
-  }
-
-  /**
-   * Makes this label's minimap marker clickable so the user can return to the pano where it was placed to review or
-   * re-mark it (#2561). Eligibility is checked at click time (current mission only) so returning is always to an area
-   * the user has already visited.
-   */
-  #wireMinimapMarkerClick() {
-    this.#googleMarker.content.style.cursor = 'pointer';
+    // Click the marker to return to this label's pano (#2561). gmpClickable (set in createMinimapMarker) is what makes
+    // the AdvancedMarkerElement emit gmp-click.
     this.#googleMarker.addListener('gmp-click', () => this.#returnToLabelFromMinimap());
   }
 
   /**
-   * Returns to this label's pano and faces it, unless the label isn't from the current mission (returning across
-   * missions would leave the map's active task out of sync) or we're mid-onboarding.
+   * Returns to this label's pano and faces it so the user can review or re-mark it (#2561). Ignored during onboarding
+   * or if the label isn't from the current mission (returning across missions would desync the map's active task).
    */
   #returnToLabelFromMinimap() {
     if (svl.isOnboarding()) return;
     const currMissionId = svl.missionContainer.getCurrentMission().getProperty('missionId');
     if (this.#properties.missionId !== currMissionId) return;
 
-    svl.navigationService.returnToPano(
-      this.#properties.panoId,
-      this.#properties.povOfLabelIfCentered,
-      'Click_MinimapLabelMarker',
-      { labelId: this.#properties.labelId, panoId: this.#properties.panoId },
-    );
+    svl.tracker.push('Click_MinimapLabelMarker', {
+      labelId: this.#properties.labelId,
+      panoId: this.#properties.panoId,
+    });
+    svl.navigationService.returnToPano(this.#properties.panoId, this.#properties.povOfLabelIfCentered);
   }
 
   // Some functions for easy access to commonly accessed properties.
