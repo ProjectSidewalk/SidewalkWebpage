@@ -208,7 +208,7 @@ class ObservedArea {
     const radius = 3.5 * this.#scaleFactor;
     // Full opacity (the FOV canvas already carries a 0.8 CSS opacity, so this reads as solid) so the trail stays clear.
     ctx.lineWidth = 1.4 * this.#scaleFactor;
-    ctx.strokeStyle = 'rgb(62, 139, 217)';
+    ctx.strokeStyle = MinimapStyle.pegColor();
     for (const observedArea of this.#observedAreas) {
       if (observedArea === this.#currArea) continue;
       const center = this.#latLngToPixel(observedArea.latLng);

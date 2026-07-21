@@ -200,7 +200,7 @@ class RouteOverview {
     ctx.fill();
     ctx.beginPath();
     ctx.arc(x, y, 3, 0, 2 * Math.PI);
-    ctx.fillStyle = 'rgb(62, 139, 217)';
+    ctx.fillStyle = MinimapStyle.pegColor();
     ctx.fill();
   }
 }
