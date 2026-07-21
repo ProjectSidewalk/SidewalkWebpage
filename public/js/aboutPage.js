@@ -88,13 +88,43 @@ class AboutPage {
   }
 
   /**
-   * Renders the current-team photo grid and the past-leadership list, then unhides the container.
+   * Merges multi-stint duplicate rows from the project-people listing into one entry per person.
+   *
+   * A person who left and came back has one row per stint; without merging they would be listed twice. The merged
+   * entry spans the earliest start to the latest end (null end = ongoing wins), and keeps any active/lead markers.
+   *
+   * @param {object[]} rows - Raw rows from the ML API project-people listing.
+   * @returns {object[]} One merged row per unique person.
+   */
+  #mergeStints(rows) {
+    const byPerson = new Map();
+    for (const row of rows) {
+      const merged = byPerson.get(row.person.url_name);
+      if (!merged) {
+        byPerson.set(row.person.url_name, { ...row });
+        continue;
+      }
+      merged.is_active ||= row.is_active;
+      merged.lead_project_role ||= row.lead_project_role;
+      merged.role ||= row.role;
+      if (row.start_date < merged.start_date) merged.start_date = row.start_date;
+      merged.end_date = merged.end_date && row.end_date
+        ? (row.end_date > merged.end_date ? row.end_date : merged.end_date)
+        : null;
+    }
+    return [...byPerson.values()];
+  }
+
+  /**
+   * Renders the current-team photo grid, the past-leadership cards, and the all-contributors name columns, then
+   * unhides the container.
    */
   async #renderTeam() {
     const container = document.getElementById('about-team-live');
     if (!container) return;
 
-    const people = await this.#fetchAllPages(`${AboutPage.#ML_API_BASE}/projects/sidewalk/people/?format=json`);
+    const rows = await this.#fetchAllPages(`${AboutPage.#ML_API_BASE}/projects/sidewalk/people/?format=json`);
+    const people = this.#mergeStints(rows);
     const leadRank = (p) => {
       const rank = AboutPage.#LEAD_ROLE_ORDER.indexOf(p.lead_project_role);
       return rank === -1 ? AboutPage.#LEAD_ROLE_ORDER.length : rank;
@@ -132,21 +162,30 @@ class AboutPage {
         <span class="about-team-role">${this.#esc(roleText(p))}</span>
       </li>`).join('');
 
+    // Past-lead cards pair the API-driven photo/name/role with a hand-curated, localized blurb server-rendered into
+    // the #about-team-past-blurbs template (keyed by url_name). The blurb is our own trusted markup, so no escaping.
     const years = (p) => `${p.start_date.slice(0, 4)}–${p.end_date ? p.end_date.slice(0, 4) : ''}`;
-    document.getElementById('about-team-past').innerHTML = pastLeads.map((p) => `
-      <li>
-        <a href="${this.#esc(p.person.url)}">${this.#esc(p.person.name)}</a>
-        <span class="about-team-role">${this.#esc(p.lead_project_role)}, ${this.#esc(years(p))}</span>
-      </li>`).join('');
+    const blurbFor = (p) => document.querySelector(
+      `#about-team-past-blurbs [data-person="${CSS.escape(p.person.url_name)}"]`)?.innerHTML ?? '';
+    document.getElementById('about-team-past').innerHTML = pastLeads.map((p) => {
+      const blurb = blurbFor(p);
+      return `
+        <li class="about-team-member">
+          <a href="${this.#esc(p.person.url)}">
+            <img class="about-team-photo" src="${this.#esc(p.person.thumbnail || AboutPage.#FALLBACK_PHOTO)}" alt="">
+            <span class="about-team-name">${this.#esc(p.person.name)}</span>
+          </a>
+          <span class="about-team-role">${this.#esc(p.lead_project_role)}, ${this.#esc(years(p))}</span>
+          ${blurb ? `<span class="about-team-blurb">${blurb}</span>` : ''}
+        </li>`;
+    }).join('');
 
-    // The localized message carries a {0} placeholder for the count of everyone not shown above.
-    const contributorsEl = document.getElementById('about-team-contributors');
-    const otherCount = people.length - current.length - pastLeads.length;
-    if (otherCount > 0) {
-      contributorsEl.innerHTML = contributorsEl.innerHTML.replace('{0}', String(otherCount));
-    } else {
-      contributorsEl.remove();
-    }
+    const shown = new Set([...current, ...pastLeads].map((p) => p.person.url_name));
+    const others = people
+      .filter((p) => !shown.has(p.person.url_name))
+      .sort((a, b) => a.person.name.localeCompare(b.person.name));
+    document.getElementById('about-team-all').innerHTML = others.map((p) => `
+      <li><a href="${this.#esc(p.person.url)}">${this.#esc(p.person.name)}</a></li>`).join('');
     container.hidden = false;
   }
 
@@ -214,7 +253,9 @@ class AboutPage {
 
     list.innerHTML = grants.map((grant) => {
       const title = this.#esc(grant.title);
-      const grantId = grant.grant_id ? ` (#${this.#esc(grant.grant_id)})` : '';
+      // The ML admin sometimes stores the literal string 'None' (a leaked Python None) as a grant id; treat as absent.
+      const hasId = grant.grant_id && grant.grant_id !== 'None';
+      const grantId = hasId ? ` (#${this.#esc(grant.grant_id)})` : '';
       return `
         <li>
           ${grant.grant_url ? `<a href="${this.#esc(grant.grant_url)}">${title}</a>` : title}

@@ -139,7 +139,7 @@ seo.og.image.alt = Schermafbeelding van de virtuele straatverkenning van Project
 # data-live-stat worden bijgewerkt vanuit /v3/api/aggregateStats, en team, publicaties en financiering vanuit de
 # Makeability Lab-API (aboutPage.js).
 about.title = Over Project Sidewalk
-about.hero.title = We brengen <span class="about-hero-accent">elk trottoir</span> ter wereld in kaart.
+about.hero.title = We brengen <span class="about-hero-accent">elk trottoir</span> ter wereld in kaart en beoordelen het.
 about.hero.subtitle = Project Sidewalk is een opensource-onderzoeksproject dat crowdsourcing en AI combineert om trottoirs in steden in kaart te brengen en te beoordelen — en elk datapunt openstelt voor onderzoekers, overheden en gemeenschappen.
 about.hero.attribution = Een academisch onderzoeksproject onder leiding van professor Jon E. Froehlich (University of Washington) en professor Yochai Eisenberg (University of Illinois Chicago).
 about.hero.cta.explore = Begin met verkennen
@@ -160,7 +160,7 @@ about.how.step.data.title = Open data
 about.how.step.data.body = Elk label voedt een open dataset die onderzoekers, overheden en gemeenschappen gebruiken om de toegankelijkheid van trottoirs te begrijpen en te verbeteren.
 about.how.cta = <a href="/explore">Begin met verkennen</a> of <a href="/validate">valideer labels</a> om bij te dragen.
 about.impact.title = Zo maakt Project Sidewalk impact
-about.impact.intro = Het doel is niet alleen data, maar echte verandering. Een paar voorbeelden van hoe gemeenschappen, overheden en scholen Project Sidewalk hebben ingezet.
+about.impact.intro = Het doel is niet alleen data, maar steden die beter beloopbaar, berijdbaar en veiliger voor voetgangers zijn. Een paar voorbeelden van hoe gemeenschappen, overheden en scholen Project Sidewalk hebben ingezet.
 about.impact.chicago.place = Chicago, Illinois
 about.impact.chicago.body = Stadsdistricten gebruikten door bewoners verzamelde data om budgetten voor trottoirverbetering eerlijker te prioriteren, en ons team adviseerde het Pedestrian Safety Committee van de stad om verder te gaan dan reparaties op basis van klachten.
 about.impact.illinois.place = Lincolnwood, Roselle en Mendota, Illinois
@@ -179,7 +179,7 @@ about.where.body = Project Sidewalk is actief in <span data-live-stat="num_citie
 about.history.title = Onze geschiedenis
 about.history.2012 = Project Sidewalk begint als onderzoeksproject van professor Jon E. Froehlich en promovendus Kotaro Hara in het <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a>, met vroege steun van Google en de National Science Foundation.
 about.history.2017 = De eerste stadsbrede inzet gaat van start in Washington, DC, geleid door promovenda Manaswi Saha en onderzoekswetenschapper Mikey Saugstad, terwijl het lab verhuist naar de Paul G. Allen School of Computer Science &amp; Engineering aan de University of Washington.
-about.history.2019 = De studie in Washington, DC toont aan dat online crowdsourcing de trottoirs van een hele stad in kaart kan brengen — en wint een Best Paper Award op CHI 2019.
+about.history.2019 = De pilotstudie in DC toont aan dat online crowdsourcing kan worden gebruikt om de trottoirs van een hele stad in kaart te brengen — en wint een Best Paper Award op CHI 2019.
 about.history.2021 = Een NSF Smart &amp; Connected Communities-subsidie verdiept onze samenwerking met de University of Illinois Chicago en Easterseals, met meer steden, onderwijsprogramma''s en onze zustersite <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a>.
 about.history.today.label = Vandaag
 about.history.today = Project Sidewalk is actief in <span data-live-stat="num_cities">{0}</span> steden wereldwijd, native vertaald in {1} talen en aangedreven door duizenden vrijwilligers.
@@ -187,7 +187,12 @@ about.team.title = Het team
 about.team.intro = Project Sidewalk is universitair onderzoek, geleid door professor Jon E. Froehlich van het <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> aan de University of Washington en professor Yochai Eisenberg van de University of Illinois Chicago, met hoofdontwikkeling door onderzoekswetenschapper Mikey Saugstad — en bijdragen van ruim honderd studenten en medewerkers door de jaren heen.
 about.team.current.title = Huidig team
 about.team.past.title = Eerdere leiding
-about.team.contributors = … en {0} andere bijdragers door de jaren heen — zie de <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">projectpagina</a>.
+about.team.past.kotarohara = Startte Project Sidewalk samen met professor Froehlich als zijn promovendus en ontwikkelde de crowdsourcing- en computervisiemethoden achter het project — het onderwerp van zijn <a href="https://makeabilitylab.cs.washington.edu/media/publications/Hara_ScalableMethodsToCollectAndVisualizeSidewalkAccessibilityDataForPeopleWithMobilityImpairments_UMDCSPhDDissertation2016.pdf">proefschrift</a>.
+about.team.past.davidjacobs = Co-PI van de oorspronkelijke NSF-subsidie en de eerste Google Faculty Research Award waarmee Project Sidewalk begon, en begeleidde het vroege computervisieonderzoek.
+about.team.past.manaswisaha = Hielp de eerste grootschalige inzet in Washington, DC te leiden en ontwierp tools om stedelijke toegankelijkheidsdata te begrijpen — het onderwerp van haar <a href="https://makeabilitylab.cs.washington.edu/media/publications/Saha_DesigningInteractiveDataDrivenToolsForUnderstandingUrbanAccessibilityAtScale_UWCSPhDDissertation2022.pdf">proefschrift</a>.
+about.team.contributors.title = Bijdragers
+about.team.contributors.intro = Meer dan 100 middelbare scholieren en bachelorstudenten hebben code, ontwerpen en ideeën bijgedragen aan Project Sidewalk. Onderdeel van onze missie is om informatica- en designstudenten via ervaringsgericht leren aan maatschappelijk relevante projecten te laten werken.
+about.team.contributors = … plus partnerorganisaties en duizenden vrijwillige mappers wereldwijd — zie de <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">projectpagina</a>.
 about.pubs.title = Gerelateerde publicaties
 about.pubs.intro = Onderzoek van Project Sidewalk verschijnt op toonaangevende fora voor mens-computerinteractie en toegankelijkheid. Gebruik je onze data of tools in je onderzoek? Citeer dan ons <a href="https://doi.org/10.1145/3290605.3300292">CHI 2019-artikel</a>.
 about.pubs.fallback = Bekijk <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">alle Project Sidewalk-publicaties</a> op de website van het Makeability Lab.
@@ -201,7 +206,7 @@ about.funding.title = Financiers
 about.funding.body = Project Sidewalk is met subsidies gefinancierd academisch onderzoek, ondersteund door de National Science Foundation, met aanvullende steun van Google, de Alfred P. Sloan Foundation, PacTrans en het CREATE-centrum van de University of Washington.
 about.cta.title = Help ons elk trottoir in kaart te brengen
 about.cta.city = Breng Project Sidewalk naar jouw stad
-about.contact.body = Vragen, ideeën of persverzoeken? Mail ons via <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, open een issue op <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a> of volg ons op <a href="https://twitter.com/projsidewalk">Twitter</a> en <a href="https://www.facebook.com/projsidewalk">Facebook</a>.
+about.contact.body = Vragen, ideeën of persverzoeken? Mail ons via <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, open een issue op <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a> of volg ons op <a href="https://www.linkedin.com/company/project-sidewalk/">LinkedIn</a> en <a href="https://bsky.app/profile/projectsidewalk.bsky.social">Bluesky</a>.
 
 landing.create.path = Laten we een pad creëren voor iedereen!
 landing.start.exploring = Start met Verkennen

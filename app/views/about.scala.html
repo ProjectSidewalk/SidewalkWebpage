@@ -43,6 +43,8 @@
       "email" -> "sidewalk@cs.uw.edu",
       "sameAs" -> Json.arr(
         "https://github.com/ProjectSidewalk",
+        "https://www.linkedin.com/company/project-sidewalk/",
+        "https://bsky.app/profile/projectsidewalk.bsky.social",
         "https://twitter.com/projsidewalk",
         "https://www.facebook.com/projsidewalk",
         "https://makeabilitylab.cs.washington.edu/"
@@ -200,9 +202,19 @@
           <h3>@Messages("about.team.current.title")</h3>
           <ul class="about-team-grid" id="about-team-current"></ul>
           <h3>@Messages("about.team.past.title")</h3>
-          <ul class="about-team-past" id="about-team-past"></ul>
-          <p class="about-team-contributors" id="about-team-contributors">@Html(Messages("about.team.contributors"))</p>
+          <ul class="about-team-grid about-team-grid--past" id="about-team-past"></ul>
+          <h3>@Messages("about.team.contributors.title")</h3>
+          <p class="about-team-contributors-intro">@Messages("about.team.contributors.intro")</p>
+          <ul class="about-team-all" id="about-team-all"></ul>
+          <p class="about-team-contributors">@Html(Messages("about.team.contributors"))</p>
         </div>
+        @* Localized, hand-curated contribution blurbs for past leads, keyed by their ML API url_name; aboutPage.js
+           grafts each onto the matching API-driven card. A lead without a blurb here simply renders without one. *@
+        <template id="about-team-past-blurbs">
+          <span data-person="kotarohara">@Html(Messages("about.team.past.kotarohara"))</span>
+          <span data-person="davidjacobs">@Html(Messages("about.team.past.davidjacobs"))</span>
+          <span data-person="manaswisaha">@Html(Messages("about.team.past.manaswisaha"))</span>
+        </template>
       </div>
     </section>
 

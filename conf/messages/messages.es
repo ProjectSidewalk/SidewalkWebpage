@@ -151,7 +151,7 @@ seo.og.image.alt = Captura de pantalla de la exploración virtual de Project Sid
 # data-live-stat se actualizan desde /v3/api/aggregateStats, y el equipo, las publicaciones y los financiamientos se
 # actualizan desde la API del Makeability Lab (aboutPage.js).
 about.title = Acerca de Project Sidewalk
-about.hero.title = Estamos mapeando <span class="about-hero-accent">todas las banquetas</span> del mundo.
+about.hero.title = Estamos mapeando y evaluando <span class="about-hero-accent">todas las banquetas</span> del mundo.
 about.hero.subtitle = Project Sidewalk es un proyecto de investigación de código abierto que combina colaboración colectiva e inteligencia artificial para mapear y evaluar las banquetas de las ciudades — y abre cada dato a investigadores, gobiernos y comunidades.
 about.hero.attribution = Un proyecto de investigación académica dirigido por el profesor Jon E. Froehlich (Universidad de Washington) y el profesor Yochai Eisenberg (Universidad de Illinois en Chicago).
 about.hero.cta.explore = Comienza a explorar
@@ -172,7 +172,7 @@ about.how.step.data.title = Datos abiertos
 about.how.step.data.body = Cada etiqueta alimenta un conjunto de datos abiertos que investigadores, gobiernos y comunidades usan para entender y mejorar la accesibilidad de las banquetas.
 about.how.cta = <a href="/explore">Comienza a explorar</a> o <a href="/validate">valida etiquetas</a> para contribuir.
 about.impact.title = El impacto de Project Sidewalk
-about.impact.intro = La meta no son solo los datos: es el cambio real. Estos son algunos ejemplos de cómo comunidades, gobiernos y escuelas han usado Project Sidewalk.
+about.impact.intro = La meta no son solo los datos: es lograr ciudades más caminables, accesibles en silla de ruedas y seguras para los peatones. Estos son algunos ejemplos de cómo comunidades, gobiernos y escuelas han usado Project Sidewalk.
 about.impact.chicago.place = Chicago, Illinois
 about.impact.chicago.body = Distritos de la ciudad han usado datos recolectados por residentes para priorizar de forma más equitativa los fondos de mejora de banquetas, y nuestro equipo asesoró al Comité de Seguridad Peatonal de la ciudad para ir más allá de las reparaciones basadas en quejas.
 about.impact.illinois.place = Lincolnwood, Roselle y Mendota, Illinois
@@ -191,7 +191,7 @@ about.where.body = Project Sidewalk está desplegado en <span data-live-stat="nu
 about.history.title = Nuestra historia
 about.history.2012 = Project Sidewalk nace como proyecto de investigación del profesor Jon E. Froehlich y el estudiante de doctorado Kotaro Hara en el <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a>, con apoyo inicial de Google y la National Science Foundation.
 about.history.2017 = Se lanza el primer despliegue a escala de ciudad en Washington, DC, dirigido por la estudiante de doctorado Manaswi Saha y el científico de investigación Mikey Saugstad, mientras el laboratorio se traslada a la Escuela Paul G. Allen de Ciencias de la Computación e Ingeniería de la Universidad de Washington.
-about.history.2019 = El estudio de Washington, DC demuestra que la colaboración colectiva en línea puede mapear las banquetas de una ciudad entera, y recibe el premio Best Paper en CHI 2019.
+about.history.2019 = El estudio piloto de DC demuestra que la colaboración colectiva en línea puede usarse para mapear las banquetas de una ciudad entera, y recibe el premio Best Paper en CHI 2019.
 about.history.2021 = Una subvención NSF Smart &amp; Connected Communities profundiza nuestra colaboración con la Universidad de Illinois en Chicago y Easterseals, ampliando despliegues, programas educativos y nuestro sitio hermano <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a>.
 about.history.today.label = Hoy
 about.history.today = Project Sidewalk opera en <span data-live-stat="num_cities">{0}</span> ciudades alrededor del mundo, con traducción nativa a {1} idiomas y el impulso de miles de personas voluntarias.
@@ -199,7 +199,12 @@ about.team.title = El equipo
 about.team.intro = Project Sidewalk es investigación universitaria, dirigida por el profesor Jon E. Froehlich del <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> de la Universidad de Washington y el profesor Yochai Eisenberg de la Universidad de Illinois en Chicago, con la ingeniería principal del científico de investigación Mikey Saugstad, y aportaciones de más de cien estudiantes y colaboradores a lo largo de los años.
 about.team.current.title = Equipo actual
 about.team.past.title = Liderazgo anterior
-about.team.contributors = … y {0} personas más han contribuido a lo largo de los años; consulta la <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">página del proyecto</a>.
+about.team.past.kotarohara = Inició Project Sidewalk junto al profesor Froehlich como su estudiante de doctorado, y fue pionero de los métodos de colaboración colectiva y visión por computadora detrás del proyecto, tema de su <a href="https://makeabilitylab.cs.washington.edu/media/publications/Hara_ScalableMethodsToCollectAndVisualizeSidewalkAccessibilityDataForPeopleWithMobilityImpairments_UMDCSPhDDissertation2016.pdf">tesis doctoral</a>.
+about.team.past.davidjacobs = Co-investigador principal de la subvención original de la NSF y del primer Google Faculty Research Award con los que nació Project Sidewalk, guiando su primera investigación en visión por computadora.
+about.team.past.manaswisaha = Ayudó a liderar el primer despliegue a gran escala en Washington, DC y diseñó herramientas para comprender los datos de accesibilidad urbana, tema de su <a href="https://makeabilitylab.cs.washington.edu/media/publications/Saha_DesigningInteractiveDataDrivenToolsForUnderstandingUrbanAccessibilityAtScale_UWCSPhDDissertation2022.pdf">tesis doctoral</a>.
+about.team.contributors.title = Colaboradores
+about.team.contributors.intro = Más de 100 estudiantes de preparatoria y licenciatura han aportado código, diseños e ideas a Project Sidewalk. Parte de nuestra misión es ayudar a estudiantes de ciencias de la computación y diseño a trabajar en proyectos con impacto social a través del aprendizaje experiencial.
+about.team.contributors = … además de organizaciones aliadas y miles de personas voluntarias que mapean en todo el mundo; consulta la <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">página del proyecto</a>.
 about.pubs.title = Publicaciones relacionadas
 about.pubs.intro = La investigación de Project Sidewalk se publica en los principales foros de interacción humano-computadora y accesibilidad. Si usas nuestros datos o herramientas en tu investigación, por favor cita nuestro <a href="https://doi.org/10.1145/3290605.3300292">artículo de CHI 2019</a>.
 about.pubs.fallback = Consulta <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">todas las publicaciones de Project Sidewalk</a> en el sitio del Makeability Lab.
@@ -213,7 +218,7 @@ about.funding.title = Financiadores
 about.funding.body = Project Sidewalk es investigación académica financiada con subvenciones, con el apoyo de la National Science Foundation y apoyo adicional de Google, la Fundación Alfred P. Sloan, PacTrans y el centro CREATE de la Universidad de Washington.
 about.cta.title = Ayúdanos a mapear todas las banquetas
 about.cta.city = Lleva Project Sidewalk a tu ciudad
-about.contact.body = ¿Preguntas, ideas o consultas de prensa? Escríbenos a <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, abre un reporte en <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a> o síguenos en <a href="https://twitter.com/projsidewalk">Twitter</a> y <a href="https://www.facebook.com/projsidewalk">Facebook</a>.
+about.contact.body = ¿Preguntas, ideas o consultas de prensa? Escríbenos a <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, abre un reporte en <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a> o síguenos en <a href="https://www.linkedin.com/company/project-sidewalk/">LinkedIn</a> y <a href="https://bsky.app/profile/projectsidewalk.bsky.social">Bluesky</a>.
 
 landing.create.path = Creemos un camino para todas las personas
 landing.start.exploring = Comienza a explorar

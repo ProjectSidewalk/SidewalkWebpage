@@ -136,7 +136,6 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 28px 20px;
-  text-align: center;
 }
 
 .about-stat-number {
@@ -317,19 +316,36 @@
   margin: 28px 0 8px;
 }
 
-/* Past leadership: compact two-column name list, like the closing section of the Makeability Lab people page. */
-.about-team-past {
-  columns: 2;
+/* Past leadership: wider cards (≤4 per row at full width) so each has room for a contribution blurb. */
+.about-team-grid--past {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.about-team-blurb {
+  display: block;
+  margin-top: 8px;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  text-align: left;
+}
+
+.about-team-contributors-intro {
+  max-width: 760px;
+}
+
+/* All-contributor roll call: compact name columns, like a paper's acknowledgments section. */
+.about-team-all {
+  columns: 3;
   column-gap: 48px;
   list-style: none;
   padding: 0;
   margin: 16px 0 24px;
-  max-width: 720px;
+  font: var(--text-small-regular);
 }
 
-.about-team-past li {
+.about-team-all li {
   break-inside: avoid;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .about-team-contributors {
@@ -337,34 +353,32 @@
   color: var(--color-neutral-700);
 }
 
-/* Publications */
+/* Publications: compact divider-separated rows in the style of the Makeability Lab publications list. */
 .about-pubs-list {
   display: grid;
-  gap: 16px;
-  margin: 28px 0 20px;
+  margin: 24px 0 20px;
+  border-bottom: 1px solid var(--color-neutral-200);
 }
 
 .about-pub {
   display: grid;
-  grid-template-columns: 110px 1fr;
-  gap: 20px;
+  grid-template-columns: 90px 1fr;
+  gap: 18px;
   align-items: start;
-  background-color: var(--color-neutral-white);
-  border: 1px solid var(--color-neutral-200);
-  border-radius: 12px;
-  padding: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--color-neutral-200);
 }
 
 .about-pub-thumb {
-  width: 110px;
+  width: 90px;
   height: auto;
-  border-radius: 6px;
+  border-radius: 4px;
   border: 1px solid var(--color-neutral-200);
 }
 
 .about-pub h3 {
-  font: var(--text-subtitle-bold);
-  margin: 0 0 6px;
+  font: var(--text-body-bold);
+  margin: 0 0 3px;
 }
 
 #about-page .about-pub h3 a {
@@ -380,7 +394,11 @@
 .about-pub-venue {
   font: var(--text-small-regular);
   color: var(--color-neutral-700);
-  margin: 0 0 6px;
+  margin: 0 0 3px;
+}
+
+.about-pub-venue {
+  font-style: italic;
 }
 
 .about-pub-award {
@@ -468,8 +486,8 @@
     grid-template-columns: 1fr;
   }
 
-  .about-team-past {
-    columns: 1;
+  .about-team-all {
+    columns: 2;
   }
 
   .about-timeline li {

@@ -145,7 +145,7 @@ seo.og.image.alt = Screenshot of Project Sidewalk''s virtual street-view explora
 # numbers in data-live-stat spans are hydrated from /v3/api/aggregateStats (aggregateStats.js), and the team,
 # publications, and funders sections are hydrated from the Makeability Lab API (aboutPage.js).
 about.title = About Project Sidewalk
-about.hero.title = We''re mapping <span class="about-hero-accent">every sidewalk</span> in the world.
+about.hero.title = We''re mapping and assessing <span class="about-hero-accent">every sidewalk</span> in the world.
 about.hero.subtitle = Project Sidewalk is an open-source research project that combines crowdsourcing and AI to map and assess city sidewalks — and opens every data point to researchers, governments, and communities.
 about.hero.attribution = An academic research project led by Professor Jon E. Froehlich (University of Washington) and Professor Yochai Eisenberg (University of Illinois Chicago).
 about.hero.cta.explore = Start exploring
@@ -166,7 +166,7 @@ about.how.step.data.title = Open data
 about.how.step.data.body = Every label feeds an open dataset that researchers, governments, and community advocates use to understand and improve sidewalk accessibility.
 about.how.cta = <a href="/explore">Start exploring</a> or <a href="/validate">validate labels</a> to contribute.
 about.impact.title = How Project Sidewalk makes impact
-about.impact.intro = The goal isn''t just data — it''s change on the ground. Here are a few of the ways communities, governments, and schools have put Project Sidewalk to work.
+about.impact.intro = The goal isn''t just data — it''s making cities more walkable, rollable, and safe for pedestrians. Here are a few of the ways communities, governments, and schools have put Project Sidewalk to work.
 about.impact.chicago.place = Chicago, Illinois
 about.impact.chicago.body = Aldermanic wards have used resident-collected Project Sidewalk data to prioritize sidewalk improvement funds more equitably, and our team advised the city''s Pedestrian Safety Committee on moving beyond complaint-driven repairs.
 about.impact.illinois.place = Lincolnwood, Roselle &amp; Mendota, Illinois
@@ -185,7 +185,7 @@ about.where.body = Project Sidewalk is deployed in <span data-live-stat="num_cit
 about.history.title = Our history
 about.history.2012 = Project Sidewalk begins as a research project by Professor Jon E. Froehlich and PhD student Kotaro Hara in the <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a>, with early support from Google and the National Science Foundation.
 about.history.2017 = The first city-scale deployment launches in Washington, DC, led by PhD student Manaswi Saha and research scientist Mikey Saugstad, as the lab moves to the University of Washington''s Paul G. Allen School of Computer Science &amp; Engineering.
-about.history.2019 = The Washington, DC study shows that online crowdsourcing can map an entire city''s sidewalks — and earns a Best Paper Award at CHI 2019.
+about.history.2019 = The DC pilot study shows that online crowdsourcing can be used to map an entire city''s sidewalks — and earns a Best Paper Award at CHI 2019.
 about.history.2021 = An NSF Smart &amp; Connected Communities grant deepens our partnership with the University of Illinois Chicago and Easterseals, expanding deployments, education programs, and our sister site <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a>.
 about.history.today.label = Today
 about.history.today = Project Sidewalk operates in <span data-live-stat="num_cities">{0}</span> cities around the world, natively translated into {1} languages and powered by thousands of volunteer mappers.
@@ -193,7 +193,12 @@ about.team.title = The team
 about.team.intro = Project Sidewalk is university research, led by Professor Jon E. Froehlich at the University of Washington''s <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> and Professor Yochai Eisenberg at the University of Illinois Chicago, with lead engineering by research scientist Mikey Saugstad — and contributions from more than a hundred students and collaborators over the years.
 about.team.current.title = Current team
 about.team.past.title = Past leadership
-about.team.contributors = … and {0} more contributors over the years — see the <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">full project page</a>.
+about.team.past.kotarohara = Started Project Sidewalk with Professor Froehlich as his PhD student, pioneering the crowdsourcing and computer-vision methods behind the project — the subject of his <a href="https://makeabilitylab.cs.washington.edu/media/publications/Hara_ScalableMethodsToCollectAndVisualizeSidewalkAccessibilityDataForPeopleWithMobilityImpairments_UMDCSPhDDissertation2016.pdf">dissertation</a>.
+about.team.past.davidjacobs = Co-PI on the original NSF grant and the initial Google Faculty Research Award that launched Project Sidewalk, guiding its early computer-vision research.
+about.team.past.manaswisaha = Helped lead the first wide-scale deployment in Washington, DC and designed tools for understanding urban accessibility data — the subject of her <a href="https://makeabilitylab.cs.washington.edu/media/publications/Saha_DesigningInteractiveDataDrivenToolsForUnderstandingUrbanAccessibilityAtScale_UWCSPhDDissertation2022.pdf">dissertation</a>.
+about.team.contributors.title = Contributors
+about.team.contributors.intro = More than 100 high school and undergraduate students have contributed code, designs, and ideas to Project Sidewalk. Part of our mission is to help computer science and design students work on societally impactful projects through experiential learning.
+about.team.contributors = … plus community partners and thousands of volunteer mappers around the world — see the <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">full project page</a> for more.
 about.pubs.title = Related publications
 about.pubs.intro = Project Sidewalk research is published at leading human–computer interaction and accessibility venues. If you use our data or tools in your research, please cite our <a href="https://doi.org/10.1145/3290605.3300292">CHI 2019 paper</a>.
 about.pubs.fallback = Browse <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">all Project Sidewalk publications</a> on the Makeability Lab website.
@@ -207,7 +212,7 @@ about.funding.title = Funders
 about.funding.body = Project Sidewalk is grant-funded academic research, supported by the National Science Foundation with additional support from Google, the Alfred P. Sloan Foundation, PacTrans, and the UW Center for Research and Education on Accessible Technology and Experiences (CREATE).
 about.cta.title = Help us map every sidewalk
 about.cta.city = Bring Project Sidewalk to your city
-about.contact.body = Questions, ideas, or press inquiries? Email us at <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, open an issue on <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a>, or follow us on <a href="https://twitter.com/projsidewalk">Twitter</a> and <a href="https://www.facebook.com/projsidewalk">Facebook</a>.
+about.contact.body = Questions, ideas, or press inquiries? Email us at <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, open an issue on <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a>, or follow us on <a href="https://www.linkedin.com/company/project-sidewalk/">LinkedIn</a> and <a href="https://bsky.app/profile/projectsidewalk.bsky.social">Bluesky</a>.
 
 landing.create.path = Let''s create a path for everyone
 landing.start.exploring = Start Exploring
