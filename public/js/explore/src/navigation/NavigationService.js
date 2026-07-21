@@ -544,6 +544,30 @@ class NavigationService {
   }
 
   /**
+   * Return to an already-visited pano from a minimap click (a clicked label marker or breadcrumb): move there,
+   * optionally face a POV (e.g. to re-center the clicked label), and log the interaction.
+   *
+   * This is a "peek" back to review/edit — it deliberately does NOT switch the active audit task. Re-entering an
+   * earlier, already-completed street as the current task would push a spurious TaskStart and risk the end-of-task
+   * auto-advance immediately jumping the user away from the pano they returned to. The user hops back to where they
+   * were via a breadcrumb (#4639).
+   *
+   * @param {string} panoId - Target (already-visited) pano id.
+   * @param {{heading: number, pitch: number, zoom: number}} [pov] - POV to face on arrival; omit to keep heading.
+   * @param {string} logEvent - Tracker event name to log.
+   * @param {Object} [logNotes] - Tracker notes object.
+   * @returns {Promise<boolean>} Whether the move succeeded (false if walking is disabled or the move failed).
+   */
+  async returnToPano(panoId, pov, logEvent, logNotes) {
+    if (this.#status.disableWalking) return false;
+    svl.tracker.push(logEvent, logNotes);
+
+    const moved = svl.panoViewer.getPanoId() === panoId ? true : await this.moveToPano(panoId);
+    if (moved && pov) svl.panoManager.setPov(pov);
+    return moved;
+  }
+
+  /**
    * Re-enables the UI elements that #updateUiBeforeMove() disabled, w/out the updates that assume the position changed.
    */
   #restoreUiAfterFailedMove() {

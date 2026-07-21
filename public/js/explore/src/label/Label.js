@@ -103,6 +103,38 @@ class Label {
     const latlng = this.toLatLng();
     this.#googleMarker = Label.createMinimapMarker(this.#properties.labelType, latlng);
     this.#googleMarker.map = svl.minimap.getMap();
+    this.#wireMinimapMarkerClick();
+  }
+
+  /**
+   * Makes this label's minimap marker clickable so the user can return to the pano where it was placed to review or
+   * re-mark it (#2561). Eligibility is checked at click time (current mission only) so returning is always to an area
+   * the user has already visited.
+   */
+  #wireMinimapMarkerClick() {
+    const el = this.#googleMarker.content;
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.#returnToLabelFromMinimap();
+    });
+  }
+
+  /**
+   * Returns to this label's pano and faces it, unless the label isn't from the current mission (returning across
+   * missions would leave the map's active task out of sync) or we're mid-onboarding.
+   */
+  #returnToLabelFromMinimap() {
+    if (svl.isOnboarding()) return;
+    const currMissionId = svl.missionContainer.getCurrentMission().getProperty('missionId');
+    if (this.#properties.missionId !== currMissionId) return;
+
+    svl.navigationService.returnToPano(
+      this.#properties.panoId,
+      this.#properties.povOfLabelIfCentered,
+      'Click_MinimapLabelMarker',
+      { labelId: this.#properties.labelId, panoId: this.#properties.panoId },
+    );
   }
 
   // Some functions for easy access to commonly accessed properties.
