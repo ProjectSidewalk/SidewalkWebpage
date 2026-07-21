@@ -398,6 +398,8 @@ class PanoManager {
     // the final update so these don't swing through the mid-animation heading. (#4174)
     if (!svl.navigationService || !svl.navigationService.getStatus('headingSettling')) {
       if (svl.observedArea) svl.observedArea.update();
+      // Once at the route's last pano, auto-finish as soon as the user has looked all the way around it.
+      if (svl.missionController) svl.missionController.maybeAutoCompleteRoute();
       if (svl.peg) svl.peg.setHeading(heading);
     }
 

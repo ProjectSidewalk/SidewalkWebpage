@@ -263,7 +263,8 @@
       "slight-left": "Sla flauw links af",
       "slight-right": "Sla flauw rechts af",
       "u-turn": "Keer om",
-      "end-route": "Je bent aan het einde van je route! Voltooi het labelen van dit kruispunt en <b>klik hier om de route te voltooien.</b>",
+      "end-route": "Je bent aan het einde van je route! Kijk helemaal om je heen om te voltooien, of <b>klik hier om nu te voltooien.</b>",
+      "route-finish-look-around": "Laatste halte! Kijk helemaal om je heen om je route te voltooien.",
       "end-neighborhood": "Je hebt deze hele buurt verkend! Voltooi het labelen van dit kruispunt en <b>klik hier om de buurt te voltooien.</b>",
       "end-street": "We moeten u verhuizen naar een nieuwe locatie. Voltooi het labelen van dit kruispunt en <b>klik hier om naar een nieuwe locatie te gaan.</b>",
       "far-away": "Oh oh, je bent nogal ver weg van de route. <b>Klik hier om terug te gaan.</b>"

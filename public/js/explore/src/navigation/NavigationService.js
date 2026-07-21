@@ -219,7 +219,9 @@ class NavigationService {
         // If we are out of streets, set the route/neighborhood as complete.
         if (!nextTask) {
           svl.neighborhoodModel.setComplete();
-          // TODO should maybe trigger wrapUpRouteOrNeighborhood?
+          // A route completes at its last reachable pano: show the finish toast and arm the 360°-gated auto-complete.
+          // Neighborhoods keep the manual compass-click flow.
+          if (svl.neighborhoodModel.isRoute) svl.missionController.onRouteReadyToFinish();
         } else if (!task.isConnectedTo(nextTask, svl.CONNECTED_TASK_THRESHOLD, { units: 'kilometers' })) {
           // If jumping to a new place, record what the next task will be.
           svl.taskContainer.setNextTaskAfterJump(nextTask);
@@ -314,7 +316,17 @@ class NavigationService {
       // In free exploration (#4451) reaching the end of the street must not end the task or advance to a new street.
       if (!isOnboarding && !svl.isExploreAddressMode() && task
         && task.isAtEnd(newLatLng, NavigationService.#END_OF_STREET_THRESHOLD)) {
-        this.#endTheCurrentTask(task, currentMission);
+        // On a route's final street, 25 m-from-endpoint can be a large fraction of a short street, firing "end of
+        // route" long before the last reachable pano (#4640 route manifestation). Defer to the imagery-exhaustion
+        // path (#handleImageryNotFound) unless they've already walked most of the street — on a long street 25 m
+        // really is the end, so preserve today's behavior there.
+        const finalRouteStreet = svl.neighborhoodModel.isRoute && !svl.taskContainer.nextTask(task);
+        const streetLen = task.lineDistance({ units: 'meters' });
+        const walkedMostOfStreet = streetLen > 0
+          && task.getDistanceFromStart(newLatLng, { units: 'meters' }) / streetLen >= 0.9;
+        if (!finalRouteStreet || walkedMostOfStreet) {
+          this.#endTheCurrentTask(task, currentMission);
+        }
       }
       svl.taskContainer.updateCurrentTask();
     }

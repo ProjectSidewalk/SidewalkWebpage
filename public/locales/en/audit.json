@@ -263,7 +263,8 @@
       "slight-left": "Turn slightly left",
       "slight-right": "Turn slightly right",
       "u-turn": "U turn",
-      "end-route": "You're at the end of your route! Finish labeling this intersection, then <b>click here to complete the route.</b>",
+      "end-route": "You're at the end of your route! Look all the way around to finish — or <b>click here to complete now.</b>",
+      "route-finish-look-around": "Last stop! Take a full look around to finish your route.",
       "end-neighborhood": "You've explored this entire neighborhood! Finish labeling this intersection, then <b>click here to complete the neighborhood.</b>",
       "end-street": "We need to move you to a new location. Finish labeling this intersection, then <b>click here to move to a new location.</b>",
       "far-away": "Uh-oh, you're quite far away from the route. <b>Click here to jump back.</b>"

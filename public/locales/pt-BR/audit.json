@@ -263,7 +263,8 @@
       "slight-left": "Vire ligeiramente à esquerda",
       "slight-right": "Vire ligeiramente à direita",
       "u-turn": "Retorne",
-      "end-route": "Você está no final da sua rota! Termine de rotular este cruzamento e, em seguida, <b>clique aqui para completar a rota.</b>",
+      "end-route": "Você está no final da sua rota! Olhe totalmente ao seu redor para terminar, ou <b>clique aqui para completar agora.</b>",
+      "route-finish-look-around": "Última parada! Olhe totalmente ao seu redor para completar sua rota.",
       "end-neighborhood": "Você explorou todo este bairro! Termine de rotular este cruzamento e, em seguida, <b>clique aqui para completar o bairro.</b>",
       "end-street": "Precisamos movê-lo para um novo local. Termine de rotular este cruzamento e, em seguida, <b>clique aqui para ir para um novo local.</b>",
       "far-away": "Opa, você está bem longe da rota. <b>Clique aqui para voltar.</b>"
