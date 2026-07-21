@@ -345,6 +345,19 @@
   cursor: pointer;
 }
 
+/* Breadcrumb trail (ObservedArea): a small faded ring, in the peg's hue, at each visited pano; click to return there
+   (#2561). AdvancedMarkerElement anchors content bottom-center, so shift down half its height to center on the pano. */
+.minimap-breadcrumb {
+  box-sizing: border-box;
+  width: calc(7px * var(--ui-scale, 1));
+  height: calc(7px * var(--ui-scale, 1));
+  border: calc(1.4px * var(--ui-scale, 1)) solid var(--color-link-100);
+  border-radius: 50%;
+  opacity: 0.8;
+  cursor: pointer;
+  transform: translateY(50%);
+}
+
 /* GSV-style "you are here" puck (Peg.js): a blue dot with a triangle pointing in the heading direction. Markers anchor
    bottom-center, so the wrapper shifts down half its height to center on the location, then rotates about that center
    so the dot stays planted while the triangle swings to --peg-heading (#4639). */

@@ -18,6 +18,7 @@ class ObservedArea {
   #rightAngle = null;       // Right-most angle of the user's FOV.
   #observedAreas = [];     // List of observed areas (panoId, latLng, minAngle, maxAngle).
   #currArea = {};             // Current observed area (panoId, latLng, minAngle, maxAngle).
+  #breadcrumbMarkers = new Map(); // panoId -> AdvancedMarkerElement: a clickable breadcrumb per visited pano.
   #fractionObserved = 0; // User's current fraction of 360 degrees observed.
   #coachVisible = false; // Whether the first-run "turn 360°" coach mark is currently showing.
 
@@ -87,6 +88,7 @@ class ObservedArea {
       this.#currArea = { panoId, latLng: svl.panoViewer.getPosition(), minAngle: null, maxAngle: null };
       this.#observedAreas.push(this.#currArea);
     }
+    this.#syncBreadcrumbMarkers();
   }
 
   /**
@@ -196,33 +198,55 @@ class ObservedArea {
     this.#fovCtx.arc(centerX, centerY, radius,
       ObservedArea.#toRadians(this.#leftAngle - 90), ObservedArea.#toRadians(this.#rightAngle - 90));
     this.#fovCtx.fill();
+
+    // Clear a hole at the peg (canvas center, since the map stays centered on the pano) so the cone can't occlude it.
+    this.#fovCtx.save();
+    this.#fovCtx.globalCompositeOperation = 'destination-out';
+    this.#fovCtx.beginPath();
+    this.#fovCtx.arc(centerX, centerY, 8 * this.#scaleFactor, 0, 2 * Math.PI);
+    this.#fovCtx.fill();
+    this.#fovCtx.restore();
   }
 
   /**
-   * Draws a small faded-blue ring at each visited pano (skipping the current one, which the peg marks) — a breadcrumb
-   * trail, in the peg's own hue, of where the user has been — then clears a hole at the peg so neither the cone nor the
-   * rings occlude it. Rendered on the FOV canvas, on top of the cone (#4639).
+   * Keeps the breadcrumb markers in sync with the visited panos: every observed area except the current one (which the
+   * peg marks) gets a clickable breadcrumb, and the current pano's is removed. Called whenever the observed areas
+   * change. Markers are positioned by the map natively, so they track zoom/pan without manual projection (#4639).
    */
-  #renderVisitedPanos() {
-    const ctx = this.#fovCtx;
-    const radius = 3.5 * this.#scaleFactor;
-    // Full opacity (the FOV canvas already carries a 0.8 CSS opacity, so this reads as solid) so the trail stays clear.
-    ctx.lineWidth = 1.4 * this.#scaleFactor;
-    ctx.strokeStyle = MinimapStyle.pegColor();
-    for (const observedArea of this.#observedAreas) {
-      if (observedArea === this.#currArea) continue;
-      const center = this.#latLngToPixel(observedArea.latLng);
-      ctx.beginPath();
-      ctx.arc(center.x, center.y, radius, 0, 2 * Math.PI);
-      ctx.stroke();
+  #syncBreadcrumbMarkers() {
+    for (const area of this.#observedAreas) {
+      const marker = this.#breadcrumbMarkers.get(area.panoId);
+      if (area === this.#currArea) {
+        if (marker) {
+          marker.map = null;
+          this.#breadcrumbMarkers.delete(area.panoId);
+        }
+      } else if (!marker) {
+        this.#breadcrumbMarkers.set(area.panoId, this.#createBreadcrumbMarker(area));
+      }
     }
-    // Keep the peg (canvas center) clear of the cone and the visited dots.
-    ctx.save();
-    ctx.globalCompositeOperation = 'destination-out';
-    ctx.beginPath();
-    ctx.arc(this.#width / 2, this.#height / 2, 8 * this.#scaleFactor, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.restore();
+  }
+
+  /**
+   * Creates one clickable breadcrumb marker — a faded ring in the peg's hue — at a visited pano. Clicking it returns
+   * the user to that pano (#2561).
+   * @param {{panoId: string, latLng: {lat: number, lng: number}}} area - The visited observed area.
+   * @returns {google.maps.marker.AdvancedMarkerElement}
+   */
+  #createBreadcrumbMarker(area) {
+    const content = document.createElement('div');
+    content.className = 'minimap-breadcrumb';
+    const marker = new google.maps.marker.AdvancedMarkerElement({
+      position: new google.maps.LatLng(area.latLng.lat, area.latLng.lng),
+      map: svl.minimap.getMap(),
+      content,
+      gmpClickable: true,
+    });
+    marker.addListener('gmp-click', () => {
+      svl.tracker.push('Click_MinimapBreadcrumb', { panoId: area.panoId });
+      svl.navigationService.returnToPano(area.panoId);
+    });
+    return marker;
   }
 
   /**
@@ -336,7 +360,6 @@ class ObservedArea {
       }
       this.#renderFogOfWar();
       this.#renderFov();
-      this.#renderVisitedPanos();
       this.#renderProgressCircle();
       // Point the peg's heading triangle where the user is looking. #angle is unwrapped (continuous), so the CSS
       // rotation transitions the short way across the 0/360 boundary.
