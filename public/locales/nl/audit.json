@@ -137,6 +137,7 @@
     "current-mission": {
       "header": "Huidige Missie",
       "header-route": "$t(right-ui.current-mission.header): Route {{route_number}}",
+      "header-free-explore": "Vrij verkennen",
       "message": "Zoek __PLACEHOLDER__ voor {{neighborhoodName}}"
     },
     "minimap": {
@@ -305,6 +306,9 @@
     "label-shortcuts-occlusion": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van 'Het trottoir is niet zichtbaar' label.",
     "still-stuck": "Als je nog steeds vastzit, klik opnieuw op de Vastgelopen knop.",
     "stuck-skipped-street": "We konden geen geschikte plek vinden in deze straat, dus we hebben je naar een nieuwe straat verplaatst.",
+    "free-explore-start": "Je bent neergezet in de buurt van het gezochte adres. Kijk rond en label wat je vindt!",
+    "free-explore-start-named": "Je bent vlakbij <b>{{placeName}}</b> geland. Kijk rond en label wat je tegenkomt!",
+    "free-explore-no-imagery": "Er zijn geen straatbeelden meer in deze richting. Kijk rond of ga de andere kant op.",
     "stuck-suggestion": "Als je niet met de pijlen kunt bewegen, probeer dan op de navigatie-aanwijzingen rechtsonder te klikken. Of probeer te klikken op de vastgelopen knop aan de linkerkant."
   },
   "mission-start-tutorial": {

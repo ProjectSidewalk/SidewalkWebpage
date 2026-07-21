@@ -158,10 +158,19 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   }
 
   /**
-   * Get the user's incomplete mission in the region if there is one.
+   * Get the user's incomplete audit mission in the region if there is one.
+   *
+   * Filters by mission type so that non-audit incomplete missions (e.g. a never-completed exploreAddress mission,
+   * which has region_id = NULL anyway) can't be resumed as a regular audit mission.
    */
   def getCurrentMissionInRegion(userId: String, regionId: Int): DBIO[Option[Mission]] = {
-    missions.filter(m => m.userId === userId && m.regionId === regionId && !m.completed).result.headOption
+    missions
+      .filter(m =>
+        m.userId === userId && m.regionId === regionId && !m.completed
+          && m.missionType === MissionType.Audit
+      )
+      .result
+      .headOption
   }
 
   /**
@@ -211,6 +220,21 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   }
 
   /**
+   * Get the user's incomplete exploreAddress mission if there is one.
+   *
+   * A user has at most one: every address-drop-in session (#4451) resumes it, and it is never marked complete.
+   * Sorted newest-first so that if the at-most-one invariant is ever violated (e.g. manual DB edits), we resume the
+   * most recent mission rather than a stale one.
+   */
+  def getIncompleteExploreAddressMission(userId: String): DBIO[Option[Mission]] = {
+    missions
+      .filter(m => m.userId === userId && m.missionType === MissionType.ExploreAddress && !m.completed)
+      .sortBy(_.missionId.desc)
+      .result
+      .headOption
+  }
+
+  /**
    * Get the list of the completed audit missions in the given region for the given user.
    * @param userId User's ID
    * @param regionId region Id
@@ -223,7 +247,10 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
    * Select missions with neighborhood names.
    */
   def selectCompletedRegionalMission(userId: String): DBIO[Seq[RegionalMission]] = {
-    val userMissions = missions.filter(_.userId === userId)
+    // Exclude exploreAddress missions: they never complete and have no region/distance, so they'd render as noise
+    // rows (type 'exploreAddress', Region N/A, Distance 0.0) on the admin user-profile mission table (#4451).
+    val userMissions =
+      missions.filter(m => m.userId === userId && m.missionType =!= MissionType.ExploreAddress)
 
     val missionsWithRegionName = for {
       (m, r) <- userMissions.joinLeft(regions).on(_.regionId === _.regionId)
@@ -296,6 +323,19 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     val now: OffsetDateTime = OffsetDateTime.now
     val newMission = Mission(0, missionType, userId, now, now, completed = false, 0d, paid = false, None, None, None,
       Some(labelsToValidate), Some(0.0.toInt), Some(labelTypeId), skipped = false, None)
+    (missions returning missions) += newMission
+  }
+
+  /**
+   * Creates a new exploreAddress mission entry in the mission table for the specified user (#4451).
+   *
+   * No distance target and no region: the mission is a free-exploration container that is never completed, so a
+   * region_id would let getCurrentMissionInRegion-style queries mistake it for a resumable audit mission.
+   */
+  def createExploreAddressMission(userId: String): DBIO[Mission] = {
+    val now: OffsetDateTime = OffsetDateTime.now
+    val newMission = Mission(0, MissionType.ExploreAddress, userId, now, now, completed = false, 0d, paid = false, None,
+      None, None, None, None, None, skipped = false, None)
     (missions returning missions) += newMission
   }
 
@@ -379,6 +419,19 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
         }
       }
       .transactionally
+  }
+
+  /**
+   * Updates the current_audit_task_id column of a mission directly.
+   *
+   * Needed for exploreAddress missions (#4451): updateExploreProgress silently skips the current_audit_task_id write
+   * when distance_meters IS NULL, and these missions have no distance target.
+   */
+  def updateCurrentAuditTaskId(missionId: Int, auditTaskId: Option[Int]): DBIO[Int] = {
+    missions
+      .filter(_.missionId === missionId)
+      .map(m => (m.currentAuditTaskId, m.missionEnd))
+      .update((auditTaskId, OffsetDateTime.now))
   }
 
   /**

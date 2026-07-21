@@ -370,6 +370,11 @@ class Task {
   render() {
     this.eraseFromMinimap();
 
+    // Free exploration draws no street lines at all (#4451). The red/green split reads as progress being scored, and
+    // the surrounding green/gray coverage is noise for someone who dropped in at a single address — the minimap is
+    // there to show where they are.
+    if (svl.isExploreAddressMode()) return;
+
     // If the task has been completed already, or if it has not been completed and is not the current task,
     // render it using a single completed-or-context Polyline, respectively.
     if (this.isComplete() || this.getStreetEdgeId() !== svl.taskContainer.getCurrentTaskStreetEdgeId()) {

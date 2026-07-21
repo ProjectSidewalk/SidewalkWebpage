@@ -43,7 +43,11 @@ case class CommonPageData(
     versionId: String,
     versionTimestamp: OffsetDateTime,
     allCityInfo: Seq[CityInfo]
-)
+) {
+
+  /** The deployment city's info; cityId always comes from the same config that builds allCityInfo. */
+  def currentCity: CityInfo = allCityInfo.find(_.cityId == cityId).get
+}
 
 /**
  * Represents label statistics for a specific label type.

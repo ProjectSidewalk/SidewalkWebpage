@@ -91,7 +91,7 @@ class GalleryController @Inject() (
           cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
 
           Ok(
-            views.html.apps.gallery(commonData, "Sidewalk - Gallery", request.identity, labType, labelTypes,
+            views.html.apps.gallery(commonData, Messages("seo.title.gallery"), request.identity, labType, labelTypes,
               regionIdsList, severityList, tagList, valOptions, aiValOptions)
           )
         }

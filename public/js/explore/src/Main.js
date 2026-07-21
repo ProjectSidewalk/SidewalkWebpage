@@ -23,6 +23,8 @@ class Main {
     svl.audioDirectory = ('audioDirectory' in params) ? params.audioDirectory : '/';
     svl.onboarding = null;
     svl.isOnboarding = () => this.#params.mission.mission_type === 'auditOnboarding';
+    // Free exploration at a searched address (#4451): labeling works normally, but the task/mission never complete.
+    svl.isExploreAddressMode = () => this.#params.mission.mission_type === 'exploreAddress';
     svl.regionId = params.regionId;
 
     svl.LABEL_ICON_RADIUS = 17;
@@ -63,17 +65,25 @@ class Main {
     svl.alertController = new AlertController();
     svl.stuckAlert = new StuckAlert(svl.alertController);
 
-    const startLat = params.task.properties.current_lat;
-    const startLng = params.task.properties.current_lng;
+    // The task's current position is the default start; an explicit seed (an admin auditing a street from a given
+    // pano/lat-lng, or an address drop-in per #4451) takes precedence. A pano seed keeps the lat/lng alongside it as
+    // the fallback for a pano that fails to load (#4635).
+    const startLat = params.startLat ?? params.task.properties.current_lat;
+    const startLng = params.startLng ?? params.task.properties.current_lng;
     svl.panoStore = new PanoStore();
     svl.viewerType = svl.isOnboarding() ? GsvViewer : params.viewerType;
 
     // Set up the PanoManager and PanoViewer.
     const isTutorialTask = params.task.properties.street_edge_id === params.tutorialStreetId;
     const newTask = new Task(params.task, isTutorialTask);
-    const initParams = isTutorialTask ? { startPanoId: 'tutorial' } : { startLat, startLng };
+    let initParams;
+    if (isTutorialTask) initParams = { startPanoId: 'tutorial' };
+    else initParams = { startPanoId: params.startPanoId, startLat, startLng, startPov: params.startPov };
     const errorParams = { task: newTask, missionId: params.mission.mission_id };
     svl.panoManager = await PanoManager.create(svl.viewerType, params.viewerAccessToken, initParams, errorParams);
+    // No viewer means PanoManager found no usable imagery and has already scheduled a redirect; stop initializing
+    // so nothing dereferences the missing viewer while the navigation lands.
+    if (!svl.panoViewer) return;
     const currLatLng = svl.panoViewer.getPosition();
     newTask.updateTheFurthestPointReached(currLatLng);
 
@@ -327,8 +337,15 @@ class Main {
         svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
       }
 
-      // Set up a few initial views now that everything has loaded.
-      svl.panoManager.setPovToRouteDirection();
+      // Set up a few initial views now that everything has loaded. A seeded POV (the labeler's stored view from the
+      // label card's "Explore here" hop, #4637) wins over the default route-facing camera.
+      if (this.#params.startPov) {
+        // The seed set the pano zoom straight on the viewer, before ZoomControl existed — sync its buttons to that
+        // zoom so zoom-out isn't left dead (#4637).
+        svl.zoomControl.syncButtonsToZoom(svl.panoViewer.getPov().zoom);
+      } else {
+        svl.panoManager.setPovToRouteDirection();
+      }
       svl.minimap.setMinimapLocation(svl.panoViewer.getPosition());
       svl.observedArea.panoChanged();
       svl.observedArea.update();
@@ -346,14 +363,31 @@ class Main {
       } else {
         this.#calculateAndSetTasksMissionsOffset();
 
-        // Initialize explore mission screens focused on a randomized label type, though users can switch between them.
         const currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
-        const potentialLabelTypes = util.misc.PRIMARY_LABEL_TYPES;
-        const labelType = potentialLabelTypes[Math.floor(Math.random() * potentialLabelTypes.length)];
-        new MissionStartTutorial('audit', labelType, {
-          nLength: svl.missionContainer.getCurrentMission().getDistance('miles'),
-          neighborhood: currentNeighborhood.getProperty('name'),
-        }, svl, this.#params.language);
+        if (svl.isExploreAddressMode()) {
+          // Free exploration (#4451): hide the mission progress UI, and skip the mission-start modal (its copy
+          // interpolates a mission distance, which this mission type doesn't have).
+          document.getElementById('mission-progress-group').classList.add('ps-hidden');
+          document.getElementById('compass-message-holder').classList.add('ps-hidden');
+          svl.tracker.push('ExploreAddress_SessionStart');
+          // Name the place when the search supplied one — "dropped near Teaneck High School" orients the user far
+          // better than a generic greeting. The name comes from a URL param and lands in innerHTML, so it must stay
+          // an i18next interpolation: the default escapeValue escapes it, while the <b> in the string itself renders.
+          const placeName = this.#params.startPlaceName;
+          const startMessage = placeName
+            ? i18next.t('popup.free-explore-start-named', { placeName })
+            : i18next.t('popup.free-explore-start');
+          svl.alertController.showAlert(startMessage, 'exploreAddressStart', true);
+        } else {
+          // Initialize explore mission screens focused on a randomized label type, though users can switch between
+          // them.
+          const potentialLabelTypes = util.misc.PRIMARY_LABEL_TYPES;
+          const labelType = potentialLabelTypes[Math.floor(Math.random() * potentialLabelTypes.length)];
+          new MissionStartTutorial('audit', labelType, {
+            nLength: svl.missionContainer.getCurrentMission().getDistance('miles'),
+            neighborhood: currentNeighborhood.getProperty('name'),
+          }, svl, this.#params.language);
+        }
 
         this.#startTheMission(mission, currentNeighborhood);
 
@@ -406,12 +440,28 @@ class Main {
   }
 
   /**
-   * Cleans up URL in address bar by removing query params that aren't necessary, changing /audit to /explore. etc.
+   * Cleans up the URL in the address bar: normalizes /audit to /explore and drops query params that aren't needed.
+   * For a drop-in session it keeps the seed params so a refresh — or a copied/shared link — resumes at the same
+   * place and camera rather than falling back to a normal audit mission (#4451, #4637).
    */
   #updateURL() {
     let newURL = `${window.location.protocol}//${window.location.host}/explore`;
     if (window.location.search.includes('retakeTutorial=true')) {
       newURL += '?retakeTutorial=true';
+    } else if (svl.isExploreAddressMode()) {
+      // Carry the whole drop-in seed, not just the coordinates: the label card's "Explore here" hop (#4637) also
+      // seeds a point of view and pano, so keeping them lets a refreshed or shared link land on the exact view the
+      // card pointed at instead of only the spot. An expired pano still falls back to the lat/lng (#4635).
+      const params = this.#params;
+      const urlParams = new URLSearchParams({ lat: params.startLat, lng: params.startLng });
+      if (params.startPov) {
+        urlParams.set('heading', params.startPov.heading);
+        urlParams.set('pitch', params.startPov.pitch);
+        urlParams.set('zoom', params.startPov.zoom);
+      }
+      if (params.startPanoId) urlParams.set('panoId', params.startPanoId);
+      if (params.startPlaceName) urlParams.set('placeName', params.startPlaceName);
+      newURL += `?${urlParams.toString()}`;
     }
     if (newURL !== window.location.href) {
       window.history.pushState({ }, '', newURL);
