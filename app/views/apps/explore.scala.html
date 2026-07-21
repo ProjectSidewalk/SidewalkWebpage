@@ -773,7 +773,9 @@
     var svl = {};
     const mainParam = {};
 
-    if (@data.task.isDefined) {
+    @* Server-side conditional (@if), not a browser `if`: when the user has finished their assigned neighborhood the *@
+    @* task is None, so `data.task.get` must never be evaluated at render time (that 500s the page — #4672). *@
+    @if(data.task.isDefined) {
       mainParam.task = @Html(Json.toJson(data.task.get).toString);
     } else {
       $(".tool-ui").removeClass("ps-invisible");
