@@ -361,12 +361,59 @@
   stroke-linejoin: round;
 }
 
-/* While fitted to the whole route, the user-centered overlays (fog/FOV/ring/%/coach) don't apply. */
+/* While fitted to the whole route, the user-centered overlays (fog/FOV/ring/%/coach) don't apply; the route-overview
+   inset is redundant then too (the whole map is the route). */
 #minimap-holder.minimap-overview #minimap-fog-of-war-canvas,
 #minimap-holder.minimap-overview #minimap-fov-canvas,
 #minimap-holder.minimap-overview #minimap-progress-circle-canvas,
 #minimap-holder.minimap-overview #minimap-percent-observed,
-#minimap-holder.minimap-overview #minimap-coach {
+#minimap-holder.minimap-overview #minimap-coach,
+#minimap-holder.minimap-overview #minimap-route-overview {
+  display: none;
+}
+
+/* Whole-route overview inset (RouteOverview.js): a small always-on map of the entire designated route in the
+   bottom-left corner, doubling as the legend. Hidden by default; shown only in route mode, where it replaces the
+   mini-legend/key (which grows street-by-street on neighborhood audits, so there's no route to preview there). */
+#minimap-route-overview {
+  display: none;
+  position: absolute;
+  left: calc(4px * var(--ui-scale));
+  bottom: calc(10px * var(--ui-scale));
+  width: calc(96px * var(--ui-scale));
+  height: calc(80px * var(--ui-scale));
+  padding: 0;
+  border: calc(2px * var(--ui-scale)) solid var(--color-neutral-white);
+  border-radius: calc(8px * var(--ui-scale));
+  background: rgb(237 239 238 / 95%);
+  box-shadow: 0 calc(2px * var(--ui-scale)) calc(8px * var(--ui-scale)) rgb(0 0 0 / 28%);
+  overflow: hidden;
+  cursor: pointer;
+  z-index: 4;
+}
+
+#minimap-route-overview-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#minimap-route-overview:hover {
+  border-color: var(--color-pine-600);
+}
+
+#minimap-route-overview:focus-visible {
+  outline: calc(2px * var(--ui-scale)) solid var(--color-pine-600);
+  outline-offset: calc(1px * var(--ui-scale));
+}
+
+/* Route mode: the overview inset takes the bottom-left corner in place of the mini-legend and its expanded card. */
+#minimap-holder.minimap-route-mode #minimap-route-overview {
+  display: block;
+}
+
+#minimap-holder.minimap-route-mode #minimap-legend-toggle,
+#minimap-holder.minimap-route-mode #minimap-legend-card {
   display: none;
 }
 

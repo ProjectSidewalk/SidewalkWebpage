@@ -121,6 +121,7 @@ class Main {
 
     svl.observedArea = new ObservedArea(svl.ui.minimap);
     svl.minimapLegend = new MinimapLegend(svl.ui.minimap, svl.tracker);
+    svl.routeOverview = new RouteOverview(svl.ui.minimap, svl.tracker);
 
     // Mission
     svl.missionContainer = new MissionContainer(svl.missionPanel, svl.missionModel);
@@ -441,6 +442,8 @@ class Main {
     svl.ui.minimap.legendToggle = $('#minimap-legend-toggle');
     svl.ui.minimap.legendCard = $('#minimap-legend-card');
     svl.ui.minimap.legendClose = $('#minimap-legend-close');
+    svl.ui.minimap.routeOverview = $('#minimap-route-overview');
+    svl.ui.minimap.routeOverviewCanvas = $('#minimap-route-overview-canvas');
 
     // Street view area DOM elements.
     svl.ui.streetview = {};

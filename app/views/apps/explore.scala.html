@@ -403,6 +403,10 @@
                 <span data-i18n="audit:right-ui.minimap.legend-visited">Visited</span>
               </div>
             </div>
+            @* Whole-route overview inset — shown only on designated routes (RouteOverview toggles the holder class). *@
+            <button id="minimap-route-overview" type="button" aria-label="Route overview: tap to see the whole route" data-i18n-aria-label="audit:right-ui.minimap.route-overview" title="Route overview: tap to see the whole route" data-i18n-title="audit:right-ui.minimap.route-overview">
+              <canvas id="minimap-route-overview-canvas"></canvas>
+            </button>
             <div id="minimap-zoom-controls" class="zoom-buttons-holder">
               <button id="minimap-zoom-fit" class="zoom-button" type="button" aria-label="Show whole route" data-i18n-aria-label="audit:right-ui.minimap.fit-route" title="Show whole route" data-i18n-title="audit:right-ui.minimap.fit-route">
                 <img class="zoom-button-icon" src='@assets.path("images/icons/route-fit-white-material.svg")' alt="">

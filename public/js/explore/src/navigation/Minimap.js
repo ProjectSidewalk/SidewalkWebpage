@@ -59,9 +59,11 @@ class Minimap {
 
     this.#setupZoomControls();
 
-    // Redraw the observed-area overlay whenever the map settles (e.g. after a zoom) so the fog/FOV stay aligned.
+    // Redraw the observed-area overlay whenever the map settles (e.g. after a zoom) so the fog/FOV stay aligned; the
+    // route overview inset tracks the same settle so its "current extent" box follows any zoom/recenter.
     google.maps.event.addListener(this.#map, 'idle', () => {
       if (svl.observedArea) svl.observedArea.update();
+      if (svl.routeOverview) svl.routeOverview.render();
     });
 
     // Return a promise that resolves once the map is idle (and therefore fully initialized).
@@ -94,16 +96,23 @@ class Minimap {
 
     const fitButton = document.getElementById('minimap-zoom-fit');
     if (fitButton) {
-      fitButton.addEventListener('click', () => {
-        if (svl.ui.minimap.holder.hasClass('minimap-tutorial')) return;
-        if (this.#overviewMode) {
-          this.exitOverview('fit-button');
-        } else {
-          this.enterOverview(false);
-        }
-        svl.tracker.push('Click_MinimapFitRoute', { mode: this.#overviewMode ? 'overview' : 'street' });
-      });
+      fitButton.addEventListener('click', () => this.toggleOverview('fit-button'));
     }
+  }
+
+  /**
+   * Toggles the fitted whole-route overview: fits to the route if currently at street level, or returns to street
+   * level if already fitted. Invoked by the ⛶ button and, on designated routes, by clicking the route-overview inset.
+   * @param {string} trigger - What initiated the toggle (for interaction logging).
+   */
+  toggleOverview(trigger) {
+    if (svl.ui.minimap.holder.hasClass('minimap-tutorial')) return;
+    if (this.#overviewMode) {
+      this.exitOverview(trigger);
+    } else {
+      this.enterOverview(false);
+    }
+    svl.tracker.push('Click_MinimapFitRoute', { mode: this.#overviewMode ? 'overview' : 'street', trigger });
   }
 
   /**
