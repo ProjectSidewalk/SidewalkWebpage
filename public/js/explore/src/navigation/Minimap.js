@@ -218,6 +218,13 @@ class Minimap {
    */
   updateMissionProgress(mission) {
     const totalMeters = mission.getDistance('meters');
+    // Free-exploration missions (#4451) have no distance target; a "0/0" progress bar would be meaningless, so hide it.
+    if (!totalMeters) {
+      svl.ui.minimap.missionProgress.css('display', 'none');
+      return;
+    }
+    svl.ui.minimap.missionProgress.css('display', '');
+
     const fraction = mission.getMissionCompletionRate();
     const doneMeters = Math.min(Math.max(mission.getProperty('distanceProgress') || 0, 0), totalMeters);
     const metric = i18next.t('common:measurement-system') === 'metric';

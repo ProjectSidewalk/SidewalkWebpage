@@ -54,6 +54,12 @@ class MinimapStyle {
     return MinimapStyle.token('--color-neutral-700', '#6B6B6B');
   }
 
+  /** @returns {string} The peg's blue, reused for the breadcrumb trail and the route-overview "you are here" dot so
+   * they can't drift from the peg (which fills with the same --color-link-100). */
+  static pegColor() {
+    return MinimapStyle.token('--color-link-100', '#3E8BD9');
+  }
+
   /**
    * The audited/cone hue as RGB channels, for building canvas gradients with varying alpha.
    * @returns {{r: number, g: number, b: number}}
