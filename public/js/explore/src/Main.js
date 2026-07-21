@@ -235,6 +235,11 @@ class Main {
       taskContainer.fetchTasks().then(() => {
         this.#loadingTasksCompleted = true;
         this.#handleDataLoadComplete();
+        // Plant start/finish flags on the minimap so a route walk shows where it begins and ends.
+        if (svl.neighborhoodModel.isRoute) {
+          const endpoints = taskContainer.getRouteEndpoints();
+          if (endpoints) svl.minimap.showRouteEndpoints(endpoints.start, endpoints.finish);
+        }
       });
     }
 

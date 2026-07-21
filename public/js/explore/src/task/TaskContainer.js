@@ -269,6 +269,20 @@ class TaskContainer {
   }
 
   /**
+   * The route's start and finish coordinates in walking order: the first street's start and the last street's end.
+   * Walking order is routeStreetPosition (falling back to routeStreetId), matching nextTask(). Coordinates are
+   * already oriented to the walking direction on each task, so start/end are the true origin/destination.
+   * @returns {?{start: {lat: number, lng: number}, finish: {lat: number, lng: number}}} null if no tasks loaded.
+   */
+  getRouteEndpoints() {
+    const tasks = this.getTasks();
+    if (tasks.length === 0) return null;
+    const walkOrder = (task) => task.getProperty('routeStreetPosition') ?? task.getProperty('routeStreetId');
+    const ordered = [...tasks].sort((t1, t2) => walkOrder(t1) - walkOrder(t2));
+    return { start: ordered[0].getStartCoordinate(), finish: ordered[ordered.length - 1].getEndCoordinate() };
+  }
+
+  /**
    * Checks if the neighborhood is complete across all users; if so, displays the relevant overlay.
    */
   #updateNeighborhoodCompleteAcrossAllUsersStatus() {
