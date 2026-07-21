@@ -377,9 +377,12 @@
   height: calc(28px * var(--ui-scale, 1));
   transform: translateY(50%) rotate(var(--peg-heading, 0deg));
   transform-origin: center;
+}
 
-  /* Decorative marker (no handlers) sitting at zIndex 1000: let clicks pass through so a breadcrumb it overlaps near
-     the current position stays clickable (#2561). */
+/* The peg is decorative (no handlers), but the AdvancedMarkerElement wrapper Google generates keeps pointer-events:auto
+   even when its content is set to none — so at zIndex 1000 it still swallows clicks meant for a breadcrumb beneath it
+   (the crumbs nearest you sit inside the peg's box). Null the wrapper so the whole peg is click-through (#2561). */
+gmp-advanced-marker:has(> .minimap-peg) {
   pointer-events: none;
 }
 

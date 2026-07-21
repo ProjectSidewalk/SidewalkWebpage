@@ -559,6 +559,9 @@ class NavigationService {
     if (this.#status.disableWalking) return false;
     const moved = svl.panoViewer.getPanoId() === panoId ? true : await this.moveToPano(panoId);
     if (moved && pov) svl.panoManager.setPov(pov);
+    // The move carries the prior pano's zoom over (GSV keeps the POV across setPanorama), so the zoom buttons can end
+    // up desynced from the actual zoom — e.g. pinned at max with zoom-out dead. Re-sync them to the current zoom.
+    if (moved && svl.zoomControl) svl.zoomControl.syncButtonsToZoom(svl.panoViewer.getPov().zoom);
     return moved;
   }
 
