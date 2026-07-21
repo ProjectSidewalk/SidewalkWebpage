@@ -138,24 +138,72 @@ seo.description.api = Freie und offene Daten zur Trottoir-Zugänglichkeit in {0}
 seo.description.about = Lernen Sie Project Sidewalk kennen: unsere Mission, die Trottoirs der Welt zu kartieren, das Forschungsteam dahinter und die offenen Daten, die es liefert.
 seo.og.image.alt = Bildschirmfoto der virtuellen Straßenerkundung von Project Sidewalk mit Zugänglichkeits-Beschriftungen entlang eines Trottoirs.
 
-# Über-uns-Seite (#4237). {0}/{1} in about.where.body sind die aktuellen Stadt-/Länderzahlen.
+# Über-uns-Seite (#4237, neu gestaltet in #4631). Statischer Text wird serverseitig gerendert; Zahlen in
+# data-live-stat werden aus /v3/api/aggregateStats aktualisiert, Team, Publikationen und Förderungen aus der
+# Makeability-Lab-API (aboutPage.js).
 about.title = Über Project Sidewalk
-about.mission.title = Unsere Mission
-about.mission.body = Project Sidewalk ist ein Open-Source-Projekt mit dem Ziel, alle Trottoirs der Welt mithilfe von Online-Crowdsourcing, künstlicher Intelligenz und Straßenbildern zu kartieren und zu bewerten. Wir machen Daten zur Trottoir-Zugänglichkeit für alle offen zugänglich, um Städte begehbarer und barrierefreier zu machen.
+about.hero.title = Wir kartieren <span class="about-hero-accent">jedes Trottoir</span> der Welt.
+about.hero.subtitle = Project Sidewalk ist ein Open-Source-Forschungsprojekt, das Crowdsourcing und KI kombiniert, um die Trottoirs von Städten zu kartieren und zu bewerten — und jeden Datenpunkt für Forschung, Behörden und Gemeinschaften öffnet.
+about.hero.attribution = Ein akademisches Forschungsprojekt unter der Leitung von Professor Jon E. Froehlich (University of Washington) und Professor Yochai Eisenberg (University of Illinois Chicago).
+about.hero.cta.explore = Jetzt erkunden
+about.hero.cta.data = Zu den Daten
+about.stats.heading = Project Sidewalk in Zahlen
+about.stats.km = Erkundete Kilometer
+about.stats.labels = Beschriftungen
+about.stats.validations = Validierungen
+about.stats.cities = Städte
+about.stats.countries = Länder
 about.how.title = So funktioniert es
-about.how.body = Sie erkunden eine Stadt virtuell in einem spielartigen Werkzeug und beschriften Trottoirabsenkungen, fehlende Trottoirs, Hindernisse und Oberflächenprobleme in Straßenbildern. Andere Nutzende validieren diese Beschriftungen anschließend, um die Qualität zu sichern. Das Ergebnis ist ein offener Datensatz, den Forschung, Behörden und Gemeinschaften nutzen, um Zugänglichkeit zu verstehen und zu verbessern. <a href="/explore">Beginnen Sie mit dem Erkunden</a> oder <a href="/validate">validieren Sie Beschriftungen</a>.
+about.how.intro = Wir wollen alle Trottoirs der Welt mit Online-Crowdsourcing, künstlicher Intelligenz und Straßenbildern kartieren und bewerten. Alle mit einem Webbrowser können mithelfen — ganz ohne Spezialwerkzeuge.
+about.how.step.explore.title = Erkunden &amp; beschriften
+about.how.step.explore.body = Freiwillige gehen in einem spielartigen Web-Werkzeug virtuell durch Stadtstraßen und beschriften Trottoirabsenkungen, fehlende Trottoirs, Hindernisse und Oberflächenprobleme in Straßenbildern.
+about.how.step.validate.title = Validieren
+about.how.step.validate.body = Andere Mitwirkende prüfen die Beschriftungen — unterstützt durch KI — und stimmen zu oder widersprechen, damit der Datensatz genau und verlässlich bleibt.
+about.how.step.data.title = Offene Daten
+about.how.step.data.body = Jede Beschriftung fließt in einen offenen Datensatz, den Forschung, Behörden und Gemeinschaften nutzen, um die Zugänglichkeit von Trottoirs zu verstehen und zu verbessern.
+about.how.cta = <a href="/explore">Beginnen Sie mit dem Erkunden</a> oder <a href="/validate">validieren Sie Beschriftungen</a>.
+about.impact.title = So wirkt Project Sidewalk
+about.impact.intro = Es geht nicht nur um Daten, sondern um echte Veränderung. Einige Beispiele, wie Gemeinschaften, Behörden und Schulen Project Sidewalk eingesetzt haben.
+about.impact.chicago.place = Chicago, Illinois
+about.impact.chicago.body = Stadtbezirke nutzten von Anwohnenden gesammelte Daten, um Mittel für Trottoir-Verbesserungen gerechter zu priorisieren, und unser Team beriet das Pedestrian Safety Committee der Stadt dabei, über rein beschwerdebasierte Reparaturen hinauszugehen.
+about.impact.illinois.place = Lincolnwood, Roselle &amp; Mendota, Illinois
+about.impact.illinois.body = Project-Sidewalk-Daten flossen in die ADA-Übergangspläne von Lincolnwood und Roselle ein, und in Mendota nutzten Partner vor Ort die Daten, um erfolgreich eine Safe-Routes-to-School-Förderung zu gewinnen.
+about.impact.burnaby.place = Burnaby, Kanada
+about.impact.burnaby.body = Die Stadt Burnaby integrierte Project-Sidewalk-Daten in die Priorisierung ihres New Sidewalks Program und ihrer kürzlich verabschiedeten Barrierefreiheitsstrategie.
+about.impact.newberg.place = Newberg, Oregon
+about.impact.newberg.body = Nachdem Anwohnende die örtlichen Trottoirs kartiert hatten, richtete der Stadtrat ein neues Sanierungsprogramm ein — mit 50.000 US-Dollar für sofortige Reparaturen und Zuschüssen für Hauseigentümer.
+about.impact.zurich.place = Zürich, Schweiz
+about.impact.zurich.body = Zürich veröffentlicht Project-Sidewalk-Daten im Open-Data-Portal der Stadt, und der Einsatz wurde mit einem Smart City Hub Switzerland Award in der Kategorie Citizen Science ausgezeichnet.
+about.impact.schools.place = Klassenzimmer in den USA
+about.impact.schools.body = Schülerinnen und Schüler lernen mit Project Sidewalk Datenkompetenz und zivilgesellschaftliches Engagement — von Girl Scouts in Oradell, New Jersey, die ihre Ergebnisse dem Stadtrat präsentierten, bis zu <a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/">Jugendlichen in Waltham, Massachusetts, die landesweite Anerkennung erhielten</a>.
+about.impact.more = Mehr dazu? Unsere Schwesterseite <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a> teilt Neuigkeiten, Materialien und Anleitungen, um Project Sidewalk in Ihrer Gemeinde einzusetzen.
 about.where.title = Wo wir aktiv sind
 about.where.body = Project Sidewalk ist in <span data-live-stat="num_cities">{0}</span> Städten in <span data-live-stat="num_countries">{1}</span> Ländern im Einsatz — Tendenz steigend. <a href="/cities">Sehen Sie alle Städte</a> oder <a href="https://accessiblecommunities.org/use-project-sidewalk/">erfahren Sie, wie Sie Project Sidewalk in Ihre Stadt bringen</a>.
 about.history.title = Unsere Geschichte
-about.history.body = Project Sidewalk begann 2012 als Forschungsprojekt von Professor Jon E. Froehlich und Doktorand Kotaro Hara und wird heute im <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> der Paul G. Allen School of Computer Science &amp; Engineering an der University of Washington entwickelt. Unser erster stadtweiter Einsatz — Washington, DC — zeigte, dass Online-Crowdsourcing die Trottoirs einer ganzen Stadt kartieren kann, und wurde auf der CHI 2019 mit dem Best Paper Award ausgezeichnet.
+about.history.2012 = Project Sidewalk beginnt als Forschungsprojekt von Professor Jon E. Froehlich und Doktorand Kotaro Hara im <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> — mit früher Unterstützung von Google und der National Science Foundation.
+about.history.2017 = Der erste stadtweite Einsatz startet in Washington, DC, geleitet von Doktorandin Manaswi Saha und Forschungswissenschaftler Mikey Saugstad, während das Labor an die Paul G. Allen School of Computer Science &amp; Engineering der University of Washington zieht.
+about.history.2019 = Die Studie zu Washington, DC zeigt, dass Online-Crowdsourcing die Trottoirs einer ganzen Stadt kartieren kann — und erhält auf der CHI 2019 den Best Paper Award.
+about.history.2021 = Eine NSF-Förderung (Smart &amp; Connected Communities) vertieft unsere Zusammenarbeit mit der University of Illinois Chicago und Easterseals — mit mehr Städten, Bildungsprogrammen und unserer Schwesterseite <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a>.
+about.history.today.label = Heute
+about.history.today = Project Sidewalk ist in <span data-live-stat="num_cities">{0}</span> Städten weltweit im Einsatz, nativ in {1} Sprachen übersetzt und getragen von Tausenden Freiwilligen.
 about.team.title = Das Team
-about.team.body = Project Sidewalk wird vom <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> an der University of Washington entworfen und betrieben — unter der Leitung von Professor Jon E. Froehlich mit Chefentwickler Michael Saugstad, in Zusammenarbeit mit Forschenden der University of Illinois Chicago und der Utah State University — und getragen von Tausenden Mitwirkenden weltweit.
-about.data.title = Offene Daten und Forschung
-about.data.body = Alles, was wir sammeln, ist offen. Laden Sie Beschriftungen, Cluster, Straßen und Zugänglichkeits-Scores über unsere <a href="/api">öffentlichen APIs</a> herunter — in Formaten von CSV bis GeoJSON. Wenn Sie Project-Sidewalk-Daten in Ihrer Forschung verwenden, zitieren Sie bitte unser <a href="https://doi.org/10.1145/3290605.3300292">CHI-2019-Paper</a>. Alle veröffentlichten Project-Sidewalk-Daten sind unter CC0 verfügbar; Details und Hinweise zum Zitieren finden Sie in der <a href="/api">API-Dokumentation</a>.
-about.data.publications = Alle <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">Project-Sidewalk-Publikationen</a> finden Sie auf der Website des Makeability Lab.
-about.funding.title = Finanzierung
-about.funding.body = Project Sidewalk wird von der National Science Foundation unterstützt, mit weiterer Unterstützung von Google, der Alfred P. Sloan Foundation, PacTrans und dem CREATE-Zentrum der University of Washington.
-about.contact.title = Kontakt
+about.team.intro = Project Sidewalk ist universitäre Forschung unter der Leitung von Professor Jon E. Froehlich im <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> der University of Washington und Professor Yochai Eisenberg an der University of Illinois Chicago, mit Chefentwickler Mikey Saugstad — und Beiträgen von über hundert Studierenden und Mitwirkenden im Laufe der Jahre.
+about.team.current.title = Aktuelles Team
+about.team.past.title = Frühere Leitung
+about.team.contributors = … und {0} weitere Mitwirkende im Laufe der Jahre — siehe die <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">Projektseite</a>.
+about.pubs.title = Verwandte Publikationen
+about.pubs.intro = Project-Sidewalk-Forschung erscheint auf führenden Fachtagungen für Mensch-Computer-Interaktion und Barrierefreiheit. Wenn Sie unsere Daten oder Werkzeuge in Ihrer Forschung verwenden, zitieren Sie bitte unser <a href="https://doi.org/10.1145/3290605.3300292">CHI-2019-Paper</a>.
+about.pubs.fallback = Alle <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">Project-Sidewalk-Publikationen</a> finden Sie auf der Website des Makeability Lab.
+about.pubs.showAll = Alle {0} Publikationen anzeigen
+about.data.title = Offene Daten und Open Source
+about.data.body = Alles, was wir sammeln, ist offen. Laden Sie Beschriftungen, Cluster, Straßen und Zugänglichkeits-Scores über unsere <a href="/api">öffentlichen APIs</a> herunter — in Formaten von CSV bis GeoJSON, alles unter CC0 veröffentlicht; Details und Hinweise zum Zitieren finden Sie in der <a href="/api">API-Dokumentation</a>. Auch unser <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">Code ist Open Source</a>.
+about.partners.title = Community-Partner
+about.partners.body = Wir arbeiten eng mit Behindertenverbänden, Behörden, Schulen und Gemeinschaftsgruppen weltweit zusammen — darunter Easterseals, World Enabled, Liga Peatonal und die Active Transportation Alliance — um Einsätze zu planen, Kartier-Aktionen durchzuführen und Daten in lokales Handeln zu verwandeln.
+about.partners.schools = Lehrkräfte bringen Project Sidewalk in den Gesellschafts- und Datenunterricht, und unser Team und unsere Partner haben Lehrmaterialien für Service Learning und berufliche Entwicklung für Jugendliche mit Behinderungen erprobt. <a href="https://accessiblecommunities.org/use-project-sidewalk/">Erfahren Sie, wie Sie Project Sidewalk in Ihrer Gemeinde einsetzen</a>.
+about.funding.title = Förderer
+about.funding.body = Project Sidewalk ist durch Fördermittel finanzierte akademische Forschung, unterstützt von der National Science Foundation, mit weiterer Unterstützung von Google, der Alfred P. Sloan Foundation, PacTrans und dem CREATE-Zentrum der University of Washington.
+about.cta.title = Helfen Sie uns, jedes Trottoir zu kartieren
+about.cta.city = Bringen Sie Project Sidewalk in Ihre Stadt
 about.contact.body = Fragen, Ideen oder Presseanfragen? Schreiben Sie uns an <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, eröffnen Sie ein Issue auf <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a> oder folgen Sie uns auf <a href="https://twitter.com/projsidewalk">Twitter</a> und <a href="https://www.facebook.com/projsidewalk">Facebook</a>.
 
 landing.create.path = Schaffen wir einen Weg für alle!

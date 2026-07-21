@@ -3,11 +3,16 @@
 @import play.api.libs.json.Json
 @import service.{CommonPageData, PageMeta}
 @*
- * About page (#4237): server-rendered, localized overview of Project Sidewalk — mission, how it works, deployments,
- * history, team, open data, funding, and contact. This is the canonical "what is Project Sidewalk" page for search
- * engines, linked from the footer on every page.
+ * About page (#4237, redesigned in #4631): server-rendered, localized overview of Project Sidewalk — mission, how it
+ * works, impact stories, deployments, history, team, publications, open data, partners, funders, and contact. This is
+ * the canonical "what is Project Sidewalk" page for search engines, linked from the footer on every page.
  *
- * @param commonData Per-page config; allCityInfo drives the live deployment city/country counts.
+ * All narrative copy is server-rendered (SEO + i18n) and doubles as the no-JS fallback. Rot-prone content hydrates
+ * from APIs on load: deployment stats via aggregateStats.js (/v3/api/aggregateStats + data-live-stat spans), and the
+ * team roster, publication list, and grants via aboutPage.js (Makeability Lab API), so rosters and numbers never have
+ * to be hand-maintained here.
+ *
+ * @param commonData Per-page config; allCityInfo drives the server-rendered deployment city/country counts.
  * @param title      Localized page title.
  * @param user       The signed-in or anonymous display user (for the navbar).
  *@
@@ -17,6 +22,9 @@
 @publicCities = @{commonData.allCityInfo.filter(_.visibility == "public")}
 @cityCount = @{publicCities.size}
 @countryCount = @{publicCities.map(_.countryId).distinct.size}
+@* Count of natively translated languages, from config so it can't drift: base languages only (en-US/en-NZ are
+   regional overlays of en, zh-TW's base is zh), so e.g. [en, en-US, en-NZ, es, nl, zh-TW, de, pt-BR] counts 6. *@
+@languageCount = @{config.get[Seq[String]]("play.i18n.langs").map(_.takeWhile(_ != '-')).distinct.size}
 
 @* AboutPage JSON-LD built with the JSON library (not hand-written markup) so quoting is always valid; escaping `<`
    blocks a `</script>` breakout from any interpolated string. *@
@@ -52,51 +60,225 @@
   @common.navbar(commonData, Some(user))
 
   <main id="about-page">
-    <h1>@Messages("about.title")</h1>
-
-    <section>
-      <h2>@Messages("about.mission.title")</h2>
-      <p>@Html(Messages("about.mission.body"))</p>
+    <section class="about-hero">
+      <div class="about-container">
+        <h1 class="about-hero-title">@Html(Messages("about.hero.title"))</h1>
+        <p class="about-hero-subtitle">@Messages("about.hero.subtitle")</p>
+        <p class="about-hero-attribution">@Messages("about.hero.attribution")</p>
+        <div class="about-cta-row">
+          <a class="button-ps button--primary button--large" id="about-hero-explore-link" href="/explore">
+            @Messages("about.hero.cta.explore")</a>
+          <a class="button-ps button--secondary button--large" id="about-hero-data-link" href="/api">
+            @Messages("about.hero.cta.data")</a>
+        </div>
+      </div>
+      @* Decorative sidewalk strip with label-type markers — pure ornament, hidden from assistive tech. *@
+      <div class="about-hero-sidewalk" aria-hidden="true">
+        <img class="about-hero-pin" src='@assets.path("images/icons/label_type_icons/CurbRamp_small.svg")' alt="">
+        <img class="about-hero-pin" src='@assets.path("images/icons/label_type_icons/NoCurbRamp_small.svg")' alt="">
+        <img class="about-hero-pin" src='@assets.path("images/icons/label_type_icons/Obstacle_small.svg")' alt="">
+        <img class="about-hero-pin" src='@assets.path("images/icons/label_type_icons/SurfaceProblem_small.svg")' alt="">
+        <img class="about-hero-pin" src='@assets.path("images/icons/label_type_icons/Crosswalk_small.svg")' alt="">
+        <img class="about-hero-pin" src='@assets.path("images/icons/label_type_icons/Signal_small.svg")' alt="">
+      </div>
     </section>
 
-    <section>
-      <h2>@Messages("about.how.title")</h2>
-      <p>@Html(Messages("about.how.body"))</p>
+    @* Live-stat fallbacks: cities/countries are exact (config-derived); the other three are conservative floors that
+       hold true as the dataset only grows, replaced by exact live values from /v3/api/aggregateStats on load. *@
+    <section class="about-stats" aria-labelledby="about-stats-heading">
+      <h2 class="visually-hidden" id="about-stats-heading">@Messages("about.stats.heading")</h2>
+      <div class="about-container about-stats-grid">
+        <div class="about-stat">
+          <span class="about-stat-number" data-live-stat="km_explored">30,000+</span>
+          <span class="about-stat-label">@Messages("about.stats.km")</span>
+        </div>
+        <div class="about-stat">
+          <span class="about-stat-number" data-live-stat="total_labels">1,500,000+</span>
+          <span class="about-stat-label">@Messages("about.stats.labels")</span>
+        </div>
+        <div class="about-stat">
+          <span class="about-stat-number" data-live-stat="total_validations">2,000,000+</span>
+          <span class="about-stat-label">@Messages("about.stats.validations")</span>
+        </div>
+        <div class="about-stat">
+          <span class="about-stat-number" data-live-stat="num_cities">@cityCount</span>
+          <span class="about-stat-label">@Messages("about.stats.cities")</span>
+        </div>
+        <div class="about-stat">
+          <span class="about-stat-number" data-live-stat="num_countries">@countryCount</span>
+          <span class="about-stat-label">@Messages("about.stats.countries")</span>
+        </div>
+      </div>
     </section>
 
-    <section>
-      <h2>@Messages("about.where.title")</h2>
-      <p>@Html(Messages("about.where.body", cityCount, countryCount))</p>
+    <section class="about-band" id="about-how">
+      <div class="about-container">
+        <h2>@Messages("about.how.title")</h2>
+        <p class="about-section-intro">@Messages("about.how.intro")</p>
+        <ol class="about-steps">
+          <li class="about-step">
+            <img class="about-step-icon" src='@assets.path("images/icons/label_type_icons/CurbRamp_small.svg")'
+                 alt="">
+            <h3>@Html(Messages("about.how.step.explore.title"))</h3>
+            <p>@Messages("about.how.step.explore.body")</p>
+          </li>
+          <li class="about-step">
+            <img class="about-step-icon about-step-icon--chip"
+                 src='@assets.path("images/icons/check-circle-feather.svg")' alt="">
+            <h3>@Messages("about.how.step.validate.title")</h3>
+            <p>@Messages("about.how.step.validate.body")</p>
+          </li>
+          <li class="about-step">
+            <img class="about-step-icon about-step-icon--chip"
+                 src='@assets.path("images/icons/bar-chart-2-feather.svg")' alt="">
+            <h3>@Messages("about.how.step.data.title")</h3>
+            <p>@Messages("about.how.step.data.body")</p>
+          </li>
+        </ol>
+        <p class="about-how-cta">@Html(Messages("about.how.cta"))</p>
+      </div>
     </section>
 
-    <section>
-      <h2>@Messages("about.history.title")</h2>
-      <p>@Html(Messages("about.history.body"))</p>
+    <section class="about-band about-band--tint" id="about-impact">
+      <div class="about-container">
+        <h2>@Messages("about.impact.title")</h2>
+        <p class="about-section-intro">@Messages("about.impact.intro")</p>
+        <div class="about-impact-grid">
+          @for(key <- Seq("chicago", "illinois", "burnaby", "newberg", "zurich", "schools")) {
+            <article class="about-impact-card">
+              <h3>@Html(Messages(s"about.impact.$key.place"))</h3>
+              <p>@Html(Messages(s"about.impact.$key.body"))</p>
+            </article>
+          }
+        </div>
+        <p class="about-impact-more">@Html(Messages("about.impact.more"))</p>
+      </div>
     </section>
 
-    <section>
-      <h2>@Messages("about.team.title")</h2>
-      <p>@Html(Messages("about.team.body"))</p>
+    <section class="about-band" id="about-where">
+      <div class="about-container">
+        <h2>@Messages("about.where.title")</h2>
+        <p>@Html(Messages("about.where.body", cityCount, countryCount))</p>
+      </div>
     </section>
 
-    <section>
-      <h2>@Html(Messages("about.data.title"))</h2>
-      <p>@Html(Messages("about.data.body"))</p>
-      <p>@Html(Messages("about.data.publications"))</p>
+    <section class="about-band about-band--tint" id="about-history">
+      <div class="about-container">
+        <h2>@Messages("about.history.title")</h2>
+        <ol class="about-timeline">
+          <li>
+            <span class="about-timeline-year">2012</span>
+            <p>@Html(Messages("about.history.2012"))</p>
+          </li>
+          <li>
+            <span class="about-timeline-year">2017</span>
+            <p>@Html(Messages("about.history.2017"))</p>
+          </li>
+          <li>
+            <span class="about-timeline-year">2019</span>
+            <p>@Html(Messages("about.history.2019"))</p>
+          </li>
+          <li>
+            <span class="about-timeline-year">2021</span>
+            <p>@Html(Messages("about.history.2021"))</p>
+          </li>
+          <li>
+            <span class="about-timeline-year">@Messages("about.history.today.label")</span>
+            <p>@Html(Messages("about.history.today", cityCount, languageCount))</p>
+          </li>
+        </ol>
+      </div>
     </section>
 
-    <section>
-      <h2>@Messages("about.funding.title")</h2>
-      <p>@Html(Messages("about.funding.body"))</p>
+    <section class="about-band" id="about-team">
+      <div class="about-container">
+        <h2>@Messages("about.team.title")</h2>
+        <p class="about-section-intro">@Html(Messages("about.team.intro"))</p>
+        @* Roster grids are populated from the Makeability Lab API by aboutPage.js and stay hidden if it fails, so the
+           intro paragraph above is the graceful fallback. *@
+        <div id="about-team-live" hidden>
+          <h3>@Messages("about.team.current.title")</h3>
+          <ul class="about-team-grid" id="about-team-current"></ul>
+          <h3>@Messages("about.team.past.title")</h3>
+          <ul class="about-team-past" id="about-team-past"></ul>
+          <p class="about-team-contributors" id="about-team-contributors">@Html(Messages("about.team.contributors"))</p>
+        </div>
+      </div>
     </section>
 
-    <section>
-      <h2>@Messages("about.contact.title")</h2>
-      <p>@Html(Messages("about.contact.body"))</p>
+    <section class="about-band about-band--tint" id="about-pubs">
+      <div class="about-container">
+        <h2>@Messages("about.pubs.title")</h2>
+        <p class="about-section-intro">@Html(Messages("about.pubs.intro"))</p>
+        <div class="about-pubs-list" id="about-pubs-list"></div>
+        <button class="button-ps button--secondary button--medium" id="about-pubs-show-all" hidden
+                data-label-template="@Messages("about.pubs.showAll")"></button>
+        <p class="about-pubs-fallback">@Html(Messages("about.pubs.fallback"))</p>
+      </div>
+    </section>
+
+    <section class="about-band" id="about-data">
+      <div class="about-container">
+        <h2>@Html(Messages("about.data.title"))</h2>
+        <p>@Html(Messages("about.data.body"))</p>
+      </div>
+    </section>
+
+    <section class="about-band about-band--tint" id="about-partners">
+      <div class="about-container">
+        <h2>@Messages("about.partners.title")</h2>
+        <p>@Messages("about.partners.body")</p>
+        <p>@Html(Messages("about.partners.schools"))</p>
+      </div>
+    </section>
+
+    <section class="about-band" id="about-funding">
+      <div class="about-container">
+        <h2>@Messages("about.funding.title")</h2>
+        <p>@Messages("about.funding.body")</p>
+        @* Grant list hydrated from the Makeability Lab API; hidden (with the paragraph above as fallback) until it
+           loads. *@
+        <ul class="about-grants" id="about-funding-grants" hidden></ul>
+        <div class="about-funder-logos">
+          <a href="https://www.nsf.gov/" id="about-funder-nsf-link">
+            <img loading="lazy" src='@assets.path("images/nsf.png")' alt='@Messages("footer.logo.nsf.alt")'>
+          </a>
+          <a href="https://www.google.com/" id="about-funder-google-link">
+            <img loading="lazy" src='@assets.path("images/google.png")' alt='@Messages("footer.logo.google.alt")'>
+          </a>
+          <a href="https://sloan.org/" id="about-funder-sloan-link">
+            <img loading="lazy" src='@assets.path("images/sloan_logo.png")' alt='@Messages("footer.logo.sloan.alt")'>
+          </a>
+          <a href="https://www.washington.edu/research/research-centers/pacific-northwest-transportation-consortium-pactrans/"
+             id="about-funder-pactrans-link">
+            <img loading="lazy" src='@assets.path("images/pactrans_logo.png")'
+                 alt='@Messages("footer.logo.pactrans.alt")'>
+          </a>
+          <a href="https://create.uw.edu/" id="about-funder-create-link">
+            <img loading="lazy" src='@assets.path("images/CREATE_logo.png")'
+                 alt='@Messages("footer.logo.create.alt")'>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="about-cta-band">
+      <div class="about-container">
+        <h2>@Messages("about.cta.title")</h2>
+        <div class="about-cta-row">
+          <a class="button-ps button--primary button--large" id="about-cta-explore-link" href="/explore">
+            @Messages("about.hero.cta.explore")</a>
+          <a class="button-ps button--secondary button--large" id="about-cta-city-link"
+             href="https://accessiblecommunities.org/use-project-sidewalk/">@Messages("about.cta.city")</a>
+        </div>
+        <p class="about-contact">@Html(Messages("about.contact.body"))</p>
+      </div>
     </section>
   </main>
 
   <link rel="stylesheet" href='@assets.path("css/about.css")'>
   @* Hydrates the data-live-stat spans with live deployment numbers from /v3/api/aggregateStats. *@
   <script src='@assets.path("js/common/aggregateStats.js")'></script>
+  @* Hydrates team, publications, and grants from the Makeability Lab API; logs CTA clicks. *@
+  <script src='@assets.path("js/aboutPage.js")'></script>
 }

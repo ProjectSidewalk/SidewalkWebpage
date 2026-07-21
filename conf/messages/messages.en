@@ -141,24 +141,72 @@ seo.description.api = Free and open sidewalk accessibility data for {0}: raw lab
 seo.description.about = Learn about Project Sidewalk: our mission to map the world''s sidewalks, the research team behind it, and the open data it produces.
 seo.og.image.alt = Screenshot of Project Sidewalk''s virtual street-view exploration with accessibility labels placed along a sidewalk.
 
-# About page (#4237). {0}/{1} in about.where.body are the live deployment city/country counts.
+# About page (#4237, redesigned in #4631). Static copy is server-rendered and doubles as the no-JS/crawler fallback;
+# numbers in data-live-stat spans are hydrated from /v3/api/aggregateStats (aggregateStats.js), and the team,
+# publications, and funders sections are hydrated from the Makeability Lab API (aboutPage.js).
 about.title = About Project Sidewalk
-about.mission.title = Our mission
-about.mission.body = Project Sidewalk is an open-source project that aims to map and assess every sidewalk in the world using remote crowdsourcing, artificial intelligence, and online street-level imagery. We make sidewalk accessibility data open to everyone to help build more walkable, accessible cities.
+about.hero.title = We''re mapping <span class="about-hero-accent">every sidewalk</span> in the world.
+about.hero.subtitle = Project Sidewalk is an open-source research project that combines crowdsourcing and AI to map and assess city sidewalks — and opens every data point to researchers, governments, and communities.
+about.hero.attribution = An academic research project led by Professor Jon E. Froehlich (University of Washington) and Professor Yochai Eisenberg (University of Illinois Chicago).
+about.hero.cta.explore = Start exploring
+about.hero.cta.data = Get the data
+about.stats.heading = Project Sidewalk by the numbers
+about.stats.km = Kilometers explored
+about.stats.labels = Labels
+about.stats.validations = Validations
+about.stats.cities = Cities
+about.stats.countries = Countries
 about.how.title = How it works
-about.how.body = You virtually explore a city in a game-like tool, labeling curb ramps, missing sidewalks, obstacles, and surface problems in street-level imagery. Other users then validate those labels to ensure quality. The result is an open dataset that researchers, governments, and communities use to understand and improve sidewalk accessibility. <a href="/explore">Start exploring</a> or <a href="/validate">validate labels</a> to contribute.
+about.how.intro = We aim to map and assess every sidewalk in the world using remote crowdsourcing, artificial intelligence, and online street-level imagery. Anyone with a web browser can help — no special tools required.
+about.how.step.explore.title = Explore &amp; label
+about.how.step.explore.body = Volunteers virtually walk city streets in a game-like web tool, labeling curb ramps, missing sidewalks, obstacles, and surface problems in street-level imagery.
+about.how.step.validate.title = Validate
+about.how.step.validate.body = Contributors then review each other''s labels — assisted by AI — agreeing or disagreeing with what they see, so the dataset stays accurate and trustworthy.
+about.how.step.data.title = Open data
+about.how.step.data.body = Every label feeds an open dataset that researchers, governments, and community advocates use to understand and improve sidewalk accessibility.
+about.how.cta = <a href="/explore">Start exploring</a> or <a href="/validate">validate labels</a> to contribute.
+about.impact.title = How Project Sidewalk makes impact
+about.impact.intro = The goal isn''t just data — it''s change on the ground. Here are a few of the ways communities, governments, and schools have put Project Sidewalk to work.
+about.impact.chicago.place = Chicago, Illinois
+about.impact.chicago.body = Aldermanic wards have used resident-collected Project Sidewalk data to prioritize sidewalk improvement funds more equitably, and our team advised the city''s Pedestrian Safety Committee on moving beyond complaint-driven repairs.
+about.impact.illinois.place = Lincolnwood, Roselle &amp; Mendota, Illinois
+about.impact.illinois.body = Project Sidewalk data helped shape ADA Transition Plans for Lincolnwood and Roselle, and community partners in Mendota used it to win a Safe Routes to School grant for safer paths to school.
+about.impact.burnaby.place = Burnaby, Canada
+about.impact.burnaby.body = The City of Burnaby integrated Project Sidewalk data into the prioritization framework for its New Sidewalks Program and its recently adopted Accessibility Strategy.
+about.impact.newberg.place = Newberg, Oregon
+about.impact.newberg.body = After residents mapped local sidewalks, the city council created a new sidewalk renovation program — including $50,000 for immediate repairs and grants to help homeowners fix the sidewalks outside their homes.
+about.impact.zurich.place = Zurich, Switzerland
+about.impact.zurich.body = Zurich publishes Project Sidewalk data in the city''s open data portal, and the deployment won a Smart City Hub Switzerland Award in the citizen-science category.
+about.impact.schools.place = Classrooms across the U.S.
+about.impact.schools.body = Students use Project Sidewalk to learn data science and civic advocacy — from Girl Scouts in Oradell, New Jersey presenting findings to their city council, to <a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/">middle schoolers in Waltham, Massachusetts earning statewide civics recognition</a>.
+about.impact.more = Want more? Our sister site <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a> shares news, resources, and guides for putting Project Sidewalk to work in your community.
 about.where.title = Where we are
 about.where.body = Project Sidewalk is deployed in <span data-live-stat="num_cities">{0}</span> cities across <span data-live-stat="num_countries">{1}</span> countries — and growing. <a href="/cities">See every deployment city</a> or <a href="https://accessiblecommunities.org/use-project-sidewalk/">learn how to bring Project Sidewalk to yours</a>.
 about.history.title = Our history
-about.history.body = Project Sidewalk began in 2012 as a research project by Professor Jon E. Froehlich and PhD student Kotaro Hara, and is now developed in the <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> at the University of Washington''s Paul G. Allen School of Computer Science &amp; Engineering. Our first city-scale deployment — Washington, DC — showed that online crowdsourcing can map an entire city''s sidewalks, and earned a Best Paper Award at CHI 2019.
+about.history.2012 = Project Sidewalk begins as a research project by Professor Jon E. Froehlich and PhD student Kotaro Hara in the <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a>, with early support from Google and the National Science Foundation.
+about.history.2017 = The first city-scale deployment launches in Washington, DC, led by PhD student Manaswi Saha and research scientist Mikey Saugstad, as the lab moves to the University of Washington''s Paul G. Allen School of Computer Science &amp; Engineering.
+about.history.2019 = The Washington, DC study shows that online crowdsourcing can map an entire city''s sidewalks — and earns a Best Paper Award at CHI 2019.
+about.history.2021 = An NSF Smart &amp; Connected Communities grant deepens our partnership with the University of Illinois Chicago and Easterseals, expanding deployments, education programs, and our sister site <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a>.
+about.history.today.label = Today
+about.history.today = Project Sidewalk operates in <span data-live-stat="num_cities">{0}</span> cities around the world, natively translated into {1} languages and powered by thousands of volunteer mappers.
 about.team.title = The team
-about.team.body = Project Sidewalk is designed and operated by the <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> at the University of Washington, led by Professor Jon E. Froehlich with lead engineer Michael Saugstad, in collaboration with researchers at the University of Illinois Chicago and Utah State University — and powered by thousands of contributors around the world.
-about.data.title = Open data &amp; research
-about.data.body = Everything we collect is open. Download raw labels, label clusters, streets, and accessibility scores through our <a href="/api">public APIs</a>, in formats from CSV to GeoJSON. If you use Project Sidewalk data in your research, please cite our <a href="https://doi.org/10.1145/3290605.3300292">CHI 2019 paper</a>. All published Project Sidewalk data is available under CC0; see the <a href="/api">API documentation</a> for details and citation guidance.
-about.data.publications = Browse <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">all Project Sidewalk publications</a> on the Makeability Lab website.
-about.funding.title = Funding
-about.funding.body = Project Sidewalk is supported by the National Science Foundation, with additional support from Google, the Alfred P. Sloan Foundation, PacTrans, and the UW Center for Research and Education on Accessible Technology and Experiences (CREATE).
-about.contact.title = Contact us
+about.team.intro = Project Sidewalk is university research, led by Professor Jon E. Froehlich at the University of Washington''s <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> and Professor Yochai Eisenberg at the University of Illinois Chicago, with lead engineering by research scientist Mikey Saugstad — and contributions from more than a hundred students and collaborators over the years.
+about.team.current.title = Current team
+about.team.past.title = Past leadership
+about.team.contributors = … and {0} more contributors over the years — see the <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">full project page</a>.
+about.pubs.title = Related publications
+about.pubs.intro = Project Sidewalk research is published at leading human–computer interaction and accessibility venues. If you use our data or tools in your research, please cite our <a href="https://doi.org/10.1145/3290605.3300292">CHI 2019 paper</a>.
+about.pubs.fallback = Browse <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">all Project Sidewalk publications</a> on the Makeability Lab website.
+about.pubs.showAll = Show all {0} publications
+about.data.title = Open data &amp; open source
+about.data.body = Everything we collect is open. Download raw labels, label clusters, streets, and accessibility scores through our <a href="/api">public APIs</a>, in formats from CSV to GeoJSON — all published under CC0; see the <a href="/api">API documentation</a> for details and citation guidance. Our <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">code is open source</a>, too.
+about.partners.title = Community partners
+about.partners.body = We work hand in hand with disability advocacy organizations, governments, schools, and community groups around the world — including Easterseals, World Enabled, Liga Peatonal, and the Active Transportation Alliance — to plan deployments, run community mapping events, and turn data into local action.
+about.partners.schools = Educators bring Project Sidewalk into civics and data-science classrooms, and our team and partners have piloted service-learning and workforce-development curricula for youth with disabilities. <a href="https://accessiblecommunities.org/use-project-sidewalk/">Learn how to use Project Sidewalk in your community</a>.
+about.funding.title = Funders
+about.funding.body = Project Sidewalk is grant-funded academic research, supported by the National Science Foundation with additional support from Google, the Alfred P. Sloan Foundation, PacTrans, and the UW Center for Research and Education on Accessible Technology and Experiences (CREATE).
+about.cta.title = Help us map every sidewalk
+about.cta.city = Bring Project Sidewalk to your city
 about.contact.body = Questions, ideas, or press inquiries? Email us at <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, open an issue on <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a>, or follow us on <a href="https://twitter.com/projsidewalk">Twitter</a> and <a href="https://www.facebook.com/projsidewalk">Facebook</a>.
 
 landing.create.path = Let''s create a path for everyone
