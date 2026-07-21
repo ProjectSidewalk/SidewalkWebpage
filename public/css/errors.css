@@ -1,0 +1,67 @@
+/*
+ * Standalone error pages (404, 500). Rendered by modules.CustomErrorHandler outside common.main so they stay
+ * dependency-free: an error page must render even when the app/DB is degraded, so it pulls no per-city data and
+ * only links static stylesheets. Styled entirely from the main.css design tokens.
+ */
+
+.error-page {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  background-color: var(--color-neutral-100);
+}
+
+.error-card {
+  width: 100%;
+  max-width: 480px;
+  padding: 40px 32px;
+  text-align: center;
+  background-color: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 16px;
+}
+
+.error-logo {
+  margin-bottom: 20px;
+}
+
+.error-heading {
+  margin: 0 0 12px;
+  font: var(--text-h1-bold);
+  color: var(--color-asphalt-500);
+}
+
+.error-message {
+  margin: 0 0 24px;
+  font: var(--text-subtitle-regular);
+  line-height: 1.5;
+  color: var(--color-neutral-800);
+}
+
+/* Monospace so the support ID is easy to read out and copy; digits stay in a non-Raleway face per the type rules. */
+.error-id {
+  display: inline-block;
+  margin: 0 0 16px;
+  padding: 8px 14px;
+  font: var(--text-small-medium);
+  font-family: "SF Mono", "Cascadia Mono", "Roboto Mono", monospace;
+  color: var(--color-asphalt-500);
+  word-break: break-all;
+  background-color: var(--color-neutral-100);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 8px;
+}
+
+.error-report {
+  margin: 0 0 28px;
+  font: var(--text-small-regular);
+  line-height: 1.5;
+  color: var(--color-neutral-700);
+}
+
+.error-home {
+  justify-content: center;
+}

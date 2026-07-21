@@ -1,13 +1,15 @@
 package modules
 
+import controllers.AssetsFinder
 import models.api.ApiError
 import play.api.http.DefaultHttpErrorHandler
 import play.api.http.Status.NOT_FOUND
+import play.api.i18n.{Messages, MessagesApi}
 import play.api.libs.typedmap.TypedMap
 import play.api.mvc.Results._
 import play.api.mvc._
 import play.api.routing.Router
-import play.api.{Configuration, Environment, Logger, OptionalSourceMapper}
+import play.api.{Configuration, Environment, Logger, OptionalSourceMapper, UsefulException}
 import play.silhouette.api.services.AuthenticatorService
 import play.silhouette.api.util.ExtractableRequest
 import play.silhouette.impl.authenticators.CookieAuthenticator
@@ -21,8 +23,9 @@ class CustomErrorHandler @Inject() (
     config: Configuration,
     sourceMapper: OptionalSourceMapper,
     router: Provider[Router],
-    authenticatorService: AuthenticatorService[CookieAuthenticator]
-)(implicit ec: ExecutionContext)
+    authenticatorService: AuthenticatorService[CookieAuthenticator],
+    messagesApi: MessagesApi
+)(implicit ec: ExecutionContext, assets: AssetsFinder)
     extends DefaultHttpErrorHandler(env, config, sourceMapper, router) {
 
   private val logger = Logger(this.getClass)
@@ -59,8 +62,15 @@ class CustomErrorHandler @Inject() (
       Future.successful(ApiError.toResult(ApiError.forStatus(statusCode, detail)))
     } else {
       statusCode match {
-        case NOT_FOUND => Future.successful(NotFound(views.html.errors.onHandlerNotFound(request)))
-        case _         => Future.successful(Status(statusCode)("A client error occurred: " + message))
+        case NOT_FOUND =>
+          implicit val messages: Messages = messagesApi.preferred(request)
+          Future.successful(
+            NotFound(
+              views.html.errors
+                .errorPage(Messages("error.404.heading"), Messages("error.404.message", request.path))
+            )
+          )
+        case _ => Future.successful(Status(statusCode)("A client error occurred: " + message))
       }
     }
   }
@@ -77,6 +87,24 @@ class CustomErrorHandler @Inject() (
     } else {
       super.onServerError(request, exception)
     }
+  }
+
+  /**
+   * Renders a branded, self-contained 500 page for non-API routes in prod (#3954). Reached via `super.onServerError`
+   * above, so the exception is already logged and `exception.id` matches the id in the log — shown to the user so they
+   * can quote it when reporting. Dev keeps Play's stack-trace page (`onDevServerError` is left untouched).
+   *
+   * @param request   The request that triggered the error.
+   * @param exception The framework-wrapped exception, carrying the generated error id.
+   * @return          A 500 response rendering the shared error page.
+   */
+  override protected def onProdServerError(request: RequestHeader, exception: UsefulException): Future[Result] = {
+    implicit val messages: Messages = messagesApi.preferred(request)
+    Future.successful(
+      InternalServerError(
+        views.html.errors.errorPage(Messages("error.500.heading"), Messages("error.500.message"), Some(exception.id))
+      )
+    )
   }
 
   /**

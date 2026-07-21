@@ -603,3 +603,12 @@ dashboard.unit.ft = ft
 dashboard.rank.place.one = 1st place
 dashboard.rank.place.two = 2nd place
 dashboard.rank.place.three = 3rd place
+
+# Error pages (404, 500), rendered by modules.CustomErrorHandler.
+error.404.heading = Page not found
+error.404.message = We could not find the page you requested: {0}
+error.500.heading = Something went wrong
+error.500.message = An unexpected error occurred on our end. This is not your fault — please try again in a moment.
+error.500.id = Error ID: {0}
+error.500.report = If this keeps happening, please let us know and include the Error ID above so we can investigate.
+error.home = Return to home

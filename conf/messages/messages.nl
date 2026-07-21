@@ -594,3 +594,12 @@ dashboard.unit.ft = ft
 dashboard.rank.place.one = 1e plaats
 dashboard.rank.place.two = 2e plaats
 dashboard.rank.place.three = 3e plaats
+
+# Foutpagina's (404, 500), weergegeven door modules.CustomErrorHandler.
+error.404.heading = Pagina niet gevonden
+error.404.message = We konden de opgevraagde pagina niet vinden: {0}
+error.500.heading = Er is iets misgegaan
+error.500.message = Er is een onverwachte fout aan onze kant opgetreden. Het ligt niet aan jou — probeer het zo meteen opnieuw.
+error.500.id = Foutcode: {0}
+error.500.report = Als dit blijft gebeuren, laat het ons dan weten en vermeld de bovenstaande foutcode zodat we het kunnen onderzoeken.
+error.home = Terug naar start

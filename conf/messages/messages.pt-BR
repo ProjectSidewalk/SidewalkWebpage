@@ -603,3 +603,12 @@ dashboard.unit.ft = pés
 dashboard.rank.place.one = 1º lugar
 dashboard.rank.place.two = 2º lugar
 dashboard.rank.place.three = 3º lugar
+
+# Páginas de erro (404, 500), renderizadas por modules.CustomErrorHandler.
+error.404.heading = Página não encontrada
+error.404.message = Não conseguimos encontrar a página que você solicitou: {0}
+error.500.heading = Algo deu errado
+error.500.message = Ocorreu um erro inesperado do nosso lado. A culpa não é sua — tente novamente em um instante.
+error.500.id = ID do erro: {0}
+error.500.report = Se isso continuar acontecendo, avise-nos e inclua o ID do erro acima para que possamos investigar.
+error.home = Voltar ao início
