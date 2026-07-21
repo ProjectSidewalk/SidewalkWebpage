@@ -116,6 +116,7 @@
     "stat-labels-all": "{{count}} labels gemaakt",
     "stat-labels-you": "Jij voegde {{count}} labels toe",
     "button-next-mission": "Volgende verkenningsmissie",
+    "button-keep-exploring-here": "Blijf hier verkennen",
     "button-try-validation": "Validatie proberen"
   },
   "top-ui": {

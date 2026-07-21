@@ -116,6 +116,7 @@
     "stat-labels-all": "{{count}} etiquetas criadas",
     "stat-labels-you": "Você adicionou {{count}} etiquetas",
     "button-next-mission": "Próxima missão de exploração",
+    "button-keep-exploring-here": "Continue explorando aqui",
     "button-try-validation": "Experimentar validação"
   },
   "top-ui": {

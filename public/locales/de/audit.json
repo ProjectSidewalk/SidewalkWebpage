@@ -116,6 +116,7 @@
     "stat-labels-all": "{{count}} Markierungen erstellt",
     "stat-labels-you": "Sie haben {{count}} Markierungen hinzugefügt",
     "button-next-mission": "Nächste Erkundungsmission",
+    "button-keep-exploring-here": "Hier weiter erkunden",
     "button-try-validation": "Validierung starten"
   },
   "top-ui": {

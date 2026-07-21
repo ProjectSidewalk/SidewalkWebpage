@@ -88,6 +88,7 @@
     "stat-labels-all": "{{count}} labels created",
     "stat-labels-you": "You've added {{count}} labels",
     "button-next-mission": "Next Explore Mission",
+    "button-keep-exploring-here": "Keep exploring here",
     "button-try-validation": "Try Validation"
   },
   "tutorial-intro": {

@@ -116,6 +116,7 @@
     "stat-labels-all": "已建立 {{count}} 個標記",
     "stat-labels-you": "您新增了 {{count}} 個標記",
     "button-next-mission": "下一個探索任務",
+    "button-keep-exploring-here": "在這裡繼續探索",
     "button-try-validation": "嘗試檢核"
   },
   "top-ui": {
