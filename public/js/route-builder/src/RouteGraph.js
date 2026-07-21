@@ -144,15 +144,19 @@ class RouteGraph {
    *
    * @param {Object} start - {lng, lat}.
    * @param {Object} end - {lng, lat}.
+   * @param {?number} [snapRegionId=null] - When set, both endpoints snap only to streets in this region. A route is
+   *   locked to one neighborhood, so passing its region keeps the snap deterministic at a boundary node where streets
+   *   from two neighborhoods share the exact same endpoint (0 m). Without it, the unfiltered nearest-street tie can
+   *   resolve to the other neighborhood, making an already-placed start read as a different region than every end.
    * @returns {Object} One of:
    *   {streets: [{streetId, flip}]} — the ordered streets; flip means "traverse against the feature's current
    *     coordinate order" so the caller can orient each street for the route;
    *   {error: 'different-region'} — the pins snap to streets in different neighborhoods;
    *   {error: 'no-path'} — no connected path exists (or a pin found no street).
    */
-  route(start, end) {
-    const from = this.snapToStreet(start);
-    const to = this.snapToStreet(end);
+  route(start, end, snapRegionId = null) {
+    const from = this.snapToStreet(start, snapRegionId);
+    const to = this.snapToStreet(end, snapRegionId);
     if (!from || !to) return { error: 'no-path' };
     if (from.regionId !== to.regionId) return { error: 'different-region' };
     const regionId = from.regionId;

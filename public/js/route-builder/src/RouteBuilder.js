@@ -21,7 +21,8 @@ class RouteBuilder {
   static ROUTE_MENU_HOVER_MS = 500;
   // How long the co-located next-step hint stays anchored to the newest flag.
   static HINT_DURATION_MS = 7000;
-  // Storage key for the in-progress route draft, restored after any reload (e.g. the sign-in round-trip).
+  // Storage key for the in-progress route draft. Resumed only on a page reload (see #isPageReload); a fresh visit
+  // starts blank and clears it.
   static DRAFT_KEY = 'rb-route-draft';
 
   // Muted categorical tints cycled by region id, so adjacent neighborhoods read as visually distinct choices.
@@ -815,7 +816,7 @@ class RouteBuilder {
     const point = { lng: snap.nodeLngLat[0], lat: snap.nodeLngLat[1] };
     // A non-first point must be reachable from the current end along the street network.
     if (this.#waypoints.length > 0) {
-      const result = graph.route(this.#waypoints[this.#waypoints.length - 1], point);
+      const result = graph.route(this.#waypoints[this.#waypoints.length - 1], point, this.#currRegionId);
       if (result.error) {
         this.#showMapMessage(i18next.t('no-path-error'));
         window.logWebpageActivity(`RouteBuilder_AddWaypoint=NoPath_Source=${source}`);
@@ -857,7 +858,7 @@ class RouteBuilder {
 
     const features = [];
     for (let i = 1; i < this.#waypoints.length; i++) {
-      const result = this.#getRouteGraph().route(this.#waypoints[i - 1], this.#waypoints[i]);
+      const result = this.#getRouteGraph().route(this.#waypoints[i - 1], this.#waypoints[i], this.#currRegionId);
       if (result.error) continue; // Reachability was checked on add; guard defensively.
       result.streets.forEach(({ streetId, flip }) => {
         const orig = this.#streetData.features.find((s) => s.properties.street_edge_id === streetId);
@@ -1199,8 +1200,18 @@ class RouteBuilder {
       const previewParam = new URLSearchParams(window.location.search).get('preview');
       if (previewParam !== null && /^\d+$/.test(previewParam)) {
         this.#loadRouteForEditing(Number(previewParam));
-      } else {
+      } else if (RouteBuilder.#isPageReload()) {
+        // Only a genuine reload (e.g. an accidental refresh) resumes the in-progress draft. Arriving fresh —
+        // Tools -> RouteBuilder, a link, or returning after finishing a route — must start blank so the user never
+        // unknowingly edits the route they just worked on. Drop the stale same-tab draft so a later reload of this
+        // fresh page can't resurrect it either.
         this.#restoreDraft();
+      } else {
+        try {
+          sessionStorage.removeItem(RouteBuilder.DRAFT_KEY);
+        } catch {
+          // Storage unavailable; nothing to clear.
+        }
       }
       return;
     }
@@ -1423,6 +1434,17 @@ class RouteBuilder {
     } catch {
       // Storage unavailable (e.g. private browsing): building still works, it just won't survive a reload.
     }
+  }
+
+  /**
+   * True when the Navigation Timing type is 'reload' (a refresh). Gates draft resume: resume on reload, start blank
+   * on a navigate/back-forward. Returns false (start blank) when the Navigation Timing API is unavailable — the safer
+   * default, since it never silently reopens an old route.
+   * @returns {boolean}
+   */
+  static #isPageReload() {
+    const nav = performance.getEntriesByType('navigation')[0];
+    return nav ? nav.type === 'reload' : false;
   }
 
   /**
