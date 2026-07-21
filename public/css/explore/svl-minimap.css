@@ -346,16 +346,27 @@
 }
 
 /* Breadcrumb trail (ObservedArea): a small faded ring, in the peg's hue, at each visited pano; click to return there
-   (#2561). AdvancedMarkerElement anchors content bottom-center, so shift down half its height to center on the pano. */
+   (#2561). The element itself is a larger transparent hit area so the tiny ring is comfortably clickable (WCAG 2.5.8);
+   the visible ring is drawn by ::before, centered inside it. AdvancedMarkerElement anchors content bottom-center, so
+   the hit area shifts down half its height to center the ring on the pano. */
 .minimap-breadcrumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(20px * var(--ui-scale, 1));
+  height: calc(20px * var(--ui-scale, 1));
+  cursor: pointer;
+  transform: translateY(50%);
+}
+
+.minimap-breadcrumb::before {
+  content: "";
   box-sizing: border-box;
   width: calc(7px * var(--ui-scale, 1));
   height: calc(7px * var(--ui-scale, 1));
   border: calc(1.4px * var(--ui-scale, 1)) solid var(--color-link-100);
   border-radius: 50%;
   opacity: 0.8;
-  cursor: pointer;
-  transform: translateY(50%);
 }
 
 /* GSV-style "you are here" puck (Peg.js): a blue dot with a triangle pointing in the heading direction. Markers anchor
@@ -366,6 +377,10 @@
   height: calc(28px * var(--ui-scale, 1));
   transform: translateY(50%) rotate(var(--peg-heading, 0deg));
   transform-origin: center;
+
+  /* Decorative marker (no handlers) sitting at zIndex 1000: let clicks pass through so a breadcrumb it overlaps near
+     the current position stays clickable (#2561). */
+  pointer-events: none;
 }
 
 .minimap-peg svg {
@@ -397,6 +412,12 @@
 #minimap-holder.minimap-overview #minimap-percent-observed,
 #minimap-holder.minimap-overview #minimap-coach,
 #minimap-holder.minimap-overview #minimap-route-overview {
+  display: none;
+}
+
+/* Breadcrumbs are map-positioned markers, not canvas panes, so the rule above doesn't reach them; hide them explicitly
+   in the fitted whole-route overview so the visited trail doesn't clutter the zoomed-out view (#4639). */
+#minimap-holder.minimap-overview .minimap-breadcrumb {
   display: none;
 }
 
