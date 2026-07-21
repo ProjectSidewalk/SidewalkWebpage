@@ -3,7 +3,7 @@ package actor
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
 import org.apache.pekko.actor.{Actor, Cancellable, Props}
 import play.api.Logger
-import service.{ConfigService, RegionService, StreetService}
+import service.{ConfigService, ImageryFreshnessService, RegionService, StreetService}
 
 import java.time.Instant
 import javax.inject._
@@ -18,7 +18,11 @@ object RecalculateStreetPriorityActor {
 }
 
 @Singleton
-class RecalculateStreetPriorityActor @Inject() (streetService: StreetService, regionService: RegionService)(implicit
+class RecalculateStreetPriorityActor @Inject() (
+    streetService: StreetService,
+    regionService: RegionService,
+    imageryFreshnessService: ImageryFreshnessService
+)(implicit
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {
@@ -53,6 +57,13 @@ class RecalculateStreetPriorityActor @Inject() (streetService: StreetService, re
     val currentTimeStart: String = dateFormatter.format(Instant.now())
     logger.info(s"Auto-scheduled recalculation of street priority starting at: $currentTimeStart")
     (for {
+      // The freshness sync must precede the priority recalc and region_completion rebuild so that all three stay
+      // mutually consistent (see ImageryFreshnessService.syncImageryFreshness for the ordering contract).
+      sync <- imageryFreshnessService.syncImageryFreshness
+      _ = logger.info(
+        s"Imagery freshness sync: ${sync.streetsRefreshed} streets refreshed, " +
+          s"${sync.auditsFlagged} audits flagged outdated, ${sync.auditsUnflagged} unflagged"
+      )
       _ <- streetService.recalculateStreetPriority
       _ <- regionService.truncateRegionCompletionTable
       _ <- regionService.initializeRegionCompletionTable
