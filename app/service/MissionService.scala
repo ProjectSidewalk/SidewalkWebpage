@@ -6,6 +6,7 @@ import formats.json.ValidateFormats.ValidationMissionProgress
 import models.audit.AuditTaskTable
 import models.mission.MissionTable.{distanceForLaterMissions, distancesForFirstAuditMissions}
 import models.mission.{Mission, MissionTable, MissionType}
+import models.route.{RouteTable, UserRoute}
 import models.user.SidewalkUserTable.aiUserId
 import models.user.SidewalkUserWithRole
 import models.utils.MyPostgresProfile
@@ -25,7 +26,7 @@ trait MissionService {
       auditTaskId: Option[Int]
   ): DBIO[Option[Mission]]
   def resumeOrCreateNewAuditOnboardingMission(userId: String): DBIO[Option[Mission]]
-  def resumeOrCreateNewAuditMission(userId: String, regionId: Int): DBIO[Option[Mission]]
+  def resumeOrCreateNewAuditMission(userId: String, regionId: Int, userRoute: Option[UserRoute]): DBIO[Option[Mission]]
   def resumeOrCreateNewAiExploreMission(regionId: Int): DBIO[Mission]
   def resumeOrCreateNewExploreAddressMission(userId: String): DBIO[Mission]
   def resumeOrCreateNewValidateMission(
@@ -61,6 +62,7 @@ class MissionServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     missionTable: MissionTable,
     auditTaskTable: AuditTaskTable,
+    routeTable: RouteTable,
     implicit val ec: ExecutionContext
 ) extends MissionService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -122,9 +124,18 @@ class MissionServiceImpl @Inject() (
 
   /**
    * Gets mission the user started in the region if one exists, o/w makes a new mission; may create a tutorial mission.
+   *
+   * @param userRoute When exploring along a saved route, the traversal to scope the mission to: the route walk gets
+   *                  one mission sized to the route's length, separate from the user's region missions.
    */
-  def resumeOrCreateNewAuditMission(userId: String, regionId: Int): DBIO[Option[Mission]] = {
-    queryMissionTableExploreMissions(Seq("getMission"), userId, Some(regionId), Some(false), None, None, None, None)
+  def resumeOrCreateNewAuditMission(
+      userId: String,
+      regionId: Int,
+      userRoute: Option[UserRoute]
+  ): DBIO[Option[Mission]] = {
+    queryMissionTableExploreMissions(
+      Seq("getMission"), userId, Some(regionId), Some(false), None, None, None, None, userRoute
+    )
   }
 
   /**
@@ -145,6 +156,7 @@ class MissionServiceImpl @Inject() (
    * @param retakingTutorial Only required if actions contains "getMission".
    * @param missionId Only required if actions contains "updateProgress" or "updateComplete".
    * @param distanceProgress Only required if actions contains "updateProgress".
+   * @param userRoute Only relevant if actions contains "getMission": scopes the mission to this route walk.
    */
   private def queryMissionTableExploreMissions(
       actions: Seq[String],
@@ -154,7 +166,8 @@ class MissionServiceImpl @Inject() (
       missionId: Option[Int],
       distanceProgress: Option[Double],
       auditTaskId: Option[Int],
-      skipped: Option[Boolean]
+      skipped: Option[Boolean],
+      userRoute: Option[UserRoute] = None
   ): DBIO[Option[Mission]] = {
 
     val updateProgressAction =
@@ -191,6 +204,25 @@ class MissionServiceImpl @Inject() (
                     DBIO.successful(Some(incompleteOnboardingMission))
                   case _ =>
                     missionTable.createAuditOnboardingMission(userId).map(Some(_))
+                }
+            } else if (userRoute.isDefined) {
+              // Route session: one mission per route walk, sized to the route's full length. Never resumes or
+              // creates the region-scoped missions below, and vice versa.
+              missionTable
+                .getCurrentMissionForRoute(userId, userRoute.get.userRouteId)
+                .flatMap {
+                  case Some(incompleteMission) =>
+                    DBIO.successful(Some(incompleteMission))
+                  case _ =>
+                    routeTable.getRouteDistance(userRoute.get.routeId).flatMap { routeDistance =>
+                      if (routeDistance > 0) {
+                        missionTable
+                          .createNextAuditMission(userId, routeDistance, regionId.get, Some(userRoute.get.userRouteId))
+                          .map(Some(_))
+                      } else {
+                        DBIO.successful(None)
+                      }
+                    }
                 }
             } else {
               // Non-tutorial mission: if there is an incomplete one in the table then grab it, o/w make a new one.
@@ -439,8 +471,9 @@ class MissionServiceImpl @Inject() (
     val skipped: Boolean = missionProgress.skipped
 
     missionTable
-      .getMissionType(missionId)
-      .flatMap { missionType: Option[MissionType.Value] =>
+      .getMission(missionId)
+      .flatMap { mission: Option[Mission] =>
+        val missionType: Option[MissionType.Value] = mission.map(_.missionType)
         if (missionType.contains(MissionType.AuditOnboarding)) {
           if (missionProgress.completed) {
             updateCompleteAndGetNextMission(userId, regionId, missionId, skipped)
@@ -458,7 +491,22 @@ class MissionServiceImpl @Inject() (
           val auditTaskId: Option[Int] = missionProgress.auditTaskId
 
           if (missionProgress.completed) {
-            updateCompleteAndGetNextMission(userId, regionId, missionId, distProgress, auditTaskId, skipped)
+            if (mission.exists(_.userRouteId.isDefined)) {
+              // A route-scoped mission is the route walk itself, so completing it ends the session's goal — don't
+              // spawn a follow-up region mission the user never asked for.
+              queryMissionTableExploreMissions(
+                Seq("updateProgress", "updateComplete"),
+                userId,
+                None,
+                None,
+                Some(missionId),
+                Some(distProgress),
+                auditTaskId,
+                Some(skipped)
+              )
+            } else {
+              updateCompleteAndGetNextMission(userId, regionId, missionId, distProgress, auditTaskId, skipped)
+            }
           } else {
             updateExploreProgressOnly(userId, missionId, distProgress, auditTaskId)
           }

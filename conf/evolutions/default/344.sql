@@ -54,7 +54,16 @@ CREATE TABLE route_slug_alias (
 );
 ALTER TABLE route_slug_alias OWNER TO sidewalk;
 
+-- One mission per route walk: a mission created for a route session is scoped to that traversal (user_route),
+-- sized to the route's full length, and completed when the route is. Region missions leave this null, and the
+-- two pools never resume each other's missions.
+ALTER TABLE mission ADD COLUMN user_route_id INT REFERENCES user_route(user_route_id);
+-- Partial index: only route-scoped missions are looked up by user_route_id, and they're a tiny fraction of the
+-- (large) mission table. Slick has no DSL for partial indexes, so this lives only in the evolution.
+CREATE INDEX mission_user_route_id_idx ON mission (user_route_id) WHERE user_route_id IS NOT NULL;
+
 # --- !Downs
+ALTER TABLE mission DROP COLUMN user_route_id;
 DROP TABLE route_slug_alias;
 ALTER TABLE route DROP COLUMN description;
 DROP INDEX route_slug_idx;

@@ -247,7 +247,7 @@ class ExploreServiceImpl @Inject() (
 
       mission: Mission <- {
         if (retakingTutorial) missionService.resumeOrCreateNewAuditOnboardingMission(userId).map(_.get)
-        else missionService.resumeOrCreateNewAuditMission(userId, regionId).map(_.get)
+        else missionService.resumeOrCreateNewAuditMission(userId, regionId, userRoute).map(_.get)
       }
 
       // If there is a partially completed task in this route or mission, get that, o/w make a new one.

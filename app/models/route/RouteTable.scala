@@ -106,6 +106,20 @@ class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
+   * Total length of the route's streets in meters (0 if the route has no streets).
+   */
+  def getRouteDistance(routeId: Int): DBIO[Double] = {
+    routeStreets
+      .filter(_.routeId === routeId)
+      .join(streetEdges)
+      .on(_.streetEdgeId === _.streetEdgeId)
+      .map { case (_, streetEdge) => streetEdge.geom.transform(26918).lengthD }
+      .sum
+      .getOrElse(0d)
+      .result
+  }
+
+  /**
    * Gets a user's routes (newest first) with the region name and distance/street-count stats for display.
    *
    * @param userId ID of the user whose routes to fetch; soft-deleted routes are excluded.
