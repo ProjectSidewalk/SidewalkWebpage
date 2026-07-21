@@ -1,5 +1,5 @@
 {
-  "cta-select-region": "Click the neighborhood where you want to build a route, or enter a start address",
+  "cta-select-region": "To begin, click a neighborhood where you want to build a route.",
   "cta-pick-start": "Click anywhere in the neighborhood to place your start point",
   "guide-select-region": "Click to create a route in {{region}}",
   "guide-pick-start": "Click to start your route",
