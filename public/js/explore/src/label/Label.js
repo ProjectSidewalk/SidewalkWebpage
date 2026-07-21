@@ -112,12 +112,8 @@ class Label {
    * the user has already visited.
    */
   #wireMinimapMarkerClick() {
-    const el = this.#googleMarker.content;
-    el.style.cursor = 'pointer';
-    el.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.#returnToLabelFromMinimap();
-    });
+    this.#googleMarker.content.style.cursor = 'pointer';
+    this.#googleMarker.addListener('gmp-click', () => this.#returnToLabelFromMinimap());
   }
 
   /**
@@ -572,6 +568,8 @@ class Label {
       position: new google.maps.LatLng(latLng.lat, latLng.lng),
       map: svl.minimap.getMap(),
       content,
+      // Interactive so it emits gmp-click; the click handler is wired in the Label constructor (#2561).
+      gmpClickable: true,
     });
   }
 }
