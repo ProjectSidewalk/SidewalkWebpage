@@ -118,6 +118,7 @@ class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers 
       val body = contentAsString(resp)
       body must include("<urlset")
       body must include("/explore</loc>")
+      body must include("/about</loc>")
       body must include("/v3/api-docs/rawLabels</loc>")
       // The root <loc> keeps its trailing slash so it matches the landing page's rel=canonical URL exactly; no other
       // sitemap path ends in a slash.
@@ -185,6 +186,15 @@ class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers 
       val (sc, body) = getMobilePage("/mobile")
       sc mustBe OK
       body must not include "name=\"viewport\""
+    }
+  }
+
+  "The About page" should {
+    "render with an h1 and AboutPage JSON-LD" in {
+      val (sc, body) = getPage("/about")
+      sc mustBe OK
+      body must include("<h1")
+      body must include("AboutPage")
     }
   }
 }

@@ -136,7 +136,7 @@
         <div class="col-sm-4 footer-link">
           <span class="footer-header">PROJECT SIDEWALK</span><br>
             <!-- Back to top<br>-->
-          <a href='https://accessiblecommunities.org/about/' id="sidewalk-about-link" target="_blank">@Messages("footer.about")</a> <br>
+          <a href='@routes.ApplicationController.about' id="sidewalk-about-link">@Messages("footer.about")</a> <br>
           <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link" target="_blank">@Messages("footer.terms")</a> <br>
           <a href='@routes.ApplicationController.help' id="sidewalk-help-link" target="_blank">@Messages("footer.help")</a> <br>
           <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link" target="_blank">@Messages("footer.guide")</a> <br>
@@ -148,9 +148,9 @@
         <div class="col-sm-4 footer-link">
           <span class="footer-header">@Messages("footer.connect")</span><br>
           <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link"><img width="15" src='@assets.path("images/github_logo.png")' alt="Github logo">&nbsp;Github</a> <br>
-          <a target="_blank" href="https://twitter.com/projsidewalk" id="connect-twitter-link"><img width="15" src='@assets.path("images/twitter_logo.png")' alt="Twitter logo">&nbsp;Twitter</a><br>
+          <a target="_blank" href="https://www.linkedin.com/company/project-sidewalk/" id="connect-linkedin-link"><img width="15" src='@assets.path("images/linkedin_logo.png")' alt="LinkedIn logo">&nbsp;LinkedIn</a><br>
+          <a target="_blank" href="https://bsky.app/profile/projectsidewalk.bsky.social" id="connect-bluesky-link"><img width="15" src='@assets.path("images/bluesky_logo.png")' alt="Bluesky logo">&nbsp;Bluesky</a><br>
           <a target="_blank" href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link"><img width="15" src='@assets.path("images/email.png")' alt="Email icon">&nbsp;@Messages("footer.email")</a><br>
-          <a target="_blank" href="https://www.facebook.com/projsidewalk" id="connect-facebook-link"><img width="15" src='@assets.path("images/facebook_logo.png")' alt="Facebook logo">&nbsp;Facebook</a><br>
         </div>
       </div>
     </div>
@@ -217,12 +217,6 @@
           activity = activity + '_route=' + currentRoute;
 
           window.logWebpageActivity(activity);
-
-          // We are using the ML site's about page, so log the "Visit_About" from here. All other pages that are
-          // part of the Sidewalk codebase end up logging "Visit_*" on the back-end.
-          if (link === 'about') {
-            window.logWebpageActivity('Visit_About', true);
-          }
         });
 
         // Log clicks on links in the information footer to WebpageActivityTable.

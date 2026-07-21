@@ -146,6 +146,16 @@ class ApplicationController @Inject() (
   }
 
   /**
+   * Returns the About page.
+   */
+  def about = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_About")
+      Ok(views.html.about(commonData, Messages("seo.title.about"), request.identity))
+    }
+  }
+
+  /**
    * Returns labeling guide page.
    */
   def labelingGuide = cc.securityService.SecuredAction { implicit request =>

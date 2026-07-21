@@ -1,0 +1,521 @@
+/* About page (#4631). All type and color come from the design-system tokens in main.css :root. */
+
+#about-page {
+  font: var(--text-body-regular);
+  color: var(--color-neutral-900);
+}
+
+#about-page a:not(.button-ps) {
+  color: var(--color-link-200);
+}
+
+/* The `hidden` attribute must always win, even over author display rules like the pub cards' grid or the
+   show-all button's inline-flex. */
+#about-page [hidden] {
+  display: none !important;
+}
+
+.about-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Screen-reader-only text (e.g. the stats band heading). Not display:none, which would hide it from AT too. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Alternating full-bleed section bands. */
+.about-band {
+  padding: 56px 0;
+}
+
+.about-band--tint {
+  background-color: var(--color-neutral-100);
+}
+
+.about-band h2 {
+  font: var(--text-h2-bold);
+  color: var(--color-asphalt-500);
+  margin: 0 0 12px;
+}
+
+.about-band p {
+  margin: 0 0 12px;
+}
+
+.about-section-intro {
+  font: var(--text-subtitle-regular);
+  line-height: 1.5;
+  max-width: 760px;
+}
+
+/* Hero */
+.about-hero {
+  background-color: var(--color-asphalt-500);
+  color: var(--color-neutral-white);
+  padding-top: 88px;
+}
+
+.about-hero-title {
+  font: var(--text-h1-xl-bold);
+  font-size: clamp(40px, 7vw, 76px);
+  line-height: 1.05;
+  max-width: 800px;
+  margin: 0 0 28px;
+}
+
+.about-hero-accent {
+  color: var(--color-label-curb-ramp);
+}
+
+.about-hero-subtitle {
+  font: var(--text-subtitle-regular);
+  line-height: 1.5;
+  max-width: 640px;
+  margin: 0 0 16px;
+  color: var(--color-asphalt-100);
+}
+
+.about-hero-attribution {
+  font: var(--text-small-regular);
+  max-width: 640px;
+  margin: 0 0 8px;
+  color: var(--color-asphalt-100);
+}
+
+.about-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+/* Decorative sidewalk strip along the hero's bottom edge: concrete band + expansion joints, with label-type
+   markers "dropped" on it. */
+.about-hero-sidewalk {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: flex-start;
+  height: 88px;
+  margin-top: 56px;
+  background-color: var(--color-neutral-500);
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0 216px,
+    var(--color-neutral-600) 216px 220px
+  );
+}
+
+.about-hero-pin {
+  width: 52px;
+  height: 52px;
+  margin-top: -20px;
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 35%));
+}
+
+.about-hero-pin:nth-child(even) {
+  margin-top: 12px;
+}
+
+/* Stats band */
+.about-stats {
+  padding: 40px 0;
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.about-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 28px 20px;
+}
+
+.about-stat-number {
+  display: block;
+  font: var(--text-h3-bold);
+  font-size: clamp(28px, 3.2vw, 44px);
+  line-height: 1.1;
+  color: var(--color-asphalt-500);
+}
+
+.about-stat-label {
+  display: block;
+  margin-top: 6px;
+  font: var(--text-small-medium);
+  color: var(--color-neutral-700);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* How it works */
+.about-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  list-style: none;
+  padding: 0;
+  margin: 36px 0 20px;
+}
+
+.about-step-icon {
+  width: 64px;
+  height: 64px;
+}
+
+.about-step-icon--chip {
+  background-color: var(--color-neutral-100);
+  border-radius: 50%;
+  padding: 15px;
+}
+
+.about-step h3 {
+  font: var(--text-title-bold);
+  color: var(--color-asphalt-500);
+  margin: 16px 0 8px;
+}
+
+.about-step p {
+  margin: 0;
+}
+
+/* Impact story cards */
+.about-impact-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin: 32px 0 24px;
+}
+
+.about-impact-card {
+  background-color: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.about-impact-card h3 {
+  font: var(--text-subtitle-bold);
+  color: var(--color-asphalt-500);
+  margin: 0 0 8px;
+}
+
+.about-impact-card p {
+  margin: 0;
+}
+
+/* History timeline */
+.about-timeline {
+  list-style: none;
+  padding: 0;
+  margin: 36px 0 0;
+  max-width: 820px;
+}
+
+.about-timeline li {
+  position: relative;
+  padding-left: 140px;
+  padding-bottom: 32px;
+}
+
+.about-timeline li:last-child {
+  padding-bottom: 0;
+}
+
+/* Connecting line between this entry's dot and the next entry's. */
+.about-timeline li:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 113px;
+  top: 10px;
+  bottom: -10px;
+  width: 2px;
+  background-color: var(--color-neutral-300);
+}
+
+.about-timeline li::after {
+  content: "";
+  position: absolute;
+  left: 108px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: var(--color-label-curb-ramp);
+}
+
+.about-timeline-year {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 92px;
+  text-align: right;
+  font: var(--text-title-bold);
+  color: var(--color-asphalt-500);
+}
+
+.about-timeline li p {
+  margin: 0;
+}
+
+/* Team */
+.about-team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 28px 20px;
+  list-style: none;
+  padding: 0;
+  margin: 24px 0 36px;
+}
+
+.about-team-member {
+  text-align: center;
+}
+
+.about-team-photo {
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.about-team-name {
+  display: block;
+  margin-top: 12px;
+  font: var(--text-body-bold);
+}
+
+#about-page .about-team-member a {
+  color: var(--color-neutral-900);
+  text-decoration: none;
+}
+
+#about-page .about-team-member a:hover .about-team-name,
+#about-page .about-team-member a:focus-visible .about-team-name {
+  color: var(--color-link-200);
+  text-decoration: underline;
+}
+
+.about-team-role {
+  display: block;
+  margin-top: 2px;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+#about-team-live h3 {
+  font: var(--text-h3-bold);
+  color: var(--color-asphalt-500);
+  margin: 28px 0 8px;
+}
+
+/* Past leadership: wider cards (≤4 per row at full width) so each has room for a contribution blurb. */
+.about-team-grid--past {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.about-team-blurb {
+  display: block;
+  margin-top: 8px;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  text-align: left;
+}
+
+.about-team-contributors-intro {
+  max-width: 760px;
+}
+
+/* All-contributor roll call: compact name columns, like a paper's acknowledgments section. */
+.about-team-all {
+  columns: 3;
+  column-gap: 48px;
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 24px;
+  font: var(--text-small-regular);
+}
+
+.about-team-all li {
+  break-inside: avoid;
+  margin-bottom: 8px;
+}
+
+.about-team-contributors {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+/* Publications: compact divider-separated rows in the style of the Makeability Lab publications list. */
+.about-pubs-list {
+  display: grid;
+  margin: 24px 0 20px;
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.about-pub {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 18px;
+  align-items: start;
+  padding: 14px 0;
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+.about-pub-thumb {
+  width: 90px;
+  height: auto;
+  border-radius: 4px;
+  border: 1px solid var(--color-neutral-200);
+}
+
+.about-pub h3 {
+  font: var(--text-body-bold);
+  margin: 0 0 3px;
+}
+
+#about-page .about-pub h3 a {
+  color: var(--color-neutral-900);
+}
+
+#about-page .about-pub h3 a:hover,
+#about-page .about-pub h3 a:focus-visible {
+  color: var(--color-link-200);
+}
+
+.about-pub-authors,
+.about-pub-venue {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  margin: 0 0 3px;
+}
+
+.about-pub-venue {
+  font-style: italic;
+}
+
+.about-pub-award {
+  font: var(--text-small-bold);
+  color: var(--color-banana-900);
+}
+
+.about-pub-links {
+  margin: 0;
+  font: var(--text-small-medium);
+}
+
+.about-pub-links a {
+  margin-right: 14px;
+}
+
+/* Funders */
+.about-grants {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 8px;
+  display: grid;
+  gap: 8px;
+  max-width: 820px;
+}
+
+.about-funder-logos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 40px;
+  margin-top: 32px;
+}
+
+.about-funder-logos img {
+  max-height: 48px;
+  max-width: 160px;
+  width: auto;
+  height: auto;
+}
+
+/* Closing CTA band */
+.about-cta-band {
+  background-color: var(--color-asphalt-500);
+  color: var(--color-neutral-white);
+  padding: 64px 0;
+  text-align: center;
+}
+
+.about-cta-band h2 {
+  font: var(--text-h2-bold);
+  color: var(--color-neutral-white);
+  margin: 0 0 8px;
+}
+
+.about-cta-band .about-cta-row {
+  justify-content: center;
+  margin: 24px 0 28px;
+}
+
+.about-contact {
+  max-width: 640px;
+  margin: 0 auto;
+  color: var(--color-asphalt-100);
+}
+
+#about-page .about-contact a {
+  color: var(--color-banana-400);
+}
+
+/* Responsive stacking */
+@media (width <= 1000px) {
+  .about-impact-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (width <= 760px) {
+  .about-steps {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .about-impact-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-team-all {
+    columns: 2;
+  }
+
+  .about-timeline li {
+    padding-left: 36px;
+  }
+
+  .about-timeline li:not(:last-child)::before {
+    left: 9px;
+  }
+
+  .about-timeline li::after {
+    left: 4px;
+  }
+
+  .about-timeline-year {
+    position: static;
+    display: block;
+    width: auto;
+    text-align: left;
+    margin-bottom: 6px;
+  }
+
+  .about-pub {
+    grid-template-columns: 72px 1fr;
+    gap: 14px;
+  }
+
+  .about-pub-thumb {
+    width: 72px;
+  }
+}
