@@ -62,6 +62,20 @@
   opacity: 0.85;
 }
 
+/* These full-cover panes are purely visual (the highlight-flash overlay + the fog/FOV/progress canvases). They must not
+   intercept pointer events, or the Google map's markers stacked below them never receive clicks (e.g. click a label to
+   return to it, #2561). Interactive children appended into the overlay re-enable pointer events. */
+#minimap-overlay,
+#minimap-fog-of-war-canvas,
+#minimap-fov-canvas,
+#minimap-progress-circle-canvas {
+  pointer-events: none;
+}
+
+#minimap-overlay > * {
+  pointer-events: auto;
+}
+
 /* "N% observed" label centered inside the progress ring drawn in the top-right corner (ObservedArea). */
 #minimap-percent-observed {
   font: var(--text-tiny-medium);
@@ -328,6 +342,31 @@
 .minimap-label-icon {
   width: calc(9px * var(--ui-scale, 1));
   height: auto;
+  cursor: pointer;
+}
+
+/* Breadcrumb trail (ObservedArea): a small faded ring, in the peg's hue, at each visited pano; click to return there
+   (#2561). The element itself is a larger transparent hit area so the tiny ring is comfortably clickable (WCAG 2.5.8);
+   the visible ring is drawn by ::before, centered inside it. AdvancedMarkerElement anchors content bottom-center, so
+   the hit area shifts down half its height to center the ring on the pano. */
+.minimap-breadcrumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(20px * var(--ui-scale, 1));
+  height: calc(20px * var(--ui-scale, 1));
+  cursor: pointer;
+  transform: translateY(50%);
+}
+
+.minimap-breadcrumb::before {
+  content: "";
+  box-sizing: border-box;
+  width: calc(7px * var(--ui-scale, 1));
+  height: calc(7px * var(--ui-scale, 1));
+  border: calc(1.4px * var(--ui-scale, 1)) solid var(--color-link-100);
+  border-radius: 50%;
+  opacity: 0.8;
 }
 
 /* GSV-style "you are here" puck (Peg.js): a blue dot with a triangle pointing in the heading direction. Markers anchor
@@ -338,6 +377,13 @@
   height: calc(28px * var(--ui-scale, 1));
   transform: translateY(50%) rotate(var(--peg-heading, 0deg));
   transform-origin: center;
+}
+
+/* The peg is decorative (no handlers), but the AdvancedMarkerElement wrapper Google generates keeps pointer-events:auto
+   even when its content is set to none — so at zIndex 1000 it still swallows clicks meant for a breadcrumb beneath it
+   (the crumbs nearest you sit inside the peg's box). Null the wrapper so the whole peg is click-through (#2561). */
+gmp-advanced-marker:has(> .minimap-peg) {
+  pointer-events: none;
 }
 
 .minimap-peg svg {
@@ -369,6 +415,12 @@
 #minimap-holder.minimap-overview #minimap-percent-observed,
 #minimap-holder.minimap-overview #minimap-coach,
 #minimap-holder.minimap-overview #minimap-route-overview {
+  display: none;
+}
+
+/* Breadcrumbs are map-positioned markers, not canvas panes, so the rule above doesn't reach them; hide them explicitly
+   in the fitted whole-route overview so the visited trail doesn't clutter the zoomed-out view (#4639). */
+#minimap-holder.minimap-overview .minimap-breadcrumb {
   display: none;
 }
 
