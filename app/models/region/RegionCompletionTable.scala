@@ -52,6 +52,22 @@ object RegionCompletionTable {
       case Some(None)               => 0.0
       case None                     => fullLengthMeters
     }
+
+  /**
+   * Whether the final street may trigger the region's floating-point equalization.
+   *
+   * Normal completions have no truncation marker and may equalize. A truncated completion may equalize only when its
+   * explicit walked distance reaches the street's full edge; a missing walked distance must fail closed.
+   */
+  def shouldEqualizeToTotalDistance(
+      fullLengthMeters: Double,
+      imageryTruncatedDistanceM: Option[Option[Double]]
+  ): Boolean = imageryTruncatedDistanceM match {
+    case None                     => true
+    case Some(Some(metersWalked)) => metersWalked >= fullLengthMeters
+    case Some(None)               => false
+  }
+
 }
 
 @Singleton
@@ -144,7 +160,12 @@ class RegionCompletionTable @Inject() (
       // we are just being safe, and setting audited_distance to be less than total_distance.
       rCQuery = regionCompletions.filter(_.regionId === regionId)
       rowsUpdated: Int <- rCQuery.result.head.flatMap { rC: RegionCompletion =>
-        if (!regionIncomplete) {
+        if (
+          !regionIncomplete && RegionCompletionTable.shouldEqualizeToTotalDistance(
+            fullLength,
+            imageryTruncatedDistanceM
+          )
+        ) {
           rCQuery.map(_.auditedDistance).update(rC.totalDistance)
         } else if (rC.auditedDistance + distToAdd > rC.totalDistance) {
           rCQuery.map(_.auditedDistance).update(rC.totalDistance * 0.995)

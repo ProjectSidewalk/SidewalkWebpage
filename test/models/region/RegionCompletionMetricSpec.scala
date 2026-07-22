@@ -19,6 +19,17 @@ class RegionCompletionMetricSpec extends AnyFunSuite with Matchers {
     RegionCompletionTable.auditedDistanceToCredit(200.0, None) shouldBe 200.0
   }
 
+  test("a final truncated street does not equalize region coverage from partial or missing distance") {
+    RegionCompletionTable.shouldEqualizeToTotalDistance(200.0, Some(Some(80.0))) shouldBe false
+    RegionCompletionTable.shouldEqualizeToTotalDistance(200.0, Some(None)) shouldBe false
+  }
+
+  test("a final street equalizes for normal completion or an explicit full-edge walk") {
+    RegionCompletionTable.shouldEqualizeToTotalDistance(200.0, None) shouldBe true
+    RegionCompletionTable.shouldEqualizeToTotalDistance(200.0, Some(Some(200.0))) shouldBe true
+    RegionCompletionTable.shouldEqualizeToTotalDistance(200.0, Some(Some(250.0))) shouldBe true
+  }
+
   test("imagery-truncated street credits only how far the user actually walked") {
     // The motivating case: 200 m street, imagery dies at 80 m.
     RegionCompletionTable.auditedDistanceToCredit(200.0, Some(Some(80.0))) shouldBe 80.0
