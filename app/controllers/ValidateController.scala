@@ -13,6 +13,7 @@ import models.mission.MissionType
 import models.user._
 import models.validation.{LabelValidation, ValidationTaskComment, ValidationTaskEnvironment, ValidationTaskInteraction}
 import play.api.Configuration
+import play.api.i18n.Messages
 import play.api.libs.json._
 import play.api.mvc.Result
 import service.ValidationSubmission
@@ -71,8 +72,8 @@ class ValidateController @Inject() (
               } yield {
                 cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Validate")
                 Ok(
-                  views.html.apps.validate(commonPageData, "/validate", "Sidewalk - Validate", user, validateParams,
-                    validatePageData)
+                  views.html.apps.validate(commonPageData, "/validate", Messages("seo.title.validate"), user,
+                    validateParams, validatePageData)
                 )
               }
             } else {
@@ -110,8 +111,8 @@ class ValidateController @Inject() (
               } yield {
                 cc.loggingService.insert(user.userId, request.ipAddress, "Visit_ExpertValidate")
                 Ok(
-                  views.html.apps.validate(commonPageData, "/expertValidate", "Sidewalk - Expert Validate", user,
-                    validateParams, validatePageData)
+                  views.html.apps.validate(commonPageData, "/expertValidate", Messages("seo.title.expert.validate"),
+                    user, validateParams, validatePageData)
                 )
               }
             } else {
@@ -142,7 +143,7 @@ class ValidateController @Inject() (
               } else {
                 cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate")
                 Ok(
-                  views.html.apps.mobileValidate(commonPageData, "Sidewalk - Validate", user, validateParams,
+                  views.html.apps.mobileValidate(commonPageData, Messages("seo.title.validate"), user, validateParams,
                     validatePageData)
                 )
               }

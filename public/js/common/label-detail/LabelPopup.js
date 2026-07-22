@@ -24,6 +24,8 @@
  *     closes (X, ESC, or backdrop); LabelMap uses it to pulse that label's spot on the map.
  * @param {boolean} [opts.showLabelMapLink] Show the popup's "View on Label Map" footer link (for hosts that
  *     aren't the label map themselves — e.g. the user dashboard).
+ * @param {boolean} [opts.showExploreHereLink] Show the popup's "Explore here" footer link, which opens Explore at
+ *     the shown label's pano and point of view (#4637).
  * @returns {Promise<object>} Resolves once the pano viewer has been initialized.
  */
 async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, opts = {}) {
@@ -43,6 +45,7 @@ async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, op
     viewerAccessToken,
     currUsername,
     showLabelMapLink: opts.showLabelMapLink,
+    showExploreHereLink: opts.showExploreHereLink,
   });
   dialog.close();
   // Hold the initializing class through the close transition duration so the fade-out doesn't flash the dialog.

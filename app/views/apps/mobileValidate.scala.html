@@ -5,6 +5,7 @@
 @import service.CommonPageData
 @import models.pano.PanoSource
 @import formats.json.LabelFormats.tagWrites
+@import views.ViewHelpers.jsonForScript
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, validateParams: ValidateParams, validatePageData: ValidatePageData
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
@@ -185,7 +186,7 @@
         regionIds: @Html(validateParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null")),
         unvalidatedOnly: @validateParams.unvalidatedOnly
       };
-      param.tagList = @Html(JsArray(validatePageData.tagList.map(t => Json.toJson(t))).toString);
+      param.tagList = @jsonForScript(JsArray(validatePageData.tagList.map(t => Json.toJson(t))));
 
       if (@validatePageData.hasNextMission) {
         param.mission = @Html(validatePageData.mission.getOrElse("\"\"").toString);

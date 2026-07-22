@@ -3,6 +3,10 @@
  * Docs: https://developers.google.com/maps/documentation/javascript/reference/street-view
  */
 class GsvViewer extends PanoViewer {
+  // If GSV's internal pano load never fires position_changed (e.g. its metadata RPC 502s), fail the load after this
+  // long so the in-flight move can recover instead of hanging the UI forever. Generous, so it won't abort slow loads.
+  static #PANO_LOAD_TIMEOUT_MS = 10000;
+
   constructor() {
     super();
     this.streetViewService = undefined;
@@ -67,7 +71,9 @@ class GsvViewer extends PanoViewer {
     // If defaultNavigation is enabled, we need a pano_changed listener to record the pano metadata after moving.
     if (panoOpts.defaultNavigation) {
       this.addListener('pano_changed', () => {
-        return this.streetViewService.getPanorama({ pano: this.gsvPano.pano }).then(this.#updateCurrPanoData);
+        return this.streetViewService.getPanorama({ pano: this.gsvPano.pano })
+          .then(this.#updateCurrPanoData)
+          .catch((err) => console.error('Failed to refresh pano metadata after navigation:', err));
       });
     }
   };
@@ -150,23 +156,43 @@ class GsvViewer extends PanoViewer {
     // Package the data into a PanoData object and save it in this.currPanoData.
     this.#updateCurrPanoData(newPanoData);
 
-    // Now we actually set the pano and wait to resolve until it's finished loading.
+    // If the pano didn't actually change, nothing needs to load.
     const newPano = this.currPanoData.getPanoId();
     const prevPano = this.prevPanoData ? this.prevPanoData.getPanoId() : undefined;
-    return await new Promise((resolve) => {
-      // If the pano didn't actually change, nothing needs to change, so just resolve immediately.
-      if (newPano === prevPano) {
-        resolve(this.currPanoData);
-      } else {
-        // Listen for the position_changed event which fires when the panorama has finished loading.
-        const listener = this.gsvPano.addListener('position_changed', () => {
-          google.maps.event.removeListener(listener);
-          resolve(this.currPanoData);
-        });
-        this.gsvPano.setPano(newPano);
-      }
-    });
+    if (newPano === prevPano) return this.currPanoData;
+
+    // Otherwise set it and wait until it's finished loading (with a hang guard — see _loadPanoWithTimeout).
+    return await this._loadPanoWithTimeout(newPano, this.currPanoData);
   };
+
+  /**
+   * Sets the GSV panorama to `newPano` and resolves once it has finished loading (its position_changed event).
+   *
+   * Guards against a load that never fires position_changed — e.g. GSV's internal metadata RPC 502s — by rejecting
+   * after #PANO_LOAD_TIMEOUT_MS. Without the guard the promise hangs forever and the in-flight move
+   * (NavigationService.moveToPano) never restores the UI it disabled, wedging the tool (frozen pano, dead
+   * minimap/nav); rejecting instead lets moveToPano's catch restore interaction. Underscore-prefixed (not `#private`)
+   * so it can be unit-tested.
+   *
+   * @param {string} newPano       Id of the pano to load.
+   * @param {PanoData} resolveValue Value to resolve with once the pano has loaded (the current PanoData).
+   * @return {Promise<PanoData>}   Resolves with resolveValue on load; rejects if the load times out.
+   */
+  _loadPanoWithTimeout(newPano, resolveValue) {
+    return new Promise((resolve, reject) => {
+      let timeoutId;
+      const listener = this.gsvPano.addListener('position_changed', () => {
+        clearTimeout(timeoutId);
+        google.maps.event.removeListener(listener);
+        resolve(resolveValue);
+      });
+      timeoutId = setTimeout(() => {
+        google.maps.event.removeListener(listener);
+        reject(new Error(`Timed out loading pano ${newPano} (position_changed never fired)`));
+      }, GsvViewer.#PANO_LOAD_TIMEOUT_MS);
+      this.gsvPano.setPano(newPano);
+    });
+  }
 
   setLocation = async (latLng, excludedPanos = new Set()) => {
     const { LatLng } = await google.maps.importLibrary('core');

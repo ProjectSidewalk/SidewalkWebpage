@@ -37,6 +37,9 @@ class TaskContainer {
    */
   endTask(task) {
     const svl = this.#svl;
+    // Free-exploration tasks never complete — completing one would mark the street audited and move coverage (#4451).
+    // Callers are individually gated on the mode too; this is the final backstop.
+    if (svl.isExploreAddressMode()) return task;
     if (this.#tracker) this.#tracker.push('TaskEnd');
     task.complete();
 
@@ -458,5 +461,7 @@ class TaskContainer {
     for (const task of this._tasks) {
       task.render();
     }
+    // Keep the route overview inset's explored/ahead colors in sync as streets complete (routes only; no-op otherwise).
+    if (svl.routeOverview) svl.routeOverview.render();
   }
 }

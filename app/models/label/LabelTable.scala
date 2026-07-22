@@ -170,6 +170,7 @@ case class LabelMetadata(
     tags: List[String],
     lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean),
     comments: Seq[LabelComment],
+    location: Option[LatLng],
     cameraLocation: Option[LatLng],
     aiGenerated: Boolean,
     expired: Boolean,
@@ -675,6 +676,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         case (Some(lat), Some(lng)) => Some(LatLng(lat, lng))
         case _                      => None
       },
+      (r.nextDoubleOption(), r.nextDoubleOption()) match {
+        case (Some(lat), Some(lng)) => Some(LatLng(lat, lng))
+        case _                      => None
+      },
       r.nextBoolean(),
       r.nextBoolean(),
       r.nextBoolean(),
@@ -1080,6 +1085,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              at.incomplete,
              at.stale,
              comment.comments,
+             lp.lat,
+             lp.lng,
              pano_data.lat AS camera_lat,
              pano_data.lng AS camera_lng,
              r.role = 'AI' AS ai_generated,
@@ -1761,6 +1768,23 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .take(1)
       .result
       .head
+  }
+
+  /**
+   * Select street_edge_id of the street closest to the lat/lng position, if one is within maxDistM meters.
+   *
+   * Unlike the uncapped variant above, this excludes the tutorial street (an exploreAddress session shouldn't drop a
+   * user on it) and returns None rather than the globally-nearest street for a point far from the street network.
+   */
+  def getStreetEdgeIdClosestToLatLng(lat: Double, lng: Double, maxDistM: Double): DBIO[Option[Int]] = {
+    streetEdgeTable.streets
+      .map(s => (s.streetEdgeId, s.geom.distanceSphereD(makePoint(lng.bind, lat.bind).setSRID(4326))))
+      .filter(_._2 < maxDistM)
+      .sortBy(_._2)
+      .map(_._1)
+      .take(1)
+      .result
+      .headOption
   }
 
   /**

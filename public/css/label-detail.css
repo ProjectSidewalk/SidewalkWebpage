@@ -638,8 +638,8 @@ button.label-detail__meta-cell:focus-visible {
 
 /* ─── Description / comments ──────────────────────────────────────────── */
 
-/* The top border groups the community-input zone (description, comments, comment box, share) apart from the
-   label facts above — the card's single divider. */
+/* Top border sets the community-input zone (labeler description + validator comments) apart from the label facts
+   above; the footer actions carry their own divider below. */
 .label-detail__desc-comments {
   padding-top: 14px;
   border-top: 1px solid var(--color-neutral-200);
@@ -870,14 +870,70 @@ button.label-detail__meta-cell:focus-visible {
    Subtle, YouTube-style share button anchored bottom-right, with an accessible popover. */
 .label-detail__footer {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+
+  /* Sets the action buttons apart from the content above in every state — the label facts, or the validator-comment
+     box when it's open (which otherwise crowds them). */
+  border-top: 1px solid var(--color-neutral-200);
+
+  /* Query container for the footer's own width, so the buttons shorten their labels (then drop to icons) as the
+     card narrows rather than wrapping their text to several lines (#4572 responsive pass). */
+  container: label-detail-footer / inline-size;
 }
 
-/* Cross-surface hop to the LabelMap; styled as a sibling of the share pill. Hidden until LabelDetail fills the
-   href (hosts opt in) — explicit so the attribute beats display: inline-flex. */
-.label-detail__labelmap-link {
+/* Footer buttons keep their natural width: rather than shrinking and wrapping their text, an overflowing row wraps
+   the whole button to the next line (the container query below usually shortens the labels first). */
+.label-detail__story-share--footer,
+.label-detail__explore-link,
+.label-detail__labelmap-link,
+.label-detail__footer .label-detail__share {
+  flex-shrink: 0;
+}
+
+.label-detail__footer-label {
+  white-space: nowrap;
+}
+
+/* The short label is the fallback; the full one shows until the footer gets tight. */
+.label-detail__footer-label--short {
+  display: none;
+}
+
+/* Tight footer: swap each button from its full label to its shorter one. */
+@container label-detail-footer (max-width: 600px) {
+  .label-detail__footer-label--full {
+    display: none;
+  }
+
+  .label-detail__footer-label--short {
+    display: inline;
+  }
+}
+
+@container label-detail-footer (max-width: 380px) {
+  /* Very tight footer: icons only. The buttons keep their aria-labels, so their names survive the hidden text. */
+  .label-detail__footer-label {
+    display: none;
+  }
+
+  /* Square the icon-only buttons up rather than leaving them label-width. */
+  .label-detail__story-share--footer,
+  .label-detail__explore-link,
+  .label-detail__labelmap-link,
+  .label-detail__share-trigger {
+    padding: 6px 9px;
+  }
+}
+
+/* Cross-surface hops: to the LabelMap (#4572) and into Explore at the label's pano (#4637); styled as siblings of
+   the share pill. Hidden until LabelDetail fills the href (hosts opt in) — explicit so the attribute beats
+   display: inline-flex. */
+.label-detail__labelmap-link,
+.label-detail__explore-link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -891,17 +947,20 @@ button.label-detail__meta-cell:focus-visible {
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-.label-detail__labelmap-link:hover {
+.label-detail__labelmap-link:hover,
+.label-detail__explore-link:hover {
   background: var(--color-neutral-200);
   border-color: var(--color-neutral-400);
 }
 
-.label-detail__labelmap-link:focus-visible {
+.label-detail__labelmap-link:focus-visible,
+.label-detail__explore-link:focus-visible {
   outline: 2px solid var(--color-link-100);
   outline-offset: 2px;
 }
 
-.label-detail__labelmap-link img {
+.label-detail__labelmap-link img,
+.label-detail__explore-link img {
   width: 14px;
   height: 14px;
   display: block;

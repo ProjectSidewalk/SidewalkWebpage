@@ -375,10 +375,14 @@ To QA an uncommitted branch that lives in a git **worktree** (`.claude/worktrees
 run **`make qa-worktree wt=<name>`** (the same on Mac, Linux, and WSL — all the setup runs inside the web container).
 It handles what the plain `npm start` flow doesn't for a worktree: symlink the main repo's `node_modules` (gitignored,
 so absent in worktrees), build that branch's JS/CSS bundles (also gitignored/absent — without them every page 404s its
-assets), free `:9000`, kill any stray `sbt --client` server sharing the worktree's `target/` (it deadlocks `~ run` on
-compile locks), and launch `sbt ~ run` with `-Dconfig.file` at the worktree's own conf and the sbt caches pointed at the
-main repo's warm `.coursier`/`.sbt` (cwd-relative caches from a worktree would re-download gigabytes). The first HTTP
-request triggers the dev compile; Ctrl-C stops it. Implementation: `tools/qa-worktree.sh`.
+assets), start a backgrounded **`grunt watch`** so later `public/js/**` / `public/css/**` edits rebuild the bundles
+automatically (a plain hard-reload always reflects the latest source — no manual reconcat), free `:9000`, kill any stray
+`sbt --client` server *or* hung `sbtn` task sharing the worktree's `target/` (either deadlocks `~ run` on compile locks),
+and launch `sbt ~ run` with `-Dconfig.file` at the worktree's own conf and the sbt caches pointed at the main repo's warm
+`.coursier`/`.sbt` (cwd-relative caches from a worktree would re-download gigabytes). The first HTTP request triggers the
+dev compile; **Ctrl-C stops the app and reaps the grunt watch** (a trap, so the watcher never lingers). To tear a session
+down out-of-band, run **`make qa-worktree-stop wt=<name>`** (add `clean=1` to also drop the `node_modules` symlink).
+Implementation: `tools/qa-worktree.sh`.
 
 **Admin-authenticated QA:** the dev DB is seeded from a dump that includes real accounts and their bcrypt password
 hashes, and password verification is config-independent (plain bcrypt, no server-side pepper), so if your own account is

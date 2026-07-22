@@ -27,6 +27,7 @@ trait MissionService {
   def resumeOrCreateNewAuditOnboardingMission(userId: String): DBIO[Option[Mission]]
   def resumeOrCreateNewAuditMission(userId: String, regionId: Int): DBIO[Option[Mission]]
   def resumeOrCreateNewAiExploreMission(regionId: Int): DBIO[Mission]
+  def resumeOrCreateNewExploreAddressMission(userId: String): DBIO[Mission]
   def resumeOrCreateNewValidateMission(
       userId: String,
       missionType: MissionType.Value,
@@ -238,6 +239,21 @@ class MissionServiceImpl @Inject() (
   }
 
   /**
+   * Returns the user's incomplete exploreAddress mission, or creates one if none exists (#4451).
+   *
+   * Deliberately bypasses the hasCompletedAuditOnboarding gate in queryMissionTableExploreMissions: address-drop-in
+   * sessions skip the tutorial and go straight to the searched location.
+   */
+  def resumeOrCreateNewExploreAddressMission(userId: String): DBIO[Mission] = {
+    missionTable
+      .getIncompleteExploreAddressMission(userId)
+      .flatMap {
+        case Some(incompleteMission) => DBIO.successful(incompleteMission)
+        case _                       => missionTable.createExploreAddressMission(userId)
+      }
+  }
+
+  /**
    * Get the suggested distance in meters for the next mission this user does in this region.
    */
   private def getNextAuditMissionDistance(userId: String, regionId: Int): DBIO[Double] = {
@@ -423,13 +439,18 @@ class MissionServiceImpl @Inject() (
     val skipped: Boolean = missionProgress.skipped
 
     missionTable
-      .isOnboardingMission(missionId)
-      .flatMap { isOnboarding: Boolean =>
-        if (isOnboarding) {
+      .getMissionType(missionId)
+      .flatMap { missionType: Option[MissionType.Value] =>
+        if (missionType.contains(MissionType.AuditOnboarding)) {
           if (missionProgress.completed) {
             updateCompleteAndGetNextMission(userId, regionId, missionId, skipped)
           } else
             DBIO.successful(None)
+        } else if (missionType.contains(MissionType.ExploreAddress)) {
+          // exploreAddress missions are never completed and have no distance target, so only refresh the audit-task
+          // linkage. The completed flag is ignored on purpose: honoring it would mark the mission complete and spawn a
+          // new audit mission, breaking the never-completes invariant that keeps coverage untouched (#4451).
+          missionTable.updateCurrentAuditTaskId(missionId, missionProgress.auditTaskId).map(_ => None)
         } else {
           if (missionProgress.distanceProgress.isEmpty)
             logger.error("Received null distance progress for audit mission.")

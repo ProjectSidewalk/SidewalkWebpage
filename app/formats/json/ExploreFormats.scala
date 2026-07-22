@@ -75,7 +75,8 @@ object ExploreFormats {
       startPointReversed: Boolean,
       currentMissionStart: Option[Point],
       lastPriorityUpdateTime: OffsetDateTime,
-      requestUpdatedStreetPriority: Boolean
+      requestUpdatedStreetPriority: Boolean,
+      auditedDistanceM: Option[Double]
   )
   case class NoStreetViewSubmission(task: TaskSubmission, missionId: Int)
   case class PanoLinkSubmission(targetPanoId: String, yawDeg: Double, description: Option[String])
@@ -150,7 +151,9 @@ object ExploreFormats {
       (__ \ "current_mission_start").writeNullable[Point] and
       (__ \ "low_quality").write[Boolean] and
       (__ \ "incomplete").write[Boolean] and
-      (__ \ "stale").write[Boolean]
+      (__ \ "stale").write[Boolean] and
+      (__ \ "audited_distance_m").writeNullable[Double] and
+      (__ \ "start_offset_m").writeNullable[Double]
   )(unlift(AuditTask.unapply))
 
   implicit val auditTaskInteractionWrites: Writes[AuditTaskInteraction] = (
@@ -285,7 +288,8 @@ object ExploreFormats {
       (JsPath \ "start_point_reversed").read[Boolean] and
       (JsPath \ "current_mission_start").readNullable[Point] and
       (JsPath \ "last_priority_update_time").read[OffsetDateTime] and
-      (JsPath \ "request_updated_street_priority").read[Boolean]
+      (JsPath \ "request_updated_street_priority").read[Boolean] and
+      (JsPath \ "audited_distance_m").readNullable[Double]
   )(TaskSubmission.apply _)
 
   implicit val noStreetViewSubmissionReads: Reads[NoStreetViewSubmission] = (

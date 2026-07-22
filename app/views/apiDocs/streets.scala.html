@@ -1,3 +1,4 @@
+@import models.utils.SeoUtils
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
@@ -357,12 +358,12 @@
       <li><strong>Filter by activity level:</strong> Use <code>minLabelCount</code>, <code>minAuditCount</code>, or <code>minUserCount</code> to focus on well-documented streets with higher data quality.</li>
       <li><strong>Consider way types:</strong> Use the <code>wayType</code> filter to focus on specific road classifications relevant to your analysis (e.g., only major roads or only pedestrian paths).</li>
       <li><strong>Choose the right format:</strong> Use <code>geojson</code> for web mapping applications, <code>csv</code> for basic data analysis, <code>shapefile</code> for traditional GIS software, and <code>geopackage</code> for modern GIS workflows.</li>
-      <li><strong>Combine with other APIs:</strong> Use the Streets API alongside the <a href="/api-docs/labelClusters">Label Clusters API</a> and <a href="/api-docs/rawLabels">Raw Labels API</a> to get a complete picture of accessibility data for specific streets.</li>
+      <li><strong>Combine with other APIs:</strong> Use the Streets API alongside the <a href="/v3/api-docs/labelClusters">Label Clusters API</a> and <a href="/v3/api-docs/rawLabels">Raw Labels API</a> to get a complete picture of accessibility data for specific streets.</li>
     </ul>
   </div>
 }
 
-@common.main(commonData, "API Docs") {
+@common.main(commonData, SeoUtils.apiDocsTitle("Streets API")) {
   @common.navbar(commonData, Some(user))
   @apiDocs.layout("streets")(content)
 }

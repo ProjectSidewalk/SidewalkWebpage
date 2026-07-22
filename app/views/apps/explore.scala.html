@@ -5,14 +5,18 @@
 @import play.api.libs.json.Json
 @import service.{CommonPageData, ExplorePageData}
 @import models.pano.PanoSource
+@import views.ViewHelpers.jsonForScript
 @(
   commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, data: ExplorePageData,
-  lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None
+  lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None,
+  placeName: Option[String] = None, heading: Option[Double] = None, pitch: Option[Double] = None,
+  zoom: Option[Int] = None
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@common.main(commonData, title, defaultI18nNamespace="audit", i18Namespaces=Seq("audit", "common"), url="/explore") {
+@common.main(commonData, title, defaultI18nNamespace="audit", i18Namespaces=Seq("audit", "common"), url="/explore",
+  pageMeta = service.PageMeta(description = Some(Messages("seo.description.explore", currentCity.cityNameShort)))) {
   @common.navbar(commonData, Some(user))
 
   <link rel="stylesheet" href='@assets.path("js/explore/build/explore.css")'>
@@ -288,7 +292,7 @@
 
           @* The mission and neighborhood progress bars, each paired with its label. *@
           <div class="explore-sidebar__progress-groups">
-            <div class="explore-sidebar__progress-group">
+            <div id="mission-progress-group" class="explore-sidebar__progress-group">
               <p id="current-mission-description" class="explore-sidebar__subheading"></p>
               @components.progressBar(
                 trackId = "status-current-mission-completion-bar",
@@ -323,16 +327,98 @@
           <div id="minimap-holder">
             <div id="minimap" class="minimap-pane"></div>
             <div id="minimap-overlay" class="minimap-pane"></div>
-            <div id="minimap-message" class="minimap-pane"></div>
             <canvas id="minimap-fog-of-war-canvas" class="minimap-pane" height="200" width="200"></canvas>
             <canvas id="minimap-fov-canvas" class="minimap-pane" height="200" width="200"></canvas>
             <canvas id="minimap-progress-circle-canvas" class="minimap-pane" height="200" width="200"></canvas>
-            <div id="minimap-percent-observed" class="minimap-pane"></div>
+            <div id="minimap-percent-observed" class="minimap-pane" title="How much of your surroundings you've looked around"
+                 data-i18n-title="audit:right-ui.minimap.observed-tooltip"></div>
+            @* Mission-progress bar: fill + percent + distance explored / mission target. Updated by Minimap.updateMissionProgress. *@
+            <div id="minimap-mission-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
+                 aria-label="Mission progress" data-i18n-aria-label="audit:right-ui.minimap.mission-progress"
+                 title="Mission progress" data-i18n-title="audit:right-ui.minimap.mission-progress">
+              <div id="minimap-mission-progress-bar">
+                <div id="minimap-mission-progress-fill"></div>
+              </div>
+              <span class="minimap-mission-progress-labels">
+                <span id="minimap-mission-progress-percent"></span>
+                <span id="minimap-mission-progress-distance"></span>
+              </span>
+            </div>
+            @* First-run coach mark; replaces the old always-on banner. Shown/dismissed by ObservedArea. *@
+            <div id="minimap-coach" class="minimap-coach-hidden">
+              <span data-i18n="audit:right-ui.minimap.explore-current-location">Turn 360 degrees to make sure nothing is missed.</span>
+              <button id="minimap-coach-dismiss" type="button" data-i18n="audit:right-ui.minimap.coach-dismiss">Got it</button>
+            </div>
+            @* Always-on mini legend (Explored / Route ahead); click to expand the full key card (MinimapLegend.js). *@
+            <button id="minimap-legend-toggle" type="button" aria-expanded="false" aria-controls="minimap-legend-card"
+                    aria-label="Map key" data-i18n-aria-label="audit:right-ui.minimap.legend-title"
+                    title="Map key" data-i18n-title="audit:right-ui.minimap.legend-title">
+              <span class="minimap-legend-mini-item">
+                <svg class="minimap-legend-mini-icon" viewBox="0 0 22 8" aria-hidden="true">
+                  <path class="minimap-legend-sample-audited" d="M2 4H20"></path>
+                </svg>
+                <span data-i18n="audit:right-ui.minimap.legend-explored">Explored</span>
+              </span>
+              <span class="minimap-legend-mini-item">
+                <svg class="minimap-legend-mini-icon" viewBox="0 0 22 8" aria-hidden="true">
+                  <path class="minimap-legend-sample-remaining minimap-legend-sample-dashed" d="M2 4H20"></path>
+                  <path class="minimap-legend-sample-chevron" d="M8 1L13 4L8 7Z"></path>
+                </svg>
+                <span data-i18n="audit:right-ui.minimap.legend-ahead">Route ahead</span>
+              </span>
+              @* Diagonal expand arrow, affording that the mini legend opens into the full key card. *@
+              <svg class="minimap-legend-expand-icon" viewBox="0 0 12 12" aria-hidden="true">
+                <path d="M3.5 8.5 L8.5 3.5 M5 3.5 L8.5 3.5 L8.5 7"></path>
+              </svg>
+            </button>
+            <div id="minimap-legend-card" class="minimap-legend-card-hidden">
+              <div class="minimap-legend-header">
+                <span data-i18n="audit:right-ui.minimap.legend-title">Map key</span>
+                <button id="minimap-legend-close" type="button" aria-label="Collapse" data-i18n-aria-label="common:close">
+                  <svg class="minimap-legend-collapse-icon" viewBox="0 0 12 12" aria-hidden="true">
+                    <path d="M8.5 3.5 L3.5 8.5 M3.5 5 L3.5 8.5 L7 8.5"></path>
+                  </svg>
+                </button>
+              </div>
+              <div class="minimap-legend-row">
+                <svg viewBox="0 0 30 12" aria-hidden="true">
+                  <path class="minimap-legend-sample-audited" d="M2 6H28"></path>
+                </svg>
+                <span data-i18n="audit:right-ui.minimap.legend-explored">Explored</span>
+              </div>
+              <div class="minimap-legend-row">
+                <svg viewBox="0 0 30 12" aria-hidden="true">
+                  <path class="minimap-legend-sample-remaining minimap-legend-sample-dashed" d="M2 6H28"></path>
+                  <path class="minimap-legend-sample-chevron" d="M12 2L18 6L12 10Z"></path>
+                </svg>
+                <span data-i18n="audit:right-ui.minimap.legend-ahead">Route ahead</span>
+              </div>
+              <div class="minimap-legend-row">
+                <svg viewBox="0 0 30 12" aria-hidden="true">
+                  <path class="minimap-legend-sample-cone" d="M15 7L10.5 0.5A8 8 0 0 1 19.5 0.5Z"></path>
+                  <circle class="minimap-legend-sample-peg" cx="15" cy="7" r="3.5"></circle>
+                </svg>
+                <span data-i18n="audit:right-ui.minimap.legend-you">You + view direction</span>
+              </div>
+              <div class="minimap-legend-row">
+                <svg viewBox="0 0 30 12" aria-hidden="true">
+                  <circle class="minimap-legend-sample-visited" cx="15" cy="6" r="3.5"></circle>
+                </svg>
+                <span data-i18n="audit:right-ui.minimap.legend-visited">Visited</span>
+              </div>
+            </div>
+            @* Whole-route overview inset — shown only on designated routes (RouteOverview toggles the holder class). *@
+            <button id="minimap-route-overview" type="button" aria-label="Route overview: tap to see the whole route" data-i18n-aria-label="audit:right-ui.minimap.route-overview" title="Route overview: tap to see the whole route" data-i18n-title="audit:right-ui.minimap.route-overview">
+              <canvas id="minimap-route-overview-canvas"></canvas>
+            </button>
             <div id="minimap-zoom-controls" class="zoom-buttons-holder">
-              <button id="minimap-zoom-in" class="zoom-button" type="button" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in">
+              <button id="minimap-zoom-fit" class="zoom-button" type="button" aria-label="Show whole route" data-i18n-aria-label="audit:right-ui.minimap.fit-route" title="Show whole route" data-i18n-title="audit:right-ui.minimap.fit-route">
+                <img class="zoom-button-icon" src='@assets.path("images/icons/route-fit-white-material.svg")' alt="">
+              </button>
+              <button id="minimap-zoom-in" class="zoom-button" type="button" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in" title="Zoom in" data-i18n-title="common:zoom-in">
                 <img class="zoom-button-icon" src='@assets.path("images/icons/plus-white-material.svg")' alt="">
               </button>
-              <button id="minimap-zoom-out" class="zoom-button" type="button" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out">
+              <button id="minimap-zoom-out" class="zoom-button" type="button" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out" title="Zoom out" data-i18n-title="common:zoom-out">
                 <img class="zoom-button-icon" src='@assets.path("images/icons/minus-white-material.svg")' alt="">
               </button>
             </div>
@@ -341,10 +427,13 @@
       </div>
       <div id="interaction-area-holder" onselectstart="return true;">
         <div id="alert-holder" class="ps-hidden">
-          <div id="alert">
-            <span id="alert-message"></span>
-            <a id="alert-dont-show" href="#">@Messages("dont.show.again")</a>
-            <a id="alert-close" href="#"><span class="glyphicon glyphicon-remove"></span></a>
+          <div id="alert" role="status" aria-live="polite">
+            <svg id="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <p id="alert-message"></p>
+            <button id="alert-dont-show" type="button">@Messages("dont.show.again")</button>
+            <button id="alert-close" type="button" aria-label="@Messages("explore.alert.close")">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
           </div>
         </div>
         <div id="street-view-holder">
@@ -776,7 +865,7 @@
     @* Server-side conditional (@if), not a browser `if`: when the user has finished their assigned neighborhood the *@
     @* task is None, so `data.task.get` must never be evaluated at render time (that 500s the page — #4672). *@
     @if(data.task.isDefined) {
-      mainParam.task = @Html(Json.toJson(data.task.get).toString);
+      mainParam.task = @jsonForScript(data.task.get);
     } else {
       $(".tool-ui").removeClass("ps-invisible");
       $('#already-completed-neighborhood-overlay').show();
@@ -787,23 +876,43 @@
     mainParam.audioDirectory = "@assets.path("audio/")";
 
     mainParam.user = {
-      username: '@user.username',
+      username: @jsonForScript(user.username),
       role: '@user.role',
       userId: '@user.userId'
     };
     mainParam.regionId = @data.region.regionId;
-    mainParam.regionName = @Html(Json.stringify(Json.toJson(data.region.name)));
+    mainParam.regionName = @jsonForScript(data.region.name);
     // TODO I think that we can replace this with Json.toJson(data.region.geom).toString after back end upgrades.
     mainParam.regionGeoJSON = window.betterknown.wktToGeoJSON("@data.region.geom");
 
     mainParam.nextTemporaryLabelId = @data.nextTempLabelId;
-    mainParam.mission = @Html(Json.toJson(data.mission).toString);
+    mainParam.mission = @jsonForScript(data.mission);
     mainParam.tutorialStreetId = @data.tutorialStreetId;
     mainParam.hasCompletedAMission = @data.hasCompletedAMission;
 
     @if(data.userRoute.isDefined) {
     mainParam.routeId = @data.userRoute.get.routeId;
     mainParam.userRouteId = @data.userRoute.get.userRouteId;
+    }
+
+    @* Optional pano seed: an admin auditing a specific street from a pano/lat-lng, or an address drop-in (#4451). *@
+    @if(lat.isDefined && lng.isDefined) {
+    mainParam.startLat = @lat.get;
+    mainParam.startLng = @lng.get;
+    }
+    @if(panoId.isDefined) {
+    mainParam.startPanoId = @jsonForScript(panoId.get);
+    }
+    @* A POV seed (e.g. a label's stored point of view from the label card, #4637). Heading is its required core;
+       pitch/zoom just refine it, so they default rather than gate. *@
+    @if(heading.isDefined) {
+    mainParam.startPov = { heading: @heading.get, pitch: @pitch.getOrElse(0.0), zoom: @zoom.getOrElse(1) };
+    }
+    @* Name of the place the user searched, so the drop-in greeting can say where they landed (#4451). It arrives from
+       a URL parameter, so it is JSON-serialized AND has `<` escaped: JSON quoting alone still lets a literal
+       `</script>` close this block early and execute the rest as markup. Same guard as sharedLabel.scala.html. *@
+    @if(placeName.isDefined) {
+    mainParam.startPlaceName = @jsonForScript(placeName.get);
     }
 
     mainParam.language = "@messages.lang.code";

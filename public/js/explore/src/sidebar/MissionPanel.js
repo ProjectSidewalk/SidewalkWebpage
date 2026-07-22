@@ -15,18 +15,24 @@ class MissionPanel {
    * @param mission The current Mission object.
    */
   setMessage(mission) {
+    const missionType = mission.getProperty('missionType');
+
     // The header gains a "Route: <route-number>" suffix when on a user-defined route.
     if (svl.neighborhoodModel.isRoute) {
       this.#headerEl.innerHTML = i18next.t('right-ui.current-mission.header-route', { route_number: svl.routeId });
+    } else if (missionType === 'exploreAddress') {
+      this.#headerEl.innerHTML = i18next.t('right-ui.current-mission.header-free-explore');
     } else {
       this.#headerEl.innerHTML = i18next.t('right-ui.current-mission.header');
     }
 
-    const missionType = mission.getProperty('missionType');
-
+    // Free exploration shows the header alone, so the description stays empty — the neighborhood message it would
+    // otherwise fall through to carries a distance __PLACEHOLDER__ that this mission type never substitutes.
     let missionMessage;
     if (missionType === 'auditOnboarding') {
       missionMessage = i18next.t('tutorial.mission-message');
+    } else if (missionType === 'exploreAddress') {
+      missionMessage = '';
     } else {
       // The regular mission message names the neighborhood being explored.
       const neighborhood = svl.neighborhoodModel.currentNeighborhood();
@@ -59,10 +65,6 @@ class MissionPanel {
     else if (unit === 'miles') distance = util.math.milesToMeters(distance);
     else if (unit === 'kilometers') distance = util.math.kmsToMeters(distance);
 
-    const distanceType = i18next.t('common:measurement-system');
-    const unitAbbreviation = i18next.t('common:unit-abbreviation-mission-distance');
-
-    if (distanceType === 'metric') return `${util.math.roundToTwentyFive(distance)} ${unitAbbreviation}`;
-    return `${util.math.roundToTwentyFive(util.math.metersToFeet(distance))} ${unitAbbreviation}`;
+    return util.misc.distanceToString(distance);
   }
 }

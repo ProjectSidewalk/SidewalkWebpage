@@ -137,11 +137,24 @@
     "current-mission": {
       "header": "Current Mission",
       "header-route": "$t(right-ui.current-mission.header): Route {{route_number}}",
+      "header-free-explore": "Free Exploration",
       "message": "Explore __PLACEHOLDER__ of {{neighborhoodName}}"
     },
     "minimap": {
-      "follow-red-line": "Follow the red line to continue the mission",
-      "explore-current-location": "Turn 360 degrees to make sure nothing is missed."
+      "coach-dismiss": "Got it",
+      "distance-left": "{{distance}} left",
+      "explore-current-location": "Turn 360 degrees to make sure nothing is missed.",
+      "fit-route": "Show whole route",
+      "fit-street": "Back to street level",
+      "route-overview": "Route overview: tap to see the whole route",
+      "observed-tooltip": "How much of your surroundings you've looked around",
+      "legend-title": "Map key",
+      "mission-progress": "Mission progress",
+      "legend-explored": "Explored",
+      "legend-ahead": "Route ahead",
+      "legend-you": "You + view direction",
+      "legend-visited": "Visited location",
+      "legend-unseen": "Not yet viewed"
     },
     "stats": {
       "leaderboard-cta": "See the community leaderboard"
@@ -293,6 +306,9 @@
     "label-shortcuts-occlusion": "You can also press the <kbd>{{key}}</kbd> key for selecting the Can't See the Sidewalk label.",
     "still-stuck": "If you're still stuck, click the Stuck button again.",
     "stuck-skipped-street": "We couldn't find a spot for you on that street, so we moved you to a new street.",
+    "free-explore-start": "You've been dropped near your searched address. Look around and label what you find!",
+    "free-explore-start-named": "You've been dropped close to <b>{{placeName}}</b>. Look around and label what you find!",
+    "free-explore-no-imagery": "There's no more street imagery in this direction. Try looking around or heading the other way.",
     "stuck-suggestion": "If you can't move with the arrows, trying clicking on the navigation directions in the bottom right. Or try clicking on the Stuck button on the left."
   },
   "mission-start-tutorial": {

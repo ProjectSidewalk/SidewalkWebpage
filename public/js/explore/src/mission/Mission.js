@@ -65,6 +65,9 @@ class Mission {
     if ('taskContainer' in svl && this.getProperty('missionType') !== 'auditOnboarding') {
       const distanceProgress = this.getProperty('distanceProgress');
       const targetDistance = this.getDistance('meters');
+      // No distance target (e.g. an exploreAddress mission) → not "complete"; dividing by 0/null would clamp to 1
+      // and fire the mission-complete modal.
+      if (!targetDistance) return 0;
       return Math.min(Math.max(distanceProgress / targetDistance, 0), 1);
     } else {
       return 0;

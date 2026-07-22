@@ -220,7 +220,7 @@
 }
 
 @* dashboard namespace: TeamCreate.js's client-side error strings. *@
-@common.main(commonData, "Sidewalk - Leaderboard", i18Namespaces = Seq("common", "dashboard")) {
+@common.main(commonData, Messages("seo.title.leaderboard"), i18Namespaces = Seq("common", "dashboard")) {
   @common.navbar(commonData, Some(user))
   @userDashboard.layout("leaderboard", isSignedIn)(content)
 }

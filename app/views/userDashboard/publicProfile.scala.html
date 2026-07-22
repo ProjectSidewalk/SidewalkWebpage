@@ -171,7 +171,7 @@
 }
 
 @* labelmap: the reused label-detail popup's strings; dashboard: DashboardBadges.js's client-side strings. *@
-@common.main(commonData, s"Sidewalk - ${profileName}", i18Namespaces = Seq("common", "labelmap", "dashboard")) {
+@common.main(commonData, s"$profileName — Project Sidewalk", i18Namespaces = Seq("common", "labelmap", "dashboard")) {
   @common.navbar(commonData, Some(user))
   @userDashboard.layout("", isSignedIn = user.role != "Anonymous")(body)
 }
