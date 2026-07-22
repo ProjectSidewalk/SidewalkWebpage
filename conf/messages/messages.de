@@ -317,6 +317,7 @@ welcome.card.badges.title = Abzeichen
 welcome.card.badges.body = Verdiene sie beim Kartieren, Validieren und Erreichen von Missionszielen.
 welcome.card.leaderboard.title = Die Bestenliste
 welcome.card.leaderboard.body = Sieh, wie sich dein Kartieren in der Stadt schlägt – allein oder im Team.
+welcome.cta.resume = Zurück zu deinem letzten Stand
 welcome.cta.dashboard = Mein Dashboard ansehen
 welcome.hint.username = Du kannst deinen Benutzernamen jederzeit unter <a href="{0}">Dashboard → Einstellungen</a> ändern.
 welcome.service.prompt = Kartierst du für Schul- oder Ehrenamtsstunden?

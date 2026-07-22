@@ -454,7 +454,11 @@ class UserController @Inject() (
         configService.getCommonPageData(request2Messages.lang).map { commonData =>
           cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Welcome")
           val resumeUrl = safeLocalPath(next.getOrElse("/explore"), "/explore")
-          Ok(views.html.authentication.welcome(commonData, user, resumeUrl))
+          // Landing on a generic entry point isn't an interruption worth naming; anything else is a page the user
+          // was pulled out of mid-task, and the CTA should say so rather than read as "go start something new".
+          val resumedPath = resumeUrl.takeWhile(_ != '?')
+          val resumed     = resumedPath != "/" && resumedPath != "/explore"
+          Ok(views.html.authentication.welcome(commonData, user, resumeUrl, resumed))
         }
       case _ => Future.successful(Redirect("/"))
     }

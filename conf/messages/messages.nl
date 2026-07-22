@@ -314,6 +314,7 @@ welcome.card.badges.title = Badges
 welcome.card.badges.body = Verdien ze terwijl je in kaart brengt, valideert en missiemijlpalen haalt.
 welcome.card.leaderboard.title = Het scorebord
 welcome.card.leaderboard.body = Zie hoe jouw werk zich verhoudt in de stad — alleen of met een team.
+welcome.cta.resume = Terug naar waar je gebleven was
 welcome.cta.dashboard = Mijn dashboard bekijken
 welcome.hint.username = Je kunt je gebruikersnaam altijd wijzigen in <a href="{0}">Dashboard → Instellingen</a>.
 welcome.service.prompt = Breng je in kaart voor school- of vrijwilligersuren?

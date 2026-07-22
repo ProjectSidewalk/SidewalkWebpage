@@ -616,6 +616,9 @@
       <div class="tutorial-intro__header">
         <p class="tutorial-intro__eyebrow" data-i18n="audit:tutorial-intro.eyebrow"></p>
         <h1 class="tutorial-intro__title" id="tutorial-intro-title" data-i18n="audit:tutorial-intro.title"></h1>
+        @* Shown only when a route is queued: arriving here instead of the route the user asked for otherwise reads
+           as though the route was lost. Unhidden by TutorialIntro. *@
+        <p class="tutorial-intro__route-note" id="tutorial-intro-route-note" data-i18n="audit:tutorial-intro.route-waiting" hidden></p>
       </div>
       <div class="tutorial-intro__body">
         <div class="tutorial-intro__illustration">

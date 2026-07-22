@@ -50,6 +50,13 @@
   color: var(--color-neutral-black);
 }
 
+/* Reassurance that a queued route survived the detour into the tutorial. */
+.tutorial-intro__route-note {
+  margin: calc(8px * var(--ui-scale, 1)) 0 0;
+  font: var(--text-body-medium);
+  color: var(--color-link-100);
+}
+
 .tutorial-intro__body {
   display: flex;
   align-items: stretch;

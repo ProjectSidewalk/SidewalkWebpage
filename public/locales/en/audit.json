@@ -94,6 +94,7 @@
   "tutorial-intro": {
     "eyebrow": "Explore Mission",
     "title": "Join the Sidewalk Mission",
+    "route-waiting": "Your route is ready and waiting — we'll take you straight to it after this quick tutorial.",
     "next": "Next",
     "start-mission": "Start Mission",
     "have-account": "Have an account?",

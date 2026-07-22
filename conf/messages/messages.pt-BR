@@ -322,6 +322,7 @@ welcome.card.badges.title = Distintivos
 welcome.card.badges.body = Ganhe-os enquanto mapeia, valida e atinge marcos de missões.
 welcome.card.leaderboard.title = O ranking
 welcome.card.leaderboard.body = Veja como seu mapeamento se compara na cidade — sozinho ou em equipe.
+welcome.cta.resume = Voltar de onde você parou
 welcome.cta.dashboard = Ver meu painel
 welcome.hint.username = Você pode alterar seu nome de usuário quando quiser em <a href="{0}">Painel → Configurações</a>.
 welcome.service.prompt = Mapeando para créditos escolares ou de voluntariado?

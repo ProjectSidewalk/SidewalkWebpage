@@ -385,6 +385,7 @@ welcome.card.badges.title = 徽章
 welcome.card.badges.body = 在標記、驗證和達成任務里程碑的過程中獲得徽章。
 welcome.card.leaderboard.title = 排行榜
 welcome.card.leaderboard.body = 看看您的標記在整座城市中的表現 — 個人或團隊皆可。
+welcome.cta.resume = 回到你剛才的進度
 welcome.cta.dashboard = 查看我的儀表板
 welcome.hint.username = 您隨時可以在 <a href="{0}">儀表板 → 設定</a> 中變更使用者名稱。
 welcome.service.prompt = 為了學校或志工時數而標記嗎？
