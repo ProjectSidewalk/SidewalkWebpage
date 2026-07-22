@@ -818,7 +818,7 @@ class ExploreServiceImpl @Inject() (
         val userRouteAction: DBIO[Boolean] =
           if (data.userRouteId.isDefined && missionType.contains(MissionType.Audit)) {
             for {
-              _                      <- auditTaskUserRouteTable.insertIfNew(data.userRouteId.get, auditTaskId)
+              _ <- auditTaskUserRouteTable.insertIfNew(data.userRouteId.get, auditTaskId, data.auditTask.routeStreetId)
               routeComplete: Boolean <- userRouteTable.updateCompleteness(data.userRouteId.get)
             } yield routeComplete
           } else DBIO.successful(false)

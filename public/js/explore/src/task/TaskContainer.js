@@ -270,15 +270,14 @@ class TaskContainer {
 
   /**
    * The route's start and finish coordinates in walking order: the first street's start and the last street's end.
-   * Walking order is routeStreetPosition (falling back to routeStreetId), matching nextTask(). Coordinates are
-   * already oriented to the walking direction on each task, so start/end are the true origin/destination.
+   * Coordinates are already oriented to the walking direction on each task, so start/end are the true
+   * origin/destination.
    * @returns {?{start: {lat: number, lng: number}, finish: {lat: number, lng: number}}} null if no tasks loaded.
    */
   getRouteEndpoints() {
     const tasks = this.getTasks();
     if (tasks.length === 0) return null;
-    const walkOrder = (task) => task.getProperty('routeStreetPosition') ?? task.getProperty('routeStreetId');
-    const ordered = [...tasks].sort((t1, t2) => walkOrder(t1) - walkOrder(t2));
+    const ordered = [...tasks].sort((t1, t2) => t1.getWalkOrder() - t2.getWalkOrder());
     return { start: ordered[0].getStartCoordinate(), finish: ordered[ordered.length - 1].getEndCoordinate() };
   }
 
@@ -317,20 +316,25 @@ class TaskContainer {
     const svl = this.#svl;
     let newTask;
 
-    // Check if user has audited entire region or route.
-    const tasksNotCompletedByUser = this.getTasks().filter((t) => {
-      return !t.isComplete() && t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null);
-    });
+    // Check if user has audited entire region or route. On a route, a street can legitimately appear twice
+    // (out-and-back), so the just-finished task is excluded by its route_street row rather than by its street —
+    // excluding by street would silently drop the return leg.
+    const sameAsFinished = (t) => {
+      if (!finishedTask) return false;
+      const finishedWalkOrder = finishedTask.getWalkOrder();
+      return svl.neighborhoodModel.isRoute && finishedWalkOrder !== null && finishedWalkOrder !== undefined
+        ? t.getWalkOrder() === finishedWalkOrder
+        : t.getStreetEdgeId() === finishedTask.getStreetEdgeId();
+    };
+    const tasksNotCompletedByUser = this.getTasks().filter((t) => !t.isComplete() && !sameAsFinished(t));
     if (tasksNotCompletedByUser.length === 0) {
       return null;
     }
 
     if (svl.neighborhoodModel.isRoute) {
-      // For a route, the user walks the streets in the route's saved order. Position is the walking order
-      // (editable routes can insert streets mid-route, so serial routeStreetId is only a legacy fallback).
-      const walkOrder = (task) => task.getProperty('routeStreetPosition') ?? task.getProperty('routeStreetId');
+      // For a route, the user walks the streets in the route's saved order.
       newTask = tasksNotCompletedByUser.reduce((min, current) => {
-        return walkOrder(current) < walkOrder(min) ? current : min;
+        return current.getWalkOrder() < min.getWalkOrder() ? current : min;
       }, tasksNotCompletedByUser[0]);
     } else {
       // If not part of a route, check for a connected task with a high priority. If none, jump to the highest

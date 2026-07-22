@@ -566,20 +566,23 @@ class AuditTaskTable @Inject() (
       .on(_._2.streetEdgeId === _.streetEdgeId)
       .map { case ((_userRoute, _routeStreet), _streetEdge) => (_streetEdge, _routeStreet) }
 
-    // Get street_edge_id, task_start, audit_task_id, current_mission_id, and current_mission_start for streets the user
-    // has audited. If there are multiple for the same street, choose most recent (one w/ the highest audit_task_id).
+    // Get task_start, audit_task_id, current_mission_id, and current_mission_start for the route's streets the user
+    // has audited. If there are multiple for the same one, choose most recent (one w/ the highest audit_task_id).
+    // Keyed by route_street rather than by street: an out-and-back route walks the same street twice, and each
+    // traversal is its own task, so keying by street would mark the return leg done and hand it the outbound
+    // leg's audit task.
     val userCompletedStreets = auditTaskUserRoutes
       .filter(_.userRouteId === userRouteId)
       .join(completedTasks)
       .on(_.auditTaskId === _.auditTaskId)
-      .groupBy(_._2.streetEdgeId)
-      .map(_._2.map(_._2.auditTaskId).max)
+      .groupBy(_._1.routeStreetId)
+      .map { case (routeStreetId, group) => (routeStreetId, group.map(_._2.auditTaskId).max) }
       .join(auditTasks)
-      .on(_ === _.auditTaskId)
-      .map(t => (t._2.streetEdgeId, t._2.taskStart, t._2.auditTaskId, t._2.currentMissionId, t._2.currentMissionStart))
+      .on(_._2 === _.auditTaskId)
+      .map(t => (t._1._1, t._2.taskStart, t._2.auditTaskId, t._2.currentMissionId, t._2.currentMissionStart))
 
     val tasks = for {
-      ((_se1, _rs), ucs) <- edgesInRoute.joinLeft(userCompletedStreets).on(_._1.streetEdgeId === _._1)
+      ((_se1, _rs), ucs) <- edgesInRoute.joinLeft(userCompletedStreets).on(_._2.routeStreetId === _._1)
       _se2               <- streetEdgeTable.streets if _se1.streetEdgeId === _se2.streetEdgeId
       _sep               <- streetEdgePriorities if _se2.streetEdgeId === _sep.streetEdgeId
       _scau              <- streetCompletedByAnyUser if _sep.streetEdgeId === _scau._1

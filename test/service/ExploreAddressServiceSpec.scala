@@ -170,7 +170,8 @@ class ExploreAddressServiceSpec extends PlaySpec with org.scalatest.BeforeAndAft
     AuditTaskSubmission(
       missionProgress = AuditMissionProgress(missionId, Some(0d), regionId, completed, Some(auditTaskId), false),
       auditTask = TaskSubmission(streetEdgeId, now, Some(auditTaskId), Some(completed), 0d, 0d,
-        startPointReversed = false, None, now, requestUpdatedStreetPriority = false, auditedDistanceM),
+        startPointReversed = false, None, now, requestUpdatedStreetPriority = false, auditedDistanceM,
+        routeStreetId = None),
       labels = labels,
       interactions = Seq.empty,
       environment = EnvironmentSubmission(None, None, None, None, None, None, None, None, None, "en", 100),

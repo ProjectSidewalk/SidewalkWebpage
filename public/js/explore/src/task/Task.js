@@ -255,6 +255,18 @@ class Task {
   }
 
   /**
+   * This task's place in a route's walking order, for sorting route tasks.
+   *
+   * Position is the real ordering — an editable route can insert a street mid-route, so the serial routeStreetId
+   * only orders correctly for routes saved before editing existed.
+   *
+   * @returns {?number} null when the task isn't part of a route.
+   */
+  getWalkOrder() {
+    return this.#properties.routeStreetPosition ?? this.#properties.routeStreetId;
+  }
+
+  /**
    * Returns an integer in the range 0 to n-1, where larger n means higher priority.
    *
    * Explanation:
