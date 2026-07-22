@@ -41,14 +41,16 @@ object RegionCompletionTable {
    * length.
    *
    * @param fullLengthMeters          The street edge's full projected length in meters.
-   * @param imageryTruncatedDistanceM `Some(metersWalked)` when the street ended early because imagery ran out; `None`
-   *                                  for a normal completion (credit the full length).
+   * @param imageryTruncatedDistanceM `Some(Some(metersWalked))` when the street ended early because imagery ran out;
+   *                                  `Some(None)` when that request omitted the walked distance; `None` for a normal
+   *                                  completion (credit the full length).
    * @return The number of meters to add to the region's `audited_distance`.
    */
-  def auditedDistanceToCredit(fullLengthMeters: Double, imageryTruncatedDistanceM: Option[Double]): Double =
+  def auditedDistanceToCredit(fullLengthMeters: Double, imageryTruncatedDistanceM: Option[Option[Double]]): Double =
     imageryTruncatedDistanceM match {
-      case Some(metersWalked) => math.max(0.0, math.min(metersWalked, fullLengthMeters))
-      case None               => fullLengthMeters
+      case Some(Some(metersWalked)) => math.max(0.0, math.min(metersWalked, fullLengthMeters))
+      case Some(None)               => 0.0
+      case None                     => fullLengthMeters
     }
 }
 
@@ -90,18 +92,22 @@ class RegionCompletionTable @Inject() (
    * street edge. Short-circuits for the tutorial street — it's excluded from region completion totals entirely, so
    * crediting its distance here would overshoot `total_distance`.
    *
-   * @param imageryTruncatedDistanceM `Some(metersWalked)` when the street ended early because Street View imagery ran
-   *                                  out (#4677) — credit only how far the user actually got, not the full geometry.
-   *                                  `None` for a normal completion (credit the full street length).
+   * @param imageryTruncatedDistanceM `Some(Some(metersWalked))` when the street ended early because Street View imagery
+   *                                  ran out (#4677) — credit only how far the user actually got, not the full geometry.
+   *                                  `Some(None)` when that request omitted the walked distance — credit nothing. `None`
+   *                                  for a normal completion (credit the full street length).
    */
-  def updateAuditedDistance(streetEdgeId: Int, imageryTruncatedDistanceM: Option[Double] = None): DBIO[Int] = {
+  def updateAuditedDistance(streetEdgeId: Int, imageryTruncatedDistanceM: Option[Option[Double]] = None): DBIO[Int] = {
     tutorialStreetId.filter(_ === streetEdgeId).exists.result.flatMap { isTutorial =>
       if (isTutorial) DBIO.successful(0)
       else doUpdateAuditedDistance(streetEdgeId, imageryTruncatedDistanceM)
     }
   }
 
-  private def doUpdateAuditedDistance(streetEdgeId: Int, imageryTruncatedDistanceM: Option[Double]): DBIO[Int] = {
+  private def doUpdateAuditedDistance(
+      streetEdgeId: Int,
+      imageryTruncatedDistanceM: Option[Option[Double]]
+  ): DBIO[Int] = {
     for {
       fullLength: Double <- streetEdgeTable.streets
         .filter(_.streetEdgeId === streetEdgeId)

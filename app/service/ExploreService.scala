@@ -540,15 +540,16 @@ class ExploreServiceImpl @Inject() (
    * Update the street priority for the given street edge ID assuming that the given user just audited the street.
    * @param streetEdgeId The street_edge_id of the street that was audited.
    * @param userId The user_id of the user who audited the street.
-   * @param imageryTruncatedDistanceM `Some(metersWalked)` when the street was completed early because Street View
+   * @param imageryTruncatedDistanceM `Some(Some(metersWalked))` when the street was completed early because Street View
    *                                  imagery ran out (#4677); the region is then credited only the distance actually
-   *                                  walked. `None` for a normal completion (credit the full street length).
+   *                                  walked. `Some(None)` when the truncated request omitted the distance; `None` for
+   *                                  a normal completion (credit the full street length).
    * @return The new priority value of the street.
    */
   private def updateStreetPriority(
       streetEdgeId: Int,
       userId: String,
-      imageryTruncatedDistanceM: Option[Double] = None
+      imageryTruncatedDistanceM: Option[Option[Double]] = None
   ): DBIO[Option[Double]] = {
     for {
       priorityBefore: Option[Double] <- streetEdgePriorityTable
@@ -694,7 +695,7 @@ class ExploreServiceImpl @Inject() (
           _ <- updateStreetPriority(
             streetIssue.streetEdgeId,
             streetIssue.userId,
-            imageryTruncatedDistanceM = taskSubmission.auditedDistanceM
+            imageryTruncatedDistanceM = Some(taskSubmission.auditedDistanceM)
           )
           atRowsUpdated: Int <- auditTaskTable.updateCompleted(auditTaskId, completed = true)
         } yield atRowsUpdated

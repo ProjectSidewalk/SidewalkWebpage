@@ -21,23 +21,28 @@ class RegionCompletionMetricSpec extends AnyFunSuite with Matchers {
 
   test("imagery-truncated street credits only how far the user actually walked") {
     // The motivating case: 200 m street, imagery dies at 80 m.
-    RegionCompletionTable.auditedDistanceToCredit(200.0, Some(80.0)) shouldBe 80.0
+    RegionCompletionTable.auditedDistanceToCredit(200.0, Some(Some(80.0))) shouldBe 80.0
+  }
+
+  test("imagery-truncated street with no walked distance gets no credit") {
+    // Missing client distance must fail closed rather than fall back to the full street length.
+    RegionCompletionTable.auditedDistanceToCredit(200.0, Some(None)) shouldBe 0.0
   }
 
   test("walked distance is clamped to the full length so it can never overstate coverage") {
     // An oversized/stale client value must not credit more than the street actually is.
-    RegionCompletionTable.auditedDistanceToCredit(200.0, Some(250.0)) shouldBe 200.0
+    RegionCompletionTable.auditedDistanceToCredit(200.0, Some(Some(250.0))) shouldBe 200.0
   }
 
   test("a negative walked distance is clamped up to zero, never subtracting coverage") {
-    RegionCompletionTable.auditedDistanceToCredit(200.0, Some(-5.0)) shouldBe 0.0
+    RegionCompletionTable.auditedDistanceToCredit(200.0, Some(Some(-5.0))) shouldBe 0.0
   }
 
   test("walking the whole street before imagery ran out credits the full length") {
-    RegionCompletionTable.auditedDistanceToCredit(200.0, Some(200.0)) shouldBe 200.0
+    RegionCompletionTable.auditedDistanceToCredit(200.0, Some(Some(200.0))) shouldBe 200.0
   }
 
   test("a zero-length walk credits nothing") {
-    RegionCompletionTable.auditedDistanceToCredit(200.0, Some(0.0)) shouldBe 0.0
+    RegionCompletionTable.auditedDistanceToCredit(200.0, Some(Some(0.0))) shouldBe 0.0
   }
 }
