@@ -36,6 +36,14 @@ object Route {
 }
 
 /**
+ * Why a route submission was refused: a Play i18n key and the length limit it interpolates.
+ *
+ * The HTTP layer localizes it, so RouteService can enforce the content contract without knowing the request's
+ * language — the same split as UserService.changeUsername's Left(i18nKey).
+ */
+case class RouteRejection(messageKey: String, maxLength: Int)
+
+/**
  * A user-created route with the display stats shown in route listings (e.g. the dashboard's "My Routes").
  *
  * @param routeId        ID of the route.
@@ -81,6 +89,8 @@ class RouteTableDef(tag: slick.lifted.Tag) extends Table[Route](tag, "route") {
 
   def user   = foreignKey("route_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
   def region = foreignKey("route_region_id_fkey", regionId, TableQuery[RegionTableDef])(_.regionId)
+  // Share links resolve a route by slug, so slugs are unique city-wide. Mirrors route_slug_idx (evolution 344).
+  def slugUnique = index("route_slug_idx", slug, unique = true)
 }
 
 @ImplementedBy(classOf[RouteTable])
@@ -162,11 +172,18 @@ class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * completed it. Routes nobody has explored are absent from the map.
    */
   def getUsageCounts(routeIds: Seq[Int]): DBIO[Map[Int, (Int, Int)]] = {
+    // Distinct users, not rows: getActiveRouteOrCreateNew only reuses an unfinished user_route, so every repeat
+    // walk by the same person inserts another row. The UI copy promises people ("how many people have started
+    // exploring this route"), so counting rows would report one person as two.
     userRoutes
       .filter(ur => (ur.routeId inSet routeIds) && !ur.discarded)
       .groupBy(_.routeId)
       .map { case (routeId, group) =>
-        (routeId, group.length, group.map(ur => Case.If(ur.completed).Then(1).Else(0)).sum.getOrElse(0))
+        (
+          routeId,
+          group.map(_.userId).countDistinct,
+          group.map(ur => Case.If(ur.completed).Then(ur.userId.?).Else(None: Option[String])).countDistinct
+        )
       }
       .result
       .map(_.map { case (routeId, started, completed) => routeId -> (started, completed) }.toMap)

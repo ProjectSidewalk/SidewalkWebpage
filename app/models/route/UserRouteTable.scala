@@ -37,14 +37,29 @@ class UserRouteTable @Inject() (
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val userRoutes          = TableQuery[UserRouteTableDef]
+  val routes              = TableQuery[RouteTableDef]
   val routeStreets        = TableQuery[RouteStreetTableDef]
   val auditTaskUserRoutes = TableQuery[AuditTaskUserRouteTableDef]
   val auditTasks          = TableQuery[AuditTaskTableDef]
   val completedTasks      = auditTasks.filter(_.completed)
   val activeRoutes        = userRoutes.filter(ur => !ur.completed && !ur.discarded)
 
+  /**
+   * The user's in-progress route walk, if any.
+   *
+   * Routes soft-deleted by their owner are excluded. A shared route can be deleted while someone else is partway
+   * through it, and resuming one builds an inconsistent session — the mission is route-scoped off the user_route
+   * while the task is not, because getRoute filters deleted routes — leaving the user unable to progress or to
+   * fall back to normal exploration.
+   */
   def getInProgressRoute(userId: String): DBIO[Option[UserRoute]] = {
-    activeRoutes.filter(_.userId === userId).result.headOption
+    activeRoutes
+      .filter(_.userId === userId)
+      .join(routes.filter(!_.deleted))
+      .on(_.routeId === _.routeId)
+      .map(_._1)
+      .result
+      .headOption
   }
 
   def discardAllActiveRoutes(userId: String): DBIO[Int] = {

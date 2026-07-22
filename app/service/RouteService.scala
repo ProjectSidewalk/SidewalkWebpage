@@ -3,7 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import formats.json.RouteBuilderFormats.{NewRoute, NewRouteStreet, RouteUpdate}
 import models.route._
-import models.utils.{MyPostgresProfile, PolylineEncoder, SlugUtils}
+import models.utils.{MyPostgresProfile, PolylineEncoder, ProfanityGuard, SlugUtils}
 import models.utils.MyPostgresProfile.api._
 import org.postgresql.util.PSQLException
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -19,10 +19,14 @@ import scala.concurrent.{ExecutionContext, Future}
  */
 @ImplementedBy(classOf[RouteServiceImpl])
 trait RouteService {
-  def saveRoute(route: NewRoute, userId: String): Future[(Int, String, String)]
+  def saveRoute(route: NewRoute, userId: String): Future[Either[RouteRejection, (Int, String, String)]]
   def getRoutesForUser(userId: String): Future[Seq[RouteWithStats]]
   def getRouteStreets(routeId: Int): Future[Option[Seq[RouteStreet]]]
-  def updateRoute(routeId: Int, userId: String, update: RouteUpdate): Future[Option[(String, String)]]
+  def updateRoute(
+      routeId: Int,
+      userId: String,
+      update: RouteUpdate
+  ): Future[Either[RouteRejection, Option[(String, String)]]]
   def resolveSlug(slug: String): Future[Option[Int]]
   def deleteRoute(routeId: Int, userId: String): Future[Boolean]
 }
@@ -81,14 +85,47 @@ class RouteServiceImpl @Inject() (
     description.map(_.trim).filter(_.nonEmpty)
 
   /**
+   * Checks one piece of user-supplied route text against its length limit and the profanity guard.
+   *
+   * @param value     The raw submitted text; absent or blank is acceptable (name falls back to a default,
+   *                  description is simply cleared).
+   * @param maxLength The limit for this field, interpolated into the length message.
+   * @param field     The key segment naming the field ("name"/"description").
+   * @return          The first failing check, or None when the text is acceptable.
+   */
+  private def textRejection(value: Option[String], maxLength: Int, field: String): Option[RouteRejection] = {
+    val trimmed: String = value.map(_.trim).getOrElse("")
+    if (trimmed.length > maxLength) Some(RouteRejection(s"routebuilder.$field.error.length", maxLength))
+    else if (trimmed.nonEmpty && !ProfanityGuard.isClean(trimmed))
+      Some(RouteRejection(s"routebuilder.$field.error.allowed", maxLength))
+    else None
+  }
+
+  /**
+   * Applies the content contract to a route's user-supplied name and description, so every entry point enforces
+   * the same limits rather than each caller re-implementing them.
+   *
+   * @return The first failing check, or None when both are acceptable.
+   */
+  private def contentRejection(name: Option[String], description: Option[String]): Option[RouteRejection] =
+    textRejection(name, Route.MaxNameLength, "name")
+      .orElse(textRejection(description, Route.MaxDescriptionLength, "description"))
+
+  /**
    * Saves a new route and its ordered streets, generating a unique URL slug from the route's name.
    *
    * If no name was submitted, the route is named "Route <id>" (which needs the id, so the row is inserted with a
    * placeholder slug that is replaced in the same transaction).
    *
-   * @return The new route's id, saved name, and slug.
+   * @return The new route's id, saved name, and slug, or Left if the name or description was rejected.
    */
-  def saveRoute(route: NewRoute, userId: String): Future[(Int, String, String)] = withSlugRetry {
+  def saveRoute(route: NewRoute, userId: String): Future[Either[RouteRejection, (Int, String, String)]] =
+    contentRejection(route.name, route.description) match {
+      case Some(rejection) => Future.successful(Left(rejection))
+      case None            => saveRouteAction(route, userId).map(Right(_))
+    }
+
+  private def saveRouteAction(route: NewRoute, userId: String): Future[(Int, String, String)] = withSlugRetry {
     val submittedName: Option[String] = route.name.map(_.trim).filter(_.nonEmpty)
     val description: Option[String]   = cleanDescription(route.description)
     db.run((for {
@@ -167,10 +204,20 @@ class RouteServiceImpl @Inject() (
    * one as a redirect alias), its public description, and its full street list (reconciled in place so the route
    * keeps its id, stats, and share links).
    *
-   * @return The route's resulting (name, slug), or None if the route doesn't exist, is deleted, or isn't owned
-   *         by userId.
+   * @return The route's resulting (name, slug); Right(None) if the route doesn't exist, is deleted, or isn't
+   *         owned by userId; Left if the name or description was rejected.
    */
-  def updateRoute(routeId: Int, userId: String, update: RouteUpdate): Future[Option[(String, String)]] =
+  def updateRoute(
+      routeId: Int,
+      userId: String,
+      update: RouteUpdate
+  ): Future[Either[RouteRejection, Option[(String, String)]]] =
+    contentRejection(update.name, update.description) match {
+      case Some(rejection) => Future.successful(Left(rejection))
+      case None            => updateRouteAction(routeId, userId, update).map(Right(_))
+    }
+
+  private def updateRouteAction(routeId: Int, userId: String, update: RouteUpdate): Future[Option[(String, String)]] =
     withSlugRetry {
       db.run((for {
         routeOpt: Option[Route] <- routeTable.getRouteOwned(routeId, userId)
@@ -213,29 +260,57 @@ class RouteServiceImpl @Inject() (
    * removed streets, and picks up added streets — completion recomputes naturally on the user's next submission.
    * Rows are matched greedily in walking order by street_edge_id, which also handles a street appearing twice in
    * one route (e.g. an out-and-back).
+   *
+   * Statement order works around the non-deferrable UNIQUE (route_id, position) from evolution 344. Removals go
+   * first to free their positions; then every row whose position changes is parked out past the end of both the
+   * old and the new walking order before any final value is written. Without that parking pass, any edit that
+   * isn't a pure tail append — reverse, reorder, mid-route insert, non-tail removal — transiently duplicates a
+   * (route_id, position) pair and the whole transaction fails with a 23505.
    */
   private def reconcileStreetsAction(routeId: Int, newStreets: Seq[NewRouteStreet]): DBIO[Unit] = {
     routeStreetTable.getRouteStreets(routeId).flatMap { existing =>
       val unmatched: mutable.Map[Int, mutable.Queue[RouteStreet]] =
         mutable.Map.from(existing.groupBy(_.streetEdgeId).view.mapValues(rows => mutable.Queue.from(rows)))
 
-      val updatesAndInserts: Seq[DBIO[Int]] = newStreets.zipWithIndex.map { case (street, position) =>
-        unmatched.get(street.streetId).flatMap(queue => if (queue.nonEmpty) Some(queue.dequeue()) else None) match {
-          case Some(row) if row.position == position && row.reverse == street.reverse => DBIO.successful(0)
-          case Some(row) => routeStreetTable.updatePositionAndReverse(row.routeStreetId, position, street.reverse)
-          case None      =>
-            routeStreetTable.insert(RouteStreet(0, routeId, street.streetId, street.reverse, position))
-        }
+      // Pair each street of the new walking order with the surviving row it reuses, or None when it's new.
+      val matched: Seq[(NewRouteStreet, Int, Option[RouteStreet])] = newStreets.zipWithIndex.map {
+        case (street, position) =>
+          val row: Option[RouteStreet] =
+            unmatched.get(street.streetId).flatMap(queue => if (queue.nonEmpty) Some(queue.dequeue()) else None)
+          (street, position, row)
       }
+      val removedIds: Seq[Int]                     = unmatched.values.flatten.map(_.routeStreetId).toSeq
+      val reused: Seq[(RouteStreet, Int, Boolean)] = matched.collect { case (street, position, Some(row)) =>
+        (row, position, street.reverse)
+      }
+      // A row that keeps its position is never collided with, since the target positions are distinct, so only
+      // the rows that actually move need parking.
+      val movers: Seq[(RouteStreet, Int, Boolean)] = reused.filter { case (row, position, _) =>
+        row.position != position
+      }
+      val rewrites: Seq[(RouteStreet, Int, Boolean)] = reused.filter { case (row, position, reverse) =>
+        row.position != position || row.reverse != reverse
+      }
+      val additions: Seq[RouteStreet] = matched.collect { case (street, position, None) =>
+        RouteStreet(0, routeId, street.streetId, street.reverse, position)
+      }
+      // Parking spots sit past the end of both the old and the new order, so they collide with neither, and stay
+      // non-negative for route_street's CHECK (position >= 0).
+      val parkOffset: Int = math.max(existing.size, newStreets.size)
 
-      val removedIds: Seq[Int] = unmatched.values.flatten.map(_.routeStreetId).toSeq
       for {
-        _ <- DBIO.sequence(updatesAndInserts)
         // Progress links FK-reference the removed rows, so they go first; the audit tasks themselves survive.
         _ <-
           if (removedIds.nonEmpty) auditTaskUserRouteTable.deleteForRouteStreets(removedIds)
           else DBIO.successful(0)
         _ <- if (removedIds.nonEmpty) routeStreetTable.deleteByIds(removedIds) else DBIO.successful(0)
+        _ <- DBIO.sequence(movers.map { case (row, position, _) =>
+          routeStreetTable.updatePosition(row.routeStreetId, position + parkOffset)
+        })
+        _ <- DBIO.sequence(rewrites.map { case (row, position, reverse) =>
+          routeStreetTable.updatePositionAndReverse(row.routeStreetId, position, reverse)
+        })
+        _ <- if (additions.nonEmpty) routeStreetTable.insertMultiple(additions) else DBIO.successful(Seq.empty[Int])
       } yield ()
     }
   }

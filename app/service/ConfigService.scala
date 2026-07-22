@@ -812,6 +812,25 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
+  /**
+   * Labeling pace for one city's schema, in seconds of exploration per 100 m of street audited.
+   *
+   * Seconds per 100 m is the canonical unit both public accessors convert from, so the formula lives in exactly
+   * one place — the two differ only by a factor of 60, which is easy to skew by fixing one copy and not the other.
+   *
+   * @param schema The city's Postgres schema (e.g. "sidewalk_seattle").
+   * @return       None when the schema has no interaction data or no audited distance, which leaves pace
+   *               unknowable, and None (logged) if the query fails.
+   */
+  private def labelingSpeedForSchema(schema: String): Future[Option[Double]] = {
+    db.run(configTable.getCityLabelingSpeedBySchema(schema))
+      .map { case (hours, km) => if (hours > 0 && km > 0) Some((hours * 3600.0) / (km * 10.0)) else None }
+      .recover { case e: Exception =>
+        logger.warn(s"Failed to compute labeling speed for schema $schema: ${e.getMessage}")
+        None
+      }
+  }
+
   def getCrossCityLabelingSpeed(): Future[Map[String, Double]] = {
     // Daily cache: this is the heavy interaction-table scan, and labeling speed barely moves day to day.
     cacheApi.getOrElseUpdate[Map[String, Double]]("getCrossCityLabelingSpeed", Duration(24, "hours")) {
@@ -828,15 +847,7 @@ class ConfigServiceImpl @Inject() (
       Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
         val availableCities                                       = schemaResults.filter(_._2).map(_._1)
         val perCityFutures: Seq[Future[Option[(String, Double)]]] = availableCities.map { cityId =>
-          db.run(configTable.getCityLabelingSpeedBySchema(getCitySchema(cityId)))
-            .map { case (hours, km) =>
-              // Only report cities with both interaction data and audited distance; otherwise speed is unknowable.
-              if (hours > 0 && km > 0) Some(cityId -> (hours * 3600.0) / (km * 10.0)) else None
-            }
-            .recover { case e: Exception =>
-              logger.warn(s"Failed to compute labeling speed for city $cityId: ${e.getMessage}")
-              None
-            }
+          labelingSpeedForSchema(getCitySchema(cityId)).map(_.map(cityId -> _))
         }
         Future.sequence(perCityFutures).map(_.flatten.toMap)
       }
@@ -846,15 +857,8 @@ class ConfigServiceImpl @Inject() (
   def getCityLabelingSpeed(): Future[Option[Double]] = {
     // Daily cache, matching getCrossCityLabelingSpeed: the underlying interaction-table scan is expensive.
     cacheApi.getOrElseUpdate[Option[Double]](s"getCityLabelingSpeed_$getCityId", Duration(24, "hours")) {
-      db.run(configTable.getCityLabelingSpeedBySchema(getCitySchema(getCityId)))
-        .map { case (hours, km) =>
-          // Speed is unknowable without both interaction data and audited distance.
-          if (hours > 0 && km > 0) Some((hours * 60.0) / (km * 10.0)) else None
-        }
-        .recover { case e: Exception =>
-          logger.warn(s"Failed to compute labeling speed for city $getCityId: ${e.getMessage}")
-          None
-        }
+      // Minutes per 100 m, the unit the RouteBuilder time estimate reads.
+      labelingSpeedForSchema(getCitySchema(getCityId)).map(_.map(_ / 60.0))
     }
   }
 

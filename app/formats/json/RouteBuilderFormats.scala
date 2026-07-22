@@ -21,9 +21,11 @@ object RouteBuilderFormats {
       (JsPath \ "reverse").read[Boolean]
   )(NewRouteStreet.apply _)
 
+  // A zero-street route can't be explored: its mission has no distance, so opening its share link 500s Explore.
+  // It's also invisible in listings (they inner-join route_street), so its owner couldn't delete it either.
   implicit val newRouteReads: Reads[NewRoute] = (
     (JsPath \ "region_id").read[Int] and
-      (JsPath \ "streets").read[Seq[NewRouteStreet]] and
+      (JsPath \ "streets").read[Seq[NewRouteStreet]](Reads.minLength[Seq[NewRouteStreet]](1)) and
       (JsPath \ "name").readNullable[String] and
       (JsPath \ "description").readNullable[String]
   )(NewRoute.apply _)

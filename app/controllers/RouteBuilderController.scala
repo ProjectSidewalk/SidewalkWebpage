@@ -2,8 +2,7 @@ package controllers
 
 import controllers.base._
 import formats.json.RouteBuilderFormats.{routeWithStatsWrites, NewRoute, RouteUpdate}
-import models.route.Route
-import models.utils.ProfanityGuard
+import models.route.RouteRejection
 import play.api.i18n.Messages
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, Result}
@@ -17,46 +16,19 @@ class RouteBuilderController @Inject() (cc: CustomControllerComponents, routeSer
     ec: ExecutionContext
 ) extends CustomBaseController(cc) {
 
-  /**
-   * Validates a user-supplied route name: None if acceptable, or Some(400 response) with a localized message.
-   *
-   * An absent/empty name is acceptable — the service falls back to a default name.
-   */
-  private def routeNameError(name: Option[String])(implicit messages: Messages): Option[Result] = {
-    val trimmed: String          = name.map(_.trim).getOrElse("")
-    val errorKey: Option[String] =
-      if (trimmed.length > Route.MaxNameLength) Some("routebuilder.name.error.length")
-      else if (trimmed.nonEmpty && !ProfanityGuard.isClean(trimmed)) Some("routebuilder.name.error.allowed")
-      else None
-    errorKey.map { key => BadRequest(Json.obj("status" -> "Error", "message" -> Messages(key, Route.MaxNameLength))) }
-  }
-
-  /**
-   * Validates a route's optional public description: None if acceptable, or Some(400 response) with a localized
-   * message. An absent/empty description is acceptable (the route just has none).
-   */
-  private def routeDescriptionError(description: Option[String])(implicit messages: Messages): Option[Result] = {
-    val trimmed: String          = description.map(_.trim).getOrElse("")
-    val errorKey: Option[String] =
-      if (trimmed.length > Route.MaxDescriptionLength) Some("routebuilder.description.error.length")
-      else if (trimmed.nonEmpty && !ProfanityGuard.isClean(trimmed)) Some("routebuilder.description.error.allowed")
-      else None
-    errorKey.map { key =>
-      BadRequest(Json.obj("status" -> "Error", "message" -> Messages(key, Route.MaxDescriptionLength)))
-    }
-  }
+  /** Turns a service-layer rejection into a 400 carrying the message localized for this request. */
+  private def rejected(rejection: RouteRejection)(implicit messages: Messages): Result =
+    BadRequest(Json.obj("status" -> "Error", "message" -> Messages(rejection.messageKey, rejection.maxLength)))
 
   def saveRoute = cc.securityService.SecuredAction(parse.json) { implicit request =>
     val submission = request.body.validate[NewRoute]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       data => {
-        routeNameError(data.name).orElse(routeDescriptionError(data.description)) match {
-          case Some(error) => Future.successful(error)
-          case None        =>
-            routeService.saveRoute(data, request.identity.userId).map { case (routeId, name, slug) =>
-              Ok(Json.obj("route_id" -> routeId, "name" -> name, "slug" -> slug))
-            }
+        routeService.saveRoute(data, request.identity.userId).map {
+          case Left(rejection)              => rejected(rejection)
+          case Right((routeId, name, slug)) =>
+            Ok(Json.obj("route_id" -> routeId, "name" -> name, "slug" -> slug))
         }
       }
     )
@@ -99,22 +71,22 @@ class RouteBuilderController @Inject() (cc: CustomControllerComponents, routeSer
       .fold(
         errors => Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))),
         update => {
-          val validationError: Option[Result] =
+          val shapeError: Option[Result] =
             if (update.name.isEmpty && update.description.isEmpty && update.streets.isEmpty) {
               Some(BadRequest(Json.obj("status" -> "Error", "message" -> "Nothing to update")))
             } else if (update.name.exists(_.trim.isEmpty)) {
               Some(BadRequest(Json.obj("status" -> "Error", "message" -> "Missing name")))
             } else if (update.streets.exists(_.isEmpty)) {
               Some(BadRequest(Json.obj("status" -> "Error", "message" -> "A route must have at least one street")))
-            } else {
-              routeNameError(update.name).orElse(routeDescriptionError(update.description))
-            }
-          validationError match {
+            } else { None }
+          shapeError match {
             case Some(error) => Future.successful(error)
             case None        =>
               routeService.updateRoute(routeId, request.identity.userId, update).map {
-                case Some((name, slug)) => Ok(Json.obj("route_id" -> routeId, "name" -> name, "slug" -> slug))
-                case None               => NotFound(Json.obj("status" -> "Error", "message" -> "Route not found"))
+                case Left(rejection)           => rejected(rejection)
+                case Right(Some((name, slug))) =>
+                  Ok(Json.obj("route_id" -> routeId, "name" -> name, "slug" -> slug))
+                case Right(None) => NotFound(Json.obj("status" -> "Error", "message" -> "Route not found"))
               }
           }
         }

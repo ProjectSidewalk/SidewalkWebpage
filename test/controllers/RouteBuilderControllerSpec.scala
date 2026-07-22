@@ -200,6 +200,15 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       val body                 = saveRouteBody(regionId, streetId, None) + ("description" -> Json.toJson("x" * 501))
       status(saveRoute(user, body)) mustBe BAD_REQUEST
     }
+
+    // A saved zero-street route is unexplorable (no mission distance) and invisible in listings, so its owner
+    // couldn't delete it either — it has to be refused at the door.
+    "reject a route with no streets (400)" in {
+      val user          = signUpFreshUser()
+      val (_, regionId) = anyStreet(user)
+      val body          = Json.obj("region_id" -> regionId, "streets" -> Json.arr(), "name" -> "Empty Walk")
+      status(saveRoute(user, body)) mustBe BAD_REQUEST
+    }
   }
 
   "PUT /userapi/routes/:routeId with streets" should {
@@ -224,6 +233,39 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       // The route kept its id through both edits (same list row, updated street count).
       val listed = listRoutes(user).find(r => (r \ "route_id").as[Int] == routeId)
       (listed.get \ "street_count").as[Int] mustBe 1
+    }
+
+    // UNIQUE (route_id, position) is not deferrable, so every edit that moves a row past another one has to
+    // vacate before it lands. Each shape below duplicates a (route_id, position) pair if it doesn't.
+    "reorder, insert mid-route, and remove non-tail streets without colliding on position" in {
+      val user                  = signUpFreshUser()
+      val (streetIds, regionId) = streetsInRegion(user, 3)
+      val (a, b, c)             = (streetIds.head, streetIds(1), streetIds(2))
+
+      val saved   = saveRoute(user, saveRouteBody(regionId, a, Some(s"Reorder Walk ${uniqueTag()}")))
+      val routeId = (contentAsJson(saved) \ "route_id").as[Int]
+
+      status(putRoute(user, routeId, streetsBody(a -> false, b -> false, c -> false))) mustBe OK
+
+      // Reverse: every row swaps with its mirror, so a and c trade positions 0 and 2.
+      status(putRoute(user, routeId, streetsBody(c -> true, b -> true, a -> true))) mustBe OK
+      getRouteStreets(user, routeId) mustBe Seq((c, true), (b, true), (a, true))
+
+      // Non-tail removal: dropping the middle street pulls a back from position 2 to 1.
+      status(putRoute(user, routeId, streetsBody(c -> true, a -> true))) mustBe OK
+      getRouteStreets(user, routeId) mustBe Seq((c, true), (a, true))
+
+      // Mid-route insert: b lands on position 1 while a is still sitting there.
+      status(putRoute(user, routeId, streetsBody(c -> true, b -> false, a -> true))) mustBe OK
+      getRouteStreets(user, routeId) mustBe Seq((c, true), (b, false), (a, true))
+
+      // Prepend: every existing row shifts one position later.
+      status(putRoute(user, routeId, streetsBody(a -> false, c -> true, b -> false, a -> true))) mustBe OK
+      getRouteStreets(user, routeId) mustBe Seq((a, false), (c, true), (b, false), (a, true))
+
+      // Out-and-back: the same street twice, matched greedily in walking order.
+      status(putRoute(user, routeId, streetsBody(b -> false, b -> true))) mustBe OK
+      getRouteStreets(user, routeId) mustBe Seq((b, false), (b, true))
     }
 
     "reject an empty street list and an empty update (400), and 404 a non-owner's street update" in {

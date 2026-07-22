@@ -17,6 +17,8 @@ FROM (
 ) numbered
 WHERE route_street.route_street_id = numbered.route_street_id;
 ALTER TABLE route_street ALTER COLUMN position SET NOT NULL;
+-- Walking order is a zero-based ordinal (backfilled rn - 1, written from zipWithIndex).
+ALTER TABLE route_street ADD CONSTRAINT route_street_position_check CHECK (position >= 0);
 
 -- Auto-routed out-and-back routes legitimately traverse the same street twice (once per direction), so the
 -- street-based natural key from 338 is too strict -- the real per-route natural key is the walking-order position.
@@ -69,6 +71,21 @@ ALTER TABLE route DROP COLUMN description;
 DROP INDEX route_slug_idx;
 ALTER TABLE route DROP COLUMN slug;
 ALTER TABLE route_street DROP CONSTRAINT route_street_route_id_position_key;
+ALTER TABLE route_street DROP CONSTRAINT route_street_position_check;
+-- The Ups exist to allow a route to traverse a street twice (out-and-back), so real rows violate the constraint
+-- being restored. Collapse each (route_id, street_edge_id) to its earliest row first, dropping the progress links
+-- that reference the rows going away.
+DELETE FROM audit_task_user_route
+WHERE route_street_id IN (
+    SELECT route_street_id FROM route_street
+    WHERE route_street_id NOT IN (
+        SELECT MIN(route_street_id) FROM route_street GROUP BY route_id, street_edge_id
+    )
+);
+DELETE FROM route_street
+WHERE route_street_id NOT IN (
+    SELECT MIN(route_street_id) FROM route_street GROUP BY route_id, street_edge_id
+);
 ALTER TABLE route_street ADD CONSTRAINT route_street_route_id_street_edge_id_key UNIQUE (route_id, street_edge_id);
 ALTER TABLE route_street DROP COLUMN position;
 DROP INDEX route_user_id_idx;

@@ -16,6 +16,8 @@ class RouteSlugAliasTableDef(tag: slick.lifted.Tag) extends Table[RouteSlugAlias
   def createdAt: Rep[OffsetDateTime] = column[OffsetDateTime]("created_at")
 
   def * = (slug, routeId, createdAt) <> ((RouteSlugAlias.apply _).tupled, RouteSlugAlias.unapply)
+
+  def route = foreignKey("route_slug_alias_route_id_fkey", routeId, TableQuery[RouteTableDef])(_.routeId)
 }
 
 @ImplementedBy(classOf[RouteSlugAliasTable])

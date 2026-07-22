@@ -247,7 +247,14 @@ class ExploreServiceImpl @Inject() (
 
       mission: Mission <- {
         if (retakingTutorial) missionService.resumeOrCreateNewAuditOnboardingMission(userId).map(_.get)
-        else missionService.resumeOrCreateNewAuditMission(userId, regionId, userRoute).map(_.get)
+        else {
+          missionService.resumeOrCreateNewAuditMission(userId, regionId, userRoute).flatMap {
+            case Some(m) => DBIO.successful(m)
+            // A route with no distance left yields no route-scoped mission. Rather than 500 the page, drop the
+            // user into a normal region session in the route's region.
+            case None => missionService.resumeOrCreateNewAuditMission(userId, regionId, None).map(_.get)
+          }
+        }
       }
 
       // If there is a partially completed task in this route or mission, get that, o/w make a new one.

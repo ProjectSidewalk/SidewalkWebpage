@@ -59,6 +59,16 @@ class RouteStreetTable @Inject() (protected val dbConfigProvider: DatabaseConfig
   }
 
   /**
+   * Moves an existing route street to a position, leaving its traversal direction alone.
+   *
+   * Lets a caller park a row out past the end of the order while a route's walking order is rewritten: UNIQUE
+   * (route_id, position) is not deferrable, so rows that swap places must vacate before they land.
+   */
+  def updatePosition(routeStreetId: Int, position: Int): DBIO[Int] = {
+    routeStreets.filter(_.routeStreetId === routeStreetId).map(_.position).update(position)
+  }
+
+  /**
    * Moves an existing route street to a new position in the walking order, updating its traversal direction.
    */
   def updatePositionAndReverse(routeStreetId: Int, position: Int, reverse: Boolean): DBIO[Int] = {
