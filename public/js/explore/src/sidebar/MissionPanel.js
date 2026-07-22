@@ -65,10 +65,6 @@ class MissionPanel {
     else if (unit === 'miles') distance = util.math.milesToMeters(distance);
     else if (unit === 'kilometers') distance = util.math.kmsToMeters(distance);
 
-    const distanceType = i18next.t('common:measurement-system');
-    const unitAbbreviation = i18next.t('common:unit-abbreviation-mission-distance');
-
-    if (distanceType === 'metric') return `${util.math.roundToTwentyFive(distance)} ${unitAbbreviation}`;
-    return `${util.math.roundToTwentyFive(util.math.metersToFeet(distance))} ${unitAbbreviation}`;
+    return util.misc.distanceToString(distance);
   }
 }

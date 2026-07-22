@@ -141,9 +141,20 @@
       "message": "Explore __PLACEHOLDER__ of {{neighborhoodName}}"
     },
     "minimap": {
-      "follow-red-line": "Follow the red line to continue the mission",
-      "free-explore-move": "Move to a new spot to keep exploring",
-      "explore-current-location": "Turn 360 degrees to make sure nothing is missed."
+      "coach-dismiss": "Got it",
+      "distance-left": "{{distance}} left",
+      "explore-current-location": "Turn 360 degrees to make sure nothing is missed.",
+      "fit-route": "Show whole route",
+      "fit-street": "Back to street level",
+      "route-overview": "Route overview: tap to see the whole route",
+      "observed-tooltip": "How much of your surroundings you've looked around",
+      "legend-title": "Map key",
+      "mission-progress": "Mission progress",
+      "legend-explored": "Explored",
+      "legend-ahead": "Route ahead",
+      "legend-you": "You + view direction",
+      "legend-visited": "Visited location",
+      "legend-unseen": "Not yet viewed"
     },
     "stats": {
       "leaderboard-cta": "See the community leaderboard"
