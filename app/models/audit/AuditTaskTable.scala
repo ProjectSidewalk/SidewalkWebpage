@@ -571,15 +571,25 @@ class AuditTaskTable @Inject() (
     // Keyed by route_street rather than by street: an out-and-back route walks the same street twice, and each
     // traversal is its own task, so keying by street would mark the return leg done and hand it the outbound
     // leg's audit task.
-    val userCompletedStreets = auditTaskUserRoutes
+    // The latest completed task per route_street row, as ids. Kept to a single column so the grouped query is only
+    // ever used as an `in` subquery — carrying the group key through a join makes Slick emit SQL that references
+    // the grouped subquery from outside its own FROM clause, which Postgres rejects at runtime.
+    val latestCompletedTaskIds = auditTaskUserRoutes
       .filter(_.userRouteId === userRouteId)
       .join(completedTasks)
       .on(_.auditTaskId === _.auditTaskId)
       .groupBy(_._1.routeStreetId)
-      .map { case (routeStreetId, group) => (routeStreetId, group.map(_._2.auditTaskId).max) }
+      .map(_._2.map(_._2.auditTaskId).max)
+
+    val userCompletedStreets = auditTaskUserRoutes
+      .filter(_.userRouteId === userRouteId)
       .join(auditTasks)
-      .on(_._2 === _.auditTaskId)
-      .map(t => (t._1._1, t._2.taskStart, t._2.auditTaskId, t._2.currentMissionId, t._2.currentMissionStart))
+      .on(_.auditTaskId === _.auditTaskId)
+      .filter { case (_, auditTask) => auditTask.auditTaskId.? in latestCompletedTaskIds }
+      .map { case (link, auditTask) =>
+        (link.routeStreetId, auditTask.taskStart, auditTask.auditTaskId, auditTask.currentMissionId,
+          auditTask.currentMissionStart)
+      }
 
     val tasks = for {
       ((_se1, _rs), ucs) <- edgesInRoute.joinLeft(userCompletedStreets).on(_._2.routeStreetId === _._1)
