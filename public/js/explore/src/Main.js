@@ -351,6 +351,9 @@ class Main {
       svl.observedArea.update();
       svl.compass.update();
       svl.compass.enableCompassClick();
+      // Re-render the nav arrows now that the compass and task exist, so the route-forward arrow is highlighted on
+      // the very first pano too — PanoManager's own initial resetNavArrows ran before those were wired up. (#4671)
+      svl.panoManager.resetNavArrows();
 
       // Remove the loading cover page and make the tool visible.
       $('#page-loading').css({ visibility: 'hidden' });
