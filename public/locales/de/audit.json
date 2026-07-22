@@ -137,11 +137,24 @@
     "current-mission": {
       "header": "Aktuelle Mission",
       "header-route": "$t(right-ui.current-mission.header): Route {{route_number}}",
+      "header-free-explore": "Freies Erkunden",
       "message": "Erkunden Sie __PLACEHOLDER__ von {{neighborhoodName}}"
     },
     "minimap": {
-      "follow-red-line": "Folgen Sie der roten Linie, um die Mission fortzusetzen.",
-      "explore-current-location": "Drehen Sie sich um 360 Grad, um sicherzustellen, dass nichts übersehen wird."
+      "coach-dismiss": "Verstanden",
+      "distance-left": "Noch {{distance}}",
+      "explore-current-location": "Drehen Sie sich um 360 Grad, um sicherzustellen, dass nichts übersehen wird.",
+      "fit-route": "Gesamte Route anzeigen",
+      "fit-street": "Zurück zur Straßenansicht",
+      "route-overview": "Routenübersicht: Tippen, um die ganze Route zu sehen",
+      "observed-tooltip": "Wie viel deiner Umgebung du dir angesehen hast",
+      "legend-title": "Legende",
+      "mission-progress": "Missionsfortschritt",
+      "legend-explored": "Erkundet",
+      "legend-ahead": "Verbleibende Route",
+      "legend-you": "Sie + Blickrichtung",
+      "legend-visited": "Besuchter Ort",
+      "legend-unseen": "Noch nicht gesehen"
     },
     "stats": {
       "leaderboard-cta": "Bestenliste der Gemeinschaft ansehen"
@@ -293,6 +306,9 @@
     "label-shortcuts-occlusion": "Sie können auch die Taste <kbd>{{key}}</kbd> drücken, um die Beschriftung für ein nicht sichtbares Trottoir zu wählen.",
     "still-stuck": "Wenn Sie immer noch feststecken, klicken Sie erneut auf das Verlaufen-Symbol.",
     "stuck-skipped-street": "Wir konnten für Sie keinen Ort auf dieser Strasse finden, daher haben wir Sie auf eine neue Strasse verschoben.",
+    "free-explore-start": "Sie wurden in der Nähe Ihrer gesuchten Adresse abgesetzt. Schauen Sie sich um und fügen Sie Labels hinzu!",
+    "free-explore-start-named": "Sie wurden in der Nähe von <b>{{placeName}}</b> abgesetzt. Schauen Sie sich um und fügen Sie Labels hinzu!",
+    "free-explore-no-imagery": "In dieser Richtung gibt es keine weiteren Strassenbilder. Schauen Sie sich um oder gehen Sie in die andere Richtung.",
     "stuck-suggestion": "Wenn Sie sich nicht mithilfe der Pfeile bewegen können, versuchen Sie auf die Navigationsanweisungen unten rechts zu klicken. Oder klicken Sie links auf das Verlaufen-Symbols."
   },
   "mission-start-tutorial": {

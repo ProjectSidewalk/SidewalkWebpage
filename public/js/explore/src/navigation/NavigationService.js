@@ -124,6 +124,15 @@ class NavigationService {
     const currentTask = svl.taskContainer.getCurrentTask();
     const currentMission = svl.missionContainer.getCurrentMission();
 
+    // In free exploration (#4451) there is no task to finish and no street to advance to: don't report the street as
+    // imagery-less (the user is mid-street by design), just tell them there's nothing further in this direction.
+    if (svl.isExploreAddressMode()) {
+      this.#status.movingToNewLocation = false;
+      this.#status.headingSettling = false;
+      svl.alertController.showAlert(i18next.t('popup.free-explore-no-imagery'), 'exploreAddressNoImagery', false);
+      return Promise.resolve(null);
+    }
+
     // If the user is relatively close to the end of the street, tell them to finish labeling before jumping.
     if (currentTask.isAtEnd(svl.panoViewer.getPosition(), svl.CLOSE_TO_ROUTE_THRESHOLD) < 0.5) {
       this.#endTheCurrentTask(currentTask, currentMission);
@@ -164,6 +173,9 @@ class NavigationService {
   }
 
   async jumpToANewTask() {
+    // Free exploration (#4451) pins the session to the searched location — there is no next street to jump to.
+    if (svl.isExploreAddressMode()) return;
+
     // Flag the move before setCurrentTask() below, which synchronously calls compass.update() while still at the
     // old location — otherwise it would flash the off-route warning before moveForward() sets these. (#4174)
     this.#status.movingToNewLocation = true;
@@ -299,7 +311,9 @@ class NavigationService {
       // TODO I hardly understand the todo above, and idk why we would end the task in the middle of updating the
       //      UI after a move... especially when #endTheCurrentTask() can result in another move...
       const task = svl.taskContainer.getCurrentTask();
-      if (!isOnboarding && task && task.isAtEnd(newLatLng, NavigationService.#END_OF_STREET_THRESHOLD)) {
+      // In free exploration (#4451) reaching the end of the street must not end the task or advance to a new street.
+      if (!isOnboarding && !svl.isExploreAddressMode() && task
+        && task.isAtEnd(newLatLng, NavigationService.#END_OF_STREET_THRESHOLD)) {
         this.#endTheCurrentTask(task, currentMission);
       }
       svl.taskContainer.updateCurrentTask();
@@ -360,7 +374,6 @@ class NavigationService {
         window.clearInterval(this.#povSettlePoll);
         this.#povSettlePoll = null;
         this.#status.headingSettling = false; // Clear first so observedArea.update() recomputes from the settled pov.
-        svl.peg.setHeading(heading);
         svl.observedArea.panoChanged();
         svl.observedArea.update();
         svl.compass.update();

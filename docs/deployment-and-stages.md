@@ -124,6 +124,45 @@ Health checks treat an instance as up when an anonymous request to **`/anonSignU
 exercise authenticated routes in local dev (see [`docs/dev-environment.md`](dev-environment.md)). Instances that
 return server errors are automatically restarted, and application logs are archived on each rebuild.
 
+## Logs
+
+Each running city instance writes a **rolling file log** (configured in [`conf/logback.xml`](../conf/logback.xml)):
+
+- **File name:** `application-<SIDEWALK_CITY_ID>.log` in the instance's `logs/` directory — e.g.
+  `application-newberg-or.log`. `application.home` resolves to that city's staged app directory, so **every city has its
+  own `logs/` subdirectory**; the app also mirrors output to stdout.
+- **Rotation:** daily (`application-<city>-YYYY-MM-DD.log`), 90-day history, 3 GB cap; logs are archived on each rebuild.
+- **Levels:** root is `INFO`, and **successful requests are not access-logged** — a working page produces *no* log
+  line. Only warnings and errors appear (client 4xx via the error handler, server-side exceptions, etc.).
+
+Finding them on a server without hardcoding paths:
+
+```bash
+# each instance's home dir + city id are on the running process's command line
+pgrep -af 'java .*ProdServerStart'
+# or locate the files directly
+find / -name 'application-*.log' 2>/dev/null
+```
+
+**Access:** instances run under a dedicated service account, so the log files are owned by that account. Reading them
+may require membership in that account's group; if you're locked out, ask UW CSE IT. (Absolute on-server paths,
+hostnames, and ports are omitted here for the same reason as the rest of this doc — see the note at the top.)
+
+**A `502` with nothing in the app log — where to look.** Successful requests aren't access-logged and a reverse-proxy
+`502` can originate at the proxy itself, so a failing page may leave **no** trace in the application log. Two checks:
+
+- **Reproduce against the backend directly, bypassing the proxy** — but carry a session cookie and follow redirects
+  (`curl -L -c jar -b jar`): an anonymous request is bounced through the anon-session flow (a fast `303` to
+  `/anonSignUp?url=…`) and never runs the real page. Send the proxy's `Host` / `X-Forwarded-Proto` headers too if the
+  app also canonicalizes the host. A fast success on the *followed* request points at the proxy layer; a hang or error
+  points at the app/DB.
+- **If the request dies inside the database** (e.g. a PostGIS/JIT segfault,
+  [#4545](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4545)), the app only sees a dropped connection — the
+  real crash (`server process … was terminated by signal 11`) is written to the **Postgres server log**, not the
+  application log. That log lives on the database host under the standard PostgreSQL data-directory layout; ask a running
+  server for its exact location with `psql -c 'SHOW log_directory;'` (relative to `SHOW data_directory;`) rather than
+  hardcoding a path. Members of the project's UW CSE group have command-line read access to it.
+
 ## Runtime configuration contract
 
 At runtime the app is configured almost entirely through **environment variables** (values are injected by the

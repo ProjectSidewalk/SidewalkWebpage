@@ -47,44 +47,378 @@
   z-index: 2;
 }
 
-#minimap-message {
-  font: var(--text-tiny-regular);
-  inset: auto;
-  left: calc(3px * var(--ui-scale));
-  top: calc(3px * var(--ui-scale));
-  width: 60%;
-  height: auto;
-  padding: calc(2px * var(--ui-scale)) calc(4px * var(--ui-scale));
-  z-index: 3;
+/* Stronger than the old 30% wash so "not yet viewed" actually registers; the near-crisp frontier comes from the
+   small blur ObservedArea sets on the canvas context (#4639). */
+#minimap-fog-of-war-canvas {
+  opacity: 0.45;
 }
 
-#minimap-fog-of-war-canvas,
+/* The FOV cone's radial gradient carries its own falloff, so the canvas itself stays mostly opaque. */
 #minimap-fov-canvas {
-  opacity: 0.3;
+  opacity: 0.8;
 }
 
 #minimap-progress-circle-canvas {
-  opacity: 0.6;
+  opacity: 0.85;
 }
 
-/* Centered over the 360°-observed progress circle that ObservedArea draws at (width - 20, 20) with radius 16 (scaled
-   by --ui-scale). This box matches that circle's bounding box so the percentage sits in its center. */
+/* "N% observed" label centered inside the progress ring drawn in the top-right corner (ObservedArea). */
 #minimap-percent-observed {
   font: var(--text-tiny-medium);
+  font-size: calc(8px * var(--ui-scale));
   inset: auto;
   top: calc(4px * var(--ui-scale));
   right: calc(4px * var(--ui-scale));
-  width: calc(32px * var(--ui-scale));
-  height: calc(32px * var(--ui-scale));
+  width: calc(28px * var(--ui-scale));
+  height: calc(28px * var(--ui-scale));
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
+  color: var(--color-neutral-800);
   z-index: 3;
 }
 
+#minimap-percent-observed:empty {
+  display: none;
+}
+
+/* Mission-progress chip in the top-left: a fill bar plus "N%  done/total" (Minimap.updateMissionProgress). */
+#minimap-mission-progress {
+  position: absolute;
+  top: calc(4px * var(--ui-scale));
+  left: calc(4px * var(--ui-scale));
+  display: flex;
+  align-items: center;
+  gap: calc(5px * var(--ui-scale));
+  max-width: calc(100% - 8px * var(--ui-scale));
+  padding: calc(2px * var(--ui-scale)) calc(6px * var(--ui-scale));
+  border-radius: 999px;
+  background: rgb(255 255 255 / 85%);
+  color: var(--color-neutral-800);
+  font: var(--text-tiny-medium);
+  z-index: 3;
+}
+
+#minimap-mission-progress-bar {
+  position: relative;
+  flex: none;
+  width: calc(44px * var(--ui-scale));
+  height: calc(6px * var(--ui-scale));
+  border-radius: 999px;
+  background: var(--color-neutral-300);
+  overflow: hidden;
+}
+
+#minimap-mission-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: var(--color-pine-600);
+  border-radius: 999px;
+}
+
+.minimap-mission-progress-labels {
+  white-space: nowrap;
+}
+
+#minimap-mission-progress-distance {
+  color: var(--color-neutral-600);
+}
+
+/* First-run "turn 360°" coach mark; sits above the legend pill / zoom buttons row. Replaces the old permanent
+   banner (#4639); ObservedArea shows it once and dismisses it on "Got it" or the first completed 360°. */
+#minimap-coach {
+  position: absolute;
+  left: calc(4px * var(--ui-scale));
+  right: calc(4px * var(--ui-scale));
+  bottom: calc(34px * var(--ui-scale));
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--ui-scale));
+  font: var(--text-tiny-regular);
+  padding: calc(4px * var(--ui-scale)) calc(6px * var(--ui-scale));
+  border-radius: calc(8px * var(--ui-scale));
+  background: rgb(255 255 255 / 92%);
+  color: var(--color-neutral-900);
+  box-shadow: 0 calc(1px * var(--ui-scale)) calc(6px * var(--ui-scale)) rgb(0 0 0 / 25%);
+  z-index: 5;
+  transition: opacity 0.3s ease;
+}
+
+.minimap-coach-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#minimap-coach-dismiss {
+  flex: none;
+  font: var(--text-tiny-medium);
+  padding: calc(2px * var(--ui-scale)) calc(6px * var(--ui-scale));
+  border: 0;
+  border-radius: calc(6px * var(--ui-scale));
+  background: var(--color-pine-700);
+  color: var(--color-neutral-white);
+  cursor: pointer;
+}
+
+/* Always-on mini legend in the bottom-left: two labeled marks (Explored / Route ahead). Click to expand the full key
+   card (MinimapLegend.js). */
+#minimap-legend-toggle {
+  position: absolute;
+  left: calc(4px * var(--ui-scale));
+  bottom: calc(10px * var(--ui-scale));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(2px * var(--ui-scale));
+  padding: calc(4px * var(--ui-scale)) calc(7px * var(--ui-scale));
+  padding-right: calc(17px * var(--ui-scale));
+  border: 0;
+  border-radius: calc(8px * var(--ui-scale));
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 calc(1px * var(--ui-scale)) calc(4px * var(--ui-scale)) rgb(0 0 0 / 25%);
+  cursor: pointer;
+  z-index: 4;
+}
+
+#minimap-legend-toggle:hover .minimap-legend-expand-icon {
+  stroke: var(--color-neutral-700);
+}
+
+.minimap-legend-toggle-hidden {
+  display: none;
+}
+
+.minimap-legend-mini-item {
+  display: flex;
+  align-items: center;
+  gap: calc(5px * var(--ui-scale));
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-900);
+}
+
+.minimap-legend-mini-icon {
+  display: block;
+  flex: none;
+  width: calc(22px * var(--ui-scale));
+  height: calc(8px * var(--ui-scale));
+}
+
+/* Diagonal expand arrow in the mini legend's upper-right corner, cueing that it opens into the full key card. */
+.minimap-legend-expand-icon {
+  position: absolute;
+  top: calc(4px * var(--ui-scale));
+  right: calc(4px * var(--ui-scale));
+  width: calc(11px * var(--ui-scale));
+  height: calc(11px * var(--ui-scale));
+  fill: none;
+  stroke: var(--color-neutral-500);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Expanded legend card, anchored where the pill was. */
+#minimap-legend-card {
+  position: absolute;
+  left: calc(4px * var(--ui-scale));
+  bottom: calc(10px * var(--ui-scale));
+  width: calc(150px * var(--ui-scale));
+  padding: calc(6px * var(--ui-scale)) calc(8px * var(--ui-scale));
+  border-radius: calc(8px * var(--ui-scale));
+  background: rgb(255 255 255 / 95%);
+  box-shadow: 0 calc(2px * var(--ui-scale)) calc(10px * var(--ui-scale)) rgb(0 0 0 / 30%);
+  z-index: 5;
+}
+
+.minimap-legend-card-hidden {
+  display: none;
+}
+
+.minimap-legend-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font: var(--text-tiny-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-neutral-700);
+}
+
+/* Chevron button that collapses the full key card back to the mini legend. */
+#minimap-legend-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: calc(2px * var(--ui-scale));
+}
+
+.minimap-legend-collapse-icon {
+  width: calc(12px * var(--ui-scale));
+  height: calc(12px * var(--ui-scale));
+  fill: none;
+  stroke: var(--color-neutral-600);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.minimap-legend-row {
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--ui-scale));
+  margin-top: calc(4px * var(--ui-scale));
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-900);
+}
+
+.minimap-legend-row svg {
+  flex: none;
+  width: calc(26px * var(--ui-scale));
+  height: calc(11px * var(--ui-scale));
+}
+
+/* Legend samples are the real map marks, drawn with the same design tokens the map uses. */
+.minimap-legend-sample-audited {
+  stroke: var(--color-pine-600);
+  stroke-width: 6;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.minimap-legend-sample-remaining {
+  stroke: var(--color-asphalt-400);
+  stroke-width: 6;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.minimap-legend-sample-visited {
+  fill: none;
+  stroke: rgb(62 139 217);
+  stroke-width: 2;
+}
+
+.minimap-legend-sample-dashed {
+  stroke-dasharray: 6 4;
+}
+
+.minimap-legend-sample-chevron {
+  fill: var(--color-neutral-white);
+  stroke: var(--color-asphalt-400);
+  stroke-width: 1;
+}
+
+.minimap-legend-sample-peg {
+  fill: var(--color-link-100);
+  stroke: var(--color-neutral-white);
+  stroke-width: 1.5;
+}
+
+.minimap-legend-sample-cone {
+  fill: var(--color-pine-600);
+  opacity: 0.35;
+}
+
+/* Label markers on the minimap (Label.createMinimapMarker) — scalable SVG icons sized here so they stay crisp. */
+.minimap-label-icon {
+  width: calc(9px * var(--ui-scale, 1));
+  height: auto;
+}
+
+/* GSV-style "you are here" puck (Peg.js): a blue dot with a triangle pointing in the heading direction. Markers anchor
+   bottom-center, so the wrapper shifts down half its height to center on the location, then rotates about that center
+   so the dot stays planted while the triangle swings to --peg-heading (#4639). */
+.minimap-peg {
+  width: calc(28px * var(--ui-scale, 1));
+  height: calc(28px * var(--ui-scale, 1));
+  transform: translateY(50%) rotate(var(--peg-heading, 0deg));
+  transform-origin: center;
+}
+
+.minimap-peg svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 calc(2px * var(--ui-scale, 1)) rgb(0 0 0 / 35%));
+}
+
+.minimap-peg-dot {
+  fill: var(--color-link-100);
+  stroke: var(--color-neutral-white);
+  stroke-width: 2.5;
+}
+
+.minimap-peg-heading {
+  fill: var(--color-link-100);
+  stroke: var(--color-neutral-white);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+/* While fitted to the whole route, the user-centered overlays (fog/FOV/ring/%/coach) don't apply; the route-overview
+   inset is redundant then too (the whole map is the route). */
+#minimap-holder.minimap-overview #minimap-fog-of-war-canvas,
+#minimap-holder.minimap-overview #minimap-fov-canvas,
+#minimap-holder.minimap-overview #minimap-progress-circle-canvas,
+#minimap-holder.minimap-overview #minimap-percent-observed,
+#minimap-holder.minimap-overview #minimap-coach,
+#minimap-holder.minimap-overview #minimap-route-overview {
+  display: none;
+}
+
+/* Whole-route overview inset (RouteOverview.js): a small always-on map of the entire designated route in the
+   bottom-left corner, doubling as the legend. Hidden by default; shown only in route mode, where it replaces the
+   mini-legend/key (which grows street-by-street on neighborhood audits, so there's no route to preview there). */
+#minimap-route-overview {
+  display: none;
+  position: absolute;
+  left: calc(4px * var(--ui-scale));
+  bottom: calc(10px * var(--ui-scale));
+  width: calc(96px * var(--ui-scale));
+  height: calc(80px * var(--ui-scale));
+  padding: 0;
+  border: calc(2px * var(--ui-scale)) solid var(--color-neutral-white);
+  border-radius: calc(8px * var(--ui-scale));
+  background: rgb(237 239 238 / 95%);
+  box-shadow: 0 calc(2px * var(--ui-scale)) calc(8px * var(--ui-scale)) rgb(0 0 0 / 28%);
+  overflow: hidden;
+  cursor: pointer;
+  z-index: 4;
+}
+
+#minimap-route-overview-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#minimap-route-overview:hover {
+  border-color: var(--color-pine-600);
+}
+
+#minimap-route-overview:focus-visible {
+  outline: calc(2px * var(--ui-scale)) solid var(--color-pine-600);
+  outline-offset: calc(1px * var(--ui-scale));
+}
+
+/* Route mode: the overview inset takes the bottom-left corner in place of the mini-legend and its expanded card. */
+#minimap-holder.minimap-route-mode #minimap-route-overview {
+  display: block;
+}
+
+#minimap-holder.minimap-route-mode #minimap-legend-toggle,
+#minimap-holder.minimap-route-mode #minimap-legend-card {
+  display: none;
+}
+
 .gm-svpc {
-  visibility: hidden;
+  display: none;
 }
 
 /* The +/- buttons take their look from the shared .zoom-button styling, with some minor tweaks. */
@@ -106,7 +440,17 @@
   height: calc(14px * var(--ui-scale, 1));
 }
 
-/* The tutorial minimap is a static screenshot; hide the live zoom controls there. */
-#minimap-holder.minimap-tutorial #minimap-zoom-controls {
+/* The tutorial minimap is a static screenshot; hide the live zoom controls and the live-map chrome there. */
+#minimap-holder.minimap-tutorial #minimap-zoom-controls,
+#minimap-holder.minimap-tutorial #minimap-mission-progress,
+#minimap-holder.minimap-tutorial #minimap-legend-toggle,
+#minimap-holder.minimap-tutorial #minimap-legend-card,
+#minimap-holder.minimap-tutorial #minimap-coach {
   display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #minimap-coach {
+    transition: none;
+  }
 }

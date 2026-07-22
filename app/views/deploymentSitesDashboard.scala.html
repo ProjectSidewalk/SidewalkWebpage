@@ -4,7 +4,7 @@
 @(title: String, commonData: CommonPageData, user: SidewalkUserWithRole
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@common.main(commonData, title) {
+@common.main(commonData, title, pageMeta = service.PageMeta(description = Some(Messages("seo.description.cities")))) {
   @common.navbar(commonData, Some(user))
 
   <!-- Deployment Sites Dashboard CSS -->

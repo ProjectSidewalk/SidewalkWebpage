@@ -636,6 +636,19 @@ function UtilitiesMisc(JSON) {
     return category ? colors[category].fillStyle : colors;
   }
 
+  /**
+   * Converts a distance in meters to a localized, rounded display string in the user's measurement system.
+   * @param {number} distanceInMeters - The distance in meters.
+   * @returns {string} E.g. "425 m" in metric locales or "1400 ft" in imperial ones.
+   */
+  function distanceToString(distanceInMeters) {
+    const distanceType = i18next.t('common:measurement-system');
+    const unitAbbreviation = i18next.t('common:unit-abbreviation-mission-distance');
+    const distance = distanceType === 'metric' ? distanceInMeters : util.math.metersToFeet(distanceInMeters);
+    return `${util.math.roundToTwentyFive(distance)} ${unitAbbreviation}`;
+  }
+
+  self.distanceToString = distanceToString;
   self.getIconImagePaths = getIconImagePaths;
   self.getLabelDescriptions = getLabelDescriptions;
   self.getSeverityDescription = getSeverityDescription;

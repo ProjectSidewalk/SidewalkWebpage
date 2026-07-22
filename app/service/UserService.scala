@@ -506,13 +506,15 @@ class UserServiceImpl @Inject() (
     val regionPioneersF = db.run(trophyTable.getRegionPioneers(userId, aiId, 5))
     val championsF      = db.run(trophyTable.getRegionChampions(userId, aiId, 6))
     val weeklyF         = db.run(trophyTable.getWeeklyPodiums(userId, 6))
+    val freeExploreF    = db.run(trophyTable.getFreeExplorationTrophyFlags(userId))
     val medals          = Map(1 -> "🥇", 2 -> "🥈", 3 -> "🥉")
     val weekOfFmt       = DateTimeFormatter.ofPattern("MMM d, yyyy", messages.lang.toLocale)
     for {
-      cityPioneer    <- cityPioneerF
-      regionPioneers <- regionPioneersF
-      champions      <- championsF
-      weekly         <- weeklyF
+      cityPioneer                            <- cityPioneerF
+      regionPioneers                         <- regionPioneersF
+      champions                              <- championsF
+      weekly                                 <- weeklyF
+      (triedFreeExplore, labeledFreeExplore) <- freeExploreF
     } yield {
       // Order by prestige/rarity: city pioneer, then region pioneers, then region champions, then weekly podiums.
       val cityTrophy =
@@ -547,7 +549,19 @@ class UserServiceImpl @Inject() (
           rank
         )
       }
-      cityTrophy ++ regionPioneerTrophies ++ championTrophies ++ weeklyTrophies
+      // Participation trophies rather than rankings, so they sit last — after everything that had to be earned
+      // against other mappers.
+      val freeExploreTrophies =
+        Seq(
+          if (triedFreeExplore)
+            Some(Trophy("🗺️", "Free explorer", messages("dashboard.trophy.sub.free-explore-tried"), "freeExplore"))
+          else None,
+          if (labeledFreeExplore)
+            Some(Trophy("🔎", "Explorer's eye", messages("dashboard.trophy.sub.free-explore-labeled"), "freeExplore"))
+          else None
+        ).flatten
+
+      cityTrophy ++ regionPioneerTrophies ++ championTrophies ++ weeklyTrophies ++ freeExploreTrophies
     }
   }
 

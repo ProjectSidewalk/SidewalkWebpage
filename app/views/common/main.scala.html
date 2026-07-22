@@ -1,10 +1,10 @@
 @import play.api.Configuration
 @import service.CommonPageData
 @import play.filters.csrf.CSRF
-@(commonData: CommonPageData, title: String, defaultI18nNamespace: String = "common", i18Namespaces: Seq[String] = Seq("common"), url: String = "/", extraHead: Html = Html("")
+@(commonData: CommonPageData, title: String, defaultI18nNamespace: String = "common", i18Namespaces: Seq[String] = Seq("common"), url: String = "/", extraHead: Html = Html(""), pageMeta: service.PageMeta = service.PageMeta()
 )(content: Html)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
+@currentCity = @{commonData.currentCity}
 
 <!DOCTYPE html>
 <html lang="@messages.lang.code">
@@ -18,17 +18,25 @@
       gtag('config', '@commonData.googleAnalyticsId');
     </script>
     <meta charset="utf-8">
+    @* The mobile Validate page (url == "/mobile") deliberately gets no viewport meta: mobile-validate.css is tuned
+       for the ~980px legacy viewport that phones fall back to, and device-width would blow up its fixed sizes. *@
+    @if(url != "/mobile") {
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+    }
     <title>@title</title>
+    @common.seoHead(commonData, title, pageMeta)
     @* Per-page <head> injection point, e.g. Open Graph / Twitter Card meta for social sharing (#456). *@
     @extraHead
-    <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
-    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
+    @* Deferred: i18next is only touched from AppManager's $(document).ready callback, which runs after deferred
+       scripts execute, so these don't need to block HTML parsing. *@
+    <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")' defer></script>
+    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")' defer></script>
     <link rel="icon" type="image/png" href='@assets.path("images/favicon.png")'>
     <link href='@assets.path("vendor/bootstrap/css/bootstrap-3.3.5.min.css")' rel='stylesheet'>
     <link href='@assets.path("vendor/bootstrap-accessibility/bootstrap-accessibility.css")' rel='stylesheet'>
 
     <script src='@assets.path("vendor/jquery/jquery-1.12.2.min.js")'></script>
-    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src='@assets.path("vendor/jquery-ui/jquery-ui-1.12.1.min.js")'></script>
     <script src='@assets.path("vendor/bootstrap/js/bootstrap-3.1.1.min.js")'></script>
     <script src='@assets.path("vendor/bootstrap-accessibility/bootstrap-accessibility.min.js")'></script>
 
@@ -53,9 +61,8 @@
     @* Navbar interactivity (dropdowns, city search, hamburger, click logging); no-ops on pages without the navbar. *@
     <script src='@assets.path("js/common/Navbar.js")' defer></script>
 
-    <script src='@assets.path("vendor/countup/countUp-1.9.3.min.js")'></script>
     <script src='@assets.path("vendor/bowser/bowser-2.14.1.min.js")'></script>
-    <script src='@assets.path("js/common/pagetopPadding.js")'></script>
+    <script src='@assets.path("js/common/pagetopPadding.js")' defer></script>
     <script src='@assets.path("js/common/utilities.js")'></script>
     <script src='@assets.path("js/common/utilitiesMath.js")'></script>
     <script src='@assets.path("js/common/i18nDom.js")'></script>
@@ -65,7 +72,8 @@
     <script>
       // Removes top padding on the pages that render without a fixed navbar. Fires on full load to match the old
       // <body onload>, which ran after all resources settled.
-      window.addEventListener('load', checkIfPaddingNeeded);
+      @* Lazy lookup: pagetopPadding.js is deferred, so checkIfPaddingNeeded isn't defined at parse time yet. *@
+      window.addEventListener('load', () => checkIfPaddingNeeded());
 
       // Set up AppManager to initialize stuff that we need on every page (CSRF token, i18next, etc.).
       $(document).ready(function() {
@@ -106,11 +114,6 @@
     <div id="wrap" class='@if(url == "/labelMap"){wrap--full-window}'>
       @content
     </div>
-    @if(url != "/mobile") {
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-      </head>
-    }
     @if(url == "/explore" || url == "/labelMap") {
       <script>
         // Prevents extra whitespace at the bottom of the page, not sure why that's an issue.
