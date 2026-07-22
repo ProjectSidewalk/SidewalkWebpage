@@ -542,7 +542,7 @@ class ExploreAddressServiceSpec extends PlaySpec with org.scalatest.BeforeAndAft
           val now       = OffsetDateTime.now
           val _         = run(
             missions += Mission(0, MissionType.ExploreAddress, strayUser.userId, now, now, completed = false, 0d,
-              paid = false, None, None, Some(regionId), None, None, None, skipped = false, None)
+              paid = false, None, None, Some(regionId), None, None, None, skipped = false, None, None)
           )
           try {
             val missionTable = app.injector.instanceOf[models.mission.MissionTable]

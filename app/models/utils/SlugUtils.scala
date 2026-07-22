@@ -18,7 +18,7 @@ object SlugUtils {
    * Converts a name to a lowercase, dash-separated slug.
    *
    * Invariant: the output never contains consecutive dashes (separator runs collapse to one), which evolution
-   * 337's backfill relies on — its dedupe suffix uses '--' so backfilled slugs can't collide with runtime ones.
+   * 344's backfill relies on — its dedupe suffix uses '--' so backfilled slugs can't collide with runtime ones.
    *
    * @param name The raw name (any script, any punctuation).
    * @return The slug, capped at MaxSlugLength; "route" if nothing usable remains (e.g. all punctuation).
