@@ -29,6 +29,29 @@ class RegionCompletionTableDef(tag: Tag) extends Table[RegionCompletion](tag, "r
 @ImplementedBy(classOf[RegionCompletionTable])
 trait RegionCompletionTableRepository {}
 
+object RegionCompletionTable {
+
+  /**
+   * How much of a street's geometric length to credit to its region's `audited_distance`.
+   *
+   * A normally-completed street credits its full length. But when a street is cut short because Street View imagery
+   * ran out partway (#4677), crediting the full length overstates coverage — nobody could see the unwalked remainder.
+   * In that case credit how far the user actually got (`audited_distance_m`), clamped to `[0, fullLengthMeters]` so a
+   * missing, negative, or oversized client value can never push the region's audited distance past the street's real
+   * length.
+   *
+   * @param fullLengthMeters          The street edge's full projected length in meters.
+   * @param imageryTruncatedDistanceM `Some(metersWalked)` when the street ended early because imagery ran out; `None`
+   *                                  for a normal completion (credit the full length).
+   * @return The number of meters to add to the region's `audited_distance`.
+   */
+  def auditedDistanceToCredit(fullLengthMeters: Double, imageryTruncatedDistanceM: Option[Double]): Double =
+    imageryTruncatedDistanceM match {
+      case Some(metersWalked) => math.max(0.0, math.min(metersWalked, fullLengthMeters))
+      case None               => fullLengthMeters
+    }
+}
+
 @Singleton
 class RegionCompletionTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
@@ -63,24 +86,29 @@ class RegionCompletionTable @Inject() (
   }
 
   /**
-   * Increase the `audited_distance` column of the corresponding region by the length of the specified street edge.
-   * Short-circuits for the tutorial street — it's excluded from region completion totals entirely, so crediting its
-   * distance here would overshoot `total_distance`.
+   * Increase the `audited_distance` column of the corresponding region by the distance credited for the specified
+   * street edge. Short-circuits for the tutorial street — it's excluded from region completion totals entirely, so
+   * crediting its distance here would overshoot `total_distance`.
+   *
+   * @param imageryTruncatedDistanceM `Some(metersWalked)` when the street ended early because Street View imagery ran
+   *                                  out (#4677) — credit only how far the user actually got, not the full geometry.
+   *                                  `None` for a normal completion (credit the full street length).
    */
-  def updateAuditedDistance(streetEdgeId: Int): DBIO[Int] = {
+  def updateAuditedDistance(streetEdgeId: Int, imageryTruncatedDistanceM: Option[Double] = None): DBIO[Int] = {
     tutorialStreetId.filter(_ === streetEdgeId).exists.result.flatMap { isTutorial =>
       if (isTutorial) DBIO.successful(0)
-      else doUpdateAuditedDistance(streetEdgeId)
+      else doUpdateAuditedDistance(streetEdgeId, imageryTruncatedDistanceM)
     }
   }
 
-  private def doUpdateAuditedDistance(streetEdgeId: Int): DBIO[Int] = {
+  private def doUpdateAuditedDistance(streetEdgeId: Int, imageryTruncatedDistanceM: Option[Double]): DBIO[Int] = {
     for {
-      distToAdd: Double <- streetEdgeTable.streets
+      fullLength: Double <- streetEdgeTable.streets
         .filter(_.streetEdgeId === streetEdgeId)
         .map(_.geom.transform(26918).lengthD)
         .result
         .head
+      distToAdd: Double = RegionCompletionTable.auditedDistanceToCredit(fullLength, imageryTruncatedDistanceM)
       regionId: Int <- streetEdgeRegion
         .join(regionsWithoutDeleted)
         .on(_.regionId === _.regionId)

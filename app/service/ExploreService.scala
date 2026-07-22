@@ -540,9 +540,16 @@ class ExploreServiceImpl @Inject() (
    * Update the street priority for the given street edge ID assuming that the given user just audited the street.
    * @param streetEdgeId The street_edge_id of the street that was audited.
    * @param userId The user_id of the user who audited the street.
+   * @param imageryTruncatedDistanceM `Some(metersWalked)` when the street was completed early because Street View
+   *                                  imagery ran out (#4677); the region is then credited only the distance actually
+   *                                  walked. `None` for a normal completion (credit the full street length).
    * @return The new priority value of the street.
    */
-  private def updateStreetPriority(streetEdgeId: Int, userId: String): DBIO[Option[Double]] = {
+  private def updateStreetPriority(
+      streetEdgeId: Int,
+      userId: String,
+      imageryTruncatedDistanceM: Option[Double] = None
+  ): DBIO[Option[Double]] = {
     for {
       priorityBefore: Option[Double] <- streetEdgePriorityTable
         .streetPrioritiesFromIds(Seq(streetEdgeId))
@@ -557,7 +564,7 @@ class ExploreServiceImpl @Inject() (
       // If street priority went from 1 to < 1 due to this audit, update the region_completion table accordingly.
       _ <-
         if (priorityBefore.contains(1.0d) && priorityAfter.exists(_ < 1.0d)) {
-          regionCompletionTable.updateAuditedDistance(streetEdgeId)
+          regionCompletionTable.updateAuditedDistance(streetEdgeId, imageryTruncatedDistanceM)
         } else DBIO.successful(())
     } yield {
       priorityAfter
@@ -678,12 +685,17 @@ class ExploreServiceImpl @Inject() (
   def insertNoImagery(taskSubmission: TaskSubmission, streetIssue: StreetEdgeIssue, missionId: Int): Future[Int] = {
     // Record the imagery issue for any mission type, but only mark the street complete (with the priority update that
     // entails) for regular audits: an exploreAddress task must never complete, so that a drop-in session at a spot
-    // with no imagery can't mark the whole street as audited (#4451).
+    // with no imagery can't mark the whole street as audited (#4451). This street ended because imagery ran out
+    // partway, so credit the region only the distance the user actually walked, not the full street length (#4677).
     def completeTaskAction(auditTaskId: Int, missionType: Option[MissionType.Value]): DBIO[Int] = {
       if (missionType.contains(MissionType.ExploreAddress)) DBIO.successful(0)
       else {
         for {
-          _                  <- updateStreetPriority(streetIssue.streetEdgeId, streetIssue.userId)
+          _ <- updateStreetPriority(
+            streetIssue.streetEdgeId,
+            streetIssue.userId,
+            imageryTruncatedDistanceM = taskSubmission.auditedDistanceM
+          )
           atRowsUpdated: Int <- auditTaskTable.updateCompleted(auditTaskId, completed = true)
         } yield atRowsUpdated
       }
