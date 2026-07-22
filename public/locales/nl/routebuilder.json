@@ -33,6 +33,7 @@
   "route-name-streets": "{{start}} naar {{end}}",
   "save-error": "Er ging iets mis bij het opslaan. Probeer het opnieuw.",
   "route-load-error": "Die route kon niet worden geladen. Probeer het opnieuw.",
+  "route-load-empty": "Geen van de straten van deze route is momenteel beschikbaar, dus hij kan niet worden geopend. Je huidige route blijft ongewijzigd.",
   "recent-copy-link": "Link kopiëren",
   "reverse-direction": "Routerichting omkeren",
   "delete-route": "Route verwijderen",

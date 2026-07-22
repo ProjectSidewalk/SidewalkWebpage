@@ -131,6 +131,21 @@ describe('RouteGraph', () => {
             expect(result.streets).toEqual([{ streetId: 10, flip: true }]);
         });
 
+        it('flips by which end is nearer, not by an absolute tolerance', () => {
+            // A long crescent whose two ends come back within ~13 m of each other: both ends sit inside any
+            // fixed tolerance of the entry point, so only "which is nearer" can tell the direction.
+            const hookStart = [0.001, 0];
+            const hookEnd = [0.00112, 0]; // ~13 m from hookStart.
+            const crescent = street(30, [hookStart, [0.0015, 0.0008], [0.0008, 0.0008], hookEnd]);
+            const feeder = street(31, [A, hookEnd]); // Arrives at the crescent's LAST coordinate.
+            const graph = new RouteGraph([crescent, feeder]);
+
+            const result = graph.route({ lng: A[0], lat: A[1] }, { lng: hookStart[0], lat: hookStart[1] });
+            expect(result.error).toBeUndefined();
+            // Entered at the crescent's last coordinate, so walking it means reversing its coordinate order.
+            expect(result.streets).toContainEqual({ streetId: 30, flip: true });
+        });
+
         it('returns different-region when the pins snap to different neighborhoods', () => {
             const graph = new RouteGraph(gridStreets());
             const result = graph.route({ lng: A[0], lat: A[1] }, { lng: E[0], lat: E[1] });

@@ -42,6 +42,26 @@ class RouteGraph {
   }
 
   /**
+   * The source GeoJSON feature for a street id, so callers don't rescan the city's street array to find one.
+   *
+   * @param {number} streetId
+   * @returns {?Object} The feature, or undefined if the id isn't in the loaded street data.
+   */
+  getFeature(streetId) {
+    return this.#features.get(streetId);
+  }
+
+  /**
+   * A street's length in meters, measured once when the graph was built.
+   *
+   * @param {number} streetId
+   * @returns {number} 0 if the id isn't in the loaded street data.
+   */
+  getLengthM(streetId) {
+    return this.#featureLengths.get(streetId) ?? 0;
+  }
+
+  /**
    * Great-circle distance between two [lng, lat] points in meters.
    */
   static distanceM(a, b) {
@@ -214,8 +234,12 @@ class RouteGraph {
       const coords = feature.geometry.coordinates;
       const entryNode = this.#nodes.get(step.prevKey);
       // Entered at the geometry's first coordinate -> walked in coordinate order; otherwise it must be flipped.
+      // Which end is nearer decides, rather than an absolute distance: on a street whose two endpoints are
+      // themselves close together (a hook or crescent can have them 10-15 m apart and still be long), both ends
+      // sit inside any fixed tolerance, and the entry point would read as "first" whichever end it really was.
+      const entry = [entryNode.lng, entryNode.lat];
       const enteredAtFirst
-        = RouteGraph.distanceM([entryNode.lng, entryNode.lat], coords[0]) < RouteGraph.NODE_TOLERANCE_M * 1.5;
+        = RouteGraph.distanceM(entry, coords[0]) <= RouteGraph.distanceM(entry, coords[coords.length - 1]);
       streets.unshift({ streetId: step.streetId, flip: !enteredAtFirst });
       key = step.prevKey;
     }

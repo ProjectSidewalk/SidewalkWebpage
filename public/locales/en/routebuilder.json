@@ -33,6 +33,7 @@
   "route-name-streets": "{{start}} to {{end}}",
   "save-error": "Something went wrong while saving. Please try again.",
   "route-load-error": "Couldn't load that route. Please try again.",
+  "route-load-empty": "None of this route's streets are available right now, so it can't be opened. Your current route is unchanged.",
   "recent-copy-link": "Copy link",
   "reverse-direction": "Reverse route direction",
   "delete-route": "Delete route",

@@ -31,6 +31,7 @@
   "route-name-streets": "{{start}}到{{end}}",
   "save-error": "儲存時發生錯誤，請再試一次。",
   "route-load-error": "無法載入該路線，請再試一次。",
+  "route-load-empty": "這條路線的街道目前都無法使用，因此無法開啟。你目前的路線未受影響。",
   "recent-copy-link": "複製連結",
   "reverse-direction": "反轉路線方向",
   "delete-route": "刪除路線",

@@ -57,12 +57,14 @@ class RouteBuilder {
   #cityView; // The city's default {center, zoom}, for resetting the camera when starting over.
   #isSignedIn;
 
-  // Route state. The route is fully defined by #waypoints; everything else is derived from it.
+  // Route state. The route is #waypoints plus the resolved street list of each leg between them (#segments);
+  // the drawn streets, endpoint flags, and stats are derived from those.
   #neighborhoodData = null;
   #currRegionId = null;
   #streetData = null;
   #streetsInRoute = null; // The 'streets-chosen' GeoJSON source: cloned, oriented street features for the route.
   #waypoints = []; // Ordered [{ lng, lat }] snapped points the user clicked/seeded.
+  #segments = []; // Per leg (waypoint i -> i+1), the resolved [{ streetId, flip }] in walking order.
   #chosenIds = new Set(); // Street ids currently drawn (their 'chosen' feature-state hides the base street).
   #endpointData = { type: 'FeatureCollection', features: [] }; // The 'route-endpoints' symbol source (flags).
   #routeGraph = null; // Built from #streetData as soon as it arrives (the ghost flag needs it pre-click).
@@ -813,7 +815,9 @@ class RouteBuilder {
     if (this.#currRegionId === null) this.#selectRegion(snap.regionId, false);
 
     const point = { lng: snap.nodeLngLat[0], lat: snap.nodeLngLat[1] };
-    // A non-first point must be reachable from the current end along the street network.
+    // A non-first point must be reachable from the current end along the street network. The leg this finds is
+    // the leg we keep — re-deriving it during the redraw would be both wasted work and a chance to diverge.
+    let newSegment = null;
     if (this.#waypoints.length > 0) {
       const result = graph.route(this.#waypoints[this.#waypoints.length - 1], point, this.#currRegionId);
       if (result.error) {
@@ -821,9 +825,11 @@ class RouteBuilder {
         window.logWebpageActivity(`RouteBuilder_AddWaypoint=NoPath_Source=${source}`);
         return;
       }
+      newSegment = result.streets;
     }
 
     this.#waypoints.push(point);
+    if (newSegment !== null) this.#segments.push(newSegment);
     this.#undoStack.push({ type: 'waypoint' });
     if (this.#waypoints.length === 1) {
       this.#setPanelState('building');
@@ -843,36 +849,35 @@ class RouteBuilder {
   }
 
   /**
-   * Rebuilds every derived piece of state (drawn streets, endpoint flags, stats, direction-panel fields, CTA)
-   * from #waypoints. Each consecutive waypoint pair is routed with A*; the resulting streets are cloned from the
-   * source data and oriented to the walking direction, so the originals are never mutated and rebuilds stay
-   * deterministic.
+   * Redraws every derived piece of state (drawn streets, endpoint flags, stats, direction-panel fields, CTA) from
+   * #segments. The street features are cloned from the source data and oriented to the walking direction, so the
+   * originals are never mutated.
+   *
+   * This does no routing. Each leg is resolved once, when it is created (#addWaypoint) or read back from a saved
+   * route, and then carried verbatim — so what is drawn is always exactly the street list that will be saved.
+   * Re-routing here instead would mean a saved route's own streets are only ever a suggestion: a street the graph
+   * can't represent would silently vanish, and a parallel street sharing both endpoints could silently take
+   * another's place, on every load and every subsequent edit.
    */
   #recompute() {
     const map = this.#map;
     this.#hideHint(); // Any old next-step hint is anchored to a point that may just have moved or vanished.
-    // Clear the previous 'chosen' states so hidden base streets reappear if they left the route.
-    this.#chosenIds.forEach((id) => map.setFeatureState({ source: 'streets', id }, { chosen: false }));
-    this.#chosenIds.clear();
+    this.#clearChosenStates();
 
     const features = [];
-    for (let i = 1; i < this.#waypoints.length; i++) {
-      const result = this.#getRouteGraph().route(this.#waypoints[i - 1], this.#waypoints[i], this.#currRegionId);
-      if (result.error) continue; // Reachability was checked on add; guard defensively.
-      result.streets.forEach(({ streetId, flip }) => {
-        const orig = this.#streetData.features.find((s) => s.properties.street_edge_id === streetId);
-        if (!orig) return;
-        const coords = orig.geometry.coordinates.slice(); // Shallow copy: reversing it never touches the original.
-        if (flip) coords.reverse();
-        features.push({
-          type: 'Feature',
-          properties: { street_edge_id: streetId, region_id: orig.properties.region_id, reverse: flip },
-          geometry: { type: 'LineString', coordinates: coords },
-        });
-        map.setFeatureState({ source: 'streets', id: streetId }, { chosen: true });
-        this.#chosenIds.add(streetId);
+    this.#segments.flat().forEach(({ streetId, flip }) => {
+      const orig = this.#getRouteGraph().getFeature(streetId);
+      if (!orig) return;
+      const coords = orig.geometry.coordinates.slice(); // Shallow copy: reversing it never touches the original.
+      if (flip) coords.reverse();
+      features.push({
+        type: 'Feature',
+        properties: { street_edge_id: streetId, region_id: orig.properties.region_id, reverse: flip },
+        geometry: { type: 'LineString', coordinates: coords },
       });
-    }
+      map.setFeatureState({ source: 'streets', id: streetId }, { chosen: true });
+      this.#chosenIds.add(streetId);
+    });
     this.#streetsInRoute.features = features;
     map.getSource('streets-chosen').setData(this.#streetsInRoute);
 
@@ -882,6 +887,15 @@ class RouteBuilder {
     this.#directionsPanel.setEndVisible(this.#routeStarted());
     this.#updateCta();
     this.#saveDraft();
+  }
+
+  /**
+   * Clears the 'chosen' feature-state of every currently drawn street, so base streets hidden underneath the
+   * route reappear once they leave it.
+   */
+  #clearChosenStates() {
+    this.#chosenIds.forEach((id) => this.#map.setFeatureState({ source: 'streets', id }, { chosen: false }));
+    this.#chosenIds.clear();
   }
 
   /**
@@ -918,7 +932,10 @@ class RouteBuilder {
       return;
     }
 
-    const km = feats.reduce((sum, street) => sum + turf.length(street, { units: 'kilometers' }), 0);
+    // RouteGraph measured every street once when it was built, so re-measuring the route's geometry on each
+    // redraw would be repeating that work for the whole route on every click.
+    const graph = this.#getRouteGraph();
+    const km = this.#segments.flat().reduce((sum, { streetId }) => sum + graph.getLengthM(streetId), 0) / 1000;
     this.#streetDistanceEl.innerText = this.#formatDistance(km);
     this.#routeTimeEl.innerText = this.#formatEstTime(km);
 
@@ -1107,20 +1124,41 @@ class RouteBuilder {
 
   /**
    * Reverses the whole route's walking direction (swaps start and end).
+   *
+   * The existing streets are reversed in place rather than re-routed, so a reversal can't quietly pick a
+   * different path back, and undoing one is exact.
    */
   #reverseRoute() {
     if (this.#waypoints.length < 2) return;
-    this.#waypoints.reverse();
+    this.#applyReverse();
+    this.#undoStack.push({ type: 'reverse' });
     this.#recompute();
   }
 
+  /** Flips the route end-to-end: waypoint order, leg order, and each leg's street order and direction. */
+  #applyReverse() {
+    this.#waypoints.reverse();
+    this.#segments.reverse();
+    this.#segments = this.#segments.map(
+      (segment) => segment.slice().reverse().map(({ streetId, flip }) => ({ streetId, flip: !flip })),
+    );
+  }
+
   /**
-   * Undoes the last edit: removes the most recently added waypoint (and its segment). Empties the route once the
-   * start is removed.
+   * Undoes the last edit: either the most recently added waypoint (and its leg) or a reversal. Empties the route
+   * once the start is removed.
    */
   #undo() {
-    if (this.#undoStack.pop() === null || this.#waypoints.length === 0) return;
+    const action = this.#undoStack.pop();
+    if (action === null) return;
+    if (action.type === 'reverse') {
+      this.#applyReverse();
+      this.#recompute();
+      return;
+    }
+    if (this.#waypoints.length === 0) return;
     this.#waypoints.pop();
+    this.#segments.pop();
     if (this.#waypoints.length === 0) {
       this.#emptyRoute();
       this.#resetUI();
@@ -1135,9 +1173,9 @@ class RouteBuilder {
    */
   #emptyRoute() {
     const map = this.#map;
-    this.#chosenIds.forEach((id) => map.setFeatureState({ source: 'streets', id }, { chosen: false }));
-    this.#chosenIds.clear();
+    this.#clearChosenStates();
     this.#waypoints = [];
+    this.#segments = [];
     this.#streetsInRoute.features = [];
     map.getSource('streets-chosen').setData(this.#streetsInRoute);
     this.#updateEndpointFlags();
@@ -1203,67 +1241,76 @@ class RouteBuilder {
       return;
     }
 
-    const features = this.#drawStreetList(pending.streets);
-    if (features.length === 0) return;
-
-    this.#selectRegion(features[0].properties.region_id, false);
-    // Reconstruct the waypoints so the restored route is editable after the save modal closes.
-    this.#waypoints = this.#waypointsFromStreets(features);
+    const region = this.#regionOfFirstStreet(pending.streets);
+    if (region === null) return;
+    this.#selectRegion(region, false);
+    if (this.#seedRouteFromStreets(pending.streets) === 0) return;
     this.#setPanelState('building');
-    this.#recompute();
     this.#applyCamera(pending.camera); // Back to the exact view the user left for the sign-in round trip.
     this.#saveModal.open(pending.name || null, pending.description || null);
   }
 
   /**
-   * Draws a saved street list as the current route geometry: each street is cloned from the loaded street data
-   * and oriented to its walking direction.
+   * Adopts a stored street list as the current route: each street becomes its own leg, carried verbatim, with a
+   * waypoint at every street boundary so further editing extends it exactly like a route clicked out by hand.
+   *
+   * The stored ids are trusted rather than re-routed between the endpoints. Re-routing loses information the
+   * stored list has and the graph doesn't: a street whose endpoints merge into a single node has no edge at all
+   * and would simply disappear, and where two streets connect the same pair of intersections the router can only
+   * pick one, silently swapping the other out. Either way the damage is invisible and the next update writes it
+   * back over the real route.
    *
    * @param {Array<{street_id: number, reverse: boolean}>} streets - Ordered streets in the /saveRoute wire format.
-   * @returns {Array<Object>} The drawn features (empty when none of the ids exist in the loaded street data).
+   * @returns {number} How many of the streets resolved against the loaded street data (0 = nothing to draw).
    */
-  #drawStreetList(streets) {
-    const map = this.#map;
-    const features = [];
-    streets.forEach((stashed) => {
-      const orig = this.#streetData.features.find((s) => s.properties.street_edge_id === stashed.street_id);
-      if (!orig) return;
-      const coords = orig.geometry.coordinates.slice();
-      if (stashed.reverse === true) coords.reverse();
-      features.push({
-        type: 'Feature',
-        properties: { street_edge_id: orig.properties.street_edge_id, region_id: orig.properties.region_id,
-          reverse: stashed.reverse === true },
-        geometry: { type: 'LineString', coordinates: coords },
-      });
-      map.setFeatureState({ source: 'streets', id: orig.properties.street_edge_id }, { chosen: true });
-      this.#chosenIds.add(orig.properties.street_edge_id);
-    });
-    if (features.length > 0) {
-      this.#streetsInRoute.features = features;
-      map.getSource('streets-chosen').setData(this.#streetsInRoute);
-    }
-    return features;
+  #seedRouteFromStreets(streets) {
+    const graph = this.#getRouteGraph();
+    const resolved = streets
+      .map((stored) => ({ streetId: stored.street_id, flip: stored.reverse === true }))
+      .filter(({ streetId }) => graph.getFeature(streetId) !== undefined);
+    if (resolved.length === 0) return 0;
+
+    this.#segments = resolved.map((street) => [street]);
+    this.#waypoints = this.#waypointsFromSegments();
+    this.#recompute();
+    return resolved.length;
   }
 
   /**
-   * Derives the dense waypoint chain for an already-drawn (oriented) street list: the first street's start, then
-   * every street's end in walking order. With a waypoint at each street boundary, #recompute's A* pass between
-   * adjacent boundary nodes reproduces the street sequence, so a loaded saved route is editable exactly like one
-   * the user just clicked out — and what's drawn is always exactly what an update will save.
+   * The waypoint chain for the current legs: the first street's start, then the end of each leg in walking order.
+   * Keeps the waypoints.length === segments.length + 1 invariant the editing actions rely on.
    *
-   * @param {Array<Object>} features - Oriented street features (as returned by #drawStreetList).
    * @returns {Array<{lng: number, lat: number}>}
    */
-  #waypointsFromStreets(features) {
-    if (features.length === 0) return [];
-    const first = features[0].geometry.coordinates[0];
-    const waypoints = [{ lng: first[0], lat: first[1] }];
-    features.forEach((f) => {
-      const end = f.geometry.coordinates[f.geometry.coordinates.length - 1];
-      waypoints.push({ lng: end[0], lat: end[1] });
+  #waypointsFromSegments() {
+    if (this.#segments.length === 0) return [];
+    const legEnds = this.#segments.map((segment) => {
+      const last = segment[segment.length - 1];
+      const coords = this.#orientedCoords(last);
+      return coords[coords.length - 1];
     });
-    return waypoints;
+    const start = this.#orientedCoords(this.#segments[0][0])[0];
+    return [start, ...legEnds].map(([lng, lat]) => ({ lng, lat }));
+  }
+
+  /**
+   * The region of the first stored street that exists in the loaded street data.
+   *
+   * @param {Array<{street_id: number}>} streets - Stored streets in the /saveRoute wire format.
+   * @returns {?number} null when none of them resolve, which means there is no route left to draw.
+   */
+  #regionOfFirstStreet(streets) {
+    for (const stored of streets) {
+      const feature = this.#getRouteGraph().getFeature(stored.street_id);
+      if (feature) return feature.properties.region_id;
+    }
+    return null;
+  }
+
+  /** A street's coordinates in the route's walking direction (a copy when flipped; never mutates the source). */
+  #orientedCoords({ streetId, flip }) {
+    const coords = this.#getRouteGraph().getFeature(streetId).geometry.coordinates;
+    return flip ? coords.slice().reverse() : coords;
   }
 
   /**
@@ -1304,21 +1351,26 @@ class RouteBuilder {
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))))
       .then((data) => {
         if (!this.#status.streetsRendered) return;
+        // Resolve the stored streets before touching anything: if none of them are in the loaded street data
+        // (every street hidden, or the region closed, since the route was saved), the user keeps what they had
+        // open and gets told, rather than silently losing it to a load that then draws nothing.
+        const region = this.#regionOfFirstStreet(data.streets);
+        if (region === null) {
+          this.#showMapMessage(i18next.t('route-load-empty'));
+          return;
+        }
         this.#emptyRoute(); // Also closes any previous editing session.
         this.#undoStack.clear();
-        const features = this.#drawStreetList(data.streets);
-        if (features.length === 0) return;
-        this.#selectRegion(features[0].properties.region_id, false);
-        this.#waypoints = this.#waypointsFromStreets(features);
+        this.#selectRegion(region, false);
+        const drawn = this.#seedRouteFromStreets(data.streets);
         this.#setPanelState('building');
-        this.#recompute();
-        // If streets were dropped (e.g. since hidden as low-quality) or rerouted, say so — the user is looking
-        // at, and will save, the adjusted route.
-        if (this.#streetsInRoute.features.length !== data.streets.length) {
+        // If streets were dropped (e.g. since hidden as low-quality), say so — the user is looking at, and will
+        // save, the reduced route.
+        if (drawn !== data.streets.length) {
           Toast.show({ message: i18next.t('route-adjusted'), duration: 4000 });
         }
         this.#editingRouteId = routeId;
-        // The baseline is what's actually drawn (post-recompute), so an untouched load reads as clean.
+        // The baseline is what's actually drawn, so an untouched load reads as clean.
         this.#savedBaseline = JSON.stringify(this.#routeStreetsPayload());
         this.#saveDraft();
         this.#savedRoutes.markActive(routeId);
@@ -1411,6 +1463,9 @@ class RouteBuilder {
           JSON.stringify({
             regionId: this.#currRegionId,
             waypoints: this.#waypoints,
+            // The resolved legs, not just the waypoints: the route is never re-derived by routing, so a draft
+            // that only stored waypoints would restore as an empty route.
+            segments: this.#segments,
             // The editing session too, so a reload resumes updating the same route instead of saving a copy.
             editingRouteId: this.#editingRouteId,
             savedBaseline: this.#savedBaseline,
@@ -1437,9 +1492,9 @@ class RouteBuilder {
   }
 
   /**
-   * Restores an unsaved in-progress route from this tab's draft stash. The draft holds only the waypoints,
-   * region, and camera; everything else is recomputed. The camera returns to the stashed view, falling back to
-   * fitting the restored route when the draft predates the camera field or it's corrupt.
+   * Restores an unsaved in-progress route from this tab's draft stash: its region, waypoints, and resolved legs.
+   * The camera returns to the stashed view, falling back to fitting the restored route when the draft predates
+   * the camera field or it's corrupt.
    */
   #restoreDraft() {
     let draft = null;
@@ -1450,11 +1505,15 @@ class RouteBuilder {
     }
     if (!draft || !Array.isArray(draft.waypoints) || draft.waypoints.length === 0) return;
     if (draft.regionId === null || draft.regionId === undefined) return;
+    // waypoints.length === segments.length + 1 is the invariant the editing actions rely on; a draft that
+    // doesn't satisfy it (corrupt, or written by an older build) is dropped rather than restored inconsistent.
+    if (!Array.isArray(draft.segments) || draft.segments.length !== draft.waypoints.length - 1) return;
 
     // A draft must never be able to break page init — on any failure, drop it and start fresh.
     try {
       this.#selectRegion(draft.regionId, false);
       this.#waypoints = draft.waypoints;
+      this.#segments = draft.segments;
       if (Number.isInteger(draft.editingRouteId)) {
         this.#editingRouteId = draft.editingRouteId;
         this.#savedBaseline = typeof draft.savedBaseline === 'string' ? draft.savedBaseline : null;
