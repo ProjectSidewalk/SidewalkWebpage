@@ -97,7 +97,7 @@ function kmsToMeters(dist) {
 }
 
 function kmsToMiles(dist) {
-  return dist / 1.60934;
+  return dist / 1.609344; // Exact: a mile is defined as 1609.344 m.
 }
 
 function kmsToFeet(dist) {

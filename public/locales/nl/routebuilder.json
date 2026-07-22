@@ -34,6 +34,8 @@
   "save-error": "Er ging iets mis bij het opslaan. Probeer het opnieuw.",
   "route-load-error": "Die route kon niet worden geladen. Probeer het opnieuw.",
   "route-load-empty": "Geen van de straten van deze route is momenteel beschikbaar, dus hij kan niet worden geopend. Je huidige route blijft ongewijzigd.",
+  "no-street-nearby": "Er is geen straat in de buurt van dat punt in deze buurt. Probeer een plek dichter bij de route.",
+  "start-locked-warning": "Deze route heeft al een startpunt. Wis de route om ergens anders te beginnen.",
   "recent-copy-link": "Link kopiëren",
   "reverse-direction": "Routerichting omkeren",
   "delete-route": "Route verwijderen",

@@ -19,6 +19,7 @@ class DirectionsPanel {
   #lastGeocoded = { start: null, end: null }; // Last [lng, lat] each field was reverse-geocoded for.
   #userLabelCoord = { start: null, end: null }; // Where the user last picked an address by typing (if anywhere).
   #endpointStreets = { start: null, end: null }; // Street name at each endpoint (for the suggested route name).
+  #geocodeSeq = { start: 0, end: 0 }; // Per-field lookup counter, so only the newest response may write.
 
   /**
    * @param {Object} opts
@@ -73,6 +74,8 @@ class DirectionsPanel {
       if (!coord) return;
       window.logWebpageActivity(`RouteBuilder_Click=${which === 'start' ? 'SetStartAddress' : 'SetEndAddress'}`);
       this.#lastGeocoded[which] = coord; // The user just named this point; no need to reverse-geocode it.
+      // A typed address supersedes any reverse lookup still in flight for this field.
+      this.#geocodeSeq[which] += 1;
       this.#userLabelCoord[which] = coord;
       this.#endpointStreets[which] = DirectionsPanel.#streetNameFromProps(feature.properties);
       const lngLat = { lng: coord[0], lat: coord[1] };
@@ -165,6 +168,8 @@ class DirectionsPanel {
     this.#lastGeocoded = { start: null, end: null };
     this.#userLabelCoord = { start: null, end: null };
     this.#endpointStreets = { start: null, end: null };
+    // Bump past every in-flight lookup so none of them can write into the cleared fields.
+    this.#geocodeSeq = { start: this.#geocodeSeq.start + 1, end: this.#geocodeSeq.end + 1 };
     this.#setFieldText('start', '');
     this.#setFieldText('end', '');
   }
@@ -208,6 +213,10 @@ class DirectionsPanel {
     const slot = document.getElementById(`directions-${which}-slot`);
     if (slot?.contains(document.activeElement)) return; // Don't clobber what the user is typing.
     this.#lastGeocoded[which] = coord;
+    // Responses can arrive out of order (the guard above is dispatch-time, so it never blocks a newer request).
+    // Only the newest lookup per field may write, or a slow earlier one overwrites the current endpoint's name —
+    // which then prefills a stale "X to Y" into the save modal.
+    const requestId = ++this.#geocodeSeq[which];
     this.#userLabelCoord[which] = null; // The endpoint left the typed address behind; the field follows it now.
     // Cleared at dispatch, not on response: a failed lookup must not leave a street name for a stale coordinate.
     this.#endpointStreets[which] = null;
@@ -222,6 +231,7 @@ class DirectionsPanel {
     fetch(`https://api.mapbox.com/search/geocode/v6/reverse?${params}`)
       .then((response) => response.json())
       .then((data) => {
+        if (requestId !== this.#geocodeSeq[which]) return;
         const props = data.features?.[0]?.properties;
         this.#endpointStreets[which] = DirectionsPanel.#streetNameFromProps(props);
         const label = props?.name_preferred || props?.name || props?.full_address;

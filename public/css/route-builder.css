@@ -107,7 +107,10 @@
 
 .routebuilder-h1 {
   margin: 0;
-  font: 700 20px/24px var(--font-accent); /* Raleway, matching the Label Detail card title. */
+
+  /* Raleway at 20px, matching the Label Detail card title; no --text-* token carries the accent font at this
+     size, so the scale factor the tokens bake in is applied by hand. */
+  font: 700 calc(20px * var(--ui-scale, 1))/calc(24px * var(--ui-scale, 1)) var(--font-accent);
 }
 
 .routebuilder-h2 {
@@ -145,7 +148,8 @@
   flex-direction: row;
   align-items: baseline;
   gap: 8px;
-  font: 700 24px/30px var(--font-primary); /* Mulish: tabular digits keep the readout steady. */
+  font: var(--text-h3-bold); /* Mulish: tabular digits keep the readout steady. */
+  line-height: calc(30px * var(--ui-scale, 1));
   color: var(--color-asphalt-500);
   white-space: nowrap;
 }

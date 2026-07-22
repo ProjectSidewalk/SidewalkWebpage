@@ -34,6 +34,8 @@
   "save-error": "Beim Speichern ist etwas schiefgelaufen. Bitte versuchen Sie es erneut.",
   "route-load-error": "Diese Route konnte nicht geladen werden. Bitte versuche es erneut.",
   "route-load-empty": "Keine der Straßen dieser Route ist derzeit verfügbar, sie kann daher nicht geöffnet werden. Deine aktuelle Route bleibt unverändert.",
+  "no-street-nearby": "In diesem Viertel gibt es keine Straße in der Nähe dieses Punktes. Versuche eine Stelle näher an der Route.",
+  "start-locked-warning": "Diese Route hat bereits einen Startpunkt. Lösche die Route, um woanders zu starten.",
   "recent-copy-link": "Link kopieren",
   "reverse-direction": "Routenrichtung umkehren",
   "delete-route": "Route löschen",

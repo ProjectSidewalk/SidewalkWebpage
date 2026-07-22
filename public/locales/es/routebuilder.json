@@ -34,6 +34,8 @@
   "save-error": "Algo salió mal al guardar. Inténtalo de nuevo.",
   "route-load-error": "No se pudo cargar esa ruta. Inténtalo de nuevo.",
   "route-load-empty": "Ninguna de las calles de esta ruta está disponible ahora mismo, así que no se puede abrir. Tu ruta actual no ha cambiado.",
+  "no-street-nearby": "No hay ninguna calle cerca de ese punto en este barrio. Prueba con un lugar más cercano a la ruta.",
+  "start-locked-warning": "Esta ruta ya tiene un punto de partida. Borra la ruta para empezar en otro lugar.",
   "recent-copy-link": "Copiar enlace",
   "reverse-direction": "Invertir dirección de la ruta",
   "delete-route": "Eliminar ruta",

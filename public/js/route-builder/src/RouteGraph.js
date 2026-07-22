@@ -117,10 +117,13 @@ class RouteGraph {
    * @param {Object} point - {lng, lat}.
    * @param {number} [regionId] - When given, only streets in this region are considered (e.g. so the start-point
    *   preview near a boundary can't snap into a neighboring region).
-   * @returns {Object|null} {streetId, regionId, nodeKey, nodeLngLat, distanceM} or null when there are no streets.
-   *                        nodeLngLat is the [lng, lat] of the snapped endpoint node (where a route starts/joins).
+   * @param {number} [maxDistanceM] - When given, a point further than this from every candidate snaps to none.
+   *   Without it a far-away point still snaps to *something*, however distant.
+   * @returns {Object|null} {streetId, regionId, nodeKey, nodeLngLat, distanceM} or null when there are no streets
+   *                        (or none within maxDistanceM). nodeLngLat is the [lng, lat] of the snapped endpoint
+   *                        node (where a route starts/joins).
    */
-  snapToStreet(point, regionId = null) {
+  snapToStreet(point, regionId = null, maxDistanceM = Infinity) {
     const p = [point.lng, point.lat];
     let best = null;
     this.#features.forEach((feature, streetId) => {
@@ -151,7 +154,7 @@ class RouteGraph {
         };
       }
     });
-    return best;
+    return best !== null && best.distanceM <= maxDistanceM ? best : null;
   }
 
   /** Returns the existing node key for a coordinate (which was inserted during construction). */

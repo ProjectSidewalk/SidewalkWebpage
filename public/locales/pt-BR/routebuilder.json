@@ -34,6 +34,8 @@
   "save-error": "Algo deu errado ao salvar. Tente novamente.",
   "route-load-error": "Não foi possível carregar essa rota. Tente novamente.",
   "route-load-empty": "Nenhuma das ruas desta rota está disponível no momento, então ela não pode ser aberta. Sua rota atual não foi alterada.",
+  "no-street-nearby": "Não há nenhuma rua perto desse ponto neste bairro. Tente um local mais próximo da rota.",
+  "start-locked-warning": "Esta rota já tem um ponto de partida. Limpe a rota para começar em outro lugar.",
   "recent-copy-link": "Copiar link",
   "reverse-direction": "Inverter direção da rota",
   "delete-route": "Excluir rota",

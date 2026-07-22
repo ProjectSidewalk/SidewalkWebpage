@@ -34,6 +34,8 @@
   "save-error": "Something went wrong while saving. Please try again.",
   "route-load-error": "Couldn't load that route. Please try again.",
   "route-load-empty": "None of this route's streets are available right now, so it can't be opened. Your current route is unchanged.",
+  "no-street-nearby": "There's no street near that point in this neighborhood. Try a spot closer to the route.",
+  "start-locked-warning": "This route already has a starting point. Clear the route to start somewhere else.",
   "recent-copy-link": "Copy link",
   "reverse-direction": "Reverse route direction",
   "delete-route": "Delete route",

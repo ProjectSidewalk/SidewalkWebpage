@@ -18,6 +18,8 @@ class SaveModal {
   #getCamera;
   #onSaved;
   #onClose;
+  #confirmButton;
+  #submitting = false; // A save is in flight; blocks a second submission creating a duplicate route.
 
   /**
    * @param {Object} opts
@@ -43,13 +45,15 @@ class SaveModal {
     this.#descriptionInput = document.getElementById('route-description-input');
     this.#nameError = document.getElementById('route-name-error');
 
+    this.#confirmButton = document.getElementById('confirm-save-button');
     // The sign-in button only exists for anonymous users.
-    document.getElementById('confirm-save-button').addEventListener('click', () => this.#submit());
+    this.#confirmButton.addEventListener('click', () => this.#submit());
     document.getElementById('cancel-save-button').addEventListener('click', () => this.#cancel());
     document.getElementById('close-save-modal-button').addEventListener('click', () => this.#cancel());
     document.getElementById('signin-save-button')?.addEventListener('click', () => this.#stashRouteAndSignIn());
     this.#nameInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') this.#submit();
+      // e.repeat: a held Enter key autorepeats, which would submit over and over.
+      if (e.key === 'Enter' && !e.repeat) this.#submit();
     });
     // Focus is always inside the dialog while it's open, so Escape bubbles here.
     this.#backdrop.addEventListener('keydown', (e) => {
@@ -87,6 +91,8 @@ class SaveModal {
     this.#nameInput.value = suggestion;
     if (this.#descriptionInput) this.#descriptionInput.value = prefillDescription ?? '';
     this.#nameError.hidden = true;
+    this.#submitting = false;
+    this.#confirmButton.disabled = false;
     this.#backdrop.style.visibility = 'visible';
     this.#nameInput.focus();
     this.#nameInput.select();
@@ -135,8 +141,15 @@ class SaveModal {
 
   /**
    * Saves the route to the database, then hands off to onSaved (which shows the Route Saved modal).
+   *
+   * Guarded against a second submission while the first is in flight: the modal only closes once the response
+   * arrives, and the server has no idea two requests are the same route — slug collisions resolve to "name-2",
+   * so a double-click would quietly create duplicate routes rather than failing.
    */
   #submit() {
+    if (this.#submitting) return;
+    this.#submitting = true;
+    this.#confirmButton.disabled = true;
     if (!this.#isSignedIn) window.logWebpageActivity('RouteBuilder_Click=ContinueAsGuest');
     const name = this.#nameInput.value.trim();
     const description = this.#descriptionInput?.value.trim() ?? '';
@@ -157,6 +170,8 @@ class SaveModal {
       .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
       .then(({ ok, data }) => {
         if (!ok) {
+          this.#submitting = false;
+          this.#confirmButton.disabled = false;
           // The server's message is already localized (e.g. a name rejected by the profanity guard).
           this.#nameError.textContent
             = typeof data.message === 'string' ? data.message : i18next.t('save-error');
@@ -170,6 +185,8 @@ class SaveModal {
       })
       .catch((error) => {
         console.error('Error:', error);
+        this.#submitting = false;
+        this.#confirmButton.disabled = false;
         this.#nameError.textContent = i18next.t('save-error');
         this.#nameError.hidden = false;
         window.logWebpageActivity('RouteBuilder_Click=SaveError');

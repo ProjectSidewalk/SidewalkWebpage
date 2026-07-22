@@ -13,8 +13,23 @@
  * recompute.
  */
 class RouteBuilder {
+  /**
+   * Resolves a design-system color token for Mapbox paint, which takes literal colors rather than CSS variables.
+   * Same approach as ps-map's addStreetsToMap, so a token retune reaches every map in the app.
+   *
+   * @param {string} name - The CSS custom property, e.g. '--color-asphalt-500'.
+   * @returns {string}
+   */
+  static #token(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
   // Zoom eased to when the first point lands, close enough that the basemap renders street names for building.
   static BUILD_ZOOM = 15.5;
+  // How far a clicked or geocoded point may be from a street and still snap to it. Generous enough for a click
+  // aimed at a street or an address set back from one, tight enough that a point in another part of the city
+  // doesn't silently attach to the nearest street of the selected neighborhood.
+  static MAX_SNAP_DISTANCE_M = 250;
   // How long the explorer takes to walk the route in the preview animation.
   static EXPLORER_ANIMATION_MS = 2500;
   // How long the pointer rests on the drawn route before its action menu opens (discoverable but not twitchy).
@@ -42,9 +57,7 @@ class RouteBuilder {
 
   #status = {
     mapLoaded: false,
-    neighborhoodsLoaded: false, // Neighborhood GeoJSON has arrived from the server.
     neighborhoodsRendered: false, // Neighborhood source/layers have been added to the map.
-    streetsLoaded: false, // Street GeoJSON has arrived from the server.
     streetsRendered: false, // Street source/layers/handlers have been added to the map.
     pendingRouteRestored: false,
   };
@@ -65,6 +78,7 @@ class RouteBuilder {
   #streetsInRoute = null; // The 'streets-chosen' GeoJSON source: cloned, oriented street features for the route.
   #waypoints = []; // Ordered [{ lng, lat }] snapped points the user clicked/seeded.
   #segments = []; // Per leg (waypoint i -> i+1), the resolved [{ streetId, flip }] in walking order.
+  #loadSeq = 0; // Saved-route load counter, so only the newest load may draw (see #loadRouteForEditing).
   #chosenIds = new Set(); // Street ids currently drawn (their 'chosen' feature-state hides the base street).
   #endpointData = { type: 'FeatureCollection', features: [] }; // The 'route-endpoints' symbol source (flags).
   #routeGraph = null; // Built from #streetData as soon as it arrives (the ghost flag needs it pre-click).
@@ -144,7 +158,7 @@ class RouteBuilder {
       this.#exitEditSession();
       this.#map.flyTo({ center: this.#cityView.center, zoom: this.#cityView.zoom, duration: 1200 });
     });
-    document.getElementById('delete-route-button').addEventListener('click', (e) => this.#clearRoute(e));
+    document.getElementById('delete-route-button').addEventListener('click', () => this.#clearRoute());
     document.getElementById('cancel-delete-route-button').addEventListener('click', () => this.#clickResumeRoute());
 
     this.#saveModal = new SaveModal({
@@ -200,14 +214,14 @@ class RouteBuilder {
       // If the streets and/or neighborhoods loaded before the map, render them now that the map has loaded.
       // Each render is isolated so a failure in one can't silently block the other from ever wiring up.
       this.#status.mapLoaded = true;
-      if (this.#status.neighborhoodsLoaded) {
+      if (this.#neighborhoodData !== null) {
         try {
           this.#renderNeighborhoodsHelper();
         } catch (e) {
           console.error('Failed to render neighborhoods:', e);
         }
       }
-      if (this.#status.streetsLoaded) {
+      if (this.#streetData !== null) {
         try {
           this.#renderStreetsHelper();
         } catch (e) {
@@ -226,7 +240,7 @@ class RouteBuilder {
         [mapParams.southwest_boundary.lng, mapParams.southwest_boundary.lat],
         [mapParams.northeast_boundary.lng, mapParams.northeast_boundary.lat],
       ],
-      onSetStart: (lngLat) => this.#addWaypoint(lngLat, 'AddressStart'),
+      onSetStart: (lngLat) => this.#setStartFromAddress(lngLat),
       onSetEnd: (lngLat) => this.#addWaypoint(lngLat, 'AddressEnd'),
     });
     this.#routePopover = new RoutePopover(this.#map, () => this.#reverseRoute(), () => this.#openDeleteConfirm());
@@ -390,7 +404,7 @@ class RouteBuilder {
       type: 'line',
       source: 'neighborhoods',
       paint: {
-        'line-color': '#2D2A3F',
+        'line-color': RouteBuilder.#token('--color-asphalt-500'),
         'line-width': ['case', ['boolean', ['feature-state', 'current'], false], 2, 1.5],
         'line-opacity': RouteBuilder.NEIGHBORHOOD_PAINT_CHOOSING.lineOpacity,
       },
@@ -405,7 +419,7 @@ class RouteBuilder {
         'text-size': ['interpolate', ['linear'], ['zoom'], 10, 11, 14, 15],
       },
       paint: {
-        'text-color': '#2D2A3F',
+        'text-color': RouteBuilder.#token('--color-asphalt-500'),
         'text-halo-color': '#FFFFFF',
         'text-halo-width': 1.5,
       },
@@ -473,7 +487,6 @@ class RouteBuilder {
   renderNeighborhoods(neighborhoodDataIn) {
     this.#neighborhoodData = neighborhoodDataIn;
     // If the map already loaded, it's safe to render neighborhoods now. O/w they will load after the map does.
-    this.#status.neighborhoodsLoaded = true;
     if (this.#status.mapLoaded) {
       this.#renderNeighborhoodsHelper();
     }
@@ -511,7 +524,7 @@ class RouteBuilder {
       source: 'streets',
       paint: {
         // Quiet neutral base network; the ghost flag (not a street highlight) previews where a click lands.
-        'line-color': '#B3B3B3', // --color-neutral-500 (map paint can't read CSS tokens).
+        'line-color': RouteBuilder.#token('--color-neutral-500'),
         'line-width': ['interpolate', ['linear'], ['zoom'], 12, 1, 15, 4],
         // Hidden where the street is part of the drawn route (that copy renders in 'streets-chosen' instead).
         'line-opacity': ['case', ['boolean', ['feature-state', 'chosen'], false], 0.0, 0.45],
@@ -574,7 +587,7 @@ class RouteBuilder {
           'text-allow-overlap': true,
         },
         paint: {
-          'text-color': '#2D2A3F', // --color-asphalt-500 (map paint can't read CSS tokens).
+          'text-color': RouteBuilder.#token('--color-asphalt-500'),
           'text-halo-color': '#FFFFFF',
           'text-halo-width': 1.5,
         },
@@ -660,6 +673,23 @@ class RouteBuilder {
     if (!this.#map.getLayer('neighborhoods-fill')) return null;
     const features = this.#map.queryRenderedFeatures(point, { layers: ['neighborhoods-fill'] });
     return features.length > 0 ? features[0].properties.region_id : null;
+  }
+
+  /**
+   * Returns the region id whose neighborhood polygon contains a coordinate, or null if none does.
+   *
+   * Tests the loaded polygons rather than what the map has rendered, so it answers for points outside the
+   * current viewport too — a geocoded address in another neighborhood is exactly the case that must not read as
+   * "no region" and slip past the one-neighborhood rule.
+   *
+   * @param {Object} lngLat - {lng, lat}.
+   * @returns {number|null}
+   */
+  #regionIdContaining(lngLat) {
+    const region = this.#neighborhoodData?.features.find(
+      (f) => turf.booleanPointInPolygon([lngLat.lng, lngLat.lat], f),
+    );
+    return region ? region.properties.region_id : null;
   }
 
   /**
@@ -770,7 +800,6 @@ class RouteBuilder {
   renderStreets(streetDataIn) {
     this.#streetData = streetDataIn;
     // If the map already loaded, it's safe to render streets now. O/w they will load after the map does.
-    this.#status.streetsLoaded = true;
     if (this.#status.mapLoaded) {
       this.#renderStreetsHelper();
     }
@@ -794,7 +823,7 @@ class RouteBuilder {
    * @param {string} source - Where the point came from, for activity logging ('MapClick'/'AddressStart'/...).
    */
   #addWaypoint(lngLat, source) {
-    if (!this.#status.neighborhoodsRendered || !this.#status.streetsLoaded || this.#streetsInRoute === null) return;
+    if (!this.#status.neighborhoodsRendered || this.#streetData === null || this.#streetsInRoute === null) return;
     // A route restored for the post-sign-in save flow is drawn but has no waypoints; a fresh click starts over
     // rather than leaving the (waypoint-derived) route and the drawn streets out of sync.
     if (this.#waypoints.length === 0 && this.#streetsInRoute.features.length > 0) this.#emptyRoute();
@@ -803,14 +832,20 @@ class RouteBuilder {
     // Region rule: a point in a different neighborhood than the selected one is refused (with a toast). The
     // polygon under the point decides, and snapping is restricted to the selected region, so a point near a
     // boundary can't silently slip across it.
-    const pointRegionId = this.#regionIdAtPoint(this.#map.project(lngLat));
+    const pointRegionId = this.#regionIdContaining(lngLat);
     if (this.#currRegionId !== null && pointRegionId !== null && pointRegionId !== this.#currRegionId) {
       this.#showMapMessage(i18next.t('one-neighborhood-warning'));
       window.logWebpageActivity(`RouteBuilder_AddWaypoint=DifferentRegion_Source=${source}`);
       return;
     }
-    const snap = graph.snapToStreet(lngLat, this.#currRegionId);
-    if (!snap) return;
+    // Capped: an address the geocoder places outside the selected neighborhood would otherwise snap to whatever
+    // street of it happens to be nearest, silently extending the route to somewhere the user never pointed at.
+    const snap = graph.snapToStreet(lngLat, this.#currRegionId, RouteBuilder.MAX_SNAP_DISTANCE_M);
+    if (!snap) {
+      this.#showMapMessage(i18next.t('no-street-nearby'));
+      window.logWebpageActivity(`RouteBuilder_AddWaypoint=NoStreetNearby_Source=${source}`);
+      return;
+    }
     // An address-seeded first point selects its region implicitly (no zoom-to-fit; we ease to the point below).
     if (this.#currRegionId === null) this.#selectRegion(snap.regionId, false);
 
@@ -887,6 +922,25 @@ class RouteBuilder {
     this.#directionsPanel.setEndVisible(this.#routeStarted());
     this.#updateCta();
     this.#saveDraft();
+  }
+
+  /**
+   * Plants the route's first point from an address typed into the Start field.
+   *
+   * Every waypoint is appended to the route's tail, so once a route exists there is no such thing as "setting the
+   * start" — feeding the typed point through would extend the route to it and flag it as the finish, the exact
+   * opposite of what the field says it does. Rather than silently reinterpret it, say the route has to be cleared.
+   *
+   * @param {Object} lngLat - {lng, lat} of the geocoded address.
+   */
+  #setStartFromAddress(lngLat) {
+    if (this.#waypoints.length > 0) {
+      this.#showMapMessage(i18next.t('start-locked-warning'));
+      this.#syncDirectionsFields(); // Put the route's real start back in the field the user just overwrote.
+      window.logWebpageActivity('RouteBuilder_AddWaypoint=StartLocked_Source=AddressStart');
+      return;
+    }
+    this.#addWaypoint(lngLat, 'AddressStart');
   }
 
   /**
@@ -982,7 +1036,7 @@ class RouteBuilder {
    * @returns {string}
    */
   #formatDistance(km) {
-    const dist = this.#units === 'miles' ? km / 1.609344 : km;
+    const dist = this.#units === 'miles' ? util.math.kmsToMiles(km) : km;
     return i18next.t('route-length', { dist: dist.toFixed(2) });
   }
 
@@ -1223,8 +1277,14 @@ class RouteBuilder {
     if (!pending) {
       // Deep link from the dashboard's route cards: /routeBuilder?preview=<id> opens the route in the editor.
       const previewParam = new URLSearchParams(window.location.search).get('preview');
-      if (previewParam !== null && /^\d+$/.test(previewParam)) {
-        this.#loadRouteForEditing(Number(previewParam));
+      const previewId = previewParam !== null && /^\d+$/.test(previewParam) ? Number(previewParam) : null;
+      // A reload keeps the ?preview in the URL, so refreshing after editing the previewed route would refetch
+      // the saved version and lose the edits — silently, since the unsaved-work check has nothing in memory to
+      // notice yet, and re-loading destroys the draft before it's read. An edited draft for the same route wins.
+      if (previewId !== null && RouteBuilder.#isPageReload() && this.#draftEditingRouteId() === previewId) {
+        this.#restoreDraft();
+      } else if (previewId !== null) {
+        this.#loadRouteForEditing(previewId);
       } else if (RouteBuilder.#isPageReload()) {
         // Only a genuine reload (e.g. an accidental refresh) resumes the in-progress draft. Arriving fresh —
         // Tools -> RouteBuilder, a link, or returning after finishing a route — must start blank so the user never
@@ -1347,10 +1407,14 @@ class RouteBuilder {
       return;
     }
     if (!this.#unsavedWorkConfirmed()) return;
+    // Cards stay clickable while a load is in flight, and nothing else serializes two of them: the confirm above
+    // sees no drawn route yet, so it doesn't ask. Without a token the last response wins rather than the last
+    // click, and a slow first load would wipe the route the user actually asked for and leave them editing it.
+    const loadId = ++this.#loadSeq;
     fetch(`/userapi/routes/${routeId}/streets`, { headers: { Accept: 'application/json' } })
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))))
       .then((data) => {
-        if (!this.#status.streetsRendered) return;
+        if (!this.#status.streetsRendered || loadId !== this.#loadSeq) return;
         // Resolve the stored streets before touching anything: if none of them are in the loaded street data
         // (every street hidden, or the region closed, since the route was saved), the user keeps what they had
         // open and gets told, rather than silently losing it to a load that then draws nothing.
@@ -1380,6 +1444,7 @@ class RouteBuilder {
           { padding: 80, maxZoom: 16, duration: 900 });
       })
       .catch((e) => {
+        if (loadId !== this.#loadSeq) return;
         console.error('Failed to load the route for editing:', e);
         this.#showMapMessage(i18next.t('route-load-error'));
       });
@@ -1492,6 +1557,20 @@ class RouteBuilder {
   }
 
   /**
+   * The saved route this tab's draft is an edit of, if any.
+   *
+   * @returns {?number} null when there's no draft, it isn't editing a saved route, or storage is unavailable.
+   */
+  #draftEditingRouteId() {
+    try {
+      const draft = JSON.parse(sessionStorage.getItem(RouteBuilder.DRAFT_KEY));
+      return Number.isInteger(draft?.editingRouteId) ? draft.editingRouteId : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Restores an unsaved in-progress route from this tab's draft stash: its region, waypoints, and resolved legs.
    * The camera returns to the stashed view, falling back to fitting the restored route when the draft predates
    * the camera field or it's corrupt.
@@ -1572,18 +1651,12 @@ class RouteBuilder {
     this.#deleteRouteModal.style.visibility = 'hidden';
   }
 
-  /**
-   * Clears the current route and resets the map to the intro state.
-   * @param {Event} [e]
-   */
-  #clearRoute(e) {
+  /** Clears the current route and resets the map to the intro state. */
+  #clearRoute() {
     this.#emptyRoute();
     this.#undoStack.clear();
     this.#resetUI();
-
-    if (e && e.target && e.target.id === 'delete-route-button') {
-      window.logWebpageActivity('RouteBuilder_Click=ConfirmCancelRoute');
-    }
+    window.logWebpageActivity('RouteBuilder_Click=ConfirmCancelRoute');
   }
 
   #resetUI() {
