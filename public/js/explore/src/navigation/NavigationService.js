@@ -3,6 +3,10 @@
  */
 class NavigationService {
   static #END_OF_STREET_THRESHOLD = 25; // Distance from the street endpoint when we consider it complete (meters).
+  // How close to the endpoint imagery has to run out before we treat the street as walked rather than as having
+  // an imagery gap. More generous than #END_OF_STREET_THRESHOLD: the imagery simply ends, so there is nothing
+  // further to walk either way, and Task.isAtEnd caps it on short streets.
+  static #NEAR_END_NO_IMAGERY_THRESHOLD = 50;
   static #MOVE_DELAY = 800; // Move delay prevents users from spamming through a mission.
   // Distance between points on a street when searching it for imagery (km). Public so that PanoManager can sample
   // backup starting points at the same granularity as moveForward()'s search.
@@ -134,7 +138,7 @@ class NavigationService {
     }
 
     // If the user is relatively close to the end of the street, tell them to finish labeling before jumping.
-    if (currentTask.isAtEnd(svl.panoViewer.getPosition(), svl.CLOSE_TO_ROUTE_THRESHOLD) < 0.5) {
+    if (currentTask.isAtEnd(svl.panoViewer.getPosition(), NavigationService.#NEAR_END_NO_IMAGERY_THRESHOLD)) {
       this.#endTheCurrentTask(currentTask, currentMission);
       this.#updateUiAfterMove();
       return Promise.resolve(null);

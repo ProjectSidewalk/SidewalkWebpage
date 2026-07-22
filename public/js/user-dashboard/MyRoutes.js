@@ -19,8 +19,22 @@ class MyRoutes {
     this.#statusEl = document.getElementById('ud-routes-status');
   }
 
+  /**
+   * Rewrites each row's saved-at date into the reader's own timezone.
+   *
+   * The server can only render a timestamp in UTC, which shows tomorrow's date for anything saved in the evening
+   * west of Greenwich — so a route saved at 6 PM Tuesday in Seattle reads as Wednesday.
+   */
+  #localizeDates() {
+    this.#list.querySelectorAll('.ud-route-date').forEach((el) => {
+      const savedAt = new Date(el.dateTime);
+      if (!Number.isNaN(savedAt.getTime())) el.textContent = moment(savedAt).format('ll');
+    });
+  }
+
   /** Attaches all row behaviors. */
   init() {
+    this.#localizeDates();
     this.#list.querySelectorAll('.ud-route-copy').forEach((btn) => {
       btn.addEventListener('click', () => this.#copyLink(btn));
     });

@@ -126,7 +126,11 @@
             @r.description.map { desc =>
               <span class="ud-route-desc">@desc</span>
             }
-            <span class="ud-route-meta">@r.regionName · @routeDistanceLabel(r.distanceMeters) · @routeDateLabel(r.createdAt)</span>
+            <span class="ud-route-meta">@r.regionName · @routeDistanceLabel(r.distanceMeters) ·
+              @* A timestamp's calendar date depends on the reader's timezone, which only the browser knows;
+                 MyRoutes rewrites this to the local date, leaving the UTC rendering as the no-JS fallback. *@
+              <time class="ud-route-date" datetime="@r.createdAt.toInstant.toString">@routeDateLabel(r.createdAt)</time>
+            </span>
             <span class="ud-route-usage" title="@Messages("dashboard.routes.stats.tooltip")">@Messages("dashboard.routes.stats", r.startedCount, r.completedCount)</span>
           </div>
           <div class="ud-route-actions">

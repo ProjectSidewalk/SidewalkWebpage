@@ -99,6 +99,11 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       .withCSRFToken
   ).get
 
+  private def deleteRoute(userCookies: Seq[Cookie], routeId: Int) = route(
+    app,
+    FakeRequest(DELETE, s"/userapi/routes/$routeId").withHeaders(XHR).withCookies(userCookies: _*).withCSRFToken
+  ).get
+
   /** Fetches a route's street list as (street_id, reverse) pairs in walking order. */
   private def getRouteStreets(userCookies: Seq[Cookie], routeId: Int): Seq[(Int, Boolean)] = {
     val resp = route(app, FakeRequest(GET, s"/userapi/routes/$routeId/streets").withCookies(userCookies: _*)).get
@@ -327,10 +332,7 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       status(route(app, FakeRequest(GET, s"/r/nope-$tag")).get) mustBe NOT_FOUND
 
       // Deleting the route kills both its current and retired share links.
-      val delete = route(
-        app,
-        FakeRequest(DELETE, s"/userapi/routes/$routeId").withHeaders(XHR).withCookies(user: _*).withCSRFToken
-      ).get
+      val delete = deleteRoute(user, routeId)
       status(delete) mustBe OK
       status(route(app, FakeRequest(GET, s"/r/$slug1")).get) mustBe NOT_FOUND
       status(route(app, FakeRequest(GET, s"/r/$slug2")).get) mustBe NOT_FOUND
@@ -358,57 +360,27 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
       // Another user cannot rename or delete it (404), and the row is untouched.
       val other         = signUpFreshUser()
-      val renameByOther = route(
-        app,
-        FakeRequest(PUT, s"/userapi/routes/$routeId")
-          .withHeaders(XHR)
-          .withCookies(other: _*)
-          .withJsonBody(Json.obj("name" -> "Hijacked"))
-          .withCSRFToken
-      ).get
+      val renameByOther = putRoute(other, routeId, Json.obj("name" -> "Hijacked"))
       status(renameByOther) mustBe NOT_FOUND
-      val deleteByOther = route(
-        app,
-        FakeRequest(DELETE, s"/userapi/routes/$routeId").withHeaders(XHR).withCookies(other: _*).withCSRFToken
-      ).get
+      val deleteByOther = deleteRoute(other, routeId)
       status(deleteByOther) mustBe NOT_FOUND
 
       // The owner renames it; the list reflects the new name.
-      val rename = route(
-        app,
-        FakeRequest(PUT, s"/userapi/routes/$routeId")
-          .withHeaders(XHR)
-          .withCookies(owner: _*)
-          .withJsonBody(Json.obj("name" -> "Renamed Walk"))
-          .withCSRFToken
-      ).get
+      val rename = putRoute(owner, routeId, Json.obj("name" -> "Renamed Walk"))
       status(rename) mustBe OK
       (contentAsJson(rename) \ "name").as[String] mustBe "Renamed Walk"
       val renamed = listRoutes(owner).find(r => (r \ "route_id").as[Int] == routeId)
       (renamed.get \ "name").as[String] mustBe "Renamed Walk"
 
       // Renaming to a blank name is rejected.
-      val renameEmpty = route(
-        app,
-        FakeRequest(PUT, s"/userapi/routes/$routeId")
-          .withHeaders(XHR)
-          .withCookies(owner: _*)
-          .withJsonBody(Json.obj("name" -> "   "))
-          .withCSRFToken
-      ).get
+      val renameEmpty = putRoute(owner, routeId, Json.obj("name" -> "   "))
       status(renameEmpty) mustBe BAD_REQUEST
 
       // The owner soft-deletes it; it disappears from the list, and a second delete 404s.
-      val delete = route(
-        app,
-        FakeRequest(DELETE, s"/userapi/routes/$routeId").withHeaders(XHR).withCookies(owner: _*).withCSRFToken
-      ).get
+      val delete = deleteRoute(owner, routeId)
       status(delete) mustBe OK
       listRoutes(owner).exists(r => (r \ "route_id").as[Int] == routeId) mustBe false
-      val deleteAgain = route(
-        app,
-        FakeRequest(DELETE, s"/userapi/routes/$routeId").withHeaders(XHR).withCookies(owner: _*).withCSRFToken
-      ).get
+      val deleteAgain = deleteRoute(owner, routeId)
       status(deleteAgain) mustBe NOT_FOUND
     }
   }

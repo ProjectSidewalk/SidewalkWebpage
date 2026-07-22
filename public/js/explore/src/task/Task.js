@@ -4,6 +4,10 @@
  * @memberof svl
  */
 class Task {
+  // Ceiling on any "am I at the end of this street?" threshold, as a fraction of the street's length. Keeps a
+  // fixed metre distance from swallowing most of a short street.
+  static END_PROXIMITY_MAX_FRACTION = 0.4;
+
   #geojson;
 
   /* @type {turf.Point} */
@@ -313,20 +317,23 @@ class Task {
   /**
    * This method checks if the task is completed by comparing the current position and the ending point.
    *
+   * The caller's threshold is capped at a fraction of this street's length. A distance that reads as "basically
+   * at the end" of a full block is most of a short one, and every caller inherits that — so the cap lives here
+   * rather than being re-derived at each call site.
+   *
    * @param {{lat: number, lng: number}} latLng The user's current location
-   * @param {number} threshold Distance threshold in meters
-   * @returns {boolean}
+   * @param {number} [threshold=10] Distance threshold in meters
+   * @returns {boolean} false if the task has no geometry yet.
    */
-  isAtEnd(latLng, threshold) {
-    if (this.#geojson) {
-      const len = this.#geojson.geometry.coordinates.length - 1;
-      const latEnd = this.#geojson.geometry.coordinates[len][1];
-      const lngEnd = this.#geojson.geometry.coordinates[len][0];
-
-      if (!threshold) threshold = 10; // 10 meters
-      const d = util.math.haversine(latLng, { lat: latEnd, lng: lngEnd });
-      return d < threshold;
-    }
+  isAtEnd(latLng, threshold = 10) {
+    if (!this.#geojson) return false;
+    const coords = this.#geojson.geometry.coordinates;
+    const end = coords[coords.length - 1];
+    const streetLengthM = this.lineDistance({ units: 'meters' });
+    const effectiveThreshold = streetLengthM > 0
+      ? Math.min(threshold, streetLengthM * Task.END_PROXIMITY_MAX_FRACTION)
+      : threshold;
+    return util.math.haversine(latLng, { lat: end[1], lng: end[0] }) < effectiveThreshold;
   }
 
   /**
