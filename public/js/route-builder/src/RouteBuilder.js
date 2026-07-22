@@ -151,7 +151,7 @@ class RouteBuilder {
       getStreetsPayload: () => this.#routeStreetsPayload(),
       getSuggestedName: () => this.#suggestedRouteName(),
       getCamera: () => this.#cameraSnapshot(),
-      onSaved: (routeId, name, slug) => this.#handleRouteSaved(routeId, name, slug),
+      onSaved: (saved) => this.#handleRouteSaved(saved),
       onClose: () => this.#saveButton.focus(),
     });
     this.#savedRoutes = new SavedRoutesPanel({
@@ -159,7 +159,6 @@ class RouteBuilder {
       formatMeta: (distanceMeters, regionName) => this.#formatRouteMeta(distanceMeters, regionName),
       setTemporaryTooltip: (btn, message) => this.#setTemporaryTooltip(btn, message),
       onView: (routeId) => this.#loadRouteForEditing(routeId),
-      thumbnailUrl: (encodedPolyline) => this.#thumbnailUrl(encodedPolyline),
     });
     this.#savedRoutes.refresh();
 
@@ -995,18 +994,6 @@ class RouteBuilder {
   }
 
   /**
-   * Builds a Mapbox Static Images URL rendering a route's path on the project basemap, for saved-route cards.
-   *
-   * @param {string} encodedPolyline - The route geometry as an encoded polyline.
-   * @returns {string}
-   */
-  #thumbnailUrl(encodedPolyline) {
-    const path = encodeURIComponent(encodedPolyline);
-    return 'https://api.mapbox.com/styles/v1/projectsidewalk/cloov4big002801rc0qw75w5g/static/'
-      + `path-4+3E8BD9-0.9(${path})/auto/400x200@2x?padding=30&access_token=${this.#mapboxApiKey}`;
-  }
-
-  /**
    * Rebuilds the 'route-endpoints' symbol source from the current route (or a lone start point): the start and end
    * flags, each with a Start/End text label below the point.
    */
@@ -1360,10 +1347,12 @@ class RouteBuilder {
       body: JSON.stringify({ streets: payload }),
     })
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`${response.status}`))))
-      .then(() => {
+      .then((updated) => {
         this.#savedBaseline = JSON.stringify(payload);
         this.#saveDraft();
         this.#updateSaveButton();
+        // A guest's card list is localStorage, so refresh() alone would re-render the first save's numbers.
+        if (!this.#isSignedIn) this.#recordGuestRoute(updated);
         this.#savedRoutes.refresh();
         Toast.show({ message: i18next.t('route-updated'), duration: 3000 });
         window.logWebpageActivity(`RouteBuilder_Click=UpdateSuccess_RouteId=${routeId}`);
@@ -1575,25 +1564,11 @@ class RouteBuilder {
    * map as an editing session — like saving a document, further edits update the same route via "Update route".
    * The new card is highlighted in "Your saved routes" and a toast confirms.
    *
-   * @param {number} routeId
-   * @param {string} name - The route's saved name.
-   * @param {string} slug - The route's URL slug, for the /r/<slug> share link.
+   * @param {Object} saved - The POST /saveRoute response: route_id, name, slug, distance_meters, thumbnail_url.
    */
-  #handleRouteSaved(routeId, name, slug) {
-    if (!this.#isSignedIn) {
-      const km = this.#streetsInRoute.features
-        .reduce((sum, street) => sum + turf.length(street, { units: 'kilometers' }), 0);
-      const coords = this.#streetsInRoute.features.flatMap((f) => f.geometry.coordinates);
-      this.#savedRoutes.recordGuestRoute({
-        routeId,
-        name,
-        slug,
-        regionName: this.#getRegionName(this.#currRegionId),
-        url: `${window.location.origin}/r/${slug}`,
-        distanceMeters: km * 1000,
-        encodedPolyline: encodePolyline(decimateCoords(coords, 60)),
-      });
-    }
+  #handleRouteSaved(saved) {
+    const routeId = saved.route_id;
+    if (!this.#isSignedIn) this.#recordGuestRoute(saved);
     this.#editingRouteId = routeId;
     this.#savedBaseline = JSON.stringify(this.#routeStreetsPayload());
     this.#saveDraft();
@@ -1601,6 +1576,27 @@ class RouteBuilder {
     this.#savedRoutes.refresh(routeId);
     this.#updateSaveButton();
     Toast.show({ message: i18next.t('route-saved'), duration: 3000 });
+  }
+
+  /**
+   * Mirrors a just-saved route into the guest's device-local card list.
+   *
+   * The distance, geometry and thumbnail come from the server's response rather than being recomputed here, so a
+   * guest card always describes what was actually stored — and an update refreshes it rather than leaving the
+   * first save's numbers on the card forever.
+   *
+   * @param {Object} saved - A /saveRoute or route-update response.
+   */
+  #recordGuestRoute(saved) {
+    this.#savedRoutes.recordGuestRoute({
+      routeId: saved.route_id,
+      name: saved.name,
+      slug: saved.slug,
+      regionName: this.#getRegionName(this.#currRegionId),
+      url: `${window.location.origin}/r/${saved.slug}`,
+      distanceMeters: saved.distance_meters,
+      thumbnailUrl: saved.thumbnail_url,
+    });
   }
 
   /**

@@ -223,16 +223,27 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
       // Extend and reorder: the new first street (b) was inserted after a, so serving [b, a] proves the order
       // comes from position, not from the serial route_street_id.
-      status(putRoute(user, routeId, streetsBody(b -> false, a -> true))) mustBe OK
+      val extended = putRoute(user, routeId, streetsBody(b -> false, a -> true))
+      status(extended) mustBe OK
       getRouteStreets(user, routeId) mustBe Seq((b, false), (a, true))
+
+      // The response carries the route's freshly derived card data, so a client (a guest especially, whose list
+      // is localStorage) can refresh a card without a second request or its own polyline implementation.
+      (contentAsJson(extended) \ "distance_meters").as[Double] must be > 0d
+      (contentAsJson(extended) \ "encoded_polyline").as[String] must not be empty
+      (contentAsJson(extended) \ "thumbnail_url").as[String] must include("api.mapbox.com")
+
+      val twoStreets = listRoutes(user).find(r => (r \ "route_id").as[Int] == routeId)
+      (twoStreets.get \ "street_count").as[Int] mustBe 2
 
       // Shrink back to one street; the removed street's row is gone.
       status(putRoute(user, routeId, streetsBody(a -> false))) mustBe OK
       getRouteStreets(user, routeId) mustBe Seq((a, false))
 
-      // The route kept its id through both edits (same list row, updated street count).
+      // The route kept its id through both edits, and the cached stats followed the street list down.
       val listed = listRoutes(user).find(r => (r \ "route_id").as[Int] == routeId)
       (listed.get \ "street_count").as[Int] mustBe 1
+      (listed.get \ "distance_meters").as[Double] must be < (twoStreets.get \ "distance_meters").as[Double]
     }
 
     // UNIQUE (route_id, position) is not deferrable, so every edit that moves a row past another one has to

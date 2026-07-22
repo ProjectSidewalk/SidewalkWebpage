@@ -48,6 +48,31 @@ CREATE UNIQUE INDEX route_slug_idx ON route (slug);
 -- Optional public description shown alongside the route (why the route matters to its creator).
 ALTER TABLE route ADD COLUMN description TEXT;
 
+-- Display stats for route listings. Deriving them per request meant re-running ST_Transform + ST_Length over
+-- every street of every route on each dashboard and RouteBuilder load, and they only change when the street
+-- list does, so RouteService writes them there. The inner join that derivation needed also hid street-less
+-- routes from their own owner. CHECK allows 0 because routes predating the non-empty-street-list rule may
+-- have none.
+ALTER TABLE route ADD COLUMN distance_meters DOUBLE PRECISION;
+ALTER TABLE route ADD COLUMN street_count INT;
+UPDATE route
+SET distance_meters = stats.distance_meters, street_count = stats.street_count
+FROM (
+    SELECT route.route_id,
+           SUM(ST_Length(ST_Transform(street_edge.geom, 26918))) AS distance_meters,
+           COUNT(*) AS street_count
+    FROM route
+    INNER JOIN route_street ON route.route_id = route_street.route_id
+    INNER JOIN street_edge ON route_street.street_edge_id = street_edge.street_edge_id
+    GROUP BY route.route_id
+) stats
+WHERE route.route_id = stats.route_id;
+UPDATE route SET distance_meters = 0, street_count = 0 WHERE distance_meters IS NULL;
+ALTER TABLE route ALTER COLUMN distance_meters SET NOT NULL;
+ALTER TABLE route ALTER COLUMN street_count SET NOT NULL;
+ALTER TABLE route ADD CONSTRAINT route_distance_meters_check CHECK (distance_meters >= 0);
+ALTER TABLE route ADD CONSTRAINT route_street_count_check CHECK (street_count >= 0);
+
 -- Old slugs of renamed routes, kept so previously shared /r/<slug> links redirect forever.
 CREATE TABLE route_slug_alias (
     slug TEXT PRIMARY KEY,
@@ -67,6 +92,8 @@ CREATE INDEX mission_user_route_id_idx ON mission (user_route_id) WHERE user_rou
 # --- !Downs
 ALTER TABLE mission DROP COLUMN user_route_id;
 DROP TABLE route_slug_alias;
+ALTER TABLE route DROP COLUMN street_count;
+ALTER TABLE route DROP COLUMN distance_meters;
 ALTER TABLE route DROP COLUMN description;
 DROP INDEX route_slug_idx;
 ALTER TABLE route DROP COLUMN slug;

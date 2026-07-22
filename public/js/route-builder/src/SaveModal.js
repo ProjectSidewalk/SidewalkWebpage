@@ -26,7 +26,7 @@ class SaveModal {
    * @param {Function} opts.getStreetsPayload - Returns the ordered street list in the /saveRoute wire format.
    * @param {Function} opts.getSuggestedName - Returns a suggested route name (e.g. from the endpoint streets).
    * @param {Function} opts.getCamera - Returns the current map camera pose, for restoring the view post-sign-in.
-   * @param {Function} opts.onSaved - Called with (routeId, name, slug) after a successful save.
+   * @param {Function} opts.onSaved - Called with the saved-route payload after a successful save.
    * @param {Function} opts.onClose - Called after the modal closes (e.g. to restore focus).
    */
   constructor(opts) {
@@ -165,7 +165,7 @@ class SaveModal {
           return;
         }
         this.hide();
-        this.#onSaved(data.route_id, data.name, data.slug);
+        this.#onSaved(data);
         window.logWebpageActivity(`RouteBuilder_Click=SaveSuccess_RouteId=${data.route_id}`);
       })
       .catch((error) => {

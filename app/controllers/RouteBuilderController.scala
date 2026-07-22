@@ -2,7 +2,7 @@ package controllers
 
 import controllers.base._
 import formats.json.RouteBuilderFormats.{routeWithStatsWrites, NewRoute, RouteUpdate}
-import models.route.RouteRejection
+import models.route.{RouteRejection, SavedRoute}
 import play.api.i18n.Messages
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, Result}
@@ -16,6 +16,19 @@ class RouteBuilderController @Inject() (cc: CustomControllerComponents, routeSer
     ec: ExecutionContext
 ) extends CustomBaseController(cc) {
 
+  /**
+   * The JSON a save or update returns: the route's identity plus the display data its card needs, so the client
+   * (including a guest, whose route list lives in localStorage) can refresh a card without a second request.
+   */
+  private def savedRouteJson(saved: SavedRoute): JsObject = Json.obj(
+    "route_id"         -> saved.routeId,
+    "name"             -> saved.name,
+    "slug"             -> saved.slug,
+    "distance_meters"  -> saved.distanceMeters,
+    "encoded_polyline" -> saved.encodedPolyline,
+    "thumbnail_url"    -> saved.thumbnailUrl
+  )
+
   /** Turns a service-layer rejection into a 400 carrying the message localized for this request. */
   private def rejected(rejection: RouteRejection)(implicit messages: Messages): Result =
     BadRequest(Json.obj("status" -> "Error", "message" -> Messages(rejection.messageKey, rejection.maxLength)))
@@ -26,9 +39,8 @@ class RouteBuilderController @Inject() (cc: CustomControllerComponents, routeSer
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       data => {
         routeService.saveRoute(data, request.identity.userId).map {
-          case Left(rejection)              => rejected(rejection)
-          case Right((routeId, name, slug)) =>
-            Ok(Json.obj("route_id" -> routeId, "name" -> name, "slug" -> slug))
+          case Left(rejection) => rejected(rejection)
+          case Right(saved)    => Ok(savedRouteJson(saved))
         }
       }
     )
@@ -83,10 +95,9 @@ class RouteBuilderController @Inject() (cc: CustomControllerComponents, routeSer
             case Some(error) => Future.successful(error)
             case None        =>
               routeService.updateRoute(routeId, request.identity.userId, update).map {
-                case Left(rejection)           => rejected(rejection)
-                case Right(Some((name, slug))) =>
-                  Ok(Json.obj("route_id" -> routeId, "name" -> name, "slug" -> slug))
-                case Right(None) => NotFound(Json.obj("status" -> "Error", "message" -> "Route not found"))
+                case Left(rejection)    => rejected(rejection)
+                case Right(Some(saved)) => Ok(savedRouteJson(saved))
+                case Right(None)        => NotFound(Json.obj("status" -> "Error", "message" -> "Route not found"))
               }
           }
         }

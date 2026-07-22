@@ -62,13 +62,6 @@
     .withLocale(messages.lang.toLocale))
 }
 
-@* Static-map thumbnail of a route's path, on the same Mapbox style the map tools use. *@
-@routeThumbUrl(encodedPolyline: String) = @{
-  val path = java.net.URLEncoder.encode(encodedPolyline, "UTF-8")
-  s"https://api.mapbox.com/styles/v1/projectsidewalk/cloov4big002801rc0qw75w5g/static/" +
-    s"path-4+3E8BD9-0.9($path)/auto/400x200@2x?padding=30&access_token=${commonData.mapboxApiKey}"
-}
-
 @content = {
   @* ---- Hero / "Your impact" ----------------------------------------------------------------------------- *@
   <div class="api-section" id="ud-hero-section">
@@ -123,9 +116,9 @@
     <ul class="ud-routes" id="ud-routes-list" data-max-name-length="@models.route.Route.MaxNameLength" @if(myRoutes.isEmpty) {hidden}>
       @for(r <- myRoutes) {
         <li class="ud-route-row" data-route-id="@r.routeId" data-slug="@r.slug">
-          @if(r.encodedPolyline.nonEmpty) {
+          @if(r.thumbnailUrl.nonEmpty) {
             <a class="ud-route-view" data-route-id="@r.routeId" href="/routeBuilder?preview=@r.routeId" title="@Messages("dashboard.routes.view.title")">
-              <img class="ud-route-thumb" src="@routeThumbUrl(r.encodedPolyline)" alt="" loading="lazy" width="180" height="90">
+              <img class="ud-route-thumb" src="@r.thumbnailUrl" alt="" loading="lazy" width="180" height="90">
             </a>
           }
           <div class="ud-route-info">

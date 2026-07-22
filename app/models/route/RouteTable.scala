@@ -23,7 +23,11 @@ case class Route(
     description: Option[String],
     public: Boolean,
     deleted: Boolean,
-    createdAt: OffsetDateTime
+    createdAt: OffsetDateTime,
+    // Derived from the route's streets and rewritten whenever the street list changes, so listings don't have to
+    // re-measure geometry on every request. See RouteTable.updateStats.
+    distanceMeters: Double,
+    streetCount: Int
 )
 
 object Route {
@@ -42,6 +46,24 @@ object Route {
  * language — the same split as UserService.changeUsername's Left(i18nKey).
  */
 case class RouteRejection(messageKey: String, maxLength: Int)
+
+/**
+ * A route as it stands right after a save or update: its identity plus the display data its card needs.
+ *
+ * Returning the geometry and thumbnail here is what lets the client — including a guest, whose route list lives in
+ * localStorage — keep a card in sync without a second round trip or a second polyline implementation.
+ *
+ * @param encodedPolyline The route geometry, Google-encoded, for a static-map thumbnail.
+ * @param thumbnailUrl    Ready static-map URL for that geometry; "" when the route has no streets.
+ */
+case class SavedRoute(
+    routeId: Int,
+    name: String,
+    slug: String,
+    distanceMeters: Double,
+    encodedPolyline: String,
+    thumbnailUrl: String
+)
 
 /**
  * A user-created route with the display stats shown in route listings (e.g. the dashboard's "My Routes").
@@ -66,9 +88,10 @@ case class RouteWithStats(
     distanceMeters: Double,
     streetCount: Int,
     createdAt: OffsetDateTime,
-    startedCount: Int = 0,       // Users who opened the route in Explore (a user_route row exists).
-    completedCount: Int = 0,     // Of those, users who finished it (user_route.completed).
-    encodedPolyline: String = "" // The route's (decimated) geometry for static-map thumbnails.
+    startedCount: Int = 0,        // Users who opened the route in Explore (a user_route row exists).
+    completedCount: Int = 0,      // Of those, users who finished it (user_route.completed).
+    encodedPolyline: String = "", // The route's (decimated) geometry for static-map thumbnails.
+    thumbnailUrl: String = ""     // Ready static-map URL for that geometry; "" when the route has no streets.
 )
 
 class RouteTableDef(tag: slick.lifted.Tag) extends Table[Route](tag, "route") {
@@ -81,11 +104,14 @@ class RouteTableDef(tag: slick.lifted.Tag) extends Table[Route](tag, "route") {
   def public: Rep[Boolean]             = column[Boolean]("public")
   def deleted: Rep[Boolean]            = column[Boolean]("deleted")
   def createdAt: Rep[OffsetDateTime]   = column[OffsetDateTime]("created_at")
+  def distanceMeters: Rep[Double]      = column[Double]("distance_meters")
+  def streetCount: Rep[Int]            = column[Int]("street_count")
 
-  def * = (routeId, userId, regionId, name, slug, description, public, deleted, createdAt) <> (
-    (Route.apply _).tupled,
-    Route.unapply
-  )
+  def * =
+    (routeId, userId, regionId, name, slug, description, public, deleted, createdAt, distanceMeters, streetCount) <> (
+      (Route.apply _).tupled,
+      Route.unapply
+    )
 
   def user   = foreignKey("route_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
   def region = foreignKey("route_region_id_fkey", regionId, TableQuery[RegionTableDef])(_.regionId)
@@ -139,32 +165,38 @@ class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .filter(r => r.userId === userId && r.deleted === false)
       .join(regions)
       .on(_.regionId === _.regionId)
-      .join(routeStreets)
-      .on { case ((route, _), routeStreet) => route.routeId === routeStreet.routeId }
-      .join(streetEdges)
-      .on { case ((_, routeStreet), streetEdge) => routeStreet.streetEdgeId === streetEdge.streetEdgeId }
-      .groupBy { case (((route, region), _), _) =>
-        (route.routeId, route.regionId, region.name, route.name, route.slug, route.description, route.createdAt)
+      .sortBy { case (route, _) => route.createdAt.desc } // Newest first.
+      .map { case (route, region) =>
+        (route.routeId, route.regionId, region.name, route.name, route.slug, route.description, route.distanceMeters,
+          route.streetCount, route.createdAt)
       }
-      .map { case ((routeId, regionId, regionName, name, slug, description, createdAt), group) =>
-        (
-          routeId,
-          regionId,
-          regionName,
-          name,
-          slug,
-          description,
-          group.map { case (_, streetEdge) => streetEdge.geom.transform(26918).lengthD }.sum.getOrElse(0d),
-          group.length,
-          createdAt
-        )
-      }
-      .sortBy(_._9.desc) // Newest first (createdAt).
       .result
       .map(_.map {
         case (routeId, regionId, regionName, name, slug, description, distanceMeters, streetCount, createdAt) =>
           RouteWithStats(routeId, regionId, regionName, name, slug, description, distanceMeters, streetCount, createdAt)
       })
+  }
+
+  /**
+   * Recomputes a route's cached distance and street count from its current streets.
+   *
+   * Called whenever the street list changes, so listings can read the stats straight off the route row instead of
+   * re-measuring every street's geometry per request. Distance is in meters (UTM 18N, matching the previous
+   * derivation); a route with no streets gets zeroes.
+   */
+  def updateStats(routeId: Int): DBIO[Int] = {
+    sqlu"""
+      UPDATE route
+      SET distance_meters = COALESCE(stats.distance_meters, 0), street_count = COALESCE(stats.street_count, 0)
+      FROM (
+          SELECT SUM(ST_Length(ST_Transform(street_edge.geom, 26918))) AS distance_meters,
+                 COUNT(*) AS street_count
+          FROM route_street
+          INNER JOIN street_edge ON route_street.street_edge_id = street_edge.street_edge_id
+          WHERE route_street.route_id = $routeId
+      ) stats
+      WHERE route.route_id = $routeId
+    """
   }
 
   /**

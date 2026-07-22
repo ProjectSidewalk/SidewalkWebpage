@@ -48,6 +48,7 @@ object RouteBuilderFormats {
       (JsPath \ "created_at").write[OffsetDateTime] and
       (JsPath \ "started_count").write[Int] and
       (JsPath \ "completed_count").write[Int] and
-      (JsPath \ "encoded_polyline").write[String]
+      (JsPath \ "encoded_polyline").write[String] and
+      (JsPath \ "thumbnail_url").write[String]
   )(unlift(RouteWithStats.unapply))
 }

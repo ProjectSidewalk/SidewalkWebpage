@@ -3,9 +3,11 @@ package service
 import com.google.inject.ImplementedBy
 import formats.json.RouteBuilderFormats.{NewRoute, NewRouteStreet, RouteUpdate}
 import models.route._
-import models.utils.{MyPostgresProfile, PolylineEncoder, ProfanityGuard, SlugUtils}
+import models.utils.{MyPostgresProfile, PolylineEncoder, ProfanityGuard, RouteThumbnail, SlugUtils}
 import models.utils.MyPostgresProfile.api._
+import org.locationtech.jts.geom.LineString
 import org.postgresql.util.PSQLException
+import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -14,19 +16,27 @@ import javax.inject._
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 
+object RouteService {
+
+  /**
+   * Coordinate cap for a thumbnail polyline. Thumbnails are ~400x200, so more points only lengthen the URL.
+   */
+  val ThumbnailMaxPoints: Int = 60
+}
+
 /**
  * Business logic for user-created routes (RouteBuilder): saving, listing, updating, and soft-deleting.
  */
 @ImplementedBy(classOf[RouteServiceImpl])
 trait RouteService {
-  def saveRoute(route: NewRoute, userId: String): Future[Either[RouteRejection, (Int, String, String)]]
+  def saveRoute(route: NewRoute, userId: String): Future[Either[RouteRejection, SavedRoute]]
   def getRoutesForUser(userId: String): Future[Seq[RouteWithStats]]
   def getRouteStreets(routeId: Int): Future[Option[Seq[RouteStreet]]]
   def updateRoute(
       routeId: Int,
       userId: String,
       update: RouteUpdate
-  ): Future[Either[RouteRejection, Option[(String, String)]]]
+  ): Future[Either[RouteRejection, Option[SavedRoute]]]
   def resolveSlug(slug: String): Future[Option[Int]]
   def deleteRoute(routeId: Int, userId: String): Future[Boolean]
 }
@@ -38,6 +48,7 @@ class RouteServiceImpl @Inject() (
     routeStreetTable: RouteStreetTable,
     routeSlugAliasTable: RouteSlugAliasTable,
     auditTaskUserRouteTable: AuditTaskUserRouteTable,
+    config: Configuration,
     implicit val ec: ExecutionContext
 ) extends RouteService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -119,10 +130,13 @@ class RouteServiceImpl @Inject() (
    *
    * @return The new route's id, saved name, and slug, or Left if the name or description was rejected.
    */
-  def saveRoute(route: NewRoute, userId: String): Future[Either[RouteRejection, (Int, String, String)]] =
+  def saveRoute(route: NewRoute, userId: String): Future[Either[RouteRejection, SavedRoute]] =
     contentRejection(route.name, route.description) match {
       case Some(rejection) => Future.successful(Left(rejection))
-      case None            => saveRouteAction(route, userId).map(Right(_))
+      case None            =>
+        saveRouteAction(route, userId).flatMap { case (routeId, name, slug) =>
+          describeSavedRoute(routeId, name, slug).map(Right(_))
+        }
     }
 
   private def saveRouteAction(route: NewRoute, userId: String): Future[(Int, String, String)] = withSlugRetry {
@@ -134,7 +148,7 @@ class RouteServiceImpl @Inject() (
         .getOrElse(DBIO.successful(s"route-tmp-${UUID.randomUUID}"))
       routeId: Int <- routeTable.insert(
         Route(0, userId, route.regionId, submittedName.getOrElse(""), initialSlug, description, public = false,
-          deleted = false, OffsetDateTime.now)
+          deleted = false, OffsetDateTime.now, distanceMeters = 0d, streetCount = 0)
       )
       savedName: String = submittedName.getOrElse(s"Route $routeId")
       savedSlug: String <-
@@ -148,6 +162,7 @@ class RouteServiceImpl @Inject() (
         RouteStreet(0, routeId, street.streetId, street.reverse, position)
       }
       _ <- routeStreetTable.insertMultiple(newRouteStreets)
+      _ <- routeTable.updateStats(routeId)
     } yield (routeId, savedName, savedSlug)).transactionally)
   }
 
@@ -161,30 +176,74 @@ class RouteServiceImpl @Inject() (
       if (routeIds.isEmpty) {
         Future.successful(routes)
       } else {
+        // Independent queries, so they're started before the for-comprehension sequences them.
+        val usageFuture      = db.run(routeTable.getUsageCounts(routeIds))
+        val geometriesFuture = db.run(routeTable.getStreetGeometries(routeIds))
         for {
-          usage      <- db.run(routeTable.getUsageCounts(routeIds))
-          geometries <- db.run(routeTable.getStreetGeometries(routeIds))
+          usage      <- usageFuture
+          geometries <- geometriesFuture
         } yield {
           val polylines: Map[Int, String] = geometries.groupBy(_._1).map { case (routeId, streets) =>
-            // Concatenate the streets' coordinates in walking order (flipping reversed streets), then thin the
-            // path — thumbnails are tiny, and the polyline rides in a URL.
-            val coords: Seq[(Double, Double)] = streets.flatMap { case (_, reverse, geom) =>
-              val pts = geom.getCoordinates.map(c => (c.x, c.y)).toSeq
-              if (reverse) pts.reverse else pts
-            }
-            routeId -> PolylineEncoder.encode(PolylineEncoder.decimate(coords, 60))
+            routeId -> encodeRouteGeometry(streets.map { case (_, reverse, geom) => (reverse, geom) })
           }
           routes.map { route =>
             val (started, completed) = usage.getOrElse(route.routeId, (0, 0))
+            val polyline: String     = polylines.getOrElse(route.routeId, "")
             route.copy(
               startedCount = started,
               completedCount = completed,
-              encodedPolyline = polylines.getOrElse(route.routeId, "")
+              encodedPolyline = polyline,
+              thumbnailUrl = RouteThumbnail.url(polyline, mapboxApiKey)
             )
           }
         }
       }
     }
+  }
+
+  /** The Mapbox token the thumbnail URLs are signed with. */
+  private lazy val mapboxApiKey: String = config.get[String]("mapbox-api-key")
+
+  /**
+   * Assembles the post-save/update view of a route: its identity plus the display data its card needs.
+   *
+   * Reading the geometry back here (rather than echoing what the client sent) means the returned polyline and
+   * thumbnail describe what was actually stored, and it's what lets a guest's localStorage card stay in sync
+   * without the client owning a second polyline implementation.
+   */
+  private def describeSavedRoute(routeId: Int, name: String, slug: String): Future[SavedRoute] = {
+    val routeFuture      = db.run(routeTable.getRoute(routeId))
+    val geometriesFuture = db.run(routeTable.getStreetGeometries(Seq(routeId)))
+    for {
+      route      <- routeFuture
+      geometries <- geometriesFuture
+    } yield {
+      val polyline: String = encodeRouteGeometry(geometries.map { case (_, reverse, geom) => (reverse, geom) })
+      SavedRoute(
+        routeId,
+        name,
+        slug,
+        route.map(_.distanceMeters).getOrElse(0d),
+        polyline,
+        RouteThumbnail.url(polyline, mapboxApiKey)
+      )
+    }
+  }
+
+  /**
+   * Encodes a route's streets as one polyline for a static-map thumbnail.
+   *
+   * Concatenates the streets' coordinates in walking order (flipping reversed streets), then thins the path —
+   * thumbnails are tiny, and the polyline rides in a URL.
+   *
+   * @param streets The route's streets in walking order, as (reverse, geometry) pairs.
+   */
+  private def encodeRouteGeometry(streets: Seq[(Boolean, LineString)]): String = {
+    val coords: Seq[(Double, Double)] = streets.flatMap { case (reverse, geom) =>
+      val pts = geom.getCoordinates.map(c => (c.x, c.y)).toSeq
+      if (reverse) pts.reverse else pts
+    }
+    PolylineEncoder.encode(PolylineEncoder.decimate(coords, RouteService.ThumbnailMaxPoints))
   }
 
   /**
@@ -211,10 +270,14 @@ class RouteServiceImpl @Inject() (
       routeId: Int,
       userId: String,
       update: RouteUpdate
-  ): Future[Either[RouteRejection, Option[(String, String)]]] =
+  ): Future[Either[RouteRejection, Option[SavedRoute]]] =
     contentRejection(update.name, update.description) match {
       case Some(rejection) => Future.successful(Left(rejection))
-      case None            => updateRouteAction(routeId, userId, update).map(Right(_))
+      case None            =>
+        updateRouteAction(routeId, userId, update).flatMap {
+          case Some((name, slug)) => describeSavedRoute(routeId, name, slug).map(r => Right(Some(r)))
+          case None               => Future.successful(Right(None))
+        }
     }
 
   private def updateRouteAction(routeId: Int, userId: String, update: RouteUpdate): Future[Option[(String, String)]] =
@@ -244,8 +307,8 @@ class RouteServiceImpl @Inject() (
                 case None       => DBIO.successful(0)
               }
               _ <- update.streets match {
-                case Some(streets) => reconcileStreetsAction(routeId, streets)
-                case None          => DBIO.successful(())
+                case Some(streets) => reconcileStreetsAction(routeId, streets).andThen(routeTable.updateStats(routeId))
+                case None          => DBIO.successful(0)
               }
             } yield Some(nameAndSlug)
         }

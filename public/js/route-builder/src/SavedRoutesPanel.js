@@ -14,7 +14,6 @@ class SavedRoutesPanel {
   #formatMeta;
   #setTemporaryTooltip;
   #onView;
-  #thumbnailUrl;
   #panel;
   #list;
   #activeRouteId = null; // Route currently previewed on the map (its card carries the active style).
@@ -25,14 +24,12 @@ class SavedRoutesPanel {
    * @param {Function} opts.formatMeta - (distanceMeters, regionName) => the card's meta line.
    * @param {Function} opts.setTemporaryTooltip - (buttonEl, message) that flashes a confirmation tooltip.
    * @param {Function} opts.onView - Called with the route id when a card body is clicked (opens it in the editor).
-   * @param {Function} opts.thumbnailUrl - (encodedPolyline) => static-map thumbnail URL for a card.
    */
   constructor(opts) {
     this.#isSignedIn = opts.isSignedIn === true;
     this.#formatMeta = opts.formatMeta;
     this.#setTemporaryTooltip = opts.setTemporaryTooltip;
     this.#onView = opts.onView;
-    this.#thumbnailUrl = opts.thumbnailUrl;
     this.#panel = document.getElementById('saved-routes-panel');
     this.#list = document.getElementById('saved-routes-list');
   }
@@ -70,7 +67,7 @@ class SavedRoutesPanel {
           savedAt: r.created_at,
           startedCount: r.started_count,
           completedCount: r.completed_count,
-          encodedPolyline: r.encoded_polyline,
+          thumbnailUrl: r.thumbnail_url,
         })), highlightRouteId))
         .catch(() => this.#render([], null));
     } else {
@@ -133,8 +130,8 @@ class SavedRoutesPanel {
       const cardClasses = ['saved-route-card',
         route.routeId === highlightRouteId ? 'saved-route-card--new' : '',
         route.routeId === this.#activeRouteId ? 'saved-route-card--active' : ''].filter(Boolean).join(' ');
-      const thumb = route.encodedPolyline
-        ? `<img class="saved-route-thumb" src="${this.#thumbnailUrl(route.encodedPolyline)}" alt="" loading="lazy">`
+      const thumb = route.thumbnailUrl
+        ? `<img class="saved-route-thumb" src="${route.thumbnailUrl}" alt="" loading="lazy">`
         : '';
       const usage = typeof route.startedCount === 'number'
         ? `<span class="saved-route-usage" title="${i18next.t('route-usage-tooltip')}">
