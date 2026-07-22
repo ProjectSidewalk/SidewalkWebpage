@@ -705,3 +705,12 @@ dashboard.unit.ft = 英尺
 dashboard.rank.place.one = 第 1 名
 dashboard.rank.place.two = 第 2 名
 dashboard.rank.place.three = 第 3 名
+
+# 錯誤頁面（404、500），由 modules.CustomErrorHandler 呈現。
+error.404.heading = 找不到頁面
+error.404.message = 我們找不到你要求的頁面：{0}
+error.500.heading = 發生了一些問題
+error.500.message = 我們這邊發生了未預期的錯誤。這不是你的問題，請稍後再試一次。
+error.500.id = 錯誤代碼：{0}
+error.500.report = 如果這種情況持續發生，請告訴我們並附上上方的錯誤代碼，以便我們調查。
+error.home = 返回首頁

@@ -1,0 +1,34 @@
+@*
+ * Branded, self-contained error page shared by the 404 and 500 handlers (modules.CustomErrorHandler).
+ * Deliberately does NOT use common.main: an error page has to render when the app/DB is degraded, so it takes no
+ * per-city CommonPageData and only links static, design-token stylesheets. `errorId` is shown for server errors so
+ * users can quote it when reporting (it matches the id in the application log).
+ *@
+@(heading: String, message: String, errorId: Option[String] = None)(implicit messages: Messages, assets: AssetsFinder)
+
+<!DOCTYPE html>
+<html lang="@messages.lang.code">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>@heading · Project Sidewalk</title>
+    <link href='@assets.path("css/fonts.css")' rel="stylesheet">
+    <link rel="stylesheet" href='@assets.path("css/main.css")'>
+    <link rel="stylesheet" href='@assets.path("css/errors.css")'>
+  </head>
+  <body>
+    <main class="error-page">
+      <div class="error-card">
+        <img class="error-logo" alt="" width="64" height="64"
+             src='@assets.path("images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_100x100.png")'>
+        <h1 class="error-heading">@heading</h1>
+        <p class="error-message">@message</p>
+        @errorId.map { id =>
+          <p class="error-id">@Messages("error.500.id", id)</p>
+          <p class="error-report">@Messages("error.500.report")</p>
+        }
+        <a class="button-ps button--primary button--medium error-home" href="@routes.ApplicationController.index">@Messages("error.home")</a>
+      </div>
+    </main>
+  </body>
+</html>
