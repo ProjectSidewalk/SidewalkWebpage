@@ -2,6 +2,7 @@ package controllers.helper
 
 import org.scalatestplus.play.PlaySpec
 import play.api.test.FakeRequest
+import play.api.test.Helpers._
 
 /**
  * Unit tests for pure helpers in ControllerUtils. No application/DB boot required.
@@ -59,6 +60,32 @@ class ControllerUtilsSpec extends PlaySpec {
 
     "fall back to the supplied default when the target is unsafe" in {
       ControllerUtils.safeLocalPath("https://evil.example", "/signIn") mustBe "/signIn"
+    }
+  }
+
+  "ControllerUtils.anonSignupRedirect" should {
+    "return 401 for a fetch/XHR request so the client's fetch fails cleanly (Sec-Fetch-Mode present and != navigate)" in {
+      val result = ControllerUtils.anonSignupRedirect(
+        FakeRequest(GET, "/task").withHeaders("Sec-Fetch-Mode" -> "cors")
+      )
+      result.header.status mustBe UNAUTHORIZED
+    }
+
+    "303-redirect a top-level navigation to /anonSignUp, preserving the path and query (Sec-Fetch-Mode: navigate)" in {
+      val result = ControllerUtils.anonSignupRedirect(
+        FakeRequest(GET, "/explore?lat=1&lng=2").withHeaders("Sec-Fetch-Mode" -> "navigate")
+      )
+      result.header.status mustBe SEE_OTHER
+      val location = result.header.headers("Location")
+      location must startWith("/anonSignUp")
+      location must include("url=%2Fexplore")
+      location must include("lat=1")
+    }
+
+    "303-redirect when Sec-Fetch-Mode is absent, the conservative default for curl/crawlers/tests" in {
+      val result = ControllerUtils.anonSignupRedirect(FakeRequest(GET, "/task"))
+      result.header.status mustBe SEE_OTHER
+      result.header.headers("Location") must startWith("/anonSignUp")
     }
   }
 }
