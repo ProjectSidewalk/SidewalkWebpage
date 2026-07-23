@@ -51,6 +51,7 @@ class Main {
     svl.userHasCompletedAMission = params.hasCompletedAMission;
     svl.routeId = params.routeId;
     svl.userRouteId = params.userRouteId;
+    svl.routeName = params.routeName;
     svl.makeCrops = params.makeCrops;
 
     svl.storage = new TemporaryStorage(JSON);
@@ -236,6 +237,11 @@ class Main {
       taskContainer.fetchTasks().then(() => {
         this.#loadingTasksCompleted = true;
         this.#handleDataLoadComplete();
+        // Plant start/finish flags on the minimap so a route walk shows where it begins and ends.
+        if (svl.neighborhoodModel.isRoute) {
+          const endpoints = taskContainer.getRouteEndpoints();
+          if (endpoints) svl.minimap.showRouteEndpoints(endpoints.start, endpoints.finish);
+        }
       });
     }
 

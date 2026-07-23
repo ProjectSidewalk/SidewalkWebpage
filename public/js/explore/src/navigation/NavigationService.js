@@ -3,6 +3,10 @@
  */
 class NavigationService {
   static #END_OF_STREET_THRESHOLD = 25; // Distance from the street endpoint when we consider it complete (meters).
+  // How close to the endpoint imagery has to run out before we treat the street as walked rather than as having
+  // an imagery gap. More generous than #END_OF_STREET_THRESHOLD: the imagery simply ends, so there is nothing
+  // further to walk either way, and Task.isAtEnd caps it on short streets.
+  static #NEAR_END_NO_IMAGERY_THRESHOLD = 50;
   static #MOVE_DELAY = 800; // Move delay prevents users from spamming through a mission.
   // Distance between points on a street when searching it for imagery (km). Public so that PanoManager can sample
   // backup starting points at the same granularity as moveForward()'s search.
@@ -134,7 +138,7 @@ class NavigationService {
     }
 
     // If the user is relatively close to the end of the street, tell them to finish labeling before jumping.
-    if (currentTask.isAtEnd(svl.panoViewer.getPosition(), svl.CLOSE_TO_ROUTE_THRESHOLD) < 0.5) {
+    if (currentTask.isAtEnd(svl.panoViewer.getPosition(), NavigationService.#NEAR_END_NO_IMAGERY_THRESHOLD)) {
       this.#endTheCurrentTask(currentTask, currentMission);
       this.#updateUiAfterMove();
       return Promise.resolve(null);
@@ -219,7 +223,9 @@ class NavigationService {
         // If we are out of streets, set the route/neighborhood as complete.
         if (!nextTask) {
           svl.neighborhoodModel.setComplete();
-          // TODO should maybe trigger wrapUpRouteOrNeighborhood?
+          // A route completes at its last reachable pano: show the finish toast and arm the 360°-gated auto-complete.
+          // Neighborhoods keep the manual compass-click flow.
+          if (svl.neighborhoodModel.isRoute) svl.missionController.onRouteReadyToFinish();
         } else if (!task.isConnectedTo(nextTask, svl.CONNECTED_TASK_THRESHOLD, { units: 'kilometers' })) {
           // If jumping to a new place, record what the next task will be.
           svl.taskContainer.setNextTaskAfterJump(nextTask);
@@ -314,7 +320,17 @@ class NavigationService {
       // In free exploration (#4451) reaching the end of the street must not end the task or advance to a new street.
       if (!isOnboarding && !svl.isExploreAddressMode() && task
         && task.isAtEnd(newLatLng, NavigationService.#END_OF_STREET_THRESHOLD)) {
-        this.#endTheCurrentTask(task, currentMission);
+        // On a route's final street, 25 m-from-endpoint can be a large fraction of a short street, firing "end of
+        // route" long before the last reachable pano (#4640 route manifestation). Defer to the imagery-exhaustion
+        // path (#handleImageryNotFound) unless they've already walked most of the street — on a long street 25 m
+        // really is the end, so preserve today's behavior there.
+        const finalRouteStreet = svl.neighborhoodModel.isRoute && !svl.taskContainer.nextTask(task);
+        const streetLen = task.lineDistance({ units: 'meters' });
+        const walkedMostOfStreet = streetLen > 0
+          && task.getDistanceFromStart(newLatLng, { units: 'meters' }) / streetLen >= 0.9;
+        if (!finalRouteStreet || walkedMostOfStreet) {
+          this.#endTheCurrentTask(task, currentMission);
+        }
       }
       svl.taskContainer.updateCurrentTask();
     }

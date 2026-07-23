@@ -88,11 +88,13 @@
     "stat-labels-all": "{{count}} labels created",
     "stat-labels-you": "You've added {{count}} labels",
     "button-next-mission": "Next Explore Mission",
+    "button-keep-exploring-here": "Keep exploring here",
     "button-try-validation": "Try Validation"
   },
   "tutorial-intro": {
     "eyebrow": "Explore Mission",
     "title": "Join the Sidewalk Mission",
+    "route-waiting": "Your route is ready and waiting — we'll take you straight to it after this quick tutorial.",
     "next": "Next",
     "start-mission": "Start Mission",
     "have-account": "Have an account?",
@@ -136,7 +138,7 @@
     "no-accuracy-tooltip": "We need more data to calculate an accuracy rating for you. Add more labels and sign up to keep track of your accuracy rating!",
     "current-mission": {
       "header": "Current Mission",
-      "header-route": "$t(right-ui.current-mission.header): Route {{route_number}}",
+      "message-route": "Explore {{routeName}}",
       "header-free-explore": "Free Exploration",
       "message": "Explore __PLACEHOLDER__ of {{neighborhoodName}}"
     },
@@ -274,7 +276,8 @@
       "slight-left": "Turn slightly left",
       "slight-right": "Turn slightly right",
       "u-turn": "U turn",
-      "end-route": "You're at the end of your route! Finish labeling this intersection, then <b>click here to complete the route.</b>",
+      "end-route": "You're at the end of your route! Look all the way around to finish — or <b>click here to complete now.</b>",
+      "route-finish-look-around": "Last stop! Take a full look around to finish your route.",
       "end-neighborhood": "You've explored this entire neighborhood! Finish labeling this intersection, then <b>click here to complete the neighborhood.</b>",
       "end-street": "We need to move you to a new location. Finish labeling this intersection, then <b>click here to move to a new location.</b>",
       "far-away": "Uh-oh, you're quite far away from the route. <b>Click here to jump back.</b>"

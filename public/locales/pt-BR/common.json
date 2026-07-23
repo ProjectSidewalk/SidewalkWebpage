@@ -26,6 +26,9 @@
   "problem": "Problema",
   "surface-problems": "Problemas de Superfície",
   "close": "Fechar",
+  "cancel": "Cancelar",
+  "continue": "Continuar",
+  "delete": "Excluir",
   "badges": {
     "congratulations": "Parabéns!",
     "you-earned": "Você ganhou a insígnia “{{badge}}”!",

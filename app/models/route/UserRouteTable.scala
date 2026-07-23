@@ -37,14 +37,29 @@ class UserRouteTable @Inject() (
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val userRoutes          = TableQuery[UserRouteTableDef]
+  val routes              = TableQuery[RouteTableDef]
   val routeStreets        = TableQuery[RouteStreetTableDef]
   val auditTaskUserRoutes = TableQuery[AuditTaskUserRouteTableDef]
   val auditTasks          = TableQuery[AuditTaskTableDef]
   val completedTasks      = auditTasks.filter(_.completed)
   val activeRoutes        = userRoutes.filter(ur => !ur.completed && !ur.discarded)
 
+  /**
+   * The user's in-progress route walk, if any.
+   *
+   * Routes soft-deleted by their owner are excluded. A shared route can be deleted while someone else is partway
+   * through it, and resuming one builds an inconsistent session — the mission is route-scoped off the user_route
+   * while the task is not, because getRoute filters deleted routes — leaving the user unable to progress or to
+   * fall back to normal exploration.
+   */
   def getInProgressRoute(userId: String): DBIO[Option[UserRoute]] = {
-    activeRoutes.filter(_.userId === userId).result.headOption
+    activeRoutes
+      .filter(_.userId === userId)
+      .join(routes.filter(!_.deleted))
+      .on(_.routeId === _.routeId)
+      .map(_._1)
+      .result
+      .headOption
   }
 
   def discardAllActiveRoutes(userId: String): DBIO[Int] = {
@@ -76,32 +91,36 @@ class UserRouteTable @Inject() (
     val possibleTask: DBIO[Option[NewTask]] = auditTaskUserRoutes
       .join(auditTasks)
       .on(_.auditTaskId === _.auditTaskId)
-      .filter(x => !x._2.completed && x._1.userRouteId === currRoute.userRouteId.bind)
-      .map(x => (x._1.auditTaskId, x._1.routeStreetId))
+      .join(routeStreets)
+      .on(_._1.routeStreetId === _.routeStreetId)
+      .filter(x => !x._1._2.completed && x._1._1.userRouteId === currRoute.userRouteId.bind)
+      .map(x => (x._1._1.auditTaskId, x._2.routeStreetId, x._2.position))
       .result
       .headOption
       .flatMap {
-        case Some((currTaskId, currRouteStreetId)) =>
-          auditTaskTable.selectTaskFromTaskId(currTaskId, Some(currRouteStreetId))
+        case Some((currTaskId, currRouteStreetId, currPosition)) =>
+          auditTaskTable.selectTaskFromTaskId(currTaskId, Some(currRouteStreetId), Some(currPosition))
         case None => DBIO.successful(None)
       }
 
     possibleTask.flatMap {
       case Some(task) => DBIO.successful(Some(task))
       case None       =>
-        // Get the next street in the route. This is the street with the lowest route_street_id that hasn't been audited.
+        // Get the next street in the route: the earliest street in walking order that hasn't been audited.
         val userTasks = auditTaskUserRoutes.filter(_.userRouteId === currRoute.userRouteId)
         routeStreets
           .joinLeft(userTasks)
           .on(_.routeStreetId === _.routeStreetId)
           .filter(x => x._1.routeId === currRoute.routeId && x._2.isEmpty)
-          .sortBy(_._1.routeStreetId)
-          .map(x => (x._1.streetEdgeId, x._1.routeStreetId, x._1.reverse))
+          .sortBy(_._1.position)
+          .map(x => (x._1.streetEdgeId, x._1.routeStreetId, x._1.reverse, x._1.position))
           .result
           .headOption
           .flatMap {
-            case Some((nextStreetId, routeStreetId, reversed)) =>
-              auditTaskTable.selectANewTask(nextStreetId, missionId, reversed, Some(routeStreetId)).map(Some(_))
+            case Some((nextStreetId, routeStreetId, reversed, position)) =>
+              auditTaskTable
+                .selectANewTask(nextStreetId, missionId, reversed, Some(routeStreetId), Some(position))
+                .map(Some(_))
             case None => DBIO.successful(None)
           }
     }

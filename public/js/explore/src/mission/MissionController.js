@@ -4,10 +4,15 @@
  * is the mission controller; visuals handled in sidebar/MissionPanel.js and the shared common/ProgressBar.js.
  */
 class MissionController {
+  // 0.9 not 1.0: some panos can't rotate a full 360 (the sparse-imagery inverse trap in #4640), so requiring an
+  // exact full sweep could make a route impossible to auto-finish. The manual compass-click fallback covers the rest.
+  static #ROUTE_FINISH_OBSERVED_THRESHOLD = 0.9;
+
   #missionModel;
   #neighborhoodModel;
   #missionContainer;
   #tracker;
+  #routeAutoCompleteFired = false;
 
   constructor(missionModel, neighborhoodModel, missionContainer, tracker) {
     this.#missionModel = missionModel;
@@ -27,14 +32,51 @@ class MissionController {
   wrapUpRouteOrNeighborhood() {
     // Free-exploration sessions (#4451) have no route/neighborhood goal to wrap up.
     if (svl.isExploreAddressMode()) return;
-    const currentTask = svl.taskContainer.getCurrentTask();
-    svl.taskContainer.endTask(currentTask);
 
     const mission = this.#missionContainer.getCurrentMission();
     const neighborhood = this.#neighborhoodModel.currentNeighborhood();
 
+    // A route-scoped mission completes with the route. This must happen before endTask: endTask's submission
+    // carries the mission's completed flag, which is what marks the mission complete server-side.
+    if (svl.neighborhoodModel.isRoute && !mission.isComplete()) {
+      this.#completeTheCurrentMission(mission, neighborhood);
+    }
+
+    const currentTask = svl.taskContainer.getCurrentTask();
+    svl.taskContainer.endTask(currentTask);
+
     svl.modalMissionComplete.update(mission, neighborhood);
     svl.modalMissionComplete.show();
+  }
+
+  /**
+   * Called when a route reaches its end. Shows the salient finish toast and arms the 360°-gated auto-complete so the
+   * celebration fires once the user has looked around the final location — no manual click required.
+   */
+  onRouteReadyToFinish() {
+    svl.alertController.showAlert(i18next.t('center-ui.compass.route-finish-look-around'), 'routeFinish', false);
+    this.#tracker.push('RouteFinishToast_Shown', { userRouteId: svl.userRouteId });
+    // Fire immediately if they already looked all the way around at this pano before reaching the end.
+    this.maybeAutoCompleteRoute();
+  }
+
+  /**
+   * On each POV change, auto-fire route completion once the final pano is ~fully observed. No-op until the route is
+   * flagged complete (its last reachable pano reached) and until the 360° observed fraction clears the threshold.
+   */
+  maybeAutoCompleteRoute() {
+    if (this.#routeAutoCompleteFired || !svl.neighborhoodModel.isRouteComplete) return;
+    // If the manual compass-click fallback already finished the route, don't fire wrapUp a second time.
+    const mission = this.#missionContainer.getCurrentMission();
+    if (mission && mission.isComplete()) return;
+    if (svl.observedArea.getFractionObserved() >= MissionController.#ROUTE_FINISH_OBSERVED_THRESHOLD) {
+      this.#routeAutoCompleteFired = true;
+      this.#tracker.push('RouteAutoComplete_Fired',
+        { userRouteId: svl.userRouteId, fractionObserved: svl.observedArea.getFractionObserved() });
+      // Drop the manual-click fallback so the compass message can't also fire wrapUp.
+      svl.compass.removeLabelBeforeJumpMessage();
+      this.wrapUpRouteOrNeighborhood();
+    }
   }
 
   /**
@@ -63,6 +105,12 @@ class MissionController {
    * @param neighborhood The current neighborhood.
    */
   #checkMissionComplete(mission, neighborhood) {
+    // On a route the mission IS the route walk (one route-scoped mission, sized to the route server-side), so its
+    // completion is finishing the route — handled in wrapUpRouteOrNeighborhood, not by this distance check. The
+    // check would also misfire here: the server measures the route in EPSG:26918 while the client's progress is
+    // turf/WGS84, so the two cross the 99.9% threshold at slightly different points.
+    if (svl.neighborhoodModel.isRoute) return;
+
     if (mission.getMissionCompletionRate() > 0.999) {
       this.#completeTheCurrentMission(mission, neighborhood);
 
@@ -98,8 +146,17 @@ class MissionController {
     // distanceProgress / null → 1, immediately triggering the mission-complete modal. No progress bar, no survey.
     if (svl.isExploreAddressMode()) return;
 
-    // Update mission completion rate in the right sidebar and the minimap's mission-progress bar.
-    const completionRate = currentMission.getMissionCompletionRate();
+    // Update mission completion rate in the right sidebar and the minimap's mission-progress bar. On a route, the
+    // Current Mission section describes the whole route (the server-side mission slices are invisible there), so its
+    // bar tracks route progress.
+    let completionRate;
+    if (this.#neighborhoodModel.isRoute) {
+      const unit = { units: i18next.t('common:unit-distance') };
+      const routeDistance = svl.taskContainer.totalLineDistanceInNeighborhood(unit);
+      completionRate = routeDistance ? Math.min(1, distance / routeDistance) : 0;
+    } else {
+      completionRate = currentMission.getMissionCompletionRate();
+    }
     svl.missionProgressBar.update(completionRate);
     if (svl.minimap) svl.minimap.updateMissionProgress(currentMission);
     if (!this.#neighborhoodModel.isRouteComplete && !this.#neighborhoodModel.isNeighborhoodComplete) {

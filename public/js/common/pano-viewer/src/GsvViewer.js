@@ -79,10 +79,13 @@ class GsvViewer extends PanoViewer {
   };
 
   getPanoId = () => {
-    return this.currPanoData.getPanoId();
+    // Null until the first pano's metadata has loaded (callers like Tracker log on every input event).
+    return this.currPanoData ? this.currPanoData.getPanoId() : null;
   };
 
   getPosition = () => {
+    // Null until the first pano's metadata has loaded.
+    if (!this.currPanoData) return null;
     return { lat: this.currPanoData.getProperty('lat'), lng: this.currPanoData.getProperty('lng') };
   };
 
@@ -274,8 +277,11 @@ class GsvViewer extends PanoViewer {
   };
 
   getPov = () => {
-    // Get POV and adjust heading to be between 0 and 360.
-    const pov = this.gsvPano.getPov();
+    // GSV's getPov() returns undefined until the first pano finishes loading, and input-event logging can fire
+    // before then — report null rather than throwing.
+    const pov = this.gsvPano?.getPov();
+    if (!pov || typeof pov.heading !== 'number') return null;
+    // Adjust heading to be between 0 and 360.
     while (pov.heading < 0) pov.heading += 360;
     while (pov.heading > 360) pov.heading -= 360;
     return pov;

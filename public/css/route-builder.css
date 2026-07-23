@@ -1,119 +1,264 @@
-#routebuilder-map {
-  width: 98%;
-  height: 800px;
-  margin-top: 15px;
-  left: 1%;
+/* Full-window map area: the flex-growing child of #wrap.wrap--full-window (mirrors LabelMap's choropleth holder).
+   The map fills it; the planner card, on-map CTA, and legend are its absolutely-positioned children. */
+#routebuilder-map-area {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
-.flex-div-col, .routebuilder-overlay {
+#routebuilder-map {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  left: 0;
+}
+
+/* Floating planner card (top-left overlay, Google-Maps style). Card chrome matches the PS Label Detail card
+   (radius 12, elevated shadow). data-state toggles which blocks show; the Start/End address block sits outside both
+   state selectors so it stays visible in both. */
+#routebuilder-panel {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: 340px;
+  max-width: calc(100% - 32px);
+  max-height: calc(100% - 32px);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+
+  /* Must stay visible: the address search's suggestion dropdown renders inside the card and would be clipped by
+     any overflow here — long content scrolls inside #saved-routes-panel instead. */
+  overflow: visible;
+  background: var(--color-neutral-white);
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgb(0 0 0 / 25%);
+  color: var(--color-neutral-black);
+  font: var(--text-body-regular);
+}
+
+.routebuilder-panel__empty,
+.routebuilder-panel__directions,
+.routebuilder-panel__building {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#routebuilder-panel[data-state="empty"] .routebuilder-panel__building {
+  display: none;
+}
+
+/* While building, the intro and saved-route cards get out of the way — but once the route on the map is a saved
+   one (just saved, or loaded for editing), its card stays visible in the panel. */
+#routebuilder-panel[data-state="building"] .routebuilder-panel__empty,
+#routebuilder-panel[data-state="building"]:not([data-editing="true"]) .routebuilder-panel__saved {
+  display: none;
+}
+
+/* On-map call-to-action: a floating pill, top-center, telling the user what a click will do. Non-interactive so
+   it never intercepts a map click. */
+#routebuilder-cta {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  padding: 12px 22px;
+  border-radius: 999px;
+  background: var(--color-neutral-white);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 18%);
+  font: var(--text-body-bold);
+  color: var(--color-asphalt-500);
+  text-align: center;
+  pointer-events: none;
+}
+
+#routebuilder-cta[hidden] {
+  display: none;
+}
+
+.cta-flag {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.flex-div-col {
   display: flex;
   flex-direction: column;
 }
 
-.flex-div-row, .editing-route-subsection, .routebuilder-button {
+.flex-div-row {
   display: flex;
   flex-direction: row;
   align-items: center;
 }
 
-.routebuilder-overlay {
+.routebuilder-h1 {
+  margin: 0;
+
+  /* Raleway at 20px, matching the Label Detail card title; no --text-* token carries the accent font at this
+     size, so the scale factor the tokens bake in is applied by hand. */
+  font: 700 calc(20px * var(--ui-scale, 1))/calc(24px * var(--ui-scale, 1)) var(--font-accent);
+}
+
+.routebuilder-h2 {
+  margin: 0;
+  font: var(--text-body-bold);
+}
+
+#routebuilder-intro-content {
+  font: var(--text-body-regular);
+  color: var(--color-neutral-800);
+}
+
+/* Stats block, separated from the address fields by a rule: a bold est.-time + distance headline with a quiet
+   street-count + neighborhood caption under it, then the action row. */
+.routebuilder-panel__building {
+  gap: 14px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+#route-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* The flex display would otherwise override the hidden attribute's UA display: none (stats stay hidden until the
+   route has at least one street). */
+#route-stats[hidden] {
+  display: none;
+}
+
+#route-stats-headline {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
+  font: var(--text-h3-bold); /* Mulish: tabular digits keep the readout steady. */
+  line-height: calc(30px * var(--ui-scale, 1));
+  color: var(--color-asphalt-500);
+  white-space: nowrap;
+}
+
+/* The explore-time value carries a tooltip explaining the estimate; the dotted underline signals it. */
+#route-time-wrap {
+  position: relative;
+}
+
+#route-time-val {
+  border-bottom: 1px dotted var(--color-neutral-500);
+  cursor: help;
+}
+
+#route-time-val:focus-visible {
+  outline: calc(2px * var(--ui-scale, 1)) solid var(--color-pine-600);
+  outline-offset: calc(2px * var(--ui-scale, 1));
+  border-radius: calc(2px * var(--ui-scale, 1));
+}
+
+/* Info popup shown on hover/focus/click of the estimate. Anchored above the value, growing rightward into the panel. */
+#route-time-tip {
   position: absolute;
-  padding: 20px 40px;
-  border-radius: 20px;
+  bottom: calc(100% + 6px * var(--ui-scale, 1));
+  left: 0;
+  z-index: 10;
+  width: max-content;
+  max-width: calc(230px * var(--ui-scale, 1));
+  padding: calc(6px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+  font: var(--text-caption-regular);
+  line-height: 1.4;
+  color: var(--color-neutral-white);
+  text-align: left;
+  white-space: normal;
+  background: var(--color-neutral-900);
+  border-radius: calc(6px * var(--ui-scale, 1));
+  box-shadow: 0 calc(2px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1)) rgb(0 0 0 / 28%);
+}
+
+#route-stats-caption {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-600);
+}
+
+#creating-route-buttons {
+  gap: 8px;
+}
+
+/* The explicit way to start over, under the route actions. */
+#new-route-button {
+  justify-content: center;
+}
+
+#save-button {
+  min-height: 40px;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+#preview-button {
+  margin-left: auto; /* Save sits left; the preview/undo/delete icon cluster sits right. */
+}
+
+/* Square icon-only secondary buttons (undo / delete); the accessible name is on the aria-label. */
+.button--icon-only {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.button-icon-img {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+/* Modal scrim: a fixed, full-viewport flex centering container. Toggled via visibility from JS. */
+.routebuilder-overlay-backdrop {
+  visibility: hidden;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgb(0 0 0 / 45%);
+  z-index: 20; /* Above the planner card (z-index 10). */
+}
+
+/* Modal card: the PS Label Detail card chrome (white, radius 12, elevated shadow). */
+.routebuilder-overlay {
+  display: flex;
+  flex-direction: column;
+  padding: 22px;
   background: var(--color-neutral-white);
-  box-shadow: 0 4px 8px 0 rgb(0 0 0 / 25%);
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgb(0 0 0 / 25%);
   color: var(--color-neutral-black);
 }
 
 .routebuilder-centered-overlay {
-  width: 590px;
-  top: calc(4% + var(--navbar-height) + 15px); /* 2% + navbar height + map margin-top */
-  left: calc(50% - 295px); /* 50% - width/2 */
-}
-
-.routebuilder-h1 {
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 28px; /* 127.273% */
-}
-
-.routebuilder-h2 {
-  font-size: 16px;
-}
-
-#routebuilder-intro-instruction {
-  color: #236EE0;
-  font-weight: 800;
-  padding-top: 16px;
-}
-
-#creating-route-overlay {
-  visibility: hidden; /* Show once the first street has been selected. */
-  top: calc(2% + var(--navbar-height) + 15px); /* 2% + navbar height + map margin-top */
-  right: 3%;
-  width: 320px;
-  gap: 16px;
-}
-
-#route-length-val {
-  font-size: 36px;
-  line-height: 44px; /* 122.222% */
-}
-
-#line-divider {
-  height: 1px;
-  background: #b6b6b6;
-}
-
-#editing-route-section {
-  gap: 12px;
-}
-
-.editing-route-subsection {
-  gap: 12px;
-}
-
-.editing-route-icon {
-  width: 48px;
-  height: 48px;
-}
-
-.editing-route-subsection-content {
-  flex: 1 0 0;
-}
-
-#creating-route-buttons {
-  gap: 12px;
-}
-
-.routebuilder-button {
-  height: 30px;
-  padding: 8px 13px;
-  font-size: 13px;
-  border-radius: 6px;
-}
-
-.blue-button {
-  background: #236EE0;
-  color: var(--color-neutral-white);
-  border: 1.5px solid #236EE0;
-}
-
-.white-button {
-  background: var(--color-neutral-white);
-  color: var(--color-asphalt-500);
-  border: 1.5px solid #525252;
-}
-
-.routebuilder-overlay-backdrop {
-  visibility: hidden; /* Show using JS at the appropriate times. */
-  height: calc(var(--navbar-height) + 865px); /* navbar height + map height and margin + filler */
-  width: 100%;
-  position: fixed;
-  top: 0;
-  left: 0;
-  background: rgb(0 0 0 / 10%);
-  z-index: 2;
+  width: 520px;
+  max-width: 100%;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
 }
 
 #delete-route-modal {
@@ -121,83 +266,419 @@
   gap: 24px;
 }
 
-#route-saved-modal {
-  gap: 24px;
-}
-
-#route-saved-title-section, #delete-route-title-section {
+#delete-route-title-section {
   padding-top: 8px;
   align-items: center;
   gap: 12px;
 }
 
-#route-saved-explore-title {
-  align-self: stretch;
-}
-
-#route-saved-buttons, #delete-route-buttons {
+#delete-route-buttons {
   gap: 12px;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
-#route-saved-share-section {
+#save-route-modal {
+  gap: 12px;
+}
+
+#save-route-header {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 8px;
 }
 
-#share-route-subsection {
-  padding: 10px 20px;
-  border-radius: 10px;
-  background: #F2F2F2;
+#close-save-modal-button {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--color-neutral-700);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
 }
 
-#share-route-link {
-  flex: 1 0 0;
-  color: #5F5F5F;
-  font-size: 12px;
+#close-save-modal-button:hover,
+#close-save-modal-button:focus-visible {
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-black);
 }
 
-#copy-link-button {
-  padding: 4px 8px;
-  font-size: 12px;
+#route-name-label,
+#route-description-label {
+  font: var(--text-small-bold);
+  margin-bottom: 0;
 }
 
-#route-saved-share-warnings {
+/* De-emphasizes the "(optional)" tag inside the description label. */
+.optional-tag {
+  font-weight: 400;
+  color: var(--color-neutral-600);
+}
+
+#route-name-input,
+#route-description-input {
+  padding: 8px 12px;
+  font: var(--text-body-regular);
+  border: 1.5px solid var(--color-neutral-800);
+  border-radius: 8px;
+}
+
+#route-description-input {
+  resize: vertical;
+  font-family: inherit;
+}
+
+#route-name-input:focus,
+#route-description-input:focus {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 1px;
+}
+
+#route-name-error {
   color: var(--color-label-surface-problem);
   font-weight: 600;
 }
 
-.marker-start, .marker-end {
-  width: 27px;
-  height: 27px;
+#save-route-signin-nudge,
+#save-route-dashboard-note {
+  color: var(--color-neutral-700);
 }
 
-.marker-start {
-  background-image: url("/assets/images/icons/routebuilder/start-point.png");
+#save-route-buttons {
+  gap: 12px;
+  padding-top: 8px;
+  flex-wrap: wrap;
 }
 
-.marker-end {
-  background-image: url("/assets/images/icons/routebuilder/end-point.png");
+/* "Your saved routes": one card per route on the intro panel, separated from the address block by a rule. This is
+   the card's one growable section, so it scrolls on its own (the card itself must not clip — see
+   #routebuilder-panel); min-height lets flex shrink it below its content within the card's max-height. */
+#saved-routes-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-neutral-200);
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
-.marker-number {
-  width: 21px;
-  height: 21px;
-  border-radius: 50%;
-  color: var(--color-neutral-white);
-  text-align: center;
-  font-family: Roboto, serif;
-  font-weight: 900;
+/* The flex display would otherwise override the hidden attribute's UA display: none. */
+#saved-routes-panel[hidden] {
+  display: none;
+}
+
+#saved-routes-note {
+  color: var(--color-neutral-700);
+  font: var(--text-caption-regular);
+}
+
+#saved-routes-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.saved-route-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 10px;
+  background: var(--color-neutral-white);
+}
+
+/* The just-saved route gets a soft success tint so the eye lands on it after the save toast. */
+.saved-route-card--new {
+  border-color: var(--color-pine-500);
+  background: var(--color-pine-100);
+}
+
+/* The card whose route is being previewed on the map. */
+.saved-route-card--active {
+  border-color: var(--color-link-100);
+  box-shadow: 0 0 0 1px var(--color-link-100);
+}
+
+/* The card body is a button: clicking it previews the route on the map. */
+.saved-route-view {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.saved-route-thumb {
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  object-fit: cover;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 8px;
+  margin-bottom: 3px;
+}
+
+.saved-route-usage {
+  color: var(--color-neutral-600);
+  font: var(--text-caption-regular);
+  cursor: help;
+}
+
+.saved-route-view:hover .saved-route-name,
+.saved-route-view:focus-visible .saved-route-name {
+  color: var(--color-link-200);
+}
+
+.saved-route-name {
+  font: var(--text-small-bold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The creator's "why this route matters" blurb, clamped so long stories don't swallow the card. */
+.saved-route-desc {
+  color: var(--color-neutral-700);
+  font: var(--text-caption-regular);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.saved-route-meta {
+  color: var(--color-neutral-700);
+  font: var(--text-caption-regular);
+}
+
+.saved-route-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+a.saved-route-explore {
+  text-decoration: none;
+}
+
+#saved-routes-dashboard-link {
+  font: var(--text-caption-medium);
+}
+
+/* The reverse/delete menu that opens on click or a short hover over the drawn route. */
+.route-popover-popup .mapboxgl-popup-content {
+  padding: 6px;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 22%);
+}
+
+.route-popover {
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+}
+
+.route-popover-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 8px 8px;
+  font: var(--text-small-medium);
+  color: var(--color-neutral-900);
+  border: none;
+  border-radius: 8px;
+  background: var(--color-neutral-white);
+  text-align: left;
+}
+
+.route-popover-btn:hover,
+.route-popover-btn:focus-visible {
+  background: var(--color-neutral-100);
+}
+
+.route-popover-delete {
+  color: var(--color-error-200);
+}
+
+.route-popover-icon-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--color-neutral-100);
+  flex-shrink: 0;
+}
+
+.route-popover-icon-chip--danger {
+  background: var(--color-orange-100);
+}
+
+.route-popover-icon {
+  width: 17px;
+  height: 17px;
 }
 
 /* Overwriting Mapbox popup styling. */
 .mapboxgl-popup-content {
-  padding: 10px; /* Default 10px 10px 15px */
-  box-shadow: 0 2px 4px 0 rgb(0 0 0 / 25%); /* Default 0 1px 2px rgb(0 0 0/10%) */
-  border-radius: 10px; /* Default 3px */
+  padding: 10px;
+  box-shadow: 0 2px 4px 0 rgb(0 0 0 / 25%);
+  border-radius: 10px;
 }
 
-.tooltip-no-outline {
-  background: none;
-  box-shadow: none;
-  padding: 10px;
+/* The next-step hint anchored beside the newest flag: a small dark bubble that reads as guidance, not data. */
+.rb-map-hint .mapboxgl-popup-content {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--color-asphalt-500);
+  color: var(--color-neutral-white);
+  font: var(--text-small-medium);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 25%);
+}
+
+.rb-map-hint.mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
+  border-right-color: var(--color-asphalt-500);
+}
+
+/* The pointer-following guide bubble ("Click to start your route"). Non-interactive so it never eats a click. */
+.rb-cursor-guide {
+  pointer-events: none;
+}
+
+.rb-cursor-guide .mapboxgl-popup-content {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--color-asphalt-500);
+  color: var(--color-neutral-white);
+  font: var(--text-caption-medium);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 25%);
+  pointer-events: none;
+}
+
+.rb-cursor-guide .mapboxgl-popup-tip {
+  display: none; /* It follows the cursor, so an anchor tip would just jitter. */
+}
+
+/* Always-visible map legend: bottom-right, aligned with the zoom/compass controls' right edge and clear of the
+   OSM/Mapbox attribution strip along the map's bottom. Compact card matching the planner chrome. */
+#routebuilder-legend {
+  position: absolute;
+  bottom: 40px;
+  right: 10px;
+  z-index: 10;
+  width: 190px;
+  padding: 12px 16px;
+  background: var(--color-neutral-white);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 15%);
+  color: var(--color-neutral-black);
+}
+
+#routebuilder-legend-title {
+  font: var(--text-small-bold);
+}
+
+#routebuilder-legend-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.legend-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  font: var(--text-caption-medium);
+}
+
+.legend-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.legend-direction-arrow {
+  width: 22px;
+  text-align: center;
+  color: var(--color-link-200);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* Points-of-interest toggle at the bottom of the legend card. */
+#routebuilder-poi-toggle {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-neutral-200);
+  font: var(--text-caption-medium);
+  cursor: pointer;
+}
+
+#poi-toggle-checkbox {
+  margin: 0;
+}
+
+/* Start/End address seed (#4579): flag-icon + search-field rows inside the planner card. The End row stays hidden
+   until the route has a start. */
+.directions-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.directions-row[hidden] {
+  display: none; /* The flex display would otherwise override the hidden attribute's UA display: none. */
+}
+
+.directions-flag {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.directions-slot {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* The search box otherwise keeps its library default width and overflows the card (the web component and its
+   .mapboxgl-ctrl wrapper both carry their own sizing). */
+.directions-slot mapbox-search-box,
+.directions-slot .mapboxgl-ctrl,
+.directions-slot input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }

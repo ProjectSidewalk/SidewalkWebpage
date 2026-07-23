@@ -1,12 +1,13 @@
 @import service.{AccuracyByType, CommonPageData, UserProfileData}
 @import models.user.{SidewalkUserWithRole, StreakCell, StreakStats, UserStanding}
 @import models.label.Tag
+@import models.route.RouteWithStats
 @import models.userdashboard.Trophy
 @import models.pano.PanoSource
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole, profileData: UserProfileData, isMetric: Boolean,
     tags: Seq[Tag], standing: Option[UserStanding], streak: StreakStats, accuracyByType: Seq[AccuracyByType],
-    trophies: Seq[Trophy]
+    trophies: Seq[Trophy], myRoutes: Seq[RouteWithStats]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* Formats the already-unit-converted audited distance (km when metric, else miles) with one decimal + unit. *@
@@ -49,6 +50,16 @@
 @* The message keys for label-type names predate the kebab-case css keys, so the two don't line up 1:1. *@
 @labelTypeMsgKey(cssKey: String) = @{
   if (cssKey == "no-curb-ramp") "missing.ramp" else cssKey.replace("-", ".")
+}
+
+@routeDistanceLabel(meters: Double) = @{
+  if (isMetric) f"${meters / 1000}%.2f ${Messages("dashboard.unit.km")}"
+  else f"${meters * models.utils.CommonUtils.METERS_TO_MILES}%.2f ${Messages("dashboard.unit.mi")}"
+}
+
+@routeDateLabel(dt: java.time.OffsetDateTime) = @{
+  dt.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
+    .withLocale(messages.lang.toLocale))
 }
 
 @content = {
@@ -96,6 +107,46 @@
       <div id="user-dashboard-choropleth" class="choropleth"></div>
       @common.mapSidebar(tags = tags, streetsShownByDefault = true)
     </div>
+  </div>
+
+  @* ---- My Routes — routes the user built in RouteBuilder (#3343) ---------------------------------------- *@
+  <div class="api-section" id="ud-routes-section">
+    <h2 class="api-heading" id="my-routes">@Messages("dashboard.routes.title") <a href="#my-routes" class="permalink">#</a></h2>
+    <p>@Messages("dashboard.routes.intro")</p>
+    <ul class="ud-routes" id="ud-routes-list" data-max-name-length="@models.route.Route.MaxNameLength" @if(myRoutes.isEmpty) {hidden}>
+      @for(r <- myRoutes) {
+        <li class="ud-route-row" data-route-id="@r.routeId" data-slug="@r.slug">
+          @if(r.thumbnailUrl.nonEmpty) {
+            <a class="ud-route-view" data-route-id="@r.routeId" href="/routeBuilder?preview=@r.routeId" title="@Messages("dashboard.routes.view.title")">
+              <img class="ud-route-thumb" src="@r.thumbnailUrl" alt="" loading="lazy" width="180" height="90">
+            </a>
+          }
+          <div class="ud-route-info">
+            <span class="ud-route-name">@r.name</span>
+            @r.description.map { desc =>
+              <span class="ud-route-desc">@desc</span>
+            }
+            <span class="ud-route-meta">@r.regionName · @routeDistanceLabel(r.distanceMeters) ·
+              @* A timestamp's calendar date depends on the reader's timezone, which only the browser knows;
+                 MyRoutes rewrites this to the local date, leaving the UTC rendering as the no-JS fallback. *@
+              <time class="ud-route-date" datetime="@r.createdAt.toInstant.toString">@routeDateLabel(r.createdAt)</time>
+            </span>
+            <span class="ud-route-usage" title="@Messages("dashboard.routes.stats.tooltip")">@Messages("dashboard.routes.stats", r.startedCount, r.completedCount)</span>
+          </div>
+          <div class="ud-route-actions">
+            <a class="ud-btn-secondary ud-route-explore" data-route-id="@r.routeId" href="/explore?routeId=@r.routeId">@Messages("dashboard.routes.explore")</a>
+            <a class="ud-btn-secondary ud-route-labelmap" data-route-id="@r.routeId" href="/labelMap?routes=@r.routeId" target="_blank" rel="noopener">@Messages("dashboard.routes.labelmap")</a>
+            <button type="button" class="ud-btn-secondary ud-route-copy" data-route-id="@r.routeId">@Messages("dashboard.routes.copy")</button>
+            <button type="button" class="ud-btn-secondary ud-route-rename" data-route-id="@r.routeId">@Messages("dashboard.routes.rename")</button>
+            <button type="button" class="ud-btn-secondary ud-route-delete" data-route-id="@r.routeId">@Messages("dashboard.routes.delete")</button>
+          </div>
+        </li>
+      }
+    </ul>
+    <div class="ud-nudge" id="ud-routes-empty" @if(myRoutes.nonEmpty) {hidden}>
+      @Messages("dashboard.routes.none") <a href="/routeBuilder">@Messages("dashboard.routes.build.one")</a>
+    </div>
+    <span id="ud-routes-status" class="ud-sr-only" role="status" aria-live="polite"></span>
   </div>
 
   @* ---- Streak / activity rhythm -------------------------------------------------------------------------- *@
@@ -289,6 +340,7 @@
   <script src="@assets.path("js/user-dashboard/DashboardBadges.js")"></script>
   <script src="@assets.path("js/user-dashboard/MistakeGallery.js")"></script>
   <script src="@assets.path("js/user-dashboard/StoriesSection.js")"></script>
+  <script src="@assets.path("js/user-dashboard/MyRoutes.js")"></script>
   <script>
     // Deferred handle the contribution map's click adapter awaits; resolved (popup or null) once init finishes.
     let labelPopupReadyResolve;
@@ -319,6 +371,11 @@
         console.error('Label popup init failed; mistake cards will use inline controls only', e);
       }
       labelPopupReadyResolve(labelPopup);
+
+      const routesList = document.getElementById('ud-routes-list');
+      if (routesList && typeof MyRoutes !== 'undefined') {
+        new MyRoutes(routesList).init();
+      }
 
       var mistakes = document.getElementById('ud-mistakes');
       if (mistakes && typeof MistakeGallery !== 'undefined') {

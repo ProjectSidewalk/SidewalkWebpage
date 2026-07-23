@@ -197,6 +197,11 @@ POST    /clusteringResults                              controllers.ClusterContr
 
 # RouteBuilder
 POST    /saveRoute                                      controllers.RouteBuilderController.saveRoute
+GET     /userapi/routes                                 controllers.RouteBuilderController.getUserRoutes
+GET     /userapi/routes/:routeId/streets                controllers.RouteBuilderController.getRouteStreets(routeId: Int)
+PUT     /userapi/routes/:routeId                        controllers.RouteBuilderController.updateRoute(routeId: Int)
+DELETE  /userapi/routes/:routeId                        controllers.RouteBuilderController.deleteRoute(routeId: Int)
+GET     /r/:slug                                        controllers.RouteBuilderController.routeBySlug(slug: String)
 
 # Images
 POST    /saveImage                                      controllers.ImageController.saveImage

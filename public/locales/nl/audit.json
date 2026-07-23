@@ -2,6 +2,7 @@
   "tutorial-intro": {
     "eyebrow": "Verkenningsmissie",
     "title": "Doe mee met de Sidewalk-missie",
+    "route-waiting": "Je route staat klaar — na deze korte tutorial brengen we je er meteen naartoe.",
     "next": "Volgende",
     "start-mission": "Missie starten",
     "have-account": "Heb je een account?",
@@ -116,6 +117,7 @@
     "stat-labels-all": "{{count}} labels gemaakt",
     "stat-labels-you": "Jij voegde {{count}} labels toe",
     "button-next-mission": "Volgende verkenningsmissie",
+    "button-keep-exploring-here": "Blijf hier verkennen",
     "button-try-validation": "Validatie proberen"
   },
   "top-ui": {
@@ -136,7 +138,7 @@
     "no-accuracy-tooltip": "We hebben meer gegevens nodig om een nauwkeurigheidsbeoordeling voor u te berekenen. Voeg meer labels toe en meld u aan om uw nauwkeurigheidsbeoordeling bij te houden!",
     "current-mission": {
       "header": "Huidige Missie",
-      "header-route": "$t(right-ui.current-mission.header): Route {{route_number}}",
+      "message-route": "Verken {{routeName}}",
       "header-free-explore": "Vrij verkennen",
       "message": "Zoek __PLACEHOLDER__ voor {{neighborhoodName}}"
     },
@@ -274,7 +276,8 @@
       "slight-left": "Sla flauw links af",
       "slight-right": "Sla flauw rechts af",
       "u-turn": "Keer om",
-      "end-route": "Je bent aan het einde van je route! Voltooi het labelen van dit kruispunt en <b>klik hier om de route te voltooien.</b>",
+      "end-route": "Je bent aan het einde van je route! Kijk helemaal om je heen om te voltooien, of <b>klik hier om nu te voltooien.</b>",
+      "route-finish-look-around": "Laatste halte! Kijk helemaal om je heen om je route te voltooien.",
       "end-neighborhood": "Je hebt deze hele buurt verkend! Voltooi het labelen van dit kruispunt en <b>klik hier om de buurt te voltooien.</b>",
       "end-street": "We moeten u verhuizen naar een nieuwe locatie. Voltooi het labelen van dit kruispunt en <b>klik hier om naar een nieuwe locatie te gaan.</b>",
       "far-away": "Oh oh, je bent nogal ver weg van de route. <b>Klik hier om terug te gaan.</b>"

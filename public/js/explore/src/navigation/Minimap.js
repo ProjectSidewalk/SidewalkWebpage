@@ -14,6 +14,11 @@ class Minimap {
   /** @type {number} */
   static #OVERVIEW_MIN_ZOOM = 12;
 
+  // Route start/finish flags reuse RouteBuilder's flag icons at its rasterized size, planted at the pole base.
+  static #ROUTE_FLAG_SIZE_PX = 27;
+  static #START_FLAG_SRC = '/assets/images/icons/routebuilder/flag-start.svg';
+  static #FINISH_FLAG_SRC = '/assets/images/icons/routebuilder/flag-end.svg';
+
   /** @type {google.maps.Map} */
   #map;
 
@@ -284,6 +289,31 @@ class Minimap {
     // Reaching a new pano while fitted means the user is exploring again — drop back to street level first.
     if (this.#overviewMode) this.exitOverview('pano-changed');
     this.#map.setCenter(new google.maps.LatLng(latLng.lat, latLng.lng));
+  }
+
+  /**
+   * Draws the route's start and finish flags on the minimap (routes only), reusing the same flag icons the user
+   * placed while building the route so building and walking read as one experience. Each flag is planted with its
+   * pole base on the point (AdvancedMarkerElement's default bottom-center anchor matches RouteBuilder's icon-anchor).
+   * The flags are decorative reinforcement of route status already conveyed textually (progress bar, finish toast,
+   * compass message), so their images are marked decorative (empty alt) for screen readers.
+   * @param {{lat: number, lng: number}} start - Route start (first street's walking-start coordinate).
+   * @param {{lat: number, lng: number}} finish - Route finish (last street's walking-end coordinate).
+   */
+  showRouteEndpoints(start, finish) {
+    const plantFlag = (latLng, src) => {
+      const content = document.createElement('img');
+      content.src = src;
+      content.alt = '';
+      content.style.width = `${Minimap.#ROUTE_FLAG_SIZE_PX}px`;
+      return new google.maps.marker.AdvancedMarkerElement({
+        position: new google.maps.LatLng(latLng.lat, latLng.lng),
+        map: this.#map,
+        content,
+      });
+    };
+    plantFlag(start, Minimap.#START_FLAG_SRC);
+    plantFlag(finish, Minimap.#FINISH_FLAG_SRC);
   }
 
   /**

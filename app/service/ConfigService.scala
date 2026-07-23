@@ -440,6 +440,16 @@ trait ConfigService {
   def getCrossCityLabelingSpeed(): Future[Map[String, Double]]
 
   /**
+   * Returns the current city's labeling pace as minutes of active auditing per 100 m covered.
+   *
+   * Same expensive interaction-table scan as [[getCrossCityLabelingSpeed]] but for this deployment's schema only,
+   * on its own daily cache. RouteBuilder bases its route exploration-time estimate on this.
+   *
+   * @return A Future of minutes per 100 m, or None when the city has no interaction data yet.
+   */
+  def getCityLabelingSpeed(): Future[Option[Double]]
+
+  /**
    * Returns each available city's precomputed engagement funnels for a time window (#288).
    *
    * Reads each schema's nightly-precomputed `funnel_stat` table (cheap) and assembles one [[CityFunnel]] per city,
@@ -802,6 +812,25 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
+  /**
+   * Labeling pace for one city's schema, in seconds of exploration per 100 m of street audited.
+   *
+   * Seconds per 100 m is the canonical unit both public accessors convert from, so the formula lives in exactly
+   * one place — the two differ only by a factor of 60, which is easy to skew by fixing one copy and not the other.
+   *
+   * @param schema The city's Postgres schema (e.g. "sidewalk_seattle").
+   * @return       None when the schema has no interaction data or no audited distance, which leaves pace
+   *               unknowable, and None (logged) if the query fails.
+   */
+  private def labelingSpeedForSchema(schema: String): Future[Option[Double]] = {
+    db.run(configTable.getCityLabelingSpeedBySchema(schema))
+      .map { case (hours, km) => if (hours > 0 && km > 0) Some((hours * 3600.0) / (km * 10.0)) else None }
+      .recover { case e: Exception =>
+        logger.warn(s"Failed to compute labeling speed for schema $schema: ${e.getMessage}")
+        None
+      }
+  }
+
   def getCrossCityLabelingSpeed(): Future[Map[String, Double]] = {
     // Daily cache: this is the heavy interaction-table scan, and labeling speed barely moves day to day.
     cacheApi.getOrElseUpdate[Map[String, Double]]("getCrossCityLabelingSpeed", Duration(24, "hours")) {
@@ -818,18 +847,23 @@ class ConfigServiceImpl @Inject() (
       Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
         val availableCities                                       = schemaResults.filter(_._2).map(_._1)
         val perCityFutures: Seq[Future[Option[(String, Double)]]] = availableCities.map { cityId =>
-          db.run(configTable.getCityLabelingSpeedBySchema(getCitySchema(cityId)))
-            .map { case (hours, km) =>
-              // Only report cities with both interaction data and audited distance; otherwise speed is unknowable.
-              if (hours > 0 && km > 0) Some(cityId -> (hours * 3600.0) / (km * 10.0)) else None
-            }
-            .recover { case e: Exception =>
-              logger.warn(s"Failed to compute labeling speed for city $cityId: ${e.getMessage}")
-              None
-            }
+          labelingSpeedForSchema(getCitySchema(cityId)).map(_.map(cityId -> _))
         }
         Future.sequence(perCityFutures).map(_.flatten.toMap)
       }
+    }
+  }
+
+  def getCityLabelingSpeed(): Future[Option[Double]] = {
+    // Daily cache, matching getCrossCityLabelingSpeed: the underlying interaction-table scan is expensive.
+    cacheApi.getOrElseUpdate[Option[Double]](s"getCityLabelingSpeed_$getCityId", Duration(24, "hours")) {
+      // Minutes per 100 m, the unit the RouteBuilder time estimate reads. Reject a physically implausible pace as
+      // unknown (→ caller's default) so a degenerate ratio can't drive the estimate: a dev DB whose interaction log is
+      // trimmed but whose audited distance is intact yields a near-zero pace, and both bounds guard against bad data.
+      val minPace = 0.5  // min/100 m; a faster pace (> ~12 km/h) is impossible while auditing.
+      val maxPace = 60.0 // min/100 m; a slower pace signals broken data, not real auditing.
+      labelingSpeedForSchema(getCitySchema(getCityId))
+        .map(_.map(_ / 60.0).filter(pace => pace >= minPace && pace <= maxPace))
     }
   }
 

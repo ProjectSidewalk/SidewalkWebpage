@@ -488,6 +488,8 @@ class PanoManager {
     // the final update so it doesn't swing through the mid-animation heading. (#4174)
     if (!svl.navigationService || !svl.navigationService.getStatus('headingSettling')) {
       if (svl.observedArea) svl.observedArea.update();
+      // Once at the route's last pano, auto-finish as soon as the user has looked all the way around it.
+      if (svl.missionController) svl.missionController.maybeAutoCompleteRoute();
     }
 
     const arrowGroup = svl.ui.streetview.navArrows[0];
@@ -566,6 +568,7 @@ class PanoManager {
    */
   updatePov(dx, dy) {
     let pov = svl.panoViewer.getPov();
+    if (!pov) return; // Drag events can fire before the first pano has loaded.
     const viewerScaling = 0.375;
     pov.heading -= dx * viewerScaling;
     pov.pitch += dy * viewerScaling;
@@ -587,7 +590,9 @@ class PanoManager {
     // Pov restriction.
     pov = this.#restrictViewport(pov);
 
-    if (durationMs) {
+    // Animating needs a current POV to interpolate from; before the first pano loads there is none, so fall
+    // through to an immediate set.
+    if (durationMs && currentPov) {
       const timeSegment = 25; // 25 milliseconds.
 
       // Get how much angle you change over timeSegment of time.

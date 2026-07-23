@@ -2,6 +2,7 @@
   "tutorial-intro": {
     "eyebrow": "Erkundungsmission",
     "title": "Werden Sie Teil der Sidewalk-Mission",
+    "route-waiting": "Deine Route ist bereit und wartet — nach diesem kurzen Tutorial bringen wir dich direkt dorthin.",
     "next": "Weiter",
     "start-mission": "Mission starten",
     "have-account": "Haben Sie ein Konto?",
@@ -116,6 +117,7 @@
     "stat-labels-all": "{{count}} Markierungen erstellt",
     "stat-labels-you": "Sie haben {{count}} Markierungen hinzugefügt",
     "button-next-mission": "Nächste Erkundungsmission",
+    "button-keep-exploring-here": "Hier weiter erkunden",
     "button-try-validation": "Validierung starten"
   },
   "top-ui": {
@@ -136,7 +138,7 @@
     "no-accuracy-tooltip": "Wir benötigen mehr Daten, um Ihre Genauigkeit zu bewerten. Fügen Sie mehr Beschriftungen hinzu und melden Sie sich an, um die Bewertung Ihrer Genauigkeit zu verfolgen!",
     "current-mission": {
       "header": "Aktuelle Mission",
-      "header-route": "$t(right-ui.current-mission.header): Route {{route_number}}",
+      "message-route": "Erkunde {{routeName}}",
       "header-free-explore": "Freies Erkunden",
       "message": "Erkunden Sie __PLACEHOLDER__ von {{neighborhoodName}}"
     },
@@ -274,7 +276,8 @@
       "slight-left": "Biegen Sie leicht links ab",
       "slight-right": "Biegen Sie leicht rechts ab",
       "u-turn": "Kehrtwende",
-      "end-route": "Sie sind am Ende Ihrer Route! Beenden Sie das Beschriften dieser Kreuzung. Anschliessend <b>klicken Sie hier, um die Route zu beenden.</b>",
+      "end-route": "Sie sind am Ende Ihrer Route! Schauen Sie sich einmal vollständig um, um abzuschliessen – oder <b>klicken Sie hier, um jetzt zu beenden.</b>",
+      "route-finish-look-around": "Letzter Halt! Schauen Sie sich einmal vollständig um, um Ihre Route abzuschliessen.",
       "end-neighborhood": "Sie haben das gesamte Quartier erkundet! Beenden Sie das Beschriften dieser Kreuzung. Anschliessend <b>klicken Sie hier, um das Quartier zu beenden.</b>",
       "end-street": "Wir werden Sie an einen neuen Ort bewegen. Beenden sie das Beschriften dieser Kreuzung. Anschliessend <b>klicken Sie hier um zu einem neuen Ort gebracht zu werden.</b>",
       "far-away": "Ups, Sie sind ziemlich weit von der Route entfernt. <b>Klicken Sie hier, um zurückzukehren.</b>"

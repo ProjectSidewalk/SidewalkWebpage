@@ -2,6 +2,7 @@
   "tutorial-intro": {
     "eyebrow": "Misión de Exploración",
     "title": "Únete a la Misión Sidewalk",
+    "route-waiting": "Tu ruta está lista y esperando: te llevaremos directamente a ella después de este breve tutorial.",
     "next": "Siguiente",
     "start-mission": "Iniciar misión",
     "have-account": "¿Ya tienes una cuenta?",
@@ -116,6 +117,7 @@
     "stat-labels-all": "{{count}} etiquetas creadas",
     "stat-labels-you": "Agregaste {{count}} etiquetas",
     "button-next-mission": "Siguiente misión de exploración",
+    "button-keep-exploring-here": "Sigue explorando aquí",
     "button-try-validation": "Probar validación"
   },
   "top-ui": {
@@ -136,7 +138,7 @@
     "no-accuracy-tooltip": "Necesitamos más datos para calcular una calificación de precisión para usted. ¡Agregue más etiquetas y regístrese para realizar un seguimiento de su calificación de precisión!",
     "current-mission": {
       "header": "Misión actual",
-      "header-route": "$t(right-ui.current-mission.header): Ruta {{route_number}}",
+      "message-route": "Explora {{routeName}}",
       "header-free-explore": "Exploración libre",
       "message": "Explora __PLACEHOLDER__ de {{neighborhoodName}}"
     },
@@ -274,7 +276,8 @@
       "slight-left": "Gira ligeramente a la izquierda",
       "slight-right": "Gira ligeramente a la derecha",
       "u-turn": "Da la vuelta",
-      "end-route": "¡Estás al final de tu ruta! Termina de etiquetar esta intersección, luego <b>haz clic aquí para completar la ruta.</b>",
+      "end-route": "¡Estás al final de tu ruta! Mira a tu alrededor por completo para terminar, o <b>haz clic aquí para completar ahora.</b>",
+      "route-finish-look-around": "¡Última parada! Mira a tu alrededor por completo para terminar tu ruta.",
       "end-neighborhood": "¡Has explorado todo este vecindario! Termine de etiquetar esta intersección, luego <b>haga clic aquí para completar el vecindario.</b>",
       "end-street": "Necesitamos trasladarte a una nueva ubicación. Termine de etiquetar esta intersección, luego <b>haga clic aquí para moverse a una nueva ubicación.</b>",
       "far-away": "Oh-oh, estás bastante lejos de la ruta. <b>Haz clic aquí para volver atrás.</b>"

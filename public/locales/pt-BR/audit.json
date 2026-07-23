@@ -2,6 +2,7 @@
   "tutorial-intro": {
     "eyebrow": "Missão de Exploração",
     "title": "Participe da Missão Sidewalk",
+    "route-waiting": "Sua rota está pronta e esperando — levaremos você direto até ela depois deste tutorial rápido.",
     "next": "Próximo",
     "start-mission": "Iniciar missão",
     "have-account": "Já tem uma conta?",
@@ -116,6 +117,7 @@
     "stat-labels-all": "{{count}} etiquetas criadas",
     "stat-labels-you": "Você adicionou {{count}} etiquetas",
     "button-next-mission": "Próxima missão de exploração",
+    "button-keep-exploring-here": "Continue explorando aqui",
     "button-try-validation": "Experimentar validação"
   },
   "top-ui": {
@@ -136,7 +138,7 @@
     "no-accuracy-tooltip": "Precisamos de mais dados para calcular uma classificação de precisão para você. Adicione mais rótulos e inscreva-se para acompanhar sua classificação de precisão!",
     "current-mission": {
       "header": "Missão Atual",
-      "header-route": "$t(right-ui.current-mission.header): Rota {{route_number}}",
+      "message-route": "Explore {{routeName}}",
       "header-free-explore": "Exploração livre",
       "message": "Explore __PLACEHOLDER__ de {{neighborhoodName}}"
     },
@@ -274,7 +276,8 @@
       "slight-left": "Vire ligeiramente à esquerda",
       "slight-right": "Vire ligeiramente à direita",
       "u-turn": "Retorne",
-      "end-route": "Você está no final da sua rota! Termine de rotular este cruzamento e, em seguida, <b>clique aqui para completar a rota.</b>",
+      "end-route": "Você está no final da sua rota! Olhe totalmente ao seu redor para terminar, ou <b>clique aqui para completar agora.</b>",
+      "route-finish-look-around": "Última parada! Olhe totalmente ao seu redor para completar sua rota.",
       "end-neighborhood": "Você explorou todo este bairro! Termine de rotular este cruzamento e, em seguida, <b>clique aqui para completar o bairro.</b>",
       "end-street": "Precisamos movê-lo para um novo local. Termine de rotular este cruzamento e, em seguida, <b>clique aqui para ir para um novo local.</b>",
       "far-away": "Opa, você está bem longe da rota. <b>Clique aqui para voltar.</b>"

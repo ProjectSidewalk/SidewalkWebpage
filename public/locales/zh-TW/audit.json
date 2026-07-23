@@ -2,6 +2,7 @@
   "tutorial-intro": {
     "eyebrow": "探索任務",
     "title": "加入 Sidewalk 任務",
+    "route-waiting": "你的路線已準備好，完成這個簡短教學後我們會直接帶你過去。",
     "next": "下一步",
     "start-mission": "開始任務",
     "have-account": "已經有帳戶了嗎？",
@@ -116,6 +117,7 @@
     "stat-labels-all": "已建立 {{count}} 個標記",
     "stat-labels-you": "您新增了 {{count}} 個標記",
     "button-next-mission": "下一個探索任務",
+    "button-keep-exploring-here": "在這裡繼續探索",
     "button-try-validation": "嘗試檢核"
   },
   "top-ui": {
@@ -136,7 +138,7 @@
     "no-accuracy-tooltip": "我們需要更多的資料以計算您的精準度。請新增更多的標記並註冊帳號以持續追蹤進度及精準度！",
     "current-mission": {
       "header": "目前的任務",
-      "header-route": "$t(right-ui.current-mission.header): 路線{{route_number}}",
+      "message-route": "探索{{routeName}}",
       "header-free-explore": "自由探索",
       "message": "探索{{neighborhoodName}}的__PLACEHOLDER__"
     },
@@ -273,7 +275,8 @@
       "slight-left": "稍微向左轉",
       "slight-right": "稍微向右轉",
       "u-turn": "迴轉",
-      "end-route": "您已到達路線的盡頭！ 完成標記此路口，然後 <b>點選這裡完成路線。</b>",
+      "end-route": "您已到達路線的盡頭！環顧四周一圈即可完成，或 <b>點選這裡立即完成。</b>",
+      "route-finish-look-around": "最後一站！環顧四周一圈以完成您的路線。",
       "end-neighborhood": "您已探索了整個鄰里！ 完成標記此路口，然後<b>點選這裡完成此鄰里。</b>",
       "end-street": "我們需要將您轉移到新的位置。 完成標記此路口，然後<b>點選這裡來移動到新的位置。</b>",
       "far-away": "不妙了！ 您已經離開路線很遠了。<b>點選這裡以回到路線。</b>"

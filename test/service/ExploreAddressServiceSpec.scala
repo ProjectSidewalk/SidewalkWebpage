@@ -170,7 +170,8 @@ class ExploreAddressServiceSpec extends PlaySpec with org.scalatest.BeforeAndAft
     AuditTaskSubmission(
       missionProgress = AuditMissionProgress(missionId, Some(0d), regionId, completed, Some(auditTaskId), false),
       auditTask = TaskSubmission(streetEdgeId, now, Some(auditTaskId), Some(completed), 0d, 0d,
-        startPointReversed = false, None, now, requestUpdatedStreetPriority = false, auditedDistanceM),
+        startPointReversed = false, None, now, requestUpdatedStreetPriority = false, auditedDistanceM,
+        routeStreetId = None),
       labels = labels,
       interactions = Seq.empty,
       environment = EnvironmentSubmission(None, None, None, None, None, None, None, None, None, "en", 100),
@@ -542,7 +543,7 @@ class ExploreAddressServiceSpec extends PlaySpec with org.scalatest.BeforeAndAft
           val now       = OffsetDateTime.now
           val _         = run(
             missions += Mission(0, MissionType.ExploreAddress, strayUser.userId, now, now, completed = false, 0d,
-              paid = false, None, None, Some(regionId), None, None, None, skipped = false, None)
+              paid = false, None, None, Some(regionId), None, None, None, skipped = false, None, None)
           )
           try {
             val missionTable = app.injector.instanceOf[models.mission.MissionTable]
