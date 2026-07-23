@@ -399,11 +399,6 @@ class Main {
         }
 
         this.#startTheMission(mission, currentNeighborhood);
-
-        // On a designated route, open fitted to the whole route so the user sees its shape before street-level detail
-        // takes over (auto-exits on first pano interaction). A neighborhood audit has no bounded route to frame — its
-        // "route" is just the current street at this point — so it opens at street level with the fog visible (#4639).
-        if (svl.neighborhoodModel.isRoute) svl.minimap.enterOverview(true);
       }
 
       // Update the observed area now that everything has loaded.

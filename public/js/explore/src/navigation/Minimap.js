@@ -115,7 +115,7 @@ class Minimap {
     if (this.#overviewMode) {
       this.exitOverview(trigger);
     } else {
-      this.enterOverview(false);
+      this.enterOverview();
     }
     svl.tracker.push('Click_MinimapFitRoute', { mode: this.#overviewMode ? 'overview' : 'street', trigger });
   }
@@ -141,9 +141,8 @@ class Minimap {
    * Fits the minimap to all loaded streets (the route when on one, the neighborhood otherwise) so the user can see
    * overall progress at a glance. The fog/FOV/ring overlays are hidden via the minimap-overview class while fitted —
    * they only make sense at street zoom, centered on the user.
-   * @param {boolean} isIntro - True when shown automatically at mission start; auto-exits on first pano interaction.
    */
-  enterOverview(isIntro) {
+  enterOverview() {
     const bounds = this.#streetBounds();
     if (!bounds || this.#overviewMode) return;
     this.#overviewMode = true;
@@ -151,13 +150,6 @@ class Minimap {
     svl.ui.minimap.holder.addClass('minimap-overview');
     this.#map.setOptions({ minZoom: Minimap.#OVERVIEW_MIN_ZOOM });
     this.#map.fitBounds(bounds, 12);
-    if (isIntro) {
-      // Return to street level as soon as the user starts looking around; stepping to a new pano also exits (via
-      // setMinimapLocation). exitOverview no-ops if something else already ended the overview.
-      svl.ui.streetview.viewControlLayer[0].addEventListener('pointerdown',
-        () => this.exitOverview('pano-interaction'), { once: true });
-      svl.tracker.push('MinimapOverview_IntroShown');
-    }
   }
 
   /**

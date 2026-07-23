@@ -3,13 +3,13 @@
  * ordered path is known up front. It renders the entire route (explored streets solid in the explored color, streets
  * ahead dashed in the ahead color) with green/red start and finish dots at its ends, a "you are here" marker, and a
  * box outlining the minimap's current zoomed extent, so the user always sees the whole route alongside the street-level
- * view — the way a game shows a world map
- * beside your local view. On a neighborhood audit the route grows street-by-street, so there's nothing to preview and
- * this stays hidden; the mini-legend keeps the bottom-left corner there instead (#4639).
+ * view — the way a game shows a world map beside your local view. It sits in the upper-right corner; the mini-legend
+ * keeps the bottom-left. On a neighborhood audit the route grows street-by-street, so there's nothing to preview and
+ * this stays hidden (#4639).
  *
  * It draws the route geometry the tool already has (svl.taskContainer) onto a small canvas — no second Google map — so
- * it's cheap to redraw whenever the peg moves or a street completes. Because it carries the route's own colors, it also
- * doubles as the legend on routes. Clicking it fits the minimap to the whole route (the same action as the ⛶ button).
+ * it's cheap to redraw whenever the peg moves or a street completes. Clicking it fits the minimap to the whole route
+ * (the same action as the ⛶ button).
  */
 class RouteOverview {
   /** @type {Tracker} */
@@ -32,7 +32,7 @@ class RouteOverview {
     this.#enabled = !!(svl.neighborhoodModel && svl.neighborhoodModel.isRoute);
 
     if (this.#enabled) {
-      // Repurpose the bottom-left corner (the mini-legend's slot) for the overview; CSS keys off this holder class.
+      // Reveal the upper-right overview inset (CSS keys off this holder class); the mini-legend stays bottom-left.
       uiMinimap.holder.addClass('minimap-route-mode');
       uiMinimap.routeOverview.on('click', () => {
         this.#tracker.push('Click_MinimapRouteOverview');
@@ -229,7 +229,7 @@ class RouteOverview {
     ctx.lineTo(-3.5, -3);
     ctx.lineTo(3.5, -3);
     ctx.closePath();
-    ctx.fillStyle = 'rgb(62, 139, 217)';
+    ctx.fillStyle = MinimapStyle.pegColor();
     ctx.fill();
     ctx.restore();
 
