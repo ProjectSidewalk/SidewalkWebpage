@@ -52,5 +52,14 @@ class ExploreRoutesSpec extends PlaySpec with GuiceOneAppPerSuite {
       location must include("pitch")
       location must include("zoom")
     }
+
+    "return 401 instead of the anonSignUp redirect for a fetch/XHR request so XHR clients fail cleanly rather than " +
+      "looping through anon sign-up (Sec-Fetch-Mode != navigate)" in {
+        val result = route(
+          app,
+          FakeRequest(GET, "/explore?lat=47.615&lng=-122.332").withHeaders("Sec-Fetch-Mode" -> "cors")
+        ).get
+        status(result) mustBe UNAUTHORIZED
+      }
   }
 }
