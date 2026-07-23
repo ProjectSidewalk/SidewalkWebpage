@@ -375,6 +375,18 @@
   opacity: 0.8;
 }
 
+/* Hovering the on-pano nav arrow that leads to this pano highlights its breadcrumb (#4682): the faint hollow ring
+   becomes a larger solid dot in the peg's hue, ringed in white with a soft glow — clearly the one that arrow points
+   to, and distinct from the plain hover-to-return affordance. */
+.minimap-breadcrumb-highlight::before {
+  width: calc(11px * var(--ui-scale, 1));
+  height: calc(11px * var(--ui-scale, 1));
+  background: var(--color-link-100);
+  border-color: var(--color-neutral-white);
+  opacity: 1;
+  box-shadow: 0 0 calc(4px * var(--ui-scale, 1)) var(--color-link-100);
+}
+
 /* GSV-style "you are here" puck (Peg.js): a blue dot with a triangle pointing in the heading direction. Markers anchor
    bottom-center, so the wrapper shifts down half its height to center on the location, then rotates about that center
    so the dot stays planted while the triangle swings to --peg-heading (#4639). */

@@ -19,6 +19,7 @@ class ObservedArea {
   #observedAreas = [];     // List of observed areas (panoId, latLng, minAngle, maxAngle).
   #currArea = {};             // Current observed area (panoId, latLng, minAngle, maxAngle).
   #breadcrumbMarkers = new Map(); // panoId -> AdvancedMarkerElement: a clickable breadcrumb per visited pano.
+  #highlightedBreadcrumbPanoId = null; // panoId of the breadcrumb an on-pano arrow hover is highlighting, if any.
   #fractionObserved = 0; // User's current fraction of 360 degrees observed.
   #coachVisible = false; // Whether the first-run "turn 360°" coach mark is currently showing.
 
@@ -209,6 +210,32 @@ class ObservedArea {
   }
 
   /**
+   * Highlights the breadcrumb at the given pano — the crumb an on-pano nav arrow points to — so hovering that arrow
+   * makes the "arrow → crumb" correspondence visible on the minimap (#4682). No-op if no breadcrumb marks that pano
+   * (an arrow to an unvisited pano; forward crumbs fill that half with #4669). Provider-agnostic: arrows and
+   * breadcrumbs both key off the current provider's native pano id (GSV/Mapillary/Infra3d).
+   * @param {string} panoId - The target pano of the hovered arrow.
+   */
+  highlightBreadcrumb(panoId) {
+    if (this.#highlightedBreadcrumbPanoId === panoId) return;
+    this.clearBreadcrumbHighlight();
+    const marker = this.#breadcrumbMarkers.get(panoId);
+    if (!marker) return;
+    marker.content.classList.add('minimap-breadcrumb-highlight');
+    this.#highlightedBreadcrumbPanoId = panoId;
+  }
+
+  /**
+   * Clears any breadcrumb highlight set by {@link highlightBreadcrumb} (the hovered arrow was left). (#4682)
+   */
+  clearBreadcrumbHighlight() {
+    if (this.#highlightedBreadcrumbPanoId === null) return;
+    const marker = this.#breadcrumbMarkers.get(this.#highlightedBreadcrumbPanoId);
+    if (marker) marker.content.classList.remove('minimap-breadcrumb-highlight');
+    this.#highlightedBreadcrumbPanoId = null;
+  }
+
+  /**
    * Keeps the breadcrumb markers in sync with the visited panos: every observed area except the current one (which the
    * peg marks) gets a clickable breadcrumb, and the current pano's is removed. Called whenever the observed areas
    * change. Markers are positioned by the map natively, so they track zoom/pan without manual projection (#4639).
@@ -220,6 +247,7 @@ class ObservedArea {
         if (marker) {
           marker.map = null;
           this.#breadcrumbMarkers.delete(area.panoId);
+          if (this.#highlightedBreadcrumbPanoId === area.panoId) this.#highlightedBreadcrumbPanoId = null;
         }
       } else if (!marker) {
         this.#breadcrumbMarkers.set(area.panoId, this.#createBreadcrumbMarker(area));

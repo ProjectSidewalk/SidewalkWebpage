@@ -151,6 +151,19 @@ class PanoManager {
       }
     });
 
+    // Hovering a nav arrow highlights the minimap breadcrumb it would take you to, making the "this arrow ↔ that crumb"
+    // correspondence legible (#4682). Matched by the arrow's target pano-id, which is provider-native (GSV/Mapillary/
+    // Infra3d all carry it), so an arrow to a pano with a breadcrumb lights it; an arrow to an unvisited pano matches
+    // nothing (the forward half lands with #4669). mouseover/mouseout bubble, so this one delegated listener covers the
+    // arrows that resetNavArrows recreates on every move.
+    svl.ui.streetview.navArrows.on('mouseover', (event) => {
+      const targetPanoId = event.target.getAttribute('pano-id');
+      if (targetPanoId && svl.observedArea) svl.observedArea.highlightBreadcrumb(targetPanoId);
+    });
+    svl.ui.streetview.navArrows.on('mouseout', () => {
+      if (svl.observedArea) svl.observedArea.clearBreadcrumbHighlight();
+    });
+
     const panoViewerLogo = createPanoViewerLogo(this.panoCanvas.parentElement, panoViewerType);
     panoViewerLogo.showPrimaryLogo();
 
