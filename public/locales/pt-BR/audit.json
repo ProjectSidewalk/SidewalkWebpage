@@ -143,9 +143,20 @@
       "message": "Explore __PLACEHOLDER__ de {{neighborhoodName}}"
     },
     "minimap": {
-      "follow-red-line": "Siga a linha vermelha para continuar a missão",
-      "free-explore-move": "Vá para um novo local para continuar explorando",
-      "explore-current-location": "Vire 360 graus para garantir que nada seja perdido."
+      "coach-dismiss": "Entendi",
+      "distance-left": "Faltam {{distance}}",
+      "explore-current-location": "Vire 360 graus para garantir que nada seja perdido.",
+      "fit-mission": "Mostrar missão completa",
+      "fit-street": "Voltar ao nível da rua",
+      "route-overview": "Visão geral da rota: toque para ver a rota inteira",
+      "observed-tooltip": "Quanto do seu entorno você já observou",
+      "legend-title": "Legenda",
+      "mission-progress": "Progresso da missão",
+      "legend-explored": "Explorado",
+      "legend-ahead": "Rota restante",
+      "legend-you": "Você + direção da vista",
+      "legend-visited": "Local visitado",
+      "legend-unseen": "Ainda não visto"
     },
     "stats": {
       "leaderboard-cta": "Ver a classificação da comunidade"

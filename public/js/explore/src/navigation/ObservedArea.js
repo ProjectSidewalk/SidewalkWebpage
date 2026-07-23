@@ -1,6 +1,7 @@
 /**
  * Tracks and renders the user's observed area on the minimap: the fog of war, the current field-of-view cone, and the
- * 360°-observed progress circle.
+ * 360°-observed progress ring around the position marker. Also owns the first-run "turn 360°" coach mark and the
+ * one-time celebration when a user first completes a full 360° (#4639).
  */
 class ObservedArea {
   static #BASE_RADIUS = 40;  // FOV radius in pixels at UI scale 1 and REFERENCE_ZOOM.
@@ -17,7 +18,9 @@ class ObservedArea {
   #rightAngle = null;       // Right-most angle of the user's FOV.
   #observedAreas = [];     // List of observed areas (panoId, latLng, minAngle, maxAngle).
   #currArea = {};             // Current observed area (panoId, latLng, minAngle, maxAngle).
+  #breadcrumbMarkers = new Map(); // panoId -> AdvancedMarkerElement: a clickable breadcrumb per visited pano.
   #fractionObserved = 0; // User's current fraction of 360 degrees observed.
+  #coachVisible = false; // Whether the first-run "turn 360°" coach mark is currently showing.
 
   // Minimap size (px) at UI scale 1, read from the base dimension defined in svl-minimap.css.
   #baseSize;
@@ -44,6 +47,7 @@ class ObservedArea {
     this.#fovCtx = uiMinimap.fov[0].getContext('2d');
     this.#progressCircleCtx = uiMinimap.progressCircle[0].getContext('2d');
     this.#syncCanvasSize();
+    uiMinimap.coachDismiss.on('click', () => this.#dismissCoach('Click_MinimapCoach_GotIt'));
   }
 
   /**
@@ -63,14 +67,11 @@ class ObservedArea {
         canvas.height = this.#height;
       }
     }
-    // Set up ctx state that doesn't change between renders (and is reset by any resize above).
-    uiMinimap.percentObserved.css('color', '#404040');
-    this.#fogOfWarCtx.fillStyle = '#888888';
-    this.#fogOfWarCtx.filter = `blur(${5 * this.#scaleFactor}px)`;
-    this.#fovCtx.fillStyle = '#8080ff';
-    this.#progressCircleCtx.fillStyle = '#8080ff';
+    // Set up ctx state that doesn't change between renders (and is reset by any resize above). The small blur keeps
+    // a near-crisp seen/unseen frontier — the point of the fog is to make "not yet viewed" obvious (#4639).
+    this.#fogOfWarCtx.fillStyle = MinimapStyle.fogColor();
+    this.#fogOfWarCtx.filter = `blur(${2 * this.#scaleFactor}px)`;
     this.#progressCircleCtx.lineCap = 'round';
-    this.#progressCircleCtx.lineWidth = 2 * this.#scaleFactor;
   }
 
   /**
@@ -87,6 +88,7 @@ class ObservedArea {
       this.#currArea = { panoId, latLng: svl.panoViewer.getPosition(), minAngle: null, maxAngle: null };
       this.#observedAreas.push(this.#currArea);
     }
+    this.#syncBreadcrumbMarkers();
   }
 
   /**
@@ -170,31 +172,115 @@ class ObservedArea {
         ObservedArea.#toRadians(observedArea.minAngle - 90), ObservedArea.#toRadians(observedArea.maxAngle - 90));
       this.#fogOfWarCtx.fill();
     }
+    // Always keep the peg fully clear of fog, no matter how far the user has turned.
+    this.#fogOfWarCtx.beginPath();
+    this.#fogOfWarCtx.arc(this.#width / 2, this.#height / 2, 8 * this.#scaleFactor, 0, 2 * Math.PI);
+    this.#fogOfWarCtx.fill();
     this.#fogOfWarCtx.globalCompositeOperation = 'source-over';
   }
 
   /**
-   * Renders the user's FOV.
+   * Renders the user's FOV as a cone with a radial falloff, so panning feels like sweeping a beam across the map.
    */
   #renderFov() {
+    const centerX = this.#width / 2;
+    const centerY = this.#height / 2;
+    const radius = this.#currentRadius();
+    const { r, g, b } = MinimapStyle.coneRgb();
+    const gradient = this.#fovCtx.createRadialGradient(centerX, centerY, radius * 0.1, centerX, centerY, radius);
+    gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.55)`);
+    gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+
     this.#fovCtx.clearRect(0, 0, this.#width, this.#height);
+    this.#fovCtx.fillStyle = gradient;
     this.#fovCtx.beginPath();
-    this.#fovCtx.moveTo(this.#width / 2, this.#height / 2);
-    this.#fovCtx.arc(this.#width / 2, this.#height / 2, this.#currentRadius(),
+    this.#fovCtx.moveTo(centerX, centerY);
+    this.#fovCtx.arc(centerX, centerY, radius,
       ObservedArea.#toRadians(this.#leftAngle - 90), ObservedArea.#toRadians(this.#rightAngle - 90));
     this.#fovCtx.fill();
+
+    // Clear a hole at the peg (canvas center, since the map stays centered on the pano) so the cone can't occlude it.
+    this.#fovCtx.save();
+    this.#fovCtx.globalCompositeOperation = 'destination-out';
+    this.#fovCtx.beginPath();
+    this.#fovCtx.arc(centerX, centerY, 8 * this.#scaleFactor, 0, 2 * Math.PI);
+    this.#fovCtx.fill();
+    this.#fovCtx.restore();
   }
 
   /**
-   * Renders the user's percentage of 360 degrees observed progress bar. Gray until 100%, then switches to green.
+   * Keeps the breadcrumb markers in sync with the visited panos: every observed area except the current one (which the
+   * peg marks) gets a clickable breadcrumb, and the current pano's is removed. Called whenever the observed areas
+   * change. Markers are positioned by the map natively, so they track zoom/pan without manual projection (#4639).
+   */
+  #syncBreadcrumbMarkers() {
+    for (const area of this.#observedAreas) {
+      const marker = this.#breadcrumbMarkers.get(area.panoId);
+      if (area === this.#currArea) {
+        if (marker) {
+          marker.map = null;
+          this.#breadcrumbMarkers.delete(area.panoId);
+        }
+      } else if (!marker) {
+        this.#breadcrumbMarkers.set(area.panoId, this.#createBreadcrumbMarker(area));
+      }
+    }
+  }
+
+  /**
+   * Creates one clickable breadcrumb marker — a faded ring in the peg's hue — at a visited pano. Clicking it returns
+   * the user to that pano (#2561).
+   * @param {{panoId: string, latLng: {lat: number, lng: number}}} area - The visited observed area.
+   * @returns {google.maps.marker.AdvancedMarkerElement}
+   */
+  #createBreadcrumbMarker(area) {
+    const content = document.createElement('div');
+    content.className = 'minimap-breadcrumb';
+    const marker = new google.maps.marker.AdvancedMarkerElement({
+      position: new google.maps.LatLng(area.latLng.lat, area.latLng.lng),
+      map: svl.minimap.getMap(),
+      content,
+      gmpClickable: true,
+    });
+    marker.addListener('gmp-click', () => {
+      svl.tracker.push('Click_MinimapBreadcrumb', { panoId: area.panoId });
+      svl.navigationService.returnToPano(area.panoId);
+    });
+    return marker;
+  }
+
+  /**
+   * Renders the 360°-observed progress ring around the position marker (the map stays centered on the current pano,
+   * so the marker is at the canvas center). A faint full-circle track shows the goal; the arc fills as the user turns
+   * and switches to the success color at 100%.
    */
   #renderProgressCircle() {
-    this.#progressCircleCtx.clearRect(0, 0, this.#width, this.#height);
-    this.#progressCircleCtx.strokeStyle = this.#fractionObserved === 1 ? '#00dd00' : '#404040';
-    this.#progressCircleCtx.beginPath();
-    this.#progressCircleCtx.arc(this.#width - 20 * this.#scaleFactor, 20 * this.#scaleFactor, 16 * this.#scaleFactor,
-      ObservedArea.#toRadians(-90), ObservedArea.#toRadians(this.#fractionObserved * 360 - 90));
-    this.#progressCircleCtx.stroke();
+    const ctx = this.#progressCircleCtx;
+    // Top-right corner; the ring sits on a white disc (chip-like) with the percentage label centered inside it.
+    const centerX = this.#width - 18 * this.#scaleFactor;
+    const centerY = 18 * this.#scaleFactor;
+    const radius = 12 * this.#scaleFactor;
+
+    ctx.clearRect(0, 0, this.#width, this.#height);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 15 * this.#scaleFactor, 0, 2 * Math.PI);
+    ctx.fill();
+
+    ctx.lineWidth = 2.5 * this.#scaleFactor;
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+    ctx.stroke();
+
+    if (this.#fractionObserved > 0) {
+      // Plain progress gauge filling clockwise from 12 o'clock; pine while in progress, success color at 100%.
+      ctx.strokeStyle = this.#fractionObserved === 1 ? MinimapStyle.ringCompleteColor() : MinimapStyle.ringColor();
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius,
+        ObservedArea.#toRadians(-90), ObservedArea.#toRadians(this.#fractionObserved * 360 - 90));
+      ctx.stroke();
+    }
   }
 
   /**
@@ -203,6 +289,62 @@ class ObservedArea {
    */
   getFractionObserved() {
     return this.#fractionObserved;
+  }
+
+  /**
+   * Shows the first-run coach mark unless the user has already dismissed it (or plainly doesn't need it). Replaces
+   * the old always-on minimap banner (#4639).
+   */
+  #maybeShowCoach() {
+    if (this.#coachVisible || svl.isOnboarding() || svl.storage.get('minimapCoachDismissed')) return;
+    // Users with a completed mission long ago learned the 360° habit; don't teach them again.
+    if (svl.userHasCompletedAMission) {
+      svl.storage.set('minimapCoachDismissed', true);
+      return;
+    }
+    this.#coachVisible = true;
+    this.#uiMinimap.coach.removeClass('minimap-coach-hidden');
+    svl.tracker.push('MinimapCoach_Shown');
+  }
+
+  /**
+   * Hides the coach mark and remembers the dismissal so it never shows again.
+   * @param {string} logEvent - Tracker event name recording how it was dismissed.
+   */
+  #dismissCoach(logEvent) {
+    if (!this.#coachVisible) return;
+    this.#coachVisible = false;
+    svl.storage.set('minimapCoachDismissed', true);
+    this.#uiMinimap.coach.addClass('minimap-coach-hidden');
+    svl.tracker.push(logEvent);
+  }
+
+  /**
+   * One-time celebration the first time the user ever observes a full 360°: an expanding ring pulse around the
+   * position marker (skipped under prefers-reduced-motion).
+   */
+  #maybeCelebrate() {
+    if (svl.storage.get('minimap360Celebrated')) return;
+    svl.storage.set('minimap360Celebrated', true);
+    svl.tracker.push('Minimap360Celebration_Shown');
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const start = performance.now();
+    const { r, g, b } = MinimapStyle.coneRgb();
+    const animate = (now) => {
+      const t = (now - start) / 800;
+      this.#renderProgressCircle(); // Clears the canvas, so redraw the ring under each pulse frame.
+      if (t >= 1) return;
+      const ctx = this.#progressCircleCtx;
+      ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${0.8 * (1 - t)})`;
+      ctx.lineWidth = 2.5 * this.#scaleFactor;
+      ctx.beginPath();
+      ctx.arc(this.#width - 18 * this.#scaleFactor, 18 * this.#scaleFactor, (15 + 15 * t) * this.#scaleFactor, 0,
+        2 * Math.PI);
+      ctx.stroke();
+      requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
   }
 
   /**
@@ -219,16 +361,14 @@ class ObservedArea {
       this.#renderFogOfWar();
       this.#renderFov();
       this.#renderProgressCircle();
+      // Point the peg's heading triangle where the user is looking. #angle is unwrapped (continuous), so the CSS
+      // rotation transitions the short way across the 0/360 boundary.
+      if (svl.peg && this.#angle !== null) svl.peg.setHeading(this.#angle);
       this.#uiMinimap.percentObserved.text(`${Math.floor(100 * this.#fractionObserved)}%`);
+      this.#maybeShowCoach();
       if (this.#fractionObserved === 1) {
-        // Free exploration has no mission route, so "follow the red line" makes no sense there (#4451); nudge the
-        // user to move on instead.
-        const doneKey = svl.isExploreAddressMode?.()
-          ? 'right-ui.minimap.free-explore-move'
-          : 'right-ui.minimap.follow-red-line';
-        this.#uiMinimap.message.text(i18next.t(doneKey));
-      } else {
-        this.#uiMinimap.message.text(i18next.t('right-ui.minimap.explore-current-location'));
+        this.#dismissCoach('MinimapCoach_AutoDismissed');
+        this.#maybeCelebrate();
       }
     }
   }

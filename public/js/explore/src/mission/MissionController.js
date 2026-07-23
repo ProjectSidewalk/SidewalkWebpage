@@ -146,8 +146,9 @@ class MissionController {
     // distanceProgress / null → 1, immediately triggering the mission-complete modal. No progress bar, no survey.
     if (svl.isExploreAddressMode()) return;
 
-    // Update mission completion rate in the right sidebar. On a route, the Current Mission section describes the
-    // whole route (the server-side mission slices are invisible there), so its bar tracks route progress.
+    // Update mission completion rate in the right sidebar and the minimap's mission-progress bar. On a route, the
+    // Current Mission section describes the whole route (the server-side mission slices are invisible there), so its
+    // bar tracks route progress.
     let completionRate;
     if (this.#neighborhoodModel.isRoute) {
       const unit = { units: i18next.t('common:unit-distance') };
@@ -157,6 +158,7 @@ class MissionController {
       completionRate = currentMission.getMissionCompletionRate();
     }
     svl.missionProgressBar.update(completionRate);
+    if (svl.minimap) svl.minimap.updateMissionProgress(currentMission);
     if (!this.#neighborhoodModel.isRouteComplete && !this.#neighborhoodModel.isNeighborhoodComplete) {
       this.#checkMissionComplete(currentMission, currentRegion);
     }

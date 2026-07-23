@@ -103,6 +103,25 @@ class Label {
     const latlng = this.toLatLng();
     this.#googleMarker = Label.createMinimapMarker(this.#properties.labelType, latlng);
     this.#googleMarker.map = svl.minimap.getMap();
+    // Click the marker to return to this label's pano (#2561). gmpClickable (set in createMinimapMarker) is what makes
+    // the AdvancedMarkerElement emit gmp-click.
+    this.#googleMarker.addListener('gmp-click', () => this.#returnToLabelFromMinimap());
+  }
+
+  /**
+   * Returns to this label's pano and faces it so the user can review or re-mark it (#2561). Ignored during onboarding
+   * or if the label isn't from the current mission (returning across missions would desync the map's active task).
+   */
+  #returnToLabelFromMinimap() {
+    if (svl.isOnboarding()) return;
+    const currMissionId = svl.missionContainer.getCurrentMission().getProperty('missionId');
+    if (this.#properties.missionId !== currMissionId) return;
+
+    svl.tracker.push('Click_MinimapLabelMarker', {
+      labelId: this.#properties.labelId,
+      panoId: this.#properties.panoId,
+    });
+    svl.navigationService.returnToPano(this.#properties.panoId, this.#properties.povOfLabelIfCentered);
   }
 
   // Some functions for easy access to commonly accessed properties.
@@ -531,13 +550,17 @@ class Label {
    */
   static createMinimapMarker(labelType, latLng) {
     const content = document.createElement('img');
-    content.src = util.misc.getIconImagePaths()[labelType].minimapIconImagePath;
+    // Use the scalable SVG icon so the marker stays crisp at any scale; sizing is set in .minimap-label-icon.
+    content.src = util.misc.getIconImagePaths()[labelType].scalableIconImagePath;
+    content.className = 'minimap-label-icon';
     // AdvancedMarkerElement anchors content by its bottom-center; shift it down half its height to center it.
     content.style.transform = 'translateY(50%)';
     return new google.maps.marker.AdvancedMarkerElement({
       position: new google.maps.LatLng(latLng.lat, latLng.lng),
       map: svl.minimap.getMap(),
       content,
+      // Interactive so it emits gmp-click; the click handler is wired in the Label constructor (#2561).
+      gmpClickable: true,
     });
   }
 }

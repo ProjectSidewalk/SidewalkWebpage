@@ -481,5 +481,7 @@ class TaskContainer {
     for (const task of this._tasks) {
       task.render();
     }
+    // Keep the route overview inset's explored/ahead colors in sync as streets complete (routes only; no-op otherwise).
+    if (svl.routeOverview) svl.routeOverview.render();
   }
 }

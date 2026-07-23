@@ -353,7 +353,7 @@ class ModalMissionComplete {
     if (badge) BadgeAchievements.showUnlockToast(badge, this.#els.foreground);
   }
 
-  /** Hides the modal and resets the sidebar mission progress bar. */
+  /** Hides the modal and resets the sidebar and minimap mission progress bars for the next mission. */
   hide() {
     this.#isOpen = false;
     this.#showingScreen = false;
@@ -362,6 +362,7 @@ class ModalMissionComplete {
     this.#els.background.style.visibility = 'hidden';
 
     svl.missionProgressBar.update(0);
+    if (svl.minimap) svl.minimap.resetMissionProgress(this.#missionContainer.getCurrentMission());
   }
 
   /**

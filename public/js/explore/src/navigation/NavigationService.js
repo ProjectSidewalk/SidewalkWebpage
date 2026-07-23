@@ -390,7 +390,6 @@ class NavigationService {
         window.clearInterval(this.#povSettlePoll);
         this.#povSettlePoll = null;
         this.#status.headingSettling = false; // Clear first so observedArea.update() recomputes from the settled pov.
-        svl.peg.setHeading(heading);
         svl.observedArea.panoChanged();
         svl.observedArea.update();
         svl.compass.update();
@@ -558,6 +557,28 @@ class NavigationService {
     this.#updateUiAfterMove();
 
     return true;
+  }
+
+  /**
+   * Move to an already-visited pano and optionally face a POV. Used by the minimap's clickable markers to let the user
+   * revisit a label or an earlier location (#4639, #2561).
+   *
+   * A "peek": the active audit task is left unchanged. Re-entering an earlier, already-completed street as the current
+   * task would push a spurious TaskStart and risk the end-of-task auto-advance jumping the user straight back off the
+   * pano they returned to.
+   *
+   * @param {string} panoId - Target (already-visited) pano id.
+   * @param {{heading: number, pitch: number, zoom: number}} [pov] - POV to face on arrival; omit to keep heading.
+   * @returns {Promise<boolean>} Whether the move succeeded (false if walking is disabled or the move failed).
+   */
+  async returnToPano(panoId, pov) {
+    if (this.#status.disableWalking) return false;
+    const moved = svl.panoViewer.getPanoId() === panoId ? true : await this.moveToPano(panoId);
+    if (moved && pov) svl.panoManager.setPov(pov);
+    // The move carries the prior pano's zoom over (GSV keeps the POV across setPanorama), so the zoom buttons can end
+    // up desynced from the actual zoom — e.g. pinned at max with zoom-out dead. Re-sync them to the current zoom.
+    if (moved && svl.zoomControl) svl.zoomControl.syncButtonsToZoom(svl.panoViewer.getPov().zoom);
+    return moved;
   }
 
   /**

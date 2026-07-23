@@ -143,9 +143,20 @@
       "message": "Zoek __PLACEHOLDER__ voor {{neighborhoodName}}"
     },
     "minimap": {
-      "follow-red-line": "Volg de rode lijn om de missie voort te zetten",
-      "free-explore-move": "Ga naar een nieuwe plek om verder te verkennen",
-      "explore-current-location": "Draai 360 graden om er zeker van te zijn dat u niets mist."
+      "coach-dismiss": "Begrepen",
+      "distance-left": "Nog {{distance}}",
+      "explore-current-location": "Draai 360 graden om er zeker van te zijn dat u niets mist.",
+      "fit-mission": "Toon hele missie",
+      "fit-street": "Terug naar straatniveau",
+      "route-overview": "Route-overzicht: tik om de hele route te zien",
+      "observed-tooltip": "Hoeveel van je omgeving je hebt bekeken",
+      "legend-title": "Legenda",
+      "mission-progress": "Missievoortgang",
+      "legend-explored": "Verkend",
+      "legend-ahead": "Resterende route",
+      "legend-you": "U + kijkrichting",
+      "legend-visited": "Bezochte locatie",
+      "legend-unseen": "Nog niet bekeken"
     },
     "stats": {
       "leaderboard-cta": "Bekijk het scorebord van de gemeenschap"

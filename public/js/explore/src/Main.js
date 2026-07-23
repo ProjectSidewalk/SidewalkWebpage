@@ -131,6 +131,8 @@ class Main {
     svl.neighborhoodModel.setCurrentNeighborhood(neighborhood);
 
     svl.observedArea = new ObservedArea(svl.ui.minimap);
+    svl.minimapLegend = new MinimapLegend(svl.ui.minimap, svl.tracker);
+    svl.routeOverview = new RouteOverview(svl.ui.minimap, svl.tracker);
 
     // Mission
     svl.missionContainer = new MissionContainer(svl.missionPanel, svl.missionModel);
@@ -315,6 +317,7 @@ class Main {
 
     svl.missionModel.updateMissionProgress(mission, neighborhood);
     svl.missionPanel.setMessage(mission);
+    svl.minimap.updateMissionProgress(mission);
 
     svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getRegionId(), () => {
       svl.canvas.setOnlyLabelsOnPanoAsVisible(svl.panoViewer.getPanoId());
@@ -354,6 +357,9 @@ class Main {
       svl.observedArea.update();
       svl.compass.update();
       svl.compass.enableCompassClick();
+      // Re-render the nav arrows now that the compass and task exist, so the route-forward arrow is highlighted on
+      // the very first pano too — PanoManager's own initial resetNavArrows ran before those were wired up. (#4671)
+      svl.panoManager.resetNavArrows();
 
       // Remove the loading cover page and make the tool visible.
       $('#page-loading').css({ visibility: 'hidden' });
@@ -393,6 +399,11 @@ class Main {
         }
 
         this.#startTheMission(mission, currentNeighborhood);
+
+        // On a designated route, open fitted to the whole route so the user sees its shape before street-level detail
+        // takes over (auto-exits on first pano interaction). A neighborhood audit has no bounded route to frame — its
+        // "route" is just the current street at this point — so it opens at street level with the fog visible (#4639).
+        if (svl.neighborhoodModel.isRoute) svl.minimap.enterOverview(true);
       }
 
       // Update the observed area now that everything has loaded.
@@ -477,11 +488,21 @@ class Main {
     svl.ui.minimap = {};
     svl.ui.minimap.holder = $('#minimap-holder');
     svl.ui.minimap.overlay = $('#minimap-overlay');
-    svl.ui.minimap.message = $('#minimap-message');
     svl.ui.minimap.fogOfWar = $('#minimap-fog-of-war-canvas');
     svl.ui.minimap.fov = $('#minimap-fov-canvas');
     svl.ui.minimap.progressCircle = $('#minimap-progress-circle-canvas');
     svl.ui.minimap.percentObserved = $('#minimap-percent-observed');
+    svl.ui.minimap.missionProgress = $('#minimap-mission-progress');
+    svl.ui.minimap.missionProgressFill = $('#minimap-mission-progress-fill');
+    svl.ui.minimap.missionProgressPercent = $('#minimap-mission-progress-percent');
+    svl.ui.minimap.missionProgressDistance = $('#minimap-mission-progress-distance');
+    svl.ui.minimap.coach = $('#minimap-coach');
+    svl.ui.minimap.coachDismiss = $('#minimap-coach-dismiss');
+    svl.ui.minimap.legendToggle = $('#minimap-legend-toggle');
+    svl.ui.minimap.legendCard = $('#minimap-legend-card');
+    svl.ui.minimap.legendClose = $('#minimap-legend-close');
+    svl.ui.minimap.routeOverview = $('#minimap-route-overview');
+    svl.ui.minimap.routeOverviewCanvas = $('#minimap-route-overview-canvas');
 
     // Street view area DOM elements.
     svl.ui.streetview = {};
