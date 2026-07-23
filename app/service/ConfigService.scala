@@ -857,8 +857,13 @@ class ConfigServiceImpl @Inject() (
   def getCityLabelingSpeed(): Future[Option[Double]] = {
     // Daily cache, matching getCrossCityLabelingSpeed: the underlying interaction-table scan is expensive.
     cacheApi.getOrElseUpdate[Option[Double]](s"getCityLabelingSpeed_$getCityId", Duration(24, "hours")) {
-      // Minutes per 100 m, the unit the RouteBuilder time estimate reads.
-      labelingSpeedForSchema(getCitySchema(getCityId)).map(_.map(_ / 60.0))
+      // Minutes per 100 m, the unit the RouteBuilder time estimate reads. Reject a physically implausible pace as
+      // unknown (→ caller's default) so a degenerate ratio can't drive the estimate: a dev DB whose interaction log is
+      // trimmed but whose audited distance is intact yields a near-zero pace, and both bounds guard against bad data.
+      val minPace = 0.5  // min/100 m; a faster pace (> ~12 km/h) is impossible while auditing.
+      val maxPace = 60.0 // min/100 m; a slower pace signals broken data, not real auditing.
+      labelingSpeedForSchema(getCitySchema(getCityId))
+        .map(_.map(_ / 60.0).filter(pace => pace >= minPace && pace <= maxPace))
     }
   }
 
