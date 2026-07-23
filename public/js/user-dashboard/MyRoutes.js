@@ -153,9 +153,15 @@ class MyRoutes {
   async #deleteRoute(btn) {
     const row = btn.closest('.ud-route-row');
     const name = row.querySelector('.ud-route-name').textContent;
-    // escapeValue off: this text goes to window.confirm (plain text), not into markup.
+    // escapeValue off: the name renders as textContent inside ConfirmDialog, not markup, so it needn't be escaped.
     const confirmMsg = i18next.t('dashboard:routes-delete-confirm', { name, interpolation: { escapeValue: false } });
-    if (!window.confirm(confirmMsg)) return;
+    const confirmed = await ConfirmDialog.confirm({
+      message: confirmMsg,
+      confirmText: i18next.t('common:delete'),
+      cancelText: i18next.t('common:cancel'),
+      danger: true,
+    });
+    if (!confirmed) return;
 
     try {
       const res = await fetch(`/userapi/routes/${row.dataset.routeId}`, {

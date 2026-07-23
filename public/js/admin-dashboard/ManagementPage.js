@@ -356,7 +356,12 @@ class ManagementPage {
       const btn = document.getElementById(id);
       if (!btn) return;
       btn.addEventListener('click', async () => {
-        if (!window.confirm(btn.getAttribute('data-confirm'))) return;
+        const confirmed = await ConfirmDialog.confirm({
+          message: btn.getAttribute('data-confirm'),
+          confirmText: 'Continue',
+          cancelText: 'Cancel',
+        });
+        if (!confirmed) return;
         btn.disabled = true;
         this.#maintResult(`Running: ${label}…`);
         try {

@@ -152,14 +152,15 @@ class RouteBuilder {
     document.getElementById('cancel-button').addEventListener('click', () => this.#clickCancelRoute());
     // Clears everything so the user can start a fresh route (confirming first if unsaved work would be lost),
     // zooming back out to the city view so the neighborhood choice is on screen.
-    document.getElementById('new-route-button').addEventListener('click', () => {
+    document.getElementById('new-route-button').addEventListener('click', async () => {
       window.logWebpageActivity('RouteBuilder_Click=NewRoute');
-      if (!this.#unsavedWorkConfirmed()) return;
+      if (!(await this.#unsavedWorkConfirmed())) return;
       this.#exitEditSession();
       this.#map.flyTo({ center: this.#cityView.center, zoom: this.#cityView.zoom, duration: 1200 });
     });
     document.getElementById('delete-route-button').addEventListener('click', () => this.#clearRoute());
     document.getElementById('cancel-delete-route-button').addEventListener('click', () => this.#clickResumeRoute());
+    this.#initEstTimeTooltip();
 
     this.#saveModal = new SaveModal({
       isSignedIn: this.#isSignedIn,
@@ -305,6 +306,40 @@ class RouteBuilder {
   // Confirms a copy-link click with a transient toast over the button (same pattern as the dashboard).
   #setTemporaryTooltip(btn, message) {
     Toast.show({ message, reference: btn, duration: 1500 });
+  }
+
+  /**
+   * Wires the estimate's info tooltip to show on hover, keyboard focus, and click/tap, dismissing on mouse-out,
+   * blur, Escape, or an outside click. A native `title` (the prior affordance) never opens on click and isn't
+   * reachable by keyboard or touch; this follows the ARIA tooltip pattern (focusable trigger + aria-describedby).
+   */
+  #initEstTimeTooltip() {
+    const val = this.#routeTimeEl;
+    const tip = document.getElementById('route-time-tip');
+    if (!val || !tip) return;
+    const show = () => {
+      tip.hidden = false;
+    };
+    const hide = () => {
+      tip.hidden = true;
+    };
+    val.addEventListener('mouseenter', show);
+    val.addEventListener('mouseleave', hide);
+    val.addEventListener('focus', show);
+    val.addEventListener('blur', hide);
+    val.addEventListener('click', show);
+    val.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        hide();
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        show();
+      }
+    });
+    // A tap/click outside the estimate closes a tip opened by tap, where there's no mouse-out to dismiss it.
+    document.addEventListener('click', (e) => {
+      if (!val.contains(e.target)) hide();
+    });
   }
 
   // A transient message floated over the map (out-of-region / no-path feedback).
@@ -1375,15 +1410,20 @@ class RouteBuilder {
 
   /**
    * Confirms with the user before an action that would discard unsaved work: edits to a loaded saved route, or a
-   * drawn-but-never-saved route. No-ops (returns true) when nothing would be lost.
+   * drawn-but-never-saved route. No-ops (resolves true) when nothing would be lost.
    *
-   * @returns {boolean} True to proceed.
+   * @returns {Promise<boolean>} True to proceed.
    */
   #unsavedWorkConfirmed() {
     const unsavedWork = this.#editingRouteId !== null
       ? this.#isDirty()
       : (this.#streetsInRoute?.features.length ?? 0) > 0;
-    return !unsavedWork || window.confirm(i18next.t('unsaved-continue-confirm'));
+    if (!unsavedWork) return Promise.resolve(true);
+    return ConfirmDialog.confirm({
+      message: i18next.t('unsaved-continue-confirm'),
+      confirmText: i18next.t('common:continue'),
+      cancelText: i18next.t('common:cancel'),
+    });
   }
 
   /** Closes the editing session (or clears a new route), back to the intro state. The saved route is untouched. */
@@ -1399,14 +1439,14 @@ class RouteBuilder {
    *
    * @param {number} routeId
    */
-  #loadRouteForEditing(routeId) {
+  async #loadRouteForEditing(routeId) {
     if (this.#editingRouteId === routeId) {
-      if (!this.#unsavedWorkConfirmed()) return;
+      if (!(await this.#unsavedWorkConfirmed())) return;
       window.logWebpageActivity('RouteBuilder_Click=ExitEditSession');
       this.#exitEditSession();
       return;
     }
-    if (!this.#unsavedWorkConfirmed()) return;
+    if (!(await this.#unsavedWorkConfirmed())) return;
     // Cards stay clickable while a load is in flight, and nothing else serializes two of them: the confirm above
     // sees no drawn route yet, so it doesn't ask. Without a token the last response wins rather than the last
     // click, and a slow first load would wipe the route the user actually asked for and leave them editing it.

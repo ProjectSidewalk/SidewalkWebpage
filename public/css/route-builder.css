@@ -154,10 +154,39 @@
   white-space: nowrap;
 }
 
-/* The explore-time value carries a title tooltip explaining the estimate; the dotted underline signals it. */
+/* The explore-time value carries a tooltip explaining the estimate; the dotted underline signals it. */
+#route-time-wrap {
+  position: relative;
+}
+
 #route-time-val {
   border-bottom: 1px dotted var(--color-neutral-500);
   cursor: help;
+}
+
+#route-time-val:focus-visible {
+  outline: calc(2px * var(--ui-scale, 1)) solid var(--color-pine-600);
+  outline-offset: calc(2px * var(--ui-scale, 1));
+  border-radius: calc(2px * var(--ui-scale, 1));
+}
+
+/* Info popup shown on hover/focus/click of the estimate. Anchored above the value, growing rightward into the panel. */
+#route-time-tip {
+  position: absolute;
+  bottom: calc(100% + 6px * var(--ui-scale, 1));
+  left: 0;
+  z-index: 10;
+  width: max-content;
+  max-width: calc(230px * var(--ui-scale, 1));
+  padding: calc(6px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+  font: var(--text-caption-regular);
+  line-height: 1.4;
+  color: var(--color-neutral-white);
+  text-align: left;
+  white-space: normal;
+  background: var(--color-neutral-900);
+  border-radius: calc(6px * var(--ui-scale, 1));
+  box-shadow: 0 calc(2px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1)) rgb(0 0 0 / 28%);
 }
 
 #route-stats-caption {

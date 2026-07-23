@@ -27,6 +27,9 @@
   "surface-problems": "Oppervlakte problemen",
   "sign-up": "Een account maken",
   "close": "Sluiten",
+  "cancel": "Annuleren",
+  "continue": "Doorgaan",
+  "delete": "Verwijderen",
   "badges": {
     "congratulations": "Gefeliciteerd!",
     "you-earned": "Je hebt de “{{badge}}”-badge verdiend!",

@@ -49,7 +49,10 @@
           <div id="route-stats-headline">
             <span id="route-length-val"></span>
             <span aria-hidden="true">·</span>
-            <span id="route-time-val" title="@Messages("routebuilder.stat.time.tooltip", paceRounded)"></span>
+            <span id="route-time-wrap">
+              <span id="route-time-val" tabindex="0" role="button" aria-describedby="route-time-tip"></span>
+              <span id="route-time-tip" role="tooltip" hidden>@Messages("routebuilder.stat.time.tooltip", paceRounded)</span>
+            </span>
           </div>
           <span id="route-stats-caption"></span>
         </div>
