@@ -282,6 +282,17 @@ class TaskContainer {
   }
 
   /**
+   * The route's full path as a flat list of [lng, lat] coordinates in walking order: every street's LineString
+   * concatenated by walk order (matching getRouteEndpoints/nextTask), each oriented to the walking direction. Adjacent
+   * streets share a junction point, keeping the path continuous — suitable for direction arrows and the explorer walk.
+   * @returns {number[][]} [] if no tasks are loaded.
+   */
+  getRoutePathCoordinates() {
+    const ordered = [...this.getTasks()].sort((t1, t2) => t1.getWalkOrder() - t2.getWalkOrder());
+    return ordered.flatMap((task) => task.getGeoJSON().geometry.coordinates);
+  }
+
+  /**
    * Checks if the neighborhood is complete across all users; if so, displays the relevant overlay.
    */
   #updateNeighborhoodCompleteAcrossAllUsersStatus() {
