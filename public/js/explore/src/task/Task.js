@@ -397,15 +397,24 @@ class Task {
     if (svl.isExploreAddressMode()) return;
 
     // If the task has been completed already, or if it has not been completed and is not the current task,
-    // render it using a single completed-or-context Polyline, respectively.
+    // render it as a whole street rather than the audited/remaining split used for the current street.
     if (this.isComplete() || this.getStreetEdgeId() !== svl.taskContainer.getCurrentTaskStreetEdgeId()) {
       const gCoordinates = this.#geojson.geometry.coordinates
         .map((coord) => new google.maps.LatLng(coord[1], coord[0]));
-      this.#paths = [
-        new google.maps.Polyline(
-          this.isComplete() ? MinimapStyle.completedTask(gCoordinates) : MinimapStyle.otherTask(gCoordinates),
-        ),
-      ];
+      if (this.isComplete()) {
+        this.#paths = [new google.maps.Polyline(MinimapStyle.completedTask(gCoordinates))];
+      } else if (svl.neighborhoodModel.isRoute) {
+        // On a designated route every street ahead is part of the planned path, so paint it as the route-to-walk: a
+        // dashed line with direction chevrons over a white casing — the same encoding as the current street's
+        // remaining half (and RouteBuilder's own rendering) — so the whole route reads as a dotted, arrowed path when
+        // zoomed out. A free neighborhood audit has no planned path, so its non-current streets stay quiet context.
+        this.#paths = [
+          new google.maps.Polyline(MinimapStyle.routeCasing(gCoordinates)),
+          new google.maps.Polyline(MinimapStyle.remainingRoute(gCoordinates)),
+        ];
+      } else {
+        this.#paths = [new google.maps.Polyline(MinimapStyle.otherTask(gCoordinates))];
+      }
       // If the task is incomplete and is the current task, render its audited and remaining halves separately.
     } else {
       this.#paths = this.getGooglePolylines();
