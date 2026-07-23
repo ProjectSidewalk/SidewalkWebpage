@@ -76,7 +76,8 @@
   pointer-events: auto;
 }
 
-/* "N% observed" label centered inside the progress ring drawn in the top-right corner (ObservedArea). */
+/* "N% observed" label centered inside the progress-ring chip (ObservedArea). Top-right on a neighborhood audit; in
+   route mode it drops below the mission-progress bar (see .minimap-route-mode override below) to clear the overview. */
 #minimap-percent-observed {
   font: var(--text-tiny-medium);
   font-size: calc(8px * var(--ui-scale));
@@ -95,6 +96,11 @@
 
 #minimap-percent-observed:empty {
   display: none;
+}
+
+/* "100%" is wider than "NN%"; shrink it a touch so it stays inside the ring chip (toggled by ObservedArea). */
+#minimap-percent-observed.minimap-percent-full {
+  font-size: calc(7px * var(--ui-scale));
 }
 
 /* Mission-progress chip in the top-left: a fill bar plus "N%  done/total" (Minimap.updateMissionProgress). */
@@ -424,16 +430,16 @@ gmp-advanced-marker:has(> .minimap-peg) {
   display: none;
 }
 
-/* Whole-route overview inset (RouteOverview.js): a small always-on map of the entire designated route in the
-   bottom-left corner, doubling as the legend. Hidden by default; shown only in route mode, where it replaces the
-   mini-legend/key (which grows street-by-street on neighborhood audits, so there's no route to preview there). */
+/* Whole-route overview inset (RouteOverview.js): a small always-on map of the entire designated route, in the
+   upper-right corner. Hidden by default; shown only in route mode, alongside the mini-legend/key (which grows
+   street-by-street on neighborhood audits, so there's no route to preview there). */
 #minimap-route-overview {
   display: none;
   position: absolute;
-  left: calc(4px * var(--ui-scale));
-  bottom: calc(10px * var(--ui-scale));
-  width: calc(96px * var(--ui-scale));
-  height: calc(80px * var(--ui-scale));
+  right: calc(4px * var(--ui-scale));
+  top: calc(4px * var(--ui-scale));
+  width: calc(80px * var(--ui-scale));
+  height: calc(60px * var(--ui-scale));
   padding: 0;
   border: calc(2px * var(--ui-scale)) solid var(--color-neutral-white);
   border-radius: calc(8px * var(--ui-scale));
@@ -459,14 +465,16 @@ gmp-advanced-marker:has(> .minimap-peg) {
   outline-offset: calc(1px * var(--ui-scale));
 }
 
-/* Route mode: the overview inset takes the bottom-left corner in place of the mini-legend and its expanded card. */
+/* Route mode: reveal the overview inset in the upper-right corner. The mini-legend stays in the bottom-left. */
 #minimap-holder.minimap-route-mode #minimap-route-overview {
   display: block;
 }
 
-#minimap-holder.minimap-route-mode #minimap-legend-toggle,
-#minimap-holder.minimap-route-mode #minimap-legend-card {
-  display: none;
+/* Route mode: the overview inset owns the top-right, so the view-coverage ring/label drops below the progress bar. */
+#minimap-holder.minimap-route-mode #minimap-percent-observed {
+  top: calc(28px * var(--ui-scale));
+  right: auto;
+  left: calc(4px * var(--ui-scale));
 }
 
 .gm-svpc {

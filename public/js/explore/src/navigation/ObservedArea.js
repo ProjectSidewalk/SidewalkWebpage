@@ -250,15 +250,26 @@ class ObservedArea {
   }
 
   /**
-   * Renders the 360°-observed progress ring around the position marker (the map stays centered on the current pano,
-   * so the marker is at the canvas center). A faint full-circle track shows the goal; the arc fills as the user turns
-   * and switches to the success color at 100%.
+   * Center of the 360°-observed progress ring. On a designated route the overview inset takes the top-right corner, so
+   * the ring tucks below the mission-progress bar in the top-left; on a neighborhood audit (no inset) it stays in its
+   * usual top-right corner. Both the ring and its one-time celebration pulse read this so they can't drift apart.
+   * @returns {{x: number, y: number}} Ring center in canvas CSS px.
+   */
+  #progressRingCenter() {
+    if (svl.neighborhoodModel && svl.neighborhoodModel.isRoute) {
+      return { x: 18 * this.#scaleFactor, y: 42 * this.#scaleFactor };
+    }
+    return { x: this.#width - 18 * this.#scaleFactor, y: 18 * this.#scaleFactor };
+  }
+
+  /**
+   * Renders the 360°-observed progress ring: a faint full-circle track shows the goal and the arc fills clockwise as
+   * the user turns, switching to the success color at 100%. Drawn as a chip below the mission-progress bar.
    */
   #renderProgressCircle() {
     const ctx = this.#progressCircleCtx;
-    // Top-right corner; the ring sits on a white disc (chip-like) with the percentage label centered inside it.
-    const centerX = this.#width - 18 * this.#scaleFactor;
-    const centerY = 18 * this.#scaleFactor;
+    // The ring sits on a white disc (chip-like) with the percentage label centered inside it.
+    const { x: centerX, y: centerY } = this.#progressRingCenter();
     const radius = 12 * this.#scaleFactor;
 
     ctx.clearRect(0, 0, this.#width, this.#height);
@@ -338,9 +349,9 @@ class ObservedArea {
       const ctx = this.#progressCircleCtx;
       ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${0.8 * (1 - t)})`;
       ctx.lineWidth = 2.5 * this.#scaleFactor;
+      const { x: cx, y: cy } = this.#progressRingCenter();
       ctx.beginPath();
-      ctx.arc(this.#width - 18 * this.#scaleFactor, 18 * this.#scaleFactor, (15 + 15 * t) * this.#scaleFactor, 0,
-        2 * Math.PI);
+      ctx.arc(cx, cy, (15 + 15 * t) * this.#scaleFactor, 0, 2 * Math.PI);
       ctx.stroke();
       requestAnimationFrame(animate);
     };
@@ -364,7 +375,12 @@ class ObservedArea {
       // Point the peg's heading triangle where the user is looking. #angle is unwrapped (continuous), so the CSS
       // rotation transitions the short way across the 0/360 boundary.
       if (svl.peg && this.#angle !== null) svl.peg.setHeading(this.#angle);
-      this.#uiMinimap.percentObserved.text(`${Math.floor(100 * this.#fractionObserved)}%`);
+      // Redraw the route-overview inset so its "you are here" wedge rotates in lockstep with the peg (#4639).
+      if (svl.routeOverview) svl.routeOverview.render();
+      // "100%" is one glyph wider than "NN%", so shrink the font a touch only at full to keep it inside the chip.
+      this.#uiMinimap.percentObserved
+        .text(`${Math.floor(100 * this.#fractionObserved)}%`)
+        .toggleClass('minimap-percent-full', this.#fractionObserved === 1);
       this.#maybeShowCoach();
       if (this.#fractionObserved === 1) {
         this.#dismissCoach('MinimapCoach_AutoDismissed');
