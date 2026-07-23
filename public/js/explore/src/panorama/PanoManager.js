@@ -137,8 +137,18 @@ class PanoManager {
     // Adds event listeners to the navigation arrows.
     svl.ui.streetview.navArrows.on('click', (event) => {
       event.stopPropagation();
+      // A highlighted forward arrow that still carries a pano-id is a real link (just recolored to mark the route),
+      // so it navigates like any link. Only the synthesized route-forward arrow (no pano-id, drawn when the link
+      // graph offers nothing along the route) walks the compass's "straight" path via moveForward. (#4671)
       const targetPanoId = event.target.getAttribute('pano-id');
-      if (targetPanoId) svl.navigationService.moveToPano(event.target.getAttribute('pano-id'));
+      if (targetPanoId) {
+        svl.navigationService.moveToPano(targetPanoId);
+      } else if (event.target.classList.contains('route-forward-arrow')) {
+        svl.tracker.push('Click_RouteForwardArrow');
+        svl.navigationService.moveForward()
+          .then(() => svl.tracker.push('RouteForwardArrow_Success'))
+          .catch(() => svl.tracker.push('RouteForwardArrow_PanoNotAvailable'));
+      }
     });
 
     const panoViewerLogo = createPanoViewerLogo(this.panoCanvas.parentElement, panoViewerType);
@@ -338,6 +348,10 @@ class PanoManager {
 
   /**
    * Removes old navigation arrows and creates new ones based on available links from the current pano.
+   *
+   * The arrow pointing the way the route wants the user to go is highlighted in the navigation blue (#4671): normally
+   * that is the forward link arrow, recolored; where the link graph offers nothing along the route (a dead-end), a
+   * blue arrow is synthesized at the route heading and its click walks the route (moveForward) instead of a link.
    */
   resetNavArrows() {
     const arrowGroup = svl.ui.streetview.navArrows[0];
@@ -347,23 +361,78 @@ class PanoManager {
       arrowGroup.removeChild(arrowGroup.firstChild);
     }
 
-    // Create an arrow for each link, rotated to its direction.
+    // Highlight the link that best heads the route's way: forward when on route, back toward the route when off route
+    // (getTargetAngle is measured from the current position). Following the blue link arrows then walks the user
+    // along — or back to — the route one pano at a time.
     const links = svl.panoViewer.getLinkedPanos();
-    links.forEach((link) => {
-      const arrow = this.#createArrow();
-      const normalizedHeading = (link.heading + 360) % 360;
-      arrow.setAttribute('transform', `translate(15, 0) rotate(${normalizedHeading}, 15, 30)`);
+    const targetHeading = this.#routeForwardHeading();
+    const forwardIndex = targetHeading === null ? -1 : this.#closestForwardLinkIndex(links, targetHeading);
+
+    // Create an arrow for each link, rotated to its direction; the forward one is drawn in the highlight color.
+    links.forEach((link, i) => {
+      const arrow = i === forwardIndex ? this.#createForwardArrow() : this.#createArrow();
+      arrow.setAttribute('transform', `translate(15, 0) rotate(${(link.heading + 360) % 360}, 15, 30)`);
       arrow.setAttribute('pano-id', link.panoId);
       arrowGroup.appendChild(arrow);
     });
+
+    // With no link the route's way, synthesize a forward arrow at the route heading — but only on route, where
+    // moveForward steps forward along the street. Off route, moveForward would teleport back to the route rather than
+    // step, so leave the user their link arrows to walk back one pano at a time instead. (#4671)
+    if (targetHeading !== null && forwardIndex === -1 && svl.compass.isEnRoute()) {
+      const arrow = this.#createForwardArrow();
+      arrow.classList.add('route-forward-arrow');
+      arrow.setAttribute('transform', `translate(15, 0) rotate(${targetHeading}, 15, 30)`);
+      arrowGroup.appendChild(arrow);
+    }
 
     const heading = svl.panoViewer.getPov().heading;
     arrowGroup.setAttribute('transform', `rotate(${-heading})`);
   }
 
   /**
+   * The absolute heading (degrees, wrt true north) toward the route's next goal — the compass's target direction.
+   * On route this is the way forward; off route it points back toward the route, since getTargetAngle is measured
+   * from the current position. Null only when there is no route at all: free exploration, the scripted tutorial, no
+   * current task, or before the task's geometry is ready. Drives which on-pano arrow is highlighted forward. (#4671)
+   * @returns {?number}
+   * @private
+   */
+  #routeForwardHeading() {
+    if (!svl.compass || svl.isExploreAddressMode() || svl.isOnboarding()) return null;
+    if (!svl.taskContainer || !svl.taskContainer.tasksLoaded() || !svl.taskContainer.getCurrentTask()) return null;
+    try {
+      return (svl.compass.getTargetAngle() + 360) % 360;
+    } catch {
+      return null; // Route geometry not ready yet (e.g. mid-initialization).
+    }
+  }
+
+  /**
+   * Index of the link whose heading is closest to the route direction, if one is within FORWARD_LINK_THRESHOLD
+   * degrees of it; -1 otherwise (a link-graph dead-end, where the caller synthesizes a forward arrow instead). (#4671)
+   * @param {Array<{panoId: string, heading: number}>} links - The current pano's linked panos.
+   * @param {number} targetHeading - The route's forward heading in degrees.
+   * @returns {number}
+   * @private
+   */
+  #closestForwardLinkIndex(links, targetHeading) {
+    const FORWARD_LINK_THRESHOLD = 45;
+    let bestDelta = FORWARD_LINK_THRESHOLD;
+    let bestIndex = -1;
+    links.forEach((link, i) => {
+      const delta = Math.abs(((((link.heading - targetHeading) % 360) + 540) % 360) - 180);
+      if (delta < bestDelta) {
+        bestDelta = delta;
+        bestIndex = i;
+      }
+    });
+    return bestIndex;
+  }
+
+  /**
    * Create svg navigation arrow, setting its width.
-   * @returns {SVGPathElement}
+   * @returns {SVGImageElement}
    * @private
    */
   #createArrow() {
@@ -373,6 +442,27 @@ class PanoManager {
     image.setAttribute('height', '20');
     image.setAttribute('x', '5');  // ((areaWidth / 2)  - iconWidth) / 2 = ((60 / 2 - 20) / 2 = 5
 
+    return image;
+  }
+
+  /**
+   * Create the blue "go this way" forward arrow: the same chevron as a link arrow, filled with the navigation blue
+   * (MinimapStyle.pegColor() — the --color-link-100 peg/"you" token) via an inline data-URI SVG, so the color stays
+   * sourced from the design token rather than a hardcoded hex. Carries route-forward-highlight for its hover style;
+   * the caller either keeps its pano-id (a highlighted real link) or adds route-forward-arrow (a synthesized
+   * moveForward arrow at a dead-end). (#4671)
+   * @returns {SVGImageElement}
+   * @private
+   */
+  #createForwardArrow() {
+    const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 -960 960 960">
+      <path d="m 885.5,-315.5 -71,71 -329,-329 -329,329 -71,-71 400,-400 z" fill="${MinimapStyle.pegColor()}"/></svg>`;
+    image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', `data:image/svg+xml,${encodeURIComponent(svg)}`);
+    image.setAttribute('width', '20');
+    image.setAttribute('height', '20');
+    image.setAttribute('x', '5');
+    image.classList.add('route-forward-highlight');
     return image;
   }
 
