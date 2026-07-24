@@ -1,10 +1,15 @@
 package controllers
 
+import models.label.LabelTableDef
+import models.pano.{PanoDataTableDef, PanoSource}
 import models.story.Story
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
+import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.Files.SingletonTemporaryFileCreator
 import play.api.libs.json.{JsArray, JsObject, JsValue}
@@ -44,6 +49,13 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   private val labelService: LabelService = app.injector.instanceOf[LabelService]
   private val storyService: StoryService = app.injector.instanceOf[StoryService]
+  private val labelTable                 = app.injector.instanceOf[models.label.LabelTable]
+
+  // Direct table access for the listing-page fixtures (seed/restore a pano address), per ExploreAddressServiceSpec.
+  private val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
+  private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 60.seconds)
+  private val labelsQ                    = TableQuery[LabelTableDef]
+  private val panoDataQ                  = TableQuery[PanoDataTableDef]
   private val maxTextLength: Int         = app.configuration.get[Int]("stories.max-text-length")
   private val maxAltTextLength: Int      = app.configuration.get[Int]("stories.max-alt-text-length")
   private val maxPerDay: Int             = app.configuration.get[Int]("stories.max-per-user-per-day")
@@ -164,6 +176,86 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       val sc = status(route(app, FakeRequest(GET, "/stories")).get)
       sc must be >= 300
       sc must be < 400
+    }
+
+    "give a photoless story a label preview image, and prefer the author's photo once one is attached" in {
+      labelIds.headOption match {
+        case None     => cancel("No labels in the connected test DB.")
+        case Some(id) =>
+          val session = freshAnonSession()
+          val posted  = postStory(session, id, s"Listing image spec story ${java.util.UUID.randomUUID}")
+          status(posted) mustBe OK
+          val storyId = (contentAsJson(posted) \ "story_id").as[Int]
+          try {
+            val listed = await(storyService.getStoriesForCity(500)).find(_.storyId == storyId)
+            listed mustBe defined
+            listed.get.media mustBe None
+            // The GSV-static fallback needs pano/POV metadata; cancel (not fail) on a DB whose label lacks it.
+            val meta = run(labelTable.getPanoMetadataForLabels(Seq(id)))
+            if (meta.isEmpty || meta.head._3 != PanoSource.Gsv) {
+              cancel(s"Label $id has no GSV pano metadata in the connected test DB.")
+            }
+            listed.get.labelImageUrl mustBe defined
+            listed.get.labelImageUrl.get must (startWith("https://maps.googleapis.com/maps/api/streetview") or
+              startWith("/cropImage/"))
+
+            status(updateStory(session, storyId, "now with a photo", files = Seq(testJpegFilePart()))) mustBe OK
+            val withPhoto = await(storyService.getStoriesForCity(500)).find(_.storyId == storyId)
+            withPhoto.get.media mustBe defined
+            withPhoto.get.labelImageUrl mustBe None // The author's photo wins; no label preview is built.
+          } finally {
+            val _ = status(deleteStory(session, storyId))
+          }
+      }
+    }
+
+    "surface the label's street address as a location line linking to the LabelMap" in {
+      labelIds.headOption match {
+        case None     => cancel("No labels in the connected test DB.")
+        case Some(id) =>
+          val session = freshAnonSession()
+          val posted  = postStory(session, id, s"Listing address spec story ${java.util.UUID.randomUUID}")
+          status(posted) mustBe OK
+          val storyId     = (contentAsJson(posted) \ "story_id").as[Int]
+          val panoId      = run(labelsQ.filter(_.labelId === id).map(_.panoId).result.head)
+          val prevAddress = run(panoDataQ.filter(_.panoId === panoId).map(_.address).result.headOption).flatten
+          val specAddress = s"1 Spec St ${java.util.UUID.randomUUID.toString.take(8)}"
+          try {
+            val updated = run(panoDataQ.filter(_.panoId === panoId).map(_.address).update(Some(specAddress)))
+            if (updated == 0) cancel(s"Pano $panoId has no pano_data row in the connected test DB.")
+            val body = contentAsString(route(app, FakeRequest(GET, "/stories").withCookies(session: _*)).get)
+            body must include(specAddress)
+            body must include("story-card__location")
+            body must include(s"""href="/labelMap?labelId=$id"""")
+          } finally {
+            run(panoDataQ.filter(_.panoId === panoId).map(_.address).update(prevAddress))
+            val _ = status(deleteStory(session, storyId))
+          }
+      }
+    }
+
+    "render the card scaffolding: tinted type chip, button-styled view-label, no cap note, no raw i18n keys" in {
+      labelIds.headOption match {
+        case None     => cancel("No labels in the connected test DB.")
+        case Some(id) =>
+          val session = freshAnonSession()
+          val posted  = postStory(session, id, s"Listing scaffolding spec story ${java.util.UUID.randomUUID}")
+          status(posted) mustBe OK
+          val storyId = (contentAsJson(posted) \ "story_id").as[Int]
+          try {
+            val body = contentAsString(route(app, FakeRequest(GET, "/stories").withCookies(session: _*)).get)
+            body must include("community-chip--type")
+            body must include("data-type-color=\"#")
+            body must include("button-ps button--primary button--small story-card__label-link")
+            // Far under the 500 cap here, so the truncation note must not render.
+            body must not include "community-cap-note"
+            // A raw key leaking into the page means a messages file lost one — dotted keys never appear in copy.
+            body must not include "stories.page."
+            body must not include "community.page."
+          } finally {
+            val _ = status(deleteStory(session, storyId))
+          }
+      }
     }
   }
 

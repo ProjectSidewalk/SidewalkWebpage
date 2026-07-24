@@ -152,6 +152,14 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       val body = contentAsString(page)
       body must include("route-list-page")
       body must include(name)
+      // Card scaffolding (#4688): design-system buttons, the label-map link, the copy control; no truncation
+      // note this far under the 500 cap, and no raw i18n key leaking (dotted keys never appear in real copy).
+      body must include("button-ps button--primary button--small route-card__explore")
+      body must include(s"/labelMap?routes=$routeId")
+      body must include("route-card__copy")
+      body must not include "community-cap-note"
+      body must not include "routes.page."
+      body must not include "community.page."
 
       // Soft-deleting removes it from the listing.
       status(deleteRoute(owner, routeId)) mustBe OK
