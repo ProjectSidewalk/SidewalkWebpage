@@ -60,6 +60,10 @@
               <img class="story-card__photo" src="@m.url" loading="lazy"
                    alt="@m.altText.getOrElse(Messages("stories.page.photo.alt"))">
             }
+            @s.labelImageUrl.map { url =>
+              <img class="story-card__photo" src="@url" loading="lazy"
+                   alt="@Messages("stories.page.label.image.alt", Messages(s.labelType.nameKey))">
+            }
             <div class="story-card__body">
               <p class="story-card__text">@s.storyText</p>
               <p class="story-card__byline">
@@ -82,6 +86,9 @@
         }
       </ul>
       <p class="community-no-results" id="community-no-results" hidden>@Messages("community.page.no.results")</p>
+      @if(stories.size >= controllers.StoryController.ListingMax) {
+        <p class="community-cap-note">@Messages("community.page.cap.note", controllers.StoryController.ListingMax)</p>
+      }
     }
   </main>
   @common.miniFooter(commonData)

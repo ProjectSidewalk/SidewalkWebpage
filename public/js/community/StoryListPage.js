@@ -41,7 +41,8 @@ class StoryListPage {
   /** Tints each label-type chip with its canonical color (data-sourced; inline style attrs are lint-banned). */
   #colorTypeChips() {
     document.querySelectorAll('.community-chip--type[data-type-color]').forEach((chip) => {
-      chip.style.borderColor = chip.dataset.typeColor;
+      // '33' = 20% alpha on the canonical #RRGGBB color: a soft tag fill that keeps the text AA-readable.
+      chip.style.backgroundColor = `${chip.dataset.typeColor}33`;
     });
   }
 

@@ -106,6 +106,8 @@
   display: none;
 }
 
+/* Flat filled tags — borderless so they don't read as clickable buttons (our buttons carry borders/outlines). The
+   type chip's background is tinted with the label type's canonical color by StoryListPage.js (backend-sourced). */
 .community-chip {
   display: inline-flex;
   gap: 6px;
@@ -113,13 +115,8 @@
   padding: 2px 10px;
   font: var(--text-caption-medium);
   color: var(--color-neutral-800);
-  border: 1px solid var(--color-neutral-300);
+  background: var(--color-neutral-100);
   border-radius: 999px;
-}
-
-/* The type chip's border is tinted with the label type's canonical color by StoryListPage.js (backend-sourced). */
-.community-chip--type {
-  border-width: 2px;
 }
 
 .community-chip__icon {
@@ -149,6 +146,13 @@
   padding: 32px 0;
   font: var(--text-body-regular);
   color: var(--color-neutral-700);
+  text-align: center;
+}
+
+.community-cap-note {
+  margin: 24px 0 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-600);
   text-align: center;
 }
 

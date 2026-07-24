@@ -98,6 +98,11 @@
         }
       </ul>
       <p class="community-no-results" id="community-no-results" hidden>@Messages("community.page.no.results")</p>
+      @if(cityRoutes.size >= controllers.RouteBuilderController.ListingMax) {
+        <p class="community-cap-note">
+          @Messages("community.page.cap.note", controllers.RouteBuilderController.ListingMax)
+        </p>
+      }
     }
   </main>
   @common.miniFooter(commonData)

@@ -57,6 +57,8 @@ case class StoryForOwner(
  * neighborhood, so the page can render type/region chips and sort on them without extra lookups.
  *
  * `displayName` is already resolved against the story's display-name mode (None = show as anonymous).
+ * `labelImageUrl` is a signed preview of the story's label (crop, else GSV static) — only populated when the story
+ * has no uploaded photo, so every card can still carry an image; None when neither source is available.
  */
 case class StoryForListing(
     storyId: Int,
@@ -67,7 +69,8 @@ case class StoryForListing(
     storyText: String,
     displayName: Option[String],
     createdAt: OffsetDateTime,
-    media: Option[StoryMediaForView]
+    media: Option[StoryMediaForView],
+    labelImageUrl: Option[String]
 )
 
 /**
