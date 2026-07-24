@@ -456,8 +456,11 @@ class AcrossCitiesPage {
       if (!host) return;
       const values = series.map((d) => d[jsonKey] || 0);
       const tooltips = series.map((d, i) => `${AcrossCitiesPage.#shortDate(d.day)} · ${name}: ${this.#num(values[i])}`);
+      // Compact value labels above each bar (exact counts stay in the tooltips); the last bar is today, still
+      // filling in, so it gets the emphasis treatment.
       MiniLineChart.renderInto(host, cats, [{ name, key, values, tooltips }],
-        { ariaLabel: name, kind: 'bar', maxXLabels: 7 });
+        { ariaLabel: name, kind: 'bar', maxXLabels: 7, barValues: true, valueFormat: (v) => this.#compact(v),
+          emphasisIndex: series.length - 1 });
     };
     draw('ac-chart-week-labels', 'aclabels', 'labels', 'Labels');
     draw('ac-chart-week-validations', 'acvals', 'validations', 'Validations');

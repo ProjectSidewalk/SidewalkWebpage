@@ -603,6 +603,27 @@
   font-family: var(--font-sans, sans-serif);
 }
 
+/* Per-bar value labels (opts.barValues). Text tokens, not the series color, so the numbers stay readable. */
+.mini-value {
+  fill: var(--color-text-secondary, #5a7785);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-sans, sans-serif);
+}
+
+/* Emphasized category (opts.emphasisIndex — e.g. the in-progress "today" bar): bolder, darker text; the bar itself
+   renders with a lighter fill + solid outline so a partial period reads as still accumulating. */
+.mini-axis--emphasis,
+.mini-value--emphasis {
+  fill: var(--color-text-primary, #222222);
+  font-weight: 700;
+}
+
+.mini-bar--emphasis {
+  fill-opacity: 0.45;
+  stroke-width: 1.5;
+}
+
 .mini-line {
   fill: none;
   stroke-width: 2;
@@ -1977,10 +1998,14 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 }
 .mini-pt--acusers    { fill: var(--color-label-no-sidewalk); }
 
-/* Bar variants for the "this week" charts (#4686), matching the line-series colors. */
+/* Bar variants for the "this week" charts (#4686), matching the line-series colors. The emphasis outline uses each
+   series' own color so today's lighter bar still reads as part of the series. */
 .mini-bar--aclabels  { fill: var(--color-primary, #4a90d9); }
 .mini-bar--acvals    { fill: #63c0ab; }
 .mini-bar--acusers   { fill: var(--color-label-no-sidewalk); }
+.mini-bar--emphasis.mini-bar--aclabels { stroke: var(--color-primary, #4a90d9); }
+.mini-bar--emphasis.mini-bar--acvals   { stroke: #63c0ab; }
+.mini-bar--emphasis.mini-bar--acusers  { stroke: var(--color-label-no-sidewalk); }
 
 /* Per-city activity sparkline. */
 .ac-spark-cell {

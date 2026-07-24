@@ -12,10 +12,12 @@ class MiniLineChart {
    * @param {Array<{name: string, key: string, values: Array<number|null>, tooltips?: string[]}>} series -
    *   each series' values align to `categories`; null = gap. Optional per-point tooltip strings.
    * @param {{yMax?: number, tickFormat?: function(number): string, valueFormat?: function(number): string,
-   *          ariaLabel?: string, dotRadius?: number, kind?: string, maxXLabels?: number}} [opts] - yMax defaults to
-   *   the data max; tickFormat labels the y-axis; valueFormat formats values in the default tooltip; dotRadius sizes
-   *   the point markers (default 3); kind 'bar' draws bars instead of lines; maxXLabels caps how many x labels are
-   *   drawn (default 6).
+   *          ariaLabel?: string, dotRadius?: number, kind?: string, maxXLabels?: number, barValues?: boolean,
+   *          emphasisIndex?: number}} [opts] - yMax defaults to the data max; tickFormat labels the y-axis;
+   *   valueFormat formats values in the default tooltip and in bar value labels; dotRadius sizes the point markers
+   *   (default 3); kind 'bar' draws bars instead of lines; maxXLabels caps how many x labels are drawn (default 6);
+   *   barValues draws each bar's value above it (meant for single-series bar charts — grouped bars would collide);
+   *   emphasisIndex marks that index's bar and labels with `--emphasis` classes (e.g. an in-progress "today" bar).
    * @returns {string} SVG markup plus an optional HTML legend.
    */
   static svg(categories, series, opts = {}) {
@@ -52,14 +54,23 @@ class MiniLineChart {
       series.forEach((s, si) => {
         body += s.values.map((v, i) => {
           if (v === null || v === undefined) return '';
+          const emph = i === opts.emphasisIndex;
           const top = yFrac(v / yMax);
           const h = m.t + ih - top;
-          if (h <= 0) return ''; // Zero values draw no bar; the x label still marks the category.
           const bx = x(i) - groupW / 2 + si * barW;
           const tip = s.tooltips?.[i] ?? `${categories[i]} · ${s.name}: ${valueFormat(v)}`;
-          return `<rect class="mini-bar mini-bar--${s.key}" x="${bx.toFixed(1)}" y="${top.toFixed(1)}" `
-            + `width="${barW.toFixed(1)}" height="${h.toFixed(1)}">`
-            + `<title>${MiniLineChart.#esc(tip)}</title></rect>`;
+          // Zero values draw no bar; the x label (and value label, if enabled) still mark the category.
+          let out = h <= 0
+            ? ''
+            : `<rect class="mini-bar mini-bar--${s.key}${emph ? ' mini-bar--emphasis' : ''}" x="${bx.toFixed(1)}" `
+              + `y="${top.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}">`
+              + `<title>${MiniLineChart.#esc(tip)}</title></rect>`;
+          if (opts.barValues) {
+            out += `<text class="mini-value${emph ? ' mini-value--emphasis' : ''}" x="${(bx + barW / 2).toFixed(1)}" `
+              + `y="${((h > 0 ? top : yFrac(0)) - 4).toFixed(1)}" text-anchor="middle">`
+              + `${MiniLineChart.#esc(valueFormat(v))}</text>`;
+          }
+          return out;
         }).join('');
       });
     } else {
@@ -88,7 +99,8 @@ class MiniLineChart {
     const step = Math.max(1, Math.ceil(n / (opts.maxXLabels || 6)));
     let xlab = '';
     for (let i = 0; i < n; i += step) {
-      xlab += `<text class="mini-axis" x="${x(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">`
+      const emph = i === opts.emphasisIndex ? ' mini-axis--emphasis' : '';
+      xlab += `<text class="mini-axis${emph}" x="${x(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">`
         + `${MiniLineChart.#esc(categories[i])}</text>`;
     }
     const svg = `<svg class="mini-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" `
