@@ -138,7 +138,12 @@ class RouteBuilderController @Inject() (
       case Some(routeId) => Redirect(s"/explore?routeId=$routeId", FOUND)
       case None          =>
         NotFound(
-          views.html.errors.errorPage(Messages("error.404.heading"), Messages("error.404.message", request.path))
+          views.html.errors.errorPage(
+            NOT_FOUND,
+            Messages("error.404.heading"),
+            Messages("error.404.message"),
+            requestedPath = Some(request.path)
+          )
         )
     }
   }

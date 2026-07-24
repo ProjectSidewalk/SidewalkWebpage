@@ -4,7 +4,13 @@
  * per-city CommonPageData and only links static, design-token stylesheets. `errorId` is shown for server errors so
  * users can quote it when reporting (it matches the id in the application log).
  *@
-@(heading: String, message: String, errorId: Option[String] = None)(implicit messages: Messages, assets: AssetsFinder)
+@(statusCode: Int, heading: String, message: String, requestedPath: Option[String] = None, errorId: Option[String] = None)(implicit messages: Messages, assets: AssetsFinder)
+
+@* GitHub is a static URL, so the report path keeps the page dependency-free. *@
+@reportLink = @{
+  val issuesUrl = "https://github.com/ProjectSidewalk/SidewalkWebpage/issues/new"
+  s"""<a href="$issuesUrl" target="_blank" rel="noopener">${Messages("error.500.report.link")}</a>"""
+}
 
 <!DOCTYPE html>
 <html lang="@messages.lang.code">
@@ -19,13 +25,17 @@
   <body>
     <main class="error-page">
       <div class="error-card">
-        <img class="error-logo" alt="" width="64" height="64"
-             src='@assets.path("images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_100x100.png")'>
+        <img class="error-logo" alt="Project Sidewalk" width="180" height="180"
+             src='@assets.path("images/logos/ProjectSidewalkLogo_WithCurvedText_1000x1000.png")'>
+        <p class="error-code" aria-hidden="true">@statusCode</p>
         <h1 class="error-heading">@heading</h1>
         <p class="error-message">@message</p>
+        @requestedPath.map { path =>
+          <p class="error-chip">@path</p>
+        }
         @errorId.map { id =>
-          <p class="error-id">@Messages("error.500.id", id)</p>
-          <p class="error-report">@Messages("error.500.report")</p>
+          <p class="error-chip">@Messages("error.500.id", id)</p>
+          <p class="error-report">@Html(Messages("error.500.report", reportLink))</p>
         }
         <a class="button-ps button--primary button--medium error-home" href="@routes.ApplicationController.index">@Messages("error.home")</a>
       </div>

@@ -3,7 +3,7 @@ package modules
 import controllers.AssetsFinder
 import models.api.ApiError
 import play.api.http.DefaultHttpErrorHandler
-import play.api.http.Status.NOT_FOUND
+import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND}
 import play.api.i18n.{Messages, MessagesApi}
 import play.api.libs.typedmap.TypedMap
 import play.api.mvc.Results._
@@ -66,8 +66,12 @@ class CustomErrorHandler @Inject() (
           implicit val messages: Messages = messagesApi.preferred(request)
           Future.successful(
             NotFound(
-              views.html.errors
-                .errorPage(Messages("error.404.heading"), Messages("error.404.message", request.path))
+              views.html.errors.errorPage(
+                NOT_FOUND,
+                Messages("error.404.heading"),
+                Messages("error.404.message"),
+                requestedPath = Some(request.path)
+              )
             )
           )
         case _ => Future.successful(Status(statusCode)("A client error occurred: " + message))
@@ -102,7 +106,12 @@ class CustomErrorHandler @Inject() (
     implicit val messages: Messages = messagesApi.preferred(request)
     Future.successful(
       InternalServerError(
-        views.html.errors.errorPage(Messages("error.500.heading"), Messages("error.500.message"), Some(exception.id))
+        views.html.errors.errorPage(
+          INTERNAL_SERVER_ERROR,
+          Messages("error.500.heading"),
+          Messages("error.500.message"),
+          errorId = Some(exception.id)
+        )
       )
     )
   }

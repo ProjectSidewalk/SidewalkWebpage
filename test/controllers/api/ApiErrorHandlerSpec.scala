@@ -55,6 +55,7 @@ class ApiErrorHandlerSpec extends PlaySpec with GuiceOneAppPerSuite {
       status(resp) mustBe NOT_FOUND
       contentType(resp) mustBe Some("text/html")
       val body = contentAsString(resp)
+      body must include("404")
       body must include("Page not found")
       body must include("/some-web-page")
     }
@@ -90,6 +91,7 @@ class ApiErrorHandlerSpec extends PlaySpec with GuiceOneAppPerSuite {
         status(resp) mustBe INTERNAL_SERVER_ERROR
         contentType(resp) mustBe Some("text/html")
         val body = contentAsString(resp)
+        body must include("500")
         body must include("Something went wrong")
         body must include("Error ID:")
         body must not include "secret-internal-detail"
