@@ -173,6 +173,8 @@
 }
 
 .story-card__body {
+  position: relative;
+  z-index: 0; /* Own stacking context so the quote-mark pseudo can sit behind the text but above the card. */
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -180,28 +182,27 @@
   padding: 16px;
 }
 
+/* Oversized ghosted quote mark behind the story's opening words: marks it as someone's first-person account.
+   On the body, not the (overflow-hidden) text element, so it can't clip or inflate the text's scrollHeight —
+   which the read-more overflow check measures. Serif deliberately: no design-system token has a serif face,
+   and the classic testimonial glyph needs one. */
+.story-card__body::before {
+  content: "\201c";
+  position: absolute;
+  top: 2px;
+  left: 8px;
+  z-index: -1;
+  font: 700 56px/1 Georgia, serif;
+  color: var(--color-neutral-100);
+}
+
 .story-card__text {
-  position: relative;
-  z-index: 0; /* Own stacking context so the quote-mark pseudo can sit behind the text but above the card. */
-  max-height: 176px; /* 22px quote headroom + 7 lines of --text-body-regular (22px); the read-more toggle lifts it. */
-  padding-top: 22px;
+  max-height: 154px; /* 7 lines of --text-body-regular (22px line-height); the read-more toggle lifts it. */
   margin: 0;
   overflow: hidden;
   font: var(--text-body-regular);
   color: var(--color-neutral-900);
   white-space: pre-line; /* Story text is plain text; keep the author's paragraph breaks. */
-}
-
-/* Oversized ghosted quote mark behind the opening line: marks the story as someone's first-person account.
-   Serif deliberately — no design-system token has a serif face, and the classic testimonial glyph needs one. */
-.story-card__text::before {
-  content: "\201c";
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: -1;
-  font: 700 56px/1 Georgia, serif;
-  color: var(--color-neutral-200);
 }
 
 .story-card__text.is-expanded {
