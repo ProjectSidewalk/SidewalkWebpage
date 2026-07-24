@@ -5,6 +5,7 @@ import com.drew.metadata.exif.{ExifSubIFDDirectory, GpsDirectory}
 import com.google.inject.ImplementedBy
 import executors.CpuIntensiveExecutionContext
 import models.label.{LabelTypeEnum, LatLng}
+import models.pano.PanoSource.PanoSource
 import models.story._
 import models.utils.MyPostgresProfile.api._
 import models.utils.{CommonUtils, ImageUtils, MyPostgresProfile, ProfanityGuard}
@@ -46,6 +47,7 @@ trait StoryService {
   ): Future[Either[StoryRejection, Unit]]
   def deleteOwnStory(storyId: Int, userId: String): Future[Boolean]
   def getStoriesForUser(userId: String): Future[Seq[StoryForOwner]]
+  def getStoriesForCity(n: Int): Future[Seq[StoryForListing]]
   def getRecentStories(n: Int): Future[Seq[StoryForAdmin]]
   def setStoryVisibility(storyId: Int, adminUserId: String, hidden: Boolean): Future[Boolean]
   def adminDeleteStory(storyId: Int): Future[Boolean]
@@ -63,7 +65,9 @@ class StoryServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     config: Configuration,
     storyTable: models.story.StoryTable,
+    labelTable: models.label.LabelTable,
     labelService: LabelService,
+    panoDataService: PanoDataService,
     signingService: ImageSigningService,
     cpuEc: CpuIntensiveExecutionContext,
     implicit val ec: ExecutionContext
@@ -310,6 +314,48 @@ class StoryServiceImpl @Inject() (
       .map(_.map { case (story, media, labelTypeId) =>
         StoryForOwner(story, LabelTypeEnum.labelTypeIdToLabelType(labelTypeId), media.map(toMediaForView))
       })
+  }
+
+  def getStoriesForCity(n: Int): Future[Seq[StoryForListing]] = {
+    db.run(storyTable.getVisibleForCity(n)).flatMap { rows =>
+      // Photoless stories fall back to a label preview image (saved crop, else GSV static thumbnail) so every card
+      // can carry an image — the same crop-then-GSV strategy as the Gallery and the admin activity feed.
+      val photolessLabelIds = rows.collect { case (story, None, _, _, _, _, _) => story.labelId }
+      val panoMetaFut       =
+        if (photolessLabelIds.isEmpty) Future.successful(Map.empty[Int, (String, PanoSource, Double, Double, Double)])
+        else
+          db.run(labelTable.getPanoMetadataForLabels(photolessLabelIds)).map {
+            _.map { case (id, panoId, source, heading, pitch, zoom) =>
+              id -> ((panoId, source, heading, pitch, zoom))
+            }.toMap
+          }
+      panoMetaFut.map { panoMetaById =>
+        rows.map { case (story, media, username, labelTypeId, regionId, regionName, address) =>
+          val labelType     = LabelTypeEnum.byId(labelTypeId)
+          val labelImageUrl =
+            if (media.isDefined) None
+            else
+              panoDataService
+                .cropUrl(story.labelId, labelType)
+                .orElse(panoMetaById.get(story.labelId).flatMap { case (panoId, source, heading, pitch, zoom) =>
+                  panoDataService.getImageUrl(panoId, source, heading, pitch, zoom)
+                })
+          StoryForListing(
+            storyId = story.storyId,
+            labelId = story.labelId,
+            labelType = labelType,
+            regionId = regionId,
+            regionName = regionName,
+            address = address,
+            storyText = story.storyText,
+            displayName = if (story.displayNameMode == Story.DisplayNameUsername) Some(username) else None,
+            createdAt = story.createdAt,
+            media = media.map(toMediaForView),
+            labelImageUrl = labelImageUrl
+          )
+        }
+      }
+    }
   }
 
   def getRecentStories(n: Int): Future[Seq[StoryForAdmin]] = {

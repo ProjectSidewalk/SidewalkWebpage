@@ -9,7 +9,7 @@ import models.story.{Story, StoryPhotoUpload, StoryRejection}
 import play.api.libs.json.{JsBoolean, Json}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
-import service.{ImageSigningService, RateLimiter, StoryService}
+import service.{ConfigService, ImageSigningService, RateLimiter, StoryService}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -24,7 +24,9 @@ import scala.util.Try
 class StoryController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[DefaultEnv],
-    config: Configuration,
+    implicit val config: Configuration,
+    implicit val assets: AssetsFinder,
+    configService: ConfigService,
     storyService: StoryService,
     signingService: ImageSigningService,
     rateLimiter: RateLimiter,
@@ -33,6 +35,22 @@ class StoryController @Inject() (
   private val logger = Logger(this.getClass)
 
   private val photoMaxBytes: Long = config.get[Long]("stories.photo-max-bytes")
+
+  /**
+   * Renders the public /stories page: the city's community stories, newest first (#4688).
+   *
+   * A bare SecuredAction (anonymous auto-accounts included) like /leaderboard, so anyone browsing the site can read
+   * the stories that are already public on every label card.
+   */
+  def storiesPage = cc.securityService.SecuredAction { implicit request =>
+    for {
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+      stories    <- storyService.getStoriesForCity(StoryController.ListingMax)
+    } yield {
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Stories")
+      Ok(views.html.apps.storyList(commonData, request.identity, stories))
+    }
+  }
 
   /**
    * All stories for a label, shaped for the viewer. Public read: the share landing (/label/:id) opens the card with
@@ -241,4 +259,10 @@ class StoryController @Inject() (
       case _                            => BadRequest(body)
     }
   }
+}
+
+object StoryController {
+
+  /** Cap on the stories the /stories page renders, so the page stays bounded as a city's story count grows. */
+  val ListingMax: Int = 500
 }

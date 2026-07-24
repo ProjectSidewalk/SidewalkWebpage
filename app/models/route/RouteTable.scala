@@ -161,11 +161,30 @@ class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param userId ID of the user whose routes to fetch; soft-deleted routes are excluded.
    */
   def getRoutesForUser(userId: String): DBIO[Seq[RouteWithStats]] = {
-    routes
-      .filter(r => r.userId === userId && r.deleted === false)
+    routesWithStats(routes.filter(r => r.userId === userId && r.deleted === false))
+  }
+
+  /**
+   * Gets the city's routes (newest first, capped at n) with the region name and distance/street-count stats, for the
+   * public /routes listing page (#4688). Every non-deleted route is included regardless of creator: routes are
+   * shareable by bare id/slug already, so the listing exposes nothing a share link doesn't.
+   */
+  def getRoutesForCity(n: Int): DBIO[Seq[RouteWithStats]] = {
+    routesWithStats(routes.filter(_.deleted === false), limit = Some(n))
+  }
+
+  /** Projects a filtered route query to newest-first `RouteWithStats` rows with their region names. */
+  private def routesWithStats(
+      filteredRoutes: Query[RouteTableDef, Route, Seq],
+      limit: Option[Int] = None
+  ): DBIO[Seq[RouteWithStats]] = {
+    val sorted = filteredRoutes
       .join(regions)
       .on(_.regionId === _.regionId)
       .sortBy { case (route, _) => route.createdAt.desc } // Newest first.
+    limit
+      .map(sorted.take)
+      .getOrElse(sorted)
       .map { case (route, region) =>
         (route.routeId, route.regionId, region.name, route.name, route.slug, route.description, route.distanceMeters,
           route.streetCount, route.createdAt)

@@ -3,18 +3,40 @@ package controllers
 import controllers.base._
 import formats.json.RouteBuilderFormats.{routeWithStatsWrites, NewRoute, RouteUpdate}
 import models.route.{RouteRejection, SavedRoute}
+import play.api.Configuration
 import play.api.i18n.Messages
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, Result}
-import service.RouteService
+import service.{ConfigService, RouteService}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class RouteBuilderController @Inject() (cc: CustomControllerComponents, routeService: RouteService)(implicit
-    ec: ExecutionContext
-) extends CustomBaseController(cc) {
+class RouteBuilderController @Inject() (
+    cc: CustomControllerComponents,
+    implicit val config: Configuration,
+    implicit val assets: AssetsFinder,
+    configService: ConfigService,
+    routeService: RouteService
+)(implicit ec: ExecutionContext)
+    extends CustomBaseController(cc) {
+
+  /**
+   * Renders the public /routes page: the city's saved routes, newest first (#4688).
+   *
+   * A bare SecuredAction (anonymous auto-accounts included) like /leaderboard: routes are already shareable by bare
+   * id/slug, so the listing exposes nothing a share link doesn't.
+   */
+  def routesPage = cc.securityService.SecuredAction { implicit request =>
+    for {
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+      cityRoutes <- routeService.getRoutesForCity(RouteBuilderController.ListingMax)
+    } yield {
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Routes")
+      Ok(views.html.apps.routeList(commonData, request.identity, cityRoutes))
+    }
+  }
 
   /**
    * The JSON a save or update returns: the route's identity plus the display data its card needs, so the client
@@ -129,4 +151,10 @@ class RouteBuilderController @Inject() (cc: CustomControllerComponents, routeSer
       case false => NotFound(Json.obj("status" -> "Error", "message" -> "Route not found"))
     }
   }
+}
+
+object RouteBuilderController {
+
+  /** Cap on the routes the /routes page renders, so the page stays bounded as a city's route count grows. */
+  val ListingMax: Int = 500
 }

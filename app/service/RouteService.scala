@@ -31,6 +31,7 @@ object RouteService {
 trait RouteService {
   def saveRoute(route: NewRoute, userId: String): Future[Either[RouteRejection, SavedRoute]]
   def getRoutesForUser(userId: String): Future[Seq[RouteWithStats]]
+  def getRoutesForCity(n: Int): Future[Seq[RouteWithStats]]
   def getRouteStreets(routeId: Int): Future[Option[Seq[RouteStreet]]]
   def updateRoute(
       routeId: Int,
@@ -171,31 +172,42 @@ class RouteServiceImpl @Inject() (
    * an encoded-polyline geometry for static-map thumbnails.
    */
   def getRoutesForUser(userId: String): Future[Seq[RouteWithStats]] = {
-    db.run(routeTable.getRoutesForUser(userId)).flatMap { routes =>
-      val routeIds = routes.map(_.routeId)
-      if (routeIds.isEmpty) {
-        Future.successful(routes)
-      } else {
-        // Independent queries, so they're started before the for-comprehension sequences them.
-        val usageFuture      = db.run(routeTable.getUsageCounts(routeIds))
-        val geometriesFuture = db.run(routeTable.getStreetGeometries(routeIds))
-        for {
-          usage      <- usageFuture
-          geometries <- geometriesFuture
-        } yield {
-          val polylines: Map[Int, String] = geometries.groupBy(_._1).map { case (routeId, streets) =>
-            routeId -> encodeRouteGeometry(streets.map { case (_, reverse, geom) => (reverse, geom) })
-          }
-          routes.map { route =>
-            val (started, completed) = usage.getOrElse(route.routeId, (0, 0))
-            val polyline: String     = polylines.getOrElse(route.routeId, "")
-            route.copy(
-              startedCount = started,
-              completedCount = completed,
-              encodedPolyline = polyline,
-              thumbnailUrl = RouteThumbnail.url(polyline, mapboxApiKey)
-            )
-          }
+    db.run(routeTable.getRoutesForUser(userId)).flatMap(decorateWithUsageAndThumbnails)
+  }
+
+  /**
+   * Gets the city's routes (newest first, capped at n) with the same display stats, usage counts, and thumbnail
+   * geometry as the dashboard's list — the feed for the public /routes listing page (#4688).
+   */
+  def getRoutesForCity(n: Int): Future[Seq[RouteWithStats]] = {
+    db.run(routeTable.getRoutesForCity(n)).flatMap(decorateWithUsageAndThumbnails)
+  }
+
+  /** Fills listing rows' usage counts (users started/completed in Explore) and static-map thumbnail geometry. */
+  private def decorateWithUsageAndThumbnails(routes: Seq[RouteWithStats]): Future[Seq[RouteWithStats]] = {
+    val routeIds = routes.map(_.routeId)
+    if (routeIds.isEmpty) {
+      Future.successful(routes)
+    } else {
+      // Independent queries, so they're started before the for-comprehension sequences them.
+      val usageFuture      = db.run(routeTable.getUsageCounts(routeIds))
+      val geometriesFuture = db.run(routeTable.getStreetGeometries(routeIds))
+      for {
+        usage      <- usageFuture
+        geometries <- geometriesFuture
+      } yield {
+        val polylines: Map[Int, String] = geometries.groupBy(_._1).map { case (routeId, streets) =>
+          routeId -> encodeRouteGeometry(streets.map { case (_, reverse, geom) => (reverse, geom) })
+        }
+        routes.map { route =>
+          val (started, completed) = usage.getOrElse(route.routeId, (0, 0))
+          val polyline: String     = polylines.getOrElse(route.routeId, "")
+          route.copy(
+            startedCount = started,
+            completedCount = completed,
+            encodedPolyline = polyline,
+            thumbnailUrl = RouteThumbnail.url(polyline, mapboxApiKey)
+          )
         }
       }
     }

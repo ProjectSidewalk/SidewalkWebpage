@@ -47,3 +47,7 @@ dashboard.profile.headline = {0} has placed <strong>{1} labels</strong> making f
 dashboard.profile.private.detail = They''re still out there making footpaths more accessible — they''ve just chosen not to share a public profile.
 leaderboard.intro = Every label makes footpaths more accessible and safe for everyone. Here''s how the community is doing.
 leaderboard.intro.you = Every label makes footpaths more accessible and safe for everyone. Here''s how the community — and you — are doing.
+
+# Community listing pages: /stories and /routes (#4688).
+community.page.sort.neighborhood = Neighbourhood
+stories.page.intro = Personal stories that community members have attached to footpath labels — real accounts of how accessibility barriers and features affect people''s lives.
