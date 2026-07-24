@@ -14,7 +14,9 @@
   background-color: var(--color-neutral-100);
 }
 
+/* border-box (main.css has no global reset) so max-width caps the card's full rendered width, padding included. */
 .error-card {
+  box-sizing: border-box;
   width: 100%;
   max-width: 480px;
   padding: 40px 32px;
@@ -34,11 +36,13 @@
   color: var(--color-asphalt-500);
 }
 
+/* The 404 message embeds the requested path, which can be arbitrarily long and unbroken — wrap it anywhere. */
 .error-message {
   margin: 0 0 24px;
   font: var(--text-subtitle-regular);
   line-height: 1.5;
   color: var(--color-neutral-800);
+  overflow-wrap: anywhere;
 }
 
 /* Monospace so the support ID is easy to read out and copy; digits stay in a non-Raleway face per the type rules. */
