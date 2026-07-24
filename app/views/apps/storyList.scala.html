@@ -67,6 +67,7 @@
             <div class="story-card__body">
               <p class="story-card__text">@s.storyText</p>
               <p class="story-card__byline">
+                <img class="story-card__byline-icon" src='@assets.path("images/icons/user-feather.svg")' alt="">
                 <span class="story-card__author">@s.displayName.getOrElse(Messages("stories.page.anonymous"))</span>
                 ·
                 <time class="community-date" datetime="@s.createdAt.toInstant.toString">@dateLabel(s.createdAt)</time>

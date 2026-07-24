@@ -204,10 +204,21 @@
   border: none;
 }
 
+/* The byline, location, and footer rows all lead with a 16px icon on the same left edge: the byline and location
+   lines are indented to match the type chip's 10px pill padding below them. */
 .story-card__byline {
-  margin: 0;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0 0 0 10px;
   font: var(--text-small-regular);
   color: var(--color-neutral-700);
+}
+
+.story-card__byline-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
 }
 
 .story-card__author {
@@ -221,7 +232,7 @@
   display: flex;
   gap: 6px;
   align-items: center;
-  margin: 0 0 0 10px;
+  margin: 4px 0 0 10px;
   font: var(--text-small-regular);
   color: var(--color-neutral-700);
   text-decoration: none;
@@ -254,6 +265,7 @@
   gap: 8px;
   align-items: center;
   margin-top: auto;
+  padding-top: 12px;
 }
 
 .story-card__label-link {
