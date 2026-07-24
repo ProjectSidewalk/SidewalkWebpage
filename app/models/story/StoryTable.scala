@@ -2,6 +2,8 @@ package models.story
 
 import com.google.inject.ImplementedBy
 import models.label.LabelTableDef
+import models.region.RegionTableDef
+import models.street.StreetEdgeRegionTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
@@ -90,10 +92,12 @@ class StoryTable @Inject() (
 ) extends StoryTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  val stories    = TableQuery[StoryTableDef]
-  val storyMedia = TableQuery[StoryMediaTableDef]
-  val users      = TableQuery[SidewalkUserTableDef]
-  val labels     = TableQuery[LabelTableDef]
+  val stories           = TableQuery[StoryTableDef]
+  val storyMedia        = TableQuery[StoryMediaTableDef]
+  val users             = TableQuery[SidewalkUserTableDef]
+  val labels            = TableQuery[LabelTableDef]
+  val streetEdgeRegions = TableQuery[StreetEdgeRegionTableDef]
+  val regions           = TableQuery[RegionTableDef]
 
   def insert(story: Story): DBIO[Int] = {
     (stories returning stories.map(_.storyId)) += story
@@ -171,6 +175,32 @@ class StoryTable @Inject() (
       .sortBy(_._1._1.createdAt.desc)
       .result
       .map(_.map { case ((story, label), media) => (story, media, label.labelTypeId) })
+  }
+
+  /**
+   * Newest visible stories city-wide, each with its author's username and its label's type and neighborhood — the
+   * feed for the public /stories listing page (#4688).
+   *
+   * Public-only by design: hidden stories are absent for everyone (authors manage theirs on the dashboard, admins
+   * on /admin/stories), and stories on soft-deleted labels are dropped since their label can't be opened.
+   */
+  def getVisibleForCity(n: Int): DBIO[Seq[(Story, Option[StoryMedia], String, Int, Int, String)]] = {
+    val visibleWithPlace = for {
+      story            <- stories if story.visible
+      user             <- users if user.userId === story.userId
+      label            <- labels if label.labelId === story.labelId && !label.deleted
+      streetEdgeRegion <- streetEdgeRegions if streetEdgeRegion.streetEdgeId === label.streetEdgeId
+      region           <- regions if region.regionId === streetEdgeRegion.regionId
+    } yield (story, user.username, label.labelTypeId, region.regionId, region.name)
+    visibleWithPlace
+      .joinLeft(storyMedia)
+      .on(_._1.storyId === _.storyId)
+      .sortBy(_._1._1.createdAt.desc)
+      .take(n)
+      .result
+      .map(_.map { case ((story, username, labelTypeId, regionId, regionName), media) =>
+        (story, media, username, labelTypeId, regionId, regionName)
+      })
   }
 
   /** Most recent stories across all users (hidden included), for the admin moderation queue. */

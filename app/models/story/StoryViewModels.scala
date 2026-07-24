@@ -1,5 +1,7 @@
 package models.story
 
+import models.label.LabelTypeEnum
+
 import java.io.File
 import java.time.OffsetDateTime
 
@@ -47,6 +49,24 @@ case class StoryForAdmin(
 case class StoryForOwner(
     story: Story,
     labelType: String,
+    media: Option[StoryMediaForView]
+)
+
+/**
+ * A story card on the public /stories listing page (#4688): the viewer-safe card data plus its label's type and
+ * neighborhood, so the page can render type/region chips and sort on them without extra lookups.
+ *
+ * `displayName` is already resolved against the story's display-name mode (None = show as anonymous).
+ */
+case class StoryForListing(
+    storyId: Int,
+    labelId: Int,
+    labelType: LabelTypeEnum.Base,
+    regionId: Int,
+    regionName: String,
+    storyText: String,
+    displayName: Option[String],
+    createdAt: OffsetDateTime,
     media: Option[StoryMediaForView]
 )
 

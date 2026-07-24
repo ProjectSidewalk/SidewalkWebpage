@@ -46,6 +46,7 @@ trait StoryService {
   ): Future[Either[StoryRejection, Unit]]
   def deleteOwnStory(storyId: Int, userId: String): Future[Boolean]
   def getStoriesForUser(userId: String): Future[Seq[StoryForOwner]]
+  def getStoriesForCity(n: Int): Future[Seq[StoryForListing]]
   def getRecentStories(n: Int): Future[Seq[StoryForAdmin]]
   def setStoryVisibility(storyId: Int, adminUserId: String, hidden: Boolean): Future[Boolean]
   def adminDeleteStory(storyId: Int): Future[Boolean]
@@ -309,6 +310,23 @@ class StoryServiceImpl @Inject() (
     db.run(storyTable.getForUser(userId))
       .map(_.map { case (story, media, labelTypeId) =>
         StoryForOwner(story, LabelTypeEnum.labelTypeIdToLabelType(labelTypeId), media.map(toMediaForView))
+      })
+  }
+
+  def getStoriesForCity(n: Int): Future[Seq[StoryForListing]] = {
+    db.run(storyTable.getVisibleForCity(n))
+      .map(_.map { case (story, media, username, labelTypeId, regionId, regionName) =>
+        StoryForListing(
+          storyId = story.storyId,
+          labelId = story.labelId,
+          labelType = LabelTypeEnum.byId(labelTypeId),
+          regionId = regionId,
+          regionName = regionName,
+          storyText = story.storyText,
+          displayName = if (story.displayNameMode == Story.DisplayNameUsername) Some(username) else None,
+          createdAt = story.createdAt,
+          media = media.map(toMediaForView)
+        )
       })
   }
 
