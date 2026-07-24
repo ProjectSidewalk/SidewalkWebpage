@@ -197,7 +197,7 @@
 }
 
 .story-card__text {
-  max-height: 154px; /* 7 lines of --text-body-regular (22px line-height); the read-more toggle lifts it. */
+  max-height: 110px; /* 5 lines of --text-body-regular (22px line-height); the read-more toggle lifts it. */
   margin: 0;
   overflow: hidden;
   font: var(--text-body-regular);
