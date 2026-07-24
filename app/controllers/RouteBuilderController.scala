@@ -136,7 +136,10 @@ class RouteBuilderController @Inject() (
   def routeBySlug(slug: String): Action[AnyContent] = Action.async { implicit request =>
     routeService.resolveSlug(slug).map {
       case Some(routeId) => Redirect(s"/explore?routeId=$routeId", FOUND)
-      case None          => NotFound(views.html.errors.onHandlerNotFound(request))
+      case None          =>
+        NotFound(
+          views.html.errors.errorPage(Messages("error.404.heading"), Messages("error.404.message", request.path))
+        )
     }
   }
 
