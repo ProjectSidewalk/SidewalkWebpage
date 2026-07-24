@@ -15,7 +15,7 @@ import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
 import slick.dbio.DBIO
 
-import java.time.{LocalDate, OffsetDateTime}
+import java.time.{LocalDate, OffsetDateTime, ZoneId}
 import java.time.temporal.ChronoUnit
 import javax.inject._
 import scala.concurrent.duration.{Duration, FiniteDuration}
@@ -105,8 +105,22 @@ case class AggregateStats(
  * @param validations  Validations by non-excluded users that week.
  * @param activeUsers  Distinct non-excluded users who labeled or validated that week. Summed across cities for the
  *                     "active users over time" overview line, this slightly over-counts users active in multiple cities.
+ * @param newUsers     Users whose first-ever label or validation fell in that week — the increment for the cumulative
+ *                     users chart (#4686). Only populated on full-history queries: a trailing window can't know a
+ *                     user's true first week, so bounded queries return 0 here.
  */
-case class WeeklyPoint(weekStart: LocalDate, labels: Int, validations: Int, activeUsers: Int)
+case class WeeklyPoint(weekStart: LocalDate, labels: Int, validations: Int, activeUsers: Int, newUsers: Int)
+
+/**
+ * One day's contribution volume summed across cities, for the Across Cities "this week" bar charts (#4686).
+ *
+ * @param day          Calendar day (Pacific).
+ * @param labels       Non-tutorial, non-excluded labels created that day.
+ * @param validations  Validations by non-excluded users that day.
+ * @param activeUsers  Distinct non-excluded users who labeled or validated that day, summed per city (a person active
+ *                     in two cities is counted in each).
+ */
+case class DailyPoint(day: LocalDate, labels: Int, validations: Int, activeUsers: Int)
 
 /**
  * One city's summary row for the cross-city "Across Cities" admin overview (#4329).
@@ -426,6 +440,16 @@ trait ConfigService {
    * @return      Merged weekly series, ascending by week.
    */
   def getCrossCityWeeklyTrend(weeks: Option[Int]): Future[Seq[WeeklyPoint]]
+
+  /**
+   * Returns the daily label/validation/active-user volume summed across all available cities for the trailing window
+   * (#4686), for the "this week" bar charts. Same definitions and exclusions as [[getCrossCityWeeklyTrend]]; active
+   * users are summed per city, so a person active in multiple cities is counted in each (documented on the page).
+   *
+   * @param days Trailing calendar days (Pacific) to include; the last day is today, so its counts are partial.
+   * @return     Exactly `days` points, zero-filled and ascending by day.
+   */
+  def getCrossCityDailyTrend(days: Int): Future[Seq[DailyPoint]]
 
   /**
    * Returns each city's labeling speed as seconds of active auditing per 100 m covered (#4329).
@@ -805,8 +829,53 @@ class ConfigServiceImpl @Inject() (
             .toSeq
             .sortBy(_._1)
             .map { case (week, pts) =>
-              WeeklyPoint(week, pts.map(_.labels).sum, pts.map(_.validations).sum, pts.map(_.activeUsers).sum)
+              WeeklyPoint(
+                week,
+                pts.map(_.labels).sum,
+                pts.map(_.validations).sum,
+                pts.map(_.activeUsers).sum,
+                pts.map(_.newUsers).sum
+              )
             }
+        }
+      }
+    }
+  }
+
+  def getCrossCityDailyTrend(days: Int): Future[Seq[DailyPoint]] = {
+    cacheApi.getOrElseUpdate[Seq[DailyPoint]](s"getCrossCityDailyTrend_$days", Duration(10, "minutes")) {
+      val configuredCityIds = config.get[Seq[String]]("city-params.city-ids").filter(_ != "staging")
+
+      val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
+        try {
+          checkSchemaExists(getCitySchema(cityId)).map(cityId -> _).recover { case _ => cityId -> false }
+        } catch {
+          case _: Exception => Future.successful(cityId -> false)
+        }
+      }
+
+      Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
+        val availableCities = schemaResults.filter(_._2).map(_._1)
+        val perCityFutures  = availableCities.map { cityId =>
+          db.run(configTable.getCityDailyTrendBySchema(getCitySchema(cityId), days))
+            .recover { case e: Exception =>
+              logger.warn(s"Failed to fetch daily trend for city $cityId: ${e.getMessage}")
+              Seq.empty[DailyPoint]
+            }
+        }
+        Future.sequence(perCityFutures).map { perCity =>
+          val byDay = perCity.flatten
+            .groupBy(_.day)
+            .map { case (day, pts) =>
+              day -> DailyPoint(day, pts.map(_.labels).sum, pts.map(_.validations).sum, pts.map(_.activeUsers).sum)
+            }
+          // Zero-fill the exact trailing window so the page always gets `days` bars. Iterating the window (rather
+          // than the query results) also drops any extra day the DAO's index-friendly coarse bound let through.
+          val today = LocalDate.now(ZoneId.of("US/Pacific"))
+          (0 until days).map { i =>
+            val day = today.minusDays((days - 1 - i).toLong)
+            byDay.getOrElse(day, DailyPoint(day, 0, 0, 0))
+          }
         }
       }
     }
