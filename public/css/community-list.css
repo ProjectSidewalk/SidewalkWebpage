@@ -215,7 +215,8 @@
   color: var(--color-neutral-800);
 }
 
-.story-card__address {
+/* One combined place line: "address · neighborhood", or just the neighborhood when the address is unknown. */
+.story-card__location {
   display: flex;
   gap: 6px;
   align-items: center;
@@ -224,13 +225,13 @@
   color: var(--color-neutral-700);
 }
 
-.story-card__address-icon {
+.story-card__location-icon {
   flex-shrink: 0;
   width: 14px;
   height: 14px;
 }
 
-.story-card__address-text {
+.story-card__location-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
