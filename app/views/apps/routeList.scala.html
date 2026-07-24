@@ -1,0 +1,119 @@
+@import models.route.RouteWithStats
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+
+@*
+ * Public /routes page (#4688): every saved RouteBuilder route in the city, newest first, as a searchable and
+ * sortable card grid. Cards are server-rendered; RouteListPage.js only adds the client-side search/sort behavior,
+ * the copy-share-link button, and timezone-correct dates.
+ *
+ * @param commonData Per-page config (city info).
+ * @param user       The signed-in or anonymous display user (navbar only).
+ * @param cityRoutes The city's routes, newest first, capped at RouteBuilderController.ListingMax.
+ *@
+@(commonData: CommonPageData, user: SidewalkUserWithRole, cityRoutes: Seq[RouteWithStats]
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@isMetric = @{Messages("measurement.system") == "metric"}
+
+@distanceLabel(meters: Double) = @{
+  if (isMetric) f"${meters / 1000}%.2f ${Messages("dashboard.unit.km")}"
+  else f"${meters * models.utils.CommonUtils.METERS_TO_MILES}%.2f ${Messages("dashboard.unit.mi")}"
+}
+
+@dateLabel(dt: java.time.OffsetDateTime) = @{
+  dt.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
+    .withLocale(messages.lang.toLocale))
+}
+
+@common.main(commonData, Messages("seo.title.routes"), i18Namespaces = Seq("common", "dashboard")) {
+  @common.navbar(commonData, Some(user))
+
+  <main class="community-page" id="route-list-page">
+    <header class="community-head">
+      <div class="community-head__row">
+        <h1 class="community-title">@Messages("routes.page.title")</h1>
+        <a class="button-ps button--primary button--medium community-head__cta" href="/routeBuilder">
+          @Messages("routes.page.build.cta")
+        </a>
+      </div>
+      <p class="community-intro">@Messages("routes.page.intro")</p>
+    </header>
+
+    @if(cityRoutes.isEmpty) {
+      <div class="community-empty">
+        <p>@Messages("routes.page.none")</p>
+        <a class="button-ps button--primary button--medium" href="/routeBuilder">@Messages("routes.page.none.cta")</a>
+      </div>
+    } else {
+      <div class="community-toolbar">
+        <input type="search" id="community-search" class="community-search" autocomplete="off"
+               placeholder="@Messages("routes.page.search.placeholder")"
+               aria-label="@Messages("routes.page.search.placeholder")">
+        <label class="community-sort-label" for="community-sort">@Messages("community.page.sort")</label>
+        <select id="community-sort" class="community-sort">
+          <option value="newest" selected>@Messages("community.page.sort.newest")</option>
+          <option value="neighborhood">@Messages("community.page.sort.neighborhood")</option>
+          <option value="longest">@Messages("routes.page.sort.longest")</option>
+          <option value="explored">@Messages("routes.page.sort.explored")</option>
+        </select>
+        <span class="community-count" id="community-count" role="status" aria-live="polite"
+              data-count-template="@Messages("community.page.count")"></span>
+      </div>
+
+      <ul class="community-cards" id="community-cards">
+        @for(r <- cityRoutes) {
+          <li class="community-card route-card" data-route-id="@r.routeId" data-slug="@r.slug"
+              data-created="@r.createdAt.toInstant.toEpochMilli" data-region="@r.regionName"
+              data-distance="@r.distanceMeters" data-explored="@r.startedCount">
+            @if(r.thumbnailUrl.nonEmpty) {
+              <a class="route-card__thumb-link" href="/explore?routeId=@r.routeId" tabindex="-1" aria-hidden="true">
+                <img class="route-card__thumb" src="@r.thumbnailUrl" alt="" loading="lazy" width="360" height="180">
+              </a>
+            }
+            <div class="route-card__body">
+              <h2 class="route-card__name">@r.name</h2>
+              @r.description.map { desc =>
+                <p class="route-card__desc">@desc</p>
+              }
+              <p class="route-card__meta">
+                @r.regionName · @distanceLabel(r.distanceMeters) ·
+                <time class="community-date" datetime="@r.createdAt.toInstant.toString">@dateLabel(r.createdAt)</time>
+              </p>
+              <p class="route-card__usage" title="@Messages("dashboard.routes.stats.tooltip")">
+                @Messages("dashboard.routes.stats", r.startedCount, r.completedCount)
+              </p>
+              <div class="route-card__actions">
+                <a class="button-ps button--primary button--small route-card__explore" data-route-id="@r.routeId"
+                   href="/explore?routeId=@r.routeId">@Messages("dashboard.routes.explore")</a>
+                <a class="button-ps button--secondary button--small route-card__labelmap" data-route-id="@r.routeId"
+                   href="/labelMap?routes=@r.routeId" target="_blank" rel="noopener">@Messages("dashboard.routes.labelmap")</a>
+                <button type="button" class="button-ps button--secondary button--small route-card__copy" data-route-id="@r.routeId">
+                  @Messages("dashboard.routes.copy")
+                </button>
+              </div>
+            </div>
+          </li>
+        }
+      </ul>
+      <p class="community-no-results" id="community-no-results" hidden>@Messages("community.page.no.results")</p>
+      @if(cityRoutes.size >= controllers.RouteBuilderController.ListingMax) {
+        <p class="community-cap-note">
+          @Messages("community.page.cap.note", controllers.RouteBuilderController.ListingMax)
+        </p>
+      }
+    }
+  </main>
+  @common.miniFooter(commonData)
+
+  <link href='@assets.path("css/community-list.css")' rel="stylesheet">
+  <script src='@assets.path("js/common/Toast.js")'></script>
+  <script src='@assets.path("js/community/CommunityListPage.js")'></script>
+  <script src='@assets.path("js/community/RouteListPage.js")'></script>
+  <script>
+    window.appManager.ready(function () {
+      new RouteListPage().init();
+    });
+  </script>
+}

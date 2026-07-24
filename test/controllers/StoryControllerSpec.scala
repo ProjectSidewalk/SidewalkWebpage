@@ -99,7 +99,7 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     route(app, FakeRequest(DELETE, s"/userapi/stories/$storyId").withCookies(session: _*).withCSRFToken).get
 
   private def getStories(labelId: Int, session: Seq[Cookie] = Seq.empty) =
-    route(app, FakeRequest(GET, s"/stories?labelId=$labelId").withCookies(session: _*)).get
+    route(app, FakeRequest(GET, s"/label/$labelId/stories").withCookies(session: _*)).get
 
   private def storiesArray(json: JsValue): Seq[JsValue] = (json \ "stories").as[JsArray].value.toSeq
 
@@ -119,7 +119,7 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     MultipartFormData.FilePart(key = "photo", filename = "story-exif.jpg", contentType = Some("image/jpeg"), ref = temp)
   }
 
-  "GET /stories" should {
+  "GET /label/:labelId/stories" should {
     "be readable with no session at all (public share-page contract) and carry the composer's text limit" in {
       labelIds.headOption match {
         case None     => cancel("No labels in the connected test DB.")
@@ -132,6 +132,38 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
           (contentAsJson(resp) \ "is_access_problem").asOpt[Boolean] mustBe defined
           (contentAsJson(resp) \ "stories").asOpt[JsArray] mustBe defined
       }
+    }
+  }
+
+  "GET /stories (listing page)" should {
+    "render for an anonymous session and include a freshly submitted story" in {
+      labelIds.headOption match {
+        case None     => cancel("No labels in the connected test DB.")
+        case Some(id) =>
+          val session = freshAnonSession()
+          val text    = s"Listing page spec story ${java.util.UUID.randomUUID}"
+          val posted  = postStory(session, id, text)
+          status(posted) mustBe OK
+          val storyId = (contentAsJson(posted) \ "story_id").as[Int]
+          try {
+            val page = route(app, FakeRequest(GET, "/stories").withCookies(session: _*)).get
+            status(page) mustBe OK
+            contentType(page) mustBe Some("text/html")
+            val body = contentAsString(page)
+            body must include("story-list-page")
+            body must include(text)
+          } finally {
+            // Cleanup must run even when the page assertions fail; status() awaits the delete.
+            val cleanupStatus = status(deleteStory(session, storyId))
+            if (cleanupStatus != OK) fail(s"cleanup delete returned $cleanupStatus")
+          }
+      }
+    }
+
+    "redirect a cookie-less request into the anonymous sign-up flow (3xx, not 404)" in {
+      val sc = status(route(app, FakeRequest(GET, "/stories")).get)
+      sc must be >= 300
+      sc must be < 400
     }
   }
 

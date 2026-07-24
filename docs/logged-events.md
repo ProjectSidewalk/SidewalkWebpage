@@ -145,6 +145,11 @@ ones whose meaning, parameters, or history aren't obvious:
 | `RouteBuilder_Click=Undo` / `RouteBuilder_KeyboardShortcut=Undo` | The same undo action (#4576) via the button vs Ctrl/Cmd+Z — don't double-count. |
 | `RouteBuilder_Click=CancelRoute` / `ResumeRoute` / `ConfirmCancelRoute` | The clear-route flow: opening the discard-confirm dialog, backing out of it, or confirming the discard. While a saved route is being edited, the dialog is about discarding unsaved edits — the saved route itself is never deleted from here. |
 | `Click_module=RouteList_<View\|Explore\|LabelMap\|Copy\|Rename\|Delete>_RouteId=<id>` | Actions on a saved route in the dashboard's "My Routes" section (`MyRoutes.js`); `View` is the thumbnail click that opens the route in the RouteBuilder editor. |
+| `Visit_Stories` / `Visit_Routes` | Page views of the public community listing pages, `/stories` and `/routes` (#4688). |
+| `Click_module=<StoryListPage\|RouteListPage>_Search` / `..._Sort=<option>` | The listing pages' toolbar: the first use of the search box per page view (never the typed query), and each sort change. |
+| `Click_module=StoryListPage_ViewLabel_LabelId=<id>` | Opening a story's label from a `/stories` card (inline popup, or navigation when the popup failed to initialize). |
+| `Click_module=StoryListPage_Location_LabelId=<id>` | Following a story card's address/neighborhood line to the label on the LabelMap. |
+| `Click_module=RouteListPage_<Explore\|LabelMap\|Copy>_RouteId=<id>` | Actions on a route card on `/routes` (`RouteListPage.js`). |
 
 ## Finding the current list
 

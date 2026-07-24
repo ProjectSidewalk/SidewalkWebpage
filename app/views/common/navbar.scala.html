@@ -17,7 +17,7 @@
 @curPath = @{request.path.toLowerCase}
 @* The Tools toggle shows active when the current page is one of its menu items that has no top-level entry of its own
    (Label Map is excluded — it carries its own top-level active indicator). *@
-@toolsToggleActive = @{Set("/gallery", "/leaderboard", "/routebuilder", "/expertvalidate", "/adminvalidate").contains(curPath)}
+@toolsToggleActive = @{Set("/gallery", "/leaderboard", "/stories", "/routes", "/routebuilder", "/expertvalidate", "/adminvalidate").contains(curPath)}
 @* The account pill shows active on its own menu's pages. "/admin/" prefix covers admin sub-pages but not
    "/adminValidate" (which belongs to the Tools toggle). *@
 @userToggleActive = @{curPath == "/dashboard" || curPath == "/admin" || curPath.startsWith("/admin/") || curPath == "/servicehoursinstructions" || curPath == "/timecheck"}
@@ -80,6 +80,8 @@
             <li><a id="navbar-labelmap-btn-tools" href="@routes.ApplicationController.labelMap(None)"@if(curPath == "/labelmap"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("map")@Messages("navbar.labelmap")</a></li>
             <li class="dropdown-section">@Messages("navbar.tools.community")</li>
             <li><a id="navbar-leaderboard-btn" href='@routes.UserDashboardController.leaderboard'@if(curPath == "/leaderboard"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("award")@Messages("navbar.leaderboard")</a></li>
+            <li><a id="navbar-stories-btn" href='@routes.StoryController.storiesPage'@if(curPath == "/stories"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("message-circle")@Messages("navbar.stories")</a></li>
+            <li><a id="navbar-routes-btn" href='@routes.RouteBuilderController.routesPage'@if(curPath == "/routes"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("flag")@Messages("navbar.routes")</a></li>
             <li class="dropdown-section">@Messages("navbar.tools.build")</li>
             <li><a id="navbar-route-builder-btn" href='@routes.ApplicationController.routeBuilder'@if(curPath == "/routebuilder"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("navigation")@Messages("routebuilder.name")</a></li>
             @if(isAdmin) {

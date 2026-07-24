@@ -135,6 +135,38 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
   }
 
+  "GET /routes (listing page)" should {
+    "render for any user and include another user's route until it is soft-deleted" in {
+      val owner                = signUpFreshUser()
+      val (streetId, regionId) = anyStreet(owner)
+      val name                 = s"City Listing Walk ${uniqueTag()}"
+      val saved                = saveRoute(owner, saveRouteBody(regionId, streetId, Some(name)))
+      status(saved) mustBe OK
+      val routeId = (contentAsJson(saved) \ "route_id").as[Int]
+
+      // A different user (not the creator) sees the route on the public listing page.
+      val other = signUpFreshUser()
+      val page  = route(app, FakeRequest(GET, "/routes").withCookies(other: _*)).get
+      status(page) mustBe OK
+      contentType(page) mustBe Some("text/html")
+      val body = contentAsString(page)
+      body must include("route-list-page")
+      body must include(name)
+
+      // Soft-deleting removes it from the listing.
+      status(deleteRoute(owner, routeId)) mustBe OK
+      val after = route(app, FakeRequest(GET, "/routes").withCookies(other: _*)).get
+      status(after) mustBe OK
+      contentAsString(after) must not include name
+    }
+
+    "redirect a cookie-less request into the anonymous sign-up flow (3xx, not 404)" in {
+      val sc = status(route(app, FakeRequest(GET, "/routes")).get)
+      sc must be >= 300
+      sc must be < 400
+    }
+  }
+
   "POST /saveRoute" should {
     "save a named route, echoing the trimmed name" in {
       val user                 = signUpFreshUser()
