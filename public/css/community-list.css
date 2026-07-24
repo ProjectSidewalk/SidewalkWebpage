@@ -112,6 +112,7 @@
   display: inline-flex;
   gap: 6px;
   align-items: center;
+  min-width: 0; /* Lets the chip shrink inside the one-line footer so its text can ellipsize. */
   padding: 2px 10px;
   font: var(--text-caption-medium);
   color: var(--color-neutral-800);
@@ -120,8 +121,15 @@
 }
 
 .community-chip__icon {
+  flex-shrink: 0;
   width: 16px;
   height: 16px;
+}
+
+.community-chip__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .community-empty {
@@ -207,18 +215,39 @@
   color: var(--color-neutral-800);
 }
 
+.story-card__address {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+.story-card__address-icon {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+.story-card__address-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Single line always: chips ellipsize (see .community-chip) rather than wrapping under the button. */
 .story-card__foot {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   align-items: center;
   margin-top: auto;
 }
 
 .story-card__label-link {
+  flex-shrink: 0;
   margin-left: auto;
-  font: var(--text-small-medium);
-  color: var(--color-asphalt-400);
 }
 
 /* ---- Route cards --------------------------------------------------------------------------------------------- */

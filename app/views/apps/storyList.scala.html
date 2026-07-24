@@ -71,13 +71,24 @@
                 ·
                 <time class="community-date" datetime="@s.createdAt.toInstant.toString">@dateLabel(s.createdAt)</time>
               </p>
+              @s.address.map { addr =>
+                <p class="story-card__address" title="@addr">
+                  <img class="story-card__address-icon" src='@assets.path("images/icons/map-pin-feather.svg")'
+                       alt="">
+                  <span class="story-card__address-text">@addr</span>
+                </p>
+              }
               <div class="story-card__foot">
                 <span class="community-chip community-chip--type" data-type-color="@s.labelType.color">
                   <img class="community-chip__icon" src="@s.labelType.smallIconPath" alt="">
-                  @Messages(s.labelType.nameKey)
+                  <span class="community-chip__text">@Messages(s.labelType.nameKey)</span>
                 </span>
-                <span class="community-chip">@s.regionName</span>
-                <a class="story-card__label-link" data-label-id="@s.labelId" href="/labelMap?labelId=@s.labelId">
+                <span class="community-chip" title="@s.regionName">
+                  <img class="community-chip__icon" src='@assets.path("images/icons/map-feather.svg")' alt="">
+                  <span class="community-chip__text">@s.regionName</span>
+                </span>
+                <a class="button-ps button--primary button--small story-card__label-link" data-label-id="@s.labelId"
+                   href="/labelMap?labelId=@s.labelId">
                   @Messages("stories.page.view.label")
                 </a>
               </div>

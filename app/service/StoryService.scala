@@ -320,7 +320,7 @@ class StoryServiceImpl @Inject() (
     db.run(storyTable.getVisibleForCity(n)).flatMap { rows =>
       // Photoless stories fall back to a label preview image (saved crop, else GSV static thumbnail) so every card
       // can carry an image — the same crop-then-GSV strategy as the Gallery and the admin activity feed.
-      val photolessLabelIds = rows.collect { case (story, None, _, _, _, _) => story.labelId }
+      val photolessLabelIds = rows.collect { case (story, None, _, _, _, _, _) => story.labelId }
       val panoMetaFut       =
         if (photolessLabelIds.isEmpty) Future.successful(Map.empty[Int, (String, PanoSource, Double, Double, Double)])
         else
@@ -330,7 +330,7 @@ class StoryServiceImpl @Inject() (
             }.toMap
           }
       panoMetaFut.map { panoMetaById =>
-        rows.map { case (story, media, username, labelTypeId, regionId, regionName) =>
+        rows.map { case (story, media, username, labelTypeId, regionId, regionName, address) =>
           val labelType     = LabelTypeEnum.byId(labelTypeId)
           val labelImageUrl =
             if (media.isDefined) None
@@ -346,6 +346,7 @@ class StoryServiceImpl @Inject() (
             labelType = labelType,
             regionId = regionId,
             regionName = regionName,
+            address = address,
             storyText = story.storyText,
             displayName = if (story.displayNameMode == Story.DisplayNameUsername) Some(username) else None,
             createdAt = story.createdAt,
