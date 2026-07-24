@@ -1,11 +1,13 @@
 @import play.api.Configuration
 @import service.CommonPageData
-@(commonData: service.CommonPageData, user: models.user.SidewalkUserWithRole
+@(commonData: service.CommonPageData, user: models.user.SidewalkUserWithRole, minutesPer100m: Double
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
+@isAnon = @{user.role == "Anonymous"}
+@paceRounded = @{f"$minutesPer100m%.1f"}
 
-@common.main(commonData, Messages("seo.title.route.builder"), defaultI18nNamespace = "routebuilder", i18Namespaces = Seq("routebuilder", "common")) {
+@common.main(commonData, Messages("seo.title.route.builder"), defaultI18nNamespace = "routebuilder", i18Namespaces = Seq("routebuilder", "common"), url = "/routeBuilder") {
   @common.navbar(commonData, Some(user))
 
   <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
@@ -16,41 +18,89 @@
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-search-1.5.0.js")'></script>
   <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
 
+  <link rel="stylesheet" href='@assets.path("css/common/toast.css")'>
   <link rel="stylesheet" href='@assets.path("css/route-builder.css")'>
-  <script src='@assets.path("js/routeBuilder.js")'></script>
+  <script src='@assets.path("js/route-builder/build/route-builder.js")'></script>
 
-  <div id="routebuilder-map"></div>
-  <div id="routebuilder-intro" class="routebuilder-overlay routebuilder-centered-overlay">
-    <span id="routebuilder-intro-title" class="routebuilder-h1">@Messages("routebuilder.welcome")</span>
-    <span id="routebuilder-intro-content">@Messages("routebuilder.intro.content")</span>
-    <span id="routebuilder-intro-instruction" class="routebuilder-h2">@Messages("routebuilder.intro.instruction")</span>
-  </div>
-  <div id="creating-route-overlay" class="routebuilder-overlay">
-    <span id="creating-route-title" class="routebuilder-h1">@Messages("routebuilder.creating.route")</span>
-    <div id="route-length-section" class="flex-div-col">
-      <span id="route-length-title" class="routebuilder-h2">@Messages("routebuilder.route.length")</span>
-      <span id="route-length-val"></span>
+  @* Full-viewport map. Routing is by clicking points on the map; the floating planner card (left), the on-map CTA,
+     and the always-visible legend overlay it. The planner card's data-state (empty|building) drives which sections
+     show (see route-builder.css); the Start/End address block is always present so DirectionsPanel can mount its two
+     MapboxSearchBox controls into the slots once. Modals live outside the map wrapper. *@
+  <div id="routebuilder-map-area">
+    <div id="routebuilder-map"></div>
+    <div id="routebuilder-cta" role="status" aria-live="polite" hidden></div>
+    <div id="routebuilder-panel" data-state="empty">
+      <div class="routebuilder-panel__empty">
+        <span id="routebuilder-intro-title" class="routebuilder-h1">@Messages("routebuilder.welcome")</span>
+        <span id="routebuilder-intro-content">@Messages("routebuilder.intro.content")</span>
+      </div>
+      <div class="routebuilder-panel__directions">
+        <div class="directions-row">
+          <img src="@assets.path("images/icons/routebuilder/flag-start.svg")" class="directions-flag" alt="">
+          <div id="directions-start-slot" class="directions-slot" aria-label="@Messages("routebuilder.directions.start.aria")"></div>
+        </div>
+        <div id="directions-end-row" class="directions-row" hidden>
+          <img src="@assets.path("images/icons/routebuilder/flag-end.svg")" class="directions-flag" alt="">
+          <div id="directions-end-slot" class="directions-slot" aria-label="@Messages("routebuilder.directions.end.aria")"></div>
+        </div>
+      </div>
+      <div class="routebuilder-panel__building">
+        <div id="route-stats" hidden>
+          <div id="route-stats-headline">
+            <span id="route-length-val"></span>
+            <span aria-hidden="true">·</span>
+            <span id="route-time-wrap">
+              <span id="route-time-val" tabindex="0" role="button" aria-describedby="route-time-tip"></span>
+              <span id="route-time-tip" role="tooltip" hidden>@Messages("routebuilder.stat.time.tooltip", paceRounded)</span>
+            </span>
+          </div>
+          <span id="route-stats-caption"></span>
+        </div>
+        <div id="creating-route-buttons" class="flex-div-row">
+          <button type="button" id="save-button" class="button-ps button--primary button--medium" disabled>@Messages("routebuilder.save")</button>
+          <button type="button" id="preview-button" class="button-ps button--secondary button--medium button--icon-only" disabled aria-label="@Messages("routebuilder.preview")" title="@Messages("routebuilder.preview")">
+            <img src="@assets.path("images/icons/play-feather.svg")" class="button-icon-img" alt="">
+          </button>
+          <button type="button" id="undo-button" class="button-ps button--secondary button--medium button--icon-only" disabled aria-label="@Messages("routebuilder.undo")" title="@Messages("routebuilder.undo")">
+            <img src="@assets.path("images/icons/undo-material.svg")" class="button-icon-img" alt="">
+          </button>
+          <button type="button" id="cancel-button" class="button-ps button--secondary button--medium button--icon-only" aria-label="@Messages("routebuilder.delete.route")" title="@Messages("routebuilder.delete.route")">
+            <img src="@assets.path("images/icons/trash-2-feather.svg")" class="button-icon-img" alt="">
+          </button>
+        </div>
+        <button type="button" id="new-route-button" class="button-ps button--secondary button--medium" title="@Messages("routebuilder.new.route.tooltip")">@Messages("routebuilder.new.route")</button>
+      </div>
+      <div id="saved-routes-panel" class="routebuilder-panel__saved" hidden>
+        <span id="saved-routes-title" class="routebuilder-h2">@Messages("routebuilder.saved.routes")</span>
+        @if(isAnon) {
+          <span id="saved-routes-note">@Messages("routebuilder.recent.routes.note")</span>
+        }
+        <ul id="saved-routes-list"></ul>
+        @if(!isAnon) {
+          <a id="saved-routes-dashboard-link" href="/dashboard#my-routes">@Messages("routebuilder.view.in.dashboard")</a>
+        }
+      </div>
     </div>
-    <div id="line-divider"></div>
-    <div id="editing-route-section" class="flex-div-col">
-      <span id="editing-route-title" class="routebuilder-h2">@Messages("routebuilder.editing.route")</span>
-      <div id="editing-route-add-street" class="editing-route-subsection">
-        <img src="@assets.path("images/icons/routebuilder/add-street.svg")" class="editing-route-icon" alt="@Messages("routebuilder.add.street.icon.alt")">
-        <span class="editing-route-subsection-content">@Messages("routebuilder.add.street.instruction")</span>
-      </div>
-      <div id="editing-route-reverse-street" class="editing-route-subsection">
-        <img src="@assets.path("images/icons/routebuilder/reverse-street.svg")" class="editing-route-icon" alt="@Messages("routebuilder.reverse.street.icon.alt")">
-        <span class="editing-route-subsection-content">@Messages("routebuilder.reverse.street.instruction")</span>
-      </div>
-      <div id="editing-route-delete-street" class="editing-route-subsection">
-        <img src="@assets.path("images/icons/routebuilder/delete-street.svg")" class="editing-route-icon" alt="@Messages("routebuilder.delete.street.icon.alt")">
-        <span class="editing-route-subsection-content">@Messages("routebuilder.delete.street.instruction")</span>
-      </div>
-    </div>
-    <span id="save-route-instruction">@Messages("routebuilder.save.route.instruction")</span>
-    <div id="creating-route-buttons" class="flex-div-row">
-      <button type="button" id="save-button" class="routebuilder-button blue-button">@Messages("routebuilder.save")</button>
-      <button type="button" id="cancel-button" class="routebuilder-button white-button">@Messages("cancel")</button>
+    <div id="routebuilder-legend">
+      <span id="routebuilder-legend-title">@Messages("routebuilder.legend.title")</span>
+      <ul id="routebuilder-legend-list">
+        <li class="legend-item">
+          <img src="@assets.path("images/icons/routebuilder/flag-start.svg")" class="legend-icon" alt="">
+          <span>@Messages("routebuilder.legend.start")</span>
+        </li>
+        <li class="legend-item">
+          <img src="@assets.path("images/icons/routebuilder/flag-end.svg")" class="legend-icon" alt="">
+          <span>@Messages("routebuilder.legend.end")</span>
+        </li>
+        <li class="legend-item">
+          <span class="legend-direction-arrow" aria-hidden="true">➔</span>
+          <span>@Messages("routebuilder.legend.direction")</span>
+        </li>
+      </ul>
+      <label id="routebuilder-poi-toggle" for="poi-toggle-checkbox">
+        <input type="checkbox" id="poi-toggle-checkbox" checked>
+        <span>@Messages("routebuilder.legend.pois")</span>
+      </label>
     </div>
   </div>
   <div id="delete-route-modal-backdrop" class="routebuilder-overlay-backdrop">
@@ -61,29 +111,35 @@
         <span id="delete-route-explanation">@Messages("routebuilder.not.saved.explanation")</span>
       </div>
       <div id="delete-route-buttons" class="flex-div-row">
-        <button type="button" id="delete-route-button" class="routebuilder-button blue-button">@Messages("routebuilder.delete.route")</button>
-        <button type="button" id="cancel-delete-route-button" class="routebuilder-button white-button">@Messages("back")</button>
+        <button type="button" id="delete-route-button" class="button-ps button--primary button--medium">@Messages("routebuilder.delete.route")</button>
+        <button type="button" id="cancel-delete-route-button" class="button-ps button--secondary button--medium">@Messages("back")</button>
       </div>
     </div>
   </div>
-  <div id="route-saved-modal-backdrop" class="routebuilder-overlay-backdrop">
-    <div id="route-saved-modal" class="routebuilder-overlay routebuilder-centered-overlay">
-      <div id="route-saved-title-section" class="flex-div-col">
-        <img id="route-saved-checkmark" src="@assets.path("images/icons/routebuilder/green-check.svg")" alt="@Messages("routebuilder.saved.icon.alt")">
-        <span id="route-saved-title" class="routebuilder-h1">@Messages("routebuilder.saved")</span>
+  <div id="save-route-modal-backdrop" class="routebuilder-overlay-backdrop">
+    <div id="save-route-modal" class="routebuilder-overlay routebuilder-centered-overlay" role="dialog" aria-modal="true" aria-labelledby="save-route-title">
+      <div id="save-route-header">
+        <span id="save-route-title" class="routebuilder-h1">@Messages("routebuilder.name.your.route")</span>
+        <button type="button" id="close-save-modal-button" aria-label="@Messages("routebuilder.close")">&times;</button>
       </div>
-      <div id="route-saved-share-section" class="flex-div-col">
-        <span id="route-saved-share-title">@Messages("routebuilder.share.title")</span>
-        <div id="share-route-subsection" class="flex-div-row">
-          <span id="share-route-link"></span>
-          <button type="button" id="copy-link-button" class="routebuilder-button  blue-button">@Messages("routebuilder.copy.link")</button>
-        </div>
-        <span id="route-saved-share-warnings">@Messages("routebuilder.share.warning")</span>
-      </div>
-      <div id="route-saved-buttons" class="flex-div-row">
-        <button type="button" id="explore-button" class="routebuilder-button  blue-button">@Messages("routebuilder.explore.route")</button>
-        <button type="button" id="view-in-labelmap-button" class="routebuilder-button white-button">@Messages("routebuilder.view.in.labelmap")</button>
-        <button type="button" id="build-new-route-button" class="routebuilder-button white-button">@Messages("routebuilder.build.another.route")</button>
+      <label id="route-name-label" for="route-name-input">@Messages("routebuilder.route.name.label")</label>
+      <input type="text" id="route-name-input" maxlength="@models.route.Route.MaxNameLength" autocomplete="off" placeholder="@Messages("routebuilder.route.name.placeholder")">
+      <label id="route-description-label" for="route-description-input">@Messages("routebuilder.route.description.label")
+        <span class="optional-tag">@Messages("routebuilder.optional")</span></label>
+      <textarea id="route-description-input" rows="3" maxlength="@models.route.Route.MaxDescriptionLength" placeholder="@Messages("routebuilder.route.description.placeholder")"></textarea>
+      <span id="route-name-error" role="alert" hidden></span>
+      @if(isAnon) {
+        <span id="save-route-signin-nudge">@Messages("routebuilder.signin.nudge")</span>
+      } else {
+        @* The dashboard link opens a new tab — navigating away here would lose the unsaved route. *@
+        <span id="save-route-dashboard-note">@Html(Messages("routebuilder.save.explanation", "/dashboard#my-routes"))</span>
+      }
+      <div id="save-route-buttons" class="flex-div-row">
+        @if(isAnon) {
+          <button type="button" id="signin-save-button" class="button-ps button--primary button--medium">@Messages("routebuilder.signin.to.save")</button>
+        }
+        <button type="button" id="confirm-save-button" class="button-ps button--medium @if(isAnon) {button--secondary} else {button--primary}">@if(isAnon) {@Messages("routebuilder.continue.without.account")} else {@Messages("routebuilder.save")}</button>
+        <button type="button" id="cancel-save-button" class="button-ps button--secondary button--medium">@Messages("cancel")</button>
       </div>
     </div>
   </div>
@@ -97,7 +153,7 @@
       const loadStreets = $.getJSON('/contribution/streets/all?filterLowQuality=true');
 
       const initMap = $.when(loadMapParams).done(function(mapParams) {
-        routeBuilder = new RouteBuilder($, '@commonData.mapboxApiKey', mapParams);
+        routeBuilder = new RouteBuilder('@commonData.mapboxApiKey', mapParams, @(!isAnon), @minutesPer100m);
       });
       $.when(initMap, loadPolygons).done(function(d0, neighborhoodData) {
         routeBuilder.renderNeighborhoods(neighborhoodData[0]);

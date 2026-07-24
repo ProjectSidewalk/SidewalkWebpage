@@ -1,9 +1,10 @@
 /**
- * MiniLineChart — a tiny, dependency-free SVG line chart for the admin dashboard. Renders one or more series over a
- * shared set of x categories, with a fixed or auto y-max, gridlines, hover tooltips, and a legend (when >1 series).
- * Series colors come from CSS classes (`.mini-line--<key>` / `.mini-pt--<key>` / `.mini-swatch--<key>`) so callers
- * style them with design tokens. Shared by the Data Quality (agreement-over-time) and API Analytics (usage-over-time)
- * pages so the chart isn't duplicated.
+ * MiniLineChart — a tiny, dependency-free SVG chart for the admin dashboard. Renders one or more series over a shared
+ * set of x categories as lines (default) or bars (`kind: 'bar'`), with a fixed or auto y-max, gridlines, hover
+ * tooltips, and a legend (when >1 series). Series colors come from CSS classes (`.mini-line--<key>` /
+ * `.mini-pt--<key>` / `.mini-bar--<key>` / `.mini-swatch--<key>`) so callers style them with design tokens. Shared by
+ * the Data Quality (agreement-over-time), API Analytics (usage-over-time), and Across Cities pages so the chart isn't
+ * duplicated.
  */
 class MiniLineChart {
   /**
@@ -11,8 +12,12 @@ class MiniLineChart {
    * @param {Array<{name: string, key: string, values: Array<number|null>, tooltips?: string[]}>} series -
    *   each series' values align to `categories`; null = gap. Optional per-point tooltip strings.
    * @param {{yMax?: number, tickFormat?: function(number): string, valueFormat?: function(number): string,
-   *          ariaLabel?: string, dotRadius?: number}} [opts] - yMax defaults to the data max; tickFormat labels the
-   *   y-axis; valueFormat formats values in the default tooltip; dotRadius sizes the point markers (default 3).
+   *          ariaLabel?: string, dotRadius?: number, kind?: string, maxXLabels?: number, barValues?: boolean,
+   *          emphasisIndex?: number}} [opts] - yMax defaults to the data max; tickFormat labels the y-axis;
+   *   valueFormat formats values in the default tooltip and in bar value labels; dotRadius sizes the point markers
+   *   (default 3); kind 'bar' draws bars instead of lines; maxXLabels caps how many x labels are drawn (default 6);
+   *   barValues draws each bar's value above it (meant for single-series bar charts — grouped bars would collide);
+   *   emphasisIndex marks that index's bar and labels with `--emphasis` classes (e.g. an in-progress "today" bar).
    * @returns {string} SVG markup plus an optional HTML legend.
    */
   static svg(categories, series, opts = {}) {
@@ -22,7 +27,9 @@ class MiniLineChart {
     const iw = W - m.l - m.r;
     const ih = H - m.t - m.b;
     const n = categories.length;
-    const x = (i) => m.l + (n === 1 ? iw / 2 : (i / (n - 1)) * iw);
+    const isBar = opts.kind === 'bar';
+    // Bars sit on band centers; line points span the full width edge to edge.
+    const x = (i) => (isBar ? m.l + ((i + 0.5) / n) * iw : m.l + (n === 1 ? iw / 2 : (i / (n - 1)) * iw));
     const yFrac = (f) => m.t + (1 - f) * ih; // f in [0, 1]
     const allVals = series.flatMap((s) => s.values.filter((v) => v !== null && v !== undefined));
     const yMax = opts.yMax || Math.max(1, ...allVals);
@@ -39,31 +46,61 @@ class MiniLineChart {
     }
 
     let body = '';
-    for (const s of series) {
-      let d = '';
-      let move = true;
-      s.values.forEach((v, i) => {
-        if (v === null || v === undefined) {
-          move = true;
-          return;
-        }
-        d += `${move ? 'M' : 'L'}${x(i).toFixed(1)},${yFrac(v / yMax).toFixed(1)} `;
-        move = false;
+    if (isBar) {
+      // With multiple series, each band is split into side-by-side bars (grouped, not stacked).
+      const band = iw / n;
+      const groupW = Math.min(band * 0.62, 48 * series.length);
+      const barW = groupW / series.length;
+      series.forEach((s, si) => {
+        body += s.values.map((v, i) => {
+          if (v === null || v === undefined) return '';
+          const emph = i === opts.emphasisIndex;
+          const top = yFrac(v / yMax);
+          const h = m.t + ih - top;
+          const bx = x(i) - groupW / 2 + si * barW;
+          const tip = s.tooltips?.[i] ?? `${categories[i]} · ${s.name}: ${valueFormat(v)}`;
+          // Zero values draw no bar; the x label (and value label, if enabled) still mark the category.
+          let out = h <= 0
+            ? ''
+            : `<rect class="mini-bar mini-bar--${s.key}${emph ? ' mini-bar--emphasis' : ''}" x="${bx.toFixed(1)}" `
+              + `y="${top.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}">`
+              + `<title>${MiniLineChart.#esc(tip)}</title></rect>`;
+          if (opts.barValues) {
+            out += `<text class="mini-value${emph ? ' mini-value--emphasis' : ''}" x="${(bx + barW / 2).toFixed(1)}" `
+              + `y="${((h > 0 ? top : yFrac(0)) - 4).toFixed(1)}" text-anchor="middle">`
+              + `${MiniLineChart.#esc(valueFormat(v))}</text>`;
+          }
+          return out;
+        }).join('');
       });
-      const dots = s.values.map((v, i) => {
-        if (v === null || v === undefined) return '';
-        const tip = s.tooltips?.[i] ?? `${categories[i]} · ${s.name}: ${valueFormat(v)}`;
-        return `<circle class="mini-pt mini-pt--${s.key}" cx="${x(i).toFixed(1)}" `
-          + `cy="${yFrac(v / yMax).toFixed(1)}" r="${dotRadius}">`
-          + `<title>${MiniLineChart.#esc(tip)}</title></circle>`;
-      }).join('');
-      body += `<path class="mini-line mini-line--${s.key}" d="${d.trim()}"/>${dots}`;
+    } else {
+      for (const s of series) {
+        let d = '';
+        let move = true;
+        s.values.forEach((v, i) => {
+          if (v === null || v === undefined) {
+            move = true;
+            return;
+          }
+          d += `${move ? 'M' : 'L'}${x(i).toFixed(1)},${yFrac(v / yMax).toFixed(1)} `;
+          move = false;
+        });
+        const dots = s.values.map((v, i) => {
+          if (v === null || v === undefined) return '';
+          const tip = s.tooltips?.[i] ?? `${categories[i]} · ${s.name}: ${valueFormat(v)}`;
+          return `<circle class="mini-pt mini-pt--${s.key}" cx="${x(i).toFixed(1)}" `
+            + `cy="${yFrac(v / yMax).toFixed(1)}" r="${dotRadius}">`
+            + `<title>${MiniLineChart.#esc(tip)}</title></circle>`;
+        }).join('');
+        body += `<path class="mini-line mini-line--${s.key}" d="${d.trim()}"/>${dots}`;
+      }
     }
 
-    const step = Math.max(1, Math.ceil(n / 6));
+    const step = Math.max(1, Math.ceil(n / (opts.maxXLabels || 6)));
     let xlab = '';
     for (let i = 0; i < n; i += step) {
-      xlab += `<text class="mini-axis" x="${x(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">`
+      const emph = i === opts.emphasisIndex ? ' mini-axis--emphasis' : '';
+      xlab += `<text class="mini-axis${emph}" x="${x(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">`
         + `${MiniLineChart.#esc(categories[i])}</text>`;
     }
     const svg = `<svg class="mini-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" `

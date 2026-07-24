@@ -76,7 +76,10 @@ object ExploreFormats {
       currentMissionStart: Option[Point],
       lastPriorityUpdateTime: OffsetDateTime,
       requestUpdatedStreetPriority: Boolean,
-      auditedDistanceM: Option[Double]
+      auditedDistanceM: Option[Double],
+      // Which route_street row this task was served for, when auditing along a route. A route may traverse one
+      // street twice (out-and-back), so street_edge_id alone can't say which traversal this is.
+      routeStreetId: Option[Int]
   )
   case class NoStreetViewSubmission(task: TaskSubmission, missionId: Int)
   case class PanoLinkSubmission(targetPanoId: String, yawDeg: Double, description: Option[String])
@@ -190,7 +193,8 @@ object ExploreFormats {
         "current_mission_id"    -> task.currentMissionId,
         "current_mission_start" -> task.currentMissionStart, // TODO test that this looks right on the front end.
         // "current_mission_start" -> currentMissionStart.map(p => geojson.LatLng(p.getY, p.getX)),
-        "route_street_id" -> task.routeStreetId
+        "route_street_id"       -> task.routeStreetId,
+        "route_street_position" -> task.routeStreetPosition
       )
     )
   }
@@ -289,7 +293,8 @@ object ExploreFormats {
       (JsPath \ "current_mission_start").readNullable[Point] and
       (JsPath \ "last_priority_update_time").read[OffsetDateTime] and
       (JsPath \ "request_updated_street_priority").read[Boolean] and
-      (JsPath \ "audited_distance_m").readNullable[Double]
+      (JsPath \ "audited_distance_m").readNullable[Double] and
+      (JsPath \ "route_street_id").readNullable[Int]
   )(TaskSubmission.apply _)
 
   implicit val noStreetViewSubmissionReads: Reads[NoStreetViewSubmission] = (

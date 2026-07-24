@@ -4,6 +4,10 @@
  * @memberof svl
  */
 class Task {
+  // Ceiling on any "am I at the end of this street?" threshold, as a fraction of the street's length. Keeps a
+  // fixed metre distance from swallowing most of a short street.
+  static END_PROXIMITY_MAX_FRACTION = 0.4;
+
   #geojson;
 
   /* @type {turf.Point} */
@@ -26,6 +30,7 @@ class Task {
     tutorialTask: null,
     wayType: null,
     routeStreetId: null,
+    routeStreetPosition: null,
   };
 
   /**
@@ -55,6 +60,7 @@ class Task {
     this.setProperty('auditTaskId', this.#geojson.properties.audit_task_id);
     this.setProperty('wayType', this.#geojson.properties.way_type);
     this.setProperty('routeStreetId', this.#geojson.properties.route_street_id);
+    this.setProperty('routeStreetPosition', this.#geojson.properties.route_street_position);
     this.setProperty('taskStart', new Date(this.#geojson.properties.task_start));
     if (this.#geojson.properties.completed) {
       this.#status.isComplete = true;
@@ -248,6 +254,18 @@ class Task {
   }
 
   /**
+   * This task's place in a route's walking order, for sorting route tasks.
+   *
+   * Position is the real ordering — an editable route can insert a street mid-route, so the serial routeStreetId
+   * only orders correctly for routes saved before editing existed.
+   *
+   * @returns {?number} null when the task isn't part of a route.
+   */
+  getWalkOrder() {
+    return this.#properties.routeStreetPosition ?? this.#properties.routeStreetId;
+  }
+
+  /**
    * Returns an integer in the range 0 to n-1, where larger n means higher priority.
    *
    * Explanation:
@@ -294,20 +312,23 @@ class Task {
   /**
    * This method checks if the task is completed by comparing the current position and the ending point.
    *
+   * The caller's threshold is capped at a fraction of this street's length. A distance that reads as "basically
+   * at the end" of a full block is most of a short one, and every caller inherits that — so the cap lives here
+   * rather than being re-derived at each call site.
+   *
    * @param {{lat: number, lng: number}} latLng The user's current location
-   * @param {number} threshold Distance threshold in meters
-   * @returns {boolean}
+   * @param {number} [threshold=10] Distance threshold in meters
+   * @returns {boolean} false if the task has no geometry yet.
    */
-  isAtEnd(latLng, threshold) {
-    if (this.#geojson) {
-      const len = this.#geojson.geometry.coordinates.length - 1;
-      const latEnd = this.#geojson.geometry.coordinates[len][1];
-      const lngEnd = this.#geojson.geometry.coordinates[len][0];
-
-      if (!threshold) threshold = 10; // 10 meters
-      const d = util.math.haversine(latLng, { lat: latEnd, lng: lngEnd });
-      return d < threshold;
-    }
+  isAtEnd(latLng, threshold = 10) {
+    if (!this.#geojson) return false;
+    const coords = this.#geojson.geometry.coordinates;
+    const end = coords[coords.length - 1];
+    const streetLengthM = this.lineDistance({ units: 'meters' });
+    const effectiveThreshold = streetLengthM > 0
+      ? Math.min(threshold, streetLengthM * Task.END_PROXIMITY_MAX_FRACTION)
+      : threshold;
+    return util.math.haversine(latLng, { lat: end[1], lng: end[0] }) < effectiveThreshold;
   }
 
   /**
@@ -376,15 +397,24 @@ class Task {
     if (svl.isExploreAddressMode()) return;
 
     // If the task has been completed already, or if it has not been completed and is not the current task,
-    // render it using a single completed-or-context Polyline, respectively.
+    // render it as a whole street rather than the audited/remaining split used for the current street.
     if (this.isComplete() || this.getStreetEdgeId() !== svl.taskContainer.getCurrentTaskStreetEdgeId()) {
       const gCoordinates = this.#geojson.geometry.coordinates
         .map((coord) => new google.maps.LatLng(coord[1], coord[0]));
-      this.#paths = [
-        new google.maps.Polyline(
-          this.isComplete() ? MinimapStyle.completedTask(gCoordinates) : MinimapStyle.otherTask(gCoordinates),
-        ),
-      ];
+      if (this.isComplete()) {
+        this.#paths = [new google.maps.Polyline(MinimapStyle.completedTask(gCoordinates))];
+      } else if (svl.neighborhoodModel.isRoute) {
+        // On a designated route every street ahead is part of the planned path, so paint it as the route-to-walk: a
+        // dashed line with direction chevrons over a white casing — the same encoding as the current street's
+        // remaining half (and RouteBuilder's own rendering) — so the whole route reads as a dotted, arrowed path when
+        // zoomed out. A free neighborhood audit has no planned path, so its non-current streets stay quiet context.
+        this.#paths = [
+          new google.maps.Polyline(MinimapStyle.routeCasing(gCoordinates)),
+          new google.maps.Polyline(MinimapStyle.remainingRoute(gCoordinates)),
+        ];
+      } else {
+        this.#paths = [new google.maps.Polyline(MinimapStyle.otherTask(gCoordinates))];
+      }
       // If the task is incomplete and is the current task, render its audited and remaining halves separately.
     } else {
       this.#paths = this.getGooglePolylines();

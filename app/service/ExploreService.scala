@@ -29,6 +29,7 @@ case class ExplorePageData(
     mission: Mission,
     region: Region,
     userRoute: Option[UserRoute],
+    route: Option[Route],
     hasCompletedAMission: Boolean,
     nextTempLabelId: Int,
     surveyData: Seq[SurveyQuestionWithOptions],
@@ -246,7 +247,14 @@ class ExploreServiceImpl @Inject() (
 
       mission: Mission <- {
         if (retakingTutorial) missionService.resumeOrCreateNewAuditOnboardingMission(userId).map(_.get)
-        else missionService.resumeOrCreateNewAuditMission(userId, regionId).map(_.get)
+        else {
+          missionService.resumeOrCreateNewAuditMission(userId, regionId, userRoute).flatMap {
+            case Some(m) => DBIO.successful(m)
+            // A route with no distance left yields no route-scoped mission. Rather than 500 the page, drop the
+            // user into a normal region session in the route's region.
+            case None => missionService.resumeOrCreateNewAuditMission(userId, regionId, None).map(_.get)
+          }
+        }
       }
 
       // If there is a partially completed task in this route or mission, get that, o/w make a new one.
@@ -292,8 +300,8 @@ class ExploreServiceImpl @Inject() (
       tutorialStreetId: Int                      <- configTable.getTutorialStreetId
       makeCrops: Boolean                         <- configTable.getMakeCrops
     } yield {
-      ExplorePageData(task, updatedMission, region.get, userRoute, hasCompletedAMission, nextTempLabelId, surveyData,
-        tutorialStreetId, makeCrops)
+      ExplorePageData(task, updatedMission, region.get, userRoute, routeOption, hasCompletedAMission, nextTempLabelId,
+        surveyData, tutorialStreetId, makeCrops)
     }
     db.run(getExploreDataAction.transactionally)
   }
@@ -325,8 +333,8 @@ class ExploreServiceImpl @Inject() (
                 makeCrops: Boolean                         <- configTable.getMakeCrops
               } yield {
                 Some(
-                  ExplorePageData(task, updatedMission, region, userRoute = None, hasCompletedAMission, nextTempLabelId,
-                    surveyData, tutorialStreetId, makeCrops)
+                  ExplorePageData(task, updatedMission, region, userRoute = None, route = None, hasCompletedAMission,
+                    nextTempLabelId, surveyData, tutorialStreetId, makeCrops)
                 )
               }
           }
@@ -810,7 +818,7 @@ class ExploreServiceImpl @Inject() (
         val userRouteAction: DBIO[Boolean] =
           if (data.userRouteId.isDefined && missionType.contains(MissionType.Audit)) {
             for {
-              _                      <- auditTaskUserRouteTable.insertIfNew(data.userRouteId.get, auditTaskId)
+              _ <- auditTaskUserRouteTable.insertIfNew(data.userRouteId.get, auditTaskId, data.auditTask.routeStreetId)
               routeComplete: Boolean <- userRouteTable.updateCompleteness(data.userRouteId.get)
             } yield routeComplete
           } else DBIO.successful(false)

@@ -97,6 +97,15 @@
     sepia(1) saturate(2) hue-rotate(315deg); /* Adds yellow highlight on hover. */
 }
 
+/* The highlighted route-forward arrow (#4671) marks the way the route wants the user to go. It inherits the link-arrow
+   base style (cursor + dark outline from #arrow-group image) but keeps its navigation-blue fill on hover — just
+   brightened — instead of the link arrows' yellow tint, which would fight the blue. */
+#arrow-group image.route-forward-highlight:hover {
+  filter:
+    drop-shadow(0 0 0.05rem var(--color-neutral-black)) drop-shadow(0 0 0.05rem var(--color-neutral-black))
+    brightness(1.15);
+}
+
 /* Used to highlight/blink the nav arrows in the tutorial. */
 #arrow-group image.highlight {
   filter:

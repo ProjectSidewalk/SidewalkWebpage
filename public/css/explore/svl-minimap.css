@@ -62,7 +62,22 @@
   opacity: 0.85;
 }
 
-/* "N% observed" label centered inside the progress ring drawn in the top-right corner (ObservedArea). */
+/* These full-cover panes are purely visual (the highlight-flash overlay + the fog/FOV/progress canvases). They must not
+   intercept pointer events, or the Google map's markers stacked below them never receive clicks (e.g. click a label to
+   return to it, #2561). Interactive children appended into the overlay re-enable pointer events. */
+#minimap-overlay,
+#minimap-fog-of-war-canvas,
+#minimap-fov-canvas,
+#minimap-progress-circle-canvas {
+  pointer-events: none;
+}
+
+#minimap-overlay > * {
+  pointer-events: auto;
+}
+
+/* "N% observed" label centered inside the progress-ring chip (ObservedArea). Top-right on a neighborhood audit; in
+   route mode it drops below the mission-progress bar (see .minimap-route-mode override below) to clear the overview. */
 #minimap-percent-observed {
   font: var(--text-tiny-medium);
   font-size: calc(8px * var(--ui-scale));
@@ -81,6 +96,11 @@
 
 #minimap-percent-observed:empty {
   display: none;
+}
+
+/* "100%" is wider than "NN%"; shrink it a touch so it stays inside the ring chip (toggled by ObservedArea). */
+#minimap-percent-observed.minimap-percent-full {
+  font-size: calc(7px * var(--ui-scale));
 }
 
 /* Mission-progress chip in the top-left: a fill bar plus "N%  done/total" (Minimap.updateMissionProgress). */
@@ -328,6 +348,31 @@
 .minimap-label-icon {
   width: calc(9px * var(--ui-scale, 1));
   height: auto;
+  cursor: pointer;
+}
+
+/* Breadcrumb trail (ObservedArea): a small faded ring, in the peg's hue, at each visited pano; click to return there
+   (#2561). The element itself is a larger transparent hit area so the tiny ring is comfortably clickable (WCAG 2.5.8);
+   the visible ring is drawn by ::before, centered inside it. AdvancedMarkerElement anchors content bottom-center, so
+   the hit area shifts down half its height to center the ring on the pano. */
+.minimap-breadcrumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(20px * var(--ui-scale, 1));
+  height: calc(20px * var(--ui-scale, 1));
+  cursor: pointer;
+  transform: translateY(50%);
+}
+
+.minimap-breadcrumb::before {
+  content: "";
+  box-sizing: border-box;
+  width: calc(7px * var(--ui-scale, 1));
+  height: calc(7px * var(--ui-scale, 1));
+  border: calc(1.4px * var(--ui-scale, 1)) solid var(--color-link-100);
+  border-radius: 50%;
+  opacity: 0.8;
 }
 
 /* GSV-style "you are here" puck (Peg.js): a blue dot with a triangle pointing in the heading direction. Markers anchor
@@ -338,6 +383,13 @@
   height: calc(28px * var(--ui-scale, 1));
   transform: translateY(50%) rotate(var(--peg-heading, 0deg));
   transform-origin: center;
+}
+
+/* The peg is decorative (no handlers), but the AdvancedMarkerElement wrapper Google generates keeps pointer-events:auto
+   even when its content is set to none — so at zIndex 1000 it still swallows clicks meant for a breadcrumb beneath it
+   (the crumbs nearest you sit inside the peg's box). Null the wrapper so the whole peg is click-through (#2561). */
+gmp-advanced-marker:has(> .minimap-peg) {
+  pointer-events: none;
 }
 
 .minimap-peg svg {
@@ -372,16 +424,22 @@
   display: none;
 }
 
-/* Whole-route overview inset (RouteOverview.js): a small always-on map of the entire designated route in the
-   bottom-left corner, doubling as the legend. Hidden by default; shown only in route mode, where it replaces the
-   mini-legend/key (which grows street-by-street on neighborhood audits, so there's no route to preview there). */
+/* Breadcrumbs are map-positioned markers, not canvas panes, so the rule above doesn't reach them; hide them explicitly
+   in the fitted whole-route overview so the visited trail doesn't clutter the zoomed-out view (#4639). */
+#minimap-holder.minimap-overview .minimap-breadcrumb {
+  display: none;
+}
+
+/* Whole-route overview inset (RouteOverview.js): a small always-on map of the entire designated route, in the
+   upper-right corner. Hidden by default; shown only in route mode, alongside the mini-legend/key (which grows
+   street-by-street on neighborhood audits, so there's no route to preview there). */
 #minimap-route-overview {
   display: none;
   position: absolute;
-  left: calc(4px * var(--ui-scale));
-  bottom: calc(10px * var(--ui-scale));
-  width: calc(96px * var(--ui-scale));
-  height: calc(80px * var(--ui-scale));
+  right: calc(4px * var(--ui-scale));
+  top: calc(4px * var(--ui-scale));
+  width: calc(80px * var(--ui-scale));
+  height: calc(60px * var(--ui-scale));
   padding: 0;
   border: calc(2px * var(--ui-scale)) solid var(--color-neutral-white);
   border-radius: calc(8px * var(--ui-scale));
@@ -407,14 +465,16 @@
   outline-offset: calc(1px * var(--ui-scale));
 }
 
-/* Route mode: the overview inset takes the bottom-left corner in place of the mini-legend and its expanded card. */
+/* Route mode: reveal the overview inset in the upper-right corner. The mini-legend stays in the bottom-left. */
 #minimap-holder.minimap-route-mode #minimap-route-overview {
   display: block;
 }
 
-#minimap-holder.minimap-route-mode #minimap-legend-toggle,
-#minimap-holder.minimap-route-mode #minimap-legend-card {
-  display: none;
+/* Route mode: the overview inset owns the top-right, so the view-coverage ring/label drops below the progress bar. */
+#minimap-holder.minimap-route-mode #minimap-percent-observed {
+  top: calc(28px * var(--ui-scale));
+  right: auto;
+  left: calc(4px * var(--ui-scale));
 }
 
 .gm-svpc {

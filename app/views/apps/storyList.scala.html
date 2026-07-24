@@ -1,0 +1,154 @@
+@import models.pano.PanoSource
+@import models.story.StoryForListing
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+
+@*
+ * Public /stories page (#4688): every visible lived-experience story in the city, newest first, as a searchable and
+ * sortable card grid. Cards are server-rendered (photo URLs are HMAC-signed server-side anyway); StoryListPage.js
+ * only adds the client-side search/sort/read-more behavior and opens each story's label in the shared LabelPopup
+ * (with the /labelMap?labelId= href as its no-JS fallback).
+ *
+ * @param commonData Per-page config (imagery source/token, city info).
+ * @param user       The signed-in or anonymous display user (navbar + story composer username).
+ * @param stories    The city's visible stories, newest first, capped at StoryController.ListingMax.
+ *@
+@(commonData: CommonPageData, user: SidewalkUserWithRole, stories: Seq[StoryForListing]
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@dateLabel(dt: java.time.OffsetDateTime) = @{
+  dt.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
+    .withLocale(messages.lang.toLocale))
+}
+
+@common.main(commonData, Messages("seo.title.stories"), i18Namespaces = Seq("common", "labelmap")) {
+  @common.navbar(commonData, Some(user))
+
+  <main class="community-page" id="story-list-page">
+    <header class="community-head">
+      <h1 class="community-title">@Messages("stories.page.title")</h1>
+      <p class="community-intro">@Messages("stories.page.intro")</p>
+    </header>
+
+    @if(stories.isEmpty) {
+      <div class="community-empty">
+        <p>@Messages("stories.page.none")</p>
+        <a class="button-ps button--primary button--medium" href="/labelMap">@Messages("stories.page.none.cta")</a>
+      </div>
+    } else {
+      <div class="community-toolbar">
+        <input type="search" id="community-search" class="community-search" autocomplete="off"
+               placeholder="@Messages("stories.page.search.placeholder")"
+               aria-label="@Messages("stories.page.search.placeholder")">
+        <label class="community-sort-label" for="community-sort">@Messages("community.page.sort")</label>
+        <select id="community-sort" class="community-sort">
+          <option value="newest" selected>@Messages("community.page.sort.newest")</option>
+          <option value="neighborhood">@Messages("community.page.sort.neighborhood")</option>
+          <option value="labeltype">@Messages("stories.page.sort.labeltype")</option>
+        </select>
+        <span class="community-count" id="community-count" role="status" aria-live="polite"
+              data-count-template="@Messages("community.page.count")"></span>
+      </div>
+
+      <ul class="community-cards" id="community-cards"
+          data-read-more="@Messages("stories.page.read.more")" data-read-less="@Messages("stories.page.read.less")">
+        @for(s <- stories) {
+          <li class="community-card story-card" data-created="@s.createdAt.toInstant.toEpochMilli"
+              data-region="@s.regionName" data-labeltype="@Messages(s.labelType.nameKey)">
+            @s.media.map { m =>
+              <img class="story-card__photo" src="@m.url" loading="lazy"
+                   alt="@m.altText.getOrElse(Messages("stories.page.photo.alt"))">
+            }
+            @s.labelImageUrl.map { url =>
+              <img class="story-card__photo" src="@url" loading="lazy"
+                   alt="@Messages("stories.page.label.image.alt", Messages(s.labelType.nameKey))">
+            }
+            <div class="story-card__body">
+              <p class="story-card__text">@s.storyText</p>
+              <p class="story-card__byline">
+                <img class="story-card__byline-icon" src='@assets.path("images/icons/user-feather.svg")' alt="">
+                <span class="story-card__author">@s.displayName.getOrElse(Messages("stories.page.anonymous"))</span>
+                ·
+                <time class="community-date" datetime="@s.createdAt.toInstant.toString">@dateLabel(s.createdAt)</time>
+              </p>
+              @defining(s.address.map(_ + " · ").getOrElse("") + s.regionName) { location =>
+                <a class="story-card__location" href="/labelMap?labelId=@s.labelId" data-label-id="@s.labelId"
+                   title="@location">
+                  <img class="story-card__location-icon" src='@assets.path("images/icons/map-pin-feather.svg")'
+                       alt="">
+                  <span class="story-card__location-text">@location</span>
+                </a>
+              }
+              <div class="story-card__foot">
+                <span class="community-chip community-chip--type" data-type-color="@s.labelType.color">
+                  <img class="community-chip__icon" src="@s.labelType.smallIconPath" alt="">
+                  <span class="community-chip__text">@Messages(s.labelType.nameKey)</span>
+                </span>
+                <a class="button-ps button--primary button--small story-card__label-link" data-label-id="@s.labelId"
+                   href="/labelMap?labelId=@s.labelId">
+                  @Messages("stories.page.view.label")
+                </a>
+              </div>
+            </div>
+          </li>
+        }
+      </ul>
+      <p class="community-no-results" id="community-no-results" hidden>@Messages("community.page.no.results")</p>
+      @if(stories.size >= controllers.StoryController.ListingMax) {
+        <p class="community-cap-note">@Messages("community.page.cap.note", controllers.StoryController.ListingMax)</p>
+      }
+    }
+  </main>
+  @common.miniFooter(commonData)
+
+  @* Interactive label popup (shared common/label-detail stack) so a story's "view label" opens the pano + detail
+     inline, the same way the dashboard's story rows do. Entirely optional: if it fails to initialize, the links
+     keep their /labelMap?labelId= href. *@
+  @common.labelPopup(admin = false)
+  <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
+  <link href='@assets.path("css/tag-pills.css")' rel="stylesheet">
+  <link href='@assets.path("css/community-list.css")' rel="stylesheet">
+  <script src='@assets.path("js/common/utilitiesSidewalk.js")'></script>
+  @if(commonData.imagerySource == PanoSource.Infra3d) {
+    <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
+    <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
+  } else if (commonData.imagerySource == PanoSource.Mapillary) {
+    <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
+    <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
+    <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
+  }
+  <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
+  <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
+  <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
+  <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
+  <script src='@assets.path("js/common/aiLabelIndicator.js")'></script>
+  <script src='@assets.path("js/common/PanoMarker.js")'></script>
+  <script src='@assets.path("js/common/Toast.js")'></script>
+  <script src='@assets.path("js/common/label-detail/PopupPanoManager.js")'></script>
+  <script src='@assets.path("js/common/ConfirmDialog.js")'></script>
+  <script src='@assets.path("js/common/label-detail/StoryComposer.js")'></script>
+  <script src='@assets.path("js/common/label-detail/StorySection.js")'></script>
+  <script src='@assets.path("js/common/label-detail/LabelDetail.js")'></script>
+  <script src='@assets.path("js/common/label-detail/LabelPopup.js")'></script>
+  <script src='@assets.path("js/common/BadgeAchievements.js")'></script>
+
+  <script src='@assets.path("js/community/CommunityListPage.js")'></script>
+  <script src='@assets.path("js/community/StoryListPage.js")'></script>
+  <script>
+    window.appManager.ready(async function () {
+      const page = new StoryListPage();
+      page.init();
+      try {
+        const src = "@commonData.imagerySource.toString";
+        const viewerType = src === 'mapillary' ? MapillaryViewer : src === 'infra3d' ? Infra3dViewer : GsvViewer;
+        @* Anonymous sessions have autogenerated usernames, so only a real account's name reaches the story composer. *@
+        const popup = await LabelPopup(false, viewerType, "@commonData.imageryAccessToken",
+                                       @if(user.role != "Anonymous") {"@user.username"} else {null});
+        page.setLabelPopup(popup);
+      } catch (e) {
+        console.error('Stories page: label popup failed to initialize; links will navigate instead.', e);
+      }
+    });
+  </script>
+}

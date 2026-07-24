@@ -1,14 +1,15 @@
 /**
  * Whole-route overview inset for the Explore minimap, shown only on designated (RouteBuilder) routes — where the full
  * ordered path is known up front. It renders the entire route (explored streets solid in the explored color, streets
- * ahead dashed in the ahead color) with a "you are here" marker and a box outlining the minimap's current zoomed
- * extent, so the user always sees the whole route alongside the street-level view — the way a game shows a world map
- * beside your local view. On a neighborhood audit the route grows street-by-street, so there's nothing to preview and
- * this stays hidden; the mini-legend keeps the bottom-left corner there instead (#4639).
+ * ahead dashed in the ahead color) with green/red start and finish dots at its ends, a "you are here" marker, and a
+ * box outlining the minimap's current zoomed extent, so the user always sees the whole route alongside the street-level
+ * view — the way a game shows a world map beside your local view. It sits in the upper-right corner; the mini-legend
+ * keeps the bottom-left. On a neighborhood audit the route grows street-by-street, so there's nothing to preview and
+ * this stays hidden (#4639).
  *
  * It draws the route geometry the tool already has (svl.taskContainer) onto a small canvas — no second Google map — so
- * it's cheap to redraw whenever the peg moves or a street completes. Because it carries the route's own colors, it also
- * doubles as the legend on routes. Clicking it fits the minimap to the whole route (the same action as the ⛶ button).
+ * it's cheap to redraw whenever the peg moves or a street completes. Clicking it fits the minimap to the whole route
+ * (the same action as the ⛶ button).
  */
 class RouteOverview {
   /** @type {Tracker} */
@@ -31,7 +32,7 @@ class RouteOverview {
     this.#enabled = !!(svl.neighborhoodModel && svl.neighborhoodModel.isRoute);
 
     if (this.#enabled) {
-      // Repurpose the bottom-left corner (the mini-legend's slot) for the overview; CSS keys off this holder class.
+      // Reveal the upper-right overview inset (CSS keys off this holder class); the mini-legend stays bottom-left.
       uiMinimap.holder.addClass('minimap-route-mode');
       uiMinimap.routeOverview.on('click', () => {
         this.#tracker.push('Click_MinimapRouteOverview');
@@ -63,10 +64,12 @@ class RouteOverview {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
-    const project = this.#buildProjection(tasks, w, h, 8);
+    // Pad enough that a start/finish dot centered on a route extreme keeps its outline inside the inset.
+    const project = this.#buildProjection(tasks, w, h, 9);
     if (!project) return;
 
     this.#drawRoute(ctx, tasks, project);
+    this.#drawEndpoints(ctx, project);
     this.#drawViewportBox(ctx, project);
     this.#drawYouAreHere(ctx, project);
   }
@@ -148,6 +151,42 @@ class RouteOverview {
   }
 
   /**
+   * Marks the route's true origin and destination with a green start dot and a red finish dot, keyed to the same colors
+   * as the full flags on the main minimap (and RouteBuilder's flag-start/flag-end) so the overview reads as the same
+   * route. Uses TaskContainer.getRouteEndpoints so the endpoints are the walk-ordered origin/destination, not just the
+   * first/last task in load order.
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {function(number, number): number[]} project
+   */
+  #drawEndpoints(ctx, project) {
+    const endpoints = svl.taskContainer.getRouteEndpoints();
+    if (!endpoints) return;
+    const [sx, sy] = project(endpoints.start.lng, endpoints.start.lat);
+    const [fx, fy] = project(endpoints.finish.lng, endpoints.finish.lat);
+    // Draw the finish first so that on a tight loop with near-coincident ends the start dot lands on top.
+    this.#drawDot(ctx, fx, fy, MinimapStyle.routeFinishColor());
+    this.#drawDot(ctx, sx, sy, MinimapStyle.routeStartColor());
+  }
+
+  /**
+   * Draws one endpoint dot: a filled circle with a white outline so it reads over the route lines and the muted
+   * basemap regardless of fill hue.
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {number} x - Center x in CSS px.
+   * @param {number} y - Center y in CSS px.
+   * @param {string} color - Fill color.
+   */
+  #drawDot(ctx, x, y, color) {
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, 2 * Math.PI);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+    ctx.stroke();
+  }
+
+  /**
    * Outlines the geographic extent the main minimap currently shows, so the inset reads as a zoomed-out companion to
    * the street-level view ("you're looking at this part of the route"). Skipped until the map's bounds are ready.
    * @param {CanvasRenderingContext2D} ctx
@@ -190,7 +229,7 @@ class RouteOverview {
     ctx.lineTo(-3.5, -3);
     ctx.lineTo(3.5, -3);
     ctx.closePath();
-    ctx.fillStyle = 'rgb(62, 139, 217)';
+    ctx.fillStyle = MinimapStyle.pegColor();
     ctx.fill();
     ctx.restore();
 

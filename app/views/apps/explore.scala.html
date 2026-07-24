@@ -362,7 +362,7 @@
               <span class="minimap-legend-mini-item">
                 <svg class="minimap-legend-mini-icon" viewBox="0 0 22 8" aria-hidden="true">
                   <path class="minimap-legend-sample-remaining minimap-legend-sample-dashed" d="M2 4H20"></path>
-                  <path class="minimap-legend-sample-chevron" d="M8 1L13 4L8 7Z"></path>
+                  <path class="minimap-legend-sample-chevron" d="M7 0.75L14 4L7 7.25Z"></path>
                 </svg>
                 <span data-i18n="audit:right-ui.minimap.legend-ahead">Route ahead</span>
               </span>
@@ -412,7 +412,7 @@
               <canvas id="minimap-route-overview-canvas"></canvas>
             </button>
             <div id="minimap-zoom-controls" class="zoom-buttons-holder">
-              <button id="minimap-zoom-fit" class="zoom-button" type="button" aria-label="Show whole route" data-i18n-aria-label="audit:right-ui.minimap.fit-route" title="Show whole route" data-i18n-title="audit:right-ui.minimap.fit-route">
+              <button id="minimap-zoom-fit" class="zoom-button" type="button" aria-label="Show whole mission" data-i18n-aria-label="audit:right-ui.minimap.fit-mission" title="Show whole mission" data-i18n-title="audit:right-ui.minimap.fit-mission">
                 <img class="zoom-button-icon" src='@assets.path("images/icons/route-fit-white-material.svg")' alt="">
               </button>
               <button id="minimap-zoom-in" class="zoom-button" type="button" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in" title="Zoom in" data-i18n-title="common:zoom-in">
@@ -698,6 +698,9 @@
       <div class="tutorial-intro__header">
         <p class="tutorial-intro__eyebrow" data-i18n="audit:tutorial-intro.eyebrow"></p>
         <h1 class="tutorial-intro__title" id="tutorial-intro-title" data-i18n="audit:tutorial-intro.title"></h1>
+        @* Shown only when a route is queued: arriving here instead of the route the user asked for otherwise reads
+           as though the route was lost. Unhidden by TutorialIntro. *@
+        <p class="tutorial-intro__route-note" id="tutorial-intro-route-note" data-i18n="audit:tutorial-intro.route-waiting" hidden></p>
       </div>
       <div class="tutorial-intro__body">
         <div class="tutorial-intro__illustration">
@@ -862,7 +865,9 @@
     var svl = {};
     const mainParam = {};
 
-    if (@data.task.isDefined) {
+    @* Server-side conditional (@if), not a browser `if`: when the user has finished their assigned neighborhood the *@
+    @* task is None, so `data.task.get` must never be evaluated at render time (that 500s the page — #4672). *@
+    @if(data.task.isDefined) {
       mainParam.task = @jsonForScript(data.task.get);
     } else {
       $(".tool-ui").removeClass("ps-invisible");
@@ -891,6 +896,7 @@
     @if(data.userRoute.isDefined) {
     mainParam.routeId = @data.userRoute.get.routeId;
     mainParam.userRouteId = @data.userRoute.get.userRouteId;
+    mainParam.routeName = @jsonForScript(data.route.map(_.name).getOrElse(""));
     }
 
     @* Optional pano seed: an admin auditing a specific street from a pano/lat-lng, or an address drop-in (#4451). *@

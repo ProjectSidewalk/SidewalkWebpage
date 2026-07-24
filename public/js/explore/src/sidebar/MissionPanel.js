@@ -16,11 +16,9 @@ class MissionPanel {
    */
   setMessage(mission) {
     const missionType = mission.getProperty('missionType');
+    const isRoute = svl.neighborhoodModel.isRoute;
 
-    // The header gains a "Route: <route-number>" suffix when on a user-defined route.
-    if (svl.neighborhoodModel.isRoute) {
-      this.#headerEl.innerHTML = i18next.t('right-ui.current-mission.header-route', { route_number: svl.routeId });
-    } else if (missionType === 'exploreAddress') {
+    if (missionType === 'exploreAddress') {
       this.#headerEl.innerHTML = i18next.t('right-ui.current-mission.header-free-explore');
     } else {
       this.#headerEl.innerHTML = i18next.t('right-ui.current-mission.header');
@@ -33,6 +31,9 @@ class MissionPanel {
       missionMessage = i18next.t('tutorial.mission-message');
     } else if (missionType === 'exploreAddress') {
       missionMessage = '';
+    } else if (isRoute) {
+      // On a user-defined route the mission is the route itself, so name it rather than the neighborhood.
+      missionMessage = i18next.t('right-ui.current-mission.message-route', { routeName: svl.routeName });
     } else {
       // The regular mission message names the neighborhood being explored.
       const neighborhood = svl.neighborhoodModel.currentNeighborhood();
@@ -40,7 +41,7 @@ class MissionPanel {
       missionMessage = i18next.t('right-ui.current-mission.message', { neighborhoodName });
     }
 
-    if (missionType === 'audit') {
+    if (missionType === 'audit' && !isRoute) {
       const distanceString = this.#distanceToString(mission.getDistance('miles'), 'miles');
       missionMessage = missionMessage.replace('__PLACEHOLDER__', distanceString);
     }

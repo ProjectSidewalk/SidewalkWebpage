@@ -5,6 +5,7 @@ import models.mission.MissionTable.{labelmapValidationMissionLength, normalValid
 import models.audit.AuditTaskTableDef
 import models.label.LabelTypeTableDef
 import models.region.RegionTableDef
+import models.route.UserRouteTableDef
 import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
@@ -41,7 +42,8 @@ case class Mission(
     labelsProgress: Option[Int],
     labelTypeId: Option[Int],
     skipped: Boolean,
-    currentAuditTaskId: Option[Int]
+    currentAuditTaskId: Option[Int],
+    userRouteId: Option[Int]
 )
 
 class MissionTableDef(tag: Tag) extends Table[Mission](tag, "mission") {
@@ -61,12 +63,14 @@ class MissionTableDef(tag: Tag) extends Table[Mission](tag, "mission") {
   def labelTypeId: Rep[Option[Int]]         = column[Option[Int]]("label_type_id")
   def skipped: Rep[Boolean]                 = column[Boolean]("skipped")
   def currentAuditTaskId: Rep[Option[Int]]  = column[Option[Int]]("current_audit_task_id")
+  def userRouteId: Rep[Option[Int]]         = column[Option[Int]]("user_route_id")
 
-  def * = (missionId, missionType, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters,
-    distanceProgress, regionId, labelsValidated, labelsProgress, labelTypeId, skipped, currentAuditTaskId) <> (
-    (Mission.apply _).tupled,
-    Mission.unapply
-  )
+  def * =
+    (missionId, missionType, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters, distanceProgress,
+      regionId, labelsValidated, labelsProgress, labelTypeId, skipped, currentAuditTaskId, userRouteId) <> (
+      (Mission.apply _).tupled,
+      Mission.unapply
+    )
 
   def user      = foreignKey("mission_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
   def region    = foreignKey("mission_region_id_fkey", regionId, TableQuery[RegionTableDef])(_.regionId.?)
@@ -74,6 +78,8 @@ class MissionTableDef(tag: Tag) extends Table[Mission](tag, "mission") {
     foreignKey("mission_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId.?)
   def currentAuditTask =
     foreignKey("mission_current_audit_task_id_fkey", currentAuditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId.?)
+  def userRoute =
+    foreignKey("mission_user_route_id_fkey", userRouteId, TableQuery[UserRouteTableDef])(_.userRouteId.?)
 }
 
 /**
@@ -161,14 +167,25 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
    * Get the user's incomplete audit mission in the region if there is one.
    *
    * Filters by mission type so that non-audit incomplete missions (e.g. a never-completed exploreAddress mission,
-   * which has region_id = NULL anyway) can't be resumed as a regular audit mission.
+   * which has region_id = NULL anyway) can't be resumed as a regular audit mission. Route-scoped missions are
+   * excluded too: a route walk and regular region exploring each resume only their own missions.
    */
   def getCurrentMissionInRegion(userId: String, regionId: Int): DBIO[Option[Mission]] = {
     missions
       .filter(m =>
         m.userId === userId && m.regionId === regionId && !m.completed
-          && m.missionType === MissionType.Audit
+          && m.missionType === MissionType.Audit && m.userRouteId.isEmpty
       )
+      .result
+      .headOption
+  }
+
+  /**
+   * Get the user's incomplete mission for this route walk (user_route) if there is one.
+   */
+  def getCurrentMissionForRoute(userId: String, userRouteId: Int): DBIO[Option[Mission]] = {
+    missions
+      .filter(m => m.userId === userId && m.userRouteId === userRouteId && !m.completed)
       .result
       .headOption
   }
@@ -296,11 +313,18 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
    * Creates a new audit mission entry in mission table for the specified user/region id.
    *
    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
+   *
+   * @param userRouteId When set, scopes the mission to one route walk (distance should then be the route's length).
    */
-  def createNextAuditMission(userId: String, distance: Double, regionId: Int): DBIO[Mission] = {
+  def createNextAuditMission(
+      userId: String,
+      distance: Double,
+      regionId: Int,
+      userRouteId: Option[Int] = None
+  ): DBIO[Mission] = {
     val now: OffsetDateTime = OffsetDateTime.now
     val newMission          = Mission(0, MissionType.Audit, userId, now, now, completed = false, 0d, paid = false,
-      Some(distance), Some(0d), Some(regionId), None, None, None, skipped = false, None)
+      Some(distance), Some(0d), Some(regionId), None, None, None, skipped = false, None, userRouteId)
     (missions returning missions) += newMission
   }
 
@@ -322,7 +346,7 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   ): DBIO[Mission] = {
     val now: OffsetDateTime = OffsetDateTime.now
     val newMission = Mission(0, missionType, userId, now, now, completed = false, 0d, paid = false, None, None, None,
-      Some(labelsToValidate), Some(0.0.toInt), Some(labelTypeId), skipped = false, None)
+      Some(labelsToValidate), Some(0.0.toInt), Some(labelTypeId), skipped = false, None, None)
     (missions returning missions) += newMission
   }
 
@@ -335,7 +359,7 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   def createExploreAddressMission(userId: String): DBIO[Mission] = {
     val now: OffsetDateTime = OffsetDateTime.now
     val newMission = Mission(0, MissionType.ExploreAddress, userId, now, now, completed = false, 0d, paid = false, None,
-      None, None, None, None, None, skipped = false, None)
+      None, None, None, None, None, skipped = false, None, None)
     (missions returning missions) += newMission
   }
 
@@ -347,7 +371,7 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   def createAuditOnboardingMission(userId: String): DBIO[Mission] = {
     val now: OffsetDateTime = OffsetDateTime.now
     val newMiss = Mission(0, MissionType.AuditOnboarding, userId, now, now, completed = false, 0d, paid = false, None,
-      None, None, None, None, None, skipped = false, None)
+      None, None, None, None, None, skipped = false, None, None)
     (missions returning missions) += newMiss
   }
 

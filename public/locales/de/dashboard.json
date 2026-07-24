@@ -84,5 +84,12 @@
   },
   "stories": {
     "none": "Sie haben noch keine Geschichten geteilt. Öffnen Sie eine Beschriftung auf der Karte und wählen Sie „Geschichte teilen“."
-  }
-}
+  },
+  "routes-link-copied": "Link kopiert!",
+  "routes-rename-aria": "Neuer Routenname",
+  "routes-rename-save": "Speichern",
+  "routes-rename-cancel": "Abbrechen",
+  "routes-renamed": "Route umbenannt.",
+  "routes-deleted": "\"{{name}}\" gelöscht.",
+  "routes-delete-confirm": "\"{{name}}\" löschen? Personen, mit denen Sie den Link geteilt haben, können ihn dann nicht mehr verwenden.",
+  "routes-error": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut."}

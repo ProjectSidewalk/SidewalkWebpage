@@ -84,5 +84,12 @@
   },
   "stories": {
     "none": "Aún no has compartido ninguna historia. Abre una etiqueta en el mapa y elige “Comparte la tuya”."
-  }
-}
+  },
+  "routes-link-copied": "¡Enlace copiado!",
+  "routes-rename-aria": "Nuevo nombre de la ruta",
+  "routes-rename-save": "Guardar",
+  "routes-rename-cancel": "Cancelar",
+  "routes-renamed": "Ruta renombrada.",
+  "routes-deleted": "Se eliminó \"{{name}}\".",
+  "routes-delete-confirm": "¿Eliminar \"{{name}}\"? Las personas con las que compartiste el enlace ya no podrán usarlo.",
+  "routes-error": "Algo salió mal. Inténtalo de nuevo."}

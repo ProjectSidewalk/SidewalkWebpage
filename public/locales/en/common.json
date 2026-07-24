@@ -26,6 +26,9 @@
   "problem": "Problem",
   "surface-problems": "Surface Problems",
   "close": "Close",
+  "cancel": "Cancel",
+  "continue": "Continue",
+  "delete": "Delete",
   "badges": {
     "congratulations": "Congratulations!",
     "you-earned": "You earned the “{{badge}}” badge!",

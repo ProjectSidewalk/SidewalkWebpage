@@ -1,5 +1,7 @@
 package models.story
 
+import models.label.LabelTypeEnum
+
 import java.io.File
 import java.time.OffsetDateTime
 
@@ -48,6 +50,29 @@ case class StoryForOwner(
     story: Story,
     labelType: String,
     media: Option[StoryMediaForView]
+)
+
+/**
+ * A story card on the public /stories listing page (#4688): the viewer-safe card data plus its label's type and
+ * neighborhood, so the page can render type/region chips and sort on them without extra lookups.
+ *
+ * `displayName` is already resolved against the story's display-name mode (None = show as anonymous).
+ * `labelImageUrl` is a signed preview of the story's label (crop, else GSV static) — only populated when the story
+ * has no uploaded photo, so every card can still carry an image; None when neither source is available.
+ * `address` is the label's street address from pano_data, which is back-filled lazily — often None.
+ */
+case class StoryForListing(
+    storyId: Int,
+    labelId: Int,
+    labelType: LabelTypeEnum.Base,
+    regionId: Int,
+    regionName: String,
+    address: Option[String],
+    storyText: String,
+    displayName: Option[String],
+    createdAt: OffsetDateTime,
+    media: Option[StoryMediaForView],
+    labelImageUrl: Option[String]
 )
 
 /**

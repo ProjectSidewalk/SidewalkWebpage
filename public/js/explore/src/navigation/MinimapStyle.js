@@ -54,6 +54,16 @@ class MinimapStyle {
     return MinimapStyle.token('--color-neutral-700', '#6B6B6B');
   }
 
+  /** @returns {string} Fill of the route's start marker; matches the green in RouteBuilder's flag-start.svg. */
+  static routeStartColor() {
+    return MinimapStyle.token('--color-success-200', '#11C961');
+  }
+
+  /** @returns {string} Fill of the route's finish marker; matches the red in RouteBuilder's flag-end.svg. */
+  static routeFinishColor() {
+    return MinimapStyle.token('--color-error-200', '#ED1C24');
+  }
+
   /** @returns {string} The peg's blue, reused for the breadcrumb trail and the route-overview "you are here" dot so
    * they can't drift from the peg (which fills with the same --color-link-100). */
   static pegColor() {

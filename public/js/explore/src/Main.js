@@ -51,6 +51,7 @@ class Main {
     svl.userHasCompletedAMission = params.hasCompletedAMission;
     svl.routeId = params.routeId;
     svl.userRouteId = params.userRouteId;
+    svl.routeName = params.routeName;
     svl.makeCrops = params.makeCrops;
 
     svl.storage = new TemporaryStorage(JSON);
@@ -236,6 +237,11 @@ class Main {
       taskContainer.fetchTasks().then(() => {
         this.#loadingTasksCompleted = true;
         this.#handleDataLoadComplete();
+        // Plant start/finish flags on the minimap so a route walk shows where it begins and ends.
+        if (svl.neighborhoodModel.isRoute) {
+          const endpoints = taskContainer.getRouteEndpoints();
+          if (endpoints) svl.minimap.showRouteEndpoints(endpoints.start, endpoints.finish);
+        }
       });
     }
 
@@ -351,6 +357,9 @@ class Main {
       svl.observedArea.update();
       svl.compass.update();
       svl.compass.enableCompassClick();
+      // Re-render the nav arrows now that the compass and task exist, so the route-forward arrow is highlighted on
+      // the very first pano too — PanoManager's own initial resetNavArrows ran before those were wired up. (#4671)
+      svl.panoManager.resetNavArrows();
 
       // Remove the loading cover page and make the tool visible.
       $('#page-loading').css({ visibility: 'hidden' });
@@ -390,11 +399,6 @@ class Main {
         }
 
         this.#startTheMission(mission, currentNeighborhood);
-
-        // On a designated route, open fitted to the whole route so the user sees its shape before street-level detail
-        // takes over (auto-exits on first pano interaction). A neighborhood audit has no bounded route to frame — its
-        // "route" is just the current street at this point — so it opens at street level with the fog visible (#4639).
-        if (svl.neighborhoodModel.isRoute) svl.minimap.enterOverview(true);
       }
 
       // Update the observed area now that everything has loaded.
