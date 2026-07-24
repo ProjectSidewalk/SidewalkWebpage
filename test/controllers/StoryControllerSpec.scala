@@ -52,7 +52,7 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
   private val labelTable                 = app.injector.instanceOf[models.label.LabelTable]
 
   // Direct table access for the listing-page fixtures (seed/restore a pano address), per ExploreAddressServiceSpec.
-  private val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
+  private val dbConfig                   = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
   private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 60.seconds)
   private val labelsQ                    = TableQuery[LabelTableDef]
   private val panoDataQ                  = TableQuery[PanoDataTableDef]
