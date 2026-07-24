@@ -698,3 +698,13 @@ routes.page.sort.longest = Longest first
 routes.page.sort.explored = Most explored
 routes.page.none = No routes have been built in this city yet.
 routes.page.none.cta = Build the first route
+
+# Error pages (404, 500), rendered by modules.CustomErrorHandler.
+error.404.heading = Page not found
+error.404.message = We could not find the page you requested.
+error.500.heading = Something went wrong
+error.500.message = An unexpected error occurred on our end. This is not your fault — please try again in a moment.
+error.500.id = Error ID: {0}
+error.500.report = If this keeps happening, please {0} and include the Error ID above so we can investigate.
+error.500.report.link = let us know
+error.home = Return to home

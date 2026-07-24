@@ -688,3 +688,13 @@ routes.page.sort.longest = Langste eerst
 routes.page.sort.explored = Meest verkend
 routes.page.none = Er zijn in deze stad nog geen routes gemaakt.
 routes.page.none.cta = Maak de eerste route
+
+# Foutpagina's (404, 500), weergegeven door modules.CustomErrorHandler.
+error.404.heading = Pagina niet gevonden
+error.404.message = We konden de opgevraagde pagina niet vinden.
+error.500.heading = Er is iets misgegaan
+error.500.message = Er is een onverwachte fout aan onze kant opgetreden. Het ligt niet aan jou — probeer het zo meteen opnieuw.
+error.500.id = Foutcode: {0}
+error.500.report = Als dit blijft gebeuren, {0} en vermeld de bovenstaande foutcode zodat we het kunnen onderzoeken.
+error.500.report.link = laat het ons dan weten
+error.home = Terug naar start

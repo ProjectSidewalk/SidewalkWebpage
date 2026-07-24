@@ -760,3 +760,13 @@ routes.page.sort.longest = 最長優先
 routes.page.sort.explored = 最多人探索
 routes.page.none = 這個城市還沒有人建立路線。
 routes.page.none.cta = 建立第一條路線
+
+# 錯誤頁面（404、500），由 modules.CustomErrorHandler 呈現。
+error.404.heading = 找不到頁面
+error.404.message = 我們找不到你要求的頁面。
+error.500.heading = 發生了一些問題
+error.500.message = 我們這邊發生了未預期的錯誤。這不是你的問題，請稍後再試一次。
+error.500.id = 錯誤代碼：{0}
+error.500.report = 如果這種情況持續發生，請{0}並附上上方的錯誤代碼，以便我們調查。
+error.500.report.link = 告訴我們
+error.home = 返回首頁

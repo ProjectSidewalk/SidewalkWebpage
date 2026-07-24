@@ -701,3 +701,13 @@ routes.page.sort.longest = Más largas primero
 routes.page.sort.explored = Más exploradas
 routes.page.none = Todavía no se han creado rutas en esta ciudad.
 routes.page.none.cta = Crea la primera ruta
+
+# Páginas de error (404, 500), renderizadas por modules.CustomErrorHandler.
+error.404.heading = Página no encontrada
+error.404.message = No pudimos encontrar la página que solicitaste.
+error.500.heading = Algo salió mal
+error.500.message = Ocurrió un error inesperado de nuestro lado. No es tu culpa: inténtalo de nuevo en un momento.
+error.500.id = ID de error: {0}
+error.500.report = Si esto sigue ocurriendo, {0} e incluye el ID de error de arriba para que podamos investigarlo.
+error.500.report.link = avísanos
+error.home = Volver al inicio
