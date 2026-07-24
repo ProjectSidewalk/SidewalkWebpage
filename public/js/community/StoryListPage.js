@@ -21,6 +21,11 @@ class StoryListPage {
     this.#list.init();
     this.#colorTypeChips();
     this.#addReadMoreToggles();
+    document.querySelectorAll('.story-card__location').forEach((link) => {
+      link.addEventListener('click', () => {
+        window.logWebpageActivity(`Click_module=StoryListPage_Location_LabelId=${link.dataset.labelId}`);
+      });
+    });
     document.querySelectorAll('.story-card__label-link').forEach((link) => {
       link.addEventListener('click', (e) => {
         window.logWebpageActivity(`Click_module=StoryListPage_ViewLabel_LabelId=${link.dataset.labelId}`);

@@ -72,11 +72,12 @@
                 <time class="community-date" datetime="@s.createdAt.toInstant.toString">@dateLabel(s.createdAt)</time>
               </p>
               @defining(s.address.map(_ + " · ").getOrElse("") + s.regionName) { location =>
-                <p class="story-card__location" title="@location">
+                <a class="story-card__location" href="/labelMap?labelId=@s.labelId" data-label-id="@s.labelId"
+                   title="@location">
                   <img class="story-card__location-icon" src='@assets.path("images/icons/map-pin-feather.svg")'
                        alt="">
                   <span class="story-card__location-text">@location</span>
-                </p>
+                </a>
               }
               <div class="story-card__foot">
                 <span class="community-chip community-chip--type" data-type-color="@s.labelType.color">

@@ -215,20 +215,30 @@
   color: var(--color-neutral-800);
 }
 
-/* One combined place line: "address · neighborhood", or just the neighborhood when the address is unknown. */
+/* One combined place line: "address · neighborhood", or just the neighborhood when the address is unknown.
+   Links to the label on the LabelMap. The left margin matches the type chip's padding so the two icons align. */
 .story-card__location {
   display: flex;
   gap: 6px;
   align-items: center;
-  margin: 0;
+  margin: 0 0 0 10px;
   font: var(--text-small-regular);
   color: var(--color-neutral-700);
+  text-decoration: none;
+}
+
+.story-card__location:hover {
+  color: var(--color-asphalt-400);
+}
+
+.story-card__location:hover .story-card__location-text {
+  text-decoration: underline;
 }
 
 .story-card__location-icon {
   flex-shrink: 0;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 .story-card__location-text {
