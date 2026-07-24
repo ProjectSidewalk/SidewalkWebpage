@@ -181,12 +181,27 @@
 }
 
 .story-card__text {
-  max-height: 154px; /* 7 lines of --text-body-regular (22px line-height); the read-more toggle lifts it. */
+  position: relative;
+  z-index: 0; /* Own stacking context so the quote-mark pseudo can sit behind the text but above the card. */
+  max-height: 176px; /* 22px quote headroom + 7 lines of --text-body-regular (22px); the read-more toggle lifts it. */
+  padding-top: 22px;
   margin: 0;
   overflow: hidden;
   font: var(--text-body-regular);
   color: var(--color-neutral-900);
   white-space: pre-line; /* Story text is plain text; keep the author's paragraph breaks. */
+}
+
+/* Oversized ghosted quote mark behind the opening line: marks the story as someone's first-person account.
+   Serif deliberately — no design-system token has a serif face, and the classic testimonial glyph needs one. */
+.story-card__text::before {
+  content: "\201c";
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  font: 700 56px/1 Georgia, serif;
+  color: var(--color-neutral-200);
 }
 
 .story-card__text.is-expanded {
