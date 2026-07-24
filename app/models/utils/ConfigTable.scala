@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import service.{AggregateStats, CityScorecard, LabelTypeStats, WeeklyPoint}
+import service.{AggregateStats, CityScorecard, DailyPoint, LabelTypeStats, WeeklyPoint}
 import slick.jdbc.GetResult
 
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
@@ -577,23 +577,40 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    *
    * @param schema The database schema to query.
    * @param weeks  Trailing weeks to include, or None for the city's full history (the "All time" toggle).
-   * @return       DBIO yielding (weekStart, labels, validations, activeUsers), ascending by week.
+   * @return       DBIO yielding (weekStart, labels, validations, activeUsers, newUsers), ascending by week; newUsers
+   *               is 0 whenever `weeks` is bounded (see the inline note).
    */
   def getCityWeeklyTrendBySchema(schema: String, weeks: Option[Int]): DBIO[Seq[WeeklyPoint]] = {
     implicit val getResult: GetResult[WeeklyPoint] =
-      GetResult(r => WeeklyPoint(LocalDate.parse(r.nextString()), r.nextInt(), r.nextInt(), r.nextInt()))
+      GetResult(r => WeeklyPoint(LocalDate.parse(r.nextString()), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()))
 
     // weeks is an Int (safe to interpolate); None drops the lower bound to return the city's full history.
     val labelBound = weeks.map(w => s"AND label.time_created >= NOW() - ($w * INTERVAL '1 week')").getOrElse("")
     val valBound   =
       weeks.map(w => s"AND label_validation.end_timestamp >= NOW() - ($w * INTERVAL '1 week')").getOrElse("")
 
+    // new_users (each user counted in the week of their first-ever activity, for the cumulative users chart, #4686)
+    // is only knowable over the full history — a trailing window would misread "first activity in the window" as
+    // "first ever" — so bounded queries get a literal 0 and skip the extra aggregation.
+    val newUsersCtes =
+      if (weeks.isEmpty) """,
+      first_weeks AS (
+          SELECT DATE_TRUNC('week', MIN(activity_ts AT TIME ZONE 'US/Pacific'))::date AS week_start
+          FROM activity
+          GROUP BY activity_user_id
+      ),
+      new_user_counts AS (
+          SELECT week_start, COUNT(*) AS new_users
+          FROM first_weeks
+          GROUP BY week_start
+      )"""
+      else ""
+    val newUsersSelect = if (weeks.isEmpty) "COALESCE(new_user_counts.new_users, 0)" else "0"
+    val newUsersJoin   =
+      if (weeks.isEmpty) "LEFT JOIN new_user_counts ON weekly.week_start = new_user_counts.week_start" else ""
+
     sql"""
-      SELECT CAST(DATE_TRUNC('week', activity_ts AT TIME ZONE 'US/Pacific')::date AS TEXT) AS week_start,
-             COUNT(*) FILTER (WHERE kind = 'label')      AS labels,
-             COUNT(*) FILTER (WHERE kind = 'validation') AS validations,
-             COUNT(DISTINCT activity_user_id)            AS active_users
-      FROM (
+      WITH activity AS (
           SELECT label.time_created AS activity_ts, label.user_id AS activity_user_id, 'label' AS kind
           FROM "#$schema".label
           INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
@@ -605,10 +622,61 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
           WHERE NOT user_stat.excluded
               #$valBound
-      ) AS activity
-      GROUP BY week_start
-      ORDER BY week_start ASC;
+      ),
+      weekly AS (
+          SELECT DATE_TRUNC('week', activity_ts AT TIME ZONE 'US/Pacific')::date AS week_start,
+                 COUNT(*) FILTER (WHERE kind = 'label')      AS labels,
+                 COUNT(*) FILTER (WHERE kind = 'validation') AS validations,
+                 COUNT(DISTINCT activity_user_id)            AS active_users
+          FROM activity
+          GROUP BY week_start
+      )
+      #$newUsersCtes
+      SELECT CAST(weekly.week_start AS TEXT) AS week_start, weekly.labels, weekly.validations, weekly.active_users,
+             #$newUsersSelect AS new_users
+      FROM weekly
+      #$newUsersJoin
+      ORDER BY weekly.week_start ASC;
     """.as[WeeklyPoint]
+  }
+
+  /**
+   * Daily label/validation/active-user volume for one city's trailing window, for the "this week" bar charts (#4686).
+   *
+   * The daily counterpart of [[getCityWeeklyTrendBySchema]]: identical activity definition and exclusions, bucketed by
+   * calendar day in Pacific time. Days with no activity are absent (the service zero-fills the window). The time bound
+   * is a raw-timestamp comparison one day wider than the window so it stays index-friendly (no per-row time-zone
+   * conversion in the WHERE); the service trims to the exact Pacific-day window.
+   *
+   * @param schema The database schema to query.
+   * @param days   Trailing calendar days to include (the last of them being today, partial).
+   * @return       DBIO yielding (day, labels, validations, activeUsers), ascending by day.
+   */
+  def getCityDailyTrendBySchema(schema: String, days: Int): DBIO[Seq[DailyPoint]] = {
+    implicit val getResult: GetResult[DailyPoint] =
+      GetResult(r => DailyPoint(LocalDate.parse(r.nextString()), r.nextInt(), r.nextInt(), r.nextInt()))
+
+    sql"""
+      SELECT CAST(DATE_TRUNC('day', activity_ts AT TIME ZONE 'US/Pacific')::date AS TEXT) AS day,
+             COUNT(*) FILTER (WHERE kind = 'label')      AS labels,
+             COUNT(*) FILTER (WHERE kind = 'validation') AS validations,
+             COUNT(DISTINCT activity_user_id)            AS active_users
+      FROM (
+          SELECT label.time_created AS activity_ts, label.user_id AS activity_user_id, 'label' AS kind
+          FROM "#$schema".label
+          INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
+          WHERE NOT user_stat.excluded AND label.deleted = FALSE AND label.tutorial = FALSE
+              AND label.time_created >= NOW() - ((${days} + 1) * INTERVAL '1 day')
+          UNION ALL
+          SELECT label_validation.end_timestamp AS activity_ts, label_validation.user_id AS activity_user_id, 'validation' AS kind
+          FROM "#$schema".label_validation
+          INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
+          WHERE NOT user_stat.excluded
+              AND label_validation.end_timestamp >= NOW() - ((${days} + 1) * INTERVAL '1 day')
+      ) AS activity
+      GROUP BY day
+      ORDER BY day ASC;
+    """.as[DailyPoint]
   }
 
   /**
