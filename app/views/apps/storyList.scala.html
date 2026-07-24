@@ -34,13 +34,13 @@
     @if(stories.isEmpty) {
       <div class="community-empty">
         <p>@Messages("stories.page.none")</p>
-        <a class="button-ps button--primary" href="/labelMap">@Messages("stories.page.none.cta")</a>
+        <a class="button-ps button--primary button--medium" href="/labelMap">@Messages("stories.page.none.cta")</a>
       </div>
     } else {
       <div class="community-toolbar">
         <input type="search" id="community-search" class="community-search" autocomplete="off"
-               placeholder="@Messages("community.page.search.placeholder")"
-               aria-label="@Messages("community.page.search.placeholder")">
+               placeholder="@Messages("stories.page.search.placeholder")"
+               aria-label="@Messages("stories.page.search.placeholder")">
         <label class="community-sort-label" for="community-sort">@Messages("community.page.sort")</label>
         <select id="community-sort" class="community-sort">
           <option value="newest" selected>@Messages("community.page.sort.newest")</option>

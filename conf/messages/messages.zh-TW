@@ -734,7 +734,8 @@ dashboard.rank.place.one = 第 1 名
 dashboard.rank.place.two = 第 2 名
 dashboard.rank.place.three = 第 3 名
 # Community listing pages: /stories and /routes (#4688).
-community.page.search.placeholder = 搜尋…
+stories.page.search.placeholder = 輸入以篩選故事…
+routes.page.search.placeholder = 輸入以篩選路線…
 community.page.sort = 排序方式
 community.page.sort.newest = 最新優先
 community.page.sort.neighborhood = 社區

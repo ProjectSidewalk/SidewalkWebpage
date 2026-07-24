@@ -671,7 +671,8 @@ dashboard.rank.place.one = 1º lugar
 dashboard.rank.place.two = 2º lugar
 dashboard.rank.place.three = 3º lugar
 # Community listing pages: /stories and /routes (#4688).
-community.page.search.placeholder = Pesquisar…
+stories.page.search.placeholder = Digite para filtrar histórias…
+routes.page.search.placeholder = Digite para filtrar rotas…
 community.page.sort = Ordenar por
 community.page.sort.newest = Mais recentes primeiro
 community.page.sort.neighborhood = Bairro

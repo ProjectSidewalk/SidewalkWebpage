@@ -672,7 +672,8 @@ dashboard.rank.place.two = 2nd place
 dashboard.rank.place.three = 3rd place
 
 # Community listing pages: /stories and /routes (#4688).
-community.page.search.placeholder = Search…
+stories.page.search.placeholder = Type to filter stories…
+routes.page.search.placeholder = Type to filter routes…
 community.page.sort = Sort by
 community.page.sort.newest = Newest first
 community.page.sort.neighborhood = Neighborhood

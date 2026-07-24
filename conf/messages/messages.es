@@ -675,7 +675,8 @@ dashboard.rank.place.one = 1.er lugar
 dashboard.rank.place.two = 2.º lugar
 dashboard.rank.place.three = 3.er lugar
 # Community listing pages: /stories and /routes (#4688).
-community.page.search.placeholder = Buscar…
+stories.page.search.placeholder = Escribe para filtrar historias…
+routes.page.search.placeholder = Escribe para filtrar rutas…
 community.page.sort = Ordenar por
 community.page.sort.newest = Más recientes primero
 community.page.sort.neighborhood = Vecindario
