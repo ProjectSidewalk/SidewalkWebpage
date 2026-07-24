@@ -54,26 +54,62 @@
 
   <div class="api-section" id="ac-trends-section">
     <h2 class="api-heading" id="over-time">Over time <a href="#over-time" class="permalink">#</a></h2>
-    <p>Weekly totals across all cities.</p>
+    <p>How activity is trending across all cities — weekly rates, cumulative growth, and the last 7 days.</p>
+
+    <h3 class="ac-chart-group-title" id="weekly-totals">Weekly totals</h3>
     <div class="ac-toggle" id="ac-trend-toggle" role="group" aria-label="Trend range">
       <button type="button" class="ac-toggle-btn active" data-range="recent">12 weeks</button>
       <button type="button" class="ac-toggle-btn" data-range="all">All time</button>
     </div>
     <div class="ac-charts">
       <div class="ac-chart">
-        <h3 class="ac-chart-title">Labels per week</h3>
+        <h4 class="ac-chart-title">Labels per week</h4>
         <div class="mini-chart" id="ac-chart-labels"></div>
       </div>
       <div class="ac-chart">
-        <h3 class="ac-chart-title">Validations per week</h3>
+        <h4 class="ac-chart-title">Validations per week</h4>
         <div class="mini-chart" id="ac-chart-validations"></div>
       </div>
       <div class="ac-chart">
-        <h3 class="ac-chart-title">Active users per week</h3>
+        <h4 class="ac-chart-title">Active users per week</h4>
         <div class="mini-chart" id="ac-chart-users"></div>
       </div>
     </div>
     <p class="ac-note">“Active users” counts distinct people who labeled or validated that week, summed across cities (a person active in two cities is counted in each).</p>
+
+    <h3 class="ac-chart-group-title" id="cumulative-totals">Cumulative totals (all time)</h3>
+    <div class="ac-charts">
+      <div class="ac-chart">
+        <h4 class="ac-chart-title">Total labels</h4>
+        <div class="mini-chart" id="ac-chart-cum-labels"></div>
+      </div>
+      <div class="ac-chart">
+        <h4 class="ac-chart-title">Total validations</h4>
+        <div class="mini-chart" id="ac-chart-cum-validations"></div>
+      </div>
+      <div class="ac-chart">
+        <h4 class="ac-chart-title">Total users</h4>
+        <div class="mini-chart" id="ac-chart-cum-users"></div>
+      </div>
+    </div>
+    <p class="ac-note">“Users” counts each person once per city, in the week of their first label or validation — returning contributors aren't re-counted, but a person who contributes in two cities is counted in each.</p>
+
+    <h3 class="ac-chart-group-title" id="this-week">This week (rolling 7 days)</h3>
+    <div class="ac-charts">
+      <div class="ac-chart">
+        <h4 class="ac-chart-title">Labels per day</h4>
+        <div class="mini-chart" id="ac-chart-week-labels"></div>
+      </div>
+      <div class="ac-chart">
+        <h4 class="ac-chart-title">Validations per day</h4>
+        <div class="mini-chart" id="ac-chart-week-validations"></div>
+      </div>
+      <div class="ac-chart">
+        <h4 class="ac-chart-title">Active users per day</h4>
+        <div class="mini-chart" id="ac-chart-week-users"></div>
+      </div>
+    </div>
+    <p class="ac-note">“Active users” counts distinct people who labeled or validated that day, summed across cities (a person active in two cities is counted in each). The last bar is today, still filling in.</p>
   </div>
 
   <div class="api-section" id="ac-scorecard-section">

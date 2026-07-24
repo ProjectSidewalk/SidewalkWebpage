@@ -716,13 +716,16 @@ class AdminController @Inject() (
 
     // Fetch the per-city scorecards and the all-time cross-city weekly series in parallel; the page's "over time" charts
     // default to the last 12 weeks (derived client-side from each city's weekly_trend) and toggle to this all-time set.
+    // The trailing-7-day daily series drives the "this week" bar charts (#4686).
     val scorecardsF    = configService.getCityScorecards()
     val allTimeF       = configService.getCrossCityWeeklyTrend(None)
+    val dailyF         = configService.getCrossCityDailyTrend(7)
     val labelingSpeedF = configService.getCrossCityLabelingSpeed()
 
     for {
       withFlags     <- scorecardsF
       allTimeTrend  <- allTimeF
+      dailyTrend    <- dailyF
       labelingSpeed <- labelingSpeedF
     } yield {
       val now        = OffsetDateTime.now()
@@ -818,12 +821,24 @@ class AdminController @Inject() (
       }
 
       // Cross-city weekly series for the full project history (the "All time" toggle on the over-time charts).
+      // new_users feeds the cumulative-users chart (#4686): each person counts once, in their first-activity week.
       val overTimeAllTime = JsArray(allTimeTrend.map { w =>
         Json.obj(
           "week_start"   -> w.weekStart.toString,
           "labels"       -> w.labels,
           "validations"  -> w.validations,
-          "active_users" -> w.activeUsers
+          "active_users" -> w.activeUsers,
+          "new_users"    -> w.newUsers
+        )
+      })
+
+      // Trailing-7-day cross-city daily series for the "this week" bar charts (#4686); zero-filled, today partial.
+      val overTimeDaily = JsArray(dailyTrend.map { d =>
+        Json.obj(
+          "day"          -> d.day.toString,
+          "labels"       -> d.labels,
+          "validations"  -> d.validations,
+          "active_users" -> d.activeUsers
         )
       })
 
@@ -845,6 +860,7 @@ class AdminController @Inject() (
         Json.obj(
           "cities"             -> cities,
           "over_time_all_time" -> overTimeAllTime,
+          "over_time_daily"    -> overTimeDaily,
           "summary"            -> Json.obj(
             "num_cities"                -> scorecards.length,
             "num_countries"             -> numCountries,

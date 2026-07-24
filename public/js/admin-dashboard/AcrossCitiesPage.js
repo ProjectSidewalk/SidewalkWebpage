@@ -2,7 +2,8 @@
  * Renders the admin "Across Cities" page (#4329): a cross-deployment overview of every Project Sidewalk city across
  * four lenses — coverage (how much is left), activity (what's happening and when), data patterns (the label-type mix,
  * city vs city), and data quality (how trustworthy the data is). Adds a "needs attention" panel from server-computed
- * anomaly flags and three overview line charts (labels / validations / active users per week, summed across cities).
+ * anomaly flags and an over-time section (#4686): weekly line charts (labels / validations / active users, summed
+ * across cities), cumulative all-time totals, and rolling-7-day bar charts.
  *
  * Plain HTML/CSS plus the shared MiniLineChart for the over-time charts and small inline-SVG sparklines for the
  * per-city activity trend. Owner-only; driven entirely from /adminapi/cityScorecards.
@@ -81,6 +82,7 @@ class AcrossCitiesPage {
   #cities = [];          // The latest scorecard rows, as returned by the endpoint.
   #summary = {};         // The summary block (thresholds + cross-city median + hero totals).
   #allTimeTrend = [];    // Cross-city weekly series for the full project history (the "All time" toggle).
+  #dailyTrend = [];      // Cross-city daily series for the trailing 7 days (the "this week" bar charts, #4686).
   #trendSeries = {};     // { recent: [...], all: [...] } weekly aggregates for the over-time charts.
   #trendRange = 'recent';// Which over-time range is shown: 'recent' (12 wks) | 'all'.
   #sortKey = 'coverage'; // Current sort column.
@@ -109,6 +111,7 @@ class AcrossCitiesPage {
       this.#cities = (data && data.cities) || [];
       this.#summary = (data && data.summary) || {};
       this.#allTimeTrend = (data && data.over_time_all_time) || [];
+      this.#dailyTrend = (data && data.over_time_daily) || [];
       this.#renderHero();
       this.#renderMap(citiesGeo);
       this.#renderPulse();
@@ -365,7 +368,8 @@ class AcrossCitiesPage {
 
   /**
    * Prepares the two over-time datasets (last 12 weeks, summed from each city's trend; and all-time, from the
-   * server-aggregated series), wires the range toggle, and draws the current range.
+   * server-aggregated series), wires the range toggle, and draws the current range. Also draws the toggle-independent
+   * cumulative and this-week charts (#4686), which are static once loaded.
    */
   #renderTrends() {
     this.#trendSeries = {
@@ -384,6 +388,8 @@ class AcrossCitiesPage {
       });
     }
     this.#drawTrends();
+    this.#drawCumulative();
+    this.#drawWeekBars();
   }
 
   /** Sums a flat list of weekly points into one cross-city series, ascending by week. */
@@ -402,7 +408,9 @@ class AcrossCitiesPage {
   /** Draws the three over-time line charts for the currently selected range. */
   #drawTrends() {
     const series = this.#trendSeries[this.#trendRange] || [];
-    const cats = series.map((w) => AcrossCitiesPage.#shortDate(w.week_start));
+    // Multi-year x-axes carry the year; within 12 weeks "Jun 9" is unambiguous.
+    const fmt = this.#trendRange === 'all' ? AcrossCitiesPage.#shortDateYear : AcrossCitiesPage.#shortDate;
+    const cats = series.map((w) => fmt(w.week_start));
     // Small dots on the short (12-week) view where they aid hover tooltips; none on the dense all-time view, where
     // hundreds of points would just be noise.
     const dotRadius = series.length > 30 ? 0 : 2;
@@ -413,6 +421,47 @@ class AcrossCitiesPage {
     draw('ac-chart-labels', 'aclabels', 'Labels', series.map((w) => w.labels));
     draw('ac-chart-validations', 'acvals', 'Validations', series.map((w) => w.validations));
     draw('ac-chart-users', 'acusers', 'Active users', series.map((w) => w.active_users));
+  }
+
+  /**
+   * Draws the cumulative all-time line charts (#4686) by prefix-summing the server's all-time weekly series. Labels
+   * and validations accumulate their weekly counts; users accumulate new_users (each person's first-activity week),
+   * since summing weekly active_users would re-count returning contributors.
+   */
+  #drawCumulative() {
+    const series = this.#allTimeTrend;
+    const cats = series.map((w) => AcrossCitiesPage.#shortDateYear(w.week_start));
+    const cumulative = (key) => {
+      let total = 0;
+      return series.map((w) => (total += w[key] || 0));
+    };
+    const draw = (id, key, name, values) => {
+      const host = document.getElementById(id);
+      if (host) MiniLineChart.renderInto(host, cats, [{ name, key, values }], { ariaLabel: name, dotRadius: 0 });
+    };
+    draw('ac-chart-cum-labels', 'aclabels', 'Total labels', cumulative('labels'));
+    draw('ac-chart-cum-validations', 'acvals', 'Total validations', cumulative('validations'));
+    draw('ac-chart-cum-users', 'acusers', 'Total users', cumulative('new_users'));
+  }
+
+  /**
+   * Draws the rolling-7-day bar charts (#4686) from the server's zero-filled daily series. A rolling 7-day window
+   * holds exactly one of each weekday, so short weekday names are unambiguous x labels; tooltips carry the full date.
+   */
+  #drawWeekBars() {
+    const series = this.#dailyTrend;
+    const cats = series.map((d) => AcrossCitiesPage.#weekday(d.day));
+    const draw = (id, key, jsonKey, name) => {
+      const host = document.getElementById(id);
+      if (!host) return;
+      const values = series.map((d) => d[jsonKey] || 0);
+      const tooltips = series.map((d, i) => `${AcrossCitiesPage.#shortDate(d.day)} · ${name}: ${this.#num(values[i])}`);
+      MiniLineChart.renderInto(host, cats, [{ name, key, values, tooltips }],
+        { ariaLabel: name, kind: 'bar', maxXLabels: 7 });
+    };
+    draw('ac-chart-week-labels', 'aclabels', 'labels', 'Labels');
+    draw('ac-chart-week-validations', 'acvals', 'validations', 'Validations');
+    draw('ac-chart-week-users', 'acusers', 'active_users', 'Active users');
   }
 
   // --- Scorecard table --------------------------------------------------------------------------------------------
@@ -921,6 +970,20 @@ class AcrossCitiesPage {
     const d = new Date(`${iso}T00:00:00`);
     if (isNaN(d)) return iso;
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+
+  /** "Jun '19"-style month + year from an ISO date string, for multi-year x-axes. */
+  static #shortDateYear(iso) {
+    const d = new Date(`${iso}T00:00:00`);
+    if (isNaN(d)) return iso;
+    return `${d.toLocaleDateString(undefined, { month: 'short' })} '${String(d.getFullYear()).slice(-2)}`;
+  }
+
+  /** "Thu"-style short weekday from an ISO date string. */
+  static #weekday(iso) {
+    const d = new Date(`${iso}T00:00:00`);
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString(undefined, { weekday: 'short' });
   }
 
   /** Compact relative time ("just now", "5m ago", "3h ago", "2d ago", or a date for older items). */

@@ -1943,6 +1943,13 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   margin: 0 0 var(--space-xs, 8px);
 }
 
+/* Sub-group headings inside the over-time section (weekly / cumulative / this week, #4686). */
+.ac-chart-group-title {
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-heading, #263238);
+  margin: var(--space-lg, 24px) 0 var(--space-sm, 12px);
+}
+
 .ac-note {
   font-size: var(--font-size-xs, 0.8125rem);
   color: var(--color-text-secondary, #5a7785);
@@ -1969,6 +1976,11 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   stroke-width: 2;
 }
 .mini-pt--acusers    { fill: var(--color-label-no-sidewalk); }
+
+/* Bar variants for the "this week" charts (#4686), matching the line-series colors. */
+.mini-bar--aclabels  { fill: var(--color-primary, #4a90d9); }
+.mini-bar--acvals    { fill: #63c0ab; }
+.mini-bar--acusers   { fill: var(--color-label-no-sidewalk); }
 
 /* Per-city activity sparkline. */
 .ac-spark-cell {
