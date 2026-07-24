@@ -204,13 +204,13 @@
   border: none;
 }
 
-/* The byline, location, and footer rows all lead with a 16px icon on the same left edge: the byline and location
-   lines are indented to match the type chip's 10px pill padding below them. */
+/* The byline and location rows lead with a 16px icon, flush with the story text's left edge (as is the type chip's
+   pill edge below them). */
 .story-card__byline {
   display: flex;
   gap: 6px;
   align-items: center;
-  margin: 0 0 0 10px;
+  margin: 0;
   font: var(--text-small-regular);
   color: var(--color-neutral-700);
 }
@@ -232,7 +232,7 @@
   display: flex;
   gap: 6px;
   align-items: center;
-  margin: 4px 0 0 10px;
+  margin: -4px 0 0; /* Pulls against the body's 8px gap: byline + location read as one tight meta cluster. */
   font: var(--text-small-regular);
   color: var(--color-neutral-700);
   text-decoration: none;
