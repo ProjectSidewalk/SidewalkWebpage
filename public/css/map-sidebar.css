@@ -472,14 +472,16 @@ body.map-sidebar-resizing {
   text-decoration: underline;
 }
 
-/* Swap the count for "Only" while the pointer or keyboard focus is in the row (kayak.com-style exclusive select). */
+/* Swap the count for "Only" while the pointer is in the row, or a keyboard user is focused there (kayak.com-style
+   exclusive select). Keyed on :focus-visible, not :focus-within — clicking a row focuses its checkbox, and
+   :focus-within would then strand "Only" over the count until focus moved elsewhere. */
 .map-sidebar__item:hover .map-sidebar__only,
-.map-sidebar__item:focus-within .map-sidebar__only {
+.map-sidebar__item:has(:focus-visible) .map-sidebar__only {
   display: inline;
 }
 
 .map-sidebar__item:hover .map-sidebar__count,
-.map-sidebar__item:focus-within .map-sidebar__count {
+.map-sidebar__item:has(:focus-visible) .map-sidebar__count {
   display: none;
 }
 
@@ -490,7 +492,7 @@ body.map-sidebar-resizing {
 }
 
 .map-sidebar__severity-cell:hover .map-sidebar__only,
-.map-sidebar__severity-cell:focus-within .map-sidebar__only {
+.map-sidebar__severity-cell:has(:focus-visible) .map-sidebar__only {
   visibility: visible;
 }
 
