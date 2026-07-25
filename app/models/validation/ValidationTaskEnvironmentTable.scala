@@ -1,6 +1,7 @@
 package models.validation
 
 import com.google.inject.ImplementedBy
+import models.mission.MissionTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -50,8 +51,8 @@ class ValidationTaskEnvironmentTableDef(tag: Tag)
     ValidationTaskEnvironment.unapply
   )
 
-//  def mission: ForeignKeyQuery[MissionTable, Mission] =
-//    foreignKey("validation_task_environment_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
+  def mission =
+    foreignKey("validation_task_environment_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId.?)
 }
 
 @ImplementedBy(classOf[ValidationTaskEnvironmentTable])

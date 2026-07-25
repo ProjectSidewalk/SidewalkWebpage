@@ -1,9 +1,11 @@
 package models.label
 
 import com.google.inject.ImplementedBy
+import models.user.SidewalkUserTableDef
 import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
+import models.validation.LabelValidationTableDef
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -45,14 +47,12 @@ class LabelHistoryTableDef(tag: slick.lifted.Tag) extends Table[LabelHistory](ta
     }
   )
 
-//  def label: ForeignKeyQuery[LabelTable, Label] =
-//    foreignKey("label_history_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
-//
-//  def user: ForeignKeyQuery[UserTable, DBUser] =
-//    foreignKey("label_history_user_id_fkey", editedBy, TableQuery[UserTableDef])(_.userId)
-//
-//  def labelValidation: ForeignKeyQuery[LabelValidationTable, LabelValidation] =
-//    foreignKey("label_history_label_validation_id_fkey", labelValidationId, TableQuery[LabelValidationTableDef])(_.labelValidationId)
+  def label           = foreignKey("label_history_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
+  def editedByUser    = foreignKey("label_history_edited_by_fkey", editedBy, TableQuery[SidewalkUserTableDef])(_.userId)
+  def labelValidation =
+    foreignKey("label_history_label_validation_id_fkey", labelValidationId, TableQuery[LabelValidationTableDef])(
+      _.labelValidationId.?
+    )
 }
 
 @ImplementedBy(classOf[LabelHistoryTable])

@@ -31,11 +31,17 @@ These apply across every language in the repo.
   //this is incorrect
   ```
 
-- **Accessibility is part of style.** Any UI work must meet **WCAG 2.1/2.2 Level AA**. Pull fonts, colors, spacing,
-  and button styles from the design-system tokens in `main.css` `:root` rather than hardcoding values — these come
-  from our Figma "Design System Tokens" and are what we're standardizing on.
-- **Don't use `--font-accent` (Raleway) for numbers.** Its digits aren't tabular, so figures won't line up in columns
-  and jump around in changing counters/timers — use `--font-primary` for any numeric text.
+- **Accessibility is part of style.** Any UI work must meet **WCAG 2.1/2.2 Level AA**.
+- **Style from the design-system tokens in `main.css` `:root`.** Colors, type, spacing, and button styles come from
+  our Figma "Design System Tokens"; hardcoded values are what we're migrating away from. For type, use the composite
+  `--text-*` tokens (`font: var(--text-body-regular);`) rather than building on the raw `--font-primary`/
+  `--font-accent` stacks — they're complete `font` shorthands (weight, size/line-height, family) and bake in
+  `--ui-scale`. If a token's line-height (or another single aspect) doesn't suit, keep the token and override that
+  one property on the next line instead of hand-assembling the font.
+- **Raleway (`--font-accent`) is display-only — and never for numbers.** Default to the primary font (Mulish); the
+  accent font appears only in the tokens that already carry it (`--text-h1-bold`, `--text-h2-bold`,
+  `--text-small-accent`). Raleway defaults to old-style (text) figures — digits vary in height and 3/4/5/7/9 descend
+  below the baseline — so any text containing digits (counts, timers, stats, dates) must use a primary-font token.
 - **Write descriptive commit messages** that say what actually changed and why. `Fixes #880`, `Addresses PR
   feedback`, and `Update ModalMissionComplete.js` are all too vague to be useful in `git log` later.
 
@@ -105,6 +111,11 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
   duplicated (see [`CONTRIBUTING.md`](../CONTRIBUTING.md) → Internationalization).
 - **CSS:** 2-space indent, `stylelint-config-standard` ([`stylelint.config.mjs`](../stylelint.config.mjs)). Use the
   `main.css` `:root` design tokens for colors/fonts/spacing.
+- **Scale tool UI with `var(--ui-scale)`.** The Explore/Validate tools and the overlays layered over them are zoomed
+  uniformly to fit the viewport (`util.applyToolScale` sets `--ui-scale` on `.tool-ui` and the document root). Author
+  every fixed dimension for that UI as `calc(<base>px * var(--ui-scale, 1))` (paddings, gaps, sizes, borders, radii,
+  and any raw `font-size`); prefer the `--text-*` type tokens, which already include it. A bare `px` there won't scale.
+  Fixed page chrome (e.g. the navbar) stays unscaled on purpose.
 
 ## Frontend file & directory organization
 

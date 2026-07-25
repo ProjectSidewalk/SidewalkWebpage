@@ -1,0 +1,135 @@
+/*
+ * Standalone error pages (404, 500). Rendered by modules.CustomErrorHandler outside common.main so they stay
+ * dependency-free: an error page must render even when the app/DB is degraded, so it pulls no per-city data and
+ * only links static stylesheets. Styled entirely from the main.css design tokens.
+ */
+
+/* main.css pads the body to clear the fixed navbar, and the UA adds a default margin; this page has neither. */
+body {
+  margin: 0;
+  padding: 0;
+}
+
+.error-page {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  background-color: var(--color-neutral-100);
+}
+
+/* border-box (main.css has no global reset) so max-width caps the card's full rendered width, padding included. */
+.error-card {
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden; /* clips the accent strip to the rounded corners */
+  width: 100%;
+  max-width: 480px;
+  padding: 40px 32px;
+  text-align: center;
+  background-color: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 16px;
+}
+
+/* Brand accent: the canonical label-type palette (same family the logo's arc wears), as a ribbon on the card. */
+.error-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 6px;
+  background: linear-gradient(
+    to right,
+    var(--color-label-curb-ramp) 0 14.3%,
+    var(--color-label-signal) 0 28.6%,
+    var(--color-label-obstacle) 0 42.9%,
+    var(--color-label-no-sidewalk) 0 57.2%,
+    var(--color-label-no-curb-ramp) 0 71.5%,
+    var(--color-label-surface-problem) 0 85.8%,
+    var(--color-label-crosswalk) 0 100%
+  );
+}
+
+.error-logo {
+  margin-bottom: 4px;
+}
+
+/* A little on-brand delight: the racer rolls in and settles. Skipped for reduced-motion users. */
+@media (prefers-reduced-motion: no-preference) {
+  .error-logo {
+    animation: error-roll-in 1.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes error-roll-in {
+  from {
+    transform: translateX(-96px) rotate(-20deg);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+/* Oversized status code. Raw font properties because no --text-* token reaches this size, and digits never render
+   in Raleway (old-style figures), so the primary font is used directly. */
+.error-code {
+  margin: 0 0 4px;
+  font-family: var(--font-primary);
+  font-size: 64px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-neutral-300);
+}
+
+.error-heading {
+  margin: 0 0 12px;
+  font: var(--text-h1-bold);
+  color: var(--color-asphalt-500);
+}
+
+/* The 404 message embeds the requested path, which can be arbitrarily long and unbroken — wrap it anywhere. */
+.error-message {
+  margin: 0 0 24px;
+  font: var(--text-subtitle-regular);
+  line-height: 1.5;
+  color: var(--color-neutral-800);
+  overflow-wrap: anywhere;
+}
+
+/* The requested path (404) or support ID (500). Monospace so it reads as a technical value, is easy to copy, and
+   stands apart from the message prose; digits stay in a non-Raleway face per the type rules. */
+.error-chip {
+  display: block;
+  width: fit-content;
+  margin: 0 auto 24px;
+  padding: 8px 14px;
+  font: var(--text-small-medium);
+  font-family: "SF Mono", "Cascadia Mono", "Roboto Mono", monospace;
+  color: var(--color-asphalt-500);
+  word-break: break-all;
+  background-color: var(--color-neutral-100);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 8px;
+}
+
+.error-report {
+  margin: 0 0 28px;
+  font: var(--text-small-regular);
+  line-height: 1.5;
+  color: var(--color-neutral-700);
+}
+
+/* Underlined so the report link is recognizable as one inside body text (WCAG 1.4.1: not by color alone). */
+.error-report a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.error-home {
+  justify-content: center;
+}

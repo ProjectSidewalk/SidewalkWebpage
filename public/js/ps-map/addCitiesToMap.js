@@ -174,8 +174,9 @@ function addCitiesToMap(map, citiesData, params) {
         // If successful, fill in the stat values.
         popupContent.querySelector('[data-stat="distance"]').textContent = formatDistance(stats.km_explored || 0);
         popupContent.querySelector('[data-stat="labels"]').textContent = formatNumber(stats.labels.label_count || 0);
+        // overallStats nests validation totals under combined/human/ai; "combined" is the human+AI total (#4591).
         popupContent.querySelector('[data-stat="validations"]').textContent = formatNumber(
-          stats.validations.total_validations || 0,
+          stats.validations.combined?.total_validations || 0,
         );
       } catch (error) {
         // If the fetch fails, just log the error. The popup will still be shown,

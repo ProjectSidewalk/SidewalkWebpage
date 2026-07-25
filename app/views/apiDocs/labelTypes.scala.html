@@ -1,3 +1,4 @@
+@import models.utils.SeoUtils
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
@@ -184,7 +185,7 @@
   </div>
 }
 
-@common.main(commonData, "API Docs") {
+@common.main(commonData, SeoUtils.apiDocsTitle("Label Types API")) {
   @common.navbar(commonData, Some(user))
   @apiDocs.layout("label-types")(content)
 }

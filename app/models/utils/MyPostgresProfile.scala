@@ -3,9 +3,10 @@ package models.utils
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.tminglei.slickpg._
 import com.github.tminglei.slickpg.geom.PgPostGISExtensions
-import models.label.AiImageSource
+import models.label.{AiImageSource, ComputationMethod}
+import models.mission.MissionType
 import models.pano.PanoSource
-import models.street.StreetEdgeStatus
+import models.street.{StreetEdgeIssueType, StreetEdgeStatus, WayType}
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.validation.ValidationOption
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
@@ -136,6 +137,32 @@ trait MyPostgresProfile
         "street_edge_status",
         _.toString,
         StreetEdgeStatus.withName,
+        quoteName = false
+      )
+
+    // Mapper for mission_type enum type.
+    implicit val missionTypeMapper: BaseColumnType[MissionType.Value] =
+      createEnumJdbcType[MissionType.Value]("mission_type", _.toString, MissionType.withName, quoteName = false)
+
+    // Mapper for way_type enum type.
+    implicit val wayTypeMapper: BaseColumnType[WayType.Value] =
+      createEnumJdbcType[WayType.Value]("way_type", _.toString, WayType.withName, quoteName = false)
+
+    // Mapper for computation_method enum type.
+    implicit val computationMethodMapper: BaseColumnType[ComputationMethod.Value] =
+      createEnumJdbcType[ComputationMethod.Value](
+        "computation_method",
+        _.toString,
+        ComputationMethod.withName,
+        quoteName = false
+      )
+
+    // Mapper for street_edge_issue_type enum type.
+    implicit val streetEdgeIssueTypeMapper: BaseColumnType[StreetEdgeIssueType.Value] =
+      createEnumJdbcType[StreetEdgeIssueType.Value](
+        "street_edge_issue_type",
+        _.toString,
+        StreetEdgeIssueType.withName,
         quoteName = false
       )
   }

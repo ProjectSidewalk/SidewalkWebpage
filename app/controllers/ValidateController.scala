@@ -9,9 +9,11 @@ import formats.json.MissionFormats._
 import formats.json.ValidateFormats.{EnvironmentSubmission, LabelMapValidationSubmission, ValidationTaskSubmission}
 import models.auth.WithAdmin
 import models.label.{LabelTypeEnum, Tag}
+import models.mission.MissionType
 import models.user._
 import models.validation.{LabelValidation, ValidationTaskComment, ValidationTaskEnvironment, ValidationTaskInteraction}
 import play.api.Configuration
+import play.api.i18n.Messages
 import play.api.libs.json._
 import play.api.mvc.Result
 import service.ValidationSubmission
@@ -70,8 +72,8 @@ class ValidateController @Inject() (
               } yield {
                 cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Validate")
                 Ok(
-                  views.html.apps.validate(commonPageData, "/validate", "Sidewalk - Validate", user, validateParams,
-                    validatePageData)
+                  views.html.apps.validate(commonPageData, "/validate", Messages("seo.title.validate"), user,
+                    validateParams, validatePageData)
                 )
               }
             } else {
@@ -109,8 +111,8 @@ class ValidateController @Inject() (
               } yield {
                 cc.loggingService.insert(user.userId, request.ipAddress, "Visit_ExpertValidate")
                 Ok(
-                  views.html.apps.validate(commonPageData, "/expertValidate", "Sidewalk - Expert Validate", user,
-                    validateParams, validatePageData)
+                  views.html.apps.validate(commonPageData, "/expertValidate", Messages("seo.title.expert.validate"),
+                    user, validateParams, validatePageData)
                 )
               }
             } else {
@@ -141,7 +143,7 @@ class ValidateController @Inject() (
               } else {
                 cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate")
                 Ok(
-                  views.html.apps.mobileValidate(commonPageData, "Sidewalk - Validate", user, validateParams,
+                  views.html.apps.mobileValidate(commonPageData, Messages("seo.title.validate"), user, validateParams,
                     validatePageData)
                 )
               }
@@ -385,7 +387,11 @@ class ValidateController @Inject() (
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       newVal => {
         for {
-          mission <- missionService.resumeOrCreateNewValidateMission(userId, "labelmapValidation", newVal.labelType.id)
+          mission <- missionService.resumeOrCreateNewValidateMission(
+            userId,
+            MissionType.LabelmapValidation,
+            newVal.labelType.id
+          )
           newValIds <- validationService.submitValidations(
             Seq(
               ValidationSubmission(
@@ -418,7 +424,11 @@ class ValidateController @Inject() (
         val labelTypeId: Int = LabelTypeEnum.labelTypeToId(submission.labelType)
         for {
           // Get the (or create a) mission_id for this user_id and label_type_id.
-          mission        <- missionService.resumeOrCreateNewValidateMission(userId, "labelmapValidation", labelTypeId)
+          mission <- missionService.resumeOrCreateNewValidateMission(
+            userId,
+            MissionType.LabelmapValidation,
+            labelTypeId
+          )
           _              <- validationService.deleteCommentIfExists(submission.labelId, mission.get.missionId)
           commentId: Int <- validationService.insertComment(
             ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.ipAddress,

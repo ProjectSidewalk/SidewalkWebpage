@@ -46,8 +46,11 @@ loading = Laden...
 loading.encouragement = Let''s go!
 submit = Dien in
 submit.shortcut = Dien in (<u>s</u>)
-test.server.warning.message = <strong>WAARSCHUWING!</strong> U bevindt zich op een testserver! Uw gegevens worden niet opgeslagen! Als u wilt dat uw gegevens worden opgeslagen, gebruik dan de hoofdsite
+test.server.warning.message = <strong>U bevindt zich op een testserver.</strong> Uw werk wordt hier niet opgeslagen. Gebruik de hoofdsite om uw gegevens te bewaren
+test.server.warning.label = Testservermelding
+test.server.warning.close = Melding sluiten
 dont.show.again = Laat niet opnieuw zien
+explore.alert.close = Sluiten
 
 press.key = Druk op de "{0}" toets
 press.keys = Druk op de "{0}" toetsen
@@ -75,6 +78,8 @@ navbar.tools = Hulpmiddelen
 navbar.labelmap = Label Kaart
 navbar.help = Help
 navbar.leaderboard = Scoreboard
+navbar.stories = Verhalen
+navbar.routes = Routes
 navbar.your.city.here = Jouw stad hier
 navbar.retake.tutorial = Tutorial opnieuw doen
 navbar.signin = Log in
@@ -93,9 +98,47 @@ navbar.tools.analyze = Analyseren
 navbar.tools.community = Community
 navbar.tools.build = Bouwen
 navbar.tools.admin = Beheer
+navbar.user.account = Account
 navbar.city.search = Steden zoeken…
 navbar.city.viewall = Alle steden op de kaart bekijken
 navbar.city.none = Geen overeenkomende steden
+
+# SEO (#4237): <title>-waarden en metabeschrijvingen per pagina. {0} is de stadsnaam waar aanwezig.
+seo.title.landing = Project Sidewalk — {0}
+seo.title.explore = Ontdek {0} — Project Sidewalk
+seo.title.validate = Bevestigen — Project Sidewalk
+seo.title.expert.validate = Expertvalidatie — Project Sidewalk
+seo.title.gallery = Trottoirgalerij — Project Sidewalk
+seo.title.help = Hulp — Project Sidewalk
+seo.title.labeling.guide = Labelgids — Project Sidewalk
+seo.title.terms = Gebruiksvoorwaarden — Project Sidewalk
+seo.title.label.map = Labelkaart van {0} — Project Sidewalk
+seo.title.cities = Steden — Project Sidewalk
+seo.title.leaderboard = Scoreboard — Project Sidewalk
+seo.title.stories = Verhalen uit de community — Project Sidewalk
+seo.title.routes = Routes uit de community — Project Sidewalk
+seo.title.route.builder = RouteBuilder — Project Sidewalk
+seo.title.dashboard = Je dashboard — Project Sidewalk
+seo.title.settings = Instellingen — Project Sidewalk
+seo.title.sign.in = Inloggen — Project Sidewalk
+seo.title.sign.up = Account aanmaken — Project Sidewalk
+seo.title.welcome = Welkom — Project Sidewalk
+seo.title.forgot.password = Wachtwoord herstellen — Project Sidewalk
+seo.title.reset.password = Wachtwoord opnieuw instellen — Project Sidewalk
+seo.title.service.hours = Vrijwilligersinformatie — Project Sidewalk
+seo.title.time.check = Tijdcontrole — Project Sidewalk
+seo.title.about = Over ons — Project Sidewalk
+seo.description.default = Help de trottoirs van {0} in kaart te brengen en te beoordelen via virtuele verkenning. Open data over opritten, obstakels en oppervlakteproblemen voor een toegankelijkere wereld.
+seo.description.landing = Help vanaf je laptop veiligheids- en toegankelijkheidsproblemen op de trottoirs van {0} te vinden. Jouw labels helpen onderzoekers, steden en gemeenschappen hun trottoirs te verbeteren.
+seo.description.explore = Wandel virtueel door de straten van {0} en label trottoir opritten, ontbrekende trottoirs, obstakels en oppervlakteproblemen om de toegankelijkheid te verbeteren.
+seo.description.validate = Beoordeel toegankelijkheidslabels die anderen in {0} hebben geplaatst en help de datakwaliteit te verbeteren.
+seo.description.gallery = Bekijk straatbeelden van toegankelijkheidskenmerken en obstakels op de trottoirs van {0}.
+seo.description.label.map = Interactieve kaart van alle toegankelijkheidslabels in {0}: trottoir opritten, obstakels, oppervlakteproblemen en meer.
+seo.description.help = Leer Project Sidewalk gebruiken: labelinstructies, tips voor nauwkeurigheid en veelgestelde vragen.
+seo.description.cities = Project Sidewalk is actief in steden over de hele wereld. Bekijk alle steden of breng Project Sidewalk naar jouw stad.
+seo.description.api = Gratis en open data over trottoirtoegankelijkheid in {0}: labels, labelclusters, straten en toegankelijkheidsscores in JSON, CSV, GeoJSON, GeoPackage en Shapefile.
+seo.description.about = Maak kennis met Project Sidewalk: onze missie om de trottoirs van de wereld in kaart te brengen, het onderzoeksteam erachter en de open data die het oplevert.
+seo.og.image.alt = Schermafbeelding van de virtuele straatverkenning van Project Sidewalk met toegankelijkheidslabels langs een trottoir.
 
 landing.create.path = Laten we een pad creëren voor iedereen!
 landing.start.exploring = Start met Verkennen
@@ -169,19 +212,11 @@ footer.award = Prijs <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID
 footer.designed.operated = Project Sidewalk is ontworpen en beheerd door <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> op de <a id="universityofwashington" href="http://www.cs.uw.edu/">University of Washington</a>
 footer.version = Versie {0} | Laatst geupdated: <span class = "timestamp date">{1}</span>
 
-audit.tutorial.welcome.1 = In <span class="bold">Project Sidewalk,</span> zul je je virtueel door steden verplaatsen en missies volbrengen door toegankelijkheidskenmerken en problemen te vinden en te labelen in de buurt, waaronder:
-audit.tutorial.welcome.2 = We beginnen met een korte interactieve uitleg.
-audit.tutorial.welcome.3 = Laten we eraan beginnen!
-audit.tutorial.welcome.4 = Heb je al eerder de uitleg doorlopen? Heb je een Account? <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">Log In</a> of <a value="Skip" class="onboarding-transition-trigger">sla de uitleg over.</a>
-audit.tutorial.accessible = <span style="color:limegreen">Toegankelijk</span>
-audit.tutorial.inaccessible = <span style="color:red">Ontoegankelijk</span>
-audit.tutorial.examples.curb.ramp = <span style="color:limegreen">Trottoir opritten</span> helpen rolstoelgebruikers om op en van trottoirs te komen
-audit.tutorial.examples.missing.ramp = Rolstoelgebruikers kunnen geen gebruik maken van trottoirs als <span style="color:#ff0066">trottoir opritten ontbreken</span>
-audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">Obstakels</span> blokkeren het pad van rolstoelgebruikers
-audit.tutorial.examples.surface.problem = Trottoirs met <span style="color:orange">oppervlakte problemen</span> zijn mogelijk niet berijdbaar
-audit.tutorial.end.1 = Goed! Je hebt geleerd hoe je de interface moet gebruiken! Ga nu verder en <span class="bold">Label de volgende toegankelijkheidskenmerken in Street View-beelden.</span> wat positief impact zal hebben op hoe rolstoelgebruikers zich kunnen bewegen door de stad:
-audit.tutorial.end.2 = Nogmaals, dank voor <span class="bold">je bijdrage aan een toegankelijke wereld voor iedereen!</span>
-audit.tutorial.examples = Voorbeelden van toegankelijkheidskenmerken: stoep opritten, ontbrekende stoep opritten, obstakels in het pad, en oppervlakteproblemen.
+audit.tutorial.complete.1 = Het is gelukt!
+audit.tutorial.complete.2 = Je hebt de uitleg voltooid!
+audit.tutorial.complete.learn-more = Meer informatie
+audit.tutorial.complete.start-contributing = Beginnen met bijdragen
+
 audit.ribbon.curb.ramp.labels = TROTTOIR OPRIT LABELS
 audit.ribbon.sidewalk.labels = TROTTOIR LABELS
 audit.ribbon.other.labels = ANDERE TOEGANKELIJKHEIDSLABELS
@@ -226,7 +261,7 @@ audit.survey.feedback.question = Heb je feedback, design ideeën, of vragen?
 
 validate.comment.placeholder = Voeg een optionele opmerking toe
 validate.why.not = Waarom niet?
-validate.why.unsure = Waarom 'Onzeker'?
+validate.why.unsure = Waarom ''Onzeker''?
 validate.add.own.reason = Of voeg je eigen reden toe.
 validate.skip.reason = Reden overslaan
 validate.suggestions = Suggesties
@@ -283,6 +318,7 @@ welcome.card.badges.title = Badges
 welcome.card.badges.body = Verdien ze terwijl je in kaart brengt, valideert en missiemijlpalen haalt.
 welcome.card.leaderboard.title = Het scorebord
 welcome.card.leaderboard.body = Zie hoe jouw werk zich verhoudt in de stad — alleen of met een team.
+welcome.cta.resume = Terug naar waar je gebleven was
 welcome.cta.dashboard = Mijn dashboard bekijken
 welcome.hint.username = Je kunt je gebruikersnaam altijd wijzigen in <a href="{0}">Dashboard → Instellingen</a>.
 welcome.service.prompt = Breng je in kaart voor school- of vrijwilligersuren?
@@ -345,7 +381,6 @@ labeling.guide.surface.problem.summary = Een oppervlakteprobleem is een probleem
 labeling.guide.no.sidewalk.summary = Je moet een No Sidewalk-label plaatsen vanaf waar het trottoir eindigt, en vervolgens om de paar meter (ongeveer 1 per panorama) labels blijven plaatsen totdat je een plaats bereikt waar het trottoir opnieuw begint.
 labeling.guide.occlusion.summary = Soms is het zicht op het trottoir volledig geblokkeerd. In deze gevallen moet je een label "Can''t See the Sidewalk" plaatsen. Dit mag zelden worden gebruikt, dus plaats het label "Het trottoir is niet zichtbaar" alleen wanneer een trottoir, oprit of ander toegankelijkheidsprobleem niet vanuit elke hoek kan worden bekeken vanwege obstakels, zoals auto''s.
 
-admin.clear.play.cache = Wis Play cache
 
 leaderboard.header.labels = Labels
 leaderboard.header.missions = Missies
@@ -361,31 +396,54 @@ gallery.clear.filters = Filters Wissen
 
 routebuilder.name = Routebuilder
 routebuilder.welcome = Welkom bij Routebuilder
-routebuilder.intro.content = Verbetering van de toegankelijkheid in de buurt van uw keuze door uw eigen route te bouwen, te verkennen en te delen!
-routebuilder.intro.instruction = Klik op een straat om uw route te bouwen.
-routebuilder.creating.route = Route creëren
-routebuilder.route.length = Routelengte
-routebuilder.editing.route = Bewerkingsroute
-routebuilder.add.street.icon.alt = Een map pin -pictogram met een pluspunt in het midden
-routebuilder.add.street.instruction = Klik op de straten op de kaart om ze aan uw route toe te voegen.
-routebuilder.reverse.street.icon.alt = Twee pijlen vormen een cirkel om omkering aan te geven
-routebuilder.reverse.street.instruction = Klik eenmaal op een toegevoegde straat om de richting te roteren.
-routebuilder.delete.street.icon.alt = Een prullenbak met een X erop
-routebuilder.delete.street.instruction = Klik twee keer op een toegevoegde straat om deze uit de route te verwijderen.
-routebuilder.save.route.instruction = Klik op "Route opslaan" om de build te voltooien
+routebuilder.intro.content = Bouw een route en deel deze met anderen.
+routebuilder.directions.start.aria = Startadres of plaats
+routebuilder.directions.end.aria = Eindadres of plaats
+routebuilder.stat.time.tooltip = Geschat op basis van het gebruikelijke tempo van Project Sidewalk-verkenners in deze stad (ongeveer {0} minuten per 100 meter).
 routebuilder.save = Route bewaren
 routebuilder.delete.route.icon.alt = Een oranje cirkel met een witte uitroepteken in het midden
 routebuilder.not.saved = Route is niet opgeslagen.
 routebuilder.not.saved.explanation = U kunt deze route later niet herstellen.
 routebuilder.delete.route = Verwijder route
-routebuilder.saved.icon.alt = Een groene cirkel met een wit vinkje in het midden
-routebuilder.saved = Route opgeslagen!
-routebuilder.explore.route = Verken deze route
-routebuilder.view.in.labelmap = Bekijk in Label Kaart
-routebuilder.build.another.route = Bouw een andere route
-routebuilder.share.title = Sla deze link op voor toekomstige toegang:
-routebuilder.copy.link = Kopieer link
-routebuilder.share.warning = U hebt geen toegang tot deze route zonder de link.
+routebuilder.name.your.route = Geef je route een naam
+routebuilder.close = Sluiten
+routebuilder.save.explanation = Na het opslaan kun je je route met anderen delen en al je routes bekijken in je <a href="{0}" target="_blank" rel="noopener">dashboard</a>.
+routebuilder.route.name.label = Routenaam
+routebuilder.route.name.placeholder = bijv. Van de bibliotheek naar het park
+routebuilder.name.error.length = Routenamen mogen maximaal {0} tekens lang zijn.
+routebuilder.name.error.allowed = Deze routenaam is niet toegestaan. Kies een andere.
+routebuilder.route.description.label = Beschrijving
+routebuilder.optional = (optioneel)
+routebuilder.route.description.placeholder = bijv. Onze vaste route van de bibliotheek naar school
+routebuilder.description.error.length = Routebeschrijvingen mogen maximaal {0} tekens lang zijn.
+routebuilder.description.error.allowed = Deze beschrijving is niet toegestaan. Pas hem aan.
+routebuilder.signin.nudge = Log in om je routes in je dashboard te bewaren, waar je ze altijd kunt terugvinden, hernoemen en delen.
+routebuilder.signin.to.save = Inloggen & bewaren
+routebuilder.continue.without.account = Bewaren zonder account
+routebuilder.view.in.dashboard = Beheer al je routes in je dashboard
+routebuilder.saved.routes = Je opgeslagen routes
+routebuilder.recent.routes.note = Alleen op dit apparaat opgeslagen. Log in om routes in je dashboard te bewaren.
+routebuilder.undo = Ongedaan maken
+routebuilder.preview = Routevoorbeeld
+routebuilder.new.route = Een nieuwe route beginnen
+routebuilder.new.route.tooltip = Begint een nieuwe route. Sla je huidige route eerst op als je die wilt behouden.
+routebuilder.legend.title = Legenda
+routebuilder.legend.start = Start van de route
+routebuilder.legend.end = Einde van de route
+routebuilder.legend.direction = Looprichting
+routebuilder.legend.pois = Nuttige plaatsen
+dashboard.routes.title = Mijn routes
+dashboard.routes.intro = Routes die je in RouteBuilder hebt gemaakt. Verken er een om erlangs te labelen, of deel de link met anderen.
+dashboard.routes.explore = Verkennen
+dashboard.routes.labelmap = Label Kaart
+dashboard.routes.copy = Link kopiëren
+dashboard.routes.rename = Hernoemen
+dashboard.routes.delete = Verwijderen
+dashboard.routes.stats = Door {0} verkend · Door {1} voltooid
+dashboard.routes.stats.tooltip = Verkend: hoeveel mensen deze route zijn gaan verkennen. Voltooid: hoeveel mensen de hele route hebben afgerond.
+dashboard.routes.view.title = Bekijk deze route in RouteBuilder
+dashboard.routes.none = Je hebt nog geen routes gemaakt.
+dashboard.routes.build.one = Maak je eerste route →
 
 footer.logo.nsf.alt = National Science Foundation-logo
 footer.logo.google.alt = Google-logo
@@ -396,7 +454,7 @@ footer.logo.create.alt = Centrum voor Onderzoek en Onderwijs over Toegankelijke 
 cities.dashboard.cities = Implementatiesteden
 cities.dashboard.distance = Verkende straten
 cities.dashboard.cities.icon.alt = Rolstoelgebruiker van Project Sidewalk-logo met een vlag
-cities.dashboard.cta.title = Breng Project Sidewalk naar uw stad!
+cities.dashboard.cta.title = Breng Project Sidewalk naar uw stad!
 cities.dashboard.cta.content = Wilt u de toegankelijkheid in uw omgeving in kaart brengen? <br/> We zijn altijd op zoek naar nieuwe partners die ons kunnen helpen de toekomst van stedelijke toegankelijkheid te transformeren.
 cities.dashboard.cta.button = Leer hoe u kunt implementeren
 cities.dashboard.cta.logo.alt = Het logo van Project Sidewalk met de tekst projectsidewalk.org
@@ -404,6 +462,7 @@ cities.dashboard.cta.logo.alt = Het logo van Project Sidewalk met de tekst proje
 share.meta.title.issue = Ik heb een toegankelijkheidsprobleem gevonden op Project Sidewalk: {0}
 share.meta.title.feature = Kijk wat ik heb gevonden op Project Sidewalk: {0}
 share.meta.description.spotted = Gespot in {0}.
+share.meta.description.address = In de buurt van {0}.
 share.meta.description.severity = Ernst: {0} van 3.
 share.meta.description.tags = Tags: {0}.
 share.meta.description.cta = Verken de kaart en help stoepen toegankelijk te maken voor iedereen.
@@ -463,9 +522,12 @@ dashboard.trophy.none = 🏆 Nog geen trofeeën — eindig in de wekelijkse top 
 dashboard.trophy.explore.region = Verken deze buurt →
 dashboard.trophy.tag.region = Buurt
 dashboard.trophy.tag.pioneer = Pionier
+dashboard.trophy.tag.explore = Verkenning
 dashboard.trophy.sub.pioneer = Allereerste labelaar in {0}
 dashboard.trophy.sub.champion = {0} labels — de meeste in deze buurt
 dashboard.trophy.sub.weekly = Week van {0}
+dashboard.trophy.sub.free-explore-tried = Een Vrije Verkenning-missie geprobeerd
+dashboard.trophy.sub.free-explore-labeled = Gelabeld tijdens een Vrije Verkenning-missie
 dashboard.standing.title = Jouw positie
 dashboard.standing.intro = Een blik op waar je deze week staat. Het volledige bord vind je <a href="{0}">op het scoreboard</a>.
 dashboard.standing.tag.week = Deze week
@@ -491,6 +553,8 @@ dashboard.mistakes.validated.count = {0} gevalideerd
 dashboard.mistakes.recent.title = Recente fouten
 dashboard.mistakes.recent.intro = Oneens met een validatie? Laat het ons weten — je kunt achter je label blijven staan en een notitie met context achterlaten.
 dashboard.mistakes.see.all = Bekijk al je labels →
+dashboard.stories.title = Jouw verhalen
+dashboard.stories.intro = Persoonlijke verhalen die je bij etiketten hebt gedeeld. Verhalen zijn openbaar; je kunt ze hier op elk moment definitief verwijderen.
 dashboard.team.title = Je team
 dashboard.team.intro = Breng samen met een team of klas in kaart. Vriendschappelijke competitie in een kleine groep is het halve plezier.
 dashboard.team.none = Je zit nog niet in een team
@@ -597,3 +661,40 @@ dashboard.unit.ft = ft
 dashboard.rank.place.one = 1e plaats
 dashboard.rank.place.two = 2e plaats
 dashboard.rank.place.three = 3e plaats
+# Community listing pages: /stories and /routes (#4688).
+stories.page.search.placeholder = Typ om verhalen te filteren…
+routes.page.search.placeholder = Typ om routes te filteren…
+community.page.sort = Sorteren op
+community.page.sort.newest = Nieuwste eerst
+community.page.sort.neighborhood = Buurt
+community.page.count = {0} weergegeven
+community.page.no.results = Niets komt overeen met je zoekopdracht.
+community.page.cap.note = Alleen de nieuwste {0} worden weergegeven.
+stories.page.title = Verhalen uit de community
+stories.page.intro = Persoonlijke verhalen die communityleden aan stoeplabels hebben toegevoegd — echte ervaringen over hoe barrières en toegankelijkheidsvoorzieningen het leven van mensen beïnvloeden.
+stories.page.sort.labeltype = Labeltype
+stories.page.none = Er zijn in deze stad nog geen verhalen gedeeld.
+stories.page.none.cta = Vind een label en deel jouw verhaal
+stories.page.anonymous = Anoniem
+stories.page.view.label = Label bekijken
+stories.page.read.more = Meer lezen
+stories.page.read.less = Minder lezen
+stories.page.photo.alt = Foto bij dit verhaal
+stories.page.label.image.alt = Straatbeeld: {0}
+routes.page.title = Routes uit de community
+routes.page.intro = Wandelroutes die communityleden met RouteBuilder hebben gemaakt. Verken er een om erlangs te labelen, of kopieer de link om te delen.
+routes.page.build.cta = Route maken
+routes.page.sort.longest = Langste eerst
+routes.page.sort.explored = Meest verkend
+routes.page.none = Er zijn in deze stad nog geen routes gemaakt.
+routes.page.none.cta = Maak de eerste route
+
+# Foutpagina's (404, 500), weergegeven door modules.CustomErrorHandler.
+error.404.heading = Pagina niet gevonden
+error.404.message = We konden de opgevraagde pagina niet vinden.
+error.500.heading = Er is iets misgegaan
+error.500.message = Er is een onverwachte fout aan onze kant opgetreden. Het ligt niet aan jou — probeer het zo meteen opnieuw.
+error.500.id = Foutcode: {0}
+error.500.report = Als dit blijft gebeuren, {0} en vermeld de bovenstaande foutcode zodat we het kunnen onderzoeken.
+error.500.report.link = laat het ons dan weten
+error.home = Terug naar start

@@ -20,9 +20,26 @@
 }
 
 /* Used on the dashboard page (deploymentSitesDashboard.scala.html) */
+
+/*
+ * Hero fills the first viewport so the map and stats are always visible together without scrolling.
+ * The map (flex: 1) grows into whatever vertical space is left after the stats row, so the layout adapts to
+ * any laptop height instead of a fixed map height clipping the stats below the fold (#4579 follow-up).
+ * Subtract the fixed navbar (body padding-top) and container top padding, plus a little breathing room so the
+ * page visibly continues below the fold.
+ */
+.hero-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: calc(100vh - var(--navbar-height) - 45px);
+  min-height: 420px;
+}
+
 .map-section {
   width: 100%;
-  height: 620px;
+  flex: 1 1 auto;
+  min-height: 240px;
 }
 
 .map-holder {
@@ -37,6 +54,112 @@
 .map {
   height: 100%;
   width: 100%;
+}
+
+/*
+ * Floating call-to-action pinned over the map so it's visible above the fold without competing for vertical
+ * layout space. Sits below the loading screen (z-index 1000) so it only appears once the map has loaded.
+ *
+ * Styled as a small "invitation card" built around the flag-planting figure from the Project Sidewalk logo:
+ * the mascot literally plants a flag on a new summit, which is the celebratory metaphor for bringing PS to a
+ * new city. The figure carries the brand color (pine/banana/orange arc) so the card itself stays quiet white.
+ */
+.map-cta {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box; /* No global border-box here, so fold padding+border into max-width. */
+  gap: 12px;
+  max-width: 300px;
+  padding: 12px 14px;
+  background-color: var(--color-neutral-white);
+  border: 1px solid rgb(0 0 0 / 6%);
+  border-radius: 14px;
+  text-decoration: none !important;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 18%);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.map-cta-flag {
+  height: 62px;
+  width: auto;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 15%));
+}
+
+/* Text column: dynamic social-proof lead stacked above the headline. */
+.map-cta-body {
+  display: flex;
+  flex: 0 1 auto; /* Size to the text; don't grow, so the arrow sits right next to it rather than far right. */
+  flex-direction: column;
+  gap: 3px;
+  max-width: 175px; /* Keep the headline to ~2 lines; "Project Sidewalk" is NBSP-joined so it never splits. */
+}
+
+/* "Join N other communities" — a small eyebrow that turns the city count into social proof. */
+.map-cta-lead {
+  font-family: var(--font-accent); /* Raleway, the brand display face */
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-pine-700);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.map-cta-text {
+  font-family: var(--font-accent); /* Raleway, the brand display face */
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-asphalt-700);
+}
+
+/* Circular arrow chip whose inline SVG nudges to the right on hover to signal "go". */
+.map-cta-arrow {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: var(--color-pine-600);
+  color: var(--color-neutral-white);
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.map-cta:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 24%);
+}
+
+.map-cta:hover .map-cta-arrow {
+  background-color: var(--color-pine-700);
+  transform: translateX(3px);
+}
+
+.map-cta:focus-visible {
+  outline: 3px solid var(--color-pine-700);
+  outline-offset: 3px;
+}
+
+/* A gentle celebratory bob keeps the flag-planter feeling alive; suppressed for reduced-motion users. */
+@media (prefers-reduced-motion: no-preference) {
+  .map-cta-flag {
+    animation: map-cta-flag-bob 2.8s ease-in-out infinite;
+  }
+
+  .map-cta:hover .map-cta-flag {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes map-cta-flag-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
 }
 
 /* ==========================================================================
@@ -313,27 +436,131 @@
    Responsive Design
    ========================================================================== */
 
+/*
+ * Tablets (e.g. iPad portrait at 820px) sit above the phone breakpoints but shouldn't get the desktop
+ * viewport-tall hero, which makes the map gigantic and pushes the stats off-screen. Relax the hero to a fixed
+ * map height and keep the floating CTA within the map here; the heavier font/grid scaling stays at <=768px.
+ */
+@media (width <= 1024px) {
+  .hero-section {
+    height: auto;
+    min-height: 0;
+    gap: 18px;
+  }
+
+  .map-section {
+    flex: 0 0 auto;
+    height: 60vh;
+    min-height: 340px;
+  }
+
+  .map-cta {
+    max-width: calc(100% - 32px);
+  }
+}
+
 @media (width <= 768px) {
   /* General map adjustments */
   #deployment-map {
     height: 60vh;
     max-height: 500px;
   }
-  .map-section { height: 400px; }
+
+  /*
+   * On narrow screens scrolling is expected, so relax the viewport-locked hero: give the map a fixed-ish
+   * height and let the page flow normally rather than cramming map + stats into a single short viewport.
+   */
+  .hero-section {
+    height: auto;
+    min-height: 0;
+    gap: 15px;
+  }
+
+  .map-section {
+    flex: 0 0 auto;
+    height: 55vh;
+    min-height: 300px;
+  }
+
+  .map-cta {
+    top: 12px;
+    right: 12px;
+    gap: 10px;
+    max-width: calc(100% - 24px); /* Never exceed the map width so the card can't be clipped past the viewport. */
+    padding: 10px 12px;
+  }
+
+  .map-cta-flag {
+    height: 50px;
+  }
+
+  .map-cta-body {
+    max-width: 150px;
+  }
+
+  .map-cta-lead {
+    font-size: 10px;
+  }
+
+  .map-cta-text {
+    font-size: 13px;
+  }
+
+  .map-cta-arrow {
+    width: 26px;
+    height: 26px;
+  }
 
   /* Dashboard layout */
   .deployment-sites-container {
     padding: 10px 15px;
     gap: 20px;
   }
-  .deployment-sites-stats-holder { gap: 25px; }
-  .stat-group { min-width: 100px; }
-  .deployment-sites-stats-header { font-size: 20px; }
+
+  /* Lay the four stats out as a 2x2 grid instead of an awkward 3 + 1 wrap. */
+  .deployment-sites-stats-holder {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px 16px;
+    max-width: 440px;
+  }
+
+  .stat-group { min-width: 0; }
+
+  .deployment-sites-stats-header {
+    height: 46px; /* Compact two-line allowance so 1- and 2-line headers still align across the grid row. */
+    font-size: 18px;
+  }
+
   .deployment-sites-stats-stat { font-size: 22px; }
 
   .stat-group img {
     height: 50px;
-    margin: 10px 0;
+    margin: 8px 0;
+  }
+
+  /* Scale the footer CTA down to match the stats section; its desktop sizes read oversized on a phone. */
+  .cta-section { padding: 18px 16px 22px; }
+
+  .cta-logo {
+    height: 72px;
+    margin-bottom: 14px;
+  }
+
+  .cta-title {
+    font-size: 22px;
+    margin-bottom: 10px;
+  }
+
+  .cta-text {
+    font-size: 15px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+  }
+
+  .cta-button {
+    padding: 10px 22px;
+    font-size: 15px;
   }
 }
 
@@ -343,20 +570,33 @@
     height: 50vh;
     max-height: 400px;
   }
-  .map-section { height: 300px; }
+
+  .map-section {
+    height: 45vh;
+    min-height: 260px;
+  }
 
   /* Dashboard layout */
   .deployment-sites-container {
     padding: 10px;
     gap: 15px;
   }
-  .deployment-sites-stats-holder { gap: 20px; }
-  .stat-group { min-width: 80px; }
-  .deployment-sites-stats-header { font-size: 16px; }
+
+  .deployment-sites-stats-holder { gap: 16px 12px; }
+
+  .deployment-sites-stats-header {
+    height: 42px;
+    font-size: 16px;
+  }
+
   .deployment-sites-stats-stat { font-size: 18px; }
 
   .stat-group img {
     height: 40px;
     margin: 8px 0;
   }
+
+  .cta-logo { height: 64px; }
+  .cta-title { font-size: 20px; }
+  .cta-text { font-size: 14px; }
 }

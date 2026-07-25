@@ -239,3 +239,113 @@
 .clearfix {
   width: 100%;
 }
+
+/* Project Sidewalk pin dropped on an address-search result on the public LabelMap (#4451). A circular badge carrying
+   the wheelchair mark, on a tail that points at the exact coordinate. */
+.ps-search-pin {
+  display: block;
+  width: 38px;
+  height: 48px;
+  padding: 0;
+  border: none;
+  background: none;
+  line-height: 0;
+  cursor: pointer;
+}
+
+.ps-search-pin__svg {
+  display: block;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 35%));
+}
+
+/* Teardrop body; the point is part of this path, so it can't drift out of alignment with the head.
+   Deliberately a neutral dark rather than any hue: the map is already dense with colored label dots, and the
+   secondary ramps (blue, mint, lime, purple, pink, pumpkin, yellow) top out at -500 precisely because those -500
+   values ARE the label-type colors — so a tinted pin competes with the data instead of marking a place. Asphalt
+   separates by value rather than hue, and lets the logo's own colors carry the branding. */
+.ps-search-pin__body {
+  fill: var(--color-asphalt-500);
+}
+
+.ps-search-pin:hover .ps-search-pin__body {
+  fill: var(--color-asphalt-400);
+}
+
+.ps-search-pin__face {
+  fill: var(--color-neutral-white);
+}
+
+/* The pin is keyboard-operable, so it needs a visible focus ring (WCAG 2.4.7). */
+.ps-search-pin:focus-visible {
+  outline: 3px solid var(--color-link-100);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Scoped to this popup so the global .mapboxgl-popup-content rule (shared with every other map popup) stays put. */
+.ps-explore-here-popup .mapboxgl-popup-content {
+  padding: 12px 14px;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 22%);
+}
+
+/* "Explore the sidewalks here" popup shown after an address search on the public LabelMap (#4451). */
+.explore-here {
+  min-width: 208px;
+  max-width: 260px;
+}
+
+.explore-here__place {
+  margin: 0;
+  color: var(--color-neutral-900);
+  font: var(--text-body-bold);
+  line-height: 1.25;
+}
+
+.explore-here__address {
+  margin: 2px 0 10px;
+  color: var(--color-neutral-700);
+  font: var(--text-caption-regular);
+  line-height: 1.35;
+}
+
+.explore-here__region {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.explore-here__context {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 4px;
+  color: var(--color-neutral-700);
+  font: var(--text-caption-medium);
+}
+
+.explore-here__percent {
+  color: var(--color-pine-800);
+  font: var(--text-caption-semibold);
+  white-space: nowrap;
+}
+
+/* Neighborhood completion, shown as a bar so progress reads at a glance rather than as another number to parse. */
+.explore-here__track {
+  height: 6px;
+  margin-bottom: 10px;
+  border-radius: 3px;
+  background-color: var(--color-neutral-200);
+  overflow: hidden;
+}
+
+.explore-here__fill {
+  height: 100%;
+  border-radius: 3px;
+  background-color: var(--color-pine-500);
+}
+
+.explore-here-button {
+  justify-content: center;
+  width: 100%;
+}

@@ -4,9 +4,9 @@ import com.google.inject.ImplementedBy
 import models.api.UserStatForApi
 import models.audit.AuditTaskTableDef
 import models.label.{LabelTable, LabelTypeEnum}
-import models.mission.{MissionTableDef, MissionTypeTable}
+import models.mission.{MissionTableDef, MissionType}
 import models.street.StreetEdgeTable
-import models.user.RoleTable.{RESEARCHER_ROLES, ROLES_RESEARCHER_COLLAPSED}
+import models.user.RoleTable.ROLES_RESEARCHER_COLLAPSED
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import models.validation.LabelValidationTableDef
@@ -148,6 +148,8 @@ class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
   override def * =
     (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual, ownLabelsValidated, accuracy,
       excluded, onLeaderboard, publicProfile) <> ((UserStat.apply _).tupled, UserStat.unapply)
+
+  def user = foreignKey("user_stat_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
 }
 
 @ImplementedBy(classOf[UserStatTable])
@@ -169,7 +171,7 @@ class UserStatTable @Inject() (
   private val missionTable         = TableQuery[MissionTableDef]
   private val labelValidationTable = TableQuery[LabelValidationTableDef]
 
-  private val auditMissions = missionTable.filter(_.missionTypeId === MissionTypeTable.missionTypeToId("audit"))
+  private val auditMissions = missionTable.filter(_.missionType === MissionType.Audit)
 
   private val LABEL_PER_METER_THRESHOLD: Double = 0.0375
 
@@ -843,9 +845,8 @@ class UserStatTable @Inject() (
       FROM (
           SELECT DISTINCT(mission.user_id)
           FROM mission
-          INNER JOIN mission_type ON mission.mission_type_id = mission_type.mission_type_id
           LEFT JOIN label_validation ON mission.mission_id = label_validation.mission_id
-          WHERE mission_type.mission_type IN ('validation', 'labelmapValidation')
+          WHERE mission.mission_type IN ('validation', 'labelmapValidation')
               AND #$lblValidationTimeIntervalSql
               AND #$validationCompletedSql
           UNION
@@ -860,103 +861,6 @@ class UserStatTable @Inject() (
       WHERE role.role <> 'AI'
           AND #$highQualityOnlySql;
     """.as[Int].head.map(n => UserCount(n, "combined", "all", timeInterval, taskCompletedOnly, highQualityOnly))
-  }
-
-  /**
-   * Count the number of users who used a validation interface over the given time period, grouped by role.
-   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
-   * @param labelValidated Whether to count only users who validated a label or anyone who loaded the page.
-   */
-  def countValidateUsersContributed(
-      timeInterval: TimeInterval = TimeInterval.AllTime,
-      labelValidated: Boolean = false
-  ): DBIO[Seq[UserCount]] = {
-    // Build up SQL string related to validation and audit task time intervals.
-    // Defaults to *not* specifying a time (which is the same thing as "all_time").
-    val timeIntervalFilter = timeInterval match {
-      case TimeInterval.Today =>
-        "(mission.mission_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
-      case TimeInterval.Week =>
-        "(mission.mission_end AT TIME ZONE 'US/Pacific') > (NOW() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
-      case _ => "TRUE"
-    }
-
-    sql"""
-      SELECT role.role, COALESCE(user_counts.count, 0)
-      FROM role
-      LEFT JOIN (
-        SELECT user_role.role_id, COUNT(DISTINCT(user_role.user_id)) AS count
-        FROM mission_type
-        INNER JOIN mission ON mission_type.mission_type_id = mission.mission_type_id
-        LEFT JOIN label_validation ON mission.mission_id = label_validation.mission_id
-        INNER JOIN user_role ON mission.user_id = user_role.user_id
-        INNER JOIN role ON user_role.role_id = role.role_id
-        WHERE mission_type.mission_type IN ('validation', 'labelmapValidation')
-            AND role.role <> 'AI'
-            AND #${if (labelValidated) "label_validation.end_timestamp IS NOT NULL" else "TRUE"}
-            AND #$timeIntervalFilter
-        GROUP BY user_role.role_id
-      ) user_counts ON role.role_id = user_counts.role_id;
-    """
-      .as[(String, Int)]
-      .map { userCounts =>
-        // Collapse the researcher roles into one role.
-        val researcherCount = userCounts.filter(c => RESEARCHER_ROLES.contains(c._1)).map(_._2).sum
-        val otherCounts     = userCounts.filter(c => !RESEARCHER_ROLES.contains(c._1))
-        val countsForCollapsedRoles: Seq[(String, Int)] = otherCounts :+ ("researcher", researcherCount)
-
-        // Put into UserCount objects.
-        countsForCollapsedRoles.map { case (role, count) =>
-          UserCount(count, "validate", role.toLowerCase(), timeInterval, labelValidated, highQualityOnly = false)
-        }
-      }
-  }
-
-  /**
-   * Count the number of users who used the Explore page over the given time period, grouped by role.
-   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
-   * @param taskCompletedOnly Whether to count only users who completed an audit_task or anyone who loaded the page.
-   */
-  def countExploreUsersContributed(
-      timeInterval: TimeInterval = TimeInterval.AllTime,
-      taskCompletedOnly: Boolean = false
-  ): DBIO[Seq[UserCount]] = {
-    // Build up SQL string related to validation and audit task time intervals.
-    // Defaults to *not* specifying a time (which is the same thing as "all_time").
-    val timeIntervalFilter = timeInterval match {
-      case TimeInterval.Today =>
-        "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
-      case TimeInterval.Week =>
-        "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
-      case _ => "TRUE"
-    }
-
-    sql"""
-      SELECT role.role, COALESCE(user_counts.count, 0)
-      FROM role
-      LEFT JOIN (
-        SELECT user_role.role_id, COUNT(DISTINCT(audit_task.user_id)) AS count
-        FROM audit_task
-        INNER JOIN user_role ON audit_task.user_id = user_role.user_id
-        INNER JOIN role ON user_role.role_id = role.role_id
-        WHERE role.role <> 'AI'
-            AND #${if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"}
-            AND #$timeIntervalFilter
-        GROUP BY user_role.role_id
-      ) user_counts ON role.role_id = user_counts.role_id;
-    """
-      .as[(String, Int)]
-      .map { userCounts =>
-        // Collapse the researcher roles into one role.
-        val researcherCount = userCounts.filter(c => RESEARCHER_ROLES.contains(c._1)).map(_._2).sum
-        val otherCounts     = userCounts.filter(c => !RESEARCHER_ROLES.contains(c._1))
-        val countsForCollapsedRoles: Seq[(String, Int)] = otherCounts :+ ("researcher", researcherCount)
-
-        // Put into UserCount objects.
-        countsForCollapsedRoles.map { case (role, count) =>
-          UserCount(count, "explore", role.toLowerCase(), timeInterval, taskCompletedOnly, highQualityOnly = false)
-        }
-      }
   }
 
   /**

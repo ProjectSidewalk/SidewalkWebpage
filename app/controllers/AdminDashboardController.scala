@@ -113,6 +113,20 @@ class AdminDashboardController @Inject() (
   }
 
   /**
+   * Renders the Stories moderation page (#4054): the review queue for lived-experience stories.
+   *
+   * Answers "what have people shared, and does anything need moderation?" — every story newest-first (hidden ones
+   * included, visually quarantined), each with its author, text, photo, and label, plus the hide/unhide and
+   * permanent-delete controls. Stories are public on submit, so this queue is the after-the-fact safety net.
+   */
+  def stories = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_Stories")
+      Ok(views.html.admin.dashboard.stories(commonData, request.identity))
+    }
+  }
+
+  /**
    * Renders the API Analytics page: v3 public-API usage, framed around real external adoption vs our own docs traffic.
    *
    * Answers "is our public API being used, by whom, for what?" — external vs apiDocs call volume over time, top

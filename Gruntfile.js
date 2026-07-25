@@ -26,6 +26,9 @@ module.exports = function (grunt) {
           'public/js/admin/src/*.js',
           // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
           'public/js/common/label-detail/PopupPanoManager.js',
+          'public/js/common/ConfirmDialog.js',
+          'public/js/common/label-detail/StoryComposer.js',
+          'public/js/common/label-detail/StorySection.js',
           'public/js/common/label-detail/LabelDetail.js',
           'public/js/common/share/ShareWidget.js',
           'public/js/common/label-detail/LabelPopup.js',
@@ -48,6 +51,9 @@ module.exports = function (grunt) {
           'public/js/admin/src/*.js',
           // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
           'public/js/common/label-detail/PopupPanoManager.js',
+          'public/js/common/ConfirmDialog.js',
+          'public/js/common/label-detail/StoryComposer.js',
+          'public/js/common/label-detail/StorySection.js',
           'public/js/common/label-detail/LabelDetail.js',
           'public/js/common/share/ShareWidget.js',
           'public/js/common/label-detail/LabelPopup.js',
@@ -96,6 +102,9 @@ module.exports = function (grunt) {
           'public/js/common/BadgeAchievements.js',
           // PopupPanoManager and LabelDetail must be concatenated before ExpandedView.
           'public/js/common/label-detail/PopupPanoManager.js',
+          'public/js/common/ConfirmDialog.js',
+          'public/js/common/label-detail/StoryComposer.js',
+          'public/js/common/label-detail/StorySection.js',
           'public/js/common/label-detail/LabelDetail.js',
           'public/js/common/share/ShareWidget.js',
           'public/js/gallery/src/cards/*.js',
@@ -117,6 +126,14 @@ module.exports = function (grunt) {
         ],
         dest: 'public/js/ps-map/build/ps-map.js'
       },
+      dist_route_builder: {
+        src: [
+          'public/js/common/Toast.js',
+          'public/js/common/ConfirmDialog.js',
+          'public/js/route-builder/src/*.js'
+        ],
+        dest: 'public/js/route-builder/build/route-builder.js'
+      },
       dist_shared_label: {
         src: [
           // The shared LabelDetail component + its deps (same set the Gallery bundle pulls in), plus the
@@ -128,6 +145,9 @@ module.exports = function (grunt) {
           'public/js/common/PanoMarker.js',
           // PopupPanoManager + LabelDetail must precede anything that uses them.
           'public/js/common/label-detail/PopupPanoManager.js',
+          'public/js/common/ConfirmDialog.js',
+          'public/js/common/label-detail/StoryComposer.js',
+          'public/js/common/label-detail/StorySection.js',
           'public/js/common/label-detail/LabelDetail.js',
           'public/js/common/share/ShareWidget.js',
           'public/js/shared-label/*.js'
@@ -199,6 +219,7 @@ module.exports = function (grunt) {
           'public/js/gallery/src/**/*.js',
           'public/css/gallery/*.css',
           'public/js/ps-map/*.js',
+          'public/js/route-builder/src/*.js',
           'public/js/shared-label/*.js',
           'public/css/common/*.css'
         ],

@@ -5,12 +5,14 @@
 @import service.CommonPageData
 @import models.pano.PanoSource
 @import formats.json.LabelFormats.tagWrites
+@import views.ViewHelpers.jsonForScript
 @(commonData: CommonPageData, url: String, title: String, user: SidewalkUserWithRole, validateParams: ValidateParams, validatePageData: ValidatePageData
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@common.main(commonData, title, defaultI18nNamespace = "validate", i18Namespaces = Seq("validate", "common"), url) {
+@common.main(commonData, title, defaultI18nNamespace = "validate", i18Namespaces = Seq("validate", "common"), url,
+  pageMeta = service.PageMeta(description = Some(Messages("seo.description.validate", currentCity.cityNameShort)))) {
   @common.navbar(commonData, Some(user))
   @common.icons()
 
@@ -259,7 +261,7 @@
         regionIds: @Html(validateParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null")),
         unvalidatedOnly: @validateParams.unvalidatedOnly
       }
-      param.tagList = @Html(JsArray(validatePageData.tagList.map(t => Json.toJson(t))).toString);
+      param.tagList = @jsonForScript(JsArray(validatePageData.tagList.map(t => Json.toJson(t))));
 
       if (@validatePageData.hasNextMission) {
         param.mission = @Html(validatePageData.mission.getOrElse("\"\"").toString);

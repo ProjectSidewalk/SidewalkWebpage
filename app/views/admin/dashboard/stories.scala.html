@@ -1,0 +1,75 @@
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import models.pano.PanoSource
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@content = {
+  <div class="api-section" id="stories-intro-section">
+    <h1 class="api-heading" id="stories">Stories <a href="#stories" class="permalink">#</a></h1>
+    <p>The moderation queue for lived-experience stories (#4054): personal accounts, with optional photos, that community members attach to labels. Stories are <strong>public the moment they're submitted</strong>, so this page is the safety net — every story appears here newest first, hidden ones included. <strong>Hide</strong> quarantines a story (reversible; the author still sees it flagged and can delete it). <strong>Delete permanently</strong> removes the story and its photo bytes for good — reserve it for content that must not survive even as quarantined evidence.</p>
+    <div class="coverage-status" id="stories-status" role="status" aria-live="polite">Loading stories…</div>
+  </div>
+
+  <div class="api-section" id="stories-queue-section">
+    <h2 class="api-heading" id="queue">Review queue <a href="#queue" class="permalink">#</a></h2>
+    <div class="stories-queue" id="stories-queue"></div>
+  </div>
+
+  @* Label-detail popup: lets a story's label open inline (same modal the rest of the app uses) instead of navigating away. Mirrors the Activity page's standalone-script setup. *@
+@common.labelPopup(admin = true)
+  <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
+  <link href='@assets.path("css/tag-pills.css")' rel="stylesheet">
+  <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
+
+  <script src='@assets.path("js/common/timestampLocalization.js")'></script>
+@if(commonData.imagerySource == PanoSource.Infra3d) {
+  <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
+  <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
+} else if (commonData.imagerySource == PanoSource.Mapillary) {
+  <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
+  <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
+  <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
+  }
+  @* Pannellum is loaded everywhere the label popup is, since any expired pano may have a self-hosted fallback. *@
+  <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
+  <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
+  <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
+  @* Label-detail modules (order matters: PopupPanoManager + LabelDetail precede LabelPopup; Toast precedes Badges). *@
+  <script src='@assets.path("js/common/aiLabelIndicator.js")'></script>
+  <script src='@assets.path("js/common/Toast.js")'></script>
+  <script src='@assets.path("js/common/BadgeAchievements.js")'></script>
+  <script src='@assets.path("js/common/PanoMarker.js")'></script>
+  <script src='@assets.path("js/common/label-detail/PopupPanoManager.js")'></script>
+  <script src='@assets.path("js/common/ConfirmDialog.js")'></script>
+  <script src='@assets.path("js/common/label-detail/StoryComposer.js")'></script>
+  <script src='@assets.path("js/common/label-detail/StorySection.js")'></script>
+  <script src='@assets.path("js/common/label-detail/LabelDetail.js")'></script>
+  <script src='@assets.path("js/common/label-detail/LabelPopup.js")'></script>
+
+  <script src="@assets.path("js/admin-dashboard/StoriesPage.js")"></script>
+  <script>
+    window.appManager.ready(async function () {
+      const page = new StoriesPage({ feedUrl: '/adminapi/stories?n=200' });
+      page.init();
+      // The pano viewer initializes asynchronously; once it's ready, hand the popup to the page so label links open
+      // inline. If this fails, the links keep their href fallback (navigate to /admin/label/:id).
+      try {
+        const imagerySrc = "@commonData.imagerySource.toString";
+        const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer
+          : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+        const accessToken = "@commonData.imageryAccessToken";
+        const popup = await LabelPopup(true, viewerType, accessToken, "@user.username");
+        page.setLabelPopup(popup);
+      } catch (err) {
+        console.error('Stories page: label popup failed to initialize; links will navigate instead.', err);
+      }
+    });
+  </script>
+}
+
+@common.main(commonData, "Sidewalk - Admin Stories", i18Namespaces = Seq("common", "labelmap")) {
+  @common.navbar(commonData, Some(user))
+  @admin.dashboard.adminLayout("stories", user.role == "Owner")(content)
+}

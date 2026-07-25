@@ -88,13 +88,11 @@ class CityScorecardSpec extends PlaySpec with GuiceOneAppPerSuite {
       run(configTable.getCityLabelingSpeedBySchema(schema)) mustBe a[Product] // (Double, Double)
     }
     "execute getCityDailyLabelStatsBySchema (both quality filters)" in {
-      run(configTable.getCityDailyLabelStatsBySchema(schema, None, None, filterLowQuality = false)) mustBe a[Seq[_]]
-      run(configTable.getCityDailyLabelStatsBySchema(schema, None, None, filterLowQuality = true)) mustBe a[Seq[_]]
+      run(configTable.getCityDailyLabelStatsBySchema(schema, filterLowQuality = false)) mustBe a[Seq[_]]
+      run(configTable.getCityDailyLabelStatsBySchema(schema, filterLowQuality = true)) mustBe a[Seq[_]]
     }
     "execute getCityDailyValidationStatsBySchema" in {
-      run(configTable.getCityDailyValidationStatsBySchema(schema, None, None, filterLowQuality = false)) mustBe a[Seq[
-        _
-      ]]
+      run(configTable.getCityDailyValidationStatsBySchema(schema, filterLowQuality = false)) mustBe a[Seq[_]]
     }
   }
 }

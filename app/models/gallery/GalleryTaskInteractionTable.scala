@@ -1,6 +1,8 @@
 package models.gallery
 
 import com.google.inject.ImplementedBy
+import models.pano.PanoDataTableDef
+import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -31,8 +33,8 @@ class GalleryTaskInteractionTableDef(tag: slick.lifted.Tag)
     GalleryTaskInteraction.unapply
   )
 
-//  def user: ForeignKeyQuery[UserTable, DBUser] =
-//    foreignKey("gallery_task_interaction_user_id_fkey", userId, TableQuery[UserTableDef])(_.userId)
+  def user = foreignKey("gallery_task_interaction_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId.?)
+  def pano = foreignKey("gallery_task_interaction_pano_id_fkey", panoId, TableQuery[PanoDataTableDef])(_.panoId.?)
 }
 
 @ImplementedBy(classOf[GalleryTaskInteractionTable])

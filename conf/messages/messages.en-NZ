@@ -16,11 +16,6 @@ landing.stats.content.finished.partial = We did it! Users like you have mapped a
 landing.stats.content.finished.full = We did it! Users like you have mapped all {0} kilometres of {1}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
 landing.stats.distance = kilometres covered
 
-audit.tutorial.examples.curb.ramp = <span style="color:limegreen">Drop kerbs</span> help wheelchair users get on and off the footpaths
-audit.tutorial.examples.missing.ramp = Wheelchair users cannot navigate footpaths when <span style="color:#ff0066">drop kerbs are missing</span>
-audit.tutorial.examples.surface.problem = Footpaths with <span style="color:orange">surface problems</span> may not be navigable
-audit.tutorial.examples = Examples of accessibility attributes: drop kerbs, missing drop kerbs, obstacles in path, and surface problems.
-
 audit.ribbon.curb.ramp.labels = DROP KERB LABELS
 audit.ribbon.sidewalk.labels = FOOTPATH LABELS
 audit.ribbon.curb.ramp = Drop Kerb (<u>C</u>)
@@ -52,3 +47,7 @@ dashboard.profile.headline = {0} has placed <strong>{1} labels</strong> making f
 dashboard.profile.private.detail = They''re still out there making footpaths more accessible — they''ve just chosen not to share a public profile.
 leaderboard.intro = Every label makes footpaths more accessible and safe for everyone. Here''s how the community is doing.
 leaderboard.intro.you = Every label makes footpaths more accessible and safe for everyone. Here''s how the community — and you — are doing.
+
+# Community listing pages: /stories and /routes (#4688).
+community.page.sort.neighborhood = Neighbourhood
+stories.page.intro = Personal stories that community members have attached to footpath labels — real accounts of how accessibility barriers and features affect people''s lives.

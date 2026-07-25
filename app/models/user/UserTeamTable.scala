@@ -16,6 +16,10 @@ class UserTeamTableDef(tag: slick.lifted.Tag) extends Table[UserTeam](tag, "user
   def teamId: Rep[Int]     = column[Int]("team_id")
 
   def * = (userTeamId, userId, teamId) <> ((UserTeam.apply _).tupled, UserTeam.unapply)
+
+  def user       = foreignKey("user_team_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def team       = foreignKey("user_team_team_id_fkey", teamId, TableQuery[TeamTableDef])(_.teamId)
+  def userUnique = index("user_team_user_id_key", userId, unique = true)
 }
 
 @ImplementedBy(classOf[UserTeamTable])

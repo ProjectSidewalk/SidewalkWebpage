@@ -162,6 +162,12 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       status(resp) mustBe OK
       (contentAsJson(resp) \ "type").as[String] mustBe "FeatureCollection"
     }
+
+    "include pano_source in the CSV header" in {
+      val resp = route(app, FakeRequest(GET, s"/v3/api/rawLabels?bbox=$emptyBbox&filetype=csv&inline=true")).get
+      status(resp) mustBe OK
+      contentAsString(resp) must include("pano_id,pano_source,label_type")
+    }
   }
 
   "GET /v3/api/validations parameter validation" should {
@@ -219,6 +225,25 @@ class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, "/v3/api/labelClusters?clusterSize=0")).get
       status(resp) mustBe BAD_REQUEST
       (contentAsJson(resp) \ "parameter").as[String] mustBe "clusterSize"
+    }
+
+    "return a parseable FeatureCollection with pano_source on included raw labels" in {
+      // Runs the includeRawLabels SQL (jsonb_agg + LEFT JOIN pano_data) end to end over the whole test DB. The
+      // full-world bbox matters: labels without a pano_data row must stream as raw labels with pano_source omitted
+      // rather than killing the response mid-stream, so contentAsJson parsing the complete body is the regression
+      // assertion. pano_source is optional in the contract, but when present it must be a known provider.
+      val worldBbox = "-180,-85,180,85"
+      val resp      = route(app, FakeRequest(GET, s"/v3/api/labelClusters?includeRawLabels=true&bbox=$worldBbox")).get
+      status(resp) mustBe OK
+      val json = contentAsJson(resp)
+      (json \ "type").as[String] mustBe "FeatureCollection"
+      val rawLabels = (json \ "features")
+        .as[Seq[JsObject]]
+        .flatMap(f => (f \ "properties" \ "labels").asOpt[Seq[JsObject]].getOrElse(Seq.empty))
+      val knownSources = models.pano.PanoSource.values.map(_.toString)
+      rawLabels.foreach { label =>
+        (label \ "pano_source").asOpt[String].foreach { source => knownSources must contain(source) }
+      }
     }
   }
 }

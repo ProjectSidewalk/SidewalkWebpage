@@ -483,6 +483,11 @@
   background: linear-gradient(160deg, var(--color-banana-100, #fdf6e3), var(--color-neutral-white, #ffffff));
 }
 
+.ud-trophy-free-explore {
+  border-top-color: var(--color-blue-400, #c6e0fa);
+  background: linear-gradient(160deg, var(--color-blue-100, #f6fafe), var(--color-neutral-white, #ffffff));
+}
+
 .ud-trophy-tag {
   position: absolute;
   top: 8px;
@@ -936,9 +941,9 @@
 #label-modal .label-detail__comment-row { display: none; }
 
 /* Tighten the Comments heading so its empty "None" doesn't tower over the Description row, and give it a colon so it
-   reads like "Description :". */
+   reads like "Description :". The colon goes on the inner heading-text span so it lands before the count badge. */
 #label-modal .label-detail__comments-section .label-detail__col-title { margin: 0 0 2px; }
-#label-modal .label-detail__comments-section .label-detail__col-title::after { content: ":"; }
+#label-modal .label-detail__comments-section .label-detail__col-title > span:first-child::after { content: ":"; }
 
 .ud-card-voted-msg {
   margin: 0;
@@ -1618,4 +1623,187 @@
   .ud-trophy-link:focus-visible {
     transform: none;
   }
+}
+
+/* ─── Your stories (#4054) ──────────────────────────────────────────────── */
+.ud-story-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-neutral-200, #e1e1e1);
+}
+
+.ud-story-row:first-child { border-top: none; }
+
+.ud-story-row--hidden { opacity: 0.8; }
+
+.ud-story-thumb {
+  flex: none;
+  width: 96px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--color-neutral-300, #d1d1d1);
+}
+
+.ud-story-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ud-story-text {
+  margin: 0 0 4px;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.ud-story-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-neutral-700, #6b6b6b);
+}
+
+.ud-story-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border: 1px solid var(--color-banana-700, #f1b12a);
+  border-radius: 999px;
+  background: var(--color-banana-100, #fef7e8);
+  color: var(--color-banana-900, #a87303);
+  font-family: var(--font-accent, Raleway, sans-serif);
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.ud-story-delete {
+  padding: 2px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-accent, Raleway, sans-serif);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--color-orange-700, #8d442f);
+  text-decoration: underline;
+}
+
+.ud-story-delete:focus-visible {
+  outline: 2px solid var(--color-link-100, #3e8bd9);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---- My Routes (#3343): server-rendered rows of the user's RouteBuilder routes with inline actions. ---- */
+.ud-routes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The list's display: flex would otherwise override the hidden attribute's UA display: none. */
+.ud-routes[hidden] {
+  display: none;
+}
+
+.ud-route-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm, 12px);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-neutral-200, #e1e1e1);
+}
+
+.ud-route-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+/* Static-map thumbnail of the route; clicking it opens the route preview in RouteBuilder. */
+.ud-route-view {
+  flex-shrink: 0;
+  display: block;
+  line-height: 0;
+}
+
+.ud-route-thumb {
+  width: 180px;
+  height: 90px;
+  object-fit: cover;
+  border: 1px solid var(--color-neutral-200, #e1e1e1);
+  border-radius: 8px;
+}
+
+.ud-route-view:hover .ud-route-thumb,
+.ud-route-view:focus-visible .ud-route-thumb {
+  border-color: var(--color-link-100, #3e8bd9);
+  box-shadow: 0 0 0 1px var(--color-link-100, #3e8bd9);
+}
+
+.ud-route-usage {
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-text-muted, #546e7a);
+  cursor: help;
+}
+
+.ud-route-name {
+  font-weight: 600;
+  color: var(--color-text-heading, #263238);
+  overflow-wrap: anywhere;
+}
+
+/* The creator's "why this route matters" blurb, clamped so long stories keep the row scannable. */
+.ud-route-desc {
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-text-muted, #546e7a);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ud-route-meta {
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-muted, #546e7a);
+}
+
+.ud-route-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs, 8px);
+}
+
+.ud-route-actions .ud-btn-secondary {
+  padding: 4px 10px;
+  font-size: var(--font-size-sm, 0.875rem);
+  text-decoration: none;
+}
+
+.ud-route-rename-form {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs, 8px);
+}
+
+.ud-route-rename-form .ud-input {
+  padding: 4px 10px;
+  font-size: var(--font-size-md, 1rem);
+}
+
+.ud-route-rename-form .ud-btn-primary {
+  padding: 4px 10px;
+  font-size: var(--font-size-sm, 0.875rem);
 }

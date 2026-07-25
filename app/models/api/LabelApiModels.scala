@@ -189,6 +189,7 @@ case class LabelDataForApi(
         "label_id"       -> labelId,
         "user_id"        -> userId,
         "pano_id"        -> panoId,
+        "pano_source"    -> panoSource.toString,
         "label_type"     -> labelType,
         "severity"       -> severity,
         "tags"           -> tags,
@@ -242,6 +243,7 @@ case class LabelDataForApi(
       labelId.toString,
       userId,
       panoId,
+      panoSource.toString,
       labelType,
       severity.map(_.toString).getOrElse(""),
       escapeCsvField(tags.mkString("[", ",", "]")),
@@ -294,10 +296,11 @@ object LabelDataForApi {
    * CSV header string with field names in the same order as the toCsvRow output.
    * This should be included as the first line when generating CSV output.
    */
-  val csvHeader: String = "label_id,user_id,pano_id,label_type,severity,tags,description,time_created,street_edge_id," +
-    "osm_way_id,region_id,region_name,correct,agree_count,disagree_count,unsure_count,validations,audit_task_id,mission_id," +
-    "image_capture_date,heading,pitch,zoom,canvas_x,canvas_y,canvas_width,canvas_height,pano_x,pano_y,pano_width," +
-    "pano_height,camera_heading,camera_pitch,camera_roll,pano_url,latitude,longitude\n"
+  val csvHeader: String =
+    "label_id,user_id,pano_id,pano_source,label_type,severity,tags,description,time_created,street_edge_id," +
+      "osm_way_id,region_id,region_name,correct,agree_count,disagree_count,unsure_count,validations,audit_task_id,mission_id," +
+      "image_capture_date,heading,pitch,zoom,canvas_x,canvas_y,canvas_width,canvas_height,pano_x,pano_y,pano_width," +
+      "pano_height,camera_heading,camera_pitch,camera_roll,pano_url,latitude,longitude\n"
 
   /**
    * Implicit JSON writer for LabelData that uses the toJson method.

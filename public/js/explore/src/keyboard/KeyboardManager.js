@@ -158,7 +158,9 @@ class KeyboardManager {
       // Switch labeling mode. e: Walk, c: CurbRamp, m: NoCurbRamp, o: Obstacle, s: SurfaceProblem: n: NoSidewalk,
       // w: Crosswalk, p: Signal, b: Occlusion.
       for (const mode of ['Walk'].concat(util.misc.VALID_LABEL_TYPES_WITHOUT_OTHER)) {
-        if (e.key.toUpperCase() === util.misc.getLabelDescriptions(mode).keyChar) {
+        // Some keyup events (synthetic events, certain IME/compose keys) arrive with no `key`; skip the shortcut
+        // match rather than throwing on undefined.toUpperCase().
+        if (e.key && e.key.toUpperCase() === util.misc.getLabelDescriptions(mode).keyChar) {
           if (mode !== 'Walk') this.#closeContextMenu(e.keyCode);
           this.#ribbon.modeSwitch(mode);
           svl.tracker.push(`KeyboardShortcut_ModeSwitch_${mode}`, { keyCode: e.keyCode });
@@ -207,7 +209,7 @@ class KeyboardManager {
           const labelType = targetLabel.getProperty('labelType');
           const tags = this.#contextMenu.labelTags.filter((tag) => tag.label_type === labelType);
           for (const tag of tags) {
-            if (e.key.toUpperCase() === util.misc.getLabelDescriptions(labelType).tagInfo[tag.tag].keyChar) {
+            if (e.key && e.key.toUpperCase() === util.misc.getLabelDescriptions(labelType).tagInfo[tag.tag].keyChar) {
               $(`.tag-id-${tag.tag_id}`).first().trigger('click', { lowLevelLogging: false });
             }
           }

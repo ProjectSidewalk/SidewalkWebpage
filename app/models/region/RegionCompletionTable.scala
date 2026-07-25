@@ -18,6 +18,12 @@ class RegionCompletionTableDef(tag: Tag) extends Table[RegionCompletion](tag, "r
   def auditedDistance: Rep[Double] = column[Double]("audited_distance")
 
   def * = (regionId, totalDistance, auditedDistance) <> ((RegionCompletion.apply _).tupled, RegionCompletion.unapply)
+
+  def region =
+    foreignKey("region_completion_region_id_fkey", regionId, TableQuery[RegionTableDef])(
+      _.regionId,
+      onDelete = ForeignKeyAction.Cascade
+    )
 }
 
 @ImplementedBy(classOf[RegionCompletionTable])

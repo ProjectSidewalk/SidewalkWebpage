@@ -6,7 +6,7 @@ import formats.json.ValidateFormats.ValidationMissionProgress
 import models.label.LabelTable._
 import models.label.LabelTypeEnum.labelTypeToId
 import models.label.{Tag, _}
-import models.mission.{Mission, MissionTable}
+import models.mission.{Mission, MissionTable, MissionType}
 import models.pano.PanoSource.PanoSource
 import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.UiSource
@@ -433,7 +433,7 @@ class LabelServiceImpl @Inject() (
       case Some(labelTypeId) =>
         for {
           mission: Mission <- missionService
-            .resumeOrCreateNewValidateMission(user.userId, "validation", labelTypeId)
+            .resumeOrCreateNewValidateMission(user.userId, MissionType.Validation, labelTypeId)
             .map(_.get)
           missionProgress: (Int, Int, Int) <- db.run(labelValidationTable.getValidationProgress(mission.missionId))
 

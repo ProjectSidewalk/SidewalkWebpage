@@ -1,3 +1,4 @@
+@import models.utils.SeoUtils
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
@@ -142,7 +143,7 @@
           <tr>
             <td><code>wayType</code></td>
             <td><code>string</code></td>
-            <td>Filter by one or more way types (road classifications). Provide comma-separated values (e.g., <code>wayType=residential,primary</code>). Common values include: <code>residential</code>, <code>primary</code>, <code>secondary</code>, <code>tertiary</code>, <code>service</code>, <code>footway</code>, <code>path</code>, <code>trunk</code>.</td>
+            <td>Filter by one or more way types (road classifications, mostly following OSM's <code>highway</code> values). Provide comma-separated values (e.g., <code>wayType=residential,primary</code>). Valid values: <code>motorway</code>, <code>motorway_link</code>, <code>trunk</code>, <code>trunk_link</code>, <code>primary</code>, <code>primary_link</code>, <code>secondary</code>, <code>secondary_link</code>, <code>tertiary</code>, <code>tertiary_link</code>, <code>unclassified</code>, <code>residential</code>, <code>living_street</code>, <code>pedestrian</code>, <code>service</code>, <code>road</code>, <code>track</code>, <code>raceway</code>, <code>footway</code>, <code>cycleway</code>, <code>path</code>, <code>bridleway</code>, <code>steps</code>, <code>corridor</code>, <code>crossing</code>, <code>construction</code>, <code>border</code>, <code>subway</code>, and <code>unknown</code> (streets from non-OSM imports). The types present in a given city are listed by the <a href="/v3/api-docs/streetTypes">Street Types API</a>. Unrecognized values return a 400 error.</td>
           </tr>
           <tr>
             <td><code>status</code></td>
@@ -357,12 +358,12 @@
       <li><strong>Filter by activity level:</strong> Use <code>minLabelCount</code>, <code>minAuditCount</code>, or <code>minUserCount</code> to focus on well-documented streets with higher data quality.</li>
       <li><strong>Consider way types:</strong> Use the <code>wayType</code> filter to focus on specific road classifications relevant to your analysis (e.g., only major roads or only pedestrian paths).</li>
       <li><strong>Choose the right format:</strong> Use <code>geojson</code> for web mapping applications, <code>csv</code> for basic data analysis, <code>shapefile</code> for traditional GIS software, and <code>geopackage</code> for modern GIS workflows.</li>
-      <li><strong>Combine with other APIs:</strong> Use the Streets API alongside the <a href="/api-docs/labelClusters">Label Clusters API</a> and <a href="/api-docs/rawLabels">Raw Labels API</a> to get a complete picture of accessibility data for specific streets.</li>
+      <li><strong>Combine with other APIs:</strong> Use the Streets API alongside the <a href="/v3/api-docs/labelClusters">Label Clusters API</a> and <a href="/v3/api-docs/rawLabels">Raw Labels API</a> to get a complete picture of accessibility data for specific streets.</li>
     </ul>
   </div>
 }
 
-@common.main(commonData, "API Docs") {
+@common.main(commonData, SeoUtils.apiDocsTitle("Streets API")) {
   @common.navbar(commonData, Some(user))
   @apiDocs.layout("streets")(content)
 }

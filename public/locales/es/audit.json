@@ -1,4 +1,33 @@
 {
+  "tutorial-intro": {
+    "eyebrow": "Misión de Exploración",
+    "title": "Únete a la Misión Sidewalk",
+    "route-waiting": "Tu ruta está lista y esperando: te llevaremos directamente a ella después de este breve tutorial.",
+    "next": "Siguiente",
+    "start-mission": "Iniciar misión",
+    "have-account": "¿Ya tienes una cuenta?",
+    "sign-in": "Iniciar sesión",
+    "already-tutorial": "¿Ya hiciste el tutorial?",
+    "skip": "Saltar",
+    "explore": {
+      "title": "Explorar",
+      "description": "Detecta problemas de accesibilidad por la ciudad."
+    },
+    "label": {
+      "title": "Etiquetar",
+      "description": "Marca rampas peatonales y problemas en la superficie de las banquetas, añadiendo valoraciones de accesibilidad."
+    },
+    "validate": {
+      "title": "Validar",
+      "description": "Revisa las etiquetas que otras personas han marcado para confirmar su exactitud."
+    },
+    "impact": {
+      "title": "Impacto",
+      "stat-labels": "{{total}} etiquetas añadidas por voluntarios",
+      "stat-cities": "Datos utilizados en {{cities}} ciudades de todo el mundo",
+      "tagline": "Cada etiqueta ayuda a mejorar la accesibilidad en el mundo real"
+    }
+  },
   "curb-ramp": "rampa peatonal",
   "missing-curb-ramp": "rampa peatonal ausente",
   "obstacle": "obstáculo",
@@ -88,6 +117,7 @@
     "stat-labels-all": "{{count}} etiquetas creadas",
     "stat-labels-you": "Agregaste {{count}} etiquetas",
     "button-next-mission": "Siguiente misión de exploración",
+    "button-keep-exploring-here": "Sigue explorando aquí",
     "button-try-validation": "Probar validación"
   },
   "top-ui": {
@@ -108,12 +138,25 @@
     "no-accuracy-tooltip": "Necesitamos más datos para calcular una calificación de precisión para usted. ¡Agregue más etiquetas y regístrese para realizar un seguimiento de su calificación de precisión!",
     "current-mission": {
       "header": "Misión actual",
-      "header-route": "$t(right-ui.current-mission.header): Ruta {{route_number}}",
+      "message-route": "Explora {{routeName}}",
+      "header-free-explore": "Exploración libre",
       "message": "Explora __PLACEHOLDER__ de {{neighborhoodName}}"
     },
     "minimap": {
-      "follow-red-line": "Sigue la línea roja para continuar la misión",
-      "explore-current-location": "Gire 360 grados para asegurarse de que no se pierda nada."
+      "coach-dismiss": "Entendido",
+      "distance-left": "Quedan {{distance}}",
+      "explore-current-location": "Gire 360 grados para asegurarse de que no se pierda nada.",
+      "fit-mission": "Ver toda la misión",
+      "fit-street": "Volver al nivel de calle",
+      "route-overview": "Vista general de la ruta: toca para ver toda la ruta",
+      "observed-tooltip": "Cuánto de tu entorno has mirado",
+      "legend-title": "Leyenda",
+      "mission-progress": "Progreso de la misión",
+      "legend-explored": "Explorado",
+      "legend-ahead": "Ruta pendiente",
+      "legend-you": "Usted + dirección de vista",
+      "legend-visited": "Ubicación visitada",
+      "legend-unseen": "Aún sin ver"
     },
     "stats": {
       "leaderboard-cta": "Ver la clasificación de la comunidad"
@@ -233,7 +276,8 @@
       "slight-left": "Gira ligeramente a la izquierda",
       "slight-right": "Gira ligeramente a la derecha",
       "u-turn": "Da la vuelta",
-      "end-route": "¡Estás al final de tu ruta! Termina de etiquetar esta intersección, luego <b>haz clic aquí para completar la ruta.</b>",
+      "end-route": "¡Estás al final de tu ruta! Mira a tu alrededor por completo para terminar, o <b>haz clic aquí para completar ahora.</b>",
+      "route-finish-look-around": "¡Última parada! Mira a tu alrededor por completo para terminar tu ruta.",
       "end-neighborhood": "¡Has explorado todo este vecindario! Termine de etiquetar esta intersección, luego <b>haga clic aquí para completar el vecindario.</b>",
       "end-street": "Necesitamos trasladarte a una nueva ubicación. Termine de etiquetar esta intersección, luego <b>haga clic aquí para moverse a una nueva ubicación.</b>",
       "far-away": "Oh-oh, estás bastante lejos de la ruta. <b>Haz clic aquí para volver atrás.</b>"
@@ -265,6 +309,9 @@
     "label-shortcuts-occlusion": "También puedes presionar la tecla <kbd>{{key}}</kbd> para seleccionar la etiqueta de No Puedo Ver la Banqueta.",
     "still-stuck": "Si todavía estás atorado, otra vez haz clic en el botón Atorado.",
     "stuck-skipped-street": "No pudimos encontrar un lugar para ti en esa calle, así que te trasladamos a una nueva calle.",
+    "free-explore-start": "Te hemos colocado cerca de la dirección que buscaste. ¡Mira a tu alrededor y etiqueta lo que encuentres!",
+    "free-explore-start-named": "Has aterrizado cerca de <b>{{placeName}}</b>. ¡Mira a tu alrededor y etiqueta lo que encuentres!",
+    "free-explore-no-imagery": "No hay más imágenes de la calle en esta dirección. Intenta mirar alrededor o ir hacia el otro lado.",
     "stuck-suggestion": "Si no puede moverse con las flechas, intente hacer clic en las direcciones de navegación en la parte inferior derecha. O intente hacer clic en el botón Atascado a la izquierda."
   },
   "mission-start-tutorial": {

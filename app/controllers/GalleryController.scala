@@ -91,7 +91,7 @@ class GalleryController @Inject() (
           cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
 
           Ok(
-            views.html.apps.gallery(commonData, "Sidewalk - Gallery", request.identity, labType, labelTypes,
+            views.html.apps.gallery(commonData, Messages("seo.title.gallery"), request.identity, labType, labelTypes,
               regionIdsList, severityList, tagList, valOptions, aiValOptions)
           )
         }
@@ -126,8 +126,12 @@ class GalleryController @Inject() (
           .map { labels =>
             val jsonList = labels.map { l =>
               Json.obj(
-                "label"   -> LabelFormats.validationLabelMetadataToJson(l, panoDataService.backupImageUrl(l.panoId)),
-                "cropUrl" -> panoDataService.cropUrl(l.labelId, l.labelType),
+                "label" -> LabelFormats.validationLabelMetadataToJson(
+                  l,
+                  panoDataService.backupImageUrl(l.panoId),
+                  currUsername = Some(request.identity.username)
+                ),
+                "cropUrl"     -> panoDataService.cropUrl(l.labelId, l.labelType),
                 "gsvImageUrl" ->
                   panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom)
               )

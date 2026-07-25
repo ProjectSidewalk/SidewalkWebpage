@@ -2,6 +2,8 @@ package models.cluster
 
 import com.google.inject.ImplementedBy
 import models.api.{LabelClusterFiltersForApi, LabelClusterForApi, RawLabelInClusterDataForApi}
+import models.label.LabelTypeTableDef
+import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.{LatLngBBox, MyPostgresProfile, SpatialQueryType}
@@ -57,11 +59,14 @@ class ClusterTableDef(tag: slick.lifted.Tag) extends Table[Cluster](tag, "cluste
     Cluster.unapply
   )
 
-//  def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
-//    foreignKey("cluster_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId)
-//
-//  def clusteringSession: ForeignKeyQuery[ClusteringSessionTable, ClusteringSession] =
-//    foreignKey("cluster_clustering_session_id_fkey", clusteringSessionId, TableQuery[ClusteringSessionTableDef])(_.clusteringSessionId)
+  def labelType = foreignKey("cluster_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId)
+  def clusteringSession =
+    foreignKey("cluster_clustering_session_id_fkey", clusteringSessionId, TableQuery[ClusteringSessionTableDef])(
+      _.clusteringSessionId,
+      onDelete = ForeignKeyAction.Cascade
+    )
+  def streetEdge =
+    foreignKey("cluster_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
 }
 
 @ImplementedBy(classOf[ClusterTable]) trait ClusterTableRepository {
@@ -101,6 +106,10 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   val clusters: TableQuery[ClusterTableDef] = TableQuery[ClusterTableDef]
 
+  // Built once at class level: the raw-labels JSON parse runs per streamed row, so the Reads must not be rebuilt there.
+  implicit private val panoSourceReads: Reads[models.pano.PanoSource.Value] = formats.json.PanoFormats.panoSourceReads
+  implicit private val rawLabelReads: Reads[RawLabelInClusterDataForApi]    = Json.reads[RawLabelInClusterDataForApi]
+
   // Create an implicit converter for LabelClusterForApi
   implicit val labelClusterForApiConverter: GetResult[LabelClusterForApi] = GetResult[LabelClusterForApi] { r =>
     val labelClusterId = r.nextInt()
@@ -133,10 +142,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
 
     // Parse labels if included (only when includeRawLabels=true).
     val labels = if (r.hasMoreColumns) {
-      r.nextStringOption().map { labelsJson =>
-        implicit val rawLabelReads: Reads[RawLabelInClusterDataForApi] = Json.reads[RawLabelInClusterDataForApi]
-        Json.parse(labelsJson).as[Seq[RawLabelInClusterDataForApi]]
-      }
+      r.nextStringOption().map { labelsJson => Json.parse(labelsJson).as[Seq[RawLabelInClusterDataForApi]] }
     } else {
       None
     }
@@ -356,6 +362,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
                        'labelId', l.label_id,
                        'userId', l.user_id,
                        'panoId', l.pano_id,
+                       'panoSource', gd.source::text,
                        'severity', l.severity,
                        'timeCreated', l.time_created,
                        'latitude', lp.lat,

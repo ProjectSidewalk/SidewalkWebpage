@@ -16,8 +16,10 @@ class SurveyOptionTableDef(tag: Tag) extends Table[SurveyOption](tag, "survey_op
 
   def * = (surveyOptionId, surveyQuestionId, surveyDisplayRank) <> ((SurveyOption.apply _).tupled, SurveyOption.unapply)
 
-//  def surveyQuestion: ForeignKeyQuery[SurveyQuestionTable, SurveyQuestion] =
-//    foreignKey("survey_option_survey_question_id_fkey", surveyQuestionId, TableQuery[SurveyQuestionTableDef])(_.surveyQuestionId)
+  def surveyQuestion =
+    foreignKey("survey_option_survey_question_id_fkey", surveyQuestionId, TableQuery[SurveyQuestionTableDef])(
+      _.surveyQuestionId
+    )
 }
 
 @ImplementedBy(classOf[SurveyOptionTable])
