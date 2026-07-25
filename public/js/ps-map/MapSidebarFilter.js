@@ -1,5 +1,10 @@
 /**
- * Controls the map filter sidebar UI: Manages state and applies Mapbox filter expressions.
+ * Applies the shared filter sidebar's state to a Mapbox map.
+ *
+ * The sidebar itself is FilterSidebar (`common/filter-sidebar/`), which owns the controls and their interaction
+ * rules; this class is the map's half of that split. It mirrors the sidebar's state into the `mapData` tracker,
+ * rewrites the layer filters, facets the counts, and logs the interaction — plus the map-only chrome (collapse,
+ * drag-to-resize) that lives on the same element.
  */
 class MapSidebarFilter {
   /** @type {mapboxgl.Map} */
@@ -10,8 +15,12 @@ class MapSidebarFilter {
   #highQualityFilter;
   /** @type {HTMLElement} */
   #sidebar;
-  /** @type {HTMLElement[]} */
-  #countSpans;
+  /** @type {FilterSidebar} */
+  #filters;
+  /** @type {boolean} */
+  #showsCounts;
+  /** @type {object} Last-applied per-type layer visibility, so unchanged layers aren't re-set on every click. */
+  #layerVisibility = {};
 
   /**
    * Initializes the sidebar filter, binding all event handlers and enabling controls.
@@ -25,319 +34,81 @@ class MapSidebarFilter {
     this.#mapData = mapData;
     this.#highQualityFilter = highQualityFilter;
     this.#sidebar = document.getElementById('map-sidebar');
-    this.#countSpans = Array.from(this.#sidebar.querySelectorAll('.map-sidebar__count'));
+    this.#showsCounts = this.#sidebar.querySelector('.map-sidebar__count') !== null;
 
-    this.#initSeverityToggles();
-    this.#initLabelTypeCheckboxes();
-    this.#initValidationCheckboxes();
-    this.#initAdminValidationCheckbox();
-    this.#initStreetCheckboxes();
-    this.#initDeselectAllButtons();
-    this.#initOnlyButtons();
-    this.#initTagToggles();
-    this.#initTagPills();
+    this.#filters = new FilterSidebar(this.#sidebar, { onChange: (change) => this.#onFilterChange(change) });
+
+    for (const labelType of Object.keys(this.#mapData.layerNames)) {
+      this.#layerVisibility[labelType] = true;
+    }
+
     this.#initSidebarOpenClose();
     this.#initResizeHandle();
-    this.#enableAllControls();
+    this.#filters.enable();
 
     // Sync the streets layer visibility with the initial checkbox state (the streets layer starts hidden).
     filterStreetLayer(this.#map);
     this.#updateCounts();
   }
 
-  /** Binds click handlers to the severity toggle buttons. */
-  #initSeverityToggles() {
-    this.#sidebar.querySelectorAll('.severity-button').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const severity = Number(btn.dataset.severity);
-        const newState = !this.#mapData.severities[severity];
-        this.#mapData.severities[severity] = newState;
-
-        btn.setAttribute('aria-pressed', String(newState));
-
-        // Swap the icon between filled and outline.
-        const img = btn.querySelector('.severity-button__icon');
-        if (img) img.src = newState ? img.dataset.selectedSrc : img.dataset.unselectedSrc;
-
-        filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
-        this.#updateDeselectAllButton('severity');
-        this.#updateCounts();
-        const sevValue = severity === 0 ? 'null' : severity;
-        this.#log(`Click_module=MapSidebar_Severity${newState ? 'Apply' : 'Unapply'}_severity=${sevValue}`);
-      });
-    });
-  }
-
-  /** Binds click handlers to the label type checkboxes. */
-  #initLabelTypeCheckboxes() {
-    this.#sidebar.querySelectorAll('input[data-filter-type="label-type"]').forEach((cb) => {
-      cb.addEventListener('click', () => {
-        const labelType = cb.id.replace('-checkbox', '');
-        // Unchecking a label type clears its tag filters.
-        if (!cb.checked) this.#clearTagsForLabelType(labelType);
-        cb.classList.remove('checkbox--partial');
-        toggleLabelLayer(labelType, cb.checked, this.#map, this.#mapData);
-        // Reapply filters so stale tag constraints are cleared from the Mapbox layer.
-        filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
-        this.#updateDeselectAllButton('label-type');
-        this.#updateCounts();
-        this.#log(`Click_module=MapSidebar_LabelType${cb.checked ? 'Apply' : 'Unapply'}_labelType=${labelType}`);
-      });
-    });
-  }
-
-  /** Binds click handlers to the validation checkboxes. */
-  #initValidationCheckboxes() {
-    this.#sidebar.querySelectorAll('input[data-filter-type="label-validations"]').forEach((cb) => {
-      cb.addEventListener('click', () => {
-        filterLabelLayers(cb, this.#map, this.#mapData, this.#highQualityFilter);
-        this.#updateDeselectAllButton('label-validations');
-        this.#updateCounts();
-        this.#log(`Click_module=MapSidebar_ValidationOption${cb.checked ? 'Apply' : 'Unapply'}_option=${cb.id}`);
-      });
-    });
-  }
-
   /**
-   * Binds the admin-only "not validated by an admin" checkbox. No-op on /labelMap, where the checkbox isn't rendered.
+   * Pushes a sidebar change onto the map: mirror the state into mapData, reapply the layer filters, refresh counts.
+   * @param {object} change The change descriptor from FilterSidebar.
    */
-  #initAdminValidationCheckbox() {
-    const cb = this.#sidebar.querySelector('#not-admin-validated');
-    if (!cb) return;
-    cb.addEventListener('click', () => {
-      this.#mapData.notAdminValidated = cb.checked;
-      filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
-      this.#updateCounts();
-      this.#log(`Click_module=MapSidebar_NotAdminValidated_checked=${cb.checked}`);
-    });
-  }
+  #onFilterChange(change) {
+    this.#log(change);
 
-  /** Binds click handlers to the street checkboxes. */
-  #initStreetCheckboxes() {
-    this.#sidebar.querySelectorAll('input[data-filter-type="streets"]').forEach((cb) => {
-      cb.addEventListener('click', () => {
-        filterStreetLayer(this.#map);
-        this.#updateDeselectAllButton('streets');
-        const street = cb.id.replace('-street', '');
-        this.#log(`Click_module=MapSidebar_Street${cb.checked ? 'Apply' : 'Unapply'}_street=${street}`);
-      });
-    });
-  }
-
-  /**
-   * Initializes "Deselect all" / "Select all" toggle buttons for each section.
-   */
-  #initDeselectAllButtons() {
-    this.#sidebar.querySelectorAll('.map-sidebar__deselect-all').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const section = btn.dataset.section;
-        const newState = !this.#isAnyActive(section);
-
-        if (section === 'severity') {
-          // Match the look and state of all severity toggles to newState.
-          this.#sidebar.querySelectorAll('.severity-button').forEach((toggle) => {
-            const severity = Number(toggle.dataset.severity);
-            this.#mapData.severities[severity] = newState;
-            toggle.setAttribute('aria-pressed', String(newState));
-            const img = toggle.querySelector('.severity-button__icon');
-            if (img) img.src = newState ? img.dataset.selectedSrc : img.dataset.unselectedSrc;
-          });
-          filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
-        } else if (section === 'label-type') {
-          const checkboxes = this.#sidebar.querySelectorAll(`input[data-filter-type="${section}"]`);
-          // Batch visibility changes for all label type layers.
-          checkboxes.forEach((cb) => {
-            cb.checked = newState;
-            cb.classList.remove('checkbox--partial');
-            const labelType = cb.id.replace('-checkbox', '');
-            toggleLabelLayer(labelType, newState, this.#map, this.#mapData);
-          });
-          // Also clear all tag selections when deselecting all label types.
-          if (!newState) this.#clearAllTagSelections();
-        } else if (section === 'label-validations') {
-          const checkboxes = this.#sidebar.querySelectorAll(`input[data-filter-type="${section}"]`);
-          // Batch mapData updates, then apply filter once.
-          checkboxes.forEach((cb) => {
-            cb.checked = newState;
-            this.#mapData[cb.id] = newState;
-          });
-          filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
-        } else if (section === 'streets') {
-          const checkboxes = this.#sidebar.querySelectorAll(`input[data-filter-type="${section}"]`);
-          checkboxes.forEach((cb) => {
-            cb.checked = newState;
-          });
-          filterStreetLayer(this.#map);
-        }
-
-        this.#updateDeselectAllButton(section);
-        this.#updateCounts();
-        this.#log(`Click_module=MapSidebar_${newState ? 'SelectAll' : 'DeselectAll'}_section=${section}`);
-      });
-    });
-  }
-
-  /**
-   * Initializes the hover-revealed "Only" buttons that exclusive-select a single option within their section,
-   * so isolating one value (e.g. only severity High) is one click instead of "Deselect all" plus a re-click.
-   */
-  #initOnlyButtons() {
-    this.#sidebar.querySelectorAll('.map-sidebar__only').forEach((btn) => {
-      // Give the visible "Only" text its row's context for screen readers (e.g. "Only: Obstacle").
-      const row = btn.closest('.map-sidebar__item-row, .map-sidebar__item, .map-sidebar__severity-cell');
-      const rowLabel = row?.querySelector('label, .severity-button__label')?.textContent.trim();
-      if (rowLabel) btn.setAttribute('aria-label', `${i18next.t('common:only')}: ${rowLabel}`);
-
-      btn.addEventListener('click', () => {
-        const section = btn.dataset.section;
-        const value = btn.dataset.value;
-
-        if (section === 'severity') {
-          this.#sidebar.querySelectorAll('.severity-button').forEach((toggle) => {
-            const severity = Number(toggle.dataset.severity);
-            const on = String(severity) === value;
-            this.#mapData.severities[severity] = on;
-            toggle.setAttribute('aria-pressed', String(on));
-            const img = toggle.querySelector('.severity-button__icon');
-            if (img) img.src = on ? img.dataset.selectedSrc : img.dataset.unselectedSrc;
-          });
-          filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
-        } else if (section === 'label-type') {
-          this.#sidebar.querySelectorAll('input[data-filter-type="label-type"]').forEach((cb) => {
-            const labelType = cb.id.replace('-checkbox', '');
-            const on = labelType === value;
-            cb.checked = on;
-            // Match the single-checkbox click path: turning a label type off clears its tag filters.
-            if (!on) this.#clearTagsForLabelType(labelType);
-            toggleLabelLayer(labelType, on, this.#map, this.#mapData);
-          });
-          filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
-        } else if (section === 'label-validations') {
-          this.#sidebar.querySelectorAll('input[data-filter-type="label-validations"]').forEach((cb) => {
-            cb.checked = cb.id === value;
-            this.#mapData[cb.id] = cb.checked;
-          });
-          filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
-        } else if (section === 'streets') {
-          this.#sidebar.querySelectorAll('input[data-filter-type="streets"]').forEach((cb) => {
-            cb.checked = cb.id === value;
-          });
-          filterStreetLayer(this.#map);
-        }
-
-        this.#updateDeselectAllButton(section);
-        this.#updateCounts();
-        this.#log(`Click_module=MapSidebar_Only_section=${section}_value=${value}`);
-      });
-    });
-  }
-
-  /**
-   * Returns true when at least one control in the section is on (checkbox checked, or toggle pressed for severity).
-   * @param {string} section The data-section value identifying the section.
-   */
-  #isAnyActive(section) {
-    if (section === 'severity') {
-      const toggles = this.#sidebar.querySelectorAll('.severity-button');
-      return Array.from(toggles).some((t) => t.getAttribute('aria-pressed') === 'true');
+    // Streets are a separate Mapbox layer with its own filter, and they carry no label counts.
+    if (change.section === 'streets') {
+      filterStreetLayer(this.#map);
+      return;
     }
-    const checkboxes = this.#sidebar.querySelectorAll(`input[data-filter-type="${section}"]`);
-    return Array.from(checkboxes).some((cb) => cb.checked);
+
+    const state = this.#filters.getState();
+    this.#syncMapData(state);
+    this.#syncLayerVisibility(state);
+    filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
+    this.#updateCounts();
   }
 
   /**
-   * Syncs a section's toggle button text: "Deselect all" if any control is active, "Select all" otherwise.
-   * @param {string} section The data-section value identifying the button and its controls.
+   * Mirrors the sidebar's state into the mapData tracker that the Mapbox filter expressions are built from.
+   * @param {object} state The state from FilterSidebar.getState().
    */
-  #updateDeselectAllButton(section) {
-    const btn = this.#sidebar.querySelector(`.map-sidebar__deselect-all[data-section="${section}"]`);
-    btn.textContent = this.#isAnyActive(section)
-      ? i18next.t('labelmap:deselect-all')
-      : i18next.t('labelmap:select-all');
-  }
-
-  /** Binds click handlers to the tag expand/collapse chevron buttons. */
-  #initTagToggles() {
-    this.#sidebar.querySelectorAll('.map-sidebar__tag-toggle').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const expanded = btn.getAttribute('aria-expanded') === 'true';
-        const pillsContainer = btn.closest('.map-sidebar__item').querySelector('.map-sidebar__tag-pills');
-        if (!pillsContainer) return;
-
-        const nowExpanded = !expanded;
-        btn.setAttribute('aria-expanded', String(nowExpanded));
-        const img = btn.querySelector('img');
-        if (img) img.src = nowExpanded ? img.dataset.upSrc : img.dataset.downSrc;
-        pillsContainer.hidden = !nowExpanded;
-      });
-    });
-  }
-
-  /** Binds click handlers to tag pills to toggle them and update map filters. */
-  #initTagPills() {
-    this.#sidebar.querySelectorAll('.tag-pill').forEach((pill) => {
-      pill.addEventListener('click', () => {
-        const tag = pill.dataset.tag;
-        const labelType = pill.dataset.labelType;
-        const isActive = pill.classList.toggle('tag-pill--active');
-
-        if (isActive) {
-          this.#mapData.selectedTags[labelType].add(tag);
-        } else {
-          this.#mapData.selectedTags[labelType].delete(tag);
-        }
-
-        // If a tag is selected on an unchecked label type, check and show it.
-        const cb = this.#sidebar.querySelector(`#${labelType}-checkbox`);
-        if (isActive && !cb.checked) {
-          cb.checked = true;
-          toggleLabelLayer(labelType, true, this.#map, this.#mapData);
-          this.#updateDeselectAllButton('label-type');
-        }
-
-        // Update the checkbox appearance: dash glyph when partially filtered by tags.
-        this.#updateCheckboxPartialState(labelType);
-
-        filterLabelLayers(null, this.#map, this.#mapData, this.#highQualityFilter);
-        this.#updateCounts();
-        this.#log(`Click_module=MapSidebar_Tag${isActive ? 'Apply' : 'Unapply'}_labelType=${labelType}_tag=${tag}`);
-      });
-    });
-  }
-
-  /**
-   * Updates the checkbox to show a partial (gray) state when some tags are selected, or full (black) otherwise.
-   * @param {string} labelType The label type key.
-   */
-  #updateCheckboxPartialState(labelType) {
-    const cb = this.#sidebar.querySelector(`#${labelType}-checkbox`);
-    const hasActiveTags = this.#mapData.selectedTags[labelType]?.size > 0;
-    cb.classList.toggle('checkbox--partial', hasActiveTags);
-  }
-
-  /**
-   * Clears tag selections for a specific label type.
-   * @param {string} labelType The label type key.
-   */
-  #clearTagsForLabelType(labelType) {
-    this.#mapData.selectedTags[labelType]?.clear();
-    this.#sidebar.querySelectorAll(`.tag-pill[data-label-type="${labelType}"]`).forEach((pill) => {
-      pill.classList.remove('tag-pill--active');
-    });
-    this.#updateCheckboxPartialState(labelType);
-  }
-
-  /** Clears all tag selections and removes the active class from all pills. */
-  #clearAllTagSelections() {
-    for (const labelType of Object.keys(this.#mapData.selectedTags)) {
-      this.#mapData.selectedTags[labelType].clear();
+  #syncMapData(state) {
+    for (const severity of Object.keys(this.#mapData.severities)) {
+      this.#mapData.severities[severity] = state.severities.includes(Number(severity));
     }
-    this.#sidebar.querySelectorAll('.tag-pill--active').forEach((pill) => {
-      pill.classList.remove('tag-pill--active');
-    });
-    this.#sidebar.querySelectorAll('.checkbox--partial').forEach((cb) => {
-      cb.classList.remove('checkbox--partial');
-    });
+
+    const validations = state.sections['label-validations'] ?? [];
+    for (const option of ['correct', 'incorrect', 'unsure', 'unvalidated']) {
+      this.#mapData[option] = validations.includes(option);
+    }
+
+    // Admin-only filter (#4243); the control isn't rendered on the public LabelMap, where this stays false.
+    this.#mapData.notAdminValidated = (state.sections['admin-validation'] ?? []).includes('not-admin-validated');
+
+    for (const [labelType, tags] of Object.entries(state.tags)) {
+      const selected = this.#mapData.selectedTags[labelType];
+      if (!selected) continue;
+      selected.clear();
+      tags.forEach((tag) => selected.add(tag));
+    }
+  }
+
+  /**
+   * Shows or hides each label type's layer. Diffed against what's already applied because setting the layout
+   * property is a style change, and a batch action like "Only" would otherwise touch all nine layers every click.
+   * @param {object} state The state from FilterSidebar.getState().
+   */
+  #syncLayerVisibility(state) {
+    const shown = new Set(state.sections['label-type'] ?? []);
+    for (const labelType of Object.keys(this.#mapData.layerNames)) {
+      const visible = shown.has(labelType);
+      if (this.#layerVisibility[labelType] === visible) continue;
+      this.#layerVisibility[labelType] = visible;
+      toggleLabelLayer(labelType, visible, this.#map, this.#mapData);
+    }
   }
 
   /** Initializes the sidebar open/close behavior. Padding is set initially by createPSMap. */
@@ -351,7 +122,7 @@ class MapSidebarFilter {
       handle.style.display = 'none';
       openBtn.style.display = 'block';
       this.#map.easeTo({ padding: { left: 0, top: 0, right: 0, bottom: 0 } });
-      this.#log('Click_module=MapSidebar_Close');
+      this.#logActivity('Click_module=MapSidebar_Close');
     });
     openBtn.addEventListener('click', () => {
       const width = this.#sidebar.offsetWidth;
@@ -359,7 +130,7 @@ class MapSidebarFilter {
       handle.style.display = '';
       openBtn.style.display = 'none';
       this.#map.easeTo({ padding: { left: width, top: 0, right: 0, bottom: 0 } });
-      this.#log('Click_module=MapSidebar_Open');
+      this.#logActivity('Click_module=MapSidebar_Open');
     });
   }
 
@@ -403,14 +174,14 @@ class MapSidebarFilter {
   }
 
   /**
-   * Recomputes and renders the per-option label counts. No-op on pages that don't render count spans.
+   * Recomputes and renders the per-option label counts. No-op on pages that don't render count slots.
    *
    * Counts are faceted: each option's count applies every *other* active filter but ignores its own section's
    * on/off state, so it answers "how many labels would this option contribute if it were enabled" and never
    * zeroes out just because the option itself is unchecked.
    */
   #updateCounts() {
-    if (this.#countSpans.length === 0) return;
+    if (!this.#showsCounts) return;
 
     const typeCounts = {};
     const validationCounts = { correct: 0, incorrect: 0, unsure: 0, unvalidated: 0 };
@@ -428,11 +199,7 @@ class MapSidebarFilter {
       typeCounts[labelType] = count;
     }
 
-    for (const span of this.#countSpans) {
-      const key = span.dataset.countFor;
-      const count = key in validationCounts ? validationCounts[key] : typeCounts[key] ?? 0;
-      span.textContent = count.toLocaleString(i18next.language);
-    }
+    this.#filters.setCounts({ ...typeCounts, ...validationCounts });
   }
 
   /**
@@ -482,18 +249,36 @@ class MapSidebarFilter {
   }
 
   /**
+   * Translates a sidebar change into this page's `Click_module=MapSidebar_*` activity string.
+   * @param {object} change The change descriptor from FilterSidebar.
+   */
+  #log({ kind, section, value, checked, labelType, tag }) {
+    const applied = checked ? 'Apply' : 'Unapply';
+
+    if (kind === 'selectAll') {
+      this.#logActivity(`Click_module=MapSidebar_${checked ? 'SelectAll' : 'DeselectAll'}_section=${section}`);
+    } else if (kind === 'only') {
+      this.#logActivity(`Click_module=MapSidebar_Only_section=${section}_value=${value}`);
+    } else if (kind === 'tag') {
+      this.#logActivity(`Click_module=MapSidebar_Tag${applied}_labelType=${labelType}_tag=${tag}`);
+    } else if (section === FilterSidebar.SEVERITY) {
+      this.#logActivity(`Click_module=MapSidebar_Severity${applied}_severity=${value === 0 ? 'null' : value}`);
+    } else if (section === 'label-type') {
+      this.#logActivity(`Click_module=MapSidebar_LabelType${applied}_labelType=${value}`);
+    } else if (section === 'label-validations') {
+      this.#logActivity(`Click_module=MapSidebar_ValidationOption${applied}_option=${value}`);
+    } else if (section === 'streets') {
+      this.#logActivity(`Click_module=MapSidebar_Street${applied}_street=${value.replace('-street', '')}`);
+    } else if (section === 'admin-validation') {
+      this.#logActivity(`Click_module=MapSidebar_NotAdminValidated_checked=${checked}`);
+    }
+  }
+
+  /**
    * Logs a sidebar interaction to the `webpage_activity` table. No-op on pages without the shared logger.
    * @param {string} activity The activity string, following the Click_module=<Action> convention.
    */
-  #log(activity) {
+  #logActivity(activity) {
     window.logWebpageActivity?.(activity);
-  }
-
-  /** Enables all disabled controls and removes the loading appearance. */
-  #enableAllControls() {
-    this.#sidebar.classList.remove('map-sidebar--loading');
-    this.#sidebar.querySelectorAll('input[disabled]').forEach((cb) => {
-      cb.disabled = false;
-    });
   }
 }
