@@ -97,6 +97,10 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
    * all first, then stale updated_at). The poller bumps updated_at on every street it successfully polls -- even when
    * the dates don't change -- which is what advances this rotation.
    *
+   * The ordering forces a full sort of the city's open streets each night, but that is a top-N heapsort over a few
+   * tens of thousands of rows and Postgres evaluates the PostGIS midpoint above the Limit, so only `limit` streets
+   * pay for it. No need to hand-roll a subquery to get that.
+   *
    * @param limit Maximum number of streets to return.
    */
   def streetsToPoll(limit: Int): DBIO[Seq[StreetToPoll]] = {

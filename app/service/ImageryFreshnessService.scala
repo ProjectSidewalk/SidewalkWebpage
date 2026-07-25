@@ -98,8 +98,11 @@ class ImageryFreshnessServiceImpl @Inject() (
 
   private val logger = Logger(this.getClass)
 
-  private val pollBatchSize: Int   = config.get[Int]("street-imagery-poll.batch-size")
-  private val googleApiKey: String = config.get[String]("google-maps-api-key")
+  private val pollBatchSize: Int = config.get[Int]("street-imagery-poll.batch-size")
+
+  // Resolved lazily: this service sits on RecalculateStreetPriorityActor's injection path and so is constructed at
+  // boot, and a Mapillary- or Infra3d-only deployment should not need a Google key just to start up.
+  private lazy val googleApiKey: String = config.get[String]("google-maps-api-key")
 
   // 25m matches check_streets_for_imagery.py's endpoint radius: wide enough to catch imagery on the roadway, narrow
   // enough not to routinely pick up a parallel street.
@@ -175,28 +178,48 @@ class ImageryFreshnessServiceImpl @Inject() (
   /**
    * Polls one street's sample points and upserts its street_imagery row.
    *
-   * @return true if the street was conclusively polled and upserted, false if it was skipped as inconclusive.
+   * Never fails the returned Future: the caller folds over the whole batch sequentially, so letting a single street's
+   * DB or provider error escape would abandon every street after it. An error is logged and counted as a skip, which
+   * leaves updated_at un-bumped so the next night's rotation retries the street.
+   *
+   * @return true if the street was conclusively polled and upserted, false if it was skipped.
    */
   private def pollOneStreet(
       street: StreetToPoll,
       fetchPoint: (Double, Double) => Future[Option[Seq[PanoObservation]]]
   ): Future[Boolean] = {
-    Future.sequence(street.points.map { case (lat, lng) => fetchPoint(lat, lng) }).flatMap { results =>
-      if (results.exists(_.isEmpty)) {
-        Future.successful(false)
-      } else {
-        // Panos can be seen from more than one sample point; dedupe by provider id before counting.
-        val panos = results.flatten.flatten.groupBy(_.panoId).map(_._2.head).toSeq
-        val dates = panos.flatMap(_.capture)
-        db.run(streetImageryTable.upsertFromPoll(street.streetEdgeId, dates.minOption, dates.maxOption, panos.size))
-          .map(_ => true)
+    Future
+      .sequence(street.points.map { case (lat, lng) => fetchPoint(lat, lng) })
+      .flatMap { results =>
+        // `None` is an inconclusive point (auth failure, timeout); an empty Seq is a conclusive "no imagery here", so
+        // these two cases must not be conflated.
+        if (results.contains(None)) {
+          Future.successful(false)
+        } else {
+          // A pano can be seen from more than one sample point, so dedupe by provider id before counting. Keep
+          // observations whose id came back empty rather than collapsing them all into one phantom pano.
+          val (identified, anonymous) = results.flatten.flatten.partition(_.panoId.nonEmpty)
+          val panos                   = identified.groupBy(_.panoId).map(_._2.head).toSeq ++ anonymous
+          val dates                   = panos.flatMap(_.capture)
+          db.run(streetImageryTable.upsertFromPoll(street.streetEdgeId, dates.minOption, dates.maxOption, panos.size))
+            .map(_ => true)
+        }
       }
-    }
+      .recover { case e: Throwable =>
+        logger.warn(s"Imagery-age poll failed for street ${street.streetEdgeId}; skipping it this run.", e)
+        false
+      }
   }
 
   /**
-   * Queries the free GSV Street View metadata endpoint for the pano currently served at a point. The endpoint returns
-   * only the single nearest pano (typically Google's newest drive at that location), with month-precision dates.
+   * Queries the free GSV Street View metadata endpoint for the pano currently served at a point, at month precision.
+   *
+   * The endpoint answers with the pano *nearest* the point within the radius, which is usually -- but not promised by
+   * the API to be -- Google's newest drive there. Two consequences to keep in mind when reading the resulting dates:
+   * a false negative where older coverage sits closer to the sample point than a newer drive, so new imagery goes
+   * unnoticed until another sample point or another night catches it; and a false positive where the 25 m radius
+   * reaches a parallel service road or alley that was re-imaged more recently, which costs a needless re-audit
+   * prompt. Sampling three points spread along the street limits both.
    */
   private def fetchGsvPointObservations(lat: Double, lng: Double): Future[Option[Seq[PanoObservation]]] = {
     val url = panoDataService.signUrl(
@@ -233,6 +256,11 @@ class ImageryFreshnessServiceImpl @Inject() (
   /**
    * Queries the Mapillary Graph API for panos in a small bbox around a point. Only 360° panos count (is_pano), since
    * that's what the Mapillary pano viewer serves to labelers; captured_at device-clock timestamps are sanity-clamped.
+   *
+   * Known limitation: the endpoint takes no ordering parameter, so in a densely-covered bbox the newest image can
+   * fall outside the first `limit` results and this under-reports the street's newest capture. That direction is
+   * safe -- it costs a missed re-audit prompt, never a spurious one -- and the next night's rotation gets another
+   * chance. Paging (or a captured_at lower bound seeded from the stored newest_capture) is a #4384 follow-up.
    */
   private def fetchMapillaryPointObservations(
       accessToken: String

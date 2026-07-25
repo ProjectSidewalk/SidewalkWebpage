@@ -2,55 +2,32 @@ package models.street
 
 import models.audit.{AuditTask, AuditTaskTableDef}
 import models.user.UserStatTableDef
+import models.utils.ConfigTableDef
 import models.utils.MyPostgresProfile.api._
-import models.utils.{ConfigTableDef, MyPostgresProfile}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
-import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
-import slick.dbio.DBIO
+import util.RolledBackDb
 
 import java.time.{LocalDate, OffsetDateTime}
-import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext}
-import scala.util.{Failure, Success, Try}
 
 /**
  * DB-backed tests for the imagery-age poller's table methods (#4384): StreetImageryTable.streetsToPoll (rotation
  * order) and upsertFromPoll (widen-only date merge). Mutating cases run inside rolled-back transactions, leaving the
  * connected DB untouched; requires Postgres+PostGIS like the other DB-backed specs. Actors are disabled.
  */
-class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite {
+class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit private val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
-  private val streetImageryTable            = app.injector.instanceOf[StreetImageryTable]
-  // Keep the DatabaseConfig as a stable val and call .db.run inline; binding .db to its own val would infer a
-  // path-dependent existential type that needs -language:existentials.
-  private val dbConfig                   = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
-  private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 120.seconds)
+  private val streetImageryTable = app.injector.instanceOf[StreetImageryTable]
 
   private val auditTasks    = TableQuery[AuditTaskTableDef]
   private val streetImagery = TableQuery[StreetImageryTableDef]
   private val configTable   = TableQuery[ConfigTableDef]
   private val userStats     = TableQuery[UserStatTableDef]
-
-  /** Sentinel used to abort (and thus roll back) the wrapping transaction after the test body has run. */
-  private object RollbackSentinel extends RuntimeException("intentional rollback -- leave the DB untouched")
-
-  /** Runs a test body inside a transaction that is always rolled back; see OutdatedImageryFlagSyncSpec. */
-  private def runRolledBack[T](action: DBIO[T]): T = {
-    var result: Option[T] = None
-    val tx                = action.flatMap { r => result = Some(r); DBIO.failed(RollbackSentinel) }.transactionally
-    Try(run(tx)) match {
-      case Failure(RollbackSentinel) => result.get
-      case Failure(other)            => throw other
-      case Success(_)                => throw new IllegalStateException("rollback sentinel did not propagate")
-    }
-  }
 
   private lazy val tutorialStreetId: Int      = run(configTable.map(_.tutorialStreetEdgeID).result.head)
   private lazy val someUserId: Option[String] = run(userStats.map(_.userId).result.headOption)
