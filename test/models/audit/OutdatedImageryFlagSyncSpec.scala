@@ -4,19 +4,15 @@ import models.label.{Label, LabelTableDef}
 import models.pano.{PanoData, PanoDataTable, PanoSource}
 import models.street.{StreetEdgeTableDef, StreetImagery, StreetImageryTable, StreetImageryTableDef}
 import models.user.UserStatTableDef
+import models.utils.ConfigTableDef
 import models.utils.MyPostgresProfile.api._
-import models.utils.{ConfigTableDef, MyPostgresProfile}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
-import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
-import slick.dbio.DBIO
+import util.RolledBackDb
 
 import java.time.{LocalDate, OffsetDateTime}
-import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext}
-import scala.util.{Failure, Success, Try}
 
 /**
  * DB-backed tests for the nightly imagery-freshness sync (#4384): AuditTaskTable.syncOutdatedImageryFlags and
@@ -28,19 +24,14 @@ import scala.util.{Failure, Success, Try}
  * as in dev/CI); cases cancel gracefully when the connected DB lacks the rows they need (a user, a street, a label).
  * Scheduling actors are disabled so the real nightly sync can't race the tests.
  */
-class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite {
+class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit private val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
-  private val auditTaskTable                = app.injector.instanceOf[AuditTaskTable]
-  private val streetImageryTable            = app.injector.instanceOf[StreetImageryTable]
-  private val panoDataTable                 = app.injector.instanceOf[PanoDataTable]
-  // Keep the DatabaseConfig as a stable val and call .db.run inline; binding .db to its own val would infer a
-  // path-dependent existential type that needs -language:existentials.
-  private val dbConfig                   = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
-  private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 120.seconds)
+  private val auditTaskTable     = app.injector.instanceOf[AuditTaskTable]
+  private val streetImageryTable = app.injector.instanceOf[StreetImageryTable]
+  private val panoDataTable      = app.injector.instanceOf[PanoDataTable]
 
   private val auditTasks    = TableQuery[AuditTaskTableDef]
   private val streetImagery = TableQuery[StreetImageryTableDef]
@@ -48,25 +39,6 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite {
   private val streetEdges   = TableQuery[StreetEdgeTableDef]
   private val configTable   = TableQuery[ConfigTableDef]
   private val userStats     = TableQuery[UserStatTableDef]
-
-  /** Sentinel used to abort (and thus roll back) the wrapping transaction after the test body has run. */
-  private object RollbackSentinel extends RuntimeException("intentional rollback -- leave the DB untouched")
-
-  /**
-   * Runs a test body (a composed DBIO) inside a transaction that is always rolled back.
-   *
-   * The body's result is captured before the sentinel failure aborts the transaction, so assertions can run either
-   * inside the DBIO (a failed assertion propagates instead of the sentinel) or on the returned value.
-   */
-  private def runRolledBack[T](action: DBIO[T]): T = {
-    var result: Option[T] = None
-    val tx                = action.flatMap { r => result = Some(r); DBIO.failed(RollbackSentinel) }.transactionally
-    Try(run(tx)) match {
-      case Failure(RollbackSentinel) => result.get
-      case Failure(other)            => throw other
-      case Success(_)                => throw new IllegalStateException("rollback sentinel did not propagate")
-    }
-  }
 
   private lazy val tutorialStreetId: Int        = run(configTable.map(_.tutorialStreetEdgeID).result.head)
   private lazy val someUserId: Option[String]   = run(userStats.map(_.userId).result.headOption)
@@ -171,6 +143,31 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite {
       flagBefore mustBe true
       flagAfter mustBe false
       unflaggedCount must be >= 1
+    }
+
+    "ignore a future capture date, and clear a flag that a future date would otherwise pin forever" in {
+      assume(someUserId.isDefined && nonTutorialStreets.nonEmpty)
+      val (userId, streetId) = (someUserId.get, nonTutorialStreets.head)
+      val future             = LocalDate.now.plusYears(5)
+
+      val (flagFromBadData, flagAfterCorrection) = runRolledBack(for {
+        taskId <- auditTaskTable.insert(
+          newTask(streetId, userId, OffsetDateTime.parse("2020-01-15T12:00:00Z"), completed = true)
+        )
+        // A future capture date is bad data (a typo'd scan import, a bogus provider value), not new imagery. Since
+        // every writer only widens newest_capture, flagging on it would make the street permanently un-completable:
+        // each fresh re-audit would be re-flagged the same night.
+        _               <- setImagery(streetId, Some(future), None)
+        _               <- auditTaskTable.syncOutdatedImageryFlags
+        flagFromBadData <- flagOf(taskId)
+        // The clear-pass applies the same guard, so a row already flagged before the data went bad still clears.
+        _         <- auditTasks.filter(_.auditTaskId === taskId).map(_.outdatedImagery).update(true)
+        _         <- auditTaskTable.syncOutdatedImageryFlags
+        flagAfter <- flagOf(taskId)
+      } yield (flagFromBadData, flagAfter))
+
+      flagFromBadData mustBe false
+      flagAfterCorrection mustBe false
     }
 
     "never flag audits on the tutorial street" in {

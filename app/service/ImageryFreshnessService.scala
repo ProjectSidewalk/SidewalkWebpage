@@ -49,11 +49,16 @@ class ImageryFreshnessServiceImpl @Inject() (
    * RecalculateStreetPriorityActor), and only there. Flags changing exclusively in that nightly sequence keeps
    * street_edge_priority and region_completion consistent with the flags, and keeps the priority-1.0-crossing
    * increment in ExploreService.updateStreetPriority sound during the day.
+   *
+   * The two steps run in separate transactions on purpose. Each is independently idempotent (the refresh only widens
+   * capture ranges; the flag sync is a set/clear pair over the current street_imagery contents), so a crash between
+   * them costs nothing beyond a day's delay, whereas one combined transaction would hold the table-wide audit_task
+   * UPDATE open across the label/pano_data aggregate for no benefit.
    */
   def syncImageryFreshness: Future[ImageryFreshnessService.SyncResult] = {
-    db.run((for {
-      streetsRefreshed     <- streetImageryTable.refreshFromPanoData
-      (flagged, unflagged) <- auditTaskTable.syncOutdatedImageryFlags
-    } yield ImageryFreshnessService.SyncResult(streetsRefreshed, flagged, unflagged)).transactionally)
+    for {
+      streetsRefreshed     <- db.run(streetImageryTable.refreshFromPanoData)
+      (flagged, unflagged) <- db.run(auditTaskTable.syncOutdatedImageryFlags.transactionally)
+    } yield ImageryFreshnessService.SyncResult(streetsRefreshed, flagged, unflagged)
   }
 }

@@ -713,10 +713,20 @@ class AuditTaskTable @Inject() (
    * flagged audits that fail that test (e.g. after corrected or removed imagery data), so the sync is idempotent in
    * both directions. Streets with no street_imagery row (or a NULL newest_capture) are assumed up to date and never
    * flagged. The tutorial street is excluded. Unlike the manually-set flags above, this flag is never set by admins,
-   * so the clear-pass can safely own every TRUE value.
+   * so the clear-pass owns every TRUE value -- including tutorial-street rows, which the set-pass can never produce.
    *
-   * The strict < comparison is deliberately conservative with GSV's varying-precision capture dates: a month-only
-   * capture date standardizes to the 1st, so an audit any time in that month is not flagged.
+   * The two passes apply the *same* outdated test, so together they partition audit_task exactly; any change to one
+   * predicate has to be mirrored in the other or the sync stops being idempotent. Three details of that test:
+   *
+   *   - The strict < is deliberately conservative with GSV's varying-precision capture dates: a month-only capture
+   *     date standardizes to the 1st, so an audit any time in that month is not flagged.
+   *   - task_end is a timestamptz, so a bare ::date would resolve in the connection's TimeZone and could flip a
+   *     borderline audit between runs. Pinning to UTC makes the comparison deterministic, and rounds in the
+   *     conservative direction for Western-hemisphere cities (an evening audit lands on the next UTC day).
+   *   - A capture date in the future is bad data, not new imagery. Since every writer only ever *widens*
+   *     newest_capture (GREATEST), an unguarded future date would flag every audit on the street forever -- including
+   *     each fresh re-audit -- leaving it permanently un-completable. Ignoring future dates here keeps the street
+   *     routable and lets the flag clear itself once the bad row is corrected.
    *
    * @return (number of audits flagged, number of audits unflagged)
    */
@@ -729,18 +739,23 @@ class AuditTaskTable @Inject() (
           AND audit_task.completed
           AND NOT audit_task.outdated_imagery
           AND street_imagery.newest_capture IS NOT NULL
-          AND audit_task.task_end::date < street_imagery.newest_capture
+          AND street_imagery.newest_capture <= CURRENT_DATE
+          AND (audit_task.task_end AT TIME ZONE 'UTC')::date < street_imagery.newest_capture
           AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config);
     """
     val clearPass = sqlu"""
       UPDATE audit_task
       SET outdated_imagery = FALSE
       WHERE audit_task.outdated_imagery
-          AND NOT EXISTS (
-              SELECT FROM street_imagery
-              WHERE street_imagery.street_edge_id = audit_task.street_edge_id
-                  AND street_imagery.newest_capture IS NOT NULL
-                  AND audit_task.task_end::date < street_imagery.newest_capture
+          AND (
+              audit_task.street_edge_id = (SELECT tutorial_street_edge_id FROM config)
+              OR NOT EXISTS (
+                  SELECT FROM street_imagery
+                  WHERE street_imagery.street_edge_id = audit_task.street_edge_id
+                      AND street_imagery.newest_capture IS NOT NULL
+                      AND street_imagery.newest_capture <= CURRENT_DATE
+                      AND (audit_task.task_end AT TIME ZONE 'UTC')::date < street_imagery.newest_capture
+              )
           );
     """
     setPass.zip(clearPass)
