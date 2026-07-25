@@ -48,6 +48,12 @@ class FilterSidebar {
     this.#initOnlyButtons();
     this.#initTagToggles();
     this.#initTagPills();
+
+    // The markup ships a fixed label, but a section whose defaults aren't all-on (validations, where "incorrect"
+    // starts off) already wants "Select all" on arrival.
+    this.#root.querySelectorAll('.map-sidebar__deselect-all').forEach((btn) => {
+      this.#syncSectionAction(btn.dataset.section);
+    });
   }
 
   /**
@@ -114,6 +120,18 @@ class FilterSidebar {
     return this.#optionsIn(section).some((cb) => cb.checked);
   }
 
+  /**
+   * Returns true when every control in the section is on.
+   * @param {string} section The section name (a `data-filter-type` value, or 'severity').
+   * @returns {boolean} Whether the section is fully selected.
+   */
+  isAllActive(section) {
+    if (section === FilterSidebar.SEVERITY) {
+      return this.#severityButtons().every((btn) => btn.getAttribute('aria-pressed') === 'true');
+    }
+    return this.#optionsIn(section).every((cb) => cb.checked);
+  }
+
   /** Binds the severity toggle buttons, which carry their state in aria-pressed and swap filled/outline icons. */
   #initSeverityToggles() {
     this.#severityButtons().forEach((btn) => {
@@ -148,7 +166,9 @@ class FilterSidebar {
     this.#root.querySelectorAll('.map-sidebar__deselect-all').forEach((btn) => {
       btn.addEventListener('click', () => {
         const section = btn.dataset.section;
-        const checked = !this.isAnyActive(section);
+        // Offer the action with the most left to give: once anything is off — one "Only" click, say — restoring the
+        // section is more useful than clearing what little is left, so the button becomes "Select all".
+        const checked = !this.isAllActive(section);
         this.setSection(section, () => checked);
         if (section === 'label-type' && !checked) this.clearAllTags();
         this.#syncSectionAction(section);
@@ -266,7 +286,7 @@ class FilterSidebar {
   #syncSectionAction(section) {
     const btn = this.#root.querySelector(`.map-sidebar__deselect-all[data-section="${section}"]`);
     if (!btn) return;
-    btn.textContent = this.isAnyActive(section)
+    btn.textContent = this.isAllActive(section)
       ? i18next.t(this.#i18nKeys.deselectAll)
       : i18next.t(this.#i18nKeys.selectAll);
   }

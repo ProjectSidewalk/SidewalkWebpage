@@ -256,6 +256,39 @@ describe('FilterSidebar', () => {
             expect(root.querySelectorAll('.checkbox--partial')).toHaveLength(0);
         });
 
+        it('offers "Select all" as soon as anything in the section is off', () => {
+            build();
+            expect(sectionAction('label-type').textContent).toBe('labelmap:deselect-all');
+
+            typeBox('NoCurbRamp').click();
+
+            expect(sectionAction('label-type').textContent).toBe('labelmap:select-all');
+        });
+
+        it('offers "Select all" after "Only" leaves one option standing', () => {
+            build();
+            onlyBtn('label-type', 'Obstacle').click();
+
+            expect(sectionAction('label-type').textContent).toBe('labelmap:select-all');
+        });
+
+        it('restores the whole section from a partial state rather than clearing it', () => {
+            const sidebar = build();
+            onlyBtn('label-type', 'Obstacle').click();
+
+            sectionAction('label-type').click();
+
+            expect(sidebar.getState().sections['label-type']).toEqual(LABEL_TYPES);
+            expect(changes.at(-1)).toEqual({ kind: 'selectAll', section: 'label-type', checked: true });
+        });
+
+        it('starts as "Select all" for a section whose defaults are not all on', () => {
+            build();
+
+            // "Validated incorrect" ships unchecked, so the validations section is partial from the first paint.
+            expect(sectionAction('label-validations').textContent).toBe('labelmap:select-all');
+        });
+
         it('turns every severity toggle off together', () => {
             const sidebar = build();
             sectionAction('severity').click();

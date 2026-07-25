@@ -76,17 +76,25 @@ class MapSidebarFilter {
    * @param {object} state The state from FilterSidebar.getState().
    */
   #syncMapData(state) {
-    for (const severity of Object.keys(this.#mapData.severities)) {
-      this.#mapData.severities[severity] = state.severities.includes(Number(severity));
+    // Each section is mirrored only when the page actually renders it. A section the sidebar omits has no state to
+    // report, and treating that as "nothing selected" would filter the map down to nothing — the admin-only control
+    // is absent on the public LabelMap, and a host may drop severity for label types that have none.
+    if (this.#sidebar.querySelector('.severity-button')) {
+      for (const severity of Object.keys(this.#mapData.severities)) {
+        this.#mapData.severities[severity] = state.severities.includes(Number(severity));
+      }
     }
 
-    const validations = state.sections['label-validations'] ?? [];
-    for (const option of ['correct', 'incorrect', 'unsure', 'unvalidated']) {
-      this.#mapData[option] = validations.includes(option);
+    const validations = state.sections['label-validations'];
+    if (validations) {
+      for (const option of ['correct', 'incorrect', 'unsure', 'unvalidated']) {
+        this.#mapData[option] = validations.includes(option);
+      }
     }
 
-    // Admin-only filter (#4243); the control isn't rendered on the public LabelMap, where this stays false.
-    this.#mapData.notAdminValidated = (state.sections['admin-validation'] ?? []).includes('not-admin-validated');
+    // Admin-only filter (#4243), rendered on the admin map tab only.
+    const adminOnly = state.sections['admin-validation'];
+    if (adminOnly) this.#mapData.notAdminValidated = adminOnly.includes('not-admin-validated');
 
     for (const [labelType, tags] of Object.entries(state.tags)) {
       const selected = this.#mapData.selectedTags[labelType];
