@@ -261,8 +261,30 @@ body.map-sidebar-resizing {
   background-repeat: no-repeat;
 }
 
+/* Rows whose icon doubles as the checkbox (#4585) hide the native input: it stays in the DOM so assistive tech
+   announces the checked state and Space still toggles, but the filled/hollow icon carries the visual. Rows with no
+   icon of their own (the admin-only filter) keep the rendered checkbox styled above. */
+.map-sidebar__item input[type="checkbox"].map-sidebar__checkbox {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
 .map-sidebar__item input[type="checkbox"]:focus {
   outline: none; /* Removing some default styling from Bootstrap; :focus-visible below restores a keyboard ring. */
+}
+
+/* The hidden input can't show its own ring, so the ring goes around the icon + name it controls. */
+.map-sidebar__checkbox:focus-visible + .map-sidebar__item-label {
+  outline: 2px solid var(--color-asphalt-400);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* Keyboard focus ring (WCAG 2.4.7) for every interactive sidebar control. */
@@ -288,20 +310,89 @@ body.map-sidebar-resizing {
   flex: 1; /* Fill the middle of the row so the whole hover area toggles the checkbox, not just the text. */
 }
 
-/* Label type circle icons */
+/* Icon + name share one label so clicking either toggles the row natively, no JS forwarding. */
+.map-sidebar__item-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+/* Deselected rows read as off at a glance: hollow icon (below) plus a dimmed name. */
+.map-sidebar__checkbox:not(:checked) + .map-sidebar__item-label {
+  color: var(--color-neutral-600);
+}
+
+.map-sidebar__item:has(.map-sidebar__checkbox:not(:checked)) .map-sidebar__count {
+  color: var(--color-neutral-500);
+}
+
+/* Label type circle icons — the icon is the checkbox: filled + check when shown, hollow ring when hidden. */
 .map-sidebar__item .map-legend-circle-icon {
   flex-shrink: 0;
 }
 
 .map-sidebar__item .map-legend-circle-icon svg {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   display: block;
 }
 
 .map-sidebar__item .map-legend-circle-icon circle {
-  cx: 7px;
-  cy: 7px;
+  fill: var(--label-color);
+  stroke: var(--label-ring, none); /* Grey types (Other, Occlusion) carry a distinguishing outline color. */
+}
+
+.map-sidebar__checkbox:not(:checked) + .map-sidebar__item-label .map-legend-circle-icon circle {
+  fill: var(--color-neutral-white);
+  stroke: var(--label-ring, var(--label-color));
+  stroke-width: 2;
+}
+
+/* The check is asphalt, not white: half the label colors (crosswalk yellow, curb-ramp green) are too light to
+   carry a white glyph — asphalt clears 4.5:1 on all of them. */
+.map-legend-circle-icon__check,
+.map-legend-circle-icon__dash {
+  display: none;
+  fill: none;
+  stroke: var(--color-asphalt-500);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.map-sidebar__checkbox:checked + .map-sidebar__item-label .map-legend-circle-icon__check {
+  display: block;
+}
+
+/* Tag filters narrow a shown type: dash instead of check, the indeterminate-checkbox convention. */
+.map-sidebar__checkbox.checkbox--partial + .map-sidebar__item-label .map-legend-circle-icon__check {
+  display: none;
+}
+
+.map-sidebar__checkbox.checkbox--partial + .map-sidebar__item-label .map-legend-circle-icon__dash {
+  display: block;
+}
+
+/* Pictogram rows (validations, streets) can't hold a check inside the glyph, so selection shows as a corner badge. */
+.map-sidebar__icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.map-sidebar__checkbox:checked + .map-sidebar__item-label .map-sidebar__icon--badged::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  bottom: -2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--color-asphalt-500) center / 8px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23FFFFFF' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
+  box-shadow: 0 0 0 1.5px var(--color-neutral-white);
 }
 
 /* Validation icons */
@@ -317,11 +408,21 @@ body.map-sidebar-resizing {
   flex-shrink: 0;
 }
 
+.map-sidebar__checkbox:not(:checked) + .map-sidebar__item-label .map-sidebar__validation-icon,
+.map-sidebar__checkbox:not(:checked) + .map-sidebar__item-label .map-sidebar__unvalidated-icon {
+  filter: grayscale(100%);
+  opacity: 0.45;
+}
+
 /* Street line icons */
 .map-sidebar__item .map-sidebar__street-icon {
   width: 17px;
   height: 14px;
   flex-shrink: 0;
+}
+
+.map-sidebar__checkbox:not(:checked) + .map-sidebar__item-label .map-sidebar__street-icon {
+  opacity: 0.4;
 }
 
 .map-sidebar__item .map-sidebar__street-icon path {
@@ -419,7 +520,7 @@ body.map-sidebar-resizing {
 .map-sidebar__tag-pills {
   flex-wrap: wrap;
   gap: 4px;
-  padding: 4px 0 8px 25px; /* Left inset lines pills up under the row's circle icon (16px checkbox + 9px gap). */
+  padding: 4px 0 8px 27px; /* Left inset lines pills up under the row's name (18px icon + 9px gap). */
 }
 
 .map-sidebar__tag-pills[hidden] {
@@ -430,12 +531,3 @@ body.map-sidebar-resizing {
   display: flex;
 }
 
-/* Indeterminate-style dash when a label type is only partially shown because of active tag filters. */
-.map-sidebar__item input[type="checkbox"].checkbox--partial {
-  background-color: var(--color-asphalt-500);
-  border-color: var(--color-asphalt-500);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23FFFFFF' stroke-width='2.5' stroke-linecap='round' d='M4 8h8'/%3E%3C/svg%3E");
-  background-size: 12px;
-  background-position: center;
-  background-repeat: no-repeat;
-}

@@ -195,45 +195,47 @@
 .legend .legend-swatch-10 { background: #B3D3E8; }
 .legend .legend-swatch-11 { background: #C6DBEF; }
 
-/* Label type circle color fills (used by map sidebar legend icons). */
+/* Label type colors for the map sidebar legend icons. Held as a custom property rather than applied straight to
+   `fill` because the icon doubles as the row's checkbox (#4585): the same color fills the circle when the type is
+   shown and strokes a hollow ring when it's hidden. `--label-ring` overrides the ring for the two grey types. */
 
 /* TODO These colors should probably match the colors in our Design System Tokens in main.css. */
-#map-legend-curb-ramp circle {
-  fill: #90C31F;
+#map-legend-curb-ramp {
+  --label-color: #90C31F;
 }
 
-#map-legend-no-curb-ramp circle {
-  fill: #E679B6;
+#map-legend-no-curb-ramp {
+  --label-color: #E679B6;
 }
 
-#map-legend-obstacle circle {
-  fill: var(--color-label-obstacle);
+#map-legend-obstacle {
+  --label-color: var(--color-label-obstacle);
 }
 
-#map-legend-surface-problem circle {
-  fill: var(--color-label-surface-problem);
+#map-legend-surface-problem {
+  --label-color: var(--color-label-surface-problem);
 }
 
-#map-legend-no-sidewalk circle {
-  fill: var(--color-label-no-sidewalk);
+#map-legend-no-sidewalk {
+  --label-color: var(--color-label-no-sidewalk);
 }
 
-#map-legend-crosswalk circle {
-  fill: var(--color-label-crosswalk);
+#map-legend-crosswalk {
+  --label-color: var(--color-label-crosswalk);
 }
 
-#map-legend-signal circle {
-  fill: #63C0AB;
+#map-legend-signal {
+  --label-color: #63C0AB;
 }
 
-#map-legend-other circle {
-  fill: var(--color-neutral-500);
-  stroke: #0000FF;
+#map-legend-other {
+  --label-color: var(--color-neutral-500);
+  --label-ring: #0000FF;
 }
 
-#map-legend-occlusion circle {
-  fill: var(--color-neutral-500);
-  stroke: #009902;
+#map-legend-occlusion {
+  --label-color: var(--color-neutral-500);
+  --label-ring: #009902;
 }
 
 .clearfix {
