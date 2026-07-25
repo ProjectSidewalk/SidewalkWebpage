@@ -42,14 +42,9 @@ class StreetsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
 
       val json = contentAsJson(resp)
       (json \ "type").as[String] mustBe "FeatureCollection"
-      val features = (json \ "features").asOpt[Seq[JsObject]]
-      features mustBe defined
-      // Every feature carries the needs-re-audit boolean (#4384), and a never-audited street is never outdated.
-      features.get.foreach { feature =>
-        val props    = feature \ "properties"
-        val outdated = (props \ "outdated").as[Boolean]
-        if ((props \ "audit_count").as[Int] == 0) outdated mustBe false
-      }
+      // Shape only: tinyBbox is deliberately empty, so there are no features to assert per-feature invariants on.
+      // The audited/outdated invariant is exercised against a populated feed in controllers.StreetAuditStatusSpec.
+      (json \ "features").asOpt[Seq[JsObject]] mustBe defined
     }
 
     "return CSV with the documented snake_case header when filetype=csv" in {

@@ -256,9 +256,9 @@ class OverviewPage {
         html: `<strong>${this.#num(streetsLeft)}</strong> streets aren't audited yet (${pctLeft}% of the network)` });
     }
     if (s.reaudit_streets > 0) {
+      const reaudit = this.#num(s.reaudit_streets);
       items.push({ sev: 'info', action: 'Coverage', href: '/admin/coverage',
-        html: `<strong>${this.#num(s.reaudit_streets)}</strong> audited streets have newer imagery `
-          + 'and need re-auditing' });
+        html: `<strong>${reaudit}</strong> audited streets have newer imagery and need re-auditing` });
     }
     // Stalled activity — only one of these, the more fundamental gap first.
     if (s.audits_past_week === 0) {

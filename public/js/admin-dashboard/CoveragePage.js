@@ -225,7 +225,7 @@ class CoveragePage {
     document.getElementById('kpi-city-coverage').textContent = CoverageFormat.pct(totalM ? auditedM / totalM : 0);
     document.getElementById('kpi-regions').textContent = features.length.toLocaleString();
     document.getElementById('kpi-fully-audited').textContent = fullyAudited.toLocaleString();
-    document.getElementById('kpi-needs-reaudit').textContent = `${(outdatedM / 1000).toFixed(1)} km`;
+    document.getElementById('kpi-needs-reaudit').textContent = CoverageFormat.km(outdatedM);
   }
 
   #renderLegend() {

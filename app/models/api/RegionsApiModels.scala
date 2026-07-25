@@ -25,9 +25,14 @@ import java.time.OffsetDateTime
  * @param userCount Number of unique users who have placed labels within this region
  * @param auditCount Number of completed audits of streets within this region
  * @param totalDistanceM Total length of all (non-tutorial) streets in this region, in meters
- * @param auditedDistanceM Length of this region's streets that have been audited with current imagery, in meters
+ * @param auditedDistanceM Length of this region's streets audited with current imagery, in meters. Sourced from
+ *                         region_completion, so it counts only completion-worthy audits (high-quality, non-excluded
+ *                         users; not low-quality/incomplete/stale) and is rebuilt nightly
  * @param outdatedDistanceM Length of this region's streets needing re-audit, in meters: streets audited before, but
- *                          whose completed audits all predate newer imagery (#4384)
+ *                          whose completed audits all predate newer imagery (#4384). Counts *any* completed audit and
+ *                          is computed live, so it is not an exact complement of auditedDistanceM -- a street audited
+ *                          only by a low-quality user is in neither. For a strictly complementary pair, use
+ *                          overallStats' kmExploreNoOverlap / kmNeedsReaudit
  * @param completionRate Fraction of the region's street distance audited with current imagery (0.0–1.0)
  * @param firstLabelDate Timestamp of the first label placed within this region (if any)
  * @param lastLabelDate Timestamp of the most recent label placed within this region (if any)

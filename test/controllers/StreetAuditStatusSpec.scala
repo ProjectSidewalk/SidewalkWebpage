@@ -30,6 +30,8 @@ class StreetAuditStatusSpec extends PlaySpec with GuiceOneAppPerSuite {
 
       val json     = contentAsJson(resp)
       val features = (json \ "features").as[Seq[JsValue]]
+      // Without this the per-feature assertions below pass vacuously if the feed ever returns nothing.
+      features must not be empty
       features.foreach { feature =>
         val props    = feature \ "properties"
         val audited  = (props \ "audited").as[Boolean]

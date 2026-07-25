@@ -200,6 +200,12 @@ class RegionTable @Inject() (
       ),
       -- Get the distance of streets needing re-audit in each region: streets audited before, but whose completed
       -- audits all predate newer imagery (audit_task.outdated_imagery, #4384).
+      --
+      -- This counts any completed audit, whereas audited_distance below comes from region_completion, which is
+      -- derived from street_edge_priority and so only counts completion-worthy audits. The two are therefore NOT
+      -- exact complements -- a street audited solely by a low-quality or excluded user is in neither -- and the API
+      -- docs say so. Reproducing the priority formula here to force an exact partition would duplicate it in SQL and
+      -- guarantee drift; overallStats already exposes a strictly complementary pair over one population.
       region_outdated AS (
         SELECT street_edge_region.region_id,
                SUM(ST_Length(ST_Transform(street_edge.geom, 26918))) AS outdated_distance

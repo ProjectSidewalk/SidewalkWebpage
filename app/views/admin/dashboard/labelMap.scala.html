@@ -22,7 +22,7 @@
 
   <div class="api-section" id="label-map-section">
     <div id="admin-labelmap-choropleth-holder" class="choropleth-holder label-map-holder">
-      <div id="admin-labelmap-choropleth" class="choropleth"></div>@common.mapSidebar(tags = tags, adminVersion = true)</div>
+      <div id="admin-labelmap-choropleth" class="choropleth"></div>@common.mapSidebar(tags = tags, adminVersion = true, showOutdatedStreetFilter = true)</div>
   </div>
 
   @* Label-detail popup + PSMap dependencies. The label-detail modules are pulled in individually (not via the legacy Admin.js bundle) to keep with the dashboard's standalone-script convention; i18next, AppManager, util, jQuery and the Google Maps loader are already loaded by common.main / adminLayout. *@

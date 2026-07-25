@@ -237,12 +237,12 @@
           <tr>
             <td><code>properties.audited_distance_m</code></td>
             <td><code>number</code></td>
-            <td>Length of the region's streets audited with current imagery, in meters. When newer street-view imagery lands on an audited street, that street stops counting here until it is re-audited.</td>
+            <td>Length of the region's streets audited with current imagery, in meters. This is the region's completion measure, so it counts only audits that count toward completion — audits by high-quality, non-excluded users that aren't flagged low-quality, incomplete, or stale. When newer street-view imagery lands on an audited street, that street stops counting here until it is re-audited. Recomputed nightly, so it can trail same-day auditing slightly.</td>
           </tr>
           <tr>
             <td><code>properties.outdated_distance_m</code></td>
             <td><code>number</code></td>
-            <td>Length of the region's streets needing re-audit, in meters: streets audited before, but whose completed audits all predate newer imagery. Ever-audited distance = <code>audited_distance_m + outdated_distance_m</code>.</td>
+            <td>Length of the region's streets needing re-audit, in meters: streets audited before, but whose completed audits all predate newer imagery. Note that this is <em>not</em> an exact complement of <code>audited_distance_m</code> — it counts any completed audit, while <code>audited_distance_m</code> counts only audits that advance the region's completion (see that field). A street audited solely by a low-quality or excluded user therefore appears in neither. For a strictly complementary pair, use <code>km_explored_no_overlap</code> and <code>km_needs_reaudit</code> on <a href="/v3/api-docs/overall-stats">/v3/api/overallStats</a>.</td>
           </tr>
           <tr>
             <td><code>properties.completion_rate</code></td>

@@ -377,12 +377,16 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     // Coverage counts only audits on current imagery (#4384), but this query runs against OTHER cities' schemas,
     // which may not have applied the evolution adding audit_task.outdated_imagery yet (e.g. mid-deploy). Gate the
     // filter on the column existing so unmigrated schemas fall back to counting every completed audit instead of
-    // erroring out their whole scorecard.
+    // erroring out their whole scorecard. Once every deployed schema has the column this gate (and the branch in
+    // coreQuery) can go away -- tracked as a #4384 follow-up.
+    //
+    // Unlike the `"#$schema".table` splices below, which have to be raw because an identifier can't be a bind
+    // parameter, this one compares against a plain string column, so bind it properly.
     val upToDateFilterQuery =
       sql"""
         SELECT EXISTS (
             SELECT FROM information_schema.columns
-            WHERE table_schema = '#$schema' AND table_name = 'audit_task' AND column_name = 'outdated_imagery'
+            WHERE table_schema::text = $schema AND table_name = 'audit_task' AND column_name = 'outdated_imagery'
         );
       """.as[Boolean].head
 

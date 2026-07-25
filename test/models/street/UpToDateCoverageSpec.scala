@@ -1,18 +1,12 @@
 package models.street
 
 import models.audit.AuditTaskTableDef
-import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
-import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
-import slick.dbio.DBIO
-
-import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext}
-import scala.util.{Failure, Success, Try}
+import util.RolledBackDb
 
 /**
  * DB-backed tests pinning the upToDateOnly coverage queries behind the admin Overview's re-audit numbers (#4384):
@@ -24,33 +18,14 @@ import scala.util.{Failure, Success, Try}
  * cases cancel gracefully when the connected DB lacks the rows they need. Scheduling actors are disabled so nightly
  * jobs can't race the tests.
  */
-class UpToDateCoverageSpec extends PlaySpec with GuiceOneAppPerSuite {
+class UpToDateCoverageSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit private val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
-  private val streetEdgeTable               = app.injector.instanceOf[StreetEdgeTable]
-  // Keep the DatabaseConfig as a stable val and call .db.run inline; binding .db to its own val would infer a
-  // path-dependent existential type that needs -language:existentials.
-  private val dbConfig                   = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
-  private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 120.seconds)
+  private val streetEdgeTable = app.injector.instanceOf[StreetEdgeTable]
 
   private val auditTasks = TableQuery[AuditTaskTableDef]
-
-  /** Sentinel used to abort (and thus roll back) the wrapping transaction after the test body has run. */
-  private object RollbackSentinel extends RuntimeException("intentional rollback -- leave the DB untouched")
-
-  /** Runs a test body inside a transaction that is always rolled back; see OutdatedImageryFlagSyncSpec. */
-  private def runRolledBack[T](action: DBIO[T]): T = {
-    var result: Option[T] = None
-    val tx                = action.flatMap { r => result = Some(r); DBIO.failed(RollbackSentinel) }.transactionally
-    Try(run(tx)) match {
-      case Failure(RollbackSentinel) => result.get
-      case Failure(other)            => throw other
-      case Success(_)                => throw new IllegalStateException("rollback sentinel did not propagate")
-    }
-  }
 
   /** A street that currently counts toward coverage: a completed audit by a non-excluded user on an open street. */
   private lazy val countedStreetId: Option[Int] =
