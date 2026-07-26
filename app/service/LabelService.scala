@@ -243,8 +243,18 @@ class LabelServiceImpl @Inject() (
       Future
         .sequence(typesToSpread.map { labelType =>
           findValidLabelsForType(
-            labelTable.getGalleryLabelsQuery(viewer, labelType, loadedLabelIds, valOptions, regionIds, severity,
-              tagsByLabelType.getOrElse(labelType, Set()), aiValOptions, userId, recentFirst),
+            labelTable.getGalleryLabelsQuery(
+              viewer,
+              labelType,
+              loadedLabelIds,
+              valOptions,
+              regionIds,
+              severity,
+              tagsByLabelType.getOrElse(labelType, Set()),
+              aiValOptions,
+              userId,
+              recentFirst
+            ),
             randomize = true,
             useCrops = true,
             nPerType
