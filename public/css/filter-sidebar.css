@@ -241,7 +241,7 @@ body.filter-sidebar-resizing {
   background: var(--color-neutral-100);
 }
 
-.filter-sidebar__item input[type="checkbox"] {
+.filter-sidebar__item input:is([type="checkbox"], [type="radio"]) {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
@@ -255,7 +255,7 @@ body.filter-sidebar-resizing {
   background: var(--color-neutral-white);
 }
 
-.filter-sidebar__item input[type="checkbox"]:checked {
+.filter-sidebar__item input:is([type="checkbox"], [type="radio"]):checked {
   background-color: var(--color-asphalt-500);
   border-color: var(--color-asphalt-500);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23FFFFFF' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
@@ -267,7 +267,7 @@ body.filter-sidebar-resizing {
 /* Rows whose icon doubles as the checkbox (#4585) hide the native input: it stays in the DOM so assistive tech
    announces the checked state and Space still toggles, but the filled/hollow icon carries the visual. Rows with no
    icon of their own (the admin-only filter) keep the rendered checkbox styled above. */
-.filter-sidebar__item input[type="checkbox"].filter-sidebar__checkbox {
+.filter-sidebar__item input.filter-sidebar__checkbox {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -279,7 +279,7 @@ body.filter-sidebar-resizing {
   clip-path: inset(50%);
 }
 
-.filter-sidebar__item input[type="checkbox"]:focus {
+.filter-sidebar__item input:is([type="checkbox"], [type="radio"]):focus {
   outline: none; /* Removing some default styling from Bootstrap; :focus-visible below restores a keyboard ring. */
 }
 
@@ -291,9 +291,9 @@ body.filter-sidebar-resizing {
 }
 
 /* Keyboard focus ring (WCAG 2.4.7) for every interactive sidebar control. */
-.filter-sidebar__item input[type="checkbox"]:focus-visible,
-.filter-sidebar .severity-button:focus-visible,
-.filter-sidebar .tag-pill:focus-visible,
+.filter-sidebar__item input:is([type="checkbox"], [type="radio"]):focus-visible,
+.filter-sidebar__severity-cell .severity-button:focus-visible,
+.filter-sidebar__tag-pills .tag-pill:focus-visible,
 .filter-sidebar__only:focus-visible,
 .filter-sidebar__deselect-all:focus-visible,
 .filter-sidebar__tag-toggle:focus-visible {
@@ -330,23 +330,70 @@ body.filter-sidebar-resizing {
   color: var(--color-neutral-500);
 }
 
+/* Label type colors, keyed off the row's type so the sidebar carries its own palette wherever it's mounted. Held as
+   a custom property rather than applied straight to `fill` because the icon doubles as the row's checkbox (#4585):
+   the same color fills the circle when the type is shown and strokes a hollow ring when it's hidden. `--label-ring`
+   overrides the ring for the two grey types.
+   TODO These colors should probably match the colors in our Design System Tokens in main.css. */
+.filter-sidebar__legend-icon[data-label-type="Assorted"] {
+  --label-color: var(--color-asphalt-400);
+}
+
+.filter-sidebar__legend-icon[data-label-type="CurbRamp"] {
+  --label-color: #90C31F;
+}
+
+.filter-sidebar__legend-icon[data-label-type="NoCurbRamp"] {
+  --label-color: #E679B6;
+}
+
+.filter-sidebar__legend-icon[data-label-type="Obstacle"] {
+  --label-color: var(--color-label-obstacle);
+}
+
+.filter-sidebar__legend-icon[data-label-type="SurfaceProblem"] {
+  --label-color: var(--color-label-surface-problem);
+}
+
+.filter-sidebar__legend-icon[data-label-type="NoSidewalk"] {
+  --label-color: var(--color-label-no-sidewalk);
+}
+
+.filter-sidebar__legend-icon[data-label-type="Crosswalk"] {
+  --label-color: var(--color-label-crosswalk);
+}
+
+.filter-sidebar__legend-icon[data-label-type="Signal"] {
+  --label-color: #63C0AB;
+}
+
+.filter-sidebar__legend-icon[data-label-type="Other"] {
+  --label-color: var(--color-neutral-500);
+  --label-ring: #0000FF;
+}
+
+.filter-sidebar__legend-icon[data-label-type="Occlusion"] {
+  --label-color: var(--color-neutral-500);
+  --label-ring: #009902;
+}
+
 /* Label type circle icons — the icon is the checkbox: filled + check when shown, hollow ring when hidden. */
-.filter-sidebar__item .map-legend-circle-icon {
+.filter-sidebar__item .filter-sidebar__legend-icon {
   flex-shrink: 0;
 }
 
-.filter-sidebar__item .map-legend-circle-icon svg {
+.filter-sidebar__item .filter-sidebar__legend-icon svg {
   width: 18px;
   height: 18px;
   display: block;
 }
 
-.filter-sidebar__item .map-legend-circle-icon circle {
+.filter-sidebar__item .filter-sidebar__legend-icon circle {
   fill: var(--label-color);
   stroke: var(--label-ring, none); /* Grey types (Other, Occlusion) carry a distinguishing outline color. */
 }
 
-.filter-sidebar__checkbox:not(:checked) + .filter-sidebar__item-label .map-legend-circle-icon circle {
+.filter-sidebar__checkbox:not(:checked) + .filter-sidebar__item-label .filter-sidebar__legend-icon circle {
   fill: var(--color-neutral-white);
   stroke: var(--label-ring, var(--label-color));
   stroke-width: 2;
@@ -354,8 +401,8 @@ body.filter-sidebar-resizing {
 
 /* The check is asphalt, not white: half the label colors (crosswalk yellow, curb-ramp green) are too light to
    carry a white glyph — asphalt clears 4.5:1 on all of them. */
-.map-legend-circle-icon__check,
-.map-legend-circle-icon__dash {
+.filter-sidebar__legend-check,
+.filter-sidebar__legend-dash {
   display: none;
   fill: none;
   stroke: var(--color-asphalt-500);
@@ -364,16 +411,16 @@ body.filter-sidebar-resizing {
   stroke-linejoin: round;
 }
 
-.filter-sidebar__checkbox:checked + .filter-sidebar__item-label .map-legend-circle-icon__check {
+.filter-sidebar__checkbox:checked + .filter-sidebar__item-label .filter-sidebar__legend-check {
   display: block;
 }
 
 /* Tag filters narrow a shown type: dash instead of check, the indeterminate-checkbox convention. */
-.filter-sidebar__checkbox.checkbox--partial + .filter-sidebar__item-label .map-legend-circle-icon__check {
+.filter-sidebar__checkbox.checkbox--partial + .filter-sidebar__item-label .filter-sidebar__legend-check {
   display: none;
 }
 
-.filter-sidebar__checkbox.checkbox--partial + .filter-sidebar__item-label .map-legend-circle-icon__dash {
+.filter-sidebar__checkbox.checkbox--partial + .filter-sidebar__item-label .filter-sidebar__legend-dash {
   display: block;
 }
 

@@ -12,6 +12,10 @@
  *
  * Sections are discovered from the markup: every `input[data-filter-type="<section>"]` belongs to that section, and
  * the severity toggles form a section of their own ("severity") because they're buttons rather than checkboxes.
+ *
+ * A section marked `data-select-mode="single"` holds radios instead of checkboxes, so exactly one option is on at a
+ * time — what the Gallery needs, since its card query fetches one label type at a time. Exclusivity there is the
+ * browser's job, not ours; this class only adds what radios don't know about, namely the tag drawers.
  */
 class FilterSidebar {
   /** Section name for the severity toggles, which are buttons rather than checkboxes. */
@@ -54,6 +58,10 @@ class FilterSidebar {
     this.#root.querySelectorAll('.filter-sidebar__deselect-all').forEach((btn) => {
       this.#syncSectionAction(btn.dataset.section);
     });
+
+    // A type can arrive already narrowed by tags — the Gallery renders the URL's tags as applied — and its glyph
+    // has to say so from the first paint, not from the first click.
+    this.#optionsIn('label-type').forEach((cb) => this.#syncPartialGlyph(FilterSidebar.#valueOf(cb)));
   }
 
   /**
@@ -108,6 +116,14 @@ class FilterSidebar {
     });
   }
 
+  /** Puts the controls back into the loading appearance, e.g. while a host refetches what the filters select. */
+  disable() {
+    this.#root.classList.add('filter-sidebar--loading');
+    this.#root.querySelectorAll('input[data-filter-type]').forEach((cb) => {
+      cb.disabled = true;
+    });
+  }
+
   /**
    * Returns true when at least one control in the section is on.
    * @param {string} section The section name (a `data-filter-type` value, or 'severity').
@@ -146,19 +162,65 @@ class FilterSidebar {
     });
   }
 
-  /** Binds every option checkbox, in whatever section it belongs to. */
+  /**
+   * Binds every option control, in whatever section it belongs to. Bound to `change` rather than `click` so that
+   * re-picking the already-selected radio of a single-choice section stays silent — nothing about the filter moved,
+   * and a host would otherwise refetch for it.
+   */
   #initOptionCheckboxes() {
     this.#root.querySelectorAll('input[data-filter-type]').forEach((cb) => {
-      cb.addEventListener('click', () => {
+      cb.addEventListener('change', () => {
         const section = cb.dataset.filterType;
         const value = FilterSidebar.#valueOf(cb);
         // Hiding a label type drops its tag filters: a tag narrows a type that is being shown, so keeping them would
-        // leave an invisible constraint waiting to surprise the user when they turn the type back on.
-        if (section === 'label-type' && !cb.checked) this.clearTags(value);
+        // leave an invisible constraint waiting to surprise the user when they turn the type back on. Single-select
+        // switches types rather than hiding one, so the same reasoning drops the tags of every type left behind.
+        if (section === 'label-type') {
+          if (this.isSingleSelect(section)) this.#focusLabelType(value);
+          else if (!cb.checked) this.clearTags(value);
+        }
         this.#syncSectionAction(section);
         this.#onChange({ kind: 'option', section, value, checked: cb.checked });
       });
     });
+  }
+
+  /**
+   * Returns whether a section holds a single-choice group (radios) rather than independent checkboxes.
+   * @param {string} section The section name.
+   * @returns {boolean} Whether the section is single-select.
+   */
+  isSingleSelect(section) {
+    return this.#root.querySelector(`[data-filter-section="${section}"]`)?.dataset.selectMode === 'single';
+  }
+
+  /**
+   * Narrows the sidebar to one label type: only its tag drawer stays open, and the other types' tags are dropped so
+   * that switching to one of them arrives unfiltered rather than pre-narrowed by an invisible constraint.
+   * @param {string} labelType The label type now selected.
+   */
+  #focusLabelType(labelType) {
+    for (const cb of this.#optionsIn('label-type')) {
+      const value = FilterSidebar.#valueOf(cb);
+      if (value !== labelType) this.clearTags(value);
+      const item = cb.closest('.filter-sidebar__item');
+      if (item) this.#setDrawer(item, value === labelType);
+    }
+  }
+
+  /**
+   * Expands or collapses one label type's tag drawer, keeping the chevron's direction and ARIA state in step.
+   * @param {HTMLElement} item The label type's list item.
+   * @param {boolean} expanded Whether the drawer should end up open.
+   */
+  #setDrawer(item, expanded) {
+    const pills = item.querySelector('.filter-sidebar__tag-pills');
+    const btn = item.querySelector('.filter-sidebar__tag-toggle');
+    if (!pills || !btn) return;
+    btn.setAttribute('aria-expanded', String(expanded));
+    const img = btn.querySelector('img');
+    if (img) img.src = expanded ? img.dataset.upSrc : img.dataset.downSrc;
+    pills.hidden = !expanded;
   }
 
   /** Binds the per-section action that flips the whole section on or off. */
@@ -171,7 +233,6 @@ class FilterSidebar {
         const checked = !this.isAllActive(section);
         this.setSection(section, () => checked);
         if (section === 'label-type' && !checked) this.clearAllTags();
-        this.#syncSectionAction(section);
         this.#onChange({ kind: 'selectAll', section, checked });
       });
     });
@@ -189,7 +250,6 @@ class FilterSidebar {
       btn.addEventListener('click', () => {
         const { section, value } = btn.dataset;
         this.setSection(section, (candidate) => String(candidate) === value, { clearTagsWhenOff: true });
-        this.#syncSectionAction(section);
         this.#onChange({ kind: 'only', section, value });
       });
     });
@@ -206,6 +266,7 @@ class FilterSidebar {
   setSection(section, isOn, { clearTagsWhenOff = false } = {}) {
     if (section === FilterSidebar.SEVERITY) {
       this.#severityButtons().forEach((btn) => this.#setSeverityButton(btn, isOn(btn.dataset.severity)));
+      this.#syncSectionAction(section);
       return;
     }
     this.#optionsIn(section).forEach((cb) => {
@@ -217,20 +278,28 @@ class FilterSidebar {
       // glyph would claim the type is unfiltered while the tag filter is still narrowing it.
       this.#syncPartialGlyph(value);
     });
+    if (section === 'label-type' && this.isSingleSelect(section)) {
+      this.#focusLabelType(this.selectedIn(section));
+    }
+    this.#syncSectionAction(section);
+  }
+
+  /**
+   * The selected value of a single-choice section.
+   * @param {string} section The section name.
+   * @returns {?string} The checked control's value, or null when the section has none.
+   */
+  selectedIn(section) {
+    const checked = this.#optionsIn(section).find((cb) => cb.checked);
+    return checked ? FilterSidebar.#valueOf(checked) : null;
   }
 
   /** Binds the chevrons that expand and collapse a label type's tag drawer. */
   #initTagToggles() {
     this.#root.querySelectorAll('.filter-sidebar__tag-toggle').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const pills = btn.closest('.filter-sidebar__item').querySelector('.filter-sidebar__tag-pills');
-        if (!pills) return;
-
-        const expanded = btn.getAttribute('aria-expanded') !== 'true';
-        btn.setAttribute('aria-expanded', String(expanded));
-        const img = btn.querySelector('img');
-        if (img) img.src = expanded ? img.dataset.upSrc : img.dataset.downSrc;
-        pills.hidden = !expanded;
+        const item = btn.closest('.filter-sidebar__item');
+        if (item) this.#setDrawer(item, btn.getAttribute('aria-expanded') !== 'true');
       });
     });
   }
@@ -248,6 +317,7 @@ class FilterSidebar {
         const typeTurnedOn = Boolean(checked && cb && !cb.checked);
         if (typeTurnedOn) {
           cb.checked = true;
+          if (this.isSingleSelect('label-type')) this.#focusLabelType(labelType);
           this.#syncSectionAction('label-type');
         }
 

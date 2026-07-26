@@ -5,7 +5,7 @@ import controllers.helper.ControllerUtils.{isMobile, parseIntegerSeq}
 import formats.json.GalleryFormats._
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
-import models.label.LabelTypeEnum
+import models.label.{LabelTypeEnum, Tag}
 import play.api.Configuration
 import play.api.i18n.Messages
 import play.api.libs.json.{JsError, JsValue, Json}
@@ -47,28 +47,19 @@ class GalleryController @Inject() (
         cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Gallery_RedirectMobileLanding")
         Future.successful(Redirect("/mobileLanding"))
       } else {
-        val labelTypes: Seq[(String, String)] = Seq(
-          ("Assorted", Messages("gallery.all")),
-          (LabelTypeEnum.CurbRamp.name, Messages("curb.ramp")),
-          (LabelTypeEnum.NoCurbRamp.name, Messages("missing.ramp")),
-          (LabelTypeEnum.Obstacle.name, Messages("obstacle")),
-          (LabelTypeEnum.SurfaceProblem.name, Messages("surface.problem")),
-          (LabelTypeEnum.Occlusion.name, Messages("occlusion")),
-          (LabelTypeEnum.NoSidewalk.name, Messages("no.sidewalk")),
-          (LabelTypeEnum.Crosswalk.name, Messages("crosswalk")),
-          (LabelTypeEnum.Signal.name, Messages("signal")),
-          (LabelTypeEnum.Other.name, Messages("other"))
-        )
-        val labType: String = if (labelTypes.exists(x => { x._1 == labelType })) labelType else "Assorted"
+        // "Assorted" is the sidebar's all-types option; the rest are the types it renders a row for.
+        val labelTypes: Set[String] = LabelTypeEnum.validLabelTypes + "Assorted"
+        val labType: String         = if (labelTypes.contains(labelType)) labelType else "Assorted"
 
         for {
           possibleRegions: Seq[Int] <- regionService.getAllRegions.map(_.map(_.regionId))
-          possibleTags: Seq[String] <- {
-            if (labType != "Assorted") labelService.selectTagsByLabelType(labelType).map(_.map(_.tag))
-            else Future.successful(Seq())
-          }
-          commonData <- configService.getCommonPageData(request2Messages.lang)
+          allTags: Seq[Tag]         <- labelService.getTagsForCurrentCity
+          commonData                <- configService.getCommonPageData(request2Messages.lang)
         } yield {
+          // A tag only survives from the URL if it belongs to the label type being shown, in this city.
+          val possibleTags: Seq[String] =
+            allTags.filter(t => LabelTypeEnum.labelTypeIdToLabelType.get(t.labelTypeId).contains(labType)).map(_.tag)
+
           // Make sure that list of region IDs, severities, and validation options are formatted correctly.
           val regionIdsList: Seq[Int]      = parseIntegerSeq(neighborhoods).filter(possibleRegions.contains)
           val validSeverities: Seq[String] = Seq("null", "1", "2", "3")
@@ -91,7 +82,7 @@ class GalleryController @Inject() (
           cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
 
           Ok(
-            views.html.apps.gallery(commonData, Messages("seo.title.gallery"), request.identity, labType, labelTypes,
+            views.html.apps.gallery(commonData, Messages("seo.title.gallery"), request.identity, labType, allTags,
               regionIdsList, severityList, tagList, valOptions, aiValOptions)
           )
         }

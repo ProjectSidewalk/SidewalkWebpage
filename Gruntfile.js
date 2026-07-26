@@ -107,6 +107,8 @@ module.exports = function (grunt) {
           'public/js/common/label-detail/StorySection.js',
           'public/js/common/label-detail/LabelDetail.js',
           'public/js/common/share/ShareWidget.js',
+          // The shared filter sidebar owns the sidebar controls; GalleryFilter is the Gallery's adapter for it.
+          'public/js/common/filter-sidebar/*.js',
           'public/js/gallery/src/cards/*.js',
           'public/js/gallery/src/data/*.js',
           'public/js/gallery/src/filter/*.js',

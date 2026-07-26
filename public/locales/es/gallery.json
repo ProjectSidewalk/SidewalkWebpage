@@ -1,4 +1,7 @@
 {
-  "not-applicable": "no aplicable",
-  "none": "ninguna"
+  "all-label-types": "Todos los tipos de etiquetas",
+  "clear-filters": "Borrar Filtros",
+  "filter-by": "Filtrar por",
+  "none": "ninguna",
+  "not-applicable": "no aplicable"
 }

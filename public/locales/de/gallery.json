@@ -1,4 +1,7 @@
 {
-  "not-applicable": "nicht zutreffend",
-  "none": "keine"
+  "all-label-types": "Alle Beschriftungskategorien",
+  "clear-filters": "Filter löschen",
+  "filter-by": "Filtern nach",
+  "none": "keine",
+  "not-applicable": "nicht zutreffend"
 }

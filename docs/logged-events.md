@@ -74,6 +74,14 @@ vocabulary mirrors the Gallery filter events (`SeverityApply`, `TagApply`, `Vali
 `MapSidebar_NotAdminValidated_checked=<bool>`, and `MapSidebar_Open` / `MapSidebar_Close`. These fire on every page
 that renders the sidebar; use the accompanying page-visit events to segment by page.
 
+The Gallery renders the same sidebar (`gallery/src/filter/GalleryFilter.js`) and logs to `gallery_task_interaction`
+under its own names: `Filter_LabelType=<type>` for the label type, `SeverityApply` / `SeverityUnapply` with a
+`Severity:<null|1|2|3>` note, `ValidationOptionApply` / `…Unapply` with `ValidationOption:<option>`, and `TagApply` /
+`…Unapply` with `Tag:<tag>,Label_Type:<type>`. The sidebar's batch affordances add `SeverityOnly` /
+`ValidationOptionOnly` (same notes) and `SeveritySelectAll` / `SeverityDeselectAll` /
+`ValidationOptionSelectAll` / `ValidationOptionDeselectAll`. A `Filter_City=<url>` event appears only in data
+predating the switch to the navbar's city picker.
+
 The current set lives in the code — grep the controllers:
 
 ```bash
