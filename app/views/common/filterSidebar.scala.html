@@ -246,6 +246,11 @@
 
   @* Drag handle on the right edge of the sidebar for resizing. *@
   <div id="filter-sidebar-resize-handle" class="filter-sidebar__resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize legend" data-i18n-aria-label="labelmap:resize-legend"></div>
+
+  @* Floating button to reopen the sidebar when it's closed *@
+  <button type="button" id="filter-sidebar-open" class="filter-sidebar-open-btn" aria-label="Legend" data-i18n-aria-label="labelmap:legend">
+    <img src="@assets.path("images/icons/chevrons-right-feather.svg")" alt="">
+  </button>
 } else {
   @filterSections
 }
