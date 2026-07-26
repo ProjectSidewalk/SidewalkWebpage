@@ -67,15 +67,21 @@ function buildFixture() {
 
     document.body.innerHTML = `
       <div id="card-filter">
-        <section class="filter-sidebar__section" data-filter-section="label-type" data-select-mode="single">
-          <ul class="filter-sidebar__list">${typeRows}</ul>
-        </section>
+        <div class="gallery-filter-header">
+          <h4 id="filter-header">Filter By</h4>
+          <button type="button" id="clear-filters" class="button-ps button--tiny button--secondary" hidden>
+            <span aria-hidden="true">&#10006;</span><span>Clear Filters</span>
+          </button>
+        </div>
         <section class="filter-sidebar__section" data-filter-section="severity">
           <div class="filter-sidebar__heading-row">
             <h3 class="filter-sidebar__heading" data-i18n="common:severity">Severity</h3>
             <button type="button" class="filter-sidebar__deselect-all" data-section="severity">Deselect all</button>
           </div>
           <div class="filter-sidebar__severity-toggles">${severityCells}</div>
+        </section>
+        <section class="filter-sidebar__section" data-filter-section="label-type" data-select-mode="single">
+          <ul class="filter-sidebar__list">${typeRows}</ul>
         </section>
         <section class="filter-sidebar__section" data-filter-section="validations">
           <div class="filter-sidebar__heading-row">
@@ -86,8 +92,7 @@ function buildFixture() {
           </div>
           <ul class="filter-sidebar__list">${validationRows}</ul>
         </section>
-      </div>
-      <button type="button" id="clear-filters" hidden>Clear filters</button>`;
+      </div>`;
 }
 
 describe('GalleryFilter', () => {

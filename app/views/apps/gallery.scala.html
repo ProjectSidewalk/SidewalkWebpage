@@ -36,13 +36,21 @@
 
   <div id="gallery">
     <div class="sidebar">
-      @* The shared filter sidebar (#4585). Label types are single-select here: a card query fetches one type at a
-         time, so the selected type's tag drawer is the only one open. *@
+      @* The shared filter sidebar (#4585). Sections keep the LabelMap's order so the two sidebars read the same.
+         Label types are single-select here: a card query fetches one type at a time, so the selected type's tag
+         drawer is the only one open. *@
       <div id="card-filter" class="filter-sidebar--loading">
-        <h4 id="filter-header" data-i18n="gallery:filter-by">@Messages("gallery.filter.by")</h4>
+        <div class="gallery-filter-header">
+          <h4 id="filter-header" data-i18n="gallery:filter-by">@Messages("gallery.filter.by")</h4>
+          @* The global reset, distinct from the per-section "Deselect all" text actions beside it. *@
+          <button type="button" id="clear-filters" class="button-ps button--tiny button--secondary" hidden>
+            <span aria-hidden="true">&#10006;</span>
+            <span data-i18n="gallery:clear-filters">@Messages("gallery.clear.filters")</span>
+          </button>
+        </div>
         @common.filterSidebar(
           tags = allTags,
-          sections = Seq("label-type", "severity", "validations"),
+          sections = Seq("severity", "label-type", "validations"),
           withMapChrome = false,
           labelTypeSelect = "single",
           selectedLabelType = labelType,
@@ -50,7 +58,6 @@
           checkedSeverities = severities.map(s => if(s == "null") "0" else s),
           activeTags = tags
         )
-        <button type="button" id="clear-filters" data-i18n="gallery:clear-filters" hidden>&#10006; @Messages("gallery.clear.filters")</button>
       </div>
     </div>
     <div id="labels-not-found-text">
