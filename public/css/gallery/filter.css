@@ -4,7 +4,9 @@
 
 #card-filter {
   width: inherit;
-  padding: 0 5px 5px;
+
+  /* The 40px of headroom matches the map sidebar's, so the two panels start at the same distance from the navbar. */
+  padding: 40px 5px 5px;
 }
 
 .gallery-filter-header {
@@ -12,7 +14,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin: 10px 0 16px;
+  margin: 0 0 16px;
 }
 
 #filter-header {
