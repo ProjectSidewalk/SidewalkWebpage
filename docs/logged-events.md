@@ -61,7 +61,20 @@ this marks the grid actually being seen, not just the page view) and
 `label_validation` with `source = 'LandingPage'`. Opening a card's "what is this label type?" tooltip logs
 `Click_module=LandingValidationGridInfo_labelType=<type>`, once per card. Clicking a card's share chip logs
 `Click_module=LandingValidationGridShare_labelId=<id>` (surface + label attribution) alongside ShareWidget's own
-generic `Share_*` events. The current set lives in the code — grep the controllers:
+generic `Share_*` events.
+
+The shared map filter sidebar (`ps-map/MapSidebarFilter.js`, rendered on LabelMap, the admin maps, and the user
+dashboard/profile maps) logs its interactions here as the **`Click_module=MapSidebar_<Action>`** family. The `<Action>`
+vocabulary mirrors the Gallery filter events (`SeverityApply`, `TagApply`, `ValidationOptionApply`, … in
+`gallery_task_interaction`) so filter behavior can be compared across the two tools:
+`MapSidebar_SeverityApply_severity=<null|1|2|3>` / `…Unapply…`, `MapSidebar_LabelTypeApply_labelType=<type>`,
+`MapSidebar_ValidationOptionApply_option=<correct|incorrect|unsure|unvalidated>`,
+`MapSidebar_TagApply_labelType=<type>_tag=<tag>`, `MapSidebar_StreetApply_street=<audited|unaudited>` (each with an
+`Unapply` twin), `MapSidebar_SelectAll_section=<…>` / `…DeselectAll…`, `MapSidebar_Only_section=<…>_value=<…>`,
+`MapSidebar_NotAdminValidated_checked=<bool>`, and `MapSidebar_Open` / `MapSidebar_Close`. These fire on every page
+that renders the sidebar; use the accompanying page-visit events to segment by page.
+
+The current set lives in the code — grep the controllers:
 
 ```bash
 grep -rhoE 'loggingService\.insert\([^)]*"[^"]+"' app/controllers | grep -oE '"[^"]+"$' | sort -u
