@@ -62,7 +62,7 @@ describe('a Gallery card\'s location line', () => {
     });
 
     beforeEach(() => {
-        window.sg = { regionNames: { 7: 'Herrick Park' } };
+        window.sg = { regionNames: { 7: 'Herrick Park' }, tracker: { push: jest.fn() } };
     });
 
     it('names the neighborhood the label sits in', () => {
@@ -70,6 +70,18 @@ describe('a Gallery card\'s location line', () => {
 
         expect(locationLine().querySelector('.card-location__name').textContent).toBe('Herrick Park');
         expect(locationLine().title).toBe('Herrick Park');
+    });
+
+    it('links out to that neighborhood on the LabelMap, and says so to a screen reader', () => {
+        const card = renderCard();
+
+        expect(locationLine().getAttribute('href')).toBe('/labelMap?regionId=7');
+        expect(locationLine().getAttribute('aria-label')).toBe('labelmap:view-on-labelmap: Herrick Park');
+
+        locationLine().click();
+
+        expect(sg.tracker.push).toHaveBeenCalledWith('CardLocationClick', null, { Region_Id: 7 });
+        expect(card.getProperty('region_id')).toBe(7);
     });
 
     it('shows no line at all when the neighborhood is unknown', () => {

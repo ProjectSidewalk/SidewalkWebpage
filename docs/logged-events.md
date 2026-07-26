@@ -81,6 +81,8 @@ under its own names, one `<Section>Apply` / `<Section>Unapply` pair per section 
 stems — `LabelTypeOnly` / `SeverityOnly` / `ValidationOptionOnly` (same notes) and `<Section>SelectAll` /
 `<Section>DeselectAll`. Two events appear only in older data: `Filter_LabelType=<type>`, from when the Gallery showed
 one label type at a time, and `Filter_City=<url>`, from before the navbar's city picker.
+Outside the sidebar, a card's neighborhood name logs `CardLocationClick` with a `Region_Id:<id>` note when it
+takes the viewer to that neighborhood on the LabelMap.
 
 The current set lives in the code — grep the controllers:
 
