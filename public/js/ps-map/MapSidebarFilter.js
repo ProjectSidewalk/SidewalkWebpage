@@ -207,7 +207,13 @@ class MapSidebarFilter {
       typeCounts[labelType] = count;
     }
 
-    this.#filters.setCounts({ ...typeCounts, ...validationCounts });
+    // Street counts are whatever loaded — no label filter narrows a street — so they come straight off the tracker.
+    const streets = this.#mapData.streetCounts;
+    const streetCounts = streets
+      ? { 'audited-street': streets.audited, 'unaudited-street': streets.unaudited }
+      : {};
+
+    this.#filters.setCounts({ ...typeCounts, ...validationCounts, ...streetCounts });
   }
 
   /**

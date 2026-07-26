@@ -105,8 +105,12 @@ function createPSMap($, params) {
   let renderLabels;
   if (params.labelsURL) {
     const loadLabels = $.getJSON(params.labelsURL);
-    renderLabels = Promise.all([mapLoaded, renderStreets, loadLabels]).then((data) => {
-      return addLabelsToMap(map, data[2], params);
+    renderLabels = Promise.all([mapLoaded, renderStreets, loadLabels]).then(async (data) => {
+      const mapData = await addLabelsToMap(map, data[2], params);
+      // Streets carry no label filters, so their counts are settled the moment they load; park them on the tracker
+      // for the sidebar to render alongside the counts it facets itself.
+      mapData.streetCounts = data[1];
+      return mapData;
     });
   }
 

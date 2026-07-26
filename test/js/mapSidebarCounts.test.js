@@ -44,6 +44,15 @@ function buildFixture() {
           <span class="filter-sidebar__count" data-count-for="${option}"></span>
         </li>`).join('');
 
+    const streetRows = ['audited-street', 'unaudited-street'].map((id) => `
+        <li class="filter-sidebar__item">
+          <input type="checkbox" id="${id}" class="filter-sidebar__checkbox" data-filter-type="streets">
+          <label class="filter-sidebar__item-label" for="${id}">
+            <span class="filter-sidebar__item-name">${id}</span>
+          </label>
+          <span class="filter-sidebar__count" data-count-for="${id}"></span>
+        </li>`).join('');
+
     document.body.innerHTML = `
       <div id="filter-sidebar">
         <button type="button" id="filter-sidebar-close">close</button>
@@ -54,6 +63,9 @@ function buildFixture() {
         <section class="filter-sidebar__section">
           <button type="button" class="filter-sidebar__deselect-all" data-section="label-validations">Deselect all</button>
           <ul class="filter-sidebar__list">${validationRows}</ul>
+        </section>
+        <section class="filter-sidebar__section">
+          <ul class="filter-sidebar__list">${streetRows}</ul>
         </section>
       </div>
       <button type="button" id="filter-sidebar-open">open</button>
@@ -103,9 +115,10 @@ describe('MapSidebarFilter counts', () => {
     const countFor = (value) => document.querySelector(`[data-count-for="${value}"]`).textContent;
 
     /** Builds the sidebar over the fixture with a stub map. */
-    function build(labelsByType) {
+    function build(labelsByType, streetCounts = null) {
         buildFixture();
         mapData = buildMapData(labelsByType);
+        mapData.streetCounts = streetCounts;
         const map = { getLayer: () => true, easeTo: () => {}, setPadding: () => {} };
         return new window.MapSidebarFilter(map, mapData);
     }
@@ -163,6 +176,24 @@ describe('MapSidebarFilter counts', () => {
 
         expect(mapData.severities).toEqual({ 0: true, 1: true, 2: true, 3: false });
         expect(countFor('CurbRamp')).toBe('1');
+    });
+
+    it('reports the street counts the map loaded, which no label filter narrows', () => {
+        build({ CurbRamp: [label({ correct: true })] }, { audited: 1204, unaudited: 87 });
+
+        expect(countFor('audited-street')).toBe('1,204');
+        expect(countFor('unaudited-street')).toBe('87');
+
+        // Hiding every label type empties the map of labels; the streets on it are untouched.
+        document.querySelector('.filter-sidebar__deselect-all[data-section="label-type"]').click();
+
+        expect(countFor('audited-street')).toBe('1,204');
+    });
+
+    it('leaves the street slots blank on a map that loaded no streets', () => {
+        build({ CurbRamp: [label({ correct: true })] });
+
+        expect(countFor('audited-street')).toBe('');
     });
 
     it('excludes low-quality users\' labels from the counts, matching the layer filter', () => {
