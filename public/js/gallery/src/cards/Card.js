@@ -126,7 +126,7 @@ class Card {
     // Create the div to store the label type, and the neighborhood the label sits in when we know its name.
     const cardHeader = document.createElement('div');
     cardHeader.className = 'card-header';
-    cardHeader.innerHTML = `<div>${i18next.t(util.camelToKebab(this.getLabelType()))}</div>`;
+    cardHeader.innerHTML = `<div class="card-header__type">${i18next.t(util.camelToKebab(this.getLabelType()))}</div>`;
     const regionName = sg.regionNames?.[properties.region_id];
     if (regionName) {
       const location = document.createElement('div');

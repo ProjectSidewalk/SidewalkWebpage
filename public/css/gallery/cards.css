@@ -80,18 +80,26 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4vw;
   padding: 5px 5px 3px 7px;
   font: var(--text-body-bold);
   font-size: 1vw;
 }
 
-/* The neighborhood a label sits in, under its type: quieter than the type, and cut off rather than wrapped so the
-   card's height doesn't depend on how long a neighborhood's name happens to be. */
+/* The label type is what the card is about, so it keeps its width and the neighborhood beside it gives way. */
+.card-header__type {
+  flex-shrink: 0;
+}
+
+/* The neighborhood a label sits in, opposite its type: quieter than the type, and cut off rather than wrapped so a
+   long name can't push the type around or grow the card. */
 .card-location {
   display: flex;
   align-items: center;
   gap: 0.2vw;
-  margin-top: 0.1vw;
   font: var(--text-small-regular);
   font-size: 0.65vw;
   font-weight: 400;
