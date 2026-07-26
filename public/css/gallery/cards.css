@@ -85,6 +85,33 @@ with respect to the image holder. This allows the validation menu to be placed o
   font-size: 1vw;
 }
 
+/* The neighborhood a label sits in, under its type: quieter than the type, and cut off rather than wrapped so the
+   card's height doesn't depend on how long a neighborhood's name happens to be. */
+.card-location {
+  display: flex;
+  align-items: center;
+  gap: 0.2vw;
+  margin-top: 0.1vw;
+  font: var(--text-small-regular);
+  font-size: 0.65vw;
+  font-weight: 400;
+  color: var(--color-neutral-600);
+  min-width: 0;
+}
+
+.card-location__pin {
+  width: 0.75vw;
+  height: 0.75vw;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.card-location__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .card-info {
   padding-bottom: 0.5vw;
   padding-left: 0.5vw;

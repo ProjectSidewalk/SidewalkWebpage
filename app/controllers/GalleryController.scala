@@ -6,6 +6,7 @@ import formats.json.GalleryFormats._
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
 import models.label.{LabelTypeEnum, Tag}
+import models.region.Region
 import play.api.Configuration
 import play.api.i18n.Messages
 import play.api.libs.json.{JsError, JsValue, Json}
@@ -52,10 +53,12 @@ class GalleryController @Inject() (
         val labTypes: Seq[String] = labelType.split(",").map(_.trim).filter(LabelTypeEnum.validLabelTypes.contains).toSeq
 
         for {
-          possibleRegions: Seq[Int] <- regionService.getAllRegions.map(_.map(_.regionId))
-          allTags: Seq[Tag]         <- labelService.getTagsForCurrentCity
-          commonData                <- configService.getCommonPageData(request2Messages.lang)
+          regions: Seq[Region] <- regionService.getAllRegions
+          allTags: Seq[Tag]    <- labelService.getTagsForCurrentCity
+          commonData           <- configService.getCommonPageData(request2Messages.lang)
         } yield {
+          // Cards name the neighborhood a label sits in, so the page carries the id -> name map the labels key into.
+          val regionNames: Map[Int, String] = regions.map(r => r.regionId -> r.name).toMap
           // A tag only survives from the URL if it belongs to a label type being shown, in this city.
           val possibleTags: Seq[String] = allTags
             .filter(t =>
@@ -64,7 +67,7 @@ class GalleryController @Inject() (
             .map(_.tag)
 
           // Make sure that list of region IDs, severities, and validation options are formatted correctly.
-          val regionIdsList: Seq[Int]      = parseIntegerSeq(neighborhoods).filter(possibleRegions.contains)
+          val regionIdsList: Seq[Int]      = parseIntegerSeq(neighborhoods).filter(regionNames.contains)
           val validSeverities: Seq[String] = Seq("null", "1", "2", "3")
           val severityList: Seq[String]    = {
             val tokens = severities.split(",").filter(validSeverities.contains).distinct.toSeq
@@ -86,7 +89,7 @@ class GalleryController @Inject() (
 
           Ok(
             views.html.apps.gallery(commonData, Messages("seo.title.gallery"), request.identity, labTypes, allTags,
-              regionIdsList, severityList, tagList, valOptions, aiValOptions)
+              regionIdsList, regionNames, severityList, tagList, valOptions, aiValOptions)
           )
         }
       }

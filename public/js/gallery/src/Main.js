@@ -60,6 +60,9 @@ class Main {
     // Seed the all-time counts so validating a card can celebrate a newly unlocked validation badge.
     BadgeAchievements.seedCounts();
 
+    // Neighborhood names for the cards' location line, keyed by the region id each label carries.
+    sg.regionNames = params.regionNames ?? {};
+
     // Initialize functional components of UI elements.
     sg.cardFilter = new GalleryFilter(
       document.getElementById('card-filter'), document.getElementById('clear-filters'), params.initialFilters,
