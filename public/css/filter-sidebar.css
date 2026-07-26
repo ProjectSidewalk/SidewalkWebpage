@@ -139,7 +139,7 @@ body.filter-sidebar-resizing {
 /* ---- Sections ---- */
 
 .filter-sidebar__section {
-  margin-bottom: 25px;
+  margin-bottom: 20px;
 }
 
 .filter-sidebar__section:last-child {
@@ -159,7 +159,7 @@ body.filter-sidebar-resizing {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 9px;
 }
 
 .filter-sidebar__deselect-all {
@@ -199,13 +199,15 @@ body.filter-sidebar-resizing {
 
 /* ---- Checkbox list items ---- */
 
+/* Rows sit close together: each already carries 3px of vertical padding for its hover background, so the gap only
+   has to separate those bands, not the text. Rows stay 24px tall (WCAG 2.5.8) — tighten the gap, not the padding. */
 .filter-sidebar__list {
   list-style: none;
   padding: 0;
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 5px;
 }
 
 .filter-sidebar__item {
