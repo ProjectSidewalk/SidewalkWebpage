@@ -21,7 +21,6 @@ class CardContainer {
     NoSidewalk: 7,
     Crosswalk: 9,
     Signal: 10,
-    Assorted: null,
   };
 
   #uiCardContainer;
@@ -30,7 +29,7 @@ class CardContainer {
   #viewerAccessToken;
   #currUsername;
 
-  #currentLabelType;
+  #currentLabelTypes;
   #currentPage = 1;
   #lastPage = false;
   #pageNumberDisplay = null;
@@ -38,7 +37,6 @@ class CardContainer {
 
   // Map Cards to a CardBucket containing Cards of their label type.
   #cardsByType = {
-    Assorted: new CardBucket(),
     CurbRamp: new CardBucket(),
     NoCurbRamp: new CardBucket(),
     Obstacle: new CardBucket(),
@@ -70,9 +68,8 @@ class CardContainer {
     this.#viewerAccessToken = viewerAccessToken;
     this.#currUsername = currUsername;
 
-    this.#currentLabelType = initialFilters.labelType;
-    sg.neighborhoodIds = initialFilters.neighborhoods; // TODO remove when we add a UI for filtering neighborhoods.
-    sg.aiValidationOptions = initialFilters.aiValidationOptions; // TODO remove when we add UI for filtering on AI vals.
+    // The sidebar is built first and owns the filter state, so the initial selection comes from it, not the page.
+    this.#currentLabelTypes = sg.cardFilter.getStatus().currentLabelTypes;
   }
 
   /**
@@ -111,20 +108,20 @@ class CardContainer {
     sg.ui.pageControl.hide();
     sg.cardFilter.disable();
     sg.ui.cardContainer.prevPage.prop('disabled', true);
-    this.#cardsByType[this.#currentLabelType] = new CardBucket();
 
     // Grab first batch of labels to show.
+    const filters = this.#currentFilters();
     this.fetchLabels(
-      CardContainer.#labelTypeIds[this.#currentLabelType],
+      filters.typeIds,
       CardContainer.#initialLoad,
-      initialFilters.validationOptions,
+      filters.valOptions,
       Array.from(this.#loadedLabelIds),
       initialFilters.neighborhoods,
-      initialFilters.severities,
-      initialFilters.tags,
+      filters.severities,
+      filters.tagsByType,
       initialFilters.aiValidationOptions,
       () => {
-        this.#currentCards = this.#cardsByType[this.#currentLabelType].copy();
+        this.#currentCards = this.#collectCurrentCards(filters);
         this.#lastPage = this.#currentCards.getCards().length <= this.#currentPage * CardContainer.#cardsPerPage;
         this.render();
       },
@@ -227,29 +224,30 @@ class CardContainer {
   }
 
   /**
-   * Grab n assorted labels of specified label type, severities, and tags.
+   * Grab n labels of the specified label types, severities, and tags.
    *
-   * @param {*} labelTypeId Label type id specifying labels of what label type to grab.
+   * @param {number[]} labelTypeIds Label type ids specifying which types of labels to grab.
    * @param {*} n Number of labels to grab.
    * @param validationOptions List of validation options for fetched labels: correct, incorrect, and/or unvalidated.
    * @param {*} loadedLabels Label Ids of labels already grabbed.
    * @param {*} neighborhoods Region IDs the labels to be grabbed can be from (Set to undefined if N/A).
    * @param {*} severities Severities the labels to be grabbed can have (Set to undefined if N/A).
-   * @param {*} tags Tags the labels to be grabbed can have (Set to undefined if N/A).
+   * @param {object} tagsByLabelType Tags each label type is narrowed to, keyed by type name.
    * @param aiValidationOptions List of AI validation options for labels: correct, incorrect, and/or unvalidated.
    * @param {*} callback Function to be called when labels arrive.
    */
   fetchLabels(
-    labelTypeId, n, validationOptions, loadedLabels, neighborhoods, severities, tags, aiValidationOptions, callback,
+    labelTypeIds, n, validationOptions, loadedLabels, neighborhoods, severities, tagsByLabelType, aiValidationOptions,
+    callback,
   ) {
     const url = '/label/labels';
     const data = {
-      label_type_id: labelTypeId,
+      label_type_ids: labelTypeIds,
       n,
       validation_options: validationOptions,
       ...(neighborhoods !== undefined && { neighborhoods }),
       ...(severities !== undefined && { severities }),
-      ...(tags !== undefined && { tags }),
+      ...(tagsByLabelType !== undefined && { tags_by_label_type: tagsByLabelType }),
       ...(aiValidationOptions !== undefined && { ai_validation_options: aiValidationOptions }),
       loaded_labels: loadedLabels,
     };
@@ -290,12 +288,52 @@ class CardContainer {
   }
 
   /**
-   * Push a card into corresponding CardBucket in cardsOfType as well as the "Assorted" bucket.
+   * Push a card into the CardBucket of its label type.
    * @param card Card to add.
    */
   push(card) {
-    this.#cardsByType.Assorted.push(card);
     this.#cardsByType[card.getLabelType()].push(card);
+  }
+
+  /**
+   * The filters the sidebar is currently reporting, in the shape the label query takes.
+   * @returns {{types: string[], typeIds: number[], valOptions: string[], severities: (string[]|undefined),
+   *      tagsByType: object}} The current filter state.
+   */
+  #currentFilters() {
+    const types = sg.cardFilter.getStatus().currentLabelTypes;
+    // Severity is left out entirely when nothing selected can carry one — otherwise the "N/A" toggle, which those
+    // labels all fall under, would silently decide whether they show at all.
+    const anyHasSeverity = types.some((type) => util.misc.labelTypeHasSeverity(type));
+    return {
+      types,
+      typeIds: types.map((type) => CardContainer.#labelTypeIds[type]),
+      valOptions: sg.cardFilter.getAppliedValidationOptions(),
+      severities: anyHasSeverity ? sg.cardFilter.getAppliedSeverities() : undefined,
+      tagsByType: sg.cardFilter.getAppliedTagsByType(),
+    };
+  }
+
+  /**
+   * Gathers the loaded cards that pass the current filters, from every selected label type.
+   *
+   * Cards accumulate across filter changes, so this re-applies the filters the server already applied when they were
+   * fetched. Tags are per type — a curb ramp's "narrow" says nothing about an obstacle — so each type is filtered
+   * against its own.
+   *
+   * @param {object} filters The filters from #currentFilters().
+   * @returns {CardBucket} The cards to page through.
+   */
+  #collectCurrentCards({ types, valOptions, severities, tagsByType }) {
+    const bucket = new CardBucket();
+    for (const type of types) {
+      const cards = this.#cardsByType[type].copy();
+      cards.filterOnTags(type === 'Occlusion' ? undefined : tagsByType[type]); // Occlusion labels carry no tags.
+      cards.filterOnSeverities(severities);
+      cards.filterOnValidationOptions(valOptions);
+      cards.getCards().forEach((card) => bucket.push(card));
+    }
+    return bucket;
   }
 
   /**
@@ -304,35 +342,31 @@ class CardContainer {
   updateCardsNewPage() {
     this.#refreshUI();
 
-    let appliedTags = sg.cardFilter.getAppliedTagNames();
-    let appliedSeverities = sg.cardFilter.getAppliedSeverities();
-    const appliedValOptions = sg.cardFilter.getAppliedValidationOptions();
+    const filters = this.#currentFilters();
 
-    // NoSidewalk, Occlusion, and Signal don't have severity, Occlusion does not have tags.
-    if (!util.misc.labelTypeHasSeverity(this.#currentLabelType)) appliedSeverities = undefined;
-    if ('Occlusion' === this.#currentLabelType) appliedTags = undefined;
+    // With no label type selected there is nothing to ask the server for, and nothing to show.
+    if (filters.types.length === 0) {
+      this.#currentCards = new CardBucket();
+      this.#lastPage = true;
+      this.render();
+      return;
+    }
 
-    this.#currentCards = this.#cardsByType[this.#currentLabelType].copy();
-    this.#currentCards.filterOnTags(appliedTags);
-    this.#currentCards.filterOnSeverities(appliedSeverities);
-    this.#currentCards.filterOnValidationOptions(appliedValOptions);
+    this.#currentCards = this.#collectCurrentCards(filters);
 
     if (this.#currentCards.getSize() < CardContainer.#cardsPerPage * this.#currentPage + 1) {
       // When we don't have enough cards of specific query to show on one page, see if more can be grabbed.
       this.fetchLabels(
-        CardContainer.#labelTypeIds[this.#currentLabelType],
+        filters.typeIds,
         CardContainer.#cardsPerPage * 2,
-        appliedValOptions,
+        filters.valOptions,
         Array.from(this.#loadedLabelIds),
         this.#initialFilters.neighborhoods,
-        appliedSeverities,
-        appliedTags,
+        filters.severities,
+        filters.tagsByType,
         this.#initialFilters.aiValidationOptions,
         () => {
-          this.#currentCards = this.#cardsByType[this.#currentLabelType].copy();
-          this.#currentCards.filterOnTags(appliedTags);
-          this.#currentCards.filterOnSeverities(appliedSeverities);
-          this.#currentCards.filterOnValidationOptions(appliedValOptions);
+          this.#currentCards = this.#collectCurrentCards(filters);
           this.#lastPage = this.#currentCards.getCards().length <= this.#currentPage * CardContainer.#cardsPerPage;
           this.render();
         },
@@ -347,10 +381,10 @@ class CardContainer {
    * When a filter is updated; update which Cards are shown.
    */
   updateCardsByFilter() {
-    // Only need to refresh UI if label type changed, since the tags are swapped out.
-    const newLabelType = sg.cardFilter.getStatus().currentLabelType;
-    if (this.#currentLabelType !== newLabelType) {
-      this.#currentLabelType = newLabelType;
+    const newLabelTypes = sg.cardFilter.getStatus().currentLabelTypes;
+    // Only need to refresh UI if the label types changed, since the tags are swapped out.
+    if (newLabelTypes.join() !== this.#currentLabelTypes.join()) {
+      this.#currentLabelTypes = newLabelTypes;
       this.#refreshUI();
     }
 
@@ -432,15 +466,6 @@ class CardContainer {
    */
   clearCurrentCards() {
     this.#currentCards = new CardBucket();
-  }
-
-  /**
-   * Flush all Cards from cardsOfType.
-   */
-  clearCards() {
-    for (const labelType of this.#cardsByType) {
-      this.#cardsByType[labelType] = null;
-    }
   }
 
   /**

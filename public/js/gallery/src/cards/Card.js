@@ -123,10 +123,38 @@ class Card {
     const cardInfo = document.createElement('div');
     cardInfo.className = 'card-info';
 
-    // Create the div to store the label type.
+    // Create the div to store the label type, and the neighborhood the label sits in when we know its name.
     const cardHeader = document.createElement('div');
     cardHeader.className = 'card-header';
-    cardHeader.innerHTML = `<div>${i18next.t(util.camelToKebab(this.getLabelType()))}</div>`;
+    cardHeader.innerHTML = `<div class="card-header__type">${i18next.t(util.camelToKebab(this.getLabelType()))}</div>`;
+    const regionName = sg.regionNames?.[properties.region_id];
+    if (regionName) {
+      // The name is a way out to this label on the LabelMap — the same ?labelId= deep link the expanded view's
+      // "View on Label Map" uses. Same tab: the Gallery keeps its filters in the URL, so Back returns to this
+      // grid intact.
+      const location = document.createElement('a');
+      location.className = 'card-location';
+      location.href = `/labelMap?labelId=${properties.label_id}`;
+      location.title = i18next.t('labelmap:open-label-on-labelmap');
+      // The visible text is the neighborhood, so the accessible name leads with it (WCAG 2.5.3) and the promise
+      // the sighted user gets on hover follows.
+      location.setAttribute('aria-label', `${regionName}: ${i18next.t('labelmap:open-label-on-labelmap')}`);
+      location.addEventListener('click', () => {
+        sg.tracker?.push('CardLocationClick', null, {
+          Label_Id: properties.label_id,
+          Region_Id: properties.region_id,
+        });
+      });
+      const pin = document.createElement('img');
+      pin.className = 'card-location__pin';
+      pin.src = '/assets/images/icons/map-pin-feather.svg';
+      pin.alt = '';
+      const name = document.createElement('span');
+      name.className = 'card-location__name';
+      name.textContent = regionName; // Set as text, not markup: neighborhood names are city data, not ours.
+      location.append(pin, name);
+      cardHeader.appendChild(location);
+    }
     cardInfo.appendChild(cardHeader);
 
     // Create the div that will hold the severity and tags.

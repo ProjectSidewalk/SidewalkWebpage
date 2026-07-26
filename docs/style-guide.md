@@ -135,7 +135,7 @@ consistent with it.
 **Naming conventions:**
 
 - **Directories → kebab-case**, always (`user-dashboard/`, `ps-map/`, `label-detail/`).
-- **CSS files → kebab-case**, always (`labeling-guide.css`, `user-profile.css`, `map-sidebar.css`).
+- **CSS files → kebab-case**, always (`labeling-guide.css`, `user-profile.css`, `filter-sidebar.css`).
 - **JS files → Airbnb "filename matches what it defines":** **PascalCase** for a file that defines a
   class/constructor (`AppManager.js`, `LabelPopup.js`, `GsvViewer.js`), **camelCase** for a function/utility/entry
   file (`main.js`, `aggregateStats.js`, `timestampLocalization.js`). Kebab-case is **not** used for JS files.

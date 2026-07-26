@@ -74,6 +74,16 @@ vocabulary mirrors the Gallery filter events (`SeverityApply`, `TagApply`, `Vali
 `MapSidebar_NotAdminValidated_checked=<bool>`, and `MapSidebar_Open` / `MapSidebar_Close`. These fire on every page
 that renders the sidebar; use the accompanying page-visit events to segment by page.
 
+The Gallery renders the same sidebar (`gallery/src/filter/GalleryFilter.js`) and logs to `gallery_task_interaction`
+under its own names, one `<Section>Apply` / `<Section>Unapply` pair per section with the toggled value in the notes:
+`LabelTypeApply` with `Label_Type:<type>`, `SeverityApply` with `Severity:<null|1|2|3>`, `ValidationOptionApply` with
+`ValidationOption:<option>`, and `TagApply` with `Tag:<tag>,Label_Type:<type>`. The batch affordances follow the same
+stems — `LabelTypeOnly` / `SeverityOnly` / `ValidationOptionOnly` (same notes) and `<Section>SelectAll` /
+`<Section>DeselectAll`. Two events appear only in older data: `Filter_LabelType=<type>`, from when the Gallery showed
+one label type at a time, and `Filter_City=<url>`, from before the navbar's city picker.
+Outside the sidebar, a card's neighborhood name logs `CardLocationClick` with a `Region_Id:<id>` note when it
+takes the viewer to that neighborhood on the LabelMap.
+
 The current set lives in the code — grep the controllers:
 
 ```bash

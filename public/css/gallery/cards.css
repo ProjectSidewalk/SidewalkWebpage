@@ -80,9 +80,73 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .card-header {
+  display: flex;
+
+  /* Baseline, not centered: the two sit at different sizes, so lining up the text they sit on reads as one line. */
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4vw;
   padding: 5px 5px 3px 7px;
   font: var(--text-body-bold);
   font-size: 1vw;
+}
+
+/* The label type is what the card is about, so it keeps its width and the neighborhood beside it gives way. */
+.card-header__type {
+  flex-shrink: 0;
+  line-height: 1.2; /* Tokens carry a fixed line-height, which the vw font sizes here would otherwise pad out. */
+}
+
+/* The neighborhood a label sits in, opposite its type: quieter than the type, and cut off rather than wrapped so a
+   long name can't push the type around or grow the card. */
+.card-location {
+  display: flex;
+
+  /* The pin's bottom edge is its baseline, so baseline alignment stands it on the text's baseline. */
+  align-items: baseline;
+  gap: 0.2vw;
+  font: var(--text-small-regular);
+  font-size: 0.72vw;
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--color-neutral-600);
+  min-width: 0;
+  text-decoration: none;
+}
+
+.card-location:hover,
+.card-location:focus-visible {
+  color: var(--color-asphalt-500);
+  text-decoration: underline;
+}
+
+.card-location:focus-visible {
+  outline: 2px solid var(--color-asphalt-400);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Sized in em so the pin tracks the name's size, and near the name's cap height rather than its full em box —
+   a glyph fills only ~0.7em of that box, so a 1em pin reads as oversized next to the text. */
+.card-location__pin {
+  width: 0.85em;
+  height: 0.85em;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+/* A validated card takes the verdict's color across the whole info band, where the muted grey washes out. The line
+   falls back to the same ink as the severity and tags beside it, which that band is already built to carry. */
+.validate-agree .card-location,
+.validate-disagree .card-location,
+.validate-unsure .card-location {
+  color: inherit;
+}
+
+.card-location__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .card-info {
