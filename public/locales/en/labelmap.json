@@ -29,6 +29,7 @@
   "tags-tooltip": "Attributes the labeler applied to describe the problem",
   "view-on-labelmap": "View on Label Map",
   "view-on-labelmap-brief": "Label Map",
+  "open-label-on-labelmap": "Open this label on the Label Map",
   "image-date": "Image",
   "no-comments-yet": "No comments yet",
   "why-disagree": "Tell us why you disagree…",

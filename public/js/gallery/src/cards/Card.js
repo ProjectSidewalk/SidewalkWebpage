@@ -129,15 +129,21 @@ class Card {
     cardHeader.innerHTML = `<div class="card-header__type">${i18next.t(util.camelToKebab(this.getLabelType()))}</div>`;
     const regionName = sg.regionNames?.[properties.region_id];
     if (regionName) {
-      // The name is a way out to the neighborhood on the LabelMap. Same tab, matching the expanded view's own
-      // "View on Label Map": the Gallery keeps its filters in the URL, so Back returns to this grid intact.
+      // The name is a way out to this label on the LabelMap — the same ?labelId= deep link the expanded view's
+      // "View on Label Map" uses. Same tab: the Gallery keeps its filters in the URL, so Back returns to this
+      // grid intact.
       const location = document.createElement('a');
       location.className = 'card-location';
-      location.href = `/labelMap?regionId=${properties.region_id}`;
-      location.title = regionName; // Names are ellipsized to the card's width; hovering gives the whole one.
-      location.setAttribute('aria-label', `${i18next.t('labelmap:view-on-labelmap')}: ${regionName}`);
+      location.href = `/labelMap?labelId=${properties.label_id}`;
+      location.title = i18next.t('labelmap:open-label-on-labelmap');
+      // The visible text is the neighborhood, so the accessible name leads with it (WCAG 2.5.3) and the promise
+      // the sighted user gets on hover follows.
+      location.setAttribute('aria-label', `${regionName}: ${i18next.t('labelmap:open-label-on-labelmap')}`);
       location.addEventListener('click', () => {
-        sg.tracker?.push('CardLocationClick', null, { Region_Id: properties.region_id });
+        sg.tracker?.push('CardLocationClick', null, {
+          Label_Id: properties.label_id,
+          Region_Id: properties.region_id,
+        });
       });
       const pin = document.createElement('img');
       pin.className = 'card-location__pin';

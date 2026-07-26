@@ -208,7 +208,7 @@
       createPSMap($, params).then(m => {
         self.map = m[0];
         self.mapData = m[4];
-        // A ?regionId= link (e.g. a Gallery card's neighborhood) lands framed on that neighborhood.
+        // A ?regionId= link lands framed on that neighborhood, as it already does on the user dashboard's map.
         setRegionFocus(self.map);
         new MapSidebarFilter(self.map, self.mapData, { highQualityFilter: true });
         // Popup arrows step through spatially nearby labels using the already-loaded map data.

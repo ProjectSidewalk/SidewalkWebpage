@@ -69,18 +69,24 @@ describe('a Gallery card\'s location line', () => {
         renderCard();
 
         expect(locationLine().querySelector('.card-location__name').textContent).toBe('Herrick Park');
-        expect(locationLine().title).toBe('Herrick Park');
     });
 
-    it('links out to that neighborhood on the LabelMap, and says so to a screen reader', () => {
+    it('promises on hover where the click leads', () => {
+        renderCard();
+
+        expect(locationLine().title).toBe('labelmap:open-label-on-labelmap');
+    });
+
+    it('links out to this label on the LabelMap, and says so to a screen reader', () => {
         const card = renderCard();
 
-        expect(locationLine().getAttribute('href')).toBe('/labelMap?regionId=7');
-        expect(locationLine().getAttribute('aria-label')).toBe('labelmap:view-on-labelmap: Herrick Park');
+        expect(locationLine().getAttribute('href')).toBe('/labelMap?labelId=1');
+        // The accessible name leads with the visible text, per WCAG 2.5.3.
+        expect(locationLine().getAttribute('aria-label')).toBe('Herrick Park: labelmap:open-label-on-labelmap');
 
         locationLine().click();
 
-        expect(sg.tracker.push).toHaveBeenCalledWith('CardLocationClick', null, { Region_Id: 7 });
+        expect(sg.tracker.push).toHaveBeenCalledWith('CardLocationClick', null, { Label_Id: 1, Region_Id: 7 });
         expect(card.getProperty('region_id')).toBe(7);
     });
 
