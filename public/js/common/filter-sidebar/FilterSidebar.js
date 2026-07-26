@@ -12,10 +12,7 @@
  *
  * Sections are discovered from the markup: every `input[data-filter-type="<section>"]` belongs to that section, and
  * the severity toggles form a section of their own ("severity") because they're buttons rather than checkboxes.
- *
- * A section marked `data-select-mode="single"` holds radios instead of checkboxes, so exactly one option is on at a
- * time — what the Gallery needs, since its card query fetches one label type at a time. Exclusivity there is the
- * browser's job, not ours; this class only adds what radios don't know about, namely the tag drawers.
+
  */
 class FilterSidebar {
   /** Section name for the severity toggles, which are buttons rather than checkboxes. */
@@ -164,8 +161,7 @@ class FilterSidebar {
 
   /**
    * Binds every option control, in whatever section it belongs to. Bound to `change` rather than `click` so that
-   * re-picking the already-selected radio of a single-choice section stays silent — nothing about the filter moved,
-   * and a host would otherwise refetch for it.
+   * only a control whose state actually moved reports one — a host refetches on the strength of these.
    */
   #initOptionCheckboxes() {
     this.#root.querySelectorAll('input[data-filter-type]').forEach((cb) => {
@@ -173,39 +169,12 @@ class FilterSidebar {
         const section = cb.dataset.filterType;
         const value = FilterSidebar.#valueOf(cb);
         // Hiding a label type drops its tag filters: a tag narrows a type that is being shown, so keeping them would
-        // leave an invisible constraint waiting to surprise the user when they turn the type back on. Single-select
-        // switches types rather than hiding one, so the same reasoning drops the tags of every type left behind.
-        if (section === 'label-type') {
-          if (this.isSingleSelect(section)) this.#focusLabelType(value);
-          else if (!cb.checked) this.clearTags(value);
-        }
+        // leave an invisible constraint waiting to surprise the user when they turn the type back on.
+        if (section === 'label-type' && !cb.checked) this.clearTags(value);
         this.#syncSectionAction(section);
         this.#onChange({ kind: 'option', section, value, checked: cb.checked });
       });
     });
-  }
-
-  /**
-   * Returns whether a section holds a single-choice group (radios) rather than independent checkboxes.
-   * @param {string} section The section name.
-   * @returns {boolean} Whether the section is single-select.
-   */
-  isSingleSelect(section) {
-    return this.#root.querySelector(`[data-filter-section="${section}"]`)?.dataset.selectMode === 'single';
-  }
-
-  /**
-   * Narrows the sidebar to one label type: only its tag drawer stays open, and the other types' tags are dropped so
-   * that switching to one of them arrives unfiltered rather than pre-narrowed by an invisible constraint.
-   * @param {string} labelType The label type now selected.
-   */
-  #focusLabelType(labelType) {
-    for (const cb of this.#optionsIn('label-type')) {
-      const value = FilterSidebar.#valueOf(cb);
-      if (value !== labelType) this.clearTags(value);
-      const item = cb.closest('.filter-sidebar__item');
-      if (item) this.#setDrawer(item, value === labelType);
-    }
   }
 
   /**
@@ -278,20 +247,7 @@ class FilterSidebar {
       // glyph would claim the type is unfiltered while the tag filter is still narrowing it.
       this.#syncPartialGlyph(value);
     });
-    if (section === 'label-type' && this.isSingleSelect(section)) {
-      this.#focusLabelType(this.selectedIn(section));
-    }
     this.#syncSectionAction(section);
-  }
-
-  /**
-   * The selected value of a single-choice section.
-   * @param {string} section The section name.
-   * @returns {?string} The checked control's value, or null when the section has none.
-   */
-  selectedIn(section) {
-    const checked = this.#optionsIn(section).find((cb) => cb.checked);
-    return checked ? FilterSidebar.#valueOf(checked) : null;
   }
 
   /** Binds the chevrons that expand and collapse a label type's tag drawer. */
@@ -317,7 +273,6 @@ class FilterSidebar {
         const typeTurnedOn = Boolean(checked && cb && !cb.checked);
         if (typeTurnedOn) {
           cb.checked = true;
-          if (this.isSingleSelect('label-type')) this.#focusLabelType(labelType);
           this.#syncSectionAction('label-type');
         }
 

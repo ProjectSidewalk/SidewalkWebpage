@@ -3,7 +3,7 @@
 @import service.CommonPageData
 @import models.pano.PanoSource
 @import models.label.Tag
-@(commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, labelType: String,
+@(commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, labelTypes: Seq[String],
   allTags: Seq[Tag], regionIds: Seq[Int], severities: Seq[String], tags: List[String],
   valOptions: Seq[String], aiValOptions: Seq[String]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
@@ -52,8 +52,7 @@
           tags = allTags,
           sections = Seq("severity", "label-type", "validations"),
           withMapChrome = false,
-          labelTypeSelect = "single",
-          selectedLabelType = labelType,
+          checkedLabelTypes = labelTypes,
           checkedValidations = valOptions,
           checkedSeverities = severities.map(s => if(s == "null") "0" else s),
           activeTags = tags
@@ -86,13 +85,10 @@
       // URL for where to send interaction data
       params.dataStoreUrl = '@routes.GalleryController.post';
 
-      // Initial set of sidebar filters.
+      @* The filters with controls of their own are read off the rendered sidebar; these two have no UI yet, so the
+         page carries them through for the card query and the URL. *@
       params.initialFilters = {
-        labelType: '@labelType',
         neighborhoods: @{regionIds.mkString("[", ",", "]")},
-        severities: @{if (severities.isEmpty) "[]" else Html(severities.mkString("['", "','", "']"))},
-        validationOptions: @{if (valOptions.isEmpty) "[]" else Html(valOptions.mkString("['", "','", "']"))},
-        tags: @{if (tags.isEmpty) "[]" else Html(tags.mkString("['", "','", "']"))},
         aiValidationOptions: @{if (aiValOptions.isEmpty) "[]" else Html(aiValOptions.mkString("['", "','", "']"))}
       }
 

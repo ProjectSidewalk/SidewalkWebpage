@@ -17,27 +17,29 @@ const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js');
 const FILTER_SIDEBAR_SRC = fs.readFileSync(path.join(SRC_DIR, 'common/filter-sidebar/FilterSidebar.js'), 'utf8');
 const GALLERY_FILTER_SRC = fs.readFileSync(path.join(SRC_DIR, 'gallery/src/filter/GalleryFilter.js'), 'utf8');
 
-const LABEL_TYPES = ['CurbRamp', 'Obstacle', 'NoSidewalk'];
+const LABEL_TYPES = ['CurbRamp', 'Crosswalk', 'Obstacle', 'NoSidewalk'];
 const VALIDATIONS = ['correct', 'incorrect', 'unsure', 'unvalidated'];
 const DEFAULT_VALIDATIONS = ['correct', 'unvalidated'];
 
-/** Builds the sidebar markup the Gallery renders: single-select label types, severity toggles, validations. */
+/** Builds the sidebar markup the Gallery renders: label types, severity toggles, validations. */
 function buildFixture() {
-    const typeRows = ['Assorted', ...LABEL_TYPES].map((type) => `
+    const typeRows = LABEL_TYPES.map((type) => `
         <li class="filter-sidebar__item filter-sidebar__item--expandable">
           <div class="filter-sidebar__item-row">
-            <input type="radio" id="${type}-checkbox" class="filter-sidebar__checkbox" name="label-type"
-                   ${type === 'Assorted' ? 'checked' : ''} data-filter-type="label-type">
+            <input type="checkbox" id="${type}-checkbox" class="filter-sidebar__checkbox" checked
+                   data-filter-type="label-type">
             <label class="filter-sidebar__item-label" for="${type}-checkbox">
               <span class="filter-sidebar__item-name">${type}</span>
             </label>
+            <button type="button" class="filter-sidebar__only" data-section="label-type" data-value="${type}">
+              Only
+            </button>
           </div>
-          ${type === 'Assorted' ? '' : `
-            <div class="filter-sidebar__tag-pills" hidden>
-              <button type="button" class="tag-pill" data-tag="${type.toLowerCase()}-tag" data-label-type="${type}">
-                <span class="tag-pill__label">tag</span>
-              </button>
-            </div>`}
+          <div class="filter-sidebar__tag-pills" hidden>
+            <button type="button" class="tag-pill" data-tag="${type.toLowerCase()}-tag" data-label-type="${type}">
+              <span class="tag-pill__label">tag</span>
+            </button>
+          </div>
         </li>`).join('');
 
     const severityCells = [0, 1, 2, 3].map((severity) => `
@@ -80,7 +82,11 @@ function buildFixture() {
           </div>
           <div class="filter-sidebar__severity-toggles">${severityCells}</div>
         </section>
-        <section class="filter-sidebar__section" data-filter-section="label-type" data-select-mode="single">
+        <section class="filter-sidebar__section" data-filter-section="label-type">
+          <div class="filter-sidebar__heading-row">
+            <h3 class="filter-sidebar__heading">Label Type</h3>
+            <button type="button" class="filter-sidebar__deselect-all" data-section="label-type">Deselect all</button>
+          </div>
           <ul class="filter-sidebar__list">${typeRows}</ul>
         </section>
         <section class="filter-sidebar__section" data-filter-section="validations">
@@ -100,8 +106,10 @@ describe('GalleryFilter', () => {
 
     /** @returns {string} The path + query the page has pushed to the address bar. */
     const currentUrl = () => window.location.pathname + window.location.search;
-    /** @returns {HTMLInputElement} A label type's radio. */
-    const typeRadio = (type) => document.querySelector(`#${type}-checkbox`);
+    /** @returns {HTMLInputElement} A label type's checkbox. */
+    const typeBox = (type) => document.querySelector(`#${type}-checkbox`);
+    /** @returns {HTMLElement} A label type's single tag pill. */
+    const tagPill = (type) => document.querySelector(`.tag-pill[data-label-type="${type}"]`);
     /** @returns {HTMLElement} A severity toggle. */
     const sevBtn = (severity) => document.querySelector(`.severity-button[data-severity="${severity}"]`);
     /** @returns {HTMLElement} The severity section. */
@@ -117,7 +125,7 @@ describe('GalleryFilter', () => {
     function build(initialFilters = {}) {
         buildFixture();
         return new window.GalleryFilter(document.getElementById('card-filter'), clearBtn(), {
-            labelType: 'Assorted', neighborhoods: [], aiValidationOptions: [], ...initialFilters,
+            neighborhoods: [], aiValidationOptions: [], ...initialFilters,
         });
     }
 
@@ -152,23 +160,40 @@ describe('GalleryFilter', () => {
         it('leaves the URL bare while every filter is at its default', () => {
             expect(currentUrl()).toBe('/gallery');
             expect(clearBtn().hidden).toBe(true);
+            expect(filter.getStatus().currentLabelTypes).toEqual(LABEL_TYPES);
         });
 
-        it('names the label type it switches to, and refetches the cards', () => {
-            typeRadio('Obstacle').click();
+        it('names the types that are left once the selection narrows, and refetches the cards', () => {
+            typeBox('NoSidewalk').click();
 
-            expect(currentUrl()).toBe('/gallery?labelType=Obstacle');
-            expect(filter.getStatus().currentLabelType).toBe('Obstacle');
+            expect(currentUrl()).toBe('/gallery?labelType=CurbRamp,Crosswalk,Obstacle');
+            expect(filter.getStatus().currentLabelTypes).toEqual(['CurbRamp', 'Crosswalk', 'Obstacle']);
             expect(sg.cardContainer.updateCardsByFilter).toHaveBeenCalled();
             expect(clearBtn().hidden).toBe(false);
         });
 
-        it('carries the tags of the selected type, spelled out unencoded', () => {
-            typeRadio('Obstacle').click();
-            document.querySelector('.tag-pill[data-label-type="Obstacle"]').click();
+        it('goes back to a bare URL when every type is checked again', () => {
+            typeBox('NoSidewalk').click();
+            typeBox('NoSidewalk').click();
 
-            expect(currentUrl()).toBe('/gallery?labelType=Obstacle&tags=obstacle-tag');
-            expect(filter.getAppliedTagNames()).toEqual(['obstacle-tag']);
+            expect(currentUrl()).toBe('/gallery');
+        });
+
+        it('narrows to one type on "Only"', () => {
+            document.querySelector('.filter-sidebar__only[data-section="label-type"][data-value="Obstacle"]').click();
+
+            expect(currentUrl()).toBe('/gallery?labelType=Obstacle');
+        });
+
+        it('keeps each type\'s tags to itself, and lists them all in the URL', () => {
+            tagPill('Obstacle').click();
+            tagPill('CurbRamp').click();
+
+            expect(filter.getAppliedTagsByType()).toEqual({
+                CurbRamp: ['curbramp-tag'], Crosswalk: [], Obstacle: ['obstacle-tag'], NoSidewalk: [],
+            });
+            expect(filter.getAppliedTagNames()).toEqual(['curbramp-tag', 'obstacle-tag']);
+            expect(currentUrl()).toBe('/gallery?tags=curbramp-tag,obstacle-tag');
         });
 
         it('lists the severities that are left, with "null" for the N/A bucket', () => {
@@ -195,14 +220,17 @@ describe('GalleryFilter', () => {
     });
 
     describe('the severity block', () => {
-        it('disappears for a label type that carries no rating', () => {
-            typeRadio('NoSidewalk').click();
+        /** Leaves only the named types checked. */
+        const selectOnly = (...types) => LABEL_TYPES.filter((t) => !types.includes(t)).forEach((t) => typeBox(t).click());
+
+        it('disappears when nothing selected carries a rating', () => {
+            selectOnly('NoSidewalk');
 
             expect(severitySection().hidden).toBe(true);
         });
 
-        it('reads as "Quality" for a positive type, with that type\'s smileys and level names', () => {
-            typeRadio('CurbRamp').click();
+        it('reads as "Quality" when every rated type reads that way, with those smileys and level names', () => {
+            selectOnly('CurbRamp', 'Crosswalk');
 
             const heading = severitySection().querySelector('.filter-sidebar__heading');
             expect(heading.textContent).toBe('common:quality');
@@ -211,27 +239,34 @@ describe('GalleryFilter', () => {
             expect(sevBtn(3).querySelector('.severity-button__icon').src).toContain('sev-3-positive-filled.svg');
         });
 
-        it('reads as "Severity" for a negative type', () => {
-            typeRadio('CurbRamp').click();
-            typeRadio('Obstacle').click();
+        it('falls back to the neutral wording when the selection mixes directions', () => {
+            selectOnly('CurbRamp', 'Obstacle');
 
             expect(severitySection().hidden).toBe(false);
             expect(severitySection().querySelector('.filter-sidebar__heading').textContent).toBe('common:severity');
             expect(sevBtn(3).querySelector('.severity-button__label').textContent).toBe('common:high');
+            expect(sevBtn(3).querySelector('.severity-button__icon').src).toContain('sev-3-negative-filled.svg');
+        });
+
+        it('ignores the types with no rating when deciding which way to read', () => {
+            selectOnly('CurbRamp', 'NoSidewalk');
+
+            expect(severitySection().hidden).toBe(false);
+            expect(severitySection().querySelector('.filter-sidebar__heading').textContent).toBe('common:quality');
         });
 
         it('leaves a deselected toggle looking deselected when the icon set changes', () => {
             sevBtn(2).click();
-            typeRadio('CurbRamp').click();
+            selectOnly('CurbRamp');
 
             expect(sevBtn(2).querySelector('.severity-button__icon').src).toContain('sev-2-positive.svg');
         });
     });
 
     describe('logging', () => {
-        it('logs each kind of filter interaction under its existing event name', () => {
-            typeRadio('Obstacle').click();
-            expect(sg.tracker.push).toHaveBeenCalledWith('Filter_LabelType=Obstacle');
+        it('logs each kind of filter interaction under its section\'s event name', () => {
+            typeBox('Obstacle').click();
+            expect(sg.tracker.push).toHaveBeenCalledWith('LabelTypeUnapply', null, { Label_Type: 'Obstacle' });
 
             sevBtn(0).click();
             expect(sg.tracker.push).toHaveBeenCalledWith('SeverityUnapply', null, { Severity: 'null' });
@@ -240,7 +275,7 @@ describe('GalleryFilter', () => {
             expect(sg.tracker.push)
                 .toHaveBeenCalledWith('ValidationOptionApply', null, { ValidationOption: 'incorrect' });
 
-            document.querySelector('.tag-pill[data-label-type="Obstacle"]').click();
+            tagPill('Obstacle').click();
             expect(sg.tracker.push)
                 .toHaveBeenCalledWith('TagApply', null, { Tag: 'obstacle-tag', Label_Type: 'Obstacle' });
         });
@@ -251,20 +286,23 @@ describe('GalleryFilter', () => {
 
             document.querySelector('.filter-sidebar__deselect-all[data-section="label-validations"]').click();
             expect(sg.tracker.push).toHaveBeenCalledWith('ValidationOptionSelectAll');
+
+            document.querySelector('.filter-sidebar__deselect-all[data-section="label-type"]').click();
+            expect(sg.tracker.push).toHaveBeenCalledWith('LabelTypeDeselectAll');
         });
     });
 
     describe('clearing', () => {
         it('puts every filter back to its default', () => {
-            typeRadio('Obstacle').click();
-            document.querySelector('.tag-pill[data-label-type="Obstacle"]').click();
+            typeBox('Obstacle').click();
+            tagPill('CurbRamp').click();
             sevBtn(1).click();
             document.querySelector('#unsure').click();
             expect(currentUrl()).not.toBe('/gallery');
 
             clearBtn().click();
 
-            expect(filter.getStatus().currentLabelType).toBe('Assorted');
+            expect(filter.getStatus().currentLabelTypes).toEqual(LABEL_TYPES);
             expect(filter.getAppliedSeverities()).toEqual(['null', '1', '2', '3']);
             expect(filter.getAppliedValidationOptions()).toEqual(DEFAULT_VALIDATIONS);
             expect(filter.getAppliedTagNames()).toEqual([]);
@@ -277,12 +315,12 @@ describe('GalleryFilter', () => {
         it('blocks and restores interaction while cards load', () => {
             filter.disable();
             expect(document.getElementById('card-filter').classList.contains('filter-sidebar--loading')).toBe(true);
-            expect(typeRadio('Obstacle').disabled).toBe(true);
+            expect(typeBox('Obstacle').disabled).toBe(true);
 
             filter.enable();
 
             expect(document.getElementById('card-filter').classList.contains('filter-sidebar--loading')).toBe(false);
-            expect(typeRadio('Obstacle').disabled).toBe(false);
+            expect(typeBox('Obstacle').disabled).toBe(false);
         });
     });
 });

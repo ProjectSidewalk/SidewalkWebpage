@@ -75,12 +75,12 @@ vocabulary mirrors the Gallery filter events (`SeverityApply`, `TagApply`, `Vali
 that renders the sidebar; use the accompanying page-visit events to segment by page.
 
 The Gallery renders the same sidebar (`gallery/src/filter/GalleryFilter.js`) and logs to `gallery_task_interaction`
-under its own names: `Filter_LabelType=<type>` for the label type, `SeverityApply` / `SeverityUnapply` with a
-`Severity:<null|1|2|3>` note, `ValidationOptionApply` / `…Unapply` with `ValidationOption:<option>`, and `TagApply` /
-`…Unapply` with `Tag:<tag>,Label_Type:<type>`. The sidebar's batch affordances add `SeverityOnly` /
-`ValidationOptionOnly` (same notes) and `SeveritySelectAll` / `SeverityDeselectAll` /
-`ValidationOptionSelectAll` / `ValidationOptionDeselectAll`. A `Filter_City=<url>` event appears only in data
-predating the switch to the navbar's city picker.
+under its own names, one `<Section>Apply` / `<Section>Unapply` pair per section with the toggled value in the notes:
+`LabelTypeApply` with `Label_Type:<type>`, `SeverityApply` with `Severity:<null|1|2|3>`, `ValidationOptionApply` with
+`ValidationOption:<option>`, and `TagApply` with `Tag:<tag>,Label_Type:<type>`. The batch affordances follow the same
+stems — `LabelTypeOnly` / `SeverityOnly` / `ValidationOptionOnly` (same notes) and `<Section>SelectAll` /
+`<Section>DeselectAll`. Two events appear only in older data: `Filter_LabelType=<type>`, from when the Gallery showed
+one label type at a time, and `Filter_City=<url>`, from before the navbar's city picker.
 
 The current set lives in the code — grep the controllers:
 

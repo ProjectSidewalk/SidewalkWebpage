@@ -9,9 +9,6 @@
  * The map's adapter (MapSidebarFilter) is the sibling of this class: same controls, a different way to apply them.
  */
 class GalleryFilter {
-  /** The label type meaning "all of them", which the sidebar renders as the first row. */
-  static DEFAULT_LABEL_TYPE = 'Assorted';
-
   /** Validation options shown by default, matching the `/gallery` route's default query param. */
   static #DEFAULT_VALIDATIONS = ['correct', 'unvalidated'];
 
@@ -21,7 +18,7 @@ class GalleryFilter {
   #sidebar;
   /** @type {HTMLElement} */
   #clearButton;
-  /** @type {{currentLabelType: string}} */
+  /** @type {{currentLabelTypes: string[]}} */
   #status;
   /** @type {object} Filters with no UI of their own, carried through so the URL keeps reporting them. */
   #initialFilters;
@@ -35,9 +32,10 @@ class GalleryFilter {
     this.#root = root;
     this.#clearButton = clearButton;
     this.#initialFilters = initialFilters;
-    this.#status = { currentLabelType: initialFilters.labelType };
+    this.#status = { currentLabelTypes: [] };
 
     this.#sidebar = new FilterSidebar(root, { onChange: (change) => this.#onChange(change) });
+    this.#status.currentLabelTypes = this.#selectedLabelTypes();
 
     this.#clearButton.addEventListener('click', () => {
       this.clearFilters();
@@ -59,40 +57,51 @@ class GalleryFilter {
 
   /** Pulls the cards and the URL back in line with the sidebar. */
   update() {
-    const selected = this.#sidebar.selectedIn('label-type') ?? GalleryFilter.DEFAULT_LABEL_TYPE;
-    if (selected !== this.#status.currentLabelType) {
-      this.#status.currentLabelType = selected;
+    const selected = this.#selectedLabelTypes();
+    if (selected.join() !== this.#status.currentLabelTypes.join()) {
+      this.#status.currentLabelTypes = selected;
       this.#renderSeverity();
     }
     sg.cardContainer.updateCardsByFilter();
     this.#updateURL();
   }
 
+  /** @returns {string[]} The label types currently checked, in the sidebar's order. */
+  #selectedLabelTypes() {
+    return this.#sidebar.getState().sections['label-type'] ?? [];
+  }
+
   /**
-   * Rebuilds the severity block for the current label type: hidden for the types that carry no rating, headed
-   * "Quality" for the positive types (a curb ramp's 3 is good news, an obstacle's is bad), and showing whichever
-   * smiley set and level names that direction calls for.
+   * Rebuilds the severity block for the selected label types: hidden when none of them carries a rating, headed
+   * "Quality" only when every one of them reads in the positive direction (a curb ramp's 3 is good news, an
+   * obstacle's is bad), and showing whichever smiley set and level names that direction calls for. A selection that
+   * mixes the two directions falls back to the neutral severity wording, as the LabelMap's sidebar does.
    */
   #renderSeverity() {
-    const labelType = this.#status.currentLabelType;
+    const types = this.#status.currentLabelTypes;
     const section = this.#root.querySelector('[data-filter-section="severity"]');
     if (!section) return;
 
-    section.hidden = !util.misc.labelTypeHasSeverity(labelType);
+    section.hidden = !types.some((type) => util.misc.labelTypeHasSeverity(type));
     if (section.hidden) return;
 
-    const headingKey = util.misc.isPositiveLabelType(labelType) ? 'common:quality' : 'common:severity';
+    const rated = types.filter((type) => util.misc.labelTypeHasSeverity(type));
+    const positive = rated.length > 0 && rated.every((type) => util.misc.isPositiveLabelType(type));
+    // A label type whose severity reads in the direction the whole selection reads, for the icons and level names.
+    const iconType = positive ? rated[0] : (rated.find((type) => !util.misc.isPositiveLabelType(type)) ?? rated[0]);
+
+    const headingKey = positive ? 'common:quality' : 'common:severity';
     const heading = section.querySelector('.filter-sidebar__heading');
     // The i18n hook moves with the text so a later re-translation pass doesn't put the other word back.
     heading.dataset.i18n = headingKey;
     heading.textContent = i18next.t(headingKey);
 
-    const levelKeys = util.misc.getRatingLevelKeys(labelType);
+    const levelKeys = util.misc.getRatingLevelKeys(iconType);
     for (const btn of section.querySelectorAll('.severity-button')) {
       const severity = Number(btn.dataset.severity);
       const icon = btn.querySelector('.severity-button__icon');
-      icon.dataset.selectedSrc = util.misc.getSmileyIconPath(severity, labelType, true);
-      icon.dataset.unselectedSrc = util.misc.getSmileyIconPath(severity, labelType, false);
+      icon.dataset.selectedSrc = util.misc.getSmileyIconPath(severity, iconType, true);
+      icon.dataset.unselectedSrc = util.misc.getSmileyIconPath(severity, iconType, false);
       icon.src = btn.getAttribute('aria-pressed') === 'true' ? icon.dataset.selectedSrc : icon.dataset.unselectedSrc;
 
       // Severity 0 is the "N/A" bucket, which reads the same either direction.
@@ -124,12 +133,13 @@ class GalleryFilter {
     const severities = this.getAppliedSeverities();
     const valOptions = this.getAppliedValidationOptions().sort();
 
-    if (this.#status.currentLabelType !== GalleryFilter.DEFAULT_LABEL_TYPE) {
-      params.set('labelType', this.#status.currentLabelType);
-      // Tags belong to one label type, so they only mean something alongside a chosen type.
-      const tags = this.getAppliedTagNames();
-      if (tags.length > 0) params.set('tags', tags.join());
+    // Every type selected is the default, so the param only appears once the selection narrows.
+    if (!this.#sidebar.isAllActive('label-type')) {
+      params.set('labelType', this.#status.currentLabelTypes.join());
     }
+    // Tags belong to a label type, so they only mean something alongside the types they narrow.
+    const tags = this.getAppliedTagNames();
+    if (tags.length > 0) params.set('tags', tags.join());
     // TODO once we add a UI for neighborhood filtering, have that process mirror what we have for other filters.
     const { neighborhoods, aiValidationOptions } = this.#initialFilters;
     if (neighborhoods.length > 0) params.set('neighborhoods', neighborhoods.join());
@@ -157,18 +167,16 @@ class GalleryFilter {
     if (kind === 'tag') {
       sg.tracker.push(checked ? 'TagApply' : 'TagUnapply', null, { Tag: tag, Label_Type: labelType });
     } else if (kind === 'only') {
-      if (section === FilterSidebar.SEVERITY) {
-        sg.tracker.push('SeverityOnly', null, { Severity: severityName(value) });
-      } else {
-        sg.tracker.push('ValidationOptionOnly', null, { ValidationOption: value });
-      }
+      let notes = { ValidationOption: value };
+      if (section === FilterSidebar.SEVERITY) notes = { Severity: severityName(value) };
+      else if (section === 'label-type') notes = { Label_Type: value };
+      sg.tracker.push(`${GalleryFilter.#eventPrefix(section)}Only`, null, notes);
     } else if (kind === 'selectAll') {
-      const action = checked ? 'SelectAll' : 'DeselectAll';
-      sg.tracker.push(section === FilterSidebar.SEVERITY ? `Severity${action}` : `ValidationOption${action}`);
+      sg.tracker.push(`${GalleryFilter.#eventPrefix(section)}${checked ? 'SelectAll' : 'DeselectAll'}`);
     } else if (section === FilterSidebar.SEVERITY) {
       sg.tracker.push(checked ? 'SeverityApply' : 'SeverityUnapply', null, { Severity: severityName(value) });
     } else if (section === 'label-type') {
-      sg.tracker.push(`Filter_LabelType=${value}`);
+      sg.tracker.push(checked ? 'LabelTypeApply' : 'LabelTypeUnapply', null, { Label_Type: value });
     } else if (section === 'label-validations') {
       sg.tracker.push(checked ? 'ValidationOptionApply' : 'ValidationOptionUnapply', null, {
         ValidationOption: value,
@@ -176,7 +184,17 @@ class GalleryFilter {
     }
   }
 
-  /** @returns {{currentLabelType: string}} The label type the cards are being fetched for. */
+  /**
+   * The event-name stem a section's batch actions log under, matching its per-option events.
+   * @param {string} section The section name.
+   * @returns {string} The stem, e.g. "Severity" for SeverityOnly / SeveritySelectAll.
+   */
+  static #eventPrefix(section) {
+    if (section === FilterSidebar.SEVERITY) return 'Severity';
+    return section === 'label-type' ? 'LabelType' : 'ValidationOption';
+  }
+
+  /** @returns {{currentLabelTypes: string[]}} The label types the cards are being fetched for. */
   getStatus() {
     return this.#status;
   }
@@ -186,9 +204,15 @@ class GalleryFilter {
     return this.#sidebar.getState().severities.map((s) => (s === 0 ? 'null' : String(s)));
   }
 
-  /** @returns {string[]} The tags narrowing the current label type. */
+  /** @returns {object} The tags narrowing each selected label type, keyed by type name. */
+  getAppliedTagsByType() {
+    const tags = this.#sidebar.getState().tags;
+    return Object.fromEntries(this.#status.currentLabelTypes.map((type) => [type, tags[type] ?? []]));
+  }
+
+  /** @returns {string[]} Every tag narrowing something, deduped — what the URL carries and the cards highlight. */
   getAppliedTagNames() {
-    return this.#sidebar.getState().tags[this.#status.currentLabelType] ?? [];
+    return [...new Set(Object.values(this.getAppliedTagsByType()).flat())];
   }
 
   /** @returns {string[]} The selected validation options. */
@@ -209,7 +233,7 @@ class GalleryFilter {
   /** Resets every filter to its default state. Callers follow with update() to apply it. */
   clearFilters() {
     this.#sidebar.clearAllTags();
-    this.#sidebar.setSection('label-type', (value) => value === GalleryFilter.DEFAULT_LABEL_TYPE);
+    this.#sidebar.setSection('label-type', () => true);
     this.#sidebar.setSection(FilterSidebar.SEVERITY, () => true);
     this.#sidebar.setSection('label-validations', (v) => GalleryFilter.#DEFAULT_VALIDATIONS.includes(v));
   }

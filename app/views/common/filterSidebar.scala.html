@@ -10,9 +10,7 @@
  * @param showCounts          Whether rows carry a live count slot for the host to fill in.
  * @param withMapChrome       Whether to wrap the sections in the map's panel: collapse button and resize handle.
  *                            Hosts with their own container (the Gallery) pass false and get the sections alone.
- * @param labelTypeSelect     "multi" (checkboxes, the map) or "single" (radios plus an "all types" row, the
- *                            Gallery, whose card query fetches one label type at a time).
- * @param selectedLabelType   Single-select only: which row starts selected ("Assorted" for all types).
+ * @param checkedLabelTypes   Which label type rows start checked; empty means all of them.
  * @param checkedValidations  Which validation rows start checked.
  * @param checkedSeverities   Which severity toggles start pressed, as "0"(N/A) through "3".
  * @param activeTags          Tags that start applied, e.g. from the Gallery's URL.
@@ -22,38 +20,30 @@
   streetsShownByDefault: Boolean = false,
   showCounts: Boolean = false,
   withMapChrome: Boolean = true,
-  labelTypeSelect: String = "multi",
-  selectedLabelType: String = "",
+  checkedLabelTypes: Seq[String] = Seq.empty,
   checkedValidations: Seq[String] = Seq("correct", "unsure", "unvalidated"),
   checkedSeverities: Seq[String] = Seq("0", "1", "2", "3"),
   activeTags: Seq[String] = Seq.empty
 )(implicit messages: Messages, assets: AssetsFinder)
 
 @tagsByLabelType = @{tags.groupBy(t => LabelTypeEnum.labelTypeIdToLabelType.getOrElse(t.labelTypeId, ""))}
-@singleSelect = @{labelTypeSelect == "single"}
 
 @* Right-aligned slot at the end of a filter row: an optional live label count, and an "Only" button that swaps in
-   on hover/focus to exclusive-select that row within its section. Single-select sections skip "Only" — picking the
-   row already is the exclusive select. *@
-@rightSlot(section: String, value: String, withCount: Boolean = true, withOnly: Boolean = true) = {
+   on hover/focus to exclusive-select that row within its section. *@
+@rightSlot(section: String, value: String, withCount: Boolean = true) = {
   <span class="filter-sidebar__right-slot">
     @if(showCounts && withCount) {
       <span class="filter-sidebar__count" data-count-for="@value"></span>
     }
-    @if(withOnly) {
-      <button type="button" class="filter-sidebar__only" data-section="@section" data-value="@value" data-i18n="common:only">Only</button>
-    }
+    <button type="button" class="filter-sidebar__only" data-section="@section" data-value="@value" data-i18n="common:only">Only</button>
   </span>
 }
 
-@* A section's heading, plus the action that flips the whole section on or off. Single-select label types have no
-   such action: there's no "all" or "none" to flip to when exactly one row is always on. *@
-@sectionHeading(i18nKey: String, text: String, section: String, withAction: Boolean = true, headingId: String = "") = {
+@* A section's heading, plus the action that flips the whole section on or off. *@
+@sectionHeading(i18nKey: String, text: String, section: String, headingId: String = "") = {
   <div class="filter-sidebar__heading-row">
     <h3 class="filter-sidebar__heading" @if(headingId.nonEmpty){id="@headingId"} data-i18n="@i18nKey">@text</h3>
-    @if(withAction) {
-      <button type="button" class="filter-sidebar__deselect-all" data-section="@section" data-i18n="labelmap:deselect-all">Deselect all</button>
-    }
+    <button type="button" class="filter-sidebar__deselect-all" data-section="@section" data-i18n="labelmap:deselect-all">Deselect all</button>
   </div>
 }
 
@@ -61,40 +51,43 @@
    the same color when hidden (#4585). Types with tags carry a collapsible drawer of tag pills. *@
 @labelTypeItem(labelType: String, i18nKey: String, msgKey: String) = {
   @defining(tagsByLabelType.getOrElse(labelType, Seq.empty)) { typeTags =>
-    @defining(if(singleSelect) labelType == selectedLabelType else true) { checked =>
-      <li class="filter-sidebar__item filter-sidebar__item--expandable">
-        <div class="filter-sidebar__item-row">
-          <input type="@if(singleSelect){radio}else{checkbox}" id="@(labelType)-checkbox" class="filter-sidebar__checkbox"
-                 @if(singleSelect){name="label-type"} @if(checked){checked} data-filter-type="label-type" disabled>
-          <label class="filter-sidebar__item-label" for="@(labelType)-checkbox">
-            <span class="filter-sidebar__legend-icon" data-label-type="@labelType">
-              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-                <circle cx="9" cy="9" r="7.5"/>
-                <path class="filter-sidebar__legend-check" d="M5.2 9.2l2.4 2.4 5.2-5.6"/>
-                <path class="filter-sidebar__legend-dash" d="M5.4 9h7.2"/>
-              </svg>
-            </span>
-            <span class="filter-sidebar__item-name" data-i18n="@i18nKey">@Messages(msgKey)</span>
-          </label>
-          @rightSlot("label-type", labelType, withOnly = !singleSelect)
-          @if(typeTags.nonEmpty) {
-            <button type="button" class="filter-sidebar__tag-toggle" aria-expanded="@if(singleSelect && checked){true}else{false}" aria-label="Show tags" data-i18n-aria-label="labelmap:show-tags">
-              <img src='@assets.path(if(singleSelect && checked) "images/icons/chevron-down-feather.svg" else "images/icons/chevron-right-feather.svg")' alt="" data-down-src='@assets.path("images/icons/chevron-right-feather.svg")' data-up-src='@assets.path("images/icons/chevron-down-feather.svg")'>
-            </button>
-          }
-        </div>
-        @if(typeTags.nonEmpty) {
-          <div class="filter-sidebar__tag-pills" @if(!(singleSelect && checked)){hidden}>
-          @* Tag names repeat across label types ("narrow" is both a curb ramp's and a sidewalk's), so an active tag
-             only marks the row it was chosen on. *@
-          @for(tag <- typeTags) {
-            <button type="button" class="@if(checked && activeTags.contains(tag.tag)){tag-pill tag-pill--interactive tag-pill--active}else{tag-pill tag-pill--interactive}" data-tag="@tag.tag" data-label-type="@labelType">
-              <span class="tag-pill__label" data-i18n="common:tag.@{tag.tag.replace(":", "-")}">@tag.tag</span>
-            </button>
-          }
+    @defining(checkedLabelTypes.isEmpty || checkedLabelTypes.contains(labelType)) { checked =>
+      @* A type's drawer starts open when a tag of its own is already applied, so a filter arriving from the URL is
+         visible rather than hidden behind a chevron. *@
+      @defining(typeTags.exists(t => checked && activeTags.contains(t.tag))) { drawerOpen =>
+        <li class="filter-sidebar__item filter-sidebar__item--expandable">
+          <div class="filter-sidebar__item-row">
+            <input type="checkbox" id="@(labelType)-checkbox" class="filter-sidebar__checkbox" @if(checked){checked} data-filter-type="label-type" disabled>
+            <label class="filter-sidebar__item-label" for="@(labelType)-checkbox">
+              <span class="filter-sidebar__legend-icon" data-label-type="@labelType">
+                <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                  <circle cx="9" cy="9" r="7.5"/>
+                  <path class="filter-sidebar__legend-check" d="M5.2 9.2l2.4 2.4 5.2-5.6"/>
+                  <path class="filter-sidebar__legend-dash" d="M5.4 9h7.2"/>
+                </svg>
+              </span>
+              <span class="filter-sidebar__item-name" data-i18n="@i18nKey">@Messages(msgKey)</span>
+            </label>
+            @rightSlot("label-type", labelType)
+            @if(typeTags.nonEmpty) {
+              <button type="button" class="filter-sidebar__tag-toggle" aria-expanded="@drawerOpen" aria-label="Show tags" data-i18n-aria-label="labelmap:show-tags">
+                <img src='@assets.path(if(drawerOpen) "images/icons/chevron-down-feather.svg" else "images/icons/chevron-right-feather.svg")' alt="" data-down-src='@assets.path("images/icons/chevron-right-feather.svg")' data-up-src='@assets.path("images/icons/chevron-down-feather.svg")'>
+              </button>
+            }
           </div>
-        }
-      </li>
+          @if(typeTags.nonEmpty) {
+            <div class="filter-sidebar__tag-pills" @if(!drawerOpen){hidden}>
+            @* A tag applies to every checked type that carries it: tag names repeat across types ("narrow" is both a
+               curb ramp's and a sidewalk's), and the URL carries them as one flat list. *@
+            @for(tag <- typeTags) {
+              <button type="button" class="@if(checked && activeTags.contains(tag.tag)){tag-pill tag-pill--interactive tag-pill--active}else{tag-pill tag-pill--interactive}" data-tag="@tag.tag" data-label-type="@labelType">
+                <span class="tag-pill__label" data-i18n="common:tag.@{tag.tag.replace(":", "-")}">@tag.tag</span>
+              </button>
+            }
+            </div>
+          }
+        </li>
+      }
     }
   }
 }
@@ -148,7 +141,7 @@
       }
       case "severity" => {
         <section class="filter-sidebar__section" data-filter-section="severity">
-          @sectionHeading("common:severity", Messages("severity"), "severity", headingId = "filter-sidebar-severity-heading")
+          @sectionHeading("common:severity", Messages("severity"), "severity", "filter-sidebar-severity-heading")
           <div class="filter-sidebar__severity-toggles" role="group" aria-label="@Messages("severity")" data-i18n-aria-label="common:severity">
             @severityToggle("0", "sev-0-negative", "labelmap:not-applicable-abbr", "not.applicable.abbr")
             @severityToggle("1", "sev-1-negative", "common:low", "low")
@@ -158,26 +151,9 @@
         </section>
       }
       case "label-type" => {
-        <section class="filter-sidebar__section" data-filter-section="label-type" data-select-mode="@labelTypeSelect">
-          @sectionHeading("labelmap:label-type", Messages("label.type"), "label-type", withAction = !singleSelect)
+        <section class="filter-sidebar__section" data-filter-section="label-type">
+          @sectionHeading("labelmap:label-type", Messages("label.type"), "label-type")
           <ul class="filter-sidebar__list">
-            @if(singleSelect) {
-              <li class="filter-sidebar__item">
-                <input type="radio" id="Assorted-checkbox" class="filter-sidebar__checkbox" name="label-type"
-                       @if(selectedLabelType == "Assorted"){checked} data-filter-type="label-type" disabled>
-                <label class="filter-sidebar__item-label" for="Assorted-checkbox">
-                  <span class="filter-sidebar__legend-icon" data-label-type="Assorted">
-                    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-                      <circle cx="9" cy="9" r="7.5"/>
-                      <path class="filter-sidebar__legend-check" d="M5.2 9.2l2.4 2.4 5.2-5.6"/>
-                      <path class="filter-sidebar__legend-dash" d="M5.4 9h7.2"/>
-                    </svg>
-                  </span>
-                  <span class="filter-sidebar__item-name" data-i18n="gallery:all-label-types">@Messages("gallery.all")</span>
-                </label>
-                @rightSlot("label-type", "Assorted", withOnly = false)
-              </li>
-            }
             @labelTypeItem("CurbRamp", "common:curb-ramp", "curb.ramp")
             @labelTypeItem("NoCurbRamp", "common:no-curb-ramp", "missing.ramp")
             @labelTypeItem("Obstacle", "common:obstacle", "obstacle")

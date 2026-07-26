@@ -105,38 +105,6 @@ function buildFixture() {
 }
 
 
-/** Builds a single-select label type section (radios plus an "all types" row), the shape the Gallery renders. */
-function buildSingleSelectFixture() {
-    const rows = ['Assorted', ...LABEL_TYPES].map((type) => `
-        <li class="filter-sidebar__item filter-sidebar__item--expandable">
-          <div class="filter-sidebar__item-row">
-            <input type="radio" id="${type}-checkbox" class="filter-sidebar__checkbox" name="label-type"
-                   ${type === 'Assorted' ? 'checked' : ''} data-filter-type="label-type" disabled>
-            <label class="filter-sidebar__item-label" for="${type}-checkbox">
-              <span class="filter-sidebar__item-name">${type}</span>
-            </label>
-            ${type === 'Assorted' ? '' : `
-              <button type="button" class="filter-sidebar__tag-toggle" aria-expanded="false">
-                <img src="down.svg" data-down-src="down.svg" data-up-src="up.svg" alt="">
-              </button>`}
-          </div>
-          ${type === 'Assorted' ? '' : `
-            <div class="filter-sidebar__tag-pills" hidden>
-              <button type="button" class="tag-pill" data-tag="${type.toLowerCase()}-tag" data-label-type="${type}">
-                <span class="tag-pill__label">tag</span>
-              </button>
-            </div>`}
-        </li>`).join('');
-
-    document.body.innerHTML = `
-      <div id="filter-sidebar" class="filter-sidebar">
-        <section class="filter-sidebar__section" data-filter-section="label-type" data-select-mode="single">
-          <ul class="filter-sidebar__list">${rows}</ul>
-        </section>
-      </div>`;
-    return document.getElementById('filter-sidebar');
-}
-
 /** Loads a fresh FilterSidebar class into the jsdom global scope. */
 function loadFilterSidebar() {
     window.eval(`${SIDEBAR_SRC}\nwindow.FilterSidebar = FilterSidebar;`);
@@ -399,6 +367,16 @@ describe('FilterSidebar', () => {
             expect(sidebar.getState().sections['label-type']).toContain('CurbRamp');
         });
 
+        it('shows the partial glyph on a type that arrives already tagged', () => {
+            // The Gallery renders the URL's tags as applied, so the glyph has to say so from the first paint.
+            tagPill('CurbRamp').classList.add('tag-pill--active');
+
+            new FilterSidebar(root, {});
+
+            expect(typeBox('CurbRamp').classList.contains('checkbox--partial')).toBe(true);
+            expect(typeBox('Obstacle').classList.contains('checkbox--partial')).toBe(false);
+        });
+
         it('drops the partial glyph when the last tag is deselected', () => {
             build();
             tagPill('CurbRamp').click();
@@ -420,109 +398,6 @@ describe('FilterSidebar', () => {
             toggle.click();
             expect(pills.hidden).toBe(true);
             expect(toggle.querySelector('img').src).toContain('down.svg');
-        });
-    });
-
-    describe('single-select sections', () => {
-        /**
-         * Builds a sidebar over the single-select fixture. The browser enforces exclusivity between radios, so these
-         * tests drive them the way a user does — with clicks — rather than setting `checked` by hand.
-         * @returns {FilterSidebar} The sidebar under test.
-         */
-        function buildSingle() {
-            root = buildSingleSelectFixture();
-            changes = [];
-            const sidebar = new FilterSidebar(root, { onChange: (change) => changes.push(change) });
-            sidebar.enable();
-            return sidebar;
-        }
-
-        /** @returns {HTMLElement} A label type's tag drawer. */
-        const drawer = (type) => typeBox(type).closest('.filter-sidebar__item')
-            .querySelector('.filter-sidebar__tag-pills');
-
-        it('reports the one selected type, and knows the section is single-select', () => {
-            const sidebar = buildSingle();
-
-            expect(sidebar.isSingleSelect('label-type')).toBe(true);
-            expect(sidebar.getState().sections['label-type']).toEqual(['Assorted']);
-            expect(sidebar.selectedIn('label-type')).toBe('Assorted');
-        });
-
-        it('switches types on a click, leaving exactly one selected', () => {
-            const sidebar = buildSingle();
-
-            typeBox('Obstacle').click();
-
-            expect(sidebar.getState().sections['label-type']).toEqual(['Obstacle']);
-            expect(changes).toEqual([
-                { kind: 'option', section: 'label-type', value: 'Obstacle', checked: true },
-            ]);
-        });
-
-        it('shows the partial glyph on a type that arrives already tagged', () => {
-            root = buildSingleSelectFixture();
-            typeBox('CurbRamp').checked = true;
-            root.querySelector('.tag-pill[data-label-type="CurbRamp"]').classList.add('tag-pill--active');
-
-            new FilterSidebar(root, {});
-
-            expect(typeBox('CurbRamp').classList.contains('checkbox--partial')).toBe(true);
-            expect(typeBox('Obstacle').classList.contains('checkbox--partial')).toBe(false);
-        });
-
-        it('stays silent when the selected type is picked again', () => {
-            const sidebar = buildSingle();
-            typeBox('Obstacle').click();
-            changes.length = 0;
-
-            typeBox('Obstacle').click();
-
-            expect(changes).toEqual([]);
-            expect(sidebar.selectedIn('label-type')).toBe('Obstacle');
-        });
-
-        it('opens the selected type\'s tag drawer and closes the rest', () => {
-            buildSingle();
-            typeBox('CurbRamp').click();
-            expect(drawer('CurbRamp').hidden).toBe(false);
-            expect(drawer('Obstacle').hidden).toBe(true);
-
-            typeBox('Obstacle').click();
-
-            expect(drawer('CurbRamp').hidden).toBe(true);
-            expect(drawer('Obstacle').hidden).toBe(false);
-        });
-
-        it('drops the tags of the type it switches away from', () => {
-            const sidebar = buildSingle();
-            typeBox('CurbRamp').click();
-            tagPill('CurbRamp').click();
-            expect(sidebar.getState().tags.CurbRamp).toEqual(['curbramp-tag']);
-
-            typeBox('Obstacle').click();
-
-            expect(sidebar.getState().tags.CurbRamp).toEqual([]);
-        });
-
-        it('selects a type when a tag of another one is clicked', () => {
-            const sidebar = buildSingle();
-
-            tagPill('NoCurbRamp').click();
-
-            expect(sidebar.selectedIn('label-type')).toBe('NoCurbRamp');
-            expect(sidebar.getState().tags.NoCurbRamp).toEqual(['nocurbramp-tag']);
-            expect(drawer('NoCurbRamp').hidden).toBe(false);
-        });
-
-        it('collapses every drawer when setSection puts the all-types row back', () => {
-            const sidebar = buildSingle();
-            typeBox('Obstacle').click();
-
-            sidebar.setSection('label-type', (value) => value === 'Assorted');
-
-            expect(sidebar.selectedIn('label-type')).toBe('Assorted');
-            expect(drawer('Obstacle').hidden).toBe(true);
         });
     });
 
