@@ -51,7 +51,7 @@ class FilterSidebar {
 
     // The markup ships a fixed label, but a section whose defaults aren't all-on (validations, where "incorrect"
     // starts off) already wants "Select all" on arrival.
-    this.#root.querySelectorAll('.map-sidebar__deselect-all').forEach((btn) => {
+    this.#root.querySelectorAll('.filter-sidebar__deselect-all').forEach((btn) => {
       this.#syncSectionAction(btn.dataset.section);
     });
   }
@@ -93,7 +93,7 @@ class FilterSidebar {
    * @param {object} countsByValue Map of control value (label type or option id) to count.
    */
   setCounts(countsByValue) {
-    for (const span of this.#root.querySelectorAll('.map-sidebar__count')) {
+    for (const span of this.#root.querySelectorAll('.filter-sidebar__count')) {
       const count = countsByValue[span.dataset.countFor];
       if (count === undefined) continue;
       span.textContent = count.toLocaleString(i18next.language);
@@ -102,7 +102,7 @@ class FilterSidebar {
 
   /** Drops the loading appearance and enables the controls, which render disabled until their data has loaded. */
   enable() {
-    this.#root.classList.remove('map-sidebar--loading');
+    this.#root.classList.remove('filter-sidebar--loading');
     this.#root.querySelectorAll('input[disabled]').forEach((cb) => {
       cb.disabled = false;
     });
@@ -163,7 +163,7 @@ class FilterSidebar {
 
   /** Binds the per-section action that flips the whole section on or off. */
   #initSelectAllButtons() {
-    this.#root.querySelectorAll('.map-sidebar__deselect-all').forEach((btn) => {
+    this.#root.querySelectorAll('.filter-sidebar__deselect-all').forEach((btn) => {
       btn.addEventListener('click', () => {
         const section = btn.dataset.section;
         // Offer the action with the most left to give: once anything is off — one "Only" click, say — restoring the
@@ -179,10 +179,10 @@ class FilterSidebar {
 
   /** Binds the hover-revealed "Only" buttons, which exclusive-select one value within their section. */
   #initOnlyButtons() {
-    this.#root.querySelectorAll('.map-sidebar__only').forEach((btn) => {
+    this.#root.querySelectorAll('.filter-sidebar__only').forEach((btn) => {
       // Give the visible "Only" text its row's context for screen readers (e.g. "Only: Obstacle").
-      const row = btn.closest('.map-sidebar__item-row, .map-sidebar__item, .map-sidebar__severity-cell');
-      const rowLabel = row?.querySelector('.map-sidebar__item-name, label, .severity-button__label')
+      const row = btn.closest('.filter-sidebar__item-row, .filter-sidebar__item, .filter-sidebar__severity-cell');
+      const rowLabel = row?.querySelector('.filter-sidebar__item-name, label, .severity-button__label')
         ?.textContent.trim();
       if (rowLabel) btn.setAttribute('aria-label', `${i18next.t(this.#i18nKeys.only)}: ${rowLabel}`);
 
@@ -221,9 +221,9 @@ class FilterSidebar {
 
   /** Binds the chevrons that expand and collapse a label type's tag drawer. */
   #initTagToggles() {
-    this.#root.querySelectorAll('.map-sidebar__tag-toggle').forEach((btn) => {
+    this.#root.querySelectorAll('.filter-sidebar__tag-toggle').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const pills = btn.closest('.map-sidebar__item').querySelector('.map-sidebar__tag-pills');
+        const pills = btn.closest('.filter-sidebar__item').querySelector('.filter-sidebar__tag-pills');
         if (!pills) return;
 
         const expanded = btn.getAttribute('aria-expanded') !== 'true';
@@ -284,7 +284,7 @@ class FilterSidebar {
    * @param {string} section The section name.
    */
   #syncSectionAction(section) {
-    const btn = this.#root.querySelector(`.map-sidebar__deselect-all[data-section="${section}"]`);
+    const btn = this.#root.querySelector(`.filter-sidebar__deselect-all[data-section="${section}"]`);
     if (!btn) return;
     btn.textContent = this.isAllActive(section)
       ? i18next.t(this.#i18nKeys.deselectAll)

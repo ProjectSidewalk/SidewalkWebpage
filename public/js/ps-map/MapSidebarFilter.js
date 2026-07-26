@@ -33,8 +33,8 @@ class MapSidebarFilter {
     this.#map = map;
     this.#mapData = mapData;
     this.#highQualityFilter = highQualityFilter;
-    this.#sidebar = document.getElementById('map-sidebar');
-    this.#showsCounts = this.#sidebar.querySelector('.map-sidebar__count') !== null;
+    this.#sidebar = document.getElementById('filter-sidebar');
+    this.#showsCounts = this.#sidebar.querySelector('.filter-sidebar__count') !== null;
 
     this.#filters = new FilterSidebar(this.#sidebar, { onChange: (change) => this.#onFilterChange(change) });
 
@@ -121,12 +121,12 @@ class MapSidebarFilter {
 
   /** Initializes the sidebar open/close behavior. Padding is set initially by createPSMap. */
   #initSidebarOpenClose() {
-    const closeBtn = document.getElementById('map-sidebar-close');
-    const openBtn = document.getElementById('map-sidebar-open');
-    const handle = document.getElementById('map-sidebar-resize-handle');
+    const closeBtn = document.getElementById('filter-sidebar-close');
+    const openBtn = document.getElementById('filter-sidebar-open');
+    const handle = document.getElementById('filter-sidebar-resize-handle');
 
     closeBtn.addEventListener('click', () => {
-      this.#sidebar.classList.add('map-sidebar--hidden');
+      this.#sidebar.classList.add('filter-sidebar--hidden');
       handle.style.display = 'none';
       openBtn.style.display = 'block';
       this.#map.easeTo({ padding: { left: 0, top: 0, right: 0, bottom: 0 } });
@@ -134,7 +134,7 @@ class MapSidebarFilter {
     });
     openBtn.addEventListener('click', () => {
       const width = this.#sidebar.offsetWidth;
-      this.#sidebar.classList.remove('map-sidebar--hidden');
+      this.#sidebar.classList.remove('filter-sidebar--hidden');
       handle.style.display = '';
       openBtn.style.display = 'none';
       this.#map.easeTo({ padding: { left: width, top: 0, right: 0, bottom: 0 } });
@@ -144,7 +144,7 @@ class MapSidebarFilter {
 
   /** Wires up the drag-to-resize handle on the sidebar's right edge, keeping map centered as you drag. */
   #initResizeHandle() {
-    const handle = document.getElementById('map-sidebar-resize-handle');
+    const handle = document.getElementById('filter-sidebar-resize-handle');
     if (!handle) return;
 
     const MIN_WIDTH = 280;
@@ -163,8 +163,8 @@ class MapSidebarFilter {
 
     const onPointerUp = (e) => {
       handle.releasePointerCapture?.(e.pointerId);
-      handle.classList.remove('map-sidebar__resize-handle--dragging');
-      document.body.classList.remove('map-sidebar-resizing');
+      handle.classList.remove('filter-sidebar__resize-handle--dragging');
+      document.body.classList.remove('filter-sidebar-resizing');
       handle.removeEventListener('pointermove', onPointerMove);
       handle.removeEventListener('pointerup', onPointerUp);
       handle.removeEventListener('pointercancel', onPointerUp);
@@ -173,8 +173,8 @@ class MapSidebarFilter {
     handle.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       handle.setPointerCapture(e.pointerId);
-      handle.classList.add('map-sidebar__resize-handle--dragging');
-      document.body.classList.add('map-sidebar-resizing');
+      handle.classList.add('filter-sidebar__resize-handle--dragging');
+      document.body.classList.add('filter-sidebar-resizing');
       handle.addEventListener('pointermove', onPointerMove);
       handle.addEventListener('pointerup', onPointerUp);
       handle.addEventListener('pointercancel', onPointerUp);

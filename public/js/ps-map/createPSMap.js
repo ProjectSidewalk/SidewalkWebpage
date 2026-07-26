@@ -49,10 +49,10 @@ function createPSMap($, params) {
 
     // Show the sidebar early (in its disabled/loading state) so it's visible while data loads.
     // Also shift the map center to account for the sidebar covering part of the map.
-    const sidebar = document.getElementById('map-sidebar');
+    const sidebar = document.getElementById('filter-sidebar');
     if (sidebar) {
       sidebar.classList.remove('ps-invisible');
-      sidebar.classList.add('map-sidebar--loading');
+      sidebar.classList.add('filter-sidebar--loading');
       map.setPadding({ left: sidebar.offsetWidth, top: 0, right: 0, bottom: 0 });
     }
 

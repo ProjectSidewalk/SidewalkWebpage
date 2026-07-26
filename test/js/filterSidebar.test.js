@@ -23,24 +23,24 @@ const LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle'];
 /** Builds sidebar markup with the same hooks the Twirl partial emits. */
 function buildFixture() {
     const labelTypeRows = LABEL_TYPES.map((type) => `
-        <li class="map-sidebar__item map-sidebar__item--expandable">
-          <div class="map-sidebar__item-row">
-            <input type="checkbox" id="${type}-checkbox" class="map-sidebar__checkbox" checked
+        <li class="filter-sidebar__item filter-sidebar__item--expandable">
+          <div class="filter-sidebar__item-row">
+            <input type="checkbox" id="${type}-checkbox" class="filter-sidebar__checkbox" checked
                    data-filter-type="label-type" disabled>
-            <label class="map-sidebar__item-label" for="${type}-checkbox">
-              <span class="map-sidebar__item-name">${type}</span>
+            <label class="filter-sidebar__item-label" for="${type}-checkbox">
+              <span class="filter-sidebar__item-name">${type}</span>
             </label>
-            <span class="map-sidebar__right-slot">
-              <span class="map-sidebar__count" data-count-for="${type}"></span>
-              <button type="button" class="map-sidebar__only" data-section="label-type" data-value="${type}">
+            <span class="filter-sidebar__right-slot">
+              <span class="filter-sidebar__count" data-count-for="${type}"></span>
+              <button type="button" class="filter-sidebar__only" data-section="label-type" data-value="${type}">
                 Only
               </button>
             </span>
-            <button type="button" class="map-sidebar__tag-toggle" aria-expanded="false">
+            <button type="button" class="filter-sidebar__tag-toggle" aria-expanded="false">
               <img src="down.svg" data-down-src="down.svg" data-up-src="up.svg" alt="">
             </button>
           </div>
-          <div class="map-sidebar__tag-pills" hidden>
+          <div class="filter-sidebar__tag-pills" hidden>
             <button type="button" class="tag-pill" data-tag="${type.toLowerCase()}-tag" data-label-type="${type}">
               <span class="tag-pill__label">tag</span>
             </button>
@@ -48,52 +48,52 @@ function buildFixture() {
         </li>`).join('');
 
     const severityCells = [0, 1, 2, 3].map((severity) => `
-        <div class="map-sidebar__severity-cell">
+        <div class="filter-sidebar__severity-cell">
           <button type="button" class="severity-button" data-severity="${severity}" aria-pressed="true">
             <img class="severity-button__icon" src="sev-${severity}-filled.svg"
                  data-selected-src="sev-${severity}-filled.svg" data-unselected-src="sev-${severity}.svg" alt="">
             <span class="severity-button__label">sev ${severity}</span>
           </button>
-          <button type="button" class="map-sidebar__only" data-section="severity" data-value="${severity}">
+          <button type="button" class="filter-sidebar__only" data-section="severity" data-value="${severity}">
             Only
           </button>
         </div>`).join('');
 
     document.body.innerHTML = `
-      <div id="map-sidebar" class="map-sidebar map-sidebar--loading">
-        <section class="map-sidebar__section">
-          <button type="button" class="map-sidebar__deselect-all" data-section="severity">Deselect all</button>
-          <div class="map-sidebar__severity-toggles">${severityCells}</div>
+      <div id="filter-sidebar" class="filter-sidebar filter-sidebar--loading">
+        <section class="filter-sidebar__section">
+          <button type="button" class="filter-sidebar__deselect-all" data-section="severity">Deselect all</button>
+          <div class="filter-sidebar__severity-toggles">${severityCells}</div>
         </section>
-        <section class="map-sidebar__section">
-          <button type="button" class="map-sidebar__deselect-all" data-section="label-type">Deselect all</button>
-          <ul class="map-sidebar__list">${labelTypeRows}</ul>
+        <section class="filter-sidebar__section">
+          <button type="button" class="filter-sidebar__deselect-all" data-section="label-type">Deselect all</button>
+          <ul class="filter-sidebar__list">${labelTypeRows}</ul>
         </section>
-        <section class="map-sidebar__section">
-          <button type="button" class="map-sidebar__deselect-all" data-section="label-validations">Deselect all</button>
-          <ul class="map-sidebar__list">
-            <li class="map-sidebar__item">
-              <input type="checkbox" id="correct" class="map-sidebar__checkbox" checked
+        <section class="filter-sidebar__section">
+          <button type="button" class="filter-sidebar__deselect-all" data-section="label-validations">Deselect all</button>
+          <ul class="filter-sidebar__list">
+            <li class="filter-sidebar__item">
+              <input type="checkbox" id="correct" class="filter-sidebar__checkbox" checked
                      data-filter-type="label-validations" disabled>
-              <label class="map-sidebar__item-label" for="correct">
-                <span class="map-sidebar__item-name">Validated correct</span>
+              <label class="filter-sidebar__item-label" for="correct">
+                <span class="filter-sidebar__item-name">Validated correct</span>
               </label>
-              <span class="map-sidebar__right-slot">
-                <span class="map-sidebar__count" data-count-for="correct"></span>
-                <button type="button" class="map-sidebar__only" data-section="label-validations" data-value="correct">
+              <span class="filter-sidebar__right-slot">
+                <span class="filter-sidebar__count" data-count-for="correct"></span>
+                <button type="button" class="filter-sidebar__only" data-section="label-validations" data-value="correct">
                   Only
                 </button>
               </span>
             </li>
-            <li class="map-sidebar__item">
-              <input type="checkbox" id="incorrect" class="map-sidebar__checkbox"
+            <li class="filter-sidebar__item">
+              <input type="checkbox" id="incorrect" class="filter-sidebar__checkbox"
                      data-filter-type="label-validations" disabled>
-              <label class="map-sidebar__item-label" for="incorrect">
-                <span class="map-sidebar__item-name">Validated incorrect</span>
+              <label class="filter-sidebar__item-label" for="incorrect">
+                <span class="filter-sidebar__item-name">Validated incorrect</span>
               </label>
-              <span class="map-sidebar__right-slot">
-                <span class="map-sidebar__count" data-count-for="incorrect"></span>
-                <button type="button" class="map-sidebar__only" data-section="label-validations" data-value="incorrect">
+              <span class="filter-sidebar__right-slot">
+                <span class="filter-sidebar__count" data-count-for="incorrect"></span>
+                <button type="button" class="filter-sidebar__only" data-section="label-validations" data-value="incorrect">
                   Only
                 </button>
               </span>
@@ -101,7 +101,7 @@ function buildFixture() {
           </ul>
         </section>
       </div>`;
-    return document.getElementById('map-sidebar');
+    return document.getElementById('filter-sidebar');
 }
 
 /** Loads a fresh FilterSidebar class into the jsdom global scope. */
@@ -118,10 +118,10 @@ describe('FilterSidebar', () => {
     /** @returns {HTMLInputElement} The checkbox for a label type. */
     const typeBox = (type) => root.querySelector(`#${type}-checkbox`);
     /** @returns {HTMLElement} A section's "Deselect all"/"Select all" action. */
-    const sectionAction = (section) => root.querySelector(`.map-sidebar__deselect-all[data-section="${section}"]`);
+    const sectionAction = (section) => root.querySelector(`.filter-sidebar__deselect-all[data-section="${section}"]`);
     /** @returns {HTMLElement} A row's "Only" button. */
     const onlyBtn = (section, value) =>
-        root.querySelector(`.map-sidebar__only[data-section="${section}"][data-value="${value}"]`);
+        root.querySelector(`.filter-sidebar__only[data-section="${section}"][data-value="${value}"]`);
     /** @returns {HTMLElement} A label type's single tag pill. */
     const tagPill = (type) => root.querySelector(`.tag-pill[data-label-type="${type}"]`);
     /** @returns {HTMLElement} A severity toggle. */
@@ -376,8 +376,8 @@ describe('FilterSidebar', () => {
 
         it('expands and collapses the drawer, swapping the chevron', () => {
             build();
-            const toggle = root.querySelector('.map-sidebar__tag-toggle');
-            const pills = root.querySelector('.map-sidebar__tag-pills');
+            const toggle = root.querySelector('.filter-sidebar__tag-toggle');
+            const pills = root.querySelector('.filter-sidebar__tag-pills');
 
             toggle.click();
             expect(toggle.getAttribute('aria-expanded')).toBe('true');
@@ -412,7 +412,7 @@ describe('FilterSidebar', () => {
 
             sidebar.enable();
 
-            expect(root.classList.contains('map-sidebar--loading')).toBe(false);
+            expect(root.classList.contains('filter-sidebar--loading')).toBe(false);
             expect(typeBox('CurbRamp').disabled).toBe(false);
         });
     });

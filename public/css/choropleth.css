@@ -57,15 +57,15 @@
 }
 
 /* Drop the top gap the shared sidebar chrome leaves, so it too sits flush in full-window mode. */
-#labelmap-choropleth-holder .map-sidebar {
+#labelmap-choropleth-holder .filter-sidebar {
   margin-top: 0;
 }
 
-#labelmap-choropleth-holder .map-sidebar__resize-handle {
+#labelmap-choropleth-holder .filter-sidebar__resize-handle {
   top: 0;
 }
 
-#labelmap-choropleth-holder .map-sidebar-open-btn {
+#labelmap-choropleth-holder .filter-sidebar-open-btn {
   margin-top: 0;
 }
 

@@ -22,42 +22,42 @@ const VALIDATIONS = ['correct', 'incorrect', 'unsure', 'unvalidated'];
 /** Builds the sidebar markup MapSidebarFilter binds to, including the chrome its constructor looks up by id. */
 function buildFixture() {
     const typeRows = LABEL_TYPES.map((type) => `
-        <li class="map-sidebar__item map-sidebar__item--expandable">
-          <div class="map-sidebar__item-row">
-            <input type="checkbox" id="${type}-checkbox" class="map-sidebar__checkbox" checked
+        <li class="filter-sidebar__item filter-sidebar__item--expandable">
+          <div class="filter-sidebar__item-row">
+            <input type="checkbox" id="${type}-checkbox" class="filter-sidebar__checkbox" checked
                    data-filter-type="label-type">
-            <label class="map-sidebar__item-label" for="${type}-checkbox">
-              <span class="map-sidebar__item-name">${type}</span>
+            <label class="filter-sidebar__item-label" for="${type}-checkbox">
+              <span class="filter-sidebar__item-name">${type}</span>
             </label>
-            <span class="map-sidebar__count" data-count-for="${type}"></span>
-            <button type="button" class="map-sidebar__only" data-section="label-type" data-value="${type}">Only</button>
+            <span class="filter-sidebar__count" data-count-for="${type}"></span>
+            <button type="button" class="filter-sidebar__only" data-section="label-type" data-value="${type}">Only</button>
           </div>
         </li>`).join('');
 
     const validationRows = VALIDATIONS.map((option) => `
-        <li class="map-sidebar__item">
-          <input type="checkbox" id="${option}" class="map-sidebar__checkbox"
+        <li class="filter-sidebar__item">
+          <input type="checkbox" id="${option}" class="filter-sidebar__checkbox"
                  ${option === 'incorrect' ? '' : 'checked'} data-filter-type="label-validations">
-          <label class="map-sidebar__item-label" for="${option}">
-            <span class="map-sidebar__item-name">${option}</span>
+          <label class="filter-sidebar__item-label" for="${option}">
+            <span class="filter-sidebar__item-name">${option}</span>
           </label>
-          <span class="map-sidebar__count" data-count-for="${option}"></span>
+          <span class="filter-sidebar__count" data-count-for="${option}"></span>
         </li>`).join('');
 
     document.body.innerHTML = `
-      <div id="map-sidebar">
-        <button type="button" id="map-sidebar-close">close</button>
-        <section class="map-sidebar__section">
-          <button type="button" class="map-sidebar__deselect-all" data-section="label-type">Deselect all</button>
-          <ul class="map-sidebar__list">${typeRows}</ul>
+      <div id="filter-sidebar">
+        <button type="button" id="filter-sidebar-close">close</button>
+        <section class="filter-sidebar__section">
+          <button type="button" class="filter-sidebar__deselect-all" data-section="label-type">Deselect all</button>
+          <ul class="filter-sidebar__list">${typeRows}</ul>
         </section>
-        <section class="map-sidebar__section">
-          <button type="button" class="map-sidebar__deselect-all" data-section="label-validations">Deselect all</button>
-          <ul class="map-sidebar__list">${validationRows}</ul>
+        <section class="filter-sidebar__section">
+          <button type="button" class="filter-sidebar__deselect-all" data-section="label-validations">Deselect all</button>
+          <ul class="filter-sidebar__list">${validationRows}</ul>
         </section>
       </div>
-      <button type="button" id="map-sidebar-open">open</button>
-      <div id="map-sidebar-resize-handle"></div>`;
+      <button type="button" id="filter-sidebar-open">open</button>
+      <div id="filter-sidebar-resize-handle"></div>`;
 }
 
 /**
@@ -146,7 +146,7 @@ describe('MapSidebarFilter counts', () => {
         build({ CurbRamp: [label({ correct: true })] });
         expect(countFor('correct')).toBe('1');
 
-        document.querySelector('.map-sidebar__deselect-all[data-section="label-type"]').click();
+        document.querySelector('.filter-sidebar__deselect-all[data-section="label-type"]').click();
 
         // Nothing would be shown whichever validation you enable, so 0 is the honest answer here.
         expect(countFor('correct')).toBe('0');
