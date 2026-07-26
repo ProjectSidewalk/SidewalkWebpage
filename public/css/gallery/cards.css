@@ -126,10 +126,11 @@ with respect to the image holder. This allows the validation menu to be placed o
   border-radius: 2px;
 }
 
-/* Sized in em so the pin tracks the name's size: the two only look right in proportion to each other. */
+/* Sized in em so the pin tracks the name's size, and near the name's cap height rather than its full em box —
+   a glyph fills only ~0.7em of that box, so a 1em pin reads as oversized next to the text. */
 .card-location__pin {
-  width: 1.05em;
-  height: 1.05em;
+  width: 0.85em;
+  height: 0.85em;
   flex-shrink: 0;
   opacity: 0.7;
 }
