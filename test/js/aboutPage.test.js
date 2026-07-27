@@ -143,8 +143,8 @@ describe('AboutPage', () => {
           personRow({ urlName: 'judyshanley', name: 'Judy L. Shanley', role: 'Community partnerships',
             start_date: '2023-01-01' }),
         ]),
-        '/people/chuli/': { current_title: 'PhD Student', current_institution: 'University of Washington' },
-        '/people/judyshanley/': { current_title: 'Director', current_institution: 'Easterseals' },
+        '/people/chuli/': { current_title: 'PhD Student', current_school: 'University of Washington' },
+        '/people/judyshanley/': { current_title: 'Director', current_school: 'Easterseals' },
         ...EMPTY_SECTIONS,
       });
       loadGlobalScript(MODULE_PATH);
@@ -174,7 +174,7 @@ describe('AboutPage', () => {
           personRow({ urlName: 'ok', name: 'Ok Person' }),
           personRow({ urlName: 'broken', name: 'Broken Profile', start_date: '2021-01-01' }),
         ]),
-        '/people/ok/': { current_title: 'PhD Student', current_institution: 'University of Washington' },
+        '/people/ok/': { current_title: 'PhD Student', current_school: 'University of Washington' },
         ...EMPTY_SECTIONS,
       }); // /people/broken/ rejects.
       loadGlobalScript(MODULE_PATH);
@@ -254,7 +254,7 @@ describe('AboutPage', () => {
         '/people/?format=json': page([
           personRow({ urlName: 'active', name: 'Active Person', role: 'Lead dev' }),
           personRow({ urlName: 'ugrad', name: 'Undergrad Person', is_active: false, end_date: '2016-01-01',
-            title: 'Undergrad', institution: 'University of Maryland', institution_abbreviated: 'UMD' }),
+            title: 'Undergrad', school: 'University of Maryland', school_abbreviated: 'UMD' }),
           personRow({ urlName: 'hs', name: 'High Schooler', is_active: false, end_date: '2019-01-01',
             title: 'High School' }),
           personRow({ urlName: 'bare', name: 'Bare Person', is_active: false, end_date: '2020-01-01' }),
@@ -278,7 +278,7 @@ describe('AboutPage', () => {
           personRow({ urlName: 'neha', name: 'Neha A.', is_active: false, start_date: '2024-05-01',
             end_date: '2024-06-14' }),
           personRow({ urlName: 'neha', name: 'Neha A.', is_active: false, start_date: '2024-09-23',
-            end_date: '2024-10-28', title: 'Undergrad', institution_abbreviated: 'UW' }),
+            end_date: '2024-10-28', title: 'Undergrad', school_abbreviated: 'UW' }),
         ]),
         ...EMPTY_SECTIONS,
       });
@@ -369,6 +369,26 @@ describe('AboutPage', () => {
       button.click();
       expect(document.querySelectorAll('.about-pub[hidden]')).toHaveLength(0);
       expect(button.hidden).toBe(true);
+    });
+
+    test('renders one icon pill per available link, and none for the absent ones', async () => {
+      stubFetch({
+        '/publications/': page([pub(0, { arxiv_url: 'https://arxiv.org/abs/1', official_url: 'https://doi.org/1' })]),
+        '/people/?format=json': page([]),
+        '/grants/': page([]),
+      });
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      const pills = [...document.querySelectorAll('.about-pub-link')];
+      expect(pills.map((el) => el.textContent.trim())).toEqual(['PDF', 'arXiv', 'DOI']);
+      expect(pills.map((el) => el.querySelector('.about-pub-link-icon').getAttribute('src'))).toEqual([
+        '/assets/images/icons/file-text-feather.svg',
+        '/assets/images/icons/external-link-feather.svg',
+        '/assets/images/icons/link-feather.svg',
+      ]);
+      // Decorative: the pill's own text already names the link.
+      pills.forEach((el) => expect(el.querySelector('.about-pub-link-icon').getAttribute('alt')).toBe(''));
     });
 
     test('stays quiet when nothing is hidden', async () => {

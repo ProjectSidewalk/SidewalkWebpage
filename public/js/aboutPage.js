@@ -108,8 +108,8 @@ class AboutPage {
       merged.lead_project_role ||= row.lead_project_role;
       merged.role ||= row.role;
       merged.title ||= row.title;
-      merged.institution ||= row.institution;
-      merged.institution_abbreviated ||= row.institution_abbreviated;
+      merged.school ||= row.school;
+      merged.school_abbreviated ||= row.school_abbreviated;
       if (row.start_date < merged.start_date) merged.start_date = row.start_date;
       merged.end_date = merged.end_date && row.end_date
         ? (row.end_date > merged.end_date ? row.end_date : merged.end_date)
@@ -161,7 +161,7 @@ class AboutPage {
       // would otherwise render the same words twice.
       return lead.includes(detail) ? lead : [lead, detail].filter(Boolean).join(' · ');
     };
-    const affiliation = (p) => profiles.get(p.person.url_name)?.current_institution || p.institution || '';
+    const affiliation = (p) => profiles.get(p.person.url_name)?.current_school || p.school || '';
     document.getElementById('about-team-current').innerHTML = current.map((p) => {
       const org = affiliation(p);
       return `
@@ -204,7 +204,7 @@ class AboutPage {
     // is what makes the roll call legible as the experiential-learning record it is. Both come off the project row
     // rather than the person's profile, since a 2015 undergrad's profile now shows whatever they do today.
     document.getElementById('about-team-all').innerHTML = others.map((p) => {
-      const credential = [p.title, p.institution_abbreviated || p.institution].filter(Boolean).join(', ');
+      const credential = [p.title, p.school_abbreviated || p.school].filter(Boolean).join(', ');
       return `
         <li>
           <a href="${this.#esc(p.person.url)}">${this.#esc(p.person.name)}</a>${credential
@@ -234,11 +234,16 @@ class AboutPage {
       const hasYear = String(pub.forum_name).includes(String(pub.year));
       const venue = hasYear ? pub.forum_name : `${pub.forum_name} ${pub.year}`;
       const links = [
-        pub.pdf_url ? `<a href="${this.#esc(pub.pdf_url)}">PDF</a>` : '',
-        pub.arxiv_url ? `<a href="${this.#esc(pub.arxiv_url)}">arXiv</a>` : '',
-        pub.official_url ? `<a href="${this.#esc(pub.official_url)}">DOI</a>` : '',
-        pub.code_repo_url ? `<a href="${this.#esc(pub.code_repo_url)}">Code</a>` : '',
-      ].filter(Boolean).join(' ');
+        ['PDF', pub.pdf_url, 'file-text'],
+        ['arXiv', pub.arxiv_url, 'external-link'],
+        ['DOI', pub.official_url, 'link'],
+        ['Code', pub.code_repo_url, 'code'],
+      ].filter(([, url]) => url).map(([label, url, icon]) => `
+              <a class="about-pub-link" href="${this.#esc(url)}">
+                <img class="about-pub-link-icon" src="/assets/images/icons/${icon}-feather.svg" alt=""
+                     aria-hidden="true">
+                ${label}
+              </a>`).join('');
       return `
         <article class="about-pub"${initiallyVisible ? '' : ' hidden'}>
           <img class="about-pub-thumb" loading="lazy" src="${this.#esc(pub.thumbnail)}" alt="">

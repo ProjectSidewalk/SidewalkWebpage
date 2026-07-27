@@ -377,15 +377,22 @@
 
 .about-pub {
   display: grid;
-  grid-template-columns: 90px 1fr;
-  gap: 18px;
+  grid-template-columns: 132px 1fr;
+  gap: 20px;
   align-items: start;
-  padding: 14px 0;
+  padding: 18px 0;
   border-top: 1px solid var(--color-neutral-200);
 }
 
+/* The text column owns its own vertical rhythm via one gap, so the rows below carry no margins of their own. */
+.about-pub > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .about-pub-thumb {
-  width: 90px;
+  width: 132px;
   height: auto;
   border-radius: 4px;
   border: 1px solid var(--color-neutral-200);
@@ -393,7 +400,8 @@
 
 .about-pub h3 {
   font: var(--text-body-bold);
-  margin: 0 0 3px;
+  line-height: 1.3;
+  margin: 0;
 }
 
 #about-page .about-pub h3 a {
@@ -408,8 +416,9 @@
 .about-pub-authors,
 .about-pub-venue {
   font: var(--text-small-regular);
+  line-height: 1.4;
   color: var(--color-neutral-700);
-  margin: 0 0 3px;
+  margin: 0;
 }
 
 .about-pub-venue {
@@ -418,16 +427,39 @@
 
 .about-pub-award {
   font: var(--text-small-bold);
-  color: var(--color-banana-900);
+  color: var(--color-orange-600);
 }
 
 .about-pub-links {
-  margin: 0;
-  font: var(--text-small-medium);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 0;
 }
 
-.about-pub-links a {
-  margin-right: 14px;
+/* Link pills, matching the Makeability Lab publication list. */
+#about-page .about-pub-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 999px;
+  background-color: var(--color-neutral-white);
+  font: var(--text-small-medium);
+  color: var(--color-neutral-900);
+  text-decoration: none;
+}
+
+#about-page .about-pub-link:hover,
+#about-page .about-pub-link:focus-visible {
+  background-color: var(--color-neutral-100);
+  color: var(--color-link-200);
+}
+
+.about-pub-link-icon {
+  width: 14px;
+  height: 14px;
 }
 
 /* Funders */
