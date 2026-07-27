@@ -167,16 +167,30 @@ jobs:
       - name: Start database
         run: docker compose up -d --build db
 
-      - name: Wait for database init to finish
+      # Readiness has to be probed over TCP, because only TCP proves the server the tests will actually talk to is up.
+      #
+      # The postgres entrypoint runs /docker-entrypoint-initdb.d/init.sh against a *temporary* server started with
+      # `listen_addresses=''` — reachable on the container's Unix socket, but not on port 5432. Only once init.sh
+      # returns does it stop that server and exec the real one, which is the first thing to listen on TCP. A
+      # Unix-socket probe therefore reports success partway through init.sh (sidewalk_login lands at its pg_restore,
+      # with the remaining grants and the entire server restart still ahead of it), letting the job race on to
+      # `sbt testOnly` and fail with "Connection to localhost:5432 refused" whenever the compile is quick enough to
+      # get there first — an intermittent failure in which every database step reports success and zero tests run.
+      #
+      # `-h 127.0.0.1` is what forces TCP and must not be "simplified" away: with no host, psql takes the Unix socket
+      # and the probe goes back to answering the wrong question. Asserting the schema in the same query covers the
+      # other half, so one command establishes both that the real server is listening and that init.sh finished.
+      - name: Wait for the database to accept TCP connections
         run: |
           for i in $(seq 1 90); do
-            if docker compose exec -T db psql -U postgres -d sidewalk -tAc \
+            if docker compose exec -T -e PGPASSWORD=sidewalk db \
+                 psql -h 127.0.0.1 -p 5432 -U postgres -d sidewalk -tAc \
                  "SELECT 1 FROM information_schema.schemata WHERE schema_name='sidewalk_login'" 2>/dev/null | grep -q 1; then
-              echo "Database initialized."; exit 0
+              echo "Database is accepting TCP connections and initialized."; exit 0
             fi
             sleep 2
           done
-          echo "Database did not initialize in time."; docker compose logs db | tail -50; exit 1
+          echo "Database did not become reachable in time."; docker compose logs db | tail -50; exit 1
 
       # The real city dumps are git-ignored (too large to commit); CI only has the small, committed sidewalk_init
       # template that init.sh restored above. So build the test city from that template: rename the schema to
