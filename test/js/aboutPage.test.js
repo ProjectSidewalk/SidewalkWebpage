@@ -41,6 +41,9 @@ function personRow(overrides = {}) {
     },
     role: '',
     lead_project_role: null,
+    position_title: '',
+    position_school: '',
+    position_school_abbreviated: '',
     start_date: '2020-01-01',
     end_date: null,
     is_active: true,
@@ -140,6 +143,41 @@ describe('AboutPage', () => {
         // The project role wins over this person's profile title, which is never fetched.
         'Community partnerships',
       ]);
+    });
+
+    test('describes an active member by their profile title, not the position they joined with', async () => {
+      stubFetch({
+        '/people/?format=json': page([
+          personRow({ urlName: 'jonfroehlich', name: 'Jon E. Froehlich', lead_project_role: 'PI',
+            position_title: 'Assistant Professor', position_school: 'University of Maryland' }),
+        ]),
+        '/people/jonfroehlich/': { current_title: 'Professor', current_school: 'University of Washington' },
+        ...EMPTY_SECTIONS,
+      });
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      expect(document.querySelector('#about-team-current .about-team-role').textContent)
+        .toBe('Principal Investigator · Professor');
+      expect(document.querySelector('#about-team-current .about-team-affiliation').textContent)
+        .toBe('University of Washington');
+    });
+
+    test('states a role that already names the lead position only once', async () => {
+      stubFetch({
+        '/people/?format=json': page([
+          personRow({ urlName: 'yochai', name: 'Yochai Eisenberg', lead_project_role: 'Co-PI',
+            role: 'Co-PI on NSF grant' }),
+        ]),
+        '/people/yochai/': { current_title: 'Assistant Professor' },
+        ...EMPTY_SECTIONS,
+      });
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      // Not "Co-Principal Investigator · Co-PI on NSF grant".
+      expect(document.querySelector('#about-team-current .about-team-role').textContent)
+        .toBe('Co-Principal Investigator');
     });
 
     test('renders each member\'s affiliation on its own line', async () => {
@@ -260,9 +298,10 @@ describe('AboutPage', () => {
         '/people/?format=json': page([
           personRow({ urlName: 'active', name: 'Active Person', role: 'Lead dev' }),
           personRow({ urlName: 'ugrad', name: 'Undergrad Person', is_active: false, end_date: '2016-01-01',
-            title: 'Undergrad', school: 'University of Maryland', school_abbreviated: 'UMD' }),
+            position_title: 'Undergrad', position_school: 'University of Maryland',
+            position_school_abbreviated: 'UMD' }),
           personRow({ urlName: 'hs', name: 'High Schooler', is_active: false, end_date: '2019-01-01',
-            title: 'High School' }),
+            position_title: 'High School' }),
           personRow({ urlName: 'bare', name: 'Bare Person', is_active: false, end_date: '2020-01-01' }),
         ]),
         ...EMPTY_SECTIONS,
@@ -284,7 +323,7 @@ describe('AboutPage', () => {
           personRow({ urlName: 'neha', name: 'Neha A.', is_active: false, start_date: '2024-05-01',
             end_date: '2024-06-14' }),
           personRow({ urlName: 'neha', name: 'Neha A.', is_active: false, start_date: '2024-09-23',
-            end_date: '2024-10-28', title: 'Undergrad', school_abbreviated: 'UW' }),
+            end_date: '2024-10-28', position_title: 'Undergrad', position_school_abbreviated: 'UW' }),
         ]),
         ...EMPTY_SECTIONS,
       });
@@ -292,6 +331,24 @@ describe('AboutPage', () => {
       await hydrate();
 
       expect(document.querySelector('#about-team-all .about-team-credential').textContent).toBe('Undergrad, UW');
+    });
+
+    test('credits a merged contributor with the position from their most recent stint', async () => {
+      stubFetch({
+        '/people/?format=json': page([
+          personRow({ urlName: 'active', name: 'Active Person', role: 'Lead dev' }),
+          personRow({ urlName: 'anthony', name: 'Anthony Li', is_active: false, start_date: '2015-06-01',
+            end_date: '2015-08-01', position_title: 'High School Student',
+            position_school_abbreviated: 'MBHS' }),
+          personRow({ urlName: 'anthony', name: 'Anthony Li', is_active: false, start_date: '2016-10-01',
+            end_date: '2017-05-01', position_title: 'Undergrad', position_school_abbreviated: 'UMD' }),
+        ]),
+        ...EMPTY_SECTIONS,
+      });
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      expect(document.querySelector('#about-team-all .about-team-credential').textContent).toBe('Undergrad, UMD');
     });
 
     test('grafts the server-rendered localized blurb onto the matching past-lead card', async () => {

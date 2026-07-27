@@ -343,9 +343,11 @@
   max-width: 760px;
 }
 
-/* All-contributor roll call: compact name columns, like a paper's acknowledgments section. */
+/* All-contributor roll call: compact name columns, like a paper's acknowledgments section. Each entry is a name plus
+   a credential ("Marcus Amalachandran, High School Student, HMJHS"), so cap the column count by a minimum width and
+   let narrow viewports drop to fewer columns rather than squeezing every entry onto three lines. */
 .about-team-all {
-  columns: 3;
+  columns: 260px 3;
   column-gap: 48px;
   list-style: none;
   padding: 0;
@@ -595,7 +597,7 @@
   }
 
   .about-team-all {
-    columns: 2;
+    columns: 200px 2;
   }
 
   .about-timeline li {

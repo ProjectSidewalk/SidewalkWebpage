@@ -100,18 +100,25 @@ class AboutPage {
    */
   #mergeStints(rows) {
     const byPerson = new Map();
+    const latestStintStart = new Map();
     for (const row of rows) {
       const merged = byPerson.get(row.person.url_name);
       if (!merged) {
         byPerson.set(row.person.url_name, { ...row });
+        latestStintStart.set(row.person.url_name, row.start_date);
         continue;
       }
       merged.is_active ||= row.is_active;
       merged.lead_project_role ||= row.lead_project_role;
       merged.role ||= row.role;
-      merged.title ||= row.title;
-      merged.school ||= row.school;
-      merged.school_abbreviated ||= row.school_abbreviated;
+      // A returning contributor's position advances between stints (high schooler who came back as an undergrad), so
+      // the most recent stint is the one that describes them.
+      if (row.start_date >= latestStintStart.get(row.person.url_name)) {
+        latestStintStart.set(row.person.url_name, row.start_date);
+        merged.position_title = row.position_title;
+        merged.position_school = row.position_school;
+        merged.position_school_abbreviated = row.position_school_abbreviated;
+      }
       if (row.start_date < merged.start_date) merged.start_date = row.start_date;
       merged.end_date = merged.end_date && row.end_date
         ? (row.end_date > merged.end_date ? row.end_date : merged.end_date)
@@ -156,14 +163,17 @@ class AboutPage {
 
     const roleText = (p) => {
       const lead = AboutPage.#LEAD_ROLE_LABELS[p.lead_project_role] ?? p.lead_project_role ?? '';
-      // `role` on the project row says what they do on Project Sidewalk, so it wins; the profile's title
-      // ("PhD Student", "Professor") describes their job instead and is the fallback.
-      const detail = p.role || p.title || profiles.get(p.person.url_name)?.current_title || '';
-      // A lead label that already spells out the detail ("Research Scientist Lead" over "Research Scientist")
-      // would otherwise render the same words twice.
-      return lead.includes(detail) ? lead : [lead, detail].filter(Boolean).join(' · ');
+      // `role` on the project row says what they do on Project Sidewalk, so it wins. The profile's title
+      // ("PhD Student", "Professor") describes their job instead and is the fallback — and it beats the project row's
+      // `position_title`, which is frozen at the position they held when the stint began (the PI's row still reads
+      // "Assistant Professor" from 2012).
+      const detail = p.role || profiles.get(p.person.url_name)?.current_title || p.position_title || '';
+      // Either half can already spell out the other ("Research Scientist Lead" over "Research Scientist", or a `role`
+      // of "Co-PI on NSF grant" under the Co-PI label), which would otherwise render the same words twice.
+      const redundant = lead.includes(detail) || (p.lead_project_role && detail.includes(p.lead_project_role));
+      return redundant ? lead : [lead, detail].filter(Boolean).join(' · ');
     };
-    const affiliation = (p) => profiles.get(p.person.url_name)?.current_school || p.school || '';
+    const affiliation = (p) => profiles.get(p.person.url_name)?.current_school || p.position_school || '';
     document.getElementById('about-team-current').innerHTML = current.map((p) => {
       const org = affiliation(p);
       return `
@@ -206,7 +216,8 @@ class AboutPage {
     // is what makes the roll call legible as the experiential-learning record it is. Both come off the project row
     // rather than the person's profile, since a 2015 undergrad's profile now shows whatever they do today.
     document.getElementById('about-team-all').innerHTML = others.map((p) => {
-      const credential = [p.title, p.school_abbreviated || p.school].filter(Boolean).join(', ');
+      const credential = [p.position_title, p.position_school_abbreviated || p.position_school]
+        .filter(Boolean).join(', ');
       return `
         <li>
           <a href="${this.#esc(p.person.url)}">${this.#esc(p.person.name)}</a>${credential
