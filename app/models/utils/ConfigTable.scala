@@ -378,7 +378,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     // which may not have applied the evolution adding audit_task.outdated_imagery yet (e.g. mid-deploy). Gate the
     // filter on the column existing so unmigrated schemas fall back to counting every completed audit instead of
     // erroring out their whole scorecard. Once every deployed schema has the column this gate (and the branch in
-    // coreQuery) can go away -- tracked as a #4384 follow-up.
+    // coreQuery) can go away -- tracked in #4705.
     //
     // Unlike the `"#$schema".table` splices below, which have to be raw because an identifier can't be a bind
     // parameter, this one compares against a plain string column, so bind it properly.
