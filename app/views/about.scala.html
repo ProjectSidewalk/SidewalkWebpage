@@ -233,6 +233,28 @@
         <button class="button-ps button--secondary button--medium" id="about-pubs-show-all" hidden
                 data-label-template="@Messages("about.pubs.showAll")"></button>
         <p class="about-pubs-fallback">@Html(Messages("about.pubs.fallback"))</p>
+        @* Citation for the canonical Project Sidewalk paper, hydrated from the Makeability Lab API so the formatting
+           always matches the lab's own citation rendering. Hidden until it loads; the intro paragraph above already
+           links the paper, so there is nothing to fall back to. *@
+        <div class="about-cite" id="about-cite" hidden>
+          <h3>@Messages("about.pubs.cite.title")</h3>
+          <div class="about-cite-block">
+            <div class="about-cite-head">
+              <span class="about-cite-label">@Messages("about.pubs.cite.plain")</span>
+              <button class="about-cite-copy" type="button" data-copy-target="about-cite-plain"
+                      data-copied-label="@Messages("about.pubs.cite.copied")">@Messages("about.pubs.cite.copy")</button>
+            </div>
+            <p class="about-cite-text" id="about-cite-plain"></p>
+          </div>
+          <div class="about-cite-block">
+            <div class="about-cite-head">
+              <span class="about-cite-label">BibTeX</span>
+              <button class="about-cite-copy" type="button" data-copy-target="about-cite-bibtex"
+                      data-copied-label="@Messages("about.pubs.cite.copied")">@Messages("about.pubs.cite.copy")</button>
+            </div>
+            <pre class="about-cite-code" id="about-cite-bibtex"></pre>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -258,26 +280,6 @@
         @* Grant list hydrated from the Makeability Lab API; hidden (with the paragraph above as fallback) until it
            loads. *@
         <ul class="about-grants" id="about-funding-grants" hidden></ul>
-        <div class="about-funder-logos">
-          <a href="https://www.nsf.gov/" id="about-funder-nsf-link">
-            <img loading="lazy" src='@assets.path("images/nsf.png")' alt='@Messages("footer.logo.nsf.alt")'>
-          </a>
-          <a href="https://www.google.com/" id="about-funder-google-link">
-            <img loading="lazy" src='@assets.path("images/google.png")' alt='@Messages("footer.logo.google.alt")'>
-          </a>
-          <a href="https://sloan.org/" id="about-funder-sloan-link">
-            <img loading="lazy" src='@assets.path("images/sloan_logo.png")' alt='@Messages("footer.logo.sloan.alt")'>
-          </a>
-          <a href="https://www.washington.edu/research/research-centers/pacific-northwest-transportation-consortium-pactrans/"
-             id="about-funder-pactrans-link">
-            <img loading="lazy" src='@assets.path("images/pactrans_logo.png")'
-                 alt='@Messages("footer.logo.pactrans.alt")'>
-          </a>
-          <a href="https://create.uw.edu/" id="about-funder-create-link">
-            <img loading="lazy" src='@assets.path("images/CREATE_logo.png")'
-                 alt='@Messages("footer.logo.create.alt")'>
-          </a>
-        </div>
       </div>
     </section>
 

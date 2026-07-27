@@ -375,27 +375,38 @@
   border-bottom: 1px solid var(--color-neutral-200);
 }
 
+.about-pubs-fallback {
+  margin-top: 24px;
+}
+
 .about-pub {
   display: grid;
-  grid-template-columns: 132px 1fr;
+  grid-template-columns: 112px 1fr;
   gap: 20px;
   align-items: start;
   padding: 18px 0;
   border-top: 1px solid var(--color-neutral-200);
 }
 
-/* The text column owns its own vertical rhythm via one gap, so the rows below carry no margins of their own. */
+/* The text column owns its own vertical rhythm via one gap, so the rows inside carry no margins of their own. This
+   has to out-specify `.about-band p`, whose 12px bottom margin would otherwise stack on top of the gap. */
 .about-pub > div {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
+.about-pub > div p {
+  margin: 0;
+}
+
 .about-pub-thumb {
-  width: 132px;
+  display: block;
+  width: 112px;
   height: auto;
   border-radius: 4px;
-  border: 1px solid var(--color-neutral-200);
+  border: 1px solid var(--color-neutral-300);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 12%);
 }
 
 .about-pub h3 {
@@ -430,19 +441,19 @@
   color: var(--color-orange-600);
 }
 
-.about-pub-links {
+.about-pub > div .about-pub-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 6px 0 0;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 /* Link pills, matching the Makeability Lab publication list. */
 #about-page .about-pub-link {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
+  gap: 5px;
+  padding: 2px 10px;
   border: 1px solid var(--color-neutral-200);
   border-radius: 999px;
   background-color: var(--color-neutral-white);
@@ -458,8 +469,72 @@
 }
 
 .about-pub-link-icon {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
+}
+
+/* "How to cite": the formatted citation and its BibTeX, each with a copy button. */
+.about-cite {
+  margin-top: 36px;
+  max-width: 860px;
+}
+
+.about-cite h3 {
+  font: var(--text-title-bold);
+  color: var(--color-asphalt-500);
+  margin: 0 0 12px;
+}
+
+.about-cite-block + .about-cite-block {
+  margin-top: 16px;
+}
+
+.about-cite-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.about-cite-label {
+  font: var(--text-small-medium);
+  color: var(--color-neutral-700);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.about-cite-copy {
+  padding: 2px 12px;
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 999px;
+  background-color: var(--color-neutral-white);
+  font: var(--text-small-medium);
+  color: var(--color-neutral-900);
+  cursor: pointer;
+}
+
+.about-cite-copy:hover,
+.about-cite-copy:focus-visible {
+  background-color: var(--color-neutral-100);
+  color: var(--color-link-200);
+}
+
+#about-page .about-cite-text,
+.about-cite-code {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 8px;
+  background-color: var(--color-neutral-white);
+  font: var(--text-small-regular);
+  line-height: 1.5;
+}
+
+.about-cite-code {
+  overflow-x: auto;
+  font-family: "JetBrains Mono", sfmono-regular, consolas, "Liberation Mono", menlo, monospace;
+  white-space: pre;
 }
 
 /* Funders */
@@ -470,21 +545,6 @@
   display: grid;
   gap: 8px;
   max-width: 820px;
-}
-
-.about-funder-logos {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 40px;
-  margin-top: 32px;
-}
-
-.about-funder-logos img {
-  max-height: 48px;
-  max-width: 160px;
-  width: auto;
-  height: auto;
 }
 
 /* Closing CTA band */

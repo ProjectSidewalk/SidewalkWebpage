@@ -216,12 +216,16 @@ about.pubs.title = Publicaciones relacionadas
 about.pubs.intro = La investigación de Project Sidewalk se publica en los principales foros de interacción humano-computadora y accesibilidad. Si usas nuestros datos o herramientas en tu investigación, por favor cita nuestro <a href="https://doi.org/10.1145/3290605.3300292">artículo de CHI 2019</a>.
 about.pubs.fallback = Consulta <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">todas las publicaciones de Project Sidewalk</a> en el sitio del Makeability Lab.
 about.pubs.showAll = Mostrar las {0} publicaciones
+about.pubs.cite.title = Cómo citar Project Sidewalk
+about.pubs.cite.plain = Cita
+about.pubs.cite.copy = Copiar
+about.pubs.cite.copied = Copiado
 about.data.title = Datos abiertos y código abierto
 about.data.body = Todo lo que recolectamos es abierto. Descarga etiquetas, grupos de etiquetas, calles y puntuaciones de accesibilidad mediante nuestras <a href="/api">API públicas</a>, en formatos desde CSV hasta GeoJSON — todo publicado bajo CC0; consulta la <a href="/api">documentación de la API</a> para más detalles y guía de citación. Nuestro <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">código también es abierto</a>.
 about.partners.title = Socios comunitarios
 about.partners.body = Trabajamos de la mano con organizaciones de defensa de la discapacidad, gobiernos, escuelas y grupos comunitarios de todo el mundo — incluidos Easterseals, World Enabled, Liga Peatonal y la Active Transportation Alliance — para planear despliegues, organizar eventos de mapeo comunitario y convertir los datos en acción local.
 about.partners.schools = Docentes llevan Project Sidewalk a clases de civismo y ciencia de datos, y nuestro equipo y socios han pilotado planes de estudio de aprendizaje-servicio y desarrollo laboral para jóvenes con discapacidades. <a href="https://accessiblecommunities.org/use-project-sidewalk/">Aprende a usar Project Sidewalk en tu comunidad</a>.
-about.funding.title = Financiadores
+about.funding.title = Financiamiento de la investigación
 about.funding.body = Project Sidewalk es investigación académica financiada con subvenciones, con el apoyo de la National Science Foundation y apoyo adicional de Google, la Fundación Alfred P. Sloan, PacTrans y el centro CREATE de la Universidad de Washington.
 about.cta.title = Ayúdanos a mapear todas las banquetas
 about.cta.city = Lleva Project Sidewalk a tu ciudad

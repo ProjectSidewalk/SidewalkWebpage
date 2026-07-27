@@ -13,6 +13,8 @@ class AboutPage {
   static #FETCH_TIMEOUT_MS = 10000;
   static #MAX_PAGES = 20; // Pagination follow cap; a runaway `next` chain should never loop forever.
   static #INITIAL_PUB_COUNT = 8;
+  // The CHI 2019 paper is the one we ask people to cite; identified by DOI so an id or title edit can't break it.
+  static #CITATION_DOI = '10.1145/3290605.3300292';
   static #FALLBACK_PHOTO = '/assets/images/logos/ProjectSidewalkLogo_NoText_100x100.png';
 
   // Display order for project leads, mirroring the ML site (makeabilitylabwebsite website/models/project.py).
@@ -244,9 +246,14 @@ class AboutPage {
                      aria-hidden="true">
                 ${label}
               </a>`).join('');
+      // The thumbnail is a second route to the same destination as the title, so it stays out of the tab order and
+      // hidden from assistive tech rather than repeating the link.
+      const thumb = `<img class="about-pub-thumb" loading="lazy" src="${this.#esc(pub.thumbnail)}" alt="">`;
       return `
         <article class="about-pub"${initiallyVisible ? '' : ' hidden'}>
-          <img class="about-pub-thumb" loading="lazy" src="${this.#esc(pub.thumbnail)}" alt="">
+          ${titleUrl
+            ? `<a href="${this.#esc(titleUrl)}" tabindex="-1" aria-hidden="true">${thumb}</a>`
+            : thumb}
           <div>
             <h3>${titleUrl ? `<a href="${this.#esc(titleUrl)}">${this.#esc(pub.title)}</a>` : this.#esc(pub.title)}</h3>
             <p class="about-pub-authors">${pub.authors.map((a) => this.#esc(a.name)).join(', ')}</p>
@@ -269,6 +276,50 @@ class AboutPage {
         showAllButton.hidden = true;
       });
     }
+
+    await this.#renderCitation(pubs);
+  }
+
+  /**
+   * Fills the "how to cite" block with the canonical paper's formatted citation and BibTeX, and wires the copy
+   * buttons. Leaves the block hidden if the paper isn't in the list or its detail request fails — the intro
+   * paragraph already links the paper, so there is nothing missing without it.
+   *
+   * @param {object[]} pubs - The project's publications, as returned by the ML API list endpoint.
+   */
+  async #renderCitation(pubs) {
+    const block = document.getElementById('about-cite');
+    if (!block) return;
+
+    // Identify the paper by DOI rather than id or title: the id is an ML-database detail and the title could be
+    // edited, while the DOI is the paper's permanent identifier (and is the one the intro copy already cites).
+    const paper = pubs.find((pub) => String(pub.official_url).includes(AboutPage.#CITATION_DOI));
+    if (!paper) return;
+
+    const detail = await this.#fetchJson(`${AboutPage.#ML_API_BASE}/publications/${paper.id}/?format=json`);
+    if (!detail.citation_html || !detail.bibtex) return;
+
+    // citation_html is markup by contract (it carries the <i> and <a> that make a citation readable), so it is the
+    // one API string on this page that is injected rather than escaped.
+    document.getElementById('about-cite-plain').innerHTML = detail.citation_html;
+    document.getElementById('about-cite-bibtex').textContent = detail.bibtex;
+
+    block.querySelectorAll('.about-cite-copy').forEach((button) => {
+      const original = button.textContent;
+      button.addEventListener('click', async () => {
+        const text = document.getElementById(button.dataset.copyTarget).textContent;
+        try {
+          await navigator.clipboard.writeText(text);
+          button.textContent = button.dataset.copiedLabel;
+          setTimeout(() => {
+            button.textContent = original;
+          }, 2000);
+        } catch (e) {
+          console.warn('About page: copy to clipboard failed.', e);
+        }
+      });
+    });
+    block.hidden = false;
   }
 
   /**
@@ -314,11 +365,6 @@ class AboutPage {
       ['about-step-data-link', 'step_data'],
       ['about-cta-explore-link', 'cta_explore'],
       ['about-cta-city-link', 'cta_city'],
-      ['about-funder-nsf-link', 'funder_nsf'],
-      ['about-funder-google-link', 'funder_google'],
-      ['about-funder-sloan-link', 'funder_sloan'],
-      ['about-funder-pactrans-link', 'funder_pactrans'],
-      ['about-funder-create-link', 'funder_create'],
     ];
     staticTargets.forEach(([id, target]) => {
       document.getElementById(id)?.addEventListener('click', () => log(target));

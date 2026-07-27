@@ -93,6 +93,12 @@ describe('AboutPage', () => {
       </template>
       <div id="about-pubs-list"></div>
       <button id="about-pubs-show-all" hidden data-label-template="Show all {0} publications"></button>
+      <div id="about-cite" hidden>
+        <button class="about-cite-copy" data-copy-target="about-cite-plain" data-copied-label="Copied">Copy</button>
+        <p id="about-cite-plain"></p>
+        <button class="about-cite-copy" data-copy-target="about-cite-bibtex" data-copied-label="Copied">Copy</button>
+        <pre id="about-cite-bibtex"></pre>
+      </div>
       <ul id="about-funding-grants" hidden></ul>`;
     sessionStorage.clear();
     // aboutPage.js defers its work to appManager.ready(); capture the callback so each test can run it on demand.
@@ -391,6 +397,33 @@ describe('AboutPage', () => {
       pills.forEach((el) => expect(el.querySelector('.about-pub-link-icon').getAttribute('alt')).toBe(''));
     });
 
+    test('links the thumbnail to the paper, out of the tab order so it does not duplicate the title link', async () => {
+      stubFetch({
+        '/publications/': page([pub(0)]),
+        '/people/?format=json': page([]),
+        '/grants/': page([]),
+      });
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      const link = document.querySelector('.about-pub-thumb').closest('a');
+      expect(link.getAttribute('href')).toBe('https://example.org/paper.pdf');
+      expect(link.getAttribute('tabindex')).toBe('-1');
+      expect(link.getAttribute('aria-hidden')).toBe('true');
+    });
+
+    test('leaves the thumbnail unlinked when the publication has no URL at all', async () => {
+      stubFetch({
+        '/publications/': page([pub(0, { pdf_url: '', official_url: '', arxiv_url: '', forum_url: '' })]),
+        '/people/?format=json': page([]),
+        '/grants/': page([]),
+      });
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      expect(document.querySelector('.about-pub-thumb').closest('a')).toBeNull();
+    });
+
     test('stays quiet when nothing is hidden', async () => {
       stubFetch({
         '/publications/': page([pub(0), pub(1)]), '/people/?format=json': page([]), '/grants/': page([]),
@@ -411,6 +444,91 @@ describe('AboutPage', () => {
       await hydrate();
 
       expect(document.querySelector('.about-pub-venue').textContent.trim()).toBe('Proceedings of CHI 2030');
+    });
+  });
+
+  describe('citation block', () => {
+    const CITED = {
+      id: 605,
+      title: 'Project Sidewalk',
+      date: '2019-05-01',
+      year: 2019,
+      forum_name: 'Proceedings of CHI 2019',
+      authors: [{ name: 'Manaswi Saha' }],
+      thumbnail: '',
+      pdf_url: '',
+      arxiv_url: '',
+      code_repo_url: '',
+      forum_url: '',
+      award: null,
+      official_url: 'https://doi.org/10.1145/3290605.3300292',
+    };
+    const DETAIL = {
+      citation_html: 'Saha, M. (2019). Project Sidewalk. <i>Proceedings of CHI 2019</i>.',
+      bibtex: '@inproceedings{SahaProjectCHI2019,\n  year={2019}\n}',
+    };
+
+    test('finds the cited paper by DOI and fills both panes', async () => {
+      const other = { ...CITED, id: 700, title: 'Another Paper', date: '2024-01-01', year: 2024,
+        official_url: 'https://doi.org/10.1145/other' };
+      stubFetch({
+        '/projects/sidewalk/publications/': page([other, CITED]),
+        '/publications/605/': DETAIL,
+        '/people/?format=json': page([]),
+        '/grants/': page([]),
+      });
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      expect(document.getElementById('about-cite').hidden).toBe(false);
+      // citation_html is markup by contract, so its <i> survives as an element rather than as escaped text.
+      expect(document.querySelector('#about-cite-plain i').textContent).toBe('Proceedings of CHI 2019');
+      expect(document.getElementById('about-cite-bibtex').textContent).toBe(DETAIL.bibtex);
+    });
+
+    test('copies the pane\'s text and confirms on the button', async () => {
+      const writeText = jest.fn(() => Promise.resolve());
+      Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+      stubFetch({
+        '/projects/sidewalk/publications/': page([CITED]),
+        '/publications/605/': DETAIL,
+        '/people/?format=json': page([]),
+        '/grants/': page([]),
+      });
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      const bibtexButton = document.querySelector('[data-copy-target="about-cite-bibtex"]');
+      bibtexButton.click();
+      await Promise.resolve();
+      expect(writeText).toHaveBeenCalledWith(DETAIL.bibtex);
+      expect(bibtexButton.textContent).toBe('Copied');
+    });
+
+    test('stays hidden when the cited paper is not in the project list', async () => {
+      stubFetch({
+        '/projects/sidewalk/publications/': page([{ ...CITED, official_url: 'https://doi.org/10.1145/other' }]),
+        '/people/?format=json': page([]),
+        '/grants/': page([]),
+      });
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      expect(document.getElementById('about-cite').hidden).toBe(true);
+    });
+
+    test('stays hidden, without taking the publication list down, when the detail request fails', async () => {
+      stubFetch({
+        '/projects/sidewalk/publications/': page([CITED]),
+        '/people/?format=json': page([]),
+        '/grants/': page([]),
+      }); // /publications/605/ rejects.
+      jest.spyOn(console, 'warn').mockImplementation(() => {});
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      expect(document.getElementById('about-cite').hidden).toBe(true);
+      expect(document.querySelectorAll('.about-pub')).toHaveLength(1);
     });
   });
 

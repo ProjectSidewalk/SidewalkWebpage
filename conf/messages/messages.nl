@@ -204,12 +204,16 @@ about.pubs.title = Gerelateerde publicaties
 about.pubs.intro = Onderzoek van Project Sidewalk verschijnt op toonaangevende fora voor mens-computerinteractie en toegankelijkheid. Gebruik je onze data of tools in je onderzoek? Citeer dan ons <a href="https://doi.org/10.1145/3290605.3300292">CHI 2019-artikel</a>.
 about.pubs.fallback = Bekijk <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">alle Project Sidewalk-publicaties</a> op de website van het Makeability Lab.
 about.pubs.showAll = Toon alle {0} publicaties
+about.pubs.cite.title = Project Sidewalk citeren
+about.pubs.cite.plain = Citatie
+about.pubs.cite.copy = Kopiëren
+about.pubs.cite.copied = Gekopieerd
 about.data.title = Open data en open source
 about.data.body = Alles wat we verzamelen is open. Download labels, labelclusters, straten en toegankelijkheidsscores via onze <a href="/api">publieke API''s</a>, in formaten van CSV tot GeoJSON — alles gepubliceerd onder CC0; zie de <a href="/api">API-documentatie</a> voor details en citatierichtlijnen. Ook onze <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">code is open source</a>.
 about.partners.title = Maatschappelijke partners
 about.partners.body = We werken nauw samen met belangenorganisaties voor mensen met een beperking, overheden, scholen en gemeenschapsgroepen wereldwijd — waaronder Easterseals, World Enabled, Liga Peatonal en de Active Transportation Alliance — om inzet te plannen, karteerevenementen te organiseren en data om te zetten in lokale actie.
 about.partners.schools = Docenten gebruiken Project Sidewalk in lessen burgerschap en datawetenschap, en ons team en onze partners hebben lesprogramma''s ontwikkeld voor service learning en arbeidsontwikkeling voor jongeren met een beperking. <a href="https://accessiblecommunities.org/use-project-sidewalk/">Lees hoe je Project Sidewalk in jouw gemeenschap inzet</a>.
-about.funding.title = Financiers
+about.funding.title = Onderzoeksfinanciering
 about.funding.body = Project Sidewalk is met subsidies gefinancierd academisch onderzoek, ondersteund door de National Science Foundation, met aanvullende steun van Google, de Alfred P. Sloan Foundation, PacTrans en het CREATE-centrum van de University of Washington.
 about.cta.title = Help ons elk trottoir in kaart te brengen
 about.cta.city = Breng Project Sidewalk naar jouw stad

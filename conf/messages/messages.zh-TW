@@ -274,12 +274,16 @@ about.pubs.title = 相關論文
 about.pubs.intro = Project Sidewalk 的研究發表於頂尖的人機互動與無障礙領域學術會議。若您在研究中使用我們的資料或工具，請引用我們的 <a href="https://doi.org/10.1145/3290605.3300292">CHI 2019 論文</a>。
 about.pubs.fallback = 在 Makeability Lab 網站上瀏覽<a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">所有 Project Sidewalk 論文</a>。
 about.pubs.showAll = 顯示全部 {0} 篇論文
+about.pubs.cite.title = 如何引用 Project Sidewalk
+about.pubs.cite.plain = 引用格式
+about.pubs.cite.copy = 複製
+about.pubs.cite.copied = 已複製
 about.data.title = 開放資料與開放原始碼
 about.data.body = 我們收集的一切都是開放的。您可以透過<a href="/api">公開 API</a> 下載標記、標記群集、街道與無障礙分數，格式從 CSV 到 GeoJSON 都有——所有資料均以 CC0 授權發布；詳情與引用指南請參閱 <a href="/api">API 文件</a>。我們的<a href="https://github.com/ProjectSidewalk/SidewalkWebpage">程式碼也完全開源</a>。
 about.partners.title = 社區夥伴
 about.partners.body = 我們與世界各地的身心障礙倡議組織、政府、學校及社區團體緊密合作——包括 Easterseals、World Enabled、Liga Peatonal 與 Active Transportation Alliance——共同規劃部署、舉辦社區測繪活動，並將資料化為在地行動。
 about.partners.schools = 教育工作者將 Project Sidewalk 帶入公民與資料科學課堂；我們的團隊與夥伴也為身心障礙青年試行了服務學習與職涯發展課程。<a href="https://accessiblecommunities.org/use-project-sidewalk/">了解如何在您的社區使用 Project Sidewalk</a>。
-about.funding.title = 資助單位
+about.funding.title = 研究經費
 about.funding.body = Project Sidewalk 是由研究經費支持的學術研究，主要由美國國家科學基金會（NSF）資助，並獲得 Google、Alfred P. Sloan 基金會、PacTrans 與華盛頓大學 CREATE 中心的額外支持。
 about.cta.title = 與我們一起繪製每一條人行道
 about.cta.city = 將 Project Sidewalk 帶到您的城市

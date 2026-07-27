@@ -207,12 +207,16 @@ about.pubs.title = Verwandte Publikationen
 about.pubs.intro = Project-Sidewalk-Forschung erscheint auf führenden Fachtagungen für Mensch-Computer-Interaktion und Barrierefreiheit. Wenn Sie unsere Daten oder Werkzeuge in Ihrer Forschung verwenden, zitieren Sie bitte unser <a href="https://doi.org/10.1145/3290605.3300292">CHI-2019-Paper</a>.
 about.pubs.fallback = Alle <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">Project-Sidewalk-Publikationen</a> finden Sie auf der Website des Makeability Lab.
 about.pubs.showAll = Alle {0} Publikationen anzeigen
+about.pubs.cite.title = Project Sidewalk zitieren
+about.pubs.cite.plain = Zitat
+about.pubs.cite.copy = Kopieren
+about.pubs.cite.copied = Kopiert
 about.data.title = Offene Daten und Open Source
 about.data.body = Alles, was wir sammeln, ist offen. Laden Sie Beschriftungen, Cluster, Straßen und Zugänglichkeits-Scores über unsere <a href="/api">öffentlichen APIs</a> herunter — in Formaten von CSV bis GeoJSON, alles unter CC0 veröffentlicht; Details und Hinweise zum Zitieren finden Sie in der <a href="/api">API-Dokumentation</a>. Auch unser <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">Code ist Open Source</a>.
 about.partners.title = Community-Partner
 about.partners.body = Wir arbeiten eng mit Behindertenverbänden, Behörden, Schulen und Gemeinschaftsgruppen weltweit zusammen — darunter Easterseals, World Enabled, Liga Peatonal und die Active Transportation Alliance — um Einsätze zu planen, Kartier-Aktionen durchzuführen und Daten in lokales Handeln zu verwandeln.
 about.partners.schools = Lehrkräfte bringen Project Sidewalk in den Gesellschafts- und Datenunterricht, und unser Team und unsere Partner haben Lehrmaterialien für Service Learning und berufliche Entwicklung für Jugendliche mit Behinderungen erprobt. <a href="https://accessiblecommunities.org/use-project-sidewalk/">Erfahren Sie, wie Sie Project Sidewalk in Ihrer Gemeinde einsetzen</a>.
-about.funding.title = Förderer
+about.funding.title = Forschungsförderung
 about.funding.body = Project Sidewalk ist durch Fördermittel finanzierte akademische Forschung, unterstützt von der National Science Foundation, mit weiterer Unterstützung von Google, der Alfred P. Sloan Foundation, PacTrans und dem CREATE-Zentrum der University of Washington.
 about.cta.title = Helfen Sie uns, jedes Trottoir zu kartieren
 about.cta.city = Bringen Sie Project Sidewalk in Ihre Stadt

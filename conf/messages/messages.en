@@ -210,12 +210,16 @@ about.pubs.title = Related publications
 about.pubs.intro = Project Sidewalk research is published at leading human–computer interaction and accessibility venues. If you use our data or tools in your research, please cite our <a href="https://doi.org/10.1145/3290605.3300292">CHI 2019 paper</a>.
 about.pubs.fallback = Browse <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">all Project Sidewalk publications</a> on the Makeability Lab website.
 about.pubs.showAll = Show all {0} publications
+about.pubs.cite.title = How to cite Project Sidewalk
+about.pubs.cite.plain = Citation
+about.pubs.cite.copy = Copy
+about.pubs.cite.copied = Copied
 about.data.title = Open data &amp; open source
 about.data.body = Everything we collect is open. Download raw labels, label clusters, streets, and accessibility scores through our <a href="/api">public APIs</a>, in formats from CSV to GeoJSON — all published under CC0; see the <a href="/api">API documentation</a> for details and citation guidance. Our <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">code is open source</a>, too.
 about.partners.title = Community partners
 about.partners.body = We work hand in hand with disability advocacy organizations, governments, schools, and community groups around the world — including Easterseals, World Enabled, Liga Peatonal, and the Active Transportation Alliance — to plan deployments, run community mapping events, and turn data into local action.
 about.partners.schools = Educators bring Project Sidewalk into civics and data-science classrooms, and our team and partners have piloted service-learning and workforce-development curricula for youth with disabilities. <a href="https://accessiblecommunities.org/use-project-sidewalk/">Learn how to use Project Sidewalk in your community</a>.
-about.funding.title = Funders
+about.funding.title = Research funding
 about.funding.body = Project Sidewalk is grant-funded academic research, supported by the National Science Foundation with additional support from Google, the Alfred P. Sloan Foundation, PacTrans, and the UW Center for Research and Education on Accessible Technology and Experiences (CREATE).
 about.cta.title = Help us map every sidewalk
 about.cta.city = Bring Project Sidewalk to your city
