@@ -11,8 +11,9 @@
  * podium — is at least --font-size-md (16px). The smaller steps (sm/xs/xxs) are reserved for legends
  * (.ud-heatmap-legend), chart captions (.ud-acc-note), and small decorative pills/ribbons (.ud-trophy-tag,
  * .ud-standing-tag, .ud-card-verdict, .ud-public-tag). Never size real content below md — and avoid footnote-style
- * asides (design review: if a note matters it belongs in real copy). The one sanctioned exception is a caption that
- * explains the chart it sits under (owner call on the accuracy chart's min-validations rule).
+ * asides (design review: if a note matters it belongs in real copy). The sanctioned exceptions are captions that
+ * explain the thing they sit under: the accuracy chart's min-validations rule (.ud-acc-note) and the global
+ * leaderboard's daily distance refresh (.ud-lb-note) — both owner calls.
  */
 
 /* Primary-content tables on the user surface read much larger than the admin default (which stays --font-size-sm):
@@ -38,8 +39,9 @@
 .api-content .coverage-table td:nth-child(2),
 .api-content .coverage-table th:nth-child(2) { text-align: left; }
 
-.api-content .ud-lb-alltime td:nth-child(3),
-.api-content .ud-lb-alltime th:nth-child(3) { text-align: left; }
+/* The global board's "Top city" is a name, so it reads left-aligned like Mapper rather than right like the numbers. */
+.api-content .ud-lb-global td:nth-child(3),
+.api-content .ud-lb-global th:nth-child(3) { text-align: left; }
 .api-content .coverage-table tbody tr { cursor: default; }
 
 /* Bump only the top-3 medal emoji so they read clearly; plain rank numbers keep the table's font size. */
@@ -105,6 +107,14 @@
 
 .ud-lb-user:hover,
 .ud-lb-city:hover { text-decoration: underline; }
+
+/* Footnote under the global board: its Distance column comes from a nightly precompute, so it can trail the live
+   per-city boards above by a little. Matches .ud-acc-note (the other sanctioned caption). */
+.ud-lb-note {
+  margin: var(--space-xs, 8px) 0 0;
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-text-secondary, #5a7785);
+}
 
 /* ---- Hero / "Your impact" -------------------------------------------------------------------------------------- */
 .ud-hero {
@@ -1505,6 +1515,9 @@
     -webkit-overflow-scrolling: touch;
   }
   .api-content .coverage-table { min-width: 520px; }
+
+  /* The global board carries an extra "Top city" column, so it needs more room before scrolling horizontally. */
+  .api-content .ud-lb-global { min-width: 620px; }
 
   /* Podium shrinks to fit a phone: equal-width columns instead of fixed 150px spots. */
   .ud-podium { gap: var(--space-xs, 8px); }

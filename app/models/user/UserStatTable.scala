@@ -85,6 +85,28 @@ case class LeaderboardStat(
 )
 
 /**
+ * One row of the all-time global leaderboard: a contributor's totals summed across every included city (#3719).
+ *
+ * Ranked by `labelCount` rather than the per-city board's composite score, because that score divides audited distance
+ * by the *current city's* total street distance — a denominator with no cross-city meaning.
+ *
+ * @param username       Display name (email domain stripped, as on the per-city boards).
+ * @param labelCount     Labels placed across all included cities.
+ * @param missionCount   Missions completed across all included cities.
+ * @param distanceMeters Street distance audited across all included cities.
+ * @param accuracy       Validation agreement rate across all cities, or None below the 10-validated-label threshold.
+ * @param topCitySchema  DB schema of the city where this user placed the most labels; the caller maps it to a city id.
+ */
+case class GlobalLeaderboardStat(
+    username: String,
+    labelCount: Int,
+    missionCount: Int,
+    distanceMeters: Double,
+    accuracy: Option[Double],
+    topCitySchema: String
+)
+
+/**
  * One row in a user's "standing" slice — their neighbors on the board, ranked by label count for the period.
  *
  * @param rank       1-based rank among eligible users for the period.
@@ -634,6 +656,121 @@ class UserStatTable @Inject() (
           else LeaderboardStat.tupled(stat)
         })
     )
+  }
+
+  /**
+   * Gets the all-time global leaderboard: the top `n` contributors by labels summed across `citySchemas` (#3719).
+   *
+   * Accounts are global (`sidewalk_login.sidewalk_user` is shared by every city) while contributions are per-city, so
+   * this unions each city schema's per-user totals and rolls them up by the shared `user_id`. That union runs as one
+   * statement rather than a per-city fan-out because all city schemas live in the same database.
+   *
+   * Two deliberate departures from the per-city board, both to keep this cheap enough to run on a page load:
+   *  - Distance sums the nightly-precomputed `user_stat.meters_audited` instead of recomputing
+   *    `ST_LENGTH(ST_TRANSFORM(...))` per city. It is the same quantity by the same definition (see
+   *    `updateAuditedDistanceHelper`), just up to a day stale, and it keeps PostGIS out of a 50-way union — which also
+   *    sidesteps the JIT segfault that forces `withJitOff` on the per-city board (#4376/#4545).
+   *  - Ranking is by raw label count, so the rows are in true rank order (the per-city board's composite score has a
+   *    city-relative distance term that cannot be compared across cities).
+   *
+   * Eligibility mirrors the per-city board — role IN (Registered, Administrator, Researcher), non-excluded,
+   * non-deleted/non-tutorial labels — with two cross-city refinements:
+   *  - `excluded` is per city, so a user flagged low-quality in one city loses *that city's* contribution and keeps the
+   *    rest; the flag describes that city's data, not the person.
+   *  - `on_leaderboard` is also per city, but opting out is about being *named*, so a single opt-out hides the user from
+   *    this board entirely (`BOOL_OR`) rather than just trimming a city. Cities excluded by config are filtered out
+   *    before this runs, so a private deployment's default-off flags never suppress anyone here (#4480).
+   *
+   * @param citySchemas DB schema names to include, already vetted by the caller (existence, config opt-out, and having
+   *                    the columns this query needs). Spliced into SQL, so each must be a bare identifier.
+   * @param n           How many rows to return.
+   * @return            Up to `n` rows ordered by descending total label count.
+   */
+  def getGlobalLeaderboardStats(citySchemas: Seq[String], n: Int): DBIO[Seq[GlobalLeaderboardStat]] = {
+    if (citySchemas.isEmpty) {
+      DBIO.successful(Seq.empty[GlobalLeaderboardStat])
+    } else {
+      // Schema names are spliced, not bound, so reject anything that isn't a bare identifier before building the SQL.
+      val unsafe: Seq[String] = citySchemas.filterNot(_.matches("^[a-z_][a-z0-9_]*$"))
+      require(unsafe.isEmpty, s"Refusing to build cross-schema SQL for non-identifier schema names: $unsafe")
+
+      // Per-city totals keyed by the global user_id. MAX(meters_audited) picks the single per-city value (user_stat
+      // holds one row per user per city), and BOOL_OR collects the opt-out flag for the roll-up's HAVING.
+      val labelBlocks: String = citySchemas
+        .map { schema =>
+          s"""  SELECT label.user_id, '$schema'::text AS city_schema, COUNT(*)::int AS labels,
+         SUM(CASE WHEN label.correct THEN 1 ELSE 0 END)::int AS agreed,
+         SUM(CASE WHEN NOT label.correct THEN 1 ELSE 0 END)::int AS disagreed,
+         MAX(user_stat.meters_audited) AS meters,
+         BOOL_OR(NOT user_stat.on_leaderboard) AS opted_out
+  FROM "$schema".label
+  INNER JOIN "$schema".user_stat ON user_stat.user_id = label.user_id
+  WHERE label.deleted = FALSE AND label.tutorial = FALSE AND user_stat.excluded = FALSE
+  GROUP BY label.user_id"""
+        }
+        .mkString("\n  UNION ALL\n")
+
+      // Missions are counted for everyone rather than only the eligible users: filtering here would mean referencing an
+      // eligibility CTE once per city, and Postgres misestimates such a CTE badly enough to cost several seconds.
+      val missionBlocks: String = citySchemas
+        .map(schema =>
+          s"""  SELECT mission.user_id, COUNT(*)::int AS missions FROM "$schema".mission GROUP BY mission.user_id"""
+        )
+        .mkString("\n  UNION ALL\n")
+
+      sql"""
+        WITH city_labels AS (
+        #$labelBlocks
+        ),
+        city_missions AS (
+        #$missionBlocks
+        ),
+        rolled AS (
+            SELECT city_labels.user_id,
+                   SUM(city_labels.labels)::int AS label_count,
+                   SUM(city_labels.meters) AS distance_meters,
+                   SUM(city_labels.agreed)::int AS agreed,
+                   SUM(city_labels.disagreed)::int AS disagreed
+            FROM city_labels
+            GROUP BY city_labels.user_id
+            HAVING BOOL_OR(city_labels.opted_out) = FALSE
+        ),
+        missions AS (
+            SELECT city_missions.user_id, SUM(city_missions.missions)::int AS mission_count
+            FROM city_missions
+            GROUP BY city_missions.user_id
+        ),
+        top_n AS (
+            SELECT rolled.*
+            FROM rolled
+            INNER JOIN sidewalk_login.user_role ON user_role.user_id = rolled.user_id
+            INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
+            WHERE role.role IN ('Registered', 'Administrator', 'Researcher')
+            ORDER BY rolled.label_count DESC
+            LIMIT $n
+        )
+        SELECT sidewalk_user.username,
+               top_n.label_count,
+               COALESCE(missions.mission_count, 0) AS mission_count,
+               top_n.distance_meters,
+               CASE WHEN top_n.agreed + top_n.disagreed > 9
+                    THEN top_n.agreed::float / (top_n.agreed + top_n.disagreed) END AS accuracy,
+               (SELECT city_labels.city_schema
+                FROM city_labels
+                WHERE city_labels.user_id = top_n.user_id
+                ORDER BY city_labels.labels DESC, city_labels.city_schema
+                LIMIT 1) AS top_city_schema
+        FROM top_n
+        INNER JOIN sidewalk_login.sidewalk_user ON sidewalk_user.user_id = top_n.user_id
+        LEFT JOIN missions ON missions.user_id = top_n.user_id
+        ORDER BY top_n.label_count DESC;
+      """
+        .as[(String, Int, Int, Double, Option[Double], String)]
+        .map(_.map { stat =>
+          val username: String = if (isValidEmail(stat._1)) stat._1.slice(0, stat._1.lastIndexOf('@')) else stat._1
+          GlobalLeaderboardStat(username, stat._2, stat._3, stat._4, stat._5, stat._6)
+        })
+    }
   }
 
   /**

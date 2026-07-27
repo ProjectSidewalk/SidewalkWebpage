@@ -12,6 +12,8 @@ import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.MyPostgresProfile
 import models.utils.ProfanityGuard
 import models.validation.LabelValidationTable
+import play.api.Logger
+import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.Messages
 import slick.dbio.DBIO
@@ -20,6 +22,7 @@ import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneId}
 import java.util.Locale
 import javax.inject._
+import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 
 case class UserProfileData(
@@ -69,6 +72,28 @@ case class AccuracyByType(
     pct: Int,
     validated: Int,
     weakest: Boolean
+)
+
+/**
+ * One row of the all-time global leaderboard, with the DAO's schema name resolved to a city id (#3719).
+ *
+ * The view turns `topCityId` into a display name and link via `CommonPageData.allCityInfo`, keeping city naming and
+ * localization in one place.
+ *
+ * @param username       Display name.
+ * @param labelCount     Labels placed across all included cities.
+ * @param missionCount   Missions completed across all included cities.
+ * @param distanceMeters Street distance audited across all included cities.
+ * @param accuracy       Cross-city validation agreement rate, or None below the 10-validated-label threshold.
+ * @param topCityId      City id where this user placed the most labels, or None if its schema maps to no configured id.
+ */
+case class GlobalLeaderboardEntry(
+    username: String,
+    labelCount: Int,
+    missionCount: Int,
+    distanceMeters: Double,
+    accuracy: Option[Double],
+    topCityId: Option[String]
 )
 
 case class AdminUserProfileData(
@@ -247,6 +272,15 @@ trait UserService {
       userIdForTeam: Option[String] = None
   ): Future[Seq[LeaderboardStat]]
   def getUserStanding(userId: String): Future[Option[UserStanding]]
+
+  /**
+   * Gets the all-time global leaderboard: top contributors by labels summed across every included city (#3719).
+   *
+   * @param n How many rows to return.
+   * @return  Up to `n` rows in rank order, each carrying the id of the city where that user labeled most. Empty if no
+   *          city qualifies for the board or the query fails, so the page renders without the section rather than 500s.
+   */
+  def getGlobalLeaderboardStats(n: Int): Future[Seq[GlobalLeaderboardEntry]]
   def getActivityStreak(userId: String, locale: Locale = Locale.ENGLISH): Future[StreakStats]
   def getAccuracyByType(userId: String): Future[Seq[AccuracyByType]]
   def getTrophies(userId: String, cityName: String, messages: Messages): Future[Seq[Trophy]]
@@ -273,9 +307,13 @@ class UserServiceImpl @Inject() (
     userTeamTable: UserTeamTable,
     teamTable: TeamTable,
     userUtmTable: UserUtmTable,
+    configService: ConfigService,
+    cacheApi: AsyncCacheApi,
     implicit val ec: ExecutionContext
 ) extends UserService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
+
+  private val logger = Logger(this.getClass)
 
   /**
    * Gets the data to show on a user's dashboard.
@@ -464,6 +502,32 @@ class UserServiceImpl @Inject() (
       streetDist: Double          <- streetService.getTotalStreetDistanceDBIO
       stats: Seq[LeaderboardStat] <- userStatTable.getLeaderboardStats(n, timePeriod, byTeam, teamId, streetDist)
     } yield stats)
+  }
+
+  def getGlobalLeaderboardStats(n: Int): Future[Seq[GlobalLeaderboardEntry]] = {
+    // Cached because every city's deployment renders the same global board, so an uncached read would recompute a
+    // ~50-schema union on each of their page loads. 10 minutes matches the other cross-city reads; the board is
+    // all-time, so it barely moves between refreshes.
+    cacheApi.getOrElseUpdate[Seq[GlobalLeaderboardEntry]](s"getGlobalLeaderboardStats_$n", Duration(10, "minutes")) {
+      configService.getGlobalLeaderboardCities
+        .flatMap { cities =>
+          if (cities.isEmpty) {
+            Future.successful(Seq.empty[GlobalLeaderboardEntry])
+          } else {
+            val cityIdBySchema: Map[String, String] = cities.map { case (cityId, schema) => schema -> cityId }.toMap
+            db.run(userStatTable.getGlobalLeaderboardStats(cities.map(_._2), n))
+              .map(_.map { stat =>
+                GlobalLeaderboardEntry(stat.username, stat.labelCount, stat.missionCount, stat.distanceMeters,
+                  stat.accuracy, cityIdBySchema.get(stat.topCitySchema))
+              })
+          }
+        }
+        .recover { case e: Exception =>
+          // The section is supplementary, so a failure here drops it rather than taking down the whole leaderboard page.
+          logger.warn(s"Failed to compute the global leaderboard, omitting the section: ${e.getMessage}", e)
+          Seq.empty[GlobalLeaderboardEntry]
+        }
+    }
   }
 
   /**

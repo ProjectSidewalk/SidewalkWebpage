@@ -74,6 +74,8 @@ class UserDashboardController @Inject() (
     val isSignedIn: Boolean = user.role != "Anonymous"
     val isMetric: Boolean   = Messages("measurement.system") == "metric"
     val cityName            = configService.getCityName(request2Messages.lang)
+    // Kicked off before the for-comprehension so the cross-city union overlaps the per-city queries on a cache miss.
+    val globalF = userService.getGlobalLeaderboardStats(10)
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
       aggregate  <- configService.getAggregateStats()
@@ -81,11 +83,12 @@ class UserDashboardController @Inject() (
       weekly     <- userService.getLeaderboardStats(10, "weekly")
       teams      <- userService.getLeaderboardStats(10, "overall", byTeam = true)
       standing   <- if (isSignedIn) userService.getUserStanding(user.userId) else Future.successful(None)
+      global     <- globalF
     } yield {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Leaderboard")
       Ok(
-        views.html.userDashboard
-          .leaderboard(commonData, user, isSignedIn, isMetric, cityName, aggregate, overall, weekly, teams, standing)
+        views.html.userDashboard.leaderboard(commonData, user, isSignedIn, isMetric, cityName, aggregate, overall,
+          weekly, teams, standing, global)
       )
     }
   }

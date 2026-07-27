@@ -282,6 +282,12 @@ object ConfigService {
   val ActiveWithinDays: Long = 30
 
   /**
+   * How many `label`/`user_stat`/`mission` columns the global leaderboard's cross-schema query reads. A schema must have
+   * every one of them to join the union, so this is the count that marks it ready (#3719).
+   */
+  val RequiredLeaderboardColumns: Int = 9
+
+  /**
    * Coverage at or above this means a quiet city is treated as having reached its milestone ("wrapped up") rather than
    * having failed — the Oradell case (#4329). Success is judged by street coverage.
    */
@@ -516,6 +522,18 @@ trait ConfigService {
    * @return The database user/schema for the city
    */
   def getCitySchema(cityId: String): String
+
+  /**
+   * The cities whose contributions may appear on the by-name global leaderboard, as (cityId, schema) pairs (#3719).
+   *
+   * Excludes, in order: "staging" (not a real deployment), cities opted out via
+   * `city-params.global-leaderboard-excluded`, cities that default profiles to private, and any schema that is missing
+   * or lacks the columns the leaderboard query reads. Aggregate/anonymous totals such as the community-impact band are
+   * unaffected by these exclusions and still cover every city (#4480).
+   *
+   * @return (cityId, schema) pairs safe to include, in configured order; empty if none qualify.
+   */
+  def getGlobalLeaderboardCities: Future[Seq[(String, String)]]
 
   /**
    * Retrieves map parameters for a specific city by directly querying that city's database schema.
@@ -763,6 +781,85 @@ class ConfigServiceImpl @Inject() (
         }
       }
     }
+  }
+
+  def getGlobalLeaderboardCities: Future[Seq[(String, String)]] = {
+    // Cached because the answer only changes when config or the schema list does, and it gates a per-page-load query.
+    cacheApi.getOrElseUpdate[Seq[(String, String)]]("getGlobalLeaderboardCities", Duration(1, "hours")) {
+      val candidates: Seq[(String, String)] = config
+        .get[Seq[String]]("city-params.city-ids")
+        .filter(_ != "staging")
+        .filterNot(isExcludedFromGlobalLeaderboard)
+        .flatMap { cityId =>
+          try { Some(cityId -> getCitySchema(cityId)) }
+          catch { case _: Exception => None } // A city id with no db-schema entry simply can't be queried.
+        }
+
+      // One metadata query rather than a per-city existence probe: schemas can sit at different evolution levels, and a
+      // single missing column would otherwise fail the whole union at query time.
+      leaderboardColumnCountsBySchema().map { columnCounts =>
+        val (included, skipped) = candidates.partition { case (_, schema) =>
+          columnCounts.getOrElse(schema, 0) == ConfigService.RequiredLeaderboardColumns
+        }
+        // A schema with *some* of the columns exists but is behind on evolutions — real, actionable drift, unlike a
+        // schema that is simply absent (every dev box and single-city deployment has ~50 of those).
+        val behind = skipped.map(_._2).filter(schema => columnCounts.get(schema).exists(_ > 0))
+        if (behind.nonEmpty) {
+          logger.warn(
+            s"Global leaderboard excluding ${behind.size} city schema(s) missing columns it reads " +
+              s"(evolutions likely not yet applied there): ${behind.mkString(", ")}"
+          )
+        }
+        included
+      }
+    }
+  }
+
+  /**
+   * Whether a city is held out of the by-name global leaderboard.
+   *
+   * Two independent reasons, either of which excludes: an explicit `global-leaderboard-excluded` entry, or a deployment
+   * that defaults profiles to private — a school/minor city starts users opted out, so naming its contributors globally
+   * would leak exactly what that default protects (#4480).
+   *
+   * @param cityId The city to test.
+   * @return True if the city's contributions must not appear on the global leaderboard.
+   */
+  private def isExcludedFromGlobalLeaderboard(cityId: String): Boolean = {
+    // hasPath is false for a missing key OR a missing parent block, so an unlisted city is simply included.
+    def flag(block: String): Boolean = {
+      val path = s"city-params.$block.$cityId"
+      config.underlying.hasPath(path) && config.get[Boolean](path)
+    }
+    flag("global-leaderboard-excluded") || flag("private-profiles-by-default")
+  }
+
+  /**
+   * Counts, per schema, how many of the columns the global leaderboard query reads are present.
+   *
+   * Covers every schema rather than filtering to a candidate list in SQL, so the query needs no list binding and no
+   * identifier splicing; the caller intersects. Note `information_schema` only exposes objects the connected role can
+   * see, so a schema the app cannot read reports as absent — which is the behavior we want.
+   *
+   * @return Schema name to matching-column count; only a schema with all [[RequiredLeaderboardColumns]] is safe to
+   *         query. Empty if the query fails, which drops the section rather than risking a failed union.
+   */
+  private def leaderboardColumnCountsBySchema(): Future[Map[String, Int]] = {
+    db.run(
+      sql"""
+        SELECT table_schema, COUNT(*)::int
+        FROM information_schema.columns
+        WHERE (table_name = 'label' AND column_name IN ('user_id', 'deleted', 'tutorial', 'correct'))
+            OR (table_name = 'user_stat'
+                AND column_name IN ('user_id', 'excluded', 'on_leaderboard', 'meters_audited'))
+            OR (table_name = 'mission' AND column_name = 'user_id')
+        GROUP BY table_schema
+      """.as[(String, Int)]
+    ).map(_.toMap)
+      .recover { case e: Exception =>
+        logger.warn(s"Could not determine global-leaderboard-ready schemas, disabling the section: ${e.getMessage}")
+        Map.empty[String, Int]
+      }
   }
 
   def getCityScorecards(): Future[Seq[CityScorecardWithFlags]] = {

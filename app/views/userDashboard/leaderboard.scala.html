@@ -1,9 +1,9 @@
-@import service.{AggregateStats, CommonPageData}
+@import service.{AggregateStats, CommonPageData, GlobalLeaderboardEntry}
 @import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStanding}
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole, isSignedIn: Boolean, isMetric: Boolean, cityName: String,
     aggregate: AggregateStats, overall: Seq[LeaderboardStat], weekly: Seq[LeaderboardStat],
-    teams: Seq[LeaderboardStat], standing: Option[UserStanding]
+    teams: Seq[LeaderboardStat], standing: Option[UserStanding], global: Seq[GlobalLeaderboardEntry]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
@@ -62,6 +62,39 @@
       <td>@stat.missionCount</td>
       <td>@fmtDist(stat.distanceMeters)</td>
       <td>@fmtAcc(stat.accuracy)</td>
+    </tr>
+  }
+}
+
+@* Header for the global board: the per-city columns plus the city a mapper contributed most to. *@
+@globalHead() = {
+  <tr>
+    <th>#</th><th>@Messages("leaderboard.header.mapper")</th><th>@Messages("leaderboard.header.topcity")</th><th>@Messages("leaderboard.header.labels")</th><th>@Messages("leaderboard.header.missions")</th><th>@Messages("leaderboard.header.distance")</th>
+    <th><span class="ud-th-tip" tabindex="0" role="note" aria-label="@Messages("leaderboard.accuracy.explain") @Messages("leaderboard.accuracy.detail")" data-tooltip="@Messages("leaderboard.accuracy.detail")">@Messages("accuracy.caps")<span class="ud-th-info" aria-hidden="true">&#9432;</span></span></th>
+  </tr>
+}
+
+@* City names/links come from allCityInfo so naming and localization stay in one place; an unmapped id degrades to a dash. *@
+@topCityCell(cityId: Option[String]) = {
+  @cityId.flatMap(id => commonData.allCityInfo.find(_.cityId == id)).map { city =>
+    <a href="@city.URL" class="ud-lb-city">@city.cityNameShort</a>
+  }.getOrElse {
+    <span aria-label="@Messages("not.applicable.abbr")">&mdash;</span>
+  }
+}
+
+@globalRow(rank: Int, entry: GlobalLeaderboardEntry) = {
+  @defining(isSignedIn && entry.username == user.username) { you =>
+    <tr @if(you){class="highlighted"}>
+      <td class="ud-lb-rank">@rankCell(rank)</td>
+      <td>@if(you){<strong>@Messages("dashboard.you")</strong>}else{
+        <a href="@routes.UserDashboardController.publicProfile(entry.username)" class="ud-lb-user">@entry.username</a>
+      }</td>
+      <td>@topCityCell(entry.topCityId)</td>
+      <td>@{"%,d".format(entry.labelCount)}</td>
+      <td>@entry.missionCount</td>
+      <td>@fmtDist(entry.distanceMeters)</td>
+      <td>@fmtAcc(entry.accuracy)</td>
     </tr>
   }
 }
@@ -175,10 +208,31 @@
     }
   </div>
 
+  @* ---- All cities, all-time (cross-city, by name — #3719) ------------------------------------------------- *@
+  <div class="api-section" id="lb-allcities-section">
+    <h2 class="api-heading" id="all-cities">@Messages("leaderboard.allcities.title") <a href="#all-cities" class="permalink">#</a></h2>
+    <p>@Messages("leaderboard.allcities.intro")</p>
+    @if(global.nonEmpty) {
+      <div class="coverage-table-wrap">
+        <table class="coverage-table ud-lb-global">
+          <thead>
+            @globalHead()
+          </thead>
+          <tbody>
+            @for((entry, i) <- global.zipWithIndex) { @globalRow(i + 1, entry) }
+          </tbody>
+        </table>
+      </div>
+      <p class="ud-lb-note">@Messages("leaderboard.allcities.note")</p>
+    } else {
+      <div class="ud-nudge">@Messages("leaderboard.allcities.none")</div>
+    }
+  </div>
+
   @* ---- Your place in the community (signed-in only) ------------------------------------------------------ *@
   @if(isSignedIn) {
     <div class="api-section" id="lb-you-section">
-      <h2 class="api-heading" id="you">@Messages("leaderboard.you.title") <a href="#you" class="permalink">#</a></h2>
+      <h2 class="api-heading" id="you">@Messages("leaderboard.you.title", cityName) <a href="#you" class="permalink">#</a></h2>
       <p>@Messages("leaderboard.you.intro")</p>
       @userDashboard._standing(standing, seeAllLink = false)
     </div>
