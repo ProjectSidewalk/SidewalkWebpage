@@ -27,6 +27,9 @@
   "surface-problems": "Oppervlakte problemen",
   "sign-up": "Een account maken",
   "close": "Sluiten",
+  "cancel": "Annuleren",
+  "continue": "Doorgaan",
+  "delete": "Verwijderen",
   "badges": {
     "congratulations": "Gefeliciteerd!",
     "you-earned": "Je hebt de “{{badge}}”-badge verdiend!",
@@ -80,6 +83,7 @@
   "no-description": "Geen beschrijving",
   "comments": "Effectiviteit beoordelingen",
   "none": "Geen",
+  "only": "Alleen",
   "image-capture-date": "Opnamedatum afbeelding",
   "drag-to-look-around": "Sleep om rond te kijken",
   "labeled": "Gelabeled",

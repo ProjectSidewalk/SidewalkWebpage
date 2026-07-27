@@ -81,5 +81,12 @@
   },
   "stories": {
     "none": "您尚未分享任何故事。在地圖上開啟一個標記，然後選擇「分享您的故事」。"
-  }
-}
+  },
+  "routes-link-copied": "已複製連結！",
+  "routes-rename-aria": "新的路線名稱",
+  "routes-rename-save": "儲存",
+  "routes-rename-cancel": "取消",
+  "routes-renamed": "路線已重新命名。",
+  "routes-deleted": "已刪除「{{name}}」。",
+  "routes-delete-confirm": "確定要刪除「{{name}}」嗎？擁有此連結的人將無法再使用它。",
+  "routes-error": "發生錯誤，請再試一次。"}

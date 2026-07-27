@@ -179,15 +179,29 @@
    the wrapping .label-detail__share div, which is positioned so the popover anchors to the trigger. *@
 <div class="label-detail__footer">
   @* Zero-story share CTA (#4054): swaps in for the stories section when the label has no stories yet. *@
-  <button type="button" class="label-detail__story-share label-detail__story-share--footer" hidden>
+  @* Footer buttons carry a full label and a shorter one; a container query on the footer swaps to the short label,
+     then to icons only, as the card narrows (#4572). The aria-label holds the full wording so the accessible name
+     is stable across all three widths. *@
+  <button type="button" class="label-detail__story-share label-detail__story-share--footer" hidden
+          data-i18n-aria-label="labelmap:story.share-yours">
     <img src='@assets.path("images/icons/message-circle-feather.svg")' alt="">
-    <span data-i18n="labelmap:story.share-yours">Share your story</span>
+    <span class="label-detail__footer-label label-detail__footer-label--full" data-i18n="labelmap:story.share-yours">Share your story</span>
+    <span class="label-detail__footer-label label-detail__footer-label--short" data-i18n="labelmap:story.share-yours-brief">Your story</span>
   </button>
+  @* Drop into Explore at this label's pano + point of view (#4637). Hosts opt in via LabelDetail's
+     showExploreHereLink; the href is an address-style drop-in (#4451) seeded at the label's pano, with the label's
+     lat/lng as the fallback if the pano fails to load (#4635). *@
+  <a class="label-detail__explore-link" hidden data-i18n-aria-label="labelmap:explore-here-short">
+    <img src='@assets.path("images/icons/navigation-feather.svg")' alt="">
+    <span class="label-detail__footer-label label-detail__footer-label--full" data-i18n="labelmap:explore-here-short">Explore here</span>
+    <span class="label-detail__footer-label label-detail__footer-label--short" data-i18n="labelmap:explore-here-brief">Explore</span>
+  </a>
   @* Cross-surface hop (#4572): hosts other than LabelMap opt in via LabelDetail's showLabelMapLink, which fills
      the href with /labelMap?labelId=<id> so the map opens with this label's popup and a location pulse. *@
-  <a class="label-detail__labelmap-link" hidden>
+  <a class="label-detail__labelmap-link" hidden data-i18n-aria-label="labelmap:view-on-labelmap">
     <img src='@assets.path("images/icons/map-pin-feather.svg")' alt="">
-    <span data-i18n="labelmap:view-on-labelmap">View on Label Map</span>
+    <span class="label-detail__footer-label label-detail__footer-label--full" data-i18n="labelmap:view-on-labelmap">View on Label Map</span>
+    <span class="label-detail__footer-label label-detail__footer-label--short" data-i18n="labelmap:view-on-labelmap-brief">Label Map</span>
   </a>
   <div class="label-detail__share">
     <button type="button" class="label-detail__share-trigger"
@@ -200,7 +214,7 @@
         <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
         <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
       </svg>
-      <span class="label-detail__share-trigger-label" data-i18n="common:share.button">Share</span>
+      <span class="label-detail__share-trigger-label label-detail__footer-label" data-i18n="common:share.button">Share</span>
     </button>
   </div>
 </div>

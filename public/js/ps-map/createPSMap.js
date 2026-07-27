@@ -49,10 +49,10 @@ function createPSMap($, params) {
 
     // Show the sidebar early (in its disabled/loading state) so it's visible while data loads.
     // Also shift the map center to account for the sidebar covering part of the map.
-    const sidebar = document.getElementById('map-sidebar');
+    const sidebar = document.getElementById('filter-sidebar');
     if (sidebar) {
       sidebar.classList.remove('ps-invisible');
-      sidebar.classList.add('map-sidebar--loading');
+      sidebar.classList.add('filter-sidebar--loading');
       map.setPadding({ left: sidebar.offsetWidth, top: 0, right: 0, bottom: 0 });
     }
 
@@ -105,8 +105,12 @@ function createPSMap($, params) {
   let renderLabels;
   if (params.labelsURL) {
     const loadLabels = $.getJSON(params.labelsURL);
-    renderLabels = Promise.all([mapLoaded, renderStreets, loadLabels]).then((data) => {
-      return addLabelsToMap(map, data[2], params);
+    renderLabels = Promise.all([mapLoaded, renderStreets, loadLabels]).then(async (data) => {
+      const mapData = await addLabelsToMap(map, data[2], params);
+      // Streets carry no label filters, so their counts are settled the moment they load; park them on the tracker
+      // for the sidebar to render alongside the counts it facets itself.
+      mapData.streetCounts = data[1];
+      return mapData;
     });
   }
 

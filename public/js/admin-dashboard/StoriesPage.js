@@ -172,10 +172,13 @@ class StoriesPage {
   }
 
   async #deleteStory(story, row) {
-    const ok = window.confirm(
-      'Permanently delete this story (and its photo, if any)? This cannot be undone — '
-      + 'use Hide instead if the content may be needed as evidence.',
-    );
+    const ok = await ConfirmDialog.confirm({
+      message: 'Permanently delete this story (and its photo, if any)? This cannot be undone — '
+        + 'use Hide instead if the content may be needed as evidence.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      danger: true,
+    });
     if (!ok) return;
     try {
       const res = await fetch(`/adminapi/stories/${story.story_id}`, { method: 'DELETE' });

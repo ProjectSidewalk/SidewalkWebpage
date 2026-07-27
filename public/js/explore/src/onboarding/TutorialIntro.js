@@ -34,6 +34,7 @@ class TutorialIntro {
       nextButton: document.getElementById('tutorial-intro-next-btn'),
       skipLink: document.getElementById('tutorial-intro-skip'),
       impactDesc: document.getElementById('tutorial-intro-impact-desc'),
+      routeNote: document.getElementById('tutorial-intro-route-note'),
     };
     this.#stepCount = this.#ui.steps.length;
 
@@ -48,6 +49,11 @@ class TutorialIntro {
   /** Show the intro at the first step and move keyboard focus to the primary action. */
   show() {
     this.#tracker.push('TutorialIntro_Start');
+    // A user who clicked through to a specific route lands here instead, so say the route is still waiting —
+    // otherwise the tutorial looks like it replaced what they asked for.
+    if (this.#ui.routeNote && new URLSearchParams(window.location.search).has('routeId')) {
+      this.#ui.routeNote.hidden = false;
+    }
     // Kick off the Impact-stats fetch now (fire-and-forget): the Impact step is last, so the server-cached numbers are
     // essentially always back before the user clicks that far, and we never block the intro on the request.
     this.#fetchImpactStats();

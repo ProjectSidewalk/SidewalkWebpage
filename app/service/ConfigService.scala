@@ -15,7 +15,7 @@ import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
 import slick.dbio.DBIO
 
-import java.time.{LocalDate, OffsetDateTime}
+import java.time.{LocalDate, OffsetDateTime, ZoneId}
 import java.time.temporal.ChronoUnit
 import javax.inject._
 import scala.concurrent.duration.{Duration, FiniteDuration}
@@ -105,8 +105,22 @@ case class AggregateStats(
  * @param validations  Validations by non-excluded users that week.
  * @param activeUsers  Distinct non-excluded users who labeled or validated that week. Summed across cities for the
  *                     "active users over time" overview line, this slightly over-counts users active in multiple cities.
+ * @param newUsers     Users whose first-ever label or validation fell in that week — the increment for the cumulative
+ *                     users chart (#4686). Only populated on full-history queries: a trailing window can't know a
+ *                     user's true first week, so bounded queries return 0 here.
  */
-case class WeeklyPoint(weekStart: LocalDate, labels: Int, validations: Int, activeUsers: Int)
+case class WeeklyPoint(weekStart: LocalDate, labels: Int, validations: Int, activeUsers: Int, newUsers: Int)
+
+/**
+ * One day's contribution volume summed across cities, for the Across Cities "this week" bar charts (#4686).
+ *
+ * @param day          Calendar day (Pacific).
+ * @param labels       Non-tutorial, non-excluded labels created that day.
+ * @param validations  Validations by non-excluded users that day.
+ * @param activeUsers  Distinct non-excluded users who labeled or validated that day, summed per city (a person active
+ *                     in two cities is counted in each).
+ */
+case class DailyPoint(day: LocalDate, labels: Int, validations: Int, activeUsers: Int)
 
 /**
  * One city's summary row for the cross-city "Across Cities" admin overview (#4329).
@@ -428,6 +442,16 @@ trait ConfigService {
   def getCrossCityWeeklyTrend(weeks: Option[Int]): Future[Seq[WeeklyPoint]]
 
   /**
+   * Returns the daily label/validation/active-user volume summed across all available cities for the trailing window
+   * (#4686), for the "this week" bar charts. Same definitions and exclusions as [[getCrossCityWeeklyTrend]]; active
+   * users are summed per city, so a person active in multiple cities is counted in each (documented on the page).
+   *
+   * @param days Trailing calendar days (Pacific) to include; the last day is today, so its counts are partial.
+   * @return     Exactly `days` points, zero-filled and ascending by day.
+   */
+  def getCrossCityDailyTrend(days: Int): Future[Seq[DailyPoint]]
+
+  /**
    * Returns each city's labeling speed as seconds of active auditing per 100 m covered (#4329).
    *
    * This is the project's one EXPENSIVE cross-city metric (a window-function scan of each schema's
@@ -438,6 +462,16 @@ trait ConfigService {
    * @return A Future of cityId → seconds per 100 m (lower is faster).
    */
   def getCrossCityLabelingSpeed(): Future[Map[String, Double]]
+
+  /**
+   * Returns the current city's labeling pace as minutes of active auditing per 100 m covered.
+   *
+   * Same expensive interaction-table scan as [[getCrossCityLabelingSpeed]] but for this deployment's schema only,
+   * on its own daily cache. RouteBuilder bases its route exploration-time estimate on this.
+   *
+   * @return A Future of minutes per 100 m, or None when the city has no interaction data yet.
+   */
+  def getCityLabelingSpeed(): Future[Option[Double]]
 
   /**
    * Returns each available city's precomputed engagement funnels for a time window (#288).
@@ -795,11 +829,75 @@ class ConfigServiceImpl @Inject() (
             .toSeq
             .sortBy(_._1)
             .map { case (week, pts) =>
-              WeeklyPoint(week, pts.map(_.labels).sum, pts.map(_.validations).sum, pts.map(_.activeUsers).sum)
+              WeeklyPoint(
+                week,
+                pts.map(_.labels).sum,
+                pts.map(_.validations).sum,
+                pts.map(_.activeUsers).sum,
+                pts.map(_.newUsers).sum
+              )
             }
         }
       }
     }
+  }
+
+  def getCrossCityDailyTrend(days: Int): Future[Seq[DailyPoint]] = {
+    cacheApi.getOrElseUpdate[Seq[DailyPoint]](s"getCrossCityDailyTrend_$days", Duration(10, "minutes")) {
+      val configuredCityIds = config.get[Seq[String]]("city-params.city-ids").filter(_ != "staging")
+
+      val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
+        try {
+          checkSchemaExists(getCitySchema(cityId)).map(cityId -> _).recover { case _ => cityId -> false }
+        } catch {
+          case _: Exception => Future.successful(cityId -> false)
+        }
+      }
+
+      Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
+        val availableCities = schemaResults.filter(_._2).map(_._1)
+        val perCityFutures  = availableCities.map { cityId =>
+          db.run(configTable.getCityDailyTrendBySchema(getCitySchema(cityId), days))
+            .recover { case e: Exception =>
+              logger.warn(s"Failed to fetch daily trend for city $cityId: ${e.getMessage}")
+              Seq.empty[DailyPoint]
+            }
+        }
+        Future.sequence(perCityFutures).map { perCity =>
+          val byDay = perCity.flatten
+            .groupBy(_.day)
+            .map { case (day, pts) =>
+              day -> DailyPoint(day, pts.map(_.labels).sum, pts.map(_.validations).sum, pts.map(_.activeUsers).sum)
+            }
+          // Zero-fill the exact trailing window so the page always gets `days` bars. Iterating the window (rather
+          // than the query results) also drops any extra day the DAO's index-friendly coarse bound let through.
+          val today = LocalDate.now(ZoneId.of("US/Pacific"))
+          (0 until days).map { i =>
+            val day = today.minusDays((days - 1 - i).toLong)
+            byDay.getOrElse(day, DailyPoint(day, 0, 0, 0))
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Labeling pace for one city's schema, in seconds of exploration per 100 m of street audited.
+   *
+   * Seconds per 100 m is the canonical unit both public accessors convert from, so the formula lives in exactly
+   * one place — the two differ only by a factor of 60, which is easy to skew by fixing one copy and not the other.
+   *
+   * @param schema The city's Postgres schema (e.g. "sidewalk_seattle").
+   * @return       None when the schema has no interaction data or no audited distance, which leaves pace
+   *               unknowable, and None (logged) if the query fails.
+   */
+  private def labelingSpeedForSchema(schema: String): Future[Option[Double]] = {
+    db.run(configTable.getCityLabelingSpeedBySchema(schema))
+      .map { case (hours, km) => if (hours > 0 && km > 0) Some((hours * 3600.0) / (km * 10.0)) else None }
+      .recover { case e: Exception =>
+        logger.warn(s"Failed to compute labeling speed for schema $schema: ${e.getMessage}")
+        None
+      }
   }
 
   def getCrossCityLabelingSpeed(): Future[Map[String, Double]] = {
@@ -818,18 +916,23 @@ class ConfigServiceImpl @Inject() (
       Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
         val availableCities                                       = schemaResults.filter(_._2).map(_._1)
         val perCityFutures: Seq[Future[Option[(String, Double)]]] = availableCities.map { cityId =>
-          db.run(configTable.getCityLabelingSpeedBySchema(getCitySchema(cityId)))
-            .map { case (hours, km) =>
-              // Only report cities with both interaction data and audited distance; otherwise speed is unknowable.
-              if (hours > 0 && km > 0) Some(cityId -> (hours * 3600.0) / (km * 10.0)) else None
-            }
-            .recover { case e: Exception =>
-              logger.warn(s"Failed to compute labeling speed for city $cityId: ${e.getMessage}")
-              None
-            }
+          labelingSpeedForSchema(getCitySchema(cityId)).map(_.map(cityId -> _))
         }
         Future.sequence(perCityFutures).map(_.flatten.toMap)
       }
+    }
+  }
+
+  def getCityLabelingSpeed(): Future[Option[Double]] = {
+    // Daily cache, matching getCrossCityLabelingSpeed: the underlying interaction-table scan is expensive.
+    cacheApi.getOrElseUpdate[Option[Double]](s"getCityLabelingSpeed_$getCityId", Duration(24, "hours")) {
+      // Minutes per 100 m, the unit the RouteBuilder time estimate reads. Reject a physically implausible pace as
+      // unknown (→ caller's default) so a degenerate ratio can't drive the estimate: a dev DB whose interaction log is
+      // trimmed but whose audited distance is intact yields a near-zero pace, and both bounds guard against bad data.
+      val minPace = 0.5  // min/100 m; a faster pace (> ~12 km/h) is impossible while auditing.
+      val maxPace = 60.0 // min/100 m; a slower pace signals broken data, not real auditing.
+      labelingSpeedForSchema(getCitySchema(getCityId))
+        .map(_.map(_ / 60.0).filter(pace => pace >= minPace && pace <= maxPace))
     }
   }
 

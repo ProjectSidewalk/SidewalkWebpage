@@ -42,6 +42,7 @@ class LabelDetail {
   #panoOverlaySource;
   #voteColumnSource;
   #showLabelMapLink;
+  #showExploreHereLink;
 
   // Updated in each showLabel() call so PanoInfoPopover's accessor closures see the current label.
   #currentLabelMeta = null;
@@ -79,6 +80,8 @@ class LabelDetail {
    * @param {string} [opts.voteColumnSource] - Source recorded when voting via the column vote buttons.
    * @param {boolean} [opts.showLabelMapLink] - Show a footer link to this label on /labelMap (for hosts that
    *     aren't the LabelMap itself).
+   * @param {boolean} [opts.showExploreHereLink] - Show a footer link that opens Explore at this label's pano and
+   *     point of view (#4637).
    */
   constructor(root, opts) {
     this.#root = root;
@@ -90,6 +93,7 @@ class LabelDetail {
     this.#panoOverlaySource = opts.panoOverlaySource;
     this.#voteColumnSource = opts.voteColumnSource;
     this.#showLabelMapLink = !!opts.showLabelMapLink;
+    this.#showExploreHereLink = !!opts.showExploreHereLink;
   }
 
   /**
@@ -260,6 +264,7 @@ class LabelDetail {
     els.descComments = this.#q('.label-detail__desc-comments');
     els.panHint = this.#q('.label-detail__pan-hint');
     els.labelMapLink = this.#q('.label-detail__labelmap-link');
+    els.exploreHereLink = this.#q('.label-detail__explore-link');
     els.commentRow = this.#q('.label-detail__comment-row');
     els.commentLabel = this.#q('.label-detail__comment-row label');
     els.commentInput = this.#q('.label-detail__comment-input');
@@ -316,6 +321,9 @@ class LabelDetail {
     // Cross-surface hop into the LabelMap (only rendered on hosts that aren't the LabelMap itself).
     if (els.labelMapLink) {
       els.labelMapLink.addEventListener('click', () => this.#logClick('ViewOnLabelMap'));
+    }
+    if (els.exploreHereLink) {
+      els.exploreHereLink.addEventListener('click', () => this.#logClick('ExploreHere'));
     }
     // buttonSource overrides #source for this specific button group; falls back to #source if null.
     const voteHandler = (action, buttonSource) => () => {
@@ -501,6 +509,30 @@ class LabelDetail {
     if (this.#showLabelMapLink && els.labelMapLink) {
       els.labelMapLink.href = `/labelMap?labelId=${meta.label_id}`;
       els.labelMapLink.hidden = false;
+    }
+
+    // Drop into Explore at this label (#4637): an address-style drop-in (#4451) seeded at the label's coordinates,
+    // with the label's pano + stored POV riding along so the user arrives facing what they clicked. The pano is
+    // skipped when known-expired; either way the coordinates are the fallback if it fails to load (#4635). Paging
+    // can move between labels with and without coordinates, so the link re-hides when there's nothing to seed.
+    if (els.exploreHereLink) {
+      const canExploreHere = this.#showExploreHereLink && Number.isFinite(meta.lat) && Number.isFinite(meta.lng);
+      if (canExploreHere) {
+        const exploreParams = new URLSearchParams({ lat: meta.lat, lng: meta.lng });
+        // The POV rides along even without the pano: it's Explore's signal to face the label (rather than the
+        // route direction) when it has to land on a different camera.
+        if ([meta.heading, meta.pitch, meta.zoom].every(Number.isFinite)) {
+          exploreParams.set('heading', meta.heading);
+          exploreParams.set('pitch', meta.pitch);
+          exploreParams.set('zoom', Math.round(meta.zoom));
+        }
+        // A known-expired pano is skipped up front; the coordinates above are the seed instead.
+        if (meta.pano_id && !meta.expired) exploreParams.set('panoId', meta.pano_id);
+        const address = meta.pano_data?.address;
+        if (address) exploreParams.set('placeName', address);
+        els.exploreHereLink.href = `/explore?${exploreParams.toString()}`;
+      }
+      els.exploreHereLink.hidden = !canExploreHere;
     }
 
     // Point the share widget at this label's public permalink (#456). The /label/:id route renders the label

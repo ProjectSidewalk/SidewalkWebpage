@@ -89,6 +89,15 @@ class Compass {
     return true;
   }
 
+  /**
+   * Whether the user is currently on the assigned route (within the close-to-route threshold). Public so the pano's
+   * route-forward arrow can match the compass, which only guides forward while en route. (#4671)
+   * @returns {boolean}
+   */
+  isEnRoute() {
+    return this.#checkEnRoute();
+  }
+
   enableCompassClick() {
     if (!this.#status.lockDisableCompassClick) {
       this.#uiCompass.messageHolder.off('click', this.#handleCompassClick).on('click', this.#handleCompassClick);
@@ -257,6 +266,8 @@ class Compass {
    * Update the compass message.
    */
   update() {
+    // No route guidance in free exploration (#4451): there is no red line to follow or route to return to.
+    if (svl.isExploreAddressMode()) return;
     if (!this.#navigationService.getLabelBeforeJumpState() && !svl.isOnboarding()) {
       if (this.#checkEnRoute()) {
         this.stopBlinking();

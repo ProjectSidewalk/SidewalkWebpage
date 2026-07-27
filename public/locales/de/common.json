@@ -26,6 +26,9 @@
   "problem": "Problem",
   "surface-problems": "Oberflächen&shy;probleme",
   "close": "Schließen",
+  "cancel": "Abbrechen",
+  "continue": "Fortfahren",
+  "delete": "Löschen",
   "badges": {
     "congratulations": "Glückwunsch!",
     "you-earned": "Du hast das Abzeichen „{{badge}}“ erhalten!",
@@ -80,6 +83,7 @@
   "no-description": "keine Beschreibung",
   "comments": "Validator Kommentare",
   "none": "Keine",
+  "only": "Nur",
   "image-capture-date": "Datum der Bildaufnahme",
   "drag-to-look-around": "Ziehen Sie, um sich umzusehen",
   "labeled": "Beschriftet",

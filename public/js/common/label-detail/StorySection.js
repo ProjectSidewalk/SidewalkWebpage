@@ -1,7 +1,7 @@
 /**
  * StorySection — the lived-experience stories disclosure on the label-detail card (#4054).
  *
- * Lazily fetches GET /stories?labelId=N when a label is shown (Gallery's host never calls the label-metadata
+ * Lazily fetches GET /label/:labelId/stories when a label is shown (Gallery's host never calls the label-metadata
  * endpoint, so stories can't ride that payload), then renders the summary (count badge + share CTA) and the story
  * list: text, byline (anonymous or username), photo thumbnails that open the enlarge dialog, the author's
  * own-story delete + dashboard-link controls, and the hidden-by-moderators chip on the author's quarantined story.
@@ -105,7 +105,7 @@ class StorySection {
     if (this.#labelId === null) return;
     const token = ++this.#fetchToken;
     try {
-      const res = await fetch(`/stories?labelId=${this.#labelId}`);
+      const res = await fetch(`/label/${this.#labelId}/stories`);
       if (!res.ok) return;
       const data = await res.json();
       if (token !== this.#fetchToken) return;

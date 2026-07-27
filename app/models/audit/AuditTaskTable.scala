@@ -33,7 +33,9 @@ case class AuditTask(
     currentMissionStart: Option[Point],
     lowQuality: Boolean,
     incomplete: Boolean,
-    stale: Boolean
+    stale: Boolean,
+    auditedDistanceM: Option[Double],
+    startOffsetM: Option[Double] = None // Meters from the street's start to where a free-exploration drop-in began.
 )
 case class NewTask(
     edgeId: Int,
@@ -49,8 +51,9 @@ case class NewTask(
     auditTaskId: Option[Int], // If it's not actually a "new" task, include the audit_task_id.
     currentMissionId: Option[Int],
     currentMissionStart: Option[Point], // If a mission was started mid-task, the loc where it started.
-    routeStreetId: Option[Int]
-) // The route_street_id if this task is part of a route.
+    routeStreetId: Option[Int],         // The route_street_id if this task is part of a route.
+    routeStreetPosition: Option[Int]    // The street's walking-order position within that route.
+)
 case class AuditedStreetWithTimestamp(
     streetEdgeId: Int,
     auditTaskId: Int,
@@ -86,9 +89,13 @@ class AuditTaskTableDef(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "au
   def lowQuality: Rep[Boolean]                = column[Boolean]("low_quality")
   def incomplete: Rep[Boolean]                = column[Boolean]("incomplete")
   def stale: Rep[Boolean]                     = column[Boolean]("stale")
+  def auditedDistanceM: Rep[Option[Double]]   = column[Option[Double]]("audited_distance_m")
+  // CHECK (start_offset_m >= 0) in the DB (no Slick DSL for CHECK constraints).
+  def startOffsetM: Rep[Option[Double]] = column[Option[Double]]("start_offset_m")
 
   def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd, completed, currentLat, currentLng,
-    startPointReversed, currentMissionId, currentMissionStart, lowQuality, incomplete, stale) <> (
+    startPointReversed, currentMissionId, currentMissionStart, lowQuality, incomplete, stale, auditedDistanceM,
+    startOffsetM) <> (
     (AuditTask.apply _).tupled,
     AuditTask.unapply
   )
@@ -189,6 +196,24 @@ class AuditTaskTable @Inject() (
    */
   def find(userId: String, streetEdgeId: Int): DBIO[Option[AuditTask]] = {
     auditTasks.filter(a => a.userId === userId && a.streetEdgeId === streetEdgeId).result.headOption
+  }
+
+  /**
+   * Find the user's task on the given street within the given mission, if there is one.
+   *
+   * Scoped to the mission (unlike `find`, which also matches tasks from regular audits) so that resuming an
+   * exploreAddress session (#4451) can't grab a task belonging to the user's normal audit history. Completed tasks
+   * match too: a drop-in street can be finished (#4451), and re-searching that same address must resume the existing
+   * task rather than insert a second row for the same (user, street, mission). Nothing in the schema forbids duplicate
+   * (user, street, mission) rows — the invariant lives in an advisory lock (see `lockUserForExploreAddress`) — so the
+   * newest row is taken deliberately rather than leaving the pick to the planner.
+   */
+  def findTaskForMission(userId: String, streetEdgeId: Int, missionId: Int): DBIO[Option[AuditTask]] = {
+    auditTasks
+      .filter(a => a.userId === userId && a.streetEdgeId === streetEdgeId && a.currentMissionId === missionId)
+      .sortBy(_.auditTaskId.desc)
+      .result
+      .headOption
   }
 
   /**
@@ -353,7 +378,8 @@ class AuditTaskTable @Inject() (
       streetEdgeId: Int,
       missionId: Int,
       reverseStartPoint: Boolean = false,
-      routeStreetId: Option[Int] = None
+      routeStreetId: Option[Int] = None,
+      routeStreetPosition: Option[Int] = None
   ): DBIO[NewTask] = {
     val timestamp: OffsetDateTime = OffsetDateTime.now
 
@@ -376,7 +402,8 @@ class AuditTaskTable @Inject() (
       None: Option[Int], // auditTaskId is None for a new task.
       Some(missionId).asColumnOf[Option[Int]],
       None: Option[Point], // currentMissionStart is None for a new task.
-      routeStreetId
+      routeStreetId,
+      routeStreetPosition
     )
 
     edges.result.head.map(NewTask.tupled)
@@ -405,7 +432,8 @@ class AuditTaskTable @Inject() (
           None: Option[Int], // auditTaskId is None for a new task.
           missionId.asColumnOf[Option[Int]],
           None: Option[Point], // currentMissionStart is None for a new task.
-          None: Option[Int]    // routeStreetId is None for the tutorial task.
+          None: Option[Int],   // routeStreetId is None for the tutorial task.
+          None: Option[Int]    // routeStreetPosition is None for the tutorial task.
         )
       }
       .result
@@ -437,7 +465,8 @@ class AuditTaskTable @Inject() (
       None: Option[Int], // auditTaskId is None for a new task.
       Some(missionId).asColumnOf[Option[Int]],
       None: Option[Point], // currentMissionStart is None for a new task.
-      None: Option[Int]    // routeStreetId
+      None: Option[Int],   // routeStreetId
+      None: Option[Int]    // routeStreetPosition
     )
 
     // Get the priority of the highest priority task.
@@ -453,16 +482,29 @@ class AuditTaskTable @Inject() (
 
   /**
    * Gets the metadata for a task from its audit_task_id.
+   *
+   * @param taskId              The audit_task_id to look up.
+   * @param routeStreetId       Route-street id to carry through onto the task, when auditing along a route.
+   * @param routeStreetPosition The street's walking-order position within that route.
+   * @param includeCompleted    Match the task even if it is completed. Needed by the exploreAddress resume path
+   *                            (#4451), which must reload a drop-in street the session already finished.
    */
-  def selectTaskFromTaskId(taskId: Int, routeStreetId: Option[Int] = None): DBIO[Option[NewTask]] = {
-    val newTask = for {
-      at <- activeTasks if at.auditTaskId === taskId
+  def selectTaskFromTaskId(
+      taskId: Int,
+      routeStreetId: Option[Int] = None,
+      routeStreetPosition: Option[Int] = None,
+      includeCompleted: Boolean = false
+  ): DBIO[Option[NewTask]] = {
+    val matchingTasks = if (includeCompleted) auditTasks else activeTasks
+    val newTask       = for {
+      at <- matchingTasks if at.auditTaskId === taskId
       se <- streetEdgeTable.streetsWithTutorial if at.streetEdgeId === se.streetEdgeId
       sp <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
       sc <- streetCompletedByAnyUser if sp.streetEdgeId === sc._1
     } yield (
       se.streetEdgeId, se.geom, at.currentLng, at.currentLat, se.wayType, at.startPointReversed, at.taskStart, sc._2,
-      sp.priority, at.completed, at.auditTaskId.?, at.currentMissionId, at.currentMissionStart, routeStreetId
+      sp.priority, at.completed, at.auditTaskId.?, at.currentMissionId, at.currentMissionStart, routeStreetId,
+      routeStreetPosition
     )
 
     newTask.result.headOption.map(_.map(NewTask.tupled))
@@ -502,7 +544,8 @@ class AuditTaskTable @Inject() (
       ucs.map(_._3),         // fill auditTaskId using the existing audit_task for this street if the user has one.
       ucs.map(_._4).flatten, // fill currentMissionId if the user has an existing mission for this street.
       ucs.map(_._5).flatten, // fill currentMissionStart if the user has an existing mission for this street.
-      None: Option[Int]
+      None: Option[Int],     // routeStreetId
+      None: Option[Int]      // routeStreetPosition
     )
 
     tasks.result.map(_.map(NewTask.tupled(_)))
@@ -523,20 +566,33 @@ class AuditTaskTable @Inject() (
       .on(_._2.streetEdgeId === _.streetEdgeId)
       .map { case ((_userRoute, _routeStreet), _streetEdge) => (_streetEdge, _routeStreet) }
 
-    // Get street_edge_id, task_start, audit_task_id, current_mission_id, and current_mission_start for streets the user
-    // has audited. If there are multiple for the same street, choose most recent (one w/ the highest audit_task_id).
-    val userCompletedStreets = auditTaskUserRoutes
+    // Get task_start, audit_task_id, current_mission_id, and current_mission_start for the route's streets the user
+    // has audited. If there are multiple for the same one, choose most recent (one w/ the highest audit_task_id).
+    // Keyed by route_street rather than by street: an out-and-back route walks the same street twice, and each
+    // traversal is its own task, so keying by street would mark the return leg done and hand it the outbound
+    // leg's audit task.
+    // The latest completed task per route_street row, as ids. Kept to a single column so the grouped query is only
+    // ever used as an `in` subquery — carrying the group key through a join makes Slick emit SQL that references
+    // the grouped subquery from outside its own FROM clause, which Postgres rejects at runtime.
+    val latestCompletedTaskIds = auditTaskUserRoutes
       .filter(_.userRouteId === userRouteId)
       .join(completedTasks)
       .on(_.auditTaskId === _.auditTaskId)
-      .groupBy(_._2.streetEdgeId)
+      .groupBy(_._1.routeStreetId)
       .map(_._2.map(_._2.auditTaskId).max)
+
+    val userCompletedStreets = auditTaskUserRoutes
+      .filter(_.userRouteId === userRouteId)
       .join(auditTasks)
-      .on(_ === _.auditTaskId)
-      .map(t => (t._2.streetEdgeId, t._2.taskStart, t._2.auditTaskId, t._2.currentMissionId, t._2.currentMissionStart))
+      .on(_.auditTaskId === _.auditTaskId)
+      .filter { case (_, auditTask) => auditTask.auditTaskId.? in latestCompletedTaskIds }
+      .map { case (link, auditTask) =>
+        (link.routeStreetId, auditTask.taskStart, auditTask.auditTaskId, auditTask.currentMissionId,
+          auditTask.currentMissionStart)
+      }
 
     val tasks = for {
-      ((_se1, _rs), ucs) <- edgesInRoute.joinLeft(userCompletedStreets).on(_._1.streetEdgeId === _._1)
+      ((_se1, _rs), ucs) <- edgesInRoute.joinLeft(userCompletedStreets).on(_._2.routeStreetId === _._1)
       _se2               <- streetEdgeTable.streets if _se1.streetEdgeId === _se2.streetEdgeId
       _sep               <- streetEdgePriorities if _se2.streetEdgeId === _sep.streetEdgeId
       _scau              <- streetCompletedByAnyUser if _sep.streetEdgeId === _scau._1
@@ -554,7 +610,8 @@ class AuditTaskTable @Inject() (
       ucs.map(_._3),     // fill auditTaskId using the existing audit_task for this street if the user has one.
       ucs.flatMap(_._4), // fill currentMissionId if the user has an existing mission for this street.
       ucs.flatMap(_._5), // fill currentMissionStart if the user has an existing mission for this street.
-      _rs.routeStreetId.asColumnOf[Option[Int]]
+      _rs.routeStreetId.asColumnOf[Option[Int]],
+      _rs.position.asColumnOf[Option[Int]]
     )
 
     tasks.result.map(_.map(NewTask.tupled(_)))
@@ -575,7 +632,7 @@ class AuditTaskTable @Inject() (
   }
 
   /**
-   * Update the `current_lat`, `current_lng`, `mission_id`, and `task_end` columns of the specified audit task row.
+   * Update the progress columns (task_end, position, mission, audited_distance_m) of the specified audit task row.
    */
   def updateTaskProgress(
       auditTaskId: Int,
@@ -583,12 +640,13 @@ class AuditTaskTable @Inject() (
       lat: Double,
       lng: Double,
       missionId: Int,
-      currMissionStart: Option[Point]
+      currMissionStart: Option[Point],
+      auditedDistanceM: Option[Double]
   ): DBIO[Int] = {
     val q = auditTasks
       .filter(_.auditTaskId === auditTaskId)
-      .map(t => (t.taskEnd, t.currentLat, t.currentLng, t.currentMissionId, t.currentMissionStart))
-    q.update((timestamp, lat, lng, Some(missionId), currMissionStart))
+      .map(t => (t.taskEnd, t.currentLat, t.currentLng, t.currentMissionId, t.currentMissionStart, t.auditedDistanceM))
+    q.update((timestamp, lat, lng, Some(missionId), currMissionStart, auditedDistanceM))
   }
 
   /**

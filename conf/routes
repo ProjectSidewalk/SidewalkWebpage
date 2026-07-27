@@ -110,7 +110,7 @@ GET     /labels/all                                     controllers.AdminControl
 GET     /label/id/:labelId                              controllers.LabelController.getLabelData(labelId: Int)
 
 # Auditing tasks
-GET     /explore                                        controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
+GET     /explore                                        controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None, placeName: Option[String] ?= None, heading: Option[Double] ?= None, pitch: Option[Double] ?= None, zoom: Option[Int] ?= None)
 GET     /explore/recalculateStreetPriority              controllers.AdminController.recalculateStreetPriority
 POST    /explore/comment                                controllers.ExploreController.postComment
 POST    /explore/nostreetview                           controllers.ExploreController.postNoImagery
@@ -119,7 +119,7 @@ POST    /survey                                         controllers.ExploreContr
 GET     /neighborhoodMissions                           controllers.ExploreController.getUserMissionsInRegion(regionId: Int)
 
 # Exploring task reroutes from old names.
-GET     /audit                                          controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
+GET     /audit                                          controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None, placeName: Option[String] ?= None, heading: Option[Double] ?= None, pitch: Option[Double] ?= None, zoom: Option[Int] ?= None)
 
 # Label validation tasks
 GET     /validate                                       controllers.ValidateController.validate(neighborhoods: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None)
@@ -197,7 +197,13 @@ GET     /labelsToClusterInRegion                        controllers.ClusterContr
 POST    /clusteringResults                              controllers.ClusterController.postClusteringResults(regionId: Int)
 
 # RouteBuilder
+GET     /routes                                         controllers.RouteBuilderController.routesPage
 POST    /saveRoute                                      controllers.RouteBuilderController.saveRoute
+GET     /userapi/routes                                 controllers.RouteBuilderController.getUserRoutes
+GET     /userapi/routes/:routeId/streets                controllers.RouteBuilderController.getRouteStreets(routeId: Int)
+PUT     /userapi/routes/:routeId                        controllers.RouteBuilderController.updateRoute(routeId: Int)
+DELETE  /userapi/routes/:routeId                        controllers.RouteBuilderController.deleteRoute(routeId: Int)
+GET     /r/:slug                                        controllers.RouteBuilderController.routeBySlug(slug: String)
 
 # Images
 POST    /saveImage                                      controllers.ImageController.saveImage
@@ -206,9 +212,10 @@ GET     /cropImage/:labelType/:labelId                  controllers.ImageControl
 GET     /backupImage/:panoId/metadata                   controllers.ImageController.getBackupImageMetadata(panoId: String)
 GET     /backupImage/:panoId                            controllers.ImageController.serveBackupImage(panoId: String)
 
-# Lived-experience stories (#4054). Read + media serving are public (the /label/:id share page has no session);
-# labelId rides as a query param so nothing shadows the /label/:labelId wildcard family (see the note above /label).
-GET     /stories                                        controllers.StoryController.getStories(labelId: Int)
+# Lived-experience stories (#4054). Read + media serving are public (the /label/:id share page has no session).
+# The per-label read lives under /label/:labelId (two segments, so it can't shadow the /label/:labelId wildcard).
+GET     /stories                                        controllers.StoryController.storiesPage
+GET     /label/:labelId/stories                         controllers.StoryController.getStories(labelId: Int)
 GET     /storyMedia/:storyMediaId                       controllers.StoryController.serveStoryMedia(storyMediaId: Int)
 POST    /userapi/stories                                controllers.StoryController.submitStory
 PUT     /userapi/stories/:storyId                       controllers.StoryController.updateOwnStory(storyId: Int)

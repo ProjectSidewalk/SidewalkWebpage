@@ -98,9 +98,12 @@ public/js/user-dashboard/build/*
 public/js/validate/build/*
 public/js/gallery/build/*
 public/js/ps-map/build/*
-public/js/shared-label/build/*
 public/js/route-builder/build/*
+public/js/shared-label/build/*
 public/js/common/pano-viewer/build/*
+# Bundles written to the pre-#2292 asset layout by an out-of-date Gruntfile; the paths are dead but a stale
+# checkout can still regenerate them, and they'd otherwise slip past the public/js/*/build/* rules above.
+public/javascripts/
 download
 
 # Keys
@@ -142,3 +145,9 @@ htmlcov/
 .claude/settings.local.json
 CLAUDE.local.md
 
+
+# Bloop/Metals build server artifacts (any depth) and Claude Code worktrees.
+.bloop/
+project/.bloop/
+project/project/
+.claude/worktrees/

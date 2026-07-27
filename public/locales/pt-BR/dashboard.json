@@ -84,5 +84,12 @@
   },
   "stories": {
     "none": "Você ainda não compartilhou nenhuma história. Abra um rótulo no mapa e escolha “Compartilhe a sua”."
-  }
-}
+  },
+  "routes-link-copied": "Link copiado!",
+  "routes-rename-aria": "Novo nome da rota",
+  "routes-rename-save": "Salvar",
+  "routes-rename-cancel": "Cancelar",
+  "routes-renamed": "Rota renomeada.",
+  "routes-deleted": "\"{{name}}\" excluída.",
+  "routes-delete-confirm": "Excluir \"{{name}}\"? As pessoas com quem você compartilhou o link não poderão mais usá-lo.",
+  "routes-error": "Algo deu errado. Tente novamente."}

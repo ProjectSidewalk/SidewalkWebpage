@@ -5,6 +5,8 @@
 )(content: Html)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.currentCity}
+@* Pages that render the map full-window (no footer, #wrap becomes a fixed-height flex column). *@
+@fullWindow = @{url == "/labelMap" || url == "/routeBuilder"}
 
 <!DOCTYPE html>
 <html lang="@messages.lang.code">
@@ -52,6 +54,7 @@
     <link href='@assets.path("css/fonts.css")' rel="stylesheet">
     <link rel="stylesheet" href='@assets.path("css/main.css")'>
     <link rel="stylesheet" href='@assets.path("css/common/toast.css")'>
+    <link rel="stylesheet" href='@assets.path("css/common/confirm-dialog.css")'>
     <link rel="stylesheet" href='@assets.path("css/homepage.css")'>
     <link rel="stylesheet" href='@assets.path("css/auth.css")'>
 
@@ -111,18 +114,18 @@
 
       <script src='@assets.path("js/common/TestServerBanner.js")'></script>
     }
-    <div id="wrap" class='@if(url == "/labelMap"){wrap--full-window}'>
+    <div id="wrap" class='@if(fullWindow){wrap--full-window}'>
       @content
     </div>
-    @if(url == "/explore" || url == "/labelMap") {
+    @if(url == "/explore" || url == "/labelMap" || url == "/routeBuilder") {
       <script>
         // Prevents extra whitespace at the bottom of the page, not sure why that's an issue.
         document.getElementsByTagName("body")[0].style.overflow = "hidden";
       </script>
     }
       <!-- Trying out no footer on Explore or Validate. Mini footer on mobile sign in/up. Code is weird bc "else if" doesn't work in template scala rn. -->
-    @if(url == "/explore" || url == "/validate" || url == "/expertValidate" || url == "/mobile" || url == "/signInMobile" || url == "/signUpMobile" || url == "/mobileLanding" || url == "/labelMap") {
-      @if(url == "/explore" || url == "/validate" || url == "/expertValidate" || url == "/mobile" || url == "/mobileLanding" || url == "/labelMap") {
+    @if(url == "/explore" || url == "/validate" || url == "/expertValidate" || url == "/mobile" || url == "/signInMobile" || url == "/signUpMobile" || url == "/mobileLanding" || url == "/labelMap" || url == "/routeBuilder") {
+      @if(url == "/explore" || url == "/validate" || url == "/expertValidate" || url == "/mobile" || url == "/mobileLanding" || url == "/labelMap" || url == "/routeBuilder") {
       } else {
         <!-- footer code found in app/views/footer.scala.html -->
     @common.miniFooter(commonData)

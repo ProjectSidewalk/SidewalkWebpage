@@ -27,6 +27,9 @@
   "surface-problems": "Problemas en superficie",
   "sign-up": "Regístrate",
   "close": "Cerrar",
+  "cancel": "Cancelar",
+  "continue": "Continuar",
+  "delete": "Eliminar",
   "badges": {
     "congratulations": "¡Felicidades!",
     "you-earned": "¡Has ganado la insignia “{{badge}}”!",
@@ -80,6 +83,7 @@
   "no-description": "Sin descripción",
   "comments": "Revisiones de efectividad",
   "none": "Nada",
+  "only": "Solo",
   "image-capture-date": "Fecha de captura de imagen",
   "drag-to-look-around": "Arrastra para mirar alrededor",
   "labeled": "Etiquetada",

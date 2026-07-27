@@ -62,6 +62,7 @@ class SharedLabelPage {
         panoOverlaySource: 'SharedLabelImage',
         voteColumnSource: 'SharedLabelThumbs',
         showLabelMapLink: true,
+        showExploreHereLink: true,
       });
       await this.#detail.showLabel(this.#data.labelId, 'SharedLabel');
     } catch (err) {

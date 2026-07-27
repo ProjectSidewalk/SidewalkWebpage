@@ -33,20 +33,6 @@ class Main {
     sg.ui.cardFilter = {};
     sg.ui.cardFilter.wrapper = $('.sidebar');
     sg.ui.cardFilter.holder = $('#card-filter');
-    sg.ui.cardFilter.severity = $('#severity-select');
-    sg.ui.cardFilter.tags = $('#tags');
-    sg.ui.cardFilter.validationOptions = $('#validation-options');
-    sg.ui.cardFilter.clearFilters = $('#clear-filters');
-
-    // Initializes city select component in sidebar.
-    sg.ui.cityMenu = {};
-    sg.ui.cityMenu.holder = $('#city-filter-holder');
-    sg.ui.cityMenu.select = $('#city-select');
-
-    // Initializes label select component in sidebar.
-    sg.ui.labelTypeMenu = {};
-    sg.ui.labelTypeMenu.holder = $('#label-type-filter-holder');
-    sg.ui.labelTypeMenu.select = $('#label-select');
 
     // Initialize card container component.
     sg.ui.cardContainer = {};
@@ -74,11 +60,13 @@ class Main {
     // Seed the all-time counts so validating a card can celebrate a newly unlocked validation badge.
     BadgeAchievements.seedCounts();
 
-    // Initialize functional components of UI elements.
-    sg.cityMenu = new CityMenu(sg.ui.cityMenu);
-    sg.labelTypeMenu = new LabelTypeMenu(sg.ui.labelTypeMenu, params.initialFilters.labelType);
+    // Neighborhood names for the cards' location line, keyed by the region id each label carries.
+    sg.regionNames = params.regionNames ?? {};
 
-    sg.cardFilter = new CardFilter(sg.ui.cardFilter, sg.labelTypeMenu, sg.cityMenu, params.initialFilters);
+    // Initialize functional components of UI elements.
+    sg.cardFilter = new GalleryFilter(
+      document.getElementById('card-filter'), document.getElementById('clear-filters'), params.initialFilters,
+    );
     sg.cardContainer = await CardContainer.create(
       sg.ui.cardContainer, params.initialFilters, params.viewerType, params.viewerAccessToken, params.currUsername,
     );
@@ -93,8 +81,6 @@ class Main {
 
     const sidebarWrapper = sg.ui.cardFilter.wrapper;
     const sidebarWidth = sidebarWrapper.css('width');
-
-    sg.ui.labelTypeMenu.select.change();
 
     // Handle sidebar stickiness while scrolling. (The expanded view is position: fixed and needs no help.)
     $(window).scroll(() => {

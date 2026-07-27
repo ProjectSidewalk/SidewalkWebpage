@@ -86,6 +86,13 @@ class Form {
         last_priority_update_time: this.#lastPriorityUpdateTime,
         // Request updated street priorities if we are at least 60% of the way through the current street.
         request_updated_street_priority: !svl.isOnboarding() && (task.getAuditedDistance() / task.lineDistance()) > 0.6,
+        // How far along the street the user has gotten, measured from the street's start. The server reads it to
+        // derive street completion for free-exploration sessions (#4451); it also accumulates real partial-audit data
+        // so a future fractional-coverage model has history to build on.
+        audited_distance_m: util.math.kmsToMeters(task.getAuditedDistance()),
+        // Which route_street row this task was served for. An out-and-back route walks one street twice, so the
+        // server can't re-derive the traversal from street_edge_id alone. Null outside a route session.
+        route_street_id: task.getProperty('routeStreetId'),
       },
       environment: {
         browser: util.getBrowser(),

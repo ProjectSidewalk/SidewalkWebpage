@@ -23,6 +23,7 @@ object MissionFormats {
       (__ \ "labels_progress").writeNullable[Int] and
       (__ \ "label_type_id").writeNullable[Int] and
       (__ \ "skipped").write[Boolean] and
-      (__ \ "current_audit_task_id").writeNullable[Int]
+      (__ \ "current_audit_task_id").writeNullable[Int] and
+      (__ \ "user_route_id").writeNullable[Int]
   )(unlift(Mission.unapply))
 }

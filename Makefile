@@ -1,4 +1,4 @@
-.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree test-python \
+.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop test-python \
         import-users import-dump create-new-schema fill-new-schema hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-neighborhoods \
         lint lint-fix lint-evolutions lint-locales scalafmt scalafmt-fix \
@@ -13,6 +13,10 @@ db ?= sidewalk
 dir ?= ./
 args ?=
 wt ?=
+clean ?=
+
+# `clean=1` (or true/yes) expands to the qa-worktree-stop --clean flag; anything else (incl. empty) expands to nothing.
+qa-stop-clean-flag = $(if $(filter 1 true yes,$(clean)),--clean,)
 
 # ANSI colors for the `lint` summary.
 GREEN := \033[0;32m
@@ -78,6 +82,11 @@ ssh:
 # "Running a worktree's app for QA". e.g. `make qa-worktree wt=remove-admin-classic`.
 qa-worktree:
 	@docker exec -it $(web-container) bash /home/tools/qa-worktree.sh $(wt)
+
+# Tear down a qa-worktree session: stop its `~ run` and grunt watch. Add `clean=1` to also drop the node_modules
+# symlink. e.g. `make qa-worktree-stop wt=remove-admin-classic` or `make qa-worktree-stop wt=... clean=1`.
+qa-worktree-stop:
+	@docker exec $(web-container) bash /home/tools/qa-worktree.sh $(wt) --stop $(qa-stop-clean-flag)
 
 import-users:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-users.sh"

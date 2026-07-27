@@ -26,6 +26,9 @@
   "problem": "Problema",
   "surface-problems": "Problemas de Superfície",
   "close": "Fechar",
+  "cancel": "Cancelar",
+  "continue": "Continuar",
+  "delete": "Excluir",
   "badges": {
     "congratulations": "Parabéns!",
     "you-earned": "Você ganhou a insígnia “{{badge}}”!",
@@ -80,6 +83,7 @@
   "no-description": "Sem descrição",
   "comments": "Comentários do Validador",
   "none": "Nenhum",
+  "only": "Somente",
   "image-capture-date": "Data de Captura da Imagem",
   "drag-to-look-around": "Arraste para olhar ao redor",
   "labeled": "Rotulado",
