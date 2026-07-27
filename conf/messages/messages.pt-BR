@@ -154,7 +154,7 @@ seo.og.image.alt = Captura de tela da exploração virtual do Project Sidewalk c
 # vêm da API do Makeability Lab (aboutPage.js).
 about.title = Sobre o Project Sidewalk
 about.hero.title = Estamos mapeando e avaliando <span class="about-hero-accent">todas as calçadas</span> do mundo.
-about.hero.subtitle = O Project Sidewalk é um projeto de pesquisa de código aberto que combina colaboração coletiva e inteligência artificial para mapear e avaliar as calçadas das cidades — e abre cada dado para pesquisadores, governos e comunidades.
+about.hero.subtitle = O Project Sidewalk é um projeto de pesquisa acadêmica de código aberto da Universidade de Washington e da Universidade de Illinois em Chicago que combina colaboração coletiva e inteligência artificial para mapear e avaliar as calçadas das cidades — e abre cada dado para pesquisadores, governos e comunidades.
 about.hero.cta.explore = Comece a explorar
 about.hero.cta.data = Acesse os dados
 about.stats.heading = Project Sidewalk em números
@@ -164,7 +164,7 @@ about.stats.validations = Validações
 about.stats.cities = Cidades
 about.stats.countries = Países
 about.how.title = Como funciona
-about.how.intro = A missão do Project Sidewalk é mapear e avaliar todas as calçadas do mundo usando colaboração coletiva remota, inteligência artificial e imagens de rua on-line. Qualquer pessoa com um navegador pode ajudar — sem ferramentas especiais.
+about.how.intro = Nossa missão é mapear e avaliar todas as calçadas do mundo usando colaboração coletiva remota, inteligência artificial e imagens de rua on-line. Qualquer pessoa com um navegador pode ajudar — sem ferramentas especiais.
 about.how.step.explore.title = Explore e rotule
 about.how.step.explore.body = Voluntários percorrem virtualmente as ruas de uma cidade em uma ferramenta web estilo jogo, rotulando rampas de calçada, calçadas ausentes, obstáculos e problemas de superfície nas imagens de rua.
 about.how.step.validate.title = Valide

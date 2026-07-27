@@ -152,7 +152,7 @@ seo.og.image.alt = Screenshot of Project Sidewalk''s virtual street-view explora
 # publications, and funders sections are hydrated from the Makeability Lab API (aboutPage.js).
 about.title = About Project Sidewalk
 about.hero.title = We''re mapping and assessing <span class="about-hero-accent">every sidewalk</span> in the world.
-about.hero.subtitle = Project Sidewalk is an open-source research project that combines crowdsourcing and AI to map and assess city sidewalks — and opens every data point to researchers, governments, and communities.
+about.hero.subtitle = Project Sidewalk is an open-source academic research project at the University of Washington and the University of Illinois Chicago that combines crowdsourcing and AI to map and assess city sidewalks — and opens every data point to researchers, governments, and communities.
 about.hero.cta.explore = Start exploring
 about.hero.cta.data = Get the data
 about.stats.heading = Project Sidewalk by the numbers
@@ -162,7 +162,7 @@ about.stats.validations = Validations
 about.stats.cities = Cities
 about.stats.countries = Countries
 about.how.title = How it works
-about.how.intro = Project Sidewalk''s mission is to map and assess every sidewalk in the world using remote crowdsourcing, artificial intelligence, and online street-level imagery. Anyone with a web browser can help — no special tools required.
+about.how.intro = Our mission is to map and assess every sidewalk in the world using remote crowdsourcing, artificial intelligence, and online street-level imagery. Anyone with a web browser can help — no special tools required.
 about.how.step.explore.title = Explore &amp; label
 about.how.step.explore.body = Volunteers virtually walk city streets in a game-like web tool, labeling curb ramps, missing sidewalks, obstacles, and surface problems in street-level imagery.
 about.how.step.validate.title = Validate

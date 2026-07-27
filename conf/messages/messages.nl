@@ -146,7 +146,7 @@ seo.og.image.alt = Schermafbeelding van de virtuele straatverkenning van Project
 # Makeability Lab-API (aboutPage.js).
 about.title = Over Project Sidewalk
 about.hero.title = We brengen <span class="about-hero-accent">elk trottoir</span> ter wereld in kaart en beoordelen het.
-about.hero.subtitle = Project Sidewalk is een opensource-onderzoeksproject dat crowdsourcing en AI combineert om trottoirs in steden in kaart te brengen en te beoordelen — en elk datapunt openstelt voor onderzoekers, overheden en gemeenschappen.
+about.hero.subtitle = Project Sidewalk is een academisch opensource-onderzoeksproject van de University of Washington en de University of Illinois Chicago dat crowdsourcing en AI combineert om trottoirs in steden in kaart te brengen en te beoordelen — en elk datapunt openstelt voor onderzoekers, overheden en gemeenschappen.
 about.hero.cta.explore = Begin met verkennen
 about.hero.cta.data = Download de data
 about.stats.heading = Project Sidewalk in cijfers
@@ -156,7 +156,7 @@ about.stats.validations = Validaties
 about.stats.cities = Steden
 about.stats.countries = Landen
 about.how.title = Hoe het werkt
-about.how.intro = Project Sidewalk heeft als missie om alle trottoirs ter wereld in kaart te brengen en te beoordelen met online crowdsourcing, kunstmatige intelligentie en straatbeelden. Iedereen met een webbrowser kan meehelpen — speciale hulpmiddelen zijn niet nodig.
+about.how.intro = Onze missie is om alle trottoirs ter wereld in kaart te brengen en te beoordelen met online crowdsourcing, kunstmatige intelligentie en straatbeelden. Iedereen met een webbrowser kan meehelpen — speciale hulpmiddelen zijn niet nodig.
 about.how.step.explore.title = Verken en label
 about.how.step.explore.body = Vrijwilligers lopen virtueel door stadsstraten in een spelachtige webtool en labelen trottoir opritten, ontbrekende trottoirs, obstakels en oppervlakteproblemen in straatbeelden.
 about.how.step.validate.title = Valideer

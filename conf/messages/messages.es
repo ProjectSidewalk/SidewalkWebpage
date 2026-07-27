@@ -158,7 +158,7 @@ seo.og.image.alt = Captura de pantalla de la exploración virtual de Project Sid
 # actualizan desde la API del Makeability Lab (aboutPage.js).
 about.title = Acerca de Project Sidewalk
 about.hero.title = Estamos mapeando y evaluando <span class="about-hero-accent">todas las banquetas</span> del mundo.
-about.hero.subtitle = Project Sidewalk es un proyecto de investigación de código abierto que combina colaboración colectiva e inteligencia artificial para mapear y evaluar las banquetas de las ciudades — y abre cada dato a investigadores, gobiernos y comunidades.
+about.hero.subtitle = Project Sidewalk es un proyecto de investigación académica de código abierto de la Universidad de Washington y la Universidad de Illinois en Chicago que combina colaboración colectiva e inteligencia artificial para mapear y evaluar las banquetas de las ciudades — y abre cada dato a investigadores, gobiernos y comunidades.
 about.hero.cta.explore = Comienza a explorar
 about.hero.cta.data = Obtén los datos
 about.stats.heading = Project Sidewalk en números
@@ -168,7 +168,7 @@ about.stats.validations = Validaciones
 about.stats.cities = Ciudades
 about.stats.countries = Países
 about.how.title = Cómo funciona
-about.how.intro = La misión de Project Sidewalk es mapear y evaluar todas las banquetas del mundo mediante colaboración colectiva remota, inteligencia artificial e imágenes de calles en línea. Cualquier persona con un navegador web puede ayudar, sin herramientas especiales.
+about.how.intro = Nuestra misión es mapear y evaluar todas las banquetas del mundo mediante colaboración colectiva remota, inteligencia artificial e imágenes de calles en línea. Cualquier persona con un navegador web puede ayudar, sin herramientas especiales.
 about.how.step.explore.title = Explora y etiqueta
 about.how.step.explore.body = Personas voluntarias recorren virtualmente las calles de una ciudad en una herramienta web tipo juego, etiquetando rampas peatonales, banquetas faltantes, obstáculos y problemas de superficie en imágenes a nivel de calle.
 about.how.step.validate.title = Valida

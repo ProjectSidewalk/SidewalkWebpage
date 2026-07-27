@@ -216,7 +216,7 @@ seo.og.image.alt = Project Sidewalk 虛擬街景探索的螢幕截圖，人行�
 # 更新，團隊、論文與經費資訊則由 Makeability Lab API 更新（aboutPage.js）。
 about.title = 關於 Project Sidewalk
 about.hero.title = 我們正在繪製並評估<span class="about-hero-accent">全世界每一條人行道</span>。
-about.hero.subtitle = Project Sidewalk 是一個開放原始碼研究專案，結合群眾外包與人工智慧來繪製並評估城市人行道，並將每一筆資料開放給研究人員、政府與社群。
+about.hero.subtitle = Project Sidewalk 是華盛頓大學與伊利諾大學芝加哥分校的開放原始碼學術研究專案，結合群眾外包與人工智慧來繪製並評估城市人行道，並將每一筆資料開放給研究人員、政府與社群。
 about.hero.cta.explore = 開始探索
 about.hero.cta.data = 取得資料
 about.stats.heading = Project Sidewalk 數據總覽
@@ -226,7 +226,7 @@ about.stats.validations = 檢核
 about.stats.cities = 城市
 about.stats.countries = 國家
 about.how.title = 運作方式
-about.how.intro = Project Sidewalk 的使命是運用遠端群眾外包、人工智慧與線上街景影像，繪製並評估全世界的人行道。只要有網頁瀏覽器，任何人都能參與，無需特殊工具。
+about.how.intro = 我們的使命是運用遠端群眾外包、人工智慧與線上街景影像，繪製並評估全世界的人行道。只要有網頁瀏覽器，任何人都能參與，無需特殊工具。
 about.how.step.explore.title = 探索與標記
 about.how.step.explore.body = 志工在類似遊戲的網頁工具中虛擬走訪城市街道，在街景影像中標記路緣斜坡、缺失的人行道、障礙物與鋪面問題。
 about.how.step.validate.title = 檢核

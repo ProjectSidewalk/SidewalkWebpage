@@ -149,7 +149,7 @@ seo.og.image.alt = Bildschirmfoto der virtuellen Straßenerkundung von Project S
 # Makeability-Lab-API (aboutPage.js).
 about.title = Über Project Sidewalk
 about.hero.title = Wir kartieren und bewerten <span class="about-hero-accent">jedes Trottoir</span> der Welt.
-about.hero.subtitle = Project Sidewalk ist ein Open-Source-Forschungsprojekt, das Crowdsourcing und KI kombiniert, um die Trottoirs von Städten zu kartieren und zu bewerten — und jeden Datenpunkt für Forschung, Behörden und Gemeinschaften öffnet.
+about.hero.subtitle = Project Sidewalk ist ein akademisches Open-Source-Forschungsprojekt der University of Washington und der University of Illinois Chicago, das Crowdsourcing und KI kombiniert, um die Trottoirs von Städten zu kartieren und zu bewerten — und jeden Datenpunkt für Forschung, Behörden und Gemeinschaften öffnet.
 about.hero.cta.explore = Jetzt erkunden
 about.hero.cta.data = Zu den Daten
 about.stats.heading = Project Sidewalk in Zahlen
@@ -159,7 +159,7 @@ about.stats.validations = Validierungen
 about.stats.cities = Städte
 about.stats.countries = Länder
 about.how.title = So funktioniert es
-about.how.intro = Die Mission von Project Sidewalk ist es, alle Trottoirs der Welt mit Online-Crowdsourcing, künstlicher Intelligenz und Straßenbildern zu kartieren und zu bewerten. Alle mit einem Webbrowser können mithelfen — ganz ohne Spezialwerkzeuge.
+about.how.intro = Unsere Mission ist es, alle Trottoirs der Welt mit Online-Crowdsourcing, künstlicher Intelligenz und Straßenbildern zu kartieren und zu bewerten. Alle mit einem Webbrowser können mithelfen — ganz ohne Spezialwerkzeuge.
 about.how.step.explore.title = Erkunden &amp; beschriften
 about.how.step.explore.body = Freiwillige gehen in einem spielartigen Web-Werkzeug virtuell durch Stadtstraßen und beschriften Trottoirabsenkungen, fehlende Trottoirs, Hindernisse und Oberflächenprobleme in Straßenbildern.
 about.how.step.validate.title = Validieren
