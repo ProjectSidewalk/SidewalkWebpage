@@ -17,9 +17,9 @@ class AboutPage {
   static #CITATION_DOI = '10.1145/3290605.3300292';
   static #FALLBACK_PHOTO = '/assets/images/logos/ProjectSidewalkLogo_NoText_100x100.png';
 
-  // ML API `position_title` values for the two groups the contributor blurb counts. Grad students and staff hold
-  // other titles and are deliberately outside that claim.
-  static #STUDENT_TITLES = ['Undergrad', 'High School Student'];
+  // Every ML API `position_title` that means "student", at any level. Designers, coordinators, research staff, and
+  // faculty hold the other titles: they count as contributors but not toward the student figure.
+  static #STUDENT_TITLES = ['High School Student', 'Undergrad', 'MS Student', 'PhD Student'];
 
   // Display order for project leads, mirroring the ML site (makeabilitylabwebsite website/models/project.py).
   static #LEAD_ROLE_ORDER = ['PI', 'Co-PI', 'Student Lead', 'Postdoc Lead', 'Research Scientist Lead'];
@@ -131,24 +131,28 @@ class AboutPage {
   }
 
   /**
-   * Restates the contributor blurb's "more than N students" figure from the live roster, so the claim keeps pace with
-   * the roll call underneath it instead of drifting from a number someone typed once.
+   * Restates the contributor blurb's two figures — everyone who has contributed, and how many of them were students —
+   * from the live roster, so the claim keeps pace with the roll call underneath it instead of drifting from numbers
+   * someone typed once.
    *
-   * @param {object[]} people - Merged project-people rows.
+   * @param {object[]} people - Merged project-people rows, one per person.
    */
   #renderContributorCount(people) {
     const intro = document.getElementById('about-team-contributors-intro');
     const template = intro?.dataset.labelTemplate;
     if (!template) return;
 
+    // Round the headline down to a ten strictly below the true count, so "more than N" reads as true at every roster
+    // size — 143 contributors is "more than 140", and an exact 140 is still "more than 130" rather than a claim of
+    // being more than itself. The student figure is an exact subset count, so it stands as it is.
+    const total = Math.floor((people.length - 1) / 10) * 10;
     const students = people.filter((p) => AboutPage.#STUDENT_TITLES.includes(p.position_title)).length;
-    // Round down to a ten strictly below the true count, so "more than N" reads as true at every roster size — 96
-    // students is "more than 90", and an exact 100 is still "more than 90" rather than a claim of more than itself.
-    const floored = Math.floor((students - 1) / 10) * 10;
-    // Under a ten means the ML API renamed its position labels, not that we lost a decade of student contributors,
-    // so leave the server-rendered figure alone.
-    if (floored < 10) return;
-    intro.textContent = template.replace('{0}', floored.toLocaleString());
+    // No students at all means a truncated payload or renamed position labels, not a decade of non-student
+    // contributors, so leave the whole server-rendered sentence alone rather than publishing a wrong figure.
+    if (total < 10 || students < 1) return;
+    intro.textContent = template
+      .replace('{0}', total.toLocaleString())
+      .replace('{1}', students.toLocaleString());
   }
 
   /**

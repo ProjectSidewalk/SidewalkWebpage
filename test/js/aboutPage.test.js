@@ -89,8 +89,8 @@ describe('AboutPage', () => {
       <div id="about-team-live" hidden>
         <ul id="about-team-current"></ul>
         <ul id="about-team-past"></ul>
-        <p id="about-team-contributors-intro"
-           data-label-template="More than {0} students have contributed.">More than 90 students have contributed.</p>
+        <p id="about-team-contributors-intro" data-label-template="More than {0} people, including {1} students."
+           >More than 140 people, including 131 students.</p>
         <ul id="about-team-all"></ul>
       </div>
       <template id="about-team-past-blurbs">
@@ -354,17 +354,18 @@ describe('AboutPage', () => {
       expect(document.querySelector('#about-team-all .about-team-credential').textContent).toBe('Undergrad, UMD');
     });
 
-    test('restates the contributor count from the roster, rounded down to a true "more than"', async () => {
-      const students = (prefix, count, position_title) => Array.from({ length: count }, (unused, i) => personRow({
-        urlName: `${prefix}${i}`, name: `Student ${prefix}${i}`, is_active: false, end_date: '2020-06-01',
+    test('counts every level of contributor, rounded down to a true "more than"', async () => {
+      const cohort = (prefix, count, position_title) => Array.from({ length: count }, (unused, i) => personRow({
+        urlName: `${prefix}${i}`, name: `Person ${prefix}${i}`, is_active: false, end_date: '2020-06-01',
         position_title,
       }));
       stubFetch({
         '/people/?format=json': page([
-          ...students('u', 17, 'Undergrad'),
-          ...students('h', 9, 'High School Student'),
-          // Grad students and staff sit outside the claim the sentence makes.
-          ...students('m', 5, 'MS Student'),
+          ...cohort('h', 4, 'High School Student'),
+          ...cohort('u', 9, 'Undergrad'),
+          ...cohort('m', 6, 'MS Student'),
+          ...cohort('p', 4, 'PhD Student'),
+          ...cohort('c', 2, 'Project Coordinator'),
           personRow({ urlName: 'prof', name: 'A Professor', position_title: 'Professor' }),
         ]),
         '/people/prof/': { current_title: 'Professor' },
@@ -373,15 +374,38 @@ describe('AboutPage', () => {
       loadGlobalScript(MODULE_PATH);
       await hydrate();
 
+      // 26 people across six position levels; 23 of them are students at some level, the coordinators and the
+      // professor are not.
       expect(document.getElementById('about-team-contributors-intro').textContent)
-        .toBe('More than 20 students have contributed.');
+        .toBe('More than 20 people, including 23 students.');
+    });
+
+    test('counts a contributor with several stints once', async () => {
+      stubFetch({
+        '/people/?format=json': page([
+          ...Array.from({ length: 12 }, (unused, i) => personRow({
+            urlName: `s${i}`, name: `Person ${i}`, is_active: false, end_date: '2020-06-01',
+            position_title: 'Undergrad',
+          })),
+          personRow({ urlName: 's0', name: 'Person 0', is_active: false, start_date: '2021-01-01',
+            end_date: '2021-06-01', position_title: 'MS Student' }),
+        ]),
+        ...EMPTY_SECTIONS,
+      });
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      // 13 rows but 12 people, so the ten below is 10 rather than the 13 rows' 10 — and never the 20 a row count
+      // would round to.
+      expect(document.getElementById('about-team-contributors-intro').textContent)
+        .toBe('More than 10 people, including 12 students.');
     });
 
     test('keeps "more than N" strictly below a count that lands on a ten', async () => {
       stubFetch({
         '/people/?format=json': page(Array.from({ length: 20 }, (unused, i) => personRow({
-          urlName: `s${i}`, name: `Student ${i}`, is_active: false, end_date: '2020-06-01',
-          position_title: 'Undergrad',
+          urlName: `s${i}`, name: `Person ${i}`, is_active: false, end_date: '2020-06-01',
+          position_title: 'PhD Student',
         }))),
         ...EMPTY_SECTIONS,
       });
@@ -390,14 +414,13 @@ describe('AboutPage', () => {
 
       // Exactly 20 contributors is not "more than 20".
       expect(document.getElementById('about-team-contributors-intro').textContent)
-        .toBe('More than 10 students have contributed.');
+        .toBe('More than 10 people, including 20 students.');
     });
 
-    test('leaves the server-rendered count alone when no row carries a student position', async () => {
+    test('leaves the server-rendered count alone when the roster comes back near-empty', async () => {
       stubFetch({
         '/people/?format=json': page([
-          personRow({ urlName: 'renamed', name: 'Renamed Label', is_active: false, end_date: '2020-06-01',
-            position_title: 'Undergraduate Researcher' }),
+          personRow({ urlName: 'lonely', name: 'Lonely Row', is_active: false, end_date: '2020-06-01' }),
         ]),
         ...EMPTY_SECTIONS,
       });
@@ -405,7 +428,7 @@ describe('AboutPage', () => {
       await hydrate();
 
       expect(document.getElementById('about-team-contributors-intro').textContent)
-        .toBe('More than 90 students have contributed.');
+        .toBe('More than 140 people, including 131 students.');
     });
 
     test('grafts the server-rendered localized blurb onto the matching past-lead card', async () => {

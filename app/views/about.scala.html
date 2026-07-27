@@ -211,10 +211,10 @@
           <h3>@Messages("about.team.past.title")</h3>
           <ul class="about-team-grid about-team-grid--past" id="about-team-past"></ul>
           <h3>@Messages("about.team.contributors.title")</h3>
-          @* aboutPage.js recomputes the "more than N" figure from the live roster; the number rendered here is the
-             floor the roster supports today and stands in if that request fails. *@
+          @* aboutPage.js recomputes both figures from the live roster; the numbers rendered here are what it supports
+             today and stand in if that request fails. *@
           <p class="about-team-contributors-intro" id="about-team-contributors-intro"
-             data-label-template="@Messages("about.team.contributors.intro")">@Messages("about.team.contributors.intro", 90)</p>
+             data-label-template="@Messages("about.team.contributors.intro")">@Messages("about.team.contributors.intro", 140, 131)</p>
           <ul class="about-team-all" id="about-team-all"></ul>
           <p class="about-team-contributors">@Html(Messages("about.team.contributors"))</p>
         </div>
