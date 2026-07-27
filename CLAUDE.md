@@ -382,7 +382,12 @@ and launch `sbt ~ run` with `-Dconfig.file` at the worktree's own conf and the s
 `.coursier`/`.sbt` (cwd-relative caches from a worktree would re-download gigabytes). The first HTTP request triggers the
 dev compile; **Ctrl-C stops the app and reaps the grunt watch** (a trap, so the watcher never lingers). To tear a session
 down out-of-band, run **`make qa-worktree-stop wt=<name>`** (add `clean=1` to also drop the `node_modules` symlink).
-Implementation: `tools/qa-worktree.sh`.
+Implementation: `tools/qa-worktree.sh` — both targets run the **worktree's own** copy of that script when it has one
+(falling back to the main checkout's), so the branch being QA'd supplies its own tooling.
+
+`make` itself still reads the **main checkout's** Makefile, so when that checkout sits on a branch without the target,
+make reports `No rule to make target 'qa-worktree'`. Either check out a branch that has it, or run the worktree's script
+directly: `docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/qa-worktree.sh <name>`.
 
 **Admin-authenticated QA:** the dev DB is seeded from a dump that includes real accounts and their bcrypt password
 hashes, and password verification is config-independent (plain bcrypt, no server-side pepper), so if your own account is
@@ -455,7 +460,26 @@ docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -c "\dt sidewal
 docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -c "SELECT * FROM sidewalk_login.role;"
 ```
 
-Each city has its own schema (`sidewalk_<city>`), and they are essentially identical — `sidewalk_seattle` is a safe default for schema questions; authentication lives in `sidewalk_login`. If you need to query *actual data* (not just structure), **ask which city we're working in first**. Evolutions in `conf/evolutions/default/` are auto-applied when a page loads, so you don't run them manually.
+Each city has its own schema (`sidewalk_<city>`), and they are essentially identical — `sidewalk_seattle` is a safe default for **schema** questions; authentication lives in `sidewalk_login`. Evolutions in `conf/evolutions/default/` are auto-applied when a page loads, so you don't run them manually.
+
+**For anything about *data* or *migration state*, first find out which city is actually running** — don't assume `sidewalk_seattle`:
+
+```bash
+docker exec projectsidewalk-web bash -lc 'echo $DATABASE_USER'   # this value IS the active schema name
+```
+
+`DATABASE_USER` selects the schema and is authoritative; `SIDEWALK_CITY_ID` only selects `cityparams.conf` entries (map center, bounds, display name). The two are *supposed* to correspond (see [`docs/dev-environment.md`](docs/dev-environment.md) → "City IDs"), but a container can be left with them **mismatched**, in which case the app renders one city's params over another city's data — an empty map with no error in any log. Confirm what the app believes it is with `curl -s -b <cookie-jar> localhost:9000/labelmap | grep -oE 'cityId: "[^"]*"'`.
+
+**`readonly_user` cannot see every schema, and the failure is silent.** It is granted per-schema, so it may have no rights on the active city's schema — and `information_schema` / `\dt` simply **omit** what you can't see rather than erroring, which reads as "that schema doesn't exist" or "that evolution never applied". `pg_namespace` is world-readable, so enumerate with it, then query the city as its own role:
+
+```bash
+docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -tAc \
+  "SELECT nspname FROM pg_namespace WHERE nspname LIKE 'sidewalk%' ORDER BY 1"
+docker exec projectsidewalk-db psql -U sidewalk_teaneck -d sidewalk -c \
+  "SELECT max(id) FROM sidewalk_teaneck.play_evolutions"
+```
+
+Never conclude "evolution N didn't apply" from a `readonly_user` query without first confirming which schema the app uses.
 
 **The dev DB is not representative of production size, and some tables may be absent.** The two largest production tables by a wide margin are **`audit_task_interaction`** and **`validation_task_interaction`** (raw per-action interaction logs — pans, zooms, clicks). The dev DB dumps that seed local development **omit** these tables to stay manageable, so locally they are typically empty or missing. Never infer a table's production size or existence from the local DB. When reasoning about query cost or indexes, treat these two interaction tables — not `webpage_activity` — as the heavyweight logs.
 
