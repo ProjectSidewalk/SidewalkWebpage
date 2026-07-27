@@ -86,6 +86,9 @@ case class AccuracyByType(
  * @param distanceMeters Street distance audited across all included cities.
  * @param accuracy       Cross-city validation agreement rate, or None below the 10-validated-label threshold.
  * @param topCityId      City id where this user placed the most labels, or None if its schema maps to no configured id.
+ * @param profileLinked  Whether to link the name to `/userProfile`. False for a mapper with no public profile *here* —
+ *                       most rows on most deployments, since a global row can come from a mapper who has never
+ *                       labeled in this city — where the link would land on a "kept private" page.
  */
 case class GlobalLeaderboardEntry(
     username: String,
@@ -93,7 +96,8 @@ case class GlobalLeaderboardEntry(
     missionCount: Int,
     distanceMeters: Double,
     accuracy: Option[Double],
-    topCityId: Option[String]
+    topCityId: Option[String],
+    profileLinked: Boolean
 )
 
 case class AdminUserProfileData(
@@ -277,10 +281,12 @@ trait UserService {
    * Gets the all-time global leaderboard: top contributors by labels summed across every included city (#3719).
    *
    * @param n How many rows to return.
-   * @return  Up to `n` rows in rank order, each carrying the id of the city where that user labeled most. Empty if no
-   *          city qualifies for the board or the query fails, so the page renders without the section rather than 500s.
+   * @return  `Some` of up to `n` rows in rank order, each carrying the id of the city where that user labeled most —
+   *          `Some(Nil)` meaning the board is live but nobody qualifies yet. `None` when the board can't be computed
+   *          (no city qualifies, or the query failed), so the page can omit the section instead of claiming the
+   *          community has no labels.
    */
-  def getGlobalLeaderboardStats(n: Int): Future[Seq[GlobalLeaderboardEntry]]
+  def getGlobalLeaderboardStats(n: Int): Future[Option[Seq[GlobalLeaderboardEntry]]]
   def getActivityStreak(userId: String, locale: Locale = Locale.ENGLISH): Future[StreakStats]
   def getAccuracyByType(userId: String): Future[Seq[AccuracyByType]]
   def getTrophies(userId: String, cityName: String, messages: Messages): Future[Seq[Trophy]]
@@ -504,30 +510,42 @@ class UserServiceImpl @Inject() (
     } yield stats)
   }
 
-  def getGlobalLeaderboardStats(n: Int): Future[Seq[GlobalLeaderboardEntry]] = {
+  def getGlobalLeaderboardStats(n: Int): Future[Option[Seq[GlobalLeaderboardEntry]]] = {
     // Cached because every city's deployment renders the same global board, so an uncached read would recompute a
     // ~50-schema union on each of their page loads. 10 minutes matches the other cross-city reads; the board is
-    // all-time, so it barely moves between refreshes.
-    cacheApi.getOrElseUpdate[Seq[GlobalLeaderboardEntry]](s"getGlobalLeaderboardStats_$n", Duration(10, "minutes")) {
-      configService.getGlobalLeaderboardCities
-        .flatMap { cities =>
-          if (cities.isEmpty) {
-            Future.successful(Seq.empty[GlobalLeaderboardEntry])
+    // all-time, so it barely moves between refreshes. The recover sits outside the cache so a transient DB failure
+    // isn't stored as a successful "no board" for the next 10 minutes.
+    cacheApi
+      .getOrElseUpdate[Option[Seq[GlobalLeaderboardEntry]]](
+        s"getGlobalLeaderboardStats_$n",
+        Duration(10, "minutes")
+      ) {
+        configService.getGlobalLeaderboardScope.flatMap { scope =>
+          if (scope.cities.isEmpty) {
+            Future.successful(None)
           } else {
-            val cityIdBySchema: Map[String, String] = cities.map { case (cityId, schema) => schema -> cityId }.toMap
-            db.run(userStatTable.getGlobalLeaderboardStats(cities.map(_._2), n))
-              .map(_.map { stat =>
-                GlobalLeaderboardEntry(stat.username, stat.labelCount, stat.missionCount, stat.distanceMeters,
-                  stat.accuracy, cityIdBySchema.get(stat.topCitySchema))
-              })
+            val cityIdBySchema: Map[String, String] = scope.cities.map { case (cityId, schema) =>
+              schema -> cityId
+            }.toMap
+            db.run(userStatTable.getGlobalLeaderboardStats(scope.cities.map(_._2), scope.optOutSchemas, n)).flatMap {
+              stats =>
+                // Profile visibility is per city, so it's resolved against *this* deployment's user_stat rows: a row
+                // earned entirely in another city has no profile to link to here.
+                db.run(userStatTable.usersWithPublicProfile(stats.map(_.userId))).map { linkable =>
+                  Some(stats.map { stat =>
+                    GlobalLeaderboardEntry(stat.username, stat.labelCount, stat.missionCount, stat.distanceMeters,
+                      stat.accuracy, cityIdBySchema.get(stat.topCitySchema), linkable.contains(stat.userId))
+                  })
+                }
+            }
           }
         }
-        .recover { case e: Exception =>
-          // The section is supplementary, so a failure here drops it rather than taking down the whole leaderboard page.
-          logger.warn(s"Failed to compute the global leaderboard, omitting the section: ${e.getMessage}", e)
-          Seq.empty[GlobalLeaderboardEntry]
-        }
-    }
+      }
+      .recover { case e: Exception =>
+        // The section is supplementary, so a failure here drops it rather than taking down the whole leaderboard page.
+        logger.warn(s"Failed to compute the global leaderboard, omitting the section: ${e.getMessage}", e)
+        None
+      }
   }
 
   /**

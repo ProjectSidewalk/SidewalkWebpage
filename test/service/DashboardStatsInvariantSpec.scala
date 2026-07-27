@@ -50,7 +50,9 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
   private lazy val overallBoard                          = await(userService.getLeaderboardStats(10, "overall"))
   private lazy val topUser: Option[SidewalkUserWithRole] =
     overallBoard.headOption.flatMap(s => await(authService.findByUsername(s.username)))
-  private lazy val globalBoard: Seq[GlobalLeaderboardEntry] = await(userService.getGlobalLeaderboardStats(10))
+  private lazy val globalBoardOpt: Option[Seq[GlobalLeaderboardEntry]] =
+    await(userService.getGlobalLeaderboardStats(10))
+  private lazy val globalBoard: Seq[GlobalLeaderboardEntry] = globalBoardOpt.getOrElse(Seq.empty)
 
   private def assertBoardInvariants(board: Seq[models.user.LeaderboardStat]): Unit = {
     board.length must be <= 10
@@ -177,9 +179,9 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
   }
 
-  "getGlobalLeaderboardCities" should {
+  "getGlobalLeaderboardScope" should {
     "return (cityId, schema) pairs that are configured, queryable, and not opted out" in {
-      val cities        = await(configService.getGlobalLeaderboardCities)
+      val cities        = await(configService.getGlobalLeaderboardScope).cities
       val configuredIds = config.get[Seq[String]]("city-params.city-ids").toSet
 
       cities.map(_._1).distinct.length mustBe cities.length // a city can't be counted twice in the totals
@@ -194,7 +196,7 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "exclude cities that opt out of the by-name board, whether explicitly or via private-by-default (#4480)" in {
-      val included = await(configService.getGlobalLeaderboardCities).map(_._1)
+      val included = await(configService.getGlobalLeaderboardScope).cities.map(_._1)
       val optedOut = config.get[Seq[String]]("city-params.city-ids").filter { cityId =>
         Seq("global-leaderboard-excluded", "private-profiles-by-default").exists { block =>
           val path = s"city-params.$block.$cityId"
@@ -203,6 +205,27 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
       }
       // Vacuous while no city sets either flag; it fails loudly the moment one does and the filter regresses.
       optedOut.foreach(cityId => included must not contain cityId)
+    }
+
+    "name only publicly launched deployments, so the Top city column can't advertise an unlaunched one" in {
+      await(configService.getGlobalLeaderboardScope).cities.foreach { case (cityId, _) =>
+        config.getOptional[String](s"city-params.status.$cityId") mustBe Some("public")
+      }
+    }
+
+    "read opt-outs from ready deployments it excludes, but never from private-by-default ones" in {
+      val scope = await(configService.getGlobalLeaderboardScope)
+      // An opt-out schema is one whose contributions are excluded, so the two sets must not overlap.
+      scope.optOutSchemas.toSet.intersect(scope.cities.map(_._2).toSet) mustBe empty
+      scope.optOutSchemas.foreach { schema =>
+        schema must fullyMatch regex "^[a-z_][a-z0-9_]*$"
+        // There, on_leaderboard is off for everyone by default, so a FALSE isn't a deliberate choice to honor.
+        val cityId = config.get[Seq[String]]("city-params.city-ids").find(configService.getCitySchema(_) == schema)
+        cityId.foreach { id =>
+          val path = s"city-params.private-profiles-by-default.$id"
+          (config.underlying.hasPath(path) && config.get[Boolean](path)) mustBe false
+        }
+      }
     }
   }
 
@@ -216,7 +239,7 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
         case _                  => ()
       }
       globalBoard.foreach { s =>
-        s.labelCount must be >= 0
+        s.labelCount must be > 0 // a user whose every city is excluded is dropped, not shown with a zero
         s.missionCount must be >= 0
         s.distanceMeters must be >= 0.0
         s.accuracy.foreach { a => a must be >= 0.0; a must be <= 1.0 }
@@ -225,7 +248,7 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "name a top city that is one of the cities the board was built from" in {
-      val eligibleIds = await(configService.getGlobalLeaderboardCities).map(_._1).toSet
+      val eligibleIds = await(configService.getGlobalLeaderboardScope).cities.map(_._1).toSet
       globalBoard.flatMap(_.topCityId).foreach(cityId => eligibleIds must contain(cityId))
     }
 
@@ -235,8 +258,22 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
       globalBoard.foreach { g => localByUser.get(g.username).foreach(localCount => g.labelCount must be >= localCount) }
     }
 
+    "link a name only when that mapper has a public profile in this city" in {
+      // A row can come from a mapper who never labeled here, whose profile page would just say "kept private".
+      globalBoard.filter(_.profileLinked).foreach { entry =>
+        await(userService.resolveVisibleUser(entry.username, isOwner = false)) must not be None
+      }
+    }
+
+    "be stable across calls, so a tie doesn't shuffle the board between refreshes" in {
+      // Same n twice: the cache serves the second, but a missing ORDER BY tiebreaker would show up here uncached too.
+      await(userService.getGlobalLeaderboardStats(10)).map(_.map(_.username)) mustBe globalBoardOpt.map(
+        _.map(_.username)
+      )
+    }
+
     "respect n" in {
-      await(userService.getGlobalLeaderboardStats(3)).length must be <= 3
+      await(userService.getGlobalLeaderboardStats(3)).getOrElse(Nil).length must be <= 3
     }
   }
 
@@ -244,12 +281,15 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
     "refuse a schema name that isn't a bare identifier" in {
       // Guards the one place the leaderboard interpolates rather than binds; a thrown error beats a crafted query.
       Seq("public; DROP TABLE label", "sidewalk_seattle\"", "Sidewalk_Seattle", "").foreach { bad =>
-        an[IllegalArgumentException] must be thrownBy userStatTable.getGlobalLeaderboardStats(Seq(bad), 10)
+        an[IllegalArgumentException] must be thrownBy userStatTable.getGlobalLeaderboardStats(Seq(bad), Seq.empty, 10)
+        an[IllegalArgumentException] must be thrownBy
+          userStatTable.getGlobalLeaderboardStats(Seq("sidewalk_seattle"), Seq(bad), 10)
       }
     }
 
     "return nothing at all when no city qualifies, rather than building an empty union" in {
-      await(dbConfig.db.run(userStatTable.getGlobalLeaderboardStats(Seq.empty[String], 10))) mustBe empty
+      await(dbConfig.db.run(userStatTable.getGlobalLeaderboardStats(Seq.empty[String], Seq.empty[String], 10))) mustBe
+        empty
     }
   }
 

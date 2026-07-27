@@ -108,14 +108,6 @@
 .ud-lb-user:hover,
 .ud-lb-city:hover { text-decoration: underline; }
 
-/* Footnote under the global board: its Distance column comes from a nightly precompute, so it can trail the live
-   per-city boards above by a little. Matches .ud-acc-note (the other sanctioned caption). */
-.ud-lb-note {
-  margin: var(--space-xs, 8px) 0 0;
-  font-size: var(--font-size-sm, 0.875rem);
-  color: var(--color-text-secondary, #5a7785);
-}
-
 /* ---- Hero / "Your impact" -------------------------------------------------------------------------------------- */
 .ud-hero {
   display: flex;
@@ -708,8 +700,10 @@
   color: var(--color-text-secondary, #5a7785);
 }
 
-/* Chart caption stating the trickiest-type eligibility rule (min validations, from the backend constant). */
-.ud-acc-note {
+/* The two sanctioned captions: the accuracy chart's min-validations rule, and the global board's note that its
+   Distance column comes from a nightly precompute and so can trail the live per-city boards above. */
+.ud-acc-note,
+.ud-lb-note {
   margin: var(--space-xs, 8px) 0 0;
   font-size: var(--font-size-sm, 0.875rem);
   color: var(--color-text-secondary, #5a7785);
