@@ -260,7 +260,7 @@ class ImageryFreshnessServiceImpl @Inject() (
    * Known limitation: the endpoint takes no ordering parameter, so in a densely-covered bbox the newest image can
    * fall outside the first `limit` results and this under-reports the street's newest capture. That direction is
    * safe -- it costs a missed re-audit prompt, never a spurious one -- and the next night's rotation gets another
-   * chance. Paging (or a captured_at lower bound seeded from the stored newest_capture) is a #4384 follow-up.
+   * chance. Paging (or a captured_at lower bound seeded from the stored newest_capture) is tracked in #4704.
    */
   private def fetchMapillaryPointObservations(
       accessToken: String
