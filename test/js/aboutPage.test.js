@@ -163,7 +163,7 @@ describe('AboutPage', () => {
         .toBe('University of Washington');
     });
 
-    test('keeps the project row\'s free-text role annotation off the card', async () => {
+    test('ignores the project row\'s internal role notes', async () => {
       stubFetch({
         '/people/?format=json': page([
           personRow({ urlName: 'yochai', name: 'Yochai Eisenberg', lead_project_role: 'Co-PI',

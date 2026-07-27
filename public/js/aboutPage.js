@@ -110,7 +110,6 @@ class AboutPage {
       }
       merged.is_active ||= row.is_active;
       merged.lead_project_role ||= row.lead_project_role;
-      merged.role ||= row.role;
       // A returning contributor's position advances between stints (high schooler who came back as an undergrad), so
       // the most recent stint is the one that describes them.
       if (row.start_date >= latestStintStart.get(row.person.url_name)) {
@@ -165,9 +164,8 @@ class AboutPage {
       const lead = AboutPage.#LEAD_ROLE_LABELS[p.lead_project_role] ?? p.lead_project_role ?? '';
       // The member's own profile describes them today, so it sets the title. The project row's `position_title` is
       // frozen at the position they held when their stint began (the PI's row still reads "Assistant Professor" from
-      // 2012), which makes it only a fallback. The row's free-text `role` stays off the card entirely: it is an admin
-      // annotation that runs anywhere from a duplicate of the lead role to a paragraph, and the ML site's own project
-      // page doesn't render it either.
+      // 2012), which makes it only a fallback. The row's free-text `role` is the ML admin's internal notes rather than
+      // display copy — the ML site's own project page doesn't render it either — so this page ignores it.
       const detail = profiles.get(p.person.url_name)?.current_title || p.position_title || '';
       // A lead label that already spells out the detail ("Research Scientist Lead" over "Research Scientist")
       // would otherwise render the same words twice.
