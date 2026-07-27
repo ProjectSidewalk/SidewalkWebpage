@@ -19,9 +19,12 @@
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@publicCities = @{commonData.allCityInfo.filter(_.visibility == "public")}
-@cityCount = @{publicCities.size}
-@countryCount = @{publicCities.map(_.countryId).distinct.size}
+@* Deployment counts span every configured city, not just the publicly listed ones, so these no-JS fallbacks line up
+   with the /v3/api/aggregateStats numbers that replace them on load — the same counts the landing and /cities pages
+   report. The country count can still tick down by one or two once live, since aggregateStats only counts cities
+   whose schema exists in the environment it's running in. *@
+@cityCount = @{commonData.allCityInfo.size}
+@countryCount = @{commonData.allCityInfo.map(_.countryId).distinct.size}
 @* Count of natively translated languages, from config so it can't drift: base languages only (en-US/en-NZ are
    regional overlays of en, zh-TW's base is zh), so e.g. [en, en-US, en-NZ, es, nl, zh-TW, de, pt-BR] counts 6. *@
 @languageCount = @{config.get[Seq[String]]("play.i18n.langs").map(_.takeWhile(_ != '-')).distinct.size}
@@ -66,7 +69,6 @@
       <div class="about-container">
         <h1 class="about-hero-title">@Html(Messages("about.hero.title"))</h1>
         <p class="about-hero-subtitle">@Messages("about.hero.subtitle")</p>
-        <p class="about-hero-attribution">@Messages("about.hero.attribution")</p>
         <div class="about-cta-row">
           <a class="button-ps button--primary button--large" id="about-hero-explore-link" href="/explore">
             @Messages("about.hero.cta.explore")</a>
@@ -123,21 +125,26 @@
                  alt="">
             <h3>@Html(Messages("about.how.step.explore.title"))</h3>
             <p>@Messages("about.how.step.explore.body")</p>
+            <a class="button-ps button--secondary button--small about-step-cta" id="about-step-explore-link"
+               href="/explore">@Messages("about.how.step.explore.cta")</a>
           </li>
           <li class="about-step">
             <img class="about-step-icon about-step-icon--chip"
                  src='@assets.path("images/icons/check-circle-feather.svg")' alt="">
             <h3>@Messages("about.how.step.validate.title")</h3>
             <p>@Messages("about.how.step.validate.body")</p>
+            <a class="button-ps button--secondary button--small about-step-cta" id="about-step-validate-link"
+               href="/validate">@Messages("about.how.step.validate.cta")</a>
           </li>
           <li class="about-step">
             <img class="about-step-icon about-step-icon--chip"
                  src='@assets.path("images/icons/bar-chart-2-feather.svg")' alt="">
             <h3>@Messages("about.how.step.data.title")</h3>
             <p>@Messages("about.how.step.data.body")</p>
+            <a class="button-ps button--secondary button--small about-step-cta" id="about-step-data-link"
+               href="/api">@Messages("about.how.step.data.cta")</a>
           </li>
         </ol>
-        <p class="about-how-cta">@Html(Messages("about.how.cta"))</p>
       </div>
     </section>
 

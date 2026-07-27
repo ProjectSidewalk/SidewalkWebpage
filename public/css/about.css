@@ -85,13 +85,6 @@
   color: var(--color-asphalt-100);
 }
 
-.about-hero-attribution {
-  font: var(--text-small-regular);
-  max-width: 640px;
-  margin: 0 0 8px;
-  color: var(--color-asphalt-100);
-}
-
 .about-cta-row {
   display: flex;
   flex-wrap: wrap;
@@ -176,6 +169,13 @@
   padding: 15px;
 }
 
+/* Column layout so each step's button can sit on a shared baseline (margin-top: auto) despite uneven body copy. */
+.about-step {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 .about-step h3 {
   font: var(--text-title-bold);
   color: var(--color-asphalt-500);
@@ -183,7 +183,11 @@
 }
 
 .about-step p {
-  margin: 0;
+  margin: 0 0 20px;
+}
+
+.about-step-cta {
+  margin-top: auto;
 }
 
 /* Impact story cards */
@@ -310,6 +314,12 @@
   color: var(--color-neutral-700);
 }
 
+.about-team-affiliation {
+  display: block;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
 #about-team-live h3 {
   font: var(--text-h3-bold);
   color: var(--color-asphalt-500);
@@ -346,6 +356,11 @@
 .about-team-all li {
   break-inside: avoid;
   margin-bottom: 8px;
+}
+
+.about-team-credential {
+  color: var(--color-neutral-700);
+  white-space: nowrap;
 }
 
 .about-team-contributors {

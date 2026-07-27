@@ -107,6 +107,9 @@ class AboutPage {
       merged.is_active ||= row.is_active;
       merged.lead_project_role ||= row.lead_project_role;
       merged.role ||= row.role;
+      merged.title ||= row.title;
+      merged.institution ||= row.institution;
+      merged.institution_abbreviated ||= row.institution_abbreviated;
       if (row.start_date < merged.start_date) merged.start_date = row.start_date;
       merged.end_date = merged.end_date && row.end_date
         ? (row.end_date > merged.end_date ? row.end_date : merged.end_date)
@@ -138,35 +141,48 @@ class AboutPage {
       .sort((a, b) => leadRank(a) - leadRank(b) || a.start_date.localeCompare(b.start_date));
     if (current.length === 0) return;
 
-    // The project-people payload has no title/affiliation, so pull each active member's profile for their current
-    // title (e.g. "Professor", "Research Scientist"). Best-effort: a miss falls back to their project role.
-    const titles = new Map();
-    const profiles = await Promise.allSettled(
+    // Each active member's own profile carries their affiliation and current title, neither of which the
+    // project-people payload has, so every card needs one profile request. Best-effort: a failed request just costs
+    // that member their title/affiliation lines, and sessionStorage keeps reloads off the network entirely.
+    const profiles = new Map();
+    const fetched = await Promise.allSettled(
       current.map((p) => this.#fetchJson(`${AboutPage.#ML_API_BASE}/people/${p.person.url_name}/?format=json`)),
     );
-    profiles.forEach((result, i) => {
-      if (result.status === 'fulfilled') titles.set(current[i].person.url_name, result.value.current_title);
+    fetched.forEach((result, i) => {
+      if (result.status === 'fulfilled') profiles.set(current[i].person.url_name, result.value);
     });
 
     const roleText = (p) => {
-      const lead = AboutPage.#LEAD_ROLE_LABELS[p.lead_project_role] ?? p.lead_project_role;
-      const title = titles.get(p.person.url_name) || p.role;
-      return [lead, title].filter(Boolean).join(' · ');
+      const lead = AboutPage.#LEAD_ROLE_LABELS[p.lead_project_role] ?? p.lead_project_role ?? '';
+      // `role` on the project row says what they do on Project Sidewalk, so it wins; the profile's title
+      // ("PhD Student", "Professor") describes their job instead and is the fallback.
+      const detail = p.role || p.title || profiles.get(p.person.url_name)?.current_title || '';
+      // A lead label that already spells out the detail ("Research Scientist Lead" over "Research Scientist")
+      // would otherwise render the same words twice.
+      return lead.includes(detail) ? lead : [lead, detail].filter(Boolean).join(' · ');
     };
-    document.getElementById('about-team-current').innerHTML = current.map((p) => `
-      <li class="about-team-member">
-        <a href="${this.#esc(p.person.url)}">
-          <img class="about-team-photo" src="${this.#esc(p.person.thumbnail || AboutPage.#FALLBACK_PHOTO)}" alt="">
-          <span class="about-team-name">${this.#esc(p.person.name)}</span>
-        </a>
-        <span class="about-team-role">${this.#esc(roleText(p))}</span>
-      </li>`).join('');
+    const affiliation = (p) => profiles.get(p.person.url_name)?.current_institution || p.institution || '';
+    document.getElementById('about-team-current').innerHTML = current.map((p) => {
+      const org = affiliation(p);
+      return `
+        <li class="about-team-member">
+          <a href="${this.#esc(p.person.url)}">
+            <img class="about-team-photo" src="${this.#esc(p.person.thumbnail || AboutPage.#FALLBACK_PHOTO)}" alt="">
+            <span class="about-team-name">${this.#esc(p.person.name)}</span>
+          </a>
+          <span class="about-team-role">${this.#esc(roleText(p))}</span>
+          ${org ? `<span class="about-team-affiliation">${this.#esc(org)}</span>` : ''}
+        </li>`;
+    }).join('');
 
     // Past-lead cards pair the API-driven photo/name/role with a hand-curated, localized blurb server-rendered into
     // the #about-team-past-blurbs template (keyed by url_name). The blurb is our own trusted markup, so no escaping.
     const years = (p) => `${p.start_date.slice(0, 4)}–${p.end_date ? p.end_date.slice(0, 4) : ''}`;
-    const blurbFor = (p) => document.querySelector(
-      `#about-team-past-blurbs [data-person="${CSS.escape(p.person.url_name)}"]`)?.innerHTML ?? '';
+    // A <template>'s children live in its .content fragment, not in the document tree, so they're only reachable by
+    // querying the fragment — a document-level selector for them silently matches nothing.
+    const blurbs = document.getElementById('about-team-past-blurbs')?.content;
+    const blurbFor = (p) =>
+      blurbs?.querySelector(`[data-person="${CSS.escape(p.person.url_name)}"]`)?.innerHTML ?? '';
     document.getElementById('about-team-past').innerHTML = pastLeads.map((p) => {
       const blurb = blurbFor(p);
       return `
@@ -184,8 +200,18 @@ class AboutPage {
     const others = people
       .filter((p) => !shown.has(p.person.url_name))
       .sort((a, b) => a.person.name.localeCompare(b.person.name));
-    document.getElementById('about-team-all').innerHTML = others.map((p) => `
-      <li><a href="${this.#esc(p.person.url)}">${this.#esc(p.person.name)}</a></li>`).join('');
+    // Contributors are annotated with the title and school they held while on the project ("Undergrad, UMD"), which
+    // is what makes the roll call legible as the experiential-learning record it is. Both come off the project row
+    // rather than the person's profile, since a 2015 undergrad's profile now shows whatever they do today.
+    document.getElementById('about-team-all').innerHTML = others.map((p) => {
+      const credential = [p.title, p.institution_abbreviated || p.institution].filter(Boolean).join(', ');
+      return `
+        <li>
+          <a href="${this.#esc(p.person.url)}">${this.#esc(p.person.name)}</a>${credential
+            ? ` <span class="about-team-credential">${this.#esc(credential)}</span>`
+            : ''}
+        </li>`;
+    }).join('');
     container.hidden = false;
   }
 
@@ -278,6 +304,9 @@ class AboutPage {
     const staticTargets = [
       ['about-hero-explore-link', 'hero_explore'],
       ['about-hero-data-link', 'hero_data'],
+      ['about-step-explore-link', 'step_explore'],
+      ['about-step-validate-link', 'step_validate'],
+      ['about-step-data-link', 'step_data'],
       ['about-cta-explore-link', 'cta_explore'],
       ['about-cta-city-link', 'cta_city'],
       ['about-funder-nsf-link', 'funder_nsf'],

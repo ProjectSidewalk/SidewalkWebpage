@@ -80,6 +80,7 @@ navbar.explore = Explore
 navbar.validate = Validate
 navbar.howto = How to Label
 navbar.api = API
+navbar.about = About
 navbar.tools = Tools
 navbar.labelmap = Label Map
 navbar.help = Help
@@ -152,7 +153,6 @@ seo.og.image.alt = Screenshot of Project Sidewalk''s virtual street-view explora
 about.title = About Project Sidewalk
 about.hero.title = We''re mapping and assessing <span class="about-hero-accent">every sidewalk</span> in the world.
 about.hero.subtitle = Project Sidewalk is an open-source research project that combines crowdsourcing and AI to map and assess city sidewalks — and opens every data point to researchers, governments, and communities.
-about.hero.attribution = An academic research project led by Professor Jon E. Froehlich (University of Washington) and Professor Yochai Eisenberg (University of Illinois Chicago).
 about.hero.cta.explore = Start exploring
 about.hero.cta.data = Get the data
 about.stats.heading = Project Sidewalk by the numbers
@@ -162,14 +162,16 @@ about.stats.validations = Validations
 about.stats.cities = Cities
 about.stats.countries = Countries
 about.how.title = How it works
-about.how.intro = We aim to map and assess every sidewalk in the world using remote crowdsourcing, artificial intelligence, and online street-level imagery. Anyone with a web browser can help — no special tools required.
+about.how.intro = Project Sidewalk''s mission is to map and assess every sidewalk in the world using remote crowdsourcing, artificial intelligence, and online street-level imagery. Anyone with a web browser can help — no special tools required.
 about.how.step.explore.title = Explore &amp; label
 about.how.step.explore.body = Volunteers virtually walk city streets in a game-like web tool, labeling curb ramps, missing sidewalks, obstacles, and surface problems in street-level imagery.
 about.how.step.validate.title = Validate
 about.how.step.validate.body = Contributors then review each other''s labels — assisted by AI — agreeing or disagreeing with what they see, so the dataset stays accurate and trustworthy.
 about.how.step.data.title = Open data
 about.how.step.data.body = Every label feeds an open dataset that researchers, governments, and community advocates use to understand and improve sidewalk accessibility.
-about.how.cta = <a href="/explore">Start exploring</a> or <a href="/validate">validate labels</a> to contribute.
+about.how.step.explore.cta = Start exploring
+about.how.step.validate.cta = Validate labels
+about.how.step.data.cta = Get the data
 about.impact.title = How Project Sidewalk makes impact
 about.impact.intro = The goal isn''t just data — it''s making cities more walkable, rollable, and safe for pedestrians. Here are a few of the ways communities, governments, and schools have put Project Sidewalk to work.
 about.impact.chicago.place = Chicago, Illinois
@@ -186,12 +188,12 @@ about.impact.schools.place = Classrooms across the U.S.
 about.impact.schools.body = Students use Project Sidewalk to learn data science and civic advocacy — from Girl Scouts in Oradell, New Jersey presenting findings to their city council, to <a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/">middle schoolers in Waltham, Massachusetts earning statewide civics recognition</a>.
 about.impact.more = Want more? Our sister site <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a> shares news, resources, and guides for putting Project Sidewalk to work in your community.
 about.where.title = Where we are
-about.where.body = Project Sidewalk is deployed in <span data-live-stat="num_cities">{0}</span> cities across <span data-live-stat="num_countries">{1}</span> countries — and growing. <a href="/cities">See every deployment city</a> or <a href="https://accessiblecommunities.org/use-project-sidewalk/">learn how to bring Project Sidewalk to yours</a>.
+about.where.body = From Seattle to Mexico City to Zurich, volunteers have put <span data-live-stat="num_cities">{0}</span> cities in <span data-live-stat="num_countries">{1}</span> countries on the accessibility map — one street at a time. <a href="/cities">See every deployment</a>, or <a href="https://accessiblecommunities.org/use-project-sidewalk/">bring Project Sidewalk to your city</a>.
 about.history.title = Our history
-about.history.2012 = Project Sidewalk begins as a research project by Professor Jon E. Froehlich and PhD student Kotaro Hara in the <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a>, with early support from Google and the National Science Foundation.
+about.history.2012 = Project Sidewalk begins as a research project by Professor Jon E. Froehlich and PhD student Kotaro Hara in the <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a>, with early support from a <a href="https://research.google/outreach/past-programs/faculty-research-awards/">Google Faculty Research Award</a> and the <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338">National Science Foundation</a>.
 about.history.2017 = The first city-scale deployment launches in Washington, DC, led by PhD student Manaswi Saha and research scientist Mikey Saugstad, as the lab moves to the University of Washington''s Paul G. Allen School of Computer Science &amp; Engineering.
 about.history.2019 = The DC pilot study shows that online crowdsourcing can be used to map an entire city''s sidewalks — and earns a Best Paper Award at CHI 2019.
-about.history.2021 = An NSF Smart &amp; Connected Communities grant deepens our partnership with the University of Illinois Chicago and Easterseals, expanding deployments, education programs, and our sister site <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a>.
+about.history.2021 = An <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087">NSF Smart &amp; Connected Communities grant</a> deepens our partnership with the University of Illinois Chicago and Easterseals, expanding deployments, education programs, and our sister site <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a>.
 about.history.today.label = Today
 about.history.today = Project Sidewalk operates in <span data-live-stat="num_cities">{0}</span> cities around the world, natively translated into {1} languages and powered by thousands of volunteer mappers.
 about.team.title = The team

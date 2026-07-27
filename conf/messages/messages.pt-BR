@@ -82,6 +82,7 @@ navbar.explore = Explorar
 navbar.validate = Validar
 navbar.howto = Como rotular
 navbar.api = API
+navbar.about = Sobre nós
 navbar.tools = Ferramentas
 navbar.labelmap = Mapa de etiquetas
 navbar.help = Ajuda
@@ -154,7 +155,6 @@ seo.og.image.alt = Captura de tela da exploração virtual do Project Sidewalk c
 about.title = Sobre o Project Sidewalk
 about.hero.title = Estamos mapeando e avaliando <span class="about-hero-accent">todas as calçadas</span> do mundo.
 about.hero.subtitle = O Project Sidewalk é um projeto de pesquisa de código aberto que combina colaboração coletiva e inteligência artificial para mapear e avaliar as calçadas das cidades — e abre cada dado para pesquisadores, governos e comunidades.
-about.hero.attribution = Um projeto de pesquisa acadêmica liderado pelo professor Jon E. Froehlich (Universidade de Washington) e pelo professor Yochai Eisenberg (Universidade de Illinois em Chicago).
 about.hero.cta.explore = Comece a explorar
 about.hero.cta.data = Acesse os dados
 about.stats.heading = Project Sidewalk em números
@@ -164,14 +164,16 @@ about.stats.validations = Validações
 about.stats.cities = Cidades
 about.stats.countries = Países
 about.how.title = Como funciona
-about.how.intro = Queremos mapear e avaliar todas as calçadas do mundo usando colaboração coletiva remota, inteligência artificial e imagens de rua on-line. Qualquer pessoa com um navegador pode ajudar — sem ferramentas especiais.
+about.how.intro = A missão do Project Sidewalk é mapear e avaliar todas as calçadas do mundo usando colaboração coletiva remota, inteligência artificial e imagens de rua on-line. Qualquer pessoa com um navegador pode ajudar — sem ferramentas especiais.
 about.how.step.explore.title = Explore e rotule
 about.how.step.explore.body = Voluntários percorrem virtualmente as ruas de uma cidade em uma ferramenta web estilo jogo, rotulando rampas de calçada, calçadas ausentes, obstáculos e problemas de superfície nas imagens de rua.
 about.how.step.validate.title = Valide
 about.how.step.validate.body = Depois, outras pessoas revisam os rótulos — com apoio de IA — concordando ou discordando, para que o conjunto de dados continue preciso e confiável.
 about.how.step.data.title = Dados abertos
 about.how.step.data.body = Cada rótulo alimenta um conjunto de dados abertos que pesquisadores, governos e comunidades usam para entender e melhorar a acessibilidade das calçadas.
-about.how.cta = <a href="/explore">Comece a explorar</a> ou <a href="/validate">valide rótulos</a> para contribuir.
+about.how.step.explore.cta = Comece a explorar
+about.how.step.validate.cta = Validar rótulos
+about.how.step.data.cta = Acesse os dados
 about.impact.title = O impacto do Project Sidewalk
 about.impact.intro = O objetivo não é só gerar dados — é tornar as cidades mais caminháveis, acessíveis para cadeiras de rodas e seguras para pedestres. Veja alguns exemplos de como comunidades, governos e escolas usaram o Project Sidewalk.
 about.impact.chicago.place = Chicago, Illinois
@@ -188,12 +190,12 @@ about.impact.schools.place = Salas de aula pelos EUA
 about.impact.schools.body = Estudantes usam o Project Sidewalk para aprender ciência de dados e advocacia cívica — de escoteiras em Oradell, Nova Jersey, apresentando resultados à câmara municipal, a <a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/">alunos de Waltham, Massachusetts, reconhecidos em nível estadual</a>.
 about.impact.more = Quer mais? Nosso site irmão <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a> traz notícias, recursos e guias para usar o Project Sidewalk na sua comunidade.
 about.where.title = Onde estamos
-about.where.body = O Project Sidewalk está presente em <span data-live-stat="num_cities">{0}</span> cidades de <span data-live-stat="num_countries">{1}</span> países — e crescendo. <a href="/cities">Veja todas as cidades</a> ou <a href="https://accessiblecommunities.org/use-project-sidewalk/">saiba como levar o Project Sidewalk para a sua</a>.
+about.where.body = De Seattle a Cidade do México e Zurique, pessoas voluntárias colocaram <span data-live-stat="num_cities">{0}</span> cidades de <span data-live-stat="num_countries">{1}</span> países no mapa da acessibilidade, rua por rua. <a href="/cities">Veja todas as implantações</a> ou <a href="https://accessiblecommunities.org/use-project-sidewalk/">leve o Project Sidewalk para a sua cidade</a>.
 about.history.title = Nossa história
-about.history.2012 = O Project Sidewalk começa como projeto de pesquisa do professor Jon E. Froehlich e do doutorando Kotaro Hara no <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a>, com apoio inicial do Google e da National Science Foundation.
+about.history.2012 = O Project Sidewalk começa como projeto de pesquisa do professor Jon E. Froehlich e do doutorando Kotaro Hara no <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a>, com apoio inicial de um <a href="https://research.google/outreach/past-programs/faculty-research-awards/">Google Faculty Research Award</a> e da <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338">National Science Foundation</a>.
 about.history.2017 = A primeira implantação em escala de cidade é lançada em Washington, DC, liderada pela doutoranda Manaswi Saha e pelo cientista de pesquisa Mikey Saugstad, enquanto o laboratório se muda para a Escola Paul G. Allen de Ciência da Computação e Engenharia da Universidade de Washington.
 about.history.2019 = O estudo piloto de Washington, DC mostra que a colaboração coletiva on-line pode ser usada para mapear as calçadas de uma cidade inteira — e recebe o prêmio de Best Paper na CHI 2019.
-about.history.2021 = Um financiamento NSF Smart &amp; Connected Communities aprofunda nossa parceria com a Universidade de Illinois em Chicago e a Easterseals, ampliando implantações, programas educacionais e nosso site irmão <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a>.
+about.history.2021 = Um <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087">financiamento NSF Smart &amp; Connected Communities</a> aprofunda nossa parceria com a Universidade de Illinois em Chicago e a Easterseals, ampliando implantações, programas educacionais e nosso site irmão <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a>.
 about.history.today.label = Hoje
 about.history.today = O Project Sidewalk opera em <span data-live-stat="num_cities">{0}</span> cidades pelo mundo, com tradução nativa para {1} idiomas e o apoio de milhares de voluntários.
 about.team.title = A equipe
