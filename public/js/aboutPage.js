@@ -163,15 +163,15 @@ class AboutPage {
 
     const roleText = (p) => {
       const lead = AboutPage.#LEAD_ROLE_LABELS[p.lead_project_role] ?? p.lead_project_role ?? '';
-      // `role` on the project row says what they do on Project Sidewalk, so it wins. The profile's title
-      // ("PhD Student", "Professor") describes their job instead and is the fallback — and it beats the project row's
-      // `position_title`, which is frozen at the position they held when the stint began (the PI's row still reads
-      // "Assistant Professor" from 2012).
-      const detail = p.role || profiles.get(p.person.url_name)?.current_title || p.position_title || '';
-      // Either half can already spell out the other ("Research Scientist Lead" over "Research Scientist", or a `role`
-      // of "Co-PI on NSF grant" under the Co-PI label), which would otherwise render the same words twice.
-      const redundant = lead.includes(detail) || (p.lead_project_role && detail.includes(p.lead_project_role));
-      return redundant ? lead : [lead, detail].filter(Boolean).join(' · ');
+      // The member's own profile describes them today, so it sets the title. The project row's `position_title` is
+      // frozen at the position they held when their stint began (the PI's row still reads "Assistant Professor" from
+      // 2012), which makes it only a fallback. The row's free-text `role` stays off the card entirely: it is an admin
+      // annotation that runs anywhere from a duplicate of the lead role to a paragraph, and the ML site's own project
+      // page doesn't render it either.
+      const detail = profiles.get(p.person.url_name)?.current_title || p.position_title || '';
+      // A lead label that already spells out the detail ("Research Scientist Lead" over "Research Scientist")
+      // would otherwise render the same words twice.
+      return lead.includes(detail) ? lead : [lead, detail].filter(Boolean).join(' · ');
     };
     const affiliation = (p) => profiles.get(p.person.url_name)?.current_school || p.position_school || '';
     document.getElementById('about-team-current').innerHTML = current.map((p) => {

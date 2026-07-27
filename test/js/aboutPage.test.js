@@ -117,20 +117,20 @@ describe('AboutPage', () => {
   });
 
   describe('current team', () => {
-    test('prefers the project role over the profile title, and drops a title the lead label already states', async () => {
+    test('titles each member from their profile, dropping a title the lead label already states', async () => {
       stubFetch({
         '/people/?format=json': page([
           personRow({ urlName: 'jonfroehlich', name: 'Jon E. Froehlich', lead_project_role: 'PI' }),
           personRow({ urlName: 'mikeysaugstad', name: 'Mikey Saugstad', lead_project_role: 'Research Scientist Lead' }),
           personRow({ urlName: 'chuli', name: 'Chu Li', start_date: '2022-09-01' }),
-          personRow({ urlName: 'judyshanley', name: 'Judy L. Shanley', role: 'Community partnerships',
-            start_date: '2023-01-01' }),
+          personRow({ urlName: 'kianna', name: 'KiAnna Mckee-Steen', start_date: '2024-10-01',
+            position_title: 'Project Coordinator' }),
         ]),
         '/people/jonfroehlich/': { current_title: 'Professor' },
         '/people/mikeysaugstad/': { current_title: 'Research Scientist' },
         '/people/chuli/': { current_title: 'PhD Student' },
         ...EMPTY_SECTIONS,
-      });
+      }); // /people/kianna/ rejects.
       loadGlobalScript(MODULE_PATH);
       await hydrate();
 
@@ -140,8 +140,8 @@ describe('AboutPage', () => {
         // Not "Research Scientist Lead · Research Scientist".
         'Research Scientist Lead',
         'PhD Student',
-        // The project role wins over this person's profile title, which is never fetched.
-        'Community partnerships',
+        // No profile to read, so the position from the project row stands in.
+        'Project Coordinator',
       ]);
     });
 
@@ -163,21 +163,22 @@ describe('AboutPage', () => {
         .toBe('University of Washington');
     });
 
-    test('states a role that already names the lead position only once', async () => {
+    test('keeps the project row\'s free-text role annotation off the card', async () => {
       stubFetch({
         '/people/?format=json': page([
           personRow({ urlName: 'yochai', name: 'Yochai Eisenberg', lead_project_role: 'Co-PI',
-            role: 'Co-PI on NSF grant' }),
+            role: 'Co-PI on NSF SCC-IRG Track 1: Crowd+AI Tools to Map, Analyze, and Visualize Sidewalk '
+              + 'Accessibility for Inclusive Cities' }),
         ]),
-        '/people/yochai/': { current_title: 'Assistant Professor' },
+        '/people/yochai/': { current_title: 'Associate Professor' },
         ...EMPTY_SECTIONS,
       });
       loadGlobalScript(MODULE_PATH);
       await hydrate();
 
-      // Not "Co-Principal Investigator · Co-PI on NSF grant".
-      expect(document.querySelector('#about-team-current .about-team-role').textContent)
-        .toBe('Co-Principal Investigator');
+      const role = document.querySelector('#about-team-current .about-team-role').textContent;
+      expect(role).toBe('Co-Principal Investigator · Associate Professor');
+      expect(role).not.toContain('SCC-IRG');
     });
 
     test('renders each member\'s affiliation on its own line', async () => {
