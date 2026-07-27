@@ -221,7 +221,7 @@ class AboutPage {
       return `
         <li>
           <a href="${this.#esc(p.person.url)}">${this.#esc(p.person.name)}</a>${credential
-            ? ` <span class="about-team-credential">${this.#esc(credential)}</span>`
+            ? `, <span class="about-team-credential">${this.#esc(credential)}</span>`
             : ''}
         </li>`;
     }).join('');

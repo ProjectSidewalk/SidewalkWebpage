@@ -360,6 +360,11 @@
   margin-bottom: 8px;
 }
 
+/* The name carries the weight so a reader can scan for a person past the lighter credential that trails it. */
+.about-team-all a {
+  font: var(--text-small-bold);
+}
+
 .about-team-credential {
   color: var(--color-neutral-700);
   white-space: nowrap;

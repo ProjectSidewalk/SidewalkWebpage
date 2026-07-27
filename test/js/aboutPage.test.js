@@ -311,7 +311,7 @@ describe('AboutPage', () => {
 
       const rows = [...document.querySelectorAll('#about-team-all li')]
         .map((el) => el.textContent.replace(/\s+/g, ' ').trim());
-      expect(rows).toEqual(['Bare Person', 'High Schooler High School', 'Undergrad Person Undergrad, UMD']);
+      expect(rows).toEqual(['Bare Person', 'High Schooler, High School', 'Undergrad Person, Undergrad, UMD']);
       // The credential is a separate span so it can be styled apart from the linked name.
       expect(document.querySelectorAll('#about-team-all .about-team-credential')).toHaveLength(2);
     });
