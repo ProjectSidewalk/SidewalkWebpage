@@ -268,7 +268,7 @@ about.team.past.kotarohara = 以博士生身分與 Froehlich 教授共同創立 
 about.team.past.davidjacobs = 擔任開啟 Project Sidewalk 的最初 NSF 補助與首個 Google Faculty Research Award 的共同主持人，引導專案早期的電腦視覺研究。
 about.team.past.manaswisaha = 協助帶領在華盛頓特區的首次大規模部署，並設計了理解城市無障礙資料的工具——詳見她的<a href="https://makeabilitylab.cs.washington.edu/media/publications/Saha_DesigningInteractiveDataDrivenToolsForUnderstandingUrbanAccessibilityAtScale_UWCSPhDDissertation2022.pdf">博士論文</a>。
 about.team.contributors.title = 貢獻者
-about.team.contributors.intro = 已有超過 100 位高中生與大學生為 Project Sidewalk 貢獻程式碼、設計與想法。我們的使命之一，是透過體驗式學習，協助資訊與設計領域的學生投入具社會影響力的專案。
+about.team.contributors.intro = 已有超過 {0} 位高中生與大學生為 Project Sidewalk 貢獻程式碼、設計與想法。我們的使命之一，是透過體驗式學習，協助資訊與設計領域的學生投入具社會影響力的專案。
 about.team.contributors = ……以及世界各地的合作組織與成千上萬的志願地圖繪製者——詳見<a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">專案頁面</a>。
 about.pubs.title = 相關論文
 about.pubs.intro = Project Sidewalk 的研究發表於頂尖的人機互動與無障礙領域學術會議。若您在研究中使用我們的資料或工具，請引用我們的 <a href="https://doi.org/10.1145/3290605.3300292">CHI 2019 論文</a>。

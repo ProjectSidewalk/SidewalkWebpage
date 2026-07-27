@@ -17,6 +17,10 @@ class AboutPage {
   static #CITATION_DOI = '10.1145/3290605.3300292';
   static #FALLBACK_PHOTO = '/assets/images/logos/ProjectSidewalkLogo_NoText_100x100.png';
 
+  // ML API `position_title` values for the two groups the contributor blurb counts. Grad students and staff hold
+  // other titles and are deliberately outside that claim.
+  static #STUDENT_TITLES = ['Undergrad', 'High School Student'];
+
   // Display order for project leads, mirroring the ML site (makeabilitylabwebsite website/models/project.py).
   static #LEAD_ROLE_ORDER = ['PI', 'Co-PI', 'Student Lead', 'Postdoc Lead', 'Research Scientist Lead'];
   static #LEAD_ROLE_LABELS = { 'PI': 'Principal Investigator', 'Co-PI': 'Co-Principal Investigator' };
@@ -127,6 +131,27 @@ class AboutPage {
   }
 
   /**
+   * Restates the contributor blurb's "more than N students" figure from the live roster, so the claim keeps pace with
+   * the roll call underneath it instead of drifting from a number someone typed once.
+   *
+   * @param {object[]} people - Merged project-people rows.
+   */
+  #renderContributorCount(people) {
+    const intro = document.getElementById('about-team-contributors-intro');
+    const template = intro?.dataset.labelTemplate;
+    if (!template) return;
+
+    const students = people.filter((p) => AboutPage.#STUDENT_TITLES.includes(p.position_title)).length;
+    // Round down to a ten strictly below the true count, so "more than N" reads as true at every roster size — 96
+    // students is "more than 90", and an exact 100 is still "more than 90" rather than a claim of more than itself.
+    const floored = Math.floor((students - 1) / 10) * 10;
+    // Under a ten means the ML API renamed its position labels, not that we lost a decade of student contributors,
+    // so leave the server-rendered figure alone.
+    if (floored < 10) return;
+    intro.textContent = template.replace('{0}', floored.toLocaleString());
+  }
+
+  /**
    * Renders the current-team photo grid, the past-leadership cards, and the all-contributors name columns, then
    * unhides the container.
    */
@@ -136,6 +161,7 @@ class AboutPage {
 
     const rows = await this.#fetchAllPages(`${AboutPage.#ML_API_BASE}/projects/sidewalk/people/?format=json`);
     const people = this.#mergeStints(rows);
+    this.#renderContributorCount(people);
     const leadRank = (p) => {
       const rank = AboutPage.#LEAD_ROLE_ORDER.indexOf(p.lead_project_role);
       return rank === -1 ? AboutPage.#LEAD_ROLE_ORDER.length : rank;

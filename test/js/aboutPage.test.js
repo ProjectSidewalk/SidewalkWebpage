@@ -89,6 +89,8 @@ describe('AboutPage', () => {
       <div id="about-team-live" hidden>
         <ul id="about-team-current"></ul>
         <ul id="about-team-past"></ul>
+        <p id="about-team-contributors-intro"
+           data-label-template="More than {0} students have contributed.">More than 90 students have contributed.</p>
         <ul id="about-team-all"></ul>
       </div>
       <template id="about-team-past-blurbs">
@@ -350,6 +352,60 @@ describe('AboutPage', () => {
       await hydrate();
 
       expect(document.querySelector('#about-team-all .about-team-credential').textContent).toBe('Undergrad, UMD');
+    });
+
+    test('restates the contributor count from the roster, rounded down to a true "more than"', async () => {
+      const students = (prefix, count, position_title) => Array.from({ length: count }, (unused, i) => personRow({
+        urlName: `${prefix}${i}`, name: `Student ${prefix}${i}`, is_active: false, end_date: '2020-06-01',
+        position_title,
+      }));
+      stubFetch({
+        '/people/?format=json': page([
+          ...students('u', 17, 'Undergrad'),
+          ...students('h', 9, 'High School Student'),
+          // Grad students and staff sit outside the claim the sentence makes.
+          ...students('m', 5, 'MS Student'),
+          personRow({ urlName: 'prof', name: 'A Professor', position_title: 'Professor' }),
+        ]),
+        '/people/prof/': { current_title: 'Professor' },
+        ...EMPTY_SECTIONS,
+      });
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      expect(document.getElementById('about-team-contributors-intro').textContent)
+        .toBe('More than 20 students have contributed.');
+    });
+
+    test('keeps "more than N" strictly below a count that lands on a ten', async () => {
+      stubFetch({
+        '/people/?format=json': page(Array.from({ length: 20 }, (unused, i) => personRow({
+          urlName: `s${i}`, name: `Student ${i}`, is_active: false, end_date: '2020-06-01',
+          position_title: 'Undergrad',
+        }))),
+        ...EMPTY_SECTIONS,
+      });
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      // Exactly 20 contributors is not "more than 20".
+      expect(document.getElementById('about-team-contributors-intro').textContent)
+        .toBe('More than 10 students have contributed.');
+    });
+
+    test('leaves the server-rendered count alone when no row carries a student position', async () => {
+      stubFetch({
+        '/people/?format=json': page([
+          personRow({ urlName: 'renamed', name: 'Renamed Label', is_active: false, end_date: '2020-06-01',
+            position_title: 'Undergraduate Researcher' }),
+        ]),
+        ...EMPTY_SECTIONS,
+      });
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      expect(document.getElementById('about-team-contributors-intro').textContent)
+        .toBe('More than 90 students have contributed.');
     });
 
     test('grafts the server-rendered localized blurb onto the matching past-lead card', async () => {
