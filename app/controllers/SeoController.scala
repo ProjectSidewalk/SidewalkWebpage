@@ -25,9 +25,10 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
 
   /** Public, indexable pages promoted in the sitemap. Duplicate route aliases are excluded (see SeoUtils). */
   private val sitemapPaths: Seq[String] = Seq(
-    "/", "/explore", "/validate", "/gallery", "/labelMap", "/help", "/labelingGuide", "/labelingGuide/curbRamps",
-    "/labelingGuide/surfaceProblems", "/labelingGuide/obstacles", "/labelingGuide/noSidewalk",
-    "/labelingGuide/occlusion", "/api", "/leaderboard", "/routeBuilder", "/terms", "/cities"
+    "/", "/about", "/explore", "/validate", "/gallery", "/labelMap", "/help", "/labelingGuide",
+    "/labelingGuide/curbRamps", "/labelingGuide/surfaceProblems", "/labelingGuide/obstacles",
+    "/labelingGuide/noSidewalk", "/labelingGuide/occlusion", "/api", "/leaderboard", "/routeBuilder", "/terms",
+    "/cities"
   ) ++ Seq(
     "labelTypes", "cities", "labelTags", "rawLabels", "labelClusters", "streets", "streetTypes", "regions",
     "accessScoreStreets", "accessScoreRegions", "validations", "validation-result-types", "user-stats", "overall-stats",

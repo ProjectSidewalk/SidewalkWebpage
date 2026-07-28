@@ -132,6 +132,10 @@
   --font-primary: "Mulish", "PingFang TC", "Microsoft JhengHei", sans-serif;
   --font-accent:  "Raleway", sans-serif;
 
+  /* Monospace, for content whose alignment carries meaning: code, BibTeX, fixed-width identifiers. JetBrains Mono is
+       only webfont-loaded on the API docs pages, so everywhere else this resolves to the platform's own mono face. */
+  --font-mono:    "JetBrains Mono", sfmono-regular, consolas, "Liberation Mono", menlo, monospace;
+
   /* Typography scale: mirrors the Figma Design System Tokens file.
        Format: font-weight font-size/line-height font-family. The font-size and line-height are each multiplied by
        var(--ui-scale, 1) so every type token scales with uniform UI scaling that we have on some pages. Pages that
