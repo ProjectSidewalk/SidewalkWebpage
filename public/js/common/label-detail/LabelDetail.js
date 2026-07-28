@@ -74,8 +74,9 @@ class LabelDetail {
    * @param {typeof PanoViewer} opts.viewerType - The type of pano viewer to initialize.
    * @param {string} opts.viewerAccessToken - An access token for requesting pano viewer images.
    * @param {string} [opts.currUsername] - Username of the current viewer; identifies comments from this user.
-   * @param {(action: 'Agree'|'Disagree'|'Unsure', meta: Object) => void} [opts.onVote] - Fired after a vote is
-   *      successfully submitted. Hosts use this to sync upstream UI (e.g. recolor a Gallery card).
+   * @param {(action: ?('Agree'|'Disagree'|'Unsure'), meta: Object) => void} [opts.onVote] - Fired after a vote is
+   *      successfully submitted, with null when the user cleared their vote (#4653). Hosts use this to sync upstream
+   *      UI (e.g. recolor a Gallery card).
    * @param {string} [opts.panoOverlaySource] - Source recorded when voting via the pano overlay buttons.
    * @param {string} [opts.voteColumnSource] - Source recorded when voting via the column vote buttons.
    * @param {boolean} [opts.showLabelMapLink] - Show a footer link to this label on /labelMap (for hosts that
@@ -325,25 +326,27 @@ class LabelDetail {
     if (els.exploreHereLink) {
       els.exploreHereLink.addEventListener('click', () => this.#logClick('ExploreHere'));
     }
+    // The three vote controls are toggles: clicking the one you already picked clears your vote (#4653). There's no
+    // separate "clear" affordance — a dedicated control would cost card space for a rare action (Mikey, #4653).
     // buttonSource overrides #source for this specific button group; falls back to #source if null.
     const voteHandler = (action, buttonSource) => () => {
       if (this.#locked) return;
-      if (this.#prevAction !== action) {
-        this.#setVoteButtonsDisabled(true);
-        this.#validateLabel(action, buttonSource || this.#source);
-      }
+      this.#setVoteButtonsDisabled(true);
+      this.#submitValidation(action, buttonSource || this.#source, this.#prevAction === action);
     };
     for (const action of Object.keys(els.panoOverlayButtons)) {
       els.panoOverlayButtons[action].addEventListener('click', voteHandler(action, this.#panoOverlaySource));
       els.voteButtons[action].addEventListener('click', voteHandler(action, this.#voteColumnSource));
 
-      // Hover preview: show the filled icon variant while the pointer is over the vote button.
+      // Hover preview of what clicking would do: the filled icon variant for a vote, and — on the option already
+      // voted — the outline variant, previewing the vote being cleared.
       const btn = els.voteButtons[action];
       const img = els.voteIcons[action];
       btn.addEventListener('mouseenter', () => {
         if (this.#locked) return;
+        const state = this.#prevAction === action ? 'outline' : 'filled';
         const ai = this.#aiValidation === action ? '-ai' : '';
-        img.src = `${this.#iconBase}${action.toLowerCase()}-filled${ai}.svg`;
+        img.src = `${this.#iconBase}${action.toLowerCase()}-${state}${ai}.svg`;
       });
       btn.addEventListener('mouseleave', () => {
         if (this.#locked) return;
@@ -587,14 +590,8 @@ class LabelDetail {
     // strings. Stash them so #submitComment() can append after a successful POST.
     this.#comments = meta.comments || [];
     // Index of the current user's comment in #comments, if any. The backend replaces comments rather than adding
-    // new ones, so we mirror that here. Admin payloads carry usernames; non-admin ones carry a `mine` flag instead
-    // (no identifiers on public surfaces).
-    this.#myCommentIdx = -1;
-    if (this.#admin && this.#currUsername) {
-      this.#myCommentIdx = this.#comments.findIndex((c) => c && c.username === this.#currUsername);
-    } else if (!this.#admin) {
-      this.#myCommentIdx = this.#comments.findIndex((c) => c && typeof c === 'object' && c.mine);
-    }
+    // new ones, so we mirror that here.
+    this.#myCommentIdx = this.#comments.findIndex((c) => this.#isOwnComment(c));
     this.#renderComments();
 
     // Lived-experience stories (#4054): lazy per-label fetch, so the metadata payload stays untouched.
@@ -704,11 +701,15 @@ class LabelDetail {
   /**
    * POSTs a validation for the current label to /labelmap/validate, then updates the count and validation display.
    * Fires opts.onVote after a successful submission so hosts can sync upstream UI.
-   * @param {'Agree'|'Disagree'|'Unsure'} action
+   *
+   * @param {'Agree'|'Disagree'|'Unsure'} action - The vote being cast, or the one being cleared when `undone`.
    * @param {string} source - The UI source string to record with this validation.
+   * @param {boolean} [undone=false] - Clear the user's existing `action` vote instead of casting one (#4653). The
+   *     backend deletes the validation and the user's comment on the label rather than inserting a new row, so the
+   *     label returns to no-vote for this user.
    */
-  #validateLabel(action, source) {
-    const isNewValidation = !this.#prevAction;
+  #submitValidation(action, source, undone = false) {
+    const isNewValidation = !undone && !this.#prevAction;
     const validationTimestamp = new Date();
     const canvasWidth = this.panoManager.svHolder.width();
     const canvasHeight = this.panoManager.svHolder.height();
@@ -737,23 +738,63 @@ class LabelDetail {
       start_timestamp: validationTimestamp,
       end_timestamp: validationTimestamp,
       source,
-      undone: false,
-      redone: action !== this.#prevAction,
+      undone,
+      redone: !undone && action !== this.#prevAction,
       viewer_type: this.panoManager.activeViewerName,
     };
 
+    // Paging to another label isn't blocked while this is in flight, so pin the label this vote belongs to and bail
+    // if a newer one has been shown by the time it resolves — otherwise the counts, icons, and comment list of the
+    // *new* label get rewritten with this label's result. Same guard the setPano() callback uses. The vote itself
+    // still landed server-side; reopening this label shows it.
+    const votedLabelMeta = this.#currentLabelMeta;
+
     this.#postJson('/labelmap/validate', data).then((res) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      this.#updateVoteCount(action);
-      this.#highlightVote(action);
+      if (this.#currentLabelMeta !== votedLabelMeta) return;
+      const newAction = undone ? null : action;
+      // Casting a vote is recorded by the label_validation row itself; clearing one deletes that row, so this event
+      // is the only trace it happened. Logged on success so the count tracks clears that actually landed.
+      if (undone) this.#logClick(`ClearVote_result=${action}`);
+      this.#updateVoteCount(newAction);
+      this.#highlightVote(newAction);
+      // Clearing a vote deletes the user's comment on the label server-side, so drop it from the list here too.
+      if (undone) this.#dropOwnComment();
       this.#updateCommentRow(true);
       this.#setVoteButtonsDisabled(false);
       if (isNewValidation) BadgeAchievements.recordValidation(this.panoManager.svHolder[0]);
-      if (typeof this.#onVote === 'function') this.#onVote(action, this.#currentLabelMeta);
+      if (typeof this.#onVote === 'function') this.#onVote(newAction, this.#currentLabelMeta);
     }).catch((err) => {
       console.error(err);
       this.#setVoteButtonsDisabled(false);
     });
+  }
+
+  /**
+   * Whether a comment entry belongs to the current viewer. Admin payloads carry usernames; non-admin ones carry a
+   * `mine` flag instead (no identifiers on public surfaces), so the test differs by surface.
+   * @param {Object|string} comment - An entry from #comments.
+   * @returns {boolean}
+   */
+  #isOwnComment(comment) {
+    if (!comment || typeof comment !== 'object') return false;
+    return this.#admin ? !!this.#currUsername && comment.username === this.#currUsername : !!comment.mine;
+  }
+
+  /**
+   * Removes the current user's validator comment from the rendered list, mirroring the server-side delete that rides
+   * along with clearing a vote. No-op when they hadn't commented.
+   *
+   * Re-finds the comment by identity rather than trusting the stored #myCommentIdx: the index is only valid for the
+   * list as it stood when it was computed, and this runs a network round-trip later.
+   */
+  #dropOwnComment() {
+    if (!this.#comments) return;
+    const idx = this.#comments.findIndex((c) => this.#isOwnComment(c));
+    if (idx < 0) return;
+    this.#comments.splice(idx, 1);
+    this.#myCommentIdx = -1;
+    this.#renderComments();
   }
 
   /**
@@ -776,25 +817,39 @@ class LabelDetail {
   }
 
   /**
-   * Adjusts the in-memory validation counts after a successful vote.
-   * @param {'Agree'|'Disagree'|'Unsure'} action
+   * Adjusts the in-memory validation counts after a successful vote, and mirrors the new state onto the label
+   * metadata so a host that re-renders from it (Gallery's expanded view pages through cached meta) stays in sync.
+   * @param {?('Agree'|'Disagree'|'Unsure')} action - The new vote, or null when it was cleared (#4653).
    */
   #updateVoteCount(action) {
     if (this.#prevAction) {
       this.#validationCounts[this.#prevAction] = Math.max(0, this.#validationCounts[this.#prevAction] - 1);
     }
     this.#prevAction = action;
-    this.#validationCounts[action] += 1;
+    if (action) this.#validationCounts[action] += 1;
     this.#renderVoteCounts();
+
+    if (this.#currentLabelMeta) {
+      this.#currentLabelMeta.user_validation = action;
+      this.#currentLabelMeta.num_agree = this.#validationCounts.Agree;
+      this.#currentLabelMeta.num_disagree = this.#validationCounts.Disagree;
+      this.#currentLabelMeta.num_unsure = this.#validationCounts.Unsure;
+    }
   }
 
   /**
-   * Reflects the current vote on the pano overlay (selected button + border color around the pano).
+   * Reflects the current vote on the pano overlay (selected button + border color around the pano). All six vote
+   * controls carry `aria-pressed` so assistive tech gets the toggle semantics the filled icon and colored border
+   * convey visually (#4653).
    * @param {?string} action
    */
   #highlightVote(action) {
     for (const [key, btn] of Object.entries(this.#els.panoOverlayButtons)) {
       btn.classList.toggle('is-selected', key === action);
+      btn.setAttribute('aria-pressed', String(key === action));
+    }
+    for (const [key, btn] of Object.entries(this.#els.voteButtons)) {
+      btn.setAttribute('aria-pressed', String(key === action));
     }
     // Border on the pano wrap reflects the current validation.
     if (this.#els.panoWrap) {
@@ -802,12 +857,17 @@ class LabelDetail {
       if (action) this.#els.panoWrap.classList.add(`is-${action.toLowerCase()}`);
     }
     this.#renderVoteIcons();
+    this.#renderVoteTooltips(); // Which option is selected changes what its tooltip says clicking will do.
   }
 
   #resetVoteButtonStyles() {
     for (const btn of Object.values(this.#els.panoOverlayButtons)) {
       btn.classList.remove('is-selected');
+      btn.setAttribute('aria-pressed', 'false');
       if (!this.#locked) btn.disabled = false;
+    }
+    for (const btn of Object.values(this.#els.voteButtons)) {
+      btn.setAttribute('aria-pressed', 'false');
     }
     if (this.#els.panoWrap) {
       this.#els.panoWrap.classList.remove('is-agree', 'is-disagree', 'is-unsure');
@@ -860,24 +920,40 @@ class LabelDetail {
   /**
    * Sets the count-aware tooltip on each column vote control (the thumbs in the Validations section) so hovering
    * anywhere on one — icon, count, or word — reads what clicking does, how many validators have already voted that
-   * way, and whether our AI's vote is among them (#4572). The pano hover-overlay buttons deliberately get no
-   * tooltip: their full-width Agree/Disagree/Unsure labels already say what they do (Jon, #4574). When the label
-   * is locked, the lock reason wins instead.
+   * way, and whether our AI's vote is among them (#4572). When the label is locked, the lock reason wins instead.
+   *
+   * The option the user voted for gets its own phrasing: it counts the user separately from the others ("You and 2
+   * other validators have agreed…" rather than "3 validators have agreed", Jon #4653) and says that clicking again
+   * clears the vote, since for that one button the visible word no longer describes what clicking does.
+   *
+   * That last point is also why the pano hover-overlay buttons get a tooltip only while selected: unselected, their
+   * full-width Agree/Disagree/Unsure labels already say what they do (Jon, #4574), so a tooltip would just repeat
+   * them — but the selected one now clears rather than casts, which nothing else on it says.
    */
   #renderVoteTooltips() {
     const els = this.#els;
     const lockTip = this.#lockReason();
     for (const action of Object.keys(els.voteButtons)) {
+      const isVoted = !lockTip && this.#prevAction === action;
       let title;
       if (lockTip) {
         title = lockTip;
+      } else if (isVoted) {
+        // {{count}} is the *other* validators, so the user isn't double-counted in their own tooltip. The i18next
+        // `_zero` key covers "nobody else" without a second key and a branch here — it resolves whenever count is 0,
+        // even in languages (zh-TW) whose CLDR rules have no zero category, so those locales carry only _zero/_other.
+        const others = Math.max(0, (this.#validationCounts[action] ?? 1) - 1);
+        title = i18next.t(`labelmap:vote-tooltip-voted-${action.toLowerCase()}`, { count: others });
       } else {
         const count = this.#validationCounts[action] ?? 0;
         title = i18next.t(`labelmap:vote-tooltip-${action.toLowerCase()}`, { count });
-        // The AI's vote is folded into this option's count, so flag it where it applies.
-        if (this.#aiValidation === action) title += ` ${i18next.t('labelmap:vote-tooltip-ai-included')}`;
       }
+      // The AI's vote is folded into this option's count, so flag it where it applies. Sentences are appended in
+      // order of usefulness, so what clicking *does* lands last rather than trailing off into a footnote.
+      if (!lockTip && this.#aiValidation === action) title += ` ${i18next.t('labelmap:vote-tooltip-ai-included')}`;
+      if (isVoted) title += ` ${i18next.t('labelmap:vote-tooltip-clear')}`;
       els.voteButtons[action].title = title;
+      els.panoOverlayButtons[action].title = isVoted ? i18next.t('labelmap:vote-tooltip-clear') : '';
     }
   }
 

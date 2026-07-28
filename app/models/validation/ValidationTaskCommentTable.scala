@@ -72,8 +72,17 @@ class ValidationTaskCommentTable @Inject() (
     (validationTaskComments returning validationTaskComments.map(_.validationTaskCommentId)) += comment
   }
 
-  def deleteIfExists(labelId: Int, missionId: Int): DBIO[Int] = {
-    validationTaskComments.filter(comment => comment.labelId === labelId && comment.missionId === missionId).delete
+  /**
+   * Deletes a user's comment(s) on a label, if any. Called when they replace or clear their validation of it.
+   *
+   * Scoped by user rather than by mission: a comment belongs to whoever wrote it, and the mission it was written under
+   * has usually rolled over by the time the same user revisits the label from a label card (#4653). Matching on the
+   * current mission would strand the old comment on a label whose validation had just been replaced or cleared.
+   *
+   * @return Count of comments deleted, normally 0 or 1.
+   */
+  def deleteIfExists(labelId: Int, userId: String): DBIO[Int] = {
+    validationTaskComments.filter(comment => comment.labelId === labelId && comment.userId === userId).delete
   }
 
   /**

@@ -379,6 +379,10 @@ class ValidateController @Inject() (
 
   /**
    * Parse submitted validation data for a single label from the /labelmap endpoint.
+   *
+   * Also handles clearing a vote (#4653): a submission with `undone = true` carries the vote being cleared as its
+   * `validationResult` and deletes that validation (and the user's comment on the label) instead of inserting one —
+   * the same path Validate's undo button uses.
    */
   def postLabelMapValidation = cc.securityService.SecuredAction(parse.json) { implicit request =>
     val userId: String = request.identity.userId
@@ -429,7 +433,7 @@ class ValidateController @Inject() (
             MissionType.LabelmapValidation,
             labelTypeId
           )
-          _              <- validationService.deleteCommentIfExists(submission.labelId, mission.get.missionId)
+          _              <- validationService.deleteCommentIfExists(submission.labelId, userId)
           commentId: Int <- validationService.insertComment(
             ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.ipAddress,
               submission.panoId, submission.heading, submission.pitch, submission.zoom, submission.lat, submission.lng,
