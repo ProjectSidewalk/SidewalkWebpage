@@ -4,7 +4,7 @@
  * The value here is pinning the contract with an API this repo doesn't own: the team roster, publication list, and
  * grant list all render straight off the ML payload shape, so a field rename or a nesting change on their side would
  * otherwise blank a section of the page with no signal. These tests also cover the presentation rules that aren't
- * obvious from the payload — multi-stint dedup, the role line's fallback chain, and which publications start visible.
+ * obvious from the payload — multi-stint dedup, the role line's lead-label dedup, and which publications start visible.
  *
  * Runs under jsdom (set in jest.config.js via testEnvironment).
  */
@@ -119,20 +119,19 @@ describe('AboutPage', () => {
   });
 
   describe('current team', () => {
-    test('titles each member from their profile, dropping a title the lead label already states', async () => {
+    test('titles each member from their roster position, dropping a title the lead label already states', async () => {
       stubFetch({
         '/people/?format=json': page([
-          personRow({ urlName: 'jonfroehlich', name: 'Jon E. Froehlich', lead_project_role: 'PI' }),
-          personRow({ urlName: 'mikeysaugstad', name: 'Mikey Saugstad', lead_project_role: 'Research Scientist Lead' }),
-          personRow({ urlName: 'chuli', name: 'Chu Li', start_date: '2022-09-01' }),
+          personRow({ urlName: 'jonfroehlich', name: 'Jon E. Froehlich', lead_project_role: 'PI',
+            position_title: 'Professor' }),
+          personRow({ urlName: 'mikeysaugstad', name: 'Mikey Saugstad', lead_project_role: 'Research Scientist Lead',
+            position_title: 'Research Scientist' }),
+          personRow({ urlName: 'chuli', name: 'Chu Li', start_date: '2022-09-01', position_title: 'PhD Student' }),
           personRow({ urlName: 'kianna', name: 'KiAnna Mckee-Steen', start_date: '2024-10-01',
             position_title: 'Project Coordinator' }),
         ]),
-        '/people/jonfroehlich/': { current_title: 'Professor' },
-        '/people/mikeysaugstad/': { current_title: 'Research Scientist' },
-        '/people/chuli/': { current_title: 'PhD Student' },
         ...EMPTY_SECTIONS,
-      }); // /people/kianna/ rejects.
+      });
       loadGlobalScript(MODULE_PATH);
       await hydrate();
 
@@ -142,18 +141,18 @@ describe('AboutPage', () => {
         // Not "Research Scientist Lead · Research Scientist".
         'Research Scientist Lead',
         'PhD Student',
-        // No profile to read, so the position from the project row stands in.
         'Project Coordinator',
       ]);
     });
 
-    test('describes an active member by their profile title, not the position they joined with', async () => {
-      stubFetch({
+    test('renders the whole roster from one request, without a per-member lookup', async () => {
+      const fetchMock = stubFetch({
         '/people/?format=json': page([
           personRow({ urlName: 'jonfroehlich', name: 'Jon E. Froehlich', lead_project_role: 'PI',
-            position_title: 'Assistant Professor', position_school: 'University of Maryland' }),
+            position_title: 'Professor', position_school: 'University of Washington' }),
+          personRow({ urlName: 'chuli', name: 'Chu Li', position_title: 'PhD Student',
+            position_school: 'University of Washington' }),
         ]),
-        '/people/jonfroehlich/': { current_title: 'Professor', current_school: 'University of Washington' },
         ...EMPTY_SECTIONS,
       });
       loadGlobalScript(MODULE_PATH);
@@ -163,16 +162,18 @@ describe('AboutPage', () => {
         .toBe('Principal Investigator · Professor');
       expect(document.querySelector('#about-team-current .about-team-affiliation').textContent)
         .toBe('University of Washington');
+      const teamRequests = fetchMock.mock.calls.map(([url]) => url).filter((url) => url.includes('/people/'));
+      expect(teamRequests).toEqual([`${ML_API}/projects/sidewalk/people/?format=json`]);
     });
 
     test('ignores the project row\'s internal role notes', async () => {
       stubFetch({
         '/people/?format=json': page([
           personRow({ urlName: 'yochai', name: 'Yochai Eisenberg', lead_project_role: 'Co-PI',
+            position_title: 'Associate Professor',
             role: 'Co-PI on NSF SCC-IRG Track 1: Crowd+AI Tools to Map, Analyze, and Visualize Sidewalk '
               + 'Accessibility for Inclusive Cities' }),
         ]),
-        '/people/yochai/': { current_title: 'Associate Professor' },
         ...EMPTY_SECTIONS,
       });
       loadGlobalScript(MODULE_PATH);
@@ -186,12 +187,11 @@ describe('AboutPage', () => {
     test('renders each member\'s affiliation on its own line', async () => {
       stubFetch({
         '/people/?format=json': page([
-          personRow({ urlName: 'chuli', name: 'Chu Li' }),
+          personRow({ urlName: 'chuli', name: 'Chu Li', position_title: 'PhD Student',
+            position_school: 'University of Washington' }),
           personRow({ urlName: 'judyshanley', name: 'Judy L. Shanley', role: 'Community partnerships',
-            start_date: '2023-01-01' }),
+            start_date: '2023-01-01', position_title: 'Director', position_school: 'Easterseals' }),
         ]),
-        '/people/chuli/': { current_title: 'PhD Student', current_school: 'University of Washington' },
-        '/people/judyshanley/': { current_title: 'Director', current_school: 'Easterseals' },
         ...EMPTY_SECTIONS,
       });
       loadGlobalScript(MODULE_PATH);
@@ -204,8 +204,9 @@ describe('AboutPage', () => {
 
     test('omits the affiliation line entirely when the API carries no institution', async () => {
       stubFetch({
-        '/people/?format=json': page([personRow({ urlName: 'chuli', name: 'Chu Li' })]),
-        '/people/chuli/': { current_title: 'PhD Student' },
+        '/people/?format=json': page([
+          personRow({ urlName: 'chuli', name: 'Chu Li', position_title: 'PhD Student' }),
+        ]),
         ...EMPTY_SECTIONS,
       });
       loadGlobalScript(MODULE_PATH);
@@ -215,21 +216,21 @@ describe('AboutPage', () => {
       expect(document.querySelector('#about-team-current .about-team-role').textContent).toBe('PhD Student');
     });
 
-    test('a failed profile request costs only that member their title and affiliation', async () => {
+    test('a member whose row carries no position still gets a card, minus the title and affiliation', async () => {
       stubFetch({
         '/people/?format=json': page([
-          personRow({ urlName: 'ok', name: 'Ok Person' }),
-          personRow({ urlName: 'broken', name: 'Broken Profile', start_date: '2021-01-01' }),
+          personRow({ urlName: 'ok', name: 'Ok Person', position_title: 'PhD Student',
+            position_school: 'University of Washington' }),
+          personRow({ urlName: 'bare', name: 'Bare Row', start_date: '2021-01-01' }),
         ]),
-        '/people/ok/': { current_title: 'PhD Student', current_school: 'University of Washington' },
         ...EMPTY_SECTIONS,
-      }); // /people/broken/ rejects.
+      });
       loadGlobalScript(MODULE_PATH);
       await hydrate();
 
       const cards = [...document.querySelectorAll('#about-team-current .about-team-member')];
       expect(cards.map((el) => el.querySelector('.about-team-name').textContent))
-        .toEqual(['Ok Person', 'Broken Profile']);
+        .toEqual(['Ok Person', 'Bare Row']);
       expect(cards[0].querySelector('.about-team-affiliation').textContent).toBe('University of Washington');
       expect(cards[1].querySelector('.about-team-affiliation')).toBeNull();
       expect(cards[1].querySelector('.about-team-role').textContent).toBe('');
@@ -253,8 +254,9 @@ describe('AboutPage', () => {
 
     test('escapes API-sourced names rather than injecting them as markup', async () => {
       stubFetch({
-        '/people/?format=json': page([personRow({ urlName: 'xss', name: '<img src=x onerror=alert(1)>' })]),
-        '/people/xss/': { current_title: 'Researcher' },
+        '/people/?format=json': page([
+          personRow({ urlName: 'xss', name: '<img src=x onerror=alert(1)>', position_title: 'Researcher' }),
+        ]),
         ...EMPTY_SECTIONS,
       });
       loadGlobalScript(MODULE_PATH);
@@ -388,7 +390,6 @@ describe('AboutPage', () => {
           ...cohort('c', 2, 'Project Coordinator'),
           personRow({ urlName: 'prof', name: 'A Professor', position_title: 'Professor' }),
         ]),
-        '/people/prof/': { current_title: 'Professor' },
         ...EMPTY_SECTIONS,
       });
       loadGlobalScript(MODULE_PATH);

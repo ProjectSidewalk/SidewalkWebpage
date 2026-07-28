@@ -89,9 +89,9 @@ class AboutPage {
   /**
    * Fetches JSON with a timeout, memoized in localStorage so repeat visits within the TTL skip the network entirely.
    *
-   * localStorage rather than sessionStorage because the TTL already bounds staleness: a per-tab cache would re-run the
-   * whole fan-out — a roster page per 25 members plus a profile request each — every time someone opens /about in a
-   * new tab.
+   * localStorage rather than sessionStorage because the TTL already bounds staleness: a per-tab cache would re-fetch
+   * every section — a paginated listing each for the roster, the publications, and the grants — every time someone
+   * opens /about in a new tab.
    *
    * @param {string} url - Absolute URL to fetch.
    * @returns {Promise<object>} Parsed JSON response.
@@ -243,31 +243,17 @@ class AboutPage {
       .sort((a, b) => leadRank(a) - leadRank(b) || a.start_date.localeCompare(b.start_date));
     if (current.length === 0) return;
 
-    // Each active member's own profile carries their affiliation and current title, neither of which the nested
-    // `person` in the project-people payload has, so every card costs one profile request
-    // (makeabilitylab/makeabilitylabwebsite#1435 asks for both to be inlined, which would remove this fan-out).
-    // Best-effort: a failed request just costs that member their title/affiliation lines, and the request runs
-    // concurrently with the rest and is cached for an hour.
-    const profiles = new Map();
-    const fetched = await Promise.allSettled(
-      current.map((p) => this.#fetchJson(`${AboutPage.#ML_API_BASE}/people/${p.person.url_name}/?format=json`)),
-    );
-    fetched.forEach((result, i) => {
-      if (result.status === 'fulfilled') profiles.set(current[i].person.url_name, result.value);
-    });
-
     const roleText = (p) => {
       const lead = AboutPage.#LEAD_ROLE_LABELS[p.lead_project_role] ?? p.lead_project_role ?? '';
-      // The member's own profile describes them today, so it sets the title. The project row's `position_title` is
-      // frozen at the position they held when their stint began (the PI's row still reads "Assistant Professor" from
-      // 2012), which makes it only a fallback. The row's free-text `role` is the ML admin's internal notes rather than
-      // display copy — the ML site's own project page doesn't render it either — so this page ignores it.
-      const detail = profiles.get(p.person.url_name)?.current_title || p.position_title || '';
+      // The project row's `position_title` tracks the stint's window, so an active member's reads as what they are
+      // today. The row's free-text `role` is the ML admin's internal notes rather than display copy — the ML site's
+      // own project page doesn't render it either — so this page ignores it.
+      const detail = p.position_title || '';
       // A lead label that already spells out the detail ("Research Scientist Lead" over "Research Scientist")
       // would otherwise render the same words twice.
       return lead.includes(detail) ? lead : [lead, detail].filter(Boolean).join(' · ');
     };
-    const affiliation = (p) => profiles.get(p.person.url_name)?.current_school || p.position_school || '';
+    const affiliation = (p) => p.position_school || '';
     // The team sits seven sections down the page, so deferring the headshots keeps ~a dozen image requests off the
     // initial load entirely.
     const photoTag = (p) => {
@@ -317,8 +303,8 @@ class AboutPage {
       .filter((p) => !shown.has(p.person.url_name))
       .sort((a, b) => a.person.name.localeCompare(b.person.name));
     // Contributors are annotated with the title and school they held while on the project ("Undergrad, UMD"), which
-    // is what makes the roll call legible as the experiential-learning record it is. Both come off the project row
-    // rather than the person's profile, since a 2015 undergrad's profile now shows whatever they do today.
+    // is what makes the roll call legible as the experiential-learning record it is. The project row's position fields
+    // are scoped to the stint's window, so a 2015 undergrad reads as an undergrad rather than as whatever they do now.
     document.getElementById('about-team-all').innerHTML = others.map((p) => {
       const credential = [p.position_title, p.position_school_abbreviated || p.position_school]
         .filter(Boolean).join(', ');
