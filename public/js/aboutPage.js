@@ -17,6 +17,10 @@ class AboutPage {
   static #CITATION_DOI = '10.1145/3290605.3300292';
   static #FALLBACK_PHOTO = '/assets/images/logos/ProjectSidewalkLogo_NoText_100x100.png';
 
+  // Inline formatting a citation can legitimately carry: emphasis for the venue, a link to the paper. See
+  // #sanitizeCitation for why the allowlist is this narrow.
+  static #CITATION_TAGS = new Set(['A', 'B', 'EM', 'I', 'STRONG', 'SPAN', 'BR', 'SUB', 'SUP']);
+
   // Every ML API `position_title` that means "student", at any level. Designers, coordinators, research staff, and
   // faculty hold the other titles: they count as contributors but not toward the student figure.
   static #STUDENT_TITLES = ['High School Student', 'Undergrad', 'MS Student', 'PhD Student'];
@@ -51,7 +55,43 @@ class AboutPage {
   }
 
   /**
-   * Fetches JSON with a timeout, memoized in sessionStorage so reloads within the TTL skip the network entirely.
+   * Reduces a citation string to the inline formatting a citation actually needs, dropping every other element and
+   * every attribute but an http(s) `href`.
+   *
+   * `citation_html` is the one ML API string this page injects as markup rather than escaping — it carries the `<i>`
+   * and `<a>` that make a citation readable, and formatting it here instead would duplicate the lab's own citation
+   * renderer and drift from it. That injection crosses a trust boundary into a separate application with its own
+   * admin UI, though, and `innerHTML` runs `<img onerror>` and `<svg onload>` even though it ignores `<script>`. So
+   * the markup is parsed inert (DOMParser never loads resources or runs handlers) and rebuilt from an allowlist:
+   * anything unrecognized is unwrapped to its text, so a mangled citation still reads correctly.
+   *
+   * @param {string} html - Citation markup from the ML API.
+   * @returns {string} Markup containing only allowlisted tags, with only `href` surviving on links.
+   */
+  #sanitizeCitation(html) {
+    const body = new DOMParser().parseFromString(String(html ?? ''), 'text/html').body;
+    const clean = (node) => {
+      // Depth-first so a node's children are already clean by the time unwrapping hoists them into its place.
+      for (const child of [...node.children]) clean(child);
+      if (!AboutPage.#CITATION_TAGS.has(node.tagName)) {
+        node.replaceWith(...node.childNodes);
+        return;
+      }
+      for (const attr of [...node.attributes]) {
+        const isSafeHref = node.tagName === 'A' && attr.name === 'href' && /^https?:\/\//i.test(attr.value.trim());
+        if (!isSafeHref) node.removeAttribute(attr.name);
+      }
+    };
+    for (const child of [...body.children]) clean(child);
+    return body.innerHTML;
+  }
+
+  /**
+   * Fetches JSON with a timeout, memoized in localStorage so repeat visits within the TTL skip the network entirely.
+   *
+   * localStorage rather than sessionStorage because the TTL already bounds staleness: a per-tab cache would re-run the
+   * whole fan-out — a roster page per 25 members plus a profile request each — every time someone opens /about in a
+   * new tab.
    *
    * @param {string} url - Absolute URL to fetch.
    * @returns {Promise<object>} Parsed JSON response.
@@ -59,7 +99,7 @@ class AboutPage {
   async #fetchJson(url) {
     const cacheKey = AboutPage.#CACHE_PREFIX + url;
     try {
-      const cached = JSON.parse(sessionStorage.getItem(cacheKey));
+      const cached = JSON.parse(localStorage.getItem(cacheKey));
       if (cached && Date.now() - cached.t < AboutPage.#CACHE_TTL_MS) return cached.d;
     } catch { /* Malformed cache entry: fall through to the network. */ }
 
@@ -70,10 +110,34 @@ class AboutPage {
     if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
     const data = await response.json();
 
+    const entry = JSON.stringify({ t: Date.now(), d: data });
     try {
-      sessionStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), d: data }));
-    } catch { /* Storage full/disabled: caching is best-effort. */ }
+      localStorage.setItem(cacheKey, entry);
+    } catch {
+      // The quota is shared with the rest of the site, so reclaim our own expired entries and try once more rather
+      // than letting one full moment permanently disable caching for this browser.
+      this.#pruneCache();
+      try {
+        localStorage.setItem(cacheKey, entry);
+      } catch { /* Still no room, or storage disabled entirely: caching is best-effort. */ }
+    }
     return data;
+  }
+
+  /**
+   * Drops this page's expired cache entries. Each entry is keyed by its full URL, so a member leaving the roster or an
+   * endpoint being renamed strands one, and nothing else would ever reclaim it.
+   */
+  #pruneCache() {
+    for (const key of Object.keys(localStorage)) {
+      if (!key.startsWith(AboutPage.#CACHE_PREFIX)) continue;
+      try {
+        const entry = JSON.parse(localStorage.getItem(key));
+        if (!entry || Date.now() - entry.t >= AboutPage.#CACHE_TTL_MS) localStorage.removeItem(key);
+      } catch {
+        localStorage.removeItem(key);
+      }
+    }
   }
 
   /**
@@ -179,9 +243,11 @@ class AboutPage {
       .sort((a, b) => leadRank(a) - leadRank(b) || a.start_date.localeCompare(b.start_date));
     if (current.length === 0) return;
 
-    // Each active member's own profile carries their affiliation and current title, neither of which the
-    // project-people payload has, so every card needs one profile request. Best-effort: a failed request just costs
-    // that member their title/affiliation lines, and sessionStorage keeps reloads off the network entirely.
+    // Each active member's own profile carries their affiliation and current title, neither of which the nested
+    // `person` in the project-people payload has, so every card costs one profile request
+    // (makeabilitylab/makeabilitylabwebsite#1435 asks for both to be inlined, which would remove this fan-out).
+    // Best-effort: a failed request just costs that member their title/affiliation lines, and the request runs
+    // concurrently with the rest and is cached for an hour.
     const profiles = new Map();
     const fetched = await Promise.allSettled(
       current.map((p) => this.#fetchJson(`${AboutPage.#ML_API_BASE}/people/${p.person.url_name}/?format=json`)),
@@ -202,9 +268,8 @@ class AboutPage {
       return lead.includes(detail) ? lead : [lead, detail].filter(Boolean).join(' · ');
     };
     const affiliation = (p) => profiles.get(p.person.url_name)?.current_school || p.position_school || '';
-    // The ML API hands out each headshot's raw upload rather than the cropped derivative its own templates render
-    // (makeabilitylab/makeabilitylabwebsite#1432), so a single card can pull down several MB for a 128 px circle.
-    // The team sits seven sections down the page, so deferring these keeps them off the initial load entirely.
+    // The team sits seven sections down the page, so deferring the headshots keeps ~a dozen image requests off the
+    // initial load entirely.
     const photoTag = (p) => {
       const src = this.#esc(p.person.thumbnail || AboutPage.#FALLBACK_PHOTO);
       return `<img class="about-team-photo" loading="lazy" src="${src}" alt="">`;
@@ -224,7 +289,11 @@ class AboutPage {
 
     // Past-lead cards pair the API-driven photo/name/role with a hand-curated, localized blurb server-rendered into
     // the #about-team-past-blurbs template (keyed by url_name). The blurb is our own trusted markup, so no escaping.
-    const years = (p) => `${p.start_date.slice(0, 4)}–${p.end_date ? p.end_date.slice(0, 4) : ''}`;
+    // An en dash only when there's a closing year to dash to: a lead marked inactive with the stint left open in the
+    // ML admin would otherwise render a trailing "2012–".
+    const years = (p) => (p.end_date
+      ? `${p.start_date.slice(0, 4)}–${p.end_date.slice(0, 4)}`
+      : p.start_date.slice(0, 4));
     // A <template>'s children live in its .content fragment, not in the document tree, so they're only reachable by
     // querying the fragment — a document-level selector for them silently matches nothing.
     const blurbs = document.getElementById('about-team-past-blurbs')?.content;
@@ -293,11 +362,14 @@ class AboutPage {
                 ${label}
               </a>`).join('');
       // The thumbnail is a second route to the same destination as the title, so it stays out of the tab order and
-      // hidden from assistive tech rather than repeating the link.
-      const thumb = `<img class="about-pub-thumb" loading="lazy" src="${this.#esc(pub.thumbnail)}" alt="">`;
+      // hidden from assistive tech rather than repeating the link. A publication without one leaves the cell empty:
+      // an <img src=""> resolves against the page URL and re-requests the whole document.
+      const thumb = pub.thumbnail
+        ? `<img class="about-pub-thumb" loading="lazy" src="${this.#esc(pub.thumbnail)}" alt="">`
+        : '';
       return `
         <article class="about-pub"${initiallyVisible ? '' : ' hidden'}>
-          ${titleUrl
+          ${thumb && titleUrl
             ? `<a href="${this.#esc(titleUrl)}" tabindex="-1" aria-hidden="true">${thumb}</a>`
             : thumb}
           <div>
@@ -345,9 +417,7 @@ class AboutPage {
     const detail = await this.#fetchJson(`${AboutPage.#ML_API_BASE}/publications/${paper.id}/?format=json`);
     if (!detail.citation_html || !detail.bibtex) return;
 
-    // citation_html is markup by contract (it carries the <i> and <a> that make a citation readable), so it is the
-    // one API string on this page that is injected rather than escaped.
-    document.getElementById('about-cite-plain').innerHTML = detail.citation_html;
+    document.getElementById('about-cite-plain').innerHTML = this.#sanitizeCitation(detail.citation_html);
     document.getElementById('about-cite-bibtex').textContent = detail.bibtex;
 
     block.querySelectorAll('.about-cite-copy').forEach((button) => {

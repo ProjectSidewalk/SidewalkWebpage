@@ -21,18 +21,6 @@
   padding: 0 20px;
 }
 
-/* Screen-reader-only text (e.g. the stats band heading). Not display:none, which would hide it from AT too. */
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
 /* Alternating full-bleed section bands. */
 .about-band {
   padding: 56px 0;
@@ -541,7 +529,7 @@
 
 .about-cite-code {
   overflow-x: auto;
-  font-family: "JetBrains Mono", sfmono-regular, consolas, "Liberation Mono", menlo, monospace;
+  font-family: var(--font-mono);
   white-space: pre;
 }
 

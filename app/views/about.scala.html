@@ -44,6 +44,9 @@
       "logo"  -> (commonData.prodUrl.stripSuffix("/") +
         assets.path("images/logos/ProjectSidewalkLogo_WithCurvedText_3600x3600.png")),
       "email" -> "sidewalk@cs.uw.edu",
+      // sameAs is an identity claim — every profile that is verifiably us — rather than a list of channels we
+      // actively post to, so accounts we own but don't promote in the footer belong here too. Google reconciles
+      // these into one Knowledge Panel entity; dropping a profile splits that entity instead of tidying it.
       "sameAs" -> Json.arr(
         "https://github.com/ProjectSidewalk",
         "https://www.linkedin.com/company/project-sidewalk/",
@@ -56,11 +59,14 @@
   )).replace("<", "\\u003c")
 }
 
-@structuredData = {
+@* about.css ships in <head> rather than alongside the markup: this page is one long column of styled bands, so
+   loading it at the end of the body paints the whole thing unstyled before it snaps into place. *@
+@extraHeadContent = {
+  <link rel="stylesheet" href='@assets.path("css/about.css")'>
   <script type="application/ld+json">@Html(jsonLd)</script>
 }
 
-@common.main(commonData, title, extraHead = structuredData,
+@common.main(commonData, title, extraHead = extraHeadContent,
   pageMeta = PageMeta(description = Some(Messages("seo.description.about")))) {
   @common.navbar(commonData, Some(user))
 
@@ -90,7 +96,7 @@
     @* Live-stat fallbacks: cities/countries are exact (config-derived); the other three are conservative floors that
        hold true as the dataset only grows, replaced by exact live values from /v3/api/aggregateStats on load. *@
     <section class="about-stats" aria-labelledby="about-stats-heading">
-      <h2 class="visually-hidden" id="about-stats-heading">@Messages("about.stats.heading")</h2>
+      <h2 class="sr-only" id="about-stats-heading">@Messages("about.stats.heading")</h2>
       <div class="about-container about-stats-grid">
         <div class="about-stat">
           <span class="about-stat-number" data-live-stat="km_explored">30,000+</span>
@@ -300,7 +306,6 @@
     </section>
   </main>
 
-  <link rel="stylesheet" href='@assets.path("css/about.css")'>
   @* Hydrates the data-live-stat spans with live deployment numbers from /v3/api/aggregateStats. *@
   <script src='@assets.path("js/common/aggregateStats.js")'></script>
   @* Hydrates team, publications, and grants from the Makeability Lab API; logs CTA clicks. *@

@@ -105,7 +105,7 @@ describe('AboutPage', () => {
         <pre id="about-cite-bibtex"></pre>
       </div>
       <ul id="about-funding-grants" hidden></ul>`;
-    sessionStorage.clear();
+    localStorage.clear();
     // aboutPage.js defers its work to appManager.ready(); capture the callback so each test can run it on demand.
     window.appManager = { ready: (cb) => { window.__aboutReady = cb; } };
     window.logWebpageActivity = jest.fn();
@@ -474,6 +474,21 @@ describe('AboutPage', () => {
       expect(cards[0].querySelector('.about-team-blurb')).toBeNull();
     });
 
+    test('shows a lone start year for a past lead whose stint was left open', async () => {
+      stubFetch({
+        '/people/?format=json': page([
+          personRow({ urlName: 'active', name: 'Active Person' }),
+          personRow({ urlName: 'openended', name: 'Open Ended', lead_project_role: 'Co-PI',
+            is_active: false, start_date: '2012-08-01', end_date: null }),
+        ]),
+        ...EMPTY_SECTIONS,
+      });
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      expect(document.querySelector('#about-team-past .about-team-role').textContent).toBe('Co-PI, 2012');
+    });
+
     test('a still-active lead is not also listed as a past lead or a contributor', async () => {
       stubFetch({
         '/people/?format=json': page([
@@ -581,6 +596,22 @@ describe('AboutPage', () => {
       expect(document.querySelector('.about-pub-thumb').closest('a')).toBeNull();
     });
 
+    test('omits the image entirely for a publication with no thumbnail', async () => {
+      stubFetch({
+        '/publications/': page([pub(0, { thumbnail: '' })]),
+        '/people/?format=json': page([]),
+        '/grants/': page([]),
+      });
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      // An <img src=""> resolves against the page URL, so the browser would re-request the whole document.
+      expect(document.querySelectorAll('.about-pub')).toHaveLength(1);
+      expect(document.querySelector('.about-pub-thumb')).toBeNull();
+      expect([...document.querySelectorAll('.about-pub img')].map((el) => el.getAttribute('src')))
+        .not.toContain('');
+    });
+
     test('stays quiet when nothing is hidden', async () => {
       stubFetch({
         '/publications/': page([pub(0), pub(1)]), '/people/?format=json': page([]), '/grants/': page([]),
@@ -641,6 +672,49 @@ describe('AboutPage', () => {
       // citation_html is markup by contract, so its <i> survives as an element rather than as escaped text.
       expect(document.querySelector('#about-cite-plain i').textContent).toBe('Proceedings of CHI 2019');
       expect(document.getElementById('about-cite-bibtex').textContent).toBe(DETAIL.bibtex);
+    });
+
+    test('keeps the citation\'s emphasis and link, dropping every other attribute', async () => {
+      stubFetch({
+        '/projects/sidewalk/publications/': page([CITED]),
+        '/publications/605/': { ...DETAIL,
+          citation_html: 'Saha, M. (2019). <i>CHI 2019</i>. '
+            + '<a href=https://doi.org/10.1145/3290605.3300292 onclick="steal()" target="_blank">doi</a>' },
+        '/people/?format=json': page([]),
+        '/grants/': page([]),
+      });
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      const link = document.querySelector('#about-cite-plain a');
+      expect(document.querySelector('#about-cite-plain i').textContent).toBe('CHI 2019');
+      expect(link.getAttribute('href')).toBe('https://doi.org/10.1145/3290605.3300292');
+      expect(link.getAttribute('onclick')).toBeNull();
+      expect(link.getAttribute('target')).toBeNull();
+    });
+
+    test('strips markup that could run script, keeping the citation text readable', async () => {
+      stubFetch({
+        '/projects/sidewalk/publications/': page([CITED]),
+        // A publication title edited on the ML side flows into citation_html verbatim, so this page treats that
+        // string as untrusted even though the two sites are run by the same lab.
+        '/publications/605/': { ...DETAIL,
+          citation_html: 'Saha, M. <img src=x onerror="alert(1)"><svg onload="alert(2)"></svg>'
+            + '<a href="javascript:alert(3)">CHI</a> <b>2019</b>.' },
+        '/people/?format=json': page([]),
+        '/grants/': page([]),
+      });
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      const pane = document.getElementById('about-cite-plain');
+      expect(pane.querySelector('img, svg')).toBeNull();
+      expect(pane.innerHTML).not.toContain('onerror');
+      expect(pane.innerHTML).not.toContain('onload');
+      // The <a> is allowlisted but a javascript: href is not, so the anchor keeps its text and loses its target.
+      expect(pane.querySelector('a').hasAttribute('href')).toBe(false);
+      expect(pane.textContent).toBe('Saha, M. CHI 2019.');
+      expect(pane.querySelector('b').textContent).toBe('2019');
     });
 
     test('copies the pane\'s text and confirms on the button', async () => {
