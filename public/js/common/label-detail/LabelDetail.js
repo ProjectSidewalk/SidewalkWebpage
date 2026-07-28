@@ -590,14 +590,8 @@ class LabelDetail {
     // strings. Stash them so #submitComment() can append after a successful POST.
     this.#comments = meta.comments || [];
     // Index of the current user's comment in #comments, if any. The backend replaces comments rather than adding
-    // new ones, so we mirror that here. Admin payloads carry usernames; non-admin ones carry a `mine` flag instead
-    // (no identifiers on public surfaces).
-    this.#myCommentIdx = -1;
-    if (this.#admin && this.#currUsername) {
-      this.#myCommentIdx = this.#comments.findIndex((c) => c && c.username === this.#currUsername);
-    } else if (!this.#admin) {
-      this.#myCommentIdx = this.#comments.findIndex((c) => c && typeof c === 'object' && c.mine);
-    }
+    // new ones, so we mirror that here.
+    this.#myCommentIdx = this.#comments.findIndex((c) => this.#isOwnComment(c));
     this.#renderComments();
 
     // Lived-experience stories (#4054): lazy per-label fetch, so the metadata payload stays untouched.
@@ -749,8 +743,15 @@ class LabelDetail {
       viewer_type: this.panoManager.activeViewerName,
     };
 
+    // Paging to another label isn't blocked while this is in flight, so pin the label this vote belongs to and bail
+    // if a newer one has been shown by the time it resolves — otherwise the counts, icons, and comment list of the
+    // *new* label get rewritten with this label's result. Same guard the setPano() callback uses. The vote itself
+    // still landed server-side; reopening this label shows it.
+    const votedLabelMeta = this.#currentLabelMeta;
+
     this.#postJson('/labelmap/validate', data).then((res) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (this.#currentLabelMeta !== votedLabelMeta) return;
       const newAction = undone ? null : action;
       // Casting a vote is recorded by the label_validation row itself; clearing one deletes that row, so this event
       // is the only trace it happened. Logged on success so the count tracks clears that actually landed.
@@ -770,12 +771,28 @@ class LabelDetail {
   }
 
   /**
+   * Whether a comment entry belongs to the current viewer. Admin payloads carry usernames; non-admin ones carry a
+   * `mine` flag instead (no identifiers on public surfaces), so the test differs by surface.
+   * @param {Object|string} comment - An entry from #comments.
+   * @returns {boolean}
+   */
+  #isOwnComment(comment) {
+    if (!comment || typeof comment !== 'object') return false;
+    return this.#admin ? !!this.#currUsername && comment.username === this.#currUsername : !!comment.mine;
+  }
+
+  /**
    * Removes the current user's validator comment from the rendered list, mirroring the server-side delete that rides
    * along with clearing a vote. No-op when they hadn't commented.
+   *
+   * Re-finds the comment by identity rather than trusting the stored #myCommentIdx: the index is only valid for the
+   * list as it stood when it was computed, and this runs a network round-trip later.
    */
   #dropOwnComment() {
-    if (this.#myCommentIdx < 0 || !this.#comments) return;
-    this.#comments.splice(this.#myCommentIdx, 1);
+    if (!this.#comments) return;
+    const idx = this.#comments.findIndex((c) => this.#isOwnComment(c));
+    if (idx < 0) return;
+    this.#comments.splice(idx, 1);
     this.#myCommentIdx = -1;
     this.#renderComments();
   }
@@ -917,22 +934,26 @@ class LabelDetail {
     const els = this.#els;
     const lockTip = this.#lockReason();
     for (const action of Object.keys(els.voteButtons)) {
+      const isVoted = !lockTip && this.#prevAction === action;
       let title;
       if (lockTip) {
         title = lockTip;
-      } else if (this.#prevAction === action) {
-        // {{count}} is the *other* validators, so the user isn't double-counted in their own tooltip.
+      } else if (isVoted) {
+        // {{count}} is the *other* validators, so the user isn't double-counted in their own tooltip. The i18next
+        // `_zero` key covers "nobody else" without a second key and a branch here — it resolves whenever count is 0,
+        // even in languages (zh-TW) whose CLDR rules have no zero category, so those locales carry only _zero/_other.
         const others = Math.max(0, (this.#validationCounts[action] ?? 1) - 1);
         title = i18next.t(`labelmap:vote-tooltip-voted-${action.toLowerCase()}`, { count: others });
       } else {
         const count = this.#validationCounts[action] ?? 0;
         title = i18next.t(`labelmap:vote-tooltip-${action.toLowerCase()}`, { count });
       }
-      // The AI's vote is folded into this option's count, so flag it where it applies.
+      // The AI's vote is folded into this option's count, so flag it where it applies. Sentences are appended in
+      // order of usefulness, so what clicking *does* lands last rather than trailing off into a footnote.
       if (!lockTip && this.#aiValidation === action) title += ` ${i18next.t('labelmap:vote-tooltip-ai-included')}`;
+      if (isVoted) title += ` ${i18next.t('labelmap:vote-tooltip-clear')}`;
       els.voteButtons[action].title = title;
-      const showsClearTip = !lockTip && this.#prevAction === action;
-      els.panoOverlayButtons[action].title = showsClearTip ? i18next.t('labelmap:vote-tooltip-clear') : '';
+      els.panoOverlayButtons[action].title = isVoted ? i18next.t('labelmap:vote-tooltip-clear') : '';
     }
   }
 

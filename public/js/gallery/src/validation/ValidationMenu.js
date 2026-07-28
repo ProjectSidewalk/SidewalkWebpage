@@ -118,20 +118,26 @@ class ValidationMenu {
    * @param newValKey
    * @param {boolean} thumbsClick Whether the validation came from clicking the thumb icons.
    * @param {boolean} keyboardShortcut Whether the validation came from a keyboard shortcut.
-   * @returns {function(): Promise} A function returning a Promise that resolves after validation.
+   * @returns {function(): Promise<?Response>} A function returning a Promise that resolves once the validation has
+   *     been submitted, with the server's response, or null if the request never completed.
    */
   validateOnClickOrKeyPress(newValKey, thumbsClick, keyboardShortcut) {
     return async () => {
       const undone = this.#currSelected === newValKey;
       const validationOption = ValidationMenu.#classToValidationOption[newValKey];
 
-      const labelValidatedPromise = this.#validateLabel(validationOption, thumbsClick, keyboardShortcut, undone);
-
-      // Change the look of the card to match the new validation.
-      // NOTE: done after calling _validateLabel() because it uses info that changes below.
-      this.#refCard.updateUserValidation(undone ? null : validationOption);
-
-      return await labelValidatedPromise;
+      // #validateLabel has to run first: it reads the card's *previous* user_validation to set `redone` and to decide
+      // whether this is a new validation worth a badge check.
+      try {
+        const res = await this.#validateLabel(validationOption, thumbsClick, keyboardShortcut, undone);
+        // Restyle the card only once the server has taken the vote. Updating it up front would leave the card showing
+        // a vote — or a cleared vote — that the backend never recorded, whenever the request fails.
+        if (res.ok) this.#refCard.updateUserValidation(undone ? null : validationOption);
+        return res;
+      } catch (err) {
+        console.error(err); // Network failure: leave the card showing what the server still holds.
+        return null;
+      }
     };
   }
 
