@@ -265,6 +265,26 @@ describe('AboutPage', () => {
         .toBe('<img src=x onerror=alert(1)>');
     });
 
+    test('defers every headshot, in both grids, until it scrolls into view', async () => {
+      stubFetch({
+        '/people/?format=json': page([
+          personRow({ urlName: 'active', name: 'Active Person', role: 'Lead dev' }),
+          personRow({ urlName: 'kotarohara', name: 'Kotaro Hara', lead_project_role: 'Student Lead',
+            is_active: false, start_date: '2012-03-01', end_date: '2016-12-21' }),
+        ]),
+        ...EMPTY_SECTIONS,
+      });
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      const photos = [...document.querySelectorAll('#about-team-current, #about-team-past')]
+        .flatMap((grid) => [...grid.querySelectorAll('.about-team-photo')]);
+      expect(photos).toHaveLength(2);
+      expect(photos.map((img) => img.getAttribute('loading'))).toEqual(['lazy', 'lazy']);
+      expect(photos[0].getAttribute('src'))
+        .toBe('https://makeabilitylab.cs.washington.edu/media/person/active.jpg');
+    });
+
     test('the roster stays hidden when the API returns nobody active', async () => {
       stubFetch({
         '/people/?format=json': page([personRow({ is_active: false, end_date: '2021-01-01' })]),

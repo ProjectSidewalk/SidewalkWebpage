@@ -202,12 +202,19 @@ class AboutPage {
       return lead.includes(detail) ? lead : [lead, detail].filter(Boolean).join(' · ');
     };
     const affiliation = (p) => profiles.get(p.person.url_name)?.current_school || p.position_school || '';
+    // The ML API hands out each headshot's raw upload rather than the cropped derivative its own templates render
+    // (makeabilitylab/makeabilitylabwebsite#1432), so a single card can pull down several MB for a 128 px circle.
+    // The team sits seven sections down the page, so deferring these keeps them off the initial load entirely.
+    const photoTag = (p) => {
+      const src = this.#esc(p.person.thumbnail || AboutPage.#FALLBACK_PHOTO);
+      return `<img class="about-team-photo" loading="lazy" src="${src}" alt="">`;
+    };
     document.getElementById('about-team-current').innerHTML = current.map((p) => {
       const org = affiliation(p);
       return `
         <li class="about-team-member">
           <a href="${this.#esc(p.person.url)}">
-            <img class="about-team-photo" src="${this.#esc(p.person.thumbnail || AboutPage.#FALLBACK_PHOTO)}" alt="">
+            ${photoTag(p)}
             <span class="about-team-name">${this.#esc(p.person.name)}</span>
           </a>
           <span class="about-team-role">${this.#esc(roleText(p))}</span>
@@ -228,7 +235,7 @@ class AboutPage {
       return `
         <li class="about-team-member">
           <a href="${this.#esc(p.person.url)}">
-            <img class="about-team-photo" src="${this.#esc(p.person.thumbnail || AboutPage.#FALLBACK_PHOTO)}" alt="">
+            ${photoTag(p)}
             <span class="about-team-name">${this.#esc(p.person.name)}</span>
           </a>
           <span class="about-team-role">${this.#esc(p.lead_project_role)}, ${this.#esc(years(p))}</span>
