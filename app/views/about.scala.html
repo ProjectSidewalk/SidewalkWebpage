@@ -4,13 +4,13 @@
 @import service.{CommonPageData, PageMeta}
 @*
  * About page (#4237, redesigned in #4631): server-rendered, localized overview of Project Sidewalk — mission, how it
- * works, impact stories, deployments, history, team, publications, open data, partners, funders, and contact. This is
+ * works, impact stories, deployments, team, history, publications, open data, partners, funders, and contact. This is
  * the canonical "what is Project Sidewalk" page for search engines, linked from the footer on every page.
  *
  * All narrative copy is server-rendered (SEO + i18n) and doubles as the no-JS fallback. Rot-prone content hydrates
  * from APIs on load: deployment stats via aggregateStats.js (/v3/api/aggregateStats + data-live-stat spans), and the
  * team roster, publication list, and grants via aboutPage.js (Makeability Lab API), so rosters and numbers never have
- * to be hand-maintained here.
+ * to be hand-maintained here. aboutPage.js also builds the in-page section nav and the deployment map.
  *
  * @param commonData Per-page config; allCityInfo drives the server-rendered deployment city/country counts.
  * @param title      Localized page title.
@@ -63,6 +63,9 @@
    loading it at the end of the body paints the whole thing unstyled before it snaps into place. *@
 @extraHeadContent = {
   <link rel="stylesheet" href='@assets.path("css/about.css")'>
+  @* Styles the deployment map's city popups. Small enough to ship up front, unlike the mapping libraries the map
+     itself needs, which aboutPage.js only fetches once the section nears the viewport. *@
+  <link rel="stylesheet" href='@assets.path("css/deployment-map.css")'>
   <script type="application/ld+json">@Html(jsonLd)</script>
 }
 
@@ -121,6 +124,13 @@
       </div>
     </section>
 
+    @* In-page section nav, built by aboutPage.js from the headings of the sections below — a rail alongside the
+       content where the viewport is wide enough for one, a sticky scrolling chip bar otherwise. It stays hidden
+       until it's built so a no-JS reader gets an unbroken page rather than an empty shell. *@
+    <nav class="about-toc" id="about-toc" aria-label="@Messages("about.toc.title")" hidden>
+      <ol class="about-toc-list" id="about-toc-list"></ol>
+    </nav>
+
     <section class="about-band" id="about-how">
       <div class="about-container">
         <h2>@Messages("about.how.title")</h2>
@@ -173,39 +183,23 @@
     <section class="about-band" id="about-where">
       <div class="about-container">
         <h2>@Messages("about.where.title")</h2>
-        <p>@Html(Messages("about.where.body", cityCount, countryCount))</p>
+        <p class="about-section-intro">@Html(Messages("about.where.body", cityCount, countryCount))</p>
+        @* The deployment map the landing page and /cities already share. aboutPage.js pulls mapbox-gl and the ps-map
+           bundle in only once this section nears the viewport, so a reader who stops at the impact stories never
+           downloads a megabyte of mapping libraries; the asset URLs ride on data attributes because Play fingerprints
+           them and only the template can resolve one. *@
+        <div class="about-map" id="about-deployment-map"
+             data-mapbox-api-key="@commonData.mapboxApiKey"
+             data-mapbox-js='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'
+             data-mapbox-language-js='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'
+             data-ps-map-js='@assets.path("js/ps-map/build/ps-map.js")'
+             data-mapbox-css='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")'></div>
+        <p class="about-where-links">@Html(Messages("about.where.links"))</p>
       </div>
+      @common.cityPopupTemplate()
     </section>
 
-    <section class="about-band about-band--tint" id="about-history">
-      <div class="about-container">
-        <h2>@Messages("about.history.title")</h2>
-        <ol class="about-timeline">
-          <li>
-            <span class="about-timeline-year">2012</span>
-            <p>@Html(Messages("about.history.2012"))</p>
-          </li>
-          <li>
-            <span class="about-timeline-year">2017</span>
-            <p>@Html(Messages("about.history.2017"))</p>
-          </li>
-          <li>
-            <span class="about-timeline-year">2019</span>
-            <p>@Html(Messages("about.history.2019"))</p>
-          </li>
-          <li>
-            <span class="about-timeline-year">2021</span>
-            <p>@Html(Messages("about.history.2021"))</p>
-          </li>
-          <li>
-            <span class="about-timeline-year">@Messages("about.history.today.label")</span>
-            <p>@Html(Messages("about.history.today", cityCount, languageCount))</p>
-          </li>
-        </ol>
-      </div>
-    </section>
-
-    <section class="about-band" id="about-team">
+    <section class="about-band about-band--tint" id="about-team">
       <div class="about-container">
         <h2>@Messages("about.team.title")</h2>
         <p class="about-section-intro">@Html(Messages("about.team.intro"))</p>
@@ -231,6 +225,34 @@
           <span data-person="davidjacobs">@Html(Messages("about.team.past.davidjacobs"))</span>
           <span data-person="manaswisaha">@Html(Messages("about.team.past.manaswisaha"))</span>
         </template>
+      </div>
+    </section>
+
+    <section class="about-band" id="about-history">
+      <div class="about-container">
+        <h2>@Messages("about.history.title")</h2>
+        <ol class="about-timeline">
+          <li>
+            <span class="about-timeline-year">2012</span>
+            <p>@Html(Messages("about.history.2012"))</p>
+          </li>
+          <li>
+            <span class="about-timeline-year">2017</span>
+            <p>@Html(Messages("about.history.2017"))</p>
+          </li>
+          <li>
+            <span class="about-timeline-year">2019</span>
+            <p>@Html(Messages("about.history.2019"))</p>
+          </li>
+          <li>
+            <span class="about-timeline-year">2021</span>
+            <p>@Html(Messages("about.history.2021"))</p>
+          </li>
+          <li>
+            <span class="about-timeline-year">@Messages("about.history.today.label")</span>
+            <p>@Html(Messages("about.history.today", cityCount, languageCount))</p>
+          </li>
+        </ol>
       </div>
     </section>
 

@@ -29,12 +29,20 @@ class AboutPage {
   static #LEAD_ROLE_ORDER = ['PI', 'Co-PI', 'Student Lead', 'Postdoc Lead', 'Research Scientist Lead'];
   static #LEAD_ROLE_LABELS = { 'PI': 'Principal Investigator', 'Co-PI': 'Co-Principal Investigator' };
 
+  // Scroll-spy watches a band across the upper third of the viewport instead of the whole of it: the section a reader
+  // is on is the one under the top of their screen, not whichever happens to be tallest.
+  static #TOC_SPY_BAND = '-30% 0px -60% 0px';
+  // Start fetching the mapping libraries a screenful early so the map is drawn by the time the section is reached.
+  static #MAP_PRELOAD_MARGIN = '100% 0px';
+
   /**
    * Kicks off all hydrators concurrently and wires up click logging. Each hydrator catches its own errors so one
    * failed request can't blank another section.
    */
   init() {
     this.#initClickLogging();
+    this.#initToc();
+    this.#initDeploymentMap();
     this.#renderTeam().catch((e) => console.warn('About page: team hydration failed.', e));
     this.#renderPubs().catch((e) => console.warn('About page: publications hydration failed.', e));
     this.#renderGrants().catch((e) => console.warn('About page: grants hydration failed.', e));
@@ -243,35 +251,36 @@ class AboutPage {
       .sort((a, b) => leadRank(a) - leadRank(b) || a.start_date.localeCompare(b.start_date));
     if (current.length === 0) return;
 
-    const roleText = (p) => {
-      const lead = AboutPage.#LEAD_ROLE_LABELS[p.lead_project_role] ?? p.lead_project_role ?? '';
+    const leadLabel = (p) => AboutPage.#LEAD_ROLE_LABELS[p.lead_project_role] ?? p.lead_project_role ?? '';
+    const positionTitle = (p) => {
       // The project row's `position_title` tracks the stint's window, so an active member's reads as what they are
       // today. The row's free-text `role` is the ML admin's internal notes rather than display copy — the ML site's
       // own project page doesn't render it either — so this page ignores it.
-      const detail = p.position_title || '';
-      // A lead label that already spells out the detail ("Research Scientist Lead" over "Research Scientist")
-      // would otherwise render the same words twice.
-      return lead.includes(detail) ? lead : [lead, detail].filter(Boolean).join(' · ');
+      const title = p.position_title || '';
+      // A lead label that already spells out the title ("Research Scientist Lead" over "Research Scientist") would
+      // otherwise state the same words twice.
+      return leadLabel(p).includes(title) ? '' : title;
     };
-    const affiliation = (p) => p.position_school || '';
-    // The team sits seven sections down the page, so deferring the headshots keeps ~a dozen image requests off the
+    // The team sits several sections down the page, so deferring the headshots keeps ~a dozen image requests off the
     // initial load entirely.
     const photoTag = (p) => {
       const src = this.#esc(p.person.thumbnail || AboutPage.#FALLBACK_PHOTO);
       return `<img class="about-team-photo" loading="lazy" src="${src}" alt="">`;
     };
-    document.getElementById('about-team-current').innerHTML = current.map((p) => {
-      const org = affiliation(p);
-      return `
+    // The project role, the position it's held from, and the institution are three separate facts, so each gets its
+    // own line; running them together behind a separator reads as one compound title.
+    const metaLine = (className, text) =>
+      (text ? `<span class="${className}">${this.#esc(text)}</span>` : '');
+    document.getElementById('about-team-current').innerHTML = current.map((p) => `
         <li class="about-team-member">
           <a href="${this.#esc(p.person.url)}">
             ${photoTag(p)}
             <span class="about-team-name">${this.#esc(p.person.name)}</span>
           </a>
-          <span class="about-team-role">${this.#esc(roleText(p))}</span>
-          ${org ? `<span class="about-team-affiliation">${this.#esc(org)}</span>` : ''}
-        </li>`;
-    }).join('');
+          ${metaLine('about-team-role', leadLabel(p))}
+          ${metaLine('about-team-title', positionTitle(p))}
+          ${metaLine('about-team-affiliation', p.position_school)}
+        </li>`).join('');
 
     // Past-lead cards pair the API-driven photo/name/role with a hand-curated, localized blurb server-rendered into
     // the #about-team-past-blurbs template (keyed by url_name). The blurb is our own trusted markup, so no escaping.
@@ -450,15 +459,141 @@ class AboutPage {
   }
 
   /**
-   * Logs clicks on CTAs and on hydrated outbound links to WebpageActivity, following the footer's
-   * "Click_module=..." convention (see docs/logged-events.md).
+   * Builds the in-page section nav from the headings of the sections it points at, and keeps the section the reader
+   * is currently in marked as they scroll.
+   *
+   * Deriving the links from the DOM rather than listing them in the template keeps the nav from drifting out of step
+   * with the page, and means adding or reordering a section needs no matching edit here or in six message files.
+   */
+  #initToc() {
+    const nav = document.getElementById('about-toc');
+    const list = document.getElementById('about-toc-list');
+    if (!nav || !list) return;
+
+    // An `.sr-only` heading (the stats band) names a section for assistive tech without being somewhere to navigate.
+    const sections = [...document.querySelectorAll('#about-page section[id]')]
+      .map((section) => ({ section, heading: section.querySelector('h2:not(.sr-only)') }))
+      .filter(({ heading }) => heading);
+    // A nav listing one destination is just noise, and the whole point of this one is that there are many.
+    if (sections.length < 2) return;
+
+    list.innerHTML = sections.map(({ section, heading }) => `
+        <li>
+          <a class="about-toc-link" href="#${this.#esc(section.id)}"
+             data-toc-for="${this.#esc(section.id)}">${this.#esc(heading.textContent.trim())}</a>
+        </li>`).join('');
+    nav.hidden = false;
+    list.addEventListener('click', (e) => {
+      const link = e.target.closest('.about-toc-link');
+      if (link) this.#log(`toc_${link.dataset.tocFor.replace(/^about-/, '')}`);
+    });
+
+    if (typeof IntersectionObserver !== 'function') return;
+    const links = new Map([...list.querySelectorAll('.about-toc-link')].map((link) => [link.dataset.tocFor, link]));
+    const inBand = new Set();
+    const markActive = () => {
+      // Where the band spans a section boundary, both are in it; document order picks the one whose heading the
+      // reader has just passed, which is the section they're actually reading.
+      const activeId = sections.map(({ section }) => section.id).find((id) => inBand.has(id));
+      links.forEach((link, id) => {
+        link.classList.toggle('about-toc-link--active', id === activeId);
+        // aria-current is what conveys the position to a screen reader; the class is only paint.
+        if (id === activeId) link.setAttribute('aria-current', 'true');
+        else link.removeAttribute('aria-current');
+      });
+    };
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) inBand.add(entry.target.id);
+        else inBand.delete(entry.target.id);
+      }
+      markActive();
+    }, { rootMargin: AboutPage.#TOC_SPY_BAND });
+    sections.forEach(({ section }) => observer.observe(section));
+  }
+
+  /**
+   * Arms the deployment map to build itself once its section comes within about a screen of the viewport.
+   *
+   * mapbox-gl and the ps-map bundle together outweigh everything else this page loads, and the map sits several
+   * sections down, so fetching them up front would charge every reader for a section many never scroll to.
+   */
+  #initDeploymentMap() {
+    const holder = document.getElementById('about-deployment-map');
+    if (!holder || typeof IntersectionObserver !== 'function') return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+      observer.disconnect();
+      this.#loadDeploymentMap(holder).catch((e) => {
+        // An empty framed box reads as a broken page; the section's sentence and links stand on their own without it.
+        holder.hidden = true;
+        console.warn('About page: deployment map failed to load.', e);
+      });
+    }, { rootMargin: AboutPage.#MAP_PRELOAD_MARGIN });
+    observer.observe(holder);
+  }
+
+  /**
+   * Pulls in the mapping libraries and builds the map of every deployment.
+   *
+   * The asset URLs arrive on the container's data attributes because Play fingerprints asset paths and only the
+   * template can resolve one.
+   *
+   * @param {HTMLElement} holder - The map container, carrying the Mapbox key and asset URLs as data attributes.
+   * @returns {Promise<void>} Resolves once the map and its city layer have loaded.
+   */
+  async #loadDeploymentMap(holder) {
+    const { mapboxCss, mapboxJs, mapboxLanguageJs, psMapJs, mapboxApiKey } = holder.dataset;
+    document.head.insertAdjacentHTML('beforeend', `<link rel="stylesheet" href="${this.#esc(mapboxCss)}">`);
+    // Strictly sequential, not parallel: the language plugin and the ps-map bundle both read the mapboxgl global as
+    // they parse, so either one arriving first would throw.
+    for (const src of [mapboxJs, mapboxLanguageJs, psMapJs]) await this.#loadScript(src);
+
+    await window.createPSMap(window.jQuery, {
+      mapName: holder.id,
+      mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
+      mapboxApiKey,
+      mapboxLogoLocation: 'bottom-left',
+      // This map sits mid-page, so wheel-zoom would swallow the scroll of anyone passing through; the map's own
+      // zoom controls, and pinch on touch, still work.
+      scrollWheelZoom: false,
+      loadCities: true,
+      logClicks: true,
+    });
+  }
+
+  /**
+   * Appends a script element and resolves once it has run.
+   *
+   * @param {string} src - Script URL.
+   * @returns {Promise<void>} Resolves on load; rejects if the script can't be fetched or parsed.
+   */
+  #loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = src;
+      script.addEventListener('load', () => resolve());
+      script.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)));
+      document.head.appendChild(script);
+    });
+  }
+
+  /**
+   * Logs a click to WebpageActivity, following the footer's "Click_module=..." convention (docs/logged-events.md).
+   *
+   * @param {string} target - What was clicked, e.g. `hero_explore`.
+   */
+  #log(target) {
+    if (typeof window.logWebpageActivity === 'function') {
+      window.logWebpageActivity(`Click_module=AboutPage_target=${target}`);
+    }
+  }
+
+  /**
+   * Logs clicks on CTAs and on hydrated outbound links.
    */
   #initClickLogging() {
-    const log = (target) => {
-      if (typeof window.logWebpageActivity === 'function') {
-        window.logWebpageActivity(`Click_module=AboutPage_target=${target}`);
-      }
-    };
     const staticTargets = [
       ['about-hero-explore-link', 'hero_explore'],
       ['about-hero-data-link', 'hero_data'],
@@ -469,7 +604,7 @@ class AboutPage {
       ['about-cta-city-link', 'cta_city'],
     ];
     staticTargets.forEach(([id, target]) => {
-      document.getElementById(id)?.addEventListener('click', () => log(target));
+      document.getElementById(id)?.addEventListener('click', () => this.#log(target));
     });
 
     // Hydrated sections use delegation since their links don't exist yet at init time.
@@ -480,7 +615,7 @@ class AboutPage {
     ];
     delegatedTargets.forEach(([id, target]) => {
       document.getElementById(id)?.addEventListener('click', (e) => {
-        if (e.target.closest('a')) log(target);
+        if (e.target.closest('a')) this.#log(target);
       });
     });
   }

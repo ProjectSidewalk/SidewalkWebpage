@@ -158,6 +158,7 @@ about.stats.labels = Beschriftungen
 about.stats.validations = Validierungen
 about.stats.cities = Städte
 about.stats.countries = Länder
+about.toc.title = Auf dieser Seite
 about.how.title = So funktioniert es
 about.how.intro = Unsere Mission ist es, alle Trottoirs der Welt mit Online-Crowdsourcing, künstlicher Intelligenz und Straßenbildern zu kartieren und zu bewerten. Alle mit einem Webbrowser können mithelfen — ganz ohne Spezialwerkzeuge.
 about.how.step.explore.title = Erkunden &amp; beschriften
@@ -185,7 +186,8 @@ about.impact.schools.place = Klassenzimmer in den USA
 about.impact.schools.body = Schülerinnen und Schüler lernen mit Project Sidewalk Datenkompetenz und zivilgesellschaftliches Engagement — von Girl Scouts in Oradell, New Jersey, die ihre Ergebnisse dem Stadtrat präsentierten, bis zu <a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/">Jugendlichen in Waltham, Massachusetts, die landesweite Anerkennung erhielten</a>.
 about.impact.more = Mehr dazu? Unsere Schwesterseite <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a> teilt Neuigkeiten, Materialien und Anleitungen, um Project Sidewalk in Ihrer Gemeinde einzusetzen.
 about.where.title = Wo wir aktiv sind
-about.where.body = Von Seattle über Mexiko-Stadt bis Zürich: Freiwillige haben <span data-live-stat="num_cities">{0}</span> Städte in <span data-live-stat="num_countries">{1}</span> Ländern auf die Karte der Barrierefreiheit gebracht — Straße für Straße. <a href="/cities">Alle Standorte ansehen</a> oder <a href="https://accessiblecommunities.org/use-project-sidewalk/">Project Sidewalk in Ihre Stadt holen</a>.
+about.where.body = Von Seattle über Mexiko-Stadt bis Zürich: Freiwillige haben <span data-live-stat="num_cities">{0}</span> Städte in <span data-live-stat="num_countries">{1}</span> Ländern auf die Karte der Barrierefreiheit gebracht — Straße für Straße.
+about.where.links = <a href="/cities">Alle Standorte ansehen</a> oder <a href="https://accessiblecommunities.org/use-project-sidewalk/">Project Sidewalk in Ihre Stadt holen</a>.
 about.history.title = Unsere Geschichte
 about.history.2012 = Project Sidewalk beginnt als Forschungsprojekt von Professor Jon E. Froehlich und Doktorand Kotaro Hara im <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> — mit früher Unterstützung durch einen <a href="https://research.google/outreach/past-programs/faculty-research-awards/">Google Faculty Research Award</a> und die <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338">National Science Foundation</a>.
 about.history.2017 = Der erste stadtweite Einsatz startet in Washington, DC, geleitet von Doktorandin Manaswi Saha und Forschungswissenschaftler Mikey Saugstad, während das Labor an die Paul G. Allen School of Computer Science &amp; Engineering der University of Washington zieht.
