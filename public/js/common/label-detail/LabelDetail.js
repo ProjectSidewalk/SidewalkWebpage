@@ -31,6 +31,37 @@ class LabelDetail {
     return parseInt(new URLSearchParams(window.location.search).get('labelId'), 10) || null;
   }
 
+  /**
+   * Resolves the pano, camera position, and POV to record with a validator comment.
+   *
+   * A pano viewer only describes this label while it's actually showing it. On the static-crop fallback it isn't:
+   * the primary viewer still reports whatever pano it last loaded, and reports nothing at all when the crop was the
+   * first thing opened — the null position that crashed submitting a comment (#4697). The crop is a screenshot of
+   * the label's own pano at its stored POV, so fall back to the label's metadata. None of these fields are optional
+   * server-side: validation_task_comment.lat/lng are NOT NULL and pano_id is a foreign key into pano_data.
+   *
+   * @param {?{panoId: ?string, position: ?{lat: number, lng: number},
+   *     pov: ?{heading: number, pitch: number, zoom: number}}} viewer - What the viewer showing this label reports,
+   *     or null when none is (the static-crop fallback). Its own fields may still be null before imagery resolves.
+   * @param {Object} meta - The current label's metadata payload.
+   * @returns {{panoId: ?string, lat: ?number, lng: ?number, heading: ?number, pitch: ?number, zoom: ?number}}
+   */
+  static commentContext(viewer, meta) {
+    const viewerPos = viewer && viewer.position;
+    const position = Number.isFinite(viewerPos?.lat) && Number.isFinite(viewerPos?.lng)
+      ? viewerPos
+      : { lat: meta.camera_lat ?? meta.lat, lng: meta.camera_lng ?? meta.lng };
+    const pov = (viewer && viewer.pov) || { heading: meta.heading, pitch: meta.pitch, zoom: meta.zoom };
+    return {
+      panoId: (viewer && viewer.panoId) || meta.pano_id || null,
+      lat: position.lat ?? null,
+      lng: position.lng ?? null,
+      heading: pov.heading ?? null,
+      pitch: pov.pitch ?? null,
+      zoom: pov.zoom ?? null,
+    };
+  }
+
   panoManager; // Public: hosts (ExpandedView, LabelPopup callsites) reach in for the pano manager.
 
   #root;
@@ -593,6 +624,11 @@ class LabelDetail {
     // new ones, so we mirror that here.
     this.#myCommentIdx = this.#comments.findIndex((c) => this.#isOwnComment(c));
     this.#renderComments();
+
+    // A typed-but-unsent comment belongs to the label it was typed on, so it doesn't ride along to the next one
+    // (Gallery pages between labels without ever tearing the card down).
+    els.commentInput.value = '';
+    els.commentButton.classList.remove('is-active');
 
     // Lived-experience stories (#4054): lazy per-label fetch, so the metadata payload stays untouched.
     this.#storySection?.setLabel(meta.label_id);
@@ -1176,8 +1212,19 @@ class LabelDetail {
    */
   #submitComment(comment) {
     const els = this.#els;
-    const userPov = this.panoManager.getPov();
-    const pos = this.panoManager.panoViewer.getPosition();
+    // Only 'Default' (primary viewer) and 'Pannellum' mean a viewer is actually rendering *this* label. On the
+    // static-crop fallback — and before the very first pano resolves — panoViewer still points at imagery that
+    // isn't this label's, so nothing it reports may be recorded. See LabelDetail.commentContext().
+    const showingThisLabel = this.panoManager.activeViewerName === 'Default'
+      || this.panoManager.activeViewerName === 'Pannellum';
+    const viewer = showingThisLabel
+      ? {
+          panoId: this.panoManager.panoViewer.getPanoId(),
+          position: this.panoManager.panoViewer.getPosition(),
+          pov: this.panoManager.getPov(),
+        }
+      : null;
+    const context = LabelDetail.commentContext(viewer, this.#currentLabelMeta ?? {});
 
     els.commentButton.disabled = true;
 
@@ -1185,12 +1232,12 @@ class LabelDetail {
       label_id: this.panoManager.label.labelId,
       label_type: this.panoManager.label.label_type,
       comment,
-      pano_id: this.panoManager.panoViewer.getPanoId(),
-      heading: userPov.heading,
-      pitch: userPov.pitch,
-      zoom: userPov.zoom,
-      lat: pos.lat,
-      lng: pos.lng,
+      pano_id: context.panoId,
+      heading: context.heading,
+      pitch: context.pitch,
+      zoom: context.zoom,
+      lat: context.lat,
+      lng: context.lng,
     };
 
     this.#postJson('/labelmap/comment', data).then(async (res) => {
