@@ -944,6 +944,23 @@ describe('AboutPage', () => {
       expect(document.querySelector('[aria-current]')).toBeNull();
     });
 
+    test('withdraws the rail past the ends of the page, where it would float over the hero or the footer', async () => {
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      const nav = document.getElementById('about-toc');
+      // Nothing has scrolled yet, so the rail must already be out of range rather than flashing over the hero.
+      expect(nav.classList.contains('about-toc--out-of-range')).toBe(true);
+
+      const observer = FakeIntersectionObserver.instances.find((o) => o.targets.length === 3);
+      observer.trigger([document.getElementById('about-where')]);
+      expect(nav.classList.contains('about-toc--out-of-range')).toBe(false);
+
+      // Scrolled past the last section, into the closing band and the footer.
+      observer.trigger([]);
+      expect(nav.classList.contains('about-toc--out-of-range')).toBe(true);
+    });
+
     test('logs which section a reader jumped to', async () => {
       loadGlobalScript(MODULE_PATH);
       await hydrate();
@@ -999,7 +1016,9 @@ describe('AboutPage', () => {
         mapName: 'about-deployment-map',
         mapboxApiKey: 'pk.test',
         loadCities: true,
+        // Neither swallowing the scroll of a reader passing through nor performing a zoom-out on arrival.
         scrollWheelZoom: false,
+        animateCityFit: false,
       });
     });
 

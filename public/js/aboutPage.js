@@ -495,6 +495,11 @@ class AboutPage {
       // Where the band spans a section boundary, both are in it; document order picks the one whose heading the
       // reader has just passed, which is the section they're actually reading.
       const activeId = sections.map(({ section }) => section.id).find((id) => inBand.has(id));
+      // An empty band means the reader is above the first section or below the last — over the hero, the closing
+      // band, or the footer. The rail form floats over those, where it has nothing to point at and its text lands on
+      // a dark full-bleed background, so it withdraws until there's a section again. The bar form holds a place in
+      // the flow, so the stylesheet leaves it alone.
+      nav.classList.toggle('about-toc--out-of-range', activeId === undefined);
       links.forEach((link, id) => {
         link.classList.toggle('about-toc-link--active', id === activeId);
         // aria-current is what conveys the position to a screen reader; the class is only paint.
@@ -502,6 +507,8 @@ class AboutPage {
         else link.removeAttribute('aria-current');
       });
     };
+    // The first observer callback is a frame away, so start withdrawn rather than flashing the rail over the hero.
+    markActive();
     const observer = new IntersectionObserver((entries) => {
       for (const entry of entries) {
         if (entry.isIntersecting) inBand.add(entry.target.id);
@@ -559,6 +566,9 @@ class AboutPage {
       // zoom controls, and pinch on touch, still work.
       scrollWheelZoom: false,
       loadCities: true,
+      // The reader is scrolling past, not watching the map come up, so it shows the world at once instead of
+      // performing a zoom-out from the current city.
+      animateCityFit: false,
       logClicks: true,
     });
   }

@@ -648,6 +648,15 @@
     width: 150px;
     background-color: transparent;
     border-bottom: 0;
+    transition: opacity 0.2s ease, visibility 0.2s;
+  }
+
+  /* Floating over the hero, the closing band, or the footer, the rail has no section to point at and its link color
+     is unreadable against those dark full-bleed backgrounds. `visibility` as well as `opacity` so it also leaves the
+     tab order while it's gone. */
+  .about-toc--out-of-range {
+    opacity: 0;
+    visibility: hidden;
   }
 
   .about-toc-list {
