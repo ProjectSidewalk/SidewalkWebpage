@@ -111,6 +111,10 @@ class ValidationMenu {
 
   /**
    * OnClick or keyboard shortcut function for validation buttons and thumbs up/down buttons.
+   *
+   * The buttons are toggles: clicking the option already selected clears the vote (#4653), matching the label detail
+   * card that opens from this same card.
+   *
    * @param newValKey
    * @param {boolean} thumbsClick Whether the validation came from clicking the thumb icons.
    * @param {boolean} keyboardShortcut Whether the validation came from a keyboard shortcut.
@@ -118,26 +122,26 @@ class ValidationMenu {
    */
   validateOnClickOrKeyPress(newValKey, thumbsClick, keyboardShortcut) {
     return async () => {
-      if (this.#currSelected !== newValKey) {
-        const validationOption = ValidationMenu.#classToValidationOption[newValKey];
+      const undone = this.#currSelected === newValKey;
+      const validationOption = ValidationMenu.#classToValidationOption[newValKey];
 
-        const labelValidatedPromise = this.#validateLabel(validationOption, thumbsClick, keyboardShortcut);
+      const labelValidatedPromise = this.#validateLabel(validationOption, thumbsClick, keyboardShortcut, undone);
 
-        // Change the look of the card to match the new validation.
-        // NOTE: done after calling _validateLabel() because it uses info that changes below.
-        this.#refCard.updateUserValidation(validationOption);
+      // Change the look of the card to match the new validation.
+      // NOTE: done after calling _validateLabel() because it uses info that changes below.
+      this.#refCard.updateUserValidation(undone ? null : validationOption);
 
-        return await labelValidatedPromise;
-      }
+      return await labelValidatedPromise;
     };
   }
 
   /**
    * Adds the visual effects of validation to the small card (opaque button and fill color below image).
-   * @param validationOption
+   * @param {?('Agree'|'Disagree'|'Unsure')} validationOption - The user's vote, or null once they've cleared it
+   *     (#4653), which leaves the card with no option selected.
    */
   showValidationOnCard(validationOption) {
-    const validationClass = ValidationMenu.#validationOptionToClass[validationOption];
+    const validationClass = ValidationMenu.#validationOptionToClass[validationOption] ?? null;
 
     // Remove the visual effects from the older validation.
     if (this.#currSelected && this.#currSelected !== validationClass) {
@@ -149,8 +153,10 @@ class ValidationMenu {
     this.#currSelected = validationClass;
 
     // Add the visual effects from the new validation.
-    this.#galleryCard.addClass(validationClass);
-    this.#validationButtons[validationClass].attr('class', 'validation-button-selected');
+    if (validationClass) {
+      this.#galleryCard.addClass(validationClass);
+      this.#validationButtons[validationClass].attr('class', 'validation-button-selected');
+    }
 
     // Reset thumb icons to outline state so that they don't blend into the background after validation.
     const valInfo = this.#refCard.validationInfoDisplay;
@@ -164,12 +170,13 @@ class ValidationMenu {
 
   /**
    * Consolidate data on the validation and submit as a POST request.
-   * @param {string} action Validation result.
+   * @param {string} action Validation result — the vote being cast, or the one being cleared when `undone`.
    * @param {boolean} thumbsClick Whether the validation came from clicking the thumb icons.
    * @param {boolean} keyboardShortcut Whether the validation came from a keyboard shortcut.
+   * @param {boolean} [undone=false] Clear the user's existing `action` vote rather than cast one (#4653).
    * @returns {Promise<Response>} Resolves with the server's response once the validation has been submitted.
    */
-  #validateLabel(action, thumbsClick, keyboardShortcut) {
+  #validateLabel(action, thumbsClick, keyboardShortcut, undone = false) {
     const refCard = this.#refCard;
     let actionStr;
     let sourceStr;
@@ -180,7 +187,8 @@ class ValidationMenu {
       actionStr = 'Validate_MenuClick';
       sourceStr = 'GalleryImage';
     }
-    actionStr += action;
+    // A cleared vote leaves no label_validation row behind, so the event name is where it's recorded at all.
+    actionStr += undone ? `Clear${action}` : action;
     if (keyboardShortcut) {
       actionStr = actionStr.replace('Click', 'KeyboardShortcut');
     }
@@ -208,12 +216,12 @@ class ValidationMenu {
       start_timestamp: validationTimestamp,
       end_timestamp: validationTimestamp,
       source: sourceStr,
-      undone: false,
-      redone: refCard.getProperty('user_validation') !== null,
+      undone,
+      redone: !undone && refCard.getProperty('user_validation') !== null,
       viewer_type: refCard.getImageSource() === 'crop' ? 'StaticCrop' : 'StaticApi',
     };
 
-    const isNewValidation = refCard.getProperty('user_validation') === null;
+    const isNewValidation = !undone && refCard.getProperty('user_validation') === null;
     return fetch('/labelmap/validate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

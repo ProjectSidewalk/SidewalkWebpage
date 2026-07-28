@@ -21,11 +21,12 @@
     </button>
   }
   <div class="label-detail__pano"></div>
-  @* Hover overlay with Agree/Disagree/Unsure buttons. *@
+  @* Hover overlay with Agree/Disagree/Unsure buttons. Toggle buttons: clicking the pressed one clears the vote
+     (#4653), so `aria-pressed` is what tells assistive tech that, and LabelDetail keeps it in sync per label. *@
   <div class="label-detail__pano-overlay" role="group" aria-label="Validate label">
-    <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--agree" data-action="validate" data-result="Agree" data-i18n="common:agree">Agree</button>
-    <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--disagree" data-action="validate" data-result="Disagree" data-i18n="common:disagree">Disagree</button>
-    <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--unsure" data-action="validate" data-result="Unsure" data-i18n="common:unsure">Unsure</button>
+    <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--agree" data-action="validate" data-result="Agree" aria-pressed="false" data-i18n="common:agree">Agree</button>
+    <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--disagree" data-action="validate" data-result="Disagree" aria-pressed="false" data-i18n="common:disagree">Disagree</button>
+    <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--unsure" data-action="validate" data-result="Unsure" aria-pressed="false" data-i18n="common:unsure">Unsure</button>
   </div>
   @if(withPaging) {
     <button type="button" class="label-detail__paging label-detail__paging--next" data-action="next-label" aria-label="Next label">
@@ -75,22 +76,23 @@
     @* Validation count display. Each icon's `src` is swapped by JS between the four variants — outline / filled / outline-ai / filled-ai — depending on whether the user (filled) and/or the AI (ai badge) validated this option. The base URL for the icon files is provided via `data-icon-base` so JS doesn't need to know the assets' path. *@
     <div class="label-detail__vote-display" data-icon-base='@assets.path("images/icons/validation/")'>
       @* Each vote is icon + count with the action word beneath, mirroring the severity faces' icon-over-word
-         rhythm; the visible word also names the button for assistive tech. *@
-      <button type="button" class="label-detail__vote label-detail__vote--agree">
+         rhythm; the visible word also names the button for assistive tech. Like the pano overlay's, these are
+         toggle buttons — clicking the pressed one clears the vote (#4653). *@
+      <button type="button" class="label-detail__vote label-detail__vote--agree" aria-pressed="false">
         <span class="label-detail__vote-top">
           <img src='@assets.path("images/icons/validation/agree-outline.svg")' alt="" class="label-detail__vote-icon">
           <span class="label-detail__vote-count">0</span>
         </span>
         <span class="label-detail__vote-label" data-i18n="common:agree">Agree</span>
       </button>
-      <button type="button" class="label-detail__vote label-detail__vote--disagree">
+      <button type="button" class="label-detail__vote label-detail__vote--disagree" aria-pressed="false">
         <span class="label-detail__vote-top">
           <img src='@assets.path("images/icons/validation/disagree-outline.svg")' alt="" class="label-detail__vote-icon">
           <span class="label-detail__vote-count">0</span>
         </span>
         <span class="label-detail__vote-label" data-i18n="common:disagree">Disagree</span>
       </button>
-      <button type="button" class="label-detail__vote label-detail__vote--unsure">
+      <button type="button" class="label-detail__vote label-detail__vote--unsure" aria-pressed="false">
         <span class="label-detail__vote-top">
           <img src='@assets.path("images/icons/validation/unsure-outline.svg")' alt="" class="label-detail__vote-icon">
           <span class="label-detail__vote-count">0</span>

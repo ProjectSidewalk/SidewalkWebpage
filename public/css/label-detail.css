@@ -326,6 +326,11 @@ dialog.label-detail[open]::backdrop {
 
 .label-detail__pano-overlay-button.is-selected { opacity: 1; }
 
+/* Hovering the option you already picked previews clearing it (#4653). It fades *past* the unselected 0.8 rather
+   than toward it, so the cue reads as "this turns off" — the overlay's counterpart to the column icons dropping
+   back to their outline variant on the same hover. Declared above the read-only block so that block still wins. */
+.label-detail__pano-overlay-button.is-selected:hover { opacity: 0.65; }
+
 /* Read-only mode: validating/commenting is blocked (the viewer's own label, or no imagery is available for it).
    Elements remain visible but appear disabled. */
 .label-detail--readonly .label-detail__pano-overlay-button {

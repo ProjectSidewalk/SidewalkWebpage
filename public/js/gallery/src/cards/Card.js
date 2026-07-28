@@ -345,14 +345,19 @@ class Card {
 
   /**
    * Updates metadata and visuals on the small card based on a new validation from the user.
-   * @param newUserValidation
+   * @param {?('Agree'|'Disagree'|'Unsure')} newUserValidation - The user's new vote, or null when they cleared it
+   *     (#4653). Either end can be null, so both count adjustments are guarded.
    */
   updateUserValidation(newUserValidation) {
     const properties = this.#properties;
     if (newUserValidation !== properties.user_validation) {
       // Update the metadata.
-      properties.val_counts[properties.user_validation] -= 1;
-      properties.val_counts[newUserValidation] += 1;
+      if (properties.user_validation) {
+        properties.val_counts[properties.user_validation] = Math.max(
+          0, properties.val_counts[properties.user_validation] - 1,
+        );
+      }
+      if (newUserValidation) properties.val_counts[newUserValidation] += 1;
       properties.user_validation = newUserValidation;
 
       // Update the small card's validation displays.
