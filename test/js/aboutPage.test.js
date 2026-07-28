@@ -90,7 +90,7 @@ describe('AboutPage', () => {
         <ul id="about-team-current"></ul>
         <ul id="about-team-past"></ul>
         <p id="about-team-contributors-intro" data-label-template="More than {0} people, including {1} students."
-           >More than 140 people, including 131 students.</p>
+           >More than 140 people, including 128 students.</p>
         <ul id="about-team-all"></ul>
       </div>
       <template id="about-team-past-blurbs">
@@ -449,7 +449,7 @@ describe('AboutPage', () => {
       await hydrate();
 
       expect(document.getElementById('about-team-contributors-intro').textContent)
-        .toBe('More than 140 people, including 131 students.');
+        .toBe('More than 140 people, including 128 students.');
     });
 
     test('grafts the server-rendered localized blurb onto the matching past-lead card', async () => {
