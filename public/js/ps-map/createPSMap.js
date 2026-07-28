@@ -10,6 +10,8 @@
  * @param {string} [params.neighborhoodsURL] - URL of the endpoint containing neighborhood boundaries.
  * @param {string} params.completionRatesURL - URL of the endpoint containing neighborhood completion rates.
  * @param {boolean} [params.loadCities] - Whether to load deployment cities on the map.
+ * @param {boolean} [params.animateCityFit=true] - Whether the fit to all deployment cities is animated. Set false to
+ *     have the world view simply appear, with no flight out from the city's own center.
  * @param {string} [params.streetsURL] - URL of the endpoint containing streets.
  * @param {string} [params.labelsURL] - URL of the endpoint containing labels.
  * @param {number} [params.zoomCorrection=0] - Amount to increase default zoom to account for different map dimensions.

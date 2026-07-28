@@ -161,6 +161,9 @@ about.stats.labels = Labels
 about.stats.validations = Validations
 about.stats.cities = Cities
 about.stats.countries = Countries
+# Accessible name for the in-page section nav. Its entries are the section headings below, read from the DOM, so
+# adding a section needs no key here.
+about.toc.title = On this page
 about.how.title = How it works
 about.how.intro = Our mission is to map and assess every sidewalk in the world using remote crowdsourcing, artificial intelligence, and online street-level imagery. Anyone with a web browser can help — no special tools required.
 about.how.step.explore.title = Explore &amp; label
@@ -188,7 +191,8 @@ about.impact.schools.place = Classrooms across the U.S.
 about.impact.schools.body = Students use Project Sidewalk to learn data science and civic advocacy — from Girl Scouts in Oradell, New Jersey presenting findings to their city council, to <a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/">middle schoolers in Waltham, Massachusetts earning statewide civics recognition</a>.
 about.impact.more = Want more? Our sister site <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a> shares news, resources, and guides for putting Project Sidewalk to work in your community.
 about.where.title = Where we are
-about.where.body = From Seattle to Mexico City to Zurich, volunteers have put <span data-live-stat="num_cities">{0}</span> cities in <span data-live-stat="num_countries">{1}</span> countries on the accessibility map — one street at a time. <a href="/cities">See every deployment</a>, or <a href="https://accessiblecommunities.org/use-project-sidewalk/">bring Project Sidewalk to your city</a>.
+about.where.body = From Seattle to Mexico City to Zurich, volunteers have put <span data-live-stat="num_cities">{0}</span> cities in <span data-live-stat="num_countries">{1}</span> countries on the accessibility map — one street at a time.
+about.where.links = <a href="/cities">See every deployment</a>, or <a href="https://accessiblecommunities.org/use-project-sidewalk/">bring Project Sidewalk to your city</a>.
 about.history.title = Our history
 about.history.2012 = Project Sidewalk begins as a research project by Professor Jon E. Froehlich and PhD student Kotaro Hara in the <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a>, with early support from a <a href="https://research.google/outreach/past-programs/faculty-research-awards/">Google Faculty Research Award</a> and the <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338">National Science Foundation</a>.
 about.history.2017 = The first city-scale deployment launches in Washington, DC, led by PhD student Manaswi Saha and research scientist Mikey Saugstad, as the lab moves to the University of Washington''s Paul G. Allen School of Computer Science &amp; Engineering.
@@ -197,7 +201,7 @@ about.history.2021 = An <a href="https://www.nsf.gov/awardsearch/showAward?AWD_I
 about.history.today.label = Today
 about.history.today = Project Sidewalk operates in <span data-live-stat="num_cities">{0}</span> cities around the world, natively translated into {1} languages and powered by thousands of volunteer mappers.
 about.team.title = The team
-about.team.intro = Project Sidewalk is university research, led by Professor Jon E. Froehlich at the University of Washington''s <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> and Professor Yochai Eisenberg at the University of Illinois Chicago, with lead engineering by research scientist Mikey Saugstad — and contributions from more than a hundred students and collaborators over the years.
+about.team.intro = Project Sidewalk is university research, led by Professor Jon E. Froehlich at the University of Washington''s <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> and Professor Yochai Eisenberg at the University of Illinois Chicago, with lead engineering by Mikey Saugstad — and contributions from more than a hundred students and collaborators over the years.
 about.team.current.title = Current team
 about.team.past.title = Past leadership
 about.team.past.kotarohara = Started Project Sidewalk with Professor Froehlich as his PhD student, pioneering the crowdsourcing and computer-vision methods behind the project — the subject of his <a href="https://makeabilitylab.cs.washington.edu/media/publications/Hara_ScalableMethodsToCollectAndVisualizeSidewalkAccessibilityDataForPeopleWithMobilityImpairments_UMDCSPhDDissertation2016.pdf">dissertation</a>.

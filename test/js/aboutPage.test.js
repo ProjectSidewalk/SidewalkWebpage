@@ -24,6 +24,68 @@ if (typeof globalThis.CSS?.escape !== 'function') {
 }
 
 /**
+ * Stands in for the IntersectionObserver the section nav and the deferred map both use, which jsdom doesn't
+ * implement. Instances register themselves so a test can drive the callback directly — jsdom has no layout, so
+ * there's no scroll position for a faithful implementation to react to anyway.
+ */
+class FakeIntersectionObserver {
+  static instances = [];
+
+  constructor(callback, options) {
+    this.callback = callback;
+    this.options = options;
+    this.targets = [];
+    this.disconnected = false;
+    FakeIntersectionObserver.instances.push(this);
+  }
+
+  observe(target) {
+    this.targets.push(target);
+  }
+
+  disconnect() {
+    this.disconnected = true;
+  }
+
+  /**
+   * Reports the given targets as in view and every other observed target as out of it.
+   *
+   * @param {Element[]} intersecting - Targets to report as intersecting.
+   */
+  trigger(intersecting) {
+    // A disconnected observer delivers nothing, which is the whole mechanism behind loading the map's libraries once.
+    if (this.disconnected) return;
+    this.callback(this.targets.map((target) => ({ target, isIntersecting: intersecting.includes(target) })), this);
+  }
+}
+globalThis.IntersectionObserver = FakeIntersectionObserver;
+
+/** Lets pending promise jobs and timers run. */
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+/**
+ * Fires `load` on every script the page has appended, repeatedly, so a sequential loader can advance.
+ *
+ * jsdom doesn't fetch external scripts, so neither `load` nor `error` would ever arrive on its own.
+ *
+ * @returns {Promise<string[]>} The `src` of each script, in the order it was appended.
+ */
+async function runInjectedScripts() {
+  const loaded = [];
+  for (let i = 0; i < 6; i++) {
+    await settle();
+    const pending = [...document.head.querySelectorAll('script[src]')].filter((s) => !loaded.includes(s));
+    if (pending.length === 0) break;
+    pending.forEach((script) => {
+      loaded.push(script);
+      script.dispatchEvent(new Event('load'));
+    });
+  }
+  await settle();
+  return loaded.map((script) => script.getAttribute('src'));
+}
+
+/**
  * Builds a project-people row in the ML API's shape.
  *
  * @param {object} overrides - Fields to override on the default row.
@@ -106,15 +168,19 @@ describe('AboutPage', () => {
       </div>
       <ul id="about-funding-grants" hidden></ul>`;
     localStorage.clear();
+    FakeIntersectionObserver.instances = [];
     // aboutPage.js defers its work to appManager.ready(); capture the callback so each test can run it on demand.
     window.appManager = { ready: (cb) => { window.__aboutReady = cb; } };
     window.logWebpageActivity = jest.fn();
   });
 
   afterEach(() => {
+    document.head.querySelectorAll('script[src], link[rel="stylesheet"]').forEach((el) => el.remove());
     delete global.fetch;
     delete window.appManager;
     delete window.__aboutReady;
+    delete window.createPSMap;
+    delete window.jQuery;
     jest.restoreAllMocks();
   });
 
@@ -135,13 +201,35 @@ describe('AboutPage', () => {
       loadGlobalScript(MODULE_PATH);
       await hydrate();
 
-      const roles = [...document.querySelectorAll('#about-team-current .about-team-role')].map((el) => el.textContent);
-      expect(roles).toEqual([
-        'Principal Investigator · Professor',
-        // Not "Research Scientist Lead · Research Scientist".
-        'Research Scientist Lead',
-        'PhD Student',
-        'Project Coordinator',
+      const lines = [...document.querySelectorAll('#about-team-current .about-team-member')]
+        .map((card) => [...card.querySelectorAll('.about-team-role, .about-team-title')].map((el) => el.textContent));
+      expect(lines).toEqual([
+        ['Principal Investigator', 'Professor'],
+        // "Research Scientist" is already inside "Research Scientist Lead", so it doesn't get a line of its own.
+        ['Research Scientist Lead'],
+        ['PhD Student'],
+        ['Project Coordinator'],
+      ]);
+    });
+
+    test('never runs a lead role and a position title together on one line', async () => {
+      stubFetch({
+        '/people/?format=json': page([
+          personRow({ urlName: 'jonfroehlich', name: 'Jon E. Froehlich', lead_project_role: 'PI',
+            position_title: 'Professor', position_school: 'University of Washington' }),
+        ]),
+        ...EMPTY_SECTIONS,
+      });
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      const card = document.querySelector('#about-team-current .about-team-member');
+      expect(card.textContent).not.toContain('·');
+      expect([...card.querySelectorAll('span')].map((el) => el.textContent)).toEqual([
+        'Jon E. Froehlich',
+        'Principal Investigator',
+        'Professor',
+        'University of Washington',
       ]);
     });
 
@@ -159,7 +247,8 @@ describe('AboutPage', () => {
       await hydrate();
 
       expect(document.querySelector('#about-team-current .about-team-role').textContent)
-        .toBe('Principal Investigator · Professor');
+        .toBe('Principal Investigator');
+      expect(document.querySelector('#about-team-current .about-team-title').textContent).toBe('Professor');
       expect(document.querySelector('#about-team-current .about-team-affiliation').textContent)
         .toBe('University of Washington');
       const teamRequests = fetchMock.mock.calls.map(([url]) => url).filter((url) => url.includes('/people/'));
@@ -179,9 +268,10 @@ describe('AboutPage', () => {
       loadGlobalScript(MODULE_PATH);
       await hydrate();
 
-      const role = document.querySelector('#about-team-current .about-team-role').textContent;
-      expect(role).toBe('Co-Principal Investigator · Associate Professor');
-      expect(role).not.toContain('SCC-IRG');
+      const card = document.querySelector('#about-team-current .about-team-member');
+      expect(card.querySelector('.about-team-role').textContent).toBe('Co-Principal Investigator');
+      expect(card.querySelector('.about-team-title').textContent).toBe('Associate Professor');
+      expect(card.textContent).not.toContain('SCC-IRG');
     });
 
     test('renders each member\'s affiliation on its own line', async () => {
@@ -213,7 +303,7 @@ describe('AboutPage', () => {
       await hydrate();
 
       expect(document.querySelector('#about-team-current .about-team-affiliation')).toBeNull();
-      expect(document.querySelector('#about-team-current .about-team-role').textContent).toBe('PhD Student');
+      expect(document.querySelector('#about-team-current .about-team-title').textContent).toBe('PhD Student');
     });
 
     test('a member whose row carries no position still gets a card, minus the title and affiliation', async () => {
@@ -233,7 +323,8 @@ describe('AboutPage', () => {
         .toEqual(['Ok Person', 'Bare Row']);
       expect(cards[0].querySelector('.about-team-affiliation').textContent).toBe('University of Washington');
       expect(cards[1].querySelector('.about-team-affiliation')).toBeNull();
-      expect(cards[1].querySelector('.about-team-role').textContent).toBe('');
+      expect(cards[1].querySelector('.about-team-title')).toBeNull();
+      expect(cards[1].querySelector('.about-team-role')).toBeNull();
     });
 
     test('leads are ordered PI, Co-PI, then the rest', async () => {
@@ -793,6 +884,170 @@ describe('AboutPage', () => {
       await hydrate();
 
       expect(document.getElementById('about-funding-grants').hidden).toBe(true);
+    });
+  });
+
+  describe('section nav', () => {
+    /** Replaces the fixture with a page of bands, since the nav is built from the sections it points at. */
+    function renderSections() {
+      document.body.innerHTML = `
+        <main id="about-page">
+          <section class="about-stats"><h2 class="sr-only">By the numbers</h2></section>
+          <section id="about-how"><div><h2>How it works</h2></div></section>
+          <section id="about-where"><div><h2>Where we are</h2></div></section>
+          <section id="about-team"><div><h2>The team</h2></div></section>
+          <nav id="about-toc" hidden><ol id="about-toc-list"></ol></nav>
+        </main>`;
+    }
+
+    beforeEach(() => {
+      renderSections();
+      stubFetch({});
+      jest.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+
+    test('lists every section that has a visible heading, in page order, and reveals itself', async () => {
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      const links = [...document.querySelectorAll('#about-toc-list .about-toc-link')];
+      expect(links.map((link) => link.textContent.trim())).toEqual(['How it works', 'Where we are', 'The team']);
+      expect(links.map((link) => link.getAttribute('href')))
+        .toEqual(['#about-how', '#about-where', '#about-team']);
+      expect(document.getElementById('about-toc').hidden).toBe(false);
+    });
+
+    test('skips a section titled only for screen readers', async () => {
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      expect(document.getElementById('about-toc-list').textContent).not.toContain('By the numbers');
+    });
+
+    test('marks the section under the top of the viewport, resolving an overlap by page order', async () => {
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      const observer = FakeIntersectionObserver.instances.find((o) => o.targets.length === 3);
+      const [how, where] = observer.targets;
+      observer.trigger([where]);
+      expect(document.querySelector('.about-toc-link--active').getAttribute('href')).toBe('#about-where');
+      expect(document.querySelector('[aria-current]').getAttribute('href')).toBe('#about-where');
+
+      // Both bands cross the band the observer watches; the earlier one is the section being read.
+      observer.trigger([how, where]);
+      expect(document.querySelectorAll('.about-toc-link--active')).toHaveLength(1);
+      expect(document.querySelector('.about-toc-link--active').getAttribute('href')).toBe('#about-how');
+
+      observer.trigger([]);
+      expect(document.querySelector('.about-toc-link--active')).toBeNull();
+      expect(document.querySelector('[aria-current]')).toBeNull();
+    });
+
+    test('withdraws the rail past the ends of the page, where it would float over the hero or the footer', async () => {
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      const nav = document.getElementById('about-toc');
+      // Nothing has scrolled yet, so the rail must already be out of range rather than flashing over the hero.
+      expect(nav.classList.contains('about-toc--out-of-range')).toBe(true);
+
+      const observer = FakeIntersectionObserver.instances.find((o) => o.targets.length === 3);
+      observer.trigger([document.getElementById('about-where')]);
+      expect(nav.classList.contains('about-toc--out-of-range')).toBe(false);
+
+      // Scrolled past the last section, into the closing band and the footer.
+      observer.trigger([]);
+      expect(nav.classList.contains('about-toc--out-of-range')).toBe(true);
+    });
+
+    test('logs which section a reader jumped to', async () => {
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      document.querySelector('[href="#about-team"]').click();
+      expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=AboutPage_target=toc_team');
+    });
+  });
+
+  describe('deployment map', () => {
+    const ASSETS = {
+      'data-mapbox-css': '/assets/vendor/mapbox-gl/mapbox-gl.css',
+      'data-mapbox-js': '/assets/vendor/mapbox-gl/mapbox-gl.js',
+      'data-mapbox-language-js': '/assets/vendor/mapbox-gl/mapbox-gl-language.js',
+      'data-ps-map-js': '/assets/js/ps-map/build/ps-map.js',
+      'data-mapbox-api-key': 'pk.test',
+    };
+
+    beforeEach(() => {
+      const attrs = Object.entries(ASSETS).map(([name, value]) => `${name}="${value}"`).join(' ');
+      document.body.innerHTML = `<main id="about-page"><div id="about-deployment-map" ${attrs}></div></main>`;
+      stubFetch({});
+      window.createPSMap = jest.fn(() => Promise.resolve([{}]));
+      window.jQuery = { getJSON: jest.fn() };
+      jest.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+
+    /** @returns {FakeIntersectionObserver} The observer watching the map container. */
+    const mapObserver = () => FakeIntersectionObserver.instances
+      .find((o) => o.targets.some((t) => t.id === 'about-deployment-map'));
+
+    test('fetches nothing until the map nears the viewport', async () => {
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      expect(document.head.querySelectorAll('script[src]')).toHaveLength(0);
+      expect(window.createPSMap).not.toHaveBeenCalled();
+    });
+
+    test('loads mapbox before the ps-map bundle that reads it, then builds the map', async () => {
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      const observer = mapObserver();
+      observer.trigger(observer.targets);
+      const srcs = await runInjectedScripts();
+
+      expect(srcs).toEqual([ASSETS['data-mapbox-js'], ASSETS['data-mapbox-language-js'], ASSETS['data-ps-map-js']]);
+      expect([...document.head.querySelectorAll('link[rel="stylesheet"]')].map((el) => el.getAttribute('href')))
+        .toContain(ASSETS['data-mapbox-css']);
+      expect(window.createPSMap).toHaveBeenCalledTimes(1);
+      expect(window.createPSMap.mock.calls[0][1]).toMatchObject({
+        mapName: 'about-deployment-map',
+        mapboxApiKey: 'pk.test',
+        loadCities: true,
+        // Neither swallowing the scroll of a reader passing through nor performing a zoom-out on arrival.
+        scrollWheelZoom: false,
+        animateCityFit: false,
+      });
+    });
+
+    test('loads the libraries once, however often the section crosses the viewport', async () => {
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      const observer = mapObserver();
+      observer.trigger(observer.targets);
+      observer.trigger(observer.targets);
+      const srcs = await runInjectedScripts();
+
+      expect(observer.disconnected).toBe(true);
+      expect(srcs).toHaveLength(3);
+      expect(window.createPSMap).toHaveBeenCalledTimes(1);
+    });
+
+    test('hides the empty frame rather than leaving it looking broken when a library fails', async () => {
+      loadGlobalScript(MODULE_PATH);
+      await hydrate();
+
+      const observer = mapObserver();
+      observer.trigger(observer.targets);
+      await settle();
+      document.head.querySelector('script[src]').dispatchEvent(new Event('error'));
+      await settle();
+
+      expect(document.getElementById('about-deployment-map').hidden).toBe(true);
+      expect(window.createPSMap).not.toHaveBeenCalled();
     });
   });
 

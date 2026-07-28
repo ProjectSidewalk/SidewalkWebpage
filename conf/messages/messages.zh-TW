@@ -225,6 +225,7 @@ about.stats.labels = 標記
 about.stats.validations = 檢核
 about.stats.cities = 城市
 about.stats.countries = 國家
+about.toc.title = 本頁內容
 about.how.title = 運作方式
 about.how.intro = 我們的使命是運用遠端群眾外包、人工智慧與線上街景影像，繪製並評估全世界的人行道。只要有網頁瀏覽器，任何人都能參與，無需特殊工具。
 about.how.step.explore.title = 探索與標記
@@ -252,7 +253,8 @@ about.impact.schools.place = 美國各地的教室
 about.impact.schools.body = 學生透過 Project Sidewalk 學習資料科學與公民倡議——從紐澤西州 Oradell 的女童軍向市議會發表成果，到<a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/">麻州 Waltham 的中學生獲得州級公民教育表彰</a>。
 about.impact.more = 想了解更多？我們的姊妹網站 <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a> 提供新聞、資源與指南，協助您在社區運用 Project Sidewalk。
 about.where.title = 我們的足跡
-about.where.body = 從西雅圖、墨西哥城到蘇黎世，志工們一條街一條街地將 <span data-live-stat="num_countries">{1}</span> 個國家的 <span data-live-stat="num_cities">{0}</span> 個城市納入無障礙地圖。<a href="/cities">查看所有部署城市</a>，或<a href="https://accessiblecommunities.org/use-project-sidewalk/">將 Project Sidewalk 帶到您的城市</a>。
+about.where.body = 從西雅圖、墨西哥城到蘇黎世，志工們一條街一條街地將 <span data-live-stat="num_countries">{1}</span> 個國家的 <span data-live-stat="num_cities">{0}</span> 個城市納入無障礙地圖。
+about.where.links = <a href="/cities">查看所有部署城市</a>，或<a href="https://accessiblecommunities.org/use-project-sidewalk/">將 Project Sidewalk 帶到您的城市</a>。
 about.history.title = 我們的歷史
 about.history.2012 = Project Sidewalk 由 Jon E. Froehlich 教授與博士生 Kotaro Hara 在 <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> 發起，早期獲得 <a href="https://research.google/outreach/past-programs/faculty-research-awards/">Google Faculty Research Award</a> 與<a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338">美國國家科學基金會</a>支持。
 about.history.2017 = 第一個城市級部署於華盛頓特區啟動，由博士生 Manaswi Saha 與研究科學家 Mikey Saugstad 主導；同年實驗室遷至華盛頓大學 Paul G. Allen 電腦科學與工程學院。
@@ -261,7 +263,7 @@ about.history.2021 = <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2
 about.history.today.label = 今天
 about.history.today = Project Sidewalk 已在全球 <span data-live-stat="num_cities">{0}</span> 個城市運行，原生翻譯為 {1} 種語言，由數以千計的志工共同推動。
 about.team.title = 團隊
-about.team.intro = Project Sidewalk 是大學研究專案，由華盛頓大學 <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> 的 Jon E. Froehlich 教授與伊利諾大學芝加哥分校的 Yochai Eisenberg 教授共同主持，首席工程師為研究科學家 Mikey Saugstad，多年來已有上百位學生與合作者參與貢獻。
+about.team.intro = Project Sidewalk 是大學研究專案，由華盛頓大學 <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> 的 Jon E. Froehlich 教授與伊利諾大學芝加哥分校的 Yochai Eisenberg 教授共同主持，首席工程師為 Mikey Saugstad，多年來已有上百位學生與合作者參與貢獻。
 about.team.current.title = 現任團隊
 about.team.past.title = 歷任主持成員
 about.team.past.kotarohara = 以博士生身分與 Froehlich 教授共同創立 Project Sidewalk，開創了專案背後的群眾外包與電腦視覺方法——詳見他的<a href="https://makeabilitylab.cs.washington.edu/media/publications/Hara_ScalableMethodsToCollectAndVisualizeSidewalkAccessibilityDataForPeopleWithMobilityImpairments_UMDCSPhDDissertation2016.pdf">博士論文</a>。

@@ -1,6 +1,11 @@
 /* About page (#4631). All type and color come from the design-system tokens in main.css :root. */
 
 #about-page {
+  /* Height the sticky section-nav bar takes out of the viewport, which an in-page jump has to clear on top of the
+     navbar. Declared here rather than on .about-toc because the sections that read it are the nav's siblings, not
+     its descendants. The rail form covers no headings, so it zeroes this out. */
+  --about-toc-height: 48px;
+
   font: var(--text-body-regular);
   color: var(--color-neutral-900);
 }
@@ -24,6 +29,11 @@
 /* Alternating full-bleed section bands. */
 .about-band {
   padding: 56px 0;
+}
+
+/* Jumping to a section must clear the fixed navbar, plus the section nav when it's the bar sitting under it. */
+#about-page section[id] {
+  scroll-margin-top: calc(var(--navbar-height) + var(--test-banner-height, 0px) + var(--about-toc-height) + 12px);
 }
 
 .about-band--tint {
@@ -295,17 +305,19 @@
   text-decoration: underline;
 }
 
-.about-team-role {
-  display: block;
-  margin-top: 2px;
-  font: var(--text-small-regular);
-  color: var(--color-neutral-700);
-}
-
+/* Project role, position, and institution each get their own line under the name. */
+.about-team-role,
+.about-team-title,
 .about-team-affiliation {
   display: block;
   font: var(--text-small-regular);
   color: var(--color-neutral-700);
+}
+
+/* The name lives inside the card's link, so the first span the card itself owns is the first of these lines —
+   whichever one that is, since a member's row may supply any subset of the three. */
+.about-team-member > span:first-of-type {
+  margin-top: 2px;
 }
 
 #about-team-live h3 {
@@ -570,6 +582,123 @@
 
 #about-page .about-contact a {
   color: var(--color-banana-400);
+}
+
+/* In-page section nav.
+   Two forms of the same list. Below the rail breakpoint it's a chip bar that sticks under the navbar once the hero
+   scrolls past — `sticky` rather than `fixed` so it only occupies the viewport for the part of the page it indexes,
+   and so it can't cover the hero. */
+.about-toc {
+  position: sticky;
+  top: calc(var(--navbar-height) + var(--test-banner-height, 0px));
+  z-index: 2;
+  background-color: var(--color-neutral-white);
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.about-toc-list {
+  display: flex;
+  gap: 4px;
+  list-style: none;
+  margin: 0 auto;
+  padding: 6px 20px;
+  max-width: 1100px;
+  overflow-x: auto;
+
+  /* The bar is one line that scrolls sideways; a wrapped chip would push the page content down as sections change. */
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+
+.about-toc-list::-webkit-scrollbar {
+  display: none;
+}
+
+#about-page .about-toc-link {
+  display: block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  text-decoration: none;
+}
+
+#about-page .about-toc-link:hover {
+  background-color: var(--color-neutral-100);
+  color: var(--color-link-200);
+}
+
+#about-page .about-toc-link--active {
+  background-color: var(--color-neutral-100);
+  color: var(--color-asphalt-500);
+  font: var(--text-small-bold);
+}
+
+/* Rail form: only once the gutter beside the 1100px content column can hold it without crowding the text. */
+@media (width >= 1440px) {
+  #about-page {
+    --about-toc-height: 0px;
+  }
+
+  .about-toc {
+    position: fixed;
+    top: 50%;
+    right: 16px;
+    transform: translateY(-50%);
+    width: 150px;
+    background-color: transparent;
+    border-bottom: 0;
+    transition: opacity 0.2s ease, visibility 0.2s;
+  }
+
+  /* Floating over the hero, the closing band, or the footer, the rail has no section to point at and its link color
+     is unreadable against those dark full-bleed backgrounds. `visibility` as well as `opacity` so it also leaves the
+     tab order while it's gone. */
+  .about-toc--out-of-range {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .about-toc-list {
+    display: grid;
+    gap: 2px;
+    padding: 0;
+    overflow-x: visible;
+    white-space: normal;
+  }
+
+  /* A rail entry gets the room to wrap, so the heading can be read in full rather than truncated to fit a chip. */
+  #about-page .about-toc-link {
+    padding: 4px 10px;
+    border-left: 2px solid var(--color-neutral-200);
+    border-radius: 0;
+  }
+
+  #about-page .about-toc-link--active {
+    background-color: transparent;
+    border-left-color: var(--color-asphalt-500);
+  }
+}
+
+/* A jump between sections of one long page reads as a loss of place when it's instant, so animate it — scoped to this
+   page's document element, since scroll-behavior only takes effect on the element that actually scrolls. */
+@media (prefers-reduced-motion: no-preference) {
+  :root:has(#about-page) {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Deployment map */
+.about-map {
+  height: min(60vh, 480px);
+  margin: 24px 0 20px;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: var(--color-neutral-100);
+}
+
+#about-page .about-where-links {
+  margin: 0;
 }
 
 /* Responsive stacking */

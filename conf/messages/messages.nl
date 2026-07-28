@@ -155,6 +155,7 @@ about.stats.labels = Labels
 about.stats.validations = Validaties
 about.stats.cities = Steden
 about.stats.countries = Landen
+about.toc.title = Op deze pagina
 about.how.title = Hoe het werkt
 about.how.intro = Onze missie is om alle trottoirs ter wereld in kaart te brengen en te beoordelen met online crowdsourcing, kunstmatige intelligentie en straatbeelden. Iedereen met een webbrowser kan meehelpen — speciale hulpmiddelen zijn niet nodig.
 about.how.step.explore.title = Verken en label
@@ -182,7 +183,8 @@ about.impact.schools.place = Klaslokalen in de VS
 about.impact.schools.body = Leerlingen gebruiken Project Sidewalk om datavaardigheden en burgerschap te leren — van Girl Scouts in Oradell, New Jersey die hun bevindingen aan de gemeenteraad presenteerden tot <a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/">scholieren in Waltham, Massachusetts die staatsbrede erkenning kregen</a>.
 about.impact.more = Meer weten? Onze zustersite <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a> deelt nieuws, hulpmiddelen en handleidingen om Project Sidewalk in jouw gemeenschap in te zetten.
 about.where.title = Waar we actief zijn
-about.where.body = Van Seattle tot Mexico-Stad tot Zürich: vrijwilligers zetten <span data-live-stat="num_cities">{0}</span> steden in <span data-live-stat="num_countries">{1}</span> landen op de toegankelijkheidskaart, straat voor straat. <a href="/cities">Bekijk alle steden</a> of <a href="https://accessiblecommunities.org/use-project-sidewalk/">breng Project Sidewalk naar jouw stad</a>.
+about.where.body = Van Seattle tot Mexico-Stad tot Zürich: vrijwilligers zetten <span data-live-stat="num_cities">{0}</span> steden in <span data-live-stat="num_countries">{1}</span> landen op de toegankelijkheidskaart, straat voor straat.
+about.where.links = <a href="/cities">Bekijk alle steden</a> of <a href="https://accessiblecommunities.org/use-project-sidewalk/">breng Project Sidewalk naar jouw stad</a>.
 about.history.title = Onze geschiedenis
 about.history.2012 = Project Sidewalk begint als onderzoeksproject van professor Jon E. Froehlich en promovendus Kotaro Hara in het <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a>, met vroege steun van een <a href="https://research.google/outreach/past-programs/faculty-research-awards/">Google Faculty Research Award</a> en de <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338">National Science Foundation</a>.
 about.history.2017 = De eerste stadsbrede inzet gaat van start in Washington, DC, geleid door promovenda Manaswi Saha en onderzoekswetenschapper Mikey Saugstad, terwijl het lab verhuist naar de Paul G. Allen School of Computer Science &amp; Engineering aan de University of Washington.
@@ -191,7 +193,7 @@ about.history.2021 = Een <a href="https://www.nsf.gov/awardsearch/showAward?AWD_
 about.history.today.label = Vandaag
 about.history.today = Project Sidewalk is actief in <span data-live-stat="num_cities">{0}</span> steden wereldwijd, native vertaald in {1} talen en aangedreven door duizenden vrijwilligers.
 about.team.title = Het team
-about.team.intro = Project Sidewalk is universitair onderzoek, geleid door professor Jon E. Froehlich van het <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> aan de University of Washington en professor Yochai Eisenberg van de University of Illinois Chicago, met hoofdontwikkeling door onderzoekswetenschapper Mikey Saugstad — en bijdragen van ruim honderd studenten en medewerkers door de jaren heen.
+about.team.intro = Project Sidewalk is universitair onderzoek, geleid door professor Jon E. Froehlich van het <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> aan de University of Washington en professor Yochai Eisenberg van de University of Illinois Chicago, met hoofdontwikkeling door Mikey Saugstad — en bijdragen van ruim honderd studenten en medewerkers door de jaren heen.
 about.team.current.title = Huidig team
 about.team.past.title = Eerdere leiding
 about.team.past.kotarohara = Startte Project Sidewalk samen met professor Froehlich als zijn promovendus en ontwikkelde de crowdsourcing- en computervisiemethoden achter het project — het onderwerp van zijn <a href="https://makeabilitylab.cs.washington.edu/media/publications/Hara_ScalableMethodsToCollectAndVisualizeSidewalkAccessibilityDataForPeopleWithMobilityImpairments_UMDCSPhDDissertation2016.pdf">proefschrift</a>.
