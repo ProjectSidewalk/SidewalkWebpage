@@ -89,6 +89,16 @@ class SpeedLimit {
     this.container.querySelector('#speed-limit').innerText = this.speedLimit.number;
     this.container.querySelector('#speed-limit-sub').innerText = this.speedLimit.sub;
     this.container.style.display = this.speedLimitVisible ? 'flex' : 'none';
+
+    // The sign is marked role="img", so its number/units spans don't carry their own meaning to a screen reader.
+    // Name the graphic with the value folded in. Only worth doing while visible: display:none keeps the sign out of
+    // the accessibility tree, and the first call runs before i18next has initialized.
+    if (this.speedLimitVisible && typeof i18next !== 'undefined' && i18next.isInitialized) {
+      this.container.setAttribute('aria-label', i18next.t('common:speed-limit-aria-label', {
+        speed: this.speedLimit.number,
+        units: this.speedLimit.sub,
+      }));
+    }
   }
 
   /**

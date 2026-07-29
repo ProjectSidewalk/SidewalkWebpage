@@ -6,6 +6,7 @@
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
   "speed-limit-tooltip": "Knowing the <b>speed limit</b> on a street can help you better diagnose pedestrian safety, such as whether it is <b>safe</b> to cross at an uncontrolled intersection.",
+  "speed-limit-aria-label": "Speed limit {{speed}} {{units}}",
   "format-number": "{{val, number}}",
   "cities-cta-join_one": "Join {{count, number}} other community",
   "cities-cta-join_other": "Join {{count, number}} other communities",

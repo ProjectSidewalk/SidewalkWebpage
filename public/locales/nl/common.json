@@ -6,6 +6,7 @@
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
   "speed-limit-tooltip": "Als je de <b>maximumsnelheid</b> van een straat kent, kun je de veiligheid voor voetgangers beter inschatten, bijvoorbeeld of het <b>veilig</b> is om over te steken op een ongeregeld kruispunt.",
+  "speed-limit-aria-label": "Maximumsnelheid {{speed}} {{units}}",
   "format-number": "{{val, number}}",
   "cities-cta-join_one": "Sluit u aan bij nog {{count, number}} gemeenschap",
   "cities-cta-join_other": "Sluit u aan bij nog {{count, number}} gemeenschappen",

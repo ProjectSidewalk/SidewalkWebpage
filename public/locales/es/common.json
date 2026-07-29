@@ -6,6 +6,7 @@
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
   "speed-limit-tooltip": "Conocer el <b>límite de velocidad</b> de una calle puede ayudarte a evaluar mejor la seguridad peatonal, por ejemplo, si es <b>seguro</b> cruzar en una intersección no controlada.",
+  "speed-limit-aria-label": "Límite de velocidad {{speed}} {{units}}",
   "format-number": "{{val, number}}",
   "cities-cta-join_one": "Únete a {{count, number}} comunidad más",
   "cities-cta-join_other": "Únete a {{count, number}} comunidades más",
