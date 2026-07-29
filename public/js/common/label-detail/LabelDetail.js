@@ -32,13 +32,17 @@ class LabelDetail {
   }
 
   /**
-   * Resolves the pano, camera position, and POV to record with a validator comment.
+   * Resolves the pano, camera position, and point of view to record with a validation or a validator comment.
    *
    * A pano viewer only describes this label while it's actually showing it. On the static-crop fallback it isn't:
    * the primary viewer still reports whatever pano it last loaded, and reports nothing at all when the crop was the
-   * first thing opened — the null position that crashed submitting a comment (#4697). The crop is a screenshot of
-   * the label's own pano at its stored POV, so fall back to the label's metadata. None of these fields are optional
-   * server-side: validation_task_comment.lat/lng are NOT NULL and pano_id is a foreign key into pano_data.
+   * first thing opened. That silently stored the previous label's POV with a validation (#4711) and threw outright
+   * on the null position when submitting a comment (#4697).
+   *
+   * The crop is a screenshot of the label's own pano at its stored POV, so the label's metadata describes it
+   * exactly — the same answer Gallery's card-hover menu and the landing validation grid already submit for their
+   * static images. None of these fields are optional server-side: label_validation.heading/pitch/zoom and
+   * validation_task_comment.lat/lng are NOT NULL, and the comment's pano_id is a foreign key into pano_data.
    *
    * @param {?{panoId: ?string, position: ?{lat: number, lng: number},
    *     pov: ?{heading: number, pitch: number, zoom: number}}} viewer - What the viewer showing this label reports,
@@ -46,7 +50,7 @@ class LabelDetail {
    * @param {Object} meta - The current label's metadata payload.
    * @returns {{panoId: ?string, lat: ?number, lng: ?number, heading: ?number, pitch: ?number, zoom: ?number}}
    */
-  static commentContext(viewer, meta) {
+  static submissionContext(viewer, meta) {
     const viewerPos = viewer && viewer.position;
     const position = Number.isFinite(viewerPos?.lat) && Number.isFinite(viewerPos?.lng)
       ? viewerPos
@@ -708,6 +712,29 @@ class LabelDetail {
   // ───────────────────────────────────────────────────────────────────
 
   /**
+   * What the pano viewer can truthfully report about the label on screen, or null when it isn't showing it.
+   *
+   * Only 'Default' (the primary GSV/Mapillary/Infra3d viewer) and 'Pannellum' mean a viewer is rendering *this*
+   * label. On the static-crop fallback — and before the very first pano resolves — panoViewer still points at
+   * imagery that isn't this label's, so nothing it reports may be recorded against it. Feeds submissionContext(),
+   * which supplies the label's own metadata in that case.
+   *
+   * @returns {?{panoId: ?string, position: ?{lat: number, lng: number},
+   *     pov: ?{heading: number, pitch: number, zoom: number}}} Null when no viewer is showing this label; individual
+   *     fields may still be null when a viewer is up but its imagery hasn't resolved.
+   */
+  #viewerState() {
+    const showingThisLabel = this.panoManager.activeViewerName === 'Default'
+      || this.panoManager.activeViewerName === 'Pannellum';
+    if (!showingThisLabel) return null;
+    return {
+      panoId: this.panoManager.panoViewer.getPanoId(),
+      position: this.panoManager.panoViewer.getPosition(),
+      pov: this.panoManager.getPov(),
+    };
+  }
+
+  /**
    * POSTs JSON to a session-requiring endpoint, minting the shared anonymous session first if it's missing.
    *
    * The public spotlight page (#456) is reachable with no session at all, and SecuredAction answers a session-less
@@ -750,7 +777,11 @@ class LabelDetail {
     const canvasWidth = this.panoManager.svHolder.width();
     const canvasHeight = this.panoManager.svHolder.height();
     const panoMarkerPov = this.panoManager.getOriginalPosition();
-    const userPov = this.panoManager.getPov();
+    // Where the validator was looking. On the static-crop fallback that's the label's stored POV — what the crop is
+    // a screenshot of — rather than whatever the idle pano viewer happens to report (#4711). canvas_x/canvas_y are
+    // derived from it, so they follow.
+    const context = LabelDetail.submissionContext(this.#viewerState(), this.#currentLabelMeta ?? {});
+    const userPov = { heading: context.heading, pitch: context.pitch, zoom: context.zoom };
 
     const labelRadius = 10;
     const pixelCoordinates
@@ -1212,19 +1243,7 @@ class LabelDetail {
    */
   #submitComment(comment) {
     const els = this.#els;
-    // Only 'Default' (primary viewer) and 'Pannellum' mean a viewer is actually rendering *this* label. On the
-    // static-crop fallback — and before the very first pano resolves — panoViewer still points at imagery that
-    // isn't this label's, so nothing it reports may be recorded. See LabelDetail.commentContext().
-    const showingThisLabel = this.panoManager.activeViewerName === 'Default'
-      || this.panoManager.activeViewerName === 'Pannellum';
-    const viewer = showingThisLabel
-      ? {
-          panoId: this.panoManager.panoViewer.getPanoId(),
-          position: this.panoManager.panoViewer.getPosition(),
-          pov: this.panoManager.getPov(),
-        }
-      : null;
-    const context = LabelDetail.commentContext(viewer, this.#currentLabelMeta ?? {});
+    const context = LabelDetail.submissionContext(this.#viewerState(), this.#currentLabelMeta ?? {});
 
     els.commentButton.disabled = true;
 
