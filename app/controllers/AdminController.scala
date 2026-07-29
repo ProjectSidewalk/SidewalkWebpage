@@ -1026,7 +1026,16 @@ class AdminController @Inject() (
    */
   def refreshOsmWayData() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    osmWayService.refreshOsmWayData().map { waysRefreshed => Ok(Json.obj("ways_refreshed" -> waysRefreshed)) }
+    osmWayService
+      .refreshOsmWayData()
+      .map { waysRefreshed => Ok(Json.obj("ways_refreshed" -> waysRefreshed)) }
+      .recover { case e: Exception =>
+        logger.error("OSM way data refresh failed.", e)
+        // Chunks upsert as they complete, so partial progress survives and a re-trigger resumes from what's missing.
+        ServiceUnavailable(
+          Json.obj("error" -> s"Refresh failed partway (${e.getMessage}). Progress is saved; trigger again to resume.")
+        )
+      }
   }
 
   /**

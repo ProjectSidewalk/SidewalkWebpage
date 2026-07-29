@@ -32,6 +32,9 @@ class SpeedLimit {
   // Monotonic token so a slow fallback response can't overwrite the sign after the user has already moved on.
   #latestUpdateId = 0;
 
+  // Pending re-check while the pano position / street list are still loading at page startup.
+  #startupRetryTimer = null;
+
   /**
    * @param {PanoViewer} panoViewer PanoramaViewer object.
    * @param {function} coords Function that returns current longitude and latitude coordinates.
@@ -70,6 +73,10 @@ class SpeedLimit {
 
     // Listen for pano changes.
     panoViewer.addListener('pano_changed', this.#panoChangeListener);
+
+    // The initial pano usually finishes loading before this listener attaches, so its pano_changed is missed; run one
+    // update for the current position so the sign shows on the first pano without requiring movement.
+    this.#panoChangeListener();
   }
 
   /**
@@ -116,12 +123,24 @@ class SpeedLimit {
    * @returns {Promise<string|null>} Raw OSM maxspeed value (e.g. '25 mph', '30'), or null if unknown.
    */
   async #maxSpeedNearCurrentPosition() {
-    const { lat, lng } = this.#coords();
-    const point = turf.point([lng, lat]);
+    const position = this.#coords();
+    const tasks = this.#taskContainer.getTasks() ?? [];
+    if (!Number.isFinite(position?.lat) || tasks.length === 0) {
+      // At page startup the pano position and street list can lag this component. Re-check shortly instead of
+      // treating the spot as off-network (which would pointlessly ask the server about an on-network street).
+      if (this.#startupRetryTimer === null) {
+        this.#startupRetryTimer = setTimeout(() => {
+          this.#startupRetryTimer = null;
+          this.#panoChangeListener();
+        }, 1000);
+      }
+      return null;
+    }
+    const point = turf.point([position.lng, position.lat]);
 
     let nearestTask = null;
     let minDistance = Infinity;
-    for (const task of this.#taskContainer.getTasks() ?? []) {
+    for (const task of tasks) {
       const distance = turf.pointToLineDistance(point, task.getGeoJSON(), { units: 'meters' });
       if (distance < minDistance) {
         minDistance = distance;

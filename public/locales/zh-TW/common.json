@@ -5,6 +5,7 @@
   "unit-distance-abbreviation": "公里",
   "unit-abbreviation-mission-distance": "公尺",
   "unit-distance": "kilometers",
+  "speed-limit-tooltip": "了解街道的<b>速限</b>有助於更準確地判斷行人安全，例如在無號誌路口過馬路是否<b>安全</b>。",
   "format-number": "{{val, number}}",
   "cities-cta-join_other": "加入其他 {{count, number}} 個社區",
   "curb-ramp": "路緣斜坡",

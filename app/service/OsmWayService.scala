@@ -57,7 +57,7 @@ class OsmWayService @Inject() (
               acc <- accFuture
               // Space out requests to the shared Overpass instance; no delay before the first chunk.
               _ <- if (chunkIdx == 0) Future.unit else after(BATCH_CHUNK_DELAY, actorSystem.scheduler)(Future.unit)
-              fetched <- fetchTagsForWays(chunk)
+              fetched <- fetchTagsForWaysWithRetry(chunk)
               rows = chunk.map { wayId =>
                 val tags = fetched.getOrElse(wayId, Json.obj())
                 (wayId, tags: JsValue, maxspeedFrom(tags))
@@ -99,6 +99,19 @@ class OsmWayService @Inject() (
    */
   def getMaxSpeedsForStreets(streetEdgeIds: Seq[Int]): Future[Map[Int, String]] = {
     db.run(osmWayTable.getMaxSpeeds(streetEdgeIds))
+  }
+
+  /**
+   * Fetches a chunk's tags, retrying transient failures — the shared Overpass instance sheds load with 429s/504s
+   * routinely, so one bad response shouldn't sink a whole run. Waits BATCH_RETRY_DELAY x attempt between tries to
+   * give a loaded server breathing room.
+   */
+  private def fetchTagsForWaysWithRetry(wayIds: Seq[Long], attempt: Int = 1): Future[Map[Long, JsObject]] = {
+    fetchTagsForWays(wayIds).recoverWith {
+      case e: Exception if attempt < BATCH_MAX_ATTEMPTS =>
+        logger.warn(s"Overpass batch attempt $attempt/$BATCH_MAX_ATTEMPTS failed (${e.getMessage}); retrying.")
+        after(BATCH_RETRY_DELAY * attempt.toLong, actorSystem.scheduler)(fetchTagsForWaysWithRetry(wayIds, attempt + 1))
+    }
   }
 
   /**
@@ -158,6 +171,10 @@ object OsmWayService {
   /** Way ids per Overpass batch request, and the pause between consecutive requests. */
   val BATCH_CHUNK_SIZE: Int             = 300
   val BATCH_CHUNK_DELAY: FiniteDuration = 2.seconds
+
+  /** Retry budget for one chunk's fetch, with a delay that grows linearly per attempt. */
+  val BATCH_MAX_ATTEMPTS: Int           = 3
+  val BATCH_RETRY_DELAY: FiniteDuration = 15.seconds
 
   /** Per-coordinate cache TTL for the on-demand point lookup (doubles as a negative cache for "no road here"). */
   val POINT_CACHE_TTL: FiniteDuration = 10.minutes
