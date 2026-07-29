@@ -4,7 +4,7 @@
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@common.main(commonData, title) {
+@common.main(commonData, title, pageMeta = service.PageMeta(description = Some(Messages("seo.description.help")))) {
   @common.navbar(commonData, Some(user))
   <script src='@assets.path("js/help/build/help.js")'></script>
   <link rel="stylesheet" href='@assets.path("css/help.css")'>

@@ -28,7 +28,7 @@ trait ValidationService {
   def insertEnvironment(env: ValidationTaskEnvironment): Future[Int]
   def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Seq[Int]]
   def insertComment(comment: ValidationTaskComment): Future[Int]
-  def deleteCommentIfExists(labelId: Int, missionId: Int): Future[Int]
+  def deleteCommentIfExists(labelId: Int, userId: String): Future[Int]
   def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]]
   def submitValidationsDbio(validationSubmissions: Seq[ValidationSubmission]): DBIO[Seq[Int]]
 }
@@ -222,8 +222,8 @@ class ValidationServiceImpl @Inject() (
 
   def insertComment(comment: ValidationTaskComment): Future[Int] = db.run(validationTaskCommentTable.insert(comment))
 
-  def deleteCommentIfExists(labelId: Int, missionId: Int): Future[Int] =
-    db.run(validationTaskCommentTable.deleteIfExists(labelId, missionId))
+  def deleteCommentIfExists(labelId: Int, userId: String): Future[Int] =
+    db.run(validationTaskCommentTable.deleteIfExists(labelId, userId))
 
   /**
    * Updates severity and tags in the label table and saves the change in the label_history table. Called from Validate.
@@ -286,7 +286,7 @@ class ValidationServiceImpl @Inject() (
       // If undoing a validation, delete the validation and the associated comment.
       val oldValRemoved = if (valSubmission.undone || valSubmission.redone) {
         for {
-          _ <- validationTaskCommentTable.deleteIfExists(validation.labelId, validation.missionId)
+          _ <- validationTaskCommentTable.deleteIfExists(validation.labelId, validation.userId)
           _ <- deleteLabelValidationIfExists(validation.labelId, validation.userId)
         } yield true
       } else DBIO.successful(false)

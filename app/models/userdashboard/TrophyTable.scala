@@ -125,6 +125,35 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   }
 
   /**
+   * Whether the user has tried a free-exploration session, and whether they labeled during one (#4451).
+   *
+   * Both flags come back from one round trip because the two trophies are always rendered together. Unlike the other
+   * trophies these are participation facts about the user's own history, so no cross-user ranking or eligibility
+   * filtering applies — only the usual deleted/tutorial label exclusions.
+   *
+   * @param userId The user to check.
+   * @return       (has started at least one exploreAddress mission, has at least one label from such a mission).
+   */
+  def getFreeExplorationTrophyFlags(userId: String): DBIO[(Boolean, Boolean)] = {
+    sql"""
+      SELECT
+          EXISTS (
+              SELECT 1
+              FROM mission
+              WHERE mission.user_id = $userId AND mission.mission_type = 'exploreAddress'
+          ),
+          EXISTS (
+              SELECT 1
+              FROM label
+              INNER JOIN mission ON label.mission_id = mission.mission_id
+              WHERE label.user_id = $userId
+                  AND label.deleted = FALSE AND label.tutorial = FALSE
+                  AND mission.mission_type = 'exploreAddress'
+          );
+    """.as[(Boolean, Boolean)].head
+  }
+
+  /**
    * The user id of the first-ever labeler in this city (earliest non-tutorial label), if any.
    *
    * @param aiUserId The AI account id to exclude.

@@ -1,0 +1,6 @@
+@(icon: String)(implicit assets: AssetsFinder)
+@* Leading icon for a top-level navbar destination. Hidden in the inline bar — where the destinations are deliberately
+   plain text links — and revealed in the stacked hamburger panel, so that menu reads as one icon column top to bottom
+   alongside the city/account/language selectors, which carry their icons at every width. Same shared feather set as
+   the dropdown items (docs/style-guide.md); the alt is empty because the item's own text is the accessible name. *@
+<img class="navbar-lnk-icon" src='@assets.path("images/icons/" + icon + "-feather.svg")' alt="" aria-hidden="true">

@@ -47,11 +47,17 @@ convention above.
 
 ### Database & evolutions
 
-Schema changes are **Play evolutions**: numbered SQL files in `conf/evolutions/default/`. Add the next-numbered file for schema changes; each has `# --- !Ups` and `# --- !Downs` sections. The dev DB is seeded from a dump — see [`db/scripts/README.md`](db/scripts/README.md) for the full DB lifecycle/maintenance scripts (`import-dump`, `create-new-schema`, etc., exposed as `make` targets). Connection config is env-driven (`DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`) in `conf/application.conf`.
+Schema changes are **Play evolutions**: numbered SQL files in `conf/evolutions/default/`. Add the next-numbered file for schema changes; each has `# --- !Ups` and `# --- !Downs` sections. **One evolution file per PR:** all of a PR's schema changes go in a single file, even when they land in separate commits or feel like separate concerns — until the PR merges, nothing has shipped, so fold later changes into the existing file instead of minting the next number (which also collides faster with other in-flight PRs). The dev DB is seeded from a dump — see [`db/scripts/README.md`](db/scripts/README.md) for the full DB lifecycle/maintenance scripts (`import-dump`, `create-new-schema`, etc., exposed as `make` targets). Connection config is env-driven (`DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`) in `conf/application.conf`.
 
 **Every `CREATE TABLE` must be followed by `ALTER TABLE <name> OWNER TO sidewalk;`** in the same evolution (see 309.sql for the pattern). On the prod server, evolutions run as an admin role, so a new table would otherwise be owned by that role and the `sidewalk` app role would lack permissions on it. This applies to **tables only** — it's easy to forget, and a missed one has to be patched by a later evolution (e.g. 321.sql fixed 314.sql; 329.sql fixed 326.sql/327.sql). Note:
 - **SERIAL / identity sequences** are covered automatically: `ALTER TABLE … OWNER TO` recursively reassigns any sequence a column owns, so no separate statement is needed for them.
 - **Enum types, views, and standalone (non-column-owned) sequences do *not* get an owner change** — the app only needs default `USAGE`/`SELECT` on those, which it already has, and they're never altered at runtime. Don't add `OWNER TO` for them.
+
+**Give every table its full set of constraints — don't lean on the app to enforce integrity.** When you `CREATE TABLE` (or `ALTER` one), add every constraint the data model implies: `NOT NULL` on any column the app never writes null to, `UNIQUE` on a natural key or one-to-one relationship (or make it the `PRIMARY KEY`), a `FOREIGN KEY` for every reference to another table, and a `CHECK` for a bounded domain (a severity `1`–`3`, a non-negative count, a `0`–`1` fraction, a valid lat/lng). A missing constraint silently rots into bad data — backfilling ones that should have been there from the start has cost whole PRs (#3574 for FKs, #3944 for NOT NULL/UNIQUE/PK/CHECK). **Mirror each in the Slick model** so schema and code agree: a non-`Option` `column[T]` means `NOT NULL`, `def pk = primaryKey(...)` declares a composite PK (single-column PKs use `O.PrimaryKey` inline), `index(..., unique = true)` a UNIQUE, and `foreignKey(...)` an FK. CHECK constraints have no Slick DSL, so they live only in the evolution — leave a comment noting the invariant.
+
+**Closed value sets: prefer enum types or CHECKs over lookup tables and bare text (#4103).** When a column can only hold a fixed set of values, pick between two tools. Use a **Postgres enum type** when the column is on a high-row-count table, is written at runtime, or is mirrored by a Scala enum — it makes the DB self-describing (readable raw SQL and dumps, no join to a lookup table, no hand-maintained Scala id map that nothing validates) and fails loudly on drift. Wire it up like the existing ones (`pano_source`, `validation_option`, `street_edge_status`, `mission_type`, `way_type`): a Scala `Enumeration` object whose string values match the enum labels, plus a `createEnumJdbcType` mapper in `MyPostgresProfile`. Growing a set later is fine — `ALTER TYPE ... ADD VALUE` has prod precedent (331/332/339). Use a plain **`CHECK (col IN (...))`** instead for tiny script-seeded config/cache tables (e.g. `config.open_status`, `funnel_stat.funnel_type`), where the enum's join/space/mapping benefits are nil. Two gotchas: tables and types share a namespace, so when an enum replaces a lookup table of the same name, `DROP TABLE` must precede `CREATE TYPE`; and enum values are compared as enum literals in SQL, so a raw-SQL filter built from user input must validate values first (an invalid literal is a Postgres error, not an empty result).
+
+**Postgres does *not* rename a table's constraints or indexes when you rename the table or a column** — the old name sticks and silently drifts from what it enforces. So an evolution that renames a column (or table) must also `ALTER TABLE … RENAME CONSTRAINT` / `ALTER INDEX … RENAME` every constraint and index whose name embeds the old identifier, back to the `<table>_<column>_{fkey,key,pkey,check}` convention, and update the matching name string in the Slick model (`foreignKey`/`index`/`primaryKey`). Skipping this forces a later evolution to patch the fossils — 337.sql had to rename three, e.g. `user_org_org_id_fkey` → `user_team_team_id_fkey`, left over from an old `user_org` → `user_team` table rename.
 
 ## Frontend architecture
 
@@ -80,6 +86,17 @@ Two separate i18n systems:
 Supported languages: en, es, nl, zh-TW, de, pt-BR, en-US, en-NZ.
 
 User-facing text changes require translations for all supported languages
+
+**Backend: English goes in `messages.en`, never the base `messages` file.** For a `@Messages("...")` key, put the
+English string in **`conf/messages/messages.en`** and a (best-effort, machine-translation-OK) translation in **each**
+`messages.<lang>` (`.es`, `.nl`, `.de`, `.pt-BR`, `.zh-TW`). The base **`conf/messages/messages`** (no suffix) is the
+Play *default/fallback* file — reserve it for genuinely language-neutral values (city-name proper nouns, way-type keys)
+and never add translatable English prose there. **The common trap:** doing an English-only first pass and dropping the
+strings into the base `messages` (it looks like "the English/default file"), then adding `messages.en` + `messages.<lang>`
+in a later translation pass — which leaves a stale, duplicated English copy in the base file. Even the English-only
+first pass belongs in `messages.en`. (Regional English overlays `messages.en-US`/`messages.en-NZ` fall back through
+`messages.en`; the other languages fall back straight to the base default, so a missing `messages.<lang>` key shows the
+raw key — which is why every language file must carry the key.)
 
 Lean towards using `data-i18n="ns:key"` in HTML so that we can keep the translations in the i18next JS library and reduce duplicate translations.
 
@@ -116,9 +133,11 @@ Every label type has a **canonical color** and a set of **icon images**. Always 
 | Occlusion      | `#B3B3B3` |
 | Problem        | `#B3B3B3` |
 
-**Icons** live in `public/images/icons/label_type_icons/` in three sizes: `{LabelType}.png` (large),
-`{LabelType}_small.png`, and `{LabelType}_tiny.png`. The canonical source of truth for both colors and icon URLs
-is the `/v3/api/labelTypes` endpoint.
+**Icons** live in `public/images/icons/label_type_icons/` in three PNG sizes — `{LabelType}.png` (large),
+`{LabelType}_small.png`, `{LabelType}_tiny.png` — plus a scalable `{LabelType}_small.svg` variant (used where the
+icon renders at arbitrary size, e.g. the label card's in-pano marker). The canonical source of truth for both
+colors and icon URLs is the `/v3/api/labelTypes` endpoint (PNG paths); frontend code reads all four paths from
+`util.misc.getIconImagePaths(labelType)` rather than hardcoding them.
 
 **In JavaScript:** call `util.misc.getLabelColors(labelType)` — defined in
 `public/js/common/UtilitiesSidewalk.js` and loaded on every page that includes
@@ -175,10 +194,27 @@ When you catch yourself writing a frontend constant that mirrors a backend value
   - **CSS** (`public/css/`): `make stylelint-fix dir=<…>`, then `make stylelint`.
   - **HTML** (Twirl views in `app/views/`): `make htmlhint`.
   - **Translation JSON** (`public/locales/`): `make eslint` (per-file validity/dup-key checks) plus `make lint-locales` (cross-locale key parity).
-  - `make lint` runs all of them at once; `make lint-fix` autofixes the ESLint + Stylelint mechanical findings.
+  - `make lint` runs all of them (plus the evolutions lint) at once; `make lint-fix` autofixes the ESLint + Stylelint mechanical findings.
 - User interactions are logged (clicks, key presses, mode switches, pano changes, mission/task events, etc.) to the activity/interaction tables. When you **add or change an interaction**, add or adjust the corresponding logging so analytics stay complete; keep event names consistent with the existing ones, and update [`docs/logged-events.md`](docs/logged-events.md) (how logging works + the event reference).
 - Ensure WCAG 2.1/2.2 Level AA accessibility standards are met
-- When adding or refactoring code, use the fonts, colors, button styling, etc. defined in main.css :root. These are pulled from our "Design System Tokens" Figma, and we are pushing to use these going forward.
+- **Style all UI from the design-system tokens in `main.css` `:root`** — colors (`--color-*`), type (`--text-*`),
+  and button styles. They mirror our "Design System Tokens" Figma and are the default for any new or refactored UI:
+  a hardcoded hex color or hand-assembled font stack is a bug unless the token set genuinely has no fit. For type
+  specifically:
+  - **Set type with a composite `--text-*` token, not the raw font variables.** Write
+    `font: var(--text-body-regular);` — never `font-family: var(--font-primary)` plus hand-picked
+    size/weight/line-height. The `--text-*` tokens are complete `font` shorthands (weight, size/line-height, family)
+    and already bake in `var(--ui-scale)`. If one aspect of the token doesn't suit the design — usually line-height —
+    keep the token and override just that property after it (`font: var(--text-body-regular); line-height: 1.5;`)
+    rather than dropping to raw `font-*` properties.
+  - **Default to the primary font (Mulish).** The accent font (`--font-accent`, Raleway) is display-only and already
+    scoped to the few tokens that carry it (`--text-h1-bold`, `--text-h2-bold`, `--text-small-accent`) — don't
+    introduce it elsewhere.
+  - **Never set numbers in Raleway.** Raleway defaults to old-style (text) figures: digits vary in height and
+    3/4/5/7/9 descend below the baseline, so numeric strings look uneven and misaligned. Anything that renders
+    digits — counts, stats, timers, percentages, dates — gets a primary-font `--text-*` token, even inside an
+    otherwise accent-styled heading.
+- **Scale tool UI with `var(--ui-scale)`.** The Explore and Validate tools (and self-contained overlays layered over them — the mission-complete modal, the tutorial intro/complete screens, etc.) are zoomed uniformly to fit the viewport by `util.applyToolScale` (`public/js/common/utilities.js`), which sets `--ui-scale` on both `.tool-ui` and the document root. So **every fixed dimension you author for tool/overlay UI must be expressed as `calc(<base>px * var(--ui-scale, 1))`** — paddings, gaps, widths, heights, border widths/radii, icon sizes, and any hardcoded `font-size`/`letter-spacing`. For type, prefer the `--text-*` tokens (they already bake in `var(--ui-scale)`); only drop to a raw `calc(... * var(--ui-scale, 1))` font-size when no token matches the size. A bare `px` value here is a bug: it won't grow/shrink with the rest of the tool. (Fluid values — `%`, `flex`, `aspect-ratio`, viewport units — don't need it.) This does **not** apply to fixed page chrome like the navbar, which deliberately stays unscaled.
 - Max line length of 120 characters, with long line exceptions where appropriate. For multi-line comments, TARGET line length is 120 characters
 - **Keep docs in sync.** When you change architecture, framework versions, supported languages, label types, or other conventions, update the affected docs in the *same* change: [`docs/architecture.md`](docs/architecture.md) mirrors this file's architecture (and the README's tech-stack summary), and [`CONTRIBUTING.md`](CONTRIBUTING.md) holds the workflow/standards. To avoid drift, keep exact dependency/patch versions in **one** place — the dependency-version inventory ([`docs/upgrading-libraries.md`](docs/upgrading-libraries.md)) — rather than copying them across docs. README/architecture mention only stable major versions (e.g. Scala 2.13, Play 3.0, Java 17).
 
@@ -336,6 +372,38 @@ make ssh target=db  # exec into a running container (projectsidewalk-db / -web)
 
 Inside the web container shell, the developer starts the app with `npm start` (runs Grunt concat + watch in the background, then `sbt run` — i.e. `sbt ~ run`, continuous recompile; `npm run debug` adds a JVM debug port). It serves on **http://localhost:9000** using `conf/application.local.conf`. First compile is slow (sbt resolves dependencies); sbt keeps its caches inside the project dir (`.coursier`, `.sbt`).
 
+### Running a worktree's app for QA
+
+To QA an uncommitted branch that lives in a git **worktree** (`.claude/worktrees/<name>`) rather than the main repo,
+run **`make qa-worktree wt=<name>`** (the same on Mac, Linux, and WSL — all the setup runs inside the web container).
+It handles what the plain `npm start` flow doesn't for a worktree: symlink the main repo's `node_modules` (gitignored,
+so absent in worktrees), build that branch's JS/CSS bundles (also gitignored/absent — without them every page 404s its
+assets), start a backgrounded **`grunt watch`** so later `public/js/**` / `public/css/**` edits rebuild the bundles
+automatically (a plain hard-reload always reflects the latest source — no manual reconcat), free `:9000`, kill any stray
+`sbt --client` server *or* hung `sbtn` task sharing the worktree's `target/` (either deadlocks `~ run` on compile locks),
+and launch `sbt ~ run` with `-Dconfig.file` at the worktree's own conf and the sbt caches pointed at the main repo's warm
+`.coursier`/`.sbt` (cwd-relative caches from a worktree would re-download gigabytes). The first HTTP request triggers the
+dev compile; **Ctrl-C stops the app and reaps the grunt watch** (a trap, so the watcher never lingers). To tear a session
+down out-of-band, run **`make qa-worktree-stop wt=<name>`** (add `clean=1` to also drop the `node_modules` symlink).
+Implementation: `tools/qa-worktree.sh` — both targets run the **worktree's own** copy of that script when it has one
+(falling back to the main checkout's), so the branch being QA'd supplies its own tooling.
+
+`make` itself still reads the **main checkout's** Makefile, so when that checkout sits on a branch without the target,
+make reports `No rule to make target 'qa-worktree'`. Either check out a branch that has it, or run the worktree's script
+directly: `docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/qa-worktree.sh <name>`.
+
+**Admin-authenticated QA:** the dev DB is seeded from a dump that includes real accounts and their bcrypt password
+hashes, and password verification is config-independent (plain bcrypt, no server-side pepper), so if your own account is
+in the dump you can just sign in with your normal credentials. If you don't have credentials for a seeded account — or
+want a throwaway admin — create a fresh account (two-step CSRF `POST /signUp`) and grant it a role via a local DB write;
+roles are resolved per-request, so an existing session cookie gains access without re-login:
+
+```sql
+UPDATE sidewalk_login.user_role
+SET role_id = (SELECT role_id FROM sidewalk_login.role WHERE role = 'Owner')
+WHERE user_id = (SELECT user_id FROM sidewalk_login.sidewalk_user WHERE username = '<user>');
+```
+
 ### Verifying backend (Scala) changes compile
 
 For a quick pass/fail without running tests, validate backend changes by compiling. The clean way is the **sbt thin client**, which runs against its own dedicated server and so does *not* fight the developer's running `sbt ~ run` (a plain second `sbt compile` collides with it over build/target locks and hangs):
@@ -395,19 +463,39 @@ docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -c "\dt sidewal
 docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -c "SELECT * FROM sidewalk_login.role;"
 ```
 
-Each city has its own schema (`sidewalk_<city>`), and they are essentially identical — `sidewalk_seattle` is a safe default for schema questions; authentication lives in `sidewalk_login`. If you need to query *actual data* (not just structure), **ask which city we're working in first**. Evolutions in `conf/evolutions/default/` are auto-applied when a page loads, so you don't run them manually.
+Each city has its own schema (`sidewalk_<city>`), and they are essentially identical — `sidewalk_seattle` is a safe default for **schema** questions; authentication lives in `sidewalk_login`. Evolutions in `conf/evolutions/default/` are auto-applied when a page loads, so you don't run them manually.
+
+**For anything about *data* or *migration state*, first find out which city is actually running** — don't assume `sidewalk_seattle`:
+
+```bash
+docker exec projectsidewalk-web bash -lc 'echo $DATABASE_USER'   # this value IS the active schema name
+```
+
+`DATABASE_USER` selects the schema and is authoritative; `SIDEWALK_CITY_ID` only selects `cityparams.conf` entries (map center, bounds, display name). The two are *supposed* to correspond (see [`docs/dev-environment.md`](docs/dev-environment.md) → "City IDs"), but a container can be left with them **mismatched**, in which case the app renders one city's params over another city's data — an empty map with no error in any log. Confirm what the app believes it is with `curl -s -b <cookie-jar> localhost:9000/labelmap | grep -oE 'cityId: "[^"]*"'`.
+
+**`readonly_user` cannot see every schema, and the failure is silent.** It is granted per-schema, so it may have no rights on the active city's schema — and `information_schema` / `\dt` simply **omit** what you can't see rather than erroring, which reads as "that schema doesn't exist" or "that evolution never applied". `pg_namespace` is world-readable, so enumerate with it, then query the city as its own role:
+
+```bash
+docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -tAc \
+  "SELECT nspname FROM pg_namespace WHERE nspname LIKE 'sidewalk%' ORDER BY 1"
+docker exec projectsidewalk-db psql -U sidewalk_teaneck -d sidewalk -c \
+  "SELECT max(id) FROM sidewalk_teaneck.play_evolutions"
+```
+
+Never conclude "evolution N didn't apply" from a `readonly_user` query without first confirming which schema the app uses.
 
 **The dev DB is not representative of production size, and some tables may be absent.** The two largest production tables by a wide margin are **`audit_task_interaction`** and **`validation_task_interaction`** (raw per-action interaction logs — pans, zooms, clicks). The dev DB dumps that seed local development **omit** these tables to stay manageable, so locally they are typically empty or missing. Never infer a table's production size or existence from the local DB. When reasoning about query cost or indexes, treat these two interaction tables — not `webpage_activity` — as the heavyweight logs.
 
 ### Linting
 
 ```bash
-make lint           # eslint + stylelint + htmlhint + lint-locales (all of it)
+make lint           # eslint + stylelint + htmlhint + lint-locales + lint-evolutions (all of it)
 make lint-fix       # eslint --fix + stylelint --fix
 make eslint         # JS + translation JSON; defaults to public/js/ + public/locales/ (build/ carved out by config ignores; vendor/ is out of the files glob)
 make stylelint      # CSS; defaults to public/**/*.css (vendor/ carved out by the config's ignoreFiles)
 make htmlhint       # HTML; defaults to app/views/
 make lint-locales   # cross-locale key parity (tools/check-locale-parity.mjs)
+make lint-evolutions # static checks on conf/evolutions/default/*.sql (host-side bash, no container needed)
 make eslint dir=public/js/validate   # scope any target to a dir/file; also stylelint / htmlhint
 ```
 

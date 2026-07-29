@@ -50,7 +50,8 @@
       const imagerySrc = "@commonData.imagerySource.toString";
       const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
       const accessToken = "@commonData.imageryAccessToken";
-      const gsvLabelView = await LabelPopup(@isAdmin, viewerType, accessToken, "@user.username");
+      const gsvLabelView = await LabelPopup(@isAdmin, viewerType, accessToken, "@user.username",
+                                            { showExploreHereLink: true });
       new AdminLabelSearch(@isAdmin, gsvLabelView, 'LabelSearchPage');
       await gsvLabelView.showLabel(parseInt("@labelId"), 'LabelSearchPage');
     });

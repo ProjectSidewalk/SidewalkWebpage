@@ -1,6 +1,7 @@
 package models.gallery
 
 import com.google.inject.ImplementedBy
+import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -44,8 +45,7 @@ class GalleryTaskEnvironmentTableDef(tag: Tag) extends Table[GalleryTaskEnvironm
     GalleryTaskEnvironment.unapply
   )
 
-//  def user: ForeignKeyQuery[UserTable, DBUser] =
-//    foreignKey("gallery_task_environment_user_id_fkey", userId, TableQuery[UserTableDef])(_.userId)
+  def user = foreignKey("gallery_task_environment_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId.?)
 }
 
 @ImplementedBy(classOf[GalleryTaskEnvironmentTable])

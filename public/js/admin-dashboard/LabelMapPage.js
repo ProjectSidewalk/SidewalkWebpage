@@ -2,7 +2,7 @@
  * Renders the admin Label Map page (#4272): an interactive per-label point map for spatially exploring labels.
  *
  * This is the redesign's home for the legacy admin "Map" tab. It reuses the shared PSMap component (createPSMap) and
- * the common map-sidebar filter (MapSidebarFilter), loading every label from /adminapi/labels/all as colored points,
+ * the common filter-sidebar filter (MapSidebarFilter), loading every label from /adminapi/labels/all as colored points,
  * and wires the label-detail popup so clicking a point opens its full detail. A label-ID search box jumps straight to
  * any label's popup (and exposes /admin/label/:id as a fallback link). All map/filter/popup behavior is identical to
  * the legacy map — only the surrounding page is the new dashboard shell.
@@ -26,7 +26,9 @@ class LabelMapPage {
     // Build the label-detail popup first so the map can hand clicks to it. If it fails (e.g. pano libs missing),
     // the map still renders and the search box falls back to opening /admin/label/:id as a page.
     try {
-      this.#popup = await LabelPopup(true, this.#opts.viewerType, this.#opts.accessToken, this.#opts.username);
+      this.#popup = await LabelPopup(true, this.#opts.viewerType, this.#opts.accessToken, this.#opts.username, {
+        showExploreHereLink: true,
+      });
     } catch (err) {
       console.error('Label Map: label popup failed to initialize; clicks/search will navigate instead.', err);
     }

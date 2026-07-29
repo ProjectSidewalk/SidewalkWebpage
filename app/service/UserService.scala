@@ -12,6 +12,8 @@ import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.MyPostgresProfile
 import models.utils.ProfanityGuard
 import models.validation.LabelValidationTable
+import play.api.Logger
+import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.Messages
 import slick.dbio.DBIO
@@ -20,6 +22,7 @@ import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneId}
 import java.util.Locale
 import javax.inject._
+import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 
 case class UserProfileData(
@@ -69,6 +72,32 @@ case class AccuracyByType(
     pct: Int,
     validated: Int,
     weakest: Boolean
+)
+
+/**
+ * One row of the all-time global leaderboard, with the DAO's schema name resolved to a city id (#3719).
+ *
+ * The view turns `topCityId` into a display name and link via `CommonPageData.allCityInfo`, keeping city naming and
+ * localization in one place.
+ *
+ * @param username       Display name.
+ * @param labelCount     Labels placed across all included cities.
+ * @param missionCount   Missions completed across all included cities.
+ * @param distanceMeters Street distance audited across all included cities.
+ * @param accuracy       Cross-city validation agreement rate, or None below the 10-validated-label threshold.
+ * @param topCityId      City id where this user placed the most labels, or None if its schema maps to no configured id.
+ * @param profileLinked  Whether to link the name to `/userProfile`. False for a mapper with no public profile *here* —
+ *                       most rows on most deployments, since a global row can come from a mapper who has never
+ *                       labeled in this city — where the link would land on a "kept private" page.
+ */
+case class GlobalLeaderboardEntry(
+    username: String,
+    labelCount: Int,
+    missionCount: Int,
+    distanceMeters: Double,
+    accuracy: Option[Double],
+    topCityId: Option[String],
+    profileLinked: Boolean
 )
 
 case class AdminUserProfileData(
@@ -247,6 +276,17 @@ trait UserService {
       userIdForTeam: Option[String] = None
   ): Future[Seq[LeaderboardStat]]
   def getUserStanding(userId: String): Future[Option[UserStanding]]
+
+  /**
+   * Gets the all-time global leaderboard: top contributors by labels summed across every included city (#3719).
+   *
+   * @param n How many rows to return.
+   * @return  `Some` of up to `n` rows in rank order, each carrying the id of the city where that user labeled most —
+   *          `Some(Nil)` meaning the board is live but nobody qualifies yet. `None` when the board can't be computed
+   *          (no city qualifies, or the query failed), so the page can omit the section instead of claiming the
+   *          community has no labels.
+   */
+  def getGlobalLeaderboardStats(n: Int): Future[Option[Seq[GlobalLeaderboardEntry]]]
   def getActivityStreak(userId: String, locale: Locale = Locale.ENGLISH): Future[StreakStats]
   def getAccuracyByType(userId: String): Future[Seq[AccuracyByType]]
   def getTrophies(userId: String, cityName: String, messages: Messages): Future[Seq[Trophy]]
@@ -273,9 +313,13 @@ class UserServiceImpl @Inject() (
     userTeamTable: UserTeamTable,
     teamTable: TeamTable,
     userUtmTable: UserUtmTable,
+    configService: ConfigService,
+    cacheApi: AsyncCacheApi,
     implicit val ec: ExecutionContext
 ) extends UserService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
+
+  private val logger = Logger(this.getClass)
 
   /**
    * Gets the data to show on a user's dashboard.
@@ -466,6 +510,44 @@ class UserServiceImpl @Inject() (
     } yield stats)
   }
 
+  def getGlobalLeaderboardStats(n: Int): Future[Option[Seq[GlobalLeaderboardEntry]]] = {
+    // Cached because every city's deployment renders the same global board, so an uncached read would recompute a
+    // ~50-schema union on each of their page loads. 10 minutes matches the other cross-city reads; the board is
+    // all-time, so it barely moves between refreshes. The recover sits outside the cache so a transient DB failure
+    // isn't stored as a successful "no board" for the next 10 minutes.
+    cacheApi
+      .getOrElseUpdate[Option[Seq[GlobalLeaderboardEntry]]](
+        s"getGlobalLeaderboardStats_$n",
+        Duration(10, "minutes")
+      ) {
+        configService.getGlobalLeaderboardScope.flatMap { scope =>
+          if (scope.cities.isEmpty) {
+            Future.successful(None)
+          } else {
+            val cityIdBySchema: Map[String, String] = scope.cities.map { case (cityId, schema) =>
+              schema -> cityId
+            }.toMap
+            db.run(userStatTable.getGlobalLeaderboardStats(scope.cities.map(_._2), scope.optOutSchemas, n)).flatMap {
+              stats =>
+                // Profile visibility is per city, so it's resolved against *this* deployment's user_stat rows: a row
+                // earned entirely in another city has no profile to link to here.
+                db.run(userStatTable.usersWithPublicProfile(stats.map(_.userId))).map { linkable =>
+                  Some(stats.map { stat =>
+                    GlobalLeaderboardEntry(stat.username, stat.labelCount, stat.missionCount, stat.distanceMeters,
+                      stat.accuracy, cityIdBySchema.get(stat.topCitySchema), linkable.contains(stat.userId))
+                  })
+                }
+            }
+          }
+        }
+      }
+      .recover { case e: Exception =>
+        // The section is supplementary, so a failure here drops it rather than taking down the whole leaderboard page.
+        logger.warn(s"Failed to compute the global leaderboard, omitting the section: ${e.getMessage}", e)
+        None
+      }
+  }
+
   /**
    * Gets the user's weekly standing (rank by labels) plus how many spots they've moved since last week.
    *
@@ -506,13 +588,15 @@ class UserServiceImpl @Inject() (
     val regionPioneersF = db.run(trophyTable.getRegionPioneers(userId, aiId, 5))
     val championsF      = db.run(trophyTable.getRegionChampions(userId, aiId, 6))
     val weeklyF         = db.run(trophyTable.getWeeklyPodiums(userId, 6))
+    val freeExploreF    = db.run(trophyTable.getFreeExplorationTrophyFlags(userId))
     val medals          = Map(1 -> "🥇", 2 -> "🥈", 3 -> "🥉")
     val weekOfFmt       = DateTimeFormatter.ofPattern("MMM d, yyyy", messages.lang.toLocale)
     for {
-      cityPioneer    <- cityPioneerF
-      regionPioneers <- regionPioneersF
-      champions      <- championsF
-      weekly         <- weeklyF
+      cityPioneer                            <- cityPioneerF
+      regionPioneers                         <- regionPioneersF
+      champions                              <- championsF
+      weekly                                 <- weeklyF
+      (triedFreeExplore, labeledFreeExplore) <- freeExploreF
     } yield {
       // Order by prestige/rarity: city pioneer, then region pioneers, then region champions, then weekly podiums.
       val cityTrophy =
@@ -547,7 +631,19 @@ class UserServiceImpl @Inject() (
           rank
         )
       }
-      cityTrophy ++ regionPioneerTrophies ++ championTrophies ++ weeklyTrophies
+      // Participation trophies rather than rankings, so they sit last — after everything that had to be earned
+      // against other mappers.
+      val freeExploreTrophies =
+        Seq(
+          if (triedFreeExplore)
+            Some(Trophy("🗺️", "Free explorer", messages("dashboard.trophy.sub.free-explore-tried"), "freeExplore"))
+          else None,
+          if (labeledFreeExplore)
+            Some(Trophy("🔎", "Explorer's eye", messages("dashboard.trophy.sub.free-explore-labeled"), "freeExplore"))
+          else None
+        ).flatten
+
+      cityTrophy ++ regionPioneerTrophies ++ championTrophies ++ weeklyTrophies ++ freeExploreTrophies
     }
   }
 

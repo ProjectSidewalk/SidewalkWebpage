@@ -118,14 +118,15 @@ class Tracker {
       this.#currentLabel = extraData.temporaryLabelId;
     }
 
-    // Initialize variables. Note you cannot get pov, pano_id, or latLng before the map and pano load.
+    // Initialize variables. The viewer's getters return null until the first pano has loaded (e.g. during
+    // onboarding startup), so fall back to null fields rather than assuming a loaded pano.
     const panoViewer = svl.panoViewer ? svl.panoViewer : null;
-    const latlng = panoViewer ? panoViewer.getPosition() : { lat: null, lng: null };
-    const pov = panoViewer ? panoViewer.getPov() : { heading: null, pitch: null, zoom: null };
+    const latlng = panoViewer?.getPosition() ?? { lat: null, lng: null };
+    const pov = panoViewer?.getPov() ?? { heading: null, pitch: null, zoom: null };
 
     return {
       action,
-      pano_id: panoViewer ? panoViewer.getPanoId() : null,
+      pano_id: panoViewer?.getPanoId() ?? null,
       lat: latlng.lat,
       lng: latlng.lng,
       heading: pov.heading,

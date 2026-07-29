@@ -39,7 +39,8 @@ class UserProfileController @Inject() (
   /** Builds the choropleth GeoJSON FeatureCollection for a set of a user's audited streets. */
   private def streetsToGeoJson(streets: Seq[models.street.StreetEdge]): JsObject = {
     val features: Seq[JsObject] = streets.map { street =>
-      val properties: JsObject = Json.obj("street_edge_id" -> street.streetEdgeId, "way_type" -> street.wayType)
+      val properties: JsObject =
+        Json.obj("street_edge_id" -> street.streetEdgeId, "way_type" -> street.wayType.toString)
       Json.obj("type" -> "Feature", "geometry" -> street.geom, "properties" -> properties)
     }
     Json.obj("type" -> "FeatureCollection", "features" -> features)
@@ -106,7 +107,7 @@ class UserProfileController @Inject() (
           val features: Seq[JsObject] = streets.map { street =>
             val properties: JsObject = Json.obj(
               "street_edge_id" -> street.streetEdgeId,
-              "way_type"       -> street.wayType,
+              "way_type"       -> street.wayType.toString,
               "region_id"      -> street.regionId,
               "audited"        -> street.audited
             )

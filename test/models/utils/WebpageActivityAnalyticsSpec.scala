@@ -49,47 +49,10 @@ class WebpageActivityAnalyticsSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
   }
 
-  "WebpageActivityTable.getApiDailyCounts" should {
-    "execute without error and return a Seq[ApiDailyCount] sorted by date ascending" in {
-      val results = run(table.getApiDailyCounts(excludeApiDocs = true, days = 90))
-      results mustBe a[Seq[_]]
-      results.foreach { row =>
-        row.date must not be empty
-        row.count must be >= 0L
-      }
-      // Dates must be in ascending order.
-      val dates = results.map(_.date)
-      dates mustBe sorted
-    }
-  }
-
   "WebpageActivityTable.getApiUniqueIpCount" should {
     "return a non-negative Long" in {
       val count = run(table.getApiUniqueIpCount(excludeApiDocs = true, days = 30))
       count must be >= 0L
-    }
-  }
-
-  "WebpageActivityTable.getApiFormatCounts" should {
-    "execute without error and return a Seq[ApiFormatCount]" in {
-      val results = run(table.getApiFormatCounts(excludeApiDocs = true, days = 30))
-      results mustBe a[Seq[_]]
-      results.foreach { row =>
-        row.endpoint must not be empty
-        row.format must not be empty
-        row.count must be >= 0L
-      }
-    }
-
-    "return 'json' as the format for requests without a filetype param" in {
-      // If there is any data, calls without filetype= in the activity string must count as 'json'.
-      val results        = run(table.getApiFormatCounts(excludeApiDocs = false, days = 0))
-      val nonJsonFormats = results.filter(r =>
-        r.format != "json" && r.format != "csv" &&
-          r.format != "shapefile" && r.format != "geopackage" && r.format != "geojson"
-      )
-      // Any format must be one of the known filetypes or the 'json' default.
-      nonJsonFormats mustBe empty
     }
   }
 

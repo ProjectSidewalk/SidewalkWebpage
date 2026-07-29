@@ -3,6 +3,10 @@
  */
 class NavigationService {
   static #END_OF_STREET_THRESHOLD = 25; // Distance from the street endpoint when we consider it complete (meters).
+  // How close to the endpoint imagery has to run out before we treat the street as walked rather than as having
+  // an imagery gap. More generous than #END_OF_STREET_THRESHOLD: the imagery simply ends, so there is nothing
+  // further to walk either way, and Task.isAtEnd caps it on short streets.
+  static #NEAR_END_NO_IMAGERY_THRESHOLD = 50;
   static #MOVE_DELAY = 800; // Move delay prevents users from spamming through a mission.
   // Distance between points on a street when searching it for imagery (km). Public so that PanoManager can sample
   // backup starting points at the same granularity as moveForward()'s search.
@@ -124,8 +128,17 @@ class NavigationService {
     const currentTask = svl.taskContainer.getCurrentTask();
     const currentMission = svl.missionContainer.getCurrentMission();
 
+    // In free exploration (#4451) there is no task to finish and no street to advance to: don't report the street as
+    // imagery-less (the user is mid-street by design), just tell them there's nothing further in this direction.
+    if (svl.isExploreAddressMode()) {
+      this.#status.movingToNewLocation = false;
+      this.#status.headingSettling = false;
+      svl.alertController.showAlert(i18next.t('popup.free-explore-no-imagery'), 'exploreAddressNoImagery', false);
+      return Promise.resolve(null);
+    }
+
     // If the user is relatively close to the end of the street, tell them to finish labeling before jumping.
-    if (currentTask.isAtEnd(svl.panoViewer.getPosition(), svl.CLOSE_TO_ROUTE_THRESHOLD) < 0.5) {
+    if (currentTask.isAtEnd(svl.panoViewer.getPosition(), NavigationService.#NEAR_END_NO_IMAGERY_THRESHOLD)) {
       this.#endTheCurrentTask(currentTask, currentMission);
       this.#updateUiAfterMove();
       return Promise.resolve(null);
@@ -164,6 +177,9 @@ class NavigationService {
   }
 
   async jumpToANewTask() {
+    // Free exploration (#4451) pins the session to the searched location — there is no next street to jump to.
+    if (svl.isExploreAddressMode()) return;
+
     // Flag the move before setCurrentTask() below, which synchronously calls compass.update() while still at the
     // old location — otherwise it would flash the off-route warning before moveForward() sets these. (#4174)
     this.#status.movingToNewLocation = true;
@@ -207,7 +223,9 @@ class NavigationService {
         // If we are out of streets, set the route/neighborhood as complete.
         if (!nextTask) {
           svl.neighborhoodModel.setComplete();
-          // TODO should maybe trigger wrapUpRouteOrNeighborhood?
+          // A route completes at its last reachable pano: show the finish toast and arm the 360°-gated auto-complete.
+          // Neighborhoods keep the manual compass-click flow.
+          if (svl.neighborhoodModel.isRoute) svl.missionController.onRouteReadyToFinish();
         } else if (!task.isConnectedTo(nextTask, svl.CONNECTED_TASK_THRESHOLD, { units: 'kilometers' })) {
           // If jumping to a new place, record what the next task will be.
           svl.taskContainer.setNextTaskAfterJump(nextTask);
@@ -299,8 +317,20 @@ class NavigationService {
       // TODO I hardly understand the todo above, and idk why we would end the task in the middle of updating the
       //      UI after a move... especially when #endTheCurrentTask() can result in another move...
       const task = svl.taskContainer.getCurrentTask();
-      if (!isOnboarding && task && task.isAtEnd(newLatLng, NavigationService.#END_OF_STREET_THRESHOLD)) {
-        this.#endTheCurrentTask(task, currentMission);
+      // In free exploration (#4451) reaching the end of the street must not end the task or advance to a new street.
+      if (!isOnboarding && !svl.isExploreAddressMode() && task
+        && task.isAtEnd(newLatLng, NavigationService.#END_OF_STREET_THRESHOLD)) {
+        // On a route's final street, 25 m-from-endpoint can be a large fraction of a short street, firing "end of
+        // route" long before the last reachable pano (#4640 route manifestation). Defer to the imagery-exhaustion
+        // path (#handleImageryNotFound) unless they've already walked most of the street — on a long street 25 m
+        // really is the end, so preserve today's behavior there.
+        const finalRouteStreet = svl.neighborhoodModel.isRoute && !svl.taskContainer.nextTask(task);
+        const streetLen = task.lineDistance({ units: 'meters' });
+        const walkedMostOfStreet = streetLen > 0
+          && task.getDistanceFromStart(newLatLng, { units: 'meters' }) / streetLen >= 0.9;
+        if (!finalRouteStreet || walkedMostOfStreet) {
+          this.#endTheCurrentTask(task, currentMission);
+        }
       }
       svl.taskContainer.updateCurrentTask();
     }
@@ -360,7 +390,6 @@ class NavigationService {
         window.clearInterval(this.#povSettlePoll);
         this.#povSettlePoll = null;
         this.#status.headingSettling = false; // Clear first so observedArea.update() recomputes from the settled pov.
-        svl.peg.setHeading(heading);
         svl.observedArea.panoChanged();
         svl.observedArea.update();
         svl.compass.update();
@@ -528,6 +557,28 @@ class NavigationService {
     this.#updateUiAfterMove();
 
     return true;
+  }
+
+  /**
+   * Move to an already-visited pano and optionally face a POV. Used by the minimap's clickable markers to let the user
+   * revisit a label or an earlier location (#4639, #2561).
+   *
+   * A "peek": the active audit task is left unchanged. Re-entering an earlier, already-completed street as the current
+   * task would push a spurious TaskStart and risk the end-of-task auto-advance jumping the user straight back off the
+   * pano they returned to.
+   *
+   * @param {string} panoId - Target (already-visited) pano id.
+   * @param {{heading: number, pitch: number, zoom: number}} [pov] - POV to face on arrival; omit to keep heading.
+   * @returns {Promise<boolean>} Whether the move succeeded (false if walking is disabled or the move failed).
+   */
+  async returnToPano(panoId, pov) {
+    if (this.#status.disableWalking) return false;
+    const moved = svl.panoViewer.getPanoId() === panoId ? true : await this.moveToPano(panoId);
+    if (moved && pov) svl.panoManager.setPov(pov);
+    // The move carries the prior pano's zoom over (GSV keeps the POV across setPanorama), so the zoom buttons can end
+    // up desynced from the actual zoom — e.g. pinned at max with zoom-out dead. Re-sync them to the current zoom.
+    if (moved && svl.zoomControl) svl.zoomControl.syncButtonsToZoom(svl.panoViewer.getPov().zoom);
+    return moved;
   }
 
   /**

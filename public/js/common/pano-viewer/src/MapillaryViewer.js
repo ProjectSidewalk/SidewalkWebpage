@@ -510,4 +510,14 @@ class MapillaryViewer extends PanoViewer {
   resize = () => {
     this.viewer.resize();
   };
+
+  /** See PanoViewer.publicViewerLink(). */
+  publicViewerLink(panoId, { center } = {}) {
+    // TODO: include zoom parameter once we can retrieve it synchronously from the viewer.
+    const centerStr = center ? `&x=${center[0]}&y=${center[1]}` : '';
+    return {
+      url: `https://www.mapillary.com/app/?pKey=${panoId}&focus=photo${centerStr}`,
+      i18nKey: 'common:pano-info.view-in-mapillary',
+    };
+  }
 }

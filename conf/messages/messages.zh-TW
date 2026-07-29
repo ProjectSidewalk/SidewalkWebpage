@@ -46,8 +46,11 @@ loading = 讀取中...
 loading.encouragement = 讓我們來做吧!
 submit = 送出
 submit.shortcut = <u>S</u>送出
-test.server.warning.message = <strong>警告！</strong> 您目前在使用測試版伺服器！您的資料將不會被儲存！若您希望資料被儲存，請使用正式版伺服器。
+test.server.warning.message = <strong>您正在使用測試伺服器。</strong>您的作業不會儲存在這裡。若要保留您的資料，請使用正式版網站
+test.server.warning.label = 測試伺服器通知
+test.server.warning.close = 關閉通知
 dont.show.again = 不再顯示
+explore.alert.close = 關閉
 
 press.key = 點擊 「{0}」 鍵
 press.keys = 點擊 「{0}」 鍵
@@ -142,10 +145,13 @@ navbar.explore = 探索
 navbar.validate = 檢核
 navbar.howto = 如何標記
 navbar.api = 應用程式介面(API)
+navbar.about = 關於我們
 navbar.tools = 工具
 navbar.labelmap = 標記地圖
 navbar.help = 協助
 navbar.leaderboard = 排行榜
+navbar.stories = 故事
+navbar.routes = 路線
 navbar.your.city.here = 你所在的城市在這裡
 navbar.retake.tutorial = 重複入門教學
 navbar.signin = 登入
@@ -159,6 +165,131 @@ navbar.lang.icon.alt = 語言圖示
 navbar.servicehours = 志工資訊
 navbar.timecheck = 時間檢查
 navbar.cities = 城市
+navbar.menu.toggle = 切換導覽選單
+navbar.tools.analyze = 分析
+navbar.tools.community = 社群
+navbar.tools.build = 建立
+navbar.tools.admin = 管理
+navbar.user.account = 帳戶
+navbar.city.search = 搜尋城市…
+navbar.city.viewall = 在地圖上檢視所有城市
+navbar.city.none = 沒有符合的城市
+
+# SEO (#4237)：各頁面的 <title> 與中繼描述。{0} 為城市名稱（如有）。
+seo.title.landing = Project Sidewalk — {0}
+seo.title.explore = 探索{0} — Project Sidewalk
+seo.title.validate = 檢核 — Project Sidewalk
+seo.title.expert.validate = 專家檢核 — Project Sidewalk
+seo.title.gallery = 人行道圖庫 — Project Sidewalk
+seo.title.help = 說明 — Project Sidewalk
+seo.title.labeling.guide = 標記指南 — Project Sidewalk
+seo.title.terms = 使用條款 — Project Sidewalk
+seo.title.label.map = {0}標記地圖 — Project Sidewalk
+seo.title.cities = 城市 — Project Sidewalk
+seo.title.leaderboard = 排行榜 — Project Sidewalk
+seo.title.stories = 社群故事 — Project Sidewalk
+seo.title.routes = 社群路線 — Project Sidewalk
+seo.title.route.builder = RouteBuilder — Project Sidewalk
+seo.title.dashboard = 您的儀錶板 — Project Sidewalk
+seo.title.settings = 設定 — Project Sidewalk
+seo.title.sign.in = 登入 — Project Sidewalk
+seo.title.sign.up = 註冊 — Project Sidewalk
+seo.title.welcome = 歡迎 — Project Sidewalk
+seo.title.forgot.password = 找回密碼 — Project Sidewalk
+seo.title.reset.password = 重設密碼 — Project Sidewalk
+seo.title.service.hours = 志工資訊 — Project Sidewalk
+seo.title.time.check = 時間檢查 — Project Sidewalk
+seo.title.about = 關於我們 — Project Sidewalk
+seo.description.default = 透過虛擬探索，協助繪製並評估{0}的人行道。提供路緣斜坡、障礙物與鋪面問題的開放資料，打造更無障礙的世界。
+seo.description.landing = 在筆電上協助找出{0}人行道的安全與無障礙問題。您的標記能協助研究人員、城市與社群改善人行道。
+seo.description.explore = 虛擬走訪{0}的街道，標記路緣斜坡、缺失的人行道、障礙物與鋪面問題，改善無障礙環境。
+seo.description.validate = 檢核其他人在{0}放置的無障礙標記，協助提升資料品質。
+seo.description.gallery = 瀏覽{0}人行道無障礙設施與障礙的街景影像。
+seo.description.label.map = {0}所有人行道無障礙標記的互動地圖：路緣斜坡、障礙物、鋪面問題等。
+seo.description.help = 學習如何使用 Project Sidewalk：標記教學、準確度訣竅與常見問題。
+seo.description.cities = Project Sidewalk 已在世界各地的城市推行。查看所有城市，或將 Project Sidewalk 帶到您的城市。
+seo.description.api = {0}的免費開放人行道無障礙資料：原始標記、標記群集、街道與無障礙分數，支援 JSON、CSV、GeoJSON、GeoPackage 與 Shapefile 格式。
+seo.description.about = 認識 Project Sidewalk：我們繪製全世界人行道的使命、背後的研究團隊，以及其產出的開放資料。
+seo.og.image.alt = Project Sidewalk 虛擬街景探索的螢幕截圖，人行道旁放置了無障礙標記。
+
+# 關於頁面 (#4237，於 #4631 重新設計)。靜態文字由伺服器渲染；data-live-stat 中的數字會從 /v3/api/aggregateStats
+# 更新，團隊、論文與經費資訊則由 Makeability Lab API 更新（aboutPage.js）。
+about.title = 關於 Project Sidewalk
+about.hero.title = 我們正在繪製並評估<span class="about-hero-accent">全世界每一條人行道</span>。
+about.hero.subtitle = Project Sidewalk 是華盛頓大學與伊利諾大學芝加哥分校的開放原始碼學術研究專案，結合群眾外包與人工智慧來繪製並評估城市人行道，並將每一筆資料開放給研究人員、政府與社群。
+about.hero.cta.explore = 開始探索
+about.hero.cta.data = 取得資料
+about.stats.heading = Project Sidewalk 數據總覽
+about.stats.km = 已探索公里數
+about.stats.labels = 標記
+about.stats.validations = 檢核
+about.stats.cities = 城市
+about.stats.countries = 國家
+about.toc.title = 本頁內容
+about.how.title = 運作方式
+about.how.intro = 我們的使命是運用遠端群眾外包、人工智慧與線上街景影像，繪製並評估全世界的人行道。只要有網頁瀏覽器，任何人都能參與，無需特殊工具。
+about.how.step.explore.title = 探索與標記
+about.how.step.explore.body = 志工在類似遊戲的網頁工具中虛擬走訪城市街道，在街景影像中標記路緣斜坡、缺失的人行道、障礙物與鋪面問題。
+about.how.step.validate.title = 檢核
+about.how.step.validate.body = 其他參與者在人工智慧協助下互相檢核標記，表達同意或不同意，確保資料集準確可靠。
+about.how.step.data.title = 開放資料
+about.how.step.data.body = 每一個標記都會匯入開放資料集，供研究人員、政府與社群倡議者用於理解並改善人行道的無障礙環境。
+about.how.step.explore.cta = 開始探索
+about.how.step.validate.cta = 檢核標記
+about.how.step.data.cta = 取得資料
+about.impact.title = Project Sidewalk 的實際影響
+about.impact.intro = 我們的目標不只是資料，而是讓城市更適合步行、更便於輪椅通行，並對行人更安全。以下是社群、政府與學校運用 Project Sidewalk 的幾個例子。
+about.impact.chicago.place = 美國伊利諾州芝加哥
+about.impact.chicago.body = 芝加哥多個市議員選區利用居民收集的資料，更公平地分配人行道改善經費；我們的團隊也向市府行人安全委員會建言，推動超越僅靠投訴的維修政策。
+about.impact.illinois.place = 伊利諾州 Lincolnwood、Roselle 與 Mendota
+about.impact.illinois.body = Project Sidewalk 資料協助 Lincolnwood 與 Roselle 制定 ADA 過渡計畫；在 Mendota，社區夥伴憑藉這些資料成功申請到「安全上學路線」補助。
+about.impact.burnaby.place = 加拿大本拿比
+about.impact.burnaby.body = 本拿比市將 Project Sidewalk 資料納入其新人行道計畫的優先順序框架，以及最近通過的無障礙策略。
+about.impact.newberg.place = 美國奧勒岡州紐伯格
+about.impact.newberg.body = 在居民完成當地人行道測繪後，市議會設立了新的人行道整修計畫，包括 5 萬美元的緊急維修經費，以及協助屋主修繕自家門前人行道的補助。
+about.impact.zurich.place = 瑞士蘇黎世
+about.impact.zurich.body = 蘇黎世將 Project Sidewalk 資料發布於市府開放資料平台，此部署並獲得瑞士 Smart City Hub 公民科學類獎項。
+about.impact.schools.place = 美國各地的教室
+about.impact.schools.body = 學生透過 Project Sidewalk 學習資料科學與公民倡議——從紐澤西州 Oradell 的女童軍向市議會發表成果，到<a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/">麻州 Waltham 的中學生獲得州級公民教育表彰</a>。
+about.impact.more = 想了解更多？我們的姊妹網站 <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a> 提供新聞、資源與指南，協助您在社區運用 Project Sidewalk。
+about.where.title = 我們的足跡
+about.where.body = 從西雅圖、墨西哥城到蘇黎世，志工們一條街一條街地將 <span data-live-stat="num_countries">{1}</span> 個國家的 <span data-live-stat="num_cities">{0}</span> 個城市納入無障礙地圖。
+about.where.links = <a href="/cities">查看所有部署城市</a>，或<a href="https://accessiblecommunities.org/use-project-sidewalk/">將 Project Sidewalk 帶到您的城市</a>。
+about.history.title = 我們的歷史
+about.history.2012 = Project Sidewalk 由 Jon E. Froehlich 教授與博士生 Kotaro Hara 在 <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> 發起，早期獲得 <a href="https://research.google/outreach/past-programs/faculty-research-awards/">Google Faculty Research Award</a> 與<a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338">美國國家科學基金會</a>支持。
+about.history.2017 = 第一個城市級部署於華盛頓特區啟動，由博士生 Manaswi Saha 與研究科學家 Mikey Saugstad 主導；同年實驗室遷至華盛頓大學 Paul G. Allen 電腦科學與工程學院。
+about.history.2019 = 華盛頓特區的先導研究證明線上群眾外包可以用來繪製整座城市的人行道，並獲得 CHI 2019 最佳論文獎。
+about.history.2021 = <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087">美國國家科學基金會「智慧與互聯社區」補助</a>深化了我們與伊利諾大學芝加哥分校及 Easterseals 的合作，拓展部署、教育計畫與姊妹網站 <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a>。
+about.history.today.label = 今天
+about.history.today = Project Sidewalk 已在全球 <span data-live-stat="num_cities">{0}</span> 個城市運行，原生翻譯為 {1} 種語言，由數以千計的志工共同推動。
+about.team.title = 團隊
+about.team.intro = Project Sidewalk 是大學研究專案，由華盛頓大學 <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> 的 Jon E. Froehlich 教授與伊利諾大學芝加哥分校的 Yochai Eisenberg 教授共同主持，首席工程師為 Mikey Saugstad，多年來已有上百位學生與合作者參與貢獻。
+about.team.current.title = 現任團隊
+about.team.past.title = 歷任主持成員
+about.team.past.kotarohara = 以博士生身分與 Froehlich 教授共同創立 Project Sidewalk，開創了專案背後的群眾外包與電腦視覺方法——詳見他的<a href="https://makeabilitylab.cs.washington.edu/media/publications/Hara_ScalableMethodsToCollectAndVisualizeSidewalkAccessibilityDataForPeopleWithMobilityImpairments_UMDCSPhDDissertation2016.pdf">博士論文</a>。
+about.team.past.davidjacobs = 擔任開啟 Project Sidewalk 的最初 NSF 補助與首個 Google Faculty Research Award 的共同主持人，引導專案早期的電腦視覺研究。
+about.team.past.manaswisaha = 協助帶領在華盛頓特區的首次大規模部署，並設計了理解城市無障礙資料的工具——詳見她的<a href="https://makeabilitylab.cs.washington.edu/media/publications/Saha_DesigningInteractiveDataDrivenToolsForUnderstandingUrbanAccessibilityAtScale_UWCSPhDDissertation2022.pdf">博士論文</a>。
+about.team.contributors.title = 貢獻者
+about.team.contributors.intro = 已有超過 {0} 位夥伴為 Project Sidewalk 貢獻程式碼、設計與想法，其中包括 {1} 位從高中生到博士生的各級學生。我們的使命之一，是透過體驗式學習，協助資訊與設計領域的學生投入具社會影響力的專案。
+about.team.contributors = ……以及世界各地的合作組織與成千上萬的志願地圖繪製者——詳見<a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">專案頁面</a>。
+about.pubs.title = 相關論文
+about.pubs.intro = Project Sidewalk 的研究發表於頂尖的人機互動與無障礙領域學術會議。若您在研究中使用我們的資料或工具，請引用我們的 <a href="https://doi.org/10.1145/3290605.3300292">CHI 2019 論文</a>。
+about.pubs.fallback = 在 Makeability Lab 網站上瀏覽<a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">所有 Project Sidewalk 論文</a>。
+about.pubs.showAll = 顯示全部 {0} 篇論文
+about.pubs.cite.title = 如何引用 Project Sidewalk
+about.pubs.cite.plain = 引用格式
+about.pubs.cite.copy = 複製
+about.pubs.cite.copied = 已複製
+about.data.title = 開放資料與開放原始碼
+about.data.body = 我們收集的一切都是開放的。您可以透過<a href="/api">公開 API</a> 下載標記、標記群集、街道與無障礙分數，格式從 CSV 到 GeoJSON 都有——所有資料均以 CC0 授權發布；詳情與引用指南請參閱 <a href="/api">API 文件</a>。我們的<a href="https://github.com/ProjectSidewalk/SidewalkWebpage">程式碼也完全開源</a>。
+about.partners.title = 社區夥伴
+about.partners.body = 我們與世界各地的身心障礙倡議組織、政府、學校及社區團體緊密合作——包括 Easterseals、World Enabled、Liga Peatonal 與 Active Transportation Alliance——共同規劃部署、舉辦社區測繪活動，並將資料化為在地行動。
+about.partners.schools = 教育工作者將 Project Sidewalk 帶入公民與資料科學課堂；我們的團隊與夥伴也為身心障礙青年試行了服務學習與職涯發展課程。<a href="https://accessiblecommunities.org/use-project-sidewalk/">了解如何在您的社區使用 Project Sidewalk</a>。
+about.funding.title = 研究經費
+about.funding.body = Project Sidewalk 是由研究經費支持的學術研究，主要由美國國家科學基金會（NSF）資助，並獲得 Google、Alfred P. Sloan 基金會、PacTrans 與華盛頓大學 CREATE 中心的額外支持。
+about.cta.title = 與我們一起繪製每一條人行道
+about.cta.city = 將 Project Sidewalk 帶到您的城市
+about.contact.body = 有問題、想法或媒體詢問嗎？歡迎來信 <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>、在 <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a> 開立 issue，或在 <a href="https://www.linkedin.com/company/project-sidewalk/">LinkedIn</a> 與 <a href="https://bsky.app/profile/projectsidewalk.bsky.social">Bluesky</a> 追蹤我們。
 
 landing.create.path = 讓我們為大家創造好走的路吧！
 landing.start.exploring = 開始探索
@@ -232,19 +363,11 @@ footer.award = 獲獎 <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_I
 footer.designed.operated = Project Sidewalk 之設計及營運由 <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab 執行</a> ，其隸屬於 <a id="universityofwashington" href="http://www.cs.uw.edu/">華盛頓大學（University of Washington）</a>
 footer.version = Version {0} | 最後更新時間： <span class="timestamp date">{1}</span>
 
-audit.tutorial.welcome.1 = 於 <span class="bold">Project Sidewalk平台</span>中， 您將以虛擬的方式探索市區，尋找和檢視該環境中的可及性特徵及標記有可及性問題的地點，來完成改善人行環境的任務。涵蓋的項目包括：
-audit.tutorial.welcome.2 = 我們會以簡短、互動式的教學來學習。
-audit.tutorial.welcome.3 = 我們開始吧！
-audit.tutorial.welcome.4 = 已完成教學或已有帳戶了嗎？ <a href="#SignIn" data-toggle="modal" data-target="#sign-in-modal-container">請登入</a>或<a value="Skip" class="onboarding-transition-trigger">來跳過教學。</a>
-audit.tutorial.accessible = <span style="color:limegreen">可通行的</span>
-audit.tutorial.inaccessible = <span style="color:red">不可通行的</span>
-audit.tutorial.examples.curb.ramp = <span style="color:limegreen">路緣斜坡</span> 協助輪椅使用者進出人行道
-audit.tutorial.examples.missing.ramp = 如果<span style="color:#ff0066">沒有設置路緣斜坡</span>，輪椅使用者將無法使用人行道
-audit.tutorial.examples.obstacle = <span style="color:RoyalBlue">障礙物</span>阻擋輪椅使用者通行之路徑
-audit.tutorial.examples.surface.problem = 人行道的<span style="color:orange">鋪面問題</span>可能造成無法通行
-audit.tutorial.end.1 =很棒！您已學會如何使用平臺介面！請特別針對嚴重影響輪椅使用者之情形於街景中<span class="bold">在街景影像中標註以下無障礙屬性</span>：
-audit.tutorial.end.2 = 再次感謝您為這個世界<span class="bold">創造出能讓所有用路人更容易通行的環境！</span>
-audit.tutorial.examples = 無障礙屬性的案例：路緣斜坡、無路緣斜坡、有障礙物及鋪面問題。
+audit.tutorial.complete.1 = 你做到了！
+audit.tutorial.complete.2 = 你已完成教學！
+audit.tutorial.complete.learn-more = 了解更多
+audit.tutorial.complete.start-contributing = 開始貢獻
+
 audit.ribbon.curb.ramp.labels = 路緣坡道標籤
 audit.ribbon.sidewalk.labels = 人行道標籤
 audit.ribbon.other.labels = 其他可及性標籤
@@ -346,6 +469,7 @@ welcome.card.badges.title = 徽章
 welcome.card.badges.body = 在標記、驗證和達成任務里程碑的過程中獲得徽章。
 welcome.card.leaderboard.title = 排行榜
 welcome.card.leaderboard.body = 看看您的標記在整座城市中的表現 — 個人或團隊皆可。
+welcome.cta.resume = 回到你剛才的進度
 welcome.cta.dashboard = 查看我的儀表板
 welcome.hint.username = 您隨時可以在 <a href="{0}">儀表板 → 設定</a> 中變更使用者名稱。
 welcome.service.prompt = 為了學校或志工時數而標記嗎？
@@ -408,7 +532,6 @@ labeling.guide.surface.problem.summary = 鋪面問題是那種會導致輪椅或
 labeling.guide.no.sidewalk.summary = 建議您從人行道結束的地方開始設置「無人行道」標籤，並於每幾公尺持續設置標籤，一直到人行道再次出現處。。
 labeling.guide.occlusion.summary = 有時候，從街道景照片看往人行道的視線完全被阻擋了，在這種情況下，您可以標記「看不見人行道」。這種情況應該不常見到，因此請只在當人行道、路緣斜坡或其他可及性問題，受阻礙物體（例如路邊停車）遮蔽而無法從任何角度觀察到時，才標記為「看不見人行道」。
 
-admin.clear.play.cache = 清除快取
 
 leaderboard.header.team = 團隊
 leaderboard.header.labels = 標記
@@ -425,31 +548,54 @@ gallery.clear.filters = 清除過濾器
 
 routebuilder.name = 路線設立工具
 routebuilder.welcome = 歡迎使用路線設立工具
-routebuilder.intro.content = 在您所想要改善可及性(無障礙性)的鄰里內，您可以設立自己的路線，以便探索它並將它分享給他人！
-routebuilder.intro.instruction = 請點選一條街道來開始設立您的路線。
-routebuilder.creating.route = 路線創立中
-routebuilder.route.length = 路線長度
-routebuilder.editing.route = 編輯路線中
-routebuilder.add.street.icon.alt = 有「+」符號在中心的圖釘圖示
-routebuilder.add.street.instruction = 請點選地圖上的街道來將它加入您的路線裡。
-routebuilder.reverse.street.icon.alt = 兩個箭頭形成一個圓圈時，這表示旋轉。
-routebuilder.reverse.street.instruction = 請將任何加入的街道點擊一次來旋轉方向。
-routebuilder.delete.street.icon.alt = 有「X」符號的垃圾桶。
-routebuilder.delete.street.instruction = 請將任何加入的街道點擊兩次來將它從路線中刪除。
-routebuilder.save.route.instruction = 要完成建立路線，請點擊「儲存路線」。
+routebuilder.intro.content = 建立路線並與他人分享。
+routebuilder.directions.start.aria = 起點地址或地點
+routebuilder.directions.end.aria = 終點地址或地點
+routebuilder.stat.time.tooltip = 根據 Project Sidewalk 探索者在本市的平均速度估算（每 100 公尺約 {0} 分鐘）。
 routebuilder.save = 儲存路線
 routebuilder.delete.route.icon.alt = 一個有白色驚嘆號在中心的橘色圓圈
 routebuilder.not.saved = 路線未儲存。
 routebuilder.not.saved.explanation = 此後您將無法還原此路線。
 routebuilder.delete.route = 刪除路線
-routebuilder.saved.icon.alt = 一個有白色勾號在中心的綠色圓圈
-routebuilder.saved = 路線已儲存！
-routebuilder.explore.route = 探索此路線
-routebuilder.view.in.labelmap = 標記地圖中查看
-routebuilder.build.another.route = 設立另一條路線
-routebuilder.share.title = 儲存此連結供未來使用：
-routebuilder.copy.link = 複製連結
-routebuilder.share.warning = 當無此連結時，您將無法取得此路線。
+routebuilder.name.your.route = 為您的路線命名
+routebuilder.close = 關閉
+routebuilder.save.explanation = 儲存後，您可以與他人分享路線，並在<a href="{0}" target="_blank" rel="noopener">儀表板</a>中查看您的所有路線。
+routebuilder.route.name.label = 路線名稱
+routebuilder.route.name.placeholder = 例如：從圖書館到公園
+routebuilder.name.error.length = 路線名稱最多 {0} 個字元。
+routebuilder.name.error.allowed = 不允許使用此路線名稱，請另選一個。
+routebuilder.route.description.label = 描述
+routebuilder.optional = （選填）
+routebuilder.route.description.placeholder = 例如：我們從圖書館到學校的主要路線
+routebuilder.description.error.length = 路線描述最多 {0} 個字元。
+routebuilder.description.error.allowed = 不允許使用此描述，請修改。
+routebuilder.signin.nudge = 登入即可將路線保存在您的儀表板中，隨時查看、重新命名和分享。
+routebuilder.signin.to.save = 登入並儲存
+routebuilder.continue.without.account = 不使用帳號儲存
+routebuilder.view.in.dashboard = 在儀表板中管理您的所有路線
+routebuilder.saved.routes = 您儲存的路線
+routebuilder.recent.routes.note = 僅儲存在此裝置上。登入即可將路線保存在您的儀表板中。
+routebuilder.undo = 復原
+routebuilder.preview = 預覽路線
+routebuilder.new.route = 開始新路線
+routebuilder.new.route.tooltip = 開始一條新路線。如果想保留目前的路線，請先儲存。
+routebuilder.legend.title = 圖例
+routebuilder.legend.start = 路線起點
+routebuilder.legend.end = 路線終點
+routebuilder.legend.direction = 行走方向
+routebuilder.legend.pois = 興趣點
+dashboard.routes.title = 我的路線
+dashboard.routes.intro = 您在 RouteBuilder 中建立的路線。探索路線並沿途標記，或與他人分享連結。
+dashboard.routes.explore = 探索
+dashboard.routes.labelmap = 標記地圖
+dashboard.routes.copy = 複製連結
+dashboard.routes.rename = 重新命名
+dashboard.routes.delete = 刪除
+dashboard.routes.stats = {0} 人探索過 · {1} 人完成
+dashboard.routes.stats.tooltip = 探索過：開始探索此路線的人數。完成：走完整條路線的人數。
+dashboard.routes.view.title = 在路線設立工具中檢視此路線
+dashboard.routes.none = 您尚未建立任何路線。
+dashboard.routes.build.one = 建立您的第一條路線 →
 
 footer.logo.nsf.alt = 美國國家科學基金會標誌
 footer.logo.google.alt = Google 標誌
@@ -460,7 +606,7 @@ footer.logo.create.alt = 無障礙技術和體驗研究與教育中心 (CREATE) 
 cities.dashboard.cities = 部署城市
 cities.dashboard.distance = 已探索街道
 cities.dashboard.cities.icon.alt = 來自 Project Sidewalk 標誌的輪椅使用者手持旗幟
-cities.dashboard.cta.title = 將 Project Sidewalk 帶到您的城市！
+cities.dashboard.cta.title = 將 Project Sidewalk 帶到您的城市！
 cities.dashboard.cta.content = 有興趣繪製您所在社區的無障礙地圖嗎？ <br/>我們一直在尋找新的合作夥伴來幫助改變城市無障礙的未來。
 cities.dashboard.cta.button = 了解如何部署
 cities.dashboard.cta.logo.alt = Project Sidewalk 徽標，帶有文字 projectsidewalk.org
@@ -468,6 +614,7 @@ cities.dashboard.cta.logo.alt = Project Sidewalk 徽標，帶有文字 projectsi
 share.meta.title.issue = 我在 Project Sidewalk 上發現了一個無障礙問題：{0}
 share.meta.title.feature = 看看我在 Project Sidewalk 上發現了什麼：{0}
 share.meta.description.spotted = 在 {0} 發現。
+share.meta.description.address = 位於{0}附近。
 share.meta.description.severity = 嚴重程度：{0}/3。
 share.meta.description.tags = 標籤：{0}。
 share.meta.description.cta = 探索地圖，一起讓人行道對所有人都更友善。
@@ -527,9 +674,12 @@ dashboard.trophy.none = 🏆 目前還沒有獎盃——進入每週前三名，
 dashboard.trophy.explore.region = 探索這個社區 →
 dashboard.trophy.tag.region = 社區
 dashboard.trophy.tag.pioneer = 開拓者
+dashboard.trophy.tag.explore = 探索
 dashboard.trophy.sub.pioneer = {0}的第一位標記者
 dashboard.trophy.sub.champion = {0} 個標記——本社區最多
 dashboard.trophy.sub.weekly = {0}當週
+dashboard.trophy.sub.free-explore-tried = 嘗試了自由探索任務
+dashboard.trophy.sub.free-explore-labeled = 在自由探索任務中進行了標記
 dashboard.standing.title = 您的名次
 dashboard.standing.intro = 看看您本週的位置。完整榜單請見<a href="{0}">排行榜</a>。
 dashboard.standing.tag.week = 本週
@@ -555,6 +705,8 @@ dashboard.mistakes.validated.count = 已檢核 {0} 個
 dashboard.mistakes.recent.title = 近期錯誤
 dashboard.mistakes.recent.intro = 不同意某個檢核結果嗎？告訴我們——您可以堅持自己的標記，並留下附註說明。
 dashboard.mistakes.see.all = 查看您的所有標記 →
+dashboard.stories.title = 您的故事
+dashboard.stories.intro = 您在標記上分享的個人故事。故事是公開的，您可以隨時在這裡永久刪除。
 dashboard.team.title = 您的團隊
 dashboard.team.intro = 與團隊或班級一起標記。小團體間的友善競爭是樂趣的一半。
 dashboard.team.none = 您還沒有加入團隊
@@ -643,11 +795,16 @@ leaderboard.accuracy.detail = 標記者經檢核的標記中，被其他人認�
 leaderboard.thisweek.title = {0}本週排行
 leaderboard.thisweek.intro = 每週一更新——最適合快速攀升的地方。
 leaderboard.thisweek.none = ✨ 本週還沒有任何標記——成為第一個上榜的人吧！
-leaderboard.teams.title = 團隊
+leaderboard.teams.title = {0}的團隊
 leaderboard.teams.intro = 建立或加入團隊，一起創造改變！
 leaderboard.teams.none = 👥 還沒有任何團隊——成為第一個！建立團隊並邀請朋友或同學。
-leaderboard.you.title = 您在社群中的位置
-leaderboard.you.intro = 您本週的位置，以及緊接在您前後的人。
+leaderboard.allcities.title = 所有城市歷來總計
+leaderboard.allcities.intro = 所有 Project Sidewalk 城市中最頂尖的標記者，依標記總數排名。
+leaderboard.allcities.note = 距離每天更新一次。
+leaderboard.allcities.none = 🌍 各城市尚無任何標記 — 你的標記可能會是第一個。
+leaderboard.header.topcity = 主要城市
+leaderboard.you.title = 您本週在{0}的排名
+leaderboard.you.intro = 您在本週標記者中的排名，以及緊鄰您前後的人。
 leaderboard.community.title = 社群影響力
 leaderboard.community.intro = 整個 Project Sidewalk 社群，橫跨每一座城市。
 leaderboard.community.contributors = 貢獻者
@@ -661,3 +818,40 @@ dashboard.unit.ft = 英尺
 dashboard.rank.place.one = 第 1 名
 dashboard.rank.place.two = 第 2 名
 dashboard.rank.place.three = 第 3 名
+# Community listing pages: /stories and /routes (#4688).
+stories.page.search.placeholder = 輸入以篩選故事…
+routes.page.search.placeholder = 輸入以篩選路線…
+community.page.sort = 排序方式
+community.page.sort.newest = 最新優先
+community.page.sort.neighborhood = 社區
+community.page.count = 顯示 {0} 筆
+community.page.no.results = 沒有符合搜尋條件的結果。
+community.page.cap.note = 僅顯示最新的 {0} 筆。
+stories.page.title = 社群故事
+stories.page.intro = 社群成員附加在人行道標籤上的親身經歷 — 真實記錄無障礙障礙與設施如何影響人們的生活。
+stories.page.sort.labeltype = 標籤類型
+stories.page.none = 這個城市還沒有人分享故事。
+stories.page.none.cta = 找一個標籤並分享您的故事
+stories.page.anonymous = 匿名
+stories.page.view.label = 檢視標籤
+stories.page.read.more = 閱讀更多
+stories.page.read.less = 收起
+stories.page.photo.alt = 這則故事附加的照片
+stories.page.label.image.alt = 街景影像:{0}
+routes.page.title = 社群路線
+routes.page.intro = 社群成員使用 RouteBuilder 建立的步行路線。探索路線並沿途標記，或複製連結分享給他人。
+routes.page.build.cta = 建立路線
+routes.page.sort.longest = 最長優先
+routes.page.sort.explored = 最多人探索
+routes.page.none = 這個城市還沒有人建立路線。
+routes.page.none.cta = 建立第一條路線
+
+# 錯誤頁面（404、500），由 modules.CustomErrorHandler 呈現。
+error.404.heading = 找不到頁面
+error.404.message = 我們找不到你要求的頁面。
+error.500.heading = 發生了一些問題
+error.500.message = 我們這邊發生了未預期的錯誤。這不是你的問題，請稍後再試一次。
+error.500.id = 錯誤代碼：{0}
+error.500.report = 如果這種情況持續發生，請{0}並附上上方的錯誤代碼，以便我們調查。
+error.500.report.link = 告訴我們
+error.home = 返回首頁

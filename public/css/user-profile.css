@@ -3,15 +3,15 @@ svg {
   position: relative;
 }
 
-.map-sidebar {
+.filter-sidebar {
   margin-top: 0;
 }
 
-.map-sidebar__resize-handle {
-  top: 0; /* Matches .map-sidebar margin-top so the handle aligns with the visible edge. */
+.filter-sidebar__resize-handle {
+  top: 0; /* Matches .filter-sidebar margin-top so the handle aligns with the visible edge. */
 }
 
-.map-sidebar-open-btn {
+.filter-sidebar-open-btn {
   margin: 0;
 }
 

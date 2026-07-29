@@ -83,7 +83,6 @@ class LandingValidationGrid {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          label_type_id: null,
           n,
           loaded_labels: [...this.#loadedLabelIds],
           validation_options: ['unvalidated', 'unsure'],

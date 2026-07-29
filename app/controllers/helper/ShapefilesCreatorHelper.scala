@@ -262,6 +262,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "labelId:Integer,"        // Label ID
       + "userId:String,"          // User ID
       + "panoId:String,"          // Pano ID
+      + "panoSource:String,"      // Imagery provider (gsv, mapillary, infra3d)
       + "labelType:String,"       // Label type
       + "severity:Integer,"       // Severity
       + "tags:String,"            // Tags list
@@ -304,6 +305,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.labelId)
       featureBuilder.add(label.userId)
       featureBuilder.add(label.panoId)
+      featureBuilder.add(label.panoSource.toString)
       featureBuilder.add(label.labelType)
       featureBuilder.add(label.severity.orNull)
       featureBuilder.add(label.tags.mkString("[", ",", "]"))
@@ -444,6 +446,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "clusterId:Integer,"      // Parent cluster ID
       + "userId:String,"          // User ID
       + "panoId:String,"          // Panorama ID
+      + "panoSource:String,"      // Imagery provider (gsv, mapillary, infra3d)
       + "severity:Integer,"       // Severity
       + "timeCreate:String,"      // Creation timestamp
       + "correct:String,"         // Validation correctness
@@ -513,6 +516,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
                 labelBuilder.add(clusterId)
                 labelBuilder.add(label.userId)
                 labelBuilder.add(label.panoId)
+                labelBuilder.add(label.panoSource.map(_.toString).orNull)
                 labelBuilder.add(label.severity.map(Integer.valueOf).orNull)
                 labelBuilder.add(label.timeCreated.toString)
                 labelBuilder.add(label.correct.map(_.toString).orNull)
@@ -581,6 +585,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "cluster_id:Integer,"     // Parent cluster ID
       + "user_id:String,"         // User ID
       + "pano_id:String,"         // Panorama ID
+      + "pano_source:String,"     // Imagery provider (gsv, mapillary, infra3d)
       + "severity:Integer,"       // Severity
       + "time_created:String,"    // Creation timestamp
       + "correct:String,"         // Validation correctness
@@ -665,6 +670,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
                 labelBuilder.add(clusterId)
                 labelBuilder.add(label.userId)
                 labelBuilder.add(label.panoId)
+                labelBuilder.add(label.panoSource.map(_.toString).orNull)
                 labelBuilder.add(label.severity.map(Integer.valueOf).orNull)
                 labelBuilder.add(label.timeCreated.toString)
                 labelBuilder.add(label.correct.map(_.toString).orNull)
@@ -711,7 +717,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       "the_geom:Point:srid=4326," // the geometry attribute: Point type
       + "label_id:Integer,"       // label ID
       + "user_id:String,"         // User Id
-      + "gsv_pano_id:String,"     // Pano ID
+      + "pano_id:String,"         // Pano ID
+      + "pano_source:String,"     // Imagery provider (gsv, mapillary, infra3d)
       + "label_type:String,"      // Label type
       + "severity:Integer,"       // Severity
       + "tags:String,"            // Label Tags
@@ -757,6 +764,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.labelId)
       featureBuilder.add(label.userId)
       featureBuilder.add(label.panoId)
+      featureBuilder.add(label.panoSource.toString)
       featureBuilder.add(label.labelType)
       featureBuilder.add(label.severity.map(Integer.valueOf).orNull)
       featureBuilder.add(label.tags.mkString("[", ",", "]"))

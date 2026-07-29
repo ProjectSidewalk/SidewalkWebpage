@@ -102,7 +102,12 @@ input[type="radio"] {
   height: calc(28px * var(--ui-scale));
   position: absolute;
   bottom: calc(var(--bottom-left-links-clearance, 0px) * var(--ui-scale));
-  left: calc(71px * var(--ui-scale));
+
+  /* Sits 8px right of wherever the imagery-source logo's pixels end. How far that is varies by source (Mapillary's
+     wordmark is the widest), so the offset tracks the logo through --pano-logo-width, which PanoViewerLogo measures
+     and publishes. The fallback covers GSV, which draws its own logo instead of going through that overlay: 66px is
+     where Google's Street View logo ends. */
+  left: calc((var(--pano-logo-width, 66px) + 8px) * var(--ui-scale));
   z-index: 1;
   font: var(--text-small-medium);
   text-shadow:
@@ -144,8 +149,9 @@ input[type="radio"] {
   transform-origin: bottom left;
 }
 
+/* No left padding — the holder's left offset above owns the whole gap to the imagery-source logo. */
 #svl-panorama-date {
-  padding: calc(3px * var(--ui-scale));
+  padding: calc(3px * var(--ui-scale)) calc(3px * var(--ui-scale)) calc(3px * var(--ui-scale)) 0;
 }
 
 /* Scale Bootstrap tooltips (severity descriptions, button hints, etc.) with the UI. They render on <body>, so they read

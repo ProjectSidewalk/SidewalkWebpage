@@ -22,7 +22,7 @@
 
   <div class="api-section" id="label-map-section">
     <div id="admin-labelmap-choropleth-holder" class="choropleth-holder label-map-holder">
-      <div id="admin-labelmap-choropleth" class="choropleth"></div>@common.mapSidebar(tags = tags, adminVersion = true)</div>
+      <div id="admin-labelmap-choropleth" class="choropleth"></div>@common.filterSidebar(tags = tags, sections = Seq("severity", "label-type", "validations", "admin", "streets"))</div>
   </div>
 
   @* Label-detail popup + PSMap dependencies. The label-detail modules are pulled in individually (not via the legacy Admin.js bundle) to keep with the dashboard's standalone-script convention; i18next, AppManager, util, jQuery and the Google Maps loader are already loaded by common.main / adminLayout. *@
@@ -30,7 +30,7 @@
   <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
   <link href='@assets.path("css/tag-pills.css")' rel="stylesheet">
   <link href='@assets.path("css/choropleth.css")' rel="stylesheet">
-  <link href='@assets.path("css/map-sidebar.css")' rel="stylesheet">
+  <link href='@assets.path("css/filter-sidebar.css")' rel="stylesheet">
   <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet">
   <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
 
@@ -52,6 +52,9 @@
   <script src='@assets.path("js/common/BadgeAchievements.js")'></script>
   <script src='@assets.path("js/common/PanoMarker.js")'></script>
   <script src='@assets.path("js/common/label-detail/PopupPanoManager.js")'></script>
+  <script src='@assets.path("js/common/ConfirmDialog.js")'></script>
+  <script src='@assets.path("js/common/label-detail/StoryComposer.js")'></script>
+  <script src='@assets.path("js/common/label-detail/StorySection.js")'></script>
   <script src='@assets.path("js/common/label-detail/LabelDetail.js")'></script>
   <script src='@assets.path("js/common/label-detail/LabelPopup.js")'></script>
 

@@ -85,6 +85,11 @@ These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`]
 
 ### Other Scala
 
+- **metadata-extractor: 2.19.0** — reads EXIF (photos) and QuickTime/MP4 atoms (videos) from user-uploaded story
+  media (#4054). Pure Java with one small transitive dep (`xmpcore`); used transiently on ingest — the derived
+  recency/proximity buckets are stored, the precise values discarded.
+  [Releases](https://mvnrepository.com/artifact/com.drewnoakes/metadata-extractor) ·
+  [Changelog](https://github.com/drewnoakes/metadata-extractor/releases)
 - **play-bootstrap: 1.6.1-P28-B3** — Twirl helpers for the sign-in/up views. **Note:** the `P28-B3` suffix means
   "Play 2.8, Bootstrap 3"; 1.6.1 is the newest and there have been no releases since April 2020. It still works, only
   a few pages use it (mostly auth), and we don't expect further updates — we'd rather move off Bootstrap entirely.
@@ -195,6 +200,10 @@ matching it.
   [Changelog](https://github.com/mrdoob/three.js/releases)
 - **turf.js: 7.3.4** — [Download (set version in URL)](https://unpkg.com/@turf/turf@7.3.4/turf.min.js) ·
   [Changelog](https://github.com/Turfjs/turf/releases)
+- **jquery-ui: 1.12.1** — in `public/vendor/jquery-ui/`; self-hosted so the CSP `script-src` needn't allow
+  code.jquery.com. Tied to jQuery removal — don't invest in upgrades.
+  [Download](https://code.jquery.com/ui/1.12.1/jquery-ui.min.js) ·
+  [Changelog](https://github.com/jquery/jquery-ui/releases)
 - **jquery.magnific-popup** — **TODO:** unclear status; resolve the jQuery situation first. Tied to jQuery removal.
 
 > **jQuery / Bootstrap removal:** several entries above (Bootstrap, dataTables, magnific-popup, selectize) are part of

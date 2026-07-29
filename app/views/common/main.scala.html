@@ -1,10 +1,12 @@
 @import play.api.Configuration
 @import service.CommonPageData
 @import play.filters.csrf.CSRF
-@(commonData: CommonPageData, title: String, defaultI18nNamespace: String = "common", i18Namespaces: Seq[String] = Seq("common"), url: String = "/", extraHead: Html = Html("")
+@(commonData: CommonPageData, title: String, defaultI18nNamespace: String = "common", i18Namespaces: Seq[String] = Seq("common"), url: String = "/", extraHead: Html = Html(""), pageMeta: service.PageMeta = service.PageMeta()
 )(content: Html)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
+@currentCity = @{commonData.currentCity}
+@* Pages that render the map full-window (no footer, #wrap becomes a fixed-height flex column). *@
+@fullWindow = @{url == "/labelMap" || url == "/routeBuilder"}
 
 <!DOCTYPE html>
 <html lang="@messages.lang.code">
@@ -18,17 +20,25 @@
       gtag('config', '@commonData.googleAnalyticsId');
     </script>
     <meta charset="utf-8">
+    @* The mobile Validate page (url == "/mobile") deliberately gets no viewport meta: mobile-validate.css is tuned
+       for the ~980px legacy viewport that phones fall back to, and device-width would blow up its fixed sizes. *@
+    @if(url != "/mobile") {
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+    }
     <title>@title</title>
+    @common.seoHead(commonData, title, pageMeta)
     @* Per-page <head> injection point, e.g. Open Graph / Twitter Card meta for social sharing (#456). *@
     @extraHead
-    <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
-    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
+    @* Deferred: i18next is only touched from AppManager's $(document).ready callback, which runs after deferred
+       scripts execute, so these don't need to block HTML parsing. *@
+    <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")' defer></script>
+    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")' defer></script>
     <link rel="icon" type="image/png" href='@assets.path("images/favicon.png")'>
     <link href='@assets.path("vendor/bootstrap/css/bootstrap-3.3.5.min.css")' rel='stylesheet'>
     <link href='@assets.path("vendor/bootstrap-accessibility/bootstrap-accessibility.css")' rel='stylesheet'>
 
     <script src='@assets.path("vendor/jquery/jquery-1.12.2.min.js")'></script>
-    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src='@assets.path("vendor/jquery-ui/jquery-ui-1.12.1.min.js")'></script>
     <script src='@assets.path("vendor/bootstrap/js/bootstrap-3.1.1.min.js")'></script>
     <script src='@assets.path("vendor/bootstrap-accessibility/bootstrap-accessibility.min.js")'></script>
 
@@ -44,16 +54,18 @@
     <link href='@assets.path("css/fonts.css")' rel="stylesheet">
     <link rel="stylesheet" href='@assets.path("css/main.css")'>
     <link rel="stylesheet" href='@assets.path("css/common/toast.css")'>
+    <link rel="stylesheet" href='@assets.path("css/common/confirm-dialog.css")'>
     <link rel="stylesheet" href='@assets.path("css/homepage.css")'>
     <link rel="stylesheet" href='@assets.path("css/auth.css")'>
 
     @* Auth dialog (#4375): Modal.js must precede AuthModal.js; both no-op on pages without the dialog. *@
     <script src='@assets.path("js/common/Modal.js")' defer></script>
     <script src='@assets.path("js/common/AuthModal.js")' defer></script>
+    @* Navbar interactivity (dropdowns, city search, hamburger, click logging); no-ops on pages without the navbar. *@
+    <script src='@assets.path("js/common/Navbar.js")' defer></script>
 
-    <script src='@assets.path("vendor/countup/countUp-1.9.3.min.js")'></script>
     <script src='@assets.path("vendor/bowser/bowser-2.14.1.min.js")'></script>
-    <script src='@assets.path("js/common/pagetopPadding.js")'></script>
+    <script src='@assets.path("js/common/pagetopPadding.js")' defer></script>
     <script src='@assets.path("js/common/utilities.js")'></script>
     <script src='@assets.path("js/common/utilitiesMath.js")'></script>
     <script src='@assets.path("js/common/i18nDom.js")'></script>
@@ -63,7 +75,8 @@
     <script>
       // Removes top padding on the pages that render without a fixed navbar. Fires on full load to match the old
       // <body onload>, which ran after all resources settled.
-      window.addEventListener('load', checkIfPaddingNeeded);
+      @* Lazy lookup: pagetopPadding.js is deferred, so checkIfPaddingNeeded isn't defined at parse time yet. *@
+      window.addEventListener('load', () => checkIfPaddingNeeded());
 
       // Set up AppManager to initialize stuff that we need on every page (CSRF token, i18next, etc.).
       $(document).ready(function() {
@@ -82,54 +95,37 @@
         window.appManager.init(csrfToken, i18nextParams, globals);
       });
     </script>
-    <div id="wrap" class='@if(url == "/labelMap"){wrap--full-window}'>
-        <!-- Banner is only visible if user is on local/test server-->
-      @if(commonData.environmentType != "prod") {
-        <div class="test-server-banner">
-          <div class="test-server-banner-content">
-            <div class="test-server-banner-text">
-              @Html(Messages("test.server.warning.message")): <a href="@commonData.prodUrl">@commonData.prodUrl</a>
-            </div>
-            <button class="test-server-banner-dont-show-again" type="button">
-              <span>@Messages("dont.show.again")</span>
-            </button>
-            <button class="test-server-banner-close" type="button">
-              <span class="glyphicon glyphicon-remove"></span>
+      <!-- Banner is only visible if user is on local/test server-->
+    @if(commonData.environmentType != "prod") {
+      <aside class="test-server-banner" aria-label="@Messages("test.server.warning.label")">
+        <div class="test-server-banner-content">
+          <svg class="test-server-banner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <p class="test-server-banner-text">
+            @Html(Messages("test.server.warning.message")): <a class="test-server-banner-link" href="@commonData.prodUrl">@commonData.prodUrl</a>
+          </p>
+          <div class="test-server-banner-actions">
+            <button class="test-server-banner-dont-show-again" type="button">@Messages("dont.show.again")</button>
+            <button class="test-server-banner-close" type="button" aria-label="@Messages("test.server.warning.close")">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
           </div>
         </div>
+      </aside>
 
-        <script>
-          // Hide the warning banner if the user has clicked the "don't show again" button in the past.
-          if (JSON.parse(window.localStorage.getItem('hideTestServerWarningBanner'))) {
-            document.getElementsByClassName('test-server-banner')[0].style.display = 'none';
-          }
-          // If they click the "don't show again" button, save that info in local storage.
-          document.querySelector(".test-server-banner-dont-show-again").addEventListener("click", function() {
-            this.closest(".test-server-banner").style.display = "none";
-            window.localStorage.setItem('hideTestServerWarningBanner', true);
-          });
-          document.querySelector(".test-server-banner-close").addEventListener("click", function() {
-            this.closest(".test-server-banner").style.display = "none";
-          });
-        </script>
-      }
+      <script src='@assets.path("js/common/TestServerBanner.js")'></script>
+    }
+    <div id="wrap" class='@if(fullWindow){wrap--full-window}'>
       @content
     </div>
-    @if(url != "/mobile") {
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-      </head>
-    }
-    @if(url == "/explore" || url == "/labelMap") {
+    @if(url == "/explore" || url == "/labelMap" || url == "/routeBuilder") {
       <script>
         // Prevents extra whitespace at the bottom of the page, not sure why that's an issue.
         document.getElementsByTagName("body")[0].style.overflow = "hidden";
       </script>
     }
       <!-- Trying out no footer on Explore or Validate. Mini footer on mobile sign in/up. Code is weird bc "else if" doesn't work in template scala rn. -->
-    @if(url == "/explore" || url == "/validate" || url == "/expertValidate" || url == "/mobile" || url == "/signInMobile" || url == "/signUpMobile" || url == "/mobileLanding" || url == "/labelMap") {
-      @if(url == "/explore" || url == "/validate" || url == "/expertValidate" || url == "/mobile" || url == "/mobileLanding" || url == "/labelMap") {
+    @if(url == "/explore" || url == "/validate" || url == "/expertValidate" || url == "/mobile" || url == "/signInMobile" || url == "/signUpMobile" || url == "/mobileLanding" || url == "/labelMap" || url == "/routeBuilder") {
+      @if(url == "/explore" || url == "/validate" || url == "/expertValidate" || url == "/mobile" || url == "/mobileLanding" || url == "/labelMap" || url == "/routeBuilder") {
       } else {
         <!-- footer code found in app/views/footer.scala.html -->
     @common.miniFooter(commonData)
@@ -143,7 +139,7 @@
         <div class="col-sm-4 footer-link">
           <span class="footer-header">PROJECT SIDEWALK</span><br>
             <!-- Back to top<br>-->
-          <a href='https://accessiblecommunities.org/about/' id="sidewalk-about-link" target="_blank">@Messages("footer.about")</a> <br>
+          <a href='@routes.ApplicationController.about' id="sidewalk-about-link">@Messages("footer.about")</a> <br>
           <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link" target="_blank">@Messages("footer.terms")</a> <br>
           <a href='@routes.ApplicationController.help' id="sidewalk-help-link" target="_blank">@Messages("footer.help")</a> <br>
           <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link" target="_blank">@Messages("footer.guide")</a> <br>
@@ -155,9 +151,9 @@
         <div class="col-sm-4 footer-link">
           <span class="footer-header">@Messages("footer.connect")</span><br>
           <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link"><img width="15" src='@assets.path("images/github_logo.png")' alt="Github logo">&nbsp;Github</a> <br>
-          <a target="_blank" href="https://twitter.com/projsidewalk" id="connect-twitter-link"><img width="15" src='@assets.path("images/twitter_logo.png")' alt="Twitter logo">&nbsp;Twitter</a><br>
+          <a target="_blank" href="https://www.linkedin.com/company/project-sidewalk/" id="connect-linkedin-link"><img width="15" src='@assets.path("images/linkedin_logo.png")' alt="LinkedIn logo">&nbsp;LinkedIn</a><br>
+          <a target="_blank" href="https://bsky.app/profile/projectsidewalk.bsky.social" id="connect-bluesky-link"><img width="15" src='@assets.path("images/bluesky_logo.png")' alt="Bluesky logo">&nbsp;Bluesky</a><br>
           <a target="_blank" href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link"><img width="15" src='@assets.path("images/email.png")' alt="Email icon">&nbsp;@Messages("footer.email")</a><br>
-          <a target="_blank" href="https://www.facebook.com/projsidewalk" id="connect-facebook-link"><img width="15" src='@assets.path("images/facebook_logo.png")' alt="Facebook logo">&nbsp;Facebook</a><br>
         </div>
       </div>
     </div>
@@ -224,12 +220,6 @@
           activity = activity + '_route=' + currentRoute;
 
           window.logWebpageActivity(activity);
-
-          // We are using the ML site's about page, so log the "Visit_About" from here. All other pages that are
-          // part of the Sidewalk codebase end up logging "Visit_*" on the back-end.
-          if (link === 'about') {
-            window.logWebpageActivity('Visit_About', true);
-          }
         });
 
         // Log clicks on links in the information footer to WebpageActivityTable.

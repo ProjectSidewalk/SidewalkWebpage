@@ -3,21 +3,6 @@
   overflow: hidden;
 }
 
-#card-filter {
-  padding: 0 5px 5px;
-  width: inherit;
-}
-
-.filter-section-holder {
-  padding-bottom: 12px;
-}
-
-#city-select-header {
-  font-size: 18px;
-  margin: 10px 0;
-  line-height: 1.1;
-}
-
 #labels-not-found {
   display: none;
 }
@@ -40,23 +25,12 @@
   border-bottom: 1px solid gray;
 }
 
-#filter-header {
-  margin-bottom: 15px;
-}
-
-.filter-subheader {
-  display: block;
-  margin-bottom: 6px;
-  font-weight: normal;
-  line-height: 1.1;
-}
-
 /* Note that the side bar is out of the "flow" of the grid container b/c it is fixed when we aren't loading anything. */
 .sidebar {
   padding-left: 10px;
   min-height: calc(100vh - 610px);
   height: 100%;
-  width: 239px;
+  width: 275px;
   grid-row: 1/2;
 }
 
@@ -96,29 +70,38 @@
 .grid-container {
   display: grid;
   grid-template-areas:
-    "main gallery-modal"
-    "paging gallery-modal";
+    "main"
+    "paging";
   gap: 2px;
   padding: 0 10px 10px;
 }
 
-/* Gallery's inline expanded view — host-level sizing for the LabelDetail inline card. Height is 100vh minus the fixed
-   navbar height and some margin. Note that the top is also set dynamically as the user scrolls in Main.js. */
+/* Gallery's inline expanded view — a fixed overlay floating over the card grid (the grid never reflows around it;
+   cards to its left stay visible and clickable for browsing). The max caps keep the panel content-scaled on large
+   monitors — uncapped, the viewport-derived sizing balloons the card (and its flex-grown pano) on ≥27" screens
+   while laptops sit under the caps either way. */
 .gallery-expanded-view {
-  height: calc(100vh - var(--navbar-height) - 2vh);
-  top: 1vh;
-  width: 52vw;
+  position: fixed;
+  top: calc(var(--navbar-height) + 1vh);
   right: 3vw;
+  z-index: 1000; /* Above the cards and sticky sidebar, below the navbar (--navbar-z-index: 1030). */
+
+  /* Content-hugging height (the pano's fixed aspect ratio drives it), like the modal: no orphaned white space
+     when sections collapse. Short viewports scroll inside the card instead of shrinking the pano. */
+  height: auto;
+  max-height: calc(100vh - var(--navbar-height) - 2vh);
+  width: 52vw;
+  max-width: 720px;
   border-radius: 12px;
-  box-shadow: 0 5px 10px rgb(0 0 0 / 30%);
-  justify-self: end;
+  background: var(--color-neutral-white);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 35%);
   visibility: hidden;
 }
 
 .cards {
   display: flex;
   flex-flow: row wrap;
-  margin-left: 239px; /* Offset to compensate for the space taken up by the sidebar. */
+  margin-left: 275px; /* Offset to compensate for the space taken up by the sidebar. */
 }
 
 /* There is no specific intended function for hover/click on labels on the gallery page.

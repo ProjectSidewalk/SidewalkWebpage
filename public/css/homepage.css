@@ -59,7 +59,12 @@
 .section-title {
   font-size: 45px;
   line-height: 40px;
+
+  /* Section titles are h2 elements for SEO/a11y (#4237); keep the original div look by neutralizing the
+     Bootstrap 3 h2 defaults (margin-top: 10px, font-weight: 500). */
+  margin-top: 0;
   margin-bottom: 25px;
+  font-weight: normal;
 }
 
 
