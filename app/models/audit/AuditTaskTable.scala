@@ -52,7 +52,8 @@ case class NewTask(
     currentMissionId: Option[Int],
     currentMissionStart: Option[Point], // If a mission was started mid-task, the loc where it started.
     routeStreetId: Option[Int],         // The route_street_id if this task is part of a route.
-    routeStreetPosition: Option[Int]    // The street's walking-order position within that route.
+    routeStreetPosition: Option[Int],   // The street's walking-order position within that route.
+    maxSpeed: Option[String]            // Raw OSM maxspeed tag for the street's way (e.g. "25 mph"), if known.
 )
 case class AuditedStreetWithTimestamp(
     streetEdgeId: Int,
@@ -116,7 +117,8 @@ trait AuditTaskTableRepository {}
 
 class AuditTaskTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
-    streetEdgeTable: StreetEdgeTable
+    streetEdgeTable: StreetEdgeTable,
+    osmWayTable: OsmWayTable
 )(implicit ec: ExecutionContext)
     extends AuditTaskTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -388,6 +390,7 @@ class AuditTaskTable @Inject() (
       se   <- streetEdgeTable.streets if se.streetEdgeId === streetEdgeId
       scau <- streetCompletedByAnyUser if se.streetEdgeId === scau._1
       sep  <- streetEdgePriorities if scau._1 === sep.streetEdgeId
+      sms  <- osmWayTable.streetMaxSpeeds if se.streetEdgeId === sms._1
     } yield (
       se.streetEdgeId,
       se.geom,
@@ -403,7 +406,8 @@ class AuditTaskTable @Inject() (
       Some(missionId).asColumnOf[Option[Int]],
       None: Option[Point], // currentMissionStart is None for a new task.
       routeStreetId,
-      routeStreetPosition
+      routeStreetPosition,
+      sms._2 // maxSpeed
     )
 
     edges.result.head.map(NewTask.tupled)
@@ -433,7 +437,8 @@ class AuditTaskTable @Inject() (
           missionId.asColumnOf[Option[Int]],
           None: Option[Point], // currentMissionStart is None for a new task.
           None: Option[Int],   // routeStreetId is None for the tutorial task.
-          None: Option[Int]    // routeStreetPosition is None for the tutorial task.
+          None: Option[Int],   // routeStreetPosition is None for the tutorial task.
+          None: Option[String] // maxSpeed isn't shown during the tutorial.
         )
       }
       .result
@@ -451,6 +456,7 @@ class AuditTaskTable @Inject() (
       se  <- streetEdgeTable.streets if ser.streetEdgeId === se.streetEdgeId
       sp  <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
       sc  <- streetCompletedByAnyUser if se.streetEdgeId === sc._1
+      sms <- osmWayTable.streetMaxSpeeds if se.streetEdgeId === sms._1
     } yield (
       se.streetEdgeId,
       se.geom,
@@ -466,7 +472,8 @@ class AuditTaskTable @Inject() (
       Some(missionId).asColumnOf[Option[Int]],
       None: Option[Point], // currentMissionStart is None for a new task.
       None: Option[Int],   // routeStreetId
-      None: Option[Int]    // routeStreetPosition
+      None: Option[Int],   // routeStreetPosition
+      sms._2               // maxSpeed
     )
 
     // Get the priority of the highest priority task.
@@ -497,14 +504,15 @@ class AuditTaskTable @Inject() (
   ): DBIO[Option[NewTask]] = {
     val matchingTasks = if (includeCompleted) auditTasks else activeTasks
     val newTask       = for {
-      at <- matchingTasks if at.auditTaskId === taskId
-      se <- streetEdgeTable.streetsWithTutorial if at.streetEdgeId === se.streetEdgeId
-      sp <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
-      sc <- streetCompletedByAnyUser if sp.streetEdgeId === sc._1
+      at  <- matchingTasks if at.auditTaskId === taskId
+      se  <- streetEdgeTable.streetsWithTutorial if at.streetEdgeId === se.streetEdgeId
+      sp  <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
+      sc  <- streetCompletedByAnyUser if sp.streetEdgeId === sc._1
+      sms <- osmWayTable.streetMaxSpeeds if se.streetEdgeId === sms._1
     } yield (
       se.streetEdgeId, se.geom, at.currentLng, at.currentLat, se.wayType, at.startPointReversed, at.taskStart, sc._2,
       sp.priority, at.completed, at.auditTaskId.?, at.currentMissionId, at.currentMissionStart, routeStreetId,
-      routeStreetPosition
+      routeStreetPosition, sms._2
     )
 
     newTask.result.headOption.map(_.map(NewTask.tupled))
@@ -530,6 +538,7 @@ class AuditTaskTable @Inject() (
       se         <- streetEdgeTable.streets if ser.streetEdgeId === se.streetEdgeId
       sep        <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
       scau       <- streetCompletedByAnyUser if sep.streetEdgeId === scau._1
+      sms        <- osmWayTable.streetMaxSpeeds if se.streetEdgeId === sms._1
     } yield (
       se.streetEdgeId,
       se.geom,
@@ -545,7 +554,8 @@ class AuditTaskTable @Inject() (
       ucs.map(_._4).flatten, // fill currentMissionId if the user has an existing mission for this street.
       ucs.map(_._5).flatten, // fill currentMissionStart if the user has an existing mission for this street.
       None: Option[Int],     // routeStreetId
-      None: Option[Int]      // routeStreetPosition
+      None: Option[Int],     // routeStreetPosition
+      sms._2                 // maxSpeed
     )
 
     tasks.result.map(_.map(NewTask.tupled(_)))
@@ -596,6 +606,7 @@ class AuditTaskTable @Inject() (
       _se2               <- streetEdgeTable.streets if _se1.streetEdgeId === _se2.streetEdgeId
       _sep               <- streetEdgePriorities if _se2.streetEdgeId === _sep.streetEdgeId
       _scau              <- streetCompletedByAnyUser if _sep.streetEdgeId === _scau._1
+      _sms               <- osmWayTable.streetMaxSpeeds if _se2.streetEdgeId === _sms._1
     } yield (
       _se2.streetEdgeId,
       _se2.geom,
@@ -611,7 +622,8 @@ class AuditTaskTable @Inject() (
       ucs.flatMap(_._4), // fill currentMissionId if the user has an existing mission for this street.
       ucs.flatMap(_._5), // fill currentMissionStart if the user has an existing mission for this street.
       _rs.routeStreetId.asColumnOf[Option[Int]],
-      _rs.position.asColumnOf[Option[Int]]
+      _rs.position.asColumnOf[Option[Int]],
+      _sms._2 // maxSpeed
     )
 
     tasks.result.map(_.map(NewTask.tupled(_)))

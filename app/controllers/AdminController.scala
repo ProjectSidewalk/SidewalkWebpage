@@ -41,6 +41,7 @@ class AdminController @Inject() (
     labelService: LabelService,
     streetService: StreetService,
     panoDataService: PanoDataService,
+    osmWayService: service.OsmWayService,
     userService: service.UserService,
     actorSystem: ActorSystem,
     cpuEc: CpuIntensiveExecutionContext
@@ -1018,6 +1019,14 @@ class AdminController @Inject() (
   def checkImagery() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     panoDataService.checkForImagery.map { results => Ok(results) }
+  }
+
+  /**
+   * Refreshes the cached OSM way data (speed limits etc.). Same as the nightly process, for QA and initial backfill.
+   */
+  def refreshOsmWayData() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    osmWayService.refreshOsmWayData().map { waysRefreshed => Ok(Json.obj("ways_refreshed" -> waysRefreshed)) }
   }
 
   /**

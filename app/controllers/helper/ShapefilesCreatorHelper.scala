@@ -825,6 +825,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "regionId:Integer,"            // Region ID
       + "regionName:String,"           // Region name
       + "wayType:String,"              // Type of street/way
+      + "maxSpeed:String,"             // Raw OSM maxspeed tag (e.g. "25 mph"); empty when unknown
       + "status:String,"               // Street availability: open, no_imagery, closed, or disabled
       + "labelCount:Integer,"          // Number of labels on this street
       + "auditCount:Integer,"          // Number of times audited
@@ -844,6 +845,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(street.regionId)
       featureBuilder.add(street.regionName)
       featureBuilder.add(street.wayType)
+      featureBuilder.add(street.maxSpeed.orNull)
       featureBuilder.add(street.status)
       featureBuilder.add(street.labelCount)
       featureBuilder.add(street.auditCount)
@@ -885,6 +887,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       + "region_id:Integer,"           // Region ID
       + "region_name:String,"          // Region name
       + "way_type:String,"         // Type of street/way. Using String instead of Long to avoid type resolution issues.
+      + "max_speed:String,"        // Raw OSM maxspeed tag (e.g. "25 mph"); empty when unknown
       + "status:String,"           // Street availability: open, no_imagery, closed, or disabled
       + "label_count:Integer,"     // Number of labels on this street
       + "audit_count:Integer,"     // Number of times audited
@@ -907,6 +910,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(street.regionId)
       featureBuilder.add(street.regionName)
       featureBuilder.add(street.wayType)
+      featureBuilder.add(street.maxSpeed.orNull)
       featureBuilder.add(street.status)
       featureBuilder.add(street.labelCount)
       featureBuilder.add(street.auditCount)

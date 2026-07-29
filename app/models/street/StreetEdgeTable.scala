@@ -285,9 +285,11 @@ class StreetEdgeTable @Inject() (
     // numeric filters are safe; see #2756 for migrating these raw builders to bound parameters.
     val queryStr = s"""
       WITH filtered_streets AS (
-        SELECT s.street_edge_id, s.geom, s.way_type, s.status, o.osm_way_id, r.region_id, reg.name as region_name
+        SELECT s.street_edge_id, s.geom, s.way_type, s.status, o.osm_way_id, osm_way.maxspeed AS max_speed,
+               r.region_id, reg.name as region_name
         FROM street_edge s
         JOIN osm_way_street_edge o ON s.street_edge_id = o.street_edge_id
+        LEFT JOIN osm_way ON o.osm_way_id = osm_way.osm_way_id
         JOIN street_edge_region r ON s.street_edge_id = r.street_edge_id
         JOIN region reg ON r.region_id = reg.region_id
         -- The API returns all streets (open, no_imagery, disabled) tagged with their status (#3888); only the tutorial
@@ -327,7 +329,7 @@ class StreetEdgeTable @Inject() (
         GROUP BY s.street_edge_id
       )
       -- Final selection with all filters applied.
-      SELECT s.street_edge_id, s.osm_way_id, s.region_id, s.region_name, s.way_type, s.status,
+      SELECT s.street_edge_id, s.osm_way_id, s.region_id, s.region_name, s.way_type, s.max_speed, s.status,
              COALESCE(l.user_ids, ARRAY[]::text[]) as user_ids,
              COALESCE(l.label_count, 0) as label_count,
              COALESCE(a.audit_count, 0) as audit_count,
@@ -351,6 +353,7 @@ class StreetEdgeTable @Inject() (
         regionId = r.nextInt(),
         regionName = r.nextString(),
         wayType = r.nextString(),
+        maxSpeed = r.nextStringOption(),
         status = r.nextString(),
         userIds = {
           // Handle PostgreSQL array type properly.

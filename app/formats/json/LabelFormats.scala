@@ -98,7 +98,8 @@ object LabelFormats {
       labelMetadata: LabelValidationMetadata,
       backupImageUrl: Option[String],
       adminData: Option[AdminValidationData] = None,
-      currUsername: Option[String] = None
+      currUsername: Option[String] = None,
+      maxSpeed: Option[String] = None
   ): JsObject = {
     val commenterIdx: Map[String, Int] = commenterIndices(labelMetadata.comments)
     Json.obj(
@@ -119,6 +120,7 @@ object LabelFormats {
       "severity"            -> labelMetadata.severity,
       "description"         -> labelMetadata.description,
       "street_edge_id"      -> labelMetadata.streetEdgeId,
+      "max_speed"           -> maxSpeed,
       "region_id"           -> labelMetadata.regionId,
       "correct"             -> labelMetadata.validationInfo.correct,
       "agree_count"         -> labelMetadata.validationInfo.agreeCount,

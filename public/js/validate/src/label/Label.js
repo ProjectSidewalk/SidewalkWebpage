@@ -120,6 +120,7 @@ class Label {
       }
       if ('description' in params) this.setAuditProperty('description', params.description);
       if ('street_edge_id' in params) this.setAuditProperty('streetEdgeId', params.street_edge_id);
+      if ('max_speed' in params) this.setAuditProperty('maxSpeed', params.max_speed);
       if ('region_id' in params) this.setAuditProperty('regionId', params.region_id);
       if ('tags' in params) {
         this.setAuditProperty('tags', params.tags);

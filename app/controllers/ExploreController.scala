@@ -31,6 +31,7 @@ class ExploreController @Inject() (
     val config: Configuration,
     configService: service.ConfigService,
     exploreService: service.ExploreService,
+    osmWayService: service.OsmWayService,
     missionService: service.MissionService,
     aiService: service.AiService
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
@@ -219,6 +220,14 @@ class ExploreController @Inject() (
     exploreService
       .selectTasksInRoute(userRouteId)
       .map(tasks => Ok(Json.obj("type" -> "FeatureCollection", "features" -> JsArray(tasks.map(Json.toJson(_))))))
+  }
+
+  /**
+   * Get the speed limit at a point. Fallback for positions off our street network; served from our DB when possible.
+   */
+  def getSpeedLimit(lat: Double, lng: Double) = cc.securityService.SecuredAction { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    osmWayService.getSpeedLimitAtPoint(lat, lng).map(maxSpeed => Ok(Json.obj("max_speed" -> maxSpeed)))
   }
 
   /**
