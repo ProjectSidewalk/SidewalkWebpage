@@ -92,6 +92,7 @@ class LabelDetail {
   #source = undefined;      // Set in showLabel().
   #readonly = false;        // Set per-label in #handleData() based on meta.from_current_user.
   #noImagery = false;  // Set per-label once setPano() resolves; true when no navigable imagery could be loaded.
+  #panoLoading = false;     // True from #handleData() until this label's setPano() resolves. See #interactionBlocked.
   #validationCounts = { Agree: null, Disagree: null, Unsure: null };
   #flags = { low_quality: null, incomplete: null, stale: null };
   #prevAction = null;
@@ -367,7 +368,7 @@ class LabelDetail {
     // separate "clear" affordance — a dedicated control would cost card space for a rare action (Mikey, #4653).
     // buttonSource overrides #source for this specific button group; falls back to #source if null.
     const voteHandler = (action, buttonSource) => () => {
-      if (this.#locked) return;
+      if (this.#interactionBlocked) return;
       this.#setVoteButtonsDisabled(true);
       this.#submitValidation(action, buttonSource || this.#source, this.#prevAction === action);
     };
@@ -380,13 +381,13 @@ class LabelDetail {
       const btn = els.voteButtons[action];
       const img = els.voteIcons[action];
       btn.addEventListener('mouseenter', () => {
-        if (this.#locked) return;
+        if (this.#interactionBlocked) return;
         const state = this.#prevAction === action ? 'outline' : 'filled';
         const ai = this.#aiValidation === action ? '-ai' : '';
         img.src = `${this.#iconBase}${action.toLowerCase()}-${state}${ai}.svg`;
       });
       btn.addEventListener('mouseleave', () => {
-        if (this.#locked) return;
+        if (this.#interactionBlocked) return;
         this.#renderVoteIcons();
       });
     }
@@ -397,7 +398,7 @@ class LabelDetail {
     els.commentInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        if (this.#locked) return;
+        if (this.#interactionBlocked) return;
         const comment = els.commentInput.value.trim();
         if (comment) this.#submitComment(comment);
       } else if (e.key === 'Escape') {
@@ -414,7 +415,7 @@ class LabelDetail {
       }
     });
     els.commentButton.addEventListener('click', () => {
-      if (this.#locked) return;
+      if (this.#interactionBlocked) return;
       const comment = els.commentInput.value.trim();
       if (comment) this.#submitComment(comment);
     });
@@ -472,9 +473,11 @@ class LabelDetail {
     this.#currentLabelMeta = meta;
 
     // Read-only mode for the user's own labels — no validating/commenting. Imagery availability is unknown until
-    // setPano() resolves below, so assume it's present for now and re-apply the lock once we know.
+    // setPano() resolves below, so assume it's present for now and re-apply the lock once we know. Submitting is
+    // held until then either way: there's nothing on screen to judge yet, and nothing that describes this label.
     this.#readonly = !!meta.from_current_user;
     this.#noImagery = false;
+    this.#panoLoading = true;
     this.#applyInteractionLock();
 
     const labelPov = { heading: meta.heading, pitch: meta.pitch, zoom: meta.zoom };
@@ -507,6 +510,7 @@ class LabelDetail {
         // Guard against a newer label having been opened while this resolved.
         if (this.#currentLabelMeta !== meta) return;
         this.#noImagery = !imageShown;
+        this.#panoLoading = false;
         this.#applyInteractionLock();
 
         // The live imagery's metadata may carry an address the label payload didn't. Only read it when the shown
@@ -522,6 +526,15 @@ class LabelDetail {
         if (address) this.#showAddress(address, livePano ? this.#panoLink(meta) : null);
 
         if (imageShown) this.#showPanHintOnce();
+      })
+      .catch((err) => {
+        // setPano() resolves its own failures into the fallback chain, so a rejection here means the pipeline broke
+        // outright. Land on "no imagery" rather than leaving the card locked on a load that will never finish.
+        if (this.#currentLabelMeta !== meta) return;
+        console.error('setPano failed; treating the label as having no imagery:', err);
+        this.#noImagery = true;
+        this.#panoLoading = false;
+        this.#applyInteractionLock();
       });
 
     // Validation counts + AI validation.
@@ -714,21 +727,36 @@ class LabelDetail {
   // ───────────────────────────────────────────────────────────────────
 
   /**
-   * What the pano viewer can truthfully report about the label on screen, or null when it isn't showing it.
+   * Whether a pano viewer is rendering the label currently on the card, and so may be believed about it.
    *
-   * Only 'Default' (the primary GSV/Mapillary/Infra3d viewer) and 'Pannellum' mean a viewer is rendering *this*
-   * label. On the static-crop fallback — and before the very first pano resolves — panoViewer still points at
-   * imagery that isn't this label's, so nothing it reports may be recorded against it. Feeds submissionContext(),
-   * which supplies the label's own metadata in that case.
+   * Only 'Default' (the primary GSV/Mapillary/Infra3d viewer) and 'Pannellum' mean one is. On the static-crop
+   * fallback — and before the very first pano resolves — panoViewer still points at imagery that isn't this
+   * label's, so nothing it reports may be recorded against it.
+   *
+   * The load window is the same trap one step earlier: activeViewerName is only assigned once setPano() settles on
+   * a viewer, so until then it still names the one that showed the *previous* label. #interactionBlocked keeps a
+   * submission from being made in that window at all; this makes the staleness unreadable rather than merely
+   * unreachable.
+   *
+   * @param {string} activeViewerName - PopupPanoManager's name for the viewer that last won a setPano() race.
+   * @param {boolean} panoLoading - Whether this label's setPano() is still in flight.
+   * @returns {boolean}
+   */
+  static viewerShowsLabel(activeViewerName, panoLoading) {
+    if (panoLoading) return false;
+    return activeViewerName === 'Default' || activeViewerName === 'Pannellum';
+  }
+
+  /**
+   * What the pano viewer can truthfully report about the label on screen, or null when it isn't showing it.
+   * Feeds submissionContext(), which supplies the label's own metadata in that case.
    *
    * @returns {?{panoId: ?string, position: ?{lat: number, lng: number},
    *     pov: ?{heading: number, pitch: number, zoom: number}}} Null when no viewer is showing this label; individual
    *     fields may still be null when a viewer is up but its imagery hasn't resolved.
    */
   #viewerState() {
-    const showingThisLabel = this.panoManager.activeViewerName === 'Default'
-      || this.panoManager.activeViewerName === 'Pannellum';
-    if (!showingThisLabel) return null;
+    if (!LabelDetail.viewerShowsLabel(this.panoManager.activeViewerName, this.#panoLoading)) return null;
     return {
       panoId: this.panoManager.panoViewer.getPanoId(),
       position: this.panoManager.panoViewer.getPosition(),
@@ -867,14 +895,20 @@ class LabelDetail {
   }
 
   /**
+   * Disables the vote controls for the duration of a vote's POST, then hands them back.
+   *
+   * Re-enabling defers to the card's own lock: a POST that resolves after the user has paged on must not switch the
+   * controls back on over a label that can't be voted on, or one whose imagery hasn't loaded yet.
+   *
    * @param {boolean} disabled
    */
   #setVoteButtonsDisabled(disabled) {
+    const off = disabled || this.#interactionBlocked;
     for (const btn of Object.values(this.#els.panoOverlayButtons)) {
-      btn.disabled = disabled;
+      btn.disabled = off;
     }
     for (const btn of Object.values(this.#els.voteButtons)) {
-      btn.disabled = disabled;
+      btn.disabled = off;
     }
   }
 
@@ -933,7 +967,7 @@ class LabelDetail {
     for (const btn of Object.values(this.#els.panoOverlayButtons)) {
       btn.classList.remove('is-selected');
       btn.setAttribute('aria-pressed', 'false');
-      if (!this.#locked) btn.disabled = false;
+      if (!this.#interactionBlocked) btn.disabled = false;
     }
     for (const btn of Object.values(this.#els.voteButtons)) {
       btn.setAttribute('aria-pressed', 'false');
@@ -953,8 +987,24 @@ class LabelDetail {
   }
 
   /**
+   * Whether the card's interactive controls are off right now. Everything #locked covers, plus the window where
+   * this label's imagery is still loading: setPano() hides the pano holder on entry and only names the viewer it
+   * settled on once it resolves, so until then there is nothing on screen to judge the label by and
+   * activeViewerName still describes the *previous* label (the #4711 staleness, one step earlier).
+   *
+   * Kept separate from #locked because this one is transient: the comment row stays put through it rather than
+   * animating shut and back open on every page-through.
+   * @returns {boolean}
+   */
+  get #interactionBlocked() {
+    return this.#locked || this.#panoLoading;
+  }
+
+  /**
    * The reason validating/commenting is blocked for the current label, or null when it's allowed. The viewer's
-   * own label wins over no-imagery since it's the more specific reason to surface.
+   * own label wins over no-imagery since it's the more specific reason to surface. A label whose imagery is merely
+   * still loading gets no reason: the controls are disabled for the moment it takes, and a tooltip that appears and
+   * vanishes within it would be noise (and a translated string in every locale for a state nobody can read).
    * @returns {?string}
    */
   #lockReason() {
@@ -970,20 +1020,22 @@ class LabelDetail {
    */
   #applyInteractionLock() {
     const els = this.#els;
-    const locked = this.#locked;
-    this.#root.classList.toggle('label-detail--readonly', locked);
+    const blocked = this.#interactionBlocked;
+    this.#root.classList.toggle('label-detail--readonly', blocked);
     const tip = this.#lockReason() ?? '';
 
     this.#renderVoteTooltips();
-    for (const btn of Object.values(els.panoOverlayButtons)) btn.disabled = locked;
-    for (const btn of Object.values(els.voteButtons)) btn.disabled = locked;
+    for (const btn of Object.values(els.panoOverlayButtons)) btn.disabled = blocked;
+    for (const btn of Object.values(els.voteButtons)) btn.disabled = blocked;
 
     // Comment input and submit button.
-    els.commentInput.disabled = locked;
+    els.commentInput.disabled = blocked;
     els.commentInput.title = tip;
-    els.commentButton.disabled = locked;
+    els.commentButton.disabled = blocked;
     els.commentButton.title = tip;
-    this.#updateCommentRow(); // Locking also hides the comment box (it only shows with a Disagree/Unsure vote).
+    // A durable lock also hides the comment box (it only shows with a Disagree/Unsure vote); a load in flight
+    // leaves it in place and just disables it, since it's about to be usable again.
+    this.#updateCommentRow();
   }
 
   /**

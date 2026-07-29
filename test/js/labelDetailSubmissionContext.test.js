@@ -12,6 +12,9 @@
  * validation_task_comment.lat/lng, with pano_id a foreign key into pano_data), so "fall back" has to mean real
  * values, not nulls, whenever the label carries them.
  *
+ * viewerShowsLabel() is the other half: it decides whether there's a viewer worth believing in the first place, and
+ * the card feeds its answer to submissionContext(). Both are exercised here.
+ *
  * LabelDetail is a top-level `class` declaration written for the Grunt-concatenation world, so (like
  * share-widget.test.js) the source is eval'd into the jsdom global scope with an epilogue that exposes the class.
  * Only the static method is exercised here — constructing a LabelDetail needs a live pano viewer.
@@ -127,4 +130,37 @@ describe('LabelDetail.submissionContext', () => {
             panoId: null, lat: null, lng: null, heading: null, pitch: null, zoom: null
         });
     });
+});
+
+describe('LabelDetail.viewerShowsLabel', () => {
+    let LabelDetail;
+
+    beforeEach(() => {
+        LabelDetail = loadLabelDetail();
+    });
+
+    test.each([
+        ['Default', 'the primary GSV/Mapillary/Infra3d viewer'],
+        ['Pannellum', 'the self-hosted copy of an expired pano']
+    ])('%s is rendering the label, so it may be believed', (name) => {
+        expect(LabelDetail.viewerShowsLabel(name, false)).toBe(true);
+    });
+
+    test('the static-crop fallback is not a viewer showing this label', () => {
+        // panoViewer still points at whatever pano it last loaded, which is some other label's (#4711).
+        expect(LabelDetail.viewerShowsLabel('StaticCrop', false)).toBe(false);
+    });
+
+    test('a card that has never resolved a pano has no viewer to believe', () => {
+        // activeViewerName's initial value, before any setPano() call has settled.
+        expect(LabelDetail.viewerShowsLabel('', false)).toBe(false);
+    });
+
+    test.each(['Default', 'Pannellum'])(
+        '%s is not believed while this label is still loading', (name) => {
+            // The window between paging to a label and its setPano() resolving: activeViewerName still names the
+            // viewer that showed the *previous* label, so believing it records that label's pano and POV.
+            expect(LabelDetail.viewerShowsLabel(name, true)).toBe(false);
+        }
+    );
 });
