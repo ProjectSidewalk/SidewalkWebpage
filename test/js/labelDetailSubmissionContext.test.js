@@ -113,6 +113,14 @@ describe('LabelDetail.submissionContext', () => {
         expect(LabelDetail.submissionContext(null, facingNorth)).toMatchObject({ heading: 0, pitch: 0, zoom: 0 });
     });
 
+    test('an empty pano ID from the viewer falls through to the label pano', () => {
+        // pano_id is a foreign key into pano_data, so "" is no more insertable than null — the `||` chain has to
+        // treat it as missing rather than pass it along.
+        const viewer = { panoId: '', position: { lat: 47.7, lng: -122.4 }, pov: { heading: 10, pitch: 5, zoom: 3 } };
+
+        expect(LabelDetail.submissionContext(viewer, META)).toMatchObject({ panoId: 'label-pano' });
+    });
+
     test('a metadata-less card yields nulls rather than throwing', () => {
         // Nothing to record — the POST will be rejected, but the click must not blow up the card.
         expect(LabelDetail.submissionContext(null, {})).toEqual({

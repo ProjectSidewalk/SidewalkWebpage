@@ -57,6 +57,8 @@ class LabelDetail {
       : { lat: meta.camera_lat ?? meta.lat, lng: meta.camera_lng ?? meta.lng };
     const pov = (viewer && viewer.pov) || { heading: meta.heading, pitch: meta.pitch, zoom: meta.zoom };
     return {
+      // `||` rather than `??` on purpose: an empty pano ID is as unusable as a missing one — the column is a foreign
+      // key into pano_data — so "" has to fall through to the label's own instead of being sent as-is.
       panoId: (viewer && viewer.panoId) || meta.pano_id || null,
       lat: position.lat ?? null,
       lng: position.lng ?? null,
