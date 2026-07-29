@@ -124,7 +124,7 @@
   /* Sits just right of the imagery-source logo, whose width varies by source (Mapillary's wordmark is the widest),
      so the offset tracks the logo via --pano-logo-width, published by PanoViewerLogo. The fallback is the width of
      Google's own Street View logo, which GSV draws itself rather than through our logo overlay. */
-  left: calc((var(--pano-logo-width, 63px) + 8px) * var(--ui-scale));
+  left: calc((var(--pano-logo-width, 66px) + 8px) * var(--ui-scale));
   z-index: 2;
   font: var(--text-small-medium);
   text-shadow:
@@ -132,8 +132,10 @@
   color: var(--color-neutral-white);
 }
 
+/* No left padding: the gap to the imagery-source logo is owned by the holder's left offset above, and doubling up
+   on it is what pushed the date away from the logo. */
 #svv-panorama-date {
-  padding: calc(3px * var(--ui-scale));
+  padding: calc(3px * var(--ui-scale)) calc(3px * var(--ui-scale)) calc(3px * var(--ui-scale)) 0;
 }
 
 #pano-info-button {
