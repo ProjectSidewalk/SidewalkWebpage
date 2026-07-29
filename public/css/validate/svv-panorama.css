@@ -120,7 +120,11 @@
   height: calc(28px * var(--ui-scale));
   position: absolute;
   bottom: 0;
-  left: calc(71px * var(--ui-scale));
+
+  /* Sits just right of the imagery-source logo, whose width varies by source (Mapillary's wordmark is the widest),
+     so the offset tracks the logo via --pano-logo-width, published by PanoViewerLogo. The fallback is the width of
+     Google's own Street View logo, which GSV draws itself rather than through our logo overlay. */
+  left: calc((var(--pano-logo-width, 63px) + 8px) * var(--ui-scale));
   z-index: 2;
   font: var(--text-small-medium);
   text-shadow:
