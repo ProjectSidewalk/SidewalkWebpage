@@ -1,6 +1,5 @@
 package models.utils
 
-import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service._
@@ -17,13 +16,9 @@ import javax.inject._
  * bespoke to each health signal. Cross-schema signals resolve schema names with the `#$schema` literal splice, exactly
  * like [[ConfigTable]]'s per-city aggregates; callers must validate those identifiers first (see [[HealthService]]).
  */
-@ImplementedBy(classOf[HealthTable])
-trait HealthTableRepository {}
-
 @Singleton
 class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
-    extends HealthTableRepository
-    with HasDatabaseConfigProvider[MyPostgresProfile] {
+    extends HasDatabaseConfigProvider[MyPostgresProfile] {
 
   implicit private val getBlockingSession: GetResult[BlockingSession] = GetResult { r =>
     BlockingSession(r.nextInt(), r.nextStringOption(), r.nextStringOption(), r.nextStringOption(), r.nextLongOption(),
@@ -96,11 +91,11 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         -- Discover lock-waiters from pg_locks, NOT from pg_stat_activity.wait_event_type: that column reads NULL for
         -- other roles' sessions whenever the connecting role isn't superuser / in pg_monitor, so anchoring on it would
         -- miss every waiter that belongs to another city's role — exactly the cross-role blocking this panel exists to
-        -- catch. pg_locks and pg_blocking_pids() are visible to every role, and pg_locks.waitstart (PG14+) gives the
-        -- lock-wait age without pg_stat_activity.query_start (also redacted). pg_blocking_pids() briefly locks the
-        -- lock-manager shared state, so compute it ONCE per waiter here; AS MATERIALIZED fences this CTE from being
-        -- inlined and re-evaluated by the three outer references below (the function is VOLATILE). A waiter with no
-        -- blocker carries an empty array and drops out of the unnest()/ANY() checks on its own.
+        -- catch. pg_locks and pg_blocking_pids() are visible to every role, and pg_locks.waitstart (PG14+; prod runs
+        -- PG 16) gives the lock-wait age without pg_stat_activity.query_start (also redacted). pg_blocking_pids()
+        -- briefly locks the lock-manager shared state, so compute it ONCE per waiter here; AS MATERIALIZED fences this
+        -- CTE from being inlined and re-evaluated by the three outer references below (the function is VOLATILE). A
+        -- waiter with no blocker carries an empty array and drops out of the unnest()/ANY() checks on its own.
         SELECT w.pid AS blocked_pid,
                pg_blocking_pids(w.pid) AS blockers,
                EXTRACT(EPOCH FROM (now() - w.waitstart))::bigint AS wait_seconds
@@ -172,10 +167,23 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     """.as[ActiveQuery]
   }
 
-  /** Every schema in this database that has a `play_evolutions` table (one per city schema). */
+  /**
+   * Every schema in this database with a `play_evolutions` table the connecting role can read (one per city schema).
+   *
+   * Reads `pg_class` directly rather than `information_schema.tables` (which joins per-object ACL checks over the
+   * whole catalog). Because `pg_class` lists tables regardless of privilege, the explicit `has_*_privilege` filters
+   * keep the privilege-awareness information_schema gave for free: listing a schema the role can't actually read would
+   * make the whole cross-schema union in [[getStuckEvolutionsForSchemas]] fail. The table-privilege check takes the
+   * `pg_class` oid, not a `format()`-built name: the planner may evaluate the predicates in any order, and the
+   * name-based variant raises an error (rather than returning false) on a name that fails the `relname` filter.
+   */
   def getEvolutionSchemas: DBIO[Seq[String]] = bounded {
-    sql"""SELECT table_schema FROM information_schema.tables
-          WHERE table_name = 'play_evolutions' ORDER BY table_schema""".as[String]
+    sql"""SELECT nspname FROM pg_catalog.pg_class
+          JOIN pg_catalog.pg_namespace ON pg_namespace.oid = pg_class.relnamespace
+          WHERE relname = 'play_evolutions' AND relkind = 'r'
+            AND has_schema_privilege(nspname, 'USAGE')
+            AND has_table_privilege(pg_class.oid, 'SELECT')
+          ORDER BY nspname""".as[String]
   }
 
   /**
@@ -221,7 +229,7 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
              EXTRACT(EPOCH FROM (now() - GREATEST(last_autoanalyze, last_analyze)))::bigint AS analyze_age_seconds,
              GREATEST(last_autovacuum, last_vacuum)::text AS last_vacuum
       FROM pg_stat_user_tables
-      WHERE relname IN ('street_edge', 'label', 'audit_task_interaction')
+      WHERE relname IN ('street_edge', 'label', 'audit_task_interaction', 'validation_task_interaction')
       ORDER BY n_dead_tup DESC
     """.as[TableBloat]
   }

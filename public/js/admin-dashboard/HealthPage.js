@@ -10,6 +10,7 @@ class HealthPage {
   #pollMs;
   #thresholds = null;
   #loading = false;
+  #lastUpdatedMs = null;
 
   /**
    * @param {Object} opts
@@ -27,6 +28,9 @@ class HealthPage {
     setInterval(() => {
       if (!document.hidden) this.#load();
     }, this.#pollMs);
+    // Tick the "updated Ns ago" age between polls so staleness stays visible — especially after a failed poll, when
+    // every panel keeps showing the last good data.
+    setInterval(() => this.#renderAge(), 1000);
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) this.#load();
     });
@@ -53,6 +57,9 @@ class HealthPage {
     this.#loading = true;
     try {
       const data = await this.#fetchJson(this.#healthUrl);
+      // Age is measured from the client clock at response receipt, not the server's generated_at timestamp, so
+      // browser/server clock skew can't distort the "updated Ns ago" readout.
+      this.#lastUpdatedMs = Date.now();
       this.#thresholds = data.thresholds || {};
       this.#renderPulse(data);
       this.#renderKpis(data);
@@ -136,8 +143,7 @@ class HealthPage {
 
   /** Renders the "updated Ns ago · db · role" meta line, including whether other sessions' query text is visible. */
   #renderMeta(data) {
-    const parts = [];
-    if (data.generated_at) parts.push(`updated ${HealthPage.#ago(data.generated_at)}`);
+    const parts = [`updated <span id="health-meta-age">${this.#ageText()}</span>`];
     if (data.current_database) parts.push(`db <code>${HealthPage.#esc(data.current_database)}</code>`);
     if (data.current_role) parts.push(`role <code>${HealthPage.#esc(data.current_role)}</code>`);
     if (data.can_see_all_queries === false) {
@@ -227,9 +233,10 @@ class HealthPage {
           <td>${HealthPage.#esc(r.schema)}</td>
           <td class="ac-num">${r.id}</td>
           <td><span class="ac-badge ac-badge--bad">${HealthPage.#esc(r.state) || 'unknown'}</span></td>
+          <td class="ac-muted">${HealthPage.#esc((r.applied_at || '').slice(0, 19)) || '—'}</td>
           <td class="ac-muted">${HealthPage.#esc(r.last_problem) || '—'}</td>
         </tr>`).join('');
-    this.#table('health-evolutions', ['Schema', ['Evolution', true], 'State', 'Problem'], body);
+    this.#table('health-evolutions', ['Schema', ['Evolution', true], 'State', 'Applied at', 'Problem'], body);
   }
 
   // ---- Panel: table bloat ----------------------------------------------------------------------------------------
@@ -408,7 +415,8 @@ class HealthPage {
   static #compact(n) {
     const v = Number(n);
     if (!isFinite(v)) return '—';
-    if (Math.abs(v) >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
+    // The M cutoff sits where the k form would round to "1000k" (999,500+), so that never renders.
+    if (Math.abs(v) >= 999500) return `${(v / 1e6).toFixed(1)}M`;
     if (Math.abs(v) >= 1e3) return `${(v / 1e3).toFixed(0)}k`;
     return String(v);
   }
@@ -426,11 +434,20 @@ class HealthPage {
     return `${d}d ${h % 24}h`;
   }
 
-  /** ISO timestamp → "Ns ago" / "Nm ago". */
-  static #ago(iso) {
-    const then = Date.parse(iso);
-    if (isNaN(then)) return '—';
-    const secs = Math.max(0, Math.round((Date.now() - then) / 1000));
+  /** Repaints just the "updated Ns ago" text; called on a 1s ticker between polls. */
+  #renderAge() {
+    const el = document.getElementById('health-meta-age');
+    if (el) el.textContent = this.#ageText();
+  }
+
+  /**
+   * Age of the last successful load as "Ns ago" / "Nm ago".
+   *
+   * @returns {string} The age text, or "—" before the first successful load.
+   */
+  #ageText() {
+    if (HealthPage.#nil(this.#lastUpdatedMs)) return '—';
+    const secs = Math.max(0, Math.round((Date.now() - this.#lastUpdatedMs) / 1000));
     return secs < 60 ? `${secs}s ago` : `${Math.round(secs / 60)}m ago`;
   }
 }
