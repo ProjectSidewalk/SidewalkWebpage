@@ -65,14 +65,18 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
 
   /**
    * The connecting role's environment: database name, role name, and whether it can read every session's statement
-   * text (superuser or `pg_monitor` member). The dashboard uses the last flag to tell the viewer when other sessions'
+   * text and state. True for a superuser or any role that has `pg_read_all_stats` — which is the exact privilege
+   * Postgres gates the `state`/`query`/`xact_start` columns of *other* roles' sessions on, so this flag matches what
+   * the panels can actually see. Testing `pg_read_all_stats` with `USAGE` (rather than membership in the `pg_monitor`
+   * group that includes it) keeps the flag correct no matter how the capability was granted — directly, via
+   * `pg_monitor`, or inherited from a parent role. The dashboard uses it to tell the viewer when other sessions'
    * `query` columns are hidden as `<insufficient privilege>` rather than genuinely empty.
    */
   def getDbEnvInfo: DBIO[DbEnvInfo] = bounded {
     sql"""SELECT current_database(),
                  current_user,
                  (current_setting('is_superuser') = 'on'
-                  OR pg_has_role(current_user, 'pg_monitor', 'MEMBER'))""".as[DbEnvInfo].head
+                  OR pg_has_role(current_user, 'pg_read_all_stats', 'USAGE'))""".as[DbEnvInfo].head
   }
 
   /**

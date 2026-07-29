@@ -147,10 +147,11 @@ class HealthPage {
     if (data.current_database) parts.push(`db <code>${HealthPage.#esc(data.current_database)}</code>`);
     if (data.current_role) parts.push(`role <code>${HealthPage.#esc(data.current_role)}</code>`);
     if (data.can_see_all_queries === false) {
-      // Without pg_monitor Postgres nulls out other sessions' state/wait/query, so those rows drop out of the
+      // Without pg_read_all_stats Postgres nulls out other sessions' state/wait/query, so those rows drop out of the
       // state-filtered panels entirely — say so, rather than implying only the query text is missing.
-      parts.push('role lacks <code>pg_monitor</code>: other sessions\' state and query are hidden, so the '
-        + 'idle-transaction and long-query panels show only this app\'s own sessions');
+      parts.push(`role lacks <code>pg_read_all_stats</code> (usually granted via <code>pg_monitor</code>): other
+        sessions' state and query are hidden, so the idle-transaction and long-query panels show only this app's own
+        sessions`);
     }
     this.#setHtml('health-meta', parts.join(' · '));
   }
