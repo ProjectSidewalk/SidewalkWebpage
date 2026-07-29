@@ -32,6 +32,7 @@ class ExploreController @Inject() (
     configService: service.ConfigService,
     exploreService: service.ExploreService,
     osmWayService: service.OsmWayService,
+    rateLimiter: service.RateLimiter,
     missionService: service.MissionService,
     aiService: service.AiService
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
@@ -226,8 +227,16 @@ class ExploreController @Inject() (
    * Get the speed limit at a point. Fallback for positions off our street network; served from our DB when possible.
    */
   def getSpeedLimit(lat: Double, lng: Double) = cc.securityService.SecuredAction { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    osmWayService.getSpeedLimitAtPoint(lat, lng).map(maxSpeed => Ok(Json.obj("max_speed" -> maxSpeed)))
+    // Inert-until-enabled IP guard: each cache-missing lookup can cost an Overpass query, so cap scripted floods.
+    val limit = rateLimiter.limit("speed-limit")
+    if (!rateLimiter.allow(s"speed-limit:ip:${request.ipAddress}", limit)) {
+      Future.successful(
+        TooManyRequests(Json.obj("error" -> "Too many speed limit lookups."))
+          .withHeaders("Retry-After" -> limit.window.toSeconds.toString)
+      )
+    } else {
+      osmWayService.getSpeedLimitAtPoint(lat, lng).map(maxSpeed => Ok(Json.obj("max_speed" -> maxSpeed)))
+    }
   }
 
   /**

@@ -18,6 +18,9 @@ class SpeedLimit {
   // counts as "on a road here".
   static #NEARBY_STREET_THRESHOLD_M = 15;
 
+  // Cap on remembered fallback lookups; a long session off the network shouldn't grow the cache without bound.
+  static #POINT_LOOKUP_CACHE_MAX = 100;
+
   #coords;
   #isOnboarding;
   #panoViewer;
@@ -151,7 +154,7 @@ class SpeedLimit {
     if (nearestTask !== null && minDistance <= SpeedLimit.#NEARBY_STREET_THRESHOLD_M) {
       return nearestTask.getProperty('maxSpeed');
     }
-    return await this.#fetchSpeedLimitAtPoint(lat, lng);
+    return await this.#fetchSpeedLimitAtPoint(position.lat, position.lng);
   }
 
   /**
@@ -178,6 +181,10 @@ class SpeedLimit {
         return null;
       }
     })();
+    // Evict the oldest entry once full (Map preserves insertion order, so the first key is the oldest).
+    if (this.#pointLookupCache.size >= SpeedLimit.#POINT_LOOKUP_CACHE_MAX) {
+      this.#pointLookupCache.delete(this.#pointLookupCache.keys().next().value);
+    }
     this.#pointLookupCache.set(panoId, promise);
     return await promise;
   }

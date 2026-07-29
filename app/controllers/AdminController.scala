@@ -27,6 +27,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Try
+import scala.util.control.NonFatal
 
 @Singleton
 class AdminController @Inject() (
@@ -1029,7 +1030,7 @@ class AdminController @Inject() (
     osmWayService
       .refreshOsmWayData()
       .map { waysRefreshed => Ok(Json.obj("ways_refreshed" -> waysRefreshed)) }
-      .recover { case e: Exception =>
+      .recover { case NonFatal(e) =>
         logger.error("OSM way data refresh failed.", e)
         // Chunks upsert as they complete, so partial progress survives and a re-trigger resumes from what's missing.
         ServiceUnavailable(

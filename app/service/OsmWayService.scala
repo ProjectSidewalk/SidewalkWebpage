@@ -15,6 +15,7 @@ import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 /**
  * Maintains the cached OSM way data (osm_way table) that backs the speed-limit sign (#4654).
@@ -87,7 +88,7 @@ class OsmWayService @Inject() (
           case Some(way) => Future.successful(way.maxspeed)
           case None      => queryAndStoreNearestRoad(lat, lng)
         }
-        .recover { case e: Exception =>
+        .recover { case NonFatal(e) =>
           logger.warn(s"Speed limit lookup failed for ($lat, $lng); returning no speed limit.", e)
           None
         }
@@ -108,7 +109,7 @@ class OsmWayService @Inject() (
    */
   private def fetchTagsForWaysWithRetry(wayIds: Seq[Long], attempt: Int = 1): Future[Map[Long, JsObject]] = {
     fetchTagsForWays(wayIds).recoverWith {
-      case e: Exception if attempt < BATCH_MAX_ATTEMPTS =>
+      case NonFatal(e) if attempt < BATCH_MAX_ATTEMPTS =>
         logger.warn(s"Overpass batch attempt $attempt/$BATCH_MAX_ATTEMPTS failed (${e.getMessage}); retrying.")
         after(BATCH_RETRY_DELAY * attempt.toLong, actorSystem.scheduler)(fetchTagsForWaysWithRetry(wayIds, attempt + 1))
     }
