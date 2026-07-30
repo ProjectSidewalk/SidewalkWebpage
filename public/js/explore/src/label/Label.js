@@ -8,6 +8,16 @@ class Label {
 
   #googleMarker;
 
+  // Size the label-type icons are rasterized to before being drawn (see preloadIcons). The label canvas renders at
+  // its on-screen size times the device pixel ratio, so the ~34px logical icon can land on ~130 device pixels on a
+  // wide HiDPI display; rasterizing below that is what left the icon looking soft.
+  static #ICON_RASTER_SIZE = 128;
+
+  // On-screen size of the labeling cursor. Canvas.js centers its hotspot on this.
+  static CURSOR_ICON_SIZE = 38;
+
+  static #cursorUrlCache = new Map();
+
   // Parameters determined from a series of linear regressions. Here links to the analysis and relevant GitHub issues:
   // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
   // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2374
@@ -298,7 +308,7 @@ class Label {
     const severity = this.#properties.severity;
     const hasSeverity = util.misc.labelTypeHasSeverity(labelType);
 
-    ui.hoverCardIcon.attr('src', util.misc.getIconImagePaths(labelType).scalableIconImagePath);
+    ui.hoverCardIcon.attr('src', util.misc.getIconImagePaths(labelType).iconImagePath);
     ui.hoverCardType.text(i18next.t(`common:${util.camelToKebab(labelType)}`).replace('&shy;', ''));
 
     // Severity row for rated labels; the not-rated nudge for unrated ones; neither for types without severity.
@@ -525,9 +535,12 @@ class Label {
   }
 
   /**
-   * Preloads and caches every label-type icon. renderLabelIcon draws only from this cache, so warming it up front
+   * Rasterizes and caches every label-type icon. renderLabelIcon draws only from this cache, so warming it up front
    * lets the icon, its outline, and any overlay drawn after it (e.g. the severity "?" alert) paint together in the
    * right order — a lazily-loaded icon would instead paint asynchronously, on top of those overlays.
+   *
+   * Each icon is rasterized once into an offscreen canvas rather than cached as an <img>: the label canvas redraws
+   * on every pano move, and re-rasterizing vector art per frame per label is work we can do once instead.
    * @returns {Promise} Resolves once all icons have loaded (or failed) so callers can render with the cache warm.
    */
   static preloadIcons() {
@@ -537,17 +550,56 @@ class Label {
       if (!iconPath || window.labelIconCache[iconPath]) return Promise.resolve();
       return new Promise((resolve) => {
         const imageObj = new Image();
-        imageObj.onload = function () {
-          window.labelIconCache[iconPath] = imageObj;
+        // The icon SVGs carry only a viewBox, so they have no intrinsic size for the browser to rasterize at; the
+        // width/height attributes supply one. Without them Firefox refuses to draw the image to a canvas at all.
+        imageObj.width = Label.#ICON_RASTER_SIZE;
+        imageObj.height = Label.#ICON_RASTER_SIZE;
+        imageObj.onload = () => {
+          const raster = document.createElement('canvas');
+          raster.width = Label.#ICON_RASTER_SIZE;
+          raster.height = Label.#ICON_RASTER_SIZE;
+          raster.getContext('2d')
+            .drawImage(imageObj, 0, 0, Label.#ICON_RASTER_SIZE, Label.#ICON_RASTER_SIZE);
+          window.labelIconCache[iconPath] = raster;
           resolve();
         };
-        imageObj.onerror = function () {
-          resolve();
-        }; // Don't let one missing icon block the rest.
+        imageObj.onerror = () => resolve(); // Don't let one missing icon block the rest.
         imageObj.src = iconPath;
       });
     });
     return Promise.all(loads);
+  }
+
+  /**
+   * Returns a label type's icon as a PNG data URL sized for use as a CSS cursor, or null for types without an icon.
+   *
+   * Cursors can't take an SVG that has no intrinsic size (and Safari takes no SVG cursor at all), so the vector icon
+   * is rasterized to the cursor's exact on-screen size. Results are memoized — the labeling cursor is re-applied on
+   * every mousemove.
+   * @param {string} labelType
+   * @returns {?string}
+   */
+  static getCursorImageUrl(labelType) {
+    if (Label.#cursorUrlCache.has(labelType)) return Label.#cursorUrlCache.get(labelType);
+
+    const iconPath = util.misc.getIconImagePaths(labelType)?.iconImagePath;
+    if (!iconPath) {
+      Label.#cursorUrlCache.set(labelType, null); // Walk mode and anything else with no marker of its own.
+      return null;
+    }
+    // Not rasterized yet (preloadIcons is still in flight) — leave it uncached so the next mousemove retries.
+    const icon = window.labelIconCache[iconPath];
+    if (!icon) return null;
+
+    const cursor = document.createElement('canvas');
+    cursor.width = Label.CURSOR_ICON_SIZE;
+    cursor.height = Label.CURSOR_ICON_SIZE;
+    const cursorCtx = cursor.getContext('2d');
+    cursorCtx.imageSmoothingQuality = 'high'; // The raster is several times the cursor's size; keep the edge clean.
+    cursorCtx.drawImage(icon, 0, 0, Label.CURSOR_ICON_SIZE, Label.CURSOR_ICON_SIZE);
+    const url = cursor.toDataURL();
+    Label.#cursorUrlCache.set(labelType, url);
+    return url;
   }
 
   /**
@@ -582,8 +634,8 @@ class Label {
    */
   static createMinimapMarker(labelType, latLng) {
     const content = document.createElement('img');
-    // Use the scalable SVG icon so the marker stays crisp at any scale; sizing is set in .minimap-label-icon.
-    content.src = util.misc.getIconImagePaths()[labelType].scalableIconImagePath;
+    // Sizing is set in .minimap-label-icon.
+    content.src = util.misc.getIconImagePaths(labelType).iconImagePath;
     content.className = 'minimap-label-icon';
     // AdvancedMarkerElement anchors content by its bottom-center; shift it down half its height to center it.
     content.style.transform = 'translateY(50%)';

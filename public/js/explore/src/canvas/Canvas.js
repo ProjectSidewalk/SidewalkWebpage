@@ -87,6 +87,9 @@ class Canvas {
     // the context, so this transform must be (re)applied here.
     const scale = el.width / util.EXPLORE_CANVAS_WIDTH;
     this.#ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    // Label icons are drawn from a raster sized for the densest display we support (see Label.preloadIcons), so on
+    // anything less dense they arrive downscaled; the default 'low' filter frays their outer circle.
+    this.#ctx.imageSmoothingQuality = 'high';
   }
 
   /**
@@ -318,12 +321,12 @@ class Canvas {
    */
   #handleDrawingLayerMouseMove(e) {
     // Change the cursor according to the label type.
-    const iconImagePaths = util.misc.getIconImagePaths();
-    const labelType = this.#ribbon.getStatus('mode');
-    if (labelType) {
+    const cursorUrl = Label.getCursorImageUrl(this.#ribbon.getStatus('mode'));
+    if (cursorUrl) {
+      const hotspot = Label.CURSOR_ICON_SIZE / 2;
       // Need to reset the cursor first, otherwise Safari strangely doesn't update the cursor.
       $(e.currentTarget).css('cursor', '');
-      $(e.currentTarget).css('cursor', `url(${iconImagePaths[labelType].iconImagePath}) 19 19, auto`);
+      $(e.currentTarget).css('cursor', `url(${cursorUrl}) ${hotspot} ${hotspot}, auto`);
     }
   }
 
