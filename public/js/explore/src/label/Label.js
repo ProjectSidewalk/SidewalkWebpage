@@ -280,8 +280,8 @@ class Label {
   }
 
   /**
-   * Populates and positions the hover card next to this label, showing its type, severity, tags, description,
-   * and delete button.
+   * Populates and positions the hover card next to this label — showing its type, severity, tags, and
+   * description — and pins the floating trash-can delete button to the label icon's top-right corner.
    *
    * The card is a single shared DOM element positioned in on-screen pixels, so the label's logical canvas
    * coordinate is scaled to the displayed pano size (see util.exploreDisplayScale).
@@ -324,17 +324,17 @@ class Label {
           <span class="tag-pill__label">${name}</span>
         </span>
       `).join(''));
-      ui.hoverCardTags.css('display', 'flex');
+      ui.hoverCardTagsRow.css('display', 'flex');
     } else {
-      ui.hoverCardTags.css('display', 'none');
+      ui.hoverCardTagsRow.css('display', 'none');
     }
 
     const description = this.#properties.description;
     if (description) {
       ui.hoverCardDescription.text(Label.#truncate(description, 90));
-      ui.hoverCardDescription.css('display', 'inline');
+      ui.hoverCardDescriptionRow.css('display', 'block');
     } else {
-      ui.hoverCardDescription.css('display', 'none');
+      ui.hoverCardDescriptionRow.css('display', 'none');
     }
 
     // Collapse the body entirely when it has nothing to show (e.g. an Occlusion label).
@@ -342,7 +342,6 @@ class Label {
 
     // Occlusion labels have no context menu, so the card isn't a click target and the edit hint is hidden.
     ui.hoverCard.toggleClass('label-hover-card--static', labelType === 'Occlusion');
-    ui.hoverCard.toggleClass('label-hover-card--no-delete', Boolean(svl.canvas.getStatus('disableLabelDelete')));
 
     // Position the card beside the label icon, flipping to its left side if there isn't room on the right, and
     // nudging it vertically to stay inside the pano. The tail keeps pointing at the icon via --hover-card-tail-top.
@@ -360,17 +359,27 @@ class Label {
       ? centerX - radius - gap - holder.outerWidth()
       : centerX + radius + gap;
     const top = Math.min(Math.max(centerY - holder.outerHeight() / 2, 4), panoHeight - holder.outerHeight() - 4);
-    const tailTop = Math.min(Math.max(centerY - top, 12), holder.outerHeight() - 12);
+    // Keep the tail's base (8px half-height in CSS) clear of the card's 8px rounded corners.
+    const tailMargin = 18 * scale;
+    const tailTop = Math.min(Math.max(centerY - top, tailMargin), holder.outerHeight() - tailMargin);
     holder.toggleClass('label-hover-card--flipped', flipped);
     holder[0].style.setProperty('--hover-card-tail-top', `${tailTop}px`);
     holder.css({ visibility: 'visible', left, top });
+
+    // Pin the trash-can delete button to the icon's top-right corner; the tutorial's delete lock hides it.
+    if (svl.canvas.getStatus('disableLabelDelete')) {
+      ui.hoverDelete.css('visibility', 'hidden');
+    } else {
+      ui.hoverDelete.css({ visibility: 'visible', left: centerX + radius * 0.85, top: centerY - radius * 0.85 });
+    }
   }
 
   /**
-   * Hides the shared hover card.
+   * Hides the shared hover card and its floating delete button.
    */
   #hideHoverCard() {
     svl.ui.canvas.hoverCard.css('visibility', 'hidden');
+    svl.ui.canvas.hoverDelete.css('visibility', 'hidden');
   }
 
   /**

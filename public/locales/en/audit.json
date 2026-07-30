@@ -180,6 +180,9 @@
   "center-ui": {
     "hover-card": {
       "click-to-edit": "Click to edit",
+      "your-rating": "Your rating:",
+      "your-tags": "Your tags:",
+      "your-description": "Your description:",
       "delete-label": "Delete label"
     },
     "context-menu": {

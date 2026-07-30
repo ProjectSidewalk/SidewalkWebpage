@@ -180,6 +180,9 @@
   "center-ui": {
     "hover-card": {
       "click-to-edit": "Klik om te bewerken",
+      "your-rating": "Jouw beoordeling:",
+      "your-tags": "Jouw tags:",
+      "your-description": "Jouw beschrijving:",
       "delete-label": "Label verwijderen"
     },
     "context-menu": {

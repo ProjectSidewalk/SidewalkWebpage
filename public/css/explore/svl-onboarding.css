@@ -56,24 +56,24 @@
   margin: calc(5px * var(--ui-scale)) auto;
 }
 
-/* Inline replica of the label hover card's delete button, shown in tutorial messages that ask the user to
-   delete a misplaced label (see OnboardingStates.js). */
+/* Inline replica of the floating trash-can delete button (.label-hover-delete), shown in tutorial messages that
+   ask the user to delete a misplaced label (see OnboardingStates.js). */
 .onboarding-delete-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   vertical-align: text-bottom;
-  width: calc(18px * var(--ui-scale));
-  height: calc(18px * var(--ui-scale));
+  width: calc(20px * var(--ui-scale));
+  height: calc(20px * var(--ui-scale));
   border: 1px solid var(--color-neutral-300);
-  border-radius: calc(5px * var(--ui-scale));
+  border-radius: 50%;
   background: var(--color-neutral-white);
-  color: var(--color-neutral-700);
+  color: var(--color-error-200);
 }
 
 .onboarding-delete-icon svg {
-  width: calc(10px * var(--ui-scale));
-  height: calc(10px * var(--ui-scale));
+  width: calc(12px * var(--ui-scale));
+  height: calc(12px * var(--ui-scale));
 }
 
 .onboarding-ok-button-holder {

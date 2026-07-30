@@ -62,7 +62,7 @@ class KeyboardManager {
       for (let i = 0; i < labelLen; i++) {
         labels[i].setHoverInfoVisibility('hidden');
       }
-      svl.ui.canvas.hoverCard.css('visibility', 'hidden');
+      svl.canvas.hideHoverCard();
       const pitch = svl.panoViewer.getPov().pitch;
       const zoom = svl.panoViewer.getPov().zoom;
       const heading = (svl.panoViewer.getPov().heading + degree + 360) % 360;

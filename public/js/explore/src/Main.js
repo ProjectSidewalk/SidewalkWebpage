@@ -515,14 +515,16 @@ class Main {
     svl.ui.canvas.hoverCard = $('#label-hover-card');
     svl.ui.canvas.hoverCardIcon = $('#label-hover-card-icon');
     svl.ui.canvas.hoverCardType = $('#label-hover-card-type');
-    svl.ui.canvas.hoverCardDelete = $('#label-hover-card-delete');
     svl.ui.canvas.hoverCardBody = $('#label-hover-card-body');
     svl.ui.canvas.hoverCardSeverity = $('#label-hover-card-severity');
     svl.ui.canvas.hoverCardSeverityIcon = $('#label-hover-card-severity-icon');
     svl.ui.canvas.hoverCardSeverityText = $('#label-hover-card-severity-text');
     svl.ui.canvas.hoverCardNotRated = $('#label-hover-card-not-rated');
+    svl.ui.canvas.hoverCardTagsRow = $('#label-hover-card-tags-row');
     svl.ui.canvas.hoverCardTags = $('#label-hover-card-tags');
+    svl.ui.canvas.hoverCardDescriptionRow = $('#label-hover-card-description-row');
     svl.ui.canvas.hoverCardDescription = $('#label-hover-card-description');
+    svl.ui.canvas.hoverDelete = $('#label-hover-delete');
 
     // Context menu.
     svl.ui.contextMenu = {};

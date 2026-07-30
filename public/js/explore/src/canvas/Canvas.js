@@ -3,7 +3,7 @@
  */
 class Canvas {
   // Grace period before the hover card hides once the cursor leaves the label, giving the pointer time to
-  // travel from the icon onto the card (e.g. to reach its delete button) without the card vanishing mid-way.
+  // travel from the icon onto the card or the floating delete button without them vanishing mid-way.
   static #HOVER_CARD_HIDE_DELAY_MS = 200;
 
   #ribbon;
@@ -58,9 +58,11 @@ class Canvas {
     svl.ui.canvas.drawingLayer.on('mousemove', (e) => this.#handleDrawingLayerMouseMove(e));
     $('#interaction-area-holder').on('mouseleave', (e) => this.#handleDrawingLayerMouseOut(e));
     svl.ui.canvas.hoverCard.on('click', () => this.#handleHoverCardClick());
-    svl.ui.canvas.hoverCardDelete.on('click', (e) => this.#handleHoverCardDeleteClick(e));
     svl.ui.canvas.hoverCard.on('mouseenter', () => this.#cancelScheduledHoverCardHide());
     svl.ui.canvas.hoverCard.on('mouseleave', () => this.#scheduleHoverCardHide());
+    svl.ui.canvas.hoverDelete.on('click', () => this.#handleHoverDeleteClick());
+    svl.ui.canvas.hoverDelete.on('mouseenter', () => this.#cancelScheduledHoverCardHide());
+    svl.ui.canvas.hoverDelete.on('mouseleave', () => this.#scheduleHoverCardHide());
     svl.ui.streetview.viewControlLayer.on('mousedown', (e) => this.#handlerViewControlLayerMouseDown(e));
     svl.ui.streetview.viewControlLayer.on('mouseup', (e) => this.#handlerViewControlLayerMouseUp(e));
     svl.ui.streetview.viewControlLayer.on('mousemove', (e) => this.#handlerViewControlLayerMouseMove(e));
@@ -324,11 +326,9 @@ class Canvas {
   }
 
   /**
-   * Delete a label. Called when a user clicks the delete button on a label's hover card.
-   * @param {MouseEvent} e
+   * Delete a label. Called when a user clicks the floating trash-can button over a hovered label.
    */
-  #handleHoverCardDeleteClick(e) {
-    e.stopPropagation(); // Deleting must not also trigger the card's open-context-menu click.
+  #handleHoverDeleteClick() {
     if (!this.#status.disableLabelDelete) {
       const currLabel = this.getCurrentLabel();
       // If in tutorial, only delete if it's the last label that the user added to the canvas.
@@ -336,7 +336,7 @@ class Canvas {
         && (!svl.onboarding || svl.onboarding.getCurrentLabelId() === currLabel.getProperty('temporaryLabelId'))) {
         svl.tracker.push('Click_LabelDelete', { labelType: currLabel.getProperty('labelType') });
         svl.labelContainer.removeLabel(currLabel);
-        svl.ui.canvas.hoverCard.css('visibility', 'hidden');
+        this.hideHoverCard();
         this.setCurrentLabel(undefined);
       }
     }
@@ -373,6 +373,14 @@ class Canvas {
       clearTimeout(this.#hoverCardHideTimer);
       this.#hoverCardHideTimer = null;
     }
+  }
+
+  /**
+   * Hides the hover card and its floating delete button immediately, without the grace period.
+   */
+  hideHoverCard() {
+    svl.ui.canvas.hoverCard.css('visibility', 'hidden');
+    svl.ui.canvas.hoverDelete.css('visibility', 'hidden');
   }
 
   /**
@@ -526,7 +534,7 @@ class Canvas {
         labels[i].setHoverInfoVisibility('hidden');
 
         // Hide the hover card when no label is hovered.
-        svl.ui.canvas.hoverCard.css('visibility', 'hidden');
+        this.hideHoverCard();
       }
     }
 

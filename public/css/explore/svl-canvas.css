@@ -133,30 +133,45 @@
   cursor: pointer;
 }
 
-/* Tail pointing at the label icon. Its vertical position is set by Label.js (--hover-card-tail-top) so it keeps
-   pointing at the icon even when the card is nudged to stay inside the pano. */
-.label-hover-card::before {
+/* Tail pointing at the label icon: a true triangle drawn as two stacked clip-path layers — a neutral-300 backing
+   triangle with a white fill triangle offset 1.5px toward the card — so the tail keeps the card's hairline along
+   its slanted edges and joins the card edge with no seam (a border+rotate diamond leaves gaps at the base corners).
+   Its vertical position is set by Label.js (--hover-card-tail-top) so it keeps pointing at the icon even when the
+   card is nudged to stay inside the pano. */
+.label-hover-card::before,
+.label-hover-card::after {
   content: "";
   position: absolute;
-  left: calc(-5px * var(--ui-scale));
   top: var(--hover-card-tail-top, 50%);
   width: calc(8px * var(--ui-scale));
-  height: calc(8px * var(--ui-scale));
-  margin-top: calc(-4px * var(--ui-scale));
+  height: calc(16px * var(--ui-scale));
+  margin-top: calc(-8px * var(--ui-scale));
+  clip-path: polygon(100% 0, 0 50%, 100% 100%);
+}
+
+.label-hover-card::before {
+  left: calc(-8px * var(--ui-scale));
+  background: var(--color-neutral-300);
+}
+
+.label-hover-card::after {
+  left: calc(-6.5px * var(--ui-scale));
   background: var(--color-neutral-white);
-  border-left: 1px solid var(--color-neutral-300);
-  border-bottom: 1px solid var(--color-neutral-300);
-  transform: rotate(45deg);
 }
 
 /* Flipped: the card sits to the left of the label icon, so the tail moves to the card's right edge. */
-.label-hover-card--flipped::before {
+.label-hover-card--flipped::before,
+.label-hover-card--flipped::after {
   left: auto;
-  right: calc(-5px * var(--ui-scale));
-  border-left: none;
-  border-bottom: none;
-  border-top: 1px solid var(--color-neutral-300);
-  border-right: 1px solid var(--color-neutral-300);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+.label-hover-card--flipped::before {
+  right: calc(-8px * var(--ui-scale));
+}
+
+.label-hover-card--flipped::after {
+  right: calc(-6.5px * var(--ui-scale));
 }
 
 /* Occlusion labels have no context menu to open, so the card isn't clickable and the edit hint is hidden. */
@@ -164,8 +179,7 @@
   cursor: default;
 }
 
-.label-hover-card--static .label-hover-card__hint,
-.label-hover-card--no-delete .label-hover-card__delete {
+.label-hover-card--static .label-hover-card__hint {
   display: none;
 }
 
@@ -173,8 +187,7 @@
   display: flex;
   align-items: center;
   gap: calc(7px * var(--ui-scale));
-  padding: calc(6px * var(--ui-scale)) calc(6px * var(--ui-scale)) calc(6px * var(--ui-scale))
-    calc(10px * var(--ui-scale));
+  padding: calc(6px * var(--ui-scale)) calc(10px * var(--ui-scale));
 }
 
 .label-hover-card__icon {
@@ -189,33 +202,6 @@
   white-space: nowrap;
 }
 
-.label-hover-card__delete {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: calc(24px * var(--ui-scale));
-  height: calc(24px * var(--ui-scale));
-  padding: 0;
-  border: none;
-  border-radius: calc(6px * var(--ui-scale));
-  background: none;
-  color: var(--color-neutral-700);
-  cursor: pointer;
-}
-
-.label-hover-card__delete:hover,
-.label-hover-card__delete:focus-visible {
-  /* orange-100 is the lightest red-leaning surface in the palette; there is no dedicated error-soft token. */
-  background: var(--color-orange-100);
-  color: var(--color-error-200);
-}
-
-.label-hover-card__delete svg {
-  width: calc(12px * var(--ui-scale));
-  height: calc(12px * var(--ui-scale));
-}
-
 .label-hover-card__body {
   display: flex;
   flex-direction: column;
@@ -223,6 +209,13 @@
   gap: calc(6px * var(--ui-scale));
   padding: calc(7px * var(--ui-scale)) calc(10px * var(--ui-scale)) calc(8px * var(--ui-scale));
   border-top: 1px solid var(--color-neutral-200);
+}
+
+/* Muted "Your rating/tags/description" prefixes that name each body row. */
+.label-hover-card__row-label {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  white-space: nowrap;
 }
 
 /* The severity, not-rated, tags, and description rows are shown/hidden per label by Label.js. */
@@ -261,14 +254,23 @@
   font: var(--text-tiny-semibold);
 }
 
-.label-hover-card__tags {
+.label-hover-card__tags-row {
   display: none;
+  align-items: center;
   flex-wrap: wrap;
   gap: calc(4px * var(--ui-scale));
 }
 
-.label-hover-card__description {
+/* The pills sit directly in the row's flex layout so they wrap alongside the row label. */
+.label-hover-card__tags {
+  display: contents;
+}
+
+.label-hover-card__description-row {
   display: none;
+}
+
+.label-hover-card__description {
   font: var(--text-caption-regular);
   font-style: italic;
   color: var(--color-neutral-700);
@@ -280,6 +282,42 @@
   border-top: 1px solid var(--color-neutral-200);
   font: var(--text-tiny-regular);
   color: var(--color-neutral-700);
+}
+
+/* Floating trash-can button pinned to the hovered label's top-right corner (positioned by Label.js, which sets its
+   center point — hence the centering transform). A white circular badge with a red trash can, so the destructive
+   action reads unmistakably and separately from the card. 26px keeps the target above the WCAG 2.5.8 24px minimum. */
+.label-hover-delete {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2; /* Same layer as the hover card; later in the DOM, so it paints above the card if they overlap. */
+  visibility: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(26px * var(--ui-scale));
+  height: calc(26px * var(--ui-scale));
+  padding: 0;
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 50%;
+  background: var(--color-neutral-white);
+  color: var(--color-error-200);
+  box-shadow: 0 calc(1px * var(--ui-scale)) calc(4px * var(--ui-scale)) rgb(45 42 63 / 35%);
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+}
+
+.label-hover-delete:hover,
+.label-hover-delete:focus-visible {
+  background: var(--color-error-200);
+  border-color: var(--color-error-200);
+  color: var(--color-neutral-white);
+}
+
+.label-hover-delete svg {
+  width: calc(14px * var(--ui-scale));
+  height: calc(14px * var(--ui-scale));
 }
 
 /* Sits in the top-right just left of the stacked zoom control, scaled down to match its height. transform-origin keeps
