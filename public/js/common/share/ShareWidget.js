@@ -2,10 +2,10 @@
  * ShareWidget — reusable "share this thing" control.
  *
  * Wraps a trigger <button> and, when activated, either invokes the native OS share sheet (touch-primary devices in
- * supporting browsers) or opens a small accessible popover offering Copy Link, X, Facebook, and Email actions. The
- * widget is built once and re-pointed at different targets via {@link ShareWidget#setTarget}, so a host that shows
- * a sequence of items (e.g. the label detail view paging between labels) constructs a single instance and just
- * updates the URL.
+ * supporting browsers) or opens a small accessible popover offering Copy Link, Bluesky, X, Facebook, LinkedIn, and
+ * Email actions. The widget is built once and re-pointed at different targets via {@link ShareWidget#setTarget}, so
+ * a host that shows a sequence of items (e.g. the label detail view paging between labels) constructs a single
+ * instance and just updates the URL.
  *
  * Accessibility (WCAG 2.1/2.2 AA, ARIA menu pattern): the trigger carries `aria-haspopup`/`aria-expanded`; the
  * popover is a labeled `role="menu"`; ESC and click-outside close it; focus moves into the popover on open and
@@ -152,6 +152,12 @@ class ShareWidget {
     this.#copyButton = this.#makeItem(ShareWidget.#ICON_LINK, t('share.copy-link'), () => this.#copyLink());
     popover.appendChild(this.#copyButton);
 
+    // Bluesky's compose intent has no separate url param, so the permalink rides in the text.
+    popover.appendChild(this.#makeItem(ShareWidget.#ICON_BLUESKY, t('share.on-bluesky'), () => this.#shareTo(
+      'Bluesky',
+      (u, txt) => `https://bsky.app/intent/compose?text=${encodeURIComponent(`${txt}\n\n${u}`)}`,
+    )));
+
     popover.appendChild(this.#makeItem(ShareWidget.#ICON_X, t('share.on-x'), () => this.#shareTo(
       'Twitter',
       (u, txt) => `https://twitter.com/intent/tweet?url=${encodeURIComponent(u)}&text=${encodeURIComponent(txt)}`,
@@ -160,6 +166,12 @@ class ShareWidget {
     popover.appendChild(this.#makeItem(ShareWidget.#ICON_FACEBOOK, t('share.on-facebook'), () => this.#shareTo(
       'Facebook',
       (u) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(u)}`,
+    )));
+
+    // LinkedIn's share endpoint takes only the url; it builds the post preview from the page's OG tags.
+    popover.appendChild(this.#makeItem(ShareWidget.#ICON_LINKEDIN, t('share.on-linkedin'), () => this.#shareTo(
+      'LinkedIn',
+      (u) => `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(u)}`,
     )));
 
     popover.appendChild(this.#makeItem(ShareWidget.#ICON_EMAIL, t('share.via-email'), () => this.#shareEmail()));
@@ -298,6 +310,14 @@ class ShareWidget {
     <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
   </svg>`;
 
+  static #ICON_BLUESKY = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+    <path d="M5.202 2.857C7.954 4.922 10.913 9.11 12 11.358c1.087-2.247 4.046-6.436 6.798-8.501C20.783 1.366 24 .213
+      24 3.883c0 .732-.42 6.156-.667 7.037-.856 3.061-3.978 3.842-6.755 3.37 4.854.826 6.089 3.562 3.422 6.299
+      -5.065 5.196-7.28-1.304-7.847-2.97-.104-.305-.152-.448-.153-.327 0-.121-.05.022-.153.327-.568 1.666-2.782
+      8.166-7.847 2.97-2.667-2.737-1.432-5.473 3.422-6.3-2.777.473-5.899-.308-6.755-3.369C.42 10.04 0 4.615 0 3.883
+      c0-3.67 3.217-2.517 5.202-1.026"/>
+  </svg>`;
+
   static #ICON_X = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08
       l4.713 6.231 5.45-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z"/>
@@ -307,6 +327,14 @@ class ShareWidget {
     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47
       h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956
       1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073Z"/>
+  </svg>`;
+
+  static #ICON_LINKEDIN = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351
+      V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433
+      c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925
+      2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542
+      C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
   </svg>`;
 
   static #ICON_EMAIL = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"

@@ -323,8 +323,10 @@
     "text": "來看看 Project Sidewalk 上的這個{{labelType}}",
     "copy-link": "複製連結",
     "copied": "已複製！",
+    "on-bluesky": "分享到 Bluesky",
     "on-x": "分享到 X",
     "on-facebook": "分享到 Facebook",
+    "on-linkedin": "分享到 LinkedIn",
     "via-email": "透過電子郵件分享"
   }
 }
