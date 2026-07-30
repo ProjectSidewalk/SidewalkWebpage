@@ -344,7 +344,10 @@ class StoryServiceImpl @Inject() (
         rows.map { case (story, media, labelTypeId) =>
           val labelType = LabelTypeEnum.byId(labelTypeId)
           StoryForOwner(
-            story, labelType.name, labelType.isAccessProblem, media.map(toMediaForView),
+            story,
+            labelType.name,
+            labelType.isAccessProblem,
+            media.map(toMediaForView),
             labelImageUrl = if (media.isDefined) None else previewById.get(story.labelId)
           )
         }
