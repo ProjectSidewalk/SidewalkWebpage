@@ -247,6 +247,8 @@ class StorySection {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       this.#announce(i18next.t('labelmap:story.deleted'));
       this.refresh();
+      // Same page-level signal the composer emits on save, so other story lists on the page re-fetch too.
+      document.dispatchEvent(new CustomEvent('ps:story:changed', { detail: { storyId } }));
     } catch (err) {
       console.error(err);
     }

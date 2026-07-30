@@ -154,6 +154,16 @@
             <li>
               <a id="navbar-dashboard-btn" href='@routes.UserDashboardController.dashboard'@if(curPath == "/dashboard"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("bar-chart-2")@Messages("navbar.dashboard")</a>
             </li>
+            @* Anchor hops into the dashboard's own sections (#4656): contributors manage their stories and routes
+               there, and these jump straight to the right section. Same icons as the public Stories/Routes pages
+               under Tools ▸ Community, since they're the personal view of the same things. No is-active: on
+               /dashboard the "Your dashboard" item above owns the active state. *@
+            <li>
+              <a id="navbar-your-stories-btn" href='@routes.UserDashboardController.dashboard#your-stories'>@common.navbarMenuIcon("message-circle")@Messages("navbar.your.stories")</a>
+            </li>
+            <li>
+              <a id="navbar-your-routes-btn" href='@routes.UserDashboardController.dashboard#my-routes'>@common.navbarMenuIcon("flag")@Messages("navbar.your.routes")</a>
+            </li>
             @* Also lives under Tools ▸ Community; duplicated here because contributors look for their own standing
                in their own menu. *@
             <li>

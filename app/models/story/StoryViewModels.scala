@@ -45,11 +45,19 @@ case class StoryForAdmin(
     media: Option[StoryMediaForView]
 )
 
-/** A story on the author's own dashboard management list (hidden ones included, so they can still retract). */
+/**
+ * A story on the author's own dashboard management list (hidden ones included, so they can still retract).
+ * `isAccessProblem` comes from LabelTypeEnum so the dashboard's edit composer can pick the problem-vs-feature
+ * phrasing without re-deriving that mapping in JS.
+ * `labelImageUrl` is a signed preview of the story's label (crop, else GSV static) — only populated when the story
+ * has no uploaded photo, so every row can still carry a thumbnail; None when neither source is available.
+ */
 case class StoryForOwner(
     story: Story,
     labelType: String,
-    media: Option[StoryMediaForView]
+    isAccessProblem: Boolean,
+    media: Option[StoryMediaForView],
+    labelImageUrl: Option[String]
 )
 
 /**

@@ -36,6 +36,8 @@ class StoryComposer {
    * @param {HTMLDialogElement} dialog - The `.story-composer` dialog element.
    * @param {Object} opts
    * @param {string} [opts.currUsername] - The viewer's username; empty/absent hides the show-username option.
+   * @param {boolean} [opts.omitDashboardLink] - Set by a host that is itself the dashboard, so the privacy note
+   *     drops the link back to it.
    * @param {(edited: boolean) => void} [opts.onSubmitted] - Fired after a successful submission or in-place edit
    *     (hosts refresh the story list); `edited` distinguishes the two for the announcement.
    */
@@ -77,8 +79,13 @@ class StoryComposer {
     dialog.setAttribute('aria-labelledby', this.#els.title.id);
 
     // The privacy note embeds the dashboard link, so the translated string carries markup — innerHTML by design.
-    // Safe: the string comes from our own locale files, never from user input.
-    this.#els.privacy.innerHTML = i18next.t('labelmap:story.privacy-note');
+    // Safe: the string comes from our own locale files, never from user input. A host that already *is* the
+    // dashboard points at itself with that link, so it gets the link-free variant instead.
+    if (opts.omitDashboardLink) {
+      this.#els.privacy.textContent = i18next.t('labelmap:story.privacy-note-brief');
+    } else {
+      this.#els.privacy.innerHTML = i18next.t('labelmap:story.privacy-note');
+    }
 
     this.#wireHandlers();
   }
@@ -126,8 +133,10 @@ class StoryComposer {
    * Opens the composer prefilled with an existing story for in-place editing. Submitting PUTs the changes to the
    * story instead of creating a new one; no sign-in CTA or stashed-draft restore applies (only the author gets
    * here, and prefilled content isn't a draft).
-   * @param {Object} story - The StoryForView payload being edited (must be the viewer's own).
-   * @param {?number} maxTextLength - Character cap from the /stories payload (backend source of truth).
+   * Accepts either author-visible payload shape: the card's StoryForView (byline resolved into `display_name`) or the
+   * dashboard's StoryForOwner (the raw `display_name_mode`).
+   * @param {Object} story - The story being edited (must be the viewer's own).
+   * @param {?number} maxTextLength - Character cap from the story payload (backend source of truth).
    */
   openForEdit(story, maxTextLength) {
     this.#labelId = story.label_id;
@@ -142,7 +151,8 @@ class StoryComposer {
     const els = this.#els;
     els.text.value = story.text;
     this.#renderCounter();
-    if (story.display_name && this.#username) {
+    const postedAsUsername = story.display_name_mode ? story.display_name_mode === 'username' : !!story.display_name;
+    if (postedAsUsername && this.#username) {
       els.nameUser.checked = true;
       els.nameAnon.checked = false;
     }
@@ -319,6 +329,11 @@ class StoryComposer {
         }
         this.#dialog.close();
         if (typeof this.#onSubmitted === 'function') this.#onSubmitted(editing);
+        // #onSubmitted only reaches this composer's own host, so story lists elsewhere on the page (the
+        // dashboard's "Your stories" next to the label popup) listen for this page-level signal instead.
+        document.dispatchEvent(new CustomEvent('ps:story:changed', {
+          detail: { storyId: editing ? this.#editStoryId : null },
+        }));
       } else {
         let body = null;
         try {

@@ -56,6 +56,8 @@ class NavbarController {
     'navbar-sign-out-btn': 'Click_module=SignOut',
     'navbar-admin-btn': 'Click_module=ToAdmin',
     'navbar-dashboard-btn': 'Click_module=ToDashboard',
+    'navbar-your-stories-btn': 'Click_module=YourStories_from=UserDropdown',
+    'navbar-your-routes-btn': 'Click_module=YourRoutes_from=UserDropdown',
     'navbar-expert-validate-btn-user': 'Click_module=ExpertValidate_from=UserDropdown',
   };
 

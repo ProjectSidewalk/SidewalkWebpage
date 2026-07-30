@@ -1654,15 +1654,38 @@
   border: 1px solid var(--color-neutral-300, #d1d1d1);
 }
 
+/* Imageless rows (no photo, no label preview) keep the thumbnail's box so their text stays column-aligned. */
+.ud-story-thumb--none {
+  background: var(--color-neutral-100, #f5f5f5);
+  border-color: var(--color-neutral-200, #e1e1e1);
+}
+
 .ud-story-body {
   flex: 1 1 auto;
   min-width: 0;
 }
 
 .ud-story-text {
+  position: relative;
+  z-index: 0; /* Own stacking context so the quote-mark pseudo can sit behind the text. */
   margin: 0 0 4px;
+  padding-left: 18px;
+  font-style: italic;
   white-space: pre-wrap;
   overflow-wrap: break-word;
+}
+
+/* Smaller cousin of the /stories cards' ghosted quote mark (community-list.css): together with the italics it
+   marks this line as the author's own words. Serif deliberately — no design-system token has a serif face, and
+   the classic testimonial glyph needs one (same rationale as the cards). */
+.ud-story-text::before {
+  content: "\201c";
+  position: absolute;
+  top: -2px;
+  left: 0;
+  z-index: -1;
+  font: 700 30px/1 Georgia, serif;
+  color: var(--color-neutral-300, #d1d1d1);
 }
 
 .ud-story-meta {
@@ -1688,6 +1711,7 @@
   line-height: 1;
 }
 
+.ud-story-edit,
 .ud-story-delete {
   padding: 2px;
   border: none;
@@ -1696,10 +1720,14 @@
   font-family: var(--font-accent, Raleway, sans-serif);
   font-weight: 600;
   font-size: 12px;
-  color: var(--color-orange-700, #8d442f);
   text-decoration: underline;
 }
 
+.ud-story-edit { color: var(--color-link-200, #0f5faf); }
+
+.ud-story-delete { color: var(--color-orange-700, #8d442f); }
+
+.ud-story-edit:focus-visible,
 .ud-story-delete:focus-visible {
   outline: 2px solid var(--color-link-100, #3e8bd9);
   outline-offset: 2px;
