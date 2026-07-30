@@ -4,8 +4,6 @@
  * @memberof svl
  */
 class ContextMenu {
-  static #LABEL_TO_MENU_GAP = 8; // Amount of space between the label and context menu.
-
   labelTags; // Public: read by Keyboard.js. Populated by fetchLabelTags().
 
   #status = {
@@ -565,26 +563,6 @@ class ContextMenu {
       } else {
         this.#severityMenu.addClass('hidden');
       }
-      // labelCoord is in the logical 720x480 frame; the menu is a DOM element sized in on-screen pixels.
-      // Do the placement math in the logical frame (so the constants below stay valid), converting the
-      // menu's measured height into that frame, then scale the final position to pixels when positioning.
-      const scale = util.exploreDisplayScale();
-      const menuHeight = this.#menuWindow.outerHeight() / scale;
-
-      // Determine coordinates for context menu to display below the label.
-      let topCoordinate = labelCoord.y + svl.LABEL_ICON_RADIUS + ContextMenu.#LABEL_TO_MENU_GAP;
-
-      // The menu may hang below the pano edge, but not past the bottom of the viewport, where it would be cut
-      // off. Measure the space from the pano's top down to the viewport bottom, in the logical frame.
-      const panoTop = document.getElementById('street-view-holder').getBoundingClientRect().top;
-      const spaceBelow = (window.innerHeight - panoTop) / scale;
-
-      // If there isn't enough room to show the context menu below the label, show it above the label instead.
-      // labelCoord.y is top-left of label but is center of rendered label, so we must add the icon radius.
-      if (topCoordinate + menuHeight > spaceBelow) {
-        topCoordinate = labelCoord.y - svl.LABEL_ICON_RADIUS - menuHeight - ContextMenu.#LABEL_TO_MENU_GAP;
-      }
-
       // Set the menu value if label has its value set.
       const severity = targetLabel.getProperty('severity');
       const description = targetLabel.getProperty('description');
@@ -603,14 +581,6 @@ class ContextMenu {
         if (!this.isTaggingDisabled()) this.#showTaggingEnabled();
         else this.#showTaggingDisabled();
       }
-
-      // Read the width fresh (it scales with --ui-scale) so the menu stays centered under the label at any UI scale.
-      const windowWidth = this.#menuWindow.outerWidth();
-      this.#menuWindow.css({
-        visibility: 'visible',
-        left: labelCoord.x * scale - windowWidth / 2,
-        top: topCoordinate * scale,
-      });
 
       this.#setStatus('visibility', 'visible');
 
@@ -634,6 +604,15 @@ class ContextMenu {
       this.#descriptionHeaderNumber.text('3.');
     } else {
       this.#descriptionHeaderNumber.text('2.');
+    }
+
+    // Anchor the menu exactly like the hover card it opens from, so clicking a label expands the card into this
+    // menu roughly in place instead of moving the panel somewhere else. This runs last because the routine measures
+    // the menu, and everything above — which sections are shown, how many tag rows there are — sets its height.
+    // targetLabel is only set for label types that get a menu at all (Occlusion doesn't).
+    if (this.#getStatus('targetLabel')) {
+      util.anchorPanelToLabel(this.#menuWindow, labelCoord, svl.LABEL_ICON_RADIUS);
+      this.#menuWindow.css('visibility', 'visible');
     }
   }
 }

@@ -355,28 +355,9 @@ class Label {
     // The tutorial's delete lock hides the Delete button.
     ui.hoverCard.toggleClass('label-hover-card--no-delete', Boolean(svl.canvas.getStatus('disableLabelDelete')));
 
-    // Position the card beside the label icon, flipping to its left side if there isn't room on the right, and
-    // nudging it vertically to stay inside the pano. The tail keeps pointing at the icon via --hover-card-tail-top.
-    const coord = this.getCanvasXY();
-    const scale = util.exploreDisplayScale();
-    const holder = ui.hoverCard;
-    const centerX = coord.x * scale;
-    const centerY = coord.y * scale;
-    const radius = svl.LABEL_ICON_RADIUS * scale;
-    const gap = 12; // On-screen pixels between the icon and the card.
-    const panoHeight = util.EXPLORE_CANVAS_HEIGHT * scale;
-
-    const flipped = centerX + radius + gap + holder.outerWidth() > util.EXPLORE_CANVAS_WIDTH * scale;
-    const left = flipped
-      ? centerX - radius - gap - holder.outerWidth()
-      : centerX + radius + gap;
-    const top = Math.min(Math.max(centerY - holder.outerHeight() / 2, 4), panoHeight - holder.outerHeight() - 4);
-    // Keep the tail's base (8px half-height in CSS) clear of the card's 8px rounded corners.
-    const tailMargin = 18 * scale;
-    const tailTop = Math.min(Math.max(centerY - top, tailMargin), holder.outerHeight() - tailMargin);
-    holder.toggleClass('label-hover-card--flipped', flipped);
-    holder[0].style.setProperty('--hover-card-tail-top', `${tailTop}px`);
-    holder.css({ visibility: 'visible', left, top });
+    // The card and the context menu it opens into share one anchor so the panel expands roughly in place.
+    util.anchorPanelToLabel(ui.hoverCard, this.getCanvasXY(), svl.LABEL_ICON_RADIUS);
+    ui.hoverCard.css('visibility', 'visible');
   }
 
   /**

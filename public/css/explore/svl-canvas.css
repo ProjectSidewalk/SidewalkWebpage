@@ -113,65 +113,20 @@
     sepia(1) saturate(5) hue-rotate(315deg); /* Adds yellow highlight. */
 }
 
-/* Card shown over a hovered label (populated/positioned by Label.js). Deliberately shares the context menu's visual
-   language (white card, neutral hairline, 8px radius) so hover and menu read as one component family, but at caption
-   scale with no form affordances, so it stays unmistakably read-only. The whole card is a click target that opens the
-   label's context menu; the label color lives in the type icon rather than the card surface for text contrast. */
+/* Card shown over a hovered label (populated by Label.js, positioned by util.anchorPanelToLabel). The shell — white
+   card, neutral hairline, 8px radius, tail at the icon — comes from .label-anchored-panel, shared with the context
+   menu this opens into. What's specific here is the caption scale and the absence of any form affordance, so it
+   stays unmistakably read-only. The whole card is a click target that opens the label's context menu; the label
+   color lives in the type icon rather than the card surface for text contrast. */
 .label-hover-card {
-  position: absolute;
   left: 0;
   top: 0;
   z-index: 2; /* Above the pano's view-control-layer (z-index: 1), below the context menu (z-index: 3). */
   visibility: hidden;
-  box-sizing: border-box;
   width: max-content;
   max-width: calc(240px * var(--ui-scale));
-  background: var(--color-neutral-white);
-  border: 1px solid var(--color-neutral-300);
-  border-radius: calc(8px * var(--ui-scale));
   box-shadow: 0 calc(2px * var(--ui-scale)) calc(10px * var(--ui-scale)) rgb(45 42 63 / 28%);
   cursor: pointer;
-}
-
-/* Tail pointing at the label icon: a true triangle drawn as two stacked clip-path layers — a neutral-300 backing
-   triangle with a white fill triangle offset 1.5px toward the card — so the tail keeps the card's hairline along
-   its slanted edges and joins the card edge with no seam (a border+rotate diamond leaves gaps at the base corners).
-   Its vertical position is set by Label.js (--hover-card-tail-top) so it keeps pointing at the icon even when the
-   card is nudged to stay inside the pano. */
-.label-hover-card::before,
-.label-hover-card::after {
-  content: "";
-  position: absolute;
-  top: var(--hover-card-tail-top, 50%);
-  width: calc(8px * var(--ui-scale));
-  height: calc(16px * var(--ui-scale));
-  margin-top: calc(-8px * var(--ui-scale));
-  clip-path: polygon(100% 0, 0 50%, 100% 100%);
-}
-
-.label-hover-card::before {
-  left: calc(-8px * var(--ui-scale));
-  background: var(--color-neutral-300);
-}
-
-.label-hover-card::after {
-  left: calc(-6.5px * var(--ui-scale));
-  background: var(--color-neutral-white);
-}
-
-/* Flipped: the card sits to the left of the label icon, so the tail moves to the card's right edge. */
-.label-hover-card--flipped::before,
-.label-hover-card--flipped::after {
-  left: auto;
-  clip-path: polygon(0 0, 100% 50%, 0 100%);
-}
-
-.label-hover-card--flipped::before {
-  right: calc(-8px * var(--ui-scale));
-}
-
-.label-hover-card--flipped::after {
-  right: calc(-6.5px * var(--ui-scale));
 }
 
 /* Occlusion labels have no context menu to open, so the card isn't clickable and the Edit button is hidden. */

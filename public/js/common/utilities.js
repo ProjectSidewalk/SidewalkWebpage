@@ -21,6 +21,47 @@ util.exploreDisplayScale = function () {
 };
 
 /**
+ * Positions a panel beside a label's icon in the Explore pano and points its tail at that icon.
+ *
+ * The hover card and the context menu are two states of one panel — read-only, then editable — so they share this
+ * routine and land on the same anchor: beside the icon on whichever side has room, vertically centered on it, and
+ * nudged to stay inside the pano. Clicking a label then expands the card into the menu roughly in place instead of
+ * moving it somewhere else. Panels styled with .label-anchored-panel read the values this sets.
+ *
+ * @param {jQuery} panel - The panel to position. Must be .label-anchored-panel and a child of the pano holder.
+ * @param {{x: number, y: number}} labelCanvasXY - The label icon's center in the 720x480 logical canvas frame.
+ * @param {number} iconRadius - The label icon's radius, in that same logical frame.
+ */
+util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius) {
+  const GAP = 12;  // On-screen pixels between the icon and the panel.
+  const EDGE = 4;  // Smallest gap left between the panel and the pano's edges.
+  const TAIL_MARGIN = 18; // Keeps the tail's base clear of the panel's rounded corners.
+
+  const scale = util.exploreDisplayScale();
+  const centerX = labelCanvasXY.x * scale;
+  const centerY = labelCanvasXY.y * scale;
+  const radius = iconRadius * scale;
+  const width = panel.outerWidth();
+  const height = panel.outerHeight();
+  const panoWidth = util.EXPLORE_CANVAS_WIDTH * scale;
+  const panoHeight = util.EXPLORE_CANVAS_HEIGHT * scale;
+
+  // A panel bigger than the space left for it still has to go somewhere: these maxima collapse to EDGE rather than
+  // going negative, so it overhangs the far edge instead of being pushed off the near one.
+  const maxLeft = Math.max(EDGE, panoWidth - width - EDGE);
+  const maxTop = Math.max(EDGE, panoHeight - height - EDGE);
+
+  const flipped = centerX + radius + GAP + width > panoWidth;
+  const left = flipped ? centerX - radius - GAP - width : centerX + radius + GAP;
+  const top = Math.min(Math.max(centerY - height / 2, EDGE), maxTop);
+  const tailTop = Math.min(Math.max(centerY - top, TAIL_MARGIN * scale), height - TAIL_MARGIN * scale);
+
+  panel.toggleClass('label-anchored-panel--flipped', flipped);
+  panel[0].style.setProperty('--panel-tail-top', `${tailTop}px`);
+  panel.css({ left: Math.min(Math.max(left, EDGE), maxLeft), top });
+};
+
+/**
  * Uniformly scales a whole tool (Explore, Validate) to fit the available viewport, like browser zoom.
  *
  * Sets the --ui-scale CSS variable on .tool-ui; every tool dimension is expressed as base-size * var(--ui-scale),

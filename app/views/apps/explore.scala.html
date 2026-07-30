@@ -502,7 +502,7 @@
           @* Card shown over a hovered label: its type, severity, tags, and description, plus Delete/Edit action
              buttons. Populated and positioned by Label.js; clicking anywhere on the card opens the label's context
              menu — the Edit button is the visible affordance for that same action (Canvas.js). *@
-          <div id="label-hover-card" class="label-hover-card">
+          <div id="label-hover-card" class="label-anchored-panel label-hover-card">
             <div class="label-hover-card__header">
               <img id="label-hover-card-icon" class="label-hover-card__icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="">
               <span id="label-hover-card-type" class="label-hover-card__type"></span>
@@ -538,7 +538,7 @@
             </div>
           </div>
             <!-- Context Menu Container -->
-          <div id="context-menu-holder">
+          <div id="context-menu-holder" class="label-anchored-panel">
             <div id="context-menu-close-button-holder">
               <button type="button" id="context-menu-close-button">
                 <svg width="100%" height="100%" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
