@@ -2,8 +2,9 @@
  * StoriesSection — the "Your stories" management list on the user dashboard (#4054).
  *
  * Fetches the signed-in user's lived-experience stories (hidden ones included — the author keeps sight of a
- * quarantined story and the right to retract it) from /userapi/stories/mine and renders one row per story: label
- * type, story text, photo thumbnail, posted date, the hidden-by-moderators chip, a view-label link (opens the
+ * quarantined story and the right to retract it) from /userapi/stories/mine and renders one row per story: a
+ * thumbnail (the story's photo, else the backend's signed label preview, else an empty placeholder), label
+ * type, story text, posted date, the hidden-by-moderators chip, a view-label link (opens the
  * shared label popup when available), and Edit + Delete. Editing (#4656) reuses the card's StoryComposer against
  * the dashboard's own dialog instance, so the two edit paths can't drift. The list re-renders on the page-level
  * `ps:story:changed` signal, so a story saved or retracted through the label popup's own card refreshes it too.
@@ -89,13 +90,20 @@ class StoriesSection {
     row.dataset.storyId = story.story_id;
     if (story.hidden) row.classList.add('ud-story-row--hidden');
 
-    if (story.media) {
+    // Thumbnail: the story's own photo, else the label preview the backend signed (crop or GSV static), else an
+    // empty box so imageless rows stay column-aligned with the rest.
+    const imageUrl = story.media?.url ?? story.label_image_url;
+    if (imageUrl) {
       const img = document.createElement('img');
       img.className = 'ud-story-thumb';
       img.loading = 'lazy';
-      img.src = story.media.url;
-      img.alt = story.media.alt_text || '';
+      img.src = imageUrl;
+      img.alt = story.media?.alt_text || '';
+      // A vanished crop file or an expired signed URL degrades to the placeholder, not a broken-image icon.
+      img.addEventListener('error', () => img.replaceWith(StoriesSection.#thumbPlaceholder()), { once: true });
       row.appendChild(img);
+    } else {
+      row.appendChild(StoriesSection.#thumbPlaceholder());
     }
 
     const body = document.createElement('div');
@@ -153,6 +161,16 @@ class StoriesSection {
     body.appendChild(meta);
     row.appendChild(body);
     return row;
+  }
+
+  /**
+   * @returns {HTMLElement} The empty thumbnail block shown when a story has no photo and no label preview.
+   */
+  static #thumbPlaceholder() {
+    const ph = document.createElement('span');
+    ph.className = 'ud-story-thumb ud-story-thumb--none';
+    ph.setAttribute('aria-hidden', 'true');
+    return ph;
   }
 
   /**

@@ -46,7 +46,9 @@ object StoryFormats {
       "display_name_mode" -> s.story.displayNameMode,
       "hidden"            -> !s.story.visible,
       "created_at"        -> s.story.createdAt,
-      "media"             -> s.media.map(mediaToJson)
+      "media"             -> s.media.map(mediaToJson),
+      // Photoless stories: a signed label preview (crop, else GSV static) so the row still shows a thumbnail.
+      "label_image_url" -> s.labelImageUrl
     )
   }
 

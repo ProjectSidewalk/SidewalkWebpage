@@ -5,7 +5,6 @@ import com.drew.metadata.exif.{ExifSubIFDDirectory, GpsDirectory}
 import com.google.inject.ImplementedBy
 import executors.CpuIntensiveExecutionContext
 import models.label.{LabelTypeEnum, LatLng}
-import models.pano.PanoSource.PanoSource
 import models.story._
 import models.utils.MyPostgresProfile.api._
 import models.utils.{CommonUtils, ImageUtils, MyPostgresProfile, ProfanityGuard}
@@ -309,42 +308,61 @@ class StoryServiceImpl @Inject() (
     }
   }
 
+  /**
+   * Signed label-preview URLs (saved crop, else provider static image) for the given labels, resolved with one
+   * batched pano-metadata query — the same crop-then-GSV strategy as the Gallery and the admin activity feed.
+   * Used for photoless stories so every listing row can still carry an image.
+   *
+   * @param labelTypesById The label type of each label needing a preview, keyed by label id.
+   * @return               Preview URL per label id; labels with no saved crop and no usable pano are absent.
+   */
+  private def labelPreviewUrls(labelTypesById: Map[Int, LabelTypeEnum.Base]): Future[Map[Int, String]] = {
+    if (labelTypesById.isEmpty) Future.successful(Map.empty)
+    else
+      db.run(labelTable.getPanoMetadataForLabels(labelTypesById.keys.toSeq)).map { metas =>
+        val metaById = metas.map { case (labelId, panoId, source, heading, pitch, zoom) =>
+          labelId -> ((panoId, source, heading, pitch, zoom))
+        }.toMap
+        labelTypesById.flatMap { case (labelId, labelType) =>
+          panoDataService
+            .cropUrl(labelId, labelType)
+            .orElse(metaById.get(labelId).flatMap { case (panoId, source, heading, pitch, zoom) =>
+              panoDataService.getImageUrl(panoId, source, heading, pitch, zoom)
+            })
+            .map(labelId -> _)
+        }
+      }
+  }
+
   def getStoriesForUser(userId: String): Future[Seq[StoryForOwner]] = {
-    db.run(storyTable.getForUser(userId))
-      .map(_.map { case (story, media, labelTypeId) =>
-        val labelType = LabelTypeEnum.byId(labelTypeId)
-        StoryForOwner(story, labelType.name, labelType.isAccessProblem, media.map(toMediaForView))
-      })
+    db.run(storyTable.getForUser(userId)).flatMap { rows =>
+      // Photoless stories fall back to a label preview so every dashboard row can carry a thumbnail (#4656).
+      val photolessTypes = rows.collect { case (story, None, labelTypeId) =>
+        story.labelId -> LabelTypeEnum.byId(labelTypeId)
+      }.toMap
+      labelPreviewUrls(photolessTypes).map { previewById =>
+        rows.map { case (story, media, labelTypeId) =>
+          val labelType = LabelTypeEnum.byId(labelTypeId)
+          StoryForOwner(
+            story, labelType.name, labelType.isAccessProblem, media.map(toMediaForView),
+            labelImageUrl = if (media.isDefined) None else previewById.get(story.labelId)
+          )
+        }
+      }
+    }
   }
 
   def getStoriesForCity(n: Int): Future[Seq[StoryForListing]] = {
     db.run(storyTable.getVisibleForCity(n)).flatMap { rows =>
-      // Photoless stories fall back to a label preview image (saved crop, else GSV static thumbnail) so every card
-      // can carry an image — the same crop-then-GSV strategy as the Gallery and the admin activity feed.
-      val photolessLabelIds = rows.collect { case (story, None, _, _, _, _, _) => story.labelId }
-      val panoMetaFut       =
-        if (photolessLabelIds.isEmpty) Future.successful(Map.empty[Int, (String, PanoSource, Double, Double, Double)])
-        else
-          db.run(labelTable.getPanoMetadataForLabels(photolessLabelIds)).map {
-            _.map { case (id, panoId, source, heading, pitch, zoom) =>
-              id -> ((panoId, source, heading, pitch, zoom))
-            }.toMap
-          }
-      panoMetaFut.map { panoMetaById =>
+      val photolessTypes = rows.collect { case (story, None, _, labelTypeId, _, _, _) =>
+        story.labelId -> LabelTypeEnum.byId(labelTypeId)
+      }.toMap
+      labelPreviewUrls(photolessTypes).map { previewById =>
         rows.map { case (story, media, username, labelTypeId, regionId, regionName, address) =>
-          val labelType     = LabelTypeEnum.byId(labelTypeId)
-          val labelImageUrl =
-            if (media.isDefined) None
-            else
-              panoDataService
-                .cropUrl(story.labelId, labelType)
-                .orElse(panoMetaById.get(story.labelId).flatMap { case (panoId, source, heading, pitch, zoom) =>
-                  panoDataService.getImageUrl(panoId, source, heading, pitch, zoom)
-                })
           StoryForListing(
             storyId = story.storyId,
             labelId = story.labelId,
-            labelType = labelType,
+            labelType = LabelTypeEnum.byId(labelTypeId),
             regionId = regionId,
             regionName = regionName,
             address = address,
@@ -352,7 +370,7 @@ class StoryServiceImpl @Inject() (
             displayName = if (story.displayNameMode == Story.DisplayNameUsername) Some(username) else None,
             createdAt = story.createdAt,
             media = media.map(toMediaForView),
-            labelImageUrl = labelImageUrl
+            labelImageUrl = if (media.isDefined) None else previewById.get(story.labelId)
           )
         }
       }

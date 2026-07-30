@@ -24,7 +24,7 @@ function story(overrides = {}) {
     return {
         story_id: 11, label_id: 501, label_type: 'SurfaceProblem', is_access_problem: true,
         text: 'The cracked panel here tips my chair.', display_name_mode: 'anonymous', hidden: false,
-        created_at: '2026-07-01T12:00:00Z', media: null, ...overrides,
+        created_at: '2026-07-01T12:00:00Z', media: null, label_image_url: null, ...overrides,
     };
 }
 
@@ -98,6 +98,22 @@ describe('the dashboard\'s "Your stories" list', () => {
         expect(document.querySelector('.ud-story-edit').getAttribute('aria-label')).toBe('labelmap:story.edit-aria');
         expect(document.querySelector('.ud-story-delete').getAttribute('aria-label'))
             .toBe('labelmap:story.delete-aria');
+    });
+
+    it('fills the thumbnail from the photo, else the backend\'s label preview, else a placeholder', async () => {
+        stories = [
+            story({ story_id: 11, media: { url: '/storyMedia/7', alt_text: 'wet leaves' } }),
+            story({ story_id: 12, label_image_url: '/cropImage/SurfaceProblem/501?exp=1&sig=x' }),
+            story({ story_id: 13 }),
+        ];
+        await renderSection();
+
+        const [photo, labelPreview, none] = rows().map((r) => r.querySelector('.ud-story-thumb'));
+        expect(photo.src).toContain('/storyMedia/7');
+        expect(photo.alt).toBe('wet leaves');
+        expect(labelPreview.src).toContain('/cropImage/SurfaceProblem/501');
+        expect(none.tagName).toBe('SPAN');
+        expect(none.className).toContain('ud-story-thumb--none');
     });
 
     it('hands the story, the backend cap, and the label type\'s phrasing to the composer', async () => {

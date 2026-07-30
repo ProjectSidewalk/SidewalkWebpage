@@ -563,6 +563,8 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
             (mine.get \ "label_type").asOpt[String] mustBe defined
             (mine.get \ "is_access_problem").asOpt[Boolean] mustBe defined
             (mine.get \ "display_name_mode").as[String] mustBe Story.DisplayNameAnonymous
+            // The thumbnail source rides the payload; null is fine (no crop/pano), but the key must be there.
+            (mine.get \ "label_image_url").toOption mustBe defined
 
             val stranger = route(app, FakeRequest(GET, "/userapi/stories/mine").withCookies(freshAnonSession(): _*)).get
             status(stranger) mustBe OK

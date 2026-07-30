@@ -1313,7 +1313,10 @@ button.label-detail__meta-cell:focus-visible {
 /* ─── Story composer dialog (#4054) ─────────────────────────────────────── */
 dialog.story-composer {
   box-sizing: border-box;
-  position: relative;
+
+  /* Deliberately no `position`: the UA's dialog:modal rule (fixed, viewport-centered) must apply. An in-flow
+     position here makes showModal()'s focus scroll the page to the dialog's markup location on pages that
+     scroll, like the dashboard. Absolutely-positioned children (the close ✕) still anchor to the dialog. */
   width: 520px;
   max-width: calc(100vw - 32px);
   border: none;
@@ -1629,7 +1632,8 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
 /* ─── Story photo lightbox (#4054) ──────────────────────────────────────── */
 dialog.story-lightbox {
   box-sizing: border-box;
-  position: relative;
+
+  /* Deliberately no `position` — same scrolled-page constraint as dialog.story-composer above. */
   max-width: min(560px, calc(100vw - 32px));
   border: none;
   border-radius: 12px;
