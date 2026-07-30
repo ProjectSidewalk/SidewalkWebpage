@@ -63,6 +63,8 @@
     "hidden-chip": "Verborgen door moderatie",
     "delete": "Verwijderen",
     "edit": "Bewerken",
+    "edit-aria": "Je verhaal over {{labelType}} van {{date}} bewerken",
+    "delete-aria": "Je verhaal over {{labelType}} van {{date}} verwijderen",
     "delete-confirm": "Je verhaal definitief verwijderen? Dit kan niet ongedaan worden gemaakt.",
     "deleted": "Je verhaal is verwijderd.",
     "submitted": "Je verhaal is nu openbaar bij dit etiket.",

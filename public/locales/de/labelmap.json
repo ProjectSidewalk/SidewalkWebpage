@@ -63,6 +63,8 @@
     "hidden-chip": "Von der Moderation ausgeblendet",
     "delete": "Löschen",
     "edit": "Bearbeiten",
+    "edit-aria": "Ihre Geschichte über {{labelType}} vom {{date}} bearbeiten",
+    "delete-aria": "Ihre Geschichte über {{labelType}} vom {{date}} löschen",
     "delete-confirm": "Ihre Geschichte endgültig löschen? Das kann nicht rückgängig gemacht werden.",
     "deleted": "Ihre Geschichte wurde gelöscht.",
     "submitted": "Ihre Geschichte ist jetzt öffentlich an dieser Beschriftung sichtbar.",

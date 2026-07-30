@@ -63,6 +63,8 @@
     "hidden-chip": "Oculta pela moderação",
     "delete": "Excluir",
     "edit": "Editar",
+    "edit-aria": "Editar sua história sobre {{labelType}} de {{date}}",
+    "delete-aria": "Excluir sua história sobre {{labelType}} de {{date}}",
     "delete-confirm": "Excluir sua história permanentemente? Isso não pode ser desfeito.",
     "deleted": "Sua história foi excluída.",
     "submitted": "Sua história agora está pública neste rótulo.",

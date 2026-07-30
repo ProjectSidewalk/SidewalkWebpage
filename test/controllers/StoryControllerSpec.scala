@@ -572,8 +572,9 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "redirect a cookie-less request into the anonymous sign-up flow rather than exposing a list" in {
-      val sc = status(route(app, FakeRequest(GET, "/userapi/stories/mine")).get)
-      sc must not be OK
+      val resp = route(app, FakeRequest(GET, "/userapi/stories/mine")).get
+      status(resp) mustBe SEE_OTHER
+      redirectLocation(resp).value must include("/anonSignUp")
     }
   }
 

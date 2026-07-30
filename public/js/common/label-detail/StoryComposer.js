@@ -329,6 +329,11 @@ class StoryComposer {
         }
         this.#dialog.close();
         if (typeof this.#onSubmitted === 'function') this.#onSubmitted(editing);
+        // #onSubmitted only reaches this composer's own host, so story lists elsewhere on the page (the
+        // dashboard's "Your stories" next to the label popup) listen for this page-level signal instead.
+        document.dispatchEvent(new CustomEvent('ps:story:changed', {
+          detail: { storyId: editing ? this.#editStoryId : null },
+        }));
       } else {
         let body = null;
         try {

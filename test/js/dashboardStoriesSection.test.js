@@ -5,7 +5,8 @@
  * Two contracts matter here beyond rendering: an author can edit a story from the list (the row's Edit hands the
  * story to the shared StoryComposer, with the character cap and problem-vs-feature phrasing taken from the payload
  * rather than re-derived here), and Delete is a hard, unrecoverable retraction — so it must never fire without a
- * confirmation.
+ * confirmation. The list refreshes on the page-level `ps:story:changed` signal (emitted by StoryComposer and the
+ * label card's own delete path), which also repairs the focus the re-render drops.
  *
  * StoriesSection is a page-global `class` that reaches for globals, so the source is eval'd into jsdom with its
  * collaborators (fetch, i18next, moment, StoryComposer, ConfirmDialog) stubbed.
@@ -38,6 +39,9 @@ describe('the dashboard\'s "Your stories" list', () => {
     let composer;
     let confirmResult;
     let stories;
+
+    /** Drains the microtask queue (a macrotask runs after all pending promise continuations). */
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
     /**
      * Renders the section against the stubbed payload.
@@ -90,6 +94,10 @@ describe('the dashboard\'s "Your stories" list', () => {
 
         expect(firstRowControls()).toEqual(['ud-story-edit', 'ud-story-delete']);
         expect(document.querySelector('.ud-story-edit').textContent).toBe('labelmap:story.edit');
+        // Rows repeat the same visible "Edit"/"Delete", so each control's accessible name says which story.
+        expect(document.querySelector('.ud-story-edit').getAttribute('aria-label')).toBe('labelmap:story.edit-aria');
+        expect(document.querySelector('.ud-story-delete').getAttribute('aria-label'))
+            .toBe('labelmap:story.delete-aria');
     });
 
     it('hands the story, the backend cap, and the label type\'s phrasing to the composer', async () => {
@@ -110,15 +118,26 @@ describe('the dashboard\'s "Your stories" list', () => {
         expect(composer.setCopyVariant).toHaveBeenCalledWith(false);
     });
 
-    it('re-fetches the list after a save, so an edited story\'s row shows the new text', async () => {
+    it('re-fetches the list on the story-changed signal, so an edited story\'s row shows the new text', async () => {
         await renderSection();
         stories = [story({ text: 'Now repaved.' })];
 
-        composer.opts.onSubmitted();
-        await Promise.resolve();
-        await Promise.resolve();
+        // What StoryComposer emits after a successful save — from this list's composer or the label popup's.
+        document.dispatchEvent(new CustomEvent('ps:story:changed', { detail: { storyId: 11 } }));
+        await flush();
 
         expect(document.querySelector('.ud-story-text').textContent).toBe('Now repaved.');
+    });
+
+    it('returns focus to the edited row\'s Edit button once the re-render detaches the old one', async () => {
+        await renderSection();
+
+        // After a save the composer dialog closes and the re-render replaces the row, dropping focus to <body>;
+        // only then does the section repair it (a save from the popup's composer keeps focus in the popup).
+        document.dispatchEvent(new CustomEvent('ps:story:changed', { detail: { storyId: 11 } }));
+        await flush();
+
+        expect(document.activeElement).toBe(document.querySelector('.ud-story-edit'));
     });
 
     it('still lists stories when no composer dialog is on the page, minus the Edit control', async () => {

@@ -5,8 +5,9 @@
  * quarantined story and the right to retract it) from /userapi/stories/mine and renders one row per story: label
  * type, story text, photo thumbnail, posted date, the hidden-by-moderators chip, a view-label link (opens the
  * shared label popup when available), and Edit + Delete. Editing (#4656) reuses the card's StoryComposer against
- * the dashboard's own dialog instance, so the two edit paths can't drift. Reuses the labelmap:story.* strings the
- * card already loads on this page.
+ * the dashboard's own dialog instance, so the two edit paths can't drift. The list re-renders on the page-level
+ * `ps:story:changed` signal, so a story saved or retracted through the label popup's own card refreshes it too.
+ * Reuses the labelmap:story.* strings the card already loads on this page.
  */
 class StoriesSection {
   #container;
@@ -29,10 +30,24 @@ class StoriesSection {
       this.#composer = new StoryComposer(opts.composerDialog, {
         currUsername: opts.currUsername,
         omitDashboardLink: true, // The privacy note's "from your dashboard" link would point at this very page.
-        // A save can change any rendered field (text, photo, byline), so re-fetch rather than patch the row.
-        onSubmitted: () => this.render(),
       });
     }
+    // A save can change any rendered field (text, photo, byline) — and can come from the label popup's own
+    // composer, not just this list's — so any story change on the page re-fetches rather than patching rows.
+    document.addEventListener('ps:story:changed', (e) => this.#onStoryChanged(e));
+  }
+
+  /**
+   * Re-renders on any story save or retraction on the page, then repairs focus: closing this list's composer
+   * returns focus to the row's Edit button, which the re-render just detached (dropping focus to <body>). Only
+   * lost focus is repaired, so a save through the label popup's composer keeps focus where the popup put it.
+   * @param {CustomEvent} e - The `ps:story:changed` signal; `detail.storyId` is set when an existing story changed.
+   */
+  async #onStoryChanged(e) {
+    await this.render();
+    const storyId = e.detail?.storyId ?? null;
+    if (storyId === null || document.activeElement !== document.body) return;
+    this.#container.querySelector(`.ud-story-row[data-story-id="${storyId}"] .ud-story-edit`)?.focus();
   }
 
   async render() {
@@ -71,6 +86,7 @@ class StoriesSection {
   #buildRow(story) {
     const row = document.createElement('div');
     row.className = 'ud-story-row';
+    row.dataset.storyId = story.story_id;
     if (story.hidden) row.classList.add('ud-story-row--hidden');
 
     if (story.media) {
@@ -91,16 +107,18 @@ class StoriesSection {
 
     const meta = document.createElement('div');
     meta.className = 'ud-story-meta';
+    const typeName = i18next.t(`common:${camelToKebab(story.label_type)}`);
+    const postedDate = moment(new Date(story.created_at)).format('ll');
     const labelLink = document.createElement('a');
     labelLink.href = `/label/${encodeURIComponent(story.label_id)}`;
-    labelLink.textContent = i18next.t(`common:${camelToKebab(story.label_type)}`);
+    labelLink.textContent = typeName;
     labelLink.addEventListener('click', (e) => {
       if (!this.#labelPopup) return; // href fallback: navigate to the public label page.
       e.preventDefault();
       this.#labelPopup.showLabel(story.label_id, 'DashboardStories');
     });
     meta.appendChild(labelLink);
-    meta.appendChild(document.createTextNode(` · ${moment(new Date(story.created_at)).format('ll')}`));
+    meta.appendChild(document.createTextNode(` · ${postedDate}`));
 
     if (story.hidden) {
       const chip = document.createElement('span');
@@ -114,6 +132,8 @@ class StoriesSection {
       edit.type = 'button';
       edit.className = 'ud-story-edit';
       edit.textContent = i18next.t('labelmap:story.edit');
+      // Every row's visible label is just "Edit"/"Delete", so the accessible name says which story (WCAG 2.4.6).
+      edit.setAttribute('aria-label', i18next.t('labelmap:story.edit-aria', { labelType: typeName, date: postedDate }));
       edit.addEventListener('click', () => {
         // Problem-vs-feature phrasing comes from the payload's LabelTypeEnum-sourced flag, never derived here.
         this.#composer.setCopyVariant(story.is_access_problem);
@@ -126,6 +146,7 @@ class StoriesSection {
     del.type = 'button';
     del.className = 'ud-story-delete';
     del.textContent = i18next.t('labelmap:story.delete');
+    del.setAttribute('aria-label', i18next.t('labelmap:story.delete-aria', { labelType: typeName, date: postedDate }));
     del.addEventListener('click', () => this.#deleteStory(story, row));
     meta.appendChild(del);
 

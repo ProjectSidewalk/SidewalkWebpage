@@ -63,6 +63,8 @@
     "hidden-chip": "Hidden by moderators",
     "delete": "Delete",
     "edit": "Edit",
+    "edit-aria": "Edit your story about {{labelType}} from {{date}}",
+    "delete-aria": "Delete your story about {{labelType}} from {{date}}",
     "delete-confirm": "Permanently delete your story? This can't be undone.",
     "deleted": "Your story was deleted.",
     "submitted": "Your story is now public on this label.",
