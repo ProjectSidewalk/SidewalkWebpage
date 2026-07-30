@@ -437,7 +437,7 @@
           </div>
         </div>
         <div id="street-view-holder">
-          <div id="speed-limit-sign" class="speed-limit-sign" data-design-style="us-canada">
+          <div id="speed-limit-sign" class="speed-limit-sign" data-design-style="us-canada" tabindex="0" role="img" data-i18n-tooltip="common:speed-limit-tooltip">
             <div class="speed-limit-holder">
               <span class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></span>
             </div>
@@ -920,6 +920,7 @@
     }
 
     mainParam.language = "@messages.lang.code";
+    mainParam.countryId = "@currentCity.countryId";
     mainParam.mapboxApiKey = "@commonData.mapboxApiKey";
     mainParam.makeCrops = @data.makeCrops;
     const imagerySrc = "@commonData.imagerySource.toString";

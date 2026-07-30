@@ -106,6 +106,7 @@ PUT     /adminapi/setTaskFlag                           controllers.AdminControl
 PUT     /adminapi/updateTeamStatus/:teamId              controllers.AdminController.updateTeamStatus(teamId: Int)
 PUT     /adminapi/updateTeamVisibility/:teamId          controllers.AdminController.updateTeamVisibility(teamId: Int)
 GET     /adminapi/checkImagery                          controllers.AdminController.checkImagery()
+GET     /adminapi/refreshOsmWayData                     controllers.AdminController.refreshOsmWayData()
 GET     /adminapi/threadPoolStats                       controllers.AdminController.getThreadPoolStats
 
 GET     /labels/all                                     controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
@@ -131,6 +132,7 @@ GET     /adminValidate                                  controllers.ValidateCont
 # Task API
 GET     /tasks                                          controllers.ExploreController.getTasksInARegion(regionId: Int)
 GET     /routeTasks                                     controllers.ExploreController.getTasksInARoute(userRouteId: Int)
+GET     /speedLimit                                     controllers.ExploreController.getSpeedLimit(lat: Double, lng: Double)
 POST    /task                                           controllers.ExploreController.post
 POST    /validationTask                                 controllers.ValidateController.post
 POST    /galleryTask                                    controllers.GalleryController.post

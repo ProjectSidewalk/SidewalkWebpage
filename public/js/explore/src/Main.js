@@ -191,7 +191,9 @@ class Main {
     );
 
     // Speed limit
-    svl.speedLimit = new SpeedLimit(svl.panoViewer, svl.panoViewer.getPosition, svl.isOnboarding, null, null);
+    svl.speedLimit = new SpeedLimit(svl.panoViewer, svl.panoViewer.getPosition, svl.isOnboarding, params.countryId, {
+      taskContainer: svl.taskContainer,
+    });
 
     // Survey for select users
     svl.modalSurvey = new ModalSurvey();

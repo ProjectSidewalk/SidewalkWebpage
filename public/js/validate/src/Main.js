@@ -169,7 +169,8 @@ class Main {
       svv.panoOverlay = new PanoOverlay();
       svv.keyboard = new KeyboardManager(svv.ui.validationMenu);
       svv.speedLimit = new SpeedLimit(
-        svv.panoViewer, svv.panoViewer.getPosition, () => false, svv.labelContainer, labelType,
+        svv.panoViewer, svv.panoViewer.getPosition, () => false, param.countryId,
+        { labelContainer: svv.labelContainer, labelType },
       );
       svv.zoomControl = new ZoomControl();
       new MissionStartTutorial('validate', labelType, { nLabels: param.mission.labels_validated }, svv, param.language);

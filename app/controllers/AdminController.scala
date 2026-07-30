@@ -27,6 +27,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Try
+import scala.util.control.NonFatal
 
 @Singleton
 class AdminController @Inject() (
@@ -41,6 +42,7 @@ class AdminController @Inject() (
     labelService: LabelService,
     streetService: StreetService,
     panoDataService: PanoDataService,
+    osmWayService: service.OsmWayService,
     userService: service.UserService,
     actorSystem: ActorSystem,
     cpuEc: CpuIntensiveExecutionContext
@@ -1018,6 +1020,23 @@ class AdminController @Inject() (
   def checkImagery() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     panoDataService.checkForImagery.map { results => Ok(results) }
+  }
+
+  /**
+   * Refreshes the cached OSM way data (speed limits etc.). Same as the nightly process, for QA and initial backfill.
+   */
+  def refreshOsmWayData() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    osmWayService
+      .refreshOsmWayData()
+      .map { waysRefreshed => Ok(Json.obj("ways_refreshed" -> waysRefreshed)) }
+      .recover { case NonFatal(e) =>
+        logger.error("OSM way data refresh failed.", e)
+        // Chunks upsert as they complete, so partial progress survives and a re-trigger resumes from what's missing.
+        ServiceUnavailable(
+          Json.obj("error" -> s"Refresh failed partway (${e.getMessage}). Progress is saved; trigger again to resume.")
+        )
+      }
   }
 
   /**

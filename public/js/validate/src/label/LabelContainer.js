@@ -17,8 +17,6 @@ class LabelContainer {
     validationTimestamp: new Date(),
   };
 
-  #labelsUpdateCallback = () => {};
-
   /**
    * @param {Array} labelList Initial list of labels to be validated (generated when the page is loaded).
    */
@@ -145,15 +143,6 @@ class LabelContainer {
     this.#labels = labelList.map((key) => new Label(key));
     this.#currLabelIndex = 0;
     this.#currLabel = this.#labels[this.#currLabelIndex];
-    this.#labelsUpdateCallback();
-  }
-
-  /**
-   * Sets the callback that will be called after resetLabelList is called. Used by SpeedLimit.js.
-   * @param {function} callback The function that will be called.
-   */
-  resetLabelListUpdateCallback(callback) {
-    this.#labelsUpdateCallback = callback;
   }
 
   /**

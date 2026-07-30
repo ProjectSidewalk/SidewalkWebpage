@@ -1775,3 +1775,32 @@ kbd {
   text-align: center;
   white-space: nowrap;
 }
+
+/* ---------- Shared tooltip (psTooltip.js) ---------- */
+
+/* The single fixed-position card that psTooltip.js shows for the active [data-ps-tooltip] trigger. Parked off-screen
+   until positioned; pointer-events stays off so the card never steals the hover that opened it. Sits above the navbar
+   and Bootstrap modals (~1050) since a tooltip is always the most transient thing on screen. */
+.ps-tooltip {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  max-width: calc(280px * var(--ui-scale, 1));
+  padding: calc(8px * var(--ui-scale, 1)) calc(12px * var(--ui-scale, 1));
+  background: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-600);
+  border-radius: calc(8px * var(--ui-scale, 1));
+  box-shadow: 0 2px 8px rgb(0 0 0 / 12%);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-black);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s ease;
+  z-index: calc(var(--navbar-z-index) + 70);
+}
+
+.ps-tooltip--visible {
+  opacity: 1;
+  visibility: visible;
+}

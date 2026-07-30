@@ -5,6 +5,8 @@
   "unit-distance-abbreviation": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
+  "speed-limit-tooltip": "Die Kenntnis des <b>Tempolimits</b> einer Straße hilft, die Sicherheit für Fußgänger besser einzuschätzen, etwa ob das Überqueren an einer ungeregelten Kreuzung <b>sicher</b> ist.",
+  "speed-limit-aria-label": "Tempolimit {{speed}} {{units}}",
   "format-number": "{{val, number}}",
   "cities-cta-join_one": "Schließen Sie sich {{count, number}} weiteren Gemeinschaft an",
   "cities-cta-join_other": "Schließen Sie sich {{count, number}} weiteren Gemeinschaften an",
