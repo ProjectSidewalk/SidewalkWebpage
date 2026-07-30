@@ -25,7 +25,7 @@ util.exploreDisplayScale = function () {
  *
  * The hover card and the context menu are two states of one panel — read-only, then editable — so they share this
  * routine and land on the same anchor: beside the icon on whichever side has room, vertically centered on it, and
- * nudged to stay inside the pano. Clicking a label then expands the card into the menu roughly in place instead of
+ * nudged to stay inside the tool. Clicking a label then expands the card into the menu roughly in place instead of
  * moving it somewhere else. Panels styled with .label-anchored-panel read the values this sets.
  *
  * @param {jQuery} panel - The panel to position. Must be .label-anchored-panel and a child of the pano holder.
@@ -34,7 +34,7 @@ util.exploreDisplayScale = function () {
  */
 util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius) {
   const GAP = 12;  // On-screen pixels between the icon and the panel.
-  const EDGE = 4;  // Smallest gap left between the panel and the pano's edges.
+  const EDGE = 4;  // Smallest gap left between the panel and the bounds below.
   const TAIL_MARGIN = 18; // Keeps the tail's base clear of the panel's rounded corners.
 
   const scale = util.exploreDisplayScale();
@@ -43,22 +43,31 @@ util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius) {
   const radius = iconRadius * scale;
   const width = panel.outerWidth();
   const height = panel.outerHeight();
-  const panoWidth = util.EXPLORE_CANVAS_WIDTH * scale;
   const panoHeight = util.EXPLORE_CANVAS_HEIGHT * scale;
 
-  // A panel bigger than the space left for it still has to go somewhere: these maxima collapse to EDGE rather than
-  // going negative, so it overhangs the far edge instead of being pushed off the near one.
-  const maxLeft = Math.max(EDGE, panoWidth - width - EDGE);
+  // Horizontally the panel is bounded by the whole tool, not the pano: the pano's right edge is not a wall, and a
+  // panel is welcome to float over the sidebar beside it. That matters because the context menu is over half the
+  // pano's width, so confining it to the pano would leave a label in the middle no room on either side. Vertically
+  // the pano IS the bound — the ribbon toolbar sits above it and the rest of the page below.
+  // Bounds are in the panel's own coordinate space, whose origin is the pano's top-left (its offset parent).
+  const panoLeft = document.getElementById('street-view-holder')?.getBoundingClientRect().left ?? 0;
+  const appRect = document.getElementById('svl-application-holder')?.getBoundingClientRect();
+  const minLeft = (appRect ? appRect.left - panoLeft : 0) + EDGE;
+  const rightBound = (appRect ? appRect.right - panoLeft : util.EXPLORE_CANVAS_WIDTH * scale) - EDGE;
+
+  // A panel bigger than the space left for it still has to go somewhere: these maxima collapse to the near edge
+  // rather than going past it, so it overhangs the far edge instead of being pushed off the near one.
+  const maxLeft = Math.max(minLeft, rightBound - width);
   const maxTop = Math.max(EDGE, panoHeight - height - EDGE);
 
-  const flipped = centerX + radius + GAP + width > panoWidth;
+  const flipped = centerX + radius + GAP + width > rightBound;
   const left = flipped ? centerX - radius - GAP - width : centerX + radius + GAP;
   const top = Math.min(Math.max(centerY - height / 2, EDGE), maxTop);
   const tailTop = Math.min(Math.max(centerY - top, TAIL_MARGIN * scale), height - TAIL_MARGIN * scale);
 
   panel.toggleClass('label-anchored-panel--flipped', flipped);
   panel[0].style.setProperty('--panel-tail-top', `${tailTop}px`);
-  panel.css({ left: Math.min(Math.max(left, EDGE), maxLeft), top });
+  panel.css({ left: Math.min(Math.max(left, minLeft), maxLeft), top });
 };
 
 /**
