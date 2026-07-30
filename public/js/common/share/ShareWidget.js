@@ -1,10 +1,11 @@
 /**
  * ShareWidget — reusable "share this thing" control.
  *
- * Wraps a trigger <button> and, when activated, either invokes the native OS share sheet (mobile / supporting
- * browsers) or opens a small accessible popover offering Copy Link, X, Facebook, and Email actions. The widget is
- * built once and re-pointed at different targets via {@link ShareWidget#setTarget}, so a host that shows a sequence
- * of items (e.g. the label detail view paging between labels) constructs a single instance and just updates the URL.
+ * Wraps a trigger <button> and, when activated, either invokes the native OS share sheet (touch-primary devices in
+ * supporting browsers) or opens a small accessible popover offering Copy Link, X, Facebook, and Email actions. The
+ * widget is built once and re-pointed at different targets via {@link ShareWidget#setTarget}, so a host that shows
+ * a sequence of items (e.g. the label detail view paging between labels) constructs a single instance and just
+ * updates the URL.
  *
  * Accessibility (WCAG 2.1/2.2 AA, ARIA menu pattern): the trigger carries `aria-haspopup`/`aria-expanded`; the
  * popover is a labeled `role="menu"`; ESC and click-outside close it; focus moves into the popover on open and
@@ -61,8 +62,8 @@ class ShareWidget {
   }
 
   /**
-   * Handles a trigger activation: log the click, then use the native share sheet when available, otherwise toggle
-   * the custom popover.
+   * Handles a trigger activation: log the click, then use the native share sheet on touch-primary devices that
+   * support it, otherwise toggle the custom popover.
    * @private
    */
   #onTriggerClick() {
@@ -71,8 +72,12 @@ class ShareWidget {
     if (!url) return;
 
     const data = { title, text, url };
-    // Prefer the native OS share sheet where supported. canShare (when present) must approve the payload.
-    if (navigator.share && (typeof navigator.canShare !== 'function' || navigator.canShare(data))) {
+    // Native OS share sheets are designed for phones; on desktop they're clunky — macOS's lacks even a copy-URL
+    // action (#4660) — so reserve the native path for touch-primary devices. `pointer: coarse` matches phones and
+    // tablets (incl. iPads whose UA masquerades as macOS) but not desktops, even touchscreen laptops, whose primary
+    // pointer is a fine mouse/trackpad. canShare (when present) must still approve the payload.
+    const touchPrimary = window.matchMedia('(pointer: coarse)').matches;
+    if (touchPrimary && navigator.share && (typeof navigator.canShare !== 'function' || navigator.canShare(data))) {
       this.#log('Share_Native');
       navigator.share(data).catch(() => { /* User dismissed the sheet; nothing to do. */ });
       return;
