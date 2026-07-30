@@ -83,6 +83,7 @@
     "signin-prompt": "Have an account?",
     "signin-cta": "Sign in to post under your name",
     "privacy-note": "You can review, edit, or delete your stories from <a href=\"/dashboard\" target=\"_blank\" rel=\"noopener\">your dashboard</a>. Photos are moderated.",
+    "privacy-note-brief": "Photos are moderated.",
     "discard-confirm": "Discard your story?",
     "discard-changes-confirm": "Discard your changes?",
     "discard": "Discard",

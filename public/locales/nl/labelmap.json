@@ -83,6 +83,7 @@
     "signin-prompt": "Heb je een account?",
     "signin-cta": "Log in om onder je naam te plaatsen",
     "privacy-note": "Je kunt je verhalen bekijken, bewerken of verwijderen via <a href=\"/dashboard\" target=\"_blank\" rel=\"noopener\">je dashboard</a>. Foto's worden door moderatoren gecontroleerd.",
+    "privacy-note-brief": "Foto's worden door moderatoren gecontroleerd.",
     "discard-confirm": "Je verhaal verwerpen zonder te plaatsen?",
     "discard-changes-confirm": "Wijzigingen verwerpen?",
     "discard": "Weggooien",

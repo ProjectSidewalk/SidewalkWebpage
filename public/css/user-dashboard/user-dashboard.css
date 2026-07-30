@@ -1688,6 +1688,7 @@
   line-height: 1;
 }
 
+.ud-story-edit,
 .ud-story-delete {
   padding: 2px;
   border: none;
@@ -1696,10 +1697,14 @@
   font-family: var(--font-accent, Raleway, sans-serif);
   font-weight: 600;
   font-size: 12px;
-  color: var(--color-orange-700, #8d442f);
   text-decoration: underline;
 }
 
+.ud-story-edit { color: var(--color-link-200, #0f5faf); }
+
+.ud-story-delete { color: var(--color-orange-700, #8d442f); }
+
+.ud-story-edit:focus-visible,
 .ud-story-delete:focus-visible {
   outline: 2px solid var(--color-link-100, #3e8bd9);
   outline-offset: 2px;

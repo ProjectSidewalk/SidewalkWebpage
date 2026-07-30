@@ -37,9 +37,11 @@ object StoryFormats {
 
   def storyForOwnerToJson(s: StoryForOwner): JsObject = {
     Json.obj(
-      "story_id"          -> s.story.storyId,
-      "label_id"          -> s.story.labelId,
-      "label_type"        -> s.labelType,
+      "story_id"   -> s.story.storyId,
+      "label_id"   -> s.story.labelId,
+      "label_type" -> s.labelType,
+      // Flips the edit composer's problem-vs-feature phrasing (LabelTypeEnum-sourced, never re-derived in JS).
+      "is_access_problem" -> s.isAccessProblem,
       "text"              -> s.story.storyText,
       "display_name_mode" -> s.story.displayNameMode,
       "hidden"            -> !s.story.visible,

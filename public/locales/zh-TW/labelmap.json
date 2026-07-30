@@ -77,6 +77,7 @@
     "signin-prompt": "已經有帳號嗎？",
     "signin-cta": "登入以用您的名稱發布",
     "privacy-note": "您可以在<a href=\"/dashboard\" target=\"_blank\" rel=\"noopener\">您的儀表板</a>查看、編輯或刪除您的故事。照片會由管理員審核。",
+    "privacy-note-brief": "照片會由管理員審核。",
     "discard-confirm": "捨棄您的故事？",
     "discard-changes-confirm": "要捨棄您的變更嗎？",
     "discard": "捨棄",

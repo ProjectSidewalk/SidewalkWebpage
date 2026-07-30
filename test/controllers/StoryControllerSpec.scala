@@ -544,6 +544,39 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
   }
 
+  "GET /userapi/stories/mine" should {
+    "carry everything the dashboard's edit composer needs, and only the caller's own stories" in {
+      labelIds.headOption match {
+        case None     => cancel("No labels in the connected test DB.")
+        case Some(id) =>
+          val session = freshAnonSession()
+          val posted  = postStory(session, id, "Spec story: mine-listing contract.")
+          status(posted) mustBe OK
+          val storyId = (contentAsJson(posted) \ "story_id").as[Int]
+          try {
+            val resp = route(app, FakeRequest(GET, "/userapi/stories/mine").withCookies(session: _*)).get
+            status(resp) mustBe OK
+            (contentAsJson(resp) \ "max_text_length").as[Int] mustBe maxTextLength
+            val mine = storiesArray(contentAsJson(resp)).find(s => (s \ "story_id").as[Int] == storyId)
+            mine mustBe defined
+            (mine.get \ "label_id").as[Int] mustBe id
+            (mine.get \ "label_type").asOpt[String] mustBe defined
+            (mine.get \ "is_access_problem").asOpt[Boolean] mustBe defined
+            (mine.get \ "display_name_mode").as[String] mustBe Story.DisplayNameAnonymous
+
+            val stranger = route(app, FakeRequest(GET, "/userapi/stories/mine").withCookies(freshAnonSession(): _*)).get
+            status(stranger) mustBe OK
+            storiesArray(contentAsJson(stranger)) mustBe empty
+          } finally { val _ = status(deleteStory(session, storyId)) }
+      }
+    }
+
+    "redirect a cookie-less request into the anonymous sign-up flow rather than exposing a list" in {
+      val sc = status(route(app, FakeRequest(GET, "/userapi/stories/mine")).get)
+      sc must not be OK
+    }
+  }
+
   "DELETE /userapi/stories/:storyId" should {
     "not let one user retract another user's story" in {
       labelIds.headOption match {

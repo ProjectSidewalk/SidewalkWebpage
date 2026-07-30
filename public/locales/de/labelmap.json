@@ -83,6 +83,7 @@
     "signin-prompt": "Haben Sie ein Konto?",
     "signin-cta": "Melden Sie sich an, um unter Ihrem Namen zu veröffentlichen",
     "privacy-note": "Sie können Ihre Geschichten über <a href=\"/dashboard\" target=\"_blank\" rel=\"noopener\">Ihr Dashboard</a> ansehen, bearbeiten oder löschen. Fotos werden von der Moderation geprüft.",
+    "privacy-note-brief": "Fotos werden von der Moderation geprüft.",
     "discard-confirm": "Ihre Geschichte verwerfen?",
     "discard-changes-confirm": "Änderungen verwerfen?",
     "discard": "Verwerfen",

@@ -170,7 +170,13 @@ class StoryController @Inject() (
   /** The signed-in user's own stories (hidden ones included), for the dashboard management list. */
   def getMyStories = cc.securityService.SecuredAction { implicit request =>
     storyService.getStoriesForUser(request.identity.userId).map { stories =>
-      Ok(Json.obj("stories" -> stories.map(StoryFormats.storyForOwnerToJson)))
+      Ok(
+        Json.obj(
+          // The dashboard's edit composer needs the same cap the card's does; sourced here, never a JS literal.
+          "max_text_length" -> storyService.maxTextLength,
+          "stories"         -> stories.map(StoryFormats.storyForOwnerToJson)
+        )
+      )
     }
   }
 

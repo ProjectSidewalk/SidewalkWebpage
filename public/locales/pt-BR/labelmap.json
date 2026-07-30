@@ -83,6 +83,7 @@
     "signin-prompt": "Tem uma conta?",
     "signin-cta": "Entre para publicar com seu nome",
     "privacy-note": "Você pode revisar, editar ou excluir suas histórias no <a href=\"/dashboard\" target=\"_blank\" rel=\"noopener\">seu painel</a>. As fotos são verificadas por moderadores.",
+    "privacy-note-brief": "As fotos são verificadas por moderadores.",
     "discard-confirm": "Descartar sua história?",
     "discard-changes-confirm": "Descartar suas alterações?",
     "discard": "Descartar",

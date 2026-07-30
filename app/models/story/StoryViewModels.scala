@@ -45,10 +45,15 @@ case class StoryForAdmin(
     media: Option[StoryMediaForView]
 )
 
-/** A story on the author's own dashboard management list (hidden ones included, so they can still retract). */
+/**
+ * A story on the author's own dashboard management list (hidden ones included, so they can still retract).
+ * `isAccessProblem` comes from LabelTypeEnum so the dashboard's edit composer can pick the problem-vs-feature
+ * phrasing without re-deriving that mapping in JS.
+ */
 case class StoryForOwner(
     story: Story,
     labelType: String,
+    isAccessProblem: Boolean,
     media: Option[StoryMediaForView]
 )
 

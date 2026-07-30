@@ -312,7 +312,8 @@ class StoryServiceImpl @Inject() (
   def getStoriesForUser(userId: String): Future[Seq[StoryForOwner]] = {
     db.run(storyTable.getForUser(userId))
       .map(_.map { case (story, media, labelTypeId) =>
-        StoryForOwner(story, LabelTypeEnum.labelTypeIdToLabelType(labelTypeId), media.map(toMediaForView))
+        val labelType = LabelTypeEnum.byId(labelTypeId)
+        StoryForOwner(story, labelType.name, labelType.isAccessProblem, media.map(toMediaForView))
       })
   }
 

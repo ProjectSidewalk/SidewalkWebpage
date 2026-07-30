@@ -4,21 +4,35 @@
  * Fetches the signed-in user's lived-experience stories (hidden ones included — the author keeps sight of a
  * quarantined story and the right to retract it) from /userapi/stories/mine and renders one row per story: label
  * type, story text, photo thumbnail, posted date, the hidden-by-moderators chip, a view-label link (opens the
- * shared label popup when available), and the permanent Delete. Reuses the labelmap:story.* strings the card
- * already loads on this page.
+ * shared label popup when available), and Edit + Delete. Editing (#4656) reuses the card's StoryComposer against
+ * the dashboard's own dialog instance, so the two edit paths can't drift. Reuses the labelmap:story.* strings the
+ * card already loads on this page.
  */
 class StoriesSection {
   #container;
   #labelPopup;
+  #composer = null;
+  #maxTextLength = null; // From /userapi/stories/mine (backend source of truth), passed to the composer.
 
   /**
    * @param {HTMLElement} container - The #ud-stories element.
    * @param {Object} opts
    * @param {?Object} opts.labelPopup - A LabelPopup instance, or null (links then navigate to /label/:id).
+   * @param {?HTMLDialogElement} [opts.composerDialog] - The dashboard's `.story-composer` dialog; without it, rows
+   *     render without an Edit control (editing stays available on the label card).
+   * @param {string} [opts.currUsername] - The viewer's username, for the composer's post-as options.
    */
   constructor(container, opts) {
     this.#container = container;
     this.#labelPopup = opts.labelPopup || null;
+    if (opts.composerDialog && typeof StoryComposer !== 'undefined') {
+      this.#composer = new StoryComposer(opts.composerDialog, {
+        currUsername: opts.currUsername,
+        omitDashboardLink: true, // The privacy note's "from your dashboard" link would point at this very page.
+        // A save can change any rendered field (text, photo, byline), so re-fetch rather than patch the row.
+        onSubmitted: () => this.render(),
+      });
+    }
   }
 
   async render() {
@@ -26,6 +40,7 @@ class StoriesSection {
       const res = await fetch('/userapi/stories/mine');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
+      this.#maxTextLength = data.max_text_length;
       this.#renderStories(data.stories);
     } catch (err) {
       console.error('Stories section failed to load.', err);
@@ -92,6 +107,19 @@ class StoriesSection {
       chip.className = 'ud-story-chip';
       chip.textContent = i18next.t('labelmap:story.hidden-chip');
       meta.appendChild(chip);
+    }
+
+    if (this.#composer) {
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'ud-story-edit';
+      edit.textContent = i18next.t('labelmap:story.edit');
+      edit.addEventListener('click', () => {
+        // Problem-vs-feature phrasing comes from the payload's LabelTypeEnum-sourced flag, never derived here.
+        this.#composer.setCopyVariant(story.is_access_problem);
+        this.#composer.openForEdit(story, this.#maxTextLength);
+      });
+      meta.appendChild(edit);
     }
 
     const del = document.createElement('button');
