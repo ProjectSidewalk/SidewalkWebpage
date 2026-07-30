@@ -326,7 +326,7 @@ class ZoomControl {
     for (let i = 0; i < labels.length; i += 1) {
       labels[i].setHoverInfoVisibility('hidden');
     }
-    svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
+    svl.ui.canvas.hoverCard.css('visibility', 'hidden');
     svl.canvas.clear().render();
     return zoomLevel;
   }

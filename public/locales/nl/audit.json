@@ -178,6 +178,10 @@
     }
   },
   "center-ui": {
+    "hover-card": {
+      "click-to-edit": "Klik om te bewerken",
+      "delete-label": "Label verwijderen"
+    },
     "context-menu": {
       "severity": "Klik om de mate van  ernst te labelen",
       "severity-shortcuts": "Druk toetsen 1-3 voor de beoordeling van de ernst",

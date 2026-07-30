@@ -246,9 +246,7 @@ class Label {
   render(ctx, pov) {
     if (!this.#status.deleted && this.#status.visibility === 'visible') {
       if (this.#status.hoverInfoVisibility === 'visible') {
-        // Show the hover info tooltip and delete button.
-        this.#updateHoverInfo();
-        this.#showDeleteButton();
+        this.#updateHoverCard();
       }
 
       // Update the coordinates of the label on the canvas.
@@ -282,91 +280,122 @@ class Label {
   }
 
   /**
-   * Shows the hover info tooltip next to this label, displaying its type and severity.
+   * Populates and positions the hover card next to this label, showing its type, severity, tags, description,
+   * and delete button.
    *
-   * The tooltip is a single shared DOM element positioned in on-screen pixels, so the label's logical canvas
+   * The card is a single shared DOM element positioned in on-screen pixels, so the label's logical canvas
    * coordinate is scaled to the displayed pano size (see util.exploreDisplayScale).
    */
-  #updateHoverInfo() {
-    // Don't show the hover tooltip while the context menu is open or before the label has a canvas position.
+  #updateHoverCard() {
+    // Don't show the hover card while the context menu is open or before the label has a canvas position.
     if (('contextMenu' in svl && svl.contextMenu.isOpen()) || !this.#properties.currCanvasXY) {
-      this.#hideHoverInfo();
+      this.#hideHoverCard();
       return;
     }
 
+    const ui = svl.ui.canvas;
     const labelType = this.#properties.labelType;
+    const severity = this.#properties.severity;
     const hasSeverity = util.misc.labelTypeHasSeverity(labelType);
 
-    svl.ui.canvas.hoverInfoType.text(
-      i18next.t(`common:${util.camelToKebab(labelType)}`).replace('&shy;', ''),
-    );
-    svl.ui.canvas.hoverInfoHolder.css('background-color', util.misc.getLabelColors(labelType));
+    ui.hoverCardIcon.attr('src', util.misc.getIconImagePaths(labelType).scalableIconImagePath);
+    ui.hoverCardType.text(i18next.t(`common:${util.camelToKebab(labelType)}`).replace('&shy;', ''));
 
-    // Severity row: hidden for label types without severity; otherwise show the rating (or a prompt to rate).
-    if (hasSeverity) {
-      if (this.#properties.severity !== null) {
-        svl.ui.canvas.hoverInfoSeverityText.text(this.#hoverInfoProperties[this.#properties.severity].message);
-        svl.ui.canvas.hoverInfoSeverityIcon
-          .attr('src', util.misc.getSmileyIconPath(this.#properties.severity, labelType, true))
-          .css('display', '');
-      } else {
-        svl.ui.canvas.hoverInfoSeverityText.text(i18next.t('center-ui.context-menu.severity'));
-        svl.ui.canvas.hoverInfoSeverityIcon.css('display', 'none');
-      }
-      svl.ui.canvas.hoverInfoSeverity.css('display', 'flex');
+    // Severity row for rated labels; the not-rated nudge for unrated ones; neither for types without severity.
+    if (hasSeverity && severity !== null) {
+      // Positive label types rate quality (Good/Okay/Bad); the rest use the passability phrases, matching the
+      // vocabulary of the context menu's rating section.
+      const severityText = util.misc.isPositiveLabelType(labelType)
+        ? i18next.t(`common:${util.misc.getRatingLevelKeys(labelType)[severity]}`)
+        : this.#hoverInfoProperties[severity].message;
+      ui.hoverCardSeverityText.text(severityText);
+      ui.hoverCardSeverityIcon.attr('src', util.misc.getSmileyIconPath(severity, labelType, true));
+      ui.hoverCardSeverity.css('display', 'flex');
     } else {
-      svl.ui.canvas.hoverInfoSeverity.css('display', 'none');
+      ui.hoverCardSeverity.css('display', 'none');
+    }
+    ui.hoverCardNotRated.css('display', hasSeverity && severity === null ? 'flex' : 'none');
+
+    // Tags, as static (non-interactive) pills.
+    const tagNames = this.#getTagNames();
+    if (tagNames.length > 0) {
+      ui.hoverCardTags.html(tagNames.map((name) => `
+        <span class="tag-pill">
+          <span class="tag-pill__label">${name}</span>
+        </span>
+      `).join(''));
+      ui.hoverCardTags.css('display', 'flex');
+    } else {
+      ui.hoverCardTags.css('display', 'none');
     }
 
-    // Position the tooltip to the right of the label icon, or to the left if there isn't room on the right.
+    const description = this.#properties.description;
+    if (description) {
+      ui.hoverCardDescription.text(Label.#truncate(description, 90));
+      ui.hoverCardDescription.css('display', 'inline');
+    } else {
+      ui.hoverCardDescription.css('display', 'none');
+    }
+
+    // Collapse the body entirely when it has nothing to show (e.g. an Occlusion label).
+    ui.hoverCardBody.css('display', hasSeverity || tagNames.length > 0 || description ? 'flex' : 'none');
+
+    // Occlusion labels have no context menu, so the card isn't a click target and the edit hint is hidden.
+    ui.hoverCard.toggleClass('label-hover-card--static', labelType === 'Occlusion');
+    ui.hoverCard.toggleClass('label-hover-card--no-delete', Boolean(svl.canvas.getStatus('disableLabelDelete')));
+
+    // Position the card beside the label icon, flipping to its left side if there isn't room on the right, and
+    // nudging it vertically to stay inside the pano. The tail keeps pointing at the icon via --hover-card-tail-top.
     const coord = this.getCanvasXY();
     const scale = util.exploreDisplayScale();
-    const holder = svl.ui.canvas.hoverInfoHolder;
+    const holder = ui.hoverCard;
     const centerX = coord.x * scale;
     const centerY = coord.y * scale;
     const radius = svl.LABEL_ICON_RADIUS * scale;
-    const gap = 14; // On-screen pixels between the icon and the tooltip.
+    const gap = 12; // On-screen pixels between the icon and the card.
+    const panoHeight = util.EXPLORE_CANVAS_HEIGHT * scale;
 
-    let left = centerX + radius + gap;
-    if (left + holder.outerWidth() > util.EXPLORE_CANVAS_WIDTH * scale) {
-      left = centerX - radius - gap - holder.outerWidth();
-    }
-    holder.css({
-      visibility: 'visible',
-      left,
-      top: centerY - holder.outerHeight() / 2,
-    });
+    const flipped = centerX + radius + gap + holder.outerWidth() > util.EXPLORE_CANVAS_WIDTH * scale;
+    const left = flipped
+      ? centerX - radius - gap - holder.outerWidth()
+      : centerX + radius + gap;
+    const top = Math.min(Math.max(centerY - holder.outerHeight() / 2, 4), panoHeight - holder.outerHeight() - 4);
+    const tailTop = Math.min(Math.max(centerY - top, 12), holder.outerHeight() - 12);
+    holder.toggleClass('label-hover-card--flipped', flipped);
+    holder[0].style.setProperty('--hover-card-tail-top', `${tailTop}px`);
+    holder.css({ visibility: 'visible', left, top });
   }
 
   /**
-   * Hides the shared hover info tooltip.
+   * Hides the shared hover card.
    */
-  #hideHoverInfo() {
-    svl.ui.canvas.hoverInfoHolder.css('visibility', 'hidden');
+  #hideHoverCard() {
+    svl.ui.canvas.hoverCard.css('visibility', 'hidden');
   }
 
-  #showDeleteButton() {
-    if (this.#status.hoverInfoVisibility !== 'hidden') {
-      const holder = svl.ui.canvas.deleteIconHolder;
+  /**
+   * Returns the localized, plain-text names of this label's tags.
+   * @returns {Array<string>}
+   */
+  #getTagNames() {
+    const allTags = 'contextMenu' in svl ? svl.contextMenu.labelTags : null;
+    if (!allTags) return [];
+    const tagInfo = util.misc.getLabelDescriptions(this.#properties.labelType)?.tagInfo ?? {};
+    return this.#properties.tagIds
+      .map((tagId) => allTags.find((tag) => tag.tag_id === tagId))
+      .filter(Boolean)
+      // The localized tag texts embed <tag-underline> keyboard-shortcut markup; the pills show plain text.
+      .map((tag) => (tagInfo[tag.tag]?.text ?? tag.tag).replace(/<[^>]*>/g, ''));
+  }
 
-      // Hide if the label is not on the canvas.
-      const coord = this.getCanvasXY();
-      if (!coord) {
-        holder.css('visibility', 'hidden');
-        return;
-      }
-
-      // Place the button at the upper-right of the label. Hide if it doesn't fit.
-      const scale = util.exploreDisplayScale();
-      const gap = 5 * scale;
-      const left = coord.x * scale + gap;
-      const top = coord.y * scale - 25 * scale;
-      if (left + holder.outerWidth() > util.EXPLORE_CANVAS_WIDTH * scale || top < 0) {
-        holder.css('visibility', 'hidden');
-        return;
-      }
-      holder.css({ visibility: 'visible', left, top });
-    }
+  /**
+   * Truncates a string to the given length, appending an ellipsis if anything was cut.
+   * @param {string} str
+   * @param {number} maxLength
+   * @returns {string}
+   */
+  static #truncate(str, maxLength) {
+    return str.length > maxLength ? `${str.slice(0, maxLength - 1).trimEnd()}…` : str;
   }
 
   /**

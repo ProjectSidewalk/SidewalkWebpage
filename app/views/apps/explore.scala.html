@@ -499,16 +499,31 @@
 
           <div id="pano-border-frame" class="window-streetview"></div>
 
-          <div id="delete-icon-holder">
-            <img src='@assets.path("images/explore/icons/Icon_Delete.png")' id="label-delete-icon" alt="Delete label">
-          </div>
-          @* Tooltip shown over a hovered label, displaying its type and (where applicable) severity. *@
-          <div id="label-hover-info" class="label-hover-info">
-            <span id="label-hover-info-type" class="label-hover-info-type"></span>
-            <span id="label-hover-info-severity" class="label-hover-info-severity">
-              <img id="label-hover-info-severity-icon" class="label-hover-info-severity-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="">
-              <span id="label-hover-info-severity-text"></span>
-            </span>
+          @* Card shown over a hovered label: its type, severity, tags, and description, plus a delete button.
+             Populated and positioned by Label.js; clicking the card opens the label's context menu (Canvas.js). *@
+          <div id="label-hover-card" class="label-hover-card">
+            <div class="label-hover-card__header">
+              <img id="label-hover-card-icon" class="label-hover-card__icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="">
+              <span id="label-hover-card-type" class="label-hover-card__type"></span>
+              <button type="button" id="label-hover-card-delete" class="label-hover-card__delete" aria-label="Delete label" data-i18n-aria-label="audit:center-ui.hover-card.delete-label">
+                <svg viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                </svg>
+              </button>
+            </div>
+            <div id="label-hover-card-body" class="label-hover-card__body">
+              <span id="label-hover-card-severity" class="label-hover-card__severity">
+                <img id="label-hover-card-severity-icon" class="label-hover-card__severity-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="">
+                <span id="label-hover-card-severity-text"></span>
+              </span>
+              <span id="label-hover-card-not-rated" class="label-hover-card__not-rated">
+                <span class="label-hover-card__not-rated-icon" aria-hidden="true">?</span>
+                <span data-i18n="audit:center-ui.context-menu.severity">Please click to label a severity</span>
+              </span>
+              <span id="label-hover-card-tags" class="label-hover-card__tags"></span>
+              <span id="label-hover-card-description" class="label-hover-card__description"></span>
+            </div>
+            <div class="label-hover-card__hint" data-i18n="audit:center-ui.hover-card.click-to-edit">Click to edit</div>
           </div>
             <!-- Context Menu Container -->
           <div id="context-menu-holder">

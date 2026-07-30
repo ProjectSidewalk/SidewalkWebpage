@@ -178,6 +178,10 @@
     }
   },
   "center-ui": {
+    "hover-card": {
+      "click-to-edit": "Zum Bearbeiten klicken",
+      "delete-label": "Beschriftung löschen"
+    },
     "context-menu": {
       "severity": "Zur Kennzeichnung eines Schweregrades bitte anklicken",
       "severity-shortcuts": "Drücken Sie die Tasten 1-3 für den Schweregrad",

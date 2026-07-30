@@ -99,8 +99,9 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.common.label-too-far-generic')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+          + '<span class="onboarding-delete-icon" aria-hidden="true"><svg viewBox="0 0 12 12">'
+          + '<path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="2" stroke-linecap="round">'
+          + '</path></svg></span>',
       },
       panoId,
       annotations: [
@@ -259,8 +260,9 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.common.label-too-far-crosswalk')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+          + '<span class="onboarding-delete-icon" aria-hidden="true"><svg viewBox="0 0 12 12">'
+          + '<path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="2" stroke-linecap="round">'
+          + '</path></svg></span>',
       },
       panoId,
       annotations: [
@@ -446,8 +448,9 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.common.label-too-far-generic')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+          + '<span class="onboarding-delete-icon" aria-hidden="true"><svg viewBox="0 0 12 12">'
+          + '<path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="2" stroke-linecap="round">'
+          + '</path></svg></span>',
       },
       panoId,
       annotations: [
@@ -661,8 +664,9 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.common.label-too-far-generic')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+          + '<span class="onboarding-delete-icon" aria-hidden="true"><svg viewBox="0 0 12 12">'
+          + '<path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="2" stroke-linecap="round">'
+          + '</path></svg></span>',
       },
       panoId,
       annotations: [
@@ -890,8 +894,9 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.common.label-too-far-signal')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+          + '<span class="onboarding-delete-icon" aria-hidden="true"><svg viewBox="0 0 12 12">'
+          + '<path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="2" stroke-linecap="round">'
+          + '</path></svg></span>',
       },
       panoId,
       annotations: [
@@ -1046,8 +1051,9 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.common.label-too-far-crosswalk')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+          + '<span class="onboarding-delete-icon" aria-hidden="true"><svg viewBox="0 0 12 12">'
+          + '<path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="2" stroke-linecap="round">'
+          + '</path></svg></span>',
       },
       panoId,
       annotations: [
@@ -1269,8 +1275,9 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.common.label-too-far-generic')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+          + '<span class="onboarding-delete-icon" aria-hidden="true"><svg viewBox="0 0 12 12">'
+          + '<path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="2" stroke-linecap="round">'
+          + '</path></svg></span>',
       },
       panoId,
       annotations: [
@@ -1459,8 +1466,9 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.common.label-too-far-generic')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+          + '<span class="onboarding-delete-icon" aria-hidden="true"><svg viewBox="0 0 12 12">'
+          + '<path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="2" stroke-linecap="round">'
+          + '</path></svg></span>',
       },
       panoId,
       annotations: [
@@ -1636,8 +1644,9 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: `${i18next.t('tutorial.common.label-too-far-signal')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+          + '<span class="onboarding-delete-icon" aria-hidden="true"><svg viewBox="0 0 12 12">'
+          + '<path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="2" stroke-linecap="round">'
+          + '</path></svg></span>',
       },
       panoId,
       annotations: [
