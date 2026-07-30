@@ -520,9 +520,7 @@ class Main {
     svl.ui.canvas.hoverCardSeverityIcon = $('#label-hover-card-severity-icon');
     svl.ui.canvas.hoverCardSeverityText = $('#label-hover-card-severity-text');
     svl.ui.canvas.hoverCardNotRated = $('#label-hover-card-not-rated');
-    svl.ui.canvas.hoverCardTagsRow = $('#label-hover-card-tags-row');
     svl.ui.canvas.hoverCardTags = $('#label-hover-card-tags');
-    svl.ui.canvas.hoverCardDescriptionRow = $('#label-hover-card-description-row');
     svl.ui.canvas.hoverCardDescription = $('#label-hover-card-description');
     svl.ui.canvas.hoverDelete = $('#label-hover-delete');
 

@@ -281,7 +281,7 @@ class Label {
 
   /**
    * Populates and positions the hover card next to this label — showing its type, severity, tags, and
-   * description — and pins the floating trash-can delete button to the label icon's top-right corner.
+   * description — and pins the floating trash-can delete button to the label icon's top-left corner.
    *
    * The card is a single shared DOM element positioned in on-screen pixels, so the label's logical canvas
    * coordinate is scaled to the displayed pano size (see util.exploreDisplayScale).
@@ -324,17 +324,17 @@ class Label {
           <span class="tag-pill__label">${name}</span>
         </span>
       `).join(''));
-      ui.hoverCardTagsRow.css('display', 'flex');
+      ui.hoverCardTags.css('display', 'flex');
     } else {
-      ui.hoverCardTagsRow.css('display', 'none');
+      ui.hoverCardTags.css('display', 'none');
     }
 
     const description = this.#properties.description;
     if (description) {
       ui.hoverCardDescription.text(Label.#truncate(description, 90));
-      ui.hoverCardDescriptionRow.css('display', 'block');
+      ui.hoverCardDescription.css('display', 'inline');
     } else {
-      ui.hoverCardDescriptionRow.css('display', 'none');
+      ui.hoverCardDescription.css('display', 'none');
     }
 
     // Collapse the body entirely when it has nothing to show (e.g. an Occlusion label).
@@ -366,11 +366,12 @@ class Label {
     holder[0].style.setProperty('--hover-card-tail-top', `${tailTop}px`);
     holder.css({ visibility: 'visible', left, top });
 
-    // Pin the trash-can delete button to the icon's top-right corner; the tutorial's delete lock hides it.
+    // Pin the trash-can delete button to the icon's top-left corner (away from the card, which usually sits to
+    // the icon's right); the tutorial's delete lock hides it.
     if (svl.canvas.getStatus('disableLabelDelete')) {
       ui.hoverDelete.css('visibility', 'hidden');
     } else {
-      ui.hoverDelete.css({ visibility: 'visible', left: centerX + radius * 0.85, top: centerY - radius * 0.85 });
+      ui.hoverDelete.css({ visibility: 'visible', left: centerX - radius * 0.85, top: centerY - radius * 0.85 });
     }
   }
 

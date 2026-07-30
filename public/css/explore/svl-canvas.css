@@ -211,13 +211,6 @@
   border-top: 1px solid var(--color-neutral-200);
 }
 
-/* Muted "Your rating/tags/description" prefixes that name each body row. */
-.label-hover-card__row-label {
-  font: var(--text-caption-regular);
-  color: var(--color-neutral-700);
-  white-space: nowrap;
-}
-
 /* The severity, not-rated, tags, and description rows are shown/hidden per label by Label.js. */
 .label-hover-card__severity {
   display: none;
@@ -254,23 +247,14 @@
   font: var(--text-tiny-semibold);
 }
 
-.label-hover-card__tags-row {
+.label-hover-card__tags {
   display: none;
-  align-items: center;
   flex-wrap: wrap;
   gap: calc(4px * var(--ui-scale));
 }
 
-/* The pills sit directly in the row's flex layout so they wrap alongside the row label. */
-.label-hover-card__tags {
-  display: contents;
-}
-
-.label-hover-card__description-row {
-  display: none;
-}
-
 .label-hover-card__description {
+  display: none;
   font: var(--text-caption-regular);
   font-style: italic;
   color: var(--color-neutral-700);
@@ -284,7 +268,7 @@
   color: var(--color-neutral-700);
 }
 
-/* Floating trash-can button pinned to the hovered label's top-right corner (positioned by Label.js, which sets its
+/* Floating trash-can button pinned to the hovered label's top-left corner (positioned by Label.js, which sets its
    center point — hence the centering transform). A white circular badge with a red trash can, so the destructive
    action reads unmistakably and separately from the card. 26px keeps the target above the WCAG 2.5.8 24px minimum. */
 .label-hover-delete {

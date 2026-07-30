@@ -508,7 +508,6 @@
             </div>
             <div id="label-hover-card-body" class="label-hover-card__body">
               <span id="label-hover-card-severity" class="label-hover-card__severity">
-                <span class="label-hover-card__row-label" data-i18n="audit:center-ui.hover-card.your-rating">Your rating:</span>
                 <img id="label-hover-card-severity-icon" class="label-hover-card__severity-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="">
                 <span id="label-hover-card-severity-text"></span>
               </span>
@@ -516,19 +515,13 @@
                 <span class="label-hover-card__not-rated-icon" aria-hidden="true">?</span>
                 <span data-i18n="audit:center-ui.context-menu.severity">Please click to label a severity</span>
               </span>
-              <span id="label-hover-card-tags-row" class="label-hover-card__tags-row">
-                <span class="label-hover-card__row-label" data-i18n="audit:center-ui.hover-card.your-tags">Your tags:</span>
-                <span id="label-hover-card-tags" class="label-hover-card__tags"></span>
-              </span>
-              <span id="label-hover-card-description-row" class="label-hover-card__description-row">
-                <span class="label-hover-card__row-label" data-i18n="audit:center-ui.hover-card.your-description">Your description:</span>
-                <span id="label-hover-card-description" class="label-hover-card__description"></span>
-              </span>
+              <span id="label-hover-card-tags" class="label-hover-card__tags"></span>
+              <span id="label-hover-card-description" class="label-hover-card__description"></span>
             </div>
             <div class="label-hover-card__hint" data-i18n="audit:center-ui.hover-card.click-to-edit">Click to edit</div>
           </div>
 
-          @* Floating trash-can button pinned over a hovered label's top-right corner to delete it (positioned by
+          @* Floating trash-can button pinned over a hovered label's top-left corner to delete it (positioned by
              Label.js, wired in Canvas.js). *@
           <button type="button" id="label-hover-delete" class="label-hover-delete" aria-label="Delete label" data-i18n-aria-label="audit:center-ui.hover-card.delete-label" title="Delete label" data-i18n-title="audit:center-ui.hover-card.delete-label">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
