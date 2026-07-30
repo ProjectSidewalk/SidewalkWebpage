@@ -212,36 +212,47 @@
   border-top: 1px solid var(--color-neutral-200);
 }
 
-/* The severity, not-rated, tags, and description rows are shown/hidden per label by Label.js. */
-.label-hover-card__severity {
-  display: none;
-  align-items: center;
-  gap: calc(6px * var(--ui-scale));
-  font: var(--text-caption-regular);
-  color: var(--color-neutral-black);
-}
+/* The severity, not-rated, tags, and description rows are shown/hidden per label by Label.js.
 
-.label-hover-card__severity-icon {
-  width: calc(16px * var(--ui-scale));
-  height: calc(16px * var(--ui-scale));
-}
-
+   Severity and not-rated are drawn as filled chips that enclose their icon and text, so the rating reads as one
+   object instead of a loose icon-plus-sentence row. They match the tag chips below in height, type, and text color
+   and differ only by their fill, which keeps the body one uniform stack of read-only chips rather than a ladder of
+   competing sizes. The fill stays neutral: the level's color already comes from the smiley asset, and a
+   level-to-color map in CSS would be a hardcoded copy of it. */
+.label-hover-card__severity,
 .label-hover-card__not-rated {
   display: none;
   align-items: center;
-  gap: calc(6px * var(--ui-scale));
-  font: var(--text-caption-medium);
-  color: var(--color-neutral-black);
+  gap: calc(4px * var(--ui-scale));
+
+  /* Tighter on the icon side so the icon sits just inside the chip's edge. */
+  padding: calc(2px * var(--ui-scale)) calc(7px * var(--ui-scale)) calc(2px * var(--ui-scale))
+    calc(3px * var(--ui-scale));
+  border-radius: 200px;
+  background: var(--color-neutral-100);
+  font: var(--text-tiny-medium);
+  color: var(--color-neutral-700);
 }
 
-/* Mirrors the red "?" alert drawn on the canvas next to unrated labels (see Label.js #showSeverityAlert). */
+.label-hover-card__severity-icon {
+  flex: none;
+  width: calc(12px * var(--ui-scale));
+  height: calc(12px * var(--ui-scale));
+
+  /* The smiley is the same asset the context menu uses as a rating button, so it's held back here to read as a
+     status glyph rather than something to click. */
+  opacity: 0.75;
+}
+
+/* Mirrors the red "?" alert drawn on the canvas next to unrated labels (see Label.js #showSeverityAlert). Unlike the
+   severity smiley this one keeps its full strength — it's flagging something still to do. */
 .label-hover-card__not-rated-icon {
   flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: calc(15px * var(--ui-scale));
-  height: calc(15px * var(--ui-scale));
+  width: calc(12px * var(--ui-scale));
+  height: calc(12px * var(--ui-scale));
   border-radius: 50%;
   background: var(--color-error-200);
   color: var(--color-neutral-white);
@@ -252,6 +263,19 @@
   display: none;
   flex-wrap: wrap;
   gap: calc(4px * var(--ui-scale));
+}
+
+/* The shared pill shape, shrunk and quieted down: these tags are read-only metadata, so they must not carry the
+   context menu's tappable-button look (dark outline, roomy padding). The hairline stays — several tags sit side by
+   side and need an edge to tell them apart — but drops to neutral-300 with 10px gray text. */
+.label-hover-card__tags .tag-pill {
+  padding: calc(2px * var(--ui-scale)) calc(7px * var(--ui-scale));
+  outline-color: var(--color-neutral-300);
+}
+
+.label-hover-card__tags .tag-pill__label {
+  font: var(--text-tiny-medium);
+  color: var(--color-neutral-700);
 }
 
 .label-hover-card__description {
