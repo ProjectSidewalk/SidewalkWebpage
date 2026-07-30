@@ -252,7 +252,9 @@ class ShareWidget {
     this.#log('Share_Platform=Email');
     const subject = encodeURIComponent(this.#target.title);
     const body = encodeURIComponent(`${this.#target.text}\n\n${this.#target.url}`);
-    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank', 'noopener');
+    // Navigate rather than window.open: the browser hands a mailto: to the OS mail handler without leaving the
+    // page, whereas window.open strands a blank tab showing the raw mailto: URL when no handler picks it up.
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
     this.#closePopover();
   }
 
