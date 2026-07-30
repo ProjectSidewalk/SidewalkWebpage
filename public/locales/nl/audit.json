@@ -179,8 +179,8 @@
   },
   "center-ui": {
     "hover-card": {
-      "click-to-edit": "Klik om te bewerken",
-      "delete-label": "Label verwijderen"
+      "delete": "Verwijderen",
+      "edit": "Bewerken"
     },
     "context-menu": {
       "severity": "Klik om de mate van  ernst te labelen",

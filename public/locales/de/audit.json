@@ -179,8 +179,8 @@
   },
   "center-ui": {
     "hover-card": {
-      "click-to-edit": "Zum Bearbeiten klicken",
-      "delete-label": "Beschriftung löschen"
+      "delete": "Löschen",
+      "edit": "Bearbeiten"
     },
     "context-menu": {
       "severity": "Zur Kennzeichnung eines Schweregrades bitte anklicken",

@@ -3,7 +3,7 @@
  */
 class Canvas {
   // Grace period before the hover card hides once the cursor leaves the label, giving the pointer time to
-  // travel from the icon onto the card or the floating delete button without them vanishing mid-way.
+  // travel from the icon onto the card (e.g. to reach its Edit/Delete buttons) without the card vanishing mid-way.
   static #HOVER_CARD_HIDE_DELAY_MS = 200;
 
   #ribbon;
@@ -57,12 +57,14 @@ class Canvas {
     svl.ui.canvas.drawingLayer.on('mouseup', (e) => this.#handleDrawingLayerMouseUp(e));
     svl.ui.canvas.drawingLayer.on('mousemove', (e) => this.#handleDrawingLayerMouseMove(e));
     $('#interaction-area-holder').on('mouseleave', (e) => this.#handleDrawingLayerMouseOut(e));
-    svl.ui.canvas.hoverCard.on('click', () => this.#handleHoverCardClick());
+    svl.ui.canvas.hoverCard.on('click', () => this.#handleHoverCardClick('card'));
     svl.ui.canvas.hoverCard.on('mouseenter', () => this.#cancelScheduledHoverCardHide());
     svl.ui.canvas.hoverCard.on('mouseleave', () => this.#scheduleHoverCardHide());
-    svl.ui.canvas.hoverDelete.on('click', () => this.#handleHoverDeleteClick());
-    svl.ui.canvas.hoverDelete.on('mouseenter', () => this.#cancelScheduledHoverCardHide());
-    svl.ui.canvas.hoverDelete.on('mouseleave', () => this.#scheduleHoverCardHide());
+    svl.ui.canvas.hoverCardEdit.on('click', (e) => {
+      e.stopPropagation(); // So the card's own click handler doesn't open the menu a second time.
+      this.#handleHoverCardClick('edit-button');
+    });
+    svl.ui.canvas.hoverCardDelete.on('click', (e) => this.#handleHoverCardDeleteClick(e));
     svl.ui.streetview.viewControlLayer.on('mousedown', (e) => this.#handlerViewControlLayerMouseDown(e));
     svl.ui.streetview.viewControlLayer.on('mouseup', (e) => this.#handlerViewControlLayerMouseUp(e));
     svl.ui.streetview.viewControlLayer.on('mousemove', (e) => this.#handlerViewControlLayerMouseMove(e));
@@ -326,9 +328,11 @@ class Canvas {
   }
 
   /**
-   * Delete a label. Called when a user clicks the floating trash-can button over a hovered label.
+   * Delete a label. Called when a user clicks the Delete button on a label's hover card.
+   * @param {MouseEvent} e
    */
-  #handleHoverDeleteClick() {
+  #handleHoverCardDeleteClick(e) {
+    e.stopPropagation(); // Deleting must not also trigger the card's open-context-menu click.
     if (!this.#status.disableLabelDelete) {
       const currLabel = this.getCurrentLabel();
       // If in tutorial, only delete if it's the last label that the user added to the canvas.
@@ -343,13 +347,14 @@ class Canvas {
   }
 
   /**
-   * Opens the hovered label's context menu when its hover card is clicked — the card is one big click target
-   * for the same action as clicking the label icon itself.
+   * Opens the hovered label's context menu — fired by the card's Edit button, and by a click anywhere else on the
+   * card, which is one big click target for the same action as clicking the label icon itself.
+   * @param {string} via - What was clicked ('card' or 'edit-button'), logged with the event.
    */
-  #handleHoverCardClick() {
+  #handleHoverCardClick(via) {
     const currLabel = this.getCurrentLabel();
     if (currLabel && currLabel.getLabelType() !== 'Occlusion' && 'contextMenu' in svl) {
-      svl.tracker.push('Click_LabelHoverCard', { labelType: currLabel.getLabelType() });
+      svl.tracker.push('Click_LabelHoverCard', { labelType: currLabel.getLabelType(), via });
       this.showLabelHoverInfo(undefined);
       svl.contextMenu.show(currLabel);
     }
@@ -376,11 +381,10 @@ class Canvas {
   }
 
   /**
-   * Hides the hover card and its floating delete button immediately, without the grace period.
+   * Hides the hover card immediately, without the grace period.
    */
   hideHoverCard() {
     svl.ui.canvas.hoverCard.css('visibility', 'hidden');
-    svl.ui.canvas.hoverDelete.css('visibility', 'hidden');
   }
 
   /**

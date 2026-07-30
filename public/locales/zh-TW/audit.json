@@ -178,8 +178,8 @@
   },
   "center-ui": {
     "hover-card": {
-      "click-to-edit": "點選以編輯",
-      "delete-label": "刪除標籤"
+      "delete": "刪除",
+      "edit": "編輯"
     },
     "context-menu": {
       "severity": "請點選並標記問題嚴重度",

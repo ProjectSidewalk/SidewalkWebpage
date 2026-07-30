@@ -179,8 +179,8 @@
   },
   "center-ui": {
     "hover-card": {
-      "click-to-edit": "Haz clic para editar",
-      "delete-label": "Eliminar etiqueta"
+      "delete": "Eliminar",
+      "edit": "Editar"
     },
     "context-menu": {
       "severity": "Por favor haz clic para etiquetar la gravedad",

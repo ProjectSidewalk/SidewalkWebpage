@@ -179,8 +179,8 @@
   },
   "center-ui": {
     "hover-card": {
-      "click-to-edit": "Click to edit",
-      "delete-label": "Delete label"
+      "delete": "Delete",
+      "edit": "Edit"
     },
     "context-menu": {
       "severity": "Please click to label a severity",

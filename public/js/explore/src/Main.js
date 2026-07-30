@@ -522,7 +522,8 @@ class Main {
     svl.ui.canvas.hoverCardNotRated = $('#label-hover-card-not-rated');
     svl.ui.canvas.hoverCardTags = $('#label-hover-card-tags');
     svl.ui.canvas.hoverCardDescription = $('#label-hover-card-description');
-    svl.ui.canvas.hoverDelete = $('#label-hover-delete');
+    svl.ui.canvas.hoverCardDelete = $('#label-hover-card-delete');
+    svl.ui.canvas.hoverCardEdit = $('#label-hover-card-edit');
 
     // Context menu.
     svl.ui.contextMenu = {};

@@ -174,12 +174,13 @@
   right: calc(-6.5px * var(--ui-scale));
 }
 
-/* Occlusion labels have no context menu to open, so the card isn't clickable and the edit hint is hidden. */
+/* Occlusion labels have no context menu to open, so the card isn't clickable and the Edit button is hidden. */
 .label-hover-card--static {
   cursor: default;
 }
 
-.label-hover-card--static .label-hover-card__hint {
+.label-hover-card--static .label-hover-card__edit-button,
+.label-hover-card--no-delete .label-hover-card__delete-button {
   display: none;
 }
 
@@ -261,47 +262,39 @@
   overflow-wrap: anywhere;
 }
 
-.label-hover-card__hint {
-  padding: calc(4px * var(--ui-scale)) calc(10px * var(--ui-scale)) calc(5px * var(--ui-scale));
+/* Footer action buttons (design-system button-ps/button--tiny). Clicking anywhere on the card already opens the
+   context menu; the Edit button gives that action a visible affordance and a keyboard target. Delete is the one
+   action that must not bubble into the card click (Canvas.js stops its propagation). */
+.label-hover-card__actions {
+  display: flex;
+  gap: calc(6px * var(--ui-scale));
+  padding: calc(6px * var(--ui-scale)) calc(10px * var(--ui-scale)) calc(8px * var(--ui-scale));
   border-top: 1px solid var(--color-neutral-200);
-  font: var(--text-tiny-regular);
-  color: var(--color-neutral-700);
 }
 
-/* Floating trash-can button pinned to the hovered label's top-left corner (positioned by Label.js, which sets its
-   center point — hence the centering transform). A white circular badge with a red trash can, so the destructive
-   action reads unmistakably and separately from the card. 26px keeps the target above the WCAG 2.5.8 24px minimum. */
-.label-hover-delete {
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: 2; /* Same layer as the hover card; later in the DOM, so it paints above the card if they overlap. */
-  visibility: hidden;
-  display: flex;
-  align-items: center;
+.label-hover-card__action-button {
+  flex: 1;
   justify-content: center;
-  width: calc(26px * var(--ui-scale));
-  height: calc(26px * var(--ui-scale));
-  padding: 0;
-  border: 1px solid var(--color-neutral-300);
-  border-radius: 50%;
+  gap: calc(5px * var(--ui-scale));
+}
+
+.label-hover-card__action-button svg {
+  flex: none;
+  width: calc(12px * var(--ui-scale));
+  height: calc(12px * var(--ui-scale));
+}
+
+/* Quiet-destructive variant: the secondary button shape in the error color (no error button variant exists yet). */
+.label-hover-card__delete-button {
   background: var(--color-neutral-white);
   color: var(--color-error-200);
-  box-shadow: 0 calc(1px * var(--ui-scale)) calc(4px * var(--ui-scale)) rgb(45 42 63 / 35%);
-  cursor: pointer;
-  transform: translate(-50%, -50%);
+  outline: 1px solid var(--color-error-200);
 }
 
-.label-hover-delete:hover,
-.label-hover-delete:focus-visible {
+.label-hover-card__delete-button:hover,
+.label-hover-card__delete-button:focus-visible {
   background: var(--color-error-200);
-  border-color: var(--color-error-200);
   color: var(--color-neutral-white);
-}
-
-.label-hover-delete svg {
-  width: calc(14px * var(--ui-scale));
-  height: calc(14px * var(--ui-scale));
 }
 
 /* Sits in the top-right just left of the stacked zoom control, scaled down to match its height. transform-origin keeps

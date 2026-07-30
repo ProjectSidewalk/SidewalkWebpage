@@ -179,8 +179,8 @@
   },
   "center-ui": {
     "hover-card": {
-      "click-to-edit": "Clique para editar",
-      "delete-label": "Excluir rótulo"
+      "delete": "Excluir",
+      "edit": "Editar"
     },
     "context-menu": {
       "severity": "Por favor, clique para rotular uma gravidade",

@@ -280,8 +280,8 @@ class Label {
   }
 
   /**
-   * Populates and positions the hover card next to this label — showing its type, severity, tags, and
-   * description — and pins the floating trash-can delete button to the label icon's top-left corner.
+   * Populates and positions the hover card next to this label, showing its type, severity, tags, and description,
+   * plus its Delete/Edit action buttons.
    *
    * The card is a single shared DOM element positioned in on-screen pixels, so the label's logical canvas
    * coordinate is scaled to the displayed pano size (see util.exploreDisplayScale).
@@ -340,8 +340,10 @@ class Label {
     // Collapse the body entirely when it has nothing to show (e.g. an Occlusion label).
     ui.hoverCardBody.css('display', hasSeverity || tagNames.length > 0 || description ? 'flex' : 'none');
 
-    // Occlusion labels have no context menu, so the card isn't a click target and the edit hint is hidden.
+    // Occlusion labels have no context menu, so the card isn't a click target and the Edit button is hidden.
     ui.hoverCard.toggleClass('label-hover-card--static', labelType === 'Occlusion');
+    // The tutorial's delete lock hides the Delete button.
+    ui.hoverCard.toggleClass('label-hover-card--no-delete', Boolean(svl.canvas.getStatus('disableLabelDelete')));
 
     // Position the card beside the label icon, flipping to its left side if there isn't room on the right, and
     // nudging it vertically to stay inside the pano. The tail keeps pointing at the icon via --hover-card-tail-top.
@@ -365,22 +367,13 @@ class Label {
     holder.toggleClass('label-hover-card--flipped', flipped);
     holder[0].style.setProperty('--hover-card-tail-top', `${tailTop}px`);
     holder.css({ visibility: 'visible', left, top });
-
-    // Pin the trash-can delete button to the icon's top-left corner (away from the card, which usually sits to
-    // the icon's right); the tutorial's delete lock hides it.
-    if (svl.canvas.getStatus('disableLabelDelete')) {
-      ui.hoverDelete.css('visibility', 'hidden');
-    } else {
-      ui.hoverDelete.css({ visibility: 'visible', left: centerX - radius * 0.85, top: centerY - radius * 0.85 });
-    }
   }
 
   /**
-   * Hides the shared hover card and its floating delete button.
+   * Hides the shared hover card.
    */
   #hideHoverCard() {
     svl.ui.canvas.hoverCard.css('visibility', 'hidden');
-    svl.ui.canvas.hoverDelete.css('visibility', 'hidden');
   }
 
   /**
