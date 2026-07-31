@@ -96,6 +96,12 @@
   cursor: pointer;
 }
 
+/* Dropped when the menu can't fit beside its trigger (ShareWidget #fitPopover). Explicit, because the rule above
+   sets display: flex, which beats the user-agent's `[hidden] { display: none }`. */
+.label-detail__share-item[hidden] {
+  display: none;
+}
+
 .label-detail__share-item:hover {
   background: var(--color-neutral-100);
 }

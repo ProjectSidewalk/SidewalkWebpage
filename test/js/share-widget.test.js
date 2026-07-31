@@ -305,6 +305,127 @@ describe('ShareWidget', () => {
         });
     });
 
+    // The label card's trigger sits in a panel header that can be anywhere in the pano, and the popover is tall
+    // enough (six platforms) to run off the bottom from a low card.
+    describe('opening side', () => {
+        /** Gives the trigger a fixed viewport rect and the popover a fixed height, since jsdom has no layout. */
+        const place = ({ top, bottom, viewport, popoverHeight }) => {
+            window.innerHeight = viewport;
+            trigger.getBoundingClientRect = () => ({ top, bottom, left: 0, right: 0, width: 0, height: bottom - top });
+            Object.defineProperty(HTMLElement.prototype, 'offsetHeight',
+                { configurable: true, value: popoverHeight });
+        };
+        const wrapper = () => document.querySelector('.label-detail__share');
+
+        test('keeps the preferred side when the popover fits there', () => {
+            wrapper().classList.add('label-detail__share--below');
+            buildWidget();
+            place({ top: 100, bottom: 120, viewport: 800, popoverHeight: 330 });
+            trigger.click();
+            expect(wrapper().classList.contains('label-detail__share--below')).toBe(true);
+        });
+
+        test('flips up when there is no room below but there is above', () => {
+            wrapper().classList.add('label-detail__share--below');
+            buildWidget();
+            place({ top: 600, bottom: 620, viewport: 800, popoverHeight: 330 });
+            trigger.click();
+            expect(wrapper().classList.contains('label-detail__share--below')).toBe(false);
+        });
+
+        test('keeps the preference when neither side fits, so the choice stays predictable', () => {
+            wrapper().classList.add('label-detail__share--below');
+            buildWidget();
+            place({ top: 200, bottom: 220, viewport: 400, popoverHeight: 330 });
+            trigger.click();
+            expect(wrapper().classList.contains('label-detail__share--below')).toBe(true);
+        });
+    });
+
+    // When neither side has room, the menu sheds platforms rather than running off the screen.
+    describe('shedding platforms to fit', () => {
+        const shown = () =>
+            [...document.querySelectorAll('[role="menuitem"]')]
+                .filter((i) => !i.hidden)
+                .map((i) => i.querySelector('.label-detail__share-item-label').textContent);
+
+        /**
+         * jsdom has no layout, so stand in for it: the menu's height tracks how many items are actually showing,
+         * which is the relationship the shedding loop depends on. 32px of heading and padding, 20px per item.
+         */
+        const measuresLikeLayout = () => {
+            Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+                configurable: true,
+                get() {
+                    return 32 + [...document.querySelectorAll('[role="menuitem"]')]
+                        .filter((i) => !i.hidden).length * 20;
+                }
+            });
+        };
+
+        /** Puts the trigger somewhere with `space` px above it and nothing below (viewport ends at its bottom). */
+        const withSpaceAbove = (space) => {
+            const top = space + 8; // The routine keeps an 8px gap.
+            window.innerHeight = top + 20;
+            trigger.getBoundingClientRect = () => ({ top, bottom: top + 20 });
+        };
+
+        beforeEach(measuresLikeLayout);
+
+        test('keeps every platform when the menu fits', () => {
+            buildWidget();
+            withSpaceAbove(200); // 6 items = 152px.
+            trigger.click();
+
+            expect(shown()).toHaveLength(6);
+        });
+
+        test('drops X first, and stops as soon as it fits', () => {
+            buildWidget();
+            withSpaceAbove(132); // 6 items = 152px (too tall), 5 = 132px (exactly fits).
+            trigger.click();
+
+            expect(shown()).toEqual([
+                'share.copy-link', 'share.on-bluesky', 'share.on-facebook',
+                'share.on-linkedin', 'share.via-email'
+            ]);
+        });
+
+        test('drops Bluesky too when one is not enough', () => {
+            buildWidget();
+            withSpaceAbove(112); // Only 4 items (112px) fit.
+            trigger.click();
+
+            expect(shown()).toEqual([
+                'share.copy-link', 'share.on-facebook', 'share.on-linkedin', 'share.via-email'
+            ]);
+        });
+
+        test('restores the dropped platforms on a later open that has room', () => {
+            buildWidget();
+            withSpaceAbove(112);
+            trigger.click();
+            expect(shown()).toHaveLength(4);
+
+            trigger.click(); // Close.
+            withSpaceAbove(200);
+            trigger.click();
+
+            expect(shown()).toHaveLength(6);
+        });
+
+        test('arrow keys skip the dropped platforms', async () => {
+            buildWidget();
+            withSpaceAbove(112);
+            trigger.click();
+            await flushPromises(); // The keydown listener is registered on a deferred tick.
+
+            const visible = [...document.querySelectorAll('[role="menuitem"]')].filter((i) => !i.hidden);
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', cancelable: true }));
+            expect(document.activeElement).toBe(visible[visible.length - 1]);
+        });
+    });
+
     describe('isOpen', () => {
         test('reports whether the popover is showing, so a self-dismissing host can wait on it', () => {
             const widget = buildWidget();

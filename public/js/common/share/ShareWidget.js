@@ -31,6 +31,11 @@ class ShareWidget {
   #beforeOpen = null;
   /** @type {boolean} Whether a beforeOpen step is in flight, so a second click can't start another. */
   #opening = false;
+  /** @type {boolean} Which side the host asked the popover to open on; read once, since #chooseSide rewrites it. */
+  #prefersBelow = false;
+
+  // Order the menu sheds actions in when it can't fit beside its trigger, least-missed first.
+  static #SHED_ORDER = ['x', 'bluesky'];
 
   // Bound handlers so add/removeEventListener reference the same function objects.
   #boundOutsideClick = (e) => this.#onOutsideClick(e);
@@ -49,6 +54,9 @@ class ShareWidget {
     this.#trigger = trigger;
     this.#host = opts.host || trigger.parentElement || document.body;
     this.#beforeOpen = opts.beforeOpen || null;
+
+    // Read before the first open: #chooseSide rewrites this class, so the markup's choice has to be captured now.
+    this.#prefersBelow = Boolean(this.#host.classList?.contains('label-detail__share--below'));
 
     this.#trigger.setAttribute('aria-haspopup', 'true');
     this.#trigger.setAttribute('aria-expanded', 'false');
@@ -123,6 +131,55 @@ class ShareWidget {
     this.#togglePopover();
   }
 
+  /**
+   * Fits the popover to the space around its trigger: first by choosing which side to open on, then — if it is still
+   * too tall for either — by dropping the least-reached platforms until it fits.
+   *
+   * Both are measured on every open rather than decided once. The label card's trigger moves with the label icon it
+   * is anchored to, which can sit anywhere in the pano, and the menu is six actions tall.
+   * @private
+   */
+  #fitPopover() {
+    const wrapper = this.#popover.parentElement;
+    if (!wrapper) return;
+
+    // A previous open may have dropped some; start from the full menu and re-derive.
+    for (const platform of ShareWidget.#SHED_ORDER) this.#setPlatformHidden(platform, false);
+
+    const GAP = 8;
+    const height = () => this.#popover.offsetHeight;
+    const room = () => {
+      const t = this.#trigger.getBoundingClientRect();
+      return { below: window.innerHeight - t.bottom - GAP, above: t.top - GAP };
+    };
+
+    // Only overrule the host's preferred side when that side has no room and the other one does; when neither fits,
+    // the preference wins so the menu at least opens somewhere predictable, and shedding takes over below.
+    let below = this.#prefersBelow;
+    const space = room();
+    if (below && height() > space.below && height() <= space.above) below = false;
+    else if (!below && height() > space.above && height() <= space.below) below = true;
+    wrapper.classList.toggle('label-detail__share--below', below);
+
+    // Still too tall. Drop platforms rather than let the menu run off the screen, cheapest first: Copy link is what
+    // most people came for, and email is the one that works without an account anywhere.
+    for (const platform of ShareWidget.#SHED_ORDER) {
+      if (height() <= (below ? room().below : room().above)) return;
+      this.#setPlatformHidden(platform, true);
+    }
+  }
+
+  /**
+   * Shows or hides one platform's menu item.
+   * @param {string} platform - A key from #SHED_ORDER.
+   * @param {boolean} hidden
+   * @private
+   */
+  #setPlatformHidden(platform, hidden) {
+    const item = this.#popover.querySelector(`[data-share-platform="${platform}"]`);
+    if (item) item.hidden = hidden;
+  }
+
   /** @private */
   #togglePopover() {
     if (this.#open) this.#closePopover();
@@ -139,6 +196,7 @@ class ShareWidget {
     this.#popover.hidden = false;
     this.#open = true;
     this.#trigger.setAttribute('aria-expanded', 'true');
+    this.#fitPopover();
 
     // Defer listener registration so the click that opened the popover doesn't immediately close it.
     setTimeout(() => {
@@ -196,13 +254,13 @@ class ShareWidget {
     popover.appendChild(this.#makeItem(ShareWidget.#ICON_BLUESKY, t('share.on-bluesky'), () => this.#shareTo(
       'Bluesky',
       (u, txt) => `https://bsky.app/intent/compose?text=${encodeURIComponent(`${txt}\n\n${u}`)}`,
-    )));
+    ), 'bluesky'));
 
     // The platform key stays 'Twitter' so the logged events remain comparable across the rename.
     popover.appendChild(this.#makeItem(ShareWidget.#ICON_X, t('share.on-x'), () => this.#shareTo(
       'Twitter',
       (u, txt) => `https://x.com/intent/post?url=${encodeURIComponent(u)}&text=${encodeURIComponent(txt)}`,
-    )));
+    ), 'x'));
 
     popover.appendChild(this.#makeItem(ShareWidget.#ICON_FACEBOOK, t('share.on-facebook'), () => this.#shareTo(
       'Facebook',
@@ -229,11 +287,12 @@ class ShareWidget {
    * @returns {HTMLButtonElement}
    * @private
    */
-  #makeItem(iconSvg, label, onClick) {
+  #makeItem(iconSvg, label, onClick, platform) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'label-detail__share-item';
     btn.setAttribute('role', 'menuitem');
+    if (platform) btn.dataset.sharePlatform = platform;
 
     const icon = document.createElement('span');
     icon.className = 'label-detail__share-item-icon';
@@ -322,7 +381,7 @@ class ShareWidget {
       return;
     }
     if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
-    const items = [...this.#popover.querySelectorAll('[role="menuitem"]')];
+    const items = [...this.#popover.querySelectorAll('[role="menuitem"]')].filter((i) => !i.hidden);
     if (items.length === 0) return;
     e.preventDefault();
 
