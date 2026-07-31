@@ -184,9 +184,12 @@
   padding: calc(2px * var(--ui-scale)) calc(7px * var(--ui-scale)) calc(2px * var(--ui-scale))
     calc(3px * var(--ui-scale));
   border-radius: 200px;
-  background: var(--color-neutral-100);
+  background: var(--level-wash, var(--color-neutral-100));
   font: var(--text-tiny-medium);
-  color: var(--color-neutral-700);
+
+  /* neutral-800, not the neutral-700 the tag chips use: on a level wash rather than flat neutral-100 this text
+     falls to 4.35-4.42:1 for levels 2 and 3, under the AA floor. neutral-800 holds 7.5-8.7:1 on every level. */
+  color: var(--color-neutral-800);
 }
 
 .label-hover-card__severity-icon {
@@ -220,6 +223,15 @@
   gap: calc(4px * var(--ui-scale));
 }
 
+/* A hairline between the rating and the tags, when there is a rating above them to separate from. The two rows are
+   both chips, so without it they read as one wrapped set rather than two different kinds of fact. Label.js adds the
+   class, because the rating is hidden with an inline display:none that no sibling selector can see. */
+.label-hover-card__tags--divided {
+  align-self: stretch;
+  padding-top: calc(7px * var(--ui-scale));
+  border-top: 1px solid var(--color-neutral-200);
+}
+
 /* The shared pill shape, shrunk and quieted down: these tags are read-only metadata, so they must not carry the
    context menu's tappable-button look (dark outline, roomy padding). The hairline stays — several tags sit side by
    side and need an edge to tell them apart — but drops to neutral-300 with 10px gray text. */
@@ -233,9 +245,13 @@
   color: var(--color-neutral-700);
 }
 
+/* Tiny, matching the chips above it — at caption size it was the largest thing in a body made of 10px chips, so
+   the least important field read as the most prominent. The token's own 12px line-height is too tight for a
+   description that wraps, so only that is overridden. */
 .label-hover-card__description {
   display: none;
-  font: var(--text-caption-regular);
+  font: var(--text-tiny-regular);
+  line-height: 1.45;
   font-style: italic;
   color: var(--color-neutral-700);
   overflow-wrap: anywhere;
