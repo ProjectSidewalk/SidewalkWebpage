@@ -204,11 +204,14 @@
   color: var(--color-neutral-700);
 }
 
-/* The chosen cell wears its own level's colour twice over: a wash that says roughly which end of the scale, and a
-   full-strength edge that says precisely which level. The wash alone cannot do both -- levels 1 and 2 sit close
-   enough that lightening collapses them. Both are set per cell from util.misc.getSeverityLevelColors. */
-/* :hover is also (0,2,0), so without naming it here it would tie and grey out the level colour on the segment the
-   user is pointing at -- which is the one they most want to see. */
+/* Hovering previews the level you are about to pick, instead of the shared grey from main.css -- the whole point
+   of colouring the scale is seeing which end you are reaching for before you commit. Three classes' worth of
+   specificity, so it beats that grey; .severity-button:hover alone would only tie with the selected rule below. */
+.severity-segments .severity-button:hover {
+  background: var(--level-wash, var(--color-neutral-100));
+}
+
+/* The chosen segment adds the edge on top, so hover reads as a preview and the underline as the commitment. */
 .severity-segments .severity-button--checked,
 .severity-segments .severity-button--checked:hover {
   background: var(--level-wash, var(--color-neutral-100));
@@ -220,7 +223,7 @@
   color: var(--color-neutral-900);
 }
 
-.severity-segments .severity-button:focus-within {
+.severity-segments .severity-button:has(.severity-button__radio:focus-visible) {
   outline: 2px solid var(--color-link-100);
   outline-offset: calc(-2px * var(--ui-scale));
 }
