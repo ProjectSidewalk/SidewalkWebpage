@@ -327,8 +327,10 @@
     "text": "Veja este(a) {{labelType}} no Project Sidewalk",
     "copy-link": "Copiar link",
     "copied": "Copiado!",
+    "on-bluesky": "Compartilhar no Bluesky",
     "on-x": "Compartilhar no X",
     "on-facebook": "Compartilhar no Facebook",
+    "on-linkedin": "Compartilhar no LinkedIn",
     "via-email": "Compartilhar por e-mail"
   }
 }

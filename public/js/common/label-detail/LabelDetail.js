@@ -591,10 +591,12 @@ class LabelDetail {
     // Point the share widget at this label's public permalink (#456). The /label/:id route renders the label
     // spotlight page and serves the og:image crawlers embed in the share card.
     if (this.#shareWidget) {
+      // The title feeds the native sheet and the email subject, so it carries the descriptive text, not "Share".
+      const shareText = i18next.t('common:share.text', { labelType: labelTypeName });
       this.#shareWidget.setTarget({
         url: `${window.location.origin}/label/${meta.label_id}`,
-        title: i18next.t('common:share.button'),
-        text: i18next.t('common:share.text', { labelType: labelTypeName }),
+        title: shareText,
+        text: shareText,
       });
     }
 
