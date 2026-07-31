@@ -364,11 +364,13 @@ class Canvas {
   }
 
   /**
-   * Schedules hiding the hover card after a short grace period, replacing any pending hide timer. The hide is
-   * aborted if the pointer reaches the card (mouseenter) or returns to a label before the timer fires.
+   * Schedules hiding the hover card after a short grace period. A pending timer is left running rather than reset,
+   * so the deadline stays a hard 200ms from when the pointer left the label — the stream of mousemoves that follows
+   * it off the label must not keep pushing the hide back. The hide is aborted if the pointer reaches the card
+   * (mouseenter) or returns to a label before the timer fires.
    */
   #scheduleHoverCardHide() {
-    this.#cancelScheduledHoverCardHide();
+    if (this.#hoverCardHideTimer !== null) return;
     this.#hoverCardHideTimer = setTimeout(() => {
       this.#hoverCardHideTimer = null;
       this.showLabelHoverInfo(undefined);

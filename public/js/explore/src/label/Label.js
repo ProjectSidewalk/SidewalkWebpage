@@ -326,14 +326,19 @@ class Label {
     }
     ui.hoverCardNotRated.css('display', hasSeverity && severity === null ? 'flex' : 'none');
 
-    // Tags, as static (non-interactive) pills.
+    // Tags, as static (non-interactive) pills — built as DOM nodes with textContent so the tag text stays inert.
     const tagNames = this.#getTagNames();
     if (tagNames.length > 0) {
-      ui.hoverCardTags.html(tagNames.map((name) => `
-        <span class="tag-pill">
-          <span class="tag-pill__label">${name}</span>
-        </span>
-      `).join(''));
+      ui.hoverCardTags.empty();
+      for (const name of tagNames) {
+        const pill = document.createElement('span');
+        pill.className = 'tag-pill';
+        const pillLabel = document.createElement('span');
+        pillLabel.className = 'tag-pill__label';
+        pillLabel.textContent = name;
+        pill.appendChild(pillLabel);
+        ui.hoverCardTags.append(pill);
+      }
       ui.hoverCardTags.css('display', 'flex');
     } else {
       ui.hoverCardTags.css('display', 'none');
@@ -389,7 +394,8 @@ class Label {
    * @returns {string}
    */
   static #truncate(str, maxLength) {
-    return str.length > maxLength ? `${str.slice(0, maxLength - 1).trimEnd()}…` : str;
+    const chars = [...str]; // Code points, so the cut can't land inside a surrogate pair (e.g. mid-emoji).
+    return chars.length > maxLength ? `${chars.slice(0, maxLength - 1).join('').trimEnd()}…` : str;
   }
 
   /**
