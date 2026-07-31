@@ -33,11 +33,13 @@ util.exploreDisplayScale = function () {
  * @param {number} iconRadius - The label icon's radius, in that same logical frame.
  */
 util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius) {
-  const GAP = 12;  // On-screen pixels between the icon and the panel.
-  const EDGE = 4;  // Smallest gap left between the panel and the bounds below.
-  const TAIL_MARGIN = 18; // Keeps the tail's base clear of the panel's rounded corners.
-
   const scale = util.exploreDisplayScale();
+
+  // All three scale with the tool, like the panel's own dimensions: the tail is 8px * --ui-scale wide, so an
+  // unscaled GAP would be narrower than the tail once the tool scales past 1.5x and the tail would overlap the icon.
+  const GAP = 12 * scale;  // Between the icon and the panel.
+  const EDGE = 4 * scale;  // Smallest gap left between the panel and the bounds below.
+  const TAIL_MARGIN = 18 * scale; // Keeps the tail's base clear of the panel's rounded corners.
   const centerX = labelCanvasXY.x * scale;
   const centerY = labelCanvasXY.y * scale;
   const radius = iconRadius * scale;
@@ -63,7 +65,7 @@ util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius) {
   const flipped = centerX + radius + GAP + width > rightBound;
   const left = flipped ? centerX - radius - GAP - width : centerX + radius + GAP;
   const top = Math.min(Math.max(centerY - height / 2, EDGE), maxTop);
-  const tailTop = Math.min(Math.max(centerY - top, TAIL_MARGIN * scale), height - TAIL_MARGIN * scale);
+  const tailTop = Math.min(Math.max(centerY - top, TAIL_MARGIN), height - TAIL_MARGIN);
 
   panel.toggleClass('label-anchored-panel--flipped', flipped);
   panel[0].style.setProperty('--panel-tail-top', `${tailTop}px`);
