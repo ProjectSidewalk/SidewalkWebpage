@@ -183,7 +183,8 @@
       "edit": "Bearbeiten"
     },
     "context-menu": {
-      "severity": "Zur Kennzeichnung eines Schweregrades bitte anklicken",
+      "rate-severity-prompt": "Zum Bewerten des Schweregrads anklicken",
+      "rate-quality-prompt": "Zum Bewerten der Qualität anklicken",
       "severity-shortcuts": "Drücken Sie die Tasten 1-3 für den Schweregrad",
       "label-popup-shortcuts": "Drücken Sie <tag-underline>{{c}}</tag-underline>, um einen Tag hinzuzufügen",
       "tag": {

@@ -30,6 +30,8 @@ class LabelVisibilityControl {
   #card;
   #hideText;
   #showText;
+  #hideTooltip;
+  #showTooltip;
 
   constructor() {
     this.#labelVisibilityControlButton = $('#label-visibility-control-button');
@@ -37,6 +39,8 @@ class LabelVisibilityControl {
     this.#card = $('#label-card');
     this.#hideText = i18next.t('top-ui.visibility-control-hide');
     this.#showText = i18next.t('top-ui.visibility-control-show');
+    this.#hideTooltip = i18next.t('top-ui.visibility-control-tooltip-hide');
+    this.#showTooltip = i18next.t('top-ui.visibility-control-tooltip-show');
 
     // Set up the event listeners.
     this.#labelVisibilityControlButton.on('click', this.#clickAdjustLabel);
@@ -68,7 +72,7 @@ class LabelVisibilityControl {
    */
   unhideLabel() {
     this.#visible = true;
-    this.#setVisibilityButtons(this.#hideText, LabelVisibilityControl.#ICON_EYE_OFF);
+    this.#setVisibilityButtons(this.#hideText, LabelVisibilityControl.#ICON_EYE_OFF, this.#hideTooltip);
     // The marker is briefly absent while the viewer swaps (primary ↔ Pannellum); the button state above is what
     // renderPanoMarker's replacement will be read against, so it is set either way.
     svv.panoManager.getPanoMarker()?.marker_.classList.remove('label-marker--hidden');
@@ -85,7 +89,7 @@ class LabelVisibilityControl {
    */
   hideLabel() {
     this.#visible = false;
-    this.#setVisibilityButtons(this.#showText, LabelVisibilityControl.#ICON_EYE_ON);
+    this.#setVisibilityButtons(this.#showText, LabelVisibilityControl.#ICON_EYE_ON, this.#showTooltip);
     svv.panoManager.getPanoMarker()?.marker_.classList.add('label-marker--hidden');
   }
 
@@ -96,13 +100,17 @@ class LabelVisibilityControl {
    * The label is inserted as HTML, not text: the translations underline the keyboard shortcut inline (the English
    * ones are "<u>H</u>ide Label" / "S<u>h</u>ow Label"). It is a locale string, not user input.
    *
-   * @param {string} text The action the buttons now offer, as translated markup.
-   * @param {string} icon Inline SVG for the eye icon that goes with it.
+   * The tooltip turns over with them rather than being set once from Twirl: these buttons reverse meaning when the
+   * label is hidden, so a fixed string spends half its life describing the opposite of what clicking now does.
+   *
+   * @param {string} text    The action the buttons now offer, as translated markup.
+   * @param {string} icon    Inline SVG for the eye icon that goes with it.
+   * @param {string} tooltip That same action spelled out, for both buttons' tooltips.
    */
-  #setVisibilityButtons(text, icon) {
+  #setVisibilityButtons(text, icon, tooltip) {
     const htmlString = `${icon}<span>${text}</span>`;
-    this.#labelVisibilityControlButton.html(htmlString);
-    this.#labelVisibilityButtonOnPano.html(htmlString);
+    this.#labelVisibilityControlButton.html(htmlString).attr('data-ps-tooltip', tooltip);
+    this.#labelVisibilityButtonOnPano.html(htmlString).attr('data-ps-tooltip', tooltip);
   }
 
   /**

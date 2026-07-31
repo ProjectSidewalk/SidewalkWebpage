@@ -11,7 +11,8 @@
     },
     "visibility-control-hide": "隱藏標記<u>H</u>",
     "visibility-control-show": "顯示標記<u>h</u>",
-    "visibility-control-tooltip": "暫時隱藏標記，以便看清後方的人行道。快速鍵：<b>H</b>"
+    "visibility-control-tooltip-hide": "暫時隱藏標記以看得更清楚。(<u>H</u>)",
+    "visibility-control-tooltip-show": "重新顯示標記。(<u>h</u>)"
   },
   "validate-menu": {
     "disagree-reason": {

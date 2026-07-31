@@ -11,7 +11,8 @@
     },
     "visibility-control-hide": "Beschriftung ausblenden (<u>H</u>)",
     "visibility-control-show": "Beschriftung einblenden (<u>h</u>)",
-    "visibility-control-tooltip": "Blende die Beschriftung vorübergehend aus, um den Gehweg dahinter zu sehen. Tastenkürzel: <b>H</b>"
+    "visibility-control-tooltip-hide": "Blendet die Beschriftung vorübergehend aus, um besser zu sehen. (<u>H</u>)",
+    "visibility-control-tooltip-show": "Blendet die Beschriftung wieder ein. (<u>h</u>)"
   },
   "validate-menu": {
     "disagree-reason": {

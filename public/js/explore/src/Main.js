@@ -522,6 +522,7 @@ class Main {
     svl.ui.canvas.hoverCardSeverityIcon = $('#label-hover-card-severity-icon');
     svl.ui.canvas.hoverCardSeverityText = $('#label-hover-card-severity-text');
     svl.ui.canvas.hoverCardNotRated = $('#label-hover-card-not-rated');
+    svl.ui.canvas.hoverCardNotRatedText = $('#label-hover-card-not-rated-text');
     svl.ui.canvas.hoverCardTags = $('#label-hover-card-tags');
     svl.ui.canvas.hoverCardDescription = $('#label-hover-card-description');
     svl.ui.canvas.hoverCardDelete = $('#label-hover-card-delete');
