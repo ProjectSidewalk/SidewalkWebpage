@@ -199,7 +199,10 @@ class ContextMenu {
       const sev = Number(button.dataset.severity);
       const img = button.querySelector('.severity-button__icon');
       if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, sev === checkedSev);
-      // The chosen segment is washed and underlined in its own level's colour; CSS reads these two properties.
+      // The chosen segment is washed and underlined in its own level's colour. The selected state is marked with
+      // a class rather than left to CSS to infer from :has(:checked) -- the radio is visually hidden and driven
+      // through jQuery, and this keeps the styling keyed to the same value that picks the smiley above.
+      button.classList.toggle('severity-button--checked', sev === checkedSev);
       const colors = util.misc.getSeverityLevelColors(sev);
       if (colors) {
         button.style.setProperty('--level-wash', colors.wash);
