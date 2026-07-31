@@ -11,9 +11,8 @@
     },
     "visibility-control-hide": "Ocultar rótulo (<u>H</u>)",
     "visibility-control-show": "Mostrar rótulo (<u>H</u>)",
-    "visibility-control-tooltip": "Oculta temporariamente o rótulo para ver melhor. (<u>H</u>)",
-    "visibility-control-tooltip-short-hide": "Oculta o rótulo para ver melhor. (<u>H</u>)",
-    "visibility-control-tooltip-short-show": "Mostra o rótulo novamente. (<u>H</u>)"
+    "visibility-control-tooltip-hide": "Oculta temporariamente o rótulo para ver melhor. (<u>H</u>)",
+    "visibility-control-tooltip-show": "Mostra o rótulo novamente. (<u>H</u>)"
   },
   "validate-menu": {
     "disagree-reason": {

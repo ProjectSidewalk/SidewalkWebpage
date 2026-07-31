@@ -39,8 +39,8 @@ class LabelVisibilityControl {
     this.#card = $('#label-card');
     this.#hideText = i18next.t('top-ui.visibility-control-hide');
     this.#showText = i18next.t('top-ui.visibility-control-show');
-    this.#hideTooltip = i18next.t('top-ui.visibility-control-tooltip-short-hide');
-    this.#showTooltip = i18next.t('top-ui.visibility-control-tooltip-short-show');
+    this.#hideTooltip = i18next.t('top-ui.visibility-control-tooltip-hide');
+    this.#showTooltip = i18next.t('top-ui.visibility-control-tooltip-show');
 
     // Set up the event listeners.
     this.#labelVisibilityControlButton.on('click', this.#clickAdjustLabel);
@@ -100,19 +100,18 @@ class LabelVisibilityControl {
    * The label is inserted as HTML, not text: the translations underline the keyboard shortcut inline (the English
    * ones are "<u>H</u>ide Label" / "S<u>h</u>ow Label"). It is a locale string, not user input.
    *
-   * Only the card's button gets a tooltip here. The top-left control carries a fuller sentence set from Twirl, and
-   * it does not reverse the way this one does — the tooltip has to turn over with the action, or it describes the
-   * opposite of what clicking now does.
+   * The tooltip turns over with them rather than being set once from Twirl: these buttons reverse meaning when the
+   * label is hidden, so a fixed string spends half its life describing the opposite of what clicking now does.
    *
    * @param {string} text    The action the buttons now offer, as translated markup.
    * @param {string} icon    Inline SVG for the eye icon that goes with it.
-   * @param {string} tooltip That same action spelled out, for the card button's tooltip.
+   * @param {string} tooltip That same action spelled out, for both buttons' tooltips.
    */
   #setVisibilityButtons(text, icon, tooltip) {
     const htmlString = `${icon}<span>${text}</span>`;
-    this.#labelVisibilityControlButton.html(htmlString);
-    this.#labelVisibilityButtonOnPano.html(htmlString);
-    this.#labelVisibilityButtonOnPano.attr('data-ps-tooltip', tooltip);
+    this.#labelVisibilityControlButton.html(htmlString).attr('data-ps-tooltip', tooltip);
+    // Absent on mobile, which has no label card. .attr() on an empty set is a no-op.
+    this.#labelVisibilityButtonOnPano.html(htmlString).attr('data-ps-tooltip', tooltip);
   }
 
   /**

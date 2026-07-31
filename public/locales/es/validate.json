@@ -11,9 +11,8 @@
     },
     "visibility-control-hide": "Ocultar (<u>H</u>)",
     "visibility-control-show": "Mostrar (<u>H</u>)",
-    "visibility-control-tooltip": "Oculta temporalmente la etiqueta para ver mejor. (<u>H</u>)",
-    "visibility-control-tooltip-short-hide": "Oculta la etiqueta para ver mejor. (<u>H</u>)",
-    "visibility-control-tooltip-short-show": "Vuelve a mostrar la etiqueta. (<u>H</u>)"
+    "visibility-control-tooltip-hide": "Oculta temporalmente la etiqueta para ver mejor. (<u>H</u>)",
+    "visibility-control-tooltip-show": "Vuelve a mostrar la etiqueta. (<u>H</u>)"
   },
   "validate-menu": {
     "disagree-reason": {

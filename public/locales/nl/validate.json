@@ -11,9 +11,8 @@
     },
     "visibility-control-hide": "Verberg Label (<u>H</u>)",
     "visibility-control-show": "Toon Label (<u>H</u>)",
-    "visibility-control-tooltip": "Verbergt het label tijdelijk om beter te zien. (<u>H</u>)",
-    "visibility-control-tooltip-short-hide": "Verbergt het label om beter te zien. (<u>H</u>)",
-    "visibility-control-tooltip-short-show": "Toont het label weer. (<u>H</u>)"
+    "visibility-control-tooltip-hide": "Verbergt het label tijdelijk om beter te zien. (<u>H</u>)",
+    "visibility-control-tooltip-show": "Toont het label weer. (<u>H</u>)"
   },
   "validate-menu": {
     "disagree-reason": {
