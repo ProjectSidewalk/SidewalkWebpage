@@ -430,18 +430,6 @@ function UtilitiesMisc(JSON) {
     return category ? descriptions[category] : descriptions;
   }
 
-  /**
-   * Gets the severity message that is displayed in a severity's tooltip.
-   * @returns {{1: {message: string}, 2: {message: string}, 3: {message: string}}}
-   */
-  function getSeverityDescription() {
-    return {
-      1: { message: i18next.t('center-ui.context-menu.tooltip.passable') },
-      2: { message: i18next.t('center-ui.context-menu.tooltip.difficult-to-pass') },
-      3: { message: i18next.t('center-ui.context-menu.tooltip.not-passable') },
-    };
-  }
-
   const SMILEY_ICON_BASE = '/assets/images/icons/smileys/';
   const POSITIVE_LABEL_TYPES = ['CurbRamp', 'Crosswalk'];
   const LABEL_TYPES_WITHOUT_SEVERITY = ['NoSidewalk', 'Signal', 'Occlusion'];
@@ -625,7 +613,6 @@ function UtilitiesMisc(JSON) {
   self.distanceToString = distanceToString;
   self.getIconImagePaths = getIconImagePaths;
   self.getLabelDescriptions = getLabelDescriptions;
-  self.getSeverityDescription = getSeverityDescription;
   self.isPositiveLabelType = isPositiveLabelType;
   self.POSITIVE_LABEL_TYPES = POSITIVE_LABEL_TYPES;
   self.labelTypeHasSeverity = labelTypeHasSeverity;

@@ -80,14 +80,10 @@ class Label {
     visibility: 'visible',
   };
 
-  #hoverInfoProperties;
-
   /**
    * @param {Object} params - Initial label property values (only keys present in #properties are copied).
    */
   constructor(params) {
-    this.#hoverInfoProperties = util.misc.getSeverityDescription();
-
     for (const attrName in params) {
       if (Object.hasOwn(params, attrName) && Object.hasOwn(this.#properties, attrName)) {
         this.#properties[attrName] = params[attrName];
@@ -313,13 +309,17 @@ class Label {
 
     // Severity row for rated labels; the not-rated nudge for unrated ones; neither for types without severity.
     if (hasSeverity && severity !== null) {
-      // Positive label types rate quality (Good/Okay/Bad); the rest use the passability phrases, matching the
-      // vocabulary of the context menu's rating section.
-      const severityText = util.misc.isPositiveLabelType(labelType)
-        ? i18next.t(`common:${util.misc.getRatingLevelKeys(labelType)[severity]}`)
-        : this.#hoverInfoProperties[severity].message;
-      ui.hoverCardSeverityText.text(severityText);
+      // The chip echoes the words the rating control uses, so the value you picked is the value you see back. It
+      // names its dimension because those words do not stand alone: the control has a "Rate severity" header to
+      // supply the noun, the card has no header at all, and "Quality: Good" against "Severity: High" also says
+      // which way each scale runs. Both nouns already ship in every locale (Gallery's SeverityDisplay uses them).
+      const positive = util.misc.isPositiveLabelType(labelType);
+      const level = i18next.t(`common:${util.misc.getRatingLevelKeys(labelType)[severity]}`);
+      ui.hoverCardSeverityText.text(`${i18next.t(positive ? 'common:quality' : 'common:severity')}: ${level}`);
       ui.hoverCardSeverityIcon.attr('src', util.misc.getSmileyIconPath(severity, labelType, true));
+      // Same wash the rating control puts behind the chosen level, so a rating is legible while scanning.
+      const colors = util.misc.getSeverityLevelColors(severity);
+      if (colors) ui.hoverCardSeverity[0].style.setProperty('--level-wash', colors.wash);
       ui.hoverCardSeverity.css('display', 'flex');
     } else {
       ui.hoverCardSeverity.css('display', 'none');

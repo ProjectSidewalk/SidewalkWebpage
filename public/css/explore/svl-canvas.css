@@ -184,9 +184,12 @@
   padding: calc(2px * var(--ui-scale)) calc(7px * var(--ui-scale)) calc(2px * var(--ui-scale))
     calc(3px * var(--ui-scale));
   border-radius: 200px;
-  background: var(--color-neutral-100);
+  background: var(--level-wash, var(--color-neutral-100));
   font: var(--text-tiny-medium);
-  color: var(--color-neutral-700);
+
+  /* neutral-800, not the neutral-700 the tag chips use: on a level wash rather than flat neutral-100 this text
+     falls to 4.35-4.42:1 for levels 2 and 3, under the AA floor. neutral-800 holds 7.5-8.7:1 on every level. */
+  color: var(--color-neutral-800);
 }
 
 .label-hover-card__severity-icon {
