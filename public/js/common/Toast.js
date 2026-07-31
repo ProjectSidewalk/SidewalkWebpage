@@ -162,13 +162,25 @@ class Toast {
 
   /**
    * Positions the toast horizontally centered over the reference element. Vertically it sits 10% down from the top.
+   *
+   * The center is then pulled back inside the viewport if half the toast would hang past either edge. The toast is
+   * fixed-positioned, so an overhang is not scrollable — whatever lands outside is simply unreachable — and a
+   * reference near the edge of a narrow window (or just a long translation) is enough to put it there.
    */
   #position() {
     const VERTICAL_FRACTION = 0.10;
+    const EDGE = 8;
     const rect = this.#reference
       ? this.#reference.getBoundingClientRect()
       : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
-    this.#el.style.left = `${rect.left + rect.width / 2}px`;
+
+    const halfWidth = this.#el.getBoundingClientRect().width / 2;
+    const minCenter = EDGE + halfWidth;
+    const maxCenter = window.innerWidth - EDGE - halfWidth;
+    // Left-align rather than center when the toast is wider than the viewport, so its start stays readable.
+    const center = Math.min(Math.max(rect.left + rect.width / 2, minCenter), Math.max(maxCenter, minCenter));
+
+    this.#el.style.left = `${center}px`;
     this.#el.style.top = `${rect.top + rect.height * VERTICAL_FRACTION}px`;
   }
 

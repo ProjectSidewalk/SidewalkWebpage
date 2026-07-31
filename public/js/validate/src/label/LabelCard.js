@@ -68,16 +68,20 @@ class LabelCard {
       this.#severityIcon.attr('src', util.misc.getSmileyIconPath(severity, labelType, true));
       // Same wash the rating control puts behind the chosen level, so a rating is legible while scanning.
       const colors = util.misc.getSeverityLevelColors(severity, labelType);
+      // Cleared rather than left in place when a level has no colors, so the chip can't inherit the last label's.
       if (colors) this.#severity[0].style.setProperty('--level-wash', colors.wash);
+      else this.#severity[0].style.removeProperty('--level-wash');
       this.#severity.css('display', 'flex');
     } else {
       this.#severity.css('display', 'none');
     }
 
     // Tags as static (non-interactive) pills, built as DOM nodes with textContent so the tag text stays inert.
+    // Emptied unconditionally: a label with no tags must not keep the previous one's pills parked behind a
+    // display:none, since the card is rendered once per label and reused for every one of them.
     const hasTags = tags && tags.length > 0;
+    this.#tags.empty();
     if (hasTags) {
-      this.#tags.empty();
       for (const tag of tags) {
         const pill = document.createElement('span');
         pill.className = 'tag-pill';

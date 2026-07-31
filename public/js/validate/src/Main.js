@@ -291,10 +291,17 @@ class Main {
    * that imagery readable. It names the two mouse gestures rather than the zoom buttons or the Z shortcut, since a
    * mouse is what someone who hasn't found either will already have their hand on.
    *
+   * Desktop only, for that same reason: the gestures it names are a mouse's, where touch pans with a drag and zooms
+   * with a pinch. Size rules it out too — the toast mounts on <body>, outside .tool-ui, so its --ui-scale can only
+   * come from the document root, which util.applyToolScale writes and mobile never runs. It would arrive at desktop
+   * size on a page the browser then shrinks to the screen.
+   *
    * Held until the mission-start tutorial's overlay clears, since anything shown before that lands underneath it.
-   * When there is no tutorial on screen (mobile, or a mission that doesn't open with one) it goes out immediately.
+   * A mission that doesn't open with one gets the hint immediately.
    */
   #showPanoInteractiveHint() {
+    if (util.isMobile()) return;
+
     const show = () => Toast.show({
       message: i18next.t('center-ui.pano-interactive-message'),
       reference: svv.ui.viewer.controlLayer[0],
