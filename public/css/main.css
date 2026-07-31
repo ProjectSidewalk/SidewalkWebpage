@@ -1798,14 +1798,17 @@ kbd {
 
    Dark fill, not a white card: a tooltip is a transient aside over whatever it explains, and the panels it opens over
    (the label card, the context menu, the pano overlays) are themselves white cards — a fourth white surface stacked on
-   those reads as another panel rather than as a passing note. 9.15:1 white-on-neutral-800, so it clears AAA. */
+   those reads as another panel rather than as a passing note. Specifically asphalt-500, the same surface the dark
+   toast uses (common/toast.css), because these two are the same idea at two sizes: a note laid over the tool rather
+   than a piece of it. It also keeps the tooltip clear of the asphalt-400 pano-overlay buttons it most often opens
+   above, which a neutral dark gray sat too close to. 13.9:1 white-on-asphalt-500, comfortably past AAA. */
 .ps-tooltip {
   position: fixed;
   left: -9999px;
   top: -9999px;
   max-width: calc(280px * var(--ui-scale, 1));
   padding: calc(5px * var(--ui-scale, 1)) calc(9px * var(--ui-scale, 1));
-  background: var(--color-neutral-800);
+  background: var(--color-asphalt-500);
   border-radius: calc(6px * var(--ui-scale, 1));
   box-shadow: 0 2px 8px rgb(0 0 0 / 20%);
   font: var(--text-caption-regular);
@@ -1833,7 +1836,7 @@ kbd {
   width: calc(12px * var(--ui-scale, 1));
   height: calc(6px * var(--ui-scale, 1));
   margin-left: calc(-6px * var(--ui-scale, 1));
-  background: var(--color-neutral-800);
+  background: var(--color-asphalt-500);
   clip-path: polygon(0 0, 100% 0, 50% 100%);
 }
 
