@@ -96,7 +96,11 @@ describe('ShareWidget', () => {
             expect(trigger.getAttribute('aria-expanded')).toBe('true');
 
             const items = pop.querySelectorAll('[role="menuitem"]');
-            expect(items).toHaveLength(4);
+            expect([...items].map((i) => i.querySelector('.label-detail__share-item-label').textContent))
+                .toEqual([
+                    'share.copy-link', 'share.on-bluesky', 'share.on-x',
+                    'share.on-facebook', 'share.on-linkedin', 'share.via-email'
+                ]);
             expect(document.activeElement).toBe(items[0]);
             expect(window.logWebpageActivity).toHaveBeenCalledWith('Share_Click');
         });
@@ -161,11 +165,12 @@ describe('ShareWidget', () => {
         test('ArrowDown cycles focus forward through the items and wraps to the first', async () => {
             const items = await openMenu();
             expect(document.activeElement).toBe(items[0]);
-            press('ArrowDown');
-            expect(document.activeElement).toBe(items[1]);
-            press('ArrowDown');
-            press('ArrowDown');
-            expect(document.activeElement).toBe(items[3]);
+            // Walk the whole list rather than a fixed number of presses, so adding a share platform doesn't
+            // silently turn this into a test of the first four items (#4721 added two).
+            for (let i = 1; i < items.length; i++) {
+                press('ArrowDown');
+                expect(document.activeElement).toBe(items[i]);
+            }
             press('ArrowDown');
             expect(document.activeElement).toBe(items[0]);
         });
@@ -173,15 +178,15 @@ describe('ShareWidget', () => {
         test('ArrowUp cycles focus backward and wraps to the last', async () => {
             const items = await openMenu();
             press('ArrowUp');
-            expect(document.activeElement).toBe(items[3]);
+            expect(document.activeElement).toBe(items[items.length - 1]);
             press('ArrowUp');
-            expect(document.activeElement).toBe(items[2]);
+            expect(document.activeElement).toBe(items[items.length - 2]);
         });
 
         test('Home and End jump to the first and last items', async () => {
             const items = await openMenu();
             press('End');
-            expect(document.activeElement).toBe(items[3]);
+            expect(document.activeElement).toBe(items[items.length - 1]);
             press('Home');
             expect(document.activeElement).toBe(items[0]);
         });
@@ -226,7 +231,7 @@ describe('ShareWidget', () => {
 
             expect(window.open).toHaveBeenCalledTimes(1);
             const [intentUrl, target] = window.open.mock.calls[0];
-            expect(intentUrl).toContain('https://twitter.com/intent/tweet?url=');
+            expect(intentUrl).toContain('https://x.com/intent/post?url=');
             expect(intentUrl).toContain(encodeURIComponent(TARGET.url));
             expect(intentUrl).toContain(encodeURIComponent(TARGET.text));
             expect(target).toBe('_blank');
