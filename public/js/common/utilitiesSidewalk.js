@@ -14,70 +14,16 @@ function UtilitiesMisc(JSON) {
   self.VALID_LABEL_TYPES_WITHOUT_OTHER
     = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Occlusion', 'NoSidewalk', 'Crosswalk', 'Signal'];
 
-  // Returns image paths corresponding to each label type.
+  // Returns the marker-icon path for each label type. Every frontend surface — canvas, map markers, cards, cursors —
+  // uses the one scalable SVG so the icon stays crisp at whatever size it lands at; the raster `_small`/`_tiny`/full
+  // -size PNGs beside it exist only for consumers that can't take vector art (server-side share-image compositing in
+  // ShareController, and the icon URLs published by /v3/api/labelTypes).
   function getIconImagePaths(category) {
-    const imagePaths = {
-      Walk: {
-        id: 'Walk',
-        iconImagePath: null,
-        minimapIconImagePath: null,
-        scalableIconImagePath: null,
-      },
-      CurbRamp: {
-        id: 'CurbRamp',
-        iconImagePath: '/assets/images/icons/label_type_icons/CurbRamp_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/CurbRamp_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/CurbRamp_small.svg',
-      },
-      NoCurbRamp: {
-        id: 'NoCurbRamp',
-        iconImagePath: '/assets/images/icons/label_type_icons/NoCurbRamp_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/NoCurbRamp_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/NoCurbRamp_small.svg',
-      },
-      Obstacle: {
-        id: 'Obstacle',
-        iconImagePath: '/assets/images/icons/label_type_icons/Obstacle_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/Obstacle_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/Obstacle_small.svg',
-      },
-      SurfaceProblem: {
-        id: 'SurfaceProblem',
-        iconImagePath: '/assets/images/icons/label_type_icons/SurfaceProblem_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/SurfaceProblem_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/SurfaceProblem_small.svg',
-      },
-      Other: {
-        id: 'Other',
-        iconImagePath: '/assets/images/icons/label_type_icons/Other_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/Other_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/Other_small.svg',
-      },
-      Occlusion: {
-        id: 'Occlusion',
-        iconImagePath: '/assets/images/icons/label_type_icons/Occlusion_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/Occlusion_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/Occlusion_small.svg',
-      },
-      NoSidewalk: {
-        id: 'NoSidewalk',
-        iconImagePath: '/assets/images/icons/label_type_icons/NoSidewalk_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/NoSidewalk_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/NoSidewalk_small.svg',
-      },
-      Crosswalk: {
-        id: 'Crosswalk',
-        iconImagePath: '/assets/images/icons/label_type_icons/Crosswalk_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/Crosswalk_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/Crosswalk_small.svg',
-      },
-      Signal: {
-        id: 'Signal',
-        iconImagePath: '/assets/images/icons/label_type_icons/Signal_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/Signal_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/Signal_small.svg',
-      },
-    };
+    const iconBasePath = '/assets/images/icons/label_type_icons';
+    const imagePaths = { Walk: { id: 'Walk', iconImagePath: null } };
+    for (const labelType of self.VALID_LABEL_TYPES) {
+      imagePaths[labelType] = { id: labelType, iconImagePath: `${iconBasePath}/${labelType}_small.svg` };
+    }
 
     return category ? imagePaths[category] : imagePaths;
   }

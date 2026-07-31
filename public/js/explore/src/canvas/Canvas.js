@@ -2,8 +2,13 @@
  * Canvas Module. Owns the label canvas: drawing labels, hit-testing the cursor, and pano pan/cursor handling.
  */
 class Canvas {
+  // Grace period before the hover card hides once the cursor leaves the label, giving the pointer time to
+  // travel from the icon onto the card (e.g. to reach its Edit/Delete buttons) without the card vanishing mid-way.
+  static #HOVER_CARD_HIDE_DELAY_MS = 200;
+
   #ribbon;
   #ctx;
+  #hoverCardHideTimer = null;
   #status = {
     currentLabel: null,
     disableLabelDelete: false,
@@ -52,7 +57,14 @@ class Canvas {
     svl.ui.canvas.drawingLayer.on('mouseup', (e) => this.#handleDrawingLayerMouseUp(e));
     svl.ui.canvas.drawingLayer.on('mousemove', (e) => this.#handleDrawingLayerMouseMove(e));
     $('#interaction-area-holder').on('mouseleave', (e) => this.#handleDrawingLayerMouseOut(e));
-    svl.ui.canvas.deleteIcon.on('click', () => this.#labelDeleteIconClick());
+    svl.ui.canvas.hoverCard.on('click', () => this.#handleHoverCardClick('card'));
+    svl.ui.canvas.hoverCard.on('mouseenter', () => this.#cancelScheduledHoverCardHide());
+    svl.ui.canvas.hoverCard.on('mouseleave', () => this.#scheduleHoverCardHide());
+    svl.ui.canvas.hoverCardEdit.on('click', (e) => {
+      e.stopPropagation(); // So the card's own click handler doesn't open the menu a second time.
+      this.#handleHoverCardClick('edit-button');
+    });
+    svl.ui.canvas.hoverCardDelete.on('click', (e) => this.#handleHoverCardDeleteClick(e));
     svl.ui.streetview.viewControlLayer.on('mousedown', (e) => this.#handlerViewControlLayerMouseDown(e));
     svl.ui.streetview.viewControlLayer.on('mouseup', (e) => this.#handlerViewControlLayerMouseUp(e));
     svl.ui.streetview.viewControlLayer.on('mousemove', (e) => this.#handlerViewControlLayerMouseMove(e));
@@ -75,6 +87,9 @@ class Canvas {
     // the context, so this transform must be (re)applied here.
     const scale = el.width / util.EXPLORE_CANVAS_WIDTH;
     this.#ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    // Label icons are drawn from a raster sized for the densest display we support (see Label.preloadIcons), so on
+    // anything less dense they arrive downscaled; the default 'low' filter frays their outer circle.
+    this.#ctx.imageSmoothingQuality = 'high';
   }
 
   /**
@@ -224,6 +239,9 @@ class Canvas {
   #handlerViewControlLayerMouseLeave() {
     this.#setViewControlLayerCursor('OpenHand');
     this.#mouseStatus.isLeftDown = false;
+
+    // Catches the pointer exiting the pano while still over a label, which never fires the layer's mousemove.
+    this.#scheduleHoverCardHide();
   }
 
   /**
@@ -247,16 +265,16 @@ class Canvas {
       this.showLabelHoverInfo(undefined);
       this.setCurrentLabel(undefined);
     } else if (item && item.className === 'Label') {
-      // Show label delete menu and update cursor when hovering over a label.
+      // Show the hover card and update the cursor when hovering over a label.
       this.#setViewControlLayerCursor('Pointer');
       const selectedLabel = item;
       this.setCurrentLabel(selectedLabel);
       this.showLabelHoverInfo(selectedLabel);
       this.clear().render();
     } else {
+      // Hide the hover card after a grace period, so the pointer can travel from the icon onto the card.
       this.#setViewControlLayerCursor('OpenHand');
-      this.showLabelHoverInfo(undefined);
-      this.setCurrentLabel(undefined);
+      this.#scheduleHoverCardHide();
     }
 
     this.#mouseStatus.prevX = currMousePosition.x;
@@ -303,19 +321,21 @@ class Canvas {
    */
   #handleDrawingLayerMouseMove(e) {
     // Change the cursor according to the label type.
-    const iconImagePaths = util.misc.getIconImagePaths();
-    const labelType = this.#ribbon.getStatus('mode');
-    if (labelType) {
+    const cursorUrl = Label.getCursorImageUrl(this.#ribbon.getStatus('mode'));
+    if (cursorUrl) {
+      const hotspot = Label.CURSOR_ICON_SIZE / 2;
       // Need to reset the cursor first, otherwise Safari strangely doesn't update the cursor.
       $(e.currentTarget).css('cursor', '');
-      $(e.currentTarget).css('cursor', `url(${iconImagePaths[labelType].iconImagePath}) 19 19, auto`);
+      $(e.currentTarget).css('cursor', `url(${cursorUrl}) ${hotspot} ${hotspot}, auto`);
     }
   }
 
   /**
-   * Delete a label. Called when a user clicks a label's delete icon.
+   * Delete a label. Called when a user clicks the Delete button on a label's hover card.
+   * @param {MouseEvent} e
    */
-  #labelDeleteIconClick() {
+  #handleHoverCardDeleteClick(e) {
+    e.stopPropagation(); // Deleting must not also trigger the card's open-context-menu click.
     if (!this.#status.disableLabelDelete) {
       const currLabel = this.getCurrentLabel();
       // If in tutorial, only delete if it's the last label that the user added to the canvas.
@@ -323,9 +343,53 @@ class Canvas {
         && (!svl.onboarding || svl.onboarding.getCurrentLabelId() === currLabel.getProperty('temporaryLabelId'))) {
         svl.tracker.push('Click_LabelDelete', { labelType: currLabel.getProperty('labelType') });
         svl.labelContainer.removeLabel(currLabel);
-        svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
+        this.hideHoverCard();
+        this.setCurrentLabel(undefined);
       }
     }
+  }
+
+  /**
+   * Opens the hovered label's context menu — fired by the card's Edit button, and by a click anywhere else on the
+   * card, which is one big click target for the same action as clicking the label icon itself.
+   * @param {string} via - What was clicked ('card' or 'edit-button'), logged with the event.
+   */
+  #handleHoverCardClick(via) {
+    const currLabel = this.getCurrentLabel();
+    if (currLabel && currLabel.getLabelType() !== 'Occlusion' && 'contextMenu' in svl) {
+      svl.tracker.push('Click_LabelHoverCard', { labelType: currLabel.getLabelType(), via });
+      this.showLabelHoverInfo(undefined);
+      svl.contextMenu.show(currLabel);
+    }
+  }
+
+  /**
+   * Schedules hiding the hover card after a short grace period. A pending timer is left running rather than reset,
+   * so the deadline stays a hard 200ms from when the pointer left the label — the stream of mousemoves that follows
+   * it off the label must not keep pushing the hide back. The hide is aborted if the pointer reaches the card
+   * (mouseenter) or returns to a label before the timer fires.
+   */
+  #scheduleHoverCardHide() {
+    if (this.#hoverCardHideTimer !== null) return;
+    this.#hoverCardHideTimer = setTimeout(() => {
+      this.#hoverCardHideTimer = null;
+      this.showLabelHoverInfo(undefined);
+      this.setCurrentLabel(undefined);
+    }, Canvas.#HOVER_CARD_HIDE_DELAY_MS);
+  }
+
+  #cancelScheduledHoverCardHide() {
+    if (this.#hoverCardHideTimer !== null) {
+      clearTimeout(this.#hoverCardHideTimer);
+      this.#hoverCardHideTimer = null;
+    }
+  }
+
+  /**
+   * Hides the hover card immediately, without the grace period.
+   */
+  hideHoverCard() {
+    svl.ui.canvas.hoverCard.css('visibility', 'hidden');
   }
 
   /**
@@ -458,6 +522,9 @@ class Canvas {
   showLabelHoverInfo(label) {
     let needToRerender = false;
 
+    // A definitive show/hide supersedes any pending grace-period hide.
+    this.#cancelScheduledHoverCardHide();
+
     // Hide the hover info on all the labels.
     const labels = svl.labelContainer.getCanvasLabels();
     let hoverVisibility;
@@ -475,13 +542,11 @@ class Canvas {
         needToRerender = true;
         labels[i].setHoverInfoVisibility('hidden');
 
-        // Hide delete icon and hover tooltip when no label is hovered.
-        svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
-        svl.ui.canvas.hoverInfoHolder.css('visibility', 'hidden');
+        // Hide the hover card when no label is hovered.
+        this.hideHoverCard();
       }
     }
 
-    // Show delete icon on label.
     if (needToRerender) {
       this.clear().render();
     }

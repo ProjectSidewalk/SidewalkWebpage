@@ -514,15 +514,18 @@ class Main {
     // Canvas for the labeling area.
     svl.ui.canvas = {};
     svl.ui.canvas.drawingLayer = $('#label-drawing-layer');
-    svl.ui.canvas.deleteIconHolder = $('#delete-icon-holder');
-    svl.ui.canvas.severityIconHolder = $('#severity-icon-holder');
-    svl.ui.canvas.deleteIcon = $('#label-delete-icon');
-    svl.ui.canvas.severityIcon = $('#severity-icon');
-    svl.ui.canvas.hoverInfoHolder = $('#label-hover-info');
-    svl.ui.canvas.hoverInfoType = $('#label-hover-info-type');
-    svl.ui.canvas.hoverInfoSeverity = $('#label-hover-info-severity');
-    svl.ui.canvas.hoverInfoSeverityIcon = $('#label-hover-info-severity-icon');
-    svl.ui.canvas.hoverInfoSeverityText = $('#label-hover-info-severity-text');
+    svl.ui.canvas.hoverCard = $('#label-hover-card');
+    svl.ui.canvas.hoverCardIcon = $('#label-hover-card-icon');
+    svl.ui.canvas.hoverCardType = $('#label-hover-card-type');
+    svl.ui.canvas.hoverCardBody = $('#label-hover-card-body');
+    svl.ui.canvas.hoverCardSeverity = $('#label-hover-card-severity');
+    svl.ui.canvas.hoverCardSeverityIcon = $('#label-hover-card-severity-icon');
+    svl.ui.canvas.hoverCardSeverityText = $('#label-hover-card-severity-text');
+    svl.ui.canvas.hoverCardNotRated = $('#label-hover-card-not-rated');
+    svl.ui.canvas.hoverCardTags = $('#label-hover-card-tags');
+    svl.ui.canvas.hoverCardDescription = $('#label-hover-card-description');
+    svl.ui.canvas.hoverCardDelete = $('#label-hover-card-delete');
+    svl.ui.canvas.hoverCardEdit = $('#label-hover-card-edit');
 
     // Context menu.
     svl.ui.contextMenu = {};

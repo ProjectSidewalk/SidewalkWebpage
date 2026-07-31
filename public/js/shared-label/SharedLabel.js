@@ -246,7 +246,7 @@ class SharedLabelPage {
     el.className = 'spotlight-focal-marker';
     el.style.setProperty('--lt-color', color);
     const img = document.createElement('img');
-    img.src = `/assets/images/icons/label_type_icons/${d.labelType}_small.png`;
+    img.src = util.misc.getIconImagePaths(d.labelType)?.iconImagePath;
     img.alt = '';
     el.appendChild(img);
     new mapboxgl.Marker({ element: el, anchor: 'center' }).setLngLat([d.lng, d.lat]).addTo(map);
@@ -290,7 +290,7 @@ class SharedLabelPage {
     const head = document.createElement('div');
     head.className = 'spotlight-popup__head';
     const icon = document.createElement('img');
-    icon.src = `/assets/images/icons/label_type_icons/${props.label_type}_small.png`;
+    icon.src = util.misc.getIconImagePaths(props.label_type)?.iconImagePath;
     icon.alt = '';
     icon.className = 'spotlight-popup__icon';
     const name = document.createElement('span');

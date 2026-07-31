@@ -1,16 +1,13 @@
+/* The card shell (surface, hairline, radius, tail) comes from .label-anchored-panel, shared with the hover card
+   this menu opens from; both are positioned by util.anchorPanelToLabel so the panel expands roughly in place. */
 #context-menu-holder {
-  position: absolute;
   z-index: 3;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   padding: calc(12px * var(--ui-scale));
   width: calc(380px * var(--ui-scale));
-  background: var(--color-neutral-white);
-  border-radius: calc(8px * var(--ui-scale));
-  border: solid 1px var(--color-neutral-300);
   visibility: hidden;
-  box-sizing: border-box;
 }
 
 .context-menu-section {

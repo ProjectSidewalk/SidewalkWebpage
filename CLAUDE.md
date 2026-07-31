@@ -133,11 +133,18 @@ Every label type has a **canonical color** and a set of **icon images**. Always 
 | Occlusion      | `#B3B3B3` |
 | Problem        | `#B3B3B3` |
 
-**Icons** live in `public/images/icons/label_type_icons/` in three PNG sizes — `{LabelType}.png` (large),
-`{LabelType}_small.png`, `{LabelType}_tiny.png` — plus a scalable `{LabelType}_small.svg` variant (used where the
-icon renders at arbitrary size, e.g. the label card's in-pano marker). The canonical source of truth for both
-colors and icon URLs is the `/v3/api/labelTypes` endpoint (PNG paths); frontend code reads all four paths from
-`util.misc.getIconImagePaths(labelType)` rather than hardcoding them.
+**Icons** live in `public/images/icons/label_type_icons/`. The colored marker every label type is drawn with is the
+scalable `{LabelType}_small.svg`, and it is **the only variant our own pages may use** — `util.misc.getIconImagePaths(labelType).iconImagePath`
+returns it, and that accessor is the one way frontend code should name an icon. Reach for it even when the icon is
+going somewhere a raster feels natural: the Explore canvas rasterizes it once at high resolution
+(`Label.preloadIcons`) and the labeling cursor is rasterized from that same cache, because a fixed-size PNG upscales
+badly on the HiDPI canvas.
+
+Three raster sizes sit beside it — `{LabelType}.png` (large; a *different*, grayscale illustration used by the
+ribbon menu, not a bigger copy of the marker), `{LabelType}_small.png`, and `{LabelType}_tiny.png`. They exist only
+for consumers that cannot take vector art: server-side share-image compositing (`ShareController`, via Java
+`ImageIO`) and the `icon_url`/`small_icon_url`/`tiny_icon_url` fields published by `/v3/api/labelTypes`. Adding a
+frontend use of one is a bug. The canonical source of truth for colors and icon URLs remains `/v3/api/labelTypes`.
 
 **In JavaScript:** call `util.misc.getLabelColors(labelType)` — defined in
 `public/js/common/UtilitiesSidewalk.js` and loaded on every page that includes

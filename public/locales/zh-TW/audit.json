@@ -177,6 +177,10 @@
     }
   },
   "center-ui": {
+    "hover-card": {
+      "delete": "刪除",
+      "edit": "編輯"
+    },
     "context-menu": {
       "severity": "請點選並標記問題嚴重度",
       "severity-shortcuts": "從1-3選擇品質",

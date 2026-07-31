@@ -56,13 +56,13 @@ class KeyboardManager {
     const svl = this.#svl;
     if (!svl.panoManager.getStatus('disablePanning')) {
       svl.contextMenu.hide();
-      // Panning hide label tag and delete icon.
+      // Panning hides the label hover card.
       const labels = svl.labelContainer.getCanvasLabels();
       const labelLen = labels.length;
       for (let i = 0; i < labelLen; i++) {
         labels[i].setHoverInfoVisibility('hidden');
       }
-      svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
+      svl.canvas.hideHoverCard();
       const pitch = svl.panoViewer.getPov().pitch;
       const zoom = svl.panoViewer.getPov().zoom;
       const heading = (svl.panoViewer.getPov().heading + degree + 360) % 360;
@@ -167,9 +167,12 @@ class KeyboardManager {
         }
       }
 
-      // Escape exits Labeling Mode back to Explore Mode (context menu open case is handled above).
+      // Escape exits Labeling Mode back to Explore Mode (context menu open case is handled above). It also
+      // dismisses the label hover card, so hover-triggered content can be dismissed without moving the pointer
+      // (WCAG 1.4.13).
       if (e.key === 'Escape' && !this.#contextMenu.isOpen()) {
         this.#ribbon.backToWalk();
+        svl.canvas.showLabelHoverInfo(undefined);
         svl.tracker.push('KeyboardShortcut_ModeSwitch_Walk', { keyCode: e.keyCode });
       }
 

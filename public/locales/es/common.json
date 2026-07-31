@@ -64,7 +64,7 @@
     "title": "Las imágenes de esta etiqueta ya no están disponibles.",
     "explore-street": "Explorar la calle"
   },
-  "severity": "Calificación ",
+  "severity": "Calificación",
   "quality": "Calidad",
   "rate-severity": "Calificar gravedad",
   "rate-quality": "Calificar calidad",
@@ -80,7 +80,7 @@
   "quality-example-tooltip-3": "Ejemplo de mala calidad",
   "no-severity": "No se proporcionó una calificación de gravedad para esta etiqueta",
   "no-quality": "No se proporcionó una calificación de calidad para esta etiqueta",
-  "tags": "Etiquetas ",
+  "tags": "Etiquetas",
   "description": "Descripción",
   "no-description": "Sin descripción",
   "comments": "Revisiones de efectividad",

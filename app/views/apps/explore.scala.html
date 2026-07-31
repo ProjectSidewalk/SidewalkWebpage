@@ -499,19 +499,46 @@
 
           <div id="pano-border-frame" class="window-streetview"></div>
 
-          <div id="delete-icon-holder">
-            <img src='@assets.path("images/explore/icons/Icon_Delete.png")' id="label-delete-icon" alt="Delete label">
-          </div>
-          @* Tooltip shown over a hovered label, displaying its type and (where applicable) severity. *@
-          <div id="label-hover-info" class="label-hover-info">
-            <span id="label-hover-info-type" class="label-hover-info-type"></span>
-            <span id="label-hover-info-severity" class="label-hover-info-severity">
-              <img id="label-hover-info-severity-icon" class="label-hover-info-severity-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="">
-              <span id="label-hover-info-severity-text"></span>
-            </span>
+          @* Card shown over a hovered label: its type, severity, tags, and description, plus Delete/Edit action
+             buttons. Populated and positioned by Label.js; clicking anywhere on the card opens the label's context
+             menu — the Edit button is the visible affordance for that same action (Canvas.js). *@
+          <div id="label-hover-card" class="label-anchored-panel label-hover-card">
+            <div class="label-hover-card__header">
+              <img id="label-hover-card-icon" class="label-hover-card__icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="">
+              <span id="label-hover-card-type" class="label-hover-card__type"></span>
+            </div>
+            <div id="label-hover-card-body" class="label-hover-card__body">
+              <span id="label-hover-card-severity" class="label-hover-card__severity">
+                <img id="label-hover-card-severity-icon" class="label-hover-card__severity-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="">
+                <span id="label-hover-card-severity-text"></span>
+              </span>
+              <span id="label-hover-card-not-rated" class="label-hover-card__not-rated">
+                <span class="label-hover-card__not-rated-icon" aria-hidden="true">?</span>
+                <span data-i18n="audit:center-ui.context-menu.severity">Please click to label a severity</span>
+              </span>
+              <span id="label-hover-card-tags" class="label-hover-card__tags"></span>
+              <span id="label-hover-card-description" class="label-hover-card__description"></span>
+            </div>
+            <div class="label-hover-card__actions">
+              <button type="button" id="label-hover-card-delete" class="button-ps button--tiny label-hover-card__action-button label-hover-card__delete-button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+                <span data-i18n="audit:center-ui.hover-card.delete">Delete</span>
+              </button>
+              <button type="button" id="label-hover-card-edit" class="button-ps button--tiny button--primary label-hover-card__action-button label-hover-card__edit-button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                </svg>
+                <span data-i18n="audit:center-ui.hover-card.edit">Edit</span>
+              </button>
+            </div>
           </div>
             <!-- Context Menu Container -->
-          <div id="context-menu-holder">
+          <div id="context-menu-holder" class="label-anchored-panel">
             <div id="context-menu-close-button-holder">
               <button type="button" id="context-menu-close-button">
                 <svg width="100%" height="100%" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">

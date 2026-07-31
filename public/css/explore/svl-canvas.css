@@ -113,50 +113,167 @@
     sepia(1) saturate(5) hue-rotate(315deg); /* Adds yellow highlight. */
 }
 
-#delete-icon-holder {
-  cursor: pointer;
-  visibility: hidden;
-  position: absolute;
-  width: calc(20px * var(--ui-scale));
-  height: calc(20px * var(--ui-scale));
-  left: 0;
-  top: calc(10px * var(--ui-scale));
-}
-
-#label-delete-icon {
-  height: calc(20px * var(--ui-scale));
-  width: calc(20px * var(--ui-scale));
-  position: absolute;
-}
-
-/* Tooltip shown over a hovered label (filled/positioned by Label.js). Background color is set per label type in JS. */
-.label-hover-info {
-  position: absolute;
+/* Card shown over a hovered label (populated by Label.js, positioned by util.anchorPanelToLabel). The shell — white
+   card, neutral hairline, 8px radius, tail at the icon — comes from .label-anchored-panel, shared with the context
+   menu this opens into. What's specific here is the caption scale and the absence of any form affordance, so it
+   stays unmistakably read-only. The whole card is a click target that opens the label's context menu; the label
+   color lives in the type icon rather than the card surface for text contrast. */
+.label-hover-card {
   left: 0;
   top: 0;
-  z-index: 2; /* Above the pano's view-control-layer (z-index: 1). */
+  z-index: 2; /* Above the pano's view-control-layer (z-index: 1), below the context menu (z-index: 3). */
   visibility: hidden;
-  pointer-events: none;
+  width: max-content;
+  max-width: calc(240px * var(--ui-scale));
+  box-shadow: 0 calc(2px * var(--ui-scale)) calc(10px * var(--ui-scale)) rgb(45 42 63 / 28%);
+  cursor: pointer;
+}
+
+/* Occlusion labels have no context menu to open, so the card isn't clickable and the Edit button is hidden. */
+.label-hover-card--static {
+  cursor: default;
+}
+
+.label-hover-card--static .label-hover-card__edit-button,
+.label-hover-card--no-delete .label-hover-card__delete-button {
+  display: none;
+}
+
+.label-hover-card__header {
   display: flex;
-  flex-direction: column;
-  gap: calc(2px * var(--ui-scale));
-  padding: calc(5px * var(--ui-scale)) calc(9px * var(--ui-scale));
-  border: 1px solid var(--color-neutral-white);
-  border-radius: calc(4px * var(--ui-scale));
-  color: var(--color-neutral-white);
-  font: var(--text-caption-medium);
+  align-items: center;
+  gap: calc(7px * var(--ui-scale));
+  padding: calc(6px * var(--ui-scale)) calc(10px * var(--ui-scale));
+}
+
+.label-hover-card__icon {
+  width: calc(20px * var(--ui-scale));
+  height: calc(20px * var(--ui-scale));
+}
+
+.label-hover-card__type {
+  flex: 1;
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-black);
   white-space: nowrap;
 }
 
-.label-hover-info-severity {
-  display: none; /* Toggled to flex by Label.js for label types that have a severity. */
+.label-hover-card__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(6px * var(--ui-scale));
+  padding: calc(7px * var(--ui-scale)) calc(10px * var(--ui-scale)) calc(8px * var(--ui-scale));
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+/* The severity, not-rated, tags, and description rows are shown/hidden per label by Label.js.
+
+   Severity and not-rated are drawn as filled chips that enclose their icon and text, so the rating reads as one
+   object instead of a loose icon-plus-sentence row. They match the tag chips below in height, type, and text color
+   and differ only by their fill, which keeps the body one uniform stack of read-only chips rather than a ladder of
+   competing sizes. The fill stays neutral: the level's color already comes from the smiley asset, and a
+   level-to-color map in CSS would be a hardcoded copy of it. */
+.label-hover-card__severity,
+.label-hover-card__not-rated {
+  display: none;
   align-items: center;
+  gap: calc(4px * var(--ui-scale));
+
+  /* Tighter on the icon side so the icon sits just inside the chip's edge. */
+  padding: calc(2px * var(--ui-scale)) calc(7px * var(--ui-scale)) calc(2px * var(--ui-scale))
+    calc(3px * var(--ui-scale));
+  border-radius: 200px;
+  background: var(--color-neutral-100);
+  font: var(--text-tiny-medium);
+  color: var(--color-neutral-700);
+}
+
+.label-hover-card__severity-icon {
+  flex: none;
+  width: calc(12px * var(--ui-scale));
+  height: calc(12px * var(--ui-scale));
+
+  /* The smiley is the same asset the context menu uses as a rating button, so it's held back here to read as a
+     status glyph rather than something to click. */
+  opacity: 0.75;
+}
+
+/* Mirrors the red "?" alert drawn on the canvas next to unrated labels (see Label.js #showSeverityAlert). Unlike the
+   severity smiley this one keeps its full strength — it's flagging something still to do. */
+.label-hover-card__not-rated-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(12px * var(--ui-scale));
+  height: calc(12px * var(--ui-scale));
+  border-radius: 50%;
+  background: var(--color-error-200);
+  color: var(--color-neutral-white);
+  font: var(--text-tiny-semibold);
+}
+
+.label-hover-card__tags {
+  display: none;
+  flex-wrap: wrap;
+  gap: calc(4px * var(--ui-scale));
+}
+
+/* The shared pill shape, shrunk and quieted down: these tags are read-only metadata, so they must not carry the
+   context menu's tappable-button look (dark outline, roomy padding). The hairline stays — several tags sit side by
+   side and need an edge to tell them apart — but drops to neutral-300 with 10px gray text. */
+.label-hover-card__tags .tag-pill {
+  padding: calc(2px * var(--ui-scale)) calc(7px * var(--ui-scale));
+  outline-color: var(--color-neutral-300);
+}
+
+.label-hover-card__tags .tag-pill__label {
+  font: var(--text-tiny-medium);
+  color: var(--color-neutral-700);
+}
+
+.label-hover-card__description {
+  display: none;
+  font: var(--text-caption-regular);
+  font-style: italic;
+  color: var(--color-neutral-700);
+  overflow-wrap: anywhere;
+}
+
+/* Footer action buttons (design-system button-ps/button--tiny). Clicking anywhere on the card already opens the
+   context menu; the Edit button gives that action a visible affordance and a keyboard target. Delete is the one
+   action that must not bubble into the card click (Canvas.js stops its propagation). */
+.label-hover-card__actions {
+  display: flex;
+  gap: calc(6px * var(--ui-scale));
+  padding: calc(6px * var(--ui-scale)) calc(10px * var(--ui-scale)) calc(8px * var(--ui-scale));
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+.label-hover-card__action-button {
+  flex: 1;
+  justify-content: center;
   gap: calc(5px * var(--ui-scale));
 }
 
-.label-hover-info-severity-icon {
-  width: calc(16px * var(--ui-scale));
-  height: calc(16px * var(--ui-scale));
+.label-hover-card__action-button svg {
+  flex: none;
+  width: calc(12px * var(--ui-scale));
+  height: calc(12px * var(--ui-scale));
+}
+
+/* Quiet-destructive variant: the secondary button shape in the error color (no error button variant exists yet). */
+.label-hover-card__delete-button {
+  background: var(--color-neutral-white);
+  color: var(--color-error-200);
+  outline: 1px solid var(--color-error-200);
+}
+
+.label-hover-card__delete-button:hover,
+.label-hover-card__delete-button:focus-visible {
+  background: var(--color-error-200);
+  color: var(--color-neutral-white);
 }
 
 /* Sits in the top-right just left of the stacked zoom control, scaled down to match its height. transform-origin keeps

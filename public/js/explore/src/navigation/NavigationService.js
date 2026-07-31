@@ -281,7 +281,7 @@ class NavigationService {
     if (svl.contextMenu.isOpen()) {
       svl.contextMenu.hide();
     }
-    svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
+    svl.canvas.hideHoverCard();
     svl.panoOverlayControls.disableStuckButton();
     svl.compass.disableCompassClick();
     svl.panoManager.disablePanning();

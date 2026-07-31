@@ -21,6 +21,58 @@ util.exploreDisplayScale = function () {
 };
 
 /**
+ * Positions a panel beside a label's icon in the Explore pano and points its tail at that icon.
+ *
+ * The hover card and the context menu are two states of one panel — read-only, then editable — so they share this
+ * routine and land on the same anchor: beside the icon on whichever side has room, vertically centered on it, and
+ * nudged to stay inside the tool. Clicking a label then expands the card into the menu roughly in place instead of
+ * moving it somewhere else. Panels styled with .label-anchored-panel read the values this sets.
+ *
+ * @param {jQuery} panel - The panel to position. Must be .label-anchored-panel and a child of the pano holder.
+ * @param {{x: number, y: number}} labelCanvasXY - The label icon's center in the 720x480 logical canvas frame.
+ * @param {number} iconRadius - The label icon's radius, in that same logical frame.
+ */
+util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius) {
+  const scale = util.exploreDisplayScale();
+
+  // All three scale with the tool, like the panel's own dimensions: the tail is 8px * --ui-scale wide, so an
+  // unscaled GAP would be narrower than the tail once the tool scales past 1.5x and the tail would overlap the icon.
+  const GAP = 12 * scale;  // Between the icon and the panel.
+  const EDGE = 4 * scale;  // Smallest gap left between the panel and the bounds below.
+  const TAIL_MARGIN = 18 * scale; // Keeps the tail's base clear of the panel's rounded corners.
+  const centerX = labelCanvasXY.x * scale;
+  const centerY = labelCanvasXY.y * scale;
+  const radius = iconRadius * scale;
+  const width = panel.outerWidth();
+  const height = panel.outerHeight();
+  const panoHeight = util.EXPLORE_CANVAS_HEIGHT * scale;
+
+  // Horizontally the panel is bounded by the whole tool, not the pano: the pano's right edge is not a wall, and a
+  // panel is welcome to float over the sidebar beside it. That matters because the context menu is over half the
+  // pano's width, so confining it to the pano would leave a label in the middle no room on either side. Vertically
+  // the pano IS the bound — the ribbon toolbar sits above it and the rest of the page below.
+  // Bounds are in the panel's own coordinate space, whose origin is the pano's top-left (its offset parent).
+  const panoLeft = document.getElementById('street-view-holder')?.getBoundingClientRect().left ?? 0;
+  const appRect = document.getElementById('svl-application-holder')?.getBoundingClientRect();
+  const minLeft = (appRect ? appRect.left - panoLeft : 0) + EDGE;
+  const rightBound = (appRect ? appRect.right - panoLeft : util.EXPLORE_CANVAS_WIDTH * scale) - EDGE;
+
+  // A panel bigger than the space left for it still has to go somewhere: these maxima collapse to the near edge
+  // rather than going past it, so it overhangs the far edge instead of being pushed off the near one.
+  const maxLeft = Math.max(minLeft, rightBound - width);
+  const maxTop = Math.max(EDGE, panoHeight - height - EDGE);
+
+  const flipped = centerX + radius + GAP + width > rightBound;
+  const left = flipped ? centerX - radius - GAP - width : centerX + radius + GAP;
+  const top = Math.min(Math.max(centerY - height / 2, EDGE), maxTop);
+  const tailTop = Math.min(Math.max(centerY - top, TAIL_MARGIN), height - TAIL_MARGIN);
+
+  panel.toggleClass('label-anchored-panel--flipped', flipped);
+  panel[0].style.setProperty('--panel-tail-top', `${tailTop}px`);
+  panel.css({ left: Math.min(Math.max(left, minLeft), maxLeft), top });
+};
+
+/**
  * Uniformly scales a whole tool (Explore, Validate) to fit the available viewport, like browser zoom.
  *
  * Sets the --ui-scale CSS variable on .tool-ui; every tool dimension is expressed as base-size * var(--ui-scale),

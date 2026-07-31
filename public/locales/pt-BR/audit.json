@@ -178,6 +178,10 @@
     }
   },
   "center-ui": {
+    "hover-card": {
+      "delete": "Excluir",
+      "edit": "Editar"
+    },
     "context-menu": {
       "severity": "Por favor, clique para rotular uma gravidade",
       "severity-shortcuts": "Pressione as teclas 1-3 para gravidade",
