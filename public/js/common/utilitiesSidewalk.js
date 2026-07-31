@@ -480,12 +480,15 @@ function UtilitiesMisc(JSON) {
   // the fill inside sev-<level>-*-filled.svg — recolour that artwork and these have to move with it. `edge` and
   // `wash` are the darkened and lightened counterparts a selected control uses.
   //
-  // The step numbers are deliberately not uniform across the three ramps: they are not perceptually aligned, so
-  // the same step is not equally dark on each. banana-700 against banana-100 is only 1.78:1, which would leave
-  // level 2's edge invisible on its own wash; banana-900 is the first step that clears the 3:1 non-text bar.
+  // The edge step is deliberately not uniform across the three ramps: they are not perceptually aligned, so the
+  // same step is not equally dark on each. banana-700 against banana-200 is only 1.68:1, which would leave level
+  // 2's edge invisible on its own wash; banana-900 is the first step that clears the 3:1 non-text bar.
+  //
+  // The wash is -200 on all three. -100 is too close to the white panel behind it to register as a state at all:
+  // jade-100 is 13/255 off white and banana-100 is 23, against orange-200's 35. -200 puts them at 51/46/35.
   const SEVERITY_LEVEL_COLORS = {
-    1: { face: 'jade-400', edge: 'jade-700', wash: 'jade-100' },
-    2: { face: 'banana-400', edge: 'banana-900', wash: 'banana-100' },
+    1: { face: 'jade-400', edge: 'jade-700', wash: 'jade-200' },
+    2: { face: 'banana-400', edge: 'banana-900', wash: 'banana-200' },
     3: { face: 'orange-400', edge: 'orange-600', wash: 'orange-200' },
   };
 
