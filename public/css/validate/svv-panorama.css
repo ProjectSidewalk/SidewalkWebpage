@@ -71,17 +71,20 @@
 
    This replaced Label_Outline.svg, an Illustrator export whose artwork mostly sat outside its own viewBox (#4726). */
 #validate-pano-marker {
-  transition: outline-color 0.5s ease, outline-width 0.5s ease;
+  transition: border-color 0.5s ease, outline-color 0.5s ease, outline-width 0.5s ease;
 }
 
 #validate-pano-marker.label-marker--hidden::before {
   opacity: 0.15;
 }
 
-/* An outline, not the border: .icon-outline's 1px black border stays as the marker's constant edge, and this rides
-   just outside it. Outlines also don't take part in layout, so the ring can't nudge the icon it surrounds. */
+/* The ring is an outline, not the border, so it takes no part in layout and can't nudge the icon it surrounds.
+   .icon-outline's black border goes transparent rather than away: it belongs to the solid marker, and leaving it
+   would keep drawing a hard edge around something that is supposed to have receded. What's left is the label
+   type's own colour at partial strength — enough to find, not enough to compete with the sidewalk underneath. */
 #validate-pano-marker.label-marker--hidden {
-  outline: calc(2px * var(--ui-scale)) dashed var(--label-color, var(--color-neutral-white));
+  border-color: transparent;
+  outline: calc(2px * var(--ui-scale)) dashed rgb(from var(--label-color, #ffffff) r g b / 55%);
   outline-offset: calc(1px * var(--ui-scale));
 }
 

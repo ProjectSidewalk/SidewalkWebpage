@@ -30,6 +30,8 @@ class Toast {
    * @param {number} [opts.duration] Milliseconds before auto-dismiss when not hovered (defaults to 5000).
    * @param {boolean} [opts.dark] Dark surface instead of white — for toasts that float over photography, where a
    *      white card glares against the imagery and reads as part of the UI chrome rather than a passing note.
+   * @param {boolean} [opts.compact] Tighter padding and smaller type, for a one-line aside rather than an
+   *      announcement with a title and an action.
    */
   constructor(opts = {}) {
     this.#reference = opts.reference || null;
@@ -51,7 +53,8 @@ class Toast {
   /** Builds the toast DOM subtree (but does not attach it to the page). */
   #build(opts) {
     const el = document.createElement('div');
-    el.className = opts.dark ? 'ps-toast ps-toast--dark' : 'ps-toast';
+    el.className = ['ps-toast', opts.dark && 'ps-toast--dark', opts.compact && 'ps-toast--compact']
+      .filter(Boolean).join(' ');
     el.setAttribute('role', 'status');
     el.setAttribute('aria-live', 'polite');
 

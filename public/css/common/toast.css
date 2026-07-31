@@ -49,6 +49,24 @@
   opacity: 0.94;
 }
 
+/* Compact variant, for a one-line aside rather than an announcement. The default toast is sized to carry a bold
+   title, a message, and an action button; at that size a single sentence laid over a 720x480 pano covers a good
+   part of the thing it is telling you to look at.
+
+   Strictly one line: the max-width cap is lifted and the text set to nowrap, so it stays a slim bar over the
+   imagery instead of growing into a block, whatever the translation's length. Callers owe it a short sentence. */
+.ps-toast--compact {
+  gap: calc(12px * var(--ui-scale, 1));
+  max-width: none;
+  padding: calc(6px * var(--ui-scale, 1)) calc(14px * var(--ui-scale, 1));
+  border-radius: calc(14px * var(--ui-scale, 1));
+}
+
+.ps-toast--compact .ps-toast__message {
+  font: var(--text-caption-regular);
+  white-space: nowrap;
+}
+
 .ps-toast__icon {
   flex: 0 0 auto;
   width: calc(50px * var(--ui-scale, 1));

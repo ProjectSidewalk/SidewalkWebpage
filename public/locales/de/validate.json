@@ -90,8 +90,7 @@
   },
   "center-ui": {
     "no-info": "Keine Informationen verfügbar",
-    "pano-interactive-title": "Du kannst diese Ansicht bewegen",
-    "pano-interactive-message": "Ziehe, um dich umzusehen, und zoome mit + und − näher heran."
+    "pano-interactive-message": "Ziehen zum Umsehen, scrollen zum Heranzoomen."
   },
   "mission-start": {
     "title": "Validieren Sie {{n}} {{label_type}} Beschriftungen",

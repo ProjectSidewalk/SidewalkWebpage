@@ -90,8 +90,7 @@
   },
   "center-ui": {
     "no-info": "No hay información disponible",
-    "pano-interactive-title": "Puedes mover esta vista",
-    "pano-interactive-message": "Arrastra para mirar alrededor y acerca la imagen con + y − para verla mejor."
+    "pano-interactive-message": "Arrastra para mirar alrededor, desplázate para acercar."
   },
   "mission-start": {
     "title": "Valida {{n}} etiquetas de {{label_type}}",

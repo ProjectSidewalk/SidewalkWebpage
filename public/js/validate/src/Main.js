@@ -287,16 +287,20 @@ class Main {
    * Tells the validator the pano is not a still photo — it pans and zooms, which is often the difference between
    * "I can't tell" and a confident answer (#4726).
    *
+   * One line, no title: it is laid over the very imagery it is describing, so it has to be small enough to leave
+   * that imagery readable. It names the two mouse gestures rather than the zoom buttons or the Z shortcut, since a
+   * mouse is what someone who hasn't found either will already have their hand on.
+   *
    * Held until the mission-start tutorial's overlay clears, since anything shown before that lands underneath it.
    * When there is no tutorial on screen (mobile, or a mission that doesn't open with one) it goes out immediately.
    */
   #showPanoInteractiveHint() {
     const show = () => Toast.show({
-      title: i18next.t('center-ui.pano-interactive-title'),
       message: i18next.t('center-ui.pano-interactive-message'),
       reference: svv.ui.viewer.controlLayer[0],
       duration: Main.#PANO_HINT_MS,
-      dark: true, // It floats over street imagery, where a white card glares.
+      dark: true,    // It floats over street imagery, where a white card glares.
+      compact: true, // An aside, not an announcement.
     });
 
     const overlay = document.querySelector('.mission-start-tutorial-overlay');

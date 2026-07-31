@@ -90,8 +90,7 @@
   },
   "center-ui": {
     "no-info": "No available information",
-    "pano-interactive-title": "You can move this view",
-    "pano-interactive-message": "Drag to look around, and zoom in with + and − for a closer look."
+    "pano-interactive-message": "Drag to look around, scroll to zoom in."
   },
   "mission-start": {
     "title": "Validate {{n}} {{label_type}} labels",

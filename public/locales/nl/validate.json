@@ -90,8 +90,7 @@
   },
   "center-ui": {
     "no-info": "Geen informatie beschikbaar",
-    "pano-interactive-title": "Je kunt dit beeld bewegen",
-    "pano-interactive-message": "Sleep om rond te kijken en zoom in met + en − voor een beter beeld."
+    "pano-interactive-message": "Sleep om rond te kijken, scroll om in te zoomen."
   },
   "mission-start": {
     "title": "Valideer {{n}} {{label_type}} labels",

@@ -90,8 +90,7 @@
   },
   "center-ui": {
     "no-info": "無資訊",
-    "pano-interactive-title": "你可以移動這個畫面",
-    "pano-interactive-message": "拖曳可環顧四周，使用 + 和 − 可放大細看。"
+    "pano-interactive-message": "拖曳環顧四周，捲動放大細看。"
   },
   "mission-start": {
     "title": "檢核{{n}} {{label_type}}標記",
