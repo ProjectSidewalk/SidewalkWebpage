@@ -58,12 +58,43 @@ function open(trigger) {
     return document.getElementById('ps-tooltip');
 }
 
+/**
+ * Evaluates psTooltip.js, returning a teardown that detaches the listeners that evaluation registered.
+ *
+ * Each test needs its own evaluation, because the module keeps `activeTrigger` and its card in a closure with no
+ * way to reset them from outside. But it wires six document/window listeners on load, so without the teardown
+ * every test would leave its set attached and the file would finish with nine of them stacked up — harmless here,
+ * since a stale set only ever touches its own detached card, but not something to hand to the next test that
+ * counts calls. addEventListener is patched on EventTarget.prototype so it catches document and window alike.
+ * @returns {function(): void} Detaches every listener the evaluation added.
+ */
+function loadPsTooltip() {
+    const added = [];
+    const original = EventTarget.prototype.addEventListener;
+    EventTarget.prototype.addEventListener = function (...args) {
+        added.push([this, args]);
+        return original.apply(this, args);
+    };
+    try {
+        new Function(SOURCE)();
+    } finally {
+        EventTarget.prototype.addEventListener = original;
+    }
+    return () => added.forEach(([target, args]) => target.removeEventListener(...args));
+}
+
+let unloadPsTooltip;
+
 beforeEach(() => {
     document.body.innerHTML = '';
     window.innerWidth = VIEWPORT_WIDTH;
     window.innerHeight = VIEWPORT_HEIGHT;
     stubLayout();
-    new Function(SOURCE)();
+    unloadPsTooltip = loadPsTooltip();
+});
+
+afterEach(() => {
+    unloadPsTooltip();
 });
 
 describe('psTooltip placement', () => {

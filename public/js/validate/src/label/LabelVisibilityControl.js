@@ -110,7 +110,6 @@ class LabelVisibilityControl {
   #setVisibilityButtons(text, icon, tooltip) {
     const htmlString = `${icon}<span>${text}</span>`;
     this.#labelVisibilityControlButton.html(htmlString).attr('data-ps-tooltip', tooltip);
-    // Absent on mobile, which has no label card. .attr() on an empty set is a no-op.
     this.#labelVisibilityButtonOnPano.html(htmlString).attr('data-ps-tooltip', tooltip);
   }
 
