@@ -79,9 +79,6 @@ class PanoMarker {
     /** @private @type {number} */
     this.zIndex_ = opts.zIndex || 1;
 
-    /** @private @type {boolean} */
-    this.toggleDescription_ = false;
-
     /**
      * New code (April 17, 2019) -- modified by Aileen
      * Source: https://github.com/marmat/google-maps-api-addons/issues/36#issuecomment-342774699
@@ -148,34 +145,21 @@ class PanoMarker {
     window.addEventListener('resize', this.boundDraw_);
     this.listenerViewer_.addListener('pov_changed', this.boundDraw_);
 
-    // If this is a validation label, we want to add mouse-hovering event for popped up hide/show label.
+    // On Validate, the marker is what opens the label card (its metadata plus the Hide-label toggle). Positioning
+    // and timing live in LabelVisibilityControl; this only reports the pointer.
     if (this.id_ === 'validate-pano-marker') {
       if (util.isMobile()) {
-        marker.addEventListener('touchstart', () => {
-          const labelDescriptionBox = $('#label-description-box');
-          const desBox = labelDescriptionBox[0];
-          if (!this.toggleDescription_) {
-            const rightPx = svv.canvasWidth() - parseFloat(marker.style.left) - (parseFloat(marker.style.width) / 2);
-            desBox.style.right = `${rightPx}px`;
-            desBox.style.top = `${parseFloat(marker.style.top) + (parseFloat(marker.style.height) / 2)}px`;
-            desBox.style.zIndex = 2;
-            desBox.style.visibility = 'visible';
-            this.toggleDescription_ = true;
-          } else {
-            desBox.style.visibility = 'hidden';
-            this.toggleDescription_ = false;
-          }
-        }, false);
+        marker.addEventListener('touchstart', () => svv.labelVisibilityControl.toggleLabelCard(), false);
       } else {
         marker.addEventListener('mouseover', (e) => {
           // Don't re-show the hover info if the cursor passes over the marker mid-pan (a mouse button is held).
           if (e.buttons) return;
-          svv.labelVisibilityControl.showTagsAndDeleteButton();
+          svv.labelVisibilityControl.showLabelCard();
         });
 
-        marker.addEventListener('mouseout', () => {
-          svv.labelVisibilityControl.hideTagsAndDeleteButton();
-        });
+        // Scheduled rather than immediate: the card sits beside the marker, so the cursor has to cross a gap to
+        // reach it and an instant hide would make the button inside it unclickable.
+        marker.addEventListener('mouseout', () => svv.labelVisibilityControl.scheduleHideLabelCard());
       }
     }
 
@@ -201,13 +185,6 @@ class PanoMarker {
       return;
     }
 
-    if (this.toggleDescription_) {
-      const labelDescriptionBox = $('#label-description-box');
-      const desBox = labelDescriptionBox[0];
-      desBox.style.visibility = 'hidden';
-      this.toggleDescription_ = false;
-    }
-
     // Calculate the position according to the viewport. Even though the marker doesn't sit directly underneath
     // the panorama container, we pass it on as the viewport because it has the actual viewport dimensions.
     if (this.marker_) {
@@ -222,6 +199,12 @@ class PanoMarker {
         // If coords is null, marker is "behind" the camera, so we position the marker outside the viewport.
         this.marker_.style.left = `${-(9999 + this.size_.width)}px`;
         this.marker_.style.top = '0';
+      }
+
+      // The Validate card is anchored to the marker, so it has to move with it. This runs on every pov_changed and
+      // resize, but re-anchoring costs nothing while the card is hidden, which is the whole time on other pages.
+      if (this.id_ === 'validate-pano-marker' && typeof svv !== 'undefined') {
+        svv.labelVisibilityControl?.reanchorLabelCard();
       }
     }
   };
