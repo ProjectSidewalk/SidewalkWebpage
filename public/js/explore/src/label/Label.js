@@ -318,7 +318,7 @@ class Label {
       ui.hoverCardSeverityText.text(`${i18next.t(positive ? 'common:quality' : 'common:severity')}: ${level}`);
       ui.hoverCardSeverityIcon.attr('src', util.misc.getSmileyIconPath(severity, labelType, true));
       // Same wash the rating control puts behind the chosen level, so a rating is legible while scanning.
-      const colors = util.misc.getSeverityLevelColors(severity);
+      const colors = util.misc.getSeverityLevelColors(severity, labelType);
       if (colors) ui.hoverCardSeverity[0].style.setProperty('--level-wash', colors.wash);
       ui.hoverCardSeverity.css('display', 'flex');
     } else {

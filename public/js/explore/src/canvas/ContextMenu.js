@@ -203,7 +203,7 @@ class ContextMenu {
       // a class rather than left to CSS to infer from :has(:checked) -- the radio is visually hidden and driven
       // through jQuery, and this keeps the styling keyed to the same value that picks the smiley above.
       button.classList.toggle('severity-button--checked', sev === checkedSev);
-      const colors = util.misc.getSeverityLevelColors(sev);
+      const colors = util.misc.getSeverityLevelColors(sev, labelType);
       if (colors) {
         button.style.setProperty('--level-wash', colors.wash);
         button.style.setProperty('--level-edge', colors.edge);

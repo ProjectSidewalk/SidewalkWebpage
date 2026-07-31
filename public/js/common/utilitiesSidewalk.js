@@ -480,29 +480,41 @@ function UtilitiesMisc(JSON) {
   // the fill inside sev-<level>-*-filled.svg — recolour that artwork and these have to move with it. `edge` and
   // `wash` are the darkened and lightened counterparts a selected control uses.
   //
-  // The edge step is deliberately not uniform across the three ramps: they are not perceptually aligned, so the
-  // same step is not equally dark on each. banana-700 against banana-200 is only 1.68:1, which would leave level
-  // 2's edge invisible on its own wash; banana-900 is the first step that clears the 3:1 non-text bar.
+  // Level colours, per scale. Green is a value judgement and belongs only to the quality scale: a curb ramp rated
+  // 1 is genuinely good, but a surface problem rated 1 is a mild problem, not an absence of one, and colouring it
+  // green would tell a mapper it needs no attention. Severity keeps the yellow-amber-orange heat ramp, where the
+  // colour tracks how bad rather than whether bad. Same positive/negative split getSmileyIconPath makes, and these
+  // mirror the fill inside sev-<level>-<set>-filled.svg.
   //
-  // The wash is -200 on all three. -100 is too close to the white panel behind it to register as a state at all:
-  // jade-100 is 13/255 off white and banana-100 is 23, against orange-200's 35. -200 puts them at 51/46/35.
+  // The edge step is not uniform across ramps: they are not perceptually aligned, so the same step is not equally
+  // dark on each. banana-700 on banana-200 is only 1.68:1, which would leave that edge invisible on its own wash;
+  // banana-900 is the first step clearing the 3:1 non-text bar. The wash avoids -100 for the reverse reason --
+  // jade-100 is 13/255 off the white panel behind it, too close to register as a state at all.
   const SEVERITY_LEVEL_COLORS = {
-    1: { face: 'jade-400', edge: 'jade-700', wash: 'jade-200' },
-    2: { face: 'banana-400', edge: 'banana-900', wash: 'banana-200' },
-    3: { face: 'orange-400', edge: 'orange-600', wash: 'orange-200' },
+    positive: {
+      1: { face: 'jade-400', edge: 'jade-700', wash: 'jade-200' },
+      2: { face: 'banana-400', edge: 'banana-900', wash: 'banana-200' },
+      3: { face: 'orange-400', edge: 'orange-600', wash: 'orange-200' },
+    },
+    negative: {
+      1: { face: 'banana-400', edge: 'banana-900', wash: 'banana-200' },
+      2: { face: 'banana-700', edge: 'banana-900', wash: 'banana-300' },
+      3: { face: 'orange-400', edge: 'orange-600', wash: 'orange-200' },
+    },
   };
 
   /**
    * Returns the colours for a rating level as CSS custom-property references.
    *
-   * Level 1 is the good end of both scales — a curb ramp rated 1 is a good ramp, a surface problem rated 1 is a
-   * mild one — which is why the smiley artwork uses the same colours for the positive and negative sets, and why
-   * this does not vary by label type the way `getSmileyIconPath` does.
+   * Takes the label type for the same reason getSmileyIconPath does: the two scales do not share a palette. Only
+   * quality has a "good" end worth colouring green; on severity, level 1 is a mild problem and stays yellow.
    * @param {number} severity - 1, 2, or 3.
+   * @param {string} labelType - Picks the quality palette for positive types, the severity palette otherwise.
    * @returns {?{face: string, edge: string, wash: string}} `var(--color-…)` references, or null for 0/N-A.
    */
-  function getSeverityLevelColors(severity) {
-    const level = SEVERITY_LEVEL_COLORS[severity];
+  function getSeverityLevelColors(severity, labelType) {
+    const scale = isPositiveLabelType(labelType) ? 'positive' : 'negative';
+    const level = SEVERITY_LEVEL_COLORS[scale][severity];
     if (!level) return null;
     return Object.fromEntries(Object.entries(level).map(([role, token]) => [role, `var(--color-${token})`]));
   }
