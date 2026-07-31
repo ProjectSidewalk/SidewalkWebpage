@@ -327,7 +327,14 @@ class Label {
     } else {
       ui.hoverCardSeverity.css('display', 'none');
     }
-    ui.hoverCardNotRated.css('display', hasSeverity && severity === null ? 'flex' : 'none');
+    const needsRating = hasSeverity && severity === null;
+    if (needsRating) {
+      // Ask for the dimension this type is actually rated on. The same 1-3 scale means opposite things either side
+      // of util.misc.isPositiveLabelType, and asking a curb ramp for its "severity" names the wrong one.
+      const promptKey = util.misc.isPositiveLabelType(labelType) ? 'rate-quality-prompt' : 'rate-severity-prompt';
+      ui.hoverCardNotRatedText.text(i18next.t(`audit:center-ui.context-menu.${promptKey}`));
+    }
+    ui.hoverCardNotRated.css('display', needsRating ? 'flex' : 'none');
 
     // Tags, as static (non-interactive) pills — built as DOM nodes with textContent so the tag text stays inert.
     const tagNames = this.#getTagNames();
@@ -412,20 +419,23 @@ class Label {
   #showSeverityAlert(ctx) {
     const x = this.#properties.currCanvasXY.x;
     const y = this.#properties.currCanvasXY.y;
+    // Canvas resolves neither CSS variables nor --ui-scale, so the design tokens are read off :root. (No scaling
+    // wanted here regardless: this canvas keeps its fixed logical size and is scaled up by the browser.)
+    const rootStyle = getComputedStyle(document.documentElement);
 
-    // Draws circle.
+    // Draws circle. The same --color-error-200 the hover card's unrated chip uses, so the "?" on the canvas and the
+    // "?" on the card that describes it are one mark in two places rather than two different reds (#4731).
     ctx.beginPath();
-    ctx.fillStyle = 'rgb(160, 45, 50, 0.9)';
+    // Trimmed: a custom property's value keeps the whitespace after the colon, and an unparseable fillStyle is
+    // silently ignored rather than throwing — the circle would just keep whatever color was set last.
+    ctx.fillStyle = rootStyle.getPropertyValue('--color-error-200').trim();
     ctx.ellipse(x - 15, y - 10.5, 8, 8, 0, 0, 2 * Math.PI);
     ctx.fill();
     ctx.closePath();
 
     // Draws text.
     ctx.beginPath();
-
-    // Canvas fonts can't resolve CSS variables, so the design system's --font-primary stack is read from :root.
-    // No --ui-scale here: this canvas keeps its fixed logical size and is scaled up by the browser.
-    ctx.font = `400 12px ${getComputedStyle(document.documentElement).getPropertyValue('--font-primary')}`;
+    ctx.font = `400 12px ${rootStyle.getPropertyValue('--font-primary')}`;
     ctx.fillStyle = 'rgb(255, 255, 255)';
     ctx.fillText('?', x - 17.5, y - 6);
     ctx.closePath();

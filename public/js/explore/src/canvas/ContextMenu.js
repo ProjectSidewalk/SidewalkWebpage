@@ -225,10 +225,16 @@ class ContextMenu {
 
     const $header = $('#severity-header-text');
     if ($header.length) $header.text(i18next.t(`common:${headerKey}`));
+    // data-original-title only, never title: Bootstrap moves title into data-original-title when it initializes the
+    // tooltip and blanks the attribute, so writing title back here restores the browser's own tooltip on top of
+    // Bootstrap's and both appear at once (#4731). The other info icons set title from Twirl, before that init, so
+    // they never hit this.
     const $info = $('#severity-header-info');
+    // The alt rides along because it is this icon's accessible name, and the markup's static one says "severity"
+    // whichever dimension is on screen.
     if ($info.length) {
-      $info.attr('title', i18next.t(`common:${infoKey}`));
-      $info.attr('data-original-title', i18next.t(`common:${infoKey}`));
+      const info = i18next.t(`common:${infoKey}`);
+      $info.attr({ 'data-original-title': info, 'alt': info });
     }
     for (let sev = 1; sev <= 3; sev++) {
       $(`.severity-button[data-severity="${sev}"] .severity-button__label`)

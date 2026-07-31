@@ -513,9 +513,11 @@
                 <img id="label-hover-card-severity-icon" class="label-hover-card__severity-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="">
                 <span id="label-hover-card-severity-text"></span>
               </span>
+              @* The prompt names severity or quality depending on the label type, so Label.js sets it rather than
+                 i18nDom -- a positive feature is rated for how well it works, not how badly it blocks. *@
               <span id="label-hover-card-not-rated" class="label-hover-card__not-rated">
                 <span class="label-hover-card__not-rated-icon" aria-hidden="true">?</span>
-                <span data-i18n="audit:center-ui.context-menu.severity">Please click to label a severity</span>
+                <span id="label-hover-card-not-rated-text"></span>
               </span>
               <span id="label-hover-card-tags" class="label-hover-card__tags"></span>
               <span id="label-hover-card-description" class="label-hover-card__description"></span>
