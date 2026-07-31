@@ -3,9 +3,10 @@
  *
  * A single fixed-position card (`.ps-tooltip`, styled in main.css) follows the active trigger: it appears near the
  * element after a short hover delay (or immediately on keyboard focus), preferring the space above the trigger and
- * flipping below when there isn't room. A tail points back at the trigger; this file places it, and main.css draws
- * it. Escape dismisses it (WCAG 1.4.13). Set the attribute directly, or via i18nDom's `data-i18n-tooltip="ns:key"`
- * so the text stays translated.
+ * flipping below when there isn't room. Add `data-ps-tooltip-placement="bottom"` to reverse that preference, for a
+ * trigger sitting at the bottom of a panel the tooltip must not cover. A tail points back at the trigger; this file
+ * places it, and main.css draws it. Escape dismisses it (WCAG 1.4.13). Set the attribute directly, or via i18nDom's
+ * `data-i18n-tooltip="ns:key"` so the text stays translated.
  *
  * The attribute value renders as HTML so translation strings can carry inline emphasis (<b>, <i>). That makes it a
  * hard rule that `data-ps-tooltip` only ever holds first-party strings (our translation files) — never user-supplied
@@ -75,9 +76,16 @@
         window.innerWidth - cardRect.width - VIEWPORT_MARGIN_PX,
       ),
     );
-    let top = triggerRect.top - cardRect.height - TRIGGER_GAP_PX * scale;
-    if (top < VIEWPORT_MARGIN_PX) {
-      top = triggerRect.bottom + TRIGGER_GAP_PX * scale;
+    // Above by default, below when asked for or when there is no room above. "Asked for" still yields to a bottom
+    // edge it would run off, so the preference orders the two sides rather than pinning the card to one.
+    const gap = TRIGGER_GAP_PX * scale;
+    const above = triggerRect.top - cardRect.height - gap;
+    const below = triggerRect.bottom + gap;
+    const prefersBelow = trigger.getAttribute('data-ps-tooltip-placement') === 'bottom';
+    const fitsBelow = below + cardRect.height <= window.innerHeight - VIEWPORT_MARGIN_PX;
+    let top = above;
+    if (prefersBelow ? fitsBelow : above < VIEWPORT_MARGIN_PX) {
+      top = below;
       card.classList.add('ps-tooltip--flipped');
     }
     card.style.left = `${left}px`;

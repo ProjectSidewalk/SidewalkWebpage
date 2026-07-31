@@ -11,7 +11,9 @@
     },
     "visibility-control-hide": "<u>H</u>ide Label",
     "visibility-control-show": "S<u>h</u>ow Label",
-    "visibility-control-tooltip": "Temporarily hide the label so you can see the sidewalk behind it. Shortcut: <b>H</b>"
+    "visibility-control-tooltip": "Temporarily <u>h</u>ide the label to see better.",
+    "visibility-control-tooltip-short-hide": "<u>H</u>ides the label to see better.",
+    "visibility-control-tooltip-short-show": "S<u>h</u>ows the label again."
   },
   "validate-menu": {
     "disagree-reason": {
