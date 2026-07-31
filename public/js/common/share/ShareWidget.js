@@ -152,15 +152,18 @@ class ShareWidget {
     this.#copyButton = this.#makeItem(ShareWidget.#ICON_LINK, t('share.copy-link'), () => this.#copyLink());
     popover.appendChild(this.#copyButton);
 
-    // Bluesky's compose intent has no separate url param, so the permalink rides in the text.
+    // Bluesky's compose intent has no separate url param, so the permalink rides in the text. Posts cap at 300
+    // graphemes and the composer opens in an over-limit state past that, so keep `share.text` short in every locale —
+    // today's strings plus a /label/<id> permalink land near 70.
     popover.appendChild(this.#makeItem(ShareWidget.#ICON_BLUESKY, t('share.on-bluesky'), () => this.#shareTo(
       'Bluesky',
       (u, txt) => `https://bsky.app/intent/compose?text=${encodeURIComponent(`${txt}\n\n${u}`)}`,
     )));
 
+    // The platform key stays 'Twitter' so the logged events remain comparable across the rename.
     popover.appendChild(this.#makeItem(ShareWidget.#ICON_X, t('share.on-x'), () => this.#shareTo(
       'Twitter',
-      (u, txt) => `https://twitter.com/intent/tweet?url=${encodeURIComponent(u)}&text=${encodeURIComponent(txt)}`,
+      (u, txt) => `https://x.com/intent/post?url=${encodeURIComponent(u)}&text=${encodeURIComponent(txt)}`,
     )));
 
     popover.appendChild(this.#makeItem(ShareWidget.#ICON_FACEBOOK, t('share.on-facebook'), () => this.#shareTo(
@@ -234,7 +237,7 @@ class ShareWidget {
 
   /**
    * Opens a social share intent URL in a new tab and logs the platform.
-   * @param {string} platform - Platform name for logging (Twitter / Facebook).
+   * @param {string} platform - Platform name for logging (Bluesky / Twitter / Facebook / LinkedIn).
    * @param {(url: string, text: string) => string} buildUrl - Builds the intent URL from the target.
    * @private
    */
