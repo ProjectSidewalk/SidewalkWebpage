@@ -28,6 +28,9 @@
   let tooltip = null;
   let activeTrigger = null; // The trigger whose tooltip is visible, or pending via showTimer.
   let showTimer = null;
+  // Watches the open trigger's text for changes under it. A toggle button relabels itself on click, and the pointer
+  // is still resting on it at that moment, so without this the card sits there describing the state just left.
+  let textObserver = null;
 
   /**
    * Reads the zoom factor `util.applyToolScale` puts on the document root, so the gaps measured here match the tail
@@ -102,12 +105,25 @@
     card.classList.add('ps-tooltip--visible');
     trigger.setAttribute('aria-describedby', 'ps-tooltip');
     activeTrigger = trigger;
+
+    // Re-run this whole placement if the text changes while the card is up: the new string is a different width, so
+    // refreshing the copy alone would leave it centered and tailed for the old one.
+    if (textObserver === null) {
+      textObserver = new MutationObserver(() => {
+        if (activeTrigger !== null && tooltip?.classList.contains('ps-tooltip--visible')) {
+          show(activeTrigger);
+        }
+      });
+    }
+    textObserver.disconnect();
+    textObserver.observe(trigger, { attributes: true, attributeFilter: ['data-ps-tooltip'] });
   };
 
   /**
    * Hides the tooltip (if visible) and cancels any pending show.
    */
   const hide = () => {
+    textObserver?.disconnect();
     if (showTimer !== null) {
       clearTimeout(showTimer);
       showTimer = null;
