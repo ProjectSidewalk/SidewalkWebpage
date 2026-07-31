@@ -486,10 +486,14 @@ function UtilitiesMisc(JSON) {
   // colour tracks how bad rather than whether bad. Same positive/negative split getSmileyIconPath makes, and these
   // mirror the fill inside sev-<level>-<set>-filled.svg.
   //
-  // The edge step is not uniform across ramps: they are not perceptually aligned, so the same step is not equally
-  // dark on each. banana-700 on banana-200 is only 1.68:1, which would leave that edge invisible on its own wash;
-  // banana-900 is the first step clearing the 3:1 non-text bar. The wash avoids -100 for the reverse reason --
-  // jade-100 is 13/255 off the white panel behind it, too close to register as a state at all.
+  // Edges are picked per level rather than by a fixed step offset, for two reasons. The ramps are not
+  // perceptually aligned, so the same step is not equally dark on each -- banana-700 on banana-200 is 1.68:1,
+  // invisible on its own wash, where banana-900 clears the 3:1 non-text bar. And the banana ramp has only one
+  // step dark enough to qualify, so severity's edges escalate by hue rather than by depth alone: gold, then rust,
+  // then dark rust (L* 53 / 44 / 25). Two levels sharing banana-900 made Low and Medium indistinguishable.
+  //
+  // The wash avoids -100 for the reverse reason -- jade-100 is 13/255 off the white panel behind it, too close to
+  // register as a state at all.
   const SEVERITY_LEVEL_COLORS = {
     positive: {
       1: { face: 'jade-400', edge: 'jade-700', wash: 'jade-200' },
@@ -498,8 +502,8 @@ function UtilitiesMisc(JSON) {
     },
     negative: {
       1: { face: 'banana-400', edge: 'banana-900', wash: 'banana-200' },
-      2: { face: 'banana-700', edge: 'banana-900', wash: 'banana-300' },
-      3: { face: 'orange-400', edge: 'orange-600', wash: 'orange-200' },
+      2: { face: 'banana-700', edge: 'orange-600', wash: 'banana-300' },
+      3: { face: 'orange-400', edge: 'orange-800', wash: 'orange-200' },
     },
   };
 
