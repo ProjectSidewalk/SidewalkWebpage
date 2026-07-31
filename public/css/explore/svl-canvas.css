@@ -223,6 +223,15 @@
   gap: calc(4px * var(--ui-scale));
 }
 
+/* A hairline between the rating and the tags, when there is a rating above them to separate from. The two rows are
+   both chips, so without it they read as one wrapped set rather than two different kinds of fact. Label.js adds the
+   class, because the rating is hidden with an inline display:none that no sibling selector can see. */
+.label-hover-card__tags--divided {
+  align-self: stretch;
+  padding-top: calc(7px * var(--ui-scale));
+  border-top: 1px solid var(--color-neutral-200);
+}
+
 /* The shared pill shape, shrunk and quieted down: these tags are read-only metadata, so they must not carry the
    context menu's tappable-button look (dark outline, roomy padding). The hairline stays — several tags sit side by
    side and need an edge to tell them apart — but drops to neutral-300 with 10px gray text. */

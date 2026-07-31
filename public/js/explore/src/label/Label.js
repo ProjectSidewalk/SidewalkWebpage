@@ -338,6 +338,8 @@ class Label {
     } else {
       ui.hoverCardTags.css('display', 'none');
     }
+    // Rule above the tags only when a rating sits above them to be separated from.
+    ui.hoverCardTags.toggleClass('label-hover-card__tags--divided', hasSeverity);
 
     const description = this.#properties.description;
     if (description) {

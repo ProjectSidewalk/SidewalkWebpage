@@ -47,7 +47,7 @@
 .context-menu__body {
   display: flex;
   flex-direction: column;
-  padding: calc(10px * var(--ui-scale)) calc(12px * var(--ui-scale)) calc(12px * var(--ui-scale));
+  padding: calc(9px * var(--ui-scale)) calc(12px * var(--ui-scale)) calc(10px * var(--ui-scale));
   border-top: 1px solid var(--color-neutral-200);
 }
 
@@ -92,7 +92,7 @@
   height: auto;
   width: 100%;
   box-sizing: border-box;
-  margin-bottom: calc(13px * var(--ui-scale));
+  margin-bottom: calc(10px * var(--ui-scale));
 }
 
 .context-menu-section:last-child {
@@ -110,7 +110,7 @@
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--color-neutral-700);
-  margin-bottom: calc(6px * var(--ui-scale));
+  margin-bottom: calc(5px * var(--ui-scale));
 }
 
 .context-menu-info-icon {
@@ -136,9 +136,20 @@
   display: flex;
   flex-flow: row wrap;
   align-items: center;
-  gap: calc(5px * var(--ui-scale)) calc(4px * var(--ui-scale));
+  gap: calc(4px * var(--ui-scale));
   padding: 0;
   white-space: pre;
+}
+
+/* Tighter than the shared pill's default. A label type can offer twenty-odd tags, so this section sets the panel's
+   height more than anything else in it; trimming the padding and dropping the weight takes rows off it without
+   touching the target size much. They keep the interactive pill's fill and outline states. */
+#context-menu-tag-holder .tag-pill {
+  padding: calc(3px * var(--ui-scale)) calc(8px * var(--ui-scale));
+}
+
+#context-menu-tag-holder .tag-pill__label {
+  font: var(--text-tiny-medium);
 }
 
 #severity-menu {
