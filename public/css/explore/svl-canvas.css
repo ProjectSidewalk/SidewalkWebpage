@@ -245,9 +245,13 @@
   color: var(--color-neutral-700);
 }
 
+/* Tiny, matching the chips above it — at caption size it was the largest thing in a body made of 10px chips, so
+   the least important field read as the most prominent. The token's own 12px line-height is too tight for a
+   description that wraps, so only that is overridden. */
 .label-hover-card__description {
   display: none;
-  font: var(--text-caption-regular);
+  font: var(--text-tiny-regular);
+  line-height: 1.45;
   font-style: italic;
   color: var(--color-neutral-700);
   overflow-wrap: anywhere;
