@@ -6,9 +6,15 @@ class Canvas {
   // travel from the icon onto the card (e.g. to reach its Edit/Delete buttons) without the card vanishing mid-way.
   static #HOVER_CARD_HIDE_DELAY_MS = 200;
 
+  // How long a share click will wait on a just-placed label's crop before opening the popover regardless. Short
+  // enough that the button still feels like it responded to the click.
+  static #CROP_WAIT_CAP_MS = 800;
+
   #ribbon;
   #ctx;
   #hoverCardHideTimer = null;
+  #shareWidget = null;
+  #shareUrl = null;
   #status = {
     currentLabel: null,
     disableLabelDelete: false,
@@ -65,6 +71,7 @@ class Canvas {
       this.#handleHoverCardClick('edit-button');
     });
     svl.ui.canvas.hoverCardDelete.on('click', (e) => this.#handleHoverCardDeleteClick(e));
+    this.#initShareWidget();
     svl.ui.streetview.viewControlLayer.on('mousedown', (e) => this.#handlerViewControlLayerMouseDown(e));
     svl.ui.streetview.viewControlLayer.on('mouseup', (e) => this.#handlerViewControlLayerMouseUp(e));
     svl.ui.streetview.viewControlLayer.on('mousemove', (e) => this.#handlerViewControlLayerMouseMove(e));
@@ -364,13 +371,126 @@ class Canvas {
   }
 
   /**
+   * Builds the hover card's share control. One widget, re-pointed at whichever label is hovered.
+   *
+   * A label placed this session has no server-side id until the next form submit, so rather than hiding the button
+   * or greying it out, clicking it submits first and then shares — beforeOpen holds the popover until the id is
+   * back. Onboarding labels are the exception: the server never issues ids for them, so there is nothing to wait
+   * for and the button is hidden instead (see #pointShareAtLabel).
+   */
+  #initShareWidget() {
+    const trigger = svl.ui.canvas.hoverCardShare?.[0];
+    if (!trigger || typeof ShareWidget === 'undefined') return;
+
+    // The card as a whole opens the context menu; nothing in the share control may also do that. The listener goes
+    // on the wrapper, not the trigger: ShareWidget builds its popover inside the wrapper, so the menu items are
+    // descendants of the card too, and a guard on the trigger alone lets "Copy link" open the context menu.
+    trigger.parentElement?.addEventListener('click', (e) => e.stopPropagation());
+
+    trigger.addEventListener('click', () => {
+      // Only the opening click. The same handler runs on the click that dismisses the popover, which is not a share.
+      if (this.#shareWidget?.isOpen()) return;
+      svl.tracker.push('Click_LabelCardShare', { labelType: this.getCurrentLabel()?.getLabelType() });
+    });
+
+    this.#shareWidget = new ShareWidget(trigger, {
+      // The card is anchored to a label icon, which can sit anywhere in the pano, so the menu has to work out which
+      // side it fits on each time it opens.
+      fitToViewport: true,
+      onDismiss: () => this.#handleShareDismissed(),
+      beforeOpen: async () => {
+        const label = this.getCurrentLabel();
+        await this.ensureLabelSaved(label);
+        // The label now has an id it didn't have a moment ago, so re-point past the no-op guard.
+        this.#shareUrl = null;
+        if (label) this.pointShareAtLabel(label);
+      },
+    });
+  }
+
+  /**
+   * Re-arms the card's hide once the share popover that had been holding it open goes away.
+   *
+   * #scheduleHoverCardHide is only reached from a pointer leaving the card or a label, and while the popover was up
+   * it declined to schedule anything. The pointer is long gone by then and no second mouseleave is coming, so
+   * without this the card would sit there until an unrelated event took it down. Skipped when the pointer is back
+   * on the card, where it is meant to stay.
+   * @private
+   */
+  #handleShareDismissed() {
+    if (!svl.ui.canvas.hoverCard[0]?.matches(':hover')) this.#scheduleHoverCardHide();
+  }
+
+  /**
+   * Points the share control at a label, or hides the button when that label can never have a public URL.
+   *
+   * Called from Label#updateHoverCard, which re-runs on every canvas frame while a label is hovered — so this only
+   * touches the widget when the target actually changes. setTarget closes an open popover, which on every frame
+   * would make the popover impossible to use at all.
+   *
+   * @param {Label} label - The hovered label.
+   */
+  pointShareAtLabel(label) {
+    // Tutorial labels are never submitted, so no id is coming and the button would be a dead end.
+    const shareable = !svl.isOnboarding() && !label.isDeleted();
+    svl.ui.canvas.hoverCard.toggleClass('label-hover-card--no-share', !shareable);
+    if (!this.#shareWidget || !shareable) return;
+
+    const id = label.getProperty('labelId');
+    // 'DefaultValue' until the label has been submitted; the widget's beforeOpen step fills the URL in on click.
+    const url = Number.isInteger(id) ? `${window.location.origin}/label/${id}` : '';
+    if (url === this.#shareUrl) return;
+    this.#shareUrl = url;
+    this.#setShareTarget(label, url);
+  }
+
+  /** Writes the share target for a label. @private */
+  #setShareTarget(label, url) {
+    const labelTypeName = i18next.t(`common:${util.camelToKebab(label.getLabelType())}`).replace('&shy;', '');
+    const text = i18next.t('common:share.text', { labelType: labelTypeName });
+    this.#shareWidget.setTarget({ url, title: text, text });
+  }
+
+  /**
+   * Makes sure a label exists server-side, submitting the session's pending labels if it doesn't yet.
+   *
+   * Shared by both panels' share controls, which is why it lives here rather than behind either one. Resolves
+   * quietly when there is nothing to do, and also when the submission fails to produce an id — the caller then
+   * finds an empty target and does nothing, which is the right outcome for a share that can't be built.
+   *
+   * The crop upload is awaited too, not just the id: /label/:id/image falls back to a fetched Street View still (or
+   * the branded placeholder) when no crop is on disk, and caches whatever it built there permanently. Sharing a
+   * label the instant it is placed is exactly the race that would bake that fallback in for good.
+   *
+   * That wait is capped, though. The upload sleeps a fixed 3s when the canvas hasn't produced a crop yet, and a
+   * share button that does nothing for three seconds reads as broken. Past the cap the popover opens anyway: the
+   * link works, and ImageController drops the cached preview when the crop does land, so the picture corrects
+   * itself on the next fetch. A stalled button would not.
+   *
+   * @param {Label} label - The label about to be shared.
+   * @returns {Promise<void>}
+   */
+  async ensureLabelSaved(label) {
+    if (!label || Number.isInteger(label.getProperty('labelId'))) return;
+    await svl.form.submitData();
+    if (!Number.isInteger(label.getProperty('labelId'))) return;
+    await Promise.race([
+      label.cropUploaded(),
+      new Promise((resolve) => setTimeout(resolve, Canvas.#CROP_WAIT_CAP_MS)),
+    ]);
+  }
+
+  /**
    * Schedules hiding the hover card after a short grace period. A pending timer is left running rather than reset,
    * so the deadline stays a hard 200ms from when the pointer left the label — the stream of mousemoves that follows
    * it off the label must not keep pushing the hide back. The hide is aborted if the pointer reaches the card
    * (mouseenter) or returns to a label before the timer fires.
+   * @private
    */
   #scheduleHoverCardHide() {
-    if (this.#hoverCardHideTimer !== null) return;
+    // An open share popover hangs off the card, so the pointer leaving the card doesn't mean the user is done with
+    // it. Hiding here would take the popover down mid-choice; #handleShareDismissed re-arms once it closes.
+    if (this.#hoverCardHideTimer !== null || this.#shareWidget?.isOpen()) return;
     this.#hoverCardHideTimer = setTimeout(() => {
       this.#hoverCardHideTimer = null;
       this.showLabelHoverInfo(undefined);
@@ -524,6 +644,11 @@ class Canvas {
 
     // A definitive show/hide supersedes any pending grace-period hide.
     this.#cancelScheduledHoverCardHide();
+
+    // Take the share popover down with the card. It is a child of the card, so hiding the card alone would leave it
+    // invisible but still open — blocking every later #scheduleHoverCardHide, which waits on isOpen(). The
+    // grace-period hide is the one path that must not do this; it defers to the open popover instead.
+    if (!label) this.#shareWidget?.close();
 
     // Hide the hover info on all the labels.
     const labels = svl.labelContainer.getCanvasLabels();

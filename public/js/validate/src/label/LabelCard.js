@@ -20,6 +20,9 @@ class LabelCard {
   #tags;
   #description;
   #noInfo;
+  #shareWidget;
+  /** @type {?string} The rendered label's type, for the share click's analytics note. */
+  #labelType = null;
 
   constructor() {
     this.#card = $('#label-card');
@@ -42,6 +45,40 @@ class LabelCard {
       const scale = Math.min(Math.max(window.devicePixelRatio || 1, 1), 3);
       this.#card[0].style.setProperty('--ui-scale', scale.toFixed(4));
     }
+
+    // Built once and re-pointed at each label in render(), the way LabelDetail does it. Every label Validate serves
+    // came from the back end, so its id is always real and the button is never in a state where it can't work.
+    const trigger = document.getElementById('label-card-share');
+    if (trigger && typeof ShareWidget !== 'undefined') {
+      this.#shareWidget = new ShareWidget(trigger, {
+        // The card is anchored to the label's marker, which can sit anywhere in the pano.
+        fitToViewport: true,
+        onDismiss: () => svv.labelVisibilityControl?.handleSharePopoverDismissed(),
+      });
+      trigger.addEventListener('click', () => {
+        // Only the opening click, and carrying the label type so the note matches Explore's.
+        if (this.#shareWidget.isOpen()) return;
+        svv.tracker.push('Click_LabelCardShare', { labelType: this.#labelType });
+      });
+    }
+  }
+
+  /**
+   * Whether the card's share popover is open. The card's hide timer waits on this — dismissing the card out from
+   * under an open popover would take the choice away mid-click.
+   * @returns {boolean}
+   */
+  isSharePopoverOpen() {
+    return Boolean(this.#shareWidget?.isOpen());
+  }
+
+  /**
+   * Closes the card's share popover. Called when something takes the card away outright — the H key, a pan, a move
+   * to the next label — since the popover is a child of the card and would otherwise be left invisible but still
+   * open, which permanently blocks the hide timer that waits on isSharePopoverOpen().
+   */
+  closeSharePopover() {
+    this.#shareWidget?.close();
   }
 
   /**
@@ -54,6 +91,7 @@ class LabelCard {
     const severity = label.getAuditProperty('severity');
     const description = label.getAuditProperty('description');
     const tags = label.getAuditProperty('tags');
+    this.#labelType = labelType;
 
     this.#icon.attr('src', util.misc.getIconImagePaths(labelType).iconImagePath);
     this.#type.text(i18next.t(`common:${util.camelToKebab(labelType)}`).replace('&shy;', ''));
@@ -106,5 +144,16 @@ class LabelCard {
     this.#description.css('display', hasDescription ? 'inline' : 'none');
 
     this.#noInfo.css('display', levelKey || hasTags || hasDescription ? 'none' : 'inline');
+
+    // Point the share control at this label's public permalink (#456). /label/:id renders the spotlight page and
+    // serves the og:image that crawlers embed in the share card.
+    if (this.#shareWidget) {
+      const shareText = i18next.t('common:share.text', { labelType: this.#type.text() });
+      this.#shareWidget.setTarget({
+        url: `${window.location.origin}/label/${label.getAuditProperty('labelId')}`,
+        title: shareText,
+        text: shareText,
+      });
+    }
   }
 }

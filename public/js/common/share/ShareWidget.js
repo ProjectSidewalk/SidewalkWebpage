@@ -10,7 +10,7 @@
  * Accessibility (WCAG 2.1/2.2 AA, ARIA menu pattern): the trigger carries `aria-haspopup`/`aria-expanded`; the
  * popover is a labeled `role="menu"`; ESC and click-outside close it; focus moves into the popover on open and
  * returns to the trigger on close; ArrowUp/ArrowDown cycle the items and Home/End jump to the first/last one; all
- * actions are real <button>s with visible focus states (styled in label-detail.css).
+ * actions are real <button>s with visible focus states (styled in css/common/share-widget.css).
  */
 class ShareWidget {
   /** @type {HTMLElement} The container the popover is appended into (positioned relative to the trigger). */
@@ -27,6 +27,19 @@ class ShareWidget {
   #target = { url: '', title: '', text: '' };
   /** @type {number|undefined} Timeout id for the transient "Copied!" state. */
   #copyResetTimer;
+  /** @type {?(() => Promise<void>)} Optional async step run before each activation; see the constructor. */
+  #beforeOpen = null;
+  /** @type {boolean} Whether a beforeOpen step is in flight, so a second click can't start another. */
+  #opening = false;
+  /** @type {boolean} Which side the host asked the popover to open on; read once, since #fitPopover rewrites it. */
+  #prefersBelow = false;
+  /** @type {boolean} Whether to measure and fit the popover on each open; see the constructor. */
+  #fitToViewport = false;
+  /** @type {?(() => void)} Called after a user-initiated close; see the constructor. */
+  #onDismiss = null;
+
+  // Order the menu sheds actions in when it can't fit beside its trigger, least-missed first.
+  static #SHED_ORDER = ['x', 'bluesky'];
 
   // Bound handlers so add/removeEventListener reference the same function objects.
   #boundOutsideClick = (e) => this.#onOutsideClick(e);
@@ -37,10 +50,27 @@ class ShareWidget {
    * @param {object} [opts]
    * @param {HTMLElement} [opts.host] - Element to append the popover into. Defaults to the trigger's parent, which
    *      should be positioned (`position: relative`) so the popover anchors to the trigger.
+   * @param {() => Promise<void>} [opts.beforeOpen] - Awaited on each activation, before the target is read. For a
+   *      host whose target may not exist yet — Explore's just-placed labels have no server-side id until the next
+   *      form submit — this is where it is brought into being. The trigger carries `is-pending` while it runs.
+   * @param {boolean} [opts.fitToViewport=false] - Measure the space around the trigger on each open and adapt (see
+   *      #fitPopover). For a trigger that can sit anywhere on screen: the label panels float over the pano and
+   *      follow the label icon they are anchored to. Off by default, because the fit is measured against the
+   *      viewport — a trigger inside a scrolling or clipping container would be measured against the wrong box.
+   * @param {() => void} [opts.onDismiss] - Called after the *user* closes the popover (outside click, ESC, a chosen
+   *      action, or a second click on the trigger). For a host that suspends its own dismissal while the popover is
+   *      up and needs to know when to resume. Not called when the host closes the widget itself via close() or
+   *      setTarget() — it already knows about those.
    */
   constructor(trigger, opts = {}) {
     this.#trigger = trigger;
     this.#host = opts.host || trigger.parentElement || document.body;
+    this.#beforeOpen = opts.beforeOpen || null;
+    this.#fitToViewport = Boolean(opts.fitToViewport);
+    this.#onDismiss = opts.onDismiss || null;
+
+    // Read before the first open: #fitPopover rewrites this class, so the markup's choice has to be captured now.
+    this.#prefersBelow = Boolean(this.#host.classList?.contains('label-detail__share--below'));
 
     this.#trigger.setAttribute('aria-haspopup', 'true');
     this.#trigger.setAttribute('aria-expanded', 'false');
@@ -58,7 +88,33 @@ class ShareWidget {
    */
   setTarget({ url, title, text }) {
     this.#target = { url: url || '', title: title || '', text: text || '' };
-    if (this.#open) this.#closePopover();
+    if (this.#open) this.#closePopover(true, false);
+  }
+
+  /**
+   * Whether the popover is currently open.
+   *
+   * Hosts that dismiss themselves need this. Explore's and Validate's label cards hide on a timer once the pointer
+   * leaves them, which would otherwise take an open share popover down with the card it is anchored to, mid-choice.
+   *
+   * @returns {boolean}
+   */
+  isOpen() {
+    return this.#open;
+  }
+
+  /**
+   * Closes the popover if it is open, without moving focus.
+   *
+   * For a host that takes its panel away on its own terms — a keyboard shortcut, a pan, a jump to another label.
+   * The popover lives inside that panel, so hiding the panel would otherwise leave this widget believing it is
+   * still open: its document listeners stay armed, and every `isOpen()` caller keeps getting `true`.
+   *
+   * Focus is left alone deliberately: the panel holding the trigger is being hidden, so returning focus to it would
+   * land focus on an invisible element.
+   */
+  close() {
+    if (this.#open) this.#closePopover(false, false);
   }
 
   /**
@@ -66,8 +122,33 @@ class ShareWidget {
    * support it, otherwise toggle the custom popover.
    * @private
    */
-  #onTriggerClick() {
+  async #onTriggerClick() {
+    // A click while the popover is up is a dismissal, not a share. Taken before anything else so it neither logs a
+    // second Share_Click nor re-runs the host's beforeOpen step for a target that is already resolved.
+    if (this.#open) {
+      this.#closePopover();
+      return;
+    }
+
     this.#log('Share_Click');
+
+    // Give the host a chance to bring the target into being first (see opts.beforeOpen). Guarded against a second
+    // click while it is in flight, which would start a duplicate submission.
+    if (this.#beforeOpen) {
+      if (this.#opening) return;
+      this.#opening = true;
+      this.#trigger.classList.add('is-pending');
+      try {
+        await this.#beforeOpen();
+      } catch (err) {
+        console.error('Share: could not prepare the share target', err);
+        return;
+      } finally {
+        this.#opening = false;
+        this.#trigger.classList.remove('is-pending');
+      }
+    }
+
     const { url, title, text } = this.#target;
     if (!url) return;
 
@@ -82,13 +163,60 @@ class ShareWidget {
       navigator.share(data).catch(() => { /* User dismissed the sheet; nothing to do. */ });
       return;
     }
-    this.#togglePopover();
+    this.#openPopover();
   }
 
-  /** @private */
-  #togglePopover() {
-    if (this.#open) this.#closePopover();
-    else this.#openPopover();
+  /**
+   * Fits the popover to the space around its trigger: first by choosing which side to open on, then — if it is still
+   * too tall for either — by dropping the least-reached platforms until it fits.
+   *
+   * Both are measured on every open rather than decided once. The label card's trigger moves with the label icon it
+   * is anchored to, which can sit anywhere in the pano, and the menu is six actions tall.
+   *
+   * Only runs for hosts that ask for it (opts.fitToViewport). Room is measured against the viewport, which is the
+   * right box for a panel floating over the pano and the wrong one for a trigger inside a scrolling or clipping
+   * container — the label-detail popup's footer and the landing grid's cards both sit in one.
+   * @private
+   */
+  #fitPopover() {
+    const wrapper = this.#popover.parentElement;
+    if (!wrapper) return;
+
+    // A previous open may have dropped some; start from the full menu and re-derive.
+    for (const platform of ShareWidget.#SHED_ORDER) this.#setPlatformHidden(platform, false);
+
+    const GAP = 8;
+    const height = () => this.#popover.offsetHeight;
+    const room = () => {
+      const t = this.#trigger.getBoundingClientRect();
+      return { below: window.innerHeight - t.bottom - GAP, above: t.top - GAP };
+    };
+
+    // Only overrule the host's preferred side when that side has no room and the other one does; when neither fits,
+    // the preference wins so the menu at least opens somewhere predictable, and shedding takes over below.
+    let below = this.#prefersBelow;
+    const space = room();
+    if (below && height() > space.below && height() <= space.above) below = false;
+    else if (!below && height() > space.above && height() <= space.below) below = true;
+    wrapper.classList.toggle('label-detail__share--below', below);
+
+    // Still too tall. Drop platforms rather than let the menu run off the screen, cheapest first: Copy link is what
+    // most people came for, and email is the one that works without an account anywhere.
+    for (const platform of ShareWidget.#SHED_ORDER) {
+      if (height() <= (below ? room().below : room().above)) return;
+      this.#setPlatformHidden(platform, true);
+    }
+  }
+
+  /**
+   * Shows or hides one platform's menu item.
+   * @param {string} platform - A key from #SHED_ORDER.
+   * @param {boolean} hidden
+   * @private
+   */
+  #setPlatformHidden(platform, hidden) {
+    const item = this.#popover.querySelector(`[data-share-platform="${platform}"]`);
+    if (item) item.hidden = hidden;
   }
 
   /**
@@ -101,6 +229,7 @@ class ShareWidget {
     this.#popover.hidden = false;
     this.#open = true;
     this.#trigger.setAttribute('aria-expanded', 'true');
+    if (this.#fitToViewport) this.#fitPopover();
 
     // Defer listener registration so the click that opened the popover doesn't immediately close it.
     setTimeout(() => {
@@ -115,20 +244,23 @@ class ShareWidget {
   /**
    * Closes the popover, tears down listeners, and returns focus to the trigger.
    * @param {boolean} [returnFocus=true] - Whether to move focus back to the trigger (skip on outside-click).
+   * @param {boolean} [notifyHost=true] - Whether to run the host's onDismiss hook. False when the host is the one
+   *      closing us (close(), setTarget()), which it does not need telling about.
    * @private
    */
-  #closePopover(returnFocus = true) {
+  #closePopover(returnFocus = true, notifyHost = true) {
     if (this.#popover) this.#popover.hidden = true;
     this.#open = false;
     this.#trigger.setAttribute('aria-expanded', 'false');
     document.removeEventListener('click', this.#boundOutsideClick, true);
     document.removeEventListener('keydown', this.#boundKeydown, true);
     if (returnFocus) this.#trigger.focus();
+    if (notifyHost) this.#onDismiss?.();
   }
 
   /**
-   * Constructs the popover DOM (heading + four action buttons) and appends it to the host. Called lazily the first
-   * time a non-native share is opened.
+   * Constructs the popover DOM (heading + one action button per platform) and appends it to the host. Called lazily
+   * the first time a non-native share is opened.
    * @private
    */
   #buildPopover() {
@@ -158,13 +290,13 @@ class ShareWidget {
     popover.appendChild(this.#makeItem(ShareWidget.#ICON_BLUESKY, t('share.on-bluesky'), () => this.#shareTo(
       'Bluesky',
       (u, txt) => `https://bsky.app/intent/compose?text=${encodeURIComponent(`${txt}\n\n${u}`)}`,
-    )));
+    ), 'bluesky'));
 
     // The platform key stays 'Twitter' so the logged events remain comparable across the rename.
     popover.appendChild(this.#makeItem(ShareWidget.#ICON_X, t('share.on-x'), () => this.#shareTo(
       'Twitter',
       (u, txt) => `https://x.com/intent/post?url=${encodeURIComponent(u)}&text=${encodeURIComponent(txt)}`,
-    )));
+    ), 'x'));
 
     popover.appendChild(this.#makeItem(ShareWidget.#ICON_FACEBOOK, t('share.on-facebook'), () => this.#shareTo(
       'Facebook',
@@ -191,11 +323,12 @@ class ShareWidget {
    * @returns {HTMLButtonElement}
    * @private
    */
-  #makeItem(iconSvg, label, onClick) {
+  #makeItem(iconSvg, label, onClick, platform) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'label-detail__share-item';
     btn.setAttribute('role', 'menuitem');
+    if (platform) btn.dataset.sharePlatform = platform;
 
     const icon = document.createElement('span');
     icon.className = 'label-detail__share-item-icon';
@@ -284,7 +417,7 @@ class ShareWidget {
       return;
     }
     if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
-    const items = [...this.#popover.querySelectorAll('[role="menuitem"]')];
+    const items = [...this.#popover.querySelectorAll('[role="menuitem"]')].filter((i) => !i.hidden);
     if (items.length === 0) return;
     e.preventDefault();
 

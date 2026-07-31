@@ -22,6 +22,7 @@ class ContextMenu {
   #headerType;
   #tagHolder;
   #tags;
+  #shareWidget = null;
 
   /**
    * @param {Object} uiContextMenu - jQuery-wrapped context menu UI elements.
@@ -36,6 +37,7 @@ class ContextMenu {
     this.#headerType = this.#menuWindow.find('#context-menu-type');
     this.#tagHolder = uiContextMenu.tagHolder;
     this.#tags = uiContextMenu.tags;
+    this.#initShareWidget();
 
     document.addEventListener('mousedown', (e) => this.#handleMouseDown(e));
     this.#menuWindow.on('mousedown', (e) => this.#handleMenuWindowMouseDown(e));
@@ -319,6 +321,10 @@ class ContextMenu {
       this.#descriptionTextBox.blur(); // Force the blur event before the ContextMenu close event.
       svl.tracker.push('ContextMenu_Close');
     }
+
+    // The share popover lives in this panel's header, so it goes too. Hiding the panel around it would leave the
+    // widget believing it is still open, with its document-level ESC and arrow-key handlers still armed.
+    this.#shareWidget?.close();
 
     this.#menuWindow.css('visibility', 'hidden');
     this.#setStatus('visibility', 'hidden');
@@ -643,8 +649,56 @@ class ContextMenu {
     // the menu, and everything above — which sections are shown, how many tag rows there are — sets its height.
     // targetLabel is only set for label types that get a menu at all (Occlusion doesn't).
     if (this.#getStatus('targetLabel')) {
+      this.#pointShareAtLabel(this.#getStatus('targetLabel'));
       util.anchorPanelToLabel(this.#menuWindow, labelCoord, svl.LABEL_ICON_RADIUS);
       this.#menuWindow.css('visibility', 'visible');
     }
+  }
+
+  /**
+   * Builds the header's share control. Unlike the hover card's, this one is only ever pointed at a label the menu
+   * has actually opened for, so it re-points once per open rather than per frame.
+   * @private
+   */
+  #initShareWidget() {
+    const trigger = document.getElementById('context-menu-share');
+    if (!trigger || typeof ShareWidget === 'undefined') return;
+    trigger.addEventListener('click', () => {
+      // Only the opening click. The same handler runs on the click that dismisses the popover, which is not a share.
+      if (this.#shareWidget?.isOpen()) return;
+      svl.tracker.push('Click_LabelCardShare', { labelType: this.#getStatus('targetLabel')?.getLabelType() });
+    });
+    // Same submit-then-share path as the collapsed card: this menu opens the moment a label is placed, which is the
+    // most likely moment for it to have no server-side id yet.
+    this.#shareWidget = new ShareWidget(trigger, {
+      // Like the collapsed card, this panel is anchored to a label icon and can sit anywhere in the pano.
+      fitToViewport: true,
+      beforeOpen: async () => {
+        const label = this.#getStatus('targetLabel');
+        await svl.canvas.ensureLabelSaved(label);
+        if (label) this.#pointShareAtLabel(label);
+      },
+    });
+  }
+
+  /**
+   * Points the share control at the label this menu is open for, or hides it when that label can never have a
+   * public URL (tutorial labels are never submitted).
+   * @param {Label} label
+   * @private
+   */
+  #pointShareAtLabel(label) {
+    const shareable = !svl.isOnboarding() && !label.isDeleted();
+    this.#menuWindow.toggleClass('context-menu--no-share', !shareable);
+    if (!this.#shareWidget || !shareable) return;
+
+    const id = label.getProperty('labelId');
+    const labelTypeName = i18next.t(`common:${util.camelToKebab(label.getLabelType())}`).replace('&shy;', '');
+    const text = i18next.t('common:share.text', { labelType: labelTypeName });
+    this.#shareWidget.setTarget({
+      url: Number.isInteger(id) ? `${window.location.origin}/label/${id}` : '',
+      title: text,
+      text,
+    });
   }
 }

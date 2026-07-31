@@ -9,6 +9,12 @@
   visibility: hidden;
 }
 
+/* Same reason as the collapsed card's (svl-canvas.css): the share menu is a child of this panel, so it can only ever
+   paint as high as the panel does — and at z-index 3 the minimap and ribbon (up to 5) are above it. */
+#context-menu-holder:has(.label-detail__share-trigger[aria-expanded="true"]) {
+  z-index: 6;
+}
+
 /* Header / body / footer mirror the collapsed card's three bands, so expanding the panel keeps the same rhythm. */
 .context-menu__header {
   display: flex;
@@ -81,6 +87,34 @@
 .context-menu__delete:focus-visible {
   background: var(--color-error-200);
   color: var(--color-neutral-white);
+}
+
+/* Share sits left of Close, matching the collapsed card's header. Same quiet icon-only treatment, one step larger
+   because this panel's header type is larger too. */
+.context-menu__share.label-detail__share-trigger {
+  flex: none;
+  gap: 0;
+  padding: calc(4px * var(--ui-scale));
+  background: none;
+  border: none;
+  border-radius: calc(5px * var(--ui-scale));
+  color: var(--color-neutral-700);
+}
+
+.context-menu__share.label-detail__share-trigger:hover {
+  background: var(--color-neutral-100);
+  border: none;
+  color: var(--color-neutral-black);
+}
+
+.context-menu__share svg {
+  width: calc(16px * var(--ui-scale));
+  height: calc(16px * var(--ui-scale));
+}
+
+/* Tutorial labels are never submitted, so they never get the public id a share link needs. */
+.context-menu--no-share .label-detail__share {
+  display: none;
 }
 
 /* The tutorial locks deletion on the label it just had you place. */

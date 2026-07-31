@@ -361,6 +361,35 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
   }
 
+  "ShareImageCache" should {
+    val cache = app.injector.instanceOf[service.ShareImageCache]
+
+    // Well outside the range of any real label id, so a test can create and delete one without touching the cache
+    // a running app is serving from.
+    val syntheticLabelId = -987654
+
+    "name a label's preview inside the cache directory" in {
+      cache.fileFor(syntheticLabelId).getParentFile.getAbsolutePath mustBe cache.dir.getAbsolutePath
+      cache.fileFor(syntheticLabelId).getName mustBe s"share_$syntheticLabelId.jpg"
+    }
+
+    "delete a cached preview so the next request rebuilds it from the crop that just landed (#4726)" in {
+      val _    = cache.dir.mkdirs()
+      val file = cache.fileFor(syntheticLabelId)
+      val _    = file.createNewFile()
+      file.exists() mustBe true
+
+      cache.invalidate(syntheticLabelId)
+
+      file.exists() mustBe false
+    }
+
+    "do nothing when the label has no cached preview, which is the common case" in {
+      cache.invalidate(syntheticLabelId)
+      cache.fileFor(syntheticLabelId).exists() mustBe false
+    }
+  }
+
   "evictStaleShareImages" should {
     val controller = app.injector.instanceOf[ShareController]
 

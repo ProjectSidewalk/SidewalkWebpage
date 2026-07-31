@@ -506,6 +506,7 @@
             <div class="label-hover-card__header">
               <img id="label-hover-card-icon" class="label-hover-card__icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="">
               <span id="label-hover-card-type" class="label-hover-card__type"></span>
+              @components.shareTrigger(id = "label-hover-card-share", extraClass = "label-hover-card__share")
             </div>
             <div id="label-hover-card-body" class="label-hover-card__body">
               <span id="label-hover-card-severity" class="label-hover-card__severity">
@@ -546,6 +547,7 @@
             <div class="context-menu__header">
               <img id="context-menu-icon" class="context-menu__icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="">
               <span id="context-menu-type" class="context-menu__type"></span>
+              @components.shareTrigger(id = "context-menu-share", extraClass = "context-menu__share")
               <button type="button" id="context-menu-close-button" class="context-menu__close" aria-label="Close" data-i18n-aria-label="common:close">
                 <svg width="100%" height="100%" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
