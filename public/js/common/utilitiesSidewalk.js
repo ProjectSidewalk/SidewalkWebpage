@@ -488,6 +488,34 @@ function UtilitiesMisc(JSON) {
     return `${SMILEY_ICON_BASE}sev-${severity}-${set}${selected ? '-filled' : ''}.svg`;
   }
 
+  // Each rating level's colours, as design-system custom properties so no hex is duplicated here. `face` mirrors
+  // the fill inside sev-<level>-*-filled.svg — recolour that artwork and these have to move with it. `edge` and
+  // `wash` are the darkened and lightened counterparts a selected control uses.
+  //
+  // The step numbers are deliberately not uniform across the three ramps: they are not perceptually aligned, so
+  // the same step is not equally dark on each. banana-700 against banana-100 is only 1.78:1, which would leave
+  // level 2's edge invisible on its own wash; banana-900 is the first step that clears the 3:1 non-text bar.
+  const SEVERITY_LEVEL_COLORS = {
+    1: { face: 'jade-400', edge: 'jade-700', wash: 'jade-100' },
+    2: { face: 'banana-400', edge: 'banana-900', wash: 'banana-100' },
+    3: { face: 'orange-400', edge: 'orange-600', wash: 'orange-200' },
+  };
+
+  /**
+   * Returns the colours for a rating level as CSS custom-property references.
+   *
+   * Level 1 is the good end of both scales — a curb ramp rated 1 is a good ramp, a surface problem rated 1 is a
+   * mild one — which is why the smiley artwork uses the same colours for the positive and negative sets, and why
+   * this does not vary by label type the way `getSmileyIconPath` does.
+   * @param {number} severity - 1, 2, or 3.
+   * @returns {?{face: string, edge: string, wash: string}} `var(--color-…)` references, or null for 0/N-A.
+   */
+  function getSeverityLevelColors(severity) {
+    const level = SEVERITY_LEVEL_COLORS[severity];
+    if (!level) return null;
+    return Object.fromEntries(Object.entries(level).map(([role, token]) => [role, `var(--color-${token})`]));
+  }
+
   /**
    * Sends a POST request to the server to report that there is no street view for the given street edge.
    *
@@ -603,6 +631,7 @@ function UtilitiesMisc(JSON) {
   self.labelTypeHasSeverity = labelTypeHasSeverity;
   self.LABEL_TYPES_WITHOUT_SEVERITY = LABEL_TYPES_WITHOUT_SEVERITY;
   self.getSmileyIconPath = getSmileyIconPath;
+  self.getSeverityLevelColors = getSeverityLevelColors;
   self.getRatingLevelKeys = getRatingLevelKeys;
   self.getLabelColors = getLabelColors;
   self.reportNoImagery = reportNoImagery;

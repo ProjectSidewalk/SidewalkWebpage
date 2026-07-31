@@ -46,6 +46,20 @@
   --color-banana-800: #CB8F11;
   --color-banana-900: #A87303;
 
+  /* Jade. Added for the "good" end of the severity/quality scale (#4724): levels 1 and 2 previously both sat on
+     banana, separated only by saturation, which reads at full strength but disappears once either is lightened
+     into a background wash. 400 is the face colour, 700 the darkened edge, 100 the wash; the rest are
+     interpolated. Sized to the other rating faces' perceptual band — they sit at CIE L* 90/76/70, 400 lands at 78. */
+  --color-jade-100: #F2FBF6;
+  --color-jade-200: #CCEEDB;
+  --color-jade-300: #A5E0C0;
+  --color-jade-400: #7FD3A5;
+  --color-jade-500: #6FB890;
+  --color-jade-600: #5F9E7B;
+  --color-jade-700: #4F8366;
+  --color-jade-800: #395E49;
+  --color-jade-900: #263F31;
+
   --color-neutral-white: #FFFFFF;
   --color-neutral-100: #F0F0F0;
   --color-neutral-200: #E1E1E1;
