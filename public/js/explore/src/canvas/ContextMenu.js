@@ -17,9 +17,9 @@ class ContextMenu {
   #severityMenu;
   #severityRadioHolder;
   #severityRadios;
-  #descriptionHeaderNumber;
   #descriptionTextBox;
-  #OKButton;
+  #headerIcon;
+  #headerType;
   #tagHolder;
   #tags;
 
@@ -31,9 +31,9 @@ class ContextMenu {
     this.#severityMenu = uiContextMenu.severityMenu;
     this.#severityRadioHolder = uiContextMenu.severityRadioHolder;
     this.#severityRadios = uiContextMenu.radioButtons;
-    this.#descriptionHeaderNumber = $('#description-header-num');
     this.#descriptionTextBox = uiContextMenu.textBox;
-    this.#OKButton = this.#menuWindow.find('#context-menu-ok-button');
+    this.#headerIcon = this.#menuWindow.find('#context-menu-icon');
+    this.#headerType = this.#menuWindow.find('#context-menu-type');
     this.#tagHolder = uiContextMenu.tagHolder;
     this.#tags = uiContextMenu.tags;
 
@@ -44,7 +44,8 @@ class ContextMenu {
     this.#descriptionTextBox.on('focus', () => this.#handleDescriptionTextBoxFocus());
     this.#descriptionTextBox.on('blur', () => this.#handleDescriptionTextBoxBlur());
     uiContextMenu.closeButton.on('click', () => this.#handleCloseButtonClick());
-    this.#OKButton.on('click', () => this.#handleOKButtonClick());
+    this.#menuWindow.find('#context-menu-done').on('click', () => this.#handleDoneButtonClick());
+    this.#menuWindow.find('#context-menu-delete').on('click', () => this.#handleDeleteButtonClick());
     this.#tags.on('click', (e) => this.#handleTagClick(e));
   }
 
@@ -121,10 +122,27 @@ class ContextMenu {
     this.hide();
   }
 
-  #handleOKButtonClick() {
-    svl.tracker.push('ContextMenu_OKButtonClick');
+  #handleDoneButtonClick() {
+    svl.tracker.push('ContextMenu_DoneButtonClick');
     this.handleSeverityPopup();
     this.hide(false);
+  }
+
+  /**
+   * Deletes the label being edited. The panel opens automatically when a label is placed, so this is the way out
+   * of a misplaced one without closing, re-finding and hovering it first. Mirrors the collapsed card's Delete
+   * (Canvas.js #handleHoverCardDeleteClick), including the tutorial's last-label-only restriction.
+   */
+  #handleDeleteButtonClick() {
+    const label = this.#status.targetLabel;
+    if (!label || svl.canvas.getStatus('disableLabelDelete')) return;
+    if (svl.onboarding && svl.onboarding.getCurrentLabelId() !== label.getProperty('temporaryLabelId')) return;
+
+    svl.tracker.push('ContextMenu_LabelDelete', { labelType: label.getLabelType() });
+    this.hide();
+    svl.labelContainer.removeLabel(label);
+    svl.canvas.hideHoverCard();
+    svl.canvas.setCurrentLabel(undefined);
   }
 
   handleSeverityPopup() {
@@ -181,6 +199,12 @@ class ContextMenu {
       const sev = Number(button.dataset.severity);
       const img = button.querySelector('.severity-button__icon');
       if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, sev === checkedSev);
+      // The chosen segment is washed and underlined in its own level's colour; CSS reads these two properties.
+      const colors = util.misc.getSeverityLevelColors(sev);
+      if (colors) {
+        button.style.setProperty('--level-wash', colors.wash);
+        button.style.setProperty('--level-edge', colors.edge);
+      }
     });
   }
 
@@ -551,6 +575,14 @@ class ContextMenu {
 
     if (labelType !== 'Occlusion') {
       this.#setStatus('targetLabel', targetLabel);
+
+      // Identify the label being edited, the way the collapsed card does. Without this the panel opens on its
+      // first field and never says what it belongs to.
+      this.#headerIcon.attr('src', util.misc.getIconImagePaths(labelType).iconImagePath);
+      this.#headerType.text(i18next.t(`common:${util.camelToKebab(labelType)}`).replace('&shy;', ''));
+      // The tutorial can forbid deleting the label it just had you place.
+      this.#menuWindow.toggleClass('context-menu--no-delete', Boolean(svl.canvas.getStatus('disableLabelDelete')));
+
       this.#setTags(targetLabel);
       this.#setTagColor(targetLabel);
       if (this.#getStatus('disableTagging')) {
@@ -601,9 +633,6 @@ class ContextMenu {
       if (labelType !== 'Other') {
         this.#setSeverityTooltips(labelType);
       }
-      this.#descriptionHeaderNumber.text('3.');
-    } else {
-      this.#descriptionHeaderNumber.text('2.');
     }
 
     // Anchor the menu exactly like the hover card it opens from, so clicking a label expands the card into this
