@@ -28,6 +28,8 @@ class Toast {
    * @param {Object} [opts.button] Optional action button: { label, href } or { label, onClick }.
    * @param {HTMLElement} [opts.reference] Element the toast floats over (defaults to the viewport).
    * @param {number} [opts.duration] Milliseconds before auto-dismiss when not hovered (defaults to 5000).
+   * @param {boolean} [opts.dark] Dark surface instead of white — for toasts that float over photography, where a
+   *      white card glares against the imagery and reads as part of the UI chrome rather than a passing note.
    */
   constructor(opts = {}) {
     this.#reference = opts.reference || null;
@@ -49,7 +51,7 @@ class Toast {
   /** Builds the toast DOM subtree (but does not attach it to the page). */
   #build(opts) {
     const el = document.createElement('div');
-    el.className = 'ps-toast';
+    el.className = opts.dark ? 'ps-toast ps-toast--dark' : 'ps-toast';
     el.setAttribute('role', 'status');
     el.setAttribute('aria-live', 'polite');
 

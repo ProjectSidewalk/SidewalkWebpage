@@ -93,17 +93,19 @@
       </div>
       <div id="svv-panorama-holder">
         <div id="svv-panorama"></div>
-        <div id="view-control-layer">
-          <button type="button" id="label-visibility-button-on-label"class="label-visibility-button-on-label" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">@Html(Messages("validate.top.ui.hide.label"))</button>
-          <div id="label-description-box"></div>
-        </div>
+        <div id="view-control-layer"></div>
+        @components.validateLabelCard()
         <div id="pano-border-frame"></div>
         <div id="speed-limit-sign" class="speed-limit-sign" data-design-style="us-canada" tabindex="0" role="img" data-i18n-tooltip="common:speed-limit-tooltip">
           <div class="speed-limit-holder">
             <span class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></span>
           </div>
         </div>
-        <button type="button" id="label-visibility-control-button"class="button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top"></button>
+        @* Same shared pill Explore uses for its Stuck/Sound/Feedback controls in this corner. Labelled by
+           LabelVisibilityControl, which keeps it in step with the toggle in the label card's footer. *@
+        <div id="label-visibility-control-holder" class="pano-overlay-button-group">
+          <button type="button" id="label-visibility-control-button" class="pano-overlay-button" data-i18n-tooltip="validate:top-ui.visibility-control-tooltip"></button>
+        </div>
         <div id="svv-panorama-date-holder">
           <span id="svv-panorama-date"></span>
         </div>

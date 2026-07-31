@@ -1,5 +1,4 @@
 {
-  "user-description": "Beschreibung Nutzer:in: ",
   "top-ui": {
     "title": {
       "curb-ramp": "Ist das eine <b>Trottoirabsenkung</b>?",
@@ -11,7 +10,8 @@
       "signal": "Ist das ein <b>Fussgänger:innensignal</b>?"
     },
     "visibility-control-hide": "Beschriftung ausblenden (<u>H</u>)",
-    "visibility-control-show": "Beschriftung einblenden (<u>h</u>)"
+    "visibility-control-show": "Beschriftung einblenden (<u>h</u>)",
+    "visibility-control-tooltip": "Blende die Beschriftung vorübergehend aus, um den Gehweg dahinter zu sehen. Tastenkürzel: <b>H</b>"
   },
   "validate-menu": {
     "disagree-reason": {
@@ -89,7 +89,9 @@
     }
   },
   "center-ui": {
-    "no-info": "Keine Informationen verfügbar"
+    "no-info": "Keine Informationen verfügbar",
+    "pano-interactive-title": "Du kannst diese Ansicht bewegen",
+    "pano-interactive-message": "Ziehe, um dich umzusehen, und zoome mit + und − näher heran."
   },
   "mission-start": {
     "title": "Validieren Sie {{n}} {{label_type}} Beschriftungen",

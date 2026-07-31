@@ -30,6 +30,25 @@
   opacity: 1;
 }
 
+/* Dark variant, for toasts that float over street imagery (Validate). A white card there reads as a piece of the
+   tool's chrome that has appeared over the photo; a dark one reads as a note laid on top of it, and stays legible
+   against a bright sky or a snow-covered sidewalk without needing a heavier border. */
+.ps-toast--dark {
+  background: var(--color-asphalt-500);
+  border-color: var(--color-asphalt-500);
+  color: var(--color-neutral-white);
+}
+
+.ps-toast--dark .ps-toast__title {
+  color: var(--color-neutral-white);
+}
+
+/* Higher resting opacity than the light toast: the same 0.85 over dark imagery muddies the text rather than
+   politely getting out of the way. */
+.ps-toast--dark.ps-toast--visible {
+  opacity: 0.94;
+}
+
 .ps-toast__icon {
   flex: 0 0 auto;
   width: calc(50px * var(--ui-scale, 1));

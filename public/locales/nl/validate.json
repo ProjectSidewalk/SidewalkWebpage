@@ -1,5 +1,4 @@
 {
-  "user-description": "Beschrijving van gebruiker: ",
   "top-ui": {
     "title": {
       "curb-ramp": "Is dit een <b>Trottoir Oprit</b>?",
@@ -11,7 +10,8 @@
       "signal": "is dit een <b>Verkeerslicht</b>?"
     },
     "visibility-control-hide": "Verberg Label (<u>H</u>)",
-    "visibility-control-show": "Toon Label (<u>H</u>)"
+    "visibility-control-show": "Toon Label (<u>H</u>)",
+    "visibility-control-tooltip": "Verberg het label tijdelijk zodat je de stoep erachter kunt zien. Sneltoets: <b>H</b>"
   },
   "validate-menu": {
     "disagree-reason": {
@@ -89,7 +89,9 @@
     }
   },
   "center-ui": {
-    "no-info": "Geen informatie beschikbaar"
+    "no-info": "Geen informatie beschikbaar",
+    "pano-interactive-title": "Je kunt dit beeld bewegen",
+    "pano-interactive-message": "Sleep om rond te kijken en zoom in met + en − voor een beter beeld."
   },
   "mission-start": {
     "title": "Valideer {{n}} {{label_type}} labels",

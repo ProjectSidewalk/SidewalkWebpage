@@ -21,19 +21,29 @@ util.exploreDisplayScale = function () {
 };
 
 /**
- * Positions a panel beside a label's icon in the Explore pano and points its tail at that icon.
+ * Positions a panel beside a label's icon in a pano and points its tail at that icon.
  *
- * The hover card and the context menu are two states of one panel — read-only, then editable — so they share this
- * routine and land on the same anchor: beside the icon on whichever side has room, vertically centered on it, and
- * nudged to stay inside the tool. Clicking a label then expands the card into the menu roughly in place instead of
- * moving it somewhere else. Panels styled with .label-anchored-panel read the values this sets.
+ * Explore's hover card and its context menu are two states of one panel — read-only, then editable — so they share
+ * this routine and land on the same anchor: beside the icon on whichever side has room, vertically centered on it,
+ * and nudged to stay inside the tool. Clicking a label then expands the card into the menu roughly in place instead
+ * of moving it somewhere else. Validate's label card is the same panel again, over a different pano frame (#4726).
+ * Panels styled with .label-anchored-panel read the values this sets.
  *
- * @param {jQuery} panel - The panel to position. Must be .label-anchored-panel and a child of the pano holder.
- * @param {{x: number, y: number}} labelCanvasXY - The label icon's center in the 720x480 logical canvas frame.
+ * Coordinates are given in a logical frame that `scale` converts to on-screen pixels, so a caller whose marker is
+ * already positioned in on-screen pixels divides by the same `scale` before calling. Both tools' panos are 720x480
+ * at --ui-scale = 1, so the default `frameHeight` suits either.
+ *
+ * @param {jQuery} panel - The panel to position. Must be .label-anchored-panel and a child of `opts.originEl`.
+ * @param {{x: number, y: number}} labelCanvasXY - The label icon's center in the logical canvas frame.
  * @param {number} iconRadius - The label icon's radius, in that same logical frame.
+ * @param {object} [opts] - Frame overrides. Omit them entirely for Explore, whose frame is the default.
+ * @param {number} [opts.scale] - Logical-to-screen ratio, also applied to the gap/edge constants below.
+ * @param {HTMLElement} [opts.originEl] - The panel's offset parent, whose left edge is its coordinate origin.
+ * @param {HTMLElement} [opts.boundsEl] - Supplies the horizontal bounds the panel is kept inside.
+ * @param {number} [opts.frameHeight] - Vertical bound, in on-screen pixels, measured from `originEl`'s top.
  */
-util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius) {
-  const scale = util.exploreDisplayScale();
+util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius, opts = {}) {
+  const scale = opts.scale ?? util.exploreDisplayScale();
 
   // All three scale with the tool, like the panel's own dimensions: the tail is 8px * --ui-scale wide, so an
   // unscaled GAP would be narrower than the tail once the tool scales past 1.5x and the tail would overlap the icon.
@@ -45,15 +55,18 @@ util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius) {
   const radius = iconRadius * scale;
   const width = panel.outerWidth();
   const height = panel.outerHeight();
-  const panoHeight = util.EXPLORE_CANVAS_HEIGHT * scale;
+  const panoHeight = opts.frameHeight ?? util.EXPLORE_CANVAS_HEIGHT * scale;
 
-  // Horizontally the panel is bounded by the whole tool, not the pano: the pano's right edge is not a wall, and a
-  // panel is welcome to float over the sidebar beside it. That matters because the context menu is over half the
-  // pano's width, so confining it to the pano would leave a label in the middle no room on either side. Vertically
-  // the pano IS the bound — the ribbon toolbar sits above it and the rest of the page below.
-  // Bounds are in the panel's own coordinate space, whose origin is the pano's top-left (its offset parent).
-  const panoLeft = document.getElementById('street-view-holder')?.getBoundingClientRect().left ?? 0;
-  const appRect = document.getElementById('svl-application-holder')?.getBoundingClientRect();
+  // In Explore the panel is bounded horizontally by the whole tool, not the pano: the pano's right edge is not a
+  // wall, and a panel is welcome to float over the sidebar beside it. That matters because the context menu is over
+  // half the pano's width, so confining it to the pano would leave a label in the middle no room on either side.
+  // Validate passes its pano as both elements instead — the validation menu beside it is the thing being answered,
+  // so a card must not cover it. Vertically the pano IS the bound in both: something sits above and below it.
+  // Bounds are in the panel's own coordinate space, whose origin is originEl's top-left (its offset parent).
+  const originEl = opts.originEl ?? document.getElementById('street-view-holder');
+  const boundsEl = opts.boundsEl ?? document.getElementById('svl-application-holder');
+  const panoLeft = originEl?.getBoundingClientRect().left ?? 0;
+  const appRect = boundsEl?.getBoundingClientRect();
   const minLeft = (appRect ? appRect.left - panoLeft : 0) + EDGE;
   const rightBound = (appRect ? appRect.right - panoLeft : util.EXPLORE_CANVAS_WIDTH * scale) - EDGE;
 

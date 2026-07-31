@@ -5,6 +5,9 @@ window.svv = window.svv || {};
  * Main module for Validate / Expert Validate / and Mobile Validate.
  */
 class Main {
+  // Long enough to read two lines and try the drag it suggests, without sitting on the imagery it is describing.
+  static #PANO_HINT_MS = 6000;
+
   #param;
 
   /**
@@ -153,7 +156,7 @@ class Main {
     svv.tracker = new Tracker();
 
     BadgeAchievements.seedCounts();
-    svv.labelDescriptionBox = new LabelDescriptionBox();
+    svv.labelCard = new LabelCard();
 
     svv.panoStore = new PanoStore();
     const firstLabel = param.labelList[0];
@@ -196,6 +199,8 @@ class Main {
     }
 
     svv.labelVisibilityControl = new LabelVisibilityControl();
+
+    this.#showPanoInteractiveHint();
 
     svv.undoValidation = new UndoValidation(svv.ui.undoValidation);
 
@@ -275,6 +280,30 @@ class Main {
         html: true,
         container: 'body',
       });
+    }
+  }
+
+  /**
+   * Tells the validator the pano is not a still photo — it pans and zooms, which is often the difference between
+   * "I can't tell" and a confident answer (#4726).
+   *
+   * Held until the mission-start tutorial's overlay clears, since anything shown before that lands underneath it.
+   * When there is no tutorial on screen (mobile, or a mission that doesn't open with one) it goes out immediately.
+   */
+  #showPanoInteractiveHint() {
+    const show = () => Toast.show({
+      title: i18next.t('center-ui.pano-interactive-title'),
+      message: i18next.t('center-ui.pano-interactive-message'),
+      reference: svv.ui.viewer.controlLayer[0],
+      duration: Main.#PANO_HINT_MS,
+      dark: true, // It floats over street imagery, where a white card glares.
+    });
+
+    const overlay = document.querySelector('.mission-start-tutorial-overlay');
+    if (overlay && getComputedStyle(overlay).display !== 'none') {
+      document.addEventListener('ps:mission-start-tutorial:done', show, { once: true });
+    } else {
+      show();
     }
   }
 }

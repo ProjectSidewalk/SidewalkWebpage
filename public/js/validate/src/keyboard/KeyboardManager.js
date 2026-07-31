@@ -117,7 +117,7 @@ class KeyboardManager {
     }
 
     if (!this.#disableKeyboard && !this.#addingComment && !e.ctrlKey) {
-      svv.labelVisibilityControl.hideTagsAndDeleteButton();
+      svv.labelVisibilityControl.hideLabelCard();
       switch (e.code) {
         // Validate yes/agree.
         case 'KeyY':

@@ -176,8 +176,12 @@ module.exports = function (grunt) {
       }
     },
     concat_css: {
+      // The two label-card files come first so each tool's own stylesheet can override the shared base after it.
+      // public/css/common/ has no glob — every file used from it is named by hand, in each bundle that wants it.
       dist_audit: {
         src: [
+          'public/css/common/label-anchored-panel.css',
+          'public/css/common/label-hover-card.css',
           'public/css/explore/*.css',
           'public/css/common/mission-start-tutorial.css'
         ],
@@ -185,6 +189,8 @@ module.exports = function (grunt) {
       },
       dist_validate: {
         src: [
+          'public/css/common/label-anchored-panel.css',
+          'public/css/common/label-hover-card.css',
           'public/css/validate/*.css',
           'public/css/common/mission-start-tutorial.css'
         ],

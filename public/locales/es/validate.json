@@ -1,5 +1,4 @@
 {
-  "user-description": "Descripción de usuario: ",
   "top-ui": {
     "title": {
       "curb-ramp": "¿Es esta una <b>Rampa Peatonal</b>?",
@@ -11,7 +10,8 @@
       "signal": "¿Es este un <b>Semáforo Peatonal</b>?"
     },
     "visibility-control-hide": "Ocultar (<u>H</u>)",
-    "visibility-control-show": "Mostrar (<u>H</u>)"
+    "visibility-control-show": "Mostrar (<u>H</u>)",
+    "visibility-control-tooltip": "Oculta la etiqueta temporalmente para ver la acera que hay detrás. Atajo: <b>H</b>"
   },
   "validate-menu": {
     "disagree-reason": {
@@ -89,7 +89,9 @@
     }
   },
   "center-ui": {
-    "no-info": "No hay información disponible"
+    "no-info": "No hay información disponible",
+    "pano-interactive-title": "Puedes mover esta vista",
+    "pano-interactive-message": "Arrastra para mirar alrededor y acerca la imagen con + y − para verla mejor."
   },
   "mission-start": {
     "title": "Valida {{n}} etiquetas de {{label_type}}",
