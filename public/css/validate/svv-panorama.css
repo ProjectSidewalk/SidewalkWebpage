@@ -64,10 +64,10 @@
 }
 
 /* Hidden state (the H key / either Hide-label toggle). The point of hiding is to see the sidewalk the marker is
-   sitting on, so the icon fades back to a ghost — but not to nothing: the validator still has to know which label
-   they are being asked about, and where to put the cursor to bring it back. A dashed ring in the label type's own
-   colour carries both, and it crossfades rather than cutting, so the label reads as stepping aside rather than
-   being replaced by a different object.
+   sitting on, so the icon goes away entirely — even at low opacity it still tints the very pixels the validator
+   asked to look at. What remains is a dashed ring in the label type's own colour, which says where the label is
+   and which type it belongs to without covering anything. It crossfades rather than cutting, so the label reads as
+   stepping aside rather than being replaced by a different object.
 
    This replaced Label_Outline.svg, an Illustrator export whose artwork mostly sat outside its own viewBox (#4726). */
 #validate-pano-marker {
@@ -75,16 +75,17 @@
 }
 
 #validate-pano-marker.label-marker--hidden::before {
-  opacity: 0.15;
+  opacity: 0;
 }
 
 /* The ring is an outline, not the border, so it takes no part in layout and can't nudge the icon it surrounds.
    .icon-outline's black border goes transparent rather than away: it belongs to the solid marker, and leaving it
-   would keep drawing a hard edge around something that is supposed to have receded. What's left is the label
-   type's own colour at partial strength — enough to find, not enough to compete with the sidewalk underneath. */
+   would keep drawing a hard edge around something that is supposed to have receded. What's left is the label type's
+   own colour at 70% — held back enough to read as receded, but the only cue left now that the icon is gone
+   entirely, so it can't go as faint as it would if it were merely outlining something. */
 #validate-pano-marker.label-marker--hidden {
   border-color: transparent;
-  outline: calc(2px * var(--ui-scale)) dashed rgb(from var(--label-color, #ffffff) r g b / 55%);
+  outline: calc(2px * var(--ui-scale)) dashed rgb(from var(--label-color, #ffffff) r g b / 70%);
   outline-offset: calc(1px * var(--ui-scale));
 }
 
