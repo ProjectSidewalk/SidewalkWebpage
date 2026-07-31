@@ -139,7 +139,9 @@ class LabelVisibilityControl {
    * the pointer first left.
    */
   scheduleHideLabelCard() {
-    if (this.#hideCardTimer !== null) return;
+    // An open share popover extends past the card, so the pointer leaving the card doesn't mean the user is done
+    // with it. Taking the card down here would take the popover with it, mid-choice.
+    if (this.#hideCardTimer !== null || svv.labelCard?.isSharePopoverOpen()) return;
     this.#hideCardTimer = setTimeout(() => {
       this.#hideCardTimer = null;
       this.hideLabelCard();

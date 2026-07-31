@@ -20,6 +20,7 @@ class LabelCard {
   #tags;
   #description;
   #noInfo;
+  #shareWidget;
 
   constructor() {
     this.#card = $('#label-card');
@@ -42,6 +43,23 @@ class LabelCard {
       const scale = Math.min(Math.max(window.devicePixelRatio || 1, 1), 3);
       this.#card[0].style.setProperty('--ui-scale', scale.toFixed(4));
     }
+
+    // Built once and re-pointed at each label in render(), the way LabelDetail does it. Every label Validate serves
+    // came from the back end, so its id is always real and the button is never in a state where it can't work.
+    const trigger = document.getElementById('label-card-share');
+    if (trigger && typeof ShareWidget !== 'undefined') {
+      this.#shareWidget = new ShareWidget(trigger);
+      trigger.addEventListener('click', () => svv.tracker.push('Click_LabelCardShare'));
+    }
+  }
+
+  /**
+   * Whether the card's share popover is open. The card's hide timer waits on this — dismissing the card out from
+   * under an open popover would take the choice away mid-click.
+   * @returns {boolean}
+   */
+  isSharePopoverOpen() {
+    return Boolean(this.#shareWidget?.isOpen());
   }
 
   /**
@@ -106,5 +124,16 @@ class LabelCard {
     this.#description.css('display', hasDescription ? 'inline' : 'none');
 
     this.#noInfo.css('display', levelKey || hasTags || hasDescription ? 'none' : 'inline');
+
+    // Point the share control at this label's public permalink (#456). /label/:id renders the spotlight page and
+    // serves the og:image that crawlers embed in the share card.
+    if (this.#shareWidget) {
+      const shareText = i18next.t('common:share.text', { labelType: this.#type.text() });
+      this.#shareWidget.setTarget({
+        url: `${window.location.origin}/label/${label.getAuditProperty('labelId')}`,
+        title: shareText,
+        text: shareText,
+      });
+    }
   }
 }

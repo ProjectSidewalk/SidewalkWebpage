@@ -27,6 +27,10 @@ class ShareWidget {
   #target = { url: '', title: '', text: '' };
   /** @type {number|undefined} Timeout id for the transient "Copied!" state. */
   #copyResetTimer;
+  /** @type {?(() => Promise<void>)} Optional async step run before each activation; see the constructor. */
+  #beforeOpen = null;
+  /** @type {boolean} Whether a beforeOpen step is in flight, so a second click can't start another. */
+  #opening = false;
 
   // Bound handlers so add/removeEventListener reference the same function objects.
   #boundOutsideClick = (e) => this.#onOutsideClick(e);
@@ -37,10 +41,14 @@ class ShareWidget {
    * @param {object} [opts]
    * @param {HTMLElement} [opts.host] - Element to append the popover into. Defaults to the trigger's parent, which
    *      should be positioned (`position: relative`) so the popover anchors to the trigger.
+   * @param {() => Promise<void>} [opts.beforeOpen] - Awaited on each activation, before the target is read. For a
+   *      host whose target may not exist yet — Explore's just-placed labels have no server-side id until the next
+   *      form submit — this is where it is brought into being. The trigger carries `is-pending` while it runs.
    */
   constructor(trigger, opts = {}) {
     this.#trigger = trigger;
     this.#host = opts.host || trigger.parentElement || document.body;
+    this.#beforeOpen = opts.beforeOpen || null;
 
     this.#trigger.setAttribute('aria-haspopup', 'true');
     this.#trigger.setAttribute('aria-expanded', 'false');
@@ -62,12 +70,42 @@ class ShareWidget {
   }
 
   /**
+   * Whether the popover is currently open.
+   *
+   * Hosts that dismiss themselves need this. Explore's and Validate's label cards hide on a timer once the pointer
+   * leaves them, which would otherwise take an open share popover down with the card it is anchored to, mid-choice.
+   *
+   * @returns {boolean}
+   */
+  isOpen() {
+    return this.#open;
+  }
+
+  /**
    * Handles a trigger activation: log the click, then use the native share sheet on touch-primary devices that
    * support it, otherwise toggle the custom popover.
    * @private
    */
-  #onTriggerClick() {
+  async #onTriggerClick() {
     this.#log('Share_Click');
+
+    // Give the host a chance to bring the target into being first (see opts.beforeOpen). Guarded against a second
+    // click while it is in flight, which would start a duplicate submission.
+    if (this.#beforeOpen) {
+      if (this.#opening) return;
+      this.#opening = true;
+      this.#trigger.classList.add('is-pending');
+      try {
+        await this.#beforeOpen();
+      } catch (err) {
+        console.error('Share: could not prepare the share target', err);
+        return;
+      } finally {
+        this.#opening = false;
+        this.#trigger.classList.remove('is-pending');
+      }
+    }
+
     const { url, title, text } = this.#target;
     if (!url) return;
 

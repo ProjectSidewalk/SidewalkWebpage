@@ -23,6 +23,7 @@ class ImageController @Inject() (
     cc: CustomControllerComponents,
     panoDataService: service.PanoDataService,
     signingService: ImageSigningService,
+    shareImageCache: service.ShareImageCache,
     config: Configuration,
     cpuEc: CpuIntensiveExecutionContext
 )(implicit ec: ExecutionContext)
@@ -205,7 +206,13 @@ class ImageController @Inject() (
           // Base64 decode + ImageIO read/resize/write is CPU-bound; run it off the request EC so concurrent crop
           // uploads can't starve the HTTP dispatcher (#4415).
           Future(writeImageFile(filename, b64String))(cpuEc)
-            .map(_ => Ok("Got: crop_" + labelId))
+            .map { _ =>
+              // The label's social-preview image may have been built and cached before this crop existed, from a
+              // Street View still or the branded placeholder. That cache never expires, so drop it here and let the
+              // next request rebuild it from the crop we just wrote (#4726).
+              shareImageCache.invalidate(labelId)
+              Ok("Got: crop_" + labelId)
+            }
             .recover { case e: Exception =>
               logger.error("Exception when writing image file: " + filename + "\n\t" + e)
               InternalServerError("Exception when writing image file: " + filename + "\n\t" + e)

@@ -59,6 +59,9 @@ describe('ShareWidget', () => {
         // i18next mock: labels render as their namespace-stripped keys (the widget prefixes "common:"), so
         // assertions are locale-independent and readable.
         window.i18next = { t: (key) => key.replace(/^common:/, '') };
+        // The widget reserves the native share sheet for touch-primary devices, which jsdom can't answer for —
+        // it has no matchMedia at all. Default to a desktop pointer; the touch tests override per-case.
+        window.matchMedia = jest.fn().mockReturnValue({ matches: false });
         window.logWebpageActivity = jest.fn();
         window.open = jest.fn();
         // jsdom has no navigator.share by default (the popover path); native-share tests define one explicitly.
@@ -253,7 +256,11 @@ describe('ShareWidget', () => {
     });
 
     describe('native share sheet', () => {
-        test('prefers navigator.share when canShare approves, without building a popover', () => {
+        /** Makes the device look touch-primary, which is the only case the native sheet is used for. */
+        const asTouchDevice = () => window.matchMedia.mockReturnValue({ matches: true });
+
+        test('prefers navigator.share on a touch device when canShare approves, without a popover', () => {
+            asTouchDevice();
             navigator.share = jest.fn().mockResolvedValue(undefined);
             navigator.canShare = jest.fn().mockReturnValue(true);
             buildWidget();
@@ -267,6 +274,7 @@ describe('ShareWidget', () => {
         });
 
         test('falls back to the popover when canShare rejects the payload', () => {
+            asTouchDevice();
             navigator.share = jest.fn();
             navigator.canShare = jest.fn().mockReturnValue(false);
             buildWidget();
@@ -275,6 +283,94 @@ describe('ShareWidget', () => {
             expect(navigator.share).not.toHaveBeenCalled();
             expect(popover()).not.toBeNull();
             expect(popover().hidden).toBe(false);
+        });
+
+        // Desktop Chrome and Safari both implement navigator.share, and their OS sheets are a poor fit for this —
+        // macOS's doesn't even offer copy-URL (#4660). A fine pointer means our own popover, always.
+        test('never uses the OS sheet on a fine-pointer device, even where the API exists', () => {
+            navigator.share = jest.fn().mockResolvedValue(undefined);
+            navigator.canShare = jest.fn().mockReturnValue(true);
+            buildWidget();
+            trigger.click();
+
+            expect(navigator.share).not.toHaveBeenCalled();
+            expect(window.logWebpageActivity).not.toHaveBeenCalledWith('Share_Native');
+            expect(popover()).not.toBeNull();
+            expect(popover().hidden).toBe(false);
+        });
+    });
+
+    describe('isOpen', () => {
+        test('reports whether the popover is showing, so a self-dismissing host can wait on it', () => {
+            const widget = buildWidget();
+            expect(widget.isOpen()).toBe(false);
+
+            trigger.click();
+            expect(widget.isOpen()).toBe(true);
+
+            trigger.click();
+            expect(widget.isOpen()).toBe(false);
+        });
+    });
+
+    // Explore's just-placed labels have no server-side id until the next form submit, so the host is given a chance
+    // to produce the target before the popover reads it (#4726).
+    describe('beforeOpen', () => {
+        test('awaits the host step, then opens against the target it produced', async () => {
+            const widget = new ShareWidget(trigger, {
+                beforeOpen: async () => {
+                    await flushPromises();
+                    widget.setTarget(TARGET);
+                }
+            });
+            // No target yet: without beforeOpen this click would be a no-op.
+            trigger.click();
+            expect(popover()).toBeNull();
+
+            await flushPromises();
+            await flushPromises();
+            expect(popover()).not.toBeNull();
+            expect(popover().hidden).toBe(false);
+        });
+
+        test('marks the trigger pending while the host step runs, and clears it after', async () => {
+            let release;
+            const widget = new ShareWidget(trigger, {
+                beforeOpen: () => new Promise((resolve) => { release = () => { widget.setTarget(TARGET); resolve(); }; })
+            });
+
+            trigger.click();
+            expect(trigger.classList.contains('is-pending')).toBe(true);
+
+            release();
+            await flushPromises();
+            expect(trigger.classList.contains('is-pending')).toBe(false);
+        });
+
+        test('ignores a second click while the host step is still in flight', async () => {
+            const beforeOpen = jest.fn().mockResolvedValue(undefined);
+            const widget = new ShareWidget(trigger, { beforeOpen });
+            widget.setTarget(TARGET);
+
+            trigger.click();
+            trigger.click();
+            await flushPromises();
+
+            // The duplicate would have started a second form submission.
+            expect(beforeOpen).toHaveBeenCalledTimes(1);
+        });
+
+        test('stays closed when the host step throws, rather than opening a share with no URL', async () => {
+            const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+            const widget = new ShareWidget(trigger, { beforeOpen: () => Promise.reject(new Error('submit failed')) });
+            widget.setTarget(TARGET);
+
+            trigger.click();
+            await flushPromises();
+
+            expect(popover()).toBeNull();
+            expect(trigger.classList.contains('is-pending')).toBe(false);
+            errSpy.mockRestore();
         });
     });
 });

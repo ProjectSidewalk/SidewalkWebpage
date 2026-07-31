@@ -132,6 +132,12 @@
   display: none;
 }
 
+/* Tutorial labels are never submitted, so they never get the public id a share link needs. The wrapper goes, not
+   just the button, so the header doesn't keep its gap. */
+.label-hover-card--no-share .label-detail__share {
+  display: none;
+}
+
 /* Quiet-destructive variant: the secondary button shape in the error color (no error button variant exists yet).
    Clicking anywhere on the card already opens the context menu; the Edit button gives that action a visible
    affordance and a keyboard target. Delete is the one action that must not bubble into the card click (Canvas.js

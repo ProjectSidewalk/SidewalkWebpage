@@ -9,6 +9,8 @@ class Canvas {
   #ribbon;
   #ctx;
   #hoverCardHideTimer = null;
+  #shareWidget = null;
+  #shareUrl = null;
   #status = {
     currentLabel: null,
     disableLabelDelete: false,
@@ -65,6 +67,7 @@ class Canvas {
       this.#handleHoverCardClick('edit-button');
     });
     svl.ui.canvas.hoverCardDelete.on('click', (e) => this.#handleHoverCardDeleteClick(e));
+    this.#initShareWidget();
     svl.ui.streetview.viewControlLayer.on('mousedown', (e) => this.#handlerViewControlLayerMouseDown(e));
     svl.ui.streetview.viewControlLayer.on('mouseup', (e) => this.#handlerViewControlLayerMouseUp(e));
     svl.ui.streetview.viewControlLayer.on('mousemove', (e) => this.#handlerViewControlLayerMouseMove(e));
@@ -369,8 +372,90 @@ class Canvas {
    * it off the label must not keep pushing the hide back. The hide is aborted if the pointer reaches the card
    * (mouseenter) or returns to a label before the timer fires.
    */
+  /**
+   * Builds the hover card's share control. One widget, re-pointed at whichever label is hovered.
+   *
+   * A label placed this session has no server-side id until the next form submit, so rather than hiding the button
+   * or greying it out, clicking it submits first and then shares — beforeOpen holds the popover until the id is
+   * back. Onboarding labels are the exception: the server never issues ids for them, so there is nothing to wait
+   * for and the button is hidden instead (see #pointShareAtLabel).
+   */
+  #initShareWidget() {
+    const trigger = svl.ui.canvas.hoverCardShare?.[0];
+    if (!trigger || typeof ShareWidget === 'undefined') return;
+
+    // The card as a whole opens the context menu; sharing must not also do that. Mirrors the Edit button above.
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      svl.tracker.push('Click_LabelCardShare', { labelType: this.getCurrentLabel()?.getLabelType() });
+    });
+
+    this.#shareWidget = new ShareWidget(trigger, {
+      beforeOpen: async () => {
+        const label = this.getCurrentLabel();
+        await this.ensureLabelSaved(label);
+        // The label now has an id it didn't have a moment ago, so re-point past the no-op guard.
+        this.#shareUrl = null;
+        if (label) this.pointShareAtLabel(label);
+      },
+    });
+  }
+
+  /**
+   * Points the share control at a label, or hides the button when that label can never have a public URL.
+   *
+   * Called from Label#updateHoverCard, which re-runs on every canvas frame while a label is hovered — so this only
+   * touches the widget when the target actually changes. setTarget closes an open popover, which on every frame
+   * would make the popover impossible to use at all.
+   *
+   * @param {Label} label - The hovered label.
+   */
+  pointShareAtLabel(label) {
+    // Tutorial labels are never submitted, so no id is coming and the button would be a dead end.
+    const shareable = !svl.isOnboarding() && !label.isDeleted();
+    svl.ui.canvas.hoverCard.toggleClass('label-hover-card--no-share', !shareable);
+    if (!this.#shareWidget || !shareable) return;
+
+    const id = label.getProperty('labelId');
+    // 'DefaultValue' until the label has been submitted; the URL is filled in by #ensureShareTarget on click.
+    const url = Number.isInteger(id) ? `${window.location.origin}/label/${id}` : '';
+    if (url === this.#shareUrl) return;
+    this.#shareUrl = url;
+    this.#setShareTarget(label, url);
+  }
+
+  /** Writes the share target for a label. @private */
+  #setShareTarget(label, url) {
+    const labelTypeName = i18next.t(`common:${util.camelToKebab(label.getLabelType())}`).replace('&shy;', '');
+    const text = i18next.t('common:share.text', { labelType: labelTypeName });
+    this.#shareWidget.setTarget({ url, title: text, text });
+  }
+
+  /**
+   * Makes sure a label exists server-side, submitting the session's pending labels if it doesn't yet.
+   *
+   * Shared by both panels' share controls, which is why it lives here rather than behind either one. Resolves
+   * quietly when there is nothing to do, and also when the submission fails to produce an id — the caller then
+   * finds an empty target and does nothing, which is the right outcome for a share that can't be built.
+   *
+   * The crop upload is awaited too, not just the id: /label/:id/image falls back to a fetched Street View still (or
+   * the branded placeholder) when no crop is on disk, and caches whatever it built there permanently. Sharing a
+   * label the instant it is placed is exactly the race that would bake that fallback in for good.
+   *
+   * @param {Label} label - The label about to be shared.
+   * @returns {Promise<void>}
+   */
+  async ensureLabelSaved(label) {
+    if (!label || Number.isInteger(label.getProperty('labelId'))) return;
+    await svl.form.submitData();
+    if (!Number.isInteger(label.getProperty('labelId'))) return;
+    await label.cropUploaded();
+  }
+
   #scheduleHoverCardHide() {
-    if (this.#hoverCardHideTimer !== null) return;
+    // An open share popover hangs off the card, so the pointer leaving the card doesn't mean the user is done with
+    // it. Hiding here would take the popover down mid-choice.
+    if (this.#hoverCardHideTimer !== null || this.#shareWidget?.isOpen()) return;
     this.#hoverCardHideTimer = setTimeout(() => {
       this.#hoverCardHideTimer = null;
       this.showLabelHoverInfo(undefined);

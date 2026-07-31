@@ -35,6 +35,31 @@
   white-space: nowrap;
 }
 
+/* Share, in the header rather than the footer: the footer is where a panel's actions on *this* label live (Explore's
+   Delete/Edit, Validate's Hide), and at the card's 240px width a third button there would leave all three too narrow
+   to read. Icon-only for the same reason — the label beside it would double the header's width. Its accessible name
+   comes from aria-label, and the popover it opens says "Share this label" at the top. */
+.label-hover-card__share.label-detail__share-trigger {
+  flex: none;
+  gap: 0;
+  padding: calc(3px * var(--ui-scale));
+  background: none;
+  border: none;
+  border-radius: calc(5px * var(--ui-scale));
+  color: var(--color-neutral-700);
+}
+
+.label-hover-card__share.label-detail__share-trigger:hover {
+  background: var(--color-neutral-100);
+  border: none;
+  color: var(--color-neutral-black);
+}
+
+.label-hover-card__share svg {
+  width: calc(14px * var(--ui-scale));
+  height: calc(14px * var(--ui-scale));
+}
+
 .label-hover-card__body {
   display: flex;
   flex-direction: column;

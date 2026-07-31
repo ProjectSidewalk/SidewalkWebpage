@@ -526,6 +526,7 @@ class Main {
     svl.ui.canvas.hoverCardDescription = $('#label-hover-card-description');
     svl.ui.canvas.hoverCardDelete = $('#label-hover-card-delete');
     svl.ui.canvas.hoverCardEdit = $('#label-hover-card-edit');
+    svl.ui.canvas.hoverCardShare = $('#label-hover-card-share');
 
     // Context menu.
     svl.ui.contextMenu = {};

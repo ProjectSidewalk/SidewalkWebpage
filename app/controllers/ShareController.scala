@@ -12,7 +12,7 @@ import play.api.mvc._
 import play.api.{Configuration, Environment, Logger}
 import play.silhouette.api.Silhouette
 import play.twirl.api.Html
-import service.{AuthenticationService, ConfigService, LabelService, PanoDataService}
+import service.{AuthenticationService, ConfigService, LabelService, PanoDataService, ShareImageCache}
 
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
@@ -42,7 +42,8 @@ class ShareController @Inject() (
     configService: ConfigService,
     labelService: LabelService,
     panoDataService: PanoDataService,
-    authenticationService: AuthenticationService
+    authenticationService: AuthenticationService,
+    shareImageCache: ShareImageCache
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -103,7 +104,7 @@ class ShareController @Inject() (
    * @return `Ok` with an `image/jpeg`, or `NotFound` if no such label exists.
    */
   def shareImage(labelId: Int) = Action.async { implicit request =>
-    val cachedFile = new File(shareImageDir, s"share_$labelId.jpg")
+    val cachedFile = shareImageCache.fileFor(labelId)
     if (cachedFile.exists()) {
       Future.successful(serveImage(cachedFile))
     } else {
@@ -165,16 +166,8 @@ class ShareController @Inject() (
   private def cityNameOf(commonData: service.CommonPageData): String =
     commonData.allCityInfo.find(_.cityId == commonData.cityId).map(_.cityNameFormatted).getOrElse("")
 
-  /**
-   * Directory where cached share preview images live: `<share.image.directory>/<city-id>/`. A relative configured
-   * path (the `.share-images` default) is resolved against the application root, not the process working directory —
-   * a staged prod app runs from the stage dir, so a CWD-relative path would silently point somewhere else there.
-   */
-  private[controllers] def shareImageDir: File = {
-    val configured = new File(config.get[String]("share.image.directory"))
-    val base       = if (configured.isAbsolute) configured else environment.getFile(configured.getPath)
-    new File(base, configService.getCityId)
-  }
+  /** Where the cached previews live; resolved by ShareImageCache, which ImageController also invalidates through. */
+  private[controllers] def shareImageDir: File = shareImageCache.dir
 
   /**
    * Resolves the base image for a label (stored crop → fetched GSV still → none), composites the label-type marker onto

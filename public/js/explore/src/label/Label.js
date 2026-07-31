@@ -46,6 +46,9 @@ class Label {
     },
   };
 
+  // Resolves when this label's crop reaches the server; null until a submission hands us an id. See cropUploaded().
+  #cropUpload = null;
+
   #properties = {
     labelId: 'DefaultValue',
     auditTaskId: undefined,
@@ -361,6 +364,8 @@ class Label {
     ui.hoverCard.toggleClass('label-hover-card--static', labelType === 'Occlusion');
     // The tutorial's delete lock hides the Delete button.
     ui.hoverCard.toggleClass('label-hover-card--no-delete', Boolean(svl.canvas.getStatus('disableLabelDelete')));
+    // Aims the share control at this label (and hides it for labels that can never have a public URL).
+    svl.canvas.pointShareAtLabel(this);
 
     // The card and the context menu it opens into share one anchor so the panel expands roughly in place.
     util.anchorPanelToLabel(ui.hoverCard, this.getCanvasXY(), svl.LABEL_ICON_RADIUS);
@@ -488,33 +493,58 @@ class Label {
   }
 
   /**
-   * Save a screenshot of the image named crop_<labelId>.png. The crops are stored in subdirs /<city-id>/<label-type>.
+   * Records the label's official id from the server and saves a screenshot named crop_<labelId>.png. The crops are
+   * stored in subdirs /<city-id>/<label-type>.
+   *
+   * The id is set straight away rather than only on the path where a crop exists: it is what the rest of the app
+   * keys off (the share permalink, most obviously), and it is known and correct whether or not the canvas has
+   * finished producing a crop to go with it.
+   *
    * @param {number} labelId
-   * @param {number} retryAttempt - Current retry attempt if image hasn't been saved yet.
+   * @returns {Promise<void>} Resolves once the crop has been uploaded, or given up on.
    */
-  updateLabelIdAndUploadCrop(labelId, retryAttempt) {
-    // Retry if crop isn't available yet.
+  updateLabelIdAndUploadCrop(labelId) {
+    this.setProperty('labelId', labelId);
+    this.#cropUpload = this.#uploadCrop(labelId);
+    return this.#cropUpload;
+  }
+
+  /**
+   * Resolves once this label's crop has reached the server, or immediately if no upload was ever started.
+   *
+   * Sharing waits on this. /label/:id/image falls back to a fetched Street View still — or the branded placeholder —
+   * when no crop is on disk, and caches whatever it built there permanently, so a link handed out in the seconds
+   * before the crop lands would keep the wrong preview for good.
+   *
+   * @returns {Promise<void>}
+   */
+  cropUploaded() {
+    return this.#cropUpload ?? Promise.resolve();
+  }
+
+  /**
+   * Uploads the crop, retrying once if the canvas hasn't produced it yet.
+   * @param {number} labelId
+   * @returns {Promise<void>}
+   * @private
+   */
+  async #uploadCrop(labelId) {
     if (!this.getProperty('crop')) {
-      if (isNaN(retryAttempt)) retryAttempt = 0;
-      if (retryAttempt < 1) {
-        console.log('No crop found to upload, retrying in 3 seconds.');
-        setTimeout(() => {
-          this.updateLabelIdAndUploadCrop(labelId, retryAttempt + 1);
-        }, 3000);
-      } else {
-        console.log(`No crop found to upload after ${retryAttempt + 1} attempts.`);
+      console.log('No crop found to upload, retrying in 3 seconds.');
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      if (!this.getProperty('crop')) {
+        console.log('No crop found to upload after 2 attempts.');
+        return;
       }
-      return;
     }
 
     // Upload the crop to the server with filename crop_<labelId>.png.
-    this.setProperty('labelId', labelId);
     const cropData = {
       label_id: labelId,
       label_type: this.getProperty('labelType'),
       b64: this.getProperty('crop'),
     };
-    fetch('saveImage', {
+    await fetch('saveImage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json; charset=UTF-8' },
       body: JSON.stringify(cropData),

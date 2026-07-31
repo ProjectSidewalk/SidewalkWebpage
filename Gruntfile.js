@@ -16,7 +16,8 @@ module.exports = function (grunt) {
           'public/js/common/MissionStartTutorial.js',
           // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
           'public/js/common/Toast.js',
-          'public/js/common/BadgeAchievements.js'
+          'public/js/common/BadgeAchievements.js',
+          'public/js/common/share/ShareWidget.js'
         ],
         dest: 'public/js/explore/build/explore.js'
       },
@@ -90,7 +91,8 @@ module.exports = function (grunt) {
           'public/js/common/MissionStartTutorial.js',
           // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
           'public/js/common/Toast.js',
-          'public/js/common/BadgeAchievements.js'
+          'public/js/common/BadgeAchievements.js',
+          'public/js/common/share/ShareWidget.js'
         ],
         dest: 'public/js/validate/build/validate.js'
       },

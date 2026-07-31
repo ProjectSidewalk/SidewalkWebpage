@@ -83,6 +83,34 @@
   color: var(--color-neutral-white);
 }
 
+/* Share sits left of Close, matching the collapsed card's header. Same quiet icon-only treatment, one step larger
+   because this panel's header type is larger too. */
+.context-menu__share.label-detail__share-trigger {
+  flex: none;
+  gap: 0;
+  padding: calc(4px * var(--ui-scale));
+  background: none;
+  border: none;
+  border-radius: calc(5px * var(--ui-scale));
+  color: var(--color-neutral-700);
+}
+
+.context-menu__share.label-detail__share-trigger:hover {
+  background: var(--color-neutral-100);
+  border: none;
+  color: var(--color-neutral-black);
+}
+
+.context-menu__share svg {
+  width: calc(16px * var(--ui-scale));
+  height: calc(16px * var(--ui-scale));
+}
+
+/* Tutorial labels are never submitted, so they never get the public id a share link needs. */
+.context-menu--no-share .label-detail__share {
+  display: none;
+}
+
 /* The tutorial locks deletion on the label it just had you place. */
 .context-menu--no-delete .context-menu__delete {
   display: none;

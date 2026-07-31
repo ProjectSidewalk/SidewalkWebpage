@@ -1,0 +1,126 @@
+/* The share control (#456): a quiet trigger button and the accessible popover it opens. Wired up by
+   public/js/common/share/ShareWidget.js.
+ *
+ * Extracted from label-detail.css so Explore and Validate can use it too (#4726) — those tools carry the label card,
+ * not the label-detail popup, and never loaded that stylesheet. Linked globally from main.scala.html rather than
+ * added to a bundle, so every current and future host gets it without a per-view edit.
+ *
+ * The class names still read `label-detail__share*`. They are no longer accurate — renaming them is a mechanical
+ * change across labelDetail.scala.html, LandingValidationGrid.js, ShareWidget.js, and landing-validation-grid.css,
+ * which would collide with the open share-popover work in #4721. Do it once that lands.
+ *
+ * Sizes are `calc(Npx * var(--ui-scale, 1))` throughout. The fallback keeps every existing host pixel-identical
+ * (--ui-scale is only defined inside Explore's and Validate's .tool-ui), while letting the popover scale with the
+ * tool when it opens inside one — the same pattern tag-pills.css uses. */
+
+/* Anchor for the absolutely-positioned popover. */
+.label-detail__share {
+  position: relative;
+}
+
+.label-detail__share-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(6px * var(--ui-scale, 1));
+  padding: calc(5px * var(--ui-scale, 1)) calc(12px * var(--ui-scale, 1));
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-800);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: calc(18px * var(--ui-scale, 1));
+  font: var(--text-small-medium);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.label-detail__share-trigger:hover {
+  background: var(--color-neutral-200);
+  border-color: var(--color-neutral-400);
+}
+
+.label-detail__share-trigger:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+}
+
+/* While a host's beforeOpen step runs (Explore submits an unsaved label to get its id). Pointer events stay on so
+   the cursor doesn't jump, but ShareWidget ignores the second click itself. */
+.label-detail__share-trigger.is-pending {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.label-detail__share-trigger svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Popover: opens above the trigger, right-aligned. */
+.label-detail__share-popover {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + calc(8px * var(--ui-scale, 1)));
+  z-index: 10;
+  min-width: calc(200px * var(--ui-scale, 1));
+  padding: calc(6px * var(--ui-scale, 1));
+  background: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: calc(10px * var(--ui-scale, 1));
+  box-shadow: 0 calc(6px * var(--ui-scale, 1)) calc(20px * var(--ui-scale, 1)) rgb(0 0 0 / 18%);
+}
+
+/* Opens downward instead. For a trigger in a panel's header — the label card and the context menu — where the space
+   above is the top of the pano and the space below is the panel's own body. */
+.label-detail__share--below .label-detail__share-popover {
+  top: calc(100% + calc(8px * var(--ui-scale, 1)));
+  bottom: auto;
+}
+
+.label-detail__share-heading {
+  margin: calc(4px * var(--ui-scale, 1)) calc(8px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1));
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-700);
+}
+
+.label-detail__share-item {
+  display: flex;
+  align-items: center;
+  gap: calc(10px * var(--ui-scale, 1));
+  width: 100%;
+  padding: calc(8px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+  background: none;
+  border: none;
+  border-radius: calc(6px * var(--ui-scale, 1));
+  font: var(--text-small-medium);
+  color: var(--color-neutral-900);
+  text-align: left;
+  cursor: pointer;
+}
+
+.label-detail__share-item:hover {
+  background: var(--color-neutral-100);
+}
+
+.label-detail__share-item:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: -2px;
+}
+
+.label-detail__share-item.is-copied {
+  color: var(--color-success-200);
+}
+
+.label-detail__share-item-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-neutral-700);
+}
+
+.label-detail__share-item.is-copied .label-detail__share-item-icon {
+  color: var(--color-success-200);
+}
+
+/* Left unsized on purpose: every icon here carries its own width/height attributes, and .lvg-share overrides them
+   for the landing grid's smaller chip. A size here would silently resize both. */
+.label-detail__share-item-icon svg {
+  display: block;
+}

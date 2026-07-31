@@ -16,6 +16,7 @@
     @* Transparent 1x1 placeholder so nothing flashes before the first label is rendered into the card. *@
     <img id="label-card-icon" class="label-hover-card__icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="">
     <span id="label-card-type" class="label-hover-card__type"></span>
+    @components.shareTrigger(id = "label-card-share", extraClass = "label-hover-card__share")
   </div>
   <div class="label-hover-card__body">
     <span id="label-card-severity" class="label-hover-card__severity">
