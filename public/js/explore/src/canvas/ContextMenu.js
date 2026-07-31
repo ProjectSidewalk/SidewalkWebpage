@@ -125,7 +125,7 @@ class ContextMenu {
   #handleDoneButtonClick() {
     svl.tracker.push('ContextMenu_DoneButtonClick');
     this.handleSeverityPopup();
-    this.hide(false);
+    this.hide();
   }
 
   /**
