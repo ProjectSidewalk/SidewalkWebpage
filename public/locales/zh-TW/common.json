@@ -29,6 +29,7 @@
   "cancel": "取消",
   "continue": "繼續",
   "delete": "刪除",
+  "done": "完成",
   "badges": {
     "congratulations": "恭喜！",
     "you-earned": "您獲得了「{{badge}}」徽章！",

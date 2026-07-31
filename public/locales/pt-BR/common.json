@@ -29,6 +29,7 @@
   "cancel": "Cancelar",
   "continue": "Continuar",
   "delete": "Excluir",
+  "done": "Concluído",
   "badges": {
     "congratulations": "Parabéns!",
     "you-earned": "Você ganhou a insígnia “{{badge}}”!",

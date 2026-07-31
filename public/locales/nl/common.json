@@ -30,6 +30,7 @@
   "cancel": "Annuleren",
   "continue": "Doorgaan",
   "delete": "Verwijderen",
+  "done": "Klaar",
   "badges": {
     "congratulations": "Gefeliciteerd!",
     "you-earned": "Je hebt de “{{badge}}”-badge verdiend!",

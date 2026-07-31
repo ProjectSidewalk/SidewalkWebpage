@@ -30,6 +30,7 @@
   "cancel": "Cancelar",
   "continue": "Continuar",
   "delete": "Eliminar",
+  "done": "Listo",
   "badges": {
     "congratulations": "¡Felicidades!",
     "you-earned": "¡Has ganado la insignia “{{badge}}”!",
