@@ -180,19 +180,29 @@ class ShareController @Inject() (
       imagerySource: PanoSource,
       cacheFile: File
   ): Future[Option[File]] = {
-    baseImage(meta, imagerySource).map {
+    // A build that had to fall back to a Street View still is only cacheable while the crop is still missing.
+    // `ImageController` drops this cache as each crop lands (#4726), but that can only delete a file that already
+    // exists — an invalidation arriving mid-build has nothing to delete and would be undone by the write below,
+    // baking the stand-in in permanently. So note whether the crop was there when we started, and rebuild from the
+    // real thing if it showed up while we were fetching.
+    val cropFile: File             = panoDataService.cropFile(meta.labelId, meta.labelType.name)
+    val cropExistedBefore: Boolean = cropFile.exists()
+
+    baseImage(meta, imagerySource).flatMap {
+      case Some(_) if !cropExistedBefore && cropFile.exists() =>
+        buildAndCacheShareImage(meta, imagerySource, cacheFile) // Terminates: the retry sees the crop up front.
       case Some(base) =>
         val composited: BufferedImage = compositeMarker(base, meta.labelType, meta.canvasXY)
         cacheFile.getParentFile.mkdirs()
         writeJpeg(composited, cacheFile)
         if (cacheFile.exists()) {
           evictStaleShareImages(cacheFile.getParentFile)
-          Some(cacheFile)
+          Future.successful(Some(cacheFile))
         } else {
           logger.error(s"Failed to write share image: ${cacheFile.getPath}")
-          None
+          Future.successful(None)
         }
-      case None => None
+      case None => Future.successful(None)
     }
   }
 

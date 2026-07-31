@@ -122,6 +122,16 @@
   cursor: pointer;
 }
 
+/* An open share menu has to clear the rest of the pano's chrome, and it cannot do that on its own: it is a child of
+   the card, so the card's z-index caps it however high its own goes. At the card's usual level the compass message
+   (z-index: 2) is a peer that paints later and covers the menu; the minimap and ribbon (up to 5) are above it
+   outright. So raise the whole card for as long as the menu is up. 6 clears every pano-area layer while staying far
+   below the modals (1000) and the navbar (1030). aria-expanded is the widget's own source of truth and is kept
+   current on every close path, so nothing here can be left stuck raised. */
+.label-hover-card:has(.label-detail__share-trigger[aria-expanded="true"]) {
+  z-index: 6;
+}
+
 /* Occlusion labels have no context menu to open, so the card isn't clickable and the Edit button is hidden. */
 .label-hover-card--static {
   cursor: default;

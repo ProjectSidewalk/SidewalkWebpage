@@ -321,9 +321,8 @@
     <link href='@assets.path("css/choropleth.css")' rel="stylesheet">
     <link href='@assets.path("css/deployment-map.css")' rel="stylesheet">
     <link href='@assets.path("css/landing-validation-grid.css")' rel="stylesheet">
-    @* label-detail.css styles the grid cards' share chip + popover (.label-detail__share-*), shared with the
-       label-detail popup so the share control looks identical everywhere. *@
-    <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
+    @* The grid cards' share chip + popover (.label-detail__share-*) are styled by css/common/share-widget.css,
+       which common/main.scala.html links on every page — nothing else here needs label-detail.css. *@
     <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
     <script src='@assets.path("js/common/utilitiesSidewalk.js")'></script>
     <script src='@assets.path("js/common/share/ShareWidget.js")'></script>

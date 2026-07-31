@@ -36,9 +36,9 @@ describe('ShareWidget', () => {
     let ShareWidget;
     let trigger;
 
-    /** Builds a widget wired to the standard test target, returning [widget, trigger]. */
-    function buildWidget() {
-        const widget = new ShareWidget(trigger);
+    /** Builds a widget wired to the standard test target. */
+    function buildWidget(opts = {}) {
+        const widget = new ShareWidget(trigger, opts);
         widget.setTarget(TARGET);
         return widget;
     }
@@ -305,6 +305,34 @@ describe('ShareWidget', () => {
         });
     });
 
+    // Fitting is opt-in: it measures against the viewport, which is the wrong box for the settled hosts whose
+    // trigger sits inside a scrolling or clipping container (the label-detail footer, the landing grid's cards).
+    describe('fitToViewport, off by default', () => {
+        test('leaves the preferred side alone even where the popover cannot fit', () => {
+            const wrapper = document.querySelector('.label-detail__share');
+            buildWidget();
+            window.innerHeight = 800;
+            trigger.getBoundingClientRect = () => ({ top: 780, bottom: 800 });
+            Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, value: 330 });
+
+            trigger.click();
+
+            expect(wrapper.classList.contains('label-detail__share--below')).toBe(false);
+        });
+
+        test('keeps every platform, however little room there is', () => {
+            buildWidget();
+            window.innerHeight = 40;
+            trigger.getBoundingClientRect = () => ({ top: 20, bottom: 40 });
+            Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, value: 330 });
+
+            trigger.click();
+
+            const hidden = [...document.querySelectorAll('[role="menuitem"]')].filter((i) => i.hidden);
+            expect(hidden).toHaveLength(0);
+        });
+    });
+
     // The label card's trigger sits in a panel header that can be anywhere in the pano, and the popover is tall
     // enough (six platforms) to run off the bottom from a low card.
     describe('opening side', () => {
@@ -319,7 +347,7 @@ describe('ShareWidget', () => {
 
         test('keeps the preferred side when the popover fits there', () => {
             wrapper().classList.add('label-detail__share--below');
-            buildWidget();
+            buildWidget({ fitToViewport: true });
             place({ top: 100, bottom: 120, viewport: 800, popoverHeight: 330 });
             trigger.click();
             expect(wrapper().classList.contains('label-detail__share--below')).toBe(true);
@@ -327,7 +355,7 @@ describe('ShareWidget', () => {
 
         test('flips up when there is no room below but there is above', () => {
             wrapper().classList.add('label-detail__share--below');
-            buildWidget();
+            buildWidget({ fitToViewport: true });
             place({ top: 600, bottom: 620, viewport: 800, popoverHeight: 330 });
             trigger.click();
             expect(wrapper().classList.contains('label-detail__share--below')).toBe(false);
@@ -335,7 +363,7 @@ describe('ShareWidget', () => {
 
         test('keeps the preference when neither side fits, so the choice stays predictable', () => {
             wrapper().classList.add('label-detail__share--below');
-            buildWidget();
+            buildWidget({ fitToViewport: true });
             place({ top: 200, bottom: 220, viewport: 400, popoverHeight: 330 });
             trigger.click();
             expect(wrapper().classList.contains('label-detail__share--below')).toBe(true);
@@ -373,7 +401,7 @@ describe('ShareWidget', () => {
         beforeEach(measuresLikeLayout);
 
         test('keeps every platform when the menu fits', () => {
-            buildWidget();
+            buildWidget({ fitToViewport: true });
             withSpaceAbove(200); // 6 items = 152px.
             trigger.click();
 
@@ -381,7 +409,7 @@ describe('ShareWidget', () => {
         });
 
         test('drops X first, and stops as soon as it fits', () => {
-            buildWidget();
+            buildWidget({ fitToViewport: true });
             withSpaceAbove(132); // 6 items = 152px (too tall), 5 = 132px (exactly fits).
             trigger.click();
 
@@ -392,7 +420,7 @@ describe('ShareWidget', () => {
         });
 
         test('drops Bluesky too when one is not enough', () => {
-            buildWidget();
+            buildWidget({ fitToViewport: true });
             withSpaceAbove(112); // Only 4 items (112px) fit.
             trigger.click();
 
@@ -402,7 +430,7 @@ describe('ShareWidget', () => {
         });
 
         test('restores the dropped platforms on a later open that has room', () => {
-            buildWidget();
+            buildWidget({ fitToViewport: true });
             withSpaceAbove(112);
             trigger.click();
             expect(shown()).toHaveLength(4);
@@ -415,7 +443,7 @@ describe('ShareWidget', () => {
         });
 
         test('arrow keys skip the dropped platforms', async () => {
-            buildWidget();
+            buildWidget({ fitToViewport: true });
             withSpaceAbove(112);
             trigger.click();
             await flushPromises(); // The keydown listener is registered on a deferred tick.
@@ -457,6 +485,65 @@ describe('ShareWidget', () => {
             const widget = buildWidget();
             expect(() => widget.close()).not.toThrow();
             expect(widget.isOpen()).toBe(false);
+        });
+    });
+
+    // Explore's and Validate's cards suspend their own hide timer while the popover is up. The pointer has usually
+    // left by the time it closes and no second mouseleave is coming, so they need telling when to resume (#4726).
+    describe('onDismiss', () => {
+        test('fires when the user dismisses with a second click on the trigger', () => {
+            const onDismiss = jest.fn();
+            const widget = new ShareWidget(trigger, { onDismiss });
+            widget.setTarget(TARGET);
+
+            trigger.click();
+            expect(onDismiss).not.toHaveBeenCalled();
+
+            trigger.click();
+            expect(onDismiss).toHaveBeenCalledTimes(1);
+        });
+
+        test('fires on ESC and on an outside click', async () => {
+            const onDismiss = jest.fn();
+            const widget = new ShareWidget(trigger, { onDismiss });
+            widget.setTarget(TARGET);
+
+            trigger.click();
+            await flushPromises(); // The document listeners are registered on a deferred tick.
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+            expect(onDismiss).toHaveBeenCalledTimes(1);
+
+            trigger.click();
+            await flushPromises();
+            document.body.click();
+            expect(onDismiss).toHaveBeenCalledTimes(2);
+        });
+
+        test('fires when the user picks an action', () => {
+            const onDismiss = jest.fn();
+            const widget = new ShareWidget(trigger, { onDismiss });
+            widget.setTarget(TARGET);
+
+            trigger.click();
+            item('share.on-facebook').click();
+
+            expect(onDismiss).toHaveBeenCalledTimes(1);
+        });
+
+        // The host asked for these itself, so telling it would send it round in a circle — Validate's
+        // hideLabelCard() closes the popover, and a dismissal notice would schedule another hide behind it.
+        test('does not fire when the host closes the widget itself', () => {
+            const onDismiss = jest.fn();
+            const widget = new ShareWidget(trigger, { onDismiss });
+            widget.setTarget(TARGET);
+
+            trigger.click();
+            widget.close();
+            expect(onDismiss).not.toHaveBeenCalled();
+
+            trigger.click();
+            widget.setTarget({ url: 'https://example.org/label/2', title: 't', text: 't' });
+            expect(onDismiss).not.toHaveBeenCalled();
         });
     });
 

@@ -10,7 +10,7 @@
  * Accessibility (WCAG 2.1/2.2 AA, ARIA menu pattern): the trigger carries `aria-haspopup`/`aria-expanded`; the
  * popover is a labeled `role="menu"`; ESC and click-outside close it; focus moves into the popover on open and
  * returns to the trigger on close; ArrowUp/ArrowDown cycle the items and Home/End jump to the first/last one; all
- * actions are real <button>s with visible focus states (styled in label-detail.css).
+ * actions are real <button>s with visible focus states (styled in css/common/share-widget.css).
  */
 class ShareWidget {
   /** @type {HTMLElement} The container the popover is appended into (positioned relative to the trigger). */
@@ -31,8 +31,12 @@ class ShareWidget {
   #beforeOpen = null;
   /** @type {boolean} Whether a beforeOpen step is in flight, so a second click can't start another. */
   #opening = false;
-  /** @type {boolean} Which side the host asked the popover to open on; read once, since #chooseSide rewrites it. */
+  /** @type {boolean} Which side the host asked the popover to open on; read once, since #fitPopover rewrites it. */
   #prefersBelow = false;
+  /** @type {boolean} Whether to measure and fit the popover on each open; see the constructor. */
+  #fitToViewport = false;
+  /** @type {?(() => void)} Called after a user-initiated close; see the constructor. */
+  #onDismiss = null;
 
   // Order the menu sheds actions in when it can't fit beside its trigger, least-missed first.
   static #SHED_ORDER = ['x', 'bluesky'];
@@ -49,13 +53,23 @@ class ShareWidget {
    * @param {() => Promise<void>} [opts.beforeOpen] - Awaited on each activation, before the target is read. For a
    *      host whose target may not exist yet — Explore's just-placed labels have no server-side id until the next
    *      form submit — this is where it is brought into being. The trigger carries `is-pending` while it runs.
+   * @param {boolean} [opts.fitToViewport=false] - Measure the space around the trigger on each open and adapt (see
+   *      #fitPopover). For a trigger that can sit anywhere on screen: the label panels float over the pano and
+   *      follow the label icon they are anchored to. Off by default, because the fit is measured against the
+   *      viewport — a trigger inside a scrolling or clipping container would be measured against the wrong box.
+   * @param {() => void} [opts.onDismiss] - Called after the *user* closes the popover (outside click, ESC, a chosen
+   *      action, or a second click on the trigger). For a host that suspends its own dismissal while the popover is
+   *      up and needs to know when to resume. Not called when the host closes the widget itself via close() or
+   *      setTarget() — it already knows about those.
    */
   constructor(trigger, opts = {}) {
     this.#trigger = trigger;
     this.#host = opts.host || trigger.parentElement || document.body;
     this.#beforeOpen = opts.beforeOpen || null;
+    this.#fitToViewport = Boolean(opts.fitToViewport);
+    this.#onDismiss = opts.onDismiss || null;
 
-    // Read before the first open: #chooseSide rewrites this class, so the markup's choice has to be captured now.
+    // Read before the first open: #fitPopover rewrites this class, so the markup's choice has to be captured now.
     this.#prefersBelow = Boolean(this.#host.classList?.contains('label-detail__share--below'));
 
     this.#trigger.setAttribute('aria-haspopup', 'true');
@@ -74,7 +88,7 @@ class ShareWidget {
    */
   setTarget({ url, title, text }) {
     this.#target = { url: url || '', title: title || '', text: text || '' };
-    if (this.#open) this.#closePopover();
+    if (this.#open) this.#closePopover(true, false);
   }
 
   /**
@@ -100,7 +114,7 @@ class ShareWidget {
    * land focus on an invisible element.
    */
   close() {
-    if (this.#open) this.#closePopover(false);
+    if (this.#open) this.#closePopover(false, false);
   }
 
   /**
@@ -158,6 +172,10 @@ class ShareWidget {
    *
    * Both are measured on every open rather than decided once. The label card's trigger moves with the label icon it
    * is anchored to, which can sit anywhere in the pano, and the menu is six actions tall.
+   *
+   * Only runs for hosts that ask for it (opts.fitToViewport). Room is measured against the viewport, which is the
+   * right box for a panel floating over the pano and the wrong one for a trigger inside a scrolling or clipping
+   * container — the label-detail popup's footer and the landing grid's cards both sit in one.
    * @private
    */
   #fitPopover() {
@@ -211,7 +229,7 @@ class ShareWidget {
     this.#popover.hidden = false;
     this.#open = true;
     this.#trigger.setAttribute('aria-expanded', 'true');
-    this.#fitPopover();
+    if (this.#fitToViewport) this.#fitPopover();
 
     // Defer listener registration so the click that opened the popover doesn't immediately close it.
     setTimeout(() => {
@@ -226,20 +244,23 @@ class ShareWidget {
   /**
    * Closes the popover, tears down listeners, and returns focus to the trigger.
    * @param {boolean} [returnFocus=true] - Whether to move focus back to the trigger (skip on outside-click).
+   * @param {boolean} [notifyHost=true] - Whether to run the host's onDismiss hook. False when the host is the one
+   *      closing us (close(), setTarget()), which it does not need telling about.
    * @private
    */
-  #closePopover(returnFocus = true) {
+  #closePopover(returnFocus = true, notifyHost = true) {
     if (this.#popover) this.#popover.hidden = true;
     this.#open = false;
     this.#trigger.setAttribute('aria-expanded', 'false');
     document.removeEventListener('click', this.#boundOutsideClick, true);
     document.removeEventListener('keydown', this.#boundKeydown, true);
     if (returnFocus) this.#trigger.focus();
+    if (notifyHost) this.#onDismiss?.();
   }
 
   /**
-   * Constructs the popover DOM (heading + four action buttons) and appends it to the host. Called lazily the first
-   * time a non-native share is opened.
+   * Constructs the popover DOM (heading + one action button per platform) and appends it to the host. Called lazily
+   * the first time a non-native share is opened.
    * @private
    */
   #buildPopover() {

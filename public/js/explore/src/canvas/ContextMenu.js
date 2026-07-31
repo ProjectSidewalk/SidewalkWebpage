@@ -22,12 +22,11 @@ class ContextMenu {
   #headerType;
   #tagHolder;
   #tags;
+  #shareWidget = null;
 
   /**
    * @param {Object} uiContextMenu - jQuery-wrapped context menu UI elements.
    */
-  #shareWidget = null;
-
   constructor(uiContextMenu) {
     this.#menuWindow = uiContextMenu.holder;
     this.#severityMenu = uiContextMenu.severityMenu;
@@ -322,6 +321,10 @@ class ContextMenu {
       this.#descriptionTextBox.blur(); // Force the blur event before the ContextMenu close event.
       svl.tracker.push('ContextMenu_Close');
     }
+
+    // The share popover lives in this panel's header, so it goes too. Hiding the panel around it would leave the
+    // widget believing it is still open, with its document-level ESC and arrow-key handlers still armed.
+    this.#shareWidget?.close();
 
     this.#menuWindow.css('visibility', 'hidden');
     this.#setStatus('visibility', 'hidden');
@@ -668,6 +671,8 @@ class ContextMenu {
     // Same submit-then-share path as the collapsed card: this menu opens the moment a label is placed, which is the
     // most likely moment for it to have no server-side id yet.
     this.#shareWidget = new ShareWidget(trigger, {
+      // Like the collapsed card, this panel is anchored to a label icon and can sit anywhere in the pano.
+      fitToViewport: true,
       beforeOpen: async () => {
         const label = this.#getStatus('targetLabel');
         await svl.canvas.ensureLabelSaved(label);

@@ -50,7 +50,11 @@ class LabelCard {
     // came from the back end, so its id is always real and the button is never in a state where it can't work.
     const trigger = document.getElementById('label-card-share');
     if (trigger && typeof ShareWidget !== 'undefined') {
-      this.#shareWidget = new ShareWidget(trigger);
+      this.#shareWidget = new ShareWidget(trigger, {
+        // The card is anchored to the label's marker, which can sit anywhere in the pano.
+        fitToViewport: true,
+        onDismiss: () => svv.labelVisibilityControl?.handleSharePopoverDismissed(),
+      });
       trigger.addEventListener('click', () => {
         // Only the opening click, and carrying the label type so the note matches Explore's.
         if (this.#shareWidget.isOpen()) return;

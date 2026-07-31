@@ -9,6 +9,12 @@
   visibility: hidden;
 }
 
+/* Same reason as the collapsed card's (svl-canvas.css): the share menu is a child of this panel, so it can only ever
+   paint as high as the panel does — and at z-index 3 the minimap and ribbon (up to 5) are above it. */
+#context-menu-holder:has(.label-detail__share-trigger[aria-expanded="true"]) {
+  z-index: 6;
+}
+
 /* Header / body / footer mirror the collapsed card's three bands, so expanding the panel keeps the same rhythm. */
 .context-menu__header {
   display: flex;

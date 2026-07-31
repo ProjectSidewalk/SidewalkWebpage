@@ -371,12 +371,6 @@ class Canvas {
   }
 
   /**
-   * Schedules hiding the hover card after a short grace period. A pending timer is left running rather than reset,
-   * so the deadline stays a hard 200ms from when the pointer left the label — the stream of mousemoves that follows
-   * it off the label must not keep pushing the hide back. The hide is aborted if the pointer reaches the card
-   * (mouseenter) or returns to a label before the timer fires.
-   */
-  /**
    * Builds the hover card's share control. One widget, re-pointed at whichever label is hovered.
    *
    * A label placed this session has no server-side id until the next form submit, so rather than hiding the button
@@ -400,6 +394,10 @@ class Canvas {
     });
 
     this.#shareWidget = new ShareWidget(trigger, {
+      // The card is anchored to a label icon, which can sit anywhere in the pano, so the menu has to work out which
+      // side it fits on each time it opens.
+      fitToViewport: true,
+      onDismiss: () => this.#handleShareDismissed(),
       beforeOpen: async () => {
         const label = this.getCurrentLabel();
         await this.ensureLabelSaved(label);
@@ -408,6 +406,19 @@ class Canvas {
         if (label) this.pointShareAtLabel(label);
       },
     });
+  }
+
+  /**
+   * Re-arms the card's hide once the share popover that had been holding it open goes away.
+   *
+   * #scheduleHoverCardHide is only reached from a pointer leaving the card or a label, and while the popover was up
+   * it declined to schedule anything. The pointer is long gone by then and no second mouseleave is coming, so
+   * without this the card would sit there until an unrelated event took it down. Skipped when the pointer is back
+   * on the card, where it is meant to stay.
+   * @private
+   */
+  #handleShareDismissed() {
+    if (!svl.ui.canvas.hoverCard[0]?.matches(':hover')) this.#scheduleHoverCardHide();
   }
 
   /**
@@ -426,7 +437,7 @@ class Canvas {
     if (!this.#shareWidget || !shareable) return;
 
     const id = label.getProperty('labelId');
-    // 'DefaultValue' until the label has been submitted; the URL is filled in by #ensureShareTarget on click.
+    // 'DefaultValue' until the label has been submitted; the widget's beforeOpen step fills the URL in on click.
     const url = Number.isInteger(id) ? `${window.location.origin}/label/${id}` : '';
     if (url === this.#shareUrl) return;
     this.#shareUrl = url;
@@ -469,9 +480,16 @@ class Canvas {
     ]);
   }
 
+  /**
+   * Schedules hiding the hover card after a short grace period. A pending timer is left running rather than reset,
+   * so the deadline stays a hard 200ms from when the pointer left the label — the stream of mousemoves that follows
+   * it off the label must not keep pushing the hide back. The hide is aborted if the pointer reaches the card
+   * (mouseenter) or returns to a label before the timer fires.
+   * @private
+   */
   #scheduleHoverCardHide() {
     // An open share popover hangs off the card, so the pointer leaving the card doesn't mean the user is done with
-    // it. Hiding here would take the popover down mid-choice.
+    // it. Hiding here would take the popover down mid-choice; #handleShareDismissed re-arms once it closes.
     if (this.#hoverCardHideTimer !== null || this.#shareWidget?.isOpen()) return;
     this.#hoverCardHideTimer = setTimeout(() => {
       this.#hoverCardHideTimer = null;
