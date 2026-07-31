@@ -661,6 +661,8 @@ class ContextMenu {
     const trigger = document.getElementById('context-menu-share');
     if (!trigger || typeof ShareWidget === 'undefined') return;
     trigger.addEventListener('click', () => {
+      // Only the opening click. The same handler runs on the click that dismisses the popover, which is not a share.
+      if (this.#shareWidget?.isOpen()) return;
       svl.tracker.push('Click_LabelCardShare', { labelType: this.#getStatus('targetLabel')?.getLabelType() });
     });
     // Same submit-then-share path as the collapsed card: this menu opens the moment a label is placed, which is the

@@ -6,6 +6,10 @@ class Canvas {
   // travel from the icon onto the card (e.g. to reach its Edit/Delete buttons) without the card vanishing mid-way.
   static #HOVER_CARD_HIDE_DELAY_MS = 200;
 
+  // How long a share click will wait on a just-placed label's crop before opening the popover regardless. Short
+  // enough that the button still feels like it responded to the click.
+  static #CROP_WAIT_CAP_MS = 800;
+
   #ribbon;
   #ctx;
   #hoverCardHideTimer = null;
@@ -384,9 +388,14 @@ class Canvas {
     const trigger = svl.ui.canvas.hoverCardShare?.[0];
     if (!trigger || typeof ShareWidget === 'undefined') return;
 
-    // The card as a whole opens the context menu; sharing must not also do that. Mirrors the Edit button above.
-    trigger.addEventListener('click', (e) => {
-      e.stopPropagation();
+    // The card as a whole opens the context menu; nothing in the share control may also do that. The listener goes
+    // on the wrapper, not the trigger: ShareWidget builds its popover inside the wrapper, so the menu items are
+    // descendants of the card too, and a guard on the trigger alone lets "Copy link" open the context menu.
+    trigger.parentElement?.addEventListener('click', (e) => e.stopPropagation());
+
+    trigger.addEventListener('click', () => {
+      // Only the opening click. The same handler runs on the click that dismisses the popover, which is not a share.
+      if (this.#shareWidget?.isOpen()) return;
       svl.tracker.push('Click_LabelCardShare', { labelType: this.getCurrentLabel()?.getLabelType() });
     });
 
@@ -442,6 +451,11 @@ class Canvas {
    * the branded placeholder) when no crop is on disk, and caches whatever it built there permanently. Sharing a
    * label the instant it is placed is exactly the race that would bake that fallback in for good.
    *
+   * That wait is capped, though. The upload sleeps a fixed 3s when the canvas hasn't produced a crop yet, and a
+   * share button that does nothing for three seconds reads as broken. Past the cap the popover opens anyway: the
+   * link works, and ImageController drops the cached preview when the crop does land, so the picture corrects
+   * itself on the next fetch. A stalled button would not.
+   *
    * @param {Label} label - The label about to be shared.
    * @returns {Promise<void>}
    */
@@ -449,7 +463,10 @@ class Canvas {
     if (!label || Number.isInteger(label.getProperty('labelId'))) return;
     await svl.form.submitData();
     if (!Number.isInteger(label.getProperty('labelId'))) return;
-    await label.cropUploaded();
+    await Promise.race([
+      label.cropUploaded(),
+      new Promise((resolve) => setTimeout(resolve, Canvas.#CROP_WAIT_CAP_MS)),
+    ]);
   }
 
   #scheduleHoverCardHide() {
@@ -609,6 +626,11 @@ class Canvas {
 
     // A definitive show/hide supersedes any pending grace-period hide.
     this.#cancelScheduledHoverCardHide();
+
+    // Take the share popover down with the card. It is a child of the card, so hiding the card alone would leave it
+    // invisible but still open — blocking every later #scheduleHoverCardHide, which waits on isOpen(). The
+    // grace-period hide is the one path that must not do this; it defers to the open popover instead.
+    if (!label) this.#shareWidget?.close();
 
     // Hide the hover info on all the labels.
     const labels = svl.labelContainer.getCanvasLabels();

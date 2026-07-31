@@ -90,11 +90,32 @@ class ShareWidget {
   }
 
   /**
+   * Closes the popover if it is open, without moving focus.
+   *
+   * For a host that takes its panel away on its own terms — a keyboard shortcut, a pan, a jump to another label.
+   * The popover lives inside that panel, so hiding the panel would otherwise leave this widget believing it is
+   * still open: its document listeners stay armed, and every `isOpen()` caller keeps getting `true`.
+   *
+   * Focus is left alone deliberately: the panel holding the trigger is being hidden, so returning focus to it would
+   * land focus on an invisible element.
+   */
+  close() {
+    if (this.#open) this.#closePopover(false);
+  }
+
+  /**
    * Handles a trigger activation: log the click, then use the native share sheet on touch-primary devices that
    * support it, otherwise toggle the custom popover.
    * @private
    */
   async #onTriggerClick() {
+    // A click while the popover is up is a dismissal, not a share. Taken before anything else so it neither logs a
+    // second Share_Click nor re-runs the host's beforeOpen step for a target that is already resolved.
+    if (this.#open) {
+      this.#closePopover();
+      return;
+    }
+
     this.#log('Share_Click');
 
     // Give the host a chance to bring the target into being first (see opts.beforeOpen). Guarded against a second
@@ -128,7 +149,7 @@ class ShareWidget {
       navigator.share(data).catch(() => { /* User dismissed the sheet; nothing to do. */ });
       return;
     }
-    this.#togglePopover();
+    this.#openPopover();
   }
 
   /**
@@ -178,12 +199,6 @@ class ShareWidget {
   #setPlatformHidden(platform, hidden) {
     const item = this.#popover.querySelector(`[data-share-platform="${platform}"]`);
     if (item) item.hidden = hidden;
-  }
-
-  /** @private */
-  #togglePopover() {
-    if (this.#open) this.#closePopover();
-    else this.#openPopover();
   }
 
   /**

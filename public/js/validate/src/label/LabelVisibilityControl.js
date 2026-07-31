@@ -129,6 +129,9 @@ class LabelVisibilityControl {
    */
   hideLabelCard() {
     this.#cancelScheduledCardHide();
+    // The share popover hangs off the card, so it goes too. Left open it would be invisible but still armed, and
+    // every later scheduleHideLabelCard would defer to it forever.
+    svv.labelCard?.closeSharePopover();
     this.#cardVisible = false;
     this.#card[0].style.visibility = 'hidden';
   }

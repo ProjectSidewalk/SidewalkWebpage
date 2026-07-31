@@ -439,6 +439,54 @@ describe('ShareWidget', () => {
         });
     });
 
+    describe('close', () => {
+        test('closes an open popover and reports it, so a host can take its panel away cleanly', () => {
+            const widget = buildWidget();
+            trigger.click();
+            expect(widget.isOpen()).toBe(true);
+
+            widget.close();
+
+            expect(widget.isOpen()).toBe(false);
+            expect(popover().hidden).toBe(true);
+            // Focus is deliberately left where it is: the panel holding the trigger is being hidden.
+            expect(document.activeElement).not.toBe(trigger);
+        });
+
+        test('is a no-op when nothing is open', () => {
+            const widget = buildWidget();
+            expect(() => widget.close()).not.toThrow();
+            expect(widget.isOpen()).toBe(false);
+        });
+    });
+
+    describe('the dismissing click', () => {
+        test('does not log a second Share_Click', () => {
+            buildWidget();
+            trigger.click();
+            trigger.click();
+
+            const shareClicks = window.logWebpageActivity.mock.calls.filter((c) => c[0] === 'Share_Click');
+            expect(shareClicks).toHaveLength(1);
+        });
+
+        test('does not re-run the host beforeOpen step', async () => {
+            const beforeOpen = jest.fn().mockResolvedValue(undefined);
+            const widget = new ShareWidget(trigger, { beforeOpen });
+            widget.setTarget(TARGET);
+
+            trigger.click();
+            await flushPromises();
+            expect(widget.isOpen()).toBe(true);
+
+            trigger.click(); // Dismiss.
+            await flushPromises();
+
+            expect(widget.isOpen()).toBe(false);
+            expect(beforeOpen).toHaveBeenCalledTimes(1);
+        });
+    });
+
     // Explore's just-placed labels have no server-side id until the next form submit, so the host is given a chance
     // to produce the target before the popover reads it (#4726).
     describe('beforeOpen', () => {
@@ -497,6 +545,73 @@ describe('ShareWidget', () => {
             expect(popover()).toBeNull();
             expect(trigger.classList.contains('is-pending')).toBe(false);
             errSpy.mockRestore();
+        });
+    });
+
+    // Explore's hover card is one big click target that opens the label's context menu, and ShareWidget builds its
+    // popover inside the trigger's wrapper — so every menu item is a descendant of that card. Canvas.js guards the
+    // whole wrapper for this reason; a guard on the trigger alone lets "Copy link" open the context menu (#4726).
+    describe('containment inside a clickable host panel', () => {
+        let panelClick;
+
+        beforeEach(() => {
+            document.body.innerHTML = `
+                <div id="host-panel">
+                  <div class="label-detail__share">
+                    <button type="button" class="label-detail__share-trigger"></button>
+                  </div>
+                </div>`;
+            trigger = document.querySelector('.label-detail__share-trigger');
+            panelClick = jest.fn();
+            document.getElementById('host-panel').addEventListener('click', panelClick);
+            // The guard Canvas.js installs: on the wrapper, so it covers the popover as well as the trigger.
+            trigger.parentElement.addEventListener('click', (e) => e.stopPropagation());
+        });
+
+        test('the popover is built inside the trigger wrapper, which is why the wrapper is what hosts guard', () => {
+            buildWidget();
+            trigger.click();
+            expect(popover().closest('.label-detail__share')).toBe(trigger.parentElement);
+        });
+
+        test('guarding only the trigger is not enough — the menu items still reach the panel', () => {
+            // The shape of the original bug. Rebuild with the narrower guard and show it leaks.
+            document.getElementById('host-panel').innerHTML =
+                '<div class="label-detail__share">'
+                + '<button type="button" class="label-detail__share-trigger"></button></div>';
+            trigger = document.querySelector('.label-detail__share-trigger');
+            trigger.addEventListener('click', (e) => e.stopPropagation());
+
+            buildWidget();
+            trigger.click();
+            expect(panelClick).not.toHaveBeenCalled(); // The trigger itself is covered...
+
+            item('share.on-facebook').click();
+            expect(panelClick).toHaveBeenCalledTimes(1); // ...but its menu is not.
+        });
+
+        test('a click on the trigger does not reach the panel', () => {
+            buildWidget();
+            trigger.click();
+            expect(panelClick).not.toHaveBeenCalled();
+        });
+
+        test('a click on a share menu item does not reach the panel', () => {
+            buildWidget();
+            trigger.click();
+            item('share.on-facebook').click();
+
+            expect(window.open).toHaveBeenCalledTimes(1); // The share itself still happened.
+            expect(panelClick).not.toHaveBeenCalled();
+        });
+
+        test('a click on Copy link does not reach the panel', () => {
+            buildWidget();
+            trigger.click();
+            item('share.copy-link').click();
+
+            expect(navigator.clipboard.writeText).toHaveBeenCalledWith(TARGET.url);
+            expect(panelClick).not.toHaveBeenCalled();
         });
     });
 });

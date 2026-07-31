@@ -21,6 +21,8 @@ class LabelCard {
   #description;
   #noInfo;
   #shareWidget;
+  /** @type {?string} The rendered label's type, for the share click's analytics note. */
+  #labelType = null;
 
   constructor() {
     this.#card = $('#label-card');
@@ -49,7 +51,11 @@ class LabelCard {
     const trigger = document.getElementById('label-card-share');
     if (trigger && typeof ShareWidget !== 'undefined') {
       this.#shareWidget = new ShareWidget(trigger);
-      trigger.addEventListener('click', () => svv.tracker.push('Click_LabelCardShare'));
+      trigger.addEventListener('click', () => {
+        // Only the opening click, and carrying the label type so the note matches Explore's.
+        if (this.#shareWidget.isOpen()) return;
+        svv.tracker.push('Click_LabelCardShare', { labelType: this.#labelType });
+      });
     }
   }
 
@@ -63,6 +69,15 @@ class LabelCard {
   }
 
   /**
+   * Closes the card's share popover. Called when something takes the card away outright — the H key, a pan, a move
+   * to the next label — since the popover is a child of the card and would otherwise be left invisible but still
+   * open, which permanently blocks the hide timer that waits on isSharePopoverOpen().
+   */
+  closeSharePopover() {
+    this.#shareWidget?.close();
+  }
+
+  /**
    * Fills the card in for the given label. Called once per label, when it is rendered onto the pano.
    *
    * @param {Label} label The label whose information the card should show.
@@ -72,6 +87,7 @@ class LabelCard {
     const severity = label.getAuditProperty('severity');
     const description = label.getAuditProperty('description');
     const tags = label.getAuditProperty('tags');
+    this.#labelType = labelType;
 
     this.#icon.attr('src', util.misc.getIconImagePaths(labelType).iconImagePath);
     this.#type.text(i18next.t(`common:${util.camelToKebab(labelType)}`).replace('&shy;', ''));
