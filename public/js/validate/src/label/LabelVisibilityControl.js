@@ -128,12 +128,24 @@ class LabelVisibilityControl {
   }
 
   /**
-   * Shows the label card beside the label's marker.
+   * True while the label card is showing. Distinct from isVisible(), which is about the label itself.
    */
-  showLabelCard() {
+  isCardVisible() {
+    return this.#cardVisible;
+  }
+
+  /**
+   * Shows the label card beside the label's marker.
+   *
+   * @param {Object} [options]
+   * @param {boolean} [options.viaKeyboard] The card was opened from the keyboard (Tab onto the marker, or Enter/
+   *     Space on it) rather than by pointer. Logged under its own event name, the way the H key's hide is —
+   *     see docs/logged-events.md.
+   */
+  showLabelCard({ viaKeyboard = false } = {}) {
     this.cancelScheduledCardHide();
     if (!this.#anchorCard()) return;
-    if (!this.#cardVisible) svv.tracker.push('MouseOver_Label');
+    if (!this.#cardVisible) svv.tracker.push(viaKeyboard ? 'KeyboardShortcut_ShowLabelCard' : 'MouseOver_Label');
     this.#cardVisible = true;
     this.#card[0].style.visibility = 'visible';
     this.#setMarkerExpanded(true);
@@ -183,11 +195,14 @@ class LabelVisibilityControl {
   }
 
   /**
-   * Toggles the card. The mobile pano has no hover, so a tap on the marker opens and closes it.
+   * Toggles the card. The mobile pano has no hover, so a tap on the marker opens and closes it; on desktop this is
+   * Enter/Space on the focused marker.
+   *
+   * @param {Object} [options] Forwarded to showLabelCard — see its viaKeyboard note.
    */
-  toggleLabelCard() {
+  toggleLabelCard(options) {
     if (this.#cardVisible) this.hideLabelCard();
-    else this.showLabelCard();
+    else this.showLabelCard(options);
   }
 
   /**
@@ -213,9 +228,13 @@ class LabelVisibilityControl {
   /**
    * Mirrors the card's visibility onto the marker's aria-expanded, so a screen reader hears whether pressing the
    * marker will open or close the card. Looked up fresh each time: the marker is recreated on viewer swaps.
+   *
+   * Only the desktop marker is a disclosure button (PanoMarker gives it its ARIA); the mobile one is a plain touch
+   * target, and stamping aria-expanded on it would be state for a role it doesn't claim.
    */
   #setMarkerExpanded(expanded) {
-    document.getElementById('validate-pano-marker')?.setAttribute('aria-expanded', String(expanded));
+    const marker = document.getElementById('validate-pano-marker');
+    if (marker?.getAttribute('role') === 'button') marker.setAttribute('aria-expanded', String(expanded));
   }
 
   /**

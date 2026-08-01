@@ -61,6 +61,8 @@ describe('KeyboardManager label-card scope', () => {
             labelVisibilityControl: {
                 hideLabelCard: jest.fn(),
                 toggleLabelCard: jest.fn(),
+                // The card starts open in most tests; the Escape-against-nothing case flips this.
+                isCardVisible: () => true,
                 isVisible: () => true,
                 hideLabel: jest.fn(),
                 unhideLabel: jest.fn(),
@@ -82,6 +84,13 @@ describe('KeyboardManager label-card scope', () => {
             expect(ev.defaultPrevented).toBe(true);
         });
 
+        it('marks the toggle as a keyboard open, so it is not logged as a pointer hover', () => {
+            key('Enter', marker());
+
+            expect(window.svv.labelVisibilityControl.toggleLabelCard)
+                .toHaveBeenCalledWith({ viaKeyboard: true });
+        });
+
         it('Space on the marker toggles the card', () => {
             const ev = key('Space', marker());
 
@@ -94,6 +103,17 @@ describe('KeyboardManager label-card scope', () => {
             key('Escape', cardButton());
 
             expect(window.svv.labelVisibilityControl.hideLabelCard).toHaveBeenCalledTimes(1);
+            expect(window.svv.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_HideLabelCard', expect.anything());
+            expect(document.activeElement).toBe(marker());
+        });
+
+        it('Escape with the card already closed logs nothing, but still keeps focus on the marker', () => {
+            window.svv.labelVisibilityControl.isCardVisible = () => false;
+            marker().focus();
+            key('Escape', marker());
+
+            expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+            expect(window.svv.tracker.push).not.toHaveBeenCalled();
             expect(document.activeElement).toBe(marker());
         });
 

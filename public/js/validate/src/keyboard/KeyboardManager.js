@@ -116,12 +116,16 @@ class KeyboardManager {
     const card = document.getElementById('label-card');
     if (e.target === marker || (card && card.contains(e.target))) {
       if (e.code === 'Escape') {
-        svv.labelVisibilityControl.hideLabelCard();
+        // Guarded, not unconditional: Escape on a focused marker with the card already closed is a common reflex,
+        // and logging a dismissal for it would pad the event with no-ops. Focus still returns to the marker.
+        if (svv.labelVisibilityControl.isCardVisible()) {
+          svv.labelVisibilityControl.hideLabelCard();
+          svv.tracker.push('KeyboardShortcut_HideLabelCard', { keyCode: e.keyCode });
+        }
         marker?.focus();
-        svv.tracker.push('KeyboardShortcut_HideLabelCard', { keyCode: e.keyCode });
       } else if (e.target === marker && ['Enter', 'NumpadEnter', 'Space'].includes(e.code)) {
         e.preventDefault(); // Space would otherwise also scroll the page.
-        svv.labelVisibilityControl.toggleLabelCard();
+        svv.labelVisibilityControl.toggleLabelCard({ viaKeyboard: true });
       }
       return;
     }
