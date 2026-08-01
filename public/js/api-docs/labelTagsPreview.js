@@ -16,9 +16,10 @@
     apiPath: '/v3/api',
     apiDocsPath: '/v3/api-docs',
     endpoint: '/labelTags',
-    imageBasePath: '/assets/images/examples/tags',
     displayMode: 'detailed', // "detailed" or "summary"
   };
+
+  const PLACEHOLDER_IMAGE = '/assets/images/examples/placeholder.png';
 
   /**
    * The anchor id for a label type's detailed section, e.g. "label-type-curb-ramp". Used both as the heading id in
@@ -40,7 +41,6 @@
      * @param {string} [options.containerId] - ID of the container element
      * @param {number} [options.maxWidth] - Maximum width for the preview container
      * @param {string} [options.endpoint] - API endpoint for label tags
-     * @param {string} [options.imageBasePath] - Base path for tag images
      * @param {string} [options.displayMode] - Display mode: "detailed" (default) or "summary"
      */
     setup(options) {
@@ -204,16 +204,17 @@
           const imageCell = document.createElement('td');
           imageCell.className = 'tag-image';
 
-          // Create image element.
+          // Create image element. Walk the candidate URLs on each failure so a country's override wins over the
+          // shared default, and a tag with no example at all lands on the placeholder rather than a broken image.
+          const candidates = [...util.misc.getTagExampleImageUrls(tag.label_type, tag.tag), PLACEHOLDER_IMAGE];
           const img = document.createElement('img');
-          img.src = `${config.imageBasePath}/${tag.id}.png`;
+          img.src = candidates.shift();
           img.alt = `${tag.tag} tag image`;
           img.width = 150;
-          // img.height = 50;
           img.onerror = function () {
-            // Replace with placeholder if image fails to load.
-            this.src = '/assets/images/examples/tags/placeholder.png';
-            this.alt = 'Image not available';
+            if (candidates.length === 0) return;
+            this.src = candidates.shift();
+            if (candidates.length === 0) this.alt = 'Image not available';
           };
 
           imageCell.appendChild(img);

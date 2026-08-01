@@ -79,7 +79,7 @@ class DesktopValidationMenu {
             const translatedTagName = i18next.t(`common:tag.${item.tag_name.replace(/:/g, '-')}`);
             const $tagDiv = $(`<div class="option tag-pill tag-pill--interactive">${escape(translatedTagName)}</div>`);
             const tooltipText = `"${translatedTagName}" example`;
-            this.#addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${item.tag_id}.png`);
+            this.#addTagTooltip($tagDiv, tooltipText, item);
             return $tagDiv[0];
           },
         },
@@ -286,6 +286,24 @@ class DesktopValidationMenu {
   }
 
   /**
+   * Adds a tooltip showing a tag's example image, using the first candidate URL that resolves.
+   *
+   * Takes the tag object rather than its name because an example image is scoped to (label type, tag): six tag names
+   * are shared by two label types each and illustrate something different in each.
+   *
+   * @param {jQuery} $elem Element to add the tooltip to, as jquery wrapped object.
+   * @param {string} tooltipText Text to display above the image.
+   * @param {object} tag Tag object from svv.tagsByLabelType, with `tag_name` and `label_type_id`.
+   */
+  #addTagTooltip($elem, tooltipText, tag) {
+    const urls = util.misc.getTagExampleImageUrls(svv.labelTypes[tag.label_type_id], tag.tag_name);
+    urls.slice(1)
+      .reduce((image, url) => image.catch(() => util.getImage(url)), util.getImage(urls[0]))
+      .then((img) => this.#addTooltip($elem, tooltipText, img))
+      .catch(() => this.#addTooltip($elem, tooltipText));
+  }
+
+  /**
    * Adds a jquery tooltip to the given element with the given text and image (if given).
    * @param {jQuery} $elem Element to add the tooltip to, as jquery wrapped object.
    * @param {string} tooltipText Text to display in the tooltip.
@@ -363,9 +381,8 @@ class DesktopValidationMenu {
       $tagDiv.children('.remove-tag-x').click((e) => this.#removeTagListener(e, label));
 
       // Add an example image tooltip to the tag.
-      const tagId = allTagOptions.find((t) => t.tag_name === tag).tag_id;
       const tooltipText = `"${translatedTagName}" example`;
-      this.#addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${tagId}.png`);
+      this.#addTagTooltip($tagDiv, tooltipText, allTagOptions.find((t) => t.tag_name === tag));
 
       // Add to current list of tags, and remove from options for new tags to add.
       menuUI.currentTags.append($tagDiv);
@@ -435,7 +452,7 @@ class DesktopValidationMenu {
 
         // Show tooltip with example image for the tag.
         const tooltipText = `"${translatedTagName}" example`;
-        this.#addTooltip(template, tooltipText, `/assets/images/examples/tags/${tag.tag_id}.png`);
+        this.#addTagTooltip(template, tooltipText, tag);
 
         // Add onclick to the tag to add or remove it if the user clicks to accept the AI suggestion.
         template.on('click', () => {
@@ -472,7 +489,7 @@ class DesktopValidationMenu {
       const $button = $(severityButton);
       const sev = severityButton.dataset.severity;
       const tooltipText = i18next.t(`common:${tooltipKey}-${sev}`);
-      const tooltipImage = `/assets/images/examples/severity/${labelType}_Severity${sev}.png`;
+      const tooltipImage = util.misc.getSeverityExampleImageUrl(labelType, sev);
       $button.tooltip('destroy');
       this.#addTooltip($button, tooltipText, tooltipImage);
 

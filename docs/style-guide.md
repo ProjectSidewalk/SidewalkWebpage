@@ -162,6 +162,24 @@ file `<icon>-<set>.svg` (`map-pin-feather.svg`, `comment-material.svg`). These S
 (`#242424` for the standard dark icon), so a different color is a **separate file** with a color qualifier
 (`chevron-left-white-feather.svg`) rather than a CSS override.
 
+**Example imagery.** The photos that teach a tag, a severity level, or a Validate "why not?" reason live under
+`public/images/examples/`, named for **what they depict** rather than for a database id (#4723):
+
+```
+examples/<LabelType>/tag-<slug>.png        examples/SurfaceProblem/tag-height-difference.png
+examples/<LabelType>/severity-<1|2|3>.png  examples/CurbRamp/severity-2.png
+examples/<LabelType>/{disagree,unsure}-<n>.png   keyed by the Validate button, e.g. Obstacle/disagree-1.png
+examples/_common/<name>.png                reasons shared by every label type
+examples/<country-id>/<LabelType>/…        a country's override of any of the above
+```
+
+The `<LabelType>` directory is PascalCase for the same reason a backend-sourced `id` is (above): it *is* the
+`label_type` the API returns, so `${labelType}` interpolates straight in. Scoping by label type is required rather
+than cosmetic — `tag` is `UNIQUE (label_type_id, tag)`, so six tag names belong to two label types each and illustrate
+something different in each. Never build one of these paths by hand: `util.misc.getTagExampleImageUrls`,
+`getSeverityExampleImageUrl`, and `getValidateReasonExampleImageUrl` own the slug rule and the override fallback, and
+`make lint-example-images` reconciles the tree against the `tag` table using the same functions the app calls.
+
 **Deferred namespace mismatch:** the reorg renamed the app *directories* (`SVLabel → explore`, `SVValidate →
 validate`, `Progress → user-dashboard`), but the apps' internal JS namespace **globals** `svl` (Explore) and `sg`
 (Gallery) are identifiers, not filenames, and were intentionally left as-is — renaming them is a large independent

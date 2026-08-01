@@ -1,7 +1,7 @@
 .PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop test-python \
         import-users import-dump create-new-schema fill-new-schema hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-neighborhoods \
-        lint lint-fix lint-evolutions lint-locales scalafmt scalafmt-fix \
+        lint lint-fix lint-evolutions lint-locales lint-example-images scalafmt scalafmt-fix \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
         lint-eslint lint-htmlhint lint-stylelint lint-fix-eslint lint-fix-stylelint
 
@@ -139,6 +139,17 @@ lint-locales:
 	@echo "Checking locale parity...";
 	@docker exec $(web-container) bash -lc "cd /home && node tools/check-locale-parity.mjs"
 	@echo "Finished checking locale parity";
+
+# Reconciles public/images/examples/ against the `tag` table: which tags still have no example image, and which files
+# nothing can ask for. Needs both containers — the tag list comes from psql on the host side and is piped into node in
+# the web container. Not a CI gate, since CI has no seeded DB; run it after touching tags or example imagery.
+lint-example-images:
+	@echo "Checking example images...";
+	@schema=$$(docker exec $(web-container) bash -lc 'echo $$DATABASE_USER' | tr -d '\r'); \
+	docker exec $(db-container) psql -U "$$schema" -d sidewalk -tAF'\t' -c \
+		"SELECT label_type, tag FROM $$schema.tag JOIN $$schema.label_type USING (label_type_id) ORDER BY 1, 2" \
+		| docker exec -i $(web-container) bash -lc "cd /home && node tools/check-example-images.mjs"
+	@echo "Finished checking example images";
 
 # Scala formatting (.scalafmt.conf). The sbt thin client (`--client`) shares the running `sbt ~ run`'s server instead
 # of colliding with it over build locks. `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats in place.

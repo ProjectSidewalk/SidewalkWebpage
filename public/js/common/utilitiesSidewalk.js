@@ -617,6 +617,77 @@ function UtilitiesMisc(JSON) {
     return category ? colors[category].fillStyle : colors;
   }
 
+  // Example imagery lives at /assets/images/examples/<LabelType>/<name>.png, keyed by what it depicts rather than by
+  // a database id (#4723). Label-type dirs keep the PascalCase spelling the rest of the codebase uses for a label
+  // type, so `${labelType}` interpolates straight in and can't drift from the `label_type` the API returns.
+  const EXAMPLE_IMAGE_BASE = '/assets/images/examples';
+
+  // Countries that ship their own photos for some tags, as the country-id from cityparams.conf that already selects
+  // the -india / -zurich locale overrides. Listed rather than probed so servers elsewhere don't 404 on every tag;
+  // `make lint-example-images` fails if this drifts from the override dirs actually present under examples/.
+  const COUNTRIES_WITH_EXAMPLE_OVERRIDES = ['india', 'switzerland'];
+
+  /**
+   * Converts a tag string into the slug used in its example image's filename.
+   *
+   * Tag strings aren't filename-safe: 14 of them contain `/` ("trash/recycling can"), 6 contain `:` ("cycle lane:
+   * parked car"), and one a comma. Every run of non-alphanumeric characters collapses to a single dash, so
+   * "debris / pooled water" and "cycle lane: parked car" become "debris-pooled-water" and "cycle-lane-parked-car".
+   *
+   * @param {string} tag - Tag string exactly as the server sends it, e.g. "trash/recycling can".
+   * @returns {string} The slug, e.g. "trash-recycling-can".
+   */
+  function tagSlug(tag) {
+    return tag.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  }
+
+  /**
+   * Returns the example-image URLs to try for a tag, best match first.
+   *
+   * A country that overrides this tag comes first and the shared default second, so callers fall back by walking the
+   * list. Scoping by label type is required, not cosmetic: `tag` is UNIQUE per (label_type, tag), so six tag names —
+   * "narrow", "bumpy", "construction", "height difference", "brick/cobblestone", "rail/tram track" — belong to two
+   * label types each and illustrate different things in each.
+   *
+   * @param {string} labelType - Label type in PascalCase, e.g. "SurfaceProblem".
+   * @param {string} tag - Tag string as the server sends it, e.g. "height difference".
+   * @returns {Array<string>} One or two asset URLs, most specific first.
+   */
+  function getTagExampleImageUrls(labelType, tag) {
+    const urls = [];
+    if (COUNTRIES_WITH_EXAMPLE_OVERRIDES.includes(window.countryId)) {
+      urls.push(`${EXAMPLE_IMAGE_BASE}/${window.countryId}/${labelType}/tag-${tagSlug(tag)}.png`);
+    }
+    urls.push(`${EXAMPLE_IMAGE_BASE}/${labelType}/tag-${tagSlug(tag)}.png`);
+    return urls;
+  }
+
+  /**
+   * Returns the example-image URL for a severity/quality level.
+   *
+   * @param {string} labelType - Label type in PascalCase, e.g. "CurbRamp".
+   * @param {number|string} severity - 1, 2, or 3.
+   * @returns {string} The asset URL.
+   */
+  function getSeverityExampleImageUrl(labelType, severity) {
+    return `${EXAMPLE_IMAGE_BASE}/${labelType}/severity-${severity}.png`;
+  }
+
+  /**
+   * Returns the example-image URL for one of Validate's "why not?" / "not sure" buttons.
+   *
+   * Keyed by the button the image belongs to, matching the `<reason>-button-<n>` ids and the
+   * `validate-menu.<reason>-reason.*` translation keys, so the three can't fall out of step.
+   *
+   * @param {string} reason - "disagree" or "unsure".
+   * @param {number|string} buttonNumber - The button's 1-based number.
+   * @param {?string} [labelType] - Label type in PascalCase; omit for the reasons shared by every label type.
+   * @returns {string} The asset URL.
+   */
+  function getValidateReasonExampleImageUrl(reason, buttonNumber, labelType) {
+    return `${EXAMPLE_IMAGE_BASE}/${labelType || '_common'}/${reason}-${buttonNumber}.png`;
+  }
+
   /**
    * Converts a distance in meters to a localized, rounded display string in the user's measurement system.
    * @param {number} distanceInMeters - The distance in meters.
@@ -640,6 +711,11 @@ function UtilitiesMisc(JSON) {
   self.getSeverityLevelColors = getSeverityLevelColors;
   self.getRatingLevelKeys = getRatingLevelKeys;
   self.getLabelColors = getLabelColors;
+  self.tagSlug = tagSlug;
+  self.COUNTRIES_WITH_EXAMPLE_OVERRIDES = COUNTRIES_WITH_EXAMPLE_OVERRIDES;
+  self.getTagExampleImageUrls = getTagExampleImageUrls;
+  self.getSeverityExampleImageUrl = getSeverityExampleImageUrl;
+  self.getValidateReasonExampleImageUrl = getValidateReasonExampleImageUrl;
   self.reportNoImagery = reportNoImagery;
 
   return self;

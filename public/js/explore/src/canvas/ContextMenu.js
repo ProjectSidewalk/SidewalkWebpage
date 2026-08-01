@@ -467,26 +467,11 @@ class ContextMenu {
             // Remove old tooltip for that button.
             this.#tagHolder.find(`button[id=${buttonIdx}]`).tooltip('destroy');
 
-            // Add tooltip with tag example if we have an example image to show.
-            // If there's a server-specific image, try that first. Get default image as a backup.
-            let exampleImage;
-            const imageUrl = `/assets/images/examples/tags/${tag.tag_id}.png`;
-            let citySpecificImageUrl;
-            if (window.cityId === 'chandigarh-india') {
-              citySpecificImageUrl = `/assets/images/examples/tags/india/${tag.tag_id}.png`;
-            } else if (['zurich', 'zurich-infra3d', 'staging'].includes(window.cityId)) {
-              citySpecificImageUrl = `/assets/images/examples/tags/zurich/${tag.tag_id}.png`;
-            }
-
-            // Try the server-specific image, getting normal image as a backup.
-            if (citySpecificImageUrl) {
-              exampleImage = util.getImage(citySpecificImageUrl)
-                .catch(() => {
-                  return getImage(imageUrl);
-                });
-            } else {
-              exampleImage = util.getImage(imageUrl);
-            }
+            // Add tooltip with tag example if we have an example image to show. Walk the candidate URLs in order so
+            // a country that overrides this tag's photo wins over the shared default.
+            const exampleUrls = util.misc.getTagExampleImageUrls(tag.label_type, tag.tag);
+            const exampleImage = exampleUrls.slice(1)
+              .reduce((image, url) => image.catch(() => util.getImage(url)), util.getImage(exampleUrls[0]));
 
             // Now that we have the image, create the tooltip.
             exampleImage.then((img) => {
@@ -549,7 +534,7 @@ class ContextMenu {
       : 'severity-example-tooltip';
     for (let sev = 1; sev < 4; sev++) {
       // Add severity tooltips for the current label type if we have images for them.
-      util.getImage(`/assets/images/examples/severity/${labelType}_Severity${sev}.png`).then((img) => {
+      util.getImage(util.misc.getSeverityExampleImageUrl(labelType, sev)).then((img) => {
         const tooltipHeader = i18next.t(`common:${tooltipKey}-${sev}`);
         const tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`;
         // 'auto top' flips the tooltip below the button if it would clip the viewport top.
