@@ -72,7 +72,8 @@ vocabulary mirrors the Gallery filter events (`SeverityApply`, `TagApply`, `Vali
 `MapSidebar_TagApply_labelType=<type>_tag=<tag>`, `MapSidebar_StreetApply_street=<audited|unaudited>` (each with an
 `Unapply` twin), `MapSidebar_SelectAll_section=<…>` / `…DeselectAll…`, `MapSidebar_Only_section=<…>_value=<…>`,
 `MapSidebar_NotAdminValidated_checked=<bool>`, and `MapSidebar_Open` / `MapSidebar_Close`. These fire on every page
-that renders the sidebar; use the accompanying page-visit events to segment by page.
+that renders the sidebar; use the accompanying page-visit events to segment by page. `MapSidebar_CopyLink` is the
+LabelMap-only button that copies the current filters + viewport as a shareable URL (#4696).
 
 The Gallery renders the same sidebar (`gallery/src/filter/GalleryFilter.js`) and logs to `gallery_task_interaction`
 under its own names, one `<Section>Apply` / `<Section>Unapply` pair per section with the toggled value in the notes:

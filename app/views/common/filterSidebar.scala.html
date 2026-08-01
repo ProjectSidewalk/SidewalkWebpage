@@ -10,6 +10,8 @@
  * @param showCounts          Whether rows carry a live count slot for the host to fill in.
  * @param withMapChrome       Whether to wrap the sections in the map's panel: collapse button and resize handle.
  *                            Hosts with their own container (the Gallery) pass false and get the sections alone.
+ * @param showCopyLink        Whether to render the "Copy link to this view" button, for hosts that sync the
+ *                            filters and viewport to the URL (the public LabelMap, #4696).
  * @param checkedLabelTypes   Which label type rows start checked; empty means all of them.
  * @param checkedValidations  Which validation rows start checked.
  * @param checkedSeverities   Which severity toggles start pressed, as "0"(N/A) through "3".
@@ -20,6 +22,7 @@
   streetsShownByDefault: Boolean = false,
   showCounts: Boolean = false,
   withMapChrome: Boolean = true,
+  showCopyLink: Boolean = false,
   checkedLabelTypes: Seq[String] = Seq.empty,
   checkedValidations: Seq[String] = Seq("correct", "unsure", "unvalidated"),
   checkedSeverities: Seq[String] = Seq("0", "1", "2", "3"),
@@ -218,6 +221,14 @@
       <img src="@assets.path("images/icons/chevrons-left-feather.svg")" alt="">
     </button>
     @filterSections
+    @if(showCopyLink) {
+      <section class="filter-sidebar__section filter-sidebar__section--copy-link">
+        <button type="button" id="filter-sidebar-copy-link" class="button-ps button--secondary button--small filter-sidebar__copy-link">
+          <img src='@assets.path("images/icons/clipboard_copy.svg")' alt="">
+          <span data-i18n="labelmap:copy-link">Copy link to this view</span>
+        </button>
+      </section>
+    }
   </div>
 
   @* Drag handle on the right edge of the sidebar for resizing. *@

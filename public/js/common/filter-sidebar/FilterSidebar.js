@@ -283,6 +283,27 @@ class FilterSidebar {
   }
 
   /**
+   * Activates tag pills by name on every currently-checked label type that renders them, syncing the partial
+   * glyph and opening the drawer so the restored tags are visible. Pills on unchecked types are skipped —
+   * the same rule the server-rendered restore applies (a tag narrows a type that is being shown), and implying
+   * the type here would re-enable types a `labelTypes` filter had just excluded. Does not fire onChange.
+   * @param {string[]} tagNames The tag names to activate.
+   */
+  applyTags(tagNames) {
+    // Matched on dataset rather than an attribute selector: tag names carry characters (colons, spaces) that
+    // would otherwise need escaping.
+    const wanted = new Set(tagNames);
+    this.#root.querySelectorAll('.tag-pill[data-tag]').forEach((pill) => {
+      const { tag, labelType } = pill.dataset;
+      if (!wanted.has(tag) || !this.#checkboxFor(labelType)?.checked) return;
+      pill.classList.add('tag-pill--active');
+      this.#syncPartialGlyph(labelType);
+      const item = pill.closest('.filter-sidebar__item');
+      if (item) this.#setDrawer(item, true);
+    });
+  }
+
+  /**
    * Clears the tag filters of one label type.
    * @param {string} labelType The label type key.
    */

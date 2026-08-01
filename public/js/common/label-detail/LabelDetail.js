@@ -20,7 +20,10 @@ class LabelDetail {
     const url = new URL(window.location);
     if (labelId) url.searchParams.set('labelId', labelId);
     else url.searchParams.delete('labelId');
-    history.replaceState(null, '', url);
+    // Commas are legal unencoded in a query value; keep any list params (the map/Gallery filters) readable
+    // rather than letting URL serialization re-encode them as %2C.
+    const query = url.searchParams.toString().replace(/%2C/g, ',');
+    history.replaceState(null, '', `${url.pathname}${query ? `?${query}` : ''}${url.hash}`);
   }
 
   /**
