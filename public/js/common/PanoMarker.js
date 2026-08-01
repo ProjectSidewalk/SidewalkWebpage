@@ -146,8 +146,20 @@ class PanoMarker {
     this.listenerViewer_.addListener('pov_changed', this.boundDraw_);
 
     // On Validate, the marker is what opens the label card (its metadata plus the Hide-label toggle). Positioning
-    // and timing live in LabelVisibilityControl; this only reports the pointer.
+    // and timing live in LabelVisibilityControl; this only reports the pointer and the keyboard focus.
     if (this.id_ === 'validate-pano-marker') {
+      // The marker is a keyboard stop, not just a hover target (#4729): the card it opens is the only place the
+      // label's rating, tags, and description appear. role=button with aria-expanded makes it read as a disclosure,
+      // and aria-describedby hands a screen reader the card's contents right off the marker — the card itself never
+      // takes focus. Its aria-label (the label's type) is set per label by PanoManager.renderPanoMarker. Enter,
+      // Space, and Escape are handled in Validate's KeyboardManager, which listens on window with capture and
+      // would otherwise submit a validation on the same keys.
+      marker.setAttribute('tabindex', '0');
+      marker.setAttribute('role', 'button');
+      marker.setAttribute('aria-haspopup', 'dialog');
+      marker.setAttribute('aria-expanded', 'false');
+      marker.setAttribute('aria-describedby', 'label-card');
+
       if (util.isMobile()) {
         marker.addEventListener('touchstart', () => svv.labelVisibilityControl.toggleLabelCard(), false);
       } else {
@@ -160,6 +172,18 @@ class PanoMarker {
         // Scheduled rather than immediate: the card sits beside the marker, so the cursor has to cross a gap to
         // reach it and an instant hide would make the button inside it unclickable.
         marker.addEventListener('mouseout', () => svv.labelVisibilityControl.scheduleHideLabelCard());
+
+        // Keyboard focus opens the card the way hovering does, with the same grace timer on the way out so Tab
+        // can travel from the marker onto the card's controls before the hide fires.
+        marker.addEventListener('focus', (e) => {
+          // Focus returning from inside the card is not an open request: it is either Escape closing the card
+          // (which must stay closed) or Shift+Tab walking back out (whose focusout just scheduled a hide that
+          // this cancel undoes).
+          const card = document.getElementById('label-card');
+          if (card && card.contains(e.relatedTarget)) svv.labelVisibilityControl.cancelScheduledCardHide();
+          else svv.labelVisibilityControl.showLabelCard();
+        });
+        marker.addEventListener('blur', () => svv.labelVisibilityControl.scheduleHideLabelCard());
       }
     }
 

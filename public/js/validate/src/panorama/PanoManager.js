@@ -238,6 +238,12 @@ class PanoManager {
     const marker = this.labelMarker.marker_;
     marker.style.setProperty('--label-icon', `url(${currentLabel.getIconUrl()})`);
     marker.style.setProperty('--label-color', currentLabel.getIconColor());
+    // The marker is a focusable control (#4729, PanoMarker), so name it as the label it opens the card for,
+    // localized the same way the card's header is.
+    marker.setAttribute(
+      'aria-label',
+      i18next.t(`common:${util.camelToKebab(currentLabel.getAuditProperty('labelType'))}`).replace('&shy;', ''),
+    );
     this.#updateMarkerAiIndicator(currentLabel.getAuditProperty('aiGenerated'));
   }
 

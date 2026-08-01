@@ -106,6 +106,26 @@ class KeyboardManager {
    */
   #documentKeyDown = (e) => {
     const validationMenuUi = this.#validationMenuUi;
+
+    // The label's marker and its card form their own keyboard scope (#4729): the marker is a button that toggles
+    // the card, Tab walks through the card's controls, and Escape closes it and puts focus back on the marker.
+    // None of the global shortcuts may fire from inside — Enter especially, which everywhere else submits the
+    // validation and here would submit from a control that means "open". This runs on window with capture, so it
+    // sees the key before the focused control does.
+    const marker = document.getElementById('validate-pano-marker');
+    const card = document.getElementById('label-card');
+    if (e.target === marker || (card && card.contains(e.target))) {
+      if (e.code === 'Escape') {
+        svv.labelVisibilityControl.hideLabelCard();
+        marker?.focus();
+        svv.tracker.push('KeyboardShortcut_HideLabelCard', { keyCode: e.keyCode });
+      } else if (e.target === marker && ['Enter', 'NumpadEnter', 'Space'].includes(e.code)) {
+        e.preventDefault(); // Space would otherwise also scroll the page.
+        svv.labelVisibilityControl.toggleLabelCard();
+      }
+      return;
+    }
+
     // When the user is typing in a comment box, disable keyboard shortcuts that validate a label.
     this.#checkIfTextAreaSelected();
 

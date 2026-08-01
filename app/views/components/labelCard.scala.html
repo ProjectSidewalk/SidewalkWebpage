@@ -5,8 +5,12 @@
 * one populator (js/common/LabelCardView.js); each caller keeps what is genuinely its own — showing, hiding, and
 * anchoring the card, plus the action buttons passed in as the actions block.
 *
-* Ids are kept to the pieces outside code addresses: the card itself and its share trigger. Everything
-* LabelCardView fills in is found by class within the card.
+* Ids are kept to the pieces outside code addresses: the card itself, the type name in its header (the dialog's
+* accessible name), and the share trigger. Everything LabelCardView fills in is found by class within the card.
+*
+* A dialog rather than a tooltip because the card holds controls, not just text (#4729). It never takes focus
+* itself — users Tab into it from whatever opens it — and while hidden its visibility:hidden keeps it out of both
+* the tab order and the accessibility tree, so no aria-hidden bookkeeping is needed.
 *
 * Belongs beside the pano's view-control layer, not inside it: that layer clips its children and reads a mousedown
 * on them as the start of a pano pan.
@@ -19,11 +23,11 @@
 *@
 @(idPrefix: String, showNotRated: Boolean = false, noInfoKey: Option[String] = None)(actions: Html)
 
-<div id="@idPrefix" class="label-anchored-panel label-hover-card">
+<div id="@idPrefix" class="label-anchored-panel label-hover-card" role="dialog" aria-labelledby="@{idPrefix}-type">
   <div class="label-hover-card__header">
     @* Transparent 1x1 placeholder so nothing flashes before the first label is rendered into the card. *@
     <img class="label-hover-card__icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="">
-    <span class="label-hover-card__type"></span>
+    <span id="@{idPrefix}-type" class="label-hover-card__type"></span>
     @components.shareTrigger(id = s"$idPrefix-share", extraClass = "label-hover-card__share")
   </div>
   <div class="label-hover-card__body">
