@@ -93,6 +93,9 @@ class Main {
 
     svl.ribbon = new RibbonMenu(svl.tracker);
     svl.canvas = new Canvas(svl.ribbon);
+    // The shared populator for the hover card's content; Label.#updateHoverCard re-points it per label (#4730).
+    // Explore truncates the description because clicking the label reopens the full text in an editable field.
+    svl.labelCardView = new LabelCardView(svl.ui.canvas.hoverCard[0], { descriptionMaxLength: 90 });
 
     // Warm the label-icon cache up front so canvas renders draw icons in the right order. See Label.preloadIcons.
     svl.iconsPreloaded = Label.preloadIcons();
@@ -515,16 +518,6 @@ class Main {
     svl.ui.canvas = {};
     svl.ui.canvas.drawingLayer = $('#label-drawing-layer');
     svl.ui.canvas.hoverCard = $('#label-hover-card');
-    svl.ui.canvas.hoverCardIcon = $('#label-hover-card-icon');
-    svl.ui.canvas.hoverCardType = $('#label-hover-card-type');
-    svl.ui.canvas.hoverCardBody = $('#label-hover-card-body');
-    svl.ui.canvas.hoverCardSeverity = $('#label-hover-card-severity');
-    svl.ui.canvas.hoverCardSeverityIcon = $('#label-hover-card-severity-icon');
-    svl.ui.canvas.hoverCardSeverityText = $('#label-hover-card-severity-text');
-    svl.ui.canvas.hoverCardNotRated = $('#label-hover-card-not-rated');
-    svl.ui.canvas.hoverCardNotRatedText = $('#label-hover-card-not-rated-text');
-    svl.ui.canvas.hoverCardTags = $('#label-hover-card-tags');
-    svl.ui.canvas.hoverCardDescription = $('#label-hover-card-description');
     svl.ui.canvas.hoverCardDelete = $('#label-hover-card-delete');
     svl.ui.canvas.hoverCardEdit = $('#label-hover-card-edit');
     svl.ui.canvas.hoverCardShare = $('#label-hover-card-share');

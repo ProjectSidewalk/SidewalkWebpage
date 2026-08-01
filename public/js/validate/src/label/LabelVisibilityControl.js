@@ -47,8 +47,15 @@ class LabelVisibilityControl {
     this.#labelVisibilityButtonOnPano.on('click', this.#clickAdjustLabel);
 
     // Keep the card up while the cursor is on it, so its Hide-label button can actually be clicked.
-    this.#card.on('mouseenter', () => this.#cancelScheduledCardHide());
+    this.#card.on('mouseenter', () => this.cancelScheduledCardHide());
     this.#card.on('mouseleave', () => this.scheduleHideLabelCard());
+
+    // Same deal for keyboard focus (#4729): the card holds while focus is inside it, and the grace timer starts
+    // when focus leaves. focusout also fires on moves between the card's own controls, so those are filtered.
+    this.#card.on('focusin', () => this.cancelScheduledCardHide());
+    this.#card.on('focusout', (e) => {
+      if (!this.#card[0].contains(e.relatedTarget)) this.scheduleHideLabelCard();
+    });
 
     // Call unhideLabel() to start the page with showing the 'hide label' button.
     this.unhideLabel();
@@ -121,14 +128,27 @@ class LabelVisibilityControl {
   }
 
   /**
-   * Shows the label card beside the label's marker.
+   * True while the label card is showing. Distinct from isVisible(), which is about the label itself.
    */
-  showLabelCard() {
-    this.#cancelScheduledCardHide();
+  isCardVisible() {
+    return this.#cardVisible;
+  }
+
+  /**
+   * Shows the label card beside the label's marker.
+   *
+   * @param {Object} [options]
+   * @param {boolean} [options.viaKeyboard] The card was opened from the keyboard (Tab onto the marker, or Enter/
+   *     Space on it) rather than by pointer. Logged under its own event name, the way the H key's hide is —
+   *     see docs/logged-events.md.
+   */
+  showLabelCard({ viaKeyboard = false } = {}) {
+    this.cancelScheduledCardHide();
     if (!this.#anchorCard()) return;
-    if (!this.#cardVisible) svv.tracker.push('MouseOver_Label');
+    if (!this.#cardVisible) svv.tracker.push(viaKeyboard ? 'KeyboardShortcut_ShowLabelCard' : 'MouseOver_Label');
     this.#cardVisible = true;
     this.#card[0].style.visibility = 'visible';
+    this.#setMarkerExpanded(true);
   }
 
   /**
@@ -136,12 +156,13 @@ class LabelVisibilityControl {
    * or a move to the next label — as opposed to the cursor merely leaving the marker.
    */
   hideLabelCard() {
-    this.#cancelScheduledCardHide();
+    this.cancelScheduledCardHide();
     // The share popover hangs off the card, so it goes too. Left open it would be invisible but still armed, and
     // every later scheduleHideLabelCard would defer to it forever.
     svv.labelCard?.closeSharePopover();
     this.#cardVisible = false;
     this.#card[0].style.visibility = 'hidden';
+    this.#setMarkerExpanded(false);
   }
 
   /**
@@ -174,11 +195,14 @@ class LabelVisibilityControl {
   }
 
   /**
-   * Toggles the card. The mobile pano has no hover, so a tap on the marker opens and closes it.
+   * Toggles the card. The mobile pano has no hover, so a tap on the marker opens and closes it; on desktop this is
+   * Enter/Space on the focused marker.
+   *
+   * @param {Object} [options] Forwarded to showLabelCard — see its viaKeyboard note.
    */
-  toggleLabelCard() {
+  toggleLabelCard(options) {
     if (this.#cardVisible) this.hideLabelCard();
-    else this.showLabelCard();
+    else this.showLabelCard(options);
   }
 
   /**
@@ -190,10 +214,27 @@ class LabelVisibilityControl {
     if (!this.#anchorCard()) this.hideLabelCard();
   }
 
-  #cancelScheduledCardHide() {
+  /**
+   * Cancels a pending grace-timer hide. Public because the marker's focus handler needs it when focus walks back
+   * out of the card onto the marker (PanoMarker): the card should hold, but must not re-open if Escape just
+   * closed it — which showLabelCard() would do.
+   */
+  cancelScheduledCardHide() {
     if (this.#hideCardTimer === null) return;
     clearTimeout(this.#hideCardTimer);
     this.#hideCardTimer = null;
+  }
+
+  /**
+   * Mirrors the card's visibility onto the marker's aria-expanded, so a screen reader hears whether pressing the
+   * marker will open or close the card. Looked up fresh each time: the marker is recreated on viewer swaps.
+   *
+   * Only the desktop marker is a disclosure button (PanoMarker gives it its ARIA); the mobile one is a plain touch
+   * target, and stamping aria-expanded on it would be state for a role it doesn't claim.
+   */
+  #setMarkerExpanded(expanded) {
+    const marker = document.getElementById('validate-pano-marker');
+    if (marker?.getAttribute('role') === 'button') marker.setAttribute('aria-expanded', String(expanded));
   }
 
   /**
