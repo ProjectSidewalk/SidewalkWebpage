@@ -688,6 +688,153 @@ function UtilitiesMisc(JSON) {
     return `${EXAMPLE_IMAGE_BASE}/${labelType || '_common'}/${reason}-${buttonNumber}.png`;
   }
 
+  // Annotation marks (arrows, type markers, extent bars) are stored as data in examples/annotations.json rather than
+  // painted into the photo, so they can be restyled or repositioned without re-exporting a single raster (#4723).
+  // Author them at /admin/exampleImages.
+  const EXAMPLE_ANNOTATIONS_URL = `${EXAMPLE_IMAGE_BASE}/annotations.json`;
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+
+  // Marks are stored in normalised 0-1 image coordinates and drawn into an SVG viewBox 100 units tall by
+  // 100 * aspectRatio wide. One unit is then the same physical size on both axes, so a mark can't skew with the
+  // image's aspect ratio, and every dimension below reads as a percentage of image height — which is what makes one
+  // stored record correct at 156px in a tooltip and at 1440px in the source tree.
+  const MARK_UNITS_TALL = 100;
+
+  // Mark geometry, in those units. Sized so an arrow still reads at the smallest surface that shows one (the Explore
+  // tag tooltip, ~125px tall): below roughly 6 units the head closes up and the mark turns into a smudge.
+  const MARK_GEOMETRY = {
+    shaftHalfWidth: 1.7,
+    headLength: 8.5,
+    headHalfWidth: 4.6,
+    outlineWidth: 0.9,
+    markerWidth: 13,
+    capHalfLength: 3.2,
+  };
+
+  let exampleAnnotations = null;
+
+  /**
+   * Fetches examples/annotations.json once and caches the promise.
+   *
+   * A missing or malformed manifest resolves to an empty one rather than rejecting: annotations are an enhancement
+   * on top of the photo, so losing them should cost the marks, not the example image.
+   *
+   * @returns {Promise<object>} The manifest, keyed by `<LabelType>/<name>`.
+   */
+  function loadExampleAnnotations() {
+    if (!exampleAnnotations) {
+      exampleAnnotations = fetch(EXAMPLE_ANNOTATIONS_URL)
+        .then((response) => (response.ok ? response.json() : {}))
+        .catch(() => ({}));
+    }
+    return exampleAnnotations;
+  }
+
+  /**
+   * Converts an example image URL into its annotation-manifest key.
+   *
+   * @param {string} url - An example image URL, e.g. "/assets/images/examples/CurbRamp/tag-narrow.png".
+   * @returns {string} The key, e.g. "CurbRamp/tag-narrow". Country overrides resolve to their default's key, since
+   *                   an override replaces the photo but is framed to depict the same thing.
+   */
+  function exampleAnnotationKey(url) {
+    const path = url.split(`${EXAMPLE_IMAGE_BASE}/`)[1] || '';
+    const segments = path.replace(/\.[a-z0-9]+$/i, '').split('/');
+    return segments.slice(-2).join('/');
+  }
+
+  /**
+   * Builds one mark as an SVG element, in the units described above.
+   *
+   * @param {object} mark - `{type: "arrow"|"extent", from: [u,v], to: [u,v]}` or `{type: "marker", at: [u,v]}`.
+   * @param {number} width - viewBox width (100 * aspect ratio).
+   * @param {?string} labelType - Label type used by `marker` marks that don't name their own.
+   * @returns {?SVGElement} The element, or null if the mark is malformed or of an unknown type.
+   */
+  function buildMark(mark, width, labelType) {
+    const g = MARK_GEOMETRY;
+    const point = (p) => (Array.isArray(p) && p.length === 2 ? [p[0] * width, p[1] * MARK_UNITS_TALL] : null);
+    if (!mark) return null;
+
+    if (mark.type === 'marker') {
+      const at = point(mark.at);
+      const type = mark.labelType || labelType;
+      if (!at || !type) return null;
+      const image = document.createElementNS(SVG_NS, 'image');
+      image.setAttribute('href', getIconImagePaths(type).iconImagePath);
+      image.setAttribute('width', g.markerWidth);
+      image.setAttribute('height', g.markerWidth);
+      image.setAttribute('x', at[0] - g.markerWidth / 2);
+      image.setAttribute('y', at[1] - g.markerWidth / 2);
+      return image;
+    }
+
+    const from = point(mark.from);
+    const to = point(mark.to);
+    if (!from || !to) return null;
+    const angle = Math.atan2(to[1] - from[1], to[0] - from[0]);
+    const [ux, uy] = [Math.cos(angle), Math.sin(angle)];
+    const [nx, ny] = [-uy, ux]; // Unit normal, for offsetting to either side of the shaft.
+    const shape = document.createElementNS(SVG_NS, 'polygon');
+
+    if (mark.type === 'arrow') {
+      // Where the head meets the shaft. Kept off the tip so the outline closes cleanly around the point.
+      const neck = [to[0] - ux * g.headLength, to[1] - uy * g.headLength];
+      shape.setAttribute('points', [
+        [from[0] + nx * g.shaftHalfWidth, from[1] + ny * g.shaftHalfWidth],
+        [neck[0] + nx * g.shaftHalfWidth, neck[1] + ny * g.shaftHalfWidth],
+        [neck[0] + nx * g.headHalfWidth, neck[1] + ny * g.headHalfWidth],
+        to,
+        [neck[0] - nx * g.headHalfWidth, neck[1] - ny * g.headHalfWidth],
+        [neck[0] - nx * g.shaftHalfWidth, neck[1] - ny * g.shaftHalfWidth],
+        [from[0] - nx * g.shaftHalfWidth, from[1] - ny * g.shaftHalfWidth],
+      ].map((p) => p.join(',')).join(' '));
+    } else if (mark.type === 'extent') {
+      // A bar with perpendicular end caps, for tags where the quantity is the geometry ("narrow", "very long
+      // crossing"). An arrow can point at a thing; only this can say how much of it there is.
+      const caps = [from, to].flatMap((end) => [
+        [end[0] + nx * g.capHalfLength, end[1] + ny * g.capHalfLength],
+        [end[0] - nx * g.capHalfLength, end[1] - ny * g.capHalfLength],
+      ]);
+      shape.setAttribute('points', [
+        caps[0], caps[1],
+        [from[0] - nx * g.shaftHalfWidth / 2, from[1] - ny * g.shaftHalfWidth / 2],
+        [to[0] - nx * g.shaftHalfWidth / 2, to[1] - ny * g.shaftHalfWidth / 2],
+        caps[3], caps[2],
+        [to[0] + nx * g.shaftHalfWidth / 2, to[1] + ny * g.shaftHalfWidth / 2],
+        [from[0] + nx * g.shaftHalfWidth / 2, from[1] + ny * g.shaftHalfWidth / 2],
+      ].map((p) => p.join(',')).join(' '));
+    } else {
+      return null;
+    }
+
+    // White fill inside a near-black outline is the one treatment that survives every background these photos have —
+    // pale concrete, dark asphalt, foliage — without picking a colour per image.
+    shape.setAttribute('fill', '#fff');
+    shape.setAttribute('stroke', '#1b1e21');
+    shape.setAttribute('stroke-width', g.outlineWidth);
+    shape.setAttribute('stroke-linejoin', 'round');
+    return shape;
+  }
+
+  /**
+   * Draws a set of marks into an SVG element, replacing whatever it held.
+   *
+   * The same call renders the authoring tool's live preview and (eventually) the tooltips, so what an author places
+   * is by construction what ships.
+   *
+   * @param {SVGElement} svg - The overlay element. Its viewBox is set here; size it with CSS.
+   * @param {Array<object>} marks - Marks in stored form.
+   * @param {object} [options] - `aspectRatio` (width/height, default 1.5) and `labelType` for bare `marker` marks.
+   */
+  function renderExampleMarks(svg, marks, options = {}) {
+    const width = MARK_UNITS_TALL * (options.aspectRatio || 1.5);
+    svg.setAttribute('viewBox', `0 0 ${width} ${MARK_UNITS_TALL}`);
+    svg.setAttribute('preserveAspectRatio', 'none'); // The viewBox already matches the image's aspect ratio.
+    svg.setAttribute('aria-hidden', 'true'); // Decorative: the surrounding text already names what's depicted.
+    svg.replaceChildren(...(marks || []).map((m) => buildMark(m, width, options.labelType)).filter(Boolean));
+  }
+
   /**
    * Converts a distance in meters to a localized, rounded display string in the user's measurement system.
    * @param {number} distanceInMeters - The distance in meters.
@@ -716,6 +863,10 @@ function UtilitiesMisc(JSON) {
   self.getTagExampleImageUrls = getTagExampleImageUrls;
   self.getSeverityExampleImageUrl = getSeverityExampleImageUrl;
   self.getValidateReasonExampleImageUrl = getValidateReasonExampleImageUrl;
+  self.loadExampleAnnotations = loadExampleAnnotations;
+  self.exampleAnnotationKey = exampleAnnotationKey;
+  self.renderExampleMarks = renderExampleMarks;
+  self.MARK_TYPES = ['arrow', 'marker', 'extent'];
   self.reportNoImagery = reportNoImagery;
 
   return self;

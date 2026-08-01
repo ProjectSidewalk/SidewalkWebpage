@@ -1,0 +1,84 @@
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import play.api.libs.json.JsValue
+@(commonData: CommonPageData, user: SidewalkUserWithRole, imageTree: JsValue, annotations: JsValue
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@* Owner-only authoring tool for example-image annotations (#4723). The marks that point out what an example depicts
+   are stored as data in examples/annotations.json rather than painted into the photo, so they can be repositioned or
+   restyled without re-exporting a raster — which only pays off if placing one is easier than opening an image editor.
+   Marks are drawn by util.misc.renderExampleMarks, the same call that renders them at runtime, so the preview here is
+   not an approximation of the result. Admin-only surface, English only. *@
+
+@content = {
+  <div class="api-section" id="example-images-intro">
+    <h1 class="api-heading" id="example-images">Example Images <a href="#example-images" class="permalink">#</a></h1>
+    <p>Annotation authoring for the example imagery under <code>public/images/examples/</code>. Pick an image, place marks over the feature it is meant to teach, then copy out <code>annotations.json</code> and commit it. Nothing here writes to disk — annotations are source, so they go through git like any other source.</p>
+    <p class="ac-note">Coordinates are stored as fractions of width and height, so one record renders correctly at every size the image appears at, from a 125&nbsp;px Explore tooltip to the full-resolution file.</p>
+  </div>
+
+  <div class="api-section" id="example-images-editor">
+    <div class="ex-toolbar">
+      <label class="ex-field">
+        <span>Image</span>
+        <select id="ex-image-select"></select>
+      </label>
+      <label class="ex-field">
+        <span>Mark type</span>
+        <select id="ex-mark-type">
+          <option value="arrow">Arrow &mdash; point at the feature</option>
+          <option value="marker">Type marker &mdash; drop the label's icon</option>
+          <option value="extent">Extent &mdash; span a distance</option>
+        </select>
+      </label>
+      <label class="ex-field">
+        <span>Preview at</span>
+        <select id="ex-preview-size">
+          <option value="0">Full width</option>
+          <option value="337">337&nbsp;px &mdash; Explore tooltip</option>
+          <option value="378">378&nbsp;px &mdash; Validate tooltip</option>
+          <option value="150">150&nbsp;px &mdash; API docs table</option>
+        </select>
+      </label>
+      <div class="ex-toolbar-actions">
+        <button type="button" id="ex-undo" class="ex-btn">Undo</button>
+        <button type="button" id="ex-clear" class="ex-btn">Clear image</button>
+        <button type="button" id="ex-copy" class="ex-btn ex-btn--primary">Copy annotations.json</button>
+        <button type="button" id="ex-download" class="ex-btn">Download</button>
+      </div>
+    </div>
+
+    <p class="ex-hint" id="ex-hint">Press on the feature, drag out to clear space, release. A type marker is a single click.</p>
+
+    <div class="ex-stage-wrap">
+      <div class="ex-stage" id="ex-stage">
+        <img id="ex-photo" alt="Example image being annotated">
+        <svg id="ex-marks" class="ex-marks"></svg>
+        <svg id="ex-ghost" class="ex-marks ex-marks--ghost"></svg>
+      </div>
+    </div>
+
+    <p class="ac-note" id="ex-status"></p>
+  </div>
+
+  <div class="api-section" id="example-images-json">
+    <h2 class="api-heading" id="manifest">Manifest <a href="#manifest" class="permalink">#</a></h2>
+    <p>The whole of <code>public/images/examples/annotations.json</code>, live. Paste over the file and commit; <code>make lint-example-images</code> validates it.</p>
+    <pre class="ex-json" id="ex-json"></pre>
+  </div>
+
+  <link rel="stylesheet" href='@assets.path("css/admin-dashboard/example-images.css")'>
+  <script src='@assets.path("js/common/utilitiesSidewalk.js")'></script>
+  <script src='@assets.path("js/admin-dashboard/ExampleAnnotatorPage.js")'></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', function () {
+      new ExampleAnnotatorPage(@Html(imageTree.toString), @Html(annotations.toString)).init();
+    });
+  </script>
+}
+
+@common.main(commonData, "Sidewalk - Example Images") {
+  @common.navbar(commonData, Some(user))
+  @admin.dashboard.adminLayout("example-images", user.role == "Owner")(content)
+}

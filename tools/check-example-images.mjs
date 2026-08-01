@@ -26,6 +26,9 @@ const UTILITIES = join(REPO_ROOT, 'public', 'js', 'common', 'utilitiesSidewalk.j
 // Files directly under examples/ that belong to no label type.
 const LOOSE_FILES = new Set(['placeholder.png', 'lookaround-example.gif']);
 
+// Annotation marks are stored here rather than painted into the photos; authored at /admin/exampleImages.
+const ANNOTATIONS_FILE = join(EXAMPLES_DIR, 'annotations.json');
+
 // Reasons shared by every label type live in _common/ rather than being copied into each label type's directory.
 const COMMON_DIR = '_common';
 
@@ -75,15 +78,16 @@ for (const { labelType, tag } of tags) {
   if (!labelType || !tag) errors.push(`Malformed tag row on stdin: ${JSON.stringify({ labelType, tag })}`);
 }
 
-// Every .png in the tree, as a path relative to examples/, so each can be struck off as something claims it.
-const unclaimed = new Set();
+// Every image in the tree, as a path relative to examples/, so each can be struck off as something claims it.
+const allFiles = [];
 (function walk(dir, prefix) {
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) walk(full, `${prefix}${entry}/`);
-    else if (!LOOSE_FILES.has(`${prefix}${entry}`)) unclaimed.add(`${prefix}${entry}`);
+    else if (!LOOSE_FILES.has(`${prefix}${entry}`) && entry !== 'annotations.json') allFiles.push(`${prefix}${entry}`);
   }
 })(EXAMPLES_DIR, '');
+const unclaimed = new Set(allFiles);
 
 /** @param {string} path - Path relative to examples/. @returns {boolean} True if it existed and was struck off. */
 function claim(path) {
@@ -130,6 +134,39 @@ for (const path of unclaimed) {
   } else {
     errors.push(`${path} is in "${head}/", which is neither a label type nor an override country `
       + `(${COUNTRIES_WITH_EXAMPLE_OVERRIDES.join(', ')}).`);
+  }
+}
+
+// The annotation manifest. An entry keyed to a missing file renders nothing, and an out-of-range coordinate puts a
+// mark off the edge of the photo — both fail silently, so they have to be caught here.
+let manifest = {};
+try {
+  manifest = JSON.parse(readFileSync(ANNOTATIONS_FILE, 'utf8'));
+} catch (err) {
+  if (err.code !== 'ENOENT') errors.push(`annotations.json is not valid JSON: ${err.message}`);
+}
+const inRange = (p) => Array.isArray(p) && p.length === 2 && p.every((n) => typeof n === 'number' && n >= 0 && n <= 1);
+for (const [key, entry] of Object.entries(manifest)) {
+  if (key === 'version') continue;
+  // Keys are extensionless, so they survive the PNG-to-WebP switch the re-shoot brings.
+  if (!allFiles.some((path) => path.replace(/\.[a-z0-9]+$/i, '') === key)) {
+    errors.push(`annotations.json has an entry for "${key}", which matches no example image.`);
+    continue;
+  }
+  const marks = entry?.marks;
+  if (!Array.isArray(marks) || marks.length === 0) {
+    errors.push(`annotations.json entry "${key}" has no marks; drop the entry instead of leaving it empty.`);
+    continue;
+  }
+  for (const [i, mark] of marks.entries()) {
+    const where = `annotations.json entry "${key}" mark ${i}`;
+    if (!['arrow', 'marker', 'extent'].includes(mark?.type)) {
+      errors.push(`${where} has unknown type ${JSON.stringify(mark?.type)}.`);
+    } else if (mark.type === 'marker') {
+      if (!inRange(mark.at)) errors.push(`${where} needs "at": [u, v] with both in 0-1.`);
+    } else if (!inRange(mark.from) || !inRange(mark.to)) {
+      errors.push(`${where} needs "from" and "to", each [u, v] with both in 0-1.`);
+    }
   }
 }
 

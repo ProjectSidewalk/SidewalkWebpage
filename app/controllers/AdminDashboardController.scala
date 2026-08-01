@@ -2,8 +2,9 @@ package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import models.auth.{WithAdmin, WithOwner}
-import play.api.Configuration
-import play.api.libs.json.Json
+import models.label.LabelTypeEnum
+import play.api.libs.json.{JsValue, Json}
+import play.api.{Configuration, Environment}
 import service.HealthService.dbHealthDataWrites
 import service.{ConfigService, HealthService, LabelService}
 
@@ -25,7 +26,8 @@ class AdminDashboardController @Inject() (
     implicit val assets: AssetsFinder,
     configService: ConfigService,
     labelService: LabelService,
-    healthService: HealthService
+    healthService: HealthService,
+    environment: Environment
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -228,5 +230,54 @@ class AdminDashboardController @Inject() (
    */
   def getDbHealth = cc.securityService.SecuredAction(WithOwner()) { _ =>
     healthService.getDbHealth.map(data => Ok(Json.toJson(data)))
+  }
+
+  /**
+   * Renders the Example Images page: an authoring tool for the annotation marks drawn over example imagery (#4723).
+   *
+   * The marks that point out what an example depicts are stored as data in `examples/annotations.json` rather than
+   * painted into the photo, so they can be repositioned or restyled without re-exporting a raster. That only works if
+   * placing one is easier than opening an image editor, which is what this page is for: pick an example, drag from
+   * the feature out to clear space, and copy out the manifest.
+   *
+   * The example tree is listed here rather than probed by the client, which would mean a failed request per slot.
+   */
+  def exampleImages = cc.securityService.SecuredAction(WithOwner()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_ExampleImages")
+      Ok(
+        views.html.admin.dashboard
+          .exampleImages(commonData, request.identity, Json.toJson(exampleImageTree), exampleAnnotationsJson)
+      )
+    }
+  }
+
+  /** Every example image, as paths relative to `public/images/examples/` (e.g. `CurbRamp/tag-narrow.png`). */
+  private def exampleImageTree: Seq[String] = {
+    val root: java.io.File = environment.getFile("public/images/examples")
+    if (!root.isDirectory) Seq.empty
+    else {
+      // Only the per-label-type and _common directories: country overrides depict the same thing as the default
+      // they replace and so share its annotation entry, and loose files at the root belong to no label type.
+      root
+        .listFiles()
+        .filter(dir =>
+          dir.isDirectory && (dir.getName == "_common" || LabelTypeEnum.validLabelTypes.contains(dir.getName))
+        )
+        .flatMap(dir => Option(dir.listFiles()).getOrElse(Array.empty).map(f => s"${dir.getName}/${f.getName}"))
+        .filter(_.endsWith(".png"))
+        .sorted
+        .toSeq
+    }
+  }
+
+  /** The stored annotation manifest, or an empty object when none has been committed yet. */
+  private def exampleAnnotationsJson: JsValue = {
+    val file: java.io.File = environment.getFile("public/images/examples/annotations.json")
+    if (!file.isFile) Json.obj()
+    else
+      scala.util
+        .Try(Json.parse(java.nio.file.Files.readAllBytes(file.toPath)))
+        .getOrElse(Json.obj())
   }
 }
