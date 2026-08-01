@@ -57,7 +57,10 @@
     <div id="svv-panorama-holder">
       <div id="svv-panorama"></div>
       <div id="view-control-layer"></div>
-      @components.validateLabelCard()
+      @* Same read-only card as desktop Validate; a tap on the marker opens and closes it (LabelVisibilityControl). *@
+      @components.labelCard(idPrefix = "label-card", noInfoKey = Some("validate:center-ui.no-info")) {
+        <button type="button" id="label-visibility-button-on-label" class="button-ps button--tiny label-hover-card__action-button" data-ps-tooltip-placement="bottom"></button>
+      }
       <div id="label-visibility-control-holder" class="pano-overlay-button-group">
         <button type="button" id="label-visibility-control-button" class="pano-overlay-button"></button>
       </div>

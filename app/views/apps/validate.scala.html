@@ -94,7 +94,15 @@
       <div id="svv-panorama-holder">
         <div id="svv-panorama"></div>
         <div id="view-control-layer"></div>
-        @components.validateLabelCard()
+        @* Read-only: no Delete, no Edit, and the card is not itself a click target the way Explore's is. A validator
+           judges the label; they don't change it. The one action it carries is the Hide-label toggle, which
+           LabelVisibilityControl labels and keeps in step with the always-visible toggle in the pano's top-left
+           corner — swapping its tooltip too, since the button reverses meaning when the label is hidden. A short
+           tooltip, not the top-left control's full sentence, and pinned below: the card is itself a hover panel, so
+           the default placement would open this over the rating the validator is reading. *@
+        @components.labelCard(idPrefix = "label-card", noInfoKey = Some("validate:center-ui.no-info")) {
+          <button type="button" id="label-visibility-button-on-label" class="button-ps button--tiny label-hover-card__action-button" data-ps-tooltip-placement="bottom"></button>
+        }
         <div id="pano-border-frame"></div>
         <div id="speed-limit-sign" class="speed-limit-sign" data-design-style="us-canada" tabindex="0" role="img" data-i18n-tooltip="common:speed-limit-tooltip">
           <div class="speed-limit-holder">

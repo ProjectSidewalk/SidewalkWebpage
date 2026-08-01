@@ -290,7 +290,8 @@ class Label {
 
   /**
    * Populates and positions the hover card next to this label, showing its type, severity, tags, and description,
-   * plus its Delete/Edit action buttons.
+   * plus its Delete/Edit action buttons. The populate itself lives in the shared LabelCardView (#4730); what stays
+   * here is everything Explore-specific — the context-menu guard, the card's mode classes, and the anchoring.
    *
    * The card is a single shared DOM element positioned in on-screen pixels, so the label's logical canvas
    * coordinate is scaled to the displayed pano size (see util.exploreDisplayScale).
@@ -303,72 +304,15 @@ class Label {
     }
 
     const ui = svl.ui.canvas;
-    const labelType = this.#properties.labelType;
-    const severity = this.#properties.severity;
-    const hasSeverity = util.misc.labelTypeHasSeverity(labelType);
-
-    ui.hoverCardIcon.attr('src', util.misc.getIconImagePaths(labelType).iconImagePath);
-    ui.hoverCardType.text(i18next.t(`common:${util.camelToKebab(labelType)}`).replace('&shy;', ''));
-
-    // Severity row for rated labels; the not-rated nudge for unrated ones; neither for types without severity.
-    if (hasSeverity && severity !== null) {
-      // The chip echoes the words the rating control uses, so the value you picked is the value you see back. It
-      // names its dimension because those words do not stand alone: the control has a "Rate severity" header to
-      // supply the noun, the card has no header at all, and "Quality: Good" against "Severity: High" also says
-      // which way each scale runs. Both nouns already ship in every locale (Gallery's SeverityDisplay uses them).
-      const positive = util.misc.isPositiveLabelType(labelType);
-      const level = i18next.t(`common:${util.misc.getRatingLevelKeys(labelType)[severity]}`);
-      ui.hoverCardSeverityText.text(`${i18next.t(positive ? 'common:quality' : 'common:severity')}: ${level}`);
-      ui.hoverCardSeverityIcon.attr('src', util.misc.getSmileyIconPath(severity, labelType, true));
-      // Same wash the rating control puts behind the chosen level, so a rating is legible while scanning.
-      const colors = util.misc.getSeverityLevelColors(severity, labelType);
-      if (colors) ui.hoverCardSeverity[0].style.setProperty('--level-wash', colors.wash);
-      ui.hoverCardSeverity.css('display', 'flex');
-    } else {
-      ui.hoverCardSeverity.css('display', 'none');
-    }
-    const needsRating = hasSeverity && severity === null;
-    if (needsRating) {
-      // Ask for the dimension this type is actually rated on. The same 1-3 scale means opposite things either side
-      // of util.misc.isPositiveLabelType, and asking a curb ramp for its "severity" names the wrong one.
-      const promptKey = util.misc.isPositiveLabelType(labelType) ? 'rate-quality-prompt' : 'rate-severity-prompt';
-      ui.hoverCardNotRatedText.text(i18next.t(`audit:center-ui.context-menu.${promptKey}`));
-    }
-    ui.hoverCardNotRated.css('display', needsRating ? 'flex' : 'none');
-
-    // Tags, as static (non-interactive) pills — built as DOM nodes with textContent so the tag text stays inert.
-    const tagNames = this.#getTagNames();
-    if (tagNames.length > 0) {
-      ui.hoverCardTags.empty();
-      for (const name of tagNames) {
-        const pill = document.createElement('span');
-        pill.className = 'tag-pill';
-        const pillLabel = document.createElement('span');
-        pillLabel.className = 'tag-pill__label';
-        pillLabel.textContent = name;
-        pill.appendChild(pillLabel);
-        ui.hoverCardTags.append(pill);
-      }
-      ui.hoverCardTags.css('display', 'flex');
-    } else {
-      ui.hoverCardTags.css('display', 'none');
-    }
-    // Rule above the tags only when a rating sits above them to be separated from.
-    ui.hoverCardTags.toggleClass('label-hover-card__tags--divided', hasSeverity);
-
-    const description = this.#properties.description;
-    if (description) {
-      ui.hoverCardDescription.text(Label.#truncate(description, 90));
-      ui.hoverCardDescription.css('display', 'inline');
-    } else {
-      ui.hoverCardDescription.css('display', 'none');
-    }
-
-    // Collapse the body entirely when it has nothing to show (e.g. an Occlusion label).
-    ui.hoverCardBody.css('display', hasSeverity || tagNames.length > 0 || description ? 'flex' : 'none');
+    svl.labelCardView.render({
+      labelType: this.#properties.labelType,
+      severity: this.#properties.severity,
+      tagNames: this.#getTagNames(),
+      description: this.#properties.description,
+    });
 
     // Occlusion labels have no context menu, so the card isn't a click target and the Edit button is hidden.
-    ui.hoverCard.toggleClass('label-hover-card--static', labelType === 'Occlusion');
+    ui.hoverCard.toggleClass('label-hover-card--static', this.#properties.labelType === 'Occlusion');
     // The tutorial's delete lock hides the Delete button.
     ui.hoverCard.toggleClass('label-hover-card--no-delete', Boolean(svl.canvas.getStatus('disableLabelDelete')));
     // Aims the share control at this label (and hides it for labels that can never have a public URL).
@@ -399,17 +343,6 @@ class Label {
       .filter(Boolean)
       // The localized tag texts embed <tag-underline> keyboard-shortcut markup; the pills show plain text.
       .map((tag) => (tagInfo[tag.tag]?.text ?? tag.tag).replace(/<[^>]*>/g, ''));
-  }
-
-  /**
-   * Truncates a string to the given length, appending an ellipsis if anything was cut.
-   * @param {string} str
-   * @param {number} maxLength
-   * @returns {string}
-   */
-  static #truncate(str, maxLength) {
-    const chars = [...str]; // Code points, so the cut can't land inside a surrogate pair (e.g. mid-emoji).
-    return chars.length > maxLength ? `${chars.slice(0, maxLength - 1).join('').trimEnd()}…` : str;
   }
 
   /**
