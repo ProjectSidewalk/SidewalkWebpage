@@ -176,9 +176,10 @@ describe('CommunityListPage', () => {
 
 describe('StoryListPage', () => {
     /** A story card with the pieces StoryListPage touches; heights are stubbed per-test for the clamp check. */
-    function storyCard({ id, text = 'story text', typeColor = '#78B0EA' }) {
+    function storyCard({ id, storyId, text = 'story text', typeColor = '#78B0EA' }) {
         return `
-            <li class="community-card story-card" data-created="${id}" data-region="R" data-labeltype="Obstacle">
+            <li class="community-card story-card" ${storyId ? `data-story-id="${storyId}"` : ''}
+                data-created="${id}" data-region="R" data-labeltype="Obstacle">
                 <div class="story-card__body">
                     <p class="story-card__text">${text}</p>
                     <a class="story-card__location" href="/labelMap?labelId=${id}" data-label-id="${id}">loc</a>
@@ -259,6 +260,71 @@ describe('StoryListPage', () => {
         link.addEventListener('click', (e) => e.preventDefault());
         link.click();
         expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=StoryListPage_Location_LabelId=9');
+    });
+
+    describe('share chips (#4722)', () => {
+        const SHARE_SRC = fs.readFileSync(
+            path.resolve(REPO_ROOT, 'public/js/common/share/ShareWidget.js'), 'utf8');
+
+        /** Loads the real ShareWidget (the page builds one per card) plus the collaborators it reaches for. */
+        function loadShareWidget() {
+            window.eval(`${SHARE_SRC}\nwindow.ShareWidget = ShareWidget;`);
+            // The share text key resolves with the excerpt interpolated; everything else echoes its key.
+            window.i18next = { t: (key, opts) => (opts && opts.excerpt !== undefined ? `shared:${opts.excerpt}` : key) };
+            window.matchMedia = jest.fn().mockReturnValue({ matches: false }); // jsdom has none; act as desktop.
+        }
+
+        afterEach(() => {
+            delete window.ShareWidget;
+            delete window.i18next;
+        });
+
+        test('each story card grows a footer share chip pointed at its story-anchored permalink', () => {
+            setupDom(storyCard({ id: '7', storyId: '42', text: 'Snow piles up here all winter.' }));
+            loadShareWidget();
+            const setTarget = jest.spyOn(window.ShareWidget.prototype, 'setTarget');
+            new window.StoryListPage().init();
+
+            expect(document.querySelector(
+                '.story-card__foot .story-card__share .label-detail__share-trigger')).not.toBeNull();
+            expect(setTarget).toHaveBeenCalledTimes(1);
+            const target = setTarget.mock.calls[0][0];
+            expect(target.url).toBe('http://localhost/label/7?storyId=42');
+            // The share text leads with the storyteller's words (share.story-text), not label boilerplate; the
+            // title carries the same descriptive text (it feeds the native sheet and the email subject).
+            expect(target.text).toBe('shared:Snow piles up here all winter.');
+            expect(target.title).toBe(target.text);
+        });
+
+        test('long story text is excerpted at a word boundary with an ellipsis', () => {
+            setupDom(storyCard({ id: '7', storyId: '42', text: 'word '.repeat(40).trim() }));
+            loadShareWidget();
+            const setTarget = jest.spyOn(window.ShareWidget.prototype, 'setTarget');
+            new window.StoryListPage().init();
+
+            const excerpt = setTarget.mock.calls[0][0].text.replace('shared:', '');
+            expect(excerpt).toBe(`${'word '.repeat(18).trim()}…`); // Cut at the last space inside the 90-char cap.
+        });
+
+        test('opening the chip logs surface + story attribution', () => {
+            setupDom(storyCard({ id: '7', storyId: '42' }));
+            loadShareWidget();
+            new window.StoryListPage().init();
+            document.querySelector('.story-card__share .label-detail__share-trigger').click();
+            expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=StoryCardShare_storyId=42');
+        });
+
+        test('a card without a story id gets no chip, and a missing ShareWidget leaves the page working', () => {
+            setupDom(storyCard({ id: '7' })); // No data-story-id.
+            loadShareWidget();
+            new window.StoryListPage().init();
+            expect(document.querySelector('.story-card__share')).toBeNull();
+
+            delete window.ShareWidget; // The share script failed to load; cards must still initialize.
+            setupDom(storyCard({ id: '8', storyId: '9' }));
+            expect(() => new window.StoryListPage().init()).not.toThrow();
+            expect(document.querySelector('.story-card__share')).toBeNull();
+        });
     });
 });
 

@@ -83,6 +83,34 @@ describe('ShareWidget', () => {
         });
     });
 
+    describe('buildChip', () => {
+        test('builds the standard chip: anchored wrapper, labeled trigger, share glyph', () => {
+            const { wrap, trigger: chipTrigger } = ShareWidget.buildChip('host-extra');
+
+            expect(wrap.className).toBe('label-detail__share host-extra');
+            expect(wrap.contains(chipTrigger)).toBe(true);
+            expect(chipTrigger.className).toBe('label-detail__share-trigger');
+            expect(chipTrigger.type).toBe('button'); // Never submits a host form.
+            expect(chipTrigger.getAttribute('aria-label')).toBe('share.button');
+            expect(chipTrigger.querySelector('svg')).not.toBeNull();
+            expect(chipTrigger.querySelector('.label-detail__share-trigger-label').textContent).toBe('share.button');
+        });
+
+        test('the extra wrapper class is optional', () => {
+            expect(ShareWidget.buildChip().wrap.className).toBe('label-detail__share');
+        });
+
+        test('a chip trigger drives a widget like any other trigger', () => {
+            const { wrap, trigger: chipTrigger } = ShareWidget.buildChip();
+            document.body.appendChild(wrap);
+            const widget = new ShareWidget(chipTrigger, { host: wrap });
+            widget.setTarget(TARGET);
+            chipTrigger.click();
+            expect(wrap.querySelector('.label-detail__share-popover')).not.toBeNull();
+            expect(chipTrigger.getAttribute('aria-expanded')).toBe('true');
+        });
+    });
+
     describe('trigger click without native share', () => {
         test('builds and opens an accessible popover with the four share actions', () => {
             buildWidget();

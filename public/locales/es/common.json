@@ -325,6 +325,7 @@
     "button": "Compartir",
     "heading": "Compartir esta etiqueta",
     "text": "Mira esta {{labelType}} en Project Sidewalk",
+    "story-text": "«{{excerpt}}»: una historia de la comunidad en Project Sidewalk",
     "copy-link": "Copiar enlace",
     "copied": "¡Copiado!",
     "on-bluesky": "Compartir en Bluesky",

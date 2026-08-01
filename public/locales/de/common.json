@@ -325,6 +325,7 @@
     "button": "Teilen",
     "heading": "Diese Markierung teilen",
     "text": "Sieh dir diese {{labelType}} auf Project Sidewalk an",
+    "story-text": "„{{excerpt}}“ – eine Geschichte aus der Community auf Project Sidewalk",
     "copy-link": "Link kopieren",
     "copied": "Kopiert!",
     "on-bluesky": "Auf Bluesky teilen",

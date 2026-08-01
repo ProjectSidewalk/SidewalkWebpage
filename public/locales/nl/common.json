@@ -325,6 +325,7 @@
     "button": "Delen",
     "heading": "Deel dit label",
     "text": "Bekijk deze {{labelType}} op Project Sidewalk",
+    "story-text": "‘{{excerpt}}’ – een verhaal uit de community op Project Sidewalk",
     "copy-link": "Link kopiëren",
     "copied": "Gekopieerd!",
     "on-bluesky": "Delen op Bluesky",

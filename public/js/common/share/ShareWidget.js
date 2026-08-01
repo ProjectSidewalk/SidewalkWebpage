@@ -78,6 +78,36 @@ class ShareWidget {
   }
 
   /**
+   * Builds the standard per-card share chip: the positioning wrapper the popover anchors into, plus the trigger
+   * button (share glyph + visible localized "Share" label). The landing validation grid's cards and the /stories
+   * story cards mount one of these per item; hosts restyle it through the extra wrapper class. The caller appends
+   * the wrapper, wires any host-specific logging on the trigger, and constructs the ShareWidget itself.
+   *
+   * @param {string} [extraWrapClass] - Host-specific class(es) added to the wrapper for per-host styling.
+   * @returns {{wrap: HTMLElement, trigger: HTMLButtonElement}}
+   */
+  static buildChip(extraWrapClass = '') {
+    const label = typeof i18next !== 'undefined' ? i18next.t('common:share.button') : 'Share';
+
+    const wrap = document.createElement('span');
+    wrap.className = `label-detail__share${extraWrapClass ? ` ${extraWrapClass}` : ''}`;
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'label-detail__share-trigger';
+    trigger.setAttribute('aria-label', label);
+    trigger.innerHTML = ShareWidget.#ICON_SHARE; // Static, trusted SVG constant — no user input.
+
+    const labelEl = document.createElement('span');
+    labelEl.className = 'label-detail__share-trigger-label';
+    labelEl.textContent = label;
+    trigger.appendChild(labelEl);
+
+    wrap.appendChild(trigger);
+    return { wrap, trigger };
+  }
+
+  /**
    * Points the widget at a new share target. Safe to call repeatedly (e.g. once per shown label). Closes the popover
    * if open so its links can't point at a stale target.
    *
@@ -442,6 +472,17 @@ class ShareWidget {
 
   // ─── Inline SVG icons (24×24, currentColor) ───────────────────────────────
   // Line breaks sit at attribute/command boundaries, where SVG treats the newline as plain whitespace.
+
+  // The trigger's three-node share glyph — the same one the Twirl-rendered triggers carry (shareTrigger.scala.html).
+  static #ICON_SHARE = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="18" cy="5" r="3"/>
+    <circle cx="6" cy="12" r="3"/>
+    <circle cx="18" cy="19" r="3"/>
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+  </svg>`;
+
   static #ICON_LINK = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>

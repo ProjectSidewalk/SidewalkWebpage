@@ -4,6 +4,7 @@ import controllers.base._
 import models.auth.DefaultEnv
 import models.label.{LabelMetadata, LabelPointTable, LabelTypeEnum, LocationXY}
 import models.pano.PanoSource.PanoSource
+import models.story.StoryForView
 import models.user.SidewalkUserWithRole
 import models.utils.ImageUtils
 import play.api.i18n.Messages
@@ -12,7 +13,7 @@ import play.api.mvc._
 import play.api.{Configuration, Environment, Logger}
 import play.silhouette.api.Silhouette
 import play.twirl.api.Html
-import service.{AuthenticationService, ConfigService, LabelService, PanoDataService, ShareImageCache}
+import service.{AuthenticationService, ConfigService, LabelService, PanoDataService, ShareImageCache, StoryService}
 
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
@@ -20,6 +21,7 @@ import java.io.{ByteArrayInputStream, File}
 import javax.imageio.ImageIO
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 /**
  * Public social-share surface for a single label (issue #456).
@@ -43,7 +45,8 @@ class ShareController @Inject() (
     labelService: LabelService,
     panoDataService: PanoDataService,
     authenticationService: AuthenticationService,
-    shareImageCache: ShareImageCache
+    shareImageCache: ShareImageCache,
+    storyService: StoryService
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -68,12 +71,19 @@ class ShareController @Inject() (
    * nearby labels (fed by the cheap public `/v3/api/rawLabels` API), and per-label OG/Twitter meta in the <head>.
    * Reachable anonymously (no account created, no cookie set) so social crawlers can read the preview.
    *
+   * A story share (#4722) appends `?storyId=<id>`; when it names a visible story on this label, the OG description
+   * leads with that story's words and the client scrolls to and highlights it. Parsed leniently — share links live
+   * in the wild for years, so any unusable value (malformed, deleted, hidden, another label's story) just renders
+   * the plain label page rather than erroring.
+   *
    * @param labelId The label to share.
    * @return `Ok` with the spotlight page, or `NotFound` if no such label exists.
    */
   def label(labelId: Int) = silhouette.UserAwareAction.async { implicit request =>
     val displayUser: Future[SidewalkUserWithRole] =
       request.identity.map(Future.successful).getOrElse(authenticationService.getDefaultAnonUser)
+    val storyIdOpt: Option[Int] =
+      request.getQueryString("storyId").flatMap(s => Try(s.trim.toInt).toOption).filter(_ > 0)
 
     displayUser.flatMap { user =>
       labelService.getSingleLabelMetadata(labelId, user.userId).flatMap {
@@ -82,9 +92,20 @@ class ShareController @Inject() (
           for {
             commonData  <- configService.getCommonPageData(request2Messages.lang)
             labelLatLng <- labelService.getLabelLatLng(labelId)
+            // Resolved anonymously: the linked story feeds crawler-visible meta, so an author-only (hidden) story
+            // must not surface even if its author is the one loading the page.
+            linkedStory <- storyIdOpt
+              .map(sid =>
+                storyService
+                  .getStoriesForLabel(labelId, viewerUserId = None, isAdmin = false)
+                  .map(_.find(s => s.storyId == sid && !s.hidden))
+              )
+              .getOrElse(Future.successful(None))
           } yield {
-            cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, s"Visit_SharedLabel=$labelId")
-            val shareMeta: Html = buildShareMeta(commonData, meta)
+            val visitSuffix: String = linkedStory.map(s => s"_storyId=${s.storyId}").getOrElse("")
+            cc.loggingService
+              .insert(request.identity.map(_.userId), request.ipAddress, s"Visit_SharedLabel=$labelId$visitSuffix")
+            val shareMeta: Html = buildShareMeta(commonData, meta, linkedStory)
             val title: String   = shareTitle(meta)
             Ok(
               views.html.apps.sharedLabel(commonData, title, user, meta, labelLatLng, cityNameOf(commonData), shareMeta)
@@ -133,12 +154,20 @@ class ShareController @Inject() (
     Messages(key, Messages(meta.labelType.nameKey))
   }
 
-  /** Builds the OG/Twitter meta block for a label's share page from localized, prod-absolute values. */
-  private def buildShareMeta(commonData: service.CommonPageData, meta: LabelMetadata)(implicit
-      messages: Messages
-  ): Html = {
-    val base: String     = commonData.prodUrl.stripSuffix("/")
-    val pageUrl: String  = s"$base/label/${meta.labelId}"
+  /**
+   * Builds the OG/Twitter meta block for a label's share page from localized, prod-absolute values. When the visit
+   * came from a story-anchored share link (#4722), `linkedStory` carries that (visible) story: the shared URL keeps
+   * its `?storyId=` anchor and the description leads with the storyteller's words — the scrape-based platforms
+   * (Facebook, LinkedIn) build their card entirely from these tags, so client-side share text can't reach them.
+   */
+  private def buildShareMeta(
+      commonData: service.CommonPageData,
+      meta: LabelMetadata,
+      linkedStory: Option[StoryForView]
+  )(implicit messages: Messages): Html = {
+    val base: String    = commonData.prodUrl.stripSuffix("/")
+    val pageUrl: String =
+      s"$base/label/${meta.labelId}" + linkedStory.map(s => s"?storyId=${s.storyId}").getOrElse("")
     val imageUrl: String = s"$base/label/${meta.labelId}/image"
     val typeName: String = Messages(meta.labelType.nameKey)
     val cityName: String = cityNameOf(commonData)
@@ -147,19 +176,46 @@ class ShareController @Inject() (
     // label's pano, captured during Explore (#4489); it stays untranslated like tag names. Severity is stated only
     // for access-issue types — on positive features the same column encodes quality, not badness. Tag names are
     // stored untranslated; server-side tag localization is #4445.
-    val description: String = Seq(
-      Some(Messages("share.meta.description.spotted", cityName)),
-      meta.panoMetadata.flatMap(_.address).map(a => Messages("share.meta.description.address", a)),
-      meta.severity
-        .filter(_ => meta.labelType.isAccessProblem)
-        .map(s => Messages("share.meta.description.severity", s)),
-      Option(meta.tags).filter(_.nonEmpty).map(t => Messages("share.meta.description.tags", t.take(3).mkString(", "))),
-      Some(Messages("share.meta.description.cta"))
-    ).flatten.mkString(" ")
+    // A story-anchored share instead leads with the story excerpt; severity/tags would bury the person's words.
+    val description: String = linkedStory match {
+      case Some(story) =>
+        Seq(
+          Messages("share.meta.description.story", storyExcerpt(story.storyText)),
+          Messages("share.meta.description.spotted", cityName),
+          Messages("share.meta.description.cta")
+        ).mkString(" ")
+      case None =>
+        Seq(
+          Some(Messages("share.meta.description.spotted", cityName)),
+          meta.panoMetadata.flatMap(_.address).map(a => Messages("share.meta.description.address", a)),
+          meta.severity
+            .filter(_ => meta.labelType.isAccessProblem)
+            .map(s => Messages("share.meta.description.severity", s)),
+          Option(meta.tags)
+            .filter(_.nonEmpty)
+            .map(t => Messages("share.meta.description.tags", t.take(3).mkString(", "))),
+          Some(Messages("share.meta.description.cta"))
+        ).flatten.mkString(" ")
+    }
     val imageAlt: String = Messages("share.meta.image.alt", typeName)
     views.html.common.shareMeta(
       shareTitle(meta), description, pageUrl, imageUrl, SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, imageAlt
     )
+  }
+
+  /**
+   * A story's opening words at preview length: whitespace collapsed, cut at a word boundary near the cap (platforms
+   * truncate OG descriptions around 160-200 characters anyway).
+   */
+  private[controllers] def storyExcerpt(text: String, cap: Int = 160): String = {
+    val clean: String = text.trim.replaceAll("\\s+", " ")
+    if (clean.length <= cap) clean
+    else {
+      val cut: String = clean.take(cap)
+      // Break at the last word boundary unless it lands absurdly early (or nowhere — CJK text has no spaces).
+      val lastSpace: Int = cut.lastIndexOf(' ')
+      cut.take(if (lastSpace > cap - 30) lastSpace else cap).replaceAll("\\s+$", "") + "…"
+    }
   }
 
   /** The formatted display name of the current deployment city (e.g. "Seattle, WA"), or "" if it can't be resolved. */

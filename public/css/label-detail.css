@@ -1106,6 +1106,15 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__story--hidden { opacity: 0.75; }
 
+/* The story a share deep-link pointed at (/label/:id?storyId=, #4722): a soft tinted panel with an accent edge, so
+   the recipient's eye lands on the story that prompted the share. */
+.label-detail__story--linked {
+  padding: 8px 8px 8px 10px;
+  background: color-mix(in srgb, var(--color-link-100) 10%, transparent);
+  border-left: 3px solid var(--color-link-100);
+  border-radius: 6px;
+}
+
 .label-detail__story-photo-btn {
   flex: none;
   padding: 0;

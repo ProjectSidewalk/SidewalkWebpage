@@ -15,11 +15,14 @@ class StorySection {
   #maxTextLength = null;
   #isAccessProblem = null; // From the /stories payload (LabelTypeEnum-sourced); flips the composer's phrasing.
   #fetchToken = 0; // Guards against a stale response landing after a newer label was opened.
+  #highlightStoryId = null; // Pending story deep link (#4722); the first render that could show it consumes it.
 
   /**
    * @param {HTMLElement} root - The host element containing the labelDetail markup.
    * @param {Object} opts
    * @param {string} [opts.currUsername] - The viewer's username, for the composer's show-username option.
+   * @param {?number} [opts.highlightStoryId] - Story a share link pointed at (/label/:id?storyId=, #4722): scrolled
+   *      to and highlighted once the list renders. One-shot — later refreshes and other labels render normally.
    */
   constructor(root, opts) {
     const q = (sel) => root.querySelector(sel);
@@ -37,6 +40,7 @@ class StorySection {
       lightboxCaption: q('.story-lightbox__caption'),
       lightboxClose: q('.story-lightbox__close'),
     };
+    this.#highlightStoryId = opts.highlightStoryId || null;
 
     this.#composer = new StoryComposer(q('.story-composer'), {
       currUsername: opts.currUsername,
@@ -144,6 +148,23 @@ class StorySection {
     for (const story of stories) {
       els.list.appendChild(this.#buildStoryRow(story));
     }
+    this.#revealLinkedStory();
+  }
+
+  /**
+   * One-shot deep-link reveal (#4722): when the page was opened from a story share (/label/:id?storyId=), the linked
+   * story is highlighted and scrolled into view once its list renders. A story that is gone (deleted, or hidden by
+   * moderators) simply degrades to the plain label page.
+   */
+  #revealLinkedStory() {
+    if (this.#highlightStoryId === null) return;
+    const row = this.#els.list.querySelector(`[data-story-id="${this.#highlightStoryId}"]`);
+    this.#highlightStoryId = null;
+    if (!row) return;
+    this.#els.details.open = true;
+    row.classList.add('label-detail__story--linked');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    row.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
   }
 
   /**
@@ -153,6 +174,7 @@ class StorySection {
   #buildStoryRow(story) {
     const row = document.createElement('div');
     row.className = 'label-detail__story';
+    row.dataset.storyId = story.story_id; // Anchor for story-deep-linked share pages (#4722).
     if (story.hidden) row.classList.add('label-detail__story--hidden');
 
     if (story.media) {

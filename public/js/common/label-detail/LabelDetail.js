@@ -103,6 +103,7 @@ class LabelDetail {
   #myCommentIdx;
   #shareWidget;
   #storySection;
+  #highlightStoryId;
   #metaRowObserver;
 
   /**
@@ -121,6 +122,8 @@ class LabelDetail {
    *     aren't the LabelMap itself).
    * @param {boolean} [opts.showExploreHereLink] - Show a footer link that opens Explore at this label's pano and
    *     point of view (#4637).
+   * @param {?number} [opts.highlightStoryId] - Story to scroll to and highlight once its label's story list loads,
+   *     for story-anchored share links (/label/:id?storyId=, #4722). One-shot; see StorySection.
    */
   constructor(root, opts) {
     this.#root = root;
@@ -133,6 +136,7 @@ class LabelDetail {
     this.#voteColumnSource = opts.voteColumnSource;
     this.#showLabelMapLink = !!opts.showLabelMapLink;
     this.#showExploreHereLink = !!opts.showExploreHereLink;
+    this.#highlightStoryId = opts.highlightStoryId || null;
   }
 
   /**
@@ -218,7 +222,10 @@ class LabelDetail {
   #initStorySection() {
     const section = this.#q('.label-detail__stories');
     if (section && typeof StorySection !== 'undefined') {
-      this.#storySection = new StorySection(this.#root, { currUsername: this.#currUsername });
+      this.#storySection = new StorySection(this.#root, {
+        currUsername: this.#currUsername,
+        highlightStoryId: this.#highlightStoryId,
+      });
     }
   }
 

@@ -53,6 +53,9 @@ class SharedLabelPage {
   async #initDetail() {
     const root = document.querySelector('.spotlight__detail');
     if (!root || typeof LabelDetail === 'undefined') return;
+    // A story share links /label/:id?storyId=<id> (#4722); the story section scrolls to and highlights that story
+    // once its list loads. Parsed leniently — an unusable value just renders the plain label page.
+    const storyIdParam = Number(new URLSearchParams(window.location.search).get('storyId'));
     try {
       this.#detail = await LabelDetail.create(root, {
         admin: false,
@@ -63,6 +66,7 @@ class SharedLabelPage {
         voteColumnSource: 'SharedLabelThumbs',
         showLabelMapLink: true,
         showExploreHereLink: true,
+        highlightStoryId: Number.isInteger(storyIdParam) && storyIdParam > 0 ? storyIdParam : null,
       });
       await this.#detail.showLabel(this.#data.labelId, 'SharedLabel');
     } catch (err) {
