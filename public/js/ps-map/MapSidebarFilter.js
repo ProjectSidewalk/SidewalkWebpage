@@ -21,6 +21,8 @@ class MapSidebarFilter {
   #showsCounts;
   /** @type {object} Last-applied per-type layer visibility, so unchanged layers aren't re-set on every click. */
   #layerVisibility = {};
+  /** @type {Array<() => void>} */
+  #changeCallbacks = [];
 
   /**
    * Initializes the sidebar filter, binding all event handlers and enabling controls.
@@ -52,6 +54,60 @@ class MapSidebarFilter {
   }
 
   /**
+   * Registers a callback invoked after a user-driven filter change has been fully applied to the map.
+   * Programmatic applyState() calls do not notify, so a subscriber that applies state can't loop back into itself.
+   * @param {() => void} callback The callback to invoke.
+   */
+  onChange(callback) {
+    this.#changeCallbacks.push(callback);
+  }
+
+  /**
+   * Returns the sidebar's current filter state.
+   * @returns {{severities: number[], sections: object, tags: object}} FilterSidebar.getState()'s shape.
+   */
+  getState() {
+    return this.#filters.getState();
+  }
+
+  /**
+   * Applies a batch of selections (e.g. restored from the URL) to the sidebar controls and the map in one pass.
+   * Only the provided sections change; onChange subscribers are not notified.
+   *
+   * @param {object} [state] The selections to apply.
+   * @param {number[]} [state.severities] Severities (0=N/A through 3) to enable; others are disabled.
+   * @param {string[]} [state.labelTypes] Label type keys to check; others are unchecked and their tags cleared.
+   * @param {string[]} [state.validationOptions] Validation checkbox ids to check; others are unchecked.
+   * @param {Array<{labelType: string, tag: string}>} [state.tags] Tag pairs to activate on checked label types.
+   * @param {string[]} [state.streets] Street checkbox ids to check; others are unchecked.
+   */
+  applyState({ severities, labelTypes, validationOptions, tags, streets } = {}) {
+    if (severities) {
+      const on = new Set(severities);
+      this.#filters.setSection(FilterSidebar.SEVERITY, (value) => on.has(Number(value)));
+    }
+    if (labelTypes) {
+      const on = new Set(labelTypes);
+      this.#filters.setSection('label-type', (value) => on.has(value), { clearTagsWhenOff: true });
+    }
+    if (validationOptions) {
+      const on = new Set(validationOptions);
+      this.#filters.setSection('label-validations', (value) => on.has(value));
+    }
+    // After labelTypes: applyTags only activates pills on checked types.
+    if (tags) this.#filters.applyTags(tags);
+    if (streets) {
+      const on = new Set(streets);
+      this.#filters.setSection('streets', (value) => on.has(value));
+      filterStreetLayer(this.#map);
+    }
+
+    // One full pipeline pass regardless of which sections changed — the constructor deliberately skips it (the
+    // server-rendered defaults already match the tracker's), so this is where restored non-default state lands.
+    this.#applyFilters();
+  }
+
+  /**
    * Pushes a sidebar change onto the map: mirror the state into mapData, reapply the layer filters, refresh counts.
    * @param {object} change The change descriptor from FilterSidebar.
    */
@@ -61,9 +117,14 @@ class MapSidebarFilter {
     // Streets are a separate Mapbox layer with its own filter, and they carry no label counts.
     if (change.section === 'streets') {
       filterStreetLayer(this.#map);
-      return;
+    } else {
+      this.#applyFilters();
     }
+    this.#changeCallbacks.forEach((callback) => callback());
+  }
 
+  /** Applies the sidebar's label filters to the map layers and refreshes the counts. */
+  #applyFilters() {
     const state = this.#filters.getState();
     this.#syncMapData(state);
     this.#syncLayerVisibility(state);

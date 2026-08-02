@@ -427,4 +427,59 @@ describe('FilterSidebar', () => {
             expect(typeBox('CurbRamp').disabled).toBe(false);
         });
     });
+
+    describe('applyTags', () => {
+        it('activates the pill, opens its drawer, and marks the type partially filtered', () => {
+            const sidebar = build();
+            sidebar.applyTags([{ labelType: 'CurbRamp', tag: 'curbramp-tag' }]);
+
+            expect(tagPill('CurbRamp').classList.contains('tag-pill--active')).toBe(true);
+            expect(typeBox('CurbRamp').classList.contains('checkbox--partial')).toBe(true);
+            const item = tagPill('CurbRamp').closest('.filter-sidebar__item');
+            expect(item.querySelector('.filter-sidebar__tag-pills').hidden).toBe(false);
+            expect(item.querySelector('.filter-sidebar__tag-toggle').getAttribute('aria-expanded')).toBe('true');
+        });
+
+        it('skips pills whose label type is unchecked, rather than implying the type on', () => {
+            const sidebar = build();
+            typeBox('Obstacle').click();
+
+            sidebar.applyTags([{ labelType: 'Obstacle', tag: 'obstacle-tag' }]);
+
+            expect(tagPill('Obstacle').classList.contains('tag-pill--active')).toBe(false);
+            expect(typeBox('Obstacle').checked).toBe(false);
+            expect(sidebar.getState().tags.Obstacle).toEqual([]);
+        });
+
+        it('activates a tag name only on the type it was paired with', () => {
+            // The same name on two types: activating one must leave the other's pill alone.
+            tagPill('Obstacle').dataset.tag = 'curbramp-tag';
+            const sidebar = build();
+
+            sidebar.applyTags([{ labelType: 'CurbRamp', tag: 'curbramp-tag' }]);
+
+            expect(tagPill('CurbRamp').classList.contains('tag-pill--active')).toBe(true);
+            expect(tagPill('Obstacle').classList.contains('tag-pill--active')).toBe(false);
+            expect(sidebar.getState().tags.Obstacle).toEqual([]);
+        });
+
+        it('does not fire onChange', () => {
+            build().applyTags([
+                { labelType: 'CurbRamp', tag: 'curbramp-tag' },
+                { labelType: 'Obstacle', tag: 'obstacle-tag' },
+            ]);
+
+            expect(changes).toEqual([]);
+        });
+
+        it('handles tag names that need CSS escaping in the selector', () => {
+            // Real tag names can carry a colon (e.g. "parallel lines:yes"), which would break a raw selector.
+            tagPill('CurbRamp').dataset.tag = 'parallel lines:yes';
+            const sidebar = build();
+
+            sidebar.applyTags([{ labelType: 'CurbRamp', tag: 'parallel lines:yes' }]);
+
+            expect(tagPill('CurbRamp').classList.contains('tag-pill--active')).toBe(true);
+        });
+    });
 });

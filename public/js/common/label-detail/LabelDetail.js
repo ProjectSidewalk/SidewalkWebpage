@@ -20,7 +20,13 @@ class LabelDetail {
     const url = new URL(window.location);
     if (labelId) url.searchParams.set('labelId', labelId);
     else url.searchParams.delete('labelId');
-    history.replaceState(null, '', url);
+    // Commas are legal unencoded in a query value; keep any list params (the map/Gallery filters) readable
+    // rather than letting URL serialization re-encode them as %2C. MapSidebarUrlSync serializes identically on
+    // purpose — on the LabelMap both writers touch the same query string, and byte-differing output would have
+    // them rewrite each other's params on every toggle. A value carrying a literal comma is indistinguishable
+    // from a separator after this, which is fine while every list param here is comma-delimited.
+    const query = url.searchParams.toString().replace(/%2C/g, ',');
+    history.replaceState(null, '', `${url.pathname}${query ? `?${query}` : ''}${url.hash}`);
   }
 
   /**
