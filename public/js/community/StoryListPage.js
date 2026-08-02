@@ -104,7 +104,9 @@ class StoryListPage {
 
       const widget = new ShareWidget(trigger, { host: wrap });
       const excerpt = StoryListPage.#excerpt(card.querySelector('.story-card__text').textContent);
-      const shareText = i18next.t('common:share.story-text', { excerpt });
+      // escapeValue off: the text feeds only plain-text sinks (share intent URLs, mailto, the native sheet), so
+      // i18next's default HTML-escaping would ship literal entities in the storyteller's words ("It&#39;s icy").
+      const shareText = i18next.t('common:share.story-text', { excerpt, interpolation: { escapeValue: false } });
       widget.setTarget({
         url: `${window.location.origin}/label/${labelId}?storyId=${storyId}`,
         // The title feeds the native sheet and the email subject, so it carries the descriptive text, not "Share".

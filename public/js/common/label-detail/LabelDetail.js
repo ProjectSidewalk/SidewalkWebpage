@@ -599,7 +599,10 @@ class LabelDetail {
     // spotlight page and serves the og:image crawlers embed in the share card.
     if (this.#shareWidget) {
       // The title feeds the native sheet and the email subject, so it carries the descriptive text, not "Share".
-      const shareText = i18next.t('common:share.text', { labelType: labelTypeName });
+      // escapeValue off: plain-text sinks only, and a type name can carry an apostrophe (Can't See the Sidewalk).
+      const shareText = i18next.t('common:share.text', {
+        labelType: labelTypeName, interpolation: { escapeValue: false },
+      });
       this.#shareWidget.setTarget({
         url: `${window.location.origin}/label/${meta.label_id}`,
         title: shareText,

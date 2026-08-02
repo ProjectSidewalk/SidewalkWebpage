@@ -349,8 +349,17 @@ describe('StoryListPage', () => {
         /** Loads the real ShareWidget (the page builds one per card) plus the collaborators it reaches for. */
         function loadShareWidget() {
             window.eval(`${SHARE_SRC}\nwindow.ShareWidget = ShareWidget;`);
-            // The share text key resolves with the excerpt interpolated; everything else echoes its key.
-            window.i18next = { t: (key, opts) => (opts && opts.excerpt !== undefined ? `shared:${opts.excerpt}` : key) };
+            // The share text key resolves with the excerpt interpolated; everything else echoes its key. Mimics
+            // real i18next's default HTML-escaping of interpolated values (off only when the call opts out), so a
+            // call that forgot `escapeValue: false` ships visible entities here too, not just in production.
+            const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/'/g, '&#39;');
+            window.i18next = {
+                t: (key, opts) => {
+                    if (!opts || opts.excerpt === undefined) return key;
+                    const raw = opts.interpolation && opts.interpolation.escapeValue === false;
+                    return `shared:${raw ? opts.excerpt : esc(opts.excerpt)}`;
+                },
+            };
             window.matchMedia = jest.fn().mockReturnValue({ matches: false }); // jsdom has none; act as desktop.
         }
 
@@ -374,6 +383,17 @@ describe('StoryListPage', () => {
             // title carries the same descriptive text (it feeds the native sheet and the email subject).
             expect(target.text).toBe('shared:Snow piles up here all winter.');
             expect(target.title).toBe(target.text);
+        });
+
+        test("the storyteller's punctuation reaches the share text un-escaped", () => {
+            setupDom(storyCard({ id: '7', storyId: '42', text: "It's icy & the ramp is blocked." }));
+            loadShareWidget();
+            const setTarget = jest.spyOn(window.ShareWidget.prototype, 'setTarget');
+            new window.StoryListPage().init();
+
+            // The text feeds only plain-text sinks (intent URLs, mailto, the native sheet), so i18next's default
+            // interpolation escaping would ship "It&#39;s icy &amp;…" verbatim — the call must opt out of it.
+            expect(setTarget.mock.calls[0][0].text).toBe("shared:It's icy & the ramp is blocked.");
         });
 
         test('long story text is excerpted at a word boundary with an ellipsis', () => {
