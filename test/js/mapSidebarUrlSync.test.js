@@ -90,11 +90,6 @@ function buildFixture() {
         <section class="filter-sidebar__section">
           <ul class="filter-sidebar__list">${streetRows}</ul>
         </section>
-        <section class="filter-sidebar__section">
-          <button type="button" id="filter-sidebar-copy-link">
-            <span>Copy link to this view</span>
-          </button>
-        </section>
       </div>
       <button type="button" id="filter-sidebar-open">open</button>
       <div id="filter-sidebar-resize-handle"></div>`;
@@ -142,15 +137,10 @@ describe('MapSidebarUrlSync', () => {
 
     beforeAll(() => {
         window.i18next = { t: (key) => key, language: 'en' };
-        window.Toast = { show: jest.fn() };
         window.filterLabelLayers = jest.fn();
         window.filterStreetLayer = jest.fn();
         window.toggleLabelLayer = jest.fn();
         window.logWebpageActivity = jest.fn();
-        Object.defineProperty(navigator, 'clipboard', {
-            value: { writeText: jest.fn().mockResolvedValue(undefined) },
-            configurable: true,
-        });
         window.eval(`${FILTER_SIDEBAR_SRC}\nwindow.FilterSidebar = FilterSidebar;`);
         window.eval(`${MAP_SIDEBAR_SRC}\nwindow.MapSidebarFilter = MapSidebarFilter;`);
         window.eval(`${URL_SYNC_SRC}\nwindow.MapSidebarUrlSync = MapSidebarUrlSync;`);
@@ -339,24 +329,6 @@ describe('MapSidebarUrlSync', () => {
             mapHandlers.moveend({ originalEvent: {} });
             jest.advanceTimersByTime(300);
             expect(search()).toBe('?lat=47.61235&lng=-122.33457&zoom=11.26');
-        });
-    });
-
-    describe('copy link', () => {
-        it('flushes a pending debounce so the copied link matches the screen', async () => {
-            build();
-            sevBtn(0).click(); // Debounced write still pending...
-            document.getElementById('filter-sidebar-copy-link').click(); // ...but the copy flushes it.
-
-            expect(navigator.clipboard.writeText).toHaveBeenCalledTimes(1);
-            const copied = navigator.clipboard.writeText.mock.calls[0][0];
-            expect(copied).toContain('severities=1,2,3');
-            expect(copied).toContain('lat=47.61235');
-
-            await Promise.resolve(); // Let the async click handler pass its await on the clipboard write.
-            expect(window.Toast.show).toHaveBeenCalledWith(
-                expect.objectContaining({ message: 'labelmap:link-copied' }));
-            expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=MapSidebar_CopyLink');
         });
     });
 

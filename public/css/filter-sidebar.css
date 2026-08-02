@@ -582,17 +582,3 @@ body.filter-sidebar-resizing {
 .filter-sidebar__tag-pills:not([hidden]) {
   display: flex;
 }
-
-
-/* ---- Copy link button (public LabelMap only, #4696) ---- */
-
-.filter-sidebar__copy-link {
-  width: 100%;
-  justify-content: center;
-  gap: 6px;
-}
-
-.filter-sidebar__copy-link img {
-  width: 16px;
-  height: 16px;
-}

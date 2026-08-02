@@ -71,7 +71,6 @@ class MapSidebarUrlSync {
     this.#map.on('moveend', (event) => {
       if (event.originalEvent) this.#scheduleWrite();
     });
-    this.#initCopyLink();
   }
 
   /** Parses the current query string and applies any valid filter params through MapSidebarFilter. */
@@ -149,24 +148,6 @@ class MapSidebarUrlSync {
     // readable keeps the shared URLs legible (Gallery precedent).
     const query = url.searchParams.toString().replace(/%2C/g, ',');
     window.history.replaceState(null, '', `${url.pathname}${query ? `?${query}` : ''}${url.hash}`);
-  }
-
-  /** Wires the "Copy link to this view" button: flushes the URL, copies it, and confirms with a toast. */
-  #initCopyLink() {
-    const btn = document.getElementById('filter-sidebar-copy-link');
-    if (!btn) return;
-
-    btn.addEventListener('click', async () => {
-      // Flush any pending debounce so the copied link matches what's on screen.
-      this.#writeUrl();
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-      } catch {
-        // Clipboard access can be denied (insecure context, permissions); the URL bar still holds the same link.
-      }
-      Toast.show({ message: i18next.t('labelmap:link-copied'), reference: btn });
-      window.logWebpageActivity?.('Click_module=MapSidebar_CopyLink');
-    });
   }
 
   /**
