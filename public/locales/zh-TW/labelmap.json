@@ -108,6 +108,8 @@
       "already-exists": "您已在此標記分享過故事。",
       "rate-limited": "您發布的故事已達每日上限。請稍後再試。",
       "rate-limited-retry": "您發布的故事已達每日上限。您可以在{{when}}再發布一則。",
+      "rate-limited-ip": "您的網路最近提交了太多故事。請稍後再試。",
+      "rate-limited-ip-retry": "您的網路最近提交了太多故事。您可以在{{when}}再試一次。",
       "photo-too-large": "這張照片太大，無法上傳。",
       "photo-invalid": "我們無法將該檔案讀取為圖片（JPEG 或 PNG）。"
     }

@@ -114,6 +114,8 @@
       "already-exists": "Sie haben an dieser Beschriftung bereits eine Geschichte geteilt.",
       "rate-limited": "Sie haben bereits so viele Geschichten veröffentlicht, wie wir pro Tag zulassen. Bitte versuchen Sie es später erneut.",
       "rate-limited-retry": "Sie haben bereits so viele Geschichten veröffentlicht, wie wir pro Tag zulassen. Sie können {{when}} eine weitere veröffentlichen.",
+      "rate-limited-ip": "Aus Ihrem Netzwerk wurden kürzlich zu viele Geschichten eingereicht. Bitte versuchen Sie es später erneut.",
+      "rate-limited-ip-retry": "Aus Ihrem Netzwerk wurden kürzlich zu viele Geschichten eingereicht. Sie können es {{when}} erneut versuchen.",
       "photo-too-large": "Dieses Foto ist zu groß zum Hochladen.",
       "photo-invalid": "Wir konnten diese Datei nicht als Bild lesen (JPEG oder PNG)."
     }

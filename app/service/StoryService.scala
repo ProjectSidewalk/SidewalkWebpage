@@ -104,21 +104,6 @@ class StoryServiceImpl @Inject() (
       "store)\\b)").r
 
   /**
-   * How long until the story posted at `freesAt` leaves the rolling 24h window, freeing a submission slot.
-   *
-   * Floored at one second so an expiry that has just landed can't reach the UI as "in 0 minutes", and rounded up so
-   * the number we quote is never earlier than the moment the slot actually opens — a user who retries exactly when
-   * told must not be refused again.
-   *
-   * @param freesAt When the oldest story still counting against the cap was posted; None when the cap isn't hit.
-   * @return        Seconds to wait, or None when there is no wait to report.
-   */
-  private def secondsUntilFree(freesAt: Option[OffsetDateTime]): Option[Long] = freesAt.map { posted =>
-    val wait = ChronoUnit.SECONDS.between(OffsetDateTime.now(ZoneOffset.UTC), posted.plusHours(24))
-    math.max(1L, wait)
-  }
-
-  /**
    * Metadata read from an upload's EXIF: the coarse recency/near-label signals that drive the card, plus the raw
    * capture time and GPS (when present). The raw values are persisted for internal analysis only — never surfaced.
    */
@@ -183,7 +168,12 @@ class StoryServiceImpl @Inject() (
         } yield {
           if (!labelOk) Some(StoryRejection.LabelNotFound)
           else if (duplicate) Some(StoryRejection.AlreadyExists)
-          else if (recent >= maxPerDay) Some(StoryRejection.RateLimited(secondsUntilFree(freesAt)))
+          else if (recent >= maxPerDay)
+            Some(
+              StoryRejection.RateLimited(
+                StoryServiceImpl.secondsUntilFree(freesAt, OffsetDateTime.now(ZoneOffset.UTC))
+              )
+            )
           else None
         }
         db.run(checks).flatMap {
@@ -656,4 +646,24 @@ class StoryServiceImpl @Inject() (
       logger.error(s"Failed to delete story media file story_$storyMediaId.jpg: ${e.getMessage}")
     }
   }
+}
+
+object StoryServiceImpl {
+
+  /**
+   * How long until the story posted at `freesAt` leaves the rolling 24h window, freeing a submission slot.
+   *
+   * Ceiled to whole seconds — a fractional second rounds *up* — and floored at one, so the value we quote (in the
+   * 429 body and on its `Retry-After` header) is never a moment before the slot actually opens: a caller who retries
+   * exactly when told must not be refused again. Pure so the sub-second edges are unit-testable.
+   *
+   * @param freesAt When the oldest story still counting against the cap was posted; None when the cap isn't hit.
+   * @param now     The current instant.
+   * @return        Seconds to wait, or None when there is no wait to report.
+   */
+  private[service] def secondsUntilFree(freesAt: Option[OffsetDateTime], now: OffsetDateTime): Option[Long] =
+    freesAt.map { posted =>
+      val waitMs = ChronoUnit.MILLIS.between(now, posted.plusHours(24))
+      math.max(1L, (waitMs + 999) / 1000)
+    }
 }

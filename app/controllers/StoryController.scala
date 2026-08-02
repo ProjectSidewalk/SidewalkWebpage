@@ -96,7 +96,7 @@ class StoryController @Inject() (
       if (!rateLimiter.allow(ipKey, ipLimit)) {
         // Time left in this IP's window, not the whole window length — the caller is already partway through it.
         val retryAfter = rateLimiter.retryAfterSeconds(ipKey).orElse(Some(ipLimit.window.toSeconds))
-        Future.successful(rejectionResult(StoryRejection.RateLimited(retryAfter)))
+        Future.successful(rejectionResult(StoryRejection.RateLimitedIp(retryAfter)))
       } else {
         dataPart("label_id").flatMap(s => Try(s.toInt).toOption) match {
           case None          => Future.successful(BadRequest(Json.obj("error" -> "story.error.label-id-missing")))
@@ -136,7 +136,7 @@ class StoryController @Inject() (
       if (!rateLimiter.allow(ipKey, ipLimit)) {
         // Time left in this IP's window, not the whole window length — the caller is already partway through it.
         val retryAfter = rateLimiter.retryAfterSeconds(ipKey).orElse(Some(ipLimit.window.toSeconds))
-        Future.successful(rejectionResult(StoryRejection.RateLimited(retryAfter)))
+        Future.successful(rejectionResult(StoryRejection.RateLimitedIp(retryAfter)))
       } else {
         val text            = dataPart("text").getOrElse("")
         val displayNameMode = dataPart("display_name_mode").getOrElse(Story.DisplayNameAnonymous)
@@ -256,15 +256,17 @@ class StoryController @Inject() (
   /** Maps a submission rejection to its HTTP status; the body carries the i18n key + English fallback. */
   private def rejectionResult(rejection: StoryRejection) = {
     val body = StoryFormats.rejectionToJson(rejection)
+    // Retry-After is the standard companion to a 429; the body carries the same number for the composer's copy.
+    def tooMany(retryAfter: Option[Long]) =
+      retryAfter.foldLeft(TooManyRequests(body))((res, secs) => res.withHeaders("Retry-After" -> secs.toString))
     rejection match {
-      case StoryRejection.LabelNotFound => NotFound(body)
-      case StoryRejection.StoryNotFound => NotFound(body)
-      case StoryRejection.AlreadyExists => Conflict(body)
-      // Retry-After is the standard companion to a 429; the body carries the same number for the composer's copy.
-      case StoryRejection.RateLimited(retryAfter) =>
-        retryAfter.foldLeft(TooManyRequests(body))((res, secs) => res.withHeaders("Retry-After" -> secs.toString))
-      case StoryRejection.PhotoTooLarge => EntityTooLarge(body)
-      case _                            => BadRequest(body)
+      case StoryRejection.LabelNotFound             => NotFound(body)
+      case StoryRejection.StoryNotFound             => NotFound(body)
+      case StoryRejection.AlreadyExists             => Conflict(body)
+      case StoryRejection.RateLimited(retryAfter)   => tooMany(retryAfter)
+      case StoryRejection.RateLimitedIp(retryAfter) => tooMany(retryAfter)
+      case StoryRejection.PhotoTooLarge             => EntityTooLarge(body)
+      case _                                        => BadRequest(body)
     }
   }
 }

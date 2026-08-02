@@ -114,6 +114,8 @@
       "already-exists": "Je hebt al een verhaal gedeeld bij dit etiket.",
       "rate-limited": "Je hebt zoveel verhalen gepubliceerd als we per dag toestaan. Probeer het later opnieuw.",
       "rate-limited-retry": "Je hebt zoveel verhalen gepubliceerd als we per dag toestaan. Je kunt {{when}} een nieuw verhaal publiceren.",
+      "rate-limited-ip": "Er zijn onlangs te veel verhalen ingediend vanaf je netwerk. Probeer het later opnieuw.",
+      "rate-limited-ip-retry": "Er zijn onlangs te veel verhalen ingediend vanaf je netwerk. Je kunt het {{when}} opnieuw proberen.",
       "photo-too-large": "Die foto is te groot om te uploaden.",
       "photo-invalid": "We konden dat bestand niet als afbeelding lezen (JPEG of PNG)."
     }

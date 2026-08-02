@@ -131,6 +131,17 @@ object StoryRejection {
         "story.error.rate-limited",
         "You've published as many stories as we allow in a day — please try again later."
       )
+
+  /**
+   * The IP burst layer (`rate-limit.story-submit`) refused the request. Distinct from [[RateLimited]] because the
+   * reader may have published nothing themselves — the IP can be a whole building behind one NAT — so the copy has
+   * to blame the network, not the person. `retryAfterSeconds` is the time left in the IP's current window.
+   */
+  case class RateLimitedIp(retryAfterSeconds: Option[Long])
+      extends StoryRejection(
+        "story.error.rate-limited-ip",
+        "Too many stories have been submitted from your network recently — please try again later."
+      )
   case object StoryNotFound
       extends StoryRejection("story.error.story-not-found", "That story doesn't exist or isn't yours.")
   case object PhotoTooLarge extends StoryRejection("story.error.photo-too-large", "That photo is too large to upload.")

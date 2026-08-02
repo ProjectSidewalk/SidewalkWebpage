@@ -623,9 +623,12 @@ class StoryComposer {
    * story, so there is no "tomorrow" to name; and a duration is true for a reader in any timezone without the server
    * ever having to know which one they're in.
    *
-   * Minutes below the 90-minute mark and hours above it: the alternative — always hours — would round a 40-minute
-   * wait down to "in 1 hour", which is a lie in the direction that matters (they'd come back and be refused again).
-   * Minutes round up for the same reason.
+   * Minutes below the 90-minute mark and hours above it, and both round *up*: the phrase is a promise about when a
+   * retry succeeds, and a quoted moment before the slot actually opens is the lie that matters — someone who comes
+   * back exactly when told must not be refused again. (Always-hours would round a 40-minute wait to "in 1 hour";
+   * round-to-nearest hours would tell a 3h29m wait "in 3 hours" — the same broken promise at a larger scale.
+   * Ceiling can overshoot — a 3h05m wait reads "in 4 hours" — but at hour scale nobody is waiting on the minute,
+   * and coming back late always succeeds.)
    *
    * @param {*} seconds - The server's `retry_after_seconds`, or anything non-numeric when it didn't say.
    * @returns {?string} The localized phrase, or null when there's nothing to format.
@@ -643,6 +646,6 @@ class StoryComposer {
     }
     return seconds < 5400
       ? fmt.format(Math.ceil(seconds / 60), 'minute')
-      : fmt.format(Math.round(seconds / 3600), 'hour');
+      : fmt.format(Math.ceil(seconds / 3600), 'hour');
   }
 }

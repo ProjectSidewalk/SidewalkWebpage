@@ -50,6 +50,10 @@ const STRINGS = {
         'You’ve published as many stories as we allow in a day. Please try again later.',
     'labelmap:story.error.rate-limited-retry':
         'You’ve published as many stories as we allow in a day. You can publish another {{when}}.',
+    'labelmap:story.error.rate-limited-ip':
+        'Too many stories have been submitted from your network recently. Please try again later.',
+    'labelmap:story.error.rate-limited-ip-retry':
+        'Too many stories have been submitted from your network recently. You can try again {{when}}.',
     'labelmap:story.error.generic': 'Something went wrong.',
 };
 
@@ -111,6 +115,12 @@ describe('the daily-cap message', () => {
         expect(errorText()).toContain('in 80 minutes');
     });
 
+    test('hours round up too — a 2h05m wait must not read "in 2 hours"', async () => {
+        // Rounding to nearest would promise a moment 5 minutes before the slot opens; ceiling never does.
+        await submitAndFail({ ...RATE_LIMITED, retry_after_seconds: 2 * 3600 + 300 });
+        expect(errorText()).toContain('in 3 hours');
+    });
+
     test('falls back to the untimed message when the server sends no wait', async () => {
         await submitAndFail(RATE_LIMITED);
         expect(errorText()).toBe('You’ve published as many stories as we allow in a day. Please try again later.');
@@ -125,5 +135,23 @@ describe('the daily-cap message', () => {
         window.i18next.language = 'es';
         await submitAndFail({ ...RATE_LIMITED, retry_after_seconds: 3 * 3600 });
         expect(errorText()).toContain('dentro de 3 horas');
+    });
+});
+
+describe('the network (IP) burst message', () => {
+    // The IP layer can trip for someone who published nothing themselves (a shared NAT), so its copy blames the
+    // network rather than the person — a distinct key from the per-user daily cap's.
+    const IP_LIMITED = { error: 'story.error.rate-limited-ip', message: 'fallback' };
+
+    test('names the wait when the server says how long is left in the window', async () => {
+        await submitAndFail({ ...IP_LIMITED, retry_after_seconds: 2 * 3600 });
+        expect(errorText()).toBe(
+            'Too many stories have been submitted from your network recently. You can try again in 2 hours.');
+    });
+
+    test('falls back to the untimed network message when the server sends no wait', async () => {
+        await submitAndFail(IP_LIMITED);
+        expect(errorText()).toBe(
+            'Too many stories have been submitted from your network recently. Please try again later.');
     });
 });
