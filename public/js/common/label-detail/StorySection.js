@@ -72,9 +72,12 @@ class StorySection {
   /**
    * Points the section at a new label: collapses the disclosure, clears the list, and fetches its stories.
    * @param {number} labelId
+   * @param {?string} [labelTypeName] - Localized label-type name, forwarded to the composer so its title can name
+   *      what the story is about. Omit (or pass null) for the generic title.
    */
-  setLabel(labelId) {
+  setLabel(labelId, labelTypeName = null) {
     this.#labelId = labelId;
+    this.#composer.setLabelType(labelTypeName);
     this.#isAccessProblem = null;
     this.#els.list.replaceChildren();
     this.#els.count.hidden = true;

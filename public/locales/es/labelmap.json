@@ -71,6 +71,8 @@
     "updated": "Tu historia se actualizó.",
     "composer-title": "Escribe tu historia",
     "composer-title-edit": "Edita tu historia",
+    "composer-title-about": "Escribe tu historia sobre: {{labelType}}",
+    "composer-title-edit-about": "Edita tu historia sobre: {{labelType}}",
     "composer-intro": "Las historias ayudan a los vecinos y a las autoridades de la ciudad a entender lo que problemas como este significan para personas reales. Tu historia aparecerá adjunta a esta etiqueta.",
     "composer-intro-positive": "Las historias ayudan a los vecinos y a las autoridades de la ciudad a entender lo que elementos de accesibilidad como este significan para personas reales. Tu historia aparecerá adjunta a esta etiqueta.",
     "your-story": "Tu historia",

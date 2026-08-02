@@ -71,6 +71,8 @@
     "updated": "Your story was updated.",
     "composer-title": "Write your story",
     "composer-title-edit": "Edit your story",
+    "composer-title-about": "Write your story about this {{labelType}}",
+    "composer-title-edit-about": "Edit your story about this {{labelType}}",
     "composer-intro": "Stories help neighbors and city officials understand what problems like this mean for real people. Your story will appear attached to this label.",
     "composer-intro-positive": "Stories help neighbors and city officials understand what access features like this mean for real people. Your story will appear attached to this label.",
     "your-story": "Your story",

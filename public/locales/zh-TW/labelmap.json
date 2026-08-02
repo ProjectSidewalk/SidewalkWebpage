@@ -65,6 +65,8 @@
     "updated": "您的故事已更新。",
     "composer-title": "撰寫您的故事",
     "composer-title-edit": "編輯您的故事",
+    "composer-title-about": "撰寫您關於此{{labelType}}的故事",
+    "composer-title-edit-about": "編輯您關於此{{labelType}}的故事",
     "composer-intro": "這些故事能幫助鄰里和市政人員了解這類問題對真實生活的影響。您的故事將附加顯示在此標記上。",
     "composer-intro-positive": "這些故事能幫助鄰里和市政人員了解這類無障礙設施對真實生活的影響。您的故事將附加顯示在此標記上。",
     "your-story": "您的故事",

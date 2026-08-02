@@ -71,6 +71,8 @@
     "updated": "Sua história foi atualizada.",
     "composer-title": "Escreva sua história",
     "composer-title-edit": "Edite sua história",
+    "composer-title-about": "Escreva sua história sobre: {{labelType}}",
+    "composer-title-edit-about": "Edite sua história sobre: {{labelType}}",
     "composer-intro": "Histórias ajudam vizinhos e autoridades da cidade a entender o que problemas como este significam para pessoas reais. Sua história aparecerá anexada a este rótulo.",
     "composer-intro-positive": "Histórias ajudam vizinhos e autoridades da cidade a entender o que recursos de acessibilidade como este significam para pessoas reais. Sua história aparecerá anexada a este rótulo.",
     "your-story": "Sua história",

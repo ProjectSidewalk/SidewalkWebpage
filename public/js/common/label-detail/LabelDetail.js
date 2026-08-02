@@ -658,8 +658,13 @@ class LabelDetail {
     els.commentInput.value = '';
     els.commentButton.classList.remove('is-active');
 
-    // Lived-experience stories (#4054): lazy per-label fetch, so the metadata payload stays untouched.
-    this.#storySection?.setLabel(meta.label_id);
+    // Lived-experience stories (#4054): lazy per-label fetch, so the metadata payload stays untouched. The type name
+    // rides along so the composer's title can name the label ("Write your story about this Missing Curb Ramp").
+    // Withheld for the two types whose names aren't a thing you can have a story "about" — "…about this Other" and
+    // "…about this Can't See the Sidewalk" don't read as English — leaving those on the generic title.
+    const NO_STORY_SUBJECT = ['Other', 'Occlusion'];
+    this.#storySection?.setLabel(
+      meta.label_id, NO_STORY_SUBJECT.includes(meta.label_type) ? null : labelTypeName);
 
     // Fill in some admin-only fields at the bottom if applicable.
     if (this.#admin) {

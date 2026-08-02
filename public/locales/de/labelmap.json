@@ -71,6 +71,8 @@
     "updated": "Ihre Geschichte wurde aktualisiert.",
     "composer-title": "Schreiben Sie Ihre Geschichte",
     "composer-title-edit": "Geschichte bearbeiten",
+    "composer-title-about": "Schreiben Sie Ihre Geschichte zu: {{labelType}}",
+    "composer-title-edit-about": "Bearbeiten Sie Ihre Geschichte zu: {{labelType}}",
     "composer-intro": "Geschichten helfen Nachbarn und der Stadtverwaltung zu verstehen, was Probleme wie dieses für echte Menschen bedeuten. Ihre Geschichte wird an dieser Beschriftung angezeigt.",
     "composer-intro-positive": "Geschichten helfen Nachbarn und der Stadtverwaltung zu verstehen, was Barrierefreiheitsmerkmale wie dieses für echte Menschen bedeuten. Ihre Geschichte wird an dieser Beschriftung angezeigt.",
     "your-story": "Ihre Geschichte",

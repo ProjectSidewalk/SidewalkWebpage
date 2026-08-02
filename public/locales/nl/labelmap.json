@@ -71,6 +71,8 @@
     "updated": "Je verhaal is bijgewerkt.",
     "composer-title": "Schrijf jouw verhaal",
     "composer-title-edit": "Bewerk je verhaal",
+    "composer-title-about": "Schrijf jouw verhaal over: {{labelType}}",
+    "composer-title-edit-about": "Bewerk je verhaal over: {{labelType}}",
     "composer-intro": "Verhalen helpen buren en gemeenten te begrijpen wat problemen zoals dit voor echte mensen betekenen. Je verhaal wordt aan dit etiket gekoppeld.",
     "composer-intro-positive": "Verhalen helpen buren en gemeenten te begrijpen wat toegankelijkheidsvoorzieningen zoals deze voor echte mensen betekenen. Je verhaal wordt aan dit etiket gekoppeld.",
     "your-story": "Jouw verhaal",

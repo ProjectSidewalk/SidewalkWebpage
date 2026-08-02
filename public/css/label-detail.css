@@ -262,7 +262,7 @@ dialog.label-detail[open]::backdrop {
   gap: 6px;
   align-items: center;
   padding: 9px 22px;
-  border-radius: 999px;
+  border-radius: 12px; /* Rounded rect, not a round pill — this is a button. See share-widget.css. */
   background: var(--color-pine-500);
   color: var(--color-neutral-black);
   font-weight: 600;
@@ -619,7 +619,7 @@ button.label-detail__meta-cell:focus-visible {
   height: 34px;
   padding: 0 18px;
   border: none;
-  border-radius: 999px;
+  border-radius: 12px; /* Rounded rect, not a round pill — this is a button. See share-widget.css. */
   background: var(--color-neutral-200);
 
   /* neutral-800 (not -600): the button is clickable even in this resting state, so its label must clear WCAG AA
@@ -1488,10 +1488,12 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
   margin-top: 16px;
 }
 
+/* Rounded rect, not a round pill: round is the tag/chip vocabulary here (see share-widget.css). 12px is what
+   `.button--medium` uses, which is this button's size. Same for the submit button below. */
 .story-composer__cancel {
   padding: 9px 18px;
-  border: 1px solid var(--color-neutral-400);
-  border-radius: 999px;
+  border: 1px solid var(--color-neutral-800);
+  border-radius: 12px;
   background: var(--color-neutral-white);
   cursor: pointer;
   font-family: var(--font-primary);
@@ -1525,7 +1527,7 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
 .story-composer__submit {
   padding: 9px 22px;
   border: none;
-  border-radius: 999px;
+  border-radius: 12px;
   background: var(--color-pine-500);
   cursor: pointer;
   font-family: var(--font-primary);

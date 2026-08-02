@@ -53,13 +53,16 @@ function setupDom() {
 
 describe("StorySection's linked-story reveal (#4722)", () => {
     let stories;
+    let composerCalls;
 
     beforeEach(() => {
         window.eval(`${SECTION_SRC}\nwindow.StorySection = StorySection;`);
+        composerCalls = { setLabelType: [] };
         window.StoryComposer = class {
             open() {}
             openForEdit() {}
             setCopyVariant() {}
+            setLabelType(name) { composerCalls.setLabelType.push(name); }
         };
         window.i18next = { t: (key) => key };
         window.moment = jest.fn(() => ({ format: () => 'DATE' }));
@@ -83,6 +86,17 @@ describe("StorySection's linked-story reveal (#4722)", () => {
 
     /** The highlighted row, or null. */
     const linkedRow = () => document.querySelector('.label-detail__story--linked');
+
+    test('the label type rides down to the composer, so its title can name the label', async () => {
+        const section = new window.StorySection(setupDom(), {});
+        section.setLabel(1, 'Missing Curb Ramp');
+        await flush();
+        expect(composerCalls.setLabelType).toEqual(['Missing Curb Ramp']);
+
+        // A host that withholds the name (Other / Can't See the Sidewalk) leaves the composer on generic wording.
+        section.setLabel(2);
+        expect(composerCalls.setLabelType).toEqual(['Missing Curb Ramp', null]);
+    });
 
     test('every story row carries its story id as the deep-link anchor', async () => {
         stories = [story({ story_id: 11 }), story({ story_id: 12 })];
