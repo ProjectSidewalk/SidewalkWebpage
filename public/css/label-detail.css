@@ -947,9 +947,9 @@ button.label-detail__meta-cell:focus-visible {
   align-items: center;
   gap: 6px;
   padding: 5px 12px;
-  background: var(--color-neutral-100);
-  color: var(--color-neutral-800);
-  border: 1px solid var(--color-neutral-300);
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+  border: 1px solid var(--color-neutral-500);
   border-radius: 18px;
   font: var(--text-small-medium);
   text-decoration: none;
@@ -958,8 +958,8 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__labelmap-link:hover,
 .label-detail__explore-link:hover {
-  background: var(--color-neutral-200);
-  border-color: var(--color-neutral-400);
+  background: var(--color-neutral-100);
+  border-color: var(--color-neutral-700);
 }
 
 .label-detail__labelmap-link:focus-visible,
@@ -1061,22 +1061,23 @@ button.label-detail__meta-cell:focus-visible {
 }
 
 /* Zero-story CTA in the footer row (the stories section is hidden until a story exists): dressed to match its
-   labelmap-link/share-trigger siblings so the three read as one row (per Jon: uniform light gray for now), but
-   pushed to the left edge so the share-this-page actions keep their own group on the right. */
+   labelmap-link/share-trigger siblings so the three read as one row (all now outline pills — see share-widget.css on
+   why the old gray fill read as disabled), but pushed to the left edge so the share-this-page actions keep their own
+   group on the right. */
 .label-detail__story-share--footer {
   margin-right: auto;
   gap: 6px;
   padding: 5px 12px;
-  background: var(--color-neutral-100);
-  color: var(--color-neutral-800);
-  border: 1px solid var(--color-neutral-300);
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+  border: 1px solid var(--color-neutral-500);
   border-radius: 18px;
   font: var(--text-small-medium);
 }
 
 .label-detail__story-share--footer:hover {
-  background: var(--color-neutral-200);
-  border-color: var(--color-neutral-400);
+  background: var(--color-neutral-100);
+  border-color: var(--color-neutral-700);
 }
 
 .label-detail__stories-arrow {
