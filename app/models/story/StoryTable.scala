@@ -128,6 +128,30 @@ class StoryTable @Inject() (
     stories.filter(s => s.userId === userId && s.createdAt >= since).length.result
   }
 
+  /**
+   * When the oldest story still counting against the user's daily cap was posted — the one whose expiry from the
+   * rolling window frees the next slot, so the composer can tell the user how long that is.
+   *
+   * Skips `maxPerDay - 1` rows from the newest end rather than simply taking the oldest in the window, so it stays
+   * right when the user is *over* the cap (which happens whenever the configured cap is lowered): with C stories in
+   * the window and a cap of N, C - N + 1 of them have to age out, and this is the newest of those.
+   *
+   * @param userId    The submitting user.
+   * @param since     Start of the rolling window (now - 24h).
+   * @param maxPerDay The configured cap.
+   * @return          The story's timestamp, or None if the user is under the cap.
+   */
+  def nthNewestInWindowAt(userId: String, since: OffsetDateTime, maxPerDay: Int): DBIO[Option[OffsetDateTime]] = {
+    stories
+      .filter(s => s.userId === userId && s.createdAt >= since)
+      .sortBy(_.createdAt.desc)
+      .drop(math.max(0, maxPerDay - 1))
+      .take(1)
+      .map(_.createdAt)
+      .result
+      .headOption
+  }
+
   def getMediaForStory(storyId: Int): DBIO[Seq[StoryMedia]] = {
     storyMedia.filter(_.storyId === storyId).result
   }

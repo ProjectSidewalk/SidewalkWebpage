@@ -91,6 +91,20 @@ class RateLimiter @Inject() (config: Configuration) {
     )
   }
 
+  /**
+   * How long until `key`'s current window elapses and its count resets — the honest value for a `Retry-After`
+   * header, rather than quoting the full window length to someone who is already partway through it.
+   *
+   * @param key The key whose window to inspect; not recorded as an attempt.
+   * @return    Seconds remaining (at least one), or None if the key has no active window.
+   */
+  def retryAfterSeconds(key: String): Option[Long] = {
+    Option(windows.get(key)).map { w =>
+      val remainingMs = w.startMs + w.windowMs - nowMs
+      math.max(1L, (remainingMs + 999) / 1000) // Round up: never quote a moment before the window actually clears.
+    }
+  }
+
   /** Drops windows that have fully elapsed as of `now`, freeing memory. The CHM iterator supports safe live removal. */
   private def evictExpired(now: Long): Unit = {
     val it = windows.entrySet().iterator()

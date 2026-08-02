@@ -343,8 +343,14 @@ class StoryComposer {
           // Non-JSON error body (e.g. Play's body-parser cutoff or a proxy error page); handled by status below.
         }
         const key = body && body.error ? `labelmap:${body.error}` : null;
+        // When the server said how long the wait is (the daily story cap), prefer the variant of the message that
+        // names it. Falls back to the plain message whenever the wait is unknown or unformattable.
+        const when = StoryComposer.#relativeTime(body && body.retry_after_seconds);
+        const timedKey = key && when ? `${key}-retry` : null;
         let message;
-        if (key && i18next.exists(key)) {
+        if (timedKey && i18next.exists(timedKey)) {
+          message = i18next.t(timedKey, { when });
+        } else if (key && i18next.exists(key)) {
           // The server rides the real limit along on text-too-long (body.max); #maxLength is only the fallback
           // since it's null until the /stories fetch lands.
           message = i18next.t(key, { max: (body && body.max) || this.#maxLength });
@@ -608,5 +614,35 @@ class StoryComposer {
 
   #clearError() {
     this.#els.error.hidden = true;
+  }
+
+  /**
+   * Formats a wait in seconds as a localized phrase — "in 3 hours", "in 20 minutes".
+   *
+   * A duration rather than a wall-clock time, deliberately. The daily story cap is a *rolling* 24 hours from each
+   * story, so there is no "tomorrow" to name; and a duration is true for a reader in any timezone without the server
+   * ever having to know which one they're in.
+   *
+   * Minutes below the 90-minute mark and hours above it: the alternative — always hours — would round a 40-minute
+   * wait down to "in 1 hour", which is a lie in the direction that matters (they'd come back and be refused again).
+   * Minutes round up for the same reason.
+   *
+   * @param {*} seconds - The server's `retry_after_seconds`, or anything non-numeric when it didn't say.
+   * @returns {?string} The localized phrase, or null when there's nothing to format.
+   * @private
+   */
+  static #relativeTime(seconds) {
+    const usable = typeof seconds === 'number' && Number.isFinite(seconds) && seconds > 0;
+    if (!usable || typeof Intl === 'undefined' || typeof Intl.RelativeTimeFormat !== 'function') return null;
+    const lang = (typeof i18next !== 'undefined' && i18next.language) || document.documentElement.lang || 'en';
+    let fmt;
+    try {
+      fmt = new Intl.RelativeTimeFormat(lang, { numeric: 'always' });
+    } catch {
+      return null; // Unknown or malformed tag — fall back to the untimed message rather than throw mid-error-path.
+    }
+    return seconds < 5400
+      ? fmt.format(Math.ceil(seconds / 60), 'minute')
+      : fmt.format(Math.round(seconds / 3600), 'hour');
   }
 }

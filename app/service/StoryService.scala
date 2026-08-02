@@ -104,6 +104,21 @@ class StoryServiceImpl @Inject() (
       "store)\\b)").r
 
   /**
+   * How long until the story posted at `freesAt` leaves the rolling 24h window, freeing a submission slot.
+   *
+   * Floored at one second so an expiry that has just landed can't reach the UI as "in 0 minutes", and rounded up so
+   * the number we quote is never earlier than the moment the slot actually opens — a user who retries exactly when
+   * told must not be refused again.
+   *
+   * @param freesAt When the oldest story still counting against the cap was posted; None when the cap isn't hit.
+   * @return        Seconds to wait, or None when there is no wait to report.
+   */
+  private def secondsUntilFree(freesAt: Option[OffsetDateTime]): Option[Long] = freesAt.map { posted =>
+    val wait = ChronoUnit.SECONDS.between(OffsetDateTime.now(ZoneOffset.UTC), posted.plusHours(24))
+    math.max(1L, wait)
+  }
+
+  /**
    * Metadata read from an upload's EXIF: the coarse recency/near-label signals that drive the card, plus the raw
    * capture time and GPS (when present). The raw values are persisted for internal analysis only — never surfaced.
    */
@@ -160,10 +175,15 @@ class StoryServiceImpl @Inject() (
           labelOk   <- storyTable.labelExists(labelId)
           duplicate <- storyTable.userHasStoryOnLabel(labelId, userId)
           recent    <- storyTable.countByUserSince(userId, since)
+          // Only when the cap is already hit: the timestamp whose 24h expiry frees the next slot, so the rejection
+          // can carry how long that is instead of the composer guessing.
+          freesAt <-
+            if (recent >= maxPerDay) storyTable.nthNewestInWindowAt(userId, since, maxPerDay)
+            else DBIO.successful(None)
         } yield {
           if (!labelOk) Some(StoryRejection.LabelNotFound)
           else if (duplicate) Some(StoryRejection.AlreadyExists)
-          else if (recent >= maxPerDay) Some(StoryRejection.RateLimited)
+          else if (recent >= maxPerDay) Some(StoryRejection.RateLimited(secondsUntilFree(freesAt)))
           else None
         }
         db.run(checks).flatMap {

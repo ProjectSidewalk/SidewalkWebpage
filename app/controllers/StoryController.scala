@@ -91,12 +91,12 @@ class StoryController @Inject() (
       def dataPart(name: String): Option[String] = request.body.dataParts.get(name).flatMap(_.headOption)
 
       // Inert-until-enabled IP burst layer on top of the always-on per-user DB limit in StoryService.
+      val ipKey   = s"story-submit:ip:${request.ipAddress}"
       val ipLimit = rateLimiter.limit("story-submit")
-      if (!rateLimiter.allow(s"story-submit:ip:${request.ipAddress}", ipLimit)) {
-        Future.successful(
-          TooManyRequests(StoryFormats.rejectionToJson(StoryRejection.RateLimited))
-            .withHeaders("Retry-After" -> ipLimit.window.toSeconds.toString)
-        )
+      if (!rateLimiter.allow(ipKey, ipLimit)) {
+        // Time left in this IP's window, not the whole window length — the caller is already partway through it.
+        val retryAfter = rateLimiter.retryAfterSeconds(ipKey).orElse(Some(ipLimit.window.toSeconds))
+        Future.successful(rejectionResult(StoryRejection.RateLimited(retryAfter)))
       } else {
         dataPart("label_id").flatMap(s => Try(s.toInt).toOption) match {
           case None          => Future.successful(BadRequest(Json.obj("error" -> "story.error.label-id-missing")))
@@ -131,12 +131,12 @@ class StoryController @Inject() (
 
       def dataPart(name: String): Option[String] = request.body.dataParts.get(name).flatMap(_.headOption)
 
+      val ipKey   = s"story-submit:ip:${request.ipAddress}"
       val ipLimit = rateLimiter.limit("story-submit")
-      if (!rateLimiter.allow(s"story-submit:ip:${request.ipAddress}", ipLimit)) {
-        Future.successful(
-          TooManyRequests(StoryFormats.rejectionToJson(StoryRejection.RateLimited))
-            .withHeaders("Retry-After" -> ipLimit.window.toSeconds.toString)
-        )
+      if (!rateLimiter.allow(ipKey, ipLimit)) {
+        // Time left in this IP's window, not the whole window length — the caller is already partway through it.
+        val retryAfter = rateLimiter.retryAfterSeconds(ipKey).orElse(Some(ipLimit.window.toSeconds))
+        Future.successful(rejectionResult(StoryRejection.RateLimited(retryAfter)))
       } else {
         val text            = dataPart("text").getOrElse("")
         val displayNameMode = dataPart("display_name_mode").getOrElse(Story.DisplayNameAnonymous)
@@ -260,7 +260,9 @@ class StoryController @Inject() (
       case StoryRejection.LabelNotFound => NotFound(body)
       case StoryRejection.StoryNotFound => NotFound(body)
       case StoryRejection.AlreadyExists => Conflict(body)
-      case StoryRejection.RateLimited   => TooManyRequests(body)
+      // Retry-After is the standard companion to a 429; the body carries the same number for the composer's copy.
+      case StoryRejection.RateLimited(retryAfter) =>
+        retryAfter.foldLeft(TooManyRequests(body))((res, secs) => res.withHeaders("Retry-After" -> secs.toString))
       case StoryRejection.PhotoTooLarge => EntityTooLarge(body)
       case _                            => BadRequest(body)
     }

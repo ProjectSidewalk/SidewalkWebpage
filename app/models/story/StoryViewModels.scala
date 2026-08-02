@@ -119,8 +119,18 @@ object StoryRejection {
       extends StoryRejection("story.error.invalid-display-name", "Invalid display-name option.")
   case object AlreadyExists
       extends StoryRejection("story.error.already-exists", "You've already shared a story on this label.")
-  case object RateLimited
-      extends StoryRejection("story.error.rate-limited", "You've shared several stories recently — try again tomorrow.")
+
+  /**
+   * The daily submission cap is a *rolling* 24 hours from each story, so there is no "tomorrow" to point at: a slot
+   * frees up 24h after the oldest story still counting. `retryAfterSeconds` is how long that is, so the composer can
+   * say it as a duration — true in every timezone, and needing none. None when the wait isn't known (the IP burst
+   * layer only knows its own window).
+   */
+  case class RateLimited(retryAfterSeconds: Option[Long])
+      extends StoryRejection(
+        "story.error.rate-limited",
+        "You've published as many stories as we allow in a day — please try again later."
+      )
   case object StoryNotFound
       extends StoryRejection("story.error.story-not-found", "That story doesn't exist or isn't yours.")
   case object PhotoTooLarge extends StoryRejection("story.error.photo-too-large", "That photo is too large to upload.")

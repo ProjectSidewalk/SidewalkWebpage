@@ -112,7 +112,8 @@
       "links-not-allowed": "Links sind in Geschichten oder Fotobeschreibungen nicht erlaubt.",
       "invalid-display-name": "Ungültige Anzeigename-Option.",
       "already-exists": "Sie haben an dieser Beschriftung bereits eine Geschichte geteilt.",
-      "rate-limited": "Sie haben kürzlich mehrere Geschichten geteilt – bitte versuchen Sie es morgen erneut.",
+      "rate-limited": "Sie haben bereits so viele Geschichten veröffentlicht, wie wir pro Tag zulassen. Bitte versuchen Sie es später erneut.",
+      "rate-limited-retry": "Sie haben bereits so viele Geschichten veröffentlicht, wie wir pro Tag zulassen. Sie können {{when}} eine weitere veröffentlichen.",
       "photo-too-large": "Dieses Foto ist zu groß zum Hochladen.",
       "photo-invalid": "Wir konnten diese Datei nicht als Bild lesen (JPEG oder PNG)."
     }

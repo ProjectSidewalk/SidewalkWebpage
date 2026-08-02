@@ -112,7 +112,8 @@
       "links-not-allowed": "Links não são permitidos em histórias ou descrições de fotos.",
       "invalid-display-name": "Opção de exibição de nome inválida.",
       "already-exists": "Você já compartilhou uma história neste rótulo.",
-      "rate-limited": "Você compartilhou várias histórias recentemente; tente novamente amanhã.",
+      "rate-limited": "Você publicou tantas histórias quanto permitimos por dia. Tente novamente mais tarde.",
+      "rate-limited-retry": "Você publicou tantas histórias quanto permitimos por dia. Você pode publicar outra {{when}}.",
       "photo-too-large": "Essa foto é grande demais para o envio.",
       "photo-invalid": "Não conseguimos ler esse arquivo como imagem (JPEG ou PNG)."
     }

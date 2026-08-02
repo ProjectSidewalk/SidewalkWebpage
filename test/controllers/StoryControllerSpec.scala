@@ -404,8 +404,17 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
         status(resp) mustBe OK
         (contentAsJson(resp) \ "story_id").as[Int]
       }
-      try status(postStory(session, labelIds(maxPerDay), "one over the daily cap")) mustBe TOO_MANY_REQUESTS
-      finally posted.foreach(storyId => status(deleteStory(session, storyId)) mustBe OK)
+      try {
+        val refused = postStory(session, labelIds(maxPerDay), "one over the daily cap")
+        status(refused) mustBe TOO_MANY_REQUESTS
+
+        // The cap is a rolling 24h window, so the refusal says how long the wait is rather than naming a day: the
+        // stories were just posted, so the next slot is a shade under 24h away. Same number on the standard header.
+        val retryAfter = (contentAsJson(refused) \ "retry_after_seconds").as[Long]
+        retryAfter must be > 23.hours.toSeconds
+        retryAfter must be <= 24.hours.toSeconds
+        header("Retry-After", refused).value mustBe retryAfter.toString
+      } finally posted.foreach(storyId => status(deleteStory(session, storyId)) mustBe OK)
     }
 
     "ingest a photo (re-encoded, resized, signed URL), serve it, and remove the bytes on retraction" in {
