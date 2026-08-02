@@ -949,8 +949,8 @@ button.label-detail__meta-cell:focus-visible {
   padding: 5px 12px;
   background: var(--color-neutral-white);
   color: var(--color-neutral-900);
-  border: 1px solid var(--color-neutral-500);
-  border-radius: 18px;
+  border: 1px solid var(--color-neutral-800);
+  border-radius: 10px;
   font: var(--text-small-medium);
   text-decoration: none;
   transition: background-color 0.15s ease, border-color 0.15s ease;
@@ -958,8 +958,8 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__labelmap-link:hover,
 .label-detail__explore-link:hover {
-  background: var(--color-neutral-100);
-  border-color: var(--color-neutral-700);
+  background: var(--color-banana-200);
+  border-color: var(--color-neutral-900);
 }
 
 .label-detail__labelmap-link:focus-visible,
@@ -1027,15 +1027,17 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__stories-count[hidden] { display: none; }
 
-/* Outline pill CTA (Variant B placement on the C.2 disclosure). Deliberately NOT pine green: on this card green
-   already means "Agree" on the validation buttons right above, so the CTA stays neutral to keep that meaning. */
+/* Outline CTA (Variant B placement on the C.2 disclosure). Deliberately NOT pine green: on this card green already
+   means "Agree" on the validation buttons right above, so the CTA stays neutral to keep that meaning. Rounded rect
+   rather than a round pill, so it reads as a button and not as one of the tags a few rows up — see share-widget.css
+   for the shape rule this card follows throughout. */
 .label-detail__story-share {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   padding: 6px 14px;
-  border: 1px solid var(--color-neutral-500);
-  border-radius: 999px;
+  border: 1px solid var(--color-neutral-800);
+  border-radius: 10px;
   background: var(--color-neutral-white);
   cursor: pointer;
   font-family: var(--font-primary);
@@ -1061,23 +1063,23 @@ button.label-detail__meta-cell:focus-visible {
 }
 
 /* Zero-story CTA in the footer row (the stories section is hidden until a story exists): dressed to match its
-   labelmap-link/share-trigger siblings so the three read as one row (all now outline pills — see share-widget.css on
-   why the old gray fill read as disabled), but pushed to the left edge so the share-this-page actions keep their own
-   group on the right. */
+   labelmap-link/share-trigger siblings so the three read as one row (all outline buttons — see share-widget.css on
+   why the old gray fill read as disabled and the old round pill read as a tag), but pushed to the left edge so the
+   share-this-page actions keep their own group on the right. */
 .label-detail__story-share--footer {
   margin-right: auto;
   gap: 6px;
   padding: 5px 12px;
   background: var(--color-neutral-white);
   color: var(--color-neutral-900);
-  border: 1px solid var(--color-neutral-500);
-  border-radius: 18px;
+  border: 1px solid var(--color-neutral-800);
+  border-radius: 10px;
   font: var(--text-small-medium);
 }
 
 .label-detail__story-share--footer:hover {
-  background: var(--color-neutral-100);
-  border-color: var(--color-neutral-700);
+  background: var(--color-banana-200);
+  border-color: var(--color-neutral-900);
 }
 
 .label-detail__stories-arrow {

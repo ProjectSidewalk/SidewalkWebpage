@@ -18,11 +18,17 @@
   position: relative;
 }
 
-/* Outline pill, not a filled gray one: a gray fill under gray text is exactly how main.css dresses
-   `.button--primary:disabled`, so the quiet version of this button read as switched off (Jon, 2026-08-01). White fill
-   + near-black text + a dark hairline is the same enabled-secondary language as `.button--secondary` and the card's
-   own "Share your story" pill. Hosts that want the quiet treatment back — Explore's hover card and context menu, the
-   landing grid — already override all three properties. */
+/* Dressed as an outline *button*, on two counts (both Jon, 2026-08-01):
+   - Not a gray fill. A gray fill under gray text is exactly how main.css dresses `.button--primary:disabled`, so the
+     quiet version of this control read as switched off. White fill + near-black text + a dark hairline is the
+     enabled-secondary language `.button--secondary` already uses.
+   - Not a round pill. That treatment is `.tag-pill` (white, dark hairline, 200px radius), so at this height a fully
+     round button was indistinguishable from a tag — and on the label detail card the tags sit right above these
+     actions. Every `button-ps` size uses an 8–16px radius instead, so shape is what separates the two vocabularies:
+     round = tag or chip, rounded rect = button. 10px matches `.button--small`, which is the "View label" button
+     sitting next to this one on a story card.
+   Hosts that want a quieter treatment — Explore's hover card and context menu, the landing grid — already override
+   background, border and color. */
 .label-detail__share-trigger {
   display: inline-flex;
   align-items: center;
@@ -30,16 +36,16 @@
   padding: calc(5px * var(--ui-scale, 1)) calc(12px * var(--ui-scale, 1));
   background: var(--color-neutral-white);
   color: var(--color-neutral-900);
-  border: 1px solid var(--color-neutral-500);
-  border-radius: calc(18px * var(--ui-scale, 1));
+  border: 1px solid var(--color-neutral-800);
+  border-radius: calc(10px * var(--ui-scale, 1));
   font: var(--text-small-medium);
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .label-detail__share-trigger:hover {
-  background: var(--color-neutral-100);
-  border-color: var(--color-neutral-700);
+  background: var(--color-banana-200);
+  border-color: var(--color-neutral-900);
 }
 
 .label-detail__share-trigger:focus-visible {
