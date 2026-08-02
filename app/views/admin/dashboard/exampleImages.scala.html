@@ -1,29 +1,90 @@
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
+@import models.pano.PanoSource
 @import play.api.Configuration
 @import play.api.libs.json.JsValue
-@(commonData: CommonPageData, user: SidewalkUserWithRole, imageTree: JsValue, annotations: JsValue
+@(commonData: CommonPageData, user: SidewalkUserWithRole, imageTree: JsValue, annotations: JsValue, tags: JsValue
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@* Owner-only authoring tool for example-image annotations (#4723). The marks that point out what an example depicts
-   are stored as data in examples/annotations.json rather than painted into the photo, so they can be repositioned or
-   restyled without re-exporting a raster — which only pays off if placing one is easier than opening an image editor.
-   Marks are drawn by util.misc.renderExampleMarks, the same call that renders them at runtime, so the preview here is
-   not an approximation of the result. Admin-only surface, English only. *@
+@* Owner-only authoring tool for example imagery and its annotation marks (#4723). The marks that point out what an
+   example depicts are stored as data in examples/annotations.json rather than painted into the photo, so they can be
+   repositioned or restyled without re-exporting a raster — which only pays off if placing one is easier than opening
+   an image editor. Marks are drawn by util.misc.renderExampleMarks, the same call that renders them at runtime, so
+   the preview here is not an approximation of the result.
+
+   The page also sources the photos: a label ID opens that label's panorama in the shared pano viewer, framing is done
+   by hand, and the frame is captured off the viewer's own canvas — the same mechanism Explore already uses to make a
+   label's crop (Canvas.saveCanvasScreenshot). Capturing live rather than serving the stored crop is what makes
+   framing a decision rather than an inheritance, and it works for the many labels whose crop is missing or predates
+   the current 1440x960 size. Nothing here writes to the server; the photo and the manifest both come out as
+   downloads and go through git. Admin-only surface, English only. *@
 
 @content = {
   <div class="api-section" id="example-images-intro">
     <h1 class="api-heading" id="example-images">Example Images <a href="#example-images" class="permalink">#</a></h1>
-    <p>Annotation authoring for the example imagery under <code>public/images/examples/</code>. Pick an image, place marks over the feature it is meant to teach, then copy out <code>annotations.json</code> and commit it. Nothing here writes to disk — annotations are source, so they go through git like any other source.</p>
+    <p>Authoring for the example imagery under <code>public/images/examples/</code> — the photos that teach a tag, a severity level, or a Validate &ldquo;why not?&rdquo; reason. Capture a fresh photo from any label, mark up what it depicts, then export the image and <code>annotations.json</code> and commit them both. Nothing here writes to disk: they are source, so they go through git like any other source.</p>
     <p class="ac-note">Coordinates are stored as fractions of width and height, so one record renders correctly at every size the image appears at, from a 125&nbsp;px Explore tooltip to the full-resolution file.</p>
   </div>
 
-  <div class="api-section" id="example-images-editor">
-    <div class="ex-toolbar">
-      <label class="ex-field">
-        <span>Image</span>
+  <div class="api-section" id="example-images-source">
+    <h2 class="api-heading" id="source">Source <a href="#source" class="permalink">#</a></h2>
+
+    <div class="ex-source-tabs" role="radiogroup" aria-label="Where the photo comes from">
+      <label class="ex-source-tab" for="ex-source-tree-radio">
+        <input type="radio" name="ex-source" value="tree" id="ex-source-tree-radio" checked>
+        <span>A committed example</span>
+      </label>
+      <label class="ex-source-tab" for="ex-source-label-radio">
+        <input type="radio" name="ex-source" value="label" id="ex-source-label-radio">
+        <span>Capture from a label</span>
+      </label>
+    </div>
+
+    <div class="ex-source-panel" id="ex-source-tree-panel">
+      <label class="ex-field ex-field--grow">
+        <span>Example file</span>
         <select id="ex-image-select"></select>
       </label>
+    </div>
+
+    <div class="ex-source-panel" id="ex-source-label-panel" hidden>
+      <form class="ex-label-form" id="ex-label-form">
+        <label class="ex-field" for="ex-label-id">
+          <span>Label ID</span>
+          <input type="number" inputmode="numeric" min="1" step="1" id="ex-label-id" placeholder="e.g. 12345">
+        </label>
+        <button type="submit" class="ex-btn ex-btn--primary" id="ex-label-load">Open panorama</button>
+        <span class="ex-label-msg" id="ex-label-msg" role="status" aria-live="polite"></span>
+      </form>
+      <p class="ac-note">Browse in <a href="@routes.GalleryController.gallery()">Gallery</a> or the <a href="@routes.AdminDashboardController.labelMap">Label Map</a>, then paste the ID here. The panorama opens at the point of view the label was placed from; reframe it however the example should look, then capture.</p>
+
+      <dl class="ex-label-meta" id="ex-label-meta" hidden></dl>
+
+      <div class="ex-destination" id="ex-destination-row" hidden>
+        <label class="ex-field ex-field--grow">
+          <span>Save as</span>
+          <select id="ex-destination"></select>
+        </label>
+        <label class="ex-field ex-field--grow" id="ex-destination-custom-field" for="ex-destination-custom" hidden>
+          <span>Path under examples/</span>
+          <input type="text" id="ex-destination-custom" placeholder="CurbRamp/tag-narrow">
+        </label>
+        <label class="ex-field">
+          <span>Format</span>
+          <select id="ex-format">
+            <option value="png">PNG</option>
+            <option value="webp">WebP q88 &mdash; not read by the app yet</option>
+          </select>
+        </label>
+      </div>
+      <p class="ac-note ex-destination-path" id="ex-destination-path"></p>
+    </div>
+  </div>
+
+  <div class="api-section" id="example-images-editor">
+    <h2 class="api-heading" id="marks">Marks <a href="#marks" class="permalink">#</a></h2>
+
+    <div class="ex-toolbar">
       <label class="ex-field">
         <span>Mark type</span>
         <select id="ex-mark-type">
@@ -44,12 +105,13 @@
       <div class="ex-toolbar-actions">
         <button type="button" id="ex-undo" class="ex-btn">Undo</button>
         <button type="button" id="ex-clear" class="ex-btn">Clear image</button>
-        <button type="button" id="ex-copy" class="ex-btn ex-btn--primary">Copy annotations.json</button>
-        <button type="button" id="ex-download" class="ex-btn">Download</button>
+        <button type="button" id="ex-copy" class="ex-btn">Copy JSON</button>
+        <button type="button" id="ex-download" class="ex-btn">Download JSON</button>
+        <button type="button" id="ex-export" class="ex-btn ex-btn--primary" hidden>Export photo + JSON</button>
       </div>
     </div>
 
-    <p class="ex-hint" id="ex-hint">Press on the feature, drag out to clear space, release. A type marker is a single click.</p>
+    <p class="ex-hint" id="ex-hint">Press on the feature, drag out to clear space, release. The first press is the precise one. Drag an existing mark to move it.</p>
 
     <div class="ex-stage-wrap">
       <div class="ex-stage" id="ex-stage">
@@ -68,12 +130,52 @@
     <pre class="ex-json" id="ex-json"></pre>
   </div>
 
+  @* Full-window framing surface. Outside the content column on purpose: the captured resolution is the viewer
+     canvas's backing store, so the larger the panorama is drawn, the more detail survives the export. *@
+  <div class="ex-capture" id="ex-capture" hidden>
+    <div class="ex-capture__bar">
+      <span class="ex-capture__title" id="ex-capture-title">Framing</span>
+      <span class="ex-capture__hint">Pan and zoom to frame the example &mdash; what you see is what is captured.</span>
+      <span class="ex-capture__size" id="ex-capture-size"></span>
+      <button type="button" class="ex-btn" id="ex-capture-cancel">Cancel</button>
+      <button type="button" class="ex-btn ex-btn--primary" id="ex-capture-take">Capture frame</button>
+    </div>
+    <div class="ex-capture__stage">
+      <div class="ex-capture__pano" id="ex-capture-pano"></div>
+    </div>
+  </div>
+
   <link rel="stylesheet" href='@assets.path("css/admin-dashboard/example-images.css")'>
+  <link rel="stylesheet" href='@assets.path("css/label-detail.css")'>
+  <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
+
+  @if(commonData.imagerySource == PanoSource.Infra3d) {
+    <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
+    <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
+  } else if(commonData.imagerySource == PanoSource.Mapillary) {
+    <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
+    <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
+    <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
+  }
+  @* Pannellum and panzoom back PopupPanoManager's fallbacks for an expired pano; loaded wherever it is. *@
+  <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
+  <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
+  <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
+  <script src='@assets.path("js/common/PanoMarker.js")'></script>
+  <script src='@assets.path("js/common/label-detail/PopupPanoManager.js")'></script>
+
   <script src='@assets.path("js/common/utilitiesSidewalk.js")'></script>
+  <script src='@assets.path("js/admin-dashboard/ExampleCaptureOverlay.js")'></script>
   <script src='@assets.path("js/admin-dashboard/ExampleAnnotatorPage.js")'></script>
   <script>
-    window.addEventListener('DOMContentLoaded', function () {
-      new ExampleAnnotatorPage(@Html(imageTree.toString), @Html(annotations.toString)).init();
+    window.appManager.ready(function () {
+      const imagerySrc = "@commonData.imagerySource.toString";
+      const viewerType = imagerySrc === "mapillary" ? MapillaryViewer
+        : imagerySrc === "infra3d" ? Infra3dViewer : GsvViewer;
+      new ExampleAnnotatorPage(@Html(imageTree.toString), @Html(annotations.toString), @Html(tags.toString), {
+        viewerType: viewerType,
+        viewerAccessToken: "@commonData.imageryAccessToken"
+      }).init();
     });
   </script>
 }

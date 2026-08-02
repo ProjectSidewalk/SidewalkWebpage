@@ -690,7 +690,8 @@ function UtilitiesMisc(JSON) {
 
   // Annotation marks (arrows, type markers, extent bars) are stored as data in examples/annotations.json rather than
   // painted into the photo, so they can be restyled or repositioned without re-exporting a single raster (#4723).
-  // Author them at /admin/exampleImages.
+  // Author them at /admin/example-images. The three URL builders above name `.png` outright, so committing an example
+  // in another format means teaching them the extension first.
   const EXAMPLE_ANNOTATIONS_URL = `${EXAMPLE_IMAGE_BASE}/annotations.json`;
   const SVG_NS = 'http://www.w3.org/2000/svg';
 

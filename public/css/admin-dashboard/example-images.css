@@ -1,5 +1,109 @@
-/* Example-image annotation authoring tool (#4723). Owner-only admin surface, loaded only by
+/* Example-imagery authoring tool (#4723). Owner-only admin surface, loaded only by
    admin/dashboard/exampleImages.scala.html. */
+
+.ex-source-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.ex-source-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 999px;
+  background: var(--color-neutral-white);
+  font: var(--text-small-regular);
+  cursor: pointer;
+}
+
+.ex-source-tab:has(input:checked) {
+  border-color: var(--color-neutral-900);
+  background: var(--color-neutral-100);
+  font-weight: 700;
+}
+
+.ex-source-tab:has(input:focus-visible) {
+  outline: 2px solid var(--color-blue-500);
+  outline-offset: 2px;
+}
+
+.ex-source-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Every block below sets `display`, which beats the UA rule for [hidden] — without these the "hidden" panels,
+   pickers and metadata all stay on screen, empty. */
+.ex-source-panel[hidden],
+.ex-label-meta[hidden],
+.ex-destination[hidden],
+.ex-field[hidden] {
+  display: none;
+}
+
+.ex-label-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.ex-label-form input[type="number"] {
+  font: var(--text-small-regular);
+  padding: 6px 8px;
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 6px;
+  width: 140px;
+}
+
+.ex-label-msg {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+/* The same red the other dashboard pages use for an inline failure (.mgmt-result.error, .label-map-search-msg.error).
+   Not the --color-error-200 token: at #ED1C24 it lands at 4.0:1 on white, under the 4.5:1 AA floor for body text. */
+.ex-label-msg.error {
+  color: #a32020;
+}
+
+/* Two columns rather than a table: the terms are short and the values are one line each, so a definition list reads
+   as a caption on the label rather than as data to scan. */
+.ex-label-meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 8px;
+  background: var(--color-neutral-100);
+  font: var(--text-small-regular);
+}
+
+.ex-label-meta dt {
+  color: var(--color-neutral-700);
+}
+
+.ex-label-meta dd {
+  margin: 0;
+  color: var(--color-neutral-900);
+}
+
+.ex-destination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.ex-destination-path {
+  font-family: var(--font-mono, monospace);
+}
 
 .ex-toolbar {
   display: flex;
@@ -23,13 +127,25 @@
   color: var(--color-neutral-700);
 }
 
-.ex-field select {
+.ex-field select,
+.ex-field input[type="text"] {
   font: var(--text-small-regular);
   padding: 6px 8px;
   border: 1px solid var(--color-neutral-300);
   border-radius: 6px;
   background: var(--color-neutral-white);
   max-width: 320px;
+}
+
+/* The file and destination pickers carry long paths, so they get the leftover width instead of the 320px cap. */
+.ex-field--grow {
+  flex: 1 1 320px;
+}
+
+.ex-field--grow select,
+.ex-field--grow input[type="text"] {
+  max-width: none;
+  width: 100%;
 }
 
 /* Pushes the buttons to the trailing edge, and drops them onto their own row when the toolbar wraps. */
@@ -120,6 +236,121 @@
 
 .ex-marks--ghost {
   opacity: 0.75;
+}
+
+/* Framing surface. Fixed and full-window because the captured resolution is the viewer canvas's backing store, so
+   every CSS pixel the panorama is given is detail the exported example keeps. */
+.ex-capture {
+  position: fixed;
+  inset: 0;
+  z-index: 1040; /* Over the navbar (1030), under nothing else on this page. */
+  display: flex;
+  flex-direction: column;
+  background: var(--color-neutral-900);
+}
+
+.ex-capture[hidden] {
+  display: none;
+}
+
+/* The page behind must not scroll while framing — a wheel gesture belongs to the panorama. */
+body.ex-capture-open {
+  overflow: hidden;
+}
+
+/* Fixed height, and nothing in it wraps: the stage below sizes itself off the space this leaves, so a bar that grew
+   a second row would push the panorama out of the viewport. */
+.ex-capture__bar {
+  flex: 0 0 auto;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--color-neutral-white);
+  font: var(--text-small-regular);
+}
+
+.ex-capture__title {
+  flex: 0 0 auto;
+  font-weight: 700;
+}
+
+/* The two message slots absorb every narrowing, in that order — the buttons must never be the thing pushed out of
+   reach, and the size read-out matters more than the hint. */
+.ex-capture__hint,
+.ex-capture__size {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-neutral-300);
+}
+
+.ex-capture__hint {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ex-capture__size {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-left: auto;
+  font-family: var(--font-mono, monospace);
+}
+
+/* Inverted for the dark bar: the page's primary button is near-black, which on this ground is an invisible one. */
+.ex-capture__bar .ex-btn {
+  flex: 0 0 auto;
+  background: transparent;
+  border-color: var(--color-neutral-600);
+  color: var(--color-neutral-white);
+}
+
+.ex-capture__bar .ex-btn:hover {
+  border-color: var(--color-neutral-300);
+}
+
+.ex-capture__bar .ex-btn--primary {
+  background: var(--color-neutral-white);
+  border-color: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+}
+
+.ex-capture__bar .ex-btn--primary:disabled {
+  background: var(--color-neutral-600);
+  border-color: var(--color-neutral-600);
+  color: var(--color-neutral-300);
+  cursor: not-allowed;
+}
+
+/* On the bar's near-black ground the bright token clears AA comfortably, so no override is needed here. */
+.ex-capture__size.error {
+  color: var(--color-error-100);
+}
+
+.ex-capture__stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0; /* Lets the flex child shrink instead of overflowing the viewport. */
+  padding-bottom: 16px;
+}
+
+/* Held at the example aspect ratio so the export is a straight downscale: what is framed is exactly what is kept,
+   with nothing cropped off the edges afterwards.
+
+   Sized against the viewport rather than by `width: 100%` + `max-height`, which does not hold the ratio: a clamped
+   max-height shortens the box without narrowing it, and the frame silently went out at 1.69:1 — 200 px of what the
+   author had framed then fell outside the 3:2 export. The overlay is the viewport, so viewport math is exact. The
+   68px is the 52px bar plus the 16px the stage keeps below the panorama. */
+.ex-capture__pano {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  width: min(calc(100vw - 32px), calc((100vh - 68px) * 1.5));
+  overflow: hidden;
+  background: var(--color-neutral-800);
 }
 
 .ex-json {

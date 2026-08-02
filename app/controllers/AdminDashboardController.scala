@@ -2,7 +2,7 @@ package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import models.auth.{WithAdmin, WithOwner}
-import models.label.LabelTypeEnum
+import models.label.{LabelTypeEnum, Tag}
 import play.api.libs.json.{JsValue, Json}
 import play.api.{Configuration, Environment}
 import service.HealthService.dbHealthDataWrites
@@ -241,16 +241,47 @@ class AdminDashboardController @Inject() (
    * the feature out to clear space, and copy out the manifest.
    *
    * The example tree is listed here rather than probed by the client, which would mean a failed request per slot.
+   * The tag list comes along so the page can offer a real `tag-<slug>.png` destination for a captured label rather
+   * than asking for a filename to be typed — the slug rule lives in `util.misc.tagSlug`, and a typo there is a photo
+   * the app will never request.
    */
   def exampleImages = cc.securityService.SecuredAction(WithOwner()) { implicit request =>
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+    for {
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+      tags       <- labelService.getTagsForCurrentCity
+    } yield {
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin_ExampleImages")
       Ok(
-        views.html.admin.dashboard
-          .exampleImages(commonData, request.identity, Json.toJson(exampleImageTree), exampleAnnotationsJson)
+        views.html.admin.dashboard.exampleImages(
+          commonData,
+          request.identity,
+          Json.toJson(exampleImageTree),
+          exampleAnnotationsJson,
+          tagsByLabelType(tags)
+        )
       )
     }
   }
+
+  /**
+   * Tag names grouped by label type name, e.g. `{"CurbRamp": ["narrow", "not level with street"], ...}`.
+   *
+   * Grouped by *name* rather than shipping raw `label_type_id`s because `tag` is `UNIQUE (label_type_id, tag)` — six
+   * tag names belong to two label types each, so a flat list could not name its own example file unambiguously.
+   */
+  private def tagsByLabelType(tags: Seq[Tag]): JsValue = {
+    Json.toJson(
+      tags
+        .groupBy(tag => LabelTypeEnum.labelTypeIdToLabelType.getOrElse(tag.labelTypeId, ""))
+        .filter { case (labelType, _) => labelType.nonEmpty }
+        .view
+        .mapValues(_.map(_.tag).sorted)
+        .toMap
+    )
+  }
+
+  /** Raster extensions an example may be committed as; `.webp` is the target format for the re-shot set (#4723). */
+  private val exampleImageExtensions: Seq[String] = Seq(".png", ".webp", ".jpg", ".jpeg")
 
   /** Every example image, as paths relative to `public/images/examples/` (e.g. `CurbRamp/tag-narrow.png`). */
   private def exampleImageTree: Seq[String] = {
@@ -265,7 +296,7 @@ class AdminDashboardController @Inject() (
           dir.isDirectory && (dir.getName == "_common" || LabelTypeEnum.validLabelTypes.contains(dir.getName))
         )
         .flatMap(dir => Option(dir.listFiles()).getOrElse(Array.empty).map(f => s"${dir.getName}/${f.getName}"))
-        .filter(_.endsWith(".png"))
+        .filter(name => exampleImageExtensions.exists(name.toLowerCase.endsWith))
         .sorted
         .toSeq
     }
