@@ -83,7 +83,7 @@
     "network-error": "Error de red; inténtalo de nuevo."
   },
   "stories": {
-    "none": "Aún no has compartido ninguna historia. Abre una etiqueta en el mapa y elige “Comparte la tuya”."
+    "none": "Aún no has escrito ninguna historia. Abre una etiqueta en el mapa y elige “Escribe tu historia”."
   },
   "routes-link-copied": "¡Enlace copiado!",
   "routes-rename-aria": "Nuevo nombre de la ruta",

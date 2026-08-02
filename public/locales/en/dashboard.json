@@ -83,7 +83,7 @@
     "network-error": "Network error — please try again."
   },
   "stories": {
-    "none": "You haven't shared any stories yet. Find a label on the map and choose “Share yours” to add one."
+    "none": "You haven’t written any stories yet. Find a label on the map and choose “Write your story” to add one."
   },
   "routes-link-copied": "Link copied!",
   "routes-rename-aria": "New route name",
