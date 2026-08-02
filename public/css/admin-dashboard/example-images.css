@@ -79,7 +79,11 @@
 
 .ex-stage {
   position: relative;
-  display: inline-block;
+
+  /* Fills the column so a mark can be placed precisely on the small legacy examples (many are only 200 px wide);
+     the preview-size selector clamps it back down via an inline max-width. A shrink-to-fit stage would instead cap
+     every image at its intrinsic width, making both full-width authoring and the sub-intrinsic previews no-ops. */
+  width: 100%;
   line-height: 0;
 
   /* A checkerboard reads as "canvas" and, unlike a flat fill, can't be mistaken for part of the photo. */
