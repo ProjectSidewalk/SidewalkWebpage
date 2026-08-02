@@ -99,4 +99,31 @@ class RateLimiterSpec extends PlaySpec {
       (1 to 100).foreach(_ => rl.allow("ip:1", lim) mustBe true)
     }
   }
+
+  "RateLimiter.retryAfterSeconds" should {
+    "report the time left in the key's window, not the window's full length" in {
+      val rl = limiter(enabled = true)
+      rl.allow("k", 1, 60.seconds) mustBe true
+      rl.currentMs += 20000
+      rl.retryAfterSeconds("k") mustBe Some(40L)
+    }
+
+    "round up, so the quoted moment is never before the window actually clears" in {
+      val rl = limiter(enabled = true)
+      rl.allow("k", 1, 60.seconds) mustBe true
+      rl.currentMs += 19500 // 40.5s left: quoting 40 would send them back a half-second early.
+      rl.retryAfterSeconds("k") mustBe Some(41L)
+    }
+
+    "never report zero for a window that has only just elapsed" in {
+      val rl = limiter(enabled = true)
+      rl.allow("k", 1, 60.seconds) mustBe true
+      rl.currentMs += 60000
+      rl.retryAfterSeconds("k") mustBe Some(1L)
+    }
+
+    "report nothing for a key that has never been seen" in {
+      limiter(enabled = true).retryAfterSeconds("never-used") mustBe None
+    }
+  }
 }

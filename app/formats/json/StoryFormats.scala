@@ -76,6 +76,9 @@ object StoryFormats {
       // (the composer may not have fetched /stories — and its max_text_length — before submitting).
       case StoryRejection.TextTooLong(maxLength)    => base + ("max" -> JsNumber(maxLength))
       case StoryRejection.AltTextTooLong(maxLength) => base + ("max" -> JsNumber(maxLength))
+      // How long until the next submission slot opens, so the composer can say it rather than guess "tomorrow".
+      case StoryRejection.RateLimited(Some(secs))   => base + ("retry_after_seconds" -> JsNumber(secs))
+      case StoryRejection.RateLimitedIp(Some(secs)) => base + ("retry_after_seconds" -> JsNumber(secs))
       case _                                        => base
     }
   }

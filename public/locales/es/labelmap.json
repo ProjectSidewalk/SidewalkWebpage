@@ -112,7 +112,10 @@
       "links-not-allowed": "No se permiten enlaces en las historias ni en las descripciones de fotos.",
       "invalid-display-name": "Opción de nombre no válida.",
       "already-exists": "Ya compartiste una historia en esta etiqueta.",
-      "rate-limited": "Has compartido varias historias recientemente; inténtalo de nuevo mañana.",
+      "rate-limited": "Has publicado tantas historias como permitimos en un día. Vuelve a intentarlo más tarde.",
+      "rate-limited-retry": "Has publicado tantas historias como permitimos en un día. Puedes publicar otra {{when}}.",
+      "rate-limited-ip": "Se han enviado demasiadas historias desde tu red últimamente. Vuelve a intentarlo más tarde.",
+      "rate-limited-ip-retry": "Se han enviado demasiadas historias desde tu red últimamente. Puedes volver a intentarlo {{when}}.",
       "photo-too-large": "Esa foto es demasiado grande para subirla.",
       "photo-invalid": "No pudimos leer ese archivo como imagen (JPEG o PNG)."
     }

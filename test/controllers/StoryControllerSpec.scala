@@ -404,8 +404,17 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
         status(resp) mustBe OK
         (contentAsJson(resp) \ "story_id").as[Int]
       }
-      try status(postStory(session, labelIds(maxPerDay), "one over the daily cap")) mustBe TOO_MANY_REQUESTS
-      finally posted.foreach(storyId => status(deleteStory(session, storyId)) mustBe OK)
+      try {
+        val refused = postStory(session, labelIds(maxPerDay), "one over the daily cap")
+        status(refused) mustBe TOO_MANY_REQUESTS
+
+        // The cap is a rolling 24h window, so the refusal says how long the wait is rather than naming a day: the
+        // stories were just posted, so the next slot is a shade under 24h away. Same number on the standard header.
+        val retryAfter = (contentAsJson(refused) \ "retry_after_seconds").as[Long]
+        retryAfter must be > 23.hours.toSeconds
+        retryAfter must be <= 24.hours.toSeconds
+        header("Retry-After", refused).value mustBe retryAfter.toString
+      } finally posted.foreach(storyId => status(deleteStory(session, storyId)) mustBe OK)
     }
 
     "ingest a photo (re-encoded, resized, signed URL), serve it, and remove the bytes on retraction" in {
@@ -663,6 +672,63 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
   "story enum constants" should {
     "match the evolution's display-name CHECK constraint" in {
       Story.validDisplayNameModes mustBe Set("anonymous", "username")
+    }
+  }
+}
+
+/**
+ * The IP burst layer end-to-end (#4740): its own app so `rate-limit.story-submit` can be enabled with a one-attempt
+ * cap (the suite above disables the layer so it can post freely). The refusal must blame the *network*, not the
+ * person — a shared NAT can trip this for someone who published nothing, so its error key differs from the per-user
+ * cap's — and must say how long is left in the IP's window, in the body and on the standard Retry-After header.
+ */
+class StoryControllerIpLimitSpec extends PlaySpec with GuiceOneAppPerSuite {
+
+  override def fakeApplication(): Application =
+    new GuiceApplicationBuilder()
+      .disable[modules.ActorModule]
+      .configure(
+        "rate-limit.story-submit.enabled"        -> true,
+        "rate-limit.story-submit.max-attempts"   -> 1,
+        "rate-limit.story-submit.window-seconds" -> 3600
+      )
+      .build()
+
+  implicit lazy val mat: Materializer = app.materializer
+
+  "POST /userapi/stories under the IP burst limit" should {
+    "429 with the network-scoped error and the time left in the window" in {
+      val sessionResp = route(app, FakeRequest(GET, "/anonSignUp?url=%2F")).get
+      status(sessionResp) mustBe SEE_OTHER
+      val session = cookies(sessionResp).toSeq
+
+      // The limiter charges every attempt before the body's fields are even read, so a bodyless POST exercises it
+      // without creating a story (nothing to clean up, no dependence on labels in the test DB).
+      def post() = route(
+        app,
+        FakeRequest(POST, "/userapi/stories")
+          .withCookies(session: _*)
+          .withMultipartFormDataBody(
+            MultipartFormData[play.api.libs.Files.TemporaryFile](
+              dataParts = Map.empty,
+              files = Seq.empty,
+              badParts = Nil
+            )
+          )
+          .withCSRFToken
+      ).get
+
+      status(post()) mustBe BAD_REQUEST // Within the cap: refused for the missing label_id, not the IP.
+
+      val refused = post()
+      status(refused) mustBe TOO_MANY_REQUESTS
+      (contentAsJson(refused) \ "error").as[String] mustBe "story.error.rate-limited-ip"
+      // The time left in this IP's window — positive, never more than the window itself, and the same number on the
+      // standard header (the old code quoted the window's full length regardless of how far through it the IP was).
+      val retryAfter = (contentAsJson(refused) \ "retry_after_seconds").as[Long]
+      retryAfter must be > 0L
+      retryAfter must be <= 3600L
+      header("Retry-After", refused).value mustBe retryAfter.toString
     }
   }
 }

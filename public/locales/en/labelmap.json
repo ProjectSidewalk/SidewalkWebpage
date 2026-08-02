@@ -112,7 +112,10 @@
       "links-not-allowed": "Links aren't allowed in stories or photo descriptions.",
       "invalid-display-name": "Invalid display-name option.",
       "already-exists": "You've already shared a story on this label.",
-      "rate-limited": "You've shared several stories recently — please try again tomorrow.",
+      "rate-limited": "You’ve published as many stories as we allow in a day. Please try again later.",
+      "rate-limited-retry": "You’ve published as many stories as we allow in a day. You can publish another {{when}}.",
+      "rate-limited-ip": "Too many stories have been submitted from your network recently. Please try again later.",
+      "rate-limited-ip-retry": "Too many stories have been submitted from your network recently. You can try again {{when}}.",
       "photo-too-large": "That photo is too large to upload.",
       "photo-invalid": "We couldn't read that file as an image (JPEG or PNG)."
     }

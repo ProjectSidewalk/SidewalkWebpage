@@ -106,7 +106,10 @@
       "links-not-allowed": "故事或照片描述中不允許包含連結。",
       "invalid-display-name": "無效的顯示名稱選項。",
       "already-exists": "您已在此標記分享過故事。",
-      "rate-limited": "您最近分享了多則故事，請明天再試。",
+      "rate-limited": "您發布的故事已達每日上限。請稍後再試。",
+      "rate-limited-retry": "您發布的故事已達每日上限。您可以在{{when}}再發布一則。",
+      "rate-limited-ip": "您的網路最近提交了太多故事。請稍後再試。",
+      "rate-limited-ip-retry": "您的網路最近提交了太多故事。您可以在{{when}}再試一次。",
       "photo-too-large": "這張照片太大，無法上傳。",
       "photo-invalid": "我們無法將該檔案讀取為圖片（JPEG 或 PNG）。"
     }
