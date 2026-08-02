@@ -54,7 +54,8 @@
       <ul class="community-cards" id="community-cards"
           data-read-more="@Messages("stories.page.read.more")" data-read-less="@Messages("stories.page.read.less")">
         @for(s <- stories) {
-          <li class="community-card story-card" data-created="@s.createdAt.toInstant.toEpochMilli"
+          <li class="community-card story-card" data-story-id="@s.storyId"
+              data-created="@s.createdAt.toInstant.toEpochMilli"
               data-region="@s.regionName" data-labeltype="@Messages(s.labelType.nameKey)">
             @s.media.map { m =>
               <img class="story-card__photo" src="@m.url" loading="lazy"

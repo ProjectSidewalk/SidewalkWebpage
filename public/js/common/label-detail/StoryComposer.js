@@ -19,6 +19,7 @@ class StoryComposer {
   #els = {};
   #labelId = null;
   #maxLength = null; // Server-provided via open() (sourced from /stories payload, never hardcoded here).
+  #labelTypeName = null; // Localized label-type name for the title; null falls back to the generic wording.
   #onSubmitted;
   #username;
   #objectUrl = null;
@@ -384,11 +385,31 @@ class StoryComposer {
     return res;
   }
 
+  /**
+   * Names the label the composer is currently attached to, so the title can say what the story is about (#4722 QA:
+   * "Write your story about this Missing Curb Ramp"). Set by StorySection whenever the card shows a new label, and
+   * applied immediately: the label can change while the composer is already open (the host pages between labels).
+   *
+   * @param {?string} labelTypeName - Localized label-type name, or null for the generic title. Callers pass null
+   *      for types that don't read as a thing you can have a story "about" — see LabelDetail.
+   */
+  setLabelType(labelTypeName) {
+    this.#labelTypeName = labelTypeName || null;
+    this.#renderTitle();
+  }
+
+  /** Writes the dialog title for the current mode and label. @private */
+  #renderTitle() {
+    const base = this.#editStoryId !== null ? 'composer-title-edit' : 'composer-title';
+    this.#els.title.textContent = this.#labelTypeName
+      ? i18next.t(`labelmap:story.${base}-about`, { labelType: this.#labelTypeName })
+      : i18next.t(`labelmap:story.${base}`);
+  }
+
   #reset() {
     const els = this.#els;
     const editing = this.#editStoryId !== null;
-    els.title.textContent
-      = i18next.t(editing ? 'labelmap:story.composer-title-edit' : 'labelmap:story.composer-title');
+    this.#renderTitle();
     els.submit.textContent = i18next.t(editing ? 'labelmap:story.save' : 'labelmap:story.submit');
     els.text.value = '';
     this.#renderCounter();

@@ -195,29 +195,12 @@ class LandingValidationGrid {
    */
   #buildShareChip(label, typeKebab) {
     // .label-detail__share supplies the popover's positioning anchor; .lvg-share pushes the chip to the row's end.
-    const wrap = document.createElement('span');
-    wrap.className = 'label-detail__share lvg-share';
-    if (typeof ShareWidget === 'undefined') return wrap; // Grid still works if the share script failed to load.
-
-    const trigger = document.createElement('button');
-    trigger.type = 'button';
-    trigger.className = 'label-detail__share-trigger';
-    trigger.setAttribute('aria-label', i18next.t('common:share.button'));
-    // Same share glyph as the label-detail popup's trigger (labelDetail.scala.html).
-    trigger.innerHTML = `
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
-           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="18" cy="5" r="3"/>
-        <circle cx="6" cy="12" r="3"/>
-        <circle cx="18" cy="19" r="3"/>
-        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-      </svg>`;
-    const chipLabel = document.createElement('span');
-    chipLabel.className = 'label-detail__share-trigger-label';
-    chipLabel.textContent = i18next.t('common:share.button');
-    trigger.appendChild(chipLabel);
-    wrap.appendChild(trigger);
+    if (typeof ShareWidget === 'undefined') { // Grid still works if the share script failed to load.
+      const wrap = document.createElement('span');
+      wrap.className = 'label-detail__share lvg-share';
+      return wrap;
+    }
+    const { wrap, trigger } = ShareWidget.buildChip('lvg-share');
 
     // Surface + label attribution for analytics; ShareWidget logs its own generic Share_* events on top.
     trigger.addEventListener('click', () => {
@@ -226,7 +209,10 @@ class LandingValidationGrid {
 
     const widget = new ShareWidget(trigger, { host: wrap });
     // The title feeds the native sheet and the email subject, so it carries the descriptive text, not "Share".
-    const shareText = i18next.t('common:share.text', { labelType: i18next.t(`common:${typeKebab}`) });
+    // escapeValue off: plain-text sinks only, and a type name can carry an apostrophe (Can't See the Sidewalk).
+    const shareText = i18next.t('common:share.text', {
+      labelType: i18next.t(`common:${typeKebab}`), interpolation: { escapeValue: false },
+    });
     widget.setTarget({
       url: `${window.location.origin}/label/${label.label_id}`,
       title: shareText,

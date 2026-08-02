@@ -176,9 +176,10 @@ describe('CommunityListPage', () => {
 
 describe('StoryListPage', () => {
     /** A story card with the pieces StoryListPage touches; heights are stubbed per-test for the clamp check. */
-    function storyCard({ id, text = 'story text', typeColor = '#78B0EA' }) {
+    function storyCard({ id, storyId, text = 'story text', typeColor = '#78B0EA' }) {
         return `
-            <li class="community-card story-card" data-created="${id}" data-region="R" data-labeltype="Obstacle">
+            <li class="community-card story-card" ${storyId ? `data-story-id="${storyId}"` : ''}
+                data-created="${id}" data-region="R" data-labeltype="Obstacle">
                 <div class="story-card__body">
                     <p class="story-card__text">${text}</p>
                     <a class="story-card__location" href="/labelMap?labelId=${id}" data-label-id="${id}">loc</a>
@@ -259,6 +260,189 @@ describe('StoryListPage', () => {
         link.addEventListener('click', (e) => e.preventDefault());
         link.click();
         expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=StoryListPage_Location_LabelId=9');
+    });
+
+    describe('card-wide click target', () => {
+        /** Builds a page with a story card and a stub popup attached, and hands back the pieces a test needs. */
+        function pageWithPopup(cardHtml) {
+            setupDom(cardHtml);
+            const page = new window.StoryListPage();
+            page.init();
+            const popup = { showLabel: jest.fn() };
+            page.setLabelPopup(popup);
+            return { page, popup };
+        }
+
+        function clickOn(selector) {
+            document.querySelector(selector)
+                .dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+        }
+
+        afterEach(() => window.getSelection().removeAllRanges());
+
+        test('clicking the card body opens the label, the same as "View label" does', () => {
+            const { popup } = pageWithPopup(storyCard({ id: '7' }));
+            clickOn('.story-card__text');
+            expect(popup.showLabel).toHaveBeenCalledWith(7, 'StoryListPage');
+            expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=StoryListPage_Card_LabelId=7');
+        });
+
+        test('the card is only marked clickable once its handler is wired', () => {
+            setupDom(storyCard({ id: '7' }));
+            expect(document.querySelector('.story-card').classList.contains('story-card--clickable')).toBe(false);
+            new window.StoryListPage().init();
+            expect(document.querySelector('.story-card').classList.contains('story-card--clickable')).toBe(true);
+        });
+
+        test('"View label" still opens the label exactly once — the card handler stands down for it', () => {
+            const { popup } = pageWithPopup(storyCard({ id: '7' }));
+            clickOn('.story-card__label-link');
+            expect(popup.showLabel).toHaveBeenCalledTimes(1);
+            expect(window.logWebpageActivity)
+                .not.toHaveBeenCalledWith(expect.stringContaining('StoryListPage_Card_'));
+        });
+
+        test('the location line keeps its own behavior instead of opening the popup over it', () => {
+            const { popup } = pageWithPopup(storyCard({ id: '7' }));
+            const link = document.querySelector('.story-card__location');
+            link.addEventListener('click', (e) => e.preventDefault()); // jsdom can't navigate.
+            link.click();
+            expect(popup.showLabel).not.toHaveBeenCalled();
+        });
+
+        test('"read more" expands the story rather than opening the label', () => {
+            setupDom(storyCard({ id: '7', text: 'long story' }));
+            const text = document.querySelector('.story-card__text');
+            stubHeights(text, { scrollHeight: 300, clientHeight: 110 });
+            const page = new window.StoryListPage();
+            page.init();
+            const popup = { showLabel: jest.fn() };
+            page.setLabelPopup(popup);
+
+            document.querySelector('.story-card__read-more').click();
+            expect(text.classList.contains('is-expanded')).toBe(true);
+            expect(popup.showLabel).not.toHaveBeenCalled();
+        });
+
+        test('a click that ends a text selection leaves the reader on the page', () => {
+            const { popup } = pageWithPopup(storyCard({ id: '7', text: 'Snow piles up here all winter.' }));
+            const range = document.createRange();
+            range.selectNodeContents(document.querySelector('.story-card__text'));
+            window.getSelection().addRange(range);
+
+            clickOn('.story-card__text');
+            expect(popup.showLabel).not.toHaveBeenCalled();
+        });
+
+        test('without a LabelPopup the card click falls back to the label on the LabelMap', () => {
+            setupDom(storyCard({ id: '7' }));
+            new window.StoryListPage().init();
+            clickOn('.story-card__text'); // The href navigation itself is a jsdom no-op.
+            expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=StoryListPage_Card_LabelId=7');
+        });
+    });
+
+    describe('share chips (#4722)', () => {
+        const SHARE_SRC = fs.readFileSync(
+            path.resolve(REPO_ROOT, 'public/js/common/share/ShareWidget.js'), 'utf8');
+
+        /** Loads the real ShareWidget (the page builds one per card) plus the collaborators it reaches for. */
+        function loadShareWidget() {
+            window.eval(`${SHARE_SRC}\nwindow.ShareWidget = ShareWidget;`);
+            // The share text key resolves with the excerpt interpolated; everything else echoes its key. Mimics
+            // real i18next's default HTML-escaping of interpolated values (off only when the call opts out), so a
+            // call that forgot `escapeValue: false` ships visible entities here too, not just in production.
+            const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/'/g, '&#39;');
+            window.i18next = {
+                t: (key, opts) => {
+                    if (!opts || opts.excerpt === undefined) return key;
+                    const raw = opts.interpolation && opts.interpolation.escapeValue === false;
+                    return `shared:${raw ? opts.excerpt : esc(opts.excerpt)}`;
+                },
+            };
+            window.matchMedia = jest.fn().mockReturnValue({ matches: false }); // jsdom has none; act as desktop.
+        }
+
+        afterEach(() => {
+            delete window.ShareWidget;
+            delete window.i18next;
+        });
+
+        test('each story card grows a footer share chip pointed at its story-anchored permalink', () => {
+            setupDom(storyCard({ id: '7', storyId: '42', text: 'Snow piles up here all winter.' }));
+            loadShareWidget();
+            const setTarget = jest.spyOn(window.ShareWidget.prototype, 'setTarget');
+            new window.StoryListPage().init();
+
+            expect(document.querySelector(
+                '.story-card__foot .story-card__share .label-detail__share-trigger')).not.toBeNull();
+            expect(setTarget).toHaveBeenCalledTimes(1);
+            const target = setTarget.mock.calls[0][0];
+            expect(target.url).toBe('http://localhost/label/7?storyId=42');
+            // The share text leads with the storyteller's words (share.story-text), not label boilerplate; the
+            // title carries the same descriptive text (it feeds the native sheet and the email subject).
+            expect(target.text).toBe('shared:Snow piles up here all winter.');
+            expect(target.title).toBe(target.text);
+        });
+
+        test("the storyteller's punctuation reaches the share text un-escaped", () => {
+            setupDom(storyCard({ id: '7', storyId: '42', text: "It's icy & the ramp is blocked." }));
+            loadShareWidget();
+            const setTarget = jest.spyOn(window.ShareWidget.prototype, 'setTarget');
+            new window.StoryListPage().init();
+
+            // The text feeds only plain-text sinks (intent URLs, mailto, the native sheet), so i18next's default
+            // interpolation escaping would ship "It&#39;s icy &amp;…" verbatim — the call must opt out of it.
+            expect(setTarget.mock.calls[0][0].text).toBe("shared:It's icy & the ramp is blocked.");
+        });
+
+        test('long story text is excerpted at a word boundary with an ellipsis', () => {
+            setupDom(storyCard({ id: '7', storyId: '42', text: 'word '.repeat(40).trim() }));
+            loadShareWidget();
+            const setTarget = jest.spyOn(window.ShareWidget.prototype, 'setTarget');
+            new window.StoryListPage().init();
+
+            const excerpt = setTarget.mock.calls[0][0].text.replace('shared:', '');
+            expect(excerpt).toBe(`${'word '.repeat(18).trim()}…`); // Cut at the last space inside the 90-char cap.
+        });
+
+        test('opening the chip logs surface + story attribution', () => {
+            setupDom(storyCard({ id: '7', storyId: '42' }));
+            loadShareWidget();
+            new window.StoryListPage().init();
+            document.querySelector('.story-card__share .label-detail__share-trigger').click();
+            expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=StoryCardShare_storyId=42');
+        });
+
+        test('a click that dismisses an open share menu does not also open the label', () => {
+            setupDom(storyCard({ id: '7', storyId: '42' }));
+            loadShareWidget();
+            const page = new window.StoryListPage();
+            page.init();
+            const popup = { showLabel: jest.fn() };
+            page.setLabelPopup(popup);
+
+            document.querySelector('.story-card__share .label-detail__share-trigger').click();
+            // ShareWidget closes on a capture-phase document listener, so by the time the card's own handler runs
+            // the menu already looks closed; the card has to have noticed at pointerdown.
+            document.querySelector('.story-card__text')
+                .dispatchEvent(new window.Event('pointerdown', { bubbles: true }));
+            document.querySelector('.story-card__text')
+                .dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+            expect(popup.showLabel).not.toHaveBeenCalled();
+        });
+
+        test('a card without a story id gets no chip, and a missing ShareWidget leaves the page working', () => {
+            setupDom(storyCard({ id: '7' })); // No data-story-id.
+            loadShareWidget();
+            new window.StoryListPage().init();
+            expect(document.querySelector('.story-card__share')).toBeNull();
+
+            delete window.ShareWidget; // The share script failed to load; cards must still initialize.
+            setupDom(storyCard({ id: '8', storyId: '9' }));
+            expect(() => new window.StoryListPage().init()).not.toThrow();
+            expect(document.querySelector('.story-card__share')).toBeNull();
+        });
     });
 });
 

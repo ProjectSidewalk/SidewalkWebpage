@@ -13,6 +13,7 @@
     "button": "Share",
     "heading": "Share this label",
     "text": "Check out this {{labelType}} on Project Sidewalk",
+    "story-text": "“{{excerpt}}” — a community story on Project Sidewalk",
     "copy-link": "Copy link",
     "copied": "Copied!",
     "on-bluesky": "Share on Bluesky",

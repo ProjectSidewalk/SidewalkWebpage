@@ -1,6 +1,7 @@
 package controllers
 
 import models.label.{LabelMetadata, LabelPointTable, LabelTypeEnum, LocationXY}
+import models.story.Story
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -10,7 +11,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsObject
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import service.LabelService
+import service.{AuthenticationService, LabelService, StoryService}
 
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayInputStream, File}
@@ -59,6 +60,13 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
   /** A recent label whose type matches the predicate, or `None`; lets tests target the title-copy fork. */
   private def labelWhere(pred: LabelMetadata => Boolean): Option[LabelMetadata] = recentLabels.find(pred)
 
+  /** The og:url meta tag's content, or a test failure when the page carries none. */
+  private def ogUrl(body: String): String =
+    "property=\"og:url\" content=\"([^\"]*)\"".r
+      .findFirstMatchIn(body)
+      .map(_.group(1))
+      .getOrElse(fail("No og:url meta tag in the page"))
+
   "GET /label/:labelId" should {
     "render the share landing (200, no auth) with the full OG/Twitter meta contract" in {
       validLabelId match {
@@ -99,6 +107,53 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
           body must include("label-detail--inline")
           body must include("spotlight-legend")
           body must include("spotlight-explore-cta")
+      }
+    }
+
+    "lead the OG description with the linked story's words and keep the ?storyId anchor in og:url (#4722)" in {
+      validLabelId match {
+        case None     => cancel("No labels in the connected test DB; cannot exercise the valid-label path.")
+        case Some(id) =>
+          val storyService = app.injector.instanceOf[StoryService]
+          val anonUser     =
+            Await.result(app.injector.instanceOf[AuthenticationService].getDefaultAnonUser, 30.seconds)
+          val storyText = "The crossing signal here changes too fast for me to make it across safely."
+          Await.result(
+            storyService.submitStory(id, anonUser.userId, storyText, Story.DisplayNameAnonymous, None),
+            30.seconds
+          ) match {
+            // One story per user per label (server-enforced), so a leftover story from earlier data can block this.
+            case Left(rejection) => cancel(s"Could not seed a story on label $id: $rejection")
+            case Right(seeded)   =>
+              try {
+                val body =
+                  contentAsString(route(app, FakeRequest(GET, s"/label/$id?storyId=${seeded.storyId}")).get)
+                // The shared og:url keeps the story anchor. Asserted on the meta tag itself — the layout also
+                // echoes the request URL elsewhere (language switcher, auth returnUrl), which proves nothing.
+                ogUrl(body) must endWith(s"/label/$id?storyId=${seeded.storyId}")
+                // The description leads with the storyteller's words, not the label-type boilerplate — Facebook
+                // and LinkedIn build their card entirely from these server-rendered tags.
+                body must include("changes too fast")
+                body must include("a community story")
+              } finally {
+                val _ = Await.result(storyService.deleteOwnStory(seeded.storyId, anonUser.userId), 30.seconds)
+              }
+          }
+      }
+    }
+
+    "degrade an unresolvable story anchor (unknown, malformed, negative) to the plain label page" in {
+      validLabelId match {
+        case None     => cancel("No labels in the connected test DB; cannot exercise the valid-label path.")
+        case Some(id) =>
+          // Share links live in the wild for years: a deleted/hidden story, a mangled id, or junk must all render
+          // the ordinary label page (200), with no story anchor left in the OG meta. (The layout still echoes the
+          // request URL in the language switcher / auth returnUrl, so only the og:url tag is asserted on.)
+          for (qs <- Seq("?storyId=2147483646", "?storyId=abc", "?storyId=-4")) {
+            val resp = route(app, FakeRequest(GET, s"/label/$id$qs")).get
+            status(resp) mustBe OK
+            ogUrl(contentAsString(resp)) must endWith(s"/label/$id")
+          }
       }
     }
 
@@ -262,6 +317,23 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       val resp = route(app, FakeRequest(GET, "/label/tags")).get
       status(resp) mustBe OK // A 400 would mean /label/:labelId captured "tags" and failed to bind it as an Int.
       contentType(resp) mustBe Some("application/json")
+    }
+  }
+
+  "storyExcerpt" should {
+    val controller = app.injector.instanceOf[ShareController]
+
+    "pass short text through with whitespace collapsed" in {
+      controller.storyExcerpt("  Snow   piles\nup here.  ") mustBe "Snow piles up here."
+    }
+
+    "cut long text at a word boundary inside the cap and append an ellipsis" in {
+      val excerpt = controller.storyExcerpt(("word " * 40).trim, cap = 90)
+      excerpt mustBe ("word " * 18).trim + "…"
+    }
+
+    "hard-cut text with no usable word boundary (e.g. CJK)" in {
+      controller.storyExcerpt("字" * 200, cap = 90) mustBe "字" * 90 + "…"
     }
   }
 

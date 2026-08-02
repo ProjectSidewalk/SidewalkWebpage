@@ -166,10 +166,44 @@
 
 /* ---- Story cards --------------------------------------------------------------------------------------------- */
 
+/* Unlike the base community card, story cards can't clip overflow: the footer's share popover (#4722) opens upward
+   and a short, photoless card would cut it off. The photo rounds its own top corners instead (11px = the card's
+   12px radius minus its 1px border). */
+.story-card {
+  overflow: visible;
+}
+
+/* The whole card opens its label (StoryListPage adds the class once the handler is wired, so a card without JS never
+   claims to be clickable). Lifts on hover so the click target is discoverable before the pointer reaches a control;
+   the inner controls keep their own hover states on top. */
+.story-card--clickable {
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.story-card--clickable:hover {
+  border-color: var(--color-neutral-400);
+  box-shadow: 0 3px 10px rgb(0 0 0 / 12%);
+}
+
+/* Keyboard parity: "View label" is the card's focusable entry point, so its focus ring lights the whole card up the
+   same way hovering does. */
+.story-card--clickable:focus-within {
+  border-color: var(--color-neutral-400);
+  box-shadow: 0 3px 10px rgb(0 0 0 / 12%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-card--clickable {
+    transition: none;
+  }
+}
+
 .story-card__photo {
   width: 100%;
   height: 180px;
   object-fit: cover;
+  border-radius: 11px 11px 0 0;
 }
 
 .story-card__body {
@@ -287,6 +321,12 @@
 .story-card__label-link {
   flex-shrink: 0;
   margin-left: auto;
+}
+
+/* The share chip (#4722) sits at the footer's end; .label-detail__share supplies the popover's positioning anchor
+   and share-widget.css the pill + popover look. */
+.story-card__share {
+  flex-shrink: 0;
 }
 
 /* ---- Route cards --------------------------------------------------------------------------------------------- */

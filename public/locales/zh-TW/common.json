@@ -324,6 +324,7 @@
     "button": "分享",
     "heading": "分享此標註",
     "text": "來看看 Project Sidewalk 上的這個{{labelType}}",
+    "story-text": "「{{excerpt}}」——Project Sidewalk 上的社群故事",
     "copy-link": "複製連結",
     "copied": "已複製！",
     "on-bluesky": "分享到 Bluesky",

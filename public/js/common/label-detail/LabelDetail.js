@@ -109,6 +109,7 @@ class LabelDetail {
   #myCommentIdx;
   #shareWidget;
   #storySection;
+  #highlightStoryId;
   #metaRowObserver;
 
   /**
@@ -127,6 +128,8 @@ class LabelDetail {
    *     aren't the LabelMap itself).
    * @param {boolean} [opts.showExploreHereLink] - Show a footer link that opens Explore at this label's pano and
    *     point of view (#4637).
+   * @param {?number} [opts.highlightStoryId] - Story to scroll to and highlight once its label's story list loads,
+   *     for story-anchored share links (/label/:id?storyId=, #4722). One-shot; see StorySection.
    */
   constructor(root, opts) {
     this.#root = root;
@@ -139,6 +142,7 @@ class LabelDetail {
     this.#voteColumnSource = opts.voteColumnSource;
     this.#showLabelMapLink = !!opts.showLabelMapLink;
     this.#showExploreHereLink = !!opts.showExploreHereLink;
+    this.#highlightStoryId = opts.highlightStoryId || null;
   }
 
   /**
@@ -224,7 +228,10 @@ class LabelDetail {
   #initStorySection() {
     const section = this.#q('.label-detail__stories');
     if (section && typeof StorySection !== 'undefined') {
-      this.#storySection = new StorySection(this.#root, { currUsername: this.#currUsername });
+      this.#storySection = new StorySection(this.#root, {
+        currUsername: this.#currUsername,
+        highlightStoryId: this.#highlightStoryId,
+      });
     }
   }
 
@@ -598,7 +605,10 @@ class LabelDetail {
     // spotlight page and serves the og:image crawlers embed in the share card.
     if (this.#shareWidget) {
       // The title feeds the native sheet and the email subject, so it carries the descriptive text, not "Share".
-      const shareText = i18next.t('common:share.text', { labelType: labelTypeName });
+      // escapeValue off: plain-text sinks only, and a type name can carry an apostrophe (Can't See the Sidewalk).
+      const shareText = i18next.t('common:share.text', {
+        labelType: labelTypeName, interpolation: { escapeValue: false },
+      });
       this.#shareWidget.setTarget({
         url: `${window.location.origin}/label/${meta.label_id}`,
         title: shareText,
@@ -657,8 +667,13 @@ class LabelDetail {
     els.commentInput.value = '';
     els.commentButton.classList.remove('is-active');
 
-    // Lived-experience stories (#4054): lazy per-label fetch, so the metadata payload stays untouched.
-    this.#storySection?.setLabel(meta.label_id);
+    // Lived-experience stories (#4054): lazy per-label fetch, so the metadata payload stays untouched. The type name
+    // rides along so the composer's title can name the label ("Write your story about this Missing Curb Ramp").
+    // Withheld for the two types whose names aren't a thing you can have a story "about" — "…about this Other" and
+    // "…about this Can't See the Sidewalk" don't read as English — leaving those on the generic title.
+    const NO_STORY_SUBJECT = ['Other', 'Occlusion'];
+    this.#storySection?.setLabel(
+      meta.label_id, NO_STORY_SUBJECT.includes(meta.label_type) ? null : labelTypeName);
 
     // Fill in some admin-only fields at the bottom if applicable.
     if (this.#admin) {
