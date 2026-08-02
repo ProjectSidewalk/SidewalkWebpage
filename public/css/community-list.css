@@ -173,6 +173,32 @@
   overflow: visible;
 }
 
+/* The whole card opens its label (StoryListPage adds the class once the handler is wired, so a card without JS never
+   claims to be clickable). Lifts on hover so the click target is discoverable before the pointer reaches a control;
+   the inner controls keep their own hover states on top. */
+.story-card--clickable {
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.story-card--clickable:hover {
+  border-color: var(--color-neutral-400);
+  box-shadow: 0 3px 10px rgb(0 0 0 / 12%);
+}
+
+/* Keyboard parity: "View label" is the card's focusable entry point, so its focus ring lights the whole card up the
+   same way hovering does. */
+.story-card--clickable:focus-within {
+  border-color: var(--color-neutral-400);
+  box-shadow: 0 3px 10px rgb(0 0 0 / 12%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-card--clickable {
+    transition: none;
+  }
+}
+
 .story-card__photo {
   width: 100%;
   height: 180px;

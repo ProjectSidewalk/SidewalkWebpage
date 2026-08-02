@@ -262,6 +262,86 @@ describe('StoryListPage', () => {
         expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=StoryListPage_Location_LabelId=9');
     });
 
+    describe('card-wide click target', () => {
+        /** Builds a page with a story card and a stub popup attached, and hands back the pieces a test needs. */
+        function pageWithPopup(cardHtml) {
+            setupDom(cardHtml);
+            const page = new window.StoryListPage();
+            page.init();
+            const popup = { showLabel: jest.fn() };
+            page.setLabelPopup(popup);
+            return { page, popup };
+        }
+
+        function clickOn(selector) {
+            document.querySelector(selector)
+                .dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+        }
+
+        afterEach(() => window.getSelection().removeAllRanges());
+
+        test('clicking the card body opens the label, the same as "View label" does', () => {
+            const { popup } = pageWithPopup(storyCard({ id: '7' }));
+            clickOn('.story-card__text');
+            expect(popup.showLabel).toHaveBeenCalledWith(7, 'StoryListPage');
+            expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=StoryListPage_Card_LabelId=7');
+        });
+
+        test('the card is only marked clickable once its handler is wired', () => {
+            setupDom(storyCard({ id: '7' }));
+            expect(document.querySelector('.story-card').classList.contains('story-card--clickable')).toBe(false);
+            new window.StoryListPage().init();
+            expect(document.querySelector('.story-card').classList.contains('story-card--clickable')).toBe(true);
+        });
+
+        test('"View label" still opens the label exactly once — the card handler stands down for it', () => {
+            const { popup } = pageWithPopup(storyCard({ id: '7' }));
+            clickOn('.story-card__label-link');
+            expect(popup.showLabel).toHaveBeenCalledTimes(1);
+            expect(window.logWebpageActivity)
+                .not.toHaveBeenCalledWith(expect.stringContaining('StoryListPage_Card_'));
+        });
+
+        test('the location line keeps its own behavior instead of opening the popup over it', () => {
+            const { popup } = pageWithPopup(storyCard({ id: '7' }));
+            const link = document.querySelector('.story-card__location');
+            link.addEventListener('click', (e) => e.preventDefault()); // jsdom can't navigate.
+            link.click();
+            expect(popup.showLabel).not.toHaveBeenCalled();
+        });
+
+        test('"read more" expands the story rather than opening the label', () => {
+            setupDom(storyCard({ id: '7', text: 'long story' }));
+            const text = document.querySelector('.story-card__text');
+            stubHeights(text, { scrollHeight: 300, clientHeight: 110 });
+            const page = new window.StoryListPage();
+            page.init();
+            const popup = { showLabel: jest.fn() };
+            page.setLabelPopup(popup);
+
+            document.querySelector('.story-card__read-more').click();
+            expect(text.classList.contains('is-expanded')).toBe(true);
+            expect(popup.showLabel).not.toHaveBeenCalled();
+        });
+
+        test('a click that ends a text selection leaves the reader on the page', () => {
+            const { popup } = pageWithPopup(storyCard({ id: '7', text: 'Snow piles up here all winter.' }));
+            const range = document.createRange();
+            range.selectNodeContents(document.querySelector('.story-card__text'));
+            window.getSelection().addRange(range);
+
+            clickOn('.story-card__text');
+            expect(popup.showLabel).not.toHaveBeenCalled();
+        });
+
+        test('without a LabelPopup the card click falls back to the label on the LabelMap', () => {
+            setupDom(storyCard({ id: '7' }));
+            new window.StoryListPage().init();
+            clickOn('.story-card__text'); // The href navigation itself is a jsdom no-op.
+            expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=StoryListPage_Card_LabelId=7');
+        });
+    });
+
     describe('share chips (#4722)', () => {
         const SHARE_SRC = fs.readFileSync(
             path.resolve(REPO_ROOT, 'public/js/common/share/ShareWidget.js'), 'utf8');
@@ -312,6 +392,24 @@ describe('StoryListPage', () => {
             new window.StoryListPage().init();
             document.querySelector('.story-card__share .label-detail__share-trigger').click();
             expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=StoryCardShare_storyId=42');
+        });
+
+        test('a click that dismisses an open share menu does not also open the label', () => {
+            setupDom(storyCard({ id: '7', storyId: '42' }));
+            loadShareWidget();
+            const page = new window.StoryListPage();
+            page.init();
+            const popup = { showLabel: jest.fn() };
+            page.setLabelPopup(popup);
+
+            document.querySelector('.story-card__share .label-detail__share-trigger').click();
+            // ShareWidget closes on a capture-phase document listener, so by the time the card's own handler runs
+            // the menu already looks closed; the card has to have noticed at pointerdown.
+            document.querySelector('.story-card__text')
+                .dispatchEvent(new window.Event('pointerdown', { bubbles: true }));
+            document.querySelector('.story-card__text')
+                .dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+            expect(popup.showLabel).not.toHaveBeenCalled();
         });
 
         test('a card without a story id gets no chip, and a missing ShareWidget leaves the page working', () => {

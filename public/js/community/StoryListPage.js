@@ -36,6 +36,7 @@ class StoryListPage {
         this.#labelPopup.showLabel(Number(link.dataset.labelId), 'StoryListPage');
       });
     });
+    this.#makeCardsClickable();
   }
 
   /**
@@ -43,6 +44,43 @@ class StoryListPage {
    */
   setLabelPopup(popup) {
     this.#labelPopup = popup;
+  }
+
+  /**
+   * Makes the whole story card open its label, exactly as clicking "View label" does — the card is one thing, so
+   * anywhere on it should do the obvious thing (Jon, 2026-08-01).
+   *
+   * Three kinds of click are deliberately not navigations:
+   *   - anything on the card's own controls (the location link, "View label", "read more", the share chip and the
+   *     buttons in its popover) — those elements already do something more specific;
+   *   - a click that ends a text selection, which is someone reading the story rather than leaving it;
+   *   - the click that dismisses this card's open share menu. ShareWidget's outside-click listener runs on document
+   *     in the capture phase, so by the time this bubbling handler sees the event the menu is already closed and
+   *     `aria-expanded` is back to false — hence the flag, stamped at pointerdown while the menu is still up.
+   *
+   * Mouse affordance only: the card gains no role and no tabindex, because "View label" is already its keyboard and
+   * screen-reader path to the same place, and a second one would put a redundant stop in every card's tab order.
+   */
+  #makeCardsClickable() {
+    for (const card of this.#list.cards) {
+      const link = card.querySelector('.story-card__label-link');
+      if (!link) continue;
+      card.classList.add('story-card--clickable');
+
+      let shareWasOpen = false;
+      card.addEventListener('pointerdown', () => {
+        shareWasOpen = Boolean(card.querySelector('.label-detail__share-trigger[aria-expanded="true"]'));
+      }, true);
+
+      card.addEventListener('click', (e) => {
+        if (shareWasOpen || e.target.closest('a, button')) return;
+        const selection = window.getSelection();
+        if (selection && !selection.isCollapsed) return;
+        window.logWebpageActivity(`Click_module=StoryListPage_Card_LabelId=${link.dataset.labelId}`);
+        if (this.#labelPopup) this.#labelPopup.showLabel(Number(link.dataset.labelId), 'StoryListPage');
+        else window.location.href = link.href; // Same fallback as the link itself: the label on the LabelMap.
+      });
+    }
   }
 
   /**
