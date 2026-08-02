@@ -78,7 +78,7 @@ class MapSidebarFilter {
    * @param {number[]} [state.severities] Severities (0=N/A through 3) to enable; others are disabled.
    * @param {string[]} [state.labelTypes] Label type keys to check; others are unchecked and their tags cleared.
    * @param {string[]} [state.validationOptions] Validation checkbox ids to check; others are unchecked.
-   * @param {string[]} [state.tags] Tag names to activate on currently-checked label types.
+   * @param {Array<{labelType: string, tag: string}>} [state.tags] Tag pairs to activate on checked label types.
    * @param {string[]} [state.streets] Street checkbox ids to check; others are unchecked.
    */
   applyState({ severities, labelTypes, validationOptions, tags, streets } = {}) {

@@ -6,13 +6,17 @@
  * ready, before the label layers stream in. Filter params (severities, labelTypes, validationOptions, tags,
  * streets) are parsed on construction, validated against the rendered controls, and applied through
  * MapSidebarFilter. Unknown or invalid tokens are ignored; an absent or fully-invalid param leaves that section
- * at its default. Param naming mirrors the Gallery's filter params (camelCase, comma-separated, severity 'null'
- * token for the N/A toggle).
+ * at its default, while a present-but-empty one ("severities=") is the deselect-all state and restores as such.
+ * Param naming mirrors the Gallery's filter params (camelCase, comma-separated, severity 'null' token for the
+ * N/A toggle); tags carry their label type ("CurbRamp:narrow") because tag names repeat across types.
  *
  * Writing: filter changes and user-initiated map movement rewrite the URL via debounced history.replaceState
  * (never pushState, so rapid toggling doesn't pollute the back button). Params matching the sidebar's rendered
  * defaults are omitted; params this class doesn't own (regions, routes, aiValidationOptions, labelId, ...) are
  * preserved.
+ *
+ * Sections deliberately left out of the URL: the admin-only controls (admin-validation, low-quality users),
+ * which the public LabelMap doesn't render and which shouldn't be shareable from the admin map either.
  */
 class MapSidebarUrlSync {
   /** @type {MapSidebarFilter} */
@@ -28,13 +32,25 @@ class MapSidebarUrlSync {
   #defaultSeverities;
 
   /**
+   * Parses the URL's viewport params. A viewport needs both coordinates to mean anything, so a lone lat or lng
+   * is treated as no viewport at all; zoom is optional and left to the map when absent.
+   * @returns {?{center: number[], zoom: ?number}} The viewport as jumpTo takes it, or null if there isn't one.
+   */
+  static #urlViewport() {
+    const params = new URLSearchParams(window.location.search);
+    const lat = Number.parseFloat(params.get('lat'));
+    const lng = Number.parseFloat(params.get('lng'));
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    const zoom = Number.parseFloat(params.get('zoom'));
+    return { center: [lng, lat], zoom: Number.isFinite(zoom) ? zoom : null };
+  }
+
+  /**
    * Returns whether the URL carries a complete viewport (finite lat AND lng).
    * @returns {boolean} Whether applyUrlViewport() would move the map.
    */
   static hasUrlViewport() {
-    const params = new URLSearchParams(window.location.search);
-    return Number.isFinite(Number.parseFloat(params.get('lat')))
-      && Number.isFinite(Number.parseFloat(params.get('lng')));
+    return MapSidebarUrlSync.#urlViewport() !== null;
   }
 
   /**
@@ -44,12 +60,9 @@ class MapSidebarUrlSync {
    * @returns {boolean} Whether a viewport was applied.
    */
   static applyUrlViewport(map) {
-    if (!MapSidebarUrlSync.hasUrlViewport()) return false;
-    const params = new URLSearchParams(window.location.search);
-    const lat = Number.parseFloat(params.get('lat'));
-    const lng = Number.parseFloat(params.get('lng'));
-    const zoom = Number.parseFloat(params.get('zoom'));
-    map.jumpTo({ center: [lng, lat], ...(Number.isFinite(zoom) ? { zoom } : {}) });
+    const viewport = MapSidebarUrlSync.#urlViewport();
+    if (!viewport) return false;
+    map.jumpTo({ center: viewport.center, ...(viewport.zoom === null ? {} : { zoom: viewport.zoom }) });
     return true;
   }
 
@@ -89,8 +102,7 @@ class MapSidebarUrlSync {
     const validationOptions = this.#parseList(params, 'validationOptions', this.#checkboxIds('label-validations'));
     if (validationOptions) state.validationOptions = validationOptions;
 
-    const knownTags = Array.from(this.#sidebar.querySelectorAll('.tag-pill[data-tag]')).map((p) => p.dataset.tag);
-    const tags = this.#parseList(params, 'tags', knownTags);
+    const tags = this.#parseTagPairs(params);
     if (tags) state.tags = tags;
 
     const streets = this.#parseList(params, 'streets', ['audited', 'unaudited']);
@@ -129,9 +141,11 @@ class MapSidebarUrlSync {
         ? null
         : validationOptions.join(','));
 
-    // Tag names repeat across types ("narrow" is both a curb ramp and a sidewalk tag), so the flat param carries
-    // each name once; the read path re-applies it to every checked type that renders it.
-    const tags = [...new Set(Object.values(state.tags).flat())];
+    // Each tag carries the type it narrows: names repeat across types ("narrow" is both a curb ramp and a
+    // sidewalk tag), so a bare name couldn't say which one the user filtered, and restoring it would widen the
+    // filter to every checked type that renders it.
+    const tags = Object.entries(state.tags)
+      .flatMap(([labelType, tagNames]) => tagNames.map((tag) => `${labelType}:${tag}`));
     this.#setOrDelete(url, 'tags', tags.length === 0 ? null : tags.join(','));
 
     const streetIds = state.sections.streets ?? [];
@@ -145,24 +159,56 @@ class MapSidebarUrlSync {
     url.searchParams.set('zoom', this.#map.getZoom().toFixed(2));
 
     // Commas are legal unencoded in a query value, and these params are comma-separated lists, so leaving them
-    // readable keeps the shared URLs legible (Gallery precedent).
+    // readable keeps the shared URLs legible (Gallery precedent). LabelDetail.syncUrlLabelId serializes
+    // identically on purpose: both writers run on this page, and byte-differing output would make them fight
+    // over the same params (pinned by test/js/mapSidebarUrlSync.test.js).
     const query = url.searchParams.toString().replace(/%2C/g, ',');
     window.history.replaceState(null, '', `${url.pathname}${query ? `?${query}` : ''}${url.hash}`);
   }
 
   /**
    * Parses a comma-separated URL param, keeping only known values.
+   *
+   * An empty value is a selection, not a missing param: every section has a "Deselect all" button, and that
+   * state has to come back as "nothing selected" rather than falling through to the rendered default, which
+   * would restore a shared link as the exact inverse of what was shared.
+   *
    * @param {URLSearchParams} params The current query params.
    * @param {string} name The param name.
    * @param {string[]} knownValues The accepted values; anything else is dropped.
-   * @returns {?string[]} The valid values, or null when the param is absent or has no valid values.
+   * @returns {?string[]} The valid values, [] when the param is present but empty, or null when the param is
+   *      absent or holds nothing valid.
    */
   #parseList(params, name, knownValues) {
     const raw = params.get(name);
     if (raw === null) return null;
+    if (raw === '') return [];
     const known = new Set(knownValues);
     const values = raw.split(',').map((v) => v.trim()).filter((v) => known.has(v));
     return values.length > 0 ? values : null;
+  }
+
+  /**
+   * Parses the `tags` param's `labelType:tag` tokens, keeping only pairs the sidebar actually renders.
+   *
+   * Tokens are validated whole, before being split, so the split can safely take the first colon as the
+   * delimiter: label type keys never contain one, but tag names do ("parallel lines:yes").
+   *
+   * @param {URLSearchParams} params The current query params.
+   * @returns {?Array<{labelType: string, tag: string}>} The valid pairs, or null when the param is absent.
+   */
+  #parseTagPairs(params) {
+    const raw = params.get('tags');
+    if (raw === null) return null;
+    const rendered = new Set(Array.from(this.#sidebar.querySelectorAll('.tag-pill[data-tag]'))
+      .map((pill) => `${pill.dataset.labelType}:${pill.dataset.tag}`));
+    return raw.split(',')
+      .map((token) => token.trim())
+      .filter((token) => rendered.has(token))
+      .map((token) => {
+        const colon = token.indexOf(':');
+        return { labelType: token.slice(0, colon), tag: token.slice(colon + 1) };
+      });
   }
 
   /**
