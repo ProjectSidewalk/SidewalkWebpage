@@ -77,6 +77,10 @@ async function submitAndFail(body) {
 
 beforeEach(() => {
     window.eval(`${COMPOSER_SRC}\nwindow.StoryComposer = StoryComposer;`);
+    // #postForm posts through util.lazyIdentityFetch (#4442). The real helper passes a non-auth failure like this
+    // suite's 429 through unchanged, so a pass-through stub is faithful; the mint/retry path has its own suite
+    // (lazyIdentityFetch.test.js).
+    window.util = { lazyIdentityFetch: (url, options) => window.fetch(url, options) };
     window.i18next = {
         language: 'en',
         exists: (key) => key in STRINGS,

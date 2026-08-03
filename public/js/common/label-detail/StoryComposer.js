@@ -372,23 +372,17 @@ class StoryComposer {
   }
 
   /**
-   * POSTs multipart form data, minting the shared anonymous session and retrying once — but only when the failure
-   * looks auth-shaped (401/403/redirect). That's deliberately narrower than LabelDetail's #postJson, which retries
-   * on any non-OK response: a story rejection (409 duplicate, 429 rate-limited) must surface, not be re-posted.
-   * No Content-Type header: the browser sets the multipart boundary itself.
+   * POSTs multipart form data via util.lazyIdentityFetch (#4442): an auth-shaped failure (401/403/redirect) mints
+   * the shared anonymous session and retries once, while a story rejection (409 duplicate, 429 rate-limited) still
+   * surfaces rather than being re-posted. This method's narrowed retry condition is where the shared helper's
+   * semantics came from. No Content-Type header: the browser sets the multipart boundary itself.
    * @param {string} url
    * @param {FormData} formData
    * @param {string} [method='POST'] - 'PUT' for in-place story edits.
    * @returns {Promise<Response>}
    */
-  async #postForm(url, formData, method = 'POST') {
-    const post = () => fetch(url, { method, body: formData });
-    let res = await post();
-    if (!res.ok && (res.status === 401 || res.status === 403 || res.type === 'opaqueredirect' || res.redirected)) {
-      await fetch('/anonSignUp?url=%2F', { redirect: 'manual' });
-      res = await post();
-    }
-    return res;
+  #postForm(url, formData, method = 'POST') {
+    return util.lazyIdentityFetch(url, { method, body: formData });
   }
 
   /**

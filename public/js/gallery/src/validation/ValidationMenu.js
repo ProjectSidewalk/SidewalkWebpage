@@ -228,7 +228,9 @@ class ValidationMenu {
     };
 
     const isNewValidation = !undone && refCard.getProperty('user_validation') === null;
-    return fetch('/labelmap/validate', {
+    // A first-time visitor browses the Gallery with no session (#4643), so a card vote can be their first-ever
+    // write: lazyIdentityFetch mints the anonymous session on an auth-shaped failure and retries once (#4442).
+    return util.lazyIdentityFetch('/labelmap/validate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),

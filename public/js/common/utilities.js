@@ -221,6 +221,40 @@ function getImage(imageUrl) {
 
 util.getImage = getImage;
 
+/**
+ * Fetches a session-requiring write (POST/PUT), lazily minting the shared anonymous session when it's missing.
+ *
+ * Public pages render with no session at all since #4643, so a first-time visitor's very first interaction — a
+ * validation vote, a comment, a story, a guest route save — reaches the server with no identity. Historically that
+ * request either bounced through /anonSignUp (minting an account as a redirect side effect but SWALLOWING the
+ * submission) or failed outright with a 401 (#4442). Instead: if the failure is auth-shaped, mint the anonymous
+ * session explicitly via GET /anonSignUp (idempotent: it just redirects when a session already exists), then retry
+ * the original request ONCE with the same options. On every later interaction the session exists, so the extra
+ * round-trip never happens.
+ *
+ * Auth-shaped means 401/403, an opaque redirect, or a followed redirect — the ways SecuredAction answers a
+ * session-less write. Anything else (400 validation, 409 duplicate, 429 rate limit, 500) surfaces unchanged: a
+ * rejected submission must never be silently re-posted. redirect: 'manual' keeps the mint cheap — the Set-Cookie on
+ * the redirect response is stored without fetching the page it points at. If the mint itself is rate-limited (429
+ * from the anon-signup budget), the retry fails with 401 again and that response is returned, so the caller's
+ * normal error path shows.
+ *
+ * @param {string} url - The endpoint to fetch.
+ * @param {object} options - The fetch options (method, headers, body, ...); reused as-is for the retry.
+ * @returns {Promise<Response>} The first non-auth-failure response, or the retry's response (which may not be OK).
+ */
+util.lazyIdentityFetch = async function (url, options) {
+  const attempt = () => fetch(url, options);
+  const authShaped = (res) =>
+    !res.ok && (res.status === 401 || res.status === 403 || res.type === 'opaqueredirect' || res.redirected);
+  let res = await attempt();
+  if (authShaped(res)) {
+    await fetch('/anonSignUp?url=%2F', { redirect: 'manual' });
+    res = await attempt();
+  }
+  return res;
+};
+
 // Sums an array's numbers (a helper, not an Array.prototype extension, to avoid polluting native prototypes).
 util.array = util.array || {};
 util.array.sum = (arr) => arr.reduce((a, b) => a + b, 0);

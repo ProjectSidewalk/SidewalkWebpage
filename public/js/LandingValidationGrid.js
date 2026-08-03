@@ -333,7 +333,9 @@ class LandingValidationGrid {
     };
 
     try {
-      const response = await fetch('/labelmap/validate', {
+      // A first-time visitor has no session (#4643), so this vote may be their first-ever write: lazyIdentityFetch
+      // mints the anonymous session on an auth-shaped failure and retries once (#4442).
+      const response = await util.lazyIdentityFetch('/labelmap/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
