@@ -10,10 +10,11 @@ import scala.concurrent.duration.{DurationInt, FiniteDuration}
 /**
  * In-memory, fixed-window rate limiter for a single application instance.
  *
- * Tracks a per-key attempt count within a sliding fixed window. It is a no-op when `rate-limit.enabled` is false, so it
- * can be wired into endpoints and shipped inert, then enabled by config once the deployment's proxy client-IP handling
- * is confirmed (see `CustomBaseController.ipAddress`). State is per-instance and resets on restart, which fits the
- * current single-instance deployment; a multi-instance future would need a shared store (e.g. Redis).
+ * Tracks a per-key attempt count within a sliding fixed window. On by default (`rate-limit.enabled`); a deployment can
+ * turn it off with `RATE_LIMIT_ENABLED=false`. IP keys are safe to limit on because client IPs come from Play's
+ * forwarded-header processing (`play.http.forwarded.*`; see `CustomBaseController.ipAddress`), which a client-supplied
+ * X-Forwarded-For can't spoof. State is per-instance and resets on restart, which fits the current
+ * one-process-per-city deployment; a multi-instance future would need a shared store (e.g. Redis).
  *
  * @param config Application configuration; supplies `rate-limit.enabled` and the per-endpoint limit blocks.
  */
