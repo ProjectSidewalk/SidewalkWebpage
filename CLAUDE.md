@@ -436,7 +436,7 @@ docker exec projectsidewalk-web bash -lc "cd /home && sbt --client \"testOnly co
 
 The API specs **boot the real app against Postgres+PostGIS**, so the `db` container must be up; they assert response contract/shape, not data values. There is no `make` target — invoke sbt directly. The phased testing strategy and rationale live in [`docs/testing-and-ci.md`](docs/testing-and-ci.md).
 
-A prototype **JS** test layer (jsdom) lives under `test/js/` — run `npm run test:js`. It is opt-in and not wired into CI yet (sequenced with the ES5→ES2022 migration, #2487); see `test/js/README.md`.
+A **JS** test layer (jsdom) lives under `test/js/` — run `npm run test:js`. CI runs it as an **advisory** step inside the `frontend` job, so a failure reports but doesn't block a merge while coverage is still thin (sequenced with the ES5→ES2022 migration, #2487); see `test/js/README.md`.
 
 A **Python** unit suite (`pytest`) for the `scripts/` utilities lives under `test/python/` — run `make test-python` (runs pytest in the web container) or `docker exec projectsidewalk-web bash -lc "cd /home && python3 -m pytest test/python"`. It needs no DB/network (pure-logic tests only) and runs as an **advisory** CI job; see `test/python/README.md`.
 

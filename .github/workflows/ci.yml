@@ -1,7 +1,8 @@
 name: CI
 
 #   - backend:         `sbt compile` + `scalafmtCheckAll` (both BLOCKING)
-#   - frontend:        asset build (grunt) + `eslint` (JS) + `stylelint` (CSS) + `htmlhint` (HTML) (all BLOCKING)
+#   - frontend:        asset build (grunt) + `eslint` (JS) + `stylelint` (CSS) + `htmlhint` (HTML) (all BLOCKING),
+#                      plus the jsdom `jest` suite in test/js/ (ADVISORY step inside the same job).
 #   - evolutions-lint: static checks on conf/evolutions/default/*.sql (BLOCKING — fast, deterministic, no DB).
 #   - route-lint:      conf/routes reachability — fails if any route is shadowed by an earlier one (BLOCKING — no DB).
 #   - backend-tests:   DB-backed public-API functional tests against a real Postgres+PostGIS (ADVISORY for now). Boots
@@ -112,6 +113,15 @@ jobs:
       - name: Locale parity (blocking)
         if: always()
         run: node tools/check-locale-parity.mjs
+
+      # Advisory: the jsdom unit suite (test/js/). Coverage is thin and sequenced with the ES5→ES2022 migration
+      # (#2487), so it doesn't gate merges yet — but running it on every PR is what keeps a tested helper's contract
+      # from being quietly edited out from under it. `continue-on-error` is on the step, not the job, so a failure
+      # reports without turning the required `Frontend (build)` check red.
+      - name: Jest unit tests (advisory)
+        if: always()
+        continue-on-error: true
+        run: npm run test:js
 
   evolutions-lint:
     name: Evolutions lint
@@ -367,9 +377,20 @@ jobs:
         run: sbt stage
 
       # pidfile to /dev/null so a retry on the same runner can't trip over a stale RUNNING_PID.
+      #
+      # config.resource=application.local.conf is load-bearing, not a stylistic choice. The base conf/application.conf
+      # scopes both the Play session cookie and the Silhouette authenticator to Domain=".cs.washington.edu" (they are
+      # shared across the per-city subdomains in production), and a browser drops any cookie whose Domain doesn't match
+      # the host it is talking to. At http://localhost:9000 that means no session can ever stick, so every SecuredAction
+      # page ping-pongs with /anonSignUp until Chromium gives up with ERR_TOO_MANY_REDIRECTS. The local overlay is
+      # exactly the "app served over plain http at localhost:9000" profile — it nulls both cookie domains and pins
+      # play.filters.hosts.allowed to localhost:9000 — so it is the honest config to boot under here. It cannot be
+      # expressed as -D flags: a system property is always a string, so -Dplay.http.session.domain=null would set the
+      # literal Domain "null" rather than clearing it.
       - name: Start the app
         run: |
           nohup target/universal/stage/bin/sidewalk-webpage \
+            -Dconfig.resource=application.local.conf \
             -Dhttp.port=9000 -Dplay.server.pidfile.path=/dev/null > app.log 2>&1 &
 
       # /signIn is a UserAwareAction: 200 with no auth and no session bootstrap — the cheapest unauthenticated
