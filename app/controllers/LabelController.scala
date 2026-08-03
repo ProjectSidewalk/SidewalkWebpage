@@ -79,7 +79,10 @@ class LabelController @Inject() (
    *
    * @param regions             Comma-separated region IDs to filter by.
    * @param routes              Comma-separated route IDs to filter by.
-   * @param aiValidationOptions Comma-separated AI validation results to filter by.
+   * @param aiValidationOptions Comma-separated AI validation results to filter by. An empty-but-present value matches
+   *                            no result, so `?aiValidationOptions=` yields an empty feature collection.
+   * @return                    GeoJSON FeatureCollection of Point features, each carrying the 11 label properties the
+   *                            LabelMap renders from.
    */
   def getAllLabelsForLabelMap(regions: Option[String], routes: Option[String], aiValidationOptions: Option[String]) =
     Action.async {

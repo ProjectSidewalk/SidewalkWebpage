@@ -48,6 +48,8 @@ class RegionController @Inject() (
    * rates anonymously, so this stays ungated.
    *
    * @param regions Comma-separated region IDs to filter by.
+   * @return        JSON array of `{region_id, total_distance_m, completed_distance_m, rate, name}` objects, where
+   *                `rate` is `completed_distance_m / total_distance_m`, or 1.0 for a region with no street distance.
    */
   def getNeighborhoodCompletionRate(regions: Option[String]) = Action.async {
     val regionIds: Seq[Int] = parseIntegerSeq(regions)

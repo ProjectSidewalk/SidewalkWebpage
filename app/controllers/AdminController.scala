@@ -143,10 +143,14 @@ class AdminController @Inject() (
   }
 
   /**
-   * Get a list of all tags used for the admin page.
+   * Get per-tag usage counts for the admin Data Quality page.
+   *
+   * Admin-gated: this serves usage statistics, not the tag vocabulary. The public vocabulary lives at
+   * `/v3/api/labelTags`.
+   *
+   * @return JSON array of `{label_type, tag, count}` objects.
    */
-  def getTagCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def getTagCounts = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getTagCounts.map { tagCounts =>
       Ok(Json.toJson(tagCounts.map(tagCount => {
         Json.obj(
