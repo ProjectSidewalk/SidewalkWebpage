@@ -68,11 +68,12 @@ class UserController @Inject() (
     Json.obj("errors" -> Json.obj(field -> message))
 
   /**
-   * Checks a named rate limit for the given keys; if any is exceeded, returns a ready 429 response, else `None`.
+   * Counts this attempt against a named rate limit's keys; if any is exceeded, returns a ready 429, else `None`.
    *
-   * On by default via `rate-limit.enabled` (see `RateLimiter`). All keys are counted (so IP- and email-scoped limits
-   * both register the attempt) before deciding. The 429 is JSON for async submits and a flashed redirect for the no-JS
-   * fallback, so both surfaces show the same throttle message.
+   * On by default via `rate-limit.enabled` (see `RateLimiter`). Every key is counted (so IP- and email-scoped limits
+   * both register the attempt) before deciding. Suits the endpoints whose cost is the request itself — a bcrypt hash,
+   * a mailer send — where a legitimate caller has to pay too; `failureThrottled` covers the ones that should only
+   * charge for failures.
    *
    * @param name     The `rate-limit.<name>` block to read the max/window from.
    * @param keys     The keys to count this attempt against (e.g. IP and email scopes).
@@ -83,17 +84,47 @@ class UserController @Inject() (
       request: play.api.mvc.RequestHeader
   ): Option[play.api.mvc.Result] = {
     val limit       = rateLimiter.limit(name)
-    val blockedKeys = keys.filterNot(k => rateLimiter.allow(k, limit.maxAttempts, limit.window))
-    if (blockedKeys.isEmpty) None
-    else {
-      // Quote the longest wait among the tripped scopes, from when its window actually clears (#4740).
-      val retryAfter = blockedKeys.flatMap(rateLimiter.retryAfterSeconds).reduceOption(_ max _)
-      val msg        = Messages("authenticate.error.too.many")
-      val result     =
-        if (wantsJson) TooManyRequests(fieldErrorJson("_summary", msg))
-        else Redirect(redirect).flashing("error" -> msg)
-      Some(result.withHeaders("Retry-After" -> retryAfter.getOrElse(limit.window.toSeconds).toString))
-    }
+    val blockedKeys = keys.filterNot(k => rateLimiter.allow(k, limit))
+    if (blockedKeys.isEmpty) None else Some(throttledResponse(blockedKeys, limit, redirect))
+  }
+
+  /**
+   * Reports whether `key` has already spent a named limit's budget, without counting the current attempt.
+   *
+   * The caller is expected to charge the budget itself — via `rateLimiter.record`/`clear` — once it knows the outcome.
+   * That is what keeps a per-account sign-in throttle from being tripped by *successful* logins, which would lock out
+   * a shared classroom account and would leave the counter running after the right password finally arrived.
+   *
+   * @param name     The `rate-limit.<name>` block to read the max/window from.
+   * @param key      The single key whose budget to inspect.
+   * @param redirect Where the no-JS fallback should bounce to when throttled.
+   * @return `Some(result)` if already over budget, `None` if there is room.
+   */
+  private def failureThrottled(name: String, key: String, redirect: String)(implicit
+      request: play.api.mvc.RequestHeader
+  ): Option[play.api.mvc.Result] = {
+    val limit = rateLimiter.limit(name)
+    if (rateLimiter.isBlocked(key, limit)) Some(throttledResponse(Seq(key), limit, redirect)) else None
+  }
+
+  /**
+   * The throttle response: JSON for async submits, a flashed redirect for the no-JS fallback, so both surfaces show
+   * the same message.
+   *
+   * @param blockedKeys The tripped keys, whose windows set the honest `Retry-After`.
+   * @param limit       The limit they tripped; its window is the fallback when a key has no live window.
+   * @param redirect    Where the no-JS fallback should bounce to.
+   */
+  private def throttledResponse(blockedKeys: Seq[String], limit: service.RateLimiter.Limit, redirect: String)(implicit
+      request: play.api.mvc.RequestHeader
+  ): play.api.mvc.Result = {
+    // Quote the longest wait among the tripped scopes, from when its window actually clears (#4740).
+    val retryAfter = blockedKeys.flatMap(rateLimiter.retryAfterSeconds).reduceOption(_ max _)
+    val msg        = Messages("authenticate.error.too.many")
+    val result     =
+      if (wantsJson) TooManyRequests(fieldErrorJson("_summary", msg))
+      else Redirect(redirect).flashing("error" -> msg)
+    result.withHeaders("Retry-After" -> retryAfter.getOrElse(limit.window.toSeconds).toString)
   }
 
   /**
@@ -235,8 +266,14 @@ class UserController @Inject() (
     val ipAddress: String          = request.ipAddress
     val currUserId: Option[String] = request.identity.map(_.userId)
 
-    // Per-IP throttle before we do any work (inert unless rate-limit.enabled).
-    rateLimited("login", Seq(s"login:ip:$ipAddress"), "/signIn").map(Future.successful).getOrElse {
+    // Two per-IP bounds, both before any work happens. The per-minute one caps how *fast* one address can drive the
+    // bcrypt path while staying generous enough for a classroom behind a single NAT; the per-hour one caps how *many*
+    // accounts it can work through in a sitting, which is credential stuffing — a shape the per-account limit below is
+    // blind to, since every guess there targets a different account. Both are evaluated rather than short-circuited so
+    // that each records the attempt.
+    val burstLimited     = rateLimited("login", Seq(s"login:ip:$ipAddress"), "/signIn")
+    val sustainedLimited = rateLimited("login-ip-hourly", Seq(s"login:ip:hour:$ipAddress"), "/signIn")
+    burstLimited.orElse(sustainedLimited).map(Future.successful).getOrElse {
       SignInForm.form
         .bindFromRequest()
         .fold(
@@ -257,10 +294,22 @@ class UserController @Inject() (
             val identifier: String = data.email.trim
 
             // Per-account throttle keyed on the submitted email-or-username, which only exists after form binding.
-            // This is the actual brute-force backstop (#1102): the per-IP bound above stays generous for classrooms
+            // This is the actual brute-force backstop (#1102): the per-IP bounds above stay generous for classrooms
             // behind one NAT, so a targeted account needs its own, tighter limit. Keyed case-insensitively and
             // length-capped so a flood of giant identifiers can't bloat the limiter's key set.
-            rateLimited("login-identifier", Seq(s"login:id:${identifier.toLowerCase.take(255)}"), "/signIn") match {
+            //
+            // Only *failed* attempts are charged (recorded in the ProviderException branch below, refunded on
+            // success): a budget that counted successes too would lock a shared classroom account out of its own
+            // logins, and would leave the counter running even after the right password arrived. The remaining
+            // tradeoff is deliberate — someone who knows a username can still deny it to its owner for one window by
+            // spending the budget on bad guesses, which is inherent to any per-account limit and is bounded by that
+            // window. One residual: the key is the submitted string, so an account reachable by both username and
+            // email has a bucket for each. Collapsing them would mean a DB lookup before the throttle, i.e. doing the
+            // work the throttle exists to avoid.
+            val idKey   = s"login:id:${identifier.toLowerCase.take(255)}"
+            val idLimit = rateLimiter.limit("login-identifier")
+
+            failureThrottled("login-identifier", idKey, "/signIn") match {
               case Some(throttledResult) =>
                 cc.loggingService.insert(currUserId, ipAddress, s"""SignInThrottled_Email="$identifier"""")
                 Future.successful(throttledResult)
@@ -297,6 +346,9 @@ class UserController @Inject() (
                     .flatMap { loginInfo =>
                       authenticationService.retrieve(loginInfo).flatMap {
                         case Some(user) =>
+                          // Correct credentials: refund the account's budget so a run of typos doesn't follow the
+                          // user into their next session.
+                          rateLimiter.clear(idKey)
                           val c = config.underlying
                           silhouette.env.authenticatorService
                             .create(loginInfo)
@@ -334,6 +386,11 @@ class UserController @Inject() (
                     }
                     .recover {
                       case e: ProviderException =>
+                        // A rejected credential is exactly what the per-account budget is for, so charge it here and
+                        // nowhere else. The generic branch below deliberately doesn't: an outage on our side must not
+                        // spend a real user's budget.
+                        rateLimiter.record(idKey, idLimit)
+
                         // Log failed sign-in due to invalid credentials. Should be the only reason for a failure.
                         val activity: String = s"""SignInFailed_Email="$email"_Reason="invalid credentials""""
                         cc.loggingService.insert(currUserId, ipAddress, activity)
@@ -376,7 +433,8 @@ class UserController @Inject() (
       .getOrElse("/") // Default redirect path if no returnUrl.
     val (returnUrlPath, returnUrlQuery) = parseURL(returnUrl)
 
-    // Per-IP throttle on account creation (inert unless rate-limit.enabled).
+    // Per-IP throttle on account creation, checked pre-bind so rejected POSTs count too — each one still costs a form
+    // bind and, past it, a bcrypt hash.
     rateLimited("signup", Seq(s"signup:ip:$ipAddress"), "/signUp").map(Future.successful).getOrElse {
       SignUpForm.form
         .bindFromRequest()
@@ -564,7 +622,7 @@ class UserController @Inject() (
     val ipAddress: String      = request.ipAddress
     val userId: Option[String] = request.identity.map(_.userId)
 
-    // Per-IP throttle on reset requests (inert unless rate-limit.enabled).
+    // Per-IP throttle on reset requests; the per-target-email one is post-bind, further down.
     rateLimited("forgot", Seq(s"forgot:ip:$ipAddress"), "/forgotPassword").map(Future.successful).getOrElse {
 
       ForgotPasswordForm.form
