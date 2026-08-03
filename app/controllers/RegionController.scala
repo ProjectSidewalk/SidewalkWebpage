@@ -1,7 +1,7 @@
 package controllers
 
 import controllers.base._
-import controllers.helper.ControllerUtils.parseIntegerSeq
+import controllers.helper.ControllerUtils.{parseIntegerSeq, NoUserId}
 import models.auth.DefaultEnv
 import models.utils.MyPostgresProfile.api._
 import play.api.libs.json.{JsObject, Json}
@@ -31,7 +31,7 @@ class RegionController @Inject() (
   def listNeighborhoods(regions: Option[String]) = cc.securityService.UserAwareAction {
     implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
       val regionIds: Seq[Int] = parseIntegerSeq(regions)
-      val userId: String      = request.identity.map(_.userId).getOrElse("")
+      val userId: String      = request.identity.map(_.userId).getOrElse(NoUserId)
       regionService.getNeighborhoodsWithUserCompletionStatus(userId, regionIds).map { regions =>
         val features: Seq[JsObject] = regions.map { case (region, userCompleted) =>
           val properties: JsObject = Json.obj(

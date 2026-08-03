@@ -10,11 +10,12 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 
 /**
- * Route-wiring smoke test for the two endpoints the landing-page validation grid (#1638) depends on — never a 404,
- * which would mean a routes regression. The label read is user-aware since #4643 (cookie-less landing visitors must
- * see the grid), so an empty unauthenticated POST reaches its JSON validation (400); the validation write is still a
- * SecuredAction, so its unauthenticated contract remains a redirect into the anonymous-signup flow (3xx). The grid's
- * real behavior is covered by GalleryFormatsSpec/LabelServiceSpec, and the cookie-less read by SessionlessPagesSpec.
+ * Route-wiring smoke test for the two endpoints the landing-page validation grid (#1638) depends on: each must exist,
+ * i.e. never answer 404, which is what a routes regression looks like. The label read is user-aware (cookie-less
+ * landing visitors have to see the grid) so it reaches the controller; the validation write is a SecuredAction, so an
+ * unauthenticated POST bounces into the anonymous-signup flow. Both are asserted only as "not 404" — the exact status
+ * belongs to the body-validation and auth contracts, which have their own coverage (GalleryFormatsSpec,
+ * LabelServiceSpec, SessionlessPagesSpec) and would otherwise make this spec fail for reasons that aren't its subject.
  */
 class LandingValidationGridRoutesSpec extends PlaySpec with GuiceOneAppPerSuite {
 
@@ -24,13 +25,10 @@ class LandingValidationGridRoutesSpec extends PlaySpec with GuiceOneAppPerSuite 
   implicit lazy val mat: Materializer = app.materializer
 
   "The validation grid's endpoints" should {
-    "exist and let an unauthenticated POST /label/labels through to JSON validation (400, not 404/3xx)" in {
-      status(route(app, FakeRequest(POST, "/label/labels").withJsonBody(Json.obj())).get) mustBe BAD_REQUEST
-    }
-
-    "exist and redirect an unauthenticated POST /labelmap/validate (3xx, not 404)" in {
-      val sc = status(route(app, FakeRequest(POST, "/labelmap/validate").withJsonBody(Json.obj())).get)
-      (sc >= 300 && sc < 400) mustBe true
+    Seq("/label/labels", "/labelmap/validate").foreach { path =>
+      s"exist for an unauthenticated POST $path (anything but 404)" in {
+        status(route(app, FakeRequest(POST, path).withJsonBody(Json.obj())).get) must not be NOT_FOUND
+      }
     }
   }
 }

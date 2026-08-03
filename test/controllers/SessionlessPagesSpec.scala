@@ -92,6 +92,23 @@ class SessionlessPagesSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
   }
 
+  "A cookie-less request to an endpoint that still requires an account" should {
+    "answer a write with 401 rather than a bounce, so the submission isn't swallowed" in {
+      // Following a bounce turns the write into a GET and lands it on a 200 HTML page, so the caller reads success
+      // while nothing was submitted. A 401 lets the client mint a session and retry it (util.lazyIdentityFetch,
+      // #4442). FakeRequest sends no Sec-Fetch-Mode, which is the case the method has to decide.
+      val resp = route(app, FakeRequest(POST, "/labelmap/validate").withJsonBody(Json.obj()).withCSRFToken).get
+      status(resp) mustBe UNAUTHORIZED
+      header(LOCATION, resp) mustBe empty
+    }
+
+    "still bounce a navigation through /anonSignUp, which is what the flow is for" in {
+      val resp = route(app, FakeRequest(GET, "/explore")).get
+      status(resp) mustBe SEE_OTHER
+      redirectLocation(resp).value must startWith("/anonSignUp")
+    }
+  }
+
   "The anonymous-signup flow itself" should {
     // Control test: proves the cookie assertions above are falsifiable (the cookie machinery does mint one here).
     "still mint an authenticator cookie, for the pages that still require an account" in {

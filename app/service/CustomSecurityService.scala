@@ -80,6 +80,10 @@ class CustomSecurityService @Inject() (
    * minted as a side effect of viewing the page. An existing identity gets the same treatment as `SecuredAction`
    * (the Infra3D gate and the lazy `user_stat` backfill); a cookie-less one skips the backfill (there is no user to
    * back-fill) but is still bounced to sign-in on Infra3D cities, which are sign-in-walled for every role today.
+   *
+   * Note for anyone adding caching later: these responses look cacheable but aren't. The body still varies by
+   * identity — the navbar, the leaderboard's "you" row, the story composer's username — so a shared or CDN cache in
+   * front of them needs a cookie-keyed rule, not a plain `Cache-Control: public`.
    */
   def UserAwareAction(block: UserAwareRequest[DefaultEnv, AnyContent] => Future[Result]): Action[AnyContent] = {
     silhouette.UserAwareAction.async { request => userAwareHelper(request)(block) }

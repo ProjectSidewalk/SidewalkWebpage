@@ -1,7 +1,7 @@
 package controllers
 
 import controllers.base._
-import controllers.helper.ControllerUtils.{isMobile, parseIntegerSeq}
+import controllers.helper.ControllerUtils.{isMobile, parseIntegerSeq, NoUserId}
 import formats.json.GalleryFormats._
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
@@ -125,7 +125,7 @@ class GalleryController @Inject() (
           .getOrElse(Map())
           .flatMap { case (name, tags) => LabelTypeEnum.byName.get(name).map(_ -> tags.toSet) }
         val aiValOptions: Set[String]  = submission.aiValidationOptions.getOrElse(Seq()).toSet
-        val userId: String             = request.identity.map(_.userId).getOrElse("")
+        val userId: String             = request.identity.map(_.userId).getOrElse(NoUserId)
         val recentFirst: Boolean       = submission.sort.contains("recent")
         val staticImageryOnly: Boolean = submission.staticImageryOnly.getOrElse(false)
 

@@ -203,3 +203,37 @@ class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers 
     }
   }
 }
+
+/**
+ * SEO surface on a sign-in-walled city (#4643). Infra3D's imagery licence keeps every page behind a sign-in, so a
+ * cookie-less crawler is bounced to /signIn — a path robots.txt disallows. Promoting pages that redirect into a
+ * disallowed path only manufactures crawl errors, so such a city must advertise and serve no sitemap at all. Uses the
+ * configured city with its pano source overridden, rather than hard-coding an Infra3D city id, so the spec doesn't
+ * depend on which city this environment runs.
+ */
+class SeoSignInWalledSpec extends PlaySpec with GuiceOneAppPerSuite {
+
+  private lazy val cityId: String = com.typesafe.config.ConfigFactory.load().getString("city-id")
+
+  override def fakeApplication(): Application =
+    new GuiceApplicationBuilder()
+      .disable[modules.ActorModule]
+      .configure("environment-type" -> "prod", s"city-params.pano-viewer-type.$cityId" -> "infra3d")
+      .build()
+
+  implicit lazy val mat: Materializer = app.materializer
+
+  "GET /sitemap.xml on a sign-in-walled prod city" should {
+    "404 rather than promote pages that bounce a crawler to the disallowed /signIn" in {
+      status(route(app, FakeRequest(GET, "/sitemap.xml")).get) mustBe NOT_FOUND
+    }
+  }
+
+  "GET /robots.txt on a sign-in-walled prod city" should {
+    "keep the Disallow rules but advertise no sitemap" in {
+      val body = contentAsString(route(app, FakeRequest(GET, "/robots.txt")).get)
+      body must include("Disallow: /admin")
+      body must not include "Sitemap:"
+    }
+  }
+}

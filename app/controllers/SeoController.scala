@@ -1,6 +1,7 @@
 package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
+import models.pano.PanoSource
 import models.utils.SeoUtils
 import play.api.Configuration
 import play.api.mvc.{Action, AnyContent}
@@ -24,31 +25,48 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
   private val baseUrl: String = config.get[String](s"city-params.landing-page-url.prod.$cityId").stripSuffix("/")
 
   /**
-   * Public, indexable pages promoted in the sitemap. Duplicate route aliases are excluded (see SeoUtils).
-   * /explore and /validate are deliberately absent: they are still SecuredAction pages, so a cookie-less crawler gets
-   * 303-bounced into the now-disallowed /anonSignUp — promoting them would just manufacture crawl errors. Re-add them
-   * if/when the tool shells render sessionlessly (#4643 phase 3).
+   * Whether this city's imagery licence puts its whole surface behind a sign-in.
+   *
+   * Infra3D cities require per-user imagery permission, so `CustomSecurityService` bounces a cookie-less visitor from
+   * *every* page to /signIn — which robots.txt disallows. Read straight from config, the same key
+   * `ConfigService.getPanoSource` uses, so this controller keeps its build-once, no-DB property.
    */
-  private val sitemapPaths: Seq[String] = Seq(
-    "/", "/about", "/gallery", "/labelMap", "/help", "/labelingGuide", "/labelingGuide/curbRamps",
-    "/labelingGuide/surfaceProblems", "/labelingGuide/obstacles", "/labelingGuide/noSidewalk",
-    "/labelingGuide/occlusion", "/api", "/leaderboard", "/routeBuilder", "/terms", "/cities"
-  ) ++ Seq(
-    "labelTypes", "cities", "labelTags", "rawLabels", "labelClusters", "streets", "streetTypes", "regions",
-    "accessScoreStreets", "accessScoreRegions", "validations", "validation-result-types", "user-stats", "overall-stats",
-    "overall-stats-by-day", "aggregate-stats", "aggregate-stats-by-day"
-  ).map(p => s"/v3/api-docs/$p")
+  private val signInWalled: Boolean =
+    config.get[String](s"city-params.pano-viewer-type.$cityId") == PanoSource.Infra3d.toString
+
+  /**
+   * Public, indexable pages promoted in the sitemap. Duplicate route aliases are excluded (see SeoUtils).
+   *
+   * The invariant is that every entry renders for a cookie-less crawler. /explore and /validate are absent because
+   * they are still SecuredAction pages and 303 into the disallowed /anonSignUp — promoting them would only manufacture
+   * "redirect blocked by robots.txt" errors. Re-add them if/when the tool shells render sessionlessly (#4643 phase 3).
+   * The same invariant empties the list entirely on a sign-in-walled city, where the redirect target is /signIn.
+   */
+  private val sitemapPaths: Seq[String] =
+    if (signInWalled) Seq.empty
+    else
+      Seq(
+        "/", "/about", "/gallery", "/labelMap", "/help", "/labelingGuide", "/labelingGuide/curbRamps",
+        "/labelingGuide/surfaceProblems", "/labelingGuide/obstacles", "/labelingGuide/noSidewalk",
+        "/labelingGuide/occlusion", "/api", "/leaderboard", "/routeBuilder", "/terms", "/cities"
+      ) ++ Seq(
+        "labelTypes", "cities", "labelTags", "rawLabels", "labelClusters", "streets", "streetTypes", "regions",
+        "accessScoreStreets", "accessScoreRegions", "validations", "validation-result-types", "user-stats",
+        "overall-stats", "overall-stats-by-day", "aggregate-stats", "aggregate-stats-by-day"
+      ).map(p => s"/v3/api-docs/$p")
 
   /** Duplicate-alias Disallow lines, derived from the same alias map that drives canonical URLs (SeoUtils). */
   private val aliasDisallowLines: String = SeoUtils.robotsDisallowedAliases.map(p => s"Disallow: $p").mkString("\n")
 
+  /** A sitemap is served only where there is something crawlable to promote; robots.txt advertises it only then. */
+  private val hasSitemap: Boolean = envType == "prod" && sitemapPaths.nonEmpty
+
   /**
    * The robots.txt body is fully determined by construction-time config, so build it once.
    *
-   * /anonSignUp is disallowed now that the public pages render for cookie-less clients without a session (#4643):
-   * crawlers no longer get 303-bounced through it, and letting them hit it directly would mint a throwaway anonymous
-   * account (a DB user + session write) per hit. Pages that remain SecuredAction (/explore, /validate) still 303
-   * through it, which is why they are excluded from the sitemap above.
+   * /anonSignUp is disallowed because a crawler hitting it mints a throwaway anonymous account (a DB user + a session
+   * write) per hit, and the sitemap surface reaches every indexable page without it (#4643). SecuredAction pages
+   * (/explore, /validate) 303 into it, which is why they stay out of the sitemap above.
    */
   private val robotsBody: String =
     if (envType == "prod")
@@ -68,9 +86,7 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
          |Disallow: /changeLanguage
          |Disallow: /dashboard
          |$aliasDisallowLines
-         |
-         |Sitemap: $baseUrl/sitemap.xml
-         |""".stripMargin
+         |${if (hasSitemap) s"\nSitemap: $baseUrl/sitemap.xml\n" else ""}""".stripMargin
     else "User-agent: *\nDisallow: /\n"
 
   private val sitemapBody: String = {
@@ -95,11 +111,12 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
   }
 
   /**
-   * Serves sitemap.xml listing the public pages with absolute prod URLs. Prod only: a sitemap on a test/local host
-   * would list cross-host (prod) URLs, which search engines reject, and those stages are noindexed anyway.
+   * Serves sitemap.xml listing the public pages with absolute prod URLs. Prod only, and only where a cookie-less
+   * crawler can actually reach those pages: a sitemap on a test/local host would list cross-host (prod) URLs, which
+   * search engines reject, and a sign-in-walled city has nothing to promote (see `sitemapPaths`).
    */
   def sitemap: Action[AnyContent] = Action {
-    if (envType == "prod")
+    if (hasSitemap)
       Ok(sitemapBody).as("application/xml; charset=utf-8").withHeaders(CACHE_CONTROL -> "public, max-age=86400")
     else NotFound
   }

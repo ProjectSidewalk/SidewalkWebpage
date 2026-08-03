@@ -51,8 +51,11 @@ class UserDashboardRoutesSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     Seq("/dashboard/settings", "/userapi/mistakeVote", "/userapi/mistakeNote").foreach { path =>
-      s"exist and redirect an unauthenticated POST $path to sign-in (3xx, not 404)" in {
-        redirectsToSignIn(status(route(app, FakeRequest(POST, path).withJsonBody(Json.obj())).get)) mustBe true
+      // Only "not 404" here: an unauthenticated write is answered 401 rather than bounced, so the client can mint a
+      // session and retry instead of having its submission swallowed by a followed redirect (ControllerUtils
+      // .anonSignupRedirect). That contract belongs to those specs; this one is about the route existing.
+      s"exist for an unauthenticated POST $path (anything but 404)" in {
+        status(route(app, FakeRequest(POST, path).withJsonBody(Json.obj())).get) must not be NOT_FOUND
       }
     }
 
