@@ -221,6 +221,64 @@ function getImage(imageUrl) {
 
 util.getImage = getImage;
 
+/** The anonymous-session mint currently in flight, if any, so simultaneous first writes share one. */
+let anonSessionMint = null;
+
+/**
+ * Mints the shared anonymous session, joining a mint already in flight instead of starting a second one.
+ *
+ * Two quick clicks on the landing validation grid both reach the server unauthenticated and both come back needing a
+ * session; minting twice would create two accounts, let the second cookie win, and file the two votes under different
+ * users with one account orphaned. Collapsing concurrent callers onto one request avoids that. The handle is released
+ * once the request settles, so a session that expires later can still be re-minted.
+ *
+ * @returns {Promise<Response>} The mint response; `redirect: 'manual'` keeps it cheap, storing the Set-Cookie on the
+ *   redirect without fetching the page it points at.
+ */
+function mintAnonSession() {
+  if (!anonSessionMint) {
+    anonSessionMint = fetch('/anonSignUp?url=%2F', { redirect: 'manual' }).finally(() => {
+      anonSessionMint = null;
+    });
+  }
+  return anonSessionMint;
+}
+
+/**
+ * Fetches a session-requiring write (POST/PUT), lazily minting the shared anonymous session when it's missing.
+ *
+ * Public pages render with no session at all (#4643), so a first-time visitor's very first interaction — a validation
+ * vote, a comment, a story, a guest route save — reaches the server with no identity. When that comes back
+ * auth-shaped, mint the anonymous session via GET /anonSignUp (idempotent: it just redirects when a session already
+ * exists) and retry the original request ONCE with the same options, so the submission survives rather than being
+ * dropped on the way through the bounce (#4442). Every later interaction has a session, so the extra round-trip
+ * never happens.
+ *
+ * Auth-shaped means 401/403, an opaque redirect, or a followed redirect — the ways a SecuredAction answers a
+ * session-less write. Anything else (400 validation, 409 duplicate, 429 rate limit, 500) surfaces unchanged: a
+ * rejected submission must never be silently re-posted. If the mint is itself refused (429 from the anon-signup
+ * budget), the retry comes back auth-shaped again and that response is returned, so the caller's normal error path
+ * shows.
+ *
+ * @param {string} url - The endpoint to fetch.
+ * @param {object} options - The fetch options (method, headers, body, ...). The same object is reused verbatim for
+ *   the retry, so the body has to be re-readable: a string, FormData, or Blob — never a ReadableStream.
+ * @returns {Promise<Response>} The first non-auth-failure response, or the retry's response (which may not be OK).
+ */
+async function lazyIdentityFetch(url, options) {
+  const attempt = () => fetch(url, options);
+  const authShaped = (res) =>
+    !res.ok && (res.status === 401 || res.status === 403 || res.type === 'opaqueredirect' || res.redirected);
+  let res = await attempt();
+  if (authShaped(res)) {
+    await mintAnonSession();
+    res = await attempt();
+  }
+  return res;
+}
+
+util.lazyIdentityFetch = lazyIdentityFetch;
+
 // Sums an array's numbers (a helper, not an Array.prototype extension, to avoid polluting native prototypes).
 util.array = util.array || {};
 util.array.sum = (arr) => arr.reduce((a, b) => a + b, 0);
