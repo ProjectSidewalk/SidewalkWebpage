@@ -1,14 +1,18 @@
--- Minimal seed for the e2e-smoke job's empty city schema (sidewalk_teaneck): one region containing the
--- template's seeded DC tutorial street (street_edge_id 1).
+-- Minimal seed for the e2e-smoke job's empty city schema (sidewalk_teaneck), so /explore can initialize:
+-- one region + one auditable street. Applied by ci.yml after the app boots (evolutions at HEAD). Idempotent
+-- so a job retry can re-run it.
 --
--- Why: with zero region rows, /explore is a server error before any JS runs (region assignment finds
--- nothing to assign). With one region, every fresh anonymous user deterministically starts the audit
+-- Why a region: with zero region rows, /explore is a server error before any JS runs (region assignment
+-- finds nothing to assign; #4748). With one, every fresh anonymous user deterministically starts the audit
 -- TUTORIAL, whose panorama tiles are local assets (/assets/images/pano-tutorial/) — no live Street View
--- imagery is fetched. The tutorial street itself is excluded from real audit tasks, so nothing ever
--- requests live GSV panos either.
+-- imagery is fetched.
 --
--- Applied by ci.yml after the app boots, i.e. after evolutions have brought the schema to HEAD.
--- Idempotent so a job retry can re-run it.
+-- Why a second street: the region must contain at least one NON-tutorial street. Region "completion" is
+-- computed over auditable streets, and the tutorial street (street_edge_id 1, the only street in the
+-- template) is excluded from that set — so a region holding only the tutorial street has 0 auditable
+-- streets, counts as vacuously completed by every user, and is excluded from assignment (same 500 as no
+-- region at all). Street 2 clones street 1's geometry; the tutorial-only smoke spec never audits it, so
+-- its pano is never requested.
 INSERT INTO sidewalk_teaneck.region (region_id, data_source, name, geom, deleted)
 VALUES (1, 'e2e-smoke-seed', 'Smoke Test Region',
         ST_Multi(ST_GeomFromText(
@@ -16,10 +20,16 @@ VALUES (1, 'e2e-smoke-seed', 'Smoke Test Region',
         false)
 ON CONFLICT (region_id) DO NOTHING;
 
+INSERT INTO sidewalk_teaneck.street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status)
+SELECT 2, geom, x1, y1, x2, y2, way_type, status
+FROM sidewalk_teaneck.street_edge
+WHERE street_edge_id = 1
+ON CONFLICT (street_edge_id) DO NOTHING;
+
 INSERT INTO sidewalk_teaneck.street_edge_region (street_edge_id, region_id)
-SELECT 1, 1
-WHERE NOT EXISTS (SELECT 1 FROM sidewalk_teaneck.street_edge_region WHERE street_edge_id = 1);
+SELECT 2, 1
+WHERE NOT EXISTS (SELECT 1 FROM sidewalk_teaneck.street_edge_region WHERE street_edge_id = 2);
 
 INSERT INTO sidewalk_teaneck.street_edge_priority (street_edge_id, priority)
-VALUES (1, 1.0)
+VALUES (2, 1.0)
 ON CONFLICT (street_edge_id) DO NOTHING;
