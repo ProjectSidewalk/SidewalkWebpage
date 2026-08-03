@@ -1,16 +1,26 @@
 package controllers
 
+import com.google.inject.{Injector => GuiceInjector, Key, TypeLiteral}
+import models.auth.DefaultEnv
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import org.apache.pekko.stream.Materializer
 import org.scalatest.Assertion
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
+import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
+import play.api.mvc.{Cookie, RequestHeader}
 import play.api.routing.Router
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import play.silhouette.api.{LoginInfo, Silhouette}
+import play.silhouette.impl.providers.CredentialsProvider
 
+import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.duration._
 import scala.util.matching.Regex
 
 /**
@@ -82,6 +92,49 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
     val base = FakeRequest(method, path).withHeaders("Sec-Fetch-Mode" -> "cors")
     val resp = if (method == GET) route(app, base) else route(app, base.withBody(Json.obj()))
     resp.map(status(_))
+  }
+
+  /**
+   * Email of an existing user holding `role`, or None if this schema has none.
+   *
+   * Reads rather than creates: minting a user would leave a fixture account behind in whatever database the suite is
+   * pointed at, and `sidewalk_login` is shared across every city schema on the host.
+   */
+  private def emailOfUserWithRole(role: String): Option[String] = {
+    // Held as a local so its path-dependent Database type stays stable; a field would need an existential.
+    val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
+    Await.result(
+      dbConfig.db.run(
+        sql"""SELECT sidewalk_user.email
+              FROM sidewalk_login.sidewalk_user
+              INNER JOIN sidewalk_login.user_role ON sidewalk_user.user_id = user_role.user_id
+              INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
+              WHERE role.role = $role
+              LIMIT 1""".as[String].headOption
+      ),
+      30.seconds
+    )
+  }
+
+  /**
+   * Session cookie authenticating as `email`, for use with `FakeRequest.withCookies`.
+   *
+   * Mints a real CookieAuthenticator through the running app's own authenticator service, so requests traverse the
+   * production auth path rather than a stubbed environment. `AuthenticationService.retrieve` looks the identity up by
+   * email, which is why the login info's provider key is the address itself.
+   */
+  private def sessionCookieFor(email: String): Cookie = {
+    implicit val ec: ExecutionContext         = app.actorSystem.dispatcher
+    implicit val requestHeader: RequestHeader = FakeRequest() // Required by init; no state is read from it.
+
+    // Resolved through Guice's TypeLiteral rather than injector.instanceOf: the latter takes a ClassTag, so the
+    // DefaultEnv parameter erases and Guice looks for a raw Silhouette binding that does not exist.
+    val silhouetteKey        = Key.get(new TypeLiteral[Silhouette[DefaultEnv]]() {})
+    val authenticatorService =
+      app.injector.instanceOf[GuiceInjector].getInstance(silhouetteKey).env.authenticatorService
+
+    val created = authenticatorService.create(LoginInfo(CredentialsProvider.ID, email))
+    Await.result(created.flatMap(authenticatorService.init(_)), 30.seconds)
   }
 
   /** Asserts that no route matches `path` (or that only a catch-all serves it a 404). */
@@ -222,6 +275,30 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
       val resp    = route(app, request).get
       status(resp) mustBe SEE_OTHER
       redirectLocation(resp).value must startWith("/anonSignUp")
+    }
+  }
+
+  // The anonymous checks above cannot tell WithAdmin() from WithOwner() — both reject a logged-out caller identically.
+  // These sign in for real, so a tightened or loosened guard on the endpoint #4441 gated shows up as a failure.
+  "GET /adminapi/labelTags, authenticated" should {
+    "serve the tag counts to an administrator" in {
+      val email = emailOfUserWithRole("Administrator")
+      assume(email.isDefined, "no Administrator in this schema; authenticated checks need a seeded DB")
+      val resp = route(app, FakeRequest(GET, "/adminapi/labelTags").withCookies(sessionCookieFor(email.get))).get
+      status(resp) mustBe OK
+      val counts = contentAsJson(resp).as[Seq[JsObject]]
+      counts.foreach(_.keys mustBe Set("label_type", "tag", "count"))
+      succeed
+    }
+
+    // The 403 body names the role the action demands, so this pins the guard to Administrator specifically: a swap to
+    // WithOwner() would still 403 here, but the message would read "Owner" and this fails.
+    "tell a signed-in non-admin exactly which role is required" in {
+      val email = emailOfUserWithRole("Registered")
+      assume(email.isDefined, "no Registered user in this schema; authenticated checks need a seeded DB")
+      val resp = route(app, FakeRequest(GET, "/adminapi/labelTags").withCookies(sessionCookieFor(email.get))).get
+      status(resp) mustBe FORBIDDEN
+      contentAsString(resp) must include("Administrator")
     }
   }
 

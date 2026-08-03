@@ -54,7 +54,7 @@ addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.3.1")
 
 - **Unit (a):** `ImageSigningServiceSpec` (HMAC sign/verify, expiry, tamper, wrong-path), `CommonUtilsSpec` (`calculateDestination`), `ControllerUtilsSpec` (`parseIntegerSeq`/`isMobile`/`parseURL`), `PanoDataServiceMathSpec` (`getFov`/`calculatePovFromPanoXY`/`toLatLng`).
 - **DB (b):** **`LabelTableSqlEscapingSpec` (#4239)** — drive the raw-SQL builders with `'`, `''`, `'; DROP TABLE` payloads in regionName/tags/labelType/wayType; assert safe execution + correct results; mirror for `ClusterTable`/`StreetEdgeTable`. **`ValidationServiceSpec` (#4228)** — assert the previously-discarded `DBIO` side effect actually persists inside `.transactionally`.
-- **Functional (c):** **`ImageControllerSpec` (#4239)** — `saveImage` rejects path-traversal `label_type`/`name` and requires a signed-in user; `serveCropImage` enforces `validLabelTypes` + HMAC + Referer. `PublicApiSpec` — v3 bbox/date/CSV parsing + output shape.
+- **Functional (c):** **`ImageControllerSpec` (#4239)** — `saveImage` rejects path-traversal `label_type`/`name` and requires a signed-in user; `serveCropImage` enforces `validLabelTypes` + HMAC + Referer. `PublicApiSpec` — v3 bbox/date/CSV parsing + output shape. **`RouteAuthPostureSpec` (#4441)** — table-driven over `Router.documentation`: every declared `/adminapi/` route must refuse an anonymous request (explicit allow-list for the two that stay public), plus authenticated checks that pin the *required role*, which the anonymous cases cannot distinguish.
 
 ## Frontend testing
 
