@@ -1,6 +1,7 @@
 package controllers
 
 import controllers.base._
+import controllers.helper.ControllerUtils.NoUserId
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
 import models.label._
@@ -54,7 +55,7 @@ class LabelController @Inject() (
    * there's no signed-in identity. The admin variant with personal identifiers is AdminController.getAdminLabelData.
    */
   def getLabelData(labelId: Int) = silhouette.UserAwareAction.async { implicit request =>
-    val userId: String = request.identity.map(_.userId).getOrElse("")
+    val userId: String = request.identity.map(_.userId).getOrElse(NoUserId)
     labelService.getSingleLabelMetadata(labelId, userId).map {
       case Some(metadata) =>
         Ok(

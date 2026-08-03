@@ -1,7 +1,7 @@
 package controllers
 
 import controllers.base._
-import controllers.helper.ControllerUtils.{isMobile, parseIntegerSeq}
+import controllers.helper.ControllerUtils.{isMobile, parseIntegerSeq, NoUserId}
 import formats.json.GalleryFormats._
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
@@ -43,9 +43,13 @@ class GalleryController @Inject() (
       validationOptions: String,
       aiValidationOptions: String
   ): Action[AnyContent] =
-    cc.securityService.SecuredAction { implicit request =>
+    cc.securityService.UserAwareAction { implicit request =>
       if (isMobile(request)) {
-        cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Gallery_RedirectMobileLanding")
+        cc.loggingService.insert(
+          request.identity.map(_.userId),
+          request.ipAddress,
+          "Visit_Gallery_RedirectMobileLanding"
+        )
         Future.successful(Redirect("/mobileLanding"))
       } else {
         // The label type filter is a list, and an empty one means every type — which is what the legacy "Assorted"
@@ -86,7 +90,7 @@ class GalleryController @Inject() (
           // Log visit to Gallery async.
           val activityStr: String =
             s"Visit_Gallery_LabelType=${labTypes.mkString("+")}_RegionIDs=${regionIdsList}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"
-          cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
+          cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, activityStr)
 
           Ok(
             views.html.apps.gallery(commonData, Messages("seo.title.gallery"), request.identity, labTypes, allTags,
@@ -98,8 +102,12 @@ class GalleryController @Inject() (
 
   /**
    * Returns labels of specified type, severities, and tags.
+   *
+   * A read-only POST (the filter payload is JSON, hence not a GET), so it is user-aware rather than secured (#4643):
+   * the Gallery and the landing page's validation grid must populate for cookie-less visitors too. With no identity,
+   * the "already validated by you"/"your own label" checks match nothing, same as a brand-new anonymous account.
    */
-  def getLabels: Action[JsValue] = cc.securityService.SecuredAction(parse.json) { implicit request =>
+  def getLabels: Action[JsValue] = cc.securityService.UserAwareAction(parse.json) { implicit request =>
     val submission = request.body.validate[GalleryLabelsRequest]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
@@ -117,7 +125,7 @@ class GalleryController @Inject() (
           .getOrElse(Map())
           .flatMap { case (name, tags) => LabelTypeEnum.byName.get(name).map(_ -> tags.toSet) }
         val aiValOptions: Set[String]  = submission.aiValidationOptions.getOrElse(Seq()).toSet
-        val userId: String             = request.identity.userId
+        val userId: String             = request.identity.map(_.userId).getOrElse(NoUserId)
         val recentFirst: Boolean       = submission.sort.contains("recent")
         val staticImageryOnly: Boolean = submission.staticImageryOnly.getOrElse(false)
 
@@ -131,7 +139,7 @@ class GalleryController @Inject() (
                 "label" -> LabelFormats.validationLabelMetadataToJson(
                   l,
                   panoDataService.backupImageUrl(l.panoId),
-                  currUsername = Some(request.identity.username)
+                  currUsername = request.identity.map(_.username)
                 ),
                 "cropUrl"     -> panoDataService.cropUrl(l.labelId, l.labelType),
                 "gsvImageUrl" ->

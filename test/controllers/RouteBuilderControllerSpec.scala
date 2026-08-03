@@ -126,11 +126,11 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       sc must be < 400
     }
 
+    // A write gets a 401 rather than a bounce, so the client can mint a session and retry it instead of having the
+    // submission swallowed by a followed redirect (ControllerUtils.anonSignupRedirect).
     Seq(POST -> "/saveRoute", PUT -> "/userapi/routes/1", DELETE -> "/userapi/routes/1").foreach { case (verb, path) =>
-      s"exist and redirect an unauthenticated $verb $path to sign-in (3xx, not 404)" in {
-        val sc = status(route(app, FakeRequest(verb, path).withJsonBody(Json.obj()).withCSRFToken).get)
-        sc must be >= 300
-        sc must be < 400
+      s"exist and reject an unauthenticated $verb $path with 401 (not 404)" in {
+        status(route(app, FakeRequest(verb, path).withJsonBody(Json.obj()).withCSRFToken).get) mustBe UNAUTHORIZED
       }
     }
   }
