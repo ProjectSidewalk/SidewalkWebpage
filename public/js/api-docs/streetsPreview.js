@@ -148,7 +148,8 @@
           auditAgeContainer.innerHTML = errorMessage;
           labelCountContainer.innerHTML = errorMessage;
           console.error('Streets preview error:', error);
-          return Promise.reject(error);
+          // The failure is already surfaced in the container above, and init() is fire-and-forget at every call
+          // site (app/views/apiDocs/*), so re-rejecting here can only ever become an unhandled rejection.
         });
     },
 
