@@ -24,6 +24,14 @@ const CONSOLE_ERROR_ALLOWLIST = [
   // /help YouTube iframes) emit these on every load. Enforcement policy is a backend-config concern, not the
   // page-runtime breakage this suite exists to catch.
   /report-only Content Security Policy/,
+  // The rawLabels/streets api-docs live previews pick a demo region via /v3/api/regionWithMostLabels. CI's
+  // database is the bare sidewalk_init template — no labels, so there is nothing to pick and the endpoint 404s.
+  // Three messages come out of that one 404: Chromium's own "Failed to load resource" line (matched by the URL)
+  // and the preview's two handled errors (matched by their shared phrase). The page still initializes, and
+  // against any seeded database — local dev included — none of them fire. Drop both entries when phase 2 seeds
+  // CI label data, at which point a 404 here would mean something real.
+  /regionWithMostLabels/,
+  /region with most labels/,
 ];
 
 // Minimal Mapbox style the app's runtime accepts: MapboxLanguage throws unless the style has a vector source
