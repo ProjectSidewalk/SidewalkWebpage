@@ -36,7 +36,7 @@ libraryDependencies ++= Seq(
   "com.iheart"     %% "ficus"       % "1.5.2",
 
   // Slick and Postgres stuff.
-  "org.postgresql"     % "postgresql"            % "42.7.12",
+  "org.postgresql"     % "postgresql"            % "42.7.13",
   "org.playframework" %% "play-slick"            % "6.2.0",
   "org.playframework" %% "play-slick-evolutions" % "6.2.0",
 
