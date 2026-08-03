@@ -10,8 +10,9 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 
 /**
- * Shared helpers for the SEO surface specs below (issue #4237): an anon session (most pages are SecuredActions that
- * bounce cookie-less requests through /anonSignUp) and a page fetch that follows that flow.
+ * Shared helpers for the SEO surface specs below (issue #4237): an anon session (some pages, e.g. /mobile, are still
+ * SecuredActions that bounce cookie-less requests through /anonSignUp) and a page fetch that follows that flow. The
+ * public pages themselves render cookie-less since #4643 — SessionlessPagesSpec pins that contract.
  */
 trait SeoSpecHelpers { this: PlaySpec with GuiceOneAppPerSuite =>
 
@@ -101,8 +102,9 @@ class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers 
       body must not include "Disallow: /\n"
       // The alias Disallow lines are derived from the canonical-alias map, so assert against the same source.
       models.utils.SeoUtils.robotsDisallowedAliases.foreach { alias => body must include(s"Disallow: $alias") }
-      // Crawlers reach every SecuredAction page via a 303 through /anonSignUp; blocking it blocks the whole site.
-      body must not include "Disallow: /anonSignUp"
+      // Public pages render sessionlessly since #4643, so /anonSignUp is blocked: a crawler hitting it directly
+      // would mint a throwaway anonymous account per hit.
+      body must include("Disallow: /anonSignUp")
       // Aliases are prefix matches, so /v3/api-docs must not appear: it would block the /v3/api-docs/* doc pages.
       body must not include "Disallow: /v3/api-docs"
       header(CACHE_CONTROL, resp) mustBe defined
@@ -117,9 +119,12 @@ class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers 
       header(CACHE_CONTROL, resp) mustBe defined
       val body = contentAsString(resp)
       body must include("<urlset")
-      body must include("/explore</loc>")
       body must include("/about</loc>")
       body must include("/v3/api-docs/rawLabels</loc>")
+      // Still-SecuredAction pages 303 crawlers into the disallowed /anonSignUp, so promoting them would only
+      // manufacture crawl errors; they return to the sitemap if their shells go sessionless (#4643 phase 3).
+      body must not include "/explore</loc>"
+      body must not include "/validate</loc>"
       // The root <loc> keeps its trailing slash so it matches the landing page's rel=canonical URL exactly; no other
       // sitemap path ends in a slash.
       body must include("/</loc>")

@@ -2,7 +2,7 @@
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
-@(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 @cityName = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head.cityNameFormatted}
 
 @content = {
@@ -307,6 +307,6 @@ bfab6670-0955-440c-abe8-01c2d20696ba,27,154.8437957763672,0.17436927556991577,tr
 }
 
 @common.main(commonData, SeoUtils.apiDocsTitle("User Stats API")) {
-  @common.navbar(commonData, Some(user))
+  @common.navbar(commonData, user)
   @apiDocs.layout("user-stats")(content)
 }

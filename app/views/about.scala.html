@@ -16,7 +16,7 @@
  * @param title      Localized page title.
  * @param user       The signed-in or anonymous display user (for the navbar).
  *@
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole
+@(commonData: CommonPageData, title: String, user: Option[SidewalkUserWithRole]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* Deployment counts span every configured city, not just the publicly listed ones, so these no-JS fallbacks line up
@@ -71,7 +71,7 @@
 
 @common.main(commonData, title, extraHead = extraHeadContent,
   pageMeta = PageMeta(description = Some(Messages("seo.description.about")))) {
-  @common.navbar(commonData, Some(user))
+  @common.navbar(commonData, user)
 
   <main id="about-page">
     <section class="about-hero">

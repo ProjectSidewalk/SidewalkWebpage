@@ -2,7 +2,7 @@
 @import play.api.Configuration
 @import play.api.libs.json.Json
 @import service.CommonPageData
-@(title: String, commonData: CommonPageData, user: SidewalkUserWithRole, openStatus: String,
+@(title: String, commonData: CommonPageData, user: Option[SidewalkUserWithRole], openStatus: String,
   mapathonLink: Option[String], streetDistance: Double, auditedDistance: Double, labelCount: Int, valCount: Int
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
@@ -42,7 +42,7 @@
 
 @common.main(commonData, title, i18Namespaces = Seq("common", "validate"), extraHead = structuredData,
   pageMeta = service.PageMeta(description = Some(Messages("seo.description.landing", currentCity.cityNameShort)))) {
-  @common.navbar(commonData, Some(user))
+  @common.navbar(commonData, user)
   <div id="vidbanner">
     <video playsinline autoplay muted loop controls poster='@assets.path("images/psmockup.jpg")' id="bgvid" class="visible-desktop">
       <source src='@assets.path("videos/mainvideo.webm")' type="video/webm">

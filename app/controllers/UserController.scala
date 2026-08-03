@@ -181,13 +181,15 @@ class UserController @Inject() (
   }
 
   // Post function that receives a String and saves it into WebpageActivityTable with userId, ipAddress, timestamp.
-  def logWebpageActivity() = cc.securityService.SecuredAction(parse.json) { implicit request =>
+  // User-aware (#4643): public pages log page-view/interaction beacons through this for cookie-less visitors too;
+  // a missing identity is logged under the shared default anonymous user inside LoggingService.
+  def logWebpageActivity() = cc.securityService.UserAwareAction(parse.json) { implicit request =>
     request.body
       .validate[String]
       .fold(
         errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
         submission => {
-          cc.loggingService.insert(request.identity.userId, request.ipAddress, submission)
+          cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, submission)
           Future.successful(Ok(Json.obj()))
         }
       )

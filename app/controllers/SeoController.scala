@@ -23,12 +23,16 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
   /** Prod base URL for this city; the sitemap/canonical surface always points at prod, never a test domain. */
   private val baseUrl: String = config.get[String](s"city-params.landing-page-url.prod.$cityId").stripSuffix("/")
 
-  /** Public, indexable pages promoted in the sitemap. Duplicate route aliases are excluded (see SeoUtils). */
+  /**
+   * Public, indexable pages promoted in the sitemap. Duplicate route aliases are excluded (see SeoUtils).
+   * /explore and /validate are deliberately absent: they are still SecuredAction pages, so a cookie-less crawler gets
+   * 303-bounced into the now-disallowed /anonSignUp — promoting them would just manufacture crawl errors. Re-add them
+   * if/when the tool shells render sessionlessly (#4643 phase 3).
+   */
   private val sitemapPaths: Seq[String] = Seq(
-    "/", "/about", "/explore", "/validate", "/gallery", "/labelMap", "/help", "/labelingGuide",
-    "/labelingGuide/curbRamps", "/labelingGuide/surfaceProblems", "/labelingGuide/obstacles",
-    "/labelingGuide/noSidewalk", "/labelingGuide/occlusion", "/api", "/leaderboard", "/routeBuilder", "/terms",
-    "/cities"
+    "/", "/about", "/gallery", "/labelMap", "/help", "/labelingGuide", "/labelingGuide/curbRamps",
+    "/labelingGuide/surfaceProblems", "/labelingGuide/obstacles", "/labelingGuide/noSidewalk",
+    "/labelingGuide/occlusion", "/api", "/leaderboard", "/routeBuilder", "/terms", "/cities"
   ) ++ Seq(
     "labelTypes", "cities", "labelTags", "rawLabels", "labelClusters", "streets", "streetTypes", "regions",
     "accessScoreStreets", "accessScoreRegions", "validations", "validation-result-types", "user-stats", "overall-stats",
@@ -41,8 +45,10 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
   /**
    * The robots.txt body is fully determined by construction-time config, so build it once.
    *
-   * /anonSignUp is deliberately NOT disallowed: every SecuredAction page 303s cookie-less clients (i.e. crawlers)
-   * through it, so blocking it would make every sitemap-promoted page uncrawlable ("redirect blocked by robots.txt").
+   * /anonSignUp is disallowed now that the public pages render for cookie-less clients without a session (#4643):
+   * crawlers no longer get 303-bounced through it, and letting them hit it directly would mint a throwaway anonymous
+   * account (a DB user + session write) per hit. Pages that remain SecuredAction (/explore, /validate) still 303
+   * through it, which is why they are excluded from the sitemap above.
    */
   private val robotsBody: String =
     if (envType == "prod")
@@ -50,6 +56,7 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
          |Disallow: /admin
          |Disallow: /adminapi/
          |Disallow: /userapi/
+         |Disallow: /anonSignUp
          |Disallow: /signIn
          |Disallow: /signInMobile
          |Disallow: /signUp

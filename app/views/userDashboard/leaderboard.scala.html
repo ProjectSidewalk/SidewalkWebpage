@@ -1,7 +1,7 @@
 @import service.{AggregateStats, CommonPageData, GlobalLeaderboardEntry}
 @import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStanding}
 @import play.api.Configuration
-@(commonData: CommonPageData, user: SidewalkUserWithRole, isSignedIn: Boolean, isMetric: Boolean, cityName: String,
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole], isSignedIn: Boolean, isMetric: Boolean, cityName: String,
     aggregate: AggregateStats, overall: Seq[LeaderboardStat], weekly: Seq[LeaderboardStat],
     teams: Seq[LeaderboardStat], standing: Option[UserStanding], global: Option[Seq[GlobalLeaderboardEntry]]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
@@ -57,7 +57,7 @@
 }
 
 @statRow(rank: Int, stat: LeaderboardStat, linkUser: Boolean) = {
-  @defining(linkUser && isSignedIn && stat.username == user.username) { you =>
+  @defining(linkUser && isSignedIn && user.exists(_.username == stat.username)) { you =>
     <tr @if(you){class="highlighted"}>
       <td class="ud-lb-rank">@rankCell(rank)</td>
       <td>@if(you){<strong>@Messages("dashboard.you")</strong>}else{
@@ -85,7 +85,7 @@
 * link would land on a "kept private" page, since profiles are per deployment and the board is not.
 *@
 @globalRow(rank: Int, entry: GlobalLeaderboardEntry) = {
-  @defining(isSignedIn && entry.username == user.username) { you =>
+  @defining(isSignedIn && user.exists(_.username == entry.username)) { you =>
     <tr @if(you){class="highlighted"}>
       <td class="ud-lb-rank">@rankCell(rank)</td>
       <td>@if(you){<strong>@Messages("dashboard.you")</strong>}else{
@@ -291,6 +291,6 @@
 
 @* dashboard namespace: TeamCreate.js's client-side error strings. *@
 @common.main(commonData, Messages("seo.title.leaderboard"), i18Namespaces = Seq("common", "dashboard")) {
-  @common.navbar(commonData, Some(user))
+  @common.navbar(commonData, user)
   @userDashboard.layout("leaderboard", isSignedIn)(content)
 }

@@ -2,7 +2,7 @@
 @import play.api.libs.json.Json
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
-@(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* schema.org Dataset JSON-LD (#4237) so each city's open data is discoverable in Google Dataset Search. Built with
    the JSON library so quoting is always valid; escaping `<` blocks a `</script>` breakout. `license` is CC0: the
@@ -173,6 +173,6 @@
 
 @common.main(commonData, "API Docs — Project Sidewalk", extraHead = structuredData, pageMeta = service.PageMeta(
   description = Some(Messages("seo.description.api", commonData.currentCity.cityNameShort)))) {
-  @common.navbar(commonData, Some(user))
+  @common.navbar(commonData, user)
   @apiDocs.layout("introduction")(content)
 }
