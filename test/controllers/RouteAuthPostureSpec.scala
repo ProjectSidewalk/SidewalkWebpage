@@ -71,6 +71,19 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
     case (method, pattern, _) if pattern.startsWith("/adminapi/") => (method, concreteRequestPath(pattern))
   }
 
+  /**
+   * Status of an unauthenticated request to a declared route, or None if nothing routes there.
+   *
+   * Write routes get an empty JSON body and the XHR fetch-metadata header. Without a parseable body they 415 in the
+   * body parser before the auth guard ever runs, which would let a route pass the checks below without being gated at
+   * all; `Sec-Fetch-Mode: cors` then pins the arm of `ControllerUtils.anonSignupRedirect` a real client would hit.
+   */
+  private def anonymousStatus(method: String, path: String): Option[Int] = {
+    val base = FakeRequest(method, path).withHeaders("Sec-Fetch-Mode" -> "cors")
+    val resp = if (method == GET) route(app, base) else route(app, base.withBody(Json.obj()))
+    resp.map(status(_))
+  }
+
   /** Asserts that no route matches `path` (or that only a catch-all serves it a 404). */
   private def assertRouteGone(path: String): Assertion =
     route(app, FakeRequest(GET, path)) match {
@@ -158,11 +171,23 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
 
       val leaks = declaredAdminApiRoutes
         .filterNot { case (_, path) => KnownAnonymousAdminApiRoutes.contains(path) }
-        .flatMap { case (method, path) => route(app, FakeRequest(method, path)).map(r => (method, path, status(r))) }
+        .flatMap { case (method, path) => anonymousStatus(method, path).map(code => (method, path, code)) }
         .filter { case (_, _, code) => code >= 200 && code < 300 }
 
       withClue(s"served anonymously: ${leaks.map { case (m, p, c) => s"$m $p -> $c" }.mkString(", ")}. ") {
         leaks mustBe empty
+      }
+    }
+
+    // The write routes are all JSON endpoints, so the auth guard is what must reject them — not their body parser.
+    "reject an anonymous write with 401, not a body-parser error" in {
+      val writeStatuses = declaredAdminApiRoutes.collect {
+        case (method, path) if method != GET && !KnownAnonymousAdminApiRoutes.contains(path) =>
+          (method, path, anonymousStatus(method, path))
+      }
+      writeStatuses must not be empty
+      withClue(s"non-401 anonymous writes: $writeStatuses. ") {
+        writeStatuses.filterNot { case (_, _, code) => code.contains(UNAUTHORIZED) } mustBe empty
       }
     }
 
