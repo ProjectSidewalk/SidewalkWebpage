@@ -21,6 +21,8 @@ updates:
       # Frontend lint/test toolchain is owned by #2487 (sequenced with the ES5→ES6 migration) and not yet wired
       # into CI, so major bumps here (eslint 7→10 flat-config, stylelint 13→17, jest 29→30, htmlhint 0.14→1.9)
       # would break `make lint` the moment #2487 revives it. Un-ignore these as part of that work.
+      # (@playwright/test is deliberately NOT ignored: it's CI-wired from day one — the e2e-smoke job — and CI
+      # reinstalls matching browsers every run, so grouped monthly bumps + green auto-merge cover it.)
       - dependency-name: "eslint"
       - dependency-name: "htmlhint"
       - dependency-name: "jest"

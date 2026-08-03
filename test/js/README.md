@@ -110,10 +110,11 @@ So:
 When #2487 lands, this prototype is ready to be promoted into the frontend CI job (`npx jest` / `npm run test:js`)
 described in the plan.
 
-## Complementary E2E (recommendation)
+## Complementary E2E
 
-These jsdom tests verify the render contract in isolation. A thin **Playwright** "api-docs smoke" is the natural E2E
-complement: load each `/v3/api-docs/*` page against a running app, **fail on any console error**, and assert each
-preview container is non-empty and contains no "Failed to load" banner. That catches integration-level breakage (real
-endpoint shape, script load order from Grunt, missing globals) that a mocked-`fetch` unit test cannot. Per the plan,
-keep it **advisory/nightly**, never blocking PRs.
+These jsdom tests verify the render contract in isolation. Their E2E complement now exists: the **Playwright browser
+smoke suite in [`test/e2e/`](../e2e)** (#4504) loads core pages — including api-docs pages — against a running app and
+**fails on any uncaught console/page error**, catching integration-level breakage (real endpoint shape, script load
+order from Grunt, missing globals) that a mocked-`fetch` unit test cannot. It runs as the advisory `e2e-smoke` CI job
+on every PR; asserting on the api-docs preview *content* (non-empty container, no "Failed to load" banner) is a
+planned phase-2 extension there.
