@@ -18,14 +18,16 @@
  * label seed with live or backed-up panos plus a real GOOGLE_MAPS_SECRET for the metadata check — tracked
  * as a later phase in test/e2e/README.md.
  */
-const {test, expect, waitForAppReady} = require('./fixtures');
+const {test, expect, stubMapbox, waitForAppReady} = require('./fixtures');
 
 test.skip(
   process.env.HAS_REAL_GMAPS_KEY !== 'true',
   'Needs a real Google Maps key (GOOGLE_MAPS_API_KEY_TEST secret; set HAS_REAL_GMAPS_KEY=true locally)',
 );
 
-test('/explore loads the tutorial without console errors', async ({page, consoleErrors}) => {
+test('/explore loads the tutorial without console errors', async ({page, context, consoleErrors}) => {
+  // Explore's mission-complete map is Mapbox, built at init — stubbed like every other map page.
+  await stubMapbox(context);
   // Explore reacts to pano-viewer creation failure by navigating back to /explore, which fails the same
   // way — an unbounded reload loop that would otherwise just burn the whole test timeout. Counting full
   // document loads makes that failure mode fast and self-describing.
