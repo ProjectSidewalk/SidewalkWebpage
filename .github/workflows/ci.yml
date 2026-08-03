@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v5.6.0
         with:
           distribution: temurin
           java-version: '17'
@@ -62,7 +62,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Set up Node 23
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: '23'
           # No npm cache and `npm install` (not `npm ci`) because the repo has no committed package-lock.json yet.
@@ -131,7 +131,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Set up Python 3.8
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.8'
 
@@ -153,7 +153,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v5.6.0
         with:
           distribution: temurin
           java-version: '17'
@@ -283,7 +283,7 @@ jobs:
       # Match the web container's interpreter (Dockerfile base eclipse-temurin:17-jdk-focal ships Python 3.8). 3.8 is
       # EOL; bumping the container's Python is tracked separately and intentionally out of scope here.
       - name: Set up Python 3.8
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.8'
 
