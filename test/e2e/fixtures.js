@@ -15,8 +15,9 @@ const STORAGE_STATE = 'test-results/.auth/registered.json';
 // uncaught exception) is NEVER allowlisted.
 const CONSOLE_ERROR_ALLOWLIST = [
   // i18next probes optional per-locale/namespace overlays (/assets/locales/{lng}/{ns}.json); a missing overlay
-  // 404s by design and i18next falls back through the locale chain.
-  /\/assets\/locales\/.+\.json/,
+  // 404s by design and i18next falls back through the locale chain. Anchored to the browser's resource-load
+  // failure line so a real app error whose text merely mentions a locale path can't hide behind it.
+  /^console\.error: Failed to load resource: .*\(.*\/assets\/locales\/.+\.json(\?[^)]*)?\)$/,
   // Mapbox telemetry; stubbed to 204 by stubMapbox but belt-and-braces for pages that skip the stub.
   /events\.mapbox\.com/,
   // The app ships CSP in REPORT-ONLY mode (conf/application.conf, reportOnly = true): the browser logs each

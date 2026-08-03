@@ -23,6 +23,10 @@ BASE_URL=http://localhost:9001 npx playwright test   # non-default port
 
 Works against a populated dev DB or an empty CI-style one — specs tolerate both.
 
+Note that a `-g`-scoped run still executes the `setup` project first (Playwright runs project dependencies
+regardless of filters), so every run registers a throwaway `ci-smoke-<timestamp>` user in the dev DB. Add
+`--no-deps` to skip it when your filter doesn't include `/dashboard`: `make test-e2e args="-g labelMap --no-deps"`.
+
 ## How a spec works
 
 1. `page.goto(path)` — an unauthenticated top-level navigation 303s through `/anonSignUp` (which mints an

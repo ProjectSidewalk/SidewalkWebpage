@@ -11,7 +11,11 @@ const {STORAGE_STATE} = require('./fixtures');
 setup('register a user account', async ({baseURL}) => {
   const ctx = await request.newContext({baseURL});
   const signUpHtml = await (await ctx.get('/signUp')).text();
-  const csrfToken = signUpHtml.match(/name="csrfToken" value="([^"]+)"/)[1];
+  // Every registered-user spec depends on this setup, so fail legibly if the sign-up page's shape changes
+  // rather than with a null-index TypeError.
+  const csrfMatch = signUpHtml.match(/name="csrfToken" value="([^"]+)"/);
+  expect(csrfMatch, 'csrfToken hidden input not found in the /signUp HTML').toBeTruthy();
+  const csrfToken = csrfMatch[1];
   // Unique per run so reruns against a long-lived dev DB never collide with an existing account.
   const username = `ci-smoke-${Date.now()}`;
   const response = await ctx.post('/signUp', {
