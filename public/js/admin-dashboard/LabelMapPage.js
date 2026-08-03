@@ -41,7 +41,7 @@ class LabelMapPage {
       mapboxApiKey: this.#opts.mapboxToken,
       mapboxLogoLocation: 'bottom-right',
       neighborhoodsURL: '/neighborhoods',
-      completionRatesURL: '/adminapi/neighborhoodCompletionRate',
+      completionRatesURL: '/neighborhoods/completionRate',
       streetsURL: '/contribution/streets/all?filterLowQuality=true',
       labelsURL: '/adminapi/labels/all',
       neighborhoodFillMode: 'singleColor',

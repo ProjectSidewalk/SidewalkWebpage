@@ -74,7 +74,6 @@ GET     /admin/task/:taskId                             controllers.AdminControl
 GET     /admin/label/:labelId                           controllers.AdminController.label(labelId: Int)
 
 GET     /adminapi/dbHealth                              controllers.AdminDashboardController.getDbHealth
-GET     /adminapi/neighborhoodCompletionRate            controllers.AdminController.getNeighborhoodCompletionRate(regions: Option[String] ?= None)
 GET     /adminapi/auditpath/:id                         controllers.AdminController.getAnAuditTaskPath(id: Int)
 GET     /adminapi/auditedStreetTimes                    controllers.AdminController.getAuditedStreetsWithTimestamps
 GET     /adminapi/labels/all                            controllers.AdminController.getAllLabels
@@ -107,14 +106,11 @@ PUT     /adminapi/updateTeamStatus/:teamId              controllers.AdminControl
 PUT     /adminapi/updateTeamVisibility/:teamId          controllers.AdminController.updateTeamVisibility(teamId: Int)
 GET     /adminapi/checkImagery                          controllers.AdminController.checkImagery()
 GET     /adminapi/refreshOsmWayData                     controllers.AdminController.refreshOsmWayData()
+GET     /adminapi/recalculateStreetPriority             controllers.AdminController.recalculateStreetPriority
 GET     /adminapi/threadPoolStats                       controllers.AdminController.getThreadPoolStats
-
-GET     /labels/all                                     controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
-GET     /label/id/:labelId                              controllers.LabelController.getLabelData(labelId: Int)
 
 # Auditing tasks
 GET     /explore                                        controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None, placeName: Option[String] ?= None, heading: Option[Double] ?= None, pitch: Option[Double] ?= None, zoom: Option[Int] ?= None)
-GET     /explore/recalculateStreetPriority              controllers.AdminController.recalculateStreetPriority
 POST    /explore/comment                                controllers.ExploreController.postComment
 POST    /explore/nostreetview                           controllers.ExploreController.postNoImagery
 GET     /survey/display                                 controllers.ExploreController.shouldDisplaySurvey
@@ -140,6 +136,8 @@ POST    /labelmap/validate                              controllers.ValidateCont
 POST    /labelmap/comment                               controllers.ValidateController.postLabelMapComment
 
 # Labels
+GET     /labels/all                                     controllers.LabelController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
+GET     /label/id/:labelId                              controllers.LabelController.getLabelData(labelId: Int)
 GET     /label/tags                                     controllers.LabelController.getLabelTags
 GET     /label/resumeMission                            controllers.LabelController.getLabelsToResumeMission(regionId: Int)
 GET     /label/countInRegion                            controllers.LabelController.getRegionLabelCount(regionId: Int)
@@ -155,11 +153,11 @@ GET     /label/:labelId/image                           controllers.ShareControl
 
 # Neighborhoods
 GET     /neighborhoods                                  controllers.RegionController.listNeighborhoods(regions: Option[String] ?= None)
+GET     /neighborhoods/completionRate                   controllers.RegionController.getNeighborhoodCompletionRate(regions: Option[String] ?= None)
 
 # User status
 GET     /contribution/streets                           controllers.UserProfileController.getAuditedStreets(userId: String)
 GET     /contribution/streets/all                       controllers.UserProfileController.getAllStreets(filterLowQuality: Boolean ?= false, regions: Option[String] ?= None, routes: Option[String] ?= None)
-GET     /contribution/auditCounts/all                   controllers.AdminController.getAllAuditCounts
 # User dashboard, settings, and public profiles (redesigned in #4323, cut over in #4474; /leaderboard is up top).
 GET     /dashboard                                      controllers.UserDashboardController.dashboard
 GET     /dashboard/settings                             controllers.UserDashboardController.settings
@@ -179,8 +177,6 @@ POST    /userapi/mistakeNote                             controllers.UserProfile
 
 GET     /userapi/basicStats                             controllers.UserProfileController.getBasicUserStats
 GET     /userapi/labels                                 controllers.UserProfileController.getSubmittedLabels(userId: String, regionId: Option[Int] ?= None)
-GET     /userapi/labelCounts/all                        controllers.AdminController.getAllLabelCounts
-GET     /userapi/validationCounts/all                   controllers.AdminController.getAllValidationCounts
 
 POST    /userapi/logWebpageActivity                     controllers.UserController.logWebpageActivity()
 
