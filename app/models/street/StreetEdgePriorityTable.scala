@@ -143,10 +143,11 @@ class StreetEdgePriorityTable @Inject() (
       edgePriorityMap = mutable.Map[Int, Double](streetIds.map(id => id -> 0.0): _*)
 
       // Compute weighted sum of priority based on the rankParameter generators.
-      _ = for ((f_i, w_i) <- paramGeneratorList.zip(weightVector)) {
-        val priorityParamTable: Seq[StreetEdgePriorityParameter] = f_i()
-        priorityParamTable.foreach { edge => edgePriorityMap(edge.streetEdgeId) += (edge.priorityParameter * w_i) }
-      }
+      _ =
+        for ((f_i, w_i) <- paramGeneratorList.zip(weightVector)) {
+          val priorityParamTable: Seq[StreetEdgePriorityParameter] = f_i()
+          priorityParamTable.foreach { edge => edgePriorityMap(edge.streetEdgeId) += (edge.priorityParameter * w_i) }
+        }
 
       // Set priority values in the table.
       batchUpdate <- DBIO.sequence(edgePriorityMap.map { case (edgeId, newPriority) =>
