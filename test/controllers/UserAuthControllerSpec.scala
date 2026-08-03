@@ -25,7 +25,13 @@ import java.util.UUID
 class UserAuthControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    new GuiceApplicationBuilder()
+      .disable[modules.ActorModule]
+      // All requests here share FakeRequest's default 127.0.0.1, so the suite's auth POSTs would eat into one shared
+      // per-IP budget. Throttle behavior has its own dedicated coverage (UserAuthRateLimitSpec); keeping the limiter
+      // off here decouples these tests from limit tuning.
+      .configure("rate-limit.enabled" -> false)
+      .build()
 
   implicit lazy val mat: Materializer = app.materializer
 
