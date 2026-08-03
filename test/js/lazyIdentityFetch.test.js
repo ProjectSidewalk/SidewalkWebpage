@@ -6,7 +6,8 @@
  *     a rejected submission must never be silently re-posted;
  *   - an auth-shaped failure (401 | 403 | opaqueredirect | redirected) mints the anonymous session via
  *     GET /anonSignUp?url=%2F with { redirect: 'manual' }, then retries ONCE with the same options object;
- *   - a second auth failure after the mint (e.g. the mint itself was rate-limited) is returned, never looped on.
+ *   - a second auth failure after the mint (e.g. the mint itself was rate-limited) is returned, never looped on;
+ *   - writes that need a session at the same moment share one mint, so a double-click can't create two accounts.
  */
 
 const { loadGlobalScript } = require('./loadGlobalScript');
@@ -98,5 +99,75 @@ describe('an auth-shaped failure', () => {
         const { result, calls } = await run([ok]);
         expect(result).toBe(ok);
         expect(calls).toHaveLength(1);
+    });
+});
+
+describe('concurrent first writes', () => {
+    const MINT = '/anonSignUp?url=%2F';
+
+    /**
+     * Drives N writes that all fail auth, with the mint held open until `release()` is called, so the test can look
+     * at the world while every caller is waiting on it.
+     */
+    function scriptedMint() {
+        const urls = [];
+        let releaseMint;
+        const mintGate = new Promise((resolve) => { releaseMint = resolve; });
+        let failuresLeft = 0;
+
+        const fetchMock = jest.fn((url) => {
+            urls.push(url);
+            if (url === MINT) return mintGate.then(() => response({ ok: true }));
+            // The opening writes fail auth; anything after the mint succeeds.
+            if (failuresLeft > 0) { failuresLeft -= 1; return Promise.resolve(response({ status: 401 })); }
+            return Promise.resolve(OK());
+        });
+        window.fetch = fetchMock;
+
+        return {
+            urls,
+            release: releaseMint,
+            mintCalls: () => urls.filter((u) => u === MINT).length,
+            failFirst: (n) => { failuresLeft = n; },
+        };
+    }
+
+    /** Lets every already-queued microtask/timer callback run, so pending awaits settle. */
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+    test('collapse onto a single /anonSignUp, so two rapid votes do not create two accounts', async () => {
+        const s = scriptedMint();
+        s.failFirst(2); // Both openers reach the server unauthenticated.
+
+        const both = Promise.all([
+            window.util.lazyIdentityFetch('/labelmap/validate', { method: 'POST', body: '{"a":1}' }),
+            window.util.lazyIdentityFetch('/labelmap/validate', { method: 'POST', body: '{"b":2}' }),
+        ]);
+
+        await flush();
+        // Both are now parked on the mint. A second mint here is the bug: two accounts, and the later cookie wins.
+        expect(s.mintCalls()).toBe(1);
+
+        s.release();
+        const [first, second] = await both;
+        expect(first.ok).toBe(true);
+        expect(second.ok).toBe(true);
+        expect(s.mintCalls()).toBe(1);
+        // Two openers + one mint + two retries.
+        expect(s.urls).toHaveLength(5);
+    });
+
+    test('a write after the mint has settled can still mint again, for a session that expired', async () => {
+        const s = scriptedMint();
+        s.failFirst(1);
+        s.release(); // No need to hold it open; these two writes are sequential.
+
+        expect((await window.util.lazyIdentityFetch('/labelmap/validate', { method: 'POST' })).ok).toBe(true);
+        expect(s.mintCalls()).toBe(1);
+
+        // Second write, much later, whose session is gone again. Sharing must be per-burst, not a permanent cache.
+        s.failFirst(1);
+        expect((await window.util.lazyIdentityFetch('/labelmap/validate', { method: 'POST' })).ok).toBe(true);
+        expect(s.mintCalls()).toBe(2);
     });
 });

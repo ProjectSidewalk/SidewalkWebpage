@@ -790,8 +790,7 @@ class LabelDetail {
   /**
    * POSTs JSON to a session-requiring endpoint via util.lazyIdentityFetch (#4442): every host page renders with no
    * session for a first-time visitor, so an auth-shaped failure mints the shared anonymous session and retries once.
-   * Delegating (rather than the old retry-on-ANY-non-OK here) means a real rejection — 409 duplicate, 429 rate
-   * limit, 400 validation — surfaces instead of being silently re-posted.
+   * A real rejection — 409 duplicate, 429 rate limit, 400 validation — surfaces instead of being re-posted.
    *
    * @param {string} url - The endpoint to POST to.
    * @param {object} data - The JSON-serializable request body.

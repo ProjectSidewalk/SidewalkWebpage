@@ -373,9 +373,8 @@ class StoryComposer {
 
   /**
    * POSTs multipart form data via util.lazyIdentityFetch (#4442): an auth-shaped failure (401/403/redirect) mints
-   * the shared anonymous session and retries once, while a story rejection (409 duplicate, 429 rate-limited) still
-   * surfaces rather than being re-posted. This method's narrowed retry condition is where the shared helper's
-   * semantics came from. No Content-Type header: the browser sets the multipart boundary itself.
+   * the shared anonymous session and retries once, while a story rejection (409 duplicate, 429 rate-limited)
+   * surfaces rather than being re-posted. No Content-Type header: the browser sets the multipart boundary itself.
    * @param {string} url
    * @param {FormData} formData
    * @param {string} [method='POST'] - 'PUT' for in-place story edits.
