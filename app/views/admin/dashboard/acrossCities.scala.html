@@ -50,6 +50,23 @@
       <div class="ac-hero-stat"><span class="ac-hero-value" id="now-new-contributors">—</span><span class="ac-hero-label">New contributors this calendar week</span></div>
     </div>
 
+    <h3 class="ac-chart-group-title" id="this-week">This week (rolling 7 days)</h3>
+    <div class="ac-charts">
+      <div class="ac-chart">
+        <h4 class="ac-chart-title">Labels per day</h4>
+        <div class="mini-chart" id="ac-chart-week-labels"></div>
+      </div>
+      <div class="ac-chart">
+        <h4 class="ac-chart-title">Validations per day</h4>
+        <div class="mini-chart" id="ac-chart-week-validations"></div>
+      </div>
+      <div class="ac-chart">
+        <h4 class="ac-chart-title">Active users per day</h4>
+        <div class="mini-chart" id="ac-chart-week-users"></div>
+      </div>
+    </div>
+    <p class="ac-note">“Active users” counts distinct people who labeled or validated that day, summed across cities (a person active in two cities is counted in each). The last bar is today, still filling in.</p>
+
     <h3 class="ac-chart-group-title" id="most-active-cities">Most active cities</h3>
     <p>The busiest deployments of the past 7 days, with each count's change from the 7 days before. Click a column header to re-rank — the table always shows the top five <em>by the column you sort on</em>. Cities with no activity this week are left out.</p>
     <div class="ac-table-wrap">
@@ -72,23 +89,6 @@
       <span class="coverage-status" id="ac-top-status" role="status" aria-live="polite"></span>
       <a class="ac-see-all" href="#activity">See all cities →</a>
     </div>
-
-    <h3 class="ac-chart-group-title" id="this-week">This week (rolling 7 days)</h3>
-    <div class="ac-charts">
-      <div class="ac-chart">
-        <h4 class="ac-chart-title">Labels per day</h4>
-        <div class="mini-chart" id="ac-chart-week-labels"></div>
-      </div>
-      <div class="ac-chart">
-        <h4 class="ac-chart-title">Validations per day</h4>
-        <div class="mini-chart" id="ac-chart-week-validations"></div>
-      </div>
-      <div class="ac-chart">
-        <h4 class="ac-chart-title">Active users per day</h4>
-        <div class="mini-chart" id="ac-chart-week-users"></div>
-      </div>
-    </div>
-    <p class="ac-note">“Active users” counts distinct people who labeled or validated that day, summed across cities (a person active in two cities is counted in each). The last bar is today, still filling in.</p>
   </div>
 
   <div class="api-section" id="ac-map-section">
