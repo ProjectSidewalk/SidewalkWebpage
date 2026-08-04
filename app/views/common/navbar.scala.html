@@ -23,7 +23,10 @@
 @userToggleActive = @{curPath == "/dashboard" || curPath == "/admin" || curPath.startsWith("/admin/") || curPath == "/servicehoursinstructions" || curPath == "/timecheck"}
 
   <!-- Fixed navbar -->
-<nav id="header" aria-label="Main"@if(isLanding) { class="header--tall"}>
+@* data-has-session tells the frontend whether this render has an identity at all (signed-in or anonymous account),
+   which is what a SecuredAction endpoint answers 200 vs 401 on. The navbar carries it because it is the one element
+   on nearly every page that already receives `user`. Read it via util.hasSession(). *@
+<nav id="header" aria-label="Main" data-has-session="@user.isDefined"@if(isLanding) { class="header--tall"}>
   <div class="navbar-container">
     <div class="navbar-brand-area">
       <div class="navbar-logo">
