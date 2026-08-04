@@ -31,8 +31,8 @@ class LabelAiInfoTableDef(tag: Tag) extends Table[LabelAiInfo](tag, "label_ai_in
     LabelAiInfo.unapply
   )
 
-//  def label: ForeignKeyQuery[LabelTable, Label] =
-//    foreignKey("label_ai_info_label_id_fkey", labelId, TableQuery[LabelTable])(_.labelId)
+  def label       = foreignKey("label_ai_info_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
+  def labelUnique = index("label_ai_info_label_id_key", labelId, unique = true)
 }
 
 @ImplementedBy(classOf[LabelAiInfoTable])

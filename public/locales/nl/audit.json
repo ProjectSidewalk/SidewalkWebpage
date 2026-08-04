@@ -1,4 +1,33 @@
 {
+  "tutorial-intro": {
+    "eyebrow": "Verkenningsmissie",
+    "title": "Doe mee met de Sidewalk-missie",
+    "route-waiting": "Je route staat klaar — na deze korte tutorial brengen we je er meteen naartoe.",
+    "next": "Volgende",
+    "start-mission": "Missie starten",
+    "have-account": "Heb je een account?",
+    "sign-in": "Inloggen",
+    "already-tutorial": "Heb je de uitleg al gedaan?",
+    "skip": "Overslaan",
+    "explore": {
+      "title": "Verkennen",
+      "description": "Spot toegankelijkheidsproblemen in de stad."
+    },
+    "label": {
+      "title": "Labelen",
+      "description": "Markeer trottoir opritten en oppervlakteproblemen van trottoirs en voeg toegankelijkheidsbeoordelingen toe."
+    },
+    "validate": {
+      "title": "Valideren",
+      "description": "Bekijk labels die anderen hebben gemarkeerd om hun juistheid te bevestigen."
+    },
+    "impact": {
+      "title": "Impact",
+      "stat-labels": "{{total}} labels toegevoegd door vrijwilligers",
+      "stat-cities": "Gegevens gebruikt in {{cities}} steden wereldwijd",
+      "tagline": "Elk label helpt de toegankelijkheid in de echte wereld te verbeteren"
+    }
+  },
   "curb-ramp": "trottoir oprit",
   "missing-curb-ramp": "ontbrekende trottoir oprit",
   "obstacle": "obstakel",
@@ -88,6 +117,7 @@
     "stat-labels-all": "{{count}} labels gemaakt",
     "stat-labels-you": "Jij voegde {{count}} labels toe",
     "button-next-mission": "Volgende verkenningsmissie",
+    "button-keep-exploring-here": "Blijf hier verkennen",
     "button-try-validation": "Validatie proberen"
   },
   "top-ui": {
@@ -108,12 +138,25 @@
     "no-accuracy-tooltip": "We hebben meer gegevens nodig om een nauwkeurigheidsbeoordeling voor u te berekenen. Voeg meer labels toe en meld u aan om uw nauwkeurigheidsbeoordeling bij te houden!",
     "current-mission": {
       "header": "Huidige Missie",
-      "header-route": "$t(right-ui.current-mission.header): Route {{route_number}}",
+      "message-route": "Verken {{routeName}}",
+      "header-free-explore": "Vrij verkennen",
       "message": "Zoek __PLACEHOLDER__ voor {{neighborhoodName}}"
     },
     "minimap": {
-      "follow-red-line": "Volg de rode lijn om de missie voort te zetten",
-      "explore-current-location": "Draai 360 graden om er zeker van te zijn dat u niets mist."
+      "coach-dismiss": "Begrepen",
+      "distance-left": "Nog {{distance}}",
+      "explore-current-location": "Draai 360 graden om er zeker van te zijn dat u niets mist.",
+      "fit-mission": "Toon hele missie",
+      "fit-street": "Terug naar straatniveau",
+      "route-overview": "Route-overzicht: tik om de hele route te zien",
+      "observed-tooltip": "Hoeveel van je omgeving je hebt bekeken",
+      "legend-title": "Legenda",
+      "mission-progress": "Missievoortgang",
+      "legend-explored": "Verkend",
+      "legend-ahead": "Resterende route",
+      "legend-you": "U + kijkrichting",
+      "legend-visited": "Bezochte locatie",
+      "legend-unseen": "Nog niet bekeken"
     },
     "stats": {
       "leaderboard-cta": "Bekijk het scorebord van de gemeenschap"
@@ -135,8 +178,13 @@
     }
   },
   "center-ui": {
+    "hover-card": {
+      "delete": "Verwijderen",
+      "edit": "Bewerken"
+    },
     "context-menu": {
-      "severity": "Klik om de mate van  ernst te labelen",
+      "rate-severity-prompt": "Klik om de ernst te beoordelen",
+      "rate-quality-prompt": "Klik om de kwaliteit te beoordelen",
       "severity-shortcuts": "Druk toetsen 1-3 voor de beoordeling van de ernst",
       "label-popup-shortcuts": "Druk <tag-underline>{{c}}</tag-underline> om een tag toe te voegen",
       "tag": {
@@ -233,7 +281,8 @@
       "slight-left": "Sla flauw links af",
       "slight-right": "Sla flauw rechts af",
       "u-turn": "Keer om",
-      "end-route": "Je bent aan het einde van je route! Voltooi het labelen van dit kruispunt en <b>klik hier om de route te voltooien.</b>",
+      "end-route": "Je bent aan het einde van je route! Kijk helemaal om je heen om te voltooien, of <b>klik hier om nu te voltooien.</b>",
+      "route-finish-look-around": "Laatste halte! Kijk helemaal om je heen om je route te voltooien.",
       "end-neighborhood": "Je hebt deze hele buurt verkend! Voltooi het labelen van dit kruispunt en <b>klik hier om de buurt te voltooien.</b>",
       "end-street": "We moeten u verhuizen naar een nieuwe locatie. Voltooi het labelen van dit kruispunt en <b>klik hier om naar een nieuwe locatie te gaan.</b>",
       "far-away": "Oh oh, je bent nogal ver weg van de route. <b>Klik hier om terug te gaan.</b>"
@@ -265,6 +314,9 @@
     "label-shortcuts-occlusion": "Je kunt ook de <kbd>{{key}}</kbd> toets gebruiken voor het selecteren van 'Het trottoir is niet zichtbaar' label.",
     "still-stuck": "Als je nog steeds vastzit, klik opnieuw op de Vastgelopen knop.",
     "stuck-skipped-street": "We konden geen geschikte plek vinden in deze straat, dus we hebben je naar een nieuwe straat verplaatst.",
+    "free-explore-start": "Je bent neergezet in de buurt van het gezochte adres. Kijk rond en label wat je vindt!",
+    "free-explore-start-named": "Je bent vlakbij <b>{{placeName}}</b> geland. Kijk rond en label wat je tegenkomt!",
+    "free-explore-no-imagery": "Er zijn geen straatbeelden meer in deze richting. Kijk rond of ga de andere kant op.",
     "stuck-suggestion": "Als je niet met de pijlen kunt bewegen, probeer dan op de navigatie-aanwijzingen rechtsonder te klikken. Of probeer te klikken op de vastgelopen knop aan de linkerkant."
   },
   "mission-start-tutorial": {

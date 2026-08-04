@@ -11,12 +11,14 @@ module.exports = function (grunt) {
           'public/js/explore/src/*/*.js',
           'public/js/common/ProgressBar.js',
           'public/js/common/PanoMarker.js',
+          'public/js/common/LabelCardView.js',
           'public/js/common/utilitiesSidewalk.js',
           'public/js/common/SpeedLimit.js',
           'public/js/common/MissionStartTutorial.js',
           // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
           'public/js/common/Toast.js',
-          'public/js/common/BadgeAchievements.js'
+          'public/js/common/BadgeAchievements.js',
+          'public/js/common/share/ShareWidget.js'
         ],
         dest: 'public/js/explore/build/explore.js'
       },
@@ -26,6 +28,9 @@ module.exports = function (grunt) {
           'public/js/admin/src/*.js',
           // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
           'public/js/common/label-detail/PopupPanoManager.js',
+          'public/js/common/ConfirmDialog.js',
+          'public/js/common/label-detail/StoryComposer.js',
+          'public/js/common/label-detail/StorySection.js',
           'public/js/common/label-detail/LabelDetail.js',
           'public/js/common/share/ShareWidget.js',
           'public/js/common/label-detail/LabelPopup.js',
@@ -48,6 +53,9 @@ module.exports = function (grunt) {
           'public/js/admin/src/*.js',
           // PopupPanoManager and LabelDetail must be concatenated before LabelPopup.
           'public/js/common/label-detail/PopupPanoManager.js',
+          'public/js/common/ConfirmDialog.js',
+          'public/js/common/label-detail/StoryComposer.js',
+          'public/js/common/label-detail/StorySection.js',
           'public/js/common/label-detail/LabelDetail.js',
           'public/js/common/share/ShareWidget.js',
           'public/js/common/label-detail/LabelPopup.js',
@@ -79,12 +87,14 @@ module.exports = function (grunt) {
           'public/js/validate/src/zoom/*.js',
           'public/js/common/ProgressBar.js',
           'public/js/common/PanoMarker.js',
+          'public/js/common/LabelCardView.js',
           'public/js/common/utilitiesSidewalk.js',
           'public/js/common/SpeedLimit.js',
           'public/js/common/MissionStartTutorial.js',
           // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
           'public/js/common/Toast.js',
-          'public/js/common/BadgeAchievements.js'
+          'public/js/common/BadgeAchievements.js',
+          'public/js/common/share/ShareWidget.js'
         ],
         dest: 'public/js/validate/build/validate.js'
       },
@@ -96,8 +106,13 @@ module.exports = function (grunt) {
           'public/js/common/BadgeAchievements.js',
           // PopupPanoManager and LabelDetail must be concatenated before ExpandedView.
           'public/js/common/label-detail/PopupPanoManager.js',
+          'public/js/common/ConfirmDialog.js',
+          'public/js/common/label-detail/StoryComposer.js',
+          'public/js/common/label-detail/StorySection.js',
           'public/js/common/label-detail/LabelDetail.js',
           'public/js/common/share/ShareWidget.js',
+          // The shared filter sidebar owns the sidebar controls; GalleryFilter is the Gallery's adapter for it.
+          'public/js/common/filter-sidebar/*.js',
           'public/js/gallery/src/cards/*.js',
           'public/js/gallery/src/data/*.js',
           'public/js/gallery/src/filter/*.js',
@@ -113,9 +128,19 @@ module.exports = function (grunt) {
       },
       dist_map: {
         src: [
+          // The shared filter sidebar owns the sidebar controls; MapSidebarFilter is the map's adapter for it.
+          'public/js/common/filter-sidebar/*.js',
           'public/js/ps-map/*.js',
         ],
         dest: 'public/js/ps-map/build/ps-map.js'
+      },
+      dist_route_builder: {
+        src: [
+          'public/js/common/Toast.js',
+          'public/js/common/ConfirmDialog.js',
+          'public/js/route-builder/src/*.js'
+        ],
+        dest: 'public/js/route-builder/build/route-builder.js'
       },
       dist_shared_label: {
         src: [
@@ -128,6 +153,9 @@ module.exports = function (grunt) {
           'public/js/common/PanoMarker.js',
           // PopupPanoManager + LabelDetail must precede anything that uses them.
           'public/js/common/label-detail/PopupPanoManager.js',
+          'public/js/common/ConfirmDialog.js',
+          'public/js/common/label-detail/StoryComposer.js',
+          'public/js/common/label-detail/StorySection.js',
           'public/js/common/label-detail/LabelDetail.js',
           'public/js/common/share/ShareWidget.js',
           'public/js/shared-label/*.js'
@@ -152,8 +180,12 @@ module.exports = function (grunt) {
       }
     },
     concat_css: {
+      // The two label-card files come first so each tool's own stylesheet can override the shared base after it.
+      // public/css/common/ has no glob — every file used from it is named by hand, in each bundle that wants it.
       dist_audit: {
         src: [
+          'public/css/common/label-anchored-panel.css',
+          'public/css/common/label-hover-card.css',
           'public/css/explore/*.css',
           'public/css/common/mission-start-tutorial.css'
         ],
@@ -161,6 +193,8 @@ module.exports = function (grunt) {
       },
       dist_validate: {
         src: [
+          'public/css/common/label-anchored-panel.css',
+          'public/css/common/label-hover-card.css',
           'public/css/validate/*.css',
           'public/css/common/mission-start-tutorial.css'
         ],
@@ -199,6 +233,7 @@ module.exports = function (grunt) {
           'public/js/gallery/src/**/*.js',
           'public/css/gallery/*.css',
           'public/js/ps-map/*.js',
+          'public/js/route-builder/src/*.js',
           'public/js/shared-label/*.js',
           'public/css/common/*.css'
         ],

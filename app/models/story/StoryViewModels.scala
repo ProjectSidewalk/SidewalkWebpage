@@ -1,0 +1,150 @@
+package models.story
+
+import models.label.LabelTypeEnum
+
+import java.io.File
+import java.time.OffsetDateTime
+
+/**
+ * A story's media as rendered to a viewer: everything the card needs plus a freshly-signed, time-limited serving URL.
+ */
+case class StoryMediaForView(
+    storyMediaId: Int,
+    mediaType: String,
+    mimeType: String,
+    url: String,
+    width: Option[Int],
+    height: Option[Int],
+    altText: Option[String]
+)
+
+/**
+ * A story as rendered to a viewer on the label-detail card. `displayName` is already resolved against the story's
+ * display-name mode (None = show as anonymous); `isOwn`/`hidden` drive the author's delete button and the
+ * "hidden by moderators" chip.
+ */
+case class StoryForView(
+    storyId: Int,
+    labelId: Int,
+    storyText: String,
+    displayName: Option[String],
+    isOwn: Boolean,
+    hidden: Boolean,
+    createdAt: OffsetDateTime,
+    media: Option[StoryMediaForView]
+)
+
+/**
+ * A story as rendered on the admin moderation queue: always carries the account username and full moderation state,
+ * regardless of the public display-name mode.
+ */
+case class StoryForAdmin(
+    story: Story,
+    username: String,
+    labelType: String,
+    media: Option[StoryMediaForView]
+)
+
+/**
+ * A story on the author's own dashboard management list (hidden ones included, so they can still retract).
+ * `isAccessProblem` comes from LabelTypeEnum so the dashboard's edit composer can pick the problem-vs-feature
+ * phrasing without re-deriving that mapping in JS.
+ * `labelImageUrl` is a signed preview of the story's label (crop, else GSV static) — only populated when the story
+ * has no uploaded photo, so every row can still carry a thumbnail; None when neither source is available.
+ */
+case class StoryForOwner(
+    story: Story,
+    labelType: String,
+    isAccessProblem: Boolean,
+    media: Option[StoryMediaForView],
+    labelImageUrl: Option[String]
+)
+
+/**
+ * A story card on the public /stories listing page (#4688): the viewer-safe card data plus its label's type and
+ * neighborhood, so the page can render type/region chips and sort on them without extra lookups.
+ *
+ * `displayName` is already resolved against the story's display-name mode (None = show as anonymous).
+ * `labelImageUrl` is a signed preview of the story's label (crop, else GSV static) — only populated when the story
+ * has no uploaded photo, so every card can still carry an image; None when neither source is available.
+ * `address` is the label's street address from pano_data, which is back-filled lazily — often None.
+ */
+case class StoryForListing(
+    storyId: Int,
+    labelId: Int,
+    labelType: LabelTypeEnum.Base,
+    regionId: Int,
+    regionName: String,
+    address: Option[String],
+    storyText: String,
+    displayName: Option[String],
+    createdAt: OffsetDateTime,
+    media: Option[StoryMediaForView],
+    labelImageUrl: Option[String]
+)
+
+/**
+ * An uploaded photo as it arrives from the multipart request, before validation/re-encoding. No declared MIME type:
+ * the ingest pipeline trusts only the sniffed image format, never what the client claims.
+ */
+case class StoryPhotoUpload(tempFile: File, altText: Option[String])
+
+/**
+ * Why a story submission was refused. `messageKey` is a client-side i18n key (labelmap namespace) so the composer can
+ * localize; `defaultMessage` is the English fallback served alongside it.
+ */
+sealed abstract class StoryRejection(val messageKey: String, val defaultMessage: String)
+
+object StoryRejection {
+  case object LabelNotFound
+      extends StoryRejection("story.error.label-not-found", "That label doesn't exist or has been removed.")
+  case object TextMissing extends StoryRejection("story.error.text-missing", "Your story text can't be empty.")
+  case class TextTooLong(maxLength: Int)
+      extends StoryRejection("story.error.text-too-long", s"Stories are limited to $maxLength characters.")
+  case object TextRejected
+      extends StoryRejection("story.error.text-rejected", "Your story contains language we can't publish.")
+  case class AltTextTooLong(maxLength: Int)
+      extends StoryRejection(
+        "story.error.alt-text-too-long",
+        s"Photo descriptions are limited to $maxLength characters."
+      )
+  case object AltTextRejected
+      extends StoryRejection(
+        "story.error.alt-text-rejected",
+        "Your photo description contains language we can't publish."
+      )
+  case object LinksNotAllowed
+      extends StoryRejection("story.error.links-not-allowed", "Links aren't allowed in stories or photo descriptions.")
+  case object InvalidDisplayNameMode
+      extends StoryRejection("story.error.invalid-display-name", "Invalid display-name option.")
+  case object AlreadyExists
+      extends StoryRejection("story.error.already-exists", "You've already shared a story on this label.")
+
+  /**
+   * The daily submission cap is a *rolling* 24 hours from each story, so there is no "tomorrow" to point at: a slot
+   * frees up 24h after the oldest story still counting. `retryAfterSeconds` is how long that is, so the composer can
+   * say it as a duration — true in every timezone, and needing none. None when the wait isn't known (the IP burst
+   * layer only knows its own window).
+   */
+  case class RateLimited(retryAfterSeconds: Option[Long])
+      extends StoryRejection(
+        "story.error.rate-limited",
+        "You've published as many stories as we allow in a day — please try again later."
+      )
+
+  /**
+   * The IP burst layer (`rate-limit.story-submit`) refused the request. Distinct from [[RateLimited]] because the
+   * reader may have published nothing themselves — the IP can be a whole building behind one NAT — so the copy has
+   * to blame the network, not the person. `retryAfterSeconds` is the time left in the IP's current window.
+   */
+  case class RateLimitedIp(retryAfterSeconds: Option[Long])
+      extends StoryRejection(
+        "story.error.rate-limited-ip",
+        "Too many stories have been submitted from your network recently — please try again later."
+      )
+  case object StoryNotFound
+      extends StoryRejection("story.error.story-not-found", "That story doesn't exist or isn't yours.")
+  case object PhotoTooLarge extends StoryRejection("story.error.photo-too-large", "That photo is too large to upload.")
+  case object PhotoInvalid
+      extends StoryRejection("story.error.photo-invalid", "We couldn't read that file as an image (JPEG or PNG).")
+}

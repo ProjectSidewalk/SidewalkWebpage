@@ -16,6 +16,12 @@
   padding-top: calc(4px * var(--ui-scale)); /* Just so that it looks better next to the ribbon headers. */
   color: var(--color-neutral-black);
   overflow: hidden;
+
+  /* Makes the sidebar one stacking layer. Its contents range up to the minimap's z-index 5 and the badge tooltip's
+     ~1029, which without a context here would compete globally and paint over the panels a label opens (the hover
+     card at 2, the context menu at 3) now that those are allowed to extend across the sidebar. Nothing is lost by
+     containing them: overflow above already clips this subtree to the sidebar box. */
+  z-index: 1;
 }
 
 .explore-sidebar__section {

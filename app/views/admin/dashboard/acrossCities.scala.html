@@ -4,7 +4,7 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@* Across Cities page for the redesigned admin dashboard (#4329). A cross-deployment overview comparing every Project Sidewalk city across four lenses — coverage (how much is left), activity (what's happening and when), data patterns (the label-type mix, city vs city), and data quality (how trustworthy the data is) — plus a "needs attention" panel of server-computed anomalies and overview line charts of labels / validations / active users over time. Owner-only. Driven entirely client-side from /adminapi/cityScorecards. *@
+@* Across Cities page for the redesigned admin dashboard (#4329). A cross-deployment overview comparing every Project Sidewalk city across four lenses — coverage (how much is left), activity (what's happening and when), data patterns (the label-type mix, city vs city), and data quality (how trustworthy the data is) — plus a "Today & this week" band of current-activity tiles, a top-cities table, and daily bar charts (#4758), a "needs attention" panel of server-computed anomalies, and overview line charts of labels / validations / active users over time. Owner-only. Driven entirely client-side from /adminapi/cityScorecards. *@
 
 @content = {
   <div class="api-section" id="ac-intro-section">
@@ -26,6 +26,68 @@
         <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-datapoints">—</span><span class="ac-hero-label">Total datapoints</span></div>
         <div class="ac-hero-stat"><span class="ac-hero-value" id="hero-agreement">—</span><span class="ac-hero-label">Validation agreement</span></div>
       </div>
+    </div>
+  </div>
+
+  <div class="api-section" id="ac-now-section">
+    <h2 class="api-heading" id="today-this-week">Today &amp; this week <a href="#today-this-week" class="permalink">#</a></h2>
+    <p>What's happening right now — today so far, and the trailing 7 days compared with the 7 before. Contributor counts are distinct people per city, summed across cities (a person active in two cities is counted in each).</p>
+
+    <h3 class="ac-chart-group-title" id="today-so-far">Today (so far)</h3>
+    <div class="ac-hero-row">
+      <div class="ac-hero-stat"><span class="ac-hero-value" id="now-labels-today">—</span><span class="ac-hero-label">Labels today</span></div>
+      <div class="ac-hero-stat"><span class="ac-hero-value" id="now-validations-today">—</span><span class="ac-hero-label">Validations today</span></div>
+      <div class="ac-hero-stat"><span class="ac-hero-value" id="now-contributors-today">—</span><span class="ac-hero-label">Contributors today</span></div>
+    </div>
+
+    <h3 class="ac-chart-group-title" id="past-7-days">Past 7 days</h3>
+    <div class="ac-hero-row">
+      <div class="ac-hero-stat"><span class="ac-hero-value" id="now-labels-7d">—</span><span class="ac-hero-label">Labels</span><span class="ac-hero-delta" id="now-labels-7d-delta"></span></div>
+      <div class="ac-hero-stat"><span class="ac-hero-value" id="now-validations-7d">—</span><span class="ac-hero-label">Validations</span><span class="ac-hero-delta" id="now-validations-7d-delta"></span></div>
+      <div class="ac-hero-stat"><span class="ac-hero-value" id="now-contributors-7d">—</span><span class="ac-hero-label">Contributors</span><span class="ac-hero-delta" id="now-contributors-7d-delta"></span></div>
+      <div class="ac-hero-stat"><span class="ac-hero-value" id="now-cities-active">—</span><span class="ac-hero-label">Cities active</span></div>
+      <div class="ac-hero-stat"><span class="ac-hero-value" id="now-top-city">—</span><span class="ac-hero-label">Top city this week</span><span class="ac-hero-delta" id="now-top-city-count"></span></div>
+      <div class="ac-hero-stat"><span class="ac-hero-value" id="now-new-contributors">—</span><span class="ac-hero-label">New contributors this calendar week</span></div>
+    </div>
+
+    <h3 class="ac-chart-group-title" id="this-week">This week (rolling 7 days)</h3>
+    <div class="ac-charts">
+      <div class="ac-chart">
+        <h4 class="ac-chart-title">Labels per day</h4>
+        <div class="mini-chart" id="ac-chart-week-labels"></div>
+      </div>
+      <div class="ac-chart">
+        <h4 class="ac-chart-title">Validations per day</h4>
+        <div class="mini-chart" id="ac-chart-week-validations"></div>
+      </div>
+      <div class="ac-chart">
+        <h4 class="ac-chart-title">Active users per day</h4>
+        <div class="mini-chart" id="ac-chart-week-users"></div>
+      </div>
+    </div>
+    <p class="ac-note">“Active users” counts distinct people who labeled or validated that day, summed across cities (a person active in two cities is counted in each). The last bar is today, still filling in.</p>
+
+    <h3 class="ac-chart-group-title" id="most-active-cities">Most active cities</h3>
+    <p>The busiest deployments of the past 7 days, with each count's change from the 7 days before. Click a column header to re-rank — the table always shows the top five <em>by the column you sort on</em> (sorting by City keeps the busiest five, ordered by name). Cities with no activity this week are left out.</p>
+    <div class="ac-table-wrap">
+      <table class="ac-table" id="ac-top-table">
+        <thead>
+          <tr>
+            <th data-sort="city_name" class="ac-th-text">City</th>
+            <th data-sort="activity_7d" title="Labels plus validations in the last 7 days.">Activity</th>
+            <th data-sort="activity_window.labels_7d">Labels</th>
+            <th data-sort="activity_window.validations_7d">Validations</th>
+            <th data-sort="activity_window.contributors_7d">Contributors</th>
+            <th data-sort="audits_7d">Streets</th>
+            <th>Trend (labels)</th>
+          </tr>
+        </thead>
+        <tbody id="ac-top-tbody"></tbody>
+      </table>
+    </div>
+    <div class="ac-table-foot">
+      <span class="coverage-status" id="ac-top-status" role="status" aria-live="polite"></span>
+      <a class="ac-see-all" href="#activity">See all cities →</a>
     </div>
   </div>
 
@@ -54,26 +116,45 @@
 
   <div class="api-section" id="ac-trends-section">
     <h2 class="api-heading" id="over-time">Over time <a href="#over-time" class="permalink">#</a></h2>
-    <p>Weekly totals across all cities.</p>
+    <p>How activity is trending across all cities — weekly rates and cumulative growth.</p>
+
+    <h3 class="ac-chart-group-title" id="weekly-totals">Weekly totals</h3>
     <div class="ac-toggle" id="ac-trend-toggle" role="group" aria-label="Trend range">
       <button type="button" class="ac-toggle-btn active" data-range="recent">12 weeks</button>
       <button type="button" class="ac-toggle-btn" data-range="all">All time</button>
     </div>
     <div class="ac-charts">
       <div class="ac-chart">
-        <h3 class="ac-chart-title">Labels per week</h3>
+        <h4 class="ac-chart-title">Labels per week</h4>
         <div class="mini-chart" id="ac-chart-labels"></div>
       </div>
       <div class="ac-chart">
-        <h3 class="ac-chart-title">Validations per week</h3>
+        <h4 class="ac-chart-title">Validations per week</h4>
         <div class="mini-chart" id="ac-chart-validations"></div>
       </div>
       <div class="ac-chart">
-        <h3 class="ac-chart-title">Active users per week</h3>
+        <h4 class="ac-chart-title">Active users per week</h4>
         <div class="mini-chart" id="ac-chart-users"></div>
       </div>
     </div>
     <p class="ac-note">“Active users” counts distinct people who labeled or validated that week, summed across cities (a person active in two cities is counted in each).</p>
+
+    <h3 class="ac-chart-group-title" id="cumulative-totals">Cumulative totals (all time)</h3>
+    <div class="ac-charts">
+      <div class="ac-chart">
+        <h4 class="ac-chart-title">Total labels</h4>
+        <div class="mini-chart" id="ac-chart-cum-labels"></div>
+      </div>
+      <div class="ac-chart">
+        <h4 class="ac-chart-title">Total validations</h4>
+        <div class="mini-chart" id="ac-chart-cum-validations"></div>
+      </div>
+      <div class="ac-chart">
+        <h4 class="ac-chart-title">Total users</h4>
+        <div class="mini-chart" id="ac-chart-cum-users"></div>
+      </div>
+    </div>
+    <p class="ac-note">“Users” counts each person once per city, in the week of their first label or validation — returning contributors aren't re-counted, but a person who contributes in two cities is counted in each.</p>
   </div>
 
   <div class="api-section" id="ac-scorecard-section">
@@ -121,16 +202,16 @@
 
   <div class="api-section" id="ac-activity-section">
     <h2 class="api-heading" id="activity">Activity — what &amp; when <a href="#activity" class="permalink">#</a></h2>
-    <p>Recent volume (last 7 and 30 days), most recent activity, and a 12-week trend per city.</p>
+    <p>Recent volume (last 7 and 30 days), most recent activity, and a 12-week trend per city. Click a column header to sort; the 7d / 30d columns sort on their 7-day count.</p>
     <div class="ac-table-wrap">
-      <table class="ac-table">
+      <table class="ac-table" id="ac-activity-table">
         <thead>
           <tr>
-            <th class="ac-th-text">City</th>
-            <th>Labels 7d / 30d</th>
-            <th>Validations 7d / 30d</th>
-            <th>Streets 7d / 30d</th>
-            <th>Last activity</th>
+            <th data-sort="city_name" class="ac-th-text">City</th>
+            <th data-sort="labels_7d" title="Sorts on the 7-day count.">Labels 7d / 30d</th>
+            <th data-sort="validations_7d" title="Sorts on the 7-day count.">Validations 7d / 30d</th>
+            <th data-sort="audits_7d" title="Sorts on the 7-day count.">Streets 7d / 30d</th>
+            <th data-sort="days_since_activity">Last activity</th>
             <th>Trend (labels)</th>
           </tr>
         </thead>

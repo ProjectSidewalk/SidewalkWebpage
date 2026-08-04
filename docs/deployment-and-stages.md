@@ -50,6 +50,42 @@ Practical implications for contributors:
 - A redeploy re-runs the full build (below) and restarts the affected city instances, so it is not instantaneous and
   briefly interrupts the sites on that stage.
 
+## Cutting a release (runbook)
+
+Production is deployed by **creating a GitHub Release with a `vX.Y.Z` tag on `master`** — per the table above, only a
+semver tag deploys to prod. A release is more than the tag, though. Do these steps **in order**:
+
+1. **Bump the app version** — edit `version := "X.Y.Z"` in [`build.sbt`](../build.sbt) (patch bump for a hotfix, e.g.
+   `11.6.0` → `11.6.1`).
+2. **Add a version-table evolution** — create the next-numbered `conf/evolutions/default/NNN.sql` that records the
+   release in the `version` table. This row is what the site footer / `commonData.versionId` displays (the app shows
+   the row with the latest `version_start_time`, so `now()` is correct and no manual date is needed):
+   ```sql
+   # --- !Ups
+   INSERT INTO version VALUES ('X.Y.Z', now(), 'One-line, user-facing summary of the release.');
+
+   # --- !Downs
+   DELETE FROM version WHERE version_id = 'X.Y.Z';
+   ```
+3. **Land it on `develop` first** (PR) — merging to `develop` redeploys the **test** stage; verify there.
+4. **Merge `develop` → `master`** (PR).
+5. **Create the GitHub Release** with tag `vX.Y.Z` targeting `master`. That tag/release triggers the **prod** build and
+   the rolling per-city restart. Match the existing tag format exactly (`v11.6.0`, `v11.5.1`, …).
+6. **Verify prod** — the build isn't instant and city instances come up one-by-one. Confirm the *new code* is live, not
+   just that the server responds. Until an explicit version endpoint exists (**#4548**), the reliable check is
+   **behavioral**: load a page whose behavior only the new code produces. (The `/anonSignUp` liveness probe is not
+   sufficient — it passes even when a page like `/leaderboard` is crashing.)
+
+**Two independent gotchas, both learned from #4545:**
+- Merging to `master` alone does **not** deploy to prod — the **tag** (step 5) does.
+- Bumping `build.sbt` alone does **not** change the version the site shows — the **evolution** (step 2) does.
+A hotfix that changes no schema *still* needs step 2 for the displayed version to update.
+
+> **Design note:** routing release-versioning through schema evolutions couples two unrelated concerns and duplicates
+> the version string across `build.sbt`, an evolution, and the git tag. Making the git tag / build metadata the single
+> source of truth (an `sbt-buildinfo`-backed `/version` endpoint) is tracked in **#4548**; follow that convention if it
+> lands.
+
 ## Runtime shape
 
 Each stage hosts **many cities at once**, and each city runs as its **own independent instance of this app** —
@@ -87,6 +123,45 @@ Health checks treat an instance as up when an anonymous request to **`/anonSignU
 (`PLAY_SESSION`) — i.e. the app can boot into an anonymous session. This is the same anonymous-session trick used to
 exercise authenticated routes in local dev (see [`docs/dev-environment.md`](dev-environment.md)). Instances that
 return server errors are automatically restarted, and application logs are archived on each rebuild.
+
+## Logs
+
+Each running city instance writes a **rolling file log** (configured in [`conf/logback.xml`](../conf/logback.xml)):
+
+- **File name:** `application-<SIDEWALK_CITY_ID>.log` in the instance's `logs/` directory — e.g.
+  `application-newberg-or.log`. `application.home` resolves to that city's staged app directory, so **every city has its
+  own `logs/` subdirectory**; the app also mirrors output to stdout.
+- **Rotation:** daily (`application-<city>-YYYY-MM-DD.log`), 90-day history, 3 GB cap; logs are archived on each rebuild.
+- **Levels:** root is `INFO`, and **successful requests are not access-logged** — a working page produces *no* log
+  line. Only warnings and errors appear (client 4xx via the error handler, server-side exceptions, etc.).
+
+Finding them on a server without hardcoding paths:
+
+```bash
+# each instance's home dir + city id are on the running process's command line
+pgrep -af 'java .*ProdServerStart'
+# or locate the files directly
+find / -name 'application-*.log' 2>/dev/null
+```
+
+**Access:** instances run under a dedicated service account, so the log files are owned by that account. Reading them
+may require membership in that account's group; if you're locked out, ask UW CSE IT. (Absolute on-server paths,
+hostnames, and ports are omitted here for the same reason as the rest of this doc — see the note at the top.)
+
+**A `502` with nothing in the app log — where to look.** Successful requests aren't access-logged and a reverse-proxy
+`502` can originate at the proxy itself, so a failing page may leave **no** trace in the application log. Two checks:
+
+- **Reproduce against the backend directly, bypassing the proxy** — but carry a session cookie and follow redirects
+  (`curl -L -c jar -b jar`): an anonymous request is bounced through the anon-session flow (a fast `303` to
+  `/anonSignUp?url=…`) and never runs the real page. Send the proxy's `Host` / `X-Forwarded-Proto` headers too if the
+  app also canonicalizes the host. A fast success on the *followed* request points at the proxy layer; a hang or error
+  points at the app/DB.
+- **If the request dies inside the database** (e.g. a PostGIS/JIT segfault,
+  [#4545](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4545)), the app only sees a dropped connection — the
+  real crash (`server process … was terminated by signal 11`) is written to the **Postgres server log**, not the
+  application log. That log lives on the database host under the standard PostgreSQL data-directory layout; ask a running
+  server for its exact location with `psql -c 'SHOW log_directory;'` (relative to `SHOW data_directory;`) rather than
+  hardcoding a path. Members of the project's UW CSE group have command-line read access to it.
 
 ## Runtime configuration contract
 

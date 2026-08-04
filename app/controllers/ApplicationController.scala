@@ -30,12 +30,12 @@ class ApplicationController @Inject() (
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
 
-  def index = cc.securityService.SecuredAction { implicit request =>
-    val user: SidewalkUserWithRole   = request.identity
-    val timestamp: OffsetDateTime    = OffsetDateTime.now
-    val ipAddress: String            = request.ipAddress
-    val isMobile: Boolean            = ControllerUtils.isMobile(request)
-    val qString: Map[String, String] = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
+  def index = cc.securityService.UserAwareAction { implicit request =>
+    val user: Option[SidewalkUserWithRole] = request.identity
+    val timestamp: OffsetDateTime          = OffsetDateTime.now
+    val ipAddress: String                  = request.ipAddress
+    val isMobile: Boolean                  = ControllerUtils.isMobile(request)
+    val qString: Map[String, String]       = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
 
     val referrer: Option[String] = qString.get("referrer") match {
       case Some(r) => Some(r)
@@ -47,28 +47,34 @@ class ApplicationController @Inject() (
       case Some(ref) =>
         val redirectTo: String      = qString.getOrElse("to", "/")
         val activityLogText: String = s"Referrer=${ref}_SendTo=$redirectTo"
-        cc.loggingService.insert(user.userId, ipAddress, activityLogText, timestamp)
+        cc.loggingService.insert(user.map(_.userId), ipAddress, activityLogText, timestamp)
         Future.successful(Redirect(redirectTo))
       case None =>
         // When there are no referrers, load the landing page but store the query parameters that were passed anyway.
         if (qString.nonEmpty) {
           // Log the query string parameters if they exist, but do a redirect to hide them.
-          cc.loggingService.insert(user.userId, ipAddress, request.uri, timestamp)
+          cc.loggingService.insert(user.map(_.userId), ipAddress, request.uri, timestamp)
           // Save UTM parameters if present, awaiting the write so failures surface to the error handler (#4229).
+          // A cookie-less visitor has no user row to attach UTM params to, so they're skipped; UTM capture for
+          // these visitors moves to account-mint time (#4442).
           val utmSaved: Future[_] =
             if (ControllerUtils.hasUtmParamsFlat(qString)) {
-              userService.insertUserUtm(
-                UserUtm(
-                  0, user.userId, qString.get("utm_source"), qString.get("utm_medium"), qString.get("utm_campaign"),
-                  qString.get("utm_content"), qString.get("utm_term"), configService.getCityId, timestamp
-                )
-              )
+              user match {
+                case Some(u) =>
+                  userService.insertUserUtm(
+                    UserUtm(
+                      0, u.userId, qString.get("utm_source"), qString.get("utm_medium"), qString.get("utm_campaign"),
+                      qString.get("utm_content"), qString.get("utm_term"), configService.getCityId, timestamp
+                    )
+                  )
+                case None => Future.successful(())
+              }
             } else Future.successful(())
           utmSaved.map(_ => Redirect("/"))
         } else if (isMobile) {
           Future.successful(Redirect("/mobileLanding"))
         } else {
-          cc.loggingService.insert(user.userId, ipAddress, "Visit_Index", timestamp)
+          cc.loggingService.insert(user.map(_.userId), ipAddress, "Visit_Index", timestamp)
           // Get names and URLs for other cities so we can link to them on landing page.
           val metric: Boolean = Messages("measurement.system") == "metric"
           for {
@@ -81,30 +87,47 @@ class ApplicationController @Inject() (
             valCount: Int                <- validationService.countHumanValidations
           } yield {
             Ok(
-              views.html.index("Project Sidewalk", commonData, user, openStatus, mapathonLink, streetDist, auditedDist,
-                labelCount, valCount)
+              views.html.index(
+                Messages("seo.title.landing", commonData.currentCity.cityNameShort),
+                commonData,
+                user,
+                openStatus,
+                mapathonLink,
+                streetDist,
+                auditedDist,
+                labelCount,
+                valCount
+              )
             )
           }
         }
     }
   }
 
-  def mobileLanding = cc.securityService.SecuredAction { implicit request =>
-    val user: SidewalkUserWithRole = request.identity
-    cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileLanding")
+  def mobileLanding = cc.securityService.UserAwareAction { implicit request =>
+    val user: Option[SidewalkUserWithRole] = request.identity
+    cc.loggingService.insert(user.map(_.userId), request.ipAddress, "Visit_MobileLanding")
     for {
       commonData      <- configService.getCommonPageData(request2Messages.lang)
       labelCount: Int <- labelService.countLabels
       valCount: Int   <- validationService.countHumanValidations
     } yield {
-      Ok(views.html.mobileLanding("Project Sidewalk", commonData, user, labelCount, valCount))
+      Ok(
+        views.html.mobileLanding(
+          Messages("seo.title.landing", commonData.currentCity.cityNameShort),
+          commonData,
+          user,
+          labelCount,
+          valCount
+        )
+      )
     }
   }
 
   /**
    * Updates user language preference cookie, returns to current page.
    */
-  def changeLanguage(url: String, newLang: String, clickLocation: Option[String]) = cc.securityService.SecuredAction {
+  def changeLanguage(url: String, newLang: String, clickLocation: Option[String]) = cc.securityService.UserAwareAction {
     implicit request =>
       // Build logger string.
       val oldLang: String  = messagesApi.preferred(request).lang.code
@@ -112,7 +135,7 @@ class ApplicationController @Inject() (
       val logText: String = s"Click_module=ChangeLanguage_from=${oldLang}_to=${newLang}_location=${clickLoc}_route=$url"
 
       // Log the interaction. Moved the logging here from navbar.scala.html b/c the redirect was happening too fast.
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, logText)
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, logText)
 
       // Update the cookie and redirect.
       Future.successful(Redirect(url).withLang(Lang(newLang)))
@@ -121,67 +144,94 @@ class ApplicationController @Inject() (
   /**
    * Returns a help  page.
    */
-  def help = cc.securityService.SecuredAction { implicit request =>
+  def help = cc.securityService.UserAwareAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Help")
-      Ok(views.html.help(commonData, "Sidewalk - Help", request.identity))
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_Help")
+      Ok(views.html.help(commonData, Messages("seo.title.help"), request.identity))
+    }
+  }
+
+  /**
+   * Returns the About page.
+   */
+  def about = cc.securityService.UserAwareAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_About")
+      Ok(views.html.about(commonData, Messages("seo.title.about"), request.identity))
     }
   }
 
   /**
    * Returns labeling guide page.
    */
-  def labelingGuide = cc.securityService.SecuredAction { implicit request =>
+  def labelingGuide = cc.securityService.UserAwareAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Labeling_Guide")
-      Ok(views.html.labelingGuide.labelingGuide(commonData, "Sidewalk - Labeling Guide", request.identity))
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_Labeling_Guide")
+      Ok(views.html.labelingGuide.labelingGuide(commonData, Messages("seo.title.labeling.guide"), request.identity))
     }
   }
 
-  def labelingGuideCurbRamps = cc.securityService.SecuredAction { implicit request =>
+  def labelingGuideCurbRamps = cc.securityService.UserAwareAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Labeling_Guide_Curb_Ramps")
-      Ok(views.html.labelingGuide.labelingGuideCurbRamps(commonData, "Sidewalk - Labeling Guide", request.identity))
-    }
-  }
-
-  def labelingGuideSurfaceProblems = cc.securityService.SecuredAction { implicit request =>
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Labeling_Guide_Surface_Problems")
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_Labeling_Guide_Curb_Ramps")
       Ok(
-        views.html.labelingGuide.labelingGuideSurfaceProblems(commonData, "Sidewalk - Labeling Guide", request.identity)
+        views.html.labelingGuide
+          .labelingGuideCurbRamps(commonData, Messages("seo.title.labeling.guide"), request.identity)
       )
     }
   }
 
-  def labelingGuideObstacles = cc.securityService.SecuredAction { implicit request =>
+  def labelingGuideSurfaceProblems = cc.securityService.UserAwareAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Labeling_Guide_Obstacles")
-      Ok(views.html.labelingGuide.labelingGuideObstacles(commonData, "Sidewalk - Labeling Guide", request.identity))
+      cc.loggingService.insert(
+        request.identity.map(_.userId),
+        request.ipAddress,
+        "Visit_Labeling_Guide_Surface_Problems"
+      )
+      Ok(
+        views.html.labelingGuide
+          .labelingGuideSurfaceProblems(commonData, Messages("seo.title.labeling.guide"), request.identity)
+      )
     }
   }
 
-  def labelingGuideNoSidewalk = cc.securityService.SecuredAction { implicit request =>
+  def labelingGuideObstacles = cc.securityService.UserAwareAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Labeling_Guide_No_Sidewalk")
-      Ok(views.html.labelingGuide.labelingGuideNoSidewalk(commonData, "Sidewalk - Labeling Guide", request.identity))
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_Labeling_Guide_Obstacles")
+      Ok(
+        views.html.labelingGuide
+          .labelingGuideObstacles(commonData, Messages("seo.title.labeling.guide"), request.identity)
+      )
     }
   }
 
-  def labelingGuideOcclusion = cc.securityService.SecuredAction { implicit request =>
+  def labelingGuideNoSidewalk = cc.securityService.UserAwareAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Labeling_Guide_Occlusion")
-      Ok(views.html.labelingGuide.labelingGuideOcclusion(commonData, "Sidewalk - Labeling Guide", request.identity))
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_Labeling_Guide_No_Sidewalk")
+      Ok(
+        views.html.labelingGuide
+          .labelingGuideNoSidewalk(commonData, Messages("seo.title.labeling.guide"), request.identity)
+      )
+    }
+  }
+
+  def labelingGuideOcclusion = cc.securityService.UserAwareAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_Labeling_Guide_Occlusion")
+      Ok(
+        views.html.labelingGuide
+          .labelingGuideOcclusion(commonData, Messages("seo.title.labeling.guide"), request.identity)
+      )
     }
   }
 
   /**
    * Returns the terms page.
    */
-  def terms = cc.securityService.SecuredAction { implicit request =>
+  def terms = cc.securityService.UserAwareAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Terms")
-      Ok(views.html.terms(commonData, "Sidewalk - Terms", request.identity))
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_Terms")
+      Ok(views.html.terms(commonData, Messages("seo.title.terms"), request.identity))
     }
   }
 
@@ -189,9 +239,13 @@ class ApplicationController @Inject() (
    * Returns the LabelMap page that contains a cool visualization.
    */
   def labelMap(regions: Option[String], routes: Option[String], aiValidationOptions: Option[String]) =
-    cc.securityService.SecuredAction { implicit request =>
+    cc.securityService.UserAwareAction { implicit request =>
       if (ControllerUtils.isMobile(request)) {
-        cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_LabelMap_RedirectMobileLanding")
+        cc.loggingService.insert(
+          request.identity.map(_.userId),
+          request.ipAddress,
+          "Visit_LabelMap_RedirectMobileLanding"
+        )
         Future.successful(Redirect("/mobileLanding"))
       } else {
         val regionIds: Seq[Int]    = parseIntegerSeq(regions)
@@ -203,10 +257,17 @@ class ApplicationController @Inject() (
           commonData <- configService.getCommonPageData(request2Messages.lang)
           tags       <- labelService.getTagsForCurrentCity
         } yield {
-          cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
+          cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, activityStr)
           Ok(
-            views.html.apps.labelMap(commonData, "Sidewalk - LabelMap", request.identity, tags, regionIds, routeIds,
-              aiValOpts)
+            views.html.apps.labelMap(
+              commonData,
+              Messages("seo.title.label.map", commonData.currentCity.cityNameShort),
+              request.identity,
+              tags,
+              regionIds,
+              routeIds,
+              aiValOpts
+            )
           )
         }
       }
@@ -238,14 +299,23 @@ class ApplicationController @Inject() (
       }
   }
 
-  def routeBuilder = cc.securityService.SecuredAction { implicit request =>
+  def routeBuilder = cc.securityService.UserAwareAction { implicit request =>
     if (ControllerUtils.isMobile(request)) {
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_RouteBuilder_RedirectMobileLanding")
+      cc.loggingService.insert(
+        request.identity.map(_.userId),
+        request.ipAddress,
+        "Visit_RouteBuilder_RedirectMobileLanding"
+      )
       Future.successful(Redirect("/mobileLanding"))
     } else {
-      configService.getCommonPageData(request2Messages.lang).map { commonData =>
-        cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_RouteBuilder")
-        Ok(views.html.apps.routeBuilder(commonData, request.identity))
+      for {
+        commonData    <- configService.getCommonPageData(request2Messages.lang)
+        labelingSpeed <- configService.getCityLabelingSpeed()
+      } yield {
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_RouteBuilder")
+        // Fallback pace for cities with no interaction data yet: ~4 min/100 m, the typical value across deployments
+        // on /admin/across-cities as of 2026-07.
+        Ok(views.html.apps.routeBuilder(commonData, request.identity, labelingSpeed.getOrElse(4.0)))
       }
     }
   }
@@ -253,10 +323,10 @@ class ApplicationController @Inject() (
   /**
    * Returns the cities dashboard page showing all Project Sidewalk deployment cities.
    */
-  def cities = cc.securityService.SecuredAction { implicit request =>
+  def cities = cc.securityService.UserAwareAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Deployment_Cities_Dashboard")
-      Ok(views.html.deploymentSitesDashboard("Project Sidewalk - Cities", commonData, request.identity))
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_Deployment_Cities_Dashboard")
+      Ok(views.html.deploymentSitesDashboard(Messages("seo.title.cities"), commonData, request.identity))
     }
   }
 }

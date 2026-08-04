@@ -81,5 +81,15 @@
     "name-too-short": "Team name must be at least 2 characters.",
     "create-failed": "Could not create the team. Please try again.",
     "network-error": "Network error — please try again."
-  }
-}
+  },
+  "stories": {
+    "none": "You haven’t written any stories yet. Find a label on the map and choose “Write your story” to add one."
+  },
+  "routes-link-copied": "Link copied!",
+  "routes-rename-aria": "New route name",
+  "routes-rename-save": "Save",
+  "routes-rename-cancel": "Cancel",
+  "routes-renamed": "Route renamed.",
+  "routes-deleted": "Deleted \"{{name}}\".",
+  "routes-delete-confirm": "Delete \"{{name}}\"? Anyone you shared its link with will no longer be able to use it.",
+  "routes-error": "Something went wrong. Please try again."}

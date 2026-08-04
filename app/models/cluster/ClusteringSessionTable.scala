@@ -42,8 +42,7 @@ class ClusteringSessionTableDef(tag: Tag) extends Table[ClusteringSession](tag, 
   def * = (clusteringSessionId, regionId, thresholds, timestamp) <>
     ((ClusteringSession.apply _).tupled, ClusteringSession.unapply)
 
-//  def region: ForeignKeyQuery[RegionTable, Region] =
-//    foreignKey("clustering_session_region_id_fkey", regionId, TableQuery[RegionTableDef])(_.regionId)
+  def region = foreignKey("clustering_session_region_id_fkey", regionId, TableQuery[RegionTableDef])(_.regionId)
 }
 
 @ImplementedBy(classOf[ClusteringSessionTable])

@@ -1,0 +1,5 @@
+@(icon: String)(implicit assets: AssetsFinder)
+@* Leading icon for an item in a navbar dropdown. `icon` is the base name of a feather SVG in images/icons/, so the
+   menus stay on the shared icon set (docs/style-guide.md) rather than each item hand-rolling a path. The alt is empty
+   because the item's own text is the accessible name. *@
+<img class="dropdown-icon" src='@assets.path("images/icons/" + icon + "-feather.svg")' alt="" aria-hidden="true">

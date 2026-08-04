@@ -1,6 +1,9 @@
 # Routes / URLs for the website.
 GET     /                                               controllers.ApplicationController.index
 GET     /home                                           controllers.ApplicationController.index
+GET     /about                                          controllers.ApplicationController.about
+GET     /robots.txt                                     controllers.SeoController.robots
+GET     /sitemap.xml                                    controllers.SeoController.sitemap
 GET     /api                                            controllers.ApiDocsController.index
 GET     /developer                                      controllers.ApiDocsController.index
 GET     /terms                                          controllers.ApplicationController.terms
@@ -51,10 +54,8 @@ POST    /cspReport                                      controllers.SecurityPoli
 GET     /cityMapParams                                  controllers.ConfigController.getCityMapParams()
 
 # Admin
-# Redesigned admin dashboard (#4272) is now the default /admin. The legacy monolith is kept reachable at /admin/classic
-# for one release (linked as "Classic Admin" in the dashboard sidebar) before it is removed.
+# Admin dashboard (redesign #4272).
 GET     /admin                                          controllers.AdminDashboardController.overview
-GET     /admin/classic                                  controllers.AdminController.index
 GET     /admin/overview                                 controllers.AdminDashboardController.overview
 GET     /admin/coverage                                 controllers.AdminDashboardController.coverage
 GET     /admin/street-status                             controllers.AdminDashboardController.streetStatus
@@ -62,43 +63,34 @@ GET     /admin/label-map                                controllers.AdminDashboa
 GET     /admin/quality                                  controllers.AdminDashboardController.quality
 GET     /admin/contributors                             controllers.AdminDashboardController.contributors
 GET     /admin/activity                                 controllers.AdminDashboardController.activity
+GET     /admin/stories                                  controllers.AdminDashboardController.stories
 GET     /admin/humans-vs-ai                             controllers.AdminDashboardController.humansVsAi
 GET     /admin/api-analytics                            controllers.AdminDashboardController.apiAnalytics
 GET     /admin/management                               controllers.AdminDashboardController.management
 GET     /admin/across-cities                            controllers.AdminDashboardController.acrossCities
+GET     /admin/health                                   controllers.AdminDashboardController.health
 GET     /admin/user/:username                           controllers.AdminController.userProfile(username: String)
 GET     /admin/task/:taskId                             controllers.AdminController.task(taskId: Int)
 GET     /admin/label/:labelId                           controllers.AdminController.label(labelId: Int)
 
+GET     /adminapi/dbHealth                              controllers.AdminDashboardController.getDbHealth
 GET     /adminapi/neighborhoodCompletionRate            controllers.AdminController.getNeighborhoodCompletionRate(regions: Option[String] ?= None)
-GET     /adminapi/userMissionCounts                     controllers.AdminController.getAllUserCompletedMissionCounts
-GET     /adminapi/allSignInCounts                       controllers.AdminController.getAllUserSignInCounts
-GET     /adminapi/completionRateByDate                  controllers.AdminController.getCompletionRateByDate
 GET     /adminapi/auditpath/:id                         controllers.AdminController.getAnAuditTaskPath(id: Int)
 GET     /adminapi/auditedStreetTimes                    controllers.AdminController.getAuditedStreetsWithTimestamps
 GET     /adminapi/labels/all                            controllers.AdminController.getAllLabels
 GET     /adminapi/labelTags                             controllers.AdminController.getTagCounts
 GET     /adminapi/tagSeverity                            controllers.AdminController.getTagSeverityCounts
 GET     /adminapi/label/id/:labelId                     controllers.AdminController.getAdminLabelData(labelId: Int)
-GET     /adminapi/labelCounts                           controllers.AdminController.getAllUserLabelCounts
 GET     /adminapi/panos                                 controllers.api.LabelApiController.getAllPanoIdsWithLabels
 GET     /adminapi/labels/cvMetadata                     controllers.api.LabelApiController.getAllLabelMetadataForCV(filetype: Option[String], inline: Option[Boolean])
-GET     /adminapi/validationCounts                      controllers.AdminController.getAllUserValidationCounts
 PUT     /adminapi/clearPlayCache                        controllers.AdminController.clearPlayCache()
 GET     /adminapi/updateUserStats                       controllers.AdminController.updateUserStats(hoursCutoff: Option[Int])
 GET     /adminapi/updateFunnelStats                     controllers.AdminController.updateFunnelStats
-GET     /adminapi/getCoverageData                       controllers.AdminController.getCoverageData
-GET     /adminapi/getNumUsersContributed                controllers.AdminController.getNumUsersContributed
 GET     /adminapi/getContributionTimeStats              controllers.AdminController.getContributionTimeStats
-GET     /adminapi/getLabelCountStats                    controllers.AdminController.getLabelCountStats
-GET     /adminapi/getValidationCountStats               controllers.AdminController.getValidationCountStats
-GET     /adminapi/getRecentComments                     controllers.AdminController.getRecentComments
 GET     /adminapi/recentActivity                        controllers.AdminController.getRecentActivity(n: Int ?= 25)
-GET     /adminapi/getRecentLabelMetadata                controllers.AdminController.getRecentLabelMetadata
 GET     /adminapi/getUserStats                          controllers.AdminController.getUserStats
 GET     /adminapi/contributorLeaderboards               controllers.AdminController.getContributorLeaderboards(n: Int ?= 15)
 GET     /adminapi/funnels                               controllers.AdminController.getCurrentCityFunnels(window: Option[String])
-GET     /adminapi/apiAnalytics                          controllers.AdminController.getApiAnalytics(excludeApiDocs: Boolean ?= true, days: Int ?= 30)
 GET     /adminapi/apiAnalyticsBySource                  controllers.AdminController.getApiAnalyticsBySource(days: Int ?= 30)
 GET     /adminapi/activityByDay                          controllers.AdminController.getActivityByDay
 GET     /adminapi/humanVsAi                              controllers.AdminController.getHumanVsAiStats
@@ -114,13 +106,14 @@ PUT     /adminapi/setTaskFlag                           controllers.AdminControl
 PUT     /adminapi/updateTeamStatus/:teamId              controllers.AdminController.updateTeamStatus(teamId: Int)
 PUT     /adminapi/updateTeamVisibility/:teamId          controllers.AdminController.updateTeamVisibility(teamId: Int)
 GET     /adminapi/checkImagery                          controllers.AdminController.checkImagery()
+GET     /adminapi/refreshOsmWayData                     controllers.AdminController.refreshOsmWayData()
 GET     /adminapi/threadPoolStats                       controllers.AdminController.getThreadPoolStats
 
 GET     /labels/all                                     controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
 GET     /label/id/:labelId                              controllers.LabelController.getLabelData(labelId: Int)
 
 # Auditing tasks
-GET     /explore                                        controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
+GET     /explore                                        controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None, placeName: Option[String] ?= None, heading: Option[Double] ?= None, pitch: Option[Double] ?= None, zoom: Option[Int] ?= None)
 GET     /explore/recalculateStreetPriority              controllers.AdminController.recalculateStreetPriority
 POST    /explore/comment                                controllers.ExploreController.postComment
 POST    /explore/nostreetview                           controllers.ExploreController.postNoImagery
@@ -129,7 +122,7 @@ POST    /survey                                         controllers.ExploreContr
 GET     /neighborhoodMissions                           controllers.ExploreController.getUserMissionsInRegion(regionId: Int)
 
 # Exploring task reroutes from old names.
-GET     /audit                                          controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
+GET     /audit                                          controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None, placeName: Option[String] ?= None, heading: Option[Double] ?= None, pitch: Option[Double] ?= None, zoom: Option[Int] ?= None)
 
 # Label validation tasks
 GET     /validate                                       controllers.ValidateController.validate(neighborhoods: Option[String] ?= None, unvalidatedOnly: Option[Boolean] ?= None)
@@ -139,6 +132,7 @@ GET     /adminValidate                                  controllers.ValidateCont
 # Task API
 GET     /tasks                                          controllers.ExploreController.getTasksInARegion(regionId: Int)
 GET     /routeTasks                                     controllers.ExploreController.getTasksInARoute(userRouteId: Int)
+GET     /speedLimit                                     controllers.ExploreController.getSpeedLimit(lat: Double, lng: Double)
 POST    /task                                           controllers.ExploreController.post
 POST    /validationTask                                 controllers.ValidateController.post
 POST    /galleryTask                                    controllers.GalleryController.post
@@ -207,7 +201,13 @@ GET     /labelsToClusterInRegion                        controllers.ClusterContr
 POST    /clusteringResults                              controllers.ClusterController.postClusteringResults(regionId: Int)
 
 # RouteBuilder
+GET     /routes                                         controllers.RouteBuilderController.routesPage
 POST    /saveRoute                                      controllers.RouteBuilderController.saveRoute
+GET     /userapi/routes                                 controllers.RouteBuilderController.getUserRoutes
+GET     /userapi/routes/:routeId/streets                controllers.RouteBuilderController.getRouteStreets(routeId: Int)
+PUT     /userapi/routes/:routeId                        controllers.RouteBuilderController.updateRoute(routeId: Int)
+DELETE  /userapi/routes/:routeId                        controllers.RouteBuilderController.deleteRoute(routeId: Int)
+GET     /r/:slug                                        controllers.RouteBuilderController.routeBySlug(slug: String)
 
 # Images
 POST    /saveImage                                      controllers.ImageController.saveImage
@@ -215,6 +215,19 @@ GET     /cropImage/:labelType/:labelId/metadata         controllers.ImageControl
 GET     /cropImage/:labelType/:labelId                  controllers.ImageController.serveCropImage(labelType: String, labelId: Int)
 GET     /backupImage/:panoId/metadata                   controllers.ImageController.getBackupImageMetadata(panoId: String)
 GET     /backupImage/:panoId                            controllers.ImageController.serveBackupImage(panoId: String)
+
+# Lived-experience stories (#4054). Read + media serving are public (the /label/:id share page has no session).
+# The per-label read lives under /label/:labelId (two segments, so it can't shadow the /label/:labelId wildcard).
+GET     /stories                                        controllers.StoryController.storiesPage
+GET     /label/:labelId/stories                         controllers.StoryController.getStories(labelId: Int)
+GET     /storyMedia/:storyMediaId                       controllers.StoryController.serveStoryMedia(storyMediaId: Int)
+POST    /userapi/stories                                controllers.StoryController.submitStory
+PUT     /userapi/stories/:storyId                       controllers.StoryController.updateOwnStory(storyId: Int)
+DELETE  /userapi/stories/:storyId                       controllers.StoryController.deleteOwnStory(storyId: Int)
+GET     /userapi/stories/mine                           controllers.StoryController.getMyStories
+GET     /adminapi/stories                               controllers.StoryController.getRecentStories(n: Int ?= 50)
+PUT     /adminapi/stories/:storyId/visibility           controllers.StoryController.setStoryVisibility(storyId: Int)
+DELETE  /adminapi/stories/:storyId                      controllers.StoryController.adminDeleteStory(storyId: Int)
 
 # AI
 POST    /ai/analyzeScene                                controllers.AiController.analyzeScene()

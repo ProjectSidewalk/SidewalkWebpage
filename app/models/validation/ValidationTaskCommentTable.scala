@@ -2,6 +2,9 @@ package models.validation
 
 import com.google.inject.ImplementedBy
 import models.audit.GenericComment
+import models.label.LabelTableDef
+import models.mission.MissionTableDef
+import models.pano.PanoDataTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
@@ -44,6 +47,12 @@ class ValidationTaskCommentTableDef(tag: Tag) extends Table[ValidationTaskCommen
 
   def * = (validationTaskCommentId, missionId, labelId, userId, ipAddress, panoId, heading, pitch, zoom, lat, lng,
     timestamp, comment) <> ((ValidationTaskComment.apply _).tupled, ValidationTaskComment.unapply)
+
+  def mission =
+    foreignKey("validation_task_comment_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
+  def label = foreignKey("validation_task_comment_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
+  def user  = foreignKey("validation_task_comment_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def pano  = foreignKey("validation_task_comment_pano_id_fkey", panoId, TableQuery[PanoDataTableDef])(_.panoId)
 }
 
 @ImplementedBy(classOf[ValidationTaskCommentTable])
@@ -63,8 +72,17 @@ class ValidationTaskCommentTable @Inject() (
     (validationTaskComments returning validationTaskComments.map(_.validationTaskCommentId)) += comment
   }
 
-  def deleteIfExists(labelId: Int, missionId: Int): DBIO[Int] = {
-    validationTaskComments.filter(comment => comment.labelId === labelId && comment.missionId === missionId).delete
+  /**
+   * Deletes a user's comment(s) on a label, if any. Called when they replace or clear their validation of it.
+   *
+   * Scoped by user rather than by mission: a comment belongs to whoever wrote it, and the mission it was written under
+   * has usually rolled over by the time the same user revisits the label from a label card (#4653). Matching on the
+   * current mission would strand the old comment on a label whose validation had just been replaced or cleared.
+   *
+   * @return Count of comments deleted, normally 0 or 1.
+   */
+  def deleteIfExists(labelId: Int, userId: String): DBIO[Int] = {
+    validationTaskComments.filter(comment => comment.labelId === labelId && comment.userId === userId).delete
   }
 
   /**

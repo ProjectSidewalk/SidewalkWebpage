@@ -1,5 +1,4 @@
 {
-  "user-description": "使用者描述： ",
   "top-ui": {
     "title": {
       "curb-ramp": "這是<b>路緣斜坡嗎</b>？",
@@ -11,7 +10,9 @@
       "signal": "這是<b>行人號誌</b>嗎？"
     },
     "visibility-control-hide": "隱藏標記<u>H</u>",
-    "visibility-control-show": "顯示標記<u>h</u>"
+    "visibility-control-show": "顯示標記<u>h</u>",
+    "visibility-control-tooltip-hide": "暫時隱藏標記以看得更清楚。(<u>H</u>)",
+    "visibility-control-tooltip-show": "重新顯示標記。(<u>h</u>)"
   },
   "validate-menu": {
     "disagree-reason": {
@@ -89,7 +90,8 @@
     }
   },
   "center-ui": {
-    "no-info": "無資訊"
+    "no-info": "無資訊",
+    "pano-interactive-message": "拖曳環顧四周，捲動放大細看。"
   },
   "mission-start": {
     "title": "檢核{{n}} {{label_type}}標記",

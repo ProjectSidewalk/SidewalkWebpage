@@ -2,13 +2,16 @@
 @import play.api.Configuration
 @import service.CommonPageData
 @import models.pano.PanoSource
-@(commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, labelType: String,
-  labels: Seq[(String, String)], regionIds: Seq[Int], severities: Seq[String], tags: List[String],
+@import models.label.Tag
+@import play.api.libs.json.Json
+@(commonData: service.CommonPageData, title: String, user: Option[models.user.SidewalkUserWithRole], labelTypes: Seq[String],
+  allTags: Seq[Tag], regionIds: Seq[Int], regionNames: Map[Int, String], severities: Seq[String], tags: List[String],
   valOptions: Seq[String], aiValOptions: Seq[String]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@common.main(commonData, title, i18Namespaces = Seq("common", "gallery", "labelmap")) {
+@common.main(commonData, title, i18Namespaces = Seq("common", "gallery", "labelmap"),
+  pageMeta = service.PageMeta(description = Some(Messages("seo.description.gallery", currentCity.cityNameShort)))) {
   @if(commonData.imagerySource == PanoSource.Infra3d) {
     <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
     <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
@@ -28,47 +31,33 @@
     <img id="loading-animation" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'>
   </div>
 
-  @common.navbar(commonData, Some(user))
+  @common.navbar(commonData, user)
 
   @common.icons()
 
   <div id="gallery">
     <div class="sidebar">
-      <div id="card-filter">
-        <div id="city-filter-holder" class="filter-section-holder">
-          <label for="city-select" id="city-select-header"><b>@Messages("navbar.city")</b></label>
-          <select id="city-select" class="gallery-filter" disabled>
-          @for(city <-commonData.allCityInfo.filter(c => c.visibility == "public" || c.cityId == commonData.cityId).sortBy(c => (c.countryId, c.stateId, c.cityId))) {
-            @if(city.cityId == commonData.cityId) {
-              <option value="@city.URL" selected>@city.cityNameFormatted</option>
-            } else {
-              <option value="@city.URL">@city.cityNameFormatted</option>
-            }
-          }
-          </select>
+      @* The shared filter sidebar (#4585). Sections keep the LabelMap's order so the two sidebars read the same.
+         Label types are single-select here: a card query fetches one type at a time, so the selected type's tag
+         drawer is the only one open. *@
+      <div id="card-filter" class="filter-sidebar--loading">
+        <div class="gallery-filter-header">
+          <h4 id="filter-header" data-i18n="gallery:filter-by">@Messages("gallery.filter.by")</h4>
+          @* The global reset, distinct from the per-section "Deselect all" text actions beside it. *@
+          <button type="button" id="clear-filters" class="button-ps button--tiny button--secondary" hidden>
+            <span aria-hidden="true">&#10006;</span>
+            <span data-i18n="gallery:clear-filters">@Messages("gallery.clear.filters")</span>
+          </button>
         </div>
-        <div id="filters">
-          <h4 id="filter-header"><b>@Messages("gallery.filter.by")</b></h4>
-          <label for="label-select" id="label-type-filter-holder" class="filter-subheader">@Messages("label.type")</label>
-          <span id="label-type-holder">
-            <select id="label-select" class="gallery-filter" disabled>
-            @for((value, message) <-labels) {
-              @if(value == labelType){
-                <option value="@value" selected>@message</option>
-              } else {
-                <option value="@value">@message</option>
-              }
-            }
-            </select>
-          </span>
-          <h5 id="severity-header" class="filter-subheader">@Messages("severity")</h5>
-          <span id="severity-select"></span>
-          <h5 id="tags-header" class="filter-subheader">@Messages("gallery.tags")</h5>
-          <span id="tags"></span>
-          <h5 id="validation-options-header" class="filter-subheader">@Messages("validations")</h5>
-          <span id="validation-options"></span>
-          <button type="button" id="clear-filters" hidden><h6>&#10006; @Messages("gallery.clear.filters")</h6></button>
-        </div>
+        @common.filterSidebar(
+          tags = allTags,
+          sections = Seq("severity", "label-type", "validations"),
+          withMapChrome = false,
+          checkedLabelTypes = labelTypes,
+          checkedValidations = valOptions,
+          checkedSeverities = severities.map(s => if(s == "null") "0" else s),
+          activeTags = tags
+        )
       </div>
     </div>
     <div id="labels-not-found-text">
@@ -97,17 +86,20 @@
       // URL for where to send interaction data
       params.dataStoreUrl = '@routes.GalleryController.post';
 
-      // Initial set of sidebar filters.
+      @* The filters with controls of their own are read off the rendered sidebar; these two have no UI yet, so the
+         page carries them through for the card query and the URL. *@
       params.initialFilters = {
-        labelType: '@labelType',
         neighborhoods: @{regionIds.mkString("[", ",", "]")},
-        severities: @{if (severities.isEmpty) "[]" else Html(severities.mkString("['", "','", "']"))},
-        validationOptions: @{if (valOptions.isEmpty) "[]" else Html(valOptions.mkString("['", "','", "']"))},
-        tags: @{if (tags.isEmpty) "[]" else Html(tags.mkString("['", "','", "']"))},
         aiValidationOptions: @{if (aiValOptions.isEmpty) "[]" else Html(aiValOptions.mkString("['", "','", "']"))}
       }
 
+      @* Neighborhood names, keyed by the region id each label carries, for the location line on a card. *@
+      params.regionNames = @Html(Json.stringify(Json.toJson(regionNames.map { case (id, name) => id.toString -> name })));
+
       params.language = "@messages.lang.code";
+      @* Anonymous sessions have autogenerated usernames (and cookie-less visitors none at all), so only a real
+         account's name reaches the story composer. *@
+      params.currUsername = @if(user.exists(_.role != "Anonymous")) {"@user.map(_.username)"} else {null};
       const imagerySrc = "@commonData.imagerySource.toString";
       params.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
       params.viewerAccessToken = "@commonData.imageryAccessToken";
@@ -117,5 +109,6 @@
 
   <link rel="stylesheet" href='@assets.path("css/label-detail.css")'>
   <link rel="stylesheet" href='@assets.path("css/tag-pills.css")'>
+  <link rel="stylesheet" href='@assets.path("css/filter-sidebar.css")'>
   <link rel="stylesheet" href='@assets.path("js/gallery/build/gallery.css")'>
 }

@@ -17,8 +17,6 @@ class LabelContainer {
     validationTimestamp: new Date(),
   };
 
-  #labelsUpdateCallback = () => {};
-
   /**
    * @param {Array} labelList Initial list of labels to be validated (generated when the page is loaded).
    */
@@ -123,10 +121,16 @@ class LabelContainer {
     await svv.panoManager.setPanorama(
       this.#currLabel.getAuditProperty('panoId'), this.#currLabel.getAuditProperty('backupImage'),
     );
-    svv.labelDescriptionBox.setDescription(this.#currLabel);
+    // The card is anchored to the marker of the label we're leaving, so it can't carry over to the next one.
+    // (Undefined on the very first render, which happens while LabelContainer itself is still being constructed.)
+    svv.labelVisibilityControl?.hideLabelCard();
+    svv.labelCard.render(this.#currLabel);
     svv.validationMenu.resetMenu(this.#currLabel);
     if (svv.adminVersion) svv.adminInfo.updateAdminInfo(this.#currLabel);
     svv.panoManager.renderPanoMarker(this.#currLabel);
+    // Every label starts visible. Without this the toggle keeps saying "Show Label" over a marker that renderPanoMarker
+    // just drew in full — you'd have to hide and re-show to get the two back in agreement.
+    svv.labelVisibilityControl?.unhideLabel();
 
     // Re-enable UI interaction now that everything has loaded. Also need to invalidate the cached cursor so that it
     // will reset, which is why we attach a timestamp to it below.
@@ -145,15 +149,6 @@ class LabelContainer {
     this.#labels = labelList.map((key) => new Label(key));
     this.#currLabelIndex = 0;
     this.#currLabel = this.#labels[this.#currLabelIndex];
-    this.#labelsUpdateCallback();
-  }
-
-  /**
-   * Sets the callback that will be called after resetLabelList is called. Used by SpeedLimit.js.
-   * @param {function} callback The function that will be called.
-   */
-  resetLabelListUpdateCallback(callback) {
-    this.#labelsUpdateCallback = callback;
   }
 
   /**

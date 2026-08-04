@@ -1,16 +1,43 @@
-.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh stage-import test-python lint-evolutions lint-locales scalafmt scalafmt-fix
+.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop test-python test-e2e \
+        import-users import-dump create-new-schema fill-new-schema hide-streets-without-imagery \
+        import-street-imagery reveal-or-hide-neighborhoods \
+        lint lint-fix lint-evolutions lint-locales scalafmt scalafmt-fix \
+        eslint htmlhint stylelint eslint-fix stylelint-fix \
+        lint-eslint lint-htmlhint lint-stylelint lint-fix-eslint lint-fix-stylelint
+
+# Container names — the only two lines to change if your containers are named differently.
+web-container ?= projectsidewalk-web
+db-container  ?= projectsidewalk-db
 
 db ?= sidewalk
 dir ?= ./
 args ?=
+wt ?=
+clean ?=
 
-# ANSI colors for the `lint` summary (interpreted by printf's backslash-escape handling).
+# `clean=1` (or true/yes) expands to the qa-worktree-stop --clean flag; anything else (incl. empty) expands to nothing.
+qa-stop-clean-flag = $(if $(filter 1 true yes,$(clean)),--clean,)
+
+# Resolve which copy of qa-worktree.sh to run, then exec it with the args in $(1). The main repo is mounted at the
+# container's /home, so /home/tools/qa-worktree.sh is the script as it exists on whatever branch the MAIN checkout
+# happens to be on — which may predate the script entirely (#4628). Prefer the worktree's own copy so the branch being
+# QA'd supplies its own tooling, and fall back to the main repo's for worktrees branched before the script existed.
+# Held in a variable rather than written inline in a recipe: make condenses a variable's backslash-continuations into
+# single spaces at parse time, so the container's shell receives one flat line — no reliance on how a given make version
+# passes continuations and leading tabs through to the shell (macOS still ships make 3.81, WSL/Linux run 4.x).
+qa-worktree-exec = script="/home/.claude/worktrees/$(wt)/tools/qa-worktree.sh"; \
+  [ -f "$$script" ] || script=/home/tools/qa-worktree.sh; \
+  [ -f "$$script" ] || { echo "error: no tools/qa-worktree.sh in worktree $(wt) or in the main checkout"; exit 1; }; \
+  exec bash "$$script" $(1)
+# Both qa-worktree targets fail fast on a missing wt= rather than passing an empty name into the container.
+qa-worktree-require-wt = @[ -n "$(wt)" ] || { echo "usage: make $@ wt=<name>   (a dir under .claude/worktrees/)"; exit 2; }
+
+# ANSI colors for the `lint` summary.
 GREEN := \033[0;32m
 RED   := \033[0;31m
 BOLD  := \033[1m
 RESET := \033[0m
-# dir= as stylelint sees it: passed through if it already names a .css file/glob, else treated as a directory and
-# recursed (stylelint only accepts file paths/globs; see lint-stylelint).
+# stylelint only accepts file paths/globs, so a dir= that isn't already a .css file/glob gets /**/*.css appended.
 css-glob = $(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css)
 
 dev: | docker-up-db docker-run
@@ -25,12 +52,11 @@ eslint-fix: | lint-fix-eslint
 
 stylelint-fix: | lint-fix-stylelint
 
-# Runs all four frontend linters, streaming each one's output, then prints a green ✓ / red ✗ line per linter and a
-# colored final summary so pass/fail is legible at a glance. Every linter runs even if an earlier one fails (so you see
-# every problem in one pass), and the target still exits non-zero if any failed.
+# Runs every linter (four frontend + evolutions) even if an earlier one fails, so all problems surface in one pass,
+# then prints a ✓/✗ per linter and a colored summary. Exits non-zero if any failed.
 lint:
 	@fail=0; \
-	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales; do \
+	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-evolutions; do \
 		if $(MAKE) --no-print-directory $$t; then \
 			printf "$(GREEN)✓ %s passed$(RESET)\n" "$$t"; \
 		else \
@@ -60,111 +86,120 @@ docker-stop:
 	@docker compose rm -f
 
 docker-run:
-	@docker compose run --rm --service-ports --name projectsidewalk-web web /bin/bash
+	@docker compose run --rm --service-ports --name $(web-container) web /bin/bash
 
+# Usage: make ssh target=web|db.
 ssh:
-	@docker exec -it projectsidewalk-$${target} /bin/bash
+	@docker exec -it $($(target)-container) /bin/bash
+
+# Run an uncommitted git worktree's app on :9000 for QA (not the main repo). See tools/qa-worktree.sh and CLAUDE.md
+# "Running a worktree's app for QA". e.g. `make qa-worktree wt=remove-admin-classic`.
+qa-worktree:
+	$(qa-worktree-require-wt)
+	@docker exec -it $(web-container) bash -c '$(call qa-worktree-exec,$(wt))'
+
+# Tear down a qa-worktree session: stop its `~ run` and grunt watch. Add `clean=1` to also drop the node_modules
+# symlink. e.g. `make qa-worktree-stop wt=remove-admin-classic` or `make qa-worktree-stop wt=... clean=1`.
+qa-worktree-stop:
+	$(qa-worktree-require-wt)
+	@docker exec $(web-container) bash -c '$(call qa-worktree-exec,$(wt) --stop $(qa-stop-clean-flag))'
 
 import-users:
-	@docker exec -it projectsidewalk-db sh -c "/opt/scripts/import-users.sh"
+	@docker exec -it $(db-container) sh -c "/opt/scripts/import-users.sh"
 
 import-dump:
-	@docker exec -it projectsidewalk-db sh -c "/opt/scripts/import-dump.sh $(db)"
+	@docker exec -it $(db-container) sh -c "/opt/scripts/import-dump.sh $(db)"
 
 create-new-schema:
-	@docker exec -it projectsidewalk-db sh -c "/opt/scripts/create-new-schema.sh $(name)"
+	@docker exec -it $(db-container) sh -c "/opt/scripts/create-new-schema.sh $(name)"
 
 fill-new-schema:
-	@docker exec -it projectsidewalk-db sh -c "/opt/scripts/fill-new-schema.sh"
+	@docker exec -it $(db-container) sh -c "/opt/scripts/fill-new-schema.sh"
 
 hide-streets-without-imagery:
-	@docker exec -it projectsidewalk-db sh -c "/opt/scripts/hide-streets-without-imagery.sh"
+	@docker exec -it $(db-container) sh -c "/opt/scripts/hide-streets-without-imagery.sh"
 
 import-street-imagery:
-	@docker exec -it projectsidewalk-db sh -c "/opt/scripts/import-street-imagery.sh"
+	@docker exec -it $(db-container) sh -c "/opt/scripts/import-street-imagery.sh"
 
-# Run the Python utility test suite (test/python/) inside the running web container. Pass extra pytest flags via args=,
-# e.g. `make test-python args="-k bbox -v"`.
+# Python utility tests (test/python/) in the web container; extra pytest flags via args=, e.g. args="-k bbox -v".
 test-python:
-	@docker exec -it projectsidewalk-web sh -c "cd /home && python3 -m pytest test/python $(args)"
+	@docker exec -it $(web-container) sh -c "cd /home && python3 -m pytest test/python $(args)"
+
+# Browser smoke tests (test/e2e/) HOST-side against an already-running app at localhost:9000 (override with
+# BASE_URL=). Unlike the other targets this doesn't docker exec — Playwright drives a host browser. One-time
+# setup: `npm install && npx playwright install chromium`. Extra flags via args=, e.g. args="-g labelMap --headed".
+test-e2e:
+	@npx playwright test $(args)
 
 reveal-or-hide-neighborhoods:
-	@docker exec -it projectsidewalk-db sh -c "/opt/scripts/reveal-or-hide-neighborhoods.sh"
+	@docker exec -it $(db-container) sh -c "/opt/scripts/reveal-or-hide-neighborhoods.sh"
 
-# Static checks on the Play evolution files (conf/evolutions/default/*.sql). Runs on the host (just bash + grep), so no
-# container is needed. Also wired into CI as the blocking `evolutions-lint` job.
+# Static checks on conf/evolutions/default/*.sql. Host-side bash, no container needed. Also a blocking CI job.
 lint-evolutions:
 	@bash db/scripts/lint-evolutions.sh
 
-# Cross-locale key-parity check for public/locales/ (i18next-aware: plural-suffix + override-only handling that the
-# eslint-plugin-i18n-json rules can't do). Pure-node, no node_modules, but run in the web container so node is present,
-# matching the other lint targets. Also a blocking step in CI's frontend job.
+# Cross-locale key parity for public/locales/ (i18next plural/override handling that the eslint-plugin-i18n-json rules
+# can't do). Pure node, run in the web container so node is present. Also a blocking CI step.
 lint-locales:
 	@echo "Checking locale parity...";
-	@docker exec projectsidewalk-web bash -lc "cd /home && node tools/check-locale-parity.mjs"
+	@docker exec $(web-container) bash -lc "cd /home && node tools/check-locale-parity.mjs"
 	@echo "Finished checking locale parity";
 
-# Scala formatting (.scalafmt.conf), the backend counterpart to the eslint/stylelint targets above. Runs in the web
-# container via the sbt thin client (`--client`) so it shares the running `sbt ~ run`'s server instead of colliding
-# with it over build locks. `scalafmt` checks (matches the blocking CI gate); `scalafmt-fix` reformats in place.
+# Scala formatting (.scalafmt.conf). The sbt thin client (`--client`) shares the running `sbt ~ run`'s server instead
+# of colliding with it over build locks. `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats in place.
 scalafmt:
-	@echo "Checking Scala formatting..."; docker exec -it projectsidewalk-web bash -lc "cd /home && sbt --client scalafmtCheckAll"
+	@echo "Checking Scala formatting..."; docker exec -it $(web-container) bash -lc "cd /home && sbt --client scalafmtCheckAll"
 
 scalafmt-fix:
-	@echo "Formatting Scala..."; docker exec -it projectsidewalk-web bash -lc "cd /home && sbt --client scalafmtAll"
+	@echo "Formatting Scala..."; docker exec -it $(web-container) bash -lc "cd /home && sbt --client scalafmtAll"
 
-# The JS/CSS/HTML linters live in the web container's node_modules (there's no host-side npm install), so — like the
-# scalafmt targets above — these run in the container via `docker exec` and can therefore be invoked from the host.
-# `-e FORCE_COLOR=1` (not `docker exec -t`) restores the linters' colorized output: chalk auto-disables color when
-# stdout isn't a TTY, and forcing it this way keeps the targets working when piped/redirected, unlike a `-t` TTY.
+# The JS/CSS/HTML linters run in the web container, where their node_modules live (no host-side npm install).
+# `-e FORCE_COLOR=1` (not `docker exec -t`) restores colorized output while keeping the targets pipeable.
 lint-htmlhint:
 	@echo "Running HTMLHint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/htmlhint/bin/htmlhint $(args) ./app/views"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/htmlhint/bin/htmlhint $(args) ./app/views"; \
 	else \
-		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/htmlhint/bin/htmlhint $(args) $(dir)"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/htmlhint/bin/htmlhint $(args) $(dir)"; \
 	fi
 	@echo "Finished Running HTMLHint";
 
 lint-eslint:
 	@echo "Running eslint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) public/js/ public/locales/"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) public/js/ public/locales/ test/e2e/ playwright.config.js"; \
 	else \
-		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) $(dir)"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) $(dir)"; \
 	fi
 	@echo "Finished Running eslint";
 
-# Unlike eslint, stylelint doesn't recurse into a bare directory, so a dir= that isn't already a .css file/glob gets
-# /**/*.css appended (css-glob, defined at the top). Globs are single-quoted so stylelint's globber expands the `**`,
-# not the container shell (where bare `**` means `*`).
+# Globs are single-quoted so stylelint's globber expands the `**`, not the container shell (where bare `**` means `*`).
 lint-stylelint:
 	@echo "Running stylelint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/.bin/stylelint $(args) 'public/**/*.css'"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/.bin/stylelint $(args) 'public/**/*.css'"; \
 	else \
-		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/.bin/stylelint $(args) '$(css-glob)'"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/.bin/stylelint $(args) '$(css-glob)'"; \
 	fi
 	@echo "Finished Running stylelint";
 
 lint-fix-eslint:
 	@echo "Running eslint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) public/js/ public/locales/"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) public/js/ public/locales/ test/e2e/ playwright.config.js"; \
 	else \
-		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) $(dir)"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) $(dir)"; \
 	fi
 	@echo "Finished Running eslint";
 
-# Runs --fix twice: stylelint applies fixers in a single pass, so when the brace-newline fixers insert newlines the
-# indentation fixer has already computed against the old positions and leaves the new lines mis-indented — a second
-# pass corrects them. The first pass is silenced (output + exit code discarded); only the second pass's output and
-# exit status surface, so the target looks like a single run.
+# --fix runs twice: the brace-newline fixers insert lines after indentation is computed, leaving mis-indents that the
+# second pass corrects. The first pass is silenced, so it reads as a single run.
 lint-fix-stylelint:
 	@echo "Running stylelint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/.bin/stylelint --fix $(args) 'public/**/*.css' > /dev/null 2>&1; ./node_modules/.bin/stylelint --fix $(args) 'public/**/*.css'"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/.bin/stylelint --fix $(args) 'public/**/*.css' > /dev/null 2>&1; ./node_modules/.bin/stylelint --fix $(args) 'public/**/*.css'"; \
 	else \
-		docker exec -e FORCE_COLOR=1 projectsidewalk-web bash -lc "cd /home && ./node_modules/.bin/stylelint --fix $(args) '$(css-glob)' > /dev/null 2>&1; ./node_modules/.bin/stylelint --fix $(args) '$(css-glob)'"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/.bin/stylelint --fix $(args) '$(css-glob)' > /dev/null 2>&1; ./node_modules/.bin/stylelint --fix $(args) '$(css-glob)'"; \
 	fi
 	@echo "Finished Running stylelint";

@@ -25,7 +25,6 @@ class Main {
   #initUI() {
     sg.scrollStatus = {
       stickySidebar: true,
-      stickyExpandedView: true,
     };
 
     sg.ui = {};
@@ -34,20 +33,6 @@ class Main {
     sg.ui.cardFilter = {};
     sg.ui.cardFilter.wrapper = $('.sidebar');
     sg.ui.cardFilter.holder = $('#card-filter');
-    sg.ui.cardFilter.severity = $('#severity-select');
-    sg.ui.cardFilter.tags = $('#tags');
-    sg.ui.cardFilter.validationOptions = $('#validation-options');
-    sg.ui.cardFilter.clearFilters = $('#clear-filters');
-
-    // Initializes city select component in sidebar.
-    sg.ui.cityMenu = {};
-    sg.ui.cityMenu.holder = $('#city-filter-holder');
-    sg.ui.cityMenu.select = $('#city-select');
-
-    // Initializes label select component in sidebar.
-    sg.ui.labelTypeMenu = {};
-    sg.ui.labelTypeMenu.holder = $('#label-type-filter-holder');
-    sg.ui.labelTypeMenu.select = $('#label-select');
 
     // Initialize card container component.
     sg.ui.cardContainer = {};
@@ -66,9 +51,6 @@ class Main {
     sg.pageLoading = $('#page-loading');
     sg.labelsNotFound = $('#labels-not-found');
 
-    sg.ui.expandedView.container.css('position', 'absolute');
-    sg.ui.expandedView.container.css('visibility', 'hidden');
-
     // Calculate offset between bottom of navbar and sidebar.
     this.#headerSidebarOffset
             = sg.ui.cardFilter.wrapper.offset().top - (sg.ui.navbar.offset().top + sg.ui.navbar.outerHeight());
@@ -78,13 +60,15 @@ class Main {
     // Seed the all-time counts so validating a card can celebrate a newly unlocked validation badge.
     BadgeAchievements.seedCounts();
 
-    // Initialize functional components of UI elements.
-    sg.cityMenu = new CityMenu(sg.ui.cityMenu);
-    sg.labelTypeMenu = new LabelTypeMenu(sg.ui.labelTypeMenu, params.initialFilters.labelType);
+    // Neighborhood names for the cards' location line, keyed by the region id each label carries.
+    sg.regionNames = params.regionNames ?? {};
 
-    sg.cardFilter = new CardFilter(sg.ui.cardFilter, sg.labelTypeMenu, sg.cityMenu, params.initialFilters);
+    // Initialize functional components of UI elements.
+    sg.cardFilter = new GalleryFilter(
+      document.getElementById('card-filter'), document.getElementById('clear-filters'), params.initialFilters,
+    );
     sg.cardContainer = await CardContainer.create(
-      sg.ui.cardContainer, params.initialFilters, params.viewerType, params.viewerAccessToken,
+      sg.ui.cardContainer, params.initialFilters, params.viewerType, params.viewerAccessToken, params.currUsername,
     );
     sg.expandedView = () => sg.cardContainer.getExpandedView();
 
@@ -98,16 +82,13 @@ class Main {
     const sidebarWrapper = sg.ui.cardFilter.wrapper;
     const sidebarWidth = sidebarWrapper.css('width');
 
-    sg.ui.labelTypeMenu.select.change();
-
-    // Handle sidebar and expanded view stickiness while scrolling.
+    // Handle sidebar stickiness while scrolling. (The expanded view is position: fixed and needs no help.)
     $(window).scroll(() => {
       // Make sure the page isn't loading.
       if (!sg.pageLoading.is(':visible') && !sg.labelsNotFound.is(':visible')) {
         const sidebarBottomOffset = sidebarWrapper.offset().top + sidebarWrapper.outerHeight(true);
         const cardContainerBottomOffset = sg.ui.cardContainer.holder.offset().top
           + sg.ui.cardContainer.holder.outerHeight(true) - 5;
-        const visibleWindowBottomOffset = $(window).scrollTop() + $(window).height();
 
         // Handle sidebar stickiness.
         if (sg.scrollStatus.stickySidebar) {
@@ -138,20 +119,6 @@ class Main {
             sg.ui.cardContainer.holder.css('margin-left', sidebarWidth);
             sg.scrollStatus.stickySidebar = true;
           }
-        }
-
-        // Handle expanded view stickiness.
-        if (cardContainerBottomOffset < visibleWindowBottomOffset) {
-          if (sg.scrollStatus.stickyExpandedView) {
-            // Prevent expanded view from going too low (i.e., when a user scrolls down fast).
-            sg.ui.expandedView.container.css('top', cardContainerBottomOffset - $(window).height());
-            sg.scrollStatus.stickyExpandedView = false;
-          }
-        } else {
-          if (!sg.scrollStatus.stickyExpandedView) sg.scrollStatus.stickyExpandedView = true;
-
-          // Emulate the expanded view being "fixed".
-          sg.ui.expandedView.container.css('top', `calc(${$(window).scrollTop()}px + 1vh`);
         }
       }
     });

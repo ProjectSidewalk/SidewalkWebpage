@@ -121,13 +121,18 @@ class ModalMissionComplete {
     if (svl.neighborhoodModel.isRouteComplete) {
       this.#els.title.textContent = i18next.t('mission-complete.title-route-complete');
     } else if (svl.neighborhoodModel.isNeighborhoodComplete) {
-      this.#els.title.textContent = i18next.t('mission-complete.title-neighborhood-complete', { neighborhoodName });
+      // escapeValue off: the result lands in textContent, so i18next's HTML-escaping would show literal entities.
+      this.#els.title.textContent = i18next.t('mission-complete.title-neighborhood-complete', {
+        neighborhoodName, interpolation: { escapeValue: false },
+      });
     } else {
       this.#els.title.textContent = i18next.t('mission-complete.title-generic');
     }
+    // escapeValue off: the result lands in textContent, so i18next's HTML-escaping would show literal entities.
     this.#els.subtitle.textContent = i18next.t('mission-complete.subtitle', {
       distance: this.#formatMissionDistance(mission.getDistance('miles')),
       neighborhoodName,
+      interpolation: { escapeValue: false },
     });
   }
 
@@ -317,11 +322,18 @@ class ModalMissionComplete {
     // The secondary button always opens validation. The primary button starts the next explore mission, or loads a
     // fresh area once the user has finished the whole route/neighborhood.
     this.#els.secondaryButton.textContent = i18next.t('mission-complete.button-try-validation');
-    this.#els.primaryButton.textContent = i18next.t('mission-complete.button-next-mission');
-    if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
+    if (svl.neighborhoodModel.isRouteComplete) {
+      // After finishing a route, drop the user into free exploration right where they ended (#4451/#4579) rather
+      // than jumping to a fresh neighborhood mission elsewhere.
+      this.#els.primaryButton.textContent = i18next.t('mission-complete.button-keep-exploring-here');
+      this.#primaryAction = 'exploreHere';
+      this.#canContinue = true;
+    } else if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
+      this.#els.primaryButton.textContent = i18next.t('mission-complete.button-next-mission');
       this.#primaryAction = 'reloadExplore';
       this.#canContinue = true;
     } else {
+      this.#els.primaryButton.textContent = i18next.t('mission-complete.button-next-mission');
       this.#primaryAction = 'explore';
     }
 
@@ -341,7 +353,7 @@ class ModalMissionComplete {
     if (badge) BadgeAchievements.showUnlockToast(badge, this.#els.foreground);
   }
 
-  /** Hides the modal and resets the sidebar mission progress bar. */
+  /** Hides the modal and resets the sidebar and minimap mission progress bars for the next mission. */
   hide() {
     this.#isOpen = false;
     this.#showingScreen = false;
@@ -350,6 +362,7 @@ class ModalMissionComplete {
     this.#els.background.style.visibility = 'hidden';
 
     svl.missionProgressBar.update(0);
+    if (svl.minimap) svl.minimap.resetMissionProgress(this.#missionContainer.getCurrentMission());
   }
 
   /**
@@ -362,6 +375,16 @@ class ModalMissionComplete {
       window.location.replace('/validate');
     } else if (action === 'reloadExplore') {
       window.location.replace('/explore');
+    } else if (action === 'exploreHere') {
+      // Seed a free-exploration session (#4451) at the exact pano/heading where the route ended.
+      const pos = svl.panoViewer.getPosition();
+      const params = new URLSearchParams({
+        lat: pos.lat,
+        lng: pos.lng,
+        panoId: svl.panoViewer.getPanoId(),
+        heading: svl.panoViewer.getPov().heading,
+      });
+      window.location.replace(`/explore?${params.toString()}`);
     } else {
       svl.missionPanel.setMessage(this.#missionContainer.getCurrentMission());
       svl.navigationService.unlockDisableWalking();

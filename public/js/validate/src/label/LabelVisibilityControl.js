@@ -1,31 +1,61 @@
 /**
- * Handles the hiding and showing of labels in the panorama.
+ * Handles the hiding and showing of labels in the panorama, and owns the label card that hovering one opens.
  */
 class LabelVisibilityControl {
+  // Grace period before the card hides once the cursor leaves the marker. The card is a separate element sitting
+  // beside the icon, so without a delay the gap between the two is a dead zone that dismisses the card on the way
+  // over — and the card has a button in it that has to be reachable. Matches Explore's hover card (Canvas.js).
+  static #CARD_HIDE_DELAY_MS = 200;
+
+  // Feather-style eye / eye-off, inline so they take the button's colour through currentColor. The two icons this
+  // replaced were exports with a baked-in #2D2A3F fill, which read as a dark smudge on a dark button (#4726).
+  static #ICON_EYE_OFF = `<svg class="hide-label-button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1
+      12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+    <line x1="1" y1="1" x2="23" y2="23"/>
+  </svg>`;
+
+  static #ICON_EYE_ON = `<svg class="hide-label-button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+    <circle cx="12" cy="12" r="3"/>
+  </svg>`;
+
   #visible = true;
+  #cardVisible = false;
+  #hideCardTimer = null;
   #labelVisibilityControlButton;
   #labelVisibilityButtonOnPano;
-  #labelDescriptionBox;
+  #card;
   #hideText;
   #showText;
+  #hideTooltip;
+  #showTooltip;
 
   constructor() {
     this.#labelVisibilityControlButton = $('#label-visibility-control-button');
     this.#labelVisibilityButtonOnPano = $('#label-visibility-button-on-label');
-    this.#labelDescriptionBox = $('#label-description-box');
+    this.#card = $('#label-card');
     this.#hideText = i18next.t('top-ui.visibility-control-hide');
     this.#showText = i18next.t('top-ui.visibility-control-show');
+    this.#hideTooltip = i18next.t('top-ui.visibility-control-tooltip-hide');
+    this.#showTooltip = i18next.t('top-ui.visibility-control-tooltip-show');
 
     // Set up the event listeners.
     this.#labelVisibilityControlButton.on('click', this.#clickAdjustLabel);
     this.#labelVisibilityButtonOnPano.on('click', this.#clickAdjustLabel);
-    this.#labelVisibilityButtonOnPano.on('mouseover', (e) => {
-      // Don't re-show the hover info if the cursor passes over the button mid-pan (a mouse button is held down).
-      if (e.buttons) return;
-      this.showTagsAndDeleteButton();
-      e.stopPropagation();
+
+    // Keep the card up while the cursor is on it, so its Hide-label button can actually be clicked.
+    this.#card.on('mouseenter', () => this.cancelScheduledCardHide());
+    this.#card.on('mouseleave', () => this.scheduleHideLabelCard());
+
+    // Same deal for keyboard focus (#4729): the card holds while focus is inside it, and the grace timer starts
+    // when focus leaves. focusout also fires on moves between the card's own controls, so those are filtered.
+    this.#card.on('focusin', () => this.cancelScheduledCardHide());
+    this.#card.on('focusout', (e) => {
+      if (!this.#card[0].contains(e.relatedTarget)) this.scheduleHideLabelCard();
     });
-    this.#labelVisibilityButtonOnPano.on('mouseout', () => this.hideTagsAndDeleteButton());
 
     // Call unhideLabel() to start the page with showing the 'hide label' button.
     this.unhideLabel();
@@ -48,33 +78,46 @@ class LabelVisibilityControl {
    * Unhides label in the panorama depending on current state.
    */
   unhideLabel() {
-    const panoMarker = svv.panoManager.getPanoMarker();
-    const label = svv.labelContainer.getCurrentLabel();
-    panoMarker.setIcon(label.getIconUrl());
-    panoMarker.draw();
     this.#visible = true;
-    this.#labelVisibilityButtonOnPano.html(`<span>${this.#hideText}</span>`);
-    const htmlString = `
-      <img src="/assets/images/icons/eye-invisible.svg" class="hide-label-button-icon" alt="${this.#hideText}">
-      <span>${this.#hideText}</span>`;
-    this.#labelVisibilityControlButton.html(htmlString);
-    panoMarker.marker_.classList.add('icon-outline');
+    this.#setVisibilityButtons(this.#hideText, LabelVisibilityControl.#ICON_EYE_OFF, this.#hideTooltip);
+    // The marker is briefly absent while the viewer swaps (primary ↔ Pannellum); the button state above is what
+    // renderPanoMarker's replacement will be read against, so it is set either way.
+    svv.panoManager.getPanoMarker()?.marker_.classList.remove('label-marker--hidden');
   }
 
   /**
    * Hides label in the panorama.
+   *
+   * Both directions are a class toggle and nothing else: the icon and its ring live in CSS (see
+   * .label-marker--hidden), which crossfades them rather than swapping one asset for another, so the label visibly
+   * steps aside instead of blinking into a different shape. Hiding is meant to reveal the sidewalk underneath, so
+   * the marker gets out of the way — but not so far that you lose which label you are being asked about, or where to
+   * put the cursor to bring it back.
    */
   hideLabel() {
-    const panoMarker = svv.panoManager.getPanoMarker();
-    panoMarker.setIcon('/assets/images/icons/Label_Outline.svg');
-    panoMarker.draw();
     this.#visible = false;
-    this.#labelVisibilityButtonOnPano.html(`<span>${this.#showText}</span>`);
-    const htmlString = `
-      <img src="/assets/images/icons/eye-visible.svg" class="hide-label-button-icon" alt="${this.#showText}">
-      <span>${this.#showText}</span>`;
-    this.#labelVisibilityControlButton.html(htmlString);
-    panoMarker.marker_.classList.remove('icon-outline');
+    this.#setVisibilityButtons(this.#showText, LabelVisibilityControl.#ICON_EYE_ON, this.#showTooltip);
+    svv.panoManager.getPanoMarker()?.marker_.classList.add('label-marker--hidden');
+  }
+
+  /**
+   * Relabels both toggles — the always-visible one in the pano's top-left and the one in the label card's footer.
+   * They run the same action, so they always read the same way.
+   *
+   * The label is inserted as HTML, not text: the translations underline the keyboard shortcut inline (the English
+   * ones are "<u>H</u>ide Label" / "S<u>h</u>ow Label"). It is a locale string, not user input.
+   *
+   * The tooltip turns over with them rather than being set once from Twirl: these buttons reverse meaning when the
+   * label is hidden, so a fixed string spends half its life describing the opposite of what clicking now does.
+   *
+   * @param {string} text    The action the buttons now offer, as translated markup.
+   * @param {string} icon    Inline SVG for the eye icon that goes with it.
+   * @param {string} tooltip That same action spelled out, for both buttons' tooltips.
+   */
+  #setVisibilityButtons(text, icon, tooltip) {
+    const htmlString = `${icon}<span>${text}</span>`;
+    this.#labelVisibilityControlButton.html(htmlString).attr('data-ps-tooltip', tooltip);
+    this.#labelVisibilityButtonOnPano.html(htmlString).attr('data-ps-tooltip', tooltip);
   }
 
   /**
@@ -85,32 +128,139 @@ class LabelVisibilityControl {
   }
 
   /**
-   * Shows the 'Show/Hide Label' button and the description box on panorama.
+   * True while the label card is showing. Distinct from isVisible(), which is about the label itself.
    */
-  showTagsAndDeleteButton() {
-    svv.tracker.push('MouseOver_Label');
-
-    const button = document.getElementById('label-visibility-button-on-label');
-    const marker = document.getElementById('validate-pano-marker');
-    const scale = util.uiScale();
-
-    // Position the button to the top right corner of the label, 15px right and 15px up from center of the label.
-    button.style.left = `${parseFloat(marker.style.left) + 15 * scale}px`;
-    button.style.top = `${parseFloat(marker.style.top) - 15 * scale}px`;
-    button.style.visibility = 'visible';
-
-    // Position the box to the lower left corner of the label, 10px left and 10px down from center of the label.
-    const desBox = this.#labelDescriptionBox[0];
-    desBox.style.right = `${svv.canvasWidth() - parseFloat(marker.style.left) - 10 * scale}px`;
-    desBox.style.top = `${parseFloat(marker.style.top) + 10 * scale}px`;
-    desBox.style.visibility = 'visible';
+  isCardVisible() {
+    return this.#cardVisible;
   }
 
   /**
-   * Hides the 'Show/Hide Label' button and the description box on pano.
+   * Shows the label card beside the label's marker.
+   *
+   * @param {Object} [options]
+   * @param {boolean} [options.viaKeyboard] The card was opened from the keyboard (Tab onto the marker, or Enter/
+   *     Space on it) rather than by pointer. Logged under its own event name, the way the H key's hide is —
+   *     see docs/logged-events.md.
    */
-  hideTagsAndDeleteButton() {
-    this.#labelVisibilityButtonOnPano[0].style.visibility = 'hidden';
-    this.#labelDescriptionBox[0].style.visibility = 'hidden';
+  showLabelCard({ viaKeyboard = false } = {}) {
+    this.cancelScheduledCardHide();
+    if (!this.#anchorCard()) return;
+    if (!this.#cardVisible) svv.tracker.push(viaKeyboard ? 'KeyboardShortcut_ShowLabelCard' : 'MouseOver_Label');
+    this.#cardVisible = true;
+    this.#card[0].style.visibility = 'visible';
+    this.#setMarkerExpanded(true);
+  }
+
+  /**
+   * Hides the label card immediately. Used when something definitively supersedes it — a pan starting, the H key,
+   * or a move to the next label — as opposed to the cursor merely leaving the marker.
+   */
+  hideLabelCard() {
+    this.cancelScheduledCardHide();
+    // The share popover hangs off the card, so it goes too. Left open it would be invisible but still armed, and
+    // every later scheduleHideLabelCard would defer to it forever.
+    svv.labelCard?.closeSharePopover();
+    this.#cardVisible = false;
+    this.#card[0].style.visibility = 'hidden';
+    this.#setMarkerExpanded(false);
+  }
+
+  /**
+   * Hides the label card after a short grace period, giving the cursor time to travel from the marker onto the card.
+   * A pending timer is left running rather than reset, so the deadline stays a hard #CARD_HIDE_DELAY_MS from when
+   * the pointer first left.
+   */
+  scheduleHideLabelCard() {
+    // An open share popover extends past the card, so the pointer leaving the card doesn't mean the user is done
+    // with it. Taking the card down here would take the popover with it, mid-choice — handleSharePopoverDismissed
+    // re-arms the hide once the popover closes.
+    if (this.#hideCardTimer !== null || svv.labelCard?.isSharePopoverOpen()) return;
+    this.#hideCardTimer = setTimeout(() => {
+      this.#hideCardTimer = null;
+      this.hideLabelCard();
+    }, LabelVisibilityControl.#CARD_HIDE_DELAY_MS);
+  }
+
+  /**
+   * Re-arms the card's hide once the share popover that had been holding it open goes away.
+   *
+   * scheduleHideLabelCard is only ever reached from the card's own mouseleave, and while the popover was up it
+   * declined to schedule anything. The pointer left the card back then and no second mouseleave is coming, so
+   * without this the card would stay up until a pan, the H key, or the next label took it down. Copy link is the
+   * common way in: it leaves the popover open behind its "Copied!" state, so the pointer usually wanders off well
+   * before the popover closes. Skipped when the pointer is back on the card, where it is meant to stay.
+   */
+  handleSharePopoverDismissed() {
+    if (!this.#card[0].matches(':hover')) this.scheduleHideLabelCard();
+  }
+
+  /**
+   * Toggles the card. The mobile pano has no hover, so a tap on the marker opens and closes it; on desktop this is
+   * Enter/Space on the focused marker.
+   *
+   * @param {Object} [options] Forwarded to showLabelCard — see its viaKeyboard note.
+   */
+  toggleLabelCard(options) {
+    if (this.#cardVisible) this.hideLabelCard();
+    else this.showLabelCard(options);
+  }
+
+  /**
+   * Re-anchors the card to the marker if it is showing. Called from PanoMarker.draw(), so the card stays glued to
+   * the icon through POV changes, zooming, and window resizes rather than being left behind where it opened.
+   */
+  reanchorLabelCard() {
+    if (!this.#cardVisible) return;
+    if (!this.#anchorCard()) this.hideLabelCard();
+  }
+
+  /**
+   * Cancels a pending grace-timer hide. Public because the marker's focus handler needs it when focus walks back
+   * out of the card onto the marker (PanoMarker): the card should hold, but must not re-open if Escape just
+   * closed it — which showLabelCard() would do.
+   */
+  cancelScheduledCardHide() {
+    if (this.#hideCardTimer === null) return;
+    clearTimeout(this.#hideCardTimer);
+    this.#hideCardTimer = null;
+  }
+
+  /**
+   * Mirrors the card's visibility onto the marker's aria-expanded, so a screen reader hears whether pressing the
+   * marker will open or close the card. Looked up fresh each time: the marker is recreated on viewer swaps.
+   *
+   * Only the desktop marker is a disclosure button (PanoMarker gives it its ARIA); the mobile one is a plain touch
+   * target, and stamping aria-expanded on it would be state for a role it doesn't claim.
+   */
+  #setMarkerExpanded(expanded) {
+    const marker = document.getElementById('validate-pano-marker');
+    if (marker?.getAttribute('role') === 'button') marker.setAttribute('aria-expanded', String(expanded));
+  }
+
+  /**
+   * Positions the card beside the marker using the shared routine Explore's panels use.
+   *
+   * The routine works in a logical frame that it scales up to on-screen pixels, but the marker is already positioned
+   * in on-screen pixels within the pano's marker layer — so the marker's geometry is divided by the same scale on
+   * the way in. That scale is read off the card itself rather than from util.uiScale(), because mobile overrides it
+   * per-card (see LabelCard); the gap the routine leaves has to match the tail width the card actually renders.
+   *
+   * @returns {boolean} False if there is nothing to anchor to — including a marker parked off-screen because the
+   *      label is behind the camera, which is PanoMarker.draw()'s way of hiding it.
+   */
+  #anchorCard() {
+    const marker = document.getElementById('validate-pano-marker');
+    const layer = svv.ui.viewer.controlLayer[0];
+    if (!marker || !layer || marker.offsetLeft < -1000) return false;
+
+    const scale = parseFloat(getComputedStyle(this.#card[0]).getPropertyValue('--ui-scale')) || 1;
+    const radius = marker.offsetWidth / 2;
+    util.anchorPanelToLabel(
+      this.#card,
+      { x: (marker.offsetLeft + radius) / scale, y: (marker.offsetTop + marker.offsetHeight / 2) / scale },
+      radius / scale,
+      { scale, originEl: layer, boundsEl: layer, frameHeight: layer.getBoundingClientRect().height },
+    );
+    return true;
   }
 }

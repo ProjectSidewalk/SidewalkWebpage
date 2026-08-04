@@ -102,9 +102,9 @@
   border-radius: 2px;
 }
 
-/* The share chip reuses .label-detail__share(-trigger) from label-detail.css for the shared popover look, restyled
-   as a quiet tertiary control: borderless, faint gray fill, and the (i) button's exact 18px height — it must not
-   compete with the Agree/Disagree/Unsure buttons below. */
+/* The share chip reuses .label-detail__share(-trigger) from common/share-widget.css for the shared popover look,
+   restyled as a quiet tertiary control: borderless, faint gray fill, and the (i) button's exact 18px height — it
+   must not compete with the Agree/Disagree/Unsure buttons below. */
 .lvg-share {
   /* 2px centers the 18px chip against the question's 22px first line. */
   margin-top: 2px;

@@ -6,7 +6,7 @@ import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import models.utils.MyPostgresProfile.api._
-import service.{AggregateStats, CityScorecard}
+import service.{ActivityWindowSummary, AggregateStats, CityScorecard}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -81,6 +81,9 @@ class CityScorecardSpec extends PlaySpec with GuiceOneAppPerSuite {
       run(configTable.getCityWeeklyTrendBySchema(schema, None)) mustBe a[Seq[_]]
       run(configTable.getCityWeeklyTrendBySchema(schema, Some(4))) mustBe a[Seq[_]]
     }
+    "execute getCityActivityWindowsBySchema" in {
+      run(configTable.getCityActivityWindowsBySchema(schema)) mustBe a[ActivityWindowSummary]
+    }
     "execute getCityContributorOutputBySchema" in {
       run(configTable.getCityContributorOutputBySchema(schema)) mustBe a[Product] // 7-tuple
     }
@@ -88,13 +91,11 @@ class CityScorecardSpec extends PlaySpec with GuiceOneAppPerSuite {
       run(configTable.getCityLabelingSpeedBySchema(schema)) mustBe a[Product] // (Double, Double)
     }
     "execute getCityDailyLabelStatsBySchema (both quality filters)" in {
-      run(configTable.getCityDailyLabelStatsBySchema(schema, None, None, filterLowQuality = false)) mustBe a[Seq[_]]
-      run(configTable.getCityDailyLabelStatsBySchema(schema, None, None, filterLowQuality = true)) mustBe a[Seq[_]]
+      run(configTable.getCityDailyLabelStatsBySchema(schema, filterLowQuality = false)) mustBe a[Seq[_]]
+      run(configTable.getCityDailyLabelStatsBySchema(schema, filterLowQuality = true)) mustBe a[Seq[_]]
     }
     "execute getCityDailyValidationStatsBySchema" in {
-      run(configTable.getCityDailyValidationStatsBySchema(schema, None, None, filterLowQuality = false)) mustBe a[Seq[
-        _
-      ]]
+      run(configTable.getCityDailyValidationStatsBySchema(schema, filterLowQuality = false)) mustBe a[Seq[_]]
     }
   }
 }

@@ -2,7 +2,7 @@ package controllers.helper
 
 import models.label.LabelTypeEnum
 import models.user.{RoleTable, SidewalkUserWithRole}
-import play.api.mvc.Results.Redirect
+import play.api.mvc.Results.{Redirect, Unauthorized}
 import play.api.mvc.{Request, RequestHeader, Result}
 
 import java.nio.charset.StandardCharsets
@@ -11,6 +11,17 @@ import scala.util.Try
 import scala.util.matching.Regex
 
 object ControllerUtils {
+
+  /**
+   * The user id to query with on behalf of a request that carries no identity.
+   *
+   * Label reads compute per-user columns — "you already validated this", "this is your own label" — by comparing rows
+   * against a user id, and a cookie-less visitor doesn't have one. An id that belongs to nobody makes every such
+   * comparison false, which is exactly the answer a brand-new account gets, so the query shape stays the same for both
+   * (#4643). Empty string is safe because `user_id` is a text column; it lives here so the read endpoints that need it
+   * can't drift apart.
+   */
+  val NoUserId: String = ""
 
   /**
    * Returns true if the user is on mobile, false if the user is not on mobile.
@@ -147,10 +158,33 @@ object ControllerUtils {
   }
 
   /**
-   * Sets up a redirect to /anonSignUp while keeping track of the current URL and query string.
+   * Result for an unauthenticated request to a secured action: create an anonymous account and return here.
+   *
+   * A top-level navigation is 303-redirected to /anonSignUp (carrying the original path as `url`), which mints an
+   * anonymous account and sends the browser back. That's wrong for a fetch/XHR call: a 303 turns it into a GET of the
+   * original path, so a POST-only API route (e.g. `POST /task`) dead-ends at a 404, and the client re-fires and loops.
+   * Such requests get a plain `401` instead, letting the client's fetch fail cleanly.
+   *
+   * We distinguish the two by the `Sec-Fetch-Mode` fetch-metadata header, which browsers send on trustworthy origins
+   * (https and localhost): `navigate` for top-level navigations (including no-JS form posts), `cors`/`same-origin`/
+   * `no-cors` for fetch/XHR/subresource requests.
+   *
+   * When the header is absent — curl, crawlers, the test suite, browsers predating fetch metadata such as Safari
+   * before 16.4 — the method decides. A GET falls through to the redirect, the conservative default that preserves
+   * the anonymous-signup-on-navigation flow. A write does not: it would be redirected, followed, and land on a 200
+   * HTML page, so the caller reads success while the submission was silently dropped. A 401 instead lets the client
+   * see the failure and mint a session (`util.lazyIdentityFetch`, #4442).
+   *
+   * @param request The unauthenticated request header.
+   * @return        `401 Unauthorized` for a non-navigation fetch/XHR request, otherwise a 303 redirect to /anonSignUp.
    */
   def anonSignupRedirect(request: RequestHeader): Result = {
-    Redirect("/anonSignUp", request.queryString + ("url" -> Seq(request.path)))
+    val isNavigation = request.headers.get("Sec-Fetch-Mode") match {
+      case Some(mode) => mode == "navigate"
+      case None       => request.method == "GET"
+    }
+    if (isNavigation) Redirect("/anonSignUp", request.queryString + ("url" -> Seq(request.path)))
+    else Unauthorized("Not authenticated")
   }
 
   /**

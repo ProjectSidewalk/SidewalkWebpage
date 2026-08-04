@@ -1,11 +1,12 @@
 package controllers
 
 import controllers.base._
-import controllers.helper.ControllerUtils.{isMobile, parseIntegerSeq}
+import controllers.helper.ControllerUtils.{isMobile, parseIntegerSeq, NoUserId}
 import formats.json.GalleryFormats._
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
-import models.label.LabelTypeEnum
+import models.label.{LabelTypeEnum, Tag}
+import models.region.Region
 import play.api.Configuration
 import play.api.i18n.Messages
 import play.api.libs.json.{JsError, JsValue, Json}
@@ -42,35 +43,36 @@ class GalleryController @Inject() (
       validationOptions: String,
       aiValidationOptions: String
   ): Action[AnyContent] =
-    cc.securityService.SecuredAction { implicit request =>
+    cc.securityService.UserAwareAction { implicit request =>
       if (isMobile(request)) {
-        cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Gallery_RedirectMobileLanding")
+        cc.loggingService.insert(
+          request.identity.map(_.userId),
+          request.ipAddress,
+          "Visit_Gallery_RedirectMobileLanding"
+        )
         Future.successful(Redirect("/mobileLanding"))
       } else {
-        val labelTypes: Seq[(String, String)] = Seq(
-          ("Assorted", Messages("gallery.all")),
-          (LabelTypeEnum.CurbRamp.name, Messages("curb.ramp")),
-          (LabelTypeEnum.NoCurbRamp.name, Messages("missing.ramp")),
-          (LabelTypeEnum.Obstacle.name, Messages("obstacle")),
-          (LabelTypeEnum.SurfaceProblem.name, Messages("surface.problem")),
-          (LabelTypeEnum.Occlusion.name, Messages("occlusion")),
-          (LabelTypeEnum.NoSidewalk.name, Messages("no.sidewalk")),
-          (LabelTypeEnum.Crosswalk.name, Messages("crosswalk")),
-          (LabelTypeEnum.Signal.name, Messages("signal")),
-          (LabelTypeEnum.Other.name, Messages("other"))
-        )
-        val labType: String = if (labelTypes.exists(x => { x._1 == labelType })) labelType else "Assorted"
+        // The label type filter is a list, and an empty one means every type — which is what the legacy "Assorted"
+        // value, and anything else unrecognized, falls back to.
+        val labTypes: Seq[String] =
+          labelType.split(",").map(_.trim).filter(LabelTypeEnum.validLabelTypes.contains).toSeq
 
         for {
-          possibleRegions: Seq[Int] <- regionService.getAllRegions.map(_.map(_.regionId))
-          possibleTags: Seq[String] <- {
-            if (labType != "Assorted") labelService.selectTagsByLabelType(labelType).map(_.map(_.tag))
-            else Future.successful(Seq())
-          }
-          commonData <- configService.getCommonPageData(request2Messages.lang)
+          regions: Seq[Region] <- regionService.getAllRegions
+          allTags: Seq[Tag]    <- labelService.getTagsForCurrentCity
+          commonData           <- configService.getCommonPageData(request2Messages.lang)
         } yield {
+          // Cards name the neighborhood a label sits in, so the page carries the id -> name map the labels key into.
+          val regionNames: Map[Int, String] = regions.map(r => r.regionId -> r.name).toMap
+          // A tag only survives from the URL if it belongs to a label type being shown, in this city.
+          val possibleTags: Seq[String] = allTags
+            .filter(t =>
+              labTypes.isEmpty || LabelTypeEnum.labelTypeIdToLabelType.get(t.labelTypeId).exists(labTypes.contains)
+            )
+            .map(_.tag)
+
           // Make sure that list of region IDs, severities, and validation options are formatted correctly.
-          val regionIdsList: Seq[Int]      = parseIntegerSeq(neighborhoods).filter(possibleRegions.contains)
+          val regionIdsList: Seq[Int]      = parseIntegerSeq(neighborhoods).filter(regionNames.contains)
           val validSeverities: Seq[String] = Seq("null", "1", "2", "3")
           val severityList: Seq[String]    = {
             val tokens = severities.split(",").filter(validSeverities.contains).distinct.toSeq
@@ -87,12 +89,12 @@ class GalleryController @Inject() (
 
           // Log visit to Gallery async.
           val activityStr: String =
-            s"Visit_Gallery_LabelType=${labType}_RegionIDs=${regionIdsList}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"
-          cc.loggingService.insert(request.identity.userId, request.ipAddress, activityStr)
+            s"Visit_Gallery_LabelType=${labTypes.mkString("+")}_RegionIDs=${regionIdsList}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"
+          cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, activityStr)
 
           Ok(
-            views.html.apps.gallery(commonData, "Sidewalk - Gallery", request.identity, labType, labelTypes,
-              regionIdsList, severityList, tagList, valOptions, aiValOptions)
+            views.html.apps.gallery(commonData, Messages("seo.title.gallery"), request.identity, labTypes, allTags,
+              regionIdsList, regionNames, severityList, tagList, valOptions, aiValOptions)
           )
         }
       }
@@ -100,34 +102,46 @@ class GalleryController @Inject() (
 
   /**
    * Returns labels of specified type, severities, and tags.
+   *
+   * A read-only POST (the filter payload is JSON, hence not a GET), so it is user-aware rather than secured (#4643):
+   * the Gallery and the landing page's validation grid must populate for cookie-less visitors too. With no identity,
+   * the "already validated by you"/"your own label" checks match nothing, same as a brand-new anonymous account.
    */
-  def getLabels: Action[JsValue] = cc.securityService.SecuredAction(parse.json) { implicit request =>
+  def getLabels: Action[JsValue] = cc.securityService.UserAwareAction(parse.json) { implicit request =>
     val submission = request.body.validate[GalleryLabelsRequest]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
-        val n: Int                                = submission.n
-        val labelType: Option[LabelTypeEnum.Base] = submission.labelTypeId.flatMap(l => LabelTypeEnum.byId.get(l))
-        val loadedLabels: Set[Int]                = submission.loadedLabels.toSet
-        val valOptions: Set[String]               = submission.validationOptions.getOrElse(Seq()).toSet
-        val regionIds: Set[Int]                   = submission.regionIds.getOrElse(Seq()).toSet
-        val severities: Set[Option[Int]]          =
+        val n: Int = submission.n
+        // An empty set of types means "every type", which is what the landing grid and the Gallery's default ask for.
+        val labelTypes: Set[LabelTypeEnum.Base] =
+          submission.labelTypeIds.getOrElse(Seq()).flatMap(LabelTypeEnum.byId.get).toSet
+        val loadedLabels: Set[Int]       = submission.loadedLabels.toSet
+        val valOptions: Set[String]      = submission.validationOptions.getOrElse(Seq()).toSet
+        val regionIds: Set[Int]          = submission.regionIds.getOrElse(Seq()).toSet
+        val severities: Set[Option[Int]] =
           submission.severities.getOrElse(Seq()).toSet.map { (s: String) => if (s == "null") None else Some(s.toInt) }
-        val tags: Set[String]          = submission.tags.getOrElse(Seq()).toSet
+        val tagsByLabelType: Map[LabelTypeEnum.Base, Set[String]] = submission.tagsByLabelType
+          .getOrElse(Map())
+          .flatMap { case (name, tags) => LabelTypeEnum.byName.get(name).map(_ -> tags.toSet) }
         val aiValOptions: Set[String]  = submission.aiValidationOptions.getOrElse(Seq()).toSet
-        val userId: String             = request.identity.userId
+        val userId: String             = request.identity.map(_.userId).getOrElse(NoUserId)
         val recentFirst: Boolean       = submission.sort.contains("recent")
         val staticImageryOnly: Boolean = submission.staticImageryOnly.getOrElse(false)
 
         // Get labels from LabelTable.
         labelService
-          .getGalleryLabels(n, labelType, loadedLabels, valOptions, regionIds, severities, tags, aiValOptions, userId,
-            recentFirst, staticImageryOnly)
+          .getGalleryLabels(n, labelTypes, loadedLabels, valOptions, regionIds, severities, tagsByLabelType,
+            aiValOptions, userId, recentFirst, staticImageryOnly)
           .map { labels =>
             val jsonList = labels.map { l =>
               Json.obj(
-                "label"   -> LabelFormats.validationLabelMetadataToJson(l, panoDataService.backupImageUrl(l.panoId)),
-                "cropUrl" -> panoDataService.cropUrl(l.labelId, l.labelType),
+                "label" -> LabelFormats.validationLabelMetadataToJson(
+                  l,
+                  panoDataService.backupImageUrl(l.panoId),
+                  currUsername = request.identity.map(_.username)
+                ),
+                "cropUrl"     -> panoDataService.cropUrl(l.labelId, l.labelType),
                 "gsvImageUrl" ->
                   panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom)
               )

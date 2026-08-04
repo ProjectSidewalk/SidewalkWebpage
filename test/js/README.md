@@ -26,6 +26,9 @@ Also covered, beyond the api-docs previews:
   fork, the popover's ARIA contract and focus management, clipboard/intents, and activity logging. `ShareWidget` is a
   top-level `class` declaration (not a `window.X = ...` assignment), so the test evals the source into the jsdom
   global scope instead of using `loadGlobalScript`.
+- `community/*.js` → `communityListPage.test.js` — the /stories + /routes listing pages' client layer (#4688):
+  search filtering (hidden attr, live count, no-results), sort orders and tie-breaks, localized dates, type-chip
+  tinting, the read-more clamp toggle, view-label popup-vs-navigation routing, and the copy-share-link fallbacks.
 
 Each test file has:
 
@@ -101,16 +104,16 @@ So:
 
 - **No ESLint, no broad config** is introduced here (`jest.config.js` is scoped to `test/js/` only and never touches
   production JS).
-- **Nothing is wired into CI.** Per `docs/testing-and-ci.md`, the frontend CI ramp is deferred to #2487's track.
+- **CI runs this suite as an advisory step** in the `frontend` job (`npm run test:js`, `continue-on-error` on the step
+  so a failure never turns the required `Frontend (build)` check red). Promotion to blocking rides #2487's track,
+  once coverage is broad enough that a red suite always means a real regression.
 - The existing `npm test` placeholder is **unchanged** to avoid surprising any tooling that already calls it.
 
-When #2487 lands, this prototype is ready to be promoted into the frontend CI job (`npx jest` / `npm run test:js`)
-described in the plan.
+## Complementary E2E
 
-## Complementary E2E (recommendation)
-
-These jsdom tests verify the render contract in isolation. A thin **Playwright** "api-docs smoke" is the natural E2E
-complement: load each `/v3/api-docs/*` page against a running app, **fail on any console error**, and assert each
-preview container is non-empty and contains no "Failed to load" banner. That catches integration-level breakage (real
-endpoint shape, script load order from Grunt, missing globals) that a mocked-`fetch` unit test cannot. Per the plan,
-keep it **advisory/nightly**, never blocking PRs.
+These jsdom tests verify the render contract in isolation. Their E2E complement now exists: the **Playwright browser
+smoke suite in [`test/e2e/`](../e2e)** (#4504) loads core pages — including api-docs pages — against a running app and
+**fails on any uncaught console/page error**, catching integration-level breakage (real endpoint shape, script load
+order from Grunt, missing globals) that a mocked-`fetch` unit test cannot. It runs as the advisory `e2e-smoke` CI job
+on every PR; asserting on the api-docs preview *content* (non-empty container, no "Failed to load" banner) is a
+planned phase-2 extension there.

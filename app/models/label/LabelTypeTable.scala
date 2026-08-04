@@ -41,10 +41,13 @@ object LabelTypeEnum {
     // the two can't drift. Note: the internal-only "Problem" type has no name message key.
     val nameKey: String = descriptionKey.stripSuffix(".description")
 
-    // Paths to the icon images for this label type.
-    val iconPath: String      = s"$iconBasePath/${name}.png"
-    val smallIconPath: String = s"$iconBasePath/${name}_small.png"
-    val tinyIconPath: String  = s"$iconBasePath/${name}_tiny.png"
+    // Paths to the icon images for this label type. The scalable marker is what our own pages render; the rasters are
+    // for consumers that can't take vector art — share-image compositing (ShareController) and the icon URLs the
+    // public API publishes.
+    val smallIconSvgPath: String = s"$iconBasePath/${name}_small.svg"
+    val iconPath: String         = s"$iconBasePath/${name}.png"
+    val smallIconPath: String    = s"$iconBasePath/${name}_small.png"
+    val tinyIconPath: String     = s"$iconBasePath/${name}_tiny.png"
   }
 
   // Representations for the full set of label types in the system.
@@ -77,11 +80,6 @@ object LabelTypeEnum {
 
   // Mapping from label type ID to its string name. Used for converting between database IDs and string names.
   lazy val labelTypeIdToLabelType: Map[Int, String] = values.map(lt => lt.id -> lt.name).toMap
-
-  // Maps label type names to their associated icon paths. Used for retrieving icon paths by label type name.
-  lazy val labelTypeToIcons: Map[String, (String, String, String)] = values.map { lt =>
-    lt.name -> (lt.iconPath, lt.smallIconPath, lt.tinyIconPath)
-  }.toMap
 
   // Maps label type names to their associated colors. Used for retrieving colors by label type name.
   lazy val labelTypeToColor: Map[String, String] = values.map(lt => lt.name -> lt.color).toMap

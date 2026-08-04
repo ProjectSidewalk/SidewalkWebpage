@@ -53,14 +53,20 @@ class SharedLabelPage {
   async #initDetail() {
     const root = document.querySelector('.spotlight__detail');
     if (!root || typeof LabelDetail === 'undefined') return;
+    // A story share links /label/:id?storyId=<id> (#4722); the story section scrolls to and highlights that story
+    // once its list loads. Parsed leniently — an unusable value just renders the plain label page.
+    const storyIdParam = Number(new URLSearchParams(window.location.search).get('storyId'));
     try {
       this.#detail = await LabelDetail.create(root, {
         admin: false,
         viewerType: this.#viewerType(),
         viewerAccessToken: this.#data.imageryAccessToken,
-        currUsername: null,
+        currUsername: this.#data.username,
         panoOverlaySource: 'SharedLabelImage',
         voteColumnSource: 'SharedLabelThumbs',
+        showLabelMapLink: true,
+        showExploreHereLink: true,
+        highlightStoryId: Number.isInteger(storyIdParam) && storyIdParam > 0 ? storyIdParam : null,
       });
       await this.#detail.showLabel(this.#data.labelId, 'SharedLabel');
     } catch (err) {
@@ -244,7 +250,7 @@ class SharedLabelPage {
     el.className = 'spotlight-focal-marker';
     el.style.setProperty('--lt-color', color);
     const img = document.createElement('img');
-    img.src = `/assets/images/icons/label_type_icons/${d.labelType}_small.png`;
+    img.src = util.misc.getIconImagePaths(d.labelType)?.iconImagePath;
     img.alt = '';
     el.appendChild(img);
     new mapboxgl.Marker({ element: el, anchor: 'center' }).setLngLat([d.lng, d.lat]).addTo(map);
@@ -288,7 +294,7 @@ class SharedLabelPage {
     const head = document.createElement('div');
     head.className = 'spotlight-popup__head';
     const icon = document.createElement('img');
-    icon.src = `/assets/images/icons/label_type_icons/${props.label_type}_small.png`;
+    icon.src = util.misc.getIconImagePaths(props.label_type)?.iconImagePath;
     icon.alt = '';
     icon.className = 'spotlight-popup__icon';
     const name = document.createElement('span');

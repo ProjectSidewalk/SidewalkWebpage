@@ -31,11 +31,17 @@ These apply across every language in the repo.
   //this is incorrect
   ```
 
-- **Accessibility is part of style.** Any UI work must meet **WCAG 2.1/2.2 Level AA**. Pull fonts, colors, spacing,
-  and button styles from the design-system tokens in `main.css` `:root` rather than hardcoding values — these come
-  from our Figma "Design System Tokens" and are what we're standardizing on.
-- **Don't use `--font-accent` (Raleway) for numbers.** Its digits aren't tabular, so figures won't line up in columns
-  and jump around in changing counters/timers — use `--font-primary` for any numeric text.
+- **Accessibility is part of style.** Any UI work must meet **WCAG 2.1/2.2 Level AA**.
+- **Style from the design-system tokens in `main.css` `:root`.** Colors, type, spacing, and button styles come from
+  our Figma "Design System Tokens"; hardcoded values are what we're migrating away from. For type, use the composite
+  `--text-*` tokens (`font: var(--text-body-regular);`) rather than building on the raw `--font-primary`/
+  `--font-accent` stacks — they're complete `font` shorthands (weight, size/line-height, family) and bake in
+  `--ui-scale`. If a token's line-height (or another single aspect) doesn't suit, keep the token and override that
+  one property on the next line instead of hand-assembling the font.
+- **Raleway (`--font-accent`) is display-only — and never for numbers.** Default to the primary font (Mulish); the
+  accent font appears only in the tokens that already carry it (`--text-h1-bold`, `--text-h2-bold`,
+  `--text-small-accent`). Raleway defaults to old-style (text) figures — digits vary in height and 3/4/5/7/9 descend
+  below the baseline — so any text containing digits (counts, timers, stats, dates) must use a primary-font token.
 - **Write descriptive commit messages** that say what actually changed and why. `Fixes #880`, `Addresses PR
   feedback`, and `Update ModalMissionComplete.js` are all too vague to be useful in `git log` later.
 
@@ -105,6 +111,11 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
   duplicated (see [`CONTRIBUTING.md`](../CONTRIBUTING.md) → Internationalization).
 - **CSS:** 2-space indent, `stylelint-config-standard` ([`stylelint.config.mjs`](../stylelint.config.mjs)). Use the
   `main.css` `:root` design tokens for colors/fonts/spacing.
+- **Scale tool UI with `var(--ui-scale)`.** The Explore/Validate tools and the overlays layered over them are zoomed
+  uniformly to fit the viewport (`util.applyToolScale` sets `--ui-scale` on `.tool-ui` and the document root). Author
+  every fixed dimension for that UI as `calc(<base>px * var(--ui-scale, 1))` (paddings, gaps, sizes, borders, radii,
+  and any raw `font-size`); prefer the `--text-*` type tokens, which already include it. A bare `px` there won't scale.
+  Fixed page chrome (e.g. the navbar) stays unscaled on purpose.
 
 ## Frontend file & directory organization
 
@@ -124,7 +135,7 @@ consistent with it.
 **Naming conventions:**
 
 - **Directories → kebab-case**, always (`user-dashboard/`, `ps-map/`, `label-detail/`).
-- **CSS files → kebab-case**, always (`labeling-guide.css`, `user-profile.css`, `map-sidebar.css`).
+- **CSS files → kebab-case**, always (`labeling-guide.css`, `user-profile.css`, `filter-sidebar.css`).
 - **JS files → Airbnb "filename matches what it defines":** **PascalCase** for a file that defines a
   class/constructor (`AppManager.js`, `LabelPopup.js`, `GsvViewer.js`), **camelCase** for a function/utility/entry
   file (`main.js`, `aggregateStats.js`, `timestampLocalization.js`). Kebab-case is **not** used for JS files.
@@ -142,6 +153,14 @@ consistent with it.
   Because of those two exceptions, the htmlhint `id-class-value` rule is left **off** — its `dash` mode enforces strict
   kebab-case and can express neither BEM nor the backend-sourced values, so it can't be brought to zero. New markup
   should still default to kebab-case.
+
+**Icons.** SVG icons live as **their own files** in `public/images/icons/` — **never inlined** in Twirl templates
+(inlined SVGs are hard to find, reuse, and review — see #4058). Reference them with an `<img>`, e.g.
+`<img src='@assets.path("images/icons/map-pin-feather.svg")' alt="">` (empty `alt` when the icon sits next to a text
+label). Default to icons from the **feather** and **material** sets in the "Design System Tokens" Figma, and name each
+file `<icon>-<set>.svg` (`map-pin-feather.svg`, `comment-material.svg`). These SVGs carry a **fixed** stroke color
+(`#242424` for the standard dark icon), so a different color is a **separate file** with a color qualifier
+(`chevron-left-white-feather.svg`) rather than a CSS override.
 
 **Deferred namespace mismatch:** the reorg renamed the app *directories* (`SVLabel → explore`, `SVValidate →
 validate`, `Progress → user-dashboard`), but the apps' internal JS namespace **globals** `svl` (Explore) and `sg`

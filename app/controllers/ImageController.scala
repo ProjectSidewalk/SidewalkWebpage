@@ -1,6 +1,7 @@
 package controllers
 
 import controllers.base._
+import controllers.helper.SignedMediaUtils
 import executors.CpuIntensiveExecutionContext
 import formats.json.LabelFormats
 import models.label.LabelTypeEnum
@@ -16,13 +17,13 @@ import java.util.Base64
 import javax.imageio.ImageIO
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
 
 @Singleton
 class ImageController @Inject() (
     cc: CustomControllerComponents,
     panoDataService: service.PanoDataService,
     signingService: ImageSigningService,
+    shareImageCache: service.ShareImageCache,
     config: Configuration,
     cpuEc: CpuIntensiveExecutionContext
 )(implicit ec: ExecutionContext)
@@ -75,43 +76,11 @@ class ImageController @Inject() (
     }
   }
 
-  /**
-   * Returns true if the request's Referer or Origin header (when present) points to an allowed host.
-   *
-   * Missing headers are treated as allowed — they are legitimately absent in some privacy modes
-   * and on direct requests. Only explicit cross-origin indicators from a disallowed host are rejected.
-   * @param request The incoming request to check.
-   */
-  private def refererAllowed(request: RequestHeader): Boolean = {
-    val allowedHosts                       = config.get[Seq[String]]("play.filters.hosts.allowed")
-    def hostAllowed(host: String): Boolean = allowedHosts.exists { pattern =>
-      val patternHost = pattern.split(":")(0) // strip port, e.g. "localhost:9000" → "localhost"
-      if (patternHost.startsWith(".")) host.endsWith(patternHost) || host == patternHost.drop(1)
-      else host == patternHost
-    }
-    def extractHost(header: String): Option[String] =
-      Try(new java.net.URL(header).getHost).toOption
+  private def refererAllowed(request: RequestHeader): Boolean =
+    SignedMediaUtils.refererAllowed(request, config)
 
-    val originOk  = request.headers.get("Origin").flatMap(extractHost).forall(hostAllowed)
-    val refererOk = request.headers.get("Referer").flatMap(extractHost).forall(hostAllowed)
-    originOk && refererOk
-  }
-
-  /**
-   * Validates the ?exp and ?sig query parameters against the expected HMAC for this request path.
-   *
-   * Returns a Forbidden result if the signature is missing, invalid, or expired.
-   * @param request The incoming request.
-   * @param path    The canonical path to verify (e.g. "/backupImage/myPanoId").
-   */
-  private def verifySignature(request: RequestHeader, path: String): Option[play.api.mvc.Result] = {
-    val exp = request.getQueryString("exp").flatMap(s => Try(s.toLong).toOption)
-    val sig = request.getQueryString("sig")
-    (exp, sig) match {
-      case (Some(e), Some(s)) if signingService.verify(path, e, s) => None
-      case _                                                       => Some(Forbidden("Invalid or expired image URL."))
-    }
-  }
+  private def verifySignature(request: RequestHeader, path: String): Option[play.api.mvc.Result] =
+    SignedMediaUtils.verifySignature(request, path, signingService)
 
   // Creates the base directory for the crops if it doesn't exist. Uses subdirectories /<city-id>/<label-type>.
   private def initializeDirIfNeeded(labelType: String): Unit = {
@@ -126,8 +95,10 @@ class ImageController @Inject() (
 
   /**
    * Returns the backup image metadata for a pano as JSON, used by PopupPanoManager's lazy-fetch fallback.
+   *
+   * User-aware (#4643): read-only, referer-gated, and served on pages that render for cookie-less visitors.
    */
-  def getBackupImageMetadata(panoId: String) = cc.securityService.SecuredAction { implicit request =>
+  def getBackupImageMetadata(panoId: String) = cc.securityService.UserAwareAction { implicit request =>
     if (!refererAllowed(request)) {
       Future.successful(Forbidden("Request origin not allowed."))
     } else if (PANO_ID_PATTERN.findFirstIn(panoId).isEmpty) {
@@ -145,9 +116,10 @@ class ImageController @Inject() (
   /**
    * Serves a self-hosted equirectangular panorama image.
    *
-   * Requires a valid HMAC signature (?exp=...&sig=...) and an allowed Referer/Origin.
+   * Requires a valid HMAC signature (?exp=...&sig=...) and an allowed Referer/Origin. User-aware (#4643): read-only
+   * and already protected by the signature + referer checks, so no session is required to load the image.
    */
-  def serveBackupImage(panoId: String) = cc.securityService.SecuredAction { implicit request =>
+  def serveBackupImage(panoId: String) = cc.securityService.UserAwareAction { implicit request =>
     val earlyReject =
       if (!refererAllowed(request)) Some(Forbidden("Request origin not allowed."))
       else if (PANO_ID_PATTERN.findFirstIn(panoId).isEmpty) Some(BadRequest(s"Invalid pano ID: $panoId"))
@@ -172,8 +144,10 @@ class ImageController @Inject() (
 
   /**
    * Returns the crop image metadata (a signed serving URL) for a label as JSON, used to lazily fetch a  /cropImage URL.
+   *
+   * User-aware (#4643): read-only, referer-gated, and served on pages that render for cookie-less visitors.
    */
-  def getCropImageMetadata(labelType: String, labelId: Int) = cc.securityService.SecuredAction { implicit request =>
+  def getCropImageMetadata(labelType: String, labelId: Int) = cc.securityService.UserAwareAction { implicit request =>
     if (!refererAllowed(request)) {
       Future.successful(Forbidden("Request origin not allowed."))
     } else if (!LabelTypeEnum.validLabelTypes.contains(labelType)) {
@@ -193,9 +167,10 @@ class ImageController @Inject() (
   /**
    * Serves a previously-saved crop image for a label.
    *
-   * Requires a valid HMAC signature (?exp=...&sig=...) and an allowed Referer/Origin.
+   * Requires a valid HMAC signature (?exp=...&sig=...) and an allowed Referer/Origin. User-aware (#4643): read-only
+   * and already protected by the signature + referer checks, so no session is required to load the image.
    */
-  def serveCropImage(labelType: String, labelId: Int) = cc.securityService.SecuredAction { implicit request =>
+  def serveCropImage(labelType: String, labelId: Int) = cc.securityService.UserAwareAction { implicit request =>
     val earlyReject =
       if (!refererAllowed(request)) Some(Forbidden("Request origin not allowed."))
       else if (!LabelTypeEnum.validLabelTypes.contains(labelType))
@@ -237,7 +212,13 @@ class ImageController @Inject() (
           // Base64 decode + ImageIO read/resize/write is CPU-bound; run it off the request EC so concurrent crop
           // uploads can't starve the HTTP dispatcher (#4415).
           Future(writeImageFile(filename, b64String))(cpuEc)
-            .map(_ => Ok("Got: crop_" + labelId))
+            .map { _ =>
+              // The label's social-preview image may have been built and cached before this crop existed, from a
+              // Street View still or the branded placeholder. That cache never expires, so drop it here and let the
+              // next request rebuild it from the crop we just wrote (#4726).
+              shareImageCache.invalidate(labelId)
+              Ok("Got: crop_" + labelId)
+            }
             .recover { case e: Exception =>
               logger.error("Exception when writing image file: " + filename + "\n\t" + e)
               InternalServerError("Exception when writing image file: " + filename + "\n\t" + e)

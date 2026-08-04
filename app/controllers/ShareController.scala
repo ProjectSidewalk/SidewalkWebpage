@@ -4,24 +4,24 @@ import controllers.base._
 import models.auth.DefaultEnv
 import models.label.{LabelMetadata, LabelPointTable, LabelTypeEnum, LocationXY}
 import models.pano.PanoSource.PanoSource
+import models.story.StoryForView
 import models.user.SidewalkUserWithRole
+import models.utils.ImageUtils
 import play.api.i18n.Messages
 import play.api.libs.ws.WSClient
 import play.api.mvc._
 import play.api.{Configuration, Environment, Logger}
 import play.silhouette.api.Silhouette
 import play.twirl.api.Html
-import service.{AuthenticationService, ConfigService, LabelService, PanoDataService}
+import service.{AuthenticationService, ConfigService, LabelService, PanoDataService, ShareImageCache, StoryService}
 
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayInputStream, File}
-import java.nio.file.{Files, StandardCopyOption}
-import javax.imageio.stream.FileImageOutputStream
-import javax.imageio.{IIOImage, ImageIO, ImageWriteParam}
+import javax.imageio.ImageIO
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Using
+import scala.util.Try
 
 /**
  * Public social-share surface for a single label (issue #456).
@@ -44,7 +44,9 @@ class ShareController @Inject() (
     configService: ConfigService,
     labelService: LabelService,
     panoDataService: PanoDataService,
-    authenticationService: AuthenticationService
+    authenticationService: AuthenticationService,
+    shareImageCache: ShareImageCache,
+    storyService: StoryService
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -69,12 +71,19 @@ class ShareController @Inject() (
    * nearby labels (fed by the cheap public `/v3/api/rawLabels` API), and per-label OG/Twitter meta in the <head>.
    * Reachable anonymously (no account created, no cookie set) so social crawlers can read the preview.
    *
+   * A story share (#4722) appends `?storyId=<id>`; when it names a visible story on this label, the OG description
+   * leads with that story's words and the client scrolls to and highlights it. Parsed leniently — share links live
+   * in the wild for years, so any unusable value (malformed, deleted, hidden, another label's story) just renders
+   * the plain label page rather than erroring.
+   *
    * @param labelId The label to share.
    * @return `Ok` with the spotlight page, or `NotFound` if no such label exists.
    */
   def label(labelId: Int) = silhouette.UserAwareAction.async { implicit request =>
     val displayUser: Future[SidewalkUserWithRole] =
       request.identity.map(Future.successful).getOrElse(authenticationService.getDefaultAnonUser)
+    val storyIdOpt: Option[Int] =
+      request.getQueryString("storyId").flatMap(s => Try(s.trim.toInt).toOption).filter(_ > 0)
 
     displayUser.flatMap { user =>
       labelService.getSingleLabelMetadata(labelId, user.userId).flatMap {
@@ -83,9 +92,20 @@ class ShareController @Inject() (
           for {
             commonData  <- configService.getCommonPageData(request2Messages.lang)
             labelLatLng <- labelService.getLabelLatLng(labelId)
+            // Resolved anonymously: the linked story feeds crawler-visible meta, so an author-only (hidden) story
+            // must not surface even if its author is the one loading the page.
+            linkedStory <- storyIdOpt
+              .map(sid =>
+                storyService
+                  .getStoriesForLabel(labelId, viewerUserId = None, isAdmin = false)
+                  .map(_.find(s => s.storyId == sid && !s.hidden))
+              )
+              .getOrElse(Future.successful(None))
           } yield {
-            cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, s"Visit_SharedLabel=$labelId")
-            val shareMeta: Html = buildShareMeta(commonData, meta)
+            val visitSuffix: String = linkedStory.map(s => s"_storyId=${s.storyId}").getOrElse("")
+            cc.loggingService
+              .insert(request.identity.map(_.userId), request.ipAddress, s"Visit_SharedLabel=$labelId$visitSuffix")
+            val shareMeta: Html = buildShareMeta(commonData, meta, linkedStory)
             val title: String   = shareTitle(meta)
             Ok(
               views.html.apps.sharedLabel(commonData, title, user, meta, labelLatLng, cityNameOf(commonData), shareMeta)
@@ -105,7 +125,7 @@ class ShareController @Inject() (
    * @return `Ok` with an `image/jpeg`, or `NotFound` if no such label exists.
    */
   def shareImage(labelId: Int) = Action.async { implicit request =>
-    val cachedFile = new File(shareImageDir, s"share_$labelId.jpg")
+    val cachedFile = shareImageCache.fileFor(labelId)
     if (cachedFile.exists()) {
       Future.successful(serveImage(cachedFile))
     } else {
@@ -134,47 +154,76 @@ class ShareController @Inject() (
     Messages(key, Messages(meta.labelType.nameKey))
   }
 
-  /** Builds the OG/Twitter meta block for a label's share page from localized, prod-absolute values. */
-  private def buildShareMeta(commonData: service.CommonPageData, meta: LabelMetadata)(implicit
-      messages: Messages
-  ): Html = {
-    val base: String     = commonData.prodUrl.stripSuffix("/")
-    val pageUrl: String  = s"$base/label/${meta.labelId}"
+  /**
+   * Builds the OG/Twitter meta block for a label's share page from localized, prod-absolute values. When the visit
+   * came from a story-anchored share link (#4722), `linkedStory` carries that (visible) story: the shared URL keeps
+   * its `?storyId=` anchor and the description leads with the storyteller's words — the scrape-based platforms
+   * (Facebook, LinkedIn) build their card entirely from these tags, so client-side share text can't reach them.
+   */
+  private def buildShareMeta(
+      commonData: service.CommonPageData,
+      meta: LabelMetadata,
+      linkedStory: Option[StoryForView]
+  )(implicit messages: Messages): Html = {
+    val base: String    = commonData.prodUrl.stripSuffix("/")
+    val pageUrl: String =
+      s"$base/label/${meta.labelId}" + linkedStory.map(s => s"?storyId=${s.storyId}").getOrElse("")
     val imageUrl: String = s"$base/label/${meta.labelId}/image"
     val typeName: String = Messages(meta.labelType.nameKey)
     val cityName: String = cityNameOf(commonData)
     // The description is short, fully-localized sentences joined in a fixed order, with the data-dependent ones
-    // (severity, tags) included only when present. Severity is stated only for access-issue types — on positive
-    // features the same column encodes quality, not badness. Tag names are stored untranslated; server-side tag
-    // localization is #4445.
-    val description: String = Seq(
-      Some(Messages("share.meta.description.spotted", cityName)),
-      meta.severity
-        .filter(_ => meta.labelType.isAccessProblem)
-        .map(s => Messages("share.meta.description.severity", s)),
-      Option(meta.tags).filter(_.nonEmpty).map(t => Messages("share.meta.description.tags", t.take(3).mkString(", "))),
-      Some(Messages("share.meta.description.cta"))
-    ).flatten.mkString(" ")
+    // (address, severity, tags) included only when present. The address is Google's street-level string for the
+    // label's pano, captured during Explore (#4489); it stays untranslated like tag names. Severity is stated only
+    // for access-issue types — on positive features the same column encodes quality, not badness. Tag names are
+    // stored untranslated; server-side tag localization is #4445.
+    // A story-anchored share instead leads with the story excerpt; severity/tags would bury the person's words.
+    val description: String = linkedStory match {
+      case Some(story) =>
+        Seq(
+          Messages("share.meta.description.story", storyExcerpt(story.storyText)),
+          Messages("share.meta.description.spotted", cityName),
+          Messages("share.meta.description.cta")
+        ).mkString(" ")
+      case None =>
+        Seq(
+          Some(Messages("share.meta.description.spotted", cityName)),
+          meta.panoMetadata.flatMap(_.address).map(a => Messages("share.meta.description.address", a)),
+          meta.severity
+            .filter(_ => meta.labelType.isAccessProblem)
+            .map(s => Messages("share.meta.description.severity", s)),
+          Option(meta.tags)
+            .filter(_.nonEmpty)
+            .map(t => Messages("share.meta.description.tags", t.take(3).mkString(", "))),
+          Some(Messages("share.meta.description.cta"))
+        ).flatten.mkString(" ")
+    }
     val imageAlt: String = Messages("share.meta.image.alt", typeName)
     views.html.common.shareMeta(
       shareTitle(meta), description, pageUrl, imageUrl, SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, imageAlt
     )
   }
 
+  /**
+   * A story's opening words at preview length: whitespace collapsed, cut at a word boundary near the cap (platforms
+   * truncate OG descriptions around 160-200 characters anyway).
+   */
+  private[controllers] def storyExcerpt(text: String, cap: Int = 160): String = {
+    val clean: String = text.trim.replaceAll("\\s+", " ")
+    if (clean.length <= cap) clean
+    else {
+      val cut: String = clean.take(cap)
+      // Break at the last word boundary unless it lands absurdly early (or nowhere — CJK text has no spaces).
+      val lastSpace: Int = cut.lastIndexOf(' ')
+      cut.take(if (lastSpace > cap - 30) lastSpace else cap).replaceAll("\\s+$", "") + "…"
+    }
+  }
+
   /** The formatted display name of the current deployment city (e.g. "Seattle, WA"), or "" if it can't be resolved. */
   private def cityNameOf(commonData: service.CommonPageData): String =
     commonData.allCityInfo.find(_.cityId == commonData.cityId).map(_.cityNameFormatted).getOrElse("")
 
-  /**
-   * Directory where cached share preview images live: `<share.image.directory>/<city-id>/`. A relative configured
-   * path (the `.share-images` default) is resolved against the application root, not the process working directory —
-   * a staged prod app runs from the stage dir, so a CWD-relative path would silently point somewhere else there.
-   */
-  private[controllers] def shareImageDir: File = {
-    val configured = new File(config.get[String]("share.image.directory"))
-    val base       = if (configured.isAbsolute) configured else environment.getFile(configured.getPath)
-    new File(base, configService.getCityId)
-  }
+  /** Where the cached previews live; resolved by ShareImageCache, which ImageController also invalidates through. */
+  private[controllers] def shareImageDir: File = shareImageCache.dir
 
   /**
    * Resolves the base image for a label (stored crop → fetched GSV still → none), composites the label-type marker onto
@@ -187,19 +236,29 @@ class ShareController @Inject() (
       imagerySource: PanoSource,
       cacheFile: File
   ): Future[Option[File]] = {
-    baseImage(meta, imagerySource).map {
+    // A build that had to fall back to a Street View still is only cacheable while the crop is still missing.
+    // `ImageController` drops this cache as each crop lands (#4726), but that can only delete a file that already
+    // exists — an invalidation arriving mid-build has nothing to delete and would be undone by the write below,
+    // baking the stand-in in permanently. So note whether the crop was there when we started, and rebuild from the
+    // real thing if it showed up while we were fetching.
+    val cropFile: File             = panoDataService.cropFile(meta.labelId, meta.labelType.name)
+    val cropExistedBefore: Boolean = cropFile.exists()
+
+    baseImage(meta, imagerySource).flatMap {
+      case Some(_) if !cropExistedBefore && cropFile.exists() =>
+        buildAndCacheShareImage(meta, imagerySource, cacheFile) // Terminates: the retry sees the crop up front.
       case Some(base) =>
         val composited: BufferedImage = compositeMarker(base, meta.labelType, meta.canvasXY)
         cacheFile.getParentFile.mkdirs()
         writeJpeg(composited, cacheFile)
         if (cacheFile.exists()) {
           evictStaleShareImages(cacheFile.getParentFile)
-          Some(cacheFile)
+          Future.successful(Some(cacheFile))
         } else {
           logger.error(s"Failed to write share image: ${cacheFile.getPath}")
-          None
+          Future.successful(None)
         }
-      case None => None
+      case None => Future.successful(None)
     }
   }
 
@@ -325,30 +384,9 @@ class ShareController @Inject() (
     Ok.sendFile(file, inline = true).as("image/jpeg").withHeaders("Cache-Control" -> "public, max-age=86400")
   }
 
-  /**
-   * Writes the image to the given file as a quality-controlled JPEG (ImageIO's default writer quality is lower).
-   *
-   * The write is atomic: bytes go to a temp file in the same directory, which is then moved over the target.
-   * Concurrent first requests for the same label may build in parallel (harmless duplicate work; last mover wins),
-   * but a reader can never be served a half-written file.
-   */
-  private def writeJpeg(img: BufferedImage, file: File): Unit = {
-    val tmp    = File.createTempFile(s"${file.getName}.", ".tmp", file.getParentFile)
-    val writer = ImageIO.getImageWritersByFormatName("jpg").next()
-    try {
-      val params = writer.getDefaultWriteParam
-      params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT)
-      params.setCompressionQuality(SHARE_IMAGE_JPEG_QUALITY)
-      Using.resource(new FileImageOutputStream(tmp)) { out =>
-        writer.setOutput(out)
-        writer.write(null, new IIOImage(img, null, null), params)
-      }
-      val _ = Files.move(tmp.toPath, file.toPath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
-    } finally {
-      writer.dispose()
-      val _ = tmp.delete() // No-op after a successful move; cleans up the temp file if the write failed midway.
-    }
-  }
+  /** Writes the image to the given file as a quality-controlled, atomically-placed JPEG (see ImageUtils.writeJpeg). */
+  private def writeJpeg(img: BufferedImage, file: File): Unit =
+    ImageUtils.writeJpeg(img, file, SHARE_IMAGE_JPEG_QUALITY)
 
   /**
    * Branded fallback served when no pano image is available for a label: the logo centered on a white
