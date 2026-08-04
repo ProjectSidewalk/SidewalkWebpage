@@ -135,12 +135,20 @@ class BadgeAchievements {
 
   /**
    * Seeds the user's all-time validation & completed-mission counts (once) so new activity can detect a badge unlock.
+   *
+   * Gallery and LabelMap render without minting a session (#4643), so basicStats answering 401 is an expected state
+   * here rather than a failure. A visitor with no session has no contribution history, and the session that a first
+   * contribution mints (#4442) starts empty, so zero is the honest seed — and it keeps badge detection live for them.
    */
   static seedCounts() {
     if (BadgeAchievements.#seeded) return;
     BadgeAchievements.#seeded = true;
     fetch('/userapi/basicStats', { headers: { Accept: 'application/json' } })
-      .then((response) => response.json())
+      .then((response) => {
+        if (response.status === 401) return { validation_count: 0, mission_count: 0 };
+        if (!response.ok) throw new Error(`/userapi/basicStats responded ${response.status}`);
+        return response.json();
+      })
       .then((result) => {
         BadgeAchievements.#validationCount = result.validation_count;
         BadgeAchievements.#missionCount = result.mission_count;
@@ -157,11 +165,7 @@ class BadgeAchievements {
     const prev = BadgeAchievements.#validationCount;
     BadgeAchievements.#validationCount = prev + 1;
     const badge = BadgeAchievements.detectUnlock('validations', prev, BadgeAchievements.#validationCount);
-    if (badge) {
-      console.log('showing toast!');
-      console.log(referenceEl);
-      BadgeAchievements.showUnlockToast(badge, referenceEl);
-    }
+    if (badge) BadgeAchievements.showUnlockToast(badge, referenceEl);
   }
 
   /**

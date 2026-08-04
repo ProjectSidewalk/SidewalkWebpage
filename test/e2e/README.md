@@ -29,9 +29,12 @@ regardless of filters), so every run registers a throwaway `ci-smoke-<timestamp>
 
 ## How a spec works
 
-1. `page.goto(path)` — an unauthenticated top-level navigation 303s through `/anonSignUp` (which mints an
-   anonymous session) and back, so no explicit sign-in is needed. Registered-user pages
-   (`dashboard.spec.js`) reuse the storageState saved by `auth.setup.js` (two-step CSRF `POST /signUp`).
+1. `page.goto(path)` — no explicit sign-in is needed: most public pages render sessionless (#4643), and a
+   top-level navigation to one behind a `SecuredAction` 303s through `/anonSignUp` (which mints an anonymous
+   session) and back. A page under test therefore may load with **or** without a session, which is itself
+   part of what the suite covers — an init-time fetch that assumes a session `console.error`s and fails the
+   spec. Registered-user pages (`dashboard.spec.js`) reuse the storageState saved by `auth.setup.js`
+   (two-step CSRF `POST /signUp`).
 2. Wait for `window.appManager.isReady` (every page's shared init manager), plus the page's own signal
    where one exists (the `#page-loading` overlay hiding).
    **The wait is not the assertion**: AppManager catches init/ready-callback exceptions, `console.error`s
