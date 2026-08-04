@@ -142,6 +142,42 @@ case class WeeklyPoint(weekStart: LocalDate, labels: Int, validations: Int, acti
 case class DailyPoint(day: LocalDate, labels: Int, validations: Int, activeUsers: Int)
 
 /**
+ * Cross-city rolling week-over-week activity — the trailing 7 days vs the 7 before — for the "Today & this week"
+ * tiles on the Across Cities page (#4758).
+ *
+ * Windows are exact rolling 168-hour spans (the same basis as [[CityScorecard]]'s labels7d/validations7d), not
+ * Pacific calendar days, so the tiles agree with the per-city 7d columns. Same activity definition and exclusions as
+ * [[DailyPoint]].
+ *
+ * @param labels7d            Labels created in the trailing 7 days.
+ * @param labelsPrior7d       Labels created 7–14 days ago.
+ * @param validations7d       Validations in the trailing 7 days.
+ * @param validationsPrior7d  Validations 7–14 days ago.
+ * @param contributors7d      Distinct users who labeled or validated in the trailing 7 days, summed per city (a
+ *                            person active in two cities is counted in each, as with [[DailyPoint]] active users).
+ * @param contributorsPrior7d Same, for 7–14 days ago.
+ */
+case class ActivityWindowSummary(
+    labels7d: Int,
+    labelsPrior7d: Int,
+    validations7d: Int,
+    validationsPrior7d: Int,
+    contributors7d: Int,
+    contributorsPrior7d: Int
+)
+
+/**
+ * Rolling week-over-week activity for every available city plus the cross-city total (#4758).
+ *
+ * The per-city rows and the total come from one pass: each city is queried once, and `total` is those rows summed. So
+ * the "Most active cities" table costs nothing beyond the "Today & this week" tiles that need the total anyway.
+ *
+ * @param byCity Per-city windows, keyed by city id. Cities whose query failed carry zeros rather than being dropped.
+ * @param total  The per-city rows summed; contributor counts are summed, not deduplicated across cities.
+ */
+case class CrossCityActivityWindows(byCity: Map[String, ActivityWindowSummary], total: ActivityWindowSummary)
+
+/**
  * One city's summary row for the cross-city "Across Cities" admin overview (#4329).
  *
  * Unlike [[AggregateStats]], which sums every city into one total, this keeps each deployment separate so they can be
@@ -487,6 +523,15 @@ trait ConfigService {
    * @return     Exactly `days` points, zero-filled and ascending by day.
    */
   def getCrossCityDailyTrend(days: Int): Future[Seq[DailyPoint]]
+
+  /**
+   * Returns rolling week-over-week activity across all available cities (#4758): the trailing 7 days vs the 7 before,
+   * for the "Today & this week" tiles and the "Most active cities" table. Same activity definition and exclusions as
+   * [[getCrossCityDailyTrend]]; contributors are distinct per city per window and summed across cities.
+   *
+   * @return Per-city windows plus their cross-city total.
+   */
+  def getCrossCityActivitySummary(): Future[CrossCityActivityWindows]
 
   /**
    * Returns each city's labeling speed as seconds of active auditing per 100 m covered (#4329).
@@ -911,25 +956,35 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
+  /**
+   * Resolves which configured cities actually exist in this database, for the cross-city fan-out queries.
+   *
+   * A city whose schema-existence check fails or throws is treated as unavailable rather than failing the whole
+   * fan-out — this is what lets a localhost DB holding a handful of schemas serve pages that fan out over the full
+   * configured city list, and what drops legacy DC (its schema predates the modern layout).
+   *
+   * @param excludeStaging Whether to drop the "staging" pseudo-city (not a real deployment, as in
+   *                       CitiesApiController); every caller except the public aggregate stats does.
+   * @return               City ids from city-params.city-ids whose schema exists, in configured order.
+   */
+  private def availableCityIds(excludeStaging: Boolean = true): Future[Seq[String]] = {
+    val allCityIds        = config.get[Seq[String]]("city-params.city-ids")
+    val configuredCityIds = if (excludeStaging) allCityIds.filter(_ != "staging") else allCityIds
+
+    val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
+      try {
+        checkSchemaExists(getCitySchema(cityId)).map(cityId -> _).recover { case _ => cityId -> false }
+      } catch {
+        case _: Exception => Future.successful(cityId -> false)
+      }
+    }
+    Future.sequence(schemaExistenceChecks).map(_.filter(_._2).map(_._1))
+  }
+
   def getCityScorecards(): Future[Seq[CityScorecardWithFlags]] = {
     // Heavier than getAggregateStats (a multi-subquery per city) and only viewed by Owners, so cache a bit longer.
     cacheApi.getOrElseUpdate[Seq[CityScorecardWithFlags]]("getCityScorecards", Duration(10, "minutes")) {
-      // Same available-schema guard as getAggregateStats. "staging" is skipped (not a real deployment), as in
-      // CitiesApiController; legacy DC is skipped because it predates the modern label_validation schema.
-      val configuredCityIds = config.get[Seq[String]]("city-params.city-ids").filter(_ != "staging")
-
-      val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
-        try {
-          val schema = getCitySchema(cityId)
-          checkSchemaExists(schema).map(cityId -> _).recover { case _ => cityId -> false }
-        } catch {
-          case _: Exception => Future.successful(cityId -> false)
-        }
-      }
-
-      Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
-        val availableCities = schemaResults.filter(_._2).map(_._1)
-
+      availableCityIds().flatMap { availableCities =>
         // Query each available city in parallel; one failing schema yields None rather than sinking the whole page.
         val scorecardFutures: Seq[Future[Option[CityScorecard]]] = availableCities.map { cityId =>
           val schema = getCitySchema(cityId)
@@ -949,19 +1004,8 @@ class ConfigServiceImpl @Inject() (
   def getCrossCityWeeklyTrend(weeks: Option[Int]): Future[Seq[WeeklyPoint]] = {
     val cacheKey = s"getCrossCityWeeklyTrend_${weeks.map(_.toString).getOrElse("all")}"
     cacheApi.getOrElseUpdate[Seq[WeeklyPoint]](cacheKey, Duration(10, "minutes")) {
-      val configuredCityIds = config.get[Seq[String]]("city-params.city-ids").filter(_ != "staging")
-
-      val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
-        try {
-          checkSchemaExists(getCitySchema(cityId)).map(cityId -> _).recover { case _ => cityId -> false }
-        } catch {
-          case _: Exception => Future.successful(cityId -> false)
-        }
-      }
-
-      Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
-        val availableCities = schemaResults.filter(_._2).map(_._1)
-        val perCityFutures  = availableCities.map { cityId =>
+      availableCityIds().flatMap { availableCities =>
+        val perCityFutures = availableCities.map { cityId =>
           db.run(configTable.getCityWeeklyTrendBySchema(getCitySchema(cityId), weeks))
             .recover { case e: Exception =>
               logger.warn(s"Failed to fetch weekly trend for city $cityId: ${e.getMessage}")
@@ -990,19 +1034,8 @@ class ConfigServiceImpl @Inject() (
 
   def getCrossCityDailyTrend(days: Int): Future[Seq[DailyPoint]] = {
     cacheApi.getOrElseUpdate[Seq[DailyPoint]](s"getCrossCityDailyTrend_$days", Duration(10, "minutes")) {
-      val configuredCityIds = config.get[Seq[String]]("city-params.city-ids").filter(_ != "staging")
-
-      val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
-        try {
-          checkSchemaExists(getCitySchema(cityId)).map(cityId -> _).recover { case _ => cityId -> false }
-        } catch {
-          case _: Exception => Future.successful(cityId -> false)
-        }
-      }
-
-      Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
-        val availableCities = schemaResults.filter(_._2).map(_._1)
-        val perCityFutures  = availableCities.map { cityId =>
+      availableCityIds().flatMap { availableCities =>
+        val perCityFutures = availableCities.map { cityId =>
           db.run(configTable.getCityDailyTrendBySchema(getCitySchema(cityId), days))
             .recover { case e: Exception =>
               logger.warn(s"Failed to fetch daily trend for city $cityId: ${e.getMessage}")
@@ -1022,6 +1055,34 @@ class ConfigServiceImpl @Inject() (
             val day = today.minusDays((days - 1 - i).toLong)
             byDay.getOrElse(day, DailyPoint(day, 0, 0, 0))
           }
+        }
+      }
+    }
+  }
+
+  def getCrossCityActivitySummary(): Future[CrossCityActivityWindows] = {
+    cacheApi.getOrElseUpdate[CrossCityActivityWindows]("getCrossCityActivitySummary", Duration(10, "minutes")) {
+      availableCityIds().flatMap { availableCities =>
+        val perCityFutures = availableCities.map { cityId =>
+          db.run(configTable.getCityActivityWindowsBySchema(getCitySchema(cityId)))
+            .recover { case e: Exception =>
+              logger.warn(s"Failed to fetch activity windows for city $cityId: ${e.getMessage}")
+              ActivityWindowSummary(0, 0, 0, 0, 0, 0)
+            }
+            .map(cityId -> _)
+        }
+        Future.sequence(perCityFutures).map { perCity =>
+          val total = perCity.foldLeft(ActivityWindowSummary(0, 0, 0, 0, 0, 0)) { case (acc, (_, city)) =>
+            ActivityWindowSummary(
+              acc.labels7d + city.labels7d,
+              acc.labelsPrior7d + city.labelsPrior7d,
+              acc.validations7d + city.validations7d,
+              acc.validationsPrior7d + city.validationsPrior7d,
+              acc.contributors7d + city.contributors7d,
+              acc.contributorsPrior7d + city.contributorsPrior7d
+            )
+          }
+          CrossCityActivityWindows(perCity.toMap, total)
         }
       }
     }
@@ -1049,18 +1110,7 @@ class ConfigServiceImpl @Inject() (
   def getCrossCityLabelingSpeed(): Future[Map[String, Double]] = {
     // Daily cache: this is the heavy interaction-table scan, and labeling speed barely moves day to day.
     cacheApi.getOrElseUpdate[Map[String, Double]]("getCrossCityLabelingSpeed", Duration(24, "hours")) {
-      val configuredCityIds = config.get[Seq[String]]("city-params.city-ids").filter(_ != "staging")
-
-      val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
-        try {
-          checkSchemaExists(getCitySchema(cityId)).map(cityId -> _).recover { case _ => cityId -> false }
-        } catch {
-          case _: Exception => Future.successful(cityId -> false)
-        }
-      }
-
-      Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
-        val availableCities                                       = schemaResults.filter(_._2).map(_._1)
+      availableCityIds().flatMap { availableCities =>
         val perCityFutures: Seq[Future[Option[(String, Double)]]] = availableCities.map { cityId =>
           labelingSpeedForSchema(getCitySchema(cityId)).map(_.map(cityId -> _))
         }
@@ -1085,18 +1135,7 @@ class ConfigServiceImpl @Inject() (
   def getCityFunnels(window: String): Future[Map[String, Seq[CityFunnel]]] = {
     // Reads the precomputed funnel_stat per schema, so it is cheap; the short cache just coalesces bursts of requests.
     cacheApi.getOrElseUpdate[Map[String, Seq[CityFunnel]]](s"getCityFunnels_$window", Duration(10, "minutes")) {
-      val configuredCityIds = config.get[Seq[String]]("city-params.city-ids").filter(_ != "staging")
-
-      val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
-        try {
-          checkSchemaExists(getCitySchema(cityId)).map(cityId -> _).recover { case _ => cityId -> false }
-        } catch {
-          case _: Exception => Future.successful(cityId -> false)
-        }
-      }
-
-      Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
-        val availableCities = schemaResults.filter(_._2).map(_._1)
+      availableCityIds().flatMap { availableCities =>
         // Each city's rows cover all funnel types for this window; None ⇒ no funnel_stat yet, so omit the city.
         val perCityFutures: Seq[Future[Option[(String, Seq[FunnelStat])]]] = availableCities.map { cityId =>
           db.run(funnelStatTable.getFunnelStatsBySchema(getCitySchema(cityId), window))
@@ -1258,25 +1297,8 @@ class ConfigServiceImpl @Inject() (
    * @return A Future containing freshly computed aggregate statistics across all cities
    */
   private def computeAggregateStats(): Future[AggregateStats] = {
-    // Get all configured city IDs.
-    val configuredCityIds = config.get[Seq[String]]("city-params.city-ids")
-
-    // Filter to only include cities whose schemas actually exist in the database.
-    val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
-      try {
-        val schema = getCitySchema(cityId)
-        // Check if the schema actually exists in the database.
-        checkSchemaExists(schema).map(cityId -> _).recover { case _ => cityId -> false }
-      } catch {
-        case _: Exception =>
-          Future.successful(cityId -> false)
-      }
-    }
-
-    // Wait for all schema checks to complete.
-    Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
-      val availableCities = schemaResults.filter(_._2).map(_._1)
-
+    // The public aggregate counts every schema that exists, staging included.
+    availableCityIds(excludeStaging = false).flatMap { availableCities =>
       if (availableCities.isEmpty) {
         logger.warn("No cities with valid schemas found")
         Future.successful(

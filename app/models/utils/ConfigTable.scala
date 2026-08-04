@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import service.{AggregateStats, CityScorecard, DailyPoint, LabelTypeStats, WeeklyPoint}
+import service.{ActivityWindowSummary, AggregateStats, CityScorecard, DailyPoint, LabelTypeStats, WeeklyPoint}
 import slick.jdbc.GetResult
 
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
@@ -677,6 +677,52 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       GROUP BY day
       ORDER BY day ASC;
     """.as[DailyPoint]
+  }
+
+  /**
+   * Rolling week-over-week activity for one city: the trailing 7 days vs the 7 before, for the "Today & this week"
+   * tiles and "Most active cities" table on the Across Cities page (#4758).
+   *
+   * One bounded scan of the trailing 14 days using the same activity union and exclusions as
+   * [[getCityDailyTrendBySchema]], split into the current and prior window by FILTER clauses. Bounds compare raw
+   * timestamps against NOW() so both legs stay on their btree indexes (label_time_created_idx /
+   * label_validation_end_timestamp_idx, evolution 346). Windows are exact rolling 168-hour spans, deliberately NOT
+   * Pacific calendar days, so these totals line up with each other rather than the daily-trend chart's day buckets.
+   *
+   * These label counts run ~0.1% above the scorecard's labels_7d, which additionally joins through `audit_task` and
+   * drops the tutorial street. Both are defensible; the page keeps each table on a single basis so a level and its
+   * week-over-week delta never mix the two.
+   *
+   * @param schema The database schema to query.
+   * @return       DBIO yielding one [[ActivityWindowSummary]]; contributors are counted distinct within each window.
+   */
+  def getCityActivityWindowsBySchema(schema: String): DBIO[ActivityWindowSummary] = {
+    implicit val getResult: GetResult[ActivityWindowSummary] =
+      GetResult(r =>
+        ActivityWindowSummary(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
+      )
+
+    sql"""
+      SELECT COUNT(*) FILTER (WHERE kind = 'label' AND activity_ts >= NOW() - INTERVAL '7 days')      AS labels_7d,
+             COUNT(*) FILTER (WHERE kind = 'label' AND activity_ts < NOW() - INTERVAL '7 days')       AS labels_prior_7d,
+             COUNT(*) FILTER (WHERE kind = 'validation' AND activity_ts >= NOW() - INTERVAL '7 days') AS validations_7d,
+             COUNT(*) FILTER (WHERE kind = 'validation' AND activity_ts < NOW() - INTERVAL '7 days')  AS validations_prior_7d,
+             COUNT(DISTINCT activity_user_id) FILTER (WHERE activity_ts >= NOW() - INTERVAL '7 days') AS contributors_7d,
+             COUNT(DISTINCT activity_user_id) FILTER (WHERE activity_ts < NOW() - INTERVAL '7 days')  AS contributors_prior_7d
+      FROM (
+          SELECT label.time_created AS activity_ts, label.user_id AS activity_user_id, 'label' AS kind
+          FROM "#$schema".label
+          INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
+          WHERE NOT user_stat.excluded AND label.deleted = FALSE AND label.tutorial = FALSE
+              AND label.time_created >= NOW() - INTERVAL '14 days'
+          UNION ALL
+          SELECT label_validation.end_timestamp AS activity_ts, label_validation.user_id AS activity_user_id, 'validation' AS kind
+          FROM "#$schema".label_validation
+          INNER JOIN "#$schema".user_stat ON label_validation.user_id = user_stat.user_id
+          WHERE NOT user_stat.excluded
+              AND label_validation.end_timestamp >= NOW() - INTERVAL '14 days'
+      ) AS activity;
+    """.as[ActivityWindowSummary].head
   }
 
   /**
