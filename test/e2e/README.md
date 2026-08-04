@@ -65,12 +65,19 @@ local development** — your edit / `grunt watch` / reload loop is untouched.
 
 ## Phase roadmap
 
-- **Phase 1 (this suite):** load every core anonymous page + `/dashboard`; fail on uncaught errors.
-- **Phase 2:** `/explore` + `/validate` (`explore-validate.spec.js` is the skip-guarded seam). Needs (a)
-  the `GOOGLE_MAPS_API_KEY_TEST` repo secret — a referrer/API-restricted Google Maps key; with the dummy
-  key the pano load times out and Explore reload-loops — and (b) a committed label/street seed SQL for the
-  CI schema (`/validate` indexes `param.labelList[0]`; empty `/explore` takes the no-task branch). Also:
-  gallery expanded-card view, api-docs preview assertions.
+- **Phase 1:** load every core anonymous page + `/dashboard`; fail on uncaught errors. ✅
+- **Phase 2:** `/explore` + `/validate` (`explore-validate.spec.js`), gated on a real Google Maps key
+  (`GOOGLE_MAPS_API_KEY_TEST` repo secret → `HAS_REAL_GMAPS_KEY=true`; specs self-skip without it, e.g. on
+  fork PRs — locally, export the variable to opt in). `/explore` asserts the audit tutorial loads: it's
+  deterministic for every fresh anonymous user, its pano tiles are local assets (no live GSV imagery), and
+  CI seeds the one region it requires (`fixtures/ci-seed.sql` — with zero regions `/explore` is a server
+  error). A reload counter turns Explore's viewer-failure reload loop into a fast, named failure.
+  `/validate` accepts either legitimate terminal state error-free: a mission (seeded DBs) or the
+  "no new mission" modal (CI's empty city — a mission needs ≥ 10 validatable labels of one type). ✅
+- **Phase 2b (open):** make CI exercise `/validate`'s real mission path — needs a committed seed of ≥ 10
+  non-tutorial labels whose panos are live or locally backed up, and a real `GOOGLE_MAPS_SECRET` for the
+  server-side pano-metadata check; also gallery expanded-card view and api-docs preview content asserts
+  (then drop the `regionWithMostLabels` allowlist entries in `fixtures.js`).
 - **Phase 3:** primary-control interactions per page (info button, tag menu, mission modal) and a few
   end-to-end flows (place a label + tag; validate a label); admin pages (promote the setup user via a
   superuser `UPDATE user_role` in CI).
@@ -84,4 +91,4 @@ local development** — your edit / `grunt watch` / reload loop is untouched.
 | `auth.setup.js` | Registers a throwaway user, saves storageState for registered-user specs |
 | `pages.spec.js` | Table-driven phase-1 anonymous pages |
 | `dashboard.spec.js` | Registered-user pages |
-| `explore-validate.spec.js` | Phase-2 seam (skips without the real GSV key) |
+| `explore-validate.spec.js` | Phase-2 Explore/Validate specs (skip without the real GSV key) |

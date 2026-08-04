@@ -404,6 +404,14 @@ jobs:
           done
           echo "App did not come up in time (last status: $code)."; tail -100 app.log; exit 1
 
+      # Minimal data so /explore can initialize (phase 2 of #4504): one region containing the template's DC
+      # tutorial street. With zero regions /explore is a server error; with one, a fresh anonymous user
+      # deterministically starts the audit tutorial, whose pano tiles are local assets — the restricted
+      # GOOGLE_MAPS_API_KEY_TEST key is needed only for the Maps JS API itself. Runs after the app is up so
+      # evolutions have already brought the schema to HEAD. Harmless when the GSV specs are skipped.
+      - name: Seed minimal explore data
+        run: docker compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk < test/e2e/fixtures/ci-seed.sql
+
       - name: Run Playwright smoke suite
         run: npx playwright test
         env:
