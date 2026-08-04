@@ -4,7 +4,7 @@ import controllers.base._
 import controllers.helper.ControllerUtils.{parseIntegerSeq, NoUserId}
 import models.auth.DefaultEnv
 import models.utils.MyPostgresProfile.api._
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsArray, JsObject, Json}
 import play.api.mvc._
 import play.silhouette.api.Silhouette
 import play.silhouette.api.actions.UserAwareRequest
@@ -44,5 +44,39 @@ class RegionController @Inject() (
         val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
         Ok(featureCollection)
       }
+  }
+
+  /**
+   * Get audit coverage of each neighborhood.
+   *
+   * Public read: the landing-page choropleth, /labelMap, and the user dashboard's contribution map all load these
+   * rates anonymously, so this stays ungated.
+   *
+   * @param regions Comma-separated region IDs to filter by.
+   * @return        JSON array of `{region_id, total_distance_m, completed_distance_m, rate, name}` objects, where
+   *                `rate` is `completed_distance_m / total_distance_m`, or 1.0 for a region with no street distance.
+   */
+  def getNeighborhoodCompletionRate(regions: Option[String]) = Action.async {
+    val regionIds: Seq[Int] = parseIntegerSeq(regions)
+
+    for {
+      // Ensure the region_completion cache table is populated before reading rates from it.
+      _             <- regionService.initializeRegionCompletionTable
+      neighborhoods <- regionService.selectAllNamedNeighborhoodCompletions(regionIds)
+    } yield {
+      val completionRates: Seq[JsObject] = for (neighborhood <- neighborhoods) yield {
+        val completionRate: Double =
+          if (neighborhood.totalDistance > 0) neighborhood.auditedDistance / neighborhood.totalDistance
+          else 1.0d
+        Json.obj(
+          "region_id"            -> neighborhood.regionId,
+          "total_distance_m"     -> neighborhood.totalDistance,
+          "completed_distance_m" -> neighborhood.auditedDistance,
+          "rate"                 -> completionRate,
+          "name"                 -> neighborhood.name
+        )
+      }
+      Ok(JsArray(completionRates))
+    }
   }
 }

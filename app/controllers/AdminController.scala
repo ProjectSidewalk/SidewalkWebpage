@@ -1,7 +1,7 @@
 package controllers
 
 import controllers.base._
-import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq}
+import controllers.helper.ControllerUtils.isAdmin
 import executors.CpuIntensiveExecutionContext
 import formats.json.AdminFormats._
 import formats.json.LabelFormats._
@@ -19,7 +19,6 @@ import play.silhouette.api.Silhouette
 import play.silhouette.impl.exceptions.IdentityNotFoundException
 import service._
 
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.concurrent.ThreadPoolExecutor
@@ -38,7 +37,6 @@ class AdminController @Inject() (
     cacheApi: AsyncCacheApi,
     authenticationService: service.AuthenticationService,
     adminService: service.AdminService,
-    regionService: RegionService,
     labelService: LabelService,
     streetService: StreetService,
     panoDataService: PanoDataService,
@@ -50,7 +48,6 @@ class AdminController @Inject() (
     extends CustomBaseController(cc) {
 
   implicit val implicitConfig: Configuration = config
-  val dateFormatter: DateTimeFormatter       = DateTimeFormatter.ofPattern("yyyy-MM-dd")
   private val logger                         = Logger(this.getClass)
 
   /**
@@ -146,9 +143,14 @@ class AdminController @Inject() (
   }
 
   /**
-   * Get a list of all tags used for the admin page.
+   * Get per-tag usage counts for the admin Data Quality page.
+   *
+   * Admin-gated: this serves usage statistics, not the tag vocabulary. The public vocabulary lives at
+   * `/v3/api/labelTags`.
+   *
+   * @return JSON array of `{label_type, tag, count}` objects.
    */
-  def getTagCounts = Action.async {
+  def getTagCounts = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getTagCounts.map { tagCounts =>
       Ok(Json.toJson(tagCounts.map(tagCount => {
         Json.obj(
@@ -170,73 +172,6 @@ class AdminController @Inject() (
       Ok(Json.obj("tag_severity" -> JsArray(counts.map { c =>
         Json.obj("label_type" -> c.labelType, "tag" -> c.tag, "severity" -> c.severity, "count" -> c.count)
       })))
-    }
-  }
-
-  /**
-   * Get a list of all labels with metadata needed for /labelMap.
-   */
-  def getAllLabelsForLabelMap(regions: Option[String], routes: Option[String], aiValidationOptions: Option[String]) =
-    Action.async { implicit request =>
-      logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-      val regionIds: Seq[Int]    = parseIntegerSeq(regions)
-      val routeIds: Seq[Int]     = parseIntegerSeq(routes)
-      val aiValOpts: Seq[String] = aiValidationOptions.map(_.split(",").toSeq.distinct).getOrElse(Seq())
-
-      labelService
-        .getLabelsForLabelMap(regionIds, routeIds, aiValOpts)
-        .map { labels =>
-          val features: Seq[JsObject] = labels.map { label =>
-            Json.obj(
-              "type"     -> "Feature",
-              "geometry" -> Json.obj(
-                "type"        -> "Point",
-                "coordinates" -> Json.arr(label.lng, label.lat)
-              ),
-              "properties" -> Json.obj(
-                "label_id"          -> label.labelId,
-                "label_type"        -> label.labelType,
-                "severity"          -> label.severity,
-                "correct"           -> label.correct,
-                "has_validations"   -> label.hasValidations,
-                "ai_validation"     -> label.aiValidation.map(_.toString),
-                "expired"           -> label.expired,
-                "has_backup"        -> label.hasBackup,
-                "high_quality_user" -> label.highQualityUser,
-                "ai_generated"      -> label.aiGenerated,
-                "tags"              -> label.tags
-              )
-            )
-          }
-          val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
-          Ok(featureCollection)
-        }(cpuEc)
-    }
-
-  /**
-   * Get audit coverage of each neighborhood.
-   */
-  def getNeighborhoodCompletionRate(regions: Option[String]) = Action.async { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    val regionIds: Seq[Int] = parseIntegerSeq(regions)
-
-    for {
-      regionCompletionInit <- regionService.initializeRegionCompletionTable
-      neighborhoods        <- regionService.selectAllNamedNeighborhoodCompletions(regionIds)
-    } yield {
-      val completionRates: Seq[JsObject] = for (neighborhood <- neighborhoods) yield {
-        val completionRate: Double =
-          if (neighborhood.totalDistance > 0) neighborhood.auditedDistance / neighborhood.totalDistance
-          else 1.0d
-        Json.obj(
-          "region_id"            -> neighborhood.regionId,
-          "total_distance_m"     -> neighborhood.totalDistance,
-          "completed_distance_m" -> neighborhood.auditedDistance,
-          "rate"                 -> completionRate,
-          "name"                 -> neighborhood.name
-        )
-      }
-      Ok(JsArray(completionRates))
     }
   }
 
@@ -272,36 +207,6 @@ class AdminController @Inject() (
           )
         }
       case None => Future.successful(NotFound(s"No label found with ID: $labelId"))
-    }
-  }
-
-  /**
-   * Get a count of the number of audits that have been completed each day.
-   */
-  def getAllAuditCounts = Action.async { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    adminService.getAuditCountsByDate.map { auditCounts =>
-      Ok(Json.toJson(auditCounts.map(x => Json.obj("date" -> dateFormatter.format(x._1), "count" -> x._2))))
-    }
-  }
-
-  /**
-   * Get a count of the number of audits that have been completed each day.
-   */
-  def getAllLabelCounts = Action.async { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    adminService.getLabelCountsByDate.map { labelCounts =>
-      Ok(Json.toJson(labelCounts.map(x => Json.obj("date" -> dateFormatter.format(x._1), "count" -> x._2))))
-    }
-  }
-
-  /**
-   * Get a count of the number of validations that have been completed each day.
-   */
-  def getAllValidationCounts = Action.async { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    adminService.getValidationCountsByDate.map { valCounts =>
-      Ok(Json.toJson(valCounts.map(x => Json.obj("date" -> dateFormatter.format(x._1), "count" -> x._2))))
     }
   }
 

@@ -270,9 +270,6 @@ private case class OverviewCore(
 trait AdminService {
   def updateTeamVisibility(teamId: Int, visible: Boolean): Future[Int]
   def updateTeamStatus(teamId: Int, open: Boolean): Future[Int]
-  def getAuditCountsByDate: Future[Seq[(OffsetDateTime, Int)]]
-  def getLabelCountsByDate: Future[Seq[(OffsetDateTime, Int)]]
-  def getValidationCountsByDate: Future[Seq[(OffsetDateTime, Int)]]
   def getActivityByDay: Future[Seq[ActivityDayRecord]]
   def getTagCounts: Future[Seq[TagCount]]
   def getTagSeverityCounts: Future[Seq[TagSeverityCount]]
@@ -333,10 +330,7 @@ class AdminServiceImpl @Inject() (
 
   def updateTeamVisibility(teamId: Int, visible: Boolean): Future[Int] =
     db.run(teamTable.updateVisibility(teamId, visible))
-  def updateTeamStatus(teamId: Int, open: Boolean): Future[Int]     = db.run(teamTable.updateStatus(teamId, open))
-  def getAuditCountsByDate: Future[Seq[(OffsetDateTime, Int)]]      = db.run(auditTaskTable.getAuditCountsByDate)
-  def getLabelCountsByDate: Future[Seq[(OffsetDateTime, Int)]]      = db.run(labelTable.getLabelCountsByDate)
-  def getValidationCountsByDate: Future[Seq[(OffsetDateTime, Int)]] = db.run(labelValidationTable.getValidationsByDate)
+  def updateTeamStatus(teamId: Int, open: Boolean): Future[Int] = db.run(teamTable.updateStatus(teamId, open))
 
   /**
    * Assembles the unified daily activity time series for the admin Activity page.
