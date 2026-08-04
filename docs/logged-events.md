@@ -29,8 +29,8 @@ The core call is **`tracker.push(action, note)`** (see `Tracker.push` in each Tr
   event.
 
 Each pushed event is buffered with a timestamp and context (pano, task, lat/lng, …) and flushed to the backend
-periodically — on mission complete or after enough interactions accumulate — which is itself recorded as a
-`RefreshTracker` event.
+periodically — on mission complete, after enough interactions accumulate, or (in Validate) roughly a minute after the
+first interaction since the last flush (#4429) — which is itself recorded as a `RefreshTracker` event.
 
 **Environment metadata (separate from events).** Alongside interaction events, each tool's `Form.js` submits
 per-session environment fields — including `browser`, `browser_version`, and `operating_system` — stored with the task
@@ -117,7 +117,7 @@ ones whose meaning, parameters, or history aren't obvious:
 
 | Event | Why it's worth noting |
 |-------|------------------------|
-| `RefreshTracker` | Not a user action — it marks the buffer being flushed to the backend (on mission complete or after N interactions). |
+| `RefreshTracker` | Not a user action — it marks the buffer being flushed to the backend (on mission complete, after N interactions, or — in Validate — on a ~60s deadline after the first unflushed interaction). |
 | `SubmitFailed` / `SubmitFailedGaveUp` (Validate) | Not user actions — a data POST to `/validationTask` failed and is being retried (`SubmitFailed`, with `attempt` and `error`) or was abandoned after the retry cap (`SubmitFailedGaveUp`). Surfaces flaky-network submission trouble, esp. on mobile (#2745). |
 | `POV_Changed` (Validate) | The user panned/zoomed the pano. Throttled to at most one per ~500ms (with a trailing sample) so a continuous drag no longer floods the buffer (#2745) — counts undercount raw movement by design. |
 | `LowLevelEvent_<domType>` | A runtime family, not a single event (see [naming](#event-naming)); these are by far the highest-volume rows. |
