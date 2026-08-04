@@ -1,10 +1,11 @@
 /**
  * Tests for the "Most active cities" table on /admin/across-cities (#4758).
  *
- * The table ranks deployments by rolling-7-day activity and re-ranks on whichever column is sorted, so the contract
- * worth pinning is the ranking itself: top-N by the sorted column (not a fixed five reordered), zero-activity cities
- * excluded, counts read from the per-city rolling windows, and week-over-week deltas colored by direction. The same
- * generalized sort machinery now drives the Activity table, so its headers are covered here too.
+ * The table ranks deployments by rolling-7-day activity and re-ranks on whichever numeric column is sorted, so the
+ * contract worth pinning is the ranking itself: top-N by the sorted column (not a fixed five reordered), a name sort
+ * ordering the busiest five rather than re-ranking, zero-activity cities excluded, counts read from the per-city
+ * rolling windows (as are the cities-active / top-city tiles above the table), and week-over-week deltas colored by
+ * direction. The same generalized sort machinery now drives the Activity table, so its headers are covered here too.
  *
  * Runs under jsdom (jest.config.js). AcrossCitiesPage is a bare top-level class in a concatenated bundle, so it is
  * eval'd into global scope rather than required.
@@ -64,12 +65,15 @@ const FIXTURE = [
   makeCity('bravo', { labels: 10, labelsPrior: 40, validations: 200, validationsPrior: 100, contributors: 3, contributorsPrior: 3 }),
   makeCity('charlie', { labels: 50, labelsPrior: 50, validations: 50, validationsPrior: 10, contributors: 20, contributorsPrior: 2 }),
   makeCity('delta', { labels: 30, labelsPrior: 10, validations: 30, validationsPrior: 10, contributors: 2, contributorsPrior: 1 }),
-  makeCity('echo', { labels: 20, labelsPrior: 10, validations: 20, validationsPrior: 10, contributors: 1, contributorsPrior: 1 }),
+  makeCity('echo', { labels: 20, labelsPrior: 10, validations: 20, validationsPrior: 10, contributors: 1, contributorsPrior: 0 }),
   makeCity('foxtrot', { labels: 5, labelsPrior: 1, validations: 5, validationsPrior: 1, contributors: 7, contributorsPrior: 1 }),
   makeCity('ghost', { labels: 0, labelsPrior: 0, validations: 0, validationsPrior: 0, contributors: 0, contributorsPrior: 0 }),
 ];
 
 const MARKUP = `
+  <span id="now-cities-active">—</span>
+  <span id="now-top-city">—</span>
+  <span id="now-top-city-count"></span>
   <table id="ac-top-table">
     <thead>
       <tr>
@@ -166,12 +170,30 @@ describe('Across Cities — most active cities', () => {
     expect(topCityOrder()).toEqual(['echo', 'delta', 'bravo', 'alpha', 'foxtrot']);
   });
 
+  it('keeps the busiest five when sorting by City, ordered by name', async () => {
+    await render();
+    clickHeader('ac-top-table', 'city_name');
+    expect(topCityOrder()).toEqual(['alpha', 'bravo', 'charlie', 'delta', 'echo']);
+    clickHeader('ac-top-table', 'city_name');
+    // Z→A over the same busiest five — foxtrot (6th by activity) must not appear just because it sorts late.
+    expect(topCityOrder()).toEqual(['echo', 'delta', 'charlie', 'bravo', 'alpha']);
+  });
+
   it('reads counts from the rolling windows, not the scorecard 7d fields', async () => {
     await render();
     const alpha = [...document.querySelectorAll('#ac-top-tbody tr')].find((tr) => tr.cells[0].textContent.trim() === 'alpha');
     expect(alpha.cells[1].textContent).toContain('120'); // 100 labels + 20 validations
     expect(alpha.cells[2].textContent).toContain('100');
     expect(alpha.cells[2].textContent).not.toContain('999');
+  });
+
+  it('derives the cities-active and top-city tiles from the rolling windows', async () => {
+    await render();
+    // ghost carries (sentinel) scorecard activity but an empty window, so it must not count as active.
+    expect(document.getElementById('now-cities-active').textContent).toBe('6 of 7');
+    expect(document.getElementById('now-top-city').textContent).toBe('alpha');
+    // Window labels, not the scorecard's 999 sentinel — the tile and the table row must show the same number.
+    expect(document.getElementById('now-top-city-count').textContent).toBe('100 labels');
   });
 
   it('colors each delta by direction and omits it where both windows are empty', async () => {
@@ -183,6 +205,14 @@ describe('Across Cities — most active cities', () => {
     expect(cell('charlie', 2).querySelector('.ac-cell-delta--flat')).not.toBeNull(); // 50 vs 50
     // Contributors unchanged week over week reads flat, not blank; a truly empty pair is what suppresses the chip.
     expect(cell('bravo', 4).querySelector('.ac-cell-delta--flat')).not.toBeNull();
+  });
+
+  it('marks a count that appeared from zero as new rather than a percentage', async () => {
+    await render();
+    const echo = [...document.querySelectorAll('#ac-top-tbody tr')].find((tr) => tr.cells[0].textContent.trim() === 'echo');
+    const chip = echo.cells[4].querySelector('.ac-cell-delta--up');
+    expect(chip).not.toBeNull();
+    expect(chip.textContent).toContain('new');
   });
 
   it('marks the sorted column for assistive tech', async () => {

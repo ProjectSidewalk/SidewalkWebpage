@@ -212,8 +212,8 @@ class AcrossCitiesPage {
 
   /**
    * Fills the "Today & this week" tiles (#4758): today from the daily series' last (partial) point, the 7-day window
-   * values and week-over-week deltas from the endpoint's window_summary, and the cities-active / top-city /
-   * new-contributor tiles derived from the scorecards and the all-time weekly series.
+   * values and week-over-week deltas from the endpoint's window_summary, the cities-active / top-city tiles from the
+   * per-city rolling windows, and the new-contributor tile from the all-time weekly series.
    */
   #renderNow() {
     // Today (so far): the last point of the zero-filled daily series is today, partial. No delta on these tiles —
@@ -237,15 +237,16 @@ class AcrossCitiesPage {
       this.#renderDelta('now-contributors-7d-delta', ws.contributors_7d, ws.contributors_prior_7d);
     }
 
-    // Cities active / top city, from the per-city scorecard 7d fields (same rolling basis as window_summary).
-    const activeCount = this.#cities.filter((c) =>
-      (c.labels_7d || 0) + (c.validations_7d || 0) + (c.audits_7d || 0) > 0).length;
+    // Cities active / top city, from the same per-city rolling windows as the "Most active cities" table below, so
+    // these tiles can never disagree with the table's rows or its row-count status line (the scorecard's own 7d
+    // fields sit on a slightly different basis — see #joinActivityWindows).
+    const activeCount = this.#cities.filter((c) => c.activity_7d > 0).length;
     this.#setText('now-cities-active', `${this.#num(activeCount)} of ${this.#num(this.#cities.length)}`);
     const top = this.#cities.reduce((best, c) =>
-      ((c.labels_7d || 0) > ((best && best.labels_7d) || 0) ? c : best), null);
-    if (top && (top.labels_7d || 0) > 0) {
+      ((c.activity_window?.labels_7d ?? 0) > (best?.activity_window?.labels_7d ?? 0) ? c : best), null);
+    if ((top?.activity_window?.labels_7d ?? 0) > 0) {
       this.#setText('now-top-city', top.city_name || top.city_id);
-      this.#setText('now-top-city-count', `${this.#num(top.labels_7d)} labels`);
+      this.#setText('now-top-city-count', `${this.#num(top.activity_window.labels_7d)} labels`);
     }
 
     // New contributors: the all-time weekly series' last point is the current (partial) Pacific calendar week — the
@@ -634,7 +635,6 @@ class AcrossCitiesPage {
       });
       // Headers are interactive, so they need to be reachable and operable from the keyboard (WCAG 2.1.1).
       th.setAttribute('tabindex', '0');
-      th.setAttribute('role', 'columnheader');
       th.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -762,11 +762,12 @@ class AcrossCitiesPage {
    * Fills the "Most active cities" table (#4758): the busiest handful of the past 7 days, with each count's
    * week-over-week change.
    *
-   * The table re-ranks on whatever column is sorted rather than reordering a fixed five, so sorting by contributors
-   * answers "who had the most contributors this week" instead of "which of the five busiest had the most". Counts come
-   * from the rolling windows (`activity_window`), never the scorecard's own 7d fields, so a level and its delta always
-   * share one basis. Cities with no activity at all are excluded, so a quiet week yields a short table, not five rows
-   * of zeros.
+   * The table re-ranks on whatever numeric column is sorted rather than reordering a fixed five, so sorting by
+   * contributors answers "who had the most contributors this week" instead of "which of the five busiest had the
+   * most". Sorting by City instead keeps the five busiest and orders them by name — an alphabetical five isn't a
+   * ranking. Counts come from the rolling windows (`activity_window`), never the scorecard's own 7d fields, so a
+   * level and its delta always share one basis. Cities with no activity at all are excluded, so a quiet week yields
+   * a short table, not five rows of zeros.
    */
   #renderTopCities() {
     const tbody = document.getElementById('ac-top-tbody');
@@ -778,7 +779,12 @@ class AcrossCitiesPage {
       return;
     }
     const state = this.#sortState['ac-top-table'];
-    const rows = this.#sortedCities(state.key, state.dir, active).slice(0, AcrossCitiesPage.#TOP_CITIES_LIMIT);
+    // A name sort keeps the five busiest and merely orders them; only numeric columns re-rank which five appear.
+    const ranked = state.key === 'city_name'
+      ? this.#sortedCities('activity_7d', 'desc', active)
+      : this.#sortedCities(state.key, state.dir, active);
+    let rows = ranked.slice(0, AcrossCitiesPage.#TOP_CITIES_LIMIT);
+    if (state.key === 'city_name') rows = this.#sortedCities(state.key, state.dir, rows);
     tbody.innerHTML = rows.map((c) => {
       const w = c.activity_window || {};
       return `
