@@ -81,19 +81,18 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
    */
   private def boardWithLabelOnlyUser(onLeaderboard: Boolean, timePeriod: String): Seq[LeaderboardStat] =
     runRolledBack(for {
-      roleId      <- sql"SELECT role_id FROM role WHERE role = 'Registered'".as[Int].head
-      missionType <- sql"SELECT mission_type_id FROM mission_type LIMIT 1".as[Int].head
-      labelType   <- sql"SELECT label_type_id FROM label_type LIMIT 1".as[Int].head
-      streetEdge  <- sql"SELECT street_edge_id FROM street_edge LIMIT 1".as[Int].head
-      _           <- sqlu"""INSERT INTO sidewalk_user (user_id, username, email)
+      roleId     <- sql"SELECT role_id FROM role WHERE role = 'Registered'".as[Int].head
+      labelType  <- sql"SELECT label_type_id FROM label_type LIMIT 1".as[Int].head
+      streetEdge <- sql"SELECT street_edge_id FROM street_edge LIMIT 1".as[Int].head
+      _          <- sqlu"""INSERT INTO sidewalk_user (user_id, username, email)
                   VALUES ($FixtureUserId, $FixtureUsername, 'zz_fixture_4533@example.com')"""
       _ <- sqlu"INSERT INTO user_role (user_id, role_id) VALUES ($FixtureUserId, $roleId)"
       _ <-
         sqlu"""INSERT INTO user_stat (user_id, meters_audited, high_quality, excluded, on_leaderboard, public_profile)
                   VALUES ($FixtureUserId, 0, TRUE, FALSE, $onLeaderboard, TRUE)"""
       missionId <- sql"""INSERT INTO mission
-                             (mission_type_id, user_id, mission_start, mission_end, completed, pay, paid, skipped)
-                         VALUES ($missionType, $FixtureUserId, now() - INTERVAL '30 days', now() - INTERVAL '30 days',
+                             (mission_type, user_id, mission_start, mission_end, completed, pay, paid, skipped)
+                         VALUES ('audit', $FixtureUserId, now() - INTERVAL '30 days', now() - INTERVAL '30 days',
                                  TRUE, 0, FALSE, FALSE)
                          RETURNING mission_id""".as[Int].head
       auditTaskId <- sql"""INSERT INTO audit_task
