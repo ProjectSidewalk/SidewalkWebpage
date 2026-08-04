@@ -704,6 +704,21 @@ class AdminController @Inject() (
   }
 
   /**
+   * Serializes one rolling week-over-week activity window for the Across Cities page (#4758).
+   *
+   * @param w The current- and prior-window totals for one city, or summed across all of them.
+   * @return  The window as snake_case JSON (v3 API convention).
+   */
+  private def activityWindowJson(w: ActivityWindowSummary): JsObject = Json.obj(
+    "labels_7d"             -> w.labels7d,
+    "labels_prior_7d"       -> w.labelsPrior7d,
+    "validations_7d"        -> w.validations7d,
+    "validations_prior_7d"  -> w.validationsPrior7d,
+    "contributors_7d"       -> w.contributors7d,
+    "contributors_prior_7d" -> w.contributorsPrior7d
+  )
+
+  /**
    * Returns a per-city summary scorecard for every deployment, for the cross-city "Across Cities" overview (#4329).
    *
    * Owner-gated: all cities share one database, so per-city Administrators must not see other cities' detail. Merges the
@@ -868,14 +883,13 @@ class AdminController @Inject() (
           "over_time_daily"    -> overTimeDaily,
           // Rolling week-over-week windows (trailing 7 days vs the 7 before) for the "Today & this week" tiles
           // (#4758). Contributors are distinct per city per window, summed across cities (no cross-city dedup).
-          "window_summary" -> Json.obj(
-            "labels_7d"             -> windowSummary.labels7d,
-            "labels_prior_7d"       -> windowSummary.labelsPrior7d,
-            "validations_7d"        -> windowSummary.validations7d,
-            "validations_prior_7d"  -> windowSummary.validationsPrior7d,
-            "contributors_7d"       -> windowSummary.contributors7d,
-            "contributors_prior_7d" -> windowSummary.contributorsPrior7d
-          ),
+          "window_summary" -> activityWindowJson(windowSummary.total),
+          // The same windows kept per city, for the "Most active cities" table. Emitted as its own block rather than
+          // merged into `cities` because the scorecard rows already carry labels_7d/validations_7d on a slightly
+          // different basis (see getCityActivityWindowsBySchema) and two same-named fields would invite mixing them.
+          "window_by_city" -> JsObject(windowSummary.byCity.toSeq.map { case (cityId, w) =>
+            cityId -> activityWindowJson(w)
+          }),
           "summary" -> Json.obj(
             "num_cities"                -> scorecards.length,
             "num_countries"             -> numCountries,

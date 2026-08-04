@@ -4,7 +4,7 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@* Across Cities page for the redesigned admin dashboard (#4329). A cross-deployment overview comparing every Project Sidewalk city across four lenses — coverage (how much is left), activity (what's happening and when), data patterns (the label-type mix, city vs city), and data quality (how trustworthy the data is) — plus a "Today & this week" band of current-activity tiles and daily bar charts (#4758), a "needs attention" panel of server-computed anomalies, and overview line charts of labels / validations / active users over time. Owner-only. Driven entirely client-side from /adminapi/cityScorecards. *@
+@* Across Cities page for the redesigned admin dashboard (#4329). A cross-deployment overview comparing every Project Sidewalk city across four lenses — coverage (how much is left), activity (what's happening and when), data patterns (the label-type mix, city vs city), and data quality (how trustworthy the data is) — plus a "Today & this week" band of current-activity tiles, a top-cities table, and daily bar charts (#4758), a "needs attention" panel of server-computed anomalies, and overview line charts of labels / validations / active users over time. Owner-only. Driven entirely client-side from /adminapi/cityScorecards. *@
 
 @content = {
   <div class="api-section" id="ac-intro-section">
@@ -48,6 +48,29 @@
       <div class="ac-hero-stat"><span class="ac-hero-value" id="now-cities-active">—</span><span class="ac-hero-label">Cities active</span></div>
       <div class="ac-hero-stat"><span class="ac-hero-value" id="now-top-city">—</span><span class="ac-hero-label">Top city this week</span><span class="ac-hero-delta" id="now-top-city-count"></span></div>
       <div class="ac-hero-stat"><span class="ac-hero-value" id="now-new-contributors">—</span><span class="ac-hero-label">New contributors this calendar week</span></div>
+    </div>
+
+    <h3 class="ac-chart-group-title" id="most-active-cities">Most active cities</h3>
+    <p>The busiest deployments of the past 7 days, with each count's change from the 7 days before. Click a column header to re-rank — the table always shows the top five <em>by the column you sort on</em>. Cities with no activity this week are left out.</p>
+    <div class="ac-table-wrap">
+      <table class="ac-table" id="ac-top-table">
+        <thead>
+          <tr>
+            <th data-sort="city_name" class="ac-th-text">City</th>
+            <th data-sort="activity_7d" title="Labels plus validations in the last 7 days.">Activity</th>
+            <th data-sort="activity_window.labels_7d">Labels</th>
+            <th data-sort="activity_window.validations_7d">Validations</th>
+            <th data-sort="activity_window.contributors_7d">Contributors</th>
+            <th data-sort="audits_7d">Streets</th>
+            <th>Trend (labels)</th>
+          </tr>
+        </thead>
+        <tbody id="ac-top-tbody"></tbody>
+      </table>
+    </div>
+    <div class="ac-table-foot">
+      <span class="coverage-status" id="ac-top-status" role="status" aria-live="polite"></span>
+      <a class="ac-see-all" href="#activity">See all cities →</a>
     </div>
 
     <h3 class="ac-chart-group-title" id="this-week">This week (rolling 7 days)</h3>
@@ -179,16 +202,16 @@
 
   <div class="api-section" id="ac-activity-section">
     <h2 class="api-heading" id="activity">Activity — what &amp; when <a href="#activity" class="permalink">#</a></h2>
-    <p>Recent volume (last 7 and 30 days), most recent activity, and a 12-week trend per city.</p>
+    <p>Recent volume (last 7 and 30 days), most recent activity, and a 12-week trend per city. Click a column header to sort; the 7d / 30d columns sort on their 7-day count.</p>
     <div class="ac-table-wrap">
-      <table class="ac-table">
+      <table class="ac-table" id="ac-activity-table">
         <thead>
           <tr>
-            <th class="ac-th-text">City</th>
-            <th>Labels 7d / 30d</th>
-            <th>Validations 7d / 30d</th>
-            <th>Streets 7d / 30d</th>
-            <th>Last activity</th>
+            <th data-sort="city_name" class="ac-th-text">City</th>
+            <th data-sort="labels_7d" title="Sorts on the 7-day count.">Labels 7d / 30d</th>
+            <th data-sort="validations_7d" title="Sorts on the 7-day count.">Validations 7d / 30d</th>
+            <th data-sort="audits_7d" title="Sorts on the 7-day count.">Streets 7d / 30d</th>
+            <th data-sort="days_since_activity">Last activity</th>
             <th>Trend (labels)</th>
           </tr>
         </thead>

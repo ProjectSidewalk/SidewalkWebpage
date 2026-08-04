@@ -167,6 +167,17 @@ case class ActivityWindowSummary(
 )
 
 /**
+ * Rolling week-over-week activity for every available city plus the cross-city total (#4758).
+ *
+ * The per-city rows and the total come from one pass: each city is queried once, and `total` is those rows summed. So
+ * the "Most active cities" table costs nothing beyond the "Today & this week" tiles that need the total anyway.
+ *
+ * @param byCity Per-city windows, keyed by city id. Cities whose query failed carry zeros rather than being dropped.
+ * @param total  The per-city rows summed; contributor counts are summed, not deduplicated across cities.
+ */
+case class CrossCityActivityWindows(byCity: Map[String, ActivityWindowSummary], total: ActivityWindowSummary)
+
+/**
  * One city's summary row for the cross-city "Across Cities" admin overview (#4329).
  *
  * Unlike [[AggregateStats]], which sums every city into one total, this keeps each deployment separate so they can be
@@ -514,13 +525,13 @@ trait ConfigService {
   def getCrossCityDailyTrend(days: Int): Future[Seq[DailyPoint]]
 
   /**
-   * Returns rolling week-over-week activity summed across all available cities (#4758): the trailing 7 days vs the 7
-   * before, for the "Today & this week" tiles. Same activity definition and exclusions as [[getCrossCityDailyTrend]];
-   * contributors are distinct per city per window and summed across cities.
+   * Returns rolling week-over-week activity across all available cities (#4758): the trailing 7 days vs the 7 before,
+   * for the "Today & this week" tiles and the "Most active cities" table. Same activity definition and exclusions as
+   * [[getCrossCityDailyTrend]]; contributors are distinct per city per window and summed across cities.
    *
-   * @return Current- and prior-window label/validation/contributor totals.
+   * @return Per-city windows plus their cross-city total.
    */
-  def getCrossCityActivitySummary(): Future[ActivityWindowSummary]
+  def getCrossCityActivitySummary(): Future[CrossCityActivityWindows]
 
   /**
    * Returns each city's labeling speed as seconds of active auditing per 100 m covered (#4329).
@@ -1061,8 +1072,8 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
-  def getCrossCityActivitySummary(): Future[ActivityWindowSummary] = {
-    cacheApi.getOrElseUpdate[ActivityWindowSummary]("getCrossCityActivitySummary", Duration(10, "minutes")) {
+  def getCrossCityActivitySummary(): Future[CrossCityActivityWindows] = {
+    cacheApi.getOrElseUpdate[CrossCityActivityWindows]("getCrossCityActivitySummary", Duration(10, "minutes")) {
       val configuredCityIds = config.get[Seq[String]]("city-params.city-ids").filter(_ != "staging")
 
       val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
@@ -1081,9 +1092,10 @@ class ConfigServiceImpl @Inject() (
               logger.warn(s"Failed to fetch activity windows for city $cityId: ${e.getMessage}")
               ActivityWindowSummary(0, 0, 0, 0, 0, 0)
             }
+            .map(cityId -> _)
         }
         Future.sequence(perCityFutures).map { perCity =>
-          perCity.foldLeft(ActivityWindowSummary(0, 0, 0, 0, 0, 0)) { (acc, city) =>
+          val total = perCity.foldLeft(ActivityWindowSummary(0, 0, 0, 0, 0, 0)) { case (acc, (_, city)) =>
             ActivityWindowSummary(
               acc.labels7d + city.labels7d,
               acc.labelsPrior7d + city.labelsPrior7d,
@@ -1093,6 +1105,7 @@ class ConfigServiceImpl @Inject() (
               acc.contributorsPrior7d + city.contributorsPrior7d
             )
           }
+          CrossCityActivityWindows(perCity.toMap, total)
         }
       }
     }

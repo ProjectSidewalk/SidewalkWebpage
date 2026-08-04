@@ -681,14 +681,17 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
 
   /**
    * Rolling week-over-week activity for one city: the trailing 7 days vs the 7 before, for the "Today & this week"
-   * tiles on the Across Cities page (#4758).
+   * tiles and "Most active cities" table on the Across Cities page (#4758).
    *
    * One bounded scan of the trailing 14 days using the same activity union and exclusions as
    * [[getCityDailyTrendBySchema]], split into the current and prior window by FILTER clauses. Bounds compare raw
    * timestamps against NOW() so both legs stay on their btree indexes (label_time_created_idx /
-   * label_validation_end_timestamp_idx, evolution 346). Windows are exact rolling 168-hour spans — the same basis as
-   * the scorecard's labels_7d/validations_7d — deliberately NOT Pacific calendar days, so these totals match the
-   * per-city 7d columns rather than the daily-trend chart's day buckets.
+   * label_validation_end_timestamp_idx, evolution 346). Windows are exact rolling 168-hour spans, deliberately NOT
+   * Pacific calendar days, so these totals line up with each other rather than the daily-trend chart's day buckets.
+   *
+   * These label counts run ~0.1% above the scorecard's labels_7d, which additionally joins through `audit_task` and
+   * drops the tutorial street. Both are defensible; the page keeps each table on a single basis so a level and its
+   * week-over-week delta never mix the two.
    *
    * @param schema The database schema to query.
    * @return       DBIO yielding one [[ActivityWindowSummary]]; contributors are counted distinct within each window.

@@ -26,6 +26,9 @@ class AcrossCitiesPage {
     low_traction: { label: 'Low traction', tone: 'bad',   rank: 3, attention: true },
   };
 
+  /** How many cities the "Most active cities" table shows; the full list lives in the Activity section below it. */
+  static #TOP_CITIES_LIMIT = 5;
+
   /** Canonical label-type order + short display names for the data-patterns bars. */
   static #LABEL_TYPES = [
     ['CurbRamp', 'Curb ramp'], ['NoCurbRamp', 'Missing curb ramp'], ['Obstacle', 'Obstacle'],
@@ -85,10 +88,16 @@ class AcrossCitiesPage {
   #allTimeTrend = [];    // Cross-city weekly series for the full project history (the "All time" toggle).
   #dailyTrend = [];      // Cross-city daily series for the trailing 7 days (the "this week" bar charts, #4686).
   #windowSummary = null; // Rolling 7d-vs-prior-7d totals for the "Today & this week" tiles (#4758).
+  #windowByCity = {};    // The same rolling windows per city id, for the "Most active cities" table (#4758).
   #trendSeries = {};     // { recent: [...], all: [...] } weekly aggregates for the over-time charts.
   #trendRange = 'recent';// Which over-time range is shown: 'recent' (12 wks) | 'all'.
-  #sortKey = 'coverage'; // Current sort column.
-  #sortDir = 'desc';     // 'asc' | 'desc'.
+
+  /** Sort state per sortable table, keyed by table element id; each entry is `{ key, dir }` with dir 'asc' | 'desc'. */
+  #sortState = {
+    'ac-table': { key: 'coverage', dir: 'desc' },
+    'ac-top-table': { key: 'activity_7d', dir: 'desc' },
+    'ac-activity-table': { key: 'days_since_activity', dir: 'asc' },
+  };
 
   #funnelsUrl;
   #funnels = {};         // { mapping: {steps, cities}, contribution: {steps, cities} } for the current window.
@@ -115,15 +124,20 @@ class AcrossCitiesPage {
       this.#allTimeTrend = (data && data.over_time_all_time) || [];
       this.#dailyTrend = (data && data.over_time_daily) || [];
       this.#windowSummary = (data && data.window_summary) || null;
+      this.#windowByCity = (data && data.window_by_city) || {};
+      this.#joinActivityWindows();
       this.#renderHero();
       this.#renderNow();
       this.#renderMap(citiesGeo);
       this.#renderPulse();
       this.#renderAttention();
       this.#renderTrends();
-      this.#wireSorting();
+      this.#wireSorting('ac-table', () => this.#renderTable());
+      this.#wireSorting('ac-top-table', () => this.#renderTopCities());
+      this.#wireSorting('ac-activity-table', () => this.#renderActivity());
       this.#renderTable();
       this.#renderCoverage();
+      this.#renderTopCities();
       this.#renderActivity();
       this.#renderEffort();
       this.#renderPatterns();
@@ -177,6 +191,23 @@ class AcrossCitiesPage {
     this.#setText('hero-agreement', s.global_agreement ? this.#pct(s.global_agreement) : '—');
   }
 
+  /**
+   * Attaches each city's rolling 7d-vs-prior-7d window to its scorecard row, plus the `activity_7d` total that ranks
+   * the "Most active cities" table.
+   *
+   * The window is nested under `activity_window` rather than merged flat because the scorecard row already carries
+   * labels_7d / validations_7d counted on a slightly different basis (the scorecard joins through audit_task and drops
+   * the tutorial street). Keeping them apart is what stops a table from pairing one basis's level with the other's
+   * delta. Cities the endpoint has no window for (a failed schema read) get zeros, so they simply rank last.
+   */
+  #joinActivityWindows() {
+    for (const c of this.#cities) {
+      const w = this.#windowByCity[c.city_id] || null;
+      c.activity_window = w;
+      c.activity_7d = w ? (w.labels_7d || 0) + (w.validations_7d || 0) : 0;
+    }
+  }
+
   // --- Today & this week ------------------------------------------------------------------------------------------
 
   /**
@@ -224,30 +255,63 @@ class AcrossCitiesPage {
   }
 
   /**
-   * Sets a tile's week-over-week delta line: ▲/▼ plus percent change vs the prior 7 days, direction-colored, with the
-   * raw counts in the tooltip. Changes under ±1% show as flat ("→").
+   * Computes the week-over-week change between a rolling 7-day count and the 7 days before it. Changes under ±1% read
+   * as flat, so ordinary noise doesn't render as a trend.
+   *
+   * @param {number} current - Trailing-7-day count.
+   * @param {number} prior - Count for the 7 days before that; 0 degrades the wording (a percentage is undefined).
+   * @returns {{dir: string, short: string, long: string, title: string}} Direction ('up' | 'down' | 'flat'), a compact
+   *   arrow+percent for table cells, a full phrase for the tiles, and the raw-count tooltip.
+   */
+  #deltaParts(current, prior) {
+    const title = `${this.#num(current)} in the last 7 days vs ${this.#num(prior)} in the 7 days before`;
+    if (!prior) {
+      const dir = current > 0 ? 'up' : 'flat';
+      return {
+        dir,
+        short: current > 0 ? '▲ new' : '→',
+        long: current > 0 ? '▲ up from 0 the week before' : '→ no recent activity',
+        title,
+      };
+    }
+    const frac = (current - prior) / prior;
+    const dir = Math.abs(frac) < 0.01 ? 'flat' : (frac > 0 ? 'up' : 'down');
+    const arrow = dir === 'up' ? '▲' : (dir === 'down' ? '▼' : '→');
+    const pct = this.#pct(Math.abs(frac));
+    // A flat cell shows the arrow alone: "→ 0%" next to a count reads like a second statistic rather than "unchanged".
+    return { dir, short: dir === 'flat' ? arrow : `${arrow} ${pct}`, long: `${arrow} ${pct} vs prior 7 days`, title };
+  }
+
+  /**
+   * Sets a tile's week-over-week delta line, direction-colored, with the raw counts in the tooltip.
    *
    * @param {string} id - Element id of the tile's `.ac-hero-delta` span.
    * @param {number} current - Trailing-7-day count.
-   * @param {number} prior - Count for the 7 days before that; 0 degrades the text (a percentage is undefined).
+   * @param {number} prior - Count for the 7 days before that.
    */
   #renderDelta(id, current, prior) {
     const el = document.getElementById(id);
     if (!el) return;
-    let dir;
-    let text;
-    if (!prior) {
-      dir = current > 0 ? 'up' : 'flat';
-      text = current > 0 ? '▲ up from 0 the week before' : '→ no recent activity';
-    } else {
-      const frac = (current - prior) / prior;
-      dir = Math.abs(frac) < 0.01 ? 'flat' : (frac > 0 ? 'up' : 'down');
-      const arrow = dir === 'up' ? '▲' : (dir === 'down' ? '▼' : '→');
-      text = `${arrow} ${this.#pct(Math.abs(frac))} vs prior 7 days`;
-    }
-    el.className = `ac-hero-delta ac-hero-delta--${dir}`;
-    el.textContent = text;
-    el.title = `${this.#num(current)} in the last 7 days vs ${this.#num(prior)} in the 7 days before`;
+    const d = this.#deltaParts(current, prior);
+    el.className = `ac-hero-delta ac-hero-delta--${d.dir}`;
+    el.textContent = d.long;
+    el.title = d.title;
+  }
+
+  /**
+   * A table cell's worth of "count + week-over-week change": the count, with a small direction-colored delta chip
+   * beneath it. A city with no activity in either window gets the bare count, since "→ 0%" is noise.
+   *
+   * @param {number} current - Trailing-7-day count.
+   * @param {number} prior - Count for the 7 days before that.
+   * @returns {string} The cell's inner HTML.
+   */
+  #deltaCell(current, prior) {
+    const count = this.#num(current);
+    if (!current && !prior) return count;
+    const d = this.#deltaParts(current, prior);
+    return `${count}<span class="ac-cell-delta ac-cell-delta--${d.dir}" `
+      + `title="${AcrossCitiesPage.#esc(d.title)}">${d.short}</span>`;
   }
 
   // --- Deployment cities map --------------------------------------------------------------------------------------
@@ -547,18 +611,35 @@ class AcrossCitiesPage {
 
   // --- Scorecard table --------------------------------------------------------------------------------------------
 
-  #wireSorting() {
-    const ths = document.querySelectorAll('#ac-table thead th[data-sort]');
-    ths.forEach((th) => {
+  /**
+   * Wires click-to-sort onto one table's `th[data-sort]` headers. Clicking the active column flips direction;
+   * switching columns starts descending (biggest first) except for the city name, which reads naturally A→Z.
+   *
+   * @param {string} tableId - Element id of the table; must have an entry in `#sortState`.
+   * @param {Function} render - Re-renders that table's body from the updated sort state.
+   */
+  #wireSorting(tableId, render) {
+    const state = this.#sortState[tableId];
+    if (!state) return;
+    document.querySelectorAll(`#${tableId} thead th[data-sort]`).forEach((th) => {
       th.addEventListener('click', () => {
         const key = th.getAttribute('data-sort');
-        if (this.#sortKey === key) {
-          this.#sortDir = this.#sortDir === 'asc' ? 'desc' : 'asc';
+        if (state.key === key) {
+          state.dir = state.dir === 'asc' ? 'desc' : 'asc';
         } else {
-          this.#sortKey = key;
-          this.#sortDir = key === 'city_name' ? 'asc' : 'desc';
+          state.key = key;
+          state.dir = key === 'city_name' ? 'asc' : 'desc';
         }
-        this.#renderTable();
+        render();
+      });
+      // Headers are interactive, so they need to be reachable and operable from the keyboard (WCAG 2.1.1).
+      th.setAttribute('tabindex', '0');
+      th.setAttribute('role', 'columnheader');
+      th.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          th.click();
+        }
       });
     });
   }
@@ -571,7 +652,8 @@ class AcrossCitiesPage {
       this.#setText('ac-status', '');
       return;
     }
-    const rows = this.#sortedCities(this.#sortKey, this.#sortDir);
+    const state = this.#sortState['ac-table'];
+    const rows = this.#sortedCities(state.key, state.dir);
     tbody.innerHTML = rows.map((c) => {
       const lc = AcrossCitiesPage.#LIFECYCLE[c.lifecycle];
       const needsAttention = (lc && lc.attention) || (c.anomalies || []).length > 0;
@@ -595,11 +677,20 @@ class AcrossCitiesPage {
           <td class="ac-num">${lastActivity}</td>
         </tr>`;
     }).join('');
-    this.#markSortedHeader();
+    this.#markSortedHeader('ac-table');
     this.#setText('ac-status', `${rows.length} ${rows.length === 1 ? 'city' : 'cities'}.`);
   }
 
-  #sortedCities(key, dirStr) {
+  /**
+   * Sorts cities by one column.
+   *
+   * @param {string} key - Sort key. A dotted key reads into the nested rolling window, e.g.
+   *   `activity_window.labels_7d`.
+   * @param {string} dirStr - 'asc' or 'desc'.
+   * @param {Array} [list] - Rows to sort; defaults to every city.
+   * @returns {Array} A new sorted array; the input is not mutated.
+   */
+  #sortedCities(key, dirStr, list) {
     const dir = dirStr === 'asc' ? 1 : -1;
     const val = (c) => {
       if (key === 'city_name') return (c.city_name || c.city_id || '').toLowerCase();
@@ -607,10 +698,15 @@ class AcrossCitiesPage {
         const lc = AcrossCitiesPage.#LIFECYCLE[c.lifecycle];
         return lc ? lc.rank : 99;
       }
+      // Never-active cities sort last under "most recent first" rather than reading as maximally fresh.
       if (key === 'days_since_activity') return c.days_since_activity ?? Number.MAX_SAFE_INTEGER;
+      if (key.includes('.')) {
+        const [outer, inner] = key.split('.');
+        return (c[outer] && c[outer][inner]) ?? 0;
+      }
       return c[key] ?? 0;
     };
-    return this.#cities.slice().sort((a, b) => {
+    return (list || this.#cities).slice().sort((a, b) => {
       const va = val(a);
       const vb = val(b);
       if (va < vb) return -1 * dir;
@@ -619,13 +715,21 @@ class AcrossCitiesPage {
     });
   }
 
-  #markSortedHeader() {
-    document.querySelectorAll('#ac-table thead th[data-sort]').forEach((th) => {
+  /**
+   * Marks the active sort column on one table for both sighted users (the `ac-sorted` arrow) and assistive tech
+   * (`aria-sort`).
+   *
+   * @param {string} tableId - Element id of the table.
+   */
+  #markSortedHeader(tableId) {
+    const state = this.#sortState[tableId];
+    if (!state) return;
+    document.querySelectorAll(`#${tableId} thead th[data-sort]`).forEach((th) => {
       const key = th.getAttribute('data-sort');
-      th.classList.toggle('ac-sorted', key === this.#sortKey);
-      if (key === this.#sortKey) {
-        th.setAttribute('aria-sort', this.#sortDir === 'asc' ? 'ascending' : 'descending');
-        th.dataset.dir = this.#sortDir;
+      th.classList.toggle('ac-sorted', key === state.key);
+      if (key === state.key) {
+        th.setAttribute('aria-sort', state.dir === 'asc' ? 'ascending' : 'descending');
+        th.dataset.dir = state.dir;
       } else {
         th.removeAttribute('aria-sort');
         delete th.dataset.dir;
@@ -652,13 +756,55 @@ class AcrossCitiesPage {
     ).join('');
   }
 
+  // --- Most active cities -----------------------------------------------------------------------------------------
+
+  /**
+   * Fills the "Most active cities" table (#4758): the busiest handful of the past 7 days, with each count's
+   * week-over-week change.
+   *
+   * The table re-ranks on whatever column is sorted rather than reordering a fixed five, so sorting by contributors
+   * answers "who had the most contributors this week" instead of "which of the five busiest had the most". Counts come
+   * from the rolling windows (`activity_window`), never the scorecard's own 7d fields, so a level and its delta always
+   * share one basis. Cities with no activity at all are excluded, so a quiet week yields a short table, not five rows
+   * of zeros.
+   */
+  #renderTopCities() {
+    const tbody = document.getElementById('ac-top-tbody');
+    if (!tbody) return;
+    const active = this.#cities.filter((c) => c.activity_7d > 0);
+    if (!active.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="dq-empty">No city recorded activity in the past 7 days.</td></tr>';
+      this.#setText('ac-top-status', '');
+      return;
+    }
+    const state = this.#sortState['ac-top-table'];
+    const rows = this.#sortedCities(state.key, state.dir, active).slice(0, AcrossCitiesPage.#TOP_CITIES_LIMIT);
+    tbody.innerHTML = rows.map((c) => {
+      const w = c.activity_window || {};
+      return `
+        <tr>
+          <td class="ac-td-city">${this.#cityLink(c)}</td>
+          <td class="ac-num" title="Labels plus validations in the last 7 days">${this.#num(c.activity_7d)}</td>
+          <td class="ac-num">${this.#deltaCell(w.labels_7d || 0, w.labels_prior_7d || 0)}</td>
+          <td class="ac-num">${this.#deltaCell(w.validations_7d || 0, w.validations_prior_7d || 0)}</td>
+          <td class="ac-num">${this.#deltaCell(w.contributors_7d || 0, w.contributors_prior_7d || 0)}</td>
+          <td class="ac-num">${this.#num(c.audits_7d)}</td>
+          <td class="ac-spark-cell">${this.#sparkline((c.weekly_trend || []).map((wk) => wk.labels || 0))}</td>
+        </tr>`;
+    }).join('');
+    this.#markSortedHeader('ac-top-table');
+    this.#setText('ac-top-status', active.length > rows.length
+      ? `Top ${rows.length} of ${this.#num(active.length)} cities active in the past 7 days.`
+      : `${this.#num(active.length)} ${active.length === 1 ? 'city' : 'cities'} active in the past 7 days.`);
+  }
+
   // --- Activity section -------------------------------------------------------------------------------------------
 
   #renderActivity() {
     const tbody = document.getElementById('ac-activity-tbody');
     if (!tbody) return;
-    // Sort by most-recent activity (freshest first; never-active last).
-    const rows = this.#sortedCities('days_since_activity', 'asc');
+    const state = this.#sortState['ac-activity-table'];
+    const rows = this.#sortedCities(state.key, state.dir);
     tbody.innerHTML = rows.map((c) => {
       const last = c.last_activity
         ? AcrossCitiesPage.#esc(AcrossCitiesPage.#relativeTime(c.last_activity))
@@ -675,6 +821,7 @@ class AcrossCitiesPage {
           <td class="ac-spark-cell">${spark}</td>
         </tr>`;
     }).join('');
+    this.#markSortedHeader('ac-activity-table');
   }
 
   // --- Contributors & effort section ------------------------------------------------------------------------------

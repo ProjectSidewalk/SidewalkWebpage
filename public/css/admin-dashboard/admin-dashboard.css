@@ -1850,13 +1850,22 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   color: var(--color-text-secondary, #5a7785);
   font-weight: 600;
   white-space: nowrap;
+}
+.ac-table thead th.ac-th-text { text-align: left; }
+.ac-table thead th.ac-sorted { color: var(--color-text-heading, #263238); }
+
+/* Only the sortable tables' headers advertise themselves as clickable; several ac-tables have a fixed order. */
+.ac-table thead th[data-sort] {
   cursor: pointer;
   -webkit-user-select: none;
   user-select: none;
 }
-.ac-table thead th.ac-th-text { text-align: left; }
-.ac-table thead th:hover { color: var(--color-text-heading, #263238); }
-.ac-table thead th.ac-sorted { color: var(--color-text-heading, #263238); }
+.ac-table thead th[data-sort]:hover { color: var(--color-text-heading, #263238); }
+
+.ac-table thead th[data-sort]:focus-visible {
+  outline: 2px solid var(--color-primary, #78b0ea);
+  outline-offset: -2px;
+}
 
 /* Sort-direction caret on the active column. */
 .ac-table thead th.ac-sorted[data-dir="asc"]::after {
@@ -2180,6 +2189,34 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 .ac-hero-delta--up { color: #1f7a44; }
 .ac-hero-delta--down { color: #c0392b; }
 .ac-hero-delta--flat { color: var(--color-text-tertiary, #88a1ad); }
+
+/* The same week-over-week signal sized for a table cell, under the count it qualifies (#4758). */
+.ac-cell-delta {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--font-size-xs, 0.8125rem);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ac-cell-delta--up { color: #1f7a44; }
+.ac-cell-delta--down { color: #c0392b; }
+.ac-cell-delta--flat { color: var(--color-text-tertiary, #88a1ad); }
+
+/* Row-count status and the link out to the full city list, on one line under a table. */
+.ac-table-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-xs, 8px);
+}
+
+.ac-see-all {
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: 600;
+  white-space: nowrap;
+}
 
 .ac-map {
   width: 100%;
