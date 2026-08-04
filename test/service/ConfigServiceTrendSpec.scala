@@ -11,8 +11,9 @@ import scala.concurrent.duration.DurationInt
 
 /**
  * DB-backed invariant tests for the cross-city over-time series behind the Across Cities admin page (#4329, #4686):
- * the weekly trend (with the new-users column feeding the cumulative-users chart) and the trailing-7-day daily trend
- * (feeding the "this week" bar charts).
+ * the weekly trend (with the new-users column feeding the cumulative-users chart), the trailing-7-day daily trend
+ * (feeding the "this week" bar charts), and the week-over-week window summary (feeding the "Today & this week"
+ * tiles, #4758).
  *
  * Contract/shape over data values: every assertion holds against whatever the connected DB contains — ordering,
  * ranges, and cross-field relationships, never specific numbers.
@@ -79,6 +80,42 @@ class ConfigServiceTrendSpec extends PlaySpec with GuiceOneAppPerSuite {
         d.validations must be >= 0
         d.activeUsers must be >= 0
       }
+    }
+  }
+
+  "getCrossCityActivitySummary" should {
+    lazy val windows = await(configService.getCrossCityActivitySummary())
+    lazy val summary = windows.total
+
+    "return non-negative totals for both windows" in {
+      summary.labels7d must be >= 0
+      summary.labelsPrior7d must be >= 0
+      summary.validations7d must be >= 0
+      summary.validationsPrior7d must be >= 0
+      summary.contributors7d must be >= 0
+      summary.contributorsPrior7d must be >= 0
+    }
+
+    "bound each window's distinct contributors by its event count" in {
+      // Every counted contributor produced at least one label or validation in that window.
+      summary.contributors7d must be <= (summary.labels7d + summary.validations7d)
+      summary.contributorsPrior7d must be <= (summary.labelsPrior7d + summary.validationsPrior7d)
+    }
+
+    "return a per-city window for every available city" in {
+      windows.byCity must not be empty
+      windows.byCity.keys.foreach(_ must not be empty)
+    }
+
+    "report totals that are exactly the per-city windows summed" in {
+      // The "Most active cities" table ranks on the per-city rows while the tiles above it show the total, so the two
+      // must not be able to disagree.
+      windows.byCity.values.map(_.labels7d).sum mustBe summary.labels7d
+      windows.byCity.values.map(_.labelsPrior7d).sum mustBe summary.labelsPrior7d
+      windows.byCity.values.map(_.validations7d).sum mustBe summary.validations7d
+      windows.byCity.values.map(_.validationsPrior7d).sum mustBe summary.validationsPrior7d
+      windows.byCity.values.map(_.contributors7d).sum mustBe summary.contributors7d
+      windows.byCity.values.map(_.contributorsPrior7d).sum mustBe summary.contributorsPrior7d
     }
   }
 }

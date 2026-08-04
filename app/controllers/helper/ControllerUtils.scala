@@ -13,6 +13,17 @@ import scala.util.matching.Regex
 object ControllerUtils {
 
   /**
+   * The user id to query with on behalf of a request that carries no identity.
+   *
+   * Label reads compute per-user columns — "you already validated this", "this is your own label" — by comparing rows
+   * against a user id, and a cookie-less visitor doesn't have one. An id that belongs to nobody makes every such
+   * comparison false, which is exactly the answer a brand-new account gets, so the query shape stays the same for both
+   * (#4643). Empty string is safe because `user_id` is a text column; it lives here so the read endpoints that need it
+   * can't drift apart.
+   */
+  val NoUserId: String = ""
+
+  /**
    * Returns true if the user is on mobile, false if the user is not on mobile.
    */
   def isMobile[A](implicit request: Request[A]): Boolean = {
@@ -155,15 +166,23 @@ object ControllerUtils {
    * Such requests get a plain `401` instead, letting the client's fetch fail cleanly.
    *
    * We distinguish the two by the `Sec-Fetch-Mode` fetch-metadata header, which browsers send on trustworthy origins
-   * (https and localhost): `navigate` for top-level navigations, `cors`/`same-origin`/`no-cors` for fetch/XHR/subresource
-   * requests. Non-browser clients (curl, crawlers, the test suite) omit it, so they fall through to the redirect — the
-   * conservative default that preserves the anonymous-signup-on-navigation flow.
+   * (https and localhost): `navigate` for top-level navigations (including no-JS form posts), `cors`/`same-origin`/
+   * `no-cors` for fetch/XHR/subresource requests.
+   *
+   * When the header is absent — curl, crawlers, the test suite, browsers predating fetch metadata such as Safari
+   * before 16.4 — the method decides. A GET falls through to the redirect, the conservative default that preserves
+   * the anonymous-signup-on-navigation flow. A write does not: it would be redirected, followed, and land on a 200
+   * HTML page, so the caller reads success while the submission was silently dropped. A 401 instead lets the client
+   * see the failure and mint a session (`util.lazyIdentityFetch`, #4442).
    *
    * @param request The unauthenticated request header.
    * @return        `401 Unauthorized` for a non-navigation fetch/XHR request, otherwise a 303 redirect to /anonSignUp.
    */
   def anonSignupRedirect(request: RequestHeader): Result = {
-    val isNavigation = request.headers.get("Sec-Fetch-Mode").forall(_ == "navigate")
+    val isNavigation = request.headers.get("Sec-Fetch-Mode") match {
+      case Some(mode) => mode == "navigate"
+      case None       => request.method == "GET"
+    }
     if (isNavigation) Redirect("/anonSignUp", request.queryString + ("url" -> Seq(request.path)))
     else Unauthorized("Not authenticated")
   }

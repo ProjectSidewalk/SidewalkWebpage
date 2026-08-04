@@ -788,30 +788,20 @@ class LabelDetail {
   }
 
   /**
-   * POSTs JSON to a session-requiring endpoint, minting the shared anonymous session first if it's missing.
-   *
-   * The public spotlight page (#456) is reachable with no session at all, and SecuredAction answers a session-less
-   * POST by bouncing it through /anonSignUp — which mints the session but swallows the submission. So on a failed
-   * first attempt, mint the session explicitly (idempotent: signUpAnon just redirects when a session exists) and
-   * retry once. redirect: 'manual' keeps the mint cheap — the Set-Cookie on the redirect response is stored without
-   * fetching the page it points at. On every other surface a session always exists, so the retry never fires.
+   * POSTs JSON to a session-requiring endpoint via util.lazyIdentityFetch (#4442): every host page renders with no
+   * session for a first-time visitor, so an auth-shaped failure mints the shared anonymous session and retries once.
+   * A real rejection — 409 duplicate, 429 rate limit, 400 validation — surfaces instead of being re-posted.
    *
    * @param {string} url - The endpoint to POST to.
    * @param {object} data - The JSON-serializable request body.
-   * @returns {Promise<Response>} The first OK response, or the retry's response (which may itself not be OK).
+   * @returns {Promise<Response>} The first non-auth-failure response, or the retry's (which may itself not be OK).
    */
-  async #postJson(url, data) {
-    const post = () => fetch(url, {
+  #postJson(url, data) {
+    return util.lazyIdentityFetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify(data),
     });
-    let res = await post();
-    if (!res.ok) {
-      await fetch('/anonSignUp?url=%2F', { redirect: 'manual' });
-      res = await post();
-    }
-    return res;
   }
 
   /**

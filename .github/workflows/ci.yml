@@ -1,11 +1,14 @@
 name: CI
 
 #   - backend:         `sbt compile` + `scalafmtCheckAll` (both BLOCKING)
-#   - frontend:        asset build (grunt) + `eslint` (JS) + `stylelint` (CSS) + `htmlhint` (HTML) (all BLOCKING)
+#   - frontend:        asset build (grunt) + `eslint` (JS) + `stylelint` (CSS) + `htmlhint` (HTML) (all BLOCKING),
+#                      plus the jsdom `jest` suite in test/js/ (ADVISORY step inside the same job).
 #   - evolutions-lint: static checks on conf/evolutions/default/*.sql (BLOCKING — fast, deterministic, no DB).
 #   - route-lint:      conf/routes reachability — fails if any route is shadowed by an earlier one (BLOCKING — no DB).
 #   - backend-tests:   DB-backed public-API functional tests against a real Postgres+PostGIS (ADVISORY for now). Boots
 #                      the app, which auto-applies pending evolutions -- so it doubles as the forward-apply gate.
+#   - e2e-smoke:       Playwright browser smoke tests (test/e2e/) against a staged app + the CI database (ADVISORY for
+#                      now). Loads each core page in headless Chromium and fails on uncaught console/page errors.
 #   - python-tests:    pytest unit tests for the standalone scripts in scripts/ (ADVISORY for now).
 # ESLint (JavaScript), Stylelint (CSS), and htmlhint (HTML) are all wired into the `frontend` job as blocking steps now
 # that their trees are lint-clean (#2487).
@@ -83,7 +86,7 @@ jobs:
       # failed, so a contributor sees build and lint problems in one run. Auto-fix locally with `make eslint-fix`.
       - name: ESLint (blocking)
         if: always()
-        run: npx eslint public/js/ public/locales/
+        run: npx eslint public/js/ public/locales/ test/e2e/ playwright.config.js
 
       # Blocking: the CSS tree is kept stylelint-clean (#2487), the CSS counterpart to the ESLint gate above. Same glob
       # `make stylelint` defaults to; vendored/generated CSS is carved out by stylelint.config.mjs's own `ignoreFiles`.
@@ -110,6 +113,15 @@ jobs:
       - name: Locale parity (blocking)
         if: always()
         run: node tools/check-locale-parity.mjs
+
+      # Advisory: the jsdom unit suite (test/js/). Coverage is thin and sequenced with the ES5→ES2022 migration
+      # (#2487), so it doesn't gate merges yet — but running it on every PR is what keeps a tested helper's contract
+      # from being quietly edited out from under it. `continue-on-error` is on the step, not the job, so a failure
+      # reports without turning the required `Frontend (build)` check red.
+      - name: Jest unit tests (advisory)
+        if: always()
+        continue-on-error: true
+        run: npm run test:js
 
   evolutions-lint:
     name: Evolutions lint
@@ -276,6 +288,150 @@ jobs:
           INFRA3D_CLIENT_SECRET_WINTERTHUR: DUMMY_INFRA3D_CLIENT_SECRET
           ENV_TYPE: local
           SIDEWALK_IMAGES_DIR: .crops
+
+  e2e-smoke:
+    name: E2E smoke (Playwright)
+    runs-on: ubuntu-latest
+    # ADVISORY while the suite stabilizes (plan: ramp to blocking once it's proven stable). Does not block PRs yet.
+    continue-on-error: true
+    timeout-minutes: 30
+    # Job-level env (shared by `sbt stage` and the app process), mirroring backend-tests' block with one difference:
+    # GOOGLE_MAPS_API_KEY prefers the real referrer/API-restricted test key so the phase-2 Explore/Validate specs can
+    # exercise Street View. The secret is absent on fork PRs; the fallback keeps the app booting with the dummy key,
+    # and HAS_REAL_GMAPS_KEY=false makes those specs self-skip (test/e2e/explore-validate.spec.js). Mapbox stays dummy
+    # on purpose — map pages are stubbed in-suite (test/e2e/fixtures.js) so they never hit the network.
+    env:
+      DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
+      DATABASE_USER: sidewalk
+      DATABASE_PASSWORD: sidewalk
+      SIDEWALK_CITY_ID: teaneck-nj
+      SIDEWALK_APPLICATION_SECRET: DUMMY_APPLICATION_SECRET_SET_CORRECTLY_ON_PRODUCTION
+      SILHOUETTE_SIGNER_KEY: DUMMY_SILHOUETTE_SIGNER_KEY
+      SILHOUETTE_CRYPTER_KEY: DUMMY_SILHOUETTE_CRYPTER_KEY
+      INTERNAL_API_KEY: DUMMY_INTERNAL_API_KEY
+      MAPBOX_API_KEY: DUMMY_MAPBOX_API_KEY
+      GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY_TEST || 'DUMMY_GOOGLE_API_KEY' }}
+      HAS_REAL_GMAPS_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY_TEST != '' }}
+      GOOGLE_MAPS_SECRET: DUMMY_GOOGLE_SECRET
+      GEMINI_API_KEY: DUMMY_GEMINI_API_KEY
+      SCISTARTER_API_KEY: DUMMY_SCISTARTER_API_KEY
+      MAPILLARY_ACCESS_TOKEN: DUMMY_MAPILLARY_ACCESS_TOKEN
+      INFRA3D_CLIENT_ID_ZURICH: DUMMY_INFRA3D_CLIENT_ID
+      INFRA3D_CLIENT_ID_WINTERTHUR: DUMMY_INFRA3D_CLIENT_ID
+      INFRA3D_CLIENT_SECRET_ZURICH: DUMMY_INFRA3D_CLIENT_SECRET
+      INFRA3D_CLIENT_SECRET_WINTERTHUR: DUMMY_INFRA3D_CLIENT_SECRET
+      ENV_TYPE: local
+      SIDEWALK_IMAGES_DIR: .crops
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: sbt
+
+      - name: Set up sbt
+        uses: sbt/setup-sbt@v1
+
+      - name: Set up Node 23
+        uses: actions/setup-node@v6
+        with:
+          node-version: '23'
+
+      - name: Install npm dependencies
+        run: npm install
+
+      # MUST precede `sbt stage`: the staged app serves public/ from the packaged assets jar, and the grunt bundles
+      # (public/js/*/build/) are git-ignored — without them every page 404s its own JS/CSS.
+      - name: Build frontend assets
+        run: npx grunt
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      # DB bring-up + readiness + schema setup are copied verbatim from backend-tests; see the comments there
+      # (especially why the readiness probe must stay on TCP via `-h 127.0.0.1`).
+      - name: Start database
+        run: docker compose up -d --build db
+
+      - name: Wait for the database to accept TCP connections
+        run: |
+          for i in $(seq 1 90); do
+            if docker compose exec -T -e PGPASSWORD=sidewalk db \
+                 psql -h 127.0.0.1 -p 5432 -U postgres -d sidewalk -tAc \
+                 "SELECT 1 FROM information_schema.schemata WHERE schema_name='sidewalk_login'" 2>/dev/null | grep -q 1; then
+              echo "Database is accepting TCP connections and initialized."; exit 0
+            fi
+            sleep 2
+          done
+          echo "Database did not become reachable in time."; docker compose logs db | tail -50; exit 1
+
+      - name: Create test city schema (teaneck) from the sidewalk_init template
+        run: |
+          docker compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk -c "
+          ALTER SCHEMA sidewalk_init RENAME TO sidewalk_teaneck;
+          ALTER ROLE sidewalk SET search_path = sidewalk_teaneck, sidewalk_login, public;"
+
+      # Unlike backend-tests (which boots the app in-JVM via ScalaTest), the smoke suite needs the app actually
+      # serving HTTP. Stage a prod-mode binary: it boots once (no per-request dev recompiles) and auto-applies
+      # pending evolutions at startup (play.evolutions.db.default.autoApply=true), and `localhost` is in
+      # play.filters.hosts.allowed.
+      - name: Stage the app (prod-mode binary)
+        run: sbt stage
+
+      # pidfile to /dev/null so a retry on the same runner can't trip over a stale RUNNING_PID.
+      #
+      # config.resource=application.local.conf is load-bearing, not a stylistic choice. The base conf/application.conf
+      # scopes both the Play session cookie and the Silhouette authenticator to Domain=".cs.washington.edu" (they are
+      # shared across the per-city subdomains in production), and a browser drops any cookie whose Domain doesn't match
+      # the host it is talking to. At http://localhost:9000 that means no session can ever stick, so every SecuredAction
+      # page ping-pongs with /anonSignUp until Chromium gives up with ERR_TOO_MANY_REDIRECTS. The local overlay is
+      # exactly the "app served over plain http at localhost:9000" profile — it nulls both cookie domains and pins
+      # play.filters.hosts.allowed to localhost:9000 — so it is the honest config to boot under here. It cannot be
+      # expressed as -D flags: a system property is always a string, so -Dplay.http.session.domain=null would set the
+      # literal Domain "null" rather than clearing it.
+      - name: Start the app
+        run: |
+          nohup target/universal/stage/bin/sidewalk-webpage \
+            -Dconfig.resource=application.local.conf \
+            -Dhttp.port=9000 -Dplay.server.pidfile.path=/dev/null > app.log 2>&1 &
+
+      # /signIn is a UserAwareAction: 200 with no auth and no session bootstrap — the cheapest unauthenticated
+      # route that proves routing + DB + evolutions all came up.
+      - name: Wait for the app to serve HTTP
+        run: |
+          for i in $(seq 1 120); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:9000/signIn || true)
+            if [ "$code" = "200" ]; then echo "App is up."; exit 0; fi
+            sleep 2
+          done
+          echo "App did not come up in time (last status: $code)."; tail -100 app.log; exit 1
+
+      # Minimal data so /explore can initialize (phase 2 of #4504): one region containing the template's DC
+      # tutorial street. With zero regions /explore is a server error; with one, a fresh anonymous user
+      # deterministically starts the audit tutorial, whose pano tiles are local assets — the restricted
+      # GOOGLE_MAPS_API_KEY_TEST key is needed only for the Maps JS API itself. Runs after the app is up so
+      # evolutions have already brought the schema to HEAD. Harmless when the GSV specs are skipped.
+      - name: Seed minimal explore data
+        run: docker compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk < test/e2e/fixtures/ci-seed.sql
+
+      - name: Run Playwright smoke suite
+        run: npx playwright test
+        env:
+          BASE_URL: http://localhost:9000
+
+      - name: Upload Playwright report + app log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-smoke-report
+          path: |
+            playwright-report/
+            test-results/
+            app.log
+          retention-days: 7
 
   python-tests:
     name: Python tests (scripts)

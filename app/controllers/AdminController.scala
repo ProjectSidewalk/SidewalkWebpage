@@ -609,6 +609,21 @@ class AdminController @Inject() (
   }
 
   /**
+   * Serializes one rolling week-over-week activity window for the Across Cities page (#4758).
+   *
+   * @param w The current- and prior-window totals for one city, or summed across all of them.
+   * @return  The window as snake_case JSON (v3 API convention).
+   */
+  private def activityWindowJson(w: ActivityWindowSummary): JsObject = Json.obj(
+    "labels_7d"             -> w.labels7d,
+    "labels_prior_7d"       -> w.labelsPrior7d,
+    "validations_7d"        -> w.validations7d,
+    "validations_prior_7d"  -> w.validationsPrior7d,
+    "contributors_7d"       -> w.contributors7d,
+    "contributors_prior_7d" -> w.contributorsPrior7d
+  )
+
+  /**
    * Returns a per-city summary scorecard for every deployment, for the cross-city "Across Cities" overview (#4329).
    *
    * Owner-gated: all cities share one database, so per-city Administrators must not see other cities' detail. Merges the
@@ -623,16 +638,19 @@ class AdminController @Inject() (
 
     // Fetch the per-city scorecards and the all-time cross-city weekly series in parallel; the page's "over time" charts
     // default to the last 12 weeks (derived client-side from each city's weekly_trend) and toggle to this all-time set.
-    // The trailing-7-day daily series drives the "this week" bar charts (#4686).
+    // The trailing-7-day daily series drives the "this week" bar charts (#4686), and the window summary the
+    // week-over-week deltas on the "Today & this week" tiles (#4758).
     val scorecardsF    = configService.getCityScorecards()
     val allTimeF       = configService.getCrossCityWeeklyTrend(None)
     val dailyF         = configService.getCrossCityDailyTrend(7)
+    val windowSummaryF = configService.getCrossCityActivitySummary()
     val labelingSpeedF = configService.getCrossCityLabelingSpeed()
 
     for {
       withFlags     <- scorecardsF
       allTimeTrend  <- allTimeF
       dailyTrend    <- dailyF
+      windowSummary <- windowSummaryF
       labelingSpeed <- labelingSpeedF
     } yield {
       val now        = OffsetDateTime.now()
@@ -768,7 +786,16 @@ class AdminController @Inject() (
           "cities"             -> cities,
           "over_time_all_time" -> overTimeAllTime,
           "over_time_daily"    -> overTimeDaily,
-          "summary"            -> Json.obj(
+          // Rolling week-over-week windows (trailing 7 days vs the 7 before) for the "Today & this week" tiles
+          // (#4758). Contributors are distinct per city per window, summed across cities (no cross-city dedup).
+          "window_summary" -> activityWindowJson(windowSummary.total),
+          // The same windows kept per city, for the "Most active cities" table. Emitted as its own block rather than
+          // merged into `cities` because the scorecard rows already carry labels_7d/validations_7d on a slightly
+          // different basis (see getCityActivityWindowsBySchema) and two same-named fields would invite mixing them.
+          "window_by_city" -> JsObject(windowSummary.byCity.toSeq.map { case (cityId, w) =>
+            cityId -> activityWindowJson(w)
+          }),
+          "summary" -> Json.obj(
             "num_cities"                -> scorecards.length,
             "num_countries"             -> numCountries,
             "num_languages"             -> numLanguages,

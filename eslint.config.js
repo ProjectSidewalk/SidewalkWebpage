@@ -165,4 +165,28 @@ module.exports = [
       'i18n-json/valid-message-syntax': ['error', {syntax: 'non-empty-string'}],
     },
   },
+
+  // --- Browser smoke suite (test/e2e/) + its config ---
+  // Node-side CommonJS (Playwright test runner), unlike the browser-global concat bundles above — so it gets its
+  // own block with node globals rather than joining the public/js one. Kept to the core recommended rules; the
+  // suite is a handful of files and the full @stylistic house-style preset isn't worth a second tuning pass here.
+  {files: ['test/e2e/**/*.js', 'playwright.config.js'], ...js.configs.recommended},
+  {
+    files: ['test/e2e/**/*.js', 'playwright.config.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'commonjs',
+      globals: {
+        ...globals.node,
+        // Callbacks passed to page.waitForFunction/page.evaluate execute IN the browser, so specs
+        // legitimately reference window/document inside otherwise-Node files.
+        ...globals.browser,
+      },
+    },
+    rules: {
+      'no-var': 'error',
+      'prefer-const': 'error',
+      'eqeqeq': ['error', 'always'],
+    },
+  },
 ];

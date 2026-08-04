@@ -95,8 +95,10 @@ class ImageController @Inject() (
 
   /**
    * Returns the backup image metadata for a pano as JSON, used by PopupPanoManager's lazy-fetch fallback.
+   *
+   * User-aware (#4643): read-only, referer-gated, and served on pages that render for cookie-less visitors.
    */
-  def getBackupImageMetadata(panoId: String) = cc.securityService.SecuredAction { implicit request =>
+  def getBackupImageMetadata(panoId: String) = cc.securityService.UserAwareAction { implicit request =>
     if (!refererAllowed(request)) {
       Future.successful(Forbidden("Request origin not allowed."))
     } else if (PANO_ID_PATTERN.findFirstIn(panoId).isEmpty) {
@@ -114,9 +116,10 @@ class ImageController @Inject() (
   /**
    * Serves a self-hosted equirectangular panorama image.
    *
-   * Requires a valid HMAC signature (?exp=...&sig=...) and an allowed Referer/Origin.
+   * Requires a valid HMAC signature (?exp=...&sig=...) and an allowed Referer/Origin. User-aware (#4643): read-only
+   * and already protected by the signature + referer checks, so no session is required to load the image.
    */
-  def serveBackupImage(panoId: String) = cc.securityService.SecuredAction { implicit request =>
+  def serveBackupImage(panoId: String) = cc.securityService.UserAwareAction { implicit request =>
     val earlyReject =
       if (!refererAllowed(request)) Some(Forbidden("Request origin not allowed."))
       else if (PANO_ID_PATTERN.findFirstIn(panoId).isEmpty) Some(BadRequest(s"Invalid pano ID: $panoId"))
@@ -141,8 +144,10 @@ class ImageController @Inject() (
 
   /**
    * Returns the crop image metadata (a signed serving URL) for a label as JSON, used to lazily fetch a  /cropImage URL.
+   *
+   * User-aware (#4643): read-only, referer-gated, and served on pages that render for cookie-less visitors.
    */
-  def getCropImageMetadata(labelType: String, labelId: Int) = cc.securityService.SecuredAction { implicit request =>
+  def getCropImageMetadata(labelType: String, labelId: Int) = cc.securityService.UserAwareAction { implicit request =>
     if (!refererAllowed(request)) {
       Future.successful(Forbidden("Request origin not allowed."))
     } else if (!LabelTypeEnum.validLabelTypes.contains(labelType)) {
@@ -162,9 +167,10 @@ class ImageController @Inject() (
   /**
    * Serves a previously-saved crop image for a label.
    *
-   * Requires a valid HMAC signature (?exp=...&sig=...) and an allowed Referer/Origin.
+   * Requires a valid HMAC signature (?exp=...&sig=...) and an allowed Referer/Origin. User-aware (#4643): read-only
+   * and already protected by the signature + referer checks, so no session is required to load the image.
    */
-  def serveCropImage(labelType: String, labelId: Int) = cc.securityService.SecuredAction { implicit request =>
+  def serveCropImage(labelType: String, labelId: Int) = cc.securityService.UserAwareAction { implicit request =>
     val earlyReject =
       if (!refererAllowed(request)) Some(Forbidden("Request origin not allowed."))
       else if (!LabelTypeEnum.validLabelTypes.contains(labelType))

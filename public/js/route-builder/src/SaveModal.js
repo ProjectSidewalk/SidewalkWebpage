@@ -154,7 +154,9 @@ class SaveModal {
     const name = this.#nameInput.value.trim();
     const description = this.#descriptionInput?.value.trim() ?? '';
 
-    fetch('/saveRoute', {
+    // "Continue without account" from a cookie-less visitor (#4643) makes this their first-ever write:
+    // lazyIdentityFetch mints the anonymous session on an auth-shaped failure and retries once (#4442).
+    util.lazyIdentityFetch('/saveRoute', {
       method: 'POST',
       headers: {
         'Accept': 'application/json',

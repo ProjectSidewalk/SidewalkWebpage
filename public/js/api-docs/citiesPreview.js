@@ -65,7 +65,8 @@
         .catch((error) => {
           container.innerHTML = `<div class="message message-error">Failed to load cities data: ${error.message}</div>`;
           console.error('Cities preview error:', error);
-          return Promise.reject(error);
+          // The failure is already surfaced in the container above, and init() is fire-and-forget at every call
+          // site (app/views/apiDocs/*), so re-rejecting here can only ever become an unhandled rejection.
         });
     },
 

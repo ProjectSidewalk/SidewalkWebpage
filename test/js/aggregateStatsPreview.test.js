@@ -156,7 +156,9 @@ describe('AggregateStatsPreview', () => {
             Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) })
         );
 
-        await expect(window.AggregateStatsPreview.setup({}).init()).rejects.toThrow();
+        // init() settles even on failure: the banner is how the error reaches the user, and every call site is
+        // fire-and-forget, so a rejection here would surface as an unhandled rejection instead.
+        await expect(window.AggregateStatsPreview.setup({}).init()).resolves.toBeUndefined();
 
         const container = document.getElementById(CONTAINER_ID);
         expect(container.innerHTML).toContain('Failed to load');

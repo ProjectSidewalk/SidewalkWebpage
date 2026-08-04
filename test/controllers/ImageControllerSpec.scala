@@ -99,7 +99,9 @@ class ImageControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
           .withCSRFToken
       ).get
 
-      status(resp) must (be >= 300 and be < 400)
+      // An unauthenticated write is answered 401 rather than bounced, so the client can mint a session and retry it
+      // instead of having the submission swallowed by a followed redirect (ControllerUtils.anonSignupRedirect).
+      status(resp) mustBe UNAUTHORIZED
       cropFileFor(syntheticLabelId).exists() mustBe false
     }
 
