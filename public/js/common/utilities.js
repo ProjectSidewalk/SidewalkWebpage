@@ -279,6 +279,24 @@ async function lazyIdentityFetch(url, options) {
 
 util.lazyIdentityFetch = lazyIdentityFetch;
 
+/**
+ * Whether the server rendered this page for a visitor who has an identity — signed in or on an anonymous account.
+ *
+ * This is exactly what a SecuredAction endpoint answers 200 vs 401 on, so an init-time read of one should consult
+ * this and skip the request rather than handle the failure: a 401 is logged as a console error by the browser
+ * itself, no matter how gracefully the caller catches it. Writes don't need this — they should go through
+ * util.lazyIdentityFetch, which mints the session on demand.
+ *
+ * @returns {?boolean} What the navbar's data-has-session says, or null on the few pages rendered without a navbar.
+ */
+function hasSession() {
+  const navbar = document.getElementById('header');
+  if (!navbar || navbar.dataset.hasSession === undefined) return null;
+  return navbar.dataset.hasSession === 'true';
+}
+
+util.hasSession = hasSession;
+
 // Sums an array's numbers (a helper, not an Array.prototype extension, to avoid polluting native prototypes).
 util.array = util.array || {};
 util.array.sum = (arr) => arr.reduce((a, b) => a + b, 0);
