@@ -142,6 +142,31 @@ case class WeeklyPoint(weekStart: LocalDate, labels: Int, validations: Int, acti
 case class DailyPoint(day: LocalDate, labels: Int, validations: Int, activeUsers: Int)
 
 /**
+ * Cross-city rolling week-over-week activity — the trailing 7 days vs the 7 before — for the "Today & this week"
+ * tiles on the Across Cities page (#4758).
+ *
+ * Windows are exact rolling 168-hour spans (the same basis as [[CityScorecard]]'s labels7d/validations7d), not
+ * Pacific calendar days, so the tiles agree with the per-city 7d columns. Same activity definition and exclusions as
+ * [[DailyPoint]].
+ *
+ * @param labels7d            Labels created in the trailing 7 days.
+ * @param labelsPrior7d       Labels created 7–14 days ago.
+ * @param validations7d       Validations in the trailing 7 days.
+ * @param validationsPrior7d  Validations 7–14 days ago.
+ * @param contributors7d      Distinct users who labeled or validated in the trailing 7 days, summed per city (a
+ *                            person active in two cities is counted in each, as with [[DailyPoint]] active users).
+ * @param contributorsPrior7d Same, for 7–14 days ago.
+ */
+case class ActivityWindowSummary(
+    labels7d: Int,
+    labelsPrior7d: Int,
+    validations7d: Int,
+    validationsPrior7d: Int,
+    contributors7d: Int,
+    contributorsPrior7d: Int
+)
+
+/**
  * One city's summary row for the cross-city "Across Cities" admin overview (#4329).
  *
  * Unlike [[AggregateStats]], which sums every city into one total, this keeps each deployment separate so they can be
@@ -487,6 +512,15 @@ trait ConfigService {
    * @return     Exactly `days` points, zero-filled and ascending by day.
    */
   def getCrossCityDailyTrend(days: Int): Future[Seq[DailyPoint]]
+
+  /**
+   * Returns rolling week-over-week activity summed across all available cities (#4758): the trailing 7 days vs the 7
+   * before, for the "Today & this week" tiles. Same activity definition and exclusions as [[getCrossCityDailyTrend]];
+   * contributors are distinct per city per window and summed across cities.
+   *
+   * @return Current- and prior-window label/validation/contributor totals.
+   */
+  def getCrossCityActivitySummary(): Future[ActivityWindowSummary]
 
   /**
    * Returns each city's labeling speed as seconds of active auditing per 100 m covered (#4329).
@@ -1021,6 +1055,43 @@ class ConfigServiceImpl @Inject() (
           (0 until days).map { i =>
             val day = today.minusDays((days - 1 - i).toLong)
             byDay.getOrElse(day, DailyPoint(day, 0, 0, 0))
+          }
+        }
+      }
+    }
+  }
+
+  def getCrossCityActivitySummary(): Future[ActivityWindowSummary] = {
+    cacheApi.getOrElseUpdate[ActivityWindowSummary]("getCrossCityActivitySummary", Duration(10, "minutes")) {
+      val configuredCityIds = config.get[Seq[String]]("city-params.city-ids").filter(_ != "staging")
+
+      val schemaExistenceChecks: Seq[Future[(String, Boolean)]] = configuredCityIds.map { cityId =>
+        try {
+          checkSchemaExists(getCitySchema(cityId)).map(cityId -> _).recover { case _ => cityId -> false }
+        } catch {
+          case _: Exception => Future.successful(cityId -> false)
+        }
+      }
+
+      Future.sequence(schemaExistenceChecks).flatMap { schemaResults =>
+        val availableCities = schemaResults.filter(_._2).map(_._1)
+        val perCityFutures  = availableCities.map { cityId =>
+          db.run(configTable.getCityActivityWindowsBySchema(getCitySchema(cityId)))
+            .recover { case e: Exception =>
+              logger.warn(s"Failed to fetch activity windows for city $cityId: ${e.getMessage}")
+              ActivityWindowSummary(0, 0, 0, 0, 0, 0)
+            }
+        }
+        Future.sequence(perCityFutures).map { perCity =>
+          perCity.foldLeft(ActivityWindowSummary(0, 0, 0, 0, 0, 0)) { (acc, city) =>
+            ActivityWindowSummary(
+              acc.labels7d + city.labels7d,
+              acc.labelsPrior7d + city.labelsPrior7d,
+              acc.validations7d + city.validations7d,
+              acc.validationsPrior7d + city.validationsPrior7d,
+              acc.contributors7d + city.contributors7d,
+              acc.contributorsPrior7d + city.contributorsPrior7d
+            )
           }
         }
       }

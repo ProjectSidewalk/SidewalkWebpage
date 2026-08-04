@@ -718,16 +718,19 @@ class AdminController @Inject() (
 
     // Fetch the per-city scorecards and the all-time cross-city weekly series in parallel; the page's "over time" charts
     // default to the last 12 weeks (derived client-side from each city's weekly_trend) and toggle to this all-time set.
-    // The trailing-7-day daily series drives the "this week" bar charts (#4686).
+    // The trailing-7-day daily series drives the "this week" bar charts (#4686), and the window summary the
+    // week-over-week deltas on the "Today & this week" tiles (#4758).
     val scorecardsF    = configService.getCityScorecards()
     val allTimeF       = configService.getCrossCityWeeklyTrend(None)
     val dailyF         = configService.getCrossCityDailyTrend(7)
+    val windowSummaryF = configService.getCrossCityActivitySummary()
     val labelingSpeedF = configService.getCrossCityLabelingSpeed()
 
     for {
       withFlags     <- scorecardsF
       allTimeTrend  <- allTimeF
       dailyTrend    <- dailyF
+      windowSummary <- windowSummaryF
       labelingSpeed <- labelingSpeedF
     } yield {
       val now        = OffsetDateTime.now()
@@ -863,7 +866,17 @@ class AdminController @Inject() (
           "cities"             -> cities,
           "over_time_all_time" -> overTimeAllTime,
           "over_time_daily"    -> overTimeDaily,
-          "summary"            -> Json.obj(
+          // Rolling week-over-week windows (trailing 7 days vs the 7 before) for the "Today & this week" tiles
+          // (#4758). Contributors are distinct per city per window, summed across cities (no cross-city dedup).
+          "window_summary" -> Json.obj(
+            "labels_7d"             -> windowSummary.labels7d,
+            "labels_prior_7d"       -> windowSummary.labelsPrior7d,
+            "validations_7d"        -> windowSummary.validations7d,
+            "validations_prior_7d"  -> windowSummary.validationsPrior7d,
+            "contributors_7d"       -> windowSummary.contributors7d,
+            "contributors_prior_7d" -> windowSummary.contributorsPrior7d
+          ),
+          "summary" -> Json.obj(
             "num_cities"                -> scorecards.length,
             "num_countries"             -> numCountries,
             "num_languages"             -> numLanguages,

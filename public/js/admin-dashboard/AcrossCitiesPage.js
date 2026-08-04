@@ -1,9 +1,10 @@
 /**
  * Renders the admin "Across Cities" page (#4329): a cross-deployment overview of every Project Sidewalk city across
  * four lenses — coverage (how much is left), activity (what's happening and when), data patterns (the label-type mix,
- * city vs city), and data quality (how trustworthy the data is). Adds a "needs attention" panel from server-computed
- * anomaly flags and an over-time section (#4686): weekly line charts (labels / validations / active users, summed
- * across cities), cumulative all-time totals, and rolling-7-day bar charts.
+ * city vs city), and data quality (how trustworthy the data is). Adds a "Today & this week" band (#4758) of
+ * current-activity tiles (with week-over-week deltas) and rolling-7-day bar charts, a "needs attention" panel from
+ * server-computed anomaly flags, and an over-time section (#4686): weekly line charts (labels / validations / active
+ * users, summed across cities) and cumulative all-time totals.
  *
  * Plain HTML/CSS plus the shared MiniLineChart for the over-time charts and small inline-SVG sparklines for the
  * per-city activity trend. Owner-only; driven entirely from /adminapi/cityScorecards.
@@ -83,6 +84,7 @@ class AcrossCitiesPage {
   #summary = {};         // The summary block (thresholds + cross-city median + hero totals).
   #allTimeTrend = [];    // Cross-city weekly series for the full project history (the "All time" toggle).
   #dailyTrend = [];      // Cross-city daily series for the trailing 7 days (the "this week" bar charts, #4686).
+  #windowSummary = null; // Rolling 7d-vs-prior-7d totals for the "Today & this week" tiles (#4758).
   #trendSeries = {};     // { recent: [...], all: [...] } weekly aggregates for the over-time charts.
   #trendRange = 'recent';// Which over-time range is shown: 'recent' (12 wks) | 'all'.
   #sortKey = 'coverage'; // Current sort column.
@@ -112,7 +114,9 @@ class AcrossCitiesPage {
       this.#summary = (data && data.summary) || {};
       this.#allTimeTrend = (data && data.over_time_all_time) || [];
       this.#dailyTrend = (data && data.over_time_daily) || [];
+      this.#windowSummary = (data && data.window_summary) || null;
       this.#renderHero();
+      this.#renderNow();
       this.#renderMap(citiesGeo);
       this.#renderPulse();
       this.#renderAttention();
@@ -171,6 +175,79 @@ class AcrossCitiesPage {
     this.#setText('hero-validations', this.#compact(s.total_validations));
     this.#setText('hero-datapoints', this.#compact(s.total_datapoints));
     this.#setText('hero-agreement', s.global_agreement ? this.#pct(s.global_agreement) : '—');
+  }
+
+  // --- Today & this week ------------------------------------------------------------------------------------------
+
+  /**
+   * Fills the "Today & this week" tiles (#4758): today from the daily series' last (partial) point, the 7-day window
+   * values and week-over-week deltas from the endpoint's window_summary, and the cities-active / top-city /
+   * new-contributor tiles derived from the scorecards and the all-time weekly series.
+   */
+  #renderNow() {
+    // Today (so far): the last point of the zero-filled daily series is today, partial. No delta on these tiles —
+    // comparing a partial today against a full yesterday would nearly always read as a drop.
+    const today = this.#dailyTrend.length ? this.#dailyTrend[this.#dailyTrend.length - 1] : null;
+    if (today) {
+      this.#setText('now-labels-today', this.#num(today.labels));
+      this.#setText('now-validations-today', this.#num(today.validations));
+      this.#setText('now-contributors-today', this.#num(today.active_users));
+    }
+
+    // Past 7 days: values AND deltas from window_summary so both share the same exact rolling-window basis (summing
+    // the calendar-day series would disagree with the delta, and per-day distinct users can't be summed).
+    const ws = this.#windowSummary;
+    if (ws) {
+      this.#setText('now-labels-7d', this.#num(ws.labels_7d));
+      this.#setText('now-validations-7d', this.#num(ws.validations_7d));
+      this.#setText('now-contributors-7d', this.#num(ws.contributors_7d));
+      this.#renderDelta('now-labels-7d-delta', ws.labels_7d, ws.labels_prior_7d);
+      this.#renderDelta('now-validations-7d-delta', ws.validations_7d, ws.validations_prior_7d);
+      this.#renderDelta('now-contributors-7d-delta', ws.contributors_7d, ws.contributors_prior_7d);
+    }
+
+    // Cities active / top city, from the per-city scorecard 7d fields (same rolling basis as window_summary).
+    const activeCount = this.#cities.filter((c) =>
+      (c.labels_7d || 0) + (c.validations_7d || 0) + (c.audits_7d || 0) > 0).length;
+    this.#setText('now-cities-active', `${this.#num(activeCount)} of ${this.#num(this.#cities.length)}`);
+    const top = this.#cities.reduce((best, c) =>
+      ((c.labels_7d || 0) > ((best && best.labels_7d) || 0) ? c : best), null);
+    if (top && (top.labels_7d || 0) > 0) {
+      this.#setText('now-top-city', top.city_name || top.city_id);
+      this.#setText('now-top-city-count', `${this.#num(top.labels_7d)} labels`);
+    }
+
+    // New contributors: the all-time weekly series' last point is the current (partial) Pacific calendar week — the
+    // only series that knows each person's true first-activity week, hence the calendar-week (not rolling) basis.
+    const week = this.#allTimeTrend.length ? this.#allTimeTrend[this.#allTimeTrend.length - 1] : null;
+    if (week) this.#setText('now-new-contributors', this.#num(week.new_users));
+  }
+
+  /**
+   * Sets a tile's week-over-week delta line: ▲/▼ plus percent change vs the prior 7 days, direction-colored, with the
+   * raw counts in the tooltip. Changes under ±1% show as flat ("→").
+   *
+   * @param {string} id - Element id of the tile's `.ac-hero-delta` span.
+   * @param {number} current - Trailing-7-day count.
+   * @param {number} prior - Count for the 7 days before that; 0 degrades the text (a percentage is undefined).
+   */
+  #renderDelta(id, current, prior) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    let dir;
+    let text;
+    if (!prior) {
+      dir = current > 0 ? 'up' : 'flat';
+      text = current > 0 ? '▲ up from 0 the week before' : '→ no recent activity';
+    } else {
+      const frac = (current - prior) / prior;
+      dir = Math.abs(frac) < 0.01 ? 'flat' : (frac > 0 ? 'up' : 'down');
+      const arrow = dir === 'up' ? '▲' : (dir === 'down' ? '▼' : '→');
+      text = `${arrow} ${this.#pct(Math.abs(frac))} vs prior 7 days`;
+    }
+    el.className = `ac-hero-delta ac-hero-delta--${dir}`;
+    el.textContent = text;
+    el.title = `${this.#num(current)} in the last 7 days vs ${this.#num(prior)} in the 7 days before`;
   }
 
   // --- Deployment cities map --------------------------------------------------------------------------------------
@@ -369,7 +446,7 @@ class AcrossCitiesPage {
   /**
    * Prepares the two over-time datasets (last 12 weeks, summed from each city's trend; and all-time, from the
    * server-aggregated series), wires the range toggle, and draws the current range. Also draws the toggle-independent
-   * cumulative and this-week charts (#4686), which are static once loaded.
+   * cumulative charts (#4686) and the "Today & this week" section's daily bar charts, all static once loaded.
    */
   #renderTrends() {
     this.#trendSeries = {
@@ -445,8 +522,9 @@ class AcrossCitiesPage {
   }
 
   /**
-   * Draws the rolling-7-day bar charts (#4686) from the server's zero-filled daily series. A rolling 7-day window
-   * holds exactly one of each weekday, so short weekday names are unambiguous x labels; tooltips carry the full date.
+   * Draws the "Today & this week" section's rolling-7-day bar charts (#4686) from the server's zero-filled daily
+   * series. A rolling 7-day window holds exactly one of each weekday, so short weekday names are unambiguous x
+   * labels; tooltips carry the full date.
    */
   #drawWeekBars() {
     const series = this.#dailyTrend;
