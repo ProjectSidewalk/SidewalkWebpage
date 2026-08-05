@@ -53,6 +53,12 @@ test.describe('/labelMap label feed failure', () => {
     await expect(page.locator('#labelmap-loading-card')).toBeHidden();
     // Keyboard users land on the only available action rather than having to hunt for it.
     await expect(page.locator('#labelmap-retry')).toBeFocused();
+
+    // The error and the spinner are driven by different events — the data promise and the map's `load` — and a
+    // feed that fails fast loses that race. The error has to survive the map finishing behind it.
+    await page.waitForTimeout(1000);
+    await expect(page.locator('#labelmap-error-card')).toBeVisible();
+    await expect(page.locator('#labelmap-loading-card')).toBeHidden();
   });
 
   // The regression this file exists for: a 200 whose body stops early still has to reach the user as an error.

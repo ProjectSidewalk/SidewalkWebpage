@@ -21,6 +21,7 @@ class MapLoadingOverlay {
   #elapsedEl;
   #retryButton;
   #timer = null;
+  #failed = false;
 
   /**
    * @param {object} [options]
@@ -38,9 +39,15 @@ class MapLoadingOverlay {
     this.#retryButton.addEventListener('click', () => (onRetry ? onRetry() : window.location.reload()));
   }
 
-  /** Shows the spinner card and starts the elapsed-time counter. */
+  /**
+   * Shows the spinner card and starts the elapsed-time counter.
+   *
+   * No-ops once the load has failed. The two callers race: this one fires from the map's `load` event, while
+   * `showError` fires from the data promise, and a feed that fails fast loses that race — without the guard a
+   * late `show()` would replace the error card with a spinner that never stops.
+   */
   show() {
-    if (!this.#root) return;
+    if (!this.#root || this.#failed) return;
     const start = performance.now();
     const renderElapsed = () => {
       const seconds = ((performance.now() - start) / 1000).toFixed(1);
@@ -68,6 +75,7 @@ class MapLoadingOverlay {
    */
   showError() {
     if (!this.#root) return;
+    this.#failed = true;
     this.#stopTimer();
     this.#loadingCard.hidden = true;
     this.#errorCard.hidden = false;

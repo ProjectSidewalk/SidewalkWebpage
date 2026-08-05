@@ -128,6 +128,9 @@ function createPSMap($, params) {
   }, () => {
     // Failure is the caller's to report — it owns the page's error UI. Handled here as the second argument to
     // `then` rather than left off, so this branch doesn't become a second, unhandled copy of the same rejection.
+    // Note this handler is on the DERIVED promise, which is discarded: `allLoaded` is returned untouched below
+    // and still rejects. Attaching the same handler to a promise that IS returned would convert its rejection
+    // into a resolution, and callers would receive `undefined` instead of an error.
   });
   return allLoaded;
 
