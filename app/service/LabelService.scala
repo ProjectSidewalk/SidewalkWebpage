@@ -190,7 +190,11 @@ class LabelServiceImpl @Inject() (
       aiValOptions: Seq[String],
       batchSize: Int
   ): Source[LabelForLabelMap, _] =
-    // NOTE `.transactionally` is required for Postgres to honor fetchSize and stream instead of materializing (#3932).
+    // `.transactionally` is required for Postgres to honor fetchSize and stream instead of materializing (#3932). It
+    // also means a pooled connection stays checked out, transaction open, for the whole response rather than just the
+    // query: `Ok.chunked` backpressures from the client socket, so a slow reader pins one of the 25 connections until
+    // it finishes. Prod bounds that with idle_in_transaction_session_timeout=120s, which a fetch-to-fetch gap longer
+    // than that trips — the stream then fails mid-flight, and `logStreamFailures` is the only trace (see #4161).
     Source.fromPublisher(
       db.stream(
         labelTable

@@ -27,9 +27,6 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
 
   private val logger = Logger(this.getClass)
 
-  // NOTE `logStreamFailures` and `DEFAULT_BATCH_SIZE` moved to CustomBaseController so that non-API controllers with
-  // streamed responses (e.g. /labels/all, #3932) can use them too.
-
   /**
    * Creates a bounding box (BBox) using the provided latitude and longitude values.
    * If any of the values are not provided, it uses the default values from the MapParams.
@@ -206,9 +203,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       inline: Option[Boolean],
       filename: String
   ): Future[Result] = {
-    val jsonSource: Source[String, _] = dbDataStream
-      .map(row => row.toJson.toString)
-      .intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
+    val jsonSource: Source[String, _] = geoJsonFeatureCollection(dbDataStream.map(row => row.toJson.toString))
 
     Future.successful(
       Ok.chunked(logStreamFailures(jsonSource, filename), inline.getOrElse(false), Some(filename))

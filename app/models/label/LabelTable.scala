@@ -1673,14 +1673,36 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * route filtering). Called via `DatabasePublisher.mapResult`, so streamed rows are converted one at a time.
    *
    * This can't be a mapped projection on the query itself: using both `_l.agreeCount > 0` and `_lp.lat.get` in the
-   * yield fails at runtime with "SlickException: Expected an option type, found Float/REAL". The lat/lng `.get`s are
-   * safe because the query filters on `isDefined`.
+   * yield fails at runtime with "SlickException: Expected an option type, found Float/REAL".
+   *
+   * `getLabelsForLabelMap` filters on `lat.isDefined && lng.isDefined`, so a NULL coordinate here means that filter
+   * was lost. That fails loudly rather than silently dropping labels off the map, which is the harder bug to notice.
    */
   def tupleToLabelForLabelMap(t: LabelForLabelMapTuple): LabelForLabelMap = t match {
-    case (id, _, taskId, lType, lat, lng, correct, hasVals, hasAdminVals, aiVal, expired, hasBackup, highQual, sev,
-          tags, ai) =>
-      LabelForLabelMap(id, taskId, lType, lat.get, lng.get, correct, hasVals, hasAdminVals, aiVal, expired, hasBackup,
-        highQual, sev, tags, ai)
+    case (
+          id,
+          _,
+          taskId,
+          lType,
+          Some(lat),
+          Some(lng),
+          correct,
+          hasVals,
+          hasAdminVals,
+          aiVal,
+          expired,
+          hasBackup,
+          highQual,
+          sev,
+          tags,
+          ai
+        ) =>
+      LabelForLabelMap(id, taskId, lType, lat, lng, correct, hasVals, hasAdminVals, aiVal, expired, hasBackup, highQual,
+        sev, tags, ai)
+    case _ =>
+      throw new IllegalStateException(
+        s"Label ${t._1} has a NULL lat (${t._5}) or lng (${t._6}); getLabelsForLabelMap must filter them out."
+      )
   }
 
   /**

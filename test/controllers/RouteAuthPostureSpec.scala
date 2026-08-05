@@ -10,6 +10,7 @@ import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
+import play.api.http.HttpEntity
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
 import play.api.mvc.{Cookie, RequestHeader}
@@ -152,6 +153,14 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
       (json \ "type").as[String] mustBe "FeatureCollection"
       (json \ "features").as[Seq[JsValue]] // Must be an array, empty or not.
       succeed
+    }
+
+    // The feed is streamed row by row out of the db (#3932); a whole city's labels are tens of MB, and materializing
+    // them is what made large cities time out before the first byte. A strict body here means that regressed.
+    "stream the feed as a chunked JSON response" in {
+      val result = Await.result(route(app, FakeRequest(GET, "/labels/all")).get, 30.seconds)
+      result.body mustBe a[HttpEntity.Chunked]
+      result.body.contentType mustBe Some("application/json")
     }
 
     "publish exactly the documented property set on every feature" in {

@@ -73,19 +73,30 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
     }
 
   /**
+   * Wraps a stream of serialized GeoJSON Features in the surrounding FeatureCollection document.
+   *
+   * The envelope is emitted around the stream rather than assembled in memory, so features go out as they arrive from
+   * the db. `intersperse` emits both the opening and closing fragments when the upstream is empty, so a zero-row
+   * result is still a valid, empty FeatureCollection rather than an empty body.
+   *
+   * @param features A source of serialized GeoJSON Feature objects.
+   * @return         The same features framed as a `{"type":"FeatureCollection","features":[...]}` document.
+   */
+  protected def geoJsonFeatureCollection(features: Source[String, _]): Source[String, _] =
+    features.intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
+
+  /**
    * Builds an inline chunked JSON response that streams the given GeoJSON Features as a FeatureCollection.
    *
    * Rows are serialized and sent as they arrive from the db instead of materializing the whole result in memory
-   * (#3932). An empty source still yields a valid, empty FeatureCollection. For API downloads with a filename and
-   * multiple output formats, use `BaseApiController.outputGeoJSON` instead.
+   * (#3932). For API downloads with a filename and multiple output formats, use `BaseApiController.outputGeoJSON`
+   * instead.
    *
    * @param features A source of GeoJSON Feature objects, e.g. a streamed db query mapped through a serializer.
    * @param label    A short identifier (e.g. the endpoint path) included in the log line if the stream fails.
    */
   protected def streamGeoJson(features: Source[JsObject, _], label: String)(implicit ec: ExecutionContext): Result = {
-    val jsonSource: Source[String, _] = features
-      .map(_.toString)
-      .intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
+    val jsonSource: Source[String, _] = geoJsonFeatureCollection(features.map(_.toString))
     Ok.chunked(logStreamFailures(jsonSource, label)).as(ContentTypes.JSON)
   }
 
