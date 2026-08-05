@@ -331,6 +331,27 @@ object LabelTable {
         LabelMetadataUserDash(t._1, t._2, t._3, POV.tupled(t._4), t._5, t._6, LabelTypeEnum.byName(t._7), t._8, t._9)
     }
 
+  // Type alias for the tuple representation of LabelForLabelMap query results. Includes streetEdgeId (2nd element,
+  // dropped when converting to the case class) because the route-filtering branch in getLabelsForLabelMap needs it.
+  type LabelForLabelMapTuple = (
+      Int,                            // 1.  labelId
+      Int,                            // 2.  streetEdgeId
+      Int,                            // 3.  auditTaskId
+      String,                         // 4.  labelType
+      Option[Double],                 // 5.  lat
+      Option[Double],                 // 6.  lng
+      Option[Boolean],                // 7.  correct
+      Boolean,                        // 8.  hasValidations
+      Boolean,                        // 9.  hasAdminValidation
+      Option[ValidationOption.Value], // 10. aiValidation
+      Boolean,                        // 11. expired
+      Boolean,                        // 12. hasBackup
+      Boolean,                        // 13. highQualityUser
+      Option[Int],                    // 14. severity
+      List[String],                   // 15. tags
+      Boolean                         // 16. aiGenerated
+  )
+
   // Type aliases for the tuple representation of LabelValidationMetadata and queries for them.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
   type LabelValidationMetadataTuple = (
@@ -1565,13 +1586,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Returns all the submitted labels with their severities included. If provided, filter for only given regions.
+   * Query for all submitted labels with the metadata needed for the label map. If provided, filters for only the
+   * given regions/routes/AI-validation results. Returns the tuple-level query so callers can stream it from the db
+   * with `db.stream` (#3932); convert rows to the case class with `tupleToLabelForLabelMap`.
    */
   def getLabelsForLabelMap(
       regionIds: Seq[Int],
       routeIds: Seq[Int],
       aiValOptions: Seq[String]
-  ): DBIO[Seq[LabelForLabelMap]] = {
+  ): Query[_, LabelForLabelMapTuple, Seq] = {
     // Label IDs with at least one validation from an Administrator or Owner.
     val _adminValidatedLabelIds = for {
       _lv <- labelValidations
@@ -1642,15 +1665,22 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _labelsFilteredByAiValidation
     }
 
-    // For some reason we couldn't use both `_l.agreeCount > 0` and `_lPoint.lat.get` in the yield without a runtime
-    // error, which is why we couldn't use `.tupled` here. This was the error message:
-    // SlickException: Expected an option type, found Float/REAL
-    _labelsNearRoute.result.map(_.map {
-      case (id, streetId, taskId, lType, lat, lng, correct, hasVals, hasAdminVals, aiVal, expired, hasBackup, highQual,
-            sev, tags, ai) =>
-        LabelForLabelMap(id, taskId, lType, lat.get, lng.get, correct, hasVals, hasAdminVals, aiVal, expired, hasBackup,
-          highQual, sev, tags, ai)
-    })
+    _labelsNearRoute
+  }
+
+  /**
+   * Converts a row from `getLabelsForLabelMap` to a `LabelForLabelMap`, dropping the street ID (only in the tuple for
+   * route filtering). Called via `DatabasePublisher.mapResult`, so streamed rows are converted one at a time.
+   *
+   * This can't be a mapped projection on the query itself: using both `_l.agreeCount > 0` and `_lp.lat.get` in the
+   * yield fails at runtime with "SlickException: Expected an option type, found Float/REAL". The lat/lng `.get`s are
+   * safe because the query filters on `isDefined`.
+   */
+  def tupleToLabelForLabelMap(t: LabelForLabelMapTuple): LabelForLabelMap = t match {
+    case (id, _, taskId, lType, lat, lng, correct, hasVals, hasAdminVals, aiVal, expired, hasBackup, highQual, sev,
+          tags, ai) =>
+      LabelForLabelMap(id, taskId, lType, lat.get, lng.get, correct, hasVals, hasAdminVals, aiVal, expired, hasBackup,
+        highQual, sev, tags, ai)
   }
 
   /**

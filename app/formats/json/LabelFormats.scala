@@ -356,4 +356,50 @@ object LabelFormats {
       "labelLng"         -> label.pointData.lng
     )
   }
+
+  /**
+   * Serializes a label as a GeoJSON Feature for the label map. The admin variant (/adminapi/labels/all) additionally
+   * carries audit_task_id and has_admin_validation; the public variant (/labels/all) omits them.
+   */
+  def labelForLabelMapToGeoJson(label: LabelForLabelMap, admin: Boolean): JsObject = {
+    val properties: JsObject =
+      if (admin)
+        Json.obj(
+          "audit_task_id"        -> label.auditTaskId,
+          "label_id"             -> label.labelId,
+          "label_type"           -> label.labelType,
+          "severity"             -> label.severity,
+          "correct"              -> label.correct,
+          "has_validations"      -> label.hasValidations,
+          "has_admin_validation" -> label.hasAdminValidation,
+          "ai_validation"        -> label.aiValidation.map(_.toString),
+          "expired"              -> label.expired,
+          "has_backup"           -> label.hasBackup,
+          "high_quality_user"    -> label.highQualityUser,
+          "ai_generated"         -> label.aiGenerated,
+          "tags"                 -> label.tags
+        )
+      else
+        Json.obj(
+          "label_id"          -> label.labelId,
+          "label_type"        -> label.labelType,
+          "severity"          -> label.severity,
+          "correct"           -> label.correct,
+          "has_validations"   -> label.hasValidations,
+          "ai_validation"     -> label.aiValidation.map(_.toString),
+          "expired"           -> label.expired,
+          "has_backup"        -> label.hasBackup,
+          "high_quality_user" -> label.highQualityUser,
+          "ai_generated"      -> label.aiGenerated,
+          "tags"              -> label.tags
+        )
+    Json.obj(
+      "type"     -> "Feature",
+      "geometry" -> Json.obj(
+        "type"        -> "Point",
+        "coordinates" -> Json.arr(label.lng, label.lat)
+      ),
+      "properties" -> properties
+    )
+  }
 }

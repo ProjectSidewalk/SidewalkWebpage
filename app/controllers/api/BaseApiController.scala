@@ -4,7 +4,6 @@ import controllers.base.{CustomBaseController, CustomControllerComponents}
 import controllers.helper.ShapefilesCreatorHelper
 import models.api.{ApiError, StreamingApiType}
 import models.utils.{LatLngBBox, MapParams}
-import org.apache.pekko.Done
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import org.apache.pekko.util.ByteString
 import play.api.Logger
@@ -19,7 +18,6 @@ import java.util.zip.{ZipEntry, ZipOutputStream}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.math._
 import scala.util.control.NonFatal
-import scala.util.{Failure, Success}
 
 /**
  * Base controller for API endpoints with common utility methods.
@@ -27,36 +25,10 @@ import scala.util.{Failure, Success}
 abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
 
-  private val logger                    = Logger(this.getClass)
-  protected val DEFAULT_BATCH_SIZE: Int = 50000
+  private val logger = Logger(this.getClass)
 
-  /**
-   * Attaches failure logging to a streaming response body.
-   *
-   * Chunked API responses (`Ok.chunked`) commit a 200 status and headers *before* the underlying database stream
-   * runs. So if the stream fails mid-flight — e.g. a query timeout or dropped connection while serializing a very
-   * large city's labels — the body simply ends, and Play cannot retract the status it already sent. Without this hook
-   * such failures are completely silent: exactly the #4161 symptom, where large-city `/v3/api/rawLabels` returns a
-   * 200 with an empty/truncated body and no server-side trace. This logs the failure so it is at least diagnosable;
-   * it does not (and cannot) change the status already sent to the client.
-   *
-   * @param source The streaming body to monitor.
-   * @param label  A short identifier (e.g. the download filename) included in the log line to locate the failure.
-   * @return       The same source, with termination-failure logging attached (success behavior is unchanged).
-   */
-  private def logStreamFailures(source: Source[String, _], label: String): Source[String, _] =
-    source.watchTermination() { (mat, done) =>
-      done.onComplete {
-        case Failure(e) =>
-          logger.error(
-            s"API streaming response failed mid-flight for '$label'; the client received a truncated/empty body " +
-              s"after a 200 status was already sent (see #4161).",
-            e
-          )
-        case Success(_: Done) => // Stream completed normally; nothing to log.
-      }
-      mat
-    }
+  // NOTE `logStreamFailures` and `DEFAULT_BATCH_SIZE` moved to CustomBaseController so that non-API controllers with
+  // streamed responses (e.g. /labels/all, #3932) can use them too.
 
   /**
    * Creates a bounding box (BBox) using the provided latitude and longitude values.
