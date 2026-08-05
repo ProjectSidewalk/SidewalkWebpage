@@ -13,7 +13,9 @@ class PanoStore {
    */
   addPanoMetadata(panoId, panoMetadata) {
     if (!(panoId in this.store)) {
-      if (panoId === 'tutorial' || panoId === 'tutorialAfterWalk') {
+      // Mark the locally-served tutorial panos as already submitted so getStagedPanoData() never hands their
+      // fabricated metadata to the form POST.
+      if (util.pano.TUTORIAL_PANO_IDS.has(panoId)) {
         panoMetadata.setProperty('submitted', true);
       }
       this.store[panoId] = panoMetadata;
