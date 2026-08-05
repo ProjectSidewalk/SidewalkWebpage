@@ -1,10 +1,14 @@
 /**
- * "Download" map control: a labeled pill that opens a dropdown menu for downloading the labels currently shown on
- * the map via the public /v3/api/rawLabels endpoint, in the user's choice of format.
+ * "Download" map control: a labeled pill that opens a panel for downloading the labels currently shown on the map
+ * via the public /v3/api/rawLabels endpoint, in the user's choice of format.
  *
  * Implements the Mapbox IControl interface (onAdd/onRemove) so it stacks with the built-in controls in a map corner.
  * The host page supplies accessors for the live filter state and visible-label count; the control turns that state
  * into rawLabels query parameters at click time, so the file always reflects the current sidebar selections.
+ *
+ * The panel is a disclosure (button + `aria-expanded`/`aria-controls`), not an ARIA menu: it mixes static text (the
+ * title, the count, the caveat) with actions, and `role="menu"` may only contain menu items. Arrow/Home/End keys are
+ * still wired up as a convenience for the run of buttons inside.
  */
 class MapDownloadControl {
   /** @type {HTMLElement} */
@@ -12,7 +16,9 @@ class MapDownloadControl {
   /** @type {HTMLButtonElement} */
   #button;
   /** @type {HTMLElement} */
-  #menu;
+  #panel;
+  /** @type {HTMLElement} */
+  #status;
   /** @type {() => object} */
   #getFilterState;
   /** @type {() => number} */
@@ -23,10 +29,28 @@ class MapDownloadControl {
   #showsPartialFilterCaveat;
   /** @type {boolean} */
   #open = false;
+  /** @type {string} Prefix for this instance's element ids, so two controls on one page can't collide. */
+  #idPrefix;
+  /** @type {?number} */
+  #outsideClickTimer = null;
+  /** @type {?number} */
+  #busyTimer = null;
   /** @type {(e: MouseEvent) => void} Stable reference so the capturing document listener can be removed. */
   #boundOutsideClick = (e) => this.#onOutsideClick(e);
 
-  /** The download formats offered, in menu order. Format names are proper nouns and are not translated. */
+  /** Instances built so far, used to make element ids unique. */
+  static #instanceCount = 0;
+
+  /**
+   * How long the pill stays in its "preparing your download" state, in ms.
+   *
+   * The transfer is a plain browser navigation, which fires no completion event we can listen for, so the state is
+   * time-boxed rather than tied to the response. It exists to acknowledge the click — a city-wide GeoPackage takes a
+   * while to first byte, and with no feedback at all people click again.
+   */
+  static #BUSY_MS = 4000;
+
+  /** The download formats offered, in panel order. Format names are proper nouns and are not translated. */
   static #FORMATS = [
     { format: 'geojson', name: 'GeoJSON', hintKey: 'hint-geojson', hintFallback: 'Web mapping standard' },
     { format: 'csv', name: 'CSV', hintKey: 'hint-csv', hintFallback: 'For Excel, Google Sheets' },
@@ -55,16 +79,18 @@ class MapDownloadControl {
     this.#getVisibleLabelCount = getVisibleLabelCount;
     this.#regionId = regionId;
     this.#showsPartialFilterCaveat = showsPartialFilterCaveat;
+    this.#idPrefix = `map-download-${MapDownloadControl.#instanceCount++}`;
   }
 
   /**
    * Builds the relative /v3/api/rawLabels URL for the given sidebar state.
    *
-   * A section with every option selected is omitted — the endpoint's default already covers it. A section with
-   * nothing selected is also omitted: it means the map shows nothing, and callers disable the download actions in
-   * that case (the endpoint cannot express an empty selection).
+   * A section with every rendered option selected is omitted — the endpoint's default already covers it. A section
+   * with nothing selected is also omitted: it means the map shows nothing, and callers disable the download actions
+   * in that case (the endpoint cannot express an empty selection).
    *
-   * @param {{severities: number[], sections: object, tags: object}} state FilterSidebar.getState()'s shape.
+   * @param {{severities: number[], allSeverities: number[], sections: object, tags: object,
+   *      allLabelTypes: string[]}} state FilterSidebar.getState()'s shape.
    * @param {object} options
    * @param {string} options.format One of 'geojson', 'csv', 'shapefile', 'geopackage'.
    * @param {?number} [options.regionId] Single region id to scope the download to, or null.
@@ -77,17 +103,13 @@ class MapDownloadControl {
     // highQualityFilter: true), so downloads must match.
     params.set('highQualityUserOnly', 'true');
 
-    // state.tags carries every rendered label type (FilterSidebar.getState()'s contract), checked or not.
-    const renderedTypeCount = Object.keys(state.tags).length;
     const checkedTypes = state.sections['label-type'] ?? [];
-    if (checkedTypes.length > 0 && checkedTypes.length < renderedTypeCount) {
+    if (checkedTypes.length > 0 && checkedTypes.length < state.allLabelTypes.length) {
       params.set('labelType', checkedTypes.join(','));
     }
 
-    // The sidebar renders exactly four severity toggles (N/A + 1-3, filterSidebar.scala.html); all four selected
-    // is the endpoint's default.
     const severities = [...state.severities].sort((a, b) => a - b);
-    if (severities.length > 0 && severities.length < 4) {
+    if (severities.length > 0 && severities.length < state.allSeverities.length) {
       params.set('severity', severities.map((severity) => (severity === 0 ? 'none' : String(severity))).join(','));
     }
 
@@ -99,9 +121,13 @@ class MapDownloadControl {
       );
     }
 
-    const tagPairs = Object.entries(state.tags)
-      .flatMap(([labelType, tags]) => tags.map((tag) => `${labelType}:${tag}`));
-    if (tagPairs.length > 0) params.set('tags', tagPairs.join(','));
+    // One `tags` occurrence per tag rather than a comma-separated list: tag names are free-form label text and at
+    // least one of them contains a comma ("yellow box, accessibility features not visible"), which a list would
+    // shred into two tags matching nothing. Each entry is scoped to its label type, which the endpoint reads as
+    // "narrow this type by these tags", leaving the untagged types alone — exactly what the sidebar does.
+    for (const [labelType, tags] of Object.entries(state.tags)) {
+      for (const tag of tags) params.append('tags', `${labelType}:${tag}`);
+    }
 
     if (regionId !== null) params.set('regionId', String(regionId));
     return `/v3/api/rawLabels?${params}`;
@@ -113,41 +139,56 @@ class MapDownloadControl {
    * @returns {HTMLElement} The control's root element.
    */
   onAdd() {
+    const panelId = `${this.#idPrefix}-panel`;
+    const titleId = `${this.#idPrefix}-title`;
+    const countId = `${this.#idPrefix}-count`;
+    const caveatId = `${this.#idPrefix}-caveat`;
+    // The caveat only describes the panel when it's actually shown, or screen readers announce a warning that isn't
+    // on screen.
+    const describedBy = this.#showsPartialFilterCaveat ? `${countId} ${caveatId}` : countId;
+
     this.#container = document.createElement('div');
     this.#container.className = 'mapboxgl-ctrl map-download-control';
     const formatItems = MapDownloadControl.#FORMATS.map(({ format, name, hintKey, hintFallback }) => `
-        <button type="button" role="menuitem" class="map-download-control__item" data-format="${format}">
+        <button type="button" class="map-download-control__item" data-format="${format}">
           <span class="map-download-control__format">${name}</span>
           <span class="map-download-control__hint" data-i18n="labelmap:download.${hintKey}">${hintFallback}</span>
         </button>`).join('');
     this.#container.innerHTML = `
-      <button type="button" class="map-download-control__button" aria-haspopup="menu" aria-expanded="false"
-              aria-controls="map-download-menu">
+      <button type="button" class="map-download-control__button" aria-expanded="false" aria-controls="${panelId}">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="M8 2v8m0 0 3-3m-3 3L5 7M3 12v1.5a.5.5 0 0 0 .5.5h9a.5.5 0 0 0 .5-.5V12"
                 stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <span data-i18n="labelmap:download.button">Download</span>
+        <span class="map-download-control__label" data-i18n="labelmap:download.button">Download</span>
+        <span class="map-download-control__label map-download-control__label--busy"
+              data-i18n="labelmap:download.preparing" hidden>Preparing your download…</span>
       </button>
-      <div id="map-download-menu" class="map-download-control__menu" role="menu" aria-labelledby="map-download-title"
-           aria-describedby="map-download-count" hidden>
-        <p id="map-download-title" class="map-download-control__title"
+      <div id="${panelId}" class="map-download-control__panel" role="group" aria-labelledby="${titleId}"
+           aria-describedby="${describedBy}" hidden>
+        <p id="${titleId}" class="map-download-control__title"
            data-i18n="labelmap:download.title">Select a file format to download</p>
-        <p id="map-download-count" class="map-download-control__count"></p>
-        <p class="map-download-control__caveat" data-i18n="labelmap:download.caveat" hidden>
-          Some filters from this page's link (multiple regions, routes, or AI validation) aren't applied to downloads.
+        <p id="${countId}" class="map-download-control__count"></p>
+        <p id="${caveatId}" class="map-download-control__caveat" data-i18n="labelmap:download.caveat" hidden>
+          Some filters from this page's link (multiple regions, routes, or AI validation) can't be applied to
+          downloads, so the file may contain more labels than the count above.
         </p>${formatItems}
-        <a role="menuitem" class="map-download-control__docs-link" href="/v3/api-docs/rawLabels" target="_blank"
-           data-i18n="labelmap:download.api-docs-link">Raw Labels API documentation</a>
-      </div>`;
+        <a class="map-download-control__docs-link" href="/v3/api-docs/rawLabels" target="_blank" rel="noopener">
+          <span data-i18n="labelmap:download.api-docs-link">Raw Labels API documentation</span>
+          <span class="map-download-control__sr-only"
+                data-i18n="labelmap:download.opens-new-tab"> (opens in a new tab)</span>
+        </a>
+      </div>
+      <p class="map-download-control__sr-only" role="status"></p>`;
 
     this.#button = this.#container.querySelector('.map-download-control__button');
-    this.#menu = this.#container.querySelector('#map-download-menu');
+    this.#panel = this.#container.querySelector(`#${panelId}`);
+    this.#status = this.#container.querySelector('[role="status"]');
     if (this.#showsPartialFilterCaveat) this.#container.querySelector('.map-download-control__caveat').hidden = false;
 
-    this.#button.addEventListener('click', () => (this.#open ? this.#closeMenu() : this.#openMenu()));
+    this.#button.addEventListener('click', () => (this.#open ? this.#closePanel() : this.#openPanel()));
     this.#container.addEventListener('keydown', (e) => this.#onKeydown(e));
-    for (const item of this.#menu.querySelectorAll('.map-download-control__item')) {
+    for (const item of this.#panel.querySelectorAll('.map-download-control__item')) {
       item.addEventListener('click', () => this.#triggerDownload(item.dataset.format));
     }
     this.#container.querySelector('.map-download-control__docs-link')
@@ -159,27 +200,33 @@ class MapDownloadControl {
 
   /** Tears down the control. Called by Mapbox when the control is removed from the map. */
   onRemove() {
+    clearTimeout(this.#outsideClickTimer);
+    clearTimeout(this.#busyTimer);
     document.removeEventListener('click', this.#boundOutsideClick, true);
     this.#container.remove();
   }
 
   /**
-   * Opens the menu: refreshes the count line, disables the format actions when nothing is shown, and moves focus in.
+   * Opens the panel: refreshes the count line, disables the format actions when nothing is shown, and moves focus in.
    * @param {boolean} [focusLast=false] Whether to focus the last item instead of the first (ArrowUp convention).
    */
-  #openMenu(focusLast = false) {
+  #openPanel(focusLast = false) {
     const count = this.#getVisibleLabelCount();
     this.#renderCount(count);
-    for (const item of this.#menu.querySelectorAll('.map-download-control__item')) {
+    for (const item of this.#panel.querySelectorAll('.map-download-control__item')) {
       item.disabled = count === 0;
     }
 
-    this.#menu.hidden = false;
+    this.#panel.hidden = false;
     this.#open = true;
     this.#button.setAttribute('aria-expanded', 'true');
 
-    // Defer listener registration so the click that opened the menu doesn't immediately close it.
-    setTimeout(() => document.addEventListener('click', this.#boundOutsideClick, true), 0);
+    // Defer listener registration so the click that opened the panel doesn't immediately close it. The guard covers
+    // a close that lands before the timer fires, which would otherwise leave a listener attached to a closed panel.
+    clearTimeout(this.#outsideClickTimer);
+    this.#outsideClickTimer = setTimeout(() => {
+      if (this.#open) document.addEventListener('click', this.#boundOutsideClick, true);
+    }, 0);
 
     const items = this.#focusableItems();
     (focusLast ? items.at(-1) : items[0])?.focus();
@@ -187,13 +234,14 @@ class MapDownloadControl {
   }
 
   /**
-   * Closes the menu and tears down the outside-click listener.
+   * Closes the panel and tears down the outside-click listener.
    * @param {boolean} [returnFocus=true] Whether to move focus back to the pill (skip on outside-click/Tab).
    */
-  #closeMenu(returnFocus = true) {
-    this.#menu.hidden = true;
+  #closePanel(returnFocus = true) {
+    this.#panel.hidden = true;
     this.#open = false;
     this.#button.setAttribute('aria-expanded', 'false');
+    clearTimeout(this.#outsideClickTimer);
     document.removeEventListener('click', this.#boundOutsideClick, true);
     if (returnFocus) this.#button.focus();
   }
@@ -212,7 +260,25 @@ class MapDownloadControl {
     link.click();
     link.remove();
     this.#logActivity(`Click_module=MapDownload_Download_format=${format}`);
-    this.#closeMenu();
+    this.#setBusy(true);
+    this.#closePanel();
+  }
+
+  /**
+   * Puts the pill into (or out of) its "preparing your download" state and announces the change.
+   * @param {boolean} busy Whether a download has just been started.
+   */
+  #setBusy(busy) {
+    const idle = this.#button.querySelector('.map-download-control__label:not(.map-download-control__label--busy)');
+    const working = this.#button.querySelector('.map-download-control__label--busy');
+    idle.hidden = busy;
+    working.hidden = !busy;
+    this.#button.setAttribute('aria-busy', String(busy));
+    // Announce the localized string the pill itself is showing, rather than a second copy that could drift from it.
+    this.#status.textContent = busy ? working.textContent.trim() : '';
+
+    clearTimeout(this.#busyTimer);
+    if (busy) this.#busyTimer = setTimeout(() => this.#setBusy(false), MapDownloadControl.#BUSY_MS);
   }
 
   /**
@@ -226,20 +292,20 @@ class MapDownloadControl {
     pill.className = 'map-download-control__count-pill';
     pill.textContent = hasI18n ? i18next.t('labelmap:download.count', { count }) : `${count} labels`;
     const suffix = hasI18n ? i18next.t('labelmap:download.count-match', { count }) : 'match your filters';
-    this.#menu.querySelector('.map-download-control__count').replaceChildren(pill, suffix);
+    this.#panel.querySelector('.map-download-control__count').replaceChildren(pill, suffix);
   }
 
   /**
-   * Returns the menu's currently actionable items in navigation order (enabled formats, then the docs link).
-   * @returns {HTMLElement[]} The focusable menu items.
+   * Returns the panel's currently actionable items in navigation order (enabled formats, then the docs link).
+   * @returns {HTMLElement[]} The focusable items.
    */
   #focusableItems() {
     const selector = '.map-download-control__item:not(:disabled), .map-download-control__docs-link';
-    return [...this.#menu.querySelectorAll(selector)];
+    return [...this.#panel.querySelectorAll(selector)];
   }
 
   /**
-   * Handles keyboard interaction: ArrowDown/ArrowUp open the menu from the pill; inside the menu, arrows cycle,
+   * Handles keyboard interaction: ArrowDown/ArrowUp open the panel from the pill; inside it, arrows cycle,
    * Home/End jump, Escape closes and refocuses the pill, and Tab closes while letting focus move on.
    * @param {KeyboardEvent} e The keydown event.
    */
@@ -247,7 +313,7 @@ class MapDownloadControl {
     if (!this.#open) {
       if (document.activeElement === this.#button && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
         e.preventDefault();
-        this.#openMenu(e.key === 'ArrowUp');
+        this.#openPanel(e.key === 'ArrowUp');
       }
       return;
     }
@@ -256,7 +322,7 @@ class MapDownloadControl {
     const index = items.indexOf(document.activeElement);
     if (e.key === 'Escape') {
       e.preventDefault();
-      this.#closeMenu();
+      this.#closePanel();
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
       items[(index + 1) % items.length]?.focus();
@@ -270,16 +336,18 @@ class MapDownloadControl {
       e.preventDefault();
       items.at(-1)?.focus();
     } else if (e.key === 'Tab') {
-      this.#closeMenu(false);
+      // Deferred: hiding the focused element's subtree synchronously leaves the browser resolving sequential focus
+      // from a display:none element, which can drop focus at the top of the document. Let the default Tab land first.
+      setTimeout(() => this.#closePanel(false), 0);
     }
   }
 
   /**
-   * Closes the menu when a click lands outside the control.
+   * Closes the panel when a click lands outside the control.
    * @param {MouseEvent} e The document-level click event.
    */
   #onOutsideClick(e) {
-    if (!this.#container.contains(e.target)) this.#closeMenu(false);
+    if (!this.#container.contains(e.target)) this.#closePanel(false);
   }
 
   /**

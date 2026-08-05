@@ -190,13 +190,19 @@
         new MapSidebarUrlSync(sidebarFilter, self.map);
         // "Download" control (#4095), added after the labels stream in so its count is always real. A single
         // deep-linked region is passed through to the download; the other page-level params (multi-region, routes,
-        // AI validation) have no rawLabels counterpart, so the menu shows a caveat instead.
-        const regionIdList = regionsParam ? regionsParam.split(',') : [];
+        // AI validation) have no rawLabels counterpart, so the panel shows a caveat instead.
+        // Only one well-formed region id can be passed through. A malformed one is dropped rather than forwarded:
+        // it would reach rawLabels as a bad value and 400, which a plain anchor download shows as nothing happening.
+        const rawRegionIds = regionsParam ? regionsParam.split(',') : [];
+        const regionIds = rawRegionIds.map(Number).filter(Number.isInteger);
+        const downloadRegionId = rawRegionIds.length === 1 && regionIds.length === 1 ? regionIds[0] : null;
         self.map.addControl(new MapDownloadControl({
           getFilterState: () => sidebarFilter.getState(),
           getVisibleLabelCount: () => sidebarFilter.getVisibleLabelCount(),
-          regionId: regionIdList.length === 1 ? Number(regionIdList[0]) : null,
-          showsPartialFilterCaveat: regionIdList.length > 1 || Boolean(routesParam) || Boolean(aiValidationOptionsParam),
+          regionId: downloadRegionId,
+          // Any region param the download can't carry verbatim leaves the file wider than the map, caveat included.
+          showsPartialFilterCaveat: (rawRegionIds.length > 0 && downloadRegionId === null)
+            || Boolean(routesParam) || Boolean(aiValidationOptionsParam),
         }), 'top-right');
         // Popup arrows step through spatially nearby labels using the already-loaded map data.
         self.nearbyNav = createNearbyLabelNavigator(self.mapData);
