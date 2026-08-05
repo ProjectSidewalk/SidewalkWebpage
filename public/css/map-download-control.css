@@ -1,8 +1,19 @@
-/* "Download" map control on the LabelMap (#4095): a labeled pill stacked under the zoom/compass cluster that opens
+/* "Download" map control on the LabelMap (#4095): a labeled pill to the left of the zoom/compass cluster that opens
    a dropdown menu of download formats. Fixed page chrome, so no --ui-scale. */
+
+/* Lay the corner's controls out in a row so the pill sits beside the zoom/compass cluster instead of stacking
+   under it. Safe to restyle Mapbox's corner container: this stylesheet loads only on the LabelMap. */
+.mapboxgl-ctrl-top-right {
+  display: flex;
+  align-items: flex-start;
+}
 
 .map-download-control {
   position: relative;
+
+  /* The control mounts after the built-in navigation cluster (it waits for the label data), so flex order,
+     not DOM order, puts it on the left. */
+  order: -1;
 
   /* Mapbox's control container sets a 12px Helvetica stack; restore the design system's type. */
   font: var(--text-small-medium);
@@ -40,41 +51,69 @@
   top: calc(100% + 6px);
   right: 0;
   min-width: 260px;
-  padding: 6px;
+
+  /* The menu's own padding sets the single left edge everything below aligns to: title, count pill, the format
+     buttons' borders, the separator, and the docs link all start here. Text rows carry no horizontal margins of
+     their own — an outdented card border is what makes the panel read as messy. */
+  padding: 12px;
   background: var(--color-neutral-white);
   border: 1px solid var(--color-neutral-300);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
 }
 
-.map-download-control__count {
-  margin: 4px 8px 6px;
-  font: var(--text-caption-medium);
+.map-download-control__title {
+  margin: 0 0 6px;
+  font: var(--text-small-bold);
   color: var(--color-neutral-900);
 }
 
-.map-download-control__caveat {
-  margin: 0 8px 6px;
+.map-download-control__count {
+  margin: 0 0 12px;
   font: var(--text-caption-regular);
   color: var(--color-neutral-700);
 }
 
+.map-download-control__count-pill {
+  display: inline-block;
+  margin-inline-end: 5px;
+  padding: 1px 8px;
+  background: var(--color-neutral-100);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 999px;
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-900);
+}
+
+.map-download-control__caveat {
+  margin: 0 0 12px;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+/* The format actions get visible button chrome (border + rounded corners) rather than the flat rows typical of
+   menus: this panel mixes info text with actions, and hover-only affordance is invisible on touch. */
 .map-download-control__item {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
   width: 100%;
-  padding: 7px 8px;
-  background: none;
-  border: none;
+  padding: 8px 10px;
+  background: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-200);
   border-radius: 6px;
   text-align: left;
   cursor: pointer;
 }
 
+.map-download-control__item + .map-download-control__item {
+  margin-top: 6px;
+}
+
 .map-download-control__item:hover:not(:disabled) {
   background: var(--color-neutral-100);
+  border-color: var(--color-neutral-300);
 }
 
 .map-download-control__item:disabled {
@@ -97,8 +136,8 @@
 
 .map-download-control__docs-link {
   display: block;
-  margin-top: 4px;
-  padding: 7px 8px;
+  margin-top: 12px;
+  padding: 10px 0 0;
   border-top: 1px solid var(--color-neutral-200);
   font: var(--text-caption-regular);
   color: var(--color-neutral-700);

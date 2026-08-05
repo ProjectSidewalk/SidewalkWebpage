@@ -129,9 +129,10 @@ class MapDownloadControl {
         </svg>
         <span data-i18n="labelmap:download.button">Download</span>
       </button>
-      <div id="map-download-menu" class="map-download-control__menu" role="menu" aria-describedby="map-download-count"
-           data-i18n-aria-label="labelmap:download.menu-label" aria-label="Download the labels shown on the map"
-           hidden>
+      <div id="map-download-menu" class="map-download-control__menu" role="menu" aria-labelledby="map-download-title"
+           aria-describedby="map-download-count" hidden>
+        <p id="map-download-title" class="map-download-control__title"
+           data-i18n="labelmap:download.title">Select a file format to download</p>
         <p id="map-download-count" class="map-download-control__count"></p>
         <p class="map-download-control__caveat" data-i18n="labelmap:download.caveat" hidden>
           Some filters from this page's link (multiple regions, routes, or AI validation) aren't applied to downloads.
@@ -215,13 +216,17 @@ class MapDownloadControl {
   }
 
   /**
-   * Renders the "N labels match your filters" line.
+   * Renders the count line: the visible-label count in a pill ("17224 labels"), followed by "match your filters".
+   * Both halves receive the count so each locale can inflect its own half (e.g. "matches" vs "match").
    * @param {number} count The current visible-label count.
    */
   #renderCount(count) {
-    this.#menu.querySelector('.map-download-control__count').textContent = typeof i18next !== 'undefined'
-      ? i18next.t('labelmap:download.count', { count })
-      : `${count} labels match your filters`;
+    const hasI18n = typeof i18next !== 'undefined';
+    const pill = document.createElement('span');
+    pill.className = 'map-download-control__count-pill';
+    pill.textContent = hasI18n ? i18next.t('labelmap:download.count', { count }) : `${count} labels`;
+    const suffix = hasI18n ? i18next.t('labelmap:download.count-match', { count }) : 'match your filters';
+    this.#menu.querySelector('.map-download-control__count').replaceChildren(pill, suffix);
   }
 
   /**

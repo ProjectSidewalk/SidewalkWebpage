@@ -164,15 +164,21 @@ describe('MapDownloadControl menu', () => {
         expect(button().getAttribute('aria-expanded')).toBe('false');
         expect(button().getAttribute('aria-controls')).toBe('map-download-menu');
         expect(menu().hidden).toBe(true);
+        // The visible title is the menu's accessible name.
+        expect(menu().getAttribute('aria-labelledby')).toBe('map-download-title');
+        expect(menu().querySelector('.map-download-control__title').id).toBe('map-download-title');
         expect(items().map((item) => item.dataset.format)).toEqual(['geojson', 'csv', 'shapefile', 'geopackage']);
     });
 
-    test('opens on click: expands, renders the count, focuses the first item, and logs', () => {
+    test('opens on click: expands, renders the count pill + suffix, focuses the first item, and logs', () => {
         mount({ count: 7 });
         button().click();
         expect(button().getAttribute('aria-expanded')).toBe('true');
         expect(menu().hidden).toBe(false);
-        expect(menu().querySelector('.map-download-control__count').textContent).toBe('labelmap:download.count[7]');
+        expect(menu().querySelector('.map-download-control__count-pill').textContent)
+            .toBe('labelmap:download.count[7]');
+        expect(menu().querySelector('.map-download-control__count').textContent)
+            .toBe('labelmap:download.count[7]labelmap:download.count-match[7]');
         expect(document.activeElement).toBe(items()[0]);
         expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=MapDownload_Open');
     });
