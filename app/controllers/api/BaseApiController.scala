@@ -14,7 +14,7 @@ import play.api.mvc.Result
 import java.io.{BufferedInputStream, File}
 import java.nio.file.{Files, Path}
 import java.time.OffsetDateTime
-import java.time.format.DateTimeParseException
+import java.time.format.{DateTimeFormatter, DateTimeParseException}
 import java.util.zip.{ZipEntry, ZipOutputStream}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.math._
@@ -153,6 +153,14 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
     BaseApiController.resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
   protected def parseCommaSeparated(raw: Option[String]): Option[Seq[String]] =
     BaseApiController.parseCommaSeparated(raw)
+  protected def parseAllowlistedList(
+      raw: Option[String],
+      allowlist: Set[String],
+      paramName: String
+  ): Either[ApiError, Option[Seq[String]]] =
+    BaseApiController.parseAllowlistedList(raw, allowlist, paramName)
+  protected def timestampedFilename(prefix: String): String =
+    BaseApiController.timestampedFilename(prefix)
 
   /**
    * Outputs a CSV stream from the provided database data stream.
@@ -173,10 +181,11 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       .map(row => row.toCsvRow)
       .intersperse(csvHeader, "\n", "\n")
 
+    // Play's chunked(content, inline, fileName) overload emits a properly quoted Content-Disposition that honors
+    // `inline`; adding a manual header here would both un-quote the filename and force `attachment`.
     Future.successful(
       Ok.chunked(logStreamFailures(csvSource, filename), inline.getOrElse(false), Some(filename))
         .as("text/csv")
-        .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$filename")
     )
   }
 
@@ -424,4 +433,47 @@ object BaseApiController {
    */
   def parseCommaSeparated(raw: Option[String]): Option[Seq[String]] =
     raw.map(_.split(",").map(_.trim).toSeq)
+
+  /**
+   * Parses a comma-separated query parameter, validating every token against an allowlist.
+   *
+   * Beyond input validation, the allowlist makes the tokens safe to splice into the raw SQL built in the DAO layer.
+   *
+   * @param raw       The optional raw query parameter string.
+   * @param allowlist The set of valid token values.
+   * @param paramName The public parameter name, used in the error message.
+   * @return          `Right(None)` if absent; `Right(Some(tokens))` if every trimmed token is allowlisted;
+   *                  `Left(ApiError)` naming the offending parameter otherwise.
+   */
+  def parseAllowlistedList(
+      raw: Option[String],
+      allowlist: Set[String],
+      paramName: String
+  ): Either[ApiError, Option[Seq[String]]] =
+    parseCommaSeparated(raw) match {
+      case None         => Right(None)
+      case Some(tokens) =>
+        tokens.find(token => !allowlist.contains(token)) match {
+          case Some(badToken) =>
+            Left(
+              ApiError.invalidParameter(
+                s"Invalid $paramName value: '$badToken'. Must be a comma-separated list of: " +
+                  s"${allowlist.toSeq.sorted.mkString(", ")}.",
+                paramName
+              )
+            )
+          case None => Right(Some(tokens))
+        }
+    }
+
+  /**
+   * Builds a timestamped download filename prefix, e.g. "labels_2026-08-05-134512".
+   *
+   * The timestamp deliberately contains no colons: they are illegal in Windows filenames and in an unquoted
+   * Content-Disposition filename value.
+   *
+   * @param prefix The filename prefix (e.g. "labels").
+   */
+  def timestampedFilename(prefix: String): String =
+    s"${prefix}_${OffsetDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss"))}"
 }
