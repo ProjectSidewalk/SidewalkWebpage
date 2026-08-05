@@ -99,10 +99,11 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
    * `ControllerUtils.anonSignupRedirect`, 303 its navigation arm, 403 a `WithAdmin()` refusal.
    *
    * The namespace check asserts membership in this set rather than merely "not 2xx", because anything outside it — a
-   * 400 from a path-parameter binder, a 404, a 415 from a body parser — means the request died before reaching the
-   * guard and so says nothing about whether the route is gated. `concreteRequestPath` substitutes `1` for dynamic
-   * segments, which binds for every /adminapi/ parameter today; the day one takes a type `1` can't bind as, a not-2xx
-   * check would wave an ungated route through on the router's own rejection.
+   * 400 from a path-parameter binder, a 415 from a body parser, a 404 from an ungated action that looked up a record
+   * the substituted id doesn't match — was refused by something other than the guard, and so says nothing about
+   * whether the route is gated. `concreteRequestPath` substitutes `1` for dynamic segments, which binds for every
+   * /adminapi/ parameter today; the day a parameter takes a type that `1` cannot bind to, a not-2xx check would wave
+   * an ungated route through on the router's own rejection.
    */
   private val AuthRejections: Set[Int] = Set(UNAUTHORIZED, SEE_OTHER, FORBIDDEN)
 
