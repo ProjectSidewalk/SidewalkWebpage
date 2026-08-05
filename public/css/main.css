@@ -46,6 +46,20 @@
   --color-banana-800: #CB8F11;
   --color-banana-900: #A87303;
 
+  /* Jade. Added for the "good" end of the severity/quality scale (#4724): levels 1 and 2 previously both sat on
+     banana, separated only by saturation, which reads at full strength but disappears once either is lightened
+     into a background wash. 400 is the face colour, 700 the darkened edge, 100 the wash; the rest are
+     interpolated. Sized to the other rating faces' perceptual band — they sit at CIE L* 90/76/70, 400 lands at 78. */
+  --color-jade-100: #F2FBF6;
+  --color-jade-200: #CCEEDB;
+  --color-jade-300: #A5E0C0;
+  --color-jade-400: #7FD3A5;
+  --color-jade-500: #6FB890;
+  --color-jade-600: #5F9E7B;
+  --color-jade-700: #4F8366;
+  --color-jade-800: #395E49;
+  --color-jade-900: #263F31;
+
   --color-neutral-white: #FFFFFF;
   --color-neutral-100: #F0F0F0;
   --color-neutral-200: #E1E1E1;
@@ -131,6 +145,10 @@
        vertically in columns or stay steady in changing counters/timers. Use --font-primary for numeric content. */
   --font-primary: "Mulish", "PingFang TC", "Microsoft JhengHei", sans-serif;
   --font-accent:  "Raleway", sans-serif;
+
+  /* Monospace, for content whose alignment carries meaning: code, BibTeX, fixed-width identifiers. JetBrains Mono is
+       only webfont-loaded on the API docs pages, so everywhere else this resolves to the platform's own mono face. */
+  --font-mono:    "JetBrains Mono", sfmono-regular, consolas, "Liberation Mono", menlo, monospace;
 
   /* Typography scale: mirrors the Figma Design System Tokens file.
        Format: font-weight font-size/line-height font-family. The font-size and line-height are each multiplied by
@@ -1770,4 +1788,66 @@ kbd {
   font: var(--text-caption-medium);
   text-align: center;
   white-space: nowrap;
+}
+
+/* ---------- Shared tooltip (psTooltip.js) ---------- */
+
+/* The single fixed-position card that psTooltip.js shows for the active [data-ps-tooltip] trigger. Parked off-screen
+   until positioned; pointer-events stays off so the card never steals the hover that opened it. Sits above the navbar
+   and Bootstrap modals (~1050) since a tooltip is always the most transient thing on screen.
+
+   Dark fill, not a white card: a tooltip is a transient aside over whatever it explains, and the panels it opens over
+   (the label card, the context menu, the pano overlays) are themselves white cards — a fourth white surface stacked on
+   those reads as another panel rather than as a passing note. Specifically asphalt-500, the same surface the dark
+   toast uses (common/toast.css), because these two are the same idea at two sizes: a note laid over the tool rather
+   than a piece of it. It also keeps the tooltip clear of the asphalt-400 pano-overlay buttons it most often opens
+   above, which a neutral dark gray sat too close to. 13.9:1 white-on-asphalt-500, comfortably past AAA. */
+.ps-tooltip {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  max-width: calc(280px * var(--ui-scale, 1));
+  padding: calc(5px * var(--ui-scale, 1)) calc(9px * var(--ui-scale, 1));
+  background: var(--color-asphalt-500);
+  border-radius: calc(6px * var(--ui-scale, 1));
+  box-shadow: 0 2px 8px rgb(0 0 0 / 20%);
+  font: var(--text-caption-regular);
+
+  /* Tighter than the token's 18px leading, which is set for running body copy: a tooltip is a line or two of aside,
+     and at that length the token's spacing opens the card up more than the text inside it warrants. */
+  line-height: calc(15px * var(--ui-scale, 1));
+  color: var(--color-neutral-white);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s ease;
+  z-index: calc(var(--navbar-z-index) + 70);
+}
+
+/* Tail aimed at the trigger. Its x comes from the JS rather than a flat 50%, because the card is clamped to the
+   viewport and so does not stay centered on its trigger near a screen edge. One clip-path triangle here, not the
+   label panel's two stacked layers (css/common/label-anchored-panel.css): the fill is solid and borderless, so there
+   is no hairline to carry along the slanted edges and nothing to seam. */
+.ps-tooltip::after {
+  content: "";
+  position: absolute;
+  left: var(--ps-tooltip-tail-left, 50%);
+  top: 100%;
+  width: calc(12px * var(--ui-scale, 1));
+  height: calc(6px * var(--ui-scale, 1));
+  margin-left: calc(-6px * var(--ui-scale, 1));
+  background: var(--color-asphalt-500);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+
+/* Flipped: there was no room above, so the card sits below the trigger and the tail moves to its top edge. */
+.ps-tooltip--flipped::after {
+  top: auto;
+  bottom: 100%;
+  clip-path: polygon(0 100%, 100% 100%, 50% 0);
+}
+
+.ps-tooltip--visible {
+  opacity: 1;
+  visibility: visible;
 }

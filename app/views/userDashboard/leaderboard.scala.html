@@ -1,15 +1,17 @@
-@import service.{AggregateStats, CommonPageData}
+@import service.{AggregateStats, CommonPageData, GlobalLeaderboardEntry}
 @import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStanding}
 @import play.api.Configuration
-@(commonData: CommonPageData, user: SidewalkUserWithRole, isSignedIn: Boolean, isMetric: Boolean, cityName: String,
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole], isSignedIn: Boolean, isMetric: Boolean, cityName: String,
     aggregate: AggregateStats, overall: Seq[LeaderboardStat], weekly: Seq[LeaderboardStat],
-    teams: Seq[LeaderboardStat], standing: Option[UserStanding]
+    teams: Seq[LeaderboardStat], standing: Option[UserStanding], global: Option[Seq[GlobalLeaderboardEntry]]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
-* Redesigned Leaderboard, all real data: the cross-city community band (getAggregateStats), the podium + this-week +
-* teams + all-time tables (getLeaderboardStats), and "you vs community" (getUserStanding). PUBLIC page: anyone incl.
-* anonymous can view; personal "you" pieces render only when signed in, with a sign-up CTA otherwise.
+* Redesigned Leaderboard, all real data. Sections run this-city first, then all-cities: the podium + this-week + teams
+* tables and "your place" (getLeaderboardStats / getUserStanding), then the all-time board spanning every deployment
+* (getGlobalLeaderboardStats, a cross-schema union) and the community-impact band (getAggregateStats).
+* PUBLIC page: anyone incl. anonymous can view; personal "you" pieces render only when signed in, with a sign-up CTA
+* otherwise. `global` is None when the cross-city board is unavailable, which drops the section entirely.
 *@
 
 @* Unit-aware distance, matching the live leaderboard's formatting (km/m for metric, miles/feet otherwise). *@
@@ -34,10 +36,13 @@
   else s"${"%,.0f".format(km * 0.621371)} ${Messages("dashboard.unit.mi")}"
 }
 
-@* Shared header row for the ranked tables. The Accuracy column carries a hover/focus tooltip explaining the metric. *@
-@lbHead(entity: String) = {
+@*
+* Shared header row for the ranked tables. The Accuracy column carries a hover/focus tooltip explaining the metric.
+* `extraCol` inserts one more header right after the entity column — the global board's "Top city".
+*@
+@lbHead(entity: String, extraCol: Option[String] = None) = {
   <tr>
-    <th>#</th><th>@entity</th><th>@Messages("leaderboard.header.labels")</th><th>@Messages("leaderboard.header.missions")</th><th>@Messages("leaderboard.header.distance")</th>
+    <th>#</th><th>@entity</th>@extraCol.map { col => <th>@col</th> }<th>@Messages("leaderboard.header.labels")</th><th>@Messages("leaderboard.header.missions")</th><th>@Messages("leaderboard.header.distance")</th>
     <th><span class="ud-th-tip" tabindex="0" role="note" aria-label="@Messages("leaderboard.accuracy.explain") @Messages("leaderboard.accuracy.detail")" data-tooltip="@Messages("leaderboard.accuracy.detail")">@Messages("accuracy.caps")<span class="ud-th-info" aria-hidden="true">&#9432;</span></span></th>
   </tr>
 }
@@ -52,7 +57,7 @@
 }
 
 @statRow(rank: Int, stat: LeaderboardStat, linkUser: Boolean) = {
-  @defining(linkUser && isSignedIn && stat.username == user.username) { you =>
+  @defining(linkUser && isSignedIn && user.exists(_.username == stat.username)) { you =>
     <tr @if(you){class="highlighted"}>
       <td class="ud-lb-rank">@rankCell(rank)</td>
       <td>@if(you){<strong>@Messages("dashboard.you")</strong>}else{
@@ -62,6 +67,39 @@
       <td>@stat.missionCount</td>
       <td>@fmtDist(stat.distanceMeters)</td>
       <td>@fmtAcc(stat.accuracy)</td>
+    </tr>
+  }
+}
+
+@* City names/links come from allCityInfo so naming and localization stay in one place; an unmapped id degrades to a dash. *@
+@topCityCell(cityId: Option[String]) = {
+  @cityId.flatMap(id => commonData.allCityInfo.find(_.cityId == id)).map { city =>
+    <a href="@city.URL" class="ud-lb-city">@city.cityNameShort</a>
+  }.getOrElse {
+    <span aria-hidden="true">&mdash;</span><span class="ud-sr-only">@Messages("not.applicable.abbr")</span>
+  }
+}
+
+@*
+* A global row's name links to /userProfile only when that mapper has a public profile in *this* city; otherwise the
+* link would land on a "kept private" page, since profiles are per deployment and the board is not.
+*@
+@globalRow(rank: Int, entry: GlobalLeaderboardEntry) = {
+  @defining(isSignedIn && user.exists(_.username == entry.username)) { you =>
+    <tr @if(you){class="highlighted"}>
+      <td class="ud-lb-rank">@rankCell(rank)</td>
+      <td>@if(you){<strong>@Messages("dashboard.you")</strong>}else{
+        @if(entry.profileLinked){
+          <a href="@routes.UserDashboardController.publicProfile(entry.username)" class="ud-lb-user">@entry.username</a>
+        }else{
+          @entry.username
+        }
+      }</td>
+      <td>@topCityCell(entry.topCityId)</td>
+      <td>@{"%,d".format(entry.labelCount)}</td>
+      <td>@entry.missionCount</td>
+      <td>@fmtDist(entry.distanceMeters)</td>
+      <td>@fmtAcc(entry.accuracy)</td>
     </tr>
   }
 }
@@ -152,9 +190,18 @@
     }
   </div>
 
+  @* ---- Your place, this city this week (signed-in only) -------------------------------------------------- *@
+  @if(isSignedIn) {
+    <div class="api-section" id="lb-you-section">
+      <h2 class="api-heading" id="you">@Messages("leaderboard.you.title", cityName) <a href="#you" class="permalink">#</a></h2>
+      <p>@Messages("leaderboard.you.intro")</p>
+      @userDashboard._standing(standing, seeAllLink = false)
+    </div>
+  }
+
   @* ---- Teams (real) ------------------------------------------------------------------------------------- *@
   <div class="api-section" id="lb-teams-section">
-    <h2 class="api-heading" id="teams">@Messages("leaderboard.teams.title") <a href="#teams" class="permalink">#</a></h2>
+    <h2 class="api-heading" id="teams">@Messages("leaderboard.teams.title", cityName) <a href="#teams" class="permalink">#</a></h2>
     <p>@Messages("leaderboard.teams.intro")</p>
     @if(teams.nonEmpty) {
       <div class="coverage-table-wrap">
@@ -175,12 +222,35 @@
     }
   </div>
 
-  @* ---- Your place in the community (signed-in only) ------------------------------------------------------ *@
-  @if(isSignedIn) {
-    <div class="api-section" id="lb-you-section">
-      <h2 class="api-heading" id="you">@Messages("leaderboard.you.title") <a href="#you" class="permalink">#</a></h2>
-      <p>@Messages("leaderboard.you.intro")</p>
-      @userDashboard._standing(standing, seeAllLink = false)
+  @*
+  * Everything above is scoped to this city; everything below spans all deployments. Keeping the two runs contiguous
+  * (rather than interleaving a global board among the city ones) is what makes each section's scope legible (#3719).
+  *@
+
+  @*
+  * ---- All cities, all-time (cross-city, by name — #3719) -------------------------------------------------
+  * Rendered only when the board is available: a None means no city qualifies or the query failed, and an empty-state
+  * nudge there would tell every visitor the whole community has no labels.
+  *@
+  @global.map { entries =>
+    <div class="api-section" id="lb-allcities-section">
+      <h2 class="api-heading" id="all-cities">@Messages("leaderboard.allcities.title") <a href="#all-cities" class="permalink">#</a></h2>
+      <p>@Messages("leaderboard.allcities.intro")</p>
+      @if(entries.nonEmpty) {
+        <div class="coverage-table-wrap">
+          <table class="coverage-table ud-lb-global">
+            <thead>
+              @lbHead(Messages("leaderboard.header.mapper"), Some(Messages("leaderboard.header.topcity")))
+            </thead>
+            <tbody>
+              @for((entry, i) <- entries.zipWithIndex) { @globalRow(i + 1, entry) }
+            </tbody>
+          </table>
+        </div>
+        <p class="ud-lb-note">@Messages("leaderboard.allcities.note")</p>
+      } else {
+        <div class="ud-nudge">@Messages("leaderboard.allcities.none")</div>
+      }
     </div>
   }
 
@@ -221,6 +291,6 @@
 
 @* dashboard namespace: TeamCreate.js's client-side error strings. *@
 @common.main(commonData, Messages("seo.title.leaderboard"), i18Namespaces = Seq("common", "dashboard")) {
-  @common.navbar(commonData, Some(user))
+  @common.navbar(commonData, user)
   @userDashboard.layout("leaderboard", isSignedIn)(content)
 }

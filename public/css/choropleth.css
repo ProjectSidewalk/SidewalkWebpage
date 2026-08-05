@@ -57,15 +57,15 @@
 }
 
 /* Drop the top gap the shared sidebar chrome leaves, so it too sits flush in full-window mode. */
-#labelmap-choropleth-holder .map-sidebar {
+#labelmap-choropleth-holder .filter-sidebar {
   margin-top: 0;
 }
 
-#labelmap-choropleth-holder .map-sidebar__resize-handle {
+#labelmap-choropleth-holder .filter-sidebar__resize-handle {
   top: 0;
 }
 
-#labelmap-choropleth-holder .map-sidebar-open-btn {
+#labelmap-choropleth-holder .filter-sidebar-open-btn {
   margin-top: 0;
 }
 
@@ -122,6 +122,32 @@
   font-size: 0.8rem;
   color: #bbbbbb;
   margin: 6px 0 0;
+}
+
+/* The overlay ignores pointer events so the map stays draggable while loading; the retry button must not. */
+.labelmap-loading__card--error {
+  pointer-events: auto;
+}
+
+.labelmap-loading__retry {
+  margin: 14px 0 0;
+  padding: 8px 18px;
+  border: 1px solid rgb(255 255 255 / 60%);
+  border-radius: 6px;
+  background: transparent;
+  color: #ffffff;
+  font: var(--text-body-regular);
+  cursor: pointer;
+}
+
+.labelmap-loading__retry:hover {
+  background: rgb(255 255 255 / 15%);
+}
+
+.labelmap-loading__retry:focus-visible {
+  background: rgb(255 255 255 / 15%);
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
 }
 
 /* Respect reduced-motion: keep the spinner as a feedback cue but slow it well down. */
@@ -194,47 +220,6 @@
 .legend .legend-swatch-9  { background: #9ECAE1; }
 .legend .legend-swatch-10 { background: #B3D3E8; }
 .legend .legend-swatch-11 { background: #C6DBEF; }
-
-/* Label type circle color fills (used by map sidebar legend icons). */
-
-/* TODO These colors should probably match the colors in our Design System Tokens in main.css. */
-#map-legend-curb-ramp circle {
-  fill: #90C31F;
-}
-
-#map-legend-no-curb-ramp circle {
-  fill: #E679B6;
-}
-
-#map-legend-obstacle circle {
-  fill: var(--color-label-obstacle);
-}
-
-#map-legend-surface-problem circle {
-  fill: var(--color-label-surface-problem);
-}
-
-#map-legend-no-sidewalk circle {
-  fill: var(--color-label-no-sidewalk);
-}
-
-#map-legend-crosswalk circle {
-  fill: var(--color-label-crosswalk);
-}
-
-#map-legend-signal circle {
-  fill: #63C0AB;
-}
-
-#map-legend-other circle {
-  fill: var(--color-neutral-500);
-  stroke: #0000FF;
-}
-
-#map-legend-occlusion circle {
-  fill: var(--color-neutral-500);
-  stroke: #009902;
-}
 
 .clearfix {
   width: 100%;

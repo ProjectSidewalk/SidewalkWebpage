@@ -178,8 +178,13 @@
     }
   },
   "center-ui": {
+    "hover-card": {
+      "delete": "Eliminar",
+      "edit": "Editar"
+    },
     "context-menu": {
-      "severity": "Por favor haz clic para etiquetar la gravedad",
+      "rate-severity-prompt": "Haz clic para valorar la gravedad",
+      "rate-quality-prompt": "Haz clic para valorar la calidad",
       "severity-shortcuts": "Presiona las teclas 1-3 para gravedad",
       "label-popup-shortcuts": "Presiona <tag-underline>{{c}}</tag-underline> para agregar la etiqueta",
       "tag": {

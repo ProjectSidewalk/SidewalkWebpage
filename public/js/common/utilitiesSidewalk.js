@@ -14,70 +14,16 @@ function UtilitiesMisc(JSON) {
   self.VALID_LABEL_TYPES_WITHOUT_OTHER
     = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Occlusion', 'NoSidewalk', 'Crosswalk', 'Signal'];
 
-  // Returns image paths corresponding to each label type.
+  // Returns the marker-icon path for each label type. Every frontend surface — canvas, map markers, cards, cursors —
+  // uses the one scalable SVG so the icon stays crisp at whatever size it lands at; the raster `_small`/`_tiny`/full
+  // -size PNGs beside it exist only for consumers that can't take vector art (server-side share-image compositing in
+  // ShareController, and the icon URLs published by /v3/api/labelTypes).
   function getIconImagePaths(category) {
-    const imagePaths = {
-      Walk: {
-        id: 'Walk',
-        iconImagePath: null,
-        minimapIconImagePath: null,
-        scalableIconImagePath: null,
-      },
-      CurbRamp: {
-        id: 'CurbRamp',
-        iconImagePath: '/assets/images/icons/label_type_icons/CurbRamp_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/CurbRamp_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/CurbRamp_small.svg',
-      },
-      NoCurbRamp: {
-        id: 'NoCurbRamp',
-        iconImagePath: '/assets/images/icons/label_type_icons/NoCurbRamp_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/NoCurbRamp_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/NoCurbRamp_small.svg',
-      },
-      Obstacle: {
-        id: 'Obstacle',
-        iconImagePath: '/assets/images/icons/label_type_icons/Obstacle_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/Obstacle_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/Obstacle_small.svg',
-      },
-      SurfaceProblem: {
-        id: 'SurfaceProblem',
-        iconImagePath: '/assets/images/icons/label_type_icons/SurfaceProblem_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/SurfaceProblem_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/SurfaceProblem_small.svg',
-      },
-      Other: {
-        id: 'Other',
-        iconImagePath: '/assets/images/icons/label_type_icons/Other_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/Other_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/Other_small.svg',
-      },
-      Occlusion: {
-        id: 'Occlusion',
-        iconImagePath: '/assets/images/icons/label_type_icons/Occlusion_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/Occlusion_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/Occlusion_small.svg',
-      },
-      NoSidewalk: {
-        id: 'NoSidewalk',
-        iconImagePath: '/assets/images/icons/label_type_icons/NoSidewalk_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/NoSidewalk_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/NoSidewalk_small.svg',
-      },
-      Crosswalk: {
-        id: 'Crosswalk',
-        iconImagePath: '/assets/images/icons/label_type_icons/Crosswalk_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/Crosswalk_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/Crosswalk_small.svg',
-      },
-      Signal: {
-        id: 'Signal',
-        iconImagePath: '/assets/images/icons/label_type_icons/Signal_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/Signal_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/Signal_small.svg',
-      },
-    };
+    const iconBasePath = '/assets/images/icons/label_type_icons';
+    const imagePaths = { Walk: { id: 'Walk', iconImagePath: null } };
+    for (const labelType of self.VALID_LABEL_TYPES) {
+      imagePaths[labelType] = { id: labelType, iconImagePath: `${iconBasePath}/${labelType}_small.svg` };
+    }
 
     return category ? imagePaths[category] : imagePaths;
   }
@@ -484,18 +430,6 @@ function UtilitiesMisc(JSON) {
     return category ? descriptions[category] : descriptions;
   }
 
-  /**
-   * Gets the severity message that is displayed in a severity's tooltip.
-   * @returns {{1: {message: string}, 2: {message: string}, 3: {message: string}}}
-   */
-  function getSeverityDescription() {
-    return {
-      1: { message: i18next.t('center-ui.context-menu.tooltip.passable') },
-      2: { message: i18next.t('center-ui.context-menu.tooltip.difficult-to-pass') },
-      3: { message: i18next.t('center-ui.context-menu.tooltip.not-passable') },
-    };
-  }
-
   const SMILEY_ICON_BASE = '/assets/images/icons/smileys/';
   const POSITIVE_LABEL_TYPES = ['CurbRamp', 'Crosswalk'];
   const LABEL_TYPES_WITHOUT_SEVERITY = ['NoSidewalk', 'Signal', 'Occlusion'];
@@ -540,6 +474,53 @@ function UtilitiesMisc(JSON) {
     // Severity 0 (N/A) is a neutral circle; only the negative asset exists and it's reused for both sets.
     const set = severity === 0 || !isPositiveLabelType(labelType) ? 'negative' : 'positive';
     return `${SMILEY_ICON_BASE}sev-${severity}-${set}${selected ? '-filled' : ''}.svg`;
+  }
+
+  // Each rating level's colours, as design-system custom properties so no hex is duplicated here. `face` mirrors
+  // the fill inside sev-<level>-*-filled.svg — recolour that artwork and these have to move with it. `edge` and
+  // `wash` are the darkened and lightened counterparts a selected control uses.
+  //
+  // Level colours, per scale. Green is a value judgement and belongs only to the quality scale: a curb ramp rated
+  // 1 is genuinely good, but a surface problem rated 1 is a mild problem, not an absence of one, and colouring it
+  // green would tell a mapper it needs no attention. Severity keeps the yellow-amber-orange heat ramp, where the
+  // colour tracks how bad rather than whether bad. Same positive/negative split getSmileyIconPath makes, and these
+  // mirror the fill inside sev-<level>-<set>-filled.svg.
+  //
+  // Edges are picked per level rather than by a fixed step offset, for two reasons. The ramps are not
+  // perceptually aligned, so the same step is not equally dark on each -- banana-700 on banana-200 is 1.68:1,
+  // invisible on its own wash, where banana-900 clears the 3:1 non-text bar. And the banana ramp has only one
+  // step dark enough to qualify, so severity's edges escalate by hue rather than by depth alone: gold, then rust,
+  // then dark rust (L* 53 / 44 / 25). Two levels sharing banana-900 made Low and Medium indistinguishable.
+  //
+  // The wash avoids -100 for the reverse reason -- jade-100 is 13/255 off the white panel behind it, too close to
+  // register as a state at all.
+  const SEVERITY_LEVEL_COLORS = {
+    positive: {
+      1: { face: 'jade-400', edge: 'jade-700', wash: 'jade-200' },
+      2: { face: 'banana-400', edge: 'banana-900', wash: 'banana-200' },
+      3: { face: 'orange-400', edge: 'orange-600', wash: 'orange-200' },
+    },
+    negative: {
+      1: { face: 'banana-400', edge: 'banana-900', wash: 'banana-200' },
+      2: { face: 'banana-700', edge: 'orange-600', wash: 'banana-300' },
+      3: { face: 'orange-400', edge: 'orange-800', wash: 'orange-200' },
+    },
+  };
+
+  /**
+   * Returns the colours for a rating level as CSS custom-property references.
+   *
+   * Takes the label type for the same reason getSmileyIconPath does: the two scales do not share a palette. Only
+   * quality has a "good" end worth colouring green; on severity, level 1 is a mild problem and stays yellow.
+   * @param {number} severity - 1, 2, or 3.
+   * @param {string} labelType - Picks the quality palette for positive types, the severity palette otherwise.
+   * @returns {?{face: string, edge: string, wash: string}} `var(--color-…)` references, or null for 0/N-A.
+   */
+  function getSeverityLevelColors(severity, labelType) {
+    const scale = isPositiveLabelType(labelType) ? 'positive' : 'negative';
+    const level = SEVERITY_LEVEL_COLORS[scale][severity];
+    if (!level) return null;
+    return Object.fromEntries(Object.entries(level).map(([role, token]) => [role, `var(--color-${token})`]));
   }
 
   /**
@@ -651,12 +632,12 @@ function UtilitiesMisc(JSON) {
   self.distanceToString = distanceToString;
   self.getIconImagePaths = getIconImagePaths;
   self.getLabelDescriptions = getLabelDescriptions;
-  self.getSeverityDescription = getSeverityDescription;
   self.isPositiveLabelType = isPositiveLabelType;
   self.POSITIVE_LABEL_TYPES = POSITIVE_LABEL_TYPES;
   self.labelTypeHasSeverity = labelTypeHasSeverity;
   self.LABEL_TYPES_WITHOUT_SEVERITY = LABEL_TYPES_WITHOUT_SEVERITY;
   self.getSmileyIconPath = getSmileyIconPath;
+  self.getSeverityLevelColors = getSeverityLevelColors;
   self.getRatingLevelKeys = getRatingLevelKeys;
   self.getLabelColors = getLabelColors;
   self.reportNoImagery = reportNoImagery;

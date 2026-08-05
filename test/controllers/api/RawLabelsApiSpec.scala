@@ -10,7 +10,9 @@ import play.api.test.FakeRequest
 
 /**
  * Locks the response contract of GET /v3/api/rawLabels: GeoJSON FeatureCollection by default, a snake_case CSV header
- * for filetype=csv, and 400 INVALID_PARAMETER (parameter=bbox) for a malformed bbox. Asserts shape, not data values.
+ * for filetype=csv, the severity/validationStatus/tags/labelType filter parameters (valid shapes return 200; invalid
+ * values return 400 INVALID_PARAMETER naming the offending parameter), and the download filename contract. Asserts
+ * shape, not data values.
  *
  * Boots the real application (real Slick/PostGIS) and exercises the route end to end. The endpoint is a
  * `UserAwareAction` (no auth needed) and makes no external WS calls on the request path. The eager scheduling actors
@@ -66,7 +68,73 @@ class RawLabelsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       status(resp) mustBe BAD_REQUEST
       (contentAsJson(resp) \ "parameter").as[String] mustBe "bbox"
     }
-    // Note: invalid-validationStatus → 400 is covered by PublicApiSpec on the Phase 1 branch (#4261); on this
-    // branch that value is still silently dropped (the bug #4261 fixes), so it's intentionally not asserted here.
+
+    "accept a severity set including the none token" in {
+      val resp = route(app, FakeRequest(GET, s"/v3/api/rawLabels?$tinyBbox&severity=1,none")).get
+      status(resp) mustBe OK
+      (contentAsJson(resp) \ "type").as[String] mustBe "FeatureCollection"
+    }
+
+    "accept multiple validationStatus values including unsure" in {
+      val url  = s"/v3/api/rawLabels?$tinyBbox&validationStatus=validated_correct,unsure,unvalidated"
+      val resp = route(app, FakeRequest(GET, url)).get
+      status(resp) mustBe OK
+      (contentAsJson(resp) \ "type").as[String] mustBe "FeatureCollection"
+    }
+
+    "accept both scoped and bare tags entries" in {
+      val resp = route(app, FakeRequest(GET, s"/v3/api/rawLabels?$tinyBbox&tags=CurbRamp:narrow,uneven surface")).get
+      status(resp) mustBe OK
+      (contentAsJson(resp) \ "type").as[String] mustBe "FeatureCollection"
+    }
+
+    "reject an out-of-range severity value with 400 (parameter=severity)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?severity=5")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "severity"
+    }
+
+    "reject a non-numeric severity value with 400 (parameter=severity)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?severity=abc")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "severity"
+    }
+
+    "reject severity combined with minSeverity with 400 (parameter=severity)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?severity=1&minSeverity=2")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "severity"
+    }
+
+    "reject a validationStatus list containing an unknown token with 400 (parameter=validationStatus)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?validationStatus=validated_correct,bogus")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "validationStatus"
+    }
+
+    "reject an unknown labelType with 400 (parameter=labelType)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?labelType=NotAType")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "labelType"
+    }
+
+    "reject a scoped tags entry with a missing tag with 400 (parameter=tags)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?tags=CurbRamp:")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "tags"
+    }
+
+    "name the GeoJSON download with a .geojson extension and no colons" in {
+      val resp        = route(app, FakeRequest(GET, s"/v3/api/rawLabels?$tinyBbox")).get
+      val disposition = header(CONTENT_DISPOSITION, resp).value
+      disposition must include(".geojson")
+      disposition must not include ":"
+    }
+
+    "honor inline=true for CSV output" in {
+      val resp = route(app, FakeRequest(GET, s"/v3/api/rawLabels?$tinyBbox&filetype=csv&inline=true")).get
+      status(resp) mustBe OK
+      header(CONTENT_DISPOSITION, resp).value must startWith("inline")
+    }
   }
 }

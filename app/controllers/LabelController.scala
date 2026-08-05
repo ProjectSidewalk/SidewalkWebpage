@@ -1,6 +1,7 @@
 package controllers
 
 import controllers.base._
+import controllers.helper.ControllerUtils.{parseIntegerSeq, NoUserId}
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
 import models.label._
@@ -54,7 +55,7 @@ class LabelController @Inject() (
    * there's no signed-in identity. The admin variant with personal identifiers is AdminController.getAdminLabelData.
    */
   def getLabelData(labelId: Int) = silhouette.UserAwareAction.async { implicit request =>
-    val userId: String = request.identity.map(_.userId).getOrElse("")
+    val userId: String = request.identity.map(_.userId).getOrElse(NoUserId)
     labelService.getSingleLabelMetadata(labelId, userId).map {
       case Some(metadata) =>
         Ok(
@@ -67,6 +68,30 @@ class LabelController @Inject() (
       case None => NotFound(s"No label found with ID: $labelId")
     }
   }
+
+  /**
+   * Get all labels with the metadata needed for /labelMap, as a GeoJSON FeatureCollection of points.
+   *
+   * Public read: /labelMap is browsable anonymously. The admin variant with extra fields (audit_task_id,
+   * has_admin_validation) is AdminController.getAllLabels at /adminapi/labels/all. The response is streamed from the
+   * db in a chunked response rather than materialized in memory — a whole city's labels can be tens of MB (#3932).
+   *
+   * @param regions             Comma-separated region IDs to filter by.
+   * @param routes              Comma-separated route IDs to filter by.
+   * @param aiValidationOptions Comma-separated AI validation results to filter by. An empty-but-present value matches
+   *                            no result, so `?aiValidationOptions=` yields an empty feature collection.
+   * @return                    GeoJSON FeatureCollection of Point features, each carrying the 11 label properties the
+   *                            LabelMap renders from.
+   */
+  def getAllLabelsForLabelMap(regions: Option[String], routes: Option[String], aiValidationOptions: Option[String]) =
+    Action {
+      val regionIds: Seq[Int]    = parseIntegerSeq(regions)
+      val routeIds: Seq[Int]     = parseIntegerSeq(routes)
+      val aiValOpts: Seq[String] = aiValidationOptions.map(_.split(",").toSeq.distinct).getOrElse(Seq())
+
+      val labels = labelService.getLabelsForLabelMap(regionIds, routeIds, aiValOpts, DEFAULT_BATCH_SIZE)
+      streamGeoJson(labels.map(LabelFormats.labelForLabelMapToGeoJson(_, admin = false)), "labels/all")
+    }
 
   /**
    * Gets all tags in the database in JSON.

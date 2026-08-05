@@ -5,6 +5,8 @@
   "unit-distance-abbreviation": "公里",
   "unit-abbreviation-mission-distance": "公尺",
   "unit-distance": "kilometers",
+  "speed-limit-tooltip": "了解街道的<b>速限</b>有助於更準確地判斷行人安全，例如在無號誌路口過馬路是否<b>安全</b>。",
+  "speed-limit-aria-label": "速限 {{speed}} {{units}}",
   "format-number": "{{val, number}}",
   "cities-cta-join_other": "加入其他 {{count, number}} 個社區",
   "curb-ramp": "路緣斜坡",
@@ -29,6 +31,7 @@
   "cancel": "取消",
   "continue": "繼續",
   "delete": "刪除",
+  "done": "完成",
   "badges": {
     "congratulations": "恭喜！",
     "you-earned": "您獲得了「{{badge}}」徽章！",
@@ -82,6 +85,7 @@
   "no-description": "無描述",
   "comments": "檢核者評論",
   "none": "无",
+  "only": "只看",
   "image-capture-date": "影像拍攝日期",
   "drag-to-look-around": "拖曳以環顧四周",
   "labeled": "已標記",
@@ -320,10 +324,13 @@
     "button": "分享",
     "heading": "分享此標註",
     "text": "來看看 Project Sidewalk 上的這個{{labelType}}",
+    "story-text": "「{{excerpt}}」——Project Sidewalk 上的社群故事",
     "copy-link": "複製連結",
     "copied": "已複製！",
+    "on-bluesky": "分享到 Bluesky",
     "on-x": "分享到 X",
     "on-facebook": "分享到 Facebook",
+    "on-linkedin": "分享到 LinkedIn",
     "via-email": "透過電子郵件分享"
   }
 }

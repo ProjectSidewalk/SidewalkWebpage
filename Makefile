@@ -1,4 +1,4 @@
-.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop test-python \
+.PHONY: dev docker-up docker-up-db docker-run docker-stop ssh qa-worktree qa-worktree-stop test-python test-e2e \
         import-users import-dump create-new-schema fill-new-schema hide-streets-without-imagery \
         import-street-imagery reveal-or-hide-neighborhoods \
         lint lint-fix lint-evolutions lint-locales scalafmt scalafmt-fix \
@@ -17,6 +17,20 @@ clean ?=
 
 # `clean=1` (or true/yes) expands to the qa-worktree-stop --clean flag; anything else (incl. empty) expands to nothing.
 qa-stop-clean-flag = $(if $(filter 1 true yes,$(clean)),--clean,)
+
+# Resolve which copy of qa-worktree.sh to run, then exec it with the args in $(1). The main repo is mounted at the
+# container's /home, so /home/tools/qa-worktree.sh is the script as it exists on whatever branch the MAIN checkout
+# happens to be on — which may predate the script entirely (#4628). Prefer the worktree's own copy so the branch being
+# QA'd supplies its own tooling, and fall back to the main repo's for worktrees branched before the script existed.
+# Held in a variable rather than written inline in a recipe: make condenses a variable's backslash-continuations into
+# single spaces at parse time, so the container's shell receives one flat line — no reliance on how a given make version
+# passes continuations and leading tabs through to the shell (macOS still ships make 3.81, WSL/Linux run 4.x).
+qa-worktree-exec = script="/home/.claude/worktrees/$(wt)/tools/qa-worktree.sh"; \
+  [ -f "$$script" ] || script=/home/tools/qa-worktree.sh; \
+  [ -f "$$script" ] || { echo "error: no tools/qa-worktree.sh in worktree $(wt) or in the main checkout"; exit 1; }; \
+  exec bash "$$script" $(1)
+# Both qa-worktree targets fail fast on a missing wt= rather than passing an empty name into the container.
+qa-worktree-require-wt = @[ -n "$(wt)" ] || { echo "usage: make $@ wt=<name>   (a dir under .claude/worktrees/)"; exit 2; }
 
 # ANSI colors for the `lint` summary.
 GREEN := \033[0;32m
@@ -81,12 +95,14 @@ ssh:
 # Run an uncommitted git worktree's app on :9000 for QA (not the main repo). See tools/qa-worktree.sh and CLAUDE.md
 # "Running a worktree's app for QA". e.g. `make qa-worktree wt=remove-admin-classic`.
 qa-worktree:
-	@docker exec -it $(web-container) bash /home/tools/qa-worktree.sh $(wt)
+	$(qa-worktree-require-wt)
+	@docker exec -it $(web-container) bash -c '$(call qa-worktree-exec,$(wt))'
 
 # Tear down a qa-worktree session: stop its `~ run` and grunt watch. Add `clean=1` to also drop the node_modules
 # symlink. e.g. `make qa-worktree-stop wt=remove-admin-classic` or `make qa-worktree-stop wt=... clean=1`.
 qa-worktree-stop:
-	@docker exec $(web-container) bash /home/tools/qa-worktree.sh $(wt) --stop $(qa-stop-clean-flag)
+	$(qa-worktree-require-wt)
+	@docker exec $(web-container) bash -c '$(call qa-worktree-exec,$(wt) --stop $(qa-stop-clean-flag))'
 
 import-users:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-users.sh"
@@ -109,6 +125,12 @@ import-street-imagery:
 # Python utility tests (test/python/) in the web container; extra pytest flags via args=, e.g. args="-k bbox -v".
 test-python:
 	@docker exec -it $(web-container) sh -c "cd /home && python3 -m pytest test/python $(args)"
+
+# Browser smoke tests (test/e2e/) HOST-side against an already-running app at localhost:9000 (override with
+# BASE_URL=). Unlike the other targets this doesn't docker exec — Playwright drives a host browser. One-time
+# setup: `npm install && npx playwright install chromium`. Extra flags via args=, e.g. args="-g labelMap --headed".
+test-e2e:
+	@npx playwright test $(args)
 
 reveal-or-hide-neighborhoods:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/reveal-or-hide-neighborhoods.sh"
@@ -146,7 +168,7 @@ lint-htmlhint:
 lint-eslint:
 	@echo "Running eslint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) public/js/ public/locales/"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) public/js/ public/locales/ test/e2e/ playwright.config.js"; \
 	else \
 		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js $(args) $(dir)"; \
 	fi
@@ -165,7 +187,7 @@ lint-stylelint:
 lint-fix-eslint:
 	@echo "Running eslint...";
 	@if [ "$(dir)" = "./" ]; then \
-		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) public/js/ public/locales/"; \
+		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) public/js/ public/locales/ test/e2e/ playwright.config.js"; \
 	else \
 		docker exec -e FORCE_COLOR=1 $(web-container) bash -lc "cd /home && ./node_modules/eslint/bin/eslint.js --fix $(args) $(dir)"; \
 	fi

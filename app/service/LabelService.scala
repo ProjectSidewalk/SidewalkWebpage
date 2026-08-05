@@ -13,6 +13,7 @@ import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ExcludedTag, MyPostgresProfile}
 import models.validation.LabelValidationTable
+import org.apache.pekko.stream.scaladsl.Source
 import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.DBIO
@@ -46,16 +47,17 @@ trait LabelService {
   def getLabelsForLabelMap(
       regionIds: Seq[Int],
       routeIds: Seq[Int],
-      aiValOptions: Seq[String]
-  ): Future[Seq[LabelForLabelMap]]
+      aiValOptions: Seq[String],
+      batchSize: Int
+  ): Source[LabelForLabelMap, _]
   def getGalleryLabels(
       n: Int,
-      labelType: Option[LabelTypeEnum.Base],
+      labelTypes: Set[LabelTypeEnum.Base],
       loadedLabelIds: Set[Int],
       valOptions: Set[String],
       regionIds: Set[Int],
       severity: Set[Option[Int]],
-      tags: Set[String],
+      tagsByLabelType: Map[LabelTypeEnum.Base, Set[String]],
       aiValOptions: Set[String],
       userId: String,
       recentFirst: Boolean = false,
@@ -185,19 +187,33 @@ class LabelServiceImpl @Inject() (
   def getLabelsForLabelMap(
       regionIds: Seq[Int],
       routeIds: Seq[Int],
-      aiValOptions: Seq[String]
-  ): Future[Seq[LabelForLabelMap]] =
-    db.run(labelTable.getLabelsForLabelMap(regionIds, routeIds, aiValOptions))
+      aiValOptions: Seq[String],
+      batchSize: Int
+  ): Source[LabelForLabelMap, _] =
+    // `.transactionally` is required for Postgres to honor fetchSize and stream instead of materializing (#3932). It
+    // also means a pooled connection stays checked out, transaction open, for the whole response rather than just the
+    // query: `Ok.chunked` backpressures from the client socket, so a slow reader pins one of the 25 connections until
+    // it finishes. Prod bounds that with idle_in_transaction_session_timeout=120s, which a fetch-to-fetch gap longer
+    // than that trips — the stream then fails mid-flight, and `logStreamFailures` is the only trace (see #4161).
+    Source.fromPublisher(
+      db.stream(
+        labelTable
+          .getLabelsForLabelMap(regionIds, routeIds, aiValOptions)
+          .result
+          .transactionally
+          .withStatementParameters(fetchSize = batchSize)
+      ).mapResult(labelTable.tupleToLabelForLabelMap)
+    )
 
   /**
-   * Retrieves n labels of specified label type, severities, and tags. If no label type supplied, split across types.
+   * Retrieves n labels, split evenly across the requested label types. An empty set of types gives a mix of all.
    * @param n Number of labels to grab.
-   * @param labelType         Label type specifying what type of labels to grab. None will give a mix.
+   * @param labelTypes        Label types to grab, split evenly between them. Empty gives a mix of every type.
    * @param loadedLabelIds    Set of labelIds already grabbed as to not grab them again.
    * @param valOptions        Set of correctness values to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param regionIds         Set of neighborhoods to get labels from. All neighborhoods if empty.
    * @param severity          Set of severities the labels grabbed can have.
-   * @param tags              Set of tags the labels grabbed can have.
+   * @param tagsByLabelType   Tags each label type is narrowed to; a type absent from the map is not narrowed.
    * @param aiValOptions      Set of AI validations to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param userId            User ID of the user requesting the labels.
    * @param recentFirst       If true, draw from the most recent labels (shuffled) instead of sampling all labels.
@@ -205,12 +221,12 @@ class LabelServiceImpl @Inject() (
    */
   def getGalleryLabels(
       n: Int,
-      labelType: Option[LabelTypeEnum.Base],
+      labelTypes: Set[LabelTypeEnum.Base],
       loadedLabelIds: Set[Int],
       valOptions: Set[String],
       regionIds: Set[Int],
       severity: Set[Option[Int]],
-      tags: Set[String],
+      tagsByLabelType: Map[LabelTypeEnum.Base, Set[String]],
       aiValOptions: Set[String],
       userId: String,
       recentFirst: Boolean = false,
@@ -218,29 +234,43 @@ class LabelServiceImpl @Inject() (
   ): Future[Seq[LabelValidationMetadata]] = {
     val viewer: PanoSource = configService.getPanoSource
 
-    // If a label type is specified, get labels for that type. Otherwise, get labels for all types. Include useCrops so
-    // that labels with expired or non-Google imagery are still included if a local crop exists.
+    // One query per requested type, run in parallel and shuffled together, so a caller can ask for any subset. An
+    // empty request means every type; staticImageryOnly narrows it to the types a static image can support (the
+    // landing grid can't pan, so e.g. Signal is out — see staticValidatableLabelTypes). Include useCrops so that
+    // labels with expired or non-Google imagery are still included if a local crop exists.
     // With recentFirst the query is ordered newest-first, so findValidLabelsForType's batching draws from the most
     // recent labels and randomize=true shuffles within that recent pool.
-    if (labelType.isDefined) {
-      findValidLabelsForType(
-        labelTable.getGalleryLabelsQuery(viewer, labelType.get, loadedLabelIds, valOptions, regionIds, severity, tags,
-          aiValOptions, userId, recentFirst),
-        randomize = true,
-        useCrops = true,
-        n
-      )
-    } else {
-      // Get labels for each type in parallel. staticImageryOnly narrows the spread to the types a static image can
-      // support (the landing grid can't pan, so e.g. Signal is out — see staticValidatableLabelTypes).
-      val typesToSpread: Set[LabelTypeEnum.Base] =
+    val typesToSpread: Set[LabelTypeEnum.Base] =
+      if (labelTypes.isEmpty) {
         if (staticImageryOnly) LabelTypeEnum.staticValidatableLabelTypes else LabelTypeEnum.primaryLabelTypes
-      val nPerType: Int = n / typesToSpread.size
+      } else if (staticImageryOnly) {
+        labelTypes.intersect(LabelTypeEnum.staticValidatableLabelTypes)
+      } else {
+        // An explicit request is honored as given: the Gallery offers Occlusion and Other, which the default mix
+        // (primaryLabelTypes) leaves out.
+        labelTypes
+      }
+
+    if (typesToSpread.isEmpty) {
+      Future.successful(Seq())
+    } else {
+      // Split the request across the types so no one type crowds out the rest of a mixed selection.
+      val nPerType: Int = math.max(1, n / typesToSpread.size)
       Future
         .sequence(typesToSpread.map { labelType =>
           findValidLabelsForType(
-            labelTable.getGalleryLabelsQuery(viewer, labelType, loadedLabelIds, valOptions, regionIds, severity, tags,
-              aiValOptions, userId, recentFirst),
+            labelTable.getGalleryLabelsQuery(
+              viewer,
+              labelType,
+              loadedLabelIds,
+              valOptions,
+              regionIds,
+              severity,
+              tagsByLabelType.getOrElse(labelType, Set()),
+              aiValOptions,
+              userId,
+              recentFirst
+            ),
             randomize = true,
             useCrops = true,
             nPerType

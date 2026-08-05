@@ -10,9 +10,12 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 
 /**
- * Route-wiring smoke test for the two endpoints the landing-page validation grid (#1638) depends on. Both are
- * SecuredActions, so the unauthenticated contract is a redirect to the anonymous-signup flow (3xx) — never a 404,
- * which would mean a routes regression. The grid's real behavior is covered by GalleryFormatsSpec/LabelServiceSpec.
+ * Route-wiring smoke test for the two endpoints the landing-page validation grid (#1638) depends on: each must exist,
+ * i.e. never answer 404, which is what a routes regression looks like. The label read is user-aware (cookie-less
+ * landing visitors have to see the grid) so it reaches the controller; the validation write is a SecuredAction, so an
+ * unauthenticated POST bounces into the anonymous-signup flow. Both are asserted only as "not 404" — the exact status
+ * belongs to the body-validation and auth contracts, which have their own coverage (GalleryFormatsSpec,
+ * LabelServiceSpec, SessionlessPagesSpec) and would otherwise make this spec fail for reasons that aren't its subject.
  */
 class LandingValidationGridRoutesSpec extends PlaySpec with GuiceOneAppPerSuite {
 
@@ -23,9 +26,8 @@ class LandingValidationGridRoutesSpec extends PlaySpec with GuiceOneAppPerSuite 
 
   "The validation grid's endpoints" should {
     Seq("/label/labels", "/labelmap/validate").foreach { path =>
-      s"exist and redirect an unauthenticated POST $path (3xx, not 404)" in {
-        val sc = status(route(app, FakeRequest(POST, path).withJsonBody(Json.obj())).get)
-        (sc >= 300 && sc < 400) mustBe true
+      s"exist for an unauthenticated POST $path (anything but 404)" in {
+        status(route(app, FakeRequest(POST, path).withJsonBody(Json.obj())).get) must not be NOT_FOUND
       }
     }
   }

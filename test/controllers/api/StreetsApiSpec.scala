@@ -42,9 +42,13 @@ class StreetsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
 
       val json = contentAsJson(resp)
       (json \ "type").as[String] mustBe "FeatureCollection"
-      // Shape only: tinyBbox is deliberately empty, so there are no features to assert per-feature invariants on.
-      // The audited/outdated invariant is exercised against a populated feed in controllers.StreetAuditStatusSpec.
-      (json \ "features").asOpt[Seq[JsObject]] mustBe defined
+      // tinyBbox is deliberately empty, so per-feature checks rarely run; the audited/outdated invariant is
+      // exercised against a populated feed in controllers.StreetAuditStatusSpec.
+      val features = (json \ "features").asOpt[Seq[JsObject]]
+      features mustBe defined
+
+      // If the tiny bbox happens to contain a street, its properties must carry the max_speed key (may be null).
+      features.get.headOption.foreach { feature => (feature \ "properties" \ "max_speed").toOption mustBe defined }
     }
 
     "return CSV with the documented snake_case header when filetype=csv" in {
@@ -55,8 +59,8 @@ class StreetsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val body = contentAsString(resp)
       // Header from StreetDataForApi.csvHeader; assert snake_case field names are present and camelCase absent.
       body must include(
-        "street_edge_id,osm_way_id,region_id,region_name,way_type,status,user_ids,label_count,audit_count,outdated," +
-          "user_count,first_label_date,last_label_date,start_point,end_point"
+        "street_edge_id,osm_way_id,region_id,region_name,way_type,max_speed,status,user_ids,label_count," +
+          "audit_count,outdated,user_count,first_label_date,last_label_date,start_point,end_point"
       )
       body must not include "streetEdgeId"
       body must not include "labelCount"

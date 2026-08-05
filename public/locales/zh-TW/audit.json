@@ -177,8 +177,13 @@
     }
   },
   "center-ui": {
+    "hover-card": {
+      "delete": "刪除",
+      "edit": "編輯"
+    },
     "context-menu": {
-      "severity": "請點選並標記問題嚴重度",
+      "rate-severity-prompt": "請點選以評定嚴重度",
+      "rate-quality-prompt": "請點選以評定品質",
       "severity-shortcuts": "從1-3選擇品質",
       "label-popup-shortcuts": "點選<tag-underline>{{c}}</tag-underline>以增加標籤",
       "tag": {

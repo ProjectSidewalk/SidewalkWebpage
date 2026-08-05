@@ -13,6 +13,7 @@ trait LoggingService {
   def insert(userId: String, ipAddress: String, activity: String, timestamp: OffsetDateTime): Future[Int]
   def insert(userId: String, ipAddress: String, activity: String): Future[Int]
   def insert(userId: Option[String], ipAddress: String, activity: String): Future[Int]
+  def insert(userId: Option[String], ipAddress: String, activity: String, timestamp: OffsetDateTime): Future[Int]
 }
 
 @Singleton
@@ -32,6 +33,9 @@ class LoggingServiceImpl @Inject() (
 
   def insert(userId: Option[String], ipAddress: String, activity: String): Future[Int] =
     _insert(userId, ipAddress, activity, None)
+
+  def insert(userId: Option[String], ipAddress: String, activity: String, timestamp: OffsetDateTime): Future[Int] =
+    _insert(userId, ipAddress, activity, Some(timestamp))
 
   /**
    * Inserts a new webpage activity record into the database, dealing with all optional inputs.

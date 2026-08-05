@@ -185,6 +185,7 @@ object ExploreFormats {
         "current_lng"           -> task.currentLng,
         "current_lat"           -> task.currentLat,
         "way_type"              -> task.wayType.toString,
+        "max_speed"             -> task.maxSpeed,
         "start_point_reversed"  -> task.startPointReversed,
         "task_start"            -> task.taskStart.toString,
         "completed_by_any_user" -> task.completedByAnyUser,

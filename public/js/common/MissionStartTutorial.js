@@ -1037,6 +1037,10 @@ class MissionStartTutorial {
         $(this).css('display', '').addClass('ps-hidden');
       });
 
+      // Anything that wants to speak to the user at the start of a mission has to wait for this overlay to clear,
+      // or it says its piece underneath it. Validate's pano hint listens for this (#4726).
+      document.dispatchEvent(new CustomEvent('ps:mission-start-tutorial:done'));
+
       this.#svvOrsvl.tracker.push('MSTDoneButton_Click', { currentSlideIdx: this.#currentSlideIdx }, null);
 
       // Log 'MissionStart' on Explore missions.

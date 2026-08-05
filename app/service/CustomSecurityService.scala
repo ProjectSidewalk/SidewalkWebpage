@@ -6,7 +6,7 @@ import models.user.SidewalkUserWithRole
 import play.api.mvc.Results.{Redirect, Status}
 import play.api.mvc._
 import play.silhouette.api.Silhouette
-import play.silhouette.api.actions.SecuredRequest
+import play.silhouette.api.actions.{SecuredRequest, UserAwareRequest}
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -71,6 +71,42 @@ class CustomSecurityService @Inject() (
         case NotAuthorized(currRole, requiredRole) =>
           Future.successful(unauthorizedErrorHelper(currRole, requiredRole, request.path, request.queryString))
       }
+    }
+  }
+
+  /**
+   * A page that renders for everyone (#4643): `request.identity` is `Some` for signed-in visitors (including ones on
+   * an anonymous account) and `None` for cookie-less requests — unlike `SecuredAction`, no anonymous account is
+   * minted as a side effect of viewing the page. An existing identity gets the same treatment as `SecuredAction`
+   * (the Infra3D gate and the lazy `user_stat` backfill); a cookie-less one skips the backfill (there is no user to
+   * back-fill) but is still bounced to sign-in on Infra3D cities, which are sign-in-walled for every role today.
+   *
+   * Note for anyone adding caching later: these responses look cacheable but aren't. The body still varies by
+   * identity — the navbar, the leaderboard's "you" row, the story composer's username — so a shared or CDN cache in
+   * front of them needs a cookie-keyed rule, not a plain `Cache-Control: public`.
+   */
+  def UserAwareAction(block: UserAwareRequest[DefaultEnv, AnyContent] => Future[Result]): Action[AnyContent] = {
+    silhouette.UserAwareAction.async { request => userAwareHelper(request)(block) }
+  }
+
+  def UserAwareAction[B](
+      bodyParser: BodyParser[B]
+  )(block: UserAwareRequest[DefaultEnv, B] => Future[Result]): Action[B] = {
+    silhouette.UserAwareAction.async(bodyParser) { request => userAwareHelper(request)(block) }
+  }
+
+  private def userAwareHelper[B](
+      request: UserAwareRequest[DefaultEnv, B]
+  )(block: UserAwareRequest[DefaultEnv, B] => Future[Result]): Future[Result] = {
+    request.identity match {
+      case Some(identity) if configService.getPanoSource == PanoSource.Infra3d && !identity.infra3dAccess =>
+        Future.successful(infra3dAccessHelper(identity.role, request.path, request.queryString))
+      case Some(identity) =>
+        authenticationService.addUserStatEntryIfNew(identity.userId).flatMap(_ => block(request))
+      case None if configService.getPanoSource == PanoSource.Infra3d =>
+        Future.successful(infra3dAccessHelper("Anonymous", request.path, request.queryString))
+      case None =>
+        block(request)
     }
   }
 

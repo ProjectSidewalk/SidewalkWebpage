@@ -126,12 +126,52 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       sc must be < 400
     }
 
+    // A write gets a 401 rather than a bounce, so the client can mint a session and retry it instead of having the
+    // submission swallowed by a followed redirect (ControllerUtils.anonSignupRedirect).
     Seq(POST -> "/saveRoute", PUT -> "/userapi/routes/1", DELETE -> "/userapi/routes/1").foreach { case (verb, path) =>
-      s"exist and redirect an unauthenticated $verb $path to sign-in (3xx, not 404)" in {
-        val sc = status(route(app, FakeRequest(verb, path).withJsonBody(Json.obj()).withCSRFToken).get)
-        sc must be >= 300
-        sc must be < 400
+      s"exist and reject an unauthenticated $verb $path with 401 (not 404)" in {
+        status(route(app, FakeRequest(verb, path).withJsonBody(Json.obj()).withCSRFToken).get) mustBe UNAUTHORIZED
       }
+    }
+  }
+
+  "GET /routes (listing page)" should {
+    "render for any user and include another user's route until it is soft-deleted" in {
+      val owner                = signUpFreshUser()
+      val (streetId, regionId) = anyStreet(owner)
+      val name                 = s"City Listing Walk ${uniqueTag()}"
+      val saved                = saveRoute(owner, saveRouteBody(regionId, streetId, Some(name)))
+      status(saved) mustBe OK
+      val routeId = (contentAsJson(saved) \ "route_id").as[Int]
+
+      // A different user (not the creator) sees the route on the public listing page.
+      val other = signUpFreshUser()
+      val page  = route(app, FakeRequest(GET, "/routes").withCookies(other: _*)).get
+      status(page) mustBe OK
+      contentType(page) mustBe Some("text/html")
+      val body = contentAsString(page)
+      body must include("route-list-page")
+      body must include(name)
+      // Card scaffolding (#4688): design-system buttons, the label-map link, the copy control; no truncation
+      // note this far under the 500 cap, and no raw i18n key leaking (dotted keys never appear in real copy).
+      body must include("button-ps button--primary button--small route-card__explore")
+      body must include(s"/labelMap?routes=$routeId")
+      body must include("route-card__copy")
+      body must not include "community-cap-note"
+      body must not include "routes.page."
+      body must not include "community.page."
+
+      // Soft-deleting removes it from the listing.
+      status(deleteRoute(owner, routeId)) mustBe OK
+      val after = route(app, FakeRequest(GET, "/routes").withCookies(other: _*)).get
+      status(after) mustBe OK
+      contentAsString(after) must not include name
+    }
+
+    "redirect a cookie-less request into the anonymous sign-up flow (3xx, not 404)" in {
+      val sc = status(route(app, FakeRequest(GET, "/routes")).get)
+      sc must be >= 300
+      sc must be < 400
     }
   }
 

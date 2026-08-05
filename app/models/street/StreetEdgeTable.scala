@@ -147,7 +147,7 @@ class StreetEdgeTable @Inject() (
    * Get the total street distance in meters.
    */
   def totalStreetDistance: DBIO[Double] = {
-    streets.map(_.geom.transform(26918).lengthD).sum.result.map(x => x.getOrElse(0.0d))
+    streets.map(_.geom.lengthGeodesic).sum.result.map(x => x.getOrElse(0.0d))
   }
 
   /**
@@ -166,7 +166,7 @@ class StreetEdgeTable @Inject() (
     } yield _edges
 
     // Get length of each street segment, sum the lengths, and convert from meters to miles.
-    edges.distinctOn(_.streetEdgeId).map(_.geom.transform(26918).lengthD).sum.getOrElse(0d).result
+    edges.distinctOn(_.streetEdgeId).map(_.geom.lengthGeodesic).sum.getOrElse(0d).result
   }
 
   /**
@@ -236,11 +236,10 @@ class StreetEdgeTable @Inject() (
   }
 
   /**
-   * Gets the length in meters of each of the given street edges.
+   * Gets the geodesic length in meters of each of the given street edges.
    *
-   * Lengths are computed by projecting the geometry to UTM zone 18N (EPSG:26918) so the result is in meters rather than
-   * degrees — the same projection used by the distance methods above. Used to length-weight region AccessScores (#3855).
-   * `inSet` inlines the ids (rather than binding them) to avoid the bound-parameter limit on whole-city id lists.
+   * Length-weights region AccessScores (#3855). `inSet` inlines the ids (rather than binding them) to avoid the
+   * bound-parameter limit on whole-city id lists.
    *
    * @param streetEdgeIds The street edge ids to measure.
    * @return A map from street edge id to its length in meters (empty for an empty input).
@@ -250,7 +249,7 @@ class StreetEdgeTable @Inject() (
     else
       streetsUnfiltered
         .filter(_.streetEdgeId inSet streetEdgeIds)
-        .map(s => (s.streetEdgeId, s.geom.transform(26918).lengthD))
+        .map(s => (s.streetEdgeId, s.geom.lengthGeodesic))
         .result
         .map(_.toMap)
   }
@@ -297,9 +296,11 @@ class StreetEdgeTable @Inject() (
     // numeric filters are safe; see #2756 for migrating these raw builders to bound parameters.
     val queryStr = s"""
       WITH filtered_streets AS (
-        SELECT s.street_edge_id, s.geom, s.way_type, s.status, o.osm_way_id, r.region_id, reg.name as region_name
+        SELECT s.street_edge_id, s.geom, s.way_type, s.status, o.osm_way_id, osm_way.maxspeed AS max_speed,
+               r.region_id, reg.name as region_name
         FROM street_edge s
         JOIN osm_way_street_edge o ON s.street_edge_id = o.street_edge_id
+        LEFT JOIN osm_way ON o.osm_way_id = osm_way.osm_way_id
         JOIN street_edge_region r ON s.street_edge_id = r.street_edge_id
         JOIN region reg ON r.region_id = reg.region_id
         -- The API returns all streets (open, no_imagery, disabled) tagged with their status (#3888); only the tutorial
@@ -340,7 +341,7 @@ class StreetEdgeTable @Inject() (
         GROUP BY s.street_edge_id
       )
       -- Final selection with all filters applied.
-      SELECT s.street_edge_id, s.osm_way_id, s.region_id, s.region_name, s.way_type, s.status,
+      SELECT s.street_edge_id, s.osm_way_id, s.region_id, s.region_name, s.way_type, s.max_speed, s.status,
              COALESCE(l.user_ids, ARRAY[]::text[]) as user_ids,
              COALESCE(l.label_count, 0) as label_count,
              COALESCE(a.audit_count, 0) as audit_count,
@@ -367,6 +368,7 @@ class StreetEdgeTable @Inject() (
         regionId = r.nextInt(),
         regionName = r.nextString(),
         wayType = r.nextString(),
+        maxSpeed = r.nextStringOption(),
         status = r.nextString(),
         userIds = {
           // Handle PostgreSQL array type properly.

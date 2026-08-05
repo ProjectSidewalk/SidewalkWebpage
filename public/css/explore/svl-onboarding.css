@@ -56,6 +56,26 @@
   margin: calc(5px * var(--ui-scale)) auto;
 }
 
+/* Inline replica of the hover card's Delete button, shown in tutorial messages that ask the user to delete a
+   misplaced label (see OnboardingStates.js). */
+.onboarding-delete-button {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(4px * var(--ui-scale));
+  vertical-align: text-bottom;
+  padding: calc(1px * var(--ui-scale)) calc(8px * var(--ui-scale));
+  border: 1px solid var(--color-error-200);
+  border-radius: calc(8px * var(--ui-scale));
+  background: var(--color-neutral-white);
+  color: var(--color-error-200);
+  font: var(--text-caption-medium);
+}
+
+.onboarding-delete-button svg {
+  width: calc(11px * var(--ui-scale));
+  height: calc(11px * var(--ui-scale));
+}
+
 .onboarding-ok-button-holder {
   display: flex;
   justify-content: flex-end;

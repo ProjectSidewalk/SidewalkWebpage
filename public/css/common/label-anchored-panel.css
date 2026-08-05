@@ -1,0 +1,50 @@
+/* Panels anchored to a label icon in the pano: the read-only hover card and the editable context menu it opens
+   into. They are two states of one panel, so they share this shell — a white card with a neutral hairline, an 8px
+   radius, and a tail aimed at the label icon — and are positioned by the same routine (util.anchorPanelToLabel),
+   which sets --panel-tail-top and the --flipped modifier. Each panel's own stylesheet adds its size and contents. */
+.label-anchored-panel {
+  position: absolute;
+  box-sizing: border-box;
+  background: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: calc(8px * var(--ui-scale));
+}
+
+/* The tail is a true triangle drawn as two stacked clip-path layers — a neutral-300 backing triangle with a white
+   fill triangle offset 1.5px toward the panel — so it keeps the panel's hairline along its slanted edges and joins
+   the panel edge with no seam. (A border+rotate diamond leaves gaps at the base corners; don't reintroduce it.) */
+.label-anchored-panel::before,
+.label-anchored-panel::after {
+  content: "";
+  position: absolute;
+  top: var(--panel-tail-top, 50%);
+  width: calc(8px * var(--ui-scale));
+  height: calc(16px * var(--ui-scale));
+  margin-top: calc(-8px * var(--ui-scale));
+  clip-path: polygon(100% 0, 0 50%, 100% 100%);
+}
+
+.label-anchored-panel::before {
+  left: calc(-8px * var(--ui-scale));
+  background: var(--color-neutral-300);
+}
+
+.label-anchored-panel::after {
+  left: calc(-6.5px * var(--ui-scale));
+  background: var(--color-neutral-white);
+}
+
+/* Flipped: the panel sits to the left of the label icon, so the tail moves to the panel's right edge. */
+.label-anchored-panel--flipped::before,
+.label-anchored-panel--flipped::after {
+  left: auto;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+.label-anchored-panel--flipped::before {
+  right: calc(-8px * var(--ui-scale));
+}
+
+.label-anchored-panel--flipped::after {
+  right: calc(-6.5px * var(--ui-scale));
+}

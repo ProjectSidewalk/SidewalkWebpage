@@ -17,13 +17,16 @@
 @curPath = @{request.path.toLowerCase}
 @* The Tools toggle shows active when the current page is one of its menu items that has no top-level entry of its own
    (Label Map is excluded — it carries its own top-level active indicator). *@
-@toolsToggleActive = @{Set("/gallery", "/leaderboard", "/routebuilder", "/expertvalidate", "/adminvalidate").contains(curPath)}
+@toolsToggleActive = @{Set("/gallery", "/leaderboard", "/stories", "/routes", "/routebuilder", "/expertvalidate", "/adminvalidate").contains(curPath)}
 @* The account pill shows active on its own menu's pages. "/admin/" prefix covers admin sub-pages but not
    "/adminValidate" (which belongs to the Tools toggle). *@
 @userToggleActive = @{curPath == "/dashboard" || curPath == "/admin" || curPath.startsWith("/admin/") || curPath == "/servicehoursinstructions" || curPath == "/timecheck"}
 
   <!-- Fixed navbar -->
-<nav id="header" aria-label="Main"@if(isLanding) { class="header--tall"}>
+@* data-has-session tells the frontend whether this render has an identity at all (signed-in or anonymous account),
+   which is what a SecuredAction endpoint answers 200 vs 401 on. The navbar carries it because it is the one element
+   on nearly every page that already receives `user`. Read it via util.hasSession(). *@
+<nav id="header" aria-label="Main" data-has-session="@user.isDefined"@if(isLanding) { class="header--tall"}>
   <div class="navbar-container">
     <div class="navbar-brand-area">
       <div class="navbar-logo">
@@ -47,7 +50,7 @@
         @* Label Map is the results/output view — a top-level peer of the Explore (contribute) + Validate (verify) loop.
            `data-nav-shed` marks it droppable when the bar runs out of room (it stays reachable under Tools ▸ Analyze);
            see the shed order in Navbar.js. *@
-        <li class="navbar-lnk" data-nav-shed="4">
+        <li class="navbar-lnk" data-nav-shed="5">
           <a class="navbar-button@if(request.path.toLowerCase == "/labelmap"){ is-active}" id="navbar-labelmap-btn" href="@routes.ApplicationController.labelMap(None)"@if(request.path.toLowerCase == "/labelmap"){ aria-current="page"}>@common.navbarLnkIcon("map")@Messages("navbar.labelmap")</a>
         </li>
         @* Retake Tutorial and Help are genuine /explore-only features, not the current page hidden. *@
@@ -56,7 +59,7 @@
             <a class="navbar-button" href="#" id="navbar-retake-tutorial-btn">@common.navbarLnkIcon("play-circle")@Messages("navbar.retake.tutorial")</a>
           </li>
         }
-        <li class="navbar-lnk" data-nav-shed="1">
+        <li class="navbar-lnk" data-nav-shed="2">
         @if(currentCityInfo.countryId == "taiwan") {
           <a class="navbar-button" id="navbar-guide-btn" href="@assets.path("documents/labeling-guide-Taiwan.pdf")" target="_blank" rel="noopener">@common.navbarLnkIcon("book-open")@Messages("navbar.howto")</a>
         } else {
@@ -64,7 +67,7 @@
         }
         </li>
         @if(isExplore) {
-          <li class="navbar-lnk" data-nav-shed="3">
+          <li class="navbar-lnk" data-nav-shed="4">
             <a class="navbar-button" id="navbar-help-btn" href='@routes.ApplicationController.help' target="_blank" rel="noopener">@common.navbarLnkIcon("help-circle")@Messages("navbar.help")</a>
           </li>
         }
@@ -80,6 +83,8 @@
             <li><a id="navbar-labelmap-btn-tools" href="@routes.ApplicationController.labelMap(None)"@if(curPath == "/labelmap"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("map")@Messages("navbar.labelmap")</a></li>
             <li class="dropdown-section">@Messages("navbar.tools.community")</li>
             <li><a id="navbar-leaderboard-btn" href='@routes.UserDashboardController.leaderboard'@if(curPath == "/leaderboard"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("award")@Messages("navbar.leaderboard")</a></li>
+            <li><a id="navbar-stories-btn" href='@routes.StoryController.storiesPage'@if(curPath == "/stories"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("message-circle")@Messages("navbar.stories")</a></li>
+            <li><a id="navbar-routes-btn" href='@routes.RouteBuilderController.routesPage'@if(curPath == "/routes"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("flag")@Messages("navbar.routes")</a></li>
             <li class="dropdown-section">@Messages("navbar.tools.build")</li>
             <li><a id="navbar-route-builder-btn" href='@routes.ApplicationController.routeBuilder'@if(curPath == "/routebuilder"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("navigation")@Messages("routebuilder.name")</a></li>
             @if(isAdmin) {
@@ -89,8 +94,13 @@
           </ul>
         </li>
 
-        <li class="navbar-lnk" data-nav-shed="2">
+        <li class="navbar-lnk" data-nav-shed="3">
           <a class="navbar-button" id="navbar-api-btn" href="@routes.ApiDocsController.index" aria-label="Developer API">@common.navbarLnkIcon("code")@Messages("navbar.api")</a>
+        </li>
+        @* About is the first item shed when the bar runs out of room: it's the only non-task link up here, and it
+           stays reachable from the footer on every page. *@
+        <li class="navbar-lnk" data-nav-shed="1">
+          <a class="navbar-button@if(curPath == "/about"){ is-active}" id="navbar-about-btn" href="@routes.ApplicationController.about"@if(curPath == "/about"){ aria-current="page"}>@common.navbarLnkIcon("info")@Messages("navbar.about")</a>
         </li>
       </ul>
 
@@ -146,6 +156,16 @@
             }
             <li>
               <a id="navbar-dashboard-btn" href='@routes.UserDashboardController.dashboard'@if(curPath == "/dashboard"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("bar-chart-2")@Messages("navbar.dashboard")</a>
+            </li>
+            @* Anchor hops into the dashboard's own sections (#4656): contributors manage their stories and routes
+               there, and these jump straight to the right section. Same icons as the public Stories/Routes pages
+               under Tools ▸ Community, since they're the personal view of the same things. No is-active: on
+               /dashboard the "Your dashboard" item above owns the active state. *@
+            <li>
+              <a id="navbar-your-stories-btn" href='@routes.UserDashboardController.dashboard#your-stories'>@common.navbarMenuIcon("message-circle")@Messages("navbar.your.stories")</a>
+            </li>
+            <li>
+              <a id="navbar-your-routes-btn" href='@routes.UserDashboardController.dashboard#my-routes'>@common.navbarMenuIcon("flag")@Messages("navbar.your.routes")</a>
             </li>
             @* Also lives under Tools ▸ Community; duplicated here because contributors look for their own standing
                in their own menu. *@

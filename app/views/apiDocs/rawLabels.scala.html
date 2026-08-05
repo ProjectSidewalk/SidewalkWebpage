@@ -2,7 +2,7 @@
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
-@(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 @cityName = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head.cityNameFormatted}
 
 @content = {
@@ -57,6 +57,8 @@
       <p><code><a href="/v3/api/rawLabels?filetype=csv">/v3/api/rawLabels?filetype=csv</a></code> Get all raw labels in a CSV</p>
       <p><code><a href="/v3/api/rawLabels?labelType=CurbRamp">/v3/api/rawLabels?labelType=CurbRamp</a></code> Get all raw labels of type <code>CurbRamp</code>. The available label types match those in the <a href="@routes.ApiDocsController.labelTypes">Label Types API</a></p>
       <p><code><a href="/v3/api/rawLabels?labelType=SurfaceProblem&minSeverity=2">/v3/api/rawLabels?labelType=SurfaceProblem&minSeverity=2</a></code> Get all raw labels of type <code>SurfaceProblem</code> with a minimum severity of 2.</p>
+      <p><code><a href="/v3/api/rawLabels?severity=none,3">/v3/api/rawLabels?severity=none,3</a></code> Get all raw labels that are either unrated or severity 3.</p>
+      <p><code><a href="/v3/api/rawLabels?tags=CurbRamp:narrow">/v3/api/rawLabels?tags=CurbRamp:narrow</a></code> Get all raw labels with the <code>narrow</code> tag, only on <code>CurbRamp</code> labels.</p>
     </div>
   </div>
 
@@ -129,22 +131,27 @@
           <tr>
             <td><code>tags</code></td>
             <td><code>string</code></td>
-            <td>Filter by one or more tags associated with labels. Provide comma-separated values (e.g., <code>tags=missing tactile warning,uneven surface</code>). Matches labels containing *any* of the specified tags. See <a target="_blank" href="@routes.ApiDocsController.labelTags">Tags Reference</a> for available tags. </td>
+            <td>Filter by one or more tags associated with labels. Provide comma-separated values (e.g., <code>tags=missing tactile warning,uneven surface</code>). Matches labels containing *any* of the specified tags. An entry may be scoped to a single label type with a <code>LabelType:tag</code> prefix (e.g., <code>tags=CurbRamp:narrow</code>), which only matches that tag on that label type; an entry whose prefix (the text before the first colon) is not a valid label type is treated as a plain tag matching any type, since tag names may themselves contain colons. See <a target="_blank" href="@routes.ApiDocsController.labelTags">Tags Reference</a> for available tags. </td>
+          </tr>
+          <tr>
+            <td><code>severity</code></td>
+            <td><code>string</code></td>
+            <td>Filter by an arbitrary set of severities. Provide comma-separated values from <code>1</code>, <code>2</code>, <code>3</code>, and <code>none</code> (labels with no severity rating), e.g. <code>severity=none,3</code>. Matches labels with *any* of the listed severities. Cannot be combined with <code>minSeverity</code>/<code>maxSeverity</code> (returns a 400 error).</td>
           </tr>
           <tr>
             <td><code>minSeverity</code></td>
             <td><code>integer</code></td>
-            <td>Filter labels with a severity rating/quality greater than or equal to this value (1-3).</td>
+            <td>Filter labels with a severity rating/quality greater than or equal to this value (1-3). Cannot be combined with <code>severity</code>.</td>
           </tr>
           <tr>
             <td><code>maxSeverity</code></td>
             <td><code>integer</code></td>
-            <td>Filter labels with a severity/quality rating less than or equal to this value (1-3).</td>
+            <td>Filter labels with a severity/quality rating less than or equal to this value (1-3). Cannot be combined with <code>severity</code>.</td>
           </tr>
           <tr>
             <td><code>validationStatus</code></td>
             <td><code>string</code></td>
-            <td>Filter by validation status. Possible values: <code>validated_correct</code>, <code>validated_incorrect</code>, <code>unvalidated</code>. </td>
+            <td>Filter by one or more validation statuses (comma-separated, matching *any* of them). Possible values: <code>validated_correct</code>, <code>validated_incorrect</code>, <code>unsure</code> (has validations but no consensus yet), <code>unvalidated</code> (no validations at all). <strong>Changed August 2026</strong> (v3 is a preview API): <code>unvalidated</code> now means zero validations; labels with non-consensus validations are returned by the new <code>unsure</code> value instead.</td>
           </tr>
           <tr>
             <td><code>highQualityUserOnly</code></td>
@@ -164,7 +171,7 @@
           <tr>
             <td><code>filetype</code></td>
             <td><code>string</code></td>
-            <td>Specify the output format. Options: <code>geojson</code> (default), <code>csv</code>, <code>shapefile</code>.</td>
+            <td>Specify the output format. Options: <code>geojson</code> (default), <code>csv</code>, <code>shapefile</code>, <code>geopackage</code>.</td>
           </tr>
           <tr>
             <td><code>inline</code></td>
@@ -552,6 +559,6 @@
 }
 
 @common.main(commonData, SeoUtils.apiDocsTitle("Raw Labels API")) {
-  @common.navbar(commonData, Some(user))
+  @common.navbar(commonData, user)
   @apiDocs.layout("raw-labels")(content)
 }

@@ -10,7 +10,6 @@ import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
 import service.{ApiService, ConfigService, LabelService}
 
-import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -56,7 +55,7 @@ class LabelApiController @Inject() (
   ) = silhouette.UserAwareAction.async { implicit request =>
     // Set up streaming data from the database.
     val dbDataStream: Source[LabelCVMetadata, _] = apiService.getLabelCVMetadata(DEFAULT_BATCH_SIZE)
-    val baseFileName: String                     = s"labelsWithCVMetadata_${OffsetDateTime.now()}"
+    val baseFileName: String                     = timestampedFilename("labelsWithCVMetadata")
     cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
     // Output data in the appropriate file format: CSV or JSON (default).
@@ -121,10 +120,14 @@ class LabelApiController @Inject() (
    *
    * @param bbox Bounding box in format "minLng,minLat,maxLng,maxLat"
    * @param labelType Comma-separated list of label types to include
-   * @param tags Comma-separated list of tags to filter by
+   * @param tags Comma-separated list of tags to filter by; a "LabelType:tag" entry only matches that label type
+   * @param severity Comma-separated set of severities to include ("1", "2", "3", "none" for unrated); mutually
+   *                 exclusive with minSeverity/maxSeverity
    * @param minSeverity Minimum severity score (1-3 scale)
    * @param maxSeverity Maximum severity score (1-3 scale)
-   * @param validationStatus Filter by validation status: "validated_correct", "validated_incorrect", "unvalidated"
+   * @param validationStatus Comma-separated validation statuses to include: "validated_correct",
+   *                         "validated_incorrect", "unsure" (validated without consensus), "unvalidated" (no
+   *                         validations)
    * @param highQualityUserOnly Optional filter to include only labels from high quality users if true
    * @param startDate Start date for filtering (ISO 8601 format)
    * @param endDate End date for filtering (ISO 8601 format)
@@ -137,6 +140,7 @@ class LabelApiController @Inject() (
       bbox: Option[String],
       labelType: Option[String],
       tags: Option[String],
+      severity: Option[String],
       minSeverity: Option[Int],
       maxSeverity: Option[Int],
       validationStatus: Option[String],
@@ -150,18 +154,22 @@ class LabelApiController @Inject() (
   ) = silhouette.UserAwareAction.async { implicit request =>
     cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
-    // Parse bbox and date/validation params.
-    val parsedBbox             = parseBBoxString(bbox)
-    val parsedStartDate        = parseDateTimeParam(startDate, "startDate")
-    val parsedEndDate          = parseDateTimeParam(endDate, "endDate")
-    val parsedValidationStatus = parseValidationStatus(validationStatus)
-    val parsedLabelTypes       = parseCommaSeparated(labelType)
-    val parsedTags             = parseCommaSeparated(tags)
+    // Parse and validate the structured params.
+    val parsedBbox               = parseBBoxString(bbox)
+    val parsedStartDate          = parseDateTimeParam(startDate, "startDate")
+    val parsedEndDate            = parseDateTimeParam(endDate, "endDate")
+    val parsedValidationStatuses = parseValidationStatuses(validationStatus)
+    val parsedLabelTypes         = parseAllowlistedList(labelType, LabelTypeEnum.validLabelTypes, "labelType")
+    val parsedTags               = parseTagsParam(tags)
+    val parsedSeverity           = parseSeverityParam(severity, minSeverity, maxSeverity)
 
     // Collect the first invalid-parameter error, if any.
     val firstError: Option[ApiError] = Seq(
       validateBBoxParam(bbox, parsedBbox),
-      parsedValidationStatus.left.toOption,
+      parsedLabelTypes.left.toOption,
+      parsedTags.left.toOption,
+      parsedSeverity.left.toOption,
+      parsedValidationStatuses.left.toOption,
       parsedStartDate.left.toOption,
       parsedEndDate.left.toOption,
       validateRegionId(regionId)
@@ -176,15 +184,16 @@ class LabelApiController @Inject() (
 
           // Create filters object.
           val filters = RawLabelFiltersForApi(
-            bbox = finalBbox, labelTypes = parsedLabelTypes, tags = parsedTags, minSeverity = minSeverity,
-            maxSeverity = maxSeverity, validationStatus = parsedValidationStatus.toOption.flatten,
+            bbox = finalBbox, labelTypes = parsedLabelTypes.toOption.flatten, tags = parsedTags.toOption.flatten,
+            severity = parsedSeverity.toOption.flatten, minSeverity = minSeverity, maxSeverity = maxSeverity,
+            validationStatuses = parsedValidationStatuses.toOption.flatten,
             highQualityUserOnly = highQualityUserOnly.getOrElse(false), startDate = parsedStartDate.toOption.flatten,
             endDate = parsedEndDate.toOption.flatten, regionId = finalRegionId, regionName = finalRegionName
           )
 
           // Get the data stream.
           val dbDataStream: Source[LabelDataForApi, _] = apiService.getRawLabels(filters, DEFAULT_BATCH_SIZE)
-          val baseFileName: String                     = s"labels_${OffsetDateTime.now()}"
+          val baseFileName: String                     = timestampedFilename("labels")
 
           // Output data in the appropriate file format.
           filetype match {
@@ -195,31 +204,84 @@ class LabelApiController @Inject() (
             case Some("geopackage") =>
               outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createRawLabelDataGeopackage, inline)
             case _ => // Default to GeoJSON.
-              outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
+              outputGeoJSON(dbDataStream, inline, baseFileName + ".geojson")
           }
         }
     }
   }
 
   /**
-   * Validates the public validationStatus parameter and maps it to its internal representation.
+   * Parses the multi-valued validationStatus parameter into the corresponding enum values.
    *
-   * @param raw The optional validationStatus query parameter.
-   * @return `Right(None)` if absent, `Right(Some(internal))` if valid, or `Left(ApiError)` if the value is invalid.
+   * @param raw The optional validationStatus query parameter (comma-separated public tokens).
+   * @return `Right(None)` if absent, `Right(Some(statuses))` if every token is valid, or `Left(ApiError)` otherwise.
    */
-  private def parseValidationStatus(raw: Option[String]): Either[ApiError, Option[String]] = raw match {
-    case None                        => Right(None)
-    case Some("validated_correct")   => Right(Some("Agreed"))
-    case Some("validated_incorrect") => Right(Some("Disagreed"))
-    case Some("unvalidated")         => Right(Some("Unvalidated"))
-    case Some(_)                     =>
+  private def parseValidationStatuses(
+      raw: Option[String]
+  ): Either[ApiError, Option[Set[RawLabelValidationStatus.Value]]] =
+    parseAllowlistedList(raw, RawLabelValidationStatus.values.map(_.toString), "validationStatus")
+      .map(_.map(_.map(RawLabelValidationStatus.withName).toSet))
+
+  /**
+   * Parses and validates the severity set parameter (comma-separated over "1", "2", "3", "none").
+   *
+   * @param raw         The optional severity query parameter.
+   * @param minSeverity The minSeverity query parameter, checked for the mutual-exclusion rule.
+   * @param maxSeverity The maxSeverity query parameter, checked for the mutual-exclusion rule.
+   * @return `Right(None)` if absent, `Right(Some(filter))` if valid, or `Left(ApiError)` if a token is invalid or the
+   *         parameter is combined with minSeverity/maxSeverity.
+   */
+  private def parseSeverityParam(
+      raw: Option[String],
+      minSeverity: Option[Int],
+      maxSeverity: Option[Int]
+  ): Either[ApiError, Option[SeverityFilterForApi]] =
+    if (raw.isDefined && (minSeverity.isDefined || maxSeverity.isDefined))
       Left(
-        ApiError.invalidParameter(
-          "Invalid validationStatus value. Must be one of: validated_correct, validated_incorrect, unvalidated",
-          "validationStatus"
-        )
+        ApiError
+          .invalidParameter("The severity parameter cannot be combined with minSeverity or maxSeverity.", "severity")
       )
-  }
+    else
+      parseAllowlistedList(raw, Set("1", "2", "3", "none"), "severity").map(_.map { tokens =>
+        SeverityFilterForApi(tokens.filter(_ != "none").map(_.toInt).toSet, tokens.contains("none"))
+      })
+
+  /**
+   * Parses the tags parameter, supporting optional label-type scoping (e.g. "CurbRamp:narrow").
+   *
+   * For each comma-separated entry, if the substring before the first colon exactly matches a label type name, the
+   * entry only matches that tag on that label type; otherwise the whole entry is a tag matching any label type (tag
+   * names may themselves contain colons, so an unrecognized prefix cannot be treated as an error).
+   *
+   * @param raw The optional tags query parameter.
+   * @return `Right(None)` if absent, `Right(Some(filters))` if valid, or `Left(ApiError)` if an entry is empty or a
+   *         scoped entry is missing its tag.
+   */
+  private def parseTagsParam(raw: Option[String]): Either[ApiError, Option[Seq[TagFilterForApi]]] =
+    parseCommaSeparated(raw) match {
+      case None         => Right(None)
+      case Some(tokens) =>
+        if (tokens.exists(_.isEmpty)) {
+          Left(ApiError.invalidParameter("The tags parameter contains an empty value.", "tags"))
+        } else {
+          val parsed = tokens.map { token =>
+            val prefix = token.takeWhile(_ != ':')
+            if (token.contains(':') && LabelTypeEnum.validLabelTypes.contains(prefix))
+              TagFilterForApi(Some(prefix), token.drop(prefix.length + 1).trim)
+            else TagFilterForApi(None, token)
+          }
+          parsed.find(tagFilter => tagFilter.labelType.isDefined && tagFilter.tag.isEmpty) match {
+            case Some(bad) =>
+              Left(
+                ApiError.invalidParameter(
+                  s"Missing tag after label type '${bad.labelType.get}:' in the tags parameter.",
+                  "tags"
+                )
+              )
+            case None => Right(Some(parsed))
+          }
+        }
+    }
 
   /**
    * Retrieves all panorama IDs that have labels.

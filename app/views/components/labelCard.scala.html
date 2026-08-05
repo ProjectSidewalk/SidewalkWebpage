@@ -1,0 +1,55 @@
+@*
+* The shared label card: the read-only panel showing a label's type, rating, tags, and description that Explore
+* opens over a hovered label and Validate opens over the label being validated (#4726/#4730). One markup, one
+* stylesheet pair (css/common/label-anchored-panel.css for the shell, label-hover-card.css for the chip stack),
+* one populator (js/common/LabelCardView.js); each caller keeps what is genuinely its own — showing, hiding, and
+* anchoring the card, plus the action buttons passed in as the actions block.
+*
+* Ids are kept to the pieces outside code addresses: the card itself, the type name in its header (the dialog's
+* accessible name), and the share trigger. Everything LabelCardView fills in is found by class within the card.
+*
+* A dialog rather than a tooltip because the card holds controls, not just text (#4729). It never takes focus
+* itself — users Tab into it from whatever opens it — and while hidden its visibility:hidden keeps it out of both
+* the tab order and the accessibility tree, so no aria-hidden bookkeeping is needed.
+*
+* Belongs beside the pano's view-control layer, not inside it: that layer clips its children and reads a mousedown
+* on them as the start of a pano pan.
+*
+* @param idPrefix     Namespaces the card's ids ("label-hover-card" on Explore, "label-card" on Validate).
+* @param showNotRated Include the not-rated nudge, for tools where the labeler can still add the missing rating.
+* @param noInfoKey    i18n key for the line shown when the label has no rating, tags, or description. Left out,
+*                     LabelCardView collapses the empty body instead.
+* @param actions      The card's action buttons, supplied by the caller.
+*@
+@(idPrefix: String, showNotRated: Boolean = false, noInfoKey: Option[String] = None)(actions: Html)
+
+<div id="@idPrefix" class="label-anchored-panel label-hover-card" role="dialog" aria-labelledby="@{idPrefix}-type">
+  <div class="label-hover-card__header">
+    @* Transparent 1x1 placeholder so nothing flashes before the first label is rendered into the card. *@
+    <img class="label-hover-card__icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="">
+    <span id="@{idPrefix}-type" class="label-hover-card__type"></span>
+    @components.shareTrigger(id = s"$idPrefix-share", extraClass = "label-hover-card__share")
+  </div>
+  <div class="label-hover-card__body">
+    <span class="label-hover-card__severity">
+      <img class="label-hover-card__severity-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="">
+      <span class="label-hover-card__severity-text"></span>
+    </span>
+    @if(showNotRated) {
+      @* The prompt names severity or quality depending on the label type, so LabelCardView sets it rather than
+         i18nDom -- a positive feature is rated for how well it works, not how badly it blocks. *@
+      <span class="label-hover-card__not-rated">
+        <span class="label-hover-card__not-rated-icon" aria-hidden="true">?</span>
+        <span class="label-hover-card__not-rated-text"></span>
+      </span>
+    }
+    <span class="label-hover-card__tags"></span>
+    <span class="label-hover-card__description"></span>
+    @for(key <- noInfoKey) {
+      <span class="label-hover-card__no-info" data-i18n="@key">No available information</span>
+    }
+  </div>
+  <div class="label-hover-card__actions">
+    @actions
+  </div>
+</div>

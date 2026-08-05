@@ -1,10 +1,15 @@
 package controllers
 
+import models.label.LabelTableDef
+import models.pano.{PanoDataTableDef, PanoSource}
 import models.story.Story
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
+import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.Files.SingletonTemporaryFileCreator
 import play.api.libs.json.{JsArray, JsObject, JsValue}
@@ -44,6 +49,13 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   private val labelService: LabelService = app.injector.instanceOf[LabelService]
   private val storyService: StoryService = app.injector.instanceOf[StoryService]
+  private val labelTable                 = app.injector.instanceOf[models.label.LabelTable]
+
+  // Direct table access for the listing-page fixtures (seed/restore a pano address), per ExploreAddressServiceSpec.
+  private val dbConfig                   = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
+  private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 60.seconds)
+  private val labelsQ                    = TableQuery[LabelTableDef]
+  private val panoDataQ                  = TableQuery[PanoDataTableDef]
   private val maxTextLength: Int         = app.configuration.get[Int]("stories.max-text-length")
   private val maxAltTextLength: Int      = app.configuration.get[Int]("stories.max-alt-text-length")
   private val maxPerDay: Int             = app.configuration.get[Int]("stories.max-per-user-per-day")
@@ -99,7 +111,7 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     route(app, FakeRequest(DELETE, s"/userapi/stories/$storyId").withCookies(session: _*).withCSRFToken).get
 
   private def getStories(labelId: Int, session: Seq[Cookie] = Seq.empty) =
-    route(app, FakeRequest(GET, s"/stories?labelId=$labelId").withCookies(session: _*)).get
+    route(app, FakeRequest(GET, s"/label/$labelId/stories").withCookies(session: _*)).get
 
   private def storiesArray(json: JsValue): Seq[JsValue] = (json \ "stories").as[JsArray].value.toSeq
 
@@ -119,7 +131,7 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     MultipartFormData.FilePart(key = "photo", filename = "story-exif.jpg", contentType = Some("image/jpeg"), ref = temp)
   }
 
-  "GET /stories" should {
+  "GET /label/:labelId/stories" should {
     "be readable with no session at all (public share-page contract) and carry the composer's text limit" in {
       labelIds.headOption match {
         case None     => cancel("No labels in the connected test DB.")
@@ -131,6 +143,118 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
           // Real labels always resolve to a boolean (the card's problem-vs-feature prompt switch).
           (contentAsJson(resp) \ "is_access_problem").asOpt[Boolean] mustBe defined
           (contentAsJson(resp) \ "stories").asOpt[JsArray] mustBe defined
+      }
+    }
+  }
+
+  "GET /stories (listing page)" should {
+    "render for an anonymous session and include a freshly submitted story" in {
+      labelIds.headOption match {
+        case None     => cancel("No labels in the connected test DB.")
+        case Some(id) =>
+          val session = freshAnonSession()
+          val text    = s"Listing page spec story ${java.util.UUID.randomUUID}"
+          val posted  = postStory(session, id, text)
+          status(posted) mustBe OK
+          val storyId = (contentAsJson(posted) \ "story_id").as[Int]
+          try {
+            val page = route(app, FakeRequest(GET, "/stories").withCookies(session: _*)).get
+            status(page) mustBe OK
+            contentType(page) mustBe Some("text/html")
+            val body = contentAsString(page)
+            body must include("story-list-page")
+            body must include(text)
+          } finally {
+            // Cleanup must run even when the page assertions fail; status() awaits the delete.
+            val cleanupStatus = status(deleteStory(session, storyId))
+            if (cleanupStatus != OK) fail(s"cleanup delete returned $cleanupStatus")
+          }
+      }
+    }
+
+    "redirect a cookie-less request into the anonymous sign-up flow (3xx, not 404)" in {
+      val sc = status(route(app, FakeRequest(GET, "/stories")).get)
+      sc must be >= 300
+      sc must be < 400
+    }
+
+    "give a photoless story a label preview image, and prefer the author's photo once one is attached" in {
+      labelIds.headOption match {
+        case None     => cancel("No labels in the connected test DB.")
+        case Some(id) =>
+          val session = freshAnonSession()
+          val posted  = postStory(session, id, s"Listing image spec story ${java.util.UUID.randomUUID}")
+          status(posted) mustBe OK
+          val storyId = (contentAsJson(posted) \ "story_id").as[Int]
+          try {
+            val listed = await(storyService.getStoriesForCity(500)).find(_.storyId == storyId)
+            listed mustBe defined
+            listed.get.media mustBe None
+            // The GSV-static fallback needs pano/POV metadata; cancel (not fail) on a DB whose label lacks it.
+            val meta = run(labelTable.getPanoMetadataForLabels(Seq(id)))
+            if (meta.isEmpty || meta.head._3 != PanoSource.Gsv) {
+              cancel(s"Label $id has no GSV pano metadata in the connected test DB.")
+            }
+            listed.get.labelImageUrl mustBe defined
+            listed.get.labelImageUrl.get must (startWith("https://maps.googleapis.com/maps/api/streetview") or
+              startWith("/cropImage/"))
+
+            status(updateStory(session, storyId, "now with a photo", files = Seq(testJpegFilePart()))) mustBe OK
+            val withPhoto = await(storyService.getStoriesForCity(500)).find(_.storyId == storyId)
+            withPhoto.get.media mustBe defined
+            withPhoto.get.labelImageUrl mustBe None // The author's photo wins; no label preview is built.
+          } finally {
+            val _ = status(deleteStory(session, storyId))
+          }
+      }
+    }
+
+    "surface the label's street address as a location line linking to the LabelMap" in {
+      labelIds.headOption match {
+        case None     => cancel("No labels in the connected test DB.")
+        case Some(id) =>
+          val session = freshAnonSession()
+          val posted  = postStory(session, id, s"Listing address spec story ${java.util.UUID.randomUUID}")
+          status(posted) mustBe OK
+          val storyId     = (contentAsJson(posted) \ "story_id").as[Int]
+          val panoId      = run(labelsQ.filter(_.labelId === id).map(_.panoId).result.head)
+          val prevAddress = run(panoDataQ.filter(_.panoId === panoId).map(_.address).result.headOption).flatten
+          val specAddress = s"1 Spec St ${java.util.UUID.randomUUID.toString.take(8)}"
+          try {
+            val updated = run(panoDataQ.filter(_.panoId === panoId).map(_.address).update(Some(specAddress)))
+            if (updated == 0) cancel(s"Pano $panoId has no pano_data row in the connected test DB.")
+            val body = contentAsString(route(app, FakeRequest(GET, "/stories").withCookies(session: _*)).get)
+            body must include(specAddress)
+            body must include("story-card__location")
+            body must include(s"""href="/labelMap?labelId=$id"""")
+          } finally {
+            run(panoDataQ.filter(_.panoId === panoId).map(_.address).update(prevAddress))
+            val _ = status(deleteStory(session, storyId))
+          }
+      }
+    }
+
+    "render the card scaffolding: tinted type chip, button-styled view-label, no cap note, no raw i18n keys" in {
+      labelIds.headOption match {
+        case None     => cancel("No labels in the connected test DB.")
+        case Some(id) =>
+          val session = freshAnonSession()
+          val posted  = postStory(session, id, s"Listing scaffolding spec story ${java.util.UUID.randomUUID}")
+          status(posted) mustBe OK
+          val storyId = (contentAsJson(posted) \ "story_id").as[Int]
+          try {
+            val body = contentAsString(route(app, FakeRequest(GET, "/stories").withCookies(session: _*)).get)
+            body must include("community-chip--type")
+            body must include("data-type-color=\"#")
+            body must include("button-ps button--primary button--small story-card__label-link")
+            // Far under the 500 cap here, so the truncation note must not render.
+            body must not include "community-cap-note"
+            // A raw key leaking into the page means a messages file lost one — dotted keys never appear in copy.
+            body must not include "stories.page."
+            body must not include "community.page."
+          } finally {
+            val _ = status(deleteStory(session, storyId))
+          }
       }
     }
   }
@@ -280,8 +404,17 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
         status(resp) mustBe OK
         (contentAsJson(resp) \ "story_id").as[Int]
       }
-      try status(postStory(session, labelIds(maxPerDay), "one over the daily cap")) mustBe TOO_MANY_REQUESTS
-      finally posted.foreach(storyId => status(deleteStory(session, storyId)) mustBe OK)
+      try {
+        val refused = postStory(session, labelIds(maxPerDay), "one over the daily cap")
+        status(refused) mustBe TOO_MANY_REQUESTS
+
+        // The cap is a rolling 24h window, so the refusal says how long the wait is rather than naming a day: the
+        // stories were just posted, so the next slot is a shade under 24h away. Same number on the standard header.
+        val retryAfter = (contentAsJson(refused) \ "retry_after_seconds").as[Long]
+        retryAfter must be > 23.hours.toSeconds
+        retryAfter must be <= 24.hours.toSeconds
+        header("Retry-After", refused).value mustBe retryAfter.toString
+      } finally posted.foreach(storyId => status(deleteStory(session, storyId)) mustBe OK)
     }
 
     "ingest a photo (re-encoded, resized, signed URL), serve it, and remove the bytes on retraction" in {
@@ -420,6 +553,42 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
   }
 
+  "GET /userapi/stories/mine" should {
+    "carry everything the dashboard's edit composer needs, and only the caller's own stories" in {
+      labelIds.headOption match {
+        case None     => cancel("No labels in the connected test DB.")
+        case Some(id) =>
+          val session = freshAnonSession()
+          val posted  = postStory(session, id, "Spec story: mine-listing contract.")
+          status(posted) mustBe OK
+          val storyId = (contentAsJson(posted) \ "story_id").as[Int]
+          try {
+            val resp = route(app, FakeRequest(GET, "/userapi/stories/mine").withCookies(session: _*)).get
+            status(resp) mustBe OK
+            (contentAsJson(resp) \ "max_text_length").as[Int] mustBe maxTextLength
+            val mine = storiesArray(contentAsJson(resp)).find(s => (s \ "story_id").as[Int] == storyId)
+            mine mustBe defined
+            (mine.get \ "label_id").as[Int] mustBe id
+            (mine.get \ "label_type").asOpt[String] mustBe defined
+            (mine.get \ "is_access_problem").asOpt[Boolean] mustBe defined
+            (mine.get \ "display_name_mode").as[String] mustBe Story.DisplayNameAnonymous
+            // The thumbnail source rides the payload; null is fine (no crop/pano), but the key must be there.
+            (mine.get \ "label_image_url").toOption mustBe defined
+
+            val stranger = route(app, FakeRequest(GET, "/userapi/stories/mine").withCookies(freshAnonSession(): _*)).get
+            status(stranger) mustBe OK
+            storiesArray(contentAsJson(stranger)) mustBe empty
+          } finally { val _ = status(deleteStory(session, storyId)) }
+      }
+    }
+
+    "redirect a cookie-less request into the anonymous sign-up flow rather than exposing a list" in {
+      val resp = route(app, FakeRequest(GET, "/userapi/stories/mine")).get
+      status(resp) mustBe SEE_OTHER
+      redirectLocation(resp).value must include("/anonSignUp")
+    }
+  }
+
   "DELETE /userapi/stories/:storyId" should {
     "not let one user retract another user's story" in {
       labelIds.headOption match {
@@ -503,6 +672,63 @@ class StoryControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
   "story enum constants" should {
     "match the evolution's display-name CHECK constraint" in {
       Story.validDisplayNameModes mustBe Set("anonymous", "username")
+    }
+  }
+}
+
+/**
+ * The IP burst layer end-to-end (#4740): its own app so `rate-limit.story-submit` can be enabled with a one-attempt
+ * cap (the suite above disables the layer so it can post freely). The refusal must blame the *network*, not the
+ * person — a shared NAT can trip this for someone who published nothing, so its error key differs from the per-user
+ * cap's — and must say how long is left in the IP's window, in the body and on the standard Retry-After header.
+ */
+class StoryControllerIpLimitSpec extends PlaySpec with GuiceOneAppPerSuite {
+
+  override def fakeApplication(): Application =
+    new GuiceApplicationBuilder()
+      .disable[modules.ActorModule]
+      .configure(
+        "rate-limit.story-submit.enabled"        -> true,
+        "rate-limit.story-submit.max-attempts"   -> 1,
+        "rate-limit.story-submit.window-seconds" -> 3600
+      )
+      .build()
+
+  implicit lazy val mat: Materializer = app.materializer
+
+  "POST /userapi/stories under the IP burst limit" should {
+    "429 with the network-scoped error and the time left in the window" in {
+      val sessionResp = route(app, FakeRequest(GET, "/anonSignUp?url=%2F")).get
+      status(sessionResp) mustBe SEE_OTHER
+      val session = cookies(sessionResp).toSeq
+
+      // The limiter charges every attempt before the body's fields are even read, so a bodyless POST exercises it
+      // without creating a story (nothing to clean up, no dependence on labels in the test DB).
+      def post() = route(
+        app,
+        FakeRequest(POST, "/userapi/stories")
+          .withCookies(session: _*)
+          .withMultipartFormDataBody(
+            MultipartFormData[play.api.libs.Files.TemporaryFile](
+              dataParts = Map.empty,
+              files = Seq.empty,
+              badParts = Nil
+            )
+          )
+          .withCSRFToken
+      ).get
+
+      status(post()) mustBe BAD_REQUEST // Within the cap: refused for the missing label_id, not the IP.
+
+      val refused = post()
+      status(refused) mustBe TOO_MANY_REQUESTS
+      (contentAsJson(refused) \ "error").as[String] mustBe "story.error.rate-limited-ip"
+      // The time left in this IP's window — positive, never more than the window itself, and the same number on the
+      // standard header (the old code quoted the window's full length regardless of how far through it the IP was).
+      val retryAfter = (contentAsJson(refused) \ "retry_after_seconds").as[Long]
+      retryAfter must be > 0L
+      retryAfter must be <= 3600L
+      header("Retry-After", refused).value mustBe retryAfter.toString
     }
   }
 }
