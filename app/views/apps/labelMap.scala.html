@@ -35,6 +35,7 @@
 
   <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
   <link href='@assets.path("css/filter-sidebar.css")' rel="stylesheet">
+  <link href='@assets.path("css/map-download-control.css")' rel="stylesheet">
   <link href='@assets.path("css/tag-pills.css")' rel="stylesheet">
 
   <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
@@ -218,6 +219,16 @@
         const sidebarFilter = new MapSidebarFilter(self.map, self.mapData, { highQualityFilter: true });
         // Restore shared-link filters from the URL and keep the URL updated as filters and viewport change.
         new MapSidebarUrlSync(sidebarFilter, self.map);
+        // "Download" control (#4095), added after the labels stream in so its count is always real. A single
+        // deep-linked region is passed through to the download; the other page-level params (multi-region, routes,
+        // AI validation) have no rawLabels counterpart, so the menu shows a caveat instead.
+        const regionIdList = regionsParam ? regionsParam.split(',') : [];
+        self.map.addControl(new MapDownloadControl({
+          getFilterState: () => sidebarFilter.getState(),
+          getVisibleLabelCount: () => sidebarFilter.getVisibleLabelCount(),
+          regionId: regionIdList.length === 1 ? Number(regionIdList[0]) : null,
+          showsPartialFilterCaveat: regionIdList.length > 1 || Boolean(routesParam) || Boolean(aiValidationOptionsParam),
+        }), 'top-right');
         // Popup arrows step through spatially nearby labels using the already-loaded map data.
         self.nearbyNav = createNearbyLabelNavigator(self.mapData);
         params.popupLabelViewer.setNearbyNavigator(self.nearbyNav);

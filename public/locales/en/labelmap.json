@@ -53,6 +53,18 @@
   "no-imagery-disabled": "You cannot validate or comment when no imagery is available for this label",
   "admin-only": "Admin only",
   "not-admin-validated": "Not validated by an admin",
+  "download": {
+    "button": "Download",
+    "menu-label": "Download the labels shown on the map",
+    "count_one": "{{count}} label matches your filters",
+    "count_other": "{{count}} labels match your filters",
+    "hint-geojson": "Web mapping standard",
+    "hint-csv": "For Excel, Google Sheets",
+    "hint-shapefile": "For ArcGIS, QGIS",
+    "hint-geopackage": "Open GIS format",
+    "caveat": "Some filters from this page's link (multiple regions, routes, or AI validation) aren't applied to downloads.",
+    "api-docs-link": "Raw Labels API documentation"
+  },
   "story": {
     "heading": "Community stories",
     "write-yours": "Write your story",

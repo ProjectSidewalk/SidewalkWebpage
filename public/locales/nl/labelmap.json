@@ -53,6 +53,18 @@
   "no-imagery-disabled": "Je kunt niet valideren of becommentariëren wanneer er geen beeldmateriaal beschikbaar is voor dit etiket",
   "admin-only": "Alleen beheerders",
   "not-admin-validated": "Niet gevalideerd door een beheerder",
+  "download": {
+    "button": "Downloaden",
+    "menu-label": "Download de etiketten die op de kaart worden getoond",
+    "count_one": "{{count}} etiket komt overeen met je filters",
+    "count_other": "{{count}} etiketten komen overeen met je filters",
+    "hint-geojson": "Standaard voor webkaarten",
+    "hint-csv": "Voor Excel, Google Spreadsheets",
+    "hint-shapefile": "Voor ArcGIS, QGIS",
+    "hint-geopackage": "Open GIS-formaat",
+    "caveat": "Sommige filters uit de link van deze pagina (meerdere regio's, routes of AI-validatie) worden niet toegepast op downloads.",
+    "api-docs-link": "Documentatie van de Raw Labels API"
+  },
   "story": {
     "heading": "Verhalen uit de community",
     "write-yours": "Schrijf jouw verhaal",

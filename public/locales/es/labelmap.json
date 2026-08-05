@@ -53,6 +53,18 @@
   "no-imagery-disabled": "No puedes validar ni comentar cuando no hay imágenes disponibles para esta etiqueta",
   "admin-only": "Solo administradores",
   "not-admin-validated": "No validado por un administrador",
+  "download": {
+    "button": "Descargar",
+    "menu-label": "Descargar las etiquetas mostradas en el mapa",
+    "count_one": "{{count}} etiqueta coincide con tus filtros",
+    "count_other": "{{count}} etiquetas coinciden con tus filtros",
+    "hint-geojson": "Estándar de mapas web",
+    "hint-csv": "Para Excel, Google Sheets",
+    "hint-shapefile": "Para ArcGIS, QGIS",
+    "hint-geopackage": "Formato SIG abierto",
+    "caveat": "Algunos filtros del enlace de esta página (varias regiones, rutas o validación por IA) no se aplican a las descargas.",
+    "api-docs-link": "Documentación de la API de etiquetas sin procesar"
+  },
   "story": {
     "heading": "Historias de la comunidad",
     "write-yours": "Escribe tu historia",

@@ -53,6 +53,18 @@
   "no-imagery-disabled": "Você não pode validar nem comentar quando não há imagens disponíveis para este rótulo",
   "admin-only": "Apenas administradores",
   "not-admin-validated": "Não validado por um administrador",
+  "download": {
+    "button": "Baixar",
+    "menu-label": "Baixar os rótulos exibidos no mapa",
+    "count_one": "{{count}} rótulo corresponde aos seus filtros",
+    "count_other": "{{count}} rótulos correspondem aos seus filtros",
+    "hint-geojson": "Padrão de mapas para web",
+    "hint-csv": "Para Excel, Planilhas Google",
+    "hint-shapefile": "Para ArcGIS, QGIS",
+    "hint-geopackage": "Formato SIG aberto",
+    "caveat": "Alguns filtros do link desta página (várias regiões, rotas ou validação por IA) não são aplicados aos downloads.",
+    "api-docs-link": "Documentação da API de rótulos brutos"
+  },
   "story": {
     "heading": "Histórias da comunidade",
     "write-yours": "Escreva sua história",

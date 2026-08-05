@@ -1,0 +1,110 @@
+/* "Download" map control on the LabelMap (#4095): a labeled pill stacked under the zoom/compass cluster that opens
+   a dropdown menu of download formats. Fixed page chrome, so no --ui-scale. */
+
+.map-download-control {
+  position: relative;
+
+  /* Mapbox's control container sets a 12px Helvetica stack; restore the design system's type. */
+  font: var(--text-small-medium);
+}
+
+.map-download-control__button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+  border: none;
+  border-radius: 999px;
+  font: var(--text-small-medium);
+  cursor: pointer;
+
+  /* Matches the shadow Mapbox draws on its own corner controls so the stack reads as one cluster. */
+  box-shadow: 0 0 0 2px rgb(0 0 0 / 10%);
+}
+
+.map-download-control__button:hover {
+  background: var(--color-neutral-100);
+}
+
+.map-download-control__button:focus-visible,
+.map-download-control__item:focus-visible,
+.map-download-control__docs-link:focus-visible {
+  outline: 2px solid var(--color-neutral-900);
+  outline-offset: 1px;
+}
+
+.map-download-control__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 260px;
+  padding: 6px;
+  background: var(--color-neutral-white);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+}
+
+.map-download-control__count {
+  margin: 4px 8px 6px;
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-900);
+}
+
+.map-download-control__caveat {
+  margin: 0 8px 6px;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.map-download-control__item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 7px 8px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.map-download-control__item:hover:not(:disabled) {
+  background: var(--color-neutral-100);
+}
+
+.map-download-control__item:disabled {
+  cursor: default;
+  color: var(--color-neutral-500);
+}
+
+.map-download-control__format {
+  font: var(--text-small-medium);
+}
+
+.map-download-control__hint {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.map-download-control__item:disabled .map-download-control__hint {
+  color: var(--color-neutral-500);
+}
+
+.map-download-control__docs-link {
+  display: block;
+  margin-top: 4px;
+  padding: 7px 8px;
+  border-top: 1px solid var(--color-neutral-200);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  text-decoration: underline;
+}
+
+.map-download-control__docs-link:hover {
+  color: var(--color-neutral-900);
+}

@@ -47,6 +47,17 @@
   "no-imagery-disabled": "當此標記沒有可用的影像時，您無法驗證或評論",
   "admin-only": "僅限管理員",
   "not-admin-validated": "未經管理員驗證",
+  "download": {
+    "button": "下載",
+    "menu-label": "下載地圖上顯示的標記",
+    "count_other": "有 {{count}} 個標記符合您的篩選條件",
+    "hint-geojson": "網頁地圖標準格式",
+    "hint-csv": "適用於 Excel、Google 試算表",
+    "hint-shapefile": "適用於 ArcGIS、QGIS",
+    "hint-geopackage": "開放 GIS 格式",
+    "caveat": "此頁面連結中的部分篩選條件（多個區域、路線或 AI 檢核）不會套用於下載。",
+    "api-docs-link": "原始標記 API 文件"
+  },
   "story": {
     "heading": "社群故事",
     "write-yours": "撰寫您的故事",
