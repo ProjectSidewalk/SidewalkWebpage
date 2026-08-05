@@ -12,6 +12,10 @@
  *
  * Every case intercepts the feed, so none of them read the database: they behave identically against a
  * seeded dev schema and CI's empty one.
+ *
+ * /admin/label-map renders the same overlay through the same MapLoadingOverlay class, so these cover its
+ * behavior too — it isn't driven directly here because reaching it needs an admin session, which the suite's
+ * setup (a throwaway *registered* user) doesn't mint.
  */
 const {test, expect, stubMapbox, waitForAppReady} = require('./fixtures');
 

@@ -19,19 +19,7 @@
     <div id="labelmap-choropleth-holder" class="choropleth-holder">
       <div id="labelmap-choropleth" class="choropleth"></div>
       @common.filterSidebar(tags = tags, sections = Seq("search", "severity", "label-type", "validations", "streets"), showCounts = true)
-      @* Feedback while the (large) label layer streams in — the map itself loads in ~1s but labels can be tens of MB, during which the sidebar sits greyed with no cue that work is happening. *@
-      <div id="labelmap-loading" class="labelmap-loading" hidden role="status" aria-live="polite" aria-busy="true">
-        <div id="labelmap-loading-card" class="labelmap-loading__card">
-          <div class="labelmap-loading__spinner" aria-hidden="true"></div>
-          <p class="labelmap-loading__message" data-i18n="labelmap:loading-labels">Loading sidewalk labels…</p>
-          <p id="labelmap-loading-elapsed" class="labelmap-loading__elapsed"></p>
-        </div>
-        @* The label feed is a chunked 200, so a failure mid-stream is a truncated body, not an error status: without this the spinner would simply vanish and leave a label-less map with no explanation. *@
-        <div id="labelmap-error-card" class="labelmap-loading__card labelmap-loading__card--error" hidden>
-          <p class="labelmap-loading__message" data-i18n="labelmap:load-failed">We couldn&#x27;t load the map data.</p>
-          <button type="button" id="labelmap-retry" class="labelmap-loading__retry" data-i18n="labelmap:retry">Try again</button>
-        </div>
-      </div>
+      @common.mapLoadingOverlay()
     </div>
   </div>
 
@@ -77,49 +65,8 @@
     const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
     const accessToken = "@commonData.imageryAccessToken";
 
-    // Loading overlay for the label layer. Indeterminate spinner + a live elapsed-time counter: the
-    // response is gzipped (Content-Length is the compressed size), so a byte-percentage bar isn't
-    // meaningful, and the exact count isn't known until the payload has fully parsed.
-    let labelMapLoadingTimer = null;
-    function showLabelMapLoading() {
-      const overlay = document.getElementById('labelmap-loading');
-      if (!overlay) return;
-      const elapsedEl = document.getElementById('labelmap-loading-elapsed');
-      const start = performance.now();
-      const renderElapsed = () => {
-        if (!elapsedEl) return;
-        const seconds = ((performance.now() - start) / 1000).toFixed(1);
-        elapsedEl.textContent = i18next.t('labelmap:loading-elapsed', { seconds: seconds });
-      };
-      renderElapsed();
-      overlay.hidden = false;
-      labelMapLoadingTimer = setInterval(renderElapsed, 100);
-    }
-    function hideLabelMapLoading() {
-      const overlay = document.getElementById('labelmap-loading');
-      if (overlay) overlay.hidden = true;
-      if (labelMapLoadingTimer) {
-        clearInterval(labelMapLoadingTimer);
-        labelMapLoadingTimer = null;
-      }
-    }
-
-    // Swaps the spinner card for the error card, keeping the overlay up. Reload is the honest retry: the map data
-    // is fetched once during construction, so there is nothing to re-request without rebuilding the whole map.
-    function showLabelMapError() {
-      const overlay = document.getElementById('labelmap-loading');
-      if (!overlay) return;
-      if (labelMapLoadingTimer) {
-        clearInterval(labelMapLoadingTimer);
-        labelMapLoadingTimer = null;
-      }
-      document.getElementById('labelmap-loading-card').hidden = true;
-      document.getElementById('labelmap-error-card').hidden = false;
-      overlay.setAttribute('aria-busy', 'false');
-      overlay.hidden = false;
-      document.getElementById('labelmap-retry').focus();
-    }
-    document.getElementById('labelmap-retry').addEventListener('click', () => window.location.reload());
+    // Shared with /admin/label-map so both label maps report loading and failure identically.
+    const labelMapOverlay = new MapLoadingOverlay();
 
     // Gets all translations before loading the choropleth.
     window.appManager.ready(async function () {
@@ -225,7 +172,7 @@
         self.hasUrlViewport = MapSidebarUrlSync.applyUrlViewport(map);
         map.on('move', spotlight.updateTail); // Keep the tail pinned to the dot through pans/zooms/eases.
         initLabelMapLocationSearch(map, params.mapboxApiKey);
-        showLabelMapLoading();
+        labelMapOverlay.show();
         // A deep-linked popup's metadata fetch races map init; if it already arrived, place the camera now
         // instead of leaving the city-wide view up while the label layer streams in.
         if (deepLinkLabelId && !spotlight.spotlightedLabelId()) spotlight.spotlight(deepLinkLabelId, true);
@@ -250,10 +197,10 @@
         if (openLabelId && labelModal.open) {
           spotlight.spotlight(openLabelId, true);
         }
-        hideLabelMapLoading();
+        labelMapOverlay.hide();
       }).catch(e => {
         console.error('LabelMap failed to load', e);
-        showLabelMapError();
+        labelMapOverlay.showError();
       });
       window.map = self;
     });
