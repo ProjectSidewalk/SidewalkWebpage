@@ -83,9 +83,9 @@ WHERE user_stat.user_id = current_stat.user_id
 -- override, then the 0.0375 labels-per-meter floor and the 60%-accuracy-at-50+-validations floor -- so this writes
 -- exactly what any runtime refresh of the same row would.
 -- The WHERE repeats the expression rather than joining a subquery that computes it once, for two reasons: both the
--- SET and the filter must read the row being updated (user_id carries no UNIQUE constraint, so a self-join on it can
--- match the wrong row), and without the filter this rewrites every user_stat row -- 995k rows and 10s of the
--- migration's 11s on the Seattle dump, to change 432 of them.
+-- SET and the filter must read the row being updated (user_id carries no UNIQUE constraint and duplicate rows exist,
+-- #4776, so a self-join on it can match the wrong row), and without the filter this rewrites every user_stat row --
+-- 995k rows and 10s of the migration's 11s on the Seattle dump, to change 432 of them.
 UPDATE user_stat
 SET high_quality =
     NOT excluded
