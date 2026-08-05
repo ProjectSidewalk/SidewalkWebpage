@@ -7,12 +7,13 @@
 -- mission.distance_meters / distance_progress are deliberately untouched: they are historical per-mission records
 -- (fixed targets, or clipped to a region remainder at creation time) that nothing recomputes or compares globally.
 --
--- These are full recomputes, not rescalings, so they also repair rows the nightly refresh has never reached. On the
--- Seattle dev dump 352 users have a completed audit task on an open street but meters_audited = 0 stored, because
--- UserStatTable.updateAuditedDistance(cutoffTime) picks its users from `audit`-type missions and those users have
--- only auditOnboarding ones (#4774). Repairing them gives labels_per_meter = 0, which fails the quality floor, so of
--- the 432 high_quality flips this migration produces on that dump, 326 are that repair, 96 are the geodesic effect
--- proper (shorter streets raise labels_per_meter, lifting users over the floor), and 10 are other demotions.
+-- These are full recomputes, not rescalings, so they also repair rows the nightly refresh had never reached: on the
+-- Seattle dev dump 352 users have a completed audit task on an open street but meters_audited = 0 stored (#4774,
+-- fixed alongside this migration -- UserStatTable.usersThatAuditedSinceCutoffTime now selects on completed audit
+-- tasks, so nothing falls out of the nightly refresh again). Repairing them gives labels_per_meter = 0, which fails
+-- the quality floor, so of the 432 high_quality flips this migration produces on that dump, 326 are that repair, 96
+-- are the geodesic effect proper (shorter streets raise labels_per_meter, lifting users over the floor), and 10 are
+-- other demotions.
 
 -- The recomputes are expensive PostGIS queries, which can trip the broken JIT that ships in the projectsidewalk/db
 -- image (#4376) and segfault the backend. Evolutions run with autocommit off, i.e. inside one transaction, so

@@ -17,6 +17,7 @@ import service.RegionService
 import slick.basic.DatabaseConfig
 import slick.dbio.DBIO
 
+import java.time.OffsetDateTime
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
@@ -43,9 +44,8 @@ import scala.concurrent.duration.DurationInt
  * Layer 3 needs a seeded database, so each of its tests `assume`s the table it reads is non-empty — against an empty
  * schema they report as canceled rather than passing vacuously (the convention `RouteAuthPostureSpec` uses).
  *
- * Known decay: the meters_audited postcondition holds after evolution 347 but is not maintained by the runtime, which
- * refreshes only users with an `audit`-type mission (#4774). A failure there with no distance query touched means new
- * users of that shape have accumulated, not that this measure regressed.
+ * It also checks that the *nightly* refresh reaches every user a full recompute would, since a postcondition the
+ * runtime cannot maintain would decay back out of agreement on its own (#4774).
  */
 class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite with OptionValues {
 
@@ -158,9 +158,36 @@ class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite with Option
       } yield (before, after))
 
       assume(after.nonEmpty, "no users in this schema; cache freshness needs a seeded DB")
-      // See the class scaladoc: a failure here without a distance query having changed points at #4774, not at the
-      // measure. `.get` rather than `apply` so a user vanishing between the two reads reports as a failed assertion.
+      // `.get` rather than `apply` so a user vanishing between the two reads reports as a failed assertion.
       after.foreach { case (userId, recomputed) => assertClose(before.get(userId).value, recomputed) }
+    }
+
+    "credit a mission-less audit task through the nightly refresh (#4774)" in {
+      // The cache-freshness invariant is only durable if the nightly job's cutoff selector reaches every user a full
+      // recompute would touch. A selector keyed on `audit`-type missions does not: a user whose completed audit tasks
+      // sit under an auditOnboarding or exploreAddress mission (#4451's drop-ins) is never refreshed, so their
+      // meters_audited stays at 0 no matter how far they walk.
+      //
+      // Seeds exactly that user rather than looking for one, so the check is real against any seeded DB — the shape
+      // is absent from some city schemas and the test would otherwise quietly prove nothing there.
+      val cutoff                                     = OffsetDateTime.now().minusHours(1)
+      val (credited, streetLength): (Double, Double) = runRolledBack(for {
+        streetEdgeId <- streetEdgeTable.streets.map(_.streetEdgeId).result.head
+        length       <- streetEdgeTable.getStreetLengths(Seq(streetEdgeId)).map(_(streetEdgeId))
+        userId       <- sql"""INSERT INTO sidewalk_login.sidewalk_user (user_id, username, email)
+                              VALUES ('4774-fixture', '4774-fixture', '4774-fixture@example.com')
+                              RETURNING user_id""".as[String].head
+        _ <- sqlu"""INSERT INTO user_stat (user_id, meters_audited, high_quality, excluded)
+                    VALUES ($userId, 0, TRUE, FALSE)"""
+        // completed, recent, and deliberately unaccompanied by any mission of any type.
+        _ <- sqlu"""INSERT INTO audit_task
+                        (user_id, street_edge_id, task_start, task_end, completed, current_lat, current_lng)
+                    VALUES ($userId, $streetEdgeId, now(), now(), TRUE, 0, 0)"""
+        _        <- userStatTable.updateAuditedDistance(cutoff)
+        credited <- sql"SELECT meters_audited FROM user_stat WHERE user_id = $userId".as[Double].head
+      } yield (credited, length))
+
+      assertClose(credited, streetLength)
     }
 
     "match a fresh runtime recompute of user_stat.labels_per_meter for users with audited meters" in {
@@ -189,7 +216,7 @@ class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite with Option
     "match a fresh runtime recompute of the distance-derived user_stat.high_quality flag" in {
       // labels_per_meter is an input to the quality heuristic, so the cached flag must agree with a fresh
       // updateHighQuality run. Epoch cutoff = every user the runtime recompute would ever touch.
-      val epoch = java.time.OffsetDateTime.parse("1970-01-01T00:00:00Z")
+      val epoch                                                         = OffsetDateTime.parse("1970-01-01T00:00:00Z")
       val (before, after): (Map[String, Boolean], Map[String, Boolean]) = runRolledBack(for {
         before <- sql"SELECT user_id, high_quality FROM user_stat".as[(String, Boolean)].map(_.toMap)
         _      <- userStatTable.updateHighQuality(epoch)

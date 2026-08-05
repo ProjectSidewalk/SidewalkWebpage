@@ -271,17 +271,8 @@ class UserStatTable @Inject() (
    * Update meters_audited column in the user_stat table for users who have done any auditing since `cutoffTime`.
    */
   def updateAuditedDistance(cutoffTime: OffsetDateTime): DBIO[Unit] = {
-    // Get the list of users who have done any auditing since the cutoff time.
-    val usersToUpdate: Query[Rep[String], String, Seq] =
-      auditMissions.filter(_.missionEnd > cutoffTime).groupBy(_.userId).map(_._1)
-
-    // Computes the audited distance in meters for each user using the audit_task and street_edge tables.
-    updateAuditedDistanceHelper(usersToUpdate)
+    updateAuditedDistanceHelper(usersThatAuditedSinceCutoffTime(cutoffTime))
   }
-
-  /**
-   * Update the meters_audited column in the user_stat table for users who have done any auditing since `cutoffTime`.
-   */
 
   /**
    * Updates the meters_audited column in the user_stat table for the given users.
@@ -505,15 +496,23 @@ class UserStatTable @Inject() (
   }
 
   /**
-   * Helper function to get the list of users who have done any auditing since the cutoff time.
+   * The users who have done any auditing since the cutoff time, i.e. whose cached stats may have gone stale.
+   *
+   * Completed audit tasks, not just audit missions, decide this. A user can accumulate completed audit tasks under a
+   * mission of another type — `auditOnboarding`, or the `exploreAddress` drop-ins of #4451 — and a mission-only
+   * selector never reaches them, so `meters_audited` stays at whatever it was, usually 0, forever (#4774). The audit
+   * missions are still unioned in rather than replaced, so a user whose missions moved but whose tasks did not is
+   * still refreshed.
+   *
+   * Deliberately does not require `meters_audited > 0`: that is the value this set exists to correct, so requiring it
+   * would keep exactly the stuck-at-zero users out of the refresh that would unstick them.
    */
   def usersThatAuditedSinceCutoffTime(cutoffTime: OffsetDateTime): Query[Rep[String], String, Seq] = {
-    (for {
-      _userStat <- userStats
-      _mission  <- auditMissions if _mission.userId === _userStat.userId
-      if _userStat.metersAudited > 0d
-      if _mission.missionEnd > cutoffTime
-    } yield _userStat.userId).groupBy(x => x).map(_._1)
+    val fromMissions: Query[Rep[String], String, Seq] = auditMissions.filter(_.missionEnd > cutoffTime).map(_.userId)
+    val fromTasks: Query[Rep[String], String, Seq]    =
+      auditTaskTable.filter(task => task.completed && task.taskEnd > cutoffTime).map(_.userId)
+
+    (fromMissions ++ fromTasks).distinct
   }
 
   /**

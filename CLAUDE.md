@@ -201,10 +201,10 @@ When you catch yourself writing a frontend constant that mirrors a backend value
   overstated street distances by up to +51% (#4641). Cached distance columns (`user_stat.meters_audited`,
   `labels_per_meter` and the `high_quality` flag derived from it, `region_completion`, `route.distance_meters`) must
   equal what their runtime recompute would produce, so changing a distance query means recomputing its caches in the
-  same evolution. `GeodesicDistanceSpec` checks that against the connected database — it needs a *seeded* one, since
-  its cache-freshness tests `assume` non-empty tables and CANCEL otherwise. Treat a full-suite run against your dev DB
-  as the real gate. (`meters_audited` is the one column the runtime does **not** keep fresh on its own — the nightly
-  refresh only reaches users with an `audit`-type mission, #4774.)
+  same evolution — and the nightly refresh that maintains them has to reach every row a full recompute would touch
+  (#4774). `GeodesicDistanceSpec` checks both against the connected database. It needs a *seeded* one: its
+  cache-freshness tests `assume` non-empty tables and CANCEL otherwise, so treat a full-suite run against your dev DB
+  as the real gate.
 - After editing any Scala file, run `make scalafmt-fix` (reformats the whole tree in place via the sbt thin client) before treating the change as done — scalafmt is a blocking CI gate, so unformatted Scala fails the build. One run after a batch of edits is enough; no need to format after every single edit.
 - After editing frontend files, lint what you touched and get to zero before the change is done. All four frontend linters are **blocking CI gates** (steps in the `frontend` job — see Continuous integration), the JS/CSS/HTML/i18n counterparts to the scalafmt rule above, so a finding fails the build. The whole tree is lint-clean (#2487), so any finding is from your change.
   - **JavaScript** (`public/js/`): `make eslint-fix dir=<what you touched>`, hand-fix what `--fix` can't, until `make eslint` passes.
