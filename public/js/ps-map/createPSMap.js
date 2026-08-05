@@ -106,7 +106,7 @@ function createPSMap($, params) {
   // Render the labels on the map if applicable.
   let renderLabels;
   if (params.labelsURL) {
-    const loadLabels = $.getJSON(params.labelsURL);
+    const loadLabels = fetchLabelFeed(params.labelsURL);
     renderLabels = Promise.all([mapLoaded, renderStreets, loadLabels]).then(async (data) => {
       const mapData = await addLabelsToMap(map, data[2], params);
       // Streets carry no label filters, so their counts are settled the moment they load; park them on the tracker
@@ -125,8 +125,38 @@ function createPSMap($, params) {
         window.citiesMap.resize();
       }
     });
+  }, () => {
+    // Failure is the caller's to report — it owns the page's error UI. Handled here as the second argument to
+    // `then` rather than left off, so this branch doesn't become a second, unhandled copy of the same rejection.
+    // Note this handler is on the DERIVED promise, which is discarded: `allLoaded` is returned untouched below
+    // and still rejects. Attaching the same handler to a promise that IS returned would convert its rejection
+    // into a resolution, and callers would receive `undefined` instead of an error.
   });
   return allLoaded;
+
+  /**
+   * Fetches the label feed, rejecting with an error that says what actually went wrong.
+   *
+   * The feed is streamed from the database under a chunked 200 (#3932), so the status and headers are committed
+   * before the rows are read. A mid-flight failure therefore arrives as a *truncated body under a success status* —
+   * `response.ok` cannot see it, and the JSON parse is what throws. jQuery surfaces that as a bare "parsererror"
+   * indistinguishable from a malformed payload, which is why this reports the two cases separately.
+   *
+   * @param {string|URL} url - The label feed endpoint.
+   * @returns {Promise<object>} The parsed GeoJSON FeatureCollection.
+   */
+  async function fetchLabelFeed(url) {
+    // Pass a string, never the URL object callers build: AppManager's CSRF wrapper around window.fetch reads
+    // `url.url` for any non-string argument, which is undefined for a URL, so its same-origin check resolves
+    // against a bogus path instead of the real one.
+    const response = await fetch(String(url));
+    if (!response.ok) throw new Error(`Label feed ${url} failed with HTTP ${response.status}.`);
+    try {
+      return await response.json();
+    } catch (e) {
+      throw new Error(`Label feed ${url} returned an unreadable body (truncated stream?): ${e.message}`);
+    }
+  }
 
   /**
    * Create the Mapbox map object and attach a custom logging function to it.

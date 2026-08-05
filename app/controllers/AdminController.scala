@@ -2,7 +2,6 @@ package controllers
 
 import controllers.base._
 import controllers.helper.ControllerUtils.isAdmin
-import executors.CpuIntensiveExecutionContext
 import formats.json.AdminFormats._
 import formats.json.LabelFormats._
 import formats.json.UserFormats._
@@ -42,8 +41,7 @@ class AdminController @Inject() (
     panoDataService: PanoDataService,
     osmWayService: service.OsmWayService,
     userService: service.UserService,
-    actorSystem: ActorSystem,
-    cpuEc: CpuIntensiveExecutionContext
+    actorSystem: ActorSystem
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
 
@@ -106,40 +104,14 @@ class AdminController @Inject() (
   }
 
   /**
-   * Get a list of all labels for the admin page.
+   * Get a list of all labels for the admin page, as a GeoJSON FeatureCollection of points.
+   *
+   * The public variant without the admin-only fields is LabelController.getAllLabelsForLabelMap at /labels/all. The
+   * response is streamed from the db in a chunked response rather than materialized in memory (#3932).
    */
-  def getAllLabels = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    labelService
-      .getLabelsForLabelMap(Seq(), Seq(), Seq())
-      .map { labels =>
-        val features: Seq[JsObject] = labels.map { label =>
-          Json.obj(
-            "type"     -> "Feature",
-            "geometry" -> Json.obj(
-              "type"        -> "Point",
-              "coordinates" -> Json.arr(label.lng, label.lat)
-            ),
-            "properties" -> Json.obj(
-              "audit_task_id"        -> label.auditTaskId,
-              "label_id"             -> label.labelId,
-              "label_type"           -> label.labelType,
-              "severity"             -> label.severity,
-              "correct"              -> label.correct,
-              "has_validations"      -> label.hasValidations,
-              "has_admin_validation" -> label.hasAdminValidation,
-              "ai_validation"        -> label.aiValidation.map(_.toString),
-              "expired"              -> label.expired,
-              "has_backup"           -> label.hasBackup,
-              "high_quality_user"    -> label.highQualityUser,
-              "ai_generated"         -> label.aiGenerated,
-              "tags"                 -> label.tags
-            )
-          )
-        }
-        val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
-        Ok(featureCollection)
-      }(cpuEc)
+  def getAllLabels = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    val labels = labelService.getLabelsForLabelMap(Seq(), Seq(), Seq(), DEFAULT_BATCH_SIZE)
+    Future.successful(streamGeoJson(labels.map(labelForLabelMapToGeoJson(_, admin = true)), "adminapi/labels/all"))
   }
 
   /**

@@ -6,6 +6,8 @@
   "explore-here-percent": "已探索 {{percent}}%",
   "loading-labels": "正在載入標記…",
   "loading-elapsed": "已經過 {{seconds}} 秒",
+  "load-failed": "無法載入地圖資料。",
+  "retry": "重試",
   "is-correct": "這個標記是否正確?",
   "label-type": "標記類型",
   "validations": "檢核",

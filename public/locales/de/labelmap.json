@@ -6,6 +6,8 @@
   "explore-here-percent": "{{percent}}% erkundet",
   "loading-labels": "Beschriftungen werden geladen…",
   "loading-elapsed": "{{seconds}} s vergangen",
+  "load-failed": "Die Kartendaten konnten nicht geladen werden.",
+  "retry": "Erneut versuchen",
   "is-correct": "Ist diese Beschriftung richtig?",
   "label-type": "Beschriftungskategorie",
   "validations": "Validierungen",
