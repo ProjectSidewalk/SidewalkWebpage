@@ -95,6 +95,18 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
   }
 
   /**
+   * Statuses that prove an anonymous request was turned away by the auth guard: 401 is the XHR arm of
+   * `ControllerUtils.anonSignupRedirect`, 303 its navigation arm, 403 a `WithAdmin()` refusal.
+   *
+   * The namespace check asserts membership in this set rather than merely "not 2xx", because anything outside it — a
+   * 400 from a path-parameter binder, a 404, a 415 from a body parser — means the request died before reaching the
+   * guard and so says nothing about whether the route is gated. `concreteRequestPath` substitutes `1` for dynamic
+   * segments, which binds for every /adminapi/ parameter today; the day one takes a type `1` can't bind as, a not-2xx
+   * check would wave an ungated route through on the router's own rejection.
+   */
+  private val AuthRejections: Set[Int] = Set(UNAUTHORIZED, SEE_OTHER, FORBIDDEN)
+
+  /**
    * Email of an existing user holding `role`, or None if this schema has none.
    *
    * Reads rather than creates: minting a user would leave a fixture account behind in whatever database the suite is
@@ -217,7 +229,7 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
   }
 
   "the /adminapi/ namespace" should {
-    "never answer an anonymous request with 2xx" in {
+    "refuse every anonymous request at the auth guard" in {
       // Vacuity guard: if Router.documentation's pattern format ever drifts, discovery finds nothing and `leaks` is
       // trivially empty, so this spec would pass while checking zero routes.
       declaredAdminApiRoutes.map(_._2) must contain("/adminapi/labelTags")
@@ -225,9 +237,9 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
       val leaks = declaredAdminApiRoutes
         .filterNot { case (_, path) => KnownAnonymousAdminApiRoutes.contains(path) }
         .flatMap { case (method, path) => anonymousStatus(method, path).map(code => (method, path, code)) }
-        .filter { case (_, _, code) => code >= 200 && code < 300 }
+        .filterNot { case (_, _, code) => AuthRejections.contains(code) }
 
-      withClue(s"served anonymously: ${leaks.map { case (m, p, c) => s"$m $p -> $c" }.mkString(", ")}. ") {
+      withClue(s"not refused by the auth guard: ${leaks.map { case (m, p, c) => s"$m $p -> $c" }.mkString(", ")}. ") {
         leaks mustBe empty
       }
     }
