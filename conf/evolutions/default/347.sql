@@ -11,8 +11,8 @@
 -- Seattle dev dump 352 users have a completed audit task on an open street but meters_audited = 0 stored, because
 -- UserStatTable.updateAuditedDistance(cutoffTime) picks its users from `audit`-type missions and those users have
 -- only auditOnboarding ones (#4774). Repairing them gives labels_per_meter = 0, which fails the quality floor, so of
--- the 432 high_quality flips this migration produces on that dump, 326 are that repair and 96 are the geodesic
--- effect (shorter streets raise labels_per_meter, lifting users over the floor).
+-- the 432 high_quality flips this migration produces on that dump, 326 are that repair, 96 are the geodesic effect
+-- proper (shorter streets raise labels_per_meter, lifting users over the floor), and 10 are other demotions.
 
 -- The recomputes are expensive PostGIS queries, which can trip the broken JIT that ships in the projectsidewalk/db
 -- image (#4376) and segfault the backend. Evolutions run with autocommit off, i.e. inside one transaction, so
