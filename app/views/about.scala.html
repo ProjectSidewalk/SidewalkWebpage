@@ -1,0 +1,335 @@
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import play.api.libs.json.Json
+@import service.{CommonPageData, PageMeta}
+@*
+ * About page (#4237, redesigned in #4631): server-rendered, localized overview of Project Sidewalk — mission, how it
+ * works, impact stories, deployments, team, history, publications, open data, partners, funders, and contact. This is
+ * the canonical "what is Project Sidewalk" page for search engines, linked from the footer on every page.
+ *
+ * All narrative copy is server-rendered (SEO + i18n) and doubles as the no-JS fallback. Rot-prone content hydrates
+ * from APIs on load: deployment stats via aggregateStats.js (/v3/api/aggregateStats + data-live-stat spans), and the
+ * team roster, publication list, and grants via aboutPage.js (Makeability Lab API), so rosters and numbers never have
+ * to be hand-maintained here. aboutPage.js also builds the in-page section nav and the deployment map.
+ *
+ * @param commonData Per-page config; allCityInfo drives the server-rendered deployment city/country counts.
+ * @param title      Localized page title.
+ * @param user       The signed-in or anonymous display user (for the navbar).
+ *@
+@(commonData: CommonPageData, title: String, user: Option[SidewalkUserWithRole]
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@* Deployment counts span every configured city, not just the publicly listed ones, so these no-JS fallbacks line up
+   with the /v3/api/aggregateStats numbers that replace them on load — the same counts the landing and /cities pages
+   report. The country count can still tick down by one or two once live, since aggregateStats only counts cities
+   whose schema exists in the environment it's running in. *@
+@cityCount = @{commonData.allCityInfo.size}
+@countryCount = @{commonData.allCityInfo.map(_.countryId).distinct.size}
+@* Count of natively translated languages, from config so it can't drift: base languages only (en-US/en-NZ are
+   regional overlays of en, zh-TW's base is zh), so e.g. [en, en-US, en-NZ, es, nl, zh-TW, de, pt-BR] counts 6. *@
+@languageCount = @{config.get[Seq[String]]("play.i18n.langs").map(_.takeWhile(_ != '-')).distinct.size}
+
+@* AboutPage JSON-LD built with the JSON library (not hand-written markup) so quoting is always valid; escaping `<`
+   blocks a `</script>` breakout from any interpolated string. *@
+@jsonLd = @{
+  Json.stringify(Json.obj(
+    "@context" -> "https://schema.org",
+    "@type"    -> "AboutPage",
+    "name"     -> Messages("about.title"),
+    "url"      -> (commonData.prodUrl.stripSuffix("/") + "/about"),
+    "mainEntity" -> Json.obj(
+      "@type" -> "Organization",
+      "name"  -> "Project Sidewalk",
+      "url"   -> commonData.prodUrl,
+      "logo"  -> (commonData.prodUrl.stripSuffix("/") +
+        assets.path("images/logos/ProjectSidewalkLogo_WithCurvedText_3600x3600.png")),
+      "email" -> "sidewalk@cs.uw.edu",
+      // sameAs is an identity claim — every profile that is verifiably us — rather than a list of channels we
+      // actively post to, so accounts we own but don't promote in the footer belong here too. Google reconciles
+      // these into one Knowledge Panel entity; dropping a profile splits that entity instead of tidying it.
+      "sameAs" -> Json.arr(
+        "https://github.com/ProjectSidewalk",
+        "https://www.linkedin.com/company/project-sidewalk/",
+        "https://bsky.app/profile/projectsidewalk.bsky.social",
+        "https://twitter.com/projsidewalk",
+        "https://www.facebook.com/projsidewalk",
+        "https://makeabilitylab.cs.washington.edu/"
+      )
+    )
+  )).replace("<", "\\u003c")
+}
+
+@* about.css ships in <head> rather than alongside the markup: this page is one long column of styled bands, so
+   loading it at the end of the body paints the whole thing unstyled before it snaps into place. *@
+@extraHeadContent = {
+  <link rel="stylesheet" href='@assets.path("css/about.css")'>
+  @* Styles the deployment map's city popups. Small enough to ship up front, unlike the mapping libraries the map
+     itself needs, which aboutPage.js only fetches once the section nears the viewport. *@
+  <link rel="stylesheet" href='@assets.path("css/deployment-map.css")'>
+  <script type="application/ld+json">@Html(jsonLd)</script>
+}
+
+@common.main(commonData, title, extraHead = extraHeadContent,
+  pageMeta = PageMeta(description = Some(Messages("seo.description.about")))) {
+  @common.navbar(commonData, user)
+
+  <main id="about-page">
+    <section class="about-hero">
+      <div class="about-container">
+        <h1 class="about-hero-title">@Html(Messages("about.hero.title"))</h1>
+        <p class="about-hero-subtitle">@Messages("about.hero.subtitle")</p>
+        <div class="about-cta-row">
+          <a class="button-ps button--primary button--large" id="about-hero-explore-link" href="/explore">
+            @Messages("about.hero.cta.explore")</a>
+          <a class="button-ps button--secondary button--large" id="about-hero-data-link" href="/api">
+            @Messages("about.hero.cta.data")</a>
+        </div>
+      </div>
+      @* Decorative sidewalk strip with label-type markers — pure ornament, hidden from assistive tech. *@
+      <div class="about-hero-sidewalk" aria-hidden="true">
+        <img class="about-hero-pin" src='@assets.path("images/icons/label_type_icons/CurbRamp_small.svg")' alt="">
+        <img class="about-hero-pin" src='@assets.path("images/icons/label_type_icons/NoCurbRamp_small.svg")' alt="">
+        <img class="about-hero-pin" src='@assets.path("images/icons/label_type_icons/Obstacle_small.svg")' alt="">
+        <img class="about-hero-pin" src='@assets.path("images/icons/label_type_icons/SurfaceProblem_small.svg")' alt="">
+        <img class="about-hero-pin" src='@assets.path("images/icons/label_type_icons/Crosswalk_small.svg")' alt="">
+        <img class="about-hero-pin" src='@assets.path("images/icons/label_type_icons/Signal_small.svg")' alt="">
+      </div>
+    </section>
+
+    @* Live-stat fallbacks: cities/countries are exact (config-derived); the other three are conservative floors that
+       hold true as the dataset only grows, replaced by exact live values from /v3/api/aggregateStats on load. *@
+    <section class="about-stats" aria-labelledby="about-stats-heading">
+      <h2 class="sr-only" id="about-stats-heading">@Messages("about.stats.heading")</h2>
+      <div class="about-container about-stats-grid">
+        <div class="about-stat">
+          <span class="about-stat-number" data-live-stat="km_explored">30,000+</span>
+          <span class="about-stat-label">@Messages("about.stats.km")</span>
+        </div>
+        <div class="about-stat">
+          <span class="about-stat-number" data-live-stat="total_labels">1,500,000+</span>
+          <span class="about-stat-label">@Messages("about.stats.labels")</span>
+        </div>
+        <div class="about-stat">
+          <span class="about-stat-number" data-live-stat="total_validations">2,000,000+</span>
+          <span class="about-stat-label">@Messages("about.stats.validations")</span>
+        </div>
+        <div class="about-stat">
+          <span class="about-stat-number" data-live-stat="num_cities">@cityCount</span>
+          <span class="about-stat-label">@Messages("about.stats.cities")</span>
+        </div>
+        <div class="about-stat">
+          <span class="about-stat-number" data-live-stat="num_countries">@countryCount</span>
+          <span class="about-stat-label">@Messages("about.stats.countries")</span>
+        </div>
+      </div>
+    </section>
+
+    @* In-page section nav, built by aboutPage.js from the headings of the sections below — a rail alongside the
+       content where the viewport is wide enough for one, a sticky scrolling chip bar otherwise. It stays hidden
+       until it's built so a no-JS reader gets an unbroken page rather than an empty shell. *@
+    <nav class="about-toc" id="about-toc" aria-label="@Messages("about.toc.title")" hidden>
+      <ol class="about-toc-list" id="about-toc-list"></ol>
+    </nav>
+
+    <section class="about-band" id="about-how">
+      <div class="about-container">
+        <h2>@Messages("about.how.title")</h2>
+        <p class="about-section-intro">@Messages("about.how.intro")</p>
+        <ol class="about-steps">
+          <li class="about-step">
+            <img class="about-step-icon" src='@assets.path("images/icons/label_type_icons/CurbRamp_small.svg")'
+                 alt="">
+            <h3>@Html(Messages("about.how.step.explore.title"))</h3>
+            <p>@Messages("about.how.step.explore.body")</p>
+            <a class="button-ps button--secondary button--small about-step-cta" id="about-step-explore-link"
+               href="/explore">@Messages("about.how.step.explore.cta")</a>
+          </li>
+          <li class="about-step">
+            <img class="about-step-icon about-step-icon--chip"
+                 src='@assets.path("images/icons/check-circle-feather.svg")' alt="">
+            <h3>@Messages("about.how.step.validate.title")</h3>
+            <p>@Messages("about.how.step.validate.body")</p>
+            <a class="button-ps button--secondary button--small about-step-cta" id="about-step-validate-link"
+               href="/validate">@Messages("about.how.step.validate.cta")</a>
+          </li>
+          <li class="about-step">
+            <img class="about-step-icon about-step-icon--chip"
+                 src='@assets.path("images/icons/bar-chart-2-feather.svg")' alt="">
+            <h3>@Messages("about.how.step.data.title")</h3>
+            <p>@Messages("about.how.step.data.body")</p>
+            <a class="button-ps button--secondary button--small about-step-cta" id="about-step-data-link"
+               href="/api">@Messages("about.how.step.data.cta")</a>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="about-band about-band--tint" id="about-impact">
+      <div class="about-container">
+        <h2>@Messages("about.impact.title")</h2>
+        <p class="about-section-intro">@Messages("about.impact.intro")</p>
+        <div class="about-impact-grid">
+          @for(key <- Seq("chicago", "illinois", "burnaby", "newberg", "zurich", "schools")) {
+            <article class="about-impact-card">
+              <h3>@Html(Messages(s"about.impact.$key.place"))</h3>
+              <p>@Html(Messages(s"about.impact.$key.body"))</p>
+            </article>
+          }
+        </div>
+        <p class="about-impact-more">@Html(Messages("about.impact.more"))</p>
+      </div>
+    </section>
+
+    <section class="about-band" id="about-where">
+      <div class="about-container">
+        <h2>@Messages("about.where.title")</h2>
+        <p class="about-section-intro">@Html(Messages("about.where.body", cityCount, countryCount))</p>
+        @* The deployment map the landing page and /cities already share. aboutPage.js pulls mapbox-gl and the ps-map
+           bundle in only once this section nears the viewport, so a reader who stops at the impact stories never
+           downloads a megabyte of mapping libraries; the asset URLs ride on data attributes because Play fingerprints
+           them and only the template can resolve one. *@
+        <div class="about-map" id="about-deployment-map"
+             data-mapbox-api-key="@commonData.mapboxApiKey"
+             data-mapbox-js='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'
+             data-mapbox-language-js='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'
+             data-ps-map-js='@assets.path("js/ps-map/build/ps-map.js")'
+             data-mapbox-css='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")'></div>
+        <p class="about-where-links">@Html(Messages("about.where.links"))</p>
+      </div>
+      @common.cityPopupTemplate()
+    </section>
+
+    <section class="about-band about-band--tint" id="about-team">
+      <div class="about-container">
+        <h2>@Messages("about.team.title")</h2>
+        <p class="about-section-intro">@Html(Messages("about.team.intro"))</p>
+        @* Roster grids are populated from the Makeability Lab API by aboutPage.js and stay hidden if it fails, so the
+           intro paragraph above is the graceful fallback. *@
+        <div id="about-team-live" hidden>
+          <h3>@Messages("about.team.current.title")</h3>
+          <ul class="about-team-grid" id="about-team-current"></ul>
+          <h3>@Messages("about.team.past.title")</h3>
+          <ul class="about-team-grid about-team-grid--past" id="about-team-past"></ul>
+          <h3>@Messages("about.team.contributors.title")</h3>
+          @* aboutPage.js recomputes both figures from the live roster; the numbers rendered here are what it supports
+             today and stand in if that request fails. *@
+          <p class="about-team-contributors-intro" id="about-team-contributors-intro"
+             data-label-template="@Messages("about.team.contributors.intro")">@Messages("about.team.contributors.intro", 140, 128)</p>
+          <ul class="about-team-all" id="about-team-all"></ul>
+          <p class="about-team-contributors">@Html(Messages("about.team.contributors"))</p>
+        </div>
+        @* Localized, hand-curated contribution blurbs for past leads, keyed by their ML API url_name; aboutPage.js
+           grafts each onto the matching API-driven card. A lead without a blurb here simply renders without one. *@
+        <template id="about-team-past-blurbs">
+          <span data-person="kotarohara">@Html(Messages("about.team.past.kotarohara"))</span>
+          <span data-person="davidjacobs">@Html(Messages("about.team.past.davidjacobs"))</span>
+          <span data-person="manaswisaha">@Html(Messages("about.team.past.manaswisaha"))</span>
+        </template>
+      </div>
+    </section>
+
+    <section class="about-band" id="about-history">
+      <div class="about-container">
+        <h2>@Messages("about.history.title")</h2>
+        <ol class="about-timeline">
+          <li>
+            <span class="about-timeline-year">2012</span>
+            <p>@Html(Messages("about.history.2012"))</p>
+          </li>
+          <li>
+            <span class="about-timeline-year">2017</span>
+            <p>@Html(Messages("about.history.2017"))</p>
+          </li>
+          <li>
+            <span class="about-timeline-year">2019</span>
+            <p>@Html(Messages("about.history.2019"))</p>
+          </li>
+          <li>
+            <span class="about-timeline-year">2021</span>
+            <p>@Html(Messages("about.history.2021"))</p>
+          </li>
+          <li>
+            <span class="about-timeline-year">@Messages("about.history.today.label")</span>
+            <p>@Html(Messages("about.history.today", cityCount, languageCount))</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="about-band about-band--tint" id="about-pubs">
+      <div class="about-container">
+        <h2>@Messages("about.pubs.title")</h2>
+        <p class="about-section-intro">@Html(Messages("about.pubs.intro"))</p>
+        <div class="about-pubs-list" id="about-pubs-list"></div>
+        <button class="button-ps button--secondary button--medium" id="about-pubs-show-all" hidden
+                data-label-template="@Messages("about.pubs.showAll")"></button>
+        <p class="about-pubs-fallback">@Html(Messages("about.pubs.fallback"))</p>
+        @* Citation for the canonical Project Sidewalk paper, hydrated from the Makeability Lab API so the formatting
+           always matches the lab's own citation rendering. Hidden until it loads; the intro paragraph above already
+           links the paper, so there is nothing to fall back to. *@
+        <div class="about-cite" id="about-cite" hidden>
+          <h3>@Messages("about.pubs.cite.title")</h3>
+          <div class="about-cite-block">
+            <div class="about-cite-head">
+              <span class="about-cite-label">@Messages("about.pubs.cite.plain")</span>
+              <button class="about-cite-copy" type="button" data-copy-target="about-cite-plain"
+                      data-copied-label="@Messages("about.pubs.cite.copied")">@Messages("about.pubs.cite.copy")</button>
+            </div>
+            <p class="about-cite-text" id="about-cite-plain"></p>
+          </div>
+          <div class="about-cite-block">
+            <div class="about-cite-head">
+              <span class="about-cite-label">BibTeX</span>
+              <button class="about-cite-copy" type="button" data-copy-target="about-cite-bibtex"
+                      data-copied-label="@Messages("about.pubs.cite.copied")">@Messages("about.pubs.cite.copy")</button>
+            </div>
+            <pre class="about-cite-code" id="about-cite-bibtex"></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="about-band" id="about-data">
+      <div class="about-container">
+        <h2>@Html(Messages("about.data.title"))</h2>
+        <p>@Html(Messages("about.data.body"))</p>
+      </div>
+    </section>
+
+    <section class="about-band about-band--tint" id="about-partners">
+      <div class="about-container">
+        <h2>@Messages("about.partners.title")</h2>
+        <p>@Messages("about.partners.body")</p>
+        <p>@Html(Messages("about.partners.schools"))</p>
+      </div>
+    </section>
+
+    <section class="about-band" id="about-funding">
+      <div class="about-container">
+        <h2>@Messages("about.funding.title")</h2>
+        <p>@Messages("about.funding.body")</p>
+        @* Grant list hydrated from the Makeability Lab API; hidden (with the paragraph above as fallback) until it
+           loads. *@
+        <ul class="about-grants" id="about-funding-grants" hidden></ul>
+      </div>
+    </section>
+
+    <section class="about-cta-band">
+      <div class="about-container">
+        <h2>@Messages("about.cta.title")</h2>
+        <div class="about-cta-row">
+          <a class="button-ps button--primary button--large" id="about-cta-explore-link" href="/explore">
+            @Messages("about.hero.cta.explore")</a>
+          <a class="button-ps button--secondary button--large" id="about-cta-city-link"
+             href="https://accessiblecommunities.org/use-project-sidewalk/">@Messages("about.cta.city")</a>
+        </div>
+        <p class="about-contact">@Html(Messages("about.contact.body"))</p>
+      </div>
+    </section>
+  </main>
+
+  @* Hydrates the data-live-stat spans with live deployment numbers from /v3/api/aggregateStats. *@
+  <script src='@assets.path("js/common/aggregateStats.js")'></script>
+  @* Hydrates team, publications, and grants from the Makeability Lab API; logs CTA clicks. *@
+  <script src='@assets.path("js/aboutPage.js")'></script>
+}

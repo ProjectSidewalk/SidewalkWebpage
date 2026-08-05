@@ -178,8 +178,13 @@
     }
   },
   "center-ui": {
+    "hover-card": {
+      "delete": "Excluir",
+      "edit": "Editar"
+    },
     "context-menu": {
-      "severity": "Por favor, clique para rotular uma gravidade",
+      "rate-severity-prompt": "Clique para avaliar a gravidade",
+      "rate-quality-prompt": "Clique para avaliar a qualidade",
       "severity-shortcuts": "Pressione as teclas 1-3 para gravidade",
       "label-popup-shortcuts": "Pressione <tag-underline>{{c}}</tag-underline> para adicionar etiqueta",
       "tag": {

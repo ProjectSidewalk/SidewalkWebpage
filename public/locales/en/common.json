@@ -5,6 +5,8 @@
   "unit-distance-abbreviation": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
+  "speed-limit-tooltip": "Knowing the <b>speed limit</b> on a street can help you better diagnose pedestrian safety, such as whether it is <b>safe</b> to cross at an uncontrolled intersection.",
+  "speed-limit-aria-label": "Speed limit {{speed}} {{units}}",
   "format-number": "{{val, number}}",
   "cities-cta-join_one": "Join {{count, number}} other community",
   "cities-cta-join_other": "Join {{count, number}} other communities",
@@ -29,6 +31,7 @@
   "cancel": "Cancel",
   "continue": "Continue",
   "delete": "Delete",
+  "done": "Done",
   "badges": {
     "congratulations": "Congratulations!",
     "you-earned": "You earned the “{{badge}}” badge!",
@@ -83,6 +86,7 @@
   "no-description": "No description",
   "comments": "Validator Comments",
   "none": "None",
+  "only": "Only",
   "image-capture-date": "Image Capture Date",
   "drag-to-look-around": "Drag to look around",
   "labeled": "Labeled",
@@ -321,10 +325,13 @@
     "button": "Share",
     "heading": "Share this label",
     "text": "Check out this {{labelType}} on Project Sidewalk",
+    "story-text": "“{{excerpt}}” — a community story on Project Sidewalk",
     "copy-link": "Copy link",
     "copied": "Copied!",
+    "on-bluesky": "Share on Bluesky",
     "on-x": "Share on X",
     "on-facebook": "Share on Facebook",
+    "on-linkedin": "Share on LinkedIn",
     "via-email": "Share via email"
   }
 }

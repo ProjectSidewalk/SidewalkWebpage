@@ -3,21 +3,6 @@
   overflow: hidden;
 }
 
-#card-filter {
-  padding: 0 5px 5px;
-  width: inherit;
-}
-
-.filter-section-holder {
-  padding-bottom: 12px;
-}
-
-#city-select-header {
-  font-size: 18px;
-  margin: 10px 0;
-  line-height: 1.1;
-}
-
 #labels-not-found {
   display: none;
 }
@@ -40,23 +25,12 @@
   border-bottom: 1px solid gray;
 }
 
-#filter-header {
-  margin-bottom: 15px;
-}
-
-.filter-subheader {
-  display: block;
-  margin-bottom: 6px;
-  font-weight: normal;
-  line-height: 1.1;
-}
-
 /* Note that the side bar is out of the "flow" of the grid container b/c it is fixed when we aren't loading anything. */
 .sidebar {
   padding-left: 10px;
   min-height: calc(100vh - 610px);
   height: 100%;
-  width: 239px;
+  width: 275px;
   grid-row: 1/2;
 }
 
@@ -127,7 +101,7 @@
 .cards {
   display: flex;
   flex-flow: row wrap;
-  margin-left: 239px; /* Offset to compensate for the space taken up by the sidebar. */
+  margin-left: 275px; /* Offset to compensate for the space taken up by the sidebar. */
 }
 
 /* There is no specific intended function for hover/click on labels on the gallery page.

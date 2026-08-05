@@ -93,6 +93,9 @@ class Main {
 
     svl.ribbon = new RibbonMenu(svl.tracker);
     svl.canvas = new Canvas(svl.ribbon);
+    // The shared populator for the hover card's content; Label.#updateHoverCard re-points it per label (#4730).
+    // Explore truncates the description because clicking the label reopens the full text in an editable field.
+    svl.labelCardView = new LabelCardView(svl.ui.canvas.hoverCard[0], { descriptionMaxLength: 90 });
 
     // Warm the label-icon cache up front so canvas renders draw icons in the right order. See Label.preloadIcons.
     svl.iconsPreloaded = Label.preloadIcons();
@@ -191,7 +194,9 @@ class Main {
     );
 
     // Speed limit
-    svl.speedLimit = new SpeedLimit(svl.panoViewer, svl.panoViewer.getPosition, svl.isOnboarding, null, null);
+    svl.speedLimit = new SpeedLimit(svl.panoViewer, svl.panoViewer.getPosition, svl.isOnboarding, params.countryId, {
+      taskContainer: svl.taskContainer,
+    });
 
     // Survey for select users
     svl.modalSurvey = new ModalSurvey();
@@ -512,15 +517,10 @@ class Main {
     // Canvas for the labeling area.
     svl.ui.canvas = {};
     svl.ui.canvas.drawingLayer = $('#label-drawing-layer');
-    svl.ui.canvas.deleteIconHolder = $('#delete-icon-holder');
-    svl.ui.canvas.severityIconHolder = $('#severity-icon-holder');
-    svl.ui.canvas.deleteIcon = $('#label-delete-icon');
-    svl.ui.canvas.severityIcon = $('#severity-icon');
-    svl.ui.canvas.hoverInfoHolder = $('#label-hover-info');
-    svl.ui.canvas.hoverInfoType = $('#label-hover-info-type');
-    svl.ui.canvas.hoverInfoSeverity = $('#label-hover-info-severity');
-    svl.ui.canvas.hoverInfoSeverityIcon = $('#label-hover-info-severity-icon');
-    svl.ui.canvas.hoverInfoSeverityText = $('#label-hover-info-severity-text');
+    svl.ui.canvas.hoverCard = $('#label-hover-card');
+    svl.ui.canvas.hoverCardDelete = $('#label-hover-card-delete');
+    svl.ui.canvas.hoverCardEdit = $('#label-hover-card-edit');
+    svl.ui.canvas.hoverCardShare = $('#label-hover-card-share');
 
     // Context menu.
     svl.ui.contextMenu = {};

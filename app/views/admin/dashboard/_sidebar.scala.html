@@ -16,6 +16,9 @@
 
     <div class="api-nav-header">Manage</div>
     <a href="@routes.AdminDashboardController.management" class="api-nav-item @if(activePage == "management"){active}" @if(activePage == "management"){aria-current="page"}>Management</a>
+    @if(isOwner) {
+      <a href="@routes.AdminDashboardController.health" class="api-nav-item @if(activePage == "health"){active}" @if(activePage == "health"){aria-current="page"}>Health</a>
+    }
 
     <div class="api-nav-header">Data</div>
     <a href="@routes.AdminDashboardController.coverage" class="api-nav-item @if(activePage == "coverage"){active}" @if(activePage == "coverage"){aria-current="page"}>Coverage</a>

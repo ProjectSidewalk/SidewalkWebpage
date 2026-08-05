@@ -31,13 +31,12 @@ class PopupPanoManager {
   #cropUrl;
 
   /**
-   * The scalable variant of a label type's canonical marker icon, from util.misc's central label-type registry,
-   * so the in-pano marker stays crisp at any size.
+   * A label type's canonical marker icon, from util.misc's central label-type registry.
    * @param {string} labelType
    * @returns {?string} The icon URL, or null for types without one.
    */
   #iconFor(labelType) {
-    return util.misc.getIconImagePaths(labelType)?.scalableIconImagePath ?? null;
+    return util.misc.getIconImagePaths(labelType)?.iconImagePath ?? null;
   }
 
   /**

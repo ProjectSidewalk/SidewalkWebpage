@@ -20,7 +20,13 @@ class LabelDetail {
     const url = new URL(window.location);
     if (labelId) url.searchParams.set('labelId', labelId);
     else url.searchParams.delete('labelId');
-    history.replaceState(null, '', url);
+    // Commas are legal unencoded in a query value; keep any list params (the map/Gallery filters) readable
+    // rather than letting URL serialization re-encode them as %2C. MapSidebarUrlSync serializes identically on
+    // purpose — on the LabelMap both writers touch the same query string, and byte-differing output would have
+    // them rewrite each other's params on every toggle. A value carrying a literal comma is indistinguishable
+    // from a separator after this, which is fine while every list param here is comma-delimited.
+    const query = url.searchParams.toString().replace(/%2C/g, ',');
+    history.replaceState(null, '', `${url.pathname}${query ? `?${query}` : ''}${url.hash}`);
   }
 
   /**
@@ -29,6 +35,43 @@ class LabelDetail {
    */
   static urlLabelId() {
     return parseInt(new URLSearchParams(window.location.search).get('labelId'), 10) || null;
+  }
+
+  /**
+   * Resolves the pano, camera position, and point of view to record with a validation or a validator comment.
+   *
+   * A pano viewer only describes this label while it's actually showing it. On the static-crop fallback it isn't:
+   * the primary viewer still reports whatever pano it last loaded, and reports nothing at all when the crop was the
+   * first thing opened. That silently stored the previous label's POV with a validation (#4711) and threw outright
+   * on the null position when submitting a comment (#4697).
+   *
+   * The crop is a screenshot of the label's own pano at its stored POV, so the label's metadata describes it
+   * exactly — the same answer Gallery's card-hover menu and the landing validation grid already submit for their
+   * static images. None of these fields are optional server-side: label_validation.heading/pitch/zoom and
+   * validation_task_comment.lat/lng are NOT NULL, and the comment's pano_id is a foreign key into pano_data.
+   *
+   * @param {?{panoId: ?string, position: ?{lat: number, lng: number},
+   *     pov: ?{heading: number, pitch: number, zoom: number}}} viewer - What the viewer showing this label reports,
+   *     or null when none is (the static-crop fallback). Its own fields may still be null before imagery resolves.
+   * @param {Object} meta - The current label's metadata payload.
+   * @returns {{panoId: ?string, lat: ?number, lng: ?number, heading: ?number, pitch: ?number, zoom: ?number}}
+   */
+  static submissionContext(viewer, meta) {
+    const viewerPos = viewer && viewer.position;
+    const position = Number.isFinite(viewerPos?.lat) && Number.isFinite(viewerPos?.lng)
+      ? viewerPos
+      : { lat: meta.camera_lat ?? meta.lat, lng: meta.camera_lng ?? meta.lng };
+    const pov = (viewer && viewer.pov) || { heading: meta.heading, pitch: meta.pitch, zoom: meta.zoom };
+    return {
+      // `||` rather than `??` on purpose: an empty pano ID is as unusable as a missing one — the column is a foreign
+      // key into pano_data — so "" has to fall through to the label's own instead of being sent as-is.
+      panoId: (viewer && viewer.panoId) || meta.pano_id || null,
+      lat: position.lat ?? null,
+      lng: position.lng ?? null,
+      heading: pov.heading ?? null,
+      pitch: pov.pitch ?? null,
+      zoom: pov.zoom ?? null,
+    };
   }
 
   panoManager; // Public: hosts (ExpandedView, LabelPopup callsites) reach in for the pano manager.
@@ -55,6 +98,7 @@ class LabelDetail {
   #source = undefined;      // Set in showLabel().
   #readonly = false;        // Set per-label in #handleData() based on meta.from_current_user.
   #noImagery = false;  // Set per-label once setPano() resolves; true when no navigable imagery could be loaded.
+  #panoLoading = false;     // True from #handleData() until this label's setPano() resolves. See #interactionBlocked.
   #validationCounts = { Agree: null, Disagree: null, Unsure: null };
   #flags = { low_quality: null, incomplete: null, stale: null };
   #prevAction = null;
@@ -65,6 +109,7 @@ class LabelDetail {
   #myCommentIdx;
   #shareWidget;
   #storySection;
+  #highlightStoryId;
   #metaRowObserver;
 
   /**
@@ -74,14 +119,17 @@ class LabelDetail {
    * @param {typeof PanoViewer} opts.viewerType - The type of pano viewer to initialize.
    * @param {string} opts.viewerAccessToken - An access token for requesting pano viewer images.
    * @param {string} [opts.currUsername] - Username of the current viewer; identifies comments from this user.
-   * @param {(action: 'Agree'|'Disagree'|'Unsure', meta: Object) => void} [opts.onVote] - Fired after a vote is
-   *      successfully submitted. Hosts use this to sync upstream UI (e.g. recolor a Gallery card).
+   * @param {(action: ?('Agree'|'Disagree'|'Unsure'), meta: Object) => void} [opts.onVote] - Fired after a vote is
+   *      successfully submitted, with null when the user cleared their vote (#4653). Hosts use this to sync upstream
+   *      UI (e.g. recolor a Gallery card).
    * @param {string} [opts.panoOverlaySource] - Source recorded when voting via the pano overlay buttons.
    * @param {string} [opts.voteColumnSource] - Source recorded when voting via the column vote buttons.
    * @param {boolean} [opts.showLabelMapLink] - Show a footer link to this label on /labelMap (for hosts that
    *     aren't the LabelMap itself).
    * @param {boolean} [opts.showExploreHereLink] - Show a footer link that opens Explore at this label's pano and
    *     point of view (#4637).
+   * @param {?number} [opts.highlightStoryId] - Story to scroll to and highlight once its label's story list loads,
+   *     for story-anchored share links (/label/:id?storyId=, #4722). One-shot; see StorySection.
    */
   constructor(root, opts) {
     this.#root = root;
@@ -94,6 +142,7 @@ class LabelDetail {
     this.#voteColumnSource = opts.voteColumnSource;
     this.#showLabelMapLink = !!opts.showLabelMapLink;
     this.#showExploreHereLink = !!opts.showExploreHereLink;
+    this.#highlightStoryId = opts.highlightStoryId || null;
   }
 
   /**
@@ -179,7 +228,10 @@ class LabelDetail {
   #initStorySection() {
     const section = this.#q('.label-detail__stories');
     if (section && typeof StorySection !== 'undefined') {
-      this.#storySection = new StorySection(this.#root, { currUsername: this.#currUsername });
+      this.#storySection = new StorySection(this.#root, {
+        currUsername: this.#currUsername,
+        highlightStoryId: this.#highlightStoryId,
+      });
     }
   }
 
@@ -325,28 +377,30 @@ class LabelDetail {
     if (els.exploreHereLink) {
       els.exploreHereLink.addEventListener('click', () => this.#logClick('ExploreHere'));
     }
+    // The three vote controls are toggles: clicking the one you already picked clears your vote (#4653). There's no
+    // separate "clear" affordance — a dedicated control would cost card space for a rare action (Mikey, #4653).
     // buttonSource overrides #source for this specific button group; falls back to #source if null.
     const voteHandler = (action, buttonSource) => () => {
-      if (this.#locked) return;
-      if (this.#prevAction !== action) {
-        this.#setVoteButtonsDisabled(true);
-        this.#validateLabel(action, buttonSource || this.#source);
-      }
+      if (this.#interactionBlocked) return;
+      this.#setVoteButtonsDisabled(true);
+      this.#submitValidation(action, buttonSource || this.#source, this.#prevAction === action);
     };
     for (const action of Object.keys(els.panoOverlayButtons)) {
       els.panoOverlayButtons[action].addEventListener('click', voteHandler(action, this.#panoOverlaySource));
       els.voteButtons[action].addEventListener('click', voteHandler(action, this.#voteColumnSource));
 
-      // Hover preview: show the filled icon variant while the pointer is over the vote button.
+      // Hover preview of what clicking would do: the filled icon variant for a vote, and — on the option already
+      // voted — the outline variant, previewing the vote being cleared.
       const btn = els.voteButtons[action];
       const img = els.voteIcons[action];
       btn.addEventListener('mouseenter', () => {
-        if (this.#locked) return;
+        if (this.#interactionBlocked) return;
+        const state = this.#prevAction === action ? 'outline' : 'filled';
         const ai = this.#aiValidation === action ? '-ai' : '';
-        img.src = `${this.#iconBase}${action.toLowerCase()}-filled${ai}.svg`;
+        img.src = `${this.#iconBase}${action.toLowerCase()}-${state}${ai}.svg`;
       });
       btn.addEventListener('mouseleave', () => {
-        if (this.#locked) return;
+        if (this.#interactionBlocked) return;
         this.#renderVoteIcons();
       });
     }
@@ -357,7 +411,7 @@ class LabelDetail {
     els.commentInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        if (this.#locked) return;
+        if (this.#interactionBlocked) return;
         const comment = els.commentInput.value.trim();
         if (comment) this.#submitComment(comment);
       } else if (e.key === 'Escape') {
@@ -374,7 +428,7 @@ class LabelDetail {
       }
     });
     els.commentButton.addEventListener('click', () => {
-      if (this.#locked) return;
+      if (this.#interactionBlocked) return;
       const comment = els.commentInput.value.trim();
       if (comment) this.#submitComment(comment);
     });
@@ -432,9 +486,11 @@ class LabelDetail {
     this.#currentLabelMeta = meta;
 
     // Read-only mode for the user's own labels — no validating/commenting. Imagery availability is unknown until
-    // setPano() resolves below, so assume it's present for now and re-apply the lock once we know.
+    // setPano() resolves below, so assume it's present for now and re-apply the lock once we know. Submitting is
+    // held until then either way: there's nothing on screen to judge yet, and nothing that describes this label.
     this.#readonly = !!meta.from_current_user;
     this.#noImagery = false;
+    this.#panoLoading = true;
     this.#applyInteractionLock();
 
     const labelPov = { heading: meta.heading, pitch: meta.pitch, zoom: meta.zoom };
@@ -467,6 +523,7 @@ class LabelDetail {
         // Guard against a newer label having been opened while this resolved.
         if (this.#currentLabelMeta !== meta) return;
         this.#noImagery = !imageShown;
+        this.#panoLoading = false;
         this.#applyInteractionLock();
 
         // The live imagery's metadata may carry an address the label payload didn't. Only read it when the shown
@@ -482,6 +539,15 @@ class LabelDetail {
         if (address) this.#showAddress(address, livePano ? this.#panoLink(meta) : null);
 
         if (imageShown) this.#showPanHintOnce();
+      })
+      .catch((err) => {
+        // setPano() resolves its own failures into the fallback chain, so a rejection here means the pipeline broke
+        // outright. Land on "no imagery" rather than leaving the card locked on a load that will never finish.
+        if (this.#currentLabelMeta !== meta) return;
+        console.error('setPano failed; treating the label as having no imagery:', err);
+        this.#noImagery = true;
+        this.#panoLoading = false;
+        this.#applyInteractionLock();
       });
 
     // Validation counts + AI validation.
@@ -538,10 +604,15 @@ class LabelDetail {
     // Point the share widget at this label's public permalink (#456). The /label/:id route renders the label
     // spotlight page and serves the og:image crawlers embed in the share card.
     if (this.#shareWidget) {
+      // The title feeds the native sheet and the email subject, so it carries the descriptive text, not "Share".
+      // escapeValue off: plain-text sinks only, and a type name can carry an apostrophe (Can't See the Sidewalk).
+      const shareText = i18next.t('common:share.text', {
+        labelType: labelTypeName, interpolation: { escapeValue: false },
+      });
       this.#shareWidget.setTarget({
         url: `${window.location.origin}/label/${meta.label_id}`,
-        title: i18next.t('common:share.button'),
-        text: i18next.t('common:share.text', { labelType: labelTypeName }),
+        title: shareText,
+        text: shareText,
       });
     }
 
@@ -587,18 +658,22 @@ class LabelDetail {
     // strings. Stash them so #submitComment() can append after a successful POST.
     this.#comments = meta.comments || [];
     // Index of the current user's comment in #comments, if any. The backend replaces comments rather than adding
-    // new ones, so we mirror that here. Admin payloads carry usernames; non-admin ones carry a `mine` flag instead
-    // (no identifiers on public surfaces).
-    this.#myCommentIdx = -1;
-    if (this.#admin && this.#currUsername) {
-      this.#myCommentIdx = this.#comments.findIndex((c) => c && c.username === this.#currUsername);
-    } else if (!this.#admin) {
-      this.#myCommentIdx = this.#comments.findIndex((c) => c && typeof c === 'object' && c.mine);
-    }
+    // new ones, so we mirror that here.
+    this.#myCommentIdx = this.#comments.findIndex((c) => this.#isOwnComment(c));
     this.#renderComments();
 
-    // Lived-experience stories (#4054): lazy per-label fetch, so the metadata payload stays untouched.
-    this.#storySection?.setLabel(meta.label_id);
+    // A typed-but-unsent comment belongs to the label it was typed on, so it doesn't ride along to the next one
+    // (Gallery pages between labels without ever tearing the card down).
+    els.commentInput.value = '';
+    els.commentButton.classList.remove('is-active');
+
+    // Lived-experience stories (#4054): lazy per-label fetch, so the metadata payload stays untouched. The type name
+    // rides along so the composer's title can name the label ("Write your story about this Missing Curb Ramp").
+    // Withheld for the two types whose names aren't a thing you can have a story "about" — "…about this Other" and
+    // "…about this Can't See the Sidewalk" don't read as English — leaving those on the generic title.
+    const NO_STORY_SUBJECT = ['Other', 'Occlusion'];
+    this.#storySection?.setLabel(
+      meta.label_id, NO_STORY_SUBJECT.includes(meta.label_type) ? null : labelTypeName);
 
     // Fill in some admin-only fields at the bottom if applicable.
     if (this.#admin) {
@@ -675,45 +750,81 @@ class LabelDetail {
   // ───────────────────────────────────────────────────────────────────
 
   /**
-   * POSTs JSON to a session-requiring endpoint, minting the shared anonymous session first if it's missing.
+   * Whether a pano viewer is rendering the label currently on the card, and so may be believed about it.
    *
-   * The public spotlight page (#456) is reachable with no session at all, and SecuredAction answers a session-less
-   * POST by bouncing it through /anonSignUp — which mints the session but swallows the submission. So on a failed
-   * first attempt, mint the session explicitly (idempotent: signUpAnon just redirects when a session exists) and
-   * retry once. redirect: 'manual' keeps the mint cheap — the Set-Cookie on the redirect response is stored without
-   * fetching the page it points at. On every other surface a session always exists, so the retry never fires.
+   * Only 'Default' (the primary GSV/Mapillary/Infra3d viewer) and 'Pannellum' mean one is. On the static-crop
+   * fallback — and before the very first pano resolves — panoViewer still points at imagery that isn't this
+   * label's, so nothing it reports may be recorded against it.
+   *
+   * The load window is the same trap one step earlier: activeViewerName is only assigned once setPano() settles on
+   * a viewer, so until then it still names the one that showed the *previous* label. #interactionBlocked keeps a
+   * submission from being made in that window at all; this makes the staleness unreadable rather than merely
+   * unreachable.
+   *
+   * @param {string} activeViewerName - PopupPanoManager's name for the viewer that last won a setPano() race.
+   * @param {boolean} panoLoading - Whether this label's setPano() is still in flight.
+   * @returns {boolean}
+   */
+  static viewerShowsLabel(activeViewerName, panoLoading) {
+    if (panoLoading) return false;
+    return activeViewerName === 'Default' || activeViewerName === 'Pannellum';
+  }
+
+  /**
+   * What the pano viewer can truthfully report about the label on screen, or null when it isn't showing it.
+   * Feeds submissionContext(), which supplies the label's own metadata in that case.
+   *
+   * @returns {?{panoId: ?string, position: ?{lat: number, lng: number},
+   *     pov: ?{heading: number, pitch: number, zoom: number}}} Null when no viewer is showing this label; individual
+   *     fields may still be null when a viewer is up but its imagery hasn't resolved.
+   */
+  #viewerState() {
+    if (!LabelDetail.viewerShowsLabel(this.panoManager.activeViewerName, this.#panoLoading)) return null;
+    return {
+      panoId: this.panoManager.panoViewer.getPanoId(),
+      position: this.panoManager.panoViewer.getPosition(),
+      pov: this.panoManager.getPov(),
+    };
+  }
+
+  /**
+   * POSTs JSON to a session-requiring endpoint via util.lazyIdentityFetch (#4442): every host page renders with no
+   * session for a first-time visitor, so an auth-shaped failure mints the shared anonymous session and retries once.
+   * A real rejection — 409 duplicate, 429 rate limit, 400 validation — surfaces instead of being re-posted.
    *
    * @param {string} url - The endpoint to POST to.
    * @param {object} data - The JSON-serializable request body.
-   * @returns {Promise<Response>} The first OK response, or the retry's response (which may itself not be OK).
+   * @returns {Promise<Response>} The first non-auth-failure response, or the retry's (which may itself not be OK).
    */
-  async #postJson(url, data) {
-    const post = () => fetch(url, {
+  #postJson(url, data) {
+    return util.lazyIdentityFetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify(data),
     });
-    let res = await post();
-    if (!res.ok) {
-      await fetch('/anonSignUp?url=%2F', { redirect: 'manual' });
-      res = await post();
-    }
-    return res;
   }
 
   /**
    * POSTs a validation for the current label to /labelmap/validate, then updates the count and validation display.
    * Fires opts.onVote after a successful submission so hosts can sync upstream UI.
-   * @param {'Agree'|'Disagree'|'Unsure'} action
+   *
+   * @param {'Agree'|'Disagree'|'Unsure'} action - The vote being cast, or the one being cleared when `undone`.
    * @param {string} source - The UI source string to record with this validation.
+   * @param {boolean} [undone=false] - Clear the user's existing `action` vote instead of casting one (#4653). The
+   *     backend deletes the validation and the user's comment on the label rather than inserting a new row, so the
+   *     label returns to no-vote for this user.
    */
-  #validateLabel(action, source) {
-    const isNewValidation = !this.#prevAction;
+  #submitValidation(action, source, undone = false) {
+    const isNewValidation = !undone && !this.#prevAction;
     const validationTimestamp = new Date();
     const canvasWidth = this.panoManager.svHolder.width();
     const canvasHeight = this.panoManager.svHolder.height();
     const panoMarkerPov = this.panoManager.getOriginalPosition();
-    const userPov = this.panoManager.getPov();
+    // Where the validator was looking. On the static-crop fallback that's the label's stored POV — what the crop is
+    // a screenshot of — rather than whatever the idle pano viewer happens to report (#4711). canvas_x/canvas_y are
+    // derived from it, so they follow.
+    const context = LabelDetail.submissionContext(this.#viewerState(), this.#currentLabelMeta ?? {});
+    const userPov = { heading: context.heading, pitch: context.pitch, zoom: context.zoom };
 
     const labelRadius = 10;
     const pixelCoordinates
@@ -737,19 +848,32 @@ class LabelDetail {
       start_timestamp: validationTimestamp,
       end_timestamp: validationTimestamp,
       source,
-      undone: false,
-      redone: action !== this.#prevAction,
+      undone,
+      redone: !undone && action !== this.#prevAction,
       viewer_type: this.panoManager.activeViewerName,
     };
 
+    // Paging to another label isn't blocked while this is in flight, so pin the label this vote belongs to and bail
+    // if a newer one has been shown by the time it resolves — otherwise the counts, icons, and comment list of the
+    // *new* label get rewritten with this label's result. Same guard the setPano() callback uses. The vote itself
+    // still landed server-side; reopening this label shows it.
+    const votedLabelMeta = this.#currentLabelMeta;
+
     this.#postJson('/labelmap/validate', data).then((res) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      this.#updateVoteCount(action);
-      this.#highlightVote(action);
+      if (this.#currentLabelMeta !== votedLabelMeta) return;
+      const newAction = undone ? null : action;
+      // Casting a vote is recorded by the label_validation row itself; clearing one deletes that row, so this event
+      // is the only trace it happened. Logged on success so the count tracks clears that actually landed.
+      if (undone) this.#logClick(`ClearVote_result=${action}`);
+      this.#updateVoteCount(newAction);
+      this.#highlightVote(newAction);
+      // Clearing a vote deletes the user's comment on the label server-side, so drop it from the list here too.
+      if (undone) this.#dropOwnComment();
       this.#updateCommentRow(true);
       this.#setVoteButtonsDisabled(false);
       if (isNewValidation) BadgeAchievements.recordValidation(this.panoManager.svHolder[0]);
-      if (typeof this.#onVote === 'function') this.#onVote(action, this.#currentLabelMeta);
+      if (typeof this.#onVote === 'function') this.#onVote(newAction, this.#currentLabelMeta);
     }).catch((err) => {
       console.error(err);
       this.#setVoteButtonsDisabled(false);
@@ -757,14 +881,47 @@ class LabelDetail {
   }
 
   /**
+   * Whether a comment entry belongs to the current viewer. Admin payloads carry usernames; non-admin ones carry a
+   * `mine` flag instead (no identifiers on public surfaces), so the test differs by surface.
+   * @param {Object|string} comment - An entry from #comments.
+   * @returns {boolean}
+   */
+  #isOwnComment(comment) {
+    if (!comment || typeof comment !== 'object') return false;
+    return this.#admin ? !!this.#currUsername && comment.username === this.#currUsername : !!comment.mine;
+  }
+
+  /**
+   * Removes the current user's validator comment from the rendered list, mirroring the server-side delete that rides
+   * along with clearing a vote. No-op when they hadn't commented.
+   *
+   * Re-finds the comment by identity rather than trusting the stored #myCommentIdx: the index is only valid for the
+   * list as it stood when it was computed, and this runs a network round-trip later.
+   */
+  #dropOwnComment() {
+    if (!this.#comments) return;
+    const idx = this.#comments.findIndex((c) => this.#isOwnComment(c));
+    if (idx < 0) return;
+    this.#comments.splice(idx, 1);
+    this.#myCommentIdx = -1;
+    this.#renderComments();
+  }
+
+  /**
+   * Disables the vote controls for the duration of a vote's POST, then hands them back.
+   *
+   * Re-enabling defers to the card's own lock: a POST that resolves after the user has paged on must not switch the
+   * controls back on over a label that can't be voted on, or one whose imagery hasn't loaded yet.
+   *
    * @param {boolean} disabled
    */
   #setVoteButtonsDisabled(disabled) {
+    const off = disabled || this.#interactionBlocked;
     for (const btn of Object.values(this.#els.panoOverlayButtons)) {
-      btn.disabled = disabled;
+      btn.disabled = off;
     }
     for (const btn of Object.values(this.#els.voteButtons)) {
-      btn.disabled = disabled;
+      btn.disabled = off;
     }
   }
 
@@ -776,25 +933,39 @@ class LabelDetail {
   }
 
   /**
-   * Adjusts the in-memory validation counts after a successful vote.
-   * @param {'Agree'|'Disagree'|'Unsure'} action
+   * Adjusts the in-memory validation counts after a successful vote, and mirrors the new state onto the label
+   * metadata so a host that re-renders from it (Gallery's expanded view pages through cached meta) stays in sync.
+   * @param {?('Agree'|'Disagree'|'Unsure')} action - The new vote, or null when it was cleared (#4653).
    */
   #updateVoteCount(action) {
     if (this.#prevAction) {
       this.#validationCounts[this.#prevAction] = Math.max(0, this.#validationCounts[this.#prevAction] - 1);
     }
     this.#prevAction = action;
-    this.#validationCounts[action] += 1;
+    if (action) this.#validationCounts[action] += 1;
     this.#renderVoteCounts();
+
+    if (this.#currentLabelMeta) {
+      this.#currentLabelMeta.user_validation = action;
+      this.#currentLabelMeta.num_agree = this.#validationCounts.Agree;
+      this.#currentLabelMeta.num_disagree = this.#validationCounts.Disagree;
+      this.#currentLabelMeta.num_unsure = this.#validationCounts.Unsure;
+    }
   }
 
   /**
-   * Reflects the current vote on the pano overlay (selected button + border color around the pano).
+   * Reflects the current vote on the pano overlay (selected button + border color around the pano). All six vote
+   * controls carry `aria-pressed` so assistive tech gets the toggle semantics the filled icon and colored border
+   * convey visually (#4653).
    * @param {?string} action
    */
   #highlightVote(action) {
     for (const [key, btn] of Object.entries(this.#els.panoOverlayButtons)) {
       btn.classList.toggle('is-selected', key === action);
+      btn.setAttribute('aria-pressed', String(key === action));
+    }
+    for (const [key, btn] of Object.entries(this.#els.voteButtons)) {
+      btn.setAttribute('aria-pressed', String(key === action));
     }
     // Border on the pano wrap reflects the current validation.
     if (this.#els.panoWrap) {
@@ -802,12 +973,17 @@ class LabelDetail {
       if (action) this.#els.panoWrap.classList.add(`is-${action.toLowerCase()}`);
     }
     this.#renderVoteIcons();
+    this.#renderVoteTooltips(); // Which option is selected changes what its tooltip says clicking will do.
   }
 
   #resetVoteButtonStyles() {
     for (const btn of Object.values(this.#els.panoOverlayButtons)) {
       btn.classList.remove('is-selected');
-      if (!this.#locked) btn.disabled = false;
+      btn.setAttribute('aria-pressed', 'false');
+      if (!this.#interactionBlocked) btn.disabled = false;
+    }
+    for (const btn of Object.values(this.#els.voteButtons)) {
+      btn.setAttribute('aria-pressed', 'false');
     }
     if (this.#els.panoWrap) {
       this.#els.panoWrap.classList.remove('is-agree', 'is-disagree', 'is-unsure');
@@ -824,8 +1000,24 @@ class LabelDetail {
   }
 
   /**
+   * Whether the card's interactive controls are off right now. Everything #locked covers, plus the window where
+   * this label's imagery is still loading: setPano() hides the pano holder on entry and only names the viewer it
+   * settled on once it resolves, so until then there is nothing on screen to judge the label by and
+   * activeViewerName still describes the *previous* label (the #4711 staleness, one step earlier).
+   *
+   * Kept separate from #locked because this one is transient: the comment row stays put through it rather than
+   * animating shut and back open on every page-through.
+   * @returns {boolean}
+   */
+  get #interactionBlocked() {
+    return this.#locked || this.#panoLoading;
+  }
+
+  /**
    * The reason validating/commenting is blocked for the current label, or null when it's allowed. The viewer's
-   * own label wins over no-imagery since it's the more specific reason to surface.
+   * own label wins over no-imagery since it's the more specific reason to surface. A label whose imagery is merely
+   * still loading gets no reason: the controls are disabled for the moment it takes, and a tooltip that appears and
+   * vanishes within it would be noise (and a translated string in every locale for a state nobody can read).
    * @returns {?string}
    */
   #lockReason() {
@@ -841,43 +1033,61 @@ class LabelDetail {
    */
   #applyInteractionLock() {
     const els = this.#els;
-    const locked = this.#locked;
-    this.#root.classList.toggle('label-detail--readonly', locked);
+    const blocked = this.#interactionBlocked;
+    this.#root.classList.toggle('label-detail--readonly', blocked);
     const tip = this.#lockReason() ?? '';
 
     this.#renderVoteTooltips();
-    for (const btn of Object.values(els.panoOverlayButtons)) btn.disabled = locked;
-    for (const btn of Object.values(els.voteButtons)) btn.disabled = locked;
+    for (const btn of Object.values(els.panoOverlayButtons)) btn.disabled = blocked;
+    for (const btn of Object.values(els.voteButtons)) btn.disabled = blocked;
 
     // Comment input and submit button.
-    els.commentInput.disabled = locked;
+    els.commentInput.disabled = blocked;
     els.commentInput.title = tip;
-    els.commentButton.disabled = locked;
+    els.commentButton.disabled = blocked;
     els.commentButton.title = tip;
-    this.#updateCommentRow(); // Locking also hides the comment box (it only shows with a Disagree/Unsure vote).
+    // A durable lock also hides the comment box (it only shows with a Disagree/Unsure vote); a load in flight
+    // leaves it in place and just disables it, since it's about to be usable again.
+    this.#updateCommentRow();
   }
 
   /**
    * Sets the count-aware tooltip on each column vote control (the thumbs in the Validations section) so hovering
    * anywhere on one — icon, count, or word — reads what clicking does, how many validators have already voted that
-   * way, and whether our AI's vote is among them (#4572). The pano hover-overlay buttons deliberately get no
-   * tooltip: their full-width Agree/Disagree/Unsure labels already say what they do (Jon, #4574). When the label
-   * is locked, the lock reason wins instead.
+   * way, and whether our AI's vote is among them (#4572). When the label is locked, the lock reason wins instead.
+   *
+   * The option the user voted for gets its own phrasing: it counts the user separately from the others ("You and 2
+   * other validators have agreed…" rather than "3 validators have agreed", Jon #4653) and says that clicking again
+   * clears the vote, since for that one button the visible word no longer describes what clicking does.
+   *
+   * That last point is also why the pano hover-overlay buttons get a tooltip only while selected: unselected, their
+   * full-width Agree/Disagree/Unsure labels already say what they do (Jon, #4574), so a tooltip would just repeat
+   * them — but the selected one now clears rather than casts, which nothing else on it says.
    */
   #renderVoteTooltips() {
     const els = this.#els;
     const lockTip = this.#lockReason();
     for (const action of Object.keys(els.voteButtons)) {
+      const isVoted = !lockTip && this.#prevAction === action;
       let title;
       if (lockTip) {
         title = lockTip;
+      } else if (isVoted) {
+        // {{count}} is the *other* validators, so the user isn't double-counted in their own tooltip. The i18next
+        // `_zero` key covers "nobody else" without a second key and a branch here — it resolves whenever count is 0,
+        // even in languages (zh-TW) whose CLDR rules have no zero category, so those locales carry only _zero/_other.
+        const others = Math.max(0, (this.#validationCounts[action] ?? 1) - 1);
+        title = i18next.t(`labelmap:vote-tooltip-voted-${action.toLowerCase()}`, { count: others });
       } else {
         const count = this.#validationCounts[action] ?? 0;
         title = i18next.t(`labelmap:vote-tooltip-${action.toLowerCase()}`, { count });
-        // The AI's vote is folded into this option's count, so flag it where it applies.
-        if (this.#aiValidation === action) title += ` ${i18next.t('labelmap:vote-tooltip-ai-included')}`;
       }
+      // The AI's vote is folded into this option's count, so flag it where it applies. Sentences are appended in
+      // order of usefulness, so what clicking *does* lands last rather than trailing off into a footnote.
+      if (!lockTip && this.#aiValidation === action) title += ` ${i18next.t('labelmap:vote-tooltip-ai-included')}`;
+      if (isVoted) title += ` ${i18next.t('labelmap:vote-tooltip-clear')}`;
       els.voteButtons[action].title = title;
+      els.panoOverlayButtons[action].title = isVoted ? i18next.t('labelmap:vote-tooltip-clear') : '';
     }
   }
 
@@ -1100,8 +1310,7 @@ class LabelDetail {
    */
   #submitComment(comment) {
     const els = this.#els;
-    const userPov = this.panoManager.getPov();
-    const pos = this.panoManager.panoViewer.getPosition();
+    const context = LabelDetail.submissionContext(this.#viewerState(), this.#currentLabelMeta ?? {});
 
     els.commentButton.disabled = true;
 
@@ -1109,12 +1318,12 @@ class LabelDetail {
       label_id: this.panoManager.label.labelId,
       label_type: this.panoManager.label.label_type,
       comment,
-      pano_id: this.panoManager.panoViewer.getPanoId(),
-      heading: userPov.heading,
-      pitch: userPov.pitch,
-      zoom: userPov.zoom,
-      lat: pos.lat,
-      lng: pos.lng,
+      pano_id: context.panoId,
+      heading: context.heading,
+      pitch: context.pitch,
+      zoom: context.zoom,
+      lat: context.lat,
+      lng: context.lng,
     };
 
     this.#postJson('/labelmap/comment', data).then(async (res) => {

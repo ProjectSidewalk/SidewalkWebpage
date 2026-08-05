@@ -1,5 +1,4 @@
 {
-  "user-description": "Descrição do usuário: ",
   "top-ui": {
     "title": {
       "curb-ramp": "Isto é uma <b>Rampa de Calçada</b>?",
@@ -11,7 +10,9 @@
       "signal": "Isto é um <b>Semáforo de Pedestres</b>?"
     },
     "visibility-control-hide": "Ocultar rótulo (<u>H</u>)",
-    "visibility-control-show": "Mostrar rótulo (<u>H</u>)"
+    "visibility-control-show": "Mostrar rótulo (<u>H</u>)",
+    "visibility-control-tooltip-hide": "Oculta temporariamente o rótulo para ver melhor. (<u>H</u>)",
+    "visibility-control-tooltip-show": "Mostra o rótulo novamente. (<u>H</u>)"
   },
   "validate-menu": {
     "disagree-reason": {
@@ -89,7 +90,8 @@
     }
   },
   "center-ui": {
-    "no-info": "Nenhuma informação disponível"
+    "no-info": "Nenhuma informação disponível",
+    "pano-interactive-message": "Arraste para olhar ao redor, role para aproximar."
   },
   "mission-start": {
     "title": "Validar {{n}} {{label_type}} rótulos",

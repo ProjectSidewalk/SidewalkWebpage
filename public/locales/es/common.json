@@ -5,6 +5,8 @@
   "unit-distance-abbreviation": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
+  "speed-limit-tooltip": "Conocer el <b>límite de velocidad</b> de una calle puede ayudarte a evaluar mejor la seguridad peatonal, por ejemplo, si es <b>seguro</b> cruzar en una intersección no controlada.",
+  "speed-limit-aria-label": "Límite de velocidad {{speed}} {{units}}",
   "format-number": "{{val, number}}",
   "cities-cta-join_one": "Únete a {{count, number}} comunidad más",
   "cities-cta-join_other": "Únete a {{count, number}} comunidades más",
@@ -30,6 +32,7 @@
   "cancel": "Cancelar",
   "continue": "Continuar",
   "delete": "Eliminar",
+  "done": "Listo",
   "badges": {
     "congratulations": "¡Felicidades!",
     "you-earned": "¡Has ganado la insignia “{{badge}}”!",
@@ -62,7 +65,7 @@
     "title": "Las imágenes de esta etiqueta ya no están disponibles.",
     "explore-street": "Explorar la calle"
   },
-  "severity": "Calificación ",
+  "severity": "Calificación",
   "quality": "Calidad",
   "rate-severity": "Calificar gravedad",
   "rate-quality": "Calificar calidad",
@@ -78,11 +81,12 @@
   "quality-example-tooltip-3": "Ejemplo de mala calidad",
   "no-severity": "No se proporcionó una calificación de gravedad para esta etiqueta",
   "no-quality": "No se proporcionó una calificación de calidad para esta etiqueta",
-  "tags": "Etiquetas ",
+  "tags": "Etiquetas",
   "description": "Descripción",
   "no-description": "Sin descripción",
   "comments": "Revisiones de efectividad",
   "none": "Nada",
+  "only": "Solo",
   "image-capture-date": "Fecha de captura de imagen",
   "drag-to-look-around": "Arrastra para mirar alrededor",
   "labeled": "Etiquetada",
@@ -321,10 +325,13 @@
     "button": "Compartir",
     "heading": "Compartir esta etiqueta",
     "text": "Mira esta {{labelType}} en Project Sidewalk",
+    "story-text": "«{{excerpt}}»: una historia de la comunidad en Project Sidewalk",
     "copy-link": "Copiar enlace",
     "copied": "¡Copiado!",
+    "on-bluesky": "Compartir en Bluesky",
     "on-x": "Compartir en X",
     "on-facebook": "Compartir en Facebook",
+    "on-linkedin": "Compartir en LinkedIn",
     "via-email": "Compartir por correo electrónico"
   }
 }

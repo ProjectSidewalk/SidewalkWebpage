@@ -133,11 +133,18 @@ Every label type has a **canonical color** and a set of **icon images**. Always 
 | Occlusion      | `#B3B3B3` |
 | Problem        | `#B3B3B3` |
 
-**Icons** live in `public/images/icons/label_type_icons/` in three PNG sizes — `{LabelType}.png` (large),
-`{LabelType}_small.png`, `{LabelType}_tiny.png` — plus a scalable `{LabelType}_small.svg` variant (used where the
-icon renders at arbitrary size, e.g. the label card's in-pano marker). The canonical source of truth for both
-colors and icon URLs is the `/v3/api/labelTypes` endpoint (PNG paths); frontend code reads all four paths from
-`util.misc.getIconImagePaths(labelType)` rather than hardcoding them.
+**Icons** live in `public/images/icons/label_type_icons/`. The colored marker every label type is drawn with is the
+scalable `{LabelType}_small.svg`, and it is **the only variant our own pages may use** — `util.misc.getIconImagePaths(labelType).iconImagePath`
+returns it, and that accessor is the one way frontend code should name an icon. Reach for it even when the icon is
+going somewhere a raster feels natural: the Explore canvas rasterizes it once at high resolution
+(`Label.preloadIcons`) and the labeling cursor is rasterized from that same cache, because a fixed-size PNG upscales
+badly on the HiDPI canvas.
+
+Three raster sizes sit beside it — `{LabelType}.png` (large; a *different*, grayscale illustration used by the
+ribbon menu, not a bigger copy of the marker), `{LabelType}_small.png`, and `{LabelType}_tiny.png`. They exist only
+for consumers that cannot take vector art: server-side share-image compositing (`ShareController`, via Java
+`ImageIO`) and the `icon_url`/`small_icon_url`/`tiny_icon_url` fields published by `/v3/api/labelTypes`. Adding a
+frontend use of one is a bug. The canonical source of truth for colors and icon URLs remains `/v3/api/labelTypes`.
 
 **In JavaScript:** call `util.misc.getLabelColors(labelType)` — defined in
 `public/js/common/UtilitiesSidewalk.js` and loaded on every page that includes
@@ -174,6 +181,9 @@ When you catch yourself writing a frontend constant that mirrors a backend value
 
 ## Development Guidelines
 - Main development branch is **develop**; **master** is the release branch. PRs target `develop`.
+- **Never open a pull request (or merge/tag/release) without the maintainer's specific OK.** Do the work, run the
+  CI-equivalent checks locally, and push the branch if useful — then stop and ask before running `gh pr create`.
+  Filing GitHub *issues* is fine; the consent gate is at PR creation, and again (separately) at merge.
 - **Deploying to production is tag-triggered, not branch-triggered:** pushing `develop` redeploys the **test** stage, but prod only deploys when a **`vX.Y.Z` GitHub Release/tag** is cut on `master`. Cutting a release also requires bumping `build.sbt` **and** adding a `version`-table evolution (the two are separate: the tag deploys the code, the evolution updates the displayed version). Full step-by-step runbook: [`docs/deployment-and-stages.md`](docs/deployment-and-stages.md) ("Cutting a release").
 - **Maintainers / GitHub @-mentions:** Project Sidewalk is maintained by **@jonfroehlich** (Professor Jon Froehlich) and
   **@misaugstad** (Mikey / Michael Saugstad).
@@ -185,6 +195,16 @@ When you catch yourself writing a frontend constant that mirrors a backend value
 - Update said code to use the native `fetch` API rather than jQuery, and to make use of Promises. But if said refactor would impact many other functions that use it, then wait for a dedicated refactor.
 - Replace uses of Bootstrap with native JS alternatives as you come across them
 - When writing SQL, avoid table aliases
+- **Measure geographic distances geodesically** — `ST_Length(geom::geography)` in raw SQL, the `lengthGeodesic`
+  extension method in Slick (defined in `MyPostgresProfile`), turf.js on the frontend. Never measure by projecting to
+  a fixed SRID: a projection is only accurate near its own meridian, and measuring every city through UTM zone 18N
+  overstated street distances by up to +51% (#4641). Cached distance columns (`user_stat.meters_audited`,
+  `labels_per_meter` and the `high_quality` flag derived from it, `region_completion`, `route.distance_meters`) must
+  equal what their runtime recompute would produce, so changing a distance query means recomputing its caches in the
+  same evolution — and the nightly refresh that maintains them has to reach every row a full recompute would touch
+  (#4774). `GeodesicDistanceSpec` checks both against the connected database. It needs a *seeded* one: its
+  cache-freshness tests `assume` non-empty tables and CANCEL otherwise, so treat a full-suite run against your dev DB
+  as the real gate.
 - After editing any Scala file, run `make scalafmt-fix` (reformats the whole tree in place via the sbt thin client) before treating the change as done — scalafmt is a blocking CI gate, so unformatted Scala fails the build. One run after a batch of edits is enough; no need to format after every single edit.
 - After editing frontend files, lint what you touched and get to zero before the change is done. All four frontend linters are **blocking CI gates** (steps in the `frontend` job — see Continuous integration), the JS/CSS/HTML/i18n counterparts to the scalafmt rule above, so a finding fails the build. The whole tree is lint-clean (#2487), so any finding is from your change.
   - **JavaScript** (`public/js/`): `make eslint-fix dir=<what you touched>`, hand-fix what `--fix` can't, until `make eslint` passes.
@@ -382,7 +402,12 @@ and launch `sbt ~ run` with `-Dconfig.file` at the worktree's own conf and the s
 `.coursier`/`.sbt` (cwd-relative caches from a worktree would re-download gigabytes). The first HTTP request triggers the
 dev compile; **Ctrl-C stops the app and reaps the grunt watch** (a trap, so the watcher never lingers). To tear a session
 down out-of-band, run **`make qa-worktree-stop wt=<name>`** (add `clean=1` to also drop the `node_modules` symlink).
-Implementation: `tools/qa-worktree.sh`.
+Implementation: `tools/qa-worktree.sh` — both targets run the **worktree's own** copy of that script when it has one
+(falling back to the main checkout's), so the branch being QA'd supplies its own tooling.
+
+`make` itself still reads the **main checkout's** Makefile, so when that checkout sits on a branch without the target,
+make reports `No rule to make target 'qa-worktree'`. Either check out a branch that has it, or run the worktree's script
+directly: `docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/qa-worktree.sh <name>`.
 
 **Admin-authenticated QA:** the dev DB is seeded from a dump that includes real accounts and their bcrypt password
 hashes, and password verification is config-independent (plain bcrypt, no server-side pepper), so if your own account is
@@ -421,13 +446,15 @@ docker exec projectsidewalk-web bash -lc "cd /home && sbt --client \"testOnly co
 
 The API specs **boot the real app against Postgres+PostGIS**, so the `db` container must be up; they assert response contract/shape, not data values. There is no `make` target — invoke sbt directly. The phased testing strategy and rationale live in [`docs/testing-and-ci.md`](docs/testing-and-ci.md).
 
-A prototype **JS** test layer (jsdom) lives under `test/js/` — run `npm run test:js`. It is opt-in and not wired into CI yet (sequenced with the ES5→ES2022 migration, #2487); see `test/js/README.md`.
+A **JS** test layer (jsdom) lives under `test/js/` — run `npm run test:js`. CI runs it as an **advisory** step inside the `frontend` job, so a failure reports but doesn't block a merge while coverage is still thin (sequenced with the ES5→ES2022 migration, #2487); see `test/js/README.md`.
 
 A **Python** unit suite (`pytest`) for the `scripts/` utilities lives under `test/python/` — run `make test-python` (runs pytest in the web container) or `docker exec projectsidewalk-web bash -lc "cd /home && python3 -m pytest test/python"`. It needs no DB/network (pure-logic tests only) and runs as an **advisory** CI job; see `test/python/README.md`.
 
+A **browser smoke suite** (Playwright, #4504) lives under `test/e2e/` — loads each core page in headless Chromium and fails on any uncaught console/page error. Unlike every other frontend tool it runs **host-side** (Playwright drives a host browser; it is not in the web container): one-time setup `npm install && npx playwright install chromium`, then `make test-e2e` against the already-running dev app (`BASE_URL` overrides `http://localhost:9000`; scope with `args="-g labelMap"`). It never runs during local development on its own — CI runs it as the advisory `e2e-smoke` job. The `/explore`/`/validate` specs need a real Maps key, so they self-skip unless `HAS_REAL_GMAPS_KEY=true` (set automatically in CI from the `GOOGLE_MAPS_API_KEY_TEST` secret; export it manually to run them locally); see `test/e2e/README.md`.
+
 ### Continuous integration
 
-`.github/workflows/ci.yml` runs on PRs and pushes to `develop`/`master`: backend **`sbt compile`** (blocking gate), **`scalafmtCheckAll`** (blocking — the tree is kept format-clean; auto-format with `make scalafmt-fix` / `sbt scalafmtAll`, config in `.scalafmt.conf`), the **frontend grunt build** plus the four frontend linters — **ESLint** (JS + translation JSON), **Stylelint** (CSS), **HTMLHint** (HTML), and **locale key-parity** — all **blocking** steps in the `frontend` job, so they ride the required `Frontend (build)` check (each blocks on `error`-severity findings; the lone `warn` rule on ESLint/Stylelint, `max-len`, is advisory so there's no `--max-warnings 0`; the trees are kept lint-clean, auto-fix with `make lint-fix`), the **evolutions lint** (blocking — static checks on `conf/evolutions/default/*.sql`, e.g. a semicolon mid-`--`-comment that Play's parser splits on; run locally with `make lint-evolutions`), and the **DB-backed API tests** (advisory while the suite stabilizes — boots the app, so it also exercises forward evolution application). "Advisory" steps report findings but don't block merges yet. **Branch protection** on `develop` (set 2026-06-29) wires the deterministic blocking jobs as **required status checks** (`Backend (compile + scalafmt)`, `Frontend (build)` — covers all four frontend linters; `Evolutions lint` being added) so a red build can't merge; `enforce_admins=true`, **no required reviews** (self-merge preserved), advisory jobs not required. Full policy: [`docs/testing-and-ci.md`](docs/testing-and-ci.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
+`.github/workflows/ci.yml` runs on PRs and pushes to `develop`/`master`: backend **`sbt compile`** (blocking gate), **`scalafmtCheckAll`** (blocking — the tree is kept format-clean; auto-format with `make scalafmt-fix` / `sbt scalafmtAll`, config in `.scalafmt.conf`), the **frontend grunt build** plus the four frontend linters — **ESLint** (JS + translation JSON), **Stylelint** (CSS), **HTMLHint** (HTML), and **locale key-parity** — all **blocking** steps in the `frontend` job, so they ride the required `Frontend (build)` check (each blocks on `error`-severity findings; the lone `warn` rule on ESLint/Stylelint, `max-len`, is advisory so there's no `--max-warnings 0`; the trees are kept lint-clean, auto-fix with `make lint-fix`), the **evolutions lint** (blocking — static checks on `conf/evolutions/default/*.sql`, e.g. a semicolon mid-`--`-comment that Play's parser splits on; run locally with `make lint-evolutions`), the **DB-backed API tests** (advisory while the suite stabilizes — boots the app, so it also exercises forward evolution application), and the **browser smoke tests** (`e2e-smoke`, advisory — builds the bundles, stages a prod-mode binary against the CI DB, and runs the Playwright suite in `test/e2e/`; the Explore/Validate specs self-skip until the `GOOGLE_MAPS_API_KEY_TEST` repo secret exists). "Advisory" steps report findings but don't block merges yet. **Branch protection** on `develop` (set 2026-06-29) wires the deterministic blocking jobs as **required status checks** (`Backend (compile + scalafmt)`, `Frontend (build)` — covers all four frontend linters; `Evolutions lint` being added) so a red build can't merge; `enforce_admins=true`, **no required reviews** (self-merge preserved), advisory jobs not required. Full policy: [`docs/testing-and-ci.md`](docs/testing-and-ci.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ### Building frontend assets
 
@@ -455,7 +482,26 @@ docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -c "\dt sidewal
 docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -c "SELECT * FROM sidewalk_login.role;"
 ```
 
-Each city has its own schema (`sidewalk_<city>`), and they are essentially identical — `sidewalk_seattle` is a safe default for schema questions; authentication lives in `sidewalk_login`. If you need to query *actual data* (not just structure), **ask which city we're working in first**. Evolutions in `conf/evolutions/default/` are auto-applied when a page loads, so you don't run them manually.
+Each city has its own schema (`sidewalk_<city>`), and they are essentially identical — `sidewalk_seattle` is a safe default for **schema** questions; authentication lives in `sidewalk_login`. Evolutions in `conf/evolutions/default/` are auto-applied when a page loads, so you don't run them manually.
+
+**For anything about *data* or *migration state*, first find out which city is actually running** — don't assume `sidewalk_seattle`:
+
+```bash
+docker exec projectsidewalk-web bash -lc 'echo $DATABASE_USER'   # this value IS the active schema name
+```
+
+`DATABASE_USER` selects the schema and is authoritative; `SIDEWALK_CITY_ID` only selects `cityparams.conf` entries (map center, bounds, display name). The two are *supposed* to correspond (see [`docs/dev-environment.md`](docs/dev-environment.md) → "City IDs"), but a container can be left with them **mismatched**, in which case the app renders one city's params over another city's data — an empty map with no error in any log. Confirm what the app believes it is with `curl -s -b <cookie-jar> localhost:9000/labelmap | grep -oE 'cityId: "[^"]*"'`.
+
+**`readonly_user` cannot see every schema, and the failure is silent.** It is granted per-schema, so it may have no rights on the active city's schema — and `information_schema` / `\dt` simply **omit** what you can't see rather than erroring, which reads as "that schema doesn't exist" or "that evolution never applied". `pg_namespace` is world-readable, so enumerate with it, then query the city as its own role:
+
+```bash
+docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -tAc \
+  "SELECT nspname FROM pg_namespace WHERE nspname LIKE 'sidewalk%' ORDER BY 1"
+docker exec projectsidewalk-db psql -U sidewalk_teaneck -d sidewalk -c \
+  "SELECT max(id) FROM sidewalk_teaneck.play_evolutions"
+```
+
+Never conclude "evolution N didn't apply" from a `readonly_user` query without first confirming which schema the app uses.
 
 **The dev DB is not representative of production size, and some tables may be absent.** The two largest production tables by a wide margin are **`audit_task_interaction`** and **`validation_task_interaction`** (raw per-action interaction logs — pans, zooms, clicks). The dev DB dumps that seed local development **omit** these tables to stay manageable, so locally they are typically empty or missing. Never infer a table's production size or existence from the local DB. When reasoning about query cost or indexes, treat these two interaction tables — not `webpage_activity` — as the heavyweight logs.
 
@@ -487,4 +533,4 @@ Config: `eslint.config.js`, `stylelint.config.mjs`, `.htmlhintrc`; cross-locale 
 
 ### What not to automate
 
-Do **not** attempt live or browser-automated testing of anything that requires viewing or interacting with a GSV (street-view) panorama — placing labels in Explore, validating in Validate, etc. The developer tests those visually. Instead, hand them a short checklist of things to verify or a console snippet to run while reproducing the issue.
+Do **not** attempt live or browser-automated testing of anything that requires viewing or interacting with a GSV (street-view) panorama — placing labels in Explore, validating in Validate, etc. The developer tests those visually. Instead, hand them a short checklist of things to verify or a console snippet to run while reproducing the issue. (Narrow exception: the `test/e2e/` smoke suite *loads* Explore's tutorial — whose pano tiles are local assets, no live GSV — and Validate's landing state, asserting only "no uncaught errors". That load-only boundary is deliberate; don't extend the suite into pano interaction.)

@@ -5,6 +5,9 @@ window.svv = window.svv || {};
  * Main module for Validate / Expert Validate / and Mobile Validate.
  */
 class Main {
+  // Long enough to read two lines and try the drag it suggests, without sitting on the imagery it is describing.
+  static #PANO_HINT_MS = 6000;
+
   #param;
 
   /**
@@ -153,7 +156,7 @@ class Main {
     svv.tracker = new Tracker();
 
     BadgeAchievements.seedCounts();
-    svv.labelDescriptionBox = new LabelDescriptionBox();
+    svv.labelCard = new LabelCard();
 
     svv.panoStore = new PanoStore();
     const firstLabel = param.labelList[0];
@@ -169,7 +172,8 @@ class Main {
       svv.panoOverlay = new PanoOverlay();
       svv.keyboard = new KeyboardManager(svv.ui.validationMenu);
       svv.speedLimit = new SpeedLimit(
-        svv.panoViewer, svv.panoViewer.getPosition, () => false, svv.labelContainer, labelType,
+        svv.panoViewer, svv.panoViewer.getPosition, () => false, param.countryId,
+        { labelContainer: svv.labelContainer, labelType },
       );
       svv.zoomControl = new ZoomControl();
       new MissionStartTutorial('validate', labelType, { nLabels: param.mission.labels_validated }, svv, param.language);
@@ -195,6 +199,8 @@ class Main {
     }
 
     svv.labelVisibilityControl = new LabelVisibilityControl();
+
+    this.#showPanoInteractiveHint();
 
     svv.undoValidation = new UndoValidation(svv.ui.undoValidation);
 
@@ -274,6 +280,41 @@ class Main {
         html: true,
         container: 'body',
       });
+    }
+  }
+
+  /**
+   * Tells the validator the pano is not a still photo — it pans and zooms, which is often the difference between
+   * "I can't tell" and a confident answer (#4726).
+   *
+   * One line, no title: it is laid over the very imagery it is describing, so it has to be small enough to leave
+   * that imagery readable. It names the two mouse gestures rather than the zoom buttons or the Z shortcut, since a
+   * mouse is what someone who hasn't found either will already have their hand on.
+   *
+   * Desktop only, for that same reason: the gestures it names are a mouse's, where touch pans with a drag and zooms
+   * with a pinch. Size rules it out too — the toast mounts on <body>, outside .tool-ui, so its --ui-scale can only
+   * come from the document root, which util.applyToolScale writes and mobile never runs. It would arrive at desktop
+   * size on a page the browser then shrinks to the screen.
+   *
+   * Held until the mission-start tutorial's overlay clears, since anything shown before that lands underneath it.
+   * A mission that doesn't open with one gets the hint immediately.
+   */
+  #showPanoInteractiveHint() {
+    if (util.isMobile()) return;
+
+    const show = () => Toast.show({
+      message: i18next.t('center-ui.pano-interactive-message'),
+      reference: svv.ui.viewer.controlLayer[0],
+      duration: Main.#PANO_HINT_MS,
+      dark: true,    // It floats over street imagery, where a white card glares.
+      compact: true, // An aside, not an announcement.
+    });
+
+    const overlay = document.querySelector('.mission-start-tutorial-overlay');
+    if (overlay && getComputedStyle(overlay).display !== 'none') {
+      document.addEventListener('ps:mission-start-tutorial:done', show, { once: true });
+    } else {
+      show();
     }
   }
 }

@@ -2,7 +2,7 @@
 @import play.api.Configuration
 @import play.api.libs.json.Json
 @import service.CommonPageData
-@(title: String, commonData: CommonPageData, user: SidewalkUserWithRole, openStatus: String,
+@(title: String, commonData: CommonPageData, user: Option[SidewalkUserWithRole], openStatus: String,
   mapathonLink: Option[String], streetDistance: Double, auditedDistance: Double, labelCount: Int, valCount: Int
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
@@ -24,7 +24,8 @@
         "logo"   -> (commonData.prodUrl.stripSuffix("/") +
           assets.path("images/logos/ProjectSidewalkLogo_WithCurvedText_3600x3600.png")),
         "email"  -> "sidewalk@cs.uw.edu",
-        "sameAs" -> Json.arr("https://github.com/ProjectSidewalk", "https://twitter.com/projsidewalk",
+        "sameAs" -> Json.arr("https://github.com/ProjectSidewalk", "https://www.linkedin.com/company/project-sidewalk/",
+          "https://bsky.app/profile/projectsidewalk.bsky.social", "https://twitter.com/projsidewalk",
           "https://www.facebook.com/projsidewalk", "https://makeabilitylab.cs.washington.edu/")
       ),
       Json.obj(
@@ -41,7 +42,7 @@
 
 @common.main(commonData, title, i18Namespaces = Seq("common", "validate"), extraHead = structuredData,
   pageMeta = service.PageMeta(description = Some(Messages("seo.description.landing", currentCity.cityNameShort)))) {
-  @common.navbar(commonData, Some(user))
+  @common.navbar(commonData, user)
   <div id="vidbanner">
     <video playsinline autoplay muted loop controls poster='@assets.path("images/psmockup.jpg")' id="bgvid" class="visible-desktop">
       <source src='@assets.path("videos/mainvideo.webm")' type="video/webm">
@@ -320,9 +321,8 @@
     <link href='@assets.path("css/choropleth.css")' rel="stylesheet">
     <link href='@assets.path("css/deployment-map.css")' rel="stylesheet">
     <link href='@assets.path("css/landing-validation-grid.css")' rel="stylesheet">
-    @* label-detail.css styles the grid cards' share chip + popover (.label-detail__share-*), shared with the
-       label-detail popup so the share control looks identical everywhere. *@
-    <link href='@assets.path("css/label-detail.css")' rel="stylesheet">
+    @* The grid cards' share chip + popover (.label-detail__share-*) are styled by css/common/share-widget.css,
+       which common/main.scala.html links on every page — nothing else here needs label-detail.css. *@
     <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
     <script src='@assets.path("js/common/utilitiesSidewalk.js")'></script>
     <script src='@assets.path("js/common/share/ShareWidget.js")'></script>
@@ -342,7 +342,7 @@
           mapboxLogoLocation: 'bottom-right',
           scrollWheelZoom: false,
           neighborhoodsURL: '/neighborhoods',
-          completionRatesURL: '/adminapi/neighborhoodCompletionRate',
+          completionRatesURL: '/neighborhoods/completionRate',
           neighborhoodFillMode: 'completionRate',
           neighborhoodTooltip: 'completionRate'
         };

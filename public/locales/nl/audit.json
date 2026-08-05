@@ -178,8 +178,13 @@
     }
   },
   "center-ui": {
+    "hover-card": {
+      "delete": "Verwijderen",
+      "edit": "Bewerken"
+    },
     "context-menu": {
-      "severity": "Klik om de mate van  ernst te labelen",
+      "rate-severity-prompt": "Klik om de ernst te beoordelen",
+      "rate-quality-prompt": "Klik om de kwaliteit te beoordelen",
       "severity-shortcuts": "Druk toetsen 1-3 voor de beoordeling van de ernst",
       "label-popup-shortcuts": "Druk <tag-underline>{{c}}</tag-underline> om een tag toe te voegen",
       "tag": {

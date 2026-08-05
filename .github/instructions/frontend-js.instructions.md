@@ -11,7 +11,8 @@ applyTo: "public/js/**/*.js"
 - **No hardcoded domain values** (see repo-wide rule): use
   `util.misc.getLabelColors(labelType)` and `util.misc.getIconImagePaths(labelType)`; source enum
   members, ranges, and mappings from `/v3/api/...` or a view binding. Flag any
-  `{1:'good',2:'ok',3:'bad'}`-style severity map.
+  `{1:'good',2:'ok',3:'bad'}`-style severity map, and any `label_type_icons/*.png`
+  path — the frontend uses the scalable `_small.svg` marker only.
 - **Tool UI scaling:** in Explore, Validate, and overlays layered over them, every
   fixed px dimension set from JS must be `calc(<n>px * var(--ui-scale, 1))`. Flag
   bare px. (Fixed page chrome like the navbar is exempt.)

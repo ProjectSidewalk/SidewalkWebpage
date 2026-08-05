@@ -2,10 +2,11 @@ package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import models.auth.WithSignedIn
+import models.user.SidewalkUserWithRole
 import play.api.Configuration
 import play.api.i18n.Messages
 import play.api.libs.json.Json
-import service.{ConfigService, UserService}
+import service.{ConfigService, GlobalLeaderboardEntry, UserService}
 
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
@@ -65,27 +66,33 @@ class UserDashboardController @Inject() (
    * Renders the redesigned Leaderboard prototype: community-impact band, podium, weekly/all-time/team tables, and a
    * "you vs community" standing widget, sharing the dashboard shell.
    *
-   * Like the live `/leaderboard`, this is a bare `SecuredAction` (no `WithSignedIn`), so the general public — including
-   * anonymous auto-accounts — can view it. The view shows the community/podium/tables to everyone and gates the
-   * personal "you" pieces behind `isSignedIn` (role != "Anonymous"), offering a sign-up CTA otherwise.
+   * A `UserAwareAction` (#4643), so the general public — including cookie-less visitors and anonymous auto-accounts —
+   * can view it without an account being minted. The view shows the community/podium/tables to everyone and gates the
+   * personal "you" pieces behind `isSignedIn` (an identity with role != "Anonymous"), offering a sign-up CTA otherwise.
    */
-  def leaderboard = cc.securityService.SecuredAction { implicit request =>
-    val user                = request.identity
-    val isSignedIn: Boolean = user.role != "Anonymous"
-    val isMetric: Boolean   = Messages("measurement.system") == "metric"
-    val cityName            = configService.getCityName(request2Messages.lang)
+  def leaderboard = cc.securityService.UserAwareAction { implicit request =>
+    val user                                       = request.identity
+    val signedInUser: Option[SidewalkUserWithRole] = user.filter(_.role != "Anonymous")
+    val isSignedIn: Boolean                        = signedInUser.isDefined
+    val isMetric: Boolean                          = Messages("measurement.system") == "metric"
+    val cityName                                   = configService.getCityName(request2Messages.lang)
+    // Kicked off before the for-comprehension so the cross-city union overlaps the per-city queries on a cache miss.
+    val globalF: Future[Option[Seq[GlobalLeaderboardEntry]]] = userService.getGlobalLeaderboardStats(10)
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
       aggregate  <- configService.getAggregateStats()
       overall    <- userService.getLeaderboardStats(10)
       weekly     <- userService.getLeaderboardStats(10, "weekly")
       teams      <- userService.getLeaderboardStats(10, "overall", byTeam = true)
-      standing   <- if (isSignedIn) userService.getUserStanding(user.userId) else Future.successful(None)
+      standing   <- signedInUser
+        .map(u => userService.getUserStanding(u.userId))
+        .getOrElse(Future.successful(None))
+      global <- globalF
     } yield {
-      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Leaderboard")
+      cc.loggingService.insert(user.map(_.userId), request.ipAddress, "Visit_Leaderboard")
       Ok(
-        views.html.userDashboard
-          .leaderboard(commonData, user, isSignedIn, isMetric, cityName, aggregate, overall, weekly, teams, standing)
+        views.html.userDashboard.leaderboard(commonData, user, isSignedIn, isMetric, cityName, aggregate, overall,
+          weekly, teams, standing, global)
       )
     }
   }

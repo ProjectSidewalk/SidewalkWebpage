@@ -9,7 +9,7 @@ import models.story.{Story, StoryPhotoUpload, StoryRejection}
 import play.api.libs.json.{JsBoolean, Json}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
-import service.{ImageSigningService, RateLimiter, StoryService}
+import service.{ConfigService, ImageSigningService, RateLimiter, StoryService}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -24,7 +24,9 @@ import scala.util.Try
 class StoryController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[DefaultEnv],
-    config: Configuration,
+    implicit val config: Configuration,
+    implicit val assets: AssetsFinder,
+    configService: ConfigService,
     storyService: StoryService,
     signingService: ImageSigningService,
     rateLimiter: RateLimiter,
@@ -33,6 +35,22 @@ class StoryController @Inject() (
   private val logger = Logger(this.getClass)
 
   private val photoMaxBytes: Long = config.get[Long]("stories.photo-max-bytes")
+
+  /**
+   * Renders the public /stories page: the city's community stories, newest first (#4688).
+   *
+   * A bare SecuredAction (anonymous auto-accounts included) like /leaderboard, so anyone browsing the site can read
+   * the stories that are already public on every label card.
+   */
+  def storiesPage = cc.securityService.SecuredAction { implicit request =>
+    for {
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+      stories    <- storyService.getStoriesForCity(StoryController.ListingMax)
+    } yield {
+      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Stories")
+      Ok(views.html.apps.storyList(commonData, request.identity, stories))
+    }
+  }
 
   /**
    * All stories for a label, shaped for the viewer. Public read: the share landing (/label/:id) opens the card with
@@ -73,12 +91,12 @@ class StoryController @Inject() (
       def dataPart(name: String): Option[String] = request.body.dataParts.get(name).flatMap(_.headOption)
 
       // Inert-until-enabled IP burst layer on top of the always-on per-user DB limit in StoryService.
+      val ipKey   = s"story-submit:ip:${request.ipAddress}"
       val ipLimit = rateLimiter.limit("story-submit")
-      if (!rateLimiter.allow(s"story-submit:ip:${request.ipAddress}", ipLimit)) {
-        Future.successful(
-          TooManyRequests(StoryFormats.rejectionToJson(StoryRejection.RateLimited))
-            .withHeaders("Retry-After" -> ipLimit.window.toSeconds.toString)
-        )
+      if (!rateLimiter.allow(ipKey, ipLimit)) {
+        // Time left in this IP's window, not the whole window length — the caller is already partway through it.
+        val retryAfter = rateLimiter.retryAfterSeconds(ipKey).orElse(Some(ipLimit.window.toSeconds))
+        Future.successful(rejectionResult(StoryRejection.RateLimitedIp(retryAfter)))
       } else {
         dataPart("label_id").flatMap(s => Try(s.toInt).toOption) match {
           case None          => Future.successful(BadRequest(Json.obj("error" -> "story.error.label-id-missing")))
@@ -113,12 +131,12 @@ class StoryController @Inject() (
 
       def dataPart(name: String): Option[String] = request.body.dataParts.get(name).flatMap(_.headOption)
 
+      val ipKey   = s"story-submit:ip:${request.ipAddress}"
       val ipLimit = rateLimiter.limit("story-submit")
-      if (!rateLimiter.allow(s"story-submit:ip:${request.ipAddress}", ipLimit)) {
-        Future.successful(
-          TooManyRequests(StoryFormats.rejectionToJson(StoryRejection.RateLimited))
-            .withHeaders("Retry-After" -> ipLimit.window.toSeconds.toString)
-        )
+      if (!rateLimiter.allow(ipKey, ipLimit)) {
+        // Time left in this IP's window, not the whole window length — the caller is already partway through it.
+        val retryAfter = rateLimiter.retryAfterSeconds(ipKey).orElse(Some(ipLimit.window.toSeconds))
+        Future.successful(rejectionResult(StoryRejection.RateLimitedIp(retryAfter)))
       } else {
         val text            = dataPart("text").getOrElse("")
         val displayNameMode = dataPart("display_name_mode").getOrElse(Story.DisplayNameAnonymous)
@@ -152,7 +170,13 @@ class StoryController @Inject() (
   /** The signed-in user's own stories (hidden ones included), for the dashboard management list. */
   def getMyStories = cc.securityService.SecuredAction { implicit request =>
     storyService.getStoriesForUser(request.identity.userId).map { stories =>
-      Ok(Json.obj("stories" -> stories.map(StoryFormats.storyForOwnerToJson)))
+      Ok(
+        Json.obj(
+          // The dashboard's edit composer needs the same cap the card's does; sourced here, never a JS literal.
+          "max_text_length" -> storyService.maxTextLength,
+          "stories"         -> stories.map(StoryFormats.storyForOwnerToJson)
+        )
+      )
     }
   }
 
@@ -232,13 +256,23 @@ class StoryController @Inject() (
   /** Maps a submission rejection to its HTTP status; the body carries the i18n key + English fallback. */
   private def rejectionResult(rejection: StoryRejection) = {
     val body = StoryFormats.rejectionToJson(rejection)
+    // Retry-After is the standard companion to a 429; the body carries the same number for the composer's copy.
+    def tooMany(retryAfter: Option[Long]) =
+      retryAfter.foldLeft(TooManyRequests(body))((res, secs) => res.withHeaders("Retry-After" -> secs.toString))
     rejection match {
-      case StoryRejection.LabelNotFound => NotFound(body)
-      case StoryRejection.StoryNotFound => NotFound(body)
-      case StoryRejection.AlreadyExists => Conflict(body)
-      case StoryRejection.RateLimited   => TooManyRequests(body)
-      case StoryRejection.PhotoTooLarge => EntityTooLarge(body)
-      case _                            => BadRequest(body)
+      case StoryRejection.LabelNotFound             => NotFound(body)
+      case StoryRejection.StoryNotFound             => NotFound(body)
+      case StoryRejection.AlreadyExists             => Conflict(body)
+      case StoryRejection.RateLimited(retryAfter)   => tooMany(retryAfter)
+      case StoryRejection.RateLimitedIp(retryAfter) => tooMany(retryAfter)
+      case StoryRejection.PhotoTooLarge             => EntityTooLarge(body)
+      case _                                        => BadRequest(body)
     }
   }
+}
+
+object StoryController {
+
+  /** Cap on the stories the /stories page renders, so the page stays bounded as a city's story count grows. */
+  val ListingMax: Int = 500
 }

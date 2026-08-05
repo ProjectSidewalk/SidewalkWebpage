@@ -4,7 +4,6 @@ import controllers.base.{CustomBaseController, CustomControllerComponents}
 import controllers.helper.ShapefilesCreatorHelper
 import models.api.{ApiError, StreamingApiType}
 import models.utils.{LatLngBBox, MapParams}
-import org.apache.pekko.Done
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import org.apache.pekko.util.ByteString
 import play.api.Logger
@@ -14,12 +13,11 @@ import play.api.mvc.Result
 import java.io.{BufferedInputStream, File}
 import java.nio.file.{Files, Path}
 import java.time.OffsetDateTime
-import java.time.format.DateTimeParseException
+import java.time.format.{DateTimeFormatter, DateTimeParseException}
 import java.util.zip.{ZipEntry, ZipOutputStream}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.math._
 import scala.util.control.NonFatal
-import scala.util.{Failure, Success}
 
 /**
  * Base controller for API endpoints with common utility methods.
@@ -27,36 +25,7 @@ import scala.util.{Failure, Success}
 abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
 
-  private val logger                    = Logger(this.getClass)
-  protected val DEFAULT_BATCH_SIZE: Int = 50000
-
-  /**
-   * Attaches failure logging to a streaming response body.
-   *
-   * Chunked API responses (`Ok.chunked`) commit a 200 status and headers *before* the underlying database stream
-   * runs. So if the stream fails mid-flight — e.g. a query timeout or dropped connection while serializing a very
-   * large city's labels — the body simply ends, and Play cannot retract the status it already sent. Without this hook
-   * such failures are completely silent: exactly the #4161 symptom, where large-city `/v3/api/rawLabels` returns a
-   * 200 with an empty/truncated body and no server-side trace. This logs the failure so it is at least diagnosable;
-   * it does not (and cannot) change the status already sent to the client.
-   *
-   * @param source The streaming body to monitor.
-   * @param label  A short identifier (e.g. the download filename) included in the log line to locate the failure.
-   * @return       The same source, with termination-failure logging attached (success behavior is unchanged).
-   */
-  private def logStreamFailures(source: Source[String, _], label: String): Source[String, _] =
-    source.watchTermination() { (mat, done) =>
-      done.onComplete {
-        case Failure(e) =>
-          logger.error(
-            s"API streaming response failed mid-flight for '$label'; the client received a truncated/empty body " +
-              s"after a 200 status was already sent (see #4161).",
-            e
-          )
-        case Success(_: Done) => // Stream completed normally; nothing to log.
-      }
-      mat
-    }
+  private val logger = Logger(this.getClass)
 
   /**
    * Creates a bounding box (BBox) using the provided latitude and longitude values.
@@ -153,6 +122,14 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
     BaseApiController.resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
   protected def parseCommaSeparated(raw: Option[String]): Option[Seq[String]] =
     BaseApiController.parseCommaSeparated(raw)
+  protected def parseAllowlistedList(
+      raw: Option[String],
+      allowlist: Set[String],
+      paramName: String
+  ): Either[ApiError, Option[Seq[String]]] =
+    BaseApiController.parseAllowlistedList(raw, allowlist, paramName)
+  protected def timestampedFilename(prefix: String): String =
+    BaseApiController.timestampedFilename(prefix)
 
   /**
    * Outputs a CSV stream from the provided database data stream.
@@ -173,10 +150,11 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       .map(row => row.toCsvRow)
       .intersperse(csvHeader, "\n", "\n")
 
+    // Play's chunked(content, inline, fileName) overload emits a properly quoted Content-Disposition that honors
+    // `inline`; adding a manual header here would both un-quote the filename and force `attachment`.
     Future.successful(
       Ok.chunked(logStreamFailures(csvSource, filename), inline.getOrElse(false), Some(filename))
         .as("text/csv")
-        .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$filename")
     )
   }
 
@@ -234,9 +212,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       inline: Option[Boolean],
       filename: String
   ): Future[Result] = {
-    val jsonSource: Source[String, _] = dbDataStream
-      .map(row => row.toJson.toString)
-      .intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
+    val jsonSource: Source[String, _] = geoJsonFeatureCollection(dbDataStream.map(row => row.toJson.toString))
 
     Future.successful(
       Ok.chunked(logStreamFailures(jsonSource, filename), inline.getOrElse(false), Some(filename))
@@ -424,4 +400,47 @@ object BaseApiController {
    */
   def parseCommaSeparated(raw: Option[String]): Option[Seq[String]] =
     raw.map(_.split(",").map(_.trim).toSeq)
+
+  /**
+   * Parses a comma-separated query parameter, validating every token against an allowlist.
+   *
+   * Beyond input validation, the allowlist makes the tokens safe to splice into the raw SQL built in the DAO layer.
+   *
+   * @param raw       The optional raw query parameter string.
+   * @param allowlist The set of valid token values.
+   * @param paramName The public parameter name, used in the error message.
+   * @return          `Right(None)` if absent; `Right(Some(tokens))` if every trimmed token is allowlisted;
+   *                  `Left(ApiError)` naming the offending parameter otherwise.
+   */
+  def parseAllowlistedList(
+      raw: Option[String],
+      allowlist: Set[String],
+      paramName: String
+  ): Either[ApiError, Option[Seq[String]]] =
+    parseCommaSeparated(raw) match {
+      case None         => Right(None)
+      case Some(tokens) =>
+        tokens.find(token => !allowlist.contains(token)) match {
+          case Some(badToken) =>
+            Left(
+              ApiError.invalidParameter(
+                s"Invalid $paramName value: '$badToken'. Must be a comma-separated list of: " +
+                  s"${allowlist.toSeq.sorted.mkString(", ")}.",
+                paramName
+              )
+            )
+          case None => Right(Some(tokens))
+        }
+    }
+
+  /**
+   * Builds a timestamped download filename prefix, e.g. "labels_2026-08-05-134512".
+   *
+   * The timestamp deliberately contains no colons: they are illegal in Windows filenames and in an unquoted
+   * Content-Disposition filename value.
+   *
+   * @param prefix The filename prefix (e.g. "labels").
+   */
+  def timestampedFilename(prefix: String): String =
+    s"${prefix}_${OffsetDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss"))}"
 }

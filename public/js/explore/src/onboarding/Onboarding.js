@@ -77,7 +77,12 @@ class Onboarding {
     $('#navbar-retake-tutorial-btn').css('display', 'none');
 
     const canvasUI = this.#uiOnboarding.canvas.get(0);
-    if (canvasUI) this.#ctx = canvasUI.getContext('2d');
+    if (canvasUI) {
+      this.#ctx = canvasUI.getContext('2d');
+      // The example label icons are drawn from a high-resolution raster (see Label.preloadIcons) and land here
+      // downscaled; the default 'low' filter frays their outer circle.
+      this.#ctx.imageSmoothingQuality = 'high';
+    }
     this.#uiOnboarding.holder.css('visibility', 'visible');
 
     svl.panoManager.lockShowingNavArrows();

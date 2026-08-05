@@ -1,13 +1,13 @@
 package controllers
 
 import controllers.base._
-import controllers.helper.ControllerUtils.parseIntegerSeq
+import controllers.helper.ControllerUtils.{parseIntegerSeq, NoUserId}
 import models.auth.DefaultEnv
 import models.utils.MyPostgresProfile.api._
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsArray, JsObject, Json}
 import play.api.mvc._
 import play.silhouette.api.Silhouette
-import play.silhouette.api.actions.SecuredRequest
+import play.silhouette.api.actions.UserAwareRequest
 import service.RegionService
 
 import javax.inject._
@@ -23,11 +23,16 @@ class RegionController @Inject() (
 
   /**
    * Get list of all neighborhoods with a boolean indicating if the given user has fully audited that neighborhood.
+   *
+   * User-aware (#4643): the landing page's choropleth calls this on a page that renders for cookie-less visitors. With
+   * no identity we query with an id that matches no audit tasks, so every neighborhood reads as not-completed — the
+   * same result a brand-new anonymous account would get (mirrors LabelController.getLabelData).
    */
-  def listNeighborhoods(regions: Option[String]) = cc.securityService.SecuredAction {
-    implicit request: SecuredRequest[DefaultEnv, AnyContent] =>
+  def listNeighborhoods(regions: Option[String]) = cc.securityService.UserAwareAction {
+    implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
       val regionIds: Seq[Int] = parseIntegerSeq(regions)
-      regionService.getNeighborhoodsWithUserCompletionStatus(request.identity.userId, regionIds).map { regions =>
+      val userId: String      = request.identity.map(_.userId).getOrElse(NoUserId)
+      regionService.getNeighborhoodsWithUserCompletionStatus(userId, regionIds).map { regions =>
         val features: Seq[JsObject] = regions.map { case (region, userCompleted) =>
           val properties: JsObject = Json.obj(
             "region_id"      -> region.regionId,
@@ -39,5 +44,39 @@ class RegionController @Inject() (
         val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
         Ok(featureCollection)
       }
+  }
+
+  /**
+   * Get audit coverage of each neighborhood.
+   *
+   * Public read: the landing-page choropleth, /labelMap, and the user dashboard's contribution map all load these
+   * rates anonymously, so this stays ungated.
+   *
+   * @param regions Comma-separated region IDs to filter by.
+   * @return        JSON array of `{region_id, total_distance_m, completed_distance_m, rate, name}` objects, where
+   *                `rate` is `completed_distance_m / total_distance_m`, or 1.0 for a region with no street distance.
+   */
+  def getNeighborhoodCompletionRate(regions: Option[String]) = Action.async {
+    val regionIds: Seq[Int] = parseIntegerSeq(regions)
+
+    for {
+      // Ensure the region_completion cache table is populated before reading rates from it.
+      _             <- regionService.initializeRegionCompletionTable
+      neighborhoods <- regionService.selectAllNamedNeighborhoodCompletions(regionIds)
+    } yield {
+      val completionRates: Seq[JsObject] = for (neighborhood <- neighborhoods) yield {
+        val completionRate: Double =
+          if (neighborhood.totalDistance > 0) neighborhood.auditedDistance / neighborhood.totalDistance
+          else 1.0d
+        Json.obj(
+          "region_id"            -> neighborhood.regionId,
+          "total_distance_m"     -> neighborhood.totalDistance,
+          "completed_distance_m" -> neighborhood.auditedDistance,
+          "rate"                 -> completionRate,
+          "name"                 -> neighborhood.name
+        )
+      }
+      Ok(JsArray(completionRates))
+    }
   }
 }

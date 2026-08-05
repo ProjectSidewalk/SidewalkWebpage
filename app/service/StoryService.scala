@@ -46,6 +46,7 @@ trait StoryService {
   ): Future[Either[StoryRejection, Unit]]
   def deleteOwnStory(storyId: Int, userId: String): Future[Boolean]
   def getStoriesForUser(userId: String): Future[Seq[StoryForOwner]]
+  def getStoriesForCity(n: Int): Future[Seq[StoryForListing]]
   def getRecentStories(n: Int): Future[Seq[StoryForAdmin]]
   def setStoryVisibility(storyId: Int, adminUserId: String, hidden: Boolean): Future[Boolean]
   def adminDeleteStory(storyId: Int): Future[Boolean]
@@ -63,7 +64,9 @@ class StoryServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     config: Configuration,
     storyTable: models.story.StoryTable,
+    labelTable: models.label.LabelTable,
     labelService: LabelService,
+    panoDataService: PanoDataService,
     signingService: ImageSigningService,
     cpuEc: CpuIntensiveExecutionContext,
     implicit val ec: ExecutionContext
@@ -157,10 +160,20 @@ class StoryServiceImpl @Inject() (
           labelOk   <- storyTable.labelExists(labelId)
           duplicate <- storyTable.userHasStoryOnLabel(labelId, userId)
           recent    <- storyTable.countByUserSince(userId, since)
+          // Only when the cap is already hit: the timestamp whose 24h expiry frees the next slot, so the rejection
+          // can carry how long that is instead of the composer guessing.
+          freesAt <-
+            if (recent >= maxPerDay) storyTable.nthNewestInWindowAt(userId, since, maxPerDay)
+            else DBIO.successful(None)
         } yield {
           if (!labelOk) Some(StoryRejection.LabelNotFound)
           else if (duplicate) Some(StoryRejection.AlreadyExists)
-          else if (recent >= maxPerDay) Some(StoryRejection.RateLimited)
+          else if (recent >= maxPerDay)
+            Some(
+              StoryRejection.RateLimited(
+                StoryServiceImpl.secondsUntilFree(freesAt, OffsetDateTime.now(ZoneOffset.UTC))
+              )
+            )
           else None
         }
         db.run(checks).flatMap {
@@ -305,11 +318,76 @@ class StoryServiceImpl @Inject() (
     }
   }
 
+  /**
+   * Signed label-preview URLs (saved crop, else provider static image) for the given labels, resolved with one
+   * batched pano-metadata query — the same crop-then-GSV strategy as the Gallery and the admin activity feed.
+   * Used for photoless stories so every listing row can still carry an image.
+   *
+   * @param labelTypesById The label type of each label needing a preview, keyed by label id.
+   * @return               Preview URL per label id; labels with no saved crop and no usable pano are absent.
+   */
+  private def labelPreviewUrls(labelTypesById: Map[Int, LabelTypeEnum.Base]): Future[Map[Int, String]] = {
+    if (labelTypesById.isEmpty) Future.successful(Map.empty)
+    else
+      db.run(labelTable.getPanoMetadataForLabels(labelTypesById.keys.toSeq)).map { metas =>
+        val metaById = metas.map { case (labelId, panoId, source, heading, pitch, zoom) =>
+          labelId -> ((panoId, source, heading, pitch, zoom))
+        }.toMap
+        labelTypesById.flatMap { case (labelId, labelType) =>
+          panoDataService
+            .cropUrl(labelId, labelType)
+            .orElse(metaById.get(labelId).flatMap { case (panoId, source, heading, pitch, zoom) =>
+              panoDataService.getImageUrl(panoId, source, heading, pitch, zoom)
+            })
+            .map(labelId -> _)
+        }
+      }
+  }
+
   def getStoriesForUser(userId: String): Future[Seq[StoryForOwner]] = {
-    db.run(storyTable.getForUser(userId))
-      .map(_.map { case (story, media, labelTypeId) =>
-        StoryForOwner(story, LabelTypeEnum.labelTypeIdToLabelType(labelTypeId), media.map(toMediaForView))
-      })
+    db.run(storyTable.getForUser(userId)).flatMap { rows =>
+      // Photoless stories fall back to a label preview so every dashboard row can carry a thumbnail (#4656).
+      val photolessTypes = rows.collect { case (story, None, labelTypeId) =>
+        story.labelId -> LabelTypeEnum.byId(labelTypeId)
+      }.toMap
+      labelPreviewUrls(photolessTypes).map { previewById =>
+        rows.map { case (story, media, labelTypeId) =>
+          val labelType = LabelTypeEnum.byId(labelTypeId)
+          StoryForOwner(
+            story,
+            labelType.name,
+            labelType.isAccessProblem,
+            media.map(toMediaForView),
+            labelImageUrl = if (media.isDefined) None else previewById.get(story.labelId)
+          )
+        }
+      }
+    }
+  }
+
+  def getStoriesForCity(n: Int): Future[Seq[StoryForListing]] = {
+    db.run(storyTable.getVisibleForCity(n)).flatMap { rows =>
+      val photolessTypes = rows.collect { case (story, None, _, labelTypeId, _, _, _) =>
+        story.labelId -> LabelTypeEnum.byId(labelTypeId)
+      }.toMap
+      labelPreviewUrls(photolessTypes).map { previewById =>
+        rows.map { case (story, media, username, labelTypeId, regionId, regionName, address) =>
+          StoryForListing(
+            storyId = story.storyId,
+            labelId = story.labelId,
+            labelType = LabelTypeEnum.byId(labelTypeId),
+            regionId = regionId,
+            regionName = regionName,
+            address = address,
+            storyText = story.storyText,
+            displayName = if (story.displayNameMode == Story.DisplayNameUsername) Some(username) else None,
+            createdAt = story.createdAt,
+            media = media.map(toMediaForView),
+            labelImageUrl = if (media.isDefined) None else previewById.get(story.labelId)
+          )
+        }
+      }
+    }
   }
 
   def getRecentStories(n: Int): Future[Seq[StoryForAdmin]] = {
@@ -568,4 +646,24 @@ class StoryServiceImpl @Inject() (
       logger.error(s"Failed to delete story media file story_$storyMediaId.jpg: ${e.getMessage}")
     }
   }
+}
+
+object StoryServiceImpl {
+
+  /**
+   * How long until the story posted at `freesAt` leaves the rolling 24h window, freeing a submission slot.
+   *
+   * Ceiled to whole seconds — a fractional second rounds *up* — and floored at one, so the value we quote (in the
+   * 429 body and on its `Retry-After` header) is never a moment before the slot actually opens: a caller who retries
+   * exactly when told must not be refused again. Pure so the sub-second edges are unit-testable.
+   *
+   * @param freesAt When the oldest story still counting against the cap was posted; None when the cap isn't hit.
+   * @param now     The current instant.
+   * @return        Seconds to wait, or None when there is no wait to report.
+   */
+  private[service] def secondsUntilFree(freesAt: Option[OffsetDateTime], now: OffsetDateTime): Option[Long] =
+    freesAt.map { posted =>
+      val waitMs = ChronoUnit.MILLIS.between(now, posted.plusHours(24))
+      math.max(1L, (waitMs + 999) / 1000)
+    }
 }
