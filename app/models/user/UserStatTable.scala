@@ -423,8 +423,11 @@ class UserStatTable @Inject() (
           !x.excluded &&                              // false if excluded=true
           x.highQualityManual.getOrElse(true) && (    // false if high_quality_manual=false
             x.highQualityManual.getOrElse(false) || ( // true if high_quality_manual set to true
+              // 0.6d, not 0.6f: widening the float would compare against 0.60000002, so this path and the bulk
+              // `updateHighQuality` below would disagree for an accuracy in that sliver. Evolution 347 and
+              // GeodesicDistanceSpec both assume the two agree exactly.
               (x.metersAudited === 0d || x.labelsPerMeter.getOrElse(5d) > LABEL_PER_METER_THRESHOLD)
-                && (x.accuracy.getOrElse(1.0d) > 0.6f.asColumnOf[Double] || x.ownLabelsValidated < 50.asColumnOf[Int])
+                && (x.accuracy.getOrElse(1.0d) > 0.6d.asColumnOf[Double] || x.ownLabelsValidated < 50.asColumnOf[Int])
             )
           )
         }

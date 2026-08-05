@@ -5,6 +5,7 @@ import models.user.{UserStatTable, UserStatTableDef}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.apache.pekko.stream.Materializer
+import org.scalatest.OptionValues
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -38,8 +39,15 @@ import scala.concurrent.duration.DurationInt
  *      route.distance_meters) and the distance-derived high_quality flag must match what their runtime recomputes
  *      produce — run for real inside a rolled-back transaction. This is exactly the postcondition evolution 347's
  *      backfill promises, so it also fails if that backfill ever drifts from the runtime code it mirrors.
+ *
+ * Layer 3 needs a seeded database, so each of its tests `assume`s the table it reads is non-empty — against an empty
+ * schema they report as canceled rather than passing vacuously (the convention `RouteAuthPostureSpec` uses).
+ *
+ * Known decay: the meters_audited postcondition holds after evolution 347 but is not maintained by the runtime, which
+ * refreshes only users with an `audit`-type mission (#4774). A failure there with no distance query touched means new
+ * users of that shape have accumulated, not that this measure regressed.
  */
-class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite {
+class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite with OptionValues {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
@@ -121,6 +129,7 @@ class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite {
         lifted <- streetEdgeTable.getStreetLengths(raw.map(_._1))
       } yield (raw, lifted))
 
+      assume(rawLengths.nonEmpty, "no streets in this schema; cross-implementation agreement needs a seeded DB")
       rawLengths.foreach { case (streetEdgeId, rawLength) => assertClose(liftedLengths(streetEdgeId), rawLength) }
     }
 
@@ -132,6 +141,7 @@ class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite {
       val json        = contentAsJson(route(app, FakeRequest(GET, "/v3/api/overallStats")).get)
       val kmOpen      = (json \ "km_by_status" \ "open").as[Double]
 
+      assume(slickMeters > 0, "no open streets in this schema; comparing the two total-km paths needs a seeded DB")
       assertClose(slickMeters / 1000.0, kmOpen, relTol = 1e-9, absTol = 1e-6)
     }
   }
@@ -147,7 +157,10 @@ class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite {
         after  <- sql"SELECT user_id, meters_audited FROM user_stat".as[(String, Double)].map(_.toMap)
       } yield (before, after))
 
-      after.foreach { case (userId, recomputed) => assertClose(before(userId), recomputed) }
+      assume(after.nonEmpty, "no users in this schema; cache freshness needs a seeded DB")
+      // See the class scaladoc: a failure here without a distance query having changed points at #4774, not at the
+      // measure. `.get` rather than `apply` so a user vanishing between the two reads reports as a failed assertion.
+      after.foreach { case (userId, recomputed) => assertClose(before.get(userId).value, recomputed) }
     }
 
     "match a fresh runtime recompute of user_stat.labels_per_meter for users with audited meters" in {
@@ -164,8 +177,9 @@ class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite {
           .map(_.toMap)
       } yield (before, after))
 
+      assume(after.nonEmpty, "no users with audited meters in this schema; cache freshness needs a seeded DB")
       after.foreach { case (userId, recomputed) =>
-        (before(userId), recomputed) match {
+        (before.get(userId).value, recomputed) match {
           case (Some(cached), Some(fresh)) => assertClose(cached, fresh, relTol = 1e-9, absTol = 1e-12)
           case (cached, fresh)             => cached mustBe fresh
         }
@@ -182,7 +196,8 @@ class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite {
         after  <- sql"SELECT user_id, high_quality FROM user_stat".as[(String, Boolean)].map(_.toMap)
       } yield (before, after))
 
-      after.foreach { case (userId, recomputed) => before(userId) mustBe recomputed }
+      assume(after.nonEmpty, "no users in this schema; cache freshness needs a seeded DB")
+      after.foreach { case (userId, recomputed) => before.get(userId).value mustBe recomputed }
     }
 
     "match a fresh runtime recompute of region_completion.total_distance, with audited_distance in bounds" in {
@@ -200,8 +215,12 @@ class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite {
           .map(_.map { case (id, total, audited) => id -> (total, audited) }.toMap)
       } yield (cached, fresh))
 
+      assume(cached.nonEmpty, "no region_completion rows in this schema; cache freshness needs a seeded DB")
       cached.foreach { case (regionId, (cachedTotal, cachedAudited)) =>
-        fresh.get(regionId).foreach { case (freshTotal, _) => assertClose(cachedTotal, freshTotal) }
+        // A cached region absent from the recompute is itself a failure: initializeRegionCompletionTable inserts a
+        // row per non-deleted region, so the only way to be missing is to belong to a region that was deleted.
+        val (freshTotal, _) = fresh.get(regionId).value
+        assertClose(cachedTotal, freshTotal)
         cachedAudited must be >= 0.0
         cachedAudited must be <= cachedTotal + 1e-6
       }
@@ -209,6 +228,7 @@ class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     "match a fresh runtime recompute of route.distance_meters, which equals getRouteDistance" in {
       val routeIds = run(sql"SELECT route_id FROM route WHERE NOT deleted".as[Int])
+      assume(routeIds.nonEmpty, "no routes in this schema; cache freshness needs a seeded DB")
 
       val results: Seq[(Int, Double, Double, Double)] = runRolledBack(DBIO.sequence(routeIds.map { routeId =>
         for {
