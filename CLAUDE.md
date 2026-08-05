@@ -195,6 +195,13 @@ When you catch yourself writing a frontend constant that mirrors a backend value
 - Update said code to use the native `fetch` API rather than jQuery, and to make use of Promises. But if said refactor would impact many other functions that use it, then wait for a dedicated refactor.
 - Replace uses of Bootstrap with native JS alternatives as you come across them
 - When writing SQL, avoid table aliases
+- **Measure geographic distances geodesically** — `ST_Length(geom::geography)` in raw SQL, the `lengthGeodesic`
+  extension method in Slick (defined in `MyPostgresProfile`), turf.js on the frontend. Never measure by projecting to
+  a fixed SRID: a projection is only accurate near its own meridian, and measuring every city through UTM zone 18N
+  overstated street distances by up to +51% (#4641). Cached distance columns (`user_stat.meters_audited`,
+  `labels_per_meter` and the `high_quality` flag derived from it, `region_completion`, `route.distance_meters`) must
+  always equal what their runtime recompute would produce — `GeodesicDistanceSpec` enforces this, so changing a
+  distance query means recomputing its caches.
 - After editing any Scala file, run `make scalafmt-fix` (reformats the whole tree in place via the sbt thin client) before treating the change as done — scalafmt is a blocking CI gate, so unformatted Scala fails the build. One run after a batch of edits is enough; no need to format after every single edit.
 - After editing frontend files, lint what you touched and get to zero before the change is done. All four frontend linters are **blocking CI gates** (steps in the `frontend` job — see Continuous integration), the JS/CSS/HTML/i18n counterparts to the scalafmt rule above, so a finding fails the build. The whole tree is lint-clean (#2487), so any finding is from your change.
   - **JavaScript** (`public/js/`): `make eslint-fix dir=<what you touched>`, hand-fix what `--fix` can't, until `make eslint` passes.

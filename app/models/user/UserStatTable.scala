@@ -296,7 +296,7 @@ class UserStatTable @Inject() (
       .join(streetEdgeTable.streets)
       .on(_._1.streetEdgeId === _.streetEdgeId)
       .groupBy(_._1._1.userId)
-      .map(x => (x._1, x._2.map(_._2.geom.transform(26918).lengthD).sum))
+      .map(x => (x._1, x._2.map(_._2.geom.lengthGeodesic).sum))
       .result
       .flatMap { auditedDists: Seq[(String, Option[Double])] =>
         // Update the meters_audited column in the user_stat table.
@@ -529,9 +529,9 @@ class UserStatTable @Inject() (
    *
    * Interim workaround for #4376 (mirrors `ConfigTable.withJitOff`): the projectsidewalk/db image ships a broken
    * Postgres JIT (PostGIS bitcode built with LLVM 16, runtime llvmjit linked against LLVM 11). A query expensive enough
-   * to cross the JIT inline-cost threshold and inline PostGIS bitcode (ST_TRANSFORM/ST_LENGTH) segfaults the backend,
+   * to cross the JIT inline-cost threshold and inline PostGIS bitcode (e.g. ST_LENGTH) segfaults the backend,
    * dropping the connection (SQLSTATE 08006) and forcing Postgres crash-recovery — which surfaces as a site-wide 502.
-   * `getLeaderboardStats` computes audited distance with ST_LENGTH(ST_TRANSFORM(...)) and is expensive enough to trip
+   * `getLeaderboardStats` computes audited distance with PostGIS ST_Length and is expensive enough to trip
    * this (#4545), so it must run with JIT off. `SET LOCAL` scopes the setting to this one transaction. Remove once #4376
    * disables JIT at the DB config level.
    *
@@ -636,7 +636,7 @@ class UserStatTable @Inject() (
           GROUP BY #$groupingCol
       ) "missions_counts" ON label_counts.#$groupingColName = missions_counts.#$groupingColName
       LEFT JOIN (
-          SELECT #$groupingCol, COALESCE(SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))), 0) AS distance_meters
+          SELECT #$groupingCol, COALESCE(SUM(ST_Length(geom::geography)), 0) AS distance_meters
           FROM street_edge
           INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN sidewalk_user ON audit_task.user_id = sidewalk_user.user_id
@@ -674,8 +674,8 @@ class UserStatTable @Inject() (
    * statement rather than a per-city fan-out because all city schemas live in the same database.
    *
    * Two deliberate departures from the per-city board, both to keep this cheap enough to run on a page load:
-   *  - Distance sums the nightly-precomputed `user_stat.meters_audited` instead of recomputing
-   *    `ST_LENGTH(ST_TRANSFORM(...))` per city. It is the same quantity by the same definition (see
+   *  - Distance sums the nightly-precomputed `user_stat.meters_audited` instead of recomputing geodesic street
+   *    lengths per city. It is the same quantity by the same definition (see
    *    `updateAuditedDistanceHelper`), just up to a day stale, and it keeps PostGIS out of a 50-way union — which also
    *    sidesteps the JIT segfault that forces `withJitOff` on the per-city board (#4376/#4545).
    *  - Ranking is by raw label count, so the rows are in true rank order (the per-city board's composite score has a

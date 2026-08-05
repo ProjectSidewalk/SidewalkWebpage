@@ -2176,13 +2176,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              ai_stats.crswlk_ai_no_admin_yes,
              ai_stats.crswlk_ai_no_admin_no
       FROM (
-          SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km_audited
+          SELECT SUM(ST_Length(geom::geography)) / 1000 AS km_audited
           FROM street_edge
           INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
           WHERE completed = TRUE AND #$userFilter
       ) AS km_audited, (
-          SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km_audited_no_overlap
+          SELECT SUM(ST_Length(geom::geography)) / 1000 AS km_audited_no_overlap
           FROM (
               SELECT DISTINCT street_edge.street_edge_id, geom
               FROM street_edge
@@ -2194,7 +2194,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           -- Redundant-coverage km: streets with a completed audit by ≥2 distinct (non-excluded) users. Mirrors the
           -- km_audited_no_overlap subquery but groups per street and keeps only those audited by 2+ people. Single-user
           -- km is derived (no_overlap − multiple_users) in projectSidewalkStatsConverter, so it is not selected here.
-          SELECT COALESCE(SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000, 0) AS km_explored_multiple_users
+          SELECT COALESCE(SUM(ST_Length(geom::geography)) / 1000, 0) AS km_explored_multiple_users
           FROM (
               SELECT street_edge.street_edge_id, geom
               FROM street_edge
@@ -2213,7 +2213,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                  COALESCE(SUM(len) FILTER (WHERE status = 'closed'), 0)     AS km_closed,
                  COALESCE(SUM(len) FILTER (WHERE status = 'disabled'), 0)   AS km_disabled
           FROM (
-              SELECT status, ST_LENGTH(ST_TRANSFORM(geom, 26918)) / 1000 AS len
+              SELECT status, ST_Length(geom::geography) / 1000 AS len
               FROM street_edge
               WHERE street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
           ) street_lengths

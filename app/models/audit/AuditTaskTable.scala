@@ -354,7 +354,7 @@ class AuditTaskTable @Inject() (
       .filter(_.userId === userId)
       .join(streetEdgeTable.streets)
       .on(_.streetEdgeId === _.streetEdgeId)
-      .map(_._2.geom.transform(26918).lengthD)
+      .map(_._2.geom.lengthGeodesic)
       .sum
       .getOrElse(0d)
       .result
@@ -367,7 +367,7 @@ class AuditTaskTable @Inject() (
     getStreetEdgeRegionsNotAuditedQuery(userId, regionId)
       .join(streetEdgeTable.streets)
       .on(_.streetEdgeId === _.streetEdgeId)
-      .map(_._2.geom.transform(26918).lengthD)
+      .map(_._2.geom.lengthGeodesic)
       .sum
       .result
       .map(_.getOrElse(0d))

@@ -75,6 +75,26 @@ trait MyPostgresProfile
 
       def lengthD[R](implicit om: o#to[Double, R]): Rep[R] = om.column(GeomLibrary.Length, n)
 
+      /**
+       * Geodesic length in meters of a 4326 geometry, measured on the WGS84 spheroid via a `::geography` cast.
+       *
+       * This is the canonical measure for street distances (#4641): accurate worldwide, and consistent with the
+       * frontend, which measures distances geodesically with turf.js. Never measure by projecting to a fixed CRS —
+       * transverse Mercator distortion away from the zone's central meridian reaches +51% (Auckland through the
+       * UTM zone 18N that all cities were once measured in).
+       *
+       * Unlike `lengthD`, this does not Option-lift: it is only for non-nullable geometry columns (NULL would fail
+       * result conversion outside an aggregate).
+       */
+      def lengthGeodesic: Rep[Double] = SimpleExpression
+        .unary[P1, Double] { (geomNode, queryBuilder) =>
+          queryBuilder.sqlBuilder += "ST_Length(("
+          queryBuilder.expr(geomNode)
+          queryBuilder.sqlBuilder += ")::geography)"
+          ()
+        }
+        .apply(c)
+
       def distanceSphereD[P2, R](geom: Rep[P2])(implicit om: o#to[Double, R]): Rep[R] =
         om.column(GeomLibrary.DistanceSphere, n, geom.toNode)
 
