@@ -1,7 +1,7 @@
 package models.label
 
 import com.google.inject.ImplementedBy
-import models.api.{LabelDataForApi, LabelValidationSummaryForApi, RawLabelFiltersForApi}
+import models.api.{LabelDataForApi, LabelValidationSummaryForApi, RawLabelFiltersForApi, RawLabelValidationStatus}
 import models.audit.AuditTaskTableDef
 import models.label.LabelTable._
 import models.label.LabelTypeEnum._
@@ -1936,8 +1936,29 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     }
 
     if (filters.tags.isDefined && filters.tags.get.nonEmpty) {
-      val tagConditions = filters.tags.get.map(tag => s"'${tag.replace("'", "''")}' = ANY(label.tags)").mkString(" OR ")
+      // Scoped entries only match the tag on their label type; bare entries match it on any type. The label type is
+      // always an allowlisted LabelTypeEnum name (validated at parse time), so only the tag needs escaping.
+      val tagConditions = filters.tags.get
+        .map { tagFilter =>
+          val tagCondition = s"'${tagFilter.tag.replace("'", "''")}' = ANY(label.tags)"
+          tagFilter.labelType match {
+            case Some(labelType) => s"(label_type.label_type = '$labelType' AND $tagCondition)"
+            case None            => tagCondition
+          }
+        }
+        .mkString(" OR ")
       whereConditions :+= s"($tagConditions)"
+    }
+
+    filters.severity.foreach { severityFilter =>
+      // Severities are validated Ints and the null token is a boolean, so the condition is injection-safe.
+      val severityConditions = Seq(
+        Option.when(severityFilter.severities.nonEmpty)(
+          s"label.severity IN (${severityFilter.severities.toSeq.sorted.mkString(", ")})"
+        ),
+        Option.when(severityFilter.includeNullSeverity)("label.severity IS NULL")
+      ).flatten
+      whereConditions :+= s"(${severityConditions.mkString(" OR ")})"
     }
 
     if (filters.minSeverity.isDefined) {
@@ -1948,13 +1969,17 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       whereConditions :+= s"label.severity <= ${filters.maxSeverity.get}"
     }
 
-    if (filters.validationStatus.isDefined) {
-      filters.validationStatus.get match {
-        case "Agreed"      => whereConditions :+= "label.correct = TRUE"
-        case "Disagreed"   => whereConditions :+= "label.correct = FALSE"
-        case "Unvalidated" => whereConditions :+= "label.correct IS NULL"
-        case _             => // No additional filter
-      }
+    filters.validationStatuses.foreach { statuses =>
+      // A map instead of a pattern match because Enumeration matches can't be exhaustiveness-checked.
+      val conditionsByStatus: Map[RawLabelValidationStatus.Value, String] = Map(
+        RawLabelValidationStatus.ValidatedCorrect   -> "label.correct = TRUE",
+        RawLabelValidationStatus.ValidatedIncorrect -> "label.correct = FALSE",
+        RawLabelValidationStatus.Unsure             ->
+          "(label.correct IS NULL AND (label.agree_count > 0 OR label.disagree_count > 0 OR label.unsure_count > 0))",
+        RawLabelValidationStatus.Unvalidated ->
+          "(label.correct IS NULL AND label.agree_count = 0 AND label.disagree_count = 0 AND label.unsure_count = 0)"
+      )
+      whereConditions :+= s"(${statuses.toSeq.sortBy(_.id).map(conditionsByStatus).mkString(" OR ")})"
     }
 
     if (filters.highQualityUserOnly) {

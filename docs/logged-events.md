@@ -74,6 +74,12 @@ vocabulary mirrors the Gallery filter events (`SeverityApply`, `TagApply`, `Vali
 `MapSidebar_NotAdminValidated_checked=<bool>`, and `MapSidebar_Open` / `MapSidebar_Close`. These fire on every page
 that renders the sidebar; use the accompanying page-visit events to segment by page.
 
+The LabelMap's "Download" control (`ps-map/MapDownloadControl.js`, #4095) logs the
+**`Click_module=MapDownload_<Action>`** family: `MapDownload_Open` when the menu opens,
+`MapDownload_Download_format=<geojson|csv|shapefile|geopackage>` when a format is picked (the download itself is a
+`/v3/api/rawLabels` request, so it also appears in the API request log), and `MapDownload_DocsLink` when the menu's
+API-documentation link is followed.
+
 The Gallery renders the same sidebar (`gallery/src/filter/GalleryFilter.js`) and logs to `gallery_task_interaction`
 under its own names, one `<Section>Apply` / `<Section>Unapply` pair per section with the toggled value in the notes:
 `LabelTypeApply` with `Label_Type:<type>`, `SeverityApply` with `Severity:<null|1|2|3>`, `ValidationOptionApply` with
