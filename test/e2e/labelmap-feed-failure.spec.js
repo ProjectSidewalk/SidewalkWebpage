@@ -106,10 +106,17 @@ test.describe('/labelMap label feed failure', () => {
     await page.locator('#labelmap-retry').click();
     await page.waitForFunction(() => !window.__beforeRetry);
 
+    // Poll for the second request rather than asserting once: the reloaded document is ready well before its
+    // feed request goes out. Waiting on the overlay instead would prove nothing — it starts hidden in the
+    // markup, so "hidden" is also the state of a page that hasn't begun loading.
+    await expect
+      .poll(() => attempts, {message: 'retry should have re-requested the feed'})
+      .toBeGreaterThan(1);
+
     await waitForAppReady(page);
-    await page.locator('#labelmap-loading').waitFor({state: 'hidden'});
+    await page.locator('#page-loading').waitFor({state: 'hidden'});
+    await page.waitForTimeout(1000); // Settle window: a late failure would raise the error card here.
     await expect(page.locator('#labelmap-error-card')).toBeHidden();
-    expect(attempts, 'retry should have re-requested the feed').toBeGreaterThan(1);
   });
 
   test('an empty feed is a normal result, not an error', async ({page, context, consoleErrors}) => {
