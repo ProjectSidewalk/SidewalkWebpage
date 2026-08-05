@@ -74,15 +74,20 @@ navbar.explore = Ontdekken
 navbar.validate = Bevestigen
 navbar.howto = Hoe te Labelen
 navbar.api = API
+navbar.about = Over ons
 navbar.tools = Hulpmiddelen
 navbar.labelmap = Label Kaart
 navbar.help = Help
 navbar.leaderboard = Scoreboard
+navbar.stories = Verhalen
+navbar.routes = Routes
 navbar.your.city.here = Jouw stad hier
 navbar.retake.tutorial = Tutorial opnieuw doen
 navbar.signin = Log in
 navbar.signout = Log uit
 navbar.dashboard = Je dashboard
+navbar.your.stories = Je verhalen
+navbar.your.routes = Je routes
 navbar.admin = Beheerder
 navbar.expert.validate = Deskundige validatie
 navbar.city = Stad
@@ -113,6 +118,8 @@ seo.title.terms = Gebruiksvoorwaarden — Project Sidewalk
 seo.title.label.map = Labelkaart van {0} — Project Sidewalk
 seo.title.cities = Steden — Project Sidewalk
 seo.title.leaderboard = Scoreboard — Project Sidewalk
+seo.title.stories = Verhalen uit de community — Project Sidewalk
+seo.title.routes = Routes uit de community — Project Sidewalk
 seo.title.route.builder = RouteBuilder — Project Sidewalk
 seo.title.dashboard = Je dashboard — Project Sidewalk
 seo.title.settings = Instellingen — Project Sidewalk
@@ -135,6 +142,86 @@ seo.description.cities = Project Sidewalk is actief in steden over de hele werel
 seo.description.api = Gratis en open data over trottoirtoegankelijkheid in {0}: labels, labelclusters, straten en toegankelijkheidsscores in JSON, CSV, GeoJSON, GeoPackage en Shapefile.
 seo.description.about = Maak kennis met Project Sidewalk: onze missie om de trottoirs van de wereld in kaart te brengen, het onderzoeksteam erachter en de open data die het oplevert.
 seo.og.image.alt = Schermafbeelding van de virtuele straatverkenning van Project Sidewalk met toegankelijkheidslabels langs een trottoir.
+
+# Over-ons-pagina (#4237, herontwerp in #4631). Statische tekst wordt server-side gerenderd; getallen in
+# data-live-stat worden bijgewerkt vanuit /v3/api/aggregateStats, en team, publicaties en financiering vanuit de
+# Makeability Lab-API (aboutPage.js).
+about.title = Over Project Sidewalk
+about.hero.title = We brengen <span class="about-hero-accent">elk trottoir</span> ter wereld in kaart en beoordelen het.
+about.hero.subtitle = Project Sidewalk is een academisch opensource-onderzoeksproject van de University of Washington en de University of Illinois Chicago dat crowdsourcing en AI combineert om trottoirs in steden in kaart te brengen en te beoordelen — en elk datapunt openstelt voor onderzoekers, overheden en gemeenschappen.
+about.hero.cta.explore = Begin met verkennen
+about.hero.cta.data = Download de data
+about.stats.heading = Project Sidewalk in cijfers
+about.stats.km = Kilometers verkend
+about.stats.labels = Labels
+about.stats.validations = Validaties
+about.stats.cities = Steden
+about.stats.countries = Landen
+about.toc.title = Op deze pagina
+about.how.title = Hoe het werkt
+about.how.intro = Onze missie is om alle trottoirs ter wereld in kaart te brengen en te beoordelen met online crowdsourcing, kunstmatige intelligentie en straatbeelden. Iedereen met een webbrowser kan meehelpen — speciale hulpmiddelen zijn niet nodig.
+about.how.step.explore.title = Verken en label
+about.how.step.explore.body = Vrijwilligers lopen virtueel door stadsstraten in een spelachtige webtool en labelen trottoir opritten, ontbrekende trottoirs, obstakels en oppervlakteproblemen in straatbeelden.
+about.how.step.validate.title = Valideer
+about.how.step.validate.body = Andere bijdragers beoordelen elkaars labels — ondersteund door AI — en geven aan of ze het ermee eens zijn, zodat de dataset nauwkeurig en betrouwbaar blijft.
+about.how.step.data.title = Open data
+about.how.step.data.body = Elk label voedt een open dataset die onderzoekers, overheden en gemeenschappen gebruiken om de toegankelijkheid van trottoirs te begrijpen en te verbeteren.
+about.how.step.explore.cta = Begin met verkennen
+about.how.step.validate.cta = Labels valideren
+about.how.step.data.cta = Download de data
+about.impact.title = Zo maakt Project Sidewalk impact
+about.impact.intro = Het doel is niet alleen data, maar steden die beter beloopbaar, berijdbaar en veiliger voor voetgangers zijn. Een paar voorbeelden van hoe gemeenschappen, overheden en scholen Project Sidewalk hebben ingezet.
+about.impact.chicago.place = Chicago, Illinois
+about.impact.chicago.body = Stadsdistricten gebruikten door bewoners verzamelde data om budgetten voor trottoirverbetering eerlijker te prioriteren, en ons team adviseerde het Pedestrian Safety Committee van de stad om verder te gaan dan reparaties op basis van klachten.
+about.impact.illinois.place = Lincolnwood, Roselle en Mendota, Illinois
+about.impact.illinois.body = Project Sidewalk-data hielp bij het opstellen van ADA-transitieplannen voor Lincolnwood en Roselle, en in Mendota gebruikten gemeenschapspartners de data om een Safe Routes to School-subsidie binnen te halen.
+about.impact.burnaby.place = Burnaby, Canada
+about.impact.burnaby.body = De stad Burnaby nam Project Sidewalk-data op in het prioriteringskader van haar New Sidewalks Program en haar onlangs aangenomen toegankelijkheidsstrategie.
+about.impact.newberg.place = Newberg, Oregon
+about.impact.newberg.body = Nadat bewoners de lokale trottoirs in kaart brachten, startte de gemeenteraad een nieuw renovatieprogramma — met $50.000 voor directe reparaties en subsidies voor huiseigenaren om het trottoir voor hun deur te herstellen.
+about.impact.zurich.place = Zürich, Zwitserland
+about.impact.zurich.body = Zürich publiceert Project Sidewalk-data in het open-dataportaal van de stad, en de uitrol won een Smart City Hub Switzerland Award in de categorie citizen science.
+about.impact.schools.place = Klaslokalen in de VS
+about.impact.schools.body = Leerlingen gebruiken Project Sidewalk om datavaardigheden en burgerschap te leren — van Girl Scouts in Oradell, New Jersey die hun bevindingen aan de gemeenteraad presenteerden tot <a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/">scholieren in Waltham, Massachusetts die staatsbrede erkenning kregen</a>.
+about.impact.more = Meer weten? Onze zustersite <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a> deelt nieuws, hulpmiddelen en handleidingen om Project Sidewalk in jouw gemeenschap in te zetten.
+about.where.title = Waar we actief zijn
+about.where.body = Van Seattle tot Mexico-Stad tot Zürich: vrijwilligers zetten <span data-live-stat="num_cities">{0}</span> steden in <span data-live-stat="num_countries">{1}</span> landen op de toegankelijkheidskaart, straat voor straat.
+about.where.links = <a href="/cities">Bekijk alle steden</a> of <a href="https://accessiblecommunities.org/use-project-sidewalk/">breng Project Sidewalk naar jouw stad</a>.
+about.history.title = Onze geschiedenis
+about.history.2012 = Project Sidewalk begint als onderzoeksproject van professor Jon E. Froehlich en promovendus Kotaro Hara in het <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a>, met vroege steun van een <a href="https://research.google/outreach/past-programs/faculty-research-awards/">Google Faculty Research Award</a> en de <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338">National Science Foundation</a>.
+about.history.2017 = De eerste stadsbrede inzet gaat van start in Washington, DC, geleid door promovenda Manaswi Saha en onderzoekswetenschapper Mikey Saugstad, terwijl het lab verhuist naar de Paul G. Allen School of Computer Science &amp; Engineering aan de University of Washington.
+about.history.2019 = De pilotstudie in DC toont aan dat online crowdsourcing kan worden gebruikt om de trottoirs van een hele stad in kaart te brengen — en wint een Best Paper Award op CHI 2019.
+about.history.2021 = Een <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087">NSF Smart &amp; Connected Communities-subsidie</a> verdiept onze samenwerking met de University of Illinois Chicago en Easterseals, met meer steden, onderwijsprogramma''s en onze zustersite <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a>.
+about.history.today.label = Vandaag
+about.history.today = Project Sidewalk is actief in <span data-live-stat="num_cities">{0}</span> steden wereldwijd, native vertaald in {1} talen en aangedreven door duizenden vrijwilligers.
+about.team.title = Het team
+about.team.intro = Project Sidewalk is universitair onderzoek, geleid door professor Jon E. Froehlich van het <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> aan de University of Washington en professor Yochai Eisenberg van de University of Illinois Chicago, met hoofdontwikkeling door Mikey Saugstad — en bijdragen van ruim honderd studenten en medewerkers door de jaren heen.
+about.team.current.title = Huidig team
+about.team.past.title = Eerdere leiding
+about.team.past.kotarohara = Startte Project Sidewalk samen met professor Froehlich als zijn promovendus en ontwikkelde de crowdsourcing- en computervisiemethoden achter het project — het onderwerp van zijn <a href="https://makeabilitylab.cs.washington.edu/media/publications/Hara_ScalableMethodsToCollectAndVisualizeSidewalkAccessibilityDataForPeopleWithMobilityImpairments_UMDCSPhDDissertation2016.pdf">proefschrift</a>.
+about.team.past.davidjacobs = Co-PI van de oorspronkelijke NSF-subsidie en de eerste Google Faculty Research Award waarmee Project Sidewalk begon, en begeleidde het vroege computervisieonderzoek.
+about.team.past.manaswisaha = Hielp de eerste grootschalige inzet in Washington, DC te leiden en ontwierp tools om stedelijke toegankelijkheidsdata te begrijpen — het onderwerp van haar <a href="https://makeabilitylab.cs.washington.edu/media/publications/Saha_DesigningInteractiveDataDrivenToolsForUnderstandingUrbanAccessibilityAtScale_UWCSPhDDissertation2022.pdf">proefschrift</a>.
+about.team.contributors.title = Bijdragers
+about.team.contributors.intro = Meer dan {0} mensen hebben code, ontwerpen en ideeën bijgedragen aan Project Sidewalk, waaronder {1} studenten van de middelbare school tot en met promovendi. Onderdeel van onze missie is om informatica- en designstudenten via ervaringsgericht leren aan maatschappelijk relevante projecten te laten werken.
+about.team.contributors = … plus partnerorganisaties en duizenden vrijwillige mappers wereldwijd — zie de <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">projectpagina</a>.
+about.pubs.title = Gerelateerde publicaties
+about.pubs.intro = Onderzoek van Project Sidewalk verschijnt op toonaangevende fora voor mens-computerinteractie en toegankelijkheid. Gebruik je onze data of tools in je onderzoek? Citeer dan ons <a href="https://doi.org/10.1145/3290605.3300292">CHI 2019-artikel</a>.
+about.pubs.fallback = Bekijk <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">alle Project Sidewalk-publicaties</a> op de website van het Makeability Lab.
+about.pubs.showAll = Toon alle {0} publicaties
+about.pubs.cite.title = Project Sidewalk citeren
+about.pubs.cite.plain = Citatie
+about.pubs.cite.copy = Kopiëren
+about.pubs.cite.copied = Gekopieerd
+about.data.title = Open data en open source
+about.data.body = Alles wat we verzamelen is open. Download labels, labelclusters, straten en toegankelijkheidsscores via onze <a href="/api">publieke API''s</a>, in formaten van CSV tot GeoJSON — alles gepubliceerd onder CC0; zie de <a href="/api">API-documentatie</a> voor details en citatierichtlijnen. Ook onze <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">code is open source</a>.
+about.partners.title = Maatschappelijke partners
+about.partners.body = We werken nauw samen met belangenorganisaties voor mensen met een beperking, overheden, scholen en gemeenschapsgroepen wereldwijd — waaronder Easterseals, World Enabled, Liga Peatonal en de Active Transportation Alliance — om inzet te plannen, karteerevenementen te organiseren en data om te zetten in lokale actie.
+about.partners.schools = Docenten gebruiken Project Sidewalk in lessen burgerschap en datawetenschap, en ons team en onze partners hebben lesprogramma''s ontwikkeld voor service learning en arbeidsontwikkeling voor jongeren met een beperking. <a href="https://accessiblecommunities.org/use-project-sidewalk/">Lees hoe je Project Sidewalk in jouw gemeenschap inzet</a>.
+about.funding.title = Onderzoeksfinanciering
+about.funding.body = Project Sidewalk is met subsidies gefinancierd academisch onderzoek, ondersteund door de National Science Foundation, met aanvullende steun van Google, de Alfred P. Sloan Foundation, PacTrans en het CREATE-centrum van de University of Washington.
+about.cta.title = Help ons elk trottoir in kaart te brengen
+about.cta.city = Breng Project Sidewalk naar jouw stad
+about.contact.body = Vragen, ideeën of persverzoeken? Mail ons via <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, open een issue op <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a> of volg ons op <a href="https://www.linkedin.com/company/project-sidewalk/">LinkedIn</a> en <a href="https://bsky.app/profile/projectsidewalk.bsky.social">Bluesky</a>.
 
 landing.create.path = Laten we een pad creëren voor iedereen!
 landing.start.exploring = Start met Verkennen
@@ -458,6 +545,7 @@ cities.dashboard.cta.logo.alt = Het logo van Project Sidewalk met de tekst proje
 share.meta.title.issue = Ik heb een toegankelijkheidsprobleem gevonden op Project Sidewalk: {0}
 share.meta.title.feature = Kijk wat ik heb gevonden op Project Sidewalk: {0}
 share.meta.description.spotted = Gespot in {0}.
+share.meta.description.story = ‘{0}’ – een verhaal uit de community.
 share.meta.description.address = In de buurt van {0}.
 share.meta.description.severity = Ernst: {0} van 3.
 share.meta.description.tags = Tags: {0}.
@@ -639,11 +727,16 @@ leaderboard.accuracy.detail = Het aandeel gevalideerde labels van een deelnemer 
 leaderboard.thisweek.title = {0} deze week
 leaderboard.thisweek.intro = Elke maandag vers — de beste plek om snel te klimmen.
 leaderboard.thisweek.none = ✨ Nog geen labels deze week — wees de eerste op het bord!
-leaderboard.teams.title = Teams
+leaderboard.teams.title = Teams in {0}
 leaderboard.teams.intro = Maak een team aan of sluit je aan om samen het verschil te maken!
 leaderboard.teams.none = 👥 Nog geen teams — wees de eerste! Maak er een aan en nodig vrienden of klasgenoten uit.
-leaderboard.you.title = Jouw plek in de gemeenschap
-leaderboard.you.intro = Waar je deze week staat, en wie er net voor en achter je zit.
+leaderboard.allcities.title = Alle steden, aller tijden
+leaderboard.allcities.intro = De beste deelnemers uit alle Project Sidewalk-steden, gerangschikt op het totale aantal labels.
+leaderboard.allcities.note = De afstand wordt één keer per dag bijgewerkt.
+leaderboard.allcities.none = 🌍 Nog geen labels in de steden — die van jou kan de eerste zijn.
+leaderboard.header.topcity = Topstad
+leaderboard.you.title = Jouw plek in {0} deze week
+leaderboard.you.intro = Waar je staat tussen de deelnemers van deze week, en wie net voor en achter je zit.
 leaderboard.community.title = Impact van de gemeenschap
 leaderboard.community.intro = De hele Project Sidewalk-gemeenschap, in alle steden samen.
 leaderboard.community.contributors = Bijdragers
@@ -657,3 +750,40 @@ dashboard.unit.ft = ft
 dashboard.rank.place.one = 1e plaats
 dashboard.rank.place.two = 2e plaats
 dashboard.rank.place.three = 3e plaats
+# Community listing pages: /stories and /routes (#4688).
+stories.page.search.placeholder = Typ om verhalen te filteren…
+routes.page.search.placeholder = Typ om routes te filteren…
+community.page.sort = Sorteren op
+community.page.sort.newest = Nieuwste eerst
+community.page.sort.neighborhood = Buurt
+community.page.count = {0} weergegeven
+community.page.no.results = Niets komt overeen met je zoekopdracht.
+community.page.cap.note = Alleen de nieuwste {0} worden weergegeven.
+stories.page.title = Verhalen uit de community
+stories.page.intro = Persoonlijke verhalen die communityleden aan stoeplabels hebben toegevoegd — echte ervaringen over hoe barrières en toegankelijkheidsvoorzieningen het leven van mensen beïnvloeden.
+stories.page.sort.labeltype = Labeltype
+stories.page.none = Er zijn in deze stad nog geen verhalen gedeeld.
+stories.page.none.cta = Vind een label en schrijf jouw verhaal
+stories.page.anonymous = Anoniem
+stories.page.view.label = Label bekijken
+stories.page.read.more = Meer lezen
+stories.page.read.less = Minder lezen
+stories.page.photo.alt = Foto bij dit verhaal
+stories.page.label.image.alt = Straatbeeld: {0}
+routes.page.title = Routes uit de community
+routes.page.intro = Wandelroutes die communityleden met RouteBuilder hebben gemaakt. Verken er een om erlangs te labelen, of kopieer de link om te delen.
+routes.page.build.cta = Route maken
+routes.page.sort.longest = Langste eerst
+routes.page.sort.explored = Meest verkend
+routes.page.none = Er zijn in deze stad nog geen routes gemaakt.
+routes.page.none.cta = Maak de eerste route
+
+# Foutpagina's (404, 500), weergegeven door modules.CustomErrorHandler.
+error.404.heading = Pagina niet gevonden
+error.404.message = We konden de opgevraagde pagina niet vinden.
+error.500.heading = Er is iets misgegaan
+error.500.message = Er is een onverwachte fout aan onze kant opgetreden. Het ligt niet aan jou — probeer het zo meteen opnieuw.
+error.500.id = Foutcode: {0}
+error.500.report = Als dit blijft gebeuren, {0} en vermeld de bovenstaande foutcode zodat we het kunnen onderzoeken.
+error.500.report.link = laat het ons dan weten
+error.home = Terug naar start

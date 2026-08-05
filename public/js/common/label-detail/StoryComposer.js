@@ -19,6 +19,7 @@ class StoryComposer {
   #els = {};
   #labelId = null;
   #maxLength = null; // Server-provided via open() (sourced from /stories payload, never hardcoded here).
+  #labelTypeName = null; // Localized label-type name for the title; null falls back to the generic wording.
   #onSubmitted;
   #username;
   #objectUrl = null;
@@ -36,6 +37,8 @@ class StoryComposer {
    * @param {HTMLDialogElement} dialog - The `.story-composer` dialog element.
    * @param {Object} opts
    * @param {string} [opts.currUsername] - The viewer's username; empty/absent hides the show-username option.
+   * @param {boolean} [opts.omitDashboardLink] - Set by a host that is itself the dashboard, so the privacy note
+   *     drops the link back to it.
    * @param {(edited: boolean) => void} [opts.onSubmitted] - Fired after a successful submission or in-place edit
    *     (hosts refresh the story list); `edited` distinguishes the two for the announcement.
    */
@@ -77,8 +80,13 @@ class StoryComposer {
     dialog.setAttribute('aria-labelledby', this.#els.title.id);
 
     // The privacy note embeds the dashboard link, so the translated string carries markup — innerHTML by design.
-    // Safe: the string comes from our own locale files, never from user input.
-    this.#els.privacy.innerHTML = i18next.t('labelmap:story.privacy-note');
+    // Safe: the string comes from our own locale files, never from user input. A host that already *is* the
+    // dashboard points at itself with that link, so it gets the link-free variant instead.
+    if (opts.omitDashboardLink) {
+      this.#els.privacy.textContent = i18next.t('labelmap:story.privacy-note-brief');
+    } else {
+      this.#els.privacy.innerHTML = i18next.t('labelmap:story.privacy-note');
+    }
 
     this.#wireHandlers();
   }
@@ -126,8 +134,10 @@ class StoryComposer {
    * Opens the composer prefilled with an existing story for in-place editing. Submitting PUTs the changes to the
    * story instead of creating a new one; no sign-in CTA or stashed-draft restore applies (only the author gets
    * here, and prefilled content isn't a draft).
-   * @param {Object} story - The StoryForView payload being edited (must be the viewer's own).
-   * @param {?number} maxTextLength - Character cap from the /stories payload (backend source of truth).
+   * Accepts either author-visible payload shape: the card's StoryForView (byline resolved into `display_name`) or the
+   * dashboard's StoryForOwner (the raw `display_name_mode`).
+   * @param {Object} story - The story being edited (must be the viewer's own).
+   * @param {?number} maxTextLength - Character cap from the story payload (backend source of truth).
    */
   openForEdit(story, maxTextLength) {
     this.#labelId = story.label_id;
@@ -142,7 +152,8 @@ class StoryComposer {
     const els = this.#els;
     els.text.value = story.text;
     this.#renderCounter();
-    if (story.display_name && this.#username) {
+    const postedAsUsername = story.display_name_mode ? story.display_name_mode === 'username' : !!story.display_name;
+    if (postedAsUsername && this.#username) {
       els.nameUser.checked = true;
       els.nameAnon.checked = false;
     }
@@ -319,6 +330,11 @@ class StoryComposer {
         }
         this.#dialog.close();
         if (typeof this.#onSubmitted === 'function') this.#onSubmitted(editing);
+        // #onSubmitted only reaches this composer's own host, so story lists elsewhere on the page (the
+        // dashboard's "Your stories" next to the label popup) listen for this page-level signal instead.
+        document.dispatchEvent(new CustomEvent('ps:story:changed', {
+          detail: { storyId: editing ? this.#editStoryId : null },
+        }));
       } else {
         let body = null;
         try {
@@ -327,8 +343,14 @@ class StoryComposer {
           // Non-JSON error body (e.g. Play's body-parser cutoff or a proxy error page); handled by status below.
         }
         const key = body && body.error ? `labelmap:${body.error}` : null;
+        // When the server said how long the wait is (the daily story cap), prefer the variant of the message that
+        // names it. Falls back to the plain message whenever the wait is unknown or unformattable.
+        const when = StoryComposer.#relativeTime(body && body.retry_after_seconds);
+        const timedKey = key && when ? `${key}-retry` : null;
         let message;
-        if (key && i18next.exists(key)) {
+        if (timedKey && i18next.exists(timedKey)) {
+          message = i18next.t(timedKey, { when });
+        } else if (key && i18next.exists(key)) {
           // The server rides the real limit along on text-too-long (body.max); #maxLength is only the fallback
           // since it's null until the /stories fetch lands.
           message = i18next.t(key, { max: (body && body.max) || this.#maxLength });
@@ -350,30 +372,43 @@ class StoryComposer {
   }
 
   /**
-   * POSTs multipart form data, minting the shared anonymous session and retrying once — but only when the failure
-   * looks auth-shaped (401/403/redirect). That's deliberately narrower than LabelDetail's #postJson, which retries
-   * on any non-OK response: a story rejection (409 duplicate, 429 rate-limited) must surface, not be re-posted.
-   * No Content-Type header: the browser sets the multipart boundary itself.
+   * POSTs multipart form data via util.lazyIdentityFetch (#4442): an auth-shaped failure (401/403/redirect) mints
+   * the shared anonymous session and retries once, while a story rejection (409 duplicate, 429 rate-limited)
+   * surfaces rather than being re-posted. No Content-Type header: the browser sets the multipart boundary itself.
    * @param {string} url
    * @param {FormData} formData
    * @param {string} [method='POST'] - 'PUT' for in-place story edits.
    * @returns {Promise<Response>}
    */
-  async #postForm(url, formData, method = 'POST') {
-    const post = () => fetch(url, { method, body: formData });
-    let res = await post();
-    if (!res.ok && (res.status === 401 || res.status === 403 || res.type === 'opaqueredirect' || res.redirected)) {
-      await fetch('/anonSignUp?url=%2F', { redirect: 'manual' });
-      res = await post();
-    }
-    return res;
+  #postForm(url, formData, method = 'POST') {
+    return util.lazyIdentityFetch(url, { method, body: formData });
+  }
+
+  /**
+   * Names the label the composer is currently attached to, so the title can say what the story is about (#4722 QA:
+   * "Write your story about this Missing Curb Ramp"). Set by StorySection whenever the card shows a new label, and
+   * applied immediately: the label can change while the composer is already open (the host pages between labels).
+   *
+   * @param {?string} labelTypeName - Localized label-type name, or null for the generic title. Callers pass null
+   *      for types that don't read as a thing you can have a story "about" — see LabelDetail.
+   */
+  setLabelType(labelTypeName) {
+    this.#labelTypeName = labelTypeName || null;
+    this.#renderTitle();
+  }
+
+  /** Writes the dialog title for the current mode and label. @private */
+  #renderTitle() {
+    const base = this.#editStoryId !== null ? 'composer-title-edit' : 'composer-title';
+    this.#els.title.textContent = this.#labelTypeName
+      ? i18next.t(`labelmap:story.${base}-about`, { labelType: this.#labelTypeName })
+      : i18next.t(`labelmap:story.${base}`);
   }
 
   #reset() {
     const els = this.#els;
     const editing = this.#editStoryId !== null;
-    els.title.textContent
-      = i18next.t(editing ? 'labelmap:story.composer-title-edit' : 'labelmap:story.composer-title');
+    this.#renderTitle();
     els.submit.textContent = i18next.t(editing ? 'labelmap:story.save' : 'labelmap:story.submit');
     els.text.value = '';
     this.#renderCounter();
@@ -572,5 +607,38 @@ class StoryComposer {
 
   #clearError() {
     this.#els.error.hidden = true;
+  }
+
+  /**
+   * Formats a wait in seconds as a localized phrase — "in 3 hours", "in 20 minutes".
+   *
+   * A duration rather than a wall-clock time, deliberately. The daily story cap is a *rolling* 24 hours from each
+   * story, so there is no "tomorrow" to name; and a duration is true for a reader in any timezone without the server
+   * ever having to know which one they're in.
+   *
+   * Minutes below the 90-minute mark and hours above it, and both round *up*: the phrase is a promise about when a
+   * retry succeeds, and a quoted moment before the slot actually opens is the lie that matters — someone who comes
+   * back exactly when told must not be refused again. (Always-hours would round a 40-minute wait to "in 1 hour";
+   * round-to-nearest hours would tell a 3h29m wait "in 3 hours" — the same broken promise at a larger scale.
+   * Ceiling can overshoot — a 3h05m wait reads "in 4 hours" — but at hour scale nobody is waiting on the minute,
+   * and coming back late always succeeds.)
+   *
+   * @param {*} seconds - The server's `retry_after_seconds`, or anything non-numeric when it didn't say.
+   * @returns {?string} The localized phrase, or null when there's nothing to format.
+   * @private
+   */
+  static #relativeTime(seconds) {
+    const usable = typeof seconds === 'number' && Number.isFinite(seconds) && seconds > 0;
+    if (!usable || typeof Intl === 'undefined' || typeof Intl.RelativeTimeFormat !== 'function') return null;
+    const lang = (typeof i18next !== 'undefined' && i18next.language) || document.documentElement.lang || 'en';
+    let fmt;
+    try {
+      fmt = new Intl.RelativeTimeFormat(lang, { numeric: 'always' });
+    } catch {
+      return null; // Unknown or malformed tag — fall back to the untimed message rather than throw mid-error-path.
+    }
+    return seconds < 5400
+      ? fmt.format(Math.ceil(seconds / 60), 'minute')
+      : fmt.format(Math.ceil(seconds / 3600), 'hour');
   }
 }

@@ -113,7 +113,7 @@ class AppManager {
     // Set up CSRF token for fetch requests by overwriting the fetch function. The token is only attached to
     // same-origin requests: Play's CSRF filter only checks requests to our own server, and a token signed by this
     // server is meaningless to anyone else. Attaching it to cross-origin requests (Mapbox, Mapillary, Infra3d,
-    // Overpass, sibling city servers, ...) does nothing useful and forces an unnecessary CORS preflight that some
+    // sibling city servers, ...) does nothing useful and forces an unnecessary CORS preflight that some
     // hosts reject, so we skip them rather than maintaining an allowlist of hosts to exclude (#4232).
     const originalFetch = window.fetch;
     window.fetch = function (url, options = {}) {

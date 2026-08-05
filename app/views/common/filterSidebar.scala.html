@@ -1,0 +1,232 @@
+@import models.label.{LabelTypeEnum, Tag}
+@*
+ * The shared filter sidebar (#4585): the same controls on the map pages and in the Gallery, driven by the
+ * FilterSidebar controller in `public/js/common/filter-sidebar/`.
+ *
+ * @param tags                All tags for the city, rendered as per-label-type drawers.
+ * @param sections            Which sections to render, in order: "search", "severity", "label-type",
+ *                            "validations", "admin", "streets". Anything else is ignored.
+ * @param streetsShownByDefault Whether the two street rows start checked.
+ * @param showCounts          Whether rows carry a live count slot for the host to fill in.
+ * @param withMapChrome       Whether to wrap the sections in the map's panel: collapse button and resize handle.
+ *                            Hosts with their own container (the Gallery) pass false and get the sections alone.
+ * @param checkedLabelTypes   Which label type rows start checked; empty means all of them.
+ * @param checkedValidations  Which validation rows start checked.
+ * @param checkedSeverities   Which severity toggles start pressed, as "0"(N/A) through "3".
+ * @param activeTags          Tags that start applied, e.g. from the Gallery's URL.
+ *@
+@(tags: Seq[Tag] = Seq.empty,
+  sections: Seq[String] = Seq("severity", "label-type", "validations", "streets"),
+  streetsShownByDefault: Boolean = false,
+  showCounts: Boolean = false,
+  withMapChrome: Boolean = true,
+  checkedLabelTypes: Seq[String] = Seq.empty,
+  checkedValidations: Seq[String] = Seq("correct", "unsure", "unvalidated"),
+  checkedSeverities: Seq[String] = Seq("0", "1", "2", "3"),
+  activeTags: Seq[String] = Seq.empty
+)(implicit messages: Messages, assets: AssetsFinder)
+
+@tagsByLabelType = @{tags.groupBy(t => LabelTypeEnum.labelTypeIdToLabelType.getOrElse(t.labelTypeId, ""))}
+
+@* Right-aligned slot at the end of a filter row: an optional live label count, and an "Only" button that swaps in
+   on hover/focus to exclusive-select that row within its section. *@
+@rightSlot(section: String, value: String, withCount: Boolean = true) = {
+  <span class="filter-sidebar__right-slot">
+    @if(showCounts && withCount) {
+      <span class="filter-sidebar__count" data-count-for="@value"></span>
+    }
+    <button type="button" class="filter-sidebar__only" data-section="@section" data-value="@value" data-i18n="common:only">Only</button>
+  </span>
+}
+
+@* A section's heading, plus the action that flips the whole section on or off. *@
+@sectionHeading(i18nKey: String, text: String, section: String, headingId: String = "") = {
+  <div class="filter-sidebar__heading-row">
+    <h3 class="filter-sidebar__heading" @if(headingId.nonEmpty){id="@headingId"} data-i18n="@i18nKey">@text</h3>
+    <button type="button" class="filter-sidebar__deselect-all" data-section="@section" data-i18n="labelmap:deselect-all">Deselect all</button>
+  </div>
+}
+
+@* A label type row. The type's map color doubles as the checkbox: filled with a check when shown, a hollow ring in
+   the same color when hidden (#4585). Types with tags carry a collapsible drawer of tag pills. *@
+@labelTypeItem(labelType: String, i18nKey: String, msgKey: String) = {
+  @defining(tagsByLabelType.getOrElse(labelType, Seq.empty)) { typeTags =>
+    @defining(checkedLabelTypes.isEmpty || checkedLabelTypes.contains(labelType)) { checked =>
+      @* A type's drawer starts open when a tag of its own is already applied, so a filter arriving from the URL is
+         visible rather than hidden behind a chevron. *@
+      @defining(typeTags.exists(t => checked && activeTags.contains(t.tag))) { drawerOpen =>
+        <li class="filter-sidebar__item filter-sidebar__item--expandable">
+          <div class="filter-sidebar__item-row">
+            <input type="checkbox" id="@(labelType)-checkbox" class="filter-sidebar__checkbox" @if(checked){checked} data-filter-type="label-type" disabled>
+            <label class="filter-sidebar__item-label" for="@(labelType)-checkbox">
+              <span class="filter-sidebar__legend-icon" data-label-type="@labelType">
+                <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                  <circle cx="9" cy="9" r="7.5"/>
+                  <path class="filter-sidebar__legend-check" d="M5.2 9.2l2.4 2.4 5.2-5.6"/>
+                  <path class="filter-sidebar__legend-dash" d="M5.4 9h7.2"/>
+                </svg>
+              </span>
+              <span class="filter-sidebar__item-name" data-i18n="@i18nKey">@Messages(msgKey)</span>
+            </label>
+            @rightSlot("label-type", labelType)
+            @if(typeTags.nonEmpty) {
+              <button type="button" class="filter-sidebar__tag-toggle" aria-expanded="@drawerOpen" aria-label="Show tags" data-i18n-aria-label="labelmap:show-tags">
+                <img src='@assets.path(if(drawerOpen) "images/icons/chevron-down-feather.svg" else "images/icons/chevron-right-feather.svg")' alt="" data-down-src='@assets.path("images/icons/chevron-right-feather.svg")' data-up-src='@assets.path("images/icons/chevron-down-feather.svg")'>
+              </button>
+            }
+          </div>
+          @if(typeTags.nonEmpty) {
+            <div class="filter-sidebar__tag-pills" @if(!drawerOpen){hidden}>
+            @* A tag applies to every checked type that carries it: tag names repeat across types ("narrow" is both a
+               curb ramp's and a sidewalk's), and the URL carries them as one flat list. *@
+            @for(tag <- typeTags) {
+              <button type="button" class="@if(checked && activeTags.contains(tag.tag)){tag-pill tag-pill--interactive tag-pill--active}else{tag-pill tag-pill--interactive}" data-tag="@tag.tag" data-label-type="@labelType">
+                <span class="tag-pill__label" data-i18n="common:tag.@{tag.tag.replace(":", "-")}">@tag.tag</span>
+              </button>
+            }
+            </div>
+          }
+        </li>
+      }
+    }
+  }
+}
+
+@severityToggle(severity: String, iconName: String, i18nKey: String, msgKey: String) = {
+  <div class="filter-sidebar__severity-cell">
+    <button type="button" class="severity-button" data-severity="@severity" aria-pressed="@checkedSeverities.contains(severity)">
+      <img class="severity-button__icon" src='@assets.path(s"images/icons/smileys/$iconName${if(checkedSeverities.contains(severity)) "-filled" else ""}.svg")' data-selected-src='@assets.path(s"images/icons/smileys/$iconName-filled.svg")' data-unselected-src='@assets.path(s"images/icons/smileys/$iconName.svg")' alt="@Messages(msgKey)" data-i18n-alt="@i18nKey">
+      <span class="severity-button__label" data-i18n="@i18nKey">@Messages(msgKey)</span>
+    </button>
+    <button type="button" class="filter-sidebar__only" data-section="severity" data-value="@severity" data-i18n="common:only">Only</button>
+  </div>
+}
+
+@validationItem(option: String, icon: String, iconClass: String, i18nKey: String, alt: String) = {
+  <li class="filter-sidebar__item">
+    <input type="checkbox" id="@option" class="filter-sidebar__checkbox" @if(checkedValidations.contains(option)){checked} data-filter-type="label-validations" disabled>
+    <label class="filter-sidebar__item-label" for="@option">
+      <span class="filter-sidebar__icon filter-sidebar__icon--badged">
+        <img class="@iconClass" src='@assets.path(s"images/icons/$icon")' alt="@alt" data-i18n-alt="@i18nKey">
+      </span>
+      <span class="filter-sidebar__item-name" data-i18n="@i18nKey">@alt</span>
+    </label>
+    @rightSlot("label-validations", option)
+  </li>
+}
+
+@streetItem(id: String, streetClass: String, i18nKey: String, text: String) = {
+  <li class="filter-sidebar__item">
+    <input type="checkbox" id="@id" class="filter-sidebar__checkbox" data-filter-type="streets" @if(streetsShownByDefault){checked} disabled>
+    <label class="filter-sidebar__item-label" for="@id">
+      <span class="filter-sidebar__icon filter-sidebar__icon--badged">
+        <svg class="filter-sidebar__street-icon filter-sidebar__street-icon--@streetClass" width="17" height="14" viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M 2 10 L 18 10 z"></path>
+        </svg>
+      </span>
+      <span class="filter-sidebar__item-name" data-i18n="@i18nKey">@text</span>
+    </label>
+    @rightSlot("streets", id)
+  </li>
+}
+
+@filterSections = {
+  @for(section <- sections) {
+    @section match {
+      case "search" => {
+        @* The Mapbox Search JS control is mounted into #labelmap-search-box by labelMapLocationSearch.js (#4370). *@
+        <section class="filter-sidebar__section" id="labelmap-search-section" role="search" aria-label="Search for an address or place" data-i18n-aria-label="labelmap:search-placeholder">
+          <div id="labelmap-search-box"></div>
+        </section>
+      }
+      case "severity" => {
+        <section class="filter-sidebar__section" data-filter-section="severity">
+          @sectionHeading("common:severity", Messages("severity"), "severity", "filter-sidebar-severity-heading")
+          <div class="filter-sidebar__severity-toggles" role="group" aria-label="@Messages("severity")" data-i18n-aria-label="common:severity">
+            @severityToggle("0", "sev-0-negative", "labelmap:not-applicable-abbr", "not.applicable.abbr")
+            @severityToggle("1", "sev-1-negative", "common:low", "low")
+            @severityToggle("2", "sev-2-negative", "common:medium", "medium")
+            @severityToggle("3", "sev-3-negative", "common:high", "high")
+          </div>
+        </section>
+      }
+      case "label-type" => {
+        <section class="filter-sidebar__section" data-filter-section="label-type">
+          @sectionHeading("labelmap:label-type", Messages("label.type"), "label-type")
+          <ul class="filter-sidebar__list">
+            @labelTypeItem("CurbRamp", "common:curb-ramp", "curb.ramp")
+            @labelTypeItem("NoCurbRamp", "common:no-curb-ramp", "missing.ramp")
+            @labelTypeItem("Obstacle", "common:obstacle", "obstacle")
+            @labelTypeItem("SurfaceProblem", "common:surface-problem", "surface.problem")
+            @labelTypeItem("NoSidewalk", "common:no-sidewalk", "no.sidewalk")
+            @labelTypeItem("Crosswalk", "common:crosswalk", "crosswalk")
+            @labelTypeItem("Other", "common:other", "other")
+            @labelTypeItem("Signal", "common:signal", "signal")
+            @labelTypeItem("Occlusion", "common:occlusion", "occlusion")
+          </ul>
+        </section>
+      }
+      case "validations" => {
+        <section class="filter-sidebar__section" data-filter-section="validations">
+          @sectionHeading("labelmap:validations", Messages("validations"), "label-validations")
+          <ul class="filter-sidebar__list">
+            @validationItem("correct", "validation/agree-filled.svg", "filter-sidebar__validation-icon", "common:correct", "Validated correct")
+            @validationItem("incorrect", "validation/disagree-filled.svg", "filter-sidebar__validation-icon", "common:incorrect", "Validated incorrect")
+            @validationItem("unsure", "validation/unsure-filled.svg", "filter-sidebar__validation-icon", "common:unsure", Messages("unsure.caps"))
+            @validationItem("unvalidated", "alert-circle.svg", "filter-sidebar__unvalidated-icon", "common:unvalidated", "Unvalidated")
+          </ul>
+        </section>
+      }
+      case "admin" => {
+        @* Admin-only filter (#4243). Only rendered inside the admin dashboard's Map tab. *@
+        <section class="filter-sidebar__section" data-filter-section="admin">
+          <div class="filter-sidebar__heading-row">
+            <h3 class="filter-sidebar__heading" data-i18n="labelmap:admin-only">Admin only</h3>
+          </div>
+          <ul class="filter-sidebar__list">
+            <li class="filter-sidebar__item">
+              <input type="checkbox" id="not-admin-validated" data-filter-type="admin-validation" disabled>
+              <label for="not-admin-validated" data-i18n="labelmap:not-admin-validated">Not validated by an admin</label>
+            </li>
+          </ul>
+        </section>
+      }
+      case "streets" => {
+        <section class="filter-sidebar__section" data-filter-section="streets">
+          <div class="filter-sidebar__heading-row">
+            <h3 class="filter-sidebar__heading" data-i18n="labelmap:streets">Streets</h3>
+            @if(streetsShownByDefault) {
+              <button type="button" class="filter-sidebar__deselect-all" data-section="streets" data-i18n="labelmap:deselect-all">Deselect all</button>
+            } else {
+              <button type="button" class="filter-sidebar__deselect-all" data-section="streets" data-i18n="labelmap:select-all">Select all</button>
+            }
+          </div>
+          <ul class="filter-sidebar__list">
+            @streetItem("audited-street", "audited", "labelmap:audited-street", "Audited Street")
+            @streetItem("unaudited-street", "unaudited", "labelmap:unaudited-street", "Unaudited Street")
+          </ul>
+        </section>
+      }
+      case _ => {}
+    }
+  }
+}
+
+@if(withMapChrome) {
+  <div id="filter-sidebar" class="filter-sidebar ps-invisible" role="complementary" aria-label="Legend" data-i18n-aria-label="labelmap:legend">
+    <button type="button" id="filter-sidebar-close" class="filter-sidebar__close" aria-label="Close" data-i18n-aria-label="common:close">
+      <img src="@assets.path("images/icons/chevrons-left-feather.svg")" alt="">
+    </button>
+    @filterSections
+  </div>
+
+  @* Drag handle on the right edge of the sidebar for resizing. *@
+  <div id="filter-sidebar-resize-handle" class="filter-sidebar__resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize legend" data-i18n-aria-label="labelmap:resize-legend"></div>
+
+  @* Floating button to reopen the sidebar when it's closed *@
+  <button type="button" id="filter-sidebar-open" class="filter-sidebar-open-btn" aria-label="Legend" data-i18n-aria-label="labelmap:legend">
+    <img src="@assets.path("images/icons/chevrons-right-feather.svg")" alt="">
+  </button>
+} else {
+  @filterSections
+}

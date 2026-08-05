@@ -93,17 +93,27 @@
       </div>
       <div id="svv-panorama-holder">
         <div id="svv-panorama"></div>
-        <div id="view-control-layer">
-          <button type="button" id="label-visibility-button-on-label"class="label-visibility-button-on-label" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">@Html(Messages("validate.top.ui.hide.label"))</button>
-          <div id="label-description-box"></div>
-        </div>
+        <div id="view-control-layer"></div>
+        @* Read-only: no Delete, no Edit, and the card is not itself a click target the way Explore's is. A validator
+           judges the label; they don't change it. The one action it carries is the Hide-label toggle, which
+           LabelVisibilityControl labels and keeps in step with the always-visible toggle in the pano's top-left
+           corner — swapping its tooltip too, since the button reverses meaning when the label is hidden. A short
+           tooltip, not the top-left control's full sentence, and pinned below: the card is itself a hover panel, so
+           the default placement would open this over the rating the validator is reading. *@
+        @components.labelCard(idPrefix = "label-card", noInfoKey = Some("validate:center-ui.no-info")) {
+          <button type="button" id="label-visibility-button-on-label" class="button-ps button--tiny label-hover-card__action-button" data-ps-tooltip-placement="bottom"></button>
+        }
         <div id="pano-border-frame"></div>
-        <div id="speed-limit-sign" class="speed-limit-sign" data-design-style="us-canada">
+        <div id="speed-limit-sign" class="speed-limit-sign" data-design-style="us-canada" tabindex="0" role="img" data-i18n-tooltip="common:speed-limit-tooltip">
           <div class="speed-limit-holder">
             <span class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></span>
           </div>
         </div>
-        <button type="button" id="label-visibility-control-button"class="button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top"></button>
+        @* Same shared pill Explore uses for its Stuck/Sound/Feedback controls in this corner. Labelled by
+           LabelVisibilityControl, which keeps it in step with the toggle in the label card's footer. *@
+        <div id="label-visibility-control-holder" class="pano-overlay-button-group">
+          <button type="button" id="label-visibility-control-button" class="pano-overlay-button"></button>
+        </div>
         <div id="svv-panorama-date-holder">
           <span id="svv-panorama-date"></span>
         </div>
@@ -251,6 +261,7 @@
       param.hasNextMission = @validatePageData.hasNextMission;
       param.completedValidations = @validatePageData.completedValidations;
       param.language = "@messages.lang.code";
+      param.countryId = "@currentCity.countryId";
       const imagerySrc = "@commonData.imagerySource.toString";
       param.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
       param.viewerAccessToken = "@commonData.imageryAccessToken";

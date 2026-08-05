@@ -1,4 +1,6 @@
 {
-  "not-applicable": "nicht zutreffend",
-  "none": "keine"
+  "clear-filters": "Filter löschen",
+  "filter-by": "Filtern nach",
+  "none": "keine",
+  "not-applicable": "nicht zutreffend"
 }

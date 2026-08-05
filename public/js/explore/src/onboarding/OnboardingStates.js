@@ -16,6 +16,18 @@ function OnboardingStates(contextMenu, compass, panoManager) {
     'stage-7': [281, 14],
   };
 
+  // Inline replica of the hover card's Delete button (.label-hover-card__delete-button) for tutorial messages
+  // that ask the user to delete a misplaced label.
+  const deleteIconHtml = `
+    <span class="onboarding-delete-button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round" aria-hidden="true">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        <line x1="10" y1="11" x2="10" y2="17"></line>
+        <line x1="14" y1="11" x2="14" y2="17"></line>
+      </svg>${i18next.t('center-ui.hover-card.delete')}</span>`;
+
   this.states = [
     {
       // The welcome/skip UI now lives in the pre-tutorial intro (TutorialIntro), so this first state only positions
@@ -98,9 +110,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-1'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-generic')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-generic')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -258,9 +268,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-1'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-crosswalk')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-crosswalk')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -445,9 +453,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-2'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-generic')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-generic')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -660,9 +666,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-2'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-generic')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-generic')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -889,9 +893,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-2'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-signal')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-signal')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -1045,9 +1047,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-3'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-crosswalk')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-crosswalk')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -1268,9 +1268,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-4'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-generic')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-generic')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -1458,9 +1456,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-5'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-generic')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-generic')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -1635,9 +1631,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-5'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-signal')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-signal')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [

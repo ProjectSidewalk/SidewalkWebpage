@@ -1,22 +1,22 @@
 # --- !Ups
--- Machine-managed flag (#4384): TRUE on a completed audit whose street has known imagery captured after the audit
--- ended (street_imagery.newest_capture). Set AND cleared by the nightly imagery-freshness sync, unlike the
--- manually-set stale flag. A street with no street_imagery row (or NULL newest_capture) is assumed up to date, so
--- its audits are never flagged.
-ALTER TABLE audit_task ADD COLUMN outdated_imagery BOOLEAN NOT NULL DEFAULT FALSE;
-
--- Flagged rows should be a small minority of audit_task, and the nightly clear-pass and the coverage queries that
--- isolate outdated audits only ever scan this subset.
-CREATE INDEX audit_task_street_edge_id_outdated_idx ON audit_task (street_edge_id) WHERE outdated_imagery;
-
--- street_imagery.data_source is a closed set of feeder names, so constrain it rather than leaving it free text
--- (#4103). It is a small, script-and-nightly-job-written table, so a CHECK is the right tool over an enum type.
--- `imagery_poll` is the nightly in-app provider poll (CheckImageryAgeActor).
-ALTER TABLE street_imagery
-    ADD CONSTRAINT street_imagery_data_source_check
-    CHECK (data_source IN ('pano_data', 'imagery_scan', 'imagery_poll'));
+-- Cached OSM way data (#4654). The speed-limit sign is served from here instead of live client-side Overpass API
+-- queries (which flooded the shared community instance with a request per pano move). Rows keyed 'batch' are written by
+-- the nightly refresh of every way in osm_way_street_edge, while 'on_demand' rows are ways discovered by the /speedLimit
+-- point-lookup fallback and carry geometry so later lookups near them hit our DB instead of Overpass. tags holds the
+-- way's full OSM tag map (Overpass returns it either way, and future features can mine name/sidewalk/surface/etc.
+-- without re-fetching). maxspeed is extracted from tags at write time by OsmWayService, the single write path. A NULL
+-- maxspeed means the way was fetched but carries no maxspeed tag. geom is NULL on batch rows because street_edge
+-- geometry already locates them. No FK to osm_way_street_edge: on_demand ways are generally outside our street network.
+CREATE TABLE osm_way (
+    osm_way_id BIGINT PRIMARY KEY,
+    tags JSONB NOT NULL DEFAULT '{}'::jsonb,
+    maxspeed TEXT,
+    geom geometry(LineString, 4326),
+    source TEXT NOT NULL CHECK (source IN ('batch', 'on_demand')),
+    updated_at TIMESTAMPTZ NOT NULL
+);
+ALTER TABLE osm_way OWNER TO sidewalk;
+CREATE INDEX osm_way_geom_idx ON osm_way USING GIST (geom);
 
 # --- !Downs
-ALTER TABLE street_imagery DROP CONSTRAINT street_imagery_data_source_check;
-
-ALTER TABLE audit_task DROP COLUMN outdated_imagery;
+DROP TABLE osm_way;

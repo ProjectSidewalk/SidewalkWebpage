@@ -14,7 +14,7 @@
 
 <link href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")" rel="stylesheet">
 <link href="@assets.path("css/choropleth.css")" rel="stylesheet">
-<link href="@assets.path("css/map-sidebar.css")" rel="stylesheet">
+<link href="@assets.path("css/filter-sidebar.css")" rel="stylesheet">
 <link href="@assets.path("css/tag-pills.css")" rel="stylesheet">
 <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")"></script>
 <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")"></script>
@@ -29,7 +29,7 @@
       zoomCorrection: -0.5,
       mapboxLogoLocation: 'bottom-right',
       neighborhoodsURL: '/neighborhoods',
-      completionRatesURL: '/adminapi/neighborhoodCompletionRate',
+      completionRatesURL: '/neighborhoods/completionRate',
       streetsURL: '@streetsURL',
       labelsURL: '@labelsURL',
       neighborhoodFillMode: 'singleColor',
@@ -67,7 +67,7 @@
         }
       }
       // Start with the legend drawer closed (re-centers the map via the real close handler).
-      const closeBtn = document.getElementById('map-sidebar-close');
+      const closeBtn = document.getElementById('filter-sidebar-close');
       if (closeBtn) closeBtn.click();
     } catch (e) {
       console.error('Contribution map failed to load', e);

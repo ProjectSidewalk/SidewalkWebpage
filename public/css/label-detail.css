@@ -262,7 +262,7 @@ dialog.label-detail[open]::backdrop {
   gap: 6px;
   align-items: center;
   padding: 9px 22px;
-  border-radius: 999px;
+  border-radius: 12px; /* Rounded rect, not a round pill — this is a button. See share-widget.css. */
   background: var(--color-pine-500);
   color: var(--color-neutral-black);
   font-weight: 600;
@@ -325,6 +325,11 @@ dialog.label-detail[open]::backdrop {
 .label-detail__pano-overlay-button--unsure   { background: var(--color-asphalt-100); }
 
 .label-detail__pano-overlay-button.is-selected { opacity: 1; }
+
+/* Hovering the option you already picked previews clearing it (#4653). It fades *past* the unselected 0.8 rather
+   than toward it, so the cue reads as "this turns off" — the overlay's counterpart to the column icons dropping
+   back to their outline variant on the same hover. Declared above the read-only block so that block still wins. */
+.label-detail__pano-overlay-button.is-selected:hover { opacity: 0.65; }
 
 /* Read-only mode: validating/commenting is blocked (the viewer's own label, or no imagery is available for it).
    Elements remain visible but appear disabled. */
@@ -565,11 +570,15 @@ button.label-detail__meta-cell:focus-visible {
   transition: max-height 220ms ease, opacity 180ms ease, margin-bottom 220ms ease, visibility 0s 220ms;
 }
 
+/* `inherit`, never `visible`: an explicit `visibility: visible` paints through an ancestor's `visibility: hidden`,
+   and Gallery's inline host hides itself exactly that way. With `visible` here, an open comment row kept rendering
+   over the card grid after the expanded view closed and stayed clickable there (#4697). Inheriting keeps the row
+   visible when the card is, and hidden with it when it isn't. */
 .label-detail__comment-row.is-open {
   max-height: 60px; /* Anything comfortably above the input's 34px; the transition end point. */
   margin-bottom: 8px;
   opacity: 1;
-  visibility: visible;
+  visibility: inherit;
   transition-delay: 0s; /* Reveal immediately on open; the delay above only applies to the collapse. */
 }
 
@@ -610,7 +619,7 @@ button.label-detail__meta-cell:focus-visible {
   height: 34px;
   padding: 0 18px;
   border: none;
-  border-radius: 999px;
+  border-radius: 12px; /* Rounded rect, not a round pill — this is a button. See share-widget.css. */
   background: var(--color-neutral-200);
 
   /* neutral-800 (not -600): the button is clickable even in this resting state, so its label must clear WCAG AA
@@ -938,10 +947,10 @@ button.label-detail__meta-cell:focus-visible {
   align-items: center;
   gap: 6px;
   padding: 5px 12px;
-  background: var(--color-neutral-100);
-  color: var(--color-neutral-800);
-  border: 1px solid var(--color-neutral-300);
-  border-radius: 18px;
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+  border: 1px solid var(--color-neutral-800);
+  border-radius: 10px;
   font: var(--text-small-medium);
   text-decoration: none;
   transition: background-color 0.15s ease, border-color 0.15s ease;
@@ -949,8 +958,8 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__labelmap-link:hover,
 .label-detail__explore-link:hover {
-  background: var(--color-neutral-200);
-  border-color: var(--color-neutral-400);
+  background: var(--color-banana-200);
+  border-color: var(--color-neutral-900);
 }
 
 .label-detail__labelmap-link:focus-visible,
@@ -966,101 +975,10 @@ button.label-detail__meta-cell:focus-visible {
   display: block;
 }
 
-/* Anchor for the absolutely-positioned popover. */
-.label-detail__share {
-  position: relative;
-}
-
-.label-detail__share-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  background: var(--color-neutral-100);
-  color: var(--color-neutral-800);
-  border: 1px solid var(--color-neutral-300);
-  border-radius: 18px;
-  font: var(--text-small-medium);
-  cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-
-.label-detail__share-trigger:hover {
-  background: var(--color-neutral-200);
-  border-color: var(--color-neutral-400);
-}
-
-.label-detail__share-trigger:focus-visible {
-  outline: 2px solid var(--color-link-100);
-  outline-offset: 2px;
-}
-
-.label-detail__share-trigger svg {
-  display: block;
-  flex-shrink: 0;
-}
-
-/* Popover: opens above the trigger, right-aligned. */
-.label-detail__share-popover {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 8px);
-  z-index: 10;
-  min-width: 200px;
-  padding: 6px;
-  background: var(--color-neutral-white);
-  border: 1px solid var(--color-neutral-300);
-  border-radius: 10px;
-  box-shadow: 0 6px 20px rgb(0 0 0 / 18%);
-}
-
-.label-detail__share-heading {
-  margin: 4px 8px 6px;
-  font: var(--text-caption-semibold);
-  color: var(--color-neutral-700);
-}
-
-.label-detail__share-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 8px 10px;
-  background: none;
-  border: none;
-  border-radius: 6px;
-  font: var(--text-small-medium);
-  color: var(--color-neutral-900);
-  text-align: left;
-  cursor: pointer;
-}
-
-.label-detail__share-item:hover {
-  background: var(--color-neutral-100);
-}
-
-.label-detail__share-item:focus-visible {
-  outline: 2px solid var(--color-link-100);
-  outline-offset: -2px;
-}
-
-.label-detail__share-item.is-copied {
-  color: var(--color-success-200);
-}
-
-.label-detail__share-item-icon {
-  display: inline-flex;
-  flex-shrink: 0;
-  color: var(--color-neutral-700);
-}
-
-.label-detail__share-item.is-copied .label-detail__share-item-icon {
-  color: var(--color-success-200);
-}
-
-.label-detail__share-item-icon svg {
-  display: block;
-}
+/* The share control's own styles (.label-detail__share*) moved to css/common/share-widget.css so Explore and
+   Validate can use them too (#4726); that file is linked globally from main.scala.html. The footer layout
+   above — including the container query that shrinks the share trigger to icon-only — stays here, because it
+   is about this card's footer, not about the widget itself. */
 
 /* ─── Lived-experience stories (#4054) ────────────────────────────────────
    Collapsed disclosure with a count badge; expanding reveals the story list (text, optional photo thumbnail that
@@ -1109,15 +1027,17 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__stories-count[hidden] { display: none; }
 
-/* Outline pill CTA (Variant B placement on the C.2 disclosure). Deliberately NOT pine green: on this card green
-   already means "Agree" on the validation buttons right above, so the CTA stays neutral to keep that meaning. */
+/* Outline CTA (Variant B placement on the C.2 disclosure). Deliberately NOT pine green: on this card green already
+   means "Agree" on the validation buttons right above, so the CTA stays neutral to keep that meaning. Rounded rect
+   rather than a round pill, so it reads as a button and not as one of the tags a few rows up — see share-widget.css
+   for the shape rule this card follows throughout. */
 .label-detail__story-share {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   padding: 6px 14px;
-  border: 1px solid var(--color-neutral-500);
-  border-radius: 999px;
+  border: 1px solid var(--color-neutral-800);
+  border-radius: 10px;
   background: var(--color-neutral-white);
   cursor: pointer;
   font-family: var(--font-primary);
@@ -1143,22 +1063,23 @@ button.label-detail__meta-cell:focus-visible {
 }
 
 /* Zero-story CTA in the footer row (the stories section is hidden until a story exists): dressed to match its
-   labelmap-link/share-trigger siblings so the three read as one row (per Jon: uniform light gray for now), but
-   pushed to the left edge so the share-this-page actions keep their own group on the right. */
+   labelmap-link/share-trigger siblings so the three read as one row (all outline buttons — see share-widget.css on
+   why the old gray fill read as disabled and the old round pill read as a tag), but pushed to the left edge so the
+   share-this-page actions keep their own group on the right. */
 .label-detail__story-share--footer {
   margin-right: auto;
   gap: 6px;
   padding: 5px 12px;
-  background: var(--color-neutral-100);
-  color: var(--color-neutral-800);
-  border: 1px solid var(--color-neutral-300);
-  border-radius: 18px;
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+  border: 1px solid var(--color-neutral-800);
+  border-radius: 10px;
   font: var(--text-small-medium);
 }
 
 .label-detail__story-share--footer:hover {
-  background: var(--color-neutral-200);
-  border-color: var(--color-neutral-400);
+  background: var(--color-banana-200);
+  border-color: var(--color-neutral-900);
 }
 
 .label-detail__stories-arrow {
@@ -1187,6 +1108,15 @@ button.label-detail__meta-cell:focus-visible {
 }
 
 .label-detail__story--hidden { opacity: 0.75; }
+
+/* The story a share deep-link pointed at (/label/:id?storyId=, #4722): a soft tinted panel with an accent edge, so
+   the recipient's eye lands on the story that prompted the share. */
+.label-detail__story--linked {
+  padding: 8px 8px 8px 10px;
+  background: color-mix(in srgb, var(--color-link-100) 10%, transparent);
+  border-left: 3px solid var(--color-link-100);
+  border-radius: 6px;
+}
 
 .label-detail__story-photo-btn {
   flex: none;
@@ -1304,7 +1234,10 @@ button.label-detail__meta-cell:focus-visible {
 /* ─── Story composer dialog (#4054) ─────────────────────────────────────── */
 dialog.story-composer {
   box-sizing: border-box;
-  position: relative;
+
+  /* Deliberately no `position`: the UA's dialog:modal rule (fixed, viewport-centered) must apply. An in-flow
+     position here makes showModal()'s focus scroll the page to the dialog's markup location on pages that
+     scroll, like the dashboard. Absolutely-positioned children (the close ✕) still anchor to the dialog. */
   width: 520px;
   max-width: calc(100vw - 32px);
   border: none;
@@ -1555,10 +1488,12 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
   margin-top: 16px;
 }
 
+/* Rounded rect, not a round pill: round is the tag/chip vocabulary here (see share-widget.css). 12px is what
+   `.button--medium` uses, which is this button's size. Same for the submit button below. */
 .story-composer__cancel {
   padding: 9px 18px;
-  border: 1px solid var(--color-neutral-400);
-  border-radius: 999px;
+  border: 1px solid var(--color-neutral-800);
+  border-radius: 12px;
   background: var(--color-neutral-white);
   cursor: pointer;
   font-family: var(--font-primary);
@@ -1592,7 +1527,7 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
 .story-composer__submit {
   padding: 9px 22px;
   border: none;
-  border-radius: 999px;
+  border-radius: 12px;
   background: var(--color-pine-500);
   cursor: pointer;
   font-family: var(--font-primary);
@@ -1620,7 +1555,8 @@ dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
 /* ─── Story photo lightbox (#4054) ──────────────────────────────────────── */
 dialog.story-lightbox {
   box-sizing: border-box;
-  position: relative;
+
+  /* Deliberately no `position` — same scrolled-page constraint as dialog.story-composer above. */
   max-width: min(560px, calc(100vw - 32px));
   border: none;
   border-radius: 12px;

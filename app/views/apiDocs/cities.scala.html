@@ -2,7 +2,7 @@
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
-@(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @content = {
   <!-- Include aggregate stats script for dynamic city/country counts -->
@@ -238,6 +238,6 @@ pittsburgh-pa,usa,Pittsburgh,"Pittsburgh, PA",https://sidewalk-pittsburgh-test.c
 }
 
 @common.main(commonData, SeoUtils.apiDocsTitle("Cities API")) {
-  @common.navbar(commonData, Some(user))
+  @common.navbar(commonData, user)
   @apiDocs.layout("cities")(content)
 }

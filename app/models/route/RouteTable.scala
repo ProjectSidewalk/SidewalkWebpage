@@ -149,7 +149,7 @@ class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .filter(_.routeId === routeId)
       .join(streetEdges)
       .on(_.streetEdgeId === _.streetEdgeId)
-      .map { case (_, streetEdge) => streetEdge.geom.transform(26918).lengthD }
+      .map { case (_, streetEdge) => streetEdge.geom.lengthGeodesic }
       .sum
       .getOrElse(0d)
       .result
@@ -161,11 +161,30 @@ class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param userId ID of the user whose routes to fetch; soft-deleted routes are excluded.
    */
   def getRoutesForUser(userId: String): DBIO[Seq[RouteWithStats]] = {
-    routes
-      .filter(r => r.userId === userId && r.deleted === false)
+    routesWithStats(routes.filter(r => r.userId === userId && r.deleted === false))
+  }
+
+  /**
+   * Gets the city's routes (newest first, capped at n) with the region name and distance/street-count stats, for the
+   * public /routes listing page (#4688). Every non-deleted route is included regardless of creator: routes are
+   * shareable by bare id/slug already, so the listing exposes nothing a share link doesn't.
+   */
+  def getRoutesForCity(n: Int): DBIO[Seq[RouteWithStats]] = {
+    routesWithStats(routes.filter(_.deleted === false), limit = Some(n))
+  }
+
+  /** Projects a filtered route query to newest-first `RouteWithStats` rows with their region names. */
+  private def routesWithStats(
+      filteredRoutes: Query[RouteTableDef, Route, Seq],
+      limit: Option[Int] = None
+  ): DBIO[Seq[RouteWithStats]] = {
+    val sorted = filteredRoutes
       .join(regions)
       .on(_.regionId === _.regionId)
       .sortBy { case (route, _) => route.createdAt.desc } // Newest first.
+    limit
+      .map(sorted.take)
+      .getOrElse(sorted)
       .map { case (route, region) =>
         (route.routeId, route.regionId, region.name, route.name, route.slug, route.description, route.distanceMeters,
           route.streetCount, route.createdAt)
@@ -181,15 +200,15 @@ class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * Recomputes a route's cached distance and street count from its current streets.
    *
    * Called whenever the street list changes, so listings can read the stats straight off the route row instead of
-   * re-measuring every street's geometry per request. Distance is in meters (UTM 18N, matching the previous
-   * derivation); a route with no streets gets zeroes.
+   * re-measuring every street's geometry per request. Distance is in geodesic meters; a route with no streets gets
+   * zeroes.
    */
   def updateStats(routeId: Int): DBIO[Int] = {
     sqlu"""
       UPDATE route
       SET distance_meters = COALESCE(stats.distance_meters, 0), street_count = COALESCE(stats.street_count, 0)
       FROM (
-          SELECT SUM(ST_Length(ST_Transform(street_edge.geom, 26918))) AS distance_meters,
+          SELECT SUM(ST_Length(street_edge.geom::geography)) AS distance_meters,
                  COUNT(*) AS street_count
           FROM route_street
           INNER JOIN street_edge ON route_street.street_edge_id = street_edge.street_edge_id

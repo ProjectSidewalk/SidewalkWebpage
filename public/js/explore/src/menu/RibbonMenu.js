@@ -126,6 +126,9 @@ class RibbonMenu {
         this.setStatus('selectedLabelType', mode);
         if (svl.navigationService) svl.navigationService.switchToLabelingMode();
 
+        // A lingering hover card would sit above the drawing layer and swallow the label-placement click.
+        if (svl.canvas) svl.canvas.showLabelHoverInfo(undefined);
+
         // Change cursor before mouse is moved.
         if (svl.ui.canvas.drawingLayer) svl.ui.canvas.drawingLayer.triggerHandler('mousemove');
 

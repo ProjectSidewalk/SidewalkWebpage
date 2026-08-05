@@ -37,7 +37,7 @@ class UserDashboard {
       zoomCorrection: -0.5,
       mapboxLogoLocation: 'bottom-right',
       neighborhoodsURL: '/neighborhoods',
-      completionRatesURL: '/adminapi/neighborhoodCompletionRate',
+      completionRatesURL: '/neighborhoods/completionRate',
       streetsURL: `/contribution/streets?userId=${encodeURIComponent(userId)}`,
       labelsURL: `/userapi/labels?userId=${encodeURIComponent(userId)}`,
       neighborhoodFillMode: 'singleColor',

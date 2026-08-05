@@ -1,7 +1,7 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
-@(title: String, commonData: CommonPageData, user: SidewalkUserWithRole, labelCount: Int, valCount: Int
+@(title: String, commonData: CommonPageData, user: Option[SidewalkUserWithRole], labelCount: Int, valCount: Int
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
@@ -15,10 +15,11 @@
     <img src='@assets.path("images/" + config.get[String]("city-params.logo-img." + commonData.cityId))'
     id="mobile-landing-logo-header"
     alt="Project Sidewalk Logo">
-    @if(user.role == "Anonymous") {
+    @* A cookie-less visitor (None) gets the same signed-out header as an anonymous account. *@
+    @if(user.forall(_.role == "Anonymous")) {
       <a href='@routes.UserController.signInMobile()' class="mobile-header-signin">@Messages("navbar.signin")</a>
     } else {
-      <span class="mobile-header-signin">@user.username</span>
+      <span class="mobile-header-signin">@user.map(_.username)</span>
     }
   </header>
 

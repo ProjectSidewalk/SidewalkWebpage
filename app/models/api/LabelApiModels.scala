@@ -15,14 +15,44 @@ import play.api.libs.json.{JsObject, JsValue, Json, JsonConfiguration, JsonNamin
 import java.time.OffsetDateTime
 
 /**
+ * Validation-status filter values for the Raw Labels API's `validationStatus` parameter.
+ *
+ * The value names are the public API tokens. `Unsure` means the label has at least one validation but no consensus
+ * (`correct` still NULL); `Unvalidated` means the label has zero validations.
+ */
+object RawLabelValidationStatus extends Enumeration {
+  val ValidatedCorrect   = Value("validated_correct")
+  val ValidatedIncorrect = Value("validated_incorrect")
+  val Unsure             = Value("unsure")
+  val Unvalidated        = Value("unvalidated")
+}
+
+/**
+ * Parsed severity-set filter from the Raw Labels API's `severity` parameter.
+ *
+ * @param severities          Severity ratings (1-3) to include.
+ * @param includeNullSeverity Whether to include labels with no severity rating (the API's `none` token).
+ */
+case class SeverityFilterForApi(severities: Set[Int], includeNullSeverity: Boolean)
+
+/**
+ * A single parsed entry from the Raw Labels API's `tags` parameter.
+ *
+ * @param labelType Label type the tag is scoped to (e.g. "CurbRamp"), or `None` to match the tag on any label type.
+ * @param tag       The tag name to match.
+ */
+case class TagFilterForApi(labelType: Option[String], tag: String)
+
+/**
  * Represents parsed and validated filters from query parameters for the Raw Labels API.
  *
  * @param bbox Optional bounding box to filter labels by geographic location
  * @param labelTypes Optional list of label types to include (e.g., "CurbRamp", "NoCurbRamp")
- * @param tags Optional list of tags to filter by (e.g., "narrow", "cracked")
+ * @param tags Optional list of tag filters, each optionally scoped to a label type
+ * @param severity Optional severity-set filter; mutually exclusive with minSeverity/maxSeverity
  * @param minSeverity Optional minimum severity score (1-3 scale)
  * @param maxSeverity Optional maximum severity score (1-3 scale)
- * @param validationStatus Optional validation status filter ("Agreed", "Disagreed", "Unsure")
+ * @param validationStatuses Optional set of validation statuses to include (OR semantics)
  * @param startDate Optional start date for filtering labels by creation time
  * @param endDate Optional end date for filtering labels by creation time
  * @param regionId Optional region ID to filter labels by geographic region
@@ -31,10 +61,11 @@ import java.time.OffsetDateTime
 case class RawLabelFiltersForApi(
     bbox: Option[LatLngBBox] = None,
     labelTypes: Option[Seq[String]] = None,
-    tags: Option[Seq[String]] = None,
+    tags: Option[Seq[TagFilterForApi]] = None,
+    severity: Option[SeverityFilterForApi] = None,
     minSeverity: Option[Int] = None,
     maxSeverity: Option[Int] = None,
-    validationStatus: Option[String] = None,
+    validationStatuses: Option[Set[RawLabelValidationStatus.Value]] = None,
     highQualityUserOnly: Boolean = false,
     startDate: Option[OffsetDateTime] = None,
     endDate: Option[OffsetDateTime] = None,

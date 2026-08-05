@@ -8,6 +8,11 @@
 #     bash /home/tools/qa-worktree.sh <name>            # start; from inside the container shell
 #     bash /home/tools/qa-worktree.sh <name> --stop     # stop; add --clean to drop the node_modules symlink
 #
+# The make targets run the WORKTREE's copy of this script when it has one, so the branch being QA'd supplies its own
+# tooling. `make` itself still reads the main checkout's Makefile, though, so when that checkout sits on a branch
+# without the target, make reports "No rule to make target". Invoke the worktree's copy directly instead (#4628):
+#     docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/qa-worktree.sh <name>
+#
 # Handles the worktree-specific setup the plain `npm start` flow doesn't (node_modules,
 # bundles, a backgrounded grunt watch, sbt caches, config.file, thin-client contention).
 # See CLAUDE.md -> "Running a worktree's app for QA".

@@ -24,6 +24,17 @@ object RoleTable {
   val ADMIN_ROLES: Seq[String]      = Seq("Administrator", "Owner")
   val VALID_ROLES: Seq[String] = Seq("Registered", "Turker", "Researcher", "Administrator", "Owner", "Anonymous", "AI")
   val ROLES_RESEARCHER_COLLAPSED: Seq[String] = Seq("Registered", "Turker", "Researcher", "Anonymous", "AI")
+
+  /**
+   * Roles whose members are ranked on the leaderboards (per-city, global, and the "your standing" slice).
+   *
+   * Every board must agree on who counts as a contributor, so they all splice this rather than repeating the literal
+   * set; a change here moves the boards and the "of N" denominator together.
+   */
+  val LEADERBOARD_ROLES: Seq[String] = Seq("Registered", "Administrator", "Researcher")
+
+  /** [[LEADERBOARD_ROLES]] as a quoted, comma-separated list for splicing into a raw-SQL `IN (...)`. */
+  val LEADERBOARD_ROLES_SQL: String = LEADERBOARD_ROLES.map(role => s"'$role'").mkString(", ")
 }
 
 @ImplementedBy(classOf[RoleTable])

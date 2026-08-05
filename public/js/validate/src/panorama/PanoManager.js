@@ -196,7 +196,6 @@ class PanoManager {
    * @param {Label} currentLabel The label to render.
    */
   renderPanoMarker(currentLabel) {
-    const url = currentLabel.getIconUrl();
     const labelPov = currentLabel.getOriginalPov();
 
     // Set to user's POV when labeling if on desktop. If on mobile, center the label on the screen.
@@ -225,15 +224,26 @@ class PanoManager {
         markerContainer: markerLayer,
         panoViewer: svv.panoViewer,
         position: { heading: labelPov.heading, pitch: labelPov.pitch },
-        icon: url,
         size: { width: markerDiameter, height: markerDiameter },
         zIndex: 2,
       });
       this.#markerViewer = svv.panoViewer;
     } else {
       this.labelMarker.setPosition({ heading: labelPov.heading, pitch: labelPov.pitch });
-      this.labelMarker.setIcon(url);
     }
+
+    // The icon is handed to CSS rather than set as the marker's own background, so that hiding the label can
+    // crossfade it out (svv-panorama.css) while the ring around it stays put to mark the spot. The colour rides
+    // along for the dashed ring that ring becomes while hidden.
+    const marker = this.labelMarker.marker_;
+    marker.style.setProperty('--label-icon', `url(${currentLabel.getIconUrl()})`);
+    marker.style.setProperty('--label-color', currentLabel.getIconColor());
+    // The marker is a focusable control (#4729, PanoMarker), so name it as the label it opens the card for,
+    // localized the same way the card's header is.
+    marker.setAttribute(
+      'aria-label',
+      i18next.t(`common:${util.camelToKebab(currentLabel.getAuditProperty('labelType'))}`).replace('&shy;', ''),
+    );
     this.#updateMarkerAiIndicator(currentLabel.getAuditProperty('aiGenerated'));
   }
 

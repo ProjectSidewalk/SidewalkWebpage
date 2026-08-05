@@ -11,10 +11,11 @@ import play.api.test.Helpers._
 
 /**
  * Route-wiring smoke test for the dashboard/leaderboard/settings/profile pages and the public-profile map endpoints.
- * Boots the real app and hits each route unauthenticated: every page is a SecuredAction, so the contract is a
- * redirect to sign-in (3xx) — never a 404, which would mean the route is missing/misspelled in conf/routes. Cheap
- * insurance against a routes regression; the auth'd behavior is covered by the service specs. Also pins the
- * pre-cutover /preview URLs to their permanent redirects (#4474).
+ * Boots the real app and hits each route unauthenticated: the personal pages are SecuredActions, so their contract is
+ * a redirect to sign-in (3xx) — never a 404, which would mean the route is missing/misspelled in conf/routes. The
+ * leaderboard is public and user-aware since #4643, so it renders (200) instead; SessionlessPagesSpec pins its
+ * no-cookie contract. Cheap insurance against a routes regression; the auth'd behavior is covered by the service
+ * specs. Also pins the pre-cutover /preview URLs to their permanent redirects (#4474).
  */
 class UserDashboardRoutesSpec extends PlaySpec with GuiceOneAppPerSuite {
 
@@ -26,7 +27,7 @@ class UserDashboardRoutesSpec extends PlaySpec with GuiceOneAppPerSuite {
   private def redirectsToSignIn(sc: Int): Boolean = sc >= 300 && sc < 400
 
   private val getRoutes = Seq(
-    "/dashboard", "/dashboard/settings", "/profile/somebody", "/leaderboard", "/userapi/public/somebody/streets",
+    "/dashboard", "/dashboard/settings", "/profile/somebody", "/userapi/public/somebody/streets",
     "/userapi/public/somebody/labels"
   )
 
@@ -45,9 +46,16 @@ class UserDashboardRoutesSpec extends PlaySpec with GuiceOneAppPerSuite {
       }
     }
 
+    "exist and render the public /leaderboard for an unauthenticated GET (200, not 404/3xx; #4643)" in {
+      status(route(app, FakeRequest(GET, "/leaderboard")).get) mustBe OK
+    }
+
     Seq("/dashboard/settings", "/userapi/mistakeVote", "/userapi/mistakeNote").foreach { path =>
-      s"exist and redirect an unauthenticated POST $path to sign-in (3xx, not 404)" in {
-        redirectsToSignIn(status(route(app, FakeRequest(POST, path).withJsonBody(Json.obj())).get)) mustBe true
+      // Only "not 404" here: an unauthenticated write is answered 401 rather than bounced, so the client can mint a
+      // session and retry instead of having its submission swallowed by a followed redirect (ControllerUtils
+      // .anonSignupRedirect). That contract belongs to those specs; this one is about the route existing.
+      s"exist for an unauthenticated POST $path (anything but 404)" in {
+        status(route(app, FakeRequest(POST, path).withJsonBody(Json.obj())).get) must not be NOT_FOUND
       }
     }
 

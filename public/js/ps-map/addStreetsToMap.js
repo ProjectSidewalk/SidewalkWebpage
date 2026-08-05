@@ -9,7 +9,8 @@
  * @param {boolean} [params.logClicks=true] - Whether clicks should be logged when it takes you to the explore page.
  * @param {boolean} [params.differentiateUnauditedStreets=false] - Whether to color unaudited streets differently.
  * @param {boolean} [params.interactiveStreets=false] - Whether to include hover/click interactions on the streets.
- * @returns {Promise} Promise that resolves when the streets have been added to the map.
+ * @returns {Promise<{audited: number, unaudited: number}>} Resolves once the streets are on the map, with how many
+ *      of them fall on each side of the audited line — the numbers the sidebar's street rows report.
  */
 function addStreetsToMap(map, streetData, params) {
   const STREET_LAYER_NAME = 'streets';
@@ -96,14 +97,17 @@ function addStreetsToMap(map, streetData, params) {
     }
   }
 
+  const audited = streetData.features.filter((street) => street.properties.audited === true).length;
+  const counts = { audited, unaudited: streetData.features.length - audited };
+
   // Return promise that is resolved once all the layers have been added to the map.
   return new Promise((resolve) => {
     if (map.getLayer(STREET_LAYER_NAME)) {
-      resolve();
+      resolve(counts);
     } else {
       map.on('sourcedataloading', () => {
         if (map.getLayer(STREET_LAYER_NAME)) {
-          resolve();
+          resolve(counts);
         }
       });
     }
