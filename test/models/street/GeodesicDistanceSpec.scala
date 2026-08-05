@@ -41,11 +41,12 @@ import scala.concurrent.duration.DurationInt
  *      produce — run for real inside a rolled-back transaction. This is exactly the postcondition evolution 347's
  *      backfill promises, so it also fails if that backfill ever drifts from the runtime code it mirrors.
  *
- * Layer 3 needs a seeded database, so each of its tests `assume`s the table it reads is non-empty — against an empty
+ * Layer 3's comparisons need a seeded database, so each `assume`s the table it reads is non-empty — against an empty
  * schema they report as canceled rather than passing vacuously (the convention `RouteAuthPostureSpec` uses).
  *
  * It also checks that the *nightly* refresh reaches every user a full recompute would, since a postcondition the
- * runtime cannot maintain would decay back out of agreement on its own (#4774).
+ * runtime cannot maintain would decay back out of agreement on its own (#4774). That test seeds every row it reads,
+ * so it runs everywhere the synthetic-fixture layer does, empty schemas included.
  */
 class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite with OptionValues {
 
@@ -88,20 +89,27 @@ class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite with Option
   }
 
   /**
+   * Inserts a throwaway street with the given endpoints and status, returning its id. Only safe inside a rolled-back
+   * transaction.
+   */
+  private def insertSyntheticStreet(x1: Double, y1: Double, x2: Double, y2: Double, status: String): DBIO[Int] =
+    // Explicit id: seeded dev dumps insert streets with explicit ids without advancing the sequence, so the
+    // sequence default can collide. Rolled back, so the id is never really claimed.
+    sql"""INSERT INTO street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status)
+          VALUES ((SELECT COALESCE(MAX(street_edge_id), 0) + 1 FROM street_edge),
+                  ST_SetSRID(ST_MakeLine(ST_MakePoint($x1, $y1), ST_MakePoint($x2, $y2)), 4326),
+                  $x1, $y1, $x2, $y2, 'residential', CAST($status AS street_edge_status))
+          RETURNING street_edge_id""".as[Int].head
+
+  /**
    * Inserts a throwaway street with the given endpoints and measures it with `getStreetLengths` (the Slick
    * `lengthGeodesic` path), all inside a rolled-back transaction. Status `closed` also pins that measuring does not
    * depend on a street being open.
    */
   private def measureSyntheticStreet(x1: Double, y1: Double, x2: Double, y2: Double): Double =
     runRolledBack(for {
-      // Explicit id: seeded dev dumps insert streets with explicit ids without advancing the sequence, so the
-      // sequence default can collide. Rolled back, so the id is never really claimed.
-      streetEdgeId <- sql"""INSERT INTO street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status)
-                            VALUES ((SELECT COALESCE(MAX(street_edge_id), 0) + 1 FROM street_edge),
-                                    ST_SetSRID(ST_MakeLine(ST_MakePoint($x1, $y1), ST_MakePoint($x2, $y2)), 4326),
-                                    $x1, $y1, $x2, $y2, 'residential', 'closed')
-                            RETURNING street_edge_id""".as[Int].head
-      lengths <- streetEdgeTable.getStreetLengths(Seq(streetEdgeId))
+      streetEdgeId <- insertSyntheticStreet(x1, y1, x2, y2, "closed")
+      lengths      <- streetEdgeTable.getStreetLengths(Seq(streetEdgeId))
     } yield lengths(streetEdgeId))
 
   // WGS84 reference lengths, derived independently of PostGIS. The equator arc is closed-form (semi-major axis
@@ -168,11 +176,12 @@ class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite with Option
       // sit under an auditOnboarding or exploreAddress mission (#4451's drop-ins) is never refreshed, so their
       // meters_audited stays at 0 no matter how far they walk.
       //
-      // Seeds exactly that user rather than looking for one, so the check is real against any seeded DB — the shape
-      // is absent from some city schemas and the test would otherwise quietly prove nothing there.
+      // Seeds the street as well as the user rather than looking for either, so the check runs for real against any
+      // schema — including CI's empty one, which has no street to find. The street must be open: the refresh only
+      // credits open streets.
       val cutoff                                     = OffsetDateTime.now().minusHours(1)
       val (credited, streetLength): (Double, Double) = runRolledBack(for {
-        streetEdgeId <- streetEdgeTable.streets.map(_.streetEdgeId).result.head
+        streetEdgeId <- insertSyntheticStreet(-122.3, 47.6, -122.301, 47.6, "open")
         length       <- streetEdgeTable.getStreetLengths(Seq(streetEdgeId)).map(_(streetEdgeId))
         userId       <- sql"""INSERT INTO sidewalk_login.sidewalk_user (user_id, username, email)
                               VALUES ('4774-fixture', '4774-fixture', '4774-fixture@example.com')

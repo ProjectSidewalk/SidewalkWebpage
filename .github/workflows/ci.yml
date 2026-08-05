@@ -266,9 +266,9 @@ jobs:
       #   admin route that forgets its guard fails here. Its data-dependent shape checks `assume` a non-empty result and
       #   report as CANCELED against this job's empty city schema rather than passing vacuously.
       # - GeodesicDistanceSpec (#4641): street lengths must be geodesic, not projected to a fixed CRS. Its synthetic-
-      #   fixture layer inserts its own streets and checks them against analytically derived WGS84 arc lengths, so it
-      #   is meaningful even here — a reintroduced projection fails by double digits. Its cache-freshness layer needs
-      #   real data and CANCELs on this empty schema, same as RouteAuthPostureSpec's shape checks.
+      #   fixture tests (analytic WGS84 arc lengths, the #4774 nightly-refresh regression) seed every row they read,
+      #   so they are meaningful even here — a reintroduced projection fails by double digits. Its cache-freshness
+      #   comparisons need real data and CANCEL on this empty schema, same as RouteAuthPostureSpec's shape checks.
       - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
         run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec'
         env:
