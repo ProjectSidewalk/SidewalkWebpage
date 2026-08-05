@@ -6,6 +6,8 @@
   "explore-here-percent": "{{percent}}% explorado",
   "loading-labels": "Cargando etiquetas…",
   "loading-elapsed": "{{seconds}} s transcurridos",
+  "load-failed": "No pudimos cargar los datos del mapa.",
+  "retry": "Intentar de nuevo",
   "is-correct": "Esta etiqueta es correcta?",
   "label-type": "Tipo de etiqueta",
   "validations": "Validaciones",

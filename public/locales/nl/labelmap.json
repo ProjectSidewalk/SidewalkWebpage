@@ -6,6 +6,8 @@
   "explore-here-percent": "{{percent}}% verkend",
   "loading-labels": "Etiketten laden…",
   "loading-elapsed": "{{seconds}} s verstreken",
+  "load-failed": "We konden de kaartgegevens niet laden.",
+  "retry": "Opnieuw proberen",
   "is-correct": "Klopt dit etiket?",
   "label-type": "Etikettype",
   "validations": "Validations",

@@ -6,6 +6,8 @@
   "explore-here-percent": "{{percent}}% explored",
   "loading-labels": "Loading sidewalk labels…",
   "loading-elapsed": "{{seconds}}s elapsed",
+  "load-failed": "We couldn't load the map data.",
+  "retry": "Try again",
   "is-correct": "Is this label correct?",
   "label-type": "Label Type",
   "validations": "Validations",

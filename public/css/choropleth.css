@@ -124,6 +124,32 @@
   margin: 6px 0 0;
 }
 
+/* The overlay ignores pointer events so the map stays draggable while loading; the retry button must not. */
+.labelmap-loading__card--error {
+  pointer-events: auto;
+}
+
+.labelmap-loading__retry {
+  margin: 14px 0 0;
+  padding: 8px 18px;
+  border: 1px solid rgb(255 255 255 / 60%);
+  border-radius: 6px;
+  background: transparent;
+  color: #ffffff;
+  font: var(--text-body-regular);
+  cursor: pointer;
+}
+
+.labelmap-loading__retry:hover {
+  background: rgb(255 255 255 / 15%);
+}
+
+.labelmap-loading__retry:focus-visible {
+  background: rgb(255 255 255 / 15%);
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
 /* Respect reduced-motion: keep the spinner as a feedback cue but slow it well down. */
 @media (prefers-reduced-motion: reduce) {
   .labelmap-loading__spinner {

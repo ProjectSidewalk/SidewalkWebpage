@@ -6,6 +6,8 @@
   "explore-here-percent": "{{percent}}% explorado",
   "loading-labels": "Carregando rótulos…",
   "loading-elapsed": "{{seconds}} s decorridos",
+  "load-failed": "Não foi possível carregar os dados do mapa.",
+  "retry": "Tentar novamente",
   "is-correct": "Esse rótulo esta correto?",
   "label-type": "Tipo de Rótulo",
   "validations": "Validação",
