@@ -107,8 +107,9 @@ class MissionController {
   #checkMissionComplete(mission, neighborhood) {
     // On a route the mission IS the route walk (one route-scoped mission, sized to the route server-side), so its
     // completion is finishing the route — handled in wrapUpRouteOrNeighborhood, not by this distance check. The
-    // check would also misfire here: the server measures the route in EPSG:26918 while the client's progress is
-    // turf/WGS84, so the two cross the 99.9% threshold at slightly different points.
+    // check would also misfire here: the server sizes the route geodesically on the WGS84 spheroid while the
+    // client's progress is turf (spherical haversine), so the two cross the 99.9% threshold at slightly
+    // different points.
     if (svl.neighborhoodModel.isRoute) return;
 
     if (mission.getMissionCompletionRate() > 0.999) {

@@ -179,6 +179,10 @@ is a blocking CI gate). Conventions scalafmt doesn't cover:
   120 chars or hurt readability.
 - **Use Slick for database access**, not raw SQL, wherever possible — you get compile-time type checking. When you
   must write SQL, **avoid table aliases**.
+- **Measure geographic distances geodesically** — `ST_Length(geom::geography)` in raw SQL, the `lengthGeodesic`
+  extension method in Slick, turf.js on the frontend. Never measure by projecting to a fixed SRID: a projection is
+  only accurate near its own meridian (measuring every city through UTM zone 18N overstated street distances by up
+  to +51% — issue #4641).
 - **Two performance gotchas:** count rows with `.size.result` (emits `COUNT(*)`), **not** `.length.result` (which
   loads every row into memory); for CPU-heavy work use the `cpu-intensive` `ExecutionContext` rather than the default
   (see existing usages).

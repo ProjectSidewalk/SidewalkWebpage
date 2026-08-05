@@ -139,7 +139,7 @@ class StreetEdgeTable @Inject() (
    * Get the total street distance in meters.
    */
   def totalStreetDistance: DBIO[Double] = {
-    streets.map(_.geom.transform(26918).lengthD).sum.result.map(x => x.getOrElse(0.0d))
+    streets.map(_.geom.lengthGeodesic).sum.result.map(x => x.getOrElse(0.0d))
   }
 
   /**
@@ -156,7 +156,7 @@ class StreetEdgeTable @Inject() (
     } yield _edges
 
     // Get length of each street segment, sum the lengths, and convert from meters to miles.
-    edges.distinctOn(_.streetEdgeId).map(_.geom.transform(26918).lengthD).sum.getOrElse(0d).result
+    edges.distinctOn(_.streetEdgeId).map(_.geom.lengthGeodesic).sum.getOrElse(0d).result
   }
 
   /**
@@ -224,11 +224,10 @@ class StreetEdgeTable @Inject() (
   }
 
   /**
-   * Gets the length in meters of each of the given street edges.
+   * Gets the geodesic length in meters of each of the given street edges.
    *
-   * Lengths are computed by projecting the geometry to UTM zone 18N (EPSG:26918) so the result is in meters rather than
-   * degrees — the same projection used by the distance methods above. Used to length-weight region AccessScores (#3855).
-   * `inSet` inlines the ids (rather than binding them) to avoid the bound-parameter limit on whole-city id lists.
+   * Length-weights region AccessScores (#3855). `inSet` inlines the ids (rather than binding them) to avoid the
+   * bound-parameter limit on whole-city id lists.
    *
    * @param streetEdgeIds The street edge ids to measure.
    * @return A map from street edge id to its length in meters (empty for an empty input).
@@ -238,7 +237,7 @@ class StreetEdgeTable @Inject() (
     else
       streetsUnfiltered
         .filter(_.streetEdgeId inSet streetEdgeIds)
-        .map(s => (s.streetEdgeId, s.geom.transform(26918).lengthD))
+        .map(s => (s.streetEdgeId, s.geom.lengthGeodesic))
         .result
         .map(_.toMap)
   }

@@ -511,10 +511,10 @@ class ExploreServiceImpl @Inject() (
    * mid-street drop-ins never do, which errs on the cheap side (under-crediting costs nothing, over-crediting
    * corrupts coverage).
    *
-   * Length is measured with `::geography` (geodesic) rather than a projected CRS because the value it is compared
-   * against — the client's `audited_distance_m` — is itself computed geodesically. Projecting to a fixed UTM zone the
-   * way `RegionCompletionTable` does would inflate the length outside that zone (~25% in Amsterdam), pushing the
-   * threshold past the street's real length so it could never be reached.
+   * Length is measured with `::geography` (geodesic, the codebase-wide convention — #4641) which matters doubly here:
+   * the value it is compared against — the client's `audited_distance_m` — is itself computed geodesically (turf), so
+   * any other measure would skew the threshold (a fixed-UTM-zone projection inflates lengths ~25% in Amsterdam,
+   * pushing it past the street's real length so it could never be reached).
    *
    * @param auditTaskId      The session's task, holding where along the street it dropped in.
    * @param streetEdgeId     The street being explored.

@@ -265,8 +265,12 @@ jobs:
       # - RouteAuthPostureSpec (#4441): asserts every declared /adminapi/ route refuses an anonymous request, so a new
       #   admin route that forgets its guard fails here. Its data-dependent shape checks `assume` a non-empty result and
       #   report as CANCELED against this job's empty city schema rather than passing vacuously.
-      - name: Run gating/auth tests (health dashboard + route auth posture)
-        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec'
+      # - GeodesicDistanceSpec (#4641): street lengths must be geodesic, not projected to a fixed CRS. Its synthetic-
+      #   fixture tests (analytic WGS84 arc lengths, the #4774 nightly-refresh regression) seed every row they read,
+      #   so they are meaningful even here — a reintroduced projection fails by double digits. Its cache-freshness
+      #   comparisons need real data and CANCEL on this empty schema, same as RouteAuthPostureSpec's shape checks.
+      - name: Run gating/auth tests (health dashboard + route auth posture + geodesic distances)
+        run: sbt 'set Test / parallelExecution := false' 'testOnly controllers.HealthDashboardSpec service.HealthServiceSpec controllers.RouteAuthPostureSpec models.street.GeodesicDistanceSpec'
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/sidewalk
           DATABASE_USER: sidewalk

@@ -90,7 +90,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    *
    * Interim workaround for #4376: the projectsidewalk/db image ships a broken Postgres JIT (PostGIS bitcode built with
    * LLVM 16, runtime llvmjit linked against LLVM 11). An expensive query that JIT-inlines PostGIS function bitcode
-   * (ST_TRANSFORM/ST_LENGTH) segfaults the backend, surfacing as a dropped connection (SQLSTATE 08006). The cross-city
+   * (e.g. ST_LENGTH) segfaults the backend, surfacing as a dropped connection (SQLSTATE 08006). The cross-city
    * scorecard and labeling-speed queries cross the JIT cost thresholds and call those functions, so they trip it.
    * `SET LOCAL` scopes the setting to this one transaction. Remove once #4376 disables JIT at the DB config level.
    *
@@ -145,13 +145,13 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
             tutorial_label_counts.tutorial_label_count AS tutorial_labels,
             total_val_count.validation_count AS total_validations
       FROM (
-          SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km_audited
+          SELECT SUM(ST_Length(geom::geography)) / 1000 AS km_audited
           FROM "#$schema".street_edge
           INNER JOIN "#$schema".audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id
           WHERE completed = TRUE AND NOT user_stat.excluded
       ) AS km_audited, (
-          SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km_audited_no_overlap
+          SELECT SUM(ST_Length(geom::geography)) / 1000 AS km_audited_no_overlap
           FROM (
               SELECT DISTINCT street_edge.street_edge_id, geom
               FROM "#$schema".street_edge
@@ -410,11 +410,11 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id
           WHERE completed = TRUE AND NOT user_stat.excluded AND street_edge.status = 'open'
       ) AS audited_streets, (
-          SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km
+          SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
           FROM "#$schema".street_edge WHERE status = 'open'
       ) AS street_km, (
           -- Distinct audited length (no double-counting overlapping audits), open-only (see audited_streets).
-          SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km
+          SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
           FROM (
               SELECT DISTINCT street_edge.street_edge_id, geom
               FROM "#$schema".street_edge
@@ -819,7 +819,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           ) time_diffs
           WHERE diff < '00:05:00' AND diff > '00:00:00'
       ) AS audit_time, (
-          SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km
+          SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
           FROM "#$schema".street_edge
           INNER JOIN "#$schema".audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN "#$schema".user_stat ON audit_task.user_id = user_stat.user_id

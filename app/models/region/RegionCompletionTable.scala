@@ -78,7 +78,7 @@ class RegionCompletionTable @Inject() (
     for {
       distToAdd: Double <- streetEdgeTable.streets
         .filter(_.streetEdgeId === streetEdgeId)
-        .map(_.geom.transform(26918).lengthD)
+        .map(_.geom.lengthGeodesic)
         .result
         .head
       regionId: Int <- streetEdgeRegion
