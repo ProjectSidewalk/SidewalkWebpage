@@ -16,15 +16,22 @@ const fs = require('fs');
 const path = require('path');
 
 const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js');
+const URL_QUERY_SRC = fs.readFileSync(path.join(SRC_DIR, 'common/urlQuery.js'), 'utf8');
 const FILTER_SIDEBAR_SRC = fs.readFileSync(path.join(SRC_DIR, 'common/filter-sidebar/FilterSidebar.js'), 'utf8');
 const MAP_SIDEBAR_SRC = fs.readFileSync(path.join(SRC_DIR, 'ps-map/MapSidebarFilter.js'), 'utf8');
 const URL_SYNC_SRC = fs.readFileSync(path.join(SRC_DIR, 'ps-map/MapSidebarUrlSync.js'), 'utf8');
 const LABEL_DETAIL_SRC = fs.readFileSync(path.join(SRC_DIR, 'common/label-detail/LabelDetail.js'), 'utf8');
 
 const LABEL_TYPES = ['CurbRamp', 'Obstacle'];
-// "shared" appears on both types, mirroring real tags that repeat across types ("narrow" is both a curb ramp's
-// and a sidewalk's).
-const TAGS_BY_TYPE = { CurbRamp: ['narrow', 'shared'], Obstacle: ['shared'] };
+// Three real-world tag shapes the URL contract has to survive: "shared" repeats across types ("narrow" is both a
+// curb ramp's tag and a sidewalk's), "cycle lane: faded paint" carries a colon of its own so the labelType:tag
+// delimiter has to be the *first* colon, and the yellow-box tag carries a comma so the param can't be a
+// comma-joined list (#4783).
+const COMMA_TAG = 'yellow box, accessibility features not visible';
+const TAGS_BY_TYPE = {
+    CurbRamp: ['narrow', 'shared', 'cycle lane: faded paint'],
+    Obstacle: ['shared', COMMA_TAG],
+};
 
 /** Builds the sidebar markup the classes bind to, mirroring the Twirl partial's hooks and default state. */
 function buildFixture() {
@@ -141,6 +148,7 @@ describe('MapSidebarUrlSync', () => {
         window.filterStreetLayer = jest.fn();
         window.toggleLabelLayer = jest.fn();
         window.logWebpageActivity = jest.fn();
+        window.eval(URL_QUERY_SRC); // Defines util.url, which the URL readers/writers depend on.
         window.eval(`${FILTER_SIDEBAR_SRC}\nwindow.FilterSidebar = FilterSidebar;`);
         window.eval(`${MAP_SIDEBAR_SRC}\nwindow.MapSidebarFilter = MapSidebarFilter;`);
         window.eval(`${URL_SYNC_SRC}\nwindow.MapSidebarUrlSync = MapSidebarUrlSync;`);
@@ -326,6 +334,73 @@ describe('MapSidebarUrlSync', () => {
             expect(params.get('streets')).toBe('audited');
         });
 
+        it('leaves the labelType:tag colon literal rather than percent-encoding it (#4782)', () => {
+            build();
+            tagPill('CurbRamp', 'narrow').click();
+            jest.advanceTimersByTime(300);
+
+            expect(search()).toContain('tags=CurbRamp:narrow');
+            expect(search()).not.toContain('%3A');
+        });
+
+        it('round-trips a tag whose own name contains a colon', () => {
+            build();
+            tagPill('CurbRamp', 'cycle lane: faded paint').click();
+            jest.advanceTimersByTime(300);
+
+            // Both colons are literal in the URL; only the first separates the label type from the tag.
+            expect(search()).toContain('tags=CurbRamp:cycle+lane:+faded+paint');
+            expect(search()).not.toContain('%3A');
+
+            window.history.replaceState({}, '', `/labelMap${search()}`);
+            build();
+            expect(Array.from(mapData.selectedTags.CurbRamp)).toEqual(['cycle lane: faded paint']);
+        });
+
+        it('round-trips a tag whose name contains a comma (#4783)', () => {
+            build();
+            tagPill('Obstacle', COMMA_TAG).click();
+            jest.advanceTimersByTime(300);
+
+            // One occurrence per tag, so the comma inside the name is never mistaken for a separator.
+            expect(new URLSearchParams(search()).getAll('tags')).toEqual([`Obstacle:${COMMA_TAG}`]);
+
+            window.history.replaceState({}, '', `/labelMap${search()}`);
+            build();
+            expect(Array.from(mapData.selectedTags.Obstacle)).toEqual([COMMA_TAG]);
+        });
+
+        it('writes one occurrence per tag rather than a comma-joined list', () => {
+            build();
+            tagPill('CurbRamp', 'narrow').click();
+            tagPill('Obstacle', 'shared').click();
+            jest.advanceTimersByTime(300);
+
+            const tags = new URLSearchParams(search()).getAll('tags');
+            expect(tags).toEqual(['CurbRamp:narrow', 'Obstacle:shared']);
+
+            window.history.replaceState({}, '', `/labelMap${search()}`);
+            build();
+            expect(Array.from(mapData.selectedTags.CurbRamp)).toEqual(['narrow']);
+            expect(Array.from(mapData.selectedTags.Obstacle)).toEqual(['shared']);
+        });
+
+        it('still restores a link written in the older comma-joined form', () => {
+            window.history.replaceState({}, '', '/labelMap?tags=CurbRamp:narrow,Obstacle:shared');
+            build();
+
+            expect(Array.from(mapData.selectedTags.CurbRamp)).toEqual(['narrow']);
+            expect(Array.from(mapData.selectedTags.Obstacle)).toEqual(['shared']);
+        });
+
+        it('rescues a comma-carrying tag from an older comma-joined link when it stands alone', () => {
+            // The whole value matches a rendered pill, so it is taken before any comma splitting happens.
+            window.history.replaceState({}, '', `/labelMap?tags=Obstacle:${COMMA_TAG}`);
+            build();
+
+            expect(Array.from(mapData.selectedTags.Obstacle)).toEqual([COMMA_TAG]);
+        });
+
         it('round-trips a tag back onto its own type only', () => {
             build();
             tagPill('CurbRamp', 'shared').click();
@@ -404,11 +479,16 @@ describe('MapSidebarUrlSync', () => {
             jest.advanceTimersByTime(300);
             expect(search()).toContain('severities=1,2,3');
 
-            // Opening a label popup writes labelId without touching the filter params — commas stay readable.
+            // Opening a label popup writes labelId without touching the filter params — the two writers have to
+            // agree byte for byte on how commas and colons are serialized or they rewrite each other's params.
+            tagPill('CurbRamp', 'narrow').click();
+            jest.advanceTimersByTime(300);
             window.LabelDetail.syncUrlLabelId(123);
             expect(search()).toContain('labelId=123');
             expect(search()).toContain('severities=1,2,3');
+            expect(search()).toContain('tags=CurbRamp:narrow');
             expect(search()).not.toContain('%2C');
+            expect(search()).not.toContain('%3A');
 
             // A further filter change keeps the open label's id in the URL.
             checkbox('Obstacle-checkbox').click();

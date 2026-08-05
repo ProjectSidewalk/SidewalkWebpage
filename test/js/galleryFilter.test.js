@@ -14,6 +14,7 @@ const fs = require('fs');
 const path = require('path');
 
 const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js');
+const URL_QUERY_SRC = fs.readFileSync(path.join(SRC_DIR, 'common/urlQuery.js'), 'utf8');
 const FILTER_SIDEBAR_SRC = fs.readFileSync(path.join(SRC_DIR, 'common/filter-sidebar/FilterSidebar.js'), 'utf8');
 const GALLERY_FILTER_SRC = fs.readFileSync(path.join(SRC_DIR, 'gallery/src/filter/GalleryFilter.js'), 'utf8');
 
@@ -146,6 +147,7 @@ describe('GalleryFilter', () => {
                 },
             },
         };
+        window.eval(URL_QUERY_SRC); // Defines util.url, which the URL readers/writers depend on.
         window.eval(`${FILTER_SIDEBAR_SRC}\nwindow.FilterSidebar = FilterSidebar;`);
         window.eval(`${GALLERY_FILTER_SRC}\nwindow.GalleryFilter = GalleryFilter;`);
     });
@@ -193,7 +195,25 @@ describe('GalleryFilter', () => {
                 CurbRamp: ['curbramp-tag'], Crosswalk: [], Obstacle: ['obstacle-tag'], NoSidewalk: [],
             });
             expect(filter.getAppliedTagNames()).toEqual(['curbramp-tag', 'obstacle-tag']);
-            expect(currentUrl()).toBe('/gallery?tags=curbramp-tag,obstacle-tag');
+            // One occurrence per tag, so a tag name is free to contain a comma (#4783).
+            expect(currentUrl()).toBe('/gallery?tags=curbramp-tag&tags=obstacle-tag');
+        });
+
+        it('leaves a colon inside a tag name literal rather than percent-encoding it (#4782)', () => {
+            // Real tag shape: the "cycle lane: ..." family carries a colon in the name itself.
+            tagPill('CurbRamp').dataset.tag = 'cycle lane: faded paint';
+            tagPill('CurbRamp').click();
+
+            expect(currentUrl()).toBe('/gallery?tags=cycle+lane:+faded+paint');
+        });
+
+        it('keeps a comma inside a tag name out of the separator position (#4783)', () => {
+            tagPill('CurbRamp').dataset.tag = 'yellow box, accessibility features not visible';
+            tagPill('CurbRamp').click();
+            tagPill('Obstacle').click();
+
+            const tags = new URLSearchParams(window.location.search).getAll('tags');
+            expect(tags).toEqual(['yellow box, accessibility features not visible', 'obstacle-tag']);
         });
 
         it('lists the severities that are left, with "null" for the N/A bucket', () => {
