@@ -125,6 +125,9 @@ function createPSMap($, params) {
         window.citiesMap.resize();
       }
     });
+  }, () => {
+    // Failure is the caller's to report — it owns the page's error UI. Handled here as the second argument to
+    // `then` rather than left off, so this branch doesn't become a second, unhandled copy of the same rejection.
   });
   return allLoaded;
 
