@@ -218,7 +218,8 @@ class CoveragePage {
   #renderKpis(features) {
     const totalM = features.reduce((s, f) => s + (f.properties.total_distance_m || 0), 0);
     const auditedM = features.reduce((s, f) => s + (f.properties.audited_distance_m || 0), 0);
-    // Streets audited before, but whose audits all predate newer imagery (#4384) — not counted in coverage.
+    // Streets audited before, but whose audits all predate newer imagery (#4384) — still counted in coverage,
+    // surfaced here as their own KPI.
     const outdatedM = features.reduce((s, f) => s + (f.properties.outdated_distance_m || 0), 0);
     const fullyAudited = features.filter((f) => (f.properties.completion_rate || 0) >= 0.999).length;
 

@@ -67,9 +67,9 @@ object ApiFormats {
       "launch_date"                   -> stats.launchDate,
       "avg_timestamp_last_100_labels" -> stats.avgTimestampLast100Labels.map(_.toString),
       "km_explored"                   -> stats.kmExplored,
-      // The no_overlap/multiple/single km count only audits with current imagery; km_needs_reaudit is the unique km
-      // audited before whose audits all predate newer imagery (#4384). Ever-audited unique km = no_overlap +
-      // needs_reaudit. km_explored keeps counting all completed audits (total work done, with overlap).
+      // The no_overlap/multiple/single km count every completed audit regardless of imagery age. km_needs_reaudit is
+      // the subset of no_overlap whose completed audits all predate newer imagery (#4384), so km on current imagery =
+      // no_overlap − needs_reaudit. km_explored keeps counting all completed audits (total work done, with overlap).
       "km_explored_no_overlap"     -> stats.kmExploreNoOverlap,
       "km_explored_multiple_users" -> stats.kmExploredMultipleUsers,
       "km_explored_single_user"    -> stats.kmExploredSingleUser,

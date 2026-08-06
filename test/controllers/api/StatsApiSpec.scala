@@ -99,8 +99,10 @@ class StatsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       // single + multiple == no_overlap (single is derived as no_overlap − multiple), and multiple ≤ no_overlap.
       (single + multiple) mustBe (noOverlap +- 0.001)
       multiple must be <= (noOverlap + 0.001)
-      // Streets needing re-audit (#4384) are disjoint from the up-to-date no-overlap set.
-      (json \ "km_needs_reaudit").as[Double] must be >= 0.0
+      // Streets needing re-audit (#4384) are a subset of the ever-audited no-overlap set.
+      val needsReaudit = (json \ "km_needs_reaudit").as[Double]
+      needsReaudit must be >= 0.0
+      needsReaudit must be <= (noOverlap + 0.001)
       // km_explorable is an alias of the open bucket. NOTE: we deliberately do NOT assert noOverlap ≤ explorable —
       // a street can be audited and later become closed/no_imagery, so explored can exceed the auditable-now network.
       explorable mustBe (open +- 0.001)
