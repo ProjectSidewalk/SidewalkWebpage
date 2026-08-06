@@ -100,10 +100,6 @@ class ImageryFreshnessServiceImpl @Inject() (
 
   private val pollBatchSize: Int = config.get[Int]("street-imagery-poll.batch-size")
 
-  // Resolved lazily: this service sits on RecalculateStreetPriorityActor's injection path and so is constructed at
-  // boot, and a Mapillary- or Infra3d-only deployment should not need a Google key just to start up.
-  private lazy val googleApiKey: String = config.get[String]("google-maps-api-key")
-
   // 25m matches check_streets_for_imagery.py's endpoint radius: wide enough to catch imagery on the roadway, narrow
   // enough not to routinely pick up a parallel street.
   private val SampleRadiusMeters = 25.0
@@ -142,7 +138,13 @@ class ImageryFreshnessServiceImpl @Inject() (
    */
   def pollImageryAges(): Future[String] = {
     configService.getPanoSource match {
-      case PanoSource.Gsv       => pollStreets("GSV")(fetchGsvPointObservations)
+      // The key is resolved once here, like the Mapillary token below: resolving it lazily inside the per-point
+      // fetch would throw synchronously in the batch fold and abandon every remaining street.
+      case PanoSource.Gsv =>
+        config.getOptional[String]("google-maps-api-key") match {
+          case Some(key) => pollStreets("GSV")(fetchGsvPointObservations(key))
+          case None      => Future.successful("No google-maps-api-key configured; skipping imagery-age poll.")
+        }
       case PanoSource.Mapillary =>
         config.getOptional[String]("mapillary-access-token") match {
           case Some(token) => pollStreets("Mapillary")(fetchMapillaryPointObservations(token))
@@ -201,7 +203,8 @@ class ImageryFreshnessServiceImpl @Inject() (
           val (identified, anonymous) = results.flatten.flatten.partition(_.panoId.nonEmpty)
           val panos                   = identified.groupBy(_.panoId).map(_._2.head).toSeq ++ anonymous
           val dates                   = panos.flatMap(_.capture)
-          db.run(streetImageryTable.upsertFromPoll(street.streetEdgeId, dates.minOption, dates.maxOption, panos.size))
+          // n_panos counts distinct *dated* panos, per the column contract in StreetImageryTable.
+          db.run(streetImageryTable.upsertFromPoll(street.streetEdgeId, dates.minOption, dates.maxOption, dates.size))
             .map(_ => true)
         }
       }
@@ -221,10 +224,12 @@ class ImageryFreshnessServiceImpl @Inject() (
    * reaches a parallel service road or alley that was re-imaged more recently, which costs a needless re-audit
    * prompt. Sampling three points spread along the street limits both.
    */
-  private def fetchGsvPointObservations(lat: Double, lng: Double): Future[Option[Seq[PanoObservation]]] = {
+  private def fetchGsvPointObservations(
+      apiKey: String
+  )(lat: Double, lng: Double): Future[Option[Seq[PanoObservation]]] = {
     val url = panoDataService.signUrl(
       s"https://maps.googleapis.com/maps/api/streetview/metadata?source=outdoor" +
-        s"&location=$lat,$lng&radius=${SampleRadiusMeters.toInt}&key=$googleApiKey"
+        s"&location=$lat,$lng&radius=${SampleRadiusMeters.toInt}&key=$apiKey"
     )
     ws.url(url)
       .withRequestTimeout(5.seconds)

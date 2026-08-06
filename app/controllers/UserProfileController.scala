@@ -42,7 +42,9 @@ class UserProfileController @Inject() (
       // Every street in this feed is one the user audited; saying so lets filterStreetLayer's audited checkbox
       // control these features instead of them falling through to the unaudited arm.
       val properties: JsObject = Json.obj(
-        "street_edge_id" -> street.streetEdgeId, "way_type" -> street.wayType.toString, "audited" -> true
+        "street_edge_id" -> street.streetEdgeId,
+        "way_type"       -> street.wayType.toString,
+        "audited"        -> true
       )
       Json.obj("type" -> "Feature", "geometry" -> street.geom, "properties" -> properties)
     }

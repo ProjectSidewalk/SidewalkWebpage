@@ -43,14 +43,14 @@ case class StreetImagery(
 )
 
 class StreetImageryTableDef(tag: Tag) extends Table[StreetImagery](tag, "street_imagery") {
-  def streetEdgeId: Rep[Int]                = column[Int]("street_edge_id", O.PrimaryKey)
+  def streetEdgeId: Rep[Int] = column[Int]("street_edge_id", O.PrimaryKey)
   // DB CHECK (348.sql): oldest_capture <= newest_capture when both are present.
   def oldestCapture: Rep[Option[LocalDate]] = column[Option[LocalDate]]("oldest_capture")
   def newestCapture: Rep[Option[LocalDate]] = column[Option[LocalDate]]("newest_capture")
   def nPanos: Rep[Int]                      = column[Int]("n_panos") // DB CHECK (348.sql): n_panos >= 0.
   // DB CHECK (348.sql): one of 'pano_data', 'imagery_scan', 'imagery_poll'.
-  def dataSource: Rep[String]               = column[String]("data_source")
-  def updatedAt: Rep[OffsetDateTime]        = column[OffsetDateTime]("updated_at")
+  def dataSource: Rep[String]        = column[String]("data_source")
+  def updatedAt: Rep[OffsetDateTime] = column[OffsetDateTime]("updated_at")
 
   def * = (streetEdgeId, oldestCapture, newestCapture, nPanos, dataSource, updatedAt) <>
     ((StreetImagery.apply _).tupled, StreetImagery.unapply)
@@ -97,7 +97,9 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
    * Open, non-tutorial streets, ordered so that audited streets come first (their outdated_imagery flags are what the
    * poll exists to feed) and, within each group, streets whose imagery knowledge is oldest (no street_imagery row at
    * all first, then stale updated_at). The poller bumps updated_at on every street it successfully polls -- even when
-   * the dates don't change -- which is what advances this rotation.
+   * the dates don't change -- which is what advances this rotation. The tiering is strict: in a city with more than
+   * `limit` audited streets, the batch is all audited streets and unaudited ones are never reached -- accepted,
+   * since only audited streets have flags to feed, but it means this poll is not a city-wide imagery census.
    *
    * The ordering forces a full sort of the city's open streets each night, but that is a top-N heapsort over a few
    * tens of thousands of rows and Postgres evaluates the PostGIS midpoint above the Limit, so only `limit` streets
