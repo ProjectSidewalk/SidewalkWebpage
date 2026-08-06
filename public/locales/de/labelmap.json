@@ -58,6 +58,7 @@
   "download": {
     "button": "Herunterladen",
     "title": "Dateiformat zum Herunterladen auswählen",
+    "preparing": "Download wird vorbereitet…",
     "count_one": "{{count}} Beschriftung",
     "count_other": "{{count}} Beschriftungen",
     "count-match_one": "entspricht Ihren Filtern",
@@ -66,8 +67,9 @@
     "hint-csv": "Für Excel, Google Sheets",
     "hint-shapefile": "Für ArcGIS, QGIS",
     "hint-geopackage": "Offenes GIS-Format",
-    "caveat": "Einige Filter aus dem Link dieser Seite (mehrere Regionen, Routen oder KI-Validierung) werden auf Downloads nicht angewendet.",
-    "api-docs-link": "Dokumentation der Raw-Labels-API"
+    "caveat": "Einige Filter aus dem Link dieser Seite (mehrere Regionen, Routen oder KI-Validierung) können auf Downloads nicht angewendet werden, daher kann die Datei mehr Beschriftungen enthalten als oben angegeben.",
+    "api-docs-link": "Dokumentation der Raw-Labels-API",
+    "opens-new-tab": " (wird in einem neuen Tab geöffnet)"
   },
   "story": {
     "heading": "Erfahrungsberichte",

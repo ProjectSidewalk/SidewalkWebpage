@@ -43,6 +43,88 @@ case class SeverityFilterForApi(severities: Set[Int], includeNullSeverity: Boole
  */
 case class TagFilterForApi(labelType: Option[String], tag: String)
 
+object TagFilterForApi {
+
+  /**
+   * Parses and validates the Raw Labels API's repeatable `tags` parameter against a city's tag vocabulary.
+   *
+   * Each occurrence of the parameter is one entry. If an entry's text before the first colon names a label type, the
+   * entry narrows only that type ("CurbRamp:narrow"); otherwise the whole entry is a tag narrowing every type (tag
+   * names may themselves contain colons — "cycle lane: faded paint" — so an unrecognized prefix is not an error).
+   *
+   * An entry is valid when its tag exists in the vocabulary: for its own label type if scoped, on any label type
+   * otherwise. An unknown tag is a 400 rather than a silently-empty match — the same strictness `labelType` gets —
+   * except that an entry which fails whole is first re-read as an older comma-joined list (`tags=a,b` from a
+   * pre-#4786 link) and accepted if every piece is itself valid. Validating before splitting is what lets a tag name
+   * that contains a comma ("yellow box, accessibility features not visible") survive intact.
+   *
+   * @param entries         The tags query parameter occurrences, in the order they were supplied.
+   * @param validLabelTypes Label type names an entry may be scoped to.
+   * @param tagsByLabelType The city's tag vocabulary: label type name -> the tag names of that type.
+   * @return `Right(None)` if absent, `Right(Some(filters))` if every entry validates, or `Left(ApiError)` describing
+   *         the first empty, mis-scoped, or unknown entry.
+   */
+  def parse(
+      entries: List[String],
+      validLabelTypes: Set[String],
+      tagsByLabelType: Map[String, Set[String]]
+  ): Either[ApiError, Option[Seq[TagFilterForApi]]] = {
+    lazy val allTagNames: Set[String] = tagsByLabelType.values.flatten.toSet
+    val emptyValueError               = ApiError.invalidParameter("The tags parameter contains an empty value.", "tags")
+
+    def syntacticParse(entry: String): TagFilterForApi = {
+      val prefix = entry.takeWhile(_ != ':')
+      if (entry.contains(':') && validLabelTypes.contains(prefix))
+        TagFilterForApi(Some(prefix), entry.drop(prefix.length + 1).trim)
+      else TagFilterForApi(None, entry)
+    }
+
+    def validationError(filter: TagFilterForApi): Option[ApiError] = filter match {
+      case TagFilterForApi(Some(labelType), "") =>
+        Some(ApiError.invalidParameter(s"Missing tag after label type '$labelType:' in the tags parameter.", "tags"))
+      case TagFilterForApi(Some(labelType), tag) if !tagsByLabelType.getOrElse(labelType, Set.empty).contains(tag) =>
+        Some(
+          ApiError.invalidParameter(
+            s"'$tag' is not a tag of label type '$labelType'; see /v3/api/labelTags for this city's tags.",
+            "tags"
+          )
+        )
+      case TagFilterForApi(None, tag) if !allTagNames.contains(tag) =>
+        Some(ApiError.invalidParameter(s"Unknown tag '$tag'; see /v3/api/labelTags for this city's tags.", "tags"))
+      case _ => None
+    }
+
+    def resolveEntry(entry: String): Either[ApiError, Seq[TagFilterForApi]] =
+      if (entry.isEmpty) Left(emptyValueError)
+      else {
+        val whole = syntacticParse(entry)
+        validationError(whole) match {
+          case None                           => Right(Seq(whole))
+          case Some(_) if entry.contains(',') =>
+            val pieces = entry.split(",").map(_.trim).toSeq
+            if (pieces.exists(_.isEmpty)) Left(emptyValueError)
+            else {
+              val parsed = pieces.map(syntacticParse)
+              // A piece-level error names the actual offender; the whole-entry error would name the joined text.
+              parsed.flatMap(validationError).headOption.toLeft(parsed)
+            }
+          case Some(wholeError) => Left(wholeError)
+        }
+      }
+
+    val trimmed = entries.map(_.trim)
+    if (trimmed.isEmpty) Right(None)
+    else {
+      trimmed
+        .foldLeft[Either[ApiError, Vector[TagFilterForApi]]](Right(Vector.empty)) {
+          case (Left(error), _)    => Left(error)
+          case (Right(acc), entry) => resolveEntry(entry).map(acc ++ _)
+        }
+        .map(filters => Some(filters))
+    }
+  }
+}
+
 /**
  * Represents parsed and validated filters from query parameters for the Raw Labels API.
  *

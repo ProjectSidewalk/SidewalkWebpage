@@ -138,8 +138,9 @@ class GalleryFilter {
       params.set('labelType', this.#status.currentLabelTypes.join());
     }
     // Tags belong to a label type, so they only mean something alongside the types they narrow.
-    const tags = this.getAppliedTagNames();
-    if (tags.length > 0) params.set('tags', tags.join());
+    // One occurrence per tag rather than a comma-joined list: tag names are free-form and one of them contains a
+    // comma (#4783); see util.url.setRepeated.
+    util.url.setRepeated(params, 'tags', this.getAppliedTagNames());
     // TODO once we add a UI for neighborhood filtering, have that process mirror what we have for other filters.
     const { neighborhoods, aiValidationOptions } = this.#initialFilters;
     if (neighborhoods.length > 0) params.set('neighborhoods', neighborhoods.join());
@@ -150,9 +151,7 @@ class GalleryFilter {
     // TODO once we add a UI for filtering on AI validation, have that process mirror the other filters.
     if (aiValidationOptions.length > 0) params.set('aiValidationOptions', aiValidationOptions.join());
 
-    // Commas are legal unencoded in a query value, and these params are comma-separated lists, so leaving them
-    // readable keeps the shared URLs legible without changing what the server parses.
-    const query = params.toString().replace(/%2C/g, ',');
+    const query = util.url.serialize(params);
     return query ? `/gallery?${query}` : '/gallery';
   }
 

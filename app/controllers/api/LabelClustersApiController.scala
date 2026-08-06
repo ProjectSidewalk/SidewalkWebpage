@@ -12,7 +12,6 @@ import play.silhouette.api.Silhouette
 import service.{ApiService, ConfigService}
 
 import java.nio.file.Files
-import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -113,7 +112,7 @@ class LabelClustersApiController @Inject() (
 
           // Get the data stream.
           val dbDataStream: Source[LabelClusterForApi, _] = apiService.getLabelClusters(filters, DEFAULT_BATCH_SIZE)
-          val baseFileName: String                        = s"labelClusters_${OffsetDateTime.now()}"
+          val baseFileName: String                        = timestampedFilename("labelClusters")
 
           // Output data in the appropriate file format.
           filetype match {
@@ -188,7 +187,7 @@ class LabelClustersApiController @Inject() (
             case Some("geopackage") =>
               outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createLabelClusterGeopackage, inline)
             case _ => // Default to GeoJSON.
-              outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
+              outputGeoJSON(dbDataStream, inline, baseFileName + ".geojson")
           }
         }
     }

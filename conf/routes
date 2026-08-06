@@ -9,7 +9,7 @@ GET     /developer                                      controllers.ApiDocsContr
 GET     /terms                                          controllers.ApplicationController.terms
 GET     /labelMap                                       controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
 GET     /labelmap                                       controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
-GET     /gallery                                        controllers.GalleryController.gallery(labelType: String ?= "Assorted", neighborhoods: String ?= "", severities: String ?= "", tags: String ?= "", validationOptions: String ?= "correct,unvalidated", aiValidationOptions: String ?= "")
+GET     /gallery                                        controllers.GalleryController.gallery(labelType: String ?= "Assorted", neighborhoods: String ?= "", severities: String ?= "", tags: List[String] ?= List(), validationOptions: String ?= "correct,unvalidated", aiValidationOptions: String ?= "")
 GET     /help                                           controllers.ApplicationController.help
 GET     /labelingGuide                                  controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                  controllers.ApplicationController.labelingGuide
@@ -230,7 +230,7 @@ POST    /ai/analyzeScene                                controllers.AiController
 POST    /ai/submitLabelsOnPano                          controllers.AiController.submitAiLabel
 
 # Public API (v3) for Project Sidewalk data and metadata.
-GET     /v3/api/rawLabels                               controllers.api.LabelApiController.getRawLabelsV3(bbox: Option[String], labelType: Option[String], tags: Option[String], severity: Option[String], minSeverity: Option[Int], maxSeverity: Option[Int], validationStatus: Option[String], highQualityUserOnly: Option[Boolean], startDate: Option[String], endDate: Option[String], regionId: Option[Int], regionName: Option[String], filetype: Option[String], inline: Option[Boolean])
+GET     /v3/api/rawLabels                               controllers.api.LabelApiController.getRawLabelsV3(bbox: Option[String], labelType: Option[String], tags: List[String] ?= List(), severity: Option[String], minSeverity: Option[Int], maxSeverity: Option[Int], validationStatus: Option[String], highQualityUserOnly: Option[Boolean], startDate: Option[String], endDate: Option[String], regionId: Option[Int], regionName: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/labelTypes                              controllers.api.LabelApiController.getLabelTypes
 GET     /v3/api/labelTags                               controllers.api.LabelApiController.getLabelTags
 GET     /v3/api/regionWithMostLabels                    controllers.api.RegionApiController.getRegionWithMostLabels

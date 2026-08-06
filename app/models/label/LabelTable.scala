@@ -1,7 +1,13 @@
 package models.label
 
 import com.google.inject.ImplementedBy
-import models.api.{LabelDataForApi, LabelValidationSummaryForApi, RawLabelFiltersForApi, RawLabelValidationStatus}
+import models.api.{
+  LabelDataForApi,
+  LabelValidationSummaryForApi,
+  RawLabelFiltersForApi,
+  RawLabelValidationStatus,
+  TagFilterForApi
+}
 import models.audit.AuditTaskTableDef
 import models.label.LabelTable._
 import models.label.LabelTypeEnum._
@@ -307,6 +313,55 @@ object LabelTable {
     "human" -> "role <> 'AI'",
     "ai"    -> "role = 'AI'"
   )
+
+  /**
+   * Builds the `WHERE` fragment for the Raw Labels API's `tags` filter.
+   *
+   * Every entry contributes to the set of tags that narrows one or more label types, and a label is kept when it
+   * carries any tag from the set that applies to *its* type:
+   *
+   *   - an unscoped entry applies to every label type;
+   *   - an entry scoped to a type (`CurbRamp:narrow`) applies only to that type;
+   *   - a type that ends up with an empty applicable set is not narrowed at all.
+   *
+   * That last rule is what lets the LabelMap's download reproduce what the map shows: the sidebar narrows each label
+   * type by its own tag pills and leaves the untagged types alone, so scoping a tag to `CurbRamp` must not drop every
+   * `Obstacle` (#4095). With no scoped entries the clause reduces to a flat OR over the tags, which is the behavior
+   * unscoped callers have always had.
+   *
+   * Label types are allowlisted `LabelTypeEnum` names (validated at parse time) and so are safe to splice; only the
+   * caller-supplied tag text needs escaping.
+   *
+   * @param tags Parsed tag filters; must be non-empty.
+   * @return A parenthesized SQL condition over `label.tags` and `label_type.label_type`.
+   */
+  def tagWhereClause(tags: Seq[TagFilterForApi]): String = {
+    def matchesTag(tag: String): String         = s"'${tag.replace("'", "''")}' = ANY(label.tags)"
+    def anyOf(tagsToMatch: Seq[String]): String = tagsToMatch.distinct.map(matchesTag).mkString(" OR ")
+
+    val unscopedTags: Seq[String]            = tags.collect { case TagFilterForApi(None, tag) => tag }
+    val scopedTags: Map[String, Seq[String]] = tags
+      .collect { case TagFilterForApi(Some(labelType), tag) =>
+        labelType -> tag
+      }
+      .groupMap(_._1)(_._2)
+
+    // Sorted so the emitted SQL is deterministic regardless of the order the caller listed the entries in.
+    val scopedConditions: Seq[String] = scopedTags.toSeq.sortBy(_._1).map { case (labelType, tagsForType) =>
+      s"(label_type.label_type = '$labelType' AND (${anyOf(tagsForType ++ unscopedTags)}))"
+    }
+
+    val otherTypesCondition: String = if (scopedTags.isEmpty) {
+      anyOf(unscopedTags)
+    } else {
+      val scopedTypeList = scopedTags.keys.toSeq.sorted.map(labelType => s"'$labelType'").mkString(", ")
+      val notScoped      = s"label_type.label_type NOT IN ($scopedTypeList)"
+      // No unscoped tags means the types nobody scoped are left unnarrowed, so they pass on type alone.
+      if (unscopedTags.isEmpty) notScoped else s"($notScoped AND (${anyOf(unscopedTags)}))"
+    }
+
+    s"(${(scopedConditions :+ otherTypesCondition).mkString(" OR ")})"
+  }
 
   // Type aliases for the tuple representation of LabelMetadataUserDash and queries for them.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
@@ -1936,18 +1991,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     }
 
     if (filters.tags.isDefined && filters.tags.get.nonEmpty) {
-      // Scoped entries only match the tag on their label type; bare entries match it on any type. The label type is
-      // always an allowlisted LabelTypeEnum name (validated at parse time), so only the tag needs escaping.
-      val tagConditions = filters.tags.get
-        .map { tagFilter =>
-          val tagCondition = s"'${tagFilter.tag.replace("'", "''")}' = ANY(label.tags)"
-          tagFilter.labelType match {
-            case Some(labelType) => s"(label_type.label_type = '$labelType' AND $tagCondition)"
-            case None            => tagCondition
-          }
-        }
-        .mkString(" OR ")
-      whereConditions :+= s"($tagConditions)"
+      whereConditions :+= tagWhereClause(filters.tags.get)
     }
 
     filters.severity.foreach { severityFilter =>

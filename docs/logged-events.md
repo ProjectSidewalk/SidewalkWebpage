@@ -75,9 +75,9 @@ vocabulary mirrors the Gallery filter events (`SeverityApply`, `TagApply`, `Vali
 that renders the sidebar; use the accompanying page-visit events to segment by page.
 
 The LabelMap's "Download" control (`ps-map/MapDownloadControl.js`, #4095) logs the
-**`Click_module=MapDownload_<Action>`** family: `MapDownload_Open` when the menu opens,
+**`Click_module=MapDownload_<Action>`** family: `MapDownload_Open` when the panel opens,
 `MapDownload_Download_format=<geojson|csv|shapefile|geopackage>` when a format is picked (the download itself is a
-`/v3/api/rawLabels` request, so it also appears in the API request log), and `MapDownload_DocsLink` when the menu's
+`/v3/api/rawLabels` request, so it also appears in the API request log), and `MapDownload_DocsLink` when the panel's
 API-documentation link is followed.
 
 The Gallery renders the same sidebar (`gallery/src/filter/GalleryFilter.js`) and logs to `gallery_task_interaction`
