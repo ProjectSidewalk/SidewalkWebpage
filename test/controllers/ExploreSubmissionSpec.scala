@@ -64,18 +64,17 @@ class ExploreSubmissionSpec extends PlaySpec with GuiceOneAppPerSuite with Submi
       .getOrElse(cancel("No task in the explore bootstrap (the user's assigned region is fully audited)."))
     val mission = embeddedPageJson(html, "mainParam.mission")
       .getOrElse(fail("No mission in the explore bootstrap."))
-    val userId = "userId: '([0-9a-f-]+)'".r
-      .findFirstMatchIn(html)
-      .map(_.group(1))
-      .getOrElse(fail("No userId in the explore bootstrap."))
     val regionId = embeddedPageJson(html, "mainParam.regionId")
       .map(_.as[Int])
       .getOrElse(fail("No regionId in the explore bootstrap."))
-    val props = (task \ "properties").as[JsObject]
+    val missionId = (mission \ "mission_id").as[Int]
+    // The assigned mission row carries the session user's id, so it resolves the anon user for row assertions.
+    val userId = runDb(sql"SELECT user_id FROM mission WHERE mission_id = $missionId".as[String]).head
+    val props  = (task \ "properties").as[JsObject]
     ExploreBootstrap(
       userId,
       regionId,
-      (mission \ "mission_id").as[Int],
+      missionId,
       (mission \ "mission_type").as[String],
       (props \ "street_edge_id").as[Int],
       (props \ "current_lat").as[Double],
@@ -204,9 +203,14 @@ class ExploreSubmissionSpec extends PlaySpec with GuiceOneAppPerSuite with Submi
     ).headOption
 
   "POST /task" should {
-    "reject an unauthenticated submission" in {
-      val resp = route(app, FakeRequest(POST, "/task").withJsonBody(Json.obj()).withCSRFToken).get
-      status(resp) must not be OK
+    "401 an unauthenticated submission" in {
+      // Sec-Fetch-Mode pins the fetch/XHR arm of ControllerUtils.anonSignupRedirect — what the real client hits;
+      // RouteAuthPostureSpec covers the navigation arm.
+      val resp = route(
+        app,
+        FakeRequest(POST, "/task").withHeaders("Sec-Fetch-Mode" -> "cors").withJsonBody(Json.obj()).withCSRFToken
+      ).get
+      status(resp) mustBe UNAUTHORIZED
     }
 
     "400 a payload that doesn't match the submission contract" in {

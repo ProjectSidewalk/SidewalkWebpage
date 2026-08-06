@@ -172,9 +172,17 @@ class ValidateSubmissionSpec extends PlaySpec with GuiceOneAppPerSuite with Subm
     runDb(sql"SELECT agree_count FROM label WHERE label_id = $labelId".as[Int]).head
 
   "POST /validationTask" should {
-    "reject an unauthenticated submission" in {
-      val resp = route(app, FakeRequest(POST, "/validationTask").withJsonBody(Json.obj()).withCSRFToken).get
-      status(resp) must not be OK
+    "401 an unauthenticated submission" in {
+      // Sec-Fetch-Mode pins the fetch/XHR arm of ControllerUtils.anonSignupRedirect — what the real client hits;
+      // RouteAuthPostureSpec covers the navigation arm.
+      val resp = route(
+        app,
+        FakeRequest(POST, "/validationTask")
+          .withHeaders("Sec-Fetch-Mode" -> "cors")
+          .withJsonBody(Json.obj())
+          .withCSRFToken
+      ).get
+      status(resp) mustBe UNAUTHORIZED
     }
 
     "400 a payload that doesn't match the submission contract" in {
@@ -206,10 +214,10 @@ class ValidateSubmissionSpec extends PlaySpec with GuiceOneAppPerSuite with Subm
       eventually(timeout(Span(15, Seconds))) {
         runDb(
           sql"SELECT count(*) FROM validation_task_interaction WHERE mission_id = ${b.missionId}".as[Int]
-        ).head must be >= 1
+        ).head mustBe 1
         runDb(
           sql"SELECT count(*) FROM validation_task_environment WHERE mission_id = ${b.missionId}".as[Int]
-        ).head must be >= 1
+        ).head mustBe 1
       }
 
       // The undo flow (#4653): the same endpoint with undone=true deletes the validation and restores the counts.
