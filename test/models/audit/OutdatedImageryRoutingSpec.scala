@@ -13,8 +13,9 @@ import java.time.OffsetDateTime
 
 /**
  * DB-backed tests pinning the routing/priority contract of audit_task.outdated_imagery (#4384): an audit flagged as
- * outdated stops counting as street completion, so the street (and its region) re-opens for the user and for the
- * priority formula, while the audit row itself is preserved.
+ * outdated stops counting as per-user street completion, so the street (and its region) re-opens for the user, while
+ * in the city-wide priority formula the audit keeps half weight -- the street lands at the discounted re-audit tier
+ * (1/1.5), below never-audited streets but above freshly-audited ones. The audit row itself is preserved.
  *
  * Every mutating case runs inside a deliberately rolled-back transaction (runRolledBack), leaving the connected DB
  * untouched. Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI);
@@ -111,7 +112,7 @@ class OutdatedImageryRoutingSpec extends PlaySpec with GuiceOneAppPerSuite with 
       taskAfter.flatMap(_.auditTaskId) mustBe None
     }
 
-    "return a street whose only audit is outdated to priority 1.0" in {
+    "drop a street whose only audit is outdated to the discounted re-audit priority" in {
       assume(someStreetRegion.isDefined && goodUserId.isDefined)
       val streetId = someStreetRegion.get._1
       val userId   = goodUserId.get
@@ -134,10 +135,11 @@ class OutdatedImageryRoutingSpec extends PlaySpec with GuiceOneAppPerSuite with 
         )
       )
 
-      // One good audit: priority = 1 / (1 + 1). Flagged outdated, the street has zero good audits, which pins its
-      // priority parameter to 0 -> priority exactly 1.0, the same as a never-audited street.
+      // One good audit: priority = 1 / (1 + 1). Flagged outdated, the audit keeps half weight (#4384): parameter 0.5
+      // -> priority 1 / 1.5, strictly between the freshly-audited tier (<= 0.5) and never-audited streets (1.0), and
+      // < 1.0 so region_completion keeps crediting the street as explored.
       priorityBefore mustBe Some(0.5)
-      priorityAfter mustBe Some(1.0)
+      priorityAfter mustBe Some(1 / 1.5)
     }
 
     "re-open a fully-explored region for the user once one of their audits is flagged" in {
