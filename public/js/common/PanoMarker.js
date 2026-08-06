@@ -112,6 +112,10 @@ class PanoMarker {
     marker.style.cursor = 'inherit';
     marker.style.width = `${this.size_.width}px`;
     marker.style.height = `${this.size_.height}px`;
+    // Markers are square, so width is the diameter. Published so decorations can size themselves off the marker
+    // instead of hardcoding px that only look right at one of its sizes (e.g. main.css's .label-marker-pulse halo,
+    // where Validate's marker is 22px on desktop but 52px on mobile).
+    marker.style.setProperty('--marker-diameter', `${this.size_.width}px`);
     marker.style.display = this.visible_ ? 'block' : 'none';
     marker.style.zIndex = this.zIndex_;
 
@@ -338,6 +342,7 @@ class PanoMarker {
     if (this.marker_) {
       this.marker_.style.width = `${size.width}px`;
       this.marker_.style.height = `${size.height}px`;
+      this.marker_.style.setProperty('--marker-diameter', `${size.width}px`);
       this.draw();
     }
   };

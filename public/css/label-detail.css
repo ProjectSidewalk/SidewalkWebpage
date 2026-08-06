@@ -166,19 +166,14 @@ dialog.label-detail[open]::backdrop {
   cursor: grabbing;
 }
 
-/* Halo pulse draws the eye to the label marker when the card opens; the marker icon alone is small and often
-   low-contrast against pavement. The background sizing scales the SVG marker to whatever box PanoMarker sets. */
-@keyframes label-detail-marker-pulse {
-  from { box-shadow: 0 0 0 0 rgb(255 255 255 / 90%); }
-  to { box-shadow: 0 0 0 18px rgb(255 255 255 / 0%); }
-}
-
-.label-detail__marker-pulse {
+/* The label marker on the card's pano. The background sizing scales the SVG marker to whatever box PanoMarker
+   sets. The halo that draws the eye to it is main.css's .label-marker-pulse, which PopupPanoManager adds
+   alongside this class. */
+.label-detail__marker {
   border-radius: 50%;
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
-  animation: label-detail-marker-pulse 1.4s ease-out 1;
 
   /* Visual only: let a click-and-drag pass through to the pano so the streetscape still pans when the drag
      starts over the marker (#4574, Mikey #6) — matching the crop fallback marker, which is already pass-through. */
@@ -186,7 +181,7 @@ dialog.label-detail[open]::backdrop {
 }
 
 /* The AI-generated badge keeps its own hover tooltip; it's a tiny corner target, so panning is barely affected. */
-.label-detail__marker-pulse .admin-ai-icon-marker { pointer-events: auto; }
+.label-detail__marker .admin-ai-icon-marker { pointer-events: auto; }
 
 /* One-time "pannable" hint chip over the imagery; LabelDetail toggles is-visible briefly on first open. Sits at
    the top of the image, clear of the hover validation overlay at the bottom. */
@@ -210,8 +205,6 @@ dialog.label-detail[open]::backdrop {
 .label-detail__pan-hint.is-visible { opacity: 1; }
 
 @media (prefers-reduced-motion: reduce) {
-  .label-detail__marker-pulse { animation: none; }
-
   .label-detail__pan-hint { transition: none; }
 }
 
