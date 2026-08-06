@@ -652,6 +652,15 @@ a {
   color: var(--color-asphalt-500);
 }
 
+/* Brand marks in the "Connect" links (markup in common/socialIcon.scala.html). They fill with the link's own text
+   color so the set reads as one monochrome group rather than four competing brand palettes. */
+.social-icon {
+  width: 15px;
+  height: 15px;
+  vertical-align: -2px;
+  fill: currentcolor;
+}
+
 #info-footer {
   position: relative;
   width: 100%;
