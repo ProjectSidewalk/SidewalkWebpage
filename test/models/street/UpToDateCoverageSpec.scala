@@ -27,9 +27,13 @@ class UpToDateCoverageSpec extends PlaySpec with GuiceOneAppPerSuite with Rolled
 
   private val auditTasks = TableQuery[AuditTaskTableDef]
 
-  /** A street that currently counts toward coverage: a completed audit by a non-excluded user on an open street. */
+  /**
+   * A street that currently counts toward up-to-date coverage: a completed, unflagged audit by a non-excluded user
+   * on an open street. Sampling an already-fully-flagged street would make the flag-flip below a no-op and fail the
+   * before/after assertions instead of exercising them.
+   */
   private lazy val countedStreetId: Option[Int] =
-    run(streetEdgeTable.completedAuditTasks.map(_.streetEdgeId).result.headOption)
+    run(streetEdgeTable.completedAuditTasks.filterNot(_.outdatedImagery).map(_.streetEdgeId).result.headOption)
 
   "countDistinctAuditedStreets / auditedStreetDistance with upToDateOnly" should {
     "drop a fully-flagged street from up-to-date coverage while ever-audited coverage keeps it" in {

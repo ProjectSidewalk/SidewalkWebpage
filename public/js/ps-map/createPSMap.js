@@ -98,9 +98,9 @@ function createPSMap($, params) {
   let renderStreets;
   if (params.streetsURL) {
     const loadStreets = $.getJSON(params.streetsURL);
-    renderStreets = Promise.all([mapLoaded, renderNeighborhoods, loadStreets]).then((data) => {
-      addStreetsToMap(map, data[2], params);
-    });
+    renderStreets = Promise.all([mapLoaded, renderNeighborhoods, loadStreets]).then(
+      (data) => addStreetsToMap(map, data[2], params),
+    );
   }
 
   // Render the labels on the map if applicable.

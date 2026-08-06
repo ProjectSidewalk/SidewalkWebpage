@@ -44,9 +44,11 @@ case class StreetImagery(
 
 class StreetImageryTableDef(tag: Tag) extends Table[StreetImagery](tag, "street_imagery") {
   def streetEdgeId: Rep[Int]                = column[Int]("street_edge_id", O.PrimaryKey)
+  // DB CHECK (348.sql): oldest_capture <= newest_capture when both are present.
   def oldestCapture: Rep[Option[LocalDate]] = column[Option[LocalDate]]("oldest_capture")
   def newestCapture: Rep[Option[LocalDate]] = column[Option[LocalDate]]("newest_capture")
-  def nPanos: Rep[Int]                      = column[Int]("n_panos")
+  def nPanos: Rep[Int]                      = column[Int]("n_panos") // DB CHECK (348.sql): n_panos >= 0.
+  // DB CHECK (348.sql): one of 'pano_data', 'imagery_scan', 'imagery_poll'.
   def dataSource: Rep[String]               = column[String]("data_source")
   def updatedAt: Rep[OffsetDateTime]        = column[OffsetDateTime]("updated_at")
 

@@ -755,7 +755,10 @@ class AuditTaskTable @Inject() (
    *     date standardizes to the 1st, so an audit any time in that month is not flagged.
    *   - task_end is a timestamptz, so a bare ::date would resolve in the connection's TimeZone and could flip a
    *     borderline audit between runs. Pinning to UTC makes the comparison deterministic, and rounds in the
-   *     conservative direction for Western-hemisphere cities (an evening audit lands on the next UTC day).
+   *     conservative direction for Western-hemisphere cities (an evening audit lands on the next UTC day). For
+   *     UTC-positive cities the rounding goes the other way: an audit in the first local hours of a capture month's
+   *     1st lands on the previous UTC date and gets flagged despite covering the new imagery -- a narrow window
+   *     (offset hours, once per capture month) accepted until the comparison uses each city's local timezone.
    *   - A capture date in the future is bad data, not new imagery. Since every writer only ever *widens*
    *     newest_capture (GREATEST), an unguarded future date would flag every audit on the street forever -- including
    *     each fresh re-audit -- leaving it permanently un-completable. Ignoring future dates here keeps the street
@@ -772,7 +775,7 @@ class AuditTaskTable @Inject() (
           AND audit_task.completed
           AND NOT audit_task.outdated_imagery
           AND street_imagery.newest_capture IS NOT NULL
-          AND street_imagery.newest_capture <= CURRENT_DATE
+          AND street_imagery.newest_capture <= (now() AT TIME ZONE 'UTC')::date
           AND (audit_task.task_end AT TIME ZONE 'UTC')::date < street_imagery.newest_capture
           AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config);
     """
@@ -786,7 +789,7 @@ class AuditTaskTable @Inject() (
                   SELECT FROM street_imagery
                   WHERE street_imagery.street_edge_id = audit_task.street_edge_id
                       AND street_imagery.newest_capture IS NOT NULL
-                      AND street_imagery.newest_capture <= CURRENT_DATE
+                      AND street_imagery.newest_capture <= (now() AT TIME ZONE 'UTC')::date
                       AND (audit_task.task_end AT TIME ZONE 'UTC')::date < street_imagery.newest_capture
               )
           );
