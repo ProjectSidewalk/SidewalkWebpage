@@ -146,10 +146,7 @@ function createPSMap($, params) {
    * @returns {Promise<object>} The parsed GeoJSON FeatureCollection.
    */
   async function fetchLabelFeed(url) {
-    // Pass a string, never the URL object callers build: AppManager's CSRF wrapper around window.fetch reads
-    // `url.url` for any non-string argument, which is undefined for a URL, so its same-origin check resolves
-    // against a bogus path instead of the real one.
-    const response = await fetch(String(url));
+    const response = await fetch(url);
     if (!response.ok) throw new Error(`Label feed ${url} failed with HTTP ${response.status}.`);
     try {
       return await response.json();
