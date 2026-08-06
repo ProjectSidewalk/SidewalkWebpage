@@ -31,6 +31,11 @@ class ModalMissionComplete {
       }
 
       this.hide();
+
+      // The new mission's first label rendered while this modal was still up (Form.js loads it before re-enabling
+      // the button), so its halo pulse played unseen. Replay it now that the marker can be seen — or once the
+      // mission-start tutorial raised just above clears (#4790).
+      svv.panoManager.replayMarkerPulse();
     }
   };
 
