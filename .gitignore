@@ -92,8 +92,6 @@ project/.sbtserver.lock
 .scala_dependencies
 .worksheet
 
-*.mp4
-
 # JavaScript and Node
 public/js/explore/build/*
 public/js/admin/build/*

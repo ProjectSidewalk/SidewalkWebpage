@@ -307,6 +307,7 @@ audit.tutorial.complete.1 = You did it!
 audit.tutorial.complete.2 = You completed the tutorial!
 audit.tutorial.complete.learn-more = Learn more
 audit.tutorial.complete.start-contributing = Start contributing
+audit.tutorial.pause-animation = Pause animation
 
 audit.ribbon.curb.ramp.labels = CURB RAMP LABELS
 audit.ribbon.sidewalk.labels = SIDEWALK LABELS

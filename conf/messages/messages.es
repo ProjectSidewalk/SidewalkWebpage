@@ -311,6 +311,7 @@ audit.tutorial.complete.1 = ¡Lo lograste!
 audit.tutorial.complete.2 = ¡Completaste el tutorial!
 audit.tutorial.complete.learn-more = Más información
 audit.tutorial.complete.start-contributing = Empezar a contribuir
+audit.tutorial.pause-animation = Pausar animación
 
 audit.ribbon.curb.ramp.labels = ETIQUETAS DE RAMPA PEATONAL
 audit.ribbon.sidewalk.labels = ETIQUETAS DE BANQUETA
