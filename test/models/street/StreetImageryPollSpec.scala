@@ -73,12 +73,22 @@ class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
     val newest = LocalDate.parse("2025-05-01")
     val oldest = LocalDate.parse("2015-05-01")
 
+    // A sample point sits ON the polled street's line (distance 0), so the polled street is its nearest street and
+    // an observation placed there must always be attributed.
+    def onStreet(street: StreetToPoll, pointIdx: Int, capture: Option[LocalDate]): PolledPano = {
+      val (lat, lng) = street.points(pointIdx)
+      PolledPano(lat, lng, capture)
+    }
+
     "insert a fresh row with the observed range and the imagery_poll source" in {
       val row = runRolledBack(for {
-        streetId <- streetImageryTable.streetsToPoll(1).map(_.head.streetEdgeId)
-        _        <- streetImagery.filter(_.streetEdgeId === streetId).delete
-        _        <- streetImageryTable.upsertFromPoll(streetId, Some(oldest), Some(newest), 3)
-        row      <- streetImageryTable.getForStreet(streetId)
+        street <- streetImageryTable.streetsToPoll(1).map(_.head)
+        _      <- streetImagery.filter(_.streetEdgeId === street.streetEdgeId).delete
+        _      <- streetImageryTable.upsertFromPoll(
+          street.streetEdgeId,
+          Seq(onStreet(street, 0, Some(oldest)), onStreet(street, 1, Some(newest)), onStreet(street, 2, Some(newest)))
+        )
+        row <- streetImageryTable.getForStreet(street.streetEdgeId)
       } yield row)
 
       row.map(_.oldestCapture) mustBe Some(Some(oldest))
@@ -87,17 +97,37 @@ class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
       row.map(_.dataSource) mustBe Some("imagery_poll")
     }
 
+    "not attribute an observation whose nearest street is not the polled street" in {
+      val row = runRolledBack(for {
+        street <- streetImageryTable.streetsToPoll(1).map(_.head)
+        _      <- streetImagery.filter(_.streetEdgeId === street.streetEdgeId).delete
+        // ~1.1 km north of the street's midpoint: whatever street is nearest there, it isn't the polled one.
+        farAway = PolledPano(street.points(1)._1 + 0.01, street.points(1)._2, Some(newest))
+        _   <- streetImageryTable.upsertFromPoll(street.streetEdgeId, Seq(farAway))
+        row <- streetImageryTable.getForStreet(street.streetEdgeId)
+      } yield row)
+
+      // The poll is still recorded ("checked"), but nothing was attributable to this street.
+      row.map(_.oldestCapture) mustBe Some(None)
+      row.map(_.newestCapture) mustBe Some(None)
+      row.map(_.nPanos) mustBe Some(0)
+      row.map(_.dataSource) mustBe Some("imagery_poll")
+    }
+
     "only widen an existing row's range, keep n_panos/data_source, and always bump updated_at" in {
       val staleStamp = OffsetDateTime.now.minusYears(1)
       val row        = runRolledBack(for {
-        streetId <- streetImageryTable.streetsToPoll(1).map(_.head.streetEdgeId)
-        _        <- streetImagery.filter(_.streetEdgeId === streetId).delete
-        _        <- streetImagery += StreetImagery(streetId, Some(LocalDate.parse("2010-01-01")),
+        street <- streetImageryTable.streetsToPoll(1).map(_.head)
+        _      <- streetImagery.filter(_.streetEdgeId === street.streetEdgeId).delete
+        _      <- streetImagery += StreetImagery(street.streetEdgeId, Some(LocalDate.parse("2010-01-01")),
           Some(LocalDate.parse("2030-01-01")), 42, "imagery_scan", staleStamp)
-        // This poll's narrower range must not shrink the stored one; a no-imagery poll (None, None, 0) still bumps.
-        _   <- streetImageryTable.upsertFromPoll(streetId, Some(oldest), Some(newest), 1)
-        _   <- streetImageryTable.upsertFromPoll(streetId, None, None, 0)
-        row <- streetImageryTable.getForStreet(streetId)
+        // This poll's narrower range must not shrink the stored one; a no-observation poll still bumps.
+        _ <- streetImageryTable.upsertFromPoll(
+          street.streetEdgeId,
+          Seq(onStreet(street, 0, Some(oldest)), onStreet(street, 1, Some(newest)))
+        )
+        _   <- streetImageryTable.upsertFromPoll(street.streetEdgeId, Seq.empty)
+        row <- streetImageryTable.getForStreet(street.streetEdgeId)
       } yield row)
 
       row.map(_.oldestCapture) mustBe Some(Some(LocalDate.parse("2010-01-01")))

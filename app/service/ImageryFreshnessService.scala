@@ -3,7 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import models.audit.AuditTaskTable
 import models.pano.PanoSource
-import models.street.{StreetImageryTable, StreetToPoll}
+import models.street.{PolledPano, StreetImageryTable, StreetToPoll}
 import models.utils.MyPostgresProfile
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -213,12 +213,13 @@ class ImageryFreshnessServiceImpl @Inject() (
   /**
    * Polls one street's sample points and upserts its street_imagery row.
    *
-   * Observations are attributed to the street only when the provider reported a pano position within
-   * StreetImageryTable.PanoStreetToleranceMeters of the street's geometry: the search radius around a sample point
-   * can reach a cross street or parallel alley, and crediting such a pano would smear that street's capture dates
-   * onto this one (the same contamination refreshFromPanoData guards against). An observation with no reported
-   * position is dropped for the same reason -- unverifiable attribution is exactly the failure mode. A conclusive
-   * poll whose observations all filter out still upserts (NULL dates), recording "checked, nothing attributable".
+   * Observations without a provider-reported position are dropped (unverifiable attribution is exactly the
+   * contamination this guards against), and positioned ones pass a cheap distance prefilter here -- farther than
+   * StreetImageryTable.PanoStreetToleranceMeters from this street means it cannot be the nearest street. The exact
+   * nearest-street check happens inside upsertFromPoll, which needs the whole street network: the search radius
+   * around a sample point can reach a cross street or parallel alley, and crediting such a pano would smear that
+   * street's capture dates onto this one (the same rule refreshFromPanoData applies). A conclusive poll whose
+   * observations all filter out still upserts (NULL dates), recording "checked, nothing attributable".
    *
    * Never fails the returned Future: the caller folds over the whole batch sequentially, so letting a single street's
    * DB or provider error escape would abandon every street after it. An error is logged and counted as a skip, which
@@ -238,17 +239,17 @@ class ImageryFreshnessServiceImpl @Inject() (
         if (results.contains(None)) {
           Future.successful(false)
         } else {
-          val onStreet = results.flatten.flatten.filter(_.location.exists { case (lat, lng) =>
+          val nearThisStreet = results.flatten.flatten.filter(_.location.exists { case (lat, lng) =>
             metersToStreet(lat, lng, street.geom) <= StreetImageryTable.PanoStreetToleranceMeters
           })
           // A pano can be seen from more than one sample point, so dedupe by provider id before counting. Keep
           // observations whose id came back empty rather than collapsing them all into one phantom pano.
-          val (identified, anonymous) = onStreet.partition(_.panoId.nonEmpty)
-          val panos                   = identified.groupBy(_.panoId).map(_._2.head).toSeq ++ anonymous
-          val dates                   = panos.flatMap(_.capture)
-          // n_panos counts distinct *dated* panos, per the column contract in StreetImageryTable.
-          db.run(streetImageryTable.upsertFromPoll(street.streetEdgeId, dates.minOption, dates.maxOption, dates.size))
-            .map(_ => true)
+          val (identified, anonymous) = nearThisStreet.partition(_.panoId.nonEmpty)
+          val deduped                 = identified.groupBy(_.panoId).map(_._2.head).toSeq ++ anonymous
+          val polled                  = deduped.collect { case PanoObservation(_, capture, Some((lat, lng))) =>
+            PolledPano(lat, lng, capture)
+          }
+          db.run(streetImageryTable.upsertFromPoll(street.streetEdgeId, polled)).map(_ => true)
         }
       }
       .recover { case e: Throwable =>

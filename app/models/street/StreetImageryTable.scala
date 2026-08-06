@@ -7,7 +7,6 @@ import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 
-import java.sql.Date
 import java.time.{LocalDate, OffsetDateTime}
 import javax.inject.{Inject, Singleton}
 
@@ -21,6 +20,13 @@ import javax.inject.{Inject, Singleton}
  * @param geom         The street's full geometry, so observed panos can be checked against the street itself.
  */
 case class StreetToPoll(streetEdgeId: Int, points: Seq[(Double, Double)], geom: LineString)
+
+/**
+ * One pano observation forwarded to upsertFromPoll: its provider-reported position and parsed capture date, if any.
+ * The upsert attributes the observation to the polled street only when that street is the nearest one to this
+ * position (#4384), the same rule refreshFromPanoData and the evolution-348 backfill apply to labeling-observed panos.
+ */
+case class PolledPano(lat: Double, lng: Double, capture: Option[LocalDate])
 
 /**
  * Per-street imagery age (#4348): the capture-date range of the street-view panos observed on one street.
@@ -162,32 +168,65 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
   /**
    * Records one poll's result for a street: widens the capture-date range and always bumps updated_at (#4384).
    *
+   * Each observation is attributed only if the polled street is the NEAREST street (within
+   * PanoStreetToleranceMeters) to the observation's position -- the same nearest-street rule as refreshFromPanoData,
+   * checked here in SQL because deciding "nearest" needs the whole street network, not just the polled street's
+   * geometry. A corner pano whose nearest street is the cross street therefore never smears its date onto this one.
+   *
    * On conflict, capture dates only ever widen (LEAST/GREATEST ignore NULLs) and n_panos / data_source are left
    * alone -- a 3-point poll sees at most a few panos, so a scan's richer pano count stays authoritative. A street
-   * where every sample point returned no imagery still gets its row upserted (NULL dates, n_panos 0 on insert), which
-   * records "checked, nothing there" and keeps the streetsToPoll rotation advancing.
+   * where nothing was attributable still gets its row upserted (NULL dates, n_panos 0 on insert), which records
+   * "checked, nothing there" and keeps the streetsToPoll rotation advancing.
    *
    * @param streetEdgeId The polled street.
-   * @param oldest       Earliest capture date observed across the sample points, if any.
-   * @param newest       Latest capture date observed across the sample points, if any.
-   * @param nPanos       Number of distinct panos observed across the sample points.
+   * @param panos        Deduped observations from the street's sample points; dated ones drive the capture range.
    */
-  def upsertFromPoll(
-      streetEdgeId: Int,
-      oldest: Option[LocalDate],
-      newest: Option[LocalDate],
-      nPanos: Int
-  ): DBIO[Int] = {
-    val oldestDate = oldest.map(Date.valueOf).orNull
-    val newestDate = newest.map(Date.valueOf).orNull
-    sqlu"""
-      INSERT INTO street_imagery (street_edge_id, oldest_capture, newest_capture, n_panos, data_source, updated_at)
-      VALUES ($streetEdgeId, $oldestDate, $newestDate, $nPanos, 'imagery_poll', now())
-      ON CONFLICT (street_edge_id) DO UPDATE
-      SET oldest_capture = LEAST(street_imagery.oldest_capture, EXCLUDED.oldest_capture),
-          newest_capture = GREATEST(street_imagery.newest_capture, EXCLUDED.newest_capture),
-          updated_at     = EXCLUDED.updated_at;
-    """
+  def upsertFromPoll(streetEdgeId: Int, panos: Seq[PolledPano]): DBIO[Int] = {
+    if (panos.isEmpty) {
+      sqlu"""
+        INSERT INTO street_imagery (street_edge_id, oldest_capture, newest_capture, n_panos, data_source, updated_at)
+        VALUES ($streetEdgeId, NULL, NULL, 0, 'imagery_poll', now())
+        ON CONFLICT (street_edge_id) DO UPDATE
+        SET updated_at = EXCLUDED.updated_at;
+      """
+    } else {
+      // Inlined literals are program-built numerics and ISO dates (never user input), so interpolation is safe here.
+      val valuesList = panos
+        .map { pano =>
+          val capture = pano.capture.map(d => s"'$d'::date").getOrElse("NULL::date")
+          s"(${pano.lat}::float8, ${pano.lng}::float8, $capture)"
+        }
+        .mkString(", ")
+      sqlu"""
+        WITH observed (lat, lng, capture) AS (VALUES #$valuesList),
+        kept AS (
+            SELECT observed.capture
+            FROM observed
+            WHERE (
+                SELECT street_edge.street_edge_id
+                FROM street_edge
+                WHERE ST_DWithin(street_edge.geom, ST_SetSRID(ST_MakePoint(observed.lng, observed.lat), 4326), 0.001)
+                    AND ST_DWithin(
+                            street_edge.geom::geography,
+                            ST_SetSRID(ST_MakePoint(observed.lng, observed.lat), 4326)::geography,
+                            ${StreetImageryTable.PanoStreetToleranceMeters}
+                        )
+                ORDER BY ST_Distance(
+                             street_edge.geom::geography,
+                             ST_SetSRID(ST_MakePoint(observed.lng, observed.lat), 4326)::geography
+                         )
+                LIMIT 1
+            ) = $streetEdgeId
+        )
+        INSERT INTO street_imagery (street_edge_id, oldest_capture, newest_capture, n_panos, data_source, updated_at)
+        SELECT $streetEdgeId, MIN(kept.capture), MAX(kept.capture), COUNT(kept.capture), 'imagery_poll', now()
+        FROM kept
+        ON CONFLICT (street_edge_id) DO UPDATE
+        SET oldest_capture = LEAST(street_imagery.oldest_capture, EXCLUDED.oldest_capture),
+            newest_capture = GREATEST(street_imagery.newest_capture, EXCLUDED.newest_capture),
+            updated_at     = EXCLUDED.updated_at;
+      """
+    }
   }
 
   /**
