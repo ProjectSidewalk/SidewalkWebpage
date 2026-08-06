@@ -51,6 +51,8 @@
     "distance-left-one-unit": "只剩下1公里了!",
     "less-than-one-unit-left": "剩下不到1公里了!",
     "click-to-help": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>請點選這裡</a>來協助完成這個鄰里",
+    "needs-reaudit": "這裡約有{{n}}公里的街道有較新的街景影像，需要重新探索！",
+    "click-to-reaudit": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>請點選這裡</a>重新探索這些街道",
     "thanks": "感謝您的協助！",
     "100-percent-complete": "已完成100%！",
     "percent-complete": "{{percent}}%完成"

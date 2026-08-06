@@ -2263,35 +2263,36 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
           WHERE completed = TRUE AND #$userFilter
       ) AS km_audited, (
-          -- Unique street km with at least one completed audit on current imagery (#4384): audits flagged
-          -- outdated_imagery don't count, so this drops when newer imagery lands on an audited street.
+          -- Unique street km with at least one completed audit, regardless of imagery age (#4384): the metric is
+          -- monotonic, so it never dips when newer imagery lands on an audited street. km_needs_reaudit below carries
+          -- the freshness signal as a subset of this.
           SELECT SUM(ST_Length(geom::geography)) / 1000 AS km_audited_no_overlap
           FROM (
               SELECT DISTINCT street_edge.street_edge_id, geom
               FROM street_edge
               INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
               INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
-              WHERE completed = TRUE AND audit_task.outdated_imagery = FALSE AND #$userFilter
+              WHERE completed = TRUE AND #$userFilter
           ) distinct_streets
       ) AS km_audited_no_overlap, (
-          -- Redundant-coverage km: streets with an up-to-date completed audit by ≥2 distinct (non-excluded) users.
-          -- Mirrors the km_audited_no_overlap subquery but groups per street and keeps only those audited by 2+
-          -- people. Single-user km is derived (no_overlap − multiple_users) in projectSidewalkStatsConverter, so it is
-          -- not selected here.
+          -- Redundant-coverage km: streets with completed audits by ≥2 distinct (non-excluded) users. Mirrors the
+          -- km_audited_no_overlap subquery but groups per street and keeps only those audited by 2+ people.
+          -- Single-user km is derived (no_overlap − multiple_users) in projectSidewalkStatsConverter, so it is not
+          -- selected here.
           SELECT COALESCE(SUM(ST_Length(geom::geography)) / 1000, 0) AS km_explored_multiple_users
           FROM (
               SELECT street_edge.street_edge_id, geom
               FROM street_edge
               INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
               INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
-              WHERE completed = TRUE AND audit_task.outdated_imagery = FALSE AND #$userFilter
+              WHERE completed = TRUE AND #$userFilter
               GROUP BY street_edge.street_edge_id, geom
               HAVING COUNT(DISTINCT audit_task.user_id) >= 2
           ) multi_user_streets
       ) AS km_explored_multiple_users, (
           -- Unique street km needing re-audit (#4384): streets audited before, but whose completed audits all predate
-          -- newer imagery. Exact complement of km_audited_no_overlap within ever-audited streets, so
-          -- ever-audited km = km_audited_no_overlap + km_needs_reaudit.
+          -- newer imagery. A subset of km_audited_no_overlap, so freshly-covered km is derivable as
+          -- km_audited_no_overlap − km_needs_reaudit.
           SELECT COALESCE(SUM(ST_Length(geom::geography)) / 1000, 0) AS km_needs_reaudit
           FROM (
               SELECT street_edge.street_edge_id, geom

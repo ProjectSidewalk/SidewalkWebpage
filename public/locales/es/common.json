@@ -52,6 +52,8 @@
     "distance-left-one-unit": "Sólo faltan 1 kilómetro!",
     "less-than-one-unit-left": "¡Queda menos de un kilómetro!",
     "click-to-help": "¡<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Haz clic aquí</a> para ayudar a terminar este barrio",
+    "needs-reaudit": "¡Aproximadamente {{n}} km de calles aquí tienen imágenes actualizadas y necesitan una nueva exploración!",
+    "click-to-reaudit": "<a href='{{url}}' class='region-selection-trigger' regionId='{{regionId}}'>Haz clic aquí</a> para volver a explorar esas calles",
     "thanks": "¡Gracias por tu ayuda!",
     "100-percent-complete": "¡100% Completa!",
     "percent-complete": "{{percent}}% Completa"

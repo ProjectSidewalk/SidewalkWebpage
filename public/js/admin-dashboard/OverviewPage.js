@@ -78,8 +78,8 @@ class OverviewPage {
 
   /** Fills each lens card's headline value and secondary line from the summary payload. */
   #renderCards(s) {
-    // Coverage: share of the street network audited with current imagery, with the distance/street denominators.
-    // Streets whose audits predate newer imagery (#4384) are excluded and called out separately when present.
+    // Coverage: share of the street network ever quality-audited, with the distance/street denominators. Streets
+    // whose audits predate newer imagery (#4384) stay counted and are annotated separately when present.
     const covPct = s.total_distance_mi > 0 ? s.audited_distance_mi / s.total_distance_mi : 0;
     const reauditNote = s.reaudit_streets > 0 ? ` · ${this.#num(s.reaudit_streets)} need re-audit` : '';
     this.#setCard('coverage', this.#pct(covPct), s.total_distance_mi > 0
@@ -249,9 +249,9 @@ class OverviewPage {
       items.push({ sev: 'warn', action: 'Review', href: '/admin/contributors',
         html: `<strong>${this.#num(s.low_quality_users)}</strong> contributors are flagged low-quality` });
     }
-    // audited_streets counts only up-to-date audits, so subtract re-audit streets too: they're audited, just on
-    // old imagery, and the row below reports them separately.
-    const streetsLeft = (s.total_streets || 0) - (s.audited_streets || 0) - (s.reaudit_streets || 0);
+    // audited_streets counts every ever-audited street (re-audit streets included), so no further subtraction: the
+    // row below reports the needs-re-audit subset separately.
+    const streetsLeft = (s.total_streets || 0) - (s.audited_streets || 0);
     if (streetsLeft > 0) {
       const pctLeft = s.total_streets > 0 ? Math.round((streetsLeft / s.total_streets) * 100) : 0;
       items.push({ sev: 'info', action: 'Coverage', href: '/admin/coverage',

@@ -214,9 +214,10 @@ case class HumanVsAiStats(
  * denominator the card needs (e.g. audited *and* total distance, AI *and* human counts) so percentages can show their N.
  *
  * @param totalDistanceMi    Total street distance (miles), matching the legacy admin coverage metric.
- * @param auditedDistanceMi  Distance audited with current imagery (miles); the card's coverage % is this over the
- *                           total (#4384).
+ * @param auditedDistanceMi  Distance ever quality-audited (miles), regardless of imagery age; the card's coverage %
+ *                           is this over the total, and it never dips when newer imagery lands (#4384).
  * @param reauditStreets     Streets audited before whose audits all predate newer imagery (need re-audit, #4384).
+ *                           A subset of the audited count, surfaced as an annotation rather than subtracted from it.
  * @param reauditDistanceMi  Distance of those needs-re-audit streets (miles).
  * @param totalLabels        All labels placed (includes tutorial labels, matching the by-type admin count).
  * @param labelsPastWeek     Labels placed in the last 7 days — the Activity pulse.
@@ -710,23 +711,23 @@ class AdminServiceImpl @Inject() (
     val recentFut = getRecentActivity(1)
     val coreFut   = db.run(for {
       totalStreets <- streetService.getStreetCountDBIO
-      // Primary coverage counts only audits on current imagery (#4384); the ever-audited totals are fetched too so
-      // the page can show how much of the network needs re-auditing (ever − up-to-date).
-      auditedStreets     <- streetEdgeTable.countDistinctAuditedStreets(upToDateOnly = true)
-      everAuditedStreets <- streetEdgeTable.countDistinctAuditedStreets()
-      totalDist          <- streetService.getTotalStreetDistanceDBIO
-      auditedDist        <- streetEdgeTable.auditedStreetDistance(upToDateOnly = true)
-      everAuditedDist    <- streetEdgeTable.auditedStreetDistance()
-      labelsAll          <- labelTable.countLabelsByType()
-      labelsWeek         <- labelTable.countLabelsByType(TimeInterval.Week)
-      valsAll            <- labelValidationTable.countValidationsByResultAndLabelType()
-      valsWeek           <- labelValidationTable.countValidationsByResultAndLabelType(TimeInterval.Week)
-      contributors       <- userStatTable.countAllUsersContributed()
-      auditsWeek         <- auditTaskTable.countCompletedAudits(TimeInterval.Week)
-      apiExternal        <- webpageActivityTable.getApiEndpointCounts(excludeApiDocs = true, OverviewApiWindowDays)
-      apiClients         <- webpageActivityTable.getApiUniqueIpCount(excludeApiDocs = true, OverviewApiWindowDays)
-      awaitingVal        <- labelTable.countLabelsAwaitingValidation
-      lowQualityUsrs     <- userStatTable.countLowQualityUsers
+      // Primary coverage is ever-audited (#4384): it stays monotonic when newer imagery lands. The up-to-date totals
+      // are fetched too so the page can annotate how much of it needs re-auditing (ever − up-to-date).
+      auditedStreets  <- streetEdgeTable.countDistinctAuditedStreets()
+      upToDateStreets <- streetEdgeTable.countDistinctAuditedStreets(upToDateOnly = true)
+      totalDist       <- streetService.getTotalStreetDistanceDBIO
+      auditedDist     <- streetEdgeTable.auditedStreetDistance()
+      upToDateDist    <- streetEdgeTable.auditedStreetDistance(upToDateOnly = true)
+      labelsAll       <- labelTable.countLabelsByType()
+      labelsWeek      <- labelTable.countLabelsByType(TimeInterval.Week)
+      valsAll         <- labelValidationTable.countValidationsByResultAndLabelType()
+      valsWeek        <- labelValidationTable.countValidationsByResultAndLabelType(TimeInterval.Week)
+      contributors    <- userStatTable.countAllUsersContributed()
+      auditsWeek      <- auditTaskTable.countCompletedAudits(TimeInterval.Week)
+      apiExternal     <- webpageActivityTable.getApiEndpointCounts(excludeApiDocs = true, OverviewApiWindowDays)
+      apiClients      <- webpageActivityTable.getApiUniqueIpCount(excludeApiDocs = true, OverviewApiWindowDays)
+      awaitingVal     <- labelTable.countLabelsAwaitingValidation
+      lowQualityUsrs  <- userStatTable.countLowQualityUsers
     } yield {
       // The by-type counts carry an "All" subtotal row; the validation counts carry a grand-total row keyed by the
       // "All"/None/"Both" subgroup. Pull those rather than re-summing so the totals match the detailed pages exactly.
@@ -738,10 +739,10 @@ class AdminServiceImpl @Inject() (
       OverviewCore(
         totalStreets,
         auditedStreets,
-        everAuditedStreets - auditedStreets,
+        auditedStreets - upToDateStreets,
         totalDist * METERS_TO_MILES,
         auditedDist * METERS_TO_MILES,
-        (everAuditedDist - auditedDist) * METERS_TO_MILES,
+        (auditedDist - upToDateDist) * METERS_TO_MILES,
         labelTotal(labelsAll),
         valTotal(valsAll),
         labelTotal(labelsWeek),
