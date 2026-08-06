@@ -15,7 +15,8 @@ import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
 import slick.dbio.DBIO
 
-import java.time.{LocalDate, OffsetDateTime, ZoneId}
+import java.lang.management.ManagementFactory
+import java.time.{Instant, LocalDate, OffsetDateTime, ZoneId, ZoneOffset}
 import java.time.temporal.ChronoUnit
 import javax.inject._
 import scala.concurrent.duration.{Duration, FiniteDuration}
@@ -61,6 +62,10 @@ case class CommonPageData(
     mapboxApiKey: String,
     versionId: String,
     versionTimestamp: OffsetDateTime,
+    versionDescription: Option[String],
+    appStartTime: OffsetDateTime,
+    buildCommit: Option[String],
+    buildDirty: Boolean,
     allCityInfo: Seq[CityInfo]
 ) {
 
@@ -1703,6 +1708,11 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
+  // JVM boot time stands in for "when was this instance deployed": prod runs the staged binary as its own process, so
+  // process start = deploy/restart. Under dev-mode `sbt ~run` it is the sbt JVM's start, which is close enough locally.
+  private val appStartTime: OffsetDateTime =
+    OffsetDateTime.ofInstant(Instant.ofEpochMilli(ManagementFactory.getRuntimeMXBean.getStartTime), ZoneOffset.UTC)
+
   def getCommonPageData(lang: Lang): Future[CommonPageData] = {
     for {
       version: Version <- cacheApi.getOrElseUpdate[Version]("currentVersion")(versionTable.currentVersion())
@@ -1722,7 +1732,8 @@ class ConfigServiceImpl @Inject() (
       allCityInfo: Seq[CityInfo] = getAllCityInfo(lang)
     } yield {
       CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, imagerySource, imageryAccessToken, gMapsApiKey,
-        mapboxApiKey, version.versionId, version.versionStartTime, allCityInfo)
+        mapboxApiKey, version.versionId, version.versionStartTime, version.description, appStartTime, BuildInfo.gitSha,
+        BuildInfo.gitDirty, allCityInfo)
     }
   }
 }

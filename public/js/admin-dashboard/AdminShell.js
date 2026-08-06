@@ -24,6 +24,22 @@ class AdminShell {
     this.#setupScrollSpy();
     this.#setupSmoothScrolling();
     this.#setupMobileNav();
+    this.#localizeDeployTimes();
+  }
+
+  /**
+   * Re-renders the deployment-info strip's <time> elements (server-rendered as UTC ISO strings) in the viewer's
+   * locale and timezone. Elements marked data-format="date" show day precision; the rest get date + time.
+   */
+  #localizeDeployTimes() {
+    document.querySelectorAll('.deploy-strip time[datetime]').forEach((el) => {
+      const date = new Date(el.getAttribute('datetime'));
+      if (Number.isNaN(date.getTime())) return;
+      const dateOpts = { year: 'numeric', month: 'short', day: 'numeric' };
+      el.textContent = el.dataset.format === 'date'
+        ? date.toLocaleDateString(undefined, dateOpts)
+        : date.toLocaleString(undefined, { ...dateOpts, hour: 'numeric', minute: '2-digit' });
+    });
   }
 
   /**
