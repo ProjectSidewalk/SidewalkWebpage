@@ -208,7 +208,7 @@ class RegionTable @Inject() (
       -- guarantee drift; overallStats already exposes a strictly complementary pair over one population.
       region_outdated AS (
         SELECT street_edge_region.region_id,
-               SUM(ST_Length(ST_Transform(street_edge.geom, 26918))) AS outdated_distance
+               SUM(ST_Length(street_edge.geom::geography)) AS outdated_distance
         FROM street_edge_region
         JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
             AND street_edge.status = 'open'
