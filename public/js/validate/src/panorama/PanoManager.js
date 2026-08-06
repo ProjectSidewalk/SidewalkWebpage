@@ -228,6 +228,13 @@ class PanoManager {
         zIndex: 2,
       });
       this.#markerViewer = svv.panoViewer;
+      // Take the halo class back off once it has played so the element doesn't carry a state class it isn't in.
+      // Attached here rather than per render because it belongs to the element's whole lifetime: interrupting a
+      // pulse fires animationcancel, not animationend, so a per-render `{ once: true }` listener would never fire
+      // and would accumulate one dead listener per label.
+      this.labelMarker.marker_.addEventListener('animationend', (e) => {
+        if (e.animationName === 'label-marker-pulse') e.currentTarget.classList.remove('label-marker-pulse');
+      });
     } else {
       this.labelMarker.setPosition({ heading: labelPov.heading, pitch: labelPov.pitch });
     }
@@ -244,12 +251,24 @@ class PanoManager {
       'aria-label',
       i18next.t(`common:${util.camelToKebab(currentLabel.getAuditProperty('labelType'))}`).replace('&shy;', ''),
     );
-    // Replay the one-shot halo pulse that draws the eye to the marker (#4790). The marker element is reused
-    // across labels, so the class must come off and back on — with a reflow between — to restart the animation.
-    marker.classList.remove('label-marker--pulse');
-    void marker.offsetWidth;
-    marker.classList.add('label-marker--pulse');
+    this.#restartMarkerPulse(marker);
     this.#updateMarkerAiIndicator(currentLabel.getAuditProperty('aiGenerated'));
+  }
+
+  /**
+   * Replays the one-shot halo pulse that draws the eye to the marker (#4790, main.css .label-marker-pulse).
+   *
+   * Validate reuses one marker element across labels, so re-adding the class is not enough on its own: when a
+   * label is answered before its pulse has finished the class is still present, and the browser sees no change
+   * to act on. Reading offsetWidth in between flushes the pending style change, which is what restarts it.
+   *
+   * @param {HTMLElement} marker The marker element to pulse.
+   * @private
+   */
+  #restartMarkerPulse(marker) {
+    marker.classList.remove('label-marker-pulse');
+    void marker.offsetWidth;
+    marker.classList.add('label-marker-pulse');
   }
 
   /**

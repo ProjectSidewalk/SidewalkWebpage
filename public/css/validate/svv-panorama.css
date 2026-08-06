@@ -89,25 +89,6 @@
   outline-offset: calc(1px * var(--ui-scale));
 }
 
-/* One-shot halo pulse replayed each time a new label is shown, drawing the eye to the marker so the validator
-   doesn't have to scan the streetscape for it — the same affordance as the Label Detail Card's marker pulse
-   (#4572, label-detail.css). The marker element is reused across labels, so PanoManager restarts the animation
-   by taking this class off and re-adding it on every render. */
-@keyframes label-marker-pulse {
-  from { box-shadow: 0 0 0 0 rgb(255 255 255 / 90%); }
-  to { box-shadow: 0 0 0 calc(18px * var(--ui-scale, 1)) rgb(255 255 255 / 0%); }
-}
-
-#validate-pano-marker.label-marker--pulse {
-  animation: label-marker-pulse 1.4s ease-out 1;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  #validate-pano-marker.label-marker--pulse {
-    animation: none;
-  }
-}
-
 /* Sits in the top-right just left of the stacked zoom control, scaled down to match its height. transform-origin keeps
    the top-right corner pinned so the scaled sign still lines up with the zoom buttons. */
 .speed-limit-sign {
