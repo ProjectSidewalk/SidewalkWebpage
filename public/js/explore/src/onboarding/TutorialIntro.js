@@ -103,8 +103,8 @@ class TutorialIntro {
       const isActive = i === this.#stepIndex;
       el.classList.toggle('is-active', isActive);
       el.pause();
-      // Rewind unconditionally: each clip draws its scene once and holds on the finished frame, so stepping back to a
-      // step the user already saw should replay the drawing rather than reveal a pre-finished illustration.
+      // Rewind unconditionally so each step opens on the start of its clip: a step the user already saw would
+      // otherwise resume wherever its loop happened to be.
       el.currentTime = 0;
       if (isActive) this.#playIllustration(el);
     });
@@ -125,9 +125,15 @@ class TutorialIntro {
       video.play().catch(() => {});
       return;
     }
-    // `duration` is NaN until metadata arrives, so wait for it rather than leaving the clip on its blank first frame.
-    if (Number.isFinite(video.duration)) video.currentTime = video.duration;
-    else video.addEventListener('loadedmetadata', () => { video.currentTime = video.duration; }, { once: true });
+    // The last frame is the one that carries the step's payoff (the "Label it!" callout, the finished streetscape), so
+    // it's the still worth showing. `duration` is NaN until metadata arrives, hence the wait.
+    if (Number.isFinite(video.duration)) {
+      video.currentTime = video.duration;
+    } else {
+      video.addEventListener('loadedmetadata', () => {
+        video.currentTime = video.duration;
+      }, { once: true });
+    }
   }
 
   /**

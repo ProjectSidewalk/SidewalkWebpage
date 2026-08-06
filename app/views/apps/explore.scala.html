@@ -734,14 +734,14 @@
         <p class="tutorial-intro__route-note" id="tutorial-intro-route-note" data-i18n="audit:tutorial-intro.route-waiting" hidden></p>
       </div>
       <div class="tutorial-intro__body">
-        @* Each clip draws its scene once and holds on the finished frame; TutorialIntro restarts the active one on
-           every step change. They stay under 5s and don't loop, so there's no motion to pause (WCAG 2.2.2), and
+        @* Each clip loops; TutorialIntro rewinds the active one on every step change so a revisited step opens on the
+           start of the clip rather than mid-cycle, and parks it on a still frame under prefers-reduced-motion.
            role="img" presents each as the single labelled illustration it is rather than as a media player. *@
         <div class="tutorial-intro__illustration">
-          <video class="tutorial-intro__illustration-img is-active" data-step="0" role="img" data-i18n-aria-label="audit:tutorial-intro.explore.title" muted playsinline preload="auto" src='@assets.path("videos/explore/onboarding/intro/explore.mp4")'></video>
-          <video class="tutorial-intro__illustration-img" data-step="1" role="img" data-i18n-aria-label="audit:tutorial-intro.label.title" muted playsinline preload="auto" src='@assets.path("videos/explore/onboarding/intro/label.mp4")'></video>
-          <video class="tutorial-intro__illustration-img" data-step="2" role="img" data-i18n-aria-label="audit:tutorial-intro.validate.title" muted playsinline preload="auto" src='@assets.path("videos/explore/onboarding/intro/validate.mp4")'></video>
-          <video class="tutorial-intro__illustration-img" data-step="3" role="img" data-i18n-aria-label="audit:tutorial-intro.impact.title" muted playsinline preload="auto" src='@assets.path("videos/explore/onboarding/intro/impact.mp4")'></video>
+          <video class="tutorial-intro__illustration-img is-active" data-step="0" role="img" data-i18n-aria-label="audit:tutorial-intro.explore.title" loop muted playsinline preload="auto" src='@assets.path("videos/explore/onboarding/intro/explore.mp4")'></video>
+          <video class="tutorial-intro__illustration-img" data-step="1" role="img" data-i18n-aria-label="audit:tutorial-intro.label.title" loop muted playsinline preload="auto" src='@assets.path("videos/explore/onboarding/intro/label.mp4")'></video>
+          <video class="tutorial-intro__illustration-img" data-step="2" role="img" data-i18n-aria-label="audit:tutorial-intro.validate.title" loop muted playsinline preload="auto" src='@assets.path("videos/explore/onboarding/intro/validate.mp4")'></video>
+          <video class="tutorial-intro__illustration-img" data-step="3" role="img" data-i18n-aria-label="audit:tutorial-intro.impact.title" loop muted playsinline preload="auto" src='@assets.path("videos/explore/onboarding/intro/impact.mp4")'></video>
         </div>
         <div class="tutorial-intro__panel">
           <div class="tutorial-intro__step is-active" data-step="0">
