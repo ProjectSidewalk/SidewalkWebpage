@@ -257,6 +257,30 @@ class PanoManager {
   }
 
   /**
+   * Replays the halo pulse once the marker can actually be seen, for the first label of a mission (#4790).
+   *
+   * That label renders behind page chrome — the loading overlay at boot (Main.js), the mission-complete modal on
+   * later missions (Form.js loads the next label before its button is clicked) — and visibility: hidden doesn't
+   * pause CSS animations, so the pulse plays unseen and is spent before the validator ever sees the marker. The
+   * reveal choreography calls this as its chrome clears; if the mission-start tutorial's overlay is up (desktop —
+   * mobile has no tutorial markup), the replay waits for its dismissal the same way the pano hint toast does
+   * (#4726).
+   */
+  replayMarkerPulse() {
+    if (!this.labelMarker) return;
+    const overlay = document.querySelector('.mission-start-tutorial-overlay');
+    if (overlay && getComputedStyle(overlay).display !== 'none') {
+      document.addEventListener(
+        'ps:mission-start-tutorial:done',
+        () => { if (this.labelMarker) this.#restartMarkerPulse(this.labelMarker.marker_); },
+        { once: true },
+      );
+    } else {
+      this.#restartMarkerPulse(this.labelMarker.marker_);
+    }
+  }
+
+  /**
    * Replays the one-shot halo pulse that draws the eye to the marker (#4790, main.css .label-marker-pulse).
    *
    * Validate reuses one marker element across labels, so re-adding the class is not enough on its own: when a

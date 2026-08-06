@@ -183,6 +183,11 @@ class Main {
     $('#page-loading').css({ visibility: 'hidden' });
     $('.tool-ui').removeClass('ps-invisible');
 
+    // The first label rendered while the tool was still invisible (visibility: hidden doesn't pause animations),
+    // so its halo pulse played unseen. Replay it now that the marker can be seen — or, on desktop, once the
+    // mission-start tutorial overlay raised just above it clears (#4790).
+    svv.panoManager.replayMarkerPulse();
+
     // Uniformly scale the whole tool to fit the viewport (like browser zoom) using var(--ui-scale). Mobile
     // instead fills the screen via PanoManager's own sizing.
     if (!util.isMobile()) {

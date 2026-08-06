@@ -176,4 +176,32 @@ describe('Validate marker halo pulse (issue #4790)', () => {
         panoManager.labelMarker.setSize({ width: 52, height: 52 });
         expect(markerEl().style.getPropertyValue('--marker-diameter')).toBe('52px');
     });
+
+    // A mission's first label renders behind page chrome (the loading overlay at boot, the mission-complete modal
+    // on later missions), where its pulse plays unseen — visibility: hidden doesn't pause animations. The reveal
+    // choreography calls replayMarkerPulse once the marker can be seen.
+
+    test('replayMarkerPulse pulses immediately when no mission-start tutorial overlay is up', () => {
+        panoManager.renderPanoMarker(makeLabel());
+        fireAnimationEnd(markerEl(), 'label-marker-pulse'); // the unseen pulse, already spent
+
+        panoManager.replayMarkerPulse();
+        expect(markerEl().classList.contains('label-marker-pulse')).toBe(true);
+    });
+
+    test('replayMarkerPulse holds the pulse until a showing mission-start tutorial is dismissed', () => {
+        const overlay = document.createElement('div');
+        overlay.className = 'mission-start-tutorial-overlay';
+        overlay.style.display = 'flex';
+        document.body.appendChild(overlay);
+
+        panoManager.renderPanoMarker(makeLabel());
+        fireAnimationEnd(markerEl(), 'label-marker-pulse');
+
+        panoManager.replayMarkerPulse();
+        expect(markerEl().classList.contains('label-marker-pulse')).toBe(false); // held back, not spent under it
+
+        document.dispatchEvent(new CustomEvent('ps:mission-start-tutorial:done'));
+        expect(markerEl().classList.contains('label-marker-pulse')).toBe(true);
+    });
 });
