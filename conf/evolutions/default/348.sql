@@ -22,24 +22,27 @@ ALTER TABLE street_imagery
     ADD CONSTRAINT street_imagery_capture_order_check
     CHECK (oldest_capture IS NULL OR newest_capture IS NULL OR oldest_capture <= newest_capture);
 
--- Rebuild the pano_data-sourced rows with spatial pano->street attribution: a pano informs every street within 15 m
--- of its position (StreetImageryTable.PanoStreetToleranceMeters -- keep the two in sync). The evolution-326 backfill
--- attributed each pano to the street of the labels placed on it, but labelers routinely observe panos that sit on a
--- neighboring street (looking down a cross street from an intersection), which inflates newest_capture and would
--- trigger spurious outdated_imagery flags. imagery_scan rows are untouched -- the scan samples streets spatially and
--- its ingest script fully replaces a row on conflict, so they carry no label-based attribution. Panos with no stored
--- position are simply left out. Runs in a minute or two on the largest cities (one GiST probe per pano).
+-- Rebuild the pano_data-sourced rows with nearest-street pano attribution: a pano informs the single street nearest
+-- its position, provided it is within 15 m (StreetImageryTable.PanoStreetToleranceMeters -- keep the two in sync).
+-- The evolution-326 backfill attributed each pano to the street of the labels placed on it, but labelers routinely
+-- observe panos that sit on a neighboring street (looking down a cross street from an intersection), which inflates
+-- newest_capture and would trigger spurious outdated_imagery flags. Nearest-street (not every street in tolerance)
+-- because providers re-drive streets one at a time, so a corner pano's date describes only its own street's drive.
+-- imagery_scan rows are untouched -- the scan samples streets spatially and its ingest script fully replaces a row
+-- on conflict, so they carry no label-based attribution. Panos with no stored position are simply left out. Runs in
+-- a minute or two on the largest cities (one GiST probe per pano).
 DELETE FROM street_imagery WHERE data_source = 'pano_data';
 
 INSERT INTO street_imagery (street_edge_id, oldest_capture, newest_capture, n_panos, data_source, updated_at)
-SELECT nearby.street_edge_id,
-       MIN(nearby.capture),
-       MAX(nearby.capture),
-       COUNT(DISTINCT nearby.pano_id),
+SELECT nearest.street_edge_id,
+       MIN(nearest.capture),
+       MAX(nearest.capture),
+       COUNT(DISTINCT nearest.pano_id),
        'pano_data',
        now()
 FROM (
-    SELECT street_edge.street_edge_id AS street_edge_id,
+    SELECT DISTINCT ON (pano_data.pano_id)
+           street_edge.street_edge_id AS street_edge_id,
            pano_data.pano_id          AS pano_id,
            CASE
                WHEN pano_data.capture_date ~ '^[0-9]{4}$'
@@ -52,6 +55,7 @@ FROM (
     FROM pano_data
     -- Geometry-space ST_DWithin runs first so the street_edge GiST index prunes candidates (0.001 deg is comfortably
     -- wider than 15 m at any real-city latitude), then the geography-space check applies the exact meter tolerance.
+    -- DISTINCT ON + the ORDER BY keeps only the nearest candidate street per pano.
     JOIN street_edge
         ON ST_DWithin(street_edge.geom, ST_SetSRID(ST_MakePoint(pano_data.lng, pano_data.lat), 4326), 0.001)
         AND ST_DWithin(
@@ -62,10 +66,15 @@ FROM (
     WHERE pano_data.pano_id <> 'tutorial'
         AND pano_data.lat IS NOT NULL
         AND pano_data.lng IS NOT NULL
-        AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-) AS nearby
-WHERE nearby.capture IS NOT NULL
-GROUP BY nearby.street_edge_id
+    ORDER BY pano_data.pano_id,
+             ST_Distance(
+                 street_edge.geom::geography,
+                 ST_SetSRID(ST_MakePoint(pano_data.lng, pano_data.lat), 4326)::geography
+             )
+) AS nearest
+WHERE nearest.capture IS NOT NULL
+    AND nearest.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+GROUP BY nearest.street_edge_id
 ON CONFLICT (street_edge_id) DO UPDATE
 SET oldest_capture = LEAST(street_imagery.oldest_capture, EXCLUDED.oldest_capture),
     newest_capture = GREATEST(street_imagery.newest_capture, EXCLUDED.newest_capture),
