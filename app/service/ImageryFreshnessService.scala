@@ -11,9 +11,10 @@ import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * Keeps the app's imagery-age knowledge (street_imagery) fresh and syncs the audit_task.outdated_imagery flag against
- * it (#4384). An audit performed on since-replaced imagery keeps its user credit but stops counting toward routing
- * and completion, so labelers are re-sent down re-imaged streets and "% complete" means "audited with current
- * imagery".
+ * it (#4384). An audit performed on since-replaced imagery keeps its user credit and keeps counting toward completion
+ * stats, but counts at half weight in the street-priority formula and stops counting for per-user routing -- so
+ * labelers are re-sent down re-imaged streets (after unaudited ones) while "% complete" keeps meaning "ever
+ * quality-audited", with freshness surfaced separately (km_needs_reaudit, re-audit prompts).
  */
 @ImplementedBy(classOf[ImageryFreshnessServiceImpl])
 trait ImageryFreshnessService {
@@ -25,7 +26,7 @@ object ImageryFreshnessService {
   /**
    * Outcome of one freshness sync.
    *
-   * @param streetsRefreshed street_imagery rows inserted or updated from recently-labeled panos.
+   * @param streetsRefreshed street_imagery rows inserted or updated from recently-viewed panos.
    * @param auditsFlagged    Completed audits newly flagged as outdated_imagery.
    * @param auditsUnflagged  Audits whose outdated_imagery flag was cleared.
    */
@@ -43,7 +44,7 @@ class ImageryFreshnessServiceImpl @Inject() (
   import models.utils.MyPostgresProfile.api._
 
   /**
-   * Refreshes street_imagery from recently-labeled panos, then syncs outdated_imagery flags against it.
+   * Refreshes street_imagery from recently-viewed panos, then syncs outdated_imagery flags against it.
    *
    * Ordering contract: this must run BEFORE recalculateStreetPriority and the region_completion rebuild (see
    * RecalculateStreetPriorityActor), and only there. Flags changing exclusively in that nightly sequence keeps
