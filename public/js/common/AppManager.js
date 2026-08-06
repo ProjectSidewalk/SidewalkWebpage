@@ -136,6 +136,9 @@ class AppManager {
         return originalFetch(url, options);
       }
 
+      // Known limitation: per the fetch spec, an init `headers` replaces a `Request` argument's own headers
+      // wholesale, so a same-origin `Request` constructed with its own headers loses them here. No call site passes
+      // a `Request`; if one ever needs to, merge `url.headers` into this object.
       const newOptions = {
         ...options,
         headers: {

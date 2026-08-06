@@ -37,12 +37,12 @@ describe('AppManager CSRF fetch wrapper', () => {
 
     /** The options object the wrapper passed to the underlying fetch on its most recent call. */
     function forwardedOptions() {
-        return originalFetch.mock.calls[0][1];
+        return originalFetch.mock.lastCall[1];
     }
 
     /** The first argument (the URL/Request) the wrapper passed to the underlying fetch on its most recent call. */
     function forwardedTarget() {
-        return originalFetch.mock.calls[0][0];
+        return originalFetch.mock.lastCall[0];
     }
 
     beforeEach(() => {
@@ -113,8 +113,8 @@ describe('AppManager CSRF fetch wrapper', () => {
             expect(forwardedOptions()).not.toHaveProperty(['headers', 'Csrf-Token']);
         });
 
-        // The case #4232 was written to prevent, and the one the wrapper used to get wrong: reading `.url` off a URL
-        // yields undefined, which resolves to <origin>/undefined and so passes the same-origin check.
+        // The regression this file exists to pin: a wrapper that reads `.url` off a URL gets undefined, which
+        // resolves to <origin>/undefined, passes the same-origin check, and hands the token to a cross-origin host.
         test('URL object', async () => {
             await window.fetch(new URL(CROSS_ORIGIN));
 

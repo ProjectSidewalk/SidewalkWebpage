@@ -7,13 +7,13 @@
  * @param {string} params.mapStyle - URL of a Mapbox style.
  * @param {string} [params.mapboxApiKey] - Mapbox API key to use for the map.
  * @param {string} [params.neighborhoodFillMode] - One of 'singleColor' or 'completionRate'.
- * @param {string} [params.neighborhoodsURL] - URL of the endpoint containing neighborhood boundaries.
- * @param {string} params.completionRatesURL - URL of the endpoint containing neighborhood completion rates.
+ * @param {string|URL} [params.neighborhoodsURL] - URL of the endpoint containing neighborhood boundaries.
+ * @param {string|URL} params.completionRatesURL - URL of the endpoint containing neighborhood completion rates.
  * @param {boolean} [params.loadCities] - Whether to load deployment cities on the map.
  * @param {boolean} [params.animateCityFit=true] - Whether the fit to all deployment cities is animated. Set false to
  *     have the world view simply appear, with no flight out from the city's own center.
- * @param {string} [params.streetsURL] - URL of the endpoint containing streets.
- * @param {string} [params.labelsURL] - URL of the endpoint containing labels.
+ * @param {string|URL} [params.streetsURL] - URL of the endpoint containing streets.
+ * @param {string|URL} [params.labelsURL] - URL of the endpoint containing labels.
  * @param {number} [params.zoomCorrection=0] - Amount to increase default zoom to account for different map dimensions.
  * @param {boolean} [params.scrollWheelZoom=true] - Whether to allow zooming with the scroll wheel.
  * @param {string} [params.mapboxLogoLocation=bottom-left] - 'top-left', 'top-right', 'bottom-left', or 'bottom-right'.
