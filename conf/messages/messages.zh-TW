@@ -369,6 +369,7 @@ audit.tutorial.complete.1 = 你做到了！
 audit.tutorial.complete.2 = 你已完成教學！
 audit.tutorial.complete.learn-more = 了解更多
 audit.tutorial.complete.start-contributing = 開始貢獻
+audit.tutorial.pause-animation = 暫停動畫
 
 audit.ribbon.curb.ramp.labels = 路緣坡道標籤
 audit.ribbon.sidewalk.labels = 人行道標籤

@@ -830,15 +830,7 @@ class Onboarding {
       // Remove the hover listeners that adjust the instruction box's z-index.
       svl.ui.contextMenu.holder.off('mouseover mouseout');
 
-      // The celebration clip loops, so it's motion with no stop control (WCAG 2.2.2) — start it only when the visitor
-      // hasn't asked for reduced motion. Left paused it holds its first frame, which reads as a still illustration.
-      const hero = document.querySelector('.tutorial-complete__hero');
-      if (hero && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        // Set muted on the element too: the screen is injected as an HTML string, and the `muted` attribute doesn't
-        // reliably carry over that way, which would leave play() blocked by the autoplay policy.
-        hero.muted = true;
-        hero.play().catch(() => {}); // Rejected when the browser refuses to play; the still frame stands in for it.
-      }
+      this.#startCelebrationClip();
     }
     this.#blinkInterface(state);
 
@@ -846,10 +838,9 @@ class Onboarding {
       // Insert an ok button.
       const okButtonText = state.okButtonText || 'Ok';
       this.#uiOnboarding.messageHolder.append(
-        `<div class='onboarding-ok-button-holder'>`
-        + `<button id='onboarding-ok-button' class='button-ps button--medium button--secondary'>`
-        + `${okButtonText}</button>`
-        + `</div>`,
+        `<div class='onboarding-ok-button-holder'>
+          <button id='onboarding-ok-button' class='button-ps button--medium button--secondary'>${okButtonText}</button>
+        </div>`,
       );
     }
 
@@ -863,6 +854,48 @@ class Onboarding {
       this.#transitionTo(state.transition, undefined, e.currentTarget);
     };
     $target.on('click', callback);
+  }
+
+  /**
+   * Starts the celebration clip on the just-injected tutorial-complete screen and wires up its pause control.
+   *
+   * The clip loops, so it needs an in-page way to stop it (WCAG 2.2.2). A visitor who has asked for reduced motion
+   * gets it paused on its still — the clip's last frame — rather than a flash of motion that then stops.
+   */
+  #startCelebrationClip() {
+    const screen = this.#uiOnboarding.messageHolder.get(0);
+    const hero = screen.querySelector('.tutorial-complete__hero');
+    const toggle = screen.querySelector('.motion-toggle');
+    if (!hero || !toggle) return;
+
+    // Set muted on the element too: the screen is injected as an HTML string, and the `muted` attribute doesn't
+    // reliably carry over that way, which would leave play() blocked by the autoplay policy.
+    hero.muted = true;
+
+    let motionPaused = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const applyMotionState = () => {
+      toggle.classList.toggle('is-paused', motionPaused);
+      toggle.setAttribute('aria-pressed', String(motionPaused));
+      if (motionPaused) {
+        hero.pause();
+        hero.poster = hero.dataset.poster;
+        return;
+      }
+      // Drop the still before playing: it's the clip's last frame, so leaving it up would flash the end of the
+      // celebration over its opening frames while the clip loads.
+      hero.removeAttribute('poster');
+      hero.play().catch(() => {
+        // Rejected when the browser refuses to play; the still stands in for the animation in that case.
+        hero.poster = hero.dataset.poster;
+      });
+    };
+
+    toggle.addEventListener('click', () => {
+      motionPaused = !motionPaused;
+      this.#tracker.push(motionPaused ? 'Onboarding_PauseAnimation' : 'Onboarding_PlayAnimation');
+      applyMotionState();
+    });
+    applyMotionState();
   }
 
   /**

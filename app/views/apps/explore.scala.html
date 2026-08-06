@@ -734,14 +734,32 @@
         <p class="tutorial-intro__route-note" id="tutorial-intro-route-note" data-i18n="audit:tutorial-intro.route-waiting" hidden></p>
       </div>
       <div class="tutorial-intro__body">
-        @* Each clip loops; TutorialIntro rewinds the active one on every step change so a revisited step opens on the
-           start of the clip rather than mid-cycle, and parks it on a still frame under prefers-reduced-motion.
-           role="img" presents each as the single labelled illustration it is rather than as a media player. *@
+        @* Each clip loops while its step is showing. `preload="none"` plus the still in data-poster (attached by
+           TutorialIntro, not by a `poster` attribute) keeps a page load that never opens the intro — every visit past
+           the first — from fetching either the clips or their stills. The still is each clip's final frame, which is
+           what a visitor who has asked for reduced motion sees in place of the animation. *@
         <div class="tutorial-intro__illustration">
-          <video class="tutorial-intro__illustration-img is-active" data-step="0" role="img" data-i18n-aria-label="audit:tutorial-intro.explore.title" loop muted playsinline preload="auto" src='@assets.path("videos/explore/onboarding/intro/explore.mp4")'></video>
-          <video class="tutorial-intro__illustration-img" data-step="1" role="img" data-i18n-aria-label="audit:tutorial-intro.label.title" loop muted playsinline preload="auto" src='@assets.path("videos/explore/onboarding/intro/label.mp4")'></video>
-          <video class="tutorial-intro__illustration-img" data-step="2" role="img" data-i18n-aria-label="audit:tutorial-intro.validate.title" loop muted playsinline preload="auto" src='@assets.path("videos/explore/onboarding/intro/validate.mp4")'></video>
-          <video class="tutorial-intro__illustration-img" data-step="3" role="img" data-i18n-aria-label="audit:tutorial-intro.impact.title" loop muted playsinline preload="auto" src='@assets.path("videos/explore/onboarding/intro/impact.mp4")'></video>
+          <video class="tutorial-intro__illustration-img is-active" data-step="0" aria-label="Explore" data-i18n-aria-label="audit:tutorial-intro.explore.title" loop muted playsinline preload="none" data-poster='@assets.path("images/explore/onboarding/intro/explore-poster.webp")'>
+            <source src='@assets.path("videos/explore/onboarding/intro/explore.mp4")' type="video/mp4">
+          </video>
+          <video class="tutorial-intro__illustration-img" data-step="1" aria-label="Label" data-i18n-aria-label="audit:tutorial-intro.label.title" loop muted playsinline preload="none" data-poster='@assets.path("images/explore/onboarding/intro/label-poster.webp")'>
+            <source src='@assets.path("videos/explore/onboarding/intro/label.mp4")' type="video/mp4">
+          </video>
+          <video class="tutorial-intro__illustration-img" data-step="2" aria-label="Validate" data-i18n-aria-label="audit:tutorial-intro.validate.title" loop muted playsinline preload="none" data-poster='@assets.path("images/explore/onboarding/intro/validate-poster.webp")'>
+            <source src='@assets.path("videos/explore/onboarding/intro/validate.mp4")' type="video/mp4">
+          </video>
+          <video class="tutorial-intro__illustration-img" data-step="3" aria-label="Impact" data-i18n-aria-label="audit:tutorial-intro.impact.title" loop muted playsinline preload="none" data-poster='@assets.path("images/explore/onboarding/intro/impact-poster.webp")'>
+            <source src='@assets.path("videos/explore/onboarding/intro/impact.mp4")' type="video/mp4">
+          </video>
+          @* WCAG 2.2.2 (Pause, Stop, Hide): the clips loop indefinitely alongside the step copy, so there has to be an
+             in-page way to stop them. Named for what pressing it does; aria-pressed carries the paused state. *@
+          <button type="button" id="tutorial-intro-motion-toggle" class="motion-toggle" aria-pressed="false" aria-label="Pause animation" data-i18n-aria-label="audit:tutorial-intro.pause-animation">
+            <svg class="motion-toggle__icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <rect class="motion-toggle__pause-bar" x="4" y="3" width="3" height="10" rx="1"></rect>
+              <rect class="motion-toggle__pause-bar" x="9" y="3" width="3" height="10" rx="1"></rect>
+              <path class="motion-toggle__play-arrow" d="M5 3.5v9l8-4.5z"></path>
+            </svg>
+          </button>
         </div>
         <div class="tutorial-intro__panel">
           <div class="tutorial-intro__step is-active" data-step="0">
@@ -802,8 +820,22 @@
         <img class="tutorial-complete__fireworks tutorial-complete__fireworks--1" alt="" src='@assets.path("images/icons/fireworks.svg")'>
         <img class="tutorial-complete__fireworks tutorial-complete__fireworks--2" alt="" src='@assets.path("images/icons/fireworks.svg")'>
         @* Decorative celebration loop. Playback is started by Onboarding's outro state rather than by an `autoplay`
-           attribute, so a reduced-motion visitor gets a still first frame instead of a brief flash of motion. *@
-        <video class="tutorial-complete__hero" aria-hidden="true" loop muted playsinline preload="auto" src='@assets.path("videos/explore/onboarding/tutorial-complete.mp4")'></video>
+           attribute, so a reduced-motion visitor gets the still in data-poster (the clip's final frame) instead of a
+           brief flash of motion. width/height give the box its aspect ratio up front, so the fireworks and the copy
+           below don't shift once the clip's own dimensions arrive. *@
+        <div class="tutorial-complete__hero-wrap">
+          <video class="tutorial-complete__hero" aria-hidden="true" width="1664" height="758" loop muted playsinline preload="none" data-poster='@assets.path("images/explore/onboarding/tutorial-complete-poster.webp")'>
+            <source src='@assets.path("videos/explore/onboarding/tutorial-complete.mp4")' type="video/mp4">
+          </video>
+          @* WCAG 2.2.2 (Pause, Stop, Hide) — see the matching control on the intro illustrations. *@
+          <button type="button" class="motion-toggle" aria-pressed="false" aria-label="@Messages("audit.tutorial.pause-animation")">
+            <svg class="motion-toggle__icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <rect class="motion-toggle__pause-bar" x="4" y="3" width="3" height="10" rx="1"></rect>
+              <rect class="motion-toggle__pause-bar" x="9" y="3" width="3" height="10" rx="1"></rect>
+              <path class="motion-toggle__play-arrow" d="M5 3.5v9l8-4.5z"></path>
+            </svg>
+          </button>
+        </div>
       </div>
       <div class="tutorial-complete__text">
         <p>@Messages("audit.tutorial.complete.1")</p>

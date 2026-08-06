@@ -16,6 +16,9 @@ class TutorialIntro {
   #ui;
   #impactStats = null; // { totalLabels, numCities } once /v3/api/aggregateStats resolves; null until then.
   #impactFetchStarted = false;
+  // Starts out off for a visitor who has asked for reduced motion; after that it follows the pause control, so moving
+  // to the next step never restarts motion someone turned off.
+  #motionPaused = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /**
    * @param {object} tracker - Interaction logger (svl.tracker).
@@ -34,6 +37,7 @@ class TutorialIntro {
       illustrations: [...document.querySelectorAll('.tutorial-intro__illustration-img')],
       nextButton: document.getElementById('tutorial-intro-next-btn'),
       skipLink: document.getElementById('tutorial-intro-skip'),
+      motionToggle: document.getElementById('tutorial-intro-motion-toggle'),
       impactDesc: document.getElementById('tutorial-intro-impact-desc'),
       routeNote: document.getElementById('tutorial-intro-route-note'),
     };
@@ -43,7 +47,13 @@ class TutorialIntro {
     this.#ui.skipLink.addEventListener('click', (e) => {
       e.preventDefault();
       this.#tracker.push('TutorialIntro_Skip');
+      this.#stopIllustrations();
       this.#onSkip();
+    });
+    this.#ui.motionToggle.addEventListener('click', () => {
+      this.#motionPaused = !this.#motionPaused;
+      this.#tracker.push(this.#motionPaused ? 'TutorialIntro_PauseAnimation' : 'TutorialIntro_PlayAnimation');
+      this.#applyMotionState();
     });
   }
 
@@ -91,6 +101,7 @@ class TutorialIntro {
     } else {
       this.#tracker.push('TutorialIntro_StartMission');
       this.#ui.root.classList.remove('is-visible');
+      this.#stopIllustrations();
       this.#onStart();
     }
   }
@@ -99,41 +110,44 @@ class TutorialIntro {
   #render() {
     const isLastStep = this.#stepIndex === this.#stepCount - 1;
     this.#ui.steps.forEach((el, i) => el.classList.toggle('is-active', i === this.#stepIndex));
-    this.#ui.illustrations.forEach((el, i) => {
-      const isActive = i === this.#stepIndex;
-      el.classList.toggle('is-active', isActive);
-      el.pause();
-      // Rewind unconditionally so each step opens on the start of its clip: a step the user already saw would
-      // otherwise resume wherever its loop happened to be.
-      el.currentTime = 0;
-      if (isActive) this.#playIllustration(el);
-    });
+    this.#stopIllustrations();
+    this.#ui.illustrations.forEach((el, i) => el.classList.toggle('is-active', i === this.#stepIndex));
+    this.#applyMotionState();
     this.#ui.nextButton.textContent = isLastStep
       ? i18next.t('audit:tutorial-intro.start-mission')
       : i18next.t('audit:tutorial-intro.next');
     this.#renderImpactDescription();
   }
 
+  /** Pause every clip, so the step being left behind stops decoding while it sits hidden. */
+  #stopIllustrations() {
+    this.#ui.illustrations.forEach((el) => el.pause());
+  }
+
   /**
-   * Starts the step's illustration, or parks it on its finished frame when the visitor asked for reduced motion.
+   * Applies the current motion setting to the step that's showing and to the pause control's state.
    *
-   * @param {HTMLVideoElement} video - The illustration for the step that just became active.
+   * With motion on, the clip plays and loops. With motion off it stays paused on its still — the clip's last frame,
+   * which is the one carrying the step's payoff (the "Label it!" callout, the finished streetscape) — and, since the
+   * clips are `preload="none"`, nothing about the step is downloaded at all.
    */
-  #playIllustration(video) {
-    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      // Rejected when the browser refuses to play; the clip then just sits on its first frame, which is legible.
-      video.play().catch(() => {});
+  #applyMotionState() {
+    const active = this.#ui.illustrations[this.#stepIndex];
+    this.#ui.motionToggle.classList.toggle('is-paused', this.#motionPaused);
+    this.#ui.motionToggle.setAttribute('aria-pressed', String(this.#motionPaused));
+
+    if (this.#motionPaused) {
+      active.pause();
+      active.poster = active.dataset.poster;
       return;
     }
-    // The last frame is the one that carries the step's payoff (the "Label it!" callout, the finished streetscape), so
-    // it's the still worth showing. `duration` is NaN until metadata arrives, hence the wait.
-    if (Number.isFinite(video.duration)) {
-      video.currentTime = video.duration;
-    } else {
-      video.addEventListener('loadedmetadata', () => {
-        video.currentTime = video.duration;
-      }, { once: true });
-    }
+    // Drop the still before playing: it's the clip's last frame, so leaving it up would flash the end of the animation
+    // over the opening frames while the clip loads.
+    active.removeAttribute('poster');
+    active.play().catch(() => {
+      // Rejected when the browser refuses to play; the still stands in for the animation in that case.
+      active.poster = active.dataset.poster;
+    });
   }
 
   /**
