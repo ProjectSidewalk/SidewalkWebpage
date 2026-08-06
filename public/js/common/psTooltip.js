@@ -65,6 +65,11 @@
    */
   const show = (trigger) => {
     const card = ensureTooltip();
+    // A modal <dialog> paints in the top layer, above every z-index in the page's normal stacking order, so a card
+    // parked on <body> opens behind it. Follow the trigger into its dialog (the label detail popup) instead. The
+    // dialog sets no transform/filter, so the card stays fixed to the viewport and escapes the dialog's overflow.
+    const host = trigger.closest('dialog[open]') ?? document.body;
+    if (card.parentElement !== host) host.appendChild(card);
     // Rendered as HTML per the header contract: tooltip strings are first-party translations, never user input.
     card.innerHTML = trigger.getAttribute('data-ps-tooltip');
     card.classList.remove('ps-tooltip--flipped'); // Reset before measuring; the flip below re-adds it if needed.

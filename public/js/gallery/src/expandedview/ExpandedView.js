@@ -313,12 +313,6 @@ class ExpandedView {
    * @param {HTMLElement} galleryCard
    */
   #highlightThumbnail(galleryCard) {
-    // Reset the sidebar as sticky.
-    sg.ui.cardFilter.wrapper.css('position', 'fixed');
-    sg.ui.cardFilter.wrapper.css('top', '');
-    sg.ui.cardContainer.holder.css('margin-left', sg.ui.cardFilter.wrapper.css('width'));
-    sg.scrollStatus.stickySidebar = true;
-
     // Scroll the selected card into view.
     const index = this.cardIndex;
     const page = sg.cardContainer.getCurrentPage();

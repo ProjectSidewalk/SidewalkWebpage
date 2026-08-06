@@ -342,7 +342,6 @@ dialog.label-detail[open]::backdrop {
 }
 
 .label-detail--readonly .label-detail__comment-submit:disabled {
-  cursor: default;
   opacity: 0.5;
 }
 
@@ -615,17 +614,25 @@ button.label-detail__meta-cell:focus-visible {
   border-radius: 12px; /* Rounded rect, not a round pill — this is a button. See share-widget.css. */
   background: var(--color-neutral-200);
 
-  /* neutral-800 (not -600): the button is clickable even in this resting state, so its label must clear WCAG AA
-     (4.5:1) on the neutral-200 fill. The green .is-active state still reads as the clear "ready to send" change. */
+  /* neutral-800 (not -600): the button stays enabled and focusable in this resting state, so its label must clear
+     WCAG AA (4.5:1) on the neutral-200 fill. The green .is-active state reads as the "ready to send" change. */
   color: var(--color-neutral-800);
   font: var(--text-caption-semibold);
-  cursor: pointer;
+
+  /* Empty input is a no-op on click, so the resting state gets no pointer; .is-active below turns it back on. */
+  cursor: default;
   transition: background-color 120ms ease, color 120ms ease;
 }
 
 .label-detail__comment-submit.is-active {
   background: var(--color-pine-600);
   color: var(--color-neutral-white);
+  cursor: pointer;
+}
+
+/* Comes after .is-active so an in-flight submit (still active-green) drops the pointer while it's locked out. */
+.label-detail__comment-submit:disabled {
+  cursor: default;
 }
 
 .label-detail__comment-submit:focus-visible {

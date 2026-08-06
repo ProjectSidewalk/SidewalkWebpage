@@ -272,7 +272,9 @@ class PanoManager {
     if (overlay && getComputedStyle(overlay).display !== 'none') {
       document.addEventListener(
         'ps:mission-start-tutorial:done',
-        () => { if (this.labelMarker) this.#restartMarkerPulse(this.labelMarker.marker_); },
+        () => {
+          if (this.labelMarker) this.#restartMarkerPulse(this.labelMarker.marker_);
+        },
         { once: true },
       );
     } else {
