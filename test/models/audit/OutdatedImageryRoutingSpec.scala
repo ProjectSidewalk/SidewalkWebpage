@@ -45,8 +45,10 @@ class OutdatedImageryRoutingSpec extends PlaySpec with GuiceOneAppPerSuite with 
     val regionStreetCounts = auditTaskTable.nonDeletedStreetEdgeRegions
       .groupBy(_.regionId)
       .map { case (regionId, group) => (regionId, group.length) }
+    // Up-to-date audits only, mirroring getRegionsCompletedByUser: a pair whose region completion rests on an
+    // already-flagged audit would fail the regionsBefore assertion instead of exercising the flag flip.
     val userRegionStreetCounts = auditTasks
-      .filter(_.completed)
+      .filter(task => task.completed && !task.outdatedImagery)
       .join(auditTaskTable.nonDeletedStreetEdgeRegions)
       .on(_.streetEdgeId === _.streetEdgeId)
       .groupBy { case (task, ser) => (task.userId, ser.regionId) }
