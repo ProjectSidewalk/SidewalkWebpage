@@ -417,10 +417,6 @@ class CardContainer {
         });
         sg.ui.pageControl.show();
         sg.pageLoading.hide();
-        sg.ui.cardFilter.wrapper.css('position', 'fixed');
-        sg.ui.cardFilter.wrapper.css('top', '');
-        uiCardContainer.holder.css('margin-left', sg.ui.cardFilter.wrapper.css('width'));
-        sg.scrollStatus.stickySidebar = true;
         sg.cardFilter.enable();
         if (this.#expandedView) {
           this.#expandedView.onPageCardsRendered();
@@ -439,9 +435,6 @@ class CardContainer {
    * Refreshes the UI after each query made by user.
    */
   #refreshUI() {
-    // TODO: To help the loading icon show, we make the sidebar positioned relatively while we are loading on the page.
-    // Otherwise, keep it fixed. This is hacky and needs a better fix.
-
     // Close expanded views (if open) and empty cards from current page.
     this.#expandedView.closeExpandedView();
     this.#clearCardContainer(this.#uiCardContainer.holder);
@@ -456,9 +449,6 @@ class CardContainer {
     sg.cardFilter.disable();
     sg.labelsNotFound.hide();
     sg.ui.pageControl.hide();
-
-    // Since we have returned to top of page,
-    sg.ui.cardFilter.wrapper.css('position', 'relative');
   }
 
   /**
