@@ -54,12 +54,14 @@ class StreetImageryTableDef(tag: Tag) extends Table[StreetImagery](tag, "street_
 object StreetImageryTable {
 
   /**
-   * How close (meters) a pano must be to a street's geometry to count as an observation of that street's imagery.
+   * How close (meters) a pano must be to a street's geometry to be a candidate observation of that street's imagery.
    *
    * A pano genuinely on a street sits on the roadway, within ~10 m of the centerline even on wide streets, while a
    * pano down a cross street starts ~15-20 m from this street's line beyond the shared corner. 15 m keeps the former
-   * and rejects the latter; a pano at an intersection legitimately falls within tolerance of every street meeting
-   * there, since it captures imagery of each.
+   * and rejects the latter. Among candidate streets, the pano informs only the NEAREST one: imagery providers
+   * re-drive streets one at a time, so a corner pano's capture date describes its own street's drive, not every
+   * street meeting at the intersection -- attributing it to all of them smears one street's re-drive date onto its
+   * neighbors and triggers spurious outdated_imagery flags (measured on Teaneck: 43% of flags were such smears).
    */
   val PanoStreetToleranceMeters: Double = 15.0
 }
@@ -70,7 +72,7 @@ object StreetImageryTable {
  * Rows come from three feeders: the evolution-348 pano_data backfill, db/scripts/import-street-imagery.sh (offline
  * scan ingest), and the in-app nightly refreshFromPanoData below. The nightly imagery-freshness sync (#4384) compares
  * newest_capture against audit dates to flag audits performed on since-replaced imagery. Pano-derived rows attribute
- * a pano to streets spatially (within PanoStreetToleranceMeters of the pano's position), never via the street of the
+ * a pano to its nearest street within PanoStreetToleranceMeters of the pano's position, never via the street of the
  * labels placed on it -- labelers routinely observe panos that sit on a different street than the one they audit.
  */
 @Singleton
@@ -97,31 +99,34 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
   def count: DBIO[Int] = streetImageryRecords.length.result
 
   /**
-   * Refreshes street_imagery from recently-viewed panos, attributing each pano to streets spatially (zero API cost).
+   * Refreshes street_imagery from recently-viewed panos, attributing each pano to its nearest street (zero API cost).
    *
-   * A pano viewed in the past week informs every street within PanoStreetToleranceMeters of its position -- see that
-   * constant for why attribution is spatial rather than via label.street_edge_id. The evolution-348 backfill uses the
-   * same attribution, so a street's aggregate here matches what a full rebuild would produce. All providers feed this
-   * (GSV, Mapillary, Infra3d): pano_data rows are written whenever a labeler views a pano.
+   * A pano viewed in the past week informs the single street nearest its position, provided that street is within
+   * PanoStreetToleranceMeters -- see that constant for why attribution is nearest-street rather than via
+   * label.street_edge_id or every street in tolerance. The evolution-348 backfill uses the same attribution, so a
+   * street's aggregate here matches what a full rebuild would produce. All providers feed this (GSV, Mapillary,
+   * Infra3d): pano_data rows are written whenever a labeler views a pano.
    *
    * On conflict, capture dates only ever widen (LEAST/GREATEST, which ignore NULLs in Postgres) and n_panos /
    * data_source are left alone -- a scan's full-street pano count is richer than the labeling-observed subset. The
    * seven-day last_viewed lookback overlaps nightly runs, so a missed run self-heals. Panos without a stored position
-   * (lat/lng are nullable) contribute nothing, and the tutorial pano and tutorial street are skipped.
+   * (lat/lng are nullable) contribute nothing, the tutorial pano is skipped, and a pano whose nearest street is the
+   * tutorial street is dropped rather than reattributed.
    *
    * @return Number of street rows inserted or updated.
    */
   def refreshFromPanoData: DBIO[Int] = {
     sqlu"""
       INSERT INTO street_imagery (street_edge_id, oldest_capture, newest_capture, n_panos, data_source, updated_at)
-      SELECT nearby.street_edge_id,
-             MIN(nearby.capture),
-             MAX(nearby.capture),
-             COUNT(DISTINCT nearby.pano_id),
+      SELECT nearest.street_edge_id,
+             MIN(nearest.capture),
+             MAX(nearest.capture),
+             COUNT(DISTINCT nearest.pano_id),
              'pano_data',
              now()
       FROM (
-          SELECT street_edge.street_edge_id AS street_edge_id,
+          SELECT DISTINCT ON (pano_data.pano_id)
+                 street_edge.street_edge_id AS street_edge_id,
                  pano_data.pano_id          AS pano_id,
                  CASE
                      WHEN pano_data.capture_date ~ '^[0-9]{4}$$'
@@ -134,7 +139,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
           FROM pano_data
           -- Geometry-space ST_DWithin runs first so the street_edge GiST index prunes candidates (0.001 deg is
           -- comfortably wider than 15 m at any real-city latitude); the geography-space check applies the exact
-          -- meter tolerance.
+          -- meter tolerance. DISTINCT ON + the ORDER BY keeps only the nearest candidate street per pano.
           JOIN street_edge
               ON ST_DWithin(street_edge.geom, ST_SetSRID(ST_MakePoint(pano_data.lng, pano_data.lat), 4326), 0.001)
               AND ST_DWithin(
@@ -146,10 +151,15 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
               AND pano_data.lat IS NOT NULL
               AND pano_data.lng IS NOT NULL
               AND pano_data.last_viewed > now() - interval '7 days'
-              AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-      ) AS nearby
-      WHERE nearby.capture IS NOT NULL
-      GROUP BY nearby.street_edge_id
+          ORDER BY pano_data.pano_id,
+                   ST_Distance(
+                       street_edge.geom::geography,
+                       ST_SetSRID(ST_MakePoint(pano_data.lng, pano_data.lat), 4326)::geography
+                   )
+      ) AS nearest
+      WHERE nearest.capture IS NOT NULL
+          AND nearest.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+      GROUP BY nearest.street_edge_id
       ON CONFLICT (street_edge_id) DO UPDATE
       SET oldest_capture = LEAST(street_imagery.oldest_capture, EXCLUDED.oldest_capture),
           newest_capture = GREATEST(street_imagery.newest_capture, EXCLUDED.newest_capture),
