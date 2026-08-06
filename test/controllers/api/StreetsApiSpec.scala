@@ -97,6 +97,30 @@ class StreetsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
   }
 
+  "GET /v3/api/streets?filetype=geopackage" should {
+    "return a SQLite GeoPackage whose schema carries outdated and max_speed (#4384, #4654)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/streets?filetype=geopackage")).get
+      status(resp) mustBe OK
+
+      val bytes = contentAsBytes(resp)
+      // A GeoPackage is a raw SQLite database; its column names appear as plain text in the schema pages, so a
+      // byte-level search proves the fields reached the export without pulling in a SQLite reader as a test dep.
+      bytes.take(15).utf8String mustBe "SQLite format 3"
+      bytes.containsSlice(org.apache.pekko.util.ByteString("outdated")) mustBe true
+      bytes.containsSlice(org.apache.pekko.util.ByteString("max_speed")) mustBe true
+    }
+  }
+
+  "GET /v3/api/streets?filetype=shapefile" should {
+    "return a nonempty ZIP archive" in {
+      // The DBF field names live inside compressed entries, so this only smoke-tests that the export (including the
+      // outdated featureBuilder wiring, which would 500 on a schema/value mismatch) still assembles end to end.
+      val resp = route(app, FakeRequest(GET, "/v3/api/streets?filetype=shapefile")).get
+      status(resp) mustBe OK
+      contentAsBytes(resp).take(2).utf8String mustBe "PK"
+    }
+  }
+
   "GET /v3/api/streetTypes" should {
     "return 200 JSON with the {status, street_types:[{name, description, count}]} envelope" in {
       val resp = route(app, FakeRequest(GET, "/v3/api/streetTypes")).get

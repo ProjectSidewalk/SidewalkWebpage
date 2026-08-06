@@ -249,7 +249,9 @@ class OverviewPage {
       items.push({ sev: 'warn', action: 'Review', href: '/admin/contributors',
         html: `<strong>${this.#num(s.low_quality_users)}</strong> contributors are flagged low-quality` });
     }
-    const streetsLeft = (s.total_streets || 0) - (s.audited_streets || 0);
+    // audited_streets counts only up-to-date audits, so subtract re-audit streets too: they're audited, just on
+    // old imagery, and the row below reports them separately.
+    const streetsLeft = (s.total_streets || 0) - (s.audited_streets || 0) - (s.reaudit_streets || 0);
     if (streetsLeft > 0) {
       const pctLeft = s.total_streets > 0 ? Math.round((streetsLeft / s.total_streets) * 100) : 0;
       items.push({ sev: 'info', action: 'Coverage', href: '/admin/coverage',
@@ -257,8 +259,9 @@ class OverviewPage {
     }
     if (s.reaudit_streets > 0) {
       const reaudit = this.#num(s.reaudit_streets);
+      const reauditMi = s.reaudit_distance_mi > 0 ? ` (${this.#num(Math.round(s.reaudit_distance_mi))} mi)` : '';
       items.push({ sev: 'info', action: 'Coverage', href: '/admin/coverage',
-        html: `<strong>${reaudit}</strong> audited streets have newer imagery and need re-auditing` });
+        html: `<strong>${reaudit}</strong> audited streets${reauditMi} have newer imagery and need re-auditing` });
     }
     // Stalled activity — only one of these, the more fundamental gap first.
     if (s.audits_past_week === 0) {

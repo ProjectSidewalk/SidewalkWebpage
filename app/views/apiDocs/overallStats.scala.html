@@ -304,56 +304,60 @@
 
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code> is specified, the response body will be CSV data with key-value pairs. Each row represents a different statistic or metric:</p>
-    <pre><code class="language-csv">Launch Date,2021-06-15
-Recent Labels Average Timestamp,2023-09-25T14:32:47Z
-KM Explored,1834.26
-KM Explored Without Overlap,1523.75
-Total User Count,4287
-Explore User Count,3892
-Validate User Count,895
-Registered User Count,3456
-Anonymous User Count,831
-Turker User Count,214
-Researcher User Count,42
-Total Label Count,183427
-Total Label Count With Severity,162320
-Average Label Timestamp,2021-05-10T20:20:25.147504Z
-Average Age of Image When Labeled,672 days
-CurbRamp Count,72964
-CurbRamp Count With Severity,61837
-CurbRamp Severity Mean,1.2
-CurbRamp Severity SD,0.5
+    <pre><code class="language-csv">launch_date,2021-06-15
+recent_labels_average_timestamp,2023-09-25T14:32:47Z
+km_explored,1834.26
+km_explored_without_overlap,1523.75
+km_explored_multiple_users,412.08
+km_explored_single_user,1111.67
+km_needs_reaudit,86.42
+km_explorable,1987.40
+total_user_count,4287
+explore_user_count,3892
+validate_user_count,895
+registered_user_count,3456
+anonymous_user_count,831
+turker_user_count,214
+researcher_user_count,42
+total_label_count,183427
+total_label_count_with_severity,162320
+average_label_timestamp,2021-05-10T20:20:25.147504Z
+average_age_of_image_when_labeled,672 days
+curb_ramp_count,72964
+curb_ramp_count_with_severity,61837
+curb_ramp_severity_mean,1.2
+curb_ramp_severity_sd,0.5
 ...
-Combined Total Validations,125834
-Combined Overall Labels Validated,151196
-Combined Overall Agreed Count,127564
-Combined Overall Disagreed Count,23632
-Combined Overall Accuracy,0.84
-Combined Overall Labels With a Validation,162974
-Combined CurbRamp Labels Validated,54321
+combined_total_validations,125834
+combined_overall_labels_validated,151196
+combined_overall_agreed_count,127564
+combined_overall_disagreed_count,23632
+combined_overall_accuracy,0.84
+combined_overall_labels_with_a_validation,162974
+combined_curb_ramp_labels_validated,54321
 ...
-Human Total Validations,119032
-Human Overall Labels Validated,142880
+human_total_validations,119032
+human_overall_labels_validated,142880
 ...
-AI Total Validations,6802
-AI Overall Labels Validated,8316
+ai_total_validations,6802
+ai_overall_labels_validated,8316
 ...
-Overall AI Yes and Human Majority Vote Concurs,37
-Overall AI Yes but Human Majority Vote Differs,3
-Overall AI No but Human Majority Vote Differs,2
-Overall AI No and Human Majority Vote Concurs,37
-Overall AI Yes and Admin Majority Vote Concurs,127
-Overall AI Yes but Admin Majority Vote Differs,54
-Overall AI No but Admin Majority Vote Differs,27
-Overall AI No and Admin Majority Vote Concurs,134
-CurbRamp AI Yes and Human Majority Vote Concurs,20
-CurbRamp AI Yes but Human Majority Vote Differs,0
-CurbRamp AI No but Human Majority Vote Differs,0
-CurbRamp AI No and Human Majority Vote Concurs,2
-CurbRamp AI Yes and Admin Majority Vote Concurs,42
-CurbRamp AI Yes but Admin Majority Vote Differs,2
-CurbRamp AI No but Admin Majority Vote Differs,6
-CurbRamp AI No and Admin Majority Vote Concurs,48
+overall_ai_yes_and_human_majority_vote_concurs,37
+overall_ai_yes_but_human_majority_vote_differs,3
+overall_ai_no_but_human_majority_vote_differs,2
+overall_ai_no_and_human_majority_vote_concurs,37
+overall_ai_yes_and_admin_majority_vote_concurs,127
+overall_ai_yes_but_admin_majority_vote_differs,54
+overall_ai_no_but_admin_majority_vote_differs,27
+overall_ai_no_and_admin_majority_vote_concurs,134
+curb_ramp_ai_yes_and_human_majority_vote_concurs,20
+curb_ramp_ai_yes_but_human_majority_vote_differs,0
+curb_ramp_ai_no_but_human_majority_vote_differs,0
+curb_ramp_ai_no_and_human_majority_vote_concurs,2
+curb_ramp_ai_yes_and_admin_majority_vote_concurs,42
+curb_ramp_ai_yes_but_admin_majority_vote_differs,2
+curb_ramp_ai_no_but_admin_majority_vote_differs,6
+curb_ramp_ai_no_and_admin_majority_vote_concurs,48
 ...</code></pre>
 
     <h5 id="csv-fields">CSV Format Description <a href="#csv-fields" class="permalink">#</a></h5>
