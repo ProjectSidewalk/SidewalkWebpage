@@ -4,7 +4,8 @@
 
 @* Deployment-info strip rendered by adminLayout above every dashboard page's h1: which release this instance runs,
    when it was released and (re)started, and which city/environment you're looking at. Timestamps are emitted as ISO
-   <time> elements and re-rendered in the viewer's locale/timezone by AdminShell.js; the UTC text is the no-JS
+   <time> elements and re-rendered by AdminShell.js — the release date stays UTC (day precision, so it can't shift a
+   day across viewer timezones), the uptime timestamp gets the viewer's locale/timezone; the UTC text is the no-JS
    fallback. Admin-only surface, English only. *@
 
 @repoUrl = @{
@@ -22,11 +23,14 @@
   <span>@commonData.currentCity.cityNameFormatted (<code>@commonData.cityId</code>)</span>
   <span class="deploy-strip-sep" aria-hidden="true">·</span>
   <span class="deploy-strip-env deploy-strip-env-@commonData.environmentType">@commonData.environmentType</span>
+  @* `git describe` (e.g. v11.7.0-3-gabc1234) beats a bare SHA when the deployed code is past the release — on the
+     test stage it answers "how many commits past the release is this?" at a glance. Falls back to the short SHA when
+     describe wasn't available at build time; the link always targets the exact commit. *@
   @commonData.buildCommit.map { sha =>
     <span class="deploy-strip-sep" aria-hidden="true">·</span>
-    <span @if(commonData.buildDirty) {title="* means built with uncommitted local changes"}><b class="deploy-strip-label">commit</b>
+    <span @if(commonData.buildDirty) {title="* means built with uncommitted local changes"}><b class="deploy-strip-label">build</b>
       <a href="@repoUrl/commit/@sha" target="_blank" rel="noopener"
-         aria-label="commit @sha.take(7) on GitHub (opens in new tab)"><code>@sha.take(7)@if(commonData.buildDirty){*}</code></a></span>
+         aria-label="commit @sha.take(7) on GitHub (opens in new tab)@if(commonData.buildDirty){, built with uncommitted local changes}"><code>@commonData.buildDescribe.getOrElse(sha.take(7))@if(commonData.buildDirty){*}</code></a></span>
   }
   <span class="deploy-strip-sep" aria-hidden="true">·</span>
   <span><b class="deploy-strip-label">app up since</b> <time datetime="@commonData.appStartTime">@commonData.appStartTime.truncatedTo(ChronoUnit.SECONDS)</time></span>

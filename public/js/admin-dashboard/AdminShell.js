@@ -28,8 +28,10 @@ class AdminShell {
   }
 
   /**
-   * Re-renders the deployment-info strip's <time> elements (server-rendered as UTC ISO strings) in the viewer's
-   * locale and timezone. Elements marked data-format="date" show day precision; the rest get date + time.
+   * Re-renders the deployment-info strip's <time> elements (server-rendered as UTC ISO strings) for the viewer.
+   * Elements marked data-format="date" show day precision and stay in UTC — a release date is a fact about the
+   * release, and rendering it viewer-local could shift it a day and disagree with the release's own tag date. The
+   * rest get date + time in the viewer's locale and timezone.
    */
   #localizeDeployTimes() {
     document.querySelectorAll('.deploy-strip time[datetime]').forEach((el) => {
@@ -37,7 +39,7 @@ class AdminShell {
       if (Number.isNaN(date.getTime())) return;
       const dateOpts = { year: 'numeric', month: 'short', day: 'numeric' };
       el.textContent = el.dataset.format === 'date'
-        ? date.toLocaleDateString(undefined, dateOpts)
+        ? date.toLocaleDateString(undefined, { ...dateOpts, timeZone: 'UTC' })
         : date.toLocaleString(undefined, { ...dateOpts, hour: 'numeric', minute: '2-digit' });
     });
   }

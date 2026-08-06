@@ -65,6 +65,7 @@ case class CommonPageData(
     versionDescription: Option[String],
     appStartTime: OffsetDateTime,
     buildCommit: Option[String],
+    buildDescribe: Option[String],
     buildDirty: Boolean,
     allCityInfo: Seq[CityInfo]
 ) {
@@ -1733,7 +1734,7 @@ class ConfigServiceImpl @Inject() (
     } yield {
       CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, imagerySource, imageryAccessToken, gMapsApiKey,
         mapboxApiKey, version.versionId, version.versionStartTime, version.description, appStartTime, BuildInfo.gitSha,
-        BuildInfo.gitDirty, allCityInfo)
+        BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo)
     }
   }
 }

@@ -91,10 +91,12 @@ Compile / sourceGenerators += Def.task {
     .toOption
     .filter(_.nonEmpty)
 
-  def lit(o: Option[String]): String = o.fold("None")(v => "Some(\"" + v + "\")")
-  val sha                            = git("rev-parse", "HEAD")
-  val describe                       = git("describe", "--tags", "--always")
-  val dirty                          = git("status", "--porcelain").isDefined // Clean tree -> empty output -> None.
+  // Escape backslashes/quotes before splicing into the generated source, so an odd tag name can't break the compile.
+  def lit(o: Option[String]): String =
+    o.fold("None")(v => "Some(\"" + v.replace("\\", "\\\\").replace("\"", "\\\"") + "\")")
+  val sha      = git("rev-parse", "HEAD")
+  val describe = git("describe", "--tags", "--always")
+  val dirty    = git("status", "--porcelain").isDefined // Clean tree -> empty output -> None.
 
   val file = (Compile / sourceManaged).value / "models" / "utils" / "BuildInfo.scala"
   IO.write(
