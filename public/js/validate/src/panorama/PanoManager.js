@@ -231,7 +231,8 @@ class PanoManager {
       // Take the halo class back off once it has played so the element doesn't carry a state class it isn't in.
       // Attached here rather than per render because it belongs to the element's whole lifetime: interrupting a
       // pulse fires animationcancel, not animationend, so a per-render `{ once: true }` listener would never fire
-      // and would accumulate one dead listener per label.
+      // and would accumulate one dead listener per label. Under prefers-reduced-motion no animation ever runs or
+      // ends, so the class lingers — harmless, since the same media query is what makes it inert.
       this.labelMarker.marker_.addEventListener('animationend', (e) => {
         if (e.animationName === 'label-marker-pulse') e.currentTarget.classList.remove('label-marker-pulse');
       });
