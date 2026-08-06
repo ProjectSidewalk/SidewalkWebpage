@@ -3,6 +3,7 @@ package models.street
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
+import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 
@@ -14,9 +15,12 @@ import javax.inject.{Inject, Singleton}
  * A street selected for an imagery-age poll, with the sample points to query (#4384).
  *
  * @param streetEdgeId The street to poll.
- * @param points       (lat, lng) sample points along the street: both endpoints plus the midpoint.
+ * @param points       (lat, lng) sample points along the street's interior, at the 20%/50%/80% marks. Interior on
+ *                     purpose: an endpoint sits on an intersection, where the pano nearest the sample point is often
+ *                     on a cross street and would smear that street's capture dates onto this one.
+ * @param geom         The street's full geometry, so observed panos can be checked against the street itself.
  */
-case class StreetToPoll(streetEdgeId: Int, points: Seq[(Double, Double)])
+case class StreetToPoll(streetEdgeId: Int, points: Seq[(Double, Double)], geom: LineString)
 
 /**
  * Per-street imagery age (#4348): the capture-date range of the street-view panos observed on one street.
@@ -116,23 +120,29 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
    * `limit` audited streets, the batch is all audited streets and unaudited ones are never reached -- accepted,
    * since only audited streets have flags to feed, but it means this poll is not a city-wide imagery census.
    *
+   * Sample points sit at the street's 20%/50%/80% marks -- see StreetToPoll for why interior points, not endpoints.
+   *
    * The ordering forces a full sort of the city's open streets each night, but that is a top-N heapsort over a few
-   * tens of thousands of rows and Postgres evaluates the PostGIS midpoint above the Limit, so only `limit` streets
-   * pay for it. No need to hand-roll a subquery to get that.
+   * tens of thousands of rows and Postgres evaluates the PostGIS interpolations above the Limit, so only `limit`
+   * streets pay for them. No need to hand-roll a subquery to get that.
    *
    * @param limit Maximum number of streets to return.
    */
   def streetsToPoll(limit: Int): DBIO[Seq[StreetToPoll]] = {
     implicit val getStreetToPoll: GetResult[StreetToPoll] = GetResult { r =>
-      val (id, x1, y1, x2, y2) = (r.nextInt(), r.nextDouble(), r.nextDouble(), r.nextDouble(), r.nextDouble())
-      val (midLat, midLng)     = (r.nextDouble(), r.nextDouble())
-      // x = lng and y = lat in street_edge. Midpoint between the endpoints so short streets still get 3 spread points.
-      StreetToPoll(id, Seq((y1, x1), (midLat, midLng), (y2, x2)))
+      val id     = r.nextInt()
+      val points = Seq.fill(3)((r.nextDouble(), r.nextDouble())) // Each ST_LineInterpolatePoint pair is (lat, lng).
+      StreetToPoll(id, points, r.nextGeometry[LineString]())
     }
     sql"""
-      SELECT street_edge.street_edge_id, street_edge.x1, street_edge.y1, street_edge.x2, street_edge.y2,
+      SELECT street_edge.street_edge_id,
+             ST_Y(ST_LineInterpolatePoint(street_edge.geom, 0.2)) AS near_start_lat,
+             ST_X(ST_LineInterpolatePoint(street_edge.geom, 0.2)) AS near_start_lng,
              ST_Y(ST_LineInterpolatePoint(street_edge.geom, 0.5)) AS mid_lat,
-             ST_X(ST_LineInterpolatePoint(street_edge.geom, 0.5)) AS mid_lng
+             ST_X(ST_LineInterpolatePoint(street_edge.geom, 0.5)) AS mid_lng,
+             ST_Y(ST_LineInterpolatePoint(street_edge.geom, 0.8)) AS near_end_lat,
+             ST_X(ST_LineInterpolatePoint(street_edge.geom, 0.8)) AS near_end_lng,
+             street_edge.geom
       FROM street_edge
       LEFT JOIN street_imagery ON street_edge.street_edge_id = street_imagery.street_edge_id
       WHERE street_edge.status = 'open'

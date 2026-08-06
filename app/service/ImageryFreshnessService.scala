@@ -5,6 +5,7 @@ import models.audit.AuditTaskTable
 import models.pano.PanoSource
 import models.street.{StreetImageryTable, StreetToPoll}
 import models.utils.MyPostgresProfile
+import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsArray, Json}
 import play.api.libs.ws.WSClient
@@ -46,8 +47,39 @@ object ImageryFreshnessService {
    */
   case class SyncResult(streetsRefreshed: Int, auditsFlagged: Int, auditsUnflagged: Int)
 
-  /** One pano seen at a sample point: its provider id and its capture date, when one was parseable. */
-  case class PanoObservation(panoId: String, capture: Option[LocalDate])
+  /**
+   * One pano seen at a sample point: its provider id, its capture date when one was parseable, and its (lat, lng)
+   * position when the provider reported one. The position is what lets the poller confirm the pano actually sits on
+   * the street being polled rather than on a nearby cross street or parallel alley within the search radius.
+   */
+  case class PanoObservation(panoId: String, capture: Option[LocalDate], location: Option[(Double, Double)])
+
+  /**
+   * Approximate minimum distance (meters) from a point to a street's polyline.
+   *
+   * Equirectangular local projection centered on the point: exact enough at the sub-100 m scales involved (the
+   * projection error is millimeters there), with the same polar cosine clamp as bboxHalfWidths. Pure, for unit tests.
+   *
+   * @param lat    Latitude of the point.
+   * @param lng    Longitude of the point.
+   * @param street The street geometry (JTS coordinates are x = lng, y = lat).
+   */
+  def metersToStreet(lat: Double, lng: Double, street: LineString): Double = {
+    val metersPerDegLat = 111320.0
+    val metersPerDegLng = 111320.0 * math.max(0.01, math.cos(math.toRadians(lat)))
+    val points          = street.getCoordinates.map(c => ((c.x - lng) * metersPerDegLng, (c.y - lat) * metersPerDegLat))
+    if (points.length < 2) points.map { case (x, y) => math.hypot(x, y) }.minOption.getOrElse(Double.PositiveInfinity)
+    else points.sliding(2).map { pair => originToSegmentMeters(pair(0), pair(1)) }.min
+  }
+
+  /** Distance from the origin to the segment a-b, in the same planar units as the inputs. */
+  private def originToSegmentMeters(a: (Double, Double), b: (Double, Double)): Double = {
+    val (ax, ay)  = a
+    val (dx, dy)  = (b._1 - ax, b._2 - ay)
+    val lengthSq  = dx * dx + dy * dy
+    val t: Double = if (lengthSq == 0.0) 0.0 else math.max(0.0, math.min(1.0, -(ax * dx + ay * dy) / lengthSq))
+    math.hypot(ax + t * dx, ay + t * dy)
+  }
 
   /**
    * Standardizes a GSV capture-date string of varying precision to a date, exactly like the evolution-326 backfill
@@ -101,8 +133,8 @@ class ImageryFreshnessServiceImpl @Inject() (
 
   private val pollBatchSize: Int = config.get[Int]("street-imagery-poll.batch-size")
 
-  // 25m matches check_streets_for_imagery.py's endpoint radius: wide enough to catch imagery on the roadway, narrow
-  // enough not to routinely pick up a parallel street.
+  // 25m matches check_streets_for_imagery.py's sample radius: wide enough to catch imagery on the roadway around a
+  // sample point. Off-street panos inside the radius are rejected by the position filter in pollOneStreet.
   private val SampleRadiusMeters = 25.0
 
   /**
@@ -181,6 +213,13 @@ class ImageryFreshnessServiceImpl @Inject() (
   /**
    * Polls one street's sample points and upserts its street_imagery row.
    *
+   * Observations are attributed to the street only when the provider reported a pano position within
+   * StreetImageryTable.PanoStreetToleranceMeters of the street's geometry: the search radius around a sample point
+   * can reach a cross street or parallel alley, and crediting such a pano would smear that street's capture dates
+   * onto this one (the same contamination refreshFromPanoData guards against). An observation with no reported
+   * position is dropped for the same reason -- unverifiable attribution is exactly the failure mode. A conclusive
+   * poll whose observations all filter out still upserts (NULL dates), recording "checked, nothing attributable".
+   *
    * Never fails the returned Future: the caller folds over the whole batch sequentially, so letting a single street's
    * DB or provider error escape would abandon every street after it. An error is logged and counted as a skip, which
    * leaves updated_at un-bumped so the next night's rotation retries the street.
@@ -199,9 +238,12 @@ class ImageryFreshnessServiceImpl @Inject() (
         if (results.contains(None)) {
           Future.successful(false)
         } else {
+          val onStreet = results.flatten.flatten.filter(_.location.exists { case (lat, lng) =>
+            metersToStreet(lat, lng, street.geom) <= StreetImageryTable.PanoStreetToleranceMeters
+          })
           // A pano can be seen from more than one sample point, so dedupe by provider id before counting. Keep
           // observations whose id came back empty rather than collapsing them all into one phantom pano.
-          val (identified, anonymous) = results.flatten.flatten.partition(_.panoId.nonEmpty)
+          val (identified, anonymous) = onStreet.partition(_.panoId.nonEmpty)
           val panos                   = identified.groupBy(_.panoId).map(_._2.head).toSeq ++ anonymous
           val dates                   = panos.flatMap(_.capture)
           // n_panos counts distinct *dated* panos, per the column contract in StreetImageryTable.
@@ -219,11 +261,11 @@ class ImageryFreshnessServiceImpl @Inject() (
    * Queries the free GSV Street View metadata endpoint for the pano currently served at a point, at month precision.
    *
    * The endpoint answers with the pano *nearest* the point within the radius, which is usually -- but not promised by
-   * the API to be -- Google's newest drive there. Two consequences to keep in mind when reading the resulting dates:
-   * a false negative where older coverage sits closer to the sample point than a newer drive, so new imagery goes
-   * unnoticed until another sample point or another night catches it; and a false positive where the 25 m radius
-   * reaches a parallel service road or alley that was re-imaged more recently, which costs a needless re-audit
-   * prompt. Sampling three points spread along the street limits both.
+   * the API to be -- Google's newest drive there. That leaves a false negative to keep in mind when reading the
+   * resulting dates: older coverage can sit closer to the sample point than a newer drive, so new imagery goes
+   * unnoticed until another sample point or another night catches it. The mirror-image false positive -- the radius
+   * reaching a pano on a parallel service road or alley -- is handled downstream: the response carries the pano's
+   * position, and pollOneStreet drops observations that don't lie on the polled street.
    */
   private def fetchGsvPointObservations(
       apiKey: String
@@ -239,9 +281,13 @@ class ImageryFreshnessServiceImpl @Inject() (
         val json = Json.parse(response.body)
         (json \ "status").asOpt[String] match {
           case Some("OK") =>
-            val panoId = (json \ "pano_id").asOpt[String].getOrElse("")
-            val date   = (json \ "date").asOpt[String].flatMap(parseGsvCaptureDate)
-            Some(Seq(PanoObservation(panoId, date)))
+            val panoId   = (json \ "pano_id").asOpt[String].getOrElse("")
+            val date     = (json \ "date").asOpt[String].flatMap(parseGsvCaptureDate)
+            val location = for {
+              panoLat <- (json \ "location" \ "lat").asOpt[Double]
+              panoLng <- (json \ "location" \ "lng").asOpt[Double]
+            } yield (panoLat, panoLng)
+            Some(Seq(PanoObservation(panoId, date, location)))
           case Some("ZERO_RESULTS") => Some(Seq.empty)
           case other                =>
             // REQUEST_DENIED (e.g. dev dummy keys), OVER_QUERY_LIMIT, etc.: inconclusive, skip the street.
@@ -273,7 +319,7 @@ class ImageryFreshnessServiceImpl @Inject() (
   )(lat: Double, lng: Double): Future[Option[Seq[PanoObservation]]] = {
     val (dLat, dLng) = bboxHalfWidths(lat, SampleRadiusMeters)
     val bbox         = s"${lng - dLng},${lat - dLat},${lng + dLng},${lat + dLat}"
-    ws.url(s"https://graph.mapillary.com/images?bbox=$bbox&fields=id,captured_at,is_pano&limit=100")
+    ws.url(s"https://graph.mapillary.com/images?bbox=$bbox&fields=id,captured_at,is_pano,geometry&limit=100")
       .addHttpHeaders("Authorization" -> s"OAuth $accessToken")
       .withRequestTimeout(5.seconds)
       .get()
@@ -285,7 +331,11 @@ class ImageryFreshnessServiceImpl @Inject() (
               case img if (img \ "is_pano").asOpt[Boolean].contains(true) =>
                 val id   = (img \ "id").asOpt[String].getOrElse("")
                 val date = (img \ "captured_at").asOpt[Long].flatMap(ms => parseMapillaryCapturedAt(ms))
-                PanoObservation(id, date)
+                // The geometry field is a GeoJSON Point, so coordinates come as [lng, lat].
+                val location = (img \ "geometry" \ "coordinates").asOpt[Seq[Double]].collect {
+                  case Seq(imgLng, imgLat) => (imgLat, imgLng)
+                }
+                PanoObservation(id, date, location)
             })
           case other =>
             // Auth failures, rate limits, 5xx: inconclusive, skip the street and retry another night.

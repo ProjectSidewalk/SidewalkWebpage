@@ -1,5 +1,6 @@
 package service
 
+import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -30,6 +31,19 @@ class ImageryFreshnessPollSpec extends AnyFunSuite with Matchers {
     parseMapillaryCapturedAt(-1000L, now) shouldBe None         // Pre-epoch nonsense.
     parseMapillaryCapturedAt(1041379200000L, now) shouldBe None // 2003: before street-level imagery.
     parseMapillaryCapturedAt(4102444800000L, now) shouldBe None // 2100: future.
+  }
+
+  test("metersToStreet measures point-to-polyline distance in meters, clamped to the segment") {
+    val geometryFactory = new GeometryFactory()
+    // A ~111 m east-west street at the equator; JTS coordinates are (x = lng, y = lat).
+    val street = geometryFactory.createLineString(Array(new Coordinate(0.0, 0.0), new Coordinate(0.001, 0.0)))
+
+    metersToStreet(0.0, 0.0005, street) shouldBe 0.0 +- 0.01     // On the line.
+    metersToStreet(0.0001, 0.0005, street) shouldBe 11.13 +- 0.1 // ~11 m north of the midpoint.
+    // Beyond the east endpoint: distance to the endpoint, not to the infinite line through the segment.
+    metersToStreet(0.0, 0.002, street) shouldBe 111.32 +- 0.5
+    // A pano ~30 m down a cross street from an endpoint: outside PanoStreetToleranceMeters, so it must filter out.
+    metersToStreet(0.00027, 0.001, street) should be > 15.0
   }
 
   test("bboxHalfWidths approximates the radius and widens longitude away from the equator") {
