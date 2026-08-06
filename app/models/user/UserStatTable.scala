@@ -173,7 +173,8 @@ class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
     (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual, ownLabelsValidated, accuracy,
       excluded, onLeaderboard, publicProfile) <> ((UserStat.apply _).tupled, UserStat.unapply)
 
-  def user = foreignKey("user_stat_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def user       = foreignKey("user_stat_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def userUnique = index("user_stat_user_id_key", userId, unique = true)
 }
 
 @ImplementedBy(classOf[UserStatTable])
@@ -1217,17 +1218,26 @@ class UserStatTable @Inject() (
   }
 
   /**
-   * Insert a new user_stat entry for the given userId.
+   * Insert a user_stat entry for the given userId, doing nothing if the user already has one.
+   *
+   * Raw SQL for the `ON CONFLICT` clause: every caller runs on a path that a user can hit from several requests at
+   * once (the first request of their first visit to a city), so a read-then-insert lets concurrent requests each see
+   * "no row" and each insert one. The DB-level conflict on `user_stat_user_id_key` is what actually makes it
+   * insert-once (#4604).
    *
    * @param userId        The userId to insert a user_stat entry for.
    * @param onLeaderboard Whether the user appears in leaderboard rankings. Defaults true (public); the sign-up path
    *                      passes false for private-by-default (school/minor) deployments.
    * @param publicProfile Whether the user's dashboard is publicly viewable. Defaults true; same private-by-default rule.
-   * @return DBIO action that returns the number of rows inserted (should be 1).
+   * @return DBIO action returning the number of rows inserted: 1 for a new user, 0 if they already had a row.
    */
-  def insert(userId: String, onLeaderboard: Boolean = true, publicProfile: Boolean = true): DBIO[Int] = {
-    userStats += UserStat(0, userId, 0d, None, highQuality = true, None, 0, None, excluded = false, onLeaderboard,
-      publicProfile)
+  def insertIfNew(userId: String, onLeaderboard: Boolean = true, publicProfile: Boolean = true): DBIO[Int] = {
+    sqlu"""
+      INSERT INTO user_stat (user_id, meters_audited, labels_per_meter, high_quality, high_quality_manual,
+                             own_labels_validated, accuracy, excluded, on_leaderboard, public_profile)
+      VALUES ($userId, 0, NULL, TRUE, NULL, 0, NULL, FALSE, $onLeaderboard, $publicProfile)
+      ON CONFLICT (user_id) DO NOTHING
+    """
   }
 
   /**

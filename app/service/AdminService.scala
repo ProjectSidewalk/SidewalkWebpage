@@ -433,7 +433,7 @@ class AdminServiceImpl @Inject() (
       userStats: UserStat <- existingStats match {
         case Some(stats) => DBIO.successful(stats)
         case None        =>
-          userStatTable.insert(userId).flatMap(_ => userStatTable.getStatsFromUserId(userId).map(_.get))
+          userStatTable.insertIfNew(userId).flatMap(_ => userStatTable.getStatsFromUserId(userId).map(_.get))
       }
       completedMissions: Seq[RegionalMission] <- missionTable.selectCompletedRegionalMission(userId)
       comments: Seq[AuditTaskComment]         <- auditTaskCommentTable.all(userId)

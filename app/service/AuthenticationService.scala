@@ -180,7 +180,7 @@ class AuthenticationServiceImpl @Inject() (
       _                 <- userLoginInfoTable.insert(UserLoginInfo(0, user.userId, loginInfoId))
       _ <- userPasswordInfoTable.insert(UserPasswordInfo(0, pwInfo.hasher, pwInfo.password, pwInfo.salt, loginInfoId))
       _ <- userRoleTable.addRole(user.userId, user.role, user.communityService)
-      _ <- { val (onLb, pubProf) = defaultPrivacyFlags; userStatTable.insert(user.userId, onLb, pubProf) }
+      _ <- { val (onLb, pubProf) = defaultPrivacyFlags; userStatTable.insertIfNew(user.userId, onLb, pubProf) }
     } yield user
     db.run(dbActions.transactionally)
   }
@@ -256,25 +256,13 @@ class AuthenticationServiceImpl @Inject() (
     cacheApi.get[Boolean](cacheKey).flatMap {
       case Some(true) => Future.successful(0) // User stat already exists.
       case _          =>
-        db.run(for {
-          existingEntry: Option[UserStat] <- userStatTable.getStatsFromUserId(userId)
-          rowsAdded: Int                  <- existingEntry match {
-            case Some(_) =>
-              // User stat exists - cache this result and return 0.
-              cacheApi.set(cacheKey, true, 1.day)
-              DBIO.successful(0)
-            case None =>
-              // User stat doesn't exist - insert and then cache.
-              val (onLb, pubProf) = defaultPrivacyFlags
-              userStatTable.insert(userId, onLb, pubProf).map { rows =>
-                if (rows > 0) {
-                  // Successfully inserted - now cache that it exists.
-                  cacheApi.set(cacheKey, true, 1.day)
-                }
-                rows
-              }
-          }
-        } yield rowsAdded)
+        // Runs on every request from an identified user, so it's a single conflict-tolerant statement rather than a
+        // read followed by a conditional insert: the parallel requests of a first page load would all read "no row".
+        val (onLb, pubProf) = defaultPrivacyFlags
+        db.run(userStatTable.insertIfNew(userId, onLb, pubProf)).map { rowsAdded =>
+          cacheApi.set(cacheKey, true, 1.day)
+          rowsAdded
+        }
     }
   }
 
