@@ -63,17 +63,13 @@ class ValidationMenu {
       const tip = i18next.t('labelmap:own-label-disabled');
       this.#galleryCard.addClass('gallery-card--readonly');
 
-      // Disable validation buttons + add tooltip; skip attaching click handlers.
-      for (const button of Object.values(this.#validationButtons)) {
-        button.prop('disabled', true).attr('title', tip);
-      }
+      // Disable validation buttons; skip attaching click handlers. The reason rides their holder rather than each
+      // button, since a disabled button swallows the hover that would open a tooltip on it.
+      for (const button of Object.values(this.#validationButtons)) button.prop('disabled', true);
+      this.#overlay.attr('data-ps-tooltip', tip);
 
-      // Add tooltip to thumb containers; skip attaching click handlers. Destroy the bootstrap tooltips on the
-      // inner Agree/Disagree icons so the native readonly tooltip shows on hover instead.
-      const valInfo = refCard.validationInfoDisplay;
-      valInfo.agreeContainer.title = tip;
-      valInfo.disagreeContainer.title = tip;
-      $(valInfo.validationContainer).find('img[data-toggle="tooltip"]').tooltip('destroy');
+      // Same reason on the thumbs, in place of the vote text they'd otherwise carry.
+      refCard.validationInfoDisplay.setLockReason(tip);
     } else {
       // Add onClick functions for the validation buttons.
       for (const [valKey, button] of Object.entries(this.#validationButtons)) {
