@@ -1,6 +1,5 @@
 package models.audit
 
-import models.label.{Label, LabelTableDef}
 import models.pano.{PanoData, PanoDataTable, PanoSource}
 import models.street.{StreetEdgeTableDef, StreetImagery, StreetImageryTable, StreetImageryTableDef}
 import models.user.UserStatTableDef
@@ -21,7 +20,7 @@ import java.time.{LocalDate, OffsetDateTime}
  * Every mutating case runs inside a deliberately rolled-back transaction (runRolledBack), so the connected DB is left
  * byte-for-byte untouched -- important because the sync's set-pass operates on the whole audit_task table, not just
  * this spec's synthetic rows. Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD,
- * as in dev/CI); cases cancel gracefully when the connected DB lacks the rows they need (a user, a street, a label).
+ * as in dev/CI); cases cancel gracefully when the connected DB lacks the rows they need (a user, a street).
  * Scheduling actors are disabled so the real nightly sync can't race the tests.
  */
 class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
@@ -35,7 +34,6 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
 
   private val auditTasks    = TableQuery[AuditTaskTableDef]
   private val streetImagery = TableQuery[StreetImageryTableDef]
-  private val labels        = TableQuery[LabelTableDef]
   private val streetEdges   = TableQuery[StreetEdgeTableDef]
   private val configTable   = TableQuery[ConfigTableDef]
   private val userStats     = TableQuery[UserStatTableDef]
@@ -44,17 +42,6 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
   private lazy val someUserId: Option[String]   = run(userStats.map(_.userId).result.headOption)
   private lazy val nonTutorialStreets: Seq[Int] =
     run(streetEdges.filter(_.streetEdgeId =!= tutorialStreetId).map(_.streetEdgeId).take(2).result)
-  private lazy val someLabel: Option[Label] = run(labels.result.headOption)
-
-  /** A non-tutorial street with no labels at all, so refreshFromPanoData sees only this spec's synthetic pano. */
-  private lazy val labelFreeStreetId: Option[Int] = run(
-    streetEdges
-      .filter(_.streetEdgeId =!= tutorialStreetId)
-      .filterNot(_.streetEdgeId in labels.map(_.streetEdgeId))
-      .map(_.streetEdgeId)
-      .result
-      .headOption
-  )
 
   private def newTask(streetEdgeId: Int, userId: String, taskEnd: OffsetDateTime, completed: Boolean): AuditTask =
     AuditTask(0, None, userId, streetEdgeId, taskEnd.minusHours(1), taskEnd, completed, 0.0, 0.0,
@@ -190,27 +177,32 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
   "refreshFromPanoData" should {
     val testPanoId = "test-pano-4384-flag-sync-spec"
 
-    "create a street's imagery row from a recently-labeled pano" in {
-      assume(someLabel.isDefined && labelFreeStreetId.isDefined)
-      val streetId = labelFreeStreetId.get
+    /** Ages every real pano out of the 7-day lookback so the refresh sees only this spec's synthetic pano. */
+    def ageOutRealPanos: DBIO[Int] = sqlu"UPDATE pano_data SET last_viewed = now() - interval '30 days'"
+
+    /** (lat, lng) of the street's midpoint: on the street's own line, so this street is its nearest street. */
+    def streetMidpoint(streetEdgeId: Int): DBIO[(Double, Double)] =
+      sql"""
+        SELECT ST_Y(ST_LineInterpolatePoint(geom, 0.5)), ST_X(ST_LineInterpolatePoint(geom, 0.5))
+        FROM street_edge
+        WHERE street_edge_id = $streetEdgeId
+      """.as[(Double, Double)].head
+
+    def panoAt(lat: Double, lng: Double): PanoData =
+      PanoData(testPanoId, None, None, None, None, "2024-06", None, Some(lat), Some(lng), None, None, None,
+        expired = false, OffsetDateTime.now, None, OffsetDateTime.now, PanoSource.Gsv, None, None)
+
+    "create a street's imagery row from a recently-viewed pano on it" in {
+      assume(nonTutorialStreets.nonEmpty)
+      val streetId = nonTutorialStreets.head
 
       val row = runRolledBack(for {
-        _ <- panoDataTable.insert(
-          PanoData(testPanoId, None, None, None, None, "2024-06", None, None, None, None, None, None, expired = false,
-            OffsetDateTime.now, None, OffsetDateTime.now, PanoSource.Gsv, None, None)
-        )
-        _ <- labels += someLabel.get.copy(
-          labelId = 0,
-          panoId = testPanoId,
-          streetEdgeId = streetId,
-          timeCreated = OffsetDateTime.now,
-          deleted = false,
-          tutorial = false,
-          temporaryLabelId = Int.MaxValue - 4384
-        )
-        _   <- streetImagery.filter(_.streetEdgeId === streetId).delete
-        _   <- streetImageryTable.refreshFromPanoData
-        row <- streetImageryTable.getForStreet(streetId)
+        _        <- ageOutRealPanos
+        midpoint <- streetMidpoint(streetId)
+        _        <- panoDataTable.insert(panoAt(midpoint._1, midpoint._2))
+        _        <- streetImagery.filter(_.streetEdgeId === streetId).delete
+        _        <- streetImageryTable.refreshFromPanoData
+        row      <- streetImageryTable.getForStreet(streetId)
       } yield row)
 
       row.isDefined mustBe true
@@ -221,25 +213,15 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
     }
 
     "only widen the capture-date range on conflict, leaving n_panos and data_source alone" in {
-      assume(someLabel.isDefined && labelFreeStreetId.isDefined)
-      val streetId   = labelFreeStreetId.get
+      assume(nonTutorialStreets.nonEmpty)
+      val streetId   = nonTutorialStreets.head
       val staleStamp = OffsetDateTime.now.minusYears(1)
 
       val row = runRolledBack(for {
-        _ <- panoDataTable.insert(
-          PanoData(testPanoId, None, None, None, None, "2024-06", None, None, None, None, None, None, expired = false,
-            OffsetDateTime.now, None, OffsetDateTime.now, PanoSource.Gsv, None, None)
-        )
-        _ <- labels += someLabel.get.copy(
-          labelId = 0,
-          panoId = testPanoId,
-          streetEdgeId = streetId,
-          timeCreated = OffsetDateTime.now,
-          deleted = false,
-          tutorial = false,
-          temporaryLabelId = Int.MaxValue - 4384
-        )
-        // Pre-existing scan row with a wider date range and a richer pano count than the labeled pano provides.
+        _        <- ageOutRealPanos
+        midpoint <- streetMidpoint(streetId)
+        _        <- panoDataTable.insert(panoAt(midpoint._1, midpoint._2))
+        // Pre-existing scan row with a wider date range and a richer pano count than the viewed pano provides.
         _ <- streetImagery.filter(_.streetEdgeId === streetId).delete
         _ <- streetImagery += StreetImagery(streetId, Some(LocalDate.parse("2010-01-01")),
           Some(LocalDate.parse("2030-01-01")), 42, "imagery_scan", staleStamp)
