@@ -90,10 +90,16 @@ class RawLabelsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "take a tag containing a comma as one tag rather than splitting it" in {
-      // Real Signal tag. Split on the comma it would become two tags that match nothing, so the only thing that can
-      // go wrong here is a 400/500 — a body assertion can't tell the two readings apart on an arbitrary DB.
+      // Real Signal tag. Tag values are validated against the city's tags, so the 200 is meaningful: split on the
+      // comma, the entry would become two names the vocabulary doesn't contain, and the request would 400.
       val url  = s"/v3/api/rawLabels?$tinyBbox&tags=Signal:yellow box, accessibility features not visible"
       val resp = route(app, FakeRequest(GET, url)).get
+      status(resp) mustBe OK
+      (contentAsJson(resp) \ "type").as[String] mustBe "FeatureCollection"
+    }
+
+    "still accept an older comma-joined tags value whose pieces name real tags" in {
+      val resp = route(app, FakeRequest(GET, s"/v3/api/rawLabels?$tinyBbox&tags=CurbRamp:narrow,uneven surface")).get
       status(resp) mustBe OK
       (contentAsJson(resp) \ "type").as[String] mustBe "FeatureCollection"
     }
@@ -136,6 +142,19 @@ class RawLabelsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
 
     "reject an empty tags occurrence with 400 (parameter=tags)" in {
       val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?tags=narrow&tags=")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "tags"
+    }
+
+    "reject a tag the city does not have with 400 (parameter=tags)" in {
+      val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?tags=definitely-not-a-real-tag")).get
+      status(resp) mustBe BAD_REQUEST
+      (contentAsJson(resp) \ "parameter").as[String] mustBe "tags"
+    }
+
+    "reject a tag scoped to a label type that does not carry it with 400 (parameter=tags)" in {
+      // APS is a Signal tag; scoping it to CurbRamp would otherwise silently drop every CurbRamp label.
+      val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?tags=CurbRamp:APS")).get
       status(resp) mustBe BAD_REQUEST
       (contentAsJson(resp) \ "parameter").as[String] mustBe "tags"
     }

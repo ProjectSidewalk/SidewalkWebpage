@@ -29,8 +29,9 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
       .disable[modules.ActorModule] // No eager background actors during tests.
       .build()
 
-  private val renderedTag = """data-tag="([^"]*)"""".r
-  private val activeTag   = """tag-pill--active"\s+data-tag="([^"]*)"""".r
+  // Matches a whole tag-pill element so the active-class check doesn't depend on attribute order within the tag.
+  // Twirl HTML-escapes ">" in attribute values, so [^>]* can't end the element early.
+  private val tagPillElement = """<button\b[^>]*\bdata-tag="([^"]*)"[^>]*>""".r
 
   /** Fetches /gallery with the given query and returns its HTML. */
   private def galleryPage(query: String = ""): String = {
@@ -39,8 +40,10 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
     contentAsString(resp)
   }
 
-  private def renderedTags(body: String): Seq[String] = renderedTag.findAllMatchIn(body).map(_.group(1)).distinct.toSeq
-  private def activeTags(body: String): Set[String]   = activeTag.findAllMatchIn(body).map(_.group(1)).toSet
+  private def renderedTags(body: String): Seq[String] =
+    tagPillElement.findAllMatchIn(body).map(_.group(1)).distinct.toSeq
+  private def activeTags(body: String): Set[String] =
+    tagPillElement.findAllMatchIn(body).filter(_.matched.contains("tag-pill--active")).map(_.group(1)).toSet
 
   private def encode(tag: String): String = URLEncoder.encode(tag, "UTF-8")
 

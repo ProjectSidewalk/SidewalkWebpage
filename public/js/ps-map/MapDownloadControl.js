@@ -35,6 +35,8 @@ class MapDownloadControl {
   #outsideClickTimer = null;
   /** @type {?number} */
   #busyTimer = null;
+  /** @type {?number} */
+  #tabCloseTimer = null;
   /** @type {(e: MouseEvent) => void} Stable reference so the capturing document listener can be removed. */
   #boundOutsideClick = (e) => this.#onOutsideClick(e);
 
@@ -202,6 +204,7 @@ class MapDownloadControl {
   onRemove() {
     clearTimeout(this.#outsideClickTimer);
     clearTimeout(this.#busyTimer);
+    clearTimeout(this.#tabCloseTimer);
     document.removeEventListener('click', this.#boundOutsideClick, true);
     this.#container.remove();
   }
@@ -338,7 +341,8 @@ class MapDownloadControl {
     } else if (e.key === 'Tab') {
       // Deferred: hiding the focused element's subtree synchronously leaves the browser resolving sequential focus
       // from a display:none element, which can drop focus at the top of the document. Let the default Tab land first.
-      setTimeout(() => this.#closePanel(false), 0);
+      clearTimeout(this.#tabCloseTimer);
+      this.#tabCloseTimer = setTimeout(() => this.#closePanel(false), 0);
     }
   }
 
