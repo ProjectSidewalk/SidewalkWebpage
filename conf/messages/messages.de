@@ -302,6 +302,7 @@ audit.tutorial.complete.1 = Geschafft!
 audit.tutorial.complete.2 = Sie haben das Tutorial abgeschlossen!
 audit.tutorial.complete.learn-more = Mehr erfahren
 audit.tutorial.complete.start-contributing = Mit dem Beitragen beginnen
+audit.tutorial.pause-animation = Animation pausieren
 
 audit.ribbon.curb.ramp.labels = BESCHR. TROTTOIRABSENKUNGEN
 audit.ribbon.sidewalk.labels = BESCHR. GEHWEG
