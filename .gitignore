@@ -92,7 +92,9 @@ project/.sbtserver.lock
 .scala_dependencies
 .worksheet
 
+# Keeps raw/source footage out of the repo, but public/videos/ is where shipped video assets live, so let those through.
 *.mp4
+!public/videos/**/*.mp4
 
 # JavaScript and Node
 public/js/explore/build/*

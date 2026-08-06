@@ -829,6 +829,16 @@ class Onboarding {
     if (state === this.#getState('outro')) {
       // Remove the hover listeners that adjust the instruction box's z-index.
       svl.ui.contextMenu.holder.off('mouseover mouseout');
+
+      // The celebration clip loops, so it's motion with no stop control (WCAG 2.2.2) — start it only when the visitor
+      // hasn't asked for reduced motion. Left paused it holds its first frame, which reads as a still illustration.
+      const hero = document.querySelector('.tutorial-complete__hero');
+      if (hero && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        // Set muted on the element too: the screen is injected as an HTML string, and the `muted` attribute doesn't
+        // reliably carry over that way, which would leave play() blocked by the autoplay policy.
+        hero.muted = true;
+        hero.play().catch(() => {}); // Rejected when the browser refuses to play; the still frame stands in for it.
+      }
     }
     this.#blinkInterface(state);
 

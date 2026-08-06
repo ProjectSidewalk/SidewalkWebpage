@@ -4,7 +4,8 @@
  * A four-step, full-page walkthrough (Explore -> Label -> Validate -> Impact) before the hands-on tutorial.
  *
  * The step copy lives in i18next (audit:tutorial-intro.*); the per-step illustration and icon markup live in the
- * Explore Twirl view. This class only tracks which step is active and swaps the "Next"/"Start Mission" label.
+ * Explore Twirl view. This class tracks which step is active, drives that step's illustration clip, and swaps the
+ * "Next"/"Start Mission" label.
  */
 class TutorialIntro {
   #tracker;
@@ -98,11 +99,35 @@ class TutorialIntro {
   #render() {
     const isLastStep = this.#stepIndex === this.#stepCount - 1;
     this.#ui.steps.forEach((el, i) => el.classList.toggle('is-active', i === this.#stepIndex));
-    this.#ui.illustrations.forEach((el, i) => el.classList.toggle('is-active', i === this.#stepIndex));
+    this.#ui.illustrations.forEach((el, i) => {
+      const isActive = i === this.#stepIndex;
+      el.classList.toggle('is-active', isActive);
+      el.pause();
+      // Rewind unconditionally: each clip draws its scene once and holds on the finished frame, so stepping back to a
+      // step the user already saw should replay the drawing rather than reveal a pre-finished illustration.
+      el.currentTime = 0;
+      if (isActive) this.#playIllustration(el);
+    });
     this.#ui.nextButton.textContent = isLastStep
       ? i18next.t('audit:tutorial-intro.start-mission')
       : i18next.t('audit:tutorial-intro.next');
     this.#renderImpactDescription();
+  }
+
+  /**
+   * Starts the step's illustration, or parks it on its finished frame when the visitor asked for reduced motion.
+   *
+   * @param {HTMLVideoElement} video - The illustration for the step that just became active.
+   */
+  #playIllustration(video) {
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      // Rejected when the browser refuses to play; the clip then just sits on its first frame, which is legible.
+      video.play().catch(() => {});
+      return;
+    }
+    // `duration` is NaN until metadata arrives, so wait for it rather than leaving the clip on its blank first frame.
+    if (Number.isFinite(video.duration)) video.currentTime = video.duration;
+    else video.addEventListener('loadedmetadata', () => { video.currentTime = video.duration; }, { once: true });
   }
 
   /**
