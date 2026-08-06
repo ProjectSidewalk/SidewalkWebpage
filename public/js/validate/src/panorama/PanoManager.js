@@ -244,6 +244,11 @@ class PanoManager {
       'aria-label',
       i18next.t(`common:${util.camelToKebab(currentLabel.getAuditProperty('labelType'))}`).replace('&shy;', ''),
     );
+    // Replay the one-shot halo pulse that draws the eye to the marker (#4790). The marker element is reused
+    // across labels, so the class must come off and back on — with a reflow between — to restart the animation.
+    marker.classList.remove('label-marker--pulse');
+    void marker.offsetWidth;
+    marker.classList.add('label-marker--pulse');
     this.#updateMarkerAiIndicator(currentLabel.getAuditProperty('aiGenerated'));
   }
 
