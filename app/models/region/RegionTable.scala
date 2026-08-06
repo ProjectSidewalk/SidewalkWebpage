@@ -296,6 +296,37 @@ class RegionTable @Inject() (
   }
 
   /**
+   * Distance (meters) of streets needing re-audit in each region: streets audited before, but whose completed audits
+   * all predate newer imagery (audit_task.outdated_imagery, #4384).
+   *
+   * Mirrors the region_outdated CTE in getRegionsForApi above -- keep the two predicates in sync. Regions with no
+   * such streets are simply absent from the result.
+   *
+   * @return (region_id, outdated distance in meters) pairs.
+   */
+  def outdatedDistanceByRegion: DBIO[Seq[(Int, Double)]] = {
+    sql"""
+      SELECT street_edge_region.region_id, SUM(ST_Length(street_edge.geom::geography)) AS outdated_distance_m
+      FROM street_edge_region
+      JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
+          AND street_edge.status = 'open'
+          AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+      WHERE EXISTS (
+              SELECT FROM audit_task
+              WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
+                  AND audit_task.completed = TRUE
+          )
+          AND NOT EXISTS (
+              SELECT FROM audit_task
+              WHERE audit_task.street_edge_id = street_edge_region.street_edge_id
+                  AND audit_task.completed = TRUE
+                  AND audit_task.outdated_imagery = FALSE
+          )
+      GROUP BY street_edge_region.region_id
+    """.as[(Int, Double)]
+  }
+
+  /**
    * Select region_id of the region containing (or closest to) the lat/lng position for every lat/lng.
    *
    * Note that an attempt to take copy the Slick code from the function above and take a union between all the lat/lngs
