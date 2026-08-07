@@ -518,6 +518,9 @@ class PanoDataServiceImpl @Inject() (
 
   /**
    * Returns the pano_data row for a pano if a self-hosted image exists AND all required fields are populated.
+   *
+   * "Required" means what PannellumViewer needs to render the backup; the columns mirror `PanoData`'s
+   * `requiredParams` (public/js/common/pano-viewer/src/PanoData.js) — see the note there before changing them.
    */
   def getLocalBackupImage(panoId: String): Future[Option[PanoData]] = {
     if (localBackupImageFile(panoId).isEmpty) {

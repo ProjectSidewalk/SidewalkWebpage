@@ -1227,16 +1227,16 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Whether Validate can actually show a label's imagery: the original is still live, or a backup stands in for it.
+   * Whether Validate can show a label's imagery: the original is still live, or a viewable backup stands in.
    *
-   * Falling back to a backup means rendering it in Pannellum, which needs the pano's dimensions, camera location, and
-   * camera angles. Rows written before we recorded those carry nulls, and a label on one of them leaves Validate
-   * showing the *previous* label's imagery with the new label's marker drawn on it — the validator answers about an
-   * image that isn't the one they're looking at (#4804). Cheaper to leave those labels out of the queue: in Seattle
-   * they're 595 of the 70k expired panos otherwise eligible.
+   * Rendering a backup in Pannellum needs the pano's dimensions, camera location, and camera angles, and rows written
+   * before we recorded those carry nulls. A label on one of them leaves Validate showing the *previous* label's
+   * imagery under the new label's marker (#4804), so they're better left out of the queue.
    *
-   * `hasBackup` is NULL until the imagery check has looked at the pano, and is read optimistically so unchecked panos
-   * stay in the queue; the frontend still falls back to the label's static crop if no backup turns out to exist.
+   * `hasBackup` is NULL until the imagery check has looked at a pano and is read optimistically; the real gate is
+   * `LabelService.checkImageryBatch`, which checks disk and API per label as a mission is built.
+   *
+   * The six columns mirror `PanoData`'s `requiredParams` — see the note there before changing them.
    */
   private def imageryViewable(pd: PanoDataTableDef): Rep[Boolean] = {
     !pd.expired || (pd.hasBackup.getOrElse(true: Rep[Boolean]) &&

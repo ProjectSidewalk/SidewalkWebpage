@@ -648,18 +648,22 @@ function UtilitiesMisc(JSON) {
 util.misc = UtilitiesMisc(JSON);
 
 /**
+ * Fields PannellumViewer needs to render a backup pano: the subset of PanoData's `requiredParams` that a pano_data
+ * row can be missing. See the note there before changing this list.
+ */
+const BACKUP_IMAGE_REQUIRED_FIELDS = ['width', 'height', 'lat', 'lng', 'cameraHeading', 'cameraPitch'];
+
+/**
  * Whether a backup pano carries the metadata PannellumViewer needs to render it.
  *
- * pano_data rows written before we recorded these carry nulls for them, and PanoData rejects a pano that's missing
- * any — so callers must check before offering a backup, and fall back to the label's static crop when it fails
- * (#4804). Takes the camelCase shape both /backupImage/:panoId/metadata and buildBackupImageData produce.
+ * Old pano_data rows carry nulls for these and PanoData rejects them (#4804). Guards the buildBackupImageData path
+ * only — the /backupImage/:panoId/metadata payload is already filtered server-side by `getLocalBackupImage`.
  *
- * @param {?object} data Backup pano metadata, or null.
+ * @param {?object} data Backup pano metadata in the camelCase shape buildBackupImageData produces, or null.
  * @returns {boolean} True when every field the viewer needs is present and numeric.
  */
 function backupImageDataIsComplete(data) {
-  const required = ['width', 'height', 'lat', 'lng', 'cameraHeading', 'cameraPitch'];
-  return !!data && required.every((field) => typeof data[field] === 'number' && !isNaN(data[field]));
+  return !!data && BACKUP_IMAGE_REQUIRED_FIELDS.every((f) => typeof data[f] === 'number' && !isNaN(data[f]));
 }
 
 /**
