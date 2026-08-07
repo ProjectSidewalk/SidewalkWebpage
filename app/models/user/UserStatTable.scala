@@ -163,11 +163,11 @@ class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
   def labelsPerMeter: Rep[Option[Double]]     = column[Option[Double]]("labels_per_meter")
   def highQuality: Rep[Boolean]               = column[Boolean]("high_quality")
   def highQualityManual: Rep[Option[Boolean]] = column[Option[Boolean]]("high_quality_manual")
-  def ownLabelsValidated: Rep[Int]            = column[Int]("own_labels_validated")
+  def ownLabelsValidated: Rep[Int]            = column[Int]("own_labels_validated", O.Default(0))
   def accuracy: Rep[Option[Double]]           = column[Option[Double]]("accuracy")
   def excluded: Rep[Boolean]                  = column[Boolean]("excluded")
-  def onLeaderboard: Rep[Boolean]             = column[Boolean]("on_leaderboard")
-  def publicProfile: Rep[Boolean]             = column[Boolean]("public_profile")
+  def onLeaderboard: Rep[Boolean]             = column[Boolean]("on_leaderboard", O.Default(true))
+  def publicProfile: Rep[Boolean]             = column[Boolean]("public_profile", O.Default(true))
 
   override def * =
     (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual, ownLabelsValidated, accuracy,

@@ -11,7 +11,8 @@ import scala.concurrent.{ExecutionContext, Future}
 case class Version(versionId: String, versionStartTime: OffsetDateTime, description: Option[String])
 
 class VersionTableDef(tag: Tag) extends Table[Version](tag, "version") {
-  def versionId: Rep[String]                = column[String]("version_id", O.PrimaryKey)
+  def versionId: Rep[String] = column[String]("version_id", O.PrimaryKey)
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def versionStartTime: Rep[OffsetDateTime] = column[OffsetDateTime]("version_start_time")
   def description: Rep[Option[String]]      = column[Option[String]]("description")
 

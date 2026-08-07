@@ -24,8 +24,9 @@ class UserSurveyOptionSubmissionTableDef(tag: Tag)
   def userId: Rep[String]                    = column[String]("user_id")
   def surveyQuestionId: Rep[Int]             = column[Int]("survey_question_id")
   def surveyOptionId: Rep[Option[Int]]       = column[Option[Int]]("survey_option_id")
-  def timeSubmitted: Rep[OffsetDateTime]     = column[OffsetDateTime]("time_submitted")
-  def numMissionsCompleted: Rep[Int]         = column[Int]("num_missions_completed")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
+  def timeSubmitted: Rep[OffsetDateTime] = column[OffsetDateTime]("time_submitted")
+  def numMissionsCompleted: Rep[Int]     = column[Int]("num_missions_completed")
 
   def * =
     (userSurveyOptionSubmissionId, userId, surveyQuestionId, surveyOptionId, timeSubmitted, numMissionsCompleted) <> (

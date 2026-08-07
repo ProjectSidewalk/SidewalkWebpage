@@ -38,22 +38,26 @@ case class LabelAiAssessment(
 )
 
 class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, "label_ai_assessment") {
-  def labelAiAssessmentId: Rep[Int]                     = column[Int]("label_ai_assessment_id", O.PrimaryKey, O.AutoInc)
-  def labelId: Rep[Int]                                 = column[Int]("label_id")
-  def validationResult: Rep[ValidationOption.Value]     = column[ValidationOption.Value]("validation_result")
-  def validationAccuracy: Rep[Double]                   = column[Double]("validation_accuracy")
-  def validationConfidence: Rep[Double]                 = column[Double]("validation_confidence")
-  def tags: Rep[Option[List[String]]]                   = column[Option[List[String]]]("tags")
-  def tagsNotPresent: Rep[Option[List[String]]]         = column[Option[List[String]]]("tags_not_present")
+  def labelAiAssessmentId: Rep[Int]                 = column[Int]("label_ai_assessment_id", O.PrimaryKey, O.AutoInc)
+  def labelId: Rep[Int]                             = column[Int]("label_id")
+  def validationResult: Rep[ValidationOption.Value] = column[ValidationOption.Value]("validation_result")
+  def validationAccuracy: Rep[Double]               = column[Double]("validation_accuracy")
+  def validationConfidence: Rep[Double]             = column[Double]("validation_confidence")
+  def tags: Rep[Option[List[String]]]               = column[Option[List[String]]]("tags", O.Default(Some(List())))
+  def tagsNotPresent: Rep[Option[List[String]]]     =
+    column[Option[List[String]]]("tags_not_present", O.Default(Some(List())))
   def tagsConfidence: Rep[Option[Seq[AiTagConfidence]]] = column[Option[Seq[AiTagConfidence]]]("tags_confidence")
   def apiVersion: Rep[String]                           = column[String]("api_version")
   def validatorModelId: Rep[String]                     = column[String]("validator_model_id")
-  def validatorTrainingDate: Rep[OffsetDateTime]        = column[OffsetDateTime]("validator_training_date")
-  def taggerModelId: Rep[Option[String]]                = column[Option[String]]("tagger_model_id")
-  def taggerTrainingDate: Rep[Option[OffsetDateTime]]   = column[Option[OffsetDateTime]]("tagger_training_date")
-  def timestamp: Rep[OffsetDateTime]      = column[OffsetDateTime]("timestamp", O.Default(OffsetDateTime.now))
-  def labelValidationId: Rep[Option[Int]] = column[Option[Int]]("label_validation_id")
-  def aiImageSource: Rep[AiImageSource]   = column[AiImageSource]("ai_image_source")
+  // validator_training_date, tagger_training_date and timestamp are `timestamp` (no time zone) in the DB, unlike
+  // every other timestamp column in the schema, so the offset an OffsetDateTime carries is not actually stored
+  // (#4826). timestamp is also DEFAULT CURRENT_TIMESTAMP there (O.Default holds a value, not an expression).
+  def validatorTrainingDate: Rep[OffsetDateTime]      = column[OffsetDateTime]("validator_training_date")
+  def taggerModelId: Rep[Option[String]]              = column[Option[String]]("tagger_model_id")
+  def taggerTrainingDate: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("tagger_training_date")
+  def timestamp: Rep[OffsetDateTime]                  = column[OffsetDateTime]("timestamp")
+  def labelValidationId: Rep[Option[Int]]             = column[Option[Int]]("label_validation_id")
+  def aiImageSource: Rep[AiImageSource]               = column[AiImageSource]("ai_image_source")
 
   def * =
     (labelAiAssessmentId, labelId, validationResult, validationAccuracy, validationConfidence, tags, tagsNotPresent,
