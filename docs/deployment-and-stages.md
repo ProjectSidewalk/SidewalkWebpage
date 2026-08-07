@@ -113,6 +113,12 @@ A deploy builds the app essentially the same way you do locally, in this order:
    directory into the staged app (via `Universal / mappings` in `build.sbt`) so the in-band `label_clustering.py` is
    present at runtime — the staged app runs from the stage dir, not the repo root, so an unbundled script can't be found.
 
+The compile step also stamps git metadata (commit SHA, `git describe`, dirty flag) into the binary via a source
+generator in `build.sbt` (`models.utils.BuildInfo`), which the admin pages' deployment-info strip displays. The values
+require the build to run from a git clone with history and tags — true for the per-stage clones on the deploy server
+and for local dev — and degrade gracefully to "unknown" elsewhere (e.g. CI's shallow checkouts) rather than failing
+the build.
+
 Because the build is identical in spirit to local dev, **a change that fails to compile or bundle locally will fail
 the deploy.** The backend is built with `-Xfatal-warnings`, so warnings block the build too. See
 [`docs/testing-and-ci.md`](testing-and-ci.md) and [`docs/dev-environment.md`](dev-environment.md).
