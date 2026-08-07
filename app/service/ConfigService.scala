@@ -665,6 +665,7 @@ trait ConfigService {
   def getAiTagSuggestionsEnabled: Boolean
   def getAiLabelSubmissionEnabled: Boolean
   def getPrivateProfilesByDefault: Boolean
+  def defaultPrivacyFlags: (Boolean, Boolean)
   def getPanoSource: PanoSource
   def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Double): Future[Int]
   def cachedDBIO[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => DBIO[T]): DBIO[T]
@@ -1688,6 +1689,23 @@ class ConfigServiceImpl @Inject() (
   def getAiLabelSubmissionEnabled: Boolean = cityFlag("ai-label-submission-enabled", getCityId)
 
   def getPrivateProfilesByDefault: Boolean = cityFlag("private-profiles-by-default", getCityId)
+
+  /**
+   * The initial values for a new user's two privacy flags in this deployment.
+   *
+   * Public cities start users ON (visible); school/minor deployments that set city-params.private-profiles-by-default
+   * start them OFF so usernames aren't public without an explicit opt-in (#4323). Both flags share the one default.
+   *
+   * This is deployment policy, so it lives here rather than on whichever service happens to create the row: every
+   * path that inserts a `user_stat` row must seed the same values, or a user ends up public in a private city
+   * depending on which page they (or an admin) happened to hit first.
+   *
+   * @return (onLeaderboard, publicProfile) for a newly created user_stat row.
+   */
+  def defaultPrivacyFlags: (Boolean, Boolean) = {
+    val isPublic = !getPrivateProfilesByDefault
+    (isPublic, isPublic)
+  }
 
   def getPanoSource: PanoSource = PanoSource.withName(config.get[String](s"city-params.pano-viewer-type.$getCityId"))
 

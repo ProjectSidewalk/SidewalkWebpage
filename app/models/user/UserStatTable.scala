@@ -157,17 +157,19 @@ case class StreakStats(
 )
 
 class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
+  // O.Default mirrors the DB default rather than driving it (nothing generates DDL from these definitions), so a
+  // reader can see what a row gets from a partial INSERT — which is what UserStatTable.insertIfNew issues.
   def userStatId: Rep[Int]                    = column[Int]("user_stat_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String]                     = column[String]("user_id")
-  def metersAudited: Rep[Double]              = column[Double]("meters_audited")
+  def metersAudited: Rep[Double]              = column[Double]("meters_audited", O.Default(0d))
   def labelsPerMeter: Rep[Option[Double]]     = column[Option[Double]]("labels_per_meter")
-  def highQuality: Rep[Boolean]               = column[Boolean]("high_quality")
+  def highQuality: Rep[Boolean]               = column[Boolean]("high_quality", O.Default(true))
   def highQualityManual: Rep[Option[Boolean]] = column[Option[Boolean]]("high_quality_manual")
-  def ownLabelsValidated: Rep[Int]            = column[Int]("own_labels_validated")
+  def ownLabelsValidated: Rep[Int]            = column[Int]("own_labels_validated", O.Default(0))
   def accuracy: Rep[Option[Double]]           = column[Option[Double]]("accuracy")
-  def excluded: Rep[Boolean]                  = column[Boolean]("excluded")
-  def onLeaderboard: Rep[Boolean]             = column[Boolean]("on_leaderboard")
-  def publicProfile: Rep[Boolean]             = column[Boolean]("public_profile")
+  def excluded: Rep[Boolean]                  = column[Boolean]("excluded", O.Default(false))
+  def onLeaderboard: Rep[Boolean]             = column[Boolean]("on_leaderboard", O.Default(true))
+  def publicProfile: Rep[Boolean]             = column[Boolean]("public_profile", O.Default(true))
 
   override def * =
     (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual, ownLabelsValidated, accuracy,
@@ -1220,22 +1222,24 @@ class UserStatTable @Inject() (
   /**
    * Insert a user_stat entry for the given userId, doing nothing if the user already has one.
    *
-   * Raw SQL for the `ON CONFLICT` clause: every caller runs on a path that a user can hit from several requests at
-   * once (the first request of their first visit to a city), so a read-then-insert lets concurrent requests each see
-   * "no row" and each insert one. The DB-level conflict on `user_stat_user_id_key` is what actually makes it
-   * insert-once (#4604).
+   * Raw SQL for the `ON CONFLICT` clause, which Slick can't express: the request path this exists for
+   * ([[service.AuthenticationService.addUserStatEntryIfNew]], run for every request from an identified user) can be
+   * hit by several concurrent requests before the row exists — the parallel requests of a user's first page load in a
+   * city. A read-then-insert lets each of them see "no row" and insert one, so the DB-level conflict on
+   * `user_stat_user_id_key` is what actually makes it insert-once (#4604).
+   *
+   * Only the three columns a caller can vary are named; every other column takes its DB default, so a future column
+   * with a `NOT NULL` default doesn't silently break this statement at runtime.
    *
    * @param userId        The userId to insert a user_stat entry for.
-   * @param onLeaderboard Whether the user appears in leaderboard rankings. Defaults true (public); the sign-up path
-   *                      passes false for private-by-default (school/minor) deployments.
-   * @param publicProfile Whether the user's dashboard is publicly viewable. Defaults true; same private-by-default rule.
+   * @param onLeaderboard Whether the user appears in leaderboard rankings.
+   * @param publicProfile Whether the user's dashboard is publicly viewable.
    * @return DBIO action returning the number of rows inserted: 1 for a new user, 0 if they already had a row.
    */
-  def insertIfNew(userId: String, onLeaderboard: Boolean = true, publicProfile: Boolean = true): DBIO[Int] = {
+  def insertIfNew(userId: String, onLeaderboard: Boolean, publicProfile: Boolean): DBIO[Int] = {
     sqlu"""
-      INSERT INTO user_stat (user_id, meters_audited, labels_per_meter, high_quality, high_quality_manual,
-                             own_labels_validated, accuracy, excluded, on_leaderboard, public_profile)
-      VALUES ($userId, 0, NULL, TRUE, NULL, 0, NULL, FALSE, $onLeaderboard, $publicProfile)
+      INSERT INTO user_stat (user_id, on_leaderboard, public_profile)
+      VALUES ($userId, $onLeaderboard, $publicProfile)
       ON CONFLICT (user_id) DO NOTHING
     """
   }
