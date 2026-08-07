@@ -24,8 +24,8 @@ class UserSurveyTextSubmissionTableDef(tag: Tag)
   def userId: Rep[String]                       = column[String]("user_id")
   def surveyQuestionId: Rep[Int]                = column[Int]("survey_question_id")
   def surveyTextSubmission: Rep[Option[String]] = column[Option[String]]("survey_text_submission")
-  def timeSubmitted: Rep[OffsetDateTime]        = column[OffsetDateTime]("time_submitted")
-  def numMissionsCompleted: Rep[Int]            = column[Int]("num_missions_completed")
+  def timeSubmitted: Rep[OffsetDateTime] = column[OffsetDateTime]("time_submitted", O.Default(OffsetDateTime.now))
+  def numMissionsCompleted: Rep[Int]     = column[Int]("num_missions_completed")
 
   def * = (userSurveyTextSubmissionId, userId, surveyQuestionId, surveyTextSubmission, timeSubmitted,
     numMissionsCompleted) <> ((UserSurveyTextSubmission.apply _).tupled, UserSurveyTextSubmission.unapply)

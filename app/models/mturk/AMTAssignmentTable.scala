@@ -23,11 +23,11 @@ class AMTAssignmentTableDef(tag: Tag) extends Table[AMTAssignment](tag, "amt_ass
   def amtAssignmentId: Rep[Int]            = column[Int]("amt_assignment_id", O.PrimaryKey, O.AutoInc)
   def hitId: Rep[String]                   = column[String]("hit_id")
   def assignmentId: Rep[String]            = column[String]("assignment_id")
-  def assignmentStart: Rep[OffsetDateTime] = column[OffsetDateTime]("assignment_start")
-  def assignmentEnd: Rep[OffsetDateTime]   = column[OffsetDateTime]("assignment_end")
+  def assignmentStart: Rep[OffsetDateTime] = column[OffsetDateTime]("assignment_start", O.Default(OffsetDateTime.now))
+  def assignmentEnd: Rep[OffsetDateTime]   = column[OffsetDateTime]("assignment_end", O.Default(OffsetDateTime.now))
   def workerId: Rep[String]                = column[String]("turker_id")
   def confirmationCode: Rep[String]        = column[String]("confirmation_code")
-  def completed: Rep[Boolean]              = column[Boolean]("completed")
+  def completed: Rep[Boolean]              = column[Boolean]("completed", O.Default(false))
 
   def * =
     (amtAssignmentId, hitId, assignmentId, assignmentStart, assignmentEnd, workerId, confirmationCode, completed) <>

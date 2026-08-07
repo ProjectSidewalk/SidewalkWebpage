@@ -24,7 +24,7 @@ class UserSurveyOptionSubmissionTableDef(tag: Tag)
   def userId: Rep[String]                    = column[String]("user_id")
   def surveyQuestionId: Rep[Int]             = column[Int]("survey_question_id")
   def surveyOptionId: Rep[Option[Int]]       = column[Option[Int]]("survey_option_id")
-  def timeSubmitted: Rep[OffsetDateTime]     = column[OffsetDateTime]("time_submitted")
+  def timeSubmitted: Rep[OffsetDateTime]     = column[OffsetDateTime]("time_submitted", O.Default(OffsetDateTime.now))
   def numMissionsCompleted: Rep[Int]         = column[Int]("num_missions_completed")
 
   def * =

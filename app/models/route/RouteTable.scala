@@ -103,7 +103,7 @@ class RouteTableDef(tag: slick.lifted.Tag) extends Table[Route](tag, "route") {
   def description: Rep[Option[String]] = column[Option[String]]("description")
   def public: Rep[Boolean]             = column[Boolean]("public")
   def deleted: Rep[Boolean]            = column[Boolean]("deleted")
-  def createdAt: Rep[OffsetDateTime]   = column[OffsetDateTime]("created_at")
+  def createdAt: Rep[OffsetDateTime]   = column[OffsetDateTime]("created_at", O.Default(OffsetDateTime.now))
   def distanceMeters: Rep[Double]      = column[Double]("distance_meters")
   def streetCount: Rep[Int]            = column[Int]("street_count")
 

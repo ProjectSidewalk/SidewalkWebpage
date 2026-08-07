@@ -38,13 +38,14 @@ case class LabelAiAssessment(
 )
 
 class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, "label_ai_assessment") {
-  def labelAiAssessmentId: Rep[Int]                     = column[Int]("label_ai_assessment_id", O.PrimaryKey, O.AutoInc)
-  def labelId: Rep[Int]                                 = column[Int]("label_id")
-  def validationResult: Rep[ValidationOption.Value]     = column[ValidationOption.Value]("validation_result")
-  def validationAccuracy: Rep[Double]                   = column[Double]("validation_accuracy")
-  def validationConfidence: Rep[Double]                 = column[Double]("validation_confidence")
-  def tags: Rep[Option[List[String]]]                   = column[Option[List[String]]]("tags")
-  def tagsNotPresent: Rep[Option[List[String]]]         = column[Option[List[String]]]("tags_not_present")
+  def labelAiAssessmentId: Rep[Int]                 = column[Int]("label_ai_assessment_id", O.PrimaryKey, O.AutoInc)
+  def labelId: Rep[Int]                             = column[Int]("label_id")
+  def validationResult: Rep[ValidationOption.Value] = column[ValidationOption.Value]("validation_result")
+  def validationAccuracy: Rep[Double]               = column[Double]("validation_accuracy")
+  def validationConfidence: Rep[Double]             = column[Double]("validation_confidence")
+  def tags: Rep[Option[List[String]]]               = column[Option[List[String]]]("tags", O.Default(Some(List())))
+  def tagsNotPresent: Rep[Option[List[String]]]     =
+    column[Option[List[String]]]("tags_not_present", O.Default(Some(List())))
   def tagsConfidence: Rep[Option[Seq[AiTagConfidence]]] = column[Option[Seq[AiTagConfidence]]]("tags_confidence")
   def apiVersion: Rep[String]                           = column[String]("api_version")
   def validatorModelId: Rep[String]                     = column[String]("validator_model_id")

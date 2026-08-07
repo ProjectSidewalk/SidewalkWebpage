@@ -37,7 +37,7 @@ class ClusteringSessionTableDef(tag: Tag) extends Table[ClusteringSession](tag, 
   def clusteringSessionId: Rep[Int]             = column[Int]("clustering_session_id", O.PrimaryKey, O.AutoInc)
   def regionId: Rep[Int]                        = column[Int]("region_id")
   def thresholds: Rep[Seq[ClusteringThreshold]] = column[Seq[ClusteringThreshold]]("thresholds")
-  def timestamp: Rep[OffsetDateTime]            = column[OffsetDateTime]("timestamp")
+  def timestamp: Rep[OffsetDateTime]            = column[OffsetDateTime]("timestamp", O.Default(OffsetDateTime.now))
 
   def * = (clusteringSessionId, regionId, thresholds, timestamp) <>
     ((ClusteringSession.apply _).tupled, ClusteringSession.unapply)

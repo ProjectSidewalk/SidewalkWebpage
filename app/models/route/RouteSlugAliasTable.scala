@@ -13,7 +13,7 @@ case class RouteSlugAlias(slug: String, routeId: Int, createdAt: OffsetDateTime)
 class RouteSlugAliasTableDef(tag: slick.lifted.Tag) extends Table[RouteSlugAlias](tag, "route_slug_alias") {
   def slug: Rep[String]              = column[String]("slug", O.PrimaryKey)
   def routeId: Rep[Int]              = column[Int]("route_id")
-  def createdAt: Rep[OffsetDateTime] = column[OffsetDateTime]("created_at")
+  def createdAt: Rep[OffsetDateTime] = column[OffsetDateTime]("created_at", O.Default(OffsetDateTime.now))
 
   def * = (slug, routeId, createdAt) <> ((RouteSlugAlias.apply _).tupled, RouteSlugAlias.unapply)
 

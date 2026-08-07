@@ -12,8 +12,9 @@ case class Version(versionId: String, versionStartTime: OffsetDateTime, descript
 
 class VersionTableDef(tag: Tag) extends Table[Version](tag, "version") {
   def versionId: Rep[String]                = column[String]("version_id", O.PrimaryKey)
-  def versionStartTime: Rep[OffsetDateTime] = column[OffsetDateTime]("version_start_time")
-  def description: Rep[Option[String]]      = column[Option[String]]("description")
+  def versionStartTime: Rep[OffsetDateTime] =
+    column[OffsetDateTime]("version_start_time", O.Default(OffsetDateTime.now))
+  def description: Rep[Option[String]] = column[Option[String]]("description")
 
   def * = (versionId, versionStartTime, description) <> ((Version.apply _).tupled, Version.unapply)
 }

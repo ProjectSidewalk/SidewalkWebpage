@@ -28,7 +28,7 @@ class LabelHistoryTableDef(tag: slick.lifted.Tag) extends Table[LabelHistory](ta
   def severity: Rep[Option[Int]]          = column[Option[Int]]("severity")
   def tags: Rep[List[String]]             = column[List[String]]("tags", O.Default(List()))
   def editedBy: Rep[String]               = column[String]("edited_by")
-  def editTime: Rep[OffsetDateTime]       = column[OffsetDateTime]("edit_time")
+  def editTime: Rep[OffsetDateTime]       = column[OffsetDateTime]("edit_time", O.Default(OffsetDateTime.now))
   def source: Rep[UiSource]               = column[UiSource]("source")
   def labelValidationId: Rep[Option[Int]] = column[Option[Int]]("label_validation_id")
 

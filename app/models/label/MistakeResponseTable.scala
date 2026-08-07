@@ -32,7 +32,7 @@ class MistakeResponseTableDef(tag: Tag) extends Table[MistakeResponse](tag, "use
   def userId: Rep[String]             = column[String]("user_id")
   def agrees: Rep[Option[Boolean]]    = column[Option[Boolean]]("agrees")
   def comment: Rep[Option[String]]    = column[Option[String]]("comment")
-  def createdAt: Rep[OffsetDateTime]  = column[OffsetDateTime]("created_at")
+  def createdAt: Rep[OffsetDateTime]  = column[OffsetDateTime]("created_at", O.Default(OffsetDateTime.now))
 
   def * : ProvenShape[MistakeResponse] =
     (userMistakeResponseId, labelId, userId, agrees, comment, createdAt) <> (

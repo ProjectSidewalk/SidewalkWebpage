@@ -34,9 +34,9 @@ class SurveyQuestionTableDef(tag: Tag) extends Table[SurveyQuestion](tag, "surve
   def surveyQuestionTextId: Rep[String]   = column[String]("survey_question_text_id")
   def surveyInputType: Rep[String]        = column[String]("survey_input_type")
   def surveyDisplayRank: Rep[Option[Int]] = column[Option[Int]]("survey_display_rank")
-  def deleted: Rep[Boolean]               = column[Boolean]("deleted")
-  def surveyUserRoleId: Rep[Int]          = column[Int]("survey_user_role_id")
-  def required: Rep[Boolean]              = column[Boolean]("required")
+  def deleted: Rep[Boolean]               = column[Boolean]("deleted", O.Default(false))
+  def surveyUserRoleId: Rep[Int]          = column[Int]("survey_user_role_id", O.Default(1))
+  def required: Rep[Boolean]              = column[Boolean]("required", O.Default(false))
 
   def * = (surveyQuestionId, surveyQuestionTextId, surveyInputType, surveyDisplayRank, deleted, surveyUserRoleId,
     required) <> ((SurveyQuestion.apply _).tupled, SurveyQuestion.unapply)

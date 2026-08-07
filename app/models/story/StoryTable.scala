@@ -62,11 +62,11 @@ class StoryTableDef(tag: Tag) extends Table[Story](tag, "story") {
   def labelId: Rep[Int]                        = column[Int]("label_id")
   def userId: Rep[String]                      = column[String]("user_id")
   def storyText: Rep[String]                   = column[String]("story_text")
-  def displayNameMode: Rep[String]             = column[String]("display_name_mode")
-  def visible: Rep[Boolean]                    = column[Boolean]("visible")
+  def displayNameMode: Rep[String]             = column[String]("display_name_mode", O.Default("anonymous"))
+  def visible: Rep[Boolean]                    = column[Boolean]("visible", O.Default(true))
   def moderatedBy: Rep[Option[String]]         = column[Option[String]]("moderated_by")
   def moderatedAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("moderated_at")
-  def createdAt: Rep[OffsetDateTime]           = column[OffsetDateTime]("created_at")
+  def createdAt: Rep[OffsetDateTime]           = column[OffsetDateTime]("created_at", O.Default(OffsetDateTime.now))
 
   def * = (storyId, labelId, userId, storyText, displayNameMode, visible, moderatedBy, moderatedAt, createdAt) <> (
     (Story.apply _).tupled,

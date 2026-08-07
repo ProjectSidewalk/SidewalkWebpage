@@ -43,8 +43,8 @@ class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
   def defaultMapZoom: Rep[Double]            = column[Double]("default_map_zoom")
   def tutorialStreetEdgeID: Rep[Int]         = column[Int]("tutorial_street_edge_id")
   def offsetHours: Rep[Int]                  = column[Int]("update_offset_hours")
-  def makeCrops: Rep[Boolean]                = column[Boolean]("make_crops")
-  def excludedTags: Rep[Seq[ExcludedTag]]    = column[Seq[ExcludedTag]]("excluded_tags", O.Default(List.empty))
+  def makeCrops: Rep[Boolean]                = column[Boolean]("make_crops", O.Default(true))
+  def excludedTags: Rep[Seq[ExcludedTag]]    = column[Seq[ExcludedTag]]("excluded_tags")
 
   override def * = (
     openStatus,

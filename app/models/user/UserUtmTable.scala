@@ -29,7 +29,7 @@ class UserUtmTableDef(tag: Tag) extends Table[UserUtm](tag, "user_utm") {
   def utmContent: Rep[Option[String]]  = column[Option[String]]("utm_content")
   def utmTerm: Rep[Option[String]]     = column[Option[String]]("utm_term")
   def cityId: Rep[String]              = column[String]("city_id")
-  def timestamp: Rep[OffsetDateTime]   = column[OffsetDateTime]("timestamp")
+  def timestamp: Rep[OffsetDateTime]   = column[OffsetDateTime]("timestamp", O.Default(OffsetDateTime.now))
 
   def * = (userUtmId, userId, utmSource, utmMedium, utmCampaign, utmContent, utmTerm, cityId, timestamp) <> (
     (UserUtm.apply _).tupled,
