@@ -264,6 +264,13 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    *
    * Kept separate from updateFromExplore so only payloads that carry the blob (AI submissions) ever write the column;
    * a crowd submission must never clear one saved earlier (#4806).
+   *
+   * updateFromExplore solves that same "replace, never clear" problem for `address` by branching between two static
+   * query shapes rather than issuing a second UPDATE. The blob doesn't follow suit because the two columns sit on
+   * very different paths: every Explore submission carries an address, so folding it in saves a round trip on the
+   * hottest write we have, whereas the blob has one caller (the AI ingest) whose volume is a nightly batch. Paying a
+   * round trip there is cheaper than doubling updateFromExplore's branches to four.
+   *
    * @param panoId   Unique ID for the panorama
    * @param metadata Verbatim imagery-provider metadata blob for this pano
    */
