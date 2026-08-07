@@ -10,7 +10,8 @@ class PanoInfoPopover {
   /** @type {HTMLImageElement} The info button that triggers the popover. */
   #infoButton;
 
-  /** @type {PanoViewer} */
+  /** @type {function(): PanoViewer} Returns the *currently active* viewer — Validate and the label card swap
+   * viewers per label (primary ↔ Pannellum), so this must be resolved on each open, not captured once (#4813). */
   #panoViewer;
   /** @type {function(): {lat: number, lng: number}} */
   #coords;
@@ -38,10 +39,12 @@ class PanoInfoPopover {
   #labelId;
   /** @type {function(): object|undefined} Optional — returns the label's timestamp as a moment object. */
   #labelDate;
+  /** @type {Set<PanoViewer>} Viewers already subscribed to by #watchViewer(). */
+  #watchedViewers = new Set();
 
   /**
    * @param {HTMLElement} container Element where the info button will be appended
-   * @param {PanoViewer} panoViewer PanoViewer object
+   * @param {function} panoViewer Function that returns the currently active PanoViewer
    * @param {function} coords Function that returns { lat, lng } for the current position
    * @param {function} panoId Function that returns the current panorama/image ID
    * @param {function} streetEdgeId Function that returns the current Street Edge ID
@@ -99,11 +102,6 @@ class PanoInfoPopover {
     if (this.#labelId) this.#showOptionalRow('label-id');
     if (this.#labelDate) this.#showOptionalRow('label-date');
 
-    // Hide the view-in-pano link for viewers that have no external URL.
-    if (this.#panoViewer.getViewerType() === 'infra3d') {
-      this.#popoverEl.querySelector('.pano-info-popover__view-link').style.display = 'none';
-    }
-
     // Toggle the popover on info button click.
     this.#infoButton.addEventListener('click', () => {
       if (this.#popoverEl.matches(':popover-open')) {
@@ -129,8 +127,20 @@ class PanoInfoPopover {
       }
     });
 
-    // Close whenever the panorama changes.
-    this.#panoViewer.addListener('pano_changed', () => {
+    this.#watchViewer(this.#panoViewer());
+  }
+
+  /**
+   * Subscribes to a viewer's pano_changed so the popover closes rather than sitting there with stale values.
+   *
+   * Called again on every open because viewers are created lazily: Validate and the label card only build their
+   * Pannellum viewer once an expired pano needs it, so it doesn't exist yet at construction time.
+   * @param {PanoViewer} viewer The viewer to subscribe to; ignored if null or already subscribed
+   */
+  #watchViewer(viewer) {
+    if (!viewer || this.#watchedViewers.has(viewer)) return;
+    this.#watchedViewers.add(viewer);
+    viewer.addListener('pano_changed', () => {
       if (this.#popoverEl.matches(':popover-open')) this.#popoverEl.hidePopover();
     });
   }
@@ -168,6 +178,9 @@ class PanoInfoPopover {
    * Reads the current pano/label state and updates value spans in the popover, then wires the clipboard/view actions.
    */
   #updateVals() {
+    const viewer = this.#panoViewer();
+    this.#watchViewer(viewer);
+
     const currCoords = this.#coords ? this.#coords() : null;
     const currPanoId = this.#panoId ? this.#panoId() : null;
     const currStreetEdgeId = this.#streetEdgeId ? this.#streetEdgeId() : null;
@@ -204,17 +217,29 @@ class PanoInfoPopover {
     if (currLabelDate) setVal('label-date', currLabelDate);
 
     // Update the view-in-pano link (at the live camera angle, unlike the label card's stored-POV address link).
+    // Two things have to hold for it to lead anywhere real, and both are re-checked on every open because the
+    // active viewer changes from label to label (#4813). First, the provider has to publish a viewer at all —
+    // Infra3d doesn't, and publicViewerLink() returns null for it. Second, that viewer has to actually be holding
+    // the pano this popover is describing: on the Pannellum and static-crop fallbacks we're showing our own copy
+    // of imagery the provider has dropped, while panoViewer still points at the provider's viewer sitting on
+    // whichever pano it loaded last — so a link built from it would open the wrong label's pano, or a dead one.
     const viewLink = this.#popoverEl.querySelector('.pano-info-popover__view-link');
-    if (viewLink && !viewLink.hidden) {
-      viewLink.onclick = this.#viewPanoLogging;
-      const link = this.#panoViewer.publicViewerLink(currPanoId, {
-        heading: currPov.heading,
-        pitch: currPov.pitch,
-        center: this.#panoViewer.currCenter,
-      });
+    const showingThisPano = !!viewer && !!viewer.currPanoData && viewer.currPanoData.getPanoId() === currPanoId;
+    const link = showingThisPano && viewer.publicViewerLink(currPanoId, {
+      heading: currPov.heading,
+      pitch: currPov.pitch,
+      center: viewer.currCenter,
+    });
+    if (viewLink) {
+      // Inline style, not the hidden attribute: .pano-info-popover__view-link sets display: block, which outranks
+      // the UA's [hidden] rule.
+      viewLink.style.display = link ? '' : 'none';
       if (link) {
+        viewLink.onclick = this.#viewPanoLogging;
         viewLink.href = link.url;
         viewLink.textContent = i18next.t(link.i18nKey);
+      } else {
+        viewLink.removeAttribute('href');
       }
     }
 
@@ -235,7 +260,7 @@ class PanoInfoPopover {
         + `${i18next.t('common:pano-info.pano-date')}: ${currPanoDate}\n`;
       if (currLabelId) text += `${i18next.t('common:pano-info.label-id')}: ${currLabelId}\n`;
       if (currLabelDate) text += `${i18next.t('common:pano-info.label-date')}: ${currLabelDate}\n`;
-      if (viewLink && !viewLink.hidden) text += `Pano URL: ${viewLink.href}`;
+      if (link) text += `Pano URL: ${link.url}`;
 
       navigator.clipboard.writeText(text);
 
