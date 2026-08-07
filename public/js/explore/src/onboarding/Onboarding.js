@@ -23,6 +23,7 @@ class Onboarding {
   #states;
   #statesWithProgress;
   #savedAnnotations = [];
+  #currentState = null;
   #mouseDownCanvasDrawingHandler;
   #map;
   #currentLabelId;
@@ -79,9 +80,9 @@ class Onboarding {
     const canvasUI = this.#uiOnboarding.canvas.get(0);
     if (canvasUI) {
       this.#ctx = canvasUI.getContext('2d');
-      // The example label icons are drawn from a high-resolution raster (see Label.preloadIcons) and land here
-      // downscaled; the default 'low' filter frays their outer circle.
-      this.#ctx.imageSmoothingQuality = 'high';
+      // Render at on-screen/HiDPI resolution while drawing stays in the 720x480 logical frame, like the main label
+      // canvas — a CSS-stretched 720x480 bitmap makes the example labels visibly pixelated (#4817).
+      util.sizeCanvasToDisplay(canvasUI, this.#ctx);
     }
     this.#uiOnboarding.holder.css('visibility', 'visible');
 
@@ -197,6 +198,21 @@ class Onboarding {
   clear() {
     if (this.#ctx) this.#ctx.clearRect(0, 0, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT);
     return this;
+  }
+
+  /**
+   * Re-rasterizes the onboarding canvas to the current displayed pano size and redraws the current state's
+   * annotations. Call after the UI scale changes (e.g. on window resize), mirroring Canvas.resize().
+   */
+  resize() {
+    const canvasUI = this.#uiOnboarding.canvas.get(0);
+    if (!canvasUI || !this.#ctx) return;
+    util.sizeCanvasToDisplay(canvasUI, this.#ctx);
+    // Re-sizing the bitmap wiped the canvas; redraw like the pov_changed listener in #visit does.
+    if (this.#currentState) {
+      this.#removeFlashingFromArrow();
+      this.#drawAnnotations(this.#currentState);
+    }
   }
 
   /**
@@ -654,6 +670,7 @@ class Onboarding {
       this.#tracker.push('Onboarding_Transition', { onboardingTransition: state.id });
     }
     state.visited = true;
+    this.#currentState = state;
 
     let annotationListener;
 

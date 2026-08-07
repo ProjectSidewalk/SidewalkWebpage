@@ -21,6 +21,32 @@ util.exploreDisplayScale = function () {
 };
 
 /**
+ * Sizes an Explore-tool canvas bitmap to its on-screen size times the device pixel ratio, and scales the 2D
+ * context so all drawing done in the fixed 720x480 logical frame renders at full resolution.
+ *
+ * Shared by the label canvas and the onboarding canvas so the two can't drift: both draw in the logical frame and
+ * are displayed at pano size, and a canvas left at its authored 720x480 bitmap gets CSS-stretched into visible
+ * pixelation on HiDPI displays (#4817).
+ *
+ * @param {HTMLCanvasElement} el - The canvas element to size.
+ * @param {CanvasRenderingContext2D} ctx - That canvas's 2D context.
+ */
+util.sizeCanvasToDisplay = function (el, ctx) {
+  const rect = el.getBoundingClientRect();
+  const displayWidth = rect.width || util.EXPLORE_CANVAS_WIDTH;
+  const dpr = window.devicePixelRatio || 1;
+  el.width = Math.round(displayWidth * dpr);
+  el.height = Math.round(displayWidth / util.EXPLORE_CANVAS_ASPECT_RATIO * dpr);
+  // Map the 720x480 logical frame onto the full-resolution bitmap. Setting el.width/height above resets the
+  // context, so this transform must be (re)applied here.
+  const scale = el.width / util.EXPLORE_CANVAS_WIDTH;
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  // Label icons are drawn from a raster sized for the densest display we support (see Label.preloadIcons), so on
+  // anything less dense they arrive downscaled; the default 'low' filter frays their outer circle.
+  ctx.imageSmoothingQuality = 'high';
+};
+
+/**
  * Positions a panel beside a label's icon in a pano and points its tail at that icon.
  *
  * Explore's hover card and its context menu are two states of one panel — read-only, then editable — so they share
