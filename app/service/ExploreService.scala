@@ -300,7 +300,12 @@ class ExploreServiceImpl @Inject() (
       tutorialStreetId: Int                      <- configTable.getTutorialStreetId
       makeCrops: Boolean                         <- configTable.getMakeCrops
     } yield {
-      ExplorePageData(task, updatedMission, region.get, userRoute, routeOption, hasCompletedAMission, nextTempLabelId,
+      // The tutorial takes over the whole session, so a resumable route must not surface mid-tutorial: shipping its
+      // id flips the client into route mode and draws the route over the tutorial map (#4816). The user_route row is
+      // left untouched so the route still resumes on the post-tutorial reload of /explore.
+      val (pageUserRoute, pageRoute) =
+        if (updatedMission.missionType == MissionType.AuditOnboarding) (None, None) else (userRoute, routeOption)
+      ExplorePageData(task, updatedMission, region.get, pageUserRoute, pageRoute, hasCompletedAMission, nextTempLabelId,
         surveyData, tutorialStreetId, makeCrops)
     }
     db.run(getExploreDataAction.transactionally)
