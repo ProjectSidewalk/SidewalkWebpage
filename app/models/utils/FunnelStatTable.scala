@@ -31,7 +31,9 @@ case class FunnelStat(funnelType: String, window: String, segment: String, steps
 case class FunnelSegmentCounts(segment: String, steps: Seq[Int])
 
 class FunnelStatTableDef(tag: Tag) extends Table[FunnelStat](tag, "funnel_stat") {
-  def funnelType: Rep[String]         = column[String]("funnel_type")
+  // CHECK (funnel_type IN ('mapping', 'contribution')) in the DB (no Slick DSL for CHECK constraints).
+  def funnelType: Rep[String] = column[String]("funnel_type")
+  // CHECK (time_window IN ('30d', '90d', 'all')) in the DB.
   def timeWindow: Rep[String]         = column[String]("time_window")
   def segment: Rep[String]            = column[String]("segment")
   def step1: Rep[Int]                 = column[Int]("step1", O.Default(0))

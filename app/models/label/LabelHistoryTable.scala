@@ -23,12 +23,13 @@ case class LabelHistory(
 )
 
 class LabelHistoryTableDef(tag: slick.lifted.Tag) extends Table[LabelHistory](tag, "label_history") {
-  def labelHistoryId: Rep[Int]            = column[Int]("label_history_id", O.PrimaryKey, O.AutoInc)
-  def labelId: Rep[Int]                   = column[Int]("label_id")
-  def severity: Rep[Option[Int]]          = column[Option[Int]]("severity")
-  def tags: Rep[List[String]]             = column[List[String]]("tags", O.Default(List()))
-  def editedBy: Rep[String]               = column[String]("edited_by")
-  def editTime: Rep[OffsetDateTime]       = column[OffsetDateTime]("edit_time", O.Default(OffsetDateTime.now))
+  def labelHistoryId: Rep[Int]   = column[Int]("label_history_id", O.PrimaryKey, O.AutoInc)
+  def labelId: Rep[Int]          = column[Int]("label_id")
+  def severity: Rep[Option[Int]] = column[Option[Int]]("severity")
+  def tags: Rep[List[String]]    = column[List[String]]("tags", O.Default(List()))
+  def editedBy: Rep[String]      = column[String]("edited_by")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
+  def editTime: Rep[OffsetDateTime]       = column[OffsetDateTime]("edit_time")
   def source: Rep[UiSource]               = column[UiSource]("source")
   def labelValidationId: Rep[Option[Int]] = column[Option[Int]]("label_validation_id")
 

@@ -247,15 +247,16 @@ case class LabelValidationMetadata(
 ) extends BasicLabelMetadata
 
 class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
-  def labelId: Rep[Int]                = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
-  def auditTaskId: Rep[Int]            = column[Int]("audit_task_id")
-  def missionId: Rep[Int]              = column[Int]("mission_id")
-  def userId: Rep[String]              = column[String]("user_id")
-  def panoId: Rep[String]              = column[String]("pano_id")
-  def labelTypeId: Rep[Int]            = column[Int]("label_type_id")
-  def deleted: Rep[Boolean]            = column[Boolean]("deleted", O.Default(false))
-  def temporaryLabelId: Rep[Int]       = column[Int]("temporary_label_id")
-  def timeCreated: Rep[OffsetDateTime] = column[OffsetDateTime]("time_created", O.Default(OffsetDateTime.now))
+  def labelId: Rep[Int]          = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
+  def auditTaskId: Rep[Int]      = column[Int]("audit_task_id")
+  def missionId: Rep[Int]        = column[Int]("mission_id")
+  def userId: Rep[String]        = column[String]("user_id")
+  def panoId: Rep[String]        = column[String]("pano_id")
+  def labelTypeId: Rep[Int]      = column[Int]("label_type_id")
+  def deleted: Rep[Boolean]      = column[Boolean]("deleted", O.Default(false))
+  def temporaryLabelId: Rep[Int] = column[Int]("temporary_label_id")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
+  def timeCreated: Rep[OffsetDateTime] = column[OffsetDateTime]("time_created")
   def tutorial: Rep[Boolean]           = column[Boolean]("tutorial", O.Default(false))
   def streetEdgeId: Rep[Int]           = column[Int]("street_edge_id")
   def agreeCount: Rep[Int]             = column[Int]("agree_count", O.Default(0))

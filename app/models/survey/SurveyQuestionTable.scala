@@ -30,12 +30,13 @@ case class SurveyQuestionWithOptions(
 )
 
 class SurveyQuestionTableDef(tag: Tag) extends Table[SurveyQuestion](tag, "survey_question") {
-  def surveyQuestionId: Rep[Int]          = column[Int]("survey_question_id", O.PrimaryKey, O.AutoInc)
-  def surveyQuestionTextId: Rep[String]   = column[String]("survey_question_text_id")
+  def surveyQuestionId: Rep[Int]        = column[Int]("survey_question_id", O.PrimaryKey, O.AutoInc)
+  def surveyQuestionTextId: Rep[String] = column[String]("survey_question_text_id")
+  // CHECK (survey_input_type IN ('radio', 'checkbox', 'free-text-feedback')) in the DB (no Slick DSL for CHECKs).
   def surveyInputType: Rep[String]        = column[String]("survey_input_type")
   def surveyDisplayRank: Rep[Option[Int]] = column[Option[Int]]("survey_display_rank")
   def deleted: Rep[Boolean]               = column[Boolean]("deleted", O.Default(false))
-  def surveyUserRoleId: Rep[Int]          = column[Int]("survey_user_role_id", O.Default(1))
+  def surveyUserRoleId: Rep[Int]          = column[Int]("survey_user_role_id", O.Default(1)) // 1 = Registered
   def required: Rep[Boolean]              = column[Boolean]("required", O.Default(false))
 
   def * = (surveyQuestionId, surveyQuestionTextId, surveyInputType, surveyDisplayRank, deleted, surveyUserRoleId,

@@ -75,12 +75,13 @@ case class StreetEdgeWithAuditStatus(
 )
 
 class AuditTaskTableDef(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "audit_task") {
-  def auditTaskId: Rep[Int]                   = column[Int]("audit_task_id", O.PrimaryKey, O.AutoInc)
-  def amtAssignmentId: Rep[Option[Int]]       = column[Option[Int]]("amt_assignment_id")
-  def userId: Rep[String]                     = column[String]("user_id")
-  def streetEdgeId: Rep[Int]                  = column[Int]("street_edge_id")
-  def taskStart: Rep[OffsetDateTime]          = column[OffsetDateTime]("task_start", O.Default(OffsetDateTime.now))
-  def taskEnd: Rep[OffsetDateTime]            = column[OffsetDateTime]("task_end", O.Default(OffsetDateTime.now))
+  def auditTaskId: Rep[Int]             = column[Int]("audit_task_id", O.PrimaryKey, O.AutoInc)
+  def amtAssignmentId: Rep[Option[Int]] = column[Option[Int]]("amt_assignment_id")
+  def userId: Rep[String]               = column[String]("user_id")
+  def streetEdgeId: Rep[Int]            = column[Int]("street_edge_id")
+  // DEFAULT timezone('utc'::text, now()) in the DB -- not equivalent to now() outside a UTC session (#4826).
+  def taskStart: Rep[OffsetDateTime]          = column[OffsetDateTime]("task_start")
+  def taskEnd: Rep[OffsetDateTime]            = column[OffsetDateTime]("task_end")
   def completed: Rep[Boolean]                 = column[Boolean]("completed", O.Default(false))
   def currentLat: Rep[Double]                 = column[Double]("current_lat")
   def currentLng: Rep[Double]                 = column[Double]("current_lng")

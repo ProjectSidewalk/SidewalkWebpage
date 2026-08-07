@@ -32,6 +32,7 @@ case class Config(
 )
 
 class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
+  // CHECK (open_status IN ('fully', 'partially')) in the DB (no Slick DSL for CHECK constraints).
   def openStatus: Rep[String]                = column[String]("open_status")
   def mapathonEventLink: Rep[Option[String]] = column[Option[String]]("mapathon_event_link")
   def cityCenterLat: Rep[Double]             = column[Double]("city_center_lat")
@@ -44,7 +45,8 @@ class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
   def tutorialStreetEdgeID: Rep[Int]         = column[Int]("tutorial_street_edge_id")
   def offsetHours: Rep[Int]                  = column[Int]("update_offset_hours")
   def makeCrops: Rep[Boolean]                = column[Boolean]("make_crops", O.Default(true))
-  def excludedTags: Rep[Seq[ExcludedTag]]    = column[Seq[ExcludedTag]]("excluded_tags")
+  // CHECK (jsonb_typeof(excluded_tags) = 'array') in the DB, so an empty value must be '[]' and not '{}'.
+  def excludedTags: Rep[Seq[ExcludedTag]] = column[Seq[ExcludedTag]]("excluded_tags")
 
   override def * = (
     openStatus,

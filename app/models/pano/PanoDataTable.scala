@@ -85,13 +85,14 @@ class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {
   def cameraPitch: Rep[Option[Double]]   = column[Option[Double]]("camera_pitch")
   def cameraRoll: Rep[Option[Double]]    = column[Option[Double]]("camera_roll")
   def expired: Rep[Boolean]              = column[Boolean]("expired", O.Default(false))
-  def lastViewed: Rep[OffsetDateTime]    = column[OffsetDateTime]("last_viewed", O.Default(OffsetDateTime.now))
+  // last_viewed and last_checked are DEFAULT now() in the DB (O.Default holds a value, not an expression).
+  def lastViewed: Rep[OffsetDateTime]               = column[OffsetDateTime]("last_viewed")
   def panoHistorySaved: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("pano_history_saved")
-  def lastChecked: Rep[OffsetDateTime]     = column[OffsetDateTime]("last_checked", O.Default(OffsetDateTime.now))
-  def source: Rep[PanoSource]              = column[PanoSource]("source")
-  def hasBackup: Rep[Option[Boolean]]      = column[Option[Boolean]]("has_backup")
-  def address: Rep[Option[String]]         = column[Option[String]]("address")
-  def sourceMetadata: Rep[Option[JsValue]] = column[Option[JsValue]]("source_metadata")
+  def lastChecked: Rep[OffsetDateTime]              = column[OffsetDateTime]("last_checked")
+  def source: Rep[PanoSource]                       = column[PanoSource]("source")
+  def hasBackup: Rep[Option[Boolean]]               = column[Option[Boolean]]("has_backup")
+  def address: Rep[Option[String]]                  = column[Option[String]]("address")
+  def sourceMetadata: Rep[Option[JsValue]]          = column[Option[JsValue]]("source_metadata")
 
   def * = (panoId, width, height, tileWidth, tileHeight, captureDate, copyright, lat, lng, cameraHeading, cameraPitch,
     cameraRoll, expired, lastViewed, panoHistorySaved, lastChecked, source, hasBackup, address, sourceMetadata) <>
