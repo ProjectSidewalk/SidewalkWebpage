@@ -44,6 +44,9 @@ function OnboardingStates(contextMenu, compass, panoManager) {
     return `<span class="tag-pill"><span class="tag-pill__label">${text}</span></span>`;
   };
 
+  // Inline keycap for teaching keyboard shortcuts (e.g. press C for Curb Ramp).
+  const kbdHtml = (key) => `<kbd class="onboarding-kbd">${key}</kbd>`;
+
   this.states = [
     {
       // The welcome/skip UI now lives in the pre-tutorial intro (TutorialIntro), so this first state only positions
@@ -58,6 +61,31 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       panoId,
       annotations: null,
+      transition: 'introduce-curb-ramp',
+    },
+    {
+      id: 'introduce-curb-ramp',
+      progression: true,
+      properties: {
+        action: 'Instruction',
+        minHeading: headingRanges['stage-1'][0],
+        maxHeading: headingRanges['stage-1'][1],
+      },
+      message: {
+        message: i18next.t('tutorial.introduce-curb-ramp'),
+        panoAnchor: { x: 9730, y: -350 },
+      },
+      panoId,
+      annotations: [
+        {
+          type: 'arrow',
+          x: 9730,
+          y: -350,
+          length: 50,
+          angle: 0,
+          fill: 'yellow',
+        },
+      ],
       transition: 'select-label-type-1',
     },
     {
@@ -175,7 +203,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: i18next.t('tutorial.rate-severity-1', {
-          rating: ratingChipHtml('CurbRamp', 1),
+          rating: ratingChipHtml('CurbRamp', 2),
           interpolation: { escapeValue: false },
         }),
         anchor: '#severity-menu',
@@ -185,9 +213,8 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       annotations: null,
       transition() {
         const severity = parseInt(this.getAttribute('value'), 10);
-        if (severity === 1) {
-          contextMenu.hide();
-          return 'select-label-type-2';
+        if (severity === 2) {
+          return 'tag-attribute-1';
         } else {
           return 'redo-rate-attribute-1';
         }
@@ -205,7 +232,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: i18next.t('tutorial.redo-rate-attribute-1', {
-          rating: ratingChipHtml('CurbRamp', 1),
+          rating: ratingChipHtml('CurbRamp', 2),
           interpolation: { escapeValue: false },
         }),
         anchor: '#severity-menu',
@@ -215,11 +242,70 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       annotations: null,
       transition() {
         const severity = parseInt(this.getAttribute('value'), 10);
-        if (severity === 1) {
+        if (severity === 2) {
+          return 'tag-attribute-1';
+        } else {
+          return 'redo-rate-attribute-1';
+        }
+      },
+    },
+    {
+      id: 'tag-attribute-1',
+      progression: true,
+      properties: {
+        action: 'AddTag',
+        labelNumber: 1,
+        labelType: 'CurbRamp',
+        minHeading: headingRanges['stage-1'][0],
+        maxHeading: headingRanges['stage-1'][1],
+      },
+      message: {
+        message: i18next.t('tutorial.tag-attribute-1', {
+          tag: tagPillHtml('CurbRamp', 'points into traffic'),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#context-menu-tag-section',
+        placement: 'left',
+      },
+      panoId,
+      annotations: null,
+      transition() {
+        const tags = this.getProperty('tagIds');
+        if (tags.includes(2) && tags.length === 1) { // 2 is the id of the "points into traffic" tag.
           contextMenu.hide();
           return 'select-label-type-2';
         } else {
-          return 'redo-rate-attribute-1';
+          return 'redo-tag-attribute-1';
+        }
+      },
+    },
+    {
+      id: 'redo-tag-attribute-1',
+      progression: false,
+      properties: {
+        action: 'RedoAddTag',
+        labelNumber: 1,
+        labelType: 'CurbRamp',
+        minHeading: headingRanges['stage-1'][0],
+        maxHeading: headingRanges['stage-1'][1],
+      },
+      message: {
+        message: i18next.t('tutorial.redo-tag-attribute-1', {
+          tag: tagPillHtml('CurbRamp', 'points into traffic'),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#context-menu-tag-section',
+        placement: 'left',
+      },
+      panoId,
+      annotations: null,
+      transition() {
+        const tags = this.getProperty('tagIds');
+        if (tags.includes(2) && tags.length === 1) { // 2 is the id of the "points into traffic" tag.
+          contextMenu.hide();
+          return 'select-label-type-2';
+        } else {
+          return 'redo-tag-attribute-1';
         }
       },
     },
@@ -765,7 +851,8 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: i18next.t('tutorial.rate-severity-4', {
-          rating: ratingChipHtml('NoCurbRamp', 2),
+          rating1: ratingChipHtml('NoCurbRamp', 2),
+          rating2: ratingChipHtml('NoCurbRamp', 3),
           interpolation: { escapeValue: false },
         }),
         anchor: '#severity-menu',
@@ -775,7 +862,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       annotations: null,
       transition() {
         const severity = parseInt(this.getAttribute('value'), 10);
-        if (severity === 2) {
+        if (severity === 2 || severity === 3) {
           return 'tag-attribute-4';
         } else {
           return 'redo-rate-attribute-4';
@@ -794,7 +881,8 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       message: {
         message: i18next.t('tutorial.redo-rate-attribute-4', {
-          rating: ratingChipHtml('NoCurbRamp', 2),
+          rating1: ratingChipHtml('NoCurbRamp', 2),
+          rating2: ratingChipHtml('NoCurbRamp', 3),
           interpolation: { escapeValue: false },
         }),
         anchor: '#severity-menu',
@@ -804,7 +892,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       annotations: null,
       transition() {
         const severity = parseInt(this.getAttribute('value'), 10);
-        if (severity === 2) {
+        if (severity === 2 || severity === 3) {
           return 'tag-attribute-4';
         } else {
           return 'redo-rate-attribute-4';
@@ -1237,15 +1325,6 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       annotations: [
         {
           type: 'label',
-          labelType: 'Crosswalk',
-          x: 2150,
-          y: -1150,
-          lat: 38.94048737098884,
-          lng: -77.06751796530399,
-          keepUntil: 'select-label-type-8',
-        },
-        {
-          type: 'label',
           labelType: 'CurbRamp',
           x: 3850,
           y: -975,
@@ -1260,6 +1339,15 @@ function OnboardingStates(contextMenu, compass, panoManager) {
           y: -850,
           lat: 38.940334177869914,
           lng: -77.06752911216995,
+          keepUntil: 'select-label-type-8',
+        },
+        {
+          type: 'label',
+          labelType: 'Crosswalk',
+          x: 2150,
+          y: -1150,
+          lat: 38.94048737098884,
+          lng: -77.06751796530399,
           keepUntil: 'select-label-type-8',
         },
         {
@@ -1478,7 +1566,12 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-5'][0],
         maxHeading: headingRanges['stage-5'][1],
       },
-      message: { message: i18next.t('tutorial.select-label-type-8') },
+      message: {
+        message: i18next.t('tutorial.select-label-type-8', {
+          key: kbdHtml('C'),
+          interpolation: { escapeValue: false },
+        }),
+      },
       panoId,
       annotations: [
         {
@@ -1645,7 +1738,12 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-5'][0],
         maxHeading: headingRanges['stage-5'][1],
       },
-      message: { message: i18next.t('tutorial.select-label-type-9') },
+      message: {
+        message: i18next.t('tutorial.select-label-type-9', {
+          key: kbdHtml('P'),
+          interpolation: { escapeValue: false },
+        }),
+      },
       panoId,
       annotations: [
         {
@@ -1927,20 +2025,20 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       annotations: [
         {
           type: 'label',
-          labelType: 'Signal',
-          x: 10510,
-          y: -500,
-          lat: 38.940656819984454,
-          lng: -77.06787178273665,
-          keepUntil: 'outro',
-        },
-        {
-          type: 'label',
           labelType: 'NoCurbRamp',
           x: 10800,
           y: -525,
           lat: 38.94067750463137,
           lng: -77.06786106607106,
+          keepUntil: 'outro',
+        },
+        {
+          type: 'label',
+          labelType: 'NoCurbRamp',
+          x: 225,
+          y: -700,
+          lat: 38.94076274068959,
+          lng: -77.0676653183858,
           keepUntil: 'outro',
         },
         {
@@ -1954,11 +2052,11 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         },
         {
           type: 'label',
-          labelType: 'NoCurbRamp',
-          x: 225,
-          y: -700,
-          lat: 38.94076274068959,
-          lng: -77.0676653183858,
+          labelType: 'Signal',
+          x: 10510,
+          y: -500,
+          lat: 38.940656819984454,
+          lng: -77.06787178273665,
           keepUntil: 'outro',
         },
         {

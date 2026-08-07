@@ -31,7 +31,10 @@
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 3;
+
+  /* Above everything in the pano area — the border frame (2) and the context menu (3). A tie with the menu would
+     let DOM order decide. Hovering the menu raises it to 1101 so it can be read under an overlapping callout. */
+  z-index: 1100;
   font: var(--text-subtitle-regular);
   transform: none;
 
@@ -79,21 +82,42 @@
   vertical-align: text-bottom;
 }
 
+/* Inline keycap for teaching keyboard shortcuts (e.g. press C for Curb Ramp, Z to zoom). */
+.onboarding-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: calc(18px * var(--ui-scale));
+  padding: calc(1px * var(--ui-scale)) calc(5px * var(--ui-scale));
+  vertical-align: text-bottom;
+  border: 1px solid var(--color-neutral-400);
+  border-bottom-width: calc(3px * var(--ui-scale));
+  border-radius: calc(4px * var(--ui-scale));
+  background: var(--color-neutral-100);
+  font: var(--text-tiny-semibold);
+  color: var(--color-neutral-900);
+}
+
 /* Pulses the one context-menu section the tutorial has enabled (see Onboarding's RateSeverity/AddTag visits); the
    sibling section is dimmed via .disabled, so together they say "this half, not that one". */
 .onboarding-attention {
-  border-radius: calc(6px * var(--ui-scale));
   animation: onboarding-attention-pulse 1.6s ease-in-out infinite;
+}
+
+/* The halo follows each target's own corner radius (circular ribbon icons stay circular); the menu sections have
+   no radius of their own, so give their ring the dialog's rounding. */
+.context-menu-section.onboarding-attention {
+  border-radius: calc(6px * var(--ui-scale));
 }
 
 @keyframes onboarding-attention-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 var(--color-warning-100);
+    box-shadow: 0 0 0 0 var(--color-warning-200);
   }
 
   50% {
-    box-shadow: 0 0 0 calc(6px * var(--ui-scale)) var(--color-warning-100);
+    box-shadow: 0 0 0 calc(6px * var(--ui-scale)) var(--color-warning-200);
   }
 }
 
@@ -101,7 +125,7 @@
 @media (prefers-reduced-motion: reduce) {
   .onboarding-attention {
     animation: none;
-    box-shadow: 0 0 0 calc(4px * var(--ui-scale)) var(--color-warning-100);
+    box-shadow: 0 0 0 calc(4px * var(--ui-scale)) var(--color-warning-200);
   }
 }
 
@@ -148,6 +172,13 @@
   background: var(--color-neutral-white);
   transform: rotate(45deg);
   z-index: -1;
+}
+
+/* Pinned just above a pano annotation arrow (see Onboarding's positionMessageAtPanoCoord); the translate puts
+   the box's bottom edge at the computed point. */
+#onboarding-message-holder.onboarding-message-pano-anchored {
+  margin: 0;
+  transform: translateY(-100%);
 }
 
 /* Pin a message to the pano's top-right corner. */
