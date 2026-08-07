@@ -648,9 +648,33 @@ function UtilitiesMisc(JSON) {
 util.misc = UtilitiesMisc(JSON);
 
 /**
+ * Fields PannellumViewer needs to render a backup pano: the subset of PanoData's `requiredParams` that a pano_data
+ * row can be missing. See the note there before changing this list.
+ *
+ * A property rather than a top-level `const` because some views load this file directly on a page whose bundle
+ * already concatenates it. Re-running it must stay harmless, and a repeated `const` is a fatal redeclaration.
+ */
+util.misc.BACKUP_IMAGE_REQUIRED_FIELDS = ['width', 'height', 'lat', 'lng', 'cameraHeading', 'cameraPitch'];
+
+/**
+ * Whether a backup pano carries the metadata PannellumViewer needs to render it.
+ *
+ * Old pano_data rows carry nulls for these and PanoData rejects them (#4804). Guards the buildBackupImageData path
+ * only — the /backupImage/:panoId/metadata payload is already filtered server-side by `getLocalBackupImage`.
+ *
+ * @param {?object} data Backup pano metadata in the camelCase shape buildBackupImageData produces, or null.
+ * @returns {boolean} True when every field the viewer needs is present and numeric.
+ */
+function backupImageDataIsComplete(data) {
+  return !!data
+    && util.misc.BACKUP_IMAGE_REQUIRED_FIELDS.every((f) => typeof data[f] === 'number' && !isNaN(data[f]));
+}
+
+/**
  * Builds the {url, metadata} object needed by Pannellum from a label metadata object sent by the server.
  *
- * Returns null if backup_image_url is absent or null, or if pano_data is missing.
+ * Returns null if backup_image_url is absent or null, if pano_data is missing, or if pano_data is too incomplete to
+ * render (see backupImageDataIsComplete).
  * @param {object} meta Label metadata object from the server.
  * @param {string|null} meta.backup_image_url URL for the self-hosted backup image, or null.
  * @param {object|null} meta.pano_data Nested pano viewer metadata, or null.
@@ -663,7 +687,7 @@ util.misc = UtilitiesMisc(JSON);
 function buildBackupImageData(meta) {
   if (!meta.backup_image_url || !meta.pano_data) return null;
   const pd = meta.pano_data;
-  return {
+  const backupImageData = {
     panoId: meta.pano_id,
     imageUrl: meta.backup_image_url,
     width: pd.width,
@@ -679,4 +703,5 @@ function buildBackupImageData(meta) {
     copyright: pd.copyright,
     address: pd.address,
   };
+  return backupImageDataIsComplete(backupImageData) ? backupImageData : null;
 }

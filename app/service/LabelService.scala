@@ -367,7 +367,10 @@ class LabelServiceImpl @Inject() (
 
   // Checks each label in a batch for imagery availability. When useCrops is true, labels with a locally-saved crop
   // image are accepted without querying the API; only labels lacking a crop are checked. When useCrops is false, all
-  // labels are checked via panoExists(); labels with a locally-hosted backup pass as well.
+  // labels are checked via panoExists(); labels with a viewable locally-hosted backup pass as well.
+  //
+  // This is the real gate for expired imagery, not pano_data.expired: that column is refreshed lazily, so a row still
+  // claiming expired = false while the imagery is gone sails past LabelTable.imageryViewable to here.
   private def checkImageryBatch[A <: BasicLabelMetadata](labels: Seq[A], useCrops: Boolean): Future[Seq[A]] = {
     if (useCrops) {
       // Partition: labels with local crops pass immediately; the rest are checked via panoExists().
@@ -383,9 +386,11 @@ class LabelServiceImpl @Inject() (
     } else {
       Future
         .traverse(labels) { label =>
-          panoDataService.panoExists(label.panoId, label.panoSource).map {
-            case Some(true) => Some(label)
-            case _          => if (panoDataService.backupExists(label.panoId)) Some(label) else None
+          panoDataService.panoExists(label.panoId, label.panoSource).flatMap {
+            case Some(true) => Future.successful(Some(label))
+            // getLocalBackupImage, not backupExists: a file on disk is only usable if pano_data also has the metadata
+            // Pannellum needs. Validate has no fallback behind it, so admitting a label we can't render is #4804.
+            case _ => panoDataService.getLocalBackupImage(label.panoId).map(_.map(_ => label))
           }
         }
         .map(_.flatten)

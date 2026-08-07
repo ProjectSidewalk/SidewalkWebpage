@@ -25,7 +25,10 @@ class PanoData {
    * @constructor
    */
   constructor(params) {
-    // Validate required parameters.
+    // Validate required parameters. Three guards keep unrenderable backup panos away from PannellumViewer by
+    // requiring the subset of this list that a pano_data row can be missing, so adding a field here means updating
+    // them too (#4804): LabelTable.imageryViewable, PanoDataServiceImpl.getLocalBackupImage, and
+    // backupImageDataIsComplete in utilitiesSidewalk.js.
     const requiredParams = [
       'panoId', 'source', 'lat', 'lng', 'cameraHeading', 'cameraPitch', 'width', 'height', 'captureDate', 'linkedPanos',
       'history',
