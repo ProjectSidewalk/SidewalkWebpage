@@ -69,57 +69,86 @@ object PanoDataService {
   }
 
   /**
-   * Parameters of the label distance estimator ("approximation3"): a saturating-cotangent blend fit on depth-derived
-   * ground truth.
+   * Parameters of the label distance estimator ("approximation3"): a saturating-cotangent blend on a single
+   * camera-to-ground height.
    *
-   * A label whose click sits `d` degrees below the horizon is `height / tan(d)` meters away on flat ground, where
-   * `height` is the per-label-type drop from the camera to where that type's ground truth lives. Within `BLEND_DEG` of
-   * the horizon the cotangent is ill-conditioned (a fraction of a degree of click noise moves the answer by meters), so
-   * a linear tail continues it with matched value and slope, bounding the estimate at ~28.4 m. Fit and validation:
-   * - https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/reports/2026-08-07-distance-refit.md
-   * - https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4765
-   * - https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4766
+   * A label whose click sits `d` degrees below the horizon is `CAMERA_HEIGHT_M / tan(d)` meters away on flat ground.
+   * Within `BLEND_DEG` of the horizon the cotangent is ill-conditioned (a fraction of a degree of click noise moves
+   * the answer by meters), so a linear tail continues it with matched value and slope, bounding the estimate at
+   * 23.85 m.
+   *
+   * Every constant here is fitted, not chosen — each carries its own derivation below. They come from the
+   * **label-latlng-estimation** repo, which holds the notebooks, the held-out splits, and the reports:
+   *
+   *  - Form (cotangent + matched-slope tail, and `BLEND_DEG`):
+   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/reports/2026-08-07-distance-refit.md]]
+   *    (PR #12). Won a 12-rung bake-off on 316,118 training rows of GSV depth truth, scored on a held-out 79,029.
+   *  - Falsification on a second imagery source (Mapillary), which located the residual scale error in the camera
+   *    rigs rather than the form:
+   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/reports/2026-08-07-mapillary-falsification.md]]
+   *    (PR #13). A LightGBM ceiling check found no headroom left for a learned model to recover:
+   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/reports/2026-08-07-gbm-ceiling.md]]
+   *    (PR #14).
+   *  - Absolute scale (`CAMERA_HEIGHT_M`), and the evidence for one height rather than a per-label-type table:
+   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/reports/2026-08-07-modern-truth.md]]
+   *    (PR #16, §7 mechanism and §9 decision). Canonical values: `final_coefficients` in
+   *    `data/modern-truth-summary.json`.
+   *
+   * Measured against fresh GSV depth for 2,690 post-2021 human labels across 13 cities, as median absolute distance
+   * error: this estimator lands at **0.42 m** on a held-out half (1,386 rows, split by pano), where the same blend
+   * carrying the earlier per-label-type heights lands at 1.27 m; the linear regression this supersedes measures
+   * 1.24 m across all 2,690. Known limits, from the modern-truth report: the reference ground planes are Google's
+   * own measurements, so the scale is internally consistent but externally unanchored (bearing-only triangulation,
+   * label-latlng-estimation#7, is the independent check); clicks within 2 degrees of the horizon are undershot by
+   * any bounded model; and the residual signed median runs about -0.17 m.
+   *
+   * Issues: [[https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4765]] (resolution dependence) and
+   * [[https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4766]] (near/far compression).
    */
   object LatLngEstimation {
 
-    /** Depression angle (degrees below the horizon) where the cotangent hands off to its linear tail. */
+    /**
+     * Depression angle (degrees below the horizon) where the cotangent hands off to its linear tail.
+     *
+     * Fitted, not picked: `provisional_coefficients.params.blend_deg` in `data/distance-refit-summary.json`, from
+     * the rung (`D_blend_type_l1`) that won the distance refit's bake-off on train-half median absolute distance
+     * error. Only the angle carries over from that rung — `CAMERA_HEIGHT_M` is calibrated separately.
+     */
     val BLEND_DEG: Double = 11.25
 
     /**
-     * Hard ceiling on the estimated distance in meters, carried over from the fit's reference implementation.
+     * Hard ceiling on the estimated distance in meters — `meta.dist_cap_m` in `data/distance-refit-summary.json`,
+     * the clamp the fit's own reference implementation applies.
      *
-     * It cannot bind at the heights below: the tail is a line evaluated no further than the horizon, so its largest
-     * value is `height * 10.18`, i.e. 28.35 m for the tallest fitted height (`PanoDataServiceSpec` pins that maximum).
-     * It would only start clipping if a refit pushed a height past ~4.9 m, which is not a camera height any of our
-     * imagery sources has. Kept so the estimator stays bounded by construction rather than by the constants.
+     * It cannot bind at the height below: the tail is a line evaluated no further than the horizon, so its largest
+     * value is `CAMERA_HEIGHT_M * 10.186`, i.e. 23.85 m (`PanoDataServiceSpec` pins that maximum). It would only
+     * start clipping if a refit pushed the height past ~4.9 m, which is not a camera height any of our imagery
+     * sources has. Kept so the estimator stays bounded by construction rather than by the calibration.
      */
     val MAX_DISTANCE_M: Double = 50.0
 
     /**
-     * Per-label-type camera-to-ground drop in meters. The drop differs by type because users click some types above
-     * their ground contact (an obstacle's body rather than its base) and because the depth rays behind the ground
-     * truth land on different surfaces (a curb ramp descends to road grade, a surface problem sits on the raised
-     * sidewalk plane).
+     * Drop in meters from the camera to the ground plane, and the estimator's only calibrated quantity.
+     *
+     * `final_coefficients.params.height_m` in `data/modern-truth-summary.json`: the median of
+     * `truth_distance * tan(depression)` over the 2,517 gated human-label rows at depression >= 5 degrees, where
+     * truth is fresh GSV depth for post-2021 labels. A disjoint-half split (by pano, seed 666) puts the held-out
+     * median absolute error at 0.42 m.
+     *
+     * One height serves every label type. Giving each type its own is tempting — users do click some types above
+     * their ground contact — but on current imagery the implied per-type heights span only 2.27–2.37 m and their
+     * ordering does not reproduce the one an earlier fit found on 2017–2020 truth, which is the signature of a
+     * spread that tracked the era's depth payloads rather than the label types. Only 31% of today's payloads carry
+     * the pinned ground-plane default the era's mostly did, and today's measured plane sits near 2.35 m.
+     * Modern-truth report §7 has the mechanism, §9 the decision and its tradeoffs.
      */
-    val HEIGHT_BY_TYPE_M: Map[String, Double] = Map(
-      LabelTypeEnum.CurbRamp.name       -> 2.783228790539168,
-      LabelTypeEnum.NoCurbRamp.name     -> 2.5556144942356633,
-      LabelTypeEnum.NoSidewalk.name     -> 2.682312665952281,
-      LabelTypeEnum.Obstacle.name       -> 2.6931143839508347,
-      LabelTypeEnum.Occlusion.name      -> 2.723276984835889,
-      LabelTypeEnum.Other.name          -> 2.7424683309066746,
-      LabelTypeEnum.SurfaceProblem.name -> 2.4991160921669926
-    )
-
-    /** Pooled-fit drop in meters for label types absent from the ground truth (e.g. Crosswalk, Signal). */
-    val HEIGHT_FALLBACK_M: Double = 2.715115204130135
+    val CAMERA_HEIGHT_M: Double = 2.341123424450019
 
     /** The constants above as JSON for the Explore front end, which runs the identical estimator (see Label.js). */
     val asJson: JsObject = Json.obj(
-      "blendDeg"        -> BLEND_DEG,
-      "maxDistanceM"    -> MAX_DISTANCE_M,
-      "heightByTypeM"   -> HEIGHT_BY_TYPE_M,
-      "heightFallbackM" -> HEIGHT_FALLBACK_M
+      "blendDeg"      -> BLEND_DEG,
+      "maxDistanceM"  -> MAX_DISTANCE_M,
+      "cameraHeightM" -> CAMERA_HEIGHT_M
     )
   }
 
@@ -130,12 +159,11 @@ object PanoDataService {
    * cotangent's derivative at the blend angle, so value and slope match at the handoff. Above the horizon the answer
    * is the horizon's, keeping the estimate bounded for any input.
    *
-   * @param labelType     Name of the label's type (e.g. "CurbRamp"); unknown types use the pooled fallback height.
    * @param depressionDeg Degrees below the horizon (negative when above the horizon).
    * @return              Estimated distance in meters.
    */
-  def estimateDistanceFromPanoM(labelType: String, depressionDeg: Double): Double = {
-    val heightM  = LatLngEstimation.HEIGHT_BY_TYPE_M.getOrElse(labelType, LatLngEstimation.HEIGHT_FALLBACK_M)
+  def estimateDistanceFromPanoM(depressionDeg: Double): Double = {
+    val heightM  = LatLngEstimation.CAMERA_HEIGHT_M
     val blendRad = math.toRadians(LatLngEstimation.BLEND_DEG)
     if (depressionDeg >= LatLngEstimation.BLEND_DEG) {
       heightM / math.tan(math.toRadians(depressionDeg))
@@ -157,7 +185,6 @@ object PanoDataService {
    *
    * @param panoLat       The latitude of the panorama location
    * @param panoLng       The longitude of the panorama location
-   * @param labelType     Name of the label's type (e.g. "CurbRamp"), selecting the per-type camera height
    * @param panoX         The x-coordinate of the label within the panorama image
    * @param panoY         The y-coordinate of the label within the panorama image
    * @param panoWidth     The width of the panorama image
@@ -168,7 +195,6 @@ object PanoDataService {
   def toLatLng(
       panoLat: Double,
       panoLng: Double,
-      labelType: String,
       panoX: Int,
       panoY: Int,
       panoWidth: Int,
@@ -176,7 +202,7 @@ object PanoDataService {
       cameraHeading: Double
   ): (Double, Double) = {
     val pov          = calculatePovFromPanoXY(panoX, panoY, panoWidth, panoHeight, cameraHeading)
-    val estDistanceM = estimateDistanceFromPanoM(labelType, -pov.pitch)
+    val estDistanceM = estimateDistanceFromPanoM(-pov.pitch)
 
     // Calculate destination point using haversine formula.
     CommonUtils.calculateDestination(panoLat, panoLng, estDistanceM / 1000.0, pov.heading)

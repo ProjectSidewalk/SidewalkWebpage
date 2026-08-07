@@ -352,8 +352,12 @@ class Label {
    * The bearing to the label is exact projection geometry (its centered POV), and the distance below the horizon comes
    * from flat-ground cotangent geometry with a linear tail near the horizon — the same computation as the server's
    * PanoDataService.toLatLng, with the constants injected from the backend (svl.latLngEstimation) so the two can't
-   * drift. Both depend only on the label's angular position, so the estimate is independent of pano resolution.
-   * https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/reports/2026-08-07-distance-refit.md
+   * drift. Both depend only on the label's angular position, so the estimate is independent of both the pano's
+   * resolution and the label's type.
+   *
+   * The camera height and blend angle are fitted values, not tuning knobs — PanoDataService.LatLngEstimation is where
+   * they live and where their derivation is documented, and the research behind them (held-out splits, the falsified
+   * alternatives, the reports) is in https://github.com/ProjectSidewalk/label-latlng-estimation.
    *
    * @returns {{lat: number, lng: number, latLngComputationMethod: string}}
    */
@@ -364,7 +368,7 @@ class Label {
       const params = svl.latLngEstimation;
       const pov = this.getProperty('povOfLabelIfCentered');
       const depressionDeg = -pov.pitch;
-      const heightM = params.heightByTypeM[this.getLabelType()] ?? params.heightFallbackM;
+      const heightM = params.cameraHeightM;
       const blendRad = params.blendDeg * Math.PI / 180;
 
       let estDistanceM;

@@ -759,8 +759,8 @@ class ExploreServiceImpl @Inject() (
         // value consistent with the heading/pitch stored beside it, which is the POV that centers the label.
         val canvasX = LabelPointTable.canvasWidth / 2
         val canvasY = LabelPointTable.canvasHeight / 2
-        val latLng  = PanoDataService.toLatLng(pano.lat.get, pano.lng.get, data.labelType, label.panoX, label.panoY,
-          pano.width.get, pano.height.get, pano.cameraHeading.get)
+        val latLng  = PanoDataService.toLatLng(pano.lat.get, pano.lng.get, label.panoX, label.panoY, pano.width.get,
+          pano.height.get, pano.cameraHeading.get)
         for {
           // Create necessary associated data for the label to fit in PS (mission, audit_task, etc.).
           streetEdgeId <- labelTable.getStreetEdgeIdClosestToLatLng(latLng._1, latLng._2)

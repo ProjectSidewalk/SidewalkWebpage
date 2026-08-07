@@ -8,8 +8,13 @@
  * What these pin is the *formula*, not the constants. The constants reach the browser from the backend at runtime
  * (svl.latLngEstimation, PanoDataService.LatLngEstimation.asJson injected by explore.scala.html), so the shipped
  * client cannot hold a stale copy of them; the fixture below is a hand-copy of that payload standing in for the
- * injection. It follows that a refit which changes the heights or the blend angle must update this fixture and its
- * expected distances alongside PanoDataServiceSpec's pins — nothing here fails on its own if it doesn't.
+ * injection. It follows that a refit which changes the camera height or the blend angle must update this fixture and
+ * its expected distances alongside PanoDataServiceSpec's pins — nothing here fails on its own if it doesn't.
+ *
+ * The fixture's values are the fitted ones: camera height from `final_coefficients` in `data/modern-truth-summary.json`
+ * and blend angle + distance cap from `data/distance-refit-summary.json`, both in
+ * https://github.com/ProjectSidewalk/label-latlng-estimation. PanoDataService.LatLngEstimation documents how each was
+ * derived; don't adjust one here to make a test pass.
  */
 
 const fs = require('fs');
@@ -47,16 +52,7 @@ describe('Label lat/lng estimation', () => {
             latLngEstimation: {
                 blendDeg: 11.25,
                 maxDistanceM: 50.0,
-                heightByTypeM: {
-                    CurbRamp: 2.783228790539168,
-                    NoCurbRamp: 2.5556144942356633,
-                    NoSidewalk: 2.682312665952281,
-                    Obstacle: 2.6931143839508347,
-                    Occlusion: 2.723276984835889,
-                    Other: 2.7424683309066746,
-                    SurfaceProblem: 2.4991160921669926,
-                },
-                heightFallbackM: 2.715115204130135,
+                cameraHeightM: 2.341123424450019,
             },
         };
         Label.createMinimapMarker = () => ({ addListener: () => {} });
@@ -77,11 +73,11 @@ describe('Label lat/lng estimation', () => {
         return [distKm, bearing];
     }
 
-    test('cotangent branch: distance is the per-type height over tan(depression), bearing is the centered POV', () => {
+    test('cotangent branch: distance is the camera height over tan(depression), bearing is the centered POV', () => {
         newLabel({ pitch: -22.5, heading: 137.25 });
 
         const [distKm, bearing] = destinationArgs();
-        expect(distKm * 1000).toBeCloseTo(6.719308693306926, 9); // CurbRamp at 22.5° below the horizon.
+        expect(distKm * 1000).toBeCloseTo(5.65197192249658, 9); // 22.5° below the horizon.
         expect(bearing).toBe(137.25);
     });
 
@@ -89,14 +85,14 @@ describe('Label lat/lng estimation', () => {
         newLabel({ pitch: 10 }); // 10° above the horizon.
 
         const [distKm] = destinationArgs();
-        expect(distKm * 1000).toBeCloseTo(28.3506789700554, 9); // max_answer_m in the fit's summary.
+        expect(distKm * 1000).toBeCloseTo(23.84728084930508, 9); // max_answer_m in the fit's summary.
     });
 
-    test('label types absent from the fit use the pooled fallback height', () => {
+    test('the distance is the same whatever the label type', () => {
         newLabel({ labelType: 'Crosswalk', pitch: -20 });
 
         const [distKm] = destinationArgs();
-        expect(distKm * 1000).toBeCloseTo(7.459717714565474, 9);
+        expect(distKm * 1000).toBeCloseTo(6.432183744832708, 9);
     });
 
     test('the result is cached as approximation3', () => {
