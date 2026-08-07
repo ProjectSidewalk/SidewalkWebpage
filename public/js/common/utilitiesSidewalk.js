@@ -648,9 +648,25 @@ function UtilitiesMisc(JSON) {
 util.misc = UtilitiesMisc(JSON);
 
 /**
+ * Whether a backup pano carries the metadata PannellumViewer needs to render it.
+ *
+ * pano_data rows written before we recorded these carry nulls for them, and PanoData rejects a pano that's missing
+ * any — so callers must check before offering a backup, and fall back to the label's static crop when it fails
+ * (#4804). Takes the camelCase shape both /backupImage/:panoId/metadata and buildBackupImageData produce.
+ *
+ * @param {?object} data Backup pano metadata, or null.
+ * @returns {boolean} True when every field the viewer needs is present and numeric.
+ */
+function backupImageDataIsComplete(data) {
+  const required = ['width', 'height', 'lat', 'lng', 'cameraHeading', 'cameraPitch'];
+  return !!data && required.every((field) => typeof data[field] === 'number' && !isNaN(data[field]));
+}
+
+/**
  * Builds the {url, metadata} object needed by Pannellum from a label metadata object sent by the server.
  *
- * Returns null if backup_image_url is absent or null, or if pano_data is missing.
+ * Returns null if backup_image_url is absent or null, if pano_data is missing, or if pano_data is too incomplete to
+ * render (see backupImageDataIsComplete).
  * @param {object} meta Label metadata object from the server.
  * @param {string|null} meta.backup_image_url URL for the self-hosted backup image, or null.
  * @param {object|null} meta.pano_data Nested pano viewer metadata, or null.
@@ -663,7 +679,7 @@ util.misc = UtilitiesMisc(JSON);
 function buildBackupImageData(meta) {
   if (!meta.backup_image_url || !meta.pano_data) return null;
   const pd = meta.pano_data;
-  return {
+  const backupImageData = {
     panoId: meta.pano_id,
     imageUrl: meta.backup_image_url,
     width: pd.width,
@@ -679,4 +695,5 @@ function buildBackupImageData(meta) {
     copyright: pd.copyright,
     address: pd.address,
   };
+  return backupImageDataIsComplete(backupImageData) ? backupImageData : null;
 }

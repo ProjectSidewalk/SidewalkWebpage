@@ -1227,6 +1227,24 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
+   * Whether Validate can actually show a label's imagery: the original is still live, or a backup stands in for it.
+   *
+   * Falling back to a backup means rendering it in Pannellum, which needs the pano's dimensions, camera location, and
+   * camera angles. Rows written before we recorded those carry nulls, and a label on one of them leaves Validate
+   * showing the *previous* label's imagery with the new label's marker drawn on it — the validator answers about an
+   * image that isn't the one they're looking at (#4804). Cheaper to leave those labels out of the queue: in Seattle
+   * they're 595 of the 70k expired panos otherwise eligible.
+   *
+   * `hasBackup` is NULL until the imagery check has looked at the pano, and is read optimistically so unchecked panos
+   * stay in the queue; the frontend still falls back to the label's static crop if no backup turns out to exist.
+   */
+  private def imageryViewable(pd: PanoDataTableDef): Rep[Boolean] = {
+    !pd.expired || (pd.hasBackup.getOrElse(true: Rep[Boolean]) &&
+      pd.width.isDefined && pd.height.isDefined && pd.lat.isDefined && pd.lng.isDefined &&
+      pd.cameraHeading.isDefined && pd.cameraPitch.isDefined)
+  }
+
+  /**
    * Returns how many labels this user has available to validate (& how many need validations) for each label type.
    *
    * @param userId User ID for the current user
@@ -1239,7 +1257,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     val labelsToValidate = for {
       _lb <- labels
       _pd <- panoData if _pd.panoId === _lb.panoId
-      if (_pd.expired === false || _pd.hasBackup.getOrElse(true)) && _pd.source === viewer && _lb.userId =!= userId
+      if imageryViewable(_pd) && _pd.source === viewer && _lb.userId =!= userId
     } yield (_lb.labelId, _lb.labelTypeId, _lb.correct)
 
     // Left join with the labels that the user has already validated, then filter those out.
@@ -1294,7 +1312,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _ur             <- userRoles if _us.userId === _ur.userId
       _r              <- roleTable if _ur.roleId === _r.roleId
       if _lt.labelTypeId === labelTypeId && _lp.lat.isDefined && _lp.lng.isDefined && _lb.userId =!= userId
-      if _pd.source === viewer && (!_pd.expired || _pd.hasBackup.getOrElse(true: Rep[Boolean]))
+      if _pd.source === viewer && imageryViewable(_pd)
       if !unvalidatedOnly.asColumnOf[Boolean] || _lb.correct.isEmpty                     // Filter out validated labels.
       if skippedLabelId.map(_lb.labelId =!= _).getOrElse(true: Rep[Boolean])             // Filter out skipped label.
       if regionIds.map(ids => _ser.regionId inSetBind ids).getOrElse(true: Rep[Boolean]) // Filter by region IDs.
