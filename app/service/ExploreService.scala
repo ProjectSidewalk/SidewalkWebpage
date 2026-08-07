@@ -653,14 +653,22 @@ class ExploreServiceImpl @Inject() (
         panoExists: Boolean <- panoDataTable.panoramaExists(pano.panoId)
         _                   <-
           if (panoExists) {
-            panoDataTable.updateFromExplore(pano.panoId, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch,
-              pano.cameraRoll, pano.address, expired = false, currTime, Some(currTime))
+            // source_metadata is written only when the payload carries it (AI submissions do, crowd submissions
+            // don't), so a crowd submission for the same pano can never clear the saved blob (#4806).
+            panoDataTable
+              .updateFromExplore(pano.panoId, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll,
+                pano.address, expired = false, currTime, Some(currTime))
+              .andThen(
+                pano.sourceMetadata
+                  .map(metadata => panoDataTable.updateSourceMetadata(pano.panoId, metadata))
+                  .getOrElse(DBIO.successful(0))
+              )
           } else {
             panoDataTable.insert(
               PanoData(pano.panoId, pano.width, pano.height, pano.tileWidth, pano.tileHeight, pano.captureDate,
                 pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.cameraRoll,
                 expired = false, currTime, Some(currTime), currTime, pano.source, hasBackup = None,
-                address = pano.address)
+                address = pano.address, sourceMetadata = pano.sourceMetadata)
             )
           }
       } yield {

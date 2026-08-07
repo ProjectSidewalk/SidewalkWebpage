@@ -6,6 +6,7 @@ import models.pano.PanoSource.PanoSource
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.libs.json.JsValue
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
@@ -43,7 +44,10 @@ case class PanoData(
     lastChecked: OffsetDateTime,
     source: PanoSource,
     hasBackup: Option[Boolean],
-    address: Option[String]
+    address: Option[String],
+    // Verbatim imagery-provider metadata blob (e.g. the Mapillary Graph API response). Only AI submissions carry it;
+    // crowd submissions leave it untouched (#4806).
+    sourceMetadata: Option[JsValue]
 )
 
 // NOTE need to update pano_source enum in postgres as well if changing this Enumeration.
@@ -87,9 +91,10 @@ class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {
   def source: Rep[PanoSource]                       = column[PanoSource]("source")
   def hasBackup: Rep[Option[Boolean]]               = column[Option[Boolean]]("has_backup")
   def address: Rep[Option[String]]                  = column[Option[String]]("address")
+  def sourceMetadata: Rep[Option[JsValue]]          = column[Option[JsValue]]("source_metadata")
 
   def * = (panoId, width, height, tileWidth, tileHeight, captureDate, copyright, lat, lng, cameraHeading, cameraPitch,
-    cameraRoll, expired, lastViewed, panoHistorySaved, lastChecked, source, hasBackup, address) <>
+    cameraRoll, expired, lastViewed, panoHistorySaved, lastChecked, source, hasBackup, address, sourceMetadata) <>
     ((PanoData.apply _).tupled, PanoData.unapply)
 }
 
@@ -252,6 +257,18 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    */
   def updatePanoHistorySaved(panoId: String, panoHistorySaved: Option[OffsetDateTime]): DBIO[Int] = {
     panoDataRecords.filter(_.panoId === panoId).map(_.panoHistorySaved).update(panoHistorySaved)
+  }
+
+  /**
+   * Sets a pano's provider metadata blob.
+   *
+   * Kept separate from updateFromExplore so only payloads that carry the blob (AI submissions) ever write the column;
+   * a crowd submission must never clear one saved earlier (#4806).
+   * @param panoId   Unique ID for the panorama
+   * @param metadata Verbatim imagery-provider metadata blob for this pano
+   */
+  def updateSourceMetadata(panoId: String, metadata: JsValue): DBIO[Int] = {
+    panoDataRecords.filter(_.panoId === panoId).map(_.sourceMetadata).update(Some(metadata))
   }
 
   def insert(data: PanoData): DBIO[String] = {

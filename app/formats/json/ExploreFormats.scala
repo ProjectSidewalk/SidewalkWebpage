@@ -99,7 +99,9 @@ object ExploreFormats {
       links: Seq[PanoLinkSubmission],
       copyright: Option[String],
       address: Option[String],
-      history: Seq[PanoDate]
+      history: Seq[PanoDate],
+      // Verbatim imagery-provider metadata blob; sent by the AI labeler only, never by the Explore client (#4806).
+      sourceMetadata: Option[JsValue]
   )
   case class AuditMissionProgress(
       missionId: Int,
@@ -325,7 +327,8 @@ object ExploreFormats {
       (JsPath \ "links").read[Seq[PanoLinkSubmission]] and
       (JsPath \ "copyright").readNullable[String] and
       (JsPath \ "address").readNullable[String] and
-      (JsPath \ "history").read[Seq[PanoDate]]
+      (JsPath \ "history").read[Seq[PanoDate]] and
+      (JsPath \ "source_metadata").readNullable[JsValue]
   )(PanoSubmission.apply _)
 
   implicit val auditMissionProgressReads: Reads[AuditMissionProgress] = (
