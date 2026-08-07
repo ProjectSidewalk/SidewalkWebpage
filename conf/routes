@@ -227,6 +227,10 @@ DELETE  /adminapi/stories/:storyId                      controllers.StoryControl
 
 # AI
 POST    /ai/analyzeScene                                controllers.AiController.analyzeScene()
+# Authenticated by the internal key (ControllerUtils.internalKeyValid), not a browser session. Without nocsrf, the
+# CSRF filter 403s any POST carrying an Authorization header (Play protects that header by default), which is exactly
+# how the auto-labeler authenticates.
++ nocsrf
 POST    /ai/submitLabelsOnPano                          controllers.AiController.submitAiLabel
 
 # Public API (v3) for Project Sidewalk data and metadata.
