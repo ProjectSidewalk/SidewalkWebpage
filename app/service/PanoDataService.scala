@@ -85,7 +85,14 @@ object PanoDataService {
     /** Depression angle (degrees below the horizon) where the cotangent hands off to its linear tail. */
     val BLEND_DEG: Double = 11.25
 
-    /** Hard ceiling on the estimated distance in meters. The blend itself never exceeds ~28.4 m. */
+    /**
+     * Hard ceiling on the estimated distance in meters, carried over from the fit's reference implementation.
+     *
+     * It cannot bind at the heights below: the tail is a line evaluated no further than the horizon, so its largest
+     * value is `height * 10.18`, i.e. 28.35 m for the tallest fitted height (`PanoDataServiceSpec` pins that maximum).
+     * It would only start clipping if a refit pushed a height past ~4.9 m, which is not a camera height any of our
+     * imagery sources has. Kept so the estimator stays bounded by construction rather than by the constants.
+     */
     val MAX_DISTANCE_M: Double = 50.0
 
     /**

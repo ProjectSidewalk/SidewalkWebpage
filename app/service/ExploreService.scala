@@ -755,6 +755,8 @@ class ExploreServiceImpl @Inject() (
         // Calculate the label's lat/lng and theoretical user's heading/pitch from its panoX/panoY coordinates.
         val pov = PanoDataService.calculatePovFromPanoXY(label.panoX, label.panoY, pano.width.get, pano.height.get,
           pano.cameraHeading.get)
+        // label_point.canvas_x/y are NOT NULL, but an AI label was never drawn on a canvas. The center is the one
+        // value consistent with the heading/pitch stored beside it, which is the POV that centers the label.
         val canvasX = LabelPointTable.canvasWidth / 2
         val canvasY = LabelPointTable.canvasHeight / 2
         val latLng  = PanoDataService.toLatLng(pano.lat.get, pano.lng.get, data.labelType, label.panoX, label.panoY,

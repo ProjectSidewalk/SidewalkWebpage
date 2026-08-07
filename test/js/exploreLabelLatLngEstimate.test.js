@@ -3,11 +3,13 @@
  *
  * The client-side estimator must mirror the server's PanoDataService.toLatLng: distance from the saturating-cotangent
  * blend on the label's depression angle, bearing straight from the label's centered POV, and 'approximation3' as the
- * computation method. The expected distances are pinned to the same published fit values as the server-side
- * PanoDataServiceSpec, so the two copies of the formula can't drift apart silently.
+ * computation method.
  *
- * The constants normally arrive from the backend via svl.latLngEstimation (PanoDataService.LatLngEstimation.asJson
- * injected by explore.scala.html); the fixture below is that payload's shape.
+ * What these pin is the *formula*, not the constants. The constants reach the browser from the backend at runtime
+ * (svl.latLngEstimation, PanoDataService.LatLngEstimation.asJson injected by explore.scala.html), so the shipped
+ * client cannot hold a stale copy of them; the fixture below is a hand-copy of that payload standing in for the
+ * injection. It follows that a refit which changes the heights or the blend angle must update this fixture and its
+ * expected distances alongside PanoDataServiceSpec's pins — nothing here fails on its own if it doesn't.
  */
 
 const fs = require('fs');
