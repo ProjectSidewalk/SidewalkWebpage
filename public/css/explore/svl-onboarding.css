@@ -50,10 +50,59 @@
   width: 100%;
 }
 
-.onboarding-gif {
-  display: block;
-  width: 95%;
-  margin: calc(5px * var(--ui-scale)) auto;
+/* Inline replica of a rating segment (.severity-button, svl-context-menu.css) for tutorial messages that ask for a
+   specific rating; mirrors the segment's smiley icon, type, and enclosure so it reads as "this button". */
+.onboarding-rating-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(4px * var(--ui-scale));
+  vertical-align: text-bottom;
+  padding: calc(2px * var(--ui-scale)) calc(8px * var(--ui-scale));
+  outline: 1px solid var(--color-neutral-300);
+  border-radius: calc(6px * var(--ui-scale));
+  background: var(--color-neutral-white);
+  font: var(--text-tiny-medium);
+  color: var(--color-neutral-700);
+  white-space: nowrap;
+}
+
+.onboarding-rating-chip img {
+  width: calc(15px * var(--ui-scale));
+  height: calc(15px * var(--ui-scale));
+}
+
+/* Inline tag-pill replicas: match the context menu's tightened pills (svl-context-menu.css) rather than the shared
+   default, and keep them from crowding the message text's line spacing. */
+#onboarding-message-holder .tag-pill {
+  padding: calc(3px * var(--ui-scale)) calc(8px * var(--ui-scale));
+  margin: calc(1px * var(--ui-scale)) 0;
+  vertical-align: text-bottom;
+}
+
+/* Pulses the one context-menu section the tutorial has enabled (see Onboarding's RateSeverity/AddTag visits); the
+   sibling section is dimmed via .disabled, so together they say "this half, not that one". */
+.onboarding-attention {
+  border-radius: calc(6px * var(--ui-scale));
+  animation: onboarding-attention-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes onboarding-attention-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--color-warning-100);
+  }
+
+  50% {
+    box-shadow: 0 0 0 calc(6px * var(--ui-scale)) var(--color-warning-100);
+  }
+}
+
+/* The motion is decorative; the enabled/dimmed contrast already carries the meaning. */
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-attention {
+    animation: none;
+    box-shadow: 0 0 0 calc(4px * var(--ui-scale)) var(--color-warning-100);
+  }
 }
 
 /* Inline replica of the hover card's Delete button, shown in tutorial messages that ask the user to delete a

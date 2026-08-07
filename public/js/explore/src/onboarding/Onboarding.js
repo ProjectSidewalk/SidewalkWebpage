@@ -801,11 +801,14 @@ class Onboarding {
 
   #visitRateSeverity(state, listener) {
     this.#contextMenu.enableRatingSeverityForTutorialLabel(state.properties.labelNumber);
+    // Pulse the one section the tutorial has enabled; the message box is anchored to it as well.
+    this.#svl.ui.contextMenu.severityMenu.addClass('onboarding-attention');
     const $target = this.#svl.ui.contextMenu.radioButtons;
     const callback = (e) => {
       if (listener) google.maps.event.removeListener(listener);
       $target.off('change', callback);
       this.#contextMenu.disableRatingSeverity();
+      this.#svl.ui.contextMenu.severityMenu.removeClass('onboarding-attention');
       this.#transitionTo(state.transition, undefined, e.currentTarget);
     };
     $target.on('change', callback);
@@ -813,11 +816,14 @@ class Onboarding {
 
   #visitAddTag(state, listener) {
     this.#contextMenu.enableTaggingForTutorialLabel(state.properties.labelNumber);
+    // Pulse the one section the tutorial has enabled; the message box is anchored to it as well.
+    this.#svl.ui.contextMenu.tagSection.addClass('onboarding-attention');
     const $target = this.#svl.ui.contextMenu.tagHolder; // Grab tag holder so we can add an event listener.
     const callback = () => {
       if (listener) google.maps.event.removeListener(listener);
       $target.off('tagIds-updated', callback);
       this.#contextMenu.disableTagging();
+      this.#svl.ui.contextMenu.tagSection.removeClass('onboarding-attention');
       this.#transitionTo(state.transition, undefined, this.#contextMenu.getTargetLabel());
     };
     // We use a custom event here to ensure that this is triggered after the tags have been updated.
