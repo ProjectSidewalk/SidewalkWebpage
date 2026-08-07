@@ -176,12 +176,13 @@ class Main {
     svl.panoOverlayControls = new PanoOverlayControls(svl.tracker, svl.navigationService, svl.stuckAlert,
       svl.keyboardShortcutAlert);
 
-    svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.dateHolder, svl.panoViewer, svl.panoViewer.getPosition,
-      svl.panoViewer.getPanoId, () => svl.taskContainer.getCurrentTaskStreetEdgeId(),
+    svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.dateHolder, () => svl.panoViewer,
+      () => svl.panoViewer.getPosition(), () => svl.panoViewer.getPanoId(),
+      () => svl.taskContainer.getCurrentTaskStreetEdgeId(),
       () => svl.neighborhoodModel.currentNeighborhood().getRegionId(),
       () => svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('captureDate'),
       () => svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('address'),
-      svl.panoViewer.getPov, true,
+      () => svl.panoViewer.getPov(), true,
       () => {
         svl.tracker.push('PanoInfoButton_Click');
       },

@@ -237,17 +237,19 @@ class LabelDetail {
     const host = this.#q('.label-detail__info-button-host');
     if (!host) return;
 
-    const panoViewer = this.panoManager.panoViewer;
+    // Resolve panoManager.panoViewer per use rather than capturing it: it swaps between the primary viewer and
+    // Pannellum as labels are opened, and a captured viewer keeps describing the previously shown pano (#4813).
+    const panoViewer = () => this.panoManager.panoViewer;
     new PanoInfoPopover(
       host,
-      this.panoManager.panoViewer,
+      panoViewer,
       () =>
         this.#currentLabelMeta && { lat: this.#currentLabelMeta.camera_lat, lng: this.#currentLabelMeta.camera_lng },
       () => this.#currentLabelMeta && this.#currentLabelMeta.pano_id,
       () => this.#currentLabelMeta && this.#currentLabelMeta.street_edge_id,
       () => this.#currentLabelMeta && this.#currentLabelMeta.region_id,
       () => this.#currentLabelMeta && moment(new Date(this.#currentLabelMeta.image_capture_date)),
-      () => (panoViewer.currPanoData ? panoViewer.currPanoData.getProperty('address') : null),
+      () => (panoViewer().currPanoData ? panoViewer().currPanoData.getProperty('address') : null),
       () => this.#currentLabelMeta && {
         heading: this.#currentLabelMeta.heading, pitch: this.#currentLabelMeta.pitch, zoom: this.#currentLabelMeta.zoom,
       },

@@ -214,8 +214,12 @@ class Main {
     svv.missionContainer.createAMission(param.mission, param.progress);
 
     if (!util.isMobile()) {
+      // Read svv.panoViewer through closures rather than capturing it here: PanoManager swaps it between the
+      // primary viewer and Pannellum as labels come and go, and a captured viewer keeps reporting the pano from
+      // the last label it showed (#4813).
       svv.infoPopover = new PanoInfoPopover(
-        svv.ui.viewer.dateHolder, svv.panoViewer, svv.panoViewer.getPosition, svv.panoViewer.getPanoId,
+        svv.ui.viewer.dateHolder, () => svv.panoViewer,
+        () => svv.panoViewer.getPosition(), () => svv.panoViewer.getPanoId(),
         () => {
           return svv.labelContainer.getCurrentLabel().getAuditProperty('streetEdgeId');
         },
@@ -228,7 +232,7 @@ class Main {
         () => {
           return svv.panoStore.getPanoData(svv.panoViewer.getPanoId()).getProperty('address');
         },
-        svv.panoViewer.getPov, true, () => {
+        () => svv.panoViewer.getPov(), true, () => {
           svv.tracker.push('PanoInfoButton_Click');
         },
         () => {
