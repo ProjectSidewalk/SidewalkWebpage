@@ -10,6 +10,11 @@
 const fs = require('fs');
 const path = require('path');
 
+// jest-environment-jsdom doesn't expose these, and jsdom's own dependencies need them when required from within a
+// test (the "runs twice" case below drives a second jsdom instance to get real <script> semantics).
+global.TextEncoder = global.TextEncoder ?? require('node:util').TextEncoder;
+global.TextDecoder = global.TextDecoder ?? require('node:util').TextDecoder;
+
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const UTILITIES_PATH = path.join(REPO_ROOT, 'public/js/common/utilitiesSidewalk.js');
 const PANO_DATA_PATH = path.join(REPO_ROOT, 'public/js/common/pano-viewer/src/PanoData.js');
@@ -72,10 +77,32 @@ function labelMetadata(panoDataOverrides = {}) {
 }
 
 beforeAll(() => {
-  loadScript(UTILITIES_PATH, ['BACKUP_IMAGE_REQUIRED_FIELDS']);
+  loadScript(UTILITIES_PATH, []);
   // PanoData checks `captureDate instanceof moment`; a bare constructor is enough to satisfy it here.
   global.moment = function Moment() {};
   loadScript(PANO_DATA_PATH, ['PanoData']);
+});
+
+test('the script can run twice on one page', () => {
+  // Some views load this file directly on a page whose bundle already concatenates it, so it executes twice. A
+  // top-level `const` made the second execution a fatal redeclaration that took /labelMap down.
+  //
+  // Driven through real <script> tags rather than the eval() loader above, which cannot catch this: eval puts its
+  // lexical declarations in a scope it throws away, so a repeated `const` there is harmless.
+  const { JSDOM, VirtualConsole } = require('jsdom');
+  const virtualConsole = new VirtualConsole();
+  const errors = [];
+  virtualConsole.on('jsdomError', (e) => errors.push(e.message));
+  const dom = new JSDOM('<!doctype html><body>', { runScripts: 'dangerously', virtualConsole });
+
+  const src = fs.readFileSync(UTILITIES_PATH, 'utf8');
+  for (let i = 0; i < 2; i++) {
+    const script = dom.window.document.createElement('script');
+    script.textContent = src;
+    dom.window.document.body.appendChild(script);
+  }
+
+  expect(errors).toEqual([]);
 });
 
 describe('backupImageDataIsComplete', () => {
@@ -186,7 +213,7 @@ describe('coupling to PanoData', () => {
       delete params[field];
 
       expect(() => new PanoData(params)).toThrow(`Missing required parameter: ${field}`);
-      expect(BACKUP_IMAGE_REQUIRED_FIELDS).toContain(field);
+      expect(util.misc.BACKUP_IMAGE_REQUIRED_FIELDS).toContain(field);
     },
   );
 
@@ -195,7 +222,7 @@ describe('coupling to PanoData', () => {
     const suppliedByViewer = ['panoId', 'source', 'captureDate', 'linkedPanos', 'history'];
     for (const field of Object.keys(panoDataParams())) {
       if (!suppliedByViewer.includes(field)) {
-        expect(BACKUP_IMAGE_REQUIRED_FIELDS).toContain(field);
+        expect(util.misc.BACKUP_IMAGE_REQUIRED_FIELDS).toContain(field);
       }
     }
   });

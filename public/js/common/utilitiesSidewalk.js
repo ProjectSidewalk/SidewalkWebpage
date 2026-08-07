@@ -650,8 +650,11 @@ util.misc = UtilitiesMisc(JSON);
 /**
  * Fields PannellumViewer needs to render a backup pano: the subset of PanoData's `requiredParams` that a pano_data
  * row can be missing. See the note there before changing this list.
+ *
+ * A property rather than a top-level `const` because some views load this file directly on a page whose bundle
+ * already concatenates it. Re-running it must stay harmless, and a repeated `const` is a fatal redeclaration.
  */
-const BACKUP_IMAGE_REQUIRED_FIELDS = ['width', 'height', 'lat', 'lng', 'cameraHeading', 'cameraPitch'];
+util.misc.BACKUP_IMAGE_REQUIRED_FIELDS = ['width', 'height', 'lat', 'lng', 'cameraHeading', 'cameraPitch'];
 
 /**
  * Whether a backup pano carries the metadata PannellumViewer needs to render it.
@@ -663,7 +666,8 @@ const BACKUP_IMAGE_REQUIRED_FIELDS = ['width', 'height', 'lat', 'lng', 'cameraHe
  * @returns {boolean} True when every field the viewer needs is present and numeric.
  */
 function backupImageDataIsComplete(data) {
-  return !!data && BACKUP_IMAGE_REQUIRED_FIELDS.every((f) => typeof data[f] === 'number' && !isNaN(data[f]));
+  return !!data
+    && util.misc.BACKUP_IMAGE_REQUIRED_FIELDS.every((f) => typeof data[f] === 'number' && !isNaN(data[f]));
 }
 
 /**
