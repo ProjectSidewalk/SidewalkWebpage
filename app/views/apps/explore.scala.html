@@ -991,6 +991,9 @@
     mainParam.countryId = "@currentCity.countryId";
     mainParam.mapboxApiKey = "@commonData.mapboxApiKey";
     mainParam.makeCrops = @data.makeCrops;
+    @* Label lat/lng estimator constants. The backend owns them (PanoDataService.LatLngEstimation) so the client-side
+       copy of the estimator (Label.js) can never drift from the server-side one. *@
+    mainParam.latLngEstimation = @Html(service.PanoDataService.LatLngEstimation.asJson.toString);
     const imagerySrc = "@commonData.imagerySource.toString";
     mainParam.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
     mainParam.viewerAccessToken = "@commonData.imageryAccessToken";

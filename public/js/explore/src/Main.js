@@ -53,6 +53,8 @@ class Main {
     svl.userRouteId = params.userRouteId;
     svl.routeName = params.routeName;
     svl.makeCrops = params.makeCrops;
+    // Lat/lng estimator constants, owned by the backend (PanoDataService.LatLngEstimation) and used by Label.toLatLng.
+    svl.latLngEstimation = params.latLngEstimation;
 
     svl.storage = new TemporaryStorage(JSON);
     svl.tracker = new Tracker();
