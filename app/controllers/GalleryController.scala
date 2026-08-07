@@ -39,7 +39,7 @@ class GalleryController @Inject() (
       labelType: String,
       neighborhoods: String,
       severities: String,
-      tags: String,
+      tags: List[String],
       validationOptions: String,
       aiValidationOptions: String
   ): Action[AnyContent] =
@@ -78,7 +78,15 @@ class GalleryController @Inject() (
             val tokens = severities.split(",").filter(validSeverities.contains).distinct.toSeq
             if (tokens.isEmpty) validSeverities else tokens
           }
-          val tagList: List[String]   = tags.split(",").filter(possibleTags.contains).toList
+          // One occurrence per tag (?tags=a&tags=b), so a tag whose name contains a comma survives — "yellow box,
+          // accessibility features not visible" is a real one, and a joined list shredded it into two halves that
+          // named nothing, silently dropping the filter (#4783). Older comma-joined links still work: a value is
+          // only split once it fails to name a tag on its own.
+          val tagList: List[String] = tags.flatMap { entry =>
+            val whole = entry.trim
+            if (possibleTags.contains(whole)) Seq(whole)
+            else whole.split(",").map(_.trim).filter(possibleTags.contains).toSeq
+          }
           val valOptions: Seq[String] =
             validationOptions.split(",").filter(Seq("correct", "incorrect", "unsure", "unvalidated").contains(_)).toSeq
           val aiValOptions: Seq[String] =

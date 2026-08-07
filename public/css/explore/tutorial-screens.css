@@ -164,6 +164,56 @@
   color: var(--color-neutral-black);
 }
 
+/* ---- Pause/play control for the looping illustration clips ------------------------------------------------------- */
+
+/* Shared by the intro illustrations and the tutorial-complete hero, each of which loops indefinitely and so needs an
+   in-page stop control (WCAG 2.2.2). Kept small, translucent and tucked into a corner so it reads as a secondary
+   affordance rather than a video player; it firms up on hover/focus. Positioned by whichever box wraps the clip. */
+.motion-toggle {
+  position: absolute;
+  right: calc(10px * var(--ui-scale, 1));
+  bottom: calc(10px * var(--ui-scale, 1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(28px * var(--ui-scale, 1));
+  height: calc(28px * var(--ui-scale, 1));
+  padding: 0;
+  border: calc(1px * var(--ui-scale, 1)) solid var(--color-neutral-400);
+  border-radius: 50%;
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-800);
+  opacity: 0.7;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.motion-toggle:hover {
+  opacity: 1;
+}
+
+.motion-toggle:focus-visible {
+  opacity: 1;
+  outline: calc(2px * var(--ui-scale, 1)) solid var(--color-banana-800);
+  outline-offset: calc(2px * var(--ui-scale, 1));
+}
+
+.motion-toggle__icon {
+  width: calc(14px * var(--ui-scale, 1));
+  height: calc(14px * var(--ui-scale, 1));
+  fill: currentcolor;
+}
+
+/* The icon shows the action the button performs, so it tracks .is-paused inversely. */
+.motion-toggle__play-arrow,
+.motion-toggle.is-paused .motion-toggle__pause-bar {
+  display: none;
+}
+
+.motion-toggle.is-paused .motion-toggle__play-arrow {
+  display: block;
+}
+
 /* Stack the illustration above the copy on narrow viewports. */
 @media (width <= 900px) {
   .tutorial-intro__body {
@@ -209,8 +259,15 @@
   width: 100%;
 }
 
-.tutorial-complete__hero {
+/* Sized here rather than on the hero itself so the pause control can be positioned against the clip's own box. */
+.tutorial-complete__hero-wrap {
+  position: relative;
   width: var(--tc-hero-width);
+}
+
+.tutorial-complete__hero {
+  display: block;
+  width: 100%;
   height: auto;
 }
 

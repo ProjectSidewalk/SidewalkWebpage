@@ -299,6 +299,7 @@ audit.tutorial.complete.1 = Het is gelukt!
 audit.tutorial.complete.2 = Je hebt de uitleg voltooid!
 audit.tutorial.complete.learn-more = Meer informatie
 audit.tutorial.complete.start-contributing = Beginnen met bijdragen
+audit.tutorial.pause-animation = Animatie pauzeren
 
 audit.ribbon.curb.ramp.labels = TROTTOIR OPRIT LABELS
 audit.ribbon.sidewalk.labels = TROTTOIR LABELS

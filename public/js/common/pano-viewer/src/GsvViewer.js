@@ -41,7 +41,7 @@ class GsvViewer extends PanoViewer {
 
     // Add support for the tutorial panos that we have supplied locally.
     this.gsvPano.registerPanoProvider((pano) => {
-      if (pano === 'tutorial' || pano === 'afterWalkTutorial') {
+      if (util.pano.TUTORIAL_PANO_IDS.has(pano)) {
         return this.#getCustomPanoData(pano);
       }
       return null;
@@ -208,7 +208,7 @@ class GsvViewer extends PanoViewer {
 
   setPano = async (panoId) => {
     this.prevPanoData = this.currPanoData;
-    if (panoId === 'tutorial' || panoId === 'afterWalkTutorial') {
+    if (util.pano.TUTORIAL_PANO_IDS.has(panoId)) {
       // For locally stored tutorial panos, skip the getPanorama step and continue w/ our saved data.
       return this.#getPanoramaCallback({ data: this.#getCustomPanoData(panoId) }, new Set());
     } else {

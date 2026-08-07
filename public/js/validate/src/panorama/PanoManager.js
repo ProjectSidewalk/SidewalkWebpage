@@ -228,6 +228,14 @@ class PanoManager {
         zIndex: 2,
       });
       this.#markerViewer = svv.panoViewer;
+      // Take the halo class back off once it has played so the element doesn't carry a state class it isn't in.
+      // Attached here rather than per render because it belongs to the element's whole lifetime: interrupting a
+      // pulse fires animationcancel, not animationend, so a per-render `{ once: true }` listener would never fire
+      // and would accumulate one dead listener per label. Under prefers-reduced-motion no animation ever runs or
+      // ends, so the class lingers — harmless, since the same media query is what makes it inert.
+      this.labelMarker.marker_.addEventListener('animationend', (e) => {
+        if (e.animationName === 'label-marker-pulse') e.currentTarget.classList.remove('label-marker-pulse');
+      });
     } else {
       this.labelMarker.setPosition({ heading: labelPov.heading, pitch: labelPov.pitch });
     }
@@ -244,7 +252,50 @@ class PanoManager {
       'aria-label',
       i18next.t(`common:${util.camelToKebab(currentLabel.getAuditProperty('labelType'))}`).replace('&shy;', ''),
     );
+    this.#restartMarkerPulse(marker);
     this.#updateMarkerAiIndicator(currentLabel.getAuditProperty('aiGenerated'));
+  }
+
+  /**
+   * Replays the halo pulse once the marker can actually be seen, for the first label of a mission (#4790).
+   *
+   * That label renders behind page chrome — the loading overlay at boot (Main.js), the mission-complete modal on
+   * later missions (Form.js loads the next label before its button is clicked) — and visibility: hidden doesn't
+   * pause CSS animations, so the pulse plays unseen and is spent before the validator ever sees the marker. The
+   * reveal choreography calls this as its chrome clears; if the mission-start tutorial's overlay is up (desktop —
+   * mobile has no tutorial markup), the replay waits for its dismissal the same way the pano hint toast does
+   * (#4726).
+   */
+  replayMarkerPulse() {
+    if (!this.labelMarker) return;
+    const overlay = document.querySelector('.mission-start-tutorial-overlay');
+    if (overlay && getComputedStyle(overlay).display !== 'none') {
+      document.addEventListener(
+        'ps:mission-start-tutorial:done',
+        () => {
+          if (this.labelMarker) this.#restartMarkerPulse(this.labelMarker.marker_);
+        },
+        { once: true },
+      );
+    } else {
+      this.#restartMarkerPulse(this.labelMarker.marker_);
+    }
+  }
+
+  /**
+   * Replays the one-shot halo pulse that draws the eye to the marker (#4790, main.css .label-marker-pulse).
+   *
+   * Validate reuses one marker element across labels, so re-adding the class is not enough on its own: when a
+   * label is answered before its pulse has finished the class is still present, and the browser sees no change
+   * to act on. Reading offsetWidth in between flushes the pending style change, which is what restarts it.
+   *
+   * @param {HTMLElement} marker The marker element to pulse.
+   * @private
+   */
+  #restartMarkerPulse(marker) {
+    marker.classList.remove('label-marker-pulse');
+    void marker.offsetWidth;
+    marker.classList.add('label-marker-pulse');
   }
 
   /**

@@ -356,4 +356,41 @@ object LabelFormats {
       "labelLng"         -> label.pointData.lng
     )
   }
+
+  /**
+   * Serializes a label as a GeoJSON Feature for the label map.
+   *
+   * The admin variant (/adminapi/labels/all) carries `audit_task_id` and `has_admin_validation` on top of the public
+   * variant's properties; the public variant (/labels/all) omits them. Both sets are locked by `LabelFormatsSpec`.
+   *
+   * @param label The label to serialize.
+   * @param admin Whether to include the two admin-only properties.
+   */
+  def labelForLabelMapToGeoJson(label: LabelForLabelMap, admin: Boolean): JsObject = {
+    val properties: JsObject = Json.obj(
+      "label_id"          -> label.labelId,
+      "label_type"        -> label.labelType,
+      "severity"          -> label.severity,
+      "correct"           -> label.correct,
+      "has_validations"   -> label.hasValidations,
+      "ai_validation"     -> label.aiValidation.map(_.toString),
+      "expired"           -> label.expired,
+      "has_backup"        -> label.hasBackup,
+      "high_quality_user" -> label.highQualityUser,
+      "ai_generated"      -> label.aiGenerated,
+      "tags"              -> label.tags
+    )
+    val adminProperties: JsObject =
+      if (admin) Json.obj("audit_task_id" -> label.auditTaskId, "has_admin_validation" -> label.hasAdminValidation)
+      else Json.obj()
+
+    Json.obj(
+      "type"     -> "Feature",
+      "geometry" -> Json.obj(
+        "type"        -> "Point",
+        "coordinates" -> Json.arr(label.lng, label.lat)
+      ),
+      "properties" -> (properties ++ adminProperties)
+    )
+  }
 }

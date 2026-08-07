@@ -92,3 +92,4 @@ local development** — your edit / `grunt watch` / reload loop is untouched.
 | `pages.spec.js` | Table-driven phase-1 anonymous pages |
 | `dashboard.spec.js` | Registered-user pages |
 | `explore-validate.spec.js` | Phase-2 Explore/Validate specs (skip without the real GSV key) |
+| `labelmap-feed-failure.spec.js` | What `/labelMap` shows when its label feed fails (intercepted, so DB-independent) |

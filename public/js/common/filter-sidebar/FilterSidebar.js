@@ -64,12 +64,20 @@ class FilterSidebar {
   /**
    * Returns the current filter state, read straight off the DOM.
    *
-   * @returns {{severities: number[], sections: object, tags: object}} Enabled severities; per-section arrays of the
-   *      selected values (label types as bare type names, everything else as control ids); and the active tags of
-   *      every label type, including types with none selected so hosts can clear stale tag filters.
+   * `allSeverities` and `allLabelTypes` report what the host actually *rendered*, not what the app supports: a page
+   * may drop the severity toggles or a label type entirely, and a consumer that needs to recognize "everything is
+   * selected" has to compare against the rendered set rather than a hardcoded count.
+   *
+   * @returns {{severities: number[], allSeverities: number[], sections: object, tags: object,
+   *      allLabelTypes: string[]}} Enabled severities and every rendered severity; per-section arrays of the
+   *      selected values (label types as bare type names, everything else as control ids); the active tags of
+   *      every label type, including types with none selected so hosts can clear stale tag filters; and every
+   *      rendered label type.
    */
   getState() {
-    const severities = this.#severityButtons()
+    const severityButtons = this.#severityButtons();
+    const allSeverities = severityButtons.map((btn) => Number(btn.dataset.severity));
+    const severities = severityButtons
       .filter((btn) => btn.getAttribute('aria-pressed') === 'true')
       .map((btn) => Number(btn.dataset.severity));
 
@@ -88,7 +96,7 @@ class FilterSidebar {
       tags[pill.dataset.labelType]?.push(pill.dataset.tag);
     }
 
-    return { severities, sections, tags };
+    return { severities, allSeverities, sections, tags, allLabelTypes: Object.keys(tags) };
   }
 
   /**

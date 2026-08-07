@@ -20,13 +20,7 @@ class LabelDetail {
     const url = new URL(window.location);
     if (labelId) url.searchParams.set('labelId', labelId);
     else url.searchParams.delete('labelId');
-    // Commas are legal unencoded in a query value; keep any list params (the map/Gallery filters) readable
-    // rather than letting URL serialization re-encode them as %2C. MapSidebarUrlSync serializes identically on
-    // purpose — on the LabelMap both writers touch the same query string, and byte-differing output would have
-    // them rewrite each other's params on every toggle. A value carrying a literal comma is indistinguishable
-    // from a separator after this, which is fine while every list param here is comma-delimited.
-    const query = url.searchParams.toString().replace(/%2C/g, ',');
-    history.replaceState(null, '', `${url.pathname}${query ? `?${query}` : ''}${url.hash}`);
+    util.url.replaceQuery(url);
   }
 
   /**
@@ -327,6 +321,7 @@ class LabelDetail {
     // (outline / filled / outline-ai / filled-ai). The base URL for the icon files is read from a data
     // attribute on the container so JS doesn't need to know the assets' path.
     const voteDisplay = this.#root.querySelector('.label-detail__vote-display');
+    els.voteDisplay = voteDisplay;
     this.#iconBase = voteDisplay ? voteDisplay.dataset.iconBase : '';
     const voteEl = (variant, child) => this.#root.querySelector(`.label-detail__vote--${variant} ${child}`);
     els.voteIcons = {
@@ -1041,11 +1036,11 @@ class LabelDetail {
     for (const btn of Object.values(els.panoOverlayButtons)) btn.disabled = blocked;
     for (const btn of Object.values(els.voteButtons)) btn.disabled = blocked;
 
-    // Comment input and submit button.
+    // Comment input and submit button. The reason rides the row rather than the two controls it applies to: a
+    // disabled control swallows the hover that opens a tooltip on it.
     els.commentInput.disabled = blocked;
-    els.commentInput.title = tip;
     els.commentButton.disabled = blocked;
-    els.commentButton.title = tip;
+    LabelDetail.#setTooltip(els.commentRow, tip);
     // A durable lock also hides the comment box (it only shows with a Disagree/Unsure vote); a load in flight
     // leaves it in place and just disables it, since it's about to be usable again.
     this.#updateCommentRow();
@@ -1063,32 +1058,49 @@ class LabelDetail {
    * That last point is also why the pano hover-overlay buttons get a tooltip only while selected: unselected, their
    * full-width Agree/Disagree/Unsure labels already say what they do (Jon, #4574), so a tooltip would just repeat
    * them — but the selected one now clears rather than casts, which nothing else on it says.
+   *
+   * While the label is locked the reason goes on the vote column as a whole: these sentences don't apply, and a
+   * disabled button swallows the hover that would open a tooltip on it anyway.
    */
   #renderVoteTooltips() {
     const els = this.#els;
     const lockTip = this.#lockReason();
+    LabelDetail.#setTooltip(els.voteDisplay, lockTip ?? '');
     for (const action of Object.keys(els.voteButtons)) {
       const isVoted = !lockTip && this.#prevAction === action;
-      let title;
-      if (lockTip) {
-        title = lockTip;
-      } else if (isVoted) {
-        // {{count}} is the *other* validators, so the user isn't double-counted in their own tooltip. The i18next
-        // `_zero` key covers "nobody else" without a second key and a branch here — it resolves whenever count is 0,
-        // even in languages (zh-TW) whose CLDR rules have no zero category, so those locales carry only _zero/_other.
-        const others = Math.max(0, (this.#validationCounts[action] ?? 1) - 1);
-        title = i18next.t(`labelmap:vote-tooltip-voted-${action.toLowerCase()}`, { count: others });
-      } else {
-        const count = this.#validationCounts[action] ?? 0;
-        title = i18next.t(`labelmap:vote-tooltip-${action.toLowerCase()}`, { count });
+      let tip = '';
+      if (!lockTip) {
+        if (isVoted) {
+          // {{count}} is the *other* validators, so the user isn't double-counted in their own tooltip. The i18next
+          // `_zero` key covers "nobody else" without a second key and a branch here — it resolves whenever count is
+          // 0, even in languages (zh-TW) whose CLDR rules have no zero category, so those carry only _zero/_other.
+          const others = Math.max(0, (this.#validationCounts[action] ?? 1) - 1);
+          tip = i18next.t(`labelmap:vote-tooltip-voted-${action.toLowerCase()}`, { count: others });
+        } else {
+          const count = this.#validationCounts[action] ?? 0;
+          tip = i18next.t(`labelmap:vote-tooltip-${action.toLowerCase()}`, { count });
+        }
+        // The AI's vote is folded into this option's count, so flag it where it applies. Sentences are appended in
+        // order of usefulness, so what clicking *does* lands last rather than trailing off into a footnote.
+        if (this.#aiValidation === action) tip += ` ${i18next.t('labelmap:vote-tooltip-ai-included')}`;
+        if (isVoted) tip += ` ${i18next.t('labelmap:vote-tooltip-clear')}`;
       }
-      // The AI's vote is folded into this option's count, so flag it where it applies. Sentences are appended in
-      // order of usefulness, so what clicking *does* lands last rather than trailing off into a footnote.
-      if (!lockTip && this.#aiValidation === action) title += ` ${i18next.t('labelmap:vote-tooltip-ai-included')}`;
-      if (isVoted) title += ` ${i18next.t('labelmap:vote-tooltip-clear')}`;
-      els.voteButtons[action].title = title;
-      els.panoOverlayButtons[action].title = isVoted ? i18next.t('labelmap:vote-tooltip-clear') : '';
+      LabelDetail.#setTooltip(els.voteButtons[action], tip);
+      LabelDetail.#setTooltip(els.panoOverlayButtons[action], isVoted ? i18next.t('labelmap:vote-tooltip-clear') : '');
     }
+  }
+
+  /**
+   * Points the shared tooltip (psTooltip.js) at an element, or takes it away. The card's own tooltips go through
+   * this rather than the native `title` attribute so a long sentence wraps inside a bounded card instead of
+   * stretching into a single browser-drawn line the width of the card (#4778).
+   * @param {?Element} el - The trigger; ignored when the host's markup doesn't include it.
+   * @param {string} text - The tooltip text, or an empty string to remove the tooltip.
+   */
+  static #setTooltip(el, text) {
+    if (!el) return;
+    if (text) el.setAttribute('data-ps-tooltip', text);
+    else el.removeAttribute('data-ps-tooltip');
   }
 
   /**

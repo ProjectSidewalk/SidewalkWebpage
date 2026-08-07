@@ -652,6 +652,15 @@ a {
   color: var(--color-asphalt-500);
 }
 
+/* Brand marks in the "Connect" links (markup in common/socialIcon.scala.html). They fill with the link's own text
+   color so the set reads as one monochrome group rather than four competing brand palettes. */
+.social-icon {
+  width: 15px;
+  height: 15px;
+  vertical-align: -2px;
+  fill: currentcolor;
+}
+
 #info-footer {
   position: relative;
   width: 100%;
@@ -1533,6 +1542,41 @@ kbd {
 
 @media (prefers-reduced-motion: reduce) {
   .labelmap-beacon::after { animation: none; }
+}
+
+/* One-shot halo drawing the eye to a label marker on a panorama: Validate replays it on every new label (#4790),
+   the Label Detail Card plays it when the card opens (#4572). Both markers are small and easy to lose against a
+   busy streetscape.
+
+   The spread is a fraction of the marker's own diameter, which PanoMarker publishes as --marker-diameter, because
+   the same marker is drawn at very different sizes — 22px on desktop Validate but 52px on mobile, where a fixed
+   spread would leave the halo a thin fringe on the surface that can least afford one. That property is already in
+   ui-scaled pixels, so the halo needs no --ui-scale of its own.
+
+   The dark shadow carries the same spread as the white one but blurred, so it reads only as a soft edge just
+   outside the halo rather than as a second ring. Without it the halo disappears over concrete and sky, which is
+   most of what a marker sits on. */
+@keyframes label-marker-pulse {
+  from {
+    box-shadow: 0 0 0 0 rgb(255 255 255 / 90%), 0 0 var(--marker-pulse-blur) 0 rgb(0 0 0 / 50%);
+  }
+
+  to {
+    box-shadow:
+      0 0 0 var(--marker-pulse-spread) rgb(255 255 255 / 0%),
+      0 0 var(--marker-pulse-blur) var(--marker-pulse-spread) rgb(0 0 0 / 0%);
+  }
+}
+
+.label-marker-pulse {
+  --marker-pulse-spread: calc(var(--marker-diameter, 22px) * 0.8);
+  --marker-pulse-blur: calc(var(--marker-diameter, 22px) * 0.18);
+
+  animation: label-marker-pulse 1.4s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .label-marker-pulse { animation: none; }
 }
 
 /* Chat-bubble tail tying the /labelMap popup dialog to the spotlighted label's beacon: a full-viewport fixed

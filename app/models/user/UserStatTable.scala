@@ -271,17 +271,8 @@ class UserStatTable @Inject() (
    * Update meters_audited column in the user_stat table for users who have done any auditing since `cutoffTime`.
    */
   def updateAuditedDistance(cutoffTime: OffsetDateTime): DBIO[Unit] = {
-    // Get the list of users who have done any auditing since the cutoff time.
-    val usersToUpdate: Query[Rep[String], String, Seq] =
-      auditMissions.filter(_.missionEnd > cutoffTime).groupBy(_.userId).map(_._1)
-
-    // Computes the audited distance in meters for each user using the audit_task and street_edge tables.
-    updateAuditedDistanceHelper(usersToUpdate)
+    updateAuditedDistanceHelper(usersThatAuditedSinceCutoffTime(cutoffTime))
   }
-
-  /**
-   * Update the meters_audited column in the user_stat table for users who have done any auditing since `cutoffTime`.
-   */
 
   /**
    * Updates the meters_audited column in the user_stat table for the given users.
@@ -296,7 +287,7 @@ class UserStatTable @Inject() (
       .join(streetEdgeTable.streets)
       .on(_._1.streetEdgeId === _.streetEdgeId)
       .groupBy(_._1._1.userId)
-      .map(x => (x._1, x._2.map(_._2.geom.transform(26918).lengthD).sum))
+      .map(x => (x._1, x._2.map(_._2.geom.lengthGeodesic).sum))
       .result
       .flatMap { auditedDists: Seq[(String, Option[Double])] =>
         // Update the meters_audited column in the user_stat table.
@@ -423,8 +414,11 @@ class UserStatTable @Inject() (
           !x.excluded &&                              // false if excluded=true
           x.highQualityManual.getOrElse(true) && (    // false if high_quality_manual=false
             x.highQualityManual.getOrElse(false) || ( // true if high_quality_manual set to true
+              // 0.6d, not 0.6f: widening the float would compare against 0.60000002, so this path and the bulk
+              // `updateHighQuality` below would disagree for an accuracy in that sliver. Evolution 347 and
+              // GeodesicDistanceSpec both assume the two agree exactly.
               (x.metersAudited === 0d || x.labelsPerMeter.getOrElse(5d) > LABEL_PER_METER_THRESHOLD)
-                && (x.accuracy.getOrElse(1.0d) > 0.6f.asColumnOf[Double] || x.ownLabelsValidated < 50.asColumnOf[Int])
+                && (x.accuracy.getOrElse(1.0d) > 0.6d.asColumnOf[Double] || x.ownLabelsValidated < 50.asColumnOf[Int])
             )
           )
         }
@@ -502,15 +496,23 @@ class UserStatTable @Inject() (
   }
 
   /**
-   * Helper function to get the list of users who have done any auditing since the cutoff time.
+   * The users who have done any auditing since the cutoff time, i.e. whose cached stats may have gone stale.
+   *
+   * Completed audit tasks, not just audit missions, decide this. A user can accumulate completed audit tasks under a
+   * mission of another type — `auditOnboarding`, or the `exploreAddress` drop-ins of #4451 — and a mission-only
+   * selector never reaches them, so `meters_audited` stays at whatever it was, usually 0, forever (#4774). The audit
+   * missions are still unioned in rather than replaced, so a user whose missions moved but whose tasks did not is
+   * still refreshed.
+   *
+   * Deliberately does not require `meters_audited > 0`: that is the value this set exists to correct, so requiring it
+   * would keep exactly the stuck-at-zero users out of the refresh that would unstick them.
    */
   def usersThatAuditedSinceCutoffTime(cutoffTime: OffsetDateTime): Query[Rep[String], String, Seq] = {
-    (for {
-      _userStat <- userStats
-      _mission  <- auditMissions if _mission.userId === _userStat.userId
-      if _userStat.metersAudited > 0d
-      if _mission.missionEnd > cutoffTime
-    } yield _userStat.userId).groupBy(x => x).map(_._1)
+    val fromMissions: Query[Rep[String], String, Seq] = auditMissions.filter(_.missionEnd > cutoffTime).map(_.userId)
+    val fromTasks: Query[Rep[String], String, Seq]    =
+      auditTaskTable.filter(task => task.completed && task.taskEnd > cutoffTime).map(_.userId)
+
+    (fromMissions ++ fromTasks).distinct
   }
 
   /**
@@ -529,9 +531,9 @@ class UserStatTable @Inject() (
    *
    * Interim workaround for #4376 (mirrors `ConfigTable.withJitOff`): the projectsidewalk/db image ships a broken
    * Postgres JIT (PostGIS bitcode built with LLVM 16, runtime llvmjit linked against LLVM 11). A query expensive enough
-   * to cross the JIT inline-cost threshold and inline PostGIS bitcode (ST_TRANSFORM/ST_LENGTH) segfaults the backend,
+   * to cross the JIT inline-cost threshold and inline PostGIS bitcode (e.g. ST_LENGTH) segfaults the backend,
    * dropping the connection (SQLSTATE 08006) and forcing Postgres crash-recovery — which surfaces as a site-wide 502.
-   * `getLeaderboardStats` computes audited distance with ST_LENGTH(ST_TRANSFORM(...)) and is expensive enough to trip
+   * `getLeaderboardStats` computes audited distance with PostGIS ST_Length and is expensive enough to trip
    * this (#4545), so it must run with JIT off. `SET LOCAL` scopes the setting to this one transaction. Remove once #4376
    * disables JIT at the DB config level.
    *
@@ -548,6 +550,11 @@ class UserStatTable @Inject() (
    * Stats can be calculated for individual users or across teams. Overall and weekly are the possible time periods. We
    * only include accuracy if the user has at least 10 validated labels (must have either agree or disagree based off
    * of majority vote; an unsure or tie does not count).
+   *
+   * Qualification is by labels placed in the period: mission count and audited distance are LEFT-joined and default to
+   * 0 when absent, so a user who has placed labels but not yet finished a mission or a street still appears (with those
+   * columns at 0 and a low score). This matches getUserStanding's label-based eligibility, so the board and the "your
+   * standing" widget reconcile — a new mapper with labels but no completed street/mission still shows up (#4533).
    * @param n The number of top users to get stats for
    * @param timePeriod The time period over which to compute stats, either "weekly" or "overall"
    * @param byTeam True if grouping by team instead of by user.
@@ -594,12 +601,12 @@ class UserStatTable @Inject() (
       sql"""
       SELECT usernames.username,
              label_counts.label_count,
-             mission_count,
-             distance_meters,
+             COALESCE(mission_count, 0) AS mission_count,
+             COALESCE(distance_meters, 0) AS distance_meters,
              CASE WHEN validated_count > 9 THEN accuracy_temp ELSE NULL END AS accuracy,
              CASE WHEN accuracy_temp IS NOT NULL
-                 THEN SQRT(label_counts.label_count) * (0.5 * distance_meters / #$streetDistance + 0.5 * accuracy_temp)
-                 ELSE SQRT(label_counts.label_count) * (distance_meters / #$streetDistance)
+                 THEN SQRT(label_counts.label_count) * (0.5 * COALESCE(distance_meters, 0) / #$streetDistance + 0.5 * accuracy_temp)
+                 ELSE SQRT(label_counts.label_count) * (COALESCE(distance_meters, 0) / #$streetDistance)
                  END AS score
       FROM (
           SELECT #$groupingCol, COUNT(label_id) AS label_count
@@ -621,7 +628,8 @@ class UserStatTable @Inject() (
           LIMIT $n
       ) "label_counts"
       #$usernamesJoin
-      INNER JOIN (
+      -- LEFT joins so mission/distance are supplementary (default 0), not membership gates: labels alone qualify (#4533).
+      LEFT JOIN (
           SELECT #$groupingCol, COUNT(mission_id) AS mission_count
           FROM mission
           INNER JOIN sidewalk_user ON mission.user_id = sidewalk_user.user_id
@@ -629,8 +637,8 @@ class UserStatTable @Inject() (
           WHERE (mission_end AT TIME ZONE 'US/Pacific') > #$statStartTime
           GROUP BY #$groupingCol
       ) "missions_counts" ON label_counts.#$groupingColName = missions_counts.#$groupingColName
-      INNER JOIN (
-          SELECT #$groupingCol, COALESCE(SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))), 0) AS distance_meters
+      LEFT JOIN (
+          SELECT #$groupingCol, COALESCE(SUM(ST_Length(geom::geography)), 0) AS distance_meters
           FROM street_edge
           INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN sidewalk_user ON audit_task.user_id = sidewalk_user.user_id
@@ -648,7 +656,7 @@ class UserStatTable @Inject() (
           WHERE (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
           GROUP BY #$groupingColName
       ) "accuracy" ON label_counts.#$groupingColName = accuracy.#$groupingColName
-      ORDER BY score DESC;
+      ORDER BY score DESC, label_counts.label_count DESC;
     """
         .as[(String, Int, Int, Double, Option[Double], Double)]
         .map(_.map { stat =>
@@ -668,8 +676,8 @@ class UserStatTable @Inject() (
    * statement rather than a per-city fan-out because all city schemas live in the same database.
    *
    * Two deliberate departures from the per-city board, both to keep this cheap enough to run on a page load:
-   *  - Distance sums the nightly-precomputed `user_stat.meters_audited` instead of recomputing
-   *    `ST_LENGTH(ST_TRANSFORM(...))` per city. It is the same quantity by the same definition (see
+   *  - Distance sums the nightly-precomputed `user_stat.meters_audited` instead of recomputing geodesic street
+   *    lengths per city. It is the same quantity by the same definition (see
    *    `updateAuditedDistanceHelper`), just up to a day stale, and it keeps PostGIS out of a 50-way union — which also
    *    sidesteps the JIT segfault that forces `withJitOff` on the per-city board (#4376/#4545).
    *  - Ranking is by raw label count, so the rows are in true rank order (the per-city board's composite score has a

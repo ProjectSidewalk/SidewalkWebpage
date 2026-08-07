@@ -2,7 +2,6 @@ package controllers
 
 import controllers.base._
 import controllers.helper.ControllerUtils.{parseIntegerSeq, NoUserId}
-import executors.CpuIntensiveExecutionContext
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
 import models.label._
@@ -20,8 +19,7 @@ class LabelController @Inject() (
     val silhouette: Silhouette[DefaultEnv],
     implicit val ec: ExecutionContext,
     labelService: LabelService,
-    panoDataService: PanoDataService,
-    cpuEc: CpuIntensiveExecutionContext
+    panoDataService: PanoDataService
 ) extends CustomBaseController(cc) {
 
   private val logger = Logger(this.getClass)
@@ -75,7 +73,8 @@ class LabelController @Inject() (
    * Get all labels with the metadata needed for /labelMap, as a GeoJSON FeatureCollection of points.
    *
    * Public read: /labelMap is browsable anonymously. The admin variant with extra fields (audit_task_id,
-   * has_admin_validation) is AdminController.getAllLabels at /adminapi/labels/all.
+   * has_admin_validation) is AdminController.getAllLabels at /adminapi/labels/all. The response is streamed from the
+   * db in a chunked response rather than materialized in memory — a whole city's labels can be tens of MB (#3932).
    *
    * @param regions             Comma-separated region IDs to filter by.
    * @param routes              Comma-separated route IDs to filter by.
@@ -85,39 +84,13 @@ class LabelController @Inject() (
    *                            LabelMap renders from.
    */
   def getAllLabelsForLabelMap(regions: Option[String], routes: Option[String], aiValidationOptions: Option[String]) =
-    Action.async {
+    Action {
       val regionIds: Seq[Int]    = parseIntegerSeq(regions)
       val routeIds: Seq[Int]     = parseIntegerSeq(routes)
       val aiValOpts: Seq[String] = aiValidationOptions.map(_.split(",").toSeq.distinct).getOrElse(Seq())
 
-      labelService
-        .getLabelsForLabelMap(regionIds, routeIds, aiValOpts)
-        .map { labels =>
-          val features: Seq[JsObject] = labels.map { label =>
-            Json.obj(
-              "type"     -> "Feature",
-              "geometry" -> Json.obj(
-                "type"        -> "Point",
-                "coordinates" -> Json.arr(label.lng, label.lat)
-              ),
-              "properties" -> Json.obj(
-                "label_id"          -> label.labelId,
-                "label_type"        -> label.labelType,
-                "severity"          -> label.severity,
-                "correct"           -> label.correct,
-                "has_validations"   -> label.hasValidations,
-                "ai_validation"     -> label.aiValidation.map(_.toString),
-                "expired"           -> label.expired,
-                "has_backup"        -> label.hasBackup,
-                "high_quality_user" -> label.highQualityUser,
-                "ai_generated"      -> label.aiGenerated,
-                "tags"              -> label.tags
-              )
-            )
-          }
-          val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
-          Ok(featureCollection)
-        }(cpuEc)
+      val labels = labelService.getLabelsForLabelMap(regionIds, routeIds, aiValOpts, DEFAULT_BATCH_SIZE)
+      streamGeoJson(labels.map(LabelFormats.labelForLabelMapToGeoJson(_, admin = false)), "labels/all")
     }
 
   /**

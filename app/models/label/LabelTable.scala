@@ -1,7 +1,13 @@
 package models.label
 
 import com.google.inject.ImplementedBy
-import models.api.{LabelDataForApi, LabelValidationSummaryForApi, RawLabelFiltersForApi}
+import models.api.{
+  LabelDataForApi,
+  LabelValidationSummaryForApi,
+  RawLabelFiltersForApi,
+  RawLabelValidationStatus,
+  TagFilterForApi
+}
 import models.audit.AuditTaskTableDef
 import models.label.LabelTable._
 import models.label.LabelTypeEnum._
@@ -308,6 +314,55 @@ object LabelTable {
     "ai"    -> "role = 'AI'"
   )
 
+  /**
+   * Builds the `WHERE` fragment for the Raw Labels API's `tags` filter.
+   *
+   * Every entry contributes to the set of tags that narrows one or more label types, and a label is kept when it
+   * carries any tag from the set that applies to *its* type:
+   *
+   *   - an unscoped entry applies to every label type;
+   *   - an entry scoped to a type (`CurbRamp:narrow`) applies only to that type;
+   *   - a type that ends up with an empty applicable set is not narrowed at all.
+   *
+   * That last rule is what lets the LabelMap's download reproduce what the map shows: the sidebar narrows each label
+   * type by its own tag pills and leaves the untagged types alone, so scoping a tag to `CurbRamp` must not drop every
+   * `Obstacle` (#4095). With no scoped entries the clause reduces to a flat OR over the tags, which is the behavior
+   * unscoped callers have always had.
+   *
+   * Label types are allowlisted `LabelTypeEnum` names (validated at parse time) and so are safe to splice; only the
+   * caller-supplied tag text needs escaping.
+   *
+   * @param tags Parsed tag filters; must be non-empty.
+   * @return A parenthesized SQL condition over `label.tags` and `label_type.label_type`.
+   */
+  def tagWhereClause(tags: Seq[TagFilterForApi]): String = {
+    def matchesTag(tag: String): String         = s"'${tag.replace("'", "''")}' = ANY(label.tags)"
+    def anyOf(tagsToMatch: Seq[String]): String = tagsToMatch.distinct.map(matchesTag).mkString(" OR ")
+
+    val unscopedTags: Seq[String]            = tags.collect { case TagFilterForApi(None, tag) => tag }
+    val scopedTags: Map[String, Seq[String]] = tags
+      .collect { case TagFilterForApi(Some(labelType), tag) =>
+        labelType -> tag
+      }
+      .groupMap(_._1)(_._2)
+
+    // Sorted so the emitted SQL is deterministic regardless of the order the caller listed the entries in.
+    val scopedConditions: Seq[String] = scopedTags.toSeq.sortBy(_._1).map { case (labelType, tagsForType) =>
+      s"(label_type.label_type = '$labelType' AND (${anyOf(tagsForType ++ unscopedTags)}))"
+    }
+
+    val otherTypesCondition: String = if (scopedTags.isEmpty) {
+      anyOf(unscopedTags)
+    } else {
+      val scopedTypeList = scopedTags.keys.toSeq.sorted.map(labelType => s"'$labelType'").mkString(", ")
+      val notScoped      = s"label_type.label_type NOT IN ($scopedTypeList)"
+      // No unscoped tags means the types nobody scoped are left unnarrowed, so they pass on type alone.
+      if (unscopedTags.isEmpty) notScoped else s"($notScoped AND (${anyOf(unscopedTags)}))"
+    }
+
+    s"(${(scopedConditions :+ otherTypesCondition).mkString(" OR ")})"
+  }
+
   // Type aliases for the tuple representation of LabelMetadataUserDash and queries for them.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
   type LabelMetadataUserDashTuple =
@@ -330,6 +385,27 @@ object LabelTable {
       def fromTuple(t: LabelMetadataUserDashTuple): LabelMetadataUserDash =
         LabelMetadataUserDash(t._1, t._2, t._3, POV.tupled(t._4), t._5, t._6, LabelTypeEnum.byName(t._7), t._8, t._9)
     }
+
+  // Type alias for the tuple representation of LabelForLabelMap query results. Includes streetEdgeId (2nd element,
+  // dropped when converting to the case class) because the route-filtering branch in getLabelsForLabelMap needs it.
+  type LabelForLabelMapTuple = (
+      Int,                            // 1.  labelId
+      Int,                            // 2.  streetEdgeId
+      Int,                            // 3.  auditTaskId
+      String,                         // 4.  labelType
+      Option[Double],                 // 5.  lat
+      Option[Double],                 // 6.  lng
+      Option[Boolean],                // 7.  correct
+      Boolean,                        // 8.  hasValidations
+      Boolean,                        // 9.  hasAdminValidation
+      Option[ValidationOption.Value], // 10. aiValidation
+      Boolean,                        // 11. expired
+      Boolean,                        // 12. hasBackup
+      Boolean,                        // 13. highQualityUser
+      Option[Int],                    // 14. severity
+      List[String],                   // 15. tags
+      Boolean                         // 16. aiGenerated
+  )
 
   // Type aliases for the tuple representation of LabelValidationMetadata and queries for them.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
@@ -1565,13 +1641,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Returns all the submitted labels with their severities included. If provided, filter for only given regions.
+   * Query for all submitted labels with the metadata needed for the label map. If provided, filters for only the
+   * given regions/routes/AI-validation results. Returns the tuple-level query so callers can stream it from the db
+   * with `db.stream` (#3932); convert rows to the case class with `tupleToLabelForLabelMap`.
    */
   def getLabelsForLabelMap(
       regionIds: Seq[Int],
       routeIds: Seq[Int],
       aiValOptions: Seq[String]
-  ): DBIO[Seq[LabelForLabelMap]] = {
+  ): Query[_, LabelForLabelMapTuple, Seq] = {
     // Label IDs with at least one validation from an Administrator or Owner.
     val _adminValidatedLabelIds = for {
       _lv <- labelValidations
@@ -1642,15 +1720,44 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _labelsFilteredByAiValidation
     }
 
-    // For some reason we couldn't use both `_l.agreeCount > 0` and `_lPoint.lat.get` in the yield without a runtime
-    // error, which is why we couldn't use `.tupled` here. This was the error message:
-    // SlickException: Expected an option type, found Float/REAL
-    _labelsNearRoute.result.map(_.map {
-      case (id, streetId, taskId, lType, lat, lng, correct, hasVals, hasAdminVals, aiVal, expired, hasBackup, highQual,
-            sev, tags, ai) =>
-        LabelForLabelMap(id, taskId, lType, lat.get, lng.get, correct, hasVals, hasAdminVals, aiVal, expired, hasBackup,
-          highQual, sev, tags, ai)
-    })
+    _labelsNearRoute
+  }
+
+  /**
+   * Converts a row from `getLabelsForLabelMap` to a `LabelForLabelMap`, dropping the street ID (only in the tuple for
+   * route filtering). Called via `DatabasePublisher.mapResult`, so streamed rows are converted one at a time.
+   *
+   * This can't be a mapped projection on the query itself: using both `_l.agreeCount > 0` and `_lp.lat.get` in the
+   * yield fails at runtime with "SlickException: Expected an option type, found Float/REAL".
+   *
+   * `getLabelsForLabelMap` filters on `lat.isDefined && lng.isDefined`, so a NULL coordinate here means that filter
+   * was lost. That fails loudly rather than silently dropping labels off the map, which is the harder bug to notice.
+   */
+  def tupleToLabelForLabelMap(t: LabelForLabelMapTuple): LabelForLabelMap = t match {
+    case (
+          id,
+          _,
+          taskId,
+          lType,
+          Some(lat),
+          Some(lng),
+          correct,
+          hasVals,
+          hasAdminVals,
+          aiVal,
+          expired,
+          hasBackup,
+          highQual,
+          sev,
+          tags,
+          ai
+        ) =>
+      LabelForLabelMap(id, taskId, lType, lat, lng, correct, hasVals, hasAdminVals, aiVal, expired, hasBackup, highQual,
+        sev, tags, ai)
+    case _ =>
+      throw new IllegalStateException(
+        s"Label ${t._1} has a NULL lat (${t._5}) or lng (${t._6}); getLabelsForLabelMap must filter them out."
+      )
   }
 
   /**
@@ -1884,8 +1991,18 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     }
 
     if (filters.tags.isDefined && filters.tags.get.nonEmpty) {
-      val tagConditions = filters.tags.get.map(tag => s"'${tag.replace("'", "''")}' = ANY(label.tags)").mkString(" OR ")
-      whereConditions :+= s"($tagConditions)"
+      whereConditions :+= tagWhereClause(filters.tags.get)
+    }
+
+    filters.severity.foreach { severityFilter =>
+      // Severities are validated Ints and the null token is a boolean, so the condition is injection-safe.
+      val severityConditions = Seq(
+        Option.when(severityFilter.severities.nonEmpty)(
+          s"label.severity IN (${severityFilter.severities.toSeq.sorted.mkString(", ")})"
+        ),
+        Option.when(severityFilter.includeNullSeverity)("label.severity IS NULL")
+      ).flatten
+      whereConditions :+= s"(${severityConditions.mkString(" OR ")})"
     }
 
     if (filters.minSeverity.isDefined) {
@@ -1896,13 +2013,17 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       whereConditions :+= s"label.severity <= ${filters.maxSeverity.get}"
     }
 
-    if (filters.validationStatus.isDefined) {
-      filters.validationStatus.get match {
-        case "Agreed"      => whereConditions :+= "label.correct = TRUE"
-        case "Disagreed"   => whereConditions :+= "label.correct = FALSE"
-        case "Unvalidated" => whereConditions :+= "label.correct IS NULL"
-        case _             => // No additional filter
-      }
+    filters.validationStatuses.foreach { statuses =>
+      // A map instead of a pattern match because Enumeration matches can't be exhaustiveness-checked.
+      val conditionsByStatus: Map[RawLabelValidationStatus.Value, String] = Map(
+        RawLabelValidationStatus.ValidatedCorrect   -> "label.correct = TRUE",
+        RawLabelValidationStatus.ValidatedIncorrect -> "label.correct = FALSE",
+        RawLabelValidationStatus.Unsure             ->
+          "(label.correct IS NULL AND (label.agree_count > 0 OR label.disagree_count > 0 OR label.unsure_count > 0))",
+        RawLabelValidationStatus.Unvalidated ->
+          "(label.correct IS NULL AND label.agree_count = 0 AND label.disagree_count = 0 AND label.unsure_count = 0)"
+      )
+      whereConditions :+= s"(${statuses.toSeq.sortBy(_.id).map(conditionsByStatus).mkString(" OR ")})"
     }
 
     if (filters.highQualityUserOnly) {
@@ -2176,13 +2297,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              ai_stats.crswlk_ai_no_admin_yes,
              ai_stats.crswlk_ai_no_admin_no
       FROM (
-          SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km_audited
+          SELECT SUM(ST_Length(geom::geography)) / 1000 AS km_audited
           FROM street_edge
           INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN user_stat ON audit_task.user_id = user_stat.user_id
           WHERE completed = TRUE AND #$userFilter
       ) AS km_audited, (
-          SELECT SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000 AS km_audited_no_overlap
+          SELECT SUM(ST_Length(geom::geography)) / 1000 AS km_audited_no_overlap
           FROM (
               SELECT DISTINCT street_edge.street_edge_id, geom
               FROM street_edge
@@ -2194,7 +2315,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           -- Redundant-coverage km: streets with a completed audit by ≥2 distinct (non-excluded) users. Mirrors the
           -- km_audited_no_overlap subquery but groups per street and keeps only those audited by 2+ people. Single-user
           -- km is derived (no_overlap − multiple_users) in projectSidewalkStatsConverter, so it is not selected here.
-          SELECT COALESCE(SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))) / 1000, 0) AS km_explored_multiple_users
+          SELECT COALESCE(SUM(ST_Length(geom::geography)) / 1000, 0) AS km_explored_multiple_users
           FROM (
               SELECT street_edge.street_edge_id, geom
               FROM street_edge
@@ -2213,7 +2334,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                  COALESCE(SUM(len) FILTER (WHERE status = 'closed'), 0)     AS km_closed,
                  COALESCE(SUM(len) FILTER (WHERE status = 'disabled'), 0)   AS km_disabled
           FROM (
-              SELECT status, ST_LENGTH(ST_TRANSFORM(geom, 26918)) / 1000 AS len
+              SELECT status, ST_Length(geom::geography) / 1000 AS len
               FROM street_edge
               WHERE street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
           ) street_lengths

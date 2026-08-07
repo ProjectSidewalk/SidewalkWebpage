@@ -26,6 +26,9 @@ Also covered, beyond the api-docs previews:
   fork, the popover's ARIA contract and focus management, clipboard/intents, and activity logging. `ShareWidget` is a
   top-level `class` declaration (not a `window.X = ...` assignment), so the test evals the source into the jsdom
   global scope instead of using `loadGlobalScript`.
+- `common/AppManager.js` → `appManagerCsrfFetch.test.js` — the `window.fetch` CSRF wrapper (#4232): the token must
+  reach same-origin requests and *only* same-origin requests, across all three argument types `fetch` accepts
+  (string, `URL`, `Request`). jsdom implements neither `fetch` nor `Request`, so the test supplies both.
 - `community/*.js` → `communityListPage.test.js` — the /stories + /routes listing pages' client layer (#4688):
   search filtering (hidden attr, live count, no-results), sort orders and tie-breaks, localized dates, type-chip
   tinting, the read-more clamp toggle, view-label popup-vs-navigation routing, and the copy-share-link fallbacks.

@@ -12,6 +12,7 @@ class LabelMapPage {
   #popup = null;
   #map = null;
   #mapData = null;
+  #overlay = null;
 
   /**
    * @param {{mapboxToken: string, viewerType: Function, accessToken: string, username: string}} opts
@@ -22,6 +23,10 @@ class LabelMapPage {
 
   async init() {
     this.#wireSearch(); // Wire the ID search immediately; it stays usable even if the map/popup are slow.
+
+    // Same overlay /labelMap uses: this map loads every label on the deployment, so it has the same multi-second
+    // wait and the same need to say so when the feed fails.
+    this.#overlay = new MapLoadingOverlay();
 
     // Build the label-detail popup first so the map can hand clicks to it. If it fails (e.g. pano libs missing),
     // the map still renders and the search box falls back to opening /admin/label/:id as a page.
@@ -55,6 +60,9 @@ class LabelMapPage {
       popupLabelViewer: this.#popup,
       logClicks: false,
       highQualityFilter: true,
+      // Reveal the overlay as soon as the map is ready, so the wait is attributed to the label layer rather
+      // than looking like a dead page.
+      onMapReady: () => this.#overlay.show(),
     };
 
     try {
@@ -62,12 +70,10 @@ class LabelMapPage {
       this.#map = result[0];
       this.#mapData = result[4];
       new MapSidebarFilter(this.#map, this.#mapData, { highQualityFilter: true });
+      this.#overlay.hide();
     } catch (err) {
       console.error('Label Map: map failed to load.', err);
-      const holder = document.getElementById('admin-labelmap-choropleth');
-      if (holder) {
-        holder.innerHTML = '<p class="dq-empty" style="padding:24px">Could not load the map. Please try again.</p>';
-      }
+      this.#overlay.showError();
     }
   }
 

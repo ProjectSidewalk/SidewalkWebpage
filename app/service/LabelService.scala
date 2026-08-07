@@ -13,6 +13,7 @@ import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ExcludedTag, MyPostgresProfile}
 import models.validation.LabelValidationTable
+import org.apache.pekko.stream.scaladsl.Source
 import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.DBIO
@@ -46,8 +47,9 @@ trait LabelService {
   def getLabelsForLabelMap(
       regionIds: Seq[Int],
       routeIds: Seq[Int],
-      aiValOptions: Seq[String]
-  ): Future[Seq[LabelForLabelMap]]
+      aiValOptions: Seq[String],
+      batchSize: Int
+  ): Source[LabelForLabelMap, _]
   def getGalleryLabels(
       n: Int,
       labelTypes: Set[LabelTypeEnum.Base],
@@ -185,9 +187,23 @@ class LabelServiceImpl @Inject() (
   def getLabelsForLabelMap(
       regionIds: Seq[Int],
       routeIds: Seq[Int],
-      aiValOptions: Seq[String]
-  ): Future[Seq[LabelForLabelMap]] =
-    db.run(labelTable.getLabelsForLabelMap(regionIds, routeIds, aiValOptions))
+      aiValOptions: Seq[String],
+      batchSize: Int
+  ): Source[LabelForLabelMap, _] =
+    // `.transactionally` is required for Postgres to honor fetchSize and stream instead of materializing (#3932). It
+    // also means a pooled connection stays checked out, transaction open, for the whole response rather than just the
+    // query: `Ok.chunked` backpressures from the client socket, so a slow reader pins one of the 25 connections until
+    // it finishes. Prod bounds that with idle_in_transaction_session_timeout=120s, which a fetch-to-fetch gap longer
+    // than that trips — the stream then fails mid-flight, and `logStreamFailures` is the only trace (see #4161).
+    Source.fromPublisher(
+      db.stream(
+        labelTable
+          .getLabelsForLabelMap(regionIds, routeIds, aiValOptions)
+          .result
+          .transactionally
+          .withStatementParameters(fetchSize = batchSize)
+      ).mapResult(labelTable.tupleToLabelForLabelMap)
+    )
 
   /**
    * Retrieves n labels, split evenly across the requested label types. An empty set of types gives a mix of all.

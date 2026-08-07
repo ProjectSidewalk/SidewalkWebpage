@@ -8,7 +8,6 @@ import org.apache.pekko.stream.scaladsl.Source
 import play.silhouette.api.Silhouette
 import service.{AccessScoreService, ApiService, ConfigService}
 
-import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -62,7 +61,7 @@ class AccessScoreApiController @Inject() (
             // A region's bbox can overlap neighbors, so restrict to the requested region when one was given.
             val streets: Seq[StreetAccessScoreForApi] =
               regionFilterId.fold(allStreets)(id => allStreets.filter(_.regionId == id))
-            val baseFileName: String                             = s"accessScoreStreets_${OffsetDateTime.now()}"
+            val baseFileName: String                             = timestampedFilename("accessScoreStreets")
             val streetStream: Source[StreetAccessScoreForApi, _] = Source.fromIterator(() => streets.iterator)
             cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
@@ -79,7 +78,7 @@ class AccessScoreApiController @Inject() (
               case Some("geopackage") =>
                 outputGeopackage(streetStream, baseFileName, shapefileCreator.createStreetAccessScoreGeopackage, inline)
               case _ =>
-                outputGeoJSON(streetStream, inline, baseFileName + ".json")
+                outputGeoJSON(streetStream, inline, baseFileName + ".geojson")
             }
         }
     }
@@ -110,7 +109,7 @@ class AccessScoreApiController @Inject() (
         accessScoreService.computeRegionScoresV3(resolvedBbox, DEFAULT_BATCH_SIZE).flatMap { allRegions =>
           val regions: Seq[RegionAccessScoreForApi] =
             regionFilterId.fold(allRegions)(id => allRegions.filter(_.regionId == id))
-          val baseFileName: String                             = s"accessScoreRegions_${OffsetDateTime.now()}"
+          val baseFileName: String                             = timestampedFilename("accessScoreRegions")
           val regionStream: Source[RegionAccessScoreForApi, _] = Source.fromIterator(() => regions.iterator)
           cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
@@ -127,7 +126,7 @@ class AccessScoreApiController @Inject() (
             case Some("geopackage") =>
               outputGeopackage(regionStream, baseFileName, shapefileCreator.createRegionAccessScoreGeopackage, inline)
             case _ =>
-              outputGeoJSON(regionStream, inline, baseFileName + ".json")
+              outputGeoJSON(regionStream, inline, baseFileName + ".geojson")
           }
         }
     }
