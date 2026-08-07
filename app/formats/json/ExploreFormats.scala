@@ -12,6 +12,7 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import service.UpdatedStreets
 
+import java.nio.charset.StandardCharsets
 import java.time.OffsetDateTime
 
 object ExploreFormats {
@@ -99,7 +100,9 @@ object ExploreFormats {
       links: Seq[PanoLinkSubmission],
       copyright: Option[String],
       address: Option[String],
-      history: Seq[PanoDate]
+      history: Seq[PanoDate],
+      // Verbatim imagery-provider metadata blob; sent by the AI labeler only, never by the Explore client (#4806).
+      sourceMetadata: Option[JsObject]
   )
   case class AuditMissionProgress(
       missionId: Int,
@@ -309,6 +312,19 @@ object ExploreFormats {
       (JsPath \ "description").readNullable[String]
   )(PanoLinkSubmission.apply _)
 
+  // Ceiling on the provider blob a single submission may persist (#4806). It is stored verbatim, the JSON body parser
+  // accepts up to play.http.parser.maxMemoryBuffer (100M), and the column rides pano_data's default projection, so
+  // without a bound one caller could park an arbitrarily fat row on a table other paths read whole. Real Mapillary
+  // blobs run a few KB, so this leaves ample headroom while turning an absurd payload into a 400 rather than a row
+  // that has to be cleaned up by hand.
+  private val maxSourceMetadataBytes = 64 * 1024
+
+  // Object-only: the blob is a provider metadata document, never a scalar or array. pano_data carries the matching
+  // jsonb_typeof CHECK (evolution 348), so a malformed blob is refused at both ends.
+  private val sourceMetadataReads: Reads[JsObject] = Reads.JsObjectReads.filter(
+    JsonValidationError(s"source_metadata must be a JSON object of at most $maxSourceMetadataBytes bytes")
+  )(blob => Json.stringify(blob).getBytes(StandardCharsets.UTF_8).length <= maxSourceMetadataBytes)
+
   implicit val panoSubmissionReads: Reads[PanoSubmission] = (
     (JsPath \ "pano_id").read[String] and
       (JsPath \ "source").read[PanoSource.Value] and
@@ -325,7 +341,8 @@ object ExploreFormats {
       (JsPath \ "links").read[Seq[PanoLinkSubmission]] and
       (JsPath \ "copyright").readNullable[String] and
       (JsPath \ "address").readNullable[String] and
-      (JsPath \ "history").read[Seq[PanoDate]]
+      (JsPath \ "history").read[Seq[PanoDate]] and
+      (JsPath \ "source_metadata").readNullable[JsObject](sourceMetadataReads)
   )(PanoSubmission.apply _)
 
   implicit val auditMissionProgressReads: Reads[AuditMissionProgress] = (
