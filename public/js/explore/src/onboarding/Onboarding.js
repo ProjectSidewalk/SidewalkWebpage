@@ -20,6 +20,7 @@ class Onboarding {
   #ctx;
   #blinkTimer = 0;
   #blinkFunctionIdentifier = [];
+  #labelIntroRafId = null;
   #states;
   #statesWithProgress;
   #savedAnnotations = [];
@@ -116,14 +117,6 @@ class Onboarding {
 
     this.#contextMenu.disableRatingSeverity();
     this.#contextMenu.disableTagging();
-
-    // Make sure that the context menu covers instructions when hovering over the context menu.
-    svl.ui.contextMenu.holder.on('mouseover', () => {
-      this.#uiOnboarding.messageHolder.css('z-index', 2);
-    });
-    svl.ui.contextMenu.holder.on('mouseout', () => {
-      this.#uiOnboarding.messageHolder.css('z-index', 1100);
-    });
 
     this.#visit(this.#getState('initialize'));
     this.#handAnimation.initializeHandAnimation();
@@ -226,10 +219,17 @@ class Onboarding {
    * @param labelType {string} Label type that selects the correct icon
    * @param x {number} canvas x-position of the center of the label
    * @param y {number} canvas y-position of the center of the label
+   * @param {number} [progress=1] - Entrance progress in [0, 1]; the icon fades and scales up as it pops in.
    */
-  #drawStaticLabel(labelType, x, y) {
+  #drawStaticLabel(labelType, x, y, progress = 1) {
     if (this.#ctx) {
       this.#ctx.save();
+      // Entrance pop: ease out while growing from 60% and fading in.
+      const eased = 1 - Math.pow(1 - progress, 3);
+      this.#ctx.globalAlpha = eased;
+      this.#ctx.translate(x, y);
+      this.#ctx.scale(0.6 + 0.4 * eased, 0.6 + 0.4 * eased);
+      this.#ctx.translate(-x, -y);
       Label.renderLabelIcon(this.#ctx, labelType, x, y);
       this.#ctx.restore();
     }
@@ -361,10 +361,14 @@ class Onboarding {
 
     this.clear();
 
-    // Get the full list of annotations, including those from previous states that should remain.
-    const currAnnotations = state.annotations
-      ? this.#savedAnnotations.concat(state.annotations)
-      : this.#savedAnnotations;
+    // Get the full list of annotations, including those from previous states that should remain. Deduped because a
+    // state is redrawn repeatedly (per pano move, per entrance frame) and each pass rebuilds #savedAnnotations from
+    // this list — see util.misc.mergeOnboardingAnnotations for what that costs when it isn't (#4832).
+    const currAnnotations = util.misc.mergeOnboardingAnnotations(this.#savedAnnotations, state.annotations);
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let newLabelCount = 0;
+    let entranceRunning = false;
 
     let blink_frequency_modifier = 0;
     for (i = 0, len = currAnnotations.length; i < len; i++) {
@@ -379,13 +383,7 @@ class Onboarding {
       centeredPov = null;
 
       // Setting the original POV and mapping an image coordinate to a canvas coordinate.
-      if (currentPov.heading < 180) {
-        if (imX > svl.TUTORIAL_PANO_WIDTH - 3328 && imX > 3328) {
-          imX -= svl.TUTORIAL_PANO_WIDTH;
-        }
-      } else if (imX < 3328 && imX < svl.TUTORIAL_PANO_WIDTH - 3328) {
-        imX += svl.TUTORIAL_PANO_WIDTH;
-      }
+      imX = util.misc.unwrapPanoX(imX, currentPov.heading, svl.TUTORIAL_PANO_WIDTH);
       centeredPov = util.pano.panoCoordToPov(imX, imY, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT);
       const canvasCoord = util.pano.centeredPovToCanvasCoord(
         centeredPov, currentPov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS,
@@ -424,12 +422,20 @@ class Onboarding {
         };
         this.#drawBox(canvasCoord.x, canvasCoord.y, annotation.width, annotation.height, params);
       } else if (annotation.type === 'label') {
-        // Only draw the label icon when it's on-screen; the minimap marker is still created below regardless.
-        if (onCanvas) {
-          this.#drawStaticLabel(annotation.labelType, canvasCoord.x, canvasCoord.y);
+        // Example labels pop in staggered, in the order the copy introduces them; POV/resize redraws after the
+        // entrance render them at rest. Under prefers-reduced-motion they appear at rest immediately.
+        if (annotation.appearStart === undefined) {
+          annotation.appearStart = reduceMotion ? -Infinity : performance.now() + newLabelCount * 350;
+          newLabelCount += 1;
         }
-        // The first time we encounter the label, create the marker on the minimap.
-        if (!annotation.firstDraw) {
+        const progress = Math.min(Math.max((performance.now() - annotation.appearStart) / 300, 0), 1);
+        if (progress < 1) entranceRunning = true;
+        // Only draw the label icon when it's on-screen; the minimap marker is still created below regardless.
+        if (onCanvas && progress > 0) {
+          this.#drawStaticLabel(annotation.labelType, canvasCoord.x, canvasCoord.y, progress);
+        }
+        // Create the minimap marker when the label's entrance slot arrives, so the map echoes the sequence.
+        if (!annotation.firstDraw && progress > 0) {
           const googleMarker = Label.createMinimapMarker(
             annotation.labelType, { lat: annotation.lat, lng: annotation.lng },
           );
@@ -439,8 +445,14 @@ class Onboarding {
       }
     }
 
+    // Keep redrawing while example labels are still popping in.
+    window.cancelAnimationFrame(this.#labelIntroRafId);
+    if (entranceRunning) {
+      this.#labelIntroRafId = window.requestAnimationFrame(() => this.#drawAnnotations(state));
+    }
+
     // Save any annotations that should be sticking around.
-    this.#savedAnnotations = currAnnotations.filter((a) => a.keepUntil && a.keepUntil !== state.id);
+    this.#savedAnnotations = util.misc.carryOverOnboardingAnnotations(currAnnotations, state.id);
   }
 
   #getState(stateId) {
@@ -510,12 +522,27 @@ class Onboarding {
       // update since the arrow scales with --ui-scale.
       const arrowHalf = arrowEl.offsetWidth / 2;
       const arrowProtrusion = arrowHalf * Math.SQRT2;
+      // Confine the callout to the streetscape pane so the pane's border can't slice it — but only when its
+      // anchor lives in the pane; minimap/sidebar anchors need the callout to follow them across the gutter.
+      const pane = document.getElementById('street-view-holder');
+      const boundary = pane && pane.contains(reference) ? pane : undefined;
       FloatingUIDOM.computePosition(reference, floating, {
         placement,
         middleware: [
           FloatingUIDOM.offset(arrowProtrusion),
-          FloatingUIDOM.flip(),
-          FloatingUIDOM.shift({ padding: 8 }),
+          // bestFit: when no side fully fits the callout, take the roomiest one rather than the preferred one.
+          FloatingUIDOM.flip({ boundary, fallbackStrategy: 'bestFit' }),
+          FloatingUIDOM.shift({ boundary, padding: 8 }),
+          // The callout must never cover the control it points at: instead of sliding over the anchor to stay in
+          // the pane, shrink to the width the chosen side actually has and let the text wrap taller. Runs after
+          // flip/shift per the size() contract; autoUpdate re-runs positioning after the resize settles.
+          FloatingUIDOM.size({
+            boundary,
+            padding: 8,
+            apply({ availableWidth, elements }) {
+              elements.floating.style.maxWidth = `${Math.max(0, availableWidth)}px`;
+            },
+          }),
         ],
       }).then(({ x, y, placement: finalPlacement }) => {
         Object.assign(floating.style, { left: `${x}px`, top: `${y}px`, transform: 'none' });
@@ -540,6 +567,38 @@ class Onboarding {
   }
 
   /**
+   * Pins the message box just above a pano-image coordinate (a step's annotation arrow), so the instruction and
+   * the arrow read as one unit. Computed once per message: the steps that use this clamp panning to a few
+   * degrees, so the arrow cannot drift far from the box.
+   * @param {{x: number, y: number}} panoCoord - Pano image coordinates, as used by state annotations.
+   */
+  #positionMessageAtPanoCoord(panoCoord) {
+    const svl = this.#svl;
+    const currentPov = svl.panoViewer.getPov();
+    const imX = util.misc.unwrapPanoX(panoCoord.x, currentPov.heading, svl.TUTORIAL_PANO_WIDTH);
+    const centeredPov = util.pano.panoCoordToPov(imX, panoCoord.y, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT);
+    const canvasCoord = util.pano.centeredPovToCanvasCoord(
+      centeredPov, currentPov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS,
+    );
+    if (!canvasCoord || canvasCoord.x === null) return; // Off-screen: keep the default top-left position.
+
+    const scale = util.exploreDisplayScale();
+    const holder = this.#uiOnboarding.messageHolder;
+    holder.addClass('onboarding-message-pano-anchored');
+    // Center on the arrow, clamped inside the pane; the class translates the box up so its bottom edge lands
+    // just above the arrow's tail (annotation arrows point down at their target).
+    const EDGE_PADDING = 8;    // Keeps the box off the pane's rounded corners, matching the Floating UI callouts.
+    const ARROW_CLEARANCE = 60; // Logical-frame gap above the arrow tip, so the box clears the arrow's full length.
+    const paneWidth = util.EXPLORE_CANVAS_WIDTH * scale;
+    const boxWidth = holder.outerWidth();
+    const left = Math.min(
+      Math.max(canvasCoord.x * scale - boxWidth / 2, EDGE_PADDING), paneWidth - boxWidth - EDGE_PADDING,
+    );
+    const top = Math.max((canvasCoord.y - ARROW_CLEARANCE) * scale, EDGE_PADDING);
+    holder.css({ left: `${left}px`, top: `${top}px` });
+  }
+
+  /**
    * Show a message box.
    * @param parameters
    */
@@ -558,8 +617,9 @@ class Onboarding {
     // Reset positioning state so each message starts clean.
     this.#uiOnboarding.messageHolder
       .removeClass('animated fadeIn fadeInLeft fadeInRight fadeInDown fadeInUp callout-floating '
-        + 'onboarding-message-takeover onboarding-message-fullpage onboarding-message-top-right')
-      .css({ position: '', top: '', left: '', transform: '', width: '' });
+        + 'onboarding-message-takeover onboarding-message-fullpage onboarding-message-top-right '
+        + 'onboarding-message-pano-anchored')
+      .css({ position: '', top: '', left: '', transform: '', width: '', maxWidth: '' });
     this.#uiOnboarding.background.css('visibility', 'hidden');
 
     this.#uiOnboarding.messageHolder.show();
@@ -585,6 +645,9 @@ class Onboarding {
       // Anchor to a live UI element; Floating UI computes the position and arrow.
       this.#uiOnboarding.messageHolder.addClass('callout-floating');
       this.#anchorMessageTo(parameters.anchor, parameters.placement || 'right');
+    } else if (parameters.panoAnchor) {
+      // Pin just above a pano-image coordinate (e.g. the step's annotation arrow).
+      this.#positionMessageAtPanoCoord(parameters.panoAnchor);
     } else if (parameters.position === 'top-right') {
       // Pin to the pano's top-right corner (used when the default top-left would cover the labeled feature).
       this.#uiOnboarding.messageHolder.addClass('onboarding-message-top-right');
@@ -691,6 +754,25 @@ class Onboarding {
       this.#hideMessage();
     }
 
+    // A state's `properties` is either an object or a one-element array of them (see the dispatch below), so read
+    // both `action` and anything beside it off the same resolved object rather than off `state.properties`.
+    const properties = Array.isArray(state.properties) ? state.properties[0] : state.properties;
+    const action = properties?.action;
+
+    // Select-a-label-type steps anchor their callout to the ribbon button they ask the user to click, so the
+    // instruction and the pulsing button read as one unit. Derived here so the selector stays single-sourced.
+    if ((action === 'SelectLabelType' || action === 'RedoSelectLabelType') && state.message) {
+      state.message.anchor = `.label-type-button-holder[val="${properties.labelType}"]`;
+      state.message.placement = 'bottom';
+    }
+
+    // Label-placement steps pin their message just above the arrow they narrate, derived from the state's own
+    // arrow annotation so the two can't drift apart.
+    if (action === 'LabelAccessibilityAttribute' && state.message && state.annotations) {
+      const arrow = state.annotations.find((a) => a.type === 'arrow');
+      if (arrow) state.message.panoAnchor = { x: arrow.x, y: arrow.y };
+    }
+
     // Show user a message box.
     if (this.#onboardingStateMessageExists(state)) {
       this.#showMessage(state.message);
@@ -765,6 +847,8 @@ class Onboarding {
       pitch: state.properties.pitch,
       zoom: state.properties.zoom,
     });
+    // The jump to the opening POV isn't user panning; don't let it pre-reveal fog or credit the examined ring.
+    this.#svl.observedArea.resetCurrentPano();
     this.#transitionTo(state.transition);
   }
 
@@ -824,35 +908,43 @@ class Onboarding {
 
   #visitRateSeverity(state, listener) {
     this.#contextMenu.enableRatingSeverityForTutorialLabel(state.properties.labelNumber);
+    // Pulse the one section the tutorial has enabled; the message box is anchored to it as well.
+    this.#svl.ui.contextMenu.severityMenu.addClass('onboarding-attention');
+    // Re-render so the dialog's target label fades right away (see Label.render).
+    this.#svl.canvas.clear().render();
     const $target = this.#svl.ui.contextMenu.radioButtons;
     const callback = (e) => {
       if (listener) google.maps.event.removeListener(listener);
       $target.off('change', callback);
       this.#contextMenu.disableRatingSeverity();
+      this.#svl.ui.contextMenu.severityMenu.removeClass('onboarding-attention');
       this.#transitionTo(state.transition, undefined, e.currentTarget);
+      this.#svl.canvas.clear().render();
     };
     $target.on('change', callback);
   }
 
   #visitAddTag(state, listener) {
     this.#contextMenu.enableTaggingForTutorialLabel(state.properties.labelNumber);
+    // Pulse the one section the tutorial has enabled; the message box is anchored to it as well.
+    this.#svl.ui.contextMenu.tagSection.addClass('onboarding-attention');
+    // Re-render so the dialog's target label fades right away (see Label.render).
+    this.#svl.canvas.clear().render();
     const $target = this.#svl.ui.contextMenu.tagHolder; // Grab tag holder so we can add an event listener.
     const callback = () => {
       if (listener) google.maps.event.removeListener(listener);
       $target.off('tagIds-updated', callback);
       this.#contextMenu.disableTagging();
+      this.#svl.ui.contextMenu.tagSection.removeClass('onboarding-attention');
       this.#transitionTo(state.transition, undefined, this.#contextMenu.getTargetLabel());
+      this.#svl.canvas.clear().render();
     };
     // We use a custom event here to ensure that this is triggered after the tags have been updated.
     $target.on('tagIds-updated', callback);
   }
 
   #visitInstruction(state, listener) {
-    const svl = this.#svl;
     if (state === this.#getState('outro')) {
-      // Remove the hover listeners that adjust the instruction box's z-index.
-      svl.ui.contextMenu.holder.off('mouseover mouseout');
-
       this.#startCelebrationClip();
     }
     this.#blinkInterface(state);

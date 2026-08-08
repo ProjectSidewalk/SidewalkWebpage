@@ -531,6 +531,7 @@ class Main {
     svl.ui.contextMenu.severityMenu = $('#severity-menu');
     svl.ui.contextMenu.severityRadioHolder = $('#severity-radio-holder');
     svl.ui.contextMenu.radioButtons = $('input[name=\'label-severity\']');
+    svl.ui.contextMenu.tagSection = $('#context-menu-tag-section');
     svl.ui.contextMenu.tagHolder = $('#context-menu-tag-holder');
     svl.ui.contextMenu.tags = $('button[name=\'tag\']');
     svl.ui.contextMenu.textBox = $('#context-menu-description-text-box');

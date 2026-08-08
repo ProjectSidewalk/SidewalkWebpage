@@ -266,6 +266,14 @@ class Label {
 
       // Draw the label icon if it's in the visible part of the pano.
       if (this.#properties.currCanvasXY) {
+        // Tutorial only: fade the icon while its dialog is open. The marker sits exactly on the feature the copy
+        // asks the user to look at, and the dialog's tail still points at the spot.
+        const dialogTarget = svl.isOnboarding?.() && svl.contextMenu?.isOpen()
+          && svl.contextMenu.getTargetLabel() === this;
+        if (dialogTarget) {
+          ctx.save();
+          ctx.globalAlpha = 0.3;
+        }
         Label.renderLabelIcon(
           ctx, this.#properties.labelType, this.#properties.currCanvasXY.x, this.#properties.currCanvasXY.y,
         );
@@ -274,6 +282,7 @@ class Label {
         if (util.misc.labelTypeHasSeverity(this.#properties.labelType) && this.#properties.severity === null) {
           this.#showSeverityAlert(ctx);
         }
+        if (dialogTarget) ctx.restore();
       }
     }
 

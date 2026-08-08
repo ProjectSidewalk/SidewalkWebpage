@@ -453,6 +453,53 @@ function UtilitiesMisc(JSON) {
   }
 
   /**
+   * Re-expresses a pano x-coordinate on whichever side of the image seam the camera is currently facing.
+   *
+   * An equirectangular pano wraps, so a point near one edge is also a point just past the other. Picking the wrong
+   * representation puts an annotation — or a callout anchored to one — a full pano-width away from where the user is
+   * looking. Only a point within a quarter-width of the seam is ambiguous; everything else is returned unchanged.
+   *
+   * @param {number} panoX - Pano image x-coordinate, as stored on tutorial state annotations.
+   * @param {number} heading - The camera's current heading, in degrees.
+   * @param {number} panoWidth - Full width of the pano image in pixels.
+   * @returns {number} The equivalent x-coordinate nearest the current view; may be negative or exceed panoWidth.
+   */
+  function unwrapPanoX(panoX, heading, panoWidth) {
+    const seamZone = panoWidth / 4;
+    // Facing the first half, a point in the far quarter sits behind the camera's left edge, and vice versa.
+    if (heading < 180) return panoX > panoWidth - seamZone ? panoX - panoWidth : panoX;
+    return panoX < seamZone ? panoX + panoWidth : panoX;
+  }
+
+  /**
+   * Merges a tutorial state's own annotations with the ones carried over from earlier states, without duplicates.
+   *
+   * The carry-over list is rebuilt from this merged list on every draw, and a state is drawn many times over (once
+   * per pano move, once per animation frame while example labels pop in). Concatenating blindly would therefore
+   * re-append the same annotation objects on every pass, so the list grows for as long as the step is on screen:
+   * the icons overdraw at identical coordinates, and the arrow-blink period — derived from how many arrows are in
+   * the list — stretches out as it fills up (#4832). Annotations are shared by reference, so identity dedupes them.
+   *
+   * @param {Array<Object>} savedAnnotations - Annotations carried over from previous states.
+   * @param {?Array<Object>} stateAnnotations - The current state's own annotations, if it declares any.
+   * @returns {Array<Object>} The union, in carry-over-then-own order, each annotation appearing once.
+   */
+  function mergeOnboardingAnnotations(savedAnnotations, stateAnnotations) {
+    return [...new Set([...savedAnnotations, ...(stateAnnotations || [])])];
+  }
+
+  /**
+   * Picks the annotations that should stay on screen after the given state, i.e. those tagged to outlive it.
+   *
+   * @param {Array<Object>} annotations - The state's merged annotation list.
+   * @param {string} stateId - Id of the state being drawn; an annotation kept "until" it expires here.
+   * @returns {Array<Object>} The subset to carry into the next state.
+   */
+  function carryOverOnboardingAnnotations(annotations, stateId) {
+    return annotations.filter((a) => a.keepUntil && a.keepUntil !== stateId);
+  }
+
+  /**
    * Returns a map from rating level (1/2/3) to the i18n key (under the `common` namespace) for that level's label.
    * @param {string} labelType
    * @returns {Object.<number, string>}
@@ -641,6 +688,9 @@ function UtilitiesMisc(JSON) {
   self.getRatingLevelKeys = getRatingLevelKeys;
   self.getLabelColors = getLabelColors;
   self.reportNoImagery = reportNoImagery;
+  self.unwrapPanoX = unwrapPanoX;
+  self.mergeOnboardingAnnotations = mergeOnboardingAnnotations;
+  self.carryOverOnboardingAnnotations = carryOverOnboardingAnnotations;
 
   return self;
 }

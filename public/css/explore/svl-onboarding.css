@@ -31,13 +31,24 @@
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 3;
+
+  /* Above everything in the pano area — the border frame (2) and the context menu (3). A tie with the menu would
+     let DOM order decide. The rule below gives the user a way back to the menu if a callout ever lands over it. */
+  z-index: 1100;
   font: var(--text-subtitle-regular);
   transform: none;
 
   border-radius: calc(3px * var(--ui-scale));
   background: var(--color-neutral-white);
   transition: background 0.5s;
+}
+
+/* The callout is meant to shrink rather than overlap the control it points at (see the size() middleware in
+   Onboarding's anchorMessageTo), but that guarantee is only as good as Floating UI being loaded — without it the box
+   falls back to the pano's top-left corner, over the menu. Hovering the menu lifts it past the callout so the user
+   can always read and reach what they are being asked to click. */
+#context-menu-holder:hover {
+  z-index: 1101;
 }
 
 /* Flashes the message box's background to draw the user's attention when a new message is shown. */
@@ -50,10 +61,80 @@
   width: 100%;
 }
 
-.onboarding-gif {
-  display: block;
-  width: 95%;
-  margin: calc(5px * var(--ui-scale)) auto;
+/* Inline replica of a rating segment (.severity-button, svl-context-menu.css) for tutorial messages that ask for a
+   specific rating; mirrors the segment's smiley icon, type, and enclosure so it reads as "this button". */
+.onboarding-rating-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(4px * var(--ui-scale));
+  vertical-align: text-bottom;
+  padding: calc(2px * var(--ui-scale)) calc(8px * var(--ui-scale));
+  outline: 1px solid var(--color-neutral-300);
+  border-radius: calc(6px * var(--ui-scale));
+  background: var(--color-neutral-white);
+  font: var(--text-tiny-medium);
+  color: var(--color-neutral-700);
+  white-space: nowrap;
+}
+
+.onboarding-rating-chip img {
+  width: calc(15px * var(--ui-scale));
+  height: calc(15px * var(--ui-scale));
+}
+
+/* Inline tag-pill replicas: match the context menu's tightened pills (svl-context-menu.css) rather than the shared
+   default, and keep them from crowding the message text's line spacing. */
+#onboarding-message-holder .tag-pill {
+  padding: calc(3px * var(--ui-scale)) calc(8px * var(--ui-scale));
+  margin: calc(1px * var(--ui-scale)) 0;
+  vertical-align: text-bottom;
+}
+
+/* Inline keycap for teaching keyboard shortcuts (e.g. press C for Curb Ramp, Z to zoom). */
+.onboarding-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: calc(18px * var(--ui-scale));
+  padding: calc(1px * var(--ui-scale)) calc(5px * var(--ui-scale));
+  vertical-align: text-bottom;
+  border: 1px solid var(--color-neutral-400);
+  border-bottom-width: calc(3px * var(--ui-scale));
+  border-radius: calc(4px * var(--ui-scale));
+  background: var(--color-neutral-100);
+  font: var(--text-tiny-semibold);
+  color: var(--color-neutral-900);
+}
+
+/* Pulses the one context-menu section the tutorial has enabled (see Onboarding's RateSeverity/AddTag visits); the
+   sibling section is dimmed via .disabled, so together they say "this half, not that one". */
+.onboarding-attention {
+  animation: onboarding-attention-pulse 1.6s ease-in-out infinite;
+}
+
+/* The halo follows each target's own corner radius (circular ribbon icons stay circular); the menu sections have
+   no radius of their own, so give their ring the dialog's rounding. */
+.context-menu-section.onboarding-attention {
+  border-radius: calc(6px * var(--ui-scale));
+}
+
+@keyframes onboarding-attention-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--color-warning-200);
+  }
+
+  50% {
+    box-shadow: 0 0 0 calc(6px * var(--ui-scale)) var(--color-warning-200);
+  }
+}
+
+/* The motion is decorative; the enabled/dimmed contrast already carries the meaning. */
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-attention {
+    animation: none;
+    box-shadow: 0 0 0 calc(4px * var(--ui-scale)) var(--color-warning-200);
+  }
 }
 
 /* Inline replica of the hover card's Delete button, shown in tutorial messages that ask the user to delete a
@@ -99,6 +180,13 @@
   background: var(--color-neutral-white);
   transform: rotate(45deg);
   z-index: -1;
+}
+
+/* Pinned just above a pano annotation arrow (see Onboarding's positionMessageAtPanoCoord); the translate puts
+   the box's bottom edge at the computed point. */
+#onboarding-message-holder.onboarding-message-pano-anchored {
+  margin: 0;
+  transform: translateY(-100%);
 }
 
 /* Pin a message to the pano's top-right corner. */
