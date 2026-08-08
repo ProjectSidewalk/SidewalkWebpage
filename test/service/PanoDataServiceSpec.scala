@@ -24,25 +24,25 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
 
   test("cotangent branch: distance is the camera height over tan(depression)") {
     // At 45 degrees the cotangent is 1, so the answer is the fitted camera height itself.
-    PanoDataService.estimateDistanceFromPanoM(45.0) shouldBe (2.341123424450019 +- eps)
-    PanoDataService.estimateDistanceFromPanoM(15.0) shouldBe (8.73719156683711 +- eps)
-    PanoDataService.estimateDistanceFromPanoM(30.0) shouldBe (4.0549447179370715 +- eps)
-    PanoDataService.estimateDistanceFromPanoM(60.0) shouldBe (1.3516482393123574 +- eps)
+    PanoDataService.estimateDistanceFromPanoM(45.0) shouldBe (2.341219672825709 +- eps)
+    PanoDataService.estimateDistanceFromPanoM(15.0) shouldBe (8.737550770665331 +- eps)
+    PanoDataService.estimateDistanceFromPanoM(30.0) shouldBe (4.055111425013912 +- eps)
+    PanoDataService.estimateDistanceFromPanoM(60.0) shouldBe (1.351703808337971 +- eps)
   }
 
   test("blend handoff: the two branches agree at the blend angle") {
     val atBlend   = PanoDataService.estimateDistanceFromPanoM(11.25)
     val justBelow = PanoDataService.estimateDistanceFromPanoM(11.25 - 1e-9)
-    atBlend shouldBe (11.769622247678486 +- eps)
+    atBlend shouldBe (11.770106120938644 +- eps)
     justBelow shouldBe (atBlend +- 1e-6)
   }
 
   test("near-horizon tail: linear down to the horizon, then flat above it") {
-    PanoDataService.estimateDistanceFromPanoM(5.0) shouldBe (18.479432581915482 +- eps)
-    PanoDataService.estimateDistanceFromPanoM(2.0) shouldBe (21.700141542349243 +- eps)
+    PanoDataService.estimateDistanceFromPanoM(5.0) shouldBe (18.480192309211834 +- eps)
+    PanoDataService.estimateDistanceFromPanoM(2.0) shouldBe (21.701033679582963 +- eps)
     // The largest answer the blend can produce for any input, pinned as max_answer_m in the fit's summary.
-    PanoDataService.estimateDistanceFromPanoM(0.0) shouldBe (23.84728084930508 +- eps)
-    PanoDataService.estimateDistanceFromPanoM(-10.0) shouldBe (23.84728084930508 +- eps)
+    PanoDataService.estimateDistanceFromPanoM(0.0) shouldBe (23.848261259830384 +- eps)
+    PanoDataService.estimateDistanceFromPanoM(-10.0) shouldBe (23.848261259830384 +- eps)
   }
 
   test("distance decreases monotonically as the depression angle grows") {

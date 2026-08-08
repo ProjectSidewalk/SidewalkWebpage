@@ -52,7 +52,7 @@ describe('Label lat/lng estimation', () => {
             latLngEstimation: {
                 blendDeg: 11.25,
                 maxDistanceM: 50.0,
-                cameraHeightM: 2.341123424450019,
+                cameraHeightM: 2.341219672825709,
             },
         };
         Label.createMinimapMarker = () => ({ addListener: () => {} });
@@ -77,7 +77,7 @@ describe('Label lat/lng estimation', () => {
         newLabel({ pitch: -22.5, heading: 137.25 });
 
         const [distKm, bearing] = destinationArgs();
-        expect(distKm * 1000).toBeCloseTo(5.65197192249658, 9); // 22.5° below the horizon.
+        expect(distKm * 1000).toBeCloseTo(5.6522042866305275, 9); // 22.5° below the horizon.
         expect(bearing).toBe(137.25);
     });
 
@@ -85,14 +85,14 @@ describe('Label lat/lng estimation', () => {
         newLabel({ pitch: 10 }); // 10° above the horizon.
 
         const [distKm] = destinationArgs();
-        expect(distKm * 1000).toBeCloseTo(23.84728084930508, 9); // max_answer_m in the fit's summary.
+        expect(distKm * 1000).toBeCloseTo(23.848261259830384, 9); // max_answer_m in the fit's summary.
     });
 
     test('the distance is the same whatever the label type', () => {
         newLabel({ labelType: 'Crosswalk', pitch: -20 });
 
         const [distKm] = destinationArgs();
-        expect(distKm * 1000).toBeCloseTo(6.432183744832708, 9);
+        expect(distKm * 1000).toBeCloseTo(6.432448185071575, 9);
     });
 
     test('the result is cached as approximation3', () => {

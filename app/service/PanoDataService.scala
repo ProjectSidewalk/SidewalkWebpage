@@ -94,13 +94,13 @@ object PanoDataService {
    *    (PR #16, §7 mechanism and §9 decision). Canonical values: `final_coefficients` in
    *    `data/modern-truth-summary.json`.
    *
-   * Measured against fresh GSV depth for 2,690 post-2021 human labels across 13 cities, as median absolute distance
-   * error: this estimator lands at **0.42 m** on a held-out half (1,386 rows, split by pano), where the same blend
-   * carrying the earlier per-label-type heights lands at 1.27 m; the linear regression this supersedes measures
-   * 1.24 m across all 2,690. Known limits, from the modern-truth report: the reference ground planes are Google's
-   * own measurements, so the scale is internally consistent but externally unanchored (bearing-only triangulation,
-   * label-latlng-estimation#7, is the independent check); clicks within 2 degrees of the horizon are undershot by
-   * any bounded model; and the residual signed median runs about -0.17 m.
+   * Measured against fresh GSV depth for 2,655 post-2021 human labels across 36 cities (13 with enough rows to
+   * score individually), as median absolute distance error on a held-out half (1,362 rows, split by pano): this
+   * estimator lands at **0.41 m**, where the same blend carrying the earlier per-label-type heights lands at 1.28 m
+   * and the linear regression this supersedes at 1.17 m. Known limits, from the modern-truth report: the reference
+   * ground planes are Google's own measurements, so the scale is internally consistent but externally unanchored
+   * (bearing-only triangulation, label-latlng-estimation#7, is the independent check); clicks within 2 degrees of
+   * the horizon are undershot by any bounded model; and the residual signed median runs about -0.17 m.
    *
    * Issues: [[https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4765]] (resolution dependence) and
    * [[https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4766]] (near/far compression).
@@ -131,9 +131,9 @@ object PanoDataService {
      * Drop in meters from the camera to the ground plane, and the estimator's only calibrated quantity.
      *
      * `final_coefficients.params.height_m` in `data/modern-truth-summary.json`: the median of
-     * `truth_distance * tan(depression)` over the 2,517 gated human-label rows at depression >= 5 degrees, where
+     * `truth_distance * tan(depression)` over the 2,488 gated human-label rows at depression >= 5 degrees, where
      * truth is fresh GSV depth for post-2021 labels. A disjoint-half split (by pano, seed 666) puts the held-out
-     * median absolute error at 0.42 m.
+     * median absolute error at 0.41 m.
      *
      * One height serves every label type. Giving each type its own is tempting — users do click some types above
      * their ground contact — but on current imagery the implied per-type heights span only 2.27–2.37 m and their
@@ -142,7 +142,7 @@ object PanoDataService {
      * the pinned ground-plane default the era's mostly did, and today's measured plane sits near 2.35 m.
      * Modern-truth report §7 has the mechanism, §9 the decision and its tradeoffs.
      */
-    val CAMERA_HEIGHT_M: Double = 2.341123424450019
+    val CAMERA_HEIGHT_M: Double = 2.341219672825709
 
     /** The constants above as JSON for the Explore front end, which runs the identical estimator (see Label.js). */
     val asJson: JsObject = Json.obj(
