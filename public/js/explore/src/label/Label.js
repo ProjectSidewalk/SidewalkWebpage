@@ -268,8 +268,8 @@ class Label {
       if (this.#properties.currCanvasXY) {
         // Tutorial only: fade the icon while its dialog is open. The marker sits exactly on the feature the copy
         // asks the user to look at, and the dialog's tail still points at the spot.
-        const dialogTarget = svl.isOnboarding && svl.isOnboarding() && 'contextMenu' in svl
-          && svl.contextMenu.isOpen() && svl.contextMenu.getTargetLabel() === this;
+        const dialogTarget = svl.isOnboarding?.() && svl.contextMenu?.isOpen()
+          && svl.contextMenu.getTargetLabel() === this;
         if (dialogTarget) {
           ctx.save();
           ctx.globalAlpha = 0.3;

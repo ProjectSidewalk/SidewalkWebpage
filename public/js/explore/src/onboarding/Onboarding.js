@@ -339,10 +339,10 @@ class Onboarding {
 
     this.clear();
 
-    // Get the full list of annotations, including those from previous states that should remain.
-    const currAnnotations = state.annotations
-      ? this.#savedAnnotations.concat(state.annotations)
-      : this.#savedAnnotations;
+    // Get the full list of annotations, including those from previous states that should remain. Deduped because a
+    // state is redrawn repeatedly (per pano move, per entrance frame) and each pass rebuilds #savedAnnotations from
+    // this list — see util.misc.mergeOnboardingAnnotations for what that costs when it isn't (#4832).
+    const currAnnotations = util.misc.mergeOnboardingAnnotations(this.#savedAnnotations, state.annotations);
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let newLabelCount = 0;
@@ -361,13 +361,7 @@ class Onboarding {
       centeredPov = null;
 
       // Setting the original POV and mapping an image coordinate to a canvas coordinate.
-      if (currentPov.heading < 180) {
-        if (imX > svl.TUTORIAL_PANO_WIDTH - 3328 && imX > 3328) {
-          imX -= svl.TUTORIAL_PANO_WIDTH;
-        }
-      } else if (imX < 3328 && imX < svl.TUTORIAL_PANO_WIDTH - 3328) {
-        imX += svl.TUTORIAL_PANO_WIDTH;
-      }
+      imX = util.misc.unwrapPanoX(imX, currentPov.heading, svl.TUTORIAL_PANO_WIDTH);
       centeredPov = util.pano.panoCoordToPov(imX, imY, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT);
       const canvasCoord = util.pano.centeredPovToCanvasCoord(
         centeredPov, currentPov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS,
@@ -436,7 +430,7 @@ class Onboarding {
     }
 
     // Save any annotations that should be sticking around.
-    this.#savedAnnotations = currAnnotations.filter((a) => a.keepUntil && a.keepUntil !== state.id);
+    this.#savedAnnotations = util.misc.carryOverOnboardingAnnotations(currAnnotations, state.id);
   }
 
   #getState(stateId) {
@@ -559,13 +553,7 @@ class Onboarding {
   #positionMessageAtPanoCoord(panoCoord) {
     const svl = this.#svl;
     const currentPov = svl.panoViewer.getPov();
-    let imX = panoCoord.x;
-    // Same wraparound the annotation renderer applies (see #drawAnnotations).
-    if (currentPov.heading < 180) {
-      if (imX > svl.TUTORIAL_PANO_WIDTH - 3328 && imX > 3328) imX -= svl.TUTORIAL_PANO_WIDTH;
-    } else if (imX < 3328 && imX < svl.TUTORIAL_PANO_WIDTH - 3328) {
-      imX += svl.TUTORIAL_PANO_WIDTH;
-    }
+    const imX = util.misc.unwrapPanoX(panoCoord.x, currentPov.heading, svl.TUTORIAL_PANO_WIDTH);
     const centeredPov = util.pano.panoCoordToPov(imX, panoCoord.y, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT);
     const canvasCoord = util.pano.centeredPovToCanvasCoord(
       centeredPov, currentPov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS,
@@ -577,10 +565,14 @@ class Onboarding {
     holder.addClass('onboarding-message-pano-anchored');
     // Center on the arrow, clamped inside the pane; the class translates the box up so its bottom edge lands
     // just above the arrow's tail (annotation arrows point down at their target).
+    const EDGE_PADDING = 8;    // Keeps the box off the pane's rounded corners, matching the Floating UI callouts.
+    const ARROW_CLEARANCE = 60; // Logical-frame gap above the arrow tip, so the box clears the arrow's full length.
     const paneWidth = util.EXPLORE_CANVAS_WIDTH * scale;
     const boxWidth = holder.outerWidth();
-    const left = Math.min(Math.max(canvasCoord.x * scale - boxWidth / 2, 8), paneWidth - boxWidth - 8);
-    const top = Math.max((canvasCoord.y - 60) * scale, 8);
+    const left = Math.min(
+      Math.max(canvasCoord.x * scale - boxWidth / 2, EDGE_PADDING), paneWidth - boxWidth - EDGE_PADDING,
+    );
+    const top = Math.max((canvasCoord.y - ARROW_CLEARANCE) * scale, EDGE_PADDING);
     holder.css({ left: `${left}px`, top: `${top}px` });
   }
 
@@ -739,11 +731,15 @@ class Onboarding {
       this.#hideMessage();
     }
 
+    // A state's `properties` is either an object or a one-element array of them (see the dispatch below), so read
+    // both `action` and anything beside it off the same resolved object rather than off `state.properties`.
+    const properties = Array.isArray(state.properties) ? state.properties[0] : state.properties;
+    const action = properties?.action;
+
     // Select-a-label-type steps anchor their callout to the ribbon button they ask the user to click, so the
     // instruction and the pulsing button read as one unit. Derived here so the selector stays single-sourced.
-    const action = Array.isArray(state.properties) ? state.properties[0].action : state.properties?.action;
     if ((action === 'SelectLabelType' || action === 'RedoSelectLabelType') && state.message) {
-      state.message.anchor = `.label-type-button-holder[val="${state.properties.labelType}"]`;
+      state.message.anchor = `.label-type-button-holder[val="${properties.labelType}"]`;
       state.message.placement = 'bottom';
     }
 
