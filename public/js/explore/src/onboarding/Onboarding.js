@@ -208,10 +208,16 @@ class Onboarding {
     const canvasUI = this.#uiOnboarding.canvas.get(0);
     if (!canvasUI || !this.#ctx) return;
     util.sizeCanvasToDisplay(canvasUI, this.#ctx);
-    // Re-sizing the bitmap wiped the canvas; redraw like the pov_changed listener in #visit does.
-    if (this.#currentState) {
+
+    // Re-sizing the bitmap wiped the canvas; redraw like the pov_changed listener in #visit does — under the same
+    // conditions #visit draws, so a resize can't put annotations back on a state that is meant to have none. The
+    // terminal state is the one that matters: it sets #currentState and then leaves the canvas cleared while the
+    // submit-and-reload it kicked off is still in flight.
+    const state = this.#currentState;
+    if (!state || 'end-onboarding' in state) return;
+    if (this.#onboardingStateAnnotationExists(state) || this.#savedAnnotations.length > 0) {
       this.#removeFlashingFromArrow();
-      this.#drawAnnotations(this.#currentState);
+      this.#drawAnnotations(state);
     }
   }
 
