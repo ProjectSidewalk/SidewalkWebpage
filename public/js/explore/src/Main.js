@@ -419,6 +419,7 @@ class Main {
       applyExploreScale();
       // The canvas was rasterized at scale 1 during init; re-raster it at the chosen scale.
       if (svl.canvas) svl.canvas.resize();
+      if (svl.onboarding) svl.onboarding.resize();
       if (svl.observedArea) svl.observedArea.update();
       // Redraw fog of war after the rescale. Minimap does this async, so we have to listen on this event.
       if (svl.observedArea && svl.minimap) {
@@ -432,6 +433,7 @@ class Main {
         clearTimeout(resizeRasterTimer);
         resizeRasterTimer = setTimeout(() => {
           if (svl.canvas) svl.canvas.resize();
+          if (svl.onboarding) svl.onboarding.resize();
           if (svl.observedArea) svl.observedArea.update();
         }, 150);
       });
