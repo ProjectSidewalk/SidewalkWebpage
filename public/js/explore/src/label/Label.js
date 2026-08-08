@@ -18,34 +18,6 @@ class Label {
 
   static #cursorUrlCache = new Map();
 
-  // Parameters determined from a series of linear regressions. Here links to the analysis and relevant GitHub issues:
-  // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
-  // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2374
-  // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2362
-  static #LATLNG_ESTIMATION_PARAMS = {
-    1: {
-      headingIntercept: -51.2401711,
-      headingCanvasXSlope: 0.1443374,
-      distanceIntercept: 18.6051843,
-      distancePanoYSlope: 0.0138947,
-      distanceCanvasYSlope: 0.0011023,
-    },
-    2: {
-      headingIntercept: -27.5267447,
-      headingCanvasXSlope: 0.0784357,
-      distanceIntercept: 20.8794248,
-      distancePanoYSlope: 0.0184087,
-      distanceCanvasYSlope: 0.0022135,
-    },
-    3: {
-      headingIntercept: -13.5675945,
-      headingCanvasXSlope: 0.0396061,
-      distanceIntercept: 25.2472682,
-      distancePanoYSlope: 0.0264216,
-      distanceCanvasYSlope: 0.0011071,
-    },
-  };
-
   // Resolves when this label's crop reaches the server; null until a submission hands us an id. See cropUploaded().
   #cropUpload = null;
 
@@ -385,50 +357,46 @@ class Label {
 
   /**
    * Get the label's estimated latlng position.
+   *
+   * The bearing to the label is exact projection geometry (its centered POV), and the distance below the horizon comes
+   * from flat-ground cotangent geometry with a linear tail near the horizon — the same computation as the server's
+   * PanoDataService.toLatLng, with the constants injected from the backend (svl.latLngEstimation) so the two can't
+   * drift. Both depend only on the label's angular position, so the estimate is independent of both the pano's
+   * resolution and the label's type.
+   *
+   * The camera height and blend angle are fitted values, not tuning knobs — PanoDataService.LatLngEstimation is where
+   * they live and where their derivation is documented, and the research behind them (held-out splits, the falsified
+   * alternatives, the reports) is in https://github.com/ProjectSidewalk/label-latlng-estimation.
+   *
    * @returns {{lat: number, lng: number, latLngComputationMethod: string}}
    */
   toLatLng() {
     if (!this.#properties.labelLat) {
-      // Estimate the latlng point from the camera position and the heading when point cloud data isn't available.
-      const panoLat = this.getProperty('panoLat');
-      const panoLng = this.getProperty('panoLng');
-      const heading = this.getProperty('originalPov').heading;
-      const canvasX = this.getProperty('originalCanvasXY').x;
-      const canvasY = this.getProperty('originalCanvasXY').y;
-      const panoY = this.getProperty('panoXY').y;
-      const panoHeight = this.getProperty('panoHeight');
+      // Estimate the latlng point from the pano position and the label's bearing and depression angle when point
+      // cloud data isn't available.
+      const params = svl.latLngEstimation;
+      const pov = this.getProperty('povOfLabelIfCentered');
+      const depressionDeg = -pov.pitch;
+      const heightM = params.cameraHeightM;
+      const blendRad = params.blendDeg * Math.PI / 180;
 
-      // Estimate heading diff and distance from pano using output from a regression analysis.
-      // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
-      // Note that the regression analysis was done when our zoom levels were discrete integers. We now allow zoom
-      // to be noninteger, so we're doing a linear interpolation between the params at the two zoom levels.
-      const minZoom = Math.min(svl.zoomControl.getProperty('minZoomLevel'));
-      const maxZoom = Math.min(svl.zoomControl.getProperty('maxZoomLevel'));
-      const zoom = Math.min(maxZoom, Math.max(minZoom, this.getProperty('originalPov').zoom));
+      let estDistanceM;
+      if (depressionDeg >= params.blendDeg) {
+        estDistanceM = heightM / Math.tan(depressionDeg * Math.PI / 180);
+      } else {
+        // The tail's slope is the cotangent's derivative at the blend angle, so value and slope match at the handoff.
+        // Above the horizon the answer is the horizon's, keeping the estimate bounded for any input.
+        const tailM = heightM / Math.tan(blendRad)
+          + heightM * (Math.PI / 180) / (Math.sin(blendRad) ** 2) * (params.blendDeg - Math.max(depressionDeg, 0));
+        estDistanceM = Math.min(tailM, params.maxDistanceM);
+      }
 
-      const floor = Label.#LATLNG_ESTIMATION_PARAMS[Math.floor(zoom)];
-      const ceiling = Label.#LATLNG_ESTIMATION_PARAMS[Math.ceil(zoom)];
-      const t = zoom - Math.floor(zoom); // 0 when floor === ceiling.
-
-      const headingIntercept = util.math.lerp(floor.headingIntercept, ceiling.headingIntercept, t);
-      const headingCanvasXSlope = util.math.lerp(floor.headingCanvasXSlope, ceiling.headingCanvasXSlope, t);
-      const distanceIntercept = util.math.lerp(floor.distanceIntercept, ceiling.distanceIntercept, t);
-      const distancePanoYSlope = util.math.lerp(floor.distancePanoYSlope, ceiling.distancePanoYSlope, t);
-      const distanceCanvasYSlope = util.math.lerp(floor.distanceCanvasYSlope, ceiling.distanceCanvasYSlope, t);
-
-      const estHeadingDiff = headingIntercept + headingCanvasXSlope * canvasX;
-      const estDistanceFromPanoKm = Math.max(0,
-        distanceIntercept + distancePanoYSlope * (panoHeight / 2 - panoY) + distanceCanvasYSlope * canvasY,
-      ) / 1000.0;
-      const estHeading = heading + estHeadingDiff;
-      const startPoint = turf.point([panoLng, panoLat]);
-
-      // Use the pano location, distance from pano estimate, and heading estimate, calculate label location.
-      const destination = turf.destination(startPoint, estDistanceFromPanoKm, estHeading, { units: 'kilometers' });
+      const startPoint = turf.point([this.getProperty('panoLng'), this.getProperty('panoLat')]);
+      const destination = turf.destination(startPoint, estDistanceM / 1000, pov.heading, { units: 'kilometers' });
       const latlng = {
         lat: destination.geometry.coordinates[1],
         lng: destination.geometry.coordinates[0],
-        latLngComputationMethod: 'approximation2',
+        latLngComputationMethod: 'approximation3',
       };
       this.setProperty('labelLat', latlng.lat);
       this.setProperty('labelLng', latlng.lng);

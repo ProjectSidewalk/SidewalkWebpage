@@ -761,10 +761,12 @@ class ExploreServiceImpl @Inject() (
         // Calculate the label's lat/lng and theoretical user's heading/pitch from its panoX/panoY coordinates.
         val pov = PanoDataService.calculatePovFromPanoXY(label.panoX, label.panoY, pano.width.get, pano.height.get,
           pano.cameraHeading.get)
+        // label_point.canvas_x/y are NOT NULL, but an AI label was never drawn on a canvas. The center is the one
+        // value consistent with the heading/pitch stored beside it, which is the POV that centers the label.
         val canvasX = LabelPointTable.canvasWidth / 2
         val canvasY = LabelPointTable.canvasHeight / 2
-        val latLng  = PanoDataService.toLatLng(pano.lat.get, pano.lng.get, pov.heading, pov.zoom, canvasX, canvasY,
-          label.panoY, pano.height.get)
+        val latLng  = PanoDataService.toLatLng(pano.lat.get, pano.lng.get, label.panoX, label.panoY, pano.width.get,
+          pano.height.get, pano.cameraHeading.get)
         for {
           // Create necessary associated data for the label to fit in PS (mission, audit_task, etc.).
           streetEdgeId <- labelTable.getStreetEdgeIdClosestToLatLng(latLng._1, latLng._2)
@@ -776,7 +778,7 @@ class ExploreServiceImpl @Inject() (
           // Create and insert the label and label_point entries.
           labelPoint: LabelPointSubmission = LabelPointSubmission(label.panoX, label.panoY, canvasX, canvasY,
             heading = pov.heading, pitch = pov.pitch, pov.zoom, lat = Some(latLng._1), lng = Some(latLng._2),
-            computationMethod = Some(ComputationMethod.Approximation2))
+            computationMethod = Some(ComputationMethod.Approximation3))
           labelSubmission: LabelSubmission = LabelSubmission(
             panoId = pano.panoId,
             panoSource = pano.source,

@@ -11,7 +11,7 @@ import org.locationtech.jts.geom.Point
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.http.ContentTypes
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
 import service.PanoDataService.getFov
@@ -69,80 +69,143 @@ object PanoDataService {
   }
 
   /**
-   * Parameters determined from a series of linear regressions. Here links to the analysis and relevant Github issues:
-   * - https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
-   * - https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2374
-   * - https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2362
+   * Parameters of the label distance estimator ("approximation3"): a saturating-cotangent blend on a single
+   * camera-to-ground height.
+   *
+   * A label whose click sits `d` degrees below the horizon is `CAMERA_HEIGHT_M / tan(d)` meters away on flat ground.
+   * Within `BLEND_DEG` of the horizon the cotangent is ill-conditioned (a fraction of a degree of click noise moves
+   * the answer by meters), so a linear tail continues it with matched value and slope, bounding the estimate at
+   * 23.85 m.
+   *
+   * Every constant here is fitted, not chosen — each carries its own derivation below. They come from the
+   * **label-latlng-estimation** repo, which holds the notebooks, the held-out splits, and the reports:
+   *
+   *  - Form (cotangent + matched-slope tail, and `BLEND_DEG`):
+   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/reports/2026-08-07-distance-refit.md]]
+   *    (PR #12). Won a 12-rung bake-off on 316,118 training rows of GSV depth truth, scored on a held-out 79,029.
+   *  - Falsification on a second imagery source (Mapillary), which located the residual scale error in the camera
+   *    rigs rather than the form:
+   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/reports/2026-08-07-mapillary-falsification.md]]
+   *    (PR #13). A LightGBM ceiling check found no headroom left for a learned model to recover:
+   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/reports/2026-08-07-gbm-ceiling.md]]
+   *    (PR #14).
+   *  - Absolute scale (`CAMERA_HEIGHT_M`), and the evidence for one height rather than a per-label-type table:
+   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/reports/2026-08-07-modern-truth.md]]
+   *    (PR #16, §7 mechanism and §9 decision). Canonical values: `final_coefficients` in
+   *    `data/modern-truth-summary.json`.
+   *
+   * Measured against fresh GSV depth for 2,655 post-2021 human labels across 36 cities (13 with enough rows to
+   * score individually), as median absolute distance error on a held-out half (1,362 rows, split by pano): this
+   * estimator lands at **0.41 m**, where the same blend carrying the earlier per-label-type heights lands at 1.28 m
+   * and the linear regression this supersedes at 1.17 m. Known limits, from the modern-truth report: the reference
+   * ground planes are Google's own measurements, so the scale is internally consistent but externally unanchored
+   * (bearing-only triangulation, label-latlng-estimation#7, is the independent check); clicks within 2 degrees of
+   * the horizon are undershot by any bounded model; and the residual signed median runs about -0.17 m.
+   *
+   * Issues: [[https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4765]] (resolution dependence) and
+   * [[https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4766]] (near/far compression).
    */
-  case class LatLngEstimationParams(
-      headingIntercept: Double,
-      headingCanvasXSlope: Double,
-      distanceIntercept: Double,
-      distancePanoYSlope: Double,
-      distanceCanvasYSlope: Double
-  )
+  object LatLngEstimation {
 
-  object LatLngEstimationParams {
-    val LATLNG_ESTIMATION_PARAMS: Map[Int, LatLngEstimationParams] = Map(
-      1 -> LatLngEstimationParams(
-        headingIntercept = -51.2401711, headingCanvasXSlope = 0.1443374, distanceIntercept = 18.6051843,
-        distancePanoYSlope = 0.0138947, distanceCanvasYSlope = 0.0011023
-      ),
-      2 -> LatLngEstimationParams(
-        headingIntercept = -27.5267447, headingCanvasXSlope = 0.0784357, distanceIntercept = 20.8794248,
-        distancePanoYSlope = 0.0184087, distanceCanvasYSlope = 0.0022135
-      ),
-      3 -> LatLngEstimationParams(
-        headingIntercept = -13.5675945, headingCanvasXSlope = 0.0396061, distanceIntercept = 25.2472682,
-        distancePanoYSlope = 0.0264216, distanceCanvasYSlope = 0.0011071
-      )
+    /**
+     * Depression angle (degrees below the horizon) where the cotangent hands off to its linear tail.
+     *
+     * Fitted, not picked: `provisional_coefficients.params.blend_deg` in `data/distance-refit-summary.json`, from
+     * the rung (`D_blend_type_l1`) that won the distance refit's bake-off on train-half median absolute distance
+     * error. Only the angle carries over from that rung — `CAMERA_HEIGHT_M` is calibrated separately.
+     */
+    val BLEND_DEG: Double = 11.25
+
+    /**
+     * Hard ceiling on the estimated distance in meters — `meta.dist_cap_m` in `data/distance-refit-summary.json`,
+     * the clamp the fit's own reference implementation applies.
+     *
+     * It cannot bind at the height below: the tail is a line evaluated no further than the horizon, so its largest
+     * value is `CAMERA_HEIGHT_M * 10.186`, i.e. 23.85 m (`PanoDataServiceSpec` pins that maximum). It would only
+     * start clipping if a refit pushed the height past ~4.9 m, which is not a camera height any of our imagery
+     * sources has. Kept so the estimator stays bounded by construction rather than by the calibration.
+     */
+    val MAX_DISTANCE_M: Double = 50.0
+
+    /**
+     * Drop in meters from the camera to the ground plane, and the estimator's only calibrated quantity.
+     *
+     * `final_coefficients.params.height_m` in `data/modern-truth-summary.json`: the median of
+     * `truth_distance * tan(depression)` over the 2,488 gated human-label rows at depression >= 5 degrees, where
+     * truth is fresh GSV depth for post-2021 labels. A disjoint-half split (by pano, seed 666) puts the held-out
+     * median absolute error at 0.41 m.
+     *
+     * One height serves every label type. Giving each type its own is tempting — users do click some types above
+     * their ground contact — but on current imagery the implied per-type heights span only 2.27–2.37 m and their
+     * ordering does not reproduce the one an earlier fit found on 2017–2020 truth, which is the signature of a
+     * spread that tracked the era's depth payloads rather than the label types. Only 31% of today's payloads carry
+     * the pinned ground-plane default the era's mostly did, and today's measured plane sits near 2.35 m.
+     * Modern-truth report §7 has the mechanism, §9 the decision and its tradeoffs.
+     */
+    val CAMERA_HEIGHT_M: Double = 2.341219672825709
+
+    /** The constants above as JSON for the Explore front end, which runs the identical estimator (see Label.js). */
+    val asJson: JsObject = Json.obj(
+      "blendDeg"      -> BLEND_DEG,
+      "maxDistanceM"  -> MAX_DISTANCE_M,
+      "cameraHeightM" -> CAMERA_HEIGHT_M
     )
   }
 
   /**
-   * Get the label's estimated latitude/longitude position.
+   * Estimates a label's distance from the panorama in meters, given its depression angle below the horizon.
    *
-   * Estimates heading difference and distance from panorama using output from regression analysis.
-   * https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
+   * Flat-ground cotangent geometry down to `LatLngEstimation.BLEND_DEG`, then a linear tail whose slope is the
+   * cotangent's derivative at the blend angle, so value and slope match at the handoff. Above the horizon the answer
+   * is the horizon's, keeping the estimate bounded for any input.
    *
-   * @param panoLat The latitude of the panorama location
-   * @param panoLng The longitude of the panorama location
-   * @param heading The user's with respect to true north in degrees
-   * @param zoom The zoom level (1, 2, or 3)
-   * @param canvasX The x-coordinate on the canvas
-   * @param canvasY The y-coordinate on the canvas
-   * @param panoY The y-coordinate within the panorama
-   * @param panoHeight The height of the panorama
-   * @return A LatLng containing the estimated latitude and longitude
+   * @param depressionDeg Degrees below the horizon (negative when above the horizon).
+   * @return              Estimated distance in meters.
+   */
+  def estimateDistanceFromPanoM(depressionDeg: Double): Double = {
+    val heightM  = LatLngEstimation.CAMERA_HEIGHT_M
+    val blendRad = math.toRadians(LatLngEstimation.BLEND_DEG)
+    if (depressionDeg >= LatLngEstimation.BLEND_DEG) {
+      heightM / math.tan(math.toRadians(depressionDeg))
+    } else {
+      val tailM = heightM / math.tan(blendRad) +
+        heightM * (math.Pi / 180.0) / math.pow(math.sin(blendRad), 2) *
+        (LatLngEstimation.BLEND_DEG - math.max(depressionDeg, 0.0))
+      math.min(tailM, LatLngEstimation.MAX_DISTANCE_M)
+    }
+  }
+
+  /**
+   * Get the label's estimated latitude/longitude position from its pixel position within the panorama.
+   *
+   * The bearing to the label is exact projection geometry (`calculatePovFromPanoXY`), and the distance comes from
+   * `estimateDistanceFromPanoM` — both depend only on the label's angular position, so the estimate is independent of
+   * the panorama's resolution. The Explore front end runs the identical computation client-side (Label.js), fed the
+   * same constants through the explore view; this server-side path serves AI label submissions.
+   *
+   * @param panoLat       The latitude of the panorama location
+   * @param panoLng       The longitude of the panorama location
+   * @param panoX         The x-coordinate of the label within the panorama image
+   * @param panoY         The y-coordinate of the label within the panorama image
+   * @param panoWidth     The width of the panorama image
+   * @param panoHeight    The height of the panorama image
+   * @param cameraHeading The heading of the camera with respect to true north in degrees
+   * @return              A LatLng containing the estimated latitude and longitude
    */
   def toLatLng(
       panoLat: Double,
       panoLng: Double,
-      heading: Double,
-      zoom: Double,
-      canvasX: Int,
-      canvasY: Int,
+      panoX: Int,
       panoY: Int,
-      panoHeight: Int
+      panoWidth: Int,
+      panoHeight: Int,
+      cameraHeading: Double
   ): (Double, Double) = {
-    // TODO need to deal with non-integer zoom. Though as of Oct 2025, we only ever call this with zoom = 1.
-    val params = LatLngEstimationParams.LATLNG_ESTIMATION_PARAMS(math.round(zoom).toInt)
-
-    // Estimate heading difference and distance from pano using regression analysis output.
-    val estHeadingDiff =
-      params.headingIntercept + params.headingCanvasXSlope * canvasX
-
-    val estDistanceFromPanoKm = math.max(
-      0.0,
-      params.distanceIntercept +
-        params.distancePanoYSlope * (panoHeight / 2 - panoY) +
-        params.distanceCanvasYSlope * canvasY
-    ) / 1000.0
-
-    val estHeading = heading + estHeadingDiff
+    val pov          = calculatePovFromPanoXY(panoX, panoY, panoWidth, panoHeight, cameraHeading)
+    val estDistanceM = estimateDistanceFromPanoM(-pov.pitch)
 
     // Calculate destination point using haversine formula.
-    CommonUtils.calculateDestination(panoLat, panoLng, estDistanceFromPanoKm, estHeading)
+    CommonUtils.calculateDestination(panoLat, panoLng, estDistanceM / 1000.0, pov.heading)
   }
 }
 
