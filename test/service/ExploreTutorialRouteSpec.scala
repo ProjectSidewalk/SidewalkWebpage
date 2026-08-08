@@ -13,7 +13,7 @@ import models.route.{
   UserRouteTableDef
 }
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable, StreetEdgeTableDef}
-import models.user.SidewalkUserWithRole
+import models.user.{SidewalkUserWithRole, UserCurrentRegionTableDef}
 import models.utils.{ConfigTableDef, MyPostgresProfile}
 import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
@@ -137,9 +137,16 @@ class ExploreTutorialRouteSpec extends PlaySpec with org.scalatest.BeforeAndAfte
     )
   }
 
-  /** The bare `/explore` visit: no explicit route/region/street params, resumeRoute at its routes-file default. */
-  private def pageData(userId: String, retakingTutorial: Boolean = false): ExplorePageData = await(
-    exploreService.getDataForExplorePage(userId, retakingTutorial, newRegion = false, routeId = None,
+  /**
+   * The `/explore` visit: no region/street params, resumeRoute at its routes-file default. `routeId` defaults to the
+   * bare visit; pass it to exercise the link-to-a-route path, which sets a walk up rather than just resuming one.
+   */
+  private def pageData(
+      userId: String,
+      retakingTutorial: Boolean = false,
+      routeId: Option[Int] = None
+  ): ExplorePageData = await(
+    exploreService.getDataForExplorePage(userId, retakingTutorial, newRegion = false, routeId = routeId,
       resumeRoute = true, regionId = None, streetEdgeId = None)
   )
 
@@ -163,7 +170,7 @@ class ExploreTutorialRouteSpec extends PlaySpec with org.scalatest.BeforeAndAfte
           userRoutes.filter(_.userId inSet userIds).delete,
           routeStreets.filter(_.routeId in seededRouteIds).delete,
           routes.filter(_.userId inSet userIds).delete,
-          TableQuery[models.user.UserCurrentRegionTableDef].filter(_.userId inSet userIds).delete
+          TableQuery[UserCurrentRegionTableDef].filter(_.userId inSet userIds).delete
         )
         .transactionally
     )
@@ -222,6 +229,36 @@ class ExploreTutorialRouteSpec extends PlaySpec with org.scalatest.BeforeAndAfte
           data.mission.missionType mustBe MissionType.AuditOnboarding
           data.userRoute mustBe None
           data.route mustBe None
+
+          // Same suppress-not-discard contract as the implicit tutorial: a retake must not cost the user the walk
+          // they had going, since they land back on /explore the moment the retake ends.
+          val walk = run(userRoutes.filter(_.userId === user.userId).result.head)
+          walk.completed mustBe false
+          walk.discarded mustBe false
+      }
+    }
+
+    "leave a route requested by id waiting rather than shipping it into the tutorial" in {
+      seedStreet match {
+        case None                           => cancel("No street/region rows in the connected DB; nothing to exercise.")
+        case Some((streetEdgeId, regionId)) =>
+          if (!tutorialStreetExists) cancel("No tutorial street configured in the connected DB.")
+          val user = newAnonUser()
+          // The one path that *writes*: an explicit ?routeId= sets a walk up (setUpPossibleUserRoute) before the
+          // mission resolves to the tutorial, so the suppression has to hold over a walk the same call created.
+          val routeId = seedActiveRouteWalk(user.userId, streetEdgeId, regionId)
+
+          val data = pageData(user.userId, routeId = Some(routeId))
+
+          data.mission.missionType mustBe MissionType.AuditOnboarding
+          data.userRoute mustBe None
+          data.route mustBe None
+
+          // The requested route is still theirs to walk once the tutorial hands them back to /explore.
+          val walk = run(userRoutes.filter(_.userId === user.userId).result.head)
+          walk.routeId mustBe routeId
+          walk.completed mustBe false
+          walk.discarded mustBe false
       }
     }
   }

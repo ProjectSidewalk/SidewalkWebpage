@@ -301,8 +301,9 @@ class ExploreServiceImpl @Inject() (
       makeCrops: Boolean                         <- configTable.getMakeCrops
     } yield {
       // The tutorial takes over the whole session, so a resumable route must not surface mid-tutorial: shipping its
-      // id flips the client into route mode and draws the route over the tutorial map (#4816). The user_route row is
-      // left untouched so the route still resumes on the post-tutorial reload of /explore.
+      // id flips the client into route mode and draws the route over the tutorial map (#4816). Only the page payload
+      // is suppressed — the walk stays active, so it resumes on the post-tutorial reload of /explore. (An explicit
+      // ?routeId= still sets a walk up above, since that is the user asking for one; it just waits for them.)
       val (pageUserRoute, pageRoute) =
         if (updatedMission.missionType == MissionType.AuditOnboarding) (None, None) else (userRoute, routeOption)
       ExplorePageData(task, updatedMission, region.get, pageUserRoute, pageRoute, hasCompletedAMission, nextTempLabelId,
