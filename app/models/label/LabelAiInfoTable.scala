@@ -19,13 +19,11 @@ case class LabelAiInfo(
 )
 
 class LabelAiInfoTableDef(tag: Tag) extends Table[LabelAiInfo](tag, "label_ai_info") {
-  def labelAiInfoId: Rep[Int] = column[Int]("label_ai_info_id", O.PrimaryKey, O.AutoInc)
-  def labelId: Rep[Int]       = column[Int]("label_id")
-  def confidence: Rep[Double] = column[Double]("confidence")
-  def apiVersion: Rep[String] = column[String]("api_version")
-  def modelId: Rep[String]    = column[String]("model_id")
-  // `timestamp` (no time zone) in the DB, unlike every other timestamp column in the schema, so the offset an
-  // OffsetDateTime carries is not actually stored (#4826).
+  def labelAiInfoId: Rep[Int]                = column[Int]("label_ai_info_id", O.PrimaryKey, O.AutoInc)
+  def labelId: Rep[Int]                      = column[Int]("label_id")
+  def confidence: Rep[Double]                = column[Double]("confidence")
+  def apiVersion: Rep[String]                = column[String]("api_version")
+  def modelId: Rep[String]                   = column[String]("model_id")
   def modelTrainingDate: Rep[OffsetDateTime] = column[OffsetDateTime]("model_training_date")
 
   def * = (labelAiInfoId, labelId, confidence, apiVersion, modelId, modelTrainingDate) <> (

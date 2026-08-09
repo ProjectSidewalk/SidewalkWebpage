@@ -79,7 +79,7 @@ class AuditTaskTableDef(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "au
   def amtAssignmentId: Rep[Option[Int]] = column[Option[Int]]("amt_assignment_id")
   def userId: Rep[String]               = column[String]("user_id")
   def streetEdgeId: Rep[Int]            = column[Int]("street_edge_id")
-  // DEFAULT timezone('utc'::text, now()) in the DB -- not equivalent to now() outside a UTC session (#4826).
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def taskStart: Rep[OffsetDateTime]          = column[OffsetDateTime]("task_start")
   def taskEnd: Rep[OffsetDateTime]            = column[OffsetDateTime]("task_end")
   def completed: Rep[Boolean]                 = column[Boolean]("completed", O.Default(false))

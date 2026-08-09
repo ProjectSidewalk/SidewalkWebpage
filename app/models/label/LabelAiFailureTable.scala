@@ -14,9 +14,7 @@ case class LabelAiFailure(labelId: Int, reason: String, timestamp: OffsetDateTim
 class LabelAiFailureTableDef(tag: Tag) extends Table[LabelAiFailure](tag, "label_ai_failure") {
   def labelId: Rep[Int]   = column[Int]("label_id", O.PrimaryKey)
   def reason: Rep[String] = column[String]("reason")
-  // `timestamp` (no time zone) in the DB, unlike every other timestamp column in the schema, so the offset an
-  // OffsetDateTime carries is not actually stored (#4826). DEFAULT CURRENT_TIMESTAMP there, which O.Default can't
-  // express (it holds a value, not an expression).
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
   def * = (labelId, reason, timestamp) <> (
