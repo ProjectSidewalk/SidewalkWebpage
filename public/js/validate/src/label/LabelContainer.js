@@ -27,20 +27,20 @@ class LabelContainer {
 
   /**
    * @param {Array} labelList Initial list of labels to be validated (generated when the page is loaded).
-   * @param {number} labelTypeId Label type ID of the mission these labels belong to.
+   * @param {object} mission Mission metadata from the backend.
    */
-  constructor(labelList, labelTypeId) {
-    this.resetLabelList(labelList, labelTypeId);
+  constructor(labelList, mission) {
+    this.resetLabelList(labelList, mission);
   }
 
   /**
    * Creates a LabelContainer and renders its first label.
    * @param {Array} labelList Initial list of labels to be validated.
-   * @param {number} labelTypeId Label type ID of the mission these labels belong to.
+   * @param {object} mission Mission metadata from the backend.
    * @returns {Promise<LabelContainer>}
    */
-  static async create(labelList, labelTypeId) {
-    const labelContainer = new LabelContainer(labelList, labelTypeId);
+  static async create(labelList, mission) {
+    const labelContainer = new LabelContainer(labelList, mission);
     await labelContainer.renderCurrentLabel();
     return labelContainer;
   }
@@ -124,11 +124,7 @@ class LabelContainer {
    * a replacement before the queue can run dry.
    */
   async renderCurrentLabel() {
-    // Prevent UI interaction and show that we're working on loading the next label.
-    svv.ui.validationMenu.holder.addClass('validate-disabled');
-    svv.ui.viewer.holder.addClass('validate-disabled');
-    svv.ui.holder.css('cursor', 'wait');
-    if (svv.keyboard) svv.keyboard.disableKeyboard();
+    this.#setUiBusy(true);
 
     if (this.#currLabelIndex > 0) {
       svv.undoValidation.enableUndo();
@@ -142,9 +138,12 @@ class LabelContainer {
       nSkipped += await this.#loadPanoForCurrentLabel();
     }
 
-    // Out of labels, with the UI left disabled behind the modal. Which modal depends on why: dropped labels mean
-    // imagery is the problem, and saying "no labels left to validate" there would be plainly untrue (#4810).
+    // Out of labels. Which modal depends on why: dropped labels mean imagery is the problem, and saying "no labels
+    // left to validate" there would be plainly untrue (#4810). Release the UI first — the modal is rendered *inside*
+    // #svv-application-holder, so the `validate-disabled` class covering that holder (pointer-events: none) would
+    // reach the modal's own button, leaving the user with a wait cursor and nothing to click.
     if (!this.#currLabel) {
+      this.#setUiBusy(false);
       svv.modalNoNewMission.show({ imageryUnavailable: nSkipped > 0 });
       return;
     }
@@ -160,13 +159,28 @@ class LabelContainer {
     // just drew in full — you'd have to hide and re-show to get the two back in agreement.
     svv.labelVisibilityControl?.unhideLabel();
 
-    // Re-enable UI interaction now that everything has loaded. Also need to invalidate the cached cursor so that it
-    // will reset, which is why we attach a timestamp to it below.
-    svv.ui.validationMenu.holder.removeClass('validate-disabled');
-    svv.ui.viewer.holder.removeClass('validate-disabled');
-    svv.ui.holder.css('cursor', '');
-    svv.ui.viewer.controlLayer.css('cursor', `url(/assets/images/icons/openhand.cur?${Date.now()}) 4 4, move`);
-    if (svv.keyboard) svv.keyboard.enableKeyboard();
+    this.#setUiBusy(false);
+  }
+
+  /**
+   * Locks or releases the tool while a label is being loaded.
+   *
+   * Every path out of renderCurrentLabel has to release it, including the ones that end at a modal: the modals live
+   * inside #svv-application-holder, so the `validate-disabled` class on that holder disables their buttons too.
+   *
+   * @param {boolean} busy True to lock the UI, false to hand it back.
+   */
+  #setUiBusy(busy) {
+    svv.ui.validationMenu.holder.toggleClass('validate-disabled', busy);
+    svv.ui.viewer.holder.toggleClass('validate-disabled', busy);
+    svv.ui.holder.css('cursor', busy ? 'wait' : '');
+    if (busy) {
+      if (svv.keyboard) svv.keyboard.disableKeyboard();
+    } else {
+      // The cursor is cached by the browser, so a timestamp is attached to invalidate it and force the reset.
+      svv.ui.viewer.controlLayer.css('cursor', `url(/assets/images/icons/openhand.cur?${Date.now()}) 4 4, move`);
+      if (svv.keyboard) svv.keyboard.enableKeyboard();
+    }
   }
 
   /**
@@ -250,16 +264,24 @@ class LabelContainer {
 
   /**
    * Creates a list of label objects to be validated from label metadata. Called when a new mission is loaded.
+   *
+   * A mission is normally handed exactly the labels it still needs, so a list that arrives short is already owed
+   * replacements before a single pano has been tried. That happens for the same reason a label gets dropped here:
+   * the backend drops labels whose imagery its own check can't confirm (`checkImageryBatch`), and that check calls a
+   * provider API that returns "inconclusive" on a timeout or an outage. By the time the user works through what did
+   * arrive, the provider has usually recovered, so the top-up is worth asking for (#4810).
+   *
    * @param {Array} labelList List of label metadata objects.
-   * @param {number} labelTypeId Label type ID of the mission these labels belong to.
+   * @param {object} mission Mission metadata from the backend, for the label type and how many labels it still needs.
    */
-  resetLabelList(labelList, labelTypeId) {
+  resetLabelList(labelList, mission) {
     this.#labels = labelList.map((key) => new Label(key));
     this.#currLabelIndex = 0;
     this.#currLabel = this.#labels[this.#currLabelIndex];
-    this.#labelTypeId = labelTypeId;
+    this.#labelTypeId = mission.label_type_id;
     this.#seenLabelIds = new Set(this.#labels.map((label) => label.getAuditProperty('labelId')));
-    this.#labelsOwed = 0;
+    const labelsMissionNeeds = (mission.labels_validated ?? 0) - (mission.labels_progress ?? 0);
+    this.#labelsOwed = Math.max(0, labelsMissionNeeds - this.#labels.length);
     this.#topUpRounds = 0;
   }
 

@@ -141,8 +141,9 @@ describe('Form.submit (issue #2745 resilience)', () => {
         await form.submit({});
 
         expect(svv.missionContainer.createAMission).toHaveBeenCalledWith(mission, { agree_count: 1 });
-        // The label type rides along so the container can ask for replacement labels of the right type (#4810).
-        expect(svv.labelContainer.resetLabelList).toHaveBeenCalledWith([{ label_id: 9 }], 3);
+        // The mission rides along so the container knows the label type to ask for replacements of, and how many
+        // labels this mission still needs if the list came back short (#4810).
+        expect(svv.labelContainer.resetLabelList).toHaveBeenCalledWith([{ label_id: 9 }], mission);
         expect(svv.modalMissionComplete.nextMissionLoaded).toHaveBeenCalled();
         expect(window.location.reload).not.toHaveBeenCalled();
     });

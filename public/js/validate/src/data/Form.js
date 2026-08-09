@@ -186,7 +186,7 @@ class Form {
       if (result.has_mission_available) {
         if (result.mission) {
           svv.missionContainer.createAMission(result.mission, result.progress);
-          svv.labelContainer.resetLabelList(result.labels, result.mission.label_type_id);
+          svv.labelContainer.resetLabelList(result.labels, result.mission);
           await svv.labelContainer.renderCurrentLabel();
           svv.modalMissionComplete.nextMissionLoaded();
         }

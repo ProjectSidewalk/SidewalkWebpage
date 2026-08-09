@@ -35,7 +35,7 @@ function loadClassFromFile(filePath, className) {
 
 /** @returns {object} A fake jQuery wrapper with the handful of methods Validate calls on its UI elements. */
 function fakeJqueryElement() {
-  return {addClass: jest.fn(), removeClass: jest.fn(), css: jest.fn()};
+  return {addClass: jest.fn(), removeClass: jest.fn(), toggleClass: jest.fn(), css: jest.fn()};
 }
 
 describe('PanoManager clears the pano when no viewer can render it (issue #4810)', () => {
@@ -222,10 +222,16 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
   /**
    * Builds a container with its first label rendered.
    * @param {Array} [labelList] Label metadata to start with.
+   * @param {number} [labelsNeeded] How many labels the mission still needs (defaults to however many were handed over,
+   *      i.e. the normal case where the backend supplied a full queue).
    * @returns {Promise<LabelContainer>}
    */
-  function buildContainer(labelList = threeLabels()) {
-    return LabelContainer.create(labelList, LABEL_TYPE_ID);
+  function buildContainer(labelList = threeLabels(), labelsNeeded = labelList.length) {
+    return LabelContainer.create(labelList, {
+      label_type_id: LABEL_TYPE_ID,
+      labels_validated: labelsNeeded,
+      labels_progress: 0,
+    });
   }
 
   /** @returns {Array<number>} The label ids the validation UI was actually asked to render, in order. */
@@ -343,5 +349,65 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
 
     expect(global.fetch).not.toHaveBeenCalled();
     expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: false});
+  });
+
+  // The backend drops labels whose imagery its own check can't confirm, so the list a mission starts with can arrive
+  // short of what that mission needs — the same failure, one layer up. It is owed replacements from the outset.
+
+  test('a list that arrives short of what the mission needs asks for the difference', async () => {
+    const labelContainer = await buildContainer([{labelId: 1, panoId: 'panoA'}], 3);
+    topUpQueue.push([{labelId: 7, panoId: 'panoG'}, {labelId: 8, panoId: 'panoH'}]);
+
+    await labelContainer.moveToNextLabel();
+
+    expect(topUpBodies[0].labels_needed).toBe(2);
+    expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(7);
+    expect(svv.modalNoNewMission.show).not.toHaveBeenCalled();
+  });
+
+  test('a resumed mission counts only the labels it still needs, not a whole mission', async () => {
+    // 10-label mission, 7 already validated in an earlier session, and only 2 of the 3 remaining came back.
+    const labelContainer = await LabelContainer.create(
+      [{labelId: 1, panoId: 'panoA'}, {labelId: 2, panoId: 'panoB'}],
+      {label_type_id: LABEL_TYPE_ID, labels_validated: 10, labels_progress: 7},
+    );
+    topUpQueue.push([{labelId: 9, panoId: 'panoI'}]);
+
+    await labelContainer.moveToNextLabel();
+    await labelContainer.moveToNextLabel();
+
+    expect(topUpBodies[0].labels_needed).toBe(1);
+  });
+
+  test('a short list with nothing to replace it reads as no labels left, not an imagery failure', async () => {
+    const labelContainer = await buildContainer([{labelId: 1, panoId: 'panoA'}], 3);
+
+    await labelContainer.moveToNextLabel();
+
+    expect(topUpBodies).toHaveLength(1);
+    expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: false});
+  });
+
+  // The modals are rendered inside #svv-application-holder, which renderCurrentLabel covers with `validate-disabled`
+  // (pointer-events: none) while a label loads. Every exit has to hand the UI back or the modal's own button is dead.
+
+  test('the UI is released before a modal is shown, so its button can be clicked', async () => {
+    unrenderablePanoIds.add('panoA');
+    unrenderablePanoIds.add('panoB');
+    unrenderablePanoIds.add('panoC');
+
+    await buildContainer();
+
+    expect(svv.ui.viewer.holder.toggleClass).toHaveBeenLastCalledWith('validate-disabled', false);
+    expect(svv.ui.validationMenu.holder.toggleClass).toHaveBeenLastCalledWith('validate-disabled', false);
+    expect(svv.ui.holder.css).toHaveBeenLastCalledWith('cursor', '');
+    expect(svv.modalNoNewMission.show).toHaveBeenCalled();
+  });
+
+  test('the UI is released on the ordinary path too', async () => {
+    await buildContainer();
+
+    expect(svv.ui.viewer.holder.toggleClass).toHaveBeenLastCalledWith('validate-disabled', false);
+    expect(svv.ui.holder.css).toHaveBeenCalledWith('cursor', '');
   });
 });

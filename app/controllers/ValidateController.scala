@@ -424,8 +424,10 @@ class ValidateController @Inject() (
         errors => Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))),
         moreLabels => {
           // Expert Validate's extra per-label data (the labeler's username, who else has validated it) is gated on
-          // the user's actual role, not on the adminVersion flag in the request body. The region and unvalidated-only
-          // filters are available to everyone on plain /validate, so they carry over either way.
+          // the user's actual role, not on the adminVersion flag in the request body. ADMIN_ROLES is the same set
+          // `WithAdmin` checks on /expertValidate, the only place adminVersion is ever set — keep the two together
+          // if that page's gate ever widens. The region and unvalidated-only filters are available to everyone on
+          // plain /validate, so they carry over either way.
           val isAdmin: Boolean           = RoleTable.ADMIN_ROLES.contains(request.identity.role)
           val validateParams             = moreLabels.validateParams
           val safeParams: ValidateParams =
