@@ -133,9 +133,9 @@ class ValidateAdminParamsSpec extends PlaySpec with GuiceOneAppPerSuite {
 
       // The next mission's labels only come back once a mission is reported complete.
       val body = Json.obj(
-        "interactions" -> Json.arr(),
-        "environment"  -> Json.obj("mission_id" -> missionId, "language" -> "en", "css_zoom" -> 100),
-        "validations"  -> Json.arr(),
+        "interactions"     -> Json.arr(),
+        "environment"      -> Json.obj("mission_id" -> missionId, "language" -> "en", "css_zoom" -> 100),
+        "validations"      -> Json.arr(),
         "mission_progress" -> Json.obj(
           "mission_id"      -> missionId,
           "mission_type"    -> "validation",
