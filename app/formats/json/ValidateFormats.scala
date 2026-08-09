@@ -65,7 +65,6 @@ object ValidateFormats {
       redone: Boolean,
       viewerType: ViewerType
   )
-  case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission], validateParams: ValidateParams)
 
   /**
    * A request for replacement labels from a Validate mission that ran out of them mid-mission (#4810).
@@ -266,9 +265,4 @@ object ValidateFormats {
       (JsPath \ "excluded_label_ids").read[Seq[Int]] and
       (JsPath \ "validate_params").read[ValidateParams]
   )(MoreLabelsRequest.apply _)
-
-  implicit val skipLabelReads: Reads[SkipLabelSubmission] = (
-    (JsPath \ "labels").read[Seq[LabelValidationSubmission]] and
-      (JsPath \ "validate_params").read[ValidateParams]
-  )(SkipLabelSubmission.apply _)
 }
