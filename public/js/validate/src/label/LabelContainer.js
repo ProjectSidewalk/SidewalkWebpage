@@ -116,12 +116,6 @@ class LabelContainer {
 
   /**
    * Renders the current label on the pano, updating the UI accordingly.
-   *
-   * Labels whose imagery no viewer can render are dropped from the mission rather than shown (#4810): the pano area
-   * is empty behind a failed load, so rendering the rest of the UI over it would ask for a verdict on a label
-   * nobody can see. A dropped label is never validated — it goes back in the pool for whoever gets it next — and
-   * since the backend hands out exactly as many labels as the mission still needs, dropping one means asking it for
-   * a replacement before the queue can run dry.
    */
   async renderCurrentLabel() {
     this.#setUiBusy(true);
@@ -138,10 +132,7 @@ class LabelContainer {
       nSkipped += await this.#loadPanoForCurrentLabel();
     }
 
-    // Out of labels. Which modal depends on why: dropped labels mean imagery is the problem, and saying "no labels
-    // left to validate" there would be plainly untrue (#4810). Release the UI first — the modal is rendered *inside*
-    // #svv-application-holder, so the `validate-disabled` class covering that holder (pointer-events: none) would
-    // reach the modal's own button, leaving the user with a wait cursor and nothing to click.
+    // Out of labels. Which modal depends on why: actually no labels vs dropped labels mean imagery is the problem.
     if (!this.#currLabel) {
       this.#setUiBusy(false);
       svv.modalNoNewMission.show({ imageryUnavailable: nSkipped > 0 });
@@ -218,9 +209,7 @@ class LabelContainer {
    * Asks the backend to replace the labels this mission dropped for unrenderable imagery (#4810).
    *
    * Validate is handed exactly as many labels as its mission still needs, so without this a dropped label would
-   * leave the mission unfinishable and the user staring at a "no more labels to validate" modal that isn't true.
-   * Every label the mission has held is sent along as an exclusion: our own validations may not have reached the
-   * database yet, so the backend's "already validated by this user" filter can't rule them out on its own.
+   * leave the mission unfinishable. Send along all the mission's label_ids so the back end doesn't choose a duplicate.
    *
    * @returns {Promise<boolean>} True if at least one replacement label was added to the queue.
    */

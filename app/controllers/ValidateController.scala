@@ -414,8 +414,7 @@ class ValidateController @Inject() (
    *
    * The request names every label the client already holds so a replacement can't duplicate one — the client's
    * validations may not have reached the database yet, so the query's own "already validated by this user" filter
-   * isn't enough on its own. An empty `labels` array is a real answer: there is nothing left for this user to
-   * validate, which is exactly when the no-more-labels modal is the truth.
+   * isn't enough on its own. An empty `labels` array means there is nothing left for this user to validate.
    */
   def getMoreLabels = cc.securityService.SecuredAction(parse.json) { implicit request =>
     request.body
@@ -423,11 +422,6 @@ class ValidateController @Inject() (
       .fold(
         errors => Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))),
         moreLabels => {
-          // Expert Validate's extra per-label data (the labeler's username, who else has validated it) is gated on
-          // the user's actual role, not on the adminVersion flag in the request body. ADMIN_ROLES is the same set
-          // `WithAdmin` checks on /expertValidate, the only place adminVersion is ever set — keep the two together
-          // if that page's gate ever widens. The region and unvalidated-only filters are available to everyone on
-          // plain /validate, so they carry over either way.
           val isAdmin: Boolean           = RoleTable.ADMIN_ROLES.contains(request.identity.role)
           val validateParams             = moreLabels.validateParams
           val safeParams: ValidateParams =
@@ -446,17 +440,17 @@ class ValidateController @Inject() (
             val labelMetadataJsonSeq: Seq[JsObject] = if (safeParams.adminVersion) {
               labels.sortBy(_.labelId).zip(adminData.sortBy(_.labelId)).map { case (l, admin) =>
                 LabelFormats.validationLabelMetadataToJson(
-                  l,
-                  panoDataService.backupImageUrl(l.panoId),
-                  Some(admin),
+                  labelMetadata = l,
+                  backupImageUrl = panoDataService.backupImageUrl(l.panoId),
+                  adminData = Some(admin),
                   maxSpeed = maxSpeeds.get(l.streetEdgeId)
                 )
               }
             } else {
               labels.map { l =>
                 LabelFormats.validationLabelMetadataToJson(
-                  l,
-                  panoDataService.backupImageUrl(l.panoId),
+                  labelMetadata = l,
+                  backupImageUrl = panoDataService.backupImageUrl(l.panoId),
                   maxSpeed = maxSpeeds.get(l.streetEdgeId)
                 )
               }

@@ -504,8 +504,7 @@ class LabelServiceImpl @Inject() (
    * Get replacement labels for a Validate mission that ran out of them mid-mission.
    *
    * Validate is handed exactly as many labels as its mission still needs, so a label it turns out not to be able to
-   * render (#4810) would otherwise leave the mission unfinishable. This tops the queue back up rather than ending
-   * the mission early or telling the user there is nothing left to validate.
+   * render (#4810) would otherwise leave the mission unfinishable. This tops the queue back up.
    *
    * @param user             The user validating.
    * @param labelTypeId      Label type of the mission being topped up.

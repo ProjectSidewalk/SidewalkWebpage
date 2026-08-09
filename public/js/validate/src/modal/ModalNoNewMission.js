@@ -57,9 +57,7 @@ class ModalNoNewMission {
   /**
    * @param {object} [opts]
    * @param {boolean} [opts.imageryUnavailable=false] True when Validate stopped because it couldn't load the imagery
-   *      for the labels it had, rather than because there are none left (#4810). The two are not interchangeable:
-   *      telling someone there is nothing left to validate when the labels exist and the imagery didn't load sends
-   *      them away from work that is still there.
+   *      for the labels it had, rather than because there are none left (#4810).
    */
   show({ imageryUnavailable = false } = {}) {
     if (svv.keyboard) {
