@@ -91,9 +91,12 @@
   },
   "center-ui": {
     "no-info": "Nenhuma informação disponível",
-    "pano-interactive-message": "Arraste para olhar ao redor, role para aproximar.",
-    "imagery-unavailable_one": "Um rótulo foi ignorado porque a imagem não pôde ser carregada.",
-    "imagery-unavailable_other": "{{count}} rótulos foram ignorados porque as imagens não puderam ser carregadas."
+    "pano-interactive-message": "Arraste para olhar ao redor, role para aproximar."
+  },
+  "imagery-unavailable": {
+    "title": "Não foi possível carregar as imagens",
+    "body": "Não conseguimos carregar as imagens de rua dos rótulos desta missão, então não há nada para mostrar agora. Suas validações concluídas estão salvas. Isso costuma se resolver sozinho — tente novamente.",
+    "retry": "Tentar novamente"
   },
   "mission-start": {
     "title": "Validar {{n}} {{label_type}} rótulos",

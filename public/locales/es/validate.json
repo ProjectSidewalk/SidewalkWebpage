@@ -91,9 +91,12 @@
   },
   "center-ui": {
     "no-info": "No hay información disponible",
-    "pano-interactive-message": "Arrastra para mirar alrededor, desplázate para acercar.",
-    "imagery-unavailable_one": "Se omitió una etiqueta porque no se pudo cargar su imagen.",
-    "imagery-unavailable_other": "Se omitieron {{count}} etiquetas porque no se pudieron cargar sus imágenes."
+    "pano-interactive-message": "Arrastra para mirar alrededor, desplázate para acercar."
+  },
+  "imagery-unavailable": {
+    "title": "No se pudieron cargar las imágenes",
+    "body": "No pudimos cargar las imágenes de calle de las etiquetas de esta misión, así que ahora mismo no hay nada que mostrarte. Tus validaciones completadas están guardadas. Esto suele resolverse solo; inténtalo de nuevo.",
+    "retry": "Intentar de nuevo"
   },
   "mission-start": {
     "title": "Valida {{n}} etiquetas de {{label_type}}",

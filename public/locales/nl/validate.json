@@ -91,9 +91,12 @@
   },
   "center-ui": {
     "no-info": "Geen informatie beschikbaar",
-    "pano-interactive-message": "Sleep om rond te kijken, scroll om in te zoomen.",
-    "imagery-unavailable_one": "Een label is overgeslagen omdat het beeld niet kon worden geladen.",
-    "imagery-unavailable_other": "{{count}} labels zijn overgeslagen omdat het beeld niet kon worden geladen."
+    "pano-interactive-message": "Sleep om rond te kijken, scroll om in te zoomen."
+  },
+  "imagery-unavailable": {
+    "title": "Beelden konden niet worden geladen",
+    "body": "We konden de straatbeelden voor de labels in deze missie niet laden, dus er is nu niets om te tonen. Je afgeronde validaties zijn opgeslagen. Dit lost zichzelf meestal op — probeer het opnieuw.",
+    "retry": "Opnieuw proberen"
   },
   "mission-start": {
     "title": "Valideer {{n}} {{label_type}} labels",

@@ -4,10 +4,18 @@
  * Construct instances via the `static async create()` factory, which renders the first label before resolving.
  */
 class LabelContainer {
-  // These three are set in resetLabelList.
+  // A mission that has had to ask for replacement labels twice and still can't render one is not having a run of bad
+  // luck — imagery is broadly unavailable (a provider outage or quota). Stop asking and tell the user (#4810).
+  static #MAX_TOP_UP_ROUNDS = 2;
+
+  // These are all set in resetLabelList.
   #labels;  // All labels in the mission.
   #currLabelIndex;
   #currLabel;
+  #labelTypeId;      // The mission's label type, so replacement labels match the ones it started with.
+  #seenLabelIds;     // Every label this mission has handed us, so a replacement can't duplicate one.
+  #labelsOwed;       // Labels dropped for unrenderable imagery that haven't been replaced yet.
+  #topUpRounds;
 
   #labelsToSubmit = [];
   #submittedLabels = [];
@@ -19,18 +27,20 @@ class LabelContainer {
 
   /**
    * @param {Array} labelList Initial list of labels to be validated (generated when the page is loaded).
+   * @param {number} labelTypeId Label type ID of the mission these labels belong to.
    */
-  constructor(labelList) {
-    this.resetLabelList(labelList);
+  constructor(labelList, labelTypeId) {
+    this.resetLabelList(labelList, labelTypeId);
   }
 
   /**
    * Creates a LabelContainer and renders its first label.
    * @param {Array} labelList Initial list of labels to be validated.
+   * @param {number} labelTypeId Label type ID of the mission these labels belong to.
    * @returns {Promise<LabelContainer>}
    */
-  static async create(labelList) {
-    const labelContainer = new LabelContainer(labelList);
+  static async create(labelList, labelTypeId) {
+    const labelContainer = new LabelContainer(labelList, labelTypeId);
     await labelContainer.renderCurrentLabel();
     return labelContainer;
   }
@@ -88,18 +98,19 @@ class LabelContainer {
   async moveToNextLabel() {
     this.#currLabelIndex += 1;
     this.#currLabel = this.#labels[this.#currLabelIndex];
-    if (this.#currLabel === undefined) {
-      svv.modalNoNewMission.show();
-    } else {
-      await this.renderCurrentLabel();
-      if (svv.labelVisibilityControl && !svv.labelVisibilityControl.isVisible()) {
-        svv.labelVisibilityControl.unhideLabel();
-      }
+    await this.renderCurrentLabel();
 
-      // Update zoom availability on desktop.
-      if (svv.zoomControl) {
-        svv.zoomControl.updateZoomAvailability();
-      }
+    // renderCurrentLabel shows the no-more-labels modal when it can't produce a label to show — after asking the
+    // backend to replace any it had to drop — so there is nothing left to set up here.
+    if (!this.#currLabel) return;
+
+    if (svv.labelVisibilityControl && !svv.labelVisibilityControl.isVisible()) {
+      svv.labelVisibilityControl.unhideLabel();
+    }
+
+    // Update zoom availability on desktop.
+    if (svv.zoomControl) {
+      svv.zoomControl.updateZoomAvailability();
     }
   }
 
@@ -109,8 +120,8 @@ class LabelContainer {
    * Labels whose imagery no viewer can render are dropped from the mission rather than shown (#4810): the pano area
    * is empty behind a failed load, so rendering the rest of the UI over it would ask for a verdict on a label
    * nobody can see. A dropped label is never validated — it goes back in the pool for whoever gets it next — and
-   * the backend hands out exactly as many labels as the mission still needs, so dropping one leaves the mission
-   * that much short of finishing.
+   * since the backend hands out exactly as many labels as the mission still needs, dropping one means asking it for
+   * a replacement before the queue can run dry.
    */
   async renderCurrentLabel() {
     // Prevent UI interaction and show that we're working on loading the next label.
@@ -124,13 +135,17 @@ class LabelContainer {
     }
 
     // Render the new pano and the label on it, updating the surrounding UI given the new label's info.
-    const nSkipped = await this.#loadPanoForCurrentLabel();
-    if (nSkipped > 0) this.#showSkippedLabelsToast(nSkipped);
+    let nSkipped = await this.#loadPanoForCurrentLabel();
 
-    // Every label left in the mission failed to load. The UI stays disabled behind the modal — there is nothing to
-    // validate, and the mission resumes with a fresh set of labels the next time the user opens Validate.
+    // Dropping labels emptied the queue, so ask the backend to replace what it can and carry on.
+    while (!this.#currLabel && await this.#topUpLabelQueue()) {
+      nSkipped += await this.#loadPanoForCurrentLabel();
+    }
+
+    // Out of labels, with the UI left disabled behind the modal. Which modal depends on why: dropped labels mean
+    // imagery is the problem, and saying "no labels left to validate" there would be plainly untrue (#4810).
     if (!this.#currLabel) {
-      svv.modalNoNewMission.show();
+      svv.modalNoNewMission.show({ imageryUnavailable: nSkipped > 0 });
       return;
     }
 
@@ -178,6 +193,7 @@ class LabelContainer {
         panoId: this.#currLabel.getAuditProperty('panoId'),
       });
       nSkipped += 1;
+      this.#labelsOwed += 1;
       this.#labels.splice(this.#currLabelIndex, 1);
       this.#currLabel = this.#labels[this.#currLabelIndex];
     }
@@ -185,26 +201,66 @@ class LabelContainer {
   }
 
   /**
-   * Tells the user a label went by without them seeing it, so a mission that ends early isn't a mystery.
-   * @param {number} nSkipped How many labels were dropped.
+   * Asks the backend to replace the labels this mission dropped for unrenderable imagery (#4810).
+   *
+   * Validate is handed exactly as many labels as its mission still needs, so without this a dropped label would
+   * leave the mission unfinishable and the user staring at a "no more labels to validate" modal that isn't true.
+   * Every label the mission has held is sent along as an exclusion: our own validations may not have reached the
+   * database yet, so the backend's "already validated by this user" filter can't rule them out on its own.
+   *
+   * @returns {Promise<boolean>} True if at least one replacement label was added to the queue.
    */
-  #showSkippedLabelsToast(nSkipped) {
-    Toast.show({
-      message: i18next.t('center-ui.imagery-unavailable', { count: nSkipped }),
-      reference: document.getElementById('svv-panorama-holder'),
-      dark: true,    // It floats over street imagery, where a white card glares.
-      compact: true, // An aside, not an announcement.
-    });
+  async #topUpLabelQueue() {
+    if (this.#labelsOwed < 1 || this.#topUpRounds >= LabelContainer.#MAX_TOP_UP_ROUNDS) return false;
+    this.#topUpRounds += 1;
+
+    let labels;
+    try {
+      const response = await fetch('/validationTask/moreLabels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify({
+          label_type_id: this.#labelTypeId,
+          labels_needed: this.#labelsOwed,
+          excluded_label_ids: [...this.#seenLabelIds],
+          validate_params: svv.form.getValidateParams(),
+        }),
+      });
+      if (!response.ok) throw new Error(`Replacement labels request failed with HTTP ${response.status}`);
+      labels = (await response.json()).labels;
+    } catch (error) {
+      // Nothing to retry into — the caller falls through to the no-more-labels modal, and the mission resumes with a
+      // fresh set of labels next time the user opens Validate.
+      svv.tracker.push('LabelTopUpFailed', { error: error.message });
+      return false;
+    }
+
+    svv.tracker.push('LabelTopUp', { requested: this.#labelsOwed, received: labels.length });
+    if (labels.length === 0) return false;
+
+    for (const labelMetadata of labels) {
+      const label = new Label(labelMetadata);
+      this.#labels.push(label);
+      this.#seenLabelIds.add(label.getAuditProperty('labelId'));
+    }
+    this.#labelsOwed -= labels.length;
+    this.#currLabel = this.#labels[this.#currLabelIndex];
+    return true;
   }
 
   /**
    * Creates a list of label objects to be validated from label metadata. Called when a new mission is loaded.
    * @param {Array} labelList List of label metadata objects.
+   * @param {number} labelTypeId Label type ID of the mission these labels belong to.
    */
-  resetLabelList(labelList) {
+  resetLabelList(labelList, labelTypeId) {
     this.#labels = labelList.map((key) => new Label(key));
     this.#currLabelIndex = 0;
     this.#currLabel = this.#labels[this.#currLabelIndex];
+    this.#labelTypeId = labelTypeId;
+    this.#seenLabelIds = new Set(this.#labels.map((label) => label.getAuditProperty('labelId')));
+    this.#labelsOwed = 0;
+    this.#topUpRounds = 0;
   }
 
   /**

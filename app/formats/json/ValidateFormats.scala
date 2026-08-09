@@ -66,6 +66,21 @@ object ValidateFormats {
       viewerType: ViewerType
   )
   case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission], validateParams: ValidateParams)
+
+  /**
+   * A request for replacement labels from a Validate mission that ran out of them mid-mission (#4810).
+   *
+   * @param labelTypeId      Label type of the mission being topped up.
+   * @param labelsNeeded     How many labels the client is short.
+   * @param excludedLabelIds Every label the client already holds, so it isn't handed one of them back.
+   * @param validateParams   The page's filters, so replacements match the rest of the mission.
+   */
+  case class MoreLabelsRequest(
+      labelTypeId: Int,
+      labelsNeeded: Int,
+      excludedLabelIds: Seq[Int],
+      validateParams: ValidateParams
+  )
   case class ValidationMissionProgress(
       missionId: Int,
       missionType: String,
@@ -244,6 +259,13 @@ object ValidateFormats {
       (JsPath \ "redone").read[Boolean] and
       (JsPath \ "viewer_type").read[ViewerType.Value]
   )(LabelMapValidationSubmission.apply _)
+
+  implicit val moreLabelsRequestReads: Reads[MoreLabelsRequest] = (
+    (JsPath \ "label_type_id").read[Int] and
+      (JsPath \ "labels_needed").read[Int] and
+      (JsPath \ "excluded_label_ids").read[Seq[Int]] and
+      (JsPath \ "validate_params").read[ValidateParams]
+  )(MoreLabelsRequest.apply _)
 
   implicit val skipLabelReads: Reads[SkipLabelSubmission] = (
     (JsPath \ "labels").read[Seq[LabelValidationSubmission]] and

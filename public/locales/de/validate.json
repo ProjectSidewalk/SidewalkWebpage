@@ -91,9 +91,12 @@
   },
   "center-ui": {
     "no-info": "Keine Informationen verfügbar",
-    "pano-interactive-message": "Ziehen zum Umsehen, scrollen zum Heranzoomen.",
-    "imagery-unavailable_one": "Eine Beschriftung wurde übersprungen, da ihr Bildmaterial nicht geladen werden konnte.",
-    "imagery-unavailable_other": "{{count}} Beschriftungen wurden übersprungen, da ihr Bildmaterial nicht geladen werden konnte."
+    "pano-interactive-message": "Ziehen zum Umsehen, scrollen zum Heranzoomen."
+  },
+  "imagery-unavailable": {
+    "title": "Bildmaterial konnte nicht geladen werden",
+    "body": "Wir konnten das Strassenbildmaterial für die Beschriftungen dieser Mission nicht laden, daher gibt es im Moment nichts zu zeigen. Ihre abgeschlossenen Validierungen sind gespeichert. Das erledigt sich meist von selbst — bitte versuchen Sie es erneut.",
+    "retry": "Erneut versuchen"
   },
   "mission-start": {
     "title": "Validieren Sie {{n}} {{label_type}} Beschriftungen",

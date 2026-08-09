@@ -6,7 +6,12 @@ import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.CommentSubmissionFormats.LabelMapValidationCommentSubmission
 import formats.json.LabelFormats
 import formats.json.MissionFormats._
-import formats.json.ValidateFormats.{EnvironmentSubmission, LabelMapValidationSubmission, ValidationTaskSubmission}
+import formats.json.ValidateFormats.{
+  EnvironmentSubmission,
+  LabelMapValidationSubmission,
+  MoreLabelsRequest,
+  ValidationTaskSubmission
+}
 import models.auth.WithAdmin
 import models.label.{LabelTypeEnum, Tag}
 import models.mission.MissionType
@@ -398,6 +403,66 @@ class ValidateController @Inject() (
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => { processValidationTaskSubmissions(submission, request.ipAddress, request.identity) }
     )
+  }
+
+  /**
+   * Hands Validate replacement labels for a mission that ran out of them mid-mission (#4810).
+   *
+   * Validate receives exactly as many labels as its mission still needs, so a label whose imagery turns out not to
+   * render leaves the mission unfinishable. This is the only way to top the queue back up: the mission-complete
+   * response is the only other place labels are handed out, and it fires a mission too late to help.
+   *
+   * The request names every label the client already holds so a replacement can't duplicate one — the client's
+   * validations may not have reached the database yet, so the query's own "already validated by this user" filter
+   * isn't enough on its own. An empty `labels` array is a real answer: there is nothing left for this user to
+   * validate, which is exactly when the no-more-labels modal is the truth.
+   */
+  def getMoreLabels = cc.securityService.SecuredAction(parse.json) { implicit request =>
+    request.body
+      .validate[MoreLabelsRequest]
+      .fold(
+        errors => Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))),
+        moreLabels => {
+          // Expert Validate's extra per-label data (the labeler's username, who else has validated it) is gated on
+          // the user's actual role, not on the adminVersion flag in the request body. The region and unvalidated-only
+          // filters are available to everyone on plain /validate, so they carry over either way.
+          val isAdmin: Boolean           = RoleTable.ADMIN_ROLES.contains(request.identity.role)
+          val validateParams             = moreLabels.validateParams
+          val safeParams: ValidateParams =
+            if (isAdmin) validateParams
+            else
+              ValidateParams(
+                adminVersion = false,
+                neighborhoodIds = validateParams.neighborhoodIds,
+                unvalidatedOnly = validateParams.unvalidatedOnly
+              )
+          for {
+            (labels, adminData) <- labelService.getMoreLabelsToValidate(request.identity, moreLabels.labelTypeId,
+              moreLabels.labelsNeeded, moreLabels.excludedLabelIds.toSet, safeParams)
+            maxSpeeds <- osmWayService.getMaxSpeedsForStreets(labels.map(_.streetEdgeId).distinct)
+          } yield {
+            val labelMetadataJsonSeq: Seq[JsObject] = if (safeParams.adminVersion) {
+              labels.sortBy(_.labelId).zip(adminData.sortBy(_.labelId)).map { case (l, admin) =>
+                LabelFormats.validationLabelMetadataToJson(
+                  l,
+                  panoDataService.backupImageUrl(l.panoId),
+                  Some(admin),
+                  maxSpeed = maxSpeeds.get(l.streetEdgeId)
+                )
+              }
+            } else {
+              labels.map { l =>
+                LabelFormats.validationLabelMetadataToJson(
+                  l,
+                  panoDataService.backupImageUrl(l.panoId),
+                  maxSpeed = maxSpeeds.get(l.streetEdgeId)
+                )
+              }
+            }
+            Ok(Json.obj("labels" -> Json.toJson(labelMetadataJsonSeq)))
+          }
+        }
+      )
   }
 
   /**

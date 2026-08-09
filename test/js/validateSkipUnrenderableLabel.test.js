@@ -147,15 +147,24 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
 });
 
 describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
+  const LABEL_TYPE_ID = 3;
   let LabelContainer;
   let unrenderablePanoIds;
+  let topUpQueue;   // Successive `labels` arrays the /moreLabels endpoint answers with.
+  let topUpBodies;  // Request bodies it was asked with, so the exclusion list can be asserted.
 
   beforeEach(() => {
     unrenderablePanoIds = new Set();
+    topUpQueue = [];
+    topUpBodies = [];
+
+    global.fetch = jest.fn((url, options) => {
+      topUpBodies.push(JSON.parse(options.body));
+      return Promise.resolve({ok: true, json: () => Promise.resolve({labels: topUpQueue.shift() ?? []})});
+    });
 
     global.util = {isMobile: () => false};
-    global.i18next = {t: jest.fn(() => 'Skipped a label whose imagery couldn\'t load.')};
-    global.Toast = {show: jest.fn()};
+    global.i18next = {t: jest.fn((key) => key)};
     // The bundle's Label class; only the accessors LabelContainer and its collaborators touch.
     global.Label = class Label {
       constructor(params) {
@@ -176,6 +185,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
       undoValidation: {enableUndo: jest.fn()},
       labelVisibilityControl: {hideLabelCard: jest.fn(), unhideLabel: jest.fn(), isVisible: () => true},
       modalNoNewMission: {show: jest.fn()},
+      form: {getValidateParams: () => ({admin_version: false, unvalidated_only: false})},
       ui: {
         holder: fakeJqueryElement(),
         validationMenu: {holder: fakeJqueryElement()},
@@ -193,9 +203,9 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
   });
 
   afterEach(() => {
+    delete global.fetch;
     delete global.util;
     delete global.i18next;
-    delete global.Toast;
     delete global.Label;
     delete global.svv;
   });
@@ -209,6 +219,15 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     ];
   }
 
+  /**
+   * Builds a container with its first label rendered.
+   * @param {Array} [labelList] Label metadata to start with.
+   * @returns {Promise<LabelContainer>}
+   */
+  function buildContainer(labelList = threeLabels()) {
+    return LabelContainer.create(labelList, LABEL_TYPE_ID);
+  }
+
   /** @returns {Array<number>} The label ids the validation UI was actually asked to render, in order. */
   function renderedLabelIds() {
     return svv.panoManager.renderPanoMarker.mock.calls.map(([label]) => label.getAuditProperty('labelId'));
@@ -216,7 +235,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
 
   test('the unrenderable label is passed over and the next one is shown in its place', async () => {
     unrenderablePanoIds.add('panoB');
-    const labelContainer = await LabelContainer.create(threeLabels());
+    const labelContainer = await buildContainer();
 
     await labelContainer.moveToNextLabel();
 
@@ -229,17 +248,16 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
 
   test('dropping a label is logged, since it is invisible to the user by design', async () => {
     unrenderablePanoIds.add('panoB');
-    const labelContainer = await LabelContainer.create(threeLabels());
+    const labelContainer = await buildContainer();
 
     await labelContainer.moveToNextLabel();
 
     expect(svv.tracker.push).toHaveBeenCalledWith('LabelSkipped_NoImagery', {labelId: 2, panoId: 'panoB'});
-    expect(global.Toast.show).toHaveBeenCalledTimes(1);
   });
 
   test('undo still lands on the label the user actually saw, not the dropped one', async () => {
     unrenderablePanoIds.add('panoB');
-    const labelContainer = await LabelContainer.create(threeLabels());
+    const labelContainer = await buildContainer();
     await labelContainer.moveToNextLabel();
 
     await labelContainer.undoLabel();
@@ -247,27 +265,83 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(1);
   });
 
-  test('consecutive failures are dropped in one pass, and counted together for the notice', async () => {
-    unrenderablePanoIds.add('panoB');
+  test('a dropped label is replaced, so the queue never runs short of what the mission needs', async () => {
     unrenderablePanoIds.add('panoC');
-    const labelContainer = await LabelContainer.create([...threeLabels(), {labelId: 4, panoId: 'panoD'}]);
+    topUpQueue.push([{labelId: 4, panoId: 'panoD'}]);
+    const labelContainer = await buildContainer();
 
-    await labelContainer.moveToNextLabel();
+    await labelContainer.moveToNextLabel(); // label 2
+    await labelContainer.moveToNextLabel(); // label 3 is unrenderable; its replacement comes back instead
 
     expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(4);
-    expect(global.Toast.show).toHaveBeenCalledTimes(1);
-    expect(global.i18next.t).toHaveBeenCalledWith('center-ui.imagery-unavailable', {count: 2});
+    expect(renderedLabelIds()).toEqual([1, 2, 4]);
+    expect(svv.modalNoNewMission.show).not.toHaveBeenCalled();
   });
 
-  test('with nothing left that can be shown, the user is told rather than left on an empty pano', async () => {
+  test('the replacement request names the mission\'s label type and every label it has held', async () => {
+    unrenderablePanoIds.add('panoC');
+    topUpQueue.push([{labelId: 4, panoId: 'panoD'}]);
+    const labelContainer = await buildContainer();
+
+    await labelContainer.moveToNextLabel();
+    await labelContainer.moveToNextLabel();
+
+    expect(global.fetch).toHaveBeenCalledWith('/validationTask/moreLabels', expect.objectContaining({method: 'POST'}));
+    expect(topUpBodies).toHaveLength(1);
+    expect(topUpBodies[0].label_type_id).toBe(LABEL_TYPE_ID);
+    expect(topUpBodies[0].labels_needed).toBe(1);
+    // Including the ones already answered: those validations may not have reached the database yet.
+    expect(topUpBodies[0].excluded_label_ids.sort()).toEqual([1, 2, 3]);
+  });
+
+  test('a replacement that also fails is itself replaced, up to a bounded number of rounds', async () => {
+    unrenderablePanoIds.add('panoC');
+    unrenderablePanoIds.add('panoD');
+    unrenderablePanoIds.add('panoE');
+    topUpQueue.push([{labelId: 4, panoId: 'panoD'}]);
+    topUpQueue.push([{labelId: 5, panoId: 'panoE'}]);
+    topUpQueue.push([{labelId: 6, panoId: 'panoF'}]);
+    const labelContainer = await buildContainer();
+
+    await labelContainer.moveToNextLabel();
+    await labelContainer.moveToNextLabel();
+
+    // Two rounds of replacements, both unrenderable, then it stops asking rather than churning the queue.
+    expect(topUpBodies).toHaveLength(2);
+    expect(labelContainer.getCurrentLabel()).toBeUndefined();
+    expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: true});
+  });
+
+  test('when the backend has no replacement to give, the modal says imagery, not "nothing left"', async () => {
     unrenderablePanoIds.add('panoA');
     unrenderablePanoIds.add('panoB');
     unrenderablePanoIds.add('panoC');
 
-    await LabelContainer.create(threeLabels());
+    await buildContainer();
 
-    expect(svv.modalNoNewMission.show).toHaveBeenCalled();
+    expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: true});
     expect(svv.panoManager.renderPanoMarker).not.toHaveBeenCalled();
     expect(svv.labelCard.render).not.toHaveBeenCalled();
+  });
+
+  test('a failed replacement request falls back to the modal instead of throwing', async () => {
+    unrenderablePanoIds.add('panoC');
+    global.fetch = jest.fn(() => Promise.reject(new Error('offline')));
+    const labelContainer = await buildContainer();
+
+    await labelContainer.moveToNextLabel();
+    await labelContainer.moveToNextLabel();
+
+    expect(svv.tracker.push).toHaveBeenCalledWith('LabelTopUpFailed', {error: 'offline'});
+    expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: true});
+  });
+
+  test('running out with nothing dropped is still the plain no-more-labels case', async () => {
+    const labelContainer = await buildContainer([{labelId: 1, panoId: 'panoA'}]);
+
+    await labelContainer.moveToNextLabel();
+
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: false});
   });
 });

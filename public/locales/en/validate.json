@@ -91,9 +91,12 @@
   },
   "center-ui": {
     "no-info": "No available information",
-    "pano-interactive-message": "Drag to look around, scroll to zoom in.",
-    "imagery-unavailable_one": "Skipped a label whose imagery couldn't load.",
-    "imagery-unavailable_other": "Skipped {{count}} labels whose imagery couldn't load."
+    "pano-interactive-message": "Drag to look around, scroll to zoom in."
+  },
+  "imagery-unavailable": {
+    "title": "Imagery couldn't be loaded",
+    "body": "We couldn't load the street imagery for the labels in this mission, so there's nothing to show you right now. Your finished validations are saved. This usually clears up on its own — please try again.",
+    "retry": "Try Again"
   },
   "mission-start": {
     "title": "Validate {{n}} {{label_type}} labels",

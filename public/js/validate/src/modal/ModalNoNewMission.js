@@ -1,11 +1,11 @@
 /**
- * Handles edge case if there are no more labels for this user to validate.
- * Creates an overlay that notifies user that there are no more labels left for them to validate
- * at the moment. Disables controls, shortcuts.
+ * Handles the two dead ends Validate can reach: there are no more labels for this user to validate, or none of the
+ * ones it has left can be shown. Creates an overlay saying which, and disables controls and shortcuts.
  */
 class ModalNoNewMission {
   #uiModalMission;
   #noMissionsRemaining;
+  #imageryUnavailable;
 
   /**
    * @param {object} uiModalMission Mission modal UI elements.
@@ -16,13 +16,23 @@ class ModalNoNewMission {
     const instructions = util.isMobile()
       ? i18next.t('mobile.no-new-mission-body')
       : i18next.t('mission-complete.no-new-mission-body');
-    this.#noMissionsRemaining = `
+    this.#noMissionsRemaining = ModalNoNewMission.#buildBody(instructions);
+    this.#imageryUnavailable = ModalNoNewMission.#buildBody(i18next.t('imagery-unavailable.body'));
+  }
+
+  /**
+   * Wraps a message in the modal's illustrated body markup.
+   * @param {string} message The translated sentence explaining the dead end.
+   * @returns {string} The body's HTML.
+   */
+  static #buildBody(message) {
+    return `
       <figure>
         <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block"
         alt="Street accessibility features" />
       </figure>
       <div class="spacer10"></div>
-      <p>${instructions}</p>
+      <p>${message}</p>
       <div class="spacer10"></div>`;
   }
 
@@ -36,27 +46,55 @@ class ModalNoNewMission {
     }
   };
 
-  show() {
+  // The imagery failures that land someone here are usually transient (a provider hiccup or quota), and the mission
+  // is resumed with a fresh set of labels on load, so retrying is the action worth offering. It reloads rather than
+  // retrying in place because the whole page was left disabled behind this modal.
+  #handleRetryClick = () => {
+    svv.tracker.push('Click_ImageryUnavailableModal_Retry');
+    window.location.reload();
+  };
+
+  /**
+   * @param {object} [opts]
+   * @param {boolean} [opts.imageryUnavailable=false] True when Validate stopped because it couldn't load the imagery
+   *      for the labels it had, rather than because there are none left (#4810). The two are not interchangeable:
+   *      telling someone there is nothing left to validate when the labels exist and the imagery didn't load sends
+   *      them away from work that is still there.
+   */
+  show({ imageryUnavailable = false } = {}) {
     if (svv.keyboard) {
       svv.keyboard.disableKeyboard();
     }
     this.#uiModalMission.background.css('visibility', 'visible');
-    this.#uiModalMission.instruction.html(this.#noMissionsRemaining);
-    this.#uiModalMission.missionTitle.html(i18next.t('mission-complete.no-new-mission-title'));
+    this.#uiModalMission.instruction.html(imageryUnavailable ? this.#imageryUnavailable : this.#noMissionsRemaining);
+    this.#uiModalMission.missionTitle.html(imageryUnavailable
+      ? i18next.t('imagery-unavailable.title')
+      : i18next.t('mission-complete.no-new-mission-title'));
     this.#uiModalMission.holder.css('visibility', 'visible');
     this.#uiModalMission.foreground.css('visibility', 'visible');
 
-    // Update and widen the button to fit more text when there is no new mission.
+    let buttonLabel;
+    if (imageryUnavailable) {
+      buttonLabel = i18next.t('imagery-unavailable.retry');
+    } else if (util.isMobile()) {
+      buttonLabel = `${i18next.t('mobile.no-new-mission-button')} Seattle, WA`;
+    } else {
+      buttonLabel = i18next.t('mission-complete.no-new-mission-button');
+    }
+    this.#uiModalMission.closeButton.html(buttonLabel);
+
+    // Widen the button to fit more text.
     if (util.isMobile()) {
-      this.#uiModalMission.closeButton.html(`${i18next.t('mobile.no-new-mission-button')} Seattle, WA`);
       this.#uiModalMission.closeButton.css('font-size', '40pt');
       this.#uiModalMission.closeButton.css('width', '76%');
       this.#uiModalMission.closeButton.css('margin-right', '12%');
     } else {
-      this.#uiModalMission.closeButton.html(i18next.t('mission-complete.no-new-mission-button'));
       this.#uiModalMission.closeButton.css('width', 'fit-content');
     }
-    this.#uiModalMission.closeButton.on('click', this.#handleButtonClick);
+
+    // Re-bind rather than add: the modal can be shown twice in a session with different actions on its one button.
+    this.#uiModalMission.closeButton.off('click')
+      .on('click', imageryUnavailable ? this.#handleRetryClick : this.#handleButtonClick);
     this.#uiModalMission.holder.removeClass('ps-hidden');
   }
 }

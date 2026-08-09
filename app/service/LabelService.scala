@@ -71,7 +71,7 @@ trait LabelService {
       userIds: Option[Set[String]] = None,
       regionIds: Option[Set[Int]] = None,
       unvalidatedOnly: Boolean = false,
-      skippedLabelId: Option[Int] = None
+      excludedLabelIds: Set[Int] = Set.empty
   ): Future[Seq[LabelValidationMetadata]]
   def getDataForValidationPages(
       user: SidewalkUserWithRole,
@@ -83,6 +83,13 @@ trait LabelService {
       missionProgress: Option[ValidationMissionProgress],
       validateParams: ValidateParams
   ): Future[ValidationTaskPostReturnValue]
+  def getMoreLabelsToValidate(
+      user: SidewalkUserWithRole,
+      labelTypeId: Int,
+      labelsNeeded: Int,
+      excludedLabelIds: Set[Int],
+      validateParams: ValidateParams
+  ): Future[(Seq[LabelValidationMetadata], Seq[AdminValidationData])]
   def getRecentValidatedLabelsForUser(
       userId: String,
       labelTypes: Set[LabelTypeEnum.Base],
@@ -285,14 +292,14 @@ class LabelServiceImpl @Inject() (
    *
    * Starts by querying for n * 5 labels, then checks GSV API to see if each pano_id exists until we find n.
    *
-   * @param userId         User ID for the current user.
-   * @param n              Number of labels we need to query.
-   * @param viewer         The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
-   * @param labelTypeId    Label Type ID of labels requested.
-   * @param userIds        Optional list of user IDs to filter by.
-   * @param regionIds      Optional list of region IDs to filter by.
-   * @param skippedLabelId Label ID of the label that was just skipped (if applicable).
-   * @return               Seq[LabelValidationMetadata]
+   * @param userId           User ID for the current user.
+   * @param n                Number of labels we need to query.
+   * @param viewer           The type of pano viewer the labels must have been added on (GSV, Mapillary, etc).
+   * @param labelTypeId      Label Type ID of labels requested.
+   * @param userIds          Optional list of user IDs to filter by.
+   * @param regionIds        Optional list of region IDs to filter by.
+   * @param excludedLabelIds Labels the caller already holds and must not be handed again (#4810).
+   * @return                 Seq[LabelValidationMetadata]
    */
   def retrieveLabelListForValidation(
       userId: String,
@@ -302,12 +309,12 @@ class LabelServiceImpl @Inject() (
       userIds: Option[Set[String]] = None,
       regionIds: Option[Set[Int]] = None,
       unvalidatedOnly: Boolean = false,
-      skippedLabelId: Option[Int] = None
+      excludedLabelIds: Set[Int] = Set.empty
   ): Future[Seq[LabelValidationMetadata]] = {
     // TODO can we make this and the Gallery queries transactions to prevent label dupes?
     findValidLabelsForType(
       labelTable.retrieveLabelListForValidationQuery(userId, viewer, labelTypeId,
-        configService.getAiTagSuggestionsEnabled, userIds, regionIds, unvalidatedOnly, skippedLabelId),
+        configService.getAiTagSuggestionsEnabled, userIds, regionIds, unvalidatedOnly, excludedLabelIds),
       randomize = true,
       useCrops = false,
       n
@@ -490,6 +497,44 @@ class LabelServiceImpl @Inject() (
         Future.successful(
           (Option.empty[Mission], None, Seq.empty[LabelValidationMetadata], Seq.empty[AdminValidationData])
         )
+    }
+  }
+
+  /**
+   * Get replacement labels for a Validate mission that ran out of them mid-mission.
+   *
+   * Validate is handed exactly as many labels as its mission still needs, so a label it turns out not to be able to
+   * render (#4810) would otherwise leave the mission unfinishable. This tops the queue back up rather than ending
+   * the mission early or telling the user there is nothing left to validate.
+   *
+   * @param user             The user validating.
+   * @param labelTypeId      Label type of the mission being topped up.
+   * @param labelsNeeded     How many labels the client is short, capped at a full mission's worth.
+   * @param excludedLabelIds Every label the client already holds, so it can't be handed one back.
+   * @param validateParams   The page's filters, so a topped-up label matches what the rest of the mission is.
+   * @return                 (labelList, adminData) — adminData empty unless this is Expert Validate.
+   */
+  def getMoreLabelsToValidate(
+      user: SidewalkUserWithRole,
+      labelTypeId: Int,
+      labelsNeeded: Int,
+      excludedLabelIds: Set[Int],
+      validateParams: ValidateParams
+  ): Future[(Seq[LabelValidationMetadata], Seq[AdminValidationData])] = {
+    val viewerType: PanoSource = configService.getPanoSource
+    val nToRetrieve: Int       = labelsNeeded.min(MissionTable.validationMissionLabelsToRetrieve)
+    if (nToRetrieve < 1) {
+      Future.successful((Seq.empty[LabelValidationMetadata], Seq.empty[AdminValidationData]))
+    } else {
+      for {
+        labelList <- retrieveLabelListForValidation(user.userId, nToRetrieve, viewerType, labelTypeId,
+          validateParams.userIds.map(_.toSet), validateParams.neighborhoodIds.map(_.toSet),
+          validateParams.unvalidatedOnly, excludedLabelIds)
+        adminData <- {
+          if (validateParams.adminVersion) getExtraAdminValidateData(labelList.map(_.labelId))
+          else Future.successful(Seq.empty[AdminValidationData])
+        }
+      } yield (labelList, adminData)
     }
   }
 

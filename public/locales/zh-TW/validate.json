@@ -91,8 +91,12 @@
   },
   "center-ui": {
     "no-info": "無資訊",
-    "pano-interactive-message": "拖曳環顧四周，捲動放大細看。",
-    "imagery-unavailable_other": "已略過 {{count}} 個標記，因為無法載入影像。"
+    "pano-interactive-message": "拖曳環顧四周，捲動放大細看。"
+  },
+  "imagery-unavailable": {
+    "title": "無法載入影像",
+    "body": "我們無法載入此任務中標記的街景影像，因此目前沒有可顯示的內容。您已完成的檢核都已儲存。這通常會自行恢復，請再試一次。",
+    "retry": "再試一次"
   },
   "mission-start": {
     "title": "檢核{{n}} {{label_type}}標記",
