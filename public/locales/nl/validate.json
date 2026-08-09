@@ -93,6 +93,11 @@
     "no-info": "Geen informatie beschikbaar",
     "pano-interactive-message": "Sleep om rond te kijken, scroll om in te zoomen."
   },
+  "imagery-unavailable": {
+    "title": "Beelden konden niet worden geladen",
+    "body": "We konden de straatbeelden voor de labels in deze missie niet laden, dus er is nu niets om te tonen. Je afgeronde validaties zijn opgeslagen. Dit lost zichzelf meestal op — probeer het opnieuw.",
+    "retry": "Opnieuw proberen"
+  },
   "mission-start": {
     "title": "Valideer {{n}} {{label_type}} labels",
     "body": "Je missie is om de correctheid te bepalen van  __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span> labels geplaatst door andere gebruikers!"

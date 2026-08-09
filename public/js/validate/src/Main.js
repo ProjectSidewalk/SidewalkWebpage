@@ -159,11 +159,16 @@ class Main {
     svv.labelCard = new LabelCard();
 
     svv.panoStore = new PanoStore();
+
+    // Built before the first label renders because that render can need it: if none of the mission's labels have
+    // usable imagery, LabelContainer drops all of them and shows this modal instead of an empty pano (#4810).
+    svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
+
     const firstLabel = param.labelList[0];
     svv.panoManager = await PanoManager.create(
       svv.viewerType, param.viewerAccessToken, firstLabel.pano_id, buildBackupImageData(firstLabel),
     );
-    svv.labelContainer = await LabelContainer.create(param.labelList);
+    svv.labelContainer = await LabelContainer.create(param.labelList, param.mission.label_type_id);
 
     // There are certain features that will only make sense on desktop vs mobile.
     if (util.isMobile()) {
@@ -171,6 +176,9 @@ class Main {
     } else {
       svv.panoOverlay = new PanoOverlay();
       svv.keyboard = new KeyboardManager(svv.ui.validationMenu);
+      // Shortcuts act on the current label, and behind the dead-end modal there isn't one. The modal disables the
+      // keyboard when it goes up, but the first label's render can raise it before this exists to be told (#4810).
+      if (svv.modalNoNewMission.isShowing()) svv.keyboard.disableKeyboard();
       svv.speedLimit = new SpeedLimit(
         svv.panoViewer, svv.panoViewer.getPosition, () => false, param.countryId,
         { labelContainer: svv.labelContainer, labelType },
@@ -252,7 +260,6 @@ class Main {
 
     svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user);
     svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);
-    svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
 
     // Logs when the page's focus changes.
     function logPageFocus() {

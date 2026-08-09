@@ -12,7 +12,6 @@ class Mission {
     labelTypeId: undefined,
     labelsValidated: undefined,
     unsureCount: 0,
-    skipped: undefined,
   };
 
   /**
@@ -37,7 +36,6 @@ class Mission {
     if ('labelsValidated' in params) this.setProperty('labelsValidated', params.labelsValidated);
     if ('labelTypeId' in params) this.setProperty('labelTypeId', params.labelTypeId);
     if ('unsureCount' in params) this.setProperty('unsureCount', params.unsureCount);
-    if ('skipped' in params) this.setProperty('skipped', params.skipped);
   }
 
   /**

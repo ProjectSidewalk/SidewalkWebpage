@@ -93,6 +93,11 @@
     "no-info": "No hay información disponible",
     "pano-interactive-message": "Arrastra para mirar alrededor, desplázate para acercar."
   },
+  "imagery-unavailable": {
+    "title": "No se pudieron cargar las imágenes",
+    "body": "No pudimos cargar las imágenes de calle de las etiquetas de esta misión, así que ahora mismo no hay nada que mostrarte. Tus validaciones completadas están guardadas. Esto suele resolverse solo; inténtalo de nuevo.",
+    "retry": "Intentar de nuevo"
+  },
   "mission-start": {
     "title": "Valida {{n}} etiquetas de {{label_type}}",
     "body": "¡Tu misión es determinar la exactitud de  __LABELCOUNT_PLACEHOLDER__ etiquetas de __LABELTYPE_PLACEHOLDER__</span> colocadas por otras personas usuarias!"

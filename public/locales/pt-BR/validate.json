@@ -93,6 +93,11 @@
     "no-info": "Nenhuma informação disponível",
     "pano-interactive-message": "Arraste para olhar ao redor, role para aproximar."
   },
+  "imagery-unavailable": {
+    "title": "Não foi possível carregar as imagens",
+    "body": "Não conseguimos carregar as imagens de rua dos rótulos desta missão, então não há nada para mostrar agora. Suas validações concluídas estão salvas. Isso costuma se resolver sozinho — tente novamente.",
+    "retry": "Tentar novamente"
+  },
   "mission-start": {
     "title": "Validar {{n}} {{label_type}} rótulos",
     "body": "Sua missão é determinar a correção de __LABELCOUNT_PLACEHOLDER__ rótulos __LABELTYPE_PLACEHOLDER__ colocados por outros usuários!"

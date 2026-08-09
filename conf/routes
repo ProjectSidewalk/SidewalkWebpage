@@ -131,6 +131,7 @@ GET     /routeTasks                                     controllers.ExploreContr
 GET     /speedLimit                                     controllers.ExploreController.getSpeedLimit(lat: Double, lng: Double)
 POST    /task                                           controllers.ExploreController.post
 POST    /validationTask                                 controllers.ValidateController.post
+POST    /validationTask/moreLabels                      controllers.ValidateController.getMoreLabels
 POST    /galleryTask                                    controllers.GalleryController.post
 POST    /labelmap/validate                              controllers.ValidateController.postLabelMapValidation
 POST    /labelmap/comment                               controllers.ValidateController.postLabelMapComment

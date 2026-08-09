@@ -93,6 +93,11 @@
     "no-info": "No available information",
     "pano-interactive-message": "Drag to look around, scroll to zoom in."
   },
+  "imagery-unavailable": {
+    "title": "Imagery couldn't be loaded",
+    "body": "We couldn't load the street imagery for the labels in this mission, so there's nothing to show you right now. Your finished validations are saved. This usually clears up on its own — please try again.",
+    "retry": "Try Again"
+  },
   "mission-start": {
     "title": "Validate {{n}} {{label_type}} labels",
     "body": "Your mission is to determine the correctness of  __LABELCOUNT_PLACEHOLDER__ __LABELTYPE_PLACEHOLDER__</span> labels placed by other users!"
