@@ -327,7 +327,7 @@ class LabelServiceImpl @Inject() (
    * @param randomize Whether to randomize the label order or not.
    * @param useCrops If true, local static crop of pano around the label also works as well as an API call.
    * @param remaining Number of labels remaining to get.
-   * @param batchNumber Batch number we're on, used to paginate the query.
+   * @param offset Number of rows to skip; each batch advances it by the number of rows it read.
    * @param accumulator Accumulator of labels we've found so far.
    * @param tupleConverter Implicit converter to convert the tuple from the db to the appropriate case class.
    */
@@ -336,7 +336,7 @@ class LabelServiceImpl @Inject() (
       randomize: Boolean,
       useCrops: Boolean,
       remaining: Int,
-      batchNumber: Int = 0,
+      offset: Int = 0,
       accumulator: Seq[A] = Seq.empty
   )(implicit tupleConverter: TupleConverter[Tuple, A]): Future[Seq[A]] = {
     if (remaining <= 0) {
@@ -345,7 +345,7 @@ class LabelServiceImpl @Inject() (
       val batchSize = remaining * 5 // Get 5x the needed amount, shouldn't need to query again.
 
       // Query for a batch of labels.
-      db.run(labelQuery.drop(batchSize * batchNumber).take(batchSize).result)
+      db.run(labelQuery.drop(offset).take(batchSize).result)
         .map(l => l.map(tupleConverter.fromTuple))
         .flatMap { labels =>
           // Randomize the labels to prevent similar labels in a mission.
@@ -353,17 +353,25 @@ class LabelServiceImpl @Inject() (
 
           // Check for valid imagery in parallel.
           checkImageryBatch(shuffledLabels, useCrops).flatMap { validLabels =>
-            if (validLabels.isEmpty) {
+            // Skip labels an earlier batch took. The validation query orders by a score containing `random()`, which
+            // Postgres re-evaluates per execution, so every batch sees a fresh shuffle and can resurface rows an
+            // earlier one covered, whatever the offset. A mission holding the same label twice is what that looks
+            // like to the user.
+            val alreadyFound: Set[Int] = accumulator.map(_.labelId).toSet
+            val newValidLabels: Seq[A] = validLabels.filterNot(l => alreadyFound.contains(l.labelId)).take(remaining)
+
+            if (newValidLabels.isEmpty) {
               Future.successful(accumulator) // No more valid labels found.
             } else {
               // Add the valid labels to the accumulator and recurse.
-              val newValidLabels = validLabels.take(remaining)
               findValidLabelsForType(
                 labelQuery,
                 randomize,
                 useCrops,
                 remaining - newValidLabels.size,
-                batchNumber + 1,
+                // Advance by the rows this batch read. `batchSize` shrinks as `remaining` does, so it can't be
+                // multiplied out into an offset.
+                offset + labels.size,
                 accumulator ++ newValidLabels
               )
             }
