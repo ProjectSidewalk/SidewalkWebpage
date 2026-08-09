@@ -51,10 +51,9 @@ class MissionTableDef(tag: Tag) extends Table[Mission](tag, "mission") {
   def missionType: Rep[MissionType.Value] = column[MissionType.Value]("mission_type")
   def userId: Rep[String]                 = column[String]("user_id")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
-  def missionStart: Rep[OffsetDateTime] = column[OffsetDateTime]("mission_start")
-  def missionEnd: Rep[OffsetDateTime]   = column[OffsetDateTime]("mission_end")
-  def completed: Rep[Boolean]           = column[Boolean]("completed")
-  // `real` (float4) in the DB, so a Double written here is narrowed and doesn't round-trip (#4827).
+  def missionStart: Rep[OffsetDateTime]     = column[OffsetDateTime]("mission_start")
+  def missionEnd: Rep[OffsetDateTime]       = column[OffsetDateTime]("mission_end")
+  def completed: Rep[Boolean]               = column[Boolean]("completed")
   def pay: Rep[Double]                      = column[Double]("pay", O.Default(0.0))
   def paid: Rep[Boolean]                    = column[Boolean]("paid")
   def distanceMeters: Rep[Option[Double]]   = column[Option[Double]]("distance_meters")
