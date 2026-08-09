@@ -91,7 +91,8 @@
   },
   "center-ui": {
     "no-info": "無資訊",
-    "pano-interactive-message": "拖曳環顧四周，捲動放大細看。"
+    "pano-interactive-message": "拖曳環顧四周，捲動放大細看。",
+    "imagery-unavailable_other": "已略過 {{count}} 個標記，因為無法載入影像。"
   },
   "mission-start": {
     "title": "檢核{{n}} {{label_type}}標記",

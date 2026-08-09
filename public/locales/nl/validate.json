@@ -91,7 +91,9 @@
   },
   "center-ui": {
     "no-info": "Geen informatie beschikbaar",
-    "pano-interactive-message": "Sleep om rond te kijken, scroll om in te zoomen."
+    "pano-interactive-message": "Sleep om rond te kijken, scroll om in te zoomen.",
+    "imagery-unavailable_one": "Een label is overgeslagen omdat het beeld niet kon worden geladen.",
+    "imagery-unavailable_other": "{{count}} labels zijn overgeslagen omdat het beeld niet kon worden geladen."
   },
   "mission-start": {
     "title": "Valideer {{n}} {{label_type}} labels",

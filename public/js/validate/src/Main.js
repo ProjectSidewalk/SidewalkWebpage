@@ -159,6 +159,11 @@ class Main {
     svv.labelCard = new LabelCard();
 
     svv.panoStore = new PanoStore();
+
+    // Built before the first label renders because that render can need it: if none of the mission's labels have
+    // usable imagery, LabelContainer drops all of them and shows this modal instead of an empty pano (#4810).
+    svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
+
     const firstLabel = param.labelList[0];
     svv.panoManager = await PanoManager.create(
       svv.viewerType, param.viewerAccessToken, firstLabel.pano_id, buildBackupImageData(firstLabel),
@@ -252,7 +257,6 @@ class Main {
 
     svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user);
     svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);
-    svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
 
     // Logs when the page's focus changes.
     function logPageFocus() {

@@ -300,9 +300,12 @@ class PanoManager {
 
   /**
    * Sets the panorama. Tries the primary viewer first; falls back to Pannellum if there's a backup image available.
+   *
    * @param {string} panoId The ID for the panorama that we want to move to.
    * @param {{object}|null} backupImage Self-hosted pano data from the backend, or null.
-   * @returns {Promise<PanoData|undefined>}
+   * @returns {Promise<PanoData|null>} The loaded pano's metadata, or `null` when no viewer could render it. A null
+   *      return means the pano area is now empty, so the caller must not draw a label marker over it or ask for a
+   *      validation of the label it was loading (#4810).
    */
   async setPanorama(panoId, backupImage = null) {
     this.setProperty('panoLoaded', false);
@@ -330,8 +333,28 @@ class PanoManager {
       }
     }
 
-    // Both viewers failed; pano remains in broken state.
+    this.#clearViewer();
+    return null;
+  }
+
+  /**
+   * Empties the pano area: hides both viewer canvases and takes down the label marker.
+   *
+   * Neither viewer clears itself when a load fails — the primary viewer rejects before it ever swaps panos, and
+   * Pannellum keeps its last canvas — so without this the validator would be looking at the *previous* label's
+   * imagery, panned to the new label's POV with the new label's marker on it, and asked whether that label is
+   * correct (#4810). An empty pano is the honest state; the caller decides what to show in its place.
+   * @private
+   */
+  #clearViewer() {
     this.setProperty('panoLoaded', false);
+    this.#panoCanvas.style.display = 'none';
+    this.#pannellumCanvas.style.display = 'none';
+    if (this.labelMarker) {
+      this.labelMarker.removeMarker();
+      this.labelMarker = null;
+      this.#markerViewer = undefined;
+    }
   }
 
   /**

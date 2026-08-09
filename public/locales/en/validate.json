@@ -91,7 +91,9 @@
   },
   "center-ui": {
     "no-info": "No available information",
-    "pano-interactive-message": "Drag to look around, scroll to zoom in."
+    "pano-interactive-message": "Drag to look around, scroll to zoom in.",
+    "imagery-unavailable_one": "Skipped a label whose imagery couldn't load.",
+    "imagery-unavailable_other": "Skipped {{count}} labels whose imagery couldn't load."
   },
   "mission-start": {
     "title": "Validate {{n}} {{label_type}} labels",

@@ -91,7 +91,9 @@
   },
   "center-ui": {
     "no-info": "Keine Informationen verfügbar",
-    "pano-interactive-message": "Ziehen zum Umsehen, scrollen zum Heranzoomen."
+    "pano-interactive-message": "Ziehen zum Umsehen, scrollen zum Heranzoomen.",
+    "imagery-unavailable_one": "Eine Beschriftung wurde übersprungen, da ihr Bildmaterial nicht geladen werden konnte.",
+    "imagery-unavailable_other": "{{count}} Beschriftungen wurden übersprungen, da ihr Bildmaterial nicht geladen werden konnte."
   },
   "mission-start": {
     "title": "Validieren Sie {{n}} {{label_type}} Beschriftungen",

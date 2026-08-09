@@ -91,7 +91,9 @@
   },
   "center-ui": {
     "no-info": "Nenhuma informação disponível",
-    "pano-interactive-message": "Arraste para olhar ao redor, role para aproximar."
+    "pano-interactive-message": "Arraste para olhar ao redor, role para aproximar.",
+    "imagery-unavailable_one": "Um rótulo foi ignorado porque a imagem não pôde ser carregada.",
+    "imagery-unavailable_other": "{{count}} rótulos foram ignorados porque as imagens não puderam ser carregadas."
   },
   "mission-start": {
     "title": "Validar {{n}} {{label_type}} rótulos",
