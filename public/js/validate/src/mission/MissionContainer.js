@@ -60,7 +60,6 @@ class MissionContainer {
       missionId: missionMetadata.mission_id,
       missionType: missionMetadata.mission_type,
       unsureCount: progressMetadata.unsure_count,
-      skipped: missionMetadata.skipped,
     };
     const mission = new Mission(metadata);
     this.addAMission(mission);

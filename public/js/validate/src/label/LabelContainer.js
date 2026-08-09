@@ -12,7 +12,8 @@ class LabelContainer {
   #labels;  // All labels in the mission.
   #currLabelIndex;
   #currLabel;
-  #labelTypeId;      // The mission's label type, so replacement labels match the ones it started with.
+  // Copied, not read off svv.missionContainer, which Main doesn't build until after the first label has rendered.
+  #labelTypeId;
   #seenLabelIds;     // Every label this mission has handed us, so a replacement can't duplicate one.
   #labelsOwed;       // Labels dropped for unrenderable imagery that haven't been replaced yet.
   #topUpRounds;

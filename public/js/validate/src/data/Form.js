@@ -82,7 +82,6 @@ class Form {
         labels_total: mission.getProperty('labelsValidated'),
         label_type_id: mission.getProperty('labelTypeId'),
         completed: missionComplete ? missionComplete : false,
-        skipped: mission.getProperty('skipped'),
       };
     }
 

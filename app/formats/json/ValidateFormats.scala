@@ -80,14 +80,14 @@ object ValidateFormats {
       excludedLabelIds: Seq[Int],
       validateParams: ValidateParams
   )
+  // No `skipped`, unlike AuditMissionProgress: only Explore's onboarding can skip a mission.
   case class ValidationMissionProgress(
       missionId: Int,
       missionType: String,
       labelsProgress: Int,
       labelsTotal: Int,
       labelTypeId: Int,
-      completed: Boolean,
-      skipped: Boolean
+      completed: Boolean
   )
   case class ValidationTaskSubmission(
       interactions: Seq[InteractionSubmission],
@@ -213,8 +213,7 @@ object ValidateFormats {
       (JsPath \ "labels_progress").read[Int] and
       (JsPath \ "labels_total").read[Int] and
       (JsPath \ "label_type_id").read[Int] and
-      (JsPath \ "completed").read[Boolean] and
-      (JsPath \ "skipped").read[Boolean]
+      (JsPath \ "completed").read[Boolean]
   )(ValidationMissionProgress.apply _)
 
   implicit val adminValidateParamsReads: Reads[ValidateParams] = (
