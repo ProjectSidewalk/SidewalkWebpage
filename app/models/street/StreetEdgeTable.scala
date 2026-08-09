@@ -61,7 +61,7 @@ class StreetEdgeTableDef(tag: Tag) extends Table[StreetEdge](tag, "street_edge")
   def y2: Rep[Double]                     = column[Double]("y2")
   def wayType: Rep[WayType.Value]         = column[WayType.Value]("way_type")
   def status: Rep[StreetEdgeStatus.Value] = column[StreetEdgeStatus.Value]("status")
-  // DEFAULT timezone('utc'::text, now()) in the DB -- not equivalent to now() outside a UTC session (#4826).
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
   def * = (streetEdgeId, geom, x1, y1, x2, y2, wayType, status, timestamp) <> (

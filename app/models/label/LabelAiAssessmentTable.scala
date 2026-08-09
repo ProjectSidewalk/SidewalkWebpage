@@ -49,15 +49,13 @@ class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, 
   def tagsConfidence: Rep[Option[Seq[AiTagConfidence]]] = column[Option[Seq[AiTagConfidence]]]("tags_confidence")
   def apiVersion: Rep[String]                           = column[String]("api_version")
   def validatorModelId: Rep[String]                     = column[String]("validator_model_id")
-  // validator_training_date, tagger_training_date and timestamp are `timestamp` (no time zone) in the DB, unlike
-  // every other timestamp column in the schema, so the offset an OffsetDateTime carries is not actually stored
-  // (#4826). timestamp is also DEFAULT CURRENT_TIMESTAMP there (O.Default holds a value, not an expression).
-  def validatorTrainingDate: Rep[OffsetDateTime]      = column[OffsetDateTime]("validator_training_date")
-  def taggerModelId: Rep[Option[String]]              = column[Option[String]]("tagger_model_id")
-  def taggerTrainingDate: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("tagger_training_date")
-  def timestamp: Rep[OffsetDateTime]                  = column[OffsetDateTime]("timestamp")
-  def labelValidationId: Rep[Option[Int]]             = column[Option[Int]]("label_validation_id")
-  def aiImageSource: Rep[AiImageSource]               = column[AiImageSource]("ai_image_source")
+  def validatorTrainingDate: Rep[OffsetDateTime]        = column[OffsetDateTime]("validator_training_date")
+  def taggerModelId: Rep[Option[String]]                = column[Option[String]]("tagger_model_id")
+  def taggerTrainingDate: Rep[Option[OffsetDateTime]]   = column[Option[OffsetDateTime]]("tagger_training_date")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
+  def timestamp: Rep[OffsetDateTime]      = column[OffsetDateTime]("timestamp")
+  def labelValidationId: Rep[Option[Int]] = column[Option[Int]]("label_validation_id")
+  def aiImageSource: Rep[AiImageSource]   = column[AiImageSource]("ai_image_source")
 
   def * =
     (labelAiAssessmentId, labelId, validationResult, validationAccuracy, validationConfidence, tags, tagsNotPresent,

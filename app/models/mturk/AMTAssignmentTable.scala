@@ -23,7 +23,7 @@ class AMTAssignmentTableDef(tag: Tag) extends Table[AMTAssignment](tag, "amt_ass
   def amtAssignmentId: Rep[Int] = column[Int]("amt_assignment_id", O.PrimaryKey, O.AutoInc)
   def hitId: Rep[String]        = column[String]("hit_id")
   def assignmentId: Rep[String] = column[String]("assignment_id")
-  // DEFAULT timezone('utc'::text, now()) in the DB -- not equivalent to now() outside a UTC session (#4826).
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def assignmentStart: Rep[OffsetDateTime] = column[OffsetDateTime]("assignment_start")
   def assignmentEnd: Rep[OffsetDateTime]   = column[OffsetDateTime]("assignment_end")
   def workerId: Rep[String]                = column[String]("turker_id")
