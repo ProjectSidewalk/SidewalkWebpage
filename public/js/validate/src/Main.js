@@ -168,7 +168,7 @@ class Main {
     svv.panoManager = await PanoManager.create(
       svv.viewerType, param.viewerAccessToken, firstLabel.pano_id, buildBackupImageData(firstLabel),
     );
-    svv.labelContainer = await LabelContainer.create(param.labelList, param.mission);
+    svv.labelContainer = await LabelContainer.create(param.labelList, param.mission.label_type_id);
 
     // There are certain features that will only make sense on desktop vs mobile.
     if (util.isMobile()) {

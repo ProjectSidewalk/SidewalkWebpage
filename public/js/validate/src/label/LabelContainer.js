@@ -12,8 +12,7 @@ class LabelContainer {
   #labels;  // All labels in the mission.
   #currLabelIndex;
   #currLabel;
-  // Copied, not read off svv.missionContainer, which Main doesn't build until after the first label has rendered.
-  #labelTypeId;
+  #labelTypeId;      // The mission's label type, so replacement labels match the ones it started with.
   #seenLabelIds;     // Every label this mission has handed us, so a replacement can't duplicate one.
   #labelsOwed;       // Labels dropped for unrenderable imagery that haven't been replaced yet.
   #topUpRounds;
@@ -28,20 +27,20 @@ class LabelContainer {
 
   /**
    * @param {Array} labelList Initial list of labels to be validated (generated when the page is loaded).
-   * @param {object} mission Mission metadata from the backend.
+   * @param {number} labelTypeId Label type ID of the mission these labels belong to.
    */
-  constructor(labelList, mission) {
-    this.resetLabelList(labelList, mission);
+  constructor(labelList, labelTypeId) {
+    this.resetLabelList(labelList, labelTypeId);
   }
 
   /**
    * Creates a LabelContainer and renders its first label.
    * @param {Array} labelList Initial list of labels to be validated.
-   * @param {object} mission Mission metadata from the backend.
+   * @param {number} labelTypeId Label type ID of the mission these labels belong to.
    * @returns {Promise<LabelContainer>}
    */
-  static async create(labelList, mission) {
-    const labelContainer = new LabelContainer(labelList, mission);
+  static async create(labelList, labelTypeId) {
+    const labelContainer = new LabelContainer(labelList, labelTypeId);
     await labelContainer.renderCurrentLabel();
     return labelContainer;
   }
@@ -254,24 +253,16 @@ class LabelContainer {
 
   /**
    * Creates a list of label objects to be validated from label metadata. Called when a new mission is loaded.
-   *
-   * A mission is normally handed exactly the labels it still needs, so a list that arrives short is already owed
-   * replacements before a single pano has been tried. That happens for the same reason a label gets dropped here:
-   * the backend drops labels whose imagery its own check can't confirm (`checkImageryBatch`), and that check calls a
-   * provider API that returns "inconclusive" on a timeout or an outage. By the time the user works through what did
-   * arrive, the provider has usually recovered, so the top-up is worth asking for (#4810).
-   *
    * @param {Array} labelList List of label metadata objects.
-   * @param {object} mission Mission metadata from the backend, for the label type and how many labels it still needs.
+   * @param {number} labelTypeId Label type ID of the mission these labels belong to.
    */
-  resetLabelList(labelList, mission) {
+  resetLabelList(labelList, labelTypeId) {
     this.#labels = labelList.map((key) => new Label(key));
     this.#currLabelIndex = 0;
     this.#currLabel = this.#labels[this.#currLabelIndex];
-    this.#labelTypeId = mission.label_type_id;
+    this.#labelTypeId = labelTypeId;
     this.#seenLabelIds = new Set(this.#labels.map((label) => label.getAuditProperty('labelId')));
-    const labelsMissionNeeds = (mission.labels_validated ?? 0) - (mission.labels_progress ?? 0);
-    this.#labelsOwed = Math.max(0, labelsMissionNeeds - this.#labels.length);
+    this.#labelsOwed = 0;
     this.#topUpRounds = 0;
   }
 

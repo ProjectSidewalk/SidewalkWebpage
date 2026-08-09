@@ -395,13 +395,38 @@ class ValidateController @Inject() (
   }
 
   /**
+   * Cuts a client-supplied ValidateParams down to what this user is allowed to ask for.
+   *
+   * adminVersion decides whether a response carries other people's data — the labeler's username and everyone who
+   * has validated the label — and it arrives in the request body, so on its own it is a claim, not a fact. Only
+   * /expertValidate sets it, and ADMIN_ROLES is the set `WithAdmin` gates that page on; keep the two together if
+   * that gate ever widens. The region and unvalidated-only filters are open to everyone on plain /validate.
+   */
+  private def paramsAllowedFor(params: ValidateParams, user: SidewalkUserWithRole): ValidateParams = {
+    if (RoleTable.ADMIN_ROLES.contains(user.role)) params
+    else
+      ValidateParams(
+        adminVersion = false,
+        neighborhoodIds = params.neighborhoodIds,
+        unvalidatedOnly = params.unvalidatedOnly
+      )
+  }
+
+  /**
    * Parse submitted validation data and submit to tables.
    */
   def post = cc.securityService.SecuredAction(parse.json) { implicit request =>
     val submission = request.body.validate[ValidationTaskSubmission]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-      submission => { processValidationTaskSubmissions(submission, request.ipAddress, request.identity) }
+      submission => {
+        val safeParams = paramsAllowedFor(submission.validateParams, request.identity)
+        processValidationTaskSubmissions(
+          submission.copy(validateParams = safeParams),
+          request.ipAddress,
+          request.identity
+        )
+      }
     )
   }
 
@@ -422,16 +447,7 @@ class ValidateController @Inject() (
       .fold(
         errors => Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))),
         moreLabels => {
-          val isAdmin: Boolean           = RoleTable.ADMIN_ROLES.contains(request.identity.role)
-          val validateParams             = moreLabels.validateParams
-          val safeParams: ValidateParams =
-            if (isAdmin) validateParams
-            else
-              ValidateParams(
-                adminVersion = false,
-                neighborhoodIds = validateParams.neighborhoodIds,
-                unvalidatedOnly = validateParams.unvalidatedOnly
-              )
+          val safeParams: ValidateParams = paramsAllowedFor(moreLabels.validateParams, request.identity)
           for {
             (labels, adminData) <- labelService.getMoreLabelsToValidate(request.identity, moreLabels.labelTypeId,
               moreLabels.labelsNeeded, moreLabels.excludedLabelIds.toSet, safeParams)

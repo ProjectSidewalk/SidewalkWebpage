@@ -222,16 +222,10 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
   /**
    * Builds a container with its first label rendered.
    * @param {Array} [labelList] Label metadata to start with.
-   * @param {number} [labelsNeeded] How many labels the mission still needs (defaults to however many were handed over,
-   *      i.e. the normal case where the backend supplied a full queue).
    * @returns {Promise<LabelContainer>}
    */
-  function buildContainer(labelList = threeLabels(), labelsNeeded = labelList.length) {
-    return LabelContainer.create(labelList, {
-      label_type_id: LABEL_TYPE_ID,
-      labels_validated: labelsNeeded,
-      labels_progress: 0,
-    });
+  function buildContainer(labelList = threeLabels()) {
+    return LabelContainer.create(labelList, LABEL_TYPE_ID);
   }
 
   /** @returns {Array<number>} The label ids the validation UI was actually asked to render, in order. */
@@ -342,49 +336,15 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: true});
   });
 
-  test('running out with nothing dropped is still the plain no-more-labels case', async () => {
+  // Only a dropped label buys a replacement request. A queue that empties on its own — including one the backend
+  // handed over short — means the backend has nothing more to give, so asking again would just repeat the question.
+
+  test('running out with nothing dropped asks for nothing and reads as no labels left', async () => {
     const labelContainer = await buildContainer([{labelId: 1, panoId: 'panoA'}]);
 
     await labelContainer.moveToNextLabel();
 
     expect(global.fetch).not.toHaveBeenCalled();
-    expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: false});
-  });
-
-  // The backend drops labels whose imagery its own check can't confirm, so the list a mission starts with can arrive
-  // short of what that mission needs — the same failure, one layer up. It is owed replacements from the outset.
-
-  test('a list that arrives short of what the mission needs asks for the difference', async () => {
-    const labelContainer = await buildContainer([{labelId: 1, panoId: 'panoA'}], 3);
-    topUpQueue.push([{labelId: 7, panoId: 'panoG'}, {labelId: 8, panoId: 'panoH'}]);
-
-    await labelContainer.moveToNextLabel();
-
-    expect(topUpBodies[0].labels_needed).toBe(2);
-    expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(7);
-    expect(svv.modalNoNewMission.show).not.toHaveBeenCalled();
-  });
-
-  test('a resumed mission counts only the labels it still needs, not a whole mission', async () => {
-    // 10-label mission, 7 already validated in an earlier session, and only 2 of the 3 remaining came back.
-    const labelContainer = await LabelContainer.create(
-      [{labelId: 1, panoId: 'panoA'}, {labelId: 2, panoId: 'panoB'}],
-      {label_type_id: LABEL_TYPE_ID, labels_validated: 10, labels_progress: 7},
-    );
-    topUpQueue.push([{labelId: 9, panoId: 'panoI'}]);
-
-    await labelContainer.moveToNextLabel();
-    await labelContainer.moveToNextLabel();
-
-    expect(topUpBodies[0].labels_needed).toBe(1);
-  });
-
-  test('a short list with nothing to replace it reads as no labels left, not an imagery failure', async () => {
-    const labelContainer = await buildContainer([{labelId: 1, panoId: 'panoA'}], 3);
-
-    await labelContainer.moveToNextLabel();
-
-    expect(topUpBodies).toHaveLength(1);
     expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: false});
   });
 
