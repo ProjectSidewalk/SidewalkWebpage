@@ -360,7 +360,7 @@ class LabelServiceImpl @Inject() (
             val alreadyFound: Set[Int] = accumulator.map(_.labelId).toSet
             val newValidLabels: Seq[A] = validLabels.filterNot(l => alreadyFound.contains(l.labelId)).take(remaining)
 
-            if (newValidLabels.isEmpty) {
+            if (validLabels.isEmpty) {
               Future.successful(accumulator) // No more valid labels found.
             } else {
               // Add the valid labels to the accumulator and recurse.

@@ -6,6 +6,7 @@ class ModalNoNewMission {
   #uiModalMission;
   #noMissionsRemaining;
   #imageryUnavailable;
+  #showing = false;
 
   /**
    * @param {object} uiModalMission Mission modal UI elements.
@@ -60,6 +61,7 @@ class ModalNoNewMission {
    *      for the labels it had, rather than because there are none left (#4810).
    */
   show({ imageryUnavailable = false } = {}) {
+    this.#showing = true;
     if (svv.keyboard) {
       svv.keyboard.disableKeyboard();
     }
@@ -94,5 +96,17 @@ class ModalNoNewMission {
     this.#uiModalMission.closeButton.off('click')
       .on('click', imageryUnavailable ? this.#handleRetryClick : this.#handleButtonClick);
     this.#uiModalMission.holder.removeClass('ps-hidden');
+  }
+
+  /**
+   * Whether Validate has hit one of its dead ends and this modal has taken the mission modal over.
+   *
+   * The dead end can be reached while the page is still building — the very first label render is one of the places
+   * that finds no imagery (#4810) — so the rest of that build has to know to leave the modal and its controls alone.
+   *
+   * @returns {boolean} True once show() has run.
+   */
+  isShowing() {
+    return this.#showing;
   }
 }

@@ -176,6 +176,9 @@ class Main {
     } else {
       svv.panoOverlay = new PanoOverlay();
       svv.keyboard = new KeyboardManager(svv.ui.validationMenu);
+      // Shortcuts act on the current label, and behind the dead-end modal there isn't one. The modal disables the
+      // keyboard when it goes up, but the first label's render can raise it before this exists to be told (#4810).
+      if (svv.modalNoNewMission.isShowing()) svv.keyboard.disableKeyboard();
       svv.speedLimit = new SpeedLimit(
         svv.panoViewer, svv.panoViewer.getPosition, () => false, param.countryId,
         { labelContainer: svv.labelContainer, labelType },

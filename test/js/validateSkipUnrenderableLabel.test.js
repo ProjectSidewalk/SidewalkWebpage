@@ -260,9 +260,19 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     const labelContainer = await buildContainer();
     await labelContainer.moveToNextLabel();
 
-    await labelContainer.undoLabel();
-
+    expect(await labelContainer.undoLabel()).toBe(true);
     expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(1);
+  });
+
+  // Mission progress is rolled back by the caller only when the undo it asked for actually happened, so an undo into
+  // imagery that has since died has to report itself as not taken.
+  test('an undo whose label has become unrenderable reports failure and leaves the user where they were', async () => {
+    const labelContainer = await buildContainer();
+    await labelContainer.moveToNextLabel();
+    unrenderablePanoIds.add('panoA'); // The label being undone back to dies between showing it and returning to it.
+
+    expect(await labelContainer.undoLabel()).toBe(false);
+    expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(2);
   });
 
   test('a dropped label is replaced, so the queue never runs short of what the mission needs', async () => {
@@ -346,6 +356,19 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
 
     expect(global.fetch).not.toHaveBeenCalled();
     expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: false});
+  });
+
+  // A label is dropped as soon as its imagery fails, which is usually mid-queue, but the queue only empties — and the
+  // modal only appears — some labels later. The reason for the dead end has to survive that gap.
+  test('a label dropped earlier in the mission still reads as an imagery problem at the end', async () => {
+    unrenderablePanoIds.add('panoB');
+    const labelContainer = await buildContainer();
+
+    await labelContainer.moveToNextLabel(); // Drops label 2 and shows label 3 in its place.
+    await labelContainer.moveToNextLabel(); // Nothing left, and the backend has no replacement to give.
+
+    expect(topUpBodies).toHaveLength(1);
+    expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: true});
   });
 
   // The modals are rendered inside #svv-application-holder, which renderCurrentLabel covers with `validate-disabled`

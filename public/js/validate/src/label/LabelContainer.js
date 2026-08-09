@@ -19,7 +19,9 @@ class LabelContainer {
 
   #labelsToSubmit = [];
   #submittedLabels = [];
-  #lastLabelFormData; // Holds prior label's metadata formatted for submission, making it easier to submit an undo.
+  // Holds prior label's metadata formatted for submission, making it easier to submit an undo. Only read while the
+  // undo button is live, and the button is disabled the moment an undo lands, so one undo can't be applied twice.
+  #lastLabelFormData;
 
   #properties = {
     validationTimestamp: new Date(),
@@ -83,12 +85,20 @@ class LabelContainer {
 
   /**
    * Goes back to the last label.
+   *
+   * Imagery can fail on the way back (#4810), in which case that label is dropped like any other and the user stays
+   * on the one they undid from. Reporting that as a failed undo is what keeps mission progress in step: the caller
+   * only rolls back a validation the user can actually redo.
+   *
+   * @returns {Promise<boolean>} True if the previous label is now showing.
    */
   async undoLabel() {
-    this.#lastLabelFormData = undefined;
+    const previousLabel = this.#labels[this.#currLabelIndex - 1];
     this.#currLabelIndex -= 1;
-    this.#currLabel = this.#labels[this.#currLabelIndex];
+    this.#currLabel = previousLabel;
     await this.renderCurrentLabel();
+
+    return this.#currLabel === previousLabel;
   }
 
   /**
@@ -125,17 +135,18 @@ class LabelContainer {
     }
 
     // Render the new pano and the label on it, updating the surrounding UI given the new label's info.
-    let nSkipped = await this.#loadPanoForCurrentLabel();
+    await this.#loadPanoForCurrentLabel();
 
     // Dropping labels emptied the queue, so ask the backend to replace what it can and carry on.
     while (!this.#currLabel && await this.#topUpLabelQueue()) {
-      nSkipped += await this.#loadPanoForCurrentLabel();
+      await this.#loadPanoForCurrentLabel();
     }
 
-    // Out of labels. Which modal depends on why: actually no labels vs dropped labels mean imagery is the problem.
+    // Out of labels. Which modal depends on why: labels we still owe the mission mean imagery is the problem, and
+    // a reload retries them, since the labels dropped this session are only excluded for as long as it lasts.
     if (!this.#currLabel) {
       this.#setUiBusy(false);
-      svv.modalNoNewMission.show({ imageryUnavailable: nSkipped > 0 });
+      svv.modalNoNewMission.show({ imageryUnavailable: this.#labelsOwed > 0 });
       return;
     }
 
@@ -179,17 +190,14 @@ class LabelContainer {
    *
    * A dropped label is spliced out of the list rather than stepped over, so that the indices the undo button walks
    * back through only ever hold labels the user actually saw.
-   *
-   * @returns {Promise<number>} How many labels were dropped.
    */
   async #loadPanoForCurrentLabel() {
-    let nSkipped = 0;
     while (this.#currLabel) {
       this.#currLabel.setProperty('startTimestamp', new Date());
       const panoData = await svv.panoManager.setPanorama(
         this.#currLabel.getAuditProperty('panoId'), this.#currLabel.getAuditProperty('backupImage'),
       );
-      if (panoData) return nSkipped;
+      if (panoData) return;
 
       // Log it: this is invisible to the user by design, so the tracker is the only signal we have for how often
       // imagery fails in production (#4810).
@@ -197,12 +205,10 @@ class LabelContainer {
         labelId: this.#currLabel.getAuditProperty('labelId'),
         panoId: this.#currLabel.getAuditProperty('panoId'),
       });
-      nSkipped += 1;
       this.#labelsOwed += 1;
       this.#labels.splice(this.#currLabelIndex, 1);
       this.#currLabel = this.#labels[this.#currLabelIndex];
     }
-    return nSkipped;
   }
 
   /**
