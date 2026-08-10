@@ -64,6 +64,7 @@
     <p class="mgmt-result dq-sub" id="mgmt-maint-result" role="status" aria-live="polite"></p>
   </div>
 
+  <script src='@assets.path("js/common/ConfirmDialog.js")'></script>
   <script src="@assets.path("js/admin-dashboard/ManagementPage.js")"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -75,7 +76,7 @@
         teamVisibilityUrl: '/adminapi/updateTeamVisibility',
         clearCacheUrl: '/adminapi/clearPlayCache',
         recalcStatsUrl: '/adminapi/updateUserStats',
-        recalcPriorityUrl: '/explore/recalculateStreetPriority'
+        recalcPriorityUrl: '/adminapi/recalculateStreetPriority'
       }).init();
     });
   </script>
@@ -83,5 +84,5 @@
 
 @common.main(commonData, "Sidewalk - Admin Management") {
   @common.navbar(commonData, Some(user))
-  @admin.dashboard.adminLayout("management", user.role == "Owner")(content)
+  @admin.dashboard.adminLayout("management", commonData, user.role == "Owner")(content)
 }

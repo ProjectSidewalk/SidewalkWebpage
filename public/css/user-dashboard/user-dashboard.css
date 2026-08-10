@@ -11,8 +11,9 @@
  * podium — is at least --font-size-md (16px). The smaller steps (sm/xs/xxs) are reserved for legends
  * (.ud-heatmap-legend), chart captions (.ud-acc-note), and small decorative pills/ribbons (.ud-trophy-tag,
  * .ud-standing-tag, .ud-card-verdict, .ud-public-tag). Never size real content below md — and avoid footnote-style
- * asides (design review: if a note matters it belongs in real copy). The one sanctioned exception is a caption that
- * explains the chart it sits under (owner call on the accuracy chart's min-validations rule).
+ * asides (design review: if a note matters it belongs in real copy). The sanctioned exceptions are captions that
+ * explain the thing they sit under: the accuracy chart's min-validations rule (.ud-acc-note) and the global
+ * leaderboard's daily distance refresh (.ud-lb-note) — both owner calls.
  */
 
 /* Primary-content tables on the user surface read much larger than the admin default (which stays --font-size-sm):
@@ -38,8 +39,9 @@
 .api-content .coverage-table td:nth-child(2),
 .api-content .coverage-table th:nth-child(2) { text-align: left; }
 
-.api-content .ud-lb-alltime td:nth-child(3),
-.api-content .ud-lb-alltime th:nth-child(3) { text-align: left; }
+/* The global board's "Top city" is a name, so it reads left-aligned like Mapper rather than right like the numbers. */
+.api-content .ud-lb-global td:nth-child(3),
+.api-content .ud-lb-global th:nth-child(3) { text-align: left; }
 .api-content .coverage-table tbody tr { cursor: default; }
 
 /* Bump only the top-3 medal emoji so they read clearly; plain rank numbers keep the table's font size. */
@@ -483,6 +485,11 @@
   background: linear-gradient(160deg, var(--color-banana-100, #fdf6e3), var(--color-neutral-white, #ffffff));
 }
 
+.ud-trophy-free-explore {
+  border-top-color: var(--color-blue-400, #c6e0fa);
+  background: linear-gradient(160deg, var(--color-blue-100, #f6fafe), var(--color-neutral-white, #ffffff));
+}
+
 .ud-trophy-tag {
   position: absolute;
   top: 8px;
@@ -693,8 +700,10 @@
   color: var(--color-text-secondary, #5a7785);
 }
 
-/* Chart caption stating the trickiest-type eligibility rule (min validations, from the backend constant). */
-.ud-acc-note {
+/* The two sanctioned captions: the accuracy chart's min-validations rule, and the global board's note that its
+   Distance column comes from a nightly precompute and so can trail the live per-city boards above. */
+.ud-acc-note,
+.ud-lb-note {
   margin: var(--space-xs, 8px) 0 0;
   font-size: var(--font-size-sm, 0.875rem);
   color: var(--color-text-secondary, #5a7785);
@@ -1501,6 +1510,9 @@
   }
   .api-content .coverage-table { min-width: 520px; }
 
+  /* The global board carries an extra "Top city" column, so it needs more room before scrolling horizontally. */
+  .api-content .ud-lb-global { min-width: 620px; }
+
   /* Podium shrinks to fit a phone: equal-width columns instead of fixed 150px spots. */
   .ud-podium { gap: var(--space-xs, 8px); }
 
@@ -1642,15 +1654,38 @@
   border: 1px solid var(--color-neutral-300, #d1d1d1);
 }
 
+/* Imageless rows (no photo, no label preview) keep the thumbnail's box so their text stays column-aligned. */
+.ud-story-thumb--none {
+  background: var(--color-neutral-100, #f5f5f5);
+  border-color: var(--color-neutral-200, #e1e1e1);
+}
+
 .ud-story-body {
   flex: 1 1 auto;
   min-width: 0;
 }
 
 .ud-story-text {
+  position: relative;
+  z-index: 0; /* Own stacking context so the quote-mark pseudo can sit behind the text. */
   margin: 0 0 4px;
+  padding-left: 18px;
+  font-style: italic;
   white-space: pre-wrap;
   overflow-wrap: break-word;
+}
+
+/* Smaller cousin of the /stories cards' ghosted quote mark (community-list.css): together with the italics it
+   marks this line as the author's own words. Serif deliberately — no design-system token has a serif face, and
+   the classic testimonial glyph needs one (same rationale as the cards). */
+.ud-story-text::before {
+  content: "\201c";
+  position: absolute;
+  top: -2px;
+  left: 0;
+  z-index: -1;
+  font: 700 30px/1 Georgia, serif;
+  color: var(--color-neutral-300, #d1d1d1);
 }
 
 .ud-story-meta {
@@ -1676,6 +1711,7 @@
   line-height: 1;
 }
 
+.ud-story-edit,
 .ud-story-delete {
   padding: 2px;
   border: none;
@@ -1684,12 +1720,125 @@
   font-family: var(--font-accent, Raleway, sans-serif);
   font-weight: 600;
   font-size: 12px;
-  color: var(--color-orange-700, #8d442f);
   text-decoration: underline;
 }
 
+.ud-story-edit { color: var(--color-link-200, #0f5faf); }
+
+.ud-story-delete { color: var(--color-orange-700, #8d442f); }
+
+.ud-story-edit:focus-visible,
 .ud-story-delete:focus-visible {
   outline: 2px solid var(--color-link-100, #3e8bd9);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* ---- My Routes (#3343): server-rendered rows of the user's RouteBuilder routes with inline actions. ---- */
+.ud-routes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The list's display: flex would otherwise override the hidden attribute's UA display: none. */
+.ud-routes[hidden] {
+  display: none;
+}
+
+.ud-route-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm, 12px);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-neutral-200, #e1e1e1);
+}
+
+.ud-route-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+/* Static-map thumbnail of the route; clicking it opens the route preview in RouteBuilder. */
+.ud-route-view {
+  flex-shrink: 0;
+  display: block;
+  line-height: 0;
+}
+
+.ud-route-thumb {
+  width: 180px;
+  height: 90px;
+  object-fit: cover;
+  border: 1px solid var(--color-neutral-200, #e1e1e1);
+  border-radius: 8px;
+}
+
+.ud-route-view:hover .ud-route-thumb,
+.ud-route-view:focus-visible .ud-route-thumb {
+  border-color: var(--color-link-100, #3e8bd9);
+  box-shadow: 0 0 0 1px var(--color-link-100, #3e8bd9);
+}
+
+.ud-route-usage {
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-text-muted, #546e7a);
+  cursor: help;
+}
+
+.ud-route-name {
+  font-weight: 600;
+  color: var(--color-text-heading, #263238);
+  overflow-wrap: anywhere;
+}
+
+/* The creator's "why this route matters" blurb, clamped so long stories keep the row scannable. */
+.ud-route-desc {
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-text-muted, #546e7a);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ud-route-meta {
+  font-size: var(--font-size-md, 1rem);
+  color: var(--color-text-muted, #546e7a);
+}
+
+.ud-route-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs, 8px);
+}
+
+.ud-route-actions .ud-btn-secondary {
+  padding: 4px 10px;
+  font-size: var(--font-size-sm, 0.875rem);
+  text-decoration: none;
+}
+
+.ud-route-rename-form {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs, 8px);
+}
+
+.ud-route-rename-form .ud-input {
+  padding: 4px 10px;
+  font-size: var(--font-size-md, 1rem);
+}
+
+.ud-route-rename-form .ud-btn-primary {
+  padding: 4px 10px;
+  font-size: var(--font-size-sm, 0.875rem);
 }

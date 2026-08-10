@@ -3,9 +3,10 @@ package models.utils
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.tminglei.slickpg._
 import com.github.tminglei.slickpg.geom.PgPostGISExtensions
-import models.label.AiImageSource
+import models.label.{AiImageSource, ComputationMethod}
+import models.mission.MissionType
 import models.pano.PanoSource
-import models.street.StreetEdgeStatus
+import models.street.{StreetEdgeIssueType, StreetEdgeStatus, WayType}
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.validation.ValidationOption
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
@@ -74,6 +75,26 @@ trait MyPostgresProfile
 
       def lengthD[R](implicit om: o#to[Double, R]): Rep[R] = om.column(GeomLibrary.Length, n)
 
+      /**
+       * Geodesic length in meters of a 4326 geometry, measured on the WGS84 spheroid via a `::geography` cast.
+       *
+       * This is the canonical measure for street distances (#4641): accurate worldwide, and consistent with the
+       * frontend, which measures distances geodesically with turf.js. Never measure by projecting to a fixed CRS —
+       * transverse Mercator distortion away from the zone's central meridian reaches +51% (Auckland through the
+       * UTM zone 18N that all cities were once measured in).
+       *
+       * Unlike `lengthD`, this does not Option-lift: it is only for non-nullable geometry columns (NULL would fail
+       * result conversion outside an aggregate).
+       */
+      def lengthGeodesic: Rep[Double] = SimpleExpression
+        .unary[P1, Double] { (geomNode, queryBuilder) =>
+          queryBuilder.sqlBuilder += "ST_Length(("
+          queryBuilder.expr(geomNode)
+          queryBuilder.sqlBuilder += ")::geography)"
+          ()
+        }
+        .apply(c)
+
       def distanceSphereD[P2, R](geom: Rep[P2])(implicit om: o#to[Double, R]): Rep[R] =
         om.column(GeomLibrary.DistanceSphere, n, geom.toNode)
 
@@ -136,6 +157,32 @@ trait MyPostgresProfile
         "street_edge_status",
         _.toString,
         StreetEdgeStatus.withName,
+        quoteName = false
+      )
+
+    // Mapper for mission_type enum type.
+    implicit val missionTypeMapper: BaseColumnType[MissionType.Value] =
+      createEnumJdbcType[MissionType.Value]("mission_type", _.toString, MissionType.withName, quoteName = false)
+
+    // Mapper for way_type enum type.
+    implicit val wayTypeMapper: BaseColumnType[WayType.Value] =
+      createEnumJdbcType[WayType.Value]("way_type", _.toString, WayType.withName, quoteName = false)
+
+    // Mapper for computation_method enum type.
+    implicit val computationMethodMapper: BaseColumnType[ComputationMethod.Value] =
+      createEnumJdbcType[ComputationMethod.Value](
+        "computation_method",
+        _.toString,
+        ComputationMethod.withName,
+        quoteName = false
+      )
+
+    // Mapper for street_edge_issue_type enum type.
+    implicit val streetEdgeIssueTypeMapper: BaseColumnType[StreetEdgeIssueType.Value] =
+      createEnumJdbcType[StreetEdgeIssueType.Value](
+        "street_edge_issue_type",
+        _.toString,
+        StreetEdgeIssueType.withName,
         quoteName = false
       )
   }

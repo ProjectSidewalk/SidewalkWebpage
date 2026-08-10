@@ -31,11 +31,17 @@ These apply across every language in the repo.
   //this is incorrect
   ```
 
-- **Accessibility is part of style.** Any UI work must meet **WCAG 2.1/2.2 Level AA**. Pull fonts, colors, spacing,
-  and button styles from the design-system tokens in `main.css` `:root` rather than hardcoding values — these come
-  from our Figma "Design System Tokens" and are what we're standardizing on.
-- **Don't use `--font-accent` (Raleway) for numbers.** Its digits aren't tabular, so figures won't line up in columns
-  and jump around in changing counters/timers — use `--font-primary` for any numeric text.
+- **Accessibility is part of style.** Any UI work must meet **WCAG 2.1/2.2 Level AA**.
+- **Style from the design-system tokens in `main.css` `:root`.** Colors, type, spacing, and button styles come from
+  our Figma "Design System Tokens"; hardcoded values are what we're migrating away from. For type, use the composite
+  `--text-*` tokens (`font: var(--text-body-regular);`) rather than building on the raw `--font-primary`/
+  `--font-accent` stacks — they're complete `font` shorthands (weight, size/line-height, family) and bake in
+  `--ui-scale`. If a token's line-height (or another single aspect) doesn't suit, keep the token and override that
+  one property on the next line instead of hand-assembling the font.
+- **Raleway (`--font-accent`) is display-only — and never for numbers.** Default to the primary font (Mulish); the
+  accent font appears only in the tokens that already carry it (`--text-h1-bold`, `--text-h2-bold`,
+  `--text-small-accent`). Raleway defaults to old-style (text) figures — digits vary in height and 3/4/5/7/9 descend
+  below the baseline — so any text containing digits (counts, timers, stats, dates) must use a primary-font token.
 - **Write descriptive commit messages** that say what actually changed and why. `Fixes #880`, `Addresses PR
   feedback`, and `Update ModalMissionComplete.js` are all too vague to be useful in `git log` later.
 
@@ -129,7 +135,7 @@ consistent with it.
 **Naming conventions:**
 
 - **Directories → kebab-case**, always (`user-dashboard/`, `ps-map/`, `label-detail/`).
-- **CSS files → kebab-case**, always (`labeling-guide.css`, `user-profile.css`, `map-sidebar.css`).
+- **CSS files → kebab-case**, always (`labeling-guide.css`, `user-profile.css`, `filter-sidebar.css`).
 - **JS files → Airbnb "filename matches what it defines":** **PascalCase** for a file that defines a
   class/constructor (`AppManager.js`, `LabelPopup.js`, `GsvViewer.js`), **camelCase** for a function/utility/entry
   file (`main.js`, `aggregateStats.js`, `timestampLocalization.js`). Kebab-case is **not** used for JS files.
@@ -173,6 +179,10 @@ is a blocking CI gate). Conventions scalafmt doesn't cover:
   120 chars or hurt readability.
 - **Use Slick for database access**, not raw SQL, wherever possible — you get compile-time type checking. When you
   must write SQL, **avoid table aliases**.
+- **Measure geographic distances geodesically** — `ST_Length(geom::geography)` in raw SQL, the `lengthGeodesic`
+  extension method in Slick, turf.js on the frontend. Never measure by projecting to a fixed SRID: a projection is
+  only accurate near its own meridian (measuring every city through UTM zone 18N overstated street distances by up
+  to +51% — issue #4641).
 - **Two performance gotchas:** count rows with `.size.result` (emits `COUNT(*)`), **not** `.length.result` (which
   loads every row into memory); for CPU-heavy work use the `cpu-intensive` `ExecutionContext` rather than the default
   (see existing usages).

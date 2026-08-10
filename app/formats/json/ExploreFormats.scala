@@ -2,6 +2,7 @@ package formats.json
 
 import formats.json.PanoFormats.{panoSourceReads, PanoDate}
 import models.audit.{AuditTask, AuditTaskInteraction, NewTask}
+import models.label.ComputationMethod
 import models.pano.PanoSource
 import models.pano.PanoSource.PanoSource
 import models.street.StreetEdgePriority
@@ -11,6 +12,7 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import service.UpdatedStreets
 
+import java.nio.charset.StandardCharsets
 import java.time.OffsetDateTime
 
 object ExploreFormats {
@@ -49,7 +51,7 @@ object ExploreFormats {
       zoom: Double,
       lat: Option[Double],
       lng: Option[Double],
-      computationMethod: Option[String]
+      computationMethod: Option[ComputationMethod.Value]
   )
   case class LabelSubmission(
       panoId: String,
@@ -74,7 +76,11 @@ object ExploreFormats {
       startPointReversed: Boolean,
       currentMissionStart: Option[Point],
       lastPriorityUpdateTime: OffsetDateTime,
-      requestUpdatedStreetPriority: Boolean
+      requestUpdatedStreetPriority: Boolean,
+      auditedDistanceM: Option[Double],
+      // Which route_street row this task was served for, when auditing along a route. A route may traverse one
+      // street twice (out-and-back), so street_edge_id alone can't say which traversal this is.
+      routeStreetId: Option[Int]
   )
   case class NoStreetViewSubmission(task: TaskSubmission, missionId: Int)
   case class PanoLinkSubmission(targetPanoId: String, yawDeg: Double, description: Option[String])
@@ -94,7 +100,9 @@ object ExploreFormats {
       links: Seq[PanoLinkSubmission],
       copyright: Option[String],
       address: Option[String],
-      history: Seq[PanoDate]
+      history: Seq[PanoDate],
+      // Verbatim imagery-provider metadata blob; sent by the AI labeler only, never by the Explore client (#4806).
+      sourceMetadata: Option[JsObject]
   )
   case class AuditMissionProgress(
       missionId: Int,
@@ -149,7 +157,9 @@ object ExploreFormats {
       (__ \ "current_mission_start").writeNullable[Point] and
       (__ \ "low_quality").write[Boolean] and
       (__ \ "incomplete").write[Boolean] and
-      (__ \ "stale").write[Boolean]
+      (__ \ "stale").write[Boolean] and
+      (__ \ "audited_distance_m").writeNullable[Double] and
+      (__ \ "start_offset_m").writeNullable[Double]
   )(unlift(AuditTask.unapply))
 
   implicit val auditTaskInteractionWrites: Writes[AuditTaskInteraction] = (
@@ -176,7 +186,8 @@ object ExploreFormats {
         "street_edge_id"        -> task.edgeId,
         "current_lng"           -> task.currentLng,
         "current_lat"           -> task.currentLat,
-        "way_type"              -> task.wayType,
+        "way_type"              -> task.wayType.toString,
+        "max_speed"             -> task.maxSpeed,
         "start_point_reversed"  -> task.startPointReversed,
         "task_start"            -> task.taskStart.toString,
         "completed_by_any_user" -> task.completedByAnyUser,
@@ -186,7 +197,8 @@ object ExploreFormats {
         "current_mission_id"    -> task.currentMissionId,
         "current_mission_start" -> task.currentMissionStart, // TODO test that this looks right on the front end.
         // "current_mission_start" -> currentMissionStart.map(p => geojson.LatLng(p.getY, p.getX)),
-        "route_street_id" -> task.routeStreetId
+        "route_street_id"       -> task.routeStreetId,
+        "route_street_position" -> task.routeStreetPosition
       )
     )
   }
@@ -235,6 +247,18 @@ object ExploreFormats {
       (JsPath \ "timestamp").read[OffsetDateTime]
   )(InteractionSubmission.apply _)
 
+  implicit val computationMethodReads: Reads[ComputationMethod.Value] = Reads { json =>
+    json.validate[String].flatMap { method =>
+      ComputationMethod.fromString(method) match {
+        case Some(computationMethod) => JsSuccess(computationMethod)
+        case None                    =>
+          JsError(
+            s"Invalid computation method: $method. Valid methods are: ${ComputationMethod.values.mkString(", ")}."
+          )
+      }
+    }
+  }
+
   implicit val labelPointSubmissionReads: Reads[LabelPointSubmission] = (
     (JsPath \ "pano_x").read[Int] and
       (JsPath \ "pano_y").read[Int] and
@@ -245,7 +269,7 @@ object ExploreFormats {
       (JsPath \ "zoom").read[Double] and
       (JsPath \ "lat").readNullable[Double] and
       (JsPath \ "lng").readNullable[Double] and
-      (JsPath \ "computation_method").readNullable[String]
+      (JsPath \ "computation_method").readNullable[ComputationMethod.Value]
   )(LabelPointSubmission.apply _)
 
   implicit val labelSubmissionReads: Reads[LabelSubmission] = (
@@ -272,7 +296,9 @@ object ExploreFormats {
       (JsPath \ "start_point_reversed").read[Boolean] and
       (JsPath \ "current_mission_start").readNullable[Point] and
       (JsPath \ "last_priority_update_time").read[OffsetDateTime] and
-      (JsPath \ "request_updated_street_priority").read[Boolean]
+      (JsPath \ "request_updated_street_priority").read[Boolean] and
+      (JsPath \ "audited_distance_m").readNullable[Double] and
+      (JsPath \ "route_street_id").readNullable[Int]
   )(TaskSubmission.apply _)
 
   implicit val noStreetViewSubmissionReads: Reads[NoStreetViewSubmission] = (
@@ -285,6 +311,19 @@ object ExploreFormats {
       (JsPath \ "yaw_deg").read[Double] and
       (JsPath \ "description").readNullable[String]
   )(PanoLinkSubmission.apply _)
+
+  // Ceiling on the provider blob a single submission may persist (#4806). It is stored verbatim, the JSON body parser
+  // accepts up to play.http.parser.maxMemoryBuffer (100M), and the column rides pano_data's default projection, so
+  // without a bound one caller could park an arbitrarily fat row on a table other paths read whole. Real Mapillary
+  // blobs run a few KB, so this leaves ample headroom while turning an absurd payload into a 400 rather than a row
+  // that has to be cleaned up by hand.
+  private val maxSourceMetadataBytes = 64 * 1024
+
+  // Object-only: the blob is a provider metadata document, never a scalar or array. pano_data carries the matching
+  // jsonb_typeof CHECK (evolution 348), so a malformed blob is refused at both ends.
+  private val sourceMetadataReads: Reads[JsObject] = Reads.JsObjectReads.filter(
+    JsonValidationError(s"source_metadata must be a JSON object of at most $maxSourceMetadataBytes bytes")
+  )(blob => Json.stringify(blob).getBytes(StandardCharsets.UTF_8).length <= maxSourceMetadataBytes)
 
   implicit val panoSubmissionReads: Reads[PanoSubmission] = (
     (JsPath \ "pano_id").read[String] and
@@ -302,7 +341,8 @@ object ExploreFormats {
       (JsPath \ "links").read[Seq[PanoLinkSubmission]] and
       (JsPath \ "copyright").readNullable[String] and
       (JsPath \ "address").readNullable[String] and
-      (JsPath \ "history").read[Seq[PanoDate]]
+      (JsPath \ "history").read[Seq[PanoDate]] and
+      (JsPath \ "source_metadata").readNullable[JsObject](sourceMetadataReads)
   )(PanoSubmission.apply _)
 
   implicit val auditMissionProgressReads: Reads[AuditMissionProgress] = (

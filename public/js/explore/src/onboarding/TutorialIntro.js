@@ -4,7 +4,8 @@
  * A four-step, full-page walkthrough (Explore -> Label -> Validate -> Impact) before the hands-on tutorial.
  *
  * The step copy lives in i18next (audit:tutorial-intro.*); the per-step illustration and icon markup live in the
- * Explore Twirl view. This class only tracks which step is active and swaps the "Next"/"Start Mission" label.
+ * Explore Twirl view. This class tracks which step is active, drives that step's illustration clip, and swaps the
+ * "Next"/"Start Mission" label.
  */
 class TutorialIntro {
   #tracker;
@@ -15,6 +16,9 @@ class TutorialIntro {
   #ui;
   #impactStats = null; // { totalLabels, numCities } once /v3/api/aggregateStats resolves; null until then.
   #impactFetchStarted = false;
+  // Starts out off for a visitor who has asked for reduced motion; after that it follows the pause control, so moving
+  // to the next step never restarts motion someone turned off.
+  #motionPaused = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /**
    * @param {object} tracker - Interaction logger (svl.tracker).
@@ -33,7 +37,9 @@ class TutorialIntro {
       illustrations: [...document.querySelectorAll('.tutorial-intro__illustration-img')],
       nextButton: document.getElementById('tutorial-intro-next-btn'),
       skipLink: document.getElementById('tutorial-intro-skip'),
+      motionToggle: document.getElementById('tutorial-intro-motion-toggle'),
       impactDesc: document.getElementById('tutorial-intro-impact-desc'),
+      routeNote: document.getElementById('tutorial-intro-route-note'),
     };
     this.#stepCount = this.#ui.steps.length;
 
@@ -41,13 +47,24 @@ class TutorialIntro {
     this.#ui.skipLink.addEventListener('click', (e) => {
       e.preventDefault();
       this.#tracker.push('TutorialIntro_Skip');
+      this.#stopIllustrations();
       this.#onSkip();
+    });
+    this.#ui.motionToggle.addEventListener('click', () => {
+      this.#motionPaused = !this.#motionPaused;
+      this.#tracker.push(this.#motionPaused ? 'TutorialIntro_PauseAnimation' : 'TutorialIntro_PlayAnimation');
+      this.#applyMotionState();
     });
   }
 
   /** Show the intro at the first step and move keyboard focus to the primary action. */
   show() {
     this.#tracker.push('TutorialIntro_Start');
+    // A user who clicked through to a specific route lands here instead, so say the route is still waiting —
+    // otherwise the tutorial looks like it replaced what they asked for.
+    if (this.#ui.routeNote && new URLSearchParams(window.location.search).has('routeId')) {
+      this.#ui.routeNote.hidden = false;
+    }
     // Kick off the Impact-stats fetch now (fire-and-forget): the Impact step is last, so the server-cached numbers are
     // essentially always back before the user clicks that far, and we never block the intro on the request.
     this.#fetchImpactStats();
@@ -84,6 +101,7 @@ class TutorialIntro {
     } else {
       this.#tracker.push('TutorialIntro_StartMission');
       this.#ui.root.classList.remove('is-visible');
+      this.#stopIllustrations();
       this.#onStart();
     }
   }
@@ -92,11 +110,44 @@ class TutorialIntro {
   #render() {
     const isLastStep = this.#stepIndex === this.#stepCount - 1;
     this.#ui.steps.forEach((el, i) => el.classList.toggle('is-active', i === this.#stepIndex));
+    this.#stopIllustrations();
     this.#ui.illustrations.forEach((el, i) => el.classList.toggle('is-active', i === this.#stepIndex));
+    this.#applyMotionState();
     this.#ui.nextButton.textContent = isLastStep
       ? i18next.t('audit:tutorial-intro.start-mission')
       : i18next.t('audit:tutorial-intro.next');
     this.#renderImpactDescription();
+  }
+
+  /** Pause every clip, so the step being left behind stops decoding while it sits hidden. */
+  #stopIllustrations() {
+    this.#ui.illustrations.forEach((el) => el.pause());
+  }
+
+  /**
+   * Applies the current motion setting to the step that's showing and to the pause control's state.
+   *
+   * With motion on, the clip plays and loops. With motion off it stays paused on its still — the clip's last frame,
+   * which is the one carrying the step's payoff (the "Label it!" callout, the finished streetscape) — and, since the
+   * clips are `preload="none"`, nothing about the step is downloaded at all.
+   */
+  #applyMotionState() {
+    const active = this.#ui.illustrations[this.#stepIndex];
+    this.#ui.motionToggle.classList.toggle('is-paused', this.#motionPaused);
+    this.#ui.motionToggle.setAttribute('aria-pressed', String(this.#motionPaused));
+
+    if (this.#motionPaused) {
+      active.pause();
+      active.poster = active.dataset.poster;
+      return;
+    }
+    // Drop the still before playing: it's the clip's last frame, so leaving it up would flash the end of the animation
+    // over the opening frames while the clip loads.
+    active.removeAttribute('poster');
+    active.play().catch(() => {
+      // Rejected when the browser refuses to play; the still stands in for the animation in that case.
+      active.poster = active.dataset.poster;
+    });
   }
 
   /**

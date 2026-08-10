@@ -16,6 +16,37 @@ function OnboardingStates(contextMenu, compass, panoManager) {
     'stage-7': [281, 14],
   };
 
+  // Inline replica of the hover card's Delete button (.label-hover-card__delete-button) for tutorial messages
+  // that ask the user to delete a misplaced label.
+  const deleteIconHtml = `
+    <span class="onboarding-delete-button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round" aria-hidden="true">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        <line x1="10" y1="11" x2="10" y2="17"></line>
+        <line x1="14" y1="11" x2="14" y2="17"></line>
+      </svg>${i18next.t('center-ui.hover-card.delete')}</span>`;
+
+  // Inline replica of a rating segment (.severity-button) for tutorial messages that ask for a specific rating.
+  // Mirrors the real segment's smiley icon and localized level name so the copy can't drift from the buttons on
+  // screen (positive types read Good/Okay/Bad, negative ones Low/Medium/High).
+  const ratingChipHtml = (labelType, severity) => {
+    const levelName = i18next.t(`common:${util.misc.getRatingLevelKeys(labelType)[severity]}`);
+    return `<span class="onboarding-rating-chip"><img
+      src="${util.misc.getSmileyIconPath(severity, labelType, false)}" alt="">${levelName}</span>`;
+  };
+
+  // Inline replica of a tag pill for tutorial messages that name a specific tag, reusing the localized text the
+  // real pills render (shortcut-letter underline included) so the copy can't drift from the pill on screen.
+  const tagPillHtml = (labelType, tag) => {
+    const text = util.misc.getLabelDescriptions(labelType).tagInfo[tag].text;
+    return `<span class="tag-pill"><span class="tag-pill__label">${text}</span></span>`;
+  };
+
+  // Inline keycap for teaching keyboard shortcuts (e.g. press C for Curb Ramp).
+  const kbdHtml = (key) => `<kbd class="onboarding-kbd">${key}</kbd>`;
+
   this.states = [
     {
       // The welcome/skip UI now lives in the pre-tutorial intro (TutorialIntro), so this first state only positions
@@ -30,6 +61,31 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       },
       panoId,
       annotations: null,
+      transition: 'introduce-curb-ramp',
+    },
+    {
+      id: 'introduce-curb-ramp',
+      progression: true,
+      properties: {
+        action: 'Instruction',
+        minHeading: headingRanges['stage-1'][0],
+        maxHeading: headingRanges['stage-1'][1],
+      },
+      message: {
+        message: i18next.t('tutorial.introduce-curb-ramp'),
+        panoAnchor: { x: 9730, y: -350 },
+      },
+      panoId,
+      annotations: [
+        {
+          type: 'arrow',
+          x: 9730,
+          y: -350,
+          length: 50,
+          angle: 0,
+          fill: 'yellow',
+        },
+      ],
       transition: 'select-label-type-1',
     },
     {
@@ -98,9 +154,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-1'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-generic')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-generic')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -148,17 +202,19 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-1'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.rate-severity-1')}<br>
-          <img src="${svl.imageDirectory}onboarding/RatingCurbRampQuality-severity-2-v3.gif" class="onboarding-gif">
-        `,
+        message: i18next.t('tutorial.rate-severity-1', {
+          rating: ratingChipHtml('CurbRamp', 2),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#severity-menu',
+        placement: 'left',
       },
       panoId,
       annotations: null,
       transition() {
         const severity = parseInt(this.getAttribute('value'), 10);
-        if (severity === 1) {
-          contextMenu.hide();
-          return 'select-label-type-2';
+        if (severity === 2) {
+          return 'tag-attribute-1';
         } else {
           return 'redo-rate-attribute-1';
         }
@@ -175,19 +231,81 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-1'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.redo-rate-attribute-1')
-        }<br><img src="${svl.imageDirectory}onboarding/RatingCurbRampQuality-severity-2-v3.gif`
-        + `" class="onboarding-gif"`,
+        message: i18next.t('tutorial.redo-rate-attribute-1', {
+          rating: ratingChipHtml('CurbRamp', 2),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#severity-menu',
+        placement: 'left',
       },
       panoId,
       annotations: null,
       transition() {
         const severity = parseInt(this.getAttribute('value'), 10);
-        if (severity === 1) {
+        if (severity === 2) {
+          return 'tag-attribute-1';
+        } else {
+          return 'redo-rate-attribute-1';
+        }
+      },
+    },
+    {
+      id: 'tag-attribute-1',
+      progression: true,
+      properties: {
+        action: 'AddTag',
+        labelNumber: 1,
+        labelType: 'CurbRamp',
+        minHeading: headingRanges['stage-1'][0],
+        maxHeading: headingRanges['stage-1'][1],
+      },
+      message: {
+        message: i18next.t('tutorial.tag-attribute-1', {
+          tag: tagPillHtml('CurbRamp', 'points into traffic'),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#context-menu-tag-section',
+        placement: 'left',
+      },
+      panoId,
+      annotations: null,
+      transition() {
+        const tags = this.getProperty('tagIds');
+        if (tags.includes(2) && tags.length === 1) { // 2 is the id of the "points into traffic" tag.
           contextMenu.hide();
           return 'select-label-type-2';
         } else {
-          return 'redo-rate-attribute-1';
+          return 'redo-tag-attribute-1';
+        }
+      },
+    },
+    {
+      id: 'redo-tag-attribute-1',
+      progression: false,
+      properties: {
+        action: 'RedoAddTag',
+        labelNumber: 1,
+        labelType: 'CurbRamp',
+        minHeading: headingRanges['stage-1'][0],
+        maxHeading: headingRanges['stage-1'][1],
+      },
+      message: {
+        message: i18next.t('tutorial.redo-tag-attribute-1', {
+          tag: tagPillHtml('CurbRamp', 'points into traffic'),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#context-menu-tag-section',
+        placement: 'left',
+      },
+      panoId,
+      annotations: null,
+      transition() {
+        const tags = this.getProperty('tagIds');
+        if (tags.includes(2) && tags.length === 1) { // 2 is the id of the "points into traffic" tag.
+          contextMenu.hide();
+          return 'select-label-type-2';
+        } else {
+          return 'redo-tag-attribute-1';
         }
       },
     },
@@ -258,9 +376,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-1'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-crosswalk')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-crosswalk')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -307,7 +423,14 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-1'][0],
         maxHeading: headingRanges['stage-1'][1],
       },
-      message: { message: i18next.t('tutorial.common.rate-crosswalk-sev-1') },
+      message: {
+        message: i18next.t('tutorial.common.rate-crosswalk-sev-1', {
+          rating: ratingChipHtml('Crosswalk', 1),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#severity-menu',
+        placement: 'left',
+      },
       panoId,
       annotations: null,
       transition() {
@@ -330,7 +453,14 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-1'][0],
         maxHeading: headingRanges['stage-1'][1],
       },
-      message: { message: i18next.t('tutorial.common.redo-rate-crosswalk-sev-1') },
+      message: {
+        message: i18next.t('tutorial.common.redo-rate-crosswalk-sev-1', {
+          rating: ratingChipHtml('Crosswalk', 1),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#severity-menu',
+        placement: 'left',
+      },
       panoId,
       annotations: null,
       transition() {
@@ -428,7 +558,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       ],
       transition: [function (params) {
         if (params.accurate) {
-          return 'tag-attribute-3';
+          return 'rate-severity-3';
         } else {
           return 'delete-attribute-3';
         }
@@ -445,9 +575,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-2'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-generic')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-generic')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -487,58 +615,6 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       transition: 'label-attribute-3',
     },
     {
-      id: 'tag-attribute-3',
-      progression: true,
-      properties: {
-        action: 'AddTag',
-        labelNumber: 3,
-        labelType: 'CurbRamp',
-        minHeading: headingRanges['stage-2'][0],
-        maxHeading: headingRanges['stage-2'][1],
-      },
-      message: {
-        message: `${i18next.t('tutorial.tag-attribute-3')
-        }<br><img src="${svl.imageDirectory}onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif`
-        + `" class="onboarding-gif">`,
-      },
-      panoId,
-      annotations: null,
-      transition() {
-        const tags = this.getProperty('tagIds');
-        if (tags.includes(23) && tags.length === 1) { // 23 is the id of the "not enough landing space" tag.
-          return 'rate-severity-3';
-        } else {
-          return 'redo-tag-attribute-3';
-        }
-      },
-    },
-    {
-      id: 'redo-tag-attribute-3',
-      progression: false,
-      properties: {
-        action: 'RedoAddTag',
-        labelNumber: 3,
-        labelType: 'CurbRamp',
-        minHeading: headingRanges['stage-2'][0],
-        maxHeading: headingRanges['stage-2'][1],
-      },
-      message: {
-        message: `${i18next.t('tutorial.redo-tag-attribute-3')
-        }<br><img src="${svl.imageDirectory}onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif`
-        + `" class="onboarding-gif">`,
-      },
-      panoId,
-      annotations: null,
-      transition() {
-        const tags = this.getProperty('tagIds');
-        if (tags.includes(23) && tags.length === 1) { // 23 is the id of the "not enough landing space" tag.
-          return 'rate-severity-3';
-        } else {
-          return 'redo-tag-attribute-3';
-        }
-      },
-    },
-    {
       id: 'rate-severity-3',
       progression: true,
       properties: {
@@ -549,17 +625,19 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-2'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.rate-severity-3')
-        }<br><img src="${svl.imageDirectory}onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif" `
-        + `class="onboarding-gif">`,
+        message: i18next.t('tutorial.rate-severity-3', {
+          rating: ratingChipHtml('CurbRamp', 2),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#severity-menu',
+        placement: 'left',
       },
       panoId,
       annotations: null,
       transition() {
         const severity = parseInt(this.getAttribute('value'), 10);
         if (severity === 2) {
-          contextMenu.hide();
-          return 'select-label-type-4';
+          return 'tag-attribute-3';
         } else {
           return 'redo-rate-attribute-3';
         }
@@ -576,19 +654,81 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-2'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.redo-rate-attribute-3')
-        }<br><img src="${svl.imageDirectory}onboarding/RatingCurbRamp-no-tag-severity-2-v2.gif`
-        + `" class="onboarding-gif">`,
+        message: i18next.t('tutorial.redo-rate-attribute-3', {
+          rating: ratingChipHtml('CurbRamp', 2),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#severity-menu',
+        placement: 'left',
       },
       panoId,
       annotations: null,
       transition() {
         const severity = parseInt(this.getAttribute('value'), 10);
         if (severity === 2) {
+          return 'tag-attribute-3';
+        } else {
+          return 'redo-rate-attribute-3';
+        }
+      },
+    },
+    {
+      id: 'tag-attribute-3',
+      progression: true,
+      properties: {
+        action: 'AddTag',
+        labelNumber: 3,
+        labelType: 'CurbRamp',
+        minHeading: headingRanges['stage-2'][0],
+        maxHeading: headingRanges['stage-2'][1],
+      },
+      message: {
+        message: i18next.t('tutorial.tag-attribute-3', {
+          tag: tagPillHtml('CurbRamp', 'not enough landing space'),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#context-menu-tag-section',
+        placement: 'left',
+      },
+      panoId,
+      annotations: null,
+      transition() {
+        const tags = this.getProperty('tagIds');
+        if (tags.includes(23) && tags.length === 1) { // 23 is the id of the "not enough landing space" tag.
           contextMenu.hide();
           return 'select-label-type-4';
         } else {
-          return 'redo-rate-attribute-3';
+          return 'redo-tag-attribute-3';
+        }
+      },
+    },
+    {
+      id: 'redo-tag-attribute-3',
+      progression: false,
+      properties: {
+        action: 'RedoAddTag',
+        labelNumber: 3,
+        labelType: 'CurbRamp',
+        minHeading: headingRanges['stage-2'][0],
+        maxHeading: headingRanges['stage-2'][1],
+      },
+      message: {
+        message: i18next.t('tutorial.redo-tag-attribute-3', {
+          tag: tagPillHtml('CurbRamp', 'not enough landing space'),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#context-menu-tag-section',
+        placement: 'left',
+      },
+      panoId,
+      annotations: null,
+      transition() {
+        const tags = this.getProperty('tagIds');
+        if (tags.includes(23) && tags.length === 1) { // 23 is the id of the "not enough landing space" tag.
+          contextMenu.hide();
+          return 'select-label-type-4';
+        } else {
+          return 'redo-tag-attribute-3';
         }
       },
     },
@@ -643,7 +783,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       ],
       transition: [function (params) {
         if (params.accurate) {
-          return 'tag-attribute-4';
+          return 'rate-severity-4';
         } else {
           return 'delete-attribute-4';
         }
@@ -660,9 +800,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-2'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-generic')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-generic')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -702,58 +840,6 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       transition: 'label-attribute-4',
     },
     {
-      id: 'tag-attribute-4',
-      progression: true,
-      properties: {
-        action: 'AddTag',
-        labelNumber: 4,
-        labelType: 'NoCurbRamp',
-        minHeading: headingRanges['stage-2'][0],
-        maxHeading: headingRanges['stage-2'][1],
-      },
-      message: {
-        message: `${i18next.t('tutorial.tag-attribute-4')
-        }<br><img src="${svl.imageDirectory}onboarding/RatingNoCurbRampSeverity-v2.gif`
-        + `" class="onboarding-gif">`,
-      },
-      panoId,
-      annotations: null,
-      transition() {
-        const tags = this.getProperty('tagIds');
-        if (tags.includes(5) && tags.length === 1) { // 5 is the id of the "alternate route present" tag.
-          return 'rate-severity-4';
-        } else {
-          return 'redo-tag-attribute-4';
-        }
-      },
-    },
-    {
-      id: 'redo-tag-attribute-4',
-      progression: false,
-      properties: {
-        action: 'RedoAddTag',
-        labelNumber: 4,
-        labelType: 'NoCurbRamp',
-        minHeading: headingRanges['stage-2'][0],
-        maxHeading: headingRanges['stage-2'][1],
-      },
-      message: {
-        message: `${i18next.t('tutorial.redo-tag-attribute-4')
-        }<br><img src="${svl.imageDirectory}onboarding/RatingNoCurbRampSeverity-v2.gif`
-        + `" class="onboarding-gif">`,
-      },
-      panoId,
-      annotations: null,
-      transition() {
-        const tags = this.getProperty('tagIds');
-        if (tags.includes(5) && tags.length === 1) { // 5 is the id of the "alternate route present" tag.
-          return 'rate-severity-4';
-        } else {
-          return 'redo-tag-attribute-4';
-        }
-      },
-    },
-    {
       id: 'rate-severity-4',
       progression: true,
       properties: {
@@ -764,17 +850,20 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-2'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.rate-severity-4')
-        }<br><img src="${svl.imageDirectory}onboarding/RatingNoCurbRampSeverity-v2.gif`
-        + `" class="onboarding-gif">`,
+        message: i18next.t('tutorial.rate-severity-4', {
+          rating1: ratingChipHtml('NoCurbRamp', 2),
+          rating2: ratingChipHtml('NoCurbRamp', 3),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#severity-menu',
+        placement: 'left',
       },
       panoId,
       annotations: null,
       transition() {
         const severity = parseInt(this.getAttribute('value'), 10);
-        if (severity === 2) {
-          contextMenu.hide();
-          return 'select-label-type-5';
+        if (severity === 2 || severity === 3) {
+          return 'tag-attribute-4';
         } else {
           return 'redo-rate-attribute-4';
         }
@@ -791,19 +880,82 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-2'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.redo-rate-attribute-4')
-        }<br><img src="${svl.imageDirectory}onboarding/RatingNoCurbRampSeverity-v2.gif`
-        + `" class="onboarding-gif">`,
+        message: i18next.t('tutorial.redo-rate-attribute-4', {
+          rating1: ratingChipHtml('NoCurbRamp', 2),
+          rating2: ratingChipHtml('NoCurbRamp', 3),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#severity-menu',
+        placement: 'left',
       },
       panoId,
       annotations: null,
       transition() {
         const severity = parseInt(this.getAttribute('value'), 10);
-        if (severity === 2) {
+        if (severity === 2 || severity === 3) {
+          return 'tag-attribute-4';
+        } else {
+          return 'redo-rate-attribute-4';
+        }
+      },
+    },
+    {
+      id: 'tag-attribute-4',
+      progression: true,
+      properties: {
+        action: 'AddTag',
+        labelNumber: 4,
+        labelType: 'NoCurbRamp',
+        minHeading: headingRanges['stage-2'][0],
+        maxHeading: headingRanges['stage-2'][1],
+      },
+      message: {
+        message: i18next.t('tutorial.tag-attribute-4', {
+          tag: tagPillHtml('NoCurbRamp', 'alternate route present'),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#context-menu-tag-section',
+        placement: 'left',
+      },
+      panoId,
+      annotations: null,
+      transition() {
+        const tags = this.getProperty('tagIds');
+        if (tags.includes(5) && tags.length === 1) { // 5 is the id of the "alternate route present" tag.
           contextMenu.hide();
           return 'select-label-type-5';
         } else {
-          return 'redo-rate-attribute-4';
+          return 'redo-tag-attribute-4';
+        }
+      },
+    },
+    {
+      id: 'redo-tag-attribute-4',
+      progression: false,
+      properties: {
+        action: 'RedoAddTag',
+        labelNumber: 4,
+        labelType: 'NoCurbRamp',
+        minHeading: headingRanges['stage-2'][0],
+        maxHeading: headingRanges['stage-2'][1],
+      },
+      message: {
+        message: i18next.t('tutorial.redo-tag-attribute-4', {
+          tag: tagPillHtml('NoCurbRamp', 'alternate route present'),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#context-menu-tag-section',
+        placement: 'left',
+      },
+      panoId,
+      annotations: null,
+      transition() {
+        const tags = this.getProperty('tagIds');
+        if (tags.includes(5) && tags.length === 1) { // 5 is the id of the "alternate route present" tag.
+          contextMenu.hide();
+          return 'select-label-type-5';
+        } else {
+          return 'redo-tag-attribute-4';
         }
       },
     },
@@ -889,9 +1041,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-2'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-signal')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-signal')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -1045,9 +1195,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-3'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-crosswalk')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-crosswalk')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -1096,7 +1244,14 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-3'][0],
         maxHeading: headingRanges['stage-3'][1],
       },
-      message: { message: i18next.t('tutorial.common.rate-crosswalk-sev-1') },
+      message: {
+        message: i18next.t('tutorial.common.rate-crosswalk-sev-1', {
+          rating: ratingChipHtml('Crosswalk', 1),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#severity-menu',
+        placement: 'left',
+      },
       panoId,
       annotations: null,
       transition() {
@@ -1119,7 +1274,14 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-3'][0],
         maxHeading: headingRanges['stage-3'][1],
       },
-      message: { message: i18next.t('tutorial.common.redo-rate-crosswalk-sev-1') },
+      message: {
+        message: i18next.t('tutorial.common.redo-rate-crosswalk-sev-1', {
+          rating: ratingChipHtml('Crosswalk', 1),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#severity-menu',
+        placement: 'left',
+      },
       panoId,
       annotations: null,
       transition() {
@@ -1163,15 +1325,6 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       annotations: [
         {
           type: 'label',
-          labelType: 'Crosswalk',
-          x: 2150,
-          y: -1150,
-          lat: 38.94048737098884,
-          lng: -77.06751796530399,
-          keepUntil: 'select-label-type-8',
-        },
-        {
-          type: 'label',
           labelType: 'CurbRamp',
           x: 3850,
           y: -975,
@@ -1186,6 +1339,15 @@ function OnboardingStates(contextMenu, compass, panoManager) {
           y: -850,
           lat: 38.940334177869914,
           lng: -77.06752911216995,
+          keepUntil: 'select-label-type-8',
+        },
+        {
+          type: 'label',
+          labelType: 'Crosswalk',
+          x: 2150,
+          y: -1150,
+          lat: 38.94048737098884,
+          lng: -77.06751796530399,
           keepUntil: 'select-label-type-8',
         },
         {
@@ -1268,9 +1430,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-4'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-generic')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-generic')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -1320,10 +1480,13 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-4'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.tag-attribute-7')
-        }<br><img src="${svl.imageDirectory}onboarding/RatingMissingSidewalk.gif`
-        + `" class="onboarding-gif">`,
-        position: 'top-right',
+        message: i18next.t('tutorial.tag-attribute-7', {
+          tag1: tagPillHtml('NoSidewalk', 'ends abruptly'),
+          tag2: tagPillHtml('NoSidewalk', 'street has a sidewalk'),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#context-menu-tag-section',
+        placement: 'left',
       },
       panoId,
       annotations: null,
@@ -1353,10 +1516,13 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-4'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.redo-tag-attribute-7')
-        }<br><img src="${svl.imageDirectory}onboarding/RatingMissingSidewalk.gif`
-        + `" class="onboarding-gif">`,
-        position: 'top-right',
+        message: i18next.t('tutorial.redo-tag-attribute-7', {
+          tag1: tagPillHtml('NoSidewalk', 'ends abruptly'),
+          tag2: tagPillHtml('NoSidewalk', 'street has a sidewalk'),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#context-menu-tag-section',
+        placement: 'left',
       },
       panoId,
       annotations: null,
@@ -1400,7 +1566,12 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-5'][0],
         maxHeading: headingRanges['stage-5'][1],
       },
-      message: { message: i18next.t('tutorial.select-label-type-8') },
+      message: {
+        message: i18next.t('tutorial.select-label-type-8', {
+          key: kbdHtml('C'),
+          interpolation: { escapeValue: false },
+        }),
+      },
       panoId,
       annotations: [
         {
@@ -1458,9 +1629,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-5'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-generic')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-generic')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -1510,9 +1679,12 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-5'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.rate-severity-8')
-        }<br><img src="${svl.imageDirectory}onboarding/RatingCurbRampQuality-v3.gif`
-        + `" class="onboarding-gif" `,
+        message: i18next.t('tutorial.rate-severity-8', {
+          rating: ratingChipHtml('CurbRamp', 1),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#severity-menu',
+        placement: 'left',
       },
       panoId,
       annotations: null,
@@ -1537,9 +1709,12 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-5'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.redo-rate-attribute-8')
-        }<br><img src="${svl.imageDirectory}onboarding/RatingCurbRampQuality-v3.gif`
-        + `" class="onboarding-gif" `,
+        message: i18next.t('tutorial.redo-rate-attribute-8', {
+          rating: ratingChipHtml('CurbRamp', 1),
+          interpolation: { escapeValue: false },
+        }),
+        anchor: '#severity-menu',
+        placement: 'left',
       },
       panoId,
       annotations: null,
@@ -1563,7 +1738,12 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-5'][0],
         maxHeading: headingRanges['stage-5'][1],
       },
-      message: { message: i18next.t('tutorial.select-label-type-9') },
+      message: {
+        message: i18next.t('tutorial.select-label-type-9', {
+          key: kbdHtml('P'),
+          interpolation: { escapeValue: false },
+        }),
+      },
       panoId,
       annotations: [
         {
@@ -1635,9 +1815,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-5'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-signal')} `
-          + `<img src="${svl.imageDirectory}icons/Icon_Delete.png" `
-          + `style="width: 6%; height:auto" alt="Delete Icon">`,
+        message: `${i18next.t('tutorial.common.label-too-far-signal')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -1847,20 +2025,20 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       annotations: [
         {
           type: 'label',
-          labelType: 'Signal',
-          x: 10510,
-          y: -500,
-          lat: 38.940656819984454,
-          lng: -77.06787178273665,
-          keepUntil: 'outro',
-        },
-        {
-          type: 'label',
           labelType: 'NoCurbRamp',
           x: 10800,
           y: -525,
           lat: 38.94067750463137,
           lng: -77.06786106607106,
+          keepUntil: 'outro',
+        },
+        {
+          type: 'label',
+          labelType: 'NoCurbRamp',
+          x: 225,
+          y: -700,
+          lat: 38.94076274068959,
+          lng: -77.0676653183858,
           keepUntil: 'outro',
         },
         {
@@ -1874,11 +2052,11 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         },
         {
           type: 'label',
-          labelType: 'NoCurbRamp',
-          x: 225,
-          y: -700,
-          lat: 38.94076274068959,
-          lng: -77.0676653183858,
+          labelType: 'Signal',
+          x: 10510,
+          y: -500,
+          lat: 38.940656819984454,
+          lng: -77.06787178273665,
           keepUntil: 'outro',
         },
         {

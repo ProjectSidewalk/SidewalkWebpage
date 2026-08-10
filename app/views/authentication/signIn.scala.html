@@ -9,7 +9,7 @@
 @* Full-page sign-in: the no-JS fallback and the target of a direct /signIn visit. Same auth card and fields as the
    navbar dialog; AuthModal.js progressively enhances it (eye toggle, async submit) but a plain POST still works. *@
 
-@common.main(commonData, "Sidewalk - Sign In") {
+@common.main(commonData, Messages("seo.title.sign.in")) {
   @common.navbar(commonData, user)
   <div class="au-page">
     <div class="au-card">

@@ -106,6 +106,10 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   val clusters: TableQuery[ClusterTableDef] = TableQuery[ClusterTableDef]
 
+  // Built once at class level: the raw-labels JSON parse runs per streamed row, so the Reads must not be rebuilt there.
+  implicit private val panoSourceReads: Reads[models.pano.PanoSource.Value] = formats.json.PanoFormats.panoSourceReads
+  implicit private val rawLabelReads: Reads[RawLabelInClusterDataForApi]    = Json.reads[RawLabelInClusterDataForApi]
+
   // Create an implicit converter for LabelClusterForApi
   implicit val labelClusterForApiConverter: GetResult[LabelClusterForApi] = GetResult[LabelClusterForApi] { r =>
     val labelClusterId = r.nextInt()
@@ -138,10 +142,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
 
     // Parse labels if included (only when includeRawLabels=true).
     val labels = if (r.hasMoreColumns) {
-      r.nextStringOption().map { labelsJson =>
-        implicit val rawLabelReads: Reads[RawLabelInClusterDataForApi] = Json.reads[RawLabelInClusterDataForApi]
-        Json.parse(labelsJson).as[Seq[RawLabelInClusterDataForApi]]
-      }
+      r.nextStringOption().map { labelsJson => Json.parse(labelsJson).as[Seq[RawLabelInClusterDataForApi]] }
     } else {
       None
     }
@@ -361,6 +362,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
                        'labelId', l.label_id,
                        'userId', l.user_id,
                        'panoId', l.pano_id,
+                       'panoSource', gd.source::text,
                        'severity', l.severity,
                        'timeCreated', l.time_created,
                        'latitude', lp.lat,

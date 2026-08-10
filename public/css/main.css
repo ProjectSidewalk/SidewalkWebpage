@@ -46,6 +46,20 @@
   --color-banana-800: #CB8F11;
   --color-banana-900: #A87303;
 
+  /* Jade. Added for the "good" end of the severity/quality scale (#4724): levels 1 and 2 previously both sat on
+     banana, separated only by saturation, which reads at full strength but disappears once either is lightened
+     into a background wash. 400 is the face colour, 700 the darkened edge, 100 the wash; the rest are
+     interpolated. Sized to the other rating faces' perceptual band — they sit at CIE L* 90/76/70, 400 lands at 78. */
+  --color-jade-100: #F2FBF6;
+  --color-jade-200: #CCEEDB;
+  --color-jade-300: #A5E0C0;
+  --color-jade-400: #7FD3A5;
+  --color-jade-500: #6FB890;
+  --color-jade-600: #5F9E7B;
+  --color-jade-700: #4F8366;
+  --color-jade-800: #395E49;
+  --color-jade-900: #263F31;
+
   --color-neutral-white: #FFFFFF;
   --color-neutral-100: #F0F0F0;
   --color-neutral-200: #E1E1E1;
@@ -131,6 +145,10 @@
        vertically in columns or stay steady in changing counters/timers. Use --font-primary for numeric content. */
   --font-primary: "Mulish", "PingFang TC", "Microsoft JhengHei", sans-serif;
   --font-accent:  "Raleway", sans-serif;
+
+  /* Monospace, for content whose alignment carries meaning: code, BibTeX, fixed-width identifiers. JetBrains Mono is
+       only webfont-loaded on the API docs pages, so everywhere else this resolves to the platform's own mono face. */
+  --font-mono:    "JetBrains Mono", sfmono-regular, consolas, "Liberation Mono", menlo, monospace;
 
   /* Typography scale: mirrors the Figma Design System Tokens file.
        Format: font-weight font-size/line-height font-family. The font-size and line-height are each multiplied by
@@ -413,6 +431,10 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 3px;
+
+  /* A navbar item never wraps: the bar is a fixed-height single line, so a wrapped label overflows it. Items are
+     shed instead when space runs short (see Navbar.js). */
+  white-space: nowrap;
   cursor: pointer;
   color: var(--color-asphalt-500);
   font-size: 13px;
@@ -465,6 +487,15 @@ a {
   height: 22px;
   margin: 0 18px 0 28px;
   background-color: var(--color-neutral-300);
+}
+
+/* Leading icon on a top-level destination. The inline bar keeps its destinations as plain text links, so this shows
+   only in the stacked hamburger panel (see the breakpoint below). */
+.navbar-lnk-icon {
+  display: none;
+  width: 16px;
+  height: 16px;
+  flex: none;
 }
 
 /* Leading icon on each selector pill (city / account / language); keeps the three the same height. */
@@ -619,6 +650,15 @@ a {
 
 .footer-link {
   color: var(--color-asphalt-500);
+}
+
+/* Brand marks in the "Connect" links (markup in common/socialIcon.scala.html). They fill with the link's own text
+   color so the set reads as one monochrome group rather than four competing brand palettes. */
+.social-icon {
+  width: 15px;
+  height: 15px;
+  vertical-align: -2px;
+  fill: currentcolor;
 }
 
 #info-footer {
@@ -1079,9 +1119,14 @@ kbd {
     margin-top: 1px;
   }
 
-  /* Actions drop to their own row: pill anchored left, close anchored right, spanning the full width. */
+  /*
+   * Actions drop to their own full-width row: indent the pill to the message's text column (icon width + row gap)
+   * so it lines up under the text rather than the icon, while the close stays anchored at the right edge.
+   */
   .test-server-banner-actions {
+    box-sizing: border-box;
     width: 100%;
+    padding-inline-start: 30px;
     justify-content: space-between;
   }
 
@@ -1099,6 +1144,34 @@ kbd {
   list-style: none;
   margin: 0;
   padding: 0;
+
+  /* Neither group compresses: squeezing is what forced labels onto a second line. When the two groups no longer fit
+     side by side, Navbar.js sheds items instead. */
+  flex: none;
+}
+
+.navbar-nav > li {
+  flex: none;
+}
+
+/* Applied by Navbar.js to items dropped from the inline bar; each one stays reachable elsewhere (site footer, or
+   the Tools menu for Label Map), and all of them return in the stacked hamburger panel. */
+.navbar-nav > li.is-shed {
+  display: none;
+}
+
+/* Last step before the hamburger: the language selector keeps its globe icon and drops its label. The button's
+   aria-label still names the control, so this is visual only. */
+#language-dropdown.is-compact .navbar-lang-label {
+  display: none;
+}
+
+/* A long username can't be allowed to push the bar past its width. */
+.navbar-user-name {
+  display: block;
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Dropdown panels are hidden until Navbar.js adds .is-open to the wrapping .navbar-lnk. */
@@ -1130,12 +1203,35 @@ kbd {
 }
 
 .dropdown-menu li > a {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 5px 16px;
   font-size: 13px;
   color: var(--color-asphalt-600);
   text-decoration: none;
   white-space: nowrap;
+}
+
+/* Leading icon on a menu item; sized to the 13px item text, never shrinking as labels get long. */
+.dropdown-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  opacity: 0.75;
+}
+
+.dropdown-menu li > a:hover .dropdown-icon,
+.dropdown-menu li > a:focus .dropdown-icon,
+.dropdown-menu li > a.is-active .dropdown-icon {
+  opacity: 1;
+}
+
+/* Rule setting Sign out apart from the destinations above it. */
+.dropdown-divider {
+  height: 1px;
+  margin: 6px 0;
+  background-color: var(--color-neutral-200);
 }
 
 .dropdown-menu li > a:hover,
@@ -1157,9 +1253,9 @@ kbd {
   box-shadow: inset 3px 0 0 var(--color-banana-600);
 }
 
-/* Non-interactive section labels grouping the Tools menu. */
+/* Non-interactive section labels grouping a menu's items. */
 .dropdown-section {
-  padding: 8px 16px 2px;
+  padding: 12px 16px 2px;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -1448,6 +1544,41 @@ kbd {
   .labelmap-beacon::after { animation: none; }
 }
 
+/* One-shot halo drawing the eye to a label marker on a panorama: Validate replays it on every new label (#4790),
+   the Label Detail Card plays it when the card opens (#4572). Both markers are small and easy to lose against a
+   busy streetscape.
+
+   The spread is a fraction of the marker's own diameter, which PanoMarker publishes as --marker-diameter, because
+   the same marker is drawn at very different sizes — 22px on desktop Validate but 52px on mobile, where a fixed
+   spread would leave the halo a thin fringe on the surface that can least afford one. That property is already in
+   ui-scaled pixels, so the halo needs no --ui-scale of its own.
+
+   The dark shadow carries the same spread as the white one but blurred, so it reads only as a soft edge just
+   outside the halo rather than as a second ring. Without it the halo disappears over concrete and sky, which is
+   most of what a marker sits on. */
+@keyframes label-marker-pulse {
+  from {
+    box-shadow: 0 0 0 0 rgb(255 255 255 / 90%), 0 0 var(--marker-pulse-blur) 0 rgb(0 0 0 / 50%);
+  }
+
+  to {
+    box-shadow:
+      0 0 0 var(--marker-pulse-spread) rgb(255 255 255 / 0%),
+      0 0 var(--marker-pulse-blur) var(--marker-pulse-spread) rgb(0 0 0 / 0%);
+  }
+}
+
+.label-marker-pulse {
+  --marker-pulse-spread: calc(var(--marker-diameter, 22px) * 0.8);
+  --marker-pulse-blur: calc(var(--marker-diameter, 22px) * 0.18);
+
+  animation: label-marker-pulse 1.4s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .label-marker-pulse { animation: none; }
+}
+
 /* Chat-bubble tail tying the /labelMap popup dialog to the spotlighted label's beacon: a full-viewport fixed
    SVG whose one polygon the page script repositions on every map/dialog change. Sits below the dialog's top
    layer (so the light backdrop dims it slightly) but above the map and its controls. */
@@ -1472,21 +1603,10 @@ kbd {
 /*
 * Responsive navigation.
 *
-* As the window narrows, the lowest-priority items are shed from the inline bar (How to Label first, then API;
-* both stay reachable in the footer) before the whole nav collapses into the hamburger menu. Breakpoints below are a
-* first pass tuned for English label widths and are meant to be adjusted by eye.
+* Shedding lower-priority items as the window narrows is measured at runtime in Navbar.js rather than pinned to
+* breakpoints here, because the widths that matter depend on the active language's label lengths and on the
+* signed-in username. Only the collapse-to-hamburger step below is a fixed breakpoint.
 */
-@media only screen and (width >= 861px) and (width <= 1100px) {
-  .nav-shed-1 {
-    display: none;
-  }
-}
-
-@media only screen and (width >= 861px) and (width <= 1000px) {
-  .nav-shed-2 {
-    display: none;
-  }
-}
 
 /*
 * Hamburger menu: at the narrowest widths the whole nav collapses into a single stacked menu opened by the
@@ -1571,6 +1691,26 @@ kbd {
     width: 100%;
     display: flex;
     justify-content: flex-start;
+
+    /* One padding and one gap for every row — including the city/language pills, which carry different values in the
+       inline bar — so the icons form a single column and the labels start on a single edge. */
+    padding: 6px 16px;
+    gap: 10px;
+
+    /* This vertical menu grows downward, so drop the bar's nowrap: a long translated label should wrap onto a second
+       line rather than be clipped by the panel's overflow: hidden. */
+    white-space: normal;
+  }
+
+  /* Carries its own padding in the inline bar, at a higher specificity than the rule above. */
+  .navbar-nav > li > .navbar-button#language-button {
+    padding: 6px 16px;
+  }
+
+  /* Destination icons are the stacked menu's reason for existing: with them the panel reads as one icon column
+     top to bottom, matching the selector pills that show theirs at every width. */
+  .navbar-lnk-icon {
+    display: block;
   }
 
   .navbar-nav--primary::before {
@@ -1692,4 +1832,66 @@ kbd {
   font: var(--text-caption-medium);
   text-align: center;
   white-space: nowrap;
+}
+
+/* ---------- Shared tooltip (psTooltip.js) ---------- */
+
+/* The single fixed-position card that psTooltip.js shows for the active [data-ps-tooltip] trigger. Parked off-screen
+   until positioned; pointer-events stays off so the card never steals the hover that opened it. Sits above the navbar
+   and Bootstrap modals (~1050) since a tooltip is always the most transient thing on screen.
+
+   Dark fill, not a white card: a tooltip is a transient aside over whatever it explains, and the panels it opens over
+   (the label card, the context menu, the pano overlays) are themselves white cards — a fourth white surface stacked on
+   those reads as another panel rather than as a passing note. Specifically asphalt-500, the same surface the dark
+   toast uses (common/toast.css), because these two are the same idea at two sizes: a note laid over the tool rather
+   than a piece of it. It also keeps the tooltip clear of the asphalt-400 pano-overlay buttons it most often opens
+   above, which a neutral dark gray sat too close to. 13.9:1 white-on-asphalt-500, comfortably past AAA. */
+.ps-tooltip {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  max-width: calc(280px * var(--ui-scale, 1));
+  padding: calc(5px * var(--ui-scale, 1)) calc(9px * var(--ui-scale, 1));
+  background: var(--color-asphalt-500);
+  border-radius: calc(6px * var(--ui-scale, 1));
+  box-shadow: 0 2px 8px rgb(0 0 0 / 20%);
+  font: var(--text-caption-regular);
+
+  /* Tighter than the token's 18px leading, which is set for running body copy: a tooltip is a line or two of aside,
+     and at that length the token's spacing opens the card up more than the text inside it warrants. */
+  line-height: calc(15px * var(--ui-scale, 1));
+  color: var(--color-neutral-white);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s ease;
+  z-index: calc(var(--navbar-z-index) + 70);
+}
+
+/* Tail aimed at the trigger. Its x comes from the JS rather than a flat 50%, because the card is clamped to the
+   viewport and so does not stay centered on its trigger near a screen edge. One clip-path triangle here, not the
+   label panel's two stacked layers (css/common/label-anchored-panel.css): the fill is solid and borderless, so there
+   is no hairline to carry along the slanted edges and nothing to seam. */
+.ps-tooltip::after {
+  content: "";
+  position: absolute;
+  left: var(--ps-tooltip-tail-left, 50%);
+  top: 100%;
+  width: calc(12px * var(--ui-scale, 1));
+  height: calc(6px * var(--ui-scale, 1));
+  margin-left: calc(-6px * var(--ui-scale, 1));
+  background: var(--color-asphalt-500);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+
+/* Flipped: there was no room above, so the card sits below the trigger and the tail moves to its top edge. */
+.ps-tooltip--flipped::after {
+  top: auto;
+  bottom: 100%;
+  clip-path: polygon(0 100%, 100% 100%, 50% 0);
+}
+
+.ps-tooltip--visible {
+  opacity: 1;
+  visibility: visible;
 }

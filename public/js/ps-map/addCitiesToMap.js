@@ -234,7 +234,9 @@ function addCitiesToMap(map, citiesData, params) {
     citiesData.features.forEach((city) => {
       bounds.extend(city.geometry.coordinates);
     });
-    map.fitBounds(bounds, { padding: 50 });
+    // A map that isn't the reason the page was opened shouldn't perform on arrival: pages that build this one
+    // mid-scroll ask for the world view outright rather than flying out to it from the city's own center.
+    map.fitBounds(bounds, { padding: 50, animate: params.animateCityFit !== false });
   }
 
   /**

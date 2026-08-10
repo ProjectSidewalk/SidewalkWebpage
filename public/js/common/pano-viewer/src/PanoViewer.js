@@ -27,6 +27,13 @@ class PanoViewer {
   povChangedListeners = [];
 
   /**
+   * Which initial seed successfully placed the viewer: 'pano' when startPanoId loaded, 'latLng' when a
+   * startLatLng/backupLatLngs candidate did. Undefined until _moveToInitialLocation() succeeds.
+   * @type {('pano'|'latLng'|undefined)}
+   */
+  initialSeed;
+
+  /**
    * Private constructor to prevent direct instantiation.
    */
   constructor() {
@@ -75,24 +82,35 @@ class PanoViewer {
   }
 
   /**
-   * Moves to the first initial location with usable imagery: startPanoId if given, otherwise startLatLng followed
-   * by each point in backupLatLngs. Called from subclasses' initialize() implementations.
+   * Moves to the first initial location with usable imagery: startPanoId if given, falling back to startLatLng
+   * followed by each point in backupLatLngs. Called from subclasses' initialize() implementations.
    * @param {object} panoOptions Object containing initialization options
-   * @param {string} [panoOptions.startPanoId] Pano to start at; used over the lat/lngs
+   * @param {string} [panoOptions.startPanoId] Pano to start at; tried before the lat/lngs
    * @param {{lat: number, lng: number}} [panoOptions.startLatLng] Preferred starting location
    * @param {Array<{lat: number, lng: number}>} [panoOptions.backupLatLngs=[]] Fallback locations, tried in order
-   * @returns {Promise<void>} Rejects with the last setLocation() error if every location fails
+   * @returns {Promise<void>} Rejects only when every given seed fails: with the last setLocation() error when
+   *     locations were given, otherwise with the setPano() error
    * @protected
    */
   async _moveToInitialLocation(panoOptions) {
     if (panoOptions.startPanoId) {
-      await this.setPano(panoOptions.startPanoId);
-    } else if (panoOptions.startLatLng) {
+      try {
+        await this.setPano(panoOptions.startPanoId);
+        this.initialSeed = 'pano';
+        return;
+      } catch (err) {
+        // A dead pano says nothing about the street (#4635), so fall through to the lat/lngs when we have them.
+        if (!panoOptions.startLatLng) throw err;
+      }
+    }
+    if (panoOptions.startLatLng) {
       const candidates = [panoOptions.startLatLng, ...(panoOptions.backupLatLngs ?? [])];
       let lastError;
       for (const latLng of candidates) {
         try {
-          return await this.setLocation(latLng);
+          await this.setLocation(latLng);
+          this.initialSeed = 'latLng';
+          return;
         } catch (err) {
           lastError = err;
         }

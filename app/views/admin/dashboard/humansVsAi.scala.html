@@ -76,5 +76,5 @@
 
 @common.main(commonData, "Sidewalk - Humans vs AI") {
   @common.navbar(commonData, Some(user))
-  @admin.dashboard.adminLayout("humans-vs-ai", user.role == "Owner")(content)
+  @admin.dashboard.adminLayout("humans-vs-ai", commonData, user.role == "Owner")(content)
 }

@@ -20,6 +20,201 @@ util.exploreDisplayScale = function () {
   return layer ? layer.getBoundingClientRect().width / util.EXPLORE_CANVAS_WIDTH : 1;
 };
 
+// Radius of a placed label's icon at --ui-scale = 1, in the 720x480 logical frame. Every piece of icon geometry in
+// Label.js — the drawn size, the two outline rings, the unrated-severity badge — is authored against this value and
+// scales off it, so a capped radius keeps the mark's proportions.
+util.LABEL_ICON_BASE_RADIUS = 17;
+
+// Largest a pano label marker may get on screen, in CSS px, in either tool. The number is Label.CURSOR_ICON_SIZE,
+// the labeling cursor the user aims with in Explore: that cursor is a fixed-size bitmap and does not scale, so
+// letting the placed icon outgrow it means aiming with one size and placing another. Validate has no cursor to
+// match, but a marker that keeps growing hides more of the very feature being judged, and sharing the ceiling is
+// what keeps the two tools' markers the same size at the top of the scale range.
+util.LABEL_ICON_MAX_SCREEN_DIAMETER = 38;
+
+// Smallest a label's pointer target may get on screen, in CSS px. WCAG 2.5.8 Target Size (Minimum), level AA.
+// Validate's marker floors itself in CSS instead (--label-min-target in css/validate/svv-panorama.css), because
+// only the target grows there and not the mark; keep the two numbers in step.
+util.LABEL_MIN_SCREEN_TARGET = 24;
+
+/**
+ * On-screen diameter of a pano label marker, in CSS px, capped at util.LABEL_ICON_MAX_SCREEN_DIAMETER (#4838).
+ *
+ * For markers that are DOM elements sized directly in screen px — Validate's PanoMarker. Explore's marker is drawn
+ * into a scaled logical frame instead and caps itself through util.labelIconRadius; both land on the same ceiling.
+ *
+ * @param {number} baseDiameter - The marker's diameter at --ui-scale = 1, in CSS px.
+ * @param {number} scale - The tool's UI scale.
+ * @returns {number} Diameter in CSS px.
+ */
+util.cappedMarkerDiameter = function (baseDiameter, scale) {
+  // The cap limits growth driven by --ui-scale; it never shrinks a marker below the size its tool chose. That is
+  // what keeps mobile Validate out of it — a phone's marker is a 52px touch target and never runs applyToolScale,
+  // so capping it to 38 would shrink a touch target to answer a desktop problem.
+  return Math.min(baseDiameter * scale, Math.max(baseDiameter, util.LABEL_ICON_MAX_SCREEN_DIAMETER));
+};
+
+/**
+ * Half-extent of the icon actually drawn for a label of the given radius, in the same logical frame.
+ *
+ * Label.renderLabelIcon draws the icon at 2 * radius - 3, inset from the radius, so the mark the user sees is
+ * smaller than its nominal radius and is not proportional to it. Everything sized against the icon — the click
+ * target, the outline rings, the unrated-severity badge — measures from here rather than from the radius.
+ *
+ * @param {number} radius - Icon radius in logical px.
+ * @returns {number} Half the drawn icon's width, in logical px.
+ */
+util.labelIconHalfExtent = function (radius) {
+  return radius - 1.5;
+};
+
+/**
+ * Scale factor for icon geometry authored against util.LABEL_ICON_BASE_RADIUS, so that a decoration keeps its exact
+ * relationship to the icon's edge however the icon is sized (#4838). 1 at the base radius, smaller once capped.
+ *
+ * @param {number} radius - Icon radius in logical px.
+ * @returns {number} Multiplier for offsets, sizes, and stroke widths authored at the base radius.
+ */
+util.labelIconScale = function (radius) {
+  return util.labelIconHalfExtent(radius) / util.labelIconHalfExtent(util.LABEL_ICON_BASE_RADIUS);
+};
+
+/**
+ * Radius of a placed label's icon, in Explore's fixed 720x480 logical frame (#4838).
+ *
+ * The logical frame is displayed at var(--ui-scale) (0.65x-1.8x, see util.applyToolScale), so a constant radius
+ * grows with the tool — 20 to 56 on-screen px across that range. The *drawn* size is therefore capped in screen px
+ * instead: below ~1.23x scale this returns the unchanged base radius, and above it the icon holds still while the
+ * rest of the tool keeps growing.
+ *
+ * Callers should re-read this whenever --ui-scale changes; Explore caches it in svl.LABEL_ICON_RADIUS, which its
+ * scale-applying path refreshes.
+ *
+ * @param {number} [scale] - The tool's UI scale. Read from the page when omitted.
+ * @returns {number} Radius in logical px.
+ */
+util.labelIconRadius = function (scale) {
+  const uiScale = scale ?? util.uiScale();
+  // Cap the drawn diameter, not the radius: the icon is drawn inset from its radius (see labelIconHalfExtent), and
+  // it is the drawn size the on-screen limit is about.
+  const baseDiameter = 2 * util.labelIconHalfExtent(util.LABEL_ICON_BASE_RADIUS);
+  const diameter = Math.min(baseDiameter, util.LABEL_ICON_MAX_SCREEN_DIAMETER / uiScale);
+  return diameter / 2 + 1.5;
+};
+
+/**
+ * Half-width of a placed label's square click target, in Explore's fixed 720x480 logical frame (#4838).
+ *
+ * Deliberately not derived from the icon radius the way Label.isOn used to derive it (radius / 2 + 2): that made
+ * the target *smaller* than the icon it belongs to — 21 logical px under a 31 px icon — and capping the radius
+ * above would have shrunk it further. The target is the visible icon instead, floored so it stays usable once the
+ * tool scales down.
+ *
+ * The target is a square and the icon is round, so its corners do reach a little past the icon; that slack is what
+ * lets a near miss on a lone icon still land. Where it makes two neighbouring targets overlap, Canvas.onLabel
+ * resolves the tie in favour of the icon drawn on top.
+ *
+ * @param {number} [scale] - The tool's UI scale. Read from the page when omitted.
+ * @returns {number} Half-width in logical px.
+ */
+util.labelHitMargin = function (scale) {
+  const uiScale = scale ?? util.uiScale();
+  // Half the drawn icon, so every point of the icon is inside the target.
+  const halfIcon = util.labelIconHalfExtent(util.labelIconRadius(uiScale));
+  return Math.max(halfIcon, util.LABEL_MIN_SCREEN_TARGET / 2 / uiScale);
+};
+
+/**
+ * Sizes an Explore-tool canvas bitmap to its on-screen size times the device pixel ratio, and scales the 2D
+ * context so all drawing done in the fixed 720x480 logical frame renders at full resolution.
+ *
+ * Shared by the label canvas and the onboarding canvas so the two can't drift: both draw in the logical frame and
+ * are displayed at pano size, and a canvas left at its authored 720x480 bitmap gets CSS-stretched into visible
+ * pixelation on HiDPI displays (#4817).
+ *
+ * @param {HTMLCanvasElement} el - The canvas element to size.
+ * @param {CanvasRenderingContext2D} ctx - That canvas's 2D context.
+ */
+util.sizeCanvasToDisplay = function (el, ctx) {
+  const rect = el.getBoundingClientRect();
+  const displayWidth = rect.width || util.EXPLORE_CANVAS_WIDTH;
+  const dpr = window.devicePixelRatio || 1;
+  el.width = Math.round(displayWidth * dpr);
+  el.height = Math.round(displayWidth / util.EXPLORE_CANVAS_ASPECT_RATIO * dpr);
+  // Map the 720x480 logical frame onto the full-resolution bitmap. Setting el.width/height above resets the
+  // context, so this transform must be (re)applied here.
+  const scale = el.width / util.EXPLORE_CANVAS_WIDTH;
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  // Label icons are drawn from a raster sized for the densest display we support (see Label.preloadIcons), so on
+  // anything less dense they arrive downscaled; the default 'low' filter frays their outer circle.
+  ctx.imageSmoothingQuality = 'high';
+};
+
+/**
+ * Positions a panel beside a label's icon in a pano and points its tail at that icon.
+ *
+ * Explore's hover card and its context menu are two states of one panel — read-only, then editable — so they share
+ * this routine and land on the same anchor: beside the icon on whichever side has room, vertically centered on it,
+ * and nudged to stay inside the tool. Clicking a label then expands the card into the menu roughly in place instead
+ * of moving it somewhere else. Validate's label card is the same panel again, over a different pano frame (#4726).
+ * Panels styled with .label-anchored-panel read the values this sets.
+ *
+ * Coordinates are given in a logical frame that `scale` converts to on-screen pixels, so a caller whose marker is
+ * already positioned in on-screen pixels divides by the same `scale` before calling. Both tools' panos are 720x480
+ * at --ui-scale = 1, so the default `frameHeight` suits either.
+ *
+ * @param {jQuery} panel - The panel to position. Must be .label-anchored-panel and a child of `opts.originEl`.
+ * @param {{x: number, y: number}} labelCanvasXY - The label icon's center in the logical canvas frame.
+ * @param {number} iconRadius - The label icon's radius, in that same logical frame.
+ * @param {object} [opts] - Frame overrides. Omit them entirely for Explore, whose frame is the default.
+ * @param {number} [opts.scale] - Logical-to-screen ratio, also applied to the gap/edge constants below.
+ * @param {HTMLElement} [opts.originEl] - The panel's offset parent, whose left edge is its coordinate origin.
+ * @param {HTMLElement} [opts.boundsEl] - Supplies the horizontal bounds the panel is kept inside.
+ * @param {number} [opts.frameHeight] - Vertical bound, in on-screen pixels, measured from `originEl`'s top.
+ */
+util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius, opts = {}) {
+  const scale = opts.scale ?? util.exploreDisplayScale();
+
+  // All three scale with the tool, like the panel's own dimensions: the tail is 8px * --ui-scale wide, so an
+  // unscaled GAP would be narrower than the tail once the tool scales past 1.5x and the tail would overlap the icon.
+  const GAP = 12 * scale;  // Between the icon and the panel.
+  const EDGE = 4 * scale;  // Smallest gap left between the panel and the bounds below.
+  const TAIL_MARGIN = 18 * scale; // Keeps the tail's base clear of the panel's rounded corners.
+  const centerX = labelCanvasXY.x * scale;
+  const centerY = labelCanvasXY.y * scale;
+  const radius = iconRadius * scale;
+  const width = panel.outerWidth();
+  const height = panel.outerHeight();
+  const panoHeight = opts.frameHeight ?? util.EXPLORE_CANVAS_HEIGHT * scale;
+
+  // In Explore the panel is bounded horizontally by the whole tool, not the pano: the pano's right edge is not a
+  // wall, and a panel is welcome to float over the sidebar beside it. That matters because the context menu is over
+  // half the pano's width, so confining it to the pano would leave a label in the middle no room on either side.
+  // Validate passes its pano as both elements instead — the validation menu beside it is the thing being answered,
+  // so a card must not cover it. Vertically the pano IS the bound in both: something sits above and below it.
+  // Bounds are in the panel's own coordinate space, whose origin is originEl's top-left (its offset parent).
+  const originEl = opts.originEl ?? document.getElementById('street-view-holder');
+  const boundsEl = opts.boundsEl ?? document.getElementById('svl-application-holder');
+  const panoLeft = originEl?.getBoundingClientRect().left ?? 0;
+  const appRect = boundsEl?.getBoundingClientRect();
+  const minLeft = (appRect ? appRect.left - panoLeft : 0) + EDGE;
+  const rightBound = (appRect ? appRect.right - panoLeft : util.EXPLORE_CANVAS_WIDTH * scale) - EDGE;
+
+  // A panel bigger than the space left for it still has to go somewhere: these maxima collapse to the near edge
+  // rather than going past it, so it overhangs the far edge instead of being pushed off the near one.
+  const maxLeft = Math.max(minLeft, rightBound - width);
+  const maxTop = Math.max(EDGE, panoHeight - height - EDGE);
+
+  const flipped = centerX + radius + GAP + width > rightBound;
+  const left = flipped ? centerX - radius - GAP - width : centerX + radius + GAP;
+  const top = Math.min(Math.max(centerY - height / 2, EDGE), maxTop);
+  const tailTop = Math.min(Math.max(centerY - top, TAIL_MARGIN), height - TAIL_MARGIN);
+
+  panel.toggleClass('label-anchored-panel--flipped', flipped);
+  panel[0].style.setProperty('--panel-tail-top', `${tailTop}px`);
+  panel.css({ left: Math.min(Math.max(left, minLeft), maxLeft), top });
+};
+
 /**
  * Uniformly scales a whole tool (Explore, Validate) to fit the available viewport, like browser zoom.
  *
@@ -155,6 +350,82 @@ function getImage(imageUrl) {
 }
 
 util.getImage = getImage;
+
+/** The anonymous-session mint currently in flight, if any, so simultaneous first writes share one. */
+let anonSessionMint = null;
+
+/**
+ * Mints the shared anonymous session, joining a mint already in flight instead of starting a second one.
+ *
+ * Two quick clicks on the landing validation grid both reach the server unauthenticated and both come back needing a
+ * session; minting twice would create two accounts, let the second cookie win, and file the two votes under different
+ * users with one account orphaned. Collapsing concurrent callers onto one request avoids that. The handle is released
+ * once the request settles, so a session that expires later can still be re-minted.
+ *
+ * @returns {Promise<Response>} The mint response; `redirect: 'manual'` keeps it cheap, storing the Set-Cookie on the
+ *   redirect without fetching the page it points at.
+ */
+function mintAnonSession() {
+  if (!anonSessionMint) {
+    anonSessionMint = fetch('/anonSignUp?url=%2F', { redirect: 'manual' }).finally(() => {
+      anonSessionMint = null;
+    });
+  }
+  return anonSessionMint;
+}
+
+/**
+ * Fetches a session-requiring write (POST/PUT), lazily minting the shared anonymous session when it's missing.
+ *
+ * Public pages render with no session at all (#4643), so a first-time visitor's very first interaction — a validation
+ * vote, a comment, a story, a guest route save — reaches the server with no identity. When that comes back
+ * auth-shaped, mint the anonymous session via GET /anonSignUp (idempotent: it just redirects when a session already
+ * exists) and retry the original request ONCE with the same options, so the submission survives rather than being
+ * dropped on the way through the bounce (#4442). Every later interaction has a session, so the extra round-trip
+ * never happens.
+ *
+ * Auth-shaped means 401/403, an opaque redirect, or a followed redirect — the ways a SecuredAction answers a
+ * session-less write. Anything else (400 validation, 409 duplicate, 429 rate limit, 500) surfaces unchanged: a
+ * rejected submission must never be silently re-posted. If the mint is itself refused (429 from the anon-signup
+ * budget), the retry comes back auth-shaped again and that response is returned, so the caller's normal error path
+ * shows.
+ *
+ * @param {string} url - The endpoint to fetch.
+ * @param {object} options - The fetch options (method, headers, body, ...). The same object is reused verbatim for
+ *   the retry, so the body has to be re-readable: a string, FormData, or Blob — never a ReadableStream.
+ * @returns {Promise<Response>} The first non-auth-failure response, or the retry's response (which may not be OK).
+ */
+async function lazyIdentityFetch(url, options) {
+  const attempt = () => fetch(url, options);
+  const authShaped = (res) =>
+    !res.ok && (res.status === 401 || res.status === 403 || res.type === 'opaqueredirect' || res.redirected);
+  let res = await attempt();
+  if (authShaped(res)) {
+    await mintAnonSession();
+    res = await attempt();
+  }
+  return res;
+}
+
+util.lazyIdentityFetch = lazyIdentityFetch;
+
+/**
+ * Whether the server rendered this page for a visitor who has an identity — signed in or on an anonymous account.
+ *
+ * This is exactly what a SecuredAction endpoint answers 200 vs 401 on, so an init-time read of one should consult
+ * this and skip the request rather than handle the failure: a 401 is logged as a console error by the browser
+ * itself, no matter how gracefully the caller catches it. Writes don't need this — they should go through
+ * util.lazyIdentityFetch, which mints the session on demand.
+ *
+ * @returns {?boolean} What the navbar's data-has-session says, or null on the few pages rendered without a navbar.
+ */
+function hasSession() {
+  const navbar = document.getElementById('header');
+  if (!navbar || navbar.dataset.hasSession === undefined) return null;
+  return navbar.dataset.hasSession === 'true';
+}
+
+util.hasSession = hasSession;
 
 // Sums an array's numbers (a helper, not an Array.prototype extension, to avoid polluting native prototypes).
 util.array = util.array || {};

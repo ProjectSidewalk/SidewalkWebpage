@@ -18,7 +18,7 @@ case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, prio
 class StreetEdgePriorityTableDef(tag: slick.lifted.Tag) extends Table[StreetEdgePriority](tag, "street_edge_priority") {
   def streetEdgePriorityId: Rep[Int] = column[Int]("street_edge_priority_id", O.PrimaryKey, O.AutoInc)
   def streetEdgeId: Rep[Int]         = column[Int]("street_edge_id")
-  def priority: Rep[Double]          = column[Double]("priority")
+  def priority: Rep[Double]          = column[Double]("priority", O.Default(0.0))
 
   def * =
     (streetEdgePriorityId, streetEdgeId, priority) <> ((StreetEdgePriority.apply _).tupled, StreetEdgePriority.unapply)
@@ -55,7 +55,7 @@ class StreetEdgePriorityTable @Inject() (
       se  <- streetEdgeTable.streets
       sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
       if sep.priority < 1.0d
-    } yield se.geom.transform(26918).lengthD
+    } yield se.geom.lengthGeodesic
 
     // Sum the lengths and convert from meters to miles.
     edgeLengths.sum.result.map(x => x.getOrElse(0.0d))

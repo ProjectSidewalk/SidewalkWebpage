@@ -2,7 +2,7 @@
  * Renders the admin Label Map page (#4272): an interactive per-label point map for spatially exploring labels.
  *
  * This is the redesign's home for the legacy admin "Map" tab. It reuses the shared PSMap component (createPSMap) and
- * the common map-sidebar filter (MapSidebarFilter), loading every label from /adminapi/labels/all as colored points,
+ * the common filter-sidebar filter (MapSidebarFilter), loading every label from /adminapi/labels/all as colored points,
  * and wires the label-detail popup so clicking a point opens its full detail. A label-ID search box jumps straight to
  * any label's popup (and exposes /admin/label/:id as a fallback link). All map/filter/popup behavior is identical to
  * the legacy map — only the surrounding page is the new dashboard shell.
@@ -12,6 +12,7 @@ class LabelMapPage {
   #popup = null;
   #map = null;
   #mapData = null;
+  #overlay = null;
 
   /**
    * @param {{mapboxToken: string, viewerType: Function, accessToken: string, username: string}} opts
@@ -23,10 +24,16 @@ class LabelMapPage {
   async init() {
     this.#wireSearch(); // Wire the ID search immediately; it stays usable even if the map/popup are slow.
 
+    // Same overlay /labelMap uses: this map loads every label on the deployment, so it has the same multi-second
+    // wait and the same need to say so when the feed fails.
+    this.#overlay = new MapLoadingOverlay();
+
     // Build the label-detail popup first so the map can hand clicks to it. If it fails (e.g. pano libs missing),
     // the map still renders and the search box falls back to opening /admin/label/:id as a page.
     try {
-      this.#popup = await LabelPopup(true, this.#opts.viewerType, this.#opts.accessToken, this.#opts.username);
+      this.#popup = await LabelPopup(true, this.#opts.viewerType, this.#opts.accessToken, this.#opts.username, {
+        showExploreHereLink: true,
+      });
     } catch (err) {
       console.error('Label Map: label popup failed to initialize; clicks/search will navigate instead.', err);
     }
@@ -39,7 +46,7 @@ class LabelMapPage {
       mapboxApiKey: this.#opts.mapboxToken,
       mapboxLogoLocation: 'bottom-right',
       neighborhoodsURL: '/neighborhoods',
-      completionRatesURL: '/adminapi/neighborhoodCompletionRate',
+      completionRatesURL: '/neighborhoods/completionRate',
       streetsURL: '/contribution/streets/all?filterLowQuality=true',
       labelsURL: '/adminapi/labels/all',
       neighborhoodFillMode: 'singleColor',
@@ -53,6 +60,9 @@ class LabelMapPage {
       popupLabelViewer: this.#popup,
       logClicks: false,
       highQualityFilter: true,
+      // Reveal the overlay as soon as the map is ready, so the wait is attributed to the label layer rather
+      // than looking like a dead page.
+      onMapReady: () => this.#overlay.show(),
     };
 
     try {
@@ -60,12 +70,10 @@ class LabelMapPage {
       this.#map = result[0];
       this.#mapData = result[4];
       new MapSidebarFilter(this.#map, this.#mapData, { highQualityFilter: true });
+      this.#overlay.hide();
     } catch (err) {
       console.error('Label Map: map failed to load.', err);
-      const holder = document.getElementById('admin-labelmap-choropleth');
-      if (holder) {
-        holder.innerHTML = '<p class="dq-empty" style="padding:24px">Could not load the map. Please try again.</p>';
-      }
+      this.#overlay.showError();
     }
   }
 

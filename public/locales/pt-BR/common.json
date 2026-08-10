@@ -2,10 +2,11 @@
   "measurement-system": "metric",
   "mapbox-language-code": "pt",
   "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Clique aqui</a> para explorar esta rua!",
-  "admin-clear-play-cache": "Cache de reprodução limpo com sucesso",
   "unit-distance-abbreviation": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
+  "speed-limit-tooltip": "Conhecer o <b>limite de velocidade</b> de uma rua pode ajudar a avaliar melhor a segurança dos pedestres, por exemplo, se é <b>seguro</b> atravessar em um cruzamento sem sinalização.",
+  "speed-limit-aria-label": "Limite de velocidade {{speed}} {{units}}",
   "format-number": "{{val, number}}",
   "cities-cta-join_one": "Junte-se a mais {{count, number}} comunidade",
   "cities-cta-join_other": "Junte-se a mais {{count, number}} comunidades",
@@ -27,6 +28,10 @@
   "problem": "Problema",
   "surface-problems": "Problemas de Superfície",
   "close": "Fechar",
+  "cancel": "Cancelar",
+  "continue": "Continuar",
+  "delete": "Excluir",
+  "done": "Concluído",
   "badges": {
     "congratulations": "Parabéns!",
     "you-earned": "Você ganhou a insígnia “{{badge}}”!",
@@ -81,6 +86,7 @@
   "no-description": "Sem descrição",
   "comments": "Comentários do Validador",
   "none": "Nenhum",
+  "only": "Somente",
   "image-capture-date": "Data de Captura da Imagem",
   "drag-to-look-around": "Arraste para olhar ao redor",
   "labeled": "Rotulado",
@@ -92,7 +98,6 @@
   "bad": "Má",
   "yes": "Sim",
   "no": "Não",
-  "ai-disclaimer": "A IA analisou este rótulo e votou \"$t({{aiVal}})\"; no entanto, a IA pode cometer erros. Por favor, faça sua própria avaliação.",
   "ai-generated-label-tooltip": "Este rótulo foi gerado por IA. A IA pode cometer erros, então por favor faça sua própria avaliação.",
   "tag": {
     "narrow": "estreito",
@@ -319,10 +324,13 @@
     "button": "Compartilhar",
     "heading": "Compartilhar este rótulo",
     "text": "Veja este(a) {{labelType}} no Project Sidewalk",
+    "story-text": "“{{excerpt}}” — uma história da comunidade no Project Sidewalk",
     "copy-link": "Copiar link",
     "copied": "Copiado!",
+    "on-bluesky": "Compartilhar no Bluesky",
     "on-x": "Compartilhar no X",
     "on-facebook": "Compartilhar no Facebook",
+    "on-linkedin": "Compartilhar no LinkedIn",
     "via-email": "Compartilhar por e-mail"
   }
 }

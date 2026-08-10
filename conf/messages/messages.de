@@ -50,6 +50,7 @@ test.server.warning.message = <strong>Sie befinden sich auf einem Testserver.</s
 test.server.warning.label = Hinweis zum Testserver
 test.server.warning.close = Hinweis schließen
 dont.show.again = Nicht erneut anzeigen.
+explore.alert.close = Schließen
 
 press.key = Drücken Sie die Taste "{0}"
 press.keys = Drücken Sie die Tasten "{0}"
@@ -76,15 +77,20 @@ navbar.explore = Erkunden
 navbar.validate = Valideren
 navbar.howto = Beschriftungsanleitung
 navbar.api = API
+navbar.about = Über uns
 navbar.tools = Werkzeug
 navbar.labelmap = Beschriftungskarte
 navbar.help = Hilfe
 navbar.leaderboard = Bestenliste
+navbar.stories = Erfahrungsberichte
+navbar.routes = Routen
 navbar.your.city.here = Ihre Stadt hier
 navbar.retake.tutorial = Tutorial wiederholen
 navbar.signin = Anmelden
 navbar.signout = Abmelden
 navbar.dashboard = Ihr Dashboard
+navbar.your.stories = Ihre Erfahrungsberichte
+navbar.your.routes = Ihre Routen
 navbar.admin = Admin
 navbar.expert.validate = Expertenvalidierung
 navbar.city = Stadt
@@ -98,9 +104,127 @@ navbar.tools.analyze = Analysieren
 navbar.tools.community = Community
 navbar.tools.build = Erstellen
 navbar.tools.admin = Verwaltung
+navbar.user.account = Konto
 navbar.city.search = Städte suchen…
 navbar.city.viewall = Alle Städte auf der Karte anzeigen
 navbar.city.none = Keine passenden Städte
+
+# SEO (#4237): <title>-Werte und Meta-Beschreibungen pro Seite. {0} ist ggf. der Stadtname.
+seo.title.landing = Project Sidewalk — {0}
+seo.title.explore = {0} erkunden — Project Sidewalk
+seo.title.validate = Validieren — Project Sidewalk
+seo.title.expert.validate = Expertenvalidierung — Project Sidewalk
+seo.title.gallery = Trottoir-Galerie — Project Sidewalk
+seo.title.help = Hilfe — Project Sidewalk
+seo.title.labeling.guide = Anleitung zur Beschriftung — Project Sidewalk
+seo.title.terms = Nutzungsbedingungen — Project Sidewalk
+seo.title.label.map = Beschriftungskarte von {0} — Project Sidewalk
+seo.title.cities = Städte — Project Sidewalk
+seo.title.leaderboard = Bestenliste — Project Sidewalk
+seo.title.stories = Erfahrungsberichte der Community — Project Sidewalk
+seo.title.routes = Routen der Community — Project Sidewalk
+seo.title.route.builder = RouteBuilder — Project Sidewalk
+seo.title.dashboard = Ihr Dashboard — Project Sidewalk
+seo.title.settings = Einstellungen — Project Sidewalk
+seo.title.sign.in = Anmelden — Project Sidewalk
+seo.title.sign.up = Registrieren — Project Sidewalk
+seo.title.welcome = Willkommen — Project Sidewalk
+seo.title.forgot.password = Passwort wiederherstellen — Project Sidewalk
+seo.title.reset.password = Passwort zurücksetzen — Project Sidewalk
+seo.title.service.hours = Informationen zu Freiwilligen — Project Sidewalk
+seo.title.time.check = Zeitkontrolle — Project Sidewalk
+seo.title.about = Über uns — Project Sidewalk
+seo.description.default = Helfen Sie mit, die Trottoirs von {0} virtuell zu kartieren und zu bewerten. Offene Daten zu Trottoirabsenkungen, Hindernissen und Oberflächenproblemen für eine barrierefreiere Welt.
+seo.description.landing = Helfen Sie, Sicherheits- und Zugänglichkeitsprobleme auf den Trottoirs von {0} von Ihrem Laptop aus zu finden. Ihre Beschriftungen helfen Forschung, Städten und Gemeinschaften, ihre Trottoirs zu verbessern.
+seo.description.explore = Gehen Sie virtuell durch die Straßen von {0} und beschriften Sie Trottoirabsenkungen, fehlende Trottoirs, Hindernisse und Oberflächenprobleme.
+seo.description.validate = Überprüfen Sie Zugänglichkeits-Beschriftungen anderer in {0} und helfen Sie, die Datenqualität zu verbessern.
+seo.description.gallery = Durchstöbern Sie Straßenbilder von Zugänglichkeitsmerkmalen und Barrieren auf den Trottoirs von {0}.
+seo.description.label.map = Interaktive Karte aller Zugänglichkeits-Beschriftungen in {0}: Trottoirabsenkungen, Hindernisse, Oberflächenprobleme und mehr.
+seo.description.help = Lernen Sie, Project Sidewalk zu nutzen: Anleitungen zur Beschriftung, Tipps zur Genauigkeit und häufige Fragen.
+seo.description.cities = Project Sidewalk ist in Städten auf der ganzen Welt im Einsatz. Sehen Sie alle Städte oder bringen Sie Project Sidewalk in Ihre Stadt.
+seo.description.api = Freie und offene Daten zur Trottoir-Zugänglichkeit in {0}: Beschriftungen, Cluster, Straßen und Access Scores in JSON, CSV, GeoJSON, GeoPackage und Shapefile.
+seo.description.about = Lernen Sie Project Sidewalk kennen: unsere Mission, die Trottoirs der Welt zu kartieren, das Forschungsteam dahinter und die offenen Daten, die es liefert.
+seo.og.image.alt = Bildschirmfoto der virtuellen Straßenerkundung von Project Sidewalk mit Zugänglichkeits-Beschriftungen entlang eines Trottoirs.
+
+# Über-uns-Seite (#4237, neu gestaltet in #4631). Statischer Text wird serverseitig gerendert; Zahlen in
+# data-live-stat werden aus /v3/api/aggregateStats aktualisiert, Team, Publikationen und Förderungen aus der
+# Makeability-Lab-API (aboutPage.js).
+about.title = Über Project Sidewalk
+about.hero.title = Wir kartieren und bewerten <span class="about-hero-accent">jedes Trottoir</span> der Welt.
+about.hero.subtitle = Project Sidewalk ist ein akademisches Open-Source-Forschungsprojekt der University of Washington und der University of Illinois Chicago, das Crowdsourcing und KI kombiniert, um die Trottoirs von Städten zu kartieren und zu bewerten — und jeden Datenpunkt für Forschung, Behörden und Gemeinschaften öffnet.
+about.hero.cta.explore = Jetzt erkunden
+about.hero.cta.data = Zu den Daten
+about.stats.heading = Project Sidewalk in Zahlen
+about.stats.km = Erkundete Kilometer
+about.stats.labels = Beschriftungen
+about.stats.validations = Validierungen
+about.stats.cities = Städte
+about.stats.countries = Länder
+about.toc.title = Auf dieser Seite
+about.how.title = So funktioniert es
+about.how.intro = Unsere Mission ist es, alle Trottoirs der Welt mit Online-Crowdsourcing, künstlicher Intelligenz und Straßenbildern zu kartieren und zu bewerten. Alle mit einem Webbrowser können mithelfen — ganz ohne Spezialwerkzeuge.
+about.how.step.explore.title = Erkunden &amp; beschriften
+about.how.step.explore.body = Freiwillige gehen in einem spielartigen Web-Werkzeug virtuell durch Stadtstraßen und beschriften Trottoirabsenkungen, fehlende Trottoirs, Hindernisse und Oberflächenprobleme in Straßenbildern.
+about.how.step.validate.title = Validieren
+about.how.step.validate.body = Andere Mitwirkende prüfen die Beschriftungen — unterstützt durch KI — und stimmen zu oder widersprechen, damit der Datensatz genau und verlässlich bleibt.
+about.how.step.data.title = Offene Daten
+about.how.step.data.body = Jede Beschriftung fließt in einen offenen Datensatz, den Forschung, Behörden und Gemeinschaften nutzen, um die Zugänglichkeit von Trottoirs zu verstehen und zu verbessern.
+about.how.step.explore.cta = Jetzt erkunden
+about.how.step.validate.cta = Labels validieren
+about.how.step.data.cta = Zu den Daten
+about.impact.title = So wirkt Project Sidewalk
+about.impact.intro = Es geht nicht nur um Daten, sondern um Städte, die begehbarer, rollstuhlgerechter und sicherer für Fussgängerinnen und Fussgänger sind. Einige Beispiele, wie Gemeinschaften, Behörden und Schulen Project Sidewalk eingesetzt haben.
+about.impact.chicago.place = Chicago, Illinois
+about.impact.chicago.body = Stadtbezirke nutzten von Anwohnenden gesammelte Daten, um Mittel für Trottoir-Verbesserungen gerechter zu priorisieren, und unser Team beriet das Pedestrian Safety Committee der Stadt dabei, über rein beschwerdebasierte Reparaturen hinauszugehen.
+about.impact.illinois.place = Lincolnwood, Roselle &amp; Mendota, Illinois
+about.impact.illinois.body = Project-Sidewalk-Daten flossen in die ADA-Übergangspläne von Lincolnwood und Roselle ein, und in Mendota nutzten Partner vor Ort die Daten, um erfolgreich eine Safe-Routes-to-School-Förderung zu gewinnen.
+about.impact.burnaby.place = Burnaby, Kanada
+about.impact.burnaby.body = Die Stadt Burnaby integrierte Project-Sidewalk-Daten in die Priorisierung ihres New Sidewalks Program und ihrer kürzlich verabschiedeten Barrierefreiheitsstrategie.
+about.impact.newberg.place = Newberg, Oregon
+about.impact.newberg.body = Nachdem Anwohnende die örtlichen Trottoirs kartiert hatten, richtete der Stadtrat ein neues Sanierungsprogramm ein — mit 50.000 US-Dollar für sofortige Reparaturen und Zuschüssen für Hauseigentümer.
+about.impact.zurich.place = Zürich, Schweiz
+about.impact.zurich.body = Zürich veröffentlicht Project-Sidewalk-Daten im Open-Data-Portal der Stadt, und der Einsatz wurde mit einem Smart City Hub Switzerland Award in der Kategorie Citizen Science ausgezeichnet.
+about.impact.schools.place = Klassenzimmer in den USA
+about.impact.schools.body = Schülerinnen und Schüler lernen mit Project Sidewalk Datenkompetenz und zivilgesellschaftliches Engagement — von Girl Scouts in Oradell, New Jersey, die ihre Ergebnisse dem Stadtrat präsentierten, bis zu <a href="https://makeabilitylab.cs.washington.edu/news/mcdevitt-middle-school-earns-state-recognition-for-urban-accessibility-effort-with-project-sidewalk/">Jugendlichen in Waltham, Massachusetts, die landesweite Anerkennung erhielten</a>.
+about.impact.more = Mehr dazu? Unsere Schwesterseite <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a> teilt Neuigkeiten, Materialien und Anleitungen, um Project Sidewalk in Ihrer Gemeinde einzusetzen.
+about.where.title = Wo wir aktiv sind
+about.where.body = Von Seattle über Mexiko-Stadt bis Zürich: Freiwillige haben <span data-live-stat="num_cities">{0}</span> Städte in <span data-live-stat="num_countries">{1}</span> Ländern auf die Karte der Barrierefreiheit gebracht — Straße für Straße.
+about.where.links = <a href="/cities">Alle Standorte ansehen</a> oder <a href="https://accessiblecommunities.org/use-project-sidewalk/">Project Sidewalk in Ihre Stadt holen</a>.
+about.history.title = Unsere Geschichte
+about.history.2012 = Project Sidewalk beginnt als Forschungsprojekt von Professor Jon E. Froehlich und Doktorand Kotaro Hara im <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> — mit früher Unterstützung durch einen <a href="https://research.google/outreach/past-programs/faculty-research-awards/">Google Faculty Research Award</a> und die <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338">National Science Foundation</a>.
+about.history.2017 = Der erste stadtweite Einsatz startet in Washington, DC, geleitet von Doktorandin Manaswi Saha und Forschungswissenschaftler Mikey Saugstad, während das Labor an die Paul G. Allen School of Computer Science &amp; Engineering der University of Washington zieht.
+about.history.2019 = Die Pilotstudie in Washington, DC zeigt, dass sich mit Online-Crowdsourcing die Trottoirs einer ganzen Stadt kartieren lassen — und erhält auf der CHI 2019 den Best Paper Award.
+about.history.2021 = Eine <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087">NSF-Förderung (Smart &amp; Connected Communities)</a> vertieft unsere Zusammenarbeit mit der University of Illinois Chicago und Easterseals — mit mehr Städten, Bildungsprogrammen und unserer Schwesterseite <a href="https://accessiblecommunities.org/">accessiblecommunities.org</a>.
+about.history.today.label = Heute
+about.history.today = Project Sidewalk ist in <span data-live-stat="num_cities">{0}</span> Städten weltweit im Einsatz, nativ in {1} Sprachen übersetzt und getragen von Tausenden Freiwilligen.
+about.team.title = Das Team
+about.team.intro = Project Sidewalk ist universitäre Forschung unter der Leitung von Professor Jon E. Froehlich im <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> der University of Washington und Professor Yochai Eisenberg an der University of Illinois Chicago, mit Chefentwickler Mikey Saugstad — und Beiträgen von über hundert Studierenden und Mitwirkenden im Laufe der Jahre.
+about.team.current.title = Aktuelles Team
+about.team.past.title = Frühere Leitung
+about.team.past.kotarohara = Startete Project Sidewalk als Doktorand von Professor Froehlich und entwickelte die Crowdsourcing- und Computer-Vision-Methoden hinter dem Projekt — Thema seiner <a href="https://makeabilitylab.cs.washington.edu/media/publications/Hara_ScalableMethodsToCollectAndVisualizeSidewalkAccessibilityDataForPeopleWithMobilityImpairments_UMDCSPhDDissertation2016.pdf">Dissertation</a>.
+about.team.past.davidjacobs = Co-PI des ursprünglichen NSF-Grants und des ersten Google Faculty Research Award, mit denen Project Sidewalk begann, und begleitete die frühe Computer-Vision-Forschung.
+about.team.past.manaswisaha = Half, den ersten grossflächigen Einsatz in Washington, DC zu leiten, und entwarf Werkzeuge zum Verständnis städtischer Zugänglichkeitsdaten — Thema ihrer <a href="https://makeabilitylab.cs.washington.edu/media/publications/Saha_DesigningInteractiveDataDrivenToolsForUnderstandingUrbanAccessibilityAtScale_UWCSPhDDissertation2022.pdf">Dissertation</a>.
+about.team.contributors.title = Mitwirkende
+about.team.contributors.intro = Mehr als {0} Menschen haben Code, Designs und Ideen zu Project Sidewalk beigetragen, darunter {1} Lernende und Studierende von der Schule bis zur Promotion. Teil unserer Mission ist es, Informatik- und Design-Studierenden durch praxisnahes Lernen die Arbeit an gesellschaftlich relevanten Projekten zu ermöglichen.
+about.team.contributors = … dazu Partnerorganisationen und Tausende freiwillige Mapper weltweit — siehe die <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">Projektseite</a>.
+about.pubs.title = Verwandte Publikationen
+about.pubs.intro = Project-Sidewalk-Forschung erscheint auf führenden Fachtagungen für Mensch-Computer-Interaktion und Barrierefreiheit. Wenn Sie unsere Daten oder Werkzeuge in Ihrer Forschung verwenden, zitieren Sie bitte unser <a href="https://doi.org/10.1145/3290605.3300292">CHI-2019-Paper</a>.
+about.pubs.fallback = Alle <a href="https://makeabilitylab.cs.washington.edu/project/sidewalk/">Project-Sidewalk-Publikationen</a> finden Sie auf der Website des Makeability Lab.
+about.pubs.showAll = Alle {0} Publikationen anzeigen
+about.pubs.cite.title = Project Sidewalk zitieren
+about.pubs.cite.plain = Zitat
+about.pubs.cite.copy = Kopieren
+about.pubs.cite.copied = Kopiert
+about.data.title = Offene Daten und Open Source
+about.data.body = Alles, was wir sammeln, ist offen. Laden Sie Beschriftungen, Cluster, Straßen und Zugänglichkeits-Scores über unsere <a href="/api">öffentlichen APIs</a> herunter — in Formaten von CSV bis GeoJSON, alles unter CC0 veröffentlicht; Details und Hinweise zum Zitieren finden Sie in der <a href="/api">API-Dokumentation</a>. Auch unser <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">Code ist Open Source</a>.
+about.partners.title = Community-Partner
+about.partners.body = Wir arbeiten eng mit Behindertenverbänden, Behörden, Schulen und Gemeinschaftsgruppen weltweit zusammen — darunter Easterseals, World Enabled, Liga Peatonal und die Active Transportation Alliance — um Einsätze zu planen, Kartier-Aktionen durchzuführen und Daten in lokales Handeln zu verwandeln.
+about.partners.schools = Lehrkräfte bringen Project Sidewalk in den Gesellschafts- und Datenunterricht, und unser Team und unsere Partner haben Lehrmaterialien für Service Learning und berufliche Entwicklung für Jugendliche mit Behinderungen erprobt. <a href="https://accessiblecommunities.org/use-project-sidewalk/">Erfahren Sie, wie Sie Project Sidewalk in Ihrer Gemeinde einsetzen</a>.
+about.funding.title = Forschungsförderung
+about.funding.body = Project Sidewalk ist durch Fördermittel finanzierte akademische Forschung, unterstützt von der National Science Foundation, mit weiterer Unterstützung von Google, der Alfred P. Sloan Foundation, PacTrans und dem CREATE-Zentrum der University of Washington.
+about.cta.title = Helfen Sie uns, jedes Trottoir zu kartieren
+about.cta.city = Bringen Sie Project Sidewalk in Ihre Stadt
+about.contact.body = Fragen, Ideen oder Presseanfragen? Schreiben Sie uns an <a href="mailto:sidewalk@cs.uw.edu">sidewalk@cs.uw.edu</a>, eröffnen Sie ein Issue auf <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a> oder folgen Sie uns auf <a href="https://www.linkedin.com/company/project-sidewalk/">LinkedIn</a> und <a href="https://bsky.app/profile/projectsidewalk.bsky.social">Bluesky</a>.
 
 landing.create.path = Schaffen wir einen Weg für alle!
 landing.start.exploring = Erkundung starten
@@ -178,6 +302,7 @@ audit.tutorial.complete.1 = Geschafft!
 audit.tutorial.complete.2 = Sie haben das Tutorial abgeschlossen!
 audit.tutorial.complete.learn-more = Mehr erfahren
 audit.tutorial.complete.start-contributing = Mit dem Beitragen beginnen
+audit.tutorial.pause-animation = Animation pausieren
 
 audit.ribbon.curb.ramp.labels = BESCHR. TROTTOIRABSENKUNGEN
 audit.ribbon.sidewalk.labels = BESCHR. GEHWEG
@@ -280,6 +405,7 @@ welcome.card.badges.title = Abzeichen
 welcome.card.badges.body = Verdiene sie beim Kartieren, Validieren und Erreichen von Missionszielen.
 welcome.card.leaderboard.title = Die Bestenliste
 welcome.card.leaderboard.body = Sieh, wie sich dein Kartieren in der Stadt schlägt – allein oder im Team.
+welcome.cta.resume = Zurück zu deinem letzten Stand
 welcome.cta.dashboard = Mein Dashboard ansehen
 welcome.hint.username = Du kannst deinen Benutzernamen jederzeit unter <a href="{0}">Dashboard → Einstellungen</a> ändern.
 welcome.service.prompt = Kartierst du für Schul- oder Ehrenamtsstunden?
@@ -342,7 +468,6 @@ labeling.guide.surface.problem.summary = Ein Oberflächenproblem ist ein Problem
 labeling.guide.no.sidewalk.summary = Sie sollten die Beschriftung für kein Trottoir dort beginnen, wo das Trottoir endet und dann alle paar Meter eine Beschriftung hinzufügen (ca. 1 pro Bild) bis zum Punkt, wo das Trottoir wieder beginnt.
 labeling.guide.occlusion.summary = Manchmal ist die Sicht auf das Trottoir vollständig versperrt. Solche Fälle sind mit der Beschriftung "Trottoir nicht sichtbar" zu beschriften. Diese Beschriftung sollte selten verwendet werden. Nutzen Sie sie darum nur, wenn ein Trottoir, eine Trottoirabsenkung oder ein anderes Zugänglichkeitsproblem aufgrund von Hindernissen, wie zum Beispiel Autos, aus keinem anderen Blickwinkel sichtbar ist.
 
-admin.clear.play.cache = Play-Cache leeren
 
 leaderboard.header.team = Team
 leaderboard.header.labels = Beschriftungen
@@ -359,31 +484,54 @@ gallery.clear.filters = Filter löschen
 
 routebuilder.name = RouteBuilder
 routebuilder.welcome = Willkommen bei RouteBuilder
-routebuilder.intro.content = Verbesserung der Zugänglichkeit in der Nachbarschaft Ihrer Wahl durch Bauen, Erkundung und Teilen Ihrer eigenen Route!
-routebuilder.intro.instruction = Klicken Sie auf eine Straße, um Ihre Route zu bauen.
-routebuilder.creating.route = Route erstellen
-routebuilder.route.length = Routenlänge
-routebuilder.editing.route = Bearbeitungsroute
-routebuilder.add.street.icon.alt = Ein Karten -Pin -Symbol mit einem Plus in der Mitte
-routebuilder.add.street.instruction = Klicken Sie auf Straßen auf der Karte, um sie zu Ihrer Route hinzuzufügen.
-routebuilder.reverse.street.icon.alt = Zwei Pfeile bilden einen Kreis, um die Umkehrung anzuzeigen
-routebuilder.reverse.street.instruction = Klicken Sie einmal auf eine beliebige Straße hinzugefügt, um die Richtung zu drehen.
-routebuilder.delete.street.icon.alt = Eine Müll kann mit einem X darauf
-routebuilder.delete.street.instruction = Klicken Sie zweimal auf eine beliebige Straße hinzugefügt, um sie von der Route zu löschen.
-routebuilder.save.route.instruction = Klicken Sie, um den Build zu beenden, auf "Route speichern".
+routebuilder.intro.content = Erstelle eine Route und teile sie mit anderen.
+routebuilder.directions.start.aria = Startadresse oder Ort
+routebuilder.directions.end.aria = Zieladresse oder Ort
+routebuilder.stat.time.tooltip = Geschätzt anhand des typischen Tempos von Project-Sidewalk-Erkundern in dieser Stadt (etwa {0} Minuten pro 100 Meter).
 routebuilder.save = Route speichern
 routebuilder.delete.route.icon.alt = Ein orangefarbener Kreis mit einem weißen Ausrufezeichen in der Mitte
 routebuilder.not.saved = Die Route wurde nicht gerettet.
 routebuilder.not.saved.explanation = Sie werden diese Route später nicht wiederherstellen können.
 routebuilder.delete.route = Route löschen
-routebuilder.saved.icon.alt = Ein grüner Kreis mit einem weißen Checkmark in der Mitte
-routebuilder.saved = Route gespeichert!
-routebuilder.explore.route = Erforschen Sie diese Route
-routebuilder.view.in.labelmap = In der Beschriftungskarte anzeigen
-routebuilder.build.another.route = Bauen Sie eine andere Route
-routebuilder.share.title = Speichern Sie diesen Link für den zukünftigen Zugriff:
-routebuilder.copy.link = Link kopieren
-routebuilder.share.warning = Ohne den Link können Sie nicht auf diese Route zugreifen.
+routebuilder.name.your.route = Benennen Sie Ihre Route
+routebuilder.close = Schließen
+routebuilder.save.explanation = Nach dem Speichern können Sie Ihre Route mit anderen teilen und alle Ihre Routen in Ihrem <a href="{0}" target="_blank" rel="noopener">Dashboard</a> ansehen.
+routebuilder.route.name.label = Routenname
+routebuilder.route.name.placeholder = z. B. Von der Bibliothek zum Park
+routebuilder.name.error.length = Routennamen dürfen höchstens {0} Zeichen lang sein.
+routebuilder.name.error.allowed = Dieser Routenname ist nicht erlaubt. Bitte wählen Sie einen anderen.
+routebuilder.route.description.label = Beschreibung
+routebuilder.optional = (optional)
+routebuilder.route.description.placeholder = z. B. Unser Hauptweg von der Bibliothek zur Schule
+routebuilder.description.error.length = Routenbeschreibungen dürfen höchstens {0} Zeichen lang sein.
+routebuilder.description.error.allowed = Diese Beschreibung ist nicht erlaubt. Bitte überarbeiten Sie sie.
+routebuilder.signin.nudge = Melden Sie sich an, um Ihre Routen in Ihrem Dashboard zu speichern – dort können Sie sie jederzeit finden, umbenennen und teilen.
+routebuilder.signin.to.save = Anmelden & speichern
+routebuilder.continue.without.account = Ohne Konto speichern
+routebuilder.view.in.dashboard = Alle deine Routen im Dashboard verwalten
+routebuilder.saved.routes = Deine gespeicherten Routen
+routebuilder.recent.routes.note = Nur auf diesem Gerät gespeichert. Melden Sie sich an, um Routen in Ihrem Dashboard zu speichern.
+routebuilder.undo = Rückgängig
+routebuilder.preview = Routenvorschau
+routebuilder.new.route = Eine neue Route beginnen
+routebuilder.new.route.tooltip = Beginnt eine neue Route. Speichere zuerst deine aktuelle Route, wenn du sie behalten möchtest.
+routebuilder.legend.title = Legende
+routebuilder.legend.start = Routenstart
+routebuilder.legend.end = Routenende
+routebuilder.legend.direction = Laufrichtung
+routebuilder.legend.pois = Interessante Orte
+dashboard.routes.title = Meine Routen
+dashboard.routes.intro = Routen, die Sie im RouteBuilder erstellt haben. Erkunden Sie eine, um entlang ihr zu kartieren, oder teilen Sie ihren Link mit anderen.
+dashboard.routes.explore = Erkunden
+dashboard.routes.labelmap = Beschriftungskarte
+dashboard.routes.copy = Link kopieren
+dashboard.routes.rename = Umbenennen
+dashboard.routes.delete = Löschen
+dashboard.routes.stats = Von {0} erkundet · Von {1} abgeschlossen
+dashboard.routes.stats.tooltip = Erkundet: wie viele Personen begonnen haben, diese Route zu erkunden. Abgeschlossen: wie viele die gesamte Route beendet haben.
+dashboard.routes.view.title = Diese Route im RouteBuilder ansehen
+dashboard.routes.none = Sie haben noch keine Routen erstellt.
+dashboard.routes.build.one = Erstellen Sie Ihre erste Route →
 
 footer.logo.nsf.alt = Logo der National Science Foundation
 footer.logo.google.alt = Google-Logo
@@ -402,6 +550,7 @@ cities.dashboard.cta.logo.alt = Das Project Sidewalk-Logo mit dem Text projectsi
 share.meta.title.issue = Ich habe ein Barrierefreiheitsproblem auf Project Sidewalk gefunden: {0}
 share.meta.title.feature = Sehen Sie, was ich auf Project Sidewalk gefunden habe: {0}
 share.meta.description.spotted = Entdeckt in {0}.
+share.meta.description.story = „{0}“ – eine Geschichte aus der Community.
 share.meta.description.address = In der Nähe von {0}.
 share.meta.description.severity = Schweregrad: {0} von 3.
 share.meta.description.tags = Markiert mit: {0}.
@@ -462,9 +611,12 @@ dashboard.trophy.none = 🏆 Noch keine Trophäen — schaffen Sie es in die wö
 dashboard.trophy.explore.region = Dieses Viertel erkunden →
 dashboard.trophy.tag.region = Viertel
 dashboard.trophy.tag.pioneer = Pionier/in
+dashboard.trophy.tag.explore = Erkundung
 dashboard.trophy.sub.pioneer = Erste Beschriftung überhaupt in {0}
 dashboard.trophy.sub.champion = {0} Beschriftungen — die meisten in diesem Viertel
 dashboard.trophy.sub.weekly = Woche vom {0}
+dashboard.trophy.sub.free-explore-tried = Eine Freie-Erkundung-Mission ausprobiert
+dashboard.trophy.sub.free-explore-labeled = Während einer Freien-Erkundung-Mission Labels hinzugefügt
 dashboard.standing.title = Ihre Platzierung
 dashboard.standing.intro = Ein Blick darauf, wo Sie diese Woche stehen. Das vollständige Board finden Sie <a href="{0}">in der Bestenliste</a>.
 dashboard.standing.tag.week = Diese Woche
@@ -580,11 +732,16 @@ leaderboard.accuracy.detail = Der Anteil der validierten Beschriftungen einer Pe
 leaderboard.thisweek.title = {0} diese Woche
 leaderboard.thisweek.intro = Jeden Montag neu — der beste Ort, um schnell aufzusteigen.
 leaderboard.thisweek.none = ✨ Diese Woche noch keine Beschriftungen — seien Sie die erste Person auf dem Board!
-leaderboard.teams.title = Teams
+leaderboard.teams.title = Teams in {0}
 leaderboard.teams.intro = Erstellen Sie ein Team oder treten Sie einem bei, um gemeinsam etwas zu bewirken!
 leaderboard.teams.none = 👥 Noch keine Teams — seien Sie das erste! Gründen Sie eines und laden Sie Freunde oder Klassenkameraden ein.
-leaderboard.you.title = Ihr Platz in der Gemeinschaft
-leaderboard.you.intro = Wo Sie diese Woche stehen und wer direkt vor und hinter Ihnen liegt.
+leaderboard.allcities.title = Alle Städte, aller Zeiten
+leaderboard.allcities.intro = Die besten Kartierenden aus allen Project-Sidewalk-Städten, sortiert nach der Gesamtzahl der Beschriftungen.
+leaderboard.allcities.note = Die Distanz wird einmal täglich aktualisiert.
+leaderboard.allcities.none = 🌍 Noch keine Beschriftungen in den Städten — Ihre könnte die erste sein.
+leaderboard.header.topcity = Top-Stadt
+leaderboard.you.title = Ihr Platz in {0} diese Woche
+leaderboard.you.intro = Wie Sie unter den Kartierenden dieser Woche stehen und wer direkt vor und hinter Ihnen liegt.
 leaderboard.community.title = Wirkung der Gemeinschaft
 leaderboard.community.intro = Die gesamte Project-Sidewalk-Gemeinschaft, über alle Städte hinweg.
 leaderboard.community.contributors = Mitwirkende
@@ -598,3 +755,40 @@ dashboard.unit.ft = ft
 dashboard.rank.place.one = 1. Platz
 dashboard.rank.place.two = 2. Platz
 dashboard.rank.place.three = 3. Platz
+# Community listing pages: /stories and /routes (#4688).
+stories.page.search.placeholder = Tippen, um Berichte zu filtern…
+routes.page.search.placeholder = Tippen, um Routen zu filtern…
+community.page.sort = Sortieren nach
+community.page.sort.newest = Neueste zuerst
+community.page.sort.neighborhood = Stadtviertel
+community.page.count = {0} angezeigt
+community.page.no.results = Keine Treffer für Ihre Suche.
+community.page.cap.note = Es werden nur die neuesten {0} angezeigt.
+stories.page.title = Erfahrungsberichte der Community
+stories.page.intro = Persönliche Berichte, die Community-Mitglieder an Gehweg-Labels angehängt haben — echte Schilderungen, wie sich Barrieren und Barrierefreiheits-Merkmale auf das Leben von Menschen auswirken.
+stories.page.sort.labeltype = Label-Typ
+stories.page.none = In dieser Stadt wurden noch keine Erfahrungsberichte geteilt.
+stories.page.none.cta = Finden Sie ein Label und schreiben Sie Ihre Geschichte
+stories.page.anonymous = Anonym
+stories.page.view.label = Label ansehen
+stories.page.read.more = Mehr lesen
+stories.page.read.less = Weniger lesen
+stories.page.photo.alt = An diesen Bericht angehängtes Foto
+stories.page.label.image.alt = Straßenansicht: {0}
+routes.page.title = Routen der Community
+routes.page.intro = Fußwege, die Community-Mitglieder mit dem RouteBuilder erstellt haben. Erkunden Sie eine, um entlang ihr zu kartieren, oder kopieren Sie den Link zum Teilen.
+routes.page.build.cta = Route erstellen
+routes.page.sort.longest = Längste zuerst
+routes.page.sort.explored = Am meisten erkundet
+routes.page.none = In dieser Stadt wurden noch keine Routen erstellt.
+routes.page.none.cta = Erstellen Sie die erste Route
+
+# Fehlerseiten (404, 500), gerendert von modules.CustomErrorHandler.
+error.404.heading = Seite nicht gefunden
+error.404.message = Wir konnten die angeforderte Seite nicht finden.
+error.500.heading = Etwas ist schiefgelaufen
+error.500.message = Bei uns ist ein unerwarteter Fehler aufgetreten. Es liegt nicht an dir — bitte versuche es gleich noch einmal.
+error.500.id = Fehler-ID: {0}
+error.500.report = Wenn das weiterhin passiert, {0} und gib dabei die obige Fehler-ID an, damit wir das untersuchen können.
+error.500.report.link = sag uns bitte Bescheid
+error.home = Zurück zur Startseite

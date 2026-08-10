@@ -56,13 +56,13 @@ class KeyboardManager {
     const svl = this.#svl;
     if (!svl.panoManager.getStatus('disablePanning')) {
       svl.contextMenu.hide();
-      // Panning hide label tag and delete icon.
+      // Panning hides the label hover card.
       const labels = svl.labelContainer.getCanvasLabels();
       const labelLen = labels.length;
       for (let i = 0; i < labelLen; i++) {
         labels[i].setHoverInfoVisibility('hidden');
       }
-      svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
+      svl.canvas.hideHoverCard();
       const pitch = svl.panoViewer.getPov().pitch;
       const zoom = svl.panoViewer.getPov().zoom;
       const heading = (svl.panoViewer.getPov().heading + degree + 360) % 360;
@@ -158,16 +158,21 @@ class KeyboardManager {
       // Switch labeling mode. e: Walk, c: CurbRamp, m: NoCurbRamp, o: Obstacle, s: SurfaceProblem: n: NoSidewalk,
       // w: Crosswalk, p: Signal, b: Occlusion.
       for (const mode of ['Walk'].concat(util.misc.VALID_LABEL_TYPES_WITHOUT_OTHER)) {
-        if (e.key.toUpperCase() === util.misc.getLabelDescriptions(mode).keyChar) {
+        // Some keyup events (synthetic events, certain IME/compose keys) arrive with no `key`; skip the shortcut
+        // match rather than throwing on undefined.toUpperCase().
+        if (e.key && e.key.toUpperCase() === util.misc.getLabelDescriptions(mode).keyChar) {
           if (mode !== 'Walk') this.#closeContextMenu(e.keyCode);
           this.#ribbon.modeSwitch(mode);
           svl.tracker.push(`KeyboardShortcut_ModeSwitch_${mode}`, { keyCode: e.keyCode });
         }
       }
 
-      // Escape exits Labeling Mode back to Explore Mode (context menu open case is handled above).
+      // Escape exits Labeling Mode back to Explore Mode (context menu open case is handled above). It also
+      // dismisses the label hover card, so hover-triggered content can be dismissed without moving the pointer
+      // (WCAG 1.4.13).
       if (e.key === 'Escape' && !this.#contextMenu.isOpen()) {
         this.#ribbon.backToWalk();
+        svl.canvas.showLabelHoverInfo(undefined);
         svl.tracker.push('KeyboardShortcut_ModeSwitch_Walk', { keyCode: e.keyCode });
       }
 
@@ -207,7 +212,7 @@ class KeyboardManager {
           const labelType = targetLabel.getProperty('labelType');
           const tags = this.#contextMenu.labelTags.filter((tag) => tag.label_type === labelType);
           for (const tag of tags) {
-            if (e.key.toUpperCase() === util.misc.getLabelDescriptions(labelType).tagInfo[tag.tag].keyChar) {
+            if (e.key && e.key.toUpperCase() === util.misc.getLabelDescriptions(labelType).tagInfo[tag.tag].keyChar) {
               $(`.tag-id-${tag.tag_id}`).first().trigger('click', { lowLevelLogging: false });
             }
           }

@@ -1,5 +1,4 @@
 {
-  "user-description": "Beschreibung Nutzer:in: ",
   "top-ui": {
     "title": {
       "curb-ramp": "Ist das eine <b>Trottoirabsenkung</b>?",
@@ -11,7 +10,9 @@
       "signal": "Ist das ein <b>Fussgänger:innensignal</b>?"
     },
     "visibility-control-hide": "Beschriftung ausblenden (<u>H</u>)",
-    "visibility-control-show": "Beschriftung einblenden (<u>h</u>)"
+    "visibility-control-show": "Beschriftung einblenden (<u>h</u>)",
+    "visibility-control-tooltip-hide": "Blendet die Beschriftung vorübergehend aus, um besser zu sehen. (<u>H</u>)",
+    "visibility-control-tooltip-show": "Blendet die Beschriftung wieder ein. (<u>h</u>)"
   },
   "validate-menu": {
     "disagree-reason": {
@@ -89,7 +90,13 @@
     }
   },
   "center-ui": {
-    "no-info": "Keine Informationen verfügbar"
+    "no-info": "Keine Informationen verfügbar",
+    "pano-interactive-message": "Ziehen zum Umsehen, scrollen zum Heranzoomen."
+  },
+  "imagery-unavailable": {
+    "title": "Bildmaterial konnte nicht geladen werden",
+    "body": "Wir konnten das Strassenbildmaterial für die Beschriftungen dieser Mission nicht laden, daher gibt es im Moment nichts zu zeigen. Ihre abgeschlossenen Validierungen sind gespeichert. Das erledigt sich meist von selbst — bitte versuchen Sie es erneut.",
+    "retry": "Erneut versuchen"
   },
   "mission-start": {
     "title": "Validieren Sie {{n}} {{label_type}} Beschriftungen",

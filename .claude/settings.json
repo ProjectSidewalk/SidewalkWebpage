@@ -18,7 +18,12 @@
       "Bash(make lint-evolutions:*)",
       "Bash(make test-python:*)",
       "Bash(git grep:*)",
-      "Bash(git ls-tree:*)"
+      "Bash(git ls-tree:*)",
+      "Bash(make stylelint:*)",
+      "Bash(make htmlhint:*)",
+      "Bash(make lint-locales:*)",
+      "Bash(make lint:*)",
+      "Bash(gh label list:*)"
     ],
     "deny": [
       "Read(docker-compose.override.yml)"

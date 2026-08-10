@@ -42,7 +42,7 @@ class ValidationTaskEnvironmentTableDef(tag: Tag)
   def operatingSystem: Rep[Option[String]]   = column[Option[String]]("operating_system")
   def ipAddress: Rep[Option[String]]         = column[Option[String]]("ip_address")
   def language: Rep[String]                  = column[String]("language")
-  def cssZoom: Rep[Int]                      = column[Int]("css_zoom")
+  def cssZoom: Rep[Int]                      = column[Int]("css_zoom", O.Default(100))
   def timestamp: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("timestamp")
 
   def * = (validationTaskEnvironmentId, missionId, browser, browserVersion, browserWidth, browserHeight, availWidth,

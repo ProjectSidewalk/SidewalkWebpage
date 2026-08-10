@@ -14,70 +14,16 @@ function UtilitiesMisc(JSON) {
   self.VALID_LABEL_TYPES_WITHOUT_OTHER
     = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Occlusion', 'NoSidewalk', 'Crosswalk', 'Signal'];
 
-  // Returns image paths corresponding to each label type.
+  // Returns the marker-icon path for each label type. Every frontend surface — canvas, map markers, cards, cursors —
+  // uses the one scalable SVG so the icon stays crisp at whatever size it lands at; the raster `_small`/`_tiny`/full
+  // -size PNGs beside it exist only for consumers that can't take vector art (server-side share-image compositing in
+  // ShareController, and the icon URLs published by /v3/api/labelTypes).
   function getIconImagePaths(category) {
-    const imagePaths = {
-      Walk: {
-        id: 'Walk',
-        iconImagePath: null,
-        minimapIconImagePath: null,
-        scalableIconImagePath: null,
-      },
-      CurbRamp: {
-        id: 'CurbRamp',
-        iconImagePath: '/assets/images/icons/label_type_icons/CurbRamp_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/CurbRamp_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/CurbRamp_small.svg',
-      },
-      NoCurbRamp: {
-        id: 'NoCurbRamp',
-        iconImagePath: '/assets/images/icons/label_type_icons/NoCurbRamp_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/NoCurbRamp_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/NoCurbRamp_small.svg',
-      },
-      Obstacle: {
-        id: 'Obstacle',
-        iconImagePath: '/assets/images/icons/label_type_icons/Obstacle_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/Obstacle_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/Obstacle_small.svg',
-      },
-      SurfaceProblem: {
-        id: 'SurfaceProblem',
-        iconImagePath: '/assets/images/icons/label_type_icons/SurfaceProblem_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/SurfaceProblem_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/SurfaceProblem_small.svg',
-      },
-      Other: {
-        id: 'Other',
-        iconImagePath: '/assets/images/icons/label_type_icons/Other_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/Other_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/Other_small.svg',
-      },
-      Occlusion: {
-        id: 'Occlusion',
-        iconImagePath: '/assets/images/icons/label_type_icons/Occlusion_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/Occlusion_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/Occlusion_small.svg',
-      },
-      NoSidewalk: {
-        id: 'NoSidewalk',
-        iconImagePath: '/assets/images/icons/label_type_icons/NoSidewalk_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/NoSidewalk_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/NoSidewalk_small.svg',
-      },
-      Crosswalk: {
-        id: 'Crosswalk',
-        iconImagePath: '/assets/images/icons/label_type_icons/Crosswalk_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/Crosswalk_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/Crosswalk_small.svg',
-      },
-      Signal: {
-        id: 'Signal',
-        iconImagePath: '/assets/images/icons/label_type_icons/Signal_small.png',
-        minimapIconImagePath: '/assets/images/icons/label_type_icons/Signal_tiny.png',
-        scalableIconImagePath: '/assets/images/icons/label_type_icons/Signal_small.svg',
-      },
-    };
+    const iconBasePath = '/assets/images/icons/label_type_icons';
+    const imagePaths = { Walk: { id: 'Walk', iconImagePath: null } };
+    for (const labelType of self.VALID_LABEL_TYPES) {
+      imagePaths[labelType] = { id: labelType, iconImagePath: `${iconBasePath}/${labelType}_small.svg` };
+    }
 
     return category ? imagePaths[category] : imagePaths;
   }
@@ -484,18 +430,6 @@ function UtilitiesMisc(JSON) {
     return category ? descriptions[category] : descriptions;
   }
 
-  /**
-   * Gets the severity message that is displayed in a severity's tooltip.
-   * @returns {{1: {message: string}, 2: {message: string}, 3: {message: string}}}
-   */
-  function getSeverityDescription() {
-    return {
-      1: { message: i18next.t('center-ui.context-menu.tooltip.passable') },
-      2: { message: i18next.t('center-ui.context-menu.tooltip.difficult-to-pass') },
-      3: { message: i18next.t('center-ui.context-menu.tooltip.not-passable') },
-    };
-  }
-
   const SMILEY_ICON_BASE = '/assets/images/icons/smileys/';
   const POSITIVE_LABEL_TYPES = ['CurbRamp', 'Crosswalk'];
   const LABEL_TYPES_WITHOUT_SEVERITY = ['NoSidewalk', 'Signal', 'Occlusion'];
@@ -516,6 +450,53 @@ function UtilitiesMisc(JSON) {
    */
   function labelTypeHasSeverity(labelType) {
     return !LABEL_TYPES_WITHOUT_SEVERITY.includes(labelType);
+  }
+
+  /**
+   * Re-expresses a pano x-coordinate on whichever side of the image seam the camera is currently facing.
+   *
+   * An equirectangular pano wraps, so a point near one edge is also a point just past the other. Picking the wrong
+   * representation puts an annotation — or a callout anchored to one — a full pano-width away from where the user is
+   * looking. Only a point within a quarter-width of the seam is ambiguous; everything else is returned unchanged.
+   *
+   * @param {number} panoX - Pano image x-coordinate, as stored on tutorial state annotations.
+   * @param {number} heading - The camera's current heading, in degrees.
+   * @param {number} panoWidth - Full width of the pano image in pixels.
+   * @returns {number} The equivalent x-coordinate nearest the current view; may be negative or exceed panoWidth.
+   */
+  function unwrapPanoX(panoX, heading, panoWidth) {
+    const seamZone = panoWidth / 4;
+    // Facing the first half, a point in the far quarter sits behind the camera's left edge, and vice versa.
+    if (heading < 180) return panoX > panoWidth - seamZone ? panoX - panoWidth : panoX;
+    return panoX < seamZone ? panoX + panoWidth : panoX;
+  }
+
+  /**
+   * Merges a tutorial state's own annotations with the ones carried over from earlier states, without duplicates.
+   *
+   * The carry-over list is rebuilt from this merged list on every draw, and a state is drawn many times over (once
+   * per pano move, once per animation frame while example labels pop in). Concatenating blindly would therefore
+   * re-append the same annotation objects on every pass, so the list grows for as long as the step is on screen:
+   * the icons overdraw at identical coordinates, and the arrow-blink period — derived from how many arrows are in
+   * the list — stretches out as it fills up (#4832). Annotations are shared by reference, so identity dedupes them.
+   *
+   * @param {Array<Object>} savedAnnotations - Annotations carried over from previous states.
+   * @param {?Array<Object>} stateAnnotations - The current state's own annotations, if it declares any.
+   * @returns {Array<Object>} The union, in carry-over-then-own order, each annotation appearing once.
+   */
+  function mergeOnboardingAnnotations(savedAnnotations, stateAnnotations) {
+    return [...new Set([...savedAnnotations, ...(stateAnnotations || [])])];
+  }
+
+  /**
+   * Picks the annotations that should stay on screen after the given state, i.e. those tagged to outlive it.
+   *
+   * @param {Array<Object>} annotations - The state's merged annotation list.
+   * @param {string} stateId - Id of the state being drawn; an annotation kept "until" it expires here.
+   * @returns {Array<Object>} The subset to carry into the next state.
+   */
+  function carryOverOnboardingAnnotations(annotations, stateId) {
+    return annotations.filter((a) => a.keepUntil && a.keepUntil !== stateId);
   }
 
   /**
@@ -540,6 +521,53 @@ function UtilitiesMisc(JSON) {
     // Severity 0 (N/A) is a neutral circle; only the negative asset exists and it's reused for both sets.
     const set = severity === 0 || !isPositiveLabelType(labelType) ? 'negative' : 'positive';
     return `${SMILEY_ICON_BASE}sev-${severity}-${set}${selected ? '-filled' : ''}.svg`;
+  }
+
+  // Each rating level's colours, as design-system custom properties so no hex is duplicated here. `face` mirrors
+  // the fill inside sev-<level>-*-filled.svg — recolour that artwork and these have to move with it. `edge` and
+  // `wash` are the darkened and lightened counterparts a selected control uses.
+  //
+  // Level colours, per scale. Green is a value judgement and belongs only to the quality scale: a curb ramp rated
+  // 1 is genuinely good, but a surface problem rated 1 is a mild problem, not an absence of one, and colouring it
+  // green would tell a mapper it needs no attention. Severity keeps the yellow-amber-orange heat ramp, where the
+  // colour tracks how bad rather than whether bad. Same positive/negative split getSmileyIconPath makes, and these
+  // mirror the fill inside sev-<level>-<set>-filled.svg.
+  //
+  // Edges are picked per level rather than by a fixed step offset, for two reasons. The ramps are not
+  // perceptually aligned, so the same step is not equally dark on each -- banana-700 on banana-200 is 1.68:1,
+  // invisible on its own wash, where banana-900 clears the 3:1 non-text bar. And the banana ramp has only one
+  // step dark enough to qualify, so severity's edges escalate by hue rather than by depth alone: gold, then rust,
+  // then dark rust (L* 53 / 44 / 25). Two levels sharing banana-900 made Low and Medium indistinguishable.
+  //
+  // The wash avoids -100 for the reverse reason -- jade-100 is 13/255 off the white panel behind it, too close to
+  // register as a state at all.
+  const SEVERITY_LEVEL_COLORS = {
+    positive: {
+      1: { face: 'jade-400', edge: 'jade-700', wash: 'jade-200' },
+      2: { face: 'banana-400', edge: 'banana-900', wash: 'banana-200' },
+      3: { face: 'orange-400', edge: 'orange-600', wash: 'orange-200' },
+    },
+    negative: {
+      1: { face: 'banana-400', edge: 'banana-900', wash: 'banana-200' },
+      2: { face: 'banana-700', edge: 'orange-600', wash: 'banana-300' },
+      3: { face: 'orange-400', edge: 'orange-800', wash: 'orange-200' },
+    },
+  };
+
+  /**
+   * Returns the colours for a rating level as CSS custom-property references.
+   *
+   * Takes the label type for the same reason getSmileyIconPath does: the two scales do not share a palette. Only
+   * quality has a "good" end worth colouring green; on severity, level 1 is a mild problem and stays yellow.
+   * @param {number} severity - 1, 2, or 3.
+   * @param {string} labelType - Picks the quality palette for positive types, the severity palette otherwise.
+   * @returns {?{face: string, edge: string, wash: string}} `var(--color-…)` references, or null for 0/N-A.
+   */
+  function getSeverityLevelColors(severity, labelType) {
+    const scale = isPositiveLabelType(labelType) ? 'positive' : 'negative';
+    const level = SEVERITY_LEVEL_COLORS[scale][severity];
+    if (!level) return null;
+    return Object.fromEntries(Object.entries(level).map(([role, token]) => [role, `var(--color-${token})`]));
   }
 
   /**
@@ -636,17 +664,33 @@ function UtilitiesMisc(JSON) {
     return category ? colors[category].fillStyle : colors;
   }
 
+  /**
+   * Converts a distance in meters to a localized, rounded display string in the user's measurement system.
+   * @param {number} distanceInMeters - The distance in meters.
+   * @returns {string} E.g. "425 m" in metric locales or "1400 ft" in imperial ones.
+   */
+  function distanceToString(distanceInMeters) {
+    const distanceType = i18next.t('common:measurement-system');
+    const unitAbbreviation = i18next.t('common:unit-abbreviation-mission-distance');
+    const distance = distanceType === 'metric' ? distanceInMeters : util.math.metersToFeet(distanceInMeters);
+    return `${util.math.roundToTwentyFive(distance)} ${unitAbbreviation}`;
+  }
+
+  self.distanceToString = distanceToString;
   self.getIconImagePaths = getIconImagePaths;
   self.getLabelDescriptions = getLabelDescriptions;
-  self.getSeverityDescription = getSeverityDescription;
   self.isPositiveLabelType = isPositiveLabelType;
   self.POSITIVE_LABEL_TYPES = POSITIVE_LABEL_TYPES;
   self.labelTypeHasSeverity = labelTypeHasSeverity;
   self.LABEL_TYPES_WITHOUT_SEVERITY = LABEL_TYPES_WITHOUT_SEVERITY;
   self.getSmileyIconPath = getSmileyIconPath;
+  self.getSeverityLevelColors = getSeverityLevelColors;
   self.getRatingLevelKeys = getRatingLevelKeys;
   self.getLabelColors = getLabelColors;
   self.reportNoImagery = reportNoImagery;
+  self.unwrapPanoX = unwrapPanoX;
+  self.mergeOnboardingAnnotations = mergeOnboardingAnnotations;
+  self.carryOverOnboardingAnnotations = carryOverOnboardingAnnotations;
 
   return self;
 }
@@ -654,9 +698,33 @@ function UtilitiesMisc(JSON) {
 util.misc = UtilitiesMisc(JSON);
 
 /**
+ * Fields PannellumViewer needs to render a backup pano: the subset of PanoData's `requiredParams` that a pano_data
+ * row can be missing. See the note there before changing this list.
+ *
+ * A property rather than a top-level `const` because some views load this file directly on a page whose bundle
+ * already concatenates it. Re-running it must stay harmless, and a repeated `const` is a fatal redeclaration.
+ */
+util.misc.BACKUP_IMAGE_REQUIRED_FIELDS = ['width', 'height', 'lat', 'lng', 'cameraHeading', 'cameraPitch'];
+
+/**
+ * Whether a backup pano carries the metadata PannellumViewer needs to render it.
+ *
+ * Old pano_data rows carry nulls for these and PanoData rejects them (#4804). Guards the buildBackupImageData path
+ * only — the /backupImage/:panoId/metadata payload is already filtered server-side by `getLocalBackupImage`.
+ *
+ * @param {?object} data Backup pano metadata in the camelCase shape buildBackupImageData produces, or null.
+ * @returns {boolean} True when every field the viewer needs is present and numeric.
+ */
+function backupImageDataIsComplete(data) {
+  return !!data
+    && util.misc.BACKUP_IMAGE_REQUIRED_FIELDS.every((f) => typeof data[f] === 'number' && !isNaN(data[f]));
+}
+
+/**
  * Builds the {url, metadata} object needed by Pannellum from a label metadata object sent by the server.
  *
- * Returns null if backup_image_url is absent or null, or if pano_data is missing.
+ * Returns null if backup_image_url is absent or null, if pano_data is missing, or if pano_data is too incomplete to
+ * render (see backupImageDataIsComplete).
  * @param {object} meta Label metadata object from the server.
  * @param {string|null} meta.backup_image_url URL for the self-hosted backup image, or null.
  * @param {object|null} meta.pano_data Nested pano viewer metadata, or null.
@@ -669,7 +737,7 @@ util.misc = UtilitiesMisc(JSON);
 function buildBackupImageData(meta) {
   if (!meta.backup_image_url || !meta.pano_data) return null;
   const pd = meta.pano_data;
-  return {
+  const backupImageData = {
     panoId: meta.pano_id,
     imageUrl: meta.backup_image_url,
     width: pd.width,
@@ -685,4 +753,5 @@ function buildBackupImageData(meta) {
     copyright: pd.copyright,
     address: pd.address,
   };
+  return backupImageDataIsComplete(backupImageData) ? backupImageData : null;
 }

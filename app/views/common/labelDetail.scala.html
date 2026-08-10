@@ -21,11 +21,12 @@
     </button>
   }
   <div class="label-detail__pano"></div>
-  @* Hover overlay with Agree/Disagree/Unsure buttons. *@
+  @* Hover overlay with Agree/Disagree/Unsure buttons. Toggle buttons: clicking the pressed one clears the vote
+     (#4653), so `aria-pressed` is what tells assistive tech that, and LabelDetail keeps it in sync per label. *@
   <div class="label-detail__pano-overlay" role="group" aria-label="Validate label">
-    <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--agree" data-action="validate" data-result="Agree" data-i18n="common:agree">Agree</button>
-    <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--disagree" data-action="validate" data-result="Disagree" data-i18n="common:disagree">Disagree</button>
-    <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--unsure" data-action="validate" data-result="Unsure" data-i18n="common:unsure">Unsure</button>
+    <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--agree" data-action="validate" data-result="Agree" aria-pressed="false" data-i18n="common:agree">Agree</button>
+    <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--disagree" data-action="validate" data-result="Disagree" aria-pressed="false" data-i18n="common:disagree">Disagree</button>
+    <button type="button" class="label-detail__pano-overlay-button label-detail__pano-overlay-button--unsure" data-action="validate" data-result="Unsure" aria-pressed="false" data-i18n="common:unsure">Unsure</button>
   </div>
   @if(withPaging) {
     <button type="button" class="label-detail__paging label-detail__paging--next" data-action="next-label" aria-label="Next label">
@@ -75,22 +76,23 @@
     @* Validation count display. Each icon's `src` is swapped by JS between the four variants — outline / filled / outline-ai / filled-ai — depending on whether the user (filled) and/or the AI (ai badge) validated this option. The base URL for the icon files is provided via `data-icon-base` so JS doesn't need to know the assets' path. *@
     <div class="label-detail__vote-display" data-icon-base='@assets.path("images/icons/validation/")'>
       @* Each vote is icon + count with the action word beneath, mirroring the severity faces' icon-over-word
-         rhythm; the visible word also names the button for assistive tech. *@
-      <button type="button" class="label-detail__vote label-detail__vote--agree">
+         rhythm; the visible word also names the button for assistive tech. Like the pano overlay's, these are
+         toggle buttons — clicking the pressed one clears the vote (#4653). *@
+      <button type="button" class="label-detail__vote label-detail__vote--agree" aria-pressed="false">
         <span class="label-detail__vote-top">
           <img src='@assets.path("images/icons/validation/agree-outline.svg")' alt="" class="label-detail__vote-icon">
           <span class="label-detail__vote-count">0</span>
         </span>
         <span class="label-detail__vote-label" data-i18n="common:agree">Agree</span>
       </button>
-      <button type="button" class="label-detail__vote label-detail__vote--disagree">
+      <button type="button" class="label-detail__vote label-detail__vote--disagree" aria-pressed="false">
         <span class="label-detail__vote-top">
           <img src='@assets.path("images/icons/validation/disagree-outline.svg")' alt="" class="label-detail__vote-icon">
           <span class="label-detail__vote-count">0</span>
         </span>
         <span class="label-detail__vote-label" data-i18n="common:disagree">Disagree</span>
       </button>
-      <button type="button" class="label-detail__vote label-detail__vote--unsure">
+      <button type="button" class="label-detail__vote label-detail__vote--unsure" aria-pressed="false">
         <span class="label-detail__vote-top">
           <img src='@assets.path("images/icons/validation/unsure-outline.svg")' alt="" class="label-detail__vote-icon">
           <span class="label-detail__vote-count">0</span>
@@ -165,7 +167,7 @@
       @* Pill CTA (Variant B treatment on the C.2 disclosure, per Yochai). The bubble icon is decorative. *@
       <button type="button" class="label-detail__story-share">
         <img src='@assets.path("images/icons/message-circle-feather.svg")' alt="">
-        <span data-i18n="labelmap:story.share-yours">Share your story</span>
+        <span data-i18n="labelmap:story.write-yours">Write your story</span>
       </button>
       <span class="label-detail__stories-arrow" aria-hidden="true">&#9662;</span>
     </summary>
@@ -179,15 +181,29 @@
    the wrapping .label-detail__share div, which is positioned so the popover anchors to the trigger. *@
 <div class="label-detail__footer">
   @* Zero-story share CTA (#4054): swaps in for the stories section when the label has no stories yet. *@
-  <button type="button" class="label-detail__story-share label-detail__story-share--footer" hidden>
+  @* Footer buttons carry a full label and a shorter one; a container query on the footer swaps to the short label,
+     then to icons only, as the card narrows (#4572). The aria-label holds the full wording so the accessible name
+     is stable across all three widths. *@
+  <button type="button" class="label-detail__story-share label-detail__story-share--footer" hidden
+          data-i18n-aria-label="labelmap:story.write-yours">
     <img src='@assets.path("images/icons/message-circle-feather.svg")' alt="">
-    <span data-i18n="labelmap:story.share-yours">Share your story</span>
+    <span class="label-detail__footer-label label-detail__footer-label--full" data-i18n="labelmap:story.write-yours">Write your story</span>
+    <span class="label-detail__footer-label label-detail__footer-label--short" data-i18n="labelmap:story.write-yours-brief">Your story</span>
   </button>
+  @* Drop into Explore at this label's pano + point of view (#4637). Hosts opt in via LabelDetail's
+     showExploreHereLink; the href is an address-style drop-in (#4451) seeded at the label's pano, with the label's
+     lat/lng as the fallback if the pano fails to load (#4635). *@
+  <a class="label-detail__explore-link" hidden data-i18n-aria-label="labelmap:explore-here-short">
+    <img src='@assets.path("images/icons/navigation-feather.svg")' alt="">
+    <span class="label-detail__footer-label label-detail__footer-label--full" data-i18n="labelmap:explore-here-short">Explore here</span>
+    <span class="label-detail__footer-label label-detail__footer-label--short" data-i18n="labelmap:explore-here-brief">Explore</span>
+  </a>
   @* Cross-surface hop (#4572): hosts other than LabelMap opt in via LabelDetail's showLabelMapLink, which fills
      the href with /labelMap?labelId=<id> so the map opens with this label's popup and a location pulse. *@
-  <a class="label-detail__labelmap-link" hidden>
+  <a class="label-detail__labelmap-link" hidden data-i18n-aria-label="labelmap:view-on-labelmap">
     <img src='@assets.path("images/icons/map-pin-feather.svg")' alt="">
-    <span data-i18n="labelmap:view-on-labelmap">View on Label Map</span>
+    <span class="label-detail__footer-label label-detail__footer-label--full" data-i18n="labelmap:view-on-labelmap">View on Label Map</span>
+    <span class="label-detail__footer-label label-detail__footer-label--short" data-i18n="labelmap:view-on-labelmap-brief">Label Map</span>
   </a>
   <div class="label-detail__share">
     <button type="button" class="label-detail__share-trigger"
@@ -200,88 +216,14 @@
         <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
         <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
       </svg>
-      <span class="label-detail__share-trigger-label" data-i18n="common:share.button">Share</span>
+      <span class="label-detail__share-trigger-label label-detail__footer-label" data-i18n="common:share.button">Share</span>
     </button>
   </div>
 </div>
 
-@* Story composer (#4054): opened from the stories CTA. StoryComposer.js owns all behavior. Inputs carry static ids
-   for their <label for>s (htmlhint input-requires-label) — same multi-instance caveat as the comment input's id
-   above; no page renders two instances today. Radio `name`s and the dialog's aria-labelledby id are made
-   instance-unique by JS at init. *@
-<dialog class="story-composer">
-  @* Same discard guard as Cancel (StoryComposer wires both through #requestClose). *@
-  <button type="button" class="story-composer__close" aria-label="Close"
-          data-i18n-aria-label="labelmap:story.close">
-    <img src='@assets.path("images/icons/cross.svg")' alt="">
-  </button>
-  <h3 class="story-composer__title" data-i18n="labelmap:story.composer-title">Share your story</h3>
-  <p class="story-composer__intro" data-i18n="labelmap:story.composer-intro">
-    Stories help neighbors and city officials understand what problems like this mean for real people.
-    Your story will appear attached to this label.
-  </p>
-  <label class="story-composer__field" for="story-composer-text">
-    <span class="story-composer__field-label" data-i18n="labelmap:story.your-story">Your story</span>
-    <textarea class="story-composer__text" id="story-composer-text" rows="5"
-              data-i18n-placeholder="labelmap:story.text-placeholder"></textarea>
-  </label>
-  <div class="story-composer__counter" aria-hidden="true"></div>
-  <div class="story-composer__photo-row">
-    <label class="story-composer__photo-attach" for="story-composer-photo">
-      @* Accepted types must stay in sync with StoryService's sniffed-format allowlist (stock ImageIO: no WebP). *@
-      <input type="file" id="story-composer-photo" class="story-composer__photo-input sr-only"
-             accept="image/jpeg,image/png">
-      <span data-i18n="labelmap:story.add-photo">Add a photo (optional)</span>
-    </label>
-    <div class="story-composer__photo-preview" hidden>
-      <img class="story-composer__photo-thumb" alt="" width="120" height="90">
-      <div class="story-composer__photo-fields">
-        <label class="story-composer__field" for="story-composer-alt">
-          <span class="story-composer__field-label" data-i18n="labelmap:story.photo-alt-label">
-            Describe the photo for people who can't see it (optional)
-          </span>
-          <input type="text" id="story-composer-alt" class="story-composer__alt-input">
-        </label>
-        <button type="button" class="story-composer__photo-remove"
-                data-i18n="labelmap:story.remove-photo">Remove photo</button>
-      </div>
-    </div>
-  </div>
-  <fieldset class="story-composer__post-as">
-    <legend class="story-composer__field-label" data-i18n="labelmap:story.post-as">Post as</legend>
-    @* Both rows share one shape — name pill, then a plain description — so the choice reads symmetrically.
-       The username pill has no data-i18n: StoryComposer.js fills it with the account's username. *@
-    <label class="story-composer__check-row" for="story-composer-name-anon">
-      <input type="radio" id="story-composer-name-anon" class="story-composer__name-anon" checked>
-      <span class="story-composer__name-pill" data-i18n="labelmap:story.anonymous">Anonymous</span>
-      <span class="story-composer__name-desc" data-i18n="labelmap:story.post-anonymous-desc">no name shown</span>
-    </label>
-    <label class="story-composer__check-row" for="story-composer-name-username">
-      <input type="radio" id="story-composer-name-username" class="story-composer__name-username">
-      <span class="story-composer__name-pill story-composer__username-option"></span>
-      <span class="story-composer__name-desc" data-i18n="labelmap:story.post-username-desc">your username shown</span>
-    </label>
-  </fieldset>
-  @* Sign-in CTA (#4054): shown only to anonymous-session viewers. StoryComposer.js stashes the in-progress draft
-     (text, photo, options) to IndexedDB and returns here via ?resumeStory=<id>, so signing in loses no work. *@
-  <p class="story-composer__signin-cta" hidden>
-    <span data-i18n="labelmap:story.signin-prompt">Have an account?</span>
-    <button type="button" class="story-composer__signin-btn"
-            data-i18n="labelmap:story.signin-cta">Sign in to post under your name</button>
-  </p>
-  @* No data-i18n: the note embeds a link, so StoryComposer.js sets the translated string via innerHTML instead
-     (the binder writes textContent, which would show the anchor markup literally). *@
-  @* The dashboard link opens a new tab: navigating away here would lose the in-progress story. *@
-  <p class="story-composer__privacy">
-    You can review, edit, or delete your stories from
-    <a href="/dashboard" target="_blank" rel="noopener">your dashboard</a>. Photos are moderated.
-  </p>
-  <p class="story-composer__error" role="alert" hidden></p>
-  <div class="story-composer__actions">
-    <button type="button" class="story-composer__cancel" data-i18n="labelmap:story.cancel">Cancel</button>
-    <button type="button" class="story-composer__submit" data-i18n="labelmap:story.submit">Share story</button>
-  </div>
-</dialog>
+@* Story composer (#4054): opened from the stories CTA; StoryComposer.js owns all behavior. Shared partial, since the
+   dashboard renders its own instance for editing from the "Your stories" list. *@
+@common.storyComposer()
 
 @* Enlarge view for a story photo (#4054): the photo's author-written alt text doubles as the visible caption. *@
 <dialog class="story-lightbox">

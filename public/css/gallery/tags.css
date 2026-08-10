@@ -1,6 +1,17 @@
 .gallery-tag {
   display: inline-block;
   margin: 2px;
+  padding: 0 5px;
+  border: 1px solid var(--color-neutral-black);
+  border-radius: 10px;
+  text-align: left;
+  background-color: var(--color-neutral-white);
+  color: var(--color-neutral-black);
+  width: fit-content;
+  white-space: nowrap;
+  max-width: 98%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .thumbnail-tag {
@@ -22,10 +33,6 @@
   font-weight: bold;
   cursor: pointer;
   background-color: inherit;
-}
-
-#tags-header {
-  display: none;
 }
 
 .additional-tag-popover {

@@ -2,10 +2,11 @@
   "measurement-system": "metric",
   "mapbox-language-code": "de",
   "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Hier klicken</a>, um diese Strasse zu erkunden!",
-  "admin-clear-play-cache": "Play-Cache erfolgreich gelöscht",
   "unit-distance-abbreviation": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
+  "speed-limit-tooltip": "Die Kenntnis des <b>Tempolimits</b> einer Straße hilft, die Sicherheit für Fußgänger besser einzuschätzen, etwa ob das Überqueren an einer ungeregelten Kreuzung <b>sicher</b> ist.",
+  "speed-limit-aria-label": "Tempolimit {{speed}} {{units}}",
   "format-number": "{{val, number}}",
   "cities-cta-join_one": "Schließen Sie sich {{count, number}} weiteren Gemeinschaft an",
   "cities-cta-join_other": "Schließen Sie sich {{count, number}} weiteren Gemeinschaften an",
@@ -27,6 +28,10 @@
   "problem": "Problem",
   "surface-problems": "Oberflächen&shy;probleme",
   "close": "Schließen",
+  "cancel": "Abbrechen",
+  "continue": "Fortfahren",
+  "delete": "Löschen",
+  "done": "Fertig",
   "badges": {
     "congratulations": "Glückwunsch!",
     "you-earned": "Du hast das Abzeichen „{{badge}}“ erhalten!",
@@ -81,6 +86,7 @@
   "no-description": "keine Beschreibung",
   "comments": "Validator Kommentare",
   "none": "Keine",
+  "only": "Nur",
   "image-capture-date": "Datum der Bildaufnahme",
   "drag-to-look-around": "Ziehen Sie, um sich umzusehen",
   "labeled": "Beschriftet",
@@ -92,7 +98,6 @@
   "bad": "Schlecht",
   "yes": "Ja",
   "no": "Nein",
-  "ai-disclaimer": "Die KI hat dieses Label analysiert und mit „$t({{aiVal}})“ bewertet. KI kann jedoch Fehler machen. Bitte bilden Sie sich Ihre eigene Meinung.",
   "ai-generated-label-tooltip": "Dieses Label wurde von der KI erstellt. KI kann Fehler machen, prüfen Sie es daher selbst.",
   "tag": {
     "narrow": "schmal",
@@ -319,10 +324,13 @@
     "button": "Teilen",
     "heading": "Diese Markierung teilen",
     "text": "Sieh dir diese {{labelType}} auf Project Sidewalk an",
+    "story-text": "„{{excerpt}}“ – eine Geschichte aus der Community auf Project Sidewalk",
     "copy-link": "Link kopieren",
     "copied": "Kopiert!",
+    "on-bluesky": "Auf Bluesky teilen",
     "on-x": "Auf X teilen",
     "on-facebook": "Auf Facebook teilen",
+    "on-linkedin": "Auf LinkedIn teilen",
     "via-email": "Per E-Mail teilen"
   }
 }

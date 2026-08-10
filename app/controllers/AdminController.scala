@@ -1,8 +1,7 @@
 package controllers
 
 import controllers.base._
-import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq}
-import executors.CpuIntensiveExecutionContext
+import controllers.helper.ControllerUtils.isAdmin
 import formats.json.AdminFormats._
 import formats.json.LabelFormats._
 import formats.json.UserFormats._
@@ -19,7 +18,6 @@ import play.silhouette.api.Silhouette
 import play.silhouette.impl.exceptions.IdentityNotFoundException
 import service._
 
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.concurrent.ThreadPoolExecutor
@@ -27,6 +25,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Try
+import scala.util.control.NonFatal
 
 @Singleton
 class AdminController @Inject() (
@@ -37,32 +36,17 @@ class AdminController @Inject() (
     cacheApi: AsyncCacheApi,
     authenticationService: service.AuthenticationService,
     adminService: service.AdminService,
-    regionService: RegionService,
     labelService: LabelService,
     streetService: StreetService,
     panoDataService: PanoDataService,
+    osmWayService: service.OsmWayService,
     userService: service.UserService,
-    actorSystem: ActorSystem,
-    cpuEc: CpuIntensiveExecutionContext
+    actorSystem: ActorSystem
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
 
   implicit val implicitConfig: Configuration = config
-  val dateFormatter: DateTimeFormatter       = DateTimeFormatter.ofPattern("yyyy-MM-dd")
   private val logger                         = Logger(this.getClass)
-
-  /**
-   * Loads the admin page.
-   */
-  def index = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    for {
-      commonData <- configService.getCommonPageData(request2Messages.lang)
-      tags       <- labelService.getTagsForCurrentCity
-    } yield {
-      cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Admin")
-      Ok(views.html.admin.index(commonData, "Sidewalk - Admin", request.identity, tags))
-    }
-  }
 
   /**
    * Loads the admin version of the user dashboard page.
@@ -120,46 +104,25 @@ class AdminController @Inject() (
   }
 
   /**
-   * Get a list of all labels for the admin page.
+   * Get a list of all labels for the admin page, as a GeoJSON FeatureCollection of points.
+   *
+   * The public variant without the admin-only fields is LabelController.getAllLabelsForLabelMap at /labels/all. The
+   * response is streamed from the db in a chunked response rather than materialized in memory (#3932).
    */
-  def getAllLabels = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    labelService
-      .getLabelsForLabelMap(Seq(), Seq(), Seq())
-      .map { labels =>
-        val features: Seq[JsObject] = labels.map { label =>
-          Json.obj(
-            "type"     -> "Feature",
-            "geometry" -> Json.obj(
-              "type"        -> "Point",
-              "coordinates" -> Json.arr(label.lng, label.lat)
-            ),
-            "properties" -> Json.obj(
-              "audit_task_id"        -> label.auditTaskId,
-              "label_id"             -> label.labelId,
-              "label_type"           -> label.labelType,
-              "severity"             -> label.severity,
-              "correct"              -> label.correct,
-              "has_validations"      -> label.hasValidations,
-              "has_admin_validation" -> label.hasAdminValidation,
-              "ai_validation"        -> label.aiValidation.map(_.toString),
-              "expired"              -> label.expired,
-              "has_backup"           -> label.hasBackup,
-              "high_quality_user"    -> label.highQualityUser,
-              "ai_generated"         -> label.aiGenerated,
-              "tags"                 -> label.tags
-            )
-          )
-        }
-        val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
-        Ok(featureCollection)
-      }(cpuEc)
+  def getAllLabels = cc.securityService.SecuredAction(WithAdmin()) { _ =>
+    val labels = labelService.getLabelsForLabelMap(Seq(), Seq(), Seq(), DEFAULT_BATCH_SIZE)
+    Future.successful(streamGeoJson(labels.map(labelForLabelMapToGeoJson(_, admin = true)), "adminapi/labels/all"))
   }
 
   /**
-   * Get a list of all tags used for the admin page.
+   * Get per-tag usage counts for the admin Data Quality page.
+   *
+   * Admin-gated: this serves usage statistics, not the tag vocabulary. The public vocabulary lives at
+   * `/v3/api/labelTags`.
+   *
+   * @return JSON array of `{label_type, tag, count}` objects.
    */
-  def getTagCounts = Action.async {
+  def getTagCounts = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getTagCounts.map { tagCounts =>
       Ok(Json.toJson(tagCounts.map(tagCount => {
         Json.obj(
@@ -180,107 +143,6 @@ class AdminController @Inject() (
     adminService.getTagSeverityCounts.map { counts =>
       Ok(Json.obj("tag_severity" -> JsArray(counts.map { c =>
         Json.obj("label_type" -> c.labelType, "tag" -> c.tag, "severity" -> c.severity, "count" -> c.count)
-      })))
-    }
-  }
-
-  /**
-   * Get a list of all labels with metadata needed for /labelMap.
-   */
-  def getAllLabelsForLabelMap(regions: Option[String], routes: Option[String], aiValidationOptions: Option[String]) =
-    Action.async { implicit request =>
-      logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-      val regionIds: Seq[Int]    = parseIntegerSeq(regions)
-      val routeIds: Seq[Int]     = parseIntegerSeq(routes)
-      val aiValOpts: Seq[String] = aiValidationOptions.map(_.split(",").toSeq.distinct).getOrElse(Seq())
-
-      labelService
-        .getLabelsForLabelMap(regionIds, routeIds, aiValOpts)
-        .map { labels =>
-          val features: Seq[JsObject] = labels.map { label =>
-            Json.obj(
-              "type"     -> "Feature",
-              "geometry" -> Json.obj(
-                "type"        -> "Point",
-                "coordinates" -> Json.arr(label.lng, label.lat)
-              ),
-              "properties" -> Json.obj(
-                "label_id"          -> label.labelId,
-                "label_type"        -> label.labelType,
-                "severity"          -> label.severity,
-                "correct"           -> label.correct,
-                "has_validations"   -> label.hasValidations,
-                "ai_validation"     -> label.aiValidation.map(_.toString),
-                "expired"           -> label.expired,
-                "has_backup"        -> label.hasBackup,
-                "high_quality_user" -> label.highQualityUser,
-                "ai_generated"      -> label.aiGenerated,
-                "tags"              -> label.tags
-              )
-            )
-          }
-          val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
-          Ok(featureCollection)
-        }(cpuEc)
-    }
-
-  /**
-   * Get audit coverage of each neighborhood.
-   */
-  def getNeighborhoodCompletionRate(regions: Option[String]) = Action.async { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    val regionIds: Seq[Int] = parseIntegerSeq(regions)
-
-    for {
-      regionCompletionInit <- regionService.initializeRegionCompletionTable
-      neighborhoods        <- regionService.selectAllNamedNeighborhoodCompletions(regionIds)
-    } yield {
-      val completionRates: Seq[JsObject] = for (neighborhood <- neighborhoods) yield {
-        val completionRate: Double =
-          if (neighborhood.totalDistance > 0) neighborhood.auditedDistance / neighborhood.totalDistance
-          else 1.0d
-        Json.obj(
-          "region_id"            -> neighborhood.regionId,
-          "total_distance_m"     -> neighborhood.totalDistance,
-          "completed_distance_m" -> neighborhood.auditedDistance,
-          "rate"                 -> completionRate,
-          "name"                 -> neighborhood.name
-        )
-      }
-      Ok(JsArray(completionRates))
-    }
-  }
-
-  /**
-   * Gets count of completed missions for each user.
-   */
-  def getAllUserCompletedMissionCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    adminService.selectMissionCountsPerUser.map { missionCounts =>
-      Ok(Json.toJson(missionCounts.map(x => {
-        Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3)
-      })))
-    }
-  }
-
-  /**
-   * Gets count of completed missions for each anonymous user (diff users have diff ip addresses).
-   */
-  def getAllUserSignInCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    adminService.getSignInCounts.map { counts =>
-      Ok(Json.toJson(counts.map(count => { Json.obj("user_id" -> count._1, "role" -> count._2, "count" -> count._3) })))
-    }
-  }
-
-  /**
-   * Returns city coverage percentage by Date.
-   */
-  def getCompletionRateByDate = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    adminService.streetDistanceCompletionRateByDate.map { streets =>
-      Ok(Json.toJson(streets.map(x => {
-        Json.obj("date" -> dateFormatter.format(x._1), "completion" -> x._2)
       })))
     }
   }
@@ -317,63 +179,6 @@ class AdminController @Inject() (
           )
         }
       case None => Future.successful(NotFound(s"No label found with ID: $labelId"))
-    }
-  }
-
-  /**
-   * Get a count of the number of labels placed by each user.
-   */
-  def getAllUserLabelCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    adminService.getLabelCountsByUser.map { labelCounts =>
-      Ok(Json.toJson(labelCounts.map(x => Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3))))
-    }
-  }
-
-  /**
-   * Outputs a list of validation counts for all users with the user's role, the number of their labels that were
-   * validated, and the number of their labels that were validated & agreed with.
-   */
-  def getAllUserValidationCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    adminService.getValidationCountsByUser.map { validationCounts =>
-      Ok(
-        Json.toJson(
-          validationCounts.map(x =>
-            Json.obj("user_id" -> x._1, "role" -> x._2._1, "count" -> x._2._2, "agreed" -> x._2._3)
-          )
-        )
-      )
-    }
-  }
-
-  /**
-   * Get a count of the number of audits that have been completed each day.
-   */
-  def getAllAuditCounts = Action.async { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    adminService.getAuditCountsByDate.map { auditCounts =>
-      Ok(Json.toJson(auditCounts.map(x => Json.obj("date" -> dateFormatter.format(x._1), "count" -> x._2))))
-    }
-  }
-
-  /**
-   * Get a count of the number of audits that have been completed each day.
-   */
-  def getAllLabelCounts = Action.async { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    adminService.getLabelCountsByDate.map { labelCounts =>
-      Ok(Json.toJson(labelCounts.map(x => Json.obj("date" -> dateFormatter.format(x._1), "count" -> x._2))))
-    }
-  }
-
-  /**
-   * Get a count of the number of validations that have been completed each day.
-   */
-  def getAllValidationCounts = Action.async { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    adminService.getValidationCountsByDate.map { valCounts =>
-      Ok(Json.toJson(valCounts.map(x => Json.obj("date" -> dateFormatter.format(x._1), "count" -> x._2))))
     }
   }
 
@@ -575,76 +380,9 @@ class AdminController @Inject() (
     )
   }
 
-  /**
-   * Gets street edge data for the coverage section of the admin page.
-   */
-  def getCoverageData = silhouette.UserAwareAction.async { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    val JSON_ROLE_MAP = Map(
-      "All"        -> "all_users",
-      "Registered" -> "registered",
-      "Anonymous"  -> "anonymous",
-      "Turker"     -> "turker",
-      "Researcher" -> "researcher"
-    )
-    adminService.getCoverageData.map { data: CoverageData =>
-      // Convert the role names to the JSON format.
-      val auditCounts   = data.streetCounts.audited.map { case (role, n) => (JSON_ROLE_MAP(role), n) }
-      val auditCountsHQ = data.streetCounts.auditedHighQualityOnly.map { case (role, n) => (JSON_ROLE_MAP(role), n) }
-      val dists         = data.streetDistance.audited.map { case (role, n) => (JSON_ROLE_MAP(role), n) }
-      val distsHQ       = data.streetDistance.auditedHighQualityOnly.map { case (role, n) => (JSON_ROLE_MAP(role), n) }
-
-      // Put all data into JSON.
-      Ok(
-        Json.obj(
-          "street_counts" -> Json.obj(
-            "total"   -> data.streetCounts.total,
-            "audited" -> Json.obj(
-              "any_quality"  -> Json.toJson(auditCounts),
-              "high_quality" -> Json.toJson(auditCountsHQ),
-              "with_overlap" -> Json.toJson(data.streetCounts.withOverlap)
-            )
-          ),
-          "street_distance" -> Json.obj(
-            "units"   -> "miles",
-            "total"   -> data.streetDistance.total,
-            "audited" -> Json.obj(
-              "any_quality"  -> Json.toJson(dists),
-              "high_quality" -> Json.toJson(distsHQ),
-              "with_overlap" -> Json.toJson(data.streetDistance.withOverlap)
-            )
-          )
-        )
-      )
-    }
-  }
-
-  /**
-   * Gets the number of users who have contributed to the Activities table on the admin page.
-   */
-  def getNumUsersContributed = silhouette.UserAwareAction.async { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    adminService.getNumUsersContributed.map(userCounts => Ok(Json.toJson(userCounts)))
-  }
-
   def getContributionTimeStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     adminService.getContributionTimeStats.map(timeStat => Ok(Json.toJson(timeStat)))
-  }
-
-  def getLabelCountStats = silhouette.UserAwareAction.async { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    adminService.getLabelCountStats.map(labelCount => Ok(Json.toJson(labelCount)))
-  }
-
-  def getValidationCountStats = silhouette.UserAwareAction.async { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    adminService.getValidationCountStats.map(validationCount => Ok(Json.toJson(validationCount)))
-  }
-
-  def getRecentComments = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    adminService.getRecentExploreAndValidateComments.map(comment => Ok(Json.toJson(comment)))
   }
 
   /**
@@ -708,14 +446,6 @@ class AdminController @Inject() (
     }
   }
 
-  def getRecentLabelMetadata = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    labelService.getRecentLabelMetadata(5000).map(labelMetadata => Ok(Json.toJson(labelMetadata)))
-  }
-
-  /**
-   * Get the stats for the users table in the admin page.
-   */
   /**
    * Contributors-page leaderboards for the redesigned admin dashboard (#4272): top labelers (with label-type mix and
    * severity distribution) and top validators (with agree/disagree/unsure split). snake_case per the dashboard convention.
@@ -851,6 +581,21 @@ class AdminController @Inject() (
   }
 
   /**
+   * Serializes one rolling week-over-week activity window for the Across Cities page (#4758).
+   *
+   * @param w The current- and prior-window totals for one city, or summed across all of them.
+   * @return  The window as snake_case JSON (v3 API convention).
+   */
+  private def activityWindowJson(w: ActivityWindowSummary): JsObject = Json.obj(
+    "labels_7d"             -> w.labels7d,
+    "labels_prior_7d"       -> w.labelsPrior7d,
+    "validations_7d"        -> w.validations7d,
+    "validations_prior_7d"  -> w.validationsPrior7d,
+    "contributors_7d"       -> w.contributors7d,
+    "contributors_prior_7d" -> w.contributorsPrior7d
+  )
+
+  /**
    * Returns a per-city summary scorecard for every deployment, for the cross-city "Across Cities" overview (#4329).
    *
    * Owner-gated: all cities share one database, so per-city Administrators must not see other cities' detail. Merges the
@@ -865,13 +610,19 @@ class AdminController @Inject() (
 
     // Fetch the per-city scorecards and the all-time cross-city weekly series in parallel; the page's "over time" charts
     // default to the last 12 weeks (derived client-side from each city's weekly_trend) and toggle to this all-time set.
+    // The trailing-7-day daily series drives the "this week" bar charts (#4686), and the window summary the
+    // week-over-week deltas on the "Today & this week" tiles (#4758).
     val scorecardsF    = configService.getCityScorecards()
     val allTimeF       = configService.getCrossCityWeeklyTrend(None)
+    val dailyF         = configService.getCrossCityDailyTrend(7)
+    val windowSummaryF = configService.getCrossCityActivitySummary()
     val labelingSpeedF = configService.getCrossCityLabelingSpeed()
 
     for {
       withFlags     <- scorecardsF
       allTimeTrend  <- allTimeF
+      dailyTrend    <- dailyF
+      windowSummary <- windowSummaryF
       labelingSpeed <- labelingSpeedF
     } yield {
       val now        = OffsetDateTime.now()
@@ -967,12 +718,24 @@ class AdminController @Inject() (
       }
 
       // Cross-city weekly series for the full project history (the "All time" toggle on the over-time charts).
+      // new_users feeds the cumulative-users chart (#4686): each person counts once, in their first-activity week.
       val overTimeAllTime = JsArray(allTimeTrend.map { w =>
         Json.obj(
           "week_start"   -> w.weekStart.toString,
           "labels"       -> w.labels,
           "validations"  -> w.validations,
-          "active_users" -> w.activeUsers
+          "active_users" -> w.activeUsers,
+          "new_users"    -> w.newUsers
+        )
+      })
+
+      // Trailing-7-day cross-city daily series for the "this week" bar charts (#4686); zero-filled, today partial.
+      val overTimeDaily = JsArray(dailyTrend.map { d =>
+        Json.obj(
+          "day"          -> d.day.toString,
+          "labels"       -> d.labels,
+          "validations"  -> d.validations,
+          "active_users" -> d.activeUsers
         )
       })
 
@@ -994,7 +757,17 @@ class AdminController @Inject() (
         Json.obj(
           "cities"             -> cities,
           "over_time_all_time" -> overTimeAllTime,
-          "summary"            -> Json.obj(
+          "over_time_daily"    -> overTimeDaily,
+          // Rolling week-over-week windows (trailing 7 days vs the 7 before) for the "Today & this week" tiles
+          // (#4758). Contributors are distinct per city per window, summed across cities (no cross-city dedup).
+          "window_summary" -> activityWindowJson(windowSummary.total),
+          // The same windows kept per city, for the "Most active cities" table. Emitted as its own block rather than
+          // merged into `cities` because the scorecard rows already carry labels_7d/validations_7d on a slightly
+          // different basis (see getCityActivityWindowsBySchema) and two same-named fields would invite mixing them.
+          "window_by_city" -> JsObject(windowSummary.byCity.toSeq.map { case (cityId, w) =>
+            cityId -> activityWindowJson(w)
+          }),
+          "summary" -> Json.obj(
             "num_cities"                -> scorecards.length,
             "num_countries"             -> numCountries,
             "num_languages"             -> numLanguages,
@@ -1154,36 +927,19 @@ class AdminController @Inject() (
   }
 
   /**
-   * Returns information about the thread pools used by the application. Useful for debugging & monitoring thread usage.
+   * Refreshes the cached OSM way data (speed limits etc.). Same as the nightly process, for QA and initial backfill.
    */
-  /**
-   * Returns v3 API usage analytics aggregated from the webpage_activity log.
-   *
-   * Requires admin authentication. Accepts two optional query params:
-   *  - `excludeApiDocs` (Boolean, default true): exclude requests that carry `utm_source=apiDocs` so that
-   *    automated previews in the API docs page are not counted as real consumer traffic.
-   *  - `days` (Int, default 30): number of calendar days of history to include; 0 = all time.
-   *
-   * @param excludeApiDocs Whether to exclude requests from the API docs preview widgets.
-   * @param days           Number of past days of history; 0 means all time.
-   * @return JSON object with endpoint_counts, daily_counts, unique_ips, format_counts, and total_calls.
-   */
-  def getApiAnalytics(excludeApiDocs: Boolean, days: Int) = cc.securityService.SecuredAction(WithAdmin()) {
-    implicit request =>
-      logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-      adminService.getApiAnalytics(excludeApiDocs, days).map {
-        case (endpointCounts, dailyCounts, uniqueIps, formatCounts) =>
-          val totalCalls = endpointCounts.map(_.count).sum
-          Ok(
-            Json.obj(
-              "endpoint_counts" -> endpointCounts.map(c => Json.obj("endpoint" -> c.endpoint, "count" -> c.count)),
-              "daily_counts"    -> dailyCounts.map(c => Json.obj("date" -> c.date, "count" -> c.count)),
-              "unique_ips"      -> uniqueIps,
-              "format_counts"   -> formatCounts
-                .map(c => Json.obj("endpoint" -> c.endpoint, "format" -> c.format, "count" -> c.count)),
-              "total_calls" -> totalCalls
-            )
-          )
+  def refreshOsmWayData() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    osmWayService
+      .refreshOsmWayData()
+      .map { waysRefreshed => Ok(Json.obj("ways_refreshed" -> waysRefreshed)) }
+      .recover { case NonFatal(e) =>
+        logger.error("OSM way data refresh failed.", e)
+        // Chunks upsert as they complete, so partial progress survives and a re-trigger resumes from what's missing.
+        ServiceUnavailable(
+          Json.obj("error" -> s"Refresh failed partway (${e.getMessage}). Progress is saved; trigger again to resume.")
+        )
       }
   }
 

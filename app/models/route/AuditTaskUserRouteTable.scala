@@ -50,9 +50,16 @@ class AuditTaskUserRouteTable @Inject() (
   val auditTasks          = TableQuery[AuditTaskTableDef]
 
   /**
-   * Adds a new entry if one doesn't exist. Returns true if a new entry was created.
+   * Links an audit task to the route_street row it was served for, if it isn't linked already.
+   *
+   * @param userRouteId   The route walk the task belongs to.
+   * @param auditTaskId   The audit task being submitted.
+   * @param routeStreetId The route_street row the task was served for, as carried through the submission.
+   *                      Honored only if it really belongs to this walk's route; otherwise (and when absent, e.g.
+   *                      a client running cached JS from before the field existed) the row is resolved by street.
+   * @return              True if a new link was created.
    */
-  def insertIfNew(userRouteId: Int, auditTaskId: Int): DBIO[Boolean] = {
+  def insertIfNew(userRouteId: Int, auditTaskId: Int, routeStreetId: Option[Int]): DBIO[Boolean] = {
     auditTaskUserRoutes
       .filter(x => x.userRouteId === userRouteId && x.auditTaskId === auditTaskId)
       .exists
@@ -65,17 +72,32 @@ class AuditTaskUserRouteTable @Inject() (
             .on(_.routeId === _.routeId)
             .filter(_._1.userRouteId === userRouteId)
             .map(_._2)
-          for {
-            routeStreetId: Int <- auditTasks
-              .filter(_.auditTaskId === auditTaskId)
-              .join(streetsInRoute)
-              .on(_.streetEdgeId === _.streetEdgeId)
-              .map(_._2.routeStreetId)
-              .result
-              .head
-            _ <- insert(AuditTaskUserRoute(0, userRouteId, auditTaskId, routeStreetId))
-          } yield {
-            true
+          // Rows this walk has already linked. Excluding them keeps the fallback from handing every traversal of
+          // a repeated street the same row, which would leave the later ones unlinked and the route never
+          // completing.
+          val linked = auditTaskUserRoutes.filter(_.userRouteId === userRouteId).map(_.routeStreetId)
+
+          val submitted: DBIO[Option[Int]] = routeStreetId match {
+            case Some(id) => streetsInRoute.filter(_.routeStreetId === id).map(_.routeStreetId).result.headOption
+            case None     => DBIO.successful(None)
+          }
+          submitted.flatMap { verified =>
+            val resolved: DBIO[Option[Int]] = verified match {
+              case some @ Some(_) => DBIO.successful(some)
+              case None           =>
+                auditTasks
+                  .filter(_.auditTaskId === auditTaskId)
+                  .join(streetsInRoute.filterNot(_.routeStreetId in linked))
+                  .on(_.streetEdgeId === _.streetEdgeId)
+                  .sortBy(_._2.position)
+                  .map(_._2.routeStreetId)
+                  .result
+                  .headOption
+            }
+            resolved.flatMap {
+              case Some(id) => insert(AuditTaskUserRoute(0, userRouteId, auditTaskId, id)).map(_ => true)
+              case None     => DBIO.successful(false) // The task isn't on a street this route still contains.
+            }
           }
       }
       .transactionally
@@ -83,5 +105,14 @@ class AuditTaskUserRouteTable @Inject() (
 
   def insert(newAuditTaskUserRoute: AuditTaskUserRoute): DBIO[Int] = {
     (auditTaskUserRoutes returning auditTaskUserRoutes.map(_.auditTaskId)) += newAuditTaskUserRoute
+  }
+
+  /**
+   * Deletes the progress links for the given route streets. Used when a route edit removes streets: the links
+   * FK-reference route_street, and route-completion progress only makes sense for streets the route contains.
+   * The audit tasks themselves (and their labels) are untouched.
+   */
+  def deleteForRouteStreets(routeStreetIds: Seq[Int]): DBIO[Int] = {
+    auditTaskUserRoutes.filter(_.routeStreetId inSet routeStreetIds).delete
   }
 }

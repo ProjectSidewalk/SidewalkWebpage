@@ -65,15 +65,29 @@ object ValidateFormats {
       redone: Boolean,
       viewerType: ViewerType
   )
-  case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission], validateParams: ValidateParams)
+
+  /**
+   * A request for replacement labels from a Validate mission that ran out of them mid-mission (#4810).
+   *
+   * @param labelTypeId      Label type of the mission being topped up.
+   * @param labelsNeeded     How many labels the client is short.
+   * @param excludedLabelIds Every label the client already holds, so it isn't handed one of them back.
+   * @param validateParams   The page's filters, so replacements match the rest of the mission.
+   */
+  case class MoreLabelsRequest(
+      labelTypeId: Int,
+      labelsNeeded: Int,
+      excludedLabelIds: Seq[Int],
+      validateParams: ValidateParams
+  )
+  // No `skipped`, unlike AuditMissionProgress: only Explore's onboarding can skip a mission.
   case class ValidationMissionProgress(
       missionId: Int,
       missionType: String,
       labelsProgress: Int,
       labelsTotal: Int,
       labelTypeId: Int,
-      completed: Boolean,
-      skipped: Boolean
+      completed: Boolean
   )
   case class ValidationTaskSubmission(
       interactions: Seq[InteractionSubmission],
@@ -199,8 +213,7 @@ object ValidateFormats {
       (JsPath \ "labels_progress").read[Int] and
       (JsPath \ "labels_total").read[Int] and
       (JsPath \ "label_type_id").read[Int] and
-      (JsPath \ "completed").read[Boolean] and
-      (JsPath \ "skipped").read[Boolean]
+      (JsPath \ "completed").read[Boolean]
   )(ValidationMissionProgress.apply _)
 
   implicit val adminValidateParamsReads: Reads[ValidateParams] = (
@@ -245,8 +258,10 @@ object ValidateFormats {
       (JsPath \ "viewer_type").read[ViewerType.Value]
   )(LabelMapValidationSubmission.apply _)
 
-  implicit val skipLabelReads: Reads[SkipLabelSubmission] = (
-    (JsPath \ "labels").read[Seq[LabelValidationSubmission]] and
+  implicit val moreLabelsRequestReads: Reads[MoreLabelsRequest] = (
+    (JsPath \ "label_type_id").read[Int] and
+      (JsPath \ "labels_needed").read[Int] and
+      (JsPath \ "excluded_label_ids").read[Seq[Int]] and
       (JsPath \ "validate_params").read[ValidateParams]
-  )(SkipLabelSubmission.apply _)
+  )(MoreLabelsRequest.apply _)
 }

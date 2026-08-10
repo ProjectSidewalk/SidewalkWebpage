@@ -1,7 +1,7 @@
 /**
  * StorySection — the lived-experience stories disclosure on the label-detail card (#4054).
  *
- * Lazily fetches GET /stories?labelId=N when a label is shown (Gallery's host never calls the label-metadata
+ * Lazily fetches GET /label/:labelId/stories when a label is shown (Gallery's host never calls the label-metadata
  * endpoint, so stories can't ride that payload), then renders the summary (count badge + share CTA) and the story
  * list: text, byline (anonymous or username), photo thumbnails that open the enlarge dialog, the author's
  * own-story delete + dashboard-link controls, and the hidden-by-moderators chip on the author's quarantined story.
@@ -15,11 +15,14 @@ class StorySection {
   #maxTextLength = null;
   #isAccessProblem = null; // From the /stories payload (LabelTypeEnum-sourced); flips the composer's phrasing.
   #fetchToken = 0; // Guards against a stale response landing after a newer label was opened.
+  #highlightStoryId = null; // Pending story deep link (#4722); the first render that could show it consumes it.
 
   /**
    * @param {HTMLElement} root - The host element containing the labelDetail markup.
    * @param {Object} opts
    * @param {string} [opts.currUsername] - The viewer's username, for the composer's show-username option.
+   * @param {?number} [opts.highlightStoryId] - Story a share link pointed at (/label/:id?storyId=, #4722): scrolled
+   *      to and highlighted once the list renders. One-shot — later refreshes and other labels render normally.
    */
   constructor(root, opts) {
     const q = (sel) => root.querySelector(sel);
@@ -37,6 +40,7 @@ class StorySection {
       lightboxCaption: q('.story-lightbox__caption'),
       lightboxClose: q('.story-lightbox__close'),
     };
+    this.#highlightStoryId = opts.highlightStoryId || null;
 
     this.#composer = new StoryComposer(q('.story-composer'), {
       currUsername: opts.currUsername,
@@ -68,9 +72,12 @@ class StorySection {
   /**
    * Points the section at a new label: collapses the disclosure, clears the list, and fetches its stories.
    * @param {number} labelId
+   * @param {?string} [labelTypeName] - Localized label-type name, forwarded to the composer so its title can name
+   *      what the story is about. Omit (or pass null) for the generic title.
    */
-  setLabel(labelId) {
+  setLabel(labelId, labelTypeName = null) {
     this.#labelId = labelId;
+    this.#composer.setLabelType(labelTypeName);
     this.#isAccessProblem = null;
     this.#els.list.replaceChildren();
     this.#els.count.hidden = true;
@@ -92,11 +99,10 @@ class StorySection {
    * @param {number} labelId
    */
   #maybeResumeDraft(labelId) {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('resumeStory') !== String(labelId)) return;
-    params.delete('resumeStory');
-    const qs = params.toString();
-    window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash);
+    const url = new URL(window.location);
+    if (url.searchParams.get('resumeStory') !== String(labelId)) return;
+    url.searchParams.delete('resumeStory');
+    util.url.replaceQuery(url);
     this.#composer.open(labelId, this.#maxTextLength);
   }
 
@@ -105,7 +111,7 @@ class StorySection {
     if (this.#labelId === null) return;
     const token = ++this.#fetchToken;
     try {
-      const res = await fetch(`/stories?labelId=${this.#labelId}`);
+      const res = await fetch(`/label/${this.#labelId}/stories`);
       if (!res.ok) return;
       const data = await res.json();
       if (token !== this.#fetchToken) return;
@@ -144,6 +150,23 @@ class StorySection {
     for (const story of stories) {
       els.list.appendChild(this.#buildStoryRow(story));
     }
+    this.#revealLinkedStory();
+  }
+
+  /**
+   * One-shot deep-link reveal (#4722): when the page was opened from a story share (/label/:id?storyId=), the linked
+   * story is highlighted and scrolled into view once its list renders. A story that is gone (deleted, or hidden by
+   * moderators) simply degrades to the plain label page.
+   */
+  #revealLinkedStory() {
+    if (this.#highlightStoryId === null) return;
+    const row = this.#els.list.querySelector(`[data-story-id="${this.#highlightStoryId}"]`);
+    this.#highlightStoryId = null;
+    if (!row) return;
+    this.#els.details.open = true;
+    row.classList.add('label-detail__story--linked');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    row.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
   }
 
   /**
@@ -153,6 +176,7 @@ class StorySection {
   #buildStoryRow(story) {
     const row = document.createElement('div');
     row.className = 'label-detail__story';
+    row.dataset.storyId = story.story_id; // Anchor for story-deep-linked share pages (#4722).
     if (story.hidden) row.classList.add('label-detail__story--hidden');
 
     if (story.media) {
@@ -247,6 +271,8 @@ class StorySection {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       this.#announce(i18next.t('labelmap:story.deleted'));
       this.refresh();
+      // Same page-level signal the composer emits on save, so other story lists on the page re-fetch too.
+      document.dispatchEvent(new CustomEvent('ps:story:changed', { detail: { storyId } }));
     } catch (err) {
       console.error(err);
     }

@@ -1,5 +1,4 @@
 {
-  "user-description": "Descrição do usuário: ",
   "top-ui": {
     "title": {
       "curb-ramp": "Isto é uma <b>Rampa de Calçada</b>?",
@@ -11,7 +10,9 @@
       "signal": "Isto é um <b>Semáforo de Pedestres</b>?"
     },
     "visibility-control-hide": "Ocultar rótulo (<u>H</u>)",
-    "visibility-control-show": "Mostrar rótulo (<u>H</u>)"
+    "visibility-control-show": "Mostrar rótulo (<u>H</u>)",
+    "visibility-control-tooltip-hide": "Oculta temporariamente o rótulo para ver melhor. (<u>H</u>)",
+    "visibility-control-tooltip-show": "Mostra o rótulo novamente. (<u>H</u>)"
   },
   "validate-menu": {
     "disagree-reason": {
@@ -89,7 +90,13 @@
     }
   },
   "center-ui": {
-    "no-info": "Nenhuma informação disponível"
+    "no-info": "Nenhuma informação disponível",
+    "pano-interactive-message": "Arraste para olhar ao redor, role para aproximar."
+  },
+  "imagery-unavailable": {
+    "title": "Não foi possível carregar as imagens",
+    "body": "Não conseguimos carregar as imagens de rua dos rótulos desta missão, então não há nada para mostrar agora. Suas validações concluídas estão salvas. Isso costuma se resolver sozinho — tente novamente.",
+    "retry": "Tentar novamente"
   },
   "mission-start": {
     "title": "Validar {{n}} {{label_type}} rótulos",

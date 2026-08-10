@@ -2,6 +2,9 @@ package models.story
 
 import com.google.inject.ImplementedBy
 import models.label.LabelTableDef
+import models.pano.PanoDataTableDef
+import models.region.RegionTableDef
+import models.street.StreetEdgeRegionTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
@@ -55,15 +58,17 @@ object Story {
 }
 
 class StoryTableDef(tag: Tag) extends Table[Story](tag, "story") {
-  def storyId: Rep[Int]                        = column[Int]("story_id", O.PrimaryKey, O.AutoInc)
-  def labelId: Rep[Int]                        = column[Int]("label_id")
-  def userId: Rep[String]                      = column[String]("user_id")
-  def storyText: Rep[String]                   = column[String]("story_text")
-  def displayNameMode: Rep[String]             = column[String]("display_name_mode")
-  def visible: Rep[Boolean]                    = column[Boolean]("visible")
-  def moderatedBy: Rep[Option[String]]         = column[Option[String]]("moderated_by")
+  def storyId: Rep[Int]      = column[Int]("story_id", O.PrimaryKey, O.AutoInc)
+  def labelId: Rep[Int]      = column[Int]("label_id")
+  def userId: Rep[String]    = column[String]("user_id")
+  def storyText: Rep[String] = column[String]("story_text")
+  // CHECK (display_name_mode IN ('anonymous', 'username')) in the DB (no Slick DSL for CHECK constraints).
+  def displayNameMode: Rep[String]     = column[String]("display_name_mode", O.Default(Story.DisplayNameAnonymous))
+  def visible: Rep[Boolean]            = column[Boolean]("visible", O.Default(true))
+  def moderatedBy: Rep[Option[String]] = column[Option[String]]("moderated_by")
   def moderatedAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("moderated_at")
-  def createdAt: Rep[OffsetDateTime]           = column[OffsetDateTime]("created_at")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
+  def createdAt: Rep[OffsetDateTime] = column[OffsetDateTime]("created_at")
 
   def * = (storyId, labelId, userId, storyText, displayNameMode, visible, moderatedBy, moderatedAt, createdAt) <> (
     (Story.apply _).tupled,
@@ -90,10 +95,13 @@ class StoryTable @Inject() (
 ) extends StoryTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  val stories    = TableQuery[StoryTableDef]
-  val storyMedia = TableQuery[StoryMediaTableDef]
-  val users      = TableQuery[SidewalkUserTableDef]
-  val labels     = TableQuery[LabelTableDef]
+  val stories           = TableQuery[StoryTableDef]
+  val storyMedia        = TableQuery[StoryMediaTableDef]
+  val users             = TableQuery[SidewalkUserTableDef]
+  val labels            = TableQuery[LabelTableDef]
+  val streetEdgeRegions = TableQuery[StreetEdgeRegionTableDef]
+  val regions           = TableQuery[RegionTableDef]
+  val panoData          = TableQuery[PanoDataTableDef]
 
   def insert(story: Story): DBIO[Int] = {
     (stories returning stories.map(_.storyId)) += story
@@ -120,6 +128,30 @@ class StoryTable @Inject() (
   /** Counts the user's stories posted since `since` — the always-on submission rate limit. */
   def countByUserSince(userId: String, since: OffsetDateTime): DBIO[Int] = {
     stories.filter(s => s.userId === userId && s.createdAt >= since).length.result
+  }
+
+  /**
+   * When the oldest story still counting against the user's daily cap was posted — the one whose expiry from the
+   * rolling window frees the next slot, so the composer can tell the user how long that is.
+   *
+   * Skips `maxPerDay - 1` rows from the newest end rather than simply taking the oldest in the window, so it stays
+   * right when the user is *over* the cap (which happens whenever the configured cap is lowered): with C stories in
+   * the window and a cap of N, C - N + 1 of them have to age out, and this is the newest of those.
+   *
+   * @param userId    The submitting user.
+   * @param since     Start of the rolling window (now - 24h).
+   * @param maxPerDay The configured cap.
+   * @return          The story's timestamp, or None if the user is under the cap.
+   */
+  def nthNewestInWindowAt(userId: String, since: OffsetDateTime, maxPerDay: Int): DBIO[Option[OffsetDateTime]] = {
+    stories
+      .filter(s => s.userId === userId && s.createdAt >= since)
+      .sortBy(_.createdAt.desc)
+      .drop(math.max(0, maxPerDay - 1))
+      .take(1)
+      .map(_.createdAt)
+      .result
+      .headOption
   }
 
   def getMediaForStory(storyId: Int): DBIO[Seq[StoryMedia]] = {
@@ -171,6 +203,35 @@ class StoryTable @Inject() (
       .sortBy(_._1._1.createdAt.desc)
       .result
       .map(_.map { case ((story, label), media) => (story, media, label.labelTypeId) })
+  }
+
+  /**
+   * Newest visible stories city-wide, each with its author's username, its label's type and neighborhood, and the
+   * label's street address when known — the feed for the public /stories listing page (#4688).
+   *
+   * Public-only by design: hidden stories are absent for everyone (authors manage theirs on the dashboard, admins
+   * on /admin/stories), and stories on soft-deleted labels are dropped since their label can't be opened. The
+   * address joins through pano_data, which is back-filled lazily as panos are viewed, so it's often absent.
+   */
+  def getVisibleForCity(n: Int): DBIO[Seq[(Story, Option[StoryMedia], String, Int, Int, String, Option[String])]] = {
+    val visibleWithPlace = for {
+      story            <- stories if story.visible
+      user             <- users if user.userId === story.userId
+      label            <- labels if label.labelId === story.labelId && !label.deleted
+      streetEdgeRegion <- streetEdgeRegions if streetEdgeRegion.streetEdgeId === label.streetEdgeId
+      region           <- regions if region.regionId === streetEdgeRegion.regionId
+    } yield (story, user.username, label.labelTypeId, label.panoId, region.regionId, region.name)
+    visibleWithPlace
+      .joinLeft(storyMedia)
+      .on(_._1.storyId === _.storyId)
+      .joinLeft(panoData)
+      .on(_._1._4 === _.panoId)
+      .sortBy(_._1._1._1.createdAt.desc)
+      .take(n)
+      .result
+      .map(_.map { case (((story, username, labelTypeId, _, regionId, regionName), media), pano) =>
+        (story, media, username, labelTypeId, regionId, regionName, pano.flatMap(_.address))
+      })
   }
 
   /** Most recent stories across all users (hidden included), for the admin moderation queue. */

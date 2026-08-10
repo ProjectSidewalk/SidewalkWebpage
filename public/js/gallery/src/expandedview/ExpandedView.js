@@ -64,6 +64,7 @@ class ExpandedView {
       panoOverlaySource: 'GalleryExpandedImage',
       voteColumnSource: 'GalleryExpandedThumbs',
       showLabelMapLink: true,
+      showExploreHereLink: true,
     });
 
     // Expose panoManager for Keyboard.js zoom shortcuts.
@@ -117,6 +118,8 @@ class ExpandedView {
       label_id: p.label_id,
       label_type: p.label_type,
       pano_id: p.pano_id,
+      lat: p.lat,
+      lng: p.lng,
       camera_lat: p.camera_lat,
       camera_lng: p.camera_lng,
       // Moment objects → raw date strings so LabelDetail can reparse them uniformly.
@@ -310,12 +313,6 @@ class ExpandedView {
    * @param {HTMLElement} galleryCard
    */
   #highlightThumbnail(galleryCard) {
-    // Reset the sidebar as sticky.
-    sg.ui.cardFilter.wrapper.css('position', 'fixed');
-    sg.ui.cardFilter.wrapper.css('top', '');
-    sg.ui.cardContainer.holder.css('margin-left', sg.ui.cardFilter.wrapper.css('width'));
-    sg.scrollStatus.stickySidebar = true;
-
     // Scroll the selected card into view.
     const index = this.cardIndex;
     const page = sg.cardContainer.getCurrentPage();

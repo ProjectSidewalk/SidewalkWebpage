@@ -148,22 +148,27 @@ body {
   pointer-events: none; /* For now, just letting the SV viewer handle panning on it's own. */
 }
 
-.button-on-pano {
+/* Mobile has no --ui-scale, so the shared pano-overlay pill (sized for a scaled desktop tool) needs its own
+   touch-sized dimensions here. */
+.pano-overlay-button {
   height: 66px;
   padding: 0 18px;
   gap: 16px;
   border-radius: 12px;
-  border: 3px solid #525252;
   font-size: 26px;
 }
 
-#label-visibility-control-button {
+/* Both float over the pano's top corners. The holder is what's positioned for the visibility control, since the
+   button itself now sits inside the shared .pano-overlay-button-group (#4726). */
+#label-visibility-control-holder {
   top: 20px;
   left: 20px;
   right: auto;
 }
 
 #validate-undo-button {
+  position: absolute;
+  z-index: 2;
   top: 20px;
   right: 20px;
 }

@@ -15,14 +15,126 @@ import play.api.libs.json.{JsObject, JsValue, Json, JsonConfiguration, JsonNamin
 import java.time.OffsetDateTime
 
 /**
+ * Validation-status filter values for the Raw Labels API's `validationStatus` parameter.
+ *
+ * The value names are the public API tokens. `Unsure` means the label has at least one validation but no consensus
+ * (`correct` still NULL); `Unvalidated` means the label has zero validations.
+ */
+object RawLabelValidationStatus extends Enumeration {
+  val ValidatedCorrect   = Value("validated_correct")
+  val ValidatedIncorrect = Value("validated_incorrect")
+  val Unsure             = Value("unsure")
+  val Unvalidated        = Value("unvalidated")
+}
+
+/**
+ * Parsed severity-set filter from the Raw Labels API's `severity` parameter.
+ *
+ * @param severities          Severity ratings (1-3) to include.
+ * @param includeNullSeverity Whether to include labels with no severity rating (the API's `none` token).
+ */
+case class SeverityFilterForApi(severities: Set[Int], includeNullSeverity: Boolean)
+
+/**
+ * A single parsed entry from the Raw Labels API's `tags` parameter.
+ *
+ * @param labelType Label type the tag is scoped to (e.g. "CurbRamp"), or `None` to match the tag on any label type.
+ * @param tag       The tag name to match.
+ */
+case class TagFilterForApi(labelType: Option[String], tag: String)
+
+object TagFilterForApi {
+
+  /**
+   * Parses and validates the Raw Labels API's repeatable `tags` parameter against a city's tag vocabulary.
+   *
+   * Each occurrence of the parameter is one entry. If an entry's text before the first colon names a label type, the
+   * entry narrows only that type ("CurbRamp:narrow"); otherwise the whole entry is a tag narrowing every type (tag
+   * names may themselves contain colons — "cycle lane: faded paint" — so an unrecognized prefix is not an error).
+   *
+   * An entry is valid when its tag exists in the vocabulary: for its own label type if scoped, on any label type
+   * otherwise. An unknown tag is a 400 rather than a silently-empty match — the same strictness `labelType` gets —
+   * except that an entry which fails whole is first re-read as an older comma-joined list (`tags=a,b` from a
+   * pre-#4786 link) and accepted if every piece is itself valid. Validating before splitting is what lets a tag name
+   * that contains a comma ("yellow box, accessibility features not visible") survive intact.
+   *
+   * @param entries         The tags query parameter occurrences, in the order they were supplied.
+   * @param validLabelTypes Label type names an entry may be scoped to.
+   * @param tagsByLabelType The city's tag vocabulary: label type name -> the tag names of that type.
+   * @return `Right(None)` if absent, `Right(Some(filters))` if every entry validates, or `Left(ApiError)` describing
+   *         the first empty, mis-scoped, or unknown entry.
+   */
+  def parse(
+      entries: List[String],
+      validLabelTypes: Set[String],
+      tagsByLabelType: Map[String, Set[String]]
+  ): Either[ApiError, Option[Seq[TagFilterForApi]]] = {
+    lazy val allTagNames: Set[String] = tagsByLabelType.values.flatten.toSet
+    val emptyValueError               = ApiError.invalidParameter("The tags parameter contains an empty value.", "tags")
+
+    def syntacticParse(entry: String): TagFilterForApi = {
+      val prefix = entry.takeWhile(_ != ':')
+      if (entry.contains(':') && validLabelTypes.contains(prefix))
+        TagFilterForApi(Some(prefix), entry.drop(prefix.length + 1).trim)
+      else TagFilterForApi(None, entry)
+    }
+
+    def validationError(filter: TagFilterForApi): Option[ApiError] = filter match {
+      case TagFilterForApi(Some(labelType), "") =>
+        Some(ApiError.invalidParameter(s"Missing tag after label type '$labelType:' in the tags parameter.", "tags"))
+      case TagFilterForApi(Some(labelType), tag) if !tagsByLabelType.getOrElse(labelType, Set.empty).contains(tag) =>
+        Some(
+          ApiError.invalidParameter(
+            s"'$tag' is not a tag of label type '$labelType'; see /v3/api/labelTags for this city's tags.",
+            "tags"
+          )
+        )
+      case TagFilterForApi(None, tag) if !allTagNames.contains(tag) =>
+        Some(ApiError.invalidParameter(s"Unknown tag '$tag'; see /v3/api/labelTags for this city's tags.", "tags"))
+      case _ => None
+    }
+
+    def resolveEntry(entry: String): Either[ApiError, Seq[TagFilterForApi]] =
+      if (entry.isEmpty) Left(emptyValueError)
+      else {
+        val whole = syntacticParse(entry)
+        validationError(whole) match {
+          case None                           => Right(Seq(whole))
+          case Some(_) if entry.contains(',') =>
+            val pieces = entry.split(",").map(_.trim).toSeq
+            if (pieces.exists(_.isEmpty)) Left(emptyValueError)
+            else {
+              val parsed = pieces.map(syntacticParse)
+              // A piece-level error names the actual offender; the whole-entry error would name the joined text.
+              parsed.flatMap(validationError).headOption.toLeft(parsed)
+            }
+          case Some(wholeError) => Left(wholeError)
+        }
+      }
+
+    val trimmed = entries.map(_.trim)
+    if (trimmed.isEmpty) Right(None)
+    else {
+      trimmed
+        .foldLeft[Either[ApiError, Vector[TagFilterForApi]]](Right(Vector.empty)) {
+          case (Left(error), _)    => Left(error)
+          case (Right(acc), entry) => resolveEntry(entry).map(acc ++ _)
+        }
+        .map(filters => Some(filters))
+    }
+  }
+}
+
+/**
  * Represents parsed and validated filters from query parameters for the Raw Labels API.
  *
  * @param bbox Optional bounding box to filter labels by geographic location
  * @param labelTypes Optional list of label types to include (e.g., "CurbRamp", "NoCurbRamp")
- * @param tags Optional list of tags to filter by (e.g., "narrow", "cracked")
+ * @param tags Optional list of tag filters, each optionally scoped to a label type
+ * @param severity Optional severity-set filter; mutually exclusive with minSeverity/maxSeverity
  * @param minSeverity Optional minimum severity score (1-3 scale)
  * @param maxSeverity Optional maximum severity score (1-3 scale)
- * @param validationStatus Optional validation status filter ("Agreed", "Disagreed", "Unsure")
+ * @param validationStatuses Optional set of validation statuses to include (OR semantics)
  * @param startDate Optional start date for filtering labels by creation time
  * @param endDate Optional end date for filtering labels by creation time
  * @param regionId Optional region ID to filter labels by geographic region
@@ -31,10 +143,11 @@ import java.time.OffsetDateTime
 case class RawLabelFiltersForApi(
     bbox: Option[LatLngBBox] = None,
     labelTypes: Option[Seq[String]] = None,
-    tags: Option[Seq[String]] = None,
+    tags: Option[Seq[TagFilterForApi]] = None,
+    severity: Option[SeverityFilterForApi] = None,
     minSeverity: Option[Int] = None,
     maxSeverity: Option[Int] = None,
-    validationStatus: Option[String] = None,
+    validationStatuses: Option[Set[RawLabelValidationStatus.Value]] = None,
     highQualityUserOnly: Boolean = false,
     startDate: Option[OffsetDateTime] = None,
     endDate: Option[OffsetDateTime] = None,
@@ -189,6 +302,7 @@ case class LabelDataForApi(
         "label_id"       -> labelId,
         "user_id"        -> userId,
         "pano_id"        -> panoId,
+        "pano_source"    -> panoSource.toString,
         "label_type"     -> labelType,
         "severity"       -> severity,
         "tags"           -> tags,
@@ -242,6 +356,7 @@ case class LabelDataForApi(
       labelId.toString,
       userId,
       panoId,
+      panoSource.toString,
       labelType,
       severity.map(_.toString).getOrElse(""),
       escapeCsvField(tags.mkString("[", ",", "]")),
@@ -294,10 +409,11 @@ object LabelDataForApi {
    * CSV header string with field names in the same order as the toCsvRow output.
    * This should be included as the first line when generating CSV output.
    */
-  val csvHeader: String = "label_id,user_id,pano_id,label_type,severity,tags,description,time_created,street_edge_id," +
-    "osm_way_id,region_id,region_name,correct,agree_count,disagree_count,unsure_count,validations,audit_task_id,mission_id," +
-    "image_capture_date,heading,pitch,zoom,canvas_x,canvas_y,canvas_width,canvas_height,pano_x,pano_y,pano_width," +
-    "pano_height,camera_heading,camera_pitch,camera_roll,pano_url,latitude,longitude\n"
+  val csvHeader: String =
+    "label_id,user_id,pano_id,pano_source,label_type,severity,tags,description,time_created,street_edge_id," +
+      "osm_way_id,region_id,region_name,correct,agree_count,disagree_count,unsure_count,validations,audit_task_id,mission_id," +
+      "image_capture_date,heading,pitch,zoom,canvas_x,canvas_y,canvas_width,canvas_height,pano_x,pano_y,pano_width," +
+      "pano_height,camera_heading,camera_pitch,camera_roll,pano_url,latitude,longitude\n"
 
   /**
    * Implicit JSON writer for LabelData that uses the toJson method.

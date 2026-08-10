@@ -13,44 +13,47 @@
   "others": "others",
   "tutorial": {
     "mission-message": "Complete the onboarding tutorial!",
-    "select-label-type-1": "In this Street View image, we have drawn an arrow to a curb ramp. Let’s label it. Click the flashing <span class=\"bold\">\"Curb Ramp\" button</span> above.",
+    "introduce-curb-ramp": "This arrow points to a <span class=\"bold\">curb ramp</span> (or \"curb cut\") — it lets wheelchair users move between the sidewalk and the street. Let's label it!",
+    "select-label-type-1": "Click this <span class=\"bold\">\"Curb Ramp\" button</span> to label the curb ramp.",
     "label-attribute-1": "Good! Now <span class=\"bold\">click the curb ramp</span> beneath the flashing yellow arrow to label it.",
-    "rate-severity-1": "Now you can rate the quality of the curb ramp. Because it is wide enough and has a tactile warning, <span class=\"bold\">let's rate the quality as Good.</span>",
-    "redo-rate-attribute-1": "Uh-oh, you should rate this curb ramp as Good. It is a high quality curb ramp that is wide enough and has a tactile warning. <span class=\"bold\">Let’s click \"Good\" to set its quality.</span>",
+    "rate-severity-1": "Now rate the curb ramp's quality. The slope and tactile warning strip are good, but the ramp points into traffic so click {{rating}}.",
+    "redo-rate-attribute-1": "Uh-oh — this ramp is decent, but pointing into traffic makes it just OK. Click {{rating}}.",
+    "tag-attribute-1": "Good! It's also helpful to add tags, so click the {{tag}} tag to capture more detail.",
+    "redo-tag-attribute-1": "Hmm — pointing into traffic is this ramp's only issue. Add just the {{tag}} tag.",
     "select-label-type-2": "Now let's label the painted crosswalk. <span class=\"bold\">Click the \"Marked Crosswalk\" button</span>.",
     "label-attribute-2": "Great! Now <span class=\"bold\">click beneath the flashing yellow arrow</span> to label the crosswalk.",
     "adjust-heading-angle-1": "Great! Let’s adjust the view to look at another corner of the intersection. <span class=\"bold\">Grab and drag the Street View image to look left.</span>",
-    "zoom-in": "Hmm, it looks like the intersection corner is too far away to see clearly. <span class=\"bold\">Click the “Zoom In” button</span> to get a closer look.",
+    "zoom-in": "Hmm, the corner is too far away to see clearly. <span class=\"bold\">Click the “Zoom In” button</span> — or press <kbd class=\"onboarding-kbd\">Z</kbd>. Most controls have keyboard shortcuts like this.",
     "select-label-type-3": "Great! Now you’ve found another curb ramp. Let’s label it! <span class=\"bold\">Click the “Curb Ramp” button</span> like before.",
     "label-attribute-3": "Now <span class=\"bold\">click the curb ramp</span> beneath the flashing yellow arrow to label it.",
-    "rate-severity-3": "Good, now <span class=\"bold\">rate the quality</span> of the curb ramp.",
-    "redo-rate-attribute-3": "Uh-oh, you should rate this curb ramp as Okay. It is a high quality curb ramp but it has no landing space at the top of the ramp for making turns. <span class=\"bold\">Let’s click \"Okay\" to set its quality.</span>",
-    "tag-attribute-3": "Every label includes optional tags that add descriptive information. Choose appropriate tags for every label you place! <span class=\"bold\">Let's add the “not enough landing space” tag</span> because there is not enough space for a wheelchair user to turn when they get to the top of the ramp.",
-    "redo-tag-attribute-3": "Only the \"not enough landing space\" tag applies here, since the curb ramp has a tactile warning, is not too narrow nor steep, and does not point into traffic. So add <span class=\"bold\">only the \"not enough landing space\" tag.</span>",
+    "rate-severity-3": "This ramp is positioned better than the last one, but it has no flat landing space at the top, so again click {{rating}}.",
+    "redo-rate-attribute-3": "Uh-oh — the missing landing space at the top is this ramp's only problem. Click {{rating}}.",
+    "tag-attribute-3": "Good! Now click the {{tag}} tag to record the missing landing space.",
+    "redo-tag-attribute-3": "Only one tag applies here — the ramp has a tactile warning and isn't narrow or steep. Add just the {{tag}} tag.",
     "select-label-type-4": "Notice that there is no curb ramp at the end of this crosswalk. <span class=\"bold\">Click the \"Missing Curb Ramp\" button</span> to label it.",
     "label-attribute-4": "Now click beneath the flashing yellow arrow to <span class=\"bold\">label the missing curb ramp.</span>",
-    "rate-severity-4": "Since this missing curb ramp is next to an existing curb ramp, this accessibility problem is less severe. So <span class=\"bold\">let’s rate it as Medium.</span> When you rate accessibility, we just ask that you <span class=\"bold\">use your best judgment!</span>",
-    "redo-rate-attribute-4": "Hmm, since this missing curb ramp is next to an existing curb ramp, this accessibility problem is less severe. <span class=\"bold\">Let’s click \"Medium\" to change the severity of the missing curb ramp.</span>",
-    "tag-attribute-4": "<span class=\"bold\">Let's add the \"alternate route present\" tag</span> because there is a nearby curb ramp that could be used.",
-    "redo-tag-attribute-4": "The \"alternate route present\" tag is the only tag that applies here because there is a nearby curb ramp that could be used. So add <span class=\"bold\">only the \"alternate route present\" tag.</span>",
+    "rate-severity-4": "A missing curb ramp is a serious barrier. The nearby ramp is a fallback, but it routes wheelchair users into traffic — so click {{rating1}} or {{rating2}}, using your best judgment.",
+    "redo-rate-attribute-4": "Hmm — a missing curb ramp is a real accessibility barrier, even with another ramp nearby. Click {{rating1}} or {{rating2}}.",
+    "tag-attribute-4": "Click the {{tag}} tag to record that nearby curb ramp.",
+    "redo-tag-attribute-4": "Only one tag applies here. Add just the {{tag}} tag.",
     "select-label-type-5": "On the pole you can see a light telling pedestrians that they can cross the street. <span class=\"bold\">Click the \"Pedestrian Signal\" button</span> to label it.",
-    "label-attribute-5": "Now let's label it by <span class=\"bold\">clicking beneath the flashing yellow arrow</span>. You can see the light higher up on the pole, but we ask you to add your label at the bottom of the pole because it gives us a more accurate location.",
-    "zoom-out": "Now let’s zoom out and look at the next intersection corner. <span class=\"bold\">Click the “Zoom Out” button</span>.",
+    "label-attribute-5": "<span class=\"bold\">Click beneath the flashing yellow arrow</span>, at the base of the pole — labeling the base, not the light, gives us a more accurate location.",
+    "zoom-out": "Now let's look at the next corner. <span class=\"bold\">Click the “Zoom Out” button</span> — or press <kbd class=\"onboarding-kbd\">Shift</kbd>+<kbd class=\"onboarding-kbd\">Z</kbd>.",
     "adjust-heading-angle-2": "Look to the left by <span class=\"bold\">grabbing and dragging the Street View image.</span>",
     "select-label-type-6": "There seems to be a painted crosswalk here as well. First, <span class=\"bold\">click on the \"Marked Crosswalk\" button</span>.",
     "label-attribute-6": "Let's label it by placing your label near the center of the crosswalk. <span class=\"bold\">Click below the flashing arrow</span> to add your label.",
     "adjust-heading-angle-3": "Keep looking <span class=\"bold\">left</span>.",
-    "speed-things-up": "To help speed things up, we are labeling these two curb ramps, this crosswalk, and this pedestrian signal for you. <span class=\"bold\">In the future, you should label all of these yourself!</span>",
+    "speed-things-up": "To speed up the tutorial, we've labeled these <span class=\"bold\">two curb ramps</span>, this <span class=\"bold\">crosswalk</span>, and this <span class=\"bold\">pedestrian signal</span> for you. In real missions, spotting these is your job!",
     "select-label-type-7": "Notice that the sidewalk suddenly ends here. Let’s label this. Click the <span class=\"bold\">\"No Sidewalk\"</span> button to label it.",
     "label-attribute-7": "<span class=\"bold\">Click on the ground</span> where the sidewalk is missing.",
-    "tag-attribute-7": "<span class=\"bold\">Let's add the \"ends abruptly\" and \"street has a sidewalk\" tags</span> because there is a sidewalk on the other side of the street.",
-    "redo-tag-attribute-7": "The \"ends abruptly\" and \"street has a sidewalk\" tags are the only tags that apply here. So <span class=\"bold\">make sure to add only those two tags.</span>",
+    "tag-attribute-7": "Add the {{tag1}} and {{tag2}} tags — the sidewalk stops here, but the other side of the street has one.",
+    "redo-tag-attribute-7": "Only those two tags apply here. Add just the {{tag1}} and {{tag2}} tags.",
     "adjust-heading-angle-4": "Awesome! Let’s finish labeling the last curb ramp in the intersection. First, <span class=\"bold\">grab and drag the Street View image.</span>",
-    "select-label-type-8": "Good! Now <span class=\"bold\">click the \"Curb Ramp\" button</span> on the menu to label it.",
+    "select-label-type-8": "Good! Now <span class=\"bold\">click the \"Curb Ramp\" button</span> — or just press {{key}}, much faster than mousing up to the menu.",
     "label-attribute-8": "<span class=\"bold\">Click the curb ramp</span> beneath the flashing yellow arrow to label it.",
-    "rate-severity-8": "Now <span class=\"bold\">rate the curb ramp’s quality</span>. Use your best judgment. You can also write notes in the <span class=\"bold\">Description Box.</span>",
-    "redo-rate-attribute-8": "Hmm, you should rate this curb ramp as Good. This curb ramp is wide enough, has a tactile warning, and doesn't point into traffic. <span class=\"bold\">Let’s click \"Good\" to change its rating.</span>",
-    "select-label-type-9": "We shouldn't forget the pedestrian signal! <span class=\"bold\">Click the \"Pedestrian Signal\" button</span> to label it.",
+    "rate-severity-8": "Rate this curb ramp's quality — it's wide, has a tactile warning, and doesn't point into traffic, so click {{rating}}. You can also write notes in the description box.",
+    "redo-rate-attribute-8": "Uh-oh — this ramp is wide, has a tactile warning, and doesn't point into traffic. Click {{rating}}.",
+    "select-label-type-9": "We shouldn't forget the pedestrian signal! <span class=\"bold\">Click the \"Pedestrian Signal\" button</span> — or press {{key}}.",
     "label-attribute-9": "<span class=\"bold\">Click at the base of the pole</span> to label this pedestrian signal.",
     "adjust-heading-angle-5": "Great Job! We are almost done. Now let’s learn how to move. <span class=\"bold\">Grab and drag the Street View image</span>.",
     "walk-1": "Good! Now to figure out where to go next, you will follow the <span class=\"bold\" style=\"color: #ff0000;\">red</span> line on this mini map.",
@@ -59,7 +62,7 @@
     "walk-4": "Great! You just moved down the street. Visited parts of a route are marked in <span class= \"bold\" style=\"color: #3c763d;\">green</span> in the mini map.",
     "walk-5-1": "Now you can look for more issues at this location. In this case, notice how there is a crosswalk with pedestrian signals but <span class=\"bold\">no curb ramps</span> at either end.",
     "walk-5-2": "Yes! I see the missing curb ramps.",
-    "walk-6": "In the future, you will need to add all of these labels yourself. But we want to get you started on actual missions, so let’s <span class=\"bold\">finish this tutorial!</span>",
+    "walk-6": "Here are a few more examples at this corner. Let's finish up and get you onto a real mission!",
     "instruction-1": "You can track your labels in the mini map!",
     "instruction-2": "Finally, if you get stuck while exploring, you can use the <span class=\"bold\">Stuck button</span> to move to a different location.",
     "common": {
@@ -69,8 +72,8 @@
       "label-too-far-signal": "$t(audit:tutorial.common.label-too-far-start) For tall objects like poles, we ask you to add labels at the base of the pole. This gives us more accurate location info! $t(audit:tutorial.common.label-too-far-end)",
       "label-too-far-generic": "$t(audit:tutorial.common.label-too-far-start) Let's remove the misplaced label. $t(audit:tutorial.common.label-too-far-end)",
       "re-label": "Good! Now, let's label again. <span class=\"bold\">Click the \"{{label_type}}\" button</span> above.",
-      "rate-crosswalk-sev-1": "Now you can rate the quality of the crosswalk. Because the surface is smooth and the paint isn't fading, <span class=\"bold\">let’s rate the quality as Good.</span>",
-      "redo-rate-crosswalk-sev-1": "Uh-oh, you should rate this crosswalk as Good. The surface looks smooth and the paint isn't fading. <span class=\"bold\">Let’s click \"Good\" to set its quality.</span>"
+      "rate-crosswalk-sev-1": "Now rate the crosswalk's quality. The surface is smooth and the paint isn't fading, so click {{rating}}.",
+      "redo-rate-crosswalk-sev-1": "Uh-oh — the surface is smooth and the paint isn't fading, so this crosswalk is high quality. Click {{rating}}."
     }
   },
   "mission-complete": {
@@ -88,17 +91,20 @@
     "stat-labels-all": "{{count}} labels created",
     "stat-labels-you": "You've added {{count}} labels",
     "button-next-mission": "Next Explore Mission",
+    "button-keep-exploring-here": "Keep exploring here",
     "button-try-validation": "Try Validation"
   },
   "tutorial-intro": {
     "eyebrow": "Explore Mission",
     "title": "Join the Sidewalk Mission",
+    "route-waiting": "Your route is ready and waiting — we'll take you straight to it after this quick tutorial.",
     "next": "Next",
     "start-mission": "Start Mission",
     "have-account": "Have an account?",
     "sign-in": "Sign-In",
     "already-tutorial": "Already taken the tutorial?",
     "skip": "Skip",
+    "pause-animation": "Pause animation",
     "explore": {
       "title": "Explore",
       "description": "Spot accessibility issues around the city."
@@ -136,12 +142,25 @@
     "no-accuracy-tooltip": "We need more data to calculate an accuracy rating for you. Add more labels and sign up to keep track of your accuracy rating!",
     "current-mission": {
       "header": "Current Mission",
-      "header-route": "$t(right-ui.current-mission.header): Route {{route_number}}",
+      "message-route": "Explore {{routeName}}",
+      "header-free-explore": "Free Exploration",
       "message": "Explore __PLACEHOLDER__ of {{neighborhoodName}}"
     },
     "minimap": {
-      "follow-red-line": "Follow the red line to continue the mission",
-      "explore-current-location": "Turn 360 degrees to make sure nothing is missed."
+      "coach-dismiss": "Got it",
+      "distance-left": "{{distance}} left",
+      "explore-current-location": "Turn 360 degrees to make sure nothing is missed.",
+      "fit-mission": "Show whole mission",
+      "fit-street": "Back to street level",
+      "route-overview": "Route overview: tap to see the whole route",
+      "observed-tooltip": "How much of your surroundings you've looked around",
+      "legend-title": "Map key",
+      "mission-progress": "Mission progress",
+      "legend-explored": "Explored",
+      "legend-ahead": "Route ahead",
+      "legend-you": "You + view direction",
+      "legend-visited": "Visited location",
+      "legend-unseen": "Not yet viewed"
     },
     "stats": {
       "leaderboard-cta": "See the community leaderboard"
@@ -163,8 +182,13 @@
     }
   },
   "center-ui": {
+    "hover-card": {
+      "delete": "Delete",
+      "edit": "Edit"
+    },
     "context-menu": {
-      "severity": "Please click to label a severity",
+      "rate-severity-prompt": "Please click to rate severity",
+      "rate-quality-prompt": "Please click to rate quality",
       "severity-shortcuts": "Press keys 1-3 for severity",
       "label-popup-shortcuts": "Press <tag-underline>{{c}}</tag-underline> to add tag",
       "tag": {
@@ -261,7 +285,8 @@
       "slight-left": "Turn slightly left",
       "slight-right": "Turn slightly right",
       "u-turn": "U turn",
-      "end-route": "You're at the end of your route! Finish labeling this intersection, then <b>click here to complete the route.</b>",
+      "end-route": "You're at the end of your route! Look all the way around to finish — or <b>click here to complete now.</b>",
+      "route-finish-look-around": "Last stop! Take a full look around to finish your route.",
       "end-neighborhood": "You've explored this entire neighborhood! Finish labeling this intersection, then <b>click here to complete the neighborhood.</b>",
       "end-street": "We need to move you to a new location. Finish labeling this intersection, then <b>click here to move to a new location.</b>",
       "far-away": "Uh-oh, you're quite far away from the route. <b>Click here to jump back.</b>"
@@ -293,6 +318,9 @@
     "label-shortcuts-occlusion": "You can also press the <kbd>{{key}}</kbd> key for selecting the Can't See the Sidewalk label.",
     "still-stuck": "If you're still stuck, click the Stuck button again.",
     "stuck-skipped-street": "We couldn't find a spot for you on that street, so we moved you to a new street.",
+    "free-explore-start": "You've been dropped near your searched address. Look around and label what you find!",
+    "free-explore-start-named": "You've been dropped close to <b>{{placeName}}</b>. Look around and label what you find!",
+    "free-explore-no-imagery": "There's no more street imagery in this direction. Try looking around or heading the other way.",
     "stuck-suggestion": "If you can't move with the arrows, trying clicking on the navigation directions in the bottom right. Or try clicking on the Stuck button on the left."
   },
   "mission-start-tutorial": {

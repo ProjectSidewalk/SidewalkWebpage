@@ -2,12 +2,14 @@
   "tutorial-intro": {
     "eyebrow": "探索任務",
     "title": "加入 Sidewalk 任務",
+    "route-waiting": "你的路線已準備好，完成這個簡短教學後我們會直接帶你過去。",
     "next": "下一步",
     "start-mission": "開始任務",
     "have-account": "已經有帳戶了嗎？",
     "sign-in": "登入",
     "already-tutorial": "已經完成教學了嗎？",
     "skip": "跳過",
+    "pause-animation": "暫停動畫",
     "explore": {
       "title": "探索",
       "description": "在城市中發現無障礙問題。"
@@ -41,44 +43,47 @@
   "others": "其他",
   "tutorial": {
     "mission-message": "請完成入門教學！",
-    "select-label-type-1": "在這個街景中可見到箭頭指向路緣斜坡，讓我們來標記它吧！於上方選單中尋找並點選閃爍中的 <span class=\"bold\">「路緣斜坡」項目</span> 。",
+    "introduce-curb-ramp": "這個箭頭指向一個<span class=\"bold\">路緣斜坡</span>——它讓輪椅使用者能在人行道與街道之間通行。我們來標記它吧！",
+    "select-label-type-1": "請點選這個<span class=\"bold\">「路緣斜坡」按鈕</span>來標記它。",
     "label-attribute-1": "很好！現在請<span class=\"bold\">點選</span>閃爍箭頭下的<span class=\"bold\">路緣斜坡</span>進行標記。",
-    "rate-severity-1": "現在，您可以評估此路緣斜坡的品質。 因為在此處，路緣斜坡寬度足夠且有設置導盲警示帶，<span class=\"bold\">我們將品質評定為良好。</span>",
-    "redo-rate-attribute-1": "不對喔，您應該將此路緣斜坡評為良好的分（可輕易通行），因為這個路緣斜坡寬度足夠且設有導盲警示帶。<span class=\"bold\">請點選 「良好」 做為它的評分。</span>",
+    "rate-severity-1": "現在請評分此路緣斜坡的品質。坡度和導盲警示帶都不錯，但它對著車流，請點選 {{rating}}。",
+    "redo-rate-attribute-1": "不對喔 — 這個路緣斜坡雖然不錯，但它對著車流，所以只算普通。請點選 {{rating}}。",
+    "tag-attribute-1": "很好！加上標籤也很有幫助，請點選 {{tag}} 標籤來記錄更多細節。",
+    "redo-tag-attribute-1": "嗯——這個路緣斜坡唯一的問題就是對著車流。請只加上 {{tag}} 標籤。",
     "select-label-type-2": "現在我們來標記行人穿越道吧！請<span class=\"bold\">點擊 「有標記的行人穿越道」 鈕</span>.",
     "label-attribute-2": "好極了！ 現在請<span class=\"bold\">點擊</span>閃爍的黃箭頭下方</span> 來標記這個行人穿越道。",
     "adjust-heading-angle-1": "好極了！我們調整一下視角來檢視同個路口的另一個轉角吧。<span class=\"bold\">請向右拖拉街景圖以檢視圖的左側。</span>",
-    "zoom-in": "喔...看來這個路口轉角太遠了，看不太清楚。<span class=\"bold\">請點選「放大」選項</span>以便更清楚地檢視。",
+    "zoom-in": "喔...這個轉角太遠了，看不清楚。<span class=\"bold\">請點選「放大」按鈕</span>——或按 <kbd class=\"onboarding-kbd\">Z</kbd> 鍵。大多數控制項都有這樣的鍵盤快捷鍵。",
     "select-label-type-3": "很好！現在您可以看到另一個路緣斜坡了。讓我們來標記它吧！<span class=\"bold\">請點選「路緣斜坡」項目。</span> ",
     "label-attribute-3": "現在，在閃爍的黃色箭頭下方的<span class=\"bold\">「路緣斜坡」點下去</span> 來標記它。",
-    "rate-severity-3": "好，現在請為路緣斜坡的<span class=\"bold\">品質評分。</span>",
-    "redo-rate-attribute-3": "不太對喔！您應該將此路緣斜坡評為普通的分，「還能通行」。雖然此路緣斜坡的品質不錯，但是它的坡頂平臺空間不夠寬敞，因此無法讓輪椅能順利地轉向。所以<span class=\"bold\">請點選 「普通」 為其評分。</span>",
-    "tag-attribute-3": "在每一個標記內都可選擇增添「標籤」(tag)以更仔細地描述狀況。當設置每一個標記時，若櫥窗內所顯示的標籤內有符合該標記的狀況時(可不止一個)，請點選它吧！<span class=\"bold\">請增添 「坡頂平臺空間不足」標籤</span>，因為當輪椅抵達坡頂平臺時將無足夠空間可以轉向。",
-    "redo-tag-attribute-3": "僅有「坡頂平臺空間不足」標籤適用於此標記，因為此路緣斜坡有設置導盲警示帶，不會太窄或太陡，方向也不是對著交通車流。因此請只點選<span class=\"bold\"> 「坡頂平臺空間不足」標籤。</span>",
+    "rate-severity-3": "這個路緣斜坡的方向比上一個好，但坡頂沒有平坦的轉向空間，所以請再次點選 {{rating}}。",
+    "redo-rate-attribute-3": "不對喔 — 坡頂平臺空間不足是這個路緣斜坡唯一的問題。請點選 {{rating}}。",
+    "tag-attribute-3": "很好！現在請點選 {{tag}} 標籤，記錄坡頂空間不足的問題。",
+    "redo-tag-attribute-3": "此處僅適用一個標籤 — 這個路緣斜坡設有導盲警示帶，不會太窄或太陡。請只加上 {{tag}} 標籤。",
     "select-label-type-4": "請注意在此行人穿越道的末端，該人行道並並未設置路緣斜坡。請<span class=\"bold\">點選「無路緣斜坡」</span>項目來標記它。",
     "label-attribute-4": "請點選閃爍箭號的下方<span class=\"bold\">來標記無路緣斜坡。</span>",
-    "rate-severity-4": "由於此處就在另一個路緣斜坡的旁邊，所以可及性的問題並不嚴重。 因此<span class=\"bold\">請將其標記為中等的分。</span> 在對「可及性評」分時，我們請您<span class=\"bold\">自行判斷</span>即可！",
-    "redo-rate-attribute-4": "我們看一下喔...由於此處緊鄰其他路緣斜坡，因此可及性問題較不嚴重。<span class=\"bold\">請點選「中等的」來更改此路緣斜坡的評分。</span>",
-    "tag-attribute-4": "因為這個欠缺的路緣斜坡緊鄰另一個可通行的路緣斜坡，<span class=\"bold\">請加上「有替代路徑」</span>的標籤。",
-    "redo-tag-attribute-4": "因緊鄰其他可通行的路緣斜坡，「有替代路徑」標籤為此處唯一可使用的標籤。請<span class=\"bold\">只加上「有替代路徑」標籤。</span>",
+    "rate-severity-4": "欠缺路緣斜坡是嚴重的障礙。旁邊的斜坡雖可替代，但會讓輪椅使用者穿越車流——請自行判斷，點選 {{rating1}} 或 {{rating2}}。",
+    "redo-rate-attribute-4": "嗯——即使旁邊有另一個路緣斜坡，欠缺路緣斜坡仍是真正的無障礙障礙。請點選 {{rating1}} 或 {{rating2}}。",
+    "tag-attribute-4": "請點選 {{tag}} 標籤，記錄附近的路緣斜坡。",
+    "redo-tag-attribute-4": "此處僅適用一個標籤。請只加上 {{tag}} 標籤。",
     "select-label-type-5": "在桿子上，您可以看間告知行人是否可過馬路的燈號。請<span class=\"bold\">點擊「行人號誌」</span>來標記它。",
-    "label-attribute-5": "現在請 <span class=\"bold\">點擊閃爍黃色箭頭下方</span>來標記它。你能看到那座號誌設在桿子上較高的地方，但請將標記符號放置在號誌桿的底部，因為如此會記錄較準確的區位。",
-    "zoom-out": "現在請縮小視窗，轉往另一個轉角前進。<span class=\"bold\">請點選「縮小」按鈕</span>。",
+    "label-attribute-5": "<span class=\"bold\">請點選閃爍黃色箭頭下方</span>的桿子底部——標記桿底而非號誌燈，位置會更準確。",
+    "zoom-out": "現在來看下一個轉角。<span class=\"bold\">請點選「縮小」按鈕</span>——或按 <kbd class=\"onboarding-kbd\">Shift</kbd>+<kbd class=\"onboarding-kbd\">Z</kbd>。",
     "adjust-heading-angle-2": "請 <span class=\"bold\">拖拉街景</span>往左看。",
     "select-label-type-6": "看起來這邊也漆有一個行人穿越道。  首先， <span class=\"bold\">點擊 「有標記的行人穿越道」 鈕</span>.",
     "label-attribute-6": "我們來標記它吧，請把標記符號放置在行人穿越道的中心。 請<span class=\"bold\">點擊閃爍的箭頭下方</span> 來增設標記符號。",
     "adjust-heading-angle-3": "繼續往<span class=\"bold\">左</span>。",
-    "speed-things-up": "為了加快進度，我們將替你標記這兩個路緣斜坡、這個行人穿越道及行人號誌。 <span class=\"bold\">但以後你應該自己來喔！</span>",
+    "speed-things-up": "為了加快教學，我們已幫你標記了這<span class=\"bold\">兩個路緣斜坡</span>、這個<span class=\"bold\">行人穿越道</span>和這個<span class=\"bold\">行人號誌</span>。在真正的任務中，找出它們就是你的工作囉！",
     "select-label-type-7": "注意喔，這段人行道突然在這裡中斷，請標記這個狀態。點選<span class=\"bold\">「無實體人行道」</span>項目來標記。",
     "label-attribute-7": "請<span class=\"bold\">點選人行道中斷位置的地面</span>。",
-    "tag-attribute-7": "<span class=\"bold\">請加上「突然中斷」及「街道另一側有人行道」這兩個標籤。</span>",
-    "redo-tag-attribute-7": "「突然中斷」及「街道另一側有人行道」為僅有適用於此處的兩個標籤。因此<span class=\"bold\">請務必僅選擇這兩個標籤。</span>",
+    "tag-attribute-7": "請加上 {{tag1}} 和 {{tag2}} 這兩個標籤 — 人行道在此中斷，但街道另一側有人行道。",
+    "redo-tag-attribute-7": "此處僅適用這兩個標籤。請只加上 {{tag1}} 和 {{tag2}}。",
     "adjust-heading-angle-4": "好極了！我們來完成這個路口的最後一個路緣斜坡標記吧。請<span class=\"bold\">往右拖拉街景</span>。",
-    "select-label-type-8": "很好！現在請在選單上<span class=\"bold\">點選「路緣斜坡」</span>項目來標記它。",
+    "select-label-type-8": "很好！現在請<span class=\"bold\">點選「路緣斜坡」按鈕</span>——或直接按 {{key}} 鍵，比用滑鼠移到選單快多了。",
     "label-attribute-8": "<span class=\"bold\">點選那個路緣斜坡</span>並標記它，它位於閃爍黃色箭頭的下方。",
-    "rate-severity-8": "現在請對此<span class=\"bold\">路緣斜坡的品質評分</span>。請做出自己最佳的判斷。您也可以於<span class=\"bold\">描述欄</span>內描寫特殊的狀況",
-    "redo-rate-attribute-8": "不對喔...您應該將此路緣斜坡評為良好的分，可通行。 這個路緣斜坡寬度足夠、有設置導盲警示帶並且並不對著交通車流。 <span class=\"bold\">請點選「良好」 更改評分。</span>",
-    "select-label-type-9": "可不要忘了這個行人號誌喔！請<span class=\"bold\">點擊 「行人號誌」 鈕</span> 來標記它。",
+    "rate-severity-8": "請評分此路緣斜坡的品質 — 寬度足夠、設有導盲警示帶、不對著車流，請點選 {{rating}}。您也可以在描述欄寫下備註。",
+    "redo-rate-attribute-8": "不對喔 — 這個路緣斜坡寬度足夠、設有導盲警示帶且不對著車流。請點選 {{rating}}。",
+    "select-label-type-9": "可不要忘了這個行人號誌喔！請<span class=\"bold\">點選「行人號誌」按鈕</span>——或按 {{key}} 鍵。",
     "label-attribute-9": "請<span class=\"bold\">點擊桿子的底部</span> 來標記這個行人號誌桿。",
     "adjust-heading-angle-5": "做得好！我們就快完成囉。現在讓我們來學習如何移動。<span class=\"bold\">請按住街景圖並拖拉。</span>",
     "walk-1": "很好！想要知道該往哪邊走時，請依循小地圖上的<span class=\"bold\" style=\"color: #ff0000;\">紅色</span>路線。",
@@ -87,7 +92,7 @@
     "walk-4": "很棒喔！您剛剛已順著街道往前走了。已行經過的街道在小地圖中會轉為<span class= \"bold\" style=\"color: #3c763d;\">綠色</span>路線。",
     "walk-5-1": "現在你可以在此尋找更多的問題。 在此處，你能注意到這裡雖然有行人穿越道和行人號誌，但其穿越道的兩端並<span class=\"bold\">無路緣斜坡</span> 。",
     "walk-5-2": "有！我看到缺路緣斜坡的地方了！",
-    "walk-6": "以後，你必須自行添加所有這些標記。 由於我們希望你可以盡快地開始實際的任務，所以我們來<span class=\"bold\">完成這個教學</span>吧！",
+    "walk-6": "這個轉角還有幾個例子。我們把教學完成，開始真正的任務吧！",
     "instruction-1": "您可以於小地圖中追蹤您的標記。",
     "instruction-2": "最後一點，若您於探索過程中卡住，不知道怎麼辦，您可以點選<span class=\"bold\">卡住鍵</span>，來前往其他地點。",
     "common": {
@@ -97,8 +102,8 @@
       "label-too-far-signal": "$t(audit:tutorial.common.label-too-far-start) 當遇到如桿子這類高挑的物體時，請將標記設置於桿子的底部。 這麼做將會給我們較準確的地理區位資訊喔！ $t(audit:tutorial.common.label-too-far-end)",
       "label-too-far-generic": "$t(audit:tutorial.common.label-too-far-start)讓我們移除放錯位置的標記吧。 $t(audit:tutorial.common.label-too-far-end)",
       "re-label": "很好！現在讓我們再標記一次吧。 <span class=\"bold\">點選「{{label_type}}」 位於上方的選項</span>",
-      "rate-crosswalk-sev-1": "現在，您可以評估此行人穿越道的品質。 由於該路面是平整的並且油漆未退色， 因此我們<span class=\"bold\">我們將品質評定為良好。</span>",
-      "redo-rate-crosswalk-sev-1": "哎呀，你應該將這個行人穿越道評為良好的分(可通行)，因為這裡的路面是平整的且油漆並未退色。<span class=\"bold\">請點選 「良好」 為其評分。</span>"
+      "rate-crosswalk-sev-1": "現在請評分此行人穿越道的品質。路面平整且油漆未退色，請點選 {{rating}}。",
+      "redo-rate-crosswalk-sev-1": "不對喔 — 路面平整且油漆未退色，這個行人穿越道品質良好。請點選 {{rating}}。"
     }
   },
   "mission-complete": {
@@ -116,6 +121,7 @@
     "stat-labels-all": "已建立 {{count}} 個標記",
     "stat-labels-you": "您新增了 {{count}} 個標記",
     "button-next-mission": "下一個探索任務",
+    "button-keep-exploring-here": "在這裡繼續探索",
     "button-try-validation": "嘗試檢核"
   },
   "top-ui": {
@@ -136,12 +142,25 @@
     "no-accuracy-tooltip": "我們需要更多的資料以計算您的精準度。請新增更多的標記並註冊帳號以持續追蹤進度及精準度！",
     "current-mission": {
       "header": "目前的任務",
-      "header-route": "$t(right-ui.current-mission.header): 路線{{route_number}}",
+      "message-route": "探索{{routeName}}",
+      "header-free-explore": "自由探索",
       "message": "探索{{neighborhoodName}}的__PLACEHOLDER__"
     },
     "minimap": {
-      "follow-red-line": "請沿著紅線繼續任務",
-      "explore-current-location": "旋轉 360 度以確保沒有遺漏任何內容。"
+      "coach-dismiss": "知道了",
+      "distance-left": "剩餘 {{distance}}",
+      "explore-current-location": "旋轉 360 度以確保沒有遺漏任何內容。",
+      "fit-mission": "顯示整個任務",
+      "fit-street": "返回街道視角",
+      "route-overview": "路線總覽：點選以查看整條路線",
+      "observed-tooltip": "你已環顧周遭環境的比例",
+      "legend-title": "圖例",
+      "mission-progress": "任務進度",
+      "legend-explored": "已探索",
+      "legend-ahead": "剩餘路線",
+      "legend-you": "你的位置與視角方向",
+      "legend-visited": "已造訪的位置",
+      "legend-unseen": "尚未查看"
     },
     "stats": {
       "leaderboard-cta": "查看社群排行榜"
@@ -162,8 +181,13 @@
     }
   },
   "center-ui": {
+    "hover-card": {
+      "delete": "刪除",
+      "edit": "編輯"
+    },
     "context-menu": {
-      "severity": "請點選並標記問題嚴重度",
+      "rate-severity-prompt": "請點選以評定嚴重度",
+      "rate-quality-prompt": "請點選以評定品質",
       "severity-shortcuts": "從1-3選擇品質",
       "label-popup-shortcuts": "點選<tag-underline>{{c}}</tag-underline>以增加標籤",
       "tag": {
@@ -260,7 +284,8 @@
       "slight-left": "稍微向左轉",
       "slight-right": "稍微向右轉",
       "u-turn": "迴轉",
-      "end-route": "您已到達路線的盡頭！ 完成標記此路口，然後 <b>點選這裡完成路線。</b>",
+      "end-route": "您已到達路線的盡頭！環顧四周一圈即可完成，或 <b>點選這裡立即完成。</b>",
+      "route-finish-look-around": "最後一站！環顧四周一圈以完成您的路線。",
       "end-neighborhood": "您已探索了整個鄰里！ 完成標記此路口，然後<b>點選這裡完成此鄰里。</b>",
       "end-street": "我們需要將您轉移到新的位置。 完成標記此路口，然後<b>點選這裡來移動到新的位置。</b>",
       "far-away": "不妙了！ 您已經離開路線很遠了。<b>點選這裡以回到路線。</b>"
@@ -292,6 +317,9 @@
     "label-shortcuts-occlusion": "您也可按下<kbd>{{key}}</kbd>鍵以選擇「看不見人行道」標記。",
     "still-stuck": "若您仍卡住無法動彈，請再次點選「卡住」鍵。",
     "stuck-skipped-street": "在前一條街道已無可標記的地點，因此我們把您帶往這一條新的街道。",
+    "free-explore-start": "您已被帶到搜尋地址的附近。請環顧四周並標記您發現的問題！",
+    "free-explore-start-named": "您已降落在 <b>{{placeName}}</b> 附近。四處看看，標記您發現的問題！",
+    "free-explore-no-imagery": "這個方向沒有更多街景影像了。請試著環顧四周或往另一個方向前進。",
     "stuck-suggestion": "若您無法透過箭頭移動，請嘗試點選右下角的導航方向，或嘗試點選左側的「卡住」鍵。"
   },
   "mission-start-tutorial": {

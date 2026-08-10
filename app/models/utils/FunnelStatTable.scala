@@ -31,15 +31,17 @@ case class FunnelStat(funnelType: String, window: String, segment: String, steps
 case class FunnelSegmentCounts(segment: String, steps: Seq[Int])
 
 class FunnelStatTableDef(tag: Tag) extends Table[FunnelStat](tag, "funnel_stat") {
-  def funnelType: Rep[String]         = column[String]("funnel_type")
+  // CHECK (funnel_type IN ('mapping', 'contribution')) in the DB (no Slick DSL for CHECK constraints).
+  def funnelType: Rep[String] = column[String]("funnel_type")
+  // CHECK (time_window IN ('30d', '90d', 'all')) in the DB.
   def timeWindow: Rep[String]         = column[String]("time_window")
   def segment: Rep[String]            = column[String]("segment")
-  def step1: Rep[Int]                 = column[Int]("step1")
-  def step2: Rep[Int]                 = column[Int]("step2")
-  def step3: Rep[Int]                 = column[Int]("step3")
-  def step4: Rep[Int]                 = column[Int]("step4")
-  def step5: Rep[Int]                 = column[Int]("step5")
-  def step6: Rep[Int]                 = column[Int]("step6")
+  def step1: Rep[Int]                 = column[Int]("step1", O.Default(0))
+  def step2: Rep[Int]                 = column[Int]("step2", O.Default(0))
+  def step3: Rep[Int]                 = column[Int]("step3", O.Default(0))
+  def step4: Rep[Int]                 = column[Int]("step4", O.Default(0))
+  def step5: Rep[Int]                 = column[Int]("step5", O.Default(0))
+  def step6: Rep[Int]                 = column[Int]("step6", O.Default(0))
   def computedAt: Rep[OffsetDateTime] = column[OffsetDateTime]("computed_at")
 
   // steps is a fixed six-slot Seq, so the projection maps the six step columns to/from it explicitly.
@@ -131,16 +133,17 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
         SELECT user_id, 1 AS step FROM "$schema".webpage_activity
             WHERE activity IN ('Visit_Index', 'Visit_MobileLanding') ${b.wa}
         UNION ALL
-        SELECT user_id, 2 AS step FROM "$schema".mission WHERE mission_type_id = 1 ${b.mStart}
+        SELECT user_id, 2 AS step FROM "$schema".mission WHERE mission_type = 'auditOnboarding' ${b.mStart}
         UNION ALL
-        SELECT user_id, 3 AS step FROM "$schema".mission WHERE mission_type_id = 1 AND completed = TRUE ${b.mEnd}
+        SELECT user_id, 3 AS step FROM "$schema".mission
+            WHERE mission_type = 'auditOnboarding' AND completed = TRUE ${b.mEnd}
         UNION ALL
         SELECT user_id, 4 AS step FROM "$schema".mission
-            WHERE mission_type_id = 2 AND COALESCE(distance_progress, 0) > 0 ${b.mStart}
+            WHERE mission_type = 'audit' AND COALESCE(distance_progress, 0) > 0 ${b.mStart}
         UNION ALL
         SELECT user_id, 5 AS step FROM "$schema".label WHERE deleted = FALSE AND tutorial = FALSE ${b.label}
         UNION ALL
-        SELECT user_id, 6 AS step FROM "$schema".mission WHERE mission_type_id = 2 AND completed = TRUE ${b.mEnd}
+        SELECT user_id, 6 AS step FROM "$schema".mission WHERE mission_type = 'audit' AND completed = TRUE ${b.mEnd}
       """
     computeFunnel(schema, events, numSteps = 6)
   }
@@ -166,7 +169,7 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
         SELECT user_id, 2 AS step FROM "$schema".label_validation WHERE TRUE ${b.validation}
         UNION ALL
         SELECT user_id, 3 AS step FROM "$schema".mission
-            WHERE mission_type_id IN (2, 4) AND completed = TRUE ${b.mEnd}
+            WHERE mission_type IN ('audit', 'validation') AND completed = TRUE ${b.mEnd}
       """
     computeFunnel(schema, events, numSteps = 3)
   }

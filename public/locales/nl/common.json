@@ -2,10 +2,11 @@
   "measurement-system": "metric",
   "mapbox-language-code": "en",
   "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Klik hier</a> om de straat te verkennen!",
-  "admin-clear-play-cache": "Cache succesvol gewist",
   "unit-distance-abbreviation": "km",
   "unit-abbreviation-mission-distance": "m",
   "unit-distance": "kilometers",
+  "speed-limit-tooltip": "Als je de <b>maximumsnelheid</b> van een straat kent, kun je de veiligheid voor voetgangers beter inschatten, bijvoorbeeld of het <b>veilig</b> is om over te steken op een ongeregeld kruispunt.",
+  "speed-limit-aria-label": "Maximumsnelheid {{speed}} {{units}}",
   "format-number": "{{val, number}}",
   "cities-cta-join_one": "Sluit u aan bij nog {{count, number}} gemeenschap",
   "cities-cta-join_other": "Sluit u aan bij nog {{count, number}} gemeenschappen",
@@ -28,6 +29,10 @@
   "surface-problems": "Oppervlakte problemen",
   "sign-up": "Een account maken",
   "close": "Sluiten",
+  "cancel": "Annuleren",
+  "continue": "Doorgaan",
+  "delete": "Verwijderen",
+  "done": "Klaar",
   "badges": {
     "congratulations": "Gefeliciteerd!",
     "you-earned": "Je hebt de “{{badge}}”-badge verdiend!",
@@ -81,6 +86,7 @@
   "no-description": "Geen beschrijving",
   "comments": "Effectiviteit beoordelingen",
   "none": "Geen",
+  "only": "Alleen",
   "image-capture-date": "Opnamedatum afbeelding",
   "drag-to-look-around": "Sleep om rond te kijken",
   "labeled": "Gelabeled",
@@ -92,7 +98,6 @@
   "bad": "Slecht",
   "yes": "Ja",
   "no": "Nee",
-  "ai-disclaimer": "AI heeft dit label geanalyseerd en gestemd op \"$t({{aiVal}})\". AI kan echter fouten maken. Maak uw eigen beoordeling.",
   "ai-generated-label-tooltip": "Dit label is door AI gemaakt. AI kan fouten maken, dus maak uw eigen beoordeling.",
   "tag": {
     "narrow": "smal",
@@ -319,10 +324,13 @@
     "button": "Delen",
     "heading": "Deel dit label",
     "text": "Bekijk deze {{labelType}} op Project Sidewalk",
+    "story-text": "‘{{excerpt}}’ – een verhaal uit de community op Project Sidewalk",
     "copy-link": "Link kopiëren",
     "copied": "Gekopieerd!",
+    "on-bluesky": "Delen op Bluesky",
     "on-x": "Delen op X",
     "on-facebook": "Delen op Facebook",
+    "on-linkedin": "Delen op LinkedIn",
     "via-email": "Delen via e-mail"
   }
 }

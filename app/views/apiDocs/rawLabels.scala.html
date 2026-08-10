@@ -1,7 +1,8 @@
+@import models.utils.SeoUtils
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
-@(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 @cityName = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head.cityNameFormatted}
 
 @content = {
@@ -20,12 +21,12 @@
   <div class="api-section" id="raw-labels-intro-section"> @* ID on section is optional, but distinct from heading ID *@
     <h1 class="api-heading" id="raw-labels-api">Raw Labels API <a href="#raw-labels-api" class="permalink">#</a></h1>
     <p>The Raw Labels API provides access to individual geo-located labels placed by Project Sidewalk users. Each label represents a sidewalk feature or barrier that has been identified and categorized in street view imagery.</p>
-    <p>This endpoint returns raw, unclustered data. For most applications, we recommend using the <a href="/api-docs/labelClusters">Label Clusters API</a> as it groups potentially duplicate labels of the same feature using a custom clustering algorithm. Use this Raw Labels API when you need access to every individual label record, including metadata about the user (anonymized) and validation status.</p>
+    <p>This endpoint returns raw, unclustered data. For most applications, we recommend using the <a href="/v3/api-docs/labelClusters">Label Clusters API</a> as it groups potentially duplicate labels of the same feature using a custom clustering algorithm. Use this Raw Labels API when you need access to every individual label record, including metadata about the user (anonymized) and validation status.</p>
   </div>
 
   <div class="api-section" id="raw-labels-preview-section">
     <h2 class="api-heading" id="visual-example">Raw Labels API Preview <a href="#visual-example" class="permalink">#</a></h2>
-    <p>Below is a live preview of raw labels from a sample region in @cityName retrieved directly from the API. Compare this map to the <a href="/api-docs/labelClusters">Label Clusters</a> equivalent to see the difference between clustered labels <i>vs.</i> raw labels. Depending on the number of labels in the region, it may take a bit to load.</p>
+    <p>Below is a live preview of raw labels from a sample region in @cityName retrieved directly from the API. Compare this map to the <a href="/v3/api-docs/labelClusters">Label Clusters</a> equivalent to see the difference between clustered labels <i>vs.</i> raw labels. Depending on the number of labels in the region, it may take a bit to load.</p>
 
     <div id="raw-labels-preview" class="map-container">Loading raw labels data...</div>
 
@@ -56,6 +57,10 @@
       <p><code><a href="/v3/api/rawLabels?filetype=csv">/v3/api/rawLabels?filetype=csv</a></code> Get all raw labels in a CSV</p>
       <p><code><a href="/v3/api/rawLabels?labelType=CurbRamp">/v3/api/rawLabels?labelType=CurbRamp</a></code> Get all raw labels of type <code>CurbRamp</code>. The available label types match those in the <a href="@routes.ApiDocsController.labelTypes">Label Types API</a></p>
       <p><code><a href="/v3/api/rawLabels?labelType=SurfaceProblem&minSeverity=2">/v3/api/rawLabels?labelType=SurfaceProblem&minSeverity=2</a></code> Get all raw labels of type <code>SurfaceProblem</code> with a minimum severity of 2.</p>
+      <p><code><a href="/v3/api/rawLabels?severity=none,3">/v3/api/rawLabels?severity=none,3</a></code> Get all raw labels that are either unrated or severity 3.</p>
+      <p><code><a href="/v3/api/rawLabels?tags=narrow&tags=uneven surface">/v3/api/rawLabels?tags=narrow&amp;tags=uneven surface</a></code> Get all raw labels carrying either the <code>narrow</code> or the <code>uneven surface</code> tag. Repeat <code>tags</code> once per tag.</p>
+      <p><code><a href="/v3/api/rawLabels?tags=CurbRamp:narrow">/v3/api/rawLabels?tags=CurbRamp:narrow</a></code> Narrow <code>CurbRamp</code> labels to those tagged <code>narrow</code>, leaving every other label type unfiltered.</p>
+      <p><code><a href="/v3/api/rawLabels?labelType=CurbRamp&tags=CurbRamp:narrow">/v3/api/rawLabels?labelType=CurbRamp&amp;tags=CurbRamp:narrow</a></code> Get <em>only</em> <code>CurbRamp</code> labels tagged <code>narrow</code> — pair the scoped tag with <code>labelType</code> to also drop the other types.</p>
     </div>
   </div>
 
@@ -123,27 +128,36 @@
           <tr>
             <td><code>labelType</code></td>
             <td><code>string</code></td>
-            <td>Filter by one or more label types. Provide comma-separated values (e.g., <code>labelType=CurbRamp,Obstacle</code>). See <a target="_blank" href="@routes.ApiDocsController.labelTypes">Label Types Reference</a> for available types. </td>
+            <td>Filter by one or more label types. Provide comma-separated values (e.g., <code>labelType=CurbRamp,Obstacle</code>). See <a target="_blank" href="@routes.ApiDocsController.labelTypes">Label Types Reference</a> for available types.
+              <strong>Changed August 2026</strong> (v3 is a preview API): values are validated against the known label types, so an unrecognized or empty value now returns a 400 error naming the parameter instead of silently matching nothing. </td>
           </tr>
           <tr>
             <td><code>tags</code></td>
+            <td><code>string</code> (repeatable)</td>
+            <td>Filter by one or more tags associated with labels. <strong>Repeat the parameter once per tag</strong> (e.g., <code>tags=missing tactile warning&amp;tags=uneven surface</code>). Matches labels containing *any* of the specified tags.
+              An entry may be scoped to a single label type with a <code>LabelType:tag</code> prefix (e.g., <code>tags=CurbRamp:narrow</code>). A scoped entry narrows <em>only</em> that label type — labels of types nobody scoped come back unfiltered — so pair it with <code>labelType</code> if you want the other types dropped too. An entry whose prefix (the text before the first colon) is not a valid label type is treated as a plain tag applying to every type, since tag names may themselves contain colons (e.g., <code>cycle lane: faded paint</code>).
+              <strong>Changed August 2026</strong> (v3 is a preview API): <code>tags</code> is no longer comma-separated, because tag names may contain commas (e.g., <code>yellow box, accessibility features not visible</code>) and splitting on them silently shredded such a tag into two that matched nothing. Repeat the parameter instead (<code>tags=a&amp;tags=b</code>); a comma-joined value from an older link is still accepted when its pieces name real tags. Values are now validated against this city's tags — an unknown tag, or a tag scoped to a label type that doesn't carry it, returns a 400 error naming the parameter instead of silently matching nothing. Scoped entries also no longer exclude the label types they don't name.
+              See <a target="_blank" href="@routes.ApiDocsController.labelTags">Tags Reference</a> for available tags. </td>
+          </tr>
+          <tr>
+            <td><code>severity</code></td>
             <td><code>string</code></td>
-            <td>Filter by one or more tags associated with labels. Provide comma-separated values (e.g., <code>tags=missing tactile warning,uneven surface</code>). Matches labels containing *any* of the specified tags. See <a target="_blank" href="@routes.ApiDocsController.labelTags">Tags Reference</a> for available tags. </td>
+            <td>Filter by an arbitrary set of severities. Provide comma-separated values from <code>1</code>, <code>2</code>, <code>3</code>, and <code>none</code> (labels with no severity rating), e.g. <code>severity=none,3</code>. Matches labels with *any* of the listed severities. Cannot be combined with <code>minSeverity</code>/<code>maxSeverity</code> (returns a 400 error).</td>
           </tr>
           <tr>
             <td><code>minSeverity</code></td>
             <td><code>integer</code></td>
-            <td>Filter labels with a severity rating/quality greater than or equal to this value (1-3).</td>
+            <td>Filter labels with a severity rating/quality greater than or equal to this value (1-3). Cannot be combined with <code>severity</code>.</td>
           </tr>
           <tr>
             <td><code>maxSeverity</code></td>
             <td><code>integer</code></td>
-            <td>Filter labels with a severity/quality rating less than or equal to this value (1-3).</td>
+            <td>Filter labels with a severity/quality rating less than or equal to this value (1-3). Cannot be combined with <code>severity</code>.</td>
           </tr>
           <tr>
             <td><code>validationStatus</code></td>
             <td><code>string</code></td>
-            <td>Filter by validation status. Possible values: <code>validated_correct</code>, <code>validated_incorrect</code>, <code>unvalidated</code>. </td>
+            <td>Filter by one or more validation statuses (comma-separated, matching *any* of them). Possible values: <code>validated_correct</code>, <code>validated_incorrect</code>, <code>unsure</code> (has validations but no consensus yet), <code>unvalidated</code> (no validations at all). <strong>Changed August 2026</strong> (v3 is a preview API): <code>unvalidated</code> now means zero validations; labels with non-consensus validations are returned by the new <code>unsure</code> value instead.</td>
           </tr>
           <tr>
             <td><code>highQualityUserOnly</code></td>
@@ -163,12 +177,13 @@
           <tr>
             <td><code>filetype</code></td>
             <td><code>string</code></td>
-            <td>Specify the output format. Options: <code>geojson</code> (default), <code>csv</code>, <code>shapefile</code>.</td>
+            <td>Specify the output format. Options: <code>geojson</code> (default), <code>csv</code>, <code>shapefile</code>, <code>geopackage</code>.</td>
           </tr>
           <tr>
             <td><code>inline</code></td>
             <td><code>boolean</code></td>
-            <td>Whether to display the file inline or as an attachment. Default: <code>false</code> (attachment). Set to <code>true</code> to view data in the browser instead of downloading.</td>
+            <td>Whether to display the file inline or as an attachment. Default: <code>false</code> (attachment). Set to <code>true</code> to view data in the browser instead of downloading.
+              <strong>Fixed August 2026:</strong> <code>filetype=csv</code> previously forced an attachment and ignored this parameter. The fix applies to every <code>/v3</code> endpoint that emits CSV, not just this one.</td>
           </tr>
         </tbody>
       </table>
@@ -197,6 +212,7 @@
         "label_id": 8,
         "user_id": "18b26a38-24ab-402d-a64e-158fc0bb8a8a",
         "pano_id": "DsCvWstZYz9JL81V9NloOQ",
+        "pano_source": "gsv",
         "label_type": "CurbRamp",
         "severity": 1,
         "tags": [],
@@ -251,6 +267,7 @@
         "label_id": 9,
         "user_id": "18b26a38-24ab-402d-a64e-158fc0bb8a8a",
         "pano_id": "DsCvWstZYz9JL81V9NloOQ",
+        "pano_source": "gsv",
         "label_type": "Crosswalk",
         "severity": 1,
         "tags": [],
@@ -430,6 +447,11 @@
             <td>Panorama identifier where the label was placed.</td>
           </tr>
           <tr>
+            <td><code>properties.pano_source</code></td>
+            <td><code>string</code></td>
+            <td>Imagery provider the panorama came from: <code>gsv</code> (Google Street View), <code>mapillary</code>, or <code>infra3d</code>.</td>
+          </tr>
+          <tr>
             <td><code>properties.image_capture_date</code></td>
             <td><code>string</code></td>
             <td>Date when the imagery was captured, typically in "YYYY-MM" format (e.g., "2012-08").</td>
@@ -519,9 +541,9 @@
 
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the headers, corresponding to the fields in the GeoJSON properties object, plus <code>latitude</code> and <code>longitude</code> columns derived from the geometry. CRS is WGS84 (EPSG:4326).</p>
-    <pre tabindex="0"><code class="language-csv">label_id,user_id,pano_id,label_type,severity,tags,description,...,disagree_count,unsure_count,latitude,longitude
-115,18b26a38-...,YQScv...,CurbRamp,2,[missing tactile warning],,...,1,0,40.715,-74.005
-116,...,...,Obstacle,4,[construction],"Temporary fence",...,3,0,40.7151,-74.0051
+    <pre tabindex="0"><code class="language-csv">label_id,user_id,pano_id,pano_source,label_type,severity,tags,description,...,disagree_count,unsure_count,latitude,longitude
+115,18b26a38-...,YQScv...,gsv,CurbRamp,2,[missing tactile warning],,...,1,0,40.715,-74.005
+116,...,...,gsv,Obstacle,4,[construction],"Temporary fence",...,3,0,40.7151,-74.0051
 ...</code></pre>
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
     <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj). The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326). </p>
@@ -543,7 +565,7 @@
   </div>
 }
 
-@common.main(commonData, "API Docs") {
-  @common.navbar(commonData, Some(user))
+@common.main(commonData, SeoUtils.apiDocsTitle("Raw Labels API")) {
+  @common.navbar(commonData, user)
   @apiDocs.layout("raw-labels")(content)
 }

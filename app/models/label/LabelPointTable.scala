@@ -21,23 +21,24 @@ case class LabelPoint(
     lat: Option[Double],
     lng: Option[Double],
     geom: Option[Point],
-    computationMethod: Option[String]
+    computationMethod: Option[ComputationMethod.Value]
 )
 
 class LabelPointTableDef(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, "label_point") {
-  def labelPointId: Rep[Int]                 = column[Int]("label_point_id", O.PrimaryKey, O.AutoInc)
-  def labelId: Rep[Int]                      = column[Int]("label_id")
-  def panoX: Rep[Int]                        = column[Int]("pano_x")
-  def panoY: Rep[Int]                        = column[Int]("pano_y")
-  def canvasX: Rep[Int]                      = column[Int]("canvas_x")
-  def canvasY: Rep[Int]                      = column[Int]("canvas_y")
-  def heading: Rep[Double]                   = column[Double]("heading")
-  def pitch: Rep[Double]                     = column[Double]("pitch")
-  def zoom: Rep[Double]                      = column[Double]("zoom")
-  def lat: Rep[Option[Double]]               = column[Option[Double]]("lat")
-  def lng: Rep[Option[Double]]               = column[Option[Double]]("lng")
-  def geom: Rep[Option[Point]]               = column[Option[Point]]("geom")
-  def computationMethod: Rep[Option[String]] = column[Option[String]]("computation_method")
+  def labelPointId: Rep[Int]                                  = column[Int]("label_point_id", O.PrimaryKey, O.AutoInc)
+  def labelId: Rep[Int]                                       = column[Int]("label_id")
+  def panoX: Rep[Int]                                         = column[Int]("pano_x")
+  def panoY: Rep[Int]                                         = column[Int]("pano_y")
+  def canvasX: Rep[Int]                                       = column[Int]("canvas_x")
+  def canvasY: Rep[Int]                                       = column[Int]("canvas_y")
+  def heading: Rep[Double]                                    = column[Double]("heading")
+  def pitch: Rep[Double]                                      = column[Double]("pitch")
+  def zoom: Rep[Double]                                       = column[Double]("zoom")
+  def lat: Rep[Option[Double]]                                = column[Option[Double]]("lat")
+  def lng: Rep[Option[Double]]                                = column[Option[Double]]("lng")
+  def geom: Rep[Option[Point]]                                = column[Option[Point]]("geom")
+  def computationMethod: Rep[Option[ComputationMethod.Value]] =
+    column[Option[ComputationMethod.Value]]("computation_method")
 
   def * = (labelPointId, labelId, panoX, panoY, canvasX, canvasY, heading, pitch, zoom, lat, lng, geom,
     computationMethod) <> ((LabelPoint.apply _).tupled, LabelPoint.unapply)

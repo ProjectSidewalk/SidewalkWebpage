@@ -6,6 +6,7 @@ import models.pano.PanoSource.PanoSource
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.libs.json.JsValue
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
@@ -43,7 +44,10 @@ case class PanoData(
     lastChecked: OffsetDateTime,
     source: PanoSource,
     hasBackup: Option[Boolean],
-    address: Option[String]
+    address: Option[String],
+    // Verbatim imagery-provider metadata blob (e.g. the Mapillary Graph API response). Only AI submissions carry it;
+    // crowd submissions leave it untouched (#4806).
+    sourceMetadata: Option[JsValue]
 )
 
 // NOTE need to update pano_source enum in postgres as well if changing this Enumeration.
@@ -68,28 +72,30 @@ case class PanoDataSlim(
 )
 
 class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {
-  def panoId: Rep[String]                           = column[String]("pano_id", O.PrimaryKey)
-  def width: Rep[Option[Int]]                       = column[Option[Int]]("width")
-  def height: Rep[Option[Int]]                      = column[Option[Int]]("height")
-  def tileWidth: Rep[Option[Int]]                   = column[Option[Int]]("tile_width")
-  def tileHeight: Rep[Option[Int]]                  = column[Option[Int]]("tile_height")
-  def captureDate: Rep[String]                      = column[String]("capture_date")
-  def copyright: Rep[Option[String]]                = column[Option[String]]("copyright")
-  def lat: Rep[Option[Double]]                      = column[Option[Double]]("lat")
-  def lng: Rep[Option[Double]]                      = column[Option[Double]]("lng")
-  def cameraHeading: Rep[Option[Double]]            = column[Option[Double]]("camera_heading")
-  def cameraPitch: Rep[Option[Double]]              = column[Option[Double]]("camera_pitch")
-  def cameraRoll: Rep[Option[Double]]               = column[Option[Double]]("camera_roll")
-  def expired: Rep[Boolean]                         = column[Boolean]("expired")
+  def panoId: Rep[String]                = column[String]("pano_id", O.PrimaryKey)
+  def width: Rep[Option[Int]]            = column[Option[Int]]("width")
+  def height: Rep[Option[Int]]           = column[Option[Int]]("height")
+  def tileWidth: Rep[Option[Int]]        = column[Option[Int]]("tile_width")
+  def tileHeight: Rep[Option[Int]]       = column[Option[Int]]("tile_height")
+  def captureDate: Rep[String]           = column[String]("capture_date")
+  def copyright: Rep[Option[String]]     = column[Option[String]]("copyright")
+  def lat: Rep[Option[Double]]           = column[Option[Double]]("lat")
+  def lng: Rep[Option[Double]]           = column[Option[Double]]("lng")
+  def cameraHeading: Rep[Option[Double]] = column[Option[Double]]("camera_heading")
+  def cameraPitch: Rep[Option[Double]]   = column[Option[Double]]("camera_pitch")
+  def cameraRoll: Rep[Option[Double]]    = column[Option[Double]]("camera_roll")
+  def expired: Rep[Boolean]              = column[Boolean]("expired", O.Default(false))
+  // last_viewed and last_checked are DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def lastViewed: Rep[OffsetDateTime]               = column[OffsetDateTime]("last_viewed")
   def panoHistorySaved: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("pano_history_saved")
   def lastChecked: Rep[OffsetDateTime]              = column[OffsetDateTime]("last_checked")
   def source: Rep[PanoSource]                       = column[PanoSource]("source")
   def hasBackup: Rep[Option[Boolean]]               = column[Option[Boolean]]("has_backup")
   def address: Rep[Option[String]]                  = column[Option[String]]("address")
+  def sourceMetadata: Rep[Option[JsValue]]          = column[Option[JsValue]]("source_metadata")
 
   def * = (panoId, width, height, tileWidth, tileHeight, captureDate, copyright, lat, lng, cameraHeading, cameraPitch,
-    cameraRoll, expired, lastViewed, panoHistorySaved, lastChecked, source, hasBackup, address) <>
+    cameraRoll, expired, lastViewed, panoHistorySaved, lastChecked, source, hasBackup, address, sourceMetadata) <>
     ((PanoData.apply _).tupled, PanoData.unapply)
 }
 
@@ -252,6 +258,25 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    */
   def updatePanoHistorySaved(panoId: String, panoHistorySaved: Option[OffsetDateTime]): DBIO[Int] = {
     panoDataRecords.filter(_.panoId === panoId).map(_.panoHistorySaved).update(panoHistorySaved)
+  }
+
+  /**
+   * Sets a pano's provider metadata blob.
+   *
+   * Kept separate from updateFromExplore so only payloads that carry the blob (AI submissions) ever write the column;
+   * a crowd submission must never clear one saved earlier (#4806).
+   *
+   * updateFromExplore solves that same "replace, never clear" problem for `address` by branching between two static
+   * query shapes rather than issuing a second UPDATE. The blob doesn't follow suit because the two columns sit on
+   * very different paths: every Explore submission carries an address, so folding it in saves a round trip on the
+   * hottest write we have, whereas the blob has one caller (the AI ingest) whose volume is a nightly batch. Paying a
+   * round trip there is cheaper than doubling updateFromExplore's branches to four.
+   *
+   * @param panoId   Unique ID for the panorama
+   * @param metadata Verbatim imagery-provider metadata blob for this pano
+   */
+  def updateSourceMetadata(panoId: String, metadata: JsValue): DBIO[Int] = {
+    panoDataRecords.filter(_.panoId === panoId).map(_.sourceMetadata).update(Some(metadata))
   }
 
   def insert(data: PanoData): DBIO[String] = {

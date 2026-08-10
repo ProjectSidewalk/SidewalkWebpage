@@ -15,6 +15,7 @@ Project Sidewalk is a web-based crowdsourcing tool for mapping and assessing sid
 Request flow: **routes → Controller → Service → Table (DAO)**.
 
 - **`conf/routes`** — single routes file mapping URLs to controller methods. The public data API lives under `/v3/api/...` (handlers in `app/controllers/api/`).
+  - **Any server-to-server POST authenticated by the internal key (`ControllerUtils.internalKeyValid`) needs a `+ nocsrf` modifier line** above it. Play's CSRF filter protects every unsafe request carrying an `Authorization` header, and a bearer token is exactly how these callers authenticate — so without the modifier the request 403s before it reaches the controller, and the endpoint looks alive while every real submission is rejected. This is invisible in local testing (a curl without the header 401s the same either way) and cost `/ai/submitLabelsOnPano` a silent outage (#4806). `internalKeyValid` fails closed on an unset key, so it, not CSRF, is the gate. Existing examples: `/clusteringResults`, `/ai/submitLabelsOnPano`.
   - **v3 API naming convention (issue #3871):** query/REST **parameters are camelCase** (`minSeverity`, `regionId`, `validationStatus`); **all output field names are snake_case** — JSON bodies, GeoJSON `properties`, CSV headers, and GeoPackage fields (`label_id`, `region_name`, `city_id`) — one canonical field name across those formats. For macro serializers, use a scoped `JsonConfiguration(JsonNaming.SnakeCase)` so `Json.format`/`Json.writes` emit snake_case. `ApiError.parameter` names a query param, so it stays camelCase. **Known exception — Shapefile/DBF:** shapefile fields stay **camelCase and abbreviated** (`labelId`, `regionName`, `osmWayId`, `neighborhd`, `cameraHdng`) because the DBF format hard-truncates field names to 10 chars, so they can't carry the canonical snake_case names regardless of casing — camelCase reclaims the byte the underscore would waste. Shapefile is a legacy export being phased out; **GeoPackage is the modern GIS export that carries the canonical snake_case names** (decided on #3871, 2026-06-25). v3 is a **preview** surface: breaking changes are made in place rather than minting a new version (precedent: #4223).
 - **`app/controllers/`** — thin HTTP layer. Auth-protected actions use **Silhouette** (`SilhouetteModule.scala`, `app/models/auth/`). `app/controllers/api/` holds the versioned public API controllers.
 - **`app/service/`** — business logic (e.g. `LabelService`, `ValidationService`, `ExploreService`, `AccessScoreService`, `ApiService`). Controllers should delegate here rather than touching tables directly.
@@ -53,7 +54,9 @@ Schema changes are **Play evolutions**: numbered SQL files in `conf/evolutions/d
 - **SERIAL / identity sequences** are covered automatically: `ALTER TABLE … OWNER TO` recursively reassigns any sequence a column owns, so no separate statement is needed for them.
 - **Enum types, views, and standalone (non-column-owned) sequences do *not* get an owner change** — the app only needs default `USAGE`/`SELECT` on those, which it already has, and they're never altered at runtime. Don't add `OWNER TO` for them.
 
-**Give every table its full set of constraints — don't lean on the app to enforce integrity.** When you `CREATE TABLE` (or `ALTER` one), add every constraint the data model implies: `NOT NULL` on any column the app never writes null to, `UNIQUE` on a natural key or one-to-one relationship (or make it the `PRIMARY KEY`), a `FOREIGN KEY` for every reference to another table, and a `CHECK` for a bounded domain (a severity `1`–`3`, a non-negative count, a `0`–`1` fraction, a valid lat/lng). A missing constraint silently rots into bad data — backfilling ones that should have been there from the start has cost whole PRs (#3574 for FKs, #3944 for NOT NULL/UNIQUE/PK/CHECK). **Mirror each in the Slick model** so schema and code agree: a non-`Option` `column[T]` means `NOT NULL`, `def pk = primaryKey(...)` declares a composite PK (single-column PKs use `O.PrimaryKey` inline), `index(..., unique = true)` a UNIQUE, and `foreignKey(...)` an FK. CHECK constraints have no Slick DSL, so they live only in the evolution — leave a comment noting the invariant.
+**Give every table its full set of constraints — don't lean on the app to enforce integrity.** When you `CREATE TABLE` (or `ALTER` one), add every constraint the data model implies: `NOT NULL` on any column the app never writes null to, `UNIQUE` on a natural key or one-to-one relationship (or make it the `PRIMARY KEY`), a `FOREIGN KEY` for every reference to another table, and a `CHECK` for a bounded domain (a severity `1`–`3`, a non-negative count, a `0`–`1` fraction, a valid lat/lng). A missing constraint silently rots into bad data — backfilling ones that should have been there from the start has cost whole PRs (#3574 for FKs, #3944 for NOT NULL/UNIQUE/PK/CHECK). **Mirror each in the Slick model** so schema and code agree: a non-`Option` `column[T]` means `NOT NULL`, `def pk = primaryKey(...)` declares a composite PK (single-column PKs use `O.PrimaryKey` inline), `index(..., unique = true)` a UNIQUE, and `foreignKey(...)` an FK. A column `DEFAULT` is mirrored with `O.Default(...)` (#4801) — it's DDL-only in Slick and we never generate DDL, so it's documentation, but a `*Table.scala` should say what the schema does. Two things `O.Default` can't express, because it holds a *value* rather than an expression: a **volatile default** (`now()`, `CURRENT_TIMESTAMP`) — mirroring one as `O.Default(OffsetDateTime.now)` freezes an arbitrary instant into the model and re-evaluates it on every query compilation, so write `// DEFAULT now() in the DB` instead; and a **CHECK constraint**, which has no Slick DSL at all — leave a comment noting the invariant.
+
+**Closed value sets: prefer enum types or CHECKs over lookup tables and bare text (#4103).** When a column can only hold a fixed set of values, pick between two tools. Use a **Postgres enum type** when the column is on a high-row-count table, is written at runtime, or is mirrored by a Scala enum — it makes the DB self-describing (readable raw SQL and dumps, no join to a lookup table, no hand-maintained Scala id map that nothing validates) and fails loudly on drift. Wire it up like the existing ones (`pano_source`, `validation_option`, `street_edge_status`, `mission_type`, `way_type`): a Scala `Enumeration` object whose string values match the enum labels, plus a `createEnumJdbcType` mapper in `MyPostgresProfile`. Growing a set later is fine — `ALTER TYPE ... ADD VALUE` has prod precedent (331/332/339). Use a plain **`CHECK (col IN (...))`** instead for tiny script-seeded config/cache tables (e.g. `config.open_status`, `funnel_stat.funnel_type`), where the enum's join/space/mapping benefits are nil. Two gotchas: tables and types share a namespace, so when an enum replaces a lookup table of the same name, `DROP TABLE` must precede `CREATE TYPE`; and enum values are compared as enum literals in SQL, so a raw-SQL filter built from user input must validate values first (an invalid literal is a Postgres error, not an empty result).
 
 **Postgres does *not* rename a table's constraints or indexes when you rename the table or a column** — the old name sticks and silently drifts from what it enforces. So an evolution that renames a column (or table) must also `ALTER TABLE … RENAME CONSTRAINT` / `ALTER INDEX … RENAME` every constraint and index whose name embeds the old identifier, back to the `<table>_<column>_{fkey,key,pkey,check}` convention, and update the matching name string in the Slick model (`foreignKey`/`index`/`primaryKey`). Skipping this forces a later evolution to patch the fossils — 337.sql had to rename three, e.g. `user_org_org_id_fkey` → `user_team_team_id_fkey`, left over from an old `user_org` → `user_team` table rename.
 
@@ -131,11 +134,18 @@ Every label type has a **canonical color** and a set of **icon images**. Always 
 | Occlusion      | `#B3B3B3` |
 | Problem        | `#B3B3B3` |
 
-**Icons** live in `public/images/icons/label_type_icons/` in three PNG sizes — `{LabelType}.png` (large),
-`{LabelType}_small.png`, `{LabelType}_tiny.png` — plus a scalable `{LabelType}_small.svg` variant (used where the
-icon renders at arbitrary size, e.g. the label card's in-pano marker). The canonical source of truth for both
-colors and icon URLs is the `/v3/api/labelTypes` endpoint (PNG paths); frontend code reads all four paths from
-`util.misc.getIconImagePaths(labelType)` rather than hardcoding them.
+**Icons** live in `public/images/icons/label_type_icons/`. The colored marker every label type is drawn with is the
+scalable `{LabelType}_small.svg`, and it is **the only variant our own pages may use** — `util.misc.getIconImagePaths(labelType).iconImagePath`
+returns it, and that accessor is the one way frontend code should name an icon. Reach for it even when the icon is
+going somewhere a raster feels natural: the Explore canvas rasterizes it once at high resolution
+(`Label.preloadIcons`) and the labeling cursor is rasterized from that same cache, because a fixed-size PNG upscales
+badly on the HiDPI canvas.
+
+Three raster sizes sit beside it — `{LabelType}.png` (large; a *different*, grayscale illustration used by the
+ribbon menu, not a bigger copy of the marker), `{LabelType}_small.png`, and `{LabelType}_tiny.png`. They exist only
+for consumers that cannot take vector art: server-side share-image compositing (`ShareController`, via Java
+`ImageIO`) and the `icon_url`/`small_icon_url`/`tiny_icon_url` fields published by `/v3/api/labelTypes`. Adding a
+frontend use of one is a bug. The canonical source of truth for colors and icon URLs remains `/v3/api/labelTypes`.
 
 **In JavaScript:** call `util.misc.getLabelColors(labelType)` — defined in
 `public/js/common/UtilitiesSidewalk.js` and loaded on every page that includes
@@ -172,6 +182,9 @@ When you catch yourself writing a frontend constant that mirrors a backend value
 
 ## Development Guidelines
 - Main development branch is **develop**; **master** is the release branch. PRs target `develop`.
+- **Never open a pull request (or merge/tag/release) without the maintainer's specific OK.** Do the work, run the
+  CI-equivalent checks locally, and push the branch if useful — then stop and ask before running `gh pr create`.
+  Filing GitHub *issues* is fine; the consent gate is at PR creation, and again (separately) at merge.
 - **Deploying to production is tag-triggered, not branch-triggered:** pushing `develop` redeploys the **test** stage, but prod only deploys when a **`vX.Y.Z` GitHub Release/tag** is cut on `master`. Cutting a release also requires bumping `build.sbt` **and** adding a `version`-table evolution (the two are separate: the tag deploys the code, the evolution updates the displayed version). Full step-by-step runbook: [`docs/deployment-and-stages.md`](docs/deployment-and-stages.md) ("Cutting a release").
 - **Maintainers / GitHub @-mentions:** Project Sidewalk is maintained by **@jonfroehlich** (Professor Jon Froehlich) and
   **@misaugstad** (Mikey / Michael Saugstad).
@@ -183,16 +196,42 @@ When you catch yourself writing a frontend constant that mirrors a backend value
 - Update said code to use the native `fetch` API rather than jQuery, and to make use of Promises. But if said refactor would impact many other functions that use it, then wait for a dedicated refactor.
 - Replace uses of Bootstrap with native JS alternatives as you come across them
 - When writing SQL, avoid table aliases
+- **Measure geographic distances geodesically** — `ST_Length(geom::geography)` in raw SQL, the `lengthGeodesic`
+  extension method in Slick (defined in `MyPostgresProfile`), turf.js on the frontend. Never measure by projecting to
+  a fixed SRID: a projection is only accurate near its own meridian, and measuring every city through UTM zone 18N
+  overstated street distances by up to +51% (#4641). Cached distance columns (`user_stat.meters_audited`,
+  `labels_per_meter` and the `high_quality` flag derived from it, `region_completion`, `route.distance_meters`) must
+  equal what their runtime recompute would produce, so changing a distance query means recomputing its caches in the
+  same evolution — and the nightly refresh that maintains them has to reach every row a full recompute would touch
+  (#4774). `GeodesicDistanceSpec` checks both against the connected database. It needs a *seeded* one: its
+  cache-freshness tests `assume` non-empty tables and CANCEL otherwise, so treat a full-suite run against your dev DB
+  as the real gate.
 - After editing any Scala file, run `make scalafmt-fix` (reformats the whole tree in place via the sbt thin client) before treating the change as done — scalafmt is a blocking CI gate, so unformatted Scala fails the build. One run after a batch of edits is enough; no need to format after every single edit.
 - After editing frontend files, lint what you touched and get to zero before the change is done. All four frontend linters are **blocking CI gates** (steps in the `frontend` job — see Continuous integration), the JS/CSS/HTML/i18n counterparts to the scalafmt rule above, so a finding fails the build. The whole tree is lint-clean (#2487), so any finding is from your change.
   - **JavaScript** (`public/js/`): `make eslint-fix dir=<what you touched>`, hand-fix what `--fix` can't, until `make eslint` passes.
   - **CSS** (`public/css/`): `make stylelint-fix dir=<…>`, then `make stylelint`.
   - **HTML** (Twirl views in `app/views/`): `make htmlhint`.
   - **Translation JSON** (`public/locales/`): `make eslint` (per-file validity/dup-key checks) plus `make lint-locales` (cross-locale key parity).
-  - `make lint` runs all of them at once; `make lint-fix` autofixes the ESLint + Stylelint mechanical findings.
+  - `make lint` runs all of them (plus the evolutions lint) at once; `make lint-fix` autofixes the ESLint + Stylelint mechanical findings.
 - User interactions are logged (clicks, key presses, mode switches, pano changes, mission/task events, etc.) to the activity/interaction tables. When you **add or change an interaction**, add or adjust the corresponding logging so analytics stay complete; keep event names consistent with the existing ones, and update [`docs/logged-events.md`](docs/logged-events.md) (how logging works + the event reference).
 - Ensure WCAG 2.1/2.2 Level AA accessibility standards are met
-- When adding or refactoring code, use the fonts, colors, button styling, etc. defined in main.css :root. These are pulled from our "Design System Tokens" Figma, and we are pushing to use these going forward.
+- **Style all UI from the design-system tokens in `main.css` `:root`** — colors (`--color-*`), type (`--text-*`),
+  and button styles. They mirror our "Design System Tokens" Figma and are the default for any new or refactored UI:
+  a hardcoded hex color or hand-assembled font stack is a bug unless the token set genuinely has no fit. For type
+  specifically:
+  - **Set type with a composite `--text-*` token, not the raw font variables.** Write
+    `font: var(--text-body-regular);` — never `font-family: var(--font-primary)` plus hand-picked
+    size/weight/line-height. The `--text-*` tokens are complete `font` shorthands (weight, size/line-height, family)
+    and already bake in `var(--ui-scale)`. If one aspect of the token doesn't suit the design — usually line-height —
+    keep the token and override just that property after it (`font: var(--text-body-regular); line-height: 1.5;`)
+    rather than dropping to raw `font-*` properties.
+  - **Default to the primary font (Mulish).** The accent font (`--font-accent`, Raleway) is display-only and already
+    scoped to the few tokens that carry it (`--text-h1-bold`, `--text-h2-bold`, `--text-small-accent`) — don't
+    introduce it elsewhere.
+  - **Never set numbers in Raleway.** Raleway defaults to old-style (text) figures: digits vary in height and
+    3/4/5/7/9 descend below the baseline, so numeric strings look uneven and misaligned. Anything that renders
+    digits — counts, stats, timers, percentages, dates — gets a primary-font `--text-*` token, even inside an
+    otherwise accent-styled heading.
 - **Scale tool UI with `var(--ui-scale)`.** The Explore and Validate tools (and self-contained overlays layered over them — the mission-complete modal, the tutorial intro/complete screens, etc.) are zoomed uniformly to fit the viewport by `util.applyToolScale` (`public/js/common/utilities.js`), which sets `--ui-scale` on both `.tool-ui` and the document root. So **every fixed dimension you author for tool/overlay UI must be expressed as `calc(<base>px * var(--ui-scale, 1))`** — paddings, gaps, widths, heights, border widths/radii, icon sizes, and any hardcoded `font-size`/`letter-spacing`. For type, prefer the `--text-*` tokens (they already bake in `var(--ui-scale)`); only drop to a raw `calc(... * var(--ui-scale, 1))` font-size when no token matches the size. A bare `px` value here is a bug: it won't grow/shrink with the rest of the tool. (Fluid values — `%`, `flex`, `aspect-ratio`, viewport units — don't need it.) This does **not** apply to fixed page chrome like the navbar, which deliberately stays unscaled.
 - Max line length of 120 characters, with long line exceptions where appropriate. For multi-line comments, TARGET line length is 120 characters
 - **Keep docs in sync.** When you change architecture, framework versions, supported languages, label types, or other conventions, update the affected docs in the *same* change: [`docs/architecture.md`](docs/architecture.md) mirrors this file's architecture (and the README's tech-stack summary), and [`CONTRIBUTING.md`](CONTRIBUTING.md) holds the workflow/standards. To avoid drift, keep exact dependency/patch versions in **one** place — the dependency-version inventory ([`docs/upgrading-libraries.md`](docs/upgrading-libraries.md)) — rather than copying them across docs. README/architecture mention only stable major versions (e.g. Scala 2.13, Play 3.0, Java 17).
@@ -351,6 +390,38 @@ make ssh target=db  # exec into a running container (projectsidewalk-db / -web)
 
 Inside the web container shell, the developer starts the app with `npm start` (runs Grunt concat + watch in the background, then `sbt run` — i.e. `sbt ~ run`, continuous recompile; `npm run debug` adds a JVM debug port). It serves on **http://localhost:9000** using `conf/application.local.conf`. First compile is slow (sbt resolves dependencies); sbt keeps its caches inside the project dir (`.coursier`, `.sbt`).
 
+### Running a worktree's app for QA
+
+To QA an uncommitted branch that lives in a git **worktree** (`.claude/worktrees/<name>`) rather than the main repo,
+run **`make qa-worktree wt=<name>`** (the same on Mac, Linux, and WSL — all the setup runs inside the web container).
+It handles what the plain `npm start` flow doesn't for a worktree: symlink the main repo's `node_modules` (gitignored,
+so absent in worktrees), build that branch's JS/CSS bundles (also gitignored/absent — without them every page 404s its
+assets), start a backgrounded **`grunt watch`** so later `public/js/**` / `public/css/**` edits rebuild the bundles
+automatically (a plain hard-reload always reflects the latest source — no manual reconcat), free `:9000`, kill any stray
+`sbt --client` server *or* hung `sbtn` task sharing the worktree's `target/` (either deadlocks `~ run` on compile locks),
+and launch `sbt ~ run` with `-Dconfig.file` at the worktree's own conf and the sbt caches pointed at the main repo's warm
+`.coursier`/`.sbt` (cwd-relative caches from a worktree would re-download gigabytes). The first HTTP request triggers the
+dev compile; **Ctrl-C stops the app and reaps the grunt watch** (a trap, so the watcher never lingers). To tear a session
+down out-of-band, run **`make qa-worktree-stop wt=<name>`** (add `clean=1` to also drop the `node_modules` symlink).
+Implementation: `tools/qa-worktree.sh` — both targets run the **worktree's own** copy of that script when it has one
+(falling back to the main checkout's), so the branch being QA'd supplies its own tooling.
+
+`make` itself still reads the **main checkout's** Makefile, so when that checkout sits on a branch without the target,
+make reports `No rule to make target 'qa-worktree'`. Either check out a branch that has it, or run the worktree's script
+directly: `docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/qa-worktree.sh <name>`.
+
+**Admin-authenticated QA:** the dev DB is seeded from a dump that includes real accounts and their bcrypt password
+hashes, and password verification is config-independent (plain bcrypt, no server-side pepper), so if your own account is
+in the dump you can just sign in with your normal credentials. If you don't have credentials for a seeded account — or
+want a throwaway admin — create a fresh account (two-step CSRF `POST /signUp`) and grant it a role via a local DB write;
+roles are resolved per-request, so an existing session cookie gains access without re-login:
+
+```sql
+UPDATE sidewalk_login.user_role
+SET role_id = (SELECT role_id FROM sidewalk_login.role WHERE role = 'Owner')
+WHERE user_id = (SELECT user_id FROM sidewalk_login.sidewalk_user WHERE username = '<user>');
+```
+
 ### Verifying backend (Scala) changes compile
 
 For a quick pass/fail without running tests, validate backend changes by compiling. The clean way is the **sbt thin client**, which runs against its own dedicated server and so does *not* fight the developer's running `sbt ~ run` (a plain second `sbt compile` collides with it over build/target locks and hangs):
@@ -376,13 +447,15 @@ docker exec projectsidewalk-web bash -lc "cd /home && sbt --client \"testOnly co
 
 The API specs **boot the real app against Postgres+PostGIS**, so the `db` container must be up; they assert response contract/shape, not data values. There is no `make` target — invoke sbt directly. The phased testing strategy and rationale live in [`docs/testing-and-ci.md`](docs/testing-and-ci.md).
 
-A prototype **JS** test layer (jsdom) lives under `test/js/` — run `npm run test:js`. It is opt-in and not wired into CI yet (sequenced with the ES5→ES2022 migration, #2487); see `test/js/README.md`.
+A **JS** test layer (jsdom) lives under `test/js/` — run `npm run test:js`. CI runs it as an **advisory** step inside the `frontend` job, so a failure reports but doesn't block a merge while coverage is still thin (sequenced with the ES5→ES2022 migration, #2487); see `test/js/README.md`.
 
 A **Python** unit suite (`pytest`) for the `scripts/` utilities lives under `test/python/` — run `make test-python` (runs pytest in the web container) or `docker exec projectsidewalk-web bash -lc "cd /home && python3 -m pytest test/python"`. It needs no DB/network (pure-logic tests only) and runs as an **advisory** CI job; see `test/python/README.md`.
 
+A **browser smoke suite** (Playwright, #4504) lives under `test/e2e/` — loads each core page in headless Chromium and fails on any uncaught console/page error. Unlike every other frontend tool it runs **host-side** (Playwright drives a host browser; it is not in the web container): one-time setup `npm install && npx playwright install chromium`, then `make test-e2e` against the already-running dev app (`BASE_URL` overrides `http://localhost:9000`; scope with `args="-g labelMap"`). It never runs during local development on its own — CI runs it as the advisory `e2e-smoke` job. The `/explore`/`/validate` specs need a real Maps key, so they self-skip unless `HAS_REAL_GMAPS_KEY=true` (set automatically in CI from the `GOOGLE_MAPS_API_KEY_TEST` secret; export it manually to run them locally); see `test/e2e/README.md`.
+
 ### Continuous integration
 
-`.github/workflows/ci.yml` runs on PRs and pushes to `develop`/`master`: backend **`sbt compile`** (blocking gate), **`scalafmtCheckAll`** (blocking — the tree is kept format-clean; auto-format with `make scalafmt-fix` / `sbt scalafmtAll`, config in `.scalafmt.conf`), the **frontend grunt build** plus the four frontend linters — **ESLint** (JS + translation JSON), **Stylelint** (CSS), **HTMLHint** (HTML), and **locale key-parity** — all **blocking** steps in the `frontend` job, so they ride the required `Frontend (build)` check (each blocks on `error`-severity findings; the lone `warn` rule on ESLint/Stylelint, `max-len`, is advisory so there's no `--max-warnings 0`; the trees are kept lint-clean, auto-fix with `make lint-fix`), the **evolutions lint** (blocking — static checks on `conf/evolutions/default/*.sql`, e.g. a semicolon mid-`--`-comment that Play's parser splits on; run locally with `make lint-evolutions`), and the **DB-backed API tests** (advisory while the suite stabilizes — boots the app, so it also exercises forward evolution application). "Advisory" steps report findings but don't block merges yet. **Branch protection** on `develop` (set 2026-06-29) wires the deterministic blocking jobs as **required status checks** (`Backend (compile + scalafmt)`, `Frontend (build)` — covers all four frontend linters; `Evolutions lint` being added) so a red build can't merge; `enforce_admins=true`, **no required reviews** (self-merge preserved), advisory jobs not required. Full policy: [`docs/testing-and-ci.md`](docs/testing-and-ci.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
+`.github/workflows/ci.yml` runs on PRs and pushes to `develop`/`master`: backend **`sbt compile`** (blocking gate), **`scalafmtCheckAll`** (blocking — the tree is kept format-clean; auto-format with `make scalafmt-fix` / `sbt scalafmtAll`, config in `.scalafmt.conf`), the **frontend grunt build** plus the four frontend linters — **ESLint** (JS + translation JSON), **Stylelint** (CSS), **HTMLHint** (HTML), and **locale key-parity** — all **blocking** steps in the `frontend` job, so they ride the required `Frontend (build)` check (each blocks on `error`-severity findings; the lone `warn` rule on ESLint/Stylelint, `max-len`, is advisory so there's no `--max-warnings 0`; the trees are kept lint-clean, auto-fix with `make lint-fix`), the **evolutions lint** (blocking — static checks on `conf/evolutions/default/*.sql`, e.g. a semicolon mid-`--`-comment that Play's parser splits on; run locally with `make lint-evolutions`), the **route reachability lint** (blocking — fails if a `conf/routes` entry is unreachable because an earlier same-method route already matches all its paths; run locally with `python3 tools/check_route_reachability.py`), the **DB-backed API tests** (advisory while the suite stabilizes — boots the app, so it also exercises forward evolution application), and the **browser smoke tests** (`e2e-smoke`, advisory — builds the bundles, stages a prod-mode binary against the CI DB, and runs the Playwright suite in `test/e2e/`; the Explore/Validate specs self-skip until the `GOOGLE_MAPS_API_KEY_TEST` repo secret exists). "Advisory" steps report findings but don't block merges yet. **Branch protection** on `develop` (set 2026-06-29) wires the deterministic blocking jobs as **required status checks** (`Backend (compile + scalafmt)`, `Frontend (build)` — covers all four frontend linters — and `Route reachability lint`; `Evolutions lint` runs on every PR but is not yet required) so a red build can't merge; `enforce_admins=true`, **no required reviews** (self-merge preserved), advisory jobs not required. Because `enforce_admins` is on, **nobody can push directly to `develop`** — a direct push has no PR for the required checks to run against, so it's rejected for maintainers too; all changes go through a PR. Full policy: [`docs/testing-and-ci.md`](docs/testing-and-ci.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ### Building frontend assets
 
@@ -410,19 +483,39 @@ docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -c "\dt sidewal
 docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -c "SELECT * FROM sidewalk_login.role;"
 ```
 
-Each city has its own schema (`sidewalk_<city>`), and they are essentially identical — `sidewalk_seattle` is a safe default for schema questions; authentication lives in `sidewalk_login`. If you need to query *actual data* (not just structure), **ask which city we're working in first**. Evolutions in `conf/evolutions/default/` are auto-applied when a page loads, so you don't run them manually.
+Each city has its own schema (`sidewalk_<city>`), and they are essentially identical — `sidewalk_seattle` is a safe default for **schema** questions; authentication lives in `sidewalk_login`. Evolutions in `conf/evolutions/default/` are auto-applied when a page loads, so you don't run them manually.
+
+**For anything about *data* or *migration state*, first find out which city is actually running** — don't assume `sidewalk_seattle`:
+
+```bash
+docker exec projectsidewalk-web bash -lc 'echo $DATABASE_USER'   # this value IS the active schema name
+```
+
+`DATABASE_USER` selects the schema and is authoritative; `SIDEWALK_CITY_ID` only selects `cityparams.conf` entries (map center, bounds, display name). The two are *supposed* to correspond (see [`docs/dev-environment.md`](docs/dev-environment.md) → "City IDs"), but a container can be left with them **mismatched**, in which case the app renders one city's params over another city's data — an empty map with no error in any log. Confirm what the app believes it is with `curl -s -b <cookie-jar> localhost:9000/labelmap | grep -oE 'cityId: "[^"]*"'`.
+
+**`readonly_user` cannot see every schema, and the failure is silent.** It is granted per-schema, so it may have no rights on the active city's schema — and `information_schema` / `\dt` simply **omit** what you can't see rather than erroring, which reads as "that schema doesn't exist" or "that evolution never applied". `pg_namespace` is world-readable, so enumerate with it, then query the city as its own role:
+
+```bash
+docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -tAc \
+  "SELECT nspname FROM pg_namespace WHERE nspname LIKE 'sidewalk%' ORDER BY 1"
+docker exec projectsidewalk-db psql -U sidewalk_teaneck -d sidewalk -c \
+  "SELECT max(id) FROM sidewalk_teaneck.play_evolutions"
+```
+
+Never conclude "evolution N didn't apply" from a `readonly_user` query without first confirming which schema the app uses.
 
 **The dev DB is not representative of production size, and some tables may be absent.** The two largest production tables by a wide margin are **`audit_task_interaction`** and **`validation_task_interaction`** (raw per-action interaction logs — pans, zooms, clicks). The dev DB dumps that seed local development **omit** these tables to stay manageable, so locally they are typically empty or missing. Never infer a table's production size or existence from the local DB. When reasoning about query cost or indexes, treat these two interaction tables — not `webpage_activity` — as the heavyweight logs.
 
 ### Linting
 
 ```bash
-make lint           # eslint + stylelint + htmlhint + lint-locales (all of it)
+make lint           # eslint + stylelint + htmlhint + lint-locales + lint-evolutions (all of it)
 make lint-fix       # eslint --fix + stylelint --fix
 make eslint         # JS + translation JSON; defaults to public/js/ + public/locales/ (build/ carved out by config ignores; vendor/ is out of the files glob)
 make stylelint      # CSS; defaults to public/**/*.css (vendor/ carved out by the config's ignoreFiles)
 make htmlhint       # HTML; defaults to app/views/
 make lint-locales   # cross-locale key parity (tools/check-locale-parity.mjs)
+make lint-evolutions # static checks on conf/evolutions/default/*.sql (host-side bash, no container needed)
 make eslint dir=public/js/validate   # scope any target to a dir/file; also stylelint / htmlhint
 ```
 
@@ -441,4 +534,4 @@ Config: `eslint.config.js`, `stylelint.config.mjs`, `.htmlhintrc`; cross-locale 
 
 ### What not to automate
 
-Do **not** attempt live or browser-automated testing of anything that requires viewing or interacting with a GSV (street-view) panorama — placing labels in Explore, validating in Validate, etc. The developer tests those visually. Instead, hand them a short checklist of things to verify or a console snippet to run while reproducing the issue.
+Do **not** attempt live or browser-automated testing of anything that requires viewing or interacting with a GSV (street-view) panorama — placing labels in Explore, validating in Validate, etc. The developer tests those visually. Instead, hand them a short checklist of things to verify or a console snippet to run while reproducing the issue. (Narrow exception: the `test/e2e/` smoke suite *loads* Explore's tutorial — whose pano tiles are local assets, no live GSV — and Validate's landing state, asserting only "no uncaught errors". That load-only boundary is deliberate; don't extend the suite into pano interaction.)

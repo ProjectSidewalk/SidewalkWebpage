@@ -16,6 +16,10 @@ component.json
 docker-compose.override*.yml
 db/*-dump
 
+# Playwright smoke-suite output (test/e2e/)
+playwright-report/
+test-results/
+
 
 ### IntelliJ (https://github.com/github/gitignore/blob/master/Global/JetBrains.gitignore)
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio
@@ -88,8 +92,6 @@ project/.sbtserver.lock
 .scala_dependencies
 .worksheet
 
-*.mp4
-
 # JavaScript and Node
 public/js/explore/build/*
 public/js/admin/build/*
@@ -98,8 +100,12 @@ public/js/user-dashboard/build/*
 public/js/validate/build/*
 public/js/gallery/build/*
 public/js/ps-map/build/*
+public/js/route-builder/build/*
 public/js/shared-label/build/*
 public/js/common/pano-viewer/build/*
+# Bundles written to the pre-#2292 asset layout by an out-of-date Gruntfile; the paths are dead but a stale
+# checkout can still regenerate them, and they'd otherwise slip past the public/js/*/build/* rules above.
+public/javascripts/
 download
 
 # Keys
@@ -131,7 +137,8 @@ htmlcov/
 # https://scalameta.org/metals/docs/editors/vscode.html
 .vscode/settings.json
 .metals/
-project/metals.sbt
+.bloop/
+**/metals.sbt
 
 # Windows Zone Identifier files
 **/*Zone.Identifier
@@ -140,3 +147,9 @@ project/metals.sbt
 .claude/settings.local.json
 CLAUDE.local.md
 
+
+# Bloop/Metals build server artifacts (any depth) and Claude Code worktrees.
+.bloop/
+project/.bloop/
+project/project/
+.claude/worktrees/

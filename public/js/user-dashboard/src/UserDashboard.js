@@ -37,7 +37,7 @@ class UserDashboard {
       zoomCorrection: -0.5,
       mapboxLogoLocation: 'bottom-right',
       neighborhoodsURL: '/neighborhoods',
-      completionRatesURL: '/adminapi/neighborhoodCompletionRate',
+      completionRatesURL: '/neighborhoods/completionRate',
       streetsURL: `/contribution/streets?userId=${encodeURIComponent(userId)}`,
       labelsURL: `/userapi/labels?userId=${encodeURIComponent(userId)}`,
       neighborhoodFillMode: 'singleColor',
@@ -49,6 +49,7 @@ class UserDashboard {
       // Off-map host (dashboard), so the label popup offers "View on Label Map" like the gallery does.
       popupLabelViewer: await LabelPopup(admin, viewerType, viewerAccessToken, currentUsername, {
         showLabelMapLink: true,
+        showExploreHereLink: true,
       }),
     };
 
