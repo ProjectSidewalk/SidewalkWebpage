@@ -20,6 +20,89 @@ util.exploreDisplayScale = function () {
   return layer ? layer.getBoundingClientRect().width / util.EXPLORE_CANVAS_WIDTH : 1;
 };
 
+// Radius of a placed label's icon at --ui-scale = 1, in the 720x480 logical frame. Every piece of icon geometry in
+// Label.js — the drawn size, the two outline rings, the unrated-severity badge — is authored against this value and
+// scales off it, so a capped radius keeps the mark's proportions.
+util.LABEL_ICON_BASE_RADIUS = 17;
+
+// Largest a label icon may get on screen, in CSS px. Matches Label.CURSOR_ICON_SIZE, the labeling cursor the user
+// aims with: that cursor is a fixed-size bitmap and does not scale, so letting the placed icon outgrow it means
+// aiming with one size and placing another.
+util.LABEL_ICON_MAX_SCREEN_DIAMETER = 38;
+
+// Smallest a label's click target may get on screen, in CSS px. WCAG 2.5.8 Target Size (Minimum), level AA.
+util.LABEL_MIN_SCREEN_TARGET = 24;
+
+/**
+ * Half-extent of the icon actually drawn for a label of the given radius, in the same logical frame.
+ *
+ * Label.renderLabelIcon draws the icon at 2 * radius - 3, inset from the radius, so the mark the user sees is
+ * smaller than its nominal radius and is not proportional to it. Everything sized against the icon — the click
+ * target, the outline rings, the unrated-severity badge — measures from here rather than from the radius.
+ *
+ * @param {number} radius - Icon radius in logical px.
+ * @returns {number} Half the drawn icon's width, in logical px.
+ */
+util.labelIconHalfExtent = function (radius) {
+  return radius - 1.5;
+};
+
+/**
+ * Scale factor for icon geometry authored against util.LABEL_ICON_BASE_RADIUS, so that a decoration keeps its exact
+ * relationship to the icon's edge however the icon is sized (#4838). 1 at the base radius, smaller once capped.
+ *
+ * @param {number} radius - Icon radius in logical px.
+ * @returns {number} Multiplier for offsets, sizes, and stroke widths authored at the base radius.
+ */
+util.labelIconScale = function (radius) {
+  return util.labelIconHalfExtent(radius) / util.labelIconHalfExtent(util.LABEL_ICON_BASE_RADIUS);
+};
+
+/**
+ * Radius of a placed label's icon, in Explore's fixed 720x480 logical frame (#4838).
+ *
+ * The logical frame is displayed at var(--ui-scale) (0.65x-1.8x, see util.applyToolScale), so a constant radius
+ * grows with the tool — 20 to 56 on-screen px across that range. The *drawn* size is therefore capped in screen px
+ * instead: below ~1.23x scale this returns the unchanged base radius, and above it the icon holds still while the
+ * rest of the tool keeps growing.
+ *
+ * Callers should re-read this whenever --ui-scale changes; Explore caches it in svl.LABEL_ICON_RADIUS, which its
+ * scale-applying path refreshes.
+ *
+ * @param {number} [scale] - The tool's UI scale. Read from the page when omitted.
+ * @returns {number} Radius in logical px.
+ */
+util.labelIconRadius = function (scale) {
+  const uiScale = scale ?? util.uiScale();
+  // Cap the drawn diameter, not the radius: the icon is drawn inset from its radius (see labelIconHalfExtent), and
+  // it is the drawn size the on-screen limit is about.
+  const baseDiameter = 2 * util.labelIconHalfExtent(util.LABEL_ICON_BASE_RADIUS);
+  const diameter = Math.min(baseDiameter, util.LABEL_ICON_MAX_SCREEN_DIAMETER / uiScale);
+  return diameter / 2 + 1.5;
+};
+
+/**
+ * Half-width of a placed label's square click target, in Explore's fixed 720x480 logical frame (#4838).
+ *
+ * Deliberately not derived from the icon radius the way Label.isOn used to derive it (radius / 2 + 2): that made
+ * the target *smaller* than the icon it belongs to — 21 logical px under a 31 px icon — and capping the radius
+ * above would have shrunk it further. The target is the visible icon instead, floored so it stays usable once the
+ * tool scales down.
+ *
+ * The target is a square and the icon is round, so its corners do reach a little past the icon; that slack is what
+ * lets a near miss on a lone icon still land. Where it makes two neighbouring targets overlap, Canvas.onLabel
+ * resolves the tie in favour of the icon drawn on top.
+ *
+ * @param {number} [scale] - The tool's UI scale. Read from the page when omitted.
+ * @returns {number} Half-width in logical px.
+ */
+util.labelHitMargin = function (scale) {
+  const uiScale = scale ?? util.uiScale();
+  // Half the drawn icon, so every point of the icon is inside the target.
+  const halfIcon = util.labelIconHalfExtent(util.labelIconRadius(uiScale));
+  return Math.max(halfIcon, util.LABEL_MIN_SCREEN_TARGET / 2 / uiScale);
+};
+
 /**
  * Sizes an Explore-tool canvas bitmap to its on-screen size times the device pixel ratio, and scales the 2D
  * context so all drawing done in the fixed 720x480 logical frame renders at full resolution.

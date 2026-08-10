@@ -555,8 +555,11 @@ class Canvas {
   onLabel(x, y) {
     const labels = svl.labelContainer.getCanvasLabels();
 
-    // Check labels to see if they are under the mouse cursor.
-    for (let i = 0; i < labels.length; i += 1) {
+    // Walked back to front, because render() draws this same list in order and so the *last* match is the one the
+    // user can actually see. Searching forward returned the label underneath. That was mostly hidden while the click
+    // target was smaller than the icon; now that the target is the icon (#4838), two icons that visually touch have
+    // overlapping targets, which makes it the ordinary case rather than a corner one.
+    for (let i = labels.length - 1; i >= 0; i -= 1) {
       if (labels[i].isOn(x, y)) {
         this.#status.currentLabel = labels[i];
         return labels[i];
