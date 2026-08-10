@@ -20,6 +20,7 @@ const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validat
 const PANO_MARKER_PATH = path.resolve(__dirname, '..', '..', 'public/js/common/PanoMarker.js');
 const LABEL_CONTAINER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/label/LabelContainer.js');
 const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/util/throttle.js');
+const UTILITIES_PATH = path.resolve(__dirname, '..', '..', 'public/js/common/utilities.js');
 
 /**
  * Load a bare `class` declaration out of a production file. The Grunt bundle concatenates these into page scope,
@@ -48,6 +49,11 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
       = '<div id="pano-holder"><div id="svv-panorama"></div></div><div id="view-control-layer"></div>';
 
     global.util = {};
+    // utilities.js builds a Bowser parser at load time; the overrides below replace everything read from it.
+    global.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
+        getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
+    // Real utilities, for the marker sizing rule util.cappedMarkerDiameter uses (#4838).
+    (0, eval)(fs.readFileSync(UTILITIES_PATH, 'utf8'));
     (0, eval)(fs.readFileSync(THROTTLE_PATH, 'utf8')); // real throttle; #init wires it to pov_changed
     util.isMobile = () => false;
     util.uiScale = () => 1;

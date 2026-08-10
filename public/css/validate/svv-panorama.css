@@ -63,6 +63,31 @@
   transition: opacity 0.5s ease;
 }
 
+/* Pointer-target floor. The marker is what opens the label card — by hover, by click, and as a keyboard stop
+   (PanoMarker, #4729) — but the mark itself is 22px at --ui-scale 1 and shrinks to 14px at the 0.65x end, under the
+   24px of WCAG 2.5.8 Target Size (Minimum), AA. A transparent ::after widens only the *target*, so the mark stays
+   the size it was drawn: growing the element instead would move the marker (PanoMarker positions it from its own
+   size) and push the label card away from it (LabelVisibilityControl anchors on offsetWidth).
+
+   max(), not a fixed size, so this only ever adds area — above ~1.09x the mark is already past 24px and the target
+   is exactly the mark. Round, matching the mark: browsers hit-test through border-radius, so the marker's target is
+   a circle today (.icon-outline's 25px radius clamps to 50% at every size this is drawn at), and a square here
+   would square that target off at every scale rather than only flooring it where it is too small — opening the card
+   on a hover several px off the visible marker. A 24px circle still satisfies 2.5.8, which measures a target by its
+   bounding box. z-index keeps it under the icon and the AI badge; it takes the pointer for the marker either way,
+   since all three are the same element as far as the hover and click handlers are concerned. */
+#validate-pano-marker::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 24px);
+  height: max(100%, 24px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  z-index: -1;
+}
+
 /* Hidden state (the H key / either Hide-label toggle). The point of hiding is to see the sidewalk the marker is
    sitting on, so the icon goes away entirely — even at low opacity it still tints the very pixels the validator
    asked to look at. What remains is a dashed ring in the label type's own colour, which says where the label is

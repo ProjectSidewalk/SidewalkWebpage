@@ -245,7 +245,7 @@ class PanoManager {
 
     if (!this.labelMarker) {
       const markerLayer = document.getElementById('view-control-layer');
-      const markerDiameter = Math.round((svv.labelRadius * 2 + 2) * util.uiScale());
+      const markerDiameter = this.#markerDiameter(util.uiScale());
       this.labelMarker = new PanoMarker({
         id: 'validate-pano-marker',
         markerContainer: markerLayer,
@@ -458,12 +458,28 @@ class PanoManager {
   }
 
   /**
+   * On-screen diameter of the label marker, in CSS px, at the given UI scale.
+   *
+   * Capped, the way Explore's placed icon is (#4838). --ui-scale runs to 1.8x, which took this marker from 22px to
+   * 40px on screen — a mark that hides more of the very feature the validator is judging the bigger their window
+   * gets, and the two tools' markers drifted apart at the top of the range. The cap engages above ~1.73x, so every
+   * scale below that is untouched. util.cappedMarkerDiameter leaves mobile's larger touch target alone.
+   *
+   * @param {number} scale The UI scale factor (see util.applyToolScale).
+   * @returns {number} Diameter in CSS px.
+   * @private
+   */
+  #markerDiameter(scale) {
+    return Math.round(util.cappedMarkerDiameter(svv.labelRadius * 2 + 2, scale));
+  }
+
+  /**
    * Resizes the label marker to match the given UI scale factor.
    * @param {number} scale The current UI scale factor (see util.applyToolScale).
    */
   setMarkerScale(scale) {
     if (!this.labelMarker) return;
-    const markerDiameter = Math.round((svv.labelRadius * 2 + 2) * scale);
+    const markerDiameter = this.#markerDiameter(scale);
     this.labelMarker.setSize({ width: markerDiameter, height: markerDiameter });
   }
 
