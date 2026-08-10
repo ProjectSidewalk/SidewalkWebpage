@@ -179,8 +179,11 @@ class Main {
       // Shortcuts act on the current label, and behind the dead-end modal there isn't one. The modal disables the
       // keyboard when it goes up, but the first label's render can raise it before this exists to be told (#4810).
       if (svv.modalNoNewMission.isShowing()) svv.keyboard.disableKeyboard();
+      // Read svv.panoViewer through closures rather than capturing it here, for the same reason as the info popover
+      // below: PanoManager swaps it between the primary viewer and Pannellum, and the sign would otherwise stay
+      // subscribed to whichever one happened to be showing the first label (#4828).
       svv.speedLimit = new SpeedLimit(
-        svv.panoViewer, svv.panoViewer.getPosition, () => false, param.countryId,
+        () => svv.panoViewer, () => svv.panoViewer.getPosition(), () => false, param.countryId,
         { labelContainer: svv.labelContainer, labelType },
       );
       svv.zoomControl = new ZoomControl();

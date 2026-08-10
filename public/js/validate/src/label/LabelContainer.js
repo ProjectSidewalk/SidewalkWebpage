@@ -157,6 +157,10 @@ class LabelContainer {
     svv.validationMenu.resetMenu(this.#currLabel);
     if (svv.adminVersion) svv.adminInfo.updateAdminInfo(this.#currLabel);
     svv.panoManager.renderPanoMarker(this.#currLabel);
+    // Tell the sign here rather than leave it waiting on a pano_changed: the label that just loaded may have swapped
+    // the active viewer, and the viewer the sign last heard from is then the one that stays silent (#4828). Absent
+    // on mobile, and on the first label, whose render runs inside LabelContainer.create — before SpeedLimit exists.
+    svv.speedLimit?.refresh();
     // Every label starts visible. Without this the toggle keeps saying "Show Label" over a marker that renderPanoMarker
     // just drew in full — you'd have to hide and re-show to get the two back in agreement.
     svv.labelVisibilityControl?.unhideLabel();

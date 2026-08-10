@@ -38,6 +38,9 @@ class PanoManager {
   static #POV_LOG_INTERVAL_MS = 500;
   #logPovChange;
 
+  /** @type {Set<PanoViewer>} Viewers already subscribed to by #watchViewerPov(). */
+  #povWatchedViewers = new Set();
+
   /**
    * Initializes panoViewer on the validate page and loads the first pano.
    *
@@ -67,8 +70,11 @@ class PanoManager {
             = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none;';
     this.#panoCanvas.insertAdjacentElement('afterend', this.#pannellumCanvas);
 
+    this.#logPovChange = util.throttle(() => svv.tracker.push('POV_Changed'), PanoManager.#POV_LOG_INTERVAL_MS);
+
     this.#primaryViewer = await panoViewerType.create(this.#panoCanvas, panoOptions);
     svv.panoViewer = this.#primaryViewer;
+    this.#watchViewerPov(this.#primaryViewer);
 
     // Set up the imagery source logo. #showPannellumPano will override it if Pannellum takes over below.
     this.#logo = createPanoViewerLogo(this.#panoCanvas.parentElement, panoViewerType);
@@ -85,8 +91,6 @@ class PanoManager {
       }
     }
 
-    this.#logPovChange = util.throttle(() => svv.tracker.push('POV_Changed'), PanoManager.#POV_LOG_INTERVAL_MS);
-    svv.panoViewer.addListener('pov_changed', () => this.#logPovChange());
     if (util.isMobile()) {
       this.#sizePano();
       svv.panoViewer.resize(); // Necessary for PannellumViewer for correct vertical position of the label.
@@ -99,6 +103,24 @@ class PanoManager {
     } else if (panoViewerType === MapillaryViewer && !util.isMobile()) {
       this.#makeMapillaryAttributionClickable();
     }
+  }
+
+  /**
+   * Subscribes a viewer to the shared POV logger, once per viewer.
+   *
+   * Both viewers need their own subscription: only one of them is `svv.panoViewer` at a time, and Pannellum is built
+   * lazily the first time a label's imagery has expired, so it doesn't exist to subscribe to at startup (#4828).
+   * Panning and zooming a Pannellum label is the same interaction as panning a GSV one and belongs in the logs the
+   * same way. The one throttled logger is shared across viewers, so the interval covers the pano as a whole rather
+   * than giving each viewer its own window.
+   *
+   * @param {PanoViewer} viewer The viewer to subscribe; ignored if it is already subscribed.
+   * @private
+   */
+  #watchViewerPov(viewer) {
+    if (this.#povWatchedViewers.has(viewer)) return;
+    this.#povWatchedViewers.add(viewer);
+    viewer.addListener('pov_changed', () => this.#logPovChange());
   }
 
   /**
@@ -396,6 +418,7 @@ class PanoManager {
         startZoom: neutralPov.zoom,
       });
     }
+    this.#watchViewerPov(this.#pannellumViewer);
     svv.panoViewer = this.#pannellumViewer;
     svv.tracker.push('Viewer_Pannellum');
     this.#logo.showSourceLogo();
