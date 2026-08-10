@@ -112,7 +112,8 @@
             <source src='@assets.path("videos/segment-1-1.mp4")' type="video/mp4">
           </video>
           @* vid2/vid3 start hidden and only play once their tab is clicked (homepage.js switchToVideo calls play()),
-             so they don't autoplay and preload="none" keeps them from downloading on page load. *@
+             so they don't autoplay and preload="none" keeps them out of the page's load path. homepage.js
+             warmHiddenInstructionVideos downloads them shortly after load, so the tab switch is instant. *@
           <video id="vid2" width="800" playsinline muted loop preload="none" poster='@assets.path("images/segment-2.jpg")' class="visible-desktop ps-hidden">
             <source src='@assets.path("videos/segment-2.mp4")' type="video/mp4">
           </video>
@@ -373,7 +374,7 @@
       });
 
       // Gets all translations before setting up the grid, which reads translated strings as it builds each card. The
-      // grid renders its skeletons immediately to reserve layout, then fills itself once the page is idle.
+      // grid renders its skeletons immediately to reserve layout, then fills itself on the first interaction.
       window.appManager.ready(function () {
         new LandingValidationGrid(document.getElementById('landing-validation-container'));
       });

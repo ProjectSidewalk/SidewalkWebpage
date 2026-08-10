@@ -336,13 +336,13 @@ util.hasSession = hasSession;
  * on top of this.
  *
  * @param {Function} fn - The work to run. Called once.
- * @param {number} [timeout=2000] - Idle deadline in ms. Past it the browser runs the callback anyway (as a normal
- *   task, with didTimeout set), so a busy main thread can delay the work but never starve it.
  */
-function afterLoadIdle(fn, timeout = 2000) {
+function afterLoadIdle(fn) {
   const schedule = () => {
-    // requestIdleCallback is unavailable before Safari 17.4; a short timeout approximates it well enough here.
-    if (window.requestIdleCallback) window.requestIdleCallback(fn, { timeout });
+    // Past the deadline the browser runs the callback anyway (as a normal task, with didTimeout set), so a busy main
+    // thread can delay the work but never starve it. requestIdleCallback is unavailable before Safari 17.4, where a
+    // short timeout approximates it well enough.
+    if (window.requestIdleCallback) window.requestIdleCallback(fn, { timeout: 2000 });
     else setTimeout(fn, 200);
   };
   if (document.readyState === 'complete') schedule();
@@ -355,12 +355,23 @@ util.afterLoadIdle = afterLoadIdle;
 // twitch — which is the point: the gate has to clear long before the visitor could scroll to the deferred content.
 const INTERACTION_EVENTS = ['pointermove', 'pointerdown', 'scroll', 'keydown', 'touchstart', 'wheel'];
 
+// Latched at module level, not per caller: an interaction that happened before a caller registered still counts. The
+// callers here register at very different times (parse time vs. inside an appManager.ready callback, i.e. after
+// i18next's fetches resolve), and a single early mouse twitch has to satisfy all of them.
+const firstInteraction = new Promise((resolve) => {
+  for (const type of INTERACTION_EVENTS) window.addEventListener(type, () => resolve(), { once: true, passive: true });
+});
+
 /**
- * Runs fn at the visitor's first sign of engagement, falling back to util.afterLoadIdle plus a delay if none comes.
+ * Runs fn at the visitor's first sign of engagement, falling back to a delay after load-idle if none comes.
  *
- * For deferred work that costs the *server* — a query, an API call — where afterLoadIdle alone would spend that cost
- * on every crawler, link-preview prefetch, and drive-by load. An input event is a cheap, near-perfect filter for
- * those, and it still fires far sooner than a human could reach anything below the fold.
+ * For deferred work that costs the *server* — a query, an API call — where util.afterLoadIdle alone would spend that
+ * cost on every crawler, link-preview prefetch, and drive-by load. An input event is a cheap, near-perfect filter for
+ * those, and it still clears far sooner than a human could reach anything below the fold.
+ *
+ * An interaction only cancels the wait for the fallback; it never jumps the load queue. The work always goes through
+ * afterLoadIdle, because a mouse twitch at 400ms is the common case, not the rare one, and starting a 600KB download
+ * then would put this back on the critical path — the opposite of the point.
  *
  * The fallback is deliberately slow, and its delay is nearly invisible in practice: deferred content sits below the
  * fold, so actually looking at it requires a scroll, which trips the interaction path first. It exists only so a
@@ -374,11 +385,9 @@ function onFirstInteractionOrIdle(fn, fallbackMs = 5000) {
   const run = () => {
     if (fired) return;
     fired = true;
-    // once:true retires the listener that fired; the rest have to be taken down by hand.
-    for (const type of INTERACTION_EVENTS) window.removeEventListener(type, run);
-    fn();
+    afterLoadIdle(fn);
   };
-  for (const type of INTERACTION_EVENTS) window.addEventListener(type, run, { once: true, passive: true });
+  firstInteraction.then(run);
   afterLoadIdle(() => setTimeout(run, fallbackMs));
 }
 

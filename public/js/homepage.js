@@ -227,10 +227,13 @@ function warmHiddenInstructionVideos() {
   if (util.saveDataEnabled()) return;
   util.afterLoadIdle(() => {
     for (const video of [document.getElementById('vid2'), document.getElementById('vid3')]) {
-      if (!video) continue;
+      // Only warm a video nothing has touched. load() aborts playback and resets currentTime, and by the time this
+      // runs either of these may be playing: lazyPlay starts every video in the section on scroll, hidden ones
+      // included, and auto-advance switches to vid2 about 9s in. Restarting isn't automatic either — lazyPlay still
+      // believes it's playing — so the visitor would be left watching a frozen frame.
+      if (!video || !video.paused || video.currentTime > 0) continue;
       video.preload = 'auto';
-      // Changing the attribute doesn't re-run resource selection on its own; load() does. Safe here because these
-      // two are paused and unstarted until their tab is picked.
+      // Changing the attribute doesn't re-run resource selection on its own; load() does.
       video.load();
     }
   });

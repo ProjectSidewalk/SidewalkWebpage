@@ -8,7 +8,7 @@
  * server-side. Validated cards are swapped for a fresh label from a prefetched pool, giving the "live" feel.
  *
  * Label data comes from POST /label/labels with sort: 'recent', i.e. a shuffled pool of the newest labels needing
- * validation. Nothing is fetched during page load; the grid fills itself once the page is loaded and idle.
+ * validation. Nothing is fetched during page load; the grid fills itself once the visitor interacts with the page.
  */
 class LandingValidationGrid {
   static #GRID_SIZE = 6;
@@ -47,11 +47,6 @@ class LandingValidationGrid {
       this.#grid.appendChild(skeleton);
     }
 
-    // Off the page's load path, but not gated on scrolling near (#4486). Waiting for the section to approach the
-    // viewport meant the label query and its imagery checks were still in flight as the grid came into view, so it
-    // sat on skeletons for a beat. Gating on first interaction instead has the cards ready long before a visitor
-    // scrolls this far, while still keeping the query off every crawler and link-preview fetch — it isn't cheap
-    // (a query per label type, plus an imagery check per candidate lacking a local crop).
     // Don't hit the server (label queries + imagery checks) until first page interaction, keeping simple crawlers from
     // hitting expensive queries frequently.
     util.onFirstInteractionOrIdle(() => this.#start());
@@ -141,10 +136,13 @@ class LandingValidationGrid {
     imgWrap.className = 'lvg-card-img';
     const img = document.createElement('img');
     img.className = 'lvg-card-photo';
-    // Eager for the slots actually on screen at this width, so a card is never blank when the visitor scrolls to it
-    // — browser lazy-loading holds the fetch until the image nears the viewport, which would undo the idle preload
-    // above. Cards the CSS hides at narrow widths stay lazy so a phone never pays for an image it can't show.
-    img.loading = index < LandingValidationGrid.#visibleCardCount() ? 'eager' : 'lazy';
+    // Eager only for a crop-backed card in a slot this width actually shows, so the grid isn't blank on arrival:
+    // browser lazy-loading holds the fetch until the image nears the viewport, which would undo the early start.
+    // Crops are served from our own disk, so warming one costs bandwidth and nothing else. An API-backed card stays
+    // lazy however visible it is — gsvImageUrl is the Street View Static API, billed per request, and this now runs
+    // for every engaged visitor rather than only the ones who scroll two-thirds down the page.
+    const freeToWarm = entry.cropUrl && !util.saveDataEnabled();
+    img.loading = freeToWarm && index < LandingValidationGrid.#visibleCardCount() ? 'eager' : 'lazy';
     img.alt = i18next.t(`common:${typeKebab}`);
     img.addEventListener('error', () => {
       // The saved crop can 404 (signed URLs expire after a while); fall back to the GSV Static API image. A card
