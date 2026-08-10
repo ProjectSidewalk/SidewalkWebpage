@@ -323,7 +323,8 @@ class ContextMenu {
    * @returns {ContextMenu} this.
    */
   hide() {
-    if (this.isOpen()) {
+    const wasOpen = this.isOpen();
+    if (wasOpen) {
       this.#descriptionTextBox.blur(); // Force the blur event before the ContextMenu close event.
       svl.tracker.push('ContextMenu_Close');
     }
@@ -334,6 +335,10 @@ class ContextMenu {
 
     this.#menuWindow.css('visibility', 'hidden');
     this.#setStatus('visibility', 'hidden');
+
+    // Restore the target label's icon to full opacity (see Label.render). Only when the panel was actually open —
+    // hide() is also called speculatively (navigation, keyboard shortcuts) and shouldn't redraw the canvas then.
+    if (wasOpen) svl.canvas.clear().render();
 
     return this;
   }
@@ -658,6 +663,10 @@ class ContextMenu {
       this.#pointShareAtLabel(this.#getStatus('targetLabel'));
       util.anchorPanelToLabel(this.#menuWindow, labelCoord, svl.LABEL_ICON_RADIUS);
       this.#menuWindow.css('visibility', 'visible');
+
+      // Fade the target label's icon (see Label.render). Not every caller renders after opening the panel, and the
+      // ones that do — the hover card's click handler, for one — render before it, so do it here.
+      svl.canvas.clear().render();
     }
   }
 

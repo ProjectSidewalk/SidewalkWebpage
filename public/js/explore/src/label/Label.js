@@ -238,10 +238,10 @@ class Label {
 
       // Draw the label icon if it's in the visible part of the pano.
       if (this.#properties.currCanvasXY) {
-        // Tutorial only: fade the icon while its dialog is open. The marker sits exactly on the feature the copy
-        // asks the user to look at, and the dialog's tail still points at the spot.
-        const dialogTarget = svl.isOnboarding?.() && svl.contextMenu?.isOpen()
-          && svl.contextMenu.getTargetLabel() === this;
+        // Fade the icon while its dialog is open. The marker sits exactly on the feature being rated, so fading it
+        // lets the user see that feature while they rate it; the dialog's tail still marks the spot. ContextMenu's
+        // show()/hide() re-render the canvas so this toggles the moment the dialog opens or closes.
+        const dialogTarget = svl.contextMenu?.isOpen() && svl.contextMenu.getTargetLabel() === this;
         if (dialogTarget) {
           ctx.save();
           ctx.globalAlpha = 0.3;
