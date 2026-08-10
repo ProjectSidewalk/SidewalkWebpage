@@ -26,6 +26,10 @@ const UTILITIES_SRC = fs.readFileSync(
 const DESKTOP_BASE = 10 * 2 + 2;   // 22
 const MOBILE_BASE = 25 * 2 + 2;    // 52
 
+// The UI scale at which the desktop marker reaches util.LABEL_ICON_MAX_SCREEN_DIAMETER (38) and the cap takes over.
+// Spelled out rather than read off util so the cases below can't drift with the constant they are pinning.
+const CROSSOVER = 38 / DESKTOP_BASE;   // ~1.7273
+
 /** Loads utilities.js into jsdom, the same way the other utilities suites do. */
 function loadUtil() {
     // utilities.js builds a Bowser parser at load time; the sizing under test never consults it.
@@ -60,9 +64,9 @@ describe('util.cappedMarkerDiameter', () => {
         });
 
         test('the cap engages where the base size reaches the ceiling, and not before', () => {
-            const crossover = util.LABEL_ICON_MAX_SCREEN_DIAMETER / DESKTOP_BASE; // ~1.7273
-            expect(desktop(crossover - 0.01)).toBeLessThan(38);
-            expect(desktop(crossover + 0.01)).toBe(38);
+            expect(CROSSOVER).toBeCloseTo(util.LABEL_ICON_MAX_SCREEN_DIAMETER / DESKTOP_BASE, 5);
+            expect(desktop(CROSSOVER - 0.01)).toBeLessThan(38);
+            expect(desktop(CROSSOVER + 0.01)).toBe(38);
         });
 
         test('never exceeds the ceiling at any scale in range', () => {
@@ -71,10 +75,19 @@ describe('util.cappedMarkerDiameter', () => {
             }
         });
 
-        test('never shrinks below what it is today at any scale in range', () => {
-            for (let scale = 0.65; scale <= 1.8001; scale += 0.05) {
-                expect(desktop(scale)).toBeLessThanOrEqual(DESKTOP_BASE * scale + 1e-9);
-                expect(desktop(scale)).toBeGreaterThanOrEqual(Math.min(DESKTOP_BASE * scale, 38) - 1e-9);
+        // The two halves of the rule, pinned separately so each fails on its own mutation: drop the cap and the
+        // second fails, flatten it to a bare min(..., 38) and neither does but the mobile cases below do. A single
+        // "stays between the capped and uncapped sizes" assertion would pass with the cap removed entirely, since
+        // the uncapped size is one of its own bounds.
+        test('is untouched below the crossover, at every scale in range', () => {
+            for (let scale = 0.65; scale < CROSSOVER - 1e-9; scale += 0.05) {
+                expect(desktop(scale)).toBeCloseTo(DESKTOP_BASE * scale, 5);
+            }
+        });
+
+        test('is held at the ceiling above the crossover, at every scale in range', () => {
+            for (let scale = CROSSOVER + 1e-9; scale <= 1.8001; scale += 0.01) {
+                expect(desktop(scale)).toBeCloseTo(util.LABEL_ICON_MAX_SCREEN_DIAMETER, 5);
             }
         });
     });

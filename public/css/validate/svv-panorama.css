@@ -63,26 +63,40 @@
   transition: opacity 0.5s ease;
 }
 
-/* Pointer-target floor. The marker is what opens the label card — by hover, by click, and as a keyboard stop
-   (PanoMarker, #4729) — but the mark itself is 22px at --ui-scale 1 and shrinks to 14px at the 0.65x end, under the
-   24px of WCAG 2.5.8 Target Size (Minimum), AA. A transparent ::after widens only the *target*, so the mark stays
-   the size it was drawn: growing the element instead would move the marker (PanoMarker positions it from its own
-   size) and push the label card away from it (LabelVisibilityControl anchors on offsetWidth).
+/* Pointer-target floor. The marker is what opens the label card — on desktop by hover and as a keyboard stop
+   (PanoMarker, #4729), on mobile by touch — but the mark itself is 22px at --ui-scale 1 and shrinks to 14px at the
+   0.65x end.
+
+   This is about *acquisition*, not conformance. WCAG 2.5.8 Target Size (Minimum), AA, sizes targets for pointer
+   activation, and desktop has no pointer activation here: nothing binds click to the marker (#4843). So the SC does
+   not actually reach it, and mobile — which does activate by pointer — is already well past 24px at 52px. But a
+   hover target is if anything the harder case, since it has to be found and then held, and 14px is small for that.
+   24px is still the right number to floor at: it is what 2.5.8 asks of every other target on the page, and it is
+   what Explore's placed-label target already uses.
+
+   A transparent ::after widens only the *target*, so the mark stays the size it was drawn: growing the element
+   instead would move the marker (PanoMarker positions it from its own size) and push the label card away from it
+   (LabelVisibilityControl anchors on offsetWidth).
 
    max(), not a fixed size, so this only ever adds area — above ~1.09x the mark is already past 24px and the target
-   is exactly the mark. Round, matching the mark: browsers hit-test through border-radius, so the marker's target is
-   a circle today (.icon-outline's 25px radius clamps to 50% at every size this is drawn at), and a square here
-   would square that target off at every scale rather than only flooring it where it is too small — opening the card
-   on a hover several px off the visible marker. A 24px circle still satisfies 2.5.8, which measures a target by its
-   bounding box. z-index keeps it under the icon and the AI badge; it takes the pointer for the marker either way,
-   since all three are the same element as far as the hover and click handlers are concerned. */
+   is exactly the mark. Round, matching the mark: browsers hit-test through border-radius, and at every size the
+   *desktop* marker is drawn at (22px base, 38px ceiling) .icon-outline's 25px radius clamps to 50%, so its target
+   is a circle today. Squaring it off here would change that at every scale rather than only flooring it where it is
+   too small — opening the card on a hover several px off the visible marker. (Mobile's 52px marker is the one size
+   where that radius does not clamp, but there the mark is already wider than this floor, so nothing below applies.)
+   z-index keeps it under the icon and the AI badge; it takes the pointer for the marker either way, since all three
+   are the same element as far as the hover handlers are concerned. */
 #validate-pano-marker::after {
+  /* Mirrors util.LABEL_MIN_SCREEN_TARGET (public/js/common/utilities.js), which floors Explore's label target. One
+     WCAG number for both tools, so keep the two in step — CSS can't read the JS constant. */
+  --label-min-target: 24px;
+
   content: "";
   position: absolute;
   top: 50%;
   left: 50%;
-  width: max(100%, 24px);
-  height: max(100%, 24px);
+  width: max(100%, var(--label-min-target));
+  height: max(100%, var(--label-min-target));
   transform: translate(-50%, -50%);
   border-radius: 50%;
   z-index: -1;

@@ -32,7 +32,9 @@ util.LABEL_ICON_BASE_RADIUS = 17;
 // what keeps the two tools' markers the same size at the top of the scale range.
 util.LABEL_ICON_MAX_SCREEN_DIAMETER = 38;
 
-// Smallest a label's click target may get on screen, in CSS px. WCAG 2.5.8 Target Size (Minimum), level AA.
+// Smallest a label's pointer target may get on screen, in CSS px. WCAG 2.5.8 Target Size (Minimum), level AA.
+// Validate's marker floors itself in CSS instead (--label-min-target in css/validate/svv-panorama.css), because
+// only the target grows there and not the mark; keep the two numbers in step.
 util.LABEL_MIN_SCREEN_TARGET = 24;
 
 /**
