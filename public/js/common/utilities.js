@@ -25,13 +25,34 @@ util.exploreDisplayScale = function () {
 // scales off it, so a capped radius keeps the mark's proportions.
 util.LABEL_ICON_BASE_RADIUS = 17;
 
-// Largest a label icon may get on screen, in CSS px. Matches Label.CURSOR_ICON_SIZE, the labeling cursor the user
-// aims with: that cursor is a fixed-size bitmap and does not scale, so letting the placed icon outgrow it means
-// aiming with one size and placing another.
+// Largest a pano label marker may get on screen, in CSS px, in either tool. The number is Label.CURSOR_ICON_SIZE,
+// the labeling cursor the user aims with in Explore: that cursor is a fixed-size bitmap and does not scale, so
+// letting the placed icon outgrow it means aiming with one size and placing another. Validate has no cursor to
+// match, but a marker that keeps growing hides more of the very feature being judged, and sharing the ceiling is
+// what keeps the two tools' markers the same size at the top of the scale range.
 util.LABEL_ICON_MAX_SCREEN_DIAMETER = 38;
 
-// Smallest a label's click target may get on screen, in CSS px. WCAG 2.5.8 Target Size (Minimum), level AA.
+// Smallest a label's pointer target may get on screen, in CSS px. WCAG 2.5.8 Target Size (Minimum), level AA.
+// Validate's marker floors itself in CSS instead (--label-min-target in css/validate/svv-panorama.css), because
+// only the target grows there and not the mark; keep the two numbers in step.
 util.LABEL_MIN_SCREEN_TARGET = 24;
+
+/**
+ * On-screen diameter of a pano label marker, in CSS px, capped at util.LABEL_ICON_MAX_SCREEN_DIAMETER (#4838).
+ *
+ * For markers that are DOM elements sized directly in screen px — Validate's PanoMarker. Explore's marker is drawn
+ * into a scaled logical frame instead and caps itself through util.labelIconRadius; both land on the same ceiling.
+ *
+ * @param {number} baseDiameter - The marker's diameter at --ui-scale = 1, in CSS px.
+ * @param {number} scale - The tool's UI scale.
+ * @returns {number} Diameter in CSS px.
+ */
+util.cappedMarkerDiameter = function (baseDiameter, scale) {
+  // The cap limits growth driven by --ui-scale; it never shrinks a marker below the size its tool chose. That is
+  // what keeps mobile Validate out of it — a phone's marker is a 52px touch target and never runs applyToolScale,
+  // so capping it to 38 would shrink a touch target to answer a desktop problem.
+  return Math.min(baseDiameter * scale, Math.max(baseDiameter, util.LABEL_ICON_MAX_SCREEN_DIAMETER));
+};
 
 /**
  * Half-extent of the icon actually drawn for a label of the given radius, in the same logical frame.
