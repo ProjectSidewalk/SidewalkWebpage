@@ -14,7 +14,7 @@ import play.api.http.ContentTypes
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
-import service.PanoDataService.getFov
+import service.PanoDataService.{getFov, LiveImageryTtlDays}
 import slick.dbio.DBIO
 
 import java.io.{File, IOException}
@@ -31,6 +31,16 @@ import scala.concurrent.{ExecutionContext, Future}
  * Companion object with constants and functions that are shared throughout codebase, that shouldn't require injection.
  */
 object PanoDataService {
+
+  /**
+   * How long a "the imagery is still there" answer stays good before we ask the provider again (#3004).
+   *
+   * The window bounds how long a pano that has since disappeared can keep being handed to users, so it trades page
+   * load time against that exposure. A pano's odds of vanishing in any given week are on the order of 0.1%, small
+   * enough to keep bad hand-outs rare, and a window this wide covers a whole mapathon rather than only the day a
+   * label was placed.
+   */
+  val LiveImageryTtlDays: Long = 7
 
   /**
    * Hacky fix to generate the FOV for an image. Determined experimentally.
@@ -228,6 +238,7 @@ trait PanoDataService {
    */
   def getInfra3dToken(cityId: String): Future[String]
   def panoExists(panoId: String, panoSource: PanoSource): Future[Option[Boolean]]
+  def getReusableImageryStatus(panoIds: Set[String]): Future[Map[String, Boolean]]
   def getImageUrl(panoId: String, panoSrc: PanoSource, heading: Double, pitch: Double, zoom: Double): Option[String]
   def getGsvImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
@@ -318,6 +329,19 @@ class PanoDataServiceImpl @Inject() (
       case PanoSource.Mapillary => mapillaryPanoExists(panoId)
       case _                    => Future.successful(Some(true))
     }
+  }
+
+  /**
+   * Looks up which of the given panos we already know the imagery-existence answer for, skipping a provider call.
+   *
+   * See `PanoDataTable.getReusableImageryStatus` for which rows qualify and why.
+   *
+   * @param panoIds Panos to look up.
+   * @return        Pano ID -> whether its imagery exists, holding only the panos an answer is reusable for.
+   */
+  def getReusableImageryStatus(panoIds: Set[String]): Future[Map[String, Boolean]] = {
+    if (panoIds.isEmpty) Future.successful(Map.empty)
+    else db.run(panoDataTable.getReusableImageryStatus(panoIds, OffsetDateTime.now.minusDays(LiveImageryTtlDays)))
   }
 
   /**
