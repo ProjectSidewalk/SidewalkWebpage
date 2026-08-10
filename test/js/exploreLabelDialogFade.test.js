@@ -8,14 +8,18 @@
  * The behavior started life gated on `svl.isOnboarding()` (the tutorial, #4814/#4815). #4824 promoted it to regular
  * Explore labeling, so the gate is gone — the `isOnboarding` cases below are the pin that keeps it gone. What makes
  * the fade *visible* the instant the panel opens or closes is ContextMenu.show()/hide() re-rendering the canvas;
- * that wiring is jQuery-bound UI and is verified in the browser, not here.
+ * that wiring is pinned separately, in exploreContextMenuRerender.test.js.
  */
 
 const fs = require('fs');
 const path = require('path');
+const { makeRecordingCtx } = require('./canvasCtxStub');
 
 const LABEL_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/explore/src/label/Label.js'), 'utf8'
+);
+const UTILITIES_SRC = fs.readFileSync(
+    path.resolve(__dirname, '..', '..', 'public/js/common/utilities.js'), 'utf8'
 );
 
 /** Loads a fresh Label class into the jsdom global scope (a class declaration is not a globalThis property). */
@@ -25,35 +29,15 @@ function loadLabel() {
 }
 
 /**
- * A canvas context stand-in that records the globalAlpha in effect for every drawing call, so a test can assert what
- * the icon was actually painted at rather than trusting that save/restore were called in the right order.
+ * Loads the real utilities.js rather than stubbing it. Label's icon geometry is expressed in terms of
+ * util.labelIconHalfExtent/labelIconScale, and a stub of those would be the formula copied into the test.
  */
-function makeRecordingCtx() {
-    const alphas = [];
-    const savedAlphas = [];
-    return {
-        globalAlpha: 1,
-        lineWidth: 1,
-        strokeStyle: '',
-        fillStyle: '',
-        font: '',
-        textAlign: '',
-        alphas,
-        saveCount: 0,
-        save() { this.saveCount += 1; savedAlphas.push(this.globalAlpha); },
-        restore() { this.globalAlpha = savedAlphas.pop(); },
-        drawImage() { alphas.push(this.globalAlpha); },
-        beginPath() {},
-        closePath() {},
-        moveTo() {},
-        lineTo() {},
-        arc() {},
-        ellipse() {},
-        stroke() { alphas.push(this.globalAlpha); },
-        fill() { alphas.push(this.globalAlpha); },
-        fillText() { alphas.push(this.globalAlpha); },
-        measureText: () => ({ width: 0 }),
-    };
+function loadUtil() {
+    // utilities.js builds a Bowser parser at load time; nothing under test here consults it.
+    window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
+        getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
+    window.eval(UTILITIES_SRC);
+    return window.util;
 }
 
 describe('Label render fade while the context menu is open', () => {
@@ -90,19 +74,16 @@ describe('Label render fade while the context menu is open', () => {
 
     beforeEach(() => {
         Label = loadLabel();
+        const util = loadUtil();
         window.svl = {
-            LABEL_ICON_RADIUS: 17,
+            LABEL_ICON_RADIUS: util.labelIconRadius(1),
             isOnboarding: () => false,
             minimap: { getMap: () => null },
         };
-        window.util = {
-            EXPLORE_CANVAS_WIDTH: 720,
-            EXPLORE_CANVAS_HEIGHT: 480,
-            pano: { centeredPovToCanvasCoord: () => ({ x: 360, y: 240 }) },
-            misc: {
-                labelTypeHasSeverity: (labelType) => labelType !== 'Occlusion',
-                getIconImagePaths: () => ({ iconImagePath: 'CurbRamp.svg' }),
-            },
+        util.pano = { centeredPovToCanvasCoord: () => ({ x: 360, y: 240 }) };
+        util.misc = {
+            labelTypeHasSeverity: (labelType) => labelType !== 'Occlusion',
+            getIconImagePaths: () => ({ iconImagePath: 'CurbRamp.svg' }),
         };
         window.labelIconCache = { 'CurbRamp.svg': {} }; // Truthy, so renderLabelIcon reaches its drawImage.
         Label.createMinimapMarker = () => ({ addListener: () => {} });

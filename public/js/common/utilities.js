@@ -34,6 +34,31 @@ util.LABEL_ICON_MAX_SCREEN_DIAMETER = 38;
 util.LABEL_MIN_SCREEN_TARGET = 24;
 
 /**
+ * Half-extent of the icon actually drawn for a label of the given radius, in the same logical frame.
+ *
+ * Label.renderLabelIcon draws the icon at 2 * radius - 3, inset from the radius, so the mark the user sees is
+ * smaller than its nominal radius and is not proportional to it. Everything sized against the icon — the click
+ * target, the outline rings, the unrated-severity badge — measures from here rather than from the radius.
+ *
+ * @param {number} radius - Icon radius in logical px.
+ * @returns {number} Half the drawn icon's width, in logical px.
+ */
+util.labelIconHalfExtent = function (radius) {
+  return radius - 1.5;
+};
+
+/**
+ * Scale factor for icon geometry authored against util.LABEL_ICON_BASE_RADIUS, so that a decoration keeps its exact
+ * relationship to the icon's edge however the icon is sized (#4838). 1 at the base radius, smaller once capped.
+ *
+ * @param {number} radius - Icon radius in logical px.
+ * @returns {number} Multiplier for offsets, sizes, and stroke widths authored at the base radius.
+ */
+util.labelIconScale = function (radius) {
+  return util.labelIconHalfExtent(radius) / util.labelIconHalfExtent(util.LABEL_ICON_BASE_RADIUS);
+};
+
+/**
  * Radius of a placed label's icon, in Explore's fixed 720x480 logical frame (#4838).
  *
  * The logical frame is displayed at var(--ui-scale) (0.65x-1.8x, see util.applyToolScale), so a constant radius
@@ -48,12 +73,12 @@ util.LABEL_MIN_SCREEN_TARGET = 24;
  * @returns {number} Radius in logical px.
  */
 util.labelIconRadius = function (scale) {
-  const uiScale = scale || util.uiScale();
-  // Cap the drawn diameter, not the radius: the drawn size is 2 * radius - 3 (Label.renderLabelIcon), and it is the
-  // drawn size the on-screen limit is about.
-  const baseDiameter = 2 * util.LABEL_ICON_BASE_RADIUS - 3;
+  const uiScale = scale ?? util.uiScale();
+  // Cap the drawn diameter, not the radius: the icon is drawn inset from its radius (see labelIconHalfExtent), and
+  // it is the drawn size the on-screen limit is about.
+  const baseDiameter = 2 * util.labelIconHalfExtent(util.LABEL_ICON_BASE_RADIUS);
   const diameter = Math.min(baseDiameter, util.LABEL_ICON_MAX_SCREEN_DIAMETER / uiScale);
-  return (diameter + 3) / 2;
+  return diameter / 2 + 1.5;
 };
 
 /**
@@ -64,13 +89,17 @@ util.labelIconRadius = function (scale) {
  * above would have shrunk it further. The target is the visible icon instead, floored so it stays usable once the
  * tool scales down.
  *
+ * The target is a square and the icon is round, so its corners do reach a little past the icon; that slack is what
+ * lets a near miss on a lone icon still land. Where it makes two neighbouring targets overlap, Canvas.onLabel
+ * resolves the tie in favour of the icon drawn on top.
+ *
  * @param {number} [scale] - The tool's UI scale. Read from the page when omitted.
  * @returns {number} Half-width in logical px.
  */
 util.labelHitMargin = function (scale) {
-  const uiScale = scale || util.uiScale();
-  // Half the drawn diameter (2 * radius - 3), so the whole icon is clickable and nothing beyond it is.
-  const halfIcon = util.labelIconRadius(uiScale) - 1.5;
+  const uiScale = scale ?? util.uiScale();
+  // Half the drawn icon, so every point of the icon is inside the target.
+  const halfIcon = util.labelIconHalfExtent(util.labelIconRadius(uiScale));
   return Math.max(halfIcon, util.LABEL_MIN_SCREEN_TARGET / 2 / uiScale);
 };
 

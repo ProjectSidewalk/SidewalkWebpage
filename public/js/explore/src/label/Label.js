@@ -342,7 +342,7 @@ class Label {
     const rootStyle = getComputedStyle(document.documentElement);
     // The badge's placement and size are authored against the base icon radius, so they scale with the icon and it
     // stays pinned to the icon's upper-left however the icon is sized (#4838).
-    const k = svl.LABEL_ICON_RADIUS / util.LABEL_ICON_BASE_RADIUS;
+    const k = util.labelIconScale(svl.LABEL_ICON_RADIUS);
 
     // Draws circle. The same --color-error-200 the hover card's unrated chip uses, so the "?" on the canvas and the
     // "?" on the card that describes it are one mark in two places rather than two different reds (#4731).
@@ -558,20 +558,23 @@ class Label {
    */
   static renderLabelIcon(ctx, labelType, x, y) {
     const radius = svl.LABEL_ICON_RADIUS;
-    const size = 2 * radius - 3;
+    const halfIcon = util.labelIconHalfExtent(radius);
+    const size = 2 * halfIcon;
     const icon = window.labelIconCache[util.misc.getIconImagePaths(labelType).iconImagePath];
     if (icon) ctx.drawImage(icon, x - radius + 2, y - radius + 2, size, size);
 
-    // The rings are a hairline just inside and just outside the icon's edge, so they're offsets from the radius
-    // rather than the fixed 15.3/16.2 they used to be — the radius moves with the UI scale now (#4838). The offsets
-    // and the stroke stay absolute, which is what keeps the outline the same weight at every icon size.
-    ctx.lineWidth = 0.7;
+    // The rings are a hairline straddling the icon's edge, so they're offsets from the drawn icon rather than the
+    // fixed 15.3/16.2 they used to be — the icon's size moves with the UI scale now, and stops moving once the cap
+    // engages (#4838). The offsets and the stroke scale with it too: left absolute, the outline would read about
+    // 47% heavier against a capped icon than against a full-size one.
+    const k = util.labelIconScale(radius);
+    ctx.lineWidth = 0.7 * k;
     ctx.beginPath();
-    ctx.arc(x, y, radius - 1.7, 0, 2 * Math.PI);
+    ctx.arc(x, y, halfIcon - 0.2 * k, 0, 2 * Math.PI);
     ctx.strokeStyle = 'black';
     ctx.stroke();
     ctx.beginPath();
-    ctx.arc(x, y, radius - 0.8, 0, 2 * Math.PI);
+    ctx.arc(x, y, halfIcon + 0.7 * k, 0, 2 * Math.PI);
     ctx.strokeStyle = 'white';
     ctx.stroke();
   }
