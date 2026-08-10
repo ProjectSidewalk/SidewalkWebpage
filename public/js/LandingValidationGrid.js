@@ -8,10 +8,13 @@
  * server-side. Validated cards are swapped for a fresh label from a prefetched pool, giving the "live" feel.
  *
  * Label data comes from POST /label/labels with sort: 'recent', i.e. a shuffled pool of the newest labels needing
- * validation. Nothing is fetched until the section is scrolled near (IntersectionObserver).
+ * validation. Nothing is fetched during page load; the grid fills itself once the visitor interacts with the page.
  */
 class LandingValidationGrid {
   static #GRID_SIZE = 6;
+  // Cards past the third are hidden by CSS below 650px — keep in sync with the nth-child(n+4) rule in
+  // css/landing-validation-grid.css. Purely a layout breakpoint, so there's no backend value to source it from.
+  static #NARROW_VISIBLE_CARDS = 3;
   // The server splits n across the 6 label types validatable from a static image (static_imagery_only — Signal
   // needs a pan up its pole, so it's excluded server-side), so fetch sizes are multiples of 6: 2 per type up
   // front (6 rendered + the rest pooled for replacements), 1 per type on refills.
@@ -44,22 +47,17 @@ class LandingValidationGrid {
       this.#grid.appendChild(skeleton);
     }
 
-    // Don't hit the server (label queries + imagery checks) until the visitor actually scrolls near the section.
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
-        observer.disconnect();
-        this.#start();
-      }
-    }, { rootMargin: '300px' });
-    observer.observe(sectionEl);
+    // Don't hit the server (label queries + imagery checks) until first page interaction, keeping simple crawlers from
+    // hitting expensive queries frequently.
+    util.onFirstInteractionOrIdle(() => this.#start());
   }
 
   /** Fetches the initial batch and swaps the skeletons for real cards (or hides the section if there are none). */
   async #start() {
     await this.#loadBatch(LandingValidationGrid.#INITIAL_FETCH);
-    this.#grid.querySelectorAll('.lvg-card-skeleton').forEach((skeleton) => {
+    this.#grid.querySelectorAll('.lvg-card-skeleton').forEach((skeleton, index) => {
       const entry = this.#pool.shift();
-      if (entry) skeleton.replaceWith(this.#buildCard(entry));
+      if (entry) skeleton.replaceWith(this.#buildCard(entry, index));
       else skeleton.remove();
     });
 
@@ -69,6 +67,16 @@ class LandingValidationGrid {
       this.#firstLoadLogged = true;
       window.logWebpageActivity(`View_module=LandingValidationGrid_labelCount=${count}`);
     }
+  }
+
+  /**
+   * How many grid slots the CSS actually shows at the current viewport width.
+   * @returns {number}
+   */
+  static #visibleCardCount() {
+    return window.matchMedia('(width <= 650px)').matches
+      ? LandingValidationGrid.#NARROW_VISIBLE_CARDS
+      : LandingValidationGrid.#GRID_SIZE;
   }
 
   /**
@@ -113,9 +121,10 @@ class LandingValidationGrid {
    * Builds one card: the label image with the label-type icon marked at its canvas position, the localized
    * "Is this a …?" question, and the three validation buttons.
    * @param {Object} entry - One {label, cropUrl, gsvImageUrl} entry from /label/labels.
+   * @param {number} index - The card's slot in the grid, which decides whether its image loads eagerly.
    * @returns {HTMLElement}
    */
-  #buildCard(entry) {
+  #buildCard(entry, index) {
     const label = entry.label;
     const typeKebab = util.camelToKebab(label.label_type);
     const card = document.createElement('figure');
@@ -127,8 +136,13 @@ class LandingValidationGrid {
     imgWrap.className = 'lvg-card-img';
     const img = document.createElement('img');
     img.className = 'lvg-card-photo';
-    // Lazy so the cards CSS hides at narrow widths (the 4th+) never fetch their images.
-    img.loading = 'lazy';
+    // Eager only for a crop-backed card in a slot this width actually shows, so the grid isn't blank on arrival:
+    // browser lazy-loading holds the fetch until the image nears the viewport, which would undo the early start.
+    // Crops are served from our own disk, so warming one costs bandwidth and nothing else. An API-backed card stays
+    // lazy however visible it is — gsvImageUrl is the Street View Static API, billed per request, and this now runs
+    // for every engaged visitor rather than only the ones who scroll two-thirds down the page.
+    const freeToWarm = entry.cropUrl && !util.saveDataEnabled();
+    img.loading = freeToWarm && index < LandingValidationGrid.#visibleCardCount() ? 'eager' : 'lazy';
     img.alt = i18next.t(`common:${typeKebab}`);
     img.addEventListener('error', () => {
       // The saved crop can 404 (signed URLs expire after a while); fall back to the GSV Static API image. A card
@@ -369,9 +383,10 @@ class LandingValidationGrid {
       if (this.#pool.length === 0) await refill;
     }
     const hadFocus = card.contains(document.activeElement);
+    const index = [...this.#grid.children].indexOf(card);
     const entry = this.#pool.shift();
     if (entry) {
-      const fresh = this.#buildCard(entry);
+      const fresh = this.#buildCard(entry, index);
       card.replaceWith(fresh);
       if (hadFocus) fresh.querySelector('.lvg-btn')?.focus();
     } else {
