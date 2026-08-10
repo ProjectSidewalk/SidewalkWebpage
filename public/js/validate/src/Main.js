@@ -184,7 +184,7 @@ class Main {
       // subscribed to whichever one happened to be showing the first label (#4828).
       svv.speedLimit = new SpeedLimit(
         () => svv.panoViewer, () => svv.panoViewer.getPosition(), () => false, param.countryId,
-        { labelContainer: svv.labelContainer, labelType },
+        { labelContainer: svv.labelContainer },
       );
       svv.zoomControl = new ZoomControl();
       new MissionStartTutorial('validate', labelType, { nLabels: param.mission.labels_validated }, svv, param.language);

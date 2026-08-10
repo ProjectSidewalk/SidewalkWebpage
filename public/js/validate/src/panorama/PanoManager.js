@@ -74,7 +74,6 @@ class PanoManager {
 
     this.#primaryViewer = await panoViewerType.create(this.#panoCanvas, panoOptions);
     svv.panoViewer = this.#primaryViewer;
-    this.#watchViewerPov(this.#primaryViewer);
 
     // Set up the imagery source logo. #showPannellumPano will override it if Pannellum takes over below.
     this.#logo = createPanoViewerLogo(this.#panoCanvas.parentElement, panoViewerType);
@@ -90,6 +89,12 @@ class PanoManager {
         this.#setPanoCallback(panoData);
       }
     }
+
+    // Subscribed after the first pano has loaded rather than beside the viewer's creation: that load sets the
+    // viewer's initial POV, which fires pov_changed, and the throttle's leading edge would log it as a pan the
+    // user never made. (Pannellum, when the fallback above builds one, subscribes at its own creation instead —
+    // by then a POV change is a real one.)
+    this.#watchViewerPov(this.#primaryViewer);
 
     if (util.isMobile()) {
       this.#sizePano();

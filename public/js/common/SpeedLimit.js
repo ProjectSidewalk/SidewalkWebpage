@@ -26,7 +26,6 @@ class SpeedLimit {
   #panoViewer;
   #taskContainer;
   #labelContainer;
-  #labelType;
   #fallbackUnits;
 
   // Fallback lookups keyed by pano id, holding the in-flight promise so concurrent pano events share one request.
@@ -49,17 +48,14 @@ class SpeedLimit {
    * @param {object} [sources] Where to read speed limits from; exactly one should be provided.
    * @param {TaskContainer} [sources.taskContainer] Explore's task container; the sign tracks the nearest loaded street.
    * @param {LabelContainer} [sources.labelContainer] Validate's label container; the sign shows the current label's
-   *                                                  street.
-   * @param {string} [sources.labelType] Label type being validated; null/undefined shows the speed limit by default.
+   *                                                  street, and only for label types it is relevant to.
    */
-  constructor(panoViewer, coords, isOnboarding, countryId, { taskContainer = null, labelContainer = null,
-    labelType = null } = {}) {
+  constructor(panoViewer, coords, isOnboarding, countryId, { taskContainer = null, labelContainer = null } = {}) {
     this.#coords = coords;
     this.#isOnboarding = isOnboarding;
     this.#panoViewer = panoViewer;
     this.#taskContainer = taskContainer;
     this.#labelContainer = labelContainer;
-    this.#labelType = labelType;
 
     this.container = document.getElementById('speed-limit-sign');
     this.speedLimit = {
@@ -138,8 +134,11 @@ class SpeedLimit {
       return;
     }
 
-    // If labelType is null/undefined (not provided), the speed limit will be displayed by default.
-    const speedLimitRelevant = !this.#labelType || SpeedLimit.#SPEED_LIMIT_RELEVANT_LABELS.includes(this.#labelType);
+    // Relevance follows the label being judged, read on every update rather than fixed at construction: Validate
+    // rolls into the next mission without a page reload, and that mission can be a different label type. Explore
+    // has no label to read, and its sign applies to every street it shows.
+    const labelType = this.#labelContainer?.getCurrentLabel()?.getAuditProperty('labelType') ?? null;
+    const speedLimitRelevant = !labelType || SpeedLimit.#SPEED_LIMIT_RELEVANT_LABELS.includes(labelType);
 
     // If user is validating a label that doesn't require speed limit context, hide the speed limit.
     if (!speedLimitRelevant) {

@@ -47,12 +47,22 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
    */
   function makeFakeViewer(listenerSink) {
     return {
-      setPano: jest.fn(() => Promise.resolve(panoData)),
+      setPano: jest.fn(() => succeedingSetPano(listenerSink)),
       addListener: jest.fn((event, cb) => { listenerSink[event] = cb; }),
       resize: jest.fn(),
       setPov: jest.fn(),
       getPov: () => ({heading: 0, pitch: 0, zoom: 1}),
     };
+  }
+
+  /**
+   * A successful load, which sets the viewer's initial POV and so fires pov_changed the way real viewers do.
+   * @param {object} listenerSink - The viewer's captured listeners.
+   * @returns {Promise<object>} The loaded pano's metadata.
+   */
+  function succeedingSetPano(listenerSink) {
+    listenerSink.pov_changed?.();
+    return Promise.resolve(panoData);
   }
 
   beforeEach(async () => {
@@ -110,6 +120,15 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
     return svv.tracker.push.mock.calls.filter((call) => call[0] === 'POV_Changed').length;
   }
 
+  /**
+   * Drop the actions logged so far and let the throttle window lapse, so the next pan is a fresh leading edge.
+   * Lets a test count the pans it drives without the surrounding pano loads in the tally.
+   */
+  function resetPovLog() {
+    jest.advanceTimersByTime(1000);
+    svv.tracker.push.mockClear();
+  }
+
   /** Load a label whose imagery the primary viewer rejects, so Pannellum takes over. */
   async function loadPannellumLabel() {
     primaryViewer.setPano = jest.fn(() => Promise.reject(new Error('imagery expired')));
@@ -118,12 +137,19 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
 
   /** Load a label the primary viewer can render, handing the pano back to it. */
   async function loadPrimaryLabel(panoId) {
-    primaryViewer.setPano = jest.fn(() => Promise.resolve(panoData));
+    primaryViewer.setPano = jest.fn(() => succeedingSetPano(primaryListeners));
     await panoManager.setPanorama(panoId, null);
   }
 
+  test('the first pano load is not logged as a pan the user never made', () => {
+    // The load fires pov_changed as it sets the viewer's initial POV; logging that would open every session with
+    // a POV_Changed the validator never caused.
+    expect(povChangedLogCount()).toBe(0);
+  });
+
   test('panning a Pannellum label reaches the tracker', async () => {
     await loadPannellumLabel();
+    resetPovLog();
 
     expect(pannellumListeners.pov_changed).toBeDefined();
     pannellumListeners.pov_changed();
@@ -133,6 +159,7 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
   test('the primary viewer is still logged after a Pannellum label hands the pano back', async () => {
     await loadPannellumLabel();
     await loadPrimaryLabel('pano3');
+    resetPovLog();
 
     primaryListeners.pov_changed();
     expect(povChangedLogCount()).toBe(1);
@@ -140,6 +167,7 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
 
   test('the two viewers share one throttle window rather than one each', async () => {
     await loadPannellumLabel();
+    resetPovLog();
 
     pannellumListeners.pov_changed();
     primaryListeners.pov_changed();
@@ -153,6 +181,7 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
     await loadPannellumLabel();
     await loadPrimaryLabel('pano3');
     await loadPannellumLabel();
+    resetPovLog();
 
     const povSubscriptions = pannellumViewer.addListener.mock.calls.filter((call) => call[0] === 'pov_changed');
     expect(povSubscriptions).toHaveLength(1);
@@ -185,9 +214,14 @@ describe('SpeedLimit follows the active viewer (issue #4828)', () => {
     };
   }
 
-  /** Set the label the sign should be reading its speed limit from. */
-  function setCurrentLabel(maxSpeed) {
-    currentLabel = {getAuditProperty: (key) => (key === 'maxSpeed' ? maxSpeed : null)};
+  /**
+   * Set the label the sign should be reading from.
+   * @param {string} maxSpeed - Raw OSM maxspeed value for the label's street.
+   * @param {string} [labelType] - Label type; 'NoCurbRamp' is the one the sign is relevant to.
+   */
+  function setCurrentLabel(maxSpeed, labelType = 'NoCurbRamp') {
+    const props = {maxSpeed, labelType};
+    currentLabel = {getAuditProperty: (key) => props[key] ?? null};
   }
 
   /** @returns {string} The number currently rendered on the sign. */
@@ -216,8 +250,13 @@ describe('SpeedLimit follows the active viewer (issue #4828)', () => {
   function buildSpeedLimit() {
     speedLimit = new SpeedLimit(
       () => activeViewer, () => activeViewer.getPosition(), () => false, 'usa',
-      {labelContainer: {getCurrentLabel: () => currentLabel}, labelType: 'NoCurbRamp'},
+      {labelContainer: {getCurrentLabel: () => currentLabel}},
     );
+  }
+
+  /** @returns {boolean} Whether the sign is currently on screen. */
+  function signVisible() {
+    return document.getElementById('speed-limit-sign').style.display !== 'none';
   }
 
   test('the sign updates for a label shown on the Pannellum viewer', () => {
@@ -282,15 +321,28 @@ describe('SpeedLimit follows the active viewer (issue #4828)', () => {
   });
 
   test('a label type the sign is irrelevant for keeps it hidden after a viewer swap', () => {
-    setCurrentLabel('25 mph');
-    speedLimit = new SpeedLimit(
-      () => activeViewer, () => activeViewer.getPosition(), () => false, 'usa',
-      {labelContainer: {getCurrentLabel: () => currentLabel}, labelType: 'CurbRamp'},
-    );
-    expect(document.getElementById('speed-limit-sign').style.display).toBe('none');
+    setCurrentLabel('25 mph', 'CurbRamp');
+    buildSpeedLimit();
+    expect(signVisible()).toBe(false);
 
     activeViewer = pannellumViewer;
     speedLimit.refresh();
-    expect(document.getElementById('speed-limit-sign').style.display).toBe('none');
+    expect(signVisible()).toBe(false);
+  });
+
+  test('relevance follows the label type of the mission running now, not the one the tool started on', () => {
+    // Validate rolls into the next mission without a page reload, and that mission can be a different label type.
+    setCurrentLabel('25 mph', 'NoCurbRamp');
+    buildSpeedLimit();
+    expect(signVisible()).toBe(true);
+
+    setCurrentLabel('30 mph', 'CurbRamp');
+    speedLimit.refresh();
+    expect(signVisible()).toBe(false);
+
+    setCurrentLabel('35 mph', 'NoCurbRamp');
+    speedLimit.refresh();
+    expect(signVisible()).toBe(true);
+    expect(signNumber()).toBe('35');
   });
 });
