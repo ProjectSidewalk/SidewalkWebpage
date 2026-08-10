@@ -81,16 +81,24 @@ object PanoDataService {
    * **label-latlng-estimation** repo, which holds the notebooks, the held-out splits, and the reports:
    *
    *  - Form (cotangent + matched-slope tail, and `BLEND_DEG`):
-   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/reports/2026-08-07-distance-refit.md]]
+   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/main/reports/2026-08-07-distance-refit.md]]
    *    (PR #12). Won a 12-rung bake-off on 316,118 training rows of GSV depth truth, scored on a held-out 79,029.
    *  - Falsification on a second imagery source (Mapillary), which located the residual scale error in the camera
    *    rigs rather than the form:
-   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/reports/2026-08-07-mapillary-falsification.md]]
-   *    (PR #13). A LightGBM ceiling check found no headroom left for a learned model to recover:
-   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/reports/2026-08-07-gbm-ceiling.md]]
-   *    (PR #14).
+   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/main/reports/2026-08-07-mapillary-falsification.md]]
+   *    (PR #13).
+   *  - Headroom for a learned model, checked twice with opposite-looking answers. A LightGBM given the same inputs
+   *    and split beat this form by 74% on 2017-2020 truth:
+   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/main/reports/2026-08-07-gbm-ceiling.md]]
+   *    (PR #14). Scored against truth it was never fitted on, that gap inverts — with one calibration parameter on
+   *    each side this two-parameter form answers 0.410 m against 0.459-0.542 m for every recalibrated booster,
+   *    including one trained on modern truth directly:
+   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/main/reports/2026-08-10-gbm-transfer.md]]
+   *    (PR #21). The booster's apparent edge was the era truth's own resolution-conditioned scale, not scene
+   *    structure. So there is no headroom for a learned model to recover here — but read the second report for that,
+   *    not the first, which measures only what the 2017-2020 truth frame supports.
    *  - Absolute scale (`CAMERA_HEIGHT_M`), and the evidence for one height rather than a per-label-type table:
-   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/reports/2026-08-07-modern-truth.md]]
+   *    [[https://github.com/ProjectSidewalk/label-latlng-estimation/blob/main/reports/2026-08-07-modern-truth.md]]
    *    (PR #16, §7 mechanism and §9 decision). Canonical values: `final_coefficients` in
    *    `data/modern-truth-summary.json`.
    *
@@ -110,9 +118,10 @@ object PanoDataService {
     /**
      * Depression angle (degrees below the horizon) where the cotangent hands off to its linear tail.
      *
-     * Fitted, not picked: `provisional_coefficients.params.blend_deg` in `data/distance-refit-summary.json`, from
-     * the rung (`D_blend_type_l1`) that won the distance refit's bake-off on train-half median absolute distance
-     * error. Only the angle carries over from that rung — `CAMERA_HEIGHT_M` is calibrated separately.
+     * Fitted, not picked: `era_fit_coefficients.params.blend_deg` in `data/distance-refit-summary.json` (that block
+     * was called `provisional_coefficients` when this comment was written), from the rung (`D_blend_type_l1`) that
+     * won the distance refit's bake-off on train-half median absolute distance error. Only the angle carries over
+     * from that rung — `CAMERA_HEIGHT_M` is calibrated separately.
      */
     val BLEND_DEG: Double = 11.25
 
