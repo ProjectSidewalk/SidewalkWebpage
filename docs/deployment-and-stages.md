@@ -99,9 +99,17 @@ INSERT INTO version VALUES ('X.Y.Z', now(), 'One-line, user-facing summary of th
 DELETE FROM version WHERE version_id = 'X.Y.Z';
 ```
 
-Take the **next free number**, and check for collisions with in-flight PRs rather than trusting the highest file on
-`develop` — several open PRs commonly hold the same next number, and the release evolution should not be the one that
-has to renumber. `make lint-evolutions` runs the static checks CI enforces.
+Take **exactly one higher than the highest-numbered file on `develop`**. Do not skip a number to dodge one an open PR
+already claims: whichever PR merges second renumbers, and a collision is cheap to fix while a gap is not. In practice
+the question rarely comes up here, since a release is cut once `develop` has settled.
+
+**Why a gap is the dangerous mistake.** Play pairs the applied rows in `play_evolutions` against the evolution files
+*positionally*, highest revision first, and takes the first pair whose hashes differ as the point where the database
+diverged. An evolution that lands later in a skipped slot shifts every pair below it by one, so nothing matches and
+Play concludes the whole history diverged: it emits a `Down` for every applied evolution and re-applies all of them.
+We set `autoApplyDowns=true` (`conf/application.conf`), so it does that on startup without asking.
+
+`make lint-evolutions` runs the static checks CI enforces.
 
 ### 5. Open the prep PR into `develop`
 
