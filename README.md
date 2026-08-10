@@ -58,6 +58,7 @@ guide: **[`docs/dev-environment.md`](docs/dev-environment.md)**.
 | [`docs/dev-environment.md`](docs/dev-environment.md) | Set up and run the app locally. |
 | [`docs/editor-setup.md`](docs/editor-setup.md) | Configure IntelliJ IDEA or VS Code for the project. |
 | [`docs/architecture.md`](docs/architecture.md) | How the backend, frontend, and data fit together. |
+| [`docs/deployment-and-stages.md`](docs/deployment-and-stages.md) | Hosted stages, how code reaches each one, and the release runbook. |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Branch/PR workflow, coding standards, i18n. |
 | [`docs/style-guide.md`](docs/style-guide.md) | Detailed code-style conventions (JS, Scala, HTML/CSS). |
 | [`docs/internationalization.md`](docs/internationalization.md) | How translations work + adding a new language. |
@@ -73,14 +74,15 @@ guide: **[`docs/dev-environment.md`](docs/dev-environment.md)**.
 ### Where documentation lives
 
 **Developer documentation lives in this repository** — versioned with the code, reviewed in pull requests, and
-searchable by tooling (and AI assistants). The
-[**wiki**](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki) holds **operational runbooks** (e.g. deploying to
-a live server), **city-deployment and GIS data preparation**, and **visual tutorials** — content that changes
-independently of the code or is maintained by non-developers.
+searchable by tooling (and AI assistants). That includes how code ships: cutting a release and the deployment stages
+are in [`docs/deployment-and-stages.md`](docs/deployment-and-stages.md). The
+[**wiki**](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki) holds **city-deployment and GIS data preparation**
+(building a new city's database, road geometries, revealing and hiding regions), and other **operational how-tos and
+visual tutorials** — content that changes independently of the code or is maintained by non-developers.
 
-Rule of thumb: *if it describes the code or how to contribute, it's in the repo; if it's a runbook for operating a
-server or onboarding a new city's data, it's in the wiki.* We keep one source of truth per topic and cross-link rather
-than duplicate.
+Rule of thumb: *if it describes the code, how to contribute, or how the code gets deployed, it's in the repo; if it's
+about preparing a new city's data or operating a running deployment's content, it's in the wiki.* We keep one source of
+truth per topic and cross-link rather than duplicate.
 
 ## AI in Project Sidewalk
 

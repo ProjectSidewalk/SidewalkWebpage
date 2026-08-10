@@ -53,38 +53,150 @@ Practical implications for contributors:
 ## Cutting a release (runbook)
 
 Production is deployed by **creating a GitHub Release with a `vX.Y.Z` tag on `master`** — per the table above, only a
-semver tag deploys to prod. A release is more than the tag, though. Do these steps **in order**:
+semver tag deploys to prod. A release is more than the tag, though: the version the site *displays* comes from the
+database, and code reaches `master` only by way of `develop`.
 
-1. **Bump the app version** — edit `version := "X.Y.Z"` in [`build.sbt`](../build.sbt) (patch bump for a hotfix, e.g.
-   `11.6.0` → `11.6.1`).
-2. **Add a version-table evolution** — create the next-numbered `conf/evolutions/default/NNN.sql` that records the
-   release in the `version` table. This row is what the site footer / `commonData.versionId` displays (the app shows
-   the row with the latest `version_start_time`, so `now()` is correct and no manual date is needed):
-   ```sql
-   # --- !Ups
-   INSERT INTO version VALUES ('X.Y.Z', now(), 'One-line, user-facing summary of the release.');
+Releases are cut by a maintainer (**@jonfroehlich**, **@misaugstad**). Start from a `develop` that is green in CI, and
+remember that everything already merged there ships with this release — `develop` *is* the release contents. Do the
+steps below in order.
 
-   # --- !Downs
-   DELETE FROM version WHERE version_id = 'X.Y.Z';
-   ```
-3. **Land it on `develop` first** (PR) — merging to `develop` redeploys the **test** stage; verify there.
-4. **Merge `develop` → `master`** (PR).
-5. **Create the GitHub Release** with tag `vX.Y.Z` targeting `master`. That tag/release triggers the **prod** build and
-   the rolling per-city restart. Match the existing tag format exactly (`v11.6.0`, `v11.5.1`, …).
-6. **Verify prod** — the build isn't instant and city instances come up one-by-one. Confirm the *new code* is live, not
-   just that the server responds. Until an explicit version endpoint exists (**#4548**), the reliable check is
-   **behavioral**: load a page whose behavior only the new code produces. (The `/anonSignUp` liveness probe is not
-   sufficient — it passes even when a page like `/leaderboard` is crashing.)
+### 1. Pick the version number
+
+Adapted from [semver](https://semver.org/), versions are **X.Y.Z** = **Major.Minor.Patch**:
+
+| Bump | When | Example |
+|------|------|---------|
+| **Patch (Z)** | Bug fixes only. | `11.6.0` → `11.6.1`, which only fixed the leaderboard failing to load. |
+| **Minor (Y)** | Backward-compatible change — new features, enhancements, redesigns of existing pages. | `11.6.1` → `11.7.0`, which added Lived Experience Stories and redesigned the navbar and label card. |
+| **Major (X)** | Backward-incompatible change, or a release that revamps the product rather than adding to it. | `v9.0.0`, `v10.0.0`, `v11.0.0` — roughly one every six to twelve months. |
+
+Most scheduled releases are a **minor** bump; most hotfixes are a **patch**. Note that a minor bump is not capped by
+size — several 11.x minors carried 60–90 merged PRs including whole-page redesigns. **When in doubt, ask the team**
+before choosing: the number is public and permanent.
+
+### 2. Create a prep branch off `develop`
+
+```bash
+git fetch origin
+git switch -c prep-v<X.Y.Z>-release origin/develop
+```
+
+### 3. Bump the app version
+
+Edit `version := "X.Y.Z"` in [`build.sbt`](../build.sbt).
+
+### 4. Add a version-table evolution
+
+Create the next-numbered `conf/evolutions/default/NNN.sql` recording the release in the `version` table. This row is
+what the site footer / `commonData.versionId` displays — the app shows the row with the latest `version_start_time`,
+so `now()` is correct and no manual date is needed:
+
+```sql
+# --- !Ups
+INSERT INTO version VALUES ('X.Y.Z', now(), 'One-line, user-facing summary of the release.');
+
+# --- !Downs
+DELETE FROM version WHERE version_id = 'X.Y.Z';
+```
+
+Take **exactly one higher than the highest-numbered file on `develop`**. Do not skip a number to dodge one an open PR
+already claims: whichever PR merges second renumbers, and a collision is cheap to fix while a gap is not. In practice
+the question rarely comes up here, since a release is cut once `develop` has settled.
+
+**Why a gap is the dangerous mistake.** Play pairs the applied rows in `play_evolutions` against the evolution files
+*positionally*, highest revision first, and takes the first pair whose hashes differ as the point where the database
+diverged. An evolution that lands later in a skipped slot shifts every pair below it by one, so nothing matches and
+Play concludes the whole history diverged: it emits a `Down` for every applied evolution and re-applies all of them.
+We set `autoApplyDowns=true` (`conf/application.conf`), so it does that on startup without asking.
+
+`make lint-evolutions` runs the static checks CI enforces.
+
+### 5. Open the prep PR into `develop`
+
+Commit message: `<old-version> - <new-version>` (e.g. `11.7.0 - 11.8.0`). PR title: **`Prep for v<X.Y.Z> release`**.
+
+Merging it redeploys the **test** stage automatically, within roughly 15 minutes. **Verify the new version number
+appears in the site footer on test** before going further — that confirms both the build and the evolution applied.
+
+### 6. Open the release PR: `develop` → `master`
+
+Title it exactly **`v<X.Y.Z>`** (e.g. `v11.7.0`). The body is the release notes — see
+[Writing the release notes](#writing-the-release-notes) below. Then merge it into `master`.
+
+### 7. Create the GitHub Release
+
+Create a [new release](https://github.com/ProjectSidewalk/SidewalkWebpage/releases/new):
+
+- **Tag:** `v<X.Y.Z>` — match the existing format exactly (`v11.6.0`, `v11.5.1`, …).
+- **Target branch:** `master`.
+- **Title:** `v<X.Y.Z>`.
+- **Description:** the same release notes you put in the PR body.
+
+Publishing this is what triggers the **prod** build and the rolling per-city restart.
+
+### 8. Verify prod
+
+The build isn't instant and city instances come up one-by-one. Confirm the *new code* is live, not just that the
+server responds. Until an explicit version endpoint exists (**#4548**), the reliable check is **behavioral**: load a
+page whose behavior only the new code produces. (The `/anonSignUp` liveness probe is not sufficient — it passes even
+when a page like `/leaderboard` is crashing.) Also check the footer version and spot-check a few different cities,
+since they restart independently.
 
 **Two independent gotchas, both learned from #4545:**
-- Merging to `master` alone does **not** deploy to prod — the **tag** (step 5) does.
-- Bumping `build.sbt` alone does **not** change the version the site shows — the **evolution** (step 2) does.
-A hotfix that changes no schema *still* needs step 2 for the displayed version to update.
+- Merging to `master` alone does **not** deploy to prod — the **tag** (step 7) does.
+- Bumping `build.sbt` alone does **not** change the version the site shows — the **evolution** (step 4) does.
+A hotfix that changes no schema *still* needs step 4 for the displayed version to update.
 
 > **Design note:** routing release-versioning through schema evolutions couples two unrelated concerns and duplicates
 > the version string across `build.sbt`, an evolution, and the git tag. Making the git tag / build metadata the single
 > source of truth (an `sbt-buildinfo`-backed `/version` endpoint) is tracked in **#4548**; follow that convention if it
 > lands.
+
+### Writing the release notes
+
+The notes are written **for non-technical users** — contributors, city partners, and researchers read them. Same text
+serves the `develop` → `master` PR body and the GitHub Release description.
+
+Conventions, from past releases (a good model: [PR #4188](https://github.com/ProjectSidewalk/SidewalkWebpage/pull/4188),
+[PR #4614](https://github.com/ProjectSidewalk/SidewalkWebpage/pull/4614)):
+
+- One bullet per user-visible change, in **decreasing order of importance to end users** — not chronological order.
+- **Bold the one or two biggest headlines**, leave the rest plain.
+- Describe the change in plain language, from the user's point of view ("Fixes neighborhood names with `/` rendering
+  incorrectly in the mission complete screen"), not the implementation ("escapes HTML entities in `MissionTable`").
+- Cite **both the issue number and the PR number** — `#4054 (PR #4593)` — so a future reader can get back to the
+  discussion *and* the diff.
+- Group or omit pure-infra churn (CI config, lint fixes, dependency bumps, docs). One catch-all line is plenty; these
+  bullets are not a changelog of every merge.
+
+**Finding what's in the release.** Enumerate PRs by *commit reachability* from the previous tag rather than by merge
+date — a date filter both misses stragglers and picks up PRs that merged after the last tag was cut:
+
+```bash
+git fetch origin --tags
+PREV=v11.7.0   # the previous release tag
+git log $PREV..origin/develop --merges --format='%s' \
+  | grep -oP 'Merge pull request #\K[0-9]+' | sort -n -u > /tmp/prs.txt
+
+# titles
+while read n; do gh pr view "$n" --json number,title --jq '"* \(.title) (PR #\(.number))"'; done < /tmp/prs.txt
+
+# the issues each PR closes, so you can cite both numbers
+while read n; do
+  gh api graphql -f query="query{repository(owner:\"ProjectSidewalk\",name:\"SidewalkWebpage\")
+    {pullRequest(number:$n){closingIssuesReferences(first:10){nodes{number}}}}}" \
+    --jq "\"$n|\" + ([.data.repository.pullRequest.closingIssuesReferences.nodes[].number]|join(\",\"))"
+done < /tmp/prs.txt
+```
+
+That list is the raw material, not the notes — expect to merge related PRs into a single bullet, drop internal-only
+work, and rewrite every title into user-facing language.
+
+### Hotfixes
+
+A production bug that can't wait for the next scheduled release follows the same path — there is no way to reach prod
+that skips `develop` and `master`. Branch the fix off `develop`, merge it, then run the full runbook with a **patch**
+bump. The release notes can be a single bullet.
 
 ## Runtime shape
 
