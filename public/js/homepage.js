@@ -216,7 +216,25 @@ window.appManager.ready(() => {
   // Auto advance instruction videos.
   switchToVideo(DEFAULT_VIDEO);
   setInterval(autoAdvanceLaptopVideos, TICK_SIZE);
+
+  warmHiddenInstructionVideos();
 });
+
+/**
+ * Downloads the two initially-hidden how-it-works videos once the page is loaded and idle (#4486).
+ */
+function warmHiddenInstructionVideos() {
+  if (util.saveDataEnabled()) return;
+  util.afterLoadIdle(() => {
+    for (const video of [document.getElementById('vid2'), document.getElementById('vid3')]) {
+      if (!video) continue;
+      video.preload = 'auto';
+      // Changing the attribute doesn't re-run resource selection on its own; load() does. Safe here because these
+      // two are paused and unstarted until their tab is picked.
+      video.load();
+    }
+  });
+}
 
 const pausedVideos = {};
 

@@ -323,6 +323,100 @@ function hasSession() {
 
 util.hasSession = hasSession;
 
+/**
+ * Runs fn once the page has finished loading and the main thread next goes idle.
+ *
+ * The "deferred but eager" pattern for below-the-fold work (#4486). Keeping something off the critical path and
+ * deciding when it starts loading are separate choices: gating on an IntersectionObserver or a click answers both at
+ * once, which is right for work a visitor probably won't reach, but leaves them watching a blank space for anything
+ * they usually do reach. Waiting for `load` keeps the work out of the critical path; running it at idle rather than
+ * on an interaction means it has long since finished by the time the visitor arrives.
+ *
+ * When the work also costs the server something, prefer util.onFirstInteractionOrIdle, which adds an engagement gate
+ * on top of this.
+ *
+ * @param {Function} fn - The work to run. Called once.
+ * @param {number} [timeout=2000] - Idle deadline in ms. Past it the browser runs the callback anyway (as a normal
+ *   task, with didTimeout set), so a busy main thread can delay the work but never starve it.
+ */
+function afterLoadIdle(fn, timeout = 2000) {
+  const schedule = () => {
+    // requestIdleCallback is unavailable before Safari 17.4; a short timeout approximates it well enough here.
+    if (window.requestIdleCallback) window.requestIdleCallback(fn, { timeout });
+    else setTimeout(fn, 200);
+  };
+  if (document.readyState === 'complete') schedule();
+  else window.addEventListener('load', schedule, { once: true });
+}
+
+util.afterLoadIdle = afterLoadIdle;
+
+// Any of these means a human is present. pointermove is the earliest of them by a wide margin — a single mouse
+// twitch — which is the point: the gate has to clear long before the visitor could scroll to the deferred content.
+const INTERACTION_EVENTS = ['pointermove', 'pointerdown', 'scroll', 'keydown', 'touchstart', 'wheel'];
+
+/**
+ * Runs fn at the visitor's first sign of engagement, falling back to util.afterLoadIdle plus a delay if none comes.
+ *
+ * For deferred work that costs the *server* — a query, an API call — where afterLoadIdle alone would spend that cost
+ * on every crawler, link-preview prefetch, and drive-by load. An input event is a cheap, near-perfect filter for
+ * those, and it still fires far sooner than a human could reach anything below the fold.
+ *
+ * The fallback is deliberately slow, and its delay is nearly invisible in practice: deferred content sits below the
+ * fold, so actually looking at it requires a scroll, which trips the interaction path first. It exists only so a
+ * visitor who somehow generates no input events still ends up with a working page.
+ *
+ * @param {Function} fn - The work to run. Called once, whichever path gets there first.
+ * @param {number} [fallbackMs=5000] - How long after load-idle to give up waiting for an interaction.
+ */
+function onFirstInteractionOrIdle(fn, fallbackMs = 5000) {
+  let fired = false;
+  const run = () => {
+    if (fired) return;
+    fired = true;
+    // once:true retires the listener that fired; the rest have to be taken down by hand.
+    for (const type of INTERACTION_EVENTS) window.removeEventListener(type, run);
+    fn();
+  };
+  for (const type of INTERACTION_EVENTS) window.addEventListener(type, run, { once: true, passive: true });
+  afterLoadIdle(() => setTimeout(run, fallbackMs));
+}
+
+util.onFirstInteractionOrIdle = onFirstInteractionOrIdle;
+
+/**
+ * Injects scripts that fetch in parallel but execute in insertion order.
+ *
+ * Dynamically created scripts default to async, so a dependent bundle can run before its dependencies exist. Setting
+ * `async = false` restores ordered execution without serializing the downloads — what `defer` does for scripts that
+ * were in the markup at parse time. Pair with util.afterLoadIdle to pull a heavy, below-the-fold bundle in after load.
+ *
+ * @param {string[]} srcs - Script URLs, in the order they must execute.
+ * @returns {Promise} Resolves once all of them have run; rejects on the first that fails to load.
+ */
+function loadScriptsInOrder(srcs) {
+  return Promise.all(srcs.map((src) => new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = false;
+    script.onload = resolve;
+    script.onerror = () => reject(new Error(`failed to load ${src}`));
+    document.head.appendChild(script);
+  })));
+}
+
+util.loadScriptsInOrder = loadScriptsInOrder;
+
+/**
+ * Whether the visitor asked the browser to conserve data, in which case optional prefetching should be skipped.
+ * @returns {boolean} True only if Save-Data is explicitly on; unsupported browsers report false.
+ */
+function saveDataEnabled() {
+  return navigator.connection?.saveData === true;
+}
+
+util.saveDataEnabled = saveDataEnabled;
+
 // Sums an array's numbers (a helper, not an Array.prototype extension, to avoid polluting native prototypes).
 util.array = util.array || {};
 util.array.sum = (arr) => arr.reduce((a, b) => a + b, 0);
