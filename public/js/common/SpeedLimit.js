@@ -26,7 +26,6 @@ class SpeedLimit {
   #panoViewer;
   #taskContainer;
   #labelContainer;
-  #labelType;
   #fallbackUnits;
 
   // Fallback lookups keyed by pano id, holding the in-flight promise so concurrent pano events share one request.
@@ -38,25 +37,25 @@ class SpeedLimit {
   // Pending re-check while the pano position / street list are still loading at page startup.
   #startupRetryTimer = null;
 
+  /** @type {Set<PanoViewer>} Viewers already subscribed to by #watchViewer(). */
+  #watchedViewers = new Set();
+
   /**
-   * @param {PanoViewer} panoViewer PanoramaViewer object.
+   * @param {function} panoViewer Function that returns the currently active PanoViewer.
    * @param {function} coords Function that returns current longitude and latitude coordinates.
    * @param {function} isOnboarding Function that returns a boolean on whether the current mission is the tutorial task.
    * @param {string} countryId The current city's country id (e.g. 'usa'), for sign design and fallback units.
    * @param {object} [sources] Where to read speed limits from; exactly one should be provided.
    * @param {TaskContainer} [sources.taskContainer] Explore's task container; the sign tracks the nearest loaded street.
    * @param {LabelContainer} [sources.labelContainer] Validate's label container; the sign shows the current label's
-   *                                                  street.
-   * @param {string} [sources.labelType] Label type being validated; null/undefined shows the speed limit by default.
+   *                                                  street, and only for label types it is relevant to.
    */
-  constructor(panoViewer, coords, isOnboarding, countryId, { taskContainer = null, labelContainer = null,
-    labelType = null } = {}) {
+  constructor(panoViewer, coords, isOnboarding, countryId, { taskContainer = null, labelContainer = null } = {}) {
     this.#coords = coords;
     this.#isOnboarding = isOnboarding;
     this.#panoViewer = panoViewer;
     this.#taskContainer = taskContainer;
     this.#labelContainer = labelContainer;
-    this.#labelType = labelType;
 
     this.container = document.getElementById('speed-limit-sign');
     this.speedLimit = {
@@ -74,12 +73,36 @@ class SpeedLimit {
 
     this.updateSpeedLimit();
 
-    // Listen for pano changes.
-    panoViewer.addListener('pano_changed', this.#panoChangeListener);
+    // Listen for pano changes, and — since the initial pano usually finishes loading before that listener attaches,
+    // so its pano_changed is missed — run one update now so the sign shows on the first pano without any movement.
+    this.refresh();
+  }
 
-    // The initial pano usually finishes loading before this listener attaches, so its pano_changed is missed; run one
-    // update for the current position so the sign shows on the first pano without requiring movement.
+  /**
+   * Points the sign at whichever viewer is active now and updates the value it shows.
+   *
+   * Validate swaps `svv.panoViewer` between the primary viewer and Pannellum as labels come and go, and the viewer
+   * that isn't showing fires nothing — so a subscription made once at construction goes quiet for the rest of the
+   * mission as soon as the tool switches away from that viewer (#4828). Callers that change which pano is on screen
+   * call this; repeated calls are cheap, since each viewer is subscribed at most once.
+   */
+  refresh() {
+    this.#watchViewer(this.#panoViewer());
     this.#panoChangeListener();
+  }
+
+  /**
+   * Subscribes to a viewer's pano_changed, once per viewer.
+   *
+   * Called from refresh() rather than only at construction because viewers are built lazily: Validate creates its
+   * Pannellum viewer the first time a label's imagery has expired, so it may not exist yet.
+   *
+   * @param {PanoViewer} viewer The viewer to subscribe to; ignored if null or already subscribed.
+   */
+  #watchViewer(viewer) {
+    if (!viewer || this.#watchedViewers.has(viewer)) return;
+    this.#watchedViewers.add(viewer);
+    viewer.addListener('pano_changed', this.#panoChangeListener);
   }
 
   /**
@@ -111,8 +134,11 @@ class SpeedLimit {
       return;
     }
 
-    // If labelType is null/undefined (not provided), the speed limit will be displayed by default.
-    const speedLimitRelevant = !this.#labelType || SpeedLimit.#SPEED_LIMIT_RELEVANT_LABELS.includes(this.#labelType);
+    // Relevance follows the label being judged, read on every update rather than fixed at construction: Validate
+    // rolls into the next mission without a page reload, and that mission can be a different label type. Explore
+    // has no label to read, and its sign applies to every street it shows.
+    const labelType = this.#labelContainer?.getCurrentLabel()?.getAuditProperty('labelType') ?? null;
+    const speedLimitRelevant = !labelType || SpeedLimit.#SPEED_LIMIT_RELEVANT_LABELS.includes(labelType);
 
     // If user is validating a label that doesn't require speed limit context, hide the speed limit.
     if (!speedLimitRelevant) {
@@ -175,7 +201,7 @@ class SpeedLimit {
    * @returns {Promise<string|null>} Raw OSM maxspeed value, or null if unknown or on failure.
    */
   async #fetchSpeedLimitAtPoint(lat, lng) {
-    const panoId = this.#panoViewer.getPanoId();
+    const panoId = this.#panoViewer().getPanoId();
     if (this.#pointLookupCache.has(panoId)) {
       return await this.#pointLookupCache.get(panoId);
     }
