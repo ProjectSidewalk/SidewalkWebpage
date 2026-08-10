@@ -9,11 +9,13 @@ class Label {
   #googleMarker;
 
   // Size the label-type icons are rasterized to before being drawn (see preloadIcons). The label canvas renders at
-  // its on-screen size times the device pixel ratio, so the ~34px logical icon can land on ~130 device pixels on a
-  // wide HiDPI display; rasterizing below that is what left the icon looking soft.
+  // its on-screen size times the device pixel ratio, so the icon tops out around 76 device pixels on a HiDPI
+  // display (util.LABEL_ICON_MAX_SCREEN_DIAMETER at devicePixelRatio 2); rasterizing below that is what left the
+  // icon looking soft. Kept well above that ceiling so the raster is always downscaled, never stretched.
   static #ICON_RASTER_SIZE = 128;
 
-  // On-screen size of the labeling cursor. Canvas.js centers its hotspot on this.
+  // On-screen size of the labeling cursor, in CSS px. Canvas.js centers its hotspot on this. This bitmap does not
+  // scale with the tool, so it is also the ceiling a placed icon may grow to — see util.labelIconRadius (#4838).
   static CURSOR_ICON_SIZE = 38;
 
   static #cursorUrlCache = new Map();
@@ -200,7 +202,9 @@ class Label {
    * @returns {boolean}
    */
   isOn(x, y) {
-    const margin = svl.LABEL_ICON_RADIUS / 2 + 2;
+    // Sized to the drawn icon rather than derived from its radius, which used to leave the target smaller than the
+    // icon under it. See util.labelHitMargin.
+    const margin = svl.LABEL_HIT_MARGIN;
     return !this.#status.deleted
       && this.#status.visibility === 'visible'
       && this.#properties.currCanvasXY
@@ -336,6 +340,9 @@ class Label {
     // Canvas resolves neither CSS variables nor --ui-scale, so the design tokens are read off :root. (No scaling
     // wanted here regardless: this canvas keeps its fixed logical size and is scaled up by the browser.)
     const rootStyle = getComputedStyle(document.documentElement);
+    // The badge's placement and size are authored against the base icon radius, so they scale with the icon and it
+    // stays pinned to the icon's upper-left however the icon is sized (#4838).
+    const k = svl.LABEL_ICON_RADIUS / util.LABEL_ICON_BASE_RADIUS;
 
     // Draws circle. The same --color-error-200 the hover card's unrated chip uses, so the "?" on the canvas and the
     // "?" on the card that describes it are one mark in two places rather than two different reds (#4731).
@@ -343,15 +350,15 @@ class Label {
     // Trimmed: a custom property's value keeps the whitespace after the colon, and an unparseable fillStyle is
     // silently ignored rather than throwing — the circle would just keep whatever color was set last.
     ctx.fillStyle = rootStyle.getPropertyValue('--color-error-200').trim();
-    ctx.ellipse(x - 15, y - 10.5, 8, 8, 0, 0, 2 * Math.PI);
+    ctx.ellipse(x - 15 * k, y - 10.5 * k, 8 * k, 8 * k, 0, 0, 2 * Math.PI);
     ctx.fill();
     ctx.closePath();
 
     // Draws text.
     ctx.beginPath();
-    ctx.font = `400 12px ${rootStyle.getPropertyValue('--font-primary')}`;
+    ctx.font = `400 ${12 * k}px ${rootStyle.getPropertyValue('--font-primary')}`;
     ctx.fillStyle = 'rgb(255, 255, 255)';
-    ctx.fillText('?', x - 17.5, y - 6);
+    ctx.fillText('?', x - 17.5 * k, y - 6 * k);
     ctx.closePath();
   }
 
@@ -550,17 +557,21 @@ class Label {
    * @param {number} y
    */
   static renderLabelIcon(ctx, labelType, x, y) {
-    const size = 2 * svl.LABEL_ICON_RADIUS - 3;
+    const radius = svl.LABEL_ICON_RADIUS;
+    const size = 2 * radius - 3;
     const icon = window.labelIconCache[util.misc.getIconImagePaths(labelType).iconImagePath];
-    if (icon) ctx.drawImage(icon, x - svl.LABEL_ICON_RADIUS + 2, y - svl.LABEL_ICON_RADIUS + 2, size, size);
+    if (icon) ctx.drawImage(icon, x - radius + 2, y - radius + 2, size, size);
 
+    // The rings are a hairline just inside and just outside the icon's edge, so they're offsets from the radius
+    // rather than the fixed 15.3/16.2 they used to be — the radius moves with the UI scale now (#4838). The offsets
+    // and the stroke stay absolute, which is what keeps the outline the same weight at every icon size.
     ctx.lineWidth = 0.7;
     ctx.beginPath();
-    ctx.arc(x, y, 15.3, 0, 2 * Math.PI);
+    ctx.arc(x, y, radius - 1.7, 0, 2 * Math.PI);
     ctx.strokeStyle = 'black';
     ctx.stroke();
     ctx.beginPath();
-    ctx.arc(x, y, 16.2, 0, 2 * Math.PI);
+    ctx.arc(x, y, radius - 0.8, 0, 2 * Math.PI);
     ctx.strokeStyle = 'white';
     ctx.stroke();
   }
