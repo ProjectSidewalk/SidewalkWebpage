@@ -160,9 +160,10 @@ visiting `<your-computer-ip>:9000` (phone and computer on the same Wi-Fi; this o
 ### Merge requirements (branch protection)
 
 `develop` is branch-protected so a red build can't land (the failure mode that once shipped a migration that wouldn't
-apply). A PR can only merge once the **blocking CI checks pass** — currently **`Backend (compile + scalafmt)`** and
+apply). A PR can only merge once the **blocking CI checks pass** — currently **`Backend (compile + scalafmt)`**,
 **`Frontend (build)`** (which also runs ESLint, Stylelint, HTMLHint, and locale key-parity, so any frontend lint
-failure blocks the merge; the **`Evolutions lint`** check is being added to this set). The rule:
+failure blocks the merge), and **`Route reachability lint`**; the **`Evolutions lint`** job runs on every PR but is
+not yet a required check. The rule:
 
 - **Applies to everyone, maintainers included** — there is no admin bypass; it only ever stops a merge while CI is red.
 - **Does not require review approvals.** Tooling won't force a second person to sign off, so you can still open and
