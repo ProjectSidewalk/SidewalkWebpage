@@ -38,7 +38,6 @@
     <link href='@assets.path("vendor/bootstrap-accessibility/bootstrap-accessibility.css")' rel='stylesheet'>
 
     <script src='@assets.path("vendor/jquery/jquery-1.12.2.min.js")'></script>
-    <script src='@assets.path("vendor/jquery-ui/jquery-ui-1.12.1.min.js")'></script>
     <script src='@assets.path("vendor/bootstrap/js/bootstrap-3.1.1.min.js")'></script>
     <script src='@assets.path("vendor/bootstrap-accessibility/bootstrap-accessibility.min.js")'></script>
 
@@ -235,11 +234,14 @@
       });
     </script>
 
-    <script src='@assets.path("vendor/moment/moment-2.30.1.js")'></script>
-    <script src='@assets.path("vendor/moment/es.js")'></script>
-    <script src='@assets.path("vendor/moment/nl.js")'></script>
-    <script src='@assets.path("vendor/moment/zh-tw.js")'></script>
-    <script src='@assets.path("vendor/moment/en-nz.js")'></script>
+    @* moment and its locales are 50KB gz of parser-blocking script at the bottom of every page, and nothing reads
+       `moment` at parse time — updateTimestamps does all its work inside $(document).ready, which fires after every
+       deferred script (#4486). timestampLocalization.js itself stays blocking so the call below still resolves. *@
+    <script src='@assets.path("vendor/moment/moment-2.30.1.js")' defer></script>
+    <script src='@assets.path("vendor/moment/es.js")' defer></script>
+    <script src='@assets.path("vendor/moment/nl.js")' defer></script>
+    <script src='@assets.path("vendor/moment/zh-tw.js")' defer></script>
+    <script src='@assets.path("vendor/moment/en-nz.js")' defer></script>
     <script src='@assets.path("js/common/timestampLocalization.js")'></script>
     <script>updateTimestamps("@messages.lang.code");</script>
   </body>
