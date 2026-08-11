@@ -179,7 +179,7 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
-   * Get a list of n least recently checked pano ids that have not been viewed in the last 3 months.
+   * Get a list of n least recently checked pano ids that have not been checked in the last 3 months.
    *
    * Note: only getting panos from GSV for now; we haven't set up imagery checking for other sources yet
    * @param n Number of least recently checked panos to return.
