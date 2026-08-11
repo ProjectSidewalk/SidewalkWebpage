@@ -9,8 +9,10 @@ import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import service.PanoDataService.LiveImageryTtlDays
 import slick.dbio.DBIO
+import slick.jdbc.TransactionIsolation
 
 import java.time.OffsetDateTime
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -36,10 +38,17 @@ class PanoDataTableSpec extends PlaySpec with GuiceOneAppPerSuite {
   private val dbConfig                   = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
   private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 60.seconds)
 
-  private val cutoff: OffsetDateTime         = OffsetDateTime.now.minusDays(LiveImageryTtlDays)
-  private val sample: Seq[PanoData]          = run(panoDataTable.panoDataRecords.take(1000).result)
-  private val sampleIds: Set[String]         = sample.map(_.panoId).toSet
-  private val statuses: Map[String, Boolean] = run(panoDataTable.getReusableImageryStatus(sampleIds, cutoff))
+  private val cutoff: OffsetDateTime = OffsetDateTime.now.minusDays(LiveImageryTtlDays)
+
+  // Both reads happen in one repeatable-read transaction so they see the same snapshot: the exact-match assertion below
+  // compares them directly, and other suites run in parallel and write pano_data (AiSubmissionSpec inserts and deletes
+  // rows; savePanoInfo bumps last_checked), which would otherwise let a row shift between the two queries.
+  private val (sample, statuses) = run(
+    (for {
+      rows     <- panoDataTable.panoDataRecords.sortBy(_.panoId).take(1000).result
+      statuses <- panoDataTable.getReusableImageryStatus(rows.map(_.panoId).toSet, cutoff)
+    } yield (rows, statuses)).transactionally.withTransactionIsolation(TransactionIsolation.RepeatableRead)
+  )
 
   "PanoDataTable.getReusableImageryStatus" should {
     "return an answer for exactly the panos the reuse rule covers" in {

@@ -7,6 +7,7 @@ import models.label.LabelTable._
 import models.label.LabelTypeEnum.labelTypeToId
 import models.label.{Tag, _}
 import models.mission.{Mission, MissionTable, MissionType}
+import models.pano.PanoSource
 import models.pano.PanoSource.PanoSource
 import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.UiSource
@@ -394,7 +395,10 @@ class LabelServiceImpl @Inject() (
       else (Seq.empty[A], labels)
 
     // One query up front for the answers we can reuse, so the per-label lookups below skip the provider where they can.
-    panoDataService.getReusableImageryStatus(toCheck.map(_.panoId).toSet).flatMap { reusable =>
+    // Only GSV answers are reusable, and every batch is single-source (the label queries filter on the viewer's
+    // source), so asking about a Mapillary or Infra3d batch would spend a round trip to be told nothing.
+    val cacheablePanoIds: Set[String] = toCheck.collect { case l if l.panoSource == PanoSource.Gsv => l.panoId }.toSet
+    panoDataService.getReusableImageryStatus(cacheablePanoIds).flatMap { reusable =>
       def imageryExists(label: A): Future[Option[Boolean]] =
         reusable.get(label.panoId) match {
           case Some(exists) => Future.successful(Some(exists))
