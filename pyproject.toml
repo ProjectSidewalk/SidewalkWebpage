@@ -4,8 +4,9 @@
 [tool.pytest.ini_options]
 # Only collect the Python utility tests; keep pytest away from the Scala/JS test trees.
 testpaths = ["test/python"]
-# Put scripts/ on sys.path so tests can `import label_clustering` / `import check_streets_for_imagery` without packaging.
-pythonpath = ["scripts"]
+# Put scripts/ and tools/ on sys.path so tests can `import label_clustering` / `import verify_latlng_backfill`
+# without packaging.
+pythonpath = ["scripts", "tools"]
 python_files = ["test_*.py"]
 # Always measure correctness coverage of the scripts and fail the run if it regresses below the gate. Branch coverage
 # is on so both sides of every decision must be exercised, not just every line.

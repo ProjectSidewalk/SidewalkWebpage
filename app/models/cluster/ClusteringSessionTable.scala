@@ -60,6 +60,19 @@ trait ClusteringSessionTableRepository {
   def getRegionsToCluster: DBIO[Seq[Int]]
 
   /**
+   * Get every region that clustering could produce output for, whether or not its labels have changed.
+   *
+   * The query above compares label *membership*, so a change that moves labels the clusterer already knows about --
+   * an evolution that recomputes stored positions (#4818), a re-tuned clustering threshold -- flags no region at all
+   * and never gets picked up. This is the list to use when the positions themselves changed and everything has to be
+   * rebuilt. It is a superset of getRegionsToCluster: regions holding clusterable labels, plus regions reachable
+   * through existing cluster data (so a region whose labels have all become ineligible is still cleaned up).
+   *
+   * @return A sequence of region_ids, wrapped in a DBIO action
+   */
+  def getAllRegionsToCluster: DBIO[Seq[Int]]
+
+  /**
    * Returns labels that were placed by the specified user in the format needed for clustering.
    * @param regionId The region whose labels should be retrieved
    * @return A sequence of LabelToCluster objects wrapped in a DBIO action
@@ -118,23 +131,29 @@ class ClusteringSessionTable @Inject() (protected val dbConfigProvider: Database
   } yield (ser.regionId, us.userId, l.panoId, l.labelId, lt.labelType, lp.lat.ifNull(-1d), lp.lng.ifNull(-1d),
     l.severity)
 
-  def getRegionsToCluster: DBIO[Seq[Int]] = {
-    // Get the labels that are currently present in the API.
-    val labelsInApi = for {
-      cl  <- clusterLabels
-      l   <- labelsUnfiltered if cl.labelId === l.labelId
-      ser <- streetEdgeRegions if l.streetEdgeId === ser.streetEdgeId
-    } yield (ser.regionId, l.labelId)
+  // The labels that are currently present in the API, by the region their street belongs to now.
+  private def labelsInApiQuery = for {
+    cl  <- clusterLabels
+    l   <- labelsUnfiltered if cl.labelId === l.labelId
+    ser <- streetEdgeRegions if l.streetEdgeId === ser.streetEdgeId
+  } yield (ser.regionId, l.labelId)
 
-    // Find all mismatches between the list of labels above using an outer join.
+  def getRegionsToCluster: DBIO[Seq[Int]] = {
+    // Find all mismatches between the two label lists using an outer join.
     labelsForApiQuery
-      .joinFull(labelsInApi)
+      .joinFull(labelsInApiQuery)
       .on(_._4 === _._2)                               // FULL OUTER JOIN on label_id.
       .filter(x => x._1.isEmpty || x._2.isEmpty)       // WHERE no_api.label_id IS NULL OR in_api.label_id IS NULL.
       .map(x => x._1.map(_._1).ifNull(x._2.map(_._1))) // COALESCE(no_api.region_id, in_api.region_id).
       .distinct                                        // SELECT DISTINCT and flatten.
       .result
       .map(_.flatten)
+  }
+
+  def getAllRegionsToCluster: DBIO[Seq[Int]] = {
+    // Both sides of the mismatch join above, plus regions that hold a clustering session, so this is a superset of
+    // getRegionsToCluster by construction (that query can only return a region id one of those sides produced).
+    (labelsForApiQuery.map(_._1) ++ labelsInApiQuery.map(_._1) ++ clusteringSessions.map(_.regionId)).distinct.result
   }
 
   def getLabelsToClusterInRegion(regionId: Int): DBIO[Seq[LabelToCluster]] = {
