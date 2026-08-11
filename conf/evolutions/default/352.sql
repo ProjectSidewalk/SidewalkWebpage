@@ -9,11 +9,18 @@
 -- links. 'depth' rows hold positions measured from GSV depth data, better than any estimate, and are untouched.
 -- Rows without usable pano_data metadata keep 'approximation2', so computation_method stays honest about which
 -- estimator produced each stored position.
+--
+-- Not done here, and deliberately: label clusters are NOT invalidated. ClusteringSessionTable.getRegionsToCluster
+-- picks regions by comparing which labels *should* be clustered against which ones *are*, so moving a label the
+-- clusterer already knows about flags nothing, and neither the nightly ClusteringActor nor an admin /runClustering
+-- will revisit it (#4818 review). Forcing a full re-cluster means emptying clustering_session (cascades to cluster
+-- and cluster_label) so every region reads as unclustered -- but that also empties the clusters the Access Score and
+-- attribute APIs serve until each region is rebuilt, which is a deploy-time operator decision about a visible
+-- outage, not something an evolution should do to 54 schemas on its own. It is a rollout step, tracked on #4818.
 
 -- Backup of every row this evolution modifies, so the Down is a lossless restore-from-copy rather than a formula
 -- replay (179.sql precedent). computation_method is TEXT here so this table cannot block the enum rebuild below.
--- street_edge_id is captured for every backed-up label even though only AI-authored labels are reattached below,
--- keeping the restore envelope complete if a later sweep reattaches the rest (#4818 discussion).
+-- street_edge_id is captured for every backed-up label, since the reattachment below sweeps the whole population.
 CREATE TABLE old_label_point_position (
     label_point_id INT PRIMARY KEY REFERENCES label_point (label_point_id),
     label_id INT NOT NULL UNIQUE REFERENCES label (label_id),
@@ -127,12 +134,20 @@ WHERE label_point.label_point_id = new_positions.label_point_id;
 ALTER TABLE label_point
     ALTER COLUMN computation_method TYPE computation_method USING computation_method::computation_method;
 
--- Reattach AI-authored labels to the street nearest their corrected position. An AI label's street_edge_id was
--- chosen at submission time as the open street (tutorial included) nearest the estimated position
--- (ExploreService.submitAiLabelData -> LabelTable.getStreetEdgeIdClosestToLatLng), so it follows the position.
--- Human labels keep their street here pending the flip-rate measurement on #4818. The KNN prefilter narrows to 20
--- candidates by degree distance and the exact sphere distance picks among them, reproducing the app's uncapped
--- nearest-street ordering without a full per-label scan. The UUID is SidewalkUserTable.aiUserId.
+-- Reattach every backfilled label to the street nearest its corrected position. Both authorship paths pick
+-- street_edge_id at submission time as the open street (tutorial street included) nearest the *estimated* position --
+-- crowd labels since 8713a521e (Feb 2019) via ExploreService.insertLabel, AI labels via
+-- ExploreService.submitAiLabelData, both calling LabelTable.getStreetEdgeIdClosestToLatLng -- so the attachment
+-- follows the position for the whole population rather than the AI slice alone (#4818 review). Labels whose stored
+-- position was NULL are skipped: those took the audit task's own street at insert instead of a computed one, so
+-- their attachment never derived from the estimator and must not be replaced by a guess.
+--
+-- The exactness argument for the prefilter: PostGIS's <-> on geometry is planar distance in degrees, so it ranks by
+-- sqrt(dlat^2 + dlng^2) while the app ranks by true distance, which scales dlng by cos(latitude). A street can
+-- therefore only beat the degree-nearest one on the sphere if its degree distance is under 1/cos(latitude) times the
+-- minimum -- a factor of 2 at 60 degrees, past every deployed city. Fifty candidates is far more street edges than
+-- can pass within twice a label's nearest-street distance (metres to tens of metres) at any real street density, and
+-- the verifier's companion query re-derives every attachment with a ten-times-wider window (expect 0 disagreements).
 UPDATE label
 SET street_edge_id = nearest_street.street_edge_id
 FROM old_label_point_position
@@ -144,25 +159,26 @@ CROSS JOIN LATERAL (
         FROM street_edge
         WHERE street_edge.status = 'open'
         ORDER BY street_edge.geom <-> label_point.geom
-        LIMIT 20
+        LIMIT 50
     ) candidate_streets
     ORDER BY ST_DistanceSphere(candidate_streets.geom, label_point.geom)
     LIMIT 1
 ) nearest_street
 WHERE label.label_id = old_label_point_position.label_id
-    AND label.user_id = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4'
+    AND old_label_point_position.lat IS NOT NULL
+    AND old_label_point_position.lng IS NOT NULL
     AND label.street_edge_id <> nearest_street.street_edge_id;
 
 # --- !Downs
 -- Restore every modified row byte-for-byte from the backup. Labels created after the Up ran are absent from the
--- backup and correctly keep their live-computed values. The AI-user filter mirrors the Up so a human label whose
--- street changed through app activity between Up and Down cannot be clobbered. The enum keeps all three values --
--- the running app writes 'approximation3', and 349.sql's Down already declines the rebuild removing a value takes.
+-- backup and correctly keep their live-computed values. label.street_edge_id is insert-only in the app (no code path
+-- updates it), so restoring the backed-up value cannot overwrite anything that happened between Up and Down. The
+-- inequality is only there to skip no-op rows. The enum keeps all three values -- the running app writes
+-- 'approximation3', and 349.sql's Down already declines the rebuild that removing a value would take.
 UPDATE label
 SET street_edge_id = old_label_point_position.street_edge_id
 FROM old_label_point_position
 WHERE label.label_id = old_label_point_position.label_id
-    AND label.user_id = '51b0b927-3c8a-45b2-93de-bd878d1e5cf4'
     AND label.street_edge_id <> old_label_point_position.street_edge_id;
 
 UPDATE label_point

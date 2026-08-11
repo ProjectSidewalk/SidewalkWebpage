@@ -54,8 +54,9 @@ Companion invariants, run as psql one-liners alongside the parity check:
   WHERE ST_X(label_point.geom) IS DISTINCT FROM label_point.lng
       OR ST_Y(label_point.geom) IS DISTINCT FROM label_point.lat;
 
-  -- Street-flip measurement for the human-label reattachment decision on #4818 (read-only):
-  SELECT count(*) FILTER (WHERE nearest_street.street_edge_id <> label.street_edge_id) AS flipped, count(*) AS total
+  -- Every repositioned label hangs off its nearest open street (expect 0). The candidate window here is ten times
+  -- the evolution's, so a disagreement would also be the first evidence that fifty candidates is too few:
+  SELECT count(*)
   FROM old_label_point_position
   INNER JOIN label_point ON old_label_point_position.label_point_id = label_point.label_point_id
   INNER JOIN label ON old_label_point_position.label_id = label.label_id
@@ -66,11 +67,20 @@ Companion invariants, run as psql one-liners alongside the parity check:
           FROM street_edge
           WHERE street_edge.status = 'open'
           ORDER BY street_edge.geom <-> label_point.geom
-          LIMIT 20
+          LIMIT 500
       ) candidate_streets
       ORDER BY ST_DistanceSphere(candidate_streets.geom, label_point.geom)
       LIMIT 1
-  ) nearest_street;
+  ) nearest_street
+  WHERE old_label_point_position.lat IS NOT NULL AND old_label_point_position.lng IS NOT NULL
+      AND label.street_edge_id <> nearest_street.street_edge_id;
+
+  -- How many labels the reattachment moved, for the record (labels cluster at intersections, where streets are near
+  -- equidistant, so a flip rate around 10% is expected rather than alarming):
+  SELECT count(*) FILTER (WHERE label.street_edge_id <> old_label_point_position.street_edge_id) AS reattached,
+         count(*) AS total
+  FROM old_label_point_position
+  INNER JOIN label ON old_label_point_position.label_id = label.label_id;
 """
 
 import argparse
