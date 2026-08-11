@@ -167,6 +167,33 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
+   * Looks up the imagery-existence answers we can reuse for the given panos instead of asking the provider (#3004).
+   *
+   * A row qualifies when either:
+   *   - `expired` is true. Imagery loss is effectively permanent, and `CheckImageExpiryActor` re-checks expired panos
+   *     nightly to catch ones marked so incorrectly, so the foreground call only ever confirms what we know.
+   *   - `expired` is false and `last_checked` is at or after `liveCheckedSince`. Liveness *can* lapse at any moment, so
+   *     this side carries a TTL that bounds how long we'd keep handing out a pano that has since gone away.
+   *
+   * GSV only: Mapillary has no nightly expiry check behind it (`getPanoIdsToCheckExpiration` is GSV-only), so its
+   * foreground check is the only one there is and must keep running. Infra3d is never checked against a provider at
+   * all. Both simply get no cache entry here.
+   *
+   * @param panoIds          Panos to look up.
+   * @param liveCheckedSince Cutoff for reusing a non-expired result; older ones are re-checked.
+   * @return                 Pano ID -> whether its imagery exists, holding only the panos an answer is reusable for.
+   */
+  def getReusableImageryStatus(panoIds: Set[String], liveCheckedSince: OffsetDateTime): DBIO[Map[String, Boolean]] = {
+    panoDataRecords
+      .filter(_.panoId inSet panoIds)
+      .filter(_.source === PanoSource.Gsv)
+      .filter(pano => pano.expired || pano.lastChecked >= liveCheckedSince)
+      .map(pano => (pano.panoId, pano.expired))
+      .result
+      .map(_.map { case (panoId, expired) => panoId -> !expired }.toMap)
+  }
+
+  /**
    * Sets has_backup = true for the given pano, but only if it isn't already true.
    *
    * @param panoId The ID of the pano whose has_backup flag should be set.
