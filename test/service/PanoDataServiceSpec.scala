@@ -1,5 +1,6 @@
 package service
 
+import models.label.POV
 import models.utils.CommonUtils
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -101,5 +102,50 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
     val highRes = PanoDataService.toLatLng(47.6553, -122.3035, 3328, 4160, 13312, 6656, 237.5)
     lowRes._1 shouldBe (highRes._1 +- eps)
     lowRes._2 shouldBe (highRes._2 +- eps)
+  }
+
+  // Forward projection (calculatePovIfCentered + calculatePanoXYFromPov), the record-consistency math for #4842.
+  // Every expected value is pinned from sidewalk-panorama-tools' pov_replay.py — the NumPy port whose fidelity the
+  // era-replay study measured at 100% of 438k labels — not from running this implementation. Two fixtures are real
+  // production records: Teaneck label 14955's stored record reproducing its stored pano (5217, 4972), and Chicago
+  // label 65640's REPAIRED record reproducing its truth (6453, 4688) (record-staleness report §5-6).
+
+  test("a click at the canvas center is the viewport itself") {
+    val pov = PanoDataService.calculatePovIfCentered(POV(123.4, -17.25, 1.0), 360.0, 240.0)
+    pov.heading shouldBe (123.4 +- eps)
+    pov.pitch shouldBe (-17.25 +- eps)
+    PanoDataService.calculatePanoXYFromPov(pov, 100.0, 16384, 8192) shouldBe ((9257, 4881))
+  }
+
+  test("a real record reproduces its stored pano_x/pano_y (Teaneck 14955)") {
+    val pov = PanoDataService.calculatePovIfCentered(POV(298.25, -35.0, 1.0), 451.0, 142.0)
+    pov.heading shouldBe (312.7293509714128 +- 1e-6) // -47.27065 wrapped into [0, 360)
+    pov.pitch shouldBe (-19.252086018069306 +- 1e-6)
+    PanoDataService.calculatePanoXYFromPov(pov, 18.107881546020508, 16384, 8192) shouldBe ((5217, 4972))
+  }
+
+  test("a repaired record lands on the label's truth coordinate (Chicago 65640)") {
+    val pov = PanoDataService.calculatePovIfCentered(POV(155.9336, -15.0063, 3.0), 81.0, 195.0)
+    PanoDataService.calculatePanoXYFromPov(pov, 183.0481719970703, 16384, 8192) shouldBe ((6453, 4688))
+  }
+
+  test("pano x wraps at the seam instead of going out of range") {
+    // A corner click on a viewport just west of north, camera looking almost due north: x must wrap into range.
+    val pov = PanoDataService.calculatePovIfCentered(POV(359.5, -10.0, 2.0), 700.0, 460.0)
+    pov.heading shouldBe (26.307176630462052 +- 1e-6)
+    pov.pitch shouldBe (-24.403575993903466 +- 1e-6)
+    val (panoX, panoY) = PanoDataService.calculatePanoXYFromPov(pov, 0.25, 13312, 6656)
+    (panoX, panoY) shouldBe ((7620, 4230))
+    panoX should (be >= 0 and be < 13312)
+  }
+
+  test("the forward projection round-trips through calculatePovFromPanoXY") {
+    // Project a click to pano pixels, invert with the existing inverse: the label direction must come back
+    // (to within the half-pixel the integer pano coordinate quantizes away).
+    val pov          = PanoDataService.calculatePovIfCentered(POV(210.0, -22.0, 2.0), 500.0, 300.0)
+    val (px, py)     = PanoDataService.calculatePanoXYFromPov(pov, 47.5, 16384, 8192)
+    val roundTripped = PanoDataService.calculatePovFromPanoXY(px, py, 16384, 8192, 47.5)
+    roundTripped.heading shouldBe (pov.heading +- 0.05)
+    roundTripped.pitch shouldBe (pov.pitch +- 0.05)
   }
 }

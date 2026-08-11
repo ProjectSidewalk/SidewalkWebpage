@@ -592,7 +592,8 @@ class ExploreServiceImpl @Inject() (
       userId: String,
       auditTaskId: Int,
       taskStreetId: Int,
-      missionId: Int
+      missionId: Int,
+      pano: Option[PanoSubmission]
   ): DBIO[NewLabelData] = {
     // Get the timestamp for a new label being added to db, log an error if there is a problem w/ timestamp.
     val timeCreated: OffsetDateTime = label.timeCreated match {
@@ -607,6 +608,40 @@ class ExploreServiceImpl @Inject() (
       _lat <- point.lat
       _lng <- point.lng
     } yield gf.createPoint(new Coordinate(_lng, _lat))
+
+    // Record-consistency guard (#4842). The client derives pano_x/pano_y from this same viewport record at click
+    // time, so a record that fails to reproduce its own coordinate means a field went stale between click and
+    // submission — the bug that silently corrupted records for 18 months (2023-03 → 2024-09). Log-only by design:
+    // a false positive must never cost a contributor their label. Tutorial panos carry fabricated metadata and are
+    // skipped, as are submissions whose pano metadata hasn't arrived in this payload.
+    if (!label.tutorial) {
+      for {
+        panoData   <- pano
+        width      <- panoData.width
+        height     <- panoData.height
+        camHeading <- panoData.cameraHeading
+        if width > 0 && height > 0
+      } {
+        val labelPov =
+          PanoDataService.calculatePovIfCentered(
+            POV(point.heading, point.pitch, point.zoom),
+            point.canvasX.toDouble,
+            point.canvasY.toDouble
+          )
+        val (expectedX, expectedY) = PanoDataService.calculatePanoXYFromPov(labelPov, camHeading, width, height)
+        val dxPx                   = { val d = math.abs(point.panoX - expectedX); math.min(d, width - d) }
+        val mismatchDeg            = math.hypot(dxPx * 360.0 / width, (point.panoY - expectedY) * 180.0 / height)
+        if (mismatchDeg > PanoDataService.RECORD_MISMATCH_TOLERANCE_DEG) {
+          logger.warn(
+            s"Label record mismatch (#4842): user=$userId tempLabelId=${label.temporaryLabelId} " +
+              s"pano=${label.panoId} stored pano_x/y=(${point.panoX}, ${point.panoY}) " +
+              s"record replays to=($expectedX, $expectedY) mismatch=${f"$mismatchDeg%.3f"}deg " +
+              s"record=(h=${point.heading}, p=${point.pitch}, z=${point.zoom}, " +
+              s"canvas=${point.canvasX},${point.canvasY})"
+          )
+        }
+      }
+    }
 
     for {
       // Use label's lat/lng to determine street_edge_id. If lat/lng isn't defined, use audit_task's as backup.
@@ -792,7 +827,8 @@ class ExploreServiceImpl @Inject() (
             tagIds = Seq.empty[Int],
             point = labelPoint
           )
-          labelId <- insertLabel(labelSubmission, aiUserId, auditTaskId, streetEdgeId, missionId).map(_.labelId)
+          // No pano metadata: the AI record is built server-side from pano_x/pano_y, consistent by construction.
+          labelId <- insertLabel(labelSubmission, aiUserId, auditTaskId, streetEdgeId, missionId, None).map(_.labelId)
           _       <- labelAiInfoTable.save(
             LabelAiInfo(0, labelId, label.confidence, data.apiVersion, data.modelId, modelTrainingDate)
           )
@@ -867,7 +903,15 @@ class ExploreServiceImpl @Inject() (
                   } yield None
                 }
               // If there is no existing label with this temp id, insert a new one.
-              case None => insertLabel(label, userId, auditTaskId, streetEdgeId, missionId).map(Some(_))
+              case None =>
+                insertLabel(
+                  label,
+                  userId,
+                  auditTaskId,
+                  streetEdgeId,
+                  missionId,
+                  data.panos.find(_.panoId == label.panoId)
+                ).map(Some(_))
             }
           }
 
