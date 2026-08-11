@@ -45,10 +45,15 @@
 
 /* The callout is meant to shrink rather than overlap the control it points at (see the size() middleware in
    Onboarding's anchorMessageTo), but that guarantee is only as good as Floating UI being loaded — without it the box
-   falls back to the pano's top-left corner, over the menu. Hovering the menu lifts it past the callout so the user
-   can always read and reach what they are being asked to click. */
-#context-menu-holder:hover {
-  z-index: 1101;
+   falls back to the pano's top-left corner, over the menu. Hovering the menu drops the callout behind it so the user
+   can always read and reach what they are being asked to click.
+
+   The callout gives way rather than the menu lifting, because the menu's tooltips are appended to <body> and live in
+   the tooltip layer (~1030): a menu raised past that layer paints over every tooltip opened from it, and the menu is
+   hovered exactly when those tooltips are showing (#4850). The takeover message is excluded — it is centered over the
+   dimmer at z-index 1028, with no menu underneath to make room for. */
+#street-view-holder:has(#context-menu-holder:hover) #onboarding-message-holder:not(.onboarding-message-takeover) {
+  z-index: 2;
 }
 
 /* Flashes the message box's background to draw the user's attention when a new message is shown. */
