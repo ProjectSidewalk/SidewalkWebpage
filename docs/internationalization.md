@@ -85,12 +85,14 @@ orphans remain.
 2. **Register the locale** by adding it to `play.i18n.langs` in [`conf/application.conf`](../conf/application.conf).
 3. **Add the translated files:** backend as `conf/messages/messages.<lang>`, frontend as
    `public/locales/<lang>/<namespace>.json` (mirror the namespaces in `public/locales/en/`).
-4. **Add the moment.js locale** (for localized dates) if one exists for the language: drop the locale file into
-   `public/vendor/moment/` and add a `<script>` import in
-   [`app/views/common/main.scala.html`](../app/views/common/main.scala.html) alongside the existing per-locale imports
-   (`es.js`, `nl.js`, `zh-tw.js`, `en-nz.js`). We import locales individually to keep the bundle small. (There's an
-   open ticket, [#1258](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1258), about moving off moment.js —
-   don't take that on as part of adding a language.)
+4. **Add the moment.js locale** (for localized dates). Skipping this fails silently — dates just render in English —
+   which is how `de` and `pt-BR` went years without one. Download the [locale file](https://github.com/moment/moment/tree/develop/locale)
+   matching our moment version into `public/vendor/moment/`, then add the lowercased language code to
+   `momentLocaleFile` in [`app/views/common/main.scala.html`](../app/views/common/main.scala.html); the filename and
+   the name the file registers with moment are both that same lowercased code. Only the active language's locale is
+   sent to the browser, so adding one costs nobody but its own speakers. English needs no file (it's built into
+   moment). (There's an open ticket, [#1258](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1258), about
+   moving off moment.js — don't take that on as part of adding a language.)
 5. **Mind the `unit-distance` key.** In `common.json`, `unit-distance` (e.g. `"kilometers"` / `"miles"`) is **not**
    display text — it's a unit-*system* selector consumed by turf.js. For a new non-US language, leave it as
    `"kilometers"` (metric) rather than translating the word.
