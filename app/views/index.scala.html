@@ -112,7 +112,8 @@
             <source src='@assets.path("videos/segment-1-1.mp4")' type="video/mp4">
           </video>
           @* vid2/vid3 start hidden and only play once their tab is clicked (homepage.js switchToVideo calls play()),
-             so they don't autoplay and preload="none" keeps them from downloading on page load. *@
+             so they don't autoplay and preload="none" keeps them out of the page's load path. homepage.js
+             warmHiddenInstructionVideos downloads them shortly after load, so the tab switch is instant. *@
           <video id="vid2" width="800" playsinline muted loop preload="none" poster='@assets.path("images/segment-2.jpg")' class="visible-desktop ps-hidden">
             <source src='@assets.path("videos/segment-2.mp4")' type="video/mp4">
           </video>
@@ -311,58 +312,71 @@
     </div>
 
 
-    <script src='@assets.path("js/homepage.js")'></script>
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet">
-    <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
-    <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")'></script>
-    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.4.min.js")'></script>
+    @* Deferred: every reference below sits inside an appManager.ready callback, which runs off $(document).ready and so lands after all deferred scripts. i18next and its http backend are NOT re-included here — common/main.scala.html already loads both, deferred, on every page (#4486). *@
+    <script src='@assets.path("js/homepage.js")' defer></script>
+    <script src='@assets.path("js/common/utilitiesSidewalk.js")' defer></script>
+    <script src='@assets.path("js/common/share/ShareWidget.js")' defer></script>
+    <script src='@assets.path("js/LandingValidationGrid.js")' defer></script>
     <link href='@assets.path("css/choropleth.css")' rel="stylesheet">
     <link href='@assets.path("css/deployment-map.css")' rel="stylesheet">
     <link href='@assets.path("css/landing-validation-grid.css")' rel="stylesheet">
-    @* The grid cards' share chip + popover (.label-detail__share-*) are styled by css/common/share-widget.css,
-       which common/main.scala.html links on every page — nothing else here needs label-detail.css. *@
-    <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
-    <script src='@assets.path("js/common/utilitiesSidewalk.js")'></script>
-    <script src='@assets.path("js/common/share/ShareWidget.js")'></script>
-    <script src='@assets.path("js/LandingValidationGrid.js")'></script>
+    @* The grid cards' share chip + popover (.label-detail__share-*) are styled by css/common/share-widget.css, which common/main.scala.html links on every page — nothing else here needs label-detail.css. *@
 
     <script>
-      // Gets all translations before loading the maps.
+      // The map stack (mapbox-gl + mapbox-gl-language + turf + ps-map) is ~600KB gz — roughly 75% of this page's JS —
+      // for two maps that both sit well below the fold, so it's kept out of the page's load path entirely but pulled
+      // in on the visitor's first interaction (#4486) so it's loaded by the time a user scrolls to the map.
+      util.onFirstInteractionOrIdle(function () {
+        const mapboxCss = document.createElement('link');
+        mapboxCss.rel = 'stylesheet';
+        mapboxCss.href = '@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")';
+        document.head.appendChild(mapboxCss);
+
+        util.loadScriptsInOrder([
+          '@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")',
+          '@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")',
+          '@assets.path("vendor/turf/turf-7.3.4.min.js")',
+          '@assets.path("js/ps-map/build/ps-map.js")'
+        ]).then(function () {
+          // createPSMap reads translated strings, so it still waits on the app's i18next setup.
+          window.appManager.ready(function () {
+            // Create the choropleth map.
+            const choroplethParams = {
+              mapName: 'landing-choropleth',
+              mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
+              mapboxApiKey: '@commonData.mapboxApiKey',
+              mapboxLogoLocation: 'bottom-right',
+              scrollWheelZoom: false,
+              neighborhoodsURL: '/neighborhoods',
+              completionRatesURL: '/neighborhoods/completionRate',
+              neighborhoodFillMode: 'completionRate',
+              neighborhoodTooltip: 'completionRate'
+            };
+            createPSMap($, choroplethParams).then(m => {
+              window.choropleth = m[0];
+            });
+
+            // Create the deployment cities map.
+            const deploymentMapParams = {
+              mapName: 'deployment-map',
+              mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
+              mapboxApiKey: '@commonData.mapboxApiKey',
+              mapboxLogoLocation: 'bottom-left',
+              scrollWheelZoom: false,
+              loadCities: true,
+              logClicks: true
+            };
+            createPSMap($, deploymentMapParams).then(m => {
+              window.deploymentMap = m[0];
+            });
+          });
+        }).catch(e => console.error('Failed to load the landing page maps', e));
+      });
+
+      // Gets all translations before setting up the grid, which reads translated strings as it builds each card. The
+      // grid renders its skeletons immediately to reserve layout, then fills itself on the first interaction.
       window.appManager.ready(function () {
-        // Set up the validation grid of recently-found labels. It lazy-loads once scrolled near.
         new LandingValidationGrid(document.getElementById('landing-validation-container'));
-
-        // Create the choropleth map.
-        const choroplethParams = {
-          mapName: 'landing-choropleth',
-          mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
-          mapboxApiKey: '@commonData.mapboxApiKey',
-          mapboxLogoLocation: 'bottom-right',
-          scrollWheelZoom: false,
-          neighborhoodsURL: '/neighborhoods',
-          completionRatesURL: '/neighborhoods/completionRate',
-          neighborhoodFillMode: 'completionRate',
-          neighborhoodTooltip: 'completionRate'
-        };
-        createPSMap($, choroplethParams).then(m => {
-          window.choropleth = m[0];
-        });
-
-        // Create the deployment cities map.
-        const deploymentMapParams = {
-          mapName: 'deployment-map',
-          mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
-          mapboxApiKey: '@commonData.mapboxApiKey',
-          mapboxLogoLocation: 'bottom-left',
-          scrollWheelZoom: false,
-          loadCities: true,
-          logClicks: true
-        };
-        createPSMap($, deploymentMapParams).then(m => {
-          window.deploymentMap = m[0];
-        });
       });
     </script>
   </div>
