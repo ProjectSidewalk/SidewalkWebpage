@@ -16,3 +16,6 @@ addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.5.6")
 
 // Test coverage (scoverage). Used in a later CI phase with a low, ratcheting threshold.
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.4.4")
+
+// Content-fingerprints assets so `Assets.versioned` can serve them immutably; wired into the pipeline in build.sbt.
+addSbtPlugin("com.github.sbt" % "sbt-digest" % "2.1.0")

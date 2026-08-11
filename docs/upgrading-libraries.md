@@ -104,6 +104,9 @@ These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`]
   [Releases](https://github.com/scalameta/scalafmt/releases)
 - **sbt-scoverage: 2.3.1** — coverage, for a later CI phase with a ratcheting threshold.
   [Releases](https://github.com/scoverage/sbt-scoverage/releases)
+- **sbt-digest: 2.1.0** — content-fingerprints assets during `stage`/`dist` (see `build.sbt`). Note the org: the
+  sbt-web plugins moved from `com.typesafe.sbt` to `com.github.sbt`, and only the latter supports Play 3.
+  [Releases](https://github.com/sbt/sbt-digest/releases)
 - **scalatestplus-play: 7.0.1** (test scope) — ScalaTest + Play test helpers; backs the API specs under `test/`.
   [Releases](https://mvnrepository.com/artifact/org.scalatestplus.play/scalatestplus-play)
 

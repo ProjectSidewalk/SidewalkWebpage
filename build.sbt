@@ -75,6 +75,15 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala)
 // repo root) can only find it if it's copied into the distribution alongside the app.
 Universal / mappings ++= directory(baseDirectory.value / "scripts")
 
+// Content-fingerprint every asset (#4486): sbt-digest writes an `<md5>-<name>` copy, `assets.path(...)` resolves to
+// it, and `Assets.versioned` serves that `immutable` for a year instead of the one-hour default. Stage/dist only, so
+// local `run` is unaffected; originals stay in place, so hardcoded `/assets/...` paths still resolve (uncached).
+//
+// Covering everything, not just the render-blocking JS/CSS, is a correctness fix. Play's fallback ETag comes from an
+// asset's path plus a last-modified date that sbt's `packageTimestamp` freezes at 2010-01-01, so swapping a file's
+// bytes under the same name leaves cached copies revalidating to a 304 forever. Costs ~291MB per staged instance.
+Assets / pipelineStages := Seq(digest)
+
 // Stamp git metadata into the binary at build time (generates models.utils.BuildInfo), so the running app can report
 // exactly what code it was built from (surfaced on the admin pages' deployment-info strip). Deploy builds run from
 // full persistent clones on the deploy server, so real values are the norm; every value degrades gracefully to
