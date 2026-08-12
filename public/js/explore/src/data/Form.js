@@ -221,12 +221,14 @@ class Form {
       body: JSON.stringify(data),
     })
       .then((response) => {
+        // A failed submission (e.g. the server's JSON 500) must not fall through to the success handler below, which
+        // would clobber the task's audit_task_id with undefined and desync the next submission.
+        if (!response.ok) throw new Error(`Explore submission failed with status ${response.status}.`);
+
         // Mark panos as submitted only once the server has accepted them, so that after a failed POST their metadata
         // stays staged and rides along with the next submission instead of being lost (#4587).
-        if (response.ok) {
-          for (const pano of data.panos) {
-            this.#panoStore.getPanoData(pano.pano_id)?.setProperty('submitted', true);
-          }
+        for (const pano of data.panos) {
+          this.#panoStore.getPanoData(pano.pano_id)?.setProperty('submitted', true);
         }
         return response.json();
       })

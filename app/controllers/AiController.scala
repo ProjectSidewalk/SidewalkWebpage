@@ -49,13 +49,13 @@ class AiController @Inject() (
         errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
         submission => {
           if (configService.getAiLabelSubmissionEnabled) {
-            exploreService.savePanoInfo(Seq(submission.pano)).flatMap {
-              case true  => exploreService.submitAiLabelData(submission).map(_ => Ok("success!"))
-              case false =>
-                Future.successful(
-                  InternalServerError(Json.obj("status" -> "Error", "message" -> "Failed to save pano metadata."))
-                )
-            }
+            exploreService
+              .submitAiLabelData(submission)
+              .map(_ => Ok("success!"))
+              .recover { case e =>
+                logger.error("AI label submission failed; nothing from it was saved.", e)
+                InternalServerError(Json.obj("status" -> "Error", "message" -> "Failed to save AI label data."))
+              }
           } else {
             Future.successful(BadRequest("AI label submission is not enabled for this city."))
           }

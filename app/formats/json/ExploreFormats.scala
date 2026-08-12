@@ -326,6 +326,11 @@ object ExploreFormats {
       (JsPath \ "tutorial").read[Boolean] and
       (JsPath \ "pano").readNullable[PanoSubmission]
   )(LabelSubmission.apply _)
+    // A mismatched block would let a buggy client write one pano's metadata while committing a label that points at
+    // another — exactly the orphan #4587 exists to prevent — so refuse it before anything touches the database.
+    .filter(JsonValidationError("The label's pano block must describe the label's own pano_id."))(label =>
+      label.pano.forall(_.panoId == label.panoId)
+    )
 
   implicit val auditTaskReads: Reads[TaskSubmission] = (
     (JsPath \ "street_edge_id").read[Int] and

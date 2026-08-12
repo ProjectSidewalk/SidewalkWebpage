@@ -179,11 +179,16 @@ describe('Form pano submission staging', () => {
 
     test('keeps panos staged for the next submission when the server rejects the POST', async () => {
         window.fetch = jest.fn(() => Promise.resolve({ ok: false, json: async () => ({}) }));
+        const task = taskStub();
 
-        await form.submitData(taskStub());
+        await form.submitData(task);
 
         // Still staged: the next submission's payload will carry their metadata again.
         for (const pano of panos) expect(pano.getProperty('submitted')).toBe(false);
+        // And the success handler must not run against the error body — that would clobber the task's and the
+        // tracker's audit_task_id with undefined and desync every later submission.
+        expect(task.setProperty).not.toHaveBeenCalled();
+        expect(window.svl.tracker.setAuditTaskID).not.toHaveBeenCalled();
     });
 
     test('keeps panos staged when the POST fails at the network level', async () => {

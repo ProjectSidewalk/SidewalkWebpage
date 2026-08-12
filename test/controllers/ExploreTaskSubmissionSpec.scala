@@ -31,7 +31,9 @@ import scala.concurrent.duration._
  *   - a label's pano block alone (no `panos` batch) produces the pano_data, pano_link, and pano_history rows;
  *   - a label whose pano block fails to write (here: a lat outside pano_data's CHECK constraint) fails the whole
  *     submission, saving neither the label nor the pano;
- *   - a failing *viewed* pano costs nothing else in the submission;
+ *   - a label whose pano block describes a *different* pano is refused outright at validation;
+ *   - a failing *viewed* pano costs nothing else in the submission (the viewed batch is written off the request's
+ *     critical path, so those assertions poll);
  *   - resubmitting a pano refreshes its metadata without clearing anything: position fields take the newest value,
  *     absent fields leave existing values alone, NULL intrinsics (e.g. width) get filled in, and re-sent links and
  *     history entries don't duplicate (also the race-safety guarantee — concurrent duplicate submissions must not
@@ -292,23 +294,46 @@ class ExploreTaskSubmissionSpec extends PlaySpec with BeforeAndAfterAll with Eve
       panoRow(panoId) mustBe None
     }
 
+    "reject a label whose pano block describes a different pano" in {
+      val labelPanoId = s"$panoPrefix-mismatch-label"
+      val blockPanoId = s"$panoPrefix-mismatch-block"
+
+      // A mismatched block would commit a label pointing at one pano while writing another's pano_data row — the
+      // orphan #4587 exists to prevent — so validation refuses the submission before anything touches the database.
+      val resp = post(
+        submission(
+          labels = Seq(label(labelPanoId, tempLabelId = 6, pano = Some(pano(blockPanoId)))),
+          panos = Seq.empty
+        )
+      )
+
+      status(resp) mustBe BAD_REQUEST
+      labelCount(labelPanoId) mustBe 0
+      panoRow(blockPanoId) mustBe None
+    }
+
     "save the labels and the rest of the batch when a viewed pano's metadata write fails" in {
-      val badPanoId  = s"$panoPrefix-bad"
-      val goodPanoId = s"$panoPrefix-good"
+      val badPanoId    = s"$panoPrefix-bad"
+      val goodPanoId   = s"$panoPrefix-good"
+      val viewedPanoId = s"$panoPrefix-viewed"
 
       // The `panos` batch tracks panos merely viewed this session, so a CHECK-violating entry there is logged and
       // skipped without costing the labels (whose own pano rides the label) or the other viewed panos.
       val resp = post(
         submission(
           labels = Seq(label(goodPanoId, tempLabelId = 3, pano = Some(pano(goodPanoId)))),
-          panos = Seq(pano(badPanoId, lat = Some(999.0)), pano(goodPanoId))
+          panos = Seq(pano(badPanoId, lat = Some(999.0)), pano(viewedPanoId))
         )
       )
 
       status(resp) mustBe OK
       labelCount(goodPanoId) mustBe 1
+      panoRow(goodPanoId) mustBe Some((Some(41.87), Some(8192), None))
+      // The viewed batch is written off the request's critical path, so its rows may land after the response.
+      eventually(timeout(Span(10, Seconds)), interval(Span(200, Millis))) {
+        panoRow(viewedPanoId) mustBe Some((Some(41.87), Some(8192), None)) // A bad viewed pano doesn't sink the rest.
+      }
       panoRow(badPanoId) mustBe None
-      panoRow(goodPanoId) mustBe Some((Some(41.87), Some(8192), None)) // A bad viewed pano doesn't sink the rest.
     }
 
     "refresh pano metadata on resubmission without clearing or duplicating anything" in {
@@ -328,6 +353,11 @@ class ExploreTaskSubmissionSpec extends PlaySpec with BeforeAndAfterAll with Eve
         )
       )
       status(first) mustBe OK
+      // The viewed batch is written off the request's critical path; wait for the first write to land so the
+      // newest-position-wins assertion below can't race it.
+      eventually(timeout(Span(10, Seconds)), interval(Span(200, Millis))) {
+        panoRow(panoId) mustBe Some((Some(41.1), None, Some("123 Main St")))
+      }
 
       // Resubmit the same pano: a newer position, dimensions this time, no address, and the same link + history.
       val second = post(
@@ -342,7 +372,9 @@ class ExploreTaskSubmissionSpec extends PlaySpec with BeforeAndAfterAll with Eve
       status(second) mustBe OK
 
       // Newest position wins, the NULL width was filled in, and the absent address didn't clear the stored one.
-      panoRow(panoId) mustBe Some((Some(41.2), Some(4096), Some("123 Main St")))
+      eventually(timeout(Span(10, Seconds)), interval(Span(200, Millis))) {
+        panoRow(panoId) mustBe Some((Some(41.2), Some(4096), Some("123 Main St")))
+      }
       runDb(sql"SELECT count(*) FROM pano_link WHERE pano_id = $panoId".as[Int].head) mustBe 1
       runDb(sql"SELECT count(*) FROM pano_history WHERE location_curr_pano_id = $panoId".as[Int].head) mustBe 1
     }
