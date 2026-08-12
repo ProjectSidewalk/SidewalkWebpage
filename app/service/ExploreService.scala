@@ -98,6 +98,13 @@ trait ExploreService {
    * @param panos All pano-related data submitted from the Explore page front-end.
    */
   def savePanoInfo(panos: Seq[PanoSubmission]): Future[Unit]
+
+  /**
+   * Resolves cached positions for a set of panos — the position half of the minimap's forward "gold" crumbs (#4669).
+   * @param panoIds The pano ids to resolve, typically the current pano's link targets.
+   * @return (panoId, lat, lng) for each that already has a stored position; misses are omitted for the client to fetch.
+   */
+  def getPanoPositions(panoIds: Seq[String]): Future[Seq[(String, Double, Double)]]
   def insertComment(comment: AuditTaskComment): Future[Int]
 
   /**
@@ -669,6 +676,11 @@ class ExploreServiceImpl @Inject() (
       }).flatten
     }
     db.run(DBIO.sequence(panoSubmissionActions).map(_ => ()))
+  }
+
+  def getPanoPositions(panoIds: Seq[String]): Future[Seq[(String, Double, Double)]] = {
+    if (panoIds.isEmpty) Future.successful(Seq.empty)
+    else db.run(panoDataTable.getPositions(panoIds))
   }
 
   def insertComment(comment: AuditTaskComment): Future[Int] = {

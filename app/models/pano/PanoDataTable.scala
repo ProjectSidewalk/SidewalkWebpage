@@ -245,6 +245,24 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
+   * Fetches the cached lat/lng for whichever of the given panos already has one — the position half of the minimap's
+   * forward "gold" crumbs (#4669).
+   *
+   * A pano is omitted if it isn't in pano_data at all, or is present but without a stored position (lat/lng null — a
+   * link target nobody has stood on yet). The caller learns which targets still need a live fetch by their absence.
+   *
+   * @param panoIds The pano ids to resolve — typically the current pano's link targets.
+   * @return (panoId, lat, lng) for each requested pano that has a stored position.
+   */
+  def getPositions(panoIds: Seq[String]): DBIO[Seq[(String, Double, Double)]] = {
+    panoDataRecords
+      .filter(pano => (pano.panoId inSetBind panoIds) && pano.lat.isDefined && pano.lng.isDefined)
+      .map(pano => (pano.panoId, pano.lat, pano.lng))
+      .result
+      .map(_.collect { case (panoId, Some(lat), Some(lng)) => (panoId, lat, lng) })
+  }
+
+  /**
    * This method updates a given panorama's panoHistorySaved field.
    * @param panoId Unique ID for the panorama
    * @param panoHistorySaved Timestamp that this panorama was last viewed by any user

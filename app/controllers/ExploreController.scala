@@ -233,6 +233,24 @@ class ExploreController @Inject() (
   }
 
   /**
+   * Returns the cached lat/lng for the requested panos — typically the current pano's nav-arrow link targets — so the
+   * minimap can drop a forward "gold" crumb on each neighbor whose position we already know (#4669). Targets not yet in
+   * pano_data are omitted; the client live-fetches those and resubmits them, so coverage self-heals over time.
+   */
+  def getPanoPositions = cc.securityService.SecuredAction(parse.json) { implicit request =>
+    (request.body \ "panoIds").asOpt[Seq[String]] match {
+      case Some(panoIds) =>
+        exploreService.getPanoPositions(panoIds).map { positions =>
+          Ok(JsArray(positions.map { case (panoId, lat, lng) =>
+            Json.obj("panoId" -> panoId, "lat" -> lat, "lng" -> lng)
+          }))
+        }
+      case None =>
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Missing 'panoIds' array")))
+    }
+  }
+
+  /**
    * Helper function that updates database with all data submitted through the explore page.
    */
   private def processAuditTaskSubmissions(

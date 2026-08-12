@@ -129,6 +129,7 @@ GET     /adminValidate                                  controllers.ValidateCont
 GET     /tasks                                          controllers.ExploreController.getTasksInARegion(regionId: Int)
 GET     /routeTasks                                     controllers.ExploreController.getTasksInARoute(userRouteId: Int)
 POST    /task                                           controllers.ExploreController.post
+POST    /panoPositions                                  controllers.ExploreController.getPanoPositions
 POST    /validationTask                                 controllers.ValidateController.post
 POST    /galleryTask                                    controllers.GalleryController.post
 POST    /labelmap/validate                              controllers.ValidateController.postLabelMapValidation
