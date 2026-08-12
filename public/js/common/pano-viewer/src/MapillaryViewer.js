@@ -29,12 +29,16 @@ class MapillaryViewer extends PanoViewer {
     // TODO Need to define a set of options and then find a nice way to map them onto viewer-specific configs.
     const disableDefaultUi = 'disableDefaultUi' in panoOptions ? panoOptions.disableDefaultUi : true;
     const defaultNavigation = 'defaultNavigation' in panoOptions ? panoOptions.defaultNavigation : false;
+    const preloadNeighbors = 'preloadNeighbors' in panoOptions ? panoOptions.preloadNeighbors : false;
     let panoOpts = {
       dataProvider: createMapillaryChunkedDataProvider({ accessToken: panoOptions.accessToken }),
       container: canvasElem.id,
       component: {
         bearing: !disableDefaultUi, // Shows heading viewer orb thing
-        cache: false, // TODO should make this true on Explore
+        // Pre-downloads assets (texture + mesh) for panos linked to the current one, so nearby moves load fast.
+        // Only worth it when navigation mostly follows those links (Explore); a jump to an unrelated pano
+        // (Validate, label popups) never hits the cache, so the prefetch bandwidth would be wasted there.
+        cache: preloadNeighbors,
         direction: defaultNavigation, // Shows Mapillary's navigation arrows
         keyboard: false,
         marker: true, // TODO "Enable an interface for showing 3D markers in the viewer"
