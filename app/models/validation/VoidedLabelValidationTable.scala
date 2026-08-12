@@ -71,6 +71,13 @@ class VoidedLabelValidationTableDef(tag: slick.lifted.Tag)
   def oldRenderErrorPx: Rep[Double]                 = column[Double]("old_render_error_px")
   def labelAiAssessmentId: Rep[Option[Int]]         = column[Option[Int]]("label_ai_assessment_id")
 
+  // Verbatim capture of the vote's deleted label_history row (PK, now()-stamped edit_time, cleaned tags), used only
+  // by evolution 352's Downs to regenerate that row byte-identically. Deliberately outside the default projection:
+  // the app never reads them, and the mapped tuple already sits at Scala's 22-element ceiling.
+  def oldHistoryId: Rep[Option[Int]]                  = column[Option[Int]]("old_history_id")
+  def oldHistoryEditTime: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("old_history_edit_time")
+  def oldHistoryTags: Rep[Option[List[String]]]       = column[Option[List[String]]]("old_history_tags")
+
   def * = (labelValidationId, labelId, validationResult, oldSeverity, newSeverity, oldTags, newTags, userId, missionId,
     canvasX, canvasY, heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp, source, viewerType,
     oldRenderErrorPx, labelAiAssessmentId) <> ((VoidedLabelValidation.apply _).tupled, VoidedLabelValidation.unapply)

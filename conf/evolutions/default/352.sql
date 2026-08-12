@@ -203,6 +203,13 @@ CREATE TABLE voided_label_validation (
     -- The label_ai_assessment row that referenced this vote before its FK was nulled, if any (expected ~0:
     -- assessments attach to AI validations, which survive). Lets the Downs restore the linkage exactly.
     label_ai_assessment_id INTEGER,
+    -- The vote's label_history row, captured verbatim where one exists (all three NULL otherwise): the row's PK,
+    -- its now()-stamped edit_time, and its CLEANED tag list (new_tags above is the raw client list). The severity
+    -- and remaining fields are already carried by the vote's own columns, so with these three the Downs
+    -- regenerates the row byte-identically instead of approximating edit_time with end_timestamp.
+    old_history_id INTEGER,
+    old_history_edit_time TIMESTAMPTZ,
+    old_history_tags TEXT[],
     PRIMARY KEY (label_validation_id),
     FOREIGN KEY (label_id) REFERENCES label (label_id),
     FOREIGN KEY (user_id) REFERENCES sidewalk_login.sidewalk_user (user_id),
@@ -211,7 +218,10 @@ CREATE TABLE voided_label_validation (
     UNIQUE (user_id, label_id),
     CHECK (old_severity IS NULL OR old_severity BETWEEN 1 AND 3),
     CHECK (new_severity IS NULL OR new_severity BETWEEN 1 AND 3),
-    CHECK (old_render_error_px >= 30)
+    CHECK (old_render_error_px >= 30),
+    -- The three history-capture columns describe one row: all present or all absent.
+    CHECK ((old_history_id IS NULL) = (old_history_edit_time IS NULL)
+           AND (old_history_id IS NULL) = (old_history_tags IS NULL))
 );
 ALTER TABLE voided_label_validation OWNER TO sidewalk;
 
@@ -243,7 +253,8 @@ ALTER TABLE voided_label_history OWNER TO sidewalk;
 INSERT INTO voided_label_validation (label_validation_id, label_id, validation_result, user_id, mission_id, canvas_x,
                                      canvas_y, heading, pitch, zoom, canvas_height, canvas_width, start_timestamp,
                                      end_timestamp, source, old_severity, new_severity, old_tags, new_tags, viewer_type,
-                                     old_render_error_px, label_ai_assessment_id)
+                                     old_render_error_px, label_ai_assessment_id, old_history_id,
+                                     old_history_edit_time, old_history_tags)
 SELECT label_validation.label_validation_id, label_validation.label_id, label_validation.validation_result,
        label_validation.user_id, label_validation.mission_id, label_validation.canvas_x, label_validation.canvas_y,
        label_validation.heading, label_validation.pitch, label_validation.zoom, label_validation.canvas_height,
@@ -251,9 +262,21 @@ SELECT label_validation.label_validation_id, label_validation.label_id, label_va
        label_validation.source, label_validation.old_severity, label_validation.new_severity,
        label_validation.old_tags, label_validation.new_tags, label_validation.viewer_type,
        old_label_point_pov.old_render_error_px,
-       (SELECT MIN(label_ai_assessment.label_ai_assessment_id)
+       -- Scalar subqueries double as single-reference asserts: a vote referenced by two assessments, or carrying
+       -- two history rows, would break the archive's one-to-one recovery model -- Postgres then fails the
+       -- evolution loudly ("more than one row returned") instead of archiving half a mapping.
+       (SELECT label_ai_assessment.label_ai_assessment_id
         FROM label_ai_assessment
-        WHERE label_ai_assessment.label_validation_id = label_validation.label_validation_id)
+        WHERE label_ai_assessment.label_validation_id = label_validation.label_validation_id),
+       (SELECT label_history.label_history_id
+        FROM label_history
+        WHERE label_history.label_validation_id = label_validation.label_validation_id),
+       (SELECT label_history.edit_time
+        FROM label_history
+        WHERE label_history.label_validation_id = label_validation.label_validation_id),
+       (SELECT label_history.tags
+        FROM label_history
+        WHERE label_history.label_validation_id = label_validation.label_validation_id)
 FROM label_validation
 INNER JOIN old_label_point_pov ON label_validation.label_id = old_label_point_pov.label_id
 WHERE old_label_point_pov.old_render_error_px >= 30
@@ -265,8 +288,8 @@ WHERE old_label_point_pov.old_render_error_px >= 30
         WHERE role.role = 'AI'
     );
 
--- The voided votes' own history rows need no archiving: severity/tag edits ride on the votes' old_/new_ columns, so
--- the Downs regenerates these rows from the archive.
+-- The voided votes' own history rows are fully carried by the archive (the votes' old_/new_ columns plus the
+-- captured old_history_* triple), so the Downs regenerates them byte-identically.
 DELETE FROM label_history
 WHERE label_validation_id IN (SELECT label_validation_id FROM voided_label_validation);
 
@@ -387,29 +410,28 @@ WHERE user_stat.user_id IN (
 
 # --- !Downs
 
--- Restore the archived votes. ON CONFLICT: if a validator re-validated a label post-evolution, their new vote owns
--- the (user_id, label_id) slot -- it is the current judgment -- so the archived one stays out, and the history
--- regeneration and FK restore below are correspondingly guarded on the vote actually being back.
+-- Restore the archived votes. Deliberately NO ON CONFLICT: if a validator re-validated a label post-evolution,
+-- their new vote holds the (user_id, label_id) slot, and any conflict-handling here would have to silently discard
+-- an archived verdict -- data this project treats as sacrosanct. The plain INSERT makes that collision fail the
+-- rollback loudly (label_validation_user_id_label_id_unique) so a human decides which vote survives: delete the
+-- losing row, then re-run the Downs. Every statement below can therefore assume all archived votes are back.
 INSERT INTO label_validation (label_validation_id, label_id, validation_result, user_id, mission_id, canvas_x,
                               canvas_y, heading, pitch, zoom, canvas_height, canvas_width, start_timestamp,
                               end_timestamp, source, old_severity, new_severity, old_tags, new_tags, viewer_type)
 SELECT label_validation_id, label_id, validation_result, user_id, mission_id, canvas_x, canvas_y, heading, pitch,
        zoom, canvas_height, canvas_width, start_timestamp, end_timestamp, source, old_severity, new_severity,
        old_tags, new_tags, viewer_type
-FROM voided_label_validation
-ON CONFLICT (user_id, label_id) DO NOTHING;
+FROM voided_label_validation;
 
--- Regenerate the votes' history rows. The condition reproduces updateAndSaveLabelHistory's "did anything change"
--- check (only Agree submissions carry edits, and tags compare as sets), verified to reproduce the deleted rows
--- exactly on the dev data. edit_time is approximated by the vote's end_timestamp -- the original was stamped now()
--- at submission, moments later -- which preserves ordering against neighboring entries.
-INSERT INTO label_history (label_id, severity, tags, edited_by, edit_time, source, label_validation_id)
-SELECT label_id, new_severity, new_tags, user_id, end_timestamp, source, label_validation_id
+-- Regenerate the votes' history rows byte-identically from the captured triple: original PK (freed by the Ups and
+-- never reused by the sequence), original now()-stamped edit_time, and the cleaned tag list the row actually
+-- carried. Severity and the remaining fields ride on the vote's own columns.
+INSERT INTO label_history (label_history_id, label_id, severity, tags, edited_by, edit_time, source,
+                           label_validation_id)
+SELECT old_history_id, label_id, new_severity, old_history_tags, user_id, old_history_edit_time, source,
+       label_validation_id
 FROM voided_label_validation
-WHERE validation_result = 'Agree'
-    AND (old_severity IS DISTINCT FROM new_severity OR NOT (old_tags @> new_tags AND old_tags <@ new_tags))
-    AND EXISTS (SELECT 1 FROM label_validation
-                WHERE label_validation.label_validation_id = voided_label_validation.label_validation_id);
+WHERE old_history_id IS NOT NULL;
 
 -- Restore the consistency-pass rows exactly (IDs preserved -- they were freed by the Ups and the sequence never
 -- reuses them).
@@ -436,9 +458,7 @@ WHERE label.label_id = latest_history.label_id
 UPDATE label_ai_assessment
 SET label_validation_id = voided_label_validation.label_validation_id
 FROM voided_label_validation
-WHERE voided_label_validation.label_ai_assessment_id = label_ai_assessment.label_ai_assessment_id
-    AND EXISTS (SELECT 1 FROM label_validation
-                WHERE label_validation.label_validation_id = voided_label_validation.label_validation_id);
+WHERE voided_label_validation.label_ai_assessment_id = label_ai_assessment.label_ai_assessment_id;
 
 -- Recompute counts, correct, and user stats with the votes back -- the same derivations as the Ups, never a
 -- snapshot restore, so votes cast after the evolution keep their effect.
