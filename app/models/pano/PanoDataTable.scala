@@ -182,9 +182,8 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    *   - `expired` is false and `last_checked` is at or after `liveCheckedSince`. Liveness *can* lapse at any moment, so
    *     this side carries a TTL that bounds how long we'd keep handing out a pano that has since gone away.
    *
-   * Restricted to `PanoSource.providerCheckedSources`, because both branches lean on the nightly sweep: it is what
-   * re-checks expired panos to catch ones marked so incorrectly, and what keeps `last_checked` moving. Infra3d is
-   * never checked against a provider, so its columns don't reflect a real answer and it gets no cache entry here.
+   * Restricted to `PanoSource.providerCheckedSources`: Infra3d imagery is never asked about, so its `expired` and
+   * `last_checked` hold no real answer to reuse.
    *
    * @param panoIds          Panos to look up.
    * @param liveCheckedSince Cutoff for reusing a non-expired result; older ones are re-checked.

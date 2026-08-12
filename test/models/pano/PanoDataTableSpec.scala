@@ -7,7 +7,7 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
-import service.PanoDataService.LiveImageryTtlDays
+import service.PanoDataService.{LiveImageryTtlDays, MaxUnexpiredPanosPerSweep}
 import slick.dbio.DBIO
 import slick.jdbc.TransactionIsolation
 
@@ -140,13 +140,14 @@ class PanoDataTableSpec extends PlaySpec with GuiceOneAppPerSuite {
       )
       assume(dueMapillary > 0, "connected DB has no labeled Mapillary pano due for an expiry check")
 
-      // Drawn uncapped rather than reusing the sample above: on a GSV-heavy city every Mapillary pano can sit behind
-      // more than `sampleSize` staler GSV ones, so a capped draw would hide a regression instead of catching one.
-      val allDue = run(for {
-        unexpired <- panoDataTable.getPanoIdsToCheckExpiration(Int.MaxValue, expired = false)
-        expired   <- panoDataTable.getPanoIdsToCheckExpiration(Int.MaxValue, expired = true)
+      // Drawn at the sweep's own nightly cap rather than reusing the smaller sample above: on a GSV-heavy city a
+      // Mapillary pano can sit behind more than `sampleSize` staler GSV ones, and a pano beyond the real cap is one
+      // the sweep wouldn't have reached either.
+      val nightlyDraw = run(for {
+        unexpired <- panoDataTable.getPanoIdsToCheckExpiration(MaxUnexpiredPanosPerSweep, expired = false)
+        expired   <- panoDataTable.getPanoIdsToCheckExpiration(MaxUnexpiredPanosPerSweep, expired = true)
       } yield unexpired ++ expired)
-      allDue.map(_._2) must contain(PanoSource.Mapillary)
+      nightlyDraw.map(_._2) must contain(PanoSource.Mapillary)
     }
 
     "return nothing when asked for no panos" in {

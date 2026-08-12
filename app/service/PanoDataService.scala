@@ -16,7 +16,7 @@ import play.api.http.ContentTypes
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
-import service.PanoDataService.{getFov, ImageryCheckConcurrency, LiveImageryTtlDays}
+import service.PanoDataService.{getFov, ImageryCheckConcurrency, LiveImageryTtlDays, MaxUnexpiredPanosPerSweep}
 import slick.dbio.DBIO
 
 import java.io.{File, IOException}
@@ -28,6 +28,7 @@ import javax.crypto.spec.SecretKeySpec
 import javax.inject._
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 /**
  * Companion object with constants and functions that are shared throughout codebase, that shouldn't require injection.
@@ -48,6 +49,9 @@ object PanoDataService {
    * How many panos the nightly expiry sweep may have in flight at once (#4559).
    */
   val ImageryCheckConcurrency: Int = 10
+
+  /** Ceiling on the unexpired panos one nightly expiry sweep will check. */
+  val MaxUnexpiredPanosPerSweep: Int = 5000
 
   /**
    * Hacky fix to generate the FOV for an image. Determined experimentally.
@@ -563,7 +567,8 @@ class PanoDataServiceImpl @Inject() (
       for {
         // Choose a bunch of panos that haven't been checked in the past 3 months to check.
         nPanos: Int <- panoDataTable.countCheckablePanosWithLabels
-        nUnexpiredPanosToCheck: Int = Math.max(minPanosToCheck, Math.min(5000, (0.05 * nPanos).toInt))
+        nUnexpiredPanosToCheck: Int =
+          Math.max(minPanosToCheck, Math.min(MaxUnexpiredPanosPerSweep, (0.05 * nPanos).toInt))
         panosToCheck: Seq[(String, PanoSource)] <- panoDataTable
           .getPanoIdsToCheckExpiration(nUnexpiredPanosToCheck, expired = false)
         _ = logger.info(s"Checking ${panosToCheck.length} unexpired panos.")
@@ -592,7 +597,14 @@ class PanoDataServiceImpl @Inject() (
    */
   private def checkImageryBounded(panos: Seq[(String, PanoSource)]): Future[Seq[Option[Boolean]]] = {
     Source(panos.toVector)
-      .mapAsyncUnordered(ImageryCheckConcurrency) { case (panoId, source) => panoExists(panoId, source) }
+      .mapAsyncUnordered(ImageryCheckConcurrency) { case (panoId, source) =>
+        // One bad pano must not abort the sweep: the stream's default supervision would drop every pano not yet
+        // pulled. The providers recover their own exceptions, so this only catches a throw before their Future exists.
+        Future(panoExists(panoId, source)).flatten.recover { case NonFatal(e) =>
+          logger.warn(s"Imagery check for $panoId threw; treating as inconclusive.", e)
+          None
+        }
+      }
       .runWith(Sink.seq)
   }
 
